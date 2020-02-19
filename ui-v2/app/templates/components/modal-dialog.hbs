@@ -6,13 +6,13 @@
     <div>
       <header>
         <label for="modal_close">Close</label>
-        {{#yield-slot name='header'}}{{yield}}{{/yield-slot}}
+        <YieldSlot @name="header">{{yield}}</YieldSlot>
       </header>
       <div>
-        {{#yield-slot name='body'}}{{yield}}{{/yield-slot}}
+        <YieldSlot @name="body">{{yield}}</YieldSlot>
       </div>
       <footer>
-        {{#yield-slot name='actions' params=(block-params (action 'close'))}}{{yield}}{{/yield-slot}}
+        <YieldSlot @name="actions" @params={{block-params (action "close")}}>{{yield}}</YieldSlot>
       </footer>
     </div>
   </div>

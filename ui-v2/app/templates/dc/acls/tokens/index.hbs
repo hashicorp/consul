@@ -3,49 +3,47 @@
 {{else}}
   {{title 'Access Controls'}}
 {{/if}}
-{{#app-view class=(concat 'token ' (if (and isEnabled (not isAuthorized)) 'edit' 'list')) loading=isLoading authorized=isAuthorized enabled=isEnabled}}
-  {{#block-slot name='notification' as |status type subject|}}
+<AppView @class={{concat "token " (if (and isEnabled (not isAuthorized)) "edit" "list")}} @loading={{isLoading}} @authorized={{isAuthorized}} @enabled={{isEnabled}}>
+  <BlockSlot @name="notification" as |status type subject|>
     {{partial 'dc/acls/tokens/notifications'}}
-  {{/block-slot}}
-  {{#block-slot name='header'}}
+  </BlockSlot>
+  <BlockSlot @name="header">
     <h1>
       Access Controls
     </h1>
 {{#if isAuthorized }}
     {{partial 'dc/acls/nav'}}
 {{/if}}
-  {{/block-slot}}
-  {{#block-slot name='disabled'}}
+  </BlockSlot>
+  <BlockSlot @name="disabled">
     {{partial 'dc/acls/disabled'}}
-  {{/block-slot}}
-  {{#block-slot name='authorization'}}
+  </BlockSlot>
+  <BlockSlot @name="authorization">
     {{partial 'dc/acls/authorization'}}
-  {{/block-slot}}
-  {{#block-slot name='actions'}}
+  </BlockSlot>
+  <BlockSlot @name="actions">
       <a data-test-create href="{{href-to 'dc.acls.tokens.create'}}" class="type-create">Create</a>
-  {{/block-slot}}
-  {{#block-slot name='content'}}
+  </BlockSlot>
+  <BlockSlot @name="content">
 {{#if (gt items.length 0) }}
     <form class="filter-bar">
-      {{freetext-filter searchable=searchable value=s placeholder="Search"}}
+      <FreetextFilter @searchable={{searchable}} @value={{s}} @placeholder="Search" />
     </form>
 {{/if}}
 {{#if (token/is-legacy items)}}
     <p data-test-notification-update class="notice info"><strong>Update.</strong> We have upgraded our ACL System to allow the creation of reusable policies that can be applied to tokens. Read more about the changes and how to upgrade legacy tokens in our <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
 {{/if}}
-    {{#changeable-set dispatcher=searchable}}
-      {{#block-slot name='set' as |filtered|}}
-        {{#tabular-collection
-            items=(sort-by 'CreateTime:desc' filtered) as |item index|
-        }}
-          {{#block-slot name='header'}}
+    <ChangeableSet @dispatcher={{searchable}}>
+      <BlockSlot @name="set" as |filtered|>
+        <TabularCollection @items={{sort-by "CreateTime:desc" filtered}} as |item index|>
+          <BlockSlot @name="header">
               <th>Accessor ID</th>
               <th>Scope</th>
               <th>Description</th>
               <th>Roles &amp; Policies</th>
               <th>&nbsp;</th>
-          {{/block-slot}}
-          {{#block-slot name='row'}}
+          </BlockSlot>
+          <BlockSlot @name="row">
               <td data-test-token="{{item.AccessorID}}" class={{if (eq item.AccessorID token.AccessorID) 'me' }}>
                   <a href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>{{truncate item.AccessorID 8 false}}</a>
               </td>
@@ -67,18 +65,13 @@
 {{#if (eq item.AccessorID token.AccessorID)}}
               <td>Your token</td>
 {{/if}}
-          {{/block-slot}}
-          {{#block-slot name='actions' as |index change checked|}}
-            {{#popover-menu
-              expanded=(if (eq checked index) true false)
-              onchange=(action change index)
-              keyboardAccess=false
-              submenus=(array 'logout' 'use' 'delete')
-            }}
-              {{#block-slot name='trigger'}}
+          </BlockSlot>
+          <BlockSlot @name="actions" as |index change checked|>
+            <PopoverMenu @expanded={{if (eq checked index) true false}} @onchange={{action change index}} @keyboardAccess={{false}} @submenus={{array "logout" "use" "delete"}}>
+              <BlockSlot @name="trigger">
                 More
-              {{/block-slot}}
-              {{#block-slot name='menu' as |confirm send keypressClick|}}
+              </BlockSlot>
+              <BlockSlot @name="menu" as |confirm send keypressClick|>
                   <li role="none">
                     <a data-test-edit role="menuitem" tabindex="-1" href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>Edit</a>
                   </li>
@@ -161,16 +154,16 @@
                     </div>
                   </li>
 {{/unless}}
-              {{/block-slot}}
-            {{/popover-menu}}
-          {{/block-slot}}
-        {{/tabular-collection}}
-      {{/block-slot}}
-      {{#block-slot name='empty'}}
+              </BlockSlot>
+            </PopoverMenu>
+          </BlockSlot>
+        </TabularCollection>
+      </BlockSlot>
+      <BlockSlot @name="empty">
         <p>
           There are no Tokens.
         </p>
-      {{/block-slot}}
-    {{/changeable-set}}
-  {{/block-slot}}
-{{/app-view}}
+      </BlockSlot>
+    </ChangeableSet>
+  </BlockSlot>
+</AppView>

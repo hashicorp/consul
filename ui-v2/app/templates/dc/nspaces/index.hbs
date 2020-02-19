@@ -1,35 +1,33 @@
 {{title 'Namespaces'}}
-{{#app-view class="nspace list" loading=isLoading}}
-  {{#block-slot name='notification' as |status type subject|}}
+<AppView @class="nspace list" @loading={{isLoading}}>
+  <BlockSlot @name="notification" as |status type subject|>
     {{partial 'dc/nspaces/notifications'}}
-  {{/block-slot}}
-  {{#block-slot name='header'}}
+  </BlockSlot>
+  <BlockSlot @name="header">
     <h1>
       Namespaces
     </h1>
-  {{/block-slot}}
-  {{#block-slot name='actions'}}
+  </BlockSlot>
+  <BlockSlot @name="actions">
       <a data-test-create href="{{href-to 'dc.nspaces.create'}}" class="type-create">Create</a>
-  {{/block-slot}}
-  {{#block-slot name='content'}}
+  </BlockSlot>
+  <BlockSlot @name="content">
 {{#if (gt items.length 0) }}
     <form class="filter-bar">
-      {{freetext-filter searchable=searchable value=s placeholder="Search"}}
+      <FreetextFilter @searchable={{searchable}} @value={{s}} @placeholder="Search" />
     </form>
 {{/if}}
-    {{#changeable-set dispatcher=searchable}}
-      {{#block-slot name='set' as |filtered|}}
-        {{#tabular-collection
-            items=filtered as |item index|
-        }}
-          {{#block-slot name='header'}}
+    <ChangeableSet @dispatcher={{searchable}}>
+      <BlockSlot @name="set" as |filtered|>
+        <TabularCollection @items={{filtered}} as |item index|>
+          <BlockSlot @name="header">
               <th>Name</th>
               <th>Description</th>
 {{#if (env 'CONSUL_ACLS_ENABLED')}}
               <th>Roles &amp; Policies</th>
 {{/if}}
-          {{/block-slot}}
-          {{#block-slot name='row'}}
+          </BlockSlot>
+          <BlockSlot @name="row">
 {{#if item.DeletedAt}}
               <td class="no-actions" colspan="3">
                 <p>
@@ -51,13 +49,13 @@
               </td>
   {{/if}}
 {{/if}}
-          {{/block-slot}}
-          {{#block-slot name='actions' as |index change checked|}}
-            {{#popover-menu expanded=(if (eq checked index) true false) onchange=(action change index) keyboardAccess=false}}
-              {{#block-slot name='trigger'}}
+          </BlockSlot>
+          <BlockSlot @name="actions" as |index change checked|>
+            <PopoverMenu @expanded={{if (eq checked index) true false}} @onchange={{action change index}} @keyboardAccess={{false}}>
+              <BlockSlot @name="trigger">
                 More
-              {{/block-slot}}
-              {{#block-slot name='menu' as |confirm send keypressClick|}}
+              </BlockSlot>
+              <BlockSlot @name="menu" as |confirm send keypressClick|>
                   <li role="none">
                     <a data-test-edit role="menuitem" tabindex="-1" href={{href-to 'dc.nspaces.edit' item.Name}}>Edit</a>
                   </li>
@@ -86,16 +84,16 @@
                     </div>
                   </li>
 {{/if}}
-              {{/block-slot}}
-            {{/popover-menu}}
-          {{/block-slot}}
-        {{/tabular-collection}}
-      {{/block-slot}}
-      {{#block-slot name='empty'}}
+              </BlockSlot>
+            </PopoverMenu>
+          </BlockSlot>
+        </TabularCollection>
+      </BlockSlot>
+      <BlockSlot @name="empty">
         <p>
           There are no Namespaces.
         </p>
-      {{/block-slot}}
-    {{/changeable-set}}
-  {{/block-slot}}
-{{/app-view}}
+      </BlockSlot>
+    </ChangeableSet>
+  </BlockSlot>
+</AppView>

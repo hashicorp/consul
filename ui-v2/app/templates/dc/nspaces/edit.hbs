@@ -3,16 +3,16 @@
 {{else}}
   {{title 'Edit Namespace'}}
 {{/if}}
-{{#app-view class="nspace edit" loading=isLoading}}
-  {{#block-slot name='notification' as |status type|}}
+<AppView @class="nspace edit" @loading={{isLoading}}>
+  <BlockSlot @name="notification" as |status type|>
     {{partial 'dc/nspaces/notifications'}}
-  {{/block-slot}}
-  {{#block-slot name='breadcrumbs'}}
+  </BlockSlot>
+  <BlockSlot @name="breadcrumbs">
     <ol>
         <li><a data-test-back href={{href-to 'dc.nspaces'}}>All Namespaces</a></li>
     </ol>
-  {{/block-slot}}
-  {{#block-slot name='header'}}
+  </BlockSlot>
+  <BlockSlot @name="header">
     <h1>
 {{#if create }}
       New Namespace
@@ -20,10 +20,10 @@
       Edit {{item.Name}}
 {{/if}}
     </h1>
-  {{/block-slot}}
-  {{#block-slot name='actions'}}
-  {{/block-slot}}
-  {{#block-slot name='content'}}
+  </BlockSlot>
+  <BlockSlot @name="actions">
+  </BlockSlot>
+  <BlockSlot @name="content">
     {{ partial 'dc/nspaces/form'}}
-  {{/block-slot}}
-{{/app-view}}
+  </BlockSlot>
+</AppView>

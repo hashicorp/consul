@@ -1,9 +1,9 @@
 {{yield}}
 <div class="stats-card">
   <header>
-    {{#yield-slot name='mini-stat'}}{{yield}}{{/yield-slot}}
-    {{#yield-slot name='header'}}{{yield}}{{/yield-slot}}
-    {{#yield-slot name='icon'}}{{yield}}{{/yield-slot}}
+    <YieldSlot @name="mini-stat">{{yield}}</YieldSlot>
+    <YieldSlot @name="header">{{yield}}</YieldSlot>
+    <YieldSlot @name="icon">{{yield}}</YieldSlot>
   </header>
-  {{#yield-slot name='body'}}{{yield}}{{/yield-slot}}
+  <YieldSlot @name="body">{{yield}}</YieldSlot>
 </div>

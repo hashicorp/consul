@@ -1,4 +1,4 @@
 {{!<form>}}
-    {{freetext-filter searchable=searchable value=search placeholder="Search by name/token"}}
-    {{radio-group keyboardAccess=true name="type" value=type items=filters onchange=(action onchange)}}
+    <FreetextFilter @searchable={{searchable}} @value={{search}} @placeholder="Search by name/token" />
+    <RadioGroup @keyboardAccess={{true}} @name="type" @value={{type}} @items={{filters}} @onchange={{action onchange}} />
 {{!</form>}}

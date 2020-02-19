@@ -1,15 +1,15 @@
-{{#feedback-dialog type='inline'}}
-  {{#block-slot name='action' as |success error|}}
-    {{#copy-button success=(action success) error=(action error) clipboardText=copy title=(concat 'Copy ' name ' to the clipboard')}}{{#if hasBlock }}{{yield}}{{else}}{{value}}{{/if}}{{/copy-button}}
-  {{/block-slot}}
-  {{#block-slot name='success' as |transition|}}
+<FeedbackDialog @type="inline">
+  <BlockSlot @name="action" as |success error|>
+    <CopyButton @success={{action success}} @error={{action error}} @clipboardText={{copy}} @title={{concat "Copy " name " to the clipboard"}}>{{#if hasBlock }}{{yield}}{{else}}{{value}}{{/if}}</CopyButton>
+  </BlockSlot>
+  <BlockSlot @name="success" as |transition|>
     <p class={{transition}}>
       Copied {{name}}!
     </p>
-  {{/block-slot}}
-  {{#block-slot name='error' as |transition|}}
+  </BlockSlot>
+  <BlockSlot @name="error" as |transition|>
     <p class={{transition}}>
       Sorry, something went wrong!
     </p>
-  {{/block-slot}}
-{{/feedback-dialog}}
+  </BlockSlot>
+</FeedbackDialog>
