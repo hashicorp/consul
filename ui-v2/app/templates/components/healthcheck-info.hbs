@@ -2,8 +2,8 @@
   <span title="No Healthchecks" class="zero">0</span>
 {{else}}
   <dl class="healthcheck-info">
-      {{healthcheck-status width=passingWidth name='passing' value=passing}}
-      {{healthcheck-status width=warningWidth name='warning' value=warning}}
-      {{healthcheck-status width=criticalWidth name='critical' value=critical}}
+      <HealthcheckStatus @width={{passingWidth}} @name="passing" @value={{passing}} />
+      <HealthcheckStatus @width={{warningWidth}} @name="warning" @value={{warning}} />
+      <HealthcheckStatus @width={{criticalWidth}} @name="critical" @value={{critical}} />
   </dl>
 {{/if}}

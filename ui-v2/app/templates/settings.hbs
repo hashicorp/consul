@@ -1,12 +1,12 @@
 {{title "Settings"}}
-{{#hashicorp-consul id="wrapper" permissions=permissions dcs=dcs dc=dc nspaces=nspaces nspace=nspace}}
-  {{#app-view class="settings show"}}
-    {{#block-slot name='header'}}
+<HashicorpConsul @id="wrapper" @permissions={{permissions}} @dcs={{dcs}} @dc={{dc}} @nspaces={{nspaces}} @nspace={{nspace}}>
+  <AppView @class="settings show">
+    <BlockSlot @name="header">
       <h1>
         Settings
       </h1>
-    {{/block-slot}}
-    {{#block-slot name='content'}}
+    </BlockSlot>
+    <BlockSlot @name="content">
       <div class="notice info">
         <h3>Local Storage</h3>
         <p>
@@ -38,6 +38,6 @@
         </fieldset>
       {{/if}}
       </form>
-    {{/block-slot}}
-  {{/app-view}}
-{{/hashicorp-consul}}
+    </BlockSlot>
+  </AppView>
+</HashicorpConsul>

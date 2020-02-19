@@ -5,7 +5,7 @@
     <fieldset>
         <label class="type-text">
             <span>SecretID or Token</span>
-            {{input type='password' value=secret name="secret" placeholder="SecretID or Token"}}
+            <Input @type="password" @value={{secret}} @name="secret" placeholder="SecretID or Token" />
         </label>
     </fieldset>
     {{! authorize is in the routes/dc/acls.js route }}

@@ -2,7 +2,7 @@
 {{yield}}
 <div>
   <header>
-    {{#yield-slot name='header'}}{{yield}}{{/yield-slot}}
+    <YieldSlot @name="header">{{yield}}</YieldSlot>
   </header>
-  {{#yield-slot name='content'}}{{yield}}{{/yield-slot}}
+  <YieldSlot @name="content">{{yield}}</YieldSlot>
 </div>

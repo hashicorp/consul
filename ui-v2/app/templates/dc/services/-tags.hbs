@@ -1,5 +1,5 @@
 {{#if (gt item.Tags.length 0) }}
-{{tag-list items=item.Tags}}
+<TagList @items={{item.Tags}} />
 {{else}}
   <p>
     There are no tags.
