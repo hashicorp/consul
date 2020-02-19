@@ -43,6 +43,10 @@ table:not(.sessions) tbody tr {
 table:not(.sessions) td:first-child {
   padding: 0;
 }
+
+table:not(.sessions) tbody tr:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
 /* Header Tooltips/Icon*/
 th {
   overflow: visible;
