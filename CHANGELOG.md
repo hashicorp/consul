@@ -8,6 +8,7 @@ BUGFIXES:
 
 * acl: **(Consul Enterprise only)** Fixed an issue that prevented remote policy and role resolution from working when namespace policy or role defaults were configured.
 * dns: Fixed an issue that could cause the DNS server to consume excessive CPU resources when trying to parse IPv6 recursor addresses: [[GH-6120](https://github.com/hashicorp/consul/issues/6120)]
+* dns: Fixed an issue that caused Consul to setup a root zone handler when no `alt_domain` was configured. [[GH-7323](https://github.com/hashicorp/consul/pull/7323)]
 * sessions: Fixed an issue that was causing deletions of a non-existent session to return a 500 when ACLs were enabled. [[GH-6840](https://github.com/hashicorp/consul/issues/6840)]
 * xds: Fix envoy retryOn behavior when multiple behaviors are configured [[GH-7280](https://github.com/hashicorp/consul/pull/7280)]
 * xds: Mesh Gateway fixes to prevent configuring extra clusters and for properly handling a service-resolvers default subset. [[GH-7294](https://github.com/hashicorp/consul/pull/7294)]
