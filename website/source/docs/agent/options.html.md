@@ -1830,8 +1830,8 @@ to the old fragment -->
   facility messages are sent. By default, `LOCAL0` will be used.
 
 * <a name="tls_min_version"></a><a href="#tls_min_version">`tls_min_version`</a> Added in Consul
-  0.7.4, this specifies the minimum supported version of TLS. Accepted values are "tls10", "tls11"
-  or "tls12". This defaults to "tls12". WARNING: TLS 1.1 and lower are generally considered less
+  0.7.4, this specifies the minimum supported version of TLS. Accepted values are "tls10", "tls11",
+  "tls12", or "tls13". This defaults to "tls12". WARNING: TLS 1.1 and lower are generally considered less
   secure; avoid using these if possible.
 
 * <a name="tls_cipher_suites"></a><a href="#tls_cipher_suites">`tls_cipher_suites`</a> Added in Consul
