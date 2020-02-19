@@ -201,8 +201,10 @@ func (t *NetTransport) PacketCh() <-chan *Packet {
 }
 
 // See IngestionAwareTransport.
-func (t *NetTransport) IngestPacket(conn net.Conn, addr net.Addr, now time.Time) error {
-	defer conn.Close()
+func (t *NetTransport) IngestPacket(conn net.Conn, addr net.Addr, now time.Time, shouldClose bool) error {
+	if shouldClose {
+		defer conn.Close()
+	}
 
 	// Copy everything from the stream into packet buffer.
 	var buf bytes.Buffer

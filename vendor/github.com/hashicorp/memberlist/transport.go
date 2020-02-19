@@ -84,8 +84,8 @@ func (a *Address) String() string {
 
 type IngestionAwareTransport interface {
 	Transport
-	// IngestPacket pulls a single packet off the conn and closes it.
-	IngestPacket(conn net.Conn, addr net.Addr, now time.Time) error
+	// IngestPacket pulls a single packet off the conn, and only closes it if shouldClose is true.
+	IngestPacket(conn net.Conn, addr net.Addr, now time.Time, shouldClose bool) error
 	// IngestStream hands off the conn to the transport and doesn't close it.
 	IngestStream(conn net.Conn) error
 }
@@ -102,12 +102,12 @@ type shimNodeAwareTransport struct {
 
 var _ NodeAwareTransport = (*shimNodeAwareTransport)(nil)
 
-func (t *shimNodeAwareTransport) IngestPacket(conn net.Conn, addr net.Addr, now time.Time) error {
+func (t *shimNodeAwareTransport) IngestPacket(conn net.Conn, addr net.Addr, now time.Time, shouldClose bool) error {
 	iat, ok := t.Transport.(IngestionAwareTransport)
 	if !ok {
 		panic("shimNodeAwareTransport does not support IngestPacket")
 	}
-	return iat.IngestPacket(conn, addr, now)
+	return iat.IngestPacket(conn, addr, now, shouldClose)
 }
 
 func (t *shimNodeAwareTransport) IngestStream(conn net.Conn) error {

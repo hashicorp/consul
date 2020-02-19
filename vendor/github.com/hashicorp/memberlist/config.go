@@ -116,7 +116,8 @@ type Config struct {
 	// indirect UDP pings.
 	DisableTcpPings bool
 
-	// TODO
+	// DisableTcpPingsForNode is like DisableTcpPings, but lets you control
+	// whether to perform TCP pings on a node-by-node basis.
 	DisableTcpPingsForNode func(nodeName string) bool
 
 	// AwarenessMaxMultiplier will increase the probe interval if the node

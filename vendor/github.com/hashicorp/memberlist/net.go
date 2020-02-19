@@ -97,7 +97,7 @@ type indirectPingReq struct {
 	Port   uint16
 
 	// Node is sent so the target can verify they are
-	// the intended recipient. This is to protect again an agent
+	// the intended recipient. This is to protect against an agent
 	// restart with a new name.
 	Node string
 

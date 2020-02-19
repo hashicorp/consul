@@ -6,7 +6,6 @@ import (
 	"io"
 	"net"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -118,13 +117,22 @@ func (t *MockTransport) PacketCh() <-chan *Packet {
 }
 
 // See NodeAwareTransport.
-func (t *MockTransport) IngestPacket(conn net.Conn, addr net.Addr, now time.Time) error {
-	defer conn.Close()
+func (t *MockTransport) IngestPacket(conn net.Conn, addr net.Addr, now time.Time, shouldClose bool) error {
+	if shouldClose {
+		defer conn.Close()
+	}
 
 	// Copy everything from the stream into packet buffer.
 	var buf bytes.Buffer
 	if _, err := io.Copy(&buf, conn); err != nil {
 		return fmt.Errorf("failed to read packet: %v", err)
+	}
+
+	// Check the length - it needs to have at least one byte to be a proper
+	// message. This is checked elsewhere for writes coming in directly from
+	// the UDP socket.
+	if n := buf.Len(); n < 1 {
+		return fmt.Errorf("packet too short (%d bytes) %s", n, LogAddress(addr))
 	}
 
 	// Inject the packet.
@@ -184,12 +192,4 @@ func (t *MockTransport) getPeer(a Address) (*MockTransport, error) {
 		return nil, fmt.Errorf("No route to %s", a)
 	}
 	return dest, nil
-}
-
-func getDatacenter(node string) (string, error) {
-	parts := strings.Split(node, ".")
-	if len(parts) != 2 {
-		return "", fmt.Errorf("node name does not encode a datacenter: %s", node)
-	}
-	return parts[1], nil
 }
