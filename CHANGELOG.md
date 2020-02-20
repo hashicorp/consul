@@ -1,5 +1,9 @@
 ## UNRELEASED
 
+SECURITY:
+
+* dns: Updated miekg/dns dependency to fix a memory leak and CVE-2019-19794. [[GH-6984](https://github.com/hashicorp/consul/issues/6984)], [[GH-7261](https://github.com/hashicorp/consul/pull/7261)]
+
 ## 1.6.3 (January 30, 2020)
 
 SECURITY
