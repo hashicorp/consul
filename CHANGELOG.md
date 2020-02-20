@@ -2,7 +2,11 @@
 
 IMPROVEMENTS:
 
+* agent: sensible keyring error [[GH-7272](https://github.com/hashicorp/consul/pull/7272)]
+* agent: add server `raft.{last,applied}_index` gauges [[GH-6694](https://github.com/hashicorp/consul/pull/6694)]
 * build: Switched to compile with Go 1.13.7 [[GH-7262](https://github.com/hashicorp/consul/issues/7262)]
+* config: increase `http_max_conns_per_client` default to 200 [[GH-7289](https://github.com/hashicorp/consul/pull/7289)]
+* tls: support TLS 1.3 [[GH-7325](https://github.com/hashicorp/consul/pull/7325)]
 
 BUGFIXES:
 
