@@ -96,6 +96,7 @@ IMPROVEMENTS:
 * ui: Add ability to search nodes listing page with IP Address [[GH-7204](https://github.com/hashicorp/consul/pull/7204)]
 * xds: mesh gateway CDS requests are now allowed to receive an empty CDS reply [[GH-6787](https://github.com/hashicorp/consul/issues/6787)]
 * xds: Verified integration test suite with Envoy 1.12.2 & 1.13.0 [[GH-6947](https://github.com/hashicorp/consul/pull/7240)]
+* agent: Added ACL token for Consul managed service providers [[GH-7218](https://github.com/hashicorp/consul/pull/7218)]
 
 BUGFIXES:
 
