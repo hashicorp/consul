@@ -78,6 +78,12 @@ While Consul can function with one server, 3 to 5 is recommended to avoid
 failure scenarios leading to data loss. A cluster of Consul servers is recommended
 for each datacenter.
 
+The servers maintain a _catalog_, which is formed by aggregating information
+submitted by the agents. The catalog maintains the high-level view of the cluster,
+including which services are available, which nodes run those services, health 
+information, and more. How agents and the catalog interact can be found 
+[here](/docs/internals/anti-entropy.html#catalog).
+
 Components of your infrastructure that need to discover other services
 or nodes can query any of the Consul servers _or_ any of the Consul agents.
 The agents forward queries to the servers automatically.
