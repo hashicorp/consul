@@ -1,8 +1,14 @@
 ## UNRELEASED
 
+## 1.7.1 (February 20, 2020)
+
 IMPROVEMENTS:
 
+* agent: sensible keyring error [[GH-7272](https://github.com/hashicorp/consul/pull/7272)]
+* agent: add server `raft.{last,applied}_index` gauges [[GH-6694](https://github.com/hashicorp/consul/pull/6694)]
 * build: Switched to compile with Go 1.13.7 [[GH-7262](https://github.com/hashicorp/consul/issues/7262)]
+* config: increase `http_max_conns_per_client` default to 200 [[GH-7289](https://github.com/hashicorp/consul/pull/7289)]
+* tls: support TLS 1.3 [[GH-7325](https://github.com/hashicorp/consul/pull/7325)]
 
 BUGFIXES:
 
@@ -122,6 +128,12 @@ BUGFIXES:
 * ui: Fix positioning of active icon in the selected menu item [[GH-7148](https://github.com/hashicorp/consul/pull/7148)]
 * ui: Discovery-Chain: Improve parsing of redirects [[GH-7174](https://github.com/hashicorp/consul/pull/7174)]
 * ui: Fix styling of ‘duplicate intention’ error message [[GH6936]](https://github.com/hashicorp/consul/pull/6936)
+
+## 1.6.4 (February 20, 2020)
+
+SECURITY:
+
+* dns: Updated miekg/dns dependency to fix a memory leak and CVE-2019-19794. [[GH-6984](https://github.com/hashicorp/consul/issues/6984)], [[GH-7261](https://github.com/hashicorp/consul/pull/7261)]
 
 ## 1.6.3 (January 30, 2020)
 
