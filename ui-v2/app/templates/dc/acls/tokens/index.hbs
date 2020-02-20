@@ -45,7 +45,7 @@
           </BlockSlot>
           <BlockSlot @name="row">
               <td data-test-token="{{item.AccessorID}}" class={{if (eq item.AccessorID token.AccessorID) 'me' }}>
-                  <a href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>{{truncate item.AccessorID 8 false}}</a>
+                  <a href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>{{substr item.AccessorID -8}}</a>
               </td>
               <td>
                 {{if item.Local 'local' 'global' }}
