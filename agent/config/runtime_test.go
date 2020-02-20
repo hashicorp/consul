@@ -4256,7 +4256,7 @@ func TestFullConfig(t *testing.T) {
 				"statsd_address": "drce87cy",
 				"statsite_address": "HpFwKB8R"
 			},
-			"tls_cipher_suites": "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+			"tls_cipher_suites": "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
 			"tls_min_version": "pAOWafkR",
 			"tls_prefer_server_cipher_suites": true,
 			"translate_wan_addrs": true,
@@ -4886,7 +4886,7 @@ func TestFullConfig(t *testing.T) {
 				statsd_address = "drce87cy"
 				statsite_address = "HpFwKB8R"
 			}
-			tls_cipher_suites = "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384"
+			tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
 			tls_min_version = "pAOWafkR"
 			tls_prefer_server_cipher_suites = true
 			translate_wan_addrs = true
@@ -5596,7 +5596,7 @@ func TestFullConfig(t *testing.T) {
 			StatsdAddr:                         "drce87cy",
 			StatsiteAddr:                       "HpFwKB8R",
 		},
-		TLSCipherSuites:             []uint16{tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305, tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384},
+		TLSCipherSuites:             []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
 		TLSMinVersion:               "pAOWafkR",
 		TLSPreferServerCipherSuites: true,
 		TaggedAddresses: map[string]string{
@@ -6487,7 +6487,7 @@ func TestRuntime_ToTLSUtilConfig(t *testing.T) {
 		ServerName:                  "f",
 		DNSDomain:                   "g",
 		TLSMinVersion:               "tls12",
-		TLSCipherSuites:             []uint16{tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305},
+		TLSCipherSuites:             []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA},
 		TLSPreferServerCipherSuites: true,
 		EnableAgentTLSForChecks:     true,
 		AutoEncryptTLS:              true,
