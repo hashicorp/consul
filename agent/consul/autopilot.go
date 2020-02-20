@@ -7,8 +7,8 @@ import (
 	"strconv"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/autopilot"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 )

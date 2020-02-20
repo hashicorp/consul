@@ -4,9 +4,9 @@ import (
 	"context"
 	"sync"
 
-	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/autopilot"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
 )

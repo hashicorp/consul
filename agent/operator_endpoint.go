@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/autopilot"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/raft"
 )

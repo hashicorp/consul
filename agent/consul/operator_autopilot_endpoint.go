@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/autopilot"
 )
 
 // AutopilotGetConfiguration is used to retrieve the current Autopilot configuration.

@@ -3,15 +3,15 @@ package autopilot
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/raft"
-	"github.com/hashicorp/serf/serf"
 	"net"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/raft"
+	"github.com/hashicorp/serf/serf"
 )
 
 // Delegate is the interface for the Autopilot mechanism
@@ -56,7 +56,7 @@ type ServerInfo struct {
 
 func NewAutopilot(logger hclog.Logger, delegate Delegate, interval, healthInterval time.Duration) *Autopilot {
 	return &Autopilot{
-		logger:         logger.Named(logging.Autopilot),
+		logger:         logger.Named("autopilot"),
 		delegate:       delegate,
 		interval:       interval,
 		healthInterval: healthInterval,

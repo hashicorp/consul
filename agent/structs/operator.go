@@ -3,7 +3,7 @@ package structs
 import (
 	"net"
 
-	"github.com/hashicorp/consul/agent/consul/autopilot"
+	"github.com/hashicorp/consul/autopilot"
 	"github.com/hashicorp/raft"
 )
 

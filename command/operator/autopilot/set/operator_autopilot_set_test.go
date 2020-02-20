@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/autopilot"
 	"github.com/hashicorp/consul/testrpc"
 
 	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/mitchellh/cli"
 )

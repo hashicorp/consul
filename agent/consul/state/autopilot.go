@@ -3,7 +3,7 @@ package state
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/consul/autopilot"
+	"github.com/hashicorp/consul/autopilot"
 	"github.com/hashicorp/go-memdb"
 )
 

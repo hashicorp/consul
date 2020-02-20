@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/autopilot"
 )
 
 // Status endpoint is used to check on server status
