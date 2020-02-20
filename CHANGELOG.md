@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.6.4 (February 20, 2020)
 
 SECURITY:
 
