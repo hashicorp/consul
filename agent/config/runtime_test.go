@@ -645,17 +645,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
-			desc: "-primary-gateways-interval",
-			args: []string{
-				`-primary-gateways-interval=5s`,
-				`-data-dir=` + dataDir,
-			},
-			patch: func(rt *RuntimeConfig) {
-				rt.PrimaryGatewaysInterval = 5 * time.Second
-				rt.DataDir = dataDir
-			},
-		},
-		{
 			desc: "-protocol",
 			args: []string{
 				`-protocol=1`,

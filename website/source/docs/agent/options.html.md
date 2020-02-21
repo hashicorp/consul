@@ -443,11 +443,6 @@ The options below are all specified on the command-line.
   templates.
   This was added in Consul 1.7.x **TODO(rb)**.
 
-* <a name="_primary_gateways_interval"></a><a href="#_primary_gateways_interval">`-primary-gateways-interval`</a> - Time
-  to wait between [`-primary-gateway`](#_primary_gateway) discovery attempts.
-  Defaults to 30s.
-  This was added in Consul 1.7.x **TODO(rb)**.
-
 * <a name="_raft_protocol"></a><a href="#_raft_protocol">`-raft-protocol`</a> - This controls the internal
   version of the Raft consensus protocol used for server communications. This must be set to 3 in order to
   gain access to Autopilot features, with the exception of [`cleanup_dead_servers`](#cleanup_dead_servers).
@@ -1615,8 +1610,9 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   primary mesh gateway is discovered.
   This was added in Consul 1.7.x **TODO(rb)**.
 
-* <a name="primary_gateways_interval"></a><a href="#primary_gateways_interval">`primary_gateways_interval`</a> Equivalent to the
-  [`-primary-gateways-interval` command-line flag](#_primary_gateways_interval).
+* <a name="primary_gateways_interval"></a><a href="#primary_gateways_interval">`primary_gateways_interval`</a> Time
+  to wait between [`primary_gateways`](#primary_gateways) discovery attempts.
+  Defaults to 30s.
   This was added in Consul 1.7.x **TODO(rb)**.
 
 * <a name="protocol"></a><a href="#protocol">`protocol`</a> Equivalent to the
