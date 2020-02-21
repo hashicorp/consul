@@ -3,7 +3,7 @@ import { setupRenderingTest } from 'ember-qunit';
 import { render } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 
-module('helper:right-trim', function(hooks) {
+module('Integration | Helper | right-trim', function(hooks) {
   setupRenderingTest(hooks);
 
   // Replace this with your real tests.
@@ -12,6 +12,6 @@ module('helper:right-trim', function(hooks) {
 
     await render(hbs`{{right-trim inputValue}}`);
 
-    assert.dom('*').hasText('1234');
+    assert.equal(this.element.textContent.trim(), '1234');
   });
 });

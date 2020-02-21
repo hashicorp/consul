@@ -1,7 +1,7 @@
 'use strict';
 
 module.exports = {
-  extends: 'recommended',
+  extends: 'octane',
   rules: {
     'no-partial': false,
 
@@ -10,6 +10,7 @@ module.exports = {
 
     'self-closing-void-elements': false,
     'no-unnecessary-concat': false,
+    'no-quoteless-attributes': false,
     'no-nested-interactive': false,
 
     'block-indentation': false,
@@ -19,6 +20,15 @@ module.exports = {
     'no-triple-curlies': false,
     'no-unused-block-params': false,
     'style-concatenation': false,
-    'link-rel-noopener': false
+    'link-rel-noopener': false,
+
+    'no-implicit-this': false,
+    'no-curly-component-invocation': false,
+    'no-action': false,
+    'no-negated-condition': false,
+    'no-invalid-role': false,
+
+    'no-unnecessary-component-helper': false,
+    'link-href-attributes': false
   },
 };
