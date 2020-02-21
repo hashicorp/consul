@@ -410,7 +410,7 @@ func (s *Server) handleALPN_WANGossipPacketStream(conn net.Conn) error {
 func readUint32(conn net.Conn, timeout time.Duration) (uint32, error) {
 	// Since requests are framed we can easily just set a deadline on
 	// reading that frame and then disable it for the rest of the body.
-	if err := conn.SetDeadline(time.Now().Add(timeout)); err != nil {
+	if err := conn.SetReadDeadline(time.Now().Add(timeout)); err != nil {
 		return 0, err
 	}
 
@@ -419,7 +419,7 @@ func readUint32(conn net.Conn, timeout time.Duration) (uint32, error) {
 		return 0, err
 	}
 
-	if err := conn.SetDeadline(time.Time{}); err != nil {
+	if err := conn.SetReadDeadline(time.Time{}); err != nil {
 		return 0, err
 	}
 
