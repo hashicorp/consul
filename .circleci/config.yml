@@ -506,7 +506,7 @@ jobs:
           at: ui-v2
       - run:
           working_directory: ui-v2
-          command: make test-coverage
+          command: make test-coverage-ci
       - run:
           name: codecov ui upload
           working_directory: ui-v2
