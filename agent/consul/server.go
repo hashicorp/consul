@@ -1142,6 +1142,12 @@ func (s *Server) IsLeader() bool {
 	return s.raft.State() == raft.Leader
 }
 
+// LeaderLastContact returns the time of last contact by a leader.
+// This only makes sense if we are currently a follower.
+func (s *Server) LeaderLastContact() time.Time {
+	return s.raft.LastContact()
+}
+
 // KeyManagerLAN returns the LAN Serf keyring manager
 func (s *Server) KeyManagerLAN() *serf.KeyManager {
 	return s.serfLAN.KeyManager()

@@ -47,7 +47,7 @@ func TestGatewayLocator(t *testing.T) {
 
 	t.Run("primary", func(t *testing.T) {
 		logger := testutil.Logger(t)
-		tsd := &testServerDelegate{State: state}
+		tsd := &testServerDelegate{State: state, isLeader: true}
 		g := NewGatewayLocator(
 			logger,
 			tsd,
@@ -71,7 +71,7 @@ func TestGatewayLocator(t *testing.T) {
 
 	t.Run("secondary", func(t *testing.T) {
 		logger := testutil.Logger(t)
-		tsd := &testServerDelegate{State: state}
+		tsd := &testServerDelegate{State: state, isLeader: true}
 		g := NewGatewayLocator(
 			logger,
 			tsd,
@@ -99,6 +99,9 @@ type testServerDelegate struct {
 
 	FallbackAddrs []string
 	Calls         []uint64
+
+	isLeader    bool
+	lastContact time.Time
 }
 
 // This is just enough to exercise the logic.
@@ -127,4 +130,12 @@ func newFakeStateStore() (*state.Store, error) {
 
 func (d *testServerDelegate) PrimaryGatewayFallbackAddresses() []string {
 	return d.FallbackAddrs
+}
+
+func (d *testServerDelegate) IsLeader() bool {
+	return d.isLeader
+}
+
+func (d *testServerDelegate) LeaderLastContact() time.Time {
+	return d.lastContact
 }

@@ -1,9 +1,11 @@
 package consul
 
 import (
+	"errors"
 	"math/rand"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
@@ -50,7 +52,8 @@ type GatewayLocator struct {
 	primaryMeshGatewayDiscoveredAddressesLock sync.Mutex
 
 	// This will be closed the FIRST time we get some gateways populated
-	primaryGatewaysReadyCh chan struct{}
+	primaryGatewaysReadyCh   chan struct{}
+	primaryGatewaysReadyOnce sync.Once
 }
 
 // PrimaryMeshGatewayAddressesReadyCh returns a channel that will be closed
@@ -131,6 +134,8 @@ func getRandomItem(items []string) string {
 type serverDelegate interface {
 	blockingQuery(queryOpts structs.QueryOptionsCompat, queryMeta structs.QueryMetaCompat, fn queryFn) error
 	PrimaryGatewayFallbackAddresses() []string
+	IsLeader() bool
+	LeaderLastContact() time.Time
 }
 
 func NewGatewayLocator(
@@ -148,6 +153,8 @@ func NewGatewayLocator(
 	}
 }
 
+var errGatewayLocalStateNotInitialized = errors.New("local state not initialized")
+
 func (g *GatewayLocator) Run(stopCh <-chan struct{}) {
 	var lastFetchIndex uint64
 	retryLoopBackoff(stopCh, func() error {
@@ -160,11 +167,17 @@ func (g *GatewayLocator) Run(stopCh <-chan struct{}) {
 
 		return nil
 	}, func(err error) {
-		g.logger.Error("error tracking primary and local mesh gateways", "error", err)
+		if !errors.Is(err, errGatewayLocalStateNotInitialized) {
+			g.logger.Error("error tracking primary and local mesh gateways", "error", err)
+		}
 	})
 }
 
 func (g *GatewayLocator) runOnce(lastFetchIndex uint64) (uint64, error) {
+	if err := g.checkLocalStateIsReady(); err != nil {
+		return 0, err
+	}
+
 	// NOTE: we can't do RPC here because we won't have a token so we'll just
 	// mostly assume that our FSM is caught up enough to answer locally.  If
 	// this has drifted it's no different than a cache that drifts or an
@@ -203,6 +216,21 @@ func (g *GatewayLocator) runOnce(lastFetchIndex uint64) (uint64, error) {
 	g.updateFromState(results)
 
 	return queryMeta.Index, nil
+}
+
+// checkLocalStateIsReady is inlined a bit from (*Server).forward(). We need to
+// wait until our own state machine is safe to read from.
+func (g *GatewayLocator) checkLocalStateIsReady() error {
+	// Check if we can allow a stale read, ensure our local DB is initialized
+	if !g.srv.LeaderLastContact().IsZero() {
+		return nil // the raft leader talked to us
+	}
+
+	if g.srv.IsLeader() {
+		return nil // we are the leader
+	}
+
+	return errGatewayLocalStateNotInitialized
 }
 
 func (g *GatewayLocator) updateFromState(results []*structs.FederationState) {
@@ -248,13 +276,9 @@ func (g *GatewayLocator) updateFromState(results []*structs.FederationState) {
 	}
 
 	if primaryReady {
-		select {
-		case _, open := <-g.primaryGatewaysReadyCh:
-			if open {
-				close(g.primaryGatewaysReadyCh)
-			}
-		default:
-		}
+		g.primaryGatewaysReadyOnce.Do(func() {
+			close(g.primaryGatewaysReadyCh)
+		})
 	}
 }
 
