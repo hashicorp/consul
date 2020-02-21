@@ -91,6 +91,14 @@ func logConn(conn net.Conn) string {
 // handleConn is used to determine if this is a Raft or
 // Consul type RPC connection and invoke the correct handler
 func (s *Server) handleConn(conn net.Conn, isTLS bool) {
+	// Limit how long the client can hold the connection open before they send the
+	// magic byte (and authenticate when mTLS is enabled). If `isTLS == true` then
+	// this also enforces a timeout on how long it takes for the handshake to
+	// complete since tls.Conn.Read implicitly calls Handshake().
+	if s.config.RPCHandshakeTimeout > 0 {
+		conn.SetReadDeadline(time.Now().Add(s.config.RPCHandshakeTimeout))
+	}
+
 	if !isTLS && s.tlsConfigurator.MutualTLSCapable() {
 		// See if actually this is native TLS multiplexed onto the old
 		// "type-byte" system.
@@ -120,13 +128,6 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 	// Read a single byte
 	buf := make([]byte, 1)
 
-	// Limit how long the client can hold the connection open before they send the
-	// magic byte (and authenticate when mTLS is enabled). If `isTLS == true` then
-	// this also enforces a timeout on how long it takes for the handshake to
-	// complete since tls.Conn.Read implicitly calls Handshake().
-	if s.config.RPCHandshakeTimeout > 0 {
-		conn.SetReadDeadline(time.Now().Add(s.config.RPCHandshakeTimeout))
-	}
 	if _, err := conn.Read(buf); err != nil {
 		if err != io.EOF {
 			s.rpcLogger().Error("failed to read byte",
@@ -217,6 +218,10 @@ func (s *Server) handleNativeTLS(conn net.Conn) {
 		)
 		conn.Close()
 		return
+	}
+
+	if s.config.RPCHandshakeTimeout > 0 {
+		conn.SetReadDeadline(time.Time{})
 	}
 
 	var (
