@@ -2,7 +2,14 @@
   <YieldSlot @name="create">{{yield}}</YieldSlot>
   <label class="type-text">
     <span><YieldSlot @name="label">{{yield}}</YieldSlot></span>
-      <PowerSelect @onopen={{action "open"}} @search={{action "search"}} @options={{options}} @loadingMessage="Loading..." @searchMessage="No possible options" @searchPlaceholder={{placeholder}} @onchange={{action "change" "items[]" items}} as |item|>
+      <PowerSelect
+          @search={{action "search"}}
+          @options={{options}}
+          @loadingMessage="Loading..."
+          @searchMessage="No possible options"
+          @searchPlaceholder={{placeholder}}
+          @onOpen={{action "open"}}
+          @onChange={{action "change" "items[]" items}} as |item|>
         <YieldSlot @name="option" @params={{block-params item}}>{{yield}}</YieldSlot>
       </PowerSelect>
   </label>
