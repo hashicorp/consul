@@ -45,7 +45,7 @@ table:not(.sessions) td:first-child {
 }
 
 table:not(.sessions) tbody tr:hover {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: $decor-elevation-100;
 }
 /* Header Tooltips/Icon*/
 th {
