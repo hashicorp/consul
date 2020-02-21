@@ -3,7 +3,7 @@ import { setupRenderingTest } from 'ember-qunit';
 import { render } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 
-module('helper:object-entries', function(hooks) {
+module('Integration | Helper | object-entries', function(hooks) {
   setupRenderingTest(hooks);
 
   // Replace this with your real tests.
@@ -12,6 +12,6 @@ module('helper:object-entries', function(hooks) {
 
     await render(hbs`{{object-entries inputValue}}`);
 
-    assert.dom('*').hasText(Object.entries('1234').toString());
+    assert.equal(this.element.textContent.trim(), Object.entries('1234').toString());
   });
 });

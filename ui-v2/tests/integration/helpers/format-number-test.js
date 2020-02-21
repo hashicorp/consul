@@ -3,7 +3,7 @@ import { setupRenderingTest } from 'ember-qunit';
 import { render } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 
-module('helper:format-number', function(hooks) {
+module('Integration | Helper | format-number', function(hooks) {
   setupRenderingTest(hooks);
 
   test('it renders a formatted number when passed a number', async function(assert) {
@@ -11,6 +11,6 @@ module('helper:format-number', function(hooks) {
 
     await render(hbs`{{format-number inputValue}}`);
 
-    assert.dom('*').hasText('1,234');
+    assert.equal(this.element.textContent.trim(), '1,234');
   });
 });
