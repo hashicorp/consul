@@ -53,6 +53,10 @@ export default Mixin.create(WithListeners, {
     }
     return this._super(...arguments);
   },
+  willDestroy: function() {
+    this._super(...arguments);
+    this.reset(true);
+  },
 });
 export const listen = purify(catchable, function(props) {
   return props.map(item => `${PREFIX}${item}`);
