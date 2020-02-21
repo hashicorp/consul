@@ -220,6 +220,8 @@ func (s *Server) handleNativeTLS(conn net.Conn) {
 		return
 	}
 
+	// Reset the deadline as we aren't sure what is expected next - it depends on
+	// the protocol.
 	if s.config.RPCHandshakeTimeout > 0 {
 		conn.SetReadDeadline(time.Time{})
 	}
