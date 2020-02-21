@@ -1,8 +1,12 @@
 module.exports = {
   root: true,
+  parser: 'babel-eslint',
   parserOptions: {
     ecmaVersion: 2018,
-    sourceType: 'module'
+    sourceType: 'module',
+    ecmaFeatures: {
+      legacyDecorators: true
+    }
   },
   plugins: ['ember'],
   extends: ['eslint:recommended', 'plugin:ember/recommended'],
@@ -11,7 +15,8 @@ module.exports = {
   },
   rules: {
     'no-unused-vars': ['error', { args: 'none' }],
-    'ember/no-new-mixins': ['warn']
+    'ember/no-new-mixins': ['warn'],
+    'ember/no-jquery': 'warn'
   },
   overrides: [
     // node files

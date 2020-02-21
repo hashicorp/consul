@@ -3,7 +3,7 @@ import { setupRenderingTest } from 'ember-qunit';
 import { render } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 
-module('helper:substr', function(hooks) {
+module('Integration | Helper | substr', function(hooks) {
   setupRenderingTest(hooks);
 
   // Replace this with your real tests.
@@ -12,6 +12,6 @@ module('helper:substr', function(hooks) {
 
     await render(hbs`{{substr inputValue -4}}`);
 
-    assert.dom('*').hasText('65f1');
+    assert.equal(this.element.textContent.trim(), '65f1');
   });
 });
