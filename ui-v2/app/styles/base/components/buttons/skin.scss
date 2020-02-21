@@ -27,7 +27,7 @@
   @extend %button;
   border-width: 1px;
   border-radius: $decor-radius-100;
-  box-shadow: 0 3px 1px 0 rgba($black, 0.12);
+  box-shadow: $decor-elevation-200;
 }
 /* color */
 %copy-button {
