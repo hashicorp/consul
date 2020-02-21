@@ -12,14 +12,13 @@ module('Integration | Component | changeable set', function(hooks) {
 
     await render(hbs`{{changeable-set}}`);
 
-    assert.dom('*').hasText('');
+    assert.equal(this.element.textContent.trim(), '');
 
     // Template block usage:
     await render(hbs`
       {{#changeable-set}}
       {{/changeable-set}}
     `);
-
-    assert.dom('*').hasText('');
+    assert.equal(this.element.textContent.trim(), '');
   });
 });
