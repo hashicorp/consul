@@ -18,6 +18,7 @@ BUGFIXES:
 * sessions: Fixed an issue that was causing deletions of a non-existent session to return a 500 when ACLs were enabled. [[GH-6840](https://github.com/hashicorp/consul/issues/6840)]
 * xds: Fix envoy retryOn behavior when multiple behaviors are configured [[GH-7280](https://github.com/hashicorp/consul/pull/7280)]
 * xds: Mesh Gateway fixes to prevent configuring extra clusters and for properly handling a service-resolvers default subset. [[GH-7294](https://github.com/hashicorp/consul/pull/7294)]
+* ui: Gracefully cope with errors in discovery-chain when connect is disabled [[GH-7291](https://github.com/hashicorp/consul/pull/7291)]
 
 ## 1.7.0 (February 11, 2020)
 
