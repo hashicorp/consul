@@ -7,3 +7,8 @@ $decor-border-000: none;
 $decor-border-100: 1px solid;
 $decor-border-200: 2px solid;
 $decor-border-300: 3px solid;
+$decor-elevation-100: 0 2px 4px rgba(0, 0, 0, 0.1);
+$decor-elevation-200: 0 5px 1px -2px rgba($black, 0.12);
+$decor-elevation-400: 0 6px 8px -2px rgba($black, 0.05), 0 8px 4px -4px rgba($black, 0.1);
+$decor-elevation-600: 0 12px 5px -7px rgba($black, 0.08), 0 11px 10px -3px rgba($black, 0.1);
+$decor-elevation-800: 0 16px 6px -10px rgba($black, 0.06), 0 16px 16px -4px rgba($black, 0.2);
