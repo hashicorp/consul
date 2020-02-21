@@ -76,6 +76,9 @@ test-coverage: deps specify-coverage
 test-coverage-view: deps specify-coverage
 	yarn run test:coverage:view
 
+test-coverage-ci: deps specify-coverage
+	yarn run test:coverage:ci
+
 test-parallel: deps
 	yarn run test:parallel
 
