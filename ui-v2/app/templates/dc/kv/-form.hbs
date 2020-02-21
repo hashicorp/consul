@@ -15,7 +15,7 @@
                   <span>Code</span>
               </label>
             </div>
-            <label class="type-text{{if item.error.Value ' has-error'}}">
+            <label for="" class="type-text{{if item.error.Value ' has-error'}}">
                 <span>Value</span>
 {{#if json}}
                 <CodeEditor @value={{atob item.Value}} @onkeyup={{action "change" "value"}} />

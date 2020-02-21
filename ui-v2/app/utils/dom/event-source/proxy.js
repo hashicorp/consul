@@ -51,6 +51,8 @@ export default function(ObjProxy, ArrProxy, createListeners) {
           return this._source.open(...arguments);
         },
         willDestroy: function() {
+          this._super(...arguments);
+          this.close();
           this.listeners.remove();
         },
       });
