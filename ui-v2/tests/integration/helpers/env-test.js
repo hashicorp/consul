@@ -3,7 +3,7 @@ import { setupRenderingTest } from 'ember-qunit';
 import { render } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 
-module('helper:env', function(hooks) {
+module('Integration | Helper | env', function(hooks) {
   setupRenderingTest(hooks);
 
   // Replace this with your real tests.
@@ -12,6 +12,6 @@ module('helper:env', function(hooks) {
 
     await render(hbs`{{env inputValue}}`);
 
-    assert.dom('*').hasText('https://www.hashicorp.com');
+    assert.equal(this.element.textContent.trim(), 'https://www.hashicorp.com');
   });
 });
