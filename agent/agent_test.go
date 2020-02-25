@@ -2030,7 +2030,7 @@ func testAgent_persistedService_compat(t *testing.T, extraHCL string) {
 	}
 
 	// Load the services
-	if err := a.loadServices(a.Config); err != nil {
+	if err := a.loadServices(a.Config, nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 

@@ -478,7 +478,7 @@ func (a *Agent) Start() error {
 	a.serviceManager.Start()
 
 	// Load checks/services/metadata.
-	if err := a.loadServices(c); err != nil {
+	if err := a.loadServices(c, nil); err != nil {
 		return err
 	}
 	if err := a.loadChecks(c, nil); err != nil {
@@ -2289,7 +2289,7 @@ func (a *Agent) AddServiceAndReplaceChecks(service *structs.NodeService, chkType
 		token:                 token,
 		replaceExistingChecks: true,
 		source:                source,
-	})
+	}, a.snapshotCheckState())
 }
 
 // AddService is used to add a service entry.
@@ -2308,12 +2308,12 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 		token:                 token,
 		replaceExistingChecks: false,
 		source:                source,
-	})
+	}, a.snapshotCheckState())
 }
 
 // addServiceLocked adds a service entry to the service manager if enabled, or directly
 // to the local state if it is not. This function assumes the state lock is already held.
-func (a *Agent) addServiceLocked(req *addServiceRequest) error {
+func (a *Agent) addServiceLocked(req *addServiceRequest, snap map[structs.CheckID]*structs.HealthCheck) error {
 	req.fixupForAddServiceLocked()
 
 	req.service.EnterpriseMeta.Normalize()
@@ -2331,7 +2331,7 @@ func (a *Agent) addServiceLocked(req *addServiceRequest) error {
 	req.persistDefaults = nil
 	req.persistServiceConfig = false
 
-	return a.addServiceInternal(req)
+	return a.addServiceInternal(req, snap)
 }
 
 // addServiceRequest is the union of arguments for calling both
@@ -2369,7 +2369,7 @@ func (r *addServiceRequest) fixupForAddServiceInternal() {
 }
 
 // addServiceInternal adds the given service and checks to the local state.
-func (a *Agent) addServiceInternal(req *addServiceRequest) error {
+func (a *Agent) addServiceInternal(req *addServiceRequest, snap map[structs.CheckID]*structs.HealthCheck) error {
 	req.fixupForAddServiceInternal()
 	var (
 		service               = req.service
@@ -2406,11 +2406,6 @@ func (a *Agent) addServiceInternal(req *addServiceRequest) error {
 	if _, ok := service.TaggedAddresses[structs.TaggedAddressWANIPv6]; !ok && serviceAddressIs6 {
 		service.TaggedAddresses[structs.TaggedAddressWANIPv6] = structs.ServiceAddress{Address: service.Address, Port: service.Port}
 	}
-
-	// Take a snapshot of the current state of checks (if any), and when adding
-	// a check that already existed carry over the state before resuming
-	// anti-entropy.
-	snap := a.snapshotCheckState()
 
 	var checks []*structs.HealthCheck
 
@@ -3489,7 +3484,7 @@ func (a *Agent) deletePid() error {
 
 // loadServices will load service definitions from configuration and persisted
 // definitions on disk, and load them into the local agent.
-func (a *Agent) loadServices(conf *config.RuntimeConfig) error {
+func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckID]*structs.HealthCheck) error {
 	// Load any persisted service configs so we can feed those into the initial
 	// registrations below.
 	persistedServiceConfigs, err := a.readPersistedServiceConfigs()
@@ -3526,7 +3521,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig) error {
 			token:                 service.Token,
 			replaceExistingChecks: false, // do default behavior
 			source:                ConfigSourceLocal,
-		})
+		}, snap)
 		if err != nil {
 			return fmt.Errorf("Failed to register service %q: %v", service.Name, err)
 		}
@@ -3544,7 +3539,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig) error {
 				token:                 sidecarToken,
 				replaceExistingChecks: false, // do default behavior
 				source:                ConfigSourceLocal,
-			})
+			}, snap)
 			if err != nil {
 				return fmt.Errorf("Failed to register sidecar for service %q: %v", service.Name, err)
 			}
@@ -3636,8 +3631,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig) error {
 				token:                 p.Token,
 				replaceExistingChecks: false, // do default behavior
 				source:                source,
-			},
-			)
+			}, snap)
 			if err != nil {
 				return fmt.Errorf("failed adding service %q: %s", serviceID, err)
 			}
@@ -3672,7 +3666,6 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 	// Register the checks from config
 	for _, check := range conf.Checks {
 		health := check.HealthCheck(conf.NodeName)
-
 		// Restore the fields from the snapshot.
 		if prev, ok := snap[health.CompoundCheckID()]; ok {
 			health.Output = prev.Output
@@ -4025,7 +4018,7 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	}
 
 	// Reload service/check definitions and metadata.
-	if err := a.loadServices(newCfg); err != nil {
+	if err := a.loadServices(newCfg, snap); err != nil {
 		return fmt.Errorf("Failed reloading services: %s", err)
 	}
 	if err := a.loadChecks(newCfg, snap); err != nil {
