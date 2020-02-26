@@ -62,6 +62,12 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	stats, err := snapshot.GetStats(f)
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error getting snapshot statistics: %s", err))
+		return 1
+	}
+
 	var b bytes.Buffer
 	tw := tabwriter.NewWriter(&b, 0, 2, 6, ' ', 0)
 	fmt.Fprintf(tw, "ID\t%s\n", meta.ID)
@@ -69,6 +75,12 @@ func (c *cmd) Run(args []string) int {
 	fmt.Fprintf(tw, "Index\t%d\n", meta.Index)
 	fmt.Fprintf(tw, "Term\t%d\n", meta.Term)
 	fmt.Fprintf(tw, "Version\t%d\n", meta.Version)
+
+	fmt.Fprintf(tw, "\n%s\t%s\t%s\n", "Record Type", "Count", "TotalSize")
+	for _, s := range stats {
+		fmt.Fprintf(tw, "%s\t%d\t%s\n", s.Name, s.Count, snapshot.ByteSize(uint64(s.Sum)))
+	}
+
 	if err = tw.Flush(); err != nil {
 		c.UI.Error(fmt.Sprintf("Error rendering snapshot info: %s", err))
 		return 1

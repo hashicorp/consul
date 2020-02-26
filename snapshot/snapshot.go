@@ -9,8 +9,11 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/raft"
 )
 
@@ -189,4 +192,175 @@ func Restore(logger hclog.Logger, in io.Reader, r *raft.Raft) error {
 	}
 
 	return nil
+}
+
+const (
+	BYTE = 1 << (10 * iota)
+	KILOBYTE
+	MEGABYTE
+	GIGABYTE
+	TERABYTE
+)
+
+// ByteSize returns a human-readable byte string of the form 10M, 12.5K, and so forth.  The following units are available:
+//	T: Terabyte
+//	G: Gigabyte
+//	M: Megabyte
+//	K: Kilobyte
+//	B: Byte
+// The unit that results in the smallest number greater than or equal to 1 is always chosen.
+// From https://github.com/cloudfoundry/bytefmt/blob/master/bytes.go
+func ByteSize(bytes uint64) string {
+	unit := ""
+	value := float64(bytes)
+
+	switch {
+	case bytes >= TERABYTE:
+		unit = "TB"
+		value = value / TERABYTE
+	case bytes >= GIGABYTE:
+		unit = "GB"
+		value = value / GIGABYTE
+	case bytes >= MEGABYTE:
+		unit = "MB"
+		value = value / MEGABYTE
+	case bytes >= KILOBYTE:
+		unit = "KB"
+		value = value / KILOBYTE
+	case bytes >= BYTE:
+		unit = "B"
+	case bytes == 0:
+		return "0"
+	}
+
+	result := strconv.FormatFloat(value, 'f', 1, 64)
+	result = strings.TrimSuffix(result, ".0")
+	return result + unit
+}
+
+var typeNames []string = []string{
+	"Register",
+	"Deregister",
+	"KVS",
+	"Session",
+	"ACL (Deprecated)",
+	"Tombstone",
+	"CoordinateBatchUpdate",
+	"PreparedQuery",
+	"Txn",
+	"Autopilot",
+	"Area",
+	"ACLBootstrap",
+	"Intention",
+	"ConnectCA",
+	"ConnectCAProviderState",
+	"ConnectCAConfig",
+	"Index",
+	"ACLTokenSet",
+	"ACLTokenDelete",
+	"ACLPolicySet",
+	"ACLPolicyDelete",
+}
+
+type countingReader struct {
+	r    io.Reader
+	read int
+}
+
+func (r *countingReader) Read(p []byte) (n int, err error) {
+	n, err = r.r.Read(p)
+	if err == nil {
+		r.read += n
+	}
+	return n, err
+}
+
+type typeStats struct {
+	Name       string
+	Sum, Count int
+}
+
+// snapshotHeader is the first entry in our snapshot
+type snapshotHeader struct {
+	// LastIndex is the last index that affects the data.
+	// This is used when we do the restore for watchers.
+	LastIndex uint64
+}
+
+func GetStats(in io.Reader) ([]typeStats, error) {
+	// Wrap the reader in a gzip decompressor.
+	decomp, err := gzip.NewReader(in)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decompress snapshot: %v", err)
+	}
+	defer decomp.Close()
+
+	// Make a scratch file to receive the contents of the snapshot data so
+	// we can avoid buffering in memory.
+	snap, err := ioutil.TempFile("", "snapshot")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create temp snapshot file: %v", err)
+	}
+	defer snap.Close()
+
+	// ====================    Start    ====================
+
+	// msgpackHandle is a shared handle for encoding/decoding msgpack payloads
+	var msgpackHandle = &codec.MsgpackHandle{
+		RawToString: true,
+	}
+
+	stats := make(map[int]typeStats)
+
+	cr := &countingReader{r: snap}
+
+	dec := codec.NewDecoder(cr, msgpackHandle)
+
+	// Read in the header
+	var header snapshotHeader
+	if err := dec.Decode(&header); err != nil {
+		panic(err)
+	}
+
+	// Populate the new state
+	msgType := make([]byte, 1)
+	offset := 0
+	for {
+		// Read the message type
+		_, err := cr.Read(msgType)
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			panic(err)
+		}
+
+		// Decode
+		s := stats[int(msgType[0])]
+		if s.Name == "" {
+			s.Name = typeNames[int(msgType[0])]
+		}
+
+		var val interface{}
+
+		err = dec.Decode(&val)
+		if err != nil {
+			panic(err)
+		}
+
+		// See how big it was
+		size := cr.read - offset
+
+		s.Sum += size
+		s.Count++
+		offset += size
+
+		stats[int(msgType[0])] = s
+	}
+
+	res := []typeStats{}
+	for _, s := range stats {
+		res = append(res, s)
+	}
+
+	return res, nil
 }
