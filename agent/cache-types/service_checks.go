@@ -75,6 +75,9 @@ func (c *ServiceHTTPChecks) Fetch(opts cache.FetchOptions, req cache.Request) (c
 			return hash, reply, nil
 		},
 	)
+	if err != nil {
+		return result, fmt.Errorf("LocalBlockingQuery: %v", err)
+	}
 
 	result.Value = resp
 
