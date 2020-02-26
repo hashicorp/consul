@@ -195,7 +195,13 @@ function reset_envoy_metrics {
 function get_all_envoy_metrics {
   local HOSTPORT=$1
   curl -s -f $HOSTPORT/stats
-  return $?
+  res=$?
+  if [ "$res" != 0 ]
+  then
+    echo "FAILED code=$res to get stats with curl -s -f $HOSTPORT/stats, output:"
+    curl -v -f $HOSTPORT/stats
+  fi
+  return $res
 }
 
 function get_envoy_metrics {

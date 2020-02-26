@@ -20,9 +20,15 @@ load helpers
 }
 
 @test "s1 upstream should be able to connect to s2" {
-  run retry_default curl -s -f -d hello localhost:5000
-  [ "$status" -eq 0 ]
-  [ "$output" = "hello" ]
+  run retry_long curl -s -f -d hello http://localhost:5000
+  if [ "$status" -eq 0 ]
+  then
+    [ "$output" = "hello" ]
+  else
+    echo "FAILED to curl -s -f -d hello http://localhost:5000, output: $output"
+    curl -v -f -d hello http://localhost:5000
+    exit $status
+  fi
 }
 
 @test "s1 upstream made 1 connection" {
