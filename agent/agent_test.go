@@ -3442,27 +3442,17 @@ func TestAgent_ReloadConfigAndKeepChecksStatus(t *testing.T) {
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
 	defer os.RemoveAll(dataDir)
 	waitDurationSeconds := 1
-	hcl := `
+	hcl := `data_dir = "` + dataDir + `"
 		enable_local_script_checks=true
 		services=[{
 		  name="webserver1",
 		  check{name="check1",
 		  args=["true"],
 		  interval="` + strconv.Itoa(waitDurationSeconds) + `s"}}
-		]
-	`
+		]`
 	a := NewTestAgent(t, t.Name(), hcl)
 	defer a.Shutdown()
 
-	hcl = `
-		data_dir = "` + dataDir + `"
-		verify_outgoing = true
-		ca_path = "../test/ca_path"
-		cert_file = "../test/key/ourdomain.cer"
-		key_file = "../test/key/ourdomain.key"
-		verify_server_hostname = true
-	`
-	c := TestConfig(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
 	// Initially, state is critical during waitDurationSeconds seconds
 	retry.Run(t, func(r *retry.R) {
 		gotChecks := a.State.Checks(nil)
@@ -3471,6 +3461,8 @@ func TestAgent_ReloadConfigAndKeepChecksStatus(t *testing.T) {
 			require.Equal(r, "critical", check.Status, "check %q is wrong", id)
 		}
 	})
+	c := TestConfig(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	a.ReloadConfig(c)
 	time.Sleep(time.Duration(waitDurationSeconds) * time.Second)
 	// It should now be passing
 	retry.Run(t, func(r *retry.R) {
