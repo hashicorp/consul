@@ -4455,6 +4455,43 @@ func TestAgent_Monitor(t *testing.T) {
 		})
 	})
 
+	t.Run("stream compressed unstructured logs", func(t *testing.T) {
+		// The only purpose of this test is to see something being
+		// logged. Because /v1/agent/monitor is streaming the response
+		// it needs special handling with the compression.
+		retry.Run(t, func(r *retry.R) {
+			req, _ := http.NewRequest("GET", "/v1/agent/monitor?loglevel=debug", nil)
+			// Usually this would be automatically set by transport content
+			// negotiation, but since this call doesn't go through a real
+			// transport, the header has to be set manually
+			req.Header["Accept-Encoding"] = []string{"gzip"}
+			cancelCtx, cancelFunc := context.WithCancel(context.Background())
+			req = req.WithContext(cancelCtx)
+
+			resp := httptest.NewRecorder()
+			go a.srv.Handler.ServeHTTP(resp, req)
+
+			args := &structs.ServiceDefinition{
+				Name: "monitor",
+				Port: 8000,
+				Check: structs.CheckType{
+					TTL: 15 * time.Second,
+				},
+			}
+
+			registerReq, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+			if _, err := a.srv.AgentRegisterService(nil, registerReq); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+
+			// Wait until we have received some type of logging output
+			require.Eventually(t, func() bool {
+				return len(resp.Body.Bytes()) > 0
+			}, 3*time.Second, 100*time.Millisecond)
+			cancelFunc()
+		})
+	})
+
 	t.Run("stream JSON logs", func(t *testing.T) {
 		// Try to stream logs until we see the expected log line
 		retry.Run(t, func(r *retry.R) {
