@@ -109,7 +109,7 @@ The table below shows this endpoint's support for
 
 - `Name` `(string: <required>)` - Specifies the name of the check.
 
-- `ID` `(string: "")` - Specifies a unique ID for this check on the node.
+- `CheckID` `(string: "")` - Specifies a unique ID for this check on the node.
   This defaults to the `"Name"` parameter, but it may be necessary to provide an
   ID for uniqueness.
 
@@ -214,7 +214,7 @@ The table below shows this endpoint's support for
 
 ```json
 {
-  "ID": "mem",
+  "CheckID": "mem",
   "Name": "Memory utilization",
   "Notes": "Ensure we don't oversubscribe memory",
   "DeregisterCriticalServiceAfter": "90m",
