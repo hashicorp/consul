@@ -3240,6 +3240,8 @@ func (a *Agent) removeCheckLocked(checkID structs.CheckID, persist bool) error {
 	return nil
 }
 
+// ServiceHTTPBasedChecks returns HTTP and GRPC based Checks
+// for the given serviceID
 func (a *Agent) ServiceHTTPBasedChecks(serviceID structs.ServiceID) []structs.CheckType {
 	a.stateLock.Lock()
 	defer a.stateLock.Unlock()
@@ -3258,6 +3260,7 @@ func (a *Agent) ServiceHTTPBasedChecks(serviceID structs.ServiceID) []structs.Ch
 	return chkTypes
 }
 
+// AdvertiseAddrLAN returns the AdvertiseAddrLAN config value
 func (a *Agent) AdvertiseAddrLAN() string {
 	return a.config.AdvertiseAddrLAN.String()
 }
@@ -3668,7 +3671,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 		}
 	}
 
-	for serviceID, _ := range persistedServiceConfigs {
+	for serviceID := range persistedServiceConfigs {
 		if a.State.Service(serviceID) == nil {
 			// This can be cleaned up now.
 			if err := a.purgeServiceConfig(serviceID); err != nil {
@@ -4015,6 +4018,9 @@ func (a *Agent) loadLimits(conf *config.RuntimeConfig) {
 	a.config.RPCMaxBurst = conf.RPCMaxBurst
 }
 
+// ReloadConfig will atomically reload all configs from the given newCfg,
+// including all services, checks, tokens, metadata, dnsServer configs, etc.
+// It will also reload all ongoing watches.
 func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	// Bulk update the services and checks
 	a.PauseSync()
@@ -4305,6 +4311,7 @@ func (a *Agent) registerCache() {
 	})
 }
 
+// LocalState returns the agent's local state
 func (a *Agent) LocalState() *local.State {
 	return a.State
 }
