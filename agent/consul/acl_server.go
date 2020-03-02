@@ -91,6 +91,7 @@ func (s *Server) updateACLAdvertisement() {
 
 	// always advertise to all the LAN Members
 	lib.UpdateSerfTag(s.serfLAN, "acls", string(structs.ACLModeEnabled))
+	s.updateSegmentACLAdvertisements()
 
 	if s.serfWAN != nil {
 		// advertise on the WAN only when we are inside the ACL datacenter
