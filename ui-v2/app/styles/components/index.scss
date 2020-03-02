@@ -8,14 +8,6 @@
 @import './pill';
 @import './table';
 @import './form-elements';
-
-@import './tabular-details';
-@import './tabular-collection';
-@import './list-collection';
-
-@import './app-view';
-@import './product';
-
 @import './tooltip';
 @import './tag-list';
 @import './healthcheck-output';
@@ -33,3 +25,16 @@
 @import './notice';
 @import './sort-control';
 @import './discovery-chain';
+
+@import './tabular-details';
+@import './tabular-collection';
+@import './list-collection';
+
+/**/
+
+@import './brand-loader';
+@import './loader';
+@import './main-header-horizontal';
+@import './main-nav-horizontal';
+@import './app-view';
+@import './footer';
