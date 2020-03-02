@@ -1,0 +1,7 @@
+@import './loader/index';
+html.template-loading main > div {
+  @extend %loader;
+}
+%loader circle {
+  fill: $magenta-100;
+}

@@ -1,0 +1,30 @@
+@import './main-header-horizontal/index';
+[role='banner'] {
+  @extend %main-header-horizontal;
+}
+%main-nav-horizontal .docs-link a::after {
+  @extend %with-learn-icon, %as-pseudo;
+}
+%main-nav-horizontal .learn-link a::after {
+  @extend %with-docs-icon, %as-pseudo;
+}
+%main-nav-horizontal .feedback-link a::after {
+  @extend %with-logo-github-monochrome-icon, %as-pseudo;
+}
+%main-header-horizontal::before {
+  background-color: $magenta-600;
+}
+%main-nav-horizontal-action,
+%main-nav-horizontal-toggle-button {
+  color: $magenta-050;
+}
+@media #{$--lt-horizontal-nav} {
+  %main-nav-horizontal-panel {
+    background-color: $magenta-600;
+  }
+}
+@media #{$--horizontal-nav} {
+  %main-nav-horizontal-action-active {
+    background-color: $magenta-800;
+  }
+}
