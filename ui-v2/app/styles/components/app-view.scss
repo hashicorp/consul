@@ -82,3 +82,41 @@ main {
 %app-view > div.disabled > div {
   margin-top: 0 !important;
 }
+
+/* toggleable toolbar for short screens */
+[for='toolbar-toggle'] {
+  @extend %with-search-color-icon;
+  background-position: 0 4px;
+  display: inline-block;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+  color: $blue-500;
+}
+#toolbar-toggle {
+  display: none;
+}
+@media #{$--horizontal-selects} {
+  [for='toolbar-toggle'] {
+    display: none;
+  }
+}
+// reduced search magnifying icon layout
+@media #{$--lt-horizontal-selects} {
+  %app-view header h1 {
+    display: inline-block;
+  }
+  %app-view header h1 {
+    display: inline-block;
+  }
+  // on the instance detail page we don't have the magnifier
+  html.template-instance.template-show h1 {
+    display: block;
+  }
+  #toolbar-toggle + * {
+    display: none;
+  }
+  #toolbar-toggle:checked + * {
+    display: block;
+  }
+}
