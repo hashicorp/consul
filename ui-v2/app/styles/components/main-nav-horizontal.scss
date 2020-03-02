@@ -1,19 +1,5 @@
-@import './loader';
-@import './main-header-horizontal';
-@import '../main-nav-horizontal/index';
-@import './footer';
-[role='banner'] {
-  @extend %main-header-horizontal;
-}
-%main-header-horizontal > div {
-  @extend %main-nav-horizontal-panel;
-}
-%main-header-horizontal label[for='main-nav-toggle'] {
-  @extend %main-nav-horizontal-toggle-button;
-}
-%main-header-horizontal > input {
-  @extend %main-nav-horizontal-toggle;
-}
+@import './main-nav-horizontal/index';
+
 %main-header-horizontal nav:first-of-type {
   @extend %primary-nav;
 }
@@ -23,6 +9,16 @@
 %primary-nav,
 %secondary-nav {
   @extend %main-nav-horizontal;
+}
+
+%main-header-horizontal > div {
+  @extend %main-nav-horizontal-panel;
+}
+%main-header-horizontal label[for='main-nav-toggle'] {
+  @extend %main-nav-horizontal-toggle-button;
+}
+%main-header-horizontal > input {
+  @extend %main-nav-horizontal-toggle;
 }
 @media #{$--lt-horizontal-nav} {
   %primary-nav {

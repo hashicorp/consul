@@ -109,3 +109,9 @@ pre code,
 %app-view h1 em {
   font-size: $typo-size-500;
 }
+/*TODO: This should go in reset, and probably needs select etc adding  */
+@media (max-width: 420px) and (-webkit-min-device-pixel-ratio: 0) {
+  input {
+    font-size: 16px !important;
+  }
+}

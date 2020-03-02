@@ -1,21 +1,3 @@
-/* logo */
-%brand-loader {
-  display: block;
-}
-%brand-loader {
-  position: absolute;
-  top: 50%;
-  margin-top: -26px;
-  left: 50%;
-  margin-left: -84px;
-}
-/* blobs / %ui-loader ? */
-%loader {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: calc(100vh - 90px - 48px - 50px);
-}
 %loader circle {
   animation: loader-animation 1.5s infinite ease-in-out;
   transform-origin: 50% 50%;
