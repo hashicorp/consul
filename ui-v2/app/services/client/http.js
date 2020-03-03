@@ -1,7 +1,6 @@
 /*global $*/
 import Service, { inject as service } from '@ember/service';
 import { get, set } from '@ember/object';
-import { Promise } from 'rsvp';
 
 import { env } from 'consul-ui/env';
 import getObjectPool from 'consul-ui/utils/get-object-pool';
