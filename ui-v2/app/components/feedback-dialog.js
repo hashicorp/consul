@@ -1,7 +1,6 @@
 import Component from '@ember/component';
 import { set } from '@ember/object';
 import { inject as service } from '@ember/service';
-import { Promise } from 'rsvp';
 
 import SlotsMixin from 'block-slots';
 const STATE_READY = 'ready';
