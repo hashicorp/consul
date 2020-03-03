@@ -85,7 +85,7 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 	}, nil
 }
 
-// acceptsOpenMetricsMimeType returns ntrue if mime type is Prometheus-compatible
+// acceptsOpenMetricsMimeType returns true if mime type is Prometheus-compatible
 func acceptsOpenMetricsMimeType(acceptHeader string) bool {
 	mimeTypes := strings.Split(acceptHeader, ",")
 	for _, v := range mimeTypes {
