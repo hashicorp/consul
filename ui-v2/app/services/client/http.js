@@ -126,90 +126,94 @@ export default Service.extend({
       // with whats left after the line, use for the headers
       const [url, ...headerParts] = urlParts.join(' ').split('\n');
 
-      const headers = {
-        // default to application/json
-        ...{
-          'Content-Type': 'application/json; charset=utf-8',
-        },
-        // add any application level headers
-        ...get(client, 'settings').findHeaders(),
-        // but overwrite or add to those from anything in the specific request
-        ...createHeaders(headerParts),
-      };
+      return client.settings.findBySlug('token').then(function(token) {
+        const headers = {
+          // default to application/json
+          ...{
+            'Content-Type': 'application/json; charset=utf-8',
+          },
+          // add any application level headers
+          ...{
+            'X-Consul-Token': typeof token.SecretID === 'undefined' ? '' : token.SecretID,
+          },
+          // but overwrite or add to those from anything in the specific request
+          ...createHeaders(headerParts),
+        };
 
-      return new Promise(function(resolve, reject) {
-        const options = {
-          url: url.trim(),
-          method: method,
-          contentType: headers['Content-Type'],
-          // type: 'json',
-          complete: function(xhr, textStatus) {
-            client.complete(this.id);
-          },
-          success: function(response, status, xhr) {
-            const headers = createHeaders(xhr.getAllResponseHeaders().split('\n'));
-            const respond = function(cb) {
-              return cb(headers, response);
-            };
-            // TODO: nextTick ?
-            resolve(respond);
-          },
-          error: function(xhr, textStatus, err) {
-            let error;
-            if (err instanceof Error) {
-              error = err;
-            } else {
-              let status = xhr.status;
-              // TODO: Not sure if we actually need this, but ember-data checks it
-              if (textStatus === 'abort') {
-                status = 0;
-              }
-              if (textStatus === 'timeout') {
-                status = 408;
-              }
-              error = new HTTPError(status, xhr.responseText);
-            }
-            //TODO: nextTick ?
-            reject(error);
-          },
-          converters: {
-            'text json': function(response) {
-              try {
-                return $.parseJSON(response);
-              } catch (e) {
-                return response;
-              }
+        return new Promise(function(resolve, reject) {
+          const options = {
+            url: url.trim(),
+            method: method,
+            contentType: headers['Content-Type'],
+            // type: 'json',
+            complete: function(xhr, textStatus) {
+              client.complete(this.id);
             },
-          },
-        };
-        if (typeof body !== 'undefined') {
-          // Only read add HTTP body if we aren't GET
-          // Right now we do this to avoid having to put data in the templates
-          // for write-like actions
-          // potentially we should change things so you _have_ to do that
-          // as doing it this way is a little magical
-          if (method !== 'GET' && headers['Content-Type'].indexOf('json') !== -1) {
-            options.data = JSON.stringify(body);
-          } else {
-            // TODO: Does this need urlencoding? Assuming jQuery does this
-            options.data = body;
+            success: function(response, status, xhr) {
+              const headers = createHeaders(xhr.getAllResponseHeaders().split('\n'));
+              const respond = function(cb) {
+                return cb(headers, response);
+              };
+              // TODO: nextTick ?
+              resolve(respond);
+            },
+            error: function(xhr, textStatus, err) {
+              let error;
+              if (err instanceof Error) {
+                error = err;
+              } else {
+                let status = xhr.status;
+                // TODO: Not sure if we actually need this, but ember-data checks it
+                if (textStatus === 'abort') {
+                  status = 0;
+                }
+                if (textStatus === 'timeout') {
+                  status = 408;
+                }
+                error = new HTTPError(status, xhr.responseText);
+              }
+              //TODO: nextTick ?
+              reject(error);
+            },
+            converters: {
+              'text json': function(response) {
+                try {
+                  return $.parseJSON(response);
+                } catch (e) {
+                  return response;
+                }
+              },
+            },
+          };
+          if (typeof body !== 'undefined') {
+            // Only read add HTTP body if we aren't GET
+            // Right now we do this to avoid having to put data in the templates
+            // for write-like actions
+            // potentially we should change things so you _have_ to do that
+            // as doing it this way is a little magical
+            if (method !== 'GET' && headers['Content-Type'].indexOf('json') !== -1) {
+              options.data = JSON.stringify(body);
+            } else {
+              // TODO: Does this need urlencoding? Assuming jQuery does this
+              options.data = body;
+            }
           }
-        }
-        // temporarily reset the headers/content-type so it works the same
-        // as previously, should be able to remove this once the data layer
-        // rewrite is over and we can assert sending via form-encoded is fine
-        // also see adapters/kv content-types in requestForCreate/UpdateRecord
-        // also see https://github.com/hashicorp/consul/issues/3804
-        options.contentType = 'application/json; charset=utf-8';
-        headers['Content-Type'] = options.contentType;
-        //
-        options.beforeSend = function(xhr) {
-          if (headers) {
-            Object.keys(headers).forEach(key => xhr.setRequestHeader(key, headers[key]));
-          }
-          this.id = client.acquire(options, xhr);
-        };
-        return $.ajax(options);
+          // temporarily reset the headers/content-type so it works the same
+          // as previously, should be able to remove this once the data layer
+          // rewrite is over and we can assert sending via form-encoded is fine
+          // also see adapters/kv content-types in requestForCreate/UpdateRecord
+          // also see https://github.com/hashicorp/consul/issues/3804
+          options.contentType = 'application/json; charset=utf-8';
+          headers['Content-Type'] = options.contentType;
+          //
+          options.beforeSend = function(xhr) {
+            if (headers) {
+              Object.keys(headers).forEach(key => xhr.setRequestHeader(key, headers[key]));
+            }
+            this.id = client.acquire(options, xhr);
+          };
+          return $.ajax(options);
+        });
       });
     });
   },
