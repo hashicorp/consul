@@ -146,10 +146,12 @@ function get_envoy_listener_filters {
   [ "$status" -eq 0 ]
   local ENVOY_VERSION=$(echo $output | jq --raw-output '.configs[0].bootstrap.node.metadata.envoy_version')
   local QUERY=''
-  if [ "$ENVOY_VERSION" == "1.13.0" ]; then
-    QUERY='.configs[2].dynamic_listeners[].active_state.listener | "\(.name) \( .filter_chains[0].filters | map(.name) | join(","))"'
-  else
+  # from 1.13.0 on the config json looks slightly different
+  # 1.10.x, 1.11.x, 1.12.x are not affected
+  if [[ "$ENVOY_VERSION" =~ ^1\.1[012]\. ]]; then
     QUERY='.configs[2].dynamic_active_listeners[].listener | "\(.name) \( .filter_chains[0].filters | map(.name) | join(","))"'
+  else
+    QUERY='.configs[2].dynamic_listeners[].active_state.listener | "\(.name) \( .filter_chains[0].filters | map(.name) | join(","))"'
   fi
   echo "$output" | jq --raw-output "$QUERY"
 }
