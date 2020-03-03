@@ -1,4 +1,4 @@
-import RSVP, { Promise } from 'rsvp';
+import RSVP from 'rsvp';
 export default function(EventTarget = RSVP.EventTarget, P = Promise) {
   // TODO: Class-ify
   return function(filter) {
