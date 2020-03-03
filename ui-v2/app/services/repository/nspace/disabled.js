@@ -1,5 +1,4 @@
 import RepositoryService from 'consul-ui/services/repository';
-import { Promise } from 'rsvp';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/nspace';
 
 const modelName = 'nspace';

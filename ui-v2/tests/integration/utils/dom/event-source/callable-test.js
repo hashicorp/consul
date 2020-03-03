@@ -1,6 +1,5 @@
 import domEventSourceCallable from 'consul-ui/utils/dom/event-source/callable';
 import EventTarget from 'consul-ui/utils/dom/event-target/rsvp';
-import { Promise } from 'rsvp';
 
 import { module, skip } from 'qunit';
 import { setupTest } from 'ember-qunit';

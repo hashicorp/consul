@@ -2,7 +2,6 @@ import Component from '@ember/component';
 import { get, set, computed } from '@ember/object';
 import { alias } from '@ember/object/computed';
 import { inject as service } from '@ember/service';
-import { Promise } from 'rsvp';
 
 import SlotsMixin from 'block-slots';
 import WithListeners from 'consul-ui/mixins/with-listeners';
