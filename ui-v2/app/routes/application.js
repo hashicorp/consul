@@ -2,7 +2,6 @@ import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 import { next } from '@ember/runloop';
-import { Promise } from 'rsvp';
 
 import WithBlockingActions from 'consul-ui/mixins/with-blocking-actions';
 
