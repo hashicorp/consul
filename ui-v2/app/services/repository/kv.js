@@ -1,5 +1,4 @@
 import RepositoryService from 'consul-ui/services/repository';
-import { Promise } from 'rsvp';
 import isFolder from 'consul-ui/utils/isFolder';
 import { get } from '@ember/object';
 import { PRIMARY_KEY } from 'consul-ui/models/kv';
