@@ -1,5 +1,4 @@
 import Service from '@ember/service';
-import { Promise } from 'rsvp';
 import getStorage from 'consul-ui/utils/storage/local-storage';
 const SCHEME = 'consul';
 const storage = getStorage(SCHEME);

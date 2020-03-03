@@ -1,5 +1,4 @@
 import { get } from '@ember/object';
-import { Promise } from 'rsvp';
 
 const pause = 2000;
 // native EventSource retry is ~3s wait

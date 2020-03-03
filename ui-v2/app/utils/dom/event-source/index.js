@@ -1,6 +1,5 @@
 import ObjectProxy from '@ember/object/proxy';
 import ArrayProxy from '@ember/array/proxy';
-import { Promise } from 'rsvp';
 
 import createListeners from 'consul-ui/utils/dom/create-listeners';
 
