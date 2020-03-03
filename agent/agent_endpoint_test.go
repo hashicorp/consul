@@ -1680,6 +1680,21 @@ func TestAgent_ForceLeave(t *testing.T) {
 
 }
 
+func TestOpenMetricsMimeTypeHeaders(t *testing.T) {
+	t.Parallel()
+	assert.False(t, acceptsOpenMetricsMimeType(""))
+	assert.False(t, acceptsOpenMetricsMimeType(";;;"))
+	assert.False(t, acceptsOpenMetricsMimeType(",,,"))
+	assert.False(t, acceptsOpenMetricsMimeType("text/plain"))
+	assert.True(t, acceptsOpenMetricsMimeType("text/plain;version=0.4.0,"))
+	assert.True(t, acceptsOpenMetricsMimeType("text/plain;version=0.4.0;q=1,*/*;q=0.1"))
+	assert.True(t, acceptsOpenMetricsMimeType("text/plain   ;   version=0.4.0"))
+	assert.True(t, acceptsOpenMetricsMimeType("*/*, application/openmetrics-text ;"))
+	assert.True(t, acceptsOpenMetricsMimeType("*/*, application/openmetrics-text ;q=1"))
+	assert.True(t, acceptsOpenMetricsMimeType("application/openmetrics-text, text/plain;version=0.4.0"))
+	assert.True(t, acceptsOpenMetricsMimeType("application/openmetrics-text; version=0.0.1,text/plain;version=0.0.4;q=0.5,*/*;q=0.1"))
+}
+
 func TestAgent_ForceLeave_ACLDeny(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), TestACLConfig())

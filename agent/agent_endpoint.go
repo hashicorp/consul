@@ -85,12 +85,30 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 	}, nil
 }
 
+// acceptsOpenMetricsMimeType returns true if mime type is Prometheus-compatible
+func acceptsOpenMetricsMimeType(acceptHeader string) bool {
+	mimeTypes := strings.Split(acceptHeader, ",")
+	for _, v := range mimeTypes {
+		mimeInfo := strings.Split(v, ";")
+		if len(mimeInfo) > 0 {
+			rawMime := strings.ToLower(strings.Trim(mimeInfo[0], " "))
+			if rawMime == "application/openmetrics-text" {
+				return true
+			}
+			if rawMime == "text/plain" && (len(mimeInfo) > 1 && strings.Trim(mimeInfo[1], " ") == "version=0.4.0") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // enablePrometheusOutput will look for Prometheus mime-type or format Query parameter the same way as Nomad
 func enablePrometheusOutput(req *http.Request) bool {
 	if format := req.URL.Query().Get("format"); format == "prometheus" {
 		return true
 	}
-	return false
+	return acceptsOpenMetricsMimeType(req.Header.Get("Accept"))
 }
 
 func (s *HTTPServer) AgentMetrics(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
