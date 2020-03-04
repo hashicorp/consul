@@ -36,18 +36,20 @@ compatible Envoy versions.
 
 | Consul Version | Compatible Envoy Versions |
 |---|---|
-| 1.7.0 and higher | 1.13.0, 1.12.2, 1.11.2, 1.10.0 |
+| 1.7.0 and higher | 1.13.0, 1.12.2, 1.11.2, 1.10.0* |
 | 1.5.2, 1.5.3, 1.6.x | 1.11.1, 1.10.0, 1.9.1, 1.8.0† |
 | 1.5.0, 1.5.1 | 1.9.1, 1.8.0† |
 | 1.3.x, 1.4.x | 1.9.1, 1.8.0†, 1.7.0† |
 
-!> **Security Note:** Envoy versions lower than 1.9.1 are vulnerable to
- [CVE-2019-9900](https://github.com/envoyproxy/envoy/issues/6434) and
- [CVE-2019-9901](https://github.com/envoyproxy/envoy/issues/6435). Both are
- related to HTTP request parsing and so only affect Consul Connect users if they
- have configured HTTP routing rules via the ["escape
- hatch"](#custom-configuration). Still, we recommend that you use the most
- recent supported Envoy for your Consul version where possible.
+~> Note:  
+  † Envoy versions lower than 1.9.1 are vulnerable to
+  [CVE-2019-9900](https://github.com/envoyproxy/envoy/issues/6434) and
+  [CVE-2019-9901](https://github.com/envoyproxy/envoy/issues/6435). Both are
+  related to HTTP request parsing and so only affect Consul Connect users if they
+  have configured HTTP routing rules via the ["escape
+  hatch"](#custom-configuration). Still, we recommend that you use the most
+  recent supported Envoy for your Consul version where possible.  
+  * Envoy 1.10.0 requires setting [`-envoy-version`](https://www.consul.io/docs/commands/connect/envoy.html#envoy-version) in the `consul connect envoy` command. This was introduced in Consul 1.7.0.
 
 ## Getting Started
 
