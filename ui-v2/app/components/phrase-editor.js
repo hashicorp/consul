@@ -6,11 +6,6 @@ export default Component.extend({
   dom: service('dom'),
   classNames: ['phrase-editor'],
   item: '',
-  didInsertElement: function() {
-    this._super(...arguments);
-    // TODO: use {{ref}}
-    this.input = this.dom.element('input', this.element);
-  },
   onchange: function(e) {},
   search: function(e) {
     // TODO: Temporarily continue supporting `searchable`
