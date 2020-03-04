@@ -7,5 +7,5 @@
   </ul>
   <label class="type-search">
     <span>Search</span>
-    <input onchange={{action 'add'}} onsearch={{action 'add'}} oninput={{action 'input'}} onkeydown={{action 'keydown'}} placeholder={{if (eq value.length 0) placeholder}} value={{item}} type="search" name="s" autofocus="autofocus" />
+    <input {{ref this "input"}} onchange={{action 'add'}} onsearch={{action 'add'}} oninput={{action 'input'}} onkeydown={{action 'keydown'}} placeholder={{if (eq value.length 0) placeholder}} value={{item}} type="search" name="s" autofocus="autofocus" />
   </label>
