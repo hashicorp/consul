@@ -6217,6 +6217,7 @@ func TestSanitize(t *testing.T) {
 			"StatsiteAddr": ""
 		},
 		"TranslateWANAddrs": false,
+		"TxnMaxDataSize": 0,
 		"UIDir": "",
 		"UIContentPath": "",
 		"UnixSocketGroup": "",
