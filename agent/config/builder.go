@@ -968,6 +968,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		TLSPreferServerCipherSuites:      b.boolVal(c.TLSPreferServerCipherSuites),
 		TaggedAddresses:                  c.TaggedAddresses,
 		TranslateWANAddrs:                b.boolVal(c.TranslateWANAddrs),
+		TxnMaxDataSize:                   b.uint64Val(c.Limits.TxnMaxDataSize),
 		UIDir:                            b.stringVal(c.UIDir),
 		UIContentPath:                    UIPathBuilder(b.stringVal(c.UIContentPath)),
 		UnixSocketGroup:                  b.stringVal(c.UnixSocket.Group),
