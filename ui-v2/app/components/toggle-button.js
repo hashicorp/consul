@@ -1,6 +1,5 @@
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
-import { set } from '@ember/object';
 
 export default Component.extend({
   dom: service('dom'),
