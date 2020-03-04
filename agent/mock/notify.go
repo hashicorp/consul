@@ -14,17 +14,29 @@ type Notify struct {
 	// of the notification mock in order to prevent panics
 	// raised by the race conditions detector.
 	sync.RWMutex
-	state   map[structs.CheckID]string
-	updates map[structs.CheckID]int
-	output  map[structs.CheckID]string
+	state      map[structs.CheckID]string
+	updates    map[structs.CheckID]int
+	output     map[structs.CheckID]string
+	serviceIDs map[structs.ServiceID]bool
 }
 
 func NewNotify() *Notify {
 	return &Notify{
-		state:   make(map[structs.CheckID]string),
-		updates: make(map[structs.CheckID]int),
-		output:  make(map[structs.CheckID]string),
+		state:      make(map[structs.CheckID]string),
+		updates:    make(map[structs.CheckID]int),
+		output:     make(map[structs.CheckID]string),
+		serviceIDs: make(map[structs.ServiceID]bool),
 	}
+}
+
+// ServiceExists mock
+func (c *Notify) ServiceExists(serviceID structs.ServiceID) bool {
+	return c.serviceIDs[serviceID]
+}
+
+// AddServiceID will mock a service being present locally
+func (c *Notify) AddServiceID(serviceID structs.ServiceID) {
+	c.serviceIDs[serviceID] = true
 }
 
 func NewNotifyChan() (*Notify, chan int) {

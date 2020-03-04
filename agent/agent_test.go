@@ -584,7 +584,13 @@ func testAgent_AddServices_AliasUpdateCheckNotReverted(t *testing.T, extraHCL st
 
 	services := make([]*structs.ServiceDefinition, numServices)
 	checkIDs := make([]types.CheckID, numServices)
-	for i := 0; i < numServices; i++ {
+	services[0] = &structs.ServiceDefinition{
+		ID:     "fake",
+		Name:   "fake",
+		Port:   8080,
+		Checks: []*structs.CheckType{},
+	}
+	for i := 1; i < numServices; i++ {
 		name := fmt.Sprintf("web-%d", i)
 
 		services[i] = &structs.ServiceDefinition{
