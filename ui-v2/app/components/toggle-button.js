@@ -19,12 +19,6 @@ export default Component.extend({
     this.guid = this.dom.guid(this);
     this._listeners = this.dom.listeners();
   },
-  didInsertElement: function() {
-    this._super(...arguments);
-    // TODO(octane): move to ref
-    set(this, 'input', this.dom.element(`#toggle-button-${this.guid}`));
-    set(this, 'label', this.input.nextElementSibling);
-  },
   willDestroyElement: function() {
     this._super(...arguments);
     this._listeners.remove();
