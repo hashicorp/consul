@@ -44,3 +44,18 @@ test('findAllByDatacenter returns the correct data for list endpoint', function(
     }
   );
 });
+test('findAllByNode calls findAllByDatacenter with the correct arguments', function(assert) {
+  assert.expect(3);
+  const datacenter = 'dc-1';
+  const conf = {
+    cursor: 1,
+  };
+  const service = this.subject();
+  service.findAllByDatacenter = function(dc, configuration) {
+    assert.equal(arguments.length, 2, 'Expected to be called with the correct number of arguments');
+    assert.equal(dc, datacenter);
+    assert.deepEqual(configuration, conf);
+    return Promise.resolve([]);
+  };
+  return service.findAllByNode('node-name', datacenter, conf);
+});
