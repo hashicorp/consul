@@ -1339,7 +1339,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   This must be provided along with [`cert_file`](#cert_file).
 
 *   <a name="http_config"></a><a href="#http_config">`http_config`</a>
-    This object allows setting options for the HTTP API.
+    This object allows setting options for the HTTP API and UI.
 
     The following sub-keys are available:
 
@@ -1357,7 +1357,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
       is available in Consul 0.9.0 and later.
 
     * <a name="response_headers"></a><a href="#response_headers">`response_headers`</a>
-      This object allows adding headers to the HTTP API responses.
+      This object allows adding headers to the HTTP API and UI responses.
       For example, the following config can be used to enable
       [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) on
       the HTTP API endpoints:
