@@ -22,7 +22,7 @@ Consul 1.7.0 contains three major changes that impact upgrades:
 and [backward-incompatible Session API changes](#session-api).
 
 ### Session API
-This version introduced a backwards incompatible change to the Session API. 
+Consul 1.7.0 introduced a backwards incompatible change to the Session API. 
 Queries to view or renew sessions from agents on earlier versions will be rejected.
 This impacts features and products including: Vault, the Enterprise snapshot agent, and locks.
 
