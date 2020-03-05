@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -54,7 +53,6 @@ func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
  ]
  `, value)))
 		req, _ := http.NewRequest("PUT", "/v1/txn", buf)
-		req.Header.Add("Content-Length", fmt.Sprintf("%d", buf.Len()))
 		resp := httptest.NewRecorder()
 		if _, err := agent.srv.Txn(resp, req); err != nil {
 			t.Fatalf("err: %v", err)
@@ -67,14 +65,30 @@ func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
 		}
 	}
 
-	t.Run("toobig", func(t *testing.T) {
+	t.Run("exceeds default limits", func(t *testing.T) {
 		a := NewTestAgent(t, t.Name(), "")
 		testIt(t, a, false)
 		a.Shutdown()
 	})
 
+	t.Run("exceeds configured max txn len", func(t *testing.T) {
+		a := NewTestAgent(t, t.Name(), "limits = { txn_max_req_len = 700000 }")
+		testIt(t, a, false)
+		a.Shutdown()
+	})
+
+	t.Run("exceeds default max kv value size", func(t *testing.T) {
+		a := NewTestAgent(t, t.Name(), "limits = { txn_max_req_len = 123456789 }")
+		testIt(t, a, false)
+		a.Shutdown()
+	})
+
 	t.Run("allowed", func(t *testing.T) {
-		a := NewTestAgent(t, t.Name(), "limits = { kv_max_value_size = 123456789 }")
+		a := NewTestAgent(t, t.Name(), `
+limits = {
+	txn_max_req_len = 123456789
+	kv_max_value_size = 123456789
+}`)
 		testIt(t, a, true)
 		a.Shutdown()
 	})
@@ -124,13 +138,35 @@ func TestTxnEndpoint_Bad_Size_Net(t *testing.T) {
 		}
 	}
 
-	t.Run("toobig", func(t *testing.T) {
+	t.Run("exceeds default limits", func(t *testing.T) {
 		a := NewTestAgent(t, t.Name(), "")
 		testIt(a, false)
 		a.Shutdown()
 	})
 
+	t.Run("exceeds configured max txn len", func(t *testing.T) {
+		a := NewTestAgent(t, t.Name(), "limits = { txn_max_req_len = 700000 }")
+		testIt(a, false)
+		a.Shutdown()
+	})
+
+	t.Run("exceeds default max kv value size", func(t *testing.T) {
+		a := NewTestAgent(t, t.Name(), "limits = { txn_max_req_len = 123456789 }")
+		testIt(a, false)
+		a.Shutdown()
+	})
+
 	t.Run("allowed", func(t *testing.T) {
+		a := NewTestAgent(t, t.Name(), `
+limits = {
+	txn_max_req_len = 123456789
+	kv_max_value_size = 123456789
+}`)
+		testIt(a, true)
+		a.Shutdown()
+	})
+
+	t.Run("allowed kv max backward compatible", func(t *testing.T) {
 		a := NewTestAgent(t, t.Name(), "limits = { kv_max_value_size = 123456789 }")
 		testIt(a, true)
 		a.Shutdown()
@@ -611,51 +647,4 @@ func TestTxnEndpoint_UpdateCheck(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expected, txnResp)
-}
-
-func TestConvertOps_ContentLength(t *testing.T) {
-	a := NewTestAgent(t, t.Name(), "")
-	defer a.Shutdown()
-
-	jsonBody := `[
-     {
-         "KV": {
-             "Verb": "set",
-             "Key": "key1",
-             "Value": "aGVsbG8gd29ybGQ="
-         }
-     }
- ]`
-
-	tests := []struct {
-		contentLength string
-		ok            bool
-	}{
-		{"", true},
-		{strconv.Itoa(len(jsonBody)), true},
-		{strconv.Itoa(raft.SuggestedMaxDataSize), true},
-		{strconv.Itoa(raft.SuggestedMaxDataSize + 100), false},
-	}
-
-	for _, tc := range tests {
-		t.Run("contentLength: "+tc.contentLength, func(t *testing.T) {
-			resp := httptest.NewRecorder()
-			var body bytes.Buffer
-
-			// Doesn't matter what the request body size actually is, as we only
-			// check 'Content-Length' header in this test anyway.
-			body.WriteString(jsonBody)
-
-			req := httptest.NewRequest("POST", "http://foo.com", &body)
-			req.Header.Add("Content-Length", tc.contentLength)
-
-			_, _, ok := a.srv.convertOps(resp, req)
-			if ok != tc.ok {
-				t.Fatal("ok != tc.ok")
-			}
-
-		})
-
-	}
-
 }
