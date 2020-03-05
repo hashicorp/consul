@@ -1452,6 +1452,12 @@ type RuntimeConfig struct {
 	// hcl: translate_wan_addrs = (true|false)
 	TranslateWANAddrs bool
 
+	// TxnMaxReqLen configures the upper limit for the size (in bytes) of the
+	// incoming request bodies for transactions to the /txn endpoint.
+	//
+	// hcl: limits { txn_max_req_len = uint64 }
+	TxnMaxReqLen uint64
+
 	// UIDir is the directory containing the Web UI resources.
 	// If provided, the UI endpoints will be enabled.
 	//

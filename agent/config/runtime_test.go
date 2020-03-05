@@ -3870,7 +3870,8 @@ func TestFullConfig(t *testing.T) {
 				"rpc_rate": 12029.43,
 				"rpc_max_burst": 44848,
 				"rpc_max_conns_per_client": 2954,
-				"kv_max_value_size": 1234567800000000
+				"kv_max_value_size": 1234567800000000,
+				"txn_max_req_len": 5678000000000000
 			},
 			"log_level": "k1zo9Spt",
 			"log_json": true,
@@ -4500,6 +4501,7 @@ func TestFullConfig(t *testing.T) {
 				rpc_max_burst = 44848
 				rpc_max_conns_per_client = 2954
 				kv_max_value_size = 1234567800000000
+				txn_max_req_len = 5678000000000000
 			}
 			log_level = "k1zo9Spt"
 			log_json = true
@@ -5573,6 +5575,7 @@ func TestFullConfig(t *testing.T) {
 			"wan_ipv4": "78.63.37.19",
 		},
 		TranslateWANAddrs:    true,
+		TxnMaxReqLen:         5678000000000000,
 		UIContentPath:        "/consul/",
 		UIDir:                "11IFzAUn",
 		UnixSocketUser:       "E0nB1DwA",
@@ -5908,6 +5911,7 @@ func TestSanitize(t *testing.T) {
 			},
 		},
 		KVMaxValueSize: 1234567800000000,
+		TxnMaxReqLen:   5678000000000000,
 	}
 
 	rtJSON := `{
@@ -6217,6 +6221,7 @@ func TestSanitize(t *testing.T) {
 			"StatsiteAddr": ""
 		},
 		"TranslateWANAddrs": false,
+		"TxnMaxReqLen": 5678000000000000,
 		"UIDir": "",
 		"UIContentPath": "",
 		"UnixSocketGroup": "",
