@@ -1449,6 +1449,14 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
         single RPC call to a Consul server. See
         https://en.wikipedia.org/wiki/Token_bucket for more details about how
         token bucket rate limiters operate.
+    *   <a name="txn_max_req_len"></a><a href="#txn_max_req_len">
+        `txn_max_req_len`</a> - Configures the maximum number of
+        bytes for a transaction request body to the [`/v1/txn`](/api/txn.html)
+        endpoint. This limit defaults to [raft's](https://github.com/hashicorp/raft)
+        suggested max size. **Note that increasing beyond this default can
+        cause Consul to fail in unexpected ways**, it may potentially affect
+        leadership stability and prevent timely heartbeat signals by
+        increasing RPC IO duration.
 
 * <a name="log_file"></a><a href="#log_file">`log_file`</a> Equivalent to the
   [`-log-file` command-line flag](#_log_file).
