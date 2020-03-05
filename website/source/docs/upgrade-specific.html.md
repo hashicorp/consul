@@ -17,8 +17,17 @@ upgrade flow.
 
 ## Consul 1.7.0
 
-Consul 1.7.0 contains two major changes that may impact upgrades: 
-[stricter JSON decoding](#stricter-json-decoding) and [modified DNS outputs](#dns-ptr-record-output)
+Consul 1.7.0 contains three major changes that impact upgrades: 
+[stricter JSON decoding](#stricter-json-decoding), [modified DNS outputs](#dns-ptr-record-output), 
+and [backward-incompatible Session API changes](#session-api).
+
+### Session API
+This version introduced a backwards incompatible change to the Session API. 
+Queries to get or renew sessions from agents on earlier versions will be rejected.
+This impacts features and products including: Vault, the enterprise snapshot agent, and locks.
+
+The issue occurs when clients are still running 1.6.4 or earlier but servers have been upgraded to 1.7.0 or 1.7.1. 
+For this reason, we recommend you upgrade directly to 1.7.2 which will include a fix for this issue.
 
 ### Stricter JSON Decoding
 
