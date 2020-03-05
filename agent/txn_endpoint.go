@@ -65,19 +65,19 @@ func isWrite(op api.KVOp) bool {
 // a boolean, that if false means an error response has been generated and
 // processing should stop.
 func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (structs.TxnOps, int, bool) {
-	// The TxnMaxDataSize limit and KVMaxValueSize limit both default to the
+	// The TxnMaxReqLen limit and KVMaxValueSize limit both default to the
 	// suggested raft data size and can be configured independently. The
-	// TxnMaxDataSize is enforced on the cumulative size of the transaction,
+	// TxnMaxReqLen is enforced on the cumulative size of the transaction,
 	// whereas the KVMaxValueSize limit is imposed on the values of individual KV
 	// operations -- this is to keep consistent with the behavior for KV values
 	// in the kvs endpoint.
 	//
 	// The defaults are set to the suggested raft size to keep the total
 	// transaction size reasonable to account for timely heartbeat signals. If
-	// the TxnMaxDataSize limit is above the raft's suggested threshold, large
+	// the TxnMaxReqLen limit is above the raft's suggested threshold, large
 	// transactions are automatically set to attempt a chunking apply.
 	// Performance may degrade and warning messages may appear.
-	maxTxnSize := int64(s.agent.config.TxnMaxDataSize)
+	maxTxnLen := int64(s.agent.config.TxnMaxReqLen)
 
 	// Check Content-Length first before decoding to return early
 	sizeStr := req.Header.Get("Content-Length")
@@ -86,21 +86,21 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 			resp.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(resp, "Failed to parse Content-Length: %v", err)
 			return nil, 0, false
-		} else if size > int(maxTxnSize) {
+		} else if size > int(maxTxnLen) {
 			resp.WriteHeader(http.StatusRequestEntityTooLarge)
-			fmt.Fprintf(resp, "Request body too large, max size: %v bytes", maxTxnSize)
+			fmt.Fprintf(resp, "Request body too large, max size: %v bytes", maxTxnLen)
 			return nil, 0, false
 		}
 	}
 
 	var ops api.TxnOps
-	req.Body = http.MaxBytesReader(resp, req.Body, maxTxnSize)
+	req.Body = http.MaxBytesReader(resp, req.Body, maxTxnLen)
 	if err := decodeBody(req.Body, &ops); err != nil {
 		if err.Error() == "http: request body too large" {
 			// The request size is also verified during decoding to double check
 			// if the Content-Length header was not set by the client.
 			resp.WriteHeader(http.StatusRequestEntityTooLarge)
-			fmt.Fprintf(resp, "Request body too large, max size: %v bytes", maxTxnSize)
+			fmt.Fprintf(resp, "Request body too large, max size: %v bytes", maxTxnLen)
 		} else {
 			// Note the body is in API format, and not the RPC format. If we can't
 			// decode it, we will return a 400 since we don't have enough context to
