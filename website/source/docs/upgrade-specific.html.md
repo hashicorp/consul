@@ -23,7 +23,7 @@ and [backward-incompatible Session API changes](#session-api).
 
 ### Session API
 This version introduced a backwards incompatible change to the Session API. 
-Queries to get or renew sessions from agents on earlier versions will be rejected.
+Queries to view or renew sessions from agents on earlier versions will be rejected.
 This impacts features and products including: Vault, the Enterprise snapshot agent, and locks.
 
 The issue occurs when clients are still running 1.6.4 or earlier but servers have been upgraded to 1.7.0 or 1.7.1. 
