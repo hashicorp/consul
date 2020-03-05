@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/raft"
 )
 
 const (
@@ -66,11 +65,6 @@ func isWrite(op api.KVOp) bool {
 // a boolean, that if false means an error response has been generated and
 // processing should stop.
 func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (structs.TxnOps, int, bool) {
-	// maxTxnSize is the size limit (bytes) for for transaction request bodies.
-	// The default is set to the suggested raft size to keep the total transaction
-	// size reasonable to account for timely heartbeat signals.
-	maxTxnSize := int64(s.agent.config.TxnMaxDataSize)
-
 	// The TxnMaxDataSize limit and KVMaxValueSize limit both default to the
 	// suggested raft data size and can be configured independently. The
 	// TxnMaxDataSize is enforced on the cumulative size of the transaction,
@@ -78,12 +72,12 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 	// operations -- this is to keep consistent with the behavior for KV values
 	// in the kvs endpoint.
 	//
-	// If the TxnMaxDataSize limit is above the raft's suggested threshold, large
+	// The defaults are set to the suggested raft size to keep the total
+	// transaction size reasonable to account for timely heartbeat signals. If
+	// the TxnMaxDataSize limit is above the raft's suggested threshold, large
 	// transactions are automatically set to attempt a chunking apply.
 	// Performance may degrade and warning messages may appear.
-	if maxTxnSize == 0 {
-		maxTxnSize = raft.SuggestedMaxDataSize
-	}
+	maxTxnSize := int64(s.agent.config.TxnMaxDataSize)
 
 	// Check Content-Length first before decoding to return early
 	sizeStr := req.Header.Get("Content-Length")
