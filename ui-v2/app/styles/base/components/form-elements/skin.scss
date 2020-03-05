@@ -7,6 +7,7 @@
 %form-element-text-input {
   -moz-appearance: none;
   -webkit-appearance: none;
+  box-shadow: inset $decor-elevation-100;
   border-radius: $decor-radius-100;
   border: $decor-border-100;
   outline: none;
