@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -78,19 +77,19 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 	// transactions are automatically set to attempt a chunking apply.
 	// Performance may degrade and warning messages may appear.
 	maxTxnLen := int64(s.agent.config.TxnMaxReqLen)
+	kvMaxValueSize := int64(s.agent.config.KVMaxValueSize)
+
+	// For backward compatibility, KVMaxValueSize is used as the max txn request
+	// length if it is configured greater than TxnMaxReqLen or its default
+	if maxTxnLen < kvMaxValueSize {
+		maxTxnLen = kvMaxValueSize
+	}
 
 	// Check Content-Length first before decoding to return early
-	sizeStr := req.Header.Get("Content-Length")
-	if sizeStr != "" {
-		if size, err := strconv.Atoi(sizeStr); err != nil {
-			resp.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(resp, "Failed to parse Content-Length: %v", err)
-			return nil, 0, false
-		} else if size > int(maxTxnLen) {
-			resp.WriteHeader(http.StatusRequestEntityTooLarge)
-			fmt.Fprintf(resp, "Request body too large, max size: %v bytes", maxTxnLen)
-			return nil, 0, false
-		}
+	if req.ContentLength > (maxTxnLen) {
+		resp.WriteHeader(http.StatusRequestEntityTooLarge)
+		fmt.Fprintf(resp, "Request body too large, max size: %v bytes", maxTxnLen)
+		return nil, 0, false
 	}
 
 	var ops api.TxnOps
@@ -130,7 +129,7 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 		switch {
 		case in.KV != nil:
 			size := len(in.KV.Value)
-			if uint64(size) > s.agent.config.KVMaxValueSize {
+			if int64(size) > kvMaxValueSize {
 				resp.WriteHeader(http.StatusRequestEntityTooLarge)
 				fmt.Fprintf(resp, "Value for key %q is too large (%d > %d bytes)", in.KV.Key, size, s.agent.config.KVMaxValueSize)
 				return nil, 0, false
