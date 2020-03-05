@@ -14,11 +14,11 @@
 }
 %stats-card,
 %stats-card header::before {
-  box-shadow: $decor-elevation-400;
+  box-shadow: $decor-elevation-300;
 }
 %stats-card:hover,
 %stats-card:focus {
-  box-shadow: $decor-elevation-600;
+  box-shadow: $decor-elevation-400;
 }
 %stats-card header > :not(a):last-child {
   border: $decor-border-100;
