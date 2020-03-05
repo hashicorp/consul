@@ -83,6 +83,18 @@ func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
 		a.Shutdown()
 	})
 
+	t.Run("exceeds configured max txn len", func(t *testing.T) {
+		a := NewTestAgent(t, t.Name(), "limits = { txn_max_req_len = 700000 }")
+		testIt(t, a, false)
+		a.Shutdown()
+	})
+
+	t.Run("exceeds default max kv value size", func(t *testing.T) {
+		a := NewTestAgent(t, t.Name(), "limits = { txn_max_req_len = 123456789 }")
+		testIt(t, a, false)
+		a.Shutdown()
+	})
+
 	t.Run("allowed", func(t *testing.T) {
 		a := NewTestAgent(t, `
 limits = {
@@ -152,6 +164,18 @@ func TestTxnEndpoint_Bad_Size_Net(t *testing.T) {
 
 	t.Run("exceeds default max kv value size", func(t *testing.T) {
 		a := NewTestAgent(t, "limits = { txn_max_req_len = 123456789 }")
+		testIt(a, false)
+		a.Shutdown()
+	})
+
+	t.Run("exceeds configured max txn len", func(t *testing.T) {
+		a := NewTestAgent(t, t.Name(), "limits = { txn_max_req_len = 700000 }")
+		testIt(a, false)
+		a.Shutdown()
+	})
+
+	t.Run("exceeds default max kv value size", func(t *testing.T) {
+		a := NewTestAgent(t, t.Name(), "limits = { txn_max_req_len = 123456789 }")
 		testIt(a, false)
 		a.Shutdown()
 	})
