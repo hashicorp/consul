@@ -86,7 +86,7 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 	}
 
 	// Check Content-Length first before decoding to return early
-	if req.ContentLength > (maxTxnLen) {
+	if req.ContentLength > maxTxnLen {
 		resp.WriteHeader(http.StatusRequestEntityTooLarge)
 		fmt.Fprintf(resp, "Request body too large, max size: %v bytes", maxTxnLen)
 		return nil, 0, false
