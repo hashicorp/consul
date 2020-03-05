@@ -27,7 +27,7 @@ Queries to view or renew sessions from agents on earlier versions will be reject
 This impacts features and products including: Vault, the Enterprise snapshot agent, and locks.
 
 The issue occurs when clients are still running 1.6.4 or earlier but servers have been upgraded to 1.7.0 or 1.7.1. 
-For this reason, we recommend you upgrade directly to 1.7.2 which will include a fix for this issue.
+For this reason, we recommend you upgrade directly to 1.7.2 when it is available as it will include a fix for this issue.
 
 ### Stricter JSON Decoding
 
