@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
 func TestSession_Apply(t *testing.T) {
@@ -262,6 +262,52 @@ func TestSession_Get(t *testing.T) {
 	getR := structs.SessionSpecificRequest{
 		Datacenter: "dc1",
 		SessionID:  out,
+	}
+	var sessions structs.IndexedSessions
+	if err := msgpackrpc.CallWithCodec(codec, "Session.Get", &getR, &sessions); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if sessions.Index == 0 {
+		t.Fatalf("Bad: %v", sessions)
+	}
+	if len(sessions.Sessions) != 1 {
+		t.Fatalf("Bad: %v", sessions)
+	}
+	s := sessions.Sessions[0]
+	if s.ID != out {
+		t.Fatalf("bad: %v", s)
+	}
+}
+
+func TestSession_Get_Compat(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
+	arg := structs.SessionRequest{
+		Datacenter: "dc1",
+		Op:         structs.SessionCreate,
+		Session: structs.Session{
+			Node: "foo",
+		},
+	}
+	var out string
+	if err := msgpackrpc.CallWithCodec(codec, "Session.Apply", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	getR := structs.SessionSpecificRequest{
+		Datacenter: "dc1",
+		// this should get converted to the SessionID field internally
+		Session: out,
 	}
 	var sessions structs.IndexedSessions
 	if err := msgpackrpc.CallWithCodec(codec, "Session.Get", &getR, &sessions); err != nil {
@@ -790,6 +836,63 @@ session "foo" {
 	renewR.Token = token
 	if err := msgpackrpc.CallWithCodec(codec, "Session.Renew", &renewR, &session); err != nil {
 		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestSession_Renew_Compat(t *testing.T) {
+	// This method is timing sensitive, disable Parallel
+	//t.Parallel()
+	ttl := 5 * time.Second
+	TTL := ttl.String()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.SessionTTLMin = ttl
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
+	var id string
+	arg := structs.SessionRequest{
+		Datacenter: "dc1",
+		Op:         structs.SessionCreate,
+		Session: structs.Session{
+			Node: "foo",
+			TTL:  TTL,
+		},
+	}
+	if err := msgpackrpc.CallWithCodec(codec, "Session.Apply", &arg, &id); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// renew the session
+	renewR := structs.SessionSpecificRequest{
+		Datacenter: "dc1",
+		// this will get ranslated internally to the SessionID field
+		Session: id,
+	}
+	var session structs.IndexedSessions
+	if err := msgpackrpc.CallWithCodec(codec, "Session.Renew", &renewR, &session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if session.Index == 0 {
+		t.Fatalf("Bad: %v", session)
+	}
+	if len(session.Sessions) != 1 {
+		t.Fatalf("Bad: %v", session.Sessions)
+	}
+
+	s := session.Sessions[0]
+	if id != s.ID {
+		t.Fatalf("bad: %v", s)
+	}
+	if s.Node != "foo" {
+		t.Fatalf("bad: %v", s)
 	}
 }
 

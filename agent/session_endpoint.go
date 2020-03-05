@@ -98,6 +98,7 @@ func (s *HTTPServer) SessionRenew(resp http.ResponseWriter, req *http.Request) (
 
 	// Pull out the session id
 	args.SessionID = strings.TrimPrefix(req.URL.Path, "/v1/session/renew/")
+	args.Session = args.SessionID
 	if args.SessionID == "" {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing session")
@@ -128,6 +129,7 @@ func (s *HTTPServer) SessionGet(resp http.ResponseWriter, req *http.Request) (in
 
 	// Pull out the session id
 	args.SessionID = strings.TrimPrefix(req.URL.Path, "/v1/session/info/")
+	args.Session = args.SessionID
 	if args.SessionID == "" {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing session")
