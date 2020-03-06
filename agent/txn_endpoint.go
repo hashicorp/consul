@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -65,27 +64,49 @@ func isWrite(op api.KVOp) bool {
 // a boolean, that if false means an error response has been generated and
 // processing should stop.
 func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (structs.TxnOps, int, bool) {
+	// The TxnMaxReqLen limit and KVMaxValueSize limit both default to the
+	// suggested raft data size and can be configured independently. The
+	// TxnMaxReqLen is enforced on the cumulative size of the transaction,
+	// whereas the KVMaxValueSize limit is imposed on the values of individual KV
+	// operations -- this is to keep consistent with the behavior for KV values
+	// in the kvs endpoint.
+	//
+	// The defaults are set to the suggested raft size to keep the total
+	// transaction size reasonable to account for timely heartbeat signals. If
+	// the TxnMaxReqLen limit is above the raft's suggested threshold, large
+	// transactions are automatically set to attempt a chunking apply.
+	// Performance may degrade and warning messages may appear.
+	maxTxnLen := int64(s.agent.config.TxnMaxReqLen)
+	kvMaxValueSize := int64(s.agent.config.KVMaxValueSize)
 
-	sizeStr := req.Header.Get("Content-Length")
-	if sizeStr != "" {
-		if size, err := strconv.Atoi(sizeStr); err != nil {
-			resp.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(resp, "Failed to parse Content-Length: %v", err)
-			return nil, 0, false
-		} else if size > int(s.agent.config.KVMaxValueSize) {
-			resp.WriteHeader(http.StatusRequestEntityTooLarge)
-			fmt.Fprintf(resp, "Request body too large, max size: %v bytes", s.agent.config.KVMaxValueSize)
-			return nil, 0, false
-		}
+	// For backward compatibility, KVMaxValueSize is used as the max txn request
+	// length if it is configured greater than TxnMaxReqLen or its default
+	if maxTxnLen < kvMaxValueSize {
+		maxTxnLen = kvMaxValueSize
 	}
 
-	// Note the body is in API format, and not the RPC format. If we can't
-	// decode it, we will return a 400 since we don't have enough context to
-	// associate the error with a given operation.
+	// Check Content-Length first before decoding to return early
+	if req.ContentLength > maxTxnLen {
+		resp.WriteHeader(http.StatusRequestEntityTooLarge)
+		fmt.Fprintf(resp, "Request body too large, max size: %v bytes", maxTxnLen)
+		return nil, 0, false
+	}
+
 	var ops api.TxnOps
+	req.Body = http.MaxBytesReader(resp, req.Body, maxTxnLen)
 	if err := decodeBody(req.Body, &ops); err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Failed to parse body: %v", err)
+		if err.Error() == "http: request body too large" {
+			// The request size is also verified during decoding to double check
+			// if the Content-Length header was not set by the client.
+			resp.WriteHeader(http.StatusRequestEntityTooLarge)
+			fmt.Fprintf(resp, "Request body too large, max size: %v bytes", maxTxnLen)
+		} else {
+			// Note the body is in API format, and not the RPC format. If we can't
+			// decode it, we will return a 400 since we don't have enough context to
+			// associate the error with a given operation.
+			resp.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(resp, "Failed to parse body: %v", err)
+		}
 		return nil, 0, false
 	}
 
@@ -104,17 +125,15 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 	// byte arrays so we can assign right over.
 	var opsRPC structs.TxnOps
 	var writes int
-	var netKVSize uint64
 	for _, in := range ops {
 		switch {
 		case in.KV != nil:
 			size := len(in.KV.Value)
-			if uint64(size) > s.agent.config.KVMaxValueSize {
+			if int64(size) > kvMaxValueSize {
 				resp.WriteHeader(http.StatusRequestEntityTooLarge)
 				fmt.Fprintf(resp, "Value for key %q is too large (%d > %d bytes)", in.KV.Key, size, s.agent.config.KVMaxValueSize)
 				return nil, 0, false
 			}
-			netKVSize += uint64(size)
 
 			verb := in.KV.Verb
 			if isWrite(verb) {
@@ -255,15 +274,6 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 			}
 			opsRPC = append(opsRPC, out)
 		}
-	}
-
-	// Enforce an overall size limit to help prevent abuse.
-	if netKVSize > s.agent.config.KVMaxValueSize {
-		resp.WriteHeader(http.StatusRequestEntityTooLarge)
-		fmt.Fprintf(resp, "Cumulative size of key data is too large (%d > %d bytes)",
-			netKVSize, s.agent.config.KVMaxValueSize)
-
-		return nil, 0, false
 	}
 
 	return opsRPC, writes, true

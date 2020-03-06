@@ -10,8 +10,19 @@ export default RepositoryService.extend({
   getModelName: function() {
     return modelName;
   },
-  findAllByNode: function(node, dc, nspace, configuration) {
-    return this.findAllByDatacenter(dc, nspace, configuration).then(function(coordinates) {
+  // Coordinates don't need nspaces so we have a custom method here
+  // that doesn't accept nspaces
+  findAllByDatacenter: function(dc, configuration = {}) {
+    const query = {
+      dc: dc,
+    };
+    if (typeof configuration.cursor !== 'undefined') {
+      query.index = configuration.cursor;
+    }
+    return this.store.query(this.getModelName(), query);
+  },
+  findAllByNode: function(node, dc, configuration) {
+    return this.findAllByDatacenter(dc, configuration).then(function(coordinates) {
       let results = {};
       if (get(coordinates, 'length') > 1) {
         results = tomography(node, coordinates.map(item => get(item, 'data')));

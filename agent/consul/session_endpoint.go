@@ -19,6 +19,16 @@ type Session struct {
 	logger hclog.Logger
 }
 
+// in v1.7.0 we renamed Session -> SessionID. While its more descriptive of what
+// we actually expect, it did break the RPC API for the SessionSpecificRequest. Now
+// we have to put back the original name and support both with the new name being
+// the canonical name and the other being considered only when the main one is empty.
+func fixupSessionSpecificRequest(args *structs.SessionSpecificRequest) {
+	if args.SessionID == "" {
+		args.SessionID = args.Session
+	}
+}
+
 // Apply is used to apply a modifying request to the data store. This should
 // only be used for operations that modify the data
 func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
@@ -156,6 +166,8 @@ func (s *Session) Get(args *structs.SessionSpecificRequest,
 		return err
 	}
 
+	fixupSessionSpecificRequest(args)
+
 	var authzContext acl.AuthorizerContext
 	authz, err := s.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
 	if err != nil {
@@ -262,6 +274,9 @@ func (s *Session) Renew(args *structs.SessionSpecificRequest,
 	if done, err := s.srv.forward("Session.Renew", args, args, reply); done {
 		return err
 	}
+
+	fixupSessionSpecificRequest(args)
+
 	defer metrics.MeasureSince([]string{"session", "renew"}, time.Now())
 
 	// Fetch the ACL token, if any, and apply the policy.

@@ -2036,6 +2036,8 @@ func (r *SessionRequest) RequestDatacenter() string {
 type SessionSpecificRequest struct {
 	Datacenter string
 	SessionID  string
+	// DEPRECATED in 1.7.0
+	Session string
 	EnterpriseMeta
 	QueryOptions
 }
