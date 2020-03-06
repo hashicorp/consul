@@ -1,4 +1,4 @@
-import ChildSelectorComponent from './child-selector';
+import ChildSelectorComponent from '../child-selector/index';
 import { get, set } from '@ember/object';
 import { inject as service } from '@ember/service';
 import updateArrayObject from 'consul-ui/utils/update-array-object';

@@ -12,7 +12,11 @@
       </label>
       {{!TODO: potentially call trigger something else}}
       {{!the modal has to go here so that if you provide a slot to trigger it doesn't get rendered}}
-      {{#modal-dialog data-test-policy-form onopen=(action 'open') name="new-policy-toggle"}}
+      <ModalDialog
+        data-test-policy-form
+        @onopen={{action "open"}}
+        @name="new-policy-toggle"
+      >
         <BlockSlot @name="header">
           <h2>New Policy</h2>
         </BlockSlot>
@@ -28,18 +32,18 @@
           </button>
           <button type="reset" disabled={{if item.isSaving 'disabled'}} {{action (queue (action close) (action 'reset'))}}>Cancel</button>
         </BlockSlot>
-      {{/modal-dialog}}
+      </ModalDialog>
     {{/yield-slot}}
   </BlockSlot>
   <BlockSlot @name="option" as |option|>
     {{option.Name}}
   </BlockSlot>
   <BlockSlot @name="set">
-    {{#tabular-details
+    <TabularDetails
         data-test-policies
-        onchange=(action 'loadItem')
-        items=(sort-by 'CreateTime:desc' 'Name:asc' items) as |item index|
-    }}
+        @onchange={{action 'loadItem'}}
+        @items={{sort-by 'CreateTime:desc' 'Name:asc' items}} as |item index|
+    >
       <BlockSlot @name="header">
         <th>Name</th>
         <th>Datacenters</th>
@@ -83,7 +87,7 @@
             </ConfirmationDialog>
           </div>
       </BlockSlot>
-    {{/tabular-details}}
+    </TabularDetails>
 
   </BlockSlot>
 </ChildSelector>
