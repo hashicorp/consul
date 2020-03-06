@@ -41,18 +41,23 @@ const (
 	// ever is.
 	RPCTLSInsecure = 7
 
-	// NOTE: Currently we use values between 0 and 7 for the different
-	// "protocols" that we may ride over our "rpc" port. We had an idea of
-	// using TLS + ALPN for negotiating the protocol instead of our own
-	// bytes as it could provide other benefits. Currently our 0-7 values
-	// are mutually exclusive with any valid first byte of a TLS header
-	// The first TLS header byte will content a TLS content type and the
-	// values 0-19 are all explicitly unassigned and marked as
-	// requiring coordination. RFC 7983 does the marking and goes into
-	// some details about multiplexing connections and identifying TLS.
+	// RPCMaxTypeValue is the maximum rpc type byte value currently used for
+	// the various protocols riding over our "rpc" port.
+	//
+	// Currently our 0-7 values are mutually exclusive with any valid first
+	// byte of a TLS header.  The first TLS header byte will begin with a TLS
+	// content type and the values 0-19 are all explicitly unassigned and
+	// marked as requiring coordination. RFC 7983 does the marking and goes
+	// into some details about multiplexing connections and identifying TLS.
+	//
+	// We use this value to determine if the incoming request is actual real
+	// native TLS (where we can demultiplex based on ALPN protocol) or our
+	// older type-byte system when new connections are established.
+	//
+	// NOTE: if you add new RPCTypes beyond this value, you must similarly bump
+	// this value.
+	RPCMaxTypeValue = 7
 )
-
-const RPCMaxTypeValue = 7
 
 const (
 	// regular old rpc (note there is no equivalent of RPCMultiplex, RPCTLS, or RPCTLSInsecure)
