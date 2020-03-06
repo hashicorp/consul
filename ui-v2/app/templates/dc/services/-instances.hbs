@@ -6,10 +6,10 @@
 {{/if}}
   <ChangeableSet @dispatcher={{searchable}}>
     <BlockSlot @name="set" as |filtered|>
-      {{#tabular-collection
-          data-test-instances
-          items=filtered as |item index|
-      }}
+      <TabularCollection
+        data-test-instances
+        @items={{filtered}} as |item index|
+      >
           <BlockSlot @name="header">
             <th>ID</th>
             <th>Node</th>
@@ -47,7 +47,7 @@
               {{/with}}
             </td>
           </BlockSlot>
-      {{/tabular-collection}}
+      </TabularCollection>
     </BlockSlot>
     <BlockSlot @name="empty">
       <p>

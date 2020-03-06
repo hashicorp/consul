@@ -1,9 +1,9 @@
 {{#if (gt sessions.length 0)}}
-    {{#tabular-collection
-        data-test-sessions
-        class="sessions"
-        items=sessions as |item index|
-    }}
+    <TabularCollection
+      data-test-sessions
+      class="sessions"
+      @items={{sessions}} as |item index|
+    >
         <BlockSlot @name="header">
             <th>Name</th>
             <th>ID</th>
@@ -49,7 +49,7 @@
                     </ConfirmationDialog>
                 </td>
         </BlockSlot>
-    {{/tabular-collection}}
+    </TabularCollection>
 {{else}}
     <p>
         There are no Lock Sessions for this Node. For more information, view <a href="{{ env 'CONSUL_DOCS_URL'}}/internals/sessions.html" rel="help noopener noreferrer" target="_blank">our documentation</a>

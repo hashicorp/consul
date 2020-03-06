@@ -1,4 +1,4 @@
-import FormComponent from './form-component';
+import FormComponent from '../form-component/index';
 export default FormComponent.extend({
   type: 'role',
   name: 'role',
