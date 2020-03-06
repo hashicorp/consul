@@ -15,7 +15,6 @@ export default function(scenario, assert, find, currentPage, pauseUntil, plurali
       const len = currentPage()[pluralize(model)].filter(function(item) {
         return item.isVisible;
       }).length;
-
       assert.equal(len, num, `Expected ${num} ${pluralize(model)}, saw ${len}`);
     })
     .then(['I see $num $model model[s]? on the $component component'], function(
