@@ -396,6 +396,12 @@ func (s *Server) handleALPN_WANGossipPacketStream(conn net.Conn) error {
 			return err
 		}
 
+		// Avoid a memory exhaustion DOS vector here by capping how large this
+		// packet can be to something reasonable.
+		if prefixLen > wanfed.GossipPacketMaxByteSize {
+			return fmt.Errorf("gossip packet size %d exceeds threshold of %d", prefixLen, wanfed.GossipPacketMaxByteSize)
+		}
+
 		lc := &limitedConn{
 			Conn: conn,
 			lr:   io.LimitReader(conn, int64(prefixLen)),

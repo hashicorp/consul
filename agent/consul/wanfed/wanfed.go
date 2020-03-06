@@ -23,6 +23,11 @@ const (
 	//
 	// TODO(rb): should this actually be dynamically derived from the size of the wan pool?
 	GossipPacketMaxIdleTime = 2 * time.Minute
+
+	// GossipPacketMaxByteSize is the maximum allowed size of a packet
+	// forwarded via wanfed. This is 4MB which should be way bigger than serf
+	// or memberlist allow practically so it should never be hit in practice.
+	GossipPacketMaxByteSize = 4 * 1024 * 1024
 )
 
 type MeshGatewayResolver func(datacenter string) string
