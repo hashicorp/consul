@@ -626,6 +626,17 @@ jobs:
       - store_test_results:
           path: *TEST_RESULTS_DIR
 
+  # only runs on master: checks latest commit to see if the PR associated has a backport/* or docs* label to cherry-pick
+  cherry-picker:
+    docker:
+      - image: *GOLANG_IMAGE
+    steps:
+      - checkout
+      - add_ssh_keys: # needs a key to push cherry-picked commits back to github
+          fingerprints:
+            - "c9:04:b7:85:bf:0e:ce:93:5f:b8:0e:68:8e:16:f3:71"
+      - run: .circleci/scripts/cherry-picker.sh
+
 workflows:
   version: 2
   go-tests:
@@ -748,3 +759,11 @@ workflows:
       - ember-test-ent:
           requires:
             - ember-build
+  cherry-pick:
+    jobs:
+      - cherry-picker:
+          context: team-consul
+          filters:
+            branches:
+              only:
+                - master
