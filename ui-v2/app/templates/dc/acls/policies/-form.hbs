@@ -21,7 +21,10 @@
             </BlockSlot>
             <BlockSlot @name="dialog" as |execute cancel message|>
     {{#if (gt items.length 0)}}
-              {{#modal-dialog data-test-delete-modal onclose=(action cancel)}}
+              <ModalDialog
+                data-test-delete-modal
+                @onclose={{action cancel}}
+              >
                   <BlockSlot @name="header">
                       <h2>Policy in Use</h2>
                   </BlockSlot>
@@ -38,7 +41,7 @@
                     <button type="button" class="type-delete" {{action execute}}>Yes, Delete</button>
                     <button type="button" class="type-cancel" {{action close}}>Cancel</button>
                   </BlockSlot>
-                {{/modal-dialog}}
+              </ModalDialog>
     {{else}}
                 <DeleteConfirmation @message={{message}} @execute={{execute}} @cancel={{cancel}} />
     {{/if}}
