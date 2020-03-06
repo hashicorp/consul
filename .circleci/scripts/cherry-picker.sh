@@ -47,7 +47,7 @@ for label in $labels; do
     # else if the label matches backport/*, it will attempt to cherry-pick to the release branch
     elif [[ $label =~ backport/* ]]; then
         echo "backporting to $label"
-        branch=${label/backport/release}
+        branch="${label/backport/release}.x"
         git checkout $branch || exit 1
         git cherry-pick $CIRCLE_SHA1 || exit 1
         git push origin $branch
