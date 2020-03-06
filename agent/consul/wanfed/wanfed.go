@@ -72,6 +72,7 @@ type Transport struct {
 
 var _ memberlist.NodeAwareTransport = (*Transport)(nil)
 
+// Shutdown implements memberlist.Transport.
 func (t *Transport) Shutdown() error {
 	err1 := t.pool.Close()
 	err2 := t.NodeAwareTransport.Shutdown()
@@ -85,8 +86,9 @@ func (t *Transport) Shutdown() error {
 	return nil
 }
 
+// WriteToAddress implements memberlist.NodeAwareTransport.
 func (t *Transport) WriteToAddress(b []byte, addr memberlist.Address) (time.Time, error) {
-	node, dc, err := splitNodeName(addr.Name)
+	node, dc, err := SplitNodeName(addr.Name)
 	if err != nil {
 		return time.Time{}, err
 	}
@@ -126,8 +128,9 @@ func (t *Transport) WriteToAddress(b []byte, addr memberlist.Address) (time.Time
 	return t.NodeAwareTransport.WriteToAddress(b, addr)
 }
 
+// DialAddressTimeout implements memberlist.NodeAwareTransport.
 func (t *Transport) DialAddressTimeout(addr memberlist.Address, timeout time.Duration) (net.Conn, error) {
-	node, dc, err := splitNodeName(addr.Name)
+	node, dc, err := SplitNodeName(addr.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -178,14 +181,13 @@ func (t *Transport) dial(dc, nodeName, nextProto, addr string) (net.Conn, error)
 	return tlsConn, nil
 }
 
-func SplitNodeName(nodeName string) (string, string, error) {
-	return splitNodeName(nodeName)
-}
-
-func splitNodeName(fullName string) (nodeName, dc string, err error) {
-	parts := strings.Split(fullName, ".")
+// SplitNodeName splits a node name as it would be represented in
+// serf/memberlist in the WAN pool of the form "<short-node-name>.<datacenter>"
+// like "nyc-web42.dc5" => "nyc-web42" & "dc5"
+func SplitNodeName(nodeName string) (shortName, dc string, err error) {
+	parts := strings.Split(nodeName, ".")
 	if len(parts) != 2 {
-		return "", "", fmt.Errorf("node name does not encode a datacenter: %s", fullName)
+		return "", "", fmt.Errorf("node name does not encode a datacenter: %s", nodeName)
 	}
 	return parts[0], parts[1], nil
 }
