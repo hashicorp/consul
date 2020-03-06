@@ -28,7 +28,7 @@
                     {{item.Service}}{{#if (not-eq item.ID item.Service) }}&nbsp;<em data-test-service-id="{{item.ID}}">({{item.ID}})</em>{{/if}}
                   </a>
                 </td>
-                <td data-test-service-port="{{item.Port}}" class="port">
+                <td data-test-service-port={{item.Port}} class="port">
                     {{item.Port}}
                 </td>
                 <td data-test-service-tags>
