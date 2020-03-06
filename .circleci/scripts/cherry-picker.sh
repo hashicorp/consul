@@ -1,0 +1,55 @@
+# This script is meant to run on every new commit to master in CircleCI. If the commit comes from a PR, it will
+# check the PR associated with the commit for labels. If the label matches `docs*` it will be cherry-picked
+# to stable-website. If the label matches `backport/*`, it will be cherry-picked to the appropriate `release/*`
+# branch.
+
+# Requires $CIRCLE_PROJECT_USERNAME, $CIRCLE_PROJECT_REPONAME, and $CIRCLE_SHA1 from CircleCI
+#!/bin/bash
+
+# search for the PR labels applicable to the specified commit
+resp=$(curl -f -s "https://api.github.com/search/issues?q=repo:$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME+sha:$CIRCLE_SHA1")
+status="$?"
+if [[ "$status" -ne 0 ]]; then
+  echo "The GitHub API returned $status which means it was probably rate limited."
+  exit $status
+fi
+
+# get the count from the GitHub API to check if the commit matched a PR
+count=$(echo "$resp" | jq '.total_count')
+if [[ "$count" -eq 0 ]]; then
+  echo "This commit was not associated with a PR"
+  exit 0
+fi
+
+# If the API returned a non-zero count, we have found a PR with that commit so we find
+# the labels from the PR
+labels=$(echo "$resp" | jq --raw-output '.items[].labels[] | .name')
+status="$?"
+if [[ "$status" -ne 0 ]]; then
+  pr_url=$(echo "$resp" | jq --raw-output '.items[].pull_request.url')
+  echo "jq exited with $status when trying to find label names. Are there labels applied to the PR ($pr_url)?"
+  # This can be a valid error but usually this means we do not have any labels so it doesn't signal
+  # cherry-picking is possible. Exit 0 for now unless we run into cases where these failures are important.
+  exit 0
+fi
+
+# loop through all labels on the PR
+for label in $labels; do
+    git config --local user.email "hashicorp-ci@users.noreply.github.com"
+    git config --local user.name "hashicorp-ci"
+    echo "checking label: $label"
+    # if the label matches docs*, it will attempt to cherry-pick to stable-website
+    if [[ $label =~ docs* ]]; then
+        echo "docs"
+        git checkout stable-website || exit 1
+        git cherry-pick $CIRCLE_SHA1 || exit 1
+        git push origin stable-website
+    # else if the label matches backport/*, it will attempt to cherry-pick to the release branch
+    elif [[ $label =~ backport/* ]]; then
+        echo "backporting to $label"
+        branch="${label/backport/release}.x"
+        git checkout $branch || exit 1
+        git cherry-pick $CIRCLE_SHA1 || exit 1
+        git push origin $branch
+    fi
+done
