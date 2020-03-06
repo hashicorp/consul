@@ -1,4 +1,4 @@
-import FormComponent from './form-component';
+import FormComponent from '../form-component/index';
 import { inject as service } from '@ember/service';
 import { get, set } from '@ember/object';
 

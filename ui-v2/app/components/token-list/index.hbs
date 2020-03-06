@@ -1,11 +1,11 @@
 {{yield}}
 {{#if (gt items.length 0)}}
-  {{#tabular-collection
+  <TabularCollection
       data-test-tokens
-      class='token-list'
-      rows=5
-      items=(sort-by 'AccessorID:asc' items) as |item index|
-  }}
+      class="token-list"
+      @rows={{5}}
+      @items={{sort-by 'AccessorID:asc' items}} as |item index|
+  >
   {{#if caption}}
     <BlockSlot @name="caption">{{caption}}</BlockSlot>
   {{/if}}
@@ -15,7 +15,7 @@
           <th>Description</th>
       </BlockSlot>
       <BlockSlot @name="row">
-          <td data-test-token="{{item.AccessorID}}">
+          <td data-test-token={{item.AccessorID}}>
             <a href={{href-to 'dc.acls.tokens.edit' item.AccessorID}} target={{or target ''}}>{{truncate item.AccessorID 8 false}}</a>
           </td>
           <td>
@@ -25,5 +25,5 @@
             <p>{{item.Description}}</p>
           </td>
       </BlockSlot>
-  {{/tabular-collection}}
+  </TabularCollection>
 {{/if}}
