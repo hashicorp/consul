@@ -8,7 +8,7 @@ module('Integration | Helper | href-mut', function(hooks) {
 
   // Replace this with your real tests.
   skip('it renders', async function(assert) {
-    await render(hbs`{{href-mut (hash dc=dc-1)}}`);
+    await render(hbs`{{href-mut 'application' (hash dc=dc-1)}}`);
 
     assert.equal(this.element.textContent.trim(), '');
   });

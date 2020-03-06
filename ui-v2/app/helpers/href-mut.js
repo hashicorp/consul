@@ -12,7 +12,12 @@ const getRouteParams = function(route, params = {}) {
 };
 export default Helper.extend({
   router: service('router'),
-  compute([params], hash) {
+  compute([fallbackRouteName, params], hash) {
+    // the first fallbackRouteName argument is only used
+    // if you are on an error route, otherwise it will use the
+    // current route to contruct the URL
+    // although the ordering is strange here it means it is closer
+    // to the href-to signature
     let current = this.router.currentRoute;
     let parent;
     let atts = getRouteParams(current, params);
@@ -23,6 +28,9 @@ export default Helper.extend({
       current = parent;
     }
     let route = this.router.currentRouteName;
+    if (route === 'error') {
+      route = fallbackRouteName;
+    }
     // TODO: this is specific to consul/nspaces
     // 'ideally' we could try and do this elsewhere
     // not super important though.

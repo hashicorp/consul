@@ -85,7 +85,8 @@ export default Route.extend(WithBlockingActions, {
             : { Name: 'Error' },
         dcs: model && model.dcs ? model.dcs : [],
       })
-        .then(model => {
+        .then(model => Promise.all([model, this.repo.clearActive()]))
+        .then(([model]) => {
           removeLoading($root);
           model.nspaces = [model.nspace];
           // we can't use setupController as we received an error
