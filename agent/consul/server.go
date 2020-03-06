@@ -368,6 +368,7 @@ func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token
 	shutdownCh := make(chan struct{})
 
 	connPool := &pool.ConnPool{
+		Server:          true,
 		SrcAddr:         config.RPCSrcAddr,
 		LogOutput:       config.LogOutput,
 		MaxTime:         serverRPCCache,

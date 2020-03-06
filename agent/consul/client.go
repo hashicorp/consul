@@ -131,6 +131,7 @@ func NewClientLogger(config *Config, logger hclog.InterceptLogger, tlsConfigurat
 	}
 
 	connPool := &pool.ConnPool{
+		Server:          false,
 		SrcAddr:         config.RPCSrcAddr,
 		LogOutput:       config.LogOutput,
 		MaxTime:         clientRPCConnMaxIdle,

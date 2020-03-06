@@ -150,6 +150,10 @@ type ConnPool struct {
 	// ForceTLS is used to enforce outgoing TLS verification
 	ForceTLS bool
 
+	// Server should be set to true if this connection pool is configured in a
+	// server instead of a client.
+	Server bool
+
 	sync.Mutex
 
 	// pool maps a nodeName+address to a open connection
@@ -292,7 +296,7 @@ func (p *ConnPool) DialTimeout(
 ) (net.Conn, HalfCloser, error) {
 	p.once.Do(p.init)
 
-	if p.GatewayResolver != nil && p.TLSConfigurator != nil && dc != p.Datacenter {
+	if p.Server && p.GatewayResolver != nil && p.TLSConfigurator != nil && dc != p.Datacenter {
 		// NOTE: TLS is required on this branch.
 		return DialTimeoutWithRPCTypeViaMeshGateway(
 			dc,
@@ -304,6 +308,7 @@ func (p *ConnPool) DialTimeout(
 			actualRPCType,
 			RPCTLS,
 			// gateway stuff
+			p.Server,
 			p.TLSConfigurator,
 			p.GatewayResolver,
 			p.Datacenter,
@@ -415,6 +420,11 @@ func DialTimeoutWithRPCTypeDirectly(
 	return conn, hc, nil
 }
 
+// DialTimeoutWithRPCTypeViaMeshGateway dials the destination node and sets up
+// the connection to be the correct RPC type using ALPN. This currently is
+// exclusively used to dial other servers in foreign datacenters via mesh
+// gateways.
+//
 // NOTE: There is a close mirror of this method in agent/consul/wanfed/wanfed.go:dial
 func DialTimeoutWithRPCTypeViaMeshGateway(
 	dc string,
@@ -426,11 +436,14 @@ func DialTimeoutWithRPCTypeViaMeshGateway(
 	actualRPCType RPCType,
 	tlsRPCType RPCType,
 	// gateway stuff
+	dialingFromServer bool,
 	tlsConfigurator *tlsutil.Configurator,
 	gatewayResolver func(string) string,
 	thisDatacenter string,
 ) (net.Conn, HalfCloser, error) {
-	if gatewayResolver == nil {
+	if !dialingFromServer {
+		return nil, nil, fmt.Errorf("must dial via mesh gateways from a server agent")
+	} else if gatewayResolver == nil {
 		return nil, nil, fmt.Errorf("gatewayResolver is nil")
 	} else if tlsConfigurator == nil {
 		return nil, nil, fmt.Errorf("tlsConfigurator is nil")
