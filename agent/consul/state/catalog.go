@@ -739,7 +739,7 @@ func (s *Store) Services(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (ui
 	// Generate the output structure.
 	var results = make(structs.Services)
 	for service, tags := range unique {
-		results[service] = make([]string, 0)
+		results[service] = make([]string, 0, len(tags))
 		for tag := range tags {
 			results[service] = append(results[service], tag)
 		}
@@ -837,7 +837,7 @@ func (s *Store) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]string,
 	// Generate the output structure.
 	var results = make(structs.Services)
 	for service, tags := range unique {
-		results[service] = make([]string, 0)
+		results[service] = make([]string, 0, len(tags))
 		for tag := range tags {
 			results[service] = append(results[service], tag)
 		}
