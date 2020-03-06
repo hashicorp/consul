@@ -1,4 +1,8 @@
-{{#modal-dialog data-test-role-form onclose=(action (mut state) 'role') name="new-role-toggle"}}
+<ModalDialog
+  data-test-role-form
+  @onclose={{action (mut state) "role"}}
+  @name="new-role-toggle"
+>
   <BlockSlot @name="header">
 {{#if (eq state 'role')}}
     <h2>New Role</h2>
@@ -48,7 +52,7 @@
 {{/if}}
 
   </BlockSlot>
-{{/modal-dialog}}
+</ModalDialog>
 
 <ChildSelector @repo={{repo}} @dc={{dc}} @nspace={{nspace}} @type="role" @placeholder="Search for role" @items={{items}}>
   <BlockSlot @name="label">
@@ -64,11 +68,11 @@
     {{option.Name}}
   </BlockSlot>
   <BlockSlot @name="set">
-    {{#tabular-collection
+    <TabularCollection
         data-test-roles
-        rows=5
-        items=(sort-by 'CreateTime:desc' 'Name:asc' items) as |item index|
-    }}
+        @rows={{5}}
+        @items={{sort-by 'CreateTime:desc' 'Name:asc' items}} as |item index|
+    >
       <BlockSlot @name="header">
         <th>Name</th>
         <th>Description</th>
@@ -116,6 +120,6 @@
           </BlockSlot>
         </PopoverMenu>
       </BlockSlot>
-    {{/tabular-collection}}
+    </TabularCollection>
   </BlockSlot>
 </ChildSelector>

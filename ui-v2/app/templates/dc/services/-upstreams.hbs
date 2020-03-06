@@ -1,8 +1,8 @@
 {{#if (gt item.Proxy.Upstreams.length 0) }}
-{{#tabular-collection
-    data-test-upstreams
-    items=item.Proxy.Upstreams as |item index|
-}}
+<TabularCollection
+  data-test-upstreams
+  @items={{item.Proxy.Upstreams}} as |item index|
+>
     <BlockSlot @name="header">
       <th>Upstream</th>
       <th>Datacenter</th>
@@ -31,7 +31,7 @@
         {{item.LocalBindAddress}}:{{item.LocalBindPort}}
       </td>
     </BlockSlot>
-{{/tabular-collection}}
+</TabularCollection>
 {{else}}
   <p>
     There are no upstreams.
