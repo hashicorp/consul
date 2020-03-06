@@ -410,7 +410,11 @@ func DialTimeoutWithRPCTypeDirectly(
 		}
 	}
 
-	if actualRPCType != RPCTLSInsecure || tlsRPCType != RPCTLSInsecure { // Don't send two bytes, insecure TLS isn't wrapped.
+	// Send the type-byte for the protocol if one is required.
+	//
+	// When using insecure TLS there is no inner type-byte as these connections
+	// aren't wrapped like the standard TLS ones are.
+	if tlsRPCType != RPCTLSInsecure {
 		if _, err := conn.Write([]byte{byte(actualRPCType)}); err != nil {
 			conn.Close()
 			return nil, nil, err
