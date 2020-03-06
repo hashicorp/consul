@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
+// GET /v1/internal/federation-state/<datacenter>
 func (s *HTTPServer) FederationStateGet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	datacenterName := strings.TrimPrefix(req.URL.Path, "/v1/internal/federation-state/")
 	if datacenterName == "" {
@@ -34,6 +35,7 @@ func (s *HTTPServer) FederationStateGet(resp http.ResponseWriter, req *http.Requ
 	return out, nil
 }
 
+// GET /v1/internal/federation-states
 func (s *HTTPServer) FederationStateList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.DCSpecificRequest
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
@@ -58,6 +60,7 @@ func (s *HTTPServer) FederationStateList(resp http.ResponseWriter, req *http.Req
 	return out.States, nil
 }
 
+// GET /v1/internal/federation-states/mesh-gateways
 func (s *HTTPServer) FederationStateListMeshGateways(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.DCSpecificRequest
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
