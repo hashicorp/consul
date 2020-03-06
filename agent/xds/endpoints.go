@@ -389,8 +389,6 @@ func makeLoadAssignmentEndpointGroup(
 		}, true
 	}
 
-	// TODO(rb): shouldn't we omit gateways that are unhealthy?
-
 	// If using a mesh gateway we need to pull those endpoints instead.
 	gatewayEndpoints, ok := gatewayHealth[gatewayDatacenter]
 	if !ok {
