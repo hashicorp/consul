@@ -41,15 +41,15 @@ for label in $labels; do
     # if the label matches docs*, it will attempt to cherry-pick to stable-website
     if [[ $label =~ docs* ]]; then
         echo "docs"
-        git checkout stable-website
-        git cherry-pick $CIRCLE_SHA1
+        git checkout stable-website || exit 1
+        git cherry-pick $CIRCLE_SHA1 || exit 1
         git push origin stable-website
     # else if the label matches backport/*, it will attempt to cherry-pick to the release branch
     elif [[ $label =~ backport/* ]]; then
         echo "backporting to $label"
         branch=${label/backport/release}
-        git checkout $branch
-        git cherry-pick $CIRCLE_SHA1
+        git checkout $branch || exit 1
+        git cherry-pick $CIRCLE_SHA1 || exit 1
         git push origin $branch
     fi
 done
