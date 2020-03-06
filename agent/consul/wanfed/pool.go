@@ -117,7 +117,7 @@ func (p *connPool) maybeAcquire(key string) (*conn, error) {
 
 	default:
 		sz := len(conns)
-		remaining, last := conns[0:sz-1], conns[sz-1] // car, cdr
+		remaining, last := conns[0:sz-1], conns[sz-1]
 		p.pool[key] = remaining
 		return last, nil
 	}
