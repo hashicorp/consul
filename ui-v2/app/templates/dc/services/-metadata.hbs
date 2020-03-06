@@ -1,9 +1,9 @@
 {{#if item.Meta}}
   {{#with (object-entries item.Meta) as |meta|}}
-    {{#tabular-collection
-        data-test-metadata
-        items=meta as |item index|
-    }}
+    <TabularCollection
+      data-test-metadata
+      @items={{meta}} as |item index|
+    >
         <BlockSlot @name="header">
             <th>Key</th>
             <th>Value</th>
@@ -18,7 +18,7 @@
               <span>{{object-at 1 item}}</span>
             </td>
         </BlockSlot>
-    {{/tabular-collection}}
+    </TabularCollection>
   {{/with}}
 {{else}}
   <p>
