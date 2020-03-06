@@ -16,7 +16,7 @@
                 <th>Tags</th>
             </BlockSlot>
             <BlockSlot @name="row">
-                <td data-test-service-name="{{item.Service}}">
+                <td data-test-service-name={{item.Service}}>
                   <a href={{href-to 'dc.services.show' item.Service}}>
                 {{#let (service/external-source item) as |externalSource| }}
                   {{#if externalSource }}
