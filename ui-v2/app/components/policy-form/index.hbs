@@ -12,9 +12,9 @@
     {{! this should use radio-group }}
     <div role="radiogroup" class={{if item.error.Type ' has-error'}}>
         {{#each templates as |template|}}
-            <label>
+            <label data-test-radiobutton={{concat 'template_' template.template}}>
               <span>{{template.name}}</span>
-              <input data-test-radiobutton={{concat 'template_' template.template}} type="radio" name={{concat name '[template]'}} value={{template.template}} checked={{eq item.template template.template}} onchange={{action (changeset-set item 'template') value='target.value'}}/>
+              <input type="radio" name={{concat name '[template]'}} value={{template.template}} checked={{eq item.template template.template}} onchange={{action (changeset-set item 'template') value='target.value'}}/>
             </label>
         {{/each}}
     </div>
