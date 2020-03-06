@@ -199,8 +199,6 @@ func SnapshotRPC(
 	in io.Reader,
 	reply *structs.SnapshotResponse,
 ) (io.ReadCloser, error) {
-	// TODO(rb): should this work dc-to-dc via a mesh gateway?
-	//
 	// Write the snapshot RPC byte to set the mode, then perform the
 	// request.
 	conn, hc, err := connPool.DialTimeout(dc, nodeName, addr, 10*time.Second, useTLS, pool.RPCSnapshot)
