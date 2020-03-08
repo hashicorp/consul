@@ -221,6 +221,7 @@ func (c *cmd) run(args []string) int {
 	memSink, err := lib.InitTelemetry(config.Telemetry)
 	if err != nil {
 		c.logger.Error(err.Error())
+		logGate.Flush()
 		return 1
 	}
 
@@ -229,6 +230,7 @@ func (c *cmd) run(args []string) int {
 	agent, err := agent.New(config, c.logger)
 	if err != nil {
 		c.logger.Error("Error creating agent", "error", err)
+		logGate.Flush()
 		return 1
 	}
 	agent.LogOutput = logOutput
