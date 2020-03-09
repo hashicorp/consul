@@ -197,7 +197,11 @@ func (s *HTTPServer) KVSPut(resp http.ResponseWriter, req *http.Request, args *s
 	// Check the content-length
 	if req.ContentLength > int64(s.agent.config.KVMaxValueSize) {
 		resp.WriteHeader(http.StatusRequestEntityTooLarge)
-		fmt.Fprintf(resp, "Value exceeds %d byte limit", s.agent.config.KVMaxValueSize)
+		fmt.Fprintf(resp,
+			"Request body(%d bytes) too large, max size: %d bytes. See %s.",
+			req.ContentLength, s.agent.config.KVMaxValueSize,
+			"https://www.consul.io/docs/agent/options.html#kv_max_value_size",
+		)
 		return nil, nil
 	}
 
