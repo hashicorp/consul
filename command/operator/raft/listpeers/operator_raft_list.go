@@ -68,7 +68,7 @@ func raftListPeers(client *api.Client, stale bool) (string, error) {
 	}
 
 	// Format it as a nice table.
-	result := []string{"Node|ID|Address|State|Voter|RaftProtocol"}
+	result := []string{"Node\x1fID\x1fAddress\x1fState\x1fVoter\x1fRaftProtocol"}
 	for _, s := range reply.Servers {
 		raftProtocol := s.ProtocolVersion
 
@@ -79,11 +79,11 @@ func raftListPeers(client *api.Client, stale bool) (string, error) {
 		if s.Leader {
 			state = "leader"
 		}
-		result = append(result, fmt.Sprintf("%s|%s|%s|%s|%v|%s",
+		result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%v\x1f%s",
 			s.Node, s.ID, s.Address, state, s.Voter, raftProtocol))
 	}
 
-	return columnize.SimpleFormat(result), nil
+	return columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f})}), nil
 }
 
 func (c *cmd) Synopsis() string {
