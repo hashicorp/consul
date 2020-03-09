@@ -148,6 +148,7 @@ type RPCInfo interface {
 	IsRead() bool
 	AllowStaleRead() bool
 	TokenSecret() string
+	SetTokenSecret(string)
 }
 
 // QueryOptions is used to specify various flags for read queries
@@ -237,6 +238,10 @@ func (q QueryOptions) TokenSecret() string {
 	return q.Token
 }
 
+func (q *QueryOptions) SetTokenSecret(s string) {
+	q.Token = s
+}
+
 type WriteRequest struct {
 	// Token is the ACL token ID. If not provided, the 'anonymous'
 	// token is assumed for backwards compatibility.
@@ -254,6 +259,10 @@ func (w WriteRequest) AllowStaleRead() bool {
 
 func (w WriteRequest) TokenSecret() string {
 	return w.Token
+}
+
+func (w *WriteRequest) SetTokenSecret(s string) {
+	w.Token = s
 }
 
 // QueryMeta allows a query response to include potentially
