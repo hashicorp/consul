@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/wanfed"
 	"github.com/hashicorp/consul/agent/metadata"
@@ -476,7 +477,7 @@ func (s *Server) forward(method string, info structs.RPCInfo, args interface{}, 
 		if token := info.TokenSecret(); token != "" {
 			done, ident, err := s.ResolveIdentityFromToken(token)
 			if done {
-				if err != nil {
+				if err != nil && !acl.IsErrNotFound(err) {
 					return false, err
 				}
 				if ident != nil && ident.IsLocal() {
