@@ -22,7 +22,7 @@ export default Helper.extend({
       atts = atts.concat(getRouteParams(parent, params));
       current = parent;
     }
-    let route = this.router.currentRouteName;
+    let route = this.router.currentRoute.name;
     // TODO: this is specific to consul/nspaces
     // 'ideally' we could try and do this elsewhere
     // not super important though.
