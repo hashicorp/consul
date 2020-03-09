@@ -15,7 +15,7 @@ The connect Envoy command is used to generate a bootstrap configuration for
 Connect](/docs/connect/).
 
 The default behaviour is to generate the necessary bootstrap configuration for
-Envoy based on the environment variables and options provided and by taking to
+Envoy based on the environment variables and options provided and by talking to
 the local Consul agent. It `exec`s an external Envoy binary with that
 configuration leaving the Envoy process running in the foreground. An error is
 returned on operating systems other than linux or macOS since Envoy does not
