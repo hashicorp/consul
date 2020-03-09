@@ -22,6 +22,8 @@ type ServiceSummary struct {
 	Tags              []string
 	Nodes             []string
 	InstanceCount     int
+	ProxyFor          []string            `json:",omitempty"`
+	proxyForSet       map[string]struct{} // internal to track uniqueness
 	ChecksPassing     int
 	ChecksWarning     int
 	ChecksCritical    int
@@ -184,6 +186,15 @@ func summarizeServices(dump structs.CheckServiceNodes) []*ServiceSummary {
 		sum.Nodes = append(sum.Nodes, csn.Node.Node)
 		sum.Kind = svc.Kind
 		sum.InstanceCount += 1
+		if svc.Kind == structs.ServiceKindConnectProxy {
+			if _, ok := sum.proxyForSet[svc.Proxy.DestinationServiceName]; !ok {
+				if sum.proxyForSet == nil {
+					sum.proxyForSet = make(map[string]struct{})
+				}
+				sum.proxyForSet[svc.Proxy.DestinationServiceName] = struct{}{}
+				sum.ProxyFor = append(sum.ProxyFor, svc.Proxy.DestinationServiceName)
+			}
+		}
 		for _, tag := range svc.Tags {
 			found := false
 			for _, existing := range sum.Tags {
