@@ -14,17 +14,18 @@ one global entry is supported.
 
 ## Sample Config Entries
 
-Set the default protocol for all sidecar proxies:
+Set the default protocol for all sidecar proxies in the default namespace:
 
 ```hcl
 kind = "proxy-defaults"
 name = "global"
+namespace = "default"
 config {
   protocol = "http"
 }
 ```
 
-Set proxy-specific defaults:
+Set proxy-specific defaults :
 
 ```hcl
 kind = "proxy-defaults"
