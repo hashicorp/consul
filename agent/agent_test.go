@@ -2030,7 +2030,7 @@ func testAgent_persistedService_compat(t *testing.T, extraHCL string) {
 	}
 
 	// Load the services
-	if err := a.loadServices(a.Config); err != nil {
+	if err := a.loadServices(a.Config, nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3435,6 +3435,54 @@ func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 	require.False(t, tlsConf.InsecureSkipVerify)
 	require.Len(t, tlsConf.RootCAs.Subjects(), 2)
 	require.Len(t, tlsConf.ClientCAs.Subjects(), 2)
+}
+
+func TestAgent_ReloadConfigAndKeepChecksStatus(t *testing.T) {
+	t.Parallel()
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	defer os.RemoveAll(dataDir)
+	waitDurationSeconds := 1
+	hcl := `data_dir = "` + dataDir + `"
+		enable_local_script_checks=true
+		services=[{
+		  name="webserver1",
+		  check{name="check1",
+		  args=["true"],
+		  interval="` + strconv.Itoa(waitDurationSeconds) + `s"}}
+		]`
+	a := NewTestAgent(t, t.Name(), hcl)
+	defer a.Shutdown()
+
+	// Initially, state is critical during waitDurationSeconds seconds
+	retry.Run(t, func(r *retry.R) {
+		gotChecks := a.State.Checks(nil)
+		require.Equal(r, 1, len(gotChecks), "Should have a check registered, but had %#v", gotChecks)
+		for id, check := range gotChecks {
+			require.Equal(r, "critical", check.Status, "check %q is wrong", id)
+		}
+	})
+	c := TestConfig(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	a.ReloadConfig(c)
+	time.Sleep(time.Duration(waitDurationSeconds) * time.Second)
+	// It should now be passing
+	retry.Run(t, func(r *retry.R) {
+		gotChecks := a.State.Checks(nil)
+		for id, check := range gotChecks {
+			require.Equal(r, "passing", check.Status, "check %q is wrong", id)
+		}
+	})
+
+	require.NoError(t, a.ReloadConfig(c))
+	// After reload, should be passing directly (no critical state)
+	for id, check := range a.State.Checks(nil) {
+		require.Equal(t, "passing", check.Status, "check %q is wrong", id)
+	}
+	// Ensure to take reload into account event with async stuff
+	time.Sleep(time.Duration(100) * time.Millisecond)
+	// Of course, after a sleep, should be Ok too
+	for id, check := range a.State.Checks(nil) {
+		require.Equal(t, "passing", check.Status, "check %q is wrong", id)
+	}
 }
 
 func TestAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
