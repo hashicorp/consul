@@ -21,6 +21,7 @@ type ServiceSummary struct {
 	Name              string
 	Tags              []string
 	Nodes             []string
+	InstanceCount     int
 	ChecksPassing     int
 	ChecksWarning     int
 	ChecksCritical    int
@@ -165,6 +166,9 @@ func summarizeServices(dump structs.CheckServiceNodes) []*ServiceSummary {
 			serv = &ServiceSummary{
 				Name:           service.ID,
 				EnterpriseMeta: service.EnterpriseMeta,
+				// the other code will increment this unconditionally so we
+				// shouldn't initialize it to 1
+				InstanceCount: 0,
 			}
 			summary[service] = serv
 			services = append(services, service)
@@ -179,6 +183,7 @@ func summarizeServices(dump structs.CheckServiceNodes) []*ServiceSummary {
 		sum := getService(sid)
 		sum.Nodes = append(sum.Nodes, csn.Node.Node)
 		sum.Kind = svc.Kind
+		sum.InstanceCount += 1
 		for _, tag := range svc.Tags {
 			found := false
 			for _, existing := range sum.Tags {
