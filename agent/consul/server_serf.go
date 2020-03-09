@@ -129,7 +129,6 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 
 		if s.config.ConnectMeshGatewayWANFederationEnabled {
 			mgwTransport, err := wanfed.NewTransport(
-				s.logger,
 				s.tlsConfigurator,
 				nt,
 				s.config.Datacenter,

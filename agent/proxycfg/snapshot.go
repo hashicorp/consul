@@ -34,28 +34,43 @@ func (c *configSnapshotConnectProxy) IsEmpty() bool {
 }
 
 type configSnapshotMeshGateway struct {
-	// map of service id to a cancel function. This cancel function is tied to the watch of
-	// connect enabled services for the given id. If the main datacenter services watch would
-	// indicate the removal of a service all together we then cancel watching that service for
-	// its connect endpoints.
+	// WatchedServices is a map of service id to a cancel function. This cancel
+	// function is tied to the watch of connect enabled services for the given
+	// id. If the main datacenter services watch would indicate the removal of
+	// a service all together we then cancel watching that service for its
+	// connect endpoints.
 	WatchedServices map[structs.ServiceID]context.CancelFunc
-	// Indicates that the watch on the datacenters services has completed. Even when there
-	// are no connect services, this being set (and the Connect roots being available) will be enough for
-	// the config snapshot to be considered valid. In the case of Envoy, this allows it to start its listeners
-	// even when no services would be proxied and allow its health check to pass.
+
+	// WatchedServicesSet indicates that the watch on the datacenters services
+	// has completed. Even when there are no connect services, this being set
+	// (and the Connect roots being available) will be enough for the config
+	// snapshot to be considered valid. In the case of Envoy, this allows it to
+	// start its listeners even when no services would be proxied and allow its
+	// health check to pass.
 	WatchedServicesSet bool
-	// map of datacenter name to a cancel function. This cancel function is tied
-	// to the watch of mesh-gateway services in that datacenter.
+
+	// WatchedDatacenters is a map of datacenter name to a cancel function.
+	// This cancel function is tied to the watch of mesh-gateway services in
+	// that datacenter.
 	WatchedDatacenters map[string]context.CancelFunc
-	// map of service id to the service instances of that service in the local datacenter
+
+	// ServiceGroups is a map of service id to the service instances of that
+	// service in the local datacenter.
 	ServiceGroups map[structs.ServiceID]structs.CheckServiceNodes
-	// map of service id to an associated service-resolver config entry for that service
+
+	// ServiceResolvers is a map of service id to an associated
+	// service-resolver config entry for that service.
 	ServiceResolvers map[structs.ServiceID]*structs.ServiceResolverConfigEntry
-	// map of datacenter names to services of kind mesh-gateway in that datacenter
+
+	// GatewayGroups is a map of datacenter names to services of kind
+	// mesh-gateway in that datacenter.
 	GatewayGroups map[string]structs.CheckServiceNodes
-	// TODO
+
+	// FedStateGateways is a map of datacenter names to mesh gateways in that
+	// datacenter.
 	FedStateGateways map[string]structs.CheckServiceNodes
-	// TODO
+
+	// ConsulServers is the list of consul servers in this datacenter.
 	ConsulServers structs.CheckServiceNodes
 }
 

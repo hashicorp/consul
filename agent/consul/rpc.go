@@ -103,8 +103,6 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 		// See if actually this is native TLS multiplexed onto the old
 		// "type-byte" system.
 
-		// TODO(wanfed): handle DoS stuff from #7159
-
 		peekedConn, nativeTLS, err := pool.PeekForTLS(conn)
 		if err != nil {
 			if err != io.EOF {
@@ -200,7 +198,6 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 }
 
 func (s *Server) handleNativeTLS(conn net.Conn) {
-	// TODO(rb): remove this before merge
 	s.rpcLogger().Trace(
 		"detected actual TLS over RPC port",
 		"conn", logConn(conn),

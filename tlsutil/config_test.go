@@ -994,7 +994,6 @@ func TestConfigurator_OutgoingRPCWrapper(t *testing.T) {
 	wrap := c.OutgoingRPCWrapper()
 	require.NotNil(t, wrap)
 	t.Log("TODO: actually call wrap here eventually")
-	// TODO: finish this
 }
 
 func TestConfigurator_OutgoingALPNRPCWrapper(t *testing.T) {
@@ -1010,7 +1009,6 @@ func TestConfigurator_OutgoingALPNRPCWrapper(t *testing.T) {
 	wrap := c.OutgoingRPCWrapper()
 	require.NotNil(t, wrap)
 	t.Log("TODO: actually call wrap here eventually")
-	// TODO: finish this
 }
 
 func TestConfigurator_UpdateChecks(t *testing.T) {

@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/memberlist"
 )
 
@@ -20,8 +19,6 @@ const (
 	// open to a server.
 	//
 	// Conceptually similar to: agent/consul/server.go:serverRPCCache
-	//
-	// TODO(rb): should this actually be dynamically derived from the size of the wan pool?
 	GossipPacketMaxIdleTime = 2 * time.Minute
 
 	// GossipPacketMaxByteSize is the maximum allowed size of a packet
@@ -33,15 +30,11 @@ const (
 type MeshGatewayResolver func(datacenter string) string
 
 func NewTransport(
-	logger hclog.Logger,
 	tlsConfigurator *tlsutil.Configurator,
 	transport memberlist.NodeAwareTransport,
 	datacenter string,
 	gwResolver MeshGatewayResolver,
 ) (*Transport, error) {
-	if logger == nil {
-		return nil, errors.New("wanfed: logger is nil")
-	}
 	if tlsConfigurator == nil {
 		return nil, errors.New("wanfed: tlsConfigurator is nil")
 	}
@@ -56,7 +49,6 @@ func NewTransport(
 
 	t := &Transport{
 		NodeAwareTransport: transport,
-		logger:             logger.Named("wanfed"), // TODO(Rb): logging.WANFED?
 		tlsConfigurator:    tlsConfigurator,
 		datacenter:         datacenter,
 		gwResolver:         gwResolver,
@@ -68,7 +60,6 @@ func NewTransport(
 type Transport struct {
 	memberlist.NodeAwareTransport
 
-	logger          hclog.Logger
 	tlsConfigurator *tlsutil.Configurator
 	datacenter      string
 	gwResolver      MeshGatewayResolver
@@ -99,9 +90,6 @@ func (t *Transport) WriteToAddress(b []byte, addr memberlist.Address) (time.Time
 	}
 
 	if dc != t.datacenter {
-		// TODO(rb): remove
-		// t.logger.Debug("forwarding packet", "dest.dc", dc, "src.dc", t.datacenter)
-
 		gwAddr := t.gwResolver(dc)
 		if gwAddr == "" {
 			return time.Time{}, structs.ErrDCNotAvailable
@@ -141,13 +129,9 @@ func (t *Transport) DialAddressTimeout(addr memberlist.Address, timeout time.Dur
 	}
 
 	if dc != t.datacenter {
-		// TODO(rb): remove
-		// t.logger.Debug("forwarding stream", "dest.dc", dc, "src.dc", t.datacenter)
-
 		gwAddr := t.gwResolver(dc)
 		if gwAddr == "" {
-			return nil, fmt.Errorf("could not find suitable mesh gateway to dial dc=%q", dc)
-			// TODO(rb): return structs.ErrDCNotAvailable?
+			return nil, structs.ErrDCNotAvailable
 		}
 
 		return t.dial(dc, node, pool.ALPN_WANGossipStream, gwAddr)
@@ -158,9 +142,6 @@ func (t *Transport) DialAddressTimeout(addr memberlist.Address, timeout time.Dur
 
 // NOTE: There is a close mirror of this method in agent/pool/pool.go:DialTimeoutWithRPCType
 func (t *Transport) dial(dc, nodeName, nextProto, addr string) (net.Conn, error) {
-	// TODO(rb): remove
-	// t.logger.Debug("dialing", "dc", dc, "node", nodeName, "protocol", nextProto, "via_mgw_addr", addr)
-
 	wrapper := t.tlsConfigurator.OutgoingALPNRPCWrapper()
 	if wrapper == nil {
 		return nil, fmt.Errorf("wanfed: cannot dial via a mesh gateway when outgoing TLS is disabled")

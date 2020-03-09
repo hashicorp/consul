@@ -275,7 +275,6 @@ func (s *state) initWatchesConnectProxy() error {
 	for _, u := range s.proxyCfg.Upstreams {
 		dc := s.source.Datacenter
 		if u.Datacenter != "" {
-			// TODO(rb): if we ASK for a specific datacenter, do we still use the chain?
 			dc = u.Datacenter
 		}
 
@@ -378,9 +377,9 @@ func (s *state) initWatchesMeshGateway() error {
 	}
 
 	if s.meta[structs.MetaWANFederationKey] == "1" {
-		// TODO(wanfed): conveniently we can just use this attribute in one
+		// Conveniently we can just use this service meta attribute in one
 		// place here to set the machinery in motion and leave the conditional
-		// behavior out of the rest
+		// behavior out of the rest of the package.
 		err = s.cache.Notify(s.ctx, cachetype.FederationStateListMeshGatewaysName, &structs.DCSpecificRequest{
 			Datacenter:   s.source.Datacenter,
 			QueryOptions: structs.QueryOptions{Token: s.token},
@@ -455,8 +454,8 @@ func (s *state) initialConfigSnapshot() ConfigSnapshot {
 		snap.ConnectProxy.WatchedGateways = make(map[string]map[string]context.CancelFunc)
 		snap.ConnectProxy.WatchedGatewayEndpoints = make(map[string]map[string]structs.CheckServiceNodes)
 		snap.ConnectProxy.WatchedServiceChecks = make(map[structs.ServiceID][]structs.CheckType)
+		snap.ConnectProxy.PreparedQueryEndpoints = make(map[string]structs.CheckServiceNodes)
 
-		snap.ConnectProxy.PreparedQueryEndpoints = make(map[string]structs.CheckServiceNodes) // TODO(rb): deprecated
 	case structs.ServiceKindMeshGateway:
 		snap.MeshGateway.WatchedServices = make(map[structs.ServiceID]context.CancelFunc)
 		snap.MeshGateway.WatchedDatacenters = make(map[string]context.CancelFunc)
