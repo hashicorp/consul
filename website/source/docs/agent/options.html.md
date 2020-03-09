@@ -1454,7 +1454,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
         bytes for a kv request body to the [`/v1/kv`](/api/kv.html) endpoint.
         This limit defaults to [raft's](https://github.com/hashicorp/raft)
         suggested max size(512KB). **Note that tuning these improperly can cause
-        Consul to fail in unexpected ways.**, it may potentially affect
+        Consul to fail in unexpected ways**, it may potentially affect
         leadership stability and prevent timely heartbeat signals by increasing
         RPC IO duration.
         This option affects the txn endpoint too, but Consul 1.7.2 introduced
@@ -1465,7 +1465,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
         bytes for a transaction request body to the [`/v1/txn`](/api/txn.html)
         endpoint. This limit defaults to [raft's](https://github.com/hashicorp/raft)
         suggested max size(512KB). **Note that tuning these improperly can cause
-        Consul to fail in unexpected ways.**, it may potentially affect
+        Consul to fail in unexpected ways**, it may potentially affect
         leadership stability and prevent timely heartbeat signals by
         increasing RPC IO duration.
 
