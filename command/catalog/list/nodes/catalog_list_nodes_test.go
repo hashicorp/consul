@@ -163,3 +163,29 @@ func TestCatalogListNodesCommand(t *testing.T) {
 		}
 	})
 }
+
+func TestCatalogListNodesCommand_verticalBar(t *testing.T) {
+	t.Parallel()
+
+	nodeName := "name|with|bars"
+	a := agent.NewTestAgent(t, "", `node_name = "`+nodeName+`"`)
+	defer a.Shutdown()
+
+	ui := cli.NewMockUi()
+	c := New(ui)
+	c.flags.SetOutput(ui.ErrorWriter)
+
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+	}
+
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("bad exit code: %d. %q", code, ui.ErrorWriter.String())
+	}
+
+	// Check for nodeName presense because it should not be parsed by columnize
+	if !strings.Contains(ui.OutputWriter.String(), nodeName) {
+		t.Fatalf("expected %q to contain %q", ui.OutputWriter.String(), nodeName)
+	}
+}
