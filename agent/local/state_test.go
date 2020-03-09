@@ -48,7 +48,9 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		},
 		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
+	assert.False(t, a.State.ServiceExists(structs.ServiceID{ID: srv1.ID}))
 	a.State.AddService(srv1, "")
+	assert.True(t, a.State.ServiceExists(structs.ServiceID{ID: srv1.ID}))
 	args.Service = srv1
 	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
