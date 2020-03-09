@@ -93,17 +93,19 @@ func FloodJoins(logger hclog.Logger, addrFn FloodAddrFn, portFn FloodPortFn,
 			}
 		}
 
+		globalServerName := fmt.Sprintf("%s.%s", server.Name, server.Datacenter)
+
 		// Do the join!
-		n, err := globalSerf.Join([]string{addr}, true)
+		n, err := globalSerf.Join([]string{globalServerName + "/" + addr}, true)
 		if err != nil {
 			logger.Debug("Failed to flood-join server at address",
-				"server", server.Name,
+				"server", globalServerName,
 				"address", addr,
 				"error", err,
 			)
 		} else if n > 0 {
 			logger.Debug("Successfully performed flood-join for server at address",
-				"server", server.Name,
+				"server", globalServerName,
 				"address", addr,
 			)
 		}

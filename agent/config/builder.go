@@ -618,6 +618,10 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	connectEnabled := b.boolVal(c.Connect.Enabled)
 	connectCAProvider := b.stringVal(c.Connect.CAProvider)
 	connectCAConfig := c.Connect.CAConfig
+	connectMeshGatewayWANFederationEnabled := b.boolVal(c.Connect.MeshGatewayWANFederationEnabled)
+	if connectMeshGatewayWANFederationEnabled && !connectEnabled {
+		return RuntimeConfig{}, fmt.Errorf("'connect.enable_mesh_gateway_wan_federation=true' requires 'connect.enabled=true'")
+	}
 	if connectCAConfig != nil {
 		lib.TranslateKeys(connectCAConfig, map[string]string{
 			// Consul CA config
@@ -857,129 +861,132 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		},
 
 		// Agent
-		AdvertiseAddrLAN:                 advertiseAddrLAN,
-		AdvertiseAddrWAN:                 advertiseAddrWAN,
-		BindAddr:                         bindAddr,
-		Bootstrap:                        b.boolVal(c.Bootstrap),
-		BootstrapExpect:                  b.intVal(c.BootstrapExpect),
-		CAFile:                           b.stringVal(c.CAFile),
-		CAPath:                           b.stringVal(c.CAPath),
-		CertFile:                         b.stringVal(c.CertFile),
-		CheckUpdateInterval:              b.durationVal("check_update_interval", c.CheckUpdateInterval),
-		CheckOutputMaxSize:               b.intValWithDefault(c.CheckOutputMaxSize, 4096),
-		Checks:                           checks,
-		ClientAddrs:                      clientAddrs,
-		ConfigEntryBootstrap:             configEntries,
-		AutoEncryptTLS:                   autoEncryptTLS,
-		AutoEncryptDNSSAN:                autoEncryptDNSSAN,
-		AutoEncryptIPSAN:                 autoEncryptIPSAN,
-		AutoEncryptAllowTLS:              autoEncryptAllowTLS,
-		ConnectEnabled:                   connectEnabled,
-		ConnectCAProvider:                connectCAProvider,
-		ConnectCAConfig:                  connectCAConfig,
-		ConnectSidecarMinPort:            sidecarMinPort,
-		ConnectSidecarMaxPort:            sidecarMaxPort,
-		ExposeMinPort:                    exposeMinPort,
-		ExposeMaxPort:                    exposeMaxPort,
-		DataDir:                          b.stringVal(c.DataDir),
-		Datacenter:                       datacenter,
-		DefaultQueryTime:                 b.durationVal("default_query_time", c.DefaultQueryTime),
-		DevMode:                          b.boolVal(b.Flags.DevMode),
-		DisableAnonymousSignature:        b.boolVal(c.DisableAnonymousSignature),
-		DisableCoordinates:               b.boolVal(c.DisableCoordinates),
-		DisableHostNodeID:                b.boolVal(c.DisableHostNodeID),
-		DisableHTTPUnprintableCharFilter: b.boolVal(c.DisableHTTPUnprintableCharFilter),
-		DisableKeyringFile:               b.boolVal(c.DisableKeyringFile),
-		DisableRemoteExec:                b.boolVal(c.DisableRemoteExec),
-		DisableUpdateCheck:               b.boolVal(c.DisableUpdateCheck),
-		DiscardCheckOutput:               b.boolVal(c.DiscardCheckOutput),
-		DiscoveryMaxStale:                b.durationVal("discovery_max_stale", c.DiscoveryMaxStale),
-		EnableAgentTLSForChecks:          b.boolVal(c.EnableAgentTLSForChecks),
-		EnableCentralServiceConfig:       b.boolVal(c.EnableCentralServiceConfig),
-		EnableDebug:                      b.boolVal(c.EnableDebug),
-		EnableRemoteScriptChecks:         enableRemoteScriptChecks,
-		EnableLocalScriptChecks:          enableLocalScriptChecks,
-		EnableSyslog:                     b.boolVal(c.EnableSyslog),
-		EnableUI:                         b.boolVal(c.UI),
-		EncryptKey:                       b.stringVal(c.EncryptKey),
-		EncryptVerifyIncoming:            b.boolVal(c.EncryptVerifyIncoming),
-		EncryptVerifyOutgoing:            b.boolVal(c.EncryptVerifyOutgoing),
-		GRPCPort:                         grpcPort,
-		GRPCAddrs:                        grpcAddrs,
-		HTTPMaxConnsPerClient:            b.intVal(c.Limits.HTTPMaxConnsPerClient),
-		HTTPSHandshakeTimeout:            b.durationVal("limits.https_handshake_timeout", c.Limits.HTTPSHandshakeTimeout),
-		KeyFile:                          b.stringVal(c.KeyFile),
-		KVMaxValueSize:                   b.uint64Val(c.Limits.KVMaxValueSize),
-		LeaveDrainTime:                   b.durationVal("performance.leave_drain_time", c.Performance.LeaveDrainTime),
-		LeaveOnTerm:                      leaveOnTerm,
-		LogLevel:                         b.stringVal(c.LogLevel),
-		LogJSON:                          b.boolVal(c.LogJSON),
-		LogFile:                          b.stringVal(c.LogFile),
-		LogRotateBytes:                   b.intVal(c.LogRotateBytes),
-		LogRotateDuration:                b.durationVal("log_rotate_duration", c.LogRotateDuration),
-		LogRotateMaxFiles:                b.intVal(c.LogRotateMaxFiles),
-		MaxQueryTime:                     b.durationVal("max_query_time", c.MaxQueryTime),
-		NodeID:                           types.NodeID(b.stringVal(c.NodeID)),
-		NodeMeta:                         c.NodeMeta,
-		NodeName:                         b.nodeName(c.NodeName),
-		NonVotingServer:                  b.boolVal(c.NonVotingServer),
-		PidFile:                          b.stringVal(c.PidFile),
-		PrimaryDatacenter:                primaryDatacenter,
-		RPCAdvertiseAddr:                 rpcAdvertiseAddr,
-		RPCBindAddr:                      rpcBindAddr,
-		RPCHandshakeTimeout:              b.durationVal("limits.rpc_handshake_timeout", c.Limits.RPCHandshakeTimeout),
-		RPCHoldTimeout:                   b.durationVal("performance.rpc_hold_timeout", c.Performance.RPCHoldTimeout),
-		RPCMaxBurst:                      b.intVal(c.Limits.RPCMaxBurst),
-		RPCMaxConnsPerClient:             b.intVal(c.Limits.RPCMaxConnsPerClient),
-		RPCProtocol:                      b.intVal(c.RPCProtocol),
-		RPCRateLimit:                     rate.Limit(b.float64Val(c.Limits.RPCRate)),
-		RaftProtocol:                     b.intVal(c.RaftProtocol),
-		RaftSnapshotThreshold:            b.intVal(c.RaftSnapshotThreshold),
-		RaftSnapshotInterval:             b.durationVal("raft_snapshot_interval", c.RaftSnapshotInterval),
-		RaftTrailingLogs:                 b.intVal(c.RaftTrailingLogs),
-		ReconnectTimeoutLAN:              b.durationVal("reconnect_timeout", c.ReconnectTimeoutLAN),
-		ReconnectTimeoutWAN:              b.durationVal("reconnect_timeout_wan", c.ReconnectTimeoutWAN),
-		RejoinAfterLeave:                 b.boolVal(c.RejoinAfterLeave),
-		RetryJoinIntervalLAN:             b.durationVal("retry_interval", c.RetryJoinIntervalLAN),
-		RetryJoinIntervalWAN:             b.durationVal("retry_interval_wan", c.RetryJoinIntervalWAN),
-		RetryJoinLAN:                     b.expandAllOptionalAddrs("retry_join", c.RetryJoinLAN),
-		RetryJoinMaxAttemptsLAN:          b.intVal(c.RetryJoinMaxAttemptsLAN),
-		RetryJoinMaxAttemptsWAN:          b.intVal(c.RetryJoinMaxAttemptsWAN),
-		RetryJoinWAN:                     b.expandAllOptionalAddrs("retry_join_wan", c.RetryJoinWAN),
-		SegmentName:                      b.stringVal(c.SegmentName),
-		Segments:                         segments,
-		SerfAdvertiseAddrLAN:             serfAdvertiseAddrLAN,
-		SerfAdvertiseAddrWAN:             serfAdvertiseAddrWAN,
-		SerfBindAddrLAN:                  serfBindAddrLAN,
-		SerfBindAddrWAN:                  serfBindAddrWAN,
-		SerfPortLAN:                      serfPortLAN,
-		SerfPortWAN:                      serfPortWAN,
-		ServerMode:                       b.boolVal(c.ServerMode),
-		ServerName:                       b.stringVal(c.ServerName),
-		ServerPort:                       serverPort,
-		Services:                         services,
-		SessionTTLMin:                    b.durationVal("session_ttl_min", c.SessionTTLMin),
-		SkipLeaveOnInt:                   skipLeaveOnInt,
-		StartJoinAddrsLAN:                b.expandAllOptionalAddrs("start_join", c.StartJoinAddrsLAN),
-		StartJoinAddrsWAN:                b.expandAllOptionalAddrs("start_join_wan", c.StartJoinAddrsWAN),
-		SyslogFacility:                   b.stringVal(c.SyslogFacility),
-		TLSCipherSuites:                  b.tlsCipherSuites("tls_cipher_suites", c.TLSCipherSuites),
-		TLSMinVersion:                    b.stringVal(c.TLSMinVersion),
-		TLSPreferServerCipherSuites:      b.boolVal(c.TLSPreferServerCipherSuites),
-		TaggedAddresses:                  c.TaggedAddresses,
-		TranslateWANAddrs:                b.boolVal(c.TranslateWANAddrs),
-		TxnMaxReqLen:                     b.uint64Val(c.Limits.TxnMaxReqLen),
-		UIDir:                            b.stringVal(c.UIDir),
-		UIContentPath:                    UIPathBuilder(b.stringVal(c.UIContentPath)),
-		UnixSocketGroup:                  b.stringVal(c.UnixSocket.Group),
-		UnixSocketMode:                   b.stringVal(c.UnixSocket.Mode),
-		UnixSocketUser:                   b.stringVal(c.UnixSocket.User),
-		VerifyIncoming:                   b.boolVal(c.VerifyIncoming),
-		VerifyIncomingHTTPS:              b.boolVal(c.VerifyIncomingHTTPS),
-		VerifyIncomingRPC:                b.boolVal(c.VerifyIncomingRPC),
-		VerifyOutgoing:                   verifyOutgoing,
-		VerifyServerHostname:             verifyServerName,
-		Watches:                          c.Watches,
+		AdvertiseAddrLAN:                       advertiseAddrLAN,
+		AdvertiseAddrWAN:                       advertiseAddrWAN,
+		BindAddr:                               bindAddr,
+		Bootstrap:                              b.boolVal(c.Bootstrap),
+		BootstrapExpect:                        b.intVal(c.BootstrapExpect),
+		CAFile:                                 b.stringVal(c.CAFile),
+		CAPath:                                 b.stringVal(c.CAPath),
+		CertFile:                               b.stringVal(c.CertFile),
+		CheckUpdateInterval:                    b.durationVal("check_update_interval", c.CheckUpdateInterval),
+		CheckOutputMaxSize:                     b.intValWithDefault(c.CheckOutputMaxSize, 4096),
+		Checks:                                 checks,
+		ClientAddrs:                            clientAddrs,
+		ConfigEntryBootstrap:                   configEntries,
+		AutoEncryptTLS:                         autoEncryptTLS,
+		AutoEncryptDNSSAN:                      autoEncryptDNSSAN,
+		AutoEncryptIPSAN:                       autoEncryptIPSAN,
+		AutoEncryptAllowTLS:                    autoEncryptAllowTLS,
+		ConnectEnabled:                         connectEnabled,
+		ConnectCAProvider:                      connectCAProvider,
+		ConnectCAConfig:                        connectCAConfig,
+		ConnectMeshGatewayWANFederationEnabled: connectMeshGatewayWANFederationEnabled,
+		ConnectSidecarMinPort:                  sidecarMinPort,
+		ConnectSidecarMaxPort:                  sidecarMaxPort,
+		ExposeMinPort:                          exposeMinPort,
+		ExposeMaxPort:                          exposeMaxPort,
+		DataDir:                                b.stringVal(c.DataDir),
+		Datacenter:                             datacenter,
+		DefaultQueryTime:                       b.durationVal("default_query_time", c.DefaultQueryTime),
+		DevMode:                                b.boolVal(b.Flags.DevMode),
+		DisableAnonymousSignature:              b.boolVal(c.DisableAnonymousSignature),
+		DisableCoordinates:                     b.boolVal(c.DisableCoordinates),
+		DisableHostNodeID:                      b.boolVal(c.DisableHostNodeID),
+		DisableHTTPUnprintableCharFilter:       b.boolVal(c.DisableHTTPUnprintableCharFilter),
+		DisableKeyringFile:                     b.boolVal(c.DisableKeyringFile),
+		DisableRemoteExec:                      b.boolVal(c.DisableRemoteExec),
+		DisableUpdateCheck:                     b.boolVal(c.DisableUpdateCheck),
+		DiscardCheckOutput:                     b.boolVal(c.DiscardCheckOutput),
+		DiscoveryMaxStale:                      b.durationVal("discovery_max_stale", c.DiscoveryMaxStale),
+		EnableAgentTLSForChecks:                b.boolVal(c.EnableAgentTLSForChecks),
+		EnableCentralServiceConfig:             b.boolVal(c.EnableCentralServiceConfig),
+		EnableDebug:                            b.boolVal(c.EnableDebug),
+		EnableRemoteScriptChecks:               enableRemoteScriptChecks,
+		EnableLocalScriptChecks:                enableLocalScriptChecks,
+		EnableSyslog:                           b.boolVal(c.EnableSyslog),
+		EnableUI:                               b.boolVal(c.UI),
+		EncryptKey:                             b.stringVal(c.EncryptKey),
+		EncryptVerifyIncoming:                  b.boolVal(c.EncryptVerifyIncoming),
+		EncryptVerifyOutgoing:                  b.boolVal(c.EncryptVerifyOutgoing),
+		GRPCPort:                               grpcPort,
+		GRPCAddrs:                              grpcAddrs,
+		HTTPMaxConnsPerClient:                  b.intVal(c.Limits.HTTPMaxConnsPerClient),
+		HTTPSHandshakeTimeout:                  b.durationVal("limits.https_handshake_timeout", c.Limits.HTTPSHandshakeTimeout),
+		KeyFile:                                b.stringVal(c.KeyFile),
+		KVMaxValueSize:                         b.uint64Val(c.Limits.KVMaxValueSize),
+		LeaveDrainTime:                         b.durationVal("performance.leave_drain_time", c.Performance.LeaveDrainTime),
+		LeaveOnTerm:                            leaveOnTerm,
+		LogLevel:                               b.stringVal(c.LogLevel),
+		LogJSON:                                b.boolVal(c.LogJSON),
+		LogFile:                                b.stringVal(c.LogFile),
+		LogRotateBytes:                         b.intVal(c.LogRotateBytes),
+		LogRotateDuration:                      b.durationVal("log_rotate_duration", c.LogRotateDuration),
+		LogRotateMaxFiles:                      b.intVal(c.LogRotateMaxFiles),
+		MaxQueryTime:                           b.durationVal("max_query_time", c.MaxQueryTime),
+		NodeID:                                 types.NodeID(b.stringVal(c.NodeID)),
+		NodeMeta:                               c.NodeMeta,
+		NodeName:                               b.nodeName(c.NodeName),
+		NonVotingServer:                        b.boolVal(c.NonVotingServer),
+		PidFile:                                b.stringVal(c.PidFile),
+		PrimaryDatacenter:                      primaryDatacenter,
+		PrimaryGateways:                        b.expandAllOptionalAddrs("primary_gateways", c.PrimaryGateways),
+		PrimaryGatewaysInterval:                b.durationVal("primary_gateways_interval", c.PrimaryGatewaysInterval),
+		RPCAdvertiseAddr:                       rpcAdvertiseAddr,
+		RPCBindAddr:                            rpcBindAddr,
+		RPCHandshakeTimeout:                    b.durationVal("limits.rpc_handshake_timeout", c.Limits.RPCHandshakeTimeout),
+		RPCHoldTimeout:                         b.durationVal("performance.rpc_hold_timeout", c.Performance.RPCHoldTimeout),
+		RPCMaxBurst:                            b.intVal(c.Limits.RPCMaxBurst),
+		RPCMaxConnsPerClient:                   b.intVal(c.Limits.RPCMaxConnsPerClient),
+		RPCProtocol:                            b.intVal(c.RPCProtocol),
+		RPCRateLimit:                           rate.Limit(b.float64Val(c.Limits.RPCRate)),
+		RaftProtocol:                           b.intVal(c.RaftProtocol),
+		RaftSnapshotThreshold:                  b.intVal(c.RaftSnapshotThreshold),
+		RaftSnapshotInterval:                   b.durationVal("raft_snapshot_interval", c.RaftSnapshotInterval),
+		RaftTrailingLogs:                       b.intVal(c.RaftTrailingLogs),
+		ReconnectTimeoutLAN:                    b.durationVal("reconnect_timeout", c.ReconnectTimeoutLAN),
+		ReconnectTimeoutWAN:                    b.durationVal("reconnect_timeout_wan", c.ReconnectTimeoutWAN),
+		RejoinAfterLeave:                       b.boolVal(c.RejoinAfterLeave),
+		RetryJoinIntervalLAN:                   b.durationVal("retry_interval", c.RetryJoinIntervalLAN),
+		RetryJoinIntervalWAN:                   b.durationVal("retry_interval_wan", c.RetryJoinIntervalWAN),
+		RetryJoinLAN:                           b.expandAllOptionalAddrs("retry_join", c.RetryJoinLAN),
+		RetryJoinMaxAttemptsLAN:                b.intVal(c.RetryJoinMaxAttemptsLAN),
+		RetryJoinMaxAttemptsWAN:                b.intVal(c.RetryJoinMaxAttemptsWAN),
+		RetryJoinWAN:                           b.expandAllOptionalAddrs("retry_join_wan", c.RetryJoinWAN),
+		SegmentName:                            b.stringVal(c.SegmentName),
+		Segments:                               segments,
+		SerfAdvertiseAddrLAN:                   serfAdvertiseAddrLAN,
+		SerfAdvertiseAddrWAN:                   serfAdvertiseAddrWAN,
+		SerfBindAddrLAN:                        serfBindAddrLAN,
+		SerfBindAddrWAN:                        serfBindAddrWAN,
+		SerfPortLAN:                            serfPortLAN,
+		SerfPortWAN:                            serfPortWAN,
+		ServerMode:                             b.boolVal(c.ServerMode),
+		ServerName:                             b.stringVal(c.ServerName),
+		ServerPort:                             serverPort,
+		Services:                               services,
+		SessionTTLMin:                          b.durationVal("session_ttl_min", c.SessionTTLMin),
+		SkipLeaveOnInt:                         skipLeaveOnInt,
+		StartJoinAddrsLAN:                      b.expandAllOptionalAddrs("start_join", c.StartJoinAddrsLAN),
+		StartJoinAddrsWAN:                      b.expandAllOptionalAddrs("start_join_wan", c.StartJoinAddrsWAN),
+		SyslogFacility:                         b.stringVal(c.SyslogFacility),
+		TLSCipherSuites:                        b.tlsCipherSuites("tls_cipher_suites", c.TLSCipherSuites),
+		TLSMinVersion:                          b.stringVal(c.TLSMinVersion),
+		TLSPreferServerCipherSuites:            b.boolVal(c.TLSPreferServerCipherSuites),
+		TaggedAddresses:                        c.TaggedAddresses,
+		TranslateWANAddrs:                      b.boolVal(c.TranslateWANAddrs),
+		TxnMaxReqLen:                           b.uint64Val(c.Limits.TxnMaxReqLen),
+		UIDir:                                  b.stringVal(c.UIDir),
+		UIContentPath:                          UIPathBuilder(b.stringVal(c.UIContentPath)),
+		UnixSocketGroup:                        b.stringVal(c.UnixSocket.Group),
+		UnixSocketMode:                         b.stringVal(c.UnixSocket.Mode),
+		UnixSocketUser:                         b.stringVal(c.UnixSocket.User),
+		VerifyIncoming:                         b.boolVal(c.VerifyIncoming),
+		VerifyIncomingHTTPS:                    b.boolVal(c.VerifyIncomingHTTPS),
+		VerifyIncomingRPC:                      b.boolVal(c.VerifyIncomingRPC),
+		VerifyOutgoing:                         verifyOutgoing,
+		VerifyServerHostname:                   verifyServerName,
+		Watches:                                c.Watches,
 	}
 
 	if entCfg, err := b.BuildEnterpriseRuntimeConfig(&c); err != nil {
@@ -1100,12 +1107,35 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	if rt.DNSARecordLimit < 0 {
 		return fmt.Errorf("dns_config.a_record_limit cannot be %d. Must be greater than or equal to zero", rt.DNSARecordLimit)
 	}
-	if err := structs.ValidateMetadata(rt.NodeMeta, false); err != nil {
+	if err := structs.ValidateNodeMetadata(rt.NodeMeta, false); err != nil {
 		return fmt.Errorf("node_meta invalid: %v", err)
 	}
 	if rt.EncryptKey != "" {
 		if _, err := decodeBytes(rt.EncryptKey); err != nil {
 			return fmt.Errorf("encrypt has invalid key: %s", err)
+		}
+	}
+
+	if rt.ConnectMeshGatewayWANFederationEnabled && !rt.ServerMode {
+		return fmt.Errorf("'connect.enable_mesh_gateway_wan_federation = true' requires 'server = true'")
+	}
+	if rt.ConnectMeshGatewayWANFederationEnabled && strings.ContainsAny(rt.NodeName, "/") {
+		return fmt.Errorf("'connect.enable_mesh_gateway_wan_federation = true' requires that 'node_name' not contain '/' characters")
+	}
+	if rt.ConnectMeshGatewayWANFederationEnabled {
+		if len(rt.StartJoinAddrsWAN) > 0 {
+			return fmt.Errorf("'start_join_wan' is incompatible with 'connect.enable_mesh_gateway_wan_federation = true'")
+		}
+		if len(rt.RetryJoinWAN) > 0 {
+			return fmt.Errorf("'retry_join_wan' is incompatible with 'connect.enable_mesh_gateway_wan_federation = true'")
+		}
+	}
+	if len(rt.PrimaryGateways) > 0 {
+		if !rt.ServerMode {
+			return fmt.Errorf("'primary_gateways' requires 'server = true'")
+		}
+		if rt.PrimaryDatacenter == rt.Datacenter {
+			return fmt.Errorf("'primary_gateways' should only be configured in a secondary datacenter")
 		}
 	}
 
@@ -1331,8 +1361,10 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		checks = append(checks, b.checkVal(v.Check).CheckType())
 	}
 
+	kind := b.serviceKindVal(v.Kind)
+
 	meta := make(map[string]string)
-	if err := structs.ValidateMetadata(v.Meta, false); err != nil {
+	if err := structs.ValidateServiceMetadata(kind, v.Meta, false); err != nil {
 		b.err = multierror.Append(fmt.Errorf("invalid meta for service %s: %v", b.stringVal(v.Name), err))
 	} else {
 		meta = v.Meta
@@ -1351,7 +1383,7 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		b.err = multierror.Append(fmt.Errorf("Invalid weight definition for service %s: %s", b.stringVal(v.Name), err))
 	}
 	return &structs.ServiceDefinition{
-		Kind:              b.serviceKindVal(v.Kind),
+		Kind:              kind,
 		ID:                b.stringVal(v.ID),
 		Name:              b.stringVal(v.Name),
 		Tags:              v.Tags,

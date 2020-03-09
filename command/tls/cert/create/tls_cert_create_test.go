@@ -48,6 +48,11 @@ func TestTlsCertCreateCommand_InvalidArgs(t *testing.T) {
 			"Please provide either -server, -client, or -cli"},
 		"client+cli": {[]string{"-client", "-cli"},
 			"Please provide either -server, -client, or -cli"},
+
+		"client+node": {[]string{"-client", "-node", "foo"},
+			"-node requires -server"},
+		"cli+node": {[]string{"-cli", "-node", "foo"},
+			"-node requires -server"},
 	}
 
 	for name, tc := range cases {
@@ -102,13 +107,14 @@ func TestTlsCertCreateCommand_fileCreate(t *testing.T) {
 			},
 			[]net.IP{{127, 0, 0, 1}},
 		},
-		{"server1",
+		{"server1-with-node",
 			"server",
-			[]string{"-server"},
+			[]string{"-server", "-node", "mysrv"},
 			"dc1-server-consul-1.pem",
 			"dc1-server-consul-1-key.pem",
 			"server.dc1.consul",
 			[]string{
+				"mysrv.server.dc1.consul",
 				"server.dc1.consul",
 				"localhost",
 			},

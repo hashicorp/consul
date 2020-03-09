@@ -48,7 +48,7 @@ func TestAgentRetryJoinAddrs(t *testing.T) {
 			var buf bytes.Buffer
 			logger := testutil.LoggerWithOutput(t, &buf)
 
-			output := retryJoinAddrs(d, "LAN", test.input, logger)
+			output := retryJoinAddrs(d, retryJoinSerfVariant, "LAN", test.input, logger)
 			bufout := buf.String()
 			require.Equal(t, test.expected, output, bufout)
 			if i == 4 {
@@ -57,6 +57,6 @@ func TestAgentRetryJoinAddrs(t *testing.T) {
 		})
 	}
 	t.Run("handles nil discover", func(t *testing.T) {
-		require.Equal(t, []string{}, retryJoinAddrs(nil, "LAN", []string{"a"}, nil))
+		require.Equal(t, []string{}, retryJoinAddrs(nil, retryJoinSerfVariant, "LAN", []string{"a"}, nil))
 	})
 }

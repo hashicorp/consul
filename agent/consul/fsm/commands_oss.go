@@ -36,6 +36,7 @@ func init() {
 	registerCommand(structs.ACLBindingRuleDeleteRequestType, (*FSM).applyACLBindingRuleDeleteOperation)
 	registerCommand(structs.ACLAuthMethodSetRequestType, (*FSM).applyACLAuthMethodSetOperation)
 	registerCommand(structs.ACLAuthMethodDeleteRequestType, (*FSM).applyACLAuthMethodDeleteOperation)
+	registerCommand(structs.FederationStateRequestType, (*FSM).applyFederationStateOperation)
 }
 
 func (c *FSM) applyRegister(buf []byte, index uint64) interface{} {
@@ -541,4 +542,27 @@ func (c *FSM) applyACLAuthMethodDeleteOperation(buf []byte, index uint64) interf
 		[]metrics.Label{{Name: "op", Value: "delete"}})
 
 	return c.state.ACLAuthMethodBatchDelete(index, req.AuthMethodNames, &req.EnterpriseMeta)
+}
+
+func (c *FSM) applyFederationStateOperation(buf []byte, index uint64) interface{} {
+	var req structs.FederationStateRequest
+	if err := structs.Decode(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode request: %v", err))
+	}
+
+	switch req.Op {
+	case structs.FederationStateUpsert:
+		defer metrics.MeasureSinceWithLabels([]string{"fsm", "federation_state", req.State.Datacenter}, time.Now(),
+			[]metrics.Label{{Name: "op", Value: "upsert"}})
+		if err := c.state.FederationStateSet(index, req.State); err != nil {
+			return err
+		}
+		return true
+	case structs.FederationStateDelete:
+		defer metrics.MeasureSinceWithLabels([]string{"fsm", "federation_state", req.State.Datacenter}, time.Now(),
+			[]metrics.Label{{Name: "op", Value: "delete"}})
+		return c.state.FederationStateDelete(index, req.State.Datacenter)
+	default:
+		return fmt.Errorf("invalid federation state operation type: %v", req.Op)
+	}
 }

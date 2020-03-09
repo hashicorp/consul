@@ -5,6 +5,8 @@ import (
 	"net"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/memberlist"
 )
 
 // EventType are all the types of events that may occur and be sent
@@ -105,6 +107,7 @@ type Query struct {
 	id          uint32    // ID is not exported, since it may change
 	addr        []byte    // Address to respond to
 	port        uint16    // Port to respond to
+	sourceNode  string    // Node name to respond to
 	deadline    time.Time // Must respond by this deadline
 	relayFactor uint8     // Number of duplicate responses to relay back to sender
 	respLock    sync.Mutex
@@ -161,13 +164,18 @@ func (q *Query) respondWithMessageAndResponse(raw []byte, resp messageQueryRespo
 	}
 
 	// Send the response directly to the originator
-	addr := net.UDPAddr{IP: q.addr, Port: int(q.port)}
-	if err := q.serf.memberlist.SendTo(&addr, raw); err != nil {
+	udpAddr := net.UDPAddr{IP: q.addr, Port: int(q.port)}
+
+	addr := memberlist.Address{
+		Addr: udpAddr.String(),
+		Name: q.sourceNode,
+	}
+	if err := q.serf.memberlist.SendToAddress(addr, raw); err != nil {
 		return err
 	}
 
 	// Relay the response through up to relayFactor other nodes
-	if err := q.serf.relayResponse(q.relayFactor, addr, &resp); err != nil {
+	if err := q.serf.relayResponse(q.relayFactor, udpAddr, q.sourceNode, &resp); err != nil {
 		return err
 	}
 

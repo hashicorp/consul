@@ -100,8 +100,10 @@ func joinAddrWAN(s *Server) string {
 	if s == nil {
 		panic("no server")
 	}
+	name := s.config.NodeName
+	dc := s.config.Datacenter
 	port := s.config.SerfWANConfig.MemberlistConfig.BindPort
-	return fmt.Sprintf("127.0.0.1:%d", port)
+	return fmt.Sprintf("%s.%s/127.0.0.1:%d", name, dc, port)
 }
 
 type clientOrServer interface {

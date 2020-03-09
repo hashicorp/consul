@@ -238,6 +238,11 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			setup:  nil,
 		},
 		{
+			name:   "mesh-gateway-using-federation-states",
+			create: proxycfg.TestConfigSnapshotMeshGatewayUsingFederationStates,
+			setup:  nil,
+		},
+		{
 			name:   "mesh-gateway-no-services",
 			create: proxycfg.TestConfigSnapshotMeshGatewayNoServices,
 		},

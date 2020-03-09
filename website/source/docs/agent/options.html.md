@@ -435,6 +435,14 @@ The options below are all specified on the command-line.
   however agents will automatically use protocol >2 when speaking to compatible agents. This should be set only when
   [upgrading](/docs/upgrading.html). You can view the protocol versions supported by Consul by running `consul -v`.
 
+* <a name="_primary_gateway"></a><a href="#_primary_gateway">`-primary-gateway`</a> - Similar
+  to [`retry-join-wan`](#_retry_join_wan) but allows retrying discovery of fallback addresses
+  for the mesh gateways in the primary datacenter if the first attempt fails.
+  This is useful for cases where we know the address will become available eventually.
+  [Cloud Auto-Joining](#cloud-auto-joining) is supported as well as [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
+  templates.
+  This was added in Consul 1.8.x **TODO(wanfed)**.
+
 * <a name="_raft_protocol"></a><a href="#_raft_protocol">`-raft-protocol`</a> - This controls the internal
   version of the Raft consensus protocol used for server communications. This must be set to 3 in order to
   gain access to Autopilot features, with the exception of [`cleanup_dead_servers`](#cleanup_dead_servers).
@@ -924,6 +932,12 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     * <a name="connect_enabled"></a><a href="#connect_enabled">`enabled`</a> Controls whether
       Connect features are enabled on this agent. Should be enabled on all clients and
       servers in the cluster in order for Connect to function properly. Defaults to false.
+
+    * <a name="connect_enable_mesh_gateway_wan_federation"></a><a
+      href="#connect_enable_mesh_gateway_wan_federation">`enable_mesh_gateway_wan_federation`</a>
+      Controls whether cross-datacenter federation traffic between servers is
+      funneled through mesh gateways.  Defaults to false.
+      This was added in Consul 1.8.x **TODO(wanfed)**.
 
     * <a name="connect_ca_provider"></a><a href="#connect_ca_provider">`ca_provider`</a> Controls
       which CA provider to use for Connect's CA. Currently only the `consul` and `vault` providers
@@ -1583,14 +1597,26 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
       [exposed check listeners](/docs/connect/registration/service-registration.html#expose-paths-configuration-reference).
       Default 21755. Set to `0` to disable automatic port assignment.
 
-* <a name="protocol"></a><a href="#protocol">`protocol`</a> Equivalent to the
-  [`-protocol` command-line flag](#_protocol).
-
 * <a name="primary_datacenter"></a><a href="#primary_datacenter">`primary_datacenter`</a> - This
   designates the datacenter which is authoritative for ACL information, intentions and is the root
   Certificate Authority for Connect. It must be provided to enable ACLs. All servers and datacenters
   must agree on the primary datacenter. Setting it on the servers is all you need for cluster-level enforcement, but for the APIs to forward properly from the clients, it must be set on them too. In
   Consul 0.8 and later, this also enables agent-level enforcement of ACLs.
+
+* <a name="primary_gateways"></a><a href="#primary_gateways">`primary_gateways`</a> Equivalent to the
+  [`-primary-gateway` command-line flag](#_primary_gateway). Takes a list
+  of addresses to use as the mesh gateways for the primary datacenter when authoritative
+  replicated catalog data is not present. Discovery happens every [`primary_gateways_interval`](#_primary_gateways_interval) until at least one
+  primary mesh gateway is discovered.
+  This was added in Consul 1.8.x **TODO(wanfed)**.
+
+* <a name="primary_gateways_interval"></a><a href="#primary_gateways_interval">`primary_gateways_interval`</a> Time
+  to wait between [`primary_gateways`](#primary_gateways) discovery attempts.
+  Defaults to 30s.
+  This was added in Consul 1.8.x **TODO(wanfed)**.
+
+* <a name="protocol"></a><a href="#protocol">`protocol`</a> Equivalent to the
+  [`-protocol` command-line flag](#_protocol).
 
 * <a name="raft_protocol"></a><a href="#raft_protocol">`raft_protocol`</a> Equivalent to the
   [`-raft-protocol` command-line flag](#_raft_protocol).

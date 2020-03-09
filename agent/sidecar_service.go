@@ -49,7 +49,7 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 	if sidecar.Meta != nil {
 		// Meta is non-nil validate it before we add the special key so we can
 		// enforce that user cannot add a consul- prefix one.
-		if err := structs.ValidateMetadata(sidecar.Meta, false); err != nil {
+		if err := structs.ValidateServiceMetadata(sidecar.Kind, sidecar.Meta, false); err != nil {
 			return nil, nil, "", err
 		}
 	}

@@ -541,6 +541,7 @@ func (s *Serf) Query(name string, payload []byte, params *QueryParam) (*QueryRes
 		ID:          uint32(rand.Int31()),
 		Addr:        local.Addr,
 		Port:        local.Port,
+		SourceNode:  local.Name,
 		Filters:     filters,
 		Flags:       flags,
 		RelayFactor: params.RelayFactor,
@@ -1326,11 +1327,15 @@ func (s *Serf) handleQuery(query *messageQuery) bool {
 		if err != nil {
 			s.logger.Printf("[ERR] serf: failed to format ack: %v", err)
 		} else {
-			addr := net.UDPAddr{IP: query.Addr, Port: int(query.Port)}
-			if err := s.memberlist.SendTo(&addr, raw); err != nil {
+			udpAddr := net.UDPAddr{IP: query.Addr, Port: int(query.Port)}
+			addr := memberlist.Address{
+				Addr: udpAddr.String(),
+				Name: query.SourceNode,
+			}
+			if err := s.memberlist.SendToAddress(addr, raw); err != nil {
 				s.logger.Printf("[ERR] serf: failed to send ack: %v", err)
 			}
-			if err := s.relayResponse(query.RelayFactor, addr, &ack); err != nil {
+			if err := s.relayResponse(query.RelayFactor, udpAddr, query.SourceNode, &ack); err != nil {
 				s.logger.Printf("[ERR] serf: failed to relay ack: %v", err)
 			}
 		}
@@ -1345,6 +1350,7 @@ func (s *Serf) handleQuery(query *messageQuery) bool {
 			id:          query.ID,
 			addr:        query.Addr,
 			port:        query.Port,
+			sourceNode:  query.SourceNode,
 			deadline:    time.Now().Add(query.Timeout),
 			relayFactor: query.RelayFactor,
 		}
@@ -1603,8 +1609,13 @@ func (s *Serf) reconnect() {
 	addr := net.UDPAddr{IP: mem.Addr, Port: int(mem.Port)}
 	s.logger.Printf("[INFO] serf: attempting reconnect to %v %s", mem.Name, addr.String())
 
+	joinAddr := addr.String()
+	if mem.Name != "" {
+		joinAddr = mem.Name + "/" + addr.String()
+	}
+
 	// Attempt to join at the memberlist level
-	s.memberlist.Join([]string{addr.String()})
+	s.memberlist.Join([]string{joinAddr})
 }
 
 // getQueueMax will get the maximum queue depth, which might be dynamic depending
@@ -1709,8 +1720,13 @@ func (s *Serf) handleRejoin(previous []*PreviousNode) {
 			continue
 		}
 
+		joinAddr := prev.Addr
+		if prev.Name != "" {
+			joinAddr = prev.Name + "/" + prev.Addr
+		}
+
 		s.logger.Printf("[INFO] serf: Attempting re-join to previously known node: %s", prev)
-		_, err := s.memberlist.Join([]string{prev.Addr})
+		_, err := s.memberlist.Join([]string{joinAddr})
 		if err == nil {
 			s.logger.Printf("[INFO] serf: Re-joined to previously known node: %s", prev)
 			return

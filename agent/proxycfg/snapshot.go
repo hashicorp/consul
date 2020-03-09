@@ -34,25 +34,64 @@ func (c *configSnapshotConnectProxy) IsEmpty() bool {
 }
 
 type configSnapshotMeshGateway struct {
-	// map of service id to a cancel function. This cancel function is tied to the watch of
-	// connect enabled services for the given id. If the main datacenter services watch would
-	// indicate the removal of a service all together we then cancel watching that service for
-	// its connect endpoints.
+	// WatchedServices is a map of service id to a cancel function. This cancel
+	// function is tied to the watch of connect enabled services for the given
+	// id. If the main datacenter services watch would indicate the removal of
+	// a service all together we then cancel watching that service for its
+	// connect endpoints.
 	WatchedServices map[structs.ServiceID]context.CancelFunc
-	// Indicates that the watch on the datacenters services has completed. Even when there
-	// are no connect services, this being set (and the Connect roots being available) will be enough for
-	// the config snapshot to be considered valid. In the case of Envoy, this allows it to start its listeners
-	// even when no services would be proxied and allow its health check to pass.
+
+	// WatchedServicesSet indicates that the watch on the datacenters services
+	// has completed. Even when there are no connect services, this being set
+	// (and the Connect roots being available) will be enough for the config
+	// snapshot to be considered valid. In the case of Envoy, this allows it to
+	// start its listeners even when no services would be proxied and allow its
+	// health check to pass.
 	WatchedServicesSet bool
-	// map of datacenter name to a cancel function. This cancel function is tied
-	// to the watch of mesh-gateway services in that datacenter.
+
+	// WatchedDatacenters is a map of datacenter name to a cancel function.
+	// This cancel function is tied to the watch of mesh-gateway services in
+	// that datacenter.
 	WatchedDatacenters map[string]context.CancelFunc
-	// map of service id to the service instances of that service in the local datacenter
+
+	// ServiceGroups is a map of service id to the service instances of that
+	// service in the local datacenter.
 	ServiceGroups map[structs.ServiceID]structs.CheckServiceNodes
-	// map of service id to an associated service-resolver config entry for that service
+
+	// ServiceResolvers is a map of service id to an associated
+	// service-resolver config entry for that service.
 	ServiceResolvers map[structs.ServiceID]*structs.ServiceResolverConfigEntry
-	// map of datacenter names to services of kind mesh-gateway in that datacenter
+
+	// GatewayGroups is a map of datacenter names to services of kind
+	// mesh-gateway in that datacenter.
 	GatewayGroups map[string]structs.CheckServiceNodes
+
+	// FedStateGateways is a map of datacenter names to mesh gateways in that
+	// datacenter.
+	FedStateGateways map[string]structs.CheckServiceNodes
+
+	// ConsulServers is the list of consul servers in this datacenter.
+	ConsulServers structs.CheckServiceNodes
+}
+
+func (c *configSnapshotMeshGateway) Datacenters() []string {
+	sz1, sz2 := len(c.GatewayGroups), len(c.FedStateGateways)
+
+	sz := sz1
+	if sz2 > sz1 {
+		sz = sz2
+	}
+
+	dcs := make([]string, 0, sz)
+	for dc, _ := range c.GatewayGroups {
+		dcs = append(dcs, dc)
+	}
+	for dc, _ := range c.FedStateGateways {
+		if _, ok := c.GatewayGroups[dc]; !ok {
+			dcs = append(dcs, dc)
+		}
+	}
+	return dcs
 }
 
 func (c *configSnapshotMeshGateway) IsEmpty() bool {
@@ -64,7 +103,9 @@ func (c *configSnapshotMeshGateway) IsEmpty() bool {
 		len(c.WatchedDatacenters) == 0 &&
 		len(c.ServiceGroups) == 0 &&
 		len(c.ServiceResolvers) == 0 &&
-		len(c.GatewayGroups) == 0
+		len(c.GatewayGroups) == 0 &&
+		len(c.FedStateGateways) == 0 &&
+		len(c.ConsulServers) == 0
 }
 
 // ConfigSnapshot captures all the resulting config needed for a proxy instance.
@@ -76,11 +117,13 @@ type ConfigSnapshot struct {
 	ProxyID         structs.ServiceID
 	Address         string
 	Port            int
+	ServiceMeta     map[string]string
 	TaggedAddresses map[string]structs.ServiceAddress
 	Proxy           structs.ConnectProxyConfig
 	Datacenter      string
 
-	Roots *structs.IndexedCARoots
+	ServerSNIFn ServerSNIFunc
+	Roots       *structs.IndexedCARoots
 
 	// connect-proxy specific
 	ConnectProxy configSnapshotConnectProxy
@@ -97,6 +140,11 @@ func (s *ConfigSnapshot) Valid() bool {
 	case structs.ServiceKindConnectProxy:
 		return s.Roots != nil && s.ConnectProxy.Leaf != nil
 	case structs.ServiceKindMeshGateway:
+		if s.ServiceMeta[structs.MetaWANFederationKey] == "1" {
+			if len(s.MeshGateway.ConsulServers) == 0 {
+				return false
+			}
+		}
 		return s.Roots != nil && (s.MeshGateway.WatchedServicesSet || len(s.MeshGateway.ServiceGroups) > 0)
 	default:
 		return false

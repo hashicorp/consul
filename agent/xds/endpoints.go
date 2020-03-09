@@ -171,19 +171,88 @@ func (s *Server) filterSubsetEndpoints(subset *structs.ServiceResolverSubset, en
 }
 
 func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
-	resources := make([]proto.Message, 0, len(cfgSnap.MeshGateway.GatewayGroups)+len(cfgSnap.MeshGateway.ServiceGroups))
+	datacenters := cfgSnap.MeshGateway.Datacenters()
+	resources := make([]proto.Message, 0, len(datacenters)+len(cfgSnap.MeshGateway.ServiceGroups))
 
 	// generate the endpoints for the gateways in the remote datacenters
-	for dc, endpoints := range cfgSnap.MeshGateway.GatewayGroups {
-		clusterName := connect.DatacenterSNI(dc, cfgSnap.Roots.TrustDomain)
-		la := makeLoadAssignment(
-			clusterName,
-			[]loadAssignmentEndpointGroup{
-				{Endpoints: endpoints},
-			},
-			cfgSnap.Datacenter,
-		)
-		resources = append(resources, la)
+	for _, dc := range datacenters {
+		if dc == cfgSnap.Datacenter {
+			continue // skip local
+		}
+		endpoints, ok := cfgSnap.MeshGateway.GatewayGroups[dc]
+		if !ok {
+			endpoints, ok = cfgSnap.MeshGateway.FedStateGateways[dc]
+			if !ok { // not possible
+				s.Logger.Error("skipping mesh gateway endpoints because no definition found", "datacenter", dc)
+				continue
+			}
+		}
+
+		{ // standard connect
+			clusterName := connect.DatacenterSNI(dc, cfgSnap.Roots.TrustDomain)
+
+			la := makeLoadAssignment(
+				clusterName,
+				[]loadAssignmentEndpointGroup{
+					{Endpoints: endpoints},
+				},
+				cfgSnap.Datacenter,
+			)
+			resources = append(resources, la)
+		}
+
+		if cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" && cfgSnap.ServerSNIFn != nil {
+			clusterName := cfgSnap.ServerSNIFn(dc, "")
+
+			la := makeLoadAssignment(
+				clusterName,
+				[]loadAssignmentEndpointGroup{
+					{Endpoints: endpoints},
+				},
+				cfgSnap.Datacenter,
+			)
+			resources = append(resources, la)
+		}
+	}
+
+	if cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" && cfgSnap.ServerSNIFn != nil {
+		// generate endpoints for our servers
+
+		var allServersLbEndpoints []envoyendpoint.LbEndpoint
+
+		for _, srv := range cfgSnap.MeshGateway.ConsulServers {
+			clusterName := cfgSnap.ServerSNIFn(cfgSnap.Datacenter, srv.Node.Node)
+
+			addr, port := srv.BestAddress(false /*wan*/)
+
+			lbEndpoint := envoyendpoint.LbEndpoint{
+				HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
+					Endpoint: &envoyendpoint.Endpoint{
+						Address: makeAddressPtr(addr, port),
+					},
+				},
+				HealthStatus: envoycore.HealthStatus_UNKNOWN,
+			}
+
+			cla := &envoy.ClusterLoadAssignment{
+				ClusterName: clusterName,
+				Endpoints: []envoyendpoint.LocalityLbEndpoints{{
+					LbEndpoints: []envoyendpoint.LbEndpoint{lbEndpoint},
+				}},
+			}
+			allServersLbEndpoints = append(allServersLbEndpoints, lbEndpoint)
+
+			resources = append(resources, cla)
+		}
+
+		// And add one catch all so that remote datacenters can dial ANY server
+		// in this datacenter without knowing its name.
+		resources = append(resources, &envoy.ClusterLoadAssignment{
+			ClusterName: cfgSnap.ServerSNIFn(cfgSnap.Datacenter, ""),
+			Endpoints: []envoyendpoint.LocalityLbEndpoints{{
+				LbEndpoints: allServersLbEndpoints,
+			}},
+		})
 	}
 
 	// Generate the endpoints for each service and its subsets

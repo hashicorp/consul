@@ -224,6 +224,10 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotMeshGateway,
 		},
 		{
+			name:   "mesh-gateway-using-federation-states",
+			create: proxycfg.TestConfigSnapshotMeshGatewayUsingFederationStates,
+		},
+		{
 			name:   "mesh-gateway-no-services",
 			create: proxycfg.TestConfigSnapshotMeshGatewayNoServices,
 		},

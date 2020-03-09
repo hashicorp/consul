@@ -498,6 +498,7 @@ func (a *Agent) Start() error {
 			Datacenter: a.config.Datacenter,
 			Segment:    a.config.SegmentName,
 		},
+		TLSConfigurator: a.tlsConfigurator,
 	})
 	if err != nil {
 		return err
@@ -562,7 +563,9 @@ func (a *Agent) Start() error {
 
 	// start retry join
 	go a.retryJoinLAN()
-	go a.retryJoinWAN()
+	if a.config.ServerMode {
+		go a.retryJoinWAN()
+	}
 
 	return nil
 }
@@ -575,7 +578,7 @@ func (a *Agent) setupClientAutoEncrypt() (*structs.SignedResponse, error) {
 	if err != nil && len(addrs) == 0 {
 		return nil, err
 	}
-	addrs = append(addrs, retryJoinAddrs(disco, "LAN", a.config.RetryJoinLAN, a.logger)...)
+	addrs = append(addrs, retryJoinAddrs(disco, retryJoinSerfVariant, "LAN", a.config.RetryJoinLAN, a.logger)...)
 
 	reply, priv, err := client.RequestAutoEncryptCerts(addrs, a.config.ServerPort, a.tokens.AgentToken(), a.InterruptStartCh)
 	if err != nil {
@@ -1341,6 +1344,7 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	// Copy the Connect CA bootstrap config
 	if a.config.ConnectEnabled {
 		base.ConnectEnabled = true
+		base.ConnectMeshGatewayWANFederationEnabled = a.config.ConnectMeshGatewayWANFederationEnabled
 
 		// Allow config to specify cluster_id provided it's a valid UUID. This is
 		// meant only for tests where a deterministic ID makes fixtures much simpler
@@ -1897,6 +1901,34 @@ func (a *Agent) JoinWAN(addrs []string) (n int, err error) {
 		)
 	}
 	return
+}
+
+// PrimaryMeshGatewayAddressesReadyCh returns a channel that will be closed
+// when federation state replication ships back at least one primary mesh
+// gateway (not via fallback config).
+func (a *Agent) PrimaryMeshGatewayAddressesReadyCh() <-chan struct{} {
+	if srv, ok := a.delegate.(*consul.Server); ok {
+		return srv.PrimaryMeshGatewayAddressesReadyCh()
+	}
+	return nil
+}
+
+// PickRandomMeshGatewaySuitableForDialing is a convenience function used for writing tests.
+func (a *Agent) PickRandomMeshGatewaySuitableForDialing(dc string) string {
+	if srv, ok := a.delegate.(*consul.Server); ok {
+		return srv.PickRandomMeshGatewaySuitableForDialing(dc)
+	}
+	return ""
+}
+
+// RefreshPrimaryGatewayFallbackAddresses is used to update the list of current
+// fallback addresses for locating mesh gateways in the primary datacenter.
+func (a *Agent) RefreshPrimaryGatewayFallbackAddresses(addrs []string) error {
+	if srv, ok := a.delegate.(*consul.Server); ok {
+		srv.RefreshPrimaryGatewayFallbackAddresses(addrs)
+		return nil
+	}
+	return fmt.Errorf("Must be a server to track mesh gateways in the primary datacenter")
 }
 
 // ForceLeave is used to remove a failed node from the cluster
@@ -4260,6 +4292,14 @@ func (a *Agent) registerCache() {
 
 	a.cache.RegisterType(cachetype.ServiceHTTPChecksName, &cachetype.ServiceHTTPChecks{
 		Agent: a,
+	}, &cache.RegisterOptions{
+		Refresh:        true,
+		RefreshTimer:   0 * time.Second,
+		RefreshTimeout: 10 * time.Minute,
+	})
+
+	a.cache.RegisterType(cachetype.FederationStateListMeshGatewaysName, &cachetype.FederationStateListMeshGateways{
+		RPC: a,
 	}, &cache.RegisterOptions{
 		Refresh:        true,
 		RefreshTimer:   0 * time.Second,

@@ -64,6 +64,7 @@ type cmd struct {
 	wanAddress         string
 	deregAfterCritical string
 	bindAddresses      map[string]string
+	exposeServers      bool
 
 	meshGatewaySvcName string
 }
@@ -129,6 +130,9 @@ func (c *cmd) init() {
 
 	c.flags.StringVar(&c.meshGatewaySvcName, "service", "mesh-gateway",
 		"Service name to use for the registration")
+
+	c.flags.BoolVar(&c.exposeServers, "expose-servers", false,
+		"Expose the servers for WAN federation via this mesh gateway")
 
 	c.flags.StringVar(&c.deregAfterCritical, "deregister-after-critical", "6h",
 		"The amount of time the gateway services health check can be failing before being deregistered")
@@ -235,6 +239,17 @@ func (c *cmd) Run(args []string) int {
 	}
 	c.client = client
 
+	if c.exposeServers {
+		if !c.meshGateway {
+			c.UI.Error("'-expose-servers' can only be used for mesh gateways")
+			return 1
+		}
+		if !c.register {
+			c.UI.Error("'-expose-servers' requires '-register'")
+			return 1
+		}
+	}
+
 	if c.register {
 		if !c.meshGateway {
 			c.UI.Error("Auto-Registration can only be used for mesh gateways")
@@ -307,11 +322,17 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 
+		var meta map[string]string
+		if c.exposeServers {
+			meta = map[string]string{structs.MetaWANFederationKey: "1"}
+		}
+
 		svc := api.AgentServiceRegistration{
 			Kind:            api.ServiceKindMeshGateway,
 			Name:            c.meshGatewaySvcName,
 			Address:         lanAddr,
 			Port:            lanPort,
+			Meta:            meta,
 			TaggedAddresses: taggedAddrs,
 			Proxy:           proxyConf,
 			Check: &api.AgentServiceCheck{

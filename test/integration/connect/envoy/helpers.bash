@@ -338,6 +338,27 @@ function get_healthy_service_count {
   echo "$output" | jq --raw-output '. | length'
 }
 
+function assert_alive_wan_member_count {
+  local EXPECT_COUNT=$1
+  run retry_default assert_alive_wan_member_count_once $EXPECT_COUNT
+  [ "$status" -eq 0 ]
+}
+
+function assert_alive_wan_member_count_once {
+  local EXPECT_COUNT=$1
+
+  GOT_COUNT=$(get_alive_wan_member_count)
+
+  [ "$GOT_COUNT" -eq "$EXPECT_COUNT" ]
+}
+
+function get_alive_wan_member_count {
+  run retry_default curl -sL -f "127.0.0.1:8500/v1/agent/members?wan=1"
+  [ "$status" -eq 0 ]
+  # echo "$output" >&3
+  echo "$output" | jq '.[] | select(.Status == 1) | .Name' | wc -l
+}
+
 function assert_service_has_healthy_instances_once {
   local SERVICE_NAME=$1
   local EXPECT_COUNT=$2

@@ -184,7 +184,7 @@ func parseService(svc *structs.ServiceQuery) error {
 	}
 
 	// Make sure the metadata filters are valid
-	if err := structs.ValidateMetadata(svc.NodeMeta, true); err != nil {
+	if err := structs.ValidateNodeMetadata(svc.NodeMeta, true); err != nil {
 		return err
 	}
 

@@ -967,14 +967,18 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 }
 
 func TestConfigSnapshotMeshGateway(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotMeshGateway(t, true)
+	return testConfigSnapshotMeshGateway(t, true, false)
+}
+
+func TestConfigSnapshotMeshGatewayUsingFederationStates(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotMeshGateway(t, true, true)
 }
 
 func TestConfigSnapshotMeshGatewayNoServices(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotMeshGateway(t, false)
+	return testConfigSnapshotMeshGateway(t, false, false)
 }
 
-func testConfigSnapshotMeshGateway(t testing.T, populateServices bool) *ConfigSnapshot {
+func testConfigSnapshotMeshGateway(t testing.T, populateServices bool, useFederationStates bool) *ConfigSnapshot {
 	roots, _ := TestCerts(t)
 	snap := &ConfigSnapshot{
 		Kind:    structs.ServiceKindMeshGateway,
@@ -1019,6 +1023,13 @@ func testConfigSnapshotMeshGateway(t testing.T, populateServices bool) *ConfigSn
 			GatewayGroups: map[string]structs.CheckServiceNodes{
 				"dc2": TestGatewayNodesDC2(t),
 			},
+		}
+		if useFederationStates {
+			snap.MeshGateway.FedStateGateways = map[string]structs.CheckServiceNodes{
+				"dc2": TestGatewayNodesDC2(t),
+			}
+
+			delete(snap.MeshGateway.GatewayGroups, "dc2")
 		}
 	}
 
