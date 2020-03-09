@@ -155,6 +155,7 @@ func (s *Server) fetchFederationStateAntiEntropyDetails(
 				MeshGateways: raw,
 			}
 
+			// Compute the maximum index seen.
 			if idx2 > idx1 {
 				queryMeta.Index = idx2
 			} else {
