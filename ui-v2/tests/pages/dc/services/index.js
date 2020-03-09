@@ -11,5 +11,6 @@ export default function(visitable, clickable, attribute, collection, page, filte
     }),
     navigation: page.navigation,
     filter: filter,
+    home: clickable('[data-test-home]'),
   };
 }
