@@ -1449,12 +1449,23 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
         single RPC call to a Consul server. See
         https://en.wikipedia.org/wiki/Token_bucket for more details about how
         token bucket rate limiters operate.
+    *   <a name="kv_max_value_size"></a><a href="#kv_max_value_size">
+        `kv_max_value_size`</a> - **(Advanced)** Configures the maximum number of
+        bytes for a kv request body to the [`/v1/kv`](/api/kv.html) endpoint.
+        This limit defaults to [raft's](https://github.com/hashicorp/raft)
+        suggested max size(512KB). **Note that tuning these improperly can cause
+        Consul to fail in unexpected ways**, it may potentially affect
+        leadership stability and prevent timely heartbeat signals by increasing
+        RPC IO duration.
+        This option affects the txn endpoint too, but Consul 1.7.2 introduced
+        `txn_max_req_len` which is the preferred way to set the limit for the
+        txn endpoint. If both limits are set, the higher one takes precedence.
     *   <a name="txn_max_req_len"></a><a href="#txn_max_req_len">
-        `txn_max_req_len`</a> - Configures the maximum number of
+        `txn_max_req_len`</a> - **(Advanced)** Configures the maximum number of
         bytes for a transaction request body to the [`/v1/txn`](/api/txn.html)
         endpoint. This limit defaults to [raft's](https://github.com/hashicorp/raft)
-        suggested max size. **Note that increasing beyond this default can
-        cause Consul to fail in unexpected ways**, it may potentially affect
+        suggested max size(512KB). **Note that tuning these improperly can cause
+        Consul to fail in unexpected ways**, it may potentially affect
         leadership stability and prevent timely heartbeat signals by
         increasing RPC IO duration.
 
