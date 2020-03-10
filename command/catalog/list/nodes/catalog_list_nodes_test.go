@@ -171,6 +171,8 @@ func TestCatalogListNodesCommand_verticalBar(t *testing.T) {
 	a := agent.NewTestAgent(t, "", `node_name = "`+nodeName+`"`)
 	defer a.Shutdown()
 
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
 	ui := cli.NewMockUi()
 	c := New(ui)
 	c.flags.SetOutput(ui.ErrorWriter)
