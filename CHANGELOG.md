@@ -7,6 +7,7 @@ FEATURES:
 IMPROVEMENTS:
 
 * agent: add option to configure max request length for `/v1/txn` endpoint [[GH-7388](https://github.com/hashicorp/consul/pull/7388)]
+* build: bump the expected go language version of the main module to 1.13 [[GH-7429](https://github.com/hashicorp/consul/issues/7429)]
 
 BUGFIXES:
 
