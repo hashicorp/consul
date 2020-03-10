@@ -103,6 +103,10 @@ func (id *missingIdentity) IsExpired(asOf time.Time) bool {
 	return false
 }
 
+func (id *missingIdentity) IsLocal() bool {
+	return false
+}
+
 func (id *missingIdentity) EnterpriseMetadata() *structs.EnterpriseMeta {
 	return structs.DefaultEnterpriseMeta()
 }

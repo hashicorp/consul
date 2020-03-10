@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/wanfed"
 	"github.com/hashicorp/consul/agent/metadata"
@@ -470,6 +471,23 @@ func (s *Server) forward(method string, info structs.RPCInfo, args interface{}, 
 	// Handle DC forwarding
 	dc := info.RequestDatacenter()
 	if dc != s.config.Datacenter {
+		// Local tokens only work within the current datacenter. Check to see
+		// if we are attempting to forward one to a remote datacenter and strip
+		// it, falling back on the anonymous token on the other end.
+		if token := info.TokenSecret(); token != "" {
+			done, ident, err := s.ResolveIdentityFromToken(token)
+			if done {
+				if err != nil && !acl.IsErrNotFound(err) {
+					return false, err
+				}
+				if ident != nil && ident.IsLocal() {
+					// Strip it from the request.
+					info.SetTokenSecret("")
+					defer info.SetTokenSecret(token)
+				}
+			}
+		}
+
 		err := s.forwardDC(method, dc, args, reply)
 		return true, err
 	}

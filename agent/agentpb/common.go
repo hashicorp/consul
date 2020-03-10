@@ -18,6 +18,10 @@ func (q *QueryOptions) TokenSecret() string {
 	return q.Token
 }
 
+func (q *QueryOptions) SetTokenSecret(s string) {
+	q.Token = s
+}
+
 // SetToken is needed to implement the structs.QueryOptionsCompat interface
 func (q *QueryOptions) SetToken(token string) {
 	q.Token = token
@@ -100,6 +104,10 @@ func (w WriteRequest) IsRead() bool {
 
 func (w WriteRequest) TokenSecret() string {
 	return w.Token
+}
+
+func (w *WriteRequest) SetTokenSecret(s string) {
+	w.Token = s
 }
 
 // AllowStaleRead returns whether a stale read should be allowed

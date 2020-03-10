@@ -11,9 +11,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/structs"
+	tokenStore "github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/go-memdb"
@@ -731,4 +734,135 @@ func TestRPC_readUint32(t *testing.T) {
 			tc.readFn(t, server)
 		})
 	}
+}
+
+func TestRPC_LocalTokenStrippedOnForward(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLDefaultPolicy = "deny"
+		c.ACLMasterToken = "root"
+		c.ACLEnforceVersion8 = true
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLDefaultPolicy = "deny"
+		c.ACLTokenReplication = true
+		c.ACLEnforceVersion8 = true
+		c.ACLReplicationRate = 100
+		c.ACLReplicationBurst = 100
+		c.ACLReplicationApplyLimit = 1000000
+	})
+	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
+	testrpc.WaitForLeader(t, s2.RPC, "dc2")
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+	codec2 := rpcClient(t, s2)
+	defer codec2.Close()
+
+	// Try to join.
+	joinWAN(t, s2, s1)
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc2")
+
+	// Wait for legacy acls to be disabled so we are clear that
+	// legacy replication isn't meddling.
+	waitForNewACLs(t, s1)
+	waitForNewACLs(t, s2)
+	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
+
+	// create simple kv policy
+	kvPolicy, err := upsertTestPolicyWithRules(codec, "root", "dc1", `
+	key_prefix "" { policy = "write" }
+	`)
+	require.NoError(t, err)
+
+	// Wait for it to replicate
+	retry.Run(t, func(r *retry.R) {
+		_, p, err := s2.fsm.State().ACLPolicyGetByID(nil, kvPolicy.ID, &structs.EnterpriseMeta{})
+		require.Nil(r, err)
+		require.NotNil(r, p)
+	})
+
+	// create local token that only works in DC2
+	localToken2, err := upsertTestToken(codec, "root", "dc2", func(token *structs.ACLToken) {
+		token.Local = true
+		token.Policies = []structs.ACLTokenPolicyLink{
+			{ID: kvPolicy.ID},
+		}
+	})
+	require.NoError(t, err)
+
+	// Try to use it locally (it should work)
+	arg := structs.KVSRequest{
+		Datacenter: "dc2",
+		Op:         api.KVSet,
+		DirEnt: structs.DirEntry{
+			Key:   "foo",
+			Value: []byte("bar"),
+		},
+		WriteRequest: structs.WriteRequest{Token: localToken2.SecretID},
+	}
+	var out bool
+	err = msgpackrpc.CallWithCodec(codec2, "KVS.Apply", &arg, &out)
+	require.NoError(t, err)
+	require.Equal(t, localToken2.SecretID, arg.WriteRequest.Token, "token should not be stripped")
+
+	// Try to use it remotely
+	arg = structs.KVSRequest{
+		Datacenter: "dc1",
+		Op:         api.KVSet,
+		DirEnt: structs.DirEntry{
+			Key:   "foo",
+			Value: []byte("bar"),
+		},
+		WriteRequest: structs.WriteRequest{Token: localToken2.SecretID},
+	}
+	err = msgpackrpc.CallWithCodec(codec2, "KVS.Apply", &arg, &out)
+	if !acl.IsErrPermissionDenied(err) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Update the anon token to also be able to write to kv
+	{
+		tokenUpsertReq := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				AccessorID: structs.ACLTokenAnonymousID,
+				Policies: []structs.ACLTokenPolicyLink{
+					structs.ACLTokenPolicyLink{
+						ID: kvPolicy.ID,
+					},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		token := structs.ACLToken{}
+		err = msgpackrpc.CallWithCodec(codec, "ACL.TokenSet", &tokenUpsertReq, &token)
+		require.NoError(t, err)
+		require.NotEmpty(t, token.SecretID)
+	}
+
+	// Try to use it remotely again, but this time it should fallback to anon
+	arg = structs.KVSRequest{
+		Datacenter: "dc1",
+		Op:         api.KVSet,
+		DirEnt: structs.DirEntry{
+			Key:   "foo",
+			Value: []byte("bar"),
+		},
+		WriteRequest: structs.WriteRequest{Token: localToken2.SecretID},
+	}
+	err = msgpackrpc.CallWithCodec(codec2, "KVS.Apply", &arg, &out)
+	require.NoError(t, err)
+	require.Equal(t, localToken2.SecretID, arg.WriteRequest.Token, "token should not be stripped")
 }

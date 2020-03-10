@@ -119,6 +119,7 @@ type ACLIdentity interface {
 	EmbeddedPolicy() *ACLPolicy
 	ServiceIdentityList() []*ACLServiceIdentity
 	IsExpired(asOf time.Time) bool
+	IsLocal() bool
 	EnterpriseMetadata() *EnterpriseMeta
 }
 
@@ -367,6 +368,10 @@ func (t *ACLToken) IsExpired(asOf time.Time) bool {
 		return false
 	}
 	return t.ExpirationTime.Before(asOf)
+}
+
+func (t *ACLToken) IsLocal() bool {
+	return t.Local
 }
 
 func (t *ACLToken) HasExpirationTime() bool {
