@@ -82,8 +82,8 @@ fi
 # the labels from the PR
 labels=$(echo "$resp" | jq --raw-output '.items[].labels[] | .name')
 ret="$?"
+pr_url=$(echo "$resp" | jq --raw-output '.items[].pull_request.html_url')
 if [[ "$ret" -ne 0 ]]; then
-    pr_url=$(echo "$resp" | jq --raw-output '.items[].pull_request.html_url')
     status "jq exited with $ret when trying to find label names. Are there labels applied to the PR ($pr_url)?"
     # This can be a valid error but usually this means we do not have any labels so it doesn't signal
     # cherry-picking is possible. Exit 0 for now unless we run into cases where these failures are important.
