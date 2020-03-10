@@ -10,6 +10,7 @@ IMPROVEMENTS:
 
 BUGFIXES:
 
+* server: strip local ACL tokens from RPCs during forwarding if crossing datacenters [[GH-7419](https://github.com/hashicorp/consul/issues/7419)]
 * sessions: Fixed backwards incompatibility with 1.6.x and earlier [[GH-7395](https://github.com/hashicorp/consul/issues/7395)][[GH-7398](https://github.com/hashicorp/consul/pull/7398)]
 
 ## 1.7.1 (February 20, 2020)
