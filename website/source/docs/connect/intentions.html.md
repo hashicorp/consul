@@ -117,7 +117,7 @@ valid non-wildcard intentions to match.
 The numbers in the table above are not stable. Their ordering will remain
 fixed but the actual number values may change in the future.
 
--> **Consul Enterprise** - Namespaces are an Enterprise feature. In Consul OSS all of the rows in
+-> **Consul Enterprise** - Namespaces are an Enterprise feature. In Consul OSS any of the rows in
 the table with a `*` for either the source or destination namespace are not possible.
 
 ## Intention Management Permissions
