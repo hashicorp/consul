@@ -118,7 +118,7 @@ The numbers in the table above are not stable. Their ordering will remain
 fixed but the actual number values may change in the future.
 
 -> **Consul Enterprise** - Namespaces are an Enterprise feature. In Consul OSS any of the rows in
-the table with a `*` for either the source or destination namespace are not possible.
+the table with a `*` for either the source namespace or destination namespace are not applicable.
 
 ## Intention Management Permissions
 
