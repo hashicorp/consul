@@ -91,12 +91,17 @@ specified value or is the wildcard value `*`.
 The full precedence table is shown below and is evaluated
 top to bottom, with larger numbers being evaluated first.
 
-| Source Name | Destination Name | Precedence |
-| ----------- | ---------------- | ---------- |
-| Exact       | Exact            | 9          |
-| `*`         | Exact            | 8          |
-| Exact       | `*`              | 6          |
-| `*`         | `*`              | 5          |
+| Source Namespace | Source Name | Destination Namespace | Destination Name | Precedence |
+| ---------------- | ----------- | --------------------- | ---------------- | ---------- |
+| Exact            | Exact       | Exact                 | Exact            | 9          |
+| Exact            | `*`         | Exact                 | Exact            | 8          |
+| `*`              | `*`         | Exact                 | Exact            | 7          |
+| Exact            | Exact       | Exact                 | `*`              | 6          |
+| Exact            | `*`         | Exact                 | `*`              | 5          |
+| `*`              | `*`         | Exact                 | `*`              | 4          |
+| Exact            | Exact       | `*`                   | `*`              | 3          |
+| Exact            | `*`         | `*`                   | `*`              | 2          |
+| `*`              | `*`         | `*`                   | `*`              | 1          |
 
 The precedence value can be read from the [API](/api/connect/intentions.html)
 after an intention is created.
@@ -111,9 +116,9 @@ valid non-wildcard intentions to match.
 
 The numbers in the table above are not stable. Their ordering will remain
 fixed but the actual number values may change in the future.
-The numbers are non-contiguous because there are
-some unused values in the middle in preparation for a future version of
-Consul supporting namespaces.
+
+-> **Consul Enterprise** - Namespaces are an Enterprise feature. In Consul OSS any of the rows in
+the table with a `*` for either the source namespace or destination namespace are not applicable.
 
 ## Intention Management Permissions
 
