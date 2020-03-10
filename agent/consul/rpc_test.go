@@ -740,11 +740,10 @@ func TestRPC_LocalTokenStrippedOnForward(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
-		// c.ACLDatacenter = "dc1" // TODO
 		c.ACLsEnabled = true
 		c.ACLDefaultPolicy = "deny"
 		c.ACLMasterToken = "root"
-		// c.RPCHoldTimeout = 1 * time.Millisecond
+		c.ACLEnforceVersion8 = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -755,14 +754,13 @@ func TestRPC_LocalTokenStrippedOnForward(t *testing.T) {
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
-		// c.ACLDatacenter = "dc1" // TODO
 		c.ACLsEnabled = true
 		c.ACLDefaultPolicy = "deny"
 		c.ACLTokenReplication = true
+		c.ACLEnforceVersion8 = true
 		c.ACLReplicationRate = 100
 		c.ACLReplicationBurst = 100
 		c.ACLReplicationApplyLimit = 1000000
-		// c.RPCHoldTimeout = 1 * time.Millisecond
 	})
 	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
