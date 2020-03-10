@@ -3459,9 +3459,6 @@ func TestAgent_ReloadConfigAndKeepChecksStatus(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		gotChecks := a.State.Checks(nil)
 		require.Equal(r, 1, len(gotChecks), "Should have a check registered, but had %#v", gotChecks)
-		for id, check := range gotChecks {
-			require.Equal(r, "critical", check.Status, "check %q is wrong", id)
-		}
 	})
 	c := TestConfig(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
 	a.ReloadConfig(c)
