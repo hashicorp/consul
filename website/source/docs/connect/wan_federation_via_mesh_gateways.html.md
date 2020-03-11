@@ -116,7 +116,7 @@ these SAN fields:
 [TODO(wanfed):link]
 
 This can be achieved using any number of tools, including `consul tls cert
-create` with the `-node-name` flag.
+create` with the `-node` flag.
 
 ### Mesh Gateways
 
