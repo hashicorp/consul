@@ -537,6 +537,9 @@ func (a *Agent) Start() error {
 	a.httpConnLimiter.SetConfig(connlimit.Config{
 		MaxConnsPerClientIP: a.config.HTTPMaxConnsPerClient,
 	})
+	if err := a.CheckLimitsFromMaxConnsPerClient(a.config.HTTPMaxConnsPerClient); err != nil {
+		return err
+	}
 
 	// Create listeners and unstarted servers; see comment on listenHTTP why
 	// we are doing this.
@@ -4015,6 +4018,21 @@ func (a *Agent) loadLimits(conf *config.RuntimeConfig) {
 	a.config.RPCMaxBurst = conf.RPCMaxBurst
 }
 
+// CheckLimitsFromMaxConnsPerClient check that value provided might be OK
+// return an error if values are not compatible
+func (a *Agent) CheckLimitsFromMaxConnsPerClient(maxConnsPerClient int) error {
+	maxFds, err := Getrlimit()
+	if err == nil && maxConnsPerClient > 0 {
+		// We need the list port + a few at the minimum
+		// On Mac OS, 20 FDs are open by Consul without doing anything
+		requiredFds := uint64(maxConnsPerClient + 20)
+		if maxFds < requiredFds {
+			return fmt.Errorf("system allows a max of %d file descriptors, but limits.http_max_conns_per_client: %d needs at least %d", maxFds, maxConnsPerClient, requiredFds)
+		}
+	}
+	return err
+}
+
 func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	// Bulk update the services and checks
 	a.PauseSync()
@@ -4067,6 +4085,10 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	a.httpConnLimiter.SetConfig(connlimit.Config{
 		MaxConnsPerClientIP: newCfg.HTTPMaxConnsPerClient,
 	})
+
+	if err := a.CheckLimitsFromMaxConnsPerClient(newCfg.HTTPMaxConnsPerClient); err != nil {
+		return err
+	}
 
 	for _, s := range a.dnsServers {
 		if err := s.ReloadConfig(newCfg); err != nil {
