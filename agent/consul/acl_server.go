@@ -226,7 +226,7 @@ func (s *Server) ResolveTokenToIdentityAndAuthorizer(token string) (structs.ACLI
 // ResolveTokenIdentityAndDefaultMeta retrieves an identity and authorizer for the caller,
 // and populates the EnterpriseMeta based on the AuthorizerContext.
 func (s *Server) ResolveTokenIdentityAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (structs.ACLIdentity, acl.Authorizer, error) {
-	identity, authz, err := s.acls.ResolveTokenToIdentityAndAuthorizer(token)
+	identity, authz, err := s.ResolveTokenToIdentityAndAuthorizer(token)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -252,6 +252,9 @@ func (s *Server) ResolveTokenAndDefaultMeta(token string, entMeta *structs.Enter
 }
 
 func (s *Server) filterACL(token string, subj interface{}) error {
+	if id, authz := s.ResolveEntTokenToIdentityAndAuthorizer(token); id != nil && authz != nil {
+		return s.acls.filterACLWithAuthorizer(authz, subj)
+	}
 	return s.acls.filterACL(token, subj)
 }
 
