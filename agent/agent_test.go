@@ -3418,6 +3418,48 @@ func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 	require.Len(t, tlsConf.ClientCAs.Subjects(), 2)
 }
 
+func TestAgent_GetRLimits(t *testing.T) {
+	t.Parallel()
+	hcl := `
+		limits{
+			# We put a very high value to be sure to fail
+			# This value is more than max on Windows as well
+			http_max_conns_per_client = 16777217
+		}`
+	a := TestAgent{Name: t.Name(), HCL: hcl}
+	a.LogOutput = testutil.TestWriter(t)
+	if err := a.Start(); err == nil {
+		defer a.Shutdown()
+		assert.Fail(t, "a.Start() should have failed as limits.http_max_conns_per_client is too big")
+	}
+}
+
+func TestAgent_GetRLimitsReload(t *testing.T) {
+	t.Parallel()
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	defer os.RemoveAll(dataDir)
+	hcl := `
+	    data_dir = "` + dataDir + `"
+		limits{
+			# Should be fine
+			http_max_conns_per_client = 22
+		}`
+	a := NewTestAgent(t, t.Name(), hcl)
+	defer a.Shutdown()
+
+	hclFailing := `
+		data_dir = "` + dataDir + `"
+		limits{
+			# We put a very high value to be sure to fail
+			# This value is more than max on Windows as well
+			http_max_conns_per_client = 16777217
+		}`
+	c := TestConfig(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hclFailing})
+	if err := a.ReloadConfig(c); err == nil {
+		assert.Fail(t, "a.ReloadConfig() should have failed as limits.http_max_conns_per_client is too big")
+	}
+}
+
 func TestAgent_ReloadConfigAndKeepChecksStatus(t *testing.T) {
 	t.Parallel()
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
