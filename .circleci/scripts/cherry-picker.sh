@@ -64,7 +64,7 @@ function cherry_pick_with_slack_notification {
 }
 
 # search for the PR labels applicable to the specified commit
-resp=$(curl -f -s "https://api.github.com/search/issues?q=repo:$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME+sha:$CIRCLE_SHA1")
+resp=$(curl -f -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/search/issues?q=repo:$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME+sha:$CIRCLE_SHA1")
 ret="$?"
 if [[ "$ret" -ne 0 ]]; then
     status "The GitHub API returned $ret which means it was probably rate limited."
