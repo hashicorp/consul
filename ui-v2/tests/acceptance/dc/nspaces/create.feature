@@ -1,6 +1,7 @@
 @setupApplicationTest
+@onlyNamespaceable
 Feature: dc / acls / nspaces / create
-  Scenario: 
+  Scenario:
     Given 1 datacenter model with the value "datacenter"
     When I visit the nspace page for yaml
     ---

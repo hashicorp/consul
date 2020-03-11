@@ -85,7 +85,7 @@ func (c *CompiledDiscoveryChain) IsDefault() bool {
 
 	target := c.Targets[node.Resolver.Target]
 
-	return target.Service == c.ServiceName
+	return target.Service == c.ServiceName && target.Namespace == c.Namespace
 }
 
 const (

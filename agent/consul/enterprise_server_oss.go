@@ -35,6 +35,10 @@ func (s *Server) handleEnterpriseRPCConn(rtype pool.RPCType, conn net.Conn, isTL
 	return false
 }
 
+func (s *Server) handleEnterpriseNativeTLSConn(alpnProto string, conn net.Conn) bool {
+	return false
+}
+
 func (s *Server) handleEnterpriseLeave() {
 	return
 }

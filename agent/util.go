@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"bytes"
 	"crypto/md5"
 	"fmt"
 	"os"
@@ -13,27 +12,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-msgpack/codec"
 )
-
-// msgpackHandle is a shared handle for encoding/decoding of
-// messages
-var msgpackHandle = &codec.MsgpackHandle{
-	RawToString: true,
-	WriteExt:    true,
-}
-
-// decodeMsgPack is used to decode a MsgPack encoded object
-func decodeMsgPack(buf []byte, out interface{}) error {
-	return codec.NewDecoder(bytes.NewReader(buf), msgpackHandle).Decode(out)
-}
-
-// encodeMsgPack is used to encode an object with msgpack
-func encodeMsgPack(msg interface{}) ([]byte, error) {
-	var buf bytes.Buffer
-	err := codec.NewEncoder(&buf, msgpackHandle).Encode(msg)
-	return buf.Bytes(), err
-}
 
 // stringHash returns a simple md5sum for a string.
 func stringHash(s string) string {

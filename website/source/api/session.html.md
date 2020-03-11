@@ -209,7 +209,7 @@ $ curl \
 ]
 ```
 
-If the session does not exist, `null` is returned instead of a JSON list.
+If the session does not exist, an empty JSON list `[]` is returned.
 
 ## List Sessions for Node
 

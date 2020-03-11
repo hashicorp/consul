@@ -66,13 +66,13 @@ func (c *cmd) Run(args []string) int {
 
 	// Format the tabular data
 	data := []string{
-		fmt.Sprintf("Source:|%s", ixn.SourceString()),
-		fmt.Sprintf("Destination:|%s", ixn.DestinationString()),
-		fmt.Sprintf("Action:|%s", ixn.Action),
-		fmt.Sprintf("ID:|%s", ixn.ID),
+		fmt.Sprintf("Source:\x1f%s", ixn.SourceString()),
+		fmt.Sprintf("Destination:\x1f%s", ixn.DestinationString()),
+		fmt.Sprintf("Action:\x1f%s", ixn.Action),
+		fmt.Sprintf("ID:\x1f%s", ixn.ID),
 	}
 	if v := ixn.Description; v != "" {
-		data = append(data, fmt.Sprintf("Description:|%s", v))
+		data = append(data, fmt.Sprintf("Description:\x1f%s", v))
 	}
 	if len(ixn.Meta) > 0 {
 		var keys []string
@@ -81,14 +81,14 @@ func (c *cmd) Run(args []string) int {
 		}
 		sort.Strings(keys)
 		for _, k := range keys {
-			data = append(data, fmt.Sprintf("Meta[%s]:|%s", k, ixn.Meta[k]))
+			data = append(data, fmt.Sprintf("Meta[%s]:\x1f%s", k, ixn.Meta[k]))
 		}
 	}
 	data = append(data,
-		fmt.Sprintf("Created At:|%s", ixn.CreatedAt.Local().Format(time.RFC850)),
+		fmt.Sprintf("Created At:\x1f%s", ixn.CreatedAt.Local().Format(time.RFC850)),
 	)
 
-	c.UI.Output(columnize.SimpleFormat(data))
+	c.UI.Output(columnize.Format(data, &columnize.Config{Delim: string([]byte{0x1f})}))
 	return 0
 }
 

@@ -207,7 +207,7 @@ export default Service.extend({
     return Promise.resolve(e);
   },
   acquire: function(options, xhr) {
-    const request = new Request(options.type, options.url, { body: options.data || {} }, xhr);
+    const request = new Request(options.method, options.url, { body: options.data || {} }, xhr);
     return this.connections.acquire(request, request.getId());
   },
   complete: function() {

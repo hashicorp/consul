@@ -281,7 +281,7 @@
               "route": {
                 "cluster": "retry-both.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                 "retryPolicy": {
-                  "retryOn": ",retriable-status-codes",
+                  "retryOn": "connect-failure,retriable-status-codes",
                   "retriableStatusCodes": [
                     401,
                     409,

@@ -3,9 +3,16 @@ import Adapter from './application';
 import { SLUG_KEY } from 'consul-ui/models/role';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 import { NSPACE_KEY } from 'consul-ui/models/nspace';
+
+import { env } from 'consul-ui/env';
 import nonEmptySet from 'consul-ui/utils/non-empty-set';
 
-const Namespace = nonEmptySet('Namespace');
+let Namespace;
+if (env('CONSUL_NSPACES_ENABLED')) {
+  Namespace = nonEmptySet('Namespace');
+} else {
+  Namespace = () => ({});
+}
 // TODO: Update to use this.formatDatacenter()
 export default Adapter.extend({
   requestForQuery: function(request, { dc, ns, index, id }) {
@@ -57,9 +64,9 @@ export default Adapter.extend({
       ${{
         Name: serialized.Name,
         Description: serialized.Description,
-        Namespace: serialized.Namespace,
         Policies: serialized.Policies,
         ServiceIdentities: serialized.ServiceIdentities,
+        ...Namespace(serialized.Namespace),
       }}
     `;
   },

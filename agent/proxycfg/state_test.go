@@ -147,7 +147,7 @@ func (cn *testCacheNotifier) getNotifierRequest(t testing.TB, correlationId stri
 	cn.lock.RLock()
 	req, ok := cn.notifiers[correlationId]
 	cn.lock.RUnlock()
-	require.True(t, ok)
+	require.True(t, ok, "Correlation ID: %s is missing", correlationId)
 	return req
 }
 
@@ -384,7 +384,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				"discovery-chain:api": genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 					Name:                 "api",
 					EvaluateInDatacenter: "dc1",
-					EvaluateInNamespace:  "",
+					EvaluateInNamespace:  "default",
 					Datacenter:           "dc1",
 					OverrideMeshGateway: structs.MeshGatewayConfig{
 						Mode: meshGatewayProxyConfigValue,
@@ -393,7 +393,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				"discovery-chain:api-failover-remote?dc=dc2": genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 					Name:                 "api-failover-remote",
 					EvaluateInDatacenter: "dc2",
-					EvaluateInNamespace:  "",
+					EvaluateInNamespace:  "default",
 					Datacenter:           "dc1",
 					OverrideMeshGateway: structs.MeshGatewayConfig{
 						Mode: structs.MeshGatewayModeRemote,
@@ -402,7 +402,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				"discovery-chain:api-failover-local?dc=dc2": genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 					Name:                 "api-failover-local",
 					EvaluateInDatacenter: "dc2",
-					EvaluateInNamespace:  "",
+					EvaluateInNamespace:  "default",
 					Datacenter:           "dc1",
 					OverrideMeshGateway: structs.MeshGatewayConfig{
 						Mode: structs.MeshGatewayModeLocal,
@@ -411,7 +411,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				"discovery-chain:api-failover-direct?dc=dc2": genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 					Name:                 "api-failover-direct",
 					EvaluateInDatacenter: "dc2",
-					EvaluateInNamespace:  "",
+					EvaluateInNamespace:  "default",
 					Datacenter:           "dc1",
 					OverrideMeshGateway: structs.MeshGatewayConfig{
 						Mode: structs.MeshGatewayModeNone,
@@ -420,7 +420,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				"discovery-chain:api-dc2": genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 					Name:                 "api-dc2",
 					EvaluateInDatacenter: "dc1",
-					EvaluateInNamespace:  "",
+					EvaluateInNamespace:  "default",
 					Datacenter:           "dc1",
 					OverrideMeshGateway: structs.MeshGatewayConfig{
 						Mode: meshGatewayProxyConfigValue,

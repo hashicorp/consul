@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -23,7 +24,7 @@ const (
 func initKeyring(path, key string) error {
 	var keys []string
 
-	if keyBytes, err := base64.StdEncoding.DecodeString(key); err != nil {
+	if keyBytes, err := decodeStringKey(key); err != nil {
 		return fmt.Errorf("Invalid key: %s", err)
 	} else if err := memberlist.ValidateKey(keyBytes); err != nil {
 		return fmt.Errorf("Invalid key: %s", err)
@@ -87,7 +88,7 @@ func loadKeyringFile(c *serf.Config) error {
 func loadKeyring(c *serf.Config, keys []string) error {
 	keysDecoded := make([][]byte, len(keys))
 	for i, key := range keys {
-		keyBytes, err := base64.StdEncoding.DecodeString(key)
+		keyBytes, err := decodeStringKey(key)
 		if err != nil {
 			return err
 		}
@@ -105,6 +106,10 @@ func loadKeyring(c *serf.Config, keys []string) error {
 
 	c.MemberlistConfig.Keyring = keyring
 	return nil
+}
+
+func decodeStringKey(key string) ([]byte, error) {
+	return base64.StdEncoding.DecodeString(key)
 }
 
 // keyringProcess is used to abstract away the semantic similarities in
@@ -171,4 +176,19 @@ func (a *Agent) RemoveKey(key, token string, relayFactor uint8) (*structs.Keyrin
 func parseKeyringRequest(req *structs.KeyringRequest, token string, relayFactor uint8) {
 	req.Token = token
 	req.RelayFactor = relayFactor
+}
+
+// keyringIsMissingKey checks whether a key is part of a keyring. Returns true
+// if it is not included.
+func keyringIsMissingKey(keyring *memberlist.Keyring, key string) bool {
+	k1, err := decodeStringKey(key)
+	if err != nil {
+		return true
+	}
+	for _, k2 := range keyring.GetKeys() {
+		if bytes.Equal(k1, k2) {
+			return false
+		}
+	}
+	return true
 }

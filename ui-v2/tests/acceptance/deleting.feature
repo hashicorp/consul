@@ -26,7 +26,6 @@ Feature: deleting: Deleting items with confirmations, success and error notifica
     | kv        | kvs        | DELETE | /v1/kv/key-name?dc=datacenter&ns=@!namespace                                    | ["key-name"]                                                         |
     | intention | intentions | DELETE | /v1/connect/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=datacenter       | {"SourceName": "name", "ID": "ee52203d-989f-4f7a-ab5a-2bef004164ca"} |
     | token     | tokens     | DELETE | /v1/acl/token/001fda31-194e-4ff1-a5ec-589abf2cafd0?dc=datacenter&ns=@!namespace | {"AccessorID": "001fda31-194e-4ff1-a5ec-589abf2cafd0"}               |
-    | nspace    | nspaces    | DELETE | /v1/namespace/a-namespace                                                       | {"Name": "a-namespace"}                                              |
     # | acl      | acls       | PUT    | /v1/acl/destroy/something?dc=datacenter                                        | {"Name": "something", "ID": "something"}                             |
     --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   Scenario: Deleting a [Model] from the [Model] detail page
@@ -56,7 +55,6 @@ Feature: deleting: Deleting items with confirmations, success and error notifica
     | kv        | DELETE | /v1/kv/key-name?dc=datacenter&ns=@!namespace                                     | kv: key-name                                    |
     | intention | DELETE | /v1/connect/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=datacenter        | intention: ee52203d-989f-4f7a-ab5a-2bef004164ca |
     | token     | DELETE | /v1/acl/token/001fda31-194e-4ff1-a5ec-589abf2cafd0?dc=datacenter&ns=@!namespace  | token: 001fda31-194e-4ff1-a5ec-589abf2cafd0     |
-    | nspace    | DELETE | /v1/namespace/a-namespace                                                        | namespace: a-namespace                          |
     # | acl       | PUT    | /v1/acl/destroy/something?dc=datacenter                                      | acl: something                                  |
     -----------------------------------------------------------------------------------------------------------------------------------------------------------
 @ignore

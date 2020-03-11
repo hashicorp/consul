@@ -96,6 +96,10 @@ type BootstrapTplArgs struct {
 	// Namespace is the Consul Enterprise Namespace of the proxy service instance as
 	// registered with the Consul agent.
 	Namespace string
+
+	// EnvoyVersion is the envoy version, which is necessary to generate the
+	// correct configuration.
+	EnvoyVersion string
 }
 
 const bootstrapTemplate = `{
@@ -112,7 +116,8 @@ const bootstrapTemplate = `{
     "cluster": "{{ .ProxyCluster }}",
     "id": "{{ .ProxyID }}",
     "metadata": {
-      "namespace": "{{if ne .Namespace ""}}{{ .Namespace }}{{else}}default{{end}}"
+      "namespace": "{{if ne .Namespace ""}}{{ .Namespace }}{{else}}default{{end}}",
+      "envoy_version": "{{ .EnvoyVersion }}"
     }
   },
   "static_resources": {
@@ -190,6 +195,20 @@ const bootstrapTemplate = `{
         }
       }
     }
+  {{- if ne .EnvoyVersion "1.10.0"}}
+  },
+  "layered_runtime":{
+    "layers": [
+      {
+        "name": "static_layer",
+        "static_layer": {
+          "envoy.deprecated_features:envoy.api.v2.Cluster.tls_context": true,
+          "envoy.deprecated_features:envoy.config.trace.v2.ZipkinConfig.HTTP_JSON_V1": true,
+          "envoy.deprecated_features:envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager.Tracing.operation_name": true
+        }
+      }
+    ]
+  {{- end }}
   }
 }
 `

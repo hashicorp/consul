@@ -129,7 +129,7 @@ func makeUpstreamRouteForDiscoveryChain(
 					}
 					if len(destination.RetryOnStatusCodes) > 0 {
 						if retryPolicy.RetryOn != "" {
-							retryPolicy.RetryOn = ",retriable-status-codes"
+							retryPolicy.RetryOn = retryPolicy.RetryOn + ",retriable-status-codes"
 						} else {
 							retryPolicy.RetryOn = "retriable-status-codes"
 						}

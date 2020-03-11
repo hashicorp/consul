@@ -53,3 +53,18 @@ Feature: dc / acls / policies / update: ACL Policy Update
     Then the url should be /datacenter/acls/policies/policy-id
     Then "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "error" class
+
+  @notNamespaceable
+  Scenario: Updating a simple ACL policy when Namespaces are disabled does not send Namespace
+    Then I fill in the policy form with yaml
+    ---
+      Description: Description
+    ---
+    And I submit
+    Then a PUT request was made to "/v1/acl/policy/policy-id?dc=datacenter" without properties from yaml
+    ---
+      - Namespace
+    ---
+    Then the url should be /datacenter/acls/policies
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "success" class

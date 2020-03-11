@@ -139,13 +139,14 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 	}
 
 	// Fetch the ACL token, if any, and enforce the node policy if enabled.
-	rule, err := c.srv.ResolveToken(args.Token)
+	authz, err := c.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if rule != nil && c.srv.config.ACLEnforceVersion8 {
-		// TODO (namespaces) use actual ent authz context
-		if rule.NodeWrite(args.Node, nil) != acl.Allow {
+	if authz != nil && c.srv.config.ACLEnforceVersion8 {
+		var authzContext acl.AuthorizerContext
+		structs.DefaultEnterpriseMeta().FillAuthzContext(&authzContext)
+		if authz.NodeWrite(args.Node, &authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}
@@ -211,13 +212,15 @@ func (c *Coordinate) Node(args *structs.NodeSpecificRequest, reply *structs.Inde
 	}
 
 	// Fetch the ACL token, if any, and enforce the node policy if enabled.
-	rule, err := c.srv.ResolveToken(args.Token)
+
+	authz, err := c.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if rule != nil && c.srv.config.ACLEnforceVersion8 {
-		// TODO (namespaces) use actual ent authz context
-		if rule.NodeRead(args.Node, nil) != acl.Allow {
+	if authz != nil && c.srv.config.ACLEnforceVersion8 {
+		var authzContext acl.AuthorizerContext
+		structs.WildcardEnterpriseMeta().FillAuthzContext(&authzContext)
+		if authz.NodeRead(args.Node, &authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}

@@ -18,6 +18,12 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
+func mustCopyProxyConfig(t *testing.T, ns *structs.NodeService) structs.ConnectProxyConfig {
+	cfg, err := copyProxyConfig(ns)
+	require.NoError(t, err)
+	return cfg
+}
+
 // assertLastReqArgs verifies that each request type had the correct source
 // parameters (e.g. Datacenter name) and token.
 func assertLastReqArgs(t *testing.T, types *TestCacheTypes, token string, source *structs.QuerySource) {
@@ -99,6 +105,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 		ID:      "web-sidecar-proxy",
 		Service: "web-sidecar-proxy",
 		Port:    9999,
+		Meta:    map[string]string{},
 		Proxy: structs.ConnectProxyConfig{
 			DestinationServiceID:   "web",
 			DestinationServiceName: "web",
@@ -137,7 +144,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 	dbChainCacheKey := testGenCacheKey(&structs.DiscoveryChainRequest{
 		Name:                 "db",
 		EvaluateInDatacenter: "dc1",
-		EvaluateInNamespace:  "",
+		EvaluateInNamespace:  "default",
 		// This is because structs.TestUpstreams uses an opaque config
 		// to override connect timeouts.
 		OverrideConnectTimeout: 1 * time.Second,
@@ -190,7 +197,8 @@ func TestManager_BasicLifecycle(t *testing.T) {
 				ProxyID:         webProxy.CompoundServiceID(),
 				Address:         webProxy.Address,
 				Port:            webProxy.Port,
-				Proxy:           webProxy.Proxy,
+				Proxy:           mustCopyProxyConfig(t, webProxy),
+				ServiceMeta:     webProxy.Meta,
 				TaggedAddresses: make(map[string]structs.ServiceAddress),
 				Roots:           roots,
 				ConnectProxy: configSnapshotConnectProxy{
@@ -234,7 +242,8 @@ func TestManager_BasicLifecycle(t *testing.T) {
 				ProxyID:         webProxy.CompoundServiceID(),
 				Address:         webProxy.Address,
 				Port:            webProxy.Port,
-				Proxy:           webProxy.Proxy,
+				Proxy:           mustCopyProxyConfig(t, webProxy),
+				ServiceMeta:     webProxy.Meta,
 				TaggedAddresses: make(map[string]structs.ServiceAddress),
 				Roots:           roots,
 				ConnectProxy: configSnapshotConnectProxy{
@@ -322,7 +331,7 @@ func testManager_BasicLifecycle(
 	state.TriggerSyncChanges = func() {}
 
 	// Create manager
-	m, err := NewManager(ManagerConfig{c, state, source, logger})
+	m, err := NewManager(ManagerConfig{c, state, source, logger, nil})
 	require.NoError(err)
 
 	// And run it

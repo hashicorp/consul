@@ -109,6 +109,21 @@ func TestRecursorAddr(t *testing.T) {
 	if addr != "8.8.8.8:53" {
 		t.Fatalf("bad: %v", addr)
 	}
+	addr, err = recursorAddr("2001:4860:4860::8888")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if addr != "[2001:4860:4860::8888]:53" {
+		t.Fatalf("bad: %v", addr)
+	}
+	addr, err = recursorAddr("1.2.3.4::53")
+	if err == nil || !strings.Contains(err.Error(), "too many colons in address") {
+		t.Fatalf("err: %v", err)
+	}
+	addr, err = recursorAddr("2001:4860:4860::8888:::53")
+	if err == nil || !strings.Contains(err.Error(), "too many colons in address") {
+		t.Fatalf("err: %v", err)
+	}
 }
 
 func TestEncodeKVasRFC1464(t *testing.T) {
@@ -171,6 +186,21 @@ func TestDNS_Over_TCP(t *testing.T) {
 	if len(in.Answer) != 1 {
 		t.Fatalf("empty lookup: %#v", in)
 	}
+}
+
+func TestDNS_EmptyAltDomain(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	m := new(dns.Msg)
+	m.SetQuestion("consul.service.", dns.TypeA)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	require.NoError(t, err)
+	require.Empty(t, in.Answer)
 }
 
 func TestDNS_NodeLookup(t *testing.T) {

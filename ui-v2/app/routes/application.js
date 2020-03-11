@@ -51,6 +51,8 @@ export default Route.extend(WithBlockingActions, {
         error = e.errors[0];
         error.message = error.title || error.detail || 'Error';
       }
+      // Try and get the currently attempted dc, whereever that may be
+      const model = this.modelFor('dc') || this.modelFor('nspace.dc');
       // TODO: Unfortunately ember will not maintain the correct URL
       // for you i.e. when this happens the URL in your browser location bar
       // will be the URL where you clicked on the link to come here
@@ -62,7 +64,6 @@ export default Route.extend(WithBlockingActions, {
       // 403 page
       // To note: Consul only gives you back a 403 if a non-existent token has been sent in the header
       // if a token has not been sent at all, it just gives you a 200 with an empty dataset
-      const model = this.modelFor('dc');
       if (error.status === '403') {
         return this.feedback.execute(() => {
           return this.settings.delete('token').then(() => {
@@ -85,7 +86,8 @@ export default Route.extend(WithBlockingActions, {
             : { Name: 'Error' },
         dcs: model && model.dcs ? model.dcs : [],
       })
-        .then(model => {
+        .then(model => Promise.all([model, this.repo.clearActive()]))
+        .then(([model]) => {
           removeLoading($root);
           model.nspaces = [model.nspace];
           // we can't use setupController as we received an error

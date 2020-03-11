@@ -238,6 +238,11 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			setup:  nil,
 		},
 		{
+			name:   "mesh-gateway-using-federation-states",
+			create: proxycfg.TestConfigSnapshotMeshGatewayUsingFederationStates,
+			setup:  nil,
+		},
+		{
 			name:   "mesh-gateway-no-services",
 			create: proxycfg.TestConfigSnapshotMeshGatewayNoServices,
 		},
@@ -327,6 +332,42 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 					structs.NewServiceID("foo", nil): &structs.ServiceResolverConfigEntry{
 						Kind: structs.ServiceResolver,
 						Name: "foo",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"v1": structs.ServiceResolverSubset{
+								Filter: "Service.Meta.version == 1",
+							},
+							"v2": structs.ServiceResolverSubset{
+								Filter:      "Service.Meta.version == 2",
+								OnlyPassing: true,
+							},
+						},
+					},
+				}
+			},
+		},
+		{
+			name:   "mesh-gateway-default-service-subset",
+			create: proxycfg.TestConfigSnapshotMeshGateway,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.MeshGateway.ServiceResolvers = map[structs.ServiceID]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceID("bar", nil): &structs.ServiceResolverConfigEntry{
+						Kind:          structs.ServiceResolver,
+						Name:          "bar",
+						DefaultSubset: "v2",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"v1": structs.ServiceResolverSubset{
+								Filter: "Service.Meta.version == 1",
+							},
+							"v2": structs.ServiceResolverSubset{
+								Filter:      "Service.Meta.version == 2",
+								OnlyPassing: true,
+							},
+						},
+					},
+					structs.NewServiceID("foo", nil): &structs.ServiceResolverConfigEntry{
+						Kind:          structs.ServiceResolver,
+						Name:          "foo",
+						DefaultSubset: "v2",
 						Subsets: map[string]structs.ServiceResolverSubset{
 							"v1": structs.ServiceResolverSubset{
 								Filter: "Service.Meta.version == 1",

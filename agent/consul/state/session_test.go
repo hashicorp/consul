@@ -131,7 +131,6 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 		t.Fatalf("bad")
 	}
 
-	// TODO (namespaces) (freddy) This test fails if the Txn is started after registering check2, not sure why
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 

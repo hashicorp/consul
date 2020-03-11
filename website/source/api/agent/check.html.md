@@ -176,6 +176,8 @@ The table below shows this endpoint's support for
 - `Method` `(string: "")` - Specifies a different HTTP method to be used
   for an `HTTP` check. When no value is specified, `GET` is used.
 
+- `Body` `(string: "")` - Specifies a body that should be sent with `HTTP` checks.
+
 - `Header` `(map[string][]string: {})` - Specifies a set of headers that should
   be set for `HTTP` checks. Each header can have multiple values.
 
@@ -221,7 +223,8 @@ The table below shows this endpoint's support for
   "Shell": "/bin/bash",
   "HTTP": "https://example.com",
   "Method": "POST",
-  "Header": {"x-foo":["bar", "baz"]},
+  "Header": {"Content-Type": "application/json"},
+  "Body": "{\"check\":\"mem\"}",
   "TCP": "example.com:22",
   "Interval": "10s",
   "Timeout": "5s",

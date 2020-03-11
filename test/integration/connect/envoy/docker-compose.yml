@@ -175,7 +175,7 @@ services:
   s1-sidecar-proxy:
     depends_on:
       - consul-primary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
+    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
     command:
      - "envoy"
      - "-c"
@@ -196,7 +196,7 @@ services:
   s2-sidecar-proxy:
     depends_on:
       - consul-primary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
+    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
     command:
      - "envoy"
      - "-c"
@@ -217,7 +217,7 @@ services:
   s2-v1-sidecar-proxy:
     depends_on:
       - consul-primary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
+    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
     command:
      - "envoy"
      - "-c"
@@ -238,7 +238,7 @@ services:
   s2-v2-sidecar-proxy:
     depends_on:
       - consul-primary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
+    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
     command:
      - "envoy"
      - "-c"
@@ -259,7 +259,7 @@ services:
   s3-sidecar-proxy:
     depends_on:
       - consul-primary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
+    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
     command:
      - "envoy"
      - "-c"
@@ -280,7 +280,7 @@ services:
   s3-v1-sidecar-proxy:
     depends_on:
       - consul-primary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
+    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
     command:
      - "envoy"
      - "-c"
@@ -301,7 +301,7 @@ services:
   s3-v2-sidecar-proxy:
     depends_on:
       - consul-primary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
+    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
     command:
      - "envoy"
      - "-c"
@@ -322,7 +322,7 @@ services:
   s3-alt-sidecar-proxy:
     depends_on:
       - consul-primary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
+    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
     command:
      - "envoy"
      - "-c"
@@ -363,14 +363,16 @@ services:
       context: .
       dockerfile: Dockerfile-consul-envoy
       args:
-        ENVOY_VERSION: ${ENVOY_VERSION:-1.8.0}
-    image: consul-dev-envoy:${ENVOY_VERSION:-1.8.0}
+        ENVOY_VERSION: ${ENVOY_VERSION}
+    image: consul-dev-envoy:${ENVOY_VERSION}
     command:
       - "consul"
       - "connect"
       - "envoy"
       - "-sidecar-for"
       - "s1"
+      - "-envoy-version"
+      - ${ENVOY_VERSION}
       - "--"
       - "-l"
       - "debug"
@@ -480,7 +482,7 @@ services:
   s1-sidecar-proxy-secondary:
     depends_on:
       - consul-secondary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
+    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
     command:
      - "envoy"
      - "-c"
@@ -501,7 +503,7 @@ services:
   s2-sidecar-proxy-secondary:
     depends_on:
       - consul-secondary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
+    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
     command:
      - "envoy"
      - "-c"
@@ -522,7 +524,7 @@ services:
   gateway-primary:
     depends_on:
       - consul-primary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
+    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
     command:
      - "envoy"
      - "-c"
@@ -543,7 +545,7 @@ services:
   gateway-secondary:
     depends_on:
       - consul-secondary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
+    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
     command:
      - "envoy"
      - "-c"

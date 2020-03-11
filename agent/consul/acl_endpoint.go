@@ -1249,11 +1249,25 @@ func (a *ACL) PolicyResolve(args *structs.ACLPolicyBatchGetRequest, reply *struc
 		return err
 	}
 
+	entIdentity, entPolicies, err := a.srv.acls.resolveEnterpriseIdentityAndPolicies(identity)
+	if err != nil {
+		return err
+	}
+
 	idMap := make(map[string]*structs.ACLPolicy)
 	for _, policyID := range identity.PolicyIDs() {
 		idMap[policyID] = nil
 	}
+	if entIdentity != nil {
+		for _, policyID := range entIdentity.PolicyIDs() {
+			idMap[policyID] = nil
+		}
+	}
+
 	for _, policy := range policies {
+		idMap[policy.ID] = policy
+	}
+	for _, policy := range entPolicies {
 		idMap[policy.ID] = policy
 	}
 
@@ -1679,11 +1693,25 @@ func (a *ACL) RoleResolve(args *structs.ACLRoleBatchGetRequest, reply *structs.A
 		return err
 	}
 
+	entIdentity, entRoles, err := a.srv.acls.resolveEnterpriseIdentityAndRoles(identity)
+	if err != nil {
+		return err
+	}
+
 	idMap := make(map[string]*structs.ACLRole)
 	for _, roleID := range identity.RoleIDs() {
 		idMap[roleID] = nil
 	}
+	if entIdentity != nil {
+		for _, roleID := range entIdentity.RoleIDs() {
+			idMap[roleID] = nil
+		}
+	}
+
 	for _, role := range roles {
+		idMap[role.ID] = role
+	}
+	for _, role := range entRoles {
 		idMap[role.ID] = role
 	}
 

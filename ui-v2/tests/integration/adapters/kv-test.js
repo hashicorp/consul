@@ -1,5 +1,9 @@
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
+import { env } from '../../../env';
+const shouldHaveNspace = function(nspace) {
+  return typeof nspace !== 'undefined' && env('CONSUL_NSPACES_ENABLED');
+};
 module('Integration | Adapter | kv', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
@@ -18,7 +22,7 @@ module('Integration | Adapter | kv', function(hooks) {
       actual = actual.split('\n');
       assert.equal(actual.shift().trim(), expected);
       actual = actual.join('\n').trim();
-      assert.equal(actual, `${typeof nspace !== 'undefined' ? `ns=${nspace}` : ``}`);
+      assert.equal(actual, `${shouldHaveNspace(nspace) ? `ns=${nspace}` : ``}`);
     });
     test(`requestForQueryRecord returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:kv');
@@ -32,13 +36,13 @@ module('Integration | Adapter | kv', function(hooks) {
       actual = actual.split('\n');
       assert.equal(actual.shift().trim(), expected);
       actual = actual.join('\n').trim();
-      assert.equal(actual, `${typeof nspace !== 'undefined' ? `ns=${nspace}` : ``}`);
+      assert.equal(actual, `${shouldHaveNspace(nspace) ? `ns=${nspace}` : ``}`);
     });
     test(`requestForCreateRecord returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:kv');
       const client = this.owner.lookup('service:client/http');
       const expected = `PUT /v1/kv/${id}?dc=${dc}${
-        typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``
+        shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
       let actual = adapter
         .requestForCreateRecord(
@@ -58,8 +62,9 @@ module('Integration | Adapter | kv', function(hooks) {
     test(`requestForUpdateRecord returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:kv');
       const client = this.owner.lookup('service:client/http');
-      const expected = `PUT /v1/kv/${id}?dc=${dc}${
-        typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``
+      const flags = 12;
+      const expected = `PUT /v1/kv/${id}?dc=${dc}&flags=${flags}${
+        shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
       let actual = adapter
         .requestForUpdateRecord(
@@ -70,6 +75,7 @@ module('Integration | Adapter | kv', function(hooks) {
             Key: id,
             Value: '',
             Namespace: nspace,
+            Flags: flags,
           }
         )
         .split('\n')
@@ -80,7 +86,7 @@ module('Integration | Adapter | kv', function(hooks) {
       const adapter = this.owner.lookup('adapter:kv');
       const client = this.owner.lookup('service:client/http');
       const expected = `DELETE /v1/kv/${id}?dc=${dc}${
-        typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``
+        shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
       let actual = adapter
         .requestForDeleteRecord(
@@ -101,7 +107,7 @@ module('Integration | Adapter | kv', function(hooks) {
       const client = this.owner.lookup('service:client/http');
       const folder = `${id}/`;
       const expected = `DELETE /v1/kv/${folder}?dc=${dc}${
-        typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``
+        shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }&recurse`;
       let actual = adapter
         .requestForDeleteRecord(

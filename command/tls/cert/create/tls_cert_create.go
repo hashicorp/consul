@@ -33,6 +33,7 @@ type cmd struct {
 	days        int
 	domain      string
 	help        string
+	node        string
 	dnsnames    flags.AppendSliceValue
 	ipaddresses flags.AppendSliceValue
 	prefix      string
@@ -44,6 +45,7 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.key, "key", "#DOMAIN#-agent-ca-key.pem", "Provide path to the key. Defaults to #DOMAIN#-agent-ca-key.pem.")
 	c.flags.BoolVar(&c.server, "server", false, "Generate server certificate.")
 	c.flags.BoolVar(&c.client, "client", false, "Generate client certificate.")
+	c.flags.StringVar(&c.node, "node", "", "When generating a server cert and this is set an additional dns name is included of the form <node>.server.<datacenter>.<domain>.")
 	c.flags.BoolVar(&c.cli, "cli", false, "Generate cli certificate.")
 	c.flags.IntVar(&c.days, "days", 365, "Provide number of days the certificate is valid for from now on. Defaults to 1 year.")
 	c.flags.StringVar(&c.dc, "dc", "dc1", "Provide the datacenter. Matters only for -server certificates. Defaults to dc1.")
@@ -79,6 +81,11 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	if c.node != "" && !c.server {
+		c.UI.Error("-node requires -server")
+		return 1
+	}
+
 	var DNSNames []string
 	var IPAddresses []net.IP
 	var extKeyUsage []x509.ExtKeyUsage
@@ -99,6 +106,10 @@ func (c *cmd) Run(args []string) int {
 	if c.server {
 		name = fmt.Sprintf("server.%s.%s", c.dc, c.domain)
 
+		if c.node != "" {
+			nodeName := fmt.Sprintf("%s.server.%s.%s", c.node, c.dc, c.domain)
+			DNSNames = append(DNSNames, nodeName)
+		}
 		DNSNames = append(DNSNames, name)
 		DNSNames = append(DNSNames, "localhost")
 

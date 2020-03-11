@@ -322,9 +322,25 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 			fs := assetFS()
 			uifs = fs
 		}
+
 		uifs = &redirectFS{fs: &templatedIndexFS{fs: uifs, templateVars: s.GenerateHTMLTemplateVars}}
-		mux.Handle("/robots.txt", http.FileServer(uifs))
-		mux.Handle(s.agent.config.UIContentPath, http.StripPrefix(s.agent.config.UIContentPath, http.FileServer(uifs)))
+		// create a http handler using the ui file system
+		// and the headers specified by the http_config.response_headers user config
+		uifsWithHeaders := serveHandlerWithHeaders(
+			http.FileServer(uifs),
+			s.agent.config.HTTPResponseHeaders,
+		)
+		mux.Handle(
+			"/robots.txt",
+			uifsWithHeaders,
+		)
+		mux.Handle(
+			s.agent.config.UIContentPath,
+			http.StripPrefix(
+				s.agent.config.UIContentPath,
+				uifsWithHeaders,
+			),
+		)
 	}
 
 	// Wrap the whole mux with a handler that bans URLs with non-printable
@@ -749,6 +765,14 @@ func setCacheMeta(resp http.ResponseWriter, m *cache.ResultMeta) {
 func setHeaders(resp http.ResponseWriter, headers map[string]string) {
 	for field, value := range headers {
 		resp.Header().Set(http.CanonicalHeaderKey(field), value)
+	}
+}
+
+// serveHandlerWithHeaders is used to serve a http.Handler with the specified headers
+func serveHandlerWithHeaders(h http.Handler, headers map[string]string) http.HandlerFunc {
+	return func(resp http.ResponseWriter, req *http.Request) {
+		setHeaders(resp, headers)
+		h.ServeHTTP(resp, req)
 	}
 }
 

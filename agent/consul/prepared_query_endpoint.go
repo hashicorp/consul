@@ -184,7 +184,7 @@ func parseService(svc *structs.ServiceQuery) error {
 	}
 
 	// Make sure the metadata filters are valid
-	if err := structs.ValidateMetadata(svc.NodeMeta, true); err != nil {
+	if err := structs.ValidateNodeMetadata(svc.NodeMeta, true); err != nil {
 		return err
 	}
 
@@ -548,6 +548,7 @@ func (p *PreparedQuery) execute(query *structs.PreparedQuery,
 
 	// Capture the nodes and pass the DNS information through to the reply.
 	reply.Service = query.Service.Service
+	reply.EnterpriseMeta = query.Service.EnterpriseMeta
 	reply.Nodes = nodes
 	reply.DNS = query.DNS
 

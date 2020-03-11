@@ -56,6 +56,7 @@ type cmd struct {
 	bootstrap            bool
 	disableCentralConfig bool
 	grpcAddr             string
+	envoyVersion         string
 
 	// mesh gateway registration information
 	register           bool
@@ -63,6 +64,7 @@ type cmd struct {
 	wanAddress         string
 	deregAfterCritical string
 	bindAddresses      map[string]string
+	exposeServers      bool
 
 	meshGatewaySvcName string
 }
@@ -74,7 +76,7 @@ func (c *cmd) init() {
 		"The proxy's ID on the local agent.")
 
 	c.flags.BoolVar(&c.meshGateway, "mesh-gateway", false,
-		"Generate the bootstrap.json but don't exec envoy")
+		"Configure Envoy as a Mesh Gateway.")
 
 	c.flags.StringVar(&c.sidecarFor, "sidecar-for", "",
 		"The ID of a service instance on the local agent that this proxy should "+
@@ -110,6 +112,9 @@ func (c *cmd) init() {
 		"Set the agent's gRPC address and port (in http(s)://host:port format). "+
 			"Alternatively, you can specify CONSUL_GRPC_ADDR in ENV.")
 
+	c.flags.StringVar(&c.envoyVersion, "envoy-version", "1.13.0",
+		"Sets the envoy-version that the envoy binary has.")
+
 	c.flags.BoolVar(&c.register, "register", false,
 		"Register a new Mesh Gateway service before configuring and starting Envoy")
 
@@ -125,6 +130,9 @@ func (c *cmd) init() {
 
 	c.flags.StringVar(&c.meshGatewaySvcName, "service", "mesh-gateway",
 		"Service name to use for the registration")
+
+	c.flags.BoolVar(&c.exposeServers, "expose-servers", false,
+		"Expose the servers for WAN federation via this mesh gateway")
 
 	c.flags.StringVar(&c.deregAfterCritical, "deregister-after-critical", "6h",
 		"The amount of time the gateway services health check can be failing before being deregistered")
@@ -231,6 +239,17 @@ func (c *cmd) Run(args []string) int {
 	}
 	c.client = client
 
+	if c.exposeServers {
+		if !c.meshGateway {
+			c.UI.Error("'-expose-servers' can only be used for mesh gateways")
+			return 1
+		}
+		if !c.register {
+			c.UI.Error("'-expose-servers' requires '-register'")
+			return 1
+		}
+	}
+
 	if c.register {
 		if !c.meshGateway {
 			c.UI.Error("Auto-Registration can only be used for mesh gateways")
@@ -303,11 +322,17 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 
+		var meta map[string]string
+		if c.exposeServers {
+			meta = map[string]string{structs.MetaWANFederationKey: "1"}
+		}
+
 		svc := api.AgentServiceRegistration{
 			Kind:            api.ServiceKindMeshGateway,
 			Name:            c.meshGatewaySvcName,
 			Address:         lanAddr,
 			Port:            lanPort,
+			Meta:            meta,
 			TaggedAddresses: taggedAddrs,
 			Proxy:           proxyConf,
 			Check: &api.AgentServiceCheck{
@@ -519,6 +544,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		Token:                 httpCfg.Token,
 		LocalAgentClusterName: xds.LocalAgentClusterName,
 		Namespace:             httpCfg.Namespace,
+		EnvoyVersion:          c.envoyVersion,
 	}, nil
 }
 

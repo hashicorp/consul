@@ -1,3 +1,4 @@
+@onlyNamespaceable
 @setupApplicationTest
 Feature: dc / acls / policies / as many / nspaces: As many for nspaces
   Scenario:

@@ -934,15 +934,12 @@ func TestCacheGet_refreshAge(t *testing.T) {
 		Return(func(o FetchOptions, r Request) FetchResult {
 			idx := atomic.LoadUint64(&index)
 			if atomic.LoadUint64(&shouldFail) == 1 {
-				t.Logf("Failing Fetch at index %d", idx)
 				return FetchResult{Value: nil, Index: idx}
 			}
 			if o.MinIndex == idx {
-				t.Logf("Sleeping Fetch at index %d", idx)
 				// Simulate waiting for a new value
 				time.Sleep(5 * time.Millisecond)
 			}
-			t.Logf("Returning Fetch at index %d", idx)
 			return FetchResult{Value: int(idx * 2), Index: idx}
 		}, func(o FetchOptions, r Request) error {
 			if atomic.LoadUint64(&shouldFail) == 1 {

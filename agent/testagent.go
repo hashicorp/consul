@@ -149,6 +149,10 @@ func (a *TestAgent) Start() (err error) {
 		if err != nil {
 			return fmt.Errorf("Error creating data dir %s: %s", filepath.Join(TempDir, name), err)
 		}
+		// Convert windows style path to posix style path
+		// to avoid illegal char escape error when hcl
+		// parsing.
+		d = filepath.ToSlash(d)
 		hclDataDir = `data_dir = "` + d + `"`
 	}
 
@@ -374,7 +378,7 @@ func (a *TestAgent) consulConfig() *consul.Config {
 // Instead of relying on one set of ports to be sufficient we retry
 // starting the agent with different ports on port conflict.
 func randomPortsSource(tls bool) (src config.Source, returnPortsFn func()) {
-	ports := freeport.MustTake(6)
+	ports := freeport.MustTake(7)
 
 	var http, https int
 	if tls {
@@ -396,6 +400,7 @@ func randomPortsSource(tls bool) (src config.Source, returnPortsFn func()) {
 				serf_lan = ` + strconv.Itoa(ports[3]) + `
 				serf_wan = ` + strconv.Itoa(ports[4]) + `
 				server = ` + strconv.Itoa(ports[5]) + `
+				grpc = ` + strconv.Itoa(ports[6]) + `
 			}
 		`,
 	}, func() { freeport.Return(ports) }

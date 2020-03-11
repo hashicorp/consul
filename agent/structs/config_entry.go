@@ -216,7 +216,7 @@ func (e *ProxyConfigEntry) MarshalBinary() (data []byte, err error) {
 	// bs will grow if needed but allocate enough to avoid reallocation in common
 	// case.
 	bs := make([]byte, 128)
-	enc := codec.NewEncoderBytes(&bs, msgpackHandle)
+	enc := codec.NewEncoderBytes(&bs, MsgpackHandle)
 	err = enc.Encode(a)
 	if err != nil {
 		return nil, err
@@ -235,7 +235,7 @@ func (e *ProxyConfigEntry) UnmarshalBinary(data []byte) error {
 	type alias ProxyConfigEntry
 
 	var a alias
-	dec := codec.NewDecoderBytes(data, msgpackHandle)
+	dec := codec.NewDecoderBytes(data, MsgpackHandle)
 	if err := dec.Decode(&a); err != nil {
 		return err
 	}
@@ -406,7 +406,7 @@ func (c *ConfigEntryRequest) MarshalBinary() (data []byte, err error) {
 	// bs will grow if needed but allocate enough to avoid reallocation in common
 	// case.
 	bs := make([]byte, 128)
-	enc := codec.NewEncoderBytes(&bs, msgpackHandle)
+	enc := codec.NewEncoderBytes(&bs, MsgpackHandle)
 	// Encode kind first
 	err = enc.Encode(c.Entry.GetKind())
 	if err != nil {
@@ -428,7 +428,7 @@ func (c *ConfigEntryRequest) MarshalBinary() (data []byte, err error) {
 func (c *ConfigEntryRequest) UnmarshalBinary(data []byte) error {
 	// First decode the kind prefix
 	var kind string
-	dec := codec.NewDecoderBytes(data, msgpackHandle)
+	dec := codec.NewDecoderBytes(data, MsgpackHandle)
 	if err := dec.Decode(&kind); err != nil {
 		return err
 	}
@@ -510,6 +510,7 @@ func (r *ConfigEntryQuery) CacheInfo() cache.RequestInfo {
 		r.Kind,
 		r.Name,
 		r.Filter,
+		r.EnterpriseMeta,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -557,11 +558,13 @@ func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
 	// the slice would affect cache keys if we ever persist between agent restarts
 	// and change it.
 	v, err := hashstructure.Hash(struct {
-		Name      string
-		Upstreams []string `hash:"set"`
+		Name           string
+		EnterpriseMeta EnterpriseMeta
+		Upstreams      []string `hash:"set"`
 	}{
-		Name:      r.Name,
-		Upstreams: r.Upstreams,
+		Name:           r.Name,
+		EnterpriseMeta: r.EnterpriseMeta,
+		Upstreams:      r.Upstreams,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -611,7 +614,7 @@ func (r *ServiceConfigResponse) MarshalBinary() (data []byte, err error) {
 	// bs will grow if needed but allocate enough to avoid reallocation in common
 	// case.
 	bs := make([]byte, 128)
-	enc := codec.NewEncoderBytes(&bs, msgpackHandle)
+	enc := codec.NewEncoderBytes(&bs, MsgpackHandle)
 
 	type Alias ServiceConfigResponse
 
@@ -626,7 +629,7 @@ func (r *ServiceConfigResponse) MarshalBinary() (data []byte, err error) {
 // default msgpack encoding but fixes up the uint8 strings and other problems we
 // have with encoding map[string]interface{}.
 func (r *ServiceConfigResponse) UnmarshalBinary(data []byte) error {
-	dec := codec.NewDecoderBytes(data, msgpackHandle)
+	dec := codec.NewDecoderBytes(data, MsgpackHandle)
 
 	type Alias ServiceConfigResponse
 	var a Alias
@@ -670,7 +673,7 @@ func (c *ConfigEntryResponse) MarshalBinary() (data []byte, err error) {
 	// bs will grow if needed but allocate enough to avoid reallocation in common
 	// case.
 	bs := make([]byte, 128)
-	enc := codec.NewEncoderBytes(&bs, msgpackHandle)
+	enc := codec.NewEncoderBytes(&bs, MsgpackHandle)
 
 	if c.Entry != nil {
 		if err := enc.Encode(c.Entry.GetKind()); err != nil {
@@ -693,7 +696,7 @@ func (c *ConfigEntryResponse) MarshalBinary() (data []byte, err error) {
 }
 
 func (c *ConfigEntryResponse) UnmarshalBinary(data []byte) error {
-	dec := codec.NewDecoderBytes(data, msgpackHandle)
+	dec := codec.NewDecoderBytes(data, MsgpackHandle)
 
 	var kind string
 	if err := dec.Decode(&kind); err != nil {

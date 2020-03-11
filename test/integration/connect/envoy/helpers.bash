@@ -144,7 +144,16 @@ function get_envoy_listener_filters {
   local HOSTPORT=$1
   run retry_default curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
-  echo "$output" | jq --raw-output '.configs[2].dynamic_active_listeners[].listener | "\(.name) \( .filter_chains[0].filters | map(.name) | join(","))"'
+  local ENVOY_VERSION=$(echo $output | jq --raw-output '.configs[0].bootstrap.node.metadata.envoy_version')
+  local QUERY=''
+  # from 1.13.0 on the config json looks slightly different
+  # 1.10.x, 1.11.x, 1.12.x are not affected
+  if [[ "$ENVOY_VERSION" =~ ^1\.1[012]\. ]]; then
+    QUERY='.configs[2].dynamic_active_listeners[].listener | "\(.name) \( .filter_chains[0].filters | map(.name) | join(","))"'
+  else
+    QUERY='.configs[2].dynamic_listeners[].active_state.listener | "\(.name) \( .filter_chains[0].filters | map(.name) | join(","))"'
+  fi
+  echo "$output" | jq --raw-output "$QUERY"
 }
 
 function get_envoy_cluster_threshold {
@@ -172,11 +181,12 @@ function snapshot_envoy_admin {
   local HOSTPORT=$1
   local ENVOY_NAME=$2
   local DC=${3:-primary}
-
-
-  docker_wget "$DC" "http://${HOSTPORT}/config_dump" -q -O - > "./workdir/${DC}/envoy/${ENVOY_NAME}-config_dump.json"
-  docker_wget "$DC" "http://${HOSTPORT}/clusters?format=json" -q -O - > "./workdir/${DC}/envoy/${ENVOY_NAME}-clusters.json"
-  docker_wget "$DC" "http://${HOSTPORT}/stats" -q -O - > "./workdir/${DC}/envoy/${ENVOY_NAME}-stats.txt"
+  local OUTDIR="${LOG_DIR}/envoy-snapshots/${DC}/${ENVOY_NAME}"
+  
+  mkdir -p "${OUTDIR}"
+  docker_wget "$DC" "http://${HOSTPORT}/config_dump" -q -O - > "${OUTDIR}/config_dump.json"
+  docker_wget "$DC" "http://${HOSTPORT}/clusters?format=json" -q -O - > "${OUTDIR}/clusters.json"
+  docker_wget "$DC" "http://${HOSTPORT}/stats" -q -O - > "${OUTDIR}/stats.txt"
 }
 
 function reset_envoy_metrics {
@@ -328,6 +338,27 @@ function get_healthy_service_count {
   run retry_default curl -s -f ${HEADERS} "127.0.0.1:8500/v1/health/connect/${SERVICE_NAME}?dc=${DC}&passing&ns=${NS}"
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output '. | length'
+}
+
+function assert_alive_wan_member_count {
+  local EXPECT_COUNT=$1
+  run retry_default assert_alive_wan_member_count_once $EXPECT_COUNT
+  [ "$status" -eq 0 ]
+}
+
+function assert_alive_wan_member_count_once {
+  local EXPECT_COUNT=$1
+
+  GOT_COUNT=$(get_alive_wan_member_count)
+
+  [ "$GOT_COUNT" -eq "$EXPECT_COUNT" ]
+}
+
+function get_alive_wan_member_count {
+  run retry_default curl -sL -f "127.0.0.1:8500/v1/agent/members?wan=1"
+  [ "$status" -eq 0 ]
+  # echo "$output" >&3
+  echo "$output" | jq '.[] | select(.Status == 1) | .Name' | wc -l
 }
 
 function assert_service_has_healthy_instances_once {
@@ -508,6 +539,7 @@ function gen_envoy_bootstrap {
 
   if output=$(docker_consul "$DC" connect envoy -bootstrap \
     -proxy-id $PROXY_ID \
+    -envoy-version "$ENVOY_VERSION" \
     -admin-bind 0.0.0.0:$ADMIN_PORT ${EXTRA_ENVOY_BS_ARGS} 2>&1); then
 
     # All OK, write config to file

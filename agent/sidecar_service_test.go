@@ -46,6 +46,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 			},
 			token: "foo",
 			wantNS: &structs.NodeService{
+				EnterpriseMeta:             *structs.DefaultEnterpriseMeta(),
 				Kind:                       structs.ServiceKindConnectProxy,
 				ID:                         "web1-sidecar-proxy",
 				Service:                    "web-sidecar-proxy",
@@ -105,12 +106,13 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 			},
 			token: "foo",
 			wantNS: &structs.NodeService{
-				Kind:    structs.ServiceKindConnectProxy,
-				ID:      "web1-sidecar-proxy",
-				Service: "motorbike1",
-				Port:    3333,
-				Tags:    []string{"foo", "bar"},
-				Address: "127.127.127.127",
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				Kind:           structs.ServiceKindConnectProxy,
+				ID:             "web1-sidecar-proxy",
+				Service:        "motorbike1",
+				Port:           3333,
+				Tags:           []string{"foo", "bar"},
+				Address:        "127.127.127.127",
 				Meta: map[string]string{
 					"foo": "bar",
 				},
@@ -182,6 +184,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 				},
 			},
 			wantNS: &structs.NodeService{
+				EnterpriseMeta:             *structs.DefaultEnterpriseMeta(),
 				Kind:                       structs.ServiceKindConnectProxy,
 				ID:                         "web1-sidecar-proxy",
 				Service:                    "web-sidecar-proxy",
@@ -271,6 +274,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 			},
 			token: "foo",
 			wantNS: &structs.NodeService{
+				EnterpriseMeta:             *structs.DefaultEnterpriseMeta(),
 				Kind:                       structs.ServiceKindConnectProxy,
 				ID:                         "web1-sidecar-proxy",
 				Service:                    "web-sidecar-proxy",

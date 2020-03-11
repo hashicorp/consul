@@ -205,7 +205,7 @@ func (s *Service) Dial(ctx context.Context, resolver Resolver) (net.Conn, error)
 		tlsConn.Close()
 		return nil, err
 	}
-	s.logger.Debug("successfully connected to service instance", addr,
+	s.logger.Debug("successfully connected to service instance",
 		"address", addr,
 		"identity", certURI.URI(),
 	)

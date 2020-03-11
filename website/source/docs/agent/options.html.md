@@ -435,6 +435,14 @@ The options below are all specified on the command-line.
   however agents will automatically use protocol >2 when speaking to compatible agents. This should be set only when
   [upgrading](/docs/upgrading.html). You can view the protocol versions supported by Consul by running `consul -v`.
 
+* <a name="_primary_gateway"></a><a href="#_primary_gateway">`-primary-gateway`</a> - Similar
+  to [`retry-join-wan`](#_retry_join_wan) but allows retrying discovery of fallback addresses
+  for the mesh gateways in the primary datacenter if the first attempt fails.
+  This is useful for cases where we know the address will become available eventually.
+  [Cloud Auto-Joining](#cloud-auto-joining) is supported as well as [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
+  templates.
+  This was added in Consul 1.8.x **TODO(wanfed)**.
+
 * <a name="_raft_protocol"></a><a href="#_raft_protocol">`-raft-protocol`</a> - This controls the internal
   version of the Raft consensus protocol used for server communications. This must be set to 3 in order to
   gain access to Autopilot features, with the exception of [`cleanup_dead_servers`](#cleanup_dead_servers).
@@ -564,6 +572,12 @@ assigned a port number `> 0`. We recommend using `8501` for `https` as this
 default will automatically work with some tooling.
 
 #### Configuration Key Reference
+
+-> **Note:** All the TTL values described below are parsed by Go's `time` package, and have the following
+[formatting specification](https://golang.org/pkg/time/#ParseDuration): "A
+duration string is a possibly signed sequence of decimal numbers, each with
+optional fraction and a unit suffix, such as '300ms', '-1.5h' or '2h45m'.
+Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
 * <a name="acl"></a><a href="#acl">`acl`</a> - This object allows a number
     of sub-keys to be set which controls the ACL system. Configuring the
@@ -918,6 +932,12 @@ default will automatically work with some tooling.
     * <a name="connect_enabled"></a><a href="#connect_enabled">`enabled`</a> Controls whether
       Connect features are enabled on this agent. Should be enabled on all clients and
       servers in the cluster in order for Connect to function properly. Defaults to false.
+
+    * <a name="connect_enable_mesh_gateway_wan_federation"></a><a
+      href="#connect_enable_mesh_gateway_wan_federation">`enable_mesh_gateway_wan_federation`</a>
+      Controls whether cross-datacenter federation traffic between servers is
+      funneled through mesh gateways.  Defaults to false.
+      This was added in Consul 1.8.x **TODO(wanfed)**.
 
     * <a name="connect_ca_provider"></a><a href="#connect_ca_provider">`ca_provider`</a> Controls
       which CA provider to use for Connect's CA. Currently only the `consul` and `vault` providers
@@ -1333,7 +1353,7 @@ default will automatically work with some tooling.
   This must be provided along with [`cert_file`](#cert_file).
 
 *   <a name="http_config"></a><a href="#http_config">`http_config`</a>
-    This object allows setting options for the HTTP API.
+    This object allows setting options for the HTTP API and UI.
 
     The following sub-keys are available:
 
@@ -1351,7 +1371,7 @@ default will automatically work with some tooling.
       is available in Consul 0.9.0 and later.
 
     * <a name="response_headers"></a><a href="#response_headers">`response_headers`</a>
-      This object allows adding headers to the HTTP API responses.
+      This object allows adding headers to the HTTP API and UI responses.
       For example, the following config can be used to enable
       [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) on
       the HTTP API endpoints:
@@ -1391,7 +1411,7 @@ default will automatically work with some tooling.
         Configures a limit of how many concurrent TCP connections a single
         client IP address is allowed to open to the agent's HTTP(S) server. This
         affects the HTTP(S) servers in both client and server agents. Default
-        value is `100`.
+        value is `200`.
     *   <a name="https_handshake_timeout"></a><a
         href="#https_handshake_timeout">`https_handshake_timeout`</a> -
         Configures the limit for how long the HTTPS server in both client and
@@ -1443,6 +1463,25 @@ default will automatically work with some tooling.
         single RPC call to a Consul server. See
         https://en.wikipedia.org/wiki/Token_bucket for more details about how
         token bucket rate limiters operate.
+    *   <a name="kv_max_value_size"></a><a href="#kv_max_value_size">
+        `kv_max_value_size`</a> - **(Advanced)** Configures the maximum number of
+        bytes for a kv request body to the [`/v1/kv`](/api/kv.html) endpoint.
+        This limit defaults to [raft's](https://github.com/hashicorp/raft)
+        suggested max size(512KB). **Note that tuning these improperly can cause
+        Consul to fail in unexpected ways**, it may potentially affect
+        leadership stability and prevent timely heartbeat signals by increasing
+        RPC IO duration.
+        This option affects the txn endpoint too, but Consul 1.7.2 introduced
+        `txn_max_req_len` which is the preferred way to set the limit for the
+        txn endpoint. If both limits are set, the higher one takes precedence.
+    *   <a name="txn_max_req_len"></a><a href="#txn_max_req_len">
+        `txn_max_req_len`</a> - **(Advanced)** Configures the maximum number of
+        bytes for a transaction request body to the [`/v1/txn`](/api/txn.html)
+        endpoint. This limit defaults to [raft's](https://github.com/hashicorp/raft)
+        suggested max size(512KB). **Note that tuning these improperly can cause
+        Consul to fail in unexpected ways**, it may potentially affect
+        leadership stability and prevent timely heartbeat signals by
+        increasing RPC IO duration.
 
 * <a name="log_file"></a><a href="#log_file">`log_file`</a> Equivalent to the
   [`-log-file` command-line flag](#_log_file).
@@ -1558,14 +1597,26 @@ default will automatically work with some tooling.
       [exposed check listeners](/docs/connect/registration/service-registration.html#expose-paths-configuration-reference).
       Default 21755. Set to `0` to disable automatic port assignment.
 
-* <a name="protocol"></a><a href="#protocol">`protocol`</a> Equivalent to the
-  [`-protocol` command-line flag](#_protocol).
-
 * <a name="primary_datacenter"></a><a href="#primary_datacenter">`primary_datacenter`</a> - This
   designates the datacenter which is authoritative for ACL information, intentions and is the root
   Certificate Authority for Connect. It must be provided to enable ACLs. All servers and datacenters
   must agree on the primary datacenter. Setting it on the servers is all you need for cluster-level enforcement, but for the APIs to forward properly from the clients, it must be set on them too. In
   Consul 0.8 and later, this also enables agent-level enforcement of ACLs.
+
+* <a name="primary_gateways"></a><a href="#primary_gateways">`primary_gateways`</a> Equivalent to the
+  [`-primary-gateway` command-line flag](#_primary_gateway). Takes a list
+  of addresses to use as the mesh gateways for the primary datacenter when authoritative
+  replicated catalog data is not present. Discovery happens every [`primary_gateways_interval`](#_primary_gateways_interval) until at least one
+  primary mesh gateway is discovered.
+  This was added in Consul 1.8.x **TODO(wanfed)**.
+
+* <a name="primary_gateways_interval"></a><a href="#primary_gateways_interval">`primary_gateways_interval`</a> Time
+  to wait between [`primary_gateways`](#primary_gateways) discovery attempts.
+  Defaults to 30s.
+  This was added in Consul 1.8.x **TODO(wanfed)**.
+
+* <a name="protocol"></a><a href="#protocol">`protocol`</a> Equivalent to the
+  [`-protocol` command-line flag](#_protocol).
 
 * <a name="raft_protocol"></a><a href="#raft_protocol">`raft_protocol`</a> Equivalent to the
   [`-raft-protocol` command-line flag](#_raft_protocol).
@@ -1824,8 +1875,8 @@ to the old fragment -->
   facility messages are sent. By default, `LOCAL0` will be used.
 
 * <a name="tls_min_version"></a><a href="#tls_min_version">`tls_min_version`</a> Added in Consul
-  0.7.4, this specifies the minimum supported version of TLS. Accepted values are "tls10", "tls11"
-  or "tls12". This defaults to "tls12". WARNING: TLS 1.1 and lower are generally considered less
+  0.7.4, this specifies the minimum supported version of TLS. Accepted values are "tls10", "tls11",
+  "tls12", or "tls13". This defaults to "tls12". WARNING: TLS 1.1 and lower are generally considered less
   secure; avoid using these if possible.
 
 * <a name="tls_cipher_suites"></a><a href="#tls_cipher_suites">`tls_cipher_suites`</a> Added in Consul

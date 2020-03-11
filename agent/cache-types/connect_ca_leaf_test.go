@@ -2,6 +2,7 @@ package cachetype
 
 import (
 	"fmt"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -1018,8 +1019,15 @@ func (r *testGatedRootsRPC) RPC(method string, args interface{}, reply interface
 }
 
 func TestConnectCALeaf_Key(t *testing.T) {
-	r := ConnectCALeafRequest{Service: "web"}
-	require.Equal(t, "service:web", r.Key())
-	r = ConnectCALeafRequest{Agent: "abc"}
+	r1 := ConnectCALeafRequest{Service: "web"}
+	r2 := ConnectCALeafRequest{Service: "api"}
+
+	// hashstructure will hash the service name + ent meta to produce this key
+	r1Key := r1.Key()
+	r2Key := r2.Key()
+	require.True(t, strings.HasPrefix(r1Key, "service:"), "Key %s does not start with service:", r1Key)
+	require.True(t, strings.HasPrefix(r2Key, "service:"), "Key %s does not start with service:", r2Key)
+	require.NotEqual(t, r1Key, r2Key, "Cache keys for different services are not equal")
+	r := ConnectCALeafRequest{Agent: "abc"}
 	require.Equal(t, "agent:abc", r.Key())
 }

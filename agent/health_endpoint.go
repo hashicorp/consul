@@ -108,7 +108,7 @@ RETRY_ONCE:
 func (s *HTTPServer) HealthServiceChecks(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Set default DC
 	args := structs.ServiceSpecificRequest{}
-	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
 	}
 	s.parseSource(req, &args.Source)
@@ -164,7 +164,7 @@ func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Requ
 func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Request, connect bool) (interface{}, error) {
 	// Set default DC
 	args := structs.ServiceSpecificRequest{Connect: connect}
-	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
 	}
 	s.parseSource(req, &args.Source)

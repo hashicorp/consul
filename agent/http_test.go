@@ -431,6 +431,36 @@ func TestHTTPAPIResponseHeaders(t *testing.T) {
 		t.Fatalf("bad X-XSS-Protection header: expected %q, got %q", "1; mode=block", xss)
 	}
 }
+func TestUIResponseHeaders(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), `
+		http_config {
+			response_headers = {
+				"Access-Control-Allow-Origin" = "*"
+				"X-Frame-Options" = "SAMEORIGIN"
+			}
+		}
+	`)
+	defer a.Shutdown()
+
+	resp := httptest.NewRecorder()
+	handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+		return nil, nil
+	}
+
+	req, _ := http.NewRequest("GET", "/ui", nil)
+	a.srv.wrap(handler, []string{"GET"})(resp, req)
+
+	origin := resp.Header().Get("Access-Control-Allow-Origin")
+	if origin != "*" {
+		t.Fatalf("bad Access-Control-Allow-Origin: expected %q, got %q", "*", origin)
+	}
+
+	frameOptions := resp.Header().Get("X-Frame-Options")
+	if frameOptions != "SAMEORIGIN" {
+		t.Fatalf("bad X-XSS-Protection header: expected %q, got %q", "SAMEORIGIN", frameOptions)
+	}
+}
 
 func TestContentTypeIsJSON(t *testing.T) {
 	t.Parallel()

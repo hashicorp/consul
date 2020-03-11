@@ -100,8 +100,10 @@ func joinAddrWAN(s *Server) string {
 	if s == nil {
 		panic("no server")
 	}
+	name := s.config.NodeName
+	dc := s.config.Datacenter
 	port := s.config.SerfWANConfig.MemberlistConfig.BindPort
-	return fmt.Sprintf("127.0.0.1:%d", port)
+	return fmt.Sprintf("%s.%s/127.0.0.1:%d", name, dc, port)
 }
 
 type clientOrServer interface {
@@ -159,6 +161,8 @@ func joinWAN(t *testing.T, member, leader *Server) {
 }
 
 func waitForNewACLs(t *testing.T, server *Server) {
+	t.Helper()
+
 	retry.Run(t, func(r *retry.R) {
 		require.False(r, server.UseLegacyACLs(), "Server cannot use new ACLs")
 	})
@@ -167,6 +171,7 @@ func waitForNewACLs(t *testing.T, server *Server) {
 }
 
 func waitForNewACLReplication(t *testing.T, server *Server, expectedReplicationType structs.ACLReplicationType, minPolicyIndex, minTokenIndex, minRoleIndex uint64) {
+	t.Helper()
 	retry.Run(t, func(r *retry.R) {
 		status := server.getACLReplicationStatus()
 		require.Equal(r, expectedReplicationType, status.ReplicationType, "Server not running new replicator yet")

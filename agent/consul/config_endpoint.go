@@ -88,6 +88,8 @@ func (c *ConfigEntry) Get(args *structs.ConfigEntryQuery, reply *structs.ConfigE
 	if err != nil {
 		return err
 	}
+	lookupEntry.GetEnterpriseMeta().Merge(&args.EnterpriseMeta)
+
 	if authz != nil && !lookupEntry.CanRead(authz) {
 		return acl.ErrPermissionDenied
 	}

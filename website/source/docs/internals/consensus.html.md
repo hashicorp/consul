@@ -37,7 +37,7 @@ same sequence of logs must result in the same state, meaning behavior must be de
 For Consul's purposes, all server nodes are in the peer set of the local datacenter.
 
 * Quorum - A quorum is a majority of members from a peer set: for a set of size `n`,
-quorum requires at least `(n/2)+1` members.
+quorum requires at least `(n+1)/2` members.
 For example, if there are 5 members in the peer set, we would need 3 nodes
 to form a quorum. If a quorum of nodes is unavailable for any reason, the
 cluster becomes *unavailable* and no new logs can be committed.

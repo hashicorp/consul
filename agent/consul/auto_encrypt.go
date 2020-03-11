@@ -109,7 +109,7 @@ func (c *Client) RequestAutoEncryptCerts(servers []string, port int, token strin
 			for _, ip := range ips {
 				addr := net.TCPAddr{IP: ip, Port: port}
 
-				if err = c.connPool.RPC(c.config.Datacenter, &addr, 0, "AutoEncrypt.Sign", true, &args, &reply); err == nil {
+				if err = c.connPool.RPC(c.config.Datacenter, c.config.NodeName, &addr, 0, "AutoEncrypt.Sign", true, &args, &reply); err == nil {
 					return &reply, pkPEM, nil
 				} else {
 					c.logger.Warn("AutoEncrypt failed", "error", err)

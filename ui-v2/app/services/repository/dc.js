@@ -43,4 +43,7 @@ export default RepositoryService.extend({
       }
     );
   },
+  clearActive: function() {
+    return this.settings.delete('dc');
+  },
 });

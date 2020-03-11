@@ -85,12 +85,30 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 	}, nil
 }
 
+// acceptsOpenMetricsMimeType returns true if mime type is Prometheus-compatible
+func acceptsOpenMetricsMimeType(acceptHeader string) bool {
+	mimeTypes := strings.Split(acceptHeader, ",")
+	for _, v := range mimeTypes {
+		mimeInfo := strings.Split(v, ";")
+		if len(mimeInfo) > 0 {
+			rawMime := strings.ToLower(strings.Trim(mimeInfo[0], " "))
+			if rawMime == "application/openmetrics-text" {
+				return true
+			}
+			if rawMime == "text/plain" && (len(mimeInfo) > 1 && strings.Trim(mimeInfo[1], " ") == "version=0.4.0") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // enablePrometheusOutput will look for Prometheus mime-type or format Query parameter the same way as Nomad
 func enablePrometheusOutput(req *http.Request) bool {
 	if format := req.URL.Query().Get("format"); format == "prometheus" {
 		return true
 	}
-	return false
+	return acceptsOpenMetricsMimeType(req.Header.Get("Accept"))
 }
 
 func (s *HTTPServer) AgentMetrics(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -443,7 +461,11 @@ func (s *HTTPServer) AgentJoin(resp http.ResponseWriter, req *http.Request) (int
 
 	// Get the address
 	addr := strings.TrimPrefix(req.URL.Path, "/v1/agent/join/")
+
 	if wan {
+		if s.agent.config.ConnectMeshGatewayWANFederationEnabled {
+			return nil, fmt.Errorf("WAN join is disabled when wan federation via mesh gateways is enabled")
+		}
 		_, err = s.agent.JoinWAN([]string{addr})
 	} else {
 		_, err = s.agent.JoinLAN([]string{addr})
@@ -886,7 +908,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 			return nil, nil
 		}
 	}
-	if err := structs.ValidateMetadata(ns.Meta, false); err != nil {
+	if err := structs.ValidateServiceMetadata(ns.Kind, ns.Meta, false); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, fmt.Errorf("Invalid Service Meta: %v", err))
 		return nil, nil
@@ -1107,7 +1129,6 @@ func (s *HTTPServer) AgentNodeMaintenance(resp http.ResponseWriter, req *http.Re
 	if err != nil {
 		return nil, err
 	}
-	// TODO (namespaces) - pass through a real ent authz ctx?
 	if rule != nil && rule.NodeWrite(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
@@ -1325,11 +1346,14 @@ func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.
 	// not the ID of the service instance.
 	serviceName := strings.TrimPrefix(req.URL.Path, "/v1/agent/connect/ca/leaf/")
 
-	// TODO (namespaces) add namespacing to connect leaf cert generation request
 	args := cachetype.ConnectCALeafRequest{
 		Service: serviceName, // Need name not ID
 	}
 	var qOpts structs.QueryOptions
+
+	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 
 	// Store DC in the ConnectCALeafRequest but query opts separately
 	if done := s.parse(resp, req, &args.Datacenter, &qOpts); done {

@@ -196,7 +196,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		}
 	}
 
-	if err := servicesInSync(a.State, 5); err != nil {
+	if err := servicesInSync(a.State, 5, structs.DefaultEnterpriseMeta()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -235,7 +235,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		}
 	}
 
-	if err := servicesInSync(a.State, 4); err != nil {
+	if err := servicesInSync(a.State, 4, structs.DefaultEnterpriseMeta()); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -374,7 +374,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 		}
 	}
 
-	assert.Nil(servicesInSync(a.State, 4))
+	assert.Nil(servicesInSync(a.State, 4, structs.DefaultEnterpriseMeta()))
 
 	// Remove one of the services
 	a.State.RemoveService(structs.NewServiceID("cache-proxy", nil))
@@ -401,7 +401,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 		}
 	}
 
-	assert.Nil(servicesInSync(a.State, 3))
+	assert.Nil(servicesInSync(a.State, 3, structs.DefaultEnterpriseMeta()))
 }
 
 func TestAgent_ServiceWatchCh(t *testing.T) {
@@ -613,7 +613,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 			}
 		}
 
-		if err := servicesInSync(a.State, 2); err != nil {
+		if err := servicesInSync(a.State, 2, structs.DefaultEnterpriseMeta()); err != nil {
 			r.Fatal(err)
 		}
 	})
@@ -841,7 +841,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 			}
 		}
 
-		if err := servicesInSync(a.State, 2); err != nil {
+		if err := servicesInSync(a.State, 2, structs.DefaultEnterpriseMeta()); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -886,7 +886,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 			}
 		}
 
-		if err := servicesInSync(a.State, 1); err != nil {
+		if err := servicesInSync(a.State, 1, structs.DefaultEnterpriseMeta()); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -1018,7 +1018,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		}
 	}
 
-	if err := checksInSync(a.State, 4); err != nil {
+	if err := checksInSync(a.State, 4, structs.DefaultEnterpriseMeta()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1076,7 +1076,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		}
 	}
 
-	if err := checksInSync(a.State, 3); err != nil {
+	if err := checksInSync(a.State, 3, structs.DefaultEnterpriseMeta()); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -1253,7 +1253,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 			}
 		}
 
-		if err := servicesInSync(a.State, 2); err != nil {
+		if err := servicesInSync(a.State, 2, structs.DefaultEnterpriseMeta()); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -1321,7 +1321,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 		}
 	}
 
-	if err := checksInSync(a.State, 2); err != nil {
+	if err := checksInSync(a.State, 2, structs.DefaultEnterpriseMeta()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1366,7 +1366,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 		}
 	}
 
-	if err := checksInSync(a.State, 1); err != nil {
+	if err := checksInSync(a.State, 1, structs.DefaultEnterpriseMeta()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1938,8 +1938,8 @@ func TestAgent_sendCoordinate(t *testing.T) {
 	})
 }
 
-func servicesInSync(state *local.State, wantServices int) error {
-	services := state.ServiceStates(structs.DefaultEnterpriseMeta())
+func servicesInSync(state *local.State, wantServices int, entMeta *structs.EnterpriseMeta) error {
+	services := state.ServiceStates(entMeta)
 	if got, want := len(services), wantServices; got != want {
 		return fmt.Errorf("got %d services want %d", got, want)
 	}
@@ -1951,8 +1951,8 @@ func servicesInSync(state *local.State, wantServices int) error {
 	return nil
 }
 
-func checksInSync(state *local.State, wantChecks int) error {
-	checks := state.CheckStates(structs.DefaultEnterpriseMeta())
+func checksInSync(state *local.State, wantChecks int, entMeta *structs.EnterpriseMeta) error {
+	checks := state.CheckStates(entMeta)
 	if got, want := len(checks), wantChecks; got != want {
 		return fmt.Errorf("got %d checks want %d", got, want)
 	}

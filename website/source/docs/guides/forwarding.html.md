@@ -15,7 +15,7 @@ running on an unprivileged port, from another DNS server or port redirect.
 
 In this guide, we will demonstrate forwarding from:
 
-- [BIND](#bind-setup) 
+- [BIND](#bind-setup)
 - [dnsmasq](#dnsmasq-setup)
 - [Unbound](#unbound-setup)
 - [systemd-resolved](#systemd-resolved-setup)
@@ -23,7 +23,7 @@ In this guide, we will demonstrate forwarding from:
 - [macOS](#macos-setup)
 
 After configuring forwarding, we will demonstrate how to test the configuration. Finally, we will also provide some troubleshooting
-guidance. 
+guidance.
 
 ~> Note, by default, Consul does not resolve DNS
 records outside the `.consul.` zone unless the
@@ -151,7 +151,7 @@ stub-zone:
   stub-addr: 127.0.0.1@8600
 ```
 
-You may have to add the following line to the bottom of your 
+You may have to add the following line to the bottom of your
 `/etc/unbound/unbound.conf` file for the new configuration to be included:
 
 ```text
@@ -160,7 +160,7 @@ include: "/etc/unbound/unbound.conf.d/*.conf"
 
 ## systemd-resolved Setup
 
-[`systemd-resolved`](https://www.freedesktop.org/wiki/Software/systemd/resolved/) is typically configured with `/etc/systemd/resolved.conf`. 
+[`systemd-resolved`](https://www.freedesktop.org/wiki/Software/systemd/resolved/) is typically configured with `/etc/systemd/resolved.conf`.
 To configure systemd-resolved to send queries for the consul domain to
 Consul, configure resolved.conf to contain the following:
 
@@ -172,7 +172,7 @@ Domains=~consul
 The main limitation with this configuration is that the DNS field
 cannot contain ports. So for this to work either Consul must be
 [configured to listen on port 53](https://www.consul.io/docs/agent/options.html#dns_port)
-instead of 8600 or you can use iptables to map port 53 to 8600. 
+instead of 8600 or you can use iptables to map port 53 to 8600.
 The following iptables commands are sufficient to do the port
 mapping.
 
@@ -181,17 +181,25 @@ mapping.
 [root@localhost ~]# iptables -t nat -A OUTPUT -d localhost -p tcp -m tcp --dport 53 -j REDIRECT --to-ports 8600
 ```
 
-Binding to port 53 will usually require running either as a privileged user (or on Linux running with the 
+Binding to port 53 will usually require running either as a privileged user (or on Linux running with the
 CAP_NET_BIND_SERVICE capability). If using the Consul docker image you will need to add the following to the
-environment to allow Consul to use the port: `CONSUL_ALLOW_PRIVILEGED_PORTS=yes` 
+environment to allow Consul to use the port: `CONSUL_ALLOW_PRIVILEGED_PORTS=yes`
 
-Note: With this setup, PTR record queries will still be sent out
-to the other configured resolvers in addition to Consul. 
+Note: With this setup, PTR record queries will still be sent out to the other configured resolvers in
+addition to Consul. If you wish to restrict this behavior, your `resolved.conf` should be modified to
+
+```
+DNS=127.0.0.1
+Domains=~consul ~0.10.in-addr.arpa
+```
+
+where the example corresponds to reverse lookups of addresses in the IP range `10.0.0.0/16`. Your
+configuration should match your networks.
 
 ## iptables Setup
 
 Note, for iptables, the rules must be set on the same host as the Consul
-instance and relay hosts should not be on the same host or the redirects will 
+instance and relay hosts should not be on the same host or the redirects will
 intercept the traffic.
 
 On Linux systems that support it, incoming requests and requests to
@@ -219,7 +227,7 @@ but not need the overhead of a separate service on the Consul host.
 ## macOS Setup
 
 On macOS systems, you can use the macOS system resolver to point all .consul requests to consul.
-Just add a resolver entry in /etc/resolver/ to point at consul. 
+Just add a resolver entry in /etc/resolver/ to point at consul.
 documentation for this feature is available via: ```man5 resolver```.
 To setup create a new file ```/etc/resolver/consul``` (you will need sudo/root access) and put in the file:
 
@@ -338,7 +346,7 @@ signal.
 
 ## Summary
 
-In this guide we provided examples of configuring DNS forwarding with many 
+In this guide we provided examples of configuring DNS forwarding with many
 common, third-party tools. It is the responsibility of the operator to ensure
-which ever tool they select is configured properly prior to integration 
-with Consul. 
+which ever tool they select is configured properly prior to integration
+with Consul.
