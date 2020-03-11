@@ -940,7 +940,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		RPCMaxConnsPerClient:                   b.intVal(c.Limits.RPCMaxConnsPerClient),
 		RPCProtocol:                            b.intVal(c.RPCProtocol),
 		RPCRateLimit:                           rate.Limit(b.float64Val(c.Limits.RPCRate)),
-                RaftApplyTimeout:                       b.durationVal("raft_apply_timeout", c.RaftApplyTimeout),
+		RaftApplyTimeout:                       b.durationVal("raft_apply_timeout", c.RaftApplyTimeout),
 		RaftProtocol:                           b.intVal(c.RaftProtocol),
 		RaftSnapshotThreshold:                  b.intVal(c.RaftSnapshotThreshold),
 		RaftSnapshotInterval:                   b.durationVal("raft_snapshot_interval", c.RaftSnapshotInterval),
