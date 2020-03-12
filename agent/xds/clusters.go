@@ -159,25 +159,35 @@ func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 	// generate the per-service clusters
 	for svc, _ := range cfgSnap.MeshGateway.ServiceGroups {
 		clusterName := connect.ServiceSNI(svc.ID, "", svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+		resolver, hasResolver := cfgSnap.MeshGateway.ServiceResolvers[svc]
 
-		cluster, err := s.makeMeshGatewayCluster(clusterName, cfgSnap)
+		// Create the cluster using mesh gateway configs for default/unnamed services
+		// without a service-router
+		if !hasResolver {
+			cluster, err := s.makeMeshGatewayCluster(clusterName, cfgSnap)
+			if err != nil {
+				return nil, err
+			}
+			clusters = append(clusters, cluster)
+			continue
+		}
+
+		// Create the cluster using the configured timeout of the service-router
+		cluster, err := s.makeMeshGatewayClusterWithConnectTimeout(clusterName, cfgSnap, resolver.ConnectTimeout)
 		if err != nil {
 			return nil, err
 		}
 		clusters = append(clusters, cluster)
 
-		// if there is a service-resolver for this service then also setup subset clusters for it
-		if resolver, ok := cfgSnap.MeshGateway.ServiceResolvers[svc]; ok {
-			// generate 1 cluster for each service subset
-			for subsetName, _ := range resolver.Subsets {
-				clusterName := connect.ServiceSNI(svc.ID, subsetName, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+		// Setup 1 cluster for each service subset
+		for subsetName := range resolver.Subsets {
+			clusterName := connect.ServiceSNI(svc.ID, subsetName, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 
-				cluster, err := s.makeMeshGatewayCluster(clusterName, cfgSnap)
-				if err != nil {
-					return nil, err
-				}
-				clusters = append(clusters, cluster)
+			cluster, err := s.makeMeshGatewayClusterWithConnectTimeout(clusterName, cfgSnap, resolver.ConnectTimeout)
+			if err != nil {
+				return nil, err
 			}
+			clusters = append(clusters, cluster)
 		}
 	}
 
@@ -464,6 +474,14 @@ func makeClusterFromUserConfig(configJSON string) (*envoy.Cluster, error) {
 }
 
 func (s *Server) makeMeshGatewayCluster(clusterName string, cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Cluster, error) {
+	return s.makeMeshGatewayClusterWithConnectTimeout(clusterName, cfgSnap, 0)
+}
+
+// makeMeshGatewayClusterWithConnectTimeout initializes a mesh gateway cluster
+// with the specified connect timeout. If the timeout is 0, the connect timeout
+// defaults to use the mesh gateway timeout.
+func (s *Server) makeMeshGatewayClusterWithConnectTimeout(clusterName string, cfgSnap *proxycfg.ConfigSnapshot,
+	connectTimeout time.Duration) (*envoy.Cluster, error) {
 	cfg, err := ParseMeshGatewayConfig(cfgSnap.Proxy.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
@@ -471,9 +489,13 @@ func (s *Server) makeMeshGatewayCluster(clusterName string, cfgSnap *proxycfg.Co
 		s.Logger.Warn("failed to parse mesh gateway config", "error", err)
 	}
 
+	if connectTimeout <= 0 {
+		connectTimeout = time.Duration(cfg.ConnectTimeoutMs) * time.Millisecond
+	}
+
 	return &envoy.Cluster{
 		Name:                 clusterName,
-		ConnectTimeout:       time.Duration(cfg.ConnectTimeoutMs) * time.Millisecond,
+		ConnectTimeout:       connectTimeout,
 		ClusterDiscoveryType: &envoy.Cluster_Type{Type: envoy.Cluster_EDS},
 		EdsClusterConfig: &envoy.Cluster_EdsClusterConfig{
 			EdsConfig: &envoycore.ConfigSource{

@@ -6,6 +6,7 @@ import (
 	"sort"
 	"testing"
 	"text/template"
+	"time"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/hashicorp/consul/agent/proxycfg"
@@ -303,6 +304,28 @@ func TestClustersFromSnapshot(t *testing.T) {
 						Kind:          structs.ServiceResolver,
 						Name:          "notfound",
 						DefaultSubset: "v2",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"v1": structs.ServiceResolverSubset{
+								Filter: "Service.Meta.Version == 1",
+							},
+							"v2": structs.ServiceResolverSubset{
+								Filter:      "Service.Meta.Version == 2",
+								OnlyPassing: true,
+							},
+						},
+					},
+				}
+			},
+		},
+		{
+			name:   "mesh-gateway-service-timeouts",
+			create: proxycfg.TestConfigSnapshotMeshGateway,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.MeshGateway.ServiceResolvers = map[structs.ServiceID]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceID("bar", nil): &structs.ServiceResolverConfigEntry{
+						Kind:           structs.ServiceResolver,
+						Name:           "bar",
+						ConnectTimeout: 10 * time.Second,
 						Subsets: map[string]structs.ServiceResolverSubset{
 							"v1": structs.ServiceResolverSubset{
 								Filter: "Service.Meta.Version == 1",
