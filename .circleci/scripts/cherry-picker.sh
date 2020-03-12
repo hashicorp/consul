@@ -95,8 +95,8 @@ for label in $labels; do
     git config --local user.email "hashicorp-ci@users.noreply.github.com"
     git config --local user.name "hashicorp-ci"
     status "checking label: $label"
-    # if the label matches docs*, it will attempt to cherry-pick to stable-website
-    if [[ $label =~ docs* ]]; then
+    # if the label matches docs-cherrypick, it will attempt to cherry-pick to stable-website
+    if [[ $label == docs-cherrypick ]]; then
         status "backporting to stable-website"
         branch="stable-website"
         cherry_pick_with_slack_notification $branch $CIRCLE_SHA1 $pr_url
