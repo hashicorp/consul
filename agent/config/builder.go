@@ -1003,6 +1003,7 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 
 	// validContentPath defines a regexp for a valid content path name.
 	var validContentPath = regexp.MustCompile(`^[A-Za-z0-9/_-]+$`)
+	var InvalidDnsRe = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,62}[a-zA-Z0-9])?$`)
 	var hasVersion = regexp.MustCompile(`^/v\d+/$`)
 	// ----------------------------------------------------------------
 	// check required params we cannot recover from first
@@ -1037,6 +1038,12 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	}
 	if rt.NodeName == "" {
 		return fmt.Errorf("node_name cannot be empty")
+	}
+	if !InvalidDnsRe.MatchString(rt.NodeName) {
+		return fmt.Errorf("Node name will not be discoverable " +
+			"via DNS due to invalid characters. Valid characters include " +
+			"all alpha-numerics and dashes.",
+		)
 	}
 	if ipaddr.IsAny(rt.AdvertiseAddrLAN.IP) {
 		return fmt.Errorf("Advertise address cannot be 0.0.0.0, :: or [::]")
@@ -1318,6 +1325,7 @@ func (b *Builder) svcTaggedAddresses(v map[string]ServiceAddress) map[string]str
 }
 
 func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
+	var validDNSre = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,62}[a-zA-Z0-9])?$`)
 	if v == nil {
 		return nil
 	}
@@ -1349,10 +1357,29 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 	if err := structs.ValidateWeights(serviceWeights); err != nil {
 		b.err = multierror.Append(fmt.Errorf("Invalid weight definition for service %s: %s", b.stringVal(v.Name), err))
 	}
+
+	//validiate serviceName for DNS validity
+	serviceName := b.stringVal(v.Name)
+	if serviceName != "" && !validDNSre.MatchString(serviceName) {
+		b.err = multierror.Append(fmt.Errorf("Node name will not be discoverable " +
+			"via DNS due to invalid characters. Valid characters include " +
+			"all alpha-numerics and dashes."))
+
+	}
+
+	//validate tagName for DNS validity
+	for _, tagName := range v.Tags {
+		if tagName != "" && !validDNSre.MatchString(tagName) {
+			b.err = multierror.Append(fmt.Errorf("Node name will not be discoverable " +
+				"via DNS due to invalid characters. Valid characters include " +
+				"all alpha-numerics and dashes.",
+			))
+		}
+	}
 	return &structs.ServiceDefinition{
 		Kind:              b.serviceKindVal(v.Kind),
 		ID:                b.stringVal(v.ID),
-		Name:              b.stringVal(v.Name),
+		Name:              serviceName,
 		Tags:              v.Tags,
 		Address:           b.stringVal(v.Address),
 		TaggedAddresses:   b.svcTaggedAddresses(v.TaggedAddresses),

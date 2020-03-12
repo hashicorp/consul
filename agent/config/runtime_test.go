@@ -1379,6 +1379,46 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DataDir = dataDir
 			},
 		},
+		{
+			desc: "check service name for DNS validity",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"service": {
+					  "name": "/web/-1",
+					  "port": 1234
+				  }
+			  }`},
+			hcl: []string{`
+			  service {
+				  name = "/web/-1"
+				  port = 1234
+			  }
+		  `},
+			err: "Node name will not be discoverable " +
+				"via DNS due to invalid characters. Valid characters include " +
+				"all alpha-numerics and dashes.",
+		},
+		{
+			desc: "check tag name for DNS validity",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"service": {
+					  "name": "web",
+					  "port": 1234,
+					  "tags": ["/web!"]
+				  }
+			  }`},
+			hcl: []string{`
+			  service {
+				  name = "web"
+				  port = 1234
+				  tags = ["/web!"]
+			  }
+		  `},
+			err: "Node name will not be discoverable " +
+				"via DNS due to invalid characters. Valid characters include " +
+				"all alpha-numerics and dashes.",
+		},
 
 		// ------------------------------------------------------------
 		// precedence rules
@@ -1536,6 +1576,15 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.PrimaryDatacenter = "a"
 				rt.DataDir = dataDir
 			},
+		},
+		{
+			desc: "nodename cannot be invalid",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{ "node_name": "unix:///foo" }`},
+			hcl:  []string{`node_name = "unix:///foo"`},
+			err: "Node name will not be discoverable " +
+				"via DNS due to invalid characters. Valid characters include " +
+				"all alpha-numerics and dashes.",
 		},
 		{
 			desc: "acl_datacenter is lower-cased",
