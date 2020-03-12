@@ -8,11 +8,15 @@ IMPROVEMENTS:
 
 * agent: add option to configure max request length for `/v1/txn` endpoint [[GH-7388](https://github.com/hashicorp/consul/pull/7388)]
 * build: bump the expected go language version of the main module to 1.13 [[GH-7429](https://github.com/hashicorp/consul/issues/7429)]
+* agent: add http_config.response header to the UI headers [[GH-7369](https://github.com/hashicorp/consul/pull/7369)]
 
 BUGFIXES:
 
 * server: strip local ACL tokens from RPCs during forwarding if crossing datacenters [[GH-7419](https://github.com/hashicorp/consul/issues/7419)]
 * sessions: Fixed backwards incompatibility with 1.6.x and earlier [[GH-7395](https://github.com/hashicorp/consul/issues/7395)][[GH-7398](https://github.com/hashicorp/consul/pull/7398)]
+* ui: Fixed a DOM refreshing bug on the node detail page which forced an scroll reset [[GH-7365](https://github.com/hashicorp/consul/issues/7365)][[GH-7377](https://github.com/hashicorp/consul/pull/7377)]
+* ui: Fix blocking query requests for the coordinates API requests [[GH-7378](https://github.com/hashicorp/consul/pull/7378)]
+* ui: Enable recovery from an unreachable datacenter [[GH-7404](https://github.com/hashicorp/consul/pull/7404)]
 
 ## 1.7.1 (February 20, 2020)
 
