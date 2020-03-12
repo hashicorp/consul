@@ -33,30 +33,30 @@ jobs:
       - checkout
       - run: go get -u github.com/hashicorp/lint-consul-retry && lint-consul-retry
 
-  # Runs go fmt and go vet
-  go-fmt-and-vet:
+  # Runs Go linters
+  lint:
     docker:
       - image: *GOLANG_IMAGE
     steps:
       - checkout
       - run:
-          command: go mod download
-      - run:
-          name: check go fmt
+          name: Install golangci-lint
           command: |
-            files="$(go fmt ./... ; (cd api && go fmt ./... | sed 's@^@api/@') ; (cd sdk && go fmt ./... | sed 's@^@sdk/@'))"
-            if [ -n "$files" ]; then
-                echo "The following file(s) do not conform to go fmt:"
-                echo "$files"
-                exit 1
-            fi
+            download=https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh
+            wget -O- -q $download | sh -s -- -b /go/bin/ v1.23.6
+      - run: go mod download
       - run:
-          command: |
-            go vet ./... && \
-              (cd api && go vet ./...) && \
-              (cd sdk && go vet ./...)
-    environment:
-      <<: *ENVIRONMENT
+          name: lint
+          command: &lintcmd |
+            golangci-lint run -v --concurrency 2
+      - run:
+          name: lint api
+          working_directory: api
+          command: *lintcmd
+      - run:
+          name: lint sdk
+          working_directory: sdk
+          command: *lintcmd
 
   # checks vendor directory is correct
   check-vendor:
@@ -619,15 +619,13 @@ workflows:
                 - stable-website
                 - /^docs\/.*/
                 - /^ui\/.*/
-      - go-fmt-and-vet:
-          requires:
-            - check-vendor
-      - dev-build:
-          requires:
-            - go-fmt-and-vet
+      - lint
+      - dev-build
       - go-test: &go-test
           requires:
             - dev-build
+            - lint
+            - check-vendor
       - go-test-api: *go-test
       - go-test-sdk: *go-test
       - coverage-merge:
