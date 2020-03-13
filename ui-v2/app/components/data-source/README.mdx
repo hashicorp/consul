@@ -18,13 +18,13 @@
 | `onchange` | `Function` |  | The action to fire when the data changes. Emits an Event-like object with a `data` property containing the data. |
 | `onerror` | `Function` |  | The action to fire when an error occurs. Emits ErrorEvent object with an `error` property containing the Error. |
 
-The component takes a `src` or an identitier (a uri) for some data and then emits `onchange` events whenever that data changes. If an error occurs whilst listening for data changes, an `onerror` event is emitted.
+The component takes a `src` or an identifier (a uri) for some data and then emits `onchange` events whenever that data changes. If an error occurs whilst listening for data changes, an `onerror` event is emitted.
 
 Setting `@loading="lazy"` uses `IntersectionObserver` to activate/deactive event emitting until the `<DataSource />` element is displayed in the DOM. This means you can use CSS `display: none|block;` to control the loading and stopping loading of data for usage with CSS based tabs and such-like.
 
 Consuls HTTP API DataSources use Consul's blocking query support for live updating of data.
 
-Behind the scenes in the Consul UI we map URIs back to our `ember-data` backed `Repositories` meaning we can essentially redesign the URIs used for our data to more closely fit our needs. For example we currently require that **all** HTTP API URIs begin with `/dc/nspace/` values whether the require them or not.
+Behind the scenes in the Consul UI we map URIs back to our `ember-data` backed `Repositories` meaning we can essentially redesign the URIs used for our data to more closely fit our needs. For example we currently require that **all** HTTP API URIs begin with `/dc/nspace/` values whether they require them or not.
 
 `DataSource` is not just restricted to HTTP API data, and can be configured to listen for data changes using a variety of methods and sources. For example we have also configured `DataSource` to listen to `LocalStorage` changes using the `settings://` pseudo-protocol in the URI (See examples below).
 
