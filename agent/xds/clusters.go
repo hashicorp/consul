@@ -161,33 +161,31 @@ func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 		clusterName := connect.ServiceSNI(svc.ID, "", svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 		resolver, hasResolver := cfgSnap.MeshGateway.ServiceResolvers[svc]
 
-		// Create the cluster using mesh gateway configs for default/unnamed services
-		// without a service-router
-		if !hasResolver {
-			cluster, err := s.makeMeshGatewayCluster(clusterName, cfgSnap)
-			if err != nil {
-				return nil, err
-			}
-			clusters = append(clusters, cluster)
-			continue
+		// Create the cluster for default/unnamed services
+		var cluster *envoy.Cluster
+		var err error
+		if hasResolver {
+			cluster, err = s.makeMeshGatewayClusterWithConnectTimeout(clusterName, cfgSnap, resolver.ConnectTimeout)
+		} else {
+			cluster, err = s.makeMeshGatewayCluster(clusterName, cfgSnap)
 		}
-
-		// Create the cluster using the configured timeout of the service-router
-		cluster, err := s.makeMeshGatewayClusterWithConnectTimeout(clusterName, cfgSnap, resolver.ConnectTimeout)
 		if err != nil {
 			return nil, err
 		}
 		clusters = append(clusters, cluster)
 
-		// Setup 1 cluster for each service subset
-		for subsetName := range resolver.Subsets {
-			clusterName := connect.ServiceSNI(svc.ID, subsetName, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+		// if there is a service-resolver for this service then also setup subset clusters for it
+		if hasResolver {
+			// generate 1 cluster for each service subset
+			for subsetName := range resolver.Subsets {
+				clusterName := connect.ServiceSNI(svc.ID, subsetName, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 
-			cluster, err := s.makeMeshGatewayClusterWithConnectTimeout(clusterName, cfgSnap, resolver.ConnectTimeout)
-			if err != nil {
-				return nil, err
+				cluster, err := s.makeMeshGatewayClusterWithConnectTimeout(clusterName, cfgSnap, resolver.ConnectTimeout)
+				if err != nil {
+					return nil, err
+				}
+				clusters = append(clusters, cluster)
 			}
-			clusters = append(clusters, cluster)
 		}
 	}
 
