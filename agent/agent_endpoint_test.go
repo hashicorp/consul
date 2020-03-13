@@ -8,9 +8,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -1370,6 +1372,126 @@ func TestAgent_Reload(t *testing.T) {
 	for _, wp := range a.watchPlans {
 		if !wp.IsStopped() {
 			t.Fatalf("Reloading configs should stop watch plans of the previous configuration")
+		}
+	}
+}
+
+// TestAgent_ReloadDoesNotTriggerWatch Ensure watches not triggered after reload
+// see https://github.com/hashicorp/consul/issues/7446
+func TestAgent_ReloadDoesNotTriggerWatch(t *testing.T) {
+	t.Parallel()
+	dc1 := "dc1"
+	checkInterval := "1s" // This value ensure we could detect as transient critical state
+	tmpFileRaw, err := ioutil.TempFile("", "rexec")
+	if err != nil {
+		t.Fatalf("failed to make tmp file: %#v", err)
+	}
+	tmpFile := tmpFileRaw.Name()
+	defer os.Remove(tmpFile)
+	handlerShell := fmt.Sprintf("cat | tee '%s.atomic' ; mv '%s.atomic' '%s'", tmpFile, tmpFile, tmpFile)
+
+	a := NewTestAgent(t, t.Name(), `
+		acl_enforce_version_8 = false
+		enable_local_script_checks = true
+		services = [
+			{
+				name = "redis"
+				checks = [
+					{
+						name = "red-is-dead"
+						args = ["true"]
+						interval = "`+checkInterval+`"
+					}
+				]
+			}
+		]
+		watches = [
+			{
+				datacenter = "`+dc1+`"
+				type = "service"
+				service = "redis"
+				args = ["bash", "-c", "`+handlerShell+`"]
+			}
+		]
+	`)
+	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, dc1)
+
+	ensureNothingCritical := func(additionalCheck string) {
+		t.Helper()
+		contents, err := ioutil.ReadFile(tmpFile)
+		if err != nil {
+			t.Fatalf("should be able to read file, but had: %#v", err)
+		}
+		contentsStr := string(contents)
+		assert.Falsef(t, len(contentsStr) == 0, "file '%s' content should not be empty", tmpFile)
+		assert.NotContains(t, contentsStr, "critical")
+		assert.Contains(t, contentsStr, additionalCheck)
+	}
+
+	sleepTime, err := time.ParseDuration(checkInterval)
+	if err != nil {
+		t.Fatal("duration should be parsed")
+	}
+	// Let's be sure the healthcheck has been run
+	time.Sleep(sleepTime * 2)
+
+	ensureNothingCritical(api.HealthPassing)
+	ensureNothingCritical("red-is-dead")
+
+	// Let's take almost the same config
+	cfg2 := TestConfig(testutil.Logger(t), config.Source{
+		Name:   "reload",
+		Format: "hcl",
+		Data: `
+			data_dir = "` + a.Config.DataDir + `"
+			node_id = "` + string(a.Config.NodeID) + `"
+			node_name = "` + a.Config.NodeName + `"
+
+			acl_enforce_version_8 = false
+			enable_local_script_checks = true
+			services = [
+				{
+					name = "redis"
+					checks = [
+						{
+							name = "red-is-dead"
+							args = ["true"]
+							interval = "` + checkInterval + `"
+						}
+					]
+				}
+			]
+			watches = [
+				{
+					datacenter = "` + dc1 + `"
+					type = "service"
+					service = "redis"
+					args = ["bash", "-c", "` + handlerShell + `"]
+				}
+			]
+		`,
+	})
+
+	if err := a.ReloadConfig(cfg2); err != nil {
+		t.Fatalf("got error %v want nil", err)
+	}
+	// We check that reload does not go to critical
+	ensureNothingCritical(api.HealthPassing)
+	testrpc.WaitForTestAgent(t, a.RPC, dc1)
+	// Be sure that checks do not become critical after Agent being reloaded
+	ensureNothingCritical(api.HealthPassing)
+	ensureNothingCritical("red-is-dead")
+
+	// Let's be sure the healthcheck has been run
+	time.Sleep(sleepTime)
+	ensureNothingCritical(api.HealthPassing)
+	ensureNothingCritical("red-is-dead")
+
+	for _, wp := range a.watchPlans {
+		if wp.IsStopped() {
+			t.Fatalf("Reloading configs should not stop watch plans of the previous configuration")
 		}
 	}
 }
