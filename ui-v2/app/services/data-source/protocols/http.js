@@ -6,7 +6,7 @@ export default Service.extend({
   token: service('repository/token'),
   type: service('data-source/protocols/http/blocking'),
   source: function(src, configuration) {
-    const [, dc, nspace, model, ...rest] = src.split('/');
+    const [, dc /*nspace*/, , model, ...rest] = src.split('/');
     let find;
     const repo = this[model];
     if (typeof repo.reconcile === 'function') {
