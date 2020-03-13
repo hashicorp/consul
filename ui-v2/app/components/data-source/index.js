@@ -87,8 +87,6 @@ export default Component.extend({
           }
         })
       );
-    } else {
-      this.actions.open.bind(this)();
     }
   },
   didReceiveAttrs: function() {
@@ -96,7 +94,7 @@ export default Component.extend({
     if (this.loading === 'eager') {
       this._lazyListeners.remove();
     }
-    if (this.element && (this.loading === 'eager' || this.isIntersecting)) {
+    if (this.loading === 'eager' || this.isIntersecting) {
       this.actions.open.bind(this)();
     }
   },
