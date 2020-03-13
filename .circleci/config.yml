@@ -39,15 +39,8 @@ jobs:
       - image: *GOLANG_IMAGE
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - consul-modcache-v1-{{ checksum "go.mod" }}
       - run:
           command: go mod download
-      - save_cache:
-          key: consul-modcache-v1-{{ checksum "go.mod" }}
-          paths:
-            - /go/pkg/mod
       - run:
           name: check go fmt
           command: |
@@ -73,15 +66,8 @@ jobs:
       <<: *ENVIRONMENT
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - consul-modcache-v1-{{ checksum "go.mod" }}
       - run:
           command: make update-vendor
-      - save_cache:
-          key: consul-modcache-v1-{{ checksum "go.mod" }}
-          paths:
-            - /go/pkg/mod
       - run: |
           if ! git diff --exit-code; then
             echo "Git directory has vendor changes"
@@ -99,9 +85,6 @@ jobs:
       GOMAXPROCS: 2 # medium (default) boxes are 2 vCPUs, 4GB RAM https://circleci.com/docs/2.0/configuration-reference/#docker-executor
     steps:
       - checkout
-      - restore_cache: # restore cache from earlier job
-          keys:
-            - consul-modcache-v1-{{ checksum "go.mod" }}
       - attach_workspace:
           at: /go/bin
       - run: mkdir -p $TEST_RESULTS_DIR
@@ -133,9 +116,6 @@ jobs:
       GOTAGS: "" # No tags for OSS but there are for enterprise
     steps:
       - checkout
-      - restore_cache: # restore cache from dev-build job
-          keys:
-            - consul-modcache-v1-{{ checksum "go.mod" }}
       - attach_workspace:
           at: /go/bin
       - run: mkdir -p $TEST_RESULTS_DIR
@@ -165,9 +145,6 @@ jobs:
       GOTAGS: "" # No tags for OSS but there are for enterprise
     steps:
       - checkout
-      - restore_cache: # restore cache from dev-build job
-          keys:
-            - consul-modcache-v1-{{ checksum "go.mod" }}
       - attach_workspace:
           at: /go/bin
       - run: mkdir -p $TEST_RESULTS_DIR
@@ -219,9 +196,6 @@ jobs:
       <<: *ENVIRONMENT
     steps:
       - checkout
-      - restore_cache: # restore cache from dev-build job
-          keys:
-            - consul-modcache-v1-{{ checksum "go.mod" }}
       - run: ./build-support/scripts/build-local.sh
 
       # save dev build to CircleCI
@@ -283,15 +257,8 @@ jobs:
       <<: *ENVIRONMENT
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - consul-modcache-v1-{{ checksum "go.mod" }}
       - run:
           command: make dev
-      - save_cache:
-          key: consul-modcache-v1-{{ checksum "go.mod" }}
-          paths:
-            - /go/pkg/mod
 
       # save dev build to pass to downstream jobs
       - persist_to_workspace:
@@ -618,9 +585,6 @@ jobs:
       - run: mkdir -p $TEST_RESULTS_DIR
       # Gather deps to run go tests
       - checkout
-      - restore_cache:
-          keys:
-            - consul-modcache-v1-{{ checksum "go.mod" }}
       # Run go tests
       - run: make test-vault-ca-provider
       - store_test_results:
