@@ -43,7 +43,7 @@ module('Integration | Component | data-source', function(hooks) {
     const addEventListener = this.stub();
     const removeEventListener = this.stub();
     let count = 0;
-    const blockingStub = Service.extend({
+    const fakeService = Service.extend({
       open: function(uri, obj) {
         open(uri);
         const source = new BlockingEventSource();
@@ -56,7 +56,8 @@ module('Integration | Component | data-source', function(hooks) {
       },
       close: close,
     });
-    this.owner.register('service:blocking', blockingStub);
+    this.owner.register('service:data-source/fake-service', fakeService);
+    this.owner.inject('component:data-source', 'data', 'service:data-source/fake-service');
     this.actions.change = data => {
       count++;
       switch (count) {
@@ -71,7 +72,7 @@ module('Integration | Component | data-source', function(hooks) {
     };
 
     this.set('src', 'a');
-    await render(hbs`{{data-source src=src onchange=(action 'change' value="data")}}`);
+    await render(hbs`<DataSource @src={{src}} @onchange={{action "change" value="data"}} />`);
     assert.equal(this.element.textContent.trim(), '');
     await waitUntil(() => {
       return close.calledTwice;
@@ -91,7 +92,7 @@ module('Integration | Component | data-source', function(hooks) {
     const source = new RealEventSource();
     const error = this.stub();
     const close = this.stub();
-    const blockingStub = Service.extend({
+    const fakeService = Service.extend({
       open: function(uri, obj) {
         source.getCurrentEvent = function() {
           return {};
@@ -100,13 +101,14 @@ module('Integration | Component | data-source', function(hooks) {
       },
       close: close,
     });
-    this.owner.register('service:blocking', blockingStub);
+    this.owner.register('service:data-source/fake-service', fakeService);
+    this.owner.inject('component:data-source', 'data', 'service:data-source/fake-service');
     this.actions.change = data => {
       source.dispatchEvent({ type: 'error', error: {} });
     };
     this.actions.error = error;
     await render(
-      hbs`{{data-source src="" onchange=(action 'change' value="data") onerror=(action 'error' value="error")}}`
+      hbs`<DataSource @src="" @onchange={{action "change" value="data"}} @onerror={{action "error" value="error"}} />`
     );
     await waitUntil(() => {
       return error.calledOnce;
