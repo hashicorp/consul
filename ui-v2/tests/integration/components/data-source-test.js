@@ -63,7 +63,7 @@ module('Integration | Component | data-source', function(hooks) {
       switch (count) {
         case 1:
           assert.equal(data, 'a', 'change was called first with "a"');
-          this.set('src', 'b');
+          setTimeout(() => this.set('src', 'b'), 0);
           break;
         case 2:
           assert.equal(data, 'b', 'change was called second with "b"');
