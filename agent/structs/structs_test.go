@@ -1817,6 +1817,55 @@ func TestServiceNode_JSON_Marshal(t *testing.T) {
 	require.Equal(t, *sn, out)
 }
 
+func TestServiceNode_ValidateNames(t *testing.T) {
+	cases := []struct {
+		Name   string
+		Modify func(*NodeService)
+		Err    string
+	}{
+		{
+			"control",
+			func(x *NodeService) {
+				x.ID = "servicename"
+				x.Tags = []string{"foo"}
+			},
+			"",
+		},
+		{
+			"invalid service name",
+			func(x *NodeService) {
+				x.ID = "$3r1c3n4m3!1337"
+				x.Tags = []string{"foo"}
+			},
+			"Invalid service name. Valid characters include " +
+				"all alpha-numerics and dashes.",
+		},
+		{
+			"invalid tag name",
+			func(x *NodeService) {
+				x.ID = "servicename"
+				x.Tags = []string{"f00f1g-ht3r5/r00lz!"}
+			},
+			"Invalid tag name. Valid characters include " +
+				"all alpha-numerics and dashes.",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			assert := assert.New(t)
+			ns := TestNodeService(t)
+			tc.Modify(ns)
+			err := ns.Validate()
+			assert.Equal(err != nil, tc.Err != "", err)
+			if err == nil {
+				return
+			}
+
+			assert.Contains(strings.ToLower(err.Error()), strings.ToLower(tc.Err))
+		})
+	}
+}
+
 // frankensteinStruct is an amalgamation of all of the different kinds of
 // fields you could have on struct defined in the agent/structs package that we
 // send through msgpack

@@ -384,17 +384,9 @@ func (a *Agent) Start() error {
 
 	// Warn if the node name is incompatible with DNS
 	if InvalidDnsRe.MatchString(a.config.NodeName) {
-		a.logger.Warn("Node name will not be discoverable "+
-			"via DNS due to invalid characters. Valid characters include "+
-			"all alpha-numerics and dashes.",
-			"node_name", a.config.NodeName,
-		)
+		return fmt.Errorf("Invalid node name %q - contains invalid characters", a.config.NodeName)
 	} else if len(a.config.NodeName) > MaxDNSLabelLength {
-		a.logger.Warn("Node name will not be discoverable "+
-			"via DNS due to it being too long. Valid lengths are between "+
-			"1 and 63 bytes.",
-			"node_name", a.config.NodeName,
-		)
+		a.logger.Warn("Invalid node name %q node_name - exceeds max length of 63 characters", a.config.NodeName)
 	}
 
 	// load the tokens - this requires the logger to be setup
@@ -2578,35 +2570,19 @@ func (a *Agent) validateService(service *structs.NodeService, chkTypes []*struct
 		service.Weights = &structs.Weights{Passing: 1, Warning: 1}
 	}
 
-	// Warn if the service name is incompatible with DNS
+	// Er if the service name is incompatible with DNS
 	if InvalidDnsRe.MatchString(service.Service) {
-		a.logger.Warn("Service name will not be discoverable "+
-			"via DNS due to invalid characters. Valid characters include "+
-			"all alpha-numerics and dashes.",
-			"service", service.Service,
-		)
+		return fmt.Errorf("Invalid service name service: %q - contains invalid characters", service.Service)
 	} else if len(service.Service) > MaxDNSLabelLength {
-		a.logger.Warn("Service name will not be discoverable "+
-			"via DNS due to it being too long. Valid lengths are between "+
-			"1 and 63 bytes.",
-			"service", service.Service,
-		)
+		return fmt.Errorf("Invalid service name service: %q - exceeds max length of 63 characters", service.Service)
 	}
 
 	// Warn if any tags are incompatible with DNS
 	for _, tag := range service.Tags {
 		if InvalidDnsRe.MatchString(tag) {
-			a.logger.Debug("Service tag will not be discoverable "+
-				"via DNS due to invalid characters. Valid characters include "+
-				"all alpha-numerics and dashes.",
-				"tag", tag,
-			)
+			return fmt.Errorf("Service tag will not be discoverable tag %q - contains invalid characters", tag)
 		} else if len(tag) > MaxDNSLabelLength {
-			a.logger.Debug("Service tag will not be discoverable "+
-				"via DNS due to it being too long. Valid lengths are between "+
-				"1 and 63 bytes.",
-				"tag", tag,
-			)
+			return fmt.Errorf("Service tag will not be discoverable tag %q - exceeds max length of 63 characters", tag)
 		}
 	}
 

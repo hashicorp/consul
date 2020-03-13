@@ -1027,6 +1027,18 @@ func (s *NodeService) IsMeshGateway() bool {
 // other validation still exists in Catalog.Register.
 func (s *NodeService) Validate() error {
 	var result error
+	var validDNSre = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,62}[a-zA-Z0-9])?$`)
+
+	if !validDNSre.MatchString(s.ID) {
+		result = multierror.Append(result, fmt.Errorf("Invalid service name. Valid characters include "+
+			"all alpha-numerics and dashes."))
+	}
+	for _, tagName := range s.Tags {
+		if !validDNSre.MatchString(tagName) {
+			result = multierror.Append(result, fmt.Errorf("Invalid tag name. Valid characters include "+
+				"all alpha-numerics and dashes."))
+		}
+	}
 
 	// ConnectProxy validation
 	if s.Kind == ServiceKindConnectProxy {
