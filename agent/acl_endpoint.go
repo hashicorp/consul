@@ -269,14 +269,6 @@ func (s *HTTPServer) ACLPolicyRead(resp http.ResponseWriter, req *http.Request, 
 	return out.Policy, nil
 }
 
-func (s *HTTPServer) ACLPolicyCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
-	}
-
-	return s.aclPolicyWriteInternal(resp, req, "", true)
-}
-
 func (s *HTTPServer) ACLPolicyReadByName(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
@@ -292,6 +284,14 @@ func (s *HTTPServer) ACLPolicyReadByName(resp http.ResponseWriter, req *http.Req
 
 func (s *HTTPServer) ACLPolicyReadByID(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error) {
 	return s.ACLPolicyRead(resp, req, policyID, "")
+}
+
+func (s *HTTPServer) ACLPolicyCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if s.checkACLDisabled(resp, req) {
+		return nil, nil
+	}
+
+	return s.aclPolicyWriteInternal(resp, req, "", true)
 }
 
 func (s *HTTPServer) ACLPolicyWrite(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error) {
