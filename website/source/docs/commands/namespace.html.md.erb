@@ -54,32 +54,32 @@ Create a Namespace
 $ consul namespace create -name team1
 ```
 
-  Create or Update a Namespace from its full definition:
+Create or Update a Namespace from its full definition:
 
-  ```sh
+```sh
 $ consul namespace write ns1.hcl
 ```
 
-  Read a Namespace:
+Read a Namespace:
 
-  ```sh
+```sh
 $ consul namespace read ns1
 ```
 
-  List all Namespaces:
+List all Namespaces:
 
-  ```sh
+```sh
 $ consul namespace list
 ```
 
-  Update a namespace
+Update a namespace
 
-  ```sh
+```sh
 $ consul namespace update -name team1 -description "first namespace"
 ```
 
-  Delete a Namespace:
+Delete a Namespace:
 
-  ```sh
-$ consul namespace delete ns1
+```sh
+$ consul namespace delete team1
 ```
