@@ -228,10 +228,10 @@ Usage: consul tls cert create [options]
       and all ACL tokens. Do not distribute them to production hosts
       that are not server nodes. Store them as securely as CA keys.
   ==> Using consul-agent-ca.pem and consul-agent-ca-key.pem
-  ==> Saved consul-server-dc1-0.pem
-  ==> Saved consul-server-dc1-0-key.pem
+  ==> Saved dc1-server-consul-0.pem
+  ==> Saved dc1-server-consul-0-key.pem
   $ consul tls cert -client
   ==> Using consul-agent-ca.pem and consul-agent-ca-key.pem
-  ==> Saved consul-client-dc1-0.pem
-  ==> Saved consul-client-dc1-0-key.pem
+  ==> Saved dc1-client-consul-0.pem
+  ==> Saved dc1-client-consul-0-key.pem
 `
