@@ -1,0 +1,712 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <ul class="nav docs-sidenav g-type-body-small">
+      <li<%= sidebar_current('docs-install') %>>
+        <a href="/docs/install/index.html">Installing Consul</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-install-ports") %>>
+            <a href="/docs/install/ports.html">Required Ports</a>
+          </li>
+          <li<%= sidebar_current("docs-install-bootstrapping") %>>
+            <a href="/docs/install/bootstrapping.html">Bootstrapping a Datacenter</a>
+          </li>
+          <li<%= sidebar_current("docs-install-performance") %>>
+            <a href="/docs/install/performance.html">Server Performance</a>
+          </li>
+        </ul>
+      </li>
+
+      <li<%= sidebar_current("docs-upgrading") %>>
+        <a href="/docs/upgrading.html">Upgrading</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-upgrading-upgrading") %>>
+            <a href="/docs/upgrading.html">Upgrading Consul</a>
+          </li>
+          <li<%= sidebar_current("docs-upgrading-compat") %>>
+            <a href="/docs/compatibility.html">Compatibility Promise</a>
+          </li>
+          <li<%= sidebar_current("docs-upgrading-specific") %>>
+            <a href="/docs/upgrade-specific.html">Specific Version Details</a>
+          </li>
+        </ul>
+      </li>
+
+      <li<%= sidebar_current("docs-glossary") %>>
+        <a href="/docs/glossary.html">Glossary</a>
+      </li>
+
+      <li<%= sidebar_current("docs-internals") %>>
+        <a href="/docs/internals/index.html">Internals</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-internals-architecture") %>>
+            <a href="/docs/internals/architecture.html">Architecture</a>
+          </li>
+          <li<%= sidebar_current("docs-internals-consensus") %>>
+            <a href="/docs/internals/consensus.html">Consensus Protocol</a>
+          </li>
+          <li<%= sidebar_current("docs-internals-gossip") %>>
+            <a href="/docs/internals/gossip.html">Gossip Protocol</a>
+          </li>
+          <li<%= sidebar_current("docs-internals-coordinates") %>>
+            <a href="/docs/internals/coordinates.html">Network Coordinates</a>
+          </li>
+          <li<%= sidebar_current("docs-internals-sessions") %>>
+            <a href="/docs/internals/sessions.html">Sessions</a>
+          </li>
+          <li<%= sidebar_current("docs-internals-anti-entropy") %>>
+            <a href="/docs/internals/anti-entropy.html">Anti-Entropy</a>
+          </li>
+          <li<%= sidebar_current("docs-internals-security") %>>
+            <a href="/docs/internals/security.html">Security Model</a>
+          </li>
+          <li<%= sidebar_current("docs-internals-jepsen") %>>
+            <a href="/docs/internals/jepsen.html">Jepsen Testing</a>
+          </li>
+          <li<%= sidebar_current("docs-internals-discovery-chain") %>>
+            <a href="/docs/internals/discovery-chain.html">Discovery Chain</a>
+          </li>
+        </ul>
+      </li>
+
+      <li<%= sidebar_current("docs-commands") %>>
+        <a href="/docs/commands/index.html">Commands (CLI)</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-commands-acl") %>>
+            <a href="/docs/commands/acl.html">acl</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-commands-acl-auth-method") %>>
+                <a href="/docs/commands/acl/auth-method.html">auth-method</a>
+                <ul class="nav">
+                    <li<%= sidebar_current("docs-commands-acl-auth-method-create") %>>
+                        <a href="/docs/commands/acl/auth-method/create.html">create</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-auth-method-delete") %>>
+                        <a href="/docs/commands/acl/auth-method/delete.html">delete</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-auth-method-list") %>>
+                        <a href="/docs/commands/acl/auth-method/list.html">list</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-auth-method-read") %>>
+                        <a href="/docs/commands/acl/auth-method/read.html">read</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-auth-method-update") %>>
+                        <a href="/docs/commands/acl/auth-method/update.html">update</a>
+                    </li>
+                </ul>
+              </li>
+              <li<%= sidebar_current("docs-commands-acl-binding-rule") %>>
+                <a href="/docs/commands/acl/binding-rule.html">binding-rule</a>
+                <ul class="nav">
+                    <li<%= sidebar_current("docs-commands-acl-binding-rule-create") %>>
+                        <a href="/docs/commands/acl/binding-rule/create.html">create</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-binding-rule-delete") %>>
+                        <a href="/docs/commands/acl/binding-rule/delete.html">delete</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-binding-rule-list") %>>
+                        <a href="/docs/commands/acl/binding-rule/list.html">list</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-binding-rule-read") %>>
+                        <a href="/docs/commands/acl/binding-rule/read.html">read</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-binding-rule-update") %>>
+                        <a href="/docs/commands/acl/binding-rule/update.html">update</a>
+                    </li>
+                </ul>
+              </li>
+              <li<%= sidebar_current("docs-commands-acl-bootstrap") %>>
+                <a href="/docs/commands/acl/bootstrap.html">bootstrap</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-acl-policy") %>>
+                <a href="/docs/commands/acl/policy.html">policy</a>
+                <ul class="nav">
+                    <li<%= sidebar_current("docs-commands-acl-policy-create") %>>
+                        <a href="/docs/commands/acl/policy/create.html">create</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-policy-delete") %>>
+                        <a href="/docs/commands/acl/policy/delete.html">delete</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-policy-list") %>>
+                        <a href="/docs/commands/acl/policy/list.html">list</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-policy-read") %>>
+                        <a href="/docs/commands/acl/policy/read.html">read</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-policy-update") %>>
+                        <a href="/docs/commands/acl/policy/update.html">update</a>
+                    </li>
+                </ul>
+              </li>
+              <li<%= sidebar_current("docs-commands-acl-role") %>>
+                <a href="/docs/commands/acl/role.html">role</a>
+                <ul class="nav">
+                    <li<%= sidebar_current("docs-commands-acl-role-create") %>>
+                        <a href="/docs/commands/acl/role/create.html">create</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-role-delete") %>>
+                        <a href="/docs/commands/acl/role/delete.html">delete</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-role-list") %>>
+                        <a href="/docs/commands/acl/role/list.html">list</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-role-read") %>>
+                        <a href="/docs/commands/acl/role/read.html">read</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-role-update") %>>
+                        <a href="/docs/commands/acl/role/update.html">update</a>
+                    </li>
+                </ul>
+              </li>
+              <li<%= sidebar_current("docs-commands-acl-set-agent-token") %>>
+                <a href="/docs/commands/acl/set-agent-token.html">set-agent-token</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-acl-token") %>>
+                <a href="/docs/commands/acl/token.html">token</a>
+                <ul class="nav">
+                    <li<%= sidebar_current("docs-commands-acl-token-clone") %>>
+                        <a href="/docs/commands/acl/token/clone.html">clone</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-token-create") %>>
+                        <a href="/docs/commands/acl/token/create.html">create</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-token-delete") %>>
+                        <a href="/docs/commands/acl/token/delete.html">delete</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-token-list") %>>
+                        <a href="/docs/commands/acl/token/list.html">list</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-token-read") %>>
+                        <a href="/docs/commands/acl/token/read.html">read</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-token-update") %>>
+                        <a href="/docs/commands/acl/token/update.html">update</a>
+                    </li>
+                </ul>
+              </li>
+              <li<%= sidebar_current("docs-commands-acl-translate-rules") %>>
+                <a href="/docs/commands/acl/translate-rules.html">translate-rules</a>
+              </li>
+            </ul>
+          </li>
+          <li<%= sidebar_current("docs-commands-agent") %>>
+            <a href="/docs/commands/agent.html">agent</a>
+          </li>
+          <li<%= sidebar_current("docs-commands-catalog") %>>
+            <a href="/docs/commands/catalog.html">catalog</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-commands-catalog-datacenters") %>>
+                <a href="/docs/commands/catalog/datacenters.html">datacenters</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-catalog-nodes") %>>
+                <a href="/docs/commands/catalog/nodes.html">nodes</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-catalog-services") %>>
+                <a href="/docs/commands/catalog/services.html">services</a>
+              </li>
+            </ul>
+          </li>
+          <li<%= sidebar_current("docs-commands-config") %>>
+            <a href="/docs/commands/config.html">config</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-commands-config-delete") %>>
+                <a href="/docs/commands/config/delete.html">delete</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-config-list") %>>
+                <a href="/docs/commands/config/list.html">list</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-config-read") %>>
+                <a href="/docs/commands/config/read.html">read</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-config-write") %>>
+                <a href="/docs/commands/config/write.html">write</a>
+              </li>
+            </ul>
+          </li>
+          <li<%= sidebar_current("docs-commands-connect") %>>
+            <a href="/docs/commands/connect.html">connect</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-commands-connect-ca") %>>
+                <a href="/docs/commands/connect/ca.html">ca</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-connect-proxy") %>>
+                <a href="/docs/commands/connect/proxy.html">proxy</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-connect-envoy") %>>
+                <a href="/docs/commands/connect/envoy.html">envoy</a>
+              </li>
+            </ul>
+          </li>
+          <li<%= sidebar_current("docs-commands-debug") %>>
+            <a href="/docs/commands/debug.html">debug</a>
+          </li>
+          <li<%= sidebar_current("docs-commands-event") %>>
+            <a href="/docs/commands/event.html">event</a>
+          </li>
+          <li<%= sidebar_current("docs-commands-exec") %>>
+            <a href="/docs/commands/exec.html">exec</a>
+          </li>
+          <li<%= sidebar_current("docs-commands-forceleave") %>>
+            <a href="/docs/commands/force-leave.html">force-leave</a>
+          </li>
+          <li<%= sidebar_current("docs-commands-info") %>>
+            <a href="/docs/commands/info.html">info</a>
+          </li>
+          <li<%= sidebar_current("docs-commands-intention") %>>
+            <a href="/docs/commands/intention.html">intention</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-commands-intention-check") %>>
+                <a href="/docs/commands/intention/check.html">check</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-intention-create") %>>
+                <a href="/docs/commands/intention/create.html">create</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-intention-delete") %>>
+                <a href="/docs/commands/intention/delete.html">delete</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-intention-get") %>>
+                <a href="/docs/commands/intention/get.html">get</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-intention-match") %>>
+                <a href="/docs/commands/intention/match.html">match</a>
+              </li>
+            </ul>
+          </li>
+
+          <li<%= sidebar_current("docs-commands-join") %>>
+            <a href="/docs/commands/join.html">join</a>
+          </li>
+          <li<%= sidebar_current("docs-commands-keygen") %>>
+            <a href="/docs/commands/keygen.html">keygen</a>
+          </li>
+          <li<%= sidebar_current("docs-commands-keyring") %>>
+            <a href="/docs/commands/keyring.html">keyring</a>
+          </li>
+          <li<%= sidebar_current("docs-commands-kv") %>>
+            <a href="/docs/commands/kv.html">kv</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-commands-kv-delete") %>>
+                <a href="/docs/commands/kv/delete.html">delete</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-kv-export") %>>
+                <a href="/docs/commands/kv/export.html">export</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-kv-get") %>>
+                <a href="/docs/commands/kv/get.html">get</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-kv-import") %>>
+                <a href="/docs/commands/kv/import.html">import</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-kv-put") %>>
+                <a href="/docs/commands/kv/put.html">put</a>
+              </li>
+            </ul>
+          </li>
+
+          <li<%= sidebar_current("docs-commands-leave") %>>
+            <a href="/docs/commands/leave.html">leave</a>
+          </li>
+          <li<%= sidebar_current("docs-commands-license") %>>
+            <a href="/docs/commands/license.html">license</a>
+          </li>
+          <li<%= sidebar_current("docs-commands-lock") %>>
+            <a href="/docs/commands/lock.html">lock</a>
+          </li>
+          <li<%= sidebar_current("docs-commands-login") %>>
+            <a href="/docs/commands/login.html">login</a>
+          </li>
+          <li<%= sidebar_current("docs-commands-logout") %>>
+            <a href="/docs/commands/logout.html">logout</a>
+          </li>
+          <li<%= sidebar_current("docs-commands-maint") %>>
+            <a href="/docs/commands/maint.html">maint</a>
+          </li>
+          <li<%= sidebar_current("docs-commands-members") %>>
+            <a href="/docs/commands/members.html">members</a>
+          </li>
+          <li<%= sidebar_current("docs-commands-monitor") %>>
+            <a href="/docs/commands/monitor.html">monitor</a>
+          </li>
+          
+          <li<%=sidebar_current("docs-commands-namespace") %>>
+            <a href="/docs/commands/namespace.html">namespace</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-commands-namespace-create") %>>
+                <a href="/docs/commands/namespace/create.html">create</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-namespace-delete") %>>
+                <a href="/docs/commands/namespace/delete.html">delete</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-namespace-list") %>>
+                <a href="/docs/commands/namespace/list.html">list</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-namespace-read") %>>
+                <a href="/docs/commands/namespace/read.html">read</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-namespace-update") %>>
+                <a href="/docs/commands/namespace/update.html">update</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-namespace-write") %>>
+                <a href="/docs/commands/namespace/write.html">write</a>
+              </li>
+            </ul>
+          </li>
+
+          <li<%= sidebar_current("docs-commands-operator") %>>
+            <a href="/docs/commands/operator.html">operator</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-commands-operator-area") %>>
+                <a href="/docs/commands/operator/area.html">area</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-operator-autopilot") %>>
+                <a href="/docs/commands/operator/autopilot.html">autopilot</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-operator-raft") %>>
+                <a href="/docs/commands/operator/raft.html">raft</a>
+              </li>
+            </ul>
+          </li>
+
+          <li<%= sidebar_current("docs-commands-reload") %>>
+            <a href="/docs/commands/reload.html">reload</a>
+          </li>
+          <li<%= sidebar_current("docs-commands-rtt") %>>
+            <a href="/docs/commands/rtt.html">rtt</a>
+          </li>
+
+          <li<%= sidebar_current("docs-commands-services") %>>
+            <a href="/docs/commands/services.html">services</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-commands-services-register") %>>
+                <a href="/docs/commands/services/register.html">register</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-services-deregister") %>>
+                <a href="/docs/commands/services/deregister.html">deregister</a>
+              </li>
+            </ul>
+          </li>
+
+          <li<%= sidebar_current("docs-commands-snapshot") %>>
+            <a href="/docs/commands/snapshot.html">snapshot</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-commands-snapshot-agent") %>>
+                <a href="/docs/commands/snapshot/agent.html">agent</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-snapshot-inspect") %>>
+                <a href="/docs/commands/snapshot/inspect.html">inspect</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-snapshot-restore") %>>
+                <a href="/docs/commands/snapshot/restore.html">restore</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-snapshot-save") %>>
+                <a href="/docs/commands/snapshot/save.html">save</a>
+              </li>
+            </ul>
+          </li>
+
+          <li<%= sidebar_current("docs-commands-tls") %>>
+            <a href="/docs/commands/tls.html">tls</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-commands-tls-ca") %>>
+                <a href="/docs/commands/tls/ca.html">ca</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-tls-cert") %>>
+                <a href="/docs/commands/tls/cert.html">cert</a>
+              </li>
+            </ul>
+          </li>
+
+          <li<%= sidebar_current("docs-commands-validate") %>>
+            <a href="/docs/commands/validate.html">validate</a>
+          </li>
+          <li<%= sidebar_current("docs-commands-version") %>>
+            <a href="/docs/commands/version.html">version</a>
+          </li>
+          <li<%= sidebar_current("docs-commands-watch") %>>
+            <a href="/docs/commands/watch.html">watch</a>
+          </li>
+        </ul>
+      </li>
+
+      <li<%= sidebar_current("docs-agent") %>>
+        <a href="/docs/agent/basics.html">Agent</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-agent-running") %>>
+            <a href="/docs/agent/basics.html">Running and Stopping</a>
+          </li>
+          <li<%= sidebar_current("docs-agent-dns") %>>
+            <a href="/docs/agent/dns.html">DNS Interface</a>
+          </li>
+          <li<%= sidebar_current("docs-agent-config") %>>
+            <a href="/docs/agent/options.html">Configuration</a>
+          </li>
+          <li<%= sidebar_current("docs-agent-cfg_entries") %>>
+            <a href="/docs/agent/config_entries.html">Configuration Entries</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-agent-cfg_entries-service_router") %>>
+                <a href="/docs/agent/config-entries/service-router.html">service-router</a>
+              </li>
+              <li<%= sidebar_current("docs-agent-cfg_entries-service_splitter") %>>
+                <a href="/docs/agent/config-entries/service-splitter.html">service-splitter</a>
+              </li>
+              <li<%= sidebar_current("docs-agent-cfg_entries-service_resolver") %>>
+                <a href="/docs/agent/config-entries/service-resolver.html">service-resolver</a>
+              </li>
+              <li<%= sidebar_current("docs-agent-cfg_entries-service_defaults") %>>
+                <a href="/docs/agent/config-entries/service-defaults.html">service-defaults</a>
+              </li>
+              <li<%= sidebar_current("docs-agent-cfg_entries-proxy_defaults") %>>
+                <a href="/docs/agent/config-entries/proxy-defaults.html">proxy-defaults</a>
+              </li>
+            </ul>
+          </li>
+          <li<%= sidebar_current("docs-agent-cloud-auto-join") %>>
+            <a href="/docs/agent/cloud-auto-join.html">Cloud Auto-join</a>
+          </li>
+          <li<%= sidebar_current("docs-agent-services") %>>
+            <a href="/docs/agent/services.html">Service Definitions</a>
+          </li>
+          <li<%= sidebar_current("docs-agent-checks") %>>
+            <a href="/docs/agent/checks.html">Check Definitions</a>
+          </li>
+          <li<%= sidebar_current("docs-agent-kv") %>>
+            <a href="/docs/agent/kv.html">Consul KV</a>
+          </li>
+          <li<%= sidebar_current("docs-agent-sentinel") %>>
+            <a href="/docs/agent/sentinel.html">Sentinel</a>
+          </li>
+          <li<%= sidebar_current("docs-agent-encryption") %>>
+            <a href="/docs/agent/encryption.html">Encryption</a>
+          </li>
+          <li<%= sidebar_current("docs-agent-telemetry") %>>
+            <a href="/docs/agent/telemetry.html">Telemetry</a>
+          </li>
+          <li<%= sidebar_current("docs-agent-watches") %>>
+            <a href="/docs/agent/watches.html">Watches</a>
+          </li>
+        </ul>
+      </li>
+
+      <li<%= sidebar_current("docs-acl") %>>
+        <a href="/docs/acl/index.html">Access Control (ACLs)</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-acl-system") %>>
+            <a href="/docs/acl/acl-system.html">ACL System</a>
+          </li>
+          <li<%= sidebar_current("docs-acl-rules") %>>
+            <a href="/docs/acl/acl-rules.html">ACL Rules</a>
+          </li>
+          <li<%= sidebar_current("docs-acl-legacy") %>>
+            <a href="/docs/acl/acl-legacy.html">Legacy Mode</a>
+          </li>
+          <li<%= sidebar_current("docs-acl-migration") %>>
+            <a href="/docs/acl/acl-migrate-tokens.html">Token Migration</a>
+          </li>
+          <li<%= sidebar_current("docs-acl-auth-methods") %>>
+            <a href="/docs/acl/acl-auth-methods.html">Auth Methods</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-acl-auth-methods-kubernetes") %>>
+                <a href="/docs/acl/auth-methods/kubernetes.html">Kubernetes</a>
+              </li>
+            </ul>
+          </li>
+         </ul>
+      </li>
+
+      <li<%= sidebar_current("docs-connect") %>>
+        <a href="/docs/connect/index.html">Connect - Service Mesh</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-connect-config") %>>
+            <a href="/docs/connect/configuration.html">Configuration</a>
+          </li>
+          <li<%= sidebar_current("docs-connect-observability") %>>
+            <a href="/docs/connect/observability.html">Observability</a>
+          </li>
+          <li<%= sidebar_current("docs-connect-l7_traffic_management") %>>
+            <a href="/docs/connect/l7-traffic-management.html">L7 Traffic Management</a>
+          </li>
+          <li<%= sidebar_current("docs-connect-intentions") %>>
+            <a href="/docs/connect/intentions.html">Intentions - Security Policies</a>
+          </li>
+          <li<%= sidebar_current("docs-connect-internals") %>>
+            <a href="/docs/connect/connect-internals.html">Architecture</a>
+          </li>
+          <li<%= sidebar_current("docs-connect-proxies") %>>
+            <a href="/docs/connect/proxies.html">Supported Proxies</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-connect-proxies-envoy") %>>
+                <a href="/docs/connect/proxies/envoy.html">Envoy</a>
+              </li>
+              <li<%= sidebar_current("docs-connect-proxies-built-in") %>>
+                <a href="/docs/connect/proxies/built-in.html">Built-in Proxy</a>
+              </li>
+              <li<%= sidebar_current("docs-connect-proxies-integrate") %>>
+                <a href="/docs/connect/proxies/integrate.html">Proxy Integration</a>
+              </li>
+            </ul>
+          </li>
+          <li<%= sidebar_current("docs-connect-meshgateways") %>>
+             <a href="/docs/connect/mesh_gateway.html">Mesh Gateways</a>
+          </li>
+          <li<%= sidebar_current("docs-connect-registration") %>>
+            <a href="/docs/connect/registration.html">Registering Proxies</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-connect-registration-service-registration") %>>
+                <a href="/docs/connect/registration/service-registration.html">Proxy Service Registration</a>
+              </li>
+              <li<%= sidebar_current("docs-connect-registration-sidecar-service") %>>
+                <a href="/docs/connect/registration/sidecar-service.html">Sidecar Service Registration</a>
+              </li>
+            </ul>
+          </li>
+          <li<%= sidebar_current("docs-connect-security") %>>
+            <a href="/docs/connect/security.html">Securing Connect</a>
+          </li>
+          <li<%= sidebar_current("docs-connect-ca") %>>
+            <a href="/docs/connect/ca.html">Certificate Management</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-connect-ca-consul") %>>
+                <a href="/docs/connect/ca/consul.html">Built-In CA</a>
+              </li>
+              <li<%= sidebar_current("docs-connect-ca-vault") %>>
+                <a href="/docs/connect/ca/vault.html">Vault</a>
+              </li>
+              <li<%= sidebar_current("docs-connect-ca-aws") %>>
+                <a href="/docs/connect/ca/aws.html">ACM Private CA</a>
+              </li>
+            </ul>
+          </li>
+          <li<%= sidebar_current("docs-connect-native") %>>
+            <a href="/docs/connect/native.html">Native App Integration</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-connect-native-go") %>>
+                <a href="/docs/connect/native/go.html">Go Integration</a>
+              </li>
+            </ul>
+          </li>
+          <li<%= sidebar_current("docs-connect-dev") %>>
+            <a href="/docs/connect/dev.html">Develop and Debug</a>
+          </li>
+          <li<%= sidebar_current("docs-connect-platform-nomad") %>>
+            <a href="/docs/connect/platform/nomad.html">Nomad</a>
+          </li>
+          <li<%= sidebar_current("docs-connect-platform-k8s") %>>
+            <a href="/docs/platform/k8s/connect.html">Kubernetes</a>
+          </li>
+        </ul>
+      </li>
+
+      <li<%= sidebar_current("docs-platform-k8s") %>>
+        <a href="/docs/platform/k8s/index.html">Kubernetes</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-platform-k8s-run") %>>
+            <a href="/docs/platform/k8s/run.html">Installation</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-platform-k8s-run-aks") %>>
+                <a href="/docs/platform/k8s/aks.html">Azure Kubernetes Service (AKS)</a>
+              </li>
+              <li<%= sidebar_current("docs-platform-k8s-run-gke") %>>
+                <a href="/docs/platform/k8s/gke.html">Google Kubernetes Service (GKE)</a>
+              </li>
+              <li<%= sidebar_current("docs-platform-k8s-run-mini") %>>
+                <a href="/docs/platform/k8s/minikube.html">Minikube</a>
+              </li>
+              <li<%= sidebar_current("docs-platform-k8s-run-consul-ent") %>>
+                <a href="/docs/platform/k8s/consul-enterprise.html">Consul Enterprise</a>
+              </li>
+              <li<%= sidebar_current("docs-platform-k8s-run-clients-outside") %>>
+                <a href="/docs/platform/k8s/clients-outside-kubernetes.html">Consul Clients Outside Kubernetes</a>
+              </li>
+              <li<%= sidebar_current("docs-platform-k8s-run-servers-outside") %>>
+                <a href="/docs/platform/k8s/servers-outside-kubernetes.html">Consul Servers Outside Kubernetes</a>
+              </li>
+              <li<%= sidebar_current("docs-platform-k8s-run-pvcs") %>>
+                <a href="/docs/platform/k8s/predefined-pvcs.html">Predefined Persistent Volume Claims</a>
+              </li>
+            </ul>
+          </li>
+          <li<%= sidebar_current("docs-platform-k8s-ops") %>>
+            <a href="/docs/platform/k8s/operations.html">Operations</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-platform-k8s-ops-upgrading") %>>
+                <a href="/docs/platform/k8s/upgrading.html">Upgrading</a>
+              </li>
+              <li<%= sidebar_current("docs-platform-k8s-ops-tls-on-existing-cluster") %>>
+                <a href="/docs/platform/k8s/tls-on-existing-cluster.html">Configuring TLS on an Existing Cluster</a>
+              </li>
+              <li<%= sidebar_current("docs-platform-k8s-ops-uninstalling") %>>
+                <a href="/docs/platform/k8s/uninstalling.html">Uninstalling</a>
+              </li>
+            </ul>
+          <li<%= sidebar_current("docs-platform-k8s-dns") %>>
+            <a href="/docs/platform/k8s/dns.html">Consul DNS</a>
+          </li>
+          <li<%= sidebar_current("docs-platform-k8s-service-sync") %>>
+            <a href="/docs/platform/k8s/service-sync.html">Service Sync</a>
+          </li>
+          <li<%= sidebar_current("docs-platform-k8s-connect") %>>
+            <a href="/docs/platform/k8s/connect.html">Connect Sidecar</a>
+          </li>
+          <li<%= sidebar_current("docs-platform-k8s-ambassador") %>>
+            <a href="/docs/platform/k8s/ambassador.html">Ambassador Integration</a>
+          </li>
+          <li<%= sidebar_current("docs-platform-k8s-helm") %>>
+            <a href="/docs/platform/k8s/helm.html">Helm Chart Reference</a>
+          </li>
+        </ul>
+      </li>
+
+      <hr>
+
+      <li<%= sidebar_current("docs-guides") %>>
+        <a href="/docs/guides/index.html">Guides</a>
+      </li>
+
+      <li<%= sidebar_current("docs-common-errors") %>>
+        <a href="/docs/common-errors.html">Common Error Messages</a>
+      </li>
+
+      <li<%= sidebar_current("docs-faq") %>>
+        <a href="/docs/faq.html">FAQ</a>
+      </li>
+
+      <hr>
+
+      <li<%= sidebar_current("docs-consul-program") %>>
+      <a href="/docs/partnerships/index.html">Consul Integration Program</a>
+      </li>
+
+      <li<%= sidebar_current("docs-enterprise") %>>
+        <a href="/docs/enterprise/index.html">Consul Enterprise</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-enterprise-backups") %>>
+            <a href="/docs/enterprise/backups/index.html">Automated Backups</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-upgrades") %>>
+            <a href="/docs/enterprise/upgrades/index.html">Automated Upgrades</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-read-scale") %>>
+            <a href="/docs/enterprise/read-scale/index.html">Enhanced Read Scalability</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-redundancy") %>>
+            <a href="/docs/enterprise/redundancy/index.html">Redundancy Zones</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-federation") %>>
+            <a href="/docs/enterprise/federation/index.html">Advanced Federation</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-network-segments") %>>
+            <a href="/docs/enterprise/network-segments/index.html">Network Segments</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-namespaces") %>>
+            <a href="/docs/enterprise/namespaces/index.html">Namespaces</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-sentinel") %>>
+            <a href="/docs/enterprise/sentinel/index.html">Sentinel</a>
+          </li>
+        </ul>
+      </li>
+
+    </ul>
+  <% end %>
+
+  <%= yield %>
+<% end %>
