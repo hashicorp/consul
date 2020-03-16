@@ -112,7 +112,7 @@ func (c *cmd) init() {
 		"Set the agent's gRPC address and port (in http(s)://host:port format). "+
 			"Alternatively, you can specify CONSUL_GRPC_ADDR in ENV.")
 
-	c.flags.StringVar(&c.envoyVersion, "envoy-version", "1.13.0",
+	c.flags.StringVar(&c.envoyVersion, "envoy-version", "1.13.1",
 		"Sets the envoy-version that the envoy binary has.")
 
 	c.flags.BoolVar(&c.register, "register", false,
