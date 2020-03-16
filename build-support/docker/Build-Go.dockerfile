@@ -8,6 +8,6 @@ ARG GOTOOLS="github.com/elazarl/go-bindata-assetfs/... \
    github.com/axw/gocov/gocov \
    gopkg.in/matm/v1/gocov-html"
 
-RUN GO111MODULE=on go get -u -v ${GOTOOLS} && mkdir -p /consul
+RUN GO111MODULE=on go get -v ${GOTOOLS} && mkdir -p /consul
 
 WORKDIR /consul
