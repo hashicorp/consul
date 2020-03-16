@@ -16,6 +16,3 @@ func (s *Server) ResolveEntTokenToIdentityAndAuthorizer(token string) (structs.A
 func (s *Server) validateEnterpriseToken(identity structs.ACLIdentity) error {
 	return nil
 }
-
-// Consul-enterprise only
-func (s *Server) updateSegmentACLAdvertisements() {}
