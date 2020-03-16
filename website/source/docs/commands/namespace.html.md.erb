@@ -35,10 +35,12 @@ Usage: consul namespace <subcommand> [options] [args]
   ...
 
 Subcommands:
+    create    Create a Namespace
     delete    Delete a Namespace
     list      List all Namespaces
     read      Read a Namespace
-    write     Create or update a Namespace
+    update    Update a Namespace
+    write     Create or update a Namespace from its full definition
 ```
 
 For more information, examples, and usage about a subcommand, click on the name 
@@ -46,7 +48,13 @@ of the subcommand in the sidebar.
 
 ## Basic Examples
 
-Create or update a Namespace:
+Create a Namespace
+
+```sh
+$ consul namespace create -name team1
+```
+
+Create or Update a Namespace from its full definition:
 
 ```sh
 $ consul namespace write ns1.hcl
@@ -64,8 +72,14 @@ List all Namespaces:
 $ consul namespace list
 ```
 
+Update a namespace
+
+```sh
+$ consul namespace update -name team1 -description "first namespace"
+```
+
 Delete a Namespace:
 
 ```sh
-$ consul namespace delete ns1
+$ consul namespace delete team1
 ```
