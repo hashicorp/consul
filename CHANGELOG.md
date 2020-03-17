@@ -16,7 +16,7 @@ IMPROVEMENTS:
 * build: bump the expected go language version of the main module to 1.13 [[GH-7429](https://github.com/hashicorp/consul/issues/7429)]
 * agent: add http_config.response header to the UI headers [[GH-7369](https://github.com/hashicorp/consul/pull/7369)]
 * agent: Added documentation and error messages related to `kv_max_value_size` option [[GH-7405]](https://github.com/hashicorp/consul/pull/7405)]
-* agent: Take Prometheus MINE-type header into account [[GH-7371]](https://github.com/hashicorp/consul/pull/7371)]
+* agent: Take Prometheus MIME-type header into account [[GH-7371]](https://github.com/hashicorp/consul/pull/7371)]
 
 BUGFIXES:
 
