@@ -8,7 +8,7 @@
 | `name` | `String` | | The property name |
 | `value` | `Object` |  | The value |
 
-`<Ref />` allows component users use an author defined public API of a component.
+`<Ref />` allows component users use an author defined public API of a component. The component is renderless in that it yields nothing to the DOM.
 
 The component takes a property name and value and sets it on the specified target, similar to the `{{ref this "name"}}` modifier.
 
@@ -24,7 +24,7 @@ Here we provide a public API for a form component whilst authoring.
 ```handlebars
 {{! /components/form/index.hbs }}
 <form onsubmit={{action "submit"}}>
-  {{ yield (hash
+  {{yield (hash
     focus=(action "focus")
     submit=(action "submit")
     cancel=(action "cancel")
