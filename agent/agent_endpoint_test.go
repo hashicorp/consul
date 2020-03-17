@@ -1383,9 +1383,7 @@ func TestAgent_ReloadDoesNotTriggerWatch(t *testing.T) {
 	dc1 := "dc1"
 	checkInterval := "1s" // This value ensure we could detect as transient critical state
 	tmpFileRaw, err := ioutil.TempFile("", "rexec")
-	if err != nil {
-		t.Fatalf("failed to make tmp file: %#v", err)
-	}
+	require.NoError(t, err)
 	tmpFile := tmpFileRaw.Name()
 	defer os.Remove(tmpFile)
 	handlerShell := fmt.Sprintf("cat | tee '%s.atomic' ; mv '%s.atomic' '%s'", tmpFile, tmpFile, tmpFile)
