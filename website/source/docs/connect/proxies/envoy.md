@@ -288,8 +288,11 @@ entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaults) to act as
 defaults that are inherited by all services.
 
 - `connect_timeout_ms` - The number of milliseconds to allow when making upstream
-  connections before timing out. Defaults to 5000
-  (5 seconds).
+  connections before timing out. Defaults to 5000 (5 seconds). If the upstream
+  service has the configuration option
+  [`connect_timeout_ms`](/docs/agent/config-entries/service-resolver.html#connecttimeout)
+  set for the `service-resolver`, that timeout value will take precedence over
+  this mesh gateway option.
 
 - `envoy_mesh_gateway_bind_tagged_addresses` - Indicates that the mesh gateway
   services tagged addresses should be bound to listeners in addition to the
