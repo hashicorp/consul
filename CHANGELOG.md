@@ -4,6 +4,10 @@ FEATURES:
 
 * agent: WAN federation via mesh gateways [[GH-6884](https://github.com/hashicorp/consul/issues/6884)]
 
+IMPROVEMENTS:
+
+* cli: Log "newer version available" message at `INFO` level [[GH-7457](https://github.com/hashicorp/consul/issues/7457)]
+
 BUGFIXES:
 
 * server: strip local ACL tokens from RPCs during forwarding if crossing datacenters [[GH-7419](https://github.com/hashicorp/consul/issues/7419)]
