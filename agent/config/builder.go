@@ -1000,7 +1000,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 func (b *Builder) Validate(rt RuntimeConfig) error {
 	// reDatacenter defines a regexp for a valid datacenter name
 	var reDatacenter = regexp.MustCompile("^[a-z0-9_-]+$")
-
+	var validDNSre = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,62}[a-zA-Z0-9])?$`)
 	// validContentPath defines a regexp for a valid content path name.
 	var validContentPath = regexp.MustCompile(`^[A-Za-z0-9/_-]+$`)
 	var hasVersion = regexp.MustCompile(`^/v\d+/$`)
@@ -1037,6 +1037,10 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	}
 	if rt.NodeName == "" {
 		return fmt.Errorf("node_name cannot be empty")
+	}
+	if !validDNSre.MatchString(rt.NodeName) {
+		return fmt.Errorf("Invalid node name. Valid characters include " +
+			"all alpha-numerics and dashes.")
 	}
 	if ipaddr.IsAny(rt.AdvertiseAddrLAN.IP) {
 		return fmt.Errorf("Advertise address cannot be 0.0.0.0, :: or [::]")
@@ -1361,7 +1365,7 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 	//validate tagName for DNS validity
 	for _, tagName := range v.Tags {
 		if tagName != "" && !validDNSre.MatchString(tagName) {
-			b.err = multierror.Append(fmt.Errorf("Invalid tag. Valid characters include " +
+			b.err = multierror.Append(fmt.Errorf("Invalid tag name. Valid characters include " +
 				"all alpha-numerics and dashes."))
 		}
 	}
@@ -1622,12 +1626,6 @@ func (b *Builder) tlsCipherSuites(name string, v *string) []uint16 {
 
 func (b *Builder) nodeName(v *string) string {
 	nodeName := b.stringVal(v)
-
-	var validDNSre = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,62}[a-zA-Z0-9])?$`)
-	if !validDNSre.MatchString(nodeName) {
-		b.err = multierror.Append(fmt.Errorf("Invalid node name. Valid characters include " +
-			"all alpha-numerics and dashes."))
-	}
 	if nodeName == "" {
 		fn := b.Hostname
 		if fn == nil {

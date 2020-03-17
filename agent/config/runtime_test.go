@@ -1394,8 +1394,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				  port = 1234
 			  }
 		  `},
-			err: "Node name will not be discoverable " +
-				"via DNS due to invalid characters. Valid characters include " +
+			err: "Invalid service name. Valid characters include " +
 				"all alpha-numerics and dashes.",
 		},
 		{
@@ -1415,8 +1414,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				  tags = ["/web!"]
 			  }
 		  `},
-			err: "Node name will not be discoverable " +
-				"via DNS due to invalid characters. Valid characters include " +
+			err: "Invalid tag name. Valid characters include " +
 				"all alpha-numerics and dashes.",
 		},
 
@@ -1582,8 +1580,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{ "node_name": "unix:///foo" }`},
 			hcl:  []string{`node_name = "unix:///foo"`},
-			err: "Node name will not be discoverable " +
-				"via DNS due to invalid characters. Valid characters include " +
+			err: "Invalid node name. Valid characters include " +
 				"all alpha-numerics and dashes.",
 		},
 		{

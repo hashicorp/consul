@@ -25,11 +25,6 @@ type Catalog struct {
 // nodePreApply does the verification of a node before it is applied to Raft.
 func nodePreApply(nodeName, nodeID string) error {
 	var validDNSre = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,62}[a-zA-Z0-9])?$`)
-
-	if !validDNSre.MatchString(nodeName) {
-		return fmt.Errorf("Invalid node name. Valid characters include " +
-			"all alpha-numerics and dashes.")
-	}
 	if nodeName == "" {
 		return fmt.Errorf("Must provide node")
 	}
@@ -37,6 +32,10 @@ func nodePreApply(nodeName, nodeID string) error {
 		if _, err := uuid.ParseUUID(nodeID); err != nil {
 			return fmt.Errorf("Bad node ID: %v", err)
 		}
+	}
+	if !validDNSre.MatchString(nodeName) {
+		return fmt.Errorf("Invalid node name. Valid characters include " +
+			"all alpha-numerics and dashes.")
 	}
 
 	return nil

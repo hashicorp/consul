@@ -1029,7 +1029,7 @@ func (s *NodeService) Validate() error {
 	var result error
 	var validDNSre = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,62}[a-zA-Z0-9])?$`)
 
-	if !validDNSre.MatchString(s.ID) {
+	if s.ID != "" && !validDNSre.MatchString(s.ID) {
 		result = multierror.Append(result, fmt.Errorf("Invalid service name. Valid characters include "+
 			"all alpha-numerics and dashes."))
 	}

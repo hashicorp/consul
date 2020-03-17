@@ -2679,6 +2679,7 @@ func TestCatalog_NodeServices_FilterACL(t *testing.T) {
 		Node:         srv.config.NodeName,
 		QueryOptions: structs.QueryOptions{Token: token},
 	}
+
 	reply := structs.IndexedNodeServices{}
 	if err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &opt, &reply); err != nil {
 		t.Fatalf("err: %s", err)
