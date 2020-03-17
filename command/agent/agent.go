@@ -108,7 +108,7 @@ func (c *cmd) checkpointResults(results *checkpoint.CheckResponse, err error) {
 		return
 	}
 	if results.Outdated {
-		c.logger.Error("Newer Consul version available", "new_version", results.CurrentVersion, "current_version", c.version)
+		c.logger.Info("Newer Consul version available", "new_version", results.CurrentVersion, "current_version", c.version)
 	}
 	for _, alert := range results.Alerts {
 		switch alert.Level {
