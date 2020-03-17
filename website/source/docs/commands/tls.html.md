@@ -25,8 +25,8 @@ Create a client certificate:
 ```text
 $ consul tls cert create -client
 ==> Using consul-agent-ca.pem and consul-agent-ca-key.pem
-==> Saved consul-client-dc1-0.pem
-==> Saved consul-client-dc1-0-key.pem
+==> Saved dc1-client-consul-0.pem
+==> Saved dc1-client-consul-0-key.pem
 ```
 
 For more examples, ask for subcommand help or view the subcommand documentation
