@@ -446,14 +446,14 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 
 	switch req.Question[0].Qtype {
 	case dns.TypeSOA:
-		ns, glue := d.nameservers(cfg, req.IsEdns0() != nil, maxRecursionLevelDefault, req)
+		ns, glue := d.nameservers(cfg, maxRecursionLevelDefault)
 		m.Answer = append(m.Answer, d.soa(cfg))
 		m.Ns = append(m.Ns, ns...)
 		m.Extra = append(m.Extra, glue...)
 		m.SetRcode(req, dns.RcodeSuccess)
 
 	case dns.TypeNS:
-		ns, glue := d.nameservers(cfg, req.IsEdns0() != nil, maxRecursionLevelDefault, req)
+		ns, glue := d.nameservers(cfg, maxRecursionLevelDefault)
 		m.Answer = ns
 		m.Extra = glue
 		m.SetRcode(req, dns.RcodeSuccess)
@@ -500,8 +500,8 @@ func (d *DNSServer) addSOA(cfg *dnsConfig, msg *dns.Msg) {
 // nameservers returns the names and ip addresses of up to three random servers
 // in the current cluster which serve as authoritative name servers for zone.
 
-func (d *DNSServer) nameservers(cfg *dnsConfig, edns bool, maxRecursionLevel int, req *dns.Msg) (ns []dns.RR, extra []dns.RR) {
-	out, err := d.lookupServiceNodes(cfg, d.agent.config.Datacenter, structs.ConsulServiceName, "", structs.DefaultEnterpriseMeta(), false, maxRecursionLevel)
+func (d *DNSServer) nameservers(cfg *dnsConfig, maxRecursionLevel int) (ns []dns.RR, extra []dns.RR) {
+	out, err := d.lookupServiceNodes(cfg, d.agent.config.Datacenter, structs.ConsulServiceName, "", structs.DefaultEnterpriseMeta(), false)
 	if err != nil {
 		d.logger.Warn("Unable to get list of servers", "error", err)
 		return nil, nil
@@ -538,7 +538,7 @@ func (d *DNSServer) nameservers(cfg *dnsConfig, edns bool, maxRecursionLevel int
 		}
 		ns = append(ns, nsrr)
 
-		extra = append(extra, d.makeRecordFromNode(dc, o.Node, dns.TypeANY, fqdn, cfg.NodeTTL, maxRecursionLevel)...)
+		extra = append(extra, d.makeRecordFromNode(o.Node, dns.TypeANY, fqdn, cfg.NodeTTL, maxRecursionLevel)...)
 
 		// don't provide more than 3 servers
 		if len(ns) >= 3 {
@@ -801,7 +801,7 @@ func (d *DNSServer) nodeLookup(cfg *dnsConfig, network, datacenter, node string,
 	q := req.Question[0]
 	// Only compute A and CNAME record if query is not TXT type
 	if qType != dns.TypeTXT {
-		records := d.makeRecordFromNode(n.Datacenter, n, q.Qtype, q.Name, cfg.NodeTTL, maxRecursionLevel)
+		records := d.makeRecordFromNode(n, q.Qtype, q.Name, cfg.NodeTTL, maxRecursionLevel)
 		resp.Answer = append(resp.Answer, records...)
 	}
 
@@ -1076,7 +1076,7 @@ func (d *DNSServer) trimDNSResponse(cfg *dnsConfig, network string, req, resp *d
 }
 
 // lookupServiceNodes returns nodes with a given service.
-func (d *DNSServer) lookupServiceNodes(cfg *dnsConfig, datacenter, service, tag string, entMeta *structs.EnterpriseMeta, connect bool, maxRecursionLevel int) (structs.IndexedCheckServiceNodes, error) {
+func (d *DNSServer) lookupServiceNodes(cfg *dnsConfig, datacenter, service, tag string, entMeta *structs.EnterpriseMeta, connect bool) (structs.IndexedCheckServiceNodes, error) {
 	args := structs.ServiceSpecificRequest{
 		Connect:     connect,
 		Datacenter:  datacenter,
@@ -1142,7 +1142,7 @@ func (d *DNSServer) lookupServiceNodes(cfg *dnsConfig, datacenter, service, tag 
 
 // serviceLookup is used to handle a service query
 func (d *DNSServer) serviceLookup(cfg *dnsConfig, network, datacenter, service, tag string, entMeta *structs.EnterpriseMeta, connect bool, req, resp *dns.Msg, maxRecursionLevel int) {
-	out, err := d.lookupServiceNodes(cfg, datacenter, service, tag, entMeta, connect, maxRecursionLevel)
+	out, err := d.lookupServiceNodes(cfg, datacenter, service, tag, entMeta, connect)
 	if err != nil {
 		d.logger.Error("rpc error", "error", err)
 		resp.SetRcode(req, dns.RcodeServerFailure)
@@ -1474,7 +1474,7 @@ func makeARecord(qType uint16, ip net.IP, ttl time.Duration) dns.RR {
 // Craft dns records for a node
 // In case of an SRV query the answer will be a IN SRV and additional data will store an IN A to the node IP
 // Otherwise it will return a IN A record
-func (d *DNSServer) makeRecordFromNode(dc string, node *structs.Node, qType uint16, qName string, ttl time.Duration, maxRecursionLevel int) []dns.RR {
+func (d *DNSServer) makeRecordFromNode(node *structs.Node, qType uint16, qName string, ttl time.Duration, maxRecursionLevel int) []dns.RR {
 	addrTranslate := TranslateAddressAcceptDomain
 	if qType == dns.TypeA {
 		addrTranslate |= TranslateAddressAcceptIPv4
