@@ -27,7 +27,7 @@ function cherry_pick_with_slack_notification {
 
     git checkout $branch || exit 1
     # If git cherry-pick fails, we send a failure notification
-    if ! git cherry-pick $commit; then
+    if ! git cherry-pick --mainline 1 $commit; then
         status "🍒❌ Cherry pick of commit ${commit:0:7} from $pr_url onto $branch failed!"
         curl -X POST -H 'Content-type: application/json' \
         --data \
