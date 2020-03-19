@@ -38,7 +38,7 @@ require (
 	github.com/hashicorp/go-connlimit v0.2.0
 	github.com/hashicorp/go-discover v0.0.0-20200501174627-ad1e96bde088
 	github.com/hashicorp/go-hclog v0.12.0
-	github.com/hashicorp/go-memdb v1.0.3
+	github.com/hashicorp/go-memdb v1.1.0
 	github.com/hashicorp/go-msgpack v0.5.5
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hashicorp/go-raftchunking v0.6.1
@@ -46,7 +46,7 @@ require (
 	github.com/hashicorp/go-syslog v1.0.0
 	github.com/hashicorp/go-uuid v1.0.2
 	github.com/hashicorp/go-version v1.2.0
-	github.com/hashicorp/golang-lru v0.5.1
+	github.com/hashicorp/golang-lru v0.5.4
 	github.com/hashicorp/hcl v1.0.0
 	github.com/hashicorp/hil v0.0.0-20160711231837-1e86c6b523c5
 	github.com/hashicorp/memberlist v0.2.2

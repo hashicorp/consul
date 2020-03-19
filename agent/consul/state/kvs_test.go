@@ -41,7 +41,7 @@ func TestStateStore_ReapTombstones(t *testing.T) {
 	}
 
 	// Reap the tombstones <= 6.
-	if err := s.ReapTombstones(6); err != nil {
+	if err := s.ReapTombstones(8, 6); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -55,7 +55,7 @@ func TestStateStore_ReapTombstones(t *testing.T) {
 	}
 
 	// Now reap them all.
-	if err := s.ReapTombstones(7); err != nil {
+	if err := s.ReapTombstones(9, 7); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -466,7 +466,7 @@ func TestStateStore_KVSList(t *testing.T) {
 
 	// Now reap the tombstones and make sure we get the latest index
 	// since there are no matching keys.
-	if err := s.ReapTombstones(6); err != nil {
+	if err := s.ReapTombstones(8, 6); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	idx, _, err = s.KVSList(nil, "foo/bar/baz", nil)
@@ -536,7 +536,7 @@ func TestStateStore_KVSDelete(t *testing.T) {
 
 	// Now reap the tombstone and watch the index revert to the remaining
 	// foo/bar key's index.
-	if err := s.ReapTombstones(3); err != nil {
+	if err := s.ReapTombstones(4, 3); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	idx, _, err = s.KVSList(nil, "foo", nil)
@@ -549,7 +549,7 @@ func TestStateStore_KVSDelete(t *testing.T) {
 
 	// Deleting a nonexistent key should be idempotent and not return an
 	// error
-	if err := s.KVSDelete(4, "foo", nil); err != nil {
+	if err := s.KVSDelete(5, "foo", nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if idx := s.maxIndex("kvs"); idx != 3 {
@@ -618,7 +618,7 @@ func TestStateStore_KVSDeleteCAS(t *testing.T) {
 
 	// Now reap the tombstone and watch the index move up to the table
 	// index since there are no matching keys.
-	if err := s.ReapTombstones(4); err != nil {
+	if err := s.ReapTombstones(6, 4); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	idx, _, err = s.KVSList(nil, "bar", nil)
@@ -631,7 +631,7 @@ func TestStateStore_KVSDeleteCAS(t *testing.T) {
 
 	// A delete on a nonexistent key should be idempotent and not return an
 	// error
-	ok, err = s.KVSDeleteCAS(6, 2, "bar", nil)
+	ok, err = s.KVSDeleteCAS(7, 2, "bar", nil)
 	if !ok || err != nil {
 		t.Fatalf("expected (true, nil), got: (%v, %#v)", ok, err)
 	}
@@ -901,7 +901,7 @@ func TestStateStore_KVSDeleteTree(t *testing.T) {
 
 	// Now reap the tombstones and watch the index revert to the remaining
 	// foo/zorp key's index.
-	if err := s.ReapTombstones(5); err != nil {
+	if err := s.ReapTombstones(6, 5); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	idx, _, err = s.KVSList(nil, "foo", nil)
@@ -958,7 +958,7 @@ func TestStateStore_Watches_PrefixDelete(t *testing.T) {
 	}
 
 	// Reap tombstone and verify list on the same key reverts its index value
-	if err := s.ReapTombstones(wantIndex); err != nil {
+	if err := s.ReapTombstones(8, wantIndex); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -973,11 +973,11 @@ func TestStateStore_Watches_PrefixDelete(t *testing.T) {
 
 	// Set a different key to bump the index. This shouldn't fire the
 	// watch since there's a different prefix.
-	testSetKey(t, s, 8, "some/other/key", "", nil)
+	testSetKey(t, s, 9, "some/other/key", "", nil)
 
 	// Now ask for the index for a node within the prefix that was deleted
 	// We expect to get the max index in the tree
-	wantIndex = 8
+	wantIndex = 9
 	ws = memdb.NewWatchSet()
 	got, _, err = s.KVSList(ws, "foo/bar/baz", nil)
 	if err != nil {
@@ -1000,10 +1000,10 @@ func TestStateStore_Watches_PrefixDelete(t *testing.T) {
 	}
 
 	// Delete all the keys, special case where tombstones are not inserted
-	if err := s.KVSDeleteTree(9, "", nil); err != nil {
+	if err := s.KVSDeleteTree(10, "", nil); err != nil {
 		t.Fatalf("unexpected err: %s", err)
 	}
-	wantIndex = 9
+	wantIndex = 10
 	got, _, err = s.KVSList(nil, "/foo/bar", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -1382,7 +1382,7 @@ func TestStateStore_Tombstone_Snapshot_Restore(t *testing.T) {
 	defer snap.Close()
 
 	// Alter the real state store.
-	if err := s.ReapTombstones(4); err != nil {
+	if err := s.ReapTombstones(5, 4); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	idx, _, err := s.KVSList(nil, "foo/bar", nil)
@@ -1433,7 +1433,7 @@ func TestStateStore_Tombstone_Snapshot_Restore(t *testing.T) {
 		// Make sure it reaps correctly. We should still get a 4 for
 		// the index here because it will be using the last index from
 		// the tombstone table.
-		if err := s.ReapTombstones(4); err != nil {
+		if err := s.ReapTombstones(6, 4); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 		idx, _, err = s.KVSList(nil, "foo/bar", nil)

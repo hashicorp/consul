@@ -270,7 +270,7 @@ func TestStateStore_Coordinate_Snapshot_Restore(t *testing.T) {
 		Node:  "node3",
 		Coord: &coordinate.Coordinate{Height: math.NaN()},
 	}
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(5)
 	if err := tx.Insert("coordinates", badUpdate); err != nil {
 		t.Fatalf("err: %v", err)
 	}

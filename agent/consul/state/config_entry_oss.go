@@ -49,25 +49,25 @@ func configTableSchema() *memdb.TableSchema {
 	}
 }
 
-func (s *Store) firstConfigEntryWithTxn(tx *memdb.Txn,
+func (s *Store) firstConfigEntryWithTxn(tx *txnWrapper,
 	kind, name string, entMeta *structs.EnterpriseMeta) (interface{}, error) {
 	return tx.First(configTableName, "id", kind, name)
 }
 
-func (s *Store) firstWatchConfigEntryWithTxn(tx *memdb.Txn,
+func (s *Store) firstWatchConfigEntryWithTxn(tx *txnWrapper,
 	kind, name string, entMeta *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
 	return tx.FirstWatch(configTableName, "id", kind, name)
 }
 
-func (s *Store) validateConfigEntryEnterprise(tx *memdb.Txn, conf structs.ConfigEntry) error {
+func (s *Store) validateConfigEntryEnterprise(tx *txnWrapper, conf structs.ConfigEntry) error {
 	return nil
 }
 
-func getAllConfigEntriesWithTxn(tx *memdb.Txn, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func getAllConfigEntriesWithTxn(tx *txnWrapper, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get(configTableName, "id")
 }
 
-func getConfigEntryKindsWithTxn(tx *memdb.Txn,
+func getConfigEntryKindsWithTxn(tx *txnWrapper,
 	kind string, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get(configTableName, "kind", kind)
 }

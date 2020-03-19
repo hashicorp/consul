@@ -14,7 +14,7 @@ func TestGraveyard_Lifecycle(t *testing.T) {
 
 	// Create some tombstones.
 	func() {
-		tx := s.db.Txn(true)
+		tx := s.db.WriteTxnRestore()
 		defer tx.Abort()
 
 		if err := g.InsertTxn(tx, "foo/in/the/house", 2, nil); err != nil {
@@ -62,7 +62,7 @@ func TestGraveyard_Lifecycle(t *testing.T) {
 
 	// Reap some tombstones.
 	func() {
-		tx := s.db.Txn(true)
+		tx := s.db.WriteTxnRestore()
 		defer tx.Abort()
 
 		if err := g.ReapTxn(tx, 6); err != nil {
@@ -121,7 +121,7 @@ func TestGraveyard_GC_Trigger(t *testing.T) {
 	// GC.
 	s := testStateStore(t)
 	func() {
-		tx := s.db.Txn(true)
+		tx := s.db.WriteTxnRestore()
 		defer tx.Abort()
 
 		if err := g.InsertTxn(tx, "foo/in/the/house", 2, nil); err != nil {
@@ -136,7 +136,7 @@ func TestGraveyard_GC_Trigger(t *testing.T) {
 
 	// Now commit.
 	func() {
-		tx := s.db.Txn(true)
+		tx := s.db.WriteTxnRestore()
 		defer tx.Abort()
 
 		if err := g.InsertTxn(tx, "foo/in/the/house", 2, nil); err != nil {
@@ -170,7 +170,7 @@ func TestGraveyard_Snapshot_Restore(t *testing.T) {
 
 	// Create some tombstones.
 	func() {
-		tx := s.db.Txn(true)
+		tx := s.db.WriteTxnRestore()
 		defer tx.Abort()
 
 		if err := g.InsertTxn(tx, "foo/in/the/house", 2, nil); err != nil {
@@ -232,7 +232,7 @@ func TestGraveyard_Snapshot_Restore(t *testing.T) {
 	func() {
 		s := testStateStore(t)
 		func() {
-			tx := s.db.Txn(true)
+			tx := s.db.WriteTxnRestore()
 			defer tx.Abort()
 
 			for _, stone := range dump {

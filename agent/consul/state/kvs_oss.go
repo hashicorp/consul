@@ -16,7 +16,7 @@ func kvsIndexer() *memdb.StringFieldIndex {
 	}
 }
 
-func (s *Store) insertKVTxn(tx *memdb.Txn, entry *structs.DirEntry, updateMax bool) error {
+func (s *Store) insertKVTxn(tx *txnWrapper, entry *structs.DirEntry, updateMax bool) error {
 	if err := tx.Insert("kvs", entry); err != nil {
 		return err
 	}
@@ -33,7 +33,7 @@ func (s *Store) insertKVTxn(tx *memdb.Txn, entry *structs.DirEntry, updateMax bo
 	return nil
 }
 
-func (s *Store) kvsListEntriesTxn(tx *memdb.Txn, ws memdb.WatchSet, prefix string, entMeta *structs.EnterpriseMeta) (uint64, structs.DirEntries, error) {
+func (s *Store) kvsListEntriesTxn(tx *txnWrapper, ws memdb.WatchSet, prefix string, entMeta *structs.EnterpriseMeta) (uint64, structs.DirEntries, error) {
 	var ents structs.DirEntries
 	var lindex uint64
 
@@ -56,7 +56,7 @@ func (s *Store) kvsListEntriesTxn(tx *memdb.Txn, ws memdb.WatchSet, prefix strin
 
 // kvsDeleteTreeTxn is the inner method that does a recursive delete inside an
 // existing transaction.
-func (s *Store) kvsDeleteTreeTxn(tx *memdb.Txn, idx uint64, prefix string, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) kvsDeleteTreeTxn(tx *txnWrapper, idx uint64, prefix string, entMeta *structs.EnterpriseMeta) error {
 	// For prefix deletes, only insert one tombstone and delete the entire subtree
 	deleted, err := tx.DeletePrefix("kvs", "id_prefix", prefix)
 	if err != nil {
@@ -77,11 +77,11 @@ func (s *Store) kvsDeleteTreeTxn(tx *memdb.Txn, idx uint64, prefix string, entMe
 	return nil
 }
 
-func kvsMaxIndex(tx *memdb.Txn, entMeta *structs.EnterpriseMeta) uint64 {
+func kvsMaxIndex(tx *txnWrapper, entMeta *structs.EnterpriseMeta) uint64 {
 	return maxIndexTxn(tx, "kvs", "tombstones")
 }
 
-func (s *Store) kvsDeleteWithEntry(tx *memdb.Txn, entry *structs.DirEntry, idx uint64) error {
+func (s *Store) kvsDeleteWithEntry(tx *txnWrapper, entry *structs.DirEntry, idx uint64) error {
 	// Delete the entry and update the index.
 	if err := tx.Delete("kvs", entry); err != nil {
 		return fmt.Errorf("failed deleting kvs entry: %s", err)

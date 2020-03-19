@@ -106,7 +106,7 @@ func (s *Store) ConfigEntry(ws memdb.WatchSet, kind, name string, entMeta *struc
 	return s.configEntryTxn(tx, ws, kind, name, entMeta)
 }
 
-func (s *Store) configEntryTxn(tx *memdb.Txn, ws memdb.WatchSet, kind, name string, entMeta *structs.EnterpriseMeta) (uint64, structs.ConfigEntry, error) {
+func (s *Store) configEntryTxn(tx *txnWrapper, ws memdb.WatchSet, kind, name string, entMeta *structs.EnterpriseMeta) (uint64, structs.ConfigEntry, error) {
 	// Get the index
 	idx := maxIndexTxn(tx, configTableName)
 
@@ -141,7 +141,7 @@ func (s *Store) ConfigEntriesByKind(ws memdb.WatchSet, kind string, entMeta *str
 	return s.configEntriesByKindTxn(tx, ws, kind, entMeta)
 }
 
-func (s *Store) configEntriesByKindTxn(tx *memdb.Txn, ws memdb.WatchSet, kind string, entMeta *structs.EnterpriseMeta) (uint64, []structs.ConfigEntry, error) {
+func (s *Store) configEntriesByKindTxn(tx *txnWrapper, ws memdb.WatchSet, kind string, entMeta *structs.EnterpriseMeta) (uint64, []structs.ConfigEntry, error) {
 	// Get the index
 	idx := maxIndexTxn(tx, configTableName)
 
@@ -167,7 +167,7 @@ func (s *Store) configEntriesByKindTxn(tx *memdb.Txn, ws memdb.WatchSet, kind st
 
 // EnsureConfigEntry is called to do an upsert of a given config entry.
 func (s *Store) EnsureConfigEntry(idx uint64, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	if err := s.ensureConfigEntryTxn(tx, idx, conf, entMeta); err != nil {
@@ -179,7 +179,7 @@ func (s *Store) EnsureConfigEntry(idx uint64, conf structs.ConfigEntry, entMeta 
 }
 
 // ensureConfigEntryTxn upserts a config entry inside of a transaction.
-func (s *Store) ensureConfigEntryTxn(tx *memdb.Txn, idx uint64, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) ensureConfigEntryTxn(tx *txnWrapper, idx uint64, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) error {
 	// Check for existing configuration.
 	existing, err := s.firstConfigEntryWithTxn(tx, conf.GetKind(), conf.GetName(), entMeta)
 	if err != nil {
@@ -217,7 +217,7 @@ func (s *Store) ensureConfigEntryTxn(tx *memdb.Txn, idx uint64, conf structs.Con
 
 // EnsureConfigEntryCAS is called to do a check-and-set upsert of a given config entry.
 func (s *Store) EnsureConfigEntryCAS(idx, cidx uint64, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) (bool, error) {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	// Check for existing configuration.
@@ -251,7 +251,7 @@ func (s *Store) EnsureConfigEntryCAS(idx, cidx uint64, conf structs.ConfigEntry,
 }
 
 func (s *Store) DeleteConfigEntry(idx uint64, kind, name string, entMeta *structs.EnterpriseMeta) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	// Try to retrieve the existing config entry.
@@ -298,7 +298,7 @@ func (s *Store) DeleteConfigEntry(idx uint64, kind, name string, entMeta *struct
 	return nil
 }
 
-func (s *Store) insertConfigEntryWithTxn(tx *memdb.Txn, idx uint64, conf structs.ConfigEntry) error {
+func (s *Store) insertConfigEntryWithTxn(tx *txnWrapper, idx uint64, conf structs.ConfigEntry) error {
 	if conf == nil {
 		return fmt.Errorf("cannot insert nil config entry")
 	}
@@ -330,7 +330,7 @@ func (s *Store) insertConfigEntryWithTxn(tx *memdb.Txn, idx uint64, conf structs
 // May return *ConfigEntryGraphValidationError if there is a concern to surface
 // to the caller that they can correct.
 func (s *Store) validateProposedConfigEntryInGraph(
-	tx *memdb.Txn,
+	tx *txnWrapper,
 	idx uint64,
 	kind, name string,
 	next structs.ConfigEntry,
@@ -371,7 +371,7 @@ func (s *Store) validateProposedConfigEntryInGraph(
 }
 
 func (s *Store) checkGatewayClash(
-	tx *memdb.Txn,
+	tx *txnWrapper,
 	name, selfKind, otherKind string,
 	entMeta *structs.EnterpriseMeta,
 ) error {
@@ -393,7 +393,7 @@ var serviceGraphKinds = []string{
 }
 
 func (s *Store) validateProposedConfigEntryInServiceGraph(
-	tx *memdb.Txn,
+	tx *txnWrapper,
 	idx uint64,
 	kind, name string,
 	next structs.ConfigEntry,
@@ -449,7 +449,7 @@ func (s *Store) validateProposedConfigEntryInServiceGraph(
 }
 
 func (s *Store) testCompileDiscoveryChain(
-	tx *memdb.Txn,
+	tx *txnWrapper,
 	ws memdb.WatchSet,
 	chainName string,
 	overrides map[structs.ConfigEntryKindName]structs.ConfigEntry,
@@ -512,7 +512,7 @@ func (s *Store) readDiscoveryChainConfigEntries(
 }
 
 func (s *Store) readDiscoveryChainConfigEntriesTxn(
-	tx *memdb.Txn,
+	tx *txnWrapper,
 	ws memdb.WatchSet,
 	serviceName string,
 	overrides map[structs.ConfigEntryKindName]structs.ConfigEntry,
@@ -701,7 +701,7 @@ func anyKey(m map[structs.ServiceID]struct{}) (structs.ServiceID, bool) {
 //
 // If an override is returned the index returned will be 0.
 func (s *Store) getProxyConfigEntryTxn(
-	tx *memdb.Txn,
+	tx *txnWrapper,
 	ws memdb.WatchSet,
 	name string,
 	overrides map[structs.ConfigEntryKindName]structs.ConfigEntry,
@@ -726,7 +726,7 @@ func (s *Store) getProxyConfigEntryTxn(
 //
 // If an override is returned the index returned will be 0.
 func (s *Store) getServiceConfigEntryTxn(
-	tx *memdb.Txn,
+	tx *txnWrapper,
 	ws memdb.WatchSet,
 	serviceName string,
 	overrides map[structs.ConfigEntryKindName]structs.ConfigEntry,
@@ -751,7 +751,7 @@ func (s *Store) getServiceConfigEntryTxn(
 //
 // If an override is returned the index returned will be 0.
 func (s *Store) getRouterConfigEntryTxn(
-	tx *memdb.Txn,
+	tx *txnWrapper,
 	ws memdb.WatchSet,
 	serviceName string,
 	overrides map[structs.ConfigEntryKindName]structs.ConfigEntry,
@@ -776,7 +776,7 @@ func (s *Store) getRouterConfigEntryTxn(
 //
 // If an override is returned the index returned will be 0.
 func (s *Store) getSplitterConfigEntryTxn(
-	tx *memdb.Txn,
+	tx *txnWrapper,
 	ws memdb.WatchSet,
 	serviceName string,
 	overrides map[structs.ConfigEntryKindName]structs.ConfigEntry,
@@ -801,7 +801,7 @@ func (s *Store) getSplitterConfigEntryTxn(
 //
 // If an override is returned the index returned will be 0.
 func (s *Store) getResolverConfigEntryTxn(
-	tx *memdb.Txn,
+	tx *txnWrapper,
 	ws memdb.WatchSet,
 	serviceName string,
 	overrides map[structs.ConfigEntryKindName]structs.ConfigEntry,
@@ -822,7 +822,7 @@ func (s *Store) getResolverConfigEntryTxn(
 }
 
 func (s *Store) configEntryWithOverridesTxn(
-	tx *memdb.Txn,
+	tx *txnWrapper,
 	ws memdb.WatchSet,
 	kind string,
 	name string,
@@ -842,7 +842,7 @@ func (s *Store) configEntryWithOverridesTxn(
 }
 
 func (s *Store) validateProposedIngressProtocolsInServiceGraph(
-	tx *memdb.Txn,
+	tx *txnWrapper,
 	next structs.ConfigEntry,
 	entMeta *structs.EnterpriseMeta,
 ) error {
@@ -886,7 +886,7 @@ func (s *Store) validateProposedIngressProtocolsInServiceGraph(
 // protocolForService returns the service graph protocol associated to the
 // provided service, checking all relevant config entries.
 func (s *Store) protocolForService(
-	tx *memdb.Txn,
+	tx *txnWrapper,
 	ws memdb.WatchSet,
 	svc structs.ServiceName,
 ) (uint64, string, error) {

@@ -205,7 +205,7 @@ func (c *FSM) applyTombstoneOperation(buf []byte, index uint64) interface{} {
 		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	switch req.Op {
 	case structs.TombstoneReap:
-		return c.state.ReapTombstones(req.ReapIndex)
+		return c.state.ReapTombstones(index, req.ReapIndex)
 	default:
 		c.logger.Warn("Invalid Tombstone operation", "operation", req.Op)
 		return fmt.Errorf("Invalid Tombstone operation '%s'", req.Op)
@@ -339,7 +339,7 @@ func (c *FSM) applyConnectCAOperation(buf []byte, index uint64) interface{} {
 
 		return act
 	case structs.CAOpDeleteProviderState:
-		if err := c.state.CADeleteProviderState(req.ProviderState.ID); err != nil {
+		if err := c.state.CADeleteProviderState(index, req.ProviderState.ID); err != nil {
 			return err
 		}
 
@@ -359,7 +359,7 @@ func (c *FSM) applyConnectCAOperation(buf []byte, index uint64) interface{} {
 		}
 		return act
 	case structs.CAOpIncrementProviderSerialNumber:
-		sn, err := c.state.CAIncrementProviderSerialNumber()
+		sn, err := c.state.CAIncrementProviderSerialNumber(index)
 		if err != nil {
 			return err
 		}
@@ -381,7 +381,9 @@ func (c *FSM) applyConnectCALeafOperation(buf []byte, index uint64) interface{} 
 		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	switch req.Op {
 	case structs.CALeafOpIncrementIndex:
-		if err := c.state.CALeafSetIndex(index); err != nil {
+		// Use current index as the new value as well as the value to write at.
+		// TODO(banks) do we even use this op any more?
+		if err := c.state.CALeafSetIndex(index, index); err != nil {
 			return err
 		}
 		return index
