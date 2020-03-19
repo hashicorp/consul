@@ -35,7 +35,7 @@ func (c *consulCAMockDelegate) ApplyCARequest(req *structs.CARequest) (interface
 
 		return true, nil
 	case structs.CAOpDeleteProviderState:
-		if err := c.state.CADeleteProviderState(req.ProviderState.ID); err != nil {
+		if err := c.state.CADeleteProviderState(idx+1, req.ProviderState.ID); err != nil {
 			return nil, err
 		}
 

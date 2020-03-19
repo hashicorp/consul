@@ -116,7 +116,7 @@ func (s *Store) CAConfig(ws memdb.WatchSet) (uint64, *structs.CAConfiguration, e
 	return s.caConfigTxn(tx, ws)
 }
 
-func (s *Store) caConfigTxn(tx *memdb.Txn, ws memdb.WatchSet) (uint64, *structs.CAConfiguration, error) {
+func (s *Store) caConfigTxn(tx *txnWrapper, ws memdb.WatchSet) (uint64, *structs.CAConfiguration, error) {
 	// Get the CA config
 	ch, c, err := tx.FirstWatch(caConfigTableName, "id")
 	if err != nil {
@@ -135,7 +135,7 @@ func (s *Store) caConfigTxn(tx *memdb.Txn, ws memdb.WatchSet) (uint64, *structs.
 
 // CASetConfig is used to set the current CA configuration.
 func (s *Store) CASetConfig(idx uint64, config *structs.CAConfiguration) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	if err := s.caSetConfigTxn(idx, tx, config); err != nil {
@@ -150,7 +150,7 @@ func (s *Store) CASetConfig(idx uint64, config *structs.CAConfiguration) error {
 // given Raft index. If the CAS index specified is not equal to the last observed index
 // for the config, then the call is a noop,
 func (s *Store) CACheckAndSetConfig(idx, cidx uint64, config *structs.CAConfiguration) (bool, error) {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	// Check for an existing config
@@ -175,7 +175,7 @@ func (s *Store) CACheckAndSetConfig(idx, cidx uint64, config *structs.CAConfigur
 	return true, nil
 }
 
-func (s *Store) caSetConfigTxn(idx uint64, tx *memdb.Txn, config *structs.CAConfiguration) error {
+func (s *Store) caSetConfigTxn(idx uint64, tx *txnWrapper, config *structs.CAConfiguration) error {
 	// Check for an existing config
 	prev, err := tx.First(caConfigTableName, "id")
 	if err != nil {
@@ -237,7 +237,7 @@ func (s *Store) CARoots(ws memdb.WatchSet) (uint64, structs.CARoots, error) {
 	return s.caRootsTxn(tx, ws)
 }
 
-func (s *Store) caRootsTxn(tx *memdb.Txn, ws memdb.WatchSet) (uint64, structs.CARoots, error) {
+func (s *Store) caRootsTxn(tx *txnWrapper, ws memdb.WatchSet) (uint64, structs.CARoots, error) {
 	// Get the index
 	idx := maxIndexTxn(tx, caRootTableName)
 
@@ -279,7 +279,7 @@ func (s *Store) CARootActive(ws memdb.WatchSet) (uint64, *structs.CARoot, error)
 //
 // The first boolean result returns whether the transaction succeeded or not.
 func (s *Store) CARootSetCAS(idx, cidx uint64, rs []*structs.CARoot) (bool, error) {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	// There must be exactly one active CA root.
@@ -391,7 +391,7 @@ func (s *Store) CAProviderState(id string) (uint64, *structs.CAConsulProviderSta
 
 // CASetProviderState is used to set the current built-in CA provider state.
 func (s *Store) CASetProviderState(idx uint64, state *structs.CAConsulProviderState) (bool, error) {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	// Check for an existing config
@@ -424,12 +424,9 @@ func (s *Store) CASetProviderState(idx uint64, state *structs.CAConsulProviderSt
 
 // CADeleteProviderState is used to remove the built-in Consul CA provider
 // state for the given ID.
-func (s *Store) CADeleteProviderState(id string) error {
-	tx := s.db.Txn(true)
+func (s *Store) CADeleteProviderState(idx uint64, id string) error {
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
-
-	// Get the index
-	idx := maxIndexTxn(tx, caBuiltinProviderTableName)
 
 	// Check for an existing config
 	existing, err := tx.First(caBuiltinProviderTableName, "id", id)
@@ -455,8 +452,8 @@ func (s *Store) CADeleteProviderState(id string) error {
 	return nil
 }
 
-func (s *Store) CALeafSetIndex(index uint64) error {
-	tx := s.db.Txn(true)
+func (s *Store) CALeafSetIndex(idx uint64, index uint64) error {
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	return indexUpdateMaxTxn(tx, index, caLeafIndexName)
@@ -484,8 +481,8 @@ func (s *Store) CARootsAndConfig(ws memdb.WatchSet) (uint64, structs.CARoots, *s
 	return idx, roots, config, nil
 }
 
-func (s *Store) CAIncrementProviderSerialNumber() (uint64, error) {
-	tx := s.db.Txn(true)
+func (s *Store) CAIncrementProviderSerialNumber(idx uint64) (uint64, error) {
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	existing, err := tx.First("index", "id", caBuiltinProviderSerialNumber)

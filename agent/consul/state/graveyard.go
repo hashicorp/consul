@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
 )
@@ -27,7 +28,7 @@ func NewGraveyard(gc *TombstoneGC) *Graveyard {
 }
 
 // InsertTxn adds a new tombstone.
-func (g *Graveyard) InsertTxn(tx *memdb.Txn, key string, idx uint64, entMeta *structs.EnterpriseMeta) error {
+func (g *Graveyard) InsertTxn(tx *txnWrapper, key string, idx uint64, entMeta *structs.EnterpriseMeta) error {
 	stone := &Tombstone{
 		Key:   key,
 		Index: idx,
@@ -50,7 +51,7 @@ func (g *Graveyard) InsertTxn(tx *memdb.Txn, key string, idx uint64, entMeta *st
 
 // GetMaxIndexTxn returns the highest index tombstone whose key matches the
 // given context, using a prefix match.
-func (g *Graveyard) GetMaxIndexTxn(tx *memdb.Txn, prefix string, entMeta *structs.EnterpriseMeta) (uint64, error) {
+func (g *Graveyard) GetMaxIndexTxn(tx *txnWrapper, prefix string, entMeta *structs.EnterpriseMeta) (uint64, error) {
 	stones, err := getWithTxn(tx, "tombstones", "id_prefix", prefix, entMeta)
 	if err != nil {
 		return 0, fmt.Errorf("failed querying tombstones: %s", err)
@@ -67,7 +68,7 @@ func (g *Graveyard) GetMaxIndexTxn(tx *memdb.Txn, prefix string, entMeta *struct
 }
 
 // DumpTxn returns all the tombstones.
-func (g *Graveyard) DumpTxn(tx *memdb.Txn) (memdb.ResultIterator, error) {
+func (g *Graveyard) DumpTxn(tx *txnWrapper) (memdb.ResultIterator, error) {
 	iter, err := tx.Get("tombstones", "id")
 	if err != nil {
 		return nil, err
@@ -78,7 +79,7 @@ func (g *Graveyard) DumpTxn(tx *memdb.Txn) (memdb.ResultIterator, error) {
 
 // RestoreTxn is used when restoring from a snapshot. For general inserts, use
 // InsertTxn.
-func (g *Graveyard) RestoreTxn(tx *memdb.Txn, stone *Tombstone) error {
+func (g *Graveyard) RestoreTxn(tx *txnWrapper, stone *Tombstone) error {
 	if err := g.insertTombstoneWithTxn(tx, "tombstones", stone, true); err != nil {
 		return fmt.Errorf("failed inserting tombstone: %s", err)
 	}
@@ -88,7 +89,7 @@ func (g *Graveyard) RestoreTxn(tx *memdb.Txn, stone *Tombstone) error {
 
 // ReapTxn cleans out all tombstones whose index values are less than or equal
 // to the given idx. This prevents unbounded storage growth of the tombstones.
-func (g *Graveyard) ReapTxn(tx *memdb.Txn, idx uint64) error {
+func (g *Graveyard) ReapTxn(tx *txnWrapper, idx uint64) error {
 	// This does a full table scan since we currently can't index on a
 	// numeric value. Since this is all in-memory and done infrequently
 	// this pretty reasonable.

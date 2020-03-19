@@ -4100,7 +4100,7 @@ func TestStateStore_resolveACLLinks(t *testing.T) {
 			},
 		}
 
-		_, err := s.resolveACLLinks(tx, links, func(*memdb.Txn, string) (string, error) {
+		_, err := s.resolveACLLinks(tx, links, func(*txnWrapper, string) (string, error) {
 			err := fmt.Errorf("Should not be attempting to resolve an empty id")
 			require.Fail(t, err.Error())
 			return "", err
@@ -4126,7 +4126,7 @@ func TestStateStore_resolveACLLinks(t *testing.T) {
 			},
 		}
 
-		numValid, err := s.resolveACLLinks(tx, links, func(_ *memdb.Txn, linkID string) (string, error) {
+		numValid, err := s.resolveACLLinks(tx, links, func(_ *txnWrapper, linkID string) (string, error) {
 			switch linkID {
 			case "e81887b4-836b-4053-a1fa-7e8305902be9":
 				return "foo", nil
@@ -4156,7 +4156,7 @@ func TestStateStore_resolveACLLinks(t *testing.T) {
 			},
 		}
 
-		numValid, err := s.resolveACLLinks(tx, links, func(_ *memdb.Txn, linkID string) (string, error) {
+		numValid, err := s.resolveACLLinks(tx, links, func(_ *txnWrapper, linkID string) (string, error) {
 			require.Equal(t, "b985e082-25d3-45a9-9dd8-fd1a41b83b0d", linkID)
 			return "", nil
 		})
@@ -4196,7 +4196,7 @@ func TestStateStore_fixupACLLinks(t *testing.T) {
 		tx := s.db.Txn(false)
 		defer tx.Abort()
 
-		newLinks, cloned, err := s.fixupACLLinks(tx, links, func(_ *memdb.Txn, linkID string) (string, error) {
+		newLinks, cloned, err := s.fixupACLLinks(tx, links, func(_ *txnWrapper, linkID string) (string, error) {
 			switch linkID {
 			case "40b57f86-97ea-40e4-a99a-c399cc81f4dd":
 				return "foo", nil
@@ -4223,7 +4223,7 @@ func TestStateStore_fixupACLLinks(t *testing.T) {
 		tx := s.db.Txn(false)
 		defer tx.Abort()
 
-		newLinks, cloned, err := s.fixupACLLinks(tx, links, func(_ *memdb.Txn, linkID string) (string, error) {
+		newLinks, cloned, err := s.fixupACLLinks(tx, links, func(_ *txnWrapper, linkID string) (string, error) {
 			switch linkID {
 			case "40b57f86-97ea-40e4-a99a-c399cc81f4dd":
 				return "foo", nil
@@ -4255,7 +4255,7 @@ func TestStateStore_fixupACLLinks(t *testing.T) {
 		tx := s.db.Txn(false)
 		defer tx.Abort()
 
-		newLinks, cloned, err := s.fixupACLLinks(tx, links, func(_ *memdb.Txn, linkID string) (string, error) {
+		newLinks, cloned, err := s.fixupACLLinks(tx, links, func(_ *txnWrapper, linkID string) (string, error) {
 			switch linkID {
 			case "40b57f86-97ea-40e4-a99a-c399cc81f4dd":
 				return "foo", nil
@@ -4282,7 +4282,7 @@ func TestStateStore_fixupACLLinks(t *testing.T) {
 		tx := s.db.Txn(false)
 		defer tx.Abort()
 
-		_, _, err := s.fixupACLLinks(tx, links, func(*memdb.Txn, string) (string, error) {
+		_, _, err := s.fixupACLLinks(tx, links, func(*txnWrapper, string) (string, error) {
 			return "", fmt.Errorf("Resolver Error")
 		})
 

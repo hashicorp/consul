@@ -1,10 +1,15 @@
 package state
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"time"
+
+	"github.com/hashicorp/consul/agent/agentpb"
+	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-memdb"
+	memdb "github.com/hashicorp/go-memdb"
 )
 
 var (
@@ -97,7 +102,7 @@ const (
 // from the Raft log through the FSM.
 type Store struct {
 	schema *memdb.DBSchema
-	db     *memdb.MemDB
+	db     *memDBWrapper
 
 	// abandonCh is used to signal watchers that this state store has been
 	// abandoned (usually during a restore). This is only ever closed.
@@ -108,13 +113,15 @@ type Store struct {
 
 	// lockDelay holds expiration times for locks associated with keys.
 	lockDelay *Delay
+
+	publisher *EventPublisher
 }
 
 // Snapshot is used to provide a point-in-time snapshot. It
 // works by starting a read transaction against the whole state store.
 type Snapshot struct {
 	store     *Store
-	tx        *memdb.Txn
+	tx        *txnWrapper
 	lastIndex uint64
 }
 
@@ -122,7 +129,7 @@ type Snapshot struct {
 // data to a state store.
 type Restore struct {
 	store *Store
-	tx    *memdb.Txn
+	tx    *txnWrapper
 }
 
 // IndexEntry keeps a record of the last index per-table.
@@ -155,11 +162,15 @@ func NewStateStore(gc *TombstoneGC) (*Store, error) {
 	// Create and return the state store.
 	s := &Store{
 		schema:       schema,
-		db:           db,
 		abandonCh:    make(chan struct{}),
 		kvsGraveyard: NewGraveyard(gc),
 		lockDelay:    NewDelay(),
 	}
+	s.db = &memDBWrapper{
+		MemDB: db,
+		store: s, // Yay circular dependencies. Go GC can handle this though!
+	}
+	s.publisher = NewEventPublisher(s, 0, 10*time.Second)
 	return s, nil
 }
 
@@ -206,7 +217,7 @@ func (s *Snapshot) Close() {
 // the state store. It works by doing all the restores inside of a single
 // transaction.
 func (s *Store) Restore() *Restore {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxnRestore()
 	return &Restore{s, tx}
 }
 
@@ -234,6 +245,34 @@ func (s *Store) Abandon() {
 	close(s.abandonCh)
 }
 
+// ComputeIndex returns the latest index across all tables.
+func (s *Store) ComputeIndex() (uint64, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+	idx, err := s.computeIndexTxn(tx)
+	if err != nil {
+		return 0, err
+	}
+
+	return idx, nil
+}
+
+// computeIndexTxn returns the latest index across all tables.
+func (s *Store) computeIndexTxn(tx *txnWrapper) (uint64, error) {
+	iter, err := tx.Get("index", "id")
+	if err != nil {
+		return 0, err
+	}
+	highestIndex := uint64(0)
+	for index := iter.Next(); index != nil; index = iter.Next() {
+		if idx, ok := index.(*IndexEntry); ok && idx.Value > highestIndex {
+			highestIndex = idx.Value
+		}
+	}
+
+	return highestIndex, nil
+}
+
 // maxIndex is a helper used to retrieve the highest known index
 // amongst a set of tables in the db.
 func (s *Store) maxIndex(tables ...string) uint64 {
@@ -244,11 +283,11 @@ func (s *Store) maxIndex(tables ...string) uint64 {
 
 // maxIndexTxn is a helper used to retrieve the highest known index
 // amongst a set of tables in the db.
-func maxIndexTxn(tx *memdb.Txn, tables ...string) uint64 {
+func maxIndexTxn(tx *txnWrapper, tables ...string) uint64 {
 	return maxIndexWatchTxn(tx, nil, tables...)
 }
 
-func maxIndexWatchTxn(tx *memdb.Txn, ws memdb.WatchSet, tables ...string) uint64 {
+func maxIndexWatchTxn(tx *txnWrapper, ws memdb.WatchSet, tables ...string) uint64 {
 	var lindex uint64
 	for _, table := range tables {
 		ch, ti, err := tx.FirstWatch("index", "id", table)
@@ -265,7 +304,7 @@ func maxIndexWatchTxn(tx *memdb.Txn, ws memdb.WatchSet, tables ...string) uint64
 
 // indexUpdateMaxTxn is used when restoring entries and sets the table's index to
 // the given idx only if it's greater than the current index.
-func indexUpdateMaxTxn(tx *memdb.Txn, idx uint64, table string) error {
+func indexUpdateMaxTxn(tx *txnWrapper, idx uint64, table string) error {
 	ti, err := tx.First("index", "id", table)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve existing index: %s", err)
@@ -283,4 +322,24 @@ func indexUpdateMaxTxn(tx *memdb.Txn, idx uint64, table string) error {
 	}
 
 	return nil
+}
+
+// Subscribe returns a new stream.Subscription for the given request. A
+// subscription will stream an initial snapshot of events matching the request
+// if required and then block until new events that modify the request occur, or
+// the context is cancelled. Subscriptions may be forced to reset if the server
+// decides it can no longer maintain correct operation for example if ACL
+// policies changed or the state store was restored.
+//
+// When the called is finished with the subscription for any reason, it must
+// call Unsubscribe to free ACL tracking resources.
+func (s *Store) Subscribe(ctx context.Context, req *agentpb.SubscribeRequest) (*stream.Subscription, error) {
+	return s.publisher.Subscribe(ctx, req)
+}
+
+// Unsubscribe must be called when a client is no longer interested in a
+// subscription to free resources monitoring changes in it's ACL token. The same
+// request object passed to Subscribe must be used.
+func (s *Store) Unsubscribe(req *agentpb.SubscribeRequest) {
+	s.publisher.Unsubscribe(req)
 }
