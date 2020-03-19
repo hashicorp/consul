@@ -10,9 +10,15 @@
         <label for="toolbar-toggle"></label>
     </BlockSlot>
     <BlockSlot @name="toolbar">
-{{#if (gt items.length 0) }}
-      <PhraseEditor @placeholder="service:name tag:name status:critical search-term" @value={{slice 0 terms.length terms}} @onchange={{action (mut terms) value='target.value'}} @searchable={{searchable}} />
-{{/if}}
+      {{#if (gt items.length 0) }}
+        <CatalogToolbar
+          @searchable={{searchable}} 
+          @value={{search}} 
+          @selected={{if sortBy (find-by 'key' sortBy sortOptions) sortOptions.firstObject}}
+          @options={{sortOptions}} 
+          @onchange={{action (mut sortBy) value='target.selectedOption.key'}} 
+        />
+      {{/if}}
     </BlockSlot>
     <BlockSlot @name="content">
         <ChangeableSet @dispatcher={{searchable}}>
@@ -27,4 +33,3 @@
         </ChangeableSet>
     </BlockSlot>
 </AppView>
-

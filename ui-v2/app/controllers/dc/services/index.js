@@ -4,6 +4,7 @@ import WithEventSource from 'consul-ui/mixins/with-event-source';
 import WithSearching from 'consul-ui/mixins/with-searching';
 export default Controller.extend(WithEventSource, WithSearching, {
   queryParams: {
+    sortBy: 'sort',
     s: {
       as: 'filter',
     },
@@ -19,4 +20,39 @@ export default Controller.extend(WithEventSource, WithSearching, {
       .add(this.items)
       .search(this.terms);
   }),
+  services: computed('items.[]', function() {
+    return this.items.filter(function(item) {
+      return item.Kind === 'consul';
+    });
+  }),
+  proxies: computed('items.[]', function() {
+    return this.items.filter(function(item) {
+      return item.Kind === 'connect-proxy';
+    });
+  }),
+  withProxies: computed('proxies', function() {
+    const proxies = {};
+    this.proxies.forEach(item => {
+      proxies[item.Name.replace('-proxy', '')] = true;
+    });
+    return proxies;
+  }),
+  sortOptions: [
+    {
+      key: 'health:desc',
+      value: 'Unhealthy to Healthy',
+    },
+    {
+      key: 'health:asc',
+      value: 'Healthy to Unhealthy',
+    },
+    {
+      key: 'Name:asc',
+      value: 'A to Z',
+    },
+    {
+      key: 'Name:desc',
+      value: 'Z to A',
+    },
+  ],
 });

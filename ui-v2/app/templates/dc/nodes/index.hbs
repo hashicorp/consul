@@ -8,20 +8,30 @@
   </BlockSlot>
   <BlockSlot @name="toolbar">
 {{#if (gt items.length 0) }}
-    <CatalogFilter @searchable={{array searchableHealthy searchableUnhealthy}} @search={{s}} @status={{filters.status}} @onchange={{action "filter"}} />
+    <CatalogToolbar
+      @searchable={{array searchable}} 
+      @value={{search}} 
+      @selected={{if sortBy (find-by 'key' sortBy sortOptions) sortOptions.firstObject}}
+      @options={{sortOptions}} 
+      @onchange={{action (mut sortBy) value='target.selectedOption.key'}} 
+    />
 {{/if}}
   </BlockSlot>
   <BlockSlot @name="content">
-{{#if (gt unhealthy.length 0) }}
+{{#if (gt items.length 0) }}
       <div class="unhealthy">
-        <h2>Unhealthy Nodes</h2>
         <div>
-          {{! think about 2 differing views here }}
           <ul>
-            <ChangeableSet @dispatcher={{searchableUnhealthy}}>
-              <BlockSlot @name="set" as |unhealthy|>
-                {{#each unhealthy as |item|}}
-                  <HealthcheckedResource @tagName="li" @data-test-node={{item.Node}} @href={{href-to "dc.nodes.show" item.Node}} @name={{item.Node}} @address={{item.Address}} @checks={{item.Checks}}>
+            <ChangeableSet @dispatcher={{searchable}}>
+              <BlockSlot @name="set" as |items|>
+                {{#each (sort-by (if sortBy sortBy sortOptions.firstObject.key) items) as |item|}}
+                  <HealthcheckedResource 
+                    @tagName="li" 
+                    @data-test-node={{item.Node}} 
+                    @href={{href-to "dc.nodes.show" item.Node}} 
+                    @name={{item.Node}} 
+                    @address={{item.Address}} 
+                    @checks={{item.Checks}}>
                     <BlockSlot @name="icon">
                       {{#if (eq item.Address leader.Address)}}
                         <span data-test-leader={{leader.Address}} data-tooltip="Leader">Leader</span>
@@ -32,41 +42,13 @@
               </BlockSlot>
               <BlockSlot @name="empty">
                 <p>
-                  There are no unhealthy nodes for that search.
+                  There are no nodes for that search.
                 </p>
               </BlockSlot>
             </ChangeableSet>
           </ul>
         </div>
       </div>
-{{/if}}
-{{#if (gt healthy.length 0) }}
-      <div class="healthy">
-        <h2>Healthy Nodes</h2>
-        <ChangeableSet @dispatcher={{searchableHealthy}}>
-          <BlockSlot @name="set" as |healthy|>
-            <ListCollection @cellHeight={{92}} @items={{healthy}} as |item index|>
-              <HealthcheckedResource @data-test-node={{item.Node}} @href={{href-to "dc.nodes.show" item.Node}} @name={{item.Node}} @address={{item.Address}} @checks={{item.Checks}}>
-                <BlockSlot @name="icon">
-                  {{#if (eq item.Address leader.Address)}}
-                    <span data-test-leader={{leader.Address}} data-tooltip="Leader">Leader</span>
-                  {{/if}}
-                </BlockSlot>
-              </HealthcheckedResource>
-            </ListCollection>
-          </BlockSlot>
-          <BlockSlot @name="empty">
-            <p>
-              There are no healthy nodes for that search.
-            </p>
-          </BlockSlot>
-        </ChangeableSet>
-      </div>
-{{/if}}
-{{#if (and (eq healthy.length 0) (eq unhealthy.length 0)) }}
-      <p>
-          There are no nodes.
-      </p>
 {{/if}}
   </BlockSlot>
 </AppView>
