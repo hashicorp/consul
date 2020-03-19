@@ -1,15 +1,15 @@
 export default function(scenario, assert, find, currentPage, pauseUntil, pluralize) {
   scenario
     .then('pause until I see $number $model model[s]?', function(num, model) {
-      return pauseUntil(function(resolve) {
+      return pauseUntil(function(resolve, reject, retry) {
         const len = currentPage()[pluralize(model)].filter(function(item) {
           return item.isVisible;
         }).length;
         if (len === num) {
-          assert.equal(len, num, `Expected ${num} ${model}s, saw ${len}`);
-          resolve();
+          return resolve();
         }
-      });
+        return retry();
+      }, `Expected ${num} ${model}s`);
     })
     .then(['I see $num $model model[s]?'], function(num, model) {
       const len = currentPage()[pluralize(model)].filter(function(item) {
