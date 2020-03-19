@@ -23,14 +23,6 @@ export default Controller.extend(WithEventSource, WithSearching, {
   }),
   sortOptions: [
     {
-      key: 'health:desc',
-      value: 'Unhealthy to Healthy',
-    },
-    {
-      key: 'health:asc',
-      value: 'Healthy to Unhealthy',
-    },
-    {
       key: 'Node:asc',
       value: 'A to Z',
     },

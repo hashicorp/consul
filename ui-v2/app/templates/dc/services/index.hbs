@@ -23,7 +23,7 @@
     <BlockSlot @name="content">
         <ChangeableSet @dispatcher={{searchable}}>
           <BlockSlot @name="set" as |filtered|>
-            <ConsulServiceList @routeName="dc.services.show" @items={{filtered}} />
+            <ConsulServiceList @routeName="dc.services.show" @items={{sort-by (if sortBy sortBy sortOptions.firstObject.key) filtered}} />
           </BlockSlot>
           <BlockSlot @name="empty">
             <p>
