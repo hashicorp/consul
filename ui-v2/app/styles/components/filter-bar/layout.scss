@@ -3,18 +3,35 @@
   display: block;
   margin-top: 0 !important;
 }
+%catalog-toolbar {
+  padding: 4px 8px;
+  display: flex;
+  margin-top: 0 !important;
+  margin-bottom: -12px !important;
+  border-bottom: 1px solid $gray-200;
+}
 @media #{$--horizontal-filters} {
   %filter-bar {
     display: flex;
     flex-direction: row-reverse;
     justify-content: space-between;
   }
+  %catalog-toolbar {
+    flex-direction: row;
+  }
   %filter-bar > *:first-child {
     margin-left: 12px;
+  }
+  %catalog-toolbar > *:first-child {
+    margin-left: 0px;
   }
   %filter-bar fieldset {
     min-width: 210px;
     width: auto;
+  }
+  %catalog-toolbar fieldset {
+    min-width: none;
+    width: 100%;
   }
 }
 @media #{$--lt-horizontal-filters} {

@@ -3,6 +3,9 @@
   border: $decor-border-100;
   border-radius: $decor-radius-100;
 }
+%catalog-toolbar > div {
+  border: none;
+}
 // TODO: Move this elsewhere
 @media #{$--horizontal-selects} {
   %filter-bar label:not(:last-child) {

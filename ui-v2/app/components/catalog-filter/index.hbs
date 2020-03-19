@@ -1,4 +1,0 @@
-{{!<form>}}
-    <FreetextFilter @searchable={{searchable}} @value={{search}} @placeholder="Search" />
-    <RadioGroup @keyboardAccess={{true}} @name="status" @value={{status}} @items={{array (hash label="All (Any Status)" value="") (hash label="Critical Checks" value="critical") (hash label="Warning Checks" value="warning") (hash label="Passing Checks" value="passing")}} @onchange={{action onchange}} />
-{{!</form>}}
