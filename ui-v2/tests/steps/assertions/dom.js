@@ -1,16 +1,17 @@
 export default function(scenario, assert, pauseUntil, find, currentURL, clipboard) {
   scenario
     .then('pause until I see the text "$text" in "$selector"', function(text, selector) {
-      return pauseUntil(function(resolve) {
+      return pauseUntil(function(resolve, reject, retry) {
         const $el = find(selector);
         if ($el) {
           const hasText = $el.textContent.indexOf(text) !== -1;
           if (hasText) {
-            assert.ok(hasText, `Expected to see "${text}" in "${selector}"`);
-            resolve();
+            return resolve();
           }
+          return reject();
         }
-      });
+        return retry();
+      }, `Expected to see "${text}" in "${selector}"`);
     })
     .then(['I see the text "$text" in "$selector"'], function(text, selector) {
       const textContent = find(selector).textContent;
