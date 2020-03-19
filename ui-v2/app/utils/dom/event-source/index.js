@@ -131,3 +131,16 @@ export const toPromise = function(target, cb, eventName = 'message', errorName =
     cb(remove);
   });
 };
+export const once = function(cb, configuration, Source = OpenableEventSource) {
+  return new Source(function(configuration, source) {
+    return cb(configuration, source)
+      .then(function(data) {
+        source.dispatchEvent({ type: 'message', data: data });
+        source.close();
+      })
+      .catch(function(e) {
+        source.dispatchEvent({ type: 'error', error: e });
+        source.close();
+      });
+  }, configuration);
+};
