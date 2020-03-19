@@ -48,3 +48,29 @@
   display: inline-block;
   box-sizing: border-box;
 }
+%split-button {
+  @extend %secondary-button;
+  padding: 0 8px !important;
+  position: relative;
+  height: 100%;
+}
+%split-button span::after {
+  @extend %as-pseudo;
+  content: '';
+  position: absolute;
+  background-color: $gray-300;
+  width: 1px;
+  top: 0;
+  height: 100%;
+  margin-left: 8px;
+}
+%split-button::before {
+  @extend %as-pseudo;
+  height: 16px;
+}
+%sort-button::before {
+  @extend %with-sort-icon;
+  margin-top: 8px;
+  width: 16px;
+  height: 16px;
+}
