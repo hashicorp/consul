@@ -50,20 +50,33 @@ const mb = function(path) {
   };
 };
 export default function(assert, library) {
-  const pauseUntil = function(cb) {
-    return new Promise(function(resolve, reject) {
+  const pauseUntil = function(run, message = 'assertion timed out') {
+    return new Promise(function(r, reject) {
       let count = 0;
-      const interval = setInterval(function() {
-        if (++count >= 50) {
-          clearInterval(interval);
-          assert.ok(false);
-          reject();
-        }
-        cb(function() {
-          clearInterval(interval);
-          resolve();
+      let resolved = false;
+      const retry = function() {
+        return Promise.resolve();
+      };
+      const resolve = function(str = message) {
+        resolved = true;
+        assert.ok(resolved, str);
+        r();
+        return Promise.resolve();
+      };
+      (function tick() {
+        run(resolve, reject, retry).then(function() {
+          if (!resolved) {
+            setTimeout(function() {
+              if (++count >= 50) {
+                assert.ok(false, message);
+                reject();
+                return;
+              }
+              tick();
+            }, 100);
+          }
         });
-      }, 100);
+      })();
     });
   };
   const lastNthRequest = getLastNthRequest(api.server.history);

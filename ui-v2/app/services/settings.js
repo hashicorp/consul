@@ -2,6 +2,12 @@ import Service from '@ember/service';
 import getStorage from 'consul-ui/utils/storage/local-storage';
 const SCHEME = 'consul';
 const storage = getStorage(SCHEME);
+// promise aware assertion
+export const ifNotBlocking = function(repo) {
+  return repo.findBySlug('client').then(function(settings) {
+    return typeof settings.blocking !== 'undefined' && !settings.blocking;
+  });
+};
 export default Service.extend({
   storage: storage,
   findAll: function(key) {
