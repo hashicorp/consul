@@ -1468,6 +1468,16 @@
   mask-image: $source-file-svg;
 }
 
+%with-sort-icon {
+  @extend %with-icon;
+  background-image: $sort-svg;
+}
+%with-sort-mask {
+  @extend %with-mask;
+  -webkit-mask-image: $sort-svg;
+  mask-image: $sort-svg;
+}
+
 %with-star-fill-icon {
   @extend %with-icon;
   background-image: $star-fill-svg;

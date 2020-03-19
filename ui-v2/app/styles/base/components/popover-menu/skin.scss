@@ -7,3 +7,12 @@
 %more-popover-menu + label > * {
   font-size: 0;
 }
+%popover-menu + label > *::after {
+  @extend %with-chevron-down-icon, %as-pseudo;
+  width: 16px;
+  height: 16px;
+  margin-left: 16px;
+}
+%popover-menu + label > * {
+  @extend %split-button, %sort-button;
+}
