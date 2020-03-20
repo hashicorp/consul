@@ -21,14 +21,4 @@ export default Controller.extend(WithEventSource, WithSearching, {
       .add(this.items)
       .search(this.terms);
   }),
-  sortOptions: [
-    {
-      key: 'Node:asc',
-      value: 'A to Z',
-    },
-    {
-      key: 'Node:desc',
-      value: 'Z to A',
-    },
-  ],
 });

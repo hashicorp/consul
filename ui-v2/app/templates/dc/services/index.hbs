@@ -1,35 +1,43 @@
 {{title 'Services'}}
-<AppView @class="service list">
-    <BlockSlot @name="notification" as |status type|>
-      {{partial 'dc/services/notifications'}}
-    </BlockSlot>
-    <BlockSlot @name="header">
-        <h1>
-            Services <em>{{format-number items.length}} total</em>
-        </h1>
-        <label for="toolbar-toggle"></label>
-    </BlockSlot>
-    <BlockSlot @name="toolbar">
-      {{#if (gt items.length 0) }}
-        <CatalogToolbar
-          @searchable={{searchable}} 
-          @value={{search}} 
-          @selected={{if sortBy (find-by 'key' sortBy sortOptions) sortOptions.firstObject}}
-          @options={{sortOptions}} 
-          @onchange={{action (mut sortBy) value='target.selectedOption.key'}} 
-        />
-      {{/if}}
-    </BlockSlot>
-    <BlockSlot @name="content">
-        <ChangeableSet @dispatcher={{searchable}}>
-          <BlockSlot @name="set" as |filtered|>
-            <ConsulServiceList @routeName="dc.services.show" @items={{sort-by (if sortBy sortBy sortOptions.firstObject.key) filtered}} />
-          </BlockSlot>
-          <BlockSlot @name="empty">
-            <p>
-              There are no services.
-            </p>
-          </BlockSlot>
-        </ChangeableSet>
-    </BlockSlot>
-</AppView>
+{{#let (selectable-key-values
+    (array "Name:asc" "A to Z")
+    (array "Name:desc" "Z to A")
+      selected=sortBy
+  )
+  as |sort|
+}}
+    <AppView @class="service list">
+        <BlockSlot @name="notification" as |status type|>
+          {{partial 'dc/services/notifications'}}
+        </BlockSlot>
+        <BlockSlot @name="header">
+            <h1>
+                Services <em>{{format-number items.length}} total</em>
+            </h1>
+            <label for="toolbar-toggle"></label>
+        </BlockSlot>
+        <BlockSlot @name="toolbar">
+          {{#if (gt items.length 0) }}
+            <CatalogToolbar
+              @searchable={{searchable}}
+              @value={{search}}
+              @selected={{sort.selected}}
+              @options={{sort.items}}
+              @onchange={{action (mut sortBy) value='target.selected.key'}}
+            />
+          {{/if}}
+        </BlockSlot>
+        <BlockSlot @name="content">
+            <ChangeableSet @dispatcher={{searchable}}>
+              <BlockSlot @name="set" as |filtered|>
+                <ConsulServiceList @routeName="dc.services.show" @items={{sort-by sort.selected.key filtered}} />
+              </BlockSlot>
+              <BlockSlot @name="empty">
+                <p>
+                  There are no services.
+                </p>
+              </BlockSlot>
+            </ChangeableSet>
+        </BlockSlot>
+    </AppView>
+{{/let}}

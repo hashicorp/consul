@@ -1,4 +1,11 @@
 {{title 'Nodes'}}
+{{#let (selectable-key-values
+    (array "Node:asc" "A to Z")
+    (array "Node:desc" "Z to A")
+      selected=sortBy
+  )
+  as |sort|
+}}
 <AppView @class="node list">
   <BlockSlot @name="header">
     <h1>
@@ -9,11 +16,11 @@
   <BlockSlot @name="toolbar">
 {{#if (gt items.length 0) }}
     <CatalogToolbar
-      @searchable={{array searchable}} 
-      @value={{search}} 
-      @selected={{if sortBy (find-by 'key' sortBy sortOptions) sortOptions.firstObject}}
-      @options={{sortOptions}} 
-      @onchange={{action (mut sortBy) value='target.selectedOption.key'}} 
+      @searchable={{array searchable}}
+      @value={{search}}
+      @selected={{sort.selected}}
+      @options={{sort.items}}
+      @onchange={{action (mut sortBy) value='target.selected.key'}}
     />
 {{/if}}
   </BlockSlot>
@@ -24,13 +31,13 @@
           <ul>
             <ChangeableSet @dispatcher={{searchable}}>
               <BlockSlot @name="set" as |items|>
-                {{#each (sort-by (if sortBy sortBy sortOptions.firstObject.key) items) as |item|}}
-                  <HealthcheckedResource 
-                    @tagName="li" 
-                    @data-test-node={{item.Node}} 
-                    @href={{href-to "dc.nodes.show" item.Node}} 
-                    @name={{item.Node}} 
-                    @address={{item.Address}} 
+                {{#each (sort-by sort.selected.key items) as |item|}}
+                  <HealthcheckedResource
+                    @tagName="li"
+                    @data-test-node={{item.Node}}
+                    @href={{href-to "dc.nodes.show" item.Node}}
+                    @name={{item.Node}}
+                    @address={{item.Address}}
                     @checks={{item.Checks}}>
                     <BlockSlot @name="icon">
                       {{#if (eq item.Address leader.Address)}}
@@ -52,3 +59,4 @@
 {{/if}}
   </BlockSlot>
 </AppView>
+{{/let}}

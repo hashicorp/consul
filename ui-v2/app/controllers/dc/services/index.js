@@ -20,31 +20,4 @@ export default Controller.extend(WithEventSource, WithSearching, {
       .add(this.items)
       .search(this.terms);
   }),
-  services: computed('items.[]', function() {
-    return this.items.filter(function(item) {
-      return item.Kind === 'consul';
-    });
-  }),
-  proxies: computed('items.[]', function() {
-    return this.items.filter(function(item) {
-      return item.Kind === 'connect-proxy';
-    });
-  }),
-  withProxies: computed('proxies', function() {
-    const proxies = {};
-    this.proxies.forEach(item => {
-      proxies[item.Name.replace('-proxy', '')] = true;
-    });
-    return proxies;
-  }),
-  sortOptions: [
-    {
-      key: 'Name:asc',
-      value: 'A to Z',
-    },
-    {
-      key: 'Name:desc',
-      value: 'Z to A',
-    },
-  ],
 });
