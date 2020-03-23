@@ -1,26 +1,43 @@
 {{title 'Services'}}
-<AppView @class="service list">
-    <BlockSlot @name="header">
-        <h1>
-            Services <em>{{format-number services.length}} total</em>
-        </h1>
-        <label for="toolbar-toggle"></label>
-    </BlockSlot>
-    <BlockSlot @name="toolbar">
-{{#if (gt items.length 0) }}
-      <PhraseEditor @placeholder="service:name tag:name status:critical search-term" @value={{slice 0 terms.length terms}} @onchange={{action (mut terms) value='target.value'}} @searchable={{searchable}} />
-{{/if}}
-    </BlockSlot>
-    <BlockSlot @name="content">
+{{#let (selectable-key-values
+    (array "Name:asc" "A to Z")
+    (array "Name:desc" "Z to A")
+      selected=sortBy
+  )
+  as |sort|
+}}
+    <AppView @class="service list">
+      <BlockSlot @name="notification" as |status type|>
+        {{partial 'dc/services/notifications'}}
+      </BlockSlot>
+      <BlockSlot @name="header">
+          <h1>
+              Services <em>{{format-number items.length}} total</em>
+          </h1>
+          <label for="toolbar-toggle"></label>
+      </BlockSlot>
+      <BlockSlot @name="toolbar">
+        {{#if (gt items.length 0) }}
+          <CatalogToolbar
+            @searchable={{searchable}}
+            @value={{search}}
+            @selected={{sort.selected}}
+            @options={{sort.items}}
+            @onchange={{action (mut sortBy) value='target.selected.key'}}
+          />
+        {{/if}}
+      </BlockSlot>
+      <BlockSlot @name="content">
         <ChangeableSet @dispatcher={{searchable}}>
           <BlockSlot @name="set" as |filtered|>
-            <ConsulServiceList @routeName="dc.services.show" @items={{filtered}} @proxies={{proxies}}/>          </BlockSlot>
+            <ConsulServiceList @routeName="dc.services.show" @items={{sort-by sort.selected.key filtered}} @proxies={{proxies}}/>          
+          </BlockSlot>
           <BlockSlot @name="empty">
             <p>
               There are no services.
             </p>
           </BlockSlot>
         </ChangeableSet>
-    </BlockSlot>
-</AppView>
-
+      </BlockSlot>
+    </AppView>
+{{/let}}

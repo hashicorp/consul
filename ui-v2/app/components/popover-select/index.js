@@ -1,12 +1,19 @@
 import Component from '@ember/component';
-import { set } from '@ember/object';
 
 export default Component.extend({
-  classNames: ['popover-select'],
   actions: {
     change: function(option, e) {
-      set(this, 'selectedOption', option);
-      this.onchange({ target: this });
+      // We fake an event here, which could be a bit of a footbun if we treat
+      // it completely like an event, we should be abe to avoid doing this
+      // when we move to glimmer components (this.args.selected vs this.selected)
+      this.onchange({
+        target: {
+          selected: option,
+        },
+        // make this vaguely event like to avoid
+        // having a separate property
+        preventDefault: function(e) {},
+      });
     },
   },
 });
