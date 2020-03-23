@@ -208,7 +208,6 @@ func canBindInternal(addr string, ifAddrs []net.Addr) bool {
 
 func canBind(addr string) bool {
 	ifAddrs, err := net.InterfaceAddrs()
-
 	if err != nil {
 		return false
 	}
@@ -344,14 +343,14 @@ func (c *cmd) Run(args []string) int {
 
 	// See if we need to lookup proxyID
 	if c.proxyID == "" && c.sidecarFor != "" {
-		proxyID, err := c.lookupProxyIDForSidecar()
+		proxyID, err := proxyCmd.LookupProxyIDForSidecar(c.client, c.sidecarFor)
 		if err != nil {
 			c.UI.Error(err.Error())
 			return 1
 		}
 		c.proxyID = proxyID
 	} else if c.proxyID == "" && c.meshGateway {
-		gatewaySvc, err := c.lookupGatewayProxy()
+		gatewaySvc, err := proxyCmd.LookupGatewayProxy(c.client)
 		if err != nil {
 			c.UI.Error(err.Error())
 			return 1
@@ -361,8 +360,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.proxyID == "" {
-		c.UI.Error("No proxy ID specified. One of -proxy-id or -sidecar-for/-mesh-gateway is " +
-			"required")
+		c.UI.Error("No proxy ID specified. One of -proxy-id or -sidecar-for/-mesh-gateway is required")
 		return 1
 	}
 
@@ -570,14 +568,6 @@ func (c *cmd) generateConfig() ([]byte, error) {
 	}
 
 	return bsCfg.GenerateJSON(args)
-}
-
-func (c *cmd) lookupProxyIDForSidecar() (string, error) {
-	return proxyCmd.LookupProxyIDForSidecar(c.client, c.sidecarFor)
-}
-
-func (c *cmd) lookupGatewayProxy() (*api.AgentService, error) {
-	return proxyCmd.LookupGatewayProxy(c.client)
 }
 
 func (c *cmd) lookupGRPCPort() (int, error) {
