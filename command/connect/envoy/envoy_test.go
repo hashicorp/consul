@@ -81,7 +81,6 @@ func TestGenerateConfig(t *testing.T) {
 		{
 			Name:  "defaults",
 			Flags: []string{"-proxy-id", "test-proxy"},
-			Env:   []string{},
 			WantArgs: BootstrapTplArgs{
 				EnvoyVersion:          defaultEnvoyVersion,
 				ProxyCluster:          "test-proxy",
@@ -98,7 +97,6 @@ func TestGenerateConfig(t *testing.T) {
 			Name: "token-arg",
 			Flags: []string{"-proxy-id", "test-proxy",
 				"-token", "c9a52720-bf6c-4aa6-b8bc-66881a5ade95"},
-			Env: []string{},
 			WantArgs: BootstrapTplArgs{
 				EnvoyVersion:          defaultEnvoyVersion,
 				ProxyCluster:          "test-proxy",
@@ -136,7 +134,6 @@ func TestGenerateConfig(t *testing.T) {
 			Flags: []string{"-proxy-id", "test-proxy",
 				"-token-file", "@@TEMPDIR@@token.txt",
 			},
-			Env: []string{},
 			Files: map[string]string{
 				"token.txt": "c9a52720-bf6c-4aa6-b8bc-66881a5ade95",
 			},
@@ -179,7 +176,6 @@ func TestGenerateConfig(t *testing.T) {
 			Name: "grpc-addr-flag",
 			Flags: []string{"-proxy-id", "test-proxy",
 				"-grpc-addr", "localhost:9999"},
-			Env: []string{},
 			WantArgs: BootstrapTplArgs{
 				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
@@ -220,7 +216,6 @@ func TestGenerateConfig(t *testing.T) {
 			Name: "grpc-addr-unix",
 			Flags: []string{"-proxy-id", "test-proxy",
 				"-grpc-addr", "unix:///var/run/consul.sock"},
-			Env: []string{},
 			WantArgs: BootstrapTplArgs{
 				EnvoyVersion:          defaultEnvoyVersion,
 				ProxyCluster:          "test-proxy",
@@ -254,7 +249,6 @@ func TestGenerateConfig(t *testing.T) {
 		{
 			Name:  "access-log-path",
 			Flags: []string{"-proxy-id", "test-proxy", "-admin-access-log-path", "/some/path/access.log"},
-			Env:   []string{},
 			WantArgs: BootstrapTplArgs{
 				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
@@ -273,7 +267,6 @@ func TestGenerateConfig(t *testing.T) {
 		{
 			Name:  "missing-ca-file",
 			Flags: []string{"-proxy-id", "test-proxy", "-ca-file", "some/path"},
-			Env:   []string{},
 			WantArgs: BootstrapTplArgs{
 				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
@@ -310,7 +303,6 @@ func TestGenerateConfig(t *testing.T) {
 		{
 			Name:  "custom-bootstrap",
 			Flags: []string{"-proxy-id", "test-proxy"},
-			Env:   []string{},
 			ProxyConfig: map[string]interface{}{
 				// Add a completely custom bootstrap template. Never mind if this is
 				// invalid envoy config just as long as it works and gets the variables
@@ -348,7 +340,6 @@ func TestGenerateConfig(t *testing.T) {
 		{
 			Name:  "extra_-single",
 			Flags: []string{"-proxy-id", "test-proxy"},
-			Env:   []string{},
 			ProxyConfig: map[string]interface{}{
 				// Add a custom sections with interpolated variables. These are all
 				// invalid config syntax too but we are just testing they have the right
@@ -381,7 +372,6 @@ func TestGenerateConfig(t *testing.T) {
 		{
 			Name:  "extra_-multiple",
 			Flags: []string{"-proxy-id", "test-proxy"},
-			Env:   []string{},
 			ProxyConfig: map[string]interface{}{
 				// Add a custom sections with interpolated variables. These are all
 				// invalid config syntax too but we are just testing they have the right
@@ -419,7 +409,6 @@ func TestGenerateConfig(t *testing.T) {
 		{
 			Name:  "stats-config-override",
 			Flags: []string{"-proxy-id", "test-proxy"},
-			Env:   []string{},
 			ProxyConfig: map[string]interface{}{
 				// Add a custom sections with interpolated variables. These are all
 				// invalid config syntax too but we are just testing they have the right
@@ -444,7 +433,6 @@ func TestGenerateConfig(t *testing.T) {
 		{
 			Name:  "zipkin-tracing-config",
 			Flags: []string{"-proxy-id", "test-proxy"},
-			Env:   []string{},
 			ProxyConfig: map[string]interface{}{
 				// Add a custom sections with interpolated variables. These are all
 				// invalid config syntax too but we are just testing they have the right
@@ -520,9 +508,6 @@ func TestGenerateConfig(t *testing.T) {
 				}
 			}
 
-			ui := cli.NewMockUi()
-			c := New(ui)
-
 			// Run a mock agent API that just always returns the proxy config in the
 			// test.
 			srv := httptest.NewServer(testMockAgent(tc.ProxyConfig, tc.GRPCPort))
@@ -530,15 +515,15 @@ func TestGenerateConfig(t *testing.T) {
 
 			// Set the agent HTTP address in ENV to be our mock
 			tc.Env = append(tc.Env, "CONSUL_HTTP_ADDR="+srv.URL)
-
 			testDirPrefix := testDir + string(filepath.Separator)
-
-			myFlags := copyAndReplaceAll(tc.Flags, "@@TEMPDIR@@", testDirPrefix)
 			myEnv := copyAndReplaceAll(tc.Env, "@@TEMPDIR@@", testDirPrefix)
-
 			defer testSetAndResetEnv(t, myEnv)()
 
+			ui := cli.NewMockUi()
+			c := New(ui)
+
 			// Run the command
+			myFlags := copyAndReplaceAll(tc.Flags, "@@TEMPDIR@@", testDirPrefix)
 			args := append([]string{"-bootstrap"}, myFlags...)
 			code := c.Run(args)
 			if tc.WantErr == "" {

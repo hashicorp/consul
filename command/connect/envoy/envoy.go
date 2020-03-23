@@ -74,13 +74,13 @@ const defaultEnvoyVersion = "1.13.1"
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 
-	c.flags.StringVar(&c.proxyID, "proxy-id", "",
+	c.flags.StringVar(&c.proxyID, "proxy-id", os.Getenv("CONNECT_PROXY_ID"),
 		"The proxy's ID on the local agent.")
 
 	c.flags.BoolVar(&c.meshGateway, "mesh-gateway", false,
 		"Configure Envoy as a Mesh Gateway.")
 
-	c.flags.StringVar(&c.sidecarFor, "sidecar-for", "",
+	c.flags.StringVar(&c.sidecarFor, "sidecar-for", os.Getenv("CONNECT_SIDECAR_FOR"),
 		"The ID of a service instance on the local agent that this proxy should "+
 			"become a sidecar for. It requires that the proxy service is registered "+
 			"with the agent as a connect-proxy with Proxy.DestinationServiceID set "+
@@ -110,7 +110,7 @@ func (c *cmd) init() {
 			"cases where either assumption is violated this flag will prevent the "+
 			"command attempting to resolve config from the local agent.")
 
-	c.flags.StringVar(&c.grpcAddr, "grpc-addr", "",
+	c.flags.StringVar(&c.grpcAddr, "grpc-addr", os.Getenv(api.GRPCAddrEnvName),
 		"Set the agent's gRPC address and port (in http(s)://host:port format). "+
 			"Alternatively, you can specify CONSUL_GRPC_ADDR in ENV.")
 
@@ -221,17 +221,6 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 	passThroughArgs := c.flags.Args()
-
-	// Load the proxy ID and token from env vars if they're set
-	if c.proxyID == "" {
-		c.proxyID = os.Getenv("CONNECT_PROXY_ID")
-	}
-	if c.sidecarFor == "" {
-		c.sidecarFor = os.Getenv("CONNECT_SIDECAR_FOR")
-	}
-	if c.grpcAddr == "" {
-		c.grpcAddr = os.Getenv(api.GRPCAddrEnvName)
-	}
 
 	// Setup Consul client
 	client, err := c.http.APIClient()
