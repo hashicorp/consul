@@ -22,7 +22,6 @@ type IngressGatewayConfigEntry struct {
 type IngressListener struct {
 	Port     int
 	Protocol string
-	Header   string
 
 	Services []IngressService
 }
@@ -89,10 +88,6 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 
 		// Validate that http features aren't being used with tcp or another non-supported protocol.
 		if listener.Protocol != "http" {
-			if listener.Header != "" {
-				return fmt.Errorf("Host header routing is only supported for protocol = 'http'")
-			}
-
 			if len(listener.Services) > 1 {
 				return fmt.Errorf("Multiple services per listener are only supported for protocol = 'http'")
 			}

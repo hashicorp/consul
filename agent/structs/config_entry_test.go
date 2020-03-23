@@ -542,7 +542,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 					{
 						port = 8080
 						protocol = "http"
-						header = "Host"
 						services = [
 							{
 								name = "web"
@@ -582,7 +581,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 					{
 						Port = 8080
 						Protocol = "http"
-						Header = "Host"
 						Services = [
 							{
 								Name = "web"
@@ -622,7 +620,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 					IngressListener{
 						Port:     8080,
 						Protocol: "http",
-						Header:   "Host",
 						Services: []IngressService{
 							IngressService{
 								Name:      "web",

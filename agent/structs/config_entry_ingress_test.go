@@ -43,26 +43,6 @@ func TestIngressConfigEntry_Validate(t *testing.T) {
 			expectErr: "port 1111 declared on two listeners",
 		},
 		{
-			name: "http features: header",
-			entry: IngressGatewayConfigEntry{
-				Kind: "ingress-gateway",
-				Name: "ingress-web",
-				Listeners: []IngressListener{
-					{
-						Port:     1111,
-						Protocol: "tcp",
-						Header:   "not-allowed",
-						Services: []IngressService{
-							{
-								Name: "mysql",
-							},
-						},
-					},
-				},
-			},
-			expectErr: "host header routing is only supported for protocol",
-		},
-		{
 			name: "http features: wildcard",
 			entry: IngressGatewayConfigEntry{
 				Kind: "ingress-gateway",
