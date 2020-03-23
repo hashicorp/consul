@@ -532,6 +532,130 @@ func TestDecodeConfigEntry(t *testing.T) {
 				Name: "main",
 			},
 		},
+		{
+			name: "ingress-gateway: kitchen sink",
+			snake: `
+				kind = "ingress-gateway"
+				name = "ingress-web"
+
+				listeners = [
+					{
+						port = 8080
+						protocol = "http"
+						header = "Host"
+						services = [
+							{
+								name = "web"
+								namespace = "foo"
+							},
+							{
+								name = "db"
+							}
+						]
+					},
+					{
+						port = 9999
+						protocol = "tcp"
+						services = [
+							{
+								name = "mysql"
+							}
+						]
+					},
+					{
+						port = 2234
+						protocol = "tcp"
+						services = [
+							{
+								name = "postgres"
+								namespace = "bar"
+								service_subset = "v1"
+							}
+						]
+					}
+				]
+			`,
+			camel: `
+				Kind = "ingress-gateway"
+				Name = "ingress-web"
+				Listeners = [
+					{
+						Port = 8080
+						Protocol = "http"
+						Header = "Host"
+						Services = [
+							{
+								Name = "web"
+								Namespace = "foo"
+							},
+							{
+								Name = "db"
+							}
+						]
+					},
+					{
+						Port = 9999
+						Protocol = "tcp"
+						Services = [
+							{
+								Name = "mysql"
+							}
+						]
+					},
+					{
+						Port = 2234
+						Protocol = "tcp"
+						Services = [
+							{
+								Name = "postgres"
+								Namespace = "bar"
+								ServiceSubset = "v1"
+							}
+						]
+					}
+				]
+			`,
+			expect: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					IngressListener{
+						Port:     8080,
+						Protocol: "http",
+						Header:   "Host",
+						Services: []IngressService{
+							IngressService{
+								Name:      "web",
+								Namespace: "foo",
+							},
+							IngressService{
+								Name: "db",
+							},
+						},
+					},
+					IngressListener{
+						Port:     9999,
+						Protocol: "tcp",
+						Services: []IngressService{
+							IngressService{
+								Name: "mysql",
+							},
+						},
+					},
+					IngressListener{
+						Port:     2234,
+						Protocol: "tcp",
+						Services: []IngressService{
+							IngressService{
+								Name:          "postgres",
+								Namespace:     "bar",
+								ServiceSubset: "v1",
+							},
+						},
+					},
+				},
+			},
+		},
 	} {
 		tc := tc
 

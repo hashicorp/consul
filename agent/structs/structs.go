@@ -894,6 +894,11 @@ const (
 	// ServiceKindTerminatingGateway is a Terminating Gateway for the Connect
 	// feature. This service will proxy connections to services outside the mesh.
 	ServiceKindTerminatingGateway ServiceKind = "terminating-gateway"
+
+	// ServiceKindIngressGateway is an Ingress Gateway for the Connect feature.
+	// This service allows external traffic to enter the mesh based on
+	// centralized configuration.
+	ServiceKindIngressGateway ServiceKind = "ingress-gateway"
 )
 
 // Type to hold a address and port of a service
@@ -1039,7 +1044,9 @@ func (s *NodeService) IsSidecarProxy() bool {
 }
 
 func (s *NodeService) IsGateway() bool {
-	return s.Kind == ServiceKindMeshGateway || s.Kind == ServiceKindTerminatingGateway
+	return s.Kind == ServiceKindMeshGateway ||
+		s.Kind == ServiceKindTerminatingGateway ||
+		s.Kind == ServiceKindIngressGateway
 }
 
 // Validate validates the node service configuration.
@@ -1138,8 +1145,8 @@ func (s *NodeService) Validate() error {
 
 	// Gateway validation
 	if s.IsGateway() {
-		// Gateways must have a port
-		if s.Port == 0 {
+		// Gateways must have a port, except for ingress gateways
+		if s.Port == 0 && s.Kind != ServiceKindIngressGateway {
 			result = multierror.Append(result, fmt.Errorf("Port must be non-zero for a %s", s.Kind))
 		}
 
@@ -1166,6 +1173,26 @@ func (s *NodeService) Validate() error {
 
 		if len(s.Proxy.Upstreams) != 0 {
 			result = multierror.Append(result, fmt.Errorf("The Proxy.Upstreams configuration is invalid for a %s", s.Kind))
+		}
+
+		if s.Proxy.DestinationServiceName != "" {
+			result = multierror.Append(result, fmt.Errorf("The Proxy.DestinationServiceName configuration is invalid for %s", s.Kind))
+		}
+
+		if s.Proxy.DestinationServiceID != "" {
+			result = multierror.Append(result, fmt.Errorf("The Proxy.DestinationServiceID configuration is invalid for %s", s.Kind))
+		}
+
+		if s.Proxy.LocalServiceAddress != "" {
+			result = multierror.Append(result, fmt.Errorf("The Proxy.LocalServiceAddress configuration is invalid for %s", s.Kind))
+		}
+
+		if s.Proxy.LocalServicePort != 0 {
+			result = multierror.Append(result, fmt.Errorf("The Proxy.LocalServicePort configuration is invalid for %s", s.Kind))
+		}
+
+		if len(s.Proxy.Upstreams) != 0 {
+			result = multierror.Append(result, fmt.Errorf("The Proxy.Upstreams configuration is invalid for %s", s.Kind))
 		}
 	}
 

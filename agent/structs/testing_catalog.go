@@ -112,6 +112,14 @@ func TestNodeServiceMeshGatewayWithAddrs(t testing.T, address string, port int, 
 	}
 }
 
+func TestNodeServiceIngressGateway(t testing.T, address string) *NodeService {
+	return &NodeService{
+		Kind:    ServiceKindIngressGateway,
+		Service: "ingress-gateway",
+		Address: address,
+	}
+}
+
 // TestNodeServiceSidecar returns a *NodeService representing a service
 // registration with a nested Sidecar registration.
 func TestNodeServiceSidecar(t testing.T) *NodeService {
