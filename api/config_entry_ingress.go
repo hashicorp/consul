@@ -15,7 +15,6 @@ type IngressGatewayConfigEntry struct {
 type IngressListener struct {
 	Port     int
 	Protocol string
-	Header   string
 
 	Services []IngressService
 }

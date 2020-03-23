@@ -652,7 +652,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 					IngressListener{
 						Port:     8080,
 						Protocol: "http",
-						Header:   "Host",
 						Services: []IngressService{
 							IngressService{
 								Name:      "web",
