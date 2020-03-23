@@ -1174,6 +1174,26 @@ func (s *NodeService) Validate() error {
 		if len(s.Proxy.Upstreams) != 0 {
 			result = multierror.Append(result, fmt.Errorf("The Proxy.Upstreams configuration is invalid for a %s", s.Kind))
 		}
+
+		if s.Proxy.DestinationServiceName != "" {
+			result = multierror.Append(result, fmt.Errorf("The Proxy.DestinationServiceName configuration is invalid for %s", s.Kind))
+		}
+
+		if s.Proxy.DestinationServiceID != "" {
+			result = multierror.Append(result, fmt.Errorf("The Proxy.DestinationServiceID configuration is invalid for %s", s.Kind))
+		}
+
+		if s.Proxy.LocalServiceAddress != "" {
+			result = multierror.Append(result, fmt.Errorf("The Proxy.LocalServiceAddress configuration is invalid for %s", s.Kind))
+		}
+
+		if s.Proxy.LocalServicePort != 0 {
+			result = multierror.Append(result, fmt.Errorf("The Proxy.LocalServicePort configuration is invalid for %s", s.Kind))
+		}
+
+		if len(s.Proxy.Upstreams) != 0 {
+			result = multierror.Append(result, fmt.Errorf("The Proxy.Upstreams configuration is invalid for %s", s.Kind))
+		}
 	}
 
 	// Nested sidecar validation
