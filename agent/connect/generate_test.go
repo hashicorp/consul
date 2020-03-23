@@ -17,27 +17,23 @@ type KeyConfig struct {
 	keyBits int
 }
 
-var goodParams, badParams []KeyConfig
-
-func init() {
-	goodParams = []KeyConfig{
-		{keyType: "rsa", keyBits: 2048},
-		{keyType: "rsa", keyBits: 4096},
-		{keyType: "ec", keyBits: 224},
-		{keyType: "ec", keyBits: 256},
-		{keyType: "ec", keyBits: 384},
-		{keyType: "ec", keyBits: 521},
-	}
-	badParams = []KeyConfig{
-		{keyType: "rsa", keyBits: 0},
-		{keyType: "rsa", keyBits: 1024},
-		{keyType: "rsa", keyBits: 24601},
-		{keyType: "ec", keyBits: 0},
-		{keyType: "ec", keyBits: 512},
-		{keyType: "ec", keyBits: 321},
-		{keyType: "ecdsa", keyBits: 256}, // test for "ecdsa" instead of "ec"
-		{keyType: "aes", keyBits: 128},
-	}
+var goodParams = []KeyConfig{
+	{keyType: "rsa", keyBits: 2048},
+	{keyType: "rsa", keyBits: 4096},
+	{keyType: "ec", keyBits: 224},
+	{keyType: "ec", keyBits: 256},
+	{keyType: "ec", keyBits: 384},
+	{keyType: "ec", keyBits: 521},
+}
+var badParams = []KeyConfig{
+	{keyType: "rsa", keyBits: 0},
+	{keyType: "rsa", keyBits: 1024},
+	{keyType: "rsa", keyBits: 24601},
+	{keyType: "ec", keyBits: 0},
+	{keyType: "ec", keyBits: 512},
+	{keyType: "ec", keyBits: 321},
+	{keyType: "ecdsa", keyBits: 256}, // test for "ecdsa" instead of "ec"
+	{keyType: "aes", keyBits: 128},
 }
 
 func makeConfig(kc KeyConfig) structs.CommonCAProviderConfig {

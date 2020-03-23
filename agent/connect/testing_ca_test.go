@@ -12,29 +12,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// hasOpenSSL is used to determine if the openssl CLI exists for unit tests.
-var hasOpenSSL bool
+var mustAlwaysRun = os.Getenv("CI") == "true"
 
-func init() {
-	goodParams = []KeyConfig{
-		{keyType: "rsa", keyBits: 2048},
-		{keyType: "rsa", keyBits: 4096},
-		{keyType: "ec", keyBits: 224},
-		{keyType: "ec", keyBits: 256},
-		{keyType: "ec", keyBits: 384},
-		{keyType: "ec", keyBits: 521},
+func skipIfMissingOpenSSL(t *testing.T) {
+	openSSLBinaryName := "openssl"
+	_, err := exec.LookPath(openSSLBinaryName)
+	if err != nil {
+		if mustAlwaysRun {
+			t.Fatalf("%q not found on $PATH", openSSLBinaryName)
+		}
+		t.Skipf("%q not found on $PATH", openSSLBinaryName)
 	}
-
-	_, err := exec.LookPath("openssl")
-	hasOpenSSL = err == nil
 }
 
 // Test that the TestCA and TestLeaf functions generate valid certificates.
 func testCAAndLeaf(t *testing.T, keyType string, keyBits int) {
-	if !hasOpenSSL {
-		t.Skip("openssl not found")
-		return
-	}
+	skipIfMissingOpenSSL(t)
 
 	require := require.New(t)
 
@@ -66,10 +59,7 @@ func testCAAndLeaf(t *testing.T, keyType string, keyBits int) {
 
 // Test cross-signing.
 func testCAAndLeaf_xc(t *testing.T, keyType string, keyBits int) {
-	if !hasOpenSSL {
-		t.Skip("openssl not found")
-		return
-	}
+	skipIfMissingOpenSSL(t)
 
 	assert := assert.New(t)
 

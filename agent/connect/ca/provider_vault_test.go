@@ -40,9 +40,7 @@ func TestVaultCAProvider_VaultTLSConfig(t *testing.T) {
 func TestVaultCAProvider_Bootstrap(t *testing.T) {
 	t.Parallel()
 
-	if skipIfVaultNotPresent(t) {
-		return
-	}
+	skipIfVaultNotPresent(t)
 
 	provider, testVault := testVaultProvider(t)
 	defer testVault.Stop()
@@ -103,9 +101,7 @@ func assertCorrectKeyType(t *testing.T, want, certPEM string) {
 func TestVaultCAProvider_SignLeaf(t *testing.T) {
 	t.Parallel()
 
-	if skipIfVaultNotPresent(t) {
-		return
-	}
+	skipIfVaultNotPresent(t)
 
 	for _, tc := range KeyTestCases {
 		tc := tc
@@ -189,9 +185,7 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 	t.Parallel()
 
-	if skipIfVaultNotPresent(t) {
-		return
-	}
+	skipIfVaultNotPresent(t)
 
 	tests := CASigningKeyTypeCases()
 
@@ -246,9 +240,7 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 func TestVaultProvider_SignIntermediate(t *testing.T) {
 	t.Parallel()
 
-	if skipIfVaultNotPresent(t) {
-		return
-	}
+	skipIfVaultNotPresent(t)
 
 	tests := CASigningKeyTypeCases()
 
@@ -277,9 +269,7 @@ func TestVaultProvider_SignIntermediate(t *testing.T) {
 func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
 	t.Parallel()
 
-	if skipIfVaultNotPresent(t) {
-		return
-	}
+	skipIfVaultNotPresent(t)
 
 	// primary = Vault, secondary = Consul
 	t.Run("pri=vault,sec=consul", func(t *testing.T) {
@@ -397,8 +387,9 @@ func testVaultProviderWithConfig(t *testing.T, isPrimary bool, rawConf map[strin
 
 var printedVaultVersion sync.Once
 
-// skipIfVaultNotPresent skips the test and returns true if vault is not found
-func skipIfVaultNotPresent(t *testing.T) bool {
+var mustAlwaysRun = os.Getenv("CI") == "true"
+
+func skipIfVaultNotPresent(t *testing.T) {
 	vaultBinaryName := os.Getenv("VAULT_BINARY_NAME")
 	if vaultBinaryName == "" {
 		vaultBinaryName = "vault"
@@ -406,10 +397,11 @@ func skipIfVaultNotPresent(t *testing.T) bool {
 
 	path, err := exec.LookPath(vaultBinaryName)
 	if err != nil || path == "" {
+		if mustAlwaysRun {
+			t.Fatalf("%q not found on $PATH", vaultBinaryName)
+		}
 		t.Skipf("%q not found on $PATH - download and install to run this test", vaultBinaryName)
-		return true
 	}
-	return false
 }
 
 func runTestVault() (*testVaultServer, error) {

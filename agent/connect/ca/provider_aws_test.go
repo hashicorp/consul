@@ -10,22 +10,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func skipIfAWSNotConfigured(t *testing.T) bool {
+func skipIfAWSNotConfigured(t *testing.T) {
 	enabled := os.Getenv("ENABLE_AWS_PCA_TESTS")
 	ok, err := strconv.ParseBool(enabled)
 	if err != nil || !ok {
 		t.Skip("Skipping because AWS tests are not enabled")
-		return true
 	}
-	return false
 }
 
 func TestAWSBootstrapAndSignPrimary(t *testing.T) {
 	// Note not parallel since we could easily hit AWS limits of too many CAs if
 	// all of these tests run at once.
-	if skipIfAWSNotConfigured(t) {
-		return
-	}
+	skipIfAWSNotConfigured(t)
 
 	for _, tc := range KeyTestCases {
 		tc := tc
@@ -83,9 +79,7 @@ func testSignAndValidate(t *testing.T, p Provider, rootPEM string, intermediateP
 func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 	// Note not parallel since we could easily hit AWS limits of too many CAs if
 	// all of these tests run at once.
-	if skipIfAWSNotConfigured(t) {
-		return
-	}
+	skipIfAWSNotConfigured(t)
 
 	p1 := testAWSProvider(t, testProviderConfigPrimary(t, nil))
 	defer p1.Cleanup()
@@ -179,9 +173,7 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 func TestAWSBootstrapAndSignSecondaryConsul(t *testing.T) {
 	// Note not parallel since we could easily hit AWS limits of too many CAs if
 	// all of these tests run at once.
-	if skipIfAWSNotConfigured(t) {
-		return
-	}
+	skipIfAWSNotConfigured(t)
 
 	t.Run("pri=consul,sec=aws", func(t *testing.T) {
 		conf := testConsulCAConfig()
@@ -215,9 +207,7 @@ func TestAWSBootstrapAndSignSecondaryConsul(t *testing.T) {
 }
 
 func TestAWSNoCrossSigning(t *testing.T) {
-	if skipIfAWSNotConfigured(t) {
-		return
-	}
+	skipIfAWSNotConfigured(t)
 
 	p1 := testAWSProvider(t, testProviderConfigPrimary(t, nil))
 	defer p1.Cleanup()
@@ -244,15 +234,6 @@ func testAWSProvider(t *testing.T, cfg ProviderConfig) *AWSProvider {
 	p.SetLogger(logger)
 	require.NoError(t, p.Configure(cfg))
 	return p
-}
-
-type testLogger struct {
-	t *testing.T
-}
-
-func (l *testLogger) Write(b []byte) (int, error) {
-	l.t.Log(string(b))
-	return len(b), nil
 }
 
 func testProviderConfigPrimary(t *testing.T, cfg map[string]interface{}) ProviderConfig {
