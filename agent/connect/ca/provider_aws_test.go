@@ -10,6 +10,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// skipIfAWSNotConfigured skips the test unless ENABLE_AWS_PCA_TESTS=true.
+//
+// These tests are not run in CI.  If you are making changes to the AWS provider
+// you probably want to run these tests locally. The tests will run using any
+// credentials available to the AWS SDK. See
+// https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials
+// for a list of options.
 func skipIfAWSNotConfigured(t *testing.T) {
 	enabled := os.Getenv("ENABLE_AWS_PCA_TESTS")
 	ok, err := strconv.ParseBool(enabled)

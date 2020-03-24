@@ -569,8 +569,8 @@ jobs:
       ENVOY_VERSIONS: "1.13.0"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
-  # run tests on vault ca provider integration tests
-  vault-ca-provider:
+  # run integration tests for the connect ca providers
+  test-connect-ca-providers:
     docker:
       - image: *GOLANG_IMAGE
     environment:
@@ -586,7 +586,7 @@ jobs:
       # Gather deps to run go tests
       - checkout
       # Run go tests
-      - run: make test-vault-ca-provider
+      - run: make test-connect-ca-providers
       - store_test_results:
           path: *TEST_RESULTS_DIR
 
@@ -635,6 +635,8 @@ workflows:
             - go-test
             - go-test-api
             - go-test-sdk
+      - test-connect-ca-providers: *go-test
+
   build-distros:
     jobs:
       - check-vendor:
@@ -686,9 +688,7 @@ workflows:
       - envoy-integration-test-1.13.0:
           requires:
             - dev-build
-      - vault-ca-provider:
-          requires:
-            - dev-build
+
   website:
     jobs:
       - build-website

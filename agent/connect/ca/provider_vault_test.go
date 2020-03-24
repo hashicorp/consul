@@ -385,10 +385,10 @@ func testVaultProviderWithConfig(t *testing.T, isPrimary bool, rawConf map[strin
 	return provider, testVault
 }
 
-var printedVaultVersion sync.Once
-
-var mustAlwaysRun = os.Getenv("CI") == "true"
-
+// skipIfVaultNotPresent skips the test if the vault binary is not in PATH.
+//
+// These tests may be skipped in CI. They are run as part of a separate
+// integration test suite.
 func skipIfVaultNotPresent(t *testing.T) {
 	vaultBinaryName := os.Getenv("VAULT_BINARY_NAME")
 	if vaultBinaryName == "" {
@@ -397,9 +397,6 @@ func skipIfVaultNotPresent(t *testing.T) {
 
 	path, err := exec.LookPath(vaultBinaryName)
 	if err != nil || path == "" {
-		if mustAlwaysRun {
-			t.Fatalf("%q not found on $PATH", vaultBinaryName)
-		}
 		t.Skipf("%q not found on $PATH - download and install to run this test", vaultBinaryName)
 	}
 }
@@ -473,6 +470,8 @@ type testVaultServer struct {
 	// returnPortsFn will put the ports claimed for the test back into the
 	returnPortsFn func()
 }
+
+var printedVaultVersion sync.Once
 
 func (v *testVaultServer) WaitUntilReady(t *testing.T) {
 	var version string
