@@ -147,6 +147,12 @@ github.com/golang/protobuf/ptypes/timestamp
 github.com/golang/snappy
 # github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c
 github.com/google/btree
+# github.com/google/go-cmp v0.3.0
+github.com/google/go-cmp/cmp
+github.com/google/go-cmp/cmp/internal/diff
+github.com/google/go-cmp/cmp/internal/flags
+github.com/google/go-cmp/cmp/internal/function
+github.com/google/go-cmp/cmp/internal/value
 # github.com/google/go-querystring v0.0.0-20170111101155-53e6ce116135
 github.com/google/go-querystring/query
 # github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf
@@ -525,6 +531,17 @@ gopkg.in/square/go-jose.v2/json
 gopkg.in/square/go-jose.v2/jwt
 # gopkg.in/yaml.v2 v2.2.8
 gopkg.in/yaml.v2
+# gotest.tools/v3 v3.0.2
+gotest.tools/v3/assert
+gotest.tools/v3/assert/cmp
+gotest.tools/v3/env
+gotest.tools/v3/fs
+gotest.tools/v3/golden
+gotest.tools/v3/internal/cleanup
+gotest.tools/v3/internal/difflib
+gotest.tools/v3/internal/format
+gotest.tools/v3/internal/source
+gotest.tools/v3/x/subtest
 # k8s.io/api v0.0.0-20190325185214-7544f9db76f6
 k8s.io/api/admissionregistration/v1alpha1
 k8s.io/api/admissionregistration/v1beta1

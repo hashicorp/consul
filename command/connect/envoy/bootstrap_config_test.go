@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"gotest.tools/v3/env"
 )
 
 const (
@@ -518,7 +519,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			args := tt.baseArgs
 
-			defer testSetAndResetEnv(t, tt.env)()
+			defer env.PatchAll(t, env.ToMap(tt.env))()
 
 			err := tt.input.ConfigureArgs(&args)
 			if tt.wantErr {

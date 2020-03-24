@@ -2,12 +2,9 @@ package envoy
 
 import (
 	"encoding/json"
-	"flag"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -15,45 +12,17 @@ import (
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
+	"gotest.tools/v3/env"
+	"gotest.tools/v3/fs"
+	"gotest.tools/v3/golden"
 )
-
-var update = flag.Bool("update", false, "update golden files")
 
 func TestEnvoyCommand_noTabs(t *testing.T) {
 	t.Parallel()
 	if strings.ContainsRune(New(nil).Help(), '\t') {
 		t.Fatal("help has tabs")
-	}
-}
-
-// testSetAndResetEnv sets the env vars passed as KEY=value strings in the
-// current ENV and returns a func() that will undo it's work at the end of the
-// test for use with defer.
-func testSetAndResetEnv(t *testing.T, env []string) func() {
-	old := make(map[string]*string)
-	for _, e := range env {
-		pair := strings.SplitN(e, "=", 2)
-		current := os.Getenv(pair[0])
-		if current != "" {
-			old[pair[0]] = &current
-		} else {
-			// save it as a nil so we know to remove again
-			old[pair[0]] = nil
-		}
-		os.Setenv(pair[0], pair[1])
-	}
-	// Return a func that will reset to old values
-	return func() {
-		for k, v := range old {
-			if v == nil {
-				os.Unsetenv(k)
-			} else {
-				os.Setenv(k, *v)
-			}
-		}
 	}
 }
 
@@ -133,7 +102,8 @@ func TestGenerateConfig(t *testing.T) {
 		},
 		{
 			Name: "token-file-arg",
-			Flags: []string{"-proxy-id", "test-proxy",
+			Flags: []string{
+				"-proxy-id", "test-proxy",
 				"-token-file", "@@TEMPDIR@@token.txt",
 			},
 			Env: []string{},
@@ -510,15 +480,8 @@ func TestGenerateConfig(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			require := require.New(t)
 
-			testDir := testutil.TempDir(t, "envoytest")
-			defer os.RemoveAll(testDir)
-
-			if len(tc.Files) > 0 {
-				for fn, fv := range tc.Files {
-					fullname := filepath.Join(testDir, fn)
-					require.NoError(ioutil.WriteFile(fullname, []byte(fv), 0600))
-				}
-			}
+			tempDir := fs.NewDir(t, t.Name(), fs.WithFiles(tc.Files))
+			defer tempDir.Remove()
 
 			ui := cli.NewMockUi()
 			c := New(ui)
@@ -531,15 +494,15 @@ func TestGenerateConfig(t *testing.T) {
 			// Set the agent HTTP address in ENV to be our mock
 			tc.Env = append(tc.Env, "CONSUL_HTTP_ADDR="+srv.URL)
 
-			testDirPrefix := testDir + string(filepath.Separator)
+			testDirPrefix := tempDir.Path() + string(filepath.Separator)
 
-			myFlags := copyAndReplaceAll(tc.Flags, "@@TEMPDIR@@", testDirPrefix)
-			myEnv := copyAndReplaceAll(tc.Env, "@@TEMPDIR@@", testDirPrefix)
+			flags := copyAndReplaceAll(tc.Flags, "@@TEMPDIR@@", testDirPrefix)
+			testEnv := copyAndReplaceAll(tc.Env, "@@TEMPDIR@@", testDirPrefix)
 
-			defer testSetAndResetEnv(t, myEnv)()
+			defer env.PatchAll(t, env.ToMap(testEnv))()
 
 			// Run the command
-			args := append([]string{"-bootstrap"}, myFlags...)
+			args := append([]string{"-bootstrap"}, flags...)
 			code := c.Run(args)
 			if tc.WantErr == "" {
 				require.Equal(0, code, ui.ErrorWriter.String())
@@ -560,15 +523,7 @@ func TestGenerateConfig(t *testing.T) {
 			actual, err := c.generateConfig()
 			require.NoError(err)
 
-			// If we got the arg handling write, verify output
-			golden := filepath.Join("testdata", tc.Name+".golden")
-			if *update {
-				ioutil.WriteFile(golden, actual, 0644)
-			}
-
-			expected, err := ioutil.ReadFile(golden)
-			require.NoError(err)
-			require.Equal(string(expected), string(actual))
+			golden.Assert(t, string(actual), tc.Name+".golden")
 		})
 	}
 }

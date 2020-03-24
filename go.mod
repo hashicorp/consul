@@ -70,7 +70,6 @@ require (
 	github.com/ryanuber/columnize v2.1.0+incompatible
 	github.com/shirou/gopsutil v0.0.0-20181107111621-48177ef5f880
 	github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4 // indirect
-	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/stretchr/objx v0.1.1 // indirect
 	github.com/stretchr/testify v1.4.0
 	golang.org/x/crypto v0.0.0-20191106202628-ed6320f186d4
@@ -80,6 +79,7 @@ require (
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 	google.golang.org/grpc v1.23.0
 	gopkg.in/square/go-jose.v2 v2.3.1
+	gotest.tools/v3 v3.0.2
 	k8s.io/api v0.0.0-20190325185214-7544f9db76f6
 	k8s.io/apimachinery v0.0.0-20190223001710-c182ff3b9841
 	k8s.io/client-go v8.0.0+incompatible
