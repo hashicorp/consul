@@ -345,7 +345,7 @@ and consider if they're appropriate for your deployment.
 
   * <a name="v-dns-clusterip" href="#v-dns-clusterip">`clusterIP`</a> (`string: null`) - If defined, this value configures the cluster IP of the DNS service.
 
-  * <a name="v-dns-annotations" href="#v-dns-annotations">`annotaions`</a> (`string: null`) - Extra annotations to attach to the dns service. This should be a multi-line string of annotations to apply to the DNS service.
+  * <a name="v-dns-annotations" href="#v-dns-annotations">`annotations`</a> (`string: null`) - Extra annotations to attach to the DNS service. This should be a multi-line string of annotations to apply to the DNS service.
 
 * <a name="v-synccatalog" href="#v-synccatalog">`syncCatalog`</a> - Values that configure the [service sync](/docs/platform/k8s/service-sync.html) process.
 
