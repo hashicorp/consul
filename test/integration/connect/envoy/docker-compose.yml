@@ -563,6 +563,23 @@ services:
       - *workdir-volume
     network_mode: service:consul-secondary
 
+  ingress-gateway-primary:
+    depends_on:
+      - consul-primary
+    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
+    command:
+     - "envoy"
+     - "-c"
+     - "/workdir/primary/envoy/ingress-gateway-bootstrap.json"
+     - "-l"
+     - "debug"
+     - "--disable-hot-restart"
+     - "--drain-time-s"
+     - "1"
+    volumes:
+      - *workdir-volume
+    network_mode: service:consul-primary
+
   verify-primary:
     depends_on:
       - consul-primary

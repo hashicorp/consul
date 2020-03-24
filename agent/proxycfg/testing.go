@@ -586,17 +586,19 @@ func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
 		},
 		Roots: roots,
 		ConnectProxy: configSnapshotConnectProxy{
-			Leaf: leaf,
-			DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
-				"db": dbChain,
+			ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
+				Leaf: leaf,
+				DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
+					"db": dbChain,
+				},
+				WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
+					"db": map[string]structs.CheckServiceNodes{
+						"db.default.dc1": TestUpstreamNodes(t),
+					},
+				},
 			},
 			PreparedQueryEndpoints: map[string]structs.CheckServiceNodes{
 				"prepared_query:geo-cache": TestUpstreamNodes(t),
-			},
-			WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
-				"db": map[string]structs.CheckServiceNodes{
-					"db.default.dc1": TestUpstreamNodes(t),
-				},
 			},
 		},
 		Datacenter: "dc1",
@@ -881,13 +883,15 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 		},
 		Roots: roots,
 		ConnectProxy: configSnapshotConnectProxy{
-			Leaf: leaf,
-			DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
-				"db": dbChain,
-			},
-			WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
-				"db": map[string]structs.CheckServiceNodes{
-					"db.default.dc1": TestUpstreamNodes(t),
+			ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
+				Leaf: leaf,
+				DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
+					"db": dbChain,
+				},
+				WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
+					"db": map[string]structs.CheckServiceNodes{
+						"db.default.dc1": TestUpstreamNodes(t),
+					},
 				},
 			},
 		},
@@ -1033,6 +1037,54 @@ func testConfigSnapshotMeshGateway(t testing.T, populateServices bool, useFedera
 		}
 	}
 
+	return snap
+}
+
+func TestConfigSnapshotIngressGateway(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotIngressGateway(t, true)
+}
+
+func TestConfigSnapshotIngressGatewayNoServices(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotIngressGateway(t, false)
+}
+
+func testConfigSnapshotIngressGateway(t testing.T, populateServices bool) *ConfigSnapshot {
+	roots, leaf := TestCerts(t)
+	dbChain := discoverychain.TestCompileConfigEntries(
+		t, "db", "default", "dc1",
+		connect.TestClusterID+".consul", "dc1", nil)
+
+	snap := &ConfigSnapshot{
+		Kind:       structs.ServiceKindIngressGateway,
+		Service:    "ingress-gateway",
+		ProxyID:    structs.NewServiceID("ingress-gateway", nil),
+		Address:    "1.2.3.4",
+		Roots:      roots,
+		Datacenter: "dc1",
+	}
+	if populateServices {
+		snap.IngressGateway = configSnapshotIngressGateway{
+			ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
+				Leaf: leaf,
+				DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
+					"db": dbChain,
+				},
+				WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
+					"db": map[string]structs.CheckServiceNodes{
+						"db.default.dc1": TestUpstreamNodes(t),
+					},
+				},
+			},
+			Upstreams: structs.Upstreams{
+				{
+					// We rely on this one having default type in a few tests...
+					DestinationName:  "db",
+					LocalBindPort:    9191,
+					LocalBindAddress: "2.3.4.5",
+				},
+			},
+		}
+	}
 	return snap
 }
 

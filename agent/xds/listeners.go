@@ -40,6 +40,8 @@ func (s *Server) listenersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token s
 		return s.listenersFromSnapshotConnectProxy(cfgSnap, token)
 	case structs.ServiceKindMeshGateway:
 		return s.listenersFromSnapshotMeshGateway(cfgSnap)
+	case structs.ServiceKindIngressGateway:
+		return s.listenersFromSnapshotIngressGateway(cfgSnap)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
@@ -224,6 +226,29 @@ func (s *Server) listenersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 	}
 
 	return resources, err
+}
+
+func (s *Server) listenersFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+	var resources []proto.Message
+	for _, u := range cfgSnap.IngressGateway.Upstreams {
+		id := u.Identifier()
+
+		chain := cfgSnap.IngressGateway.DiscoveryChain[id]
+
+		var upstreamListener proto.Message
+		var err error
+		if chain == nil || chain.IsDefault() {
+			upstreamListener, err = s.makeUpstreamListenerIgnoreDiscoveryChain(&u, chain, cfgSnap)
+		} else {
+			upstreamListener, err = s.makeUpstreamListenerForDiscoveryChain(&u, chain, cfgSnap)
+		}
+		if err != nil {
+			return nil, err
+		}
+		resources = append(resources, upstreamListener)
+	}
+
+	return resources, nil
 }
 
 // makeListener returns a listener with name and bind details set. Filters must
@@ -862,18 +887,19 @@ func makeCommonTLSContext(cfgSnap *proxycfg.ConfigSnapshot) *envoyauth.CommonTls
 		rootPEMS += root.RootCert
 	}
 
+	leaf := cfgSnap.Leaf()
 	return &envoyauth.CommonTlsContext{
 		TlsParams: &envoyauth.TlsParameters{},
 		TlsCertificates: []*envoyauth.TlsCertificate{
 			&envoyauth.TlsCertificate{
 				CertificateChain: &envoycore.DataSource{
 					Specifier: &envoycore.DataSource_InlineString{
-						InlineString: cfgSnap.ConnectProxy.Leaf.CertPEM,
+						InlineString: leaf.CertPEM,
 					},
 				},
 				PrivateKey: &envoycore.DataSource{
 					Specifier: &envoycore.DataSource_InlineString{
-						InlineString: cfgSnap.ConnectProxy.Leaf.PrivateKeyPEM,
+						InlineString: leaf.PrivateKeyPEM,
 					},
 				},
 			},

@@ -1636,6 +1636,66 @@ func TestDNS_ConnectServiceLookup(t *testing.T) {
 	}
 }
 
+func TestDNS_IngressServiceLookup(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Register ingress-gateway service
+	{
+		args := structs.TestRegisterIngressGateway(t)
+		var out struct{}
+		require.Nil(t, a.RPC("Catalog.Register", args, &out))
+	}
+
+	// Register ingress-gateway config entry
+	{
+		args := &structs.IngressGatewayConfigEntry{
+			Name: "ingress-gateway",
+			Kind: structs.IngressGateway,
+			Listeners: []structs.IngressListener{
+				{
+					Port: 8888,
+					Services: []structs.IngressService{
+						{Name: "db"},
+					},
+				},
+			},
+		}
+
+		req := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry:      args,
+		}
+		var out bool
+		require.Nil(t, a.RPC("ConfigEntry.Apply", req, &out))
+		require.True(t, out)
+	}
+
+	// Look up the service
+	questions := []string{
+		"db.ingress.consul.",
+	}
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeA)
+
+		c := new(dns.Client)
+		in, _, err := c.Exchange(m, a.DNSAddr())
+		require.Nil(t, err)
+		require.Len(t, in.Answer, 1)
+
+		cnameRec, ok := in.Answer[0].(*dns.A)
+		require.True(t, ok)
+		require.Equal(t, "db.ingress.consul.", cnameRec.Hdr.Name)
+		require.Equal(t, uint32(0), cnameRec.Hdr.Ttl)
+		require.Equal(t, "127.0.0.1", cnameRec.A.String())
+	}
+}
+
 func TestDNS_ExternalServiceLookup(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, "")

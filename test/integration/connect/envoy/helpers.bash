@@ -528,11 +528,11 @@ function gen_envoy_bootstrap {
   SERVICE=$1
   ADMIN_PORT=$2
   DC=${3:-primary}
-  IS_MGW=${4:-0}
+  IS_GW=${4:-0}
   EXTRA_ENVOY_BS_ARGS="${5-}"
 
   PROXY_ID="$SERVICE"
-  if ! is_set "$IS_MGW"
+  if ! is_set "$IS_GW"
   then
     PROXY_ID="$SERVICE-sidecar-proxy"
   fi

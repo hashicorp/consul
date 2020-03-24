@@ -8,15 +8,14 @@ import (
 )
 
 // Recommended name for registration.
-const CatalogServicesName = "catalog-services"
+const GatewayServicesName = "gateway-services"
 
-// CatalogServices supports fetching discovering service instances via the
-// catalog.
-type CatalogServices struct {
+// GatewayUpstreams supports fetching upstreams for a given gateway name.
+type GatewayServices struct {
 	RPC RPC
 }
 
-func (c *CatalogServices) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (g *GatewayServices) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	// The request should be a ServiceSpecificRequest.
@@ -41,8 +40,8 @@ func (c *CatalogServices) Fetch(opts cache.FetchOptions, req cache.Request) (cac
 	reqReal.AllowStale = true
 
 	// Fetch
-	var reply structs.IndexedServiceNodes
-	if err := c.RPC.RPC("Catalog.ServiceNodes", reqReal, &reply); err != nil {
+	var reply structs.IndexedGatewayServices
+	if err := g.RPC.RPC("Internal.GatewayServices", reqReal, &reply); err != nil {
 		return result, err
 	}
 
@@ -51,6 +50,6 @@ func (c *CatalogServices) Fetch(opts cache.FetchOptions, req cache.Request) (cac
 	return result, nil
 }
 
-func (c *CatalogServices) SupportsBlocking() bool {
+func (g *GatewayServices) SupportsBlocking() bool {
 	return true
 }

@@ -133,7 +133,9 @@ func (m *Manager) syncState() {
 	// Traverse the local state and ensure all proxy services are registered
 	services := m.State.Services(structs.WildcardEnterpriseMeta())
 	for sid, svc := range services {
-		if svc.Kind != structs.ServiceKindConnectProxy && svc.Kind != structs.ServiceKindMeshGateway {
+		if svc.Kind != structs.ServiceKindConnectProxy &&
+			svc.Kind != structs.ServiceKindMeshGateway &&
+			svc.Kind != structs.ServiceKindIngressGateway {
 			continue
 		}
 		// TODO(banks): need to work out when to default some stuff. For example

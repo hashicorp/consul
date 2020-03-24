@@ -77,11 +77,19 @@ func (e *IngressGatewayConfigEntry) Normalize() error {
 	}
 
 	e.Kind = IngressGateway
-	for _, listener := range e.Listeners {
+	for i, listener := range e.Listeners {
+		if listener.Protocol == "" {
+			listener.Protocol = "tcp"
+		}
+
 		listener.Protocol = strings.ToLower(listener.Protocol)
 		for i := range listener.Services {
 			listener.Services[i].EnterpriseMeta.Normalize()
 		}
+
+		// Make sure to set the item back into the array, since we are not using
+		// pointers to structs
+		e.Listeners[i] = listener
 	}
 
 	e.EnterpriseMeta.Normalize()
@@ -135,7 +143,7 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 func (e *IngressGatewayConfigEntry) CanRead(authz acl.Authorizer) bool {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.OperatorRead(&authzContext) == acl.Allow
+	return authz.ServiceRead(e.Name, &authzContext) == acl.Allow
 }
 
 func (e *IngressGatewayConfigEntry) CanWrite(authz acl.Authorizer) bool {
@@ -158,6 +166,33 @@ func (e *IngressGatewayConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
 	}
 
 	return &e.EnterpriseMeta
+}
+
+// Returns whether or not the given service is contained within the set of
+// services for this ingress config. We explicitly use ServiceID to be able to
+// deal with EnterpriseMeta natively.
+func (e *IngressGatewayConfigEntry) ContainsService(service ServiceID) bool {
+	for _, listener := range e.Listeners {
+		for _, s := range listener.Services {
+			// Special case the wildcard specifier and make sure to check namespace
+			// values here.
+			if s.Name == WildcardSpecifier &&
+				s.NamespaceOrDefault() == service.NamespaceOrDefault() {
+				return true
+			}
+
+			sid := s.ToServiceID()
+			if sid.Matches(&service) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func (s *IngressService) ToServiceID() ServiceID {
+	return NewServiceID(s.Name, &s.EnterpriseMeta)
 }
 
 // TerminatingGatewayConfigEntry manages the configuration for a terminating service
@@ -283,6 +318,7 @@ type GatewayService struct {
 	Gateway     ServiceID
 	Service     ServiceID
 	GatewayKind ServiceKind
+	Port        int
 	CAFile      string
 	CertFile    string
 	KeyFile     string

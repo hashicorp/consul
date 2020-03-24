@@ -863,6 +863,10 @@ func (s *Store) ServiceList(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	return s.serviceListTxn(tx, ws, entMeta)
+}
+
+func (s *Store) serviceListTxn(tx *memdb.Txn, ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceList, error) {
 	idx := s.catalogServicesMaxIndex(tx, entMeta)
 
 	services, err := s.catalogServiceList(tx, entMeta, true)
@@ -1946,6 +1950,10 @@ func (s *Store) checkServiceNodes(ws memdb.WatchSet, serviceName string, connect
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	return s.checkServiceNodesTxn(tx, ws, serviceName, connect, entMeta)
+}
+
+func (s *Store) checkServiceNodesTxn(tx *memdb.Txn, ws memdb.WatchSet, serviceName string, connect bool, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
 	// Function for lookup
 	index := "service"
 	if connect {
@@ -2285,6 +2293,94 @@ func (s *Store) serviceDumpKindTxn(tx *memdb.Txn, ws memdb.WatchSet, kind struct
 	}
 
 	return s.parseCheckServiceNodes(tx, nil, idx, "", results, err)
+}
+
+func (s *Store) UpstreamsForIngressGateway(ws memdb.WatchSet, name string, entMeta *structs.EnterpriseMeta) (uint64, structs.Upstreams, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	idx, services, err := s.serviceListTxn(tx, ws, structs.WildcardEnterpriseMeta())
+	if err != nil {
+		return 0, nil, err
+	}
+
+	configIdx, entry, err := s.configEntryTxn(tx, ws, structs.IngressGateway, name, entMeta)
+	if err != nil {
+		return 0, nil, err
+	}
+	if configIdx > idx {
+		idx = configIdx
+	}
+
+	// Loop through all services referenced in the gateway's config entry and create
+	// upstream definitions for them.
+	var upstreams structs.Upstreams
+	ingressConfig := entry.(*structs.IngressGatewayConfigEntry)
+	for _, listener := range ingressConfig.Listeners {
+		for _, service := range listener.Services {
+			// If the wildcard was used in place of a service name, add all services
+			// in this namespace as upstreams.
+			if service.Name == structs.WildcardSpecifier {
+				for _, s := range services {
+					if s.NamespaceOrDefault() == service.NamespaceOrDefault() {
+						upstreams = append(upstreams, makeUpstream(s.Name, s.NamespaceOrDefault(), listener.Port))
+					}
+				}
+			} else {
+				// Add the service as an upstream.
+				upstreams = append(upstreams, makeUpstream(service.Name, service.NamespaceOrDefault(), listener.Port))
+			}
+		}
+	}
+
+	return idx, upstreams, nil
+}
+
+func makeUpstream(name, namespace string, port int) structs.Upstream {
+	return structs.Upstream{
+		DestinationName:      name,
+		DestinationNamespace: namespace,
+		LocalBindPort:        port,
+	}
+}
+
+func (s *Store) IngressGatewaysForService(ws memdb.WatchSet, serviceName string, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+	requestedService := structs.NewServiceID(serviceName, entMeta)
+
+	maxIdx, entries, err := s.configEntriesByKindTxn(tx, ws, structs.IngressGateway, entMeta)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	var ingressServices []string
+	for _, entry := range entries {
+		ingressConfig := entry.(*structs.IngressGatewayConfigEntry)
+		if ingressConfig.ContainsService(requestedService) {
+			ingressServices = append(ingressServices, ingressConfig.Name)
+		}
+	}
+
+	// If we don't have any matches, return early and make sure index is 0
+	if len(ingressServices) == 0 {
+		return 0, nil, nil
+	}
+
+	var nodes structs.CheckServiceNodes
+	for _, service := range ingressServices {
+		idx, n, err := s.checkServiceNodesTxn(tx, ws, service, false, entMeta)
+		if err != nil {
+			return 0, nil, err
+		}
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+
+		nodes = append(nodes, n...)
+	}
+
+	return maxIdx, nodes, nil
 }
 
 // parseNodes takes an iterator over a set of nodes and returns a struct
