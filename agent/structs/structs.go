@@ -30,7 +30,9 @@ type MessageType uint8
 // RaftIndex is used to track the index used while creating
 // or modifying a given struct type.
 type RaftIndex struct {
+	// CreateIndex represent the transaction index at which the element has been created
 	CreateIndex uint64 `bexpr:"-"`
+	// ModifyIndex represent the transaction index at which the element has been last modified
 	ModifyIndex uint64 `bexpr:"-"`
 }
 
@@ -269,20 +271,27 @@ func (w *WriteRequest) SetTokenSecret(s string) {
 // useful metadata about a query
 type QueryMeta struct {
 	// This is the index associated with the read
-	Index uint64
+	Index uint64 `json:"X-Consul-Index"`
 
 	// If AllowStale is used, this is time elapsed since
 	// last contact between the follower and leader. This
 	// can be used to gauge staleness.
-	LastContact time.Duration
+	//
+	// Latency of servers with current leader in ms
+	// swagger:ignore
+	// swagger:type string
+	// type string
+	LastContact time.Duration //`json:"X-Consul-LastContact"`
 
 	// Used to indicate if there is a known leader node
-	KnownLeader bool
+	KnownLeader bool `json:"X-Consul-KnownLeader"`
 
 	// Consistencylevel returns the consistency used to serve the query
 	// Having `discovery_max_stale` on the agent can affect whether
 	// the request was served by a leader.
-	ConsistencyLevel string
+	//
+	// enum: consistent,leader,stale
+	ConsistencyLevel string `json:"X-Consul-Effective-Consistency"`
 }
 
 // RegisterRequest is used for the Catalog.Register endpoint
@@ -623,14 +632,19 @@ func (r *ChecksInStateRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
-// Used to return information about a node
+// Node is used to return information about a node
+// swagger:model
 type Node struct {
-	ID              types.NodeID
-	Node            string
-	Address         string
-	Datacenter      string
+	ID         types.NodeID
+	Node       string
+	Address    string
+	Datacenter string
+	// TaggedAddresses describes all known addresses of node.
+	//
+	// keys: wan,wan_ipv4,lan,lan_ipv4,lan_ipv6
 	TaggedAddresses map[string]string
-	Meta            map[string]string
+
+	Meta map[string]string
 
 	RaftIndex `bexpr:"-"`
 }
@@ -1293,16 +1307,27 @@ type NodeServiceList struct {
 
 // HealthCheck represents a single check on a given node
 type HealthCheck struct {
-	Node        string
-	CheckID     types.CheckID // Unique per-node ID
-	Name        string        // Check name
-	Status      string        // The current check status
-	Notes       string        // Additional notes with the status
-	Output      string        // Holds output of script runs
-	ServiceID   string        // optional associated service
-	ServiceName string        // optional service name
-	ServiceTags []string      // optional service tags
-	Type        string        // Check type: http/ttl/tcp/etc
+	// Node is the node name associated with this check
+	Node    string
+	CheckID types.CheckID // Unique per-node ID
+	// Name is the check name
+	Name string
+	// Status is the current check status
+	// enum: passing,warning,critical
+	Status string
+	// Notes are additional free text added to check
+	Notes string
+	// Output Holds output of script runs / information about last check status
+	Output string
+	// ServiceID optional Service ID associated with this check, otherwise a Agent level check
+	ServiceID string
+	// ServiceName optional service name the check is registered for
+	ServiceName string
+	// ServiceTags optional service tags
+	ServiceTags []string
+	// Type is the check type
+	// enum: alias,docker,grpc,http,tcp,ttl,
+	Type string // Check type: http/ttl/tcp/etc
 
 	Definition HealthCheckDefinition `bexpr:"-"`
 
@@ -1505,9 +1530,18 @@ type HealthChecks []*HealthCheck
 // CheckServiceNode is used to provide the node, its service
 // definition, as well as a HealthCheck that is associated.
 type CheckServiceNode struct {
-	Node    *Node
+	// Node is the agent of Service.
+	// swagger:allOf
+	// in: body
+	Node *Node
+	// Service represents the service itself.
+	// swagger:allOf
+	// in: body
 	Service *NodeService
-	Checks  HealthChecks
+	// Checks represents the collection of healthchecks associated with node and service.
+	// swagger:allOf
+	// in: body
+	Checks HealthChecks
 }
 
 func (csn *CheckServiceNode) BestAddress(wan bool) (string, int) {
@@ -1735,8 +1769,15 @@ type IndexedHealthChecks struct {
 	QueryMeta
 }
 
+// IndexedCheckServiceNodes is an Array of (Node,Service,Checks).
+// swagger:response
 type IndexedCheckServiceNodes struct {
+	// in:body
+	// swagger:allOf
+	// Required: true
 	Nodes CheckServiceNodes
+	// in:headers
+	// swagger:allOf
 	QueryMeta
 }
 

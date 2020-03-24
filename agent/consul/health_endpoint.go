@@ -169,18 +169,67 @@ func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 		})
 }
 
-// ServiceNodes returns all the nodes registered as part of a service including health info
+// ServiceNodes returns all the nodes registered as part of a service including health info.
+//
+// swagger:operation GET /health/service/{service} health-for-service
+//
+// This endpoint returns the nodes providing the service indicated on the path.
+// Users can also build in support for dynamic load balancing and other features by incorporating the use of health checks.
+//
+// ---
+// produces:
+// - application/json
+// parameters:
+// - name: service
+//   in: path
+//   type: string
+//   description: Service name to get instances for
+//   required: true
+// - name: dc
+//   in: query
+//   type: string
+//   description: Specifies the datacenter to query. This will default to the datacenter of the agent being queried.
+// - name: near
+//   in: query
+//   type: string
+//   description: Specifies a node name to sort the node list in ascending order based on the estimated round trip time from that node. Passing ?near=_agent will use the agent's node for the sort.
+// - name: stale
+//   in: query
+//   type: boolean
+//   description: Can the request
+// responses:
+//   '200':
+//     description: 'OK'
+//     type: array
+//     schema:
+//       $ref: '#/definitions/CheckServiceNode'
+//     headers:
+//       X-Consul-Index:
+//         type: integer
+//         format: uint64
+//         description: Last Consul Index for this endpoint
+//       X-Consul-KnownLeader:
+//         type: boolean
+//         description: true if a Consul server has been elected as leader
+//       X-Consul-Effective-Consistency:
+//         type: string
+//         enum: [consistent,leader,stale]
+//         description: Consistencylevel returns the consistency used to serve the query
+//       X-Consul-LastContact:
+//         type: integer
+//         format: uint64
+//         description: Latency of servers with current leader in ms
 func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *structs.IndexedCheckServiceNodes) error {
 	if done, err := h.srv.forward("Health.ServiceNodes", args, args, reply); done {
 		return err
 	}
 
-	// Verify the arguments
+	//     Verify the arguments
 	if args.ServiceName == "" {
 		return fmt.Errorf("Must provide service name")
 	}
 
-	// Determine the function we'll call
+	//     Determine the function we'll call
 	var f func(memdb.WatchSet, *state.Store, *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error)
 	switch {
 	case args.Connect:
@@ -201,11 +250,11 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 		return err
 	}
 
-	// If we're doing a connect query, we need read access to the service
-	// we're trying to find proxies for, so check that.
+	//     If we're doing a connect query, we need read access to the service
+	//     we're trying to find proxies for, so check that.
 	if args.Connect {
 		if authz != nil && authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
-			// Just return nil, which will return an empty response (tested)
+			//     Just return nil, which will return an empty response (tested)
 			return nil
 		}
 	}
@@ -242,9 +291,9 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 			return h.srv.sortNodesByDistanceFrom(args.Source, reply.Nodes)
 		})
 
-	// Provide some metrics
+	//     Provide some metrics
 	if err == nil {
-		// For metrics, we separate Connect-based lookups from non-Connect
+		//     For metrics, we separate Connect-based lookups from non-Connect
 		key := "service"
 		if args.Connect {
 			key = "connect"
@@ -252,15 +301,15 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 
 		metrics.IncrCounterWithLabels([]string{"health", key, "query"}, 1,
 			[]metrics.Label{{Name: "service", Value: args.ServiceName}})
-		// DEPRECATED (singular-service-tag) - remove this when backwards RPC compat
-		// with 1.2.x is not required.
+		//     DEPRECATED (singular-service-tag) - remove this when backwards RPC compat
+		//     with 1.2.x is not required.
 		if args.ServiceTag != "" {
 			metrics.IncrCounterWithLabels([]string{"health", key, "query-tag"}, 1,
 				[]metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "tag", Value: args.ServiceTag}})
 		}
 		if len(args.ServiceTags) > 0 {
-			// Sort tags so that the metric is the same even if the request
-			// tags are in a different order
+			//     Sort tags so that the metric is the same even if the request
+			//     tags are in a different order
 			sort.Strings(args.ServiceTags)
 
 			labels := []metrics.Label{{Name: "service", Value: args.ServiceName}}
@@ -285,10 +334,10 @@ func (h *Health) serviceNodesConnect(ws memdb.WatchSet, s *state.Store, args *st
 }
 
 func (h *Health) serviceNodesTagFilter(ws memdb.WatchSet, s *state.Store, args *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error) {
-	// DEPRECATED (singular-service-tag) - remove this when backwards RPC compat
-	// with 1.2.x is not required.
-	// Agents < v1.3.0 populate the ServiceTag field. In this case,
-	// use ServiceTag instead of the ServiceTags field.
+	//     DEPRECATED (singular-service-tag) - remove this when backwards RPC compat
+	//     with 1.2.x is not required.
+	//     Agents < v1.3.0 populate the ServiceTag field. In this case,
+	//     use ServiceTag instead of the ServiceTags field.
 	if args.ServiceTag != "" {
 		return s.CheckServiceTagNodes(ws, args.ServiceName, []string{args.ServiceTag}, &args.EnterpriseMeta)
 	}

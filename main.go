@@ -10,6 +10,9 @@ import (
 	"github.com/hashicorp/consul/lib"
 	_ "github.com/hashicorp/consul/service_os"
 	"github.com/mitchellh/cli"
+
+	// Needed for swagger to find swagger endpoints
+	_ "github.com/hashicorp/consul/agent/consul"
 )
 
 func init() {

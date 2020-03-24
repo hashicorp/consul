@@ -148,6 +148,18 @@ all: bin
 # used to make integration dependencies conditional
 noop: ;
 
+pkg:
+	mkdir pkg
+
+pkg/swagger.json: pkg main.go agent/consul/doc.go agent/structs/structs.go agent/consul/health_endpoint.go 
+	swagger generate spec -o pkg/swagger.json
+
+swagger-validate: pkg/swagger.json
+	swagger validate pkg/swagger.json
+
+swagger-serve: swagger-validate
+	swagger serve pkg/swagger.json
+
 bin: tools
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-local.sh
 
@@ -308,8 +320,8 @@ lint:
 # If you've run "make ui" manually then this will get called for you. This is
 # also run as part of the release build script when it verifies that there are no
 # changes to the UI assets that aren't checked in.
-static-assets:
-	@go-bindata-assetfs -pkg agent -prefix pkg -o $(ASSETFS_PATH) ./pkg/web_ui/...
+static-assets: swagger-validate
+	@go-bindata-assetfs -pkg agent -prefix pkg -o $(ASSETFS_PATH) ./pkg/swagger.json ./pkg/web_ui/...
 	@go fmt $(ASSETFS_PATH)
 
 
