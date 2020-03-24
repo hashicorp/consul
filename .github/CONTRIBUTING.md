@@ -60,12 +60,11 @@ issue. Stale issues will be closed.
 ## Building Consul
 
 If you wish to work on Consul itself, you'll first need [Go](https://golang.org)
-installed (version 1.13 is _required_). Make sure you have Go properly installed,
-including setting up your [GOPATH](https://golang.org/doc/code.html#GOPATH).
+installed (version 1.14 is _required_).
 
-Next, clone this repository into `$GOPATH/src/github.com/hashicorp/consul` and 
-then run `make dev`. In a few moments, you'll have a working `consul` executable 
-in `consul/bin` and `$GOPATH/bin`:
+
+Next, clone this repository and then run `make dev`. In a few moments, you'll have a working
+`consul` executable in `consul/bin` and `$GOPATH/bin`:
 
 >Note: `make dev` will build for your local machine's os/architecture. If you wish to build for all os/architecture combinations use `make`.
 
