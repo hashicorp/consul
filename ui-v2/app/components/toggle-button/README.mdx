@@ -1,0 +1,54 @@
+## ToggleButton
+
+`<ToggleButton checked="checked" @onchange={{action 'change'}} as |api|>Toggle</ToggleButton>`
+
+`<ToggleButton />` is a straightforward combination of a `<label>` and `<input type="checkbox" />` to allow you to easily setup CSS based (`input:checked ~ *`) visual toggling. The body of the component ends up inside the `<label>`.
+
+Additionally, a `clickoutside` is currently included, so if the toggle is in an 'on' state, clicking outside the `<ToggleButton>` itself will un-toggle the component. This could be changed in a future version for this to be configurable/preventable and/or use/rely on a modifer instead.
+
+### Arguments
+
+| Argument/Attribute | Type | Default | Description |
+| --- | --- | --- | --- |
+| `checked` | `Boolean` | false | The default value of the toggle on/off (true/false) |
+| `onchange` | `Function` |  | The action to fire when the data changes. Emits an Event-like object with a `target` that is a reference to the underlying standard DOM input element. |
+
+### Methods/Actions/api
+
+| Method/Action |  Description |
+| --- | --- | --- | --- |
+| `click` | Fire a click event on the ToggleButton/input which reverse the state of the toggle. |
+
+### Example
+
+Here is an example of a simple CSS based dropdown menu. Note: The general sibling selector (`~`) should be used as the label/button itself is the adjacent sibling (`+`).
+
+```handlebars
+<div class="menu">
+  <ToggleButton>
+	  Open Menu
+  </ToggleButton>
+  <ul>
+    <li><a href="">Link 1</a></li>
+    <li><a href="">Link 2</a></li>
+  </ul>
+</div>
+```
+
+```css
+.menu input ~ ul {
+  display: none;
+}
+.menu input:checked ~ ul {
+  display: block;
+}
+```
+
+
+
+### See
+
+- [Component Source Code](./index.js)
+- [TemplateSource Code](./index.hbs)
+
+---
