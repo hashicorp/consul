@@ -60,8 +60,8 @@ type cmd struct {
 
 	// mesh gateway registration information
 	register           bool
-	address            string
-	wanAddress         string
+	lanAddress         ServiceAddressValue
+	wanAddress         ServiceAddressValue
 	deregAfterCritical string
 	bindAddresses      map[string]string
 	exposeServers      bool
@@ -120,10 +120,10 @@ func (c *cmd) init() {
 	c.flags.BoolVar(&c.register, "register", false,
 		"Register a new Mesh Gateway service before configuring and starting Envoy")
 
-	c.flags.StringVar(&c.address, "address", "",
+	c.flags.Var(&c.lanAddress, "address",
 		"LAN address to advertise in the Mesh Gateway service registration")
 
-	c.flags.StringVar(&c.wanAddress, "wan-address", "",
+	c.flags.Var(&c.wanAddress, "wan-address",
 		"WAN address to advertise in the Mesh Gateway service registration")
 
 	c.flags.Var((*flags.FlagMapValue)(&c.bindAddresses), "bind-address", "Bind "+
@@ -145,32 +145,28 @@ func (c *cmd) init() {
 	c.help = flags.Usage(help, c.flags)
 }
 
-const (
-	DefaultMeshGatewayPort int = 443
-)
-
 func parseAddress(addrStr string) (string, int, error) {
 	if addrStr == "" {
 		// defaulting the port to 443
-		return "", DefaultMeshGatewayPort, nil
+		return "", defaultMeshGatewayPort, nil
 	}
 
 	x, err := template.Parse(addrStr)
 	if err != nil {
-		return "", DefaultMeshGatewayPort, fmt.Errorf("Error parsing address %q: %v", addrStr, err)
+		return "", defaultMeshGatewayPort, fmt.Errorf("Error parsing address %q: %v", addrStr, err)
 	}
 
 	addr, portStr, err := net.SplitHostPort(x)
 	if err != nil {
-		return "", DefaultMeshGatewayPort, fmt.Errorf("Error parsing address %q: %v", x, err)
+		return "", defaultMeshGatewayPort, fmt.Errorf("Error parsing address %q: %v", x, err)
 	}
 
-	port := DefaultMeshGatewayPort
+	port := defaultMeshGatewayPort
 
 	if portStr != "" {
 		port, err = strconv.Atoi(portStr)
 		if err != nil {
-			return "", DefaultMeshGatewayPort, fmt.Errorf("Error parsing port %q: %v", portStr, err)
+			return "", defaultMeshGatewayPort, fmt.Errorf("Error parsing port %q: %v", portStr, err)
 		}
 	}
 
@@ -206,13 +202,13 @@ func canBindInternal(addr string, ifAddrs []net.Addr) bool {
 	return false
 }
 
-func canBind(addr string) bool {
+func canBind(addr api.ServiceAddress) bool {
 	ifAddrs, err := net.InterfaceAddrs()
 	if err != nil {
 		return false
 	}
 
-	return canBindInternal(addr, ifAddrs)
+	return canBindInternal(addr.Address, ifAddrs)
 }
 
 func (c *cmd) Run(args []string) int {
@@ -246,30 +242,18 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 
-		lanAddr, lanPort, err := parseAddress(c.address)
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Failed to parse the -address parameter: %v", err))
-			return 1
-		}
-
 		taggedAddrs := make(map[string]api.ServiceAddress)
-
-		if lanAddr != "" {
-			taggedAddrs[structs.TaggedAddressLAN] = api.ServiceAddress{Address: lanAddr, Port: lanPort}
+		lanAddr := c.lanAddress.Value()
+		if lanAddr.Address != "" {
+			taggedAddrs[structs.TaggedAddressLAN] = lanAddr
 		}
 
-		wanAddr := ""
-		wanPort := lanPort
-		if c.wanAddress != "" {
-			wanAddr, wanPort, err = parseAddress(c.wanAddress)
-			if err != nil {
-				c.UI.Error(fmt.Sprintf("Failed to parse the -wan-address parameter: %v", err))
-				return 1
-			}
-			taggedAddrs[structs.TaggedAddressWAN] = api.ServiceAddress{Address: wanAddr, Port: wanPort}
+		wanAddr := c.wanAddress.Value()
+		if wanAddr.Address != "" {
+			taggedAddrs[structs.TaggedAddressWAN] = wanAddr
 		}
 
-		tcpCheckAddr := lanAddr
+		tcpCheckAddr := lanAddr.Address
 		if tcpCheckAddr == "" {
 			// fallback to localhost as the gateway has to reside in the same network namespace
 			// as the agent
@@ -307,8 +291,8 @@ func (c *cmd) Run(args []string) int {
 					"envoy_mesh_gateway_bind_tagged_addresses": true,
 				},
 			}
-		} else if !canBind(lanAddr) && lanAddr != "" {
-			c.UI.Error(fmt.Sprintf("The LAN address %q will not be bindable. Either set a bindable address or override the bind addresses with -bind-address", lanAddr))
+		} else if !canBind(lanAddr) && lanAddr.Address != "" {
+			c.UI.Error(fmt.Sprintf("The LAN address %q will not be bindable. Either set a bindable address or override the bind addresses with -bind-address", lanAddr.Address))
 			return 1
 		}
 
@@ -320,14 +304,14 @@ func (c *cmd) Run(args []string) int {
 		svc := api.AgentServiceRegistration{
 			Kind:            api.ServiceKindMeshGateway,
 			Name:            c.meshGatewaySvcName,
-			Address:         lanAddr,
-			Port:            lanPort,
+			Address:         lanAddr.Address,
+			Port:            lanAddr.Port,
 			Meta:            meta,
 			TaggedAddresses: taggedAddrs,
 			Proxy:           proxyConf,
 			Check: &api.AgentServiceCheck{
 				Name:                           "Mesh Gateway Listening",
-				TCP:                            ipaddr.FormatAddressPort(tcpCheckAddr, lanPort),
+				TCP:                            ipaddr.FormatAddressPort(tcpCheckAddr, lanAddr.Port),
 				Interval:                       "10s",
 				DeregisterCriticalServiceAfter: c.deregAfterCritical,
 			},
