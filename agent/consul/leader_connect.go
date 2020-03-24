@@ -193,7 +193,7 @@ func (s *Server) initializeCA() error {
 
 	// If this isn't the primary DC, run the secondary DC routine if the primary has already been upgraded to at least 1.6.0
 	if s.config.PrimaryDatacenter != s.config.Datacenter {
-		versionOk, foundPrimary := ServersInDCMeetMinimumVersion(s.WANMembers(), s.config.PrimaryDatacenter, minMultiDCConnectVersion)
+		versionOk, foundPrimary := ServersInDCMeetMinimumVersion(s, s.config.PrimaryDatacenter, minMultiDCConnectVersion)
 		if !foundPrimary {
 			connectLogger.Warn("primary datacenter is configured but unreachable - deferring initialization of the secondary datacenter CA")
 			// return nil because we will initialize the secondary CA later
@@ -738,7 +738,7 @@ func (s *Server) secondaryCARootWatch(ctx context.Context) error {
 			return nil
 		}
 		if !s.configuredSecondaryCA() {
-			versionOk, primaryFound := ServersInDCMeetMinimumVersion(s.WANMembers(), s.config.PrimaryDatacenter, minMultiDCConnectVersion)
+			versionOk, primaryFound := ServersInDCMeetMinimumVersion(s, s.config.PrimaryDatacenter, minMultiDCConnectVersion)
 			if !primaryFound {
 				return fmt.Errorf("Primary datacenter is unreachable - deferring secondary CA initialization")
 			}
