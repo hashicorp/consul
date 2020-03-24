@@ -292,7 +292,7 @@ and consider if they're appropriate for your deployment.
              load: false
         ```
 
-  * <a name="v-client-tolerations" href="#v-client-tolerations">`tolerations`</a> (`string: ""`) - Toleration Settings for Client pods. This should be a multi-line string matching the Toleration array in a Pod spec. The example below will allow Client pods to run on every node regardless of taints.
+  * <a name="v-client-tolerations" href="#v-client-tolerations">`tolerations`</a> (`string: ""`) - Toleration Settings for client pods. This should be a multi-line string matching the Toleration array in a Pod spec. The example below will allow client pods to run on every node regardless of taints.
 
         ```yaml
         tolerations: |
