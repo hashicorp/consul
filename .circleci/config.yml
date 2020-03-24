@@ -593,8 +593,9 @@ jobs:
   # only runs on master: checks latest commit to see if the PR associated has a backport/* or docs* label to cherry-pick
   cherry-picker:
     docker:
-      - image: *GOLANG_IMAGE
+      - image: alpine:3.11
     steps:
+      - run: apk add --no-cache --no-progress git bash curl ncurses jq
       - checkout
       - add_ssh_keys: # needs a key to push cherry-picked commits back to github
           fingerprints:
