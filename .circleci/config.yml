@@ -37,6 +37,8 @@ jobs:
   lint:
     docker:
       - image: *GOLANG_IMAGE
+    environment:
+      GOTAGS: "" # No tags for OSS but there are for enterprise
     steps:
       - checkout
       - run:
@@ -48,7 +50,7 @@ jobs:
       - run:
           name: lint
           command: &lintcmd |
-            golangci-lint run -v --concurrency 2
+            golangci-lint run --build-tags="$GOTAGS" -v --concurrency 2
       - run:
           name: lint api
           working_directory: api
