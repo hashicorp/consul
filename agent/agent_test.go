@@ -3455,18 +3455,7 @@ func TestAgent_ReloadConfigAndKeepChecksStatus(t *testing.T) {
 	a := NewTestAgent(t, t.Name(), hcl)
 	defer a.Shutdown()
 
-	// Initially, state is critical during waitDurationSeconds seconds
-	retry.Run(t, func(r *retry.R) {
-		gotChecks := a.State.Checks(nil)
-		require.Equal(r, 1, len(gotChecks), "Should have a check registered, but had %#v", gotChecks)
-		for id, check := range gotChecks {
-			require.Equal(r, "critical", check.Status, "check %q is wrong", id)
-		}
-	})
-	c := TestConfig(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
-	a.ReloadConfig(c)
-	time.Sleep(time.Duration(waitDurationSeconds) * time.Second)
-	// It should now be passing
+	// We wait until the checks are passing to do the reload.
 	retry.Run(t, func(r *retry.R) {
 		gotChecks := a.State.Checks(nil)
 		for id, check := range gotChecks {
@@ -3474,6 +3463,7 @@ func TestAgent_ReloadConfigAndKeepChecksStatus(t *testing.T) {
 		}
 	})
 
+	c := TestConfig(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
 	require.NoError(t, a.ReloadConfig(c))
 	// After reload, should be passing directly (no critical state)
 	for id, check := range a.State.Checks(nil) {
