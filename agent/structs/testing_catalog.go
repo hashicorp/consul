@@ -85,6 +85,14 @@ func TestNodeServiceMeshGateway(t testing.T) *NodeService {
 		ServiceAddress{Address: "198.18.4.5", Port: 443})
 }
 
+func TestNodeServiceTerminatingGateway(t testing.T, address string) *NodeService {
+	return &NodeService{
+		Kind:    ServiceKindTerminatingGateway,
+		Service: "terminating-gateway",
+		Address: address,
+	}
+}
+
 func TestNodeServiceMeshGatewayWithAddrs(t testing.T, address string, port int, lanAddr, wanAddr ServiceAddress) *NodeService {
 	return &NodeService{
 		Kind:    ServiceKindMeshGateway,

@@ -120,9 +120,9 @@ func (s *ServiceManager) AddService(req *addServiceRequest) error {
 
 	req.service.EnterpriseMeta.Normalize()
 
-	// For now only sidecar proxies have anything that can be configured
+	// For now only proxies have anything that can be configured
 	// centrally. So bypass the whole manager for regular services.
-	if !req.service.IsSidecarProxy() && !req.service.IsMeshGateway() {
+	if !req.service.IsSidecarProxy() && !req.service.IsGateway() {
 		// previousDefaults are ignored here because they are only relevant for central config.
 		req.persistService = nil
 		req.persistDefaults = nil

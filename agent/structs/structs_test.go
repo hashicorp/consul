@@ -415,6 +415,58 @@ func TestStructs_NodeService_ValidateMeshGateway(t *testing.T) {
 	}
 }
 
+func TestStructs_NodeService_ValidateTerminatingGateway(t *testing.T) {
+	type testCase struct {
+		Modify func(*NodeService)
+		Err    string
+	}
+	cases := map[string]testCase{
+		"valid": testCase{
+			func(x *NodeService) {},
+			"",
+		},
+		"sidecar-service": testCase{
+			func(x *NodeService) { x.Connect.SidecarService = &ServiceDefinition{} },
+			"cannot have a sidecar service",
+		},
+		"proxy-destination-name": testCase{
+			func(x *NodeService) { x.Proxy.DestinationServiceName = "foo" },
+			"Proxy.DestinationServiceName configuration is invalid",
+		},
+		"proxy-destination-id": testCase{
+			func(x *NodeService) { x.Proxy.DestinationServiceID = "foo" },
+			"Proxy.DestinationServiceID configuration is invalid",
+		},
+		"proxy-local-address": testCase{
+			func(x *NodeService) { x.Proxy.LocalServiceAddress = "127.0.0.1" },
+			"Proxy.LocalServiceAddress configuration is invalid",
+		},
+		"proxy-local-port": testCase{
+			func(x *NodeService) { x.Proxy.LocalServicePort = 36 },
+			"Proxy.LocalServicePort configuration is invalid",
+		},
+		"proxy-upstreams": testCase{
+			func(x *NodeService) { x.Proxy.Upstreams = []Upstream{Upstream{}} },
+			"Proxy.Upstreams configuration is invalid",
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			ns := TestNodeServiceTerminatingGateway(t, "10.0.0.5")
+			tc.Modify(ns)
+
+			err := ns.Validate()
+			if tc.Err == "" {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+				require.Contains(t, strings.ToLower(err.Error()), strings.ToLower(tc.Err))
+			}
+		})
+	}
+}
+
 func TestStructs_NodeService_ValidateExposeConfig(t *testing.T) {
 	type testCase struct {
 		Modify func(*NodeService)

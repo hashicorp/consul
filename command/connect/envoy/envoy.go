@@ -48,6 +48,7 @@ type cmd struct {
 
 	// flags
 	meshGateway          bool
+	terminatingGateway   bool
 	proxyID              string
 	sidecarFor           string
 	adminAccessLogPath   string
@@ -66,7 +67,10 @@ type cmd struct {
 	bindAddresses      map[string]string
 	exposeServers      bool
 
-	meshGatewaySvcName string
+	gatewaySvcName string
+
+	isGateway   bool
+	gatewayKind api.ServiceKind
 }
 
 const defaultEnvoyVersion = "1.13.1"
@@ -79,6 +83,9 @@ func (c *cmd) init() {
 
 	c.flags.BoolVar(&c.meshGateway, "mesh-gateway", false,
 		"Configure Envoy as a Mesh Gateway.")
+
+	c.flags.BoolVar(&c.terminatingGateway, "terminating-gateway", false,
+		"Configure Envoy as a Terminating Gateway.")
 
 	c.flags.StringVar(&c.sidecarFor, "sidecar-for", "",
 		"The ID of a service instance on the local agent that this proxy should "+
@@ -130,7 +137,7 @@ func (c *cmd) init() {
 		"address to use instead of the default binding rules given as `<name>=<ip>:<port>` "+
 		"pairs. This flag may be specified multiple times to add multiple bind addresses.")
 
-	c.flags.StringVar(&c.meshGatewaySvcName, "service", "mesh-gateway",
+	c.flags.StringVar(&c.gatewaySvcName, "service", "",
 		"Service name to use for the registration")
 
 	c.flags.BoolVar(&c.exposeServers, "expose-servers", false,
@@ -146,31 +153,31 @@ func (c *cmd) init() {
 }
 
 const (
-	DefaultMeshGatewayPort int = 443
+	DefaultGatewayPort int = 443
 )
 
 func parseAddress(addrStr string) (string, int, error) {
 	if addrStr == "" {
 		// defaulting the port to 443
-		return "", DefaultMeshGatewayPort, nil
+		return "", DefaultGatewayPort, nil
 	}
 
 	x, err := template.Parse(addrStr)
 	if err != nil {
-		return "", DefaultMeshGatewayPort, fmt.Errorf("Error parsing address %q: %v", addrStr, err)
+		return "", DefaultGatewayPort, fmt.Errorf("Error parsing address %q: %v", addrStr, err)
 	}
 
 	addr, portStr, err := net.SplitHostPort(x)
 	if err != nil {
-		return "", DefaultMeshGatewayPort, fmt.Errorf("Error parsing address %q: %v", x, err)
+		return "", DefaultGatewayPort, fmt.Errorf("Error parsing address %q: %v", x, err)
 	}
 
-	port := DefaultMeshGatewayPort
+	port := DefaultGatewayPort
 
 	if portStr != "" {
 		port, err = strconv.Atoi(portStr)
 		if err != nil {
-			return "", DefaultMeshGatewayPort, fmt.Errorf("Error parsing port %q: %v", portStr, err)
+			return "", DefaultGatewayPort, fmt.Errorf("Error parsing port %q: %v", portStr, err)
 		}
 	}
 
@@ -253,9 +260,24 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.register {
-		if !c.meshGateway {
-			c.UI.Error("Auto-Registration can only be used for mesh gateways")
+		c.isGateway = c.meshGateway || c.terminatingGateway
+		if !c.isGateway {
+			c.UI.Error("Auto-Registration can only be used for gateways")
 			return 1
+		}
+		if c.meshGateway && c.terminatingGateway {
+			c.UI.Error("More than one gateway type was specified")
+			return 1
+		}
+
+		if c.meshGateway {
+			c.gatewayKind = api.ServiceKindMeshGateway
+		}
+		if c.terminatingGateway {
+			c.gatewayKind = api.ServiceKindTerminatingGateway
+		}
+		if c.gatewaySvcName == "" {
+			c.gatewaySvcName = string(c.gatewayKind)
 		}
 
 		lanAddr, lanPort, err := parseAddress(c.address)
@@ -290,6 +312,8 @@ func (c *cmd) Run(args []string) int {
 
 		var proxyConf *api.AgentServiceConnectProxyConfig
 
+		// TODO (gateways): What should we do about bind addr config? This is where we may need special handling by kind.
+		//                  I think the mesh gateway bind options make sense for ingress gateways but maybe not for terminating.
 		if len(c.bindAddresses) > 0 {
 			// override all default binding rules and just bind to the user-supplied addresses
 			bindAddresses := make(map[string]api.ServiceAddress)
@@ -330,15 +354,15 @@ func (c *cmd) Run(args []string) int {
 		}
 
 		svc := api.AgentServiceRegistration{
-			Kind:            api.ServiceKindMeshGateway,
-			Name:            c.meshGatewaySvcName,
+			Kind:            c.gatewayKind,
+			Name:            c.gatewaySvcName,
 			Address:         lanAddr,
 			Port:            lanPort,
 			Meta:            meta,
 			TaggedAddresses: taggedAddrs,
 			Proxy:           proxyConf,
 			Check: &api.AgentServiceCheck{
-				Name:                           "Mesh Gateway Listening",
+				Name:                           fmt.Sprintf("%s listening", c.gatewayKind),
 				TCP:                            ipaddr.FormatAddressPort(tcpCheckAddr, lanPort),
 				Interval:                       "10s",
 				DeregisterCriticalServiceAfter: c.deregAfterCritical,
@@ -361,14 +385,14 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 		c.proxyID = proxyID
-	} else if c.proxyID == "" && c.meshGateway {
-		gatewaySvc, err := c.lookupGatewayProxy()
+	} else if c.proxyID == "" && c.isGateway {
+		gatewaySvc, err := c.lookupGatewayProxy(c.gatewayKind)
 		if err != nil {
 			c.UI.Error(err.Error())
 			return 1
 		}
 		c.proxyID = gatewaySvc.ID
-		c.meshGatewaySvcName = gatewaySvc.Service
+		c.gatewaySvcName = gatewaySvc.Service
 	}
 
 	if c.proxyID == "" {
@@ -514,8 +538,8 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 	cluster := c.proxyID
 	if c.sidecarFor != "" {
 		cluster = c.sidecarFor
-	} else if c.meshGateway && c.meshGatewaySvcName != "" {
-		cluster = c.meshGatewaySvcName
+	} else if c.isGateway && c.gatewaySvcName != "" {
+		cluster = c.gatewaySvcName
 	}
 
 	adminAccessLogPath := c.adminAccessLogPath
@@ -587,8 +611,8 @@ func (c *cmd) lookupProxyIDForSidecar() (string, error) {
 	return proxyCmd.LookupProxyIDForSidecar(c.client, c.sidecarFor)
 }
 
-func (c *cmd) lookupGatewayProxy() (*api.AgentService, error) {
-	return proxyCmd.LookupGatewayProxy(c.client)
+func (c *cmd) lookupGatewayProxy(kind api.ServiceKind) (*api.AgentService, error) {
+	return proxyCmd.LookupGatewayProxy(c.client, kind)
 }
 
 func (c *cmd) lookupGRPCPort() (int, error) {
