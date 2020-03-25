@@ -1001,10 +1001,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		b.warn(`BootstrapExpect is set to 1; this is the same as Bootstrap mode.`)
 	}
 
-	if err := lib.CheckLimitsFromMaxConnsPerClient(rt.HTTPMaxConnsPerClient); err != nil {
-		return rt, err
-	}
-
 	return rt, nil
 }
 
@@ -1247,6 +1243,10 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		if !rt.VerifyIncoming && !rt.VerifyIncomingRPC {
 			b.warn("if auto_encrypt.allow_tls is turned on, either verify_incoming or verify_incoming_rpc should be enabled. It is necessary to turn it off during a migration to TLS, but it should definitely be turned on afterwards.")
 		}
+	}
+
+	if err := lib.CheckLimitsFromMaxConnsPerClient(rt.HTTPMaxConnsPerClient); err != nil {
+		return err
 	}
 
 	return nil

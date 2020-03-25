@@ -3454,7 +3454,16 @@ func TestAgent_GetRLimitsReload(t *testing.T) {
 			# This value is more than max on Windows as well
 			http_max_conns_per_client = 16777217
 		}`
-	c := TestConfig(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hclFailing})
+	c, _, validationError := TestConfigWithErr(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hclFailing})
+	if validationError == nil {
+		assert.Fail(t, "Config should not be valid")
+	}
+	// Value has not been taken into account because validation did fail
+	assert.Equal(t, 0, c.HTTPMaxConnsPerClient)
+	// Force updating entry
+	c.HTTPMaxConnsPerClient = 16777217
+	assert.Equal(t, 16777217, c.HTTPMaxConnsPerClient)
+	// Still try to load config even if not valid
 	if err := a.ReloadConfig(c); err == nil {
 		assert.Fail(t, "a.ReloadConfig() should have failed as limits.http_max_conns_per_client is too big")
 	}
