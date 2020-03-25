@@ -280,7 +280,7 @@ func relocateServiceEntries(svcs []api.ServiceEntry) []*api.ServiceEntry {
 // without valid `Service.Address` or `Node.Address` fields.
 func filterServiceEntries(svcs []*api.ServiceEntry) []*api.ServiceEntry {
 
-	// attempt to make a collection of `ServiceEntry` where
+	// Attempt to make a collection of `ServiceEntry` where
 	// each has a unqiue (and populated) `Service.Address` field.
 	dedup := make(map[string]*api.ServiceEntry)
 	for _, svc := range svcs {
@@ -294,7 +294,7 @@ func filterServiceEntries(svcs []*api.ServiceEntry) []*api.ServiceEntry {
 
 	// The first filter was too aggressive.
 	// To avoid legacy issues, attempt to make a collection of `ServiceEntry`
-	// where each has a unique (and populated) `Node.Address`.
+	// where each has a unique (and populated) `Node.Address` field.
 	if len(dedup) == 0 && len(svcs) != 0 {
 		for _, svc := range svcs {
 			if svc.Node == nil || svc.Node.Address == "" {
@@ -306,8 +306,8 @@ func filterServiceEntries(svcs []*api.ServiceEntry) []*api.ServiceEntry {
 		}
 	}
 
-	// doing any filter appears to be wrong,
-	// allow or legacy behavior to remain
+	// Doing any filter appears to be wrong,
+	// allow for legacy behavior to remain.
 	if len(dedup) == 0 {
 		return svcs
 	}
