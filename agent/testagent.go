@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"text/template"
 	"time"
@@ -84,6 +85,13 @@ type TestAgent struct {
 	// Agent is the embedded consul agent.
 	// It is valid after Start().
 	*Agent
+
+	// endpoints stores a mapping of endpoint names to the name of a fake
+	// endpoint registered by a test.
+	endpoints map[string]string
+	// endpointsLock for endpoints mapping. Must be a pointer because a
+	// TestAgent is passed around by value and locks are not safe to copy.
+	endpointsLock *sync.RWMutex
 }
 
 // NewTestAgent returns a started agent with the given name and
@@ -98,9 +106,7 @@ func NewTestAgent(t *testing.T, name string, hcl string) *TestAgent {
 // and a boolean 'start', which indicates whether or not the TestAgent should
 // be started. If no LogOutput is set, it will automatically be set to
 // testutil.TestWriter(t). Name will default to t.Name() if not specified.
-func NewTestAgentWithFields(t *testing.T, start bool, ta TestAgent) *TestAgent {
-	// copy values
-	a := ta
+func NewTestAgentWithFields(t *testing.T, start bool, a TestAgent) *TestAgent {
 	if a.Name == "" {
 		a.Name = t.Name()
 	}
@@ -126,6 +132,7 @@ func (a *TestAgent) Start() (err error) {
 	if a.Agent != nil {
 		return fmt.Errorf("TestAgent already started")
 	}
+	a.endpointsLock = new(sync.RWMutex)
 
 	var cleanupTmpDir = func() {
 		// Clean out the data dir if we are responsible for it before we
@@ -367,6 +374,36 @@ func (a *TestAgent) consulConfig() *consul.Config {
 		panic(err)
 	}
 	return c
+}
+
+func (a *TestAgent) RPC(method string, args interface{}, reply interface{}) error {
+	a.endpointsLock.RLock()
+	// fast path: only translate if there are overrides
+	if len(a.endpoints) > 0 {
+		p := strings.SplitN(method, ".", 2)
+		if e := a.endpoints[p[0]]; e != "" {
+			method = e + "." + p[1]
+		}
+	}
+	a.endpointsLock.RUnlock()
+	return a.delegate.RPC(method, args, reply)
+}
+
+func (a *TestAgent) registerEndpoint(name string, handler interface{}) error {
+	server, ok := a.delegate.(interface {
+		RegisterEndpoint(name string, handler interface{}) error
+	})
+	if !ok {
+		panic("TestAgent.delegate must wrap a Server to register fake RPC endpoints")
+	}
+	realname := fmt.Sprintf("%s-%d", name, time.Now().UnixNano())
+	a.endpointsLock.Lock()
+	if a.endpoints == nil {
+		a.endpoints = make(map[string]string)
+	}
+	a.endpoints[name] = realname
+	a.endpointsLock.Unlock()
+	return server.RegisterEndpoint(realname, handler)
 }
 
 // pickRandomPorts selects random ports from fixed size random blocks of

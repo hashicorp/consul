@@ -31,7 +31,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-uuid"
+	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1512,6 +1512,8 @@ func TestAgent_Join_WAN(t *testing.T) {
 	defer a2.Shutdown()
 	testrpc.WaitForLeader(t, a1.RPC, "dc1")
 	testrpc.WaitForLeader(t, a2.RPC, "dc1")
+
+	t.Logf("##### DEBUG %T\n", a1.delegate)
 
 	addr := fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortWAN)
 	req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/join/%s?wan=true", addr), nil)

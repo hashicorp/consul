@@ -256,12 +256,6 @@ type Agent struct {
 	// attempts.
 	retryJoinCh chan error
 
-	// endpoints maps unique RPC endpoint names to common ones
-	// to allow overriding of RPC handlers since the golang
-	// net/rpc server does not allow this.
-	endpoints     map[string]string
-	endpointsLock sync.RWMutex
-
 	// dnsServer provides the DNS API
 	dnsServers []*DNSServer
 
@@ -335,7 +329,6 @@ func New(c *config.RuntimeConfig, logger hclog.InterceptLogger) (*Agent, error) 
 		retryJoinCh:      make(chan error),
 		shutdownCh:       make(chan struct{}),
 		InterruptStartCh: make(chan struct{}),
-		endpoints:        make(map[string]string),
 		tokens:           new(token.Store),
 		logger:           logger,
 	}
@@ -1673,34 +1666,10 @@ func (a *Agent) setupKeyrings(config *consul.Config) error {
 	return nil
 }
 
-// registerEndpoint registers a handler for the consul RPC server
-// under a unique name while making it accessible under the provided
-// name. This allows overwriting handlers for the golang net/rpc
-// service which does not allow this.
-func (a *Agent) registerEndpoint(name string, handler interface{}) error {
-	srv, ok := a.delegate.(*consul.Server)
-	if !ok {
-		panic("agent must be a server")
-	}
-	realname := fmt.Sprintf("%s-%d", name, time.Now().UnixNano())
-	a.endpointsLock.Lock()
-	a.endpoints[name] = realname
-	a.endpointsLock.Unlock()
-	return srv.RegisterEndpoint(realname, handler)
-}
-
-// RPC is used to make an RPC call to the Consul servers
-// This allows the agent to implement the Consul.Interface
+// RPC (remote procedure call) to a server, or primary datacenter.
+//
+// Deprecated: use Agent.delegate.RPC()
 func (a *Agent) RPC(method string, args interface{}, reply interface{}) error {
-	a.endpointsLock.RLock()
-	// fast path: only translate if there are overrides
-	if len(a.endpoints) > 0 {
-		p := strings.SplitN(method, ".", 2)
-		if e := a.endpoints[p[0]]; e != "" {
-			method = e + "." + p[1]
-		}
-	}
-	a.endpointsLock.RUnlock()
 	return a.delegate.RPC(method, args, reply)
 }
 
