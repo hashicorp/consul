@@ -117,26 +117,6 @@ func TestIngressConfigEntry_Validate(t *testing.T) {
 			expectErr: "no service declared for listener with port 1111",
 		},
 		{
-			name: "wildcard namespace not supported",
-			entry: IngressGatewayConfigEntry{
-				Kind: "ingress-gateway",
-				Name: "ingress-web",
-				Listeners: []IngressListener{
-					{
-						Port:     1111,
-						Protocol: "tcp",
-						Services: []IngressService{
-							{
-								Name:      "foo",
-								Namespace: "*",
-							},
-						},
-					},
-				},
-			},
-			expectErr: "Wildcard namespace is not supported for ingress services",
-		},
-		{
 			name: "empty service name not supported",
 			entry: IngressGatewayConfigEntry{
 				Kind: "ingress-gateway",

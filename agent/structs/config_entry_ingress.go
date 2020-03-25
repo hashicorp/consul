@@ -28,15 +28,9 @@ type IngressListener struct {
 
 type IngressService struct {
 	Name          string
-	Namespace     string
 	ServiceSubset string
-}
 
-func (i IngressService) NamespaceOrDefault() string {
-	if i.Namespace == "" {
-		return IntentionDefaultNamespace
-	}
-	return i.Namespace
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
 
 func (e *IngressGatewayConfigEntry) GetKind() string {
@@ -78,7 +72,7 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 			if s.Name == "*" && listener.Protocol != "http" {
 				return fmt.Errorf("Wildcard service name is only valid for protocol = 'http' (listener on port %d)", listener.Port)
 			}
-			if s.Namespace == WildcardSpecifier {
+			if s.NamespaceOrDefault() == WildcardSpecifier {
 				return fmt.Errorf("Wildcard namespace is not supported for ingress services (listener on port %d)", listener.Port)
 			}
 			if s.Name == "" {

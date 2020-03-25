@@ -21,7 +21,6 @@ type IngressListener struct {
 
 type IngressService struct {
 	Name          string
-	Namespace     string
 	ServiceSubset string
 }
 
