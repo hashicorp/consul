@@ -74,13 +74,13 @@ const defaultEnvoyVersion = "1.13.1"
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 
-	c.flags.StringVar(&c.proxyID, "proxy-id", "",
+	c.flags.StringVar(&c.proxyID, "proxy-id", os.Getenv("CONNECT_PROXY_ID"),
 		"The proxy's ID on the local agent.")
 
 	c.flags.BoolVar(&c.meshGateway, "mesh-gateway", false,
 		"Configure Envoy as a Mesh Gateway.")
 
-	c.flags.StringVar(&c.sidecarFor, "sidecar-for", "",
+	c.flags.StringVar(&c.sidecarFor, "sidecar-for", os.Getenv("CONNECT_SIDECAR_FOR"),
 		"The ID of a service instance on the local agent that this proxy should "+
 			"become a sidecar for. It requires that the proxy service is registered "+
 			"with the agent as a connect-proxy with Proxy.DestinationServiceID set "+
@@ -110,7 +110,7 @@ func (c *cmd) init() {
 			"cases where either assumption is violated this flag will prevent the "+
 			"command attempting to resolve config from the local agent.")
 
-	c.flags.StringVar(&c.grpcAddr, "grpc-addr", "",
+	c.flags.StringVar(&c.grpcAddr, "grpc-addr", os.Getenv(api.GRPCAddrEnvName),
 		"Set the agent's gRPC address and port (in http(s)://host:port format). "+
 			"Alternatively, you can specify CONSUL_GRPC_ADDR in ENV.")
 
@@ -208,7 +208,6 @@ func canBindInternal(addr string, ifAddrs []net.Addr) bool {
 
 func canBind(addr string) bool {
 	ifAddrs, err := net.InterfaceAddrs()
-
 	if err != nil {
 		return false
 	}
@@ -221,17 +220,6 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 	passThroughArgs := c.flags.Args()
-
-	// Load the proxy ID and token from env vars if they're set
-	if c.proxyID == "" {
-		c.proxyID = os.Getenv("CONNECT_PROXY_ID")
-	}
-	if c.sidecarFor == "" {
-		c.sidecarFor = os.Getenv("CONNECT_SIDECAR_FOR")
-	}
-	if c.grpcAddr == "" {
-		c.grpcAddr = os.Getenv(api.GRPCAddrEnvName)
-	}
 
 	// Setup Consul client
 	client, err := c.http.APIClient()
@@ -355,14 +343,14 @@ func (c *cmd) Run(args []string) int {
 
 	// See if we need to lookup proxyID
 	if c.proxyID == "" && c.sidecarFor != "" {
-		proxyID, err := c.lookupProxyIDForSidecar()
+		proxyID, err := proxyCmd.LookupProxyIDForSidecar(c.client, c.sidecarFor)
 		if err != nil {
 			c.UI.Error(err.Error())
 			return 1
 		}
 		c.proxyID = proxyID
 	} else if c.proxyID == "" && c.meshGateway {
-		gatewaySvc, err := c.lookupGatewayProxy()
+		gatewaySvc, err := proxyCmd.LookupGatewayProxy(c.client)
 		if err != nil {
 			c.UI.Error(err.Error())
 			return 1
@@ -372,8 +360,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.proxyID == "" {
-		c.UI.Error("No proxy ID specified. One of -proxy-id or -sidecar-for/-mesh-gateway is " +
-			"required")
+		c.UI.Error("No proxy ID specified. One of -proxy-id or -sidecar-for/-mesh-gateway is required")
 		return 1
 	}
 
@@ -581,14 +568,6 @@ func (c *cmd) generateConfig() ([]byte, error) {
 	}
 
 	return bsCfg.GenerateJSON(args)
-}
-
-func (c *cmd) lookupProxyIDForSidecar() (string, error) {
-	return proxyCmd.LookupProxyIDForSidecar(c.client, c.sidecarFor)
-}
-
-func (c *cmd) lookupGatewayProxy() (*api.AgentService, error) {
-	return proxyCmd.LookupGatewayProxy(c.client)
 }
 
 func (c *cmd) lookupGRPCPort() (int, error) {
