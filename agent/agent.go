@@ -1715,15 +1715,6 @@ func (a *Agent) RPC(method string, args interface{}, reply interface{}) error {
 	return a.delegate.RPC(method, args, reply)
 }
 
-// SnapshotRPC performs the requested snapshot RPC against the Consul server in
-// a streaming manner. The contents of in will be read and passed along as the
-// payload, and the response message will determine the error status, and any
-// return payload will be written to out.
-func (a *Agent) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer,
-	replyFn structs.SnapshotReplyFn) error {
-	return a.delegate.SnapshotRPC(args, in, out, replyFn)
-}
-
 // Leave is used to prepare the agent for a graceful shutdown
 func (a *Agent) Leave() error {
 	return a.delegate.Leave()
