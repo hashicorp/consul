@@ -45,6 +45,7 @@ const (
 	Session         string = "session"
 	Sentinel        string = "sentinel"
 	Snapshot        string = "snapshot"
+	Subscribe       string = "subscribe"
 	TLSUtil         string = "tlsutil"
 	Transaction     string = "txn"
 	WAN             string = "wan"

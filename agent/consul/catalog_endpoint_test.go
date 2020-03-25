@@ -2558,13 +2558,17 @@ func TestCatalog_Register_FailedCase1(t *testing.T) {
 }
 
 func testACLFilterServer(t *testing.T) (dir, token string, srv *Server, codec rpc.ClientCodec) {
-	dir, srv = testServerWithConfig(t, func(c *Config) {
+	return testACLFilterServerWithConfigFn(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 		c.ACLEnforceVersion8 = false
 	})
+}
+
+func testACLFilterServerWithConfigFn(t *testing.T, fn func(*Config)) (dir, token string, srv *Server, codec rpc.ClientCodec) {
+	dir, srv = testServerWithConfig(t, fn)
 
 	codec = rpcClient(t, srv)
 	testrpc.WaitForLeader(t, srv.RPC, "dc1")

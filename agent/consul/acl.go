@@ -8,6 +8,7 @@ import (
 
 	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/agentpb"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
@@ -1720,6 +1721,43 @@ func (f *aclFilter) filterGatewayServices(mappings *structs.GatewayServices) {
 	*mappings = ret
 }
 
+func (f *aclFilter) allowStreamEvent(event *agentpb.Event) bool {
+	// Fast path if ACLs are not enabled
+	if f.authorizer == nil {
+		return true
+	}
+	return event.EnforceACL(f.authorizer) == acl.Allow
+}
+
+func (f *aclFilter) filterStreamEvents(events *[]agentpb.Event) {
+	// Fast path for the common case of only 1 event since we can avoid slice
+	// allocation in the hot path of every single update event delivered in vast
+	// majority of cases with this. Note that this is called _per event/item_ when
+	// sending snapshots which is a lot worse than being called once on regular
+	// result.
+	if len(*events) == 1 {
+		if f.allowStreamEvent(&(*events)[0]) {
+			return
+		}
+		// Was denied, truncate the input events stream to remove the single event
+		*events = (*events)[:0]
+		return
+	}
+
+	filtered := make([]agentpb.Event, 0, len(*events))
+
+	for idx := range *events {
+		// Get pointer to the actual event. We don't use _, event ranging to save to
+		// confusion of making a local copy, this is more explicit.
+		event := &(*events)[idx]
+		if f.allowStreamEvent(event) {
+			filtered = append(filtered, *event)
+		}
+	}
+
+	*events = filtered
+}
+
 func (r *ACLResolver) filterACLWithAuthorizer(authorizer acl.Authorizer, subj interface{}) error {
 	if authorizer == nil {
 		return nil
@@ -1807,6 +1845,9 @@ func (r *ACLResolver) filterACLWithAuthorizer(authorizer acl.Authorizer, subj in
 
 	case *structs.GatewayServices:
 		filt.filterGatewayServices(v)
+
+	case *[]agentpb.Event:
+		filt.filterStreamEvents(v)
 
 	default:
 		panic(fmt.Errorf("Unhandled type passed to ACL filter: %T %#v", subj, subj))

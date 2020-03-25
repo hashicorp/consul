@@ -907,7 +907,7 @@ func (s *Server) setupGRPC() error {
 		grpc.StatsHandler(grpcStatsHandler),
 		grpc.StreamInterceptor(GRPCCountingStreamInterceptor),
 	)
-	//stream.RegisterConsulServer(srv, &ConsulGRPCAdapter{Health{s}})
+	agentpb.RegisterConsulServer(srv, NewGRPCService(s))
 	if s.config.GRPCTestServerEnabled {
 		agentpb.RegisterTestServer(srv, &GRPCTest{srv: s})
 	}

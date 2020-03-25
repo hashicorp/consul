@@ -62,74 +62,14 @@ func testServiceRegistration(t *testing.T, svc string, opts ...regOption) *struc
 }
 
 func testServiceHealthEvent(t *testing.T, svc string, opts ...eventOption) agentpb.Event {
-	e := agentpb.Event{
-		Topic: agentpb.Topic_ServiceHealth,
-		Key:   svc,
-		Index: 100,
-		Payload: &agentpb.Event_ServiceHealth{
-			ServiceHealth: &agentpb.ServiceHealthUpdate{
-				Op: agentpb.CatalogOp_Register,
-				CheckServiceNode: &agentpb.CheckServiceNode{
-					Node: &agentpb.Node{
-						ID:         "11111111-2222-3333-4444-555555555555",
-						Node:       "node1",
-						Address:    "10.10.10.10",
-						Datacenter: "dc1",
-						RaftIndex: agentpb.RaftIndex{
-							CreateIndex: 100,
-							ModifyIndex: 100,
-						},
-					},
-					Service: &agentpb.NodeService{
-						ID:      svc,
-						Service: svc,
-						Port:    8080,
-						Weights: &agentpb.Weights{
-							Passing: 1,
-							Warning: 1,
-						},
-						// Empty sadness
-						Proxy: agentpb.ConnectProxyConfig{
-							MeshGateway: &agentpb.MeshGatewayConfig{},
-							Expose:      &agentpb.ExposeConfig{},
-						},
-						EnterpriseMeta: &agentpb.EnterpriseMeta{},
-						RaftIndex: agentpb.RaftIndex{
-							CreateIndex: 100,
-							ModifyIndex: 100,
-						},
-					},
-					Checks: []*agentpb.HealthCheck{
-						&agentpb.HealthCheck{
-							Node:           "node1",
-							CheckID:        "serf-health",
-							Name:           "serf-health",
-							Status:         "passing",
-							EnterpriseMeta: &agentpb.EnterpriseMeta{},
-							RaftIndex: agentpb.RaftIndex{
-								CreateIndex: 100,
-								ModifyIndex: 100,
-							},
-						},
-						&agentpb.HealthCheck{
-							Node:           "node1",
-							CheckID:        types.CheckID("service:" + svc),
-							Name:           "service:" + svc,
-							ServiceID:      svc,
-							ServiceName:    svc,
-							Type:           "ttl",
-							Status:         "passing",
-							EnterpriseMeta: &agentpb.EnterpriseMeta{},
-							RaftIndex: agentpb.RaftIndex{
-								CreateIndex: 100,
-								ModifyIndex: 100,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
+	e := agentpb.TestEventServiceHealthRegister(t, 1, svc)
+
+	// Normalize a few things that are different in the generic event which was
+	// based on original code here but made more general. This means we don't have
+	// to change all the test loads...
+	csn := e.GetServiceHealth().CheckServiceNode
+	csn.Node.ID = "11111111-2222-3333-4444-555555555555"
+	csn.Node.Address = "10.10.10.10"
 
 	for _, opt := range opts {
 		err := opt(&e)
@@ -139,41 +79,7 @@ func testServiceHealthEvent(t *testing.T, svc string, opts ...eventOption) agent
 }
 
 func testServiceHealthDeregistrationEvent(t *testing.T, svc string, opts ...eventOption) agentpb.Event {
-	e := agentpb.Event{
-		Topic: agentpb.Topic_ServiceHealth,
-		Key:   svc,
-		Index: 100,
-		Payload: &agentpb.Event_ServiceHealth{
-			ServiceHealth: &agentpb.ServiceHealthUpdate{
-				Op: agentpb.CatalogOp_Deregister,
-				CheckServiceNode: &agentpb.CheckServiceNode{
-					Node: &agentpb.Node{
-						Node: "node1",
-					},
-					Service: &agentpb.NodeService{
-						ID:      svc,
-						Service: svc,
-						Port:    8080,
-						Weights: &agentpb.Weights{
-							Passing: 1,
-							Warning: 1,
-						},
-						// Empty sadness
-						Proxy: agentpb.ConnectProxyConfig{
-							MeshGateway: &agentpb.MeshGatewayConfig{},
-							Expose:      &agentpb.ExposeConfig{},
-						},
-						EnterpriseMeta: &agentpb.EnterpriseMeta{},
-						RaftIndex: agentpb.RaftIndex{
-							// The original insertion index since a delete doesn't update this.
-							CreateIndex: 10,
-							ModifyIndex: 10,
-						},
-					},
-				},
-			},
-		},
-	}
+	e := agentpb.TestEventServiceHealthDeregister(t, 1, svc)
 	for _, opt := range opts {
 		err := opt(&e)
 		require.NoError(t, err)
@@ -1468,8 +1374,6 @@ func requireEventsInCorrectPartialOrder(t *testing.T, want, got []agentpb.Event,
 		k := partKey(e)
 		gotParts[k] = append(gotParts[k], e)
 	}
-
-	//q.Q(wantParts, gotParts)
 
 	for k, want := range wantParts {
 		require.Equal(t, want, gotParts[k], "got incorrect events for partition: %s", k)
