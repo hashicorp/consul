@@ -1,10 +1,13 @@
+#!/usr/bin/env bash
+#
 # This script is meant to run on every new commit to master in CircleCI. If the commit comes from a PR, it will
 # check the PR associated with the commit for labels. If the label matches `docs*` it will be cherry-picked
 # to stable-website. If the label matches `backport/*`, it will be cherry-picked to the appropriate `release/*`
 # branch.
 
 # Requires $CIRCLE_PROJECT_USERNAME, $CIRCLE_PROJECT_REPONAME, and $CIRCLE_SHA1 from CircleCI
-#!/bin/bash
+
+set -e -o pipefail
 
 # colorized status prompt
 function status {
@@ -21,13 +24,13 @@ function cherry_pick_with_slack_notification {
     #   $2 - commit to cherry-pick
     #   $3 - url to PR of commit
 
-    local branch=$1
-    local commit=$2
-    local pr_url=$3
+    local branch="$1"
+    local commit="$2"
+    local pr_url="$3"
 
-    git checkout $branch || exit 1
+    git checkout "$branch" || exit 1
     # If git cherry-pick fails, we send a failure notification
-    if ! git cherry-pick --mainline 1 $commit; then
+    if ! git cherry-pick --mainline 1 "$commit"; then
         status "🍒❌ Cherry pick of commit ${commit:0:7} from $pr_url onto $branch failed!"
         curl -X POST -H 'Content-type: application/json' \
         --data \
@@ -41,7 +44,7 @@ function cherry_pick_with_slack_notification {
             \"color\": \"danger\" \
             } \
         ] \
-        }" ${CONSUL_SLACK_WEBHOOK_URL}
+        }" "${CONSUL_SLACK_WEBHOOK_URL}"
         git status
         exit 1
     # Else we send a success notification
@@ -59,7 +62,7 @@ function cherry_pick_with_slack_notification {
             \"color\": \"good\" \
             } \
         ] \
-        }" ${CONSUL_SLACK_WEBHOOK_URL}
+        }" "${CONSUL_SLACK_WEBHOOK_URL}"
     fi
 }
 
@@ -99,13 +102,13 @@ for label in $labels; do
     if [[ $label == docs-cherrypick ]]; then
         status "backporting to stable-website"
         branch="stable-website"
-        cherry_pick_with_slack_notification $branch $CIRCLE_SHA1 $pr_url
+        cherry_pick_with_slack_notification "$branch" "$CIRCLE_SHA1" "$pr_url"
         git push origin stable-website
     # else if the label matches backport/*, it will attempt to cherry-pick to the release branch
     elif [[ $label =~ backport/* ]]; then
         status "backporting to $label"
         branch="${label/backport/release}.x"
-        cherry_pick_with_slack_notification $branch $CIRCLE_SHA1 $pr_url
-        git push origin $branch
+        cherry_pick_with_slack_notification "$branch" "$CIRCLE_SHA1" "$pr_url"
+        git push origin "$branch"
     fi
 done
