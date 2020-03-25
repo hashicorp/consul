@@ -205,6 +205,41 @@ func TestAPI_ACLPolicy_CreateReadDelete(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestAPI_ACLPolicy_CreateReadByNameDelete(t *testing.T) {
+	t.Parallel()
+	c, s := makeACLClient(t)
+	defer s.Stop()
+
+	acl := c.ACL()
+
+	created, wm, err := acl.PolicyCreate(&ACLPolicy{
+		Name:        "test-policy",
+		Description: "test-policy description",
+		Rules:       `node_prefix "" { policy = "read" }`,
+		Datacenters: []string{"dc1"},
+	}, nil)
+
+	require.NoError(t, err)
+	require.NotNil(t, created)
+	require.NotEqual(t, "", created.ID)
+	require.NotEqual(t, 0, wm.RequestTime)
+
+	read, qm, err := acl.PolicyReadByName(created.Name, nil)
+	require.NoError(t, err)
+	require.NotEqual(t, 0, qm.LastIndex)
+	require.True(t, qm.KnownLeader)
+
+	require.Equal(t, created, read)
+
+	wm, err = acl.PolicyDelete(created.ID, nil)
+	require.NoError(t, err)
+	require.NotEqual(t, 0, wm.RequestTime)
+
+	read, _, err = acl.PolicyRead(created.ID, nil)
+	require.Nil(t, read)
+	require.Error(t, err)
+}
+
 func TestAPI_ACLPolicy_CreateUpdate(t *testing.T) {
 	t.Parallel()
 	c, s := makeACLClient(t)

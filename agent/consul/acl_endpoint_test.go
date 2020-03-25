@@ -2240,6 +2240,45 @@ func TestACLEndpoint_PolicyRead(t *testing.T) {
 	}
 }
 
+func TestACLEndpoint_PolicyReadByName(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	policy, err := upsertTestPolicy(codec, "root", "dc1")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	acl := ACL{srv: s1}
+
+	req := structs.ACLPolicyGetRequest{
+		Datacenter:   "dc1",
+		PolicyName:   policy.Name,
+		QueryOptions: structs.QueryOptions{Token: "root"},
+	}
+
+	resp := structs.ACLPolicyResponse{}
+
+	err = acl.PolicyRead(&req, &resp)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if !reflect.DeepEqual(resp.Policy, policy) {
+		t.Fatalf("tokens are not equal: %v != %v", resp.Policy, policy)
+	}
+}
+
 func TestACLEndpoint_PolicyBatchRead(t *testing.T) {
 	t.Parallel()
 

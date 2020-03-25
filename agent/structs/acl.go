@@ -1238,7 +1238,8 @@ func (r *ACLPolicyDeleteRequest) RequestDatacenter() string {
 
 // ACLPolicyGetRequest is used at the RPC layer to perform policy read operations
 type ACLPolicyGetRequest struct {
-	PolicyID   string // id used for the policy lookup
+	PolicyID   string // id used for the policy lookup (one of PolicyID or PolicyName is allowed)
+	PolicyName string // name used for the policy lookup (one of PolicyID or PolicyName is allowed)
 	Datacenter string // The datacenter to perform the request within
 	EnterpriseMeta
 	QueryOptions

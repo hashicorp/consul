@@ -217,7 +217,7 @@ func (s *HTTPServer) ACLPolicyCRUD(resp http.ResponseWriter, req *http.Request) 
 
 	switch req.Method {
 	case "GET":
-		fn = s.ACLPolicyRead
+		fn = s.ACLPolicyReadByID
 
 	case "PUT":
 		fn = s.ACLPolicyWrite
@@ -237,10 +237,11 @@ func (s *HTTPServer) ACLPolicyCRUD(resp http.ResponseWriter, req *http.Request) 
 	return fn(resp, req, policyID)
 }
 
-func (s *HTTPServer) ACLPolicyRead(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error) {
+func (s *HTTPServer) ACLPolicyRead(resp http.ResponseWriter, req *http.Request, policyID, policyName string) (interface{}, error) {
 	args := structs.ACLPolicyGetRequest{
 		Datacenter: s.agent.config.Datacenter,
 		PolicyID:   policyID,
+		PolicyName: policyName,
 	}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
@@ -266,6 +267,23 @@ func (s *HTTPServer) ACLPolicyRead(resp http.ResponseWriter, req *http.Request, 
 	}
 
 	return out.Policy, nil
+}
+
+func (s *HTTPServer) ACLPolicyReadByName(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if s.checkACLDisabled(resp, req) {
+		return nil, nil
+	}
+
+	policyName := strings.TrimPrefix(req.URL.Path, "/v1/acl/policy/name/")
+	if policyName == "" {
+		return nil, BadRequestError{Reason: "Missing policy Name"}
+	}
+
+	return s.ACLPolicyRead(resp, req, "", policyName)
+}
+
+func (s *HTTPServer) ACLPolicyReadByID(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error) {
+	return s.ACLPolicyRead(resp, req, policyID, "")
 }
 
 func (s *HTTPServer) ACLPolicyCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {

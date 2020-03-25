@@ -14,6 +14,7 @@ func init() {
 	registerEndpoint("/v1/acl/policies", []string{"GET"}, (*HTTPServer).ACLPolicyList)
 	registerEndpoint("/v1/acl/policy", []string{"PUT"}, (*HTTPServer).ACLPolicyCreate)
 	registerEndpoint("/v1/acl/policy/", []string{"GET", "PUT", "DELETE"}, (*HTTPServer).ACLPolicyCRUD)
+	registerEndpoint("/v1/acl/policy/name/", []string{"GET"}, (*HTTPServer).ACLPolicyReadByName)
 	registerEndpoint("/v1/acl/roles", []string{"GET"}, (*HTTPServer).ACLRoleList)
 	registerEndpoint("/v1/acl/role", []string{"PUT"}, (*HTTPServer).ACLRoleCreate)
 	registerEndpoint("/v1/acl/role/name/", []string{"GET"}, (*HTTPServer).ACLRoleReadByName)
