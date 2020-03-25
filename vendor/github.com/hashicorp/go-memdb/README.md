@@ -37,45 +37,57 @@ The full documentation is available on [Godoc](http://godoc.org/github.com/hashi
 Example
 =======
 
-Below is a simple example of usage
+Below is a [simple example](https://play.golang.org/p/gCGE9FA4og1) of usage
 
 ```go
 // Create a sample struct
 type Person struct {
-    Email string
-    Name  string
-    Age   int
+	Email string
+	Name  string
+	Age   int
 }
 
 // Create the DB schema
 schema := &memdb.DBSchema{
-    Tables: map[string]*memdb.TableSchema{
-        "person": &memdb.TableSchema{
-            Name: "person",
-            Indexes: map[string]*memdb.IndexSchema{
-                "id": &memdb.IndexSchema{
-                    Name:    "id",
-                    Unique:  true,
-                    Indexer: &memdb.StringFieldIndex{Field: "Email"},
-                },
-            },
-        },
-    },
+	Tables: map[string]*memdb.TableSchema{
+		"person": &memdb.TableSchema{
+			Name: "person",
+			Indexes: map[string]*memdb.IndexSchema{
+				"id": &memdb.IndexSchema{
+					Name:    "id",
+					Unique:  true,
+					Indexer: &memdb.StringFieldIndex{Field: "Email"},
+				},
+				"age": &memdb.IndexSchema{
+					Name:    "age",
+					Unique:  false,
+					Indexer: &memdb.IntFieldIndex{Field: "Age"},
+				},
+			},
+		},
+	},
 }
 
 // Create a new data base
 db, err := memdb.NewMemDB(schema)
 if err != nil {
-    panic(err)
+	panic(err)
 }
 
 // Create a write transaction
 txn := db.Txn(true)
 
-// Insert a new person
-p := &Person{"joe@aol.com", "Joe", 30}
-if err := txn.Insert("person", p); err != nil {
-    panic(err)
+// Insert some people
+people := []*Person{
+	&Person{"joe@aol.com", "Joe", 30},
+	&Person{"lucy@aol.com", "Lucy", 35},
+	&Person{"tariq@aol.com", "Tariq", 21},
+	&Person{"dorothy@aol.com", "Dorothy", 53},
+}
+for _, p := range people {
+	if err := txn.Insert("person", p); err != nil {
+		panic(err)
+	}
 }
 
 // Commit the transaction
@@ -88,11 +100,47 @@ defer txn.Abort()
 // Lookup by email
 raw, err := txn.First("person", "id", "joe@aol.com")
 if err != nil {
-    panic(err)
+	panic(err)
 }
 
 // Say hi!
-fmt.Printf("Hello %s!", raw.(*Person).Name)
+fmt.Printf("Hello %s!\n", raw.(*Person).Name)
 
+// List all the people
+it, err := txn.Get("person", "id")
+if err != nil {
+	panic(err)
+}
+
+fmt.Println("All the people:")
+for obj := it.Next(); obj != nil; obj = it.Next() {
+	p := obj.(*Person)
+	fmt.Printf("  %s\n", p.Name)
+}
+
+// Range scan over people with ages between 25 and 35 inclusive
+it, err = txn.LowerBound("person", "age", 25)
+if err != nil {
+	panic(err)
+}
+
+fmt.Println("People aged 25 - 35:")
+for obj := it.Next(); obj != nil; obj = it.Next() {
+	p := obj.(*Person)
+	if p.Age > 35 {
+		break
+	}
+	fmt.Printf("  %s is aged %d\n", p.Name, p.Age)
+}
+// Output:
+// Hello Joe!
+// All the people:
+//   Dorothy
+//   Joe
+//   Lucy
+//   Tariq
+// People aged 25 - 35:
+//   Joe is aged 30
+//   Lucy is aged 35
 ```
 

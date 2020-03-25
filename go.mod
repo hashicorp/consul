@@ -25,7 +25,7 @@ require (
 	github.com/go-ole/go-ole v1.2.1 // indirect
 	github.com/gogo/googleapis v1.1.0
 	github.com/gogo/protobuf v1.2.1
-	github.com/golang/protobuf v1.3.1
+	github.com/golang/protobuf v1.3.5
 	github.com/google/gofuzz v1.1.0
 	github.com/google/tcpproxy v0.0.0-20180808230851-dfa16c61dad2
 	github.com/hashicorp/consul/api v1.4.0
@@ -75,11 +75,11 @@ require (
 	github.com/stretchr/objx v0.1.1 // indirect
 	github.com/stretchr/testify v1.4.0
 	golang.org/x/crypto v0.0.0-20191106202628-ed6320f186d4
-	golang.org/x/net v0.0.0-20190923162816-aa69164e4478
-	golang.org/x/sync v0.0.0-20190423024810-112230192c58
+	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
+	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	golang.org/x/sys v0.0.0-20200124204421-9fbb57f87de9
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
-	golang.org/x/tools v0.0.0-20190907020128-2ca718005c18
+	golang.org/x/tools v0.0.0-20200324161117-bbbf714b4a18
 	google.golang.org/grpc v1.23.0
 	gopkg.in/square/go-jose.v2 v2.3.1
 	k8s.io/api v0.0.0-20190325185214-7544f9db76f6

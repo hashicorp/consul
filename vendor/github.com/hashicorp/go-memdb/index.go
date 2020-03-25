@@ -73,7 +73,7 @@ func (s *StringFieldIndex) FromObject(obj interface{}) (bool, []byte, error) {
 
 	if isPtr && !fv.IsValid() {
 		val := ""
-		return true, []byte(val), nil
+		return false, []byte(val), nil
 	}
 
 	val := fv.String()

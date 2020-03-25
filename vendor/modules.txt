@@ -136,7 +136,7 @@ github.com/gogo/protobuf/sortkeys
 github.com/gogo/protobuf/types
 # github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 github.com/golang/glog
-# github.com/golang/protobuf v1.3.1
+# github.com/golang/protobuf v1.3.5
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/protoc-gen-go/descriptor
 github.com/golang/protobuf/ptypes
@@ -202,7 +202,7 @@ github.com/hashicorp/go-discover/provider/vsphere
 github.com/hashicorp/go-hclog
 # github.com/hashicorp/go-immutable-radix v1.1.0
 github.com/hashicorp/go-immutable-radix
-# github.com/hashicorp/go-memdb v1.0.3
+# github.com/hashicorp/go-memdb v1.1.0
 github.com/hashicorp/go-memdb
 # github.com/hashicorp/go-msgpack v0.5.5
 github.com/hashicorp/go-msgpack/codec
@@ -224,7 +224,7 @@ github.com/hashicorp/go-syslog
 github.com/hashicorp/go-uuid
 # github.com/hashicorp/go-version v1.1.0
 github.com/hashicorp/go-version
-# github.com/hashicorp/golang-lru v0.5.1
+# github.com/hashicorp/golang-lru v0.5.4
 github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
 # github.com/hashicorp/hcl v1.0.0
@@ -418,7 +418,7 @@ golang.org/x/crypto/poly1305
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20190923162816-aa69164e4478
+# golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
 golang.org/x/net/bpf
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -441,7 +441,7 @@ golang.org/x/oauth2/google
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sync v0.0.0-20190423024810-112230192c58
+# golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 golang.org/x/sync/errgroup
 golang.org/x/sync/singleflight
 # golang.org/x/sys v0.0.0-20200124204421-9fbb57f87de9
@@ -460,14 +460,13 @@ golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 # golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 golang.org/x/time/rate
-# golang.org/x/tools v0.0.0-20190907020128-2ca718005c18
-golang.org/x/tools/go/packages
+# golang.org/x/tools v0.0.0-20200324161117-bbbf714b4a18
 golang.org/x/tools/go/gcexportdata
-golang.org/x/tools/go/internal/packagesdriver
-golang.org/x/tools/internal/gopathwalk
-golang.org/x/tools/internal/semver
 golang.org/x/tools/go/internal/gcimporter
-golang.org/x/tools/internal/fastwalk
+golang.org/x/tools/go/internal/packagesdriver
+golang.org/x/tools/go/packages
+golang.org/x/tools/internal/gocommand
+golang.org/x/tools/internal/packagesinternal
 # google.golang.org/api v0.0.0-20180829000535-087779f1d2c9
 google.golang.org/api/compute/v1
 google.golang.org/api/gensupport
