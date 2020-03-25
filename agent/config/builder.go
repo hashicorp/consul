@@ -1001,6 +1001,10 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		b.warn(`BootstrapExpect is set to 1; this is the same as Bootstrap mode.`)
 	}
 
+	if err := lib.CheckLimitsFromMaxConnsPerClient(rt.HTTPMaxConnsPerClient); err != nil {
+		return rt, err
+	}
+
 	return rt, nil
 }
 

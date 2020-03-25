@@ -1,6 +1,6 @@
 // +build windows
 
-package agent
+package lib
 
 // Getrlimit is no-op on Windows, as max fd/process is 2^24 on Wow64
 // Return (16 777 216, nil)

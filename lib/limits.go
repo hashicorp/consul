@@ -1,6 +1,6 @@
 // +build !windows
 
-package agent
+package lib
 
 import "golang.org/x/sys/unix"
 
