@@ -102,6 +102,8 @@ func (cr *ConsulResolver) resolveService(ctx context.Context) (string, connect.C
 		return "", nil, fmt.Errorf("no healthy instances found")
 	}
 
+	// filter
+	svcs = filterServiceEntries(svcs)
 	// Services are not shuffled by HTTP API, pick one at (pseudo) random.
 	idx := 0
 	if len(svcs) > 1 {
@@ -117,7 +119,7 @@ func (cr *ConsulResolver) resolveQuery(ctx context.Context) (string, connect.Cer
 		return "", nil, err
 	}
 
-	svcs := resp.Nodes
+	svcs := filterServiceEntries(relocateServiceEntries(resp.Nodes))
 	if len(svcs) < 1 {
 		return "", nil, fmt.Errorf("no healthy instances found")
 	}
@@ -128,7 +130,7 @@ func (cr *ConsulResolver) resolveQuery(ctx context.Context) (string, connect.Cer
 		idx = rand.Intn(len(svcs))
 	}
 
-	return cr.resolveServiceEntry(&svcs[idx])
+	return cr.resolveServiceEntry(svcs[idx])
 }
 
 func (cr *ConsulResolver) resolveServiceEntry(entry *api.ServiceEntry) (string, connect.CertURI, error) {
@@ -263,4 +265,56 @@ func stripPort(hostport string) string {
 		return strings.TrimPrefix(hostport[:i], "[")
 	}
 	return hostport[:colon]
+}
+
+func relocateServiceEntries(svcs []api.ServiceEntry) []*api.ServiceEntry {
+	output := make([]*api.ServiceEntry, len(svcs))
+	for index, svc := range svcs {
+		output[index] = &svc
+	}
+	return output
+}
+
+// filterServicEntries deduplicates `ServiceEntry` items based on their
+// `Service.Address`, and attempts to remove `ServiceEntry` items
+// without valid `Service.Address` or `Node.Address` fields.
+func filterServiceEntries(svcs []*api.ServiceEntry) []*api.ServiceEntry {
+
+	// attempt to make a collection of `ServiceEntry` where
+	// each has a unqiue (and populated) `Service.Address` field.
+	dedup := make(map[string]*api.ServiceEntry)
+	for _, svc := range svcs {
+		if svc.Service == nil || svc.Service.Address == "" {
+			continue
+		}
+		if _, ok := dedup[svc.Service.Address]; !ok {
+			dedup[svc.Service.Address] = svc
+		}
+	}
+
+	// The first filter was too aggressive.
+	// To avoid legacy issues, attempt to make a collection of `ServiceEntry`
+	// where each has a unique (and populated) `Node.Address`.
+	if len(dedup) == 0 && len(svcs) != 0 {
+		for _, svc := range svcs {
+			if svc.Node == nil || svc.Node.Address == "" {
+				continue
+			}
+			if _, ok := dedup[svc.Node.Address]; !ok {
+				dedup[svc.Node.Address] = svc
+			}
+		}
+	}
+
+	// doing any filter appears to be wrong,
+	// allow or legacy behavior to remain
+	if len(dedup) == 0 {
+		return svcs
+	}
+
+	output := []*api.ServiceEntry{}
+	for _, svc := range dedup {
+		output = append(output, svc)
+	}
+	return output
 }
