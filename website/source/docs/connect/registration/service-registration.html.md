@@ -190,9 +190,6 @@ followed by documentation for each attribute.
   reference](/docs/connect/proxies/envoy.html#proxy-upstream-config-options)
 * `mesh_gateway` `(object: {})` - Specifies the mesh gateway configuration
    for this proxy. The format is defined in the [Mesh Gateway Configuration Reference](#mesh-gateway-configuration-reference).
-* `expose` `(object: {})` - Specifies the configuration to expose HTTP paths through this proxy. 
-  The format is defined in the [Expose Paths Configuration Reference](#expose-paths-configuration-reference),
-  and is only compatible with an Envoy proxy.
 
 
 ### Mesh Gateway Configuration Reference
