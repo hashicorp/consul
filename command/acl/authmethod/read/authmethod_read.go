@@ -3,8 +3,9 @@ package authmethodread
 import (
 	"flag"
 	"fmt"
+	"strings"
 
-	"github.com/hashicorp/consul/command/acl"
+	"github.com/hashicorp/consul/command/acl/authmethod"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
 )
@@ -24,6 +25,7 @@ type cmd struct {
 	name string
 
 	showMeta bool
+	format   string
 }
 
 func (c *cmd) init() {
@@ -42,6 +44,13 @@ func (c *cmd) init() {
 		"name",
 		"",
 		"The name of the auth method to read.",
+	)
+
+	c.flags.StringVar(
+		&c.format,
+		"format",
+		authmethod.PrettyFormat,
+		fmt.Sprintf("Output format {%s}", strings.Join(authmethod.GetSupportedFormats(), "|")),
 	)
 
 	c.http = &flags.HTTPFlags{}
@@ -75,7 +84,22 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error(fmt.Sprintf("Auth method not found with name %q", c.name))
 		return 1
 	}
-	acl.PrintAuthMethod(method, c.UI, c.showMeta)
+
+	formatter, err := authmethod.NewFormatter(c.format, c.showMeta)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+
+	out, err := formatter.FormatAuthMethod(method)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+	if out != "" {
+		c.UI.Info(out)
+	}
+
 	return 0
 }
 

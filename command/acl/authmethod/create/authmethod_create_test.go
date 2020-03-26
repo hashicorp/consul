@@ -1,6 +1,7 @@
 package authmethodcreate
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	// activate testing auth method
@@ -104,6 +106,64 @@ func TestAuthMethodCreateCommand(t *testing.T) {
 		code := cmd.Run(args)
 		require.Equal(t, code, 0)
 		require.Empty(t, ui.ErrorWriter.String())
+	})
+}
+
+func TestAuthMethodCreateCommand_JSON(t *testing.T) {
+	t.Parallel()
+
+	testDir := testutil.TempDir(t, "acl")
+	defer os.RemoveAll(testDir)
+
+	a := agent.NewTestAgent(t, t.Name(), `
+	primary_datacenter = "dc1"
+	acl {
+		enabled = true
+		tokens {
+			master = "root"
+		}
+	}`)
+
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	t.Run("type required", func(t *testing.T) {
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-format=json",
+		}
+
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		code := cmd.Run(args)
+		require.Equal(t, code, 1)
+		require.Contains(t, ui.ErrorWriter.String(), "Missing required '-type' flag")
+	})
+
+	t.Run("create testing", func(t *testing.T) {
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-type=testing",
+			"-name=test",
+			"-format=json",
+		}
+
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		code := cmd.Run(args)
+		out := ui.OutputWriter.String()
+
+		require.Equal(t, code, 0)
+		require.Empty(t, ui.ErrorWriter.String())
+		require.Contains(t, out, "test")
+
+		var jsonOutput json.RawMessage
+		err := json.Unmarshal([]byte(out), &jsonOutput)
+		assert.NoError(t, err)
 	})
 }
 

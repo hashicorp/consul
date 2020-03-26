@@ -3,10 +3,12 @@ package tokencreate
 import (
 	"flag"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl"
+	"github.com/hashicorp/consul/command/acl/token"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
 )
@@ -34,6 +36,7 @@ type cmd struct {
 	expirationTTL time.Duration
 	local         bool
 	showMeta      bool
+	format        string
 }
 
 func (c *cmd) init() {
@@ -59,6 +62,12 @@ func (c *cmd) init() {
 		"the SERVICENAME or SERVICENAME:DATACENTER1,DATACENTER2,...")
 	c.flags.DurationVar(&c.expirationTTL, "expires-ttl", 0, "Duration of time this "+
 		"token should be valid for")
+	c.flags.StringVar(
+		&c.format,
+		"format",
+		token.PrettyFormat,
+		fmt.Sprintf("Output format {%s}", strings.Join(token.GetSupportedFormats(), "|")),
+	)
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
@@ -131,13 +140,26 @@ func (c *cmd) Run(args []string) int {
 		newToken.Roles = append(newToken.Roles, &api.ACLTokenRoleLink{ID: roleID})
 	}
 
-	token, _, err := client.ACL().TokenCreate(newToken, nil)
+	t, _, err := client.ACL().TokenCreate(newToken, nil)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Failed to create new token: %v", err))
 		return 1
 	}
 
-	acl.PrintToken(token, c.UI, c.showMeta)
+	formatter, err := token.NewFormatter(c.format, c.showMeta)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+	out, err := formatter.FormatToken(t)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+	if out != "" {
+		c.UI.Info(out)
+	}
+
 	return 0
 }
 

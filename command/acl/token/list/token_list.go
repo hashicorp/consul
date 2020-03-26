@@ -3,8 +3,9 @@ package tokenlist
 import (
 	"flag"
 	"fmt"
+	"strings"
 
-	"github.com/hashicorp/consul/command/acl"
+	"github.com/hashicorp/consul/command/acl/token"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
 )
@@ -22,12 +23,19 @@ type cmd struct {
 	help  string
 
 	showMeta bool
+	format   string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.BoolVar(&c.showMeta, "meta", false, "Indicates that token metadata such "+
 		"as the content hash and Raft indices should be shown for each entry")
+	c.flags.StringVar(
+		&c.format,
+		"format",
+		token.PrettyFormat,
+		fmt.Sprintf("Output format {%s}", strings.Join(token.GetSupportedFormats(), "|")),
+	)
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
@@ -52,14 +60,18 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	first := true
-	for _, token := range tokens {
-		if first {
-			first = false
-		} else {
-			c.UI.Info("")
-		}
-		acl.PrintTokenListEntry(token, c.UI, c.showMeta)
+	formatter, err := token.NewFormatter(c.format, c.showMeta)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+	out, err := formatter.FormatTokenList(tokens)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+	if out != "" {
+		c.UI.Info(out)
 	}
 
 	return 0
