@@ -11,28 +11,7 @@ import (
 	"github.com/hashicorp/go-sockaddr/template"
 )
 
-const defaultGatewayPort int = 443
-
-type GatewayValue struct {
-	value string
-}
-
-func (g *GatewayValue) String() string {
-	return g.value
-}
-
-func (g *GatewayValue) Value() string {
-	return g.value
-}
-
-func (g *GatewayValue) Set(raw string) error {
-	var err error
-	_, ok := supportedGateways[g.value]
-	if g.value != "" && !ok {
-		return fmt.Errorf("Gateway must be one of: terminating or mesh")
-	}
-	return err
-}
+const defaultMeshGatewayPort int = 443
 
 // ServiceAddressValue implements a flag.Value that may be used to parse an
 // addr:port string into an api.ServiceAddress.
@@ -42,14 +21,14 @@ type ServiceAddressValue struct {
 
 func (s *ServiceAddressValue) String() string {
 	if s == nil {
-		return fmt.Sprintf(":%d", defaultGatewayPort)
+		return fmt.Sprintf(":%d", defaultMeshGatewayPort)
 	}
 	return fmt.Sprintf("%v:%d", s.value.Address, s.value.Port)
 }
 
 func (s *ServiceAddressValue) Value() api.ServiceAddress {
 	if s == nil || s.value.Port == 0 && s.value.Address == "" {
-		return api.ServiceAddress{Port: defaultGatewayPort}
+		return api.ServiceAddress{Port: defaultMeshGatewayPort}
 	}
 	return s.value
 }
@@ -72,7 +51,7 @@ func parseAddress(raw string) (api.ServiceAddress, error) {
 		return result, fmt.Errorf("Error parsing address %q: %v", x, err)
 	}
 
-	port := defaultGatewayPort
+	port := defaultMeshGatewayPort
 	if portStr != "" {
 		port, err = strconv.Atoi(portStr)
 		if err != nil {

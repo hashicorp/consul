@@ -70,8 +70,9 @@ type cmd struct {
 }
 
 const (
-	defaultEnvoyVersion = "1.13.1"
-	meshGatewayVal      = "mesh"
+	defaultEnvoyVersion     = "1.13.1"
+	meshGatewayVal          = "mesh"
+	DefaultGatewayPort  int = 443
 )
 
 var supportedGateways = map[string]api.ServiceKind{
@@ -234,7 +235,13 @@ func (c *cmd) Run(args []string) int {
 			c.UI.Error("Auto-Registration can only be used for gateways")
 			return 1
 		}
-		c.gatewayKind = supportedGateways[c.gateway]
+
+		kind, ok := supportedGateways[c.gateway]
+		if !ok {
+			c.UI.Error("Gateway must be one of: terminating or mesh")
+			return 1
+		}
+		c.gatewayKind = kind
 
 		if c.gatewaySvcName == "" {
 			c.gatewaySvcName = string(c.gatewayKind)
