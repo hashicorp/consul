@@ -85,7 +85,7 @@ var supportedGateways = map[string]api.ServiceKind{
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 
-	c.flags.StringVar(&c.proxyID, "proxy-id", "",
+	c.flags.StringVar(&c.proxyID, "proxy-id", os.Getenv("CONNECT_PROXY_ID"),
 		"The proxy's ID on the local agent.")
 
 	// Deprecated in favor of `gateway`
@@ -125,7 +125,7 @@ func (c *cmd) init() {
 			"cases where either assumption is violated this flag will prevent the "+
 			"command attempting to resolve config from the local agent.")
 
-	c.flags.StringVar(&c.grpcAddr, "grpc-addr", "",
+	c.flags.StringVar(&c.grpcAddr, "grpc-addr", os.Getenv(api.GRPCAddrEnvName),
 		"Set the agent's gRPC address and port (in http(s)://host:port format). "+
 			"Alternatively, you can specify CONSUL_GRPC_ADDR in ENV.")
 
@@ -219,7 +219,6 @@ func canBindInternal(addr string, ifAddrs []net.Addr) bool {
 
 func canBind(addr string) bool {
 	ifAddrs, err := net.InterfaceAddrs()
-
 	if err != nil {
 		return false
 	}
@@ -232,17 +231,6 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 	passThroughArgs := c.flags.Args()
-
-	// Load the proxy ID and token from env vars if they're set
-	if c.proxyID == "" {
-		c.proxyID = os.Getenv("CONNECT_PROXY_ID")
-	}
-	if c.sidecarFor == "" {
-		c.sidecarFor = os.Getenv("CONNECT_SIDECAR_FOR")
-	}
-	if c.grpcAddr == "" {
-		c.grpcAddr = os.Getenv(api.GRPCAddrEnvName)
-	}
 
 	// Setup Consul client
 	client, err := c.http.APIClient()

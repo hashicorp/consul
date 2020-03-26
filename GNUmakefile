@@ -7,7 +7,8 @@ GOTOOLS = \
 	golang.org/x/tools/cmd/stringer \
 	github.com/gogo/protobuf/protoc-gen-gofast@$(GOGOVERSION) \
 	github.com/hashicorp/protoc-gen-go-binary \
-	github.com/vektra/mockery/cmd/mockery
+	github.com/vektra/mockery/cmd/mockery \
+	github.com/golangci/golangci-lint/cmd/golangci-lint@v1.23.6
 
 GOTAGS ?=
 GOOS?=$(shell go env GOOS)

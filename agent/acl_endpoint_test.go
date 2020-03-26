@@ -374,6 +374,17 @@ func TestACL_HTTP(t *testing.T) {
 			require.True(t, ok)
 			require.Equal(t, policyMap[idMap["policy-read-all-nodes"]], policy)
 		})
+
+		t.Run("Read Name", func(t *testing.T) {
+			policyName := "read-all-nodes"
+			req, _ := http.NewRequest("GET", "/v1/acl/policy/name/"+policyName+"?token=root", nil)
+			resp := httptest.NewRecorder()
+			raw, err := a.srv.ACLPolicyReadByName(resp, req)
+			require.NoError(t, err)
+			policy, ok := raw.(*structs.ACLPolicy)
+			require.True(t, ok)
+			require.Equal(t, policyMap[idMap["policy-"+policyName]], policy)
+		})
 	})
 
 	t.Run("Role", func(t *testing.T) {

@@ -291,9 +291,6 @@ type Agent struct {
 	// the centrally configured proxy/service defaults.
 	serviceManager *ServiceManager
 
-	// xdsServer is the Server instance that serves xDS gRPC API.
-	xdsServer *xds.Server
-
 	// grpcServer is the server instance used currently to serve xDS API for
 	// Envoy.
 	grpcServer *grpc.Server
@@ -736,7 +733,7 @@ func (a *Agent) listenAndServeGRPC() error {
 		return nil
 	}
 
-	a.xdsServer = &xds.Server{
+	xdsServer := &xds.Server{
 		Logger:       a.logger,
 		CfgMgr:       a.proxyConfig,
 		Authz:        a,
@@ -744,15 +741,15 @@ func (a *Agent) listenAndServeGRPC() error {
 		CheckFetcher: a,
 		CfgFetcher:   a,
 	}
-	a.xdsServer.Initialize()
+	xdsServer.Initialize()
 
 	var err error
 	if a.config.HTTPSPort > 0 {
 		// gRPC uses the same TLS settings as the HTTPS API. If HTTPS is
 		// enabled then gRPC will require HTTPS as well.
-		a.grpcServer, err = a.xdsServer.GRPCServer(a.tlsConfigurator)
+		a.grpcServer, err = xdsServer.GRPCServer(a.tlsConfigurator)
 	} else {
-		a.grpcServer, err = a.xdsServer.GRPCServer(nil)
+		a.grpcServer, err = xdsServer.GRPCServer(nil)
 	}
 	if err != nil {
 		return err

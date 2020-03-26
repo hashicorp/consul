@@ -951,7 +951,16 @@ func (a *ACL) PolicyRead(args *structs.ACLPolicyGetRequest, reply *structs.ACLPo
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, policy, err := state.ACLPolicyGetByID(ws, args.PolicyID, &args.EnterpriseMeta)
+			var (
+				index  uint64
+				policy *structs.ACLPolicy
+				err    error
+			)
+			if args.PolicyID != "" {
+				index, policy, err = state.ACLPolicyGetByID(ws, args.PolicyID, &args.EnterpriseMeta)
+			} else {
+				index, policy, err = state.ACLPolicyGetByName(ws, args.PolicyName, &args.EnterpriseMeta)
+			}
 
 			if err != nil {
 				return err

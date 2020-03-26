@@ -3443,45 +3443,27 @@ func TestAgent_ReloadConfigAndKeepChecksStatus(t *testing.T) {
 	t.Parallel()
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
 	defer os.RemoveAll(dataDir)
-	waitDurationSeconds := 1
 	hcl := `data_dir = "` + dataDir + `"
 		enable_local_script_checks=true
 		services=[{
 		  name="webserver1",
-		  check{name="check1",
-		  args=["true"],
-		  interval="` + strconv.Itoa(waitDurationSeconds) + `s"}}
-		]`
+		  check{id="check1", ttl="30s"}
+		}]`
 	a := NewTestAgent(t, t.Name(), hcl)
 	defer a.Shutdown()
 
-	// Initially, state is critical during waitDurationSeconds seconds
-	retry.Run(t, func(r *retry.R) {
-		gotChecks := a.State.Checks(nil)
-		require.Equal(r, 1, len(gotChecks), "Should have a check registered, but had %#v", gotChecks)
-		for id, check := range gotChecks {
-			require.Equal(r, "critical", check.Status, "check %q is wrong", id)
-		}
-	})
-	c := TestConfig(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
-	a.ReloadConfig(c)
-	time.Sleep(time.Duration(waitDurationSeconds) * time.Second)
-	// It should now be passing
-	retry.Run(t, func(r *retry.R) {
-		gotChecks := a.State.Checks(nil)
-		for id, check := range gotChecks {
-			require.Equal(r, "passing", check.Status, "check %q is wrong", id)
-		}
-	})
+	require.NoError(t, a.updateTTLCheck(structs.NewCheckID("check1", nil), api.HealthPassing, "testing agent reload"))
 
-	require.NoError(t, a.ReloadConfig(c))
-	// After reload, should be passing directly (no critical state)
-	for id, check := range a.State.Checks(nil) {
+	// Make sure check is passing before we reload.
+	gotChecks := a.State.Checks(nil)
+	require.Equal(t, 1, len(gotChecks), "Should have a check registered, but had %#v", gotChecks)
+	for id, check := range gotChecks {
 		require.Equal(t, "passing", check.Status, "check %q is wrong", id)
 	}
-	// Ensure to take reload into account event with async stuff
-	time.Sleep(time.Duration(100) * time.Millisecond)
-	// Of course, after a sleep, should be Ok too
+
+	c := TestConfig(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	require.NoError(t, a.ReloadConfig(c))
+	// After reload, should be passing directly (no critical state)
 	for id, check := range a.State.Checks(nil) {
 		require.Equal(t, "passing", check.Status, "check %q is wrong", id)
 	}
