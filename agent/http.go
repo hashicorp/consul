@@ -341,6 +341,10 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 				uifsWithHeaders,
 			),
 		)
+
+	}
+	if err := s.AddSwagger(mux); err != nil {
+		s.agent.logger.Named(logging.HTTP).Error("failed creating swagger descriptor", err)
 	}
 
 	// Wrap the whole mux with a handler that bans URLs with non-printable
@@ -354,6 +358,47 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 		mux:     mux,
 		handler: h,
 	}
+}
+
+// AddSwagger Creates the swagger descriptor and adds it to the HTTP Mux.
+func (s *HTTPServer) AddSwagger(mux *http.ServeMux) error {
+	// Swagger
+	var result map[string]interface{}
+	swagBytes, errRead := api.Asset("swagger/swagger.json")
+	if errRead != nil {
+		return errRead
+	}
+	if errRead = json.Unmarshal(swagBytes, &result); errRead != nil {
+		return errRead
+	}
+	address, port, err := net.SplitHostPort(s.Addr)
+	s.agent.logger.Named(logging.HTTP).Info("Setting for swagger[host]", "address", address, "port", port)
+	result["host"] = fmt.Sprintf("%s:%s", address, port)
+	js, err := json.Marshal(result)
+	if err != nil {
+		return err
+	}
+	modTime := time.Now().UTC().Format(http.TimeFormat)
+	serveSwagger := func() http.HandlerFunc {
+		httpLogger := s.agent.logger.Named(logging.HTTP)
+		return func(resp http.ResponseWriter, req *http.Request) {
+			start := time.Now()
+			defer func() {
+				httpLogger.Debug("Request finished",
+					"method", req.Method,
+					"url", "/swagger.json",
+					"from", req.RemoteAddr,
+					"latency", time.Since(start).String(),
+				)
+			}()
+			setHeaders(resp, s.agent.config.HTTPResponseHeaders)
+			resp.Header().Set("Content-Type", "application/json")
+			resp.Header().Set("Last-Modified", modTime)
+			resp.Write(js)
+		}
+	}
+	mux.Handle("/swagger.json", serveSwagger())
+	return nil
 }
 
 func (s *HTTPServer) GenerateHTMLTemplateVars() map[string]interface{} {

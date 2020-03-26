@@ -3,6 +3,7 @@ GOGOVERSION?=$(shell grep github.com/gogo/protobuf go.mod | awk '{print $$2}')
 GOTOOLS = \
 	github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@master \
 	github.com/hashicorp/go-bindata/go-bindata@master \
+	github.com/go-swagger/go-swagger@v0.23.0 \
 	golang.org/x/tools/cmd/cover \
 	golang.org/x/tools/cmd/stringer \
 	github.com/gogo/protobuf/protoc-gen-gofast@$(GOGOVERSION) \
@@ -17,6 +18,7 @@ GOPATH=$(shell go env GOPATH)
 MAIN_GOPATH=$(shell go env GOPATH | cut -d: -f1)
 
 ASSETFS_PATH?=agent/bindata_assetfs.go
+SWAGGER_PATH?=api/bindata_swagger.go
 # Get the git commit
 GIT_COMMIT?=$(shell git rev-parse --short HEAD)
 GIT_COMMIT_YEAR?=$(shell git show -s --format=%cd --date=format:%Y HEAD)
@@ -47,6 +49,7 @@ GO_BUILD_TAG?=consul-build-go
 UI_BUILD_TAG?=consul-build-ui
 BUILD_CONTAINER_NAME?=consul-builder
 CONSUL_IMAGE_VERSION?=latest
+SWAGGER_DIR=pkg/swagger
 
 ################
 # CI Variables #
@@ -148,19 +151,24 @@ all: bin
 # used to make integration dependencies conditional
 noop: ;
 
-pkg:
-	mkdir pkg
+$(SWAGGER_DIR):
+	mkdir -p $(SWAGGER_DIR)
 
-pkg/swagger.json: pkg main.go agent/consul/doc.go agent/structs/structs.go agent/consul/health_endpoint.go 
-	swagger generate spec -o pkg/swagger.json
+$(SWAGGER_DIR)/swagger.json: $(SWAGGER_DIR) main.go agent/consul/doc.go agent/structs/structs.go agent/consul/health_endpoint.go 
+	swagger generate spec -o $(SWAGGER_DIR)/swagger.json
 
-swagger-validate: pkg/swagger.json
-	swagger validate pkg/swagger.json
+swagger-validate: $(SWAGGER_DIR)/swagger.json
+	swagger validate $(SWAGGER_DIR)/swagger.json
 
 swagger-serve: swagger-validate
-	swagger serve pkg/swagger.json
+	swagger serve $(SWAGGER_DIR)/swagger.json
 
-bin: tools
+# Regenerate swagger.jsoono static asset
+$(SWAGGER_PATH): swagger-validate
+	@go-bindata-assetfs -pkg api -prefix pkg -o $(SWAGGER_PATH) $(SWAGGER_DIR)
+	@go fmt $(ASSETFS_PATH)
+
+bin: $(SWAGGER_PATH) tools
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-local.sh
 
 # dev creates binaries for testing locally - these are put into ./bin and $GOPATH
@@ -320,8 +328,8 @@ lint:
 # If you've run "make ui" manually then this will get called for you. This is
 # also run as part of the release build script when it verifies that there are no
 # changes to the UI assets that aren't checked in.
-static-assets: swagger-validate
-	@go-bindata-assetfs -pkg agent -prefix pkg -o $(ASSETFS_PATH) ./pkg/swagger.json ./pkg/web_ui/...
+static-assets:
+	@go-bindata-assetfs -pkg agent -prefix pkg -o $(ASSETFS_PATH) ./pkg/web_ui/...
 	@go fmt $(ASSETFS_PATH)
 
 
