@@ -597,7 +597,7 @@ jobs:
     docker:
       - image: alpine:3.11
     steps:
-      - run: apk add --no-cache --no-progress git bash curl ncurses jq
+      - run: apk add --no-cache --no-progress git bash curl ncurses jq openssh-client
       - checkout
       - add_ssh_keys: # needs a key to push cherry-picked commits back to github
           fingerprints:
