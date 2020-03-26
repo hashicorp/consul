@@ -3,8 +3,10 @@ package policyread
 import (
 	"flag"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/consul/command/acl"
+	"github.com/hashicorp/consul/command/acl/policy"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
 )
@@ -24,6 +26,7 @@ type cmd struct {
 	policyID   string
 	policyName string
 	showMeta   bool
+	format     string
 }
 
 func (c *cmd) init() {
@@ -34,6 +37,12 @@ func (c *cmd) init() {
 		"It may be specified as a unique ID prefix but will error if the prefix "+
 		"matches multiple policy IDs")
 	c.flags.StringVar(&c.policyName, "name", "", "The name of the policy to read.")
+	c.flags.StringVar(
+		&c.format,
+		"format",
+		policy.PrettyFormat,
+		fmt.Sprintf("Output format {%s}", strings.Join(policy.GetSupportedFormats(), "|")),
+	)
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
@@ -68,12 +77,26 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	policy, _, err := client.ACL().PolicyRead(policyID, nil)
+	p, _, err := client.ACL().PolicyRead(policyID, nil)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error reading policy %q: %v", policyID, err))
 		return 1
 	}
-	acl.PrintPolicy(policy, c.UI, c.showMeta)
+
+	formatter, err := policy.NewFormatter(c.format, c.showMeta)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+	out, err := formatter.FormatPolicy(p)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+	if out != "" {
+		c.UI.Info(out)
+	}
+
 	return 0
 }
 

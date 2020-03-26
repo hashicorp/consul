@@ -1,6 +1,7 @@
 package policycreate
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -57,4 +59,47 @@ func TestPolicyCreateCommand(t *testing.T) {
 	code := cmd.Run(args)
 	require.Equal(code, 0)
 	require.Empty(ui.ErrorWriter.String())
+}
+
+func TestPolicyCreateCommand_JSON(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+
+	testDir := testutil.TempDir(t, "acl")
+	defer os.RemoveAll(testDir)
+
+	a := agent.NewTestAgent(t, t.Name(), `
+	primary_datacenter = "dc1"
+	acl {
+		enabled = true
+		tokens {
+			master = "root"
+		}
+	}`)
+
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	ui := cli.NewMockUi()
+	cmd := New(ui)
+
+	rules := []byte("service \"\" { policy = \"write\" }")
+	err := ioutil.WriteFile(testDir+"/rules.hcl", rules, 0644)
+	require.NoError(err)
+
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		"-token=root",
+		"-name=foobar",
+		"-rules=@" + testDir + "/rules.hcl",
+		"-format=json",
+	}
+
+	code := cmd.Run(args)
+	require.Equal(code, 0)
+	require.Empty(ui.ErrorWriter.String())
+
+	var jsonOutput json.RawMessage
+	err = json.Unmarshal([]byte(ui.OutputWriter.String()), &jsonOutput)
+	assert.NoError(t, err)
 }

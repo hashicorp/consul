@@ -3,9 +3,11 @@ package roleread
 import (
 	"flag"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl"
+	"github.com/hashicorp/consul/command/acl/role"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
 )
@@ -25,6 +27,7 @@ type cmd struct {
 	roleID   string
 	roleName string
 	showMeta bool
+	format   string
 }
 
 func (c *cmd) init() {
@@ -35,6 +38,12 @@ func (c *cmd) init() {
 		"It may be specified as a unique ID prefix but will error if the prefix "+
 		"matches multiple policy IDs")
 	c.flags.StringVar(&c.roleName, "name", "", "The name of the role to read.")
+	c.flags.StringVar(
+		&c.format,
+		"format",
+		role.PrettyFormat,
+		fmt.Sprintf("Output format {%s}", strings.Join(role.GetSupportedFormats(), "|")),
+	)
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
@@ -58,7 +67,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	var role *api.ACLRole
+	var r *api.ACLRole
 
 	if c.roleID != "" {
 		roleID, err := acl.GetRoleIDFromPartial(client, c.roleID)
@@ -66,27 +75,40 @@ func (c *cmd) Run(args []string) int {
 			c.UI.Error(fmt.Sprintf("Error determining role ID: %v", err))
 			return 1
 		}
-		role, _, err = client.ACL().RoleRead(roleID, nil)
+		r, _, err = client.ACL().RoleRead(roleID, nil)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error reading role %q: %v", roleID, err))
 			return 1
-		} else if role == nil {
+		} else if r == nil {
 			c.UI.Error(fmt.Sprintf("Role not found with ID %q", roleID))
 			return 1
 		}
 
 	} else {
-		role, _, err = client.ACL().RoleReadByName(c.roleName, nil)
+		r, _, err = client.ACL().RoleReadByName(c.roleName, nil)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error reading role %q: %v", c.roleName, err))
 			return 1
-		} else if role == nil {
+		} else if r == nil {
 			c.UI.Error(fmt.Sprintf("Role not found with name %q", c.roleName))
 			return 1
 		}
 	}
 
-	acl.PrintRole(role, c.UI, c.showMeta)
+	formatter, err := role.NewFormatter(c.format, c.showMeta)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+	out, err := formatter.FormatRole(r)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+	if out != "" {
+		c.UI.Info(out)
+	}
+
 	return 0
 }
 

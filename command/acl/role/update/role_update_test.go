@@ -1,6 +1,7 @@
 package roleupdate
 
 import (
+	"encoding/json"
 	"os"
 	"strings"
 	"testing"
@@ -10,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	uuid "github.com/hashicorp/go-uuid"
@@ -189,6 +191,88 @@ func TestRoleUpdateCommand(t *testing.T) {
 		require.Equal(t, "test role edited", role.Description)
 		require.Len(t, role.Policies, 2)
 		require.Len(t, role.ServiceIdentities, 3)
+	})
+}
+
+func TestRoleUpdateCommand_JSON(t *testing.T) {
+	t.Parallel()
+
+	testDir := testutil.TempDir(t, "acl")
+	defer os.RemoveAll(testDir)
+
+	a := agent.NewTestAgent(t, t.Name(), `
+	primary_datacenter = "dc1"
+	acl {
+		enabled = true
+		tokens {
+			master = "root"
+		}
+	}`)
+
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	client := a.Client()
+
+	// Create policy
+	policy1, _, err := client.ACL().PolicyCreate(
+		&api.ACLPolicy{Name: "test-policy1"},
+		&api.WriteOptions{Token: "root"},
+	)
+	require.NoError(t, err)
+
+	role, _, err := client.ACL().RoleCreate(
+		&api.ACLRole{
+			Name: "test-role",
+			ServiceIdentities: []*api.ACLServiceIdentity{
+				&api.ACLServiceIdentity{
+					ServiceName: "fake",
+				},
+			},
+		},
+		&api.WriteOptions{Token: "root"},
+	)
+	require.NoError(t, err)
+
+	t.Run("update a role that does not exist", func(t *testing.T) {
+		fakeID, err := uuid.GenerateUUID()
+		require.NoError(t, err)
+
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-id=" + fakeID,
+			"-token=root",
+			"-policy-name=" + policy1.Name,
+			"-description=test role edited",
+			"-format=json",
+		}
+
+		code := cmd.Run(args)
+		require.Equal(t, code, 1)
+		require.Contains(t, ui.ErrorWriter.String(), "Role not found with ID")
+	})
+
+	t.Run("update with policy by name", func(t *testing.T) {
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-id=" + role.ID,
+			"-token=root",
+			"-policy-name=" + policy1.Name,
+			"-description=test role edited",
+			"-format=json",
+		}
+
+		code := cmd.Run(args)
+		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Empty(t, ui.ErrorWriter.String())
+
+		var jsonOutput json.RawMessage
+		err := json.Unmarshal([]byte(ui.OutputWriter.String()), &jsonOutput)
+		assert.NoError(t, err)
 	})
 }
 

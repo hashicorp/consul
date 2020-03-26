@@ -4,9 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/command/acl"
+	"github.com/hashicorp/consul/command/acl/authmethod"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/helpers"
 	"github.com/mitchellh/cli"
@@ -33,6 +34,7 @@ type cmd struct {
 	k8sServiceAccountJWT string
 
 	showMeta bool
+	format   string
 
 	testStdin io.Reader
 }
@@ -89,6 +91,12 @@ func (c *cmd) init() {
 		"A Kubernetes service account JWT used to access the TokenReview API to "+
 			"validate other JWTs during login. "+
 			"This flag is required for type=kubernetes.",
+	)
+	c.flags.StringVar(
+		&c.format,
+		"format",
+		authmethod.PrettyFormat,
+		fmt.Sprintf("Output format {%s}", strings.Join(authmethod.GetSupportedFormats(), "|")),
 	)
 
 	c.http = &flags.HTTPFlags{}
@@ -159,7 +167,21 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	acl.PrintAuthMethod(method, c.UI, c.showMeta)
+	formatter, err := authmethod.NewFormatter(c.format, c.showMeta)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+
+	out, err := formatter.FormatAuthMethod(method)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+	if out != "" {
+		c.UI.Info(out)
+	}
+
 	return 0
 }
 

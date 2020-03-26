@@ -3,8 +3,10 @@ package tokenclone
 import (
 	"flag"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/consul/command/acl"
+	"github.com/hashicorp/consul/command/acl/token"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
 )
@@ -23,6 +25,7 @@ type cmd struct {
 
 	tokenID     string
 	description string
+	format      string
 }
 
 func (c *cmd) init() {
@@ -32,6 +35,12 @@ func (c *cmd) init() {
 		"matches multiple token Accessor IDs. The special value of 'anonymous' may "+
 		"be provided instead of the anonymous tokens accessor ID")
 	c.flags.StringVar(&c.description, "description", "", "A description of the new cloned token")
+	c.flags.StringVar(
+		&c.format,
+		"format",
+		token.PrettyFormat,
+		fmt.Sprintf("Output format {%s}", strings.Join(token.GetSupportedFormats(), "|")),
+	)
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
@@ -61,14 +70,26 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	token, _, err := client.ACL().TokenClone(tokenID, c.description, nil)
+	t, _, err := client.ACL().TokenClone(tokenID, c.description, nil)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error cloning token: %v", err))
 		return 1
 	}
 
-	c.UI.Info("Token cloned successfully.")
-	acl.PrintToken(token, c.UI, false)
+	formatter, err := token.NewFormatter(c.format, false)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+	out, err := formatter.FormatToken(t)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+	if out != "" {
+		c.UI.Info(out)
+	}
+
 	return 0
 }
 

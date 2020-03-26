@@ -3,10 +3,11 @@ package rolecreate
 import (
 	"flag"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl"
-	aclhelpers "github.com/hashicorp/consul/command/acl"
+	"github.com/hashicorp/consul/command/acl/role"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
 )
@@ -30,6 +31,7 @@ type cmd struct {
 	serviceIdents []string
 
 	showMeta bool
+	format   string
 }
 
 func (c *cmd) init() {
@@ -45,6 +47,12 @@ func (c *cmd) init() {
 	c.flags.Var((*flags.AppendSliceValue)(&c.serviceIdents), "service-identity", "Name of a "+
 		"service identity to use for this role. May be specified multiple times. Format is "+
 		"the SERVICENAME or SERVICENAME:DATACENTER1,DATACENTER2,...")
+	c.flags.StringVar(
+		&c.format,
+		"format",
+		role.PrettyFormat,
+		fmt.Sprintf("Output format {%s}", strings.Join(role.GetSupportedFormats(), "|")),
+	)
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
@@ -101,13 +109,26 @@ func (c *cmd) Run(args []string) int {
 	}
 	newRole.ServiceIdentities = parsedServiceIdents
 
-	role, _, err := client.ACL().RoleCreate(newRole, nil)
+	r, _, err := client.ACL().RoleCreate(newRole, nil)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Failed to create new role: %v", err))
 		return 1
 	}
 
-	aclhelpers.PrintRole(role, c.UI, c.showMeta)
+	formatter, err := role.NewFormatter(c.format, c.showMeta)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+	out, err := formatter.FormatRole(r)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+	if out != "" {
+		c.UI.Info(out)
+	}
+
 	return 0
 }
 

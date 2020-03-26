@@ -146,4 +146,26 @@ func TestBindingRuleReadCommand(t *testing.T) {
 		require.Contains(t, output, fmt.Sprintf("test rule"))
 		require.Contains(t, output, id)
 	})
+
+	t.Run("read by id json formatted", func(t *testing.T) {
+		id := createRule(t)
+
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-id=" + id,
+			"-format=json",
+		}
+
+		code := cmd.Run(args)
+		require.Equal(t, code, 0)
+		require.Empty(t, ui.ErrorWriter.String())
+
+		output := ui.OutputWriter.String()
+		require.Contains(t, output, fmt.Sprintf("test rule"))
+		require.Contains(t, output, id)
+	})
 }
