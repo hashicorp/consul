@@ -497,10 +497,23 @@ func registerTestCatalogEntries(t *testing.T, codec rpc.ClientCodec) {
 	registerTestCatalogEntriesMap(t, codec, registrations)
 }
 
-func registerTestCatalogEntriesMeshGateway(t *testing.T, codec rpc.ClientCodec) {
+func registerTestCatalogProxyEntries(t *testing.T, codec rpc.ClientCodec) {
 	t.Helper()
 
 	registrations := map[string]*structs.RegisterRequest{
+		"Service tg-gw": &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "terminating-gateway",
+			ID:         types.NodeID("3a9d7530-20d4-443a-98d3-c10fe78f09f4"),
+			Address:    "10.1.2.2",
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTerminatingGateway,
+				ID:      "tg-gw-01",
+				Service: "tg-gw",
+				Port:    8443,
+				Address: "198.18.1.3",
+			},
+		},
 		"Service mg-gw": &structs.RegisterRequest{
 			Datacenter: "dc1",
 			Node:       "gateway",

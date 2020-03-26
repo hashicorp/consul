@@ -46,6 +46,7 @@ type cmd struct {
 
 	// flags
 	meshGateway          bool
+	gateway              string
 	proxyID              string
 	sidecarFor           string
 	adminAccessLogPath   string
@@ -64,10 +65,19 @@ type cmd struct {
 	bindAddresses      ServiceAddressMapValue
 	exposeServers      bool
 
-	meshGatewaySvcName string
+	gatewaySvcName string
+	gatewayKind    api.ServiceKind
 }
 
-const defaultEnvoyVersion = "1.13.1"
+const (
+	defaultEnvoyVersion = "1.13.1"
+	meshGatewayVal      = "mesh"
+)
+
+var supportedGateways = map[string]api.ServiceKind{
+	"mesh":        api.ServiceKindMeshGateway,
+	"terminating": api.ServiceKindTerminatingGateway,
+}
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
@@ -75,8 +85,12 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.proxyID, "proxy-id", os.Getenv("CONNECT_PROXY_ID"),
 		"The proxy's ID on the local agent.")
 
+	// Deprecated in favor of `gateway`
 	c.flags.BoolVar(&c.meshGateway, "mesh-gateway", false,
 		"Configure Envoy as a Mesh Gateway.")
+
+	c.flags.StringVar(&c.gateway, "gateway", "",
+		"The type of gateway to register. One of: terminating or mesh")
 
 	c.flags.StringVar(&c.sidecarFor, "sidecar-for", os.Getenv("CONNECT_SIDECAR_FOR"),
 		"The ID of a service instance on the local agent that this proxy should "+
@@ -128,7 +142,7 @@ func (c *cmd) init() {
 		"address to use instead of the default binding rules given as `<name>=<ip>:<port>` "+
 		"pairs. This flag may be specified multiple times to add multiple bind addresses.")
 
-	c.flags.StringVar(&c.meshGatewaySvcName, "service", "mesh-gateway",
+	c.flags.StringVar(&c.gatewaySvcName, "service", "",
 		"Service name to use for the registration")
 
 	c.flags.BoolVar(&c.exposeServers, "expose-servers", false,
@@ -195,8 +209,17 @@ func (c *cmd) Run(args []string) int {
 	}
 	c.client = client
 
+	// Fixup for deprecated mesh-gateway flag
+	if c.meshGateway && c.gateway != "" {
+		c.UI.Error("The mesh-gateway flag is deprecated and cannot be used alongside the gateway flag")
+		return 1
+	}
+	if c.meshGateway {
+		c.gateway = meshGatewayVal
+	}
+
 	if c.exposeServers {
-		if !c.meshGateway {
+		if c.gateway != meshGatewayVal {
 			c.UI.Error("'-expose-servers' can only be used for mesh gateways")
 			return 1
 		}
@@ -207,9 +230,20 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.register {
-		if !c.meshGateway {
-			c.UI.Error("Auto-Registration can only be used for mesh gateways")
+		if c.gateway == "" {
+			c.UI.Error("Auto-Registration can only be used for gateways")
 			return 1
+		}
+
+		kind, ok := supportedGateways[c.gateway]
+		if !ok {
+			c.UI.Error("Gateway must be one of: terminating or mesh")
+			return 1
+		}
+		c.gatewayKind = kind
+
+		if c.gatewaySvcName == "" {
+			c.gatewaySvcName = string(c.gatewayKind)
 		}
 
 		taggedAddrs := make(map[string]api.ServiceAddress)
@@ -231,13 +265,12 @@ func (c *cmd) Run(args []string) int {
 		}
 
 		var proxyConf *api.AgentServiceConnectProxyConfig
-
 		if len(c.bindAddresses.value) > 0 {
 			// override all default binding rules and just bind to the user-supplied addresses
 			proxyConf = &api.AgentServiceConnectProxyConfig{
 				Config: map[string]interface{}{
-					"envoy_mesh_gateway_no_default_bind": true,
-					"envoy_mesh_gateway_bind_addresses":  c.bindAddresses.value,
+					"envoy_gateway_no_default_bind": true,
+					"envoy_gateway_bind_addresses":  c.bindAddresses.value,
 				},
 			}
 		} else if canBind(lanAddr) && canBind(wanAddr) {
@@ -245,8 +278,8 @@ func (c *cmd) Run(args []string) int {
 			// for creating the envoy listeners
 			proxyConf = &api.AgentServiceConnectProxyConfig{
 				Config: map[string]interface{}{
-					"envoy_mesh_gateway_no_default_bind":       true,
-					"envoy_mesh_gateway_bind_tagged_addresses": true,
+					"envoy_gateway_no_default_bind":       true,
+					"envoy_gateway_bind_tagged_addresses": true,
 				},
 			}
 		} else if !canBind(lanAddr) && lanAddr.Address != "" {
@@ -260,15 +293,15 @@ func (c *cmd) Run(args []string) int {
 		}
 
 		svc := api.AgentServiceRegistration{
-			Kind:            api.ServiceKindMeshGateway,
-			Name:            c.meshGatewaySvcName,
+			Kind:            c.gatewayKind,
+			Name:            c.gatewaySvcName,
 			Address:         lanAddr.Address,
 			Port:            lanAddr.Port,
 			Meta:            meta,
 			TaggedAddresses: taggedAddrs,
 			Proxy:           proxyConf,
 			Check: &api.AgentServiceCheck{
-				Name:                           "Mesh Gateway Listening",
+				Name:                           fmt.Sprintf("%s listening", c.gatewayKind),
 				TCP:                            ipaddr.FormatAddressPort(tcpCheckAddr, lanAddr.Port),
 				Interval:                       "10s",
 				DeregisterCriticalServiceAfter: c.deregAfterCritical,
@@ -291,18 +324,19 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 		c.proxyID = proxyID
-	} else if c.proxyID == "" && c.meshGateway {
-		gatewaySvc, err := proxyCmd.LookupGatewayProxy(c.client)
+	} else if c.proxyID == "" && c.gateway != "" {
+		gatewaySvc, err := proxyCmd.LookupGatewayProxy(c.client, c.gatewayKind)
 		if err != nil {
 			c.UI.Error(err.Error())
 			return 1
 		}
 		c.proxyID = gatewaySvc.ID
-		c.meshGatewaySvcName = gatewaySvc.Service
+		c.gatewaySvcName = gatewaySvc.Service
 	}
 
 	if c.proxyID == "" {
-		c.UI.Error("No proxy ID specified. One of -proxy-id or -sidecar-for/-mesh-gateway is required")
+		c.UI.Error("No proxy ID specified. One of -proxy-id or -sidecar-for/-gateway is " +
+			"required")
 		return 1
 	}
 
@@ -443,8 +477,8 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 	cluster := c.proxyID
 	if c.sidecarFor != "" {
 		cluster = c.sidecarFor
-	} else if c.meshGateway && c.meshGatewaySvcName != "" {
-		cluster = c.meshGatewaySvcName
+	} else if c.gateway != "" && c.gatewaySvcName != "" {
+		cluster = c.gatewaySvcName
 	}
 
 	adminAccessLogPath := c.adminAccessLogPath

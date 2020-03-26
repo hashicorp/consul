@@ -611,7 +611,7 @@ func TestInternal_ServiceDump_Kind(t *testing.T) {
 
 	// prep the cluster with some data we can use in our filters
 	registerTestCatalogEntries(t, codec)
-	registerTestCatalogEntriesMeshGateway(t, codec)
+	registerTestCatalogProxyEntries(t, codec)
 
 	doRequest := func(t *testing.T, kind structs.ServiceKind) structs.CheckServiceNodes {
 		t.Helper()
@@ -631,6 +631,13 @@ func TestInternal_ServiceDump_Kind(t *testing.T) {
 		nodes := doRequest(t, structs.ServiceKindTypical)
 		// redis (3), web (3), critical (1), warning (1) and consul (1)
 		require.Len(t, nodes, 9)
+	})
+
+	t.Run("Terminating Gateway", func(t *testing.T) {
+		nodes := doRequest(t, structs.ServiceKindTerminatingGateway)
+		require.Len(t, nodes, 1)
+		require.Equal(t, "tg-gw", nodes[0].Service.Service)
+		require.Equal(t, "tg-gw-01", nodes[0].Service.ID)
 	})
 
 	t.Run("Mesh Gateway", func(t *testing.T) {

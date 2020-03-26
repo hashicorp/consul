@@ -279,7 +279,7 @@ definition](/docs/connect/registration/service-registration.html) or
     since HTTP/2 has many requests per connection. For this configuration to be
     respected, a L7 protocol must be defined in the `protocol` field.
 
-### Mesh Gateway Options
+### Gateway Options
 
 These fields may also be overridden explicitly in the [proxy service
 definition](/docs/connect/registration/service-registration.html), or defined in
@@ -287,25 +287,29 @@ the  [global `proxy-defaults` configuration
 entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaults) to act as
 defaults that are inherited by all services.
 
+Prior to 1.8.0 these settings were specific to Mesh Gateways. The deprecated 
+names such as `envoy_mesh_gateway_bind_addresses` and `envoy_mesh_gateway_no_default_bind`
+will continue to be supported.
+
 - `connect_timeout_ms` - The number of milliseconds to allow when making upstream
   connections before timing out. Defaults to 5000 (5 seconds). If the upstream
   service has the configuration option
   [`connect_timeout_ms`](/docs/agent/config-entries/service-resolver.html#connecttimeout)
   set for the `service-resolver`, that timeout value will take precedence over
-  this mesh gateway option.
+  this gateway option.
 
-- `envoy_mesh_gateway_bind_tagged_addresses` - Indicates that the mesh gateway
+- `envoy_gateway_bind_tagged_addresses` - Indicates that the gateway
   services tagged addresses should be bound to listeners in addition to the
-  default listener address.
+  default listener address. 
 
-- `envoy_mesh_gateway_bind_addresses` - A map of additional addresses to be bound.
+- `envoy_gateway_bind_addresses` - A map of additional addresses to be bound.
   This map's keys are the name of the listeners to be created and the values are
   a map with two keys, address and port, that combined make the address to bind the
   listener to. These are bound in addition to the default address.
 
-- `envoy_mesh_gateway_no_default_bind` - Prevents binding to the default address
-  of the mesh gateway service. This should be used with one of the other options
-  to configure the gateways bind addresses.
+- `envoy_gateway_no_default_bind` - Prevents binding to the default address
+  of the gateway service. This should be used with one of the other options
+  to configure the gateway's bind addresses.
 
 ## Advanced Configuration
 

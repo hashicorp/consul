@@ -10,12 +10,12 @@ import (
 func TestServiceAddressValue_Value(t *testing.T) {
 	t.Run("nil receiver", func(t *testing.T) {
 		var addr *ServiceAddressValue
-		require.Equal(t, addr.Value(), api.ServiceAddress{Port: defaultMeshGatewayPort})
+		require.Equal(t, addr.Value(), api.ServiceAddress{Port: defaultGatewayPort})
 	})
 
 	t.Run("default value", func(t *testing.T) {
 		addr := &ServiceAddressValue{}
-		require.Equal(t, addr.Value(), api.ServiceAddress{Port: defaultMeshGatewayPort})
+		require.Equal(t, addr.Value(), api.ServiceAddress{Port: defaultGatewayPort})
 	})
 
 	t.Run("set value", func(t *testing.T) {
@@ -40,7 +40,7 @@ func TestServiceAddressValue_Set(t *testing.T) {
 			input: "8.8.8.8:",
 			expectedValue: api.ServiceAddress{
 				Address: "8.8.8.8",
-				Port:    defaultMeshGatewayPort,
+				Port:    defaultGatewayPort,
 			},
 		},
 		{

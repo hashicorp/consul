@@ -1410,6 +1410,8 @@ func (b *Builder) serviceKindVal(v *string) structs.ServiceKind {
 		return structs.ServiceKindConnectProxy
 	case string(structs.ServiceKindMeshGateway):
 		return structs.ServiceKindMeshGateway
+	case string(structs.ServiceKindTerminatingGateway):
+		return structs.ServiceKindTerminatingGateway
 	default:
 		return structs.ServiceKindTypical
 	}

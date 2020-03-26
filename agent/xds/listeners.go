@@ -181,7 +181,7 @@ func parseCheckPath(check structs.CheckType) (structs.ExposePath, error) {
 
 // listenersFromSnapshotMeshGateway returns the "listener" for a mesh-gateway service
 func (s *Server) listenersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
-	cfg, err := ParseMeshGatewayConfig(cfgSnap.Proxy.Config)
+	cfg, err := ParseGatewayConfig(cfgSnap.Proxy.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.

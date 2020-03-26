@@ -205,6 +205,62 @@ func TestServiceManager_RegisterMeshGateway(t *testing.T) {
 	}, gateway)
 }
 
+func TestServiceManager_RegisterTerminatingGateway(t *testing.T) {
+	require := require.New(t)
+
+	a := NewTestAgent(t, t.Name(), "enable_central_service_config = true")
+	defer a.Shutdown()
+
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Register a global proxy and service config
+	testApplyConfigEntries(t, a,
+		&structs.ProxyConfigEntry{
+			Config: map[string]interface{}{
+				"foo": 1,
+			},
+		},
+		&structs.ServiceConfigEntry{
+			Kind:     structs.ServiceDefaults,
+			Name:     "terminating-gateway",
+			Protocol: "http",
+		},
+	)
+
+	// Now register a terminating-gateway.
+	svc := &structs.NodeService{
+		Kind:           structs.ServiceKindTerminatingGateway,
+		ID:             "terminating-gateway",
+		Service:        "terminating-gateway",
+		Port:           443,
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+	}
+
+	require.NoError(a.AddService(svc, nil, false, "", ConfigSourceLocal))
+
+	// Verify gateway got global config loaded
+	gateway := a.State.Service(structs.NewServiceID("terminating-gateway", nil))
+	require.NotNil(gateway)
+	require.Equal(&structs.NodeService{
+		Kind:            structs.ServiceKindTerminatingGateway,
+		ID:              "terminating-gateway",
+		Service:         "terminating-gateway",
+		Port:            443,
+		TaggedAddresses: map[string]structs.ServiceAddress{},
+		Proxy: structs.ConnectProxyConfig{
+			Config: map[string]interface{}{
+				"foo":      int64(1),
+				"protocol": "http",
+			},
+		},
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+	}, gateway)
+}
+
 func TestServiceManager_PersistService_API(t *testing.T) {
 	// This is the ServiceManager version of TestAgent_PersistService  and
 	// TestAgent_PurgeService.

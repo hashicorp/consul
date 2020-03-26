@@ -201,7 +201,7 @@ func TestAgent_Services_Sidecar(t *testing.T) {
 	assert.NotContains(string(output), "locally_registered_as_sidecar")
 }
 
-// Thie tests that a mesh gateway service is returned as expected.
+// This tests that a mesh gateway service is returned as expected.
 func TestAgent_Services_MeshGateway(t *testing.T) {
 	t.Parallel()
 
@@ -230,6 +230,38 @@ func TestAgent_Services_MeshGateway(t *testing.T) {
 	actual := val["mg-dc1-01"]
 	require.NotNil(t, actual)
 	require.Equal(t, api.ServiceKindMeshGateway, actual.Kind)
+	require.Equal(t, srv1.Proxy.ToAPI(), actual.Proxy)
+}
+
+// This tests that a terminating gateway service is returned as expected.
+func TestAgent_Services_TerminatingGateway(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	srv1 := &structs.NodeService{
+		Kind:    structs.ServiceKindTerminatingGateway,
+		ID:      "tg-dc1-01",
+		Service: "tg-dc1",
+		Port:    8443,
+		Proxy: structs.ConnectProxyConfig{
+			Config: map[string]interface{}{
+				"foo": "bar",
+			},
+		},
+	}
+	require.NoError(t, a.State.AddService(srv1, ""))
+
+	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
+	obj, err := a.srv.AgentServices(nil, req)
+	require.NoError(t, err)
+	val := obj.(map[string]*api.AgentService)
+	require.Len(t, val, 1)
+	actual := val["tg-dc1-01"]
+	require.NotNil(t, actual)
+	require.Equal(t, api.ServiceKindTerminatingGateway, actual.Kind)
 	require.Equal(t, srv1.Proxy.ToAPI(), actual.Proxy)
 }
 

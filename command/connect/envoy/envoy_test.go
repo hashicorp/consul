@@ -3,6 +3,12 @@ package envoy
 import (
 	"encoding/json"
 	"flag"
+	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/agent/xds"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -11,13 +17,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/agent/xds"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/require"
 )
 
 var update = flag.Bool("update", false, "update golden files")
@@ -26,6 +25,50 @@ func TestEnvoyCommand_noTabs(t *testing.T) {
 	t.Parallel()
 	if strings.ContainsRune(New(nil).Help(), '\t') {
 		t.Fatal("help has tabs")
+	}
+}
+
+func TestEnvoyGateway_Validation(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name   string
+		args   []string
+		output string
+	}{
+		{
+			"-register for non-gateway",
+			[]string{"-register"},
+			"Auto-Registration can only be used for gateways",
+		},
+		{
+			"-mesh-gateway and -gateway cannot be combined",
+			[]string{"-register", "-mesh-gateway", "-gateway", "mesh"},
+			"The mesh-gateway flag is deprecated and cannot be used alongside the gateway flag",
+		},
+		{
+			"no proxy registration specified nor discovered",
+			[]string{""},
+			"No proxy ID specified",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ui := cli.NewMockUi()
+			c := New(ui)
+			c.init()
+
+			code := c.Run(tc.args)
+			if code == 0 {
+				t.Errorf("%s: expected non-zero exit", tc.name)
+			}
+
+			output := ui.ErrorWriter.String()
+			if !strings.Contains(output, tc.output) {
+				t.Errorf("expected %q to contain %q", output, tc.output)
+			}
+		})
 	}
 }
 

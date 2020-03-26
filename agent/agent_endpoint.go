@@ -210,9 +210,7 @@ func buildAgentService(s *structs.NodeService) api.AgentService {
 		as.Meta = map[string]string{}
 	}
 	// Attach Proxy config if exists
-	if s.Kind == structs.ServiceKindConnectProxy ||
-		s.Kind == structs.ServiceKindMeshGateway {
-
+	if s.Kind == structs.ServiceKindConnectProxy || s.IsGateway() {
 		as.Proxy = s.Proxy.ToAPI()
 	}
 
