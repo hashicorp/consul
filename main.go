@@ -48,6 +48,8 @@ func realMain() int {
 		Autocomplete: true,
 		Name:         "consul",
 		HelpFunc:     cli.FilteredHelpFunc(names, cli.BasicHelpFunc("consul")),
+		HelpWriter:   os.Stdout,
+		ErrorWriter:  os.Stderr,
 	}
 
 	exitCode, err := cli.Run()
