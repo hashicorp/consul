@@ -246,6 +246,10 @@ func TestClustersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name:   "expose-paths-grpc-new-cluster-http1",
+			create: proxycfg.TestConfigSnapshotGRPCExposeHTTP1,
+		},
+		{
 			name:   "mesh-gateway",
 			create: proxycfg.TestConfigSnapshotMeshGateway,
 			setup:  nil,

@@ -229,7 +229,11 @@ func (s *Server) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, name, pathProt
 			},
 		},
 	}
-	if cfg.Protocol == "http2" || cfg.Protocol == "grpc" || pathProtocol == "http2" {
+	protocol := pathProtocol
+	if protocol == "" {
+		protocol = cfg.Protocol
+	}
+	if protocol == "http2" || protocol == "grpc" {
 		c.Http2ProtocolOptions = &envoycore.Http2ProtocolOptions{}
 	}
 
