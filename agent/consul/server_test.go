@@ -1197,28 +1197,6 @@ func TestServer_globalRPCErrors(t *testing.T) {
 	}
 }
 
-func TestServer_Encrypted(t *testing.T) {
-	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-
-	key := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
-		c.SerfLANConfig.MemberlistConfig.SecretKey = key
-		c.SerfWANConfig.MemberlistConfig.SecretKey = key
-	})
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
-
-	if s1.Encrypted() {
-		t.Fatalf("should not be encrypted")
-	}
-	if !s2.Encrypted() {
-		t.Fatalf("should be encrypted")
-	}
-}
-
 func testVerifyRPC(s1, s2 *Server, t *testing.T) (bool, error) {
 	joinLAN(t, s1, s2)
 	retry.Run(t, func(r *retry.R) {

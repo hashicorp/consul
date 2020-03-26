@@ -284,11 +284,6 @@ func (c *Client) KeyManagerLAN() *serf.KeyManager {
 	return c.serf.KeyManager()
 }
 
-// Encrypted determines if gossip is encrypted
-func (c *Client) Encrypted() bool {
-	return c.serf.EncryptionEnabled()
-}
-
 // RPC is used to forward an RPC call to a consul server, or fail if no servers
 func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 	// This is subtle but we start measuring the time on the client side

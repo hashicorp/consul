@@ -127,7 +127,6 @@ func ConfigSourceFromName(name string) (configSource, bool) {
 // delegate defines the interface shared by both
 // consul.Client and consul.Server.
 type delegate interface {
-	Encrypted() bool
 	GetLANCoordinate() (lib.CoordinateSet, error)
 	Leave() error
 	LANMembers() []serf.Member
@@ -3434,10 +3433,6 @@ func (a *Agent) purgeCheckState(checkID structs.CheckID) error {
 		return nil
 	}
 	return err
-}
-
-func (a *Agent) GossipEncrypted() bool {
-	return a.delegate.Encrypted()
 }
 
 // Stats is used to get various debugging state from the sub-systems

@@ -143,9 +143,6 @@ func (a *TestACLAgent) ResolveIdentityFromToken(secretID string) (bool, structs.
 }
 
 // All of these are stubs to satisfy the interface
-func (a *TestACLAgent) Encrypted() bool {
-	return false
-}
 func (a *TestACLAgent) GetLANCoordinate() (lib.CoordinateSet, error) {
 	return nil, fmt.Errorf("Unimplemented")
 }
