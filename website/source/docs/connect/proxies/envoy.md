@@ -287,6 +287,10 @@ the  [global `proxy-defaults` configuration
 entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaults) to act as
 defaults that are inherited by all services.
 
+Prior to 1.8.0 these settings were specific to Mesh Gateways. The deprecated 
+names such as `envoy_mesh_gateway_bind_addresses` and `envoy_mesh_gateway_no_default_bind`
+will continue to be supported.
+
 - `connect_timeout_ms` - The number of milliseconds to allow when making upstream
   connections before timing out. Defaults to 5000 (5 seconds). If the upstream
   service has the configuration option
@@ -296,7 +300,7 @@ defaults that are inherited by all services.
 
 - `envoy_gateway_bind_tagged_addresses` - Indicates that the gateway
   services tagged addresses should be bound to listeners in addition to the
-  default listener address.
+  default listener address. 
 
 - `envoy_gateway_bind_addresses` - A map of additional addresses to be bound.
   This map's keys are the name of the listeners to be created and the values are

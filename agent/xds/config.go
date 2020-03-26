@@ -1,6 +1,7 @@
 package xds
 
 import (
+	"github.com/hashicorp/consul/lib"
 	"strings"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -67,14 +68,6 @@ func ParseProxyConfig(m map[string]interface{}) (ProxyConfig, error) {
 	return cfg, err
 }
 
-// DEPRECATED: Replaced by GatewayConfig to centralize configuration for all gateway kinds
-type MeshGatewayConfig struct {
-	BindTaggedAddresses bool                              `mapstructure:"envoy_mesh_gateway_bind_tagged_addresses"`
-	BindAddresses       map[string]structs.ServiceAddress `mapstructure:"envoy_mesh_gateway_bind_addresses"`
-	NoDefaultBind       bool                              `mapstructure:"envoy_mesh_gateway_no_default_bind"`
-	ConnectTimeoutMs    int                               `mapstructure:"connect_timeout_ms"`
-}
-
 type GatewayConfig struct {
 	// BindTaggedAddresses when set will cause all of the services tagged
 	// addresses to have listeners bound to them in addition to the main service
@@ -101,33 +94,15 @@ type GatewayConfig struct {
 // error occurs during parsing, it is returned along with the default config. This
 // allows the caller to choose whether and how to report the error
 func ParseGatewayConfig(m map[string]interface{}) (GatewayConfig, error) {
-	var meshCfg MeshGatewayConfig
+	// Fixup for deprecated mesh gateway names
+	lib.TranslateKeys(m, map[string]string{
+		"envoy_mesh_gateway_bind_tagged_addresses": "envoy_gateway_bind_tagged_addresses",
+		"envoy_mesh_gateway_bind_addresses":        "envoy_gateway_bind_addresses",
+		"envoy_mesh_gateway_no_default_bind":       "envoy_gateway_no_default_bind",
+	})
 
-	// Decode deprecated mesh-gateway fields into Gateway Config
-	err := mapstructure.WeakDecode(m, &meshCfg)
-	cfg := GatewayConfig{
-		BindTaggedAddresses: meshCfg.BindTaggedAddresses,
-		BindAddresses:       meshCfg.BindAddresses,
-		NoDefaultBind:       meshCfg.NoDefaultBind,
-		ConnectTimeoutMs:    meshCfg.ConnectTimeoutMs,
-	}
-
-	// Merge in values from new flags if they were specified
-	if v, ok := m["envoy_gateway_bind_addresses"]; ok {
-		if v, ok := v.(map[string]structs.ServiceAddress); ok && len(v) > 0 {
-			cfg.BindAddresses = v
-		}
-	}
-	if v, ok := m["envoy_gateway_bind_tagged_addresses"]; ok {
-		if v, ok := v.(bool); ok {
-			cfg.BindTaggedAddresses = v
-		}
-	}
-	if v, ok := m["envoy_gateway_no_default_bind"]; ok {
-		if v, ok := v.(bool); ok {
-			cfg.NoDefaultBind = v
-		}
-	}
+	var cfg GatewayConfig
+	err := mapstructure.WeakDecode(m, &cfg)
 
 	if cfg.ConnectTimeoutMs < 1 {
 		cfg.ConnectTimeoutMs = 5000

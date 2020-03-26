@@ -1039,7 +1039,6 @@ func (s *NodeService) IsSidecarProxy() bool {
 }
 
 func (s *NodeService) IsGateway() bool {
-	// TODO (gateways) any other things to check?
 	return s.Kind == ServiceKindMeshGateway || s.Kind == ServiceKindTerminatingGateway
 }
 
