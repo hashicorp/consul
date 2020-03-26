@@ -69,6 +69,7 @@ func (c *cmd) Run(args []string) int {
 	out, err := formatter.FormatRoleList(roles)
 	if err != nil {
 		c.UI.Error(err.Error())
+		return 1
 	}
 	if out != "" {
 		c.UI.Info(out)
