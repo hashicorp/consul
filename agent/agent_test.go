@@ -3426,11 +3426,9 @@ func TestAgent_GetRLimits(t *testing.T) {
 			# This value is more than max on Windows as well
 			http_max_conns_per_client = 16777217
 		}`
-	a := TestAgent{Name: t.Name(), HCL: hcl}
-	a.LogOutput = testutil.TestWriter(t)
-	if err := a.Start(); err == nil {
-		defer a.Shutdown()
-		assert.Fail(t, "a.Start() should have failed as limits.http_max_conns_per_client is too big")
+	_, _, validationError := TestConfigWithErr(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	if validationError == nil {
+		assert.Fail(t, "Config should not be valid")
 	}
 }
 
