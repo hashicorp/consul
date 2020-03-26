@@ -50,6 +50,8 @@ function cherry_pick_with_slack_notification {
     # Else we send a success notification
     else
         status "🍒✅ Cherry picking of PR commit ${commit:0:7} from $pr_url succeeded!"
+        # push changes to the specified branch
+        git push origin "$branch"
         curl -X POST -H 'Content-type: application/json' \
         --data \
         "{ \
@@ -103,12 +105,10 @@ for label in $labels; do
         status "backporting to stable-website"
         branch="stable-website"
         cherry_pick_with_slack_notification "$branch" "$CIRCLE_SHA1" "$pr_url"
-        git push origin stable-website
     # else if the label matches backport/*, it will attempt to cherry-pick to the release branch
     elif [[ $label =~ backport/* ]]; then
         status "backporting to $label"
         branch="${label/backport/release}.x"
         cherry_pick_with_slack_notification "$branch" "$CIRCLE_SHA1" "$pr_url"
-        git push origin "$branch"
     fi
 done
