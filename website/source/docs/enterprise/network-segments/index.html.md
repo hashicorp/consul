@@ -7,16 +7,16 @@ description: |-
   cluster to segment network groups.
 ---
 
-# Consul Enterprise Network Segments
+# Network Segments
 
 Consul Network Segments enables operators to create separate LAN gossip segments
 in one Consul cluster. Agents in a segment are only able to join and communicate
-with other agents in its network segment. This functionality is useful for
+with other agents in it's network segment. This functionality is useful for
 clusters that have multiple tenants that should not be able to communicate
 with each other.
 
-To get started with Network Segments,
-[read the guide](https://learn.hashicorp.com/consul/day-2-operations/network-segments).
+To get started with network segments you can review the guide on HashiCorp Learn for
+[Network Segments](https://learn.hashicorp.com/consul/day-2-operations/network-segments).
 
 ~> **Note:** Due to limitations in [Serf](https://www.consul.io/docs/internals/gossip.html), a Consul agent configured with too many network segments may not be able to start
 
@@ -38,7 +38,8 @@ cluster each set per "datacenter". These Consul servers are federated together
 over the WAN. Consul clients make use of resources in federated clusters by
 forwarding RPCs through the Consul servers in their local cluster, but they
 never interact with remote Consul servers directly. There are currently two
-inter-cluster network models: [WAN Gossip (OSS)](https://learn.hashicorp.com/consul/security-networking/datacenters)
+inter-cluster network models which can be viewed on HashiCorp Learn: 
+[WAN gossip (OSS)](https://learn.hashicorp.com/consul/security-networking/datacenters)
 and [Network Areas (Enterprise)](https://learn.hashicorp.com/consul/day-2-operations/advanced-federation).
 
 **LAN Gossip Pool**: A set of Consul agents that have full mesh connectivity

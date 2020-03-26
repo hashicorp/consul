@@ -8,10 +8,11 @@ description: |-
 
 # Consul Enterprise
 
-Consul Enterprise simplifies operations by automating workflows. It adds support
-for microservices deployments across complex network topologies. It also
-increases both scalability and resilience. If you have already purchased Consul Enterprise, please see the [licensing section](#licensing)
-below.
+[Consul Enterprise](https://www.hashicorp.com/consul.html) features ease the complexity of operating Consul at 
+organizational scale by automating common operator workflows. It introduces capabilities for expanding 
+performance scalability, resiliency, and cluster lifecycle. It also adds support for application and service 
+architectures across complex network topologies. If you have already purchased Consul Enterprise, please 
+see the [licensing section](#licensing) below.
 
 Features include:
 
@@ -19,8 +20,7 @@ Features include:
 - [Automated Upgrades](/docs/enterprise/upgrades/index.html)
 - [Enhanced Read Scalability](/docs/enterprise/read-scale/index.html)
 - [Redundancy Zones](/docs/enterprise/redundancy/index.html)
-- [Advanced Federation for Complex Network
-  Topologies](/docs/enterprise/federation/index.html)
+- [Advanced Federation for Complex Network Topologies](/docs/enterprise/federation/index.html)
 - [Network Segments](/docs/enterprise/network-segments/index.html)
 - [Namespaces](/docs/enterprise/namespaces/index.html)
 - [Sentinel](/docs/enterprise/sentinel/index.html)
