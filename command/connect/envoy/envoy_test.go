@@ -30,45 +30,38 @@ func TestEnvoyCommand_noTabs(t *testing.T) {
 
 func TestEnvoyGateway_Validation(t *testing.T) {
 	t.Parallel()
-	ui := cli.NewMockUi()
-	c := New(ui)
 
-	cases := map[string]struct {
+	cases := []struct {
+		name   string
 		args   []string
 		output string
 	}{
-		"-register for non-gateway": {
+		{
+			"-register for non-gateway",
 			[]string{"-register"},
 			"Auto-Registration can only be used for gateways",
 		},
-		"-mesh-gateway and -gateway cannot be combined": {
+		{
+			"-mesh-gateway and -gateway cannot be combined",
 			[]string{"-register", "-mesh-gateway", "-gateway", "mesh"},
 			"The mesh-gateway flag is deprecated and cannot be used alongside the gateway flag",
 		},
-		"unknown gateway type": {
-			[]string{"-register", "-gateway", "dne"},
-			"Gateway must be one of",
-		},
-		"no proxy registration specified nor discovered": {
+		{
+			"no proxy registration specified nor discovered",
 			[]string{""},
 			"No proxy ID specified",
 		},
 	}
 
-	for name, tc := range cases {
-		t.Run(name, func(t *testing.T) {
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ui := cli.NewMockUi()
+			c := New(ui)
 			c.init()
-			// Ensure our buffer is always clear
-			if ui.ErrorWriter != nil {
-				ui.ErrorWriter.Reset()
-			}
-			if ui.OutputWriter != nil {
-				ui.OutputWriter.Reset()
-			}
 
 			code := c.Run(tc.args)
 			if code == 0 {
-				t.Errorf("%s: expected non-zero exit", name)
+				t.Errorf("%s: expected non-zero exit", tc.name)
 			}
 
 			output := ui.ErrorWriter.String()

@@ -46,7 +46,6 @@ type cmd struct {
 
 	// flags
 	meshGateway          bool
-	gateway              string
 	proxyID              string
 	sidecarFor           string
 	adminAccessLogPath   string
@@ -66,12 +65,12 @@ type cmd struct {
 	exposeServers      bool
 
 	gatewaySvcName string
-	gatewayKind    api.ServiceKind
+	gatewayKind    GatewayValue
 }
 
 const (
 	defaultEnvoyVersion = "1.13.1"
-	meshGatewayVal      = "mesh"
+	meshGatewayVal      = api.ServiceKindMeshGateway
 )
 
 var supportedGateways = map[string]api.ServiceKind{
@@ -89,7 +88,7 @@ func (c *cmd) init() {
 	c.flags.BoolVar(&c.meshGateway, "mesh-gateway", false,
 		"Configure Envoy as a Mesh Gateway.")
 
-	c.flags.StringVar(&c.gateway, "gateway", "",
+	c.flags.Var(&c.gatewayKind, "gateway",
 		"The type of gateway to register. One of: terminating or mesh")
 
 	c.flags.StringVar(&c.sidecarFor, "sidecar-for", os.Getenv("CONNECT_SIDECAR_FOR"),
@@ -210,16 +209,19 @@ func (c *cmd) Run(args []string) int {
 	c.client = client
 
 	// Fixup for deprecated mesh-gateway flag
-	if c.meshGateway && c.gateway != "" {
+	if c.meshGateway && c.gatewayKind.String() != "" {
 		c.UI.Error("The mesh-gateway flag is deprecated and cannot be used alongside the gateway flag")
 		return 1
 	}
 	if c.meshGateway {
-		c.gateway = meshGatewayVal
+		if err := c.gatewayKind.Set(string(meshGatewayVal)); err != nil {
+			c.UI.Error(err.Error())
+			return 1
+		}
 	}
 
 	if c.exposeServers {
-		if c.gateway != meshGatewayVal {
+		if c.gatewayKind.Value() != meshGatewayVal {
 			c.UI.Error("'-expose-servers' can only be used for mesh gateways")
 			return 1
 		}
@@ -230,14 +232,12 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.register {
-		if c.gateway == "" {
+		if c.gatewayKind.String() == "" {
 			c.UI.Error("Auto-Registration can only be used for gateways")
 			return 1
 		}
-		c.gatewayKind = supportedGateways[c.gateway]
-
 		if c.gatewaySvcName == "" {
-			c.gatewaySvcName = string(c.gatewayKind)
+			c.gatewaySvcName = c.gatewayKind.String()
 		}
 
 		taggedAddrs := make(map[string]api.ServiceAddress)
@@ -287,7 +287,7 @@ func (c *cmd) Run(args []string) int {
 		}
 
 		svc := api.AgentServiceRegistration{
-			Kind:            c.gatewayKind,
+			Kind:            c.gatewayKind.Value(),
 			Name:            c.gatewaySvcName,
 			Address:         lanAddr.Address,
 			Port:            lanAddr.Port,
@@ -318,8 +318,8 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 		c.proxyID = proxyID
-	} else if c.proxyID == "" && c.gateway != "" {
-		gatewaySvc, err := proxyCmd.LookupGatewayProxy(c.client, c.gatewayKind)
+	} else if c.proxyID == "" && c.gatewayKind.String() != "" {
+		gatewaySvc, err := proxyCmd.LookupGatewayProxy(c.client, c.gatewayKind.Value())
 		if err != nil {
 			c.UI.Error(err.Error())
 			return 1
@@ -471,7 +471,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 	cluster := c.proxyID
 	if c.sidecarFor != "" {
 		cluster = c.sidecarFor
-	} else if c.gateway != "" && c.gatewaySvcName != "" {
+	} else if c.gatewayKind.String() != "" && c.gatewaySvcName != "" {
 		cluster = c.gatewaySvcName
 	}
 

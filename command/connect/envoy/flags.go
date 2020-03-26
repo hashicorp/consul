@@ -14,24 +14,24 @@ import (
 const defaultGatewayPort int = 443
 
 type GatewayValue struct {
-	value string
+	value api.ServiceKind
 }
 
 func (g *GatewayValue) String() string {
-	return g.value
+	return string(g.value)
 }
 
-func (g *GatewayValue) Value() string {
+func (g *GatewayValue) Value() api.ServiceKind {
 	return g.value
 }
 
 func (g *GatewayValue) Set(raw string) error {
-	var err error
-	_, ok := supportedGateways[g.value]
-	if g.value != "" && !ok {
+	kind, ok := supportedGateways[raw]
+	if !ok {
 		return fmt.Errorf("Gateway must be one of: terminating or mesh")
 	}
-	return err
+	g.value = kind
+	return nil
 }
 
 // ServiceAddressValue implements a flag.Value that may be used to parse an

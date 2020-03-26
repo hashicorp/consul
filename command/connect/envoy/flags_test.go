@@ -10,12 +10,12 @@ import (
 func TestServiceAddressValue_Value(t *testing.T) {
 	t.Run("nil receiver", func(t *testing.T) {
 		var addr *ServiceAddressValue
-		require.Equal(t, addr.Value(), api.ServiceAddress{Port: defaultMeshGatewayPort})
+		require.Equal(t, addr.Value(), api.ServiceAddress{Port: defaultGatewayPort})
 	})
 
 	t.Run("default value", func(t *testing.T) {
 		addr := &ServiceAddressValue{}
-		require.Equal(t, addr.Value(), api.ServiceAddress{Port: defaultMeshGatewayPort})
+		require.Equal(t, addr.Value(), api.ServiceAddress{Port: defaultGatewayPort})
 	})
 
 	t.Run("set value", func(t *testing.T) {
@@ -40,7 +40,7 @@ func TestServiceAddressValue_Set(t *testing.T) {
 			input: "8.8.8.8:",
 			expectedValue: api.ServiceAddress{
 				Address: "8.8.8.8",
-				Port:    defaultMeshGatewayPort,
+				Port:    defaultGatewayPort,
 			},
 		},
 		{
@@ -75,6 +75,44 @@ func TestServiceAddressValue_Set(t *testing.T) {
 			}
 
 			require.Equal(t, addr.Value(), tc.expectedValue)
+		})
+	}
+}
+
+func TestGatewayValue_Set(t *testing.T) {
+	var testcases = []struct {
+		name          string
+		input         string
+		expectedErr   string
+		expectedValue api.ServiceKind
+	}{
+		{
+			name:          "mesh gateway",
+			input:         "mesh",
+			expectedValue: api.ServiceKindMeshGateway,
+		},
+		{
+			name:          "terminating gateway",
+			input:         "terminating",
+			expectedValue: api.ServiceKindTerminatingGateway,
+		},
+		{
+			name:        "kind does not exist",
+			input:       "dne",
+			expectedErr: "Gateway must be one of:",
+		},
+	}
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			gw := &GatewayValue{}
+			err := gw.Set(tc.input)
+			if tc.expectedErr != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.expectedErr)
+				return
+			}
+
+			require.Equal(t, gw.Value(), tc.expectedValue)
 		})
 	}
 }
