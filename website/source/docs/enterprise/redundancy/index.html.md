@@ -6,14 +6,22 @@ description: |-
   Consul Enterprise redundancy zones enable hot standby servers on a per availability zone basis.
 ---
 
-# Consul Enterprise Redundancy Zones
+# Redundancy Zones
 
-[Consul Enterprise](https://www.hashicorp.com/consul.html) [redundancy
-zones](https://learn.hashicorp.com/consul/day-2-operations/autopilot#redundancy-zones) make
-it possible to have more servers than availability zones. For example, in an
-environment with three availability zones it's now possible to run one voter and
-one non-voter in each availability zone, for a total of six servers. If an
-availability zone is completely lost, only one voter will be lost, so the
-cluster remains available. If a voter is lost in an availability zone, Autopilot
-will promote the non-voter to voter automatically, putting the hot standby
-server into service quickly.
+[Consul Enterprise](https://www.hashicorp.com/consul.html) redundancy zones provide 
+both scaling and resiliancy benefits by enabling the deployment of non-voting
+servers alongside voting servers on a per availability zone basis.  
+
+When using redundancy zones, if an operator chooses to deploy Consul across 3 availability zones, they 
+could have 2 (or more) servers (1 voting/1 non-voting) in each zone. In the event that a voting 
+member in an availability zone fails, the redundancy zone configuration would automatically 
+promote the non-voting member to a voting member. In the event that an entire availability 
+zone was lost, a non-voting member in one of the existing availability zones would promote 
+to a voting member, keeping server quorum. This capability functions as a "hot standby" 
+for server nodes while also providing (and expanding) the capabilities of 
+[enhanced read scalability](/docs/enterprise/read-scale/index.html) by also including recovery 
+capabilities. 
+
+For more information, review the HashiCorp Learn guide on 
+[Redundancy Zones](https://learn.hashicorp.com/consul/day-2-operations/autopilot#redundancy-zones), 
+as well as the documentation for [Consul Autopilot](https://www.consul.io/docs/commands/operator/autopilot.html).
