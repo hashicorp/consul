@@ -1159,15 +1159,6 @@ func (s *Server) KeyManagerWAN() *serf.KeyManager {
 	return s.serfWAN.KeyManager()
 }
 
-// Encrypted determines if gossip is encrypted
-func (s *Server) Encrypted() bool {
-	LANEncrypted := s.serfLAN.EncryptionEnabled()
-	if s.serfWAN == nil {
-		return LANEncrypted
-	}
-	return LANEncrypted && s.serfWAN.EncryptionEnabled()
-}
-
 // LANSegments returns a map of LAN segments by name
 func (s *Server) LANSegments() map[string]*serf.Serf {
 	segments := make(map[string]*serf.Serf, len(s.segmentLAN)+1)
