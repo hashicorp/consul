@@ -67,7 +67,15 @@ func ParseProxyConfig(m map[string]interface{}) (ProxyConfig, error) {
 	return cfg, err
 }
 
+// DEPRECATED: Replaced by GatewayConfig to centralize configuration for all gateway kinds
 type MeshGatewayConfig struct {
+	BindTaggedAddresses bool                              `mapstructure:"envoy_mesh_gateway_bind_tagged_addresses"`
+	BindAddresses       map[string]structs.ServiceAddress `mapstructure:"envoy_mesh_gateway_bind_addresses"`
+	NoDefaultBind       bool                              `mapstructure:"envoy_mesh_gateway_no_default_bind"`
+	ConnectTimeoutMs    int                               `mapstructure:"connect_timeout_ms"`
+}
+
+type GatewayConfig struct {
 	// BindTaggedAddresses when set will cause all of the services tagged
 	// addresses to have listeners bound to them in addition to the main service
 	// address listener. This is only suitable when the tagged addresses are IP
@@ -75,28 +83,51 @@ type MeshGatewayConfig struct {
 	// for those addresses or where an external entity maps that IP to the Envoy
 	// (like AWS EC2 mapping a public IP to the private interface) then this
 	// cannot be used. See the BindAddresses config instead
-	//
-	// TODO - wow this is a verbose setting name. Maybe shorten this
-	BindTaggedAddresses bool `mapstructure:"envoy_mesh_gateway_bind_tagged_addresses"`
+	BindTaggedAddresses bool `mapstructure:"envoy_gateway_bind_tagged_addresses"`
 
 	// BindAddresses additional bind addresses to configure listeners for
-	BindAddresses map[string]structs.ServiceAddress `mapstructure:"envoy_mesh_gateway_bind_addresses"`
+	BindAddresses map[string]structs.ServiceAddress `mapstructure:"envoy_gateway_bind_addresses"`
 
 	// NoDefaultBind indicates that we should not bind to the default address of the
 	// gateway service
-	NoDefaultBind bool `mapstructure:"envoy_mesh_gateway_no_default_bind"`
+	NoDefaultBind bool `mapstructure:"envoy_gateway_no_default_bind"`
 
 	// ConnectTimeoutMs is the number of milliseconds to timeout making a new
 	// connection to this upstream. Defaults to 5000 (5 seconds) if not set.
 	ConnectTimeoutMs int `mapstructure:"connect_timeout_ms"`
 }
 
-// ParseMeshGatewayConfig returns the MeshGatewayConfig parsed from an opaque map. If an
+// ParseGatewayConfig returns the GatewayConfig parsed from an opaque map. If an
 // error occurs during parsing, it is returned along with the default config. This
 // allows the caller to choose whether and how to report the error
-func ParseMeshGatewayConfig(m map[string]interface{}) (MeshGatewayConfig, error) {
-	var cfg MeshGatewayConfig
-	err := mapstructure.WeakDecode(m, &cfg)
+func ParseGatewayConfig(m map[string]interface{}) (GatewayConfig, error) {
+	var meshCfg MeshGatewayConfig
+
+	// Decode deprecated mesh-gateway fields into Gateway Config
+	err := mapstructure.WeakDecode(m, &meshCfg)
+	cfg := GatewayConfig{
+		BindTaggedAddresses: meshCfg.BindTaggedAddresses,
+		BindAddresses:       meshCfg.BindAddresses,
+		NoDefaultBind:       meshCfg.NoDefaultBind,
+		ConnectTimeoutMs:    meshCfg.ConnectTimeoutMs,
+	}
+
+	// Merge in values from new flags if they were specified
+	if v, ok := m["envoy_gateway_bind_addresses"]; ok {
+		if v, ok := v.(map[string]structs.ServiceAddress); ok && len(v) > 0 {
+			cfg.BindAddresses = v
+		}
+	}
+	if v, ok := m["envoy_gateway_bind_tagged_addresses"]; ok {
+		if v, ok := v.(bool); ok {
+			cfg.BindTaggedAddresses = v
+		}
+	}
+	if v, ok := m["envoy_gateway_no_default_bind"]; ok {
+		if v, ok := v.(bool); ok {
+			cfg.NoDefaultBind = v
+		}
+	}
 
 	if cfg.ConnectTimeoutMs < 1 {
 		cfg.ConnectTimeoutMs = 5000

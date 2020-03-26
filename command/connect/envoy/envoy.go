@@ -48,7 +48,7 @@ type cmd struct {
 
 	// flags
 	meshGateway          bool
-	terminatingGateway   bool
+	gateway              string
 	proxyID              string
 	sidecarFor           string
 	adminAccessLogPath   string
@@ -68,12 +68,19 @@ type cmd struct {
 	exposeServers      bool
 
 	gatewaySvcName string
-
-	isGateway   bool
-	gatewayKind api.ServiceKind
+	gatewayKind    api.ServiceKind
 }
 
-const defaultEnvoyVersion = "1.13.1"
+const (
+	defaultEnvoyVersion     = "1.13.1"
+	meshGatewayVal          = "mesh"
+	DefaultGatewayPort  int = 443
+)
+
+var supportedGateways = map[string]api.ServiceKind{
+	"mesh":        api.ServiceKindMeshGateway,
+	"terminating": api.ServiceKindTerminatingGateway,
+}
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
@@ -81,13 +88,14 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.proxyID, "proxy-id", "",
 		"The proxy's ID on the local agent.")
 
+	// Deprecated in favor of `gateway`
 	c.flags.BoolVar(&c.meshGateway, "mesh-gateway", false,
 		"Configure Envoy as a Mesh Gateway.")
 
-	c.flags.BoolVar(&c.terminatingGateway, "terminating-gateway", false,
-		"Configure Envoy as a Terminating Gateway.")
+	c.flags.StringVar(&c.gateway, "gateway", "",
+		"The type of gateway to register. One of: terminating or mesh")
 
-	c.flags.StringVar(&c.sidecarFor, "sidecar-for", "",
+	c.flags.StringVar(&c.sidecarFor, "sidecar-for", os.Getenv("CONNECT_SIDECAR_FOR"),
 		"The ID of a service instance on the local agent that this proxy should "+
 			"become a sidecar for. It requires that the proxy service is registered "+
 			"with the agent as a connect-proxy with Proxy.DestinationServiceID set "+
@@ -151,10 +159,6 @@ func (c *cmd) init() {
 	flags.Merge(c.flags, c.http.NamespaceFlags())
 	c.help = flags.Usage(help, c.flags)
 }
-
-const (
-	DefaultGatewayPort int = 443
-)
 
 func parseAddress(addrStr string) (string, int, error) {
 	if addrStr == "" {
@@ -248,8 +252,17 @@ func (c *cmd) Run(args []string) int {
 	}
 	c.client = client
 
+	// Fixup for deprecated mesh-gateway flag
+	if c.meshGateway && c.gateway != "" {
+		c.UI.Error("The mesh-gateway flag is deprecated and cannot be used alongside the gateway flag")
+		return 1
+	}
+	if c.meshGateway {
+		c.gateway = meshGatewayVal
+	}
+
 	if c.exposeServers {
-		if !c.meshGateway {
+		if c.gateway != meshGatewayVal {
 			c.UI.Error("'-expose-servers' can only be used for mesh gateways")
 			return 1
 		}
@@ -260,22 +273,18 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.register {
-		c.isGateway = c.meshGateway || c.terminatingGateway
-		if !c.isGateway {
+		if c.gateway == "" {
 			c.UI.Error("Auto-Registration can only be used for gateways")
 			return 1
 		}
-		if c.meshGateway && c.terminatingGateway {
-			c.UI.Error("More than one gateway type was specified")
+
+		kind, ok := supportedGateways[c.gateway]
+		if !ok {
+			c.UI.Error("Gateway must be one of: terminating or mesh")
 			return 1
 		}
+		c.gatewayKind = kind
 
-		if c.meshGateway {
-			c.gatewayKind = api.ServiceKindMeshGateway
-		}
-		if c.terminatingGateway {
-			c.gatewayKind = api.ServiceKindTerminatingGateway
-		}
 		if c.gatewaySvcName == "" {
 			c.gatewaySvcName = string(c.gatewayKind)
 		}
@@ -287,7 +296,6 @@ func (c *cmd) Run(args []string) int {
 		}
 
 		taggedAddrs := make(map[string]api.ServiceAddress)
-
 		if lanAddr != "" {
 			taggedAddrs[structs.TaggedAddressLAN] = api.ServiceAddress{Address: lanAddr, Port: lanPort}
 		}
@@ -311,9 +319,6 @@ func (c *cmd) Run(args []string) int {
 		}
 
 		var proxyConf *api.AgentServiceConnectProxyConfig
-
-		// TODO (gateways): What should we do about bind addr config? This is where we may need special handling by kind.
-		//                  I think the mesh gateway bind options make sense for ingress gateways but maybe not for terminating.
 		if len(c.bindAddresses) > 0 {
 			// override all default binding rules and just bind to the user-supplied addresses
 			bindAddresses := make(map[string]api.ServiceAddress)
@@ -330,8 +335,8 @@ func (c *cmd) Run(args []string) int {
 
 			proxyConf = &api.AgentServiceConnectProxyConfig{
 				Config: map[string]interface{}{
-					"envoy_mesh_gateway_no_default_bind": true,
-					"envoy_mesh_gateway_bind_addresses":  bindAddresses,
+					"envoy_gateway_no_default_bind": true,
+					"envoy_gateway_bind_addresses":  bindAddresses,
 				},
 			}
 		} else if canBind(lanAddr) && canBind(wanAddr) {
@@ -339,8 +344,8 @@ func (c *cmd) Run(args []string) int {
 			// for creating the envoy listeners
 			proxyConf = &api.AgentServiceConnectProxyConfig{
 				Config: map[string]interface{}{
-					"envoy_mesh_gateway_no_default_bind":       true,
-					"envoy_mesh_gateway_bind_tagged_addresses": true,
+					"envoy_gateway_no_default_bind":       true,
+					"envoy_gateway_bind_tagged_addresses": true,
 				},
 			}
 		} else if !canBind(lanAddr) && lanAddr != "" {
@@ -379,14 +384,14 @@ func (c *cmd) Run(args []string) int {
 
 	// See if we need to lookup proxyID
 	if c.proxyID == "" && c.sidecarFor != "" {
-		proxyID, err := c.lookupProxyIDForSidecar()
+		proxyID, err := proxyCmd.LookupProxyIDForSidecar(c.client, c.sidecarFor)
 		if err != nil {
 			c.UI.Error(err.Error())
 			return 1
 		}
 		c.proxyID = proxyID
-	} else if c.proxyID == "" && c.isGateway {
-		gatewaySvc, err := c.lookupGatewayProxy(c.gatewayKind)
+	} else if c.proxyID == "" && c.gateway != "" {
+		gatewaySvc, err := proxyCmd.LookupGatewayProxy(c.client, c.gatewayKind)
 		if err != nil {
 			c.UI.Error(err.Error())
 			return 1
@@ -396,7 +401,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.proxyID == "" {
-		c.UI.Error("No proxy ID specified. One of -proxy-id or -sidecar-for/-mesh-gateway is " +
+		c.UI.Error("No proxy ID specified. One of -proxy-id or -sidecar-for/-gateway is " +
 			"required")
 		return 1
 	}
@@ -538,7 +543,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 	cluster := c.proxyID
 	if c.sidecarFor != "" {
 		cluster = c.sidecarFor
-	} else if c.isGateway && c.gatewaySvcName != "" {
+	} else if c.gateway != "" && c.gatewaySvcName != "" {
 		cluster = c.gatewaySvcName
 	}
 
@@ -605,14 +610,6 @@ func (c *cmd) generateConfig() ([]byte, error) {
 	}
 
 	return bsCfg.GenerateJSON(args)
-}
-
-func (c *cmd) lookupProxyIDForSidecar() (string, error) {
-	return proxyCmd.LookupProxyIDForSidecar(c.client, c.sidecarFor)
-}
-
-func (c *cmd) lookupGatewayProxy(kind api.ServiceKind) (*api.AgentService, error) {
-	return proxyCmd.LookupGatewayProxy(c.client, kind)
 }
 
 func (c *cmd) lookupGRPCPort() (int, error) {

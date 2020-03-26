@@ -480,7 +480,7 @@ func (s *Server) makeMeshGatewayCluster(clusterName string, cfgSnap *proxycfg.Co
 // defaults to use the mesh gateway timeout.
 func (s *Server) makeMeshGatewayClusterWithConnectTimeout(clusterName string, cfgSnap *proxycfg.ConfigSnapshot,
 	connectTimeout time.Duration) (*envoy.Cluster, error) {
-	cfg, err := ParseMeshGatewayConfig(cfgSnap.Proxy.Config)
+	cfg, err := ParseGatewayConfig(cfgSnap.Proxy.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
