@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/mitchellh/cli"
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -19,9 +20,6 @@ import (
 	proxyCmd "github.com/hashicorp/consul/command/connect/proxy"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/ipaddr"
-	"github.com/hashicorp/go-sockaddr/template"
-
-	"github.com/mitchellh/cli"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -60,10 +58,10 @@ type cmd struct {
 
 	// mesh gateway registration information
 	register           bool
-	address            string
-	wanAddress         string
+	lanAddress         ServiceAddressValue
+	wanAddress         ServiceAddressValue
 	deregAfterCritical string
-	bindAddresses      map[string]string
+	bindAddresses      ServiceAddressMapValue
 	exposeServers      bool
 
 	meshGatewaySvcName string
@@ -120,13 +118,13 @@ func (c *cmd) init() {
 	c.flags.BoolVar(&c.register, "register", false,
 		"Register a new Mesh Gateway service before configuring and starting Envoy")
 
-	c.flags.StringVar(&c.address, "address", "",
+	c.flags.Var(&c.lanAddress, "address",
 		"LAN address to advertise in the Mesh Gateway service registration")
 
-	c.flags.StringVar(&c.wanAddress, "wan-address", "",
+	c.flags.Var(&c.wanAddress, "wan-address",
 		"WAN address to advertise in the Mesh Gateway service registration")
 
-	c.flags.Var((*flags.FlagMapValue)(&c.bindAddresses), "bind-address", "Bind "+
+	c.flags.Var(&c.bindAddresses, "bind-address", "Bind "+
 		"address to use instead of the default binding rules given as `<name>=<ip>:<port>` "+
 		"pairs. This flag may be specified multiple times to add multiple bind addresses.")
 
@@ -143,38 +141,6 @@ func (c *cmd) init() {
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.NamespaceFlags())
 	c.help = flags.Usage(help, c.flags)
-}
-
-const (
-	DefaultMeshGatewayPort int = 443
-)
-
-func parseAddress(addrStr string) (string, int, error) {
-	if addrStr == "" {
-		// defaulting the port to 443
-		return "", DefaultMeshGatewayPort, nil
-	}
-
-	x, err := template.Parse(addrStr)
-	if err != nil {
-		return "", DefaultMeshGatewayPort, fmt.Errorf("Error parsing address %q: %v", addrStr, err)
-	}
-
-	addr, portStr, err := net.SplitHostPort(x)
-	if err != nil {
-		return "", DefaultMeshGatewayPort, fmt.Errorf("Error parsing address %q: %v", x, err)
-	}
-
-	port := DefaultMeshGatewayPort
-
-	if portStr != "" {
-		port, err = strconv.Atoi(portStr)
-		if err != nil {
-			return "", DefaultMeshGatewayPort, fmt.Errorf("Error parsing port %q: %v", portStr, err)
-		}
-	}
-
-	return addr, port, nil
 }
 
 // canBindInternal is here mainly so we can unit test this with a constant net.Addr list
@@ -206,13 +172,13 @@ func canBindInternal(addr string, ifAddrs []net.Addr) bool {
 	return false
 }
 
-func canBind(addr string) bool {
+func canBind(addr api.ServiceAddress) bool {
 	ifAddrs, err := net.InterfaceAddrs()
 	if err != nil {
 		return false
 	}
 
-	return canBindInternal(addr, ifAddrs)
+	return canBindInternal(addr.Address, ifAddrs)
 }
 
 func (c *cmd) Run(args []string) int {
@@ -246,30 +212,18 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 
-		lanAddr, lanPort, err := parseAddress(c.address)
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Failed to parse the -address parameter: %v", err))
-			return 1
-		}
-
 		taggedAddrs := make(map[string]api.ServiceAddress)
-
-		if lanAddr != "" {
-			taggedAddrs[structs.TaggedAddressLAN] = api.ServiceAddress{Address: lanAddr, Port: lanPort}
+		lanAddr := c.lanAddress.Value()
+		if lanAddr.Address != "" {
+			taggedAddrs[structs.TaggedAddressLAN] = lanAddr
 		}
 
-		wanAddr := ""
-		wanPort := lanPort
-		if c.wanAddress != "" {
-			wanAddr, wanPort, err = parseAddress(c.wanAddress)
-			if err != nil {
-				c.UI.Error(fmt.Sprintf("Failed to parse the -wan-address parameter: %v", err))
-				return 1
-			}
-			taggedAddrs[structs.TaggedAddressWAN] = api.ServiceAddress{Address: wanAddr, Port: wanPort}
+		wanAddr := c.wanAddress.Value()
+		if wanAddr.Address != "" {
+			taggedAddrs[structs.TaggedAddressWAN] = wanAddr
 		}
 
-		tcpCheckAddr := lanAddr
+		tcpCheckAddr := lanAddr.Address
 		if tcpCheckAddr == "" {
 			// fallback to localhost as the gateway has to reside in the same network namespace
 			// as the agent
@@ -278,24 +232,12 @@ func (c *cmd) Run(args []string) int {
 
 		var proxyConf *api.AgentServiceConnectProxyConfig
 
-		if len(c.bindAddresses) > 0 {
+		if len(c.bindAddresses.value) > 0 {
 			// override all default binding rules and just bind to the user-supplied addresses
-			bindAddresses := make(map[string]api.ServiceAddress)
-
-			for addrName, addrStr := range c.bindAddresses {
-				addr, port, err := parseAddress(addrStr)
-				if err != nil {
-					c.UI.Error(fmt.Sprintf("Failed to parse the bind address: %s=%s: %v", addrName, addrStr, err))
-					return 1
-				}
-
-				bindAddresses[addrName] = api.ServiceAddress{Address: addr, Port: port}
-			}
-
 			proxyConf = &api.AgentServiceConnectProxyConfig{
 				Config: map[string]interface{}{
 					"envoy_mesh_gateway_no_default_bind": true,
-					"envoy_mesh_gateway_bind_addresses":  bindAddresses,
+					"envoy_mesh_gateway_bind_addresses":  c.bindAddresses.value,
 				},
 			}
 		} else if canBind(lanAddr) && canBind(wanAddr) {
@@ -307,8 +249,8 @@ func (c *cmd) Run(args []string) int {
 					"envoy_mesh_gateway_bind_tagged_addresses": true,
 				},
 			}
-		} else if !canBind(lanAddr) && lanAddr != "" {
-			c.UI.Error(fmt.Sprintf("The LAN address %q will not be bindable. Either set a bindable address or override the bind addresses with -bind-address", lanAddr))
+		} else if !canBind(lanAddr) && lanAddr.Address != "" {
+			c.UI.Error(fmt.Sprintf("The LAN address %q will not be bindable. Either set a bindable address or override the bind addresses with -bind-address", lanAddr.Address))
 			return 1
 		}
 
@@ -320,14 +262,14 @@ func (c *cmd) Run(args []string) int {
 		svc := api.AgentServiceRegistration{
 			Kind:            api.ServiceKindMeshGateway,
 			Name:            c.meshGatewaySvcName,
-			Address:         lanAddr,
-			Port:            lanPort,
+			Address:         lanAddr.Address,
+			Port:            lanAddr.Port,
 			Meta:            meta,
 			TaggedAddresses: taggedAddrs,
 			Proxy:           proxyConf,
 			Check: &api.AgentServiceCheck{
 				Name:                           "Mesh Gateway Listening",
-				TCP:                            ipaddr.FormatAddressPort(tcpCheckAddr, lanPort),
+				TCP:                            ipaddr.FormatAddressPort(tcpCheckAddr, lanAddr.Port),
 				Interval:                       "10s",
 				DeregisterCriticalServiceAfter: c.deregAfterCritical,
 			},
