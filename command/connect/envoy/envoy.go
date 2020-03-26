@@ -70,9 +70,8 @@ type cmd struct {
 }
 
 const (
-	defaultEnvoyVersion     = "1.13.1"
-	meshGatewayVal          = "mesh"
-	DefaultGatewayPort  int = 443
+	defaultEnvoyVersion = "1.13.1"
+	meshGatewayVal      = "mesh"
 )
 
 var supportedGateways = map[string]api.ServiceKind{
