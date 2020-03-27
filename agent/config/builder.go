@@ -1095,11 +1095,12 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	if rt.ACLDatacenter != "" && !reDatacenter.MatchString(rt.ACLDatacenter) {
 		return fmt.Errorf("acl_datacenter cannot be %q. Please use only [a-z0-9-_]", rt.ACLDatacenter)
 	}
-	if rt.EnableUI && rt.UIDir != "" {
+	// In DevMode, UI is enabled by default, so to enable rt.UIDir, don't perform this check
+	if !rt.DevMode && rt.EnableUI && rt.UIDir != "" {
 		return fmt.Errorf(
 			"Both the ui and ui-dir flags were specified, please provide only one.\n" +
 				"If trying to use your own web UI resources, use the ui-dir flag.\n" +
-				"If using Consul version 0.7.0 or later, the web UI is included in the binary so use ui to enable it")
+				"The web UI is included in the binary so use ui to enable it")
 	}
 	if rt.DNSUDPAnswerLimit < 0 {
 		return fmt.Errorf("dns_config.udp_answer_limit cannot be %d. Must be greater than or equal to zero", rt.DNSUDPAnswerLimit)
