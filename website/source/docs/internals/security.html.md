@@ -46,7 +46,7 @@ items outside of Consul's threat model as noted in sections below.
   - Run applications, including Consul, as non-root users with appropriate 
   configurations
   - Run a secure kernel module, such as the SELinux 
-  - Secure against unprivledged users becoming root
+  - Secure against unprivileged users becoming root
 
 * **ACLs enabled with default deny.** Consul must be configured to use ACLs with
   a whitelist (default deny) approach. This forces all requests to have explicit

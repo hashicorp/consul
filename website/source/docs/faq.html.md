@@ -109,7 +109,7 @@ external tools like [consul-replicate](https://github.com/hashicorp/consul-repli
 ## Q: Can Consul natively handle protecting against other processes accessing Consul's memory state? 
 
 In short, Consul does not have anything built in to protect against memory 
-viewing doesn't interact with the host system to change or manipulate 
+viewing and doesn't interact with the host system to change or manipulate 
 application security.
 
 As Consul is a singular binary, we recommend taking any precautions or 
