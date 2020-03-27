@@ -1,15 +1,12 @@
 package consul
 
 import (
-	"fmt"
 	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/serf/serf"
 )
 
 var serverACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
@@ -111,7 +108,6 @@ func (s *Server) canUpgradeToNewACLs(isLeader bool) bool {
 		return false
 	}
 
-	var state serversACLMode
 	if !s.InACLDatacenter() {
 		foundServers, mode, _ := ServersGetACLMode(s, "", s.config.ACLDatacenter)
 		if mode != structs.ACLModeEnabled || !foundServers {
