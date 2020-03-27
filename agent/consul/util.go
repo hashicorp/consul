@@ -329,7 +329,7 @@ func (s *serversMeetRequirementsState) update(srv *metadata.Server) bool {
 }
 
 // ServersMeetRequirements returns whether the given server members meet the requirements as defined by the
-// callback function and whether any servers were not filtered in the requirements function.
+// callback function and whether at least one server remains unfiltered by the requirements function.
 func ServersInDCMeetRequirements(provider checkServersProvider, datacenter string, meetsRequirements serverRequirementFn) (ok bool, found bool) {
 	state := serversMeetRequirementsState{meetsRequirements: meetsRequirements, found: false, ok: true}
 
