@@ -810,6 +810,10 @@ func (s *state) handleUpdateMeshGateway(u cache.UpdateEvent, snap *ConfigSnapsho
 		svcMap := make(map[structs.ServiceID]struct{})
 		for _, svc := range services.Services {
 			sid := svc.ToServiceID()
+			// Make sure to add every service to this map, we use it to cancel
+			// watches below.
+			svcMap[sid] = struct{}{}
+
 			if _, ok := snap.MeshGateway.WatchedServices[sid]; !ok {
 				ctx, cancel := context.WithCancel(s.ctx)
 				err := s.cache.Notify(ctx, cachetype.HealthServicesName, &structs.ServiceSpecificRequest{
@@ -829,12 +833,12 @@ func (s *state) handleUpdateMeshGateway(u cache.UpdateEvent, snap *ConfigSnapsho
 					return err
 				}
 				snap.MeshGateway.WatchedServices[sid] = cancel
-				svcMap[sid] = struct{}{}
 			}
 		}
 
 		for sid, cancelFn := range snap.MeshGateway.WatchedServices {
 			if _, ok := svcMap[sid]; !ok {
+				meshLogger.Debug("canceling watch for service", "service", sid.String())
 				delete(snap.MeshGateway.WatchedServices, sid)
 				cancelFn()
 			}

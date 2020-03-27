@@ -610,6 +610,61 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				},
 			},
 		},
+		"mesh-gateway-do-not-cancel-service-watches": testCase{
+			ns: structs.NodeService{
+				Kind:    structs.ServiceKindMeshGateway,
+				ID:      "mesh-gateway",
+				Service: "mesh-gateway",
+				Address: "10.0.1.1",
+				Port:    443,
+			},
+			sourceDC: "dc1",
+			stages: []verificationStage{
+				verificationStage{
+					requiredWatches: map[string]verifyWatchRequest{
+						rootsWatchID:       genVerifyRootsWatch("dc1"),
+						serviceListWatchID: genVerifyListServicesWatch("dc1"),
+						datacentersWatchID: verifyDatacentersWatch,
+					},
+					events: []cache.UpdateEvent{
+						rootWatchEvent(),
+						cache.UpdateEvent{
+							CorrelationID: serviceListWatchID,
+							Result: &structs.IndexedServiceList{
+								Services: structs.ServiceList{
+									{Name: "web"},
+								},
+							},
+							Err: nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid(), "gateway with service list is vaild")
+						require.Len(t, snap.MeshGateway.WatchedServices, 1)
+						require.True(t, snap.MeshGateway.WatchedServicesSet)
+					},
+				},
+				verificationStage{
+					events: []cache.UpdateEvent{
+						cache.UpdateEvent{
+							CorrelationID: serviceListWatchID,
+							Result: &structs.IndexedServiceList{
+								Services: structs.ServiceList{
+									{Name: "web"},
+									{Name: "api"},
+								},
+							},
+							Err: nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid(), "gateway with service list is vaild")
+						require.Len(t, snap.MeshGateway.WatchedServices, 2)
+						require.True(t, snap.MeshGateway.WatchedServicesSet)
+					},
+				},
+			},
+		},
 		"connect-proxy":                    newConnectProxyCase(structs.MeshGatewayModeDefault),
 		"connect-proxy-mesh-gateway-local": newConnectProxyCase(structs.MeshGatewayModeLocal),
 	}
