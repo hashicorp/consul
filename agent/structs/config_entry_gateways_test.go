@@ -151,3 +151,59 @@ func TestIngressConfigEntry_Validate(t *testing.T) {
 		})
 	}
 }
+
+func TestTerminatingConfigEntry_Validate(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name      string
+		entry     TerminatingGatewayConfigEntry
+		expectErr string
+	}{
+		{
+			name: "service conflict",
+			entry: TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Services: []LinkedService{
+					{
+						Name: "foo",
+					},
+					{
+						Name: "foo",
+					},
+				},
+			},
+			expectErr: "Service \"foo\" was specified more than once",
+		},
+		{
+			name: "blank service name",
+			entry: TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Services: []LinkedService{
+					{
+						Name: "",
+					},
+				},
+			},
+			expectErr: "Service name cannot be blank.",
+		},
+	}
+
+	for _, test := range cases {
+		// We explicitly copy the variable for the range statement so that can run
+		// tests in parallel.
+		tc := test
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			err := tc.entry.Validate()
+			if tc.expectErr != "" {
+				require.Error(t, err)
+				requireContainsLower(t, err.Error(), tc.expectErr)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
