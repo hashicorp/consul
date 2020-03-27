@@ -15,12 +15,13 @@ import (
 )
 
 const (
-	ServiceDefaults string = "service-defaults"
-	ProxyDefaults   string = "proxy-defaults"
-	ServiceRouter   string = "service-router"
-	ServiceSplitter string = "service-splitter"
-	ServiceResolver string = "service-resolver"
-	IngressGateway  string = "ingress-gateway"
+	ServiceDefaults    string = "service-defaults"
+	ProxyDefaults      string = "proxy-defaults"
+	ServiceRouter      string = "service-router"
+	ServiceSplitter    string = "service-splitter"
+	ServiceResolver    string = "service-resolver"
+	IngressGateway     string = "ingress-gateway"
+	TerminatingGateway string = "terminating-gateway"
 
 	ProxyConfigGlobal string = "global"
 
@@ -386,6 +387,15 @@ func ConfigEntryDecodeRulesForKind(kind string) (skipWhenPatching []string, tran
 			}, map[string]string{
 				"service_subset": "servicesubset",
 			}, nil
+	case TerminatingGateway:
+		return []string{
+				"services",
+				"Services",
+			}, map[string]string{
+				"ca_file":   "cafile",
+				"cert_file": "certfile",
+				"key_file":  "keyfile",
+			}, nil
 	default:
 		return nil, nil, fmt.Errorf("kind %q should be explicitly handled here", kind)
 	}
@@ -478,6 +488,8 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &ServiceResolverConfigEntry{Name: name}, nil
 	case IngressGateway:
 		return &IngressGatewayConfigEntry{Name: name}, nil
+	case TerminatingGateway:
+		return &TerminatingGatewayConfigEntry{Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}
@@ -489,7 +501,7 @@ func ValidateConfigEntryKind(kind string) bool {
 		return true
 	case ServiceRouter, ServiceSplitter, ServiceResolver:
 		return true
-	case IngressGateway:
+	case IngressGateway, TerminatingGateway:
 		return true
 	default:
 		return false

@@ -2,7 +2,6 @@ package state
 
 import (
 	"fmt"
-
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
 	memdb "github.com/hashicorp/go-memdb"
@@ -326,6 +325,7 @@ func (s *Store) validateProposedConfigEntryInGraph(
 	case structs.ServiceSplitter:
 	case structs.ServiceResolver:
 	case structs.IngressGateway:
+	case structs.TerminatingGateway:
 	default:
 		return fmt.Errorf("unhandled kind %q during validation of %q", kind, name)
 	}
