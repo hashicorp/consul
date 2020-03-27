@@ -259,6 +259,8 @@ jobs:
       <<: *ENVIRONMENT
     steps:
       - checkout
+      - attach_workspace: # this normally runs as the first job and has nothing to attach; only used in master branch after rebuilding UI
+          at: .
       - run:
           command: make dev
 
@@ -490,6 +492,38 @@ jobs:
           paths:
             - dist
 
+  # rebuild UI for packaging
+  ember-build-prod:
+    docker:
+      - image: *EMBER_IMAGE
+    steps:
+      - checkout
+      - restore_cache:
+          key: *YARN_CACHE_KEY
+      - run: cd ui-v2 && make
+
+      # saves the build to a workspace to be passed to a downstream job
+      - persist_to_workspace:
+          root: ui-v2
+          paths:
+            - dist
+
+  # build static-assets file
+  build-static-assets:
+    docker:
+      - image: *GOLANG_IMAGE
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ./pkg
+      - run: mv pkg/dist pkg/web_ui # 'make static-assets' looks for the 'pkg/web_ui' path
+      - run: make tools
+      - run: make static-assets
+      - persist_to_workspace:
+          root: .
+          paths:
+            - ./agent/bindata_assetfs.go
+
   # run ember frontend tests
   ember-test-oss:
     docker:
@@ -650,6 +684,29 @@ workflows:
             - check-vendor
       - build-amd64: *require-check-vendor
       - build-arm: *require-check-vendor
+      # every commit on ui-staging and master will have a rebuilt UI
+      - frontend-cache:
+          filters:
+            branches:
+              only:
+                - master
+                - ui-staging
+      - ember-build-prod:
+          requires:
+            - frontend-cache
+      - build-static-assets:
+          requires:
+            - ember-build-prod
+      - dev-build:
+          requires:
+            - build-static-assets
+      - dev-upload-s3:
+          requires:
+            - dev-build
+      - dev-upload-docker:
+          requires:
+            - dev-build
+          context: consul-ci
   test-integrations:
     jobs:
       - dev-build:
@@ -666,6 +723,8 @@ workflows:
             branches:
               ignore:
                 - /^pull\/.*$/ # only push dev builds from non forks
+                - master # all master dev uploads will include a UI rebuild in build-distros
+                - ui-staging # all ui-staging dev uploads will include a UI rebuild in build-distros
       - dev-upload-docker:
           <<: *dev-upload
           context: consul-ci
