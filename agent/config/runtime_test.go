@@ -1857,7 +1857,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			hcl:  []string{`ui = true ui_dir = "a"`},
 			err: "Both the ui and ui-dir flags were specified, please provide only one.\n" +
 				"If trying to use your own web UI resources, use the ui-dir flag.\n" +
-				"If using Consul version 0.7.0 or later, the web UI is included in the binary so use ui to enable it",
+				"The web UI is included in the binary so use ui to enable it",
 		},
 
 		// test ANY address failures
