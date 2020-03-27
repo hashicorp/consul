@@ -295,7 +295,7 @@ type serversMeetRequirementsState struct {
 	// ok indicates whether all unfiltered servers meet the desired requirements
 	ok bool
 
-	// found is a boolean indicating that the meetsRequirement function accepted at 
+	// found is a boolean indicating that the meetsRequirement function accepted at
 	// least one unfiltered server.
 	found bool
 }
