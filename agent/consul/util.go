@@ -328,7 +328,7 @@ func (s *serversMeetRequirementsState) update(srv *metadata.Server) bool {
 	return true
 }
 
-// ServersMeetRequirements returns whether the given server members meet the requirements as defined by the
+// ServersInDCMeetRequirements returns whether the given server members meet the requirements as defined by the
 // callback function and whether at least one server remains unfiltered by the requirements function.
 func ServersInDCMeetRequirements(provider checkServersProvider, datacenter string, meetsRequirements serverRequirementFn) (ok bool, found bool) {
 	state := serversMeetRequirementsState{meetsRequirements: meetsRequirements, found: false, ok: true}
@@ -338,7 +338,7 @@ func ServersInDCMeetRequirements(provider checkServersProvider, datacenter strin
 	return state.ok, state.found
 }
 
-// ServersMeetMinimumVersion returns whether the given alive servers from a particular
+// ServersInDCMeetMinimumVersion returns whether the given alive servers from a particular
 // datacenter are at least on the given Consul version. This also returns whether any
 // alive or failed servers are known in that datacenter (ignoring left and leaving ones)
 func ServersInDCMeetMinimumVersion(provider checkServersProvider, datacenter string, minVersion *version.Version) (ok bool, found bool) {
