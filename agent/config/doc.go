@@ -78,5 +78,4 @@
 //  * "dockercontainerid" is deprecated in service definitions. Please use "docker_container_id" instead.
 //  * "tlsskipverify" is deprecated in service definitions. Please use "tls_skip_verify" instead.
 //  * "deregistercriticalserviceafter" is deprecated in service definitions. Please use "deregister_critical_service_after" instead.
-
 package config

@@ -5,6 +5,7 @@ go 1.12
 replace github.com/hashicorp/consul/sdk => ../sdk
 
 require (
+	github.com/elazarl/go-bindata-assetfs v1.0.0
 	github.com/hashicorp/consul/sdk v0.4.0
 	github.com/hashicorp/go-cleanhttp v0.5.1
 	github.com/hashicorp/go-hclog v0.12.0
