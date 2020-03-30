@@ -1209,16 +1209,27 @@ func TestAPI_AgentMonitorJSON(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Wait for the first log message and validate it is valid JSON
-	select {
-	case log := <-logCh:
-		var output map[string]interface{}
-		if err := json.Unmarshal([]byte(log), &output); err != nil {
-			t.Fatalf("log output was not JSON: %q", log)
+	retry.Run(t, func(r *retry.R) {
+		{
+			// Register a service to be sure something happens in secs
+			serviceReg := &AgentServiceRegistration{
+				Name: "redis",
+			}
+			if err := agent.ServiceRegister(serviceReg); err != nil {
+				r.Fatalf("err: %v", err)
+			}
 		}
-	case <-time.After(10 * time.Second):
-		t.Fatalf("failed to get a log message")
-	}
+		// Wait for the first log message and validate it is valid JSON
+		select {
+		case log := <-logCh:
+			var output map[string]interface{}
+			if err := json.Unmarshal([]byte(log), &output); err != nil {
+				r.Fatalf("log output was not JSON: %q", log)
+			}
+		case <-time.After(10 * time.Second):
+			r.Fatalf("failed to get a log message")
+		}
+	})
 }
 
 func TestAPI_ServiceMaintenance(t *testing.T) {
