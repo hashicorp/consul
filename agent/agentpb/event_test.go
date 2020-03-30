@@ -16,7 +16,7 @@ func TestEventEnforceACL(t *testing.T) {
 	}{
 		{
 			Name:  "service health reg, blanket allow",
-			Event: TestEventServiceHealthRegister(t, 1, "web"),
+			Event: TestEventServiceHealthRegister(t, 100, 1, "web"),
 			ACLRules: `service_prefix "" {
 				policy = "read"
 			}
@@ -27,7 +27,7 @@ func TestEventEnforceACL(t *testing.T) {
 		},
 		{
 			Name:  "service health reg, deny node",
-			Event: TestEventServiceHealthRegister(t, 1, "web"),
+			Event: TestEventServiceHealthRegister(t, 100, 1, "web"),
 			ACLRules: `service_prefix "" {
 				policy = "read"
 			}`,
@@ -35,7 +35,7 @@ func TestEventEnforceACL(t *testing.T) {
 		},
 		{
 			Name:  "service health reg, deny service",
-			Event: TestEventServiceHealthRegister(t, 1, "web"),
+			Event: TestEventServiceHealthRegister(t, 100, 1, "web"),
 			ACLRules: `node_prefix "" {
 				policy = "read"
 			}`,

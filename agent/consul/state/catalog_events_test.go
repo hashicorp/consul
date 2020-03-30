@@ -62,7 +62,7 @@ func testServiceRegistration(t *testing.T, svc string, opts ...regOption) *struc
 }
 
 func testServiceHealthEvent(t *testing.T, svc string, opts ...eventOption) agentpb.Event {
-	e := agentpb.TestEventServiceHealthRegister(t, 1, svc)
+	e := agentpb.TestEventServiceHealthRegister(t, 100, 1, svc)
 
 	// Normalize a few things that are different in the generic event which was
 	// based on original code here but made more general. This means we don't have
@@ -79,7 +79,7 @@ func testServiceHealthEvent(t *testing.T, svc string, opts ...eventOption) agent
 }
 
 func testServiceHealthDeregistrationEvent(t *testing.T, svc string, opts ...eventOption) agentpb.Event {
-	e := agentpb.TestEventServiceHealthDeregister(t, 1, svc)
+	e := agentpb.TestEventServiceHealthDeregister(t, 100, 1, svc)
 	for _, opt := range opts {
 		err := opt(&e)
 		require.NoError(t, err)

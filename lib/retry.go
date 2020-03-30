@@ -132,9 +132,14 @@ func (rw *RetryWaiter) Failed() <-chan struct{} {
 	return ch
 }
 
-// Resets the internal failure counter
+// Resets the internal failure counter.
 func (rw *RetryWaiter) Reset() {
 	rw.failures = 0
+}
+
+// Failures returns the current number of consecutive failures recorded.
+func (rw *RetryWaiter) Failures() int {
+	return int(rw.failures)
 }
 
 // WaitIf is a convenice method to record whether the last

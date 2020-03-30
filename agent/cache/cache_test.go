@@ -808,6 +808,49 @@ func TestCacheGet_expireResetGet(t *testing.T) {
 	typ.AssertExpectations(t)
 }
 
+type testCloser struct {
+	closed bool
+}
+
+func (t *testCloser) Close() error {
+	t.closed = true
+	return nil
+}
+
+// Test that entries with state that satisfies io.Closer get cleaned up
+func TestCacheGet_expireClose(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	typ := TestType(t)
+	defer typ.AssertExpectations(t)
+	c := TestCache(t)
+
+	// Register the type with a timeout
+	c.RegisterType("t", typ, &RegisterOptions{
+		LastGetTTL: 100 * time.Millisecond,
+	})
+
+	// Configure the type
+	state := &testCloser{}
+	typ.Static(FetchResult{Value: 42, State: state}, nil).Times(1)
+
+	// Get, should fetch
+	req := TestRequest(t, RequestInfo{Key: "hello"})
+	result, meta, err := c.Get("t", req)
+	require.NoError(err)
+	require.Equal(42, result)
+	require.False(meta.Hit)
+	require.False(state.closed)
+
+	// Sleep for the expiry
+	time.Sleep(200 * time.Millisecond)
+
+	// state.Close() should have been called
+	require.True(state.closed)
+}
+
 // Test a Get with a request that returns the same cache key across
 // two different "types" returns two separate results.
 func TestCacheGet_duplicateKeyDifferentType(t *testing.T) {

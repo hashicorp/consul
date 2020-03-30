@@ -27,6 +27,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/ae"
+	"github.com/hashicorp/consul/agent/agentpb"
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/checks"
@@ -301,6 +302,9 @@ type Agent struct {
 	// Envoy.
 	grpcServer *grpc.Server
 
+	// streamClient is the client to use for streaming gRPC endpoints.
+	streamClient agentpb.ConsulClient
+
 	// tlsConfigurator is the central instance to provide a *tls.Config
 	// based on the current consul configuration.
 	tlsConfigurator *tlsutil.Configurator
@@ -463,6 +467,16 @@ func (a *Agent) Start() error {
 	// and that should be hidden in the state syncer implementation.
 	a.State.Delegate = a.delegate
 	a.State.TriggerSyncChanges = a.sync.SyncChanges.Trigger
+
+	if a.config.EnableBackendStreaming {
+		// Set up the gRPC client for the cache.
+		conn, err := a.delegate.GRPCConn()
+		if err != nil {
+			return err
+		}
+
+		a.streamClient = agentpb.NewConsulClient(conn)
+	}
 
 	// Register the cache. We do this much later so the delegate is
 	// populated from above.
@@ -4336,6 +4350,26 @@ func (a *Agent) registerCache() {
 		RefreshTimer:   0 * time.Second,
 		RefreshTimeout: 10 * time.Minute,
 	})
+
+	if a.config.EnableBackendStreaming {
+		a.cache.RegisterType(cachetype.StreamingHealthServicesName,
+			cachetype.NewStreamingHealthServices(a.streamClient, a.logger),
+			&cache.RegisterOptions{
+				// Note that although streaming is naturally "always connected" to
+				// backend, we still need background refresh mechanism to ensure the
+				// cache keeps watching the streaming subscription for changes and
+				// updating the cached value in a timely way (not just on request).
+				// Blocking queries should work without it since the presence of an
+				// actual blocking client would cause the cache to fetch/watch the
+				// subscription again, however non-blocking, ?cached queries might see
+				// needlessly stale cached results if there is no blocking client
+				// causing the cache to be repopulated when the subscription sees a
+				// change.
+				Refresh:        true,
+				RefreshTimer:   0 * time.Second,
+				RefreshTimeout: 10 * time.Minute,
+			})
+	}
 }
 
 // LocalState returns the agent's local state

@@ -46,14 +46,32 @@ func TestEventResumeStream(t testing.T, topic Topic, index uint64) Event {
 // TestEventBatch returns a valid EventBatch event it assumes service health
 // topic, an index of 100 and contains two health registrations.
 func TestEventBatch(t testing.T) Event {
-	e1 := TestEventServiceHealthRegister(t, 1, "web")
-	e2 := TestEventServiceHealthRegister(t, 1, "api")
+	e1 := TestEventServiceHealthRegister(t, 100, 1, "web")
+	e2 := TestEventServiceHealthRegister(t, 100, 1, "api")
 	return Event{
 		Topic: Topic_ServiceHealth,
 		Index: 100,
 		Payload: &Event_EventBatch{
 			EventBatch: &EventBatch{
 				Events: []*Event{&e1, &e2},
+			},
+		},
+	}
+}
+
+// TestEventBatchWithEvents returns a valid EventBatch event containing the
+// event arguments. The index and topic are taken from the first event.
+func TestEventBatchWithEvents(t testing.T, evs ...Event) Event {
+	t.Helper()
+	if len(evs) < 1 {
+		t.Fatal("TestEventBatchWithEvents needs at least one event argument")
+	}
+	return Event{
+		Topic: evs[0].Topic,
+		Index: evs[0].Index,
+		Payload: &Event_EventBatch{
+			EventBatch: &EventBatch{
+				Events: EventBatchEventsFromEventSlice(evs),
 			},
 		},
 	}
@@ -111,7 +129,7 @@ func TestEventACLRoleUpdate(t testing.T) Event {
 // need that. nodeNum should be less than 64k to make the IP address look
 // realistic. Any other changes can be made on the returned event to avoid
 // adding too many options to callers.
-func TestEventServiceHealthRegister(t testing.T, nodeNum int, svc string) Event {
+func TestEventServiceHealthRegister(t testing.T, index uint64, nodeNum int, svc string) Event {
 
 	node := fmt.Sprintf("node%d", nodeNum)
 	nodeID := types.NodeID(fmt.Sprintf("11111111-2222-3333-4444-%012d", nodeNum))
@@ -120,7 +138,7 @@ func TestEventServiceHealthRegister(t testing.T, nodeNum int, svc string) Event 
 	return Event{
 		Topic: Topic_ServiceHealth,
 		Key:   svc,
-		Index: 100,
+		Index: index,
 		Payload: &Event_ServiceHealth{
 			ServiceHealth: &ServiceHealthUpdate{
 				Op: CatalogOp_Register,
@@ -131,8 +149,8 @@ func TestEventServiceHealthRegister(t testing.T, nodeNum int, svc string) Event 
 						Address:    addr,
 						Datacenter: "dc1",
 						RaftIndex: RaftIndex{
-							CreateIndex: 100,
-							ModifyIndex: 100,
+							CreateIndex: index,
+							ModifyIndex: index,
 						},
 					},
 					Service: &NodeService{
@@ -150,8 +168,8 @@ func TestEventServiceHealthRegister(t testing.T, nodeNum int, svc string) Event 
 						},
 						EnterpriseMeta: &EnterpriseMeta{},
 						RaftIndex: RaftIndex{
-							CreateIndex: 100,
-							ModifyIndex: 100,
+							CreateIndex: index,
+							ModifyIndex: index,
 						},
 					},
 					Checks: []*HealthCheck{
@@ -162,8 +180,8 @@ func TestEventServiceHealthRegister(t testing.T, nodeNum int, svc string) Event 
 							Status:         "passing",
 							EnterpriseMeta: &EnterpriseMeta{},
 							RaftIndex: RaftIndex{
-								CreateIndex: 100,
-								ModifyIndex: 100,
+								CreateIndex: index,
+								ModifyIndex: index,
 							},
 						},
 						&HealthCheck{
@@ -176,8 +194,8 @@ func TestEventServiceHealthRegister(t testing.T, nodeNum int, svc string) Event 
 							Status:         "passing",
 							EnterpriseMeta: &EnterpriseMeta{},
 							RaftIndex: RaftIndex{
-								CreateIndex: 100,
-								ModifyIndex: 100,
+								CreateIndex: index,
+								ModifyIndex: index,
 							},
 						},
 					},
@@ -194,14 +212,14 @@ func TestEventServiceHealthRegister(t testing.T, nodeNum int, svc string) Event 
 // need that. nodeNum should be less than 64k to make the IP address look
 // realistic. Any other changes can be made on the returned event to avoid
 // adding too many options to callers.
-func TestEventServiceHealthDeregister(t testing.T, nodeNum int, svc string) Event {
+func TestEventServiceHealthDeregister(t testing.T, index uint64, nodeNum int, svc string) Event {
 
 	node := fmt.Sprintf("node%d", nodeNum)
 
 	return Event{
 		Topic: Topic_ServiceHealth,
 		Key:   svc,
-		Index: 100,
+		Index: index,
 		Payload: &Event_ServiceHealth{
 			ServiceHealth: &ServiceHealthUpdate{
 				Op: CatalogOp_Deregister,
@@ -224,7 +242,11 @@ func TestEventServiceHealthDeregister(t testing.T, nodeNum int, svc string) Even
 						},
 						EnterpriseMeta: &EnterpriseMeta{},
 						RaftIndex: RaftIndex{
-							// The original insertion index since a delete doesn't update this.
+							// The original insertion index since a delete doesn't update
+							// this. This magic value came from state store tests where we
+							// setup at index 10 and then mutate at index 100. It can be
+							// modified by the caller later and makes it easier than having
+							// yet another argument in the common case.
 							CreateIndex: 10,
 							ModifyIndex: 10,
 						},

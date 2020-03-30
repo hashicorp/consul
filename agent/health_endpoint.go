@@ -198,8 +198,13 @@ func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Requ
 	var out structs.IndexedCheckServiceNodes
 	defer setMeta(resp, &out.QueryMeta)
 
-	if args.QueryOptions.UseCache {
-		raw, m, err := s.agent.cache.Get(cachetype.HealthServicesName, &args)
+	// Use the streaming cachetype if enabled.
+	if args.QueryOptions.UseCache || (s.agent.config.EnableBackendStreaming && args.MinQueryIndex > 0) {
+		cType := cachetype.HealthServicesName
+		if s.agent.config.EnableBackendStreaming {
+			cType = cachetype.StreamingHealthServicesName
+		}
+		raw, m, err := s.agent.cache.Get(cType, &args)
 		if err != nil {
 			return nil, err
 		}
