@@ -3,7 +3,6 @@ package proxy
 import (
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"net/http"
@@ -43,8 +42,7 @@ type cmd struct {
 
 	shutdownCh <-chan struct{}
 
-	logOutput io.Writer
-	logger    hclog.Logger
+	logger hclog.Logger
 
 	// flags
 	logLevel    string
@@ -138,12 +136,10 @@ func (c *cmd) Run(args []string) int {
 		Name:     logging.Proxy,
 		LogJSON:  c.logJSON,
 	}
-	logger, logGate, logOutput, ok := logging.Setup(logConfig, c.UI)
+	logger, logGate, _, ok := logging.Setup(logConfig, c.UI)
 	if !ok {
 		return 1
 	}
-	c.logOutput = logOutput
-
 	c.logger = logger
 
 	// Enable Pprof if needed
