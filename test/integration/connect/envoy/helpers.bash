@@ -51,6 +51,10 @@ function retry_long {
   retry 30 1 "$@"
 }
 
+function retry_envoy {
+  retry 30 2 "$@"
+}
+
 function echored {
   tput setaf 1
   tput bold
@@ -212,7 +216,7 @@ function get_upstream_endpoint_in_status_count {
   local HOSTPORT=$1
   local CLUSTER_NAME=$2
   local HEALTH_STATUS=$3
-  run retry_default curl -s -f "http://${HOSTPORT}/clusters?format=json"
+  run retry_envoy curl -f "http://${HOSTPORT}/clusters?format=json"
   [ "$status" -eq 0 ]
   if [ "$4" != "" ]
   then
