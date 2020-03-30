@@ -108,7 +108,7 @@ external tools like [consul-replicate](https://github.com/hashicorp/consul-repli
 
 ## Q: Can Consul natively handle protecting against other processes accessing Consul's memory state? 
 
-In short, Consul does not have anything built in to protect against memory 
+Consul does not provide built-in memory access protections, and doesn't interact with the host system to change or manipulate 
 viewing and doesn't interact with the host system to change or manipulate 
 application security.
 

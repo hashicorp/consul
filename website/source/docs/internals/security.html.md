@@ -37,7 +37,7 @@ going to be invalid. Additional security precautions must also be taken for
 items outside of Consul's threat model as noted in sections below.
 
 * **Consul runs just like any other binary.** Consul runs as a single process 
-  binary and obeys the same security requirements as any other application on 
+  and obeys the same security requirements as any other application on 
   your system. Consul doesn't interact with the host system to change or 
   manipulate security values in any way. Take any precautions or remediation 
   steps that you would normally do for individual processes, based on your 
