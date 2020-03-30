@@ -13,6 +13,34 @@ const id = 'token-name';
 const now = new Date().getTime();
 const undefinedNspace = 'default';
 [undefinedNspace, 'team-1', undefined].forEach(nspace => {
+  test(`findInstanceBySlug calls findBySlug with the correct arguments when nspace is ${nspace}`, function(assert) {
+    assert.expect(4);
+    const id = 'id';
+    const slug = 'slug';
+    const node = 'node-name';
+
+    const datacenter = 'dc-1';
+    const conf = {
+      cursor: 1,
+    };
+    const service = this.subject();
+    service.findBySlug = function(slug, dc, nspace, configuration) {
+      assert.equal(
+        arguments.length,
+        4,
+        'Expected to be called with the correct number of arguments'
+      );
+      assert.equal(dc, datacenter);
+      assert.deepEqual(configuration, conf);
+      return Promise.resolve({ Nodes: [] });
+    };
+    // This will throw an error as we don't resolve any services that match what was requested
+    // so a 404 is the correct error response
+    return service.findInstanceBySlug(id, slug, node, datacenter, nspace, conf).catch(function(e) {
+      assert.equal(e.errors[0].status, '404');
+    });
+  });
+
   test(`findByDatacenter returns the correct data for list endpoint when nspace is ${nspace}`, function(assert) {
     get(this.subject(), 'store').serializerFor(NAME).timestamp = function() {
       return now;
