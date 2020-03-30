@@ -112,7 +112,7 @@ In short, Consul does not have anything built in to protect against memory
 viewing and doesn't interact with the host system to change or manipulate 
 application security.
 
-As Consul is a singular binary, we recommend taking any precautions or 
+We recommend taking any precautions or 
 remediation steps that you would normally do for individual processes, based 
 on your operating system. 
 
