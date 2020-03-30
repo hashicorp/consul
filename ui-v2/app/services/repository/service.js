@@ -35,8 +35,8 @@ export default RepositoryService.extend({
       return service;
     });
   },
-  findInstanceBySlug: function(id, node, slug, dc, configuration) {
-    return this.findBySlug(slug, dc, configuration).then(function(item) {
+  findInstanceBySlug: function(id, node, slug, dc, nspace, configuration) {
+    return this.findBySlug(slug, dc, nspace, configuration).then(function(item) {
       // TODO: Move this to the Serializer
       // Loop through all the service instances and pick out the one
       // that has the same service id AND node name
