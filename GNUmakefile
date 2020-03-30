@@ -354,7 +354,7 @@ ui-docker: ui-build-image
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh ui
 
 test-envoy-integ: $(ENVOY_INTEG_DEPS)
-	@$(SHELL) $(CURDIR)/test/integration/connect/envoy/run-tests.sh
+	$(SHELL) $(CURDIR)/test/integration/connect/envoy/run-tests.sh
 
 test-vault-ca-provider:
 ifeq ("$(CIRCLECI)","true")

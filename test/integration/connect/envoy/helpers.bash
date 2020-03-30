@@ -240,8 +240,8 @@ function assert_upstream_has_endpoints_in_status_once {
   then
     return 0
   else
-    echo "[ERROR] assert_upstream_has_endpoints_in_status_once $HOSTPORT $CLUSTER_NAME $HEALTH_STATUS $EXPECT_COUNT" > &2
-    cat "$output" > &2
+    echo "[ERROR] assert_upstream_has_endpoints_in_status_once $HOSTPORT $CLUSTER_NAME $HEALTH_STATUS $EXPECT_COUNT"
+    cat "$output"
     return 1
   fi
   rm $output
