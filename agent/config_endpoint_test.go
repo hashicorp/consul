@@ -182,6 +182,63 @@ func TestConfig_Apply(t *testing.T) {
 	}
 }
 
+func TestConfig_Apply_TerminatingGateway(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	// Create some config entries.
+	body := bytes.NewBuffer([]byte(`
+	{
+		"Kind": "terminating-gateway",
+		"Name": "west-gw-01",
+		"Services": [
+		  {
+			"Name": "web",
+			"CAFile": "/etc/web/ca.crt",
+			"CertFile": "/etc/web/client.crt",
+			"KeyFile": "/etc/web/tls.key"
+		  },
+		  {
+			"Name": "api"
+		  }
+		]
+	}`))
+
+	req, _ := http.NewRequest("PUT", "/v1/config", body)
+	resp := httptest.NewRecorder()
+	_, err := a.srv.ConfigApply(resp, req)
+	require.NoError(t, err)
+	require.Equal(t, 200, resp.Code, "!200 Response Code: %s", resp.Body.String())
+
+	// Get the remaining entry.
+	{
+		args := structs.ConfigEntryQuery{
+			Kind:       structs.TerminatingGateway,
+			Name:       "west-gw-01",
+			Datacenter: "dc1",
+		}
+		var out structs.ConfigEntryResponse
+		require.NoError(t, a.RPC("ConfigEntry.Get", &args, &out))
+		require.NotNil(t, out.Entry)
+		got := out.Entry.(*structs.TerminatingGatewayConfigEntry)
+		expect := []structs.LinkedService{
+			{
+				Name:     "web",
+				CAFile:   "/etc/web/ca.crt",
+				CertFile: "/etc/web/client.crt",
+				KeyFile:  "/etc/web/tls.key",
+			},
+			{
+				Name: "api",
+			},
+		}
+		require.Equal(t, expect, got.Services)
+	}
+}
+
 func TestConfig_Apply_ProxyDefaultsMeshGateway(t *testing.T) {
 	t.Parallel()
 

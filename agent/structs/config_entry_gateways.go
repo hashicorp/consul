@@ -227,6 +227,9 @@ func (e *TerminatingGatewayConfigEntry) Validate() error {
 		}
 
 		ns := svc.NamespaceOrDefault()
+		if ns == WildcardSpecifier {
+			return fmt.Errorf("Wildcard namespace is not supported for terminating gateway services")
+		}
 		if _, ok := seen[ns]; !ok {
 			seen[ns] = make(map[string]bool)
 		}
