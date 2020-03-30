@@ -444,7 +444,7 @@ func (s *Server) initializeLegacyACL() error {
 	// of state in the state store that will cause problems with older
 	// servers consuming snapshots, so we have to wait to create it.
 	var minVersion = version.Must(version.NewVersion("0.9.1"))
-	if ServersMeetMinimumVersion(s.LANMembers(), minVersion) {
+	if ok, _ := ServersInDCMeetMinimumVersion(s, s.config.Datacenter, minVersion); ok {
 		canBootstrap, _, err := state.CanBootstrapACLToken()
 		if err != nil {
 			return fmt.Errorf("failed looking for ACL bootstrap info: %v", err)
@@ -978,7 +978,7 @@ func (s *Server) getOrCreateAutopilotConfig() *autopilot.Config {
 		return config
 	}
 
-	if !ServersMeetMinimumVersion(s.LANMembers(), minAutopilotVersion) {
+	if ok, _ := ServersInDCMeetMinimumVersion(s, s.config.Datacenter, minAutopilotVersion); !ok {
 		logger.Warn("can't initialize until all servers are >= " + minAutopilotVersion.String())
 		return nil
 	}
@@ -1004,7 +1004,7 @@ func (s *Server) bootstrapConfigEntries(entries []structs.ConfigEntry) error {
 		return nil
 	}
 
-	if !ServersMeetMinimumVersion(s.LANMembers(), minCentralizedConfigVersion) {
+	if ok, _ := ServersInDCMeetMinimumVersion(s, s.config.Datacenter, minCentralizedConfigVersion); !ok {
 		s.loggers.
 			Named(logging.CentralConfig).
 			Warn("config: can't initialize until all servers >=" + minCentralizedConfigVersion.String())

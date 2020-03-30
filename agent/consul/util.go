@@ -273,89 +273,163 @@ func runtimeStats() map[string]string {
 	}
 }
 
-// ServersMeetMinimumVersion returns whether the given alive servers are at least on the
-// given Consul version
-func ServersMeetMinimumVersion(members []serf.Member, minVersion *version.Version) bool {
-	return ServersMeetRequirements(members, func(srv *metadata.Server) bool {
-		return srv.Status != serf.StatusAlive || !srv.Build.LessThan(minVersion)
-	})
+// checkServersProvider exists so that we can unit tests the requirements checking functions
+// without having to spin up a whole agent/server.
+type checkServersProvider interface {
+	CheckServers(datacenter string, fn func(*metadata.Server) bool)
 }
 
-// ServersMeetMinimumVersion returns whether the given alive servers from a particular
-// datacenter are at least on the given Consul version. This requires at least 1 alive server in the DC
-func ServersInDCMeetMinimumVersion(members []serf.Member, datacenter string, minVersion *version.Version) (bool, bool) {
-	found := false
-	ok := ServersMeetRequirements(members, func(srv *metadata.Server) bool {
-		if srv.Status != serf.StatusAlive || srv.Datacenter != datacenter {
-			return true
+// serverRequirementsFn should inspect the given metadata.Server struct
+// and return two booleans. The first indicates whether the given requirements
+// are met. The second indicates whether this server should be considered filtered.
+//
+// The reason for the two booleans is so that a requirement function could "filter"
+// out the left server members if we only want to consider things which are still
+// around or likely to come back (failed state).
+type serverRequirementFn func(*metadata.Server) (ok bool, filtered bool)
+
+type serversMeetRequirementsState struct {
+	// meetsRequirements is the callback to actual check for some specific requirement
+	meetsRequirements serverRequirementFn
+
+	// ok indicates whether all unfiltered servers meet the desired requirements
+	ok bool
+
+	// found is a boolean indicating that the meetsRequirement function accepted at
+	// least one unfiltered server.
+	found bool
+}
+
+func (s *serversMeetRequirementsState) update(srv *metadata.Server) bool {
+	ok, filtered := s.meetsRequirements(srv)
+
+	if filtered {
+		// keep going but don't update any of the internal state as this server
+		// was filtered by the requirements function
+		return true
+	}
+
+	// mark that at least one server processed was not filtered
+	s.found = true
+
+	if !ok {
+		// mark that at least one server does not meet the requirements
+		s.ok = false
+
+		// prevent continuing server evaluation
+		return false
+	}
+
+	// this should already be set but this will prevent accidentally reusing
+	// the state object from causing false-negatives.
+	s.ok = true
+
+	// continue evaluating servers
+	return true
+}
+
+// ServersInDCMeetRequirements returns whether the given server members meet the requirements as defined by the
+// callback function and whether at least one server remains unfiltered by the requirements function.
+func ServersInDCMeetRequirements(provider checkServersProvider, datacenter string, meetsRequirements serverRequirementFn) (ok bool, found bool) {
+	state := serversMeetRequirementsState{meetsRequirements: meetsRequirements, found: false, ok: true}
+
+	provider.CheckServers(datacenter, state.update)
+
+	return state.ok, state.found
+}
+
+// ServersInDCMeetMinimumVersion returns whether the given alive servers from a particular
+// datacenter are at least on the given Consul version. This also returns whether any
+// alive or failed servers are known in that datacenter (ignoring left and leaving ones)
+func ServersInDCMeetMinimumVersion(provider checkServersProvider, datacenter string, minVersion *version.Version) (ok bool, found bool) {
+	return ServersInDCMeetRequirements(provider, datacenter, func(srv *metadata.Server) (bool, bool) {
+		if srv.Status != serf.StatusAlive && srv.Status != serf.StatusFailed {
+			// filter out the left servers as those should not be factored into our requirements
+			return true, true
 		}
 
-		found = true
-		return !srv.Build.LessThan(minVersion)
+		return !srv.Build.LessThan(minVersion), false
 	})
-
-	return ok, found
 }
 
-// ServersMeetRequirements returns whether the given server members meet the requirements as defined by the
-// callback function
-func ServersMeetRequirements(members []serf.Member, meetsRequirements func(*metadata.Server) bool) bool {
-	for _, member := range members {
-		if valid, parts := metadata.IsConsulServer(member); valid {
-			if !meetsRequirements(parts) {
-				return false
-			}
+// CheckServers implements the checkServersProvider interface for the Server
+func (s *Server) CheckServers(datacenter string, fn func(*metadata.Server) bool) {
+	if datacenter == s.config.Datacenter {
+		// use the ServerLookup type for the local DC
+		s.serverLookup.CheckServers(fn)
+	} else {
+		// use the router for all non-local DCs
+		s.router.CheckServers(datacenter, fn)
+	}
+}
+
+type serversACLMode struct {
+	// leader is the address of the leader
+	leader string
+
+	// mode indicates the overall ACL mode of the servers
+	mode structs.ACLMode
+
+	// leaderMode is the ACL mode of the leader server
+	leaderMode structs.ACLMode
+
+	// indicates that at least one server was processed
+	found bool
+}
+
+func (s *serversACLMode) init(leader string) {
+	s.leader = leader
+	s.mode = structs.ACLModeEnabled
+	s.leaderMode = structs.ACLModeUnknown
+	s.found = false
+}
+
+func (s *serversACLMode) update(srv *metadata.Server) bool {
+	if srv.Status != serf.StatusAlive && srv.Status != serf.StatusFailed {
+		// they are left or something so regardless we treat these servers as meeting
+		// the version requirement
+		return true
+	}
+
+	// mark that we processed at least one server
+	s.found = true
+
+	if srvAddr := srv.Addr.String(); srvAddr == s.leader {
+		s.leaderMode = srv.ACLs
+	}
+
+	switch srv.ACLs {
+	case structs.ACLModeDisabled:
+		// anything disabled means we cant enable ACLs
+		s.mode = structs.ACLModeDisabled
+	case structs.ACLModeEnabled:
+		// do nothing
+	case structs.ACLModeLegacy:
+		// This covers legacy mode and older server versions that don't advertise ACL support
+		if s.mode != structs.ACLModeDisabled && s.mode != structs.ACLModeUnknown {
+			s.mode = structs.ACLModeLegacy
+		}
+	default:
+		if s.mode != structs.ACLModeDisabled {
+			s.mode = structs.ACLModeUnknown
 		}
 	}
 
 	return true
 }
 
-func ServersGetACLMode(members []serf.Member, leader string, datacenter string) (numServers int, mode structs.ACLMode, leaderMode structs.ACLMode) {
-	numServers = 0
-	mode = structs.ACLModeEnabled
-	leaderMode = structs.ACLModeUnknown
-	for _, member := range members {
-		if valid, parts := metadata.IsConsulServer(member); valid {
+// ServersGetACLMode checks all the servers in a particular datacenter and determines
+// what the minimum ACL mode amongst them is and what the leaders ACL mode is.
+// The "found" return value indicates whether there were any servers considered in
+// this datacenter. If that is false then the other mode return values are meaningless
+// as they will be ACLModeEnabled and ACLModeUnkown respectively.
+func ServersGetACLMode(provider checkServersProvider, leaderAddr string, datacenter string) (found bool, mode structs.ACLMode, leaderMode structs.ACLMode) {
+	var state serversACLMode
+	state.init(leaderAddr)
 
-			if datacenter != "" && parts.Datacenter != datacenter {
-				continue
-			}
+	provider.CheckServers(datacenter, state.update)
 
-			if parts.Status != serf.StatusAlive && parts.Status != serf.StatusFailed {
-				// ignore any server that isn't alive or failed. We are considering failed
-				// because in this state there is a reasonable expectation that they could
-				// become stable again. Also autopilot should remove dead servers if they
-				// are truly gone.
-				continue
-			}
-
-			numServers += 1
-
-			if memberAddr := (&net.TCPAddr{IP: member.Addr, Port: parts.Port}).String(); memberAddr == leader {
-				leaderMode = parts.ACLs
-			}
-
-			switch parts.ACLs {
-			case structs.ACLModeDisabled:
-				// anything disabled means we cant enable ACLs
-				mode = structs.ACLModeDisabled
-			case structs.ACLModeEnabled:
-				// do nothing
-			case structs.ACLModeLegacy:
-				// This covers legacy mode and older server versions that don't advertise ACL support
-				if mode != structs.ACLModeDisabled && mode != structs.ACLModeUnknown {
-					mode = structs.ACLModeLegacy
-				}
-			default:
-				if mode != structs.ACLModeDisabled {
-					mode = structs.ACLModeUnknown
-				}
-			}
-		}
-	}
-
-	return
+	return state.found, state.mode, state.leaderMode
 }
 
 // InterpolateHIL processes the string as if it were HIL and interpolates only

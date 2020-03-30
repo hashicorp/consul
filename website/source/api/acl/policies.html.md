@@ -145,6 +145,59 @@ $ curl -X GET http://127.0.0.1:8500/v1/acl/policy/e359bd81-baca-903e-7e64-1ccd9f
 }
 ```
 
+## Read a Policy by Name
+
+This endpoint reads an ACL policy with the given ID.
+
+| Method | Path                         | Produces                   |
+| ------ | ---------------------------- | -------------------------- |
+| `GET`  | `/acl/policy/name/:name`     | `application/json`         |
+
+The table below shows this endpoint's support for
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `YES`            | `all`             | `none`        | `acl:read`   |
+
+### Parameters
+
+- `name` `(string: <required>)` - Specifies the name of the ACL policy to
+  read. This is required and is specified as part of the URL path.
+
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to lookup
+  the policy. This value can be specified as the `ns` URL query
+  parameter or the `X-Consul-Namespace` header. If not provided by either,
+  the namespace will be inherited from the request's ACL token or will default
+  to the `default` namespace. Added in Consul 1.7.0.
+
+
+### Sample Request
+
+```sh
+$ curl -X GET http://127.0.0.1:8500/v1/acl/policy/name/node-read
+```
+
+### Sample Response
+
+```json
+{
+    "ID": "e359bd81-baca-903e-7e64-1ccd9fdc78f5",
+    "Name": "node-read",
+    "Description": "Grants read access to all node information",
+    "Rules": "node_prefix \"\" { policy = \"read\"}",
+    "Datacenters": [
+        "dc1"
+    ],
+    "Hash": "OtZUUKhInTLEqTPfNSSOYbRiSBKm3c4vI2p6MxZnGWc=",
+    "CreateIndex": 14,
+    "ModifyIndex": 14
+}
+```
+
 ## Update a Policy
 
 This endpoint updates an existing ACL policy.

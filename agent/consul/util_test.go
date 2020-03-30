@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
@@ -336,108 +337,53 @@ func TestGetPublicIPv6(t *testing.T) {
 	}
 }
 
-func TestServersMeetMinimumVersion(t *testing.T) {
-	t.Parallel()
-	makeMember := func(version string) serf.Member {
-		return serf.Member{
-			Name: "foo",
-			Addr: net.IP([]byte{127, 0, 0, 1}),
-			Tags: map[string]string{
-				"role":          "consul",
-				"id":            "asdf",
-				"dc":            "east-aws",
-				"port":          "10000",
-				"build":         version,
-				"wan_join_port": "1234",
-				"vsn":           "1",
-				"expect":        "3",
-				"raft_vsn":      "3",
-			},
-			Status: serf.StatusAlive,
+type testServersProvider []metadata.Server
+
+func (p testServersProvider) CheckServers(datacenter string, fn func(*metadata.Server) bool) {
+	for _, srv := range p {
+		// filter these out - now I don't have to modify the tests. Originally the dc filtering
+		// happened in the ServersInDCMeetMinimumVersion, now we get a list of servers to check
+		// through the routing infrastructure or server lookup which will map a datacenter to a
+		// list of metadata.Server structs that are all in that datacenter.
+		if srv.Datacenter != datacenter {
+			continue
 		}
-	}
 
-	cases := []struct {
-		members  []serf.Member
-		ver      *version.Version
-		expected bool
-	}{
-		// One server, meets reqs
-		{
-			members: []serf.Member{
-				makeMember("0.7.5"),
-			},
-			ver:      version.Must(version.NewVersion("0.7.5")),
-			expected: true,
-		},
-		// One server, doesn't meet reqs
-		{
-			members: []serf.Member{
-				makeMember("0.7.5"),
-			},
-			ver:      version.Must(version.NewVersion("0.8.0")),
-			expected: false,
-		},
-		// Multiple servers, meets req version
-		{
-			members: []serf.Member{
-				makeMember("0.7.5"),
-				makeMember("0.8.0"),
-			},
-			ver:      version.Must(version.NewVersion("0.7.5")),
-			expected: true,
-		},
-		// Multiple servers, doesn't meet req version
-		{
-			members: []serf.Member{
-				makeMember("0.7.5"),
-				makeMember("0.8.0"),
-			},
-			ver:      version.Must(version.NewVersion("0.8.0")),
-			expected: false,
-		},
-	}
-
-	for _, tc := range cases {
-		result := ServersMeetMinimumVersion(tc.members, tc.ver)
-		if result != tc.expected {
-			t.Fatalf("bad: %v, %v, %v", result, tc.ver.String(), tc)
+		if !fn(&srv) {
+			return
 		}
 	}
 }
 
 func TestServersInDCMeetMinimumVersion(t *testing.T) {
 	t.Parallel()
-	makeMember := func(version string, datacenter string) serf.Member {
-		return serf.Member{
-			Name: "foo",
-			Addr: net.IP([]byte{127, 0, 0, 1}),
-			Tags: map[string]string{
-				"role":          "consul",
-				"id":            "asdf",
-				"dc":            datacenter,
-				"port":          "10000",
-				"build":         version,
-				"wan_join_port": "1234",
-				"vsn":           "1",
-				"expect":        "3",
-				"raft_vsn":      "3",
-			},
-			Status: serf.StatusAlive,
+	makeServer := func(versionStr string, datacenter string) metadata.Server {
+		return metadata.Server{
+			Name:        "foo",
+			ShortName:   "foo",
+			ID:          "asdf",
+			Port:        10000,
+			Expect:      3,
+			RaftVersion: 3,
+			Status:      serf.StatusAlive,
+			WanJoinPort: 1234,
+			Version:     1,
+			Build:       *version.Must(version.NewVersion(versionStr)),
+			Datacenter:  datacenter,
 		}
 	}
 
 	cases := []struct {
-		members       []serf.Member
+		servers       testServersProvider
 		ver           *version.Version
 		expected      bool
 		expectedFound bool
 	}{
 		// One server, meets reqs
 		{
-			members: []serf.Member{
-				makeMember("0.7.5", "primary"),
-				makeMember("0.7.3", "secondary"),
+			servers: testServersProvider{
+				makeServer("0.7.5", "primary"),
+				makeServer("0.7.3", "secondary"),
 			},
 			ver:           version.Must(version.NewVersion("0.7.5")),
 			expected:      true,
@@ -445,9 +391,9 @@ func TestServersInDCMeetMinimumVersion(t *testing.T) {
 		},
 		// One server, doesn't meet reqs
 		{
-			members: []serf.Member{
-				makeMember("0.7.5", "primary"),
-				makeMember("0.8.1", "secondary"),
+			servers: testServersProvider{
+				makeServer("0.7.5", "primary"),
+				makeServer("0.8.1", "secondary"),
 			},
 			ver:           version.Must(version.NewVersion("0.8.0")),
 			expected:      false,
@@ -455,10 +401,10 @@ func TestServersInDCMeetMinimumVersion(t *testing.T) {
 		},
 		// Multiple servers, meets req version
 		{
-			members: []serf.Member{
-				makeMember("0.7.5", "primary"),
-				makeMember("0.8.0", "primary"),
-				makeMember("0.7.0", "secondary"),
+			servers: testServersProvider{
+				makeServer("0.7.5", "primary"),
+				makeServer("0.8.0", "primary"),
+				makeServer("0.7.0", "secondary"),
 			},
 			ver:           version.Must(version.NewVersion("0.7.5")),
 			expected:      true,
@@ -466,20 +412,20 @@ func TestServersInDCMeetMinimumVersion(t *testing.T) {
 		},
 		// Multiple servers, doesn't meet req version
 		{
-			members: []serf.Member{
-				makeMember("0.7.5", "primary"),
-				makeMember("0.8.0", "primary"),
-				makeMember("0.9.1", "secondary"),
+			servers: testServersProvider{
+				makeServer("0.7.5", "primary"),
+				makeServer("0.8.0", "primary"),
+				makeServer("0.9.1", "secondary"),
 			},
 			ver:           version.Must(version.NewVersion("0.8.0")),
 			expected:      false,
 			expectedFound: true,
 		},
 		{
-			members: []serf.Member{
-				makeMember("0.7.5", "secondary"),
-				makeMember("0.8.0", "secondary"),
-				makeMember("0.9.1", "secondary"),
+			servers: testServersProvider{
+				makeServer("0.7.5", "secondary"),
+				makeServer("0.8.0", "secondary"),
+				makeServer("0.9.1", "secondary"),
 			},
 			ver:           version.Must(version.NewVersion("0.7.0")),
 			expected:      true,
@@ -488,7 +434,7 @@ func TestServersInDCMeetMinimumVersion(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		result, found := ServersInDCMeetMinimumVersion(tc.members, "primary", tc.ver)
+		result, found := ServersInDCMeetMinimumVersion(tc.servers, "primary", tc.ver)
 		require.Equal(t, tc.expected, result)
 		require.Equal(t, tc.expectedFound, found)
 	}
@@ -626,114 +572,111 @@ func TestInterpolateHIL(t *testing.T) {
 
 func TestServersGetACLMode(t *testing.T) {
 	t.Parallel()
-	makeMember := func(role string, datacenter string, acls structs.ACLMode, status serf.MemberStatus, addr net.IP) serf.Member {
-		return serf.Member{
-			Name: "foo",
-			Addr: addr,
-			Tags: map[string]string{
-				"role":          role,
-				"id":            "asdf",
-				"dc":            datacenter,
-				"port":          "10000",
-				"build":         "1.6.0",
-				"wan_join_port": "1234",
-				"vsn":           "1",
-				"expect":        "3",
-				"raft_vsn":      "3",
-				"acls":          string(acls),
-			},
-			Status: status,
+	makeServer := func(datacenter string, acls structs.ACLMode, status serf.MemberStatus, addr net.IP) metadata.Server {
+		return metadata.Server{
+			Name:        "foo",
+			ShortName:   "foo",
+			ID:          "asdf",
+			Port:        10000,
+			Expect:      3,
+			RaftVersion: 3,
+			Status:      status,
+			WanJoinPort: 1234,
+			Version:     1,
+			Addr:        &net.TCPAddr{IP: addr, Port: 10000},
+			// shouldn't matter for these tests
+			Build:      *version.Must(version.NewVersion("1.7.0")),
+			Datacenter: datacenter,
+			ACLs:       acls,
 		}
 	}
 
 	type tcase struct {
-		members    []serf.Member
-		leaderAddr string
-		datacenter string
-		numServers int
-		minMode    structs.ACLMode
-		leaderMode structs.ACLMode
+		servers      testServersProvider
+		leaderAddr   string
+		datacenter   string
+		foundServers bool
+		minMode      structs.ACLMode
+		leaderMode   structs.ACLMode
 	}
 
 	cases := map[string]tcase{
 		"filter-members": tcase{
-			members: []serf.Member{
-				makeMember("consul", "primary", structs.ACLModeLegacy, serf.StatusAlive, net.IP([]byte{127, 0, 0, 1})),
-				makeMember("consul", "primary", structs.ACLModeLegacy, serf.StatusFailed, net.IP([]byte{127, 0, 0, 2})),
-				// filter non-server
-				makeMember("client", "primary", structs.ACLModeUnknown, serf.StatusAlive, net.IP([]byte{127, 0, 0, 3})),
+			servers: testServersProvider{
+				makeServer("primary", structs.ACLModeLegacy, serf.StatusAlive, net.IP([]byte{127, 0, 0, 1})),
+				makeServer("primary", structs.ACLModeLegacy, serf.StatusFailed, net.IP([]byte{127, 0, 0, 2})),
 				// filtered datacenter
-				makeMember("consul", "secondary", structs.ACLModeUnknown, serf.StatusAlive, net.IP([]byte{127, 0, 0, 4})),
+				makeServer("secondary", structs.ACLModeUnknown, serf.StatusAlive, net.IP([]byte{127, 0, 0, 4})),
 				// filtered status
-				makeMember("consul", "primary", structs.ACLModeUnknown, serf.StatusLeaving, net.IP([]byte{127, 0, 0, 5})),
+				makeServer("primary", structs.ACLModeUnknown, serf.StatusLeaving, net.IP([]byte{127, 0, 0, 5})),
 				// filtered status
-				makeMember("consul", "primary", structs.ACLModeUnknown, serf.StatusLeft, net.IP([]byte{127, 0, 0, 6})),
+				makeServer("primary", structs.ACLModeUnknown, serf.StatusLeft, net.IP([]byte{127, 0, 0, 6})),
 				// filtered status
-				makeMember("consul", "primary", structs.ACLModeUnknown, serf.StatusNone, net.IP([]byte{127, 0, 0, 7})),
+				makeServer("primary", structs.ACLModeUnknown, serf.StatusNone, net.IP([]byte{127, 0, 0, 7})),
 			},
-			numServers: 2,
-			leaderAddr: "127.0.0.1:10000",
-			datacenter: "primary",
-			minMode:    structs.ACLModeLegacy,
-			leaderMode: structs.ACLModeLegacy,
+			foundServers: true,
+			leaderAddr:   "127.0.0.1:10000",
+			datacenter:   "primary",
+			minMode:      structs.ACLModeLegacy,
+			leaderMode:   structs.ACLModeLegacy,
 		},
 		"disabled": tcase{
-			members: []serf.Member{
-				makeMember("consul", "primary", structs.ACLModeLegacy, serf.StatusAlive, net.IP([]byte{127, 0, 0, 1})),
-				makeMember("consul", "primary", structs.ACLModeUnknown, serf.StatusAlive, net.IP([]byte{127, 0, 0, 2})),
-				makeMember("consul", "primary", structs.ACLModeDisabled, serf.StatusAlive, net.IP([]byte{127, 0, 0, 3})),
+			servers: testServersProvider{
+				makeServer("primary", structs.ACLModeLegacy, serf.StatusAlive, net.IP([]byte{127, 0, 0, 1})),
+				makeServer("primary", structs.ACLModeUnknown, serf.StatusAlive, net.IP([]byte{127, 0, 0, 2})),
+				makeServer("primary", structs.ACLModeDisabled, serf.StatusAlive, net.IP([]byte{127, 0, 0, 3})),
 			},
-			numServers: 3,
-			leaderAddr: "127.0.0.1:10000",
-			datacenter: "",
-			minMode:    structs.ACLModeDisabled,
-			leaderMode: structs.ACLModeLegacy,
+			foundServers: true,
+			leaderAddr:   "127.0.0.1:10000",
+			datacenter:   "primary",
+			minMode:      structs.ACLModeDisabled,
+			leaderMode:   structs.ACLModeLegacy,
 		},
 		"unknown": tcase{
-			members: []serf.Member{
-				makeMember("consul", "primary", structs.ACLModeLegacy, serf.StatusAlive, net.IP([]byte{127, 0, 0, 1})),
-				makeMember("consul", "primary", structs.ACLModeUnknown, serf.StatusAlive, net.IP([]byte{127, 0, 0, 2})),
+			servers: testServersProvider{
+				makeServer("primary", structs.ACLModeLegacy, serf.StatusAlive, net.IP([]byte{127, 0, 0, 1})),
+				makeServer("primary", structs.ACLModeUnknown, serf.StatusAlive, net.IP([]byte{127, 0, 0, 2})),
 			},
-			numServers: 2,
-			leaderAddr: "127.0.0.1:10000",
-			datacenter: "",
-			minMode:    structs.ACLModeUnknown,
-			leaderMode: structs.ACLModeLegacy,
+			foundServers: true,
+			leaderAddr:   "127.0.0.1:10000",
+			datacenter:   "primary",
+			minMode:      structs.ACLModeUnknown,
+			leaderMode:   structs.ACLModeLegacy,
 		},
 		"legacy": tcase{
-			members: []serf.Member{
-				makeMember("consul", "primary", structs.ACLModeEnabled, serf.StatusAlive, net.IP([]byte{127, 0, 0, 1})),
-				makeMember("consul", "primary", structs.ACLModeLegacy, serf.StatusAlive, net.IP([]byte{127, 0, 0, 2})),
+			servers: testServersProvider{
+				makeServer("primary", structs.ACLModeEnabled, serf.StatusAlive, net.IP([]byte{127, 0, 0, 1})),
+				makeServer("primary", structs.ACLModeLegacy, serf.StatusAlive, net.IP([]byte{127, 0, 0, 2})),
 			},
-			numServers: 2,
-			leaderAddr: "127.0.0.1:10000",
-			datacenter: "",
-			minMode:    structs.ACLModeLegacy,
-			leaderMode: structs.ACLModeEnabled,
+			foundServers: true,
+			leaderAddr:   "127.0.0.1:10000",
+			datacenter:   "primary",
+			minMode:      structs.ACLModeLegacy,
+			leaderMode:   structs.ACLModeEnabled,
 		},
 		"enabled": tcase{
-			members: []serf.Member{
-				makeMember("consul", "primary", structs.ACLModeEnabled, serf.StatusAlive, net.IP([]byte{127, 0, 0, 1})),
-				makeMember("consul", "primary", structs.ACLModeEnabled, serf.StatusAlive, net.IP([]byte{127, 0, 0, 2})),
-				makeMember("consul", "primary", structs.ACLModeEnabled, serf.StatusAlive, net.IP([]byte{127, 0, 0, 3})),
+			servers: testServersProvider{
+				makeServer("primary", structs.ACLModeEnabled, serf.StatusAlive, net.IP([]byte{127, 0, 0, 1})),
+				makeServer("primary", structs.ACLModeEnabled, serf.StatusAlive, net.IP([]byte{127, 0, 0, 2})),
+				makeServer("primary", structs.ACLModeEnabled, serf.StatusAlive, net.IP([]byte{127, 0, 0, 3})),
 			},
-			numServers: 3,
-			leaderAddr: "127.0.0.1:10000",
-			datacenter: "",
-			minMode:    structs.ACLModeEnabled,
-			leaderMode: structs.ACLModeEnabled,
+			foundServers: true,
+			leaderAddr:   "127.0.0.1:10000",
+			datacenter:   "primary",
+			minMode:      structs.ACLModeEnabled,
+			leaderMode:   structs.ACLModeEnabled,
 		},
 		"failed-members": tcase{
-			members: []serf.Member{
-				makeMember("consul", "primary", structs.ACLModeLegacy, serf.StatusAlive, net.IP([]byte{127, 0, 0, 1})),
-				makeMember("consul", "primary", structs.ACLModeUnknown, serf.StatusFailed, net.IP([]byte{127, 0, 0, 2})),
-				makeMember("consul", "primary", structs.ACLModeLegacy, serf.StatusFailed, net.IP([]byte{127, 0, 0, 3})),
+			servers: testServersProvider{
+				makeServer("primary", structs.ACLModeLegacy, serf.StatusAlive, net.IP([]byte{127, 0, 0, 1})),
+				makeServer("primary", structs.ACLModeUnknown, serf.StatusFailed, net.IP([]byte{127, 0, 0, 2})),
+				makeServer("primary", structs.ACLModeLegacy, serf.StatusFailed, net.IP([]byte{127, 0, 0, 3})),
 			},
-			numServers: 3,
-			leaderAddr: "127.0.0.1:10000",
-			datacenter: "",
-			minMode:    structs.ACLModeUnknown,
-			leaderMode: structs.ACLModeLegacy,
+			foundServers: true,
+			leaderAddr:   "127.0.0.1:10000",
+			datacenter:   "primary",
+			minMode:      structs.ACLModeUnknown,
+			leaderMode:   structs.ACLModeLegacy,
 		},
 	}
 
@@ -741,11 +684,11 @@ func TestServersGetACLMode(t *testing.T) {
 		name := name
 		tc := tc
 		t.Run(name, func(t *testing.T) {
-			actualServers, actualMinMode, actualLeaderMode := ServersGetACLMode(tc.members, tc.leaderAddr, tc.datacenter)
+			actualServers, actualMinMode, actualLeaderMode := ServersGetACLMode(tc.servers, tc.leaderAddr, tc.datacenter)
 
-			require.Equal(t, tc.numServers, actualServers)
 			require.Equal(t, tc.minMode, actualMinMode)
 			require.Equal(t, tc.leaderMode, actualLeaderMode)
+			require.Equal(t, tc.foundServers, actualServers)
 		})
 	}
 }
