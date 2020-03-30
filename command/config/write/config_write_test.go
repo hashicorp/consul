@@ -1135,29 +1135,11 @@ func TestParseConfigEntry(t *testing.T) {
 						services = [
 							{
 								name = "web"
+								service_subset = "v1"
 							},
 							{
 								name = "db"
-							}
-						]
-					},
-					{
-						port = 9999
-						protocol = "tcp"
-						services = [
-							{
-								name = "mysql"
 								namespace = "foo"
-							}
-						]
-					},
-					{
-						port = 2234
-						protocol = "tcp"
-						services = [
-							{
-								name = "postgres"
-								service_subset = "v1"
 							}
 						]
 					}
@@ -1173,33 +1155,59 @@ func TestParseConfigEntry(t *testing.T) {
 						Services = [
 							{
 								Name = "web"
+								ServiceSubset = "v1"
 							},
 							{
 								Name = "db"
-							}
-						]
-					},
-					{
-						Port = 9999
-						Protocol = "tcp"
-						Services = [
-							{
-								Name = "mysql"
 								Namespace = "foo"
-							}
-						]
-					},
-					{
-						Port = 2234
-						Protocol = "tcp"
-						Services = [
-							{
-								Name = "postgres"
-								ServiceSubset = "v1"
 							}
 						]
 					}
 				]
+			`,
+			snakeJSON: `
+			{
+				"kind": "ingress-gateway",
+				"name": "ingress-web",
+				"listeners": [
+					{
+						"port": 8080,
+						"protocol": "http",
+						"services": [
+							{
+								"name": "web",
+								"service_subset": "v1"
+							},
+							{
+								"name": "db",
+								"namespace": "foo"
+							}
+						]
+					}
+				]
+			}
+			`,
+			camelJSON: `
+			{
+				"Kind": "ingress-gateway",
+				"Name": "ingress-web",
+				"Listeners": [
+					{
+						"Port": 8080,
+						"Protocol": "http",
+						"Services": [
+							{
+								"Name": "web",
+								"ServiceSubset": "v1"
+							},
+							{
+								"Name": "db",
+								"Namespace": "foo"
+							}
+						]
+					}
+				]
+			}
 			`,
 			expect: &api.IngressGatewayConfigEntry{
 				Kind: "ingress-gateway",
@@ -1210,30 +1218,12 @@ func TestParseConfigEntry(t *testing.T) {
 						Protocol: "http",
 						Services: []api.IngressService{
 							{
-								Name: "web",
-							},
-							{
-								Name: "db",
-							},
-						},
-					},
-					{
-						Port:     9999,
-						Protocol: "tcp",
-						Services: []api.IngressService{
-							{
-								Name:      "mysql",
-								Namespace: "foo",
-							},
-						},
-					},
-					{
-						Port:     2234,
-						Protocol: "tcp",
-						Services: []api.IngressService{
-							{
-								Name:          "postgres",
+								Name:          "web",
 								ServiceSubset: "v1",
+							},
+							{
+								Name:      "db",
+								Namespace: "foo",
 							},
 						},
 					},
