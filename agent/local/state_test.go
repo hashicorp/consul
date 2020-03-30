@@ -1159,12 +1159,12 @@ func TestAgentAntiEntropy_RemovingServiceAndCheck(t *testing.T) {
 func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 	t.Parallel()
 	dc := "dc1"
-	a := &agent.TestAgent{Name: t.Name(), HCL: `
+	a := &agent.TestAgent{HCL: `
 		acl_datacenter = "` + dc + `"
 		acl_master_token = "root"
 		acl_default_policy = "deny"
 		acl_enforce_version_8 = true`}
-	if err := a.Start(); err != nil {
+	if err := a.Start(t); err != nil {
 		t.Fatal(err)
 	}
 	defer a.Shutdown()
@@ -1429,10 +1429,10 @@ func TestAgent_UpdateCheck_DiscardOutput(t *testing.T) {
 
 func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	t.Parallel()
-	a := &agent.TestAgent{Name: t.Name(), HCL: `
+	a := &agent.TestAgent{HCL: `
 		check_update_interval = "500ms"
 	`}
-	if err := a.Start(); err != nil {
+	if err := a.Start(t); err != nil {
 		t.Fatal(err)
 	}
 	defer a.Shutdown()
@@ -1637,12 +1637,12 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 	nodeMeta := map[string]string{
 		"somekey": "somevalue",
 	}
-	a := &agent.TestAgent{Name: t.Name(), HCL: `
+	a := &agent.TestAgent{HCL: `
 		node_id = "40e4a748-2192-161a-0510-9bf59fe950b5"
 		node_meta {
 			somekey = "somevalue"
 		}`}
-	if err := a.Start(); err != nil {
+	if err := a.Start(t); err != nil {
 		t.Fatal(err)
 	}
 	defer a.Shutdown()
