@@ -117,4 +117,4 @@ remediation steps that you would normally do for individual processes, based
 on your operating system. 
 
 Please see our 
-[Security Model](https://www.consul.io/docs/internals/security.html) for more.
+[Security Model](https://www.consul.io/docs/internals/security.html) for more information.
