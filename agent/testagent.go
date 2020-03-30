@@ -25,7 +25,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/freeport"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
@@ -104,11 +103,8 @@ func NewTestAgentWithFields(t *testing.T, start bool, ta TestAgent) *TestAgent {
 	if a.Name == "" {
 		a.Name = t.Name()
 	}
-	if a.LogOutput == nil {
-		a.LogOutput = testutil.TestWriter(t)
-	}
 	if !start {
-		return nil
+		return &a
 	}
 
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
@@ -162,9 +158,9 @@ func (a *TestAgent) Start() (err error) {
 	}
 
 	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
-		Name:   a.Name,
-		Level:  hclog.Debug,
-		Output: logOutput,
+		Level:      hclog.Debug,
+		Output:     logOutput,
+		TimeFormat: "04:05.000",
 	})
 
 	portsConfig, returnPortsFn := randomPortsSource(a.UseTLS)
