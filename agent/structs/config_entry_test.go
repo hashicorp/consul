@@ -670,7 +670,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 			camel: `
 				Kind = "terminating-gateway"
 				Name = "terminating-gw-west"
-				services = [
+				Services = [
 					{
 						Name = "payments",
 						CAFile = "/etc/payments/ca.pem",
