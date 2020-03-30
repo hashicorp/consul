@@ -75,7 +75,7 @@ func (i *IngressGatewayConfigEntry) GetModifyIndex() uint64 {
 	return i.ModifyIndex
 }
 
-// IngressGatewayConfigEntry manages the configuration for a terminating gateway
+// TerminatingGatewayConfigEntry manages the configuration for a terminating gateway
 // with the given name.
 type TerminatingGatewayConfigEntry struct {
 	// Kind of the config entry. This should be set to api.TerminatingGateway.
