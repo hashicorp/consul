@@ -210,8 +210,8 @@ func (e *TerminatingGatewayConfigEntry) Normalize() error {
 
 	e.Kind = TerminatingGateway
 
-	for _, svc := range e.Services {
-		svc.EnterpriseMeta.Normalize()
+	for i := range e.Services {
+		e.Services[i].EnterpriseMeta.Normalize()
 	}
 	e.EnterpriseMeta.Normalize()
 
