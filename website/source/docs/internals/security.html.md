@@ -36,6 +36,18 @@ any of the settings below are not enabled, then parts of this threat model are
 going to be invalid. Additional security precautions must also be taken for
 items outside of Consul's threat model as noted in sections below.
 
+* **Consul runs just like any other binary.** Consul runs as a single process 
+  and obeys the same security requirements as any other application on 
+  your system. Consul doesn't interact with the host system to change or 
+  manipulate security values in any way. Take any precautions or remediation 
+  steps that you would normally do for individual processes, based on your 
+  operating system. 
+  Some example remediation steps you could take are outlined below.
+  - Run applications, including Consul, as non-root users with appropriate 
+  configurations
+  - Implement Mandatory Access Control using a kernel security module such as SELinux 
+  - Secure against unprivileged users becoming root
+
 * **ACLs enabled with default deny.** Consul must be configured to use ACLs with
   a whitelist (default deny) approach. This forces all requests to have explicit
   anonymous access or provide an ACL token.
