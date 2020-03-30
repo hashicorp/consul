@@ -45,7 +45,7 @@ items outside of Consul's threat model as noted in sections below.
   Some example remediation steps you could take are outlined below.
   - Run applications, including Consul, as non-root users with appropriate 
   configurations
-  - Run a secure kernel module, such as the SELinux 
+  - Implement Mandatory Access Control using a kernel security module such as SELinux 
   - Secure against unprivileged users becoming root
 
 * **ACLs enabled with default deny.** Consul must be configured to use ACLs with
