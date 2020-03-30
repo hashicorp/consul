@@ -1145,8 +1145,8 @@ func (s *NodeService) Validate() error {
 
 	// Gateway validation
 	if s.IsGateway() {
-		// Gateways must have a port
-		if s.Port == 0 {
+		// Non-ingress gateways must have a port
+		if s.Port == 0 && s.Kind != ServiceKindIngressGateway {
 			result = multierror.Append(result, fmt.Errorf("Port must be non-zero for a %s", s.Kind))
 		}
 
