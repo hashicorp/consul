@@ -79,6 +79,9 @@ func (e *IngressGatewayConfigEntry) Normalize() error {
 	e.Kind = IngressGateway
 	for _, listener := range e.Listeners {
 		listener.Protocol = strings.ToLower(listener.Protocol)
+		for i := range listener.Services {
+			listener.Services[i].EnterpriseMeta.Normalize()
+		}
 	}
 
 	e.EnterpriseMeta.Normalize()
