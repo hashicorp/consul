@@ -108,6 +108,7 @@ func (p *CheckType) ToStructs() (*structs.CheckType, error) {
 		}
 	}
 	s.Method = p.Method
+	s.Body = p.Body
 	s.TCP = p.TCP
 	s.Interval = p.Interval
 	s.AliasNode = p.AliasNode
@@ -155,6 +156,7 @@ func (p *CheckType) FromStructs(s *structs.CheckType) error {
 		}
 	}
 	p.Method = s.Method
+	p.Body = s.Body
 	p.TCP = s.TCP
 	p.Interval = s.Interval
 	p.AliasNode = s.AliasNode
@@ -444,6 +446,7 @@ func (p *HealthCheckDefinition) ToStructs() (*structs.HealthCheckDefinition, err
 		}
 	}
 	s.Method = p.Method
+	s.Body = p.Body
 	s.TCP = p.TCP
 	s.Interval = p.Interval
 	s.OutputMaxSize = uint(p.OutputMaxSize)
@@ -483,6 +486,7 @@ func (p *HealthCheckDefinition) FromStructs(s *structs.HealthCheckDefinition) er
 		}
 	}
 	p.Method = s.Method
+	p.Body = s.Body
 	p.TCP = s.TCP
 	p.Interval = s.Interval
 	p.OutputMaxSize = uint32(s.OutputMaxSize)

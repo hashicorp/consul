@@ -103,6 +103,8 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 	}))
 
 	require.True(t, t.Run("reconnects and resumes after transient stream error", func(t *testing.T) {
+		// Use resetErr just because it's "temporary" this is a stand in for any
+		// network error that uses that same interface though.
 		client.QueueErr(resetErr("broken pipe"))
 
 		// After the error the view should re-subscribe with same index so will get
@@ -130,6 +132,7 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 		healthEv := agentpb.TestEventServiceHealthRegister(t, 10, 2, "web")
 		client.QueueEvents(&healthEv)
 
+		start = time.Now()
 		opts.Timeout = time.Second
 		result, err = typ.Fetch(opts, req)
 		require.NoError(t, err)

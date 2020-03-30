@@ -8,7 +8,7 @@ import (
 	time "time"
 
 	"github.com/stretchr/testify/assert"
-	
+
 	"github.com/hashicorp/consul/agent/agentpb"
 )
 
@@ -34,8 +34,8 @@ func TestEventBufferFuzz(t *testing.T) {
 			// Event content is arbitrary and not valid for our use of buffers in
 			// streaming - here we only care about the semantics of the buffer.
 			e := agentpb.Event{
-				Index:   uint64(i), // Indexes should be contiguous
-				Topic:   agentpb.Topic_ServiceHealth,
+				Index: uint64(i), // Indexes should be contiguous
+				Topic: agentpb.Topic_ServiceHealth,
 				Payload: &agentpb.Event_EndOfSnapshot{
 					EndOfSnapshot: true,
 				},

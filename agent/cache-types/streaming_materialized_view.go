@@ -120,7 +120,9 @@ type MaterializedView struct {
 // the cache evicts the result. If the view is not returned in a result state
 // though Close must be called some other way to avoid leaking the goroutine and
 // memory.
-func MaterializedViewFromFetch(t StreamingCacheType, opts cache.FetchOptions, subReq agentpb.SubscribeRequest) *MaterializedView {
+func MaterializedViewFromFetch(t StreamingCacheType, opts cache.FetchOptions,
+	subReq agentpb.SubscribeRequest) *MaterializedView {
+
 	if opts.LastResult == nil || opts.LastResult.State == nil {
 		ctx, cancel := context.WithCancel(context.Background())
 		v := &MaterializedView{
@@ -130,7 +132,9 @@ func MaterializedViewFromFetch(t StreamingCacheType, opts cache.FetchOptions, su
 			req:        subReq,
 			ctx:        ctx,
 			cancelFunc: cancel,
-			retryWaiter: lib.NewRetryWaiter(0, 0, SubscribeBackoffMax,
+			// Allow first retry without wait, this is important and we rely on it in
+			// tests.
+			retryWaiter: lib.NewRetryWaiter(1, 0, SubscribeBackoffMax,
 				lib.NewJitterRandomStagger(100)),
 		}
 		// Run init now otherwise there is a race between run() and a call to Fetch

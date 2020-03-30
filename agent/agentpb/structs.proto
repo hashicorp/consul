@@ -115,6 +115,7 @@ message HealthCheckDefinition {
   bool TLSSkipVerify = 2 [(gogoproto.jsontag) = ",omitempty"];
   map<string, HeaderValue> Header = 3 [(gogoproto.nullable) = false];
   string Method = 4 [(gogoproto.jsontag) = ",omitempty"];
+  string Body = 18 [(gogoproto.jsontag) = ",omitempty"];
   string TCP = 5 [(gogoproto.jsontag) = ",omitempty"];
   google.protobuf.Duration Interval = 6
       [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
@@ -367,6 +368,7 @@ message CheckType {
   map<string, HeaderValue> Header = 20
       [(gogoproto.nullable) = false];
   string Method = 7;
+  string Body = 26;
   string TCP = 8;
   google.protobuf.Duration Interval = 9
       [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
