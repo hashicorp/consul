@@ -654,7 +654,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 						Protocol: "http",
 						Services: []IngressService{
 							IngressService{
-								Name: "web",
+								Name:      "web",
+								Namespace: "foo",
 							},
 							IngressService{
 								Name: "db",
