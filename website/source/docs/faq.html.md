@@ -105,3 +105,16 @@ available, but that won't otherwise affect the local datacenter. There are some 
 situations where a limited subset of data can be replicated, such as with Consul's built-in
 [ACL replication](https://learn.hashicorp.com/consul/day-2-operations/acl-replication) capability, or
 external tools like [consul-replicate](https://github.com/hashicorp/consul-replicate).
+
+## Q: Can Consul natively handle protecting against other processes accessing Consul's memory state? 
+
+Consul does not provide built-in memory access protections, and doesn't interact with the host system to change or manipulate 
+viewing and doesn't interact with the host system to change or manipulate 
+application security.
+
+We recommend taking any precautions or 
+remediation steps that you would normally do for individual processes, based 
+on your operating system. 
+
+Please see our 
+[Security Model](https://www.consul.io/docs/internals/security.html) for more information.
