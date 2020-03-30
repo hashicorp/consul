@@ -10,6 +10,10 @@ type IngressGatewayConfigEntry struct {
 	// service. This should match the name provided in the service definition.
 	Name string
 
+	// Namespace is the namespace the IngressGateway is associated with
+	// Namespacing is a Consul Enterprise feature.
+	Namespace string `json:",omitempty"`
+
 	// Listeners declares what ports the ingress gateway should listen on, and
 	// what services to associated to those ports.
 	Listeners []IngressListener
@@ -52,6 +56,10 @@ type IngressService struct {
 	// "*". If the wildcard specifier is provided, the listener must be of "http"
 	// protocol and means that the listener will forward traffic to all services.
 	Name string
+
+	// Namespace is the namespace where the service is located.
+	// Namespacing is a Consul Enterprise feature.
+	Namespace string `json:",omitempty"`
 
 	// ServiceSubset declares the specific service subset to which traffic should
 	// be sent. This must match an existing service subset declared in a

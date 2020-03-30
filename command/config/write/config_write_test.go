@@ -1122,6 +1122,124 @@ func TestParseConfigEntry(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "ingress-gateway: kitchen sink",
+			snake: `
+				kind = "ingress-gateway"
+				name = "ingress-web"
+
+				listeners = [
+					{
+						port = 8080
+						protocol = "http"
+						services = [
+							{
+								name = "web"
+							},
+							{
+								name = "db"
+							}
+						]
+					},
+					{
+						port = 9999
+						protocol = "tcp"
+						services = [
+							{
+								name = "mysql"
+								namespace = "foo"
+							}
+						]
+					},
+					{
+						port = 2234
+						protocol = "tcp"
+						services = [
+							{
+								name = "postgres"
+								service_subset = "v1"
+							}
+						]
+					}
+				]
+			`,
+			camel: `
+				Kind = "ingress-gateway"
+				Name = "ingress-web"
+				Listeners = [
+					{
+						Port = 8080
+						Protocol = "http"
+						Services = [
+							{
+								Name = "web"
+							},
+							{
+								Name = "db"
+							}
+						]
+					},
+					{
+						Port = 9999
+						Protocol = "tcp"
+						Services = [
+							{
+								Name = "mysql"
+								Namespace = "foo"
+							}
+						]
+					},
+					{
+						Port = 2234
+						Protocol = "tcp"
+						Services = [
+							{
+								Name = "postgres"
+								ServiceSubset = "v1"
+							}
+						]
+					}
+				]
+			`,
+			expect: &api.IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []api.IngressListener{
+					{
+						Port:     8080,
+						Protocol: "http",
+						Services: []api.IngressService{
+							{
+								Name: "web",
+							},
+							{
+								Name: "db",
+							},
+						},
+					},
+					{
+						Port:     9999,
+						Protocol: "tcp",
+						Services: []api.IngressService{
+							{
+								Name:      "mysql",
+								Namespace: "foo",
+							},
+						},
+					},
+					{
+						Port:     2234,
+						Protocol: "tcp",
+						Services: []api.IngressService{
+							{
+								Name:          "postgres",
+								ServiceSubset: "v1",
+							},
+						},
+					},
+				},
+			},
+		},
 	} {
 		tc := tc
 
