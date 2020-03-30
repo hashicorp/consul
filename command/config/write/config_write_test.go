@@ -1127,7 +1127,6 @@ func TestParseConfigEntry(t *testing.T) {
 			snake: `
 				kind = "ingress-gateway"
 				name = "ingress-web"
-
 				listeners = [
 					{
 						port = 8080
@@ -1135,7 +1134,6 @@ func TestParseConfigEntry(t *testing.T) {
 						services = [
 							{
 								name = "web"
-<<<<<<< HEAD
 								service_subset = "v1"
 							},
 							{
@@ -1143,33 +1141,6 @@ func TestParseConfigEntry(t *testing.T) {
 								namespace = "foo"
 							}
 						]
-=======
-							},
-							{
-								name = "db"
-							}
-						]
-					},
-					{
-						port = 9999
-						protocol = "tcp"
-						services = [
-							{
-								name = "mysql"
-								namespace = "foo"
-							}
-						]
-					},
-					{
-						port = 2234
-						protocol = "tcp"
-						services = [
-							{
-								name = "postgres"
-								service_subset = "v1"
-							}
-						]
->>>>>>> Add namespace fields to api module and test consul config write decoding
 					}
 				]
 			`,
@@ -1183,7 +1154,6 @@ func TestParseConfigEntry(t *testing.T) {
 						Services = [
 							{
 								Name = "web"
-<<<<<<< HEAD
 								ServiceSubset = "v1"
 							},
 							{
@@ -1232,39 +1202,11 @@ func TestParseConfigEntry(t *testing.T) {
 							{
 								"Name": "db",
 								"Namespace": "foo"
-=======
-							},
-							{
-								Name = "db"
-							}
-						]
-					},
-					{
-						Port = 9999
-						Protocol = "tcp"
-						Services = [
-							{
-								Name = "mysql"
-								Namespace = "foo"
-							}
-						]
-					},
-					{
-						Port = 2234
-						Protocol = "tcp"
-						Services = [
-							{
-								Name = "postgres"
-								ServiceSubset = "v1"
->>>>>>> Add namespace fields to api module and test consul config write decoding
 							}
 						]
 					}
 				]
-<<<<<<< HEAD
 			}
-=======
->>>>>>> Add namespace fields to api module and test consul config write decoding
 			`,
 			expect: &api.IngressGatewayConfigEntry{
 				Kind: "ingress-gateway",
