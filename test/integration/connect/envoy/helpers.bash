@@ -214,7 +214,11 @@ function get_upstream_endpoint_in_status_count {
   local HEALTH_STATUS=$3
   run retry_default curl -s -f "http://${HOSTPORT}/clusters?format=json"
   [ "$status" -eq 0 ]
-  # echo "$output" >&3
+  if [ "$4" != "" ]
+  then
+    echo "OUTPUT for http://${HOSTPORT}/clusters?format=json and CLUSTER_NAME=$CLUSTER_NAME, HEALTH_STATUS=$HEALTH_STATUS" > "$4"
+    echo "$output" >> "$4"
+  fi
   echo "$output" | jq --raw-output "
 .cluster_statuses[]
 | select(.name|startswith(\"${CLUSTER_NAME}\"))
@@ -229,9 +233,19 @@ function assert_upstream_has_endpoints_in_status_once {
   local HEALTH_STATUS=$3
   local EXPECT_COUNT=$4
 
-  GOT_COUNT=$(get_upstream_endpoint_in_status_count $HOSTPORT $CLUSTER_NAME $HEALTH_STATUS)
+  output=$(mktemp)
+  GOT_COUNT=$(get_upstream_endpoint_in_status_count $HOSTPORT $CLUSTER_NAME $HEALTH_STATUS "$output")
 
-  [ "$GOT_COUNT" -eq $EXPECT_COUNT ]
+  if [ "$GOT_COUNT" -eq $EXPECT_COUNT ]
+  then
+    return 0
+  else
+    echo "[ERROR] assert_upstream_has_endpoints_in_status_once $HOSTPORT $CLUSTER_NAME $HEALTH_STATUS $EXPECT_COUNT" > &2
+    cat "$output" > &2
+    return 1
+  fi
+  rm $output
+  0
 }
 
 function assert_upstream_has_endpoints_in_status {

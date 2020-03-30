@@ -48,7 +48,7 @@ function cleanup {
     capture_logs
   fi
 
-  docker-compose down -v --remove-orphans
+  docker-compose down -v --remove-orphans --timeout 30
 }
 trap cleanup EXIT
 
