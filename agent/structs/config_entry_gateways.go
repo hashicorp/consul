@@ -10,9 +10,15 @@ import (
 // IngressGatewayConfigEntry manages the configuration for an ingress service
 // with the given name.
 type IngressGatewayConfigEntry struct {
+	// Kind of the config entry. This should be set to api.IngressGateway.
 	Kind string
+
+	// Name is used to match the config entry with its associated ingress gateway
+	// service. This should match the name provided in the service definition.
 	Name string
 
+	// Listeners declares what ports the ingress gateway should listen on, and
+	// what services to associated to those ports.
 	Listeners []IngressListener
 
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -20,14 +26,34 @@ type IngressGatewayConfigEntry struct {
 }
 
 type IngressListener struct {
-	Port     int
+	// Port declares the port on which the ingress gateway should listen for traffic.
+	Port int
+
+	// Protocol declares what type of traffic this listener is expected to
+	// receive. Depending on the protocol, a listener might support multiplexing
+	// services over a single port, or additional discovery chain features. The
+	// current supported values are: (tcp | http).
 	Protocol string
 
+	// Services declares the set of services to which the listener forwards
+	// traffic.
+	//
+	// For "tcp" protocol listeners, only a single service is allowed.
+	// For "http" listeners, multiple services can be declared.
 	Services []IngressService
 }
 
 type IngressService struct {
-	Name          string
+	// Name declares the service to which traffic should be forwarded.
+	//
+	// This can either be a specific service instance, or the wildcard specifier,
+	// "*". If the wildcard specifier is provided, the listener must be of "http"
+	// protocol and means that the listener will forward traffic to all services.
+	Name string
+
+	// ServiceSubset declares the specific service subset to which traffic should
+	// be sent. This must match an existing service subset declared in a
+	// service-resolver config entry.
 	ServiceSubset string
 
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
