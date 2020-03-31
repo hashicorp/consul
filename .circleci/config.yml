@@ -83,8 +83,12 @@ jobs:
     environment:
       <<: *ENVIRONMENT
       GOTAGS: "" # No tags for OSS but there are for enterprise
-      # GOMAXPROCS defaults to number of cores on underlying hardware, set explicitly to avoid OOM issues https://support.circleci.com/hc/en-us/articles/360034684273-common-GoLang-memory-issues
-      GOMAXPROCS: 2 # medium (default) boxes are 2 vCPUs, 4GB RAM https://circleci.com/docs/2.0/configuration-reference/#docker-executor
+      # GOMAXPROCS defaults to number of cores on underlying hardware, set
+      # explicitly to avoid OOM issues https://support.circleci.com/hc/en-us/articles/360034684273-common-GoLang-memory-issues
+      GOMAXPROCS: 4
+      # The medium resource class (default) boxes are 2 vCPUs, 4GB RAM
+      # https://circleci.com/docs/2.0/configuration-reference/#docker-executor
+      # but we can run a little over that limit.
     steps:
       - checkout
       - attach_workspace:
