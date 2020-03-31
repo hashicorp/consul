@@ -147,7 +147,7 @@ tag. For example, if `RedundancyZoneTag` is set to `zone`, and `-node-meta zone:
 is used when starting a server, that server's redundancy zone will be `east1a`.
 
 ```
-$ consul operator autopilot set-config -redundancy-zone-tag=uswest1
+$ consul operator autopilot set-config -redundancy-zone-tag=zone
 Configuration updated!
 
 $ consul operator autopilot get-config
@@ -155,13 +155,13 @@ CleanupDeadServers = false
 LastContactThreshold = 200ms
 MaxTrailingLogs = 250
 ServerStabilizationTime = 5s
-RedundancyZoneTag = "uswest1"
+RedundancyZoneTag = "zone"
 DisableUpgradeMigration = false
 UpgradeVersionTag = ""
 ```
 
 For our Autopilot features, we now have disabled dead server cleanup, server stabilization time to 5 seconds, and
-the redundancy zone tag is uswest1.
+the redundancy zone tag is zone.
 
 Consul will then use these values to partition the servers by redundancy zone, and will
 aim to keep one voting server per zone. Extra servers in each zone will stay as non-voters
