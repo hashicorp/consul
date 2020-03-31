@@ -19,6 +19,10 @@ load helpers
   assert_upstream_has_endpoints_in_status 127.0.0.1:19000 dd412229~s2.default.secondary HEALTHY 1
 }
 
+@test "s1 proxy admin is up on :19000" {
+  retry_default curl -f -s localhost:19000/stats | grep cx_total
+}
+
 @test "s1 upstream should be able to connect to s2" {
   run retry_default curl -s -f -d hello localhost:5000
   [ "$status" -eq 0 ]
