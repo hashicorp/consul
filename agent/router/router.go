@@ -341,6 +341,32 @@ func (r *Router) findDirectRoute(datacenter string) (*Manager, *metadata.Server,
 	return nil, nil, false
 }
 
+// CheckServers will lookup all servers for the given DC and
+// run the given check function against all of them.
+//
+// There is not return as its expected for the fn to provide its own
+// state storage either via a closure or by passing a struct method
+// as the function.
+//
+// The fn called should return a bool indicating whether checks should
+// continue executing against more servers. This allows for short-circuiting
+// the evaluation process
+func (r *Router) CheckServers(dc string, fn func(srv *metadata.Server) bool) {
+	r.RLock()
+	defer r.RUnlock()
+
+	managers, ok := r.managers[dc]
+	if !ok {
+		return
+	}
+
+	for _, m := range managers {
+		if !m.checkServers(fn) {
+			return
+		}
+	}
+}
+
 // GetDatacenters returns a list of datacenters known to the router, sorted by
 // name.
 func (r *Router) GetDatacenters() []string {

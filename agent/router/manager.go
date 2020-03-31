@@ -217,6 +217,23 @@ func (m *Manager) FindServer() *metadata.Server {
 	return l.servers[0]
 }
 
+// checkServers executes the given check against all managed servers
+// and returns whether that function decided to break the loop early
+func (m *Manager) checkServers(fn func(srv *metadata.Server) bool) bool {
+	for _, srv := range m.getServerList().servers {
+		if !fn(srv) {
+			return false
+		}
+	}
+	return true
+}
+
+// CheckServers executes the given check function on all the servers being
+// managed by this Manager
+func (m *Manager) CheckServers(fn func(srv *metadata.Server) bool) {
+	_ = m.checkServers(fn)
+}
+
 // getServerList is a convenience method which hides the locking semantics
 // of atomic.Value from the caller.
 func (m *Manager) getServerList() serverList {

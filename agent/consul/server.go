@@ -1294,6 +1294,17 @@ func (s *Server) intentionReplicationEnabled() bool {
 	return s.config.ConnectEnabled && s.config.Datacenter != s.config.PrimaryDatacenter
 }
 
+func (s *Server) updateSerfTags(key, value string) {
+	// Update the LAN serf
+	lib.UpdateSerfTag(s.serfLAN, key, value)
+
+	if s.serfWAN != nil {
+		lib.UpdateSerfTag(s.serfWAN, key, value)
+	}
+
+	s.updateEnterpriseSerfTags(key, value)
+}
+
 // peersInfoContent is used to help operators understand what happened to the
 // peers.json file. This is written to a file called peers.info in the same
 // location.

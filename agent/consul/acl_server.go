@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib"
 )
 
 var serverACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
@@ -88,14 +87,7 @@ func (s *Server) updateACLAdvertisement() {
 	// One thing to note is that once in new ACL mode the server will
 	// never transition to legacy ACL mode. This is not currently a
 	// supported use case.
-
-	// always advertise to all the LAN Members
-	lib.UpdateSerfTag(s.serfLAN, "acls", string(structs.ACLModeEnabled))
-
-	if s.serfWAN != nil {
-		// advertise on the WAN only when we are inside the ACL datacenter
-		lib.UpdateSerfTag(s.serfWAN, "acls", string(structs.ACLModeEnabled))
-	}
+	s.updateSerfTags("acls", string(structs.ACLModeEnabled))
 }
 
 func (s *Server) canUpgradeToNewACLs(isLeader bool) bool {
@@ -105,21 +97,25 @@ func (s *Server) canUpgradeToNewACLs(isLeader bool) bool {
 	}
 
 	if !s.InACLDatacenter() {
-		numServers, mode, _ := ServersGetACLMode(s.WANMembers(), "", s.config.ACLDatacenter)
-		if mode != structs.ACLModeEnabled || numServers == 0 {
+		foundServers, mode, _ := ServersGetACLMode(s, "", s.config.ACLDatacenter)
+		if mode != structs.ACLModeEnabled || !foundServers {
+			s.logger.Printf("[DEBUG] acl: Cannot upgrade to new ACLs, servers in acl datacenter have not upgraded - found servers: %t, mode: %s", foundServers, mode)
 			return false
 		}
 	}
 
+	leaderAddr := string(s.raft.Leader())
+	_, mode, leaderMode := ServersGetACLMode(s, leaderAddr, s.config.Datacenter)
 	if isLeader {
-		if _, mode, _ := ServersGetACLMode(s.LANMembers(), "", ""); mode == structs.ACLModeLegacy {
+		if mode == structs.ACLModeLegacy {
 			return true
 		}
+		s.logger.Printf("[DEBUG] acl: Cannot upgrade to new ACLs, servers in local datacenter do not support new ACLs")
 	} else {
-		leader := string(s.raft.Leader())
-		if _, _, leaderMode := ServersGetACLMode(s.LANMembers(), leader, ""); leaderMode == structs.ACLModeEnabled {
+		if leaderMode == structs.ACLModeEnabled {
 			return true
 		}
+		s.logger.Printf("[DEBUG] acl: Cannot upgrade to new ACLs, leader has not upgraded yet")
 	}
 
 	return false

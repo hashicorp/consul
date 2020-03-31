@@ -41,3 +41,9 @@ func (s *Server) handleEnterpriseLeave() {
 func (s *Server) enterpriseStats() map[string]map[string]string {
 	return nil
 }
+
+// updateEnterpriseSerfTags in enterprise will update any instances of Serf with the tag that
+// are not the normal LAN or WAN serf instances (network segments and network areas)
+func (_ *Server) updateEnterpriseSerfTags(_, _ string) {
+	// do nothing
+}
