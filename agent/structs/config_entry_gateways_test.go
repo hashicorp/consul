@@ -208,7 +208,7 @@ func TestTerminatingConfigEntry_Validate(t *testing.T) {
 					},
 				},
 			},
-			expectErr: "Service \"foo\" was specified more than once",
+			expectErr: "specified more than once",
 		},
 		{
 			name: "blank service name",

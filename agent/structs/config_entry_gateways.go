@@ -234,7 +234,7 @@ func (e *TerminatingGatewayConfigEntry) Validate() error {
 		// Check for duplicates within the entry
 		cid := NewServiceID(svc.Name, &svc.EnterpriseMeta)
 		if ok := seen[cid]; ok {
-			return fmt.Errorf("Service %q was specified more than once within a namespace", cid)
+			return fmt.Errorf("Service %q was specified more than once within a namespace", cid.String())
 		}
 		seen[cid] = true
 
