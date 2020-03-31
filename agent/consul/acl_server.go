@@ -111,7 +111,7 @@ func (s *Server) canUpgradeToNewACLs(isLeader bool) bool {
 	if !s.InACLDatacenter() {
 		foundServers, mode, _ := ServersGetACLMode(s, "", s.config.ACLDatacenter)
 		if mode != structs.ACLModeEnabled || !foundServers {
-			s.logger.Info("Cannot upgrade to new ACLs, servers in acl datacenter are not yet upgraded", "ACLDatacenter", s.config.ACLDatacenter, "mode", mode, "found", foundServers)
+			s.logger.Debug("Cannot upgrade to new ACLs, servers in acl datacenter are not yet upgraded", "ACLDatacenter", s.config.ACLDatacenter, "mode", mode, "found", foundServers)
 			return false
 		}
 	}
@@ -128,7 +128,7 @@ func (s *Server) canUpgradeToNewACLs(isLeader bool) bool {
 		}
 	}
 
-	s.logger.Info("Cannot upgrade to new ACLs", "leaderMode", leaderMode, "mode", mode, "found", foundServers, "leader", leaderAddr)
+	s.logger.Debug("Cannot upgrade to new ACLs", "leaderMode", leaderMode, "mode", mode, "found", foundServers, "leader", leaderAddr)
 	return false
 }
 
