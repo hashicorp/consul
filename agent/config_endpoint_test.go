@@ -213,17 +213,36 @@ func TestConfig_Apply_TerminatingGateway(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 200, resp.Code, "!200 Response Code: %s", resp.Body.String())
 
-	// Get the remaining entry.
+	// Attempt to create an entry for a separate gateway that also routes to web
+	body = bytes.NewBuffer([]byte(`
+	{
+		"Kind": "terminating-gateway",
+		"Name": "east-gw-01",
+		"Services": [
+		  {
+			"Name": "web",
+		  }
+		]
+	}`))
+
+	req, _ = http.NewRequest("PUT", "/v1/config", body)
+	resp = httptest.NewRecorder()
+	_, err = a.srv.ConfigApply(resp, req)
+	require.Error(t, err, "service \"web\" is associated with a different gateway")
+	require.Equal(t, 200, resp.Code, "!200 Response Code: %s", resp.Body.String())
+
+	// List all entries, there should only be one
 	{
 		args := structs.ConfigEntryQuery{
 			Kind:       structs.TerminatingGateway,
-			Name:       "west-gw-01",
 			Datacenter: "dc1",
 		}
-		var out structs.ConfigEntryResponse
-		require.NoError(t, a.RPC("ConfigEntry.Get", &args, &out))
-		require.NotNil(t, out.Entry)
-		got := out.Entry.(*structs.TerminatingGatewayConfigEntry)
+		var out structs.IndexedConfigEntries
+		require.NoError(t, a.RPC("ConfigEntry.List", &args, &out))
+		require.NotNil(t, out)
+		require.Len(t, out.Entries, 1)
+
+		got := out.Entries[0].(*structs.TerminatingGatewayConfigEntry)
 		expect := []structs.LinkedService{
 			{
 				Name:     "web",

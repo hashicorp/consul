@@ -4,7 +4,6 @@ package state
 
 import (
 	"fmt"
-
 	"github.com/hashicorp/consul/agent/structs"
 	memdb "github.com/hashicorp/go-memdb"
 )
@@ -154,6 +153,52 @@ func checksTableSchema() *memdb.TableSchema {
 	}
 }
 
+// TODO (gateways) (freddy) enterprise implementation
+// gatewayServicesTableSchema returns a new table schema used to store information
+// about services associated with terminating gateways.
+func gatewayServicesTableSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: "terminating-gateway-services",
+		Indexes: map[string]*memdb.IndexSchema{
+			"id": &memdb.IndexSchema{
+				Name:         "id",
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: &memdb.CompoundIndex{
+					Indexes: []memdb.Indexer{
+						&memdb.StringFieldIndex{
+							Field:     "Gateway",
+							Lowercase: true,
+						},
+						&memdb.StringFieldIndex{
+							Field:     "Service",
+							Lowercase: true,
+						},
+					},
+				},
+			},
+			"gateway": &memdb.IndexSchema{
+				Name:         "gateway",
+				AllowMissing: false,
+				Unique:       false,
+				Indexer: &memdb.StringFieldIndex{
+					Field:     "Gateway",
+					Lowercase: true,
+				},
+			},
+			"service": &memdb.IndexSchema{
+				Name:         "service",
+				AllowMissing: true,
+				Unique:       false,
+				Indexer: &memdb.StringFieldIndex{
+					Field:     "Service",
+					Lowercase: true,
+				},
+			},
+		},
+	}
+}
+
 func serviceIndexName(name string, _ *structs.EnterpriseMeta) string {
 	return fmt.Sprintf("service.%s", name)
 }
@@ -235,6 +280,11 @@ func (s *Store) catalogServiceKindMaxIndex(tx *memdb.Txn, ws memdb.WatchSet, kin
 	return maxIndexWatchTxn(tx, ws, serviceKindIndexName(kind, nil))
 }
 
+// TODO (gateways) (freddy) enterprise implementation
+func (s *Store) catalogGatewayServicesMaxIndex(tx *memdb.Txn, _ *structs.EnterpriseMeta) uint64 {
+	return maxIndexTxn(tx, "terminating-gateway-services")
+}
+
 func (s *Store) catalogServiceList(tx *memdb.Txn, _ *structs.EnterpriseMeta, _ bool) (memdb.ResultIterator, error) {
 	return tx.Get("services", "id")
 }
@@ -249,6 +299,11 @@ func (s *Store) catalogServiceListByNode(tx *memdb.Txn, node string, _ *structs.
 
 func (s *Store) catalogServiceNodeList(tx *memdb.Txn, name string, index string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("services", index, name)
+}
+
+// TODO (gateways) (freddy) enterprise implementation
+func (s *Store) catalogServiceGateway(tx *memdb.Txn, name string, index string, _ *structs.EnterpriseMeta) (interface{}, error) {
+	return tx.First("terminating-gateway-services", index, name)
 }
 
 func (s *Store) catalogServiceLastExtinctionIndex(tx *memdb.Txn, _ *structs.EnterpriseMeta) (interface{}, error) {
@@ -329,4 +384,125 @@ func (s *Store) validateRegisterRequestTxn(tx *memdb.Txn, args *structs.Register
 
 func (s *Store) ValidateRegisterRequest(args *structs.RegisterRequest) (*structs.EnterpriseMeta, error) {
 	return nil, nil
+}
+
+// TODO (gateways) (freddy) enterprise implementation
+// catalogUpdateGatewayService associates services with gateways as specified in a terminating-gateway config entry
+func (s *Store) catalogUpdateGatewayServices(tx *memdb.Txn, idx uint64, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) error {
+	entry, ok := conf.(*structs.TerminatingGatewayConfigEntry)
+	if !ok {
+		return fmt.Errorf("unexpected config entry type: %T", conf)
+	}
+
+	// Delete all associated with gateway first, to avoid keeping mappings that were removed
+	if _, err := tx.DeleteAll("terminating-gateway-services", "gateway", entry.Name); err != nil {
+		return fmt.Errorf("failed to truncate gateway services table: %v", err)
+	}
+
+	for _, svc := range entry.Services {
+		mapping := &gatewayService{
+			Gateway:  entry.Name,
+			KeyFile:  svc.KeyFile,
+			CertFile: svc.CertFile,
+			CAFile:   svc.CAFile,
+		}
+
+		// If the service is a wildcard we need to target all services within the namespace
+		if svc.Name == structs.WildcardSpecifier {
+			services, err := s.catalogServiceList(tx, entMeta, false)
+			if err != nil {
+				return fmt.Errorf("failed querying services: %s", err)
+			}
+
+			// Iterate over them and insert
+			for service := services.Next(); service != nil; service = services.Next() {
+				sn := service.(*structs.ServiceNode)
+
+				existing, err := tx.First("terminating-gateway-services", "service", sn.ServiceName)
+				if err != nil {
+					return fmt.Errorf("gateway service lookup failed: %s", err)
+				}
+
+				// If there's an existing service, then we skip it.
+				// This means the service was specified on its own, and the service entry overrides the wildcard entry.
+				if existing != nil {
+					continue
+				}
+
+				mapping.Service = sn.ServiceName
+				if err := tx.Insert("terminating-gateway-services", mapping); err != nil {
+					return fmt.Errorf("failed inserting gateway service mapping: %s", err)
+				}
+			}
+
+			// Also store a mapping for the wildcard so that the TLS creds can be pulled
+			// for new services registered in its namespace
+			mapping.Service = svc.Name
+			if err := tx.Insert("terminating-gateway-services", mapping); err != nil {
+				return fmt.Errorf("failed inserting gateway service mapping: %s", err)
+			}
+
+			continue
+		}
+
+		// Check if the service is already associated with a gateway
+		existing, err := tx.First("terminating-gateway-services", "service", svc.Name)
+		if err != nil {
+			return fmt.Errorf("gateway service lookup failed: %s", err)
+		}
+		if existing != nil {
+			cfg := existing.(*gatewayService)
+
+			// Only return an error if the stored gateway does not match the one from the config entry
+			if cfg.Gateway != entry.Name {
+				return fmt.Errorf("service %q is associated with different gateway, %q", svc.Name, cfg.Gateway)
+			}
+		}
+
+		// Since this service was specified on its own, and not with a wildcard,
+		// if there is an existing entry, we overwrite it. The service entry is the source of truth.
+		//
+		// By extension, if TLS creds are provided with a wildcard but are not provided in
+		// the service entry, the service does not inherit the creds from the wildcard.
+		mapping.Service = svc.Name
+		if err := tx.Insert("terminating-gateway-services", mapping); err != nil {
+			return fmt.Errorf("failed inserting gateway service mapping: %s", err)
+		}
+	}
+
+	if err := indexUpdateMaxTxn(tx, idx, "terminating-gateway-services"); err != nil {
+		return fmt.Errorf("failed updating terminating-gateway-services index: %v", err)
+	}
+	return nil
+}
+
+// TODO (gateways) (freddy) enterprise implementation
+// catalogUpdateGatewayService associates services with gateways after an eligible event
+// ie. Registering a service in a namespace targeted by a gateway
+func (s *Store) catalogUpdateGatewayService(tx *memdb.Txn, idx uint64, gateway string, service string, entMeta *structs.EnterpriseMeta) error {
+	mapping := &gatewayService{
+		Gateway: gateway,
+		Service: service,
+	}
+
+	// If a wildcard specifier is registered for that namespace, use its TLS config
+	wc, err := tx.First("terminating-gateway-services", "service", structs.WildcardSpecifier)
+	if err != nil {
+		return fmt.Errorf("gateway service lookup failed: %s", err)
+	}
+	if wc != nil {
+		cfg := wc.(*gatewayService)
+		mapping.CAFile = cfg.CAFile
+		mapping.CertFile = cfg.CertFile
+		mapping.KeyFile = cfg.KeyFile
+	}
+
+	if err := tx.Insert("terminating-gateway-services", mapping); err != nil {
+		return fmt.Errorf("failed inserting gateway service mapping: %s", err)
+	}
+
+	if err := indexUpdateMaxTxn(tx, idx, "terminating-gateway-services"); err != nil {
+		return fmt.Errorf("failed updating terminating-gateway-services index: %v", err)
+	}
+	return nil
 }

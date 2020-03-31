@@ -143,6 +143,17 @@ type sessionCheck struct {
 	structs.EnterpriseMeta
 }
 
+// TODO (gateways) (freddy) enterprise implementation needs both fields associated with namespaces
+// gatewayService is used to associate terminating gateways with services.
+// This is only used internally in the state store and thus it is not exported.
+type gatewayService struct {
+	Gateway  string
+	Service  string
+	CAFile   string
+	CertFile string
+	KeyFile  string
+}
+
 // NewStateStore creates a new in-memory state storage layer.
 func NewStateStore(gc *TombstoneGC) (*Store, error) {
 	// Create the in-memory DB.

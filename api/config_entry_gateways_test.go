@@ -189,7 +189,29 @@ func TestAPI_ConfigEntries_TerminatingGateway(t *testing.T) {
 	require.NotEqual(t, 0, wm.RequestTime)
 	require.True(t, written)
 
-	// update no cas
+	// re-setting should not yield an error
+	_, wm, err = configEntries.Set(terminating1, nil)
+	require.NoError(t, err)
+	require.NotNil(t, wm)
+	require.NotEqual(t, 0, wm.RequestTime)
+
+	// web is associated with the other gateway, should get an error
+	terminating2.Services = []LinkedService{
+		{
+			Name:     "*",
+			CAFile:   "/etc/certs/ca.crt",
+			CertFile: "/etc/certs/client.crt",
+			KeyFile:  "/etc/certs/tls.key",
+		},
+		{
+			Name: "web",
+		},
+	}
+	_, wm, err = configEntries.Set(terminating2, nil)
+	require.Error(t, err, "service \"web\" is associated with a different gateway")
+	require.Nil(t, wm)
+
+	// try again without web
 	terminating2.Services = []LinkedService{
 		{
 			Name:     "*",

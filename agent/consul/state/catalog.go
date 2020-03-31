@@ -59,6 +59,7 @@ func init() {
 	registerSchema(nodesTableSchema)
 	registerSchema(servicesTableSchema)
 	registerSchema(checksTableSchema)
+	registerSchema(gatewayServicesTableSchema)
 }
 
 const (
@@ -920,6 +921,30 @@ func (s *Store) serviceNodes(ws memdb.WatchSet, serviceName string, connect bool
 	var results structs.ServiceNodes
 	for service := services.Next(); service != nil; service = services.Next() {
 		results = append(results, service.(*structs.ServiceNode))
+	}
+
+	// If we are querying for Connect nodes, the associated proxy might be a gateway.
+	// Gateways are tracked in a separate table, and we append them to the result set.
+	if connect {
+		// Look up gateway name associated with the service
+		result, err := s.catalogServiceGateway(tx, serviceName, "service", entMeta)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed gateway lookup: %s", err)
+		}
+		if result != nil {
+			mapping := result.(*gatewayService)
+
+			// Look up nodes for gateway
+			gateways, err := s.catalogServiceNodeList(tx, mapping.Gateway, "service", entMeta)
+			if err != nil {
+				return 0, nil, fmt.Errorf("failed service lookup: %s", err)
+			}
+			ws.Add(gateways.WatchCh())
+
+			for gateway := gateways.Next(); gateway != nil; gateway = gateways.Next() {
+				results = append(results, gateway.(*structs.ServiceNode))
+			}
+		}
 	}
 
 	// Fill in the node details.
@@ -1834,6 +1859,30 @@ func (s *Store) checkServiceNodes(ws memdb.WatchSet, serviceName string, connect
 		sn := service.(*structs.ServiceNode)
 		results = append(results, sn)
 		serviceNames[sn.ServiceName] = struct{}{}
+	}
+
+	// If we are querying for Connect nodes, the associated proxy might be a gateway.
+	// Gateways are tracked in a separate table, and we append them to the result set.
+	if connect {
+		// Look up gateway name associated with the service
+		result, err := s.catalogServiceGateway(tx, serviceName, "service", entMeta)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed gateway lookup: %s", err)
+		}
+		if result != nil {
+			mapping := result.(*gatewayService)
+
+			// Look up nodes for gateway
+			gateways, err := s.catalogServiceNodeList(tx, mapping.Gateway, "service", entMeta)
+			if err != nil {
+				return 0, nil, fmt.Errorf("failed service lookup: %s", err)
+			}
+			for gateway := gateways.Next(); gateway != nil; gateway = gateways.Next() {
+				sn := gateway.(*structs.ServiceNode)
+				results = append(results, sn)
+				serviceNames[sn.ServiceName] = struct{}{}
+			}
+		}
 	}
 
 	// watchOptimized tracks if we meet the necessary condition to optimize
