@@ -30,3 +30,8 @@ comment: false
 # https://docs.codecov.io/docs/flags
 # TODO: split out test coverage for API, SDK, UI, website?
 # flags:
+
+ignore:
+  - "agent/bindata_assetfs.go"
+  - "vendor/**/*"
+  - "**/*.pb.go"
