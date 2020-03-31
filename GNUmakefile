@@ -356,14 +356,14 @@ ui-docker: ui-build-image
 test-envoy-integ: $(ENVOY_INTEG_DEPS)
 	@$(SHELL) $(CURDIR)/test/integration/connect/envoy/run-tests.sh
 
-test-vault-ca-provider:
+test-connect-ca-providers:
 ifeq ("$(CIRCLECI)","true")
 # Run in CI
-	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report.xml" -- $(CURDIR)/agent/connect/ca/* -run 'TestVault(CA)?Provider'
+	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report.xml" -- ./agent/connect/ca
 else
 # Run locally
-	@echo "Running /agent/connect/ca TestVault(CA)?Provider tests in verbose mode"
-	@go test $(CURDIR)/agent/connect/ca/* -run 'TestVault(CA)?Provider' -v
+	@echo "Running /agent/connect/ca tests in verbose mode"
+	@go test -v ./agent/connect/ca
 endif
 
 proto-delete:
