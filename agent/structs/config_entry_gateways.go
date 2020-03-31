@@ -237,6 +237,13 @@ func (e *TerminatingGatewayConfigEntry) Validate() error {
 			return fmt.Errorf("Service %q was specified more than once within a namespace", svc.Name)
 		}
 		seen[ns][svc.Name] = true
+
+		// If any TLS config flag was specified, all must be
+		if (svc.CAFile != "" || svc.CertFile != "" || svc.KeyFile != "") &&
+			!(svc.CAFile != "" && svc.CertFile != "" && svc.KeyFile != "") {
+
+			return fmt.Errorf("Service %q must have a CertFile, CAFile, and KeyFile specified for TLS origination", svc.Name)
+		}
 	}
 	return nil
 }
