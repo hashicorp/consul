@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"io"
+	"os"
 	"testing"
 	"time"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
@@ -55,11 +55,11 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveFn func(strin
 	a := &TestACLAgent{Name: name, HCL: hcl, resolveTokenFn: resolveFn}
 	hclDataDir := `data_dir = "acl-agent"`
 
-	logOutput := testutil.TestWriter(t)
 	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
-		Name:   a.Name,
-		Level:  hclog.Debug,
-		Output: logOutput,
+		Name:       a.Name,
+		Level:      hclog.Debug,
+		Output:     os.Stdout,
+		TimeFormat: "04:05.000",
 	})
 
 	a.Config = TestConfig(logger,
@@ -73,7 +73,7 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveFn func(strin
 	}
 	a.Agent = agent
 
-	agent.LogOutput = logOutput
+	agent.LogOutput = os.Stdout
 	agent.logger = logger
 	agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
 

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
 )
@@ -393,8 +392,7 @@ func (m *mock) SyncChanges() error {
 
 func testSyncer(t *testing.T) *StateSyncer {
 	logger := hclog.New(&hclog.LoggerOptions{
-		Level:  0,
-		Output: testutil.TestWriter(t),
+		Level: 0,
 	})
 
 	l := NewStateSyncer(nil, time.Second, nil, logger)

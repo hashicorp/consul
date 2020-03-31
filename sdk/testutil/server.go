@@ -235,11 +235,6 @@ func NewTestServerConfig(cb ServerConfigCallback) (*TestServer, error) {
 // configuring or starting the server, the server will NOT be running when the
 // function returns (thus you do not need to stop it).
 func NewTestServerConfigT(t testing.TB, cb ServerConfigCallback) (*TestServer, error) {
-	return newTestServerConfigT(t, cb)
-}
-
-// newTestServerConfigT is the internal helper for NewTestServerConfigT.
-func newTestServerConfigT(t testing.TB, cb ServerConfigCallback) (*TestServer, error) {
 	path, err := exec.LookPath("consul")
 	if err != nil || path == "" {
 		return nil, fmt.Errorf("consul not found on $PATH - download and install " +
@@ -257,10 +252,6 @@ func newTestServerConfigT(t testing.TB, cb ServerConfigCallback) (*TestServer, e
 	}
 
 	cfg := defaultServerConfig()
-	testWriter := TestWriter(t)
-	cfg.Stdout = testWriter
-	cfg.Stderr = testWriter
-
 	cfg.DataDir = filepath.Join(tmpdir, "data")
 	if cb != nil {
 		cb(cfg)
@@ -284,11 +275,11 @@ func newTestServerConfigT(t testing.TB, cb ServerConfigCallback) (*TestServer, e
 		return nil, errors.Wrap(err, "failed writing config content")
 	}
 
-	stdout := testWriter
+	var stdout io.Writer = os.Stdout
 	if cfg.Stdout != nil {
 		stdout = cfg.Stdout
 	}
-	stderr := testWriter
+	var stderr io.Writer = os.Stderr
 	if cfg.Stderr != nil {
 		stderr = cfg.Stderr
 	}

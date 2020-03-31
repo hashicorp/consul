@@ -11,7 +11,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
@@ -1195,7 +1194,7 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 	}()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.LogOutput = io.MultiWriter(pw, testutil.TestWriter(t))
+		c.LogOutput = io.MultiWriter(pw, os.Stdout)
 		c.Build = "1.6.0"
 		c.ConfigEntryBootstrap = []structs.ConfigEntry{
 			&structs.ServiceSplitterConfigEntry{
