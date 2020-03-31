@@ -99,7 +99,7 @@ func TestAgent_MultiStartStop(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		t.Run("", func(t *testing.T) {
 			t.Parallel()
-			a := NewTestAgent(t, t.Name(), "")
+			a := NewTestAgent(t, "")
 			time.Sleep(250 * time.Millisecond)
 			a.Shutdown()
 		})
@@ -159,7 +159,7 @@ func TestAgent_ConnectClusterIDConfig(t *testing.T) {
 
 func TestAgent_StartStop(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	if err := a.Leave(); err != nil {
@@ -178,7 +178,7 @@ func TestAgent_StartStop(t *testing.T) {
 
 func TestAgent_RPCPing(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -191,7 +191,7 @@ func TestAgent_RPCPing(t *testing.T) {
 func TestAgent_TokenStore(t *testing.T) {
 	t.Parallel()
 
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		acl_token = "user"
 		acl_agent_token = "agent"
 		acl_agent_master_token = "master"`,
@@ -212,7 +212,7 @@ func TestAgent_TokenStore(t *testing.T) {
 func TestAgent_ReconnectConfigSettings(t *testing.T) {
 	t.Parallel()
 	func() {
-		a := NewTestAgent(t, t.Name(), "")
+		a := NewTestAgent(t, "")
 		defer a.Shutdown()
 
 		lan := a.consulConfig().SerfLANConfig.ReconnectTimeout
@@ -227,7 +227,7 @@ func TestAgent_ReconnectConfigSettings(t *testing.T) {
 	}()
 
 	func() {
-		a := NewTestAgent(t, t.Name(), `
+		a := NewTestAgent(t, `
 			reconnect_timeout = "24h"
 			reconnect_timeout_wan = "36h"
 		`)
@@ -248,7 +248,7 @@ func TestAgent_ReconnectConfigSettings(t *testing.T) {
 func TestAgent_ReconnectConfigWanDisabled(t *testing.T) {
 	t.Parallel()
 
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		ports { serf_wan = -1 }
 		reconnect_timeout_wan = "36h"
 	`)
@@ -260,7 +260,7 @@ func TestAgent_ReconnectConfigWanDisabled(t *testing.T) {
 
 func TestAgent_setupNodeID(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		node_id = ""
 	`)
 	defer a.Shutdown()
@@ -328,7 +328,7 @@ func TestAgent_setupNodeID(t *testing.T) {
 
 func TestAgent_makeNodeID(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		node_id = ""
 	`)
 	defer a.Shutdown()
@@ -386,7 +386,7 @@ func TestAgent_AddService(t *testing.T) {
 func testAgent_AddService(t *testing.T, extraHCL string) {
 	t.Helper()
 
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		node_name = "node1"
 	`+extraHCL)
 	defer a.Shutdown()
@@ -582,7 +582,7 @@ func TestAgent_AddServices_AliasUpdateCheckNotReverted(t *testing.T) {
 func testAgent_AddServices_AliasUpdateCheckNotReverted(t *testing.T, extraHCL string) {
 	t.Helper()
 
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		node_name = "node1"
 	`+extraHCL)
 	defer a.Shutdown()
@@ -650,7 +650,7 @@ func TestAgent_AddServiceNoExec(t *testing.T) {
 func testAgent_AddServiceNoExec(t *testing.T, extraHCL string) {
 	t.Helper()
 
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		node_name = "node1"
 	`+extraHCL)
 	defer a.Shutdown()
@@ -692,7 +692,7 @@ func TestAgent_AddServiceNoRemoteExec(t *testing.T) {
 func testAgent_AddServiceNoRemoteExec(t *testing.T, extraHCL string) {
 	t.Helper()
 
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		node_name = "node1"
 		enable_local_script_checks = true
 	`+extraHCL)
@@ -719,7 +719,7 @@ func testAgent_AddServiceNoRemoteExec(t *testing.T, extraHCL string) {
 func TestAddServiceIPv4TaggedDefault(t *testing.T) {
 	t.Helper()
 
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -748,7 +748,7 @@ func TestAddServiceIPv4TaggedDefault(t *testing.T) {
 func TestAddServiceIPv6TaggedDefault(t *testing.T) {
 	t.Helper()
 
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -777,7 +777,7 @@ func TestAddServiceIPv6TaggedDefault(t *testing.T) {
 func TestAddServiceIPv4TaggedSet(t *testing.T) {
 	t.Helper()
 
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -812,7 +812,7 @@ func TestAddServiceIPv4TaggedSet(t *testing.T) {
 func TestAddServiceIPv6TaggedSet(t *testing.T) {
 	t.Helper()
 
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -858,7 +858,7 @@ func TestAgent_RemoveService(t *testing.T) {
 func testAgent_RemoveService(t *testing.T, extraHCL string) {
 	t.Helper()
 
-	a := NewTestAgent(t, t.Name(), extraHCL)
+	a := NewTestAgent(t, extraHCL)
 	defer a.Shutdown()
 
 	// Remove a service that doesn't exist
@@ -969,7 +969,7 @@ func TestAgent_RemoveServiceRemovesAllChecks(t *testing.T) {
 func testAgent_RemoveServiceRemovesAllChecks(t *testing.T, extraHCL string) {
 	t.Helper()
 
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		node_name = "node1"
 	`+extraHCL)
 	defer a.Shutdown()
@@ -1043,7 +1043,7 @@ func TestAgent_IndexChurn(t *testing.T) {
 func verifyIndexChurn(t *testing.T, tags []string) {
 	t.Helper()
 
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	weights := &structs.Weights{
@@ -1135,7 +1135,7 @@ func verifyIndexChurn(t *testing.T, tags []string) {
 
 func TestAgent_AddCheck(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		enable_script_checks = true
 	`)
 	defer a.Shutdown()
@@ -1169,7 +1169,7 @@ func TestAgent_AddCheck(t *testing.T) {
 
 func TestAgent_AddCheck_StartPassing(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		enable_script_checks = true
 	`)
 	defer a.Shutdown()
@@ -1203,7 +1203,7 @@ func TestAgent_AddCheck_StartPassing(t *testing.T) {
 
 func TestAgent_AddCheck_MinInterval(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		enable_script_checks = true
 	`)
 	defer a.Shutdown()
@@ -1236,7 +1236,7 @@ func TestAgent_AddCheck_MinInterval(t *testing.T) {
 
 func TestAgent_AddCheck_MissingService(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		enable_script_checks = true
 	`)
 	defer a.Shutdown()
@@ -1259,7 +1259,7 @@ func TestAgent_AddCheck_MissingService(t *testing.T) {
 
 func TestAgent_AddCheck_RestoreState(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// Create some state and persist it
@@ -1299,7 +1299,7 @@ func TestAgent_AddCheck_RestoreState(t *testing.T) {
 func TestAgent_AddCheck_ExecDisable(t *testing.T) {
 	t.Parallel()
 
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	health := &structs.HealthCheck{
@@ -1332,7 +1332,7 @@ func TestAgent_AddCheck_ExecDisable(t *testing.T) {
 func TestAgent_AddCheck_ExecRemoteDisable(t *testing.T) {
 	t.Parallel()
 
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		enable_local_script_checks = true
 	`)
 	defer a.Shutdown()
@@ -1359,7 +1359,7 @@ func TestAgent_AddCheck_ExecRemoteDisable(t *testing.T) {
 
 func TestAgent_AddCheck_GRPC(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	health := &structs.HealthCheck{
@@ -1567,7 +1567,7 @@ func TestAgent_AddCheck_Alias(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	health := &structs.HealthCheck{
@@ -1599,7 +1599,7 @@ func TestAgent_AddCheck_Alias_setToken(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	health := &structs.HealthCheck{
@@ -1627,7 +1627,7 @@ func TestAgent_AddCheck_Alias_userToken(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 acl_token = "hello"
 	`)
 	defer a.Shutdown()
@@ -1657,7 +1657,7 @@ func TestAgent_AddCheck_Alias_userAndSetToken(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 acl_token = "hello"
 	`)
 	defer a.Shutdown()
@@ -1685,7 +1685,7 @@ acl_token = "hello"
 
 func TestAgent_RemoveCheck(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		enable_script_checks = true
 	`)
 	defer a.Shutdown()
@@ -1736,7 +1736,7 @@ func TestAgent_HTTPCheck_TLSSkipVerify(t *testing.T) {
 	server := httptest.NewTLSServer(handler)
 	defer server.Close()
 
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	health := &structs.HealthCheck{
@@ -1833,7 +1833,7 @@ func TestAgent_HTTPCheck_EnableAgentTLSForChecks(t *testing.T) {
 
 func TestAgent_updateTTLCheck(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	checkBufSize := 100
 	health := &structs.HealthCheck{
@@ -1997,7 +1997,7 @@ func testAgent_persistedService_compat(t *testing.T, extraHCL string) {
 	t.Helper()
 
 	// Tests backwards compatibility of persisted services from pre-0.5.1
-	a := NewTestAgent(t, t.Name(), extraHCL)
+	a := NewTestAgent(t, extraHCL)
 	defer a.Shutdown()
 
 	svc := &structs.NodeService{
@@ -2050,7 +2050,7 @@ func TestAgent_PurgeService(t *testing.T) {
 func testAgent_PurgeService(t *testing.T, extraHCL string) {
 	t.Helper()
 
-	a := NewTestAgent(t, t.Name(), extraHCL)
+	a := NewTestAgent(t, extraHCL)
 	defer a.Shutdown()
 
 	svc := &structs.NodeService{
@@ -2230,7 +2230,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 
 func TestAgent_PurgeCheck(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	check := &structs.HealthCheck{
@@ -2333,7 +2333,7 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 
 func TestAgent_loadChecks_token(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		check = {
 			id = "rabbitmq"
 			name = "rabbitmq"
@@ -2349,7 +2349,7 @@ func TestAgent_loadChecks_token(t *testing.T) {
 
 func TestAgent_unloadChecks(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// First register a service
@@ -2401,7 +2401,7 @@ func TestAgent_loadServices_token(t *testing.T) {
 func testAgent_loadServices_token(t *testing.T, extraHCL string) {
 	t.Helper()
 
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		service = {
 			id = "rabbitmq"
 			name = "rabbitmq"
@@ -2431,7 +2431,7 @@ func TestAgent_loadServices_sidecar(t *testing.T) {
 func testAgent_loadServices_sidecar(t *testing.T, extraHCL string) {
 	t.Helper()
 
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		service = {
 			id = "rabbitmq"
 			name = "rabbitmq"
@@ -2472,7 +2472,7 @@ func TestAgent_loadServices_sidecarSeparateToken(t *testing.T) {
 func testAgent_loadServices_sidecarSeparateToken(t *testing.T, extraHCL string) {
 	t.Helper()
 
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		service = {
 			id = "rabbitmq"
 			name = "rabbitmq"
@@ -2511,7 +2511,7 @@ func TestAgent_loadServices_sidecarInheritMeta(t *testing.T) {
 func testAgent_loadServices_sidecarInheritMeta(t *testing.T, extraHCL string) {
 	t.Helper()
 
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		service = {
 			id = "rabbitmq"
 			name = "rabbitmq"
@@ -2555,7 +2555,7 @@ func TestAgent_loadServices_sidecarOverrideMeta(t *testing.T) {
 func testAgent_loadServices_sidecarOverrideMeta(t *testing.T, extraHCL string) {
 	t.Helper()
 
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		service = {
 			id = "rabbitmq"
 			name = "rabbitmq"
@@ -2603,7 +2603,7 @@ func TestAgent_unloadServices(t *testing.T) {
 func testAgent_unloadServices(t *testing.T, extraHCL string) {
 	t.Helper()
 
-	a := NewTestAgent(t, t.Name(), extraHCL)
+	a := NewTestAgent(t, extraHCL)
 	defer a.Shutdown()
 
 	svc := &structs.NodeService{
@@ -2631,7 +2631,7 @@ func testAgent_unloadServices(t *testing.T, extraHCL string) {
 
 func TestAgent_Service_MaintenanceMode(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	svc := &structs.NodeService{
@@ -2697,7 +2697,7 @@ func TestAgent_Service_MaintenanceMode(t *testing.T) {
 
 func TestAgent_Service_Reap(t *testing.T) {
 	// t.Parallel() // timing test. no parallel
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		check_reap_interval = "50ms"
 		check_deregister_interval_min = "0s"
 	`)
@@ -2752,7 +2752,7 @@ func TestAgent_Service_Reap(t *testing.T) {
 
 func TestAgent_Service_NoReap(t *testing.T) {
 	// t.Parallel() // timing test. no parallel
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		check_reap_interval = "50ms"
 		check_deregister_interval_min = "0s"
 	`)
@@ -2805,7 +2805,7 @@ func TestAgent_AddService_restoresSnapshot(t *testing.T) {
 func testAgent_AddService_restoresSnapshot(t *testing.T, extraHCL string) {
 	t.Helper()
 
-	a := NewTestAgent(t, t.Name(), extraHCL)
+	a := NewTestAgent(t, extraHCL)
 	defer a.Shutdown()
 
 	// First register a service
@@ -2837,7 +2837,7 @@ func testAgent_AddService_restoresSnapshot(t *testing.T, extraHCL string) {
 
 func TestAgent_AddCheck_restoresSnapshot(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// First register a service
@@ -2877,7 +2877,7 @@ func TestAgent_AddCheck_restoresSnapshot(t *testing.T) {
 
 func TestAgent_NodeMaintenanceMode(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// Enter maintenance mode for the node
@@ -2914,7 +2914,7 @@ func TestAgent_NodeMaintenanceMode(t *testing.T) {
 
 func TestAgent_checkStateSnapshot(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// First register a service
@@ -2965,7 +2965,7 @@ func TestAgent_checkStateSnapshot(t *testing.T) {
 
 func TestAgent_loadChecks_checkFails(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// Persist a health check with an invalid service ID
@@ -3000,7 +3000,7 @@ func TestAgent_loadChecks_checkFails(t *testing.T) {
 
 func TestAgent_persistCheckState(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	cid := structs.NewCheckID("check1", nil)
@@ -3048,7 +3048,7 @@ func TestAgent_persistCheckState(t *testing.T) {
 
 func TestAgent_loadCheckState(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// Create a check whose state will expire immediately
@@ -3109,7 +3109,7 @@ func TestAgent_loadCheckState(t *testing.T) {
 
 func TestAgent_purgeCheckState(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	cid := structs.NewCheckID("check1", nil)
@@ -3143,7 +3143,7 @@ func TestAgent_purgeCheckState(t *testing.T) {
 func TestAgent_GetCoordinate(t *testing.T) {
 	t.Parallel()
 	check := func(server bool) {
-		a := NewTestAgent(t, t.Name(), `
+		a := NewTestAgent(t, `
 			server = true
 		`)
 		defer a.Shutdown()
@@ -3163,7 +3163,7 @@ func TestAgent_GetCoordinate(t *testing.T) {
 
 func TestAgent_reloadWatches(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// Normal watch with http addr set, should succeed
@@ -3243,7 +3243,7 @@ func TestAgent_reloadWatchesHTTPS(t *testing.T) {
 
 func TestAgent_loadTokens(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		acl = {
 			enabled = true
 			tokens = {
@@ -3410,7 +3410,7 @@ func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 		key_file = "../test/key/ourdomain.key"
 		verify_server_hostname = false
 	`
-	a := NewTestAgent(t, t.Name(), hcl)
+	a := NewTestAgent(t, hcl)
 	defer a.Shutdown()
 	tlsConf := a.tlsConfigurator.OutgoingRPCConfig()
 	require.True(t, tlsConf.InsecureSkipVerify)
@@ -3443,7 +3443,7 @@ func TestAgent_ReloadConfigAndKeepChecksStatus(t *testing.T) {
 		  name="webserver1",
 		  check{id="check1", ttl="30s"}
 		}]`
-	a := NewTestAgent(t, t.Name(), hcl)
+	a := NewTestAgent(t, hcl)
 	defer a.Shutdown()
 
 	require.NoError(t, a.updateTTLCheck(structs.NewCheckID("check1", nil), api.HealthPassing, "testing agent reload"))
@@ -3475,7 +3475,7 @@ func TestAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
 		key_file = "../test/key/ourdomain.key"
 		verify_server_hostname = false
 	`
-	a := NewTestAgent(t, t.Name(), hcl)
+	a := NewTestAgent(t, hcl)
 	defer a.Shutdown()
 	tlsConf := a.tlsConfigurator.IncomingRPCConfig()
 	require.NotNil(t, tlsConf.GetConfigForClient)
@@ -3515,7 +3515,7 @@ func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
 		key_file = "../test/key/ourdomain.key"
 		verify_server_hostname = false
 	`
-	a := NewTestAgent(t, t.Name(), hcl)
+	a := NewTestAgent(t, hcl)
 	defer a.Shutdown()
 	tlsConf := a.tlsConfigurator.IncomingRPCConfig()
 
@@ -3544,7 +3544,7 @@ func TestAgent_consulConfig_AutoEncryptAllowTLS(t *testing.T) {
 		key_file = "../test/key/ourdomain.key"
 		auto_encrypt { allow_tls = true }
 	`
-	a := NewTestAgent(t, t.Name(), hcl)
+	a := NewTestAgent(t, hcl)
 	defer a.Shutdown()
 	require.True(t, a.consulConfig().AutoEncryptAllowTLS)
 }
@@ -3554,7 +3554,7 @@ func TestAgent_consulConfig_RaftTrailingLogs(t *testing.T) {
 	hcl := `
 		raft_trailing_logs = 812345
 	`
-	a := NewTestAgent(t, t.Name(), hcl)
+	a := NewTestAgent(t, hcl)
 	defer a.Shutdown()
 	require.Equal(t, uint64(812345), a.consulConfig().RaftConfig.TrailingLogs)
 }
@@ -3798,7 +3798,7 @@ func TestConfigSourceFromName(t *testing.T) {
 func TestAgent_RerouteExistingHTTPChecks(t *testing.T) {
 	t.Parallel()
 
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -3927,7 +3927,7 @@ func TestAgent_RerouteExistingHTTPChecks(t *testing.T) {
 func TestAgent_RerouteNewHTTPChecks(t *testing.T) {
 	t.Parallel()
 
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")

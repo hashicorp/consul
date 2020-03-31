@@ -61,7 +61,7 @@ func TestSnapshotRestoreCommand_Validation(t *testing.T) {
 
 func TestSnapshotRestoreCommand(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 

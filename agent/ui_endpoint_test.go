@@ -28,7 +28,7 @@ func TestUiIndex(t *testing.T) {
 	defer os.RemoveAll(uiDir)
 
 	// Make the server
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		ui_dir = "`+uiDir+`"
 	`)
 	defer a.Shutdown()
@@ -67,7 +67,7 @@ func TestUiIndex(t *testing.T) {
 
 func TestUiNodes(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -105,7 +105,7 @@ func TestUiNodes(t *testing.T) {
 
 func TestUiNodes_Filter(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -147,7 +147,7 @@ func TestUiNodes_Filter(t *testing.T) {
 
 func TestUiNodeInfo(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -197,7 +197,7 @@ func TestUiNodeInfo(t *testing.T) {
 
 func TestUiServices(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 

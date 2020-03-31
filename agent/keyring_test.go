@@ -34,7 +34,7 @@ func TestAgent_LoadKeyrings(t *testing.T) {
 
 	// Should be no configured keyring file by default
 	t.Run("no keys", func(t *testing.T) {
-		a1 := NewTestAgent(t, t.Name(), "")
+		a1 := NewTestAgent(t, "")
 		defer a1.Shutdown()
 
 		c1 := a1.consulConfig()
@@ -111,7 +111,7 @@ func TestAgent_InmemKeyrings(t *testing.T) {
 
 	// Should be no configured keyring file by default
 	t.Run("no keys", func(t *testing.T) {
-		a1 := NewTestAgent(t, t.Name(), "")
+		a1 := NewTestAgent(t, "")
 		defer a1.Shutdown()
 
 		c1 := a1.consulConfig()
@@ -131,7 +131,7 @@ func TestAgent_InmemKeyrings(t *testing.T) {
 
 	// Server should auto-load LAN and WAN keyring
 	t.Run("server with keys", func(t *testing.T) {
-		a2 := NewTestAgent(t, t.Name(), `
+		a2 := NewTestAgent(t, `
 			encrypt = "`+key+`"
 			disable_keyring_file = true
 		`)
@@ -160,7 +160,7 @@ func TestAgent_InmemKeyrings(t *testing.T) {
 
 	// Client should auto-load only the LAN keyring
 	t.Run("client with keys", func(t *testing.T) {
-		a3 := NewTestAgent(t, t.Name(), `
+		a3 := NewTestAgent(t, `
 			encrypt = "`+key+`"
 			server = false
 			bootstrap = false
@@ -199,7 +199,7 @@ func TestAgent_InmemKeyrings(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		a4 := NewTestAgent(t, t.Name(), `
+		a4 := NewTestAgent(t, `
 			encrypt = "`+key+`"
 			disable_keyring_file = true
 			data_dir = "`+dir+`"

@@ -19,7 +19,7 @@ func TestConnectCARoots_empty(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := NewTestAgent(t, t.Name(), "connect { enabled = false }")
+	a := NewTestAgent(t, "connect { enabled = false }")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -34,7 +34,7 @@ func TestConnectCARoots_list(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -226,7 +226,7 @@ func TestConnectCAConfig(t *testing.T) {
 					}
 				}`
 			}
-			a := NewTestAgent(t, t.Name(), hcl)
+			a := NewTestAgent(t, hcl)
 			defer a.Shutdown()
 			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 

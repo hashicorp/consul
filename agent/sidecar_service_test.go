@@ -325,7 +325,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 			}
 
 			require := require.New(t)
-			a := NewTestAgent(t, "jones", hcl)
+			a := NewTestAgentWithFields(t, "jones", hcl)
 			defer a.Shutdown()
 
 			if tt.preRegister != nil {

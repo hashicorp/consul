@@ -19,8 +19,8 @@ func TestForceLeaveCommand_noTabs(t *testing.T) {
 
 func TestForceLeaveCommand(t *testing.T) {
 	t.Parallel()
-	a1 := agent.NewTestAgent(t, t.Name(), ``)
-	a2 := agent.NewTestAgent(t, t.Name(), ``)
+	a1 := agent.NewTestAgent(t, ``)
+	a2 := agent.NewTestAgent(t, ``)
 	defer a1.Shutdown()
 	defer a2.Shutdown()
 
@@ -58,7 +58,7 @@ func TestForceLeaveCommand(t *testing.T) {
 
 func TestForceLeaveCommand_NoNodeWithName(t *testing.T) {
 	t.Parallel()
-	a1 := agent.NewTestAgent(t, t.Name(), ``)
+	a1 := agent.NewTestAgent(t, ``)
 	defer a1.Shutdown()
 
 	ui := cli.NewMockUi()

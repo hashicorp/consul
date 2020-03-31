@@ -86,12 +86,12 @@ type TestAgent struct {
 	*Agent
 }
 
-// NewTestAgent returns a started agent with the given name and
-// configuration. It fails the test if the Agent could not be started. The
-// caller should call Shutdown() to stop the agent and remove temporary
-// directories.
-func NewTestAgent(t *testing.T, name string, hcl string) *TestAgent {
-	return NewTestAgentWithFields(t, true, TestAgent{Name: name, HCL: hcl})
+// NewTestAgent returns a started agent with the given configuration. It fails
+// the test if the Agent could not be started.
+// The caller is responsible for calling Shutdown() to stop the agent and remove
+// temporary directories.
+func NewTestAgent(t *testing.T, hcl string) *TestAgent {
+	return NewTestAgentWithFields(t, true, TestAgent{HCL: hcl})
 }
 
 // NewTestAgentWithFields takes a TestAgent struct with any number of fields set,
