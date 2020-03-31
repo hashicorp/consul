@@ -87,6 +87,7 @@
             )
             selected=selectedTab
         }}
+
         {{#each
             (compact
                 (array
@@ -107,7 +108,7 @@
                     (hash id=(slugify 'Tags') partial='dc/services/tags')
                     (hash id=(slugify 'Meta Data') partial='dc/services/metadata')
                 )
-            ) as |panel|
+            ) key="id" as |panel|
         }}
             {{#tab-section id=panel.id selected=(eq (if selectedTab selectedTab '') panel.id) onchange=(action "change")}}
                 {{partial panel.partial}}
