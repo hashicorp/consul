@@ -72,7 +72,7 @@ and consider if they're appropriate for your deployment.
     - `secretKey` ((#v-global-gossipencryption-secretkey)) (`string: ""`) - The key within the Kubernetes secret
       that holds the gossip encryption key.
 
-  - `enableConsulNamespaces` ((#v-global-enableconsulnamespaces)) (`boolean: false`) - [Enterprise Only]
+  - `enableConsulNamespaces` ((#v-global-enableconsulnamespaces)) (`boolean: false`) <span class="label-enterprise">Enterprise</span> -
     `enableConsulNamespaces` indicates that you are running Consul Enterprise v1.7+ with a valid Consul
     Enterprise license and would like to make use of configuration beyond registering everything into
     the `default` Consul namespace. Requires consul-k8s v0.12+. Additional configuration
@@ -149,7 +149,7 @@ and consider if they're appropriate for your deployment.
     number of servers to wait for before performing the initial leader election and bootstrap of the cluster. This must be less than or equal to `server.replicas`. This value is only used
     when bootstrapping new clusters, it has no effect during ongoing cluster maintenance.
 
-  - `enterpriseLicense` ((#v-server-enterpriselicense)) [Enterprise Only] - This value refers to a
+  - `enterpriseLicense` ((#v-server-enterpriselicense)) <span class="label-enterprise">Enterprise</span> - This value refers to a
     Kubernetes secret that you have created that contains your enterprise license. It is required if you are using an enterprise binary. Defining it here applies it to your cluster once a leader
     has been elected. If you are not using an enterprise image or if you plan to
     introduce the license key via another route, then set these fields to null.
@@ -412,7 +412,7 @@ and consider if they're appropriate for your deployment.
       type: RollingUpdate
     ```
 
-  - `snapshotAgent` ((#v-client-snapshotagent)) [Enterprise Only] - Values for setting up and running [snapshot agents](/docs/commands/snapshot/agent)
+  - `snapshotAgent` ((#v-client-snapshotagent)) <span class="label-enterprise">Enterprise</span> - Values for setting up and running [snapshot agents](/docs/commands/snapshot/agent)
     within the Consul clusters. They are required to be co-located with Consul clients,
     so will inherit the clients' nodeSelector, tolerations and affinity.
 
@@ -476,7 +476,7 @@ and consider if they're appropriate for your deployment.
   - `k8sSourceNamespace` ((#v-synccatalog-k8ssourcenamespace)) (`string: ""`) - **[DEPRECATED] Use
     `k8sAllowNamespaces` and `k8sDenyNamespaces` instead.** `k8sSourceNamespace` is the Kubernetes namespace to watch for service changes and sync to Consul. If this is not set then it will default to all namespaces.
 
-  - `consulNamespaces` ((#v-synccatalog-consulnamespaces)) - [Enterprise Only] These settings manage
+  - `consulNamespaces` ((#v-synccatalog-consulnamespaces)) <span class="label-enterprise">Enterprise</span> - These settings manage
     the catalog sync's interaction with Consul namespaces (requires consul-ent v1.7+ and consul-k8s v0.12+). Also, `global.enableConsulNamespaces` must be true.
 
     - `consulDestinationNamespace` ((#v-synccatalog-consulnamespaces-consuldestinationnamespace)) (`string: "default"`) - Name of the Consul namespace to register all k8s
@@ -601,7 +601,7 @@ and consider if they're appropriate for your deployment.
 
     Note: `namespaceSelector` takes precedence over this since it is applied first. `kube-system` and `kube-public` are never injected. Requires consul-k8s v0.12+.
 
-  - `consulNamespaces` ((#v-connectinject-consulnamespaces)) - [Enterprise Only] These settings manage
+  - `consulNamespaces` ((#v-connectinject-consulnamespaces)) <span class="label-enterprise">Enterprise</span> - These settings manage
     the connect injector's interaction with Consul namespaces (requires consul-ent v1.7+ and consul-k8s v0.12+). Also, `global.enableConsulNamespaces` must be true.
 
     - `consulDestinationNamespace` ((#v-connectinject-consulnamespaces-consuldestinationnamespace))

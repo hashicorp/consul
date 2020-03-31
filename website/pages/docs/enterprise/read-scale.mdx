@@ -11,7 +11,9 @@ description: >-
 
 # Enhanced Read Scalability with Non-Voting Servers
 
-[Consul Enterprise](https://www.hashicorp.com/consul) provides the ability to scale clustered Consul servers
+-> **Note**: This feature requires [Consul Enterprise](https://www.hashicorp.com/products/consul/) with the Global Visibility, Routing, and Scale module.
+
+Consul Enterprise provides the ability to scale clustered Consul servers
 to include voting and non-voting servers. Non-voting servers still receive data from the cluster replication,
 however, they do not take part in quorum election operations. Expanding your Consul cluster in this way can scale
 reads without impacting write latency.

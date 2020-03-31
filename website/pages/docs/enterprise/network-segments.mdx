@@ -9,6 +9,8 @@ description: |-
 
 # Network Segments
 
+-> **Note**: This feature requires [Consul Enterprise](https://www.hashicorp.com/products/consul/) with the Global Visibility, Routing, and Scale module.
+
 Consul Network Segments enables operators to create separate LAN gossip segments
 in one Consul cluster. Agents in a segment are only able to join and communicate
 with other agents in it's network segment. This functionality is useful for

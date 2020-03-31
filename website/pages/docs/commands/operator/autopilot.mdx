@@ -81,13 +81,13 @@ Usage: `consul operator autopilot set-config [options]`
   the 'healthy' state before being added to the cluster. Only takes effect if all servers are
   running Raft protocol version 3 or higher. Must be a duration value such as `10s`.
 
-- `-disable-upgrade-migration` - (Enterprise-only) Controls whether Consul will avoid promoting
+- `-disable-upgrade-migration` <span class="label-enterprise">Enterprise</span> - Controls whether Consul will avoid promoting
   new servers until it can perform a migration. Must be one of `[true|false]`.
 
-- `-redundancy-zone-tag`- (Enterprise-only) Controls the [`-node-meta`](/docs/agent/options#_node_meta)
+- `-redundancy-zone-tag` <span class="label-enterprise">Enterprise</span> - Controls the [`-node-meta`](/docs/agent/options#_node_meta)
   key name used for separating servers into different redundancy zones.
 
-- `-upgrade-version-tag` - (Enterprise-only) Controls the [`-node-meta`](/docs/agent/options#_node_meta)
+- `-upgrade-version-tag` <span class="label-enterprise">Enterprise</span> - Controls the [`-node-meta`](/docs/agent/options#_node_meta)
   tag to use for version info when performing upgrade migrations. If left blank, the Consul version will be used.
 
 The output looks like this:

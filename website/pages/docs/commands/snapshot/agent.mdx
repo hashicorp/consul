@@ -8,6 +8,8 @@ sidebar_title: agent
 
 Command: `consul snapshot agent`
 
+<EnterpriseAlert product="consul" />
+
 ~> The [`agent`](/docs/commands/snapshot/agent) subcommand described here is
 available only in [Consul Enterprise](https://www.hashicorp.com/products/consul/)
 version 0.7.1 and later. All other [snapshot subcommands](/docs/commands/snapshot)
@@ -15,8 +17,7 @@ are available in the open source version of Consul.
 
 The `snapshot agent` subcommand starts a process that takes snapshots of the
 state of the Consul servers and saves them locally, or pushes them to an
-optional remote storage service. This subcommand is only available in Consul
-Enterprise 0.7.1 and later.
+optional remote storage service.
 
 The agent can be run as a long-running daemon process or in a one-shot mode
 from a batch job, based on the [`-interval`](#interval) argument. Snapshotting

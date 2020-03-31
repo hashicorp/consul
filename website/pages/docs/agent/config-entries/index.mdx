@@ -125,9 +125,9 @@ $ consul config delete -kind service-defaults -name web
 
 This command will not output anything when the deletion is successful.
 
-#### Configuration Entry Management with Namespaces
+#### Configuration Entry Management with Namespaces <span class="label-enterprise label-enterprise-lg">Enterprise</span>
 
-**Enterprise Only** - Configuration entry operations support passing a namespace in
+Configuration entry operations support passing a namespace in
 order to isolate the entry to affect only operations within that namespace. This was
 added in Consul 1.7.0.
 
