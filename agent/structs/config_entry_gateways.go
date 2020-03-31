@@ -90,12 +90,21 @@ func (e *IngressGatewayConfigEntry) Normalize() error {
 }
 
 func (e *IngressGatewayConfigEntry) Validate() error {
+	validProtocols := map[string]bool{
+		"http": true,
+		"tcp":  true,
+	}
 	declaredPorts := make(map[int]bool)
+
 	for _, listener := range e.Listeners {
 		if _, ok := declaredPorts[listener.Port]; ok {
 			return fmt.Errorf("port %d declared on two listeners", listener.Port)
 		}
 		declaredPorts[listener.Port] = true
+
+		if _, ok := validProtocols[listener.Protocol]; !ok {
+			return fmt.Errorf("Protocol must be either 'http' or 'tcp', '%s' is an unsupported protocol.", listener.Protocol)
+		}
 
 		for _, s := range listener.Services {
 			if s.Name == WildcardSpecifier && listener.Protocol != "http" {

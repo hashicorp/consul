@@ -148,6 +148,25 @@ func TestIngressConfigEntry_Validate(t *testing.T) {
 			},
 			expectErr: "Service name cannot be blank",
 		},
+		{
+			name: "protocol validation",
+			entry: IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "asdf",
+						Services: []IngressService{
+							{
+								Name: "db",
+							},
+						},
+					},
+				},
+			},
+			expectErr: "Protocol must be either 'http' or 'tcp', 'asdf' is an unsupported protocol.",
+		},
 	}
 
 	for _, test := range cases {
