@@ -246,6 +246,121 @@ func TestParseConfigEntry(t *testing.T) {
 			},
 		},
 		{
+			name: "terminating-gateway",
+			snake: `
+				kind = "terminating-gateway"
+				name = "terminating-gw-west"
+				namespace = "default"
+				services = [
+				  {
+					name = "billing"
+					namespace = "biz"
+					ca_file = "/etc/ca.crt"
+					cert_file = "/etc/client.crt"
+					key_file = "/etc/tls.key"
+				  },
+				  {
+					name = "*"
+					namespace = "ops"
+				  }
+				]
+			`,
+			camel: `
+				Kind = "terminating-gateway"
+				Name = "terminating-gw-west"
+				Namespace = "default"
+				Services = [
+				  {
+					Name = "billing"
+					Namespace = "biz"
+					CAFile = "/etc/ca.crt"
+					CertFile = "/etc/client.crt"
+					KeyFile = "/etc/tls.key"
+				  },
+				  {
+					Name = "*"
+					Namespace = "ops"
+				  }
+				]
+			`,
+			snakeJSON: `
+			{
+				"kind": "terminating-gateway",
+				"name": "terminating-gw-west",
+				"namespace": "default",
+				"services": [
+				  {
+					"name": "billing",
+					"namespace": "biz",
+					"ca_file": "/etc/ca.crt",
+					"cert_file": "/etc/client.crt",
+					"key_file": "/etc/tls.key"
+				  },
+				  {
+					"name": "*",
+					"namespace": "ops"
+				  }
+				]
+			}
+			`,
+			camelJSON: `
+			{
+				"Kind": "terminating-gateway",
+				"Name": "terminating-gw-west",
+				"Namespace": "default",
+				"Services": [
+				  {
+					"Name": "billing",
+					"Namespace": "biz",
+					"CAFile": "/etc/ca.crt",
+					"CertFile": "/etc/client.crt",
+					"KeyFile": "/etc/tls.key"
+				  },
+				  {
+					"Name": "*",
+					"Namespace": "ops"
+				  }
+				]
+			}
+			`,
+			expect: &api.TerminatingGatewayConfigEntry{
+				Kind:      "terminating-gateway",
+				Name:      "terminating-gw-west",
+				Namespace: "default",
+				Services: []api.LinkedService{
+					{
+						Name:      "billing",
+						Namespace: "biz",
+						CAFile:    "/etc/ca.crt",
+						CertFile:  "/etc/client.crt",
+						KeyFile:   "/etc/tls.key",
+					},
+					{
+						Name:      "*",
+						Namespace: "ops",
+					},
+				},
+			},
+			expectJSON: &api.TerminatingGatewayConfigEntry{
+				Kind:      "terminating-gateway",
+				Name:      "terminating-gw-west",
+				Namespace: "default",
+				Services: []api.LinkedService{
+					{
+						Name:      "billing",
+						Namespace: "biz",
+						CAFile:    "/etc/ca.crt",
+						CertFile:  "/etc/client.crt",
+						KeyFile:   "/etc/tls.key",
+					},
+					{
+						Name:      "*",
+						Namespace: "ops",
+					},
+				},
+			},
+		},
+		{
 			name: "service-defaults",
 			snake: `
 				kind = "service-defaults"
@@ -1127,7 +1242,6 @@ func TestParseConfigEntry(t *testing.T) {
 			snake: `
 				kind = "ingress-gateway"
 				name = "ingress-web"
-
 				listeners = [
 					{
 						port = 8080

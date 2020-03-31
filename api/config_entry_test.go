@@ -674,6 +674,50 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "terminating-gateway",
+			body: `
+			{
+				"Kind": "terminating-gateway",
+				"Name": "terminating-west",
+				"Services": [
+					{
+						"Namespace": "foo",						
+						"Name": "web",
+						"CAFile": "/etc/ca.pem",
+						"CertFile": "/etc/cert.pem",
+						"KeyFile": "/etc/tls.key"
+					},
+					{
+						"Name": "api"
+					},
+					{
+						"Namespace": "bar",
+						"Name": "*"
+					}
+				]
+			}`,
+			expect: &TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-west",
+				Services: []LinkedService{
+					{
+						Namespace: "foo",
+						Name:      "web",
+						CAFile:    "/etc/ca.pem",
+						CertFile:  "/etc/cert.pem",
+						KeyFile:   "/etc/tls.key",
+					},
+					{
+						Name: "api",
+					},
+					{
+						Namespace: "bar",
+						Name:      "*",
+					},
+				},
+			},
+		},
 	} {
 		tc := tc
 

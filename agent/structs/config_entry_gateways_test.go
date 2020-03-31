@@ -185,3 +185,161 @@ func TestIngressConfigEntry_Validate(t *testing.T) {
 		})
 	}
 }
+
+func TestTerminatingConfigEntry_Validate(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name      string
+		entry     TerminatingGatewayConfigEntry
+		expectErr string
+	}{
+		{
+			name: "service conflict",
+			entry: TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Services: []LinkedService{
+					{
+						Name: "foo",
+					},
+					{
+						Name: "foo",
+					},
+				},
+			},
+			expectErr: "specified more than once",
+		},
+		{
+			name: "blank service name",
+			entry: TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Services: []LinkedService{
+					{
+						Name: "",
+					},
+				},
+			},
+			expectErr: "Service name cannot be blank.",
+		},
+		{
+			name: "not all TLS options provided-1",
+			entry: TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Services: []LinkedService{
+					{
+						Name:   "web",
+						CAFile: "ca.crt",
+					},
+				},
+			},
+			expectErr: "must have a CertFile, CAFile, and KeyFile",
+		},
+		{
+			name: "not all TLS options provided-2",
+			entry: TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Services: []LinkedService{
+					{
+						Name:     "web",
+						CertFile: "client.crt",
+					},
+				},
+			},
+			expectErr: "must have a CertFile, CAFile, and KeyFile",
+		},
+		{
+			name: "not all TLS options provided-3",
+			entry: TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Services: []LinkedService{
+					{
+						Name:    "web",
+						KeyFile: "tls.key",
+					},
+				},
+			},
+			expectErr: "must have a CertFile, CAFile, and KeyFile",
+		},
+		{
+			name: "not all TLS options provided-4",
+			entry: TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Services: []LinkedService{
+					{
+						Name:    "web",
+						CAFile:  "ca.crt",
+						KeyFile: "tls.key",
+					},
+				},
+			},
+			expectErr: "must have a CertFile, CAFile, and KeyFile",
+		},
+		{
+			name: "not all TLS options provided-5",
+			entry: TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Services: []LinkedService{
+					{
+						Name:     "web",
+						CAFile:   "ca.crt",
+						CertFile: "client.crt",
+					},
+				},
+			},
+			expectErr: "must have a CertFile, CAFile, and KeyFile",
+		},
+		{
+			name: "not all TLS options provided-6",
+			entry: TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Services: []LinkedService{
+					{
+						Name:     "web",
+						KeyFile:  "tls.key",
+						CertFile: "client.crt",
+					},
+				},
+			},
+			expectErr: "must have a CertFile, CAFile, and KeyFile",
+		},
+		{
+			name: "all TLS options provided",
+			entry: TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Services: []LinkedService{
+					{
+						Name:     "web",
+						CAFile:   "ca.crt",
+						CertFile: "client.crt",
+						KeyFile:  "tls.key",
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range cases {
+		// We explicitly copy the variable for the range statement so that can run
+		// tests in parallel.
+		tc := test
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			err := tc.entry.Validate()
+			if tc.expectErr != "" {
+				require.Error(t, err)
+				requireContainsLower(t, err.Error(), tc.expectErr)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}

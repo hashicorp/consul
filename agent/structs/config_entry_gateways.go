@@ -159,3 +159,121 @@ func (e *IngressGatewayConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
 
 	return &e.EnterpriseMeta
 }
+
+// TerminatingGatewayConfigEntry manages the configuration for a terminating service
+// with the given name.
+type TerminatingGatewayConfigEntry struct {
+	Kind     string
+	Name     string
+	Services []LinkedService
+
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	RaftIndex
+}
+
+// A LinkedService is a service represented by a terminating gateway
+type LinkedService struct {
+	// Name is the name of the service, as defined in Consul's catalog
+	Name string `json:",omitempty"`
+
+	// CAFile is the optional path to a CA certificate to use for TLS connections
+	// from the gateway to the linked service
+	CAFile string `json:",omitempty"`
+
+	// CertFile is the optional path to a client certificate to use for TLS connections
+	// from the gateway to the linked service
+	CertFile string `json:",omitempty"`
+
+	// KeyFile is the optional path to a private key to use for TLS connections
+	// from the gateway to the linked service
+	KeyFile string `json:",omitempty"`
+
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+}
+
+func (e *TerminatingGatewayConfigEntry) GetKind() string {
+	return TerminatingGateway
+}
+
+func (e *TerminatingGatewayConfigEntry) GetName() string {
+	if e == nil {
+		return ""
+	}
+
+	return e.Name
+}
+
+func (e *TerminatingGatewayConfigEntry) Normalize() error {
+	if e == nil {
+		return fmt.Errorf("config entry is nil")
+	}
+
+	e.Kind = TerminatingGateway
+
+	for i := range e.Services {
+		e.Services[i].EnterpriseMeta.Normalize()
+	}
+	e.EnterpriseMeta.Normalize()
+
+	return nil
+}
+
+func (e *TerminatingGatewayConfigEntry) Validate() error {
+	seen := make(map[ServiceID]bool)
+
+	for _, svc := range e.Services {
+		if svc.Name == "" {
+			return fmt.Errorf("Service name cannot be blank.")
+		}
+
+		ns := svc.NamespaceOrDefault()
+		if ns == WildcardSpecifier {
+			return fmt.Errorf("Wildcard namespace is not supported for terminating gateway services")
+		}
+
+		// Check for duplicates within the entry
+		cid := NewServiceID(svc.Name, &svc.EnterpriseMeta)
+		if ok := seen[cid]; ok {
+			return fmt.Errorf("Service %q was specified more than once within a namespace", cid.String())
+		}
+		seen[cid] = true
+
+		// If any TLS config flag was specified, all must be
+		if (svc.CAFile != "" || svc.CertFile != "" || svc.KeyFile != "") &&
+			!(svc.CAFile != "" && svc.CertFile != "" && svc.KeyFile != "") {
+
+			return fmt.Errorf("Service %q must have a CertFile, CAFile, and KeyFile specified for TLS origination", svc.Name)
+		}
+	}
+	return nil
+}
+
+func (e *TerminatingGatewayConfigEntry) CanRead(authz acl.Authorizer) bool {
+	var authzContext acl.AuthorizerContext
+	e.FillAuthzContext(&authzContext)
+
+	return authz.OperatorRead(&authzContext) == acl.Allow
+}
+
+func (e *TerminatingGatewayConfigEntry) CanWrite(authz acl.Authorizer) bool {
+	var authzContext acl.AuthorizerContext
+	e.FillAuthzContext(&authzContext)
+
+	return authz.OperatorWrite(&authzContext) == acl.Allow
+}
+
+func (e *TerminatingGatewayConfigEntry) GetRaftIndex() *RaftIndex {
+	if e == nil {
+		return &RaftIndex{}
+	}
+
+	return &e.RaftIndex
+}
+
+func (e *TerminatingGatewayConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
+	if e == nil {
+		return nil
+	}
+
+	return &e.EnterpriseMeta
+}

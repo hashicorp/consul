@@ -647,6 +647,63 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "terminating-gateway: kitchen sink",
+			snake: `
+				kind = "terminating-gateway"
+				name = "terminating-gw-west"
+				services = [
+					{
+						name = "payments",
+						ca_file = "/etc/payments/ca.pem",
+						cert_file = "/etc/payments/cert.pem",
+						key_file = "/etc/payments/tls.key",
+					},
+					{
+						name = "*",
+						ca_file = "/etc/all/ca.pem",
+						cert_file = "/etc/all/cert.pem",
+						key_file = "/etc/all/tls.key",
+					},
+				]
+			`,
+			camel: `
+				Kind = "terminating-gateway"
+				Name = "terminating-gw-west"
+				Services = [
+					{
+						Name = "payments",
+						CAFile = "/etc/payments/ca.pem",
+						CertFile = "/etc/payments/cert.pem",
+						KeyFile = "/etc/payments/tls.key",
+					},
+					{
+						Name = "*",
+						CAFile = "/etc/all/ca.pem",
+						CertFile = "/etc/all/cert.pem",
+						KeyFile = "/etc/all/tls.key",
+					},
+				]
+			`,
+			expect: &TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Services: []LinkedService{
+					{
+						Name:     "payments",
+						CAFile:   "/etc/payments/ca.pem",
+						CertFile: "/etc/payments/cert.pem",
+						KeyFile:  "/etc/payments/tls.key",
+					},
+					{
+						Name:     "*",
+						CAFile:   "/etc/all/ca.pem",
+						CertFile: "/etc/all/cert.pem",
+						KeyFile:  "/etc/all/tls.key",
+					},
+				},
+			},
+		},
 	} {
 		tc := tc
 

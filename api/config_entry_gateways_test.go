@@ -125,3 +125,117 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 	entry, qm, err = config_entries.Get(IngressGateway, "foo", nil)
 	require.Error(t, err)
 }
+
+func TestAPI_ConfigEntries_TerminatingGateway(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	configEntries := c.ConfigEntries()
+
+	terminating1 := &TerminatingGatewayConfigEntry{
+		Kind: TerminatingGateway,
+		Name: "foo",
+	}
+
+	terminating2 := &TerminatingGatewayConfigEntry{
+		Kind: TerminatingGateway,
+		Name: "bar",
+	}
+
+	// set it
+	_, wm, err := configEntries.Set(terminating1, nil)
+	require.NoError(t, err)
+	require.NotNil(t, wm)
+	require.NotEqual(t, 0, wm.RequestTime)
+
+	// also set the second one
+	_, wm, err = configEntries.Set(terminating2, nil)
+	require.NoError(t, err)
+	require.NotNil(t, wm)
+	require.NotEqual(t, 0, wm.RequestTime)
+
+	// get it
+	entry, qm, err := configEntries.Get(TerminatingGateway, "foo", nil)
+	require.NoError(t, err)
+	require.NotNil(t, qm)
+	require.NotEqual(t, 0, qm.RequestTime)
+
+	// verify it
+	readTerminating, ok := entry.(*TerminatingGatewayConfigEntry)
+	require.True(t, ok)
+	require.Equal(t, terminating1.Kind, readTerminating.Kind)
+	require.Equal(t, terminating1.Name, readTerminating.Name)
+
+	// update it
+	terminating1.Services = []LinkedService{
+		{
+			Name:     "web",
+			CAFile:   "/etc/web/ca.crt",
+			CertFile: "/etc/web/client.crt",
+			KeyFile:  "/etc/web/tls.key",
+		},
+	}
+
+	// CAS fail
+	written, _, err := configEntries.CAS(terminating1, 0, nil)
+	require.NoError(t, err)
+	require.False(t, written)
+
+	// CAS success
+	written, wm, err = configEntries.CAS(terminating1, readTerminating.ModifyIndex, nil)
+	require.NoError(t, err)
+	require.NotNil(t, wm)
+	require.NotEqual(t, 0, wm.RequestTime)
+	require.True(t, written)
+
+	// update no cas
+	terminating2.Services = []LinkedService{
+		{
+			Name:     "*",
+			CAFile:   "/etc/certs/ca.crt",
+			CertFile: "/etc/certs/client.crt",
+			KeyFile:  "/etc/certs/tls.key",
+		},
+	}
+	_, wm, err = configEntries.Set(terminating2, nil)
+	require.NoError(t, err)
+	require.NotNil(t, wm)
+	require.NotEqual(t, 0, wm.RequestTime)
+
+	// list them
+	entries, qm, err := configEntries.List(TerminatingGateway, nil)
+	require.NoError(t, err)
+	require.NotNil(t, qm)
+	require.NotEqual(t, 0, qm.RequestTime)
+	require.Len(t, entries, 2)
+
+	for _, entry = range entries {
+		switch entry.GetName() {
+		case "foo":
+			// this also verifies that the update value was persisted and
+			// the updated values are seen
+			readTerminating, ok = entry.(*TerminatingGatewayConfigEntry)
+			require.True(t, ok)
+			require.Equal(t, terminating1.Kind, readTerminating.Kind)
+			require.Equal(t, terminating1.Name, readTerminating.Name)
+			require.Equal(t, terminating1.Services, readTerminating.Services)
+		case "bar":
+			readTerminating, ok = entry.(*TerminatingGatewayConfigEntry)
+			require.True(t, ok)
+			require.Equal(t, terminating2.Kind, readTerminating.Kind)
+			require.Equal(t, terminating2.Name, readTerminating.Name)
+			require.Equal(t, terminating2.Services, readTerminating.Services)
+		}
+	}
+
+	// delete it
+	wm, err = configEntries.Delete(TerminatingGateway, "foo", nil)
+	require.NoError(t, err)
+	require.NotNil(t, wm)
+	require.NotEqual(t, 0, wm.RequestTime)
+
+	// verify deletion
+	entry, qm, err = configEntries.Get(TerminatingGateway, "foo", nil)
+	require.Error(t, err)
+}
