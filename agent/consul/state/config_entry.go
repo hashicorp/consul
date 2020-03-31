@@ -325,6 +325,7 @@ func (s *Store) validateProposedConfigEntryInGraph(
 	case structs.ServiceRouter:
 	case structs.ServiceSplitter:
 	case structs.ServiceResolver:
+	case structs.IngressGateway:
 	default:
 		return fmt.Errorf("unhandled kind %q during validation of %q", kind, name)
 	}

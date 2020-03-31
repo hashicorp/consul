@@ -894,6 +894,11 @@ const (
 	// ServiceKindTerminatingGateway is a Terminating Gateway for the Connect
 	// feature. This service will proxy connections to services outside the mesh.
 	ServiceKindTerminatingGateway ServiceKind = "terminating-gateway"
+
+	// ServiceKindIngressGateway is an Ingress Gateway for the Connect feature.
+	// This service allows external traffic to enter the mesh based on
+	// centralized configuration.
+	ServiceKindIngressGateway ServiceKind = "ingress-gateway"
 )
 
 // Type to hold a address and port of a service
@@ -1039,7 +1044,9 @@ func (s *NodeService) IsSidecarProxy() bool {
 }
 
 func (s *NodeService) IsGateway() bool {
-	return s.Kind == ServiceKindMeshGateway || s.Kind == ServiceKindTerminatingGateway
+	return s.Kind == ServiceKindMeshGateway ||
+		s.Kind == ServiceKindTerminatingGateway ||
+		s.Kind == ServiceKindIngressGateway
 }
 
 // Validate validates the node service configuration.
@@ -1138,8 +1145,8 @@ func (s *NodeService) Validate() error {
 
 	// Gateway validation
 	if s.IsGateway() {
-		// Gateways must have a port
-		if s.Port == 0 {
+		// Non-ingress gateways must have a port
+		if s.Port == 0 && s.Kind != ServiceKindIngressGateway {
 			result = multierror.Append(result, fmt.Errorf("Port must be non-zero for a %s", s.Kind))
 		}
 

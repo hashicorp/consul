@@ -1122,6 +1122,114 @@ func TestParseConfigEntry(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "ingress-gateway: kitchen sink",
+			snake: `
+				kind = "ingress-gateway"
+				name = "ingress-web"
+
+				listeners = [
+					{
+						port = 8080
+						protocol = "http"
+						services = [
+							{
+								name = "web"
+								service_subset = "v1"
+							},
+							{
+								name = "db"
+								namespace = "foo"
+							}
+						]
+					}
+				]
+			`,
+			camel: `
+				Kind = "ingress-gateway"
+				Name = "ingress-web"
+				Listeners = [
+					{
+						Port = 8080
+						Protocol = "http"
+						Services = [
+							{
+								Name = "web"
+								ServiceSubset = "v1"
+							},
+							{
+								Name = "db"
+								Namespace = "foo"
+							}
+						]
+					}
+				]
+			`,
+			snakeJSON: `
+			{
+				"kind": "ingress-gateway",
+				"name": "ingress-web",
+				"listeners": [
+					{
+						"port": 8080,
+						"protocol": "http",
+						"services": [
+							{
+								"name": "web",
+								"service_subset": "v1"
+							},
+							{
+								"name": "db",
+								"namespace": "foo"
+							}
+						]
+					}
+				]
+			}
+			`,
+			camelJSON: `
+			{
+				"Kind": "ingress-gateway",
+				"Name": "ingress-web",
+				"Listeners": [
+					{
+						"Port": 8080,
+						"Protocol": "http",
+						"Services": [
+							{
+								"Name": "web",
+								"ServiceSubset": "v1"
+							},
+							{
+								"Name": "db",
+								"Namespace": "foo"
+							}
+						]
+					}
+				]
+			}
+			`,
+			expect: &api.IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []api.IngressListener{
+					{
+						Port:     8080,
+						Protocol: "http",
+						Services: []api.IngressService{
+							{
+								Name:          "web",
+								ServiceSubset: "v1",
+							},
+							{
+								Name:      "db",
+								Namespace: "foo",
+							},
+						},
+					},
+				},
+			},
+		},
 	} {
 		tc := tc
 

@@ -358,7 +358,7 @@ func (u *Upstream) Identifier() string {
 	name := u.DestinationName
 	typ := u.DestinationType
 
-	if typ != UpstreamDestTypePreparedQuery && u.DestinationNamespace != "" && u.DestinationNamespace != "default" {
+	if typ != UpstreamDestTypePreparedQuery && u.DestinationNamespace != "" && u.DestinationNamespace != IntentionDefaultNamespace {
 		name = u.DestinationNamespace + "/" + u.DestinationName
 	}
 	if u.Datacenter != "" {

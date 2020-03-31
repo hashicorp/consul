@@ -17,6 +17,7 @@ const (
 	ServiceRouter   string = "service-router"
 	ServiceSplitter string = "service-splitter"
 	ServiceResolver string = "service-resolver"
+	IngressGateway  string = "ingress-gateway"
 
 	ProxyConfigGlobal string = "global"
 )
@@ -157,6 +158,8 @@ func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &ServiceSplitterConfigEntry{Kind: kind, Name: name}, nil
 	case ServiceResolver:
 		return &ServiceResolverConfigEntry{Kind: kind, Name: name}, nil
+	case IngressGateway:
+		return &IngressGatewayConfigEntry{Kind: kind, Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}
