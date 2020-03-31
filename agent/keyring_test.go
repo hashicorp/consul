@@ -54,7 +54,7 @@ func TestAgent_LoadKeyrings(t *testing.T) {
 
 	// Server should auto-load LAN and WAN keyring files
 	t.Run("server with keys", func(t *testing.T) {
-		a2 := NewTestAgentWithFields(t, true, TestAgent{Key: key})
+		a2 := StartTestAgent(t, TestAgent{Key: key})
 		defer a2.Shutdown()
 
 		c2 := a2.consulConfig()
@@ -80,7 +80,7 @@ func TestAgent_LoadKeyrings(t *testing.T) {
 
 	// Client should auto-load only the LAN keyring file
 	t.Run("client with keys", func(t *testing.T) {
-		a3 := NewTestAgentWithFields(t, true, TestAgent{HCL: `
+		a3 := StartTestAgent(t, TestAgent{HCL: `
 			server = false
 			bootstrap = false
 		`, Key: key})
@@ -272,7 +272,7 @@ func TestAgentKeyring_ACL(t *testing.T) {
 	key1 := "tbLJg26ZJyJ9pK3qhc9jig=="
 	key2 := "4leC33rgtXKIVUr9Nr0snQ=="
 
-	a := NewTestAgentWithFields(t, true, TestAgent{HCL: TestACLConfig() + `
+	a := StartTestAgent(t, TestAgent{HCL: TestACLConfig() + `
 		acl_datacenter = "dc1"
 		acl_master_token = "root"
 		acl_default_policy = "deny"

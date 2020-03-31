@@ -1409,7 +1409,7 @@ func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
 	    enable_central_service_config = false
 		data_dir = "` + dataDir + `"
 	`
-	a := NewTestAgentWithFields(t, true, TestAgent{HCL: cfg, DataDir: dataDir})
+	a := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: dataDir})
 	defer os.RemoveAll(dataDir)
 	defer a.Shutdown()
 
@@ -1493,7 +1493,7 @@ node_name = "` + a.Config.NodeName + `"
 		t.Helper()
 
 		// Reload and retain former NodeID and data directory.
-		a2 := NewTestAgentWithFields(t, true, TestAgent{HCL: futureHCL, DataDir: dataDir})
+		a2 := StartTestAgent(t, TestAgent{HCL: futureHCL, DataDir: dataDir})
 		defer a2.Shutdown()
 		a = nil
 
@@ -1757,7 +1757,7 @@ func TestAgent_HTTPCheck_EnableAgentTLSForChecks(t *testing.T) {
 	t.Parallel()
 
 	run := func(t *testing.T, ca string) {
-		a := NewTestAgentWithFields(t, true, TestAgent{
+		a := StartTestAgent(t, TestAgent{
 			UseTLS: true,
 			HCL: `
 				enable_agent_tls_for_checks = true
@@ -1886,7 +1886,7 @@ func testAgent_PersistService(t *testing.T, extraHCL string) {
 		bootstrap = false
 		data_dir = "` + dataDir + `"
 	` + extraHCL
-	a := NewTestAgentWithFields(t, true, TestAgent{HCL: cfg, DataDir: dataDir})
+	a := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: dataDir})
 	defer a.Shutdown()
 
 	svc := &structs.NodeService{
@@ -1952,7 +1952,7 @@ func testAgent_PersistService(t *testing.T, extraHCL string) {
 	a.Shutdown()
 
 	// Should load it back during later start
-	a2 := NewTestAgentWithFields(t, true, TestAgent{HCL: cfg, DataDir: dataDir})
+	a2 := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: dataDir})
 	defer a2.Shutdown()
 
 	restored := a2.State.ServiceState(structs.NewServiceID(svc.ID, nil))
@@ -2098,7 +2098,7 @@ func testAgent_PurgeServiceOnDuplicate(t *testing.T, extraHCL string) {
 		server = false
 		bootstrap = false
 	` + extraHCL
-	a := NewTestAgentWithFields(t, true, TestAgent{HCL: cfg, DataDir: dataDir})
+	a := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: dataDir})
 	defer a.Shutdown()
 
 	svc1 := &structs.NodeService{
@@ -2114,7 +2114,7 @@ func testAgent_PurgeServiceOnDuplicate(t *testing.T, extraHCL string) {
 
 	// Try bringing the agent back up with the service already
 	// existing in the config
-	a2 := NewTestAgentWithFields(t, true, TestAgent{Name: "Agent2", HCL: cfg + `
+	a2 := StartTestAgent(t, TestAgent{Name: "Agent2", HCL: cfg + `
 		service = {
 			id = "redis"
 			name = "redis"
@@ -2142,7 +2142,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 		bootstrap = false
 		enable_script_checks = true
 	`
-	a := NewTestAgentWithFields(t, true, TestAgent{HCL: cfg, DataDir: dataDir})
+	a := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: dataDir})
 	defer os.RemoveAll(dataDir)
 	defer a.Shutdown()
 
@@ -2199,7 +2199,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 	a.Shutdown()
 
 	// Should load it back during later start
-	a2 := NewTestAgentWithFields(t, true, TestAgent{Name: "Agent2", HCL: cfg, DataDir: dataDir})
+	a2 := StartTestAgent(t, TestAgent{Name: "Agent2", HCL: cfg, DataDir: dataDir})
 	defer a2.Shutdown()
 
 	result := requireCheckExists(t, a2, check.CheckID)
@@ -2251,7 +2251,7 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	t.Parallel()
 	nodeID := NodeID()
 	dataDir := testutil.TempDir(t, "agent")
-	a := NewTestAgentWithFields(t, true, TestAgent{
+	a := StartTestAgent(t, TestAgent{
 		DataDir: dataDir,
 		HCL: `
 	    node_id = "` + nodeID + `"
@@ -2279,7 +2279,7 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	a.Shutdown()
 
 	// Start again with the check registered in config
-	a2 := NewTestAgentWithFields(t, true, TestAgent{
+	a2 := StartTestAgent(t, TestAgent{
 		Name:    "Agent2",
 		DataDir: dataDir,
 		HCL: `
@@ -4031,11 +4031,11 @@ func TestAgentCache_serviceInConfigFile_initialFetchErrors_Issue6521(t *testing.
 	// index for the next query from 0 to 1 for all queries, when it should
 	// have not done so for queries that errored.
 
-	a1 := NewTestAgentWithFields(t, true, TestAgent{Name: "Agent1"})
+	a1 := StartTestAgent(t, TestAgent{Name: "Agent1"})
 	defer a1.Shutdown()
 	testrpc.WaitForLeader(t, a1.RPC, "dc1")
 
-	a2 := NewTestAgentWithFields(t, true, TestAgent{Name: "Agent2", HCL: `
+	a2 := StartTestAgent(t, TestAgent{Name: "Agent2", HCL: `
 		server = false
 		bootstrap = false
 services {
@@ -4127,7 +4127,7 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 	secondaryRPCPorts := freeport.MustTake(2)
 	defer freeport.Return(secondaryRPCPorts)
 
-	a1 := NewTestAgentWithFields(t, true, TestAgent{Name: "bob", HCL: `
+	a1 := StartTestAgent(t, TestAgent{Name: "bob", HCL: `
 		domain = "consul"
 		node_name = "bob"
 		datacenter = "dc1"
@@ -4212,7 +4212,7 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 		require.NotEmpty(r, a1.PickRandomMeshGatewaySuitableForDialing("dc1"))
 	})
 
-	a2 := NewTestAgentWithFields(t, true, TestAgent{Name: "betty", HCL: `
+	a2 := StartTestAgent(t, TestAgent{Name: "betty", HCL: `
 		domain = "consul"
 		node_name = "betty"
 		datacenter = "dc2"
@@ -4237,7 +4237,7 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 	defer a2.Shutdown()
 	testrpc.WaitForTestAgent(t, a2.RPC, "dc2")
 
-	a3 := NewTestAgentWithFields(t, true, TestAgent{Name: "bonnie", HCL: `
+	a3 := StartTestAgent(t, TestAgent{Name: "bonnie", HCL: `
 		domain = "consul"
 		node_name = "bonnie"
 		datacenter = "dc3"

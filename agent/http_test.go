@@ -132,7 +132,7 @@ func TestHTTPServer_H2(t *testing.T) {
 	t.Parallel()
 
 	// Fire up an agent with TLS enabled.
-	a := NewTestAgentWithFields(t, true, TestAgent{
+	a := StartTestAgent(t, TestAgent{
 		UseTLS: true,
 		HCL: `
 			key_file = "../test/client_certs/server.key"
@@ -486,7 +486,7 @@ func TestContentTypeIsJSON(t *testing.T) {
 func TestHTTP_wrap_obfuscateLog(t *testing.T) {
 	t.Parallel()
 	buf := new(bytes.Buffer)
-	a := NewTestAgentWithFields(t, true, TestAgent{LogOutput: buf})
+	a := StartTestAgent(t, TestAgent{LogOutput: buf})
 	defer a.Shutdown()
 
 	handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -1288,7 +1288,7 @@ func TestHTTPServer_HandshakeTimeout(t *testing.T) {
 	t.Parallel()
 
 	// Fire up an agent with TLS enabled.
-	a := NewTestAgentWithFields(t, true, TestAgent{
+	a := StartTestAgent(t, TestAgent{
 		UseTLS: true,
 		HCL: `
 			key_file = "../test/client_certs/server.key"
@@ -1354,7 +1354,7 @@ func TestRPC_HTTPSMaxConnsPerClient(t *testing.T) {
 			}
 
 			// Fire up an agent with TLS enabled.
-			a := NewTestAgentWithFields(t, true, TestAgent{
+			a := StartTestAgent(t, TestAgent{
 				UseTLS: tc.tlsEnabled,
 				HCL: hclPrefix + `
 					limits {

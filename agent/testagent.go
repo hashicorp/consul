@@ -91,20 +91,15 @@ type TestAgent struct {
 // The caller is responsible for calling Shutdown() to stop the agent and remove
 // temporary directories.
 func NewTestAgent(t *testing.T, hcl string) *TestAgent {
-	return NewTestAgentWithFields(t, true, TestAgent{HCL: hcl})
+	return StartTestAgent(t, TestAgent{HCL: hcl})
 }
 
-// NewTestAgentWithFields takes a TestAgent struct with any number of fields set,
-// and a boolean 'start', which indicates whether or not the TestAgent should
-// be started. If no LogOutput is set, it will automatically be set to
-// testutil.TestWriter(t). Name will default to t.Name() if not specified.
-func NewTestAgentWithFields(t *testing.T, start bool, ta TestAgent) *TestAgent {
-	// copy values
-	a := ta
-	if !start {
-		return &a
-	}
-
+// StartTestAgent and wait for it to become available. If the agent fails to
+// start the test will be marked failed and execution will stop.
+//
+// The caller is responsible for calling Shutdown() to stop the agent and remove
+// temporary directories.
+func StartTestAgent(t *testing.T, a TestAgent) *TestAgent {
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
 		if err := a.Start(t); err != nil {
 			r.Fatal(err)

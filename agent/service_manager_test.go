@@ -302,7 +302,7 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 		bootstrap = false
 		data_dir = "` + dataDir + `"
 	`
-	a := NewTestAgentWithFields(t, true, TestAgent{HCL: cfg, DataDir: dataDir})
+	a := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: dataDir})
 	defer a.Shutdown()
 
 	// Join first
@@ -465,7 +465,7 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 	serverAgent.Shutdown()
 
 	// Should load it back during later start.
-	a2 := NewTestAgentWithFields(t, true, TestAgent{HCL: cfg, DataDir: dataDir})
+	a2 := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: dataDir})
 	defer a2.Shutdown()
 
 	{
@@ -540,7 +540,7 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 		bootstrap = false
 	` + serviceSnippet
 
-	a := NewTestAgentWithFields(t, true, TestAgent{HCL: cfg, DataDir: dataDir})
+	a := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: dataDir})
 	defer a.Shutdown()
 
 	// Join first
@@ -639,7 +639,7 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 	serverAgent.Shutdown()
 
 	// Should load it back during later start.
-	a2 := NewTestAgentWithFields(t, true, TestAgent{HCL: cfg, DataDir: dataDir})
+	a2 := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: dataDir})
 	defer a2.Shutdown()
 
 	{
