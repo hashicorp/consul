@@ -49,7 +49,7 @@
 (if (not-eq chain null) (hash id=(slugify 'Routing') partial='dc/services/routing') '')
                         (hash id=(slugify 'Tags') partial='dc/services/tags')
         )
-      ) as |panel|
+      ) key="id" as |panel|
     }}
         {{#tab-section id=panel.id selected=(eq (if selectedTab selectedTab '') panel.id) onchange=(action 'change')}}
           {{partial panel.partial}}
