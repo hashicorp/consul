@@ -1,0 +1,10 @@
+%consul-intention-list td strong {
+  visibility: hidden;
+}
+%consul-intention-list td.intent-allow strong::before {
+  @extend %with-arrow-right-color-icon, %as-pseudo;
+  background-size: 24px;
+}
+%consul-intention-list td.intent-deny strong::before {
+  @extend %with-deny-color-icon, %as-pseudo;
+}
