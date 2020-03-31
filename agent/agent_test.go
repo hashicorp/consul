@@ -80,21 +80,6 @@ func requireCheckMissingMap(t *testing.T, m interface{}, id types.CheckID) {
 	require.NotContains(t, m, structs.NewCheckID(id, nil), "have check %q (expected missing)", id)
 }
 
-func externalIP() (string, error) {
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		return "", fmt.Errorf("Unable to lookup network interfaces: %v", err)
-	}
-	for _, a := range addrs {
-		if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-			if ipnet.IP.To4() != nil {
-				return ipnet.IP.String(), nil
-			}
-		}
-	}
-	return "", fmt.Errorf("Unable to find a non-loopback interface")
-}
-
 func TestAgent_MultiStartStop(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		t.Run("", func(t *testing.T) {
@@ -138,7 +123,7 @@ func TestAgent_ConnectClusterIDConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			a := NewTestAgentWithFields(t, false, TestAgent{HCL: tt.hcl})
+			a := TestAgent{HCL: tt.hcl}
 			err := a.Start(t)
 			if tt.wantErr {
 				if err == nil {
@@ -4046,11 +4031,11 @@ func TestAgentCache_serviceInConfigFile_initialFetchErrors_Issue6521(t *testing.
 	// index for the next query from 0 to 1 for all queries, when it should
 	// have not done so for queries that errored.
 
-	a1 := NewTestAgent(t, t.Name()+"-a1", "")
+	a1 := NewTestAgentWithFields(t, true, TestAgent{Name: "Agent1"})
 	defer a1.Shutdown()
 	testrpc.WaitForLeader(t, a1.RPC, "dc1")
 
-	a2 := NewTestAgent(t, t.Name()+"-a2", `
+	a2 := NewTestAgentWithFields(t, true, TestAgent{Name: "Agent2", HCL: `
 		server = false
 		bootstrap = false
 services {
@@ -4075,7 +4060,7 @@ services {
     sidecar_service {}
   }
 }
-	`)
+	`})
 	defer a2.Shutdown()
 
 	// Starting a client agent disconnected from a server with services.
@@ -4142,7 +4127,7 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 	secondaryRPCPorts := freeport.MustTake(2)
 	defer freeport.Return(secondaryRPCPorts)
 
-	a1 := NewTestAgent(t, t.Name()+"-bob", `
+	a1 := NewTestAgentWithFields(t, true, TestAgent{Name: "bob", HCL: `
 		domain = "consul"
 		node_name = "bob"
 		datacenter = "dc1"
@@ -4159,7 +4144,7 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 			enabled = true
 			enable_mesh_gateway_wan_federation = true
 		}
-	`)
+	`})
 	defer a1.Shutdown()
 	testrpc.WaitForTestAgent(t, a1.RPC, "dc1")
 
@@ -4227,7 +4212,7 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 		require.NotEmpty(r, a1.PickRandomMeshGatewaySuitableForDialing("dc1"))
 	})
 
-	a2 := NewTestAgent(t, t.Name()+"-betty", `
+	a2 := NewTestAgentWithFields(t, true, TestAgent{Name: "betty", HCL: `
 		domain = "consul"
 		node_name = "betty"
 		datacenter = "dc2"
@@ -4240,19 +4225,19 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 		verify_outgoing               = true
 		verify_server_hostname        = true
 		ports {
-			server = `+strconv.Itoa(secondaryRPCPorts[0])+`
+			server = ` + strconv.Itoa(secondaryRPCPorts[0]) + `
 		}
 		# wanfed
-		primary_gateways = ["`+gwAddr+`"]
+		primary_gateways = ["` + gwAddr + `"]
 		connect {
 			enabled = true
 			enable_mesh_gateway_wan_federation = true
 		}
-	`)
+	`})
 	defer a2.Shutdown()
 	testrpc.WaitForTestAgent(t, a2.RPC, "dc2")
 
-	a3 := NewTestAgent(t, t.Name()+"-bonnie", `
+	a3 := NewTestAgentWithFields(t, true, TestAgent{Name: "bonnie", HCL: `
 		domain = "consul"
 		node_name = "bonnie"
 		datacenter = "dc3"
@@ -4265,15 +4250,15 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 		verify_outgoing               = true
 		verify_server_hostname        = true
 		ports {
-			server = `+strconv.Itoa(secondaryRPCPorts[1])+`
+			server = ` + strconv.Itoa(secondaryRPCPorts[1]) + `
 		}
 		# wanfed
-		primary_gateways = ["`+gwAddr+`"]
+		primary_gateways = ["` + gwAddr + `"]
 		connect {
 			enabled = true
 			enable_mesh_gateway_wan_federation = true
 		}
-	`)
+	`})
 	defer a3.Shutdown()
 	testrpc.WaitForTestAgent(t, a3.RPC, "dc3")
 

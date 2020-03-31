@@ -122,15 +122,7 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 	}
 
 	name := a.Name
-	// Many tests set Name to t.Name(), which takes up a lot of space at the
-	// start of the log messages. The only time we need to care about a name is
-	// when a test using multiple TestAgents.
-	// As a temporary workaround we ignore the default name and use a shorter
-	// default value. Tests which set a custom name for multiple agents will
-	// use the provided name.
-	// TODO: remove TestAgent.Name and accept a name arg on Start, to remove
-	// this workaround.
-	if name == "" || name == t.Name() {
+	if name == "" {
 		name = "TestAgent"
 	}
 

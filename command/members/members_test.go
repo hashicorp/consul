@@ -125,7 +125,7 @@ func TestMembersCommand_verticalBar(t *testing.T) {
 	t.Parallel()
 
 	nodeName := "name|with|bars"
-	a := agent.NewTestAgent(t, "", `node_name = "`+nodeName+`"`)
+	a := agent.NewTestAgent(t, `node_name = "`+nodeName+`"`)
 	defer a.Shutdown()
 
 	ui := cli.NewMockUi()

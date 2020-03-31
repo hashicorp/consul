@@ -76,9 +76,9 @@ func TestForceLeaveCommand_NoNodeWithName(t *testing.T) {
 
 func TestForceLeaveCommand_prune(t *testing.T) {
 	t.Parallel()
-	a1 := agent.NewTestAgent(t, t.Name()+"-a1", ``)
+	a1 := agent.StartTestAgent(t, agent.TestAgent{Name: "Agent1"})
 	defer a1.Shutdown()
-	a2 := agent.NewTestAgent(t, t.Name()+"-a2", ``)
+	a2 := agent.StartTestAgent(t, agent.TestAgent{Name: "Agent2"})
 	defer a2.Shutdown()
 
 	_, err := a2.JoinLAN([]string{a1.Config.SerfBindAddrLAN.String()})

@@ -1773,9 +1773,9 @@ func TestAgent_ForceLeave_ACLDeny(t *testing.T) {
 
 func TestAgent_ForceLeavePrune(t *testing.T) {
 	t.Parallel()
-	a1 := NewTestAgent(t, t.Name()+"-a1", "")
+	a1 := NewTestAgentWithFields(t, true, TestAgent{Name: "Agent1"})
 	defer a1.Shutdown()
-	a2 := NewTestAgent(t, t.Name()+"-a2", "")
+	a2 := NewTestAgentWithFields(t, true, TestAgent{Name: "Agent2"})
 	testrpc.WaitForLeader(t, a1.RPC, "dc1")
 	testrpc.WaitForLeader(t, a2.RPC, "dc1")
 
@@ -5236,17 +5236,17 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 	assert := assert.New(t)
 	require := require.New(t)
 
-	a1 := NewTestAgent(t, t.Name()+"-dc1", `
+	a1 := NewTestAgentWithFields(t, true, TestAgent{Name: "dc1", HCL: `
 		datacenter = "dc1"
 		primary_datacenter = "dc1"
-	`)
+	`})
 	defer a1.Shutdown()
 	testrpc.WaitForTestAgent(t, a1.RPC, "dc1")
 
-	a2 := NewTestAgent(t, t.Name()+"-dc2", `
+	a2 := NewTestAgentWithFields(t, true, TestAgent{Name: "dc2", HCL: `
 		datacenter = "dc2"
 		primary_datacenter = "dc1"
-	`)
+	`})
 	defer a2.Shutdown()
 	testrpc.WaitForTestAgent(t, a2.RPC, "dc2")
 
