@@ -117,6 +117,21 @@ func TestIngressConfigEntry_Validate(t *testing.T) {
 			expectErr: "no service declared for listener with port 1111",
 		},
 		{
+			name: "http listener requires a defined service",
+			entry: IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{},
+					},
+				},
+			},
+			expectErr: "no service declared for listener with port 1111",
+		},
+		{
 			name: "empty service name not supported",
 			entry: IngressGatewayConfigEntry{
 				Kind: "ingress-gateway",

@@ -98,26 +98,25 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 		declaredPorts[listener.Port] = true
 
 		for _, s := range listener.Services {
-			if s.Name == "*" && listener.Protocol != "http" {
+			if s.Name == WildcardSpecifier && listener.Protocol != "http" {
 				return fmt.Errorf("Wildcard service name is only valid for protocol = 'http' (listener on port %d)", listener.Port)
-			}
-			if s.NamespaceOrDefault() == WildcardSpecifier {
-				return fmt.Errorf("Wildcard namespace is not supported for ingress services (listener on port %d)", listener.Port)
 			}
 			if s.Name == "" {
 				return fmt.Errorf("Service name cannot be blank (listener on port %d)", listener.Port)
 			}
+			if s.NamespaceOrDefault() == WildcardSpecifier {
+				return fmt.Errorf("Wildcard namespace is not supported for ingress services (listener on port %d)", listener.Port)
+			}
+		}
+
+		if len(listener.Services) == 0 {
+			return fmt.Errorf("No service declared for listener with port %d", listener.Port)
 		}
 
 		// Validate that http features aren't being used with tcp or another non-supported protocol.
-		if listener.Protocol != "http" {
-			if len(listener.Services) > 1 {
-				return fmt.Errorf("Multiple services per listener are only supported for protocol = 'http'")
-			}
-
-			if len(listener.Services) == 0 {
-				return fmt.Errorf("No service declared for listener with port %d", listener.Port)
-			}
+		if listener.Protocol != "http" && len(listener.Services) > 1 {
+			return fmt.Errorf("Multiple services per listener are only supported for protocol = 'http' (listener on port %d)",
+				listener.Port)
 		}
 	}
 
