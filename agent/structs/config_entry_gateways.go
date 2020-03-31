@@ -10,7 +10,7 @@ import (
 // IngressGatewayConfigEntry manages the configuration for an ingress service
 // with the given name.
 type IngressGatewayConfigEntry struct {
-	// Kind of the config entry. This should be set to api.IngressGateway.
+	// Kind of the config entry. This will be set to structs.IngressGateway.
 	Kind string
 
 	// Name is used to match the config entry with its associated ingress gateway
