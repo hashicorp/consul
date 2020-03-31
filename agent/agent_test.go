@@ -138,12 +138,8 @@ func TestAgent_ConnectClusterIDConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// This is a rare case where using a constructor for TestAgent
-			// (NewTestAgent and the likes) won't work, since we expect an error
-			// in one test case, and the constructors have built-in retry logic
-			// that runs automatically upon error.
-			a := &TestAgent{Name: tt.name, HCL: tt.hcl, LogOutput: testutil.TestWriter(t)}
-			err := a.Start()
+			a := NewTestAgentWithFields(t, false, TestAgent{HCL: tt.hcl})
+			err := a.Start(t)
 			if tt.wantErr {
 				if err == nil {
 					t.Fatal("expected error, got nil")
@@ -1777,7 +1773,6 @@ func TestAgent_HTTPCheck_EnableAgentTLSForChecks(t *testing.T) {
 
 	run := func(t *testing.T, ca string) {
 		a := NewTestAgentWithFields(t, true, TestAgent{
-			Name:   t.Name(),
 			UseTLS: true,
 			HCL: `
 				enable_agent_tls_for_checks = true
@@ -2134,7 +2129,7 @@ func testAgent_PurgeServiceOnDuplicate(t *testing.T, extraHCL string) {
 
 	// Try bringing the agent back up with the service already
 	// existing in the config
-	a2 := NewTestAgentWithFields(t, true, TestAgent{Name: t.Name() + "-a2", HCL: cfg + `
+	a2 := NewTestAgentWithFields(t, true, TestAgent{Name: "Agent2", HCL: cfg + `
 		service = {
 			id = "redis"
 			name = "redis"
@@ -2219,7 +2214,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 	a.Shutdown()
 
 	// Should load it back during later start
-	a2 := NewTestAgentWithFields(t, true, TestAgent{Name: t.Name() + "-a2", HCL: cfg, DataDir: dataDir})
+	a2 := NewTestAgentWithFields(t, true, TestAgent{Name: "Agent2", HCL: cfg, DataDir: dataDir})
 	defer a2.Shutdown()
 
 	result := requireCheckExists(t, a2, check.CheckID)
@@ -2272,7 +2267,6 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	nodeID := NodeID()
 	dataDir := testutil.TempDir(t, "agent")
 	a := NewTestAgentWithFields(t, true, TestAgent{
-		Name:    t.Name(),
 		DataDir: dataDir,
 		HCL: `
 	    node_id = "` + nodeID + `"
@@ -2301,7 +2295,7 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 
 	// Start again with the check registered in config
 	a2 := NewTestAgentWithFields(t, true, TestAgent{
-		Name:    t.Name() + "-a2",
+		Name:    "Agent2",
 		DataDir: dataDir,
 		HCL: `
 	    node_id = "` + nodeID + `"
@@ -3227,8 +3221,8 @@ func TestAgent_reloadWatches(t *testing.T) {
 
 func TestAgent_reloadWatchesHTTPS(t *testing.T) {
 	t.Parallel()
-	a := TestAgent{Name: t.Name(), UseTLS: true}
-	if err := a.Start(); err != nil {
+	a := TestAgent{UseTLS: true}
+	if err := a.Start(t); err != nil {
 		t.Fatal(err)
 	}
 	defer a.Shutdown()

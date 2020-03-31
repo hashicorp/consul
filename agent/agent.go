@@ -166,7 +166,13 @@ type Agent struct {
 	// Used for writing our logs
 	logger hclog.InterceptLogger
 
-	// Output sink for logs
+	// LogOutput is a Writer which is used when creating dependencies that
+	// require logging. Note that this LogOutput is not used by the agent logger,
+	// so setting this field does not result in the agent logs being written to
+	// LogOutput.
+	// FIXME: refactor so that: dependencies accept an hclog.Logger,
+	// or LogOutput is part of RuntimeConfig, or change Agent.logger to be
+	// a new type with an Out() io.Writer method which returns this value.
 	LogOutput io.Writer
 
 	// In-memory sink used for collecting metrics

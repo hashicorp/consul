@@ -3,7 +3,6 @@ package agent
 import (
 	"flag"
 	"fmt"
-	"io"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -59,7 +58,6 @@ type cmd struct {
 	versionHuman      string
 	shutdownCh        <-chan struct{}
 	flagArgs          config.Flags
-	logOutput         io.Writer
 	logger            hclog.InterceptLogger
 }
 
@@ -205,7 +203,6 @@ func (c *cmd) run(args []string) int {
 	if !ok {
 		return 1
 	}
-	c.logOutput = logOutput
 
 	c.logger = logger
 
