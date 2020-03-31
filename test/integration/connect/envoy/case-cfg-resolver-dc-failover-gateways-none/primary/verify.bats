@@ -35,7 +35,7 @@ load helpers
 
 # Note: when failover is configured the cluster is named for the original
 # service not any destination related to failover.
-@test "s1 upstream should have healthy endpoints for s2 in both primary and failover" {
+@test "s1 upstream should have 2 healthy endpoints for s2 for primary" {
   assert_upstream_has_endpoints_in_status 127.0.0.1:19000 s2.default.primary HEALTHY 2
 }
 
@@ -54,6 +54,10 @@ load helpers
   kill_envoy s2 primary
 }
 
+@test "s2 proxies should have 1 instance" {
+  assert_service_has_instances_once s2 1 primary
+}
+
 @test "s2 proxies should be unhealthy in primary" {
   assert_service_has_healthy_instances s2 0 primary
 }
@@ -65,6 +69,14 @@ load helpers
 
 @test "reset envoy statistics" {
   reset_envoy_metrics 127.0.0.1:19000
+}
+
+@test "s2 proxies should have 1 instance in secondary" {
+  assert_service_has_instances_once s2 1 secondary
+}
+
+@test "s2 proxies should have 1 healthy in secondary" {
+  assert_service_has_healthy_instances s2 1 secondary
 }
 
 @test "s1 upstream should be able to connect to s2 in secondary now" {

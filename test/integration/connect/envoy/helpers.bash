@@ -197,7 +197,8 @@ function reset_envoy_metrics {
 
 function get_all_envoy_metrics {
   local HOSTPORT=$1
-  curl -s -f $HOSTPORT/stats
+  # stats in envoy seems to be lazily initialized and sometimes it fails
+  curl --retry-delay 3 --retry 3 -s -f $HOSTPORT/stats
   return $?
 }
 
@@ -241,6 +242,21 @@ function assert_upstream_has_endpoints_in_status {
   local EXPECT_COUNT=$4
   run retry_long assert_upstream_has_endpoints_in_status_once $HOSTPORT $CLUSTER_NAME $HEALTH_STATUS $EXPECT_COUNT
   [ "$status" -eq 0 ]
+}
+
+function assert_envoy_metric_exists {
+  set -eEuo pipefail
+  local HOSTPORT=$1
+  local METRIC=$2
+
+  METRICS=$(get_envoy_metrics $HOSTPORT "$METRIC")
+
+  if [ -z "${METRICS}" ]
+  then
+    echo "Metric not found" 1>&2
+    return 1
+  fi
+  return 0
 }
 
 function assert_envoy_metric {
@@ -330,6 +346,16 @@ function assert_envoy_aggregate_metric_at_least {
   fi
 }
 
+function get_instances_service_count {
+  local SERVICE_NAME=$1
+  local DC=$2
+  local NS=$3
+
+  run retry_default curl -s -f ${HEADERS} "127.0.0.1:8500/v1/health/connect/${SERVICE_NAME}?dc=${DC}&ns=${NS}"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq --raw-output '. | length'
+}
+
 function get_healthy_service_count {
   local SERVICE_NAME=$1
   local DC=$2
@@ -368,6 +394,17 @@ function assert_service_has_healthy_instances_once {
   local NS=$4
 
   GOT_COUNT=$(get_healthy_service_count "$SERVICE_NAME" "$DC" "$NS")
+
+  [ "$GOT_COUNT" -eq $EXPECT_COUNT ]
+}
+
+function assert_service_has_instances_once {
+  local SERVICE_NAME=$1
+  local EXPECT_COUNT=$2
+  local DC=${3:-primary}
+  local NS=$4
+
+  GOT_COUNT=$(get_instances_service_count "$SERVICE_NAME" "$DC" "$NS")
 
   [ "$GOT_COUNT" -eq $EXPECT_COUNT ]
 }
