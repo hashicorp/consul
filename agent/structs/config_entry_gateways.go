@@ -46,7 +46,7 @@ type IngressListener struct {
 type IngressService struct {
 	// Name declares the service to which traffic should be forwarded.
 	//
-	// This can either be a specific service instance, or the wildcard specifier,
+	// This can either be a specific service, or the wildcard specifier,
 	// "*". If the wildcard specifier is provided, the listener must be of "http"
 	// protocol and means that the listener will forward traffic to all services.
 	Name string
