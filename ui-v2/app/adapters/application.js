@@ -29,8 +29,13 @@ export default Adapter.extend({
     let unserialized, serialized;
     const serializer = store.serializerFor(modelName);
     // workable way to decide whether this is a snapshot
+    // essentially 'is attributable'.
     // Snapshot is private so we can't do instanceof here
-    if (obj.constructor.name === 'Snapshot') {
+    // and using obj.constructor.name gets changed/minified
+    // during compilation so you can't rely on it
+    // checking for `attributes` being a function is more
+    // reliable as that is the thing we need to call
+    if (typeof obj.attributes === 'function') {
       unserialized = obj.attributes();
       serialized = serializer.serialize(obj, {});
     } else {
