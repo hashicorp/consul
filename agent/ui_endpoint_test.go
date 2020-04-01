@@ -12,12 +12,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/hashicorp/consul/testrpc"
-
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/testrpc"
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -413,5 +414,129 @@ func TestUiServices(t *testing.T) {
 			},
 		}
 		require.ElementsMatch(t, expected, summary)
+	})
+}
+
+func TestUI_TerminatingGatewayServices(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	// Register 3 typical services and a gateway
+	{
+		var out struct{}
+
+		args := structs.TestRegisterRequest(t)
+		args.Service.Service = "api"
+		args.Check = &structs.HealthCheck{
+			Name:      "api",
+			Status:    api.HealthPassing,
+			ServiceID: args.Service.Service,
+		}
+		assert.Nil(t, a.RPC("Catalog.Register", &args, &out))
+
+		args = structs.TestRegisterRequest(t)
+		args.Service.Service = "db"
+		args.Check = &structs.HealthCheck{
+			Name:      "db",
+			Status:    api.HealthPassing,
+			ServiceID: args.Service.Service,
+		}
+		assert.Nil(t, a.RPC("Catalog.Register", &args, &out))
+
+		// Register a service "redis"
+		args = structs.TestRegisterRequest(t)
+		args.Service.Service = "redis"
+		args.Check = &structs.HealthCheck{
+			Name:      "redis",
+			Status:    api.HealthPassing,
+			ServiceID: args.Service.Service,
+		}
+		assert.Nil(t, a.RPC("Catalog.Register", &args, &out))
+
+		args = &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTerminatingGateway,
+				Service: "gateway",
+				Port:    443,
+			},
+			Check: &structs.HealthCheck{
+				Name:      "gateway",
+				Status:    api.HealthPassing,
+				ServiceID: args.Service.Service,
+			},
+		}
+		assert.Nil(t, a.RPC("Catalog.Register", &args, &out))
+
+		entryArgs := &structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry: &structs.TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "gateway",
+				Services: []structs.LinkedService{
+					{
+						Name:     "api",
+						CAFile:   "api/ca.crt",
+						CertFile: "api/client.crt",
+						KeyFile:  "api/client.key",
+					},
+					{
+						Name: "db",
+					},
+					{
+						Name:     "*",
+						CAFile:   "ca.crt",
+						CertFile: "client.crt",
+						KeyFile:  "client.key",
+					},
+				},
+			},
+		}
+		var entryResp bool
+		assert.Nil(t, a.RPC("ConfigEntry.Apply", &entryArgs, &entryResp))
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/internal/ui/terminating-gateway-services/gateway"), nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.TerminatingGatewayServices(resp, req)
+		if err != nil {
+			r.Fatalf("err: %v", err)
+		}
+		header := resp.Header().Get("X-Consul-Index")
+		if header == "" || header == "0" {
+			r.Fatalf("Bad index: %v", header)
+		}
+
+		got := obj.(structs.GatewayServices)
+		expect := structs.GatewayServices{
+			{
+				Service:  "api",
+				Gateway:  "gateway",
+				CAFile:   "api/ca.crt",
+				CertFile: "api/client.crt",
+				KeyFile:  "api/client.key",
+			},
+			{
+				Service:  "db",
+				Gateway:  "gateway",
+				CAFile:   "",
+				CertFile: "",
+				KeyFile:  "",
+			},
+			{
+				Service:  "redis",
+				Gateway:  "gateway",
+				CAFile:   "ca.crt",
+				CertFile: "client.crt",
+				KeyFile:  "client.key",
+			},
+		}
+		assert.Equal(r, expect, got)
 	})
 }

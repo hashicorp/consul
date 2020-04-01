@@ -2,7 +2,6 @@ package consul
 
 import (
 	"encoding/base64"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"strings"
 	"testing"
@@ -11,9 +10,10 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -748,37 +748,39 @@ func TestCatalog_TerminatingGatewayServices(t *testing.T) {
 		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &entryArgs, &entryResp))
 	}
 
-	// List should return both services
-	req := structs.ServiceSpecificRequest{
-		Datacenter:  "dc1",
-		ServiceName: "gateway",
-	}
-	var resp structs.IndexedGatewayServices
-	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Internal.TerminatingGatewayServices", &req, &resp))
-	assert.Len(t, resp.Services, 3)
+	retry.Run(t, func(r *retry.R) {
+		// List should return both services
+		req := structs.ServiceSpecificRequest{
+			Datacenter:  "dc1",
+			ServiceName: "gateway",
+		}
+		var resp structs.IndexedGatewayServices
+		assert.Nil(r, msgpackrpc.CallWithCodec(codec, "Internal.TerminatingGatewayServices", &req, &resp))
+		assert.Len(r, resp.Services, 3)
 
-	expect := structs.GatewayServices{
-		{
-			Service:  "api",
-			Gateway:  "gateway",
-			CAFile:   "api/ca.crt",
-			CertFile: "api/client.crt",
-			KeyFile:  "api/client.key",
-		},
-		{
-			Service:  "db",
-			Gateway:  "gateway",
-			CAFile:   "",
-			CertFile: "",
-			KeyFile:  "",
-		},
-		{
-			Service:  "redis",
-			Gateway:  "gateway",
-			CAFile:   "ca.crt",
-			CertFile: "client.crt",
-			KeyFile:  "client.key",
-		},
-	}
-	assert.Equal(t, expect, resp.Services)
+		expect := structs.GatewayServices{
+			{
+				Service:  "api",
+				Gateway:  "gateway",
+				CAFile:   "api/ca.crt",
+				CertFile: "api/client.crt",
+				KeyFile:  "api/client.key",
+			},
+			{
+				Service:  "db",
+				Gateway:  "gateway",
+				CAFile:   "",
+				CertFile: "",
+				KeyFile:  "",
+			},
+			{
+				Service:  "redis",
+				Gateway:  "gateway",
+				CAFile:   "ca.crt",
+				CertFile: "client.crt",
+				KeyFile:  "client.key",
+			},
+		}
+		assert.Equal(r, expect, resp.Services)
+	})
 }
