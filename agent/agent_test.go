@@ -3432,41 +3432,6 @@ func TestAgent_GetRLimits(t *testing.T) {
 	}
 }
 
-func TestAgent_GetRLimitsReload(t *testing.T) {
-	t.Parallel()
-	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
-	defer os.RemoveAll(dataDir)
-	hcl := `
-	    data_dir = "` + dataDir + `"
-		limits{
-			# Should be fine
-			http_max_conns_per_client = 22
-		}`
-	a := NewTestAgent(t, t.Name(), hcl)
-	defer a.Shutdown()
-
-	hclFailing := `
-		data_dir = "` + dataDir + `"
-		limits{
-			# We put a very high value to be sure to fail
-			# This value is more than max on Windows as well
-			http_max_conns_per_client = 16777217
-		}`
-	c, _, validationError := TestConfigWithErr(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hclFailing})
-	if validationError == nil {
-		assert.Fail(t, "Config should not be valid")
-	}
-	// Value has not been taken into account because validation did fail
-	assert.Equal(t, 0, c.HTTPMaxConnsPerClient)
-	// Force updating entry
-	c.HTTPMaxConnsPerClient = 16777217
-	assert.Equal(t, 16777217, c.HTTPMaxConnsPerClient)
-	// Still try to load config even if not valid
-	if err := a.ReloadConfig(c); err == nil {
-		assert.Fail(t, "a.ReloadConfig() should have failed as limits.http_max_conns_per_client is too big")
-	}
-}
-
 func TestAgent_ReloadConfigAndKeepChecksStatus(t *testing.T) {
 	t.Parallel()
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir

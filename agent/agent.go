@@ -537,9 +537,6 @@ func (a *Agent) Start() error {
 	a.httpConnLimiter.SetConfig(connlimit.Config{
 		MaxConnsPerClientIP: a.config.HTTPMaxConnsPerClient,
 	})
-	if err := lib.CheckLimitsFromMaxConnsPerClient(a.config.HTTPMaxConnsPerClient); err != nil {
-		return err
-	}
 
 	// Create listeners and unstarted servers; see comment on listenHTTP why
 	// we are doing this.
@@ -4070,10 +4067,6 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	a.httpConnLimiter.SetConfig(connlimit.Config{
 		MaxConnsPerClientIP: newCfg.HTTPMaxConnsPerClient,
 	})
-
-	if err := lib.CheckLimitsFromMaxConnsPerClient(newCfg.HTTPMaxConnsPerClient); err != nil {
-		return err
-	}
 
 	for _, s := range a.dnsServers {
 		if err := s.ReloadConfig(newCfg); err != nil {
