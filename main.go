@@ -7,8 +7,10 @@ import (
 	"os"
 
 	"github.com/hashicorp/consul/command"
+	"github.com/hashicorp/consul/command/version"
 	"github.com/hashicorp/consul/lib"
 	_ "github.com/hashicorp/consul/service_os"
+	consulversion "github.com/hashicorp/consul/version"
 	"github.com/mitchellh/cli"
 )
 
@@ -23,18 +25,6 @@ func main() {
 func realMain() int {
 	log.SetOutput(ioutil.Discard)
 
-	args := os.Args[1:]
-	for _, arg := range args {
-		if arg == "--" {
-			break
-		}
-
-		if arg == "-v" || arg == "--version" {
-			args = []string{"version"}
-			break
-		}
-	}
-
 	ui := &cli.BasicUi{Writer: os.Stdout, ErrorWriter: os.Stderr}
 	cmds := command.Map(ui)
 	var names []string
@@ -43,11 +33,18 @@ func realMain() int {
 	}
 
 	cli := &cli.CLI{
-		Args:         args,
+		Args:         os.Args[1:],
 		Commands:     cmds,
 		Autocomplete: true,
 		Name:         "consul",
 		HelpFunc:     cli.FilteredHelpFunc(names, cli.BasicHelpFunc("consul")),
+		HelpWriter:   os.Stdout,
+		ErrorWriter:  os.Stderr,
+	}
+
+	if cli.IsVersion() {
+		cmd := version.New(ui, consulversion.GetHumanVersion())
+		return cmd.Run(nil)
 	}
 
 	exitCode, err := cli.Run()
