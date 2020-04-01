@@ -409,8 +409,9 @@ func NodeID() string {
 	return id
 }
 
-// TestConfigWithErr returns a unique default configuration for testing an agent.
-func TestConfigWithErr(logger hclog.Logger, sources ...config.Source) (*config.RuntimeConfig, *config.Builder, error) {
+// TestConfig returns a unique default configuration for testing an
+// agent.
+func TestConfig(logger hclog.Logger, sources ...config.Source) *config.RuntimeConfig {
 	nodeID := NodeID()
 	testsrc := config.Source{
 		Name:   "test",
@@ -445,7 +446,11 @@ func TestConfigWithErr(logger hclog.Logger, sources ...config.Source) (*config.R
 
 	cfg, err := b.BuildAndValidate()
 	if err != nil {
-		return &cfg, b, err
+		panic("Error building config: " + err.Error())
+	}
+
+	for _, w := range b.Warnings {
+		logger.Warn(w)
 	}
 
 	// Effectively disables the delay after root rotation before requesting CSRs
@@ -453,20 +458,7 @@ func TestConfigWithErr(logger hclog.Logger, sources ...config.Source) (*config.R
 	// tiny delay is effectively thre same.
 	cfg.ConnectTestCALeafRootChangeSpread = 1 * time.Nanosecond
 
-	return &cfg, b, nil
-}
-
-// TestConfig returns a unique default configuration for testing an
-// agent.
-func TestConfig(logger hclog.Logger, sources ...config.Source) *config.RuntimeConfig {
-	cfg, b, err := TestConfigWithErr(logger, sources...)
-	if err != nil {
-		panic("Error building config: " + err.Error())
-	}
-	for _, w := range b.Warnings {
-		logger.Warn(w)
-	}
-	return cfg
+	return &cfg
 }
 
 // TestACLConfig returns a default configuration for testing an agent

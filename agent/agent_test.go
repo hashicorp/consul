@@ -3418,20 +3418,6 @@ func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 	require.Len(t, tlsConf.ClientCAs.Subjects(), 2)
 }
 
-func TestAgent_GetRLimits(t *testing.T) {
-	t.Parallel()
-	hcl := `
-		limits{
-			# We put a very high value to be sure to fail
-			# This value is more than max on Windows as well
-			http_max_conns_per_client = 16777217
-		}`
-	_, _, validationError := TestConfigWithErr(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
-	if validationError == nil {
-		assert.Fail(t, "Config should not be valid")
-	}
-}
-
 func TestAgent_ReloadConfigAndKeepChecksStatus(t *testing.T) {
 	t.Parallel()
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir

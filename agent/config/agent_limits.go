@@ -6,9 +6,9 @@ import (
 	"github.com/hashicorp/consul/lib"
 )
 
-// CheckLimitsFromMaxConnsPerClient check that value provided might be OK
+// checkLimitsFromMaxConnsPerClient check that value provided might be OK
 // return an error if values are not compatible
-func CheckLimitsFromMaxConnsPerClient(maxConnsPerClient int) error {
+func checkLimitsFromMaxConnsPerClient(maxConnsPerClient int) error {
 	maxFds, err := lib.Getrlimit()
 	if err == nil && maxConnsPerClient > 0 {
 		// We need the list port + a few at the minimum
