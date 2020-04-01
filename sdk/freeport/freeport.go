@@ -66,6 +66,9 @@ var (
 
 	// total is the total number of available ports in the block for use.
 	total int
+
+	ticker     *time.Ticker
+	killTicker chan bool
 )
 
 // initialize is used to initialize freeport.
@@ -125,6 +128,12 @@ func reset() {
 		lockLn = nil
 	}
 
+	if ticker != nil {
+		killTicker <- true
+		ticker.Stop()
+		ticker = nil
+	}
+
 	once = sync.Once{}
 
 	freePorts = nil
@@ -133,10 +142,18 @@ func reset() {
 }
 
 func checkFreedPorts() {
-	ticker := time.NewTicker(250 * time.Millisecond)
-	for {
-		<-ticker.C
-		checkFreedPortsOnce()
+	if ticker == nil {
+		killTicker = make(chan bool)
+		ticker = time.NewTicker(250 * time.Millisecond)
+		for {
+			select {
+			case <-killTicker:
+				logf("INFO", "Closing checkFreedPorts()")
+				return
+			case <-ticker.C:
+				checkFreedPortsOnce()
+			}
+		}
 	}
 }
 
