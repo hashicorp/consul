@@ -47,4 +47,9 @@ export default Controller.extend(WithSearching, WithFiltering, WithEventSource, 
   filter: function(item, { s = '', currentFilter = '' }) {
     return currentFilter === '' || get(item, 'Action') === currentFilter;
   },
+  actions: {
+    route: function() {
+      this.send(...arguments);
+    },
+  },
 });
