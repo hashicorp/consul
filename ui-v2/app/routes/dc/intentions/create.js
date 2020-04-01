@@ -42,7 +42,7 @@ export default Route.extend(WithIntentionActions, {
   },
   deactivate: function() {
     if (get(this.item, 'isNew')) {
-      this.item.destroyRecord();
+      this.item.rollbackAttributes();
     }
   },
 });
