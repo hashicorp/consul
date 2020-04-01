@@ -277,3 +277,15 @@ func (e *TerminatingGatewayConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
 
 	return &e.EnterpriseMeta
 }
+
+// TODO (gateways) (freddy) enterprise implementation needs both fields associated with namespaces
+// TerminatingGatewayService is used to associate terminating gateways with their linked services.
+type TerminatingGatewayService struct {
+	Gateway  string
+	Service  string
+	CAFile   string
+	CertFile string
+	KeyFile  string
+}
+
+type TerminatingGatewayServices []*TerminatingGatewayService

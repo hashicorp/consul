@@ -4336,3 +4336,161 @@ func TestStateStore_ensureServiceCASTxn(t *testing.T) {
 	require.Equal(t, uint64(7), nsRead.ModifyIndex)
 	tx.Commit()
 }
+
+func TestStateStore_TerminatingGatewayServices(t *testing.T) {
+	s := testStateStore(t)
+
+	// Listing with no results returns an empty list.
+	ws := memdb.NewWatchSet()
+	idx, nodes, err := s.TerminatingGatewayServices(ws, "db", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(0))
+	assert.Len(t, nodes, 0)
+
+	// Create some nodes
+	assert.Nil(t, s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
+	assert.Nil(t, s.EnsureNode(11, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
+	assert.Nil(t, s.EnsureNode(12, &structs.Node{Node: "baz", Address: "127.0.0.2"}))
+
+	// Typical services spread across two nodes
+	assert.Nil(t, s.EnsureService(13, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
+	assert.Nil(t, s.EnsureService(14, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
+
+	// Register a gateway
+	assert.Nil(t, s.EnsureService(16, "baz", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway", Service: "gateway", Port: 443}))
+
+	// Associate gateway with db and api
+	assert.Nil(t, s.EnsureConfigEntry(17, &structs.TerminatingGatewayConfigEntry{
+		Kind: "terminating-gateway",
+		Name: "gateway",
+		Services: []structs.LinkedService{
+			{
+				Name: "db",
+			},
+			{
+				Name: "api",
+			},
+		},
+	}, nil))
+	assert.True(t, watchFired(ws))
+
+	// Read everything back.
+	ws = memdb.NewWatchSet()
+	idx, out, err := s.TerminatingGatewayServices(ws, "gateway", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(17))
+	assert.Len(t, out, 2)
+
+	expect := structs.TerminatingGatewayServices{
+		{
+			Service: "api",
+			Gateway: "gateway",
+		},
+		{
+			Service: "db",
+			Gateway: "gateway",
+		},
+	}
+	assert.Equal(t, expect, out)
+
+	// Associate gateway with wildcard
+	assert.Nil(t, s.EnsureConfigEntry(18, &structs.TerminatingGatewayConfigEntry{
+		Kind: "terminating-gateway",
+		Name: "gateway",
+		Services: []structs.LinkedService{
+			{
+				Name:     "api",
+				CAFile:   "api/ca.crt",
+				CertFile: "api/client.crt",
+				KeyFile:  "api/client.key",
+			},
+			{
+				Name: "db",
+			},
+			{
+				Name:     "*",
+				CAFile:   "ca.crt",
+				CertFile: "client.crt",
+				KeyFile:  "client.key",
+			},
+		},
+	}, nil))
+	assert.True(t, watchFired(ws))
+
+	// Read everything back.
+	ws = memdb.NewWatchSet()
+	idx, out, err = s.TerminatingGatewayServices(ws, "gateway", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(18))
+	assert.Len(t, out, 2)
+
+	expect = structs.TerminatingGatewayServices{
+		{
+			Service:  "api",
+			Gateway:  "gateway",
+			CAFile:   "api/ca.crt",
+			CertFile: "api/client.crt",
+			KeyFile:  "api/client.key",
+		},
+		{
+			Service: "db",
+			Gateway: "gateway",
+		},
+	}
+	assert.Equal(t, expect, out)
+
+	// Add a service covered by wildcard
+	assert.Nil(t, s.EnsureService(19, "bar", &structs.NodeService{ID: "redis", Service: "redis", Tags: nil, Address: "", Port: 6379}))
+	assert.True(t, watchFired(ws))
+
+	idx, out, err = s.TerminatingGatewayServices(ws, "gateway", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(19))
+	assert.Len(t, out, 3)
+
+	expect = structs.TerminatingGatewayServices{
+		{
+			Service:  "api",
+			Gateway:  "gateway",
+			CAFile:   "api/ca.crt",
+			CertFile: "api/client.crt",
+			KeyFile:  "api/client.key",
+		},
+		{
+			Service: "db",
+			Gateway: "gateway",
+		},
+		{
+			Service:  "redis",
+			Gateway:  "gateway",
+			CAFile:   "ca.crt",
+			CertFile: "client.crt",
+			KeyFile:  "client.key",
+		},
+	}
+	assert.Equal(t, expect, out)
+
+	// Delete a service covered by wildcard
+	assert.Nil(t, s.DeleteService(20, "bar", "redis", nil))
+	assert.True(t, watchFired(ws))
+
+	idx, out, err = s.TerminatingGatewayServices(ws, "gateway", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(20))
+	assert.Len(t, out, 2)
+
+	expect = structs.TerminatingGatewayServices{
+		{
+			Service:  "api",
+			Gateway:  "gateway",
+			CAFile:   "api/ca.crt",
+			CertFile: "api/client.crt",
+			KeyFile:  "api/client.key",
+		},
+		{
+			Service: "db",
+			Gateway: "gateway",
+		},
+	}
+	assert.Equal(t, expect, out)
+}

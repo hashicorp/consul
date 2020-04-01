@@ -217,7 +217,7 @@ func (s *Store) ensureConfigEntryTxn(tx *memdb.Txn, idx uint64, conf structs.Con
 	// If the config entry is for terminating gateways we update the memdb table
 	// that associates gateways <-> services.
 	if conf.GetKind() == structs.TerminatingGateway {
-		err = s.catalogUpdateGatewayServices(tx, idx, conf, entMeta)
+		err = s.updateTerminatingGatewayServices(tx, idx, conf, entMeta)
 		if err != nil {
 			return fmt.Errorf("failed to associate services to gateway: %v", err)
 		}

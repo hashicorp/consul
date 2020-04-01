@@ -59,7 +59,7 @@ func init() {
 	registerSchema(nodesTableSchema)
 	registerSchema(servicesTableSchema)
 	registerSchema(checksTableSchema)
-	registerSchema(gatewayServicesTableSchema)
+	registerSchema(terminatingGatewayServicesTableSchema)
 }
 
 const (
@@ -675,6 +675,19 @@ func (s *Store) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *st
 	if err = structs.ValidateServiceMetadata(svc.Kind, svc.Meta, false); err != nil {
 		return fmt.Errorf("Invalid Service Meta for node %s and serviceID %s: %v", node, svc.ID, err)
 	}
+
+	// TODO (gateways) (freddy) enterprise compat
+	g, err := s.serviceTerminatingGateway(tx, structs.WildcardSpecifier, &svc.EnterpriseMeta)
+	if err != nil {
+		return fmt.Errorf("failed gateway lookup for %q: %s", svc.Service, err)
+	}
+	if g != nil {
+		gatewaySvc := g.(*structs.TerminatingGatewayService)
+		if err = s.updateTerminatingGatewayService(tx, idx, gatewaySvc.Gateway, svc.Service, &svc.EnterpriseMeta); err != nil {
+			return fmt.Errorf("Failed to associate service %q with gateway %q", svc.Service, gatewaySvc.Gateway)
+		}
+	}
+
 	// Create the service node entry and populate the indexes. Note that
 	// conversion doesn't populate any of the node-specific information.
 	// That's always populated when we read from the state store.
@@ -927,12 +940,12 @@ func (s *Store) serviceNodes(ws memdb.WatchSet, serviceName string, connect bool
 	// Gateways are tracked in a separate table, and we append them to the result set.
 	if connect {
 		// Look up gateway name associated with the service
-		result, err := s.catalogServiceGateway(tx, serviceName, "service", entMeta)
+		result, err := s.serviceTerminatingGateway(tx, serviceName, entMeta)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed gateway lookup: %s", err)
 		}
 		if result != nil {
-			mapping := result.(*gatewayService)
+			mapping := result.(*structs.TerminatingGatewayService)
 
 			// Look up nodes for gateway
 			gateways, err := s.catalogServiceNodeList(tx, mapping.Gateway, "service", entMeta)
@@ -1359,6 +1372,21 @@ func (s *Store) deleteServiceTxn(tx *memdb.Txn, idx uint64, nodeName, serviceID 
 	} else {
 		return fmt.Errorf("Could not find any service %s: %s", svc.ServiceName, err)
 	}
+
+	// TODO (gateways) (freddy) enterprise compat
+	gateway, err := s.serviceTerminatingGateway(tx, svc.ServiceName, &svc.EnterpriseMeta)
+	if err != nil {
+		return fmt.Errorf("failed gateway lookup for %q: %s", svc.ServiceName, err)
+	}
+	if gateway != nil {
+		if err := tx.Delete("terminating-gateway-services", gateway); err != nil {
+			return fmt.Errorf("failed to delete gateway mapping for %q: %v", svc.ServiceName, err)
+		}
+		if err := indexUpdateMaxTxn(tx, idx, "terminating-gateway-services"); err != nil {
+			return fmt.Errorf("failed updating terminating-gateway-services index: %v", err)
+		}
+	}
+
 	return nil
 }
 
@@ -1865,12 +1893,12 @@ func (s *Store) checkServiceNodes(ws memdb.WatchSet, serviceName string, connect
 	// Gateways are tracked in a separate table, and we append them to the result set.
 	if connect {
 		// Look up gateway name associated with the service
-		result, err := s.catalogServiceGateway(tx, serviceName, "service", entMeta)
+		result, err := s.serviceTerminatingGateway(tx, serviceName, entMeta)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed gateway lookup: %s", err)
 		}
 		if result != nil {
-			mapping := result.(*gatewayService)
+			mapping := result.(*structs.TerminatingGatewayService)
 
 			// Look up nodes for gateway
 			gateways, err := s.catalogServiceNodeList(tx, mapping.Gateway, "service", entMeta)
@@ -1983,6 +2011,30 @@ func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName string, tags
 	// Get the table index.
 	idx := s.maxIndexForService(tx, serviceName, serviceExists, true, entMeta)
 	return s.parseCheckServiceNodes(tx, ws, idx, serviceName, results, err)
+}
+
+// TerminatingGatewayServices is used to query all services associated with a terminating gateway
+func (s *Store) TerminatingGatewayServices(ws memdb.WatchSet, gateway string, entMeta *structs.EnterpriseMeta) (uint64, structs.TerminatingGatewayServices, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	iter, err := s.terminatingGatewayServices(tx, gateway, entMeta)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed gateway services lookup: %s", err)
+	}
+	ws.Add(iter.WatchCh())
+
+	var results structs.TerminatingGatewayServices
+	for service := iter.Next(); service != nil; service = iter.Next() {
+		svc := service.(*structs.TerminatingGatewayService)
+
+		if svc.Service != structs.WildcardSpecifier {
+			results = append(results, svc)
+		}
+	}
+
+	idx := maxIndexTxn(tx, "terminating-gateway-services")
+	return idx, results, nil
 }
 
 // parseCheckServiceNodes is used to parse through a given set of services,
