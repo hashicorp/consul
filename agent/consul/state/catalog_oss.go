@@ -392,7 +392,7 @@ func (s *Store) ValidateRegisterRequest(args *structs.RegisterRequest) (*structs
 }
 
 // TODO (gateways) (freddy) enterprise implementation
-// updateTerminatingGatewayService associates services with gateways as specified in a terminating-gateway config entry
+// updateGatewayService associates services with gateways as specified in a terminating-gateway config entry
 func (s *Store) updateTerminatingGatewayServices(tx *memdb.Txn, idx uint64, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) error {
 	entry, ok := conf.(*structs.TerminatingGatewayConfigEntry)
 	if !ok {
@@ -416,8 +416,8 @@ func (s *Store) updateTerminatingGatewayServices(tx *memdb.Txn, idx uint64, conf
 			for service := services.Next(); service != nil; service = services.Next() {
 				sn := service.(*structs.ServiceNode)
 
-				// Only associate typical services with gateways
-				if sn.ServiceKind != structs.ServiceKindTypical {
+				// Only associate typical non-consul services with gateways
+				if sn.ServiceKind != structs.ServiceKindTypical || sn.ServiceName == "consul" {
 					continue
 				}
 
@@ -432,7 +432,7 @@ func (s *Store) updateTerminatingGatewayServices(tx *memdb.Txn, idx uint64, conf
 					continue
 				}
 
-				mapping := &structs.TerminatingGatewayService{
+				mapping := &structs.GatewayService{
 					Gateway:  entry.Name,
 					Service:  sn.ServiceName,
 					KeyFile:  svc.KeyFile,
@@ -446,7 +446,7 @@ func (s *Store) updateTerminatingGatewayServices(tx *memdb.Txn, idx uint64, conf
 
 			// Also store a mapping for the wildcard so that the TLS creds can be pulled
 			// for new services registered in its namespace
-			mapping := &structs.TerminatingGatewayService{
+			mapping := &structs.GatewayService{
 				Gateway:  entry.Name,
 				Service:  svc.Name,
 				KeyFile:  svc.KeyFile,
@@ -466,7 +466,7 @@ func (s *Store) updateTerminatingGatewayServices(tx *memdb.Txn, idx uint64, conf
 			return fmt.Errorf("gateway service lookup failed: %s", err)
 		}
 		if existing != nil {
-			cfg := existing.(*structs.TerminatingGatewayService)
+			cfg := existing.(*structs.GatewayService)
 
 			// Only return an error if the stored gateway does not match the one from the config entry
 			if cfg.Gateway != entry.Name {
@@ -479,7 +479,7 @@ func (s *Store) updateTerminatingGatewayServices(tx *memdb.Txn, idx uint64, conf
 		//
 		// By extension, if TLS creds are provided with a wildcard but are not provided in
 		// the service entry, the service does not inherit the creds from the wildcard.
-		mapping := &structs.TerminatingGatewayService{
+		mapping := &structs.GatewayService{
 			Gateway:  entry.Name,
 			Service:  svc.Name,
 			KeyFile:  svc.KeyFile,
@@ -498,10 +498,10 @@ func (s *Store) updateTerminatingGatewayServices(tx *memdb.Txn, idx uint64, conf
 }
 
 // TODO (gateways) (freddy) enterprise implementation
-// updateTerminatingGatewayService associates services with gateways after an eligible event
+// updateGatewayService associates services with gateways after an eligible event
 // ie. Registering a service in a namespace targeted by a gateway
 func (s *Store) updateTerminatingGatewayService(tx *memdb.Txn, idx uint64, gateway string, service string, entMeta *structs.EnterpriseMeta) error {
-	mapping := &structs.TerminatingGatewayService{
+	mapping := &structs.GatewayService{
 		Gateway: gateway,
 		Service: service,
 	}
@@ -512,7 +512,7 @@ func (s *Store) updateTerminatingGatewayService(tx *memdb.Txn, idx uint64, gatew
 		return fmt.Errorf("gateway service lookup failed: %s", err)
 	}
 	if wc != nil {
-		cfg := wc.(*structs.TerminatingGatewayService)
+		cfg := wc.(*structs.GatewayService)
 		mapping.CAFile = cfg.CAFile
 		mapping.CertFile = cfg.CertFile
 		mapping.KeyFile = cfg.KeyFile

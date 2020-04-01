@@ -2,6 +2,7 @@ package consul
 
 import (
 	"encoding/base64"
+	"github.com/stretchr/testify/assert"
 	"os"
 	"strings"
 	"testing"
@@ -653,4 +654,131 @@ func TestInternal_ServiceDump_Kind(t *testing.T) {
 		require.Equal(t, "web-proxy", nodes[0].Service.Service)
 		require.Equal(t, "web-proxy", nodes[0].Service.ID)
 	})
+}
+
+// TODO (gateways) (freddy): tests for ACL filtering
+func TestCatalog_TerminatingGatewayServices(t *testing.T) {
+	t.Parallel()
+
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	{
+		var out struct{}
+
+		// Register a service "api"
+		args := structs.TestRegisterRequest(t)
+		args.Service.Service = "api"
+		args.Check = &structs.HealthCheck{
+			Name:      "api",
+			Status:    api.HealthPassing,
+			ServiceID: args.Service.Service,
+		}
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		// Register a service "db"
+		args = structs.TestRegisterRequest(t)
+		args.Service.Service = "db"
+		args.Check = &structs.HealthCheck{
+			Name:      "db",
+			Status:    api.HealthPassing,
+			ServiceID: args.Service.Service,
+		}
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		// Register a service "redis"
+		args = structs.TestRegisterRequest(t)
+		args.Service.Service = "redis"
+		args.Check = &structs.HealthCheck{
+			Name:      "redis",
+			Status:    api.HealthPassing,
+			ServiceID: args.Service.Service,
+		}
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		// Register a gateway
+		args = &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTerminatingGateway,
+				Service: "gateway",
+				Port:    443,
+			},
+			Check: &structs.HealthCheck{
+				Name:      "gateway",
+				Status:    api.HealthPassing,
+				ServiceID: args.Service.Service,
+			},
+		}
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		entryArgs := &structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry: &structs.TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "gateway",
+				Services: []structs.LinkedService{
+					{
+						Name:     "api",
+						CAFile:   "api/ca.crt",
+						CertFile: "api/client.crt",
+						KeyFile:  "api/client.key",
+					},
+					{
+						Name: "db",
+					},
+					{
+						Name:     "*",
+						CAFile:   "ca.crt",
+						CertFile: "client.crt",
+						KeyFile:  "client.key",
+					},
+				},
+			},
+		}
+		var entryResp bool
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &entryArgs, &entryResp))
+	}
+
+	// List should return both services
+	req := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "gateway",
+	}
+	var resp structs.IndexedGatewayServices
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Internal.TerminatingGatewayServices", &req, &resp))
+	assert.Len(t, resp.Services, 3)
+
+	expect := structs.GatewayServices{
+		{
+			Service:  "api",
+			Gateway:  "gateway",
+			CAFile:   "api/ca.crt",
+			CertFile: "api/client.crt",
+			KeyFile:  "api/client.key",
+		},
+		{
+			Service:  "db",
+			Gateway:  "gateway",
+			CAFile:   "",
+			CertFile: "",
+			KeyFile:  "",
+		},
+		{
+			Service:  "redis",
+			Gateway:  "gateway",
+			CAFile:   "ca.crt",
+			CertFile: "client.crt",
+			KeyFile:  "client.key",
+		},
+	}
+	assert.Equal(t, expect, resp.Services)
 }

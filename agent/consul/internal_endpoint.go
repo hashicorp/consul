@@ -296,3 +296,41 @@ func (m *Internal) aclAccessorID(secretID string) string {
 	}
 	return ident.ID()
 }
+
+func (m *Internal) TerminatingGatewayServices(args *structs.ServiceSpecificRequest, reply *structs.IndexedGatewayServices) error {
+	if done, err := m.srv.forward("Internal.TerminatingGatewayServices", args, args, reply); done {
+		return err
+	}
+
+	// Verify the arguments
+	if args.ServiceName == "" {
+		return fmt.Errorf("Must provide gateway name")
+	}
+
+	_, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
+	if err != nil {
+		return err
+	}
+
+	if err := m.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
+	return m.srv.blockingQuery(
+		&args.QueryOptions,
+		&reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			index, services, err := state.TerminatingGatewayServices(ws, args.ServiceName, &args.EnterpriseMeta)
+			if err != nil {
+				return err
+			}
+
+			// TODO (gateways) (freddy): ACL filtering for gateway services
+			// if err := c.srv.filterACL(args.Token, &services); err != nil {
+			// 	return err
+			// }
+
+			reply.Index, reply.Services = index, services
+			return nil
+		})
+}

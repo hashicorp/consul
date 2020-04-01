@@ -1765,6 +1765,11 @@ type IndexedConfigEntries struct {
 	QueryMeta
 }
 
+type IndexedGatewayServices struct {
+	Services GatewayServices
+	QueryMeta
+}
+
 func (c *IndexedConfigEntries) MarshalBinary() (data []byte, err error) {
 	// bs will grow if needed but allocate enough to avoid reallocation in common
 	// case.

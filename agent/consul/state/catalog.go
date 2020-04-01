@@ -682,7 +682,7 @@ func (s *Store) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *st
 		return fmt.Errorf("failed gateway lookup for %q: %s", svc.Service, err)
 	}
 	if g != nil {
-		gatewaySvc := g.(*structs.TerminatingGatewayService)
+		gatewaySvc := g.(*structs.GatewayService)
 		if err = s.updateTerminatingGatewayService(tx, idx, gatewaySvc.Gateway, svc.Service, &svc.EnterpriseMeta); err != nil {
 			return fmt.Errorf("Failed to associate service %q with gateway %q", svc.Service, gatewaySvc.Gateway)
 		}
@@ -945,7 +945,7 @@ func (s *Store) serviceNodes(ws memdb.WatchSet, serviceName string, connect bool
 			return 0, nil, fmt.Errorf("failed gateway lookup: %s", err)
 		}
 		if result != nil {
-			mapping := result.(*structs.TerminatingGatewayService)
+			mapping := result.(*structs.GatewayService)
 
 			// Look up nodes for gateway
 			gateways, err := s.catalogServiceNodeList(tx, mapping.Gateway, "service", entMeta)
@@ -1898,7 +1898,7 @@ func (s *Store) checkServiceNodes(ws memdb.WatchSet, serviceName string, connect
 			return 0, nil, fmt.Errorf("failed gateway lookup: %s", err)
 		}
 		if result != nil {
-			mapping := result.(*structs.TerminatingGatewayService)
+			mapping := result.(*structs.GatewayService)
 
 			// Look up nodes for gateway
 			gateways, err := s.catalogServiceNodeList(tx, mapping.Gateway, "service", entMeta)
@@ -2014,7 +2014,7 @@ func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName string, tags
 }
 
 // TerminatingGatewayServices is used to query all services associated with a terminating gateway
-func (s *Store) TerminatingGatewayServices(ws memdb.WatchSet, gateway string, entMeta *structs.EnterpriseMeta) (uint64, structs.TerminatingGatewayServices, error) {
+func (s *Store) TerminatingGatewayServices(ws memdb.WatchSet, gateway string, entMeta *structs.EnterpriseMeta) (uint64, structs.GatewayServices, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -2024,9 +2024,9 @@ func (s *Store) TerminatingGatewayServices(ws memdb.WatchSet, gateway string, en
 	}
 	ws.Add(iter.WatchCh())
 
-	var results structs.TerminatingGatewayServices
+	var results structs.GatewayServices
 	for service := iter.Next(); service != nil; service = iter.Next() {
-		svc := service.(*structs.TerminatingGatewayService)
+		svc := service.(*structs.GatewayService)
 
 		if svc.Service != structs.WildcardSpecifier {
 			results = append(results, svc)

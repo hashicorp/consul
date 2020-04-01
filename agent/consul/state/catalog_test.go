@@ -4381,7 +4381,7 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 	assert.Equal(t, idx, uint64(17))
 	assert.Len(t, out, 2)
 
-	expect := structs.TerminatingGatewayServices{
+	expect := structs.GatewayServices{
 		{
 			Service: "api",
 			Gateway: "gateway",
@@ -4393,7 +4393,7 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 	}
 	assert.Equal(t, expect, out)
 
-	// Associate gateway with wildcard
+	// Associate gateway with a wildcard and add TLS config
 	assert.Nil(t, s.EnsureConfigEntry(18, &structs.TerminatingGatewayConfigEntry{
 		Kind: "terminating-gateway",
 		Name: "gateway",
@@ -4424,7 +4424,7 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 	assert.Equal(t, idx, uint64(18))
 	assert.Len(t, out, 2)
 
-	expect = structs.TerminatingGatewayServices{
+	expect = structs.GatewayServices{
 		{
 			Service:  "api",
 			Gateway:  "gateway",
@@ -4448,7 +4448,7 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 	assert.Equal(t, idx, uint64(19))
 	assert.Len(t, out, 3)
 
-	expect = structs.TerminatingGatewayServices{
+	expect = structs.GatewayServices{
 		{
 			Service:  "api",
 			Gateway:  "gateway",
@@ -4479,7 +4479,7 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 	assert.Equal(t, idx, uint64(20))
 	assert.Len(t, out, 2)
 
-	expect = structs.TerminatingGatewayServices{
+	expect = structs.GatewayServices{
 		{
 			Service:  "api",
 			Gateway:  "gateway",
