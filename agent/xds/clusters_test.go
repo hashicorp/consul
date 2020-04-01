@@ -505,35 +505,6 @@ type customClusterJSONOptions struct {
 	TLSContext  string
 }
 
-var customEDSClusterJSONTpl = `{
-	{{ if .IncludeType -}}
-	"@type": "type.googleapis.com/envoy.api.v2.Cluster",
-	{{- end }}
-	{{ if .TLSContext -}}
-	"tlsContext": {{ .TLSContext }},
-	{{- end }}
-	"name": "{{ .Name }}",
-	"type": "EDS",
-	"edsClusterConfig": {
-		"edsConfig": {
-			"ads": {
-
-			}
-		}
-	},
-	"connectTimeout": "5s"
-}`
-
-var customEDSClusterJSONTemplate = template.Must(template.New("").Parse(customEDSClusterJSONTpl))
-
-func customEDSClusterJSON(t *testing.T, opts customClusterJSONOptions) string {
-	t.Helper()
-	var buf bytes.Buffer
-	err := customEDSClusterJSONTemplate.Execute(&buf, opts)
-	require.NoError(t, err)
-	return buf.String()
-}
-
 var customAppClusterJSONTpl = `{
 	{{ if .IncludeType -}}
 	"@type": "type.googleapis.com/envoy.api.v2.Cluster",

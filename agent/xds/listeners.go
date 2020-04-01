@@ -39,7 +39,7 @@ func (s *Server) listenersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token s
 	case structs.ServiceKindConnectProxy:
 		return s.listenersFromSnapshotConnectProxy(cfgSnap, token)
 	case structs.ServiceKindMeshGateway:
-		return s.listenersFromSnapshotMeshGateway(cfgSnap, token)
+		return s.listenersFromSnapshotMeshGateway(cfgSnap)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
@@ -180,7 +180,7 @@ func parseCheckPath(check structs.CheckType) (structs.ExposePath, error) {
 }
 
 // listenersFromSnapshotMeshGateway returns the "listener" for a mesh-gateway service
-func (s *Server) listenersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
+func (s *Server) listenersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	cfg, err := ParseGatewayConfig(cfgSnap.Proxy.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
