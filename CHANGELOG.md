@@ -13,6 +13,7 @@ IMPROVEMENTS:
 
 BUGFIXES:
 
+* sdk: Fix race condition in freeport [[GH-7567](https://github.com/hashicorp/consul/issues/7567)]
 * server: strip local ACL tokens from RPCs during forwarding if crossing datacenters [[GH-7419](https://github.com/hashicorp/consul/issues/7419)]
 
 ## 1.7.2 (March 16, 2020)
