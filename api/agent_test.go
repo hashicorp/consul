@@ -1186,15 +1186,26 @@ func TestAPI_AgentMonitor(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Wait for the first log message and validate it
-	select {
-	case log := <-logCh:
-		if !(strings.Contains(log, "[INFO]") || strings.Contains(log, "[DEBUG]")) {
-			t.Fatalf("bad: %q", log)
+	retry.Run(t, func(r *retry.R) {
+		{
+			// Register a service to be sure something happens in secs
+			serviceReg := &AgentServiceRegistration{
+				Name: "redis",
+			}
+			if err := agent.ServiceRegister(serviceReg); err != nil {
+				r.Fatalf("err: %v", err)
+			}
 		}
-	case <-time.After(10 * time.Second):
-		t.Fatalf("failed to get a log message")
-	}
+		// Wait for the first log message and validate it
+		select {
+		case log := <-logCh:
+			if !(strings.Contains(log, "[INFO]") || strings.Contains(log, "[DEBUG]")) {
+				r.Fatalf("bad: %q", log)
+			}
+		case <-time.After(10 * time.Second):
+			r.Fatalf("failed to get a log message")
+		}
+	})
 }
 
 func TestAPI_AgentMonitorJSON(t *testing.T) {
