@@ -131,7 +131,9 @@ jobs:
       - checkout
       - attach_workspace:
           at: /go/bin
-      - run: go mod download
+      - run:
+          working_directory: api
+          command: go mod download
       - run:
           working_directory: api
           name: go test
@@ -160,7 +162,9 @@ jobs:
       - checkout
       - attach_workspace:
           at: /go/bin
-      - run: go mod download
+      - run:
+          working_directory: sdk
+          command: go mod download
       - run:
           working_directory: sdk
           name: go test
