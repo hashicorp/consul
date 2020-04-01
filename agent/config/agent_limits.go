@@ -2,14 +2,12 @@ package config
 
 import (
 	"fmt"
-
-	"github.com/hashicorp/consul/lib"
 )
 
 // checkLimitsFromMaxConnsPerClient check that value provided might be OK
 // return an error if values are not compatible
 func checkLimitsFromMaxConnsPerClient(maxConnsPerClient int) error {
-	maxFds, err := lib.Getrlimit()
+	maxFds, err := getrlimit()
 	if err == nil && maxConnsPerClient > 0 {
 		// We need the list port + a few at the minimum
 		// On Mac OS, 20 FDs are open by Consul without doing anything
