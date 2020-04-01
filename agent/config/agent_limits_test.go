@@ -1,5 +1,3 @@
-// +build !consulent
-
 package config
 
 import (
