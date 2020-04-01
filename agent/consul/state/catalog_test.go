@@ -4493,4 +4493,30 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expect, out)
+
+	// Create a new entry that only leaves one service
+	assert.Nil(t, s.EnsureConfigEntry(21, &structs.TerminatingGatewayConfigEntry{
+		Kind: "terminating-gateway",
+		Name: "gateway",
+		Services: []structs.LinkedService{
+			{
+				Name: "db",
+			},
+		},
+	}, nil))
+	assert.True(t, watchFired(ws))
+
+	idx, out, err = s.TerminatingGatewayServices(ws, "gateway", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(21))
+	assert.Len(t, out, 1)
+
+	// previously associated services should not be present
+	expect = structs.GatewayServices{
+		{
+			Service: "db",
+			Gateway: "gateway",
+		},
+	}
+	assert.Equal(t, expect, out)
 }
