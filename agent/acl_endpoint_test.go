@@ -22,7 +22,7 @@ import (
 
 func TestACL_Disabled_Response(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	type testCase struct {
@@ -79,7 +79,7 @@ func jsonBody(v interface{}) io.Reader {
 
 func TestACL_Bootstrap(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), TestACLConfig()+`
+	a := NewTestAgent(t, TestACLConfig()+`
       acl_master_token = ""
    `)
 	defer a.Shutdown()
@@ -127,7 +127,7 @@ func TestACL_Bootstrap(t *testing.T) {
 
 func TestACL_HTTP(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), TestACLConfig())
+	a := NewTestAgent(t, TestACLConfig())
 	defer a.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -1092,7 +1092,7 @@ func TestACL_HTTP(t *testing.T) {
 func TestACL_LoginProcedure_HTTP(t *testing.T) {
 	// This tests AuthMethods, BindingRules, Login, and Logout.
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), TestACLConfig())
+	a := NewTestAgent(t, TestACLConfig())
 	defer a.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -1592,7 +1592,7 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 
 func TestACL_Authorize(t *testing.T) {
 	t.Parallel()
-	a1 := NewTestAgent(t, t.Name(), TestACLConfigWithParams(nil))
+	a1 := NewTestAgent(t, TestACLConfigWithParams(nil))
 	defer a1.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a1.RPC, "dc1", testrpc.WithToken(TestDefaultMasterToken))
@@ -1628,7 +1628,7 @@ func TestACL_Authorize(t *testing.T) {
 	secondaryParams.ReplicationToken = secondaryParams.MasterToken
 	secondaryParams.EnableTokenReplication = true
 
-	a2 := NewTestAgent(t, t.Name(), `datacenter = "dc2" `+TestACLConfigWithParams(secondaryParams))
+	a2 := NewTestAgent(t, `datacenter = "dc2" `+TestACLConfigWithParams(secondaryParams))
 	defer a2.Shutdown()
 
 	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortWAN)

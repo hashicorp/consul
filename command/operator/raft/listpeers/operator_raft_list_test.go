@@ -18,7 +18,7 @@ func TestOperatorRaftListPeersCommand_noTabs(t *testing.T) {
 
 func TestOperatorRaftListPeersCommand(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 
 	expected := fmt.Sprintf("%s  %s  127.0.0.1:%d  leader  true   3",
@@ -43,7 +43,7 @@ func TestOperatorRaftListPeersCommand_verticalBar(t *testing.T) {
 	t.Parallel()
 
 	nodeName := "name|with|bars"
-	a := agent.NewTestAgent(t, "", `node_name = "`+nodeName+`"`)
+	a := agent.NewTestAgent(t, `node_name = "`+nodeName+`"`)
 	defer a.Shutdown()
 
 	ui := cli.NewMockUi()

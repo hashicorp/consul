@@ -16,7 +16,7 @@ func TestSnapshot(t *testing.T) {
 	t.Parallel()
 	var snap io.Reader
 	t.Run("create snapshot", func(t *testing.T) {
-		a := NewTestAgent(t, t.Name(), "")
+		a := NewTestAgent(t, "")
 		defer a.Shutdown()
 		testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -43,7 +43,7 @@ func TestSnapshot(t *testing.T) {
 	})
 
 	t.Run("restore snapshot", func(t *testing.T) {
-		a := NewTestAgent(t, t.Name(), "")
+		a := NewTestAgent(t, "")
 		defer a.Shutdown()
 		testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -59,7 +59,7 @@ func TestSnapshot_Options(t *testing.T) {
 	t.Parallel()
 	for _, method := range []string{"GET", "PUT"} {
 		t.Run(method, func(t *testing.T) {
-			a := NewTestAgent(t, t.Name(), TestACLConfig())
+			a := NewTestAgent(t, TestACLConfig())
 			defer a.Shutdown()
 
 			body := bytes.NewBuffer(nil)
@@ -72,7 +72,7 @@ func TestSnapshot_Options(t *testing.T) {
 		})
 
 		t.Run(method, func(t *testing.T) {
-			a := NewTestAgent(t, t.Name(), TestACLConfig())
+			a := NewTestAgent(t, TestACLConfig())
 			defer a.Shutdown()
 
 			body := bytes.NewBuffer(nil)
@@ -85,7 +85,7 @@ func TestSnapshot_Options(t *testing.T) {
 		})
 
 		t.Run(method, func(t *testing.T) {
-			a := NewTestAgent(t, t.Name(), TestACLConfig())
+			a := NewTestAgent(t, TestACLConfig())
 			defer a.Shutdown()
 
 			body := bytes.NewBuffer(nil)

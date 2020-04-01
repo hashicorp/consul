@@ -18,7 +18,7 @@ import (
 func TestAgent_ServiceHTTPChecksNotification(t *testing.T) {
 	t.Parallel()
 
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 

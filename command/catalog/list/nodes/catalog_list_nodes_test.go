@@ -32,7 +32,7 @@ func TestCatalogListNodesCommand_Validation(t *testing.T) {
 
 func TestCatalogListNodesCommand(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -168,7 +168,7 @@ func TestCatalogListNodesCommand_verticalBar(t *testing.T) {
 	t.Parallel()
 
 	nodeName := "name|with|bars"
-	a := agent.NewTestAgent(t, "", `node_name = "`+nodeName+`"`)
+	a := agent.NewTestAgent(t, `node_name = "`+nodeName+`"`)
 	defer a.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")

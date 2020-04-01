@@ -18,7 +18,7 @@ func TestConfigDelete_noTabs(t *testing.T) {
 func TestConfigDelete(t *testing.T) {
 	t.Parallel()
 
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 

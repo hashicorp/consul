@@ -25,7 +25,7 @@ func TestProxy_public(t *testing.T) {
 	ports := freeport.MustTake(1)
 	defer freeport.Return(ports)
 
-	a := agent.NewTestAgent(t, t.Name(), "")
+	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	client := a.Client()

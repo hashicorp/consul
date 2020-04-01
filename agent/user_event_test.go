@@ -48,7 +48,7 @@ func TestValidateUserEventParams(t *testing.T) {
 
 func TestShouldProcessUserEvent(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	srv1 := &structs.NodeService{
@@ -117,7 +117,7 @@ func TestShouldProcessUserEvent(t *testing.T) {
 
 func TestIngestUserEvent(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	for i := 0; i < 512; i++ {
@@ -148,7 +148,7 @@ func TestIngestUserEvent(t *testing.T) {
 
 func TestFireReceiveEvent(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	srv1 := &structs.NodeService{
@@ -184,7 +184,7 @@ func TestFireReceiveEvent(t *testing.T) {
 
 func TestUserEventToken(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), TestACLConfig()+`
+	a := NewTestAgent(t, TestACLConfig()+`
 		acl_default_policy = "deny"
 	`)
 	defer a.Shutdown()

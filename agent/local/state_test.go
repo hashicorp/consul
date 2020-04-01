@@ -24,7 +24,7 @@ import (
 
 func TestAgentAntiEntropy_Services(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), "")
+	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -244,7 +244,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := agent.NewTestAgent(t, t.Name(), "")
+	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -406,7 +406,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 
 func TestAgent_ServiceWatchCh(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), "")
+	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -490,7 +490,7 @@ func TestAgent_ServiceWatchCh(t *testing.T) {
 
 func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), "")
+	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -621,7 +621,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 
 func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), "")
+	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -751,7 +751,7 @@ var testRegisterRules = `
 
 func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), `
+	a := agent.NewTestAgent(t, `
 		acl_datacenter = "dc1"
 		acl_master_token = "root"
 		acl_default_policy = "deny"
@@ -899,7 +899,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 
 func TestAgentAntiEntropy_Checks(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), "")
+	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -1083,7 +1083,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 
 func TestAgentAntiEntropy_RemovingServiceAndCheck(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), "")
+	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -1378,7 +1378,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 
 func TestAgent_UpdateCheck_DiscardOutput(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), `
+	a := agent.NewTestAgent(t, `
 		discard_check_output = true
 		check_update_interval = "0s" # set to "0s" since otherwise output checks are deferred
 	`)
@@ -1900,7 +1900,7 @@ func TestAgent_AliasCheck(t *testing.T) {
 
 func TestAgent_sendCoordinate(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), `
+	a := agent.NewTestAgent(t, `
 		sync_coordinate_interval_min = "1ms"
 		sync_coordinate_rate_target = 10.0
 		consul = {
@@ -2032,7 +2032,7 @@ func TestState_Notify(t *testing.T) {
 func TestAliasNotifications_local(t *testing.T) {
 	t.Parallel()
 
-	a := agent.NewTestAgent(t, t.Name(), "")
+	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")

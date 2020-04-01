@@ -63,7 +63,7 @@ func TestCommand_File(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -96,7 +96,7 @@ func TestCommand_Flags(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -122,7 +122,7 @@ func TestCommand_Flags_TaggedAddresses(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -157,7 +157,7 @@ func TestCommand_FileWithUnnamedCheck(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 

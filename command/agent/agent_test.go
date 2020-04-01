@@ -81,10 +81,10 @@ func TestConfigFail(t *testing.T) {
 }
 
 func TestRetryJoin(t *testing.T) {
-	a := agent.NewTestAgent(t, t.Name(), "")
+	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
 
-	b := agent.NewTestAgent(t, t.Name(), `
+	b := agent.NewTestAgent(t, `
 		retry_join = ["`+a.Config.SerfBindAddrLAN.String()+`"]
 		retry_join_wan = ["`+a.Config.SerfBindAddrWAN.String()+`"]
 		retry_interval = "100ms"
@@ -207,7 +207,7 @@ func TestBadDataDirPermissions(t *testing.T) {
 }
 
 func TestReloadLoggerFail(t *testing.T) {
-	a := agent.NewTestAgent(t, t.Name(), "")
+	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	ui := cli.NewMockUi()
@@ -239,7 +239,7 @@ func TestReloadLoggerFail(t *testing.T) {
 }
 
 func TestReloadLoggerSuccess(t *testing.T) {
-	a := agent.NewTestAgent(t, t.Name(), "")
+	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	ui := cli.NewMockUi()

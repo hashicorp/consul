@@ -30,7 +30,7 @@ func TestDebugCommand(t *testing.T) {
 	testDir := testutil.TempDir(t, "debug")
 	defer os.RemoveAll(testDir)
 
-	a := agent.NewTestAgent(t, t.Name(), `
+	a := agent.NewTestAgent(t, `
 	enable_debug = true
 	`)
 
@@ -67,7 +67,7 @@ func TestDebugCommand_Archive(t *testing.T) {
 	testDir := testutil.TempDir(t, "debug")
 	defer os.RemoveAll(testDir)
 
-	a := agent.NewTestAgent(t, t.Name(), `
+	a := agent.NewTestAgent(t, `
 	enable_debug = true
 	`)
 	defer a.Shutdown()
@@ -152,7 +152,7 @@ func TestDebugCommand_OutputPathBad(t *testing.T) {
 	testDir := testutil.TempDir(t, "debug")
 	defer os.RemoveAll(testDir)
 
-	a := agent.NewTestAgent(t, t.Name(), "")
+	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -184,7 +184,7 @@ func TestDebugCommand_OutputPathExists(t *testing.T) {
 	testDir := testutil.TempDir(t, "debug")
 	defer os.RemoveAll(testDir)
 
-	a := agent.NewTestAgent(t, t.Name(), "")
+	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -265,7 +265,7 @@ func TestDebugCommand_CaptureTargets(t *testing.T) {
 		testDir := testutil.TempDir(t, "debug")
 		defer os.RemoveAll(testDir)
 
-		a := agent.NewTestAgent(t, t.Name(), `
+		a := agent.NewTestAgent(t, `
 		enable_debug = true
 		`)
 
@@ -331,7 +331,7 @@ func TestDebugCommand_ProfilesExist(t *testing.T) {
 	testDir := testutil.TempDir(t, "debug")
 	defer os.RemoveAll(testDir)
 
-	a := agent.NewTestAgent(t, t.Name(), `
+	a := agent.NewTestAgent(t, `
 	enable_debug = true
 	`)
 	defer a.Shutdown()
@@ -409,7 +409,7 @@ func TestDebugCommand_ValidateTiming(t *testing.T) {
 		testDir := testutil.TempDir(t, "debug")
 		defer os.RemoveAll(testDir)
 
-		a := agent.NewTestAgent(t, t.Name(), "")
+		a := agent.NewTestAgent(t, "")
 		defer a.Shutdown()
 		testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -441,7 +441,7 @@ func TestDebugCommand_DebugDisabled(t *testing.T) {
 	testDir := testutil.TempDir(t, "debug")
 	defer os.RemoveAll(testDir)
 
-	a := agent.NewTestAgent(t, t.Name(), `
+	a := agent.NewTestAgent(t, `
 	enable_debug = false
 	`)
 	defer a.Shutdown()

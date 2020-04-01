@@ -11,7 +11,7 @@ import (
 
 func TestMonitorCommand_exitsOnSignalBeforeLinesArrive(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgentWithFields(t, true, agent.TestAgent{})
+	a := agent.StartTestAgent(t, agent.TestAgent{})
 	defer a.Shutdown()
 
 	shutdownCh := make(chan struct{})
@@ -64,7 +64,7 @@ func TestMonitorCommand_exitsOnSignalBeforeLinesArrive(t *testing.T) {
 
 func TestMonitorCommand_LogJSONValidFlag(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgentWithFields(t, true, agent.TestAgent{})
+	a := agent.StartTestAgent(t, agent.TestAgent{})
 	defer a.Shutdown()
 
 	shutdownCh := make(chan struct{})

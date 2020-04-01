@@ -53,7 +53,7 @@ func TestCatalogListDatacentersCommand_Validation(t *testing.T) {
 
 func TestCatalogListDatacentersCommand(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 
 	ui := cli.NewMockUi()

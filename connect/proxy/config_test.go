@@ -81,7 +81,7 @@ func TestUpstreamResolverFuncFromClient(t *testing.T) {
 func TestAgentConfigWatcherSidecarProxy(t *testing.T) {
 	t.Parallel()
 
-	a := agent.NewTestAgent(t, "agent_smith", ``)
+	a := agent.StartTestAgent(t, agent.TestAgent{Name: "agent_smith"})
 	defer a.Shutdown()
 
 	client := a.Client()

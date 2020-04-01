@@ -86,25 +86,20 @@ type TestAgent struct {
 	*Agent
 }
 
-// NewTestAgent returns a started agent with the given name and
-// configuration. It fails the test if the Agent could not be started. The
-// caller should call Shutdown() to stop the agent and remove temporary
-// directories.
-func NewTestAgent(t *testing.T, name string, hcl string) *TestAgent {
-	return NewTestAgentWithFields(t, true, TestAgent{Name: name, HCL: hcl})
+// NewTestAgent returns a started agent with the given configuration. It fails
+// the test if the Agent could not be started.
+// The caller is responsible for calling Shutdown() to stop the agent and remove
+// temporary directories.
+func NewTestAgent(t *testing.T, hcl string) *TestAgent {
+	return StartTestAgent(t, TestAgent{HCL: hcl})
 }
 
-// NewTestAgentWithFields takes a TestAgent struct with any number of fields set,
-// and a boolean 'start', which indicates whether or not the TestAgent should
-// be started. If no LogOutput is set, it will automatically be set to
-// testutil.TestWriter(t). Name will default to t.Name() if not specified.
-func NewTestAgentWithFields(t *testing.T, start bool, ta TestAgent) *TestAgent {
-	// copy values
-	a := ta
-	if !start {
-		return &a
-	}
-
+// StartTestAgent and wait for it to become available. If the agent fails to
+// start the test will be marked failed and execution will stop.
+//
+// The caller is responsible for calling Shutdown() to stop the agent and remove
+// temporary directories.
+func StartTestAgent(t *testing.T, a TestAgent) *TestAgent {
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
 		if err := a.Start(t); err != nil {
 			r.Fatal(err)
@@ -122,15 +117,7 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 	}
 
 	name := a.Name
-	// Many tests set Name to t.Name(), which takes up a lot of space at the
-	// start of the log messages. The only time we need to care about a name is
-	// when a test using multiple TestAgents.
-	// As a temporary workaround we ignore the default name and use a shorter
-	// default value. Tests which set a custom name for multiple agents will
-	// use the provided name.
-	// TODO: remove TestAgent.Name and accept a name arg on Start, to remove
-	// this workaround.
-	if name == "" || name == t.Name() {
+	if name == "" {
 		name = "TestAgent"
 	}
 

@@ -18,7 +18,7 @@ func TestMembersCommand_noTabs(t *testing.T) {
 
 func TestMembersCommand(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 
 	ui := cli.NewMockUi()
@@ -50,7 +50,7 @@ func TestMembersCommand(t *testing.T) {
 
 func TestMembersCommand_WAN(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 
 	ui := cli.NewMockUi()
@@ -71,7 +71,7 @@ func TestMembersCommand_WAN(t *testing.T) {
 
 func TestMembersCommand_statusFilter(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 
 	ui := cli.NewMockUi()
@@ -95,7 +95,7 @@ func TestMembersCommand_statusFilter(t *testing.T) {
 
 func TestMembersCommand_statusFilter_failed(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 
 	ui := cli.NewMockUi()
@@ -125,7 +125,7 @@ func TestMembersCommand_verticalBar(t *testing.T) {
 	t.Parallel()
 
 	nodeName := "name|with|bars"
-	a := agent.NewTestAgent(t, "", `node_name = "`+nodeName+`"`)
+	a := agent.NewTestAgent(t, `node_name = "`+nodeName+`"`)
 	defer a.Shutdown()
 
 	ui := cli.NewMockUi()

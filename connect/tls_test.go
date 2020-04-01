@@ -152,7 +152,7 @@ func TestServerSideVerifier(t *testing.T) {
 	apiCA2 := testCertPEMBlock(t, apiCA2PEM)
 
 	// Setup a local test agent to query
-	agent := agent.NewTestAgent(t, "test-consul", "")
+	agent := agent.StartTestAgent(t, agent.TestAgent{Name: "test-consul"})
 	defer agent.Shutdown()
 	testrpc.WaitForTestAgent(t, agent.RPC, "dc1")
 

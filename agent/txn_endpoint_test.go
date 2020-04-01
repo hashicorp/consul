@@ -19,7 +19,7 @@ import (
 
 func TestTxnEndpoint_Bad_JSON(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	buf := bytes.NewBuffer([]byte("{"))
@@ -66,25 +66,25 @@ func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
 	}
 
 	t.Run("exceeds default limits", func(t *testing.T) {
-		a := NewTestAgent(t, t.Name(), "")
+		a := NewTestAgent(t, "")
 		testIt(t, a, false)
 		a.Shutdown()
 	})
 
 	t.Run("exceeds configured max txn len", func(t *testing.T) {
-		a := NewTestAgent(t, t.Name(), "limits = { txn_max_req_len = 700000 }")
+		a := NewTestAgent(t, "limits = { txn_max_req_len = 700000 }")
 		testIt(t, a, false)
 		a.Shutdown()
 	})
 
 	t.Run("exceeds default max kv value size", func(t *testing.T) {
-		a := NewTestAgent(t, t.Name(), "limits = { txn_max_req_len = 123456789 }")
+		a := NewTestAgent(t, "limits = { txn_max_req_len = 123456789 }")
 		testIt(t, a, false)
 		a.Shutdown()
 	})
 
 	t.Run("allowed", func(t *testing.T) {
-		a := NewTestAgent(t, t.Name(), `
+		a := NewTestAgent(t, `
 limits = {
 	txn_max_req_len = 123456789
 	kv_max_value_size = 123456789
@@ -139,25 +139,25 @@ func TestTxnEndpoint_Bad_Size_Net(t *testing.T) {
 	}
 
 	t.Run("exceeds default limits", func(t *testing.T) {
-		a := NewTestAgent(t, t.Name(), "")
+		a := NewTestAgent(t, "")
 		testIt(a, false)
 		a.Shutdown()
 	})
 
 	t.Run("exceeds configured max txn len", func(t *testing.T) {
-		a := NewTestAgent(t, t.Name(), "limits = { txn_max_req_len = 700000 }")
+		a := NewTestAgent(t, "limits = { txn_max_req_len = 700000 }")
 		testIt(a, false)
 		a.Shutdown()
 	})
 
 	t.Run("exceeds default max kv value size", func(t *testing.T) {
-		a := NewTestAgent(t, t.Name(), "limits = { txn_max_req_len = 123456789 }")
+		a := NewTestAgent(t, "limits = { txn_max_req_len = 123456789 }")
 		testIt(a, false)
 		a.Shutdown()
 	})
 
 	t.Run("allowed", func(t *testing.T) {
-		a := NewTestAgent(t, t.Name(), `
+		a := NewTestAgent(t, `
 limits = {
 	txn_max_req_len = 123456789
 	kv_max_value_size = 123456789
@@ -167,7 +167,7 @@ limits = {
 	})
 
 	t.Run("allowed kv max backward compatible", func(t *testing.T) {
-		a := NewTestAgent(t, t.Name(), "limits = { kv_max_value_size = 123456789 }")
+		a := NewTestAgent(t, "limits = { kv_max_value_size = 123456789 }")
 		testIt(a, true)
 		a.Shutdown()
 	})
@@ -175,7 +175,7 @@ limits = {
 
 func TestTxnEndpoint_Bad_Size_Ops(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
@@ -203,7 +203,7 @@ func TestTxnEndpoint_Bad_Size_Ops(t *testing.T) {
 func TestTxnEndpoint_KV_Actions(t *testing.T) {
 	t.Parallel()
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t, t.Name(), "")
+		a := NewTestAgent(t, "")
 		defer a.Shutdown()
 		testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -446,7 +446,7 @@ func TestTxnEndpoint_KV_Actions(t *testing.T) {
 
 	// Verify an error inside a transaction.
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t, t.Name(), "")
+		a := NewTestAgent(t, "")
 		defer a.Shutdown()
 
 		buf := bytes.NewBuffer([]byte(`
@@ -483,7 +483,7 @@ func TestTxnEndpoint_KV_Actions(t *testing.T) {
 
 func TestTxnEndpoint_UpdateCheck(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 

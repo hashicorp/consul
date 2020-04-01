@@ -18,7 +18,7 @@ import (
 
 func TestCatalogRegister_Service_InvalidAddress(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	for _, addr := range []string{"0.0.0.0", "::", "[::]"} {
@@ -43,7 +43,7 @@ func TestCatalogRegister_Service_InvalidAddress(t *testing.T) {
 
 func TestCatalogDeregister(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// Register node
@@ -62,7 +62,7 @@ func TestCatalogDeregister(t *testing.T) {
 
 func TestCatalogDatacenters(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	retry.Run(t, func(r *retry.R) {
@@ -81,7 +81,7 @@ func TestCatalogDatacenters(t *testing.T) {
 
 func TestCatalogNodes(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -115,7 +115,7 @@ func TestCatalogNodes(t *testing.T) {
 
 func TestCatalogNodes_MetaFilter(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -156,7 +156,7 @@ func TestCatalogNodes_MetaFilter(t *testing.T) {
 
 func TestCatalogNodes_Filter(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -192,7 +192,7 @@ func TestCatalogNodes_Filter(t *testing.T) {
 
 func TestCatalogNodes_WanTranslation(t *testing.T) {
 	t.Parallel()
-	a1 := NewTestAgent(t, t.Name(), `
+	a1 := NewTestAgent(t, `
 		datacenter = "dc1"
 		translate_wan_addrs = true
 		acl_datacenter = ""
@@ -200,7 +200,7 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 	defer a1.Shutdown()
 	testrpc.WaitForTestAgent(t, a1.RPC, "dc1")
 
-	a2 := NewTestAgent(t, t.Name(), `
+	a2 := NewTestAgent(t, `
 		datacenter = "dc2"
 		translate_wan_addrs = true
 		acl_datacenter = ""
@@ -290,7 +290,7 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 
 func TestCatalogNodes_Blocking(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1", testrpc.WaitForAntiEntropySync())
 
@@ -364,7 +364,7 @@ RUN_BLOCKING_QUERY:
 
 func TestCatalogNodes_DistanceSort(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -449,7 +449,7 @@ func TestCatalogNodes_DistanceSort(t *testing.T) {
 
 func TestCatalogServices(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -485,7 +485,7 @@ func TestCatalogServices(t *testing.T) {
 
 func TestCatalogServices_NodeMetaFilter(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// Register node
@@ -526,7 +526,7 @@ func TestCatalogServices_NodeMetaFilter(t *testing.T) {
 
 func TestCatalogRegister_checkRegistration(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// Register node with a service and check
@@ -579,7 +579,7 @@ func TestCatalogRegister_checkRegistration(t *testing.T) {
 
 func TestCatalogServiceNodes(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	assert := assert.New(t)
@@ -692,7 +692,7 @@ func TestCatalogServiceNodes(t *testing.T) {
 
 func TestCatalogServiceNodes_NodeMetaFilter(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// Make sure an empty list is returned, not a nil
@@ -747,7 +747,7 @@ func TestCatalogServiceNodes_NodeMetaFilter(t *testing.T) {
 
 func TestCatalogServiceNodes_Filter(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	queryPath := "/v1/catalog/service/api?filter=" + url.QueryEscape("ServiceMeta.somekey == somevalue")
@@ -810,14 +810,14 @@ func TestCatalogServiceNodes_Filter(t *testing.T) {
 
 func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 	t.Parallel()
-	a1 := NewTestAgent(t, t.Name(), `
+	a1 := NewTestAgent(t, `
 		datacenter = "dc1"
 		translate_wan_addrs = true
 		acl_datacenter = ""
 	`)
 	defer a1.Shutdown()
 
-	a2 := NewTestAgent(t, t.Name(), `
+	a2 := NewTestAgent(t, `
 		datacenter = "dc2"
 		translate_wan_addrs = true
 		acl_datacenter = ""
@@ -892,7 +892,7 @@ func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 
 func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -985,7 +985,7 @@ func TestCatalogServiceNodes_ConnectProxy(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -1013,7 +1013,7 @@ func TestCatalogConnectServiceNodes_good(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -1040,7 +1040,7 @@ func TestCatalogConnectServiceNodes_good(t *testing.T) {
 func TestCatalogConnectServiceNodes_Filter(t *testing.T) {
 	t.Parallel()
 
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -1077,7 +1077,7 @@ func TestCatalogConnectServiceNodes_Filter(t *testing.T) {
 
 func TestCatalogNodeServices(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -1120,7 +1120,7 @@ func TestCatalogNodeServices(t *testing.T) {
 
 func TestCatalogNodeServiceList(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -1170,7 +1170,7 @@ func TestCatalogNodeServiceList(t *testing.T) {
 
 func TestCatalogNodeServices_Filter(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -1211,7 +1211,7 @@ func TestCatalogNodeServices_ConnectProxy(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -1235,7 +1235,7 @@ func TestCatalogNodeServices_ConnectProxy(t *testing.T) {
 
 func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 	t.Parallel()
-	a1 := NewTestAgent(t, t.Name(), `
+	a1 := NewTestAgent(t, `
 		datacenter = "dc1"
 		translate_wan_addrs = true
 		acl_datacenter = ""
@@ -1243,7 +1243,7 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 	defer a1.Shutdown()
 	testrpc.WaitForTestAgent(t, a1.RPC, "dc1")
 
-	a2 := NewTestAgent(t, t.Name(), `
+	a2 := NewTestAgent(t, `
 		datacenter = "dc2"
 		translate_wan_addrs = true
 		acl_datacenter = ""
