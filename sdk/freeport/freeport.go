@@ -124,19 +124,25 @@ func initialize() {
 	go checkFreedPorts(stopCh)
 }
 
+func shutdownGoroutine() {
+	mu.Lock()
+	if stopCh == nil {
+		mu.Unlock()
+		return
+	}
+
+	close(stopCh)
+	stopCh = nil
+	mu.Unlock()
+
+	stopWg.Wait()
+}
+
 // reset will reverse the setup from initialize() and then redo it (for tests)
 func reset() {
 	logf("INFO", "resetting the freeport package state")
-	// Terminate background goroutine and wait for it to complete.
-	if stopCh != nil {
-		now := time.Now()
-		close(stopCh)
-		stopCh = nil
+	shutdownGoroutine()
 
-		stopWg.Wait()
-		dur := time.Since(now)
-		logf("INFO", "took %s to wait for freeport goroutine to die", dur)
-	}
 	mu.Lock()
 	defer mu.Unlock()
 
