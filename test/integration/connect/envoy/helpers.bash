@@ -248,15 +248,21 @@ function assert_envoy_metric_exists {
   set -eEuo pipefail
   local HOSTPORT=$1
   local METRIC=$2
-
-  METRICS=$(get_envoy_metrics $HOSTPORT "$METRIC")
-
-  if [ -z "${METRICS}" ]
-  then
-    echo "Metric not found" 1>&2
-    return 1
-  fi
-  return 0
+  local try=0
+  while [ try -lt 10 ]
+  do
+    METRICS=$(get_envoy_metrics $HOSTPORT "$METRIC")
+    if [ -z "${METRICS}" ]
+    then
+      echo "Metric not found" 1>&2
+      try=$((try + 1))
+      sleep 1
+    else
+      return 0
+    fi
+  done
+  echo "Metric not found after $try tries" 1>&2
+  return 1
 }
 
 function assert_envoy_metric {
