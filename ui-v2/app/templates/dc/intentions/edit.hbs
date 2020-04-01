@@ -44,6 +44,13 @@
 {{/if}}
     </BlockSlot>
     <BlockSlot @name="content">
-        {{ partial 'dc/intentions/form'}}
+      <ConsulIntentionForm
+        @item={{item}}
+        @services={{services}}
+        @nspaces={{nspaces}}
+        @ondelete={{action "route" "delete"}}
+        @onsubmit={{action "route" (if item.isNew "create" "update")}}
+        @oncancel={{action "route" "cancel"}}
+      />
     </BlockSlot>
 </AppView>
