@@ -281,7 +281,7 @@ The options below are all specified on the command-line.
   port to listen on. Default -1 (https disabled). See [ports](#ports)
   documentation for more detail.
 
-* <a name="_log_file"></a><a href="#_log_file">`-log-file`</a> - to redirect all the Consul agent log messages to a file. This can be specified with the complete path along with the name of the log. In case the path doesn't have the filename, the filename defaults to `consul-{timestamp}.log`. Can be combined with <a href="#_log_rotate_bytes"> -log-rotate-bytes</a> and <a href="#_log_rotate_duration"> -log-rotate-duration </a> for a fine-grained log rotation experience.
+* <a name="_log_file"></a><a href="#_log_file">`-log-file`</a> - writes all the Consul agent log messages to a file. This value is used as a prefix for the log file name. The current timestamp is appended to the file name. If the value ends in a path separator, `consul-` will be appened to the value. If the file name is missing an extension, `.log` is appended. For example, setting `log-file` to `/var/log/` would result in a log file path of `/var/log/consul-{timestamp}.log`. `log-file` can be combined with <a href="#_log_rotate_bytes"> -log-rotate-bytes</a> and <a href="#_log_rotate_duration"> -log-rotate-duration </a> for a fine-grained log rotation experience.
 
 * <a name="_log_rotate_bytes"></a><a href="#_log_rotate_bytes">`-log-rotate-bytes`</a> - to specify the number of bytes that should be written to a log before it needs to be rotated. Unless specified, there is no limit to the number of bytes that can be written to a log file.
 
