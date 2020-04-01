@@ -129,8 +129,8 @@ func reset() {
 	}
 
 	if ticker != nil {
-		killTicker <- true
 		ticker.Stop()
+		killTicker <- true
 		ticker = nil
 	}
 
