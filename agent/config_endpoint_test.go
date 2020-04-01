@@ -185,7 +185,7 @@ func TestConfig_Apply(t *testing.T) {
 func TestConfig_Apply_TerminatingGateway(t *testing.T) {
 	t.Parallel()
 
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
