@@ -67,8 +67,13 @@ var (
 	// total is the total number of available ports in the block for use.
 	total int
 
-	ticker     *time.Ticker
-	killTicker chan bool
+	// stopCh is used to signal to background goroutines to terminate. Only
+	// really exists for the safety of reset() during unit tests.
+	stopCh chan struct{}
+
+	// stopWg is used to keep track of background goroutines that are still
+	// alive. Only really exists for the safety of reset() during unit tests.
+	stopWg sync.WaitGroup
 )
 
 // initialize is used to initialize freeport.
@@ -111,7 +116,12 @@ func initialize() {
 	}
 	total = freePorts.Len()
 
-	go checkFreedPorts()
+	stopWg.Add(1)
+	stopCh = make(chan struct{})
+	// Note: we pass this param explicitly to the goroutine so that we can
+	// freely recreate the underlying stop channel during reset() after closing
+	// the original.
+	go checkFreedPorts(stopCh)
 }
 
 // reset will reverse the setup from initialize() and then redo it (for tests)
@@ -120,18 +130,22 @@ func reset() {
 	defer mu.Unlock()
 
 	logf("INFO", "resetting the freeport package state")
+	// Terminate background goroutine and wait for it to complete.
+	if stopCh != nil {
+		now := time.Now()
+		close(stopCh)
+		stopCh = nil
+
+		stopWg.Wait()
+		dur := time.Since(now)
+		logf("INFO", "took %s to wait for freeport goroutine to die", dur)
+	}
 
 	effectiveMaxBlocks = 0
 	firstPort = 0
 	if lockLn != nil {
 		lockLn.Close()
 		lockLn = nil
-	}
-
-	if ticker != nil {
-		ticker.Stop()
-		killTicker <- true
-		ticker = nil
 	}
 
 	once = sync.Once{}
@@ -141,18 +155,17 @@ func reset() {
 	total = 0
 }
 
-func checkFreedPorts() {
-	if ticker == nil {
-		killTicker = make(chan bool)
-		ticker = time.NewTicker(250 * time.Millisecond)
-		for {
-			select {
-			case <-killTicker:
-				logf("INFO", "Closing checkFreedPorts()")
-				return
-			case <-ticker.C:
-				checkFreedPortsOnce()
-			}
+func checkFreedPorts(stopCh <-chan struct{}) {
+	defer stopWg.Done()
+
+	ticker := time.NewTicker(250 * time.Millisecond)
+	for {
+		select {
+		case <-stopCh:
+			logf("INFO", "Closing checkFreedPorts()")
+			return
+		case <-ticker.C:
+			checkFreedPortsOnce()
 		}
 	}
 }
