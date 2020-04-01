@@ -126,9 +126,6 @@ func initialize() {
 
 // reset will reverse the setup from initialize() and then redo it (for tests)
 func reset() {
-	mu.Lock()
-	defer mu.Unlock()
-
 	logf("INFO", "resetting the freeport package state")
 	// Terminate background goroutine and wait for it to complete.
 	if stopCh != nil {
@@ -140,6 +137,8 @@ func reset() {
 		dur := time.Since(now)
 		logf("INFO", "took %s to wait for freeport goroutine to die", dur)
 	}
+	mu.Lock()
+	defer mu.Unlock()
 
 	effectiveMaxBlocks = 0
 	firstPort = 0
