@@ -66,6 +66,14 @@ var (
 
 	// total is the total number of available ports in the block for use.
 	total int
+
+	// stopCh is used to signal to background goroutines to terminate. Only
+	// really exists for the safety of reset() during unit tests.
+	stopCh chan struct{}
+
+	// stopWg is used to keep track of background goroutines that are still
+	// alive. Only really exists for the safety of reset() during unit tests.
+	stopWg sync.WaitGroup
 )
 
 // initialize is used to initialize freeport.
@@ -108,15 +116,35 @@ func initialize() {
 	}
 	total = freePorts.Len()
 
-	go checkFreedPorts()
+	stopWg.Add(1)
+	stopCh = make(chan struct{})
+	// Note: we pass this param explicitly to the goroutine so that we can
+	// freely recreate the underlying stop channel during reset() after closing
+	// the original.
+	go checkFreedPorts(stopCh)
+}
+
+func shutdownGoroutine() {
+	mu.Lock()
+	if stopCh == nil {
+		mu.Unlock()
+		return
+	}
+
+	close(stopCh)
+	stopCh = nil
+	mu.Unlock()
+
+	stopWg.Wait()
 }
 
 // reset will reverse the setup from initialize() and then redo it (for tests)
 func reset() {
+	logf("INFO", "resetting the freeport package state")
+	shutdownGoroutine()
+
 	mu.Lock()
 	defer mu.Unlock()
-
-	logf("INFO", "resetting the freeport package state")
 
 	effectiveMaxBlocks = 0
 	firstPort = 0
@@ -132,11 +160,18 @@ func reset() {
 	total = 0
 }
 
-func checkFreedPorts() {
+func checkFreedPorts(stopCh <-chan struct{}) {
+	defer stopWg.Done()
+
 	ticker := time.NewTicker(250 * time.Millisecond)
 	for {
-		<-ticker.C
-		checkFreedPortsOnce()
+		select {
+		case <-stopCh:
+			logf("INFO", "Closing checkFreedPorts()")
+			return
+		case <-ticker.C:
+			checkFreedPortsOnce()
+		}
 	}
 }
 
