@@ -1793,7 +1793,7 @@ func sanitize(name string, v reflect.Value) reflect.Value {
 		return reflect.ValueOf(m)
 
 	case isArray(typ) || isSlice(typ):
-		ma := make([]interface{}, 0)
+		ma := make([]interface{}, 0, v.Len())
 		for i := 0; i < v.Len(); i++ {
 			ma = append(ma, sanitize(fmt.Sprintf("%s[%d]", name, i), v.Index(i)).Interface())
 		}
