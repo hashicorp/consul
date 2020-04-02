@@ -317,7 +317,7 @@ RETRY_GET:
 
 		// Touch the expiration and fix the heap.
 		c.entriesLock.Lock()
-		entry.Expiry.Reset()
+		entry.Expiry.Update(tEntry.Opts.LastGetTTL)
 		c.entriesExpiryHeap.Fix(entry.Expiry)
 		c.entriesLock.Unlock()
 
@@ -582,11 +582,8 @@ func (c *Cache) fetch(tEntry typeEntry, key string, r Request, allowNew bool, at
 		// initial expiry information and insert. If we're already in
 		// the heap we do nothing since we're reusing the same entry.
 		if newEntry.Expiry == nil || newEntry.Expiry.HeapIndex == -1 {
-			newEntry.Expiry = &cacheEntryExpiry{
-				Key: key,
-				TTL: tEntry.Opts.LastGetTTL,
-			}
-			newEntry.Expiry.Reset()
+			newEntry.Expiry = &cacheEntryExpiry{Key: key}
+			newEntry.Expiry.Update(tEntry.Opts.LastGetTTL)
 			heap.Push(c.entriesExpiryHeap, newEntry.Expiry)
 		}
 
@@ -717,13 +714,6 @@ func (c *Cache) Close() error {
 // AutoEncrypt.TLS is turned on. The cache itself cannot fetch that the first
 // time because it requires a special RPCType. Subsequent runs are fine though.
 func (c *Cache) Prepopulate(t string, res FetchResult, dc, token, k string) error {
-	// Check the type that we're prepolulating
-	c.typesLock.RLock()
-	tEntry, ok := c.types[t]
-	c.typesLock.RUnlock()
-	if !ok {
-		return fmt.Errorf("unknown type in cache: %s", t)
-	}
 	key := makeEntryKey(t, dc, token, k)
 	newEntry := cacheEntry{
 		Valid:     true,
@@ -732,7 +722,7 @@ func (c *Cache) Prepopulate(t string, res FetchResult, dc, token, k string) erro
 		Index:     res.Index,
 		FetchedAt: time.Now(),
 		Waiter:    make(chan struct{}),
-		Expiry:    &cacheEntryExpiry{Key: key, TTL: tEntry.Opts.LastGetTTL},
+		Expiry:    &cacheEntryExpiry{Key: key},
 	}
 	c.entriesLock.Lock()
 	c.entries[key] = newEntry
