@@ -249,7 +249,8 @@ function wait_for_envoy_metric_to_exist {
   local HOSTPORT=$1
   local METRIC=$2
   local try=0
-  while [ $try -lt 10 ]
+  # Wait up to 1 minute
+  while [ $try -lt 60 ]
   do
     METRICS=$(get_envoy_metrics $HOSTPORT "$METRIC")
     if [ -z "${METRICS}" ]
