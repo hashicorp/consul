@@ -10,10 +10,6 @@ load helpers
   retry_default curl -f -s localhost:19002/stats | grep cx_total
 }
 
-@test "s2 proxy admin is up on :19002 and has metrics" {
-  wait_for_envoy_metric_to_exist 127.0.0.1:19002 "cluster.s2.default.secondary.*cx_total"
-}
-
 @test "gateway-secondary proxy admin is up on :19003" {
   retry_default curl -f -s localhost:19003/stats | grep cx_total
 }
