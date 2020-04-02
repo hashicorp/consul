@@ -227,42 +227,43 @@ func (c *Cache) Get(t string, r Request) (interface{}, ResultMeta, error) {
 // getEntryLocked retrieves a cache entry and checks if it is ready to be
 // returned given the other parameters. It reads from entries and the caller
 // has to issue a read lock if necessary.
-func (c *Cache) getEntryLocked(tEntry typeEntry, key string, maxAge time.Duration, revalidate bool, minIndex uint64) (bool, bool, cacheEntry) {
+func (c *Cache) getEntryLocked(
+	tEntry typeEntry,
+	key string,
+	maxAge time.Duration,
+	revalidate bool,
+	minIndex uint64,
+) (entryExists bool, entryValid bool, entry cacheEntry) {
 	entry, ok := c.entries[key]
-	cacheHit := false
-
-	if !ok {
-		return ok, cacheHit, entry
+	if !entry.Valid {
+		return ok, false, entry
 	}
-
-	// Check if we have a hit
-	cacheHit = ok && entry.Valid
-
-	supportsBlocking := tEntry.Type.SupportsBlocking()
 
 	// Check index is not specified or lower than value, or the type doesn't
 	// support blocking.
-	if cacheHit && supportsBlocking &&
-		minIndex > 0 && minIndex >= entry.Index {
+	if tEntry.Type.SupportsBlocking() && minIndex > 0 && minIndex >= entry.Index {
 		// MinIndex was given and matches or is higher than current value so we
 		// ignore the cache and fallthrough to blocking on a new value below.
-		cacheHit = false
+		return true, false, entry
 	}
 
 	// Check MaxAge is not exceeded if this is not a background refreshing type
 	// and MaxAge was specified.
-	if cacheHit && !tEntry.Opts.Refresh && maxAge > 0 &&
-		!entry.FetchedAt.IsZero() && maxAge < time.Since(entry.FetchedAt) {
-		cacheHit = false
+	if !tEntry.Opts.Refresh && maxAge > 0 && entryExceedsMaxAge(maxAge, entry) {
+		return true, false, entry
 	}
 
-	// Check if we are requested to revalidate. If so the first time round the
+	// Check if re-validate is requested. If so the first time round the
 	// loop is not a hit but subsequent ones should be treated normally.
-	if cacheHit && !tEntry.Opts.Refresh && revalidate {
-		cacheHit = false
+	if !tEntry.Opts.Refresh && revalidate {
+		return true, false, entry
 	}
 
-	return ok, cacheHit, entry
+	return true, true, entry
+}
+
+func entryExceedsMaxAge(maxAge time.Duration, entry cacheEntry) bool {
+	return !entry.FetchedAt.IsZero() && maxAge < time.Since(entry.FetchedAt)
 }
 
 // getWithIndex implements the main Get functionality but allows internal
@@ -289,10 +290,10 @@ func (c *Cache) getWithIndex(tEntry typeEntry, r Request, minIndex uint64) (inte
 RETRY_GET:
 	// Get the current value
 	c.entriesLock.RLock()
-	_, cacheHit, entry := c.getEntryLocked(tEntry, key, info.MaxAge, info.MustRevalidate && first, minIndex)
+	_, entryValid, entry := c.getEntryLocked(tEntry, key, info.MaxAge, info.MustRevalidate && first, minIndex)
 	c.entriesLock.RUnlock()
 
-	if cacheHit {
+	if entryValid {
 		meta := ResultMeta{Index: entry.Index}
 		if first {
 			metrics.IncrCounter([]string{"consul", "cache", tEntry.Name, "hit"}, 1)
@@ -401,11 +402,11 @@ func (c *Cache) fetch(tEntry typeEntry, key string, r Request, allowNew bool, at
 	// We acquire a write lock because we may have to set Fetching to true.
 	c.entriesLock.Lock()
 	defer c.entriesLock.Unlock()
-	ok, cacheHit, entry := c.getEntryLocked(tEntry, key, info.MaxAge, info.MustRevalidate && !ignoreRevalidation, minIndex)
+	ok, entryValid, entry := c.getEntryLocked(tEntry, key, info.MaxAge, info.MustRevalidate && !ignoreRevalidation, minIndex)
 
 	// This handles the case where a fetch succeeded after checking for its existence in
 	// getWithIndex. This ensures that we don't miss updates.
-	if ok && cacheHit && !ignoreExisting {
+	if ok && entryValid && !ignoreExisting {
 		ch := make(chan struct{})
 		close(ch)
 		return ch, nil
