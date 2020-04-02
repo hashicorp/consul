@@ -14,8 +14,12 @@ load helpers
   retry_default curl -f -s localhost:19003/stats | grep cx_total
 }
 
+@test "s2 proxy should be healthy" {
+  assert_service_has_healthy_instances s2 1 secondary
+}
+
 @test "gateway-secondary stats should exist" {
-  assert_envoy_metric_exists 127.0.0.1:19003 "cluster.s2.default.secondary.*cx_total"
+  wait_for_envoy_metric_to_exist 127.0.0.1:19003 "cluster.s2.default.secondary.*cx_total"
 }
 
 @test "gateway-secondary stats should be 0 at startup" {
@@ -24,10 +28,6 @@ load helpers
 
 @test "s2 proxy listener should be up and have right cert" {
   assert_proxy_presents_cert_uri localhost:21000 s2 secondary
-}
-
-@test "s2 proxy should be healthy" {
-  assert_service_has_healthy_instances s2 1 secondary
 }
 
 @test "gateway-secondary is NOT used for the upstream connection" {

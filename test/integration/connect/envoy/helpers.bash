@@ -244,17 +244,17 @@ function assert_upstream_has_endpoints_in_status {
   [ "$status" -eq 0 ]
 }
 
-function assert_envoy_metric_exists {
-  set -eEuo pipefail
+function wait_for_envoy_metric_to_exist {
+  set -Euo pipefail
   local HOSTPORT=$1
   local METRIC=$2
   local try=0
-  while [ try -lt 10 ]
+  while [ $try -lt 10 ]
   do
     METRICS=$(get_envoy_metrics $HOSTPORT "$METRIC")
     if [ -z "${METRICS}" ]
     then
-      echo "Metric not found" 1>&2
+      echo "Metric $METRIC not found, retrying" 1>&2
       try=$((try + 1))
       sleep 1
     else
