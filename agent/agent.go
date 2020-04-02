@@ -2539,7 +2539,7 @@ func (a *Agent) addServiceInternal(req *addServiceRequest, snap map[structs.Chec
 	psid.Init(service.Proxy.DestinationServiceID, &service.EnterpriseMeta)
 
 	if service.Proxy.Expose.Checks {
-		err := a.rerouteExposedChecks(psid, service.Proxy.LocalServiceAddress)
+		err := a.rerouteExposedChecks(psid, service.Address)
 		if err != nil {
 			a.logger.Warn("failed to reroute L7 checks to exposed proxy listener")
 		}
@@ -2983,7 +2983,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 					)
 					return err
 				}
-				http.ProxyHTTP = httpInjectAddr(http.HTTP, proxy.Proxy.LocalServiceAddress, port)
+				http.ProxyHTTP = httpInjectAddr(http.HTTP, proxy.Address, port)
 			}
 
 			http.Start()
@@ -3052,7 +3052,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 					)
 					return err
 				}
-				grpc.ProxyGRPC = grpcInjectAddr(grpc.GRPC, proxy.Proxy.LocalServiceAddress, port)
+				grpc.ProxyGRPC = grpcInjectAddr(grpc.GRPC, proxy.Address, port)
 			}
 
 			grpc.Start()
