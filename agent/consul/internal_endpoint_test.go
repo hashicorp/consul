@@ -997,6 +997,6 @@ service "gateway" {
 				Gateway: structs.NewServiceID("gateway", nil),
 			},
 		}
-		assert.Equal(t, expect, resp.Services)
+		assert.Equal(r, expect, resp.Services)
 	})
 }
