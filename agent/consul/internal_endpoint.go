@@ -325,8 +325,9 @@ func (m *Internal) TerminatingGatewayServices(args *structs.ServiceSpecificReque
 				return err
 			}
 
-			// TODO (gateways) (freddy): ACL filtering for gateway services
-			// if err := c.srv.filterACL(args.Token, &services); err != nil {
+			// TODO (gateways) (freddy) hash-based blocking
+			// TODO (gateways) (freddy) ACL filtering
+			// if err := m.srv.filterACL(args.Token, &services); err != nil {
 			// 	return err
 			// }
 

@@ -2,6 +2,7 @@ package consul
 
 import (
 	"encoding/base64"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"os"
 	"strings"
 	"testing"
@@ -10,7 +11,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
@@ -760,22 +760,22 @@ func TestCatalog_TerminatingGatewayServices(t *testing.T) {
 
 		expect := structs.GatewayServices{
 			{
-				Service:  "api",
-				Gateway:  "gateway",
+				Service:  structs.NewServiceID("api", nil),
+				Gateway:  structs.NewServiceID("gateway", nil),
 				CAFile:   "api/ca.crt",
 				CertFile: "api/client.crt",
 				KeyFile:  "api/client.key",
 			},
 			{
-				Service:  "db",
-				Gateway:  "gateway",
+				Service:  structs.NewServiceID("db", nil),
+				Gateway:  structs.NewServiceID("gateway", nil),
 				CAFile:   "",
 				CertFile: "",
 				KeyFile:  "",
 			},
 			{
-				Service:  "redis",
-				Gateway:  "gateway",
+				Service:  structs.NewServiceID("redis", nil),
+				Gateway:  structs.NewServiceID("gateway", nil),
 				CAFile:   "ca.crt",
 				CertFile: "client.crt",
 				KeyFile:  "client.key",

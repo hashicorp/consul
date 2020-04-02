@@ -278,14 +278,21 @@ func (e *TerminatingGatewayConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
 	return &e.EnterpriseMeta
 }
 
-// TODO (gateways) (freddy) enterprise implementation needs both fields associated with namespaces
 // GatewayService is used to associate gateways with their linked services.
 type GatewayService struct {
-	Gateway  string
-	Service  string
+	Gateway  ServiceID
+	Service  ServiceID
 	CAFile   string
 	CertFile string
 	KeyFile  string
 }
 
 type GatewayServices []*GatewayService
+
+func (g *GatewayService) IsSame(o *GatewayService) bool {
+	return g.Gateway.Matches(&o.Gateway) &&
+		g.Service.Matches(&o.Service) &&
+		g.CAFile == o.CAFile &&
+		g.CertFile == o.CertFile &&
+		g.KeyFile == o.KeyFile
+}

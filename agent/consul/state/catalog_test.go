@@ -4383,12 +4383,12 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 
 	expect := structs.GatewayServices{
 		{
-			Service: "api",
-			Gateway: "gateway",
+			Service: structs.NewServiceID("api", nil),
+			Gateway: structs.NewServiceID("gateway", nil),
 		},
 		{
-			Service: "db",
-			Gateway: "gateway",
+			Service: structs.NewServiceID("db", nil),
+			Gateway: structs.NewServiceID("gateway", nil),
 		},
 	}
 	assert.Equal(t, expect, out)
@@ -4426,15 +4426,15 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 
 	expect = structs.GatewayServices{
 		{
-			Service:  "api",
-			Gateway:  "gateway",
+			Service:  structs.NewServiceID("api", nil),
+			Gateway:  structs.NewServiceID("gateway", nil),
 			CAFile:   "api/ca.crt",
 			CertFile: "api/client.crt",
 			KeyFile:  "api/client.key",
 		},
 		{
-			Service: "db",
-			Gateway: "gateway",
+			Service: structs.NewServiceID("db", nil),
+			Gateway: structs.NewServiceID("gateway", nil),
 		},
 	}
 	assert.Equal(t, expect, out)
@@ -4450,19 +4450,19 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 
 	expect = structs.GatewayServices{
 		{
-			Service:  "api",
-			Gateway:  "gateway",
+			Service:  structs.NewServiceID("api", nil),
+			Gateway:  structs.NewServiceID("gateway", nil),
 			CAFile:   "api/ca.crt",
 			CertFile: "api/client.crt",
 			KeyFile:  "api/client.key",
 		},
 		{
-			Service: "db",
-			Gateway: "gateway",
+			Service: structs.NewServiceID("db", nil),
+			Gateway: structs.NewServiceID("gateway", nil),
 		},
 		{
-			Service:  "redis",
-			Gateway:  "gateway",
+			Service:  structs.NewServiceID("redis", nil),
+			Gateway:  structs.NewServiceID("gateway", nil),
 			CAFile:   "ca.crt",
 			CertFile: "client.crt",
 			KeyFile:  "client.key",
@@ -4481,15 +4481,15 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 
 	expect = structs.GatewayServices{
 		{
-			Service:  "api",
-			Gateway:  "gateway",
+			Service:  structs.NewServiceID("api", nil),
+			Gateway:  structs.NewServiceID("gateway", nil),
 			CAFile:   "api/ca.crt",
 			CertFile: "api/client.crt",
 			KeyFile:  "api/client.key",
 		},
 		{
-			Service: "db",
-			Gateway: "gateway",
+			Service: structs.NewServiceID("db", nil),
+			Gateway: structs.NewServiceID("gateway", nil),
 		},
 	}
 	assert.Equal(t, expect, out)
@@ -4514,8 +4514,8 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 	// previously associated services should not be present
 	expect = structs.GatewayServices{
 		{
-			Service: "db",
-			Gateway: "gateway",
+			Service: structs.NewServiceID("db", nil),
+			Gateway: structs.NewServiceID("gateway", nil),
 		},
 	}
 	assert.Equal(t, expect, out)
