@@ -599,7 +599,25 @@ func (c *Cache) fetch(tEntry typeEntry, key string, r Request, allowNew bool, at
 		// If refresh is enabled, run the refresh in due time. The refresh
 		// below might block, but saves us from spawning another goroutine.
 		if tEntry.Opts.Refresh {
-			c.refresh(tEntry.Opts, attempt, tEntry, key, r)
+			// Check if cache was stopped
+			if atomic.LoadUint32(&c.stopped) == 1 {
+				return
+			}
+
+			// If we're over the attempt minimum, start an exponential backoff.
+			if wait := backOffWait(attempt); wait > 0 {
+				time.Sleep(wait)
+			}
+
+			// If we have a timer, wait for it
+			if tEntry.Opts.RefreshTimer > 0 {
+				time.Sleep(tEntry.Opts.RefreshTimer)
+			}
+
+			// Trigger. The "allowNew" field is false because in the time we were
+			// waiting to refresh we may have expired and got evicted. If that
+			// happened, we don't want to create a new entry.
+			c.fetch(tEntry, key, r, false, attempt, 0, true, true)
 		}
 	}()
 
@@ -628,34 +646,6 @@ func backOffWait(failures uint) time.Duration {
 		return waitTime + lib.RandomStagger(waitTime)
 	}
 	return 0
-}
-
-// refresh triggers a fetch for a specific Request according to the
-// registration options.
-func (c *Cache) refresh(opts *RegisterOptions, attempt uint, tEntry typeEntry, key string, r Request) {
-	// Sanity-check, we should not schedule anything that has refresh disabled
-	if !opts.Refresh {
-		return
-	}
-	// Check if cache was stopped
-	if atomic.LoadUint32(&c.stopped) == 1 {
-		return
-	}
-
-	// If we're over the attempt minimum, start an exponential backoff.
-	if wait := backOffWait(attempt); wait > 0 {
-		time.Sleep(wait)
-	}
-
-	// If we have a timer, wait for it
-	if opts.RefreshTimer > 0 {
-		time.Sleep(opts.RefreshTimer)
-	}
-
-	// Trigger. The "allowNew" field is false because in the time we were
-	// waiting to refresh we may have expired and got evicted. If that
-	// happened, we don't want to create a new entry.
-	c.fetch(tEntry, key, r, false, attempt, 0, true, true)
 }
 
 // runExpiryLoop is a blocking function that watches the expiration
