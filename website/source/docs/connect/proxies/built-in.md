@@ -9,11 +9,10 @@ description: |-
 # Built-In Proxy Options
 
 Consul comes with a built-in L4 proxy for testing and development with Consul
-Connect.
+Connect. Currently this does not support [L7 Traffic Management](https://www.consul.io/docs/connect/l7-traffic-management.html) and it is recommneded
+to use Envoy with Connect if L7 traffic management is needed.
 
-~> **Note:** Although you can configure the built-in proxy using configuration
-entries, it doesn't have the L7 capability necessary for the observability
-features released with Consul 1.5.
+~> **Note:** Built-in Proxy is not recommended for use in production and it is primarily for use in development and testing to provide a quick way to deploy a service mesh. 
 
 ## Getting Started
 
