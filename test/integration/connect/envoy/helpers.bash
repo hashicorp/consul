@@ -42,7 +42,7 @@ function retry {
 function retry_default {
   set +E
   ret=0
-  retry 5 1 "$@" || ret=1
+  retry 5 2 "$@" || ret=1
   set -E
   return $ret
 }
