@@ -7,6 +7,10 @@ IMPROVEMENTS:
 * agent/xds: Update mesh gateway to use the service resolver connect timeout when configured [[GH-6370](https://github.com/hashicorp/consul/issues/6370)]
 * cli: Log "newer version available" message at `INFO` level [[GH-7457](https://github.com/hashicorp/consul/issues/7457)]
 
+BUGFIXES:
+
+* xds: Fix flapping of mesh gateway connect-service watches [[GH-7575](https://github.com/hashicorp/consul/pull/7575)]
+
 ## 1.7.2 (March 16, 2020)
 
 IMPROVEMENTS:
