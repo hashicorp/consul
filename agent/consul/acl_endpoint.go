@@ -311,6 +311,7 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 		Datacenter: args.Datacenter,
 		ACLToken: structs.ACLToken{
 			Policies:          token.Policies,
+			Roles:             token.Roles,
 			ServiceIdentities: token.ServiceIdentities,
 			Local:             token.Local,
 			Description:       token.Description,

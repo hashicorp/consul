@@ -754,7 +754,23 @@ func TestACLEndpoint_TokenClone(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	t1, err := upsertTestToken(codec, "root", "dc1", nil)
+	p1, err := upsertTestPolicy(codec, "root", "dc1")
+	require.NoError(t, err)
+
+	r1, err := upsertTestRole(codec, "root", "dc1")
+	require.NoError(t, err)
+
+	t1, err := upsertTestToken(codec, "root", "dc1", func(t *structs.ACLToken) {
+		t.Policies = []structs.ACLTokenPolicyLink{
+			{ID: p1.ID},
+		}
+		t.Roles = []structs.ACLTokenRoleLink{
+			{ID: r1.ID},
+		}
+		t.ServiceIdentities = []*structs.ACLServiceIdentity{
+			&structs.ACLServiceIdentity{ServiceName: "web"},
+		}
+	})
 	require.NoError(t, err)
 
 	endpoint := ACL{srv: s1}
@@ -773,6 +789,8 @@ func TestACLEndpoint_TokenClone(t *testing.T) {
 
 		require.Equal(t, t1.Description, t2.Description)
 		require.Equal(t, t1.Policies, t2.Policies)
+		require.Equal(t, t1.Roles, t2.Roles)
+		require.Equal(t, t1.ServiceIdentities, t2.ServiceIdentities)
 		require.Equal(t, t1.Rules, t2.Rules)
 		require.Equal(t, t1.Local, t2.Local)
 		require.NotEqual(t, t1.AccessorID, t2.AccessorID)
