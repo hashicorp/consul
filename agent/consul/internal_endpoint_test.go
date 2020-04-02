@@ -656,7 +656,6 @@ func TestInternal_ServiceDump_Kind(t *testing.T) {
 	})
 }
 
-// TODO (gateways) (freddy): tests for ACL filtering
 func TestCatalog_TerminatingGatewayServices(t *testing.T) {
 	t.Parallel()
 
@@ -782,5 +781,222 @@ func TestCatalog_TerminatingGatewayServices(t *testing.T) {
 			},
 		}
 		assert.Equal(r, expect, resp.Services)
+	})
+}
+
+func TestCatalog_TerminatingGatewayServices_ACLFiltering(t *testing.T) {
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+		c.ACLEnforceVersion8 = false
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
+	{
+		var out struct{}
+
+		// Register a service "api"
+		args := structs.TestRegisterRequest(t)
+		args.Service.Service = "api"
+		args.Check = &structs.HealthCheck{
+			Name:      "api",
+			Status:    api.HealthPassing,
+			ServiceID: args.Service.Service,
+		}
+		args.Token = "root"
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		// Register a service "db"
+		args = structs.TestRegisterRequest(t)
+		args.Service.Service = "db"
+		args.Check = &structs.HealthCheck{
+			Name:      "db",
+			Status:    api.HealthPassing,
+			ServiceID: args.Service.Service,
+		}
+		args.Token = "root"
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		// Register a service "redis"
+		args = structs.TestRegisterRequest(t)
+		args.Service.Service = "redis"
+		args.Check = &structs.HealthCheck{
+			Name:      "redis",
+			Status:    api.HealthPassing,
+			ServiceID: args.Service.Service,
+		}
+		args.Token = "root"
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		// Register a gateway
+		args = &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTerminatingGateway,
+				Service: "gateway",
+				Port:    443,
+			},
+			Check: &structs.HealthCheck{
+				Name:      "gateway",
+				Status:    api.HealthPassing,
+				ServiceID: args.Service.Service,
+			},
+		}
+		args.Token = "root"
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		entryArgs := &structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry: &structs.TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "gateway",
+				Services: []structs.LinkedService{
+					{
+						Name:     "api",
+						CAFile:   "api/ca.crt",
+						CertFile: "api/client.crt",
+						KeyFile:  "api/client.key",
+					},
+					{
+						Name: "db",
+					},
+					{
+						Name:     "*",
+						CAFile:   "ca.crt",
+						CertFile: "client.crt",
+						KeyFile:  "client.key",
+					},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		var entryResp bool
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &entryArgs, &entryResp))
+	}
+
+	var svcToken string
+	{
+		// Create a new token that is only valid for service db
+		arg := structs.ACLRequest{
+			Datacenter: "dc1",
+			Op:         structs.ACLSet,
+			ACL: structs.ACL{
+				Name: "db token",
+				Type: structs.ACLTokenTypeClient,
+				Rules: `
+service "db" {
+	policy = "read"
+}
+`,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &svcToken); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		// List should return an empty list, since we do not have read on the gateway
+		req := structs.ServiceSpecificRequest{
+			Datacenter:   "dc1",
+			ServiceName:  "gateway",
+			QueryOptions: structs.QueryOptions{Token: svcToken},
+		}
+		var resp structs.IndexedGatewayServices
+		assert.Nil(r, msgpackrpc.CallWithCodec(codec, "Internal.TerminatingGatewayServices", &req, &resp))
+		assert.Len(r, resp.Services, 0)
+	})
+
+	var gwToken string
+	{
+		// Create a new token that is only valid for the gateway
+		arg := structs.ACLRequest{
+			Datacenter: "dc1",
+			Op:         structs.ACLSet,
+			ACL: structs.ACL{
+				Name: "gw token",
+				Type: structs.ACLTokenTypeClient,
+				Rules: `
+service "gateway" {
+	policy = "read"
+}
+`,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &gwToken); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		// List should return an empty list, since we do not have read on db
+		req := structs.ServiceSpecificRequest{
+			Datacenter:   "dc1",
+			ServiceName:  "gateway",
+			QueryOptions: structs.QueryOptions{Token: gwToken},
+		}
+		var resp structs.IndexedGatewayServices
+		assert.Nil(r, msgpackrpc.CallWithCodec(codec, "Internal.TerminatingGatewayServices", &req, &resp))
+		assert.Len(r, resp.Services, 0)
+	})
+
+	var validToken string
+	{
+		// Create a new token that is valid for service db and the gateway
+		arg := structs.ACLRequest{
+			Datacenter: "dc1",
+			Op:         structs.ACLSet,
+			ACL: structs.ACL{
+				Name: "db-gateway token",
+				Type: structs.ACLTokenTypeClient,
+				Rules: `
+service "db" {
+	policy = "read"
+}
+service "gateway" {
+	policy = "read"
+}
+`,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &validToken); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		// List should return db entry since we have read on db and gateway
+		req := structs.ServiceSpecificRequest{
+			Datacenter:   "dc1",
+			ServiceName:  "gateway",
+			QueryOptions: structs.QueryOptions{Token: validToken},
+		}
+		var resp structs.IndexedGatewayServices
+		assert.Nil(r, msgpackrpc.CallWithCodec(codec, "Internal.TerminatingGatewayServices", &req, &resp))
+		assert.Len(r, resp.Services, 1)
+
+		expect := structs.GatewayServices{
+			{
+				Service: structs.NewServiceID("db", nil),
+				Gateway: structs.NewServiceID("gateway", nil),
+			},
+		}
+		assert.Equal(t, expect, resp.Services)
 	})
 }
