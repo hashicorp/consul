@@ -610,15 +610,8 @@ func (c *Cache) fetch(tEntry typeEntry, key string, r Request, allowNew bool, at
 // in multiple actual RPC calls (unlike fetch).
 func (c *Cache) fetchDirect(tEntry typeEntry, r Request, minIndex uint64) (interface{}, ResultMeta, error) {
 	// Fetch it with the min index specified directly by the request.
-	result, err := tEntry.Type.Fetch(FetchOptions{
-		MinIndex: minIndex,
-	}, r)
-	if err != nil {
-		return nil, ResultMeta{}, err
-	}
-
-	// Return the result and ignore the rest
-	return result.Value, ResultMeta{}, nil
+	result, err := tEntry.Type.Fetch(FetchOptions{MinIndex: minIndex}, r)
+	return result.Value, ResultMeta{}, err
 }
 
 func backOffWait(failures uint) time.Duration {
@@ -742,9 +735,13 @@ func (c *Cache) Prepopulate(t string, res FetchResult, dc, token, k string) erro
 	}
 	key := makeEntryKey(t, dc, token, k)
 	newEntry := cacheEntry{
-		Valid: true, Value: res.Value, State: res.State, Index: res.Index,
-		FetchedAt: time.Now(), Waiter: make(chan struct{}),
-		Expiry: &cacheEntryExpiry{Key: key, TTL: tEntry.Opts.LastGetTTL},
+		Valid:     true,
+		Value:     res.Value,
+		State:     res.State,
+		Index:     res.Index,
+		FetchedAt: time.Now(),
+		Waiter:    make(chan struct{}),
+		Expiry:    &cacheEntryExpiry{Key: key, TTL: tEntry.Opts.LastGetTTL},
 	}
 	c.entriesLock.Lock()
 	c.entries[key] = newEntry
