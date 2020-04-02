@@ -64,7 +64,11 @@ and consider if they're appropriate for your deployment.
 
   * <a name="v-global-enableconsulnamespaces" href="#v-global-enableconsulnamespaces">`enableConsulNamespaces`</a> (`boolean: false`) - [Enterprise Only] `enableConsulNamespaces` indicates that you are running Consul Enterprise v1.7+ with a valid Consul Enterprise license and would like to make use of configuration beyond registering everything into the `default` Consul namespace. Requires consul-k8s v0.12+. Additional configuration options are found in the `consulNamespaces` section of both the catalog sync and connect injector.
   
-  * <a name="v-global-bootstrapacls" href="#v-global-bootstrapacls">`bootstrapACLs`</a> (`boolean: false`) - Automatically create and assign ACL tokens within the Consul cluster. This requires servers to be running inside Kubernetes. Additionally requires Consul >= 1.4 and consul-k8s >= 0.8.0.
+  * <a name="v-global-bootstrapacls" href="#v-global-bootstrapacls">`bootstrapACLs`</a> (`boolean: false`) - **[DEPRECATED]** Use `global.acls.manageSystemACLs` instead.
+
+  * <a name="v-global-acls" href="#v-global-acls">`acls`</a> - Configure ACLs.
+
+      * <a name="v-global-acls-managesystemacls" href="#v-global-acls-managesystemacls">`manageSystemACLs`</a> (`boolean: false`) - If true, the Helm chart will automatically manage ACL tokens and policies for all Consul components. This requires servers to be running inside Kubernetes. Additionally requires Consul >= 1.4 and consul-k8s >= 0.10.1.
 
   * <a name="v-global-tls" href="#v-global-tls">`tls`</a> - Enables TLS [encryption](https://learn.hashicorp.com/consul/security-networking/agent-encryption) across the cluster to verify authenticity of the Consul servers and clients. Requires Consul v1.4.1+ and consul-k8s v0.16.2+
 
@@ -510,9 +514,9 @@ to run the sync program.
   their associated service account. By default, services using the `default` Kubernetes service account will be prevented from logging in.
   This only has effect if ACLs are enabled. Requires Consul 1.5+ and consul-k8s 0.8.0+.
 
-  * <a name="v-connectinject-overrideauthmethodname" href="#v-connectinject-overrideauthmethodname">`overrideAuthMethodName`</a> (`string: ""`) - If not using `global.bootstrapACLs` and instead manually setting up an auth method for Connect inject, set this to the name of your Auth method.
+  * <a name="v-connectinject-overrideauthmethodname" href="#v-connectinject-overrideauthmethodname">`overrideAuthMethodName`</a> (`string: ""`) - If not using `global.acls.manageSystemACLs` and instead manually setting up an auth method for Connect inject, set this to the name of your Auth method.
   
-  * <a name="v-connectinject-aclinjecttoken" href="#v-connectinject-aclinjecttoken">`aclInjectToken`</a> - Refers to a Kubernetes secret that you have created that contains an ACL token for your Consul cluster which allows the Connect injector the correct permissions. This is only needed if Consul namespaces and ACLs are enabled on the Consul cluster and you are not setting `global.bootstrapACLs` to `true`. This token needs to have `operator = "write"` privileges so that it can create namespaces.
+  * <a name="v-connectinject-aclinjecttoken" href="#v-connectinject-aclinjecttoken">`aclInjectToken`</a> - Refers to a Kubernetes secret that you have created that contains an ACL token for your Consul cluster which allows the Connect injector the correct permissions. This is only needed if Consul namespaces and ACLs are enabled on the Consul cluster and you are not setting `global.acls.manageSystemACLs` to `true`. This token needs to have `operator = "write"` privileges so that it can create namespaces.
   
       - <a name="v-connectinject-aclinjecttoken-secretname" href="#v-connectinject-aclinjecttoken-secretname">secretName </a>`(string: null)` - The name of the Kubernetes secret.
     
