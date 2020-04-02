@@ -130,13 +130,13 @@ func (c *cmd) init() {
 		"Sets the envoy-version that the envoy binary has.")
 
 	c.flags.BoolVar(&c.register, "register", false,
-		"Register a new Mesh Gateway service before configuring and starting Envoy")
+		"Register a new gateway service before configuring and starting Envoy")
 
 	c.flags.Var(&c.lanAddress, "address",
-		"LAN address to advertise in the Mesh Gateway service registration")
+		"LAN address to advertise in the gateway service registration")
 
 	c.flags.Var(&c.wanAddress, "wan-address",
-		"WAN address to advertise in the Mesh Gateway service registration")
+		"WAN address to advertise in the gateway service registration")
 
 	c.flags.Var(&c.bindAddresses, "bind-address", "Bind "+
 		"address to use instead of the default binding rules given as `<name>=<ip>:<port>` "+
@@ -229,18 +229,21 @@ func (c *cmd) Run(args []string) int {
 		}
 	}
 
-	if c.register {
-		if c.gateway == "" {
-			c.UI.Error("Auto-Registration can only be used for gateways")
-			return 1
-		}
-
+	// Gateway kind is set so that it is available even if not auto-registering the gateway
+	if c.gateway != "" {
 		kind, ok := supportedGateways[c.gateway]
 		if !ok {
 			c.UI.Error("Gateway must be one of: terminating or mesh")
 			return 1
 		}
 		c.gatewayKind = kind
+	}
+
+	if c.register {
+		if c.gateway == "" {
+			c.UI.Error("Auto-Registration can only be used for gateways")
+			return 1
+		}
 
 		if c.gatewaySvcName == "" {
 			c.gatewaySvcName = string(c.gatewayKind)
