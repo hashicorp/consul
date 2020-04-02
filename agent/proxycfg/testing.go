@@ -1067,6 +1067,36 @@ func TestConfigSnapshotExposeConfig(t testing.T) *ConfigSnapshot {
 	}
 }
 
+func TestConfigSnapshotGRPCExposeHTTP1(t testing.T) *ConfigSnapshot {
+	return &ConfigSnapshot{
+		Kind:    structs.ServiceKindConnectProxy,
+		Service: "grpc-proxy",
+		ProxyID: structs.NewServiceID("grpc-proxy", nil),
+		Address: "1.2.3.4",
+		Port:    8080,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "grpc",
+			DestinationServiceID:   "grpc",
+			LocalServicePort:       8080,
+			Config: map[string]interface{}{
+				"protocol": "grpc",
+			},
+			Expose: structs.ExposeConfig{
+				Checks: false,
+				Paths: []structs.ExposePath{
+					{
+						LocalPathPort: 8090,
+						Path:          "/healthz",
+						ListenerPort:  21500,
+						Protocol:      "http",
+					},
+				},
+			},
+		},
+		Datacenter: "dc1",
+	}
+}
+
 // ControllableCacheType is a cache.Type that simulates a typical blocking RPC
 // but lets us control the responses and when they are delivered easily.
 type ControllableCacheType struct {
