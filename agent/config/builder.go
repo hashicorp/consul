@@ -1245,6 +1245,10 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		}
 	}
 
+	if err := checkLimitsFromMaxConnsPerClient(rt.HTTPMaxConnsPerClient); err != nil {
+		return err
+	}
+
 	return nil
 }
 
