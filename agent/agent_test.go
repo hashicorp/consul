@@ -673,7 +673,7 @@ func test_createAlias(t *testing.T, agent *TestAgent, chk *structs.CheckType, ex
 func TestAgent_CheckAliasRPC(t *testing.T) {
 	t.Helper()
 
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		node_name = "node1"
 	`)
 
