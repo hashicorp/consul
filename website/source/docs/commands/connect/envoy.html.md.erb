@@ -98,34 +98,35 @@ proxy configuration needed.
     This token authorizes the proxy to obtain TLS certificates representing the
     target service.
 
-#### Envoy Mesh Gateway Options
+#### Envoy Gateway Options
 
-* `-mesh-gateway` - Flag to indicate that Envoy should be configured as a Mesh
-  Gateway. If multiple mesh gateways are managed by the same local agent then
+* `-gateway` - Flag to indicate that Envoy should be configured as a Gateway.
+  Must be one of: `terminating` or `mesh`.
+  If multiple gateways are managed by the same local agent then
   `-proxy-id` should be used as well to specify the instance this represents.
 
-* `-register` - Indicates that the mesh gateway service should be registered
+* `-register` - Indicates that the gateway service should be registered
   with the local agent instead of expecting it to already exist. This flag
   is unused for traditional sidecar proxies.
 
 * `-address` - The address to advertise for services within the local datacenter
-  to use to reach the mesh gateway instance. This flag is used in combination with
+  to use to reach the gateway instance. This flag is used in combination with
   `-register`. This takes the form of `<ip address>:<port>` but also supports go-sockaddr
   templates.
 
 * `-wan-address` - The address to advertise for services within remote datacenters
-  to use to reach the mesh gateway instance. This flag is used in combination with
+  to use to reach the gateway instance. This flag is used in combination with
   `-register`. This takes the form of `<ip address>:<port>` but also supports go-sockaddr
   templates.
 
-* `-service` - The name of the mesh gateway service to register. This flag is used
+* `-service` - The name of the gateway service to register. This flag is used
   in combination with `-register`.
 
 * `-deregister-after-critical` - The amount of time the gateway services health check can
   be failing before being deregistered. This flag is used in combination with `-register`
 
 -> **Note:** If ACLs are enabled, a token granting `service:write` for the
-   mesh gateway's service name must be passed using the `-token` option or
+   gateway's service name must be passed using the `-token` option or
    `CONSUL_HTTP_TOKEN` environment variable. This token authorizes the proxy
    to obtain receive and route communications for other Connect services but
    does not allow decrypting any of their communications.
@@ -180,9 +181,18 @@ $ consul connect envoy -sidecar-for db -admin-bind localhost:19001
 The mesh gateway Envoy process can be started with.
 
 ```sh
-$ consul connect envoy -mesh-gateway -register \
+$ consul connect envoy -gateway=mesh -register \
   -address '{{ GetInterfaceIP "eth0" }}:8443' \
   -wan-address '{{ GetInterfaceIP "eth1" }}:8443'
+```
+
+### Terminating Gateways
+
+The terminating gateway Envoy process can be started with.
+
+```sh
+$ consul connect envoy -gateway=terminating -register \
+  -address '{{ GetInterfaceIP "eth0" }}:8443'
 ```
 
 ## Exec Security Details
