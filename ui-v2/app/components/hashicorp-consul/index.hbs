@@ -99,7 +99,7 @@
                             <a tabindex="-1" role="menuitem" href={{env 'CONSUL_DOCS_URL'}} rel="noopener noreferrer" target="_blank" onclick={{change}}>Documentation</a>
                           </li>
                           <li role="none" class="learn-link">
-                            <a tabindex="-1" role="menuitem" href={{env 'CONSUL_DOCS_LEARN_URL'}} rel="noopener noreferrer" target="_blank" onclick={{change}}>HashiCorp Learn</a>
+                            <a tabindex="-1" role="menuitem" href={{concat (env 'CONSUL_DOCS_LEARN_URL') '/consul'}} rel="noopener noreferrer" target="_blank" onclick={{change}}>HashiCorp Learn</a>
                           </li>
                           <li role="separator"></li>
                           <li role="none" class="feedback-link">
