@@ -56,10 +56,6 @@ load helpers
   kill_envoy s2 primary
 }
 
-@test "s2 proxies should be unhealthy in primary" {
-  assert_service_has_healthy_instances s2 0 primary
-}
-
 @test "s1 upstream should have healthy endpoints for s2 secondary" {
   # in mesh gateway remote or local mode only the current leg of failover manifests in the load assignments
   assert_upstream_has_endpoints_in_status 127.0.0.1:19000 s2.default.primary HEALTHY 1
