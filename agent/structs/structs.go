@@ -1757,16 +1757,16 @@ type IndexedNodeDump struct {
 	QueryMeta
 }
 
+type IndexedGatewayServices struct {
+	Services GatewayServices
+	QueryMeta
+}
+
 // IndexedConfigEntries has its own encoding logic which differs from
 // ConfigEntryRequest as it has to send a slice of ConfigEntry.
 type IndexedConfigEntries struct {
 	Kind    string
 	Entries []ConfigEntry
-	QueryMeta
-}
-
-type IndexedGatewayServices struct {
-	Services GatewayServices
 	QueryMeta
 }
 

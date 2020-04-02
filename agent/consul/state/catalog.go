@@ -2413,9 +2413,15 @@ func (s *Store) updateTerminatingGatewayServices(tx *memdb.Txn, idx uint64, conf
 					return fmt.Errorf("gateway service lookup failed: %s", err)
 				}
 
-				// If there's an existing service, then we skip it.
-				// This means the service was specified on its own, and the service entry overrides the wildcard entry.
 				if existing != nil {
+					// Return an error if the wildcard is attempting to cover a service specified by a different gateway's config entry
+					cfg := existing.(*structs.GatewayService)
+					if !cfg.Gateway.Matches(&gatewayID) {
+						return fmt.Errorf("service %q is associated with different gateway, %q", svc.Name, cfg.Gateway)
+					}
+
+					// If there's an existing service associated with this gateway then we skip it.
+					// This means the service was specified on its own, and the service entry overrides the wildcard entry.
 					continue
 				}
 

@@ -748,7 +748,7 @@ func TestCatalog_TerminatingGatewayServices(t *testing.T) {
 	}
 
 	retry.Run(t, func(r *retry.R) {
-		// List should return both services
+		// List should return all three services
 		req := structs.ServiceSpecificRequest{
 			Datacenter:  "dc1",
 			ServiceName: "gateway",

@@ -4519,4 +4519,24 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expect, out)
+
+	// Attempt to associate a different gateway with services that include db
+	assert.Error(t, s.EnsureConfigEntry(22, &structs.TerminatingGatewayConfigEntry{
+		Kind: "terminating-gateway",
+		Name: "gateway2",
+		Services: []structs.LinkedService{
+			{
+				Name: "*",
+			},
+		},
+	}, nil), "service \"db\" is associated with different gateway")
+
+	// Deleting the config entry should remove existing mappings
+	assert.Nil(t, s.DeleteConfigEntry(23, "terminating-gateway", "gateway", nil))
+	assert.True(t, watchFired(ws))
+
+	idx, out, err = s.TerminatingGatewayServices(ws, "gateway", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(23))
+	assert.Len(t, out, 0)
 }
