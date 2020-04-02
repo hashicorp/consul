@@ -39,6 +39,10 @@ load helpers
   assert_upstream_has_endpoints_in_status 127.0.0.1:19000 s2.default.primary HEALTHY 2
 }
 
+@test "wait for envoy metrics for cluster.s2.default.primary" {
+  wait_for_envoy_metric_to_exist 127.0.0.1:19000 "cluster.s2.default.primary.*cx_total"
+}
+
 @test "s1 upstream should be able to connect to s2 via upstream s2 to start" {
   assert_expected_fortio_name s2
 }
