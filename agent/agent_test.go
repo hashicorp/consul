@@ -3383,6 +3383,21 @@ func TestAgent_loadTokens(t *testing.T) {
 	})
 }
 
+func TestAgent_SecurityChecks(t *testing.T) {
+	t.Parallel()
+	hcl := `
+		enable_script_checks = true
+	`
+	a := &TestAgent{Name: t.Name(), HCL: hcl}
+	defer a.Shutdown()
+
+	data := make([]byte, 0, 8192)
+	bytesBuffer := bytes.NewBuffer(data)
+	a.LogOutput = bytesBuffer
+	assert.NoError(t, a.Start(t))
+	assert.Contains(t, bytesBuffer.String(), "using enable-script-checks without ACLs and without allow_write_http_from is DANGEROUS")
+}
+
 func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 	t.Parallel()
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir

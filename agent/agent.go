@@ -384,6 +384,11 @@ func (a *Agent) Start() error {
 
 	c := a.config
 
+	if err := a.CheckSecurity(c); err != nil {
+		a.logger.Error("Security error while parsing configuration: %#v", err)
+		return err
+	}
+
 	// Warn if the node name is incompatible with DNS
 	if InvalidDnsRe.MatchString(a.config.NodeName) {
 		a.logger.Warn("Node name will not be discoverable "+
@@ -3841,6 +3846,21 @@ func (a *Agent) getPersistedTokens() (*persistedTokens, error) {
 	return persistedTokens, nil
 }
 
+// CheckSecurity Performs security checks in Consul Configuration
+// It might return an error if configuration is considered too dangerous
+func (a *Agent) CheckSecurity(conf *config.RuntimeConfig) error {
+	if conf.EnableRemoteScriptChecks {
+		if !conf.ACLsEnabled {
+			if len(conf.AllowWriteHTTPFrom) == 0 {
+				err := fmt.Errorf("using enable-script-checks without ACLs and without allow_write_http_from is DANGEROUS, use enable-local-script-checks instead, see https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations/")
+				a.logger.Error("[SECURITY] issue", "error", err)
+				// TODO: return the error in future Consul versions
+			}
+		}
+	}
+	return nil
+}
+
 func (a *Agent) loadTokens(conf *config.RuntimeConfig) error {
 	persistedTokens, persistenceErr := a.getPersistedTokens()
 
@@ -4022,6 +4042,10 @@ func (a *Agent) loadLimits(conf *config.RuntimeConfig) {
 // including all services, checks, tokens, metadata, dnsServer configs, etc.
 // It will also reload all ongoing watches.
 func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
+	if err := a.CheckSecurity(newCfg); err != nil {
+		a.logger.Error("Security error while reloading configuration: %#v", err)
+		return err
+	}
 	// Bulk update the services and checks
 	a.PauseSync()
 	defer a.ResumeSync()
