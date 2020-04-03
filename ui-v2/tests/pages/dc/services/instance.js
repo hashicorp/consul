@@ -1,8 +1,8 @@
-export default function(visitable, attribute, collection, text, radiogroup) {
+export default function(visitable, attribute, collection, text, tabs) {
   return {
-    visit: visitable('/:dc/services/:service/:node/:id'),
+    visit: visitable('/:dc/services/:service/instances/:node/:id'),
     externalSource: attribute('data-test-external-source', 'h1 span'),
-    tabs: radiogroup('tab', [
+    tabs: tabs('tab', [
       'service-checks',
       'node-checks',
       'addresses',

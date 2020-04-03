@@ -74,7 +74,7 @@ Feature: dc / nodes / show: Show node
       dc: dc1
       node: node-0
     ---
-    Then the url should be /dc1/nodes/node-0
+    Then the url should be /dc1/nodes/node-0/health-checks
     And the title should be "node-0 - Consul"
     And the url "/v1/internal/ui/node/node-0" responds with a 404 status
     And pause until I see the text "no longer exists" in "[data-notification]"

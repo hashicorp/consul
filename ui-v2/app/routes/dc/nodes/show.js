@@ -8,12 +8,6 @@ export default Route.extend(WithBlockingActions, {
   repo: service('repository/node'),
   sessionRepo: service('repository/session'),
   coordinateRepo: service('repository/coordinate'),
-  queryParams: {
-    s: {
-      as: 'filter',
-      replace: true,
-    },
-  },
   model: function(params) {
     const dc = this.modelFor('dc').dc.Name;
     const nspace = this.modelFor('nspace').nspace.substr(1);

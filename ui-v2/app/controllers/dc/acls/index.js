@@ -23,9 +23,7 @@ export default Controller.extend(WithSearching, WithFiltering, {
     this._super(...arguments);
   },
   searchable: computed('filtered', function() {
-    return get(this, 'searchables.acl')
-      .add(get(this, 'filtered'))
-      .search(get(this, this.searchParams.acl));
+    return get(this, 'searchables.acl').add(get(this, 'filtered'));
   }),
   typeFilters: computed('items', function() {
     const items = get(this, 'items');

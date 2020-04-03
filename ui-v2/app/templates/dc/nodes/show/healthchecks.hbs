@@ -1,0 +1,11 @@
+<div id="health-checks" class="tab-section">
+  <div role="tabpanel">
+    {{#if (gt item.Checks.length 0) }}
+      <HealthcheckList @items={{item.Checks}} />
+    {{else}}
+      <p>
+        This node has no health checks.
+      </p>
+    {{/if}}
+  </div>
+</div>

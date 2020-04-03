@@ -15,8 +15,6 @@ export default Controller.extend(WithSearching, {
     this._super(...arguments);
   },
   searchable: computed('items', function() {
-    return get(this, 'searchables.kv')
-      .add(this.items)
-      .search(get(this, this.searchParams.kv));
+    return get(this, 'searchables.kv').add(this.items);
   }),
 });

@@ -28,9 +28,7 @@ export default Controller.extend(WithSearching, WithFiltering, WithEventSource, 
     this._super(...arguments);
   },
   searchable: computed('filtered', function() {
-    return get(this, 'searchables.intention')
-      .add(get(this, 'filtered'))
-      .search(get(this, this.searchParams.intention));
+    return get(this, 'searchables.intention').add(get(this, 'filtered'));
   }),
   actionFilters: computed('items', function() {
     const items = get(this, 'items');

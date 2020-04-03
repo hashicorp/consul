@@ -15,9 +15,7 @@ export default Controller.extend(WithSearching, {
     this._super(...arguments);
   },
   searchable: computed('items', function() {
-    return get(this, 'searchables.policy')
-      .add(this.items)
-      .search(get(this, this.searchParams.policy));
+    return get(this, 'searchables.policy').add(this.items);
   }),
   actions: {},
 });

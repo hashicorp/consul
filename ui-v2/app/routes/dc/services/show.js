@@ -7,12 +7,6 @@ export default Route.extend({
   repo: service('repository/service'),
   chainRepo: service('repository/discovery-chain'),
   settings: service('settings'),
-  queryParams: {
-    s: {
-      as: 'filter',
-      replace: true,
-    },
-  },
   model: function(params) {
     const dc = this.modelFor('dc').dc.Name;
     const nspace = this.modelFor('nspace').nspace.substr(1);

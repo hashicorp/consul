@@ -13,14 +13,10 @@ export default Controller.extend(WithEventSource, WithSearching, WithHealthFilte
     this._super(...arguments);
   },
   searchableHealthy: computed('healthy', function() {
-    return get(this, 'searchables.healthyNode')
-      .add(this.healthy)
-      .search(get(this, this.searchParams.healthyNode));
+    return get(this, 'searchables.healthyNode').add(this.healthy);
   }),
   searchableUnhealthy: computed('unhealthy', function() {
-    return get(this, 'searchables.unhealthyNode')
-      .add(this.unhealthy)
-      .search(get(this, this.searchParams.unhealthyNode));
+    return get(this, 'searchables.unhealthyNode').add(this.unhealthy);
   }),
   unhealthy: computed('filtered', function() {
     return this.filtered.filter(function(item) {

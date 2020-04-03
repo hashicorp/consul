@@ -1,7 +1,7 @@
-export default function(visitable, deletable, clickable, attribute, collection, radiogroup) {
+export default function(visitable, deletable, clickable, attribute, collection, tabs) {
   return {
     visit: visitable('/:dc/nodes/:node'),
-    tabs: radiogroup('tab', [
+    tabs: tabs('tab', [
       'health-checks',
       'services',
       'round-trip-time',
