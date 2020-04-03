@@ -406,6 +406,7 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// load the tokens - this requires the logger to be setup
 	// which is why we can't do this in New
+	// TODO: logger is available from New() now, can this be moved to New() ?
 	a.loadTokens(a.config)
 	a.loadEnterpriseTokens(a.config)
 
