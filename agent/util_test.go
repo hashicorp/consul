@@ -202,7 +202,7 @@ func TestHelperProcess(t *testing.T) {
 		limitProcessLifetime(2 * time.Minute)
 
 		ch := make(chan os.Signal, 10)
-		signal.Notify(ch)
+		signal.Notify(ch, forwardSignals...)
 		defer signal.Stop(ch)
 
 		fmt.Fprintf(os.Stdout, "ready\n")
