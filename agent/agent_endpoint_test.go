@@ -1386,7 +1386,7 @@ func TestAgent_ReloadDoesNotTriggerWatch(t *testing.T) {
 	defer os.Remove(tmpFile)
 	handlerShell := fmt.Sprintf("(cat ; echo CONSUL_INDEX $CONSUL_INDEX) | tee '%s.atomic' ; mv '%s.atomic' '%s'", tmpFile, tmpFile, tmpFile)
 
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		acl_enforce_version_8 = false
 		services = [
 			{
