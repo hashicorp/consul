@@ -3,14 +3,14 @@ layout: "docs"
 page_title: "Cloud Auto-join"
 sidebar_current: "docs-agent-cloud-auto-join"
 description: |-
-  Consul supports automatic cluster joining using cloud metadata on various providers.
+  Consul supports automatically joining a Consul datacenter using cloud metadata on various providers.
 ---
 
-# Cloud Auto-joining
+# Cloud Auto-join
 
 As of Consul 0.9.1, `retry-join` accepts a unified interface using the
-[go-discover](https://github.com/hashicorp/go-discover) library for doing
-automatic cluster joining using cloud metadata. To use retry-join with a
+[go-discover](https://github.com/hashicorp/go-discover) library for 
+automatically joining a Consul datacenter using cloud metadata. To use `retry-join` with a
 supported cloud provider, specify the configuration on the command line or
 configuration file as a `key=value key=value ...` string.
 
@@ -76,7 +76,7 @@ $ consul agent -retry-join "provider=aws tag_key=... tag_value=..."
 - EC2 instance role metadata.
 
 The only required IAM permission is `ec2:DescribeInstances`, and it is
-recommended that you make a dedicated key used only for auto-joining. If the
+recommended that you make a dedicated key used only to auto-join the datacenter. If the
 region is omitted it will be discovered through the local instance's [EC2
 metadata
 endpoint](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-identity-documents.html).
@@ -123,7 +123,7 @@ When using tags the only permission needed is `Microsoft.Network/networkInterfac
 
 When using Virtual Machine Scale Sets the only role action needed is `Microsoft.Compute/virtualMachineScaleSets/*/read`.
 
-~> **Note:** If the Consul cluster is hosted on Azure, Consul can use Managed Service Identities (MSI) to access Azure instead of an environment variable and shared client id and secret. MSI must be enabled on the VMs hosting Consul, and it is the preferred configuration since MSI prevents your Azure credentials from being stored in Consul configuration. This feature is supported from Consul 1.7 and above.
+~> **Note:** If the Consul datacenter is hosted on Azure, Consul can use Managed Service Identities (MSI) to access Azure instead of an environment variable and shared client id and secret. MSI must be enabled on the VMs hosting Consul, and it is the preferred configuration since MSI prevents your Azure credentials from being stored in Consul configuration. This feature is supported from Consul 1.7 and above.
 
 ### Google Compute Engine
 
@@ -204,7 +204,7 @@ $ consul agent -retry-join "provider=aliyun region=... tag_key=consul tag_value=
 - `access_key_secret` (required) - the secret key to use for auth.
 
 The required RAM permission is `ecs:DescribeInstances`.
-It is recommended you make a dedicated key used only for auto-joining.
+It is recommended you make a dedicated key used to auto-join.
 
 ### Digital Ocean
 
@@ -301,7 +301,7 @@ $ consul agent -retry-join "provider=tencentcloud region=... tag_key=consul tag_
 - `access_key_secret` (required) - The secret key of TencentCloud.
 
 This required permission to 'cvm:DescribeInstances'.
-It is recommended you make a dedicated key used only for auto-joining.
+It is recommended you make a dedicated key used to auto-join the Consul datacenter.
 
 
 ### Joyent Triton
