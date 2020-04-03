@@ -23,6 +23,8 @@ func routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, _ string) ([]proto.Mes
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
 		return routesFromSnapshotConnectProxy(cfgSnap)
+	case structs.ServiceKindIngressGateway:
+		return routesFromSnapshotIngressGateway(cfgSnap)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
@@ -35,20 +37,34 @@ func routesFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.M
 		return nil, errors.New("nil config given")
 	}
 
+	return routesFromUpstreams(cfgSnap.ConnectProxy.ConfigSnapshotUpstreams, cfgSnap.Proxy.Upstreams)
+}
+
+// routesFromSnapshotIngressGateway returns the xDS API representation of the
+// "routes" in the snapshot.
+func routesFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+	if cfgSnap == nil {
+		return nil, errors.New("nil config given")
+	}
+
+	return routesFromUpstreams(cfgSnap.IngressGateway.ConfigSnapshotUpstreams, cfgSnap.IngressGateway.Upstreams)
+}
+
+func routesFromUpstreams(snap proxycfg.ConfigSnapshotUpstreams, upstreams structs.Upstreams) ([]proto.Message, error) {
 	var resources []proto.Message
 
-	for _, u := range cfgSnap.Proxy.Upstreams {
+	for _, u := range upstreams {
 		upstreamID := u.Identifier()
 
 		var chain *structs.CompiledDiscoveryChain
 		if u.DestinationType != structs.UpstreamDestTypePreparedQuery {
-			chain = cfgSnap.ConnectProxy.DiscoveryChain[upstreamID]
+			chain = snap.DiscoveryChain[upstreamID]
 		}
 
 		if chain == nil || chain.IsDefault() {
 			// TODO(rb): make this do the old school stuff too
 		} else {
-			upstreamRoute, err := makeUpstreamRouteForDiscoveryChain(&u, chain, cfgSnap)
+			upstreamRoute, err := makeUpstreamRouteForDiscoveryChain(&u, chain)
 			if err != nil {
 				return nil, err
 			}
@@ -66,7 +82,6 @@ func routesFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.M
 func makeUpstreamRouteForDiscoveryChain(
 	u *structs.Upstream,
 	chain *structs.CompiledDiscoveryChain,
-	cfgSnap *proxycfg.ConfigSnapshot,
 ) (*envoy.RouteConfiguration, error) {
 	upstreamID := u.Identifier()
 	routeName := upstreamID
@@ -93,13 +108,13 @@ func makeUpstreamRouteForDiscoveryChain(
 			nextNode := chain.Nodes[discoveryRoute.NextNode]
 			switch nextNode.Type {
 			case structs.DiscoveryGraphNodeTypeSplitter:
-				routeAction, err = makeRouteActionForSplitter(nextNode.Splits, chain, cfgSnap)
+				routeAction, err = makeRouteActionForSplitter(nextNode.Splits, chain)
 				if err != nil {
 					return nil, err
 				}
 
 			case structs.DiscoveryGraphNodeTypeResolver:
-				routeAction = makeRouteActionForSingleCluster(nextNode.Resolver.Target, chain, cfgSnap)
+				routeAction = makeRouteActionForSingleCluster(nextNode.Resolver.Target, chain)
 
 			default:
 				return nil, fmt.Errorf("unexpected graph node after route %q", nextNode.Type)
@@ -147,7 +162,7 @@ func makeUpstreamRouteForDiscoveryChain(
 		}
 
 	case structs.DiscoveryGraphNodeTypeSplitter:
-		routeAction, err := makeRouteActionForSplitter(startNode.Splits, chain, cfgSnap)
+		routeAction, err := makeRouteActionForSplitter(startNode.Splits, chain)
 		if err != nil {
 			return nil, err
 		}
@@ -160,7 +175,7 @@ func makeUpstreamRouteForDiscoveryChain(
 		routes = []envoyroute.Route{defaultRoute}
 
 	case structs.DiscoveryGraphNodeTypeResolver:
-		routeAction := makeRouteActionForSingleCluster(startNode.Resolver.Target, chain, cfgSnap)
+		routeAction := makeRouteActionForSingleCluster(startNode.Resolver.Target, chain)
 
 		defaultRoute := envoyroute.Route{
 			Match:  makeDefaultRouteMatch(),
@@ -307,7 +322,7 @@ func makeDefaultRouteMatch() envoyroute.RouteMatch {
 	}
 }
 
-func makeRouteActionForSingleCluster(targetID string, chain *structs.CompiledDiscoveryChain, cfgSnap *proxycfg.ConfigSnapshot) *envoyroute.Route_Route {
+func makeRouteActionForSingleCluster(targetID string, chain *structs.CompiledDiscoveryChain) *envoyroute.Route_Route {
 	target := chain.Targets[targetID]
 
 	clusterName := CustomizeClusterName(target.Name, chain)
@@ -321,7 +336,7 @@ func makeRouteActionForSingleCluster(targetID string, chain *structs.CompiledDis
 	}
 }
 
-func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, chain *structs.CompiledDiscoveryChain, cfgSnap *proxycfg.ConfigSnapshot) (*envoyroute.Route_Route, error) {
+func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, chain *structs.CompiledDiscoveryChain) (*envoyroute.Route_Route, error) {
 	clusters := make([]*envoyroute.WeightedCluster_ClusterWeight, 0, len(splits))
 	for _, split := range splits {
 		nextNode := chain.Nodes[split.NextNode]
