@@ -660,6 +660,8 @@ func (r *ConnectCALeafRequest) Key() string {
 	v, err := hashstructure.Hash([]interface{}{
 		r.Service,
 		r.EnterpriseMeta,
+		r.DNSSAN,
+		r.IPSAN,
 	}, nil)
 	if err == nil {
 		return fmt.Sprintf("service:%d", v)
