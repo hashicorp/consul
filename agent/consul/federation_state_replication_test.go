@@ -77,7 +77,7 @@ func TestReplication_FederationStates(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Len(t, local, len(remote))
-		for i, _ := range remote {
+		for i := range remote {
 			// zero out the raft data for future comparisons
 			remote[i].RaftIndex = structs.RaftIndex{}
 			local[i].RaftIndex = structs.RaftIndex{}
@@ -121,8 +121,12 @@ func TestReplication_FederationStates(t *testing.T) {
 		require.NoError(t, s1.RPC("FederationState.Apply", &arg, &out))
 	}
 
+	nTimesWithDelay := func() *retry.Counter {
+		return &retry.Counter{Count: 30, Wait: 750 * time.Millisecond}
+	}
+
 	// Wait for the replica to converge.
-	retry.Run(t, func(r *retry.R) {
+	retry.RunWith(nTimesWithDelay(), t, func(r *retry.R) {
 		checkSame(r)
 	})
 
@@ -138,7 +142,7 @@ func TestReplication_FederationStates(t *testing.T) {
 	}
 
 	// Wait for the replica to converge.
-	retry.Run(t, func(r *retry.R) {
+	retry.RunWith(nTimesWithDelay(), t, func(r *retry.R) {
 		checkSame(r)
 	})
 }
