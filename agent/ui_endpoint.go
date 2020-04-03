@@ -158,42 +158,6 @@ RPC:
 	return summarizeServices(out.Nodes), nil
 }
 
-// TerminatingGatewayServices is used to list the services associated with a terminating gateway
-func (s *HTTPServer) TerminatingGatewayServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// Parse arguments
-	args := structs.ServiceSpecificRequest{}
-	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
-		return nil, nil
-	}
-
-	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
-		return nil, err
-	}
-
-	// Pull out the gateway name
-	args.ServiceName = strings.TrimPrefix(req.URL.Path, "/v1/internal/ui/terminating-gateway-services/")
-	if args.ServiceName == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing gateway name")
-		return nil, nil
-	}
-
-	// Make the RPC request
-	var out structs.IndexedGatewayServices
-	defer setMeta(resp, &out.QueryMeta)
-RPC:
-	if err := s.agent.RPC("Internal.TerminatingGatewayServices", &args, &out); err != nil {
-		// Retry the request allowing stale data if no leader
-		if strings.Contains(err.Error(), structs.ErrNoLeader.Error()) && !args.AllowStale {
-			args.AllowStale = true
-			goto RPC
-		}
-		return nil, err
-	}
-
-	return out.Services, nil
-}
-
 func summarizeServices(dump structs.CheckServiceNodes) []*ServiceSummary {
 	// Collect the summary information
 	var services []structs.ServiceID
