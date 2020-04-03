@@ -21,20 +21,4 @@ export default Route.extend(WithBlockingActions, {
   setupController: function(controller, model) {
     controller.setProperties(model);
   },
-  actions: {
-    invalidateSession: function(item) {
-      const dc = this.modelFor('dc').dc.Name;
-      const nspace = this.modelFor('nspace').nspace.substr(1);
-      const controller = this.controller;
-      return this.feedback.execute(() => {
-        return this.sessionRepo.remove(item).then(() => {
-          return this.sessionRepo.findByNode(item.Node, dc, nspace).then(function(sessions) {
-            controller.setProperties({
-              sessions: sessions,
-            });
-          });
-        });
-      }, 'delete');
-    },
-  },
 });
