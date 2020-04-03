@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strings"
 	"syscall"
 	"time"
 
@@ -176,7 +175,7 @@ func (c *cmd) startupJoinWan(agent *agent.Agent, cfg *config.RuntimeConfig) erro
 func (c *cmd) run(args []string) int {
 	// Parse our configs
 	if err := c.flags.Parse(args); err != nil {
-		if !strings.Contains(err.Error(), "help requested") {
+		if err != flag.ErrHelp {
 			c.UI.Error(fmt.Sprintf("error parsing flags: %v", err))
 		}
 		return 1
