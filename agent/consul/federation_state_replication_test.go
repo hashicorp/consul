@@ -142,7 +142,7 @@ func TestReplication_FederationStates(t *testing.T) {
 	}
 
 	// Wait for the replica to converge.
-	retry.Run(t, func(r *retry.R) {
+	retry.RunWith(nTimesWithDelay(), t, func(r *retry.R) {
 		checkSame(r)
 	})
 }
