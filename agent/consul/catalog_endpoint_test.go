@@ -1609,26 +1609,28 @@ func TestCatalog_ListServices_Stale(t *testing.T) {
 
 	testrpc.WaitUntilNoLeader(t, s2.RPC, "dc1")
 
-	args.AllowStale = false
-	// Since the leader is now down, non-stale query should fail now
-	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err == nil || err.Error() != structs.ErrNoLeader.Error() {
-		t.Fatalf("expected %v but got err: %v and %v", structs.ErrNoLeader, err, out)
-	}
+	retry.Run(t, func(r *retry.R) {
+		args.AllowStale = false
+		// Since the leader is now down, non-stale query should fail now
+		if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err == nil || err.Error() != structs.ErrNoLeader.Error() {
+			r.Fatalf("expected %v but got err: %v and %v", structs.ErrNoLeader, err, out)
+		}
 
-	// With stale, request should still work
-	args.AllowStale = true
-	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+		// With stale, request should still work
+		args.AllowStale = true
+		if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err != nil {
+			r.Fatalf("err: %v", err)
+		}
 
-	// Should find old service
-	if len(out.Services) != 1 {
-		t.Fatalf("bad: %#v", out)
-	}
+		// Should find old service
+		if len(out.Services) != 1 {
+			r.Fatalf("bad: %#v", out)
+		}
 
-	if out.KnownLeader {
-		t.Fatalf("should not have a leader anymore: %#v", out)
-	}
+		if out.KnownLeader {
+			r.Fatalf("should not have a leader anymore: %#v", out)
+		}
+	})
 }
 
 func TestCatalog_ListServiceNodes(t *testing.T) {
