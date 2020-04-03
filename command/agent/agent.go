@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -252,45 +253,9 @@ func (c *cmd) run(args []string) int {
 	cli.output("Log data will now stream in as it occurs:\n")
 	logGate.Flush()
 
-	// wait for signal
-	signalCh := make(chan os.Signal, 10)
-	stopCh := make(chan struct{})
-	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
-
-	go func() {
-		for {
-			var sig os.Signal
-			select {
-			case s := <-signalCh:
-				sig = s
-			case <-stopCh:
-				return
-			}
-
-			switch sig {
-			case syscall.SIGPIPE:
-				continue
-
-			case syscall.SIGHUP:
-				err := fmt.Errorf("cannot reload before agent started")
-				c.logger.Error("Caught", "signal", sig, "error", err)
-
-			default:
-				c.logger.Info("Caught", "signal", sig)
-				agent.InterruptStartCh <- struct{}{}
-				return
-			}
-		}
-	}()
-
-	err = agent.Start()
-	signal.Stop(signalCh)
-	select {
-	case stopCh <- struct{}{}:
-	default:
-	}
-	if err != nil {
-		c.logger.Error("Error starting agent", "error", err)
+	ctx := context.Background()
+	if err := start(ctx, c.logger, agent); err != nil {
+		logger.Error("Error starting agent", "error", err)
 		return 1
 	}
 
@@ -318,7 +283,7 @@ func (c *cmd) run(args []string) int {
 	cli.output("Consul agent running!")
 
 	// wait for signal
-	signalCh = make(chan os.Signal, 10)
+	signalCh := make(chan os.Signal, 10)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
 
 	for {
@@ -394,6 +359,47 @@ func (c *cmd) run(args []string) int {
 			}
 		}
 	}
+}
+
+// start the agent, handling termination signals gracefully.
+// TODO(dnephin): logger could be provided by ctx
+// TODO: test with fakeAgent.Start
+func start(ctx context.Context, logger hclog.Logger, agent *agent.Agent) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	signalCh := make(chan os.Signal, 10)
+	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
+
+	go func() {
+		for {
+			var sig os.Signal
+			select {
+			case s := <-signalCh:
+				sig = s
+			case <-ctx.Done():
+				return
+			}
+
+			switch sig {
+			case syscall.SIGPIPE:
+				continue
+
+			case syscall.SIGHUP:
+				err := fmt.Errorf("cannot reload before agent started")
+				logger.Error("Caught", "signal", sig, "error", err)
+
+			default:
+				logger.Info("Caught", "signal", sig)
+				cancel()
+				return
+			}
+		}
+	}()
+
+	err := agent.Start(ctx)
+	signal.Stop(signalCh)
+	return err
 }
 
 // handleReload is invoked when we should reload our configs, e.g. SIGHUP

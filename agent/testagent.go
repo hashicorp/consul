@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -208,7 +209,8 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 
 	id := string(a.Config.NodeID)
 
-	if err := agent.Start(); err != nil {
+	ctx := context.Background()
+	if err := agent.Start(ctx); err != nil {
 		cleanupTmpDir()
 		agent.ShutdownAgent()
 		agent.ShutdownEndpoints()
