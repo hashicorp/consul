@@ -9,7 +9,7 @@ description: |-
 # Built-In Proxy Options
 
 Consul comes with a built-in L4 proxy for testing and development with Consul
-Connect. 
+Connect.
 
 ~> **Note:** [Envoy](https://www.consul.io/docs/connect/proxies/envoy.html) should be used for production deployments, or when [layer 7 traffic management](https://www.consul.io/docs/connect/l7-traffic-management.html) features are needed.
 
