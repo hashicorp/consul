@@ -347,7 +347,9 @@ func New(c *config.RuntimeConfig, logger hclog.InterceptLogger) (*Agent, error) 
 	}
 	a.serviceManager = NewServiceManager(&a)
 
-	if err := a.initializeACLs(); err != nil {
+	var err error
+	a.aclMasterAuthorizer, err = initializeACLs(c.NodeName)
+	if err != nil {
 		return nil, err
 	}
 
