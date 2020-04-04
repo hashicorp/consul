@@ -238,7 +238,7 @@ and consider if they're appropriate for your deployment.
 
   * <a name="v-externalservers-https" href="#v-externalservers-https">`https`</a> - HTTPS configuration for external servers. Note: HTTP connections to the servers are not supported.
 
-      * <a name="v-externalservers-address" href="#v-externalservers-address">`address`</a> (`string: null`) - IP, DNS name, or Cloud auto-join string pointing to the external Consul servers. Note that if you’re providing the cloud auto-join string and multiple addresses can be returned, only the first address will be used. This value is required only if you would like to use a different server address from the one specified in the `client.join` property.
+      * <a name="v-externalservers-address" href="#v-externalservers-address">`address`</a> (`string: null`) - IP, DNS name, or [cloud auto-join](https://www.consul.io/docs/agent/cloud-auto-join.html) string pointing to the external Consul servers. Note that if you’re providing the cloud auto-join string and multiple addresses can be returned, only the first address will be used. This value is required only if you would like to use a different server address from the one specified in the `client.join` property.
 
       * <a name="v-externalservers-port" href="#v-externalservers-port">`port`</a> (`integer: 443`) - The HTTPS port of the server.
 
