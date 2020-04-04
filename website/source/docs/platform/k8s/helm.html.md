@@ -232,7 +232,7 @@ and consider if they're appropriate for your deployment.
             annotations: |
               "annotation-key": "annotation-value"
             ```
-* <a name="v-externalservers" href="#v-externalservers">`externalServers`</a> - Configuration for Consul servers running externally. This information is required if Consul servers are running outside of k8s and you’re setting `global.tls.enableAutoEncrypt` to `true`.
+* <a name="v-externalservers" href="#v-externalservers">`externalServers`</a> - Configuration for Consul servers running externally. This information is required if Consul servers are running outside of Kubernetes and you’re setting `global.tls.enableAutoEncrypt` to `true`.
 
   * <a name="v-externalservers-enabled" href="#v-externalservers-enabled">`enabled`</a> (`boolean: false`) - If true, the chart will talk to external servers configured here.
 
