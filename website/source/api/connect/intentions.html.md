@@ -174,7 +174,7 @@ See [Intention Management Permissions](/docs/connect/intentions.html#intention-m
 
 ```text
 $ curl \
-    'http://127.0.0.1:8500/v1/connect/intentions?SourceName==web'
+    'http://127.0.0.1:8500/v1/connect/intentions?filter=SourceName==web'
 ```
 
 ### Sample Response
