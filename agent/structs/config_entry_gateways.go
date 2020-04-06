@@ -293,6 +293,7 @@ type GatewayServices []*GatewayService
 func (g *GatewayService) IsSame(o *GatewayService) bool {
 	return g.Gateway.Matches(&o.Gateway) &&
 		g.Service.Matches(&o.Service) &&
+		g.GatewayKind == o.GatewayKind &&
 		g.CAFile == o.CAFile &&
 		g.CertFile == o.CertFile &&
 		g.KeyFile == o.KeyFile
