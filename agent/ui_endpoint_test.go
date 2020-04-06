@@ -51,6 +51,7 @@ func TestUiIndex(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	defer resp.Body.Close()
 
 	// Verify the response
 	if resp.StatusCode != 200 {
