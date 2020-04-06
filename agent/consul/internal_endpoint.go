@@ -297,17 +297,13 @@ func (m *Internal) aclAccessorID(secretID string) string {
 	return ident.ID()
 }
 
-func (m *Internal) TerminatingGatewayServices(args *structs.ServiceSpecificRequest, reply *structs.IndexedGatewayServices) error {
-	if done, err := m.srv.forward("Internal.TerminatingGatewayServices", args, args, reply); done {
+func (m *Internal) GatewayServices(args *structs.ServiceSpecificRequest, reply *structs.IndexedGatewayServices) error {
+	if done, err := m.srv.forward("Internal.GatewayServices", args, args, reply); done {
 		return err
 	}
 
-	// Verify the arguments
-	if args.ServiceName == "" {
-		return fmt.Errorf("Must provide gateway name")
-	}
-
-	_, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
+	var authzContext acl.AuthorizerContext
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return err
 	}
@@ -316,16 +312,26 @@ func (m *Internal) TerminatingGatewayServices(args *structs.ServiceSpecificReque
 		return err
 	}
 
+	if authz != nil && authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
+		// Just return nil, which will return an empty response (tested)
+		return nil
+	}
+
 	return m.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, services, err := state.TerminatingGatewayServices(ws, args.ServiceName, &args.EnterpriseMeta)
-			if err != nil {
-				return err
+			var index uint64
+			var services structs.GatewayServices
+
+			switch args.ServiceKind {
+			case structs.ServiceKindTerminatingGateway:
+				index, services, err = state.TerminatingGatewayServices(ws, args.ServiceName, &args.EnterpriseMeta)
+				if err != nil {
+					return err
+				}
 			}
 
-			// TODO (gateways) (freddy) hash-based blocking
 			if err := m.srv.filterACL(args.Token, &services); err != nil {
 				return err
 			}

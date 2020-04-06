@@ -1704,32 +1704,18 @@ func (f *aclFilter) filterServiceList(services *structs.ServiceList) {
 
 // filterGatewayServices is used to filter gateway to service mappings based on ACL rules.
 func (f *aclFilter) filterGatewayServices(mappings *structs.GatewayServices) {
-	svcs := *mappings
-	var authzContext acl.AuthorizerContext
-
-	for i := 0; i < len(svcs); i++ {
-		s := svcs[i]
-
-		var drop bool
-		s.Gateway.FillAuthzContext(&authzContext)
-		if !f.allowService(s.Gateway.ID, &authzContext) {
-			drop = true
-			f.logger.Debug("dropping gateway from result due to ACLs", "gateway", s.Gateway.ID)
-		}
-
+	ret := make(structs.GatewayServices, 0, len(*mappings))
+	for _, s := range *mappings {
+		var authzContext acl.AuthorizerContext
 		s.Service.FillAuthzContext(&authzContext)
-		if !f.allowService(s.Service.ID, &authzContext) {
-			drop = true
-			f.logger.Debug("dropping service from result due to ACLs", "service", s.Service.ID)
-		}
 
-		if !drop {
+		if f.authorizer.ServiceRead(s.Service.ID, &authzContext) != acl.Allow {
+			f.logger.Debug("dropping service from result due to ACLs", "service", s.Service.String())
 			continue
 		}
-		svcs = append(svcs[:i], svcs[i+1:]...)
-		i--
+		ret = append(ret, s)
 	}
-	*mappings = svcs
+	*mappings = ret
 }
 
 func (r *ACLResolver) filterACLWithAuthorizer(authorizer acl.Authorizer, subj interface{}) error {

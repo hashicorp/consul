@@ -2426,11 +2426,12 @@ func (s *Store) updateTerminatingGatewayServices(tx *memdb.Txn, idx uint64, conf
 				}
 
 				mapping := &structs.GatewayService{
-					Gateway:  gatewayID,
-					Service:  structs.NewServiceID(sn.ServiceName, &svc.EnterpriseMeta),
-					KeyFile:  svc.KeyFile,
-					CertFile: svc.CertFile,
-					CAFile:   svc.CAFile,
+					Gateway:     gatewayID,
+					Service:     structs.NewServiceID(sn.ServiceName, &svc.EnterpriseMeta),
+					GatewayKind: structs.ServiceKindTerminatingGateway,
+					KeyFile:     svc.KeyFile,
+					CertFile:    svc.CertFile,
+					CAFile:      svc.CAFile,
 				}
 				if err := tx.Insert("terminating-gateway-services", mapping); err != nil {
 					return fmt.Errorf("failed inserting gateway service mapping: %s", err)
@@ -2440,11 +2441,12 @@ func (s *Store) updateTerminatingGatewayServices(tx *memdb.Txn, idx uint64, conf
 			// Also store a mapping for the wildcard so that the TLS creds can be pulled
 			// for new services registered in its namespace
 			mapping := &structs.GatewayService{
-				Gateway:  gatewayID,
-				Service:  structs.NewServiceID(svc.Name, &svc.EnterpriseMeta),
-				KeyFile:  svc.KeyFile,
-				CertFile: svc.CertFile,
-				CAFile:   svc.CAFile,
+				Gateway:     gatewayID,
+				Service:     structs.NewServiceID(svc.Name, &svc.EnterpriseMeta),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+				KeyFile:     svc.KeyFile,
+				CertFile:    svc.CertFile,
+				CAFile:      svc.CAFile,
 			}
 			if err := tx.Insert("terminating-gateway-services", mapping); err != nil {
 				return fmt.Errorf("failed inserting gateway service mapping: %s", err)
@@ -2473,11 +2475,12 @@ func (s *Store) updateTerminatingGatewayServices(tx *memdb.Txn, idx uint64, conf
 		// By extension, if TLS creds are provided with a wildcard but are not provided in
 		// the service entry, the service does not inherit the creds from the wildcard.
 		mapping := &structs.GatewayService{
-			Gateway:  gatewayID,
-			Service:  structs.NewServiceID(svc.Name, &svc.EnterpriseMeta),
-			KeyFile:  svc.KeyFile,
-			CertFile: svc.CertFile,
-			CAFile:   svc.CAFile,
+			Gateway:     gatewayID,
+			Service:     structs.NewServiceID(svc.Name, &svc.EnterpriseMeta),
+			GatewayKind: structs.ServiceKindTerminatingGateway,
+			KeyFile:     svc.KeyFile,
+			CertFile:    svc.CertFile,
+			CAFile:      svc.CAFile,
 		}
 		if err := tx.Insert("terminating-gateway-services", mapping); err != nil {
 			return fmt.Errorf("failed inserting gateway service mapping: %s", err)
@@ -2494,8 +2497,9 @@ func (s *Store) updateTerminatingGatewayServices(tx *memdb.Txn, idx uint64, conf
 // ie. Registering a service in a namespace targeted by a gateway
 func (s *Store) updateTerminatingGatewayService(tx *memdb.Txn, idx uint64, gateway structs.ServiceID, service string, entMeta *structs.EnterpriseMeta) error {
 	mapping := &structs.GatewayService{
-		Gateway: gateway,
-		Service: structs.NewServiceID(service, entMeta),
+		Gateway:     gateway,
+		Service:     structs.NewServiceID(service, entMeta),
+		GatewayKind: structs.ServiceKindTerminatingGateway,
 	}
 
 	// If a wildcard specifier is registered for that namespace, use its TLS config
