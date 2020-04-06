@@ -1694,7 +1694,7 @@ func (d *DNSServer) nodeServiceRecords(dc string, node structs.CheckServiceNode,
 }
 
 func (d *DNSServer) generateMeta(dc string, qName string, node *structs.Node, ttl time.Duration) []dns.RR {
-	var extra []dns.RR
+	extra := make([]dns.RR, 0, len(node.Meta))
 	for key, value := range node.Meta {
 		txt := value
 		if !strings.HasPrefix(strings.ToLower(key), "rfc1035-") {
