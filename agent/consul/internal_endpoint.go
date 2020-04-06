@@ -314,6 +314,7 @@ func (m *Internal) GatewayServices(args *structs.ServiceSpecificRequest, reply *
 
 	if authz != nil && authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
 		// Just return nil, which will return an empty response (tested)
+		m.logger.Debug("dropping gateway from result due to ACLs", "gateway", args.ServiceName, "kind", args.ServiceKind)
 		return nil
 	}
 
