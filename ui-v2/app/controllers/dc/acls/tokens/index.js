@@ -15,7 +15,9 @@ export default Controller.extend(WithSearching, {
     this._super(...arguments);
   },
   searchable: computed('items', function() {
-    return get(this, 'searchables.token').add(get(this, 'items'));
+    return get(this, 'searchables.token')
+      .add(get(this, 'items'))
+      .search(get(this, this.searchParams.token));
   }),
   actions: {
     sendClone: function(item) {

@@ -20,6 +20,8 @@ export default Controller.extend(WithSearching, {
     this._super(...arguments);
   },
   searchable: computed('items', function() {
-    return get(this, 'searchables.nodeservice').add(this.items);
+    return get(this, 'searchables.nodeservice')
+      .add(this.items)
+      .search(get(this, this.searchParams.nodeservice));
   }),
 });

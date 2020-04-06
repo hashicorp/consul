@@ -2,9 +2,7 @@ import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 
-import WithBlockingActions from 'consul-ui/mixins/with-blocking-actions';
-
-export default Route.extend(WithBlockingActions, {
+export default Route.extend({
   repo: service('repository/node'),
   sessionRepo: service('repository/session'),
   coordinateRepo: service('repository/coordinate'),

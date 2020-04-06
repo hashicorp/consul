@@ -19,11 +19,8 @@ export default Controller.extend(WithSearching, {
     this._super(...arguments);
   },
   searchable: computed('items', function() {
-    return get(this, 'searchables.serviceInstance').add(this.items);
+    return get(this, 'searchables.serviceInstance')
+      .add(this.items)
+      .search(get(this, this.searchParams.serviceInstance));
   }),
-  actions: {
-    route: function() {
-      this.send(...arguments);
-    },
-  },
 });
