@@ -111,6 +111,44 @@
                     <li data-test-main-nav-settings class={{if (is-href 'settings') 'is-active'}}>
                         <a href={{href-to 'settings'}}>Settings</a>
                     </li>
+{{#if (env 'CONSUL_ACLS_ENABLED')}}
+                    <DataSource
+                      @src="settings://consul:token"
+                      @onchange={{action "changeToken" value="data"}}
+                    />
+                    <DataSink
+                      @sink="settings://consul:token"
+                    as |tokenSink|>
+  {{#if (not-eq token.AccessorID undefined)}}
+                      <li data-test-main-nav-auth>
+                        <PopoverMenu @position="right">
+                          <BlockSlot @name="trigger">
+                            Logout
+                          </BlockSlot>
+                          <BlockSlot @name="menu">
+                      {{#if token.AccessorID}}
+                            <li role="none">
+                              <dl>
+                                <dt>
+                                  <span>My ACL Token</span><br />
+                                  AccessorID
+                                </dt>
+                                <dd>
+                                  {{substr token.AccessorID -8}}
+                                </dd>
+                              </dl>
+                            </li>
+                            <li role="separator"></li>
+                      {{/if}}
+                            <li class="dangerous" role="none">
+                                <button type="button" tabindex="-1" role="menuitem" onclick={{action tokenSink.open null}}>Logout</button>
+                            </li>
+                          </BlockSlot>
+                        </PopoverMenu>
+                      </li>
+  {{/if}}
+                    </DataSink>
+{{/if}}
                 </ul>
             </nav>
         </div>

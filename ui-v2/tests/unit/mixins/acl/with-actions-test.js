@@ -22,36 +22,24 @@ module('Unit | Mixin | acl/with actions', function(hooks) {
     const subject = this.subject();
     assert.ok(subject);
   });
-  test('use persists the token and calls transitionTo correctly', function(assert) {
-    assert.expect(4);
-    this.owner.register(
-      'service:feedback',
-      Service.extend({
-        execute: function(cb, name) {
-          assert.equal(name, 'use');
-          return cb();
-        },
-      })
-    );
+  test('use persists the token', function(assert) {
+    assert.expect(2);
     const item = { ID: 'id' };
-    const expectedToken = { Namespace: 'default', AccessorID: null, SecretID: item.ID };
+    const expected = { Namespace: 'default', AccessorID: null, SecretID: item.ID };
     this.owner.register(
       'service:settings',
       Service.extend({
         persist: function(actual) {
-          assert.deepEqual(actual.token, expectedToken);
+          assert.deepEqual(actual.token, expected);
           return Promise.resolve(actual);
         },
       })
     );
     const subject = this.subject();
-    const expected = 'dc.services';
-    const transitionTo = this.stub(subject, 'transitionTo').returnsArg(0);
     return subject.actions.use
       .bind(subject)(item)
       .then(function(actual) {
-        assert.ok(transitionTo.calledOnce);
-        assert.equal(actual, expected);
+        assert.deepEqual(actual.token, expected);
       });
   });
   test('clone clones the token and calls afterDelete correctly', function(assert) {

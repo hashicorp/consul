@@ -1,8 +1,5 @@
 {{title 'Services'}}
 <AppView @class="service list">
-    <BlockSlot @name="notification" as |status type|>
-      {{partial 'dc/services/notifications'}}
-    </BlockSlot>
     <BlockSlot @name="header">
         <h1>
             Services <em>{{format-number items.length}} total</em>

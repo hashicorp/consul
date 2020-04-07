@@ -23,6 +23,9 @@
   top: 0;
   left: calc(100% + 10px);
 }
+%menu-panel dl {
+  padding: 0.9em 1em;
+}
 %menu-panel > ul > li > div[role='menu'] {
   @extend %menu-panel-sub-panel;
 }
