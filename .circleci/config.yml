@@ -639,38 +639,26 @@ workflows:
   version: 2
   go-tests:
     jobs:
-      - check-vendor:
+      - check-vendor: &filter-ignore-non-go-branches
           filters:
             branches:
               ignore:
                 - stable-website
                 - /^docs\/.*/
                 - /^ui\/.*/
-      - lint-consul-retry:
-          filters:
-            branches:
-              ignore:
-                - stable-website
-                - /^docs\/.*/
-                - /^ui\/.*/
-      - lint
-      - dev-build
+      - lint-consul-retry: *filter-ignore-non-go-branches
+      - lint: *filter-ignore-non-go-branches
+      - test-connect-ca-providers: *filter-ignore-non-go-branches
+      - dev-build: *filter-ignore-non-go-branches
       - go-test:
           requires: [dev-build]
       - go-test-api:
           requires: [dev-build]
-      - go-test-sdk
-      - test-connect-ca-providers
+      - go-test-sdk: *filter-ignore-non-go-branches
 
   build-distros:
     jobs:
-      - check-vendor:
-          filters:
-            branches:
-              ignore:
-                - stable-website
-                - /^docs\/.*/
-                - /^ui\/.*/
+      - check-vendor: *filter-ignore-non-go-branches
       - build-386: &require-check-vendor
           requires:
             - check-vendor
@@ -701,13 +689,7 @@ workflows:
           context: consul-ci
   test-integrations:
     jobs:
-      - dev-build:
-          filters:
-            branches:
-              ignore:
-                - stable-website
-                - /^docs\/.*/
-                - /^ui\/.*/
+      - dev-build: *filter-ignore-non-go-branches
       - dev-upload-s3: &dev-upload
           requires:
             - dev-build
