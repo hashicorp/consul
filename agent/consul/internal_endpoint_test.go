@@ -911,8 +911,8 @@ service_prefix "db" {
 			QueryOptions: structs.QueryOptions{Token: svcToken.SecretID},
 		}
 		var resp structs.IndexedGatewayServices
-		assert.Nil(r, msgpackrpc.CallWithCodec(codec, "Internal.GatewayServices", &req, &resp))
-		assert.Len(r, resp.Services, 0)
+		err := msgpackrpc.CallWithCodec(codec, "Internal.GatewayServices", &req, &resp)
+		require.True(r, acl.IsErrPermissionDenied(err))
 	})
 
 	rules = `

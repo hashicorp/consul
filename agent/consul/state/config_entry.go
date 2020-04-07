@@ -285,10 +285,10 @@ func (s *Store) DeleteConfigEntry(idx uint64, kind, name string, entMeta *struct
 	// If the config entry is for terminating gateways we delete entries from the memdb table
 	// that associates gateways <-> services.
 	if kind == structs.TerminatingGateway {
-		if _, err := tx.DeleteAll("terminating-gateway-services", "gateway", structs.NewServiceID(name, entMeta)); err != nil {
+		if _, err := tx.DeleteAll(terminatingGatewayServicesTableName, "gateway", structs.NewServiceID(name, entMeta)); err != nil {
 			return fmt.Errorf("failed to truncate gateway services table: %v", err)
 		}
-		if err := indexUpdateMaxTxn(tx, idx, "terminating-gateway-services"); err != nil {
+		if err := indexUpdateMaxTxn(tx, idx, terminatingGatewayServicesTableName); err != nil {
 			return fmt.Errorf("failed updating terminating-gateway-services index: %v", err)
 		}
 	}

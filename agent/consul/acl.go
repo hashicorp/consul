@@ -1706,6 +1706,8 @@ func (f *aclFilter) filterServiceList(services *structs.ServiceList) {
 func (f *aclFilter) filterGatewayServices(mappings *structs.GatewayServices) {
 	ret := make(structs.GatewayServices, 0, len(*mappings))
 	for _, s := range *mappings {
+		// This filter only checks ServiceRead on the linked service.
+		// ServiceRead on the gateway is checked in the GatewayServices endpoint before filtering.
 		var authzContext acl.AuthorizerContext
 		s.Service.FillAuthzContext(&authzContext)
 

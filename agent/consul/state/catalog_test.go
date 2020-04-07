@@ -3591,6 +3591,7 @@ func TestStateStore_CheckConnectServiceNodes_Gateways(t *testing.T) {
 			},
 		},
 	}, nil))
+	assert.True(watchFired(ws))
 
 	// Read everything back.
 	ws = memdb.NewWatchSet()
