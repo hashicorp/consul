@@ -1062,41 +1062,17 @@ func TestIntentionList(t *testing.T) {
 func TestIntentionList_acl(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
-		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
-	})
+	dir1, s1 := testServerWithConfig(t, testServerACLConfig(nil))
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	waitForNewACLs(t, s1)
 
-	// Create an ACL with service write permissions. This will grant
-	// intentions read.
-	var token string
-	{
-		var rules = `
-service "foo" {
-	policy = "write"
-}`
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		assert.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
-	}
+	token, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `service_prefix "foo" { policy = "write" }`)
+	require.NoError(t, err)
 
 	// Create a few records
 	for _, name := range []string{"foobar", "bar", "baz"} {
@@ -1108,44 +1084,58 @@ service "foo" {
 		ixn.Intention.SourceNS = "default"
 		ixn.Intention.DestinationNS = "default"
 		ixn.Intention.DestinationName = name
-		ixn.WriteRequest.Token = "root"
+		ixn.WriteRequest.Token = TestDefaultMasterToken
 
 		// Create
 		var reply string
-		assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 	}
 
 	// Test with no token
-	{
+	t.Run("no-token", func(t *testing.T) {
 		req := &structs.DCSpecificRequest{
 			Datacenter: "dc1",
 		}
 		var resp structs.IndexedIntentions
-		assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
-		assert.Len(resp.Intentions, 0)
-	}
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
+		require.Len(t, resp.Intentions, 0)
+	})
 
 	// Test with management token
-	{
+	t.Run("master-token", func(t *testing.T) {
 		req := &structs.DCSpecificRequest{
 			Datacenter:   "dc1",
-			QueryOptions: structs.QueryOptions{Token: "root"},
+			QueryOptions: structs.QueryOptions{Token: TestDefaultMasterToken},
 		}
 		var resp structs.IndexedIntentions
-		assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
-		assert.Len(resp.Intentions, 3)
-	}
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
+		require.Len(t, resp.Intentions, 3)
+	})
 
 	// Test with user token
-	{
+	t.Run("user-token", func(t *testing.T) {
 		req := &structs.DCSpecificRequest{
 			Datacenter:   "dc1",
-			QueryOptions: structs.QueryOptions{Token: token},
+			QueryOptions: structs.QueryOptions{Token: token.SecretID},
 		}
 		var resp structs.IndexedIntentions
-		assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
-		assert.Len(resp.Intentions, 1)
-	}
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
+		require.Len(t, resp.Intentions, 1)
+	})
+
+	t.Run("filtered", func(t *testing.T) {
+		req := &structs.DCSpecificRequest{
+			Datacenter: "dc1",
+			QueryOptions: structs.QueryOptions{
+				Token:  TestDefaultMasterToken,
+				Filter: "DestinationName == foobar",
+			},
+		}
+
+		var resp structs.IndexedIntentions
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
+		require.Len(t, resp.Intentions, 1)
+	})
 }
 
 // Test basic matching. We don't need to exhaustively test inputs since this
