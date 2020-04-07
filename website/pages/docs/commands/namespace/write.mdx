@@ -1,12 +1,13 @@
 ---
 layout: docs
 page_title: 'Commands: Namespace Write'
+sidebar_title: 'write'
 sidebar_current: docs-commands-namespace-write
 ---
 
-<%= enterprise_alert :consul %>
-
 # Consul Namespace Write
+
+<EnterpriseAlert product="consul" />
 
 Command: `consul namespace write`
 
@@ -23,6 +24,7 @@ or HCL format. See [here](/docs/enterprise/namespaces/index.html#namespace-defin
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
 @include 'http_api_options_server.mdx'
 
 #### Command Options
@@ -36,7 +38,7 @@ or HCL format. See [here](/docs/enterprise/namespaces/index.html#namespace-defin
 
 Create a new Namespace:
 
-```sh
+```shell
 $ consul namespace write - <<< 'Name = "team-1"'
 Name: team-1
 Description:
@@ -44,7 +46,7 @@ Description:
 
 Showing Raft Metadata:
 
-```sh
+```shell
 $ consul namespace write -meta - <<< 'Name = "team-1"'
 Name: team-1
 Description:
@@ -54,7 +56,7 @@ Modify Index: 344
 
 JSON Format:
 
-```sh
+```shell
 $ cat ns.hcl
 Name = "foo"
 Description = "Example Namespace"

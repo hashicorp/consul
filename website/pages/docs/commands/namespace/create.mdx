@@ -1,12 +1,13 @@
 ---
 layout: docs
 page_title: 'Commands: Namespace Create'
+sidebar_title: 'create'
 sidebar_current: docs-commands-namespace-create
 ---
 
-<%= enterprise_alert :consul %>
-
 # Consul Namespace Create
+
+<EnterpriseAlert product="consul" />
 
 Command: `consul namespace create`
 
@@ -23,6 +24,7 @@ from the CLI arguments.
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
 @include 'http_api_options_server.mdx'
 
 #### Command Options
@@ -55,14 +57,14 @@ from the CLI arguments.
 
 Create a new Namespace:
 
-```sh
+```shell
 $ consul namespace create -name "team-1"
 Name: team-1
 ```
 
 Showing Raft Metadata:
 
-```sh
+```shell
 $ consul namespace create -name team-1 -show-meta
 Name: team-1
 Create Index: 339
@@ -71,7 +73,7 @@ Modify Index: 344
 
 JSON Format:
 
-```sh
+```shell
 $ consul namespace create -name team2 -description "Example Namespace" -meta "team-id=574407f3-8b26-4c84-8e51-028bb8cbdd37" -format=json
 {
    "Name": "team2",

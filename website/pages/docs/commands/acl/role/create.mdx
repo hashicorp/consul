@@ -1,6 +1,7 @@
 ---
 layout: docs
 page_title: 'Commands: ACL Role Create'
+sidebar_title: 'create'
 sidebar_current: docs-commands-acl-role-create
 ---
 
@@ -17,6 +18,7 @@ Usage: `consul acl role create [options] [args]`
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
 @include 'http_api_options_server.mdx'
 
 #### Command Options
@@ -48,7 +50,7 @@ Usage: `consul acl role create [options] [args]`
 
 Create a new role with one policy:
 
-```sh
+```shell
 $ consul acl role create -name "crawler" -description "web crawler role" -policy-name "crawler-kv"
 ID:           57147d87-6bf7-f794-1a6e-7d038c4e4ae9
 Name:         crawler
@@ -59,7 +61,7 @@ Policies:
 
 Create a new role with one service identity:
 
-```sh
+```shell
 $ consul acl role create -name archiver -description 'archiver role' -service-identity "archiver:dc2"
 ID:           a365fdc9-ac71-e754-0645-7ab6bd747301
 Name:         archiver

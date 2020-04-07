@@ -1,6 +1,7 @@
 ---
 layout: docs
 page_title: 'Commands: KV Import'
+sidebar_title: 'import'
 sidebar_current: docs-commands-kv-import
 ---
 
@@ -18,6 +19,7 @@ Usage: `consul kv import [options] [DATA]`
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
 @include 'http_api_options_server.mdx'
 
 #### Enterprise Options
@@ -28,14 +30,14 @@ Usage: `consul kv import [options] [DATA]`
 
 To import from a file, prepend the filename with `@`:
 
-```
+```shell
 $ consul kv import @values.json
 # Output
 ```
 
 To import from stdin, use `-` as the data parameter:
 
-```
+```shell
 $ cat values.json | consul kv import -
 # Output
 ```
@@ -43,7 +45,7 @@ $ cat values.json | consul kv import -
 You can also pass the JSON directly, however care must be taken with shell
 escaping:
 
-```
+```shell
 $ consul kv import "$(cat values.json)"
 # Output
 ```

@@ -39,7 +39,7 @@ single server configuration requires the
 [`-bootstrap-expect=1`](/docs/agent/options.html#_bootstrap_expect)
 flag.
 
-```sh
+```shell
 consul agent -bootstrap-expect=1
 ```
 
@@ -63,7 +63,7 @@ Keep in mind that the rebuilt server needs to have the same IP address as the fa
 server. Again, once this server is online and has rejoined, the cluster will return
 to a fully healthy state.
 
-```sh
+```shell
 consul agent -bootstrap-expect=3 -bind=192.172.2.4 -auto-rejoin=192.172.2.3
 ```
 
@@ -73,7 +73,7 @@ IP isn't an option, you need to remove the failed server. Usually, you can issue
 a [`consul force-leave`](/docs/commands/force-leave.html) command to remove the failed
 server if it's still a member of the cluster.
 
-```sh
+```shell
 consul force-leave <node.name.consul>
 ```
 
@@ -115,7 +115,7 @@ restarted with an identical `raft/peers.json` configuration.
 Any new servers you introduce later can be fresh with totally clean data directories
 and joined using Consul's `join` command.
 
-```sh
+```shell
 consul agent -join=192.172.2.3
 ```
 

@@ -1,6 +1,7 @@
 ---
 layout: docs
 page_title: 'Commands: Operator Raft'
+sidebar_title: 'raft'
 sidebar_current: docs-commands-operator-raft
 description: >
   The operator raft subcommand is used to view and modify Consul's Raft
@@ -40,7 +41,7 @@ Usage: `consul operator raft list-peers -stale=[true|false]`
 
 The output looks like this:
 
-```
+```text
 Node     ID              Address         State     Voter  RaftProtocol
 alice    127.0.0.1:8300  127.0.0.1:8300  follower  true   2
 bob      127.0.0.2:8300  127.0.0.2:8300  leader    true   3

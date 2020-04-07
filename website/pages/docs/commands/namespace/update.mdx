@@ -1,12 +1,13 @@
 ---
 layout: docs
 page_title: 'Commands: Namespace Update'
+sidebar_title: 'update'
 sidebar_current: docs-commands-namespace-update
 ---
 
-<%= enterprise_alert :consul %>
-
 # Consul Namespace Update
+
+<EnterpriseAlert product="consul" />
 
 Command: `consul namespace update`
 
@@ -24,6 +25,7 @@ with the existing namespace definition.
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
 @include 'http_api_options_server.mdx'
 
 #### Command Options
@@ -60,7 +62,7 @@ with the existing namespace definition.
 
 Update a namespace with a new description:
 
-```sh
+```shell
 $ consul namespace update -name "team-1" -description "example description"
 Name: team-1
 Description:
@@ -69,7 +71,7 @@ Description:
 
 Showing Raft Metadata:
 
-```sh
+```shell
 $ consul namespace update -name team-1 -show-meta -default-policy-id 1206bf1c-6239-46e8-b9f8-b426667cf428
 Name: team-1
 ACLs:
@@ -81,7 +83,7 @@ Modify Index: 344
 
 JSON Format:
 
-```sh
+```shell
 $ consul namespace update -name team2 -description "Example Namespace" -meta "external-source=kubernetes" -format=json
 {
    "Name": "team2",

@@ -100,7 +100,7 @@ adjust the bind/advertise addresses for your setup.
 
 You should see a log message on the servers for each segment's listener as the agent starts up.
 
-```sh
+```shell
 2017/08/30 19:05:13 [INFO] serf: EventMemberJoin: server1.dc1 192.168.0.4
 2017/08/30 19:05:13 [INFO] serf: EventMemberJoin: server1 192.168.0.4
 2017/08/30 19:05:13 [INFO] consul: Started listener for LAN segment "alpha" on 192.168.0.4:8303
@@ -111,7 +111,7 @@ You should see a log message on the servers for each segment's listener as the a
 
 Running `consul members` should show the server as being part of all segments.
 
-```sh
+```shell
 (server1) $ consul members
 Node     Address           Status  Type    Build      Protocol  DC   Segment
 server1  192.168.0.4:8301  alive   server  0.9.3+ent  2         dc1  <all>
@@ -122,14 +122,14 @@ server1  192.168.0.4:8301  alive   server  0.9.3+ent  2         dc1  <all>
 Next, start a client agent in the 'alpha' segment, with `-join` set to the server's segment
 address/port for that segment.
 
-```sh
+```shell
 (client1) $ consul agent ... -join 192.168.0.4:8303 -node client1 -segment alpha
 ```
 
 After the join is successful, we should see the client show up by running the `consul members` command
 on the server again.
 
-```sh
+```shell
 (server1) $ consul members
 Node     Address           Status  Type    Build      Protocol  DC   Segment
 server1  192.168.0.4:8301  alive   server  0.9.3+ent  2         dc1  <all>
@@ -138,11 +138,11 @@ client1  192.168.0.5:8301  alive   client  0.9.3+ent  2         dc1  alpha
 
 Now join another client in segment 'beta' and run the `consul members` command another time.
 
-```sh
+```shell
 (client2) $ consul agent ... -join 192.168.0.4:8304 -node client2 -segment beta
 ```
 
-```sh
+```shell
 (server1) $ consul members
 Node     Address           Status  Type    Build      Protocol  DC   Segment
 server1  192.168.0.4:8301  alive   server  0.9.3+ent  2         dc1  <all>
@@ -155,7 +155,7 @@ client2  192.168.0.6:8301  alive   client  0.9.3+ent  2         dc1  beta
 If we pass the `-segment` flag when running `consul members`, we can limit the view to agents
 in a specific segment.
 
-```sh
+```shell
 (server1) $ consul members -segment alpha
 Node     Address           Status  Type    Build      Protocol  DC   Segment
 client1  192.168.0.5:8301  alive   client  0.9.3+ent  2         dc1  alpha
@@ -165,7 +165,7 @@ server1  192.168.0.4:8303  alive   server  0.9.3+ent  2         dc1  alpha
 Using the `consul catalog nodes` command, we can filter on an internal metadata key,
 `consul-network-segment`, which stores the network segment of the node.
 
-```sh
+```shell
 (server1) $ consul catalog nodes -node-meta consul-network-segment=alpha
 Node     ID        Address      DC
 client1  4c29819c  192.168.0.5  dc1
@@ -180,14 +180,14 @@ for DNS to return only services within the same network segment as the local age
 
 First, register a service on each of the client nodes.
 
-```sh
+```shell
 (client1) $ curl \
     --request PUT \
     --data '{"Name": "redis", "Port": 8000}' \
     localhost:8500/v1/agent/service/register
 ```
 
-```sh
+```shell
 (client2) $ curl \
     --request PUT \
     --data '{"Name": "redis", "Port": 9000}' \
@@ -198,7 +198,7 @@ First, register a service on each of the client nodes.
 
 Next, write the following to `query.json` and create the query using the HTTP endpoint.
 
-```sh
+```shell
 (server1) $ curl \
     --request POST \
     --data \
@@ -223,7 +223,7 @@ Now, we can replace any dns lookups of the form `<service>.service.consul` with
 
 **Client 1:**
 
-```sh
+```shell
 (client1) $ dig @127.0.0.1 -p 8600 redis.query.consul SRV
 
 ; <<>> DiG 9.8.3-P1 <<>> @127.0.0.1 -p 8600 redis.query.consul SRV
@@ -246,7 +246,7 @@ client1.node.dc1.consul. 0	IN	A	192.168.0.5
 
 **Client 2:**
 
-```sh
+```shell
 (client2) $ dig @127.0.0.1 -p 8600 redis.query.consul SRV
 
 ; <<>> DiG 9.8.3-P1 <<>> @127.0.0.1 -p 8600 redis.query.consul SRV

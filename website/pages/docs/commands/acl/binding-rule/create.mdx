@@ -1,6 +1,7 @@
 ---
 layout: docs
 page_title: 'Commands: ACL Binding Rule Create'
+sidebar_title: 'create'
 sidebar_current: docs-commands-acl-binding-rule-create
 ---
 
@@ -17,6 +18,7 @@ Usage: `consul acl binding-rule create [options] [args]`
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
 @include 'http_api_options_server.mdx'
 
 #### Command Options
@@ -47,7 +49,7 @@ Usage: `consul acl binding-rule create [options] [args]`
 
 Create a new binding rule that binds to a service identity:
 
-```sh
+```shell
 $ consul acl binding-rule create -method 'minikube' \
     -description 'wildcard service' \
     -bind-type 'service' \
@@ -63,7 +65,7 @@ Selector:     serviceaccount.namespace==default and serviceaccount.name!=vault
 
 Create a new binding rule that binds to a role:
 
-```sh
+```shell
 $ consul acl binding-rule create -method 'minikube' \
     -description 'just vault role' \
     -bind-type 'role' \

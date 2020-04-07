@@ -14,7 +14,7 @@ A filter expression is used to refine a data query for some API listing endpoint
 Filtering will be executed on the Consul server before data is returned, reducing the network load. To pass a
 filter expression to Consul, with a data query, use the `filter` parameter.
 
-```sh
+```shell
 curl -G <path> --data-urlencode 'filter=<filter expression>'
 ```
 
@@ -135,7 +135,7 @@ is executed on the leader.
 
 **Command - Unfiltered**
 
-```sh
+```shell
 curl -X GET localhost:8500/v1/agent/services
 ```
 
@@ -195,7 +195,7 @@ curl -X GET localhost:8500/v1/agent/services
 
 **Command - Filtered**
 
-```sh
+```shell
 curl -G localhost:8500/v1/agent/services --data-urlencode 'filter=Meta.env == qa'
 ```
 
@@ -225,7 +225,7 @@ curl -G localhost:8500/v1/agent/services --data-urlencode 'filter=Meta.env == qa
 
 **Command - Unfiltered**
 
-```sh
+```shell
 curl -X GET localhost:8500/v1/catalog/service/api-internal
 ```
 
@@ -326,7 +326,7 @@ curl -X GET localhost:8500/v1/catalog/service/api-internal
 
 **Command - Filtered**
 
-```sh
+```shell
 curl -G localhost:8500/v1/catalog/service/api-internal --data-urlencode 'filter=NodeMeta.os == linux'
 ```
 
@@ -370,7 +370,7 @@ curl -G localhost:8500/v1/catalog/service/api-internal --data-urlencode 'filter=
 
 **Command - Unfiltered**
 
-```sh
+```shell
 curl -X GET localhost:8500/v1/health/node/node-1
 ```
 
@@ -411,7 +411,7 @@ curl -X GET localhost:8500/v1/health/node/node-1
 
 **Command - Filtered**
 
-```sh
+```shell
 curl -G localhost:8500/v1/health/node/node-1 --data-urlencode 'filter=ServiceName != ""'
 ```
 

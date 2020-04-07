@@ -1,6 +1,7 @@
 ---
 layout: docs
 page_title: 'Commands: Snapshot Agent'
+sidebar_title: 'agent'
 sidebar_current: docs-commands-snapshot-agent
 ---
 
@@ -33,7 +34,7 @@ leader and starting saving snapshots.
 
 As snapshots are saved, they will be reported in the log produced by the agent:
 
-```
+```text
 2016/11/16 21:21:13 [INFO] Snapshot agent running
 2016/11/16 21:21:13 [INFO] Waiting to obtain leadership...
 2016/11/16 21:21:13 [INFO] Obtained leadership
@@ -296,7 +297,7 @@ perform leader election for highly available operation, register itself with Con
 service discovery with health checks, take snapshots every hour, retain the last 30
 snapshots, and save snapshots into the current working directory:
 
-```
+```shell
 $ consul snapshot agent
 ```
 
@@ -304,7 +305,7 @@ To run a one-shot backup, set the backup interval to 0. This will run a single s
 and delete any old snapshots based on the retain settings, but it will not perform any
 leader election or service registration:
 
-```
+```shell
 $ consul snapshot agent -interval=0
 ```
 

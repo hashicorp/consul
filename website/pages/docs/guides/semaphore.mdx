@@ -38,7 +38,7 @@ can gracefully handle failures.
 This is done using the
 [Session HTTP API](/api/session.html#session_create).
 
-```sh
+```shell
 curl  -X PUT -d '{"Name": "db-semaphore"}' \
   http://localhost:8500/v1/session/create
 ```
@@ -61,7 +61,7 @@ is detached from the key, which can then be detected by the other contenders.
 
 Create the contender key by doing an `acquire` on `<prefix>/<session>` via `PUT`.
 
-```sh
+```shell
 curl -X PUT -d <body> http://localhost:8500/v1/kv/<prefix>/<session>?acquire=<session>
 ```
 
@@ -81,7 +81,7 @@ The next step is to create a single key to coordinate which holders are currentl
 reserving a slot. A good choice for this lock key is simply `<prefix>/.lock`. We will
 refer to this special coordinating key as `<lock>`.
 
-```sh
+```shell
 curl -X PUT -d <body> http://localhost:8500/v1/kv/<lock>?cas=0
 ```
 
@@ -101,7 +101,7 @@ of the current holders (initially only of the creator). A simple JSON body like 
 
 The current state of the semaphore is read by doing a `GET` on the entire `<prefix>`.
 
-```sh
+```shell
 curl http://localhost:8500/v1/kv/<prefix>?recurse
 ```
 
@@ -148,7 +148,7 @@ This performs an optimistic update.
 
 This is done with:
 
-```sh
+```shell
 curl -X PUT -d <Updated Lock Body> http://localhost:8500/v1/kv/<lock>?cas=<lock-modify-index>
 ```
 

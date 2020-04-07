@@ -40,7 +40,7 @@ Note that the configuration directory is not exposed as a volume, and will not p
 
 Configuration can also be added by passing the configuration JSON via environment variable CONSUL_LOCAL_CONFIG. Example:
 
-```sh
+```shell
  $ docker run \
    -d \
    -e CONSUL_LOCAL_CONFIG='{
@@ -65,7 +65,7 @@ You will need to tell Consul what its cluster address is when starting so that i
 
 1.  Environment Variables: Use the `CONSUL_CLIENT_INTERFACE` and `CONSUL_BIND_INTERFACE` environment variables. In the following example `eth0` is the network interface of the container.
 
-    ```sh
+    ```shell
     $ docker run \
       -d \
       -e CONSUL_CLIENT_INTERFACE='eth0' \
@@ -76,7 +76,7 @@ You will need to tell Consul what its cluster address is when starting so that i
 2.  Address Templates: You can declaratively specify the client and cluster addresses using the formats described in the [go-socketaddr](https://github.com/hashicorp/go-sockaddr) library.
     In the following example, the client and bind addresses are declaratively specified for the container network interface 'eth0'
 
-        ```sh
+        ```shell
         $ docker run \
           consul agent -server \
           -client='{{ GetInterfaceIP "eth0" }}' \
@@ -88,19 +88,19 @@ You will need to tell Consul what its cluster address is when starting so that i
 
 The official Consul container supports stopping, starting, and restarting. To stop a container, run `docker stop`:
 
-```sh
+```shell
 $ docker stop <container_id>
 ```
 
 To start a container, run `docker start`:
 
-```sh
+```shell
 $ docker start <container_id>
 ```
 
 To do an in-memory reload, send a SIGHUP to the container:
 
-```sh
+```shell
 $ docker kill --signal=HUP <container_id>
 ```
 

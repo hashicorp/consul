@@ -17,7 +17,7 @@ To enable gossip encryption, you need to use an encryption key when starting the
 
 You can use the Consul CLI command, [`consul keygen`](/docs/commands/keygen.html), to generate a cryptographically suitable key.
 
-```sh
+```shell
 $ consul keygen
 pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=
 ```
@@ -37,7 +37,7 @@ agent configuration file and then pass the file at startup with the [`-config-di
 }
 ```
 
-```sh
+```shell
 $ consul agent -config-dir=/etc/consul.d/
 ==> Starting Consul agent...
 ==> Starting Consul agent RPC...
@@ -61,7 +61,7 @@ Gossip encryption can also be enabled on an existing cluster, but requires sever
 
 **Step 1**: Generate an encryption key using `consul keygen`.
 
-```sh
+```shell
 $ consul keygen
 pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=
 ```

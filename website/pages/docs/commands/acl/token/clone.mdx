@@ -1,6 +1,7 @@
 ---
 layout: docs
 page_title: 'Commands: ACL Token Clone'
+sidebar_title: 'clone'
 sidebar_current: docs-commands-acl-token-clone
 ---
 
@@ -17,6 +18,7 @@ Usage: `consul acl token clone [options]`
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
 @include 'http_api_options_server.mdx'
 
 #### Command Options
@@ -38,7 +40,7 @@ Usage: `consul acl token clone [options]`
 
 Clone a token:
 
-```sh
+```shell
 $ consul acl token clone -id 59f8 -description "Clone of Super User"
 Token cloned successfully.
 AccessorID:   dcfa52ed-9288-b3ff-056d-255ef69d2d88
