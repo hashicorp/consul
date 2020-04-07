@@ -33,16 +33,17 @@ func TestRun_Stop(t *testing.T) {
 	t.Parallel()
 	plan := mustParse(t, `{"type":"noop"}`)
 
-	var expect uint64 = 1
+	var expect uint64 = 2
 	doneCh := make(chan struct{})
 	plan.Handler = func(idx uint64, val interface{}) {
+		// fmt.Println(expect)
 		if idx != expect {
 			t.Fatalf("Bad: %d %d", expect, idx)
 		}
 		if val != expect {
 			t.Fatalf("Bad: %d %d", expect, val)
 		}
-		if expect == 1 {
+		if expect == 2 {
 			close(doneCh)
 		}
 		expect++
@@ -80,7 +81,7 @@ func TestRun_Stop_Hybrid(t *testing.T) {
 	t.Parallel()
 	plan := mustParse(t, `{"type":"noop"}`)
 
-	var expect uint64 = 1
+	var expect uint64 = 2
 	doneCh := make(chan struct{})
 	plan.HybridHandler = func(blockParamVal BlockingParamVal, val interface{}) {
 		idxVal, ok := blockParamVal.(WaitIndexVal)
@@ -94,7 +95,7 @@ func TestRun_Stop_Hybrid(t *testing.T) {
 		if val != expect {
 			t.Fatalf("Bad: %d %d", expect, val)
 		}
-		if expect == 1 {
+		if expect == 2 {
 			close(doneCh)
 		}
 		expect++

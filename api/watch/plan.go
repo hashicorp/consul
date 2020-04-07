@@ -66,6 +66,8 @@ func (p *Plan) RunWithClientAndHclog(client *consulapi.Client, logger hclog.Logg
 
 	// Loop until we are canceled
 	failures := 0
+	first := true
+
 OUTER:
 	for !p.shouldStop() {
 		// Invoke the handler
@@ -118,12 +120,20 @@ OUTER:
 		p.lastResult = result
 		// If a hybrid handler exists use that
 		if p.HybridHandler != nil {
+			if p.FireOnCreate == "no" && first {
+				first = false
+				continue
+			}
 			p.HybridHandler(blockParamVal, result)
 		} else if p.Handler != nil {
 			idx, ok := blockParamVal.(WaitIndexVal)
 			if !ok {
 				watchLogger.Error("Handler only supports index-based " +
 					" watches but non index-based watch run. Skipping Handler.")
+			}
+			if p.FireOnCreate == "no" && first {
+				first = false
+				continue
 			}
 			p.Handler(uint64(idx), result)
 		}
@@ -198,6 +208,7 @@ OUTER:
 				logger.Printf("[ERR] consul.watch: Handler only supports index-based " +
 					" watches but non index-based watch run. Skipping Handler.")
 			}
+			fmt.Println("sdf")
 			p.Handler(uint64(idx), result)
 		}
 	}

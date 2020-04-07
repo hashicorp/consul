@@ -33,15 +33,16 @@ type cmd struct {
 	shutdownCh <-chan struct{}
 
 	// flags
-	watchType   string
-	key         string
-	prefix      string
-	service     string
-	tag         []string
-	passingOnly string
-	state       string
-	name        string
-	shell       bool
+	watchType    string
+	key          string
+	prefix       string
+	service      string
+	tag          []string
+	passingOnly  string
+	state        string
+	name         string
+	shell        bool
+	fireOnCreate string
 }
 
 func (c *cmd) init() {
@@ -68,7 +69,8 @@ func (c *cmd) init() {
 		"Specifies the states to watch. Optional for 'checks' type.")
 	c.flags.StringVar(&c.name, "name", "",
 		"Specifies an event name to watch. Only for 'event' type.")
-
+	c.flags.StringVar(&c.fireOnCreate, "fireoncreate", "yes",
+		"Specifies if the watch should fire immediately after creation.")
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
@@ -137,6 +139,7 @@ func (c *cmd) Run(args []string) int {
 	if c.name != "" {
 		params["name"] = c.name
 	}
+	params["fireOnCreate"] = c.fireOnCreate
 	if c.passingOnly != "" {
 		b, err := strconv.ParseBool(c.passingOnly)
 		if err != nil {
