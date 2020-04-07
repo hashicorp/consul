@@ -1,6 +1,7 @@
 ---
 layout: docs
 page_title: 'Commands: ACL Binding Rule Update'
+sidebar_title: 'update'
 sidebar_current: docs-commands-acl-binding-rule-update
 ---
 
@@ -20,6 +21,7 @@ Usage: `consul acl binding-rule update [options] [args]`
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
 @include 'http_api_options_server.mdx'
 
 #### Command Options
@@ -54,7 +56,7 @@ Usage: `consul acl binding-rule update [options] [args]`
 
 Update a binding rule:
 
-```sh
+```shell
 $ consul acl binding-rule update -id '0ec1bd2f-1d3b-bafb-d9bf-90ef04ab1890' \
     -selector 'serviceaccount.namespace==default'
 Binding rule updated successfully

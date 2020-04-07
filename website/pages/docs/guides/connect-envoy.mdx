@@ -51,7 +51,7 @@ local image that has both `envoy` and `consul` binaries.
 We'll create a local Docker image to use that contains both binaries. First
 create a `Dockerfile` containing the following:
 
-```sh
+```shell
 FROM consul:latest
 FROM envoyproxy/envoy:v1.10.0
 COPY --from=0 /bin/consul /bin/consul
@@ -63,7 +63,7 @@ new image based on the official Envoy image.
 
 This can be built locally with:
 
-```sh
+```shell
 docker build -t consul-envoy .
 ```
 
@@ -113,7 +113,7 @@ services {
 
 The Consul container can now be started with that configuration.
 
-```sh
+```shell
 $ docker run --rm -d -v$(pwd)/envoy_demo.hcl:/etc/consul/envoy_demo.hcl \
   --network host --name consul-agent consul:latest \
   agent -dev -config-file /etc/consul/envoy_demo.hcl
@@ -123,7 +123,7 @@ $ docker run --rm -d -v$(pwd)/envoy_demo.hcl:/etc/consul/envoy_demo.hcl \
 Running with `-d` like this puts the container into the background so we can
 continue in the same terminal. Log output can be seen using the name we gave.
 
-```sh
+```shell
 docker logs -f consul-agent
 ```
 
@@ -138,7 +138,7 @@ for this.
 
 Start the echo service on port 9090 as registered before.
 
-```sh
+```shell
 $ docker run -d --network host abrarov/tcp-echo --port 9090
 1a0b0c569016d00aadc4fc2b2954209b32b510966083f2a9e17d3afc6d185d87
 ```
@@ -147,7 +147,7 @@ $ docker run -d --network host abrarov/tcp-echo --port 9090
 
 We can now run "sidecar" proxy instances.
 
-```sh
+```shell
 $ docker run --rm -d --network host --name echo-proxy \
   consul-envoy -sidecar-for echo
 3f213a3cf9b7583a194dd0507a31e0188a03fc1b6e165b7f9336b0b1bb2baccb
@@ -196,7 +196,7 @@ via Consul service discovery.
 
 We can now see this working if we run netcat.
 
-```sh
+```shell
 $ docker run -ti --rm --network host gophernet/netcat localhost 9191
 Hello World!
 Hello World!
@@ -208,7 +208,7 @@ Hello World!
 To demonstrate that Connect is controlling authorization for the echo service,
 we can add an explicit deny rule.
 
-```sh
+```shell
 $ docker run -ti --rm --network host consul:latest intention create -deny client echo
 Created: client => echo (deny)
 ```
@@ -216,7 +216,7 @@ Created: client => echo (deny)
 Now, new connections will be denied. Depending on a few factors, netcat may not
 see the connection being closed but will not get a response from the service.
 
-```sh
+```shell
 $ docker run -ti --rm --network host gophernet/netcat localhost 9191
 Hello?
 Anyone there?

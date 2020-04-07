@@ -2,8 +2,8 @@ import DocsPage from '@hashicorp/react-docs-page'
 import Head from 'next/head'
 import Link from 'next/link'
 
-function DocsLayoutWrapper(pageMeta) {
-  function DocsLayout(props) {
+function DefaultLayoutWrapper(pageMeta) {
+  function DefaultLayout(props) {
     return (
       <DocsPage
         {...props}
@@ -27,9 +27,9 @@ function DocsLayoutWrapper(pageMeta) {
     )
   }
 
-  DocsLayout.getInitialProps = ({ asPath }) => ({ path: asPath })
+  DefaultLayout.getInitialProps = ({ asPath }) => ({ path: asPath })
 
-  return DocsLayout
+  return DefaultLayout
 }
 
-export default DocsLayoutWrapper
+export default DefaultLayoutWrapper

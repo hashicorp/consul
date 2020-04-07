@@ -1,12 +1,13 @@
 ---
 layout: docs
 page_title: 'Commands: Namespace List'
+sidebar_title: 'list'
 sidebar_current: docs-commands-namespace-list
 ---
 
-<%= enterprise_alert :consul %>
-
 # Consul Namespace List
+
+<EnterpriseAlert product="consul" />
 
 Command: `consul namespace list`
 
@@ -22,6 +23,7 @@ Usage: `consul namespace list`
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
 @include 'http_api_options_server.mdx'
 
 #### Command Options
@@ -35,7 +37,7 @@ Usage: `consul namespace list`
 
 List Namespaces:
 
-```sh
+```shell
 $ consul namespace list
 default:
    Description:
@@ -50,7 +52,7 @@ team-1:
 
 Showing Raft Metadata:
 
-```sh
+```shell
 $ consul namespace list -meta
 default:
    Description:
@@ -71,7 +73,7 @@ team-1:
 
 JSON Format:
 
-```sh
+```shell
 $ consul namespace list -format=json
 [
    {

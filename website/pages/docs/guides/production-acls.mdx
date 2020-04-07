@@ -71,7 +71,7 @@ initiate a rolling restart.
 To create the initial bootstrap token, use the `acl bootstrap` command on one
 of the servers.
 
-```sh
+```shell
 $ consul acl bootstrap
 ```
 
@@ -92,7 +92,7 @@ privileges to continue
 creating policies and tokens. Set the environment variable temporarily with
 `export`, so that it will not persist once you’ve closed the session.
 
-```sh
+```shell
 $ export CONSUL_HTTP_TOKEN=<your_token_here>
 ```
 
@@ -131,7 +131,7 @@ specified the policy, you can initialize it using the Consul
 CLI. To create a programmatic process, you could also use
 the HTTP API.
 
-```sh
+```shell
 $ consul acl policy create -name consul-server-one -rules @consul-server-one-policy.hcl
 ```
 
@@ -146,7 +146,7 @@ After creating the per-agent policies, create individual tokens for all the
 agents. You will need to include the policy in the `consul acl token create`
 command.
 
-```sh
+```shell
 $ consul acl token create -description "consul-server-one agent token" -policy-name consul-server-one
 ```
 
@@ -165,7 +165,7 @@ and ensure they are working correctly before applying the client tokens. Please
 review the Bootstrapping the ACL System [guide](/advanced/day-1-operations/acl-guide) for example of setting the token in the agent configuration
 file.
 
-```sh
+```shell
 $ consul acl set-agent-token -token "<your token here>" agent "<agent token here>"
 ```
 
@@ -226,7 +226,7 @@ First, create the policy that will grant write privileges to only the
 itself, update it's health checks, and write any of the fields in the [service
 definition](https://www.consul.io/docs/agent/services.html).
 
-```sh
+```shell
 # dashboard-policy.hcl
 service "dashboard" {
   policy = "write"
@@ -235,13 +235,13 @@ service "dashboard" {
 
 Use the policy definition to initiate the policy.
 
-```sh
+```shell
 $ consul acl policy create -name "dashboard-service" -rules @dashboard-policy.hcl
 ```
 
 Next, create a token with the policy.
 
-```sh
+```shell
 $ consul acl token create -description "Token for Dashboard Service" -policy-name dashboard-service
 ```
 
@@ -310,20 +310,20 @@ query_prefix "" {
 
 First, create the policy.
 
-```sh
+```shell
 $ consul acl policy create -name "dns-requests" -rules @dns-request-policy.hcl
 ```
 
 Next, create the token.
 
-```sh
+```shell
 $ consul acl token create -description "Token for DNS Requests" -policy-name dns-requests
 ```
 
 Finally, apply the token to the Consul agent serving DNS request in default token ACL
 configuration parameter.
 
-```sh
+```shell
 $ consul acl set-agent-token -token "<your token here>" default "<dns token>"
 ```
 
@@ -416,11 +416,11 @@ You can re-enable UI features (with flexible levels of access) by creating and
 distributing tokens to operators. Once you have a token, you can use it in the
 UI by adding it to the "ACL" page:
 
-![Access Controls](/assets/images/guides/access-controls.png 'Access Controls')
+![Access Controls](/img/guides/access-controls.png 'Access Controls')
 
 After saving a new token, you will be able to see your tokens.
 
-![Tokens](/assets/images/guides/tokens.png 'Tokens')
+![Tokens](/img/guides/tokens.png 'Tokens')
 
 The browser stores tokens that you add to the UI. This allows you to distribute
 different levels of privileges to operators. Like other tokens, it's up to the

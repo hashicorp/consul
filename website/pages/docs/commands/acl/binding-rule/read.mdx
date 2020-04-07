@@ -1,6 +1,7 @@
 ---
 layout: docs
 page_title: 'Commands: ACL Binding Rule Read'
+sidebar_title: 'read'
 sidebar_current: docs-commands-acl-binding-rule-read
 ---
 
@@ -17,6 +18,7 @@ Usage: `consul acl binding-rule read [options] [args]`
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
 @include 'http_api_options_server.mdx'
 
 #### Command Options
@@ -37,7 +39,7 @@ Usage: `consul acl binding-rule read [options] [args]`
 
 Get binding rule details:
 
-```sh
+```shell
 $ consul acl binding-rule read -id '0ec1bd2f-1d3b-bafb-d9bf-90ef04ab1890'
 ID:           0ec1bd2f-1d3b-bafb-d9bf-90ef04ab1890
 AuthMethod:   minikube
