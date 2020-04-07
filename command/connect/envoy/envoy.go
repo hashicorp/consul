@@ -396,68 +396,9 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		return nil, err
 	}
 
-	// See if we need to lookup grpcAddr
-	if c.grpcAddr == "" {
-		port, err := c.lookupGRPCPort()
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
-		}
-		if port <= 0 {
-			// This is the dev mode default and recommended production setting if
-			// enabled.
-			port = 8502
-			c.UI.Info(fmt.Sprintf("Defaulting to grpc port = %d", port))
-		}
-		c.grpcAddr = fmt.Sprintf("localhost:%v", port)
-	}
-
-	// Decide on TLS if the scheme is provided and indicates it, if the HTTP env
-	// suggests TLS is supported explicitly (CONSUL_HTTP_SSL) or implicitly
-	// (CONSUL_HTTP_ADDR) is https://
-	useTLS := false
-	if strings.HasPrefix(strings.ToLower(c.grpcAddr), "https://") {
-		useTLS = true
-	} else if useSSLEnv := os.Getenv(api.HTTPSSLEnvName); useSSLEnv != "" {
-		if enabled, err := strconv.ParseBool(useSSLEnv); err == nil {
-			useTLS = enabled
-		}
-	} else if strings.HasPrefix(strings.ToLower(httpCfg.Address), "https://") {
-		useTLS = true
-	}
-
-	// We want to allow grpcAddr set as host:port with no scheme but if the host
-	// is an IP this will fail to parse as a URL with "parse 127.0.0.1:8500: first
-	// path segment in URL cannot contain colon". On the other hand we also
-	// support both http(s)://host:port and unix:///path/to/file.
-	var agentAddr, agentPort, agentSock string
-	if grpcAddr := strings.TrimPrefix(c.grpcAddr, "unix://"); grpcAddr != c.grpcAddr {
-		// Path to unix socket
-		agentSock = grpcAddr
-	} else {
-		// Parse as host:port with option http prefix
-		grpcAddr = strings.TrimPrefix(c.grpcAddr, "http://")
-		grpcAddr = strings.TrimPrefix(c.grpcAddr, "https://")
-
-		var err error
-		agentAddr, agentPort, err = net.SplitHostPort(grpcAddr)
-		if err != nil {
-			return nil, fmt.Errorf("Invalid Consul HTTP address: %s", err)
-		}
-		if agentAddr == "" {
-			agentAddr = "127.0.0.1"
-		}
-
-		// We use STATIC for agent which means we need to resolve DNS names like
-		// `localhost` ourselves. We could use STRICT_DNS or LOGICAL_DNS with envoy
-		// but Envoy resolves `localhost` differently to go on macOS at least which
-		// causes paper cuts like default dev agent (which binds specifically to
-		// 127.0.0.1) isn't reachable since Envoy resolves localhost to `[::]` and
-		// can't connect.
-		agentIP, err := net.ResolveIPAddr("ip", agentAddr)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to resolve agent address: %s", err)
-		}
-		agentAddr = agentIP.String()
+	grpcAddr, err := c.grpcAddress(httpCfg)
+	if err != nil {
+		return nil, err
 	}
 
 	adminAddr, adminPort, err := net.SplitHostPort(c.adminBind)
@@ -499,12 +440,9 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 	}
 
 	return &BootstrapTplArgs{
+		GRPC:                  grpcAddr,
 		ProxyCluster:          cluster,
 		ProxyID:               c.proxyID,
-		AgentAddress:          agentAddr,
-		AgentPort:             agentPort,
-		AgentSocket:           agentSock,
-		AgentTLS:              useTLS,
 		AgentCAPEM:            caPEM,
 		AdminAccessLogPath:    adminAccessLogPath,
 		AdminBindAddress:      adminBindIP.String(),
@@ -547,6 +485,76 @@ func (c *cmd) generateConfig() ([]byte, error) {
 	}
 
 	return bsCfg.GenerateJSON(args)
+}
+
+// TODO: make method a function
+func (c *cmd) grpcAddress(httpCfg *api.Config) (GRPC, error) {
+	g := GRPC{}
+
+	addr := c.grpcAddr
+	// See if we need to lookup grpcAddr
+	if addr == "" {
+		port, err := c.lookupGRPCPort()
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
+		}
+		if port <= 0 {
+			// This is the dev mode default and recommended production setting if
+			// enabled.
+			port = 8502
+			c.UI.Info(fmt.Sprintf("Defaulting to grpc port = %d", port))
+		}
+		addr = fmt.Sprintf("localhost:%v", port)
+	}
+
+	// Decide on TLS if the scheme is provided and indicates it, if the HTTP env
+	// suggests TLS is supported explicitly (CONSUL_HTTP_SSL) or implicitly
+	// (CONSUL_HTTP_ADDR) is https://
+	if strings.HasPrefix(strings.ToLower(addr), "https://") {
+		g.AgentTLS = true
+	} else if useSSLEnv := os.Getenv(api.HTTPSSLEnvName); useSSLEnv != "" {
+		if enabled, err := strconv.ParseBool(useSSLEnv); err == nil {
+			g.AgentTLS = enabled
+		}
+	} else if strings.HasPrefix(strings.ToLower(httpCfg.Address), "https://") {
+		g.AgentTLS = true
+	}
+
+	// We want to allow grpcAddr set as host:port with no scheme but if the host
+	// is an IP this will fail to parse as a URL with "parse 127.0.0.1:8500: first
+	// path segment in URL cannot contain colon". On the other hand we also
+	// support both http(s)://host:port and unix:///path/to/file.
+	if grpcAddr := strings.TrimPrefix(addr, "unix://"); grpcAddr != addr {
+		// Path to unix socket
+		g.AgentSocket = grpcAddr
+	} else {
+		// Parse as host:port with option http prefix
+		grpcAddr = strings.TrimPrefix(addr, "http://")
+		grpcAddr = strings.TrimPrefix(addr, "https://")
+
+		var err error
+		g.AgentAddress, g.AgentPort, err = net.SplitHostPort(grpcAddr)
+		if err != nil {
+			return g, fmt.Errorf("Invalid Consul HTTP address: %s", err)
+		}
+		// TODO: isn't this case impossible because we have already set a default value
+		if g.AgentAddress == "" {
+			g.AgentAddress = "127.0.0.1"
+		}
+
+		// We use STATIC for agent which means we need to resolve DNS names like
+		// `localhost` ourselves. We could use STRICT_DNS or LOGICAL_DNS with envoy
+		// but Envoy resolves `localhost` differently to go on macOS at least which
+		// causes paper cuts like default dev agent (which binds specifically to
+		// 127.0.0.1) isn't reachable since Envoy resolves localhost to `[::]` and
+		// can't connect.
+		agentIP, err := net.ResolveIPAddr("ip", g.AgentAddress)
+		if err != nil {
+			return g, fmt.Errorf("Failed to resolve agent address: %s", err)
+		}
+		g.AgentAddress = agentIP.String()
+	}
+	return g, nil
 }
 
 func (c *cmd) lookupGRPCPort() (int, error) {
