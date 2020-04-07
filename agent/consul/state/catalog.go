@@ -1047,10 +1047,11 @@ func (s *Store) serviceNodes(ws memdb.WatchSet, serviceName string, connect bool
 	// Gateways are tracked in a separate table, and we append them to the result set.
 	if connect {
 		// Look up gateway nodes associated with the service
-		nodes, err := s.serviceTerminatingGatewayNodes(tx, serviceName, entMeta)
+		nodes, ch, err := s.serviceTerminatingGatewayNodes(tx, serviceName, entMeta)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed gateway nodes lookup: %v", err)
 		}
+		ws.Add(ch)
 		for i := 0; i < len(nodes); i++ {
 			results = append(results, nodes[i])
 		}
@@ -1989,7 +1990,7 @@ func (s *Store) checkServiceNodes(ws memdb.WatchSet, serviceName string, connect
 	// Gateways are tracked in a separate table, and we append them to the result set.
 	if connect {
 		// Look up gateway nodes associated with the service
-		nodes, err := s.serviceTerminatingGatewayNodes(tx, serviceName, entMeta)
+		nodes, _, err := s.serviceTerminatingGatewayNodes(tx, serviceName, entMeta)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed gateway nodes lookup: %v", err)
 		}
@@ -2534,26 +2535,29 @@ func (s *Store) terminatingGatewayServices(tx *memdb.Txn, name string, entMeta *
 	return tx.Get("terminating-gateway-services", "gateway", structs.NewServiceID(name, entMeta))
 }
 
-func (s *Store) serviceTerminatingGatewayNodes(tx *memdb.Txn, service string, entMeta *structs.EnterpriseMeta) (structs.ServiceNodes, error) {
+func (s *Store) serviceTerminatingGatewayNodes(tx *memdb.Txn, service string, entMeta *structs.EnterpriseMeta) (structs.ServiceNodes, <-chan struct{}, error) {
 	// Look up gateway name associated with the service
 	gw, err := s.serviceTerminatingGateway(tx, service, entMeta)
 	if err != nil {
-		return nil, fmt.Errorf("failed gateway lookup: %s", err)
+		return nil, nil, fmt.Errorf("failed gateway lookup: %s", err)
 	}
 
 	var ret structs.ServiceNodes
+	var watchChan <-chan struct{}
+
 	if gw != nil {
 		mapping := gw.(*structs.GatewayService)
 
 		// Look up nodes for gateway
 		gateways, err := s.catalogServiceNodeList(tx, mapping.Gateway.ID, "service", &mapping.Gateway.EnterpriseMeta)
 		if err != nil {
-			return nil, fmt.Errorf("failed service lookup: %s", err)
+			return nil, nil, fmt.Errorf("failed service lookup: %s", err)
 		}
 		for gateway := gateways.Next(); gateway != nil; gateway = gateways.Next() {
 			sn := gateway.(*structs.ServiceNode)
 			ret = append(ret, sn)
 		}
+		watchChan = gateways.WatchCh()
 	}
-	return ret, nil
+	return ret, watchChan, nil
 }

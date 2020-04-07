@@ -2144,14 +2144,15 @@ func TestStateStore_ConnectServiceNodes_Gateways(t *testing.T) {
 	// Typical services
 	assert.Nil(s.EnsureService(12, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
 	assert.Nil(s.EnsureService(13, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
-	assert.Nil(s.EnsureService(14, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"slave"}, Address: "", Port: 8001}))
+	assert.Nil(s.EnsureService(14, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}))
+	assert.False(watchFired(ws))
 
-	// Register a sidecar and a gateway for db
+	// Register a sidecar for db
 	assert.Nil(s.EnsureService(15, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
-	assert.Nil(s.EnsureService(16, "bar", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway", Service: "gateway", Port: 443}))
 	assert.True(watchFired(ws))
 
 	// Associate gateway with db
+	assert.Nil(s.EnsureService(16, "bar", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway", Service: "gateway", Port: 443}))
 	assert.Nil(s.EnsureConfigEntry(17, &structs.TerminatingGatewayConfigEntry{
 		Kind: "terminating-gateway",
 		Name: "gateway",
@@ -2161,6 +2162,7 @@ func TestStateStore_ConnectServiceNodes_Gateways(t *testing.T) {
 			},
 		},
 	}, nil))
+	assert.True(watchFired(ws))
 
 	// Read everything back.
 	ws = memdb.NewWatchSet()
@@ -2182,6 +2184,26 @@ func TestStateStore_ConnectServiceNodes_Gateways(t *testing.T) {
 	assert.Equal("bar", nodes[1].Node)
 	assert.Equal("gateway", nodes[1].ServiceName)
 	assert.Equal("gateway", nodes[1].ServiceID)
+	assert.Equal(443, nodes[1].ServicePort)
+
+	// Watch should fire when another gateway instance is registered
+	assert.Nil(s.EnsureService(18, "foo", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway-2", Service: "gateway", Port: 443}))
+	assert.True(watchFired(ws))
+
+	// Watch should fire when a gateway instance is de-registered
+	assert.Nil(s.DeleteService(29, "bar", "gateway", nil))
+	assert.True(watchFired(ws))
+
+	idx, nodes, err = s.ConnectServiceNodes(ws, "db", nil)
+	assert.Nil(err)
+	assert.Equal(idx, uint64(14))
+	assert.Len(nodes, 2)
+
+	// Check the new gateway
+	assert.Equal(structs.ServiceKindTerminatingGateway, nodes[1].ServiceKind)
+	assert.Equal("foo", nodes[1].Node)
+	assert.Equal("gateway", nodes[1].ServiceName)
+	assert.Equal("gateway-2", nodes[1].ServiceID)
 	assert.Equal(443, nodes[1].ServicePort)
 }
 
@@ -3541,10 +3563,13 @@ func TestStateStore_CheckConnectServiceNodes_Gateways(t *testing.T) {
 	// Typical services
 	assert.Nil(s.EnsureService(12, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
 	assert.Nil(s.EnsureService(13, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
-	assert.Nil(s.EnsureService(14, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"slave"}, Address: "", Port: 8001}))
+	assert.Nil(s.EnsureService(14, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}))
+	assert.False(watchFired(ws))
 
 	// Register a sidecar and a gateway for db
 	assert.Nil(s.EnsureService(15, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
+	assert.True(watchFired(ws))
+
 	assert.Nil(s.EnsureService(16, "bar", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway", Service: "gateway", Port: 443}))
 	assert.True(watchFired(ws))
 
@@ -3587,6 +3612,26 @@ func TestStateStore_CheckConnectServiceNodes_Gateways(t *testing.T) {
 	assert.Equal("bar", nodes[1].Node.Node)
 	assert.Equal("gateway", nodes[1].Service.Service)
 	assert.Equal("gateway", nodes[1].Service.ID)
+	assert.Equal(443, nodes[1].Service.Port)
+
+	// Watch should fire when another gateway instance is registered
+	assert.Nil(s.EnsureService(22, "foo", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway-2", Service: "gateway", Port: 443}))
+	assert.True(watchFired(ws))
+
+	// Watch should fire when a gateway instance is de-registered
+	assert.Nil(s.DeleteService(23, "bar", "gateway", nil))
+	assert.True(watchFired(ws))
+
+	idx, nodes, err = s.CheckConnectServiceNodes(ws, "db", nil)
+	assert.Nil(err)
+	assert.Equal(idx, uint64(23))
+	assert.Len(nodes, 2)
+
+	// Check new gateway
+	assert.Equal(structs.ServiceKindTerminatingGateway, nodes[1].Service.Kind)
+	assert.Equal("foo", nodes[1].Node.Node)
+	assert.Equal("gateway", nodes[1].Service.Service)
+	assert.Equal("gateway-2", nodes[1].Service.ID)
 	assert.Equal(443, nodes[1].Service.Port)
 }
 
