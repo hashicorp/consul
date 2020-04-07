@@ -1,0 +1,43 @@
+%consul-service-row > a > span:nth-child(2) {
+  font-size: 1.125rem;
+  font-weight: $typo-weight-medium;
+}
+%consul-service-row > a > span:first-child,
+%consul-service-row > a > span:nth-child(3) {
+  @extend %as-pseudo;
+}
+%consul-service-row .empty {
+  @extend %with-minus-square-fill-color-mask;
+  background-color: #7c8797;
+}
+%consul-service-row .kubernetes {
+  @extend %with-kubernetes-logo-color-icon;
+}
+%consul-service-row .terraform {
+  @extend %with-terraform-logo-color-icon;
+}
+%consul-service-row .nomad {
+  @extend %with-nomad-logo-color-icon;
+}
+%consul-service-row .consul {
+  @extend %with-consul-logo-color-icon;
+}
+%consul-service-row .aws {
+  @extend %with-logo-aws-color-icon;
+}
+%consul-service-row .passing {
+  @extend %with-check-circle-fill-color-mask;
+  background-color: $green-500;
+}
+%consul-service-row .warning {
+  @extend %with-alert-triangle-color-mask;
+  background-color: $orange-500;
+}
+%consul-service-row .critical {
+  @extend %with-cancel-square-fill-color-mask;
+  background-color: $red-500;
+}
+%consul-service-row .proxy::before {
+  @extend %with-swap-horizontal-mask, %as-pseudo;
+  background-color: $gray-500;
+}
