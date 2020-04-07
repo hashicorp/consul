@@ -1,6 +1,7 @@
 ---
 layout: docs
 page_title: Install Consul
+sidebar_title: 'Installing Consul'
 sidebar_current: docs-install-install
 description: |-
   Installing Consul is simple. You can download a precompiled binary, compile
@@ -44,30 +45,27 @@ a copy of [`git`](https://www.git-scm.com/) in your `PATH`.
 
 1. Clone the Consul repository from GitHub into your `GOPATH`:
 
-
-    ```shell
-    $ mkdir -p $GOPATH/src/github.com/hashicorp && cd !$
-    $ git clone https://github.com/hashicorp/consul.git
-    $ cd consul
-    ```
+   ```shell
+   $ mkdir -p $GOPATH/src/github.com/hashicorp && cd !$
+   $ git clone https://github.com/hashicorp/consul.git
+   $ cd consul
+   ```
 
 1. Bootstrap the project. This will download and compile libraries and tools
    needed to compile Consul:
 
-
-    ```shell
-    $ make tools
-    ```
+   ```shell
+   $ make tools
+   ```
 
 1. Build Consul for your current system and put the binary in `./bin/`
    (relative to the git checkout). The `make dev` target is just a shortcut that
    builds `consul` for only your local build environment (no cross-compiled
    targets).
 
-
-    ```shell
-    $ make dev
-    ```
+   ```shell
+   $ make dev
+   ```
 
 ## Verifying the Installation
 

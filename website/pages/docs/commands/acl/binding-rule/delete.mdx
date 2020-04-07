@@ -1,6 +1,7 @@
 ---
 layout: docs
 page_title: 'Commands: ACL Binding Rule Delete'
+sidebar_title: 'delete'
 sidebar_current: docs-commands-acl-binding-rule-delete
 ---
 
@@ -17,6 +18,7 @@ Usage: `consul acl binding-rule delete [options]`
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
 @include 'http_api_options_server.mdx'
 
 #### Command Options
@@ -32,7 +34,7 @@ Usage: `consul acl binding-rule delete [options]`
 
 Delete a binding rule:
 
-```sh
+```shell
 $ consul acl binding-rule delete -id 0ec1bd
 Binding rule "0ec1bd2f-1d3b-bafb-d9bf-90ef04ab1890" deleted successfully
 ```

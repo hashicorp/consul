@@ -1,12 +1,13 @@
 ---
 layout: docs
 page_title: 'Commands: Namespace Delete'
+sidebar_title: 'delete'
 sidebar_current: docs-commands-namespace-delete
 ---
 
-<%= enterprise_alert :consul %>
-
 # Consul Namespace Delete
+
+<EnterpriseAlert product="consul" />
 
 Command: `consul namespace delete`
 
@@ -20,12 +21,13 @@ Usage: `consul namespace delete <name>`
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
 @include 'http_api_options_server.mdx'
 
 ## Examples
 
 Delete a Namespace:
 
-```sh
+```shell
 $ consul namespace delete "team-1"
 ```

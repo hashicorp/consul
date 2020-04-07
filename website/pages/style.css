@@ -28,6 +28,7 @@
 @import '~@hashicorp/react-alert/dist/style.css';
 @import '~@hashicorp/react-text-split/dist/style.css';
 @import '~@hashicorp/react-text-split-with-code/dist/style.css';
+@import '~@hashicorp/react-enterprise-alert/dist/style.css';
 @import '~@hashicorp/react-mega-nav/style.css';
 @import '~@hashicorp/react-docs-page/style.css';
 

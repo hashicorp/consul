@@ -1,6 +1,7 @@
 ---
 layout: docs
 page_title: 'Commands: ACL Auth Method Read'
+sidebar_title: 'read'
 sidebar_current: docs-commands-acl-auth-method-read
 ---
 
@@ -17,6 +18,7 @@ Usage: `consul acl auth-method read [options] [args]`
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
 @include 'http_api_options_server.mdx'
 
 #### Command Options
@@ -36,7 +38,7 @@ Usage: `consul acl auth-method read [options] [args]`
 
 Get auth method details:
 
-```sh
+```shell
 $ consul acl auth-method read -name minikube
 Name:         minikube
 Type:         kubernetes

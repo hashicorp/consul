@@ -1,6 +1,7 @@
 ---
 layout: docs
 page_title: 'Commands: ACL Role List'
+sidebar_title: 'list'
 sidebar_current: docs-commands-acl-role-list
 ---
 
@@ -17,6 +18,7 @@ Usage: `consul acl role list`
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
 @include 'http_api_options_server.mdx'
 
 #### Command Options
@@ -34,7 +36,7 @@ Usage: `consul acl role list`
 
 Default listing.
 
-```sh
+```shell
 $ consul acl role list
 web-crawler:
    ID:           57147d87-6bf7-f794-1a6e-7d038c4e4ae9
@@ -52,7 +54,7 @@ archiver:
 
 Show Metadata.
 
-```sh
+```shell
 $ consul acl role list -meta
 web-crawler:
    ID:           57147d87-6bf7-f794-1a6e-7d038c4e4ae9

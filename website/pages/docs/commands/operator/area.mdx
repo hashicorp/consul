@@ -1,6 +1,7 @@
 ---
 layout: docs
 page_title: 'Commands: Operator Area'
+sidebar_title: 'area'
 sidebar_current: docs-commands-operator-area
 description: >
   The operator area command is used to interact with Consul's network area
@@ -9,13 +10,9 @@ description: >
 
 # Consul Operator Area
 
+<EnterpriseAlert product="consul" />
+
 Command: `consul operator area`
-
-[//]: # ' ~> The network area functionality described here is available only in '
-
-[//]: # ( [Consul Enterprise](https://www.hashicorp.com/products/consul/) version 0.8.0 and later. )
-
-<%= enterprise_alert :consul %>
 
 Consul Enterprise supports network areas, which are operator-defined relationships
 between servers in two different Consul datacenters. The operator area command is used to
@@ -59,6 +56,7 @@ Usage: `consul operator area create [options]`
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
 @include 'http_api_options_server.mdx'
 
 #### Command Options
@@ -75,7 +73,7 @@ Usage: `consul operator area create [options]`
 
 The output looks like this, displaying the ID of the newly-created network area:
 
-```
+```text
 Created area "d2872ec5-68ea-b862-b75d-0bee99aca100" with peer datacenter "other"!
 ```
 
@@ -90,6 +88,7 @@ Usage: `consul operator area delete [options]`
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
 @include 'http_api_options_server.mdx'
 
 #### Command Options
@@ -102,7 +101,7 @@ Usage: `consul operator area delete [options]`
 
 The output looks like this:
 
-```
+```text
 Deleted area "154941b0-80e2-9d69-c560-ab2c02807332"!
 ```
 
@@ -118,6 +117,7 @@ Usage: `consul operator area join [options] ADDRESSES`
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
 @include 'http_api_options_server.mdx'
 
 #### Command Options
@@ -130,7 +130,7 @@ Usage: `consul operator area join [options] ADDRESSES`
 
 The output looks like this:
 
-```
+```text
 Address   Joined  Error
 10.1.2.3  false   failed to connect to "10.1.2.3:8300": dial tcp 10.1.2.3:8300: i/o timeout
 10.1.2.4  true    (none)
@@ -151,11 +151,12 @@ Usage: `consul operator area list [options]`
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
 @include 'http_api_options_server.mdx'
 
 The output looks like this:
 
-```
+```text
 Area                                  PeerDC  RetryJoin
 6a52a0af-62e2-dad4-da60-e66acc37096c  dc2     10.1.2.3,10.1.2.4,10.1.2.5
 96e33424-f5ce-9fcd-ecab-27974e36678f  other   (none)
@@ -179,6 +180,7 @@ Usage: `consul operator area members [options]`
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
 @include 'http_api_options_server.mdx'
 
 #### Command Options
@@ -191,7 +193,7 @@ Usage: `consul operator area members [options]`
 
 The output looks like this:
 
-```
+```text
 Area                                  Node        Address         Status  Build  Protocol  DC   RTT
 6a52a0af-62e2-dad4-da60-e66acc37096c  node-1.dc1  127.0.0.1:8300  alive   0.8.0  2         dc1  0s
 6a52a0af-62e2-dad4-da60-e66acc37096c  node-2.dc1  127.0.0.2:8300  alive   0.8.0  2         dc1  594.191µs
@@ -232,6 +234,7 @@ Usage: `consul operator area update [options]`
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
 @include 'http_api_options_server.mdx'
 
 #### Command Options
@@ -248,7 +251,7 @@ Usage: `consul operator area update [options]`
 
 The output looks like this:
 
-```
+```text
 Updated area "d2872ec5-68ea-b862-b75d-0bee99aca100"
 ```
 
