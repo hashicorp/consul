@@ -656,7 +656,7 @@ func TestInternal_ServiceDump_Kind(t *testing.T) {
 	})
 }
 
-func TestCatalog_TerminatingGatewayServices(t *testing.T) {
+func TestInternal_TerminatingGatewayServices(t *testing.T) {
 	t.Parallel()
 
 	dir1, s1 := testServer(t)
@@ -713,7 +713,7 @@ func TestCatalog_TerminatingGatewayServices(t *testing.T) {
 			Check: &structs.HealthCheck{
 				Name:      "gateway",
 				Status:    api.HealthPassing,
-				ServiceID: args.Service.Service,
+				ServiceID: "gateway",
 			},
 		}
 		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
@@ -788,7 +788,7 @@ func TestCatalog_TerminatingGatewayServices(t *testing.T) {
 	})
 }
 
-func TestCatalog_TerminatingGatewayServices_ACLFiltering(t *testing.T) {
+func TestInternal_TerminatingGatewayServices_ACLFiltering(t *testing.T) {
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -797,14 +797,13 @@ func TestCatalog_TerminatingGatewayServices_ACLFiltering(t *testing.T) {
 		c.ACLEnforceVersion8 = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
-		c.ACLEnforceVersion8 = false
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
 	{
 		var out struct{}
@@ -855,7 +854,7 @@ func TestCatalog_TerminatingGatewayServices_ACLFiltering(t *testing.T) {
 			Check: &structs.HealthCheck{
 				Name:      "gateway",
 				Status:    api.HealthPassing,
-				ServiceID: args.Service.Service,
+				ServiceID: "gateway",
 			},
 		}
 		args.Token = "root"

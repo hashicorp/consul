@@ -97,6 +97,7 @@ func terminatingGatewayServicesTableSchema() *memdb.TableSchema {
 	}
 }
 
+// TODO (gateways) (freddy) Needs OSS/ENT split to ensure ns is normalized
 type ServiceIDIndex struct {
 	Field string
 }
@@ -118,8 +119,12 @@ func (index *ServiceIDIndex) FromObject(obj interface{}) (bool, []byte, error) {
 		return false, nil, fmt.Errorf("Field 'ServiceID' is not of type structs.ServiceID")
 	}
 
+	// Ensure namespace is not blank
+	newMeta := structs.EnterpriseMetaInitializer(sid.NamespaceOrDefault())
+	newSID := structs.NewServiceID(sid.ID, &newMeta)
+
 	// Enforce lowercase and add null character as terminator
-	id := strings.ToLower(sid.ID) + "\x00"
+	id := strings.ToLower(newSID.String()) + "\x00"
 
 	return true, []byte(id), nil
 }
@@ -128,14 +133,19 @@ func (index *ServiceIDIndex) FromArgs(args ...interface{}) ([]byte, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("must provide only a single argument")
 	}
-	arg, ok := args[0].(structs.ServiceID)
+	sid, ok := args[0].(structs.ServiceID)
 	if !ok {
 		return nil, fmt.Errorf("argument must be of type structs.ServiceID: %#v", args[0])
 	}
-	arg.ID = strings.ToLower(arg.ID)
 
-	// Add the null character as a terminator
-	return []byte(arg.String() + "\x00"), nil
+	// Ensure namespace is not blank
+	newMeta := structs.EnterpriseMetaInitializer(sid.NamespaceOrDefault())
+	newSID := structs.NewServiceID(sid.ID, &newMeta)
+
+	// Enforce lowercase and add null character as terminator
+	id := strings.ToLower(newSID.String()) + "\x00"
+
+	return []byte(strings.ToLower(id)), nil
 }
 
 func (index *ServiceIDIndex) PrefixFromArgs(args ...interface{}) ([]byte, error) {
@@ -1036,24 +1046,13 @@ func (s *Store) serviceNodes(ws memdb.WatchSet, serviceName string, connect bool
 	// If we are querying for Connect nodes, the associated proxy might be a gateway.
 	// Gateways are tracked in a separate table, and we append them to the result set.
 	if connect {
-		// Look up gateway name associated with the service
-		result, err := s.serviceTerminatingGateway(tx, serviceName, entMeta)
+		// Look up gateway nodes associated with the service
+		nodes, err := s.serviceTerminatingGatewayNodes(tx, serviceName, entMeta)
 		if err != nil {
-			return 0, nil, fmt.Errorf("failed gateway lookup: %s", err)
+			return 0, nil, fmt.Errorf("failed gateway nodes lookup: %v", err)
 		}
-		if result != nil {
-			mapping := result.(*structs.GatewayService)
-
-			// Look up nodes for gateway
-			gateways, err := s.catalogServiceNodeList(tx, mapping.Gateway.ID, "service", &mapping.Gateway.EnterpriseMeta)
-			if err != nil {
-				return 0, nil, fmt.Errorf("failed service lookup: %s", err)
-			}
-			ws.Add(gateways.WatchCh())
-
-			for gateway := gateways.Next(); gateway != nil; gateway = gateways.Next() {
-				results = append(results, gateway.(*structs.ServiceNode))
-			}
+		for i := 0; i < len(nodes); i++ {
+			results = append(results, nodes[i])
 		}
 	}
 
@@ -1989,24 +1988,14 @@ func (s *Store) checkServiceNodes(ws memdb.WatchSet, serviceName string, connect
 	// If we are querying for Connect nodes, the associated proxy might be a gateway.
 	// Gateways are tracked in a separate table, and we append them to the result set.
 	if connect {
-		// Look up gateway name associated with the service
-		result, err := s.serviceTerminatingGateway(tx, serviceName, entMeta)
+		// Look up gateway nodes associated with the service
+		nodes, err := s.serviceTerminatingGatewayNodes(tx, serviceName, entMeta)
 		if err != nil {
-			return 0, nil, fmt.Errorf("failed gateway lookup: %s", err)
+			return 0, nil, fmt.Errorf("failed gateway nodes lookup: %v", err)
 		}
-		if result != nil {
-			mapping := result.(*structs.GatewayService)
-
-			// Look up nodes for gateway
-			gateways, err := s.catalogServiceNodeList(tx, mapping.Gateway.ID, "service", &mapping.Gateway.EnterpriseMeta)
-			if err != nil {
-				return 0, nil, fmt.Errorf("failed service lookup: %s", err)
-			}
-			for gateway := gateways.Next(); gateway != nil; gateway = gateways.Next() {
-				sn := gateway.(*structs.ServiceNode)
-				results = append(results, sn)
-				serviceNames[sn.ServiceName] = struct{}{}
-			}
+		for i := 0; i < len(nodes); i++ {
+			results = append(results, nodes[i])
+			serviceNames[nodes[i].ServiceName] = struct{}{}
 		}
 	}
 
@@ -2394,7 +2383,7 @@ func (s *Store) updateTerminatingGatewayServices(tx *memdb.Txn, idx uint64, conf
 	for _, svc := range entry.Services {
 		// If the service is a wildcard we need to target all services within the namespace
 		if svc.Name == structs.WildcardSpecifier {
-			services, err := s.catalogServiceList(tx, entMeta, false)
+			services, err := s.catalogServiceListByKind(tx, structs.ServiceKindTypical, entMeta)
 			if err != nil {
 				return fmt.Errorf("failed querying services: %s", err)
 			}
@@ -2403,8 +2392,8 @@ func (s *Store) updateTerminatingGatewayServices(tx *memdb.Txn, idx uint64, conf
 			for service := services.Next(); service != nil; service = services.Next() {
 				sn := service.(*structs.ServiceNode)
 
-				// Only associate typical non-consul services with gateways
-				if sn.ServiceKind != structs.ServiceKindTypical || sn.ServiceName == "consul" {
+				// Only associate non-consul services with gateways
+				if sn.ServiceName == "consul" {
 					continue
 				}
 
@@ -2543,4 +2532,28 @@ func (s *Store) serviceTerminatingGateway(tx *memdb.Txn, name string, entMeta *s
 
 func (s *Store) terminatingGatewayServices(tx *memdb.Txn, name string, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("terminating-gateway-services", "gateway", structs.NewServiceID(name, entMeta))
+}
+
+func (s *Store) serviceTerminatingGatewayNodes(tx *memdb.Txn, service string, entMeta *structs.EnterpriseMeta) (structs.ServiceNodes, error) {
+	// Look up gateway name associated with the service
+	gw, err := s.serviceTerminatingGateway(tx, service, entMeta)
+	if err != nil {
+		return nil, fmt.Errorf("failed gateway lookup: %s", err)
+	}
+
+	var ret structs.ServiceNodes
+	if gw != nil {
+		mapping := gw.(*structs.GatewayService)
+
+		// Look up nodes for gateway
+		gateways, err := s.catalogServiceNodeList(tx, mapping.Gateway.ID, "service", &mapping.Gateway.EnterpriseMeta)
+		if err != nil {
+			return nil, fmt.Errorf("failed service lookup: %s", err)
+		}
+		for gateway := gateways.Next(); gateway != nil; gateway = gateways.Next() {
+			sn := gateway.(*structs.ServiceNode)
+			ret = append(ret, sn)
+		}
+	}
+	return ret, nil
 }

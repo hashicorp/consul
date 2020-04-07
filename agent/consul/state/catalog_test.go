@@ -4352,15 +4352,37 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 	assert.Nil(t, s.EnsureNode(11, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
 	assert.Nil(t, s.EnsureNode(12, &structs.Node{Node: "baz", Address: "127.0.0.2"}))
 
-	// Typical services spread across two nodes
+	// Typical services and some consul services spread across two nodes
 	assert.Nil(t, s.EnsureService(13, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
-	assert.Nil(t, s.EnsureService(14, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
+	assert.Nil(t, s.EnsureService(15, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
+	assert.Nil(t, s.EnsureService(16, "bar", &structs.NodeService{ID: "consul", Service: "consul", Tags: nil}))
+	assert.Nil(t, s.EnsureService(17, "bar", &structs.NodeService{ID: "consul", Service: "consul", Tags: nil}))
+
+	// Add ingress gateway and a connect proxy, neither should get picked up by terminating gateway
+	ingressNS := &structs.NodeService{
+		Kind:    structs.ServiceKindIngressGateway,
+		ID:      "ingress",
+		Service: "ingress",
+		Port:    8443,
+	}
+	assert.Nil(t, s.EnsureService(18, "baz", ingressNS))
+
+	proxyNS := &structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "db proxy",
+		Service: "db proxy",
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "db",
+		},
+		Port: 8000,
+	}
+	assert.Nil(t, s.EnsureService(19, "foo", proxyNS))
 
 	// Register a gateway
-	assert.Nil(t, s.EnsureService(16, "baz", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway", Service: "gateway", Port: 443}))
+	assert.Nil(t, s.EnsureService(20, "baz", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway", Service: "gateway", Port: 443}))
 
 	// Associate gateway with db and api
-	assert.Nil(t, s.EnsureConfigEntry(17, &structs.TerminatingGatewayConfigEntry{
+	assert.Nil(t, s.EnsureConfigEntry(21, &structs.TerminatingGatewayConfigEntry{
 		Kind: "terminating-gateway",
 		Name: "gateway",
 		Services: []structs.LinkedService{
@@ -4378,7 +4400,7 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 	ws = memdb.NewWatchSet()
 	idx, out, err := s.TerminatingGatewayServices(ws, "gateway", nil)
 	assert.Nil(t, err)
-	assert.Equal(t, idx, uint64(17))
+	assert.Equal(t, idx, uint64(21))
 	assert.Len(t, out, 2)
 
 	expect := structs.GatewayServices{
@@ -4396,7 +4418,7 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 	assert.Equal(t, expect, out)
 
 	// Associate gateway with a wildcard and add TLS config
-	assert.Nil(t, s.EnsureConfigEntry(18, &structs.TerminatingGatewayConfigEntry{
+	assert.Nil(t, s.EnsureConfigEntry(22, &structs.TerminatingGatewayConfigEntry{
 		Kind: "terminating-gateway",
 		Name: "gateway",
 		Services: []structs.LinkedService{
@@ -4423,7 +4445,7 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 	ws = memdb.NewWatchSet()
 	idx, out, err = s.TerminatingGatewayServices(ws, "gateway", nil)
 	assert.Nil(t, err)
-	assert.Equal(t, idx, uint64(18))
+	assert.Equal(t, idx, uint64(22))
 	assert.Len(t, out, 2)
 
 	expect = structs.GatewayServices{
@@ -4444,12 +4466,12 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 	assert.Equal(t, expect, out)
 
 	// Add a service covered by wildcard
-	assert.Nil(t, s.EnsureService(19, "bar", &structs.NodeService{ID: "redis", Service: "redis", Tags: nil, Address: "", Port: 6379}))
+	assert.Nil(t, s.EnsureService(23, "bar", &structs.NodeService{ID: "redis", Service: "redis", Tags: nil, Address: "", Port: 6379}))
 	assert.True(t, watchFired(ws))
 
 	idx, out, err = s.TerminatingGatewayServices(ws, "gateway", nil)
 	assert.Nil(t, err)
-	assert.Equal(t, idx, uint64(19))
+	assert.Equal(t, idx, uint64(23))
 	assert.Len(t, out, 3)
 
 	expect = structs.GatewayServices{
@@ -4478,12 +4500,12 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 	assert.Equal(t, expect, out)
 
 	// Delete a service covered by wildcard
-	assert.Nil(t, s.DeleteService(20, "bar", "redis", nil))
+	assert.Nil(t, s.DeleteService(24, "bar", "redis", nil))
 	assert.True(t, watchFired(ws))
 
 	idx, out, err = s.TerminatingGatewayServices(ws, "gateway", nil)
 	assert.Nil(t, err)
-	assert.Equal(t, idx, uint64(20))
+	assert.Equal(t, idx, uint64(24))
 	assert.Len(t, out, 2)
 
 	expect = structs.GatewayServices{
@@ -4504,7 +4526,7 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 	assert.Equal(t, expect, out)
 
 	// Create a new entry that only leaves one service
-	assert.Nil(t, s.EnsureConfigEntry(21, &structs.TerminatingGatewayConfigEntry{
+	assert.Nil(t, s.EnsureConfigEntry(25, &structs.TerminatingGatewayConfigEntry{
 		Kind: "terminating-gateway",
 		Name: "gateway",
 		Services: []structs.LinkedService{
@@ -4517,7 +4539,7 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 
 	idx, out, err = s.TerminatingGatewayServices(ws, "gateway", nil)
 	assert.Nil(t, err)
-	assert.Equal(t, idx, uint64(21))
+	assert.Equal(t, idx, uint64(25))
 	assert.Len(t, out, 1)
 
 	// previously associated services should not be present
@@ -4531,7 +4553,7 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 	assert.Equal(t, expect, out)
 
 	// Attempt to associate a different gateway with services that include db
-	assert.Error(t, s.EnsureConfigEntry(22, &structs.TerminatingGatewayConfigEntry{
+	assert.Error(t, s.EnsureConfigEntry(26, &structs.TerminatingGatewayConfigEntry{
 		Kind: "terminating-gateway",
 		Name: "gateway2",
 		Services: []structs.LinkedService{
@@ -4542,11 +4564,11 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 	}, nil), "service \"db\" is associated with different gateway")
 
 	// Deleting the config entry should remove existing mappings
-	assert.Nil(t, s.DeleteConfigEntry(23, "terminating-gateway", "gateway", nil))
+	assert.Nil(t, s.DeleteConfigEntry(26, "terminating-gateway", "gateway", nil))
 	assert.True(t, watchFired(ws))
 
 	idx, out, err = s.TerminatingGatewayServices(ws, "gateway", nil)
 	assert.Nil(t, err)
-	assert.Equal(t, idx, uint64(23))
+	assert.Equal(t, idx, uint64(26))
 	assert.Len(t, out, 0)
 }
