@@ -1,11 +1,12 @@
-export default function(visitable, clickable, attribute, collection, page, filter) {
+export default function(visitable, clickable, text, attribute, collection, page, filter) {
+  const service = {
+    name: text('a span:nth-child(2)'),
+    service: clickable('a'),
+    externalSource: attribute('data-test-external-source', '[data-test-external-source]'),
+  };
   return {
     visit: visitable('/:dc/services'),
-    services: collection('[data-test-service]', {
-      name: attribute('data-test-service'),
-      service: clickable('a'),
-      externalSource: attribute('data-test-external-source', 'a span'),
-    }),
+    services: collection('.consul-service-list > ul > li:not(:first-child)', service),
     dcs: collection('[data-test-datacenter-picker]', {
       name: clickable('a'),
     }),

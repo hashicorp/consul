@@ -6,7 +6,21 @@ Feature: dc / services / dc-switch : Switching Datacenters
       - dc-1
       - dc-2
     ---
-    And 6 service models
+    And 6 service models from yaml
+    ---
+      - Name: Service-0
+        Kind: consul
+      - Name: Service-1
+        Kind: consul
+      - Name: Service-2
+        Kind: consul
+      - Name: Service-3
+        Kind: consul
+      - Name: Service-4
+        Kind: consul
+      - Name: Service-5
+        Kind: consul
+    ---
     When I visit the services page for yaml
     ---
       dc: dc-1
