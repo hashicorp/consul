@@ -561,6 +561,28 @@ func TestGenerateConfig(t *testing.T) {
 				LocalAgentClusterName: xds.LocalAgentClusterName,
 			},
 		},
+		{
+			Name:  "CONSUL_HTTP_ADDR-with-https-scheme-enables-tls",
+			Flags: []string{"-proxy-id", "test-proxy"},
+			Env:   []string{"CONSUL_HTTP_ADDR=https://127.0.0.1:8888"},
+			WantArgs: BootstrapTplArgs{
+				EnvoyVersion: defaultEnvoyVersion,
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				// Should resolve IP, note this might not resolve the same way
+				// everywhere which might make this test brittle but not sure what else
+				// to do.
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502",
+					AgentTLS:     true,
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+			},
+		},
 	}
 
 	copyAndReplaceAll := func(s []string, old, new string) []string {

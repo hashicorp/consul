@@ -8,7 +8,6 @@ import (
 	"net"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
 
 	"github.com/mitchellh/cli"
@@ -394,7 +393,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 	httpCfg := api.DefaultConfig()
 	c.http.MergeOntoConfig(httpCfg)
 
-	// Trigger the Client init to do any last-minute updates to the Config.
+	// api.NewClient normalizes some values (Token, Scheme) on the Config.
 	if _, err := api.NewClient(httpCfg); err != nil {
 		return nil, err
 	}
@@ -510,16 +509,15 @@ func (c *cmd) grpcAddress(httpCfg *api.Config) (GRPC, error) {
 		addr = fmt.Sprintf("localhost:%v", port)
 	}
 
+	// TODO: parse addr as a url instead of strings.HasPrefix/TrimPrefix
+
 	// Decide on TLS if the scheme is provided and indicates it, if the HTTP env
 	// suggests TLS is supported explicitly (CONSUL_HTTP_SSL) or implicitly
 	// (CONSUL_HTTP_ADDR) is https://
-	if strings.HasPrefix(strings.ToLower(addr), "https://") {
+	switch {
+	case strings.HasPrefix(strings.ToLower(addr), "https://"):
 		g.AgentTLS = true
-	} else if useSSLEnv := os.Getenv(api.HTTPSSLEnvName); useSSLEnv != "" {
-		if enabled, err := strconv.ParseBool(useSSLEnv); err == nil {
-			g.AgentTLS = enabled
-		}
-	} else if strings.HasPrefix(strings.ToLower(httpCfg.Address), "https://") {
+	case httpCfg.Scheme == "https":
 		g.AgentTLS = true
 	}
 
@@ -536,13 +534,10 @@ func (c *cmd) grpcAddress(httpCfg *api.Config) (GRPC, error) {
 		grpcAddr = strings.TrimPrefix(addr, "https://")
 
 		var err error
-		g.AgentAddress, g.AgentPort, err = net.SplitHostPort(grpcAddr)
+		var host string
+		host, g.AgentPort, err = net.SplitHostPort(grpcAddr)
 		if err != nil {
 			return g, fmt.Errorf("Invalid Consul HTTP address: %s", err)
-		}
-		// TODO: isn't this case impossible because we have already set a default value
-		if g.AgentAddress == "" {
-			g.AgentAddress = "127.0.0.1"
 		}
 
 		// We use STATIC for agent which means we need to resolve DNS names like
@@ -551,7 +546,7 @@ func (c *cmd) grpcAddress(httpCfg *api.Config) (GRPC, error) {
 		// causes paper cuts like default dev agent (which binds specifically to
 		// 127.0.0.1) isn't reachable since Envoy resolves localhost to `[::]` and
 		// can't connect.
-		agentIP, err := net.ResolveIPAddr("ip", g.AgentAddress)
+		agentIP, err := net.ResolveIPAddr("ip", host)
 		if err != nil {
 			return g, fmt.Errorf("Failed to resolve agent address: %s", err)
 		}
