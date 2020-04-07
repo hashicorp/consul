@@ -1,6 +1,7 @@
 ---
 layout: docs
 page_title: 'Commands: Keyring'
+sidebar_title: 'keyring'
 sidebar_current: docs-commands-keyring
 ---
 
@@ -67,7 +68,7 @@ all nodes and all datacenters to provide a simple and easy to understand view of
 the cluster. The following is some example output from a cluster with two
 datacenters, each which consist of one server and one client:
 
-```
+```text
 ==> Gathering installed encryption keys...
 ==> Done!
 
@@ -97,7 +98,7 @@ followed by a simple list of nodes which had errors, and the actual text of the
 error. Below is sample output from the same cluster as above, if we try to do
 something that causes an error; in this case, trying to remove the primary key:
 
-```
+```text
 ==> Removing gossip encryption key...
 
 dc1 (LAN) error: 2/2 nodes reported failure

@@ -1,6 +1,7 @@
 ---
 layout: docs
 page_title: 'Commands: ACL Translate Rules'
+sidebar_title: 'translate-rules'
 sidebar_current: docs-commands-acl-translate-rules
 ---
 
@@ -20,6 +21,7 @@ Usage: `consul acl translate rules [options] TRANSLATE`
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
 @include 'http_api_options_server.mdx'
 
 #### Command Options
@@ -41,30 +43,30 @@ Usage: `consul acl translate rules [options] TRANSLATE`
 
 Translate rules within a file:
 
-```sh
+```shell
 $ consul acl translate-rules @rules.hcl
 ```
 
 Translate rules from stdin:
 
-```sh
+```shell
 $ consul acl translate-rules -
 ```
 
 Translate rules from a string argument:
 
-```sh
+```shell
 $ consul acl translate-rules 'key "" { policy = "write"}'
 ```
 
 Translate rules for a legacy ACL token using its SecretID passed from stdin:
 
-```sh
+```shell
 $ consul acl translate-rules --token-secret -
 ```
 
 Translate rules for a legacy ACL token using its AccessorID:
 
-```sh
+```shell
 $ consul acl translate-rules 429cd746-03d5-4bbb-a83a-18b164171c89
 ```

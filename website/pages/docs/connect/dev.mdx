@@ -1,6 +1,7 @@
 ---
 layout: docs
 page_title: Connect - Development and Debugging
+sidebar_title: 'Develop and Debug'
 sidebar_current: docs-connect-dev
 description: >-
   It is often necessary to connect to a service for development or debugging. If
@@ -30,7 +31,7 @@ we want to connect to via `psql`, but the only non-loopback listener is
 via Connect. Let's also assume that we have an ACL token to identify as
 `operator-mitchellh`. We can start a local proxy:
 
-```sh
+```shell
 $ consul connect proxy \
   -service operator-mitchellh \
   -upstream postgresql:8181
@@ -63,7 +64,7 @@ For example, if you have an ACL token that allows `service:write` for
 `web` and you want to connect to the `postgresql` service as "web", you
 can start a proxy like so:
 
-```sh
+```shell
 $ consul connect proxy \
   -service web \
   -upstream postgresql:8181

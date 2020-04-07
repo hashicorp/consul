@@ -1,6 +1,7 @@
 ---
 layout: docs
 page_title: 'Commands: ACL Role Read'
+sidebar_title: 'read'
 sidebar_current: docs-commands-acl-role-read
 ---
 
@@ -17,6 +18,7 @@ Usage: `consul acl role read [options] [args]`
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
 @include 'http_api_options_server.mdx'
 
 #### Command Options
@@ -39,7 +41,7 @@ Usage: `consul acl role read [options] [args]`
 
 Get role details:
 
-```sh
+```shell
 $ consul acl role read -id 57147d87-6bf7-f794-1a6e-7d038c4e4ae9
 ID:           57147d87-6bf7-f794-1a6e-7d038c4e4ae9
 Name:         crawler
@@ -50,7 +52,7 @@ Policies:
 
 Get role details by name:
 
-```sh
+```shell
 $ consul acl role read -name archiver
 ID:           a365fdc9-ac71-e754-0645-7ab6bd747301
 Name:         archiver

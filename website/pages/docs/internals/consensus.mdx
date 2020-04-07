@@ -1,6 +1,7 @@
 ---
 layout: docs
 page_title: Consensus Protocol
+sidebar_title: 'Consensus Protocol'
 sidebar_current: docs-internals-consensus
 description: >-
   Consul uses a consensus protocol to provide Consistency as defined by CAP. The
@@ -179,44 +180,48 @@ server deployment is _**highly**_ discouraged as data loss is inevitable in a
 failure scenario.
 
 <table class="table table-bordered table-striped">
-  <tr>
-    <th>Servers</th>
-    <th>Quorum Size</th>
-    <th>Failure Tolerance</th>
-  </tr>
-  <tr>
-    <td>1</td>
-    <td>1</td>
-    <td>0</td>
-  </tr>
-  <tr>
-    <td>2</td>
-    <td>2</td>
-    <td>0</td>
-  </tr>
-  <tr class="warning">
-    <td>3</td>
-    <td>2</td>
-    <td>1</td>
-  </tr>
-  <tr>
-    <td>4</td>
-    <td>3</td>
-    <td>1</td>
-  </tr>
-  <tr class="warning">
-    <td>5</td>
-    <td>3</td>
-    <td>2</td>
-  </tr>
-  <tr>
-    <td>6</td>
-    <td>4</td>
-    <td>2</td>
-  </tr>
-  <tr>
-    <td>7</td>
-    <td>4</td>
-    <td>3</td>
-  </tr>
+  <thead>
+    <tr>
+      <th>Servers</th>
+      <th>Quorum Size</th>
+      <th>Failure Tolerance</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td>1</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>2</td>
+      <td>0</td>
+    </tr>
+    <tr class="warning">
+      <td>3</td>
+      <td>2</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>3</td>
+      <td>1</td>
+    </tr>
+    <tr class="warning">
+      <td>5</td>
+      <td>3</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td>4</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>7</td>
+      <td>4</td>
+      <td>3</td>
+    </tr>
+  </tbody>
 </table>

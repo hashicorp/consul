@@ -1,6 +1,7 @@
 ---
 layout: docs
 page_title: 'Commands: Intention Create'
+sidebar_title: 'create'
 sidebar_current: docs-commands-intention-create
 ---
 
@@ -39,12 +40,18 @@ Usage: `consul intention create [options] -f FILE...`
 
 Create an intention `web => db`:
 
-    $ consul intention create web db
+```shell
+$ consul intention create web db
+```
 
 Create intentions from a set of files:
 
-    $ consul intention create -file one.json two.json
+```shell
+$ consul intention create -file one.json two.json
+```
 
 Create intentions from a directory using shell expansion:
 
-    $ consul intention create -file intentions/*.json
+```shell
+$ consul intention create -file intentions/*.json
+```

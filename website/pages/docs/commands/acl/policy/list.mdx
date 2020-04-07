@@ -1,6 +1,7 @@
 ---
 layout: docs
 page_title: 'Commands: ACL Policy List'
+sidebar_title: 'list'
 sidebar_current: docs-commands-acl-policy-list
 ---
 
@@ -17,6 +18,7 @@ Usage: `consul acl policy list`
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
 @include 'http_api_options_server.mdx'
 
 #### Command Options
@@ -34,7 +36,7 @@ Usage: `consul acl policy list`
 
 Default listing.
 
-```sh
+```shell
 $ consul acl policy list
 global-management:
    ID:           00000000-0000-0000-0000-000000000001
@@ -48,7 +50,7 @@ acl-replication:
 
 Show Metadata.
 
-```sh
+```shell
 $ consul acl policy list -meta
 global-management:
    ID:           00000000-0000-0000-0000-000000000001

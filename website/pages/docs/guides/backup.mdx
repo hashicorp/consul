@@ -31,7 +31,7 @@ The `snapshot save` command for backing up the datacenter state has many configu
 
 First, we will run the basic snapshot command on one of our servers with the all the defaults, including `consistent` mode.
 
-```sh
+```shell
 $ consul snapshot save backup.snap
 Saved and verified snapshot to index 1176
 ```
@@ -40,7 +40,7 @@ The backup will be saved locally in the directory where we ran the command.
 
 You can view metadata about the backup with the `inspect` subcommand.
 
-```sh
+```shell
 $ consul snapshot inspect backup.snap
 ID           2-1182-1542056499724
 Size         4115
@@ -53,14 +53,14 @@ To understand each field review the inspect [documentation](https://www.consul.i
 
 Next, let’s collect the datacenter data from a non-leader server by specifying stale mode.
 
-```sh
+```shell
 $ consul snapshot save -stale backup.snap
 Saved and verified snapshot to index 2276
 ```
 
 Once ACLs and agent certificates are configured, they can be passed in as environtmennt variables or flags.
 
-```sh
+```shell
 $ export CONSUL_HTTP_TOKEN=<your ACL token>
 $ consul snapshot save -stale -ca-file=</path/to/file> backup.snap
 Saved and verified snapshot to index 2287
@@ -78,7 +78,7 @@ Running the `restore` process should be straightforward. However, there are a co
 
 You will only need to run the process once, on the leader. The Raft consensus protocol ensures that all servers restore the same state.
 
-```sh
+```shell
 $ consul snapshot restore backup.snap
 Restored snapshot
 ```

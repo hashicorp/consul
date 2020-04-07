@@ -1,6 +1,7 @@
 ---
 layout: docs
 page_title: DNS Interface
+sidebar_title: 'DNS Interface'
 sidebar_current: docs-agent-dns
 description: >-
   One of the primary query interfaces for Consul is DNS. The DNS interface
@@ -40,7 +41,9 @@ domain to a Consul agent from the existing DNS server. Review the
 
 You can experiment with Consul's DNS server on the command line using tools such as `dig`:
 
-    $ dig @127.0.0.1 -p 8600 redis.service.dc1.consul. ANY
+```shell
+$ dig @127.0.0.1 -p 8600 redis.service.dc1.consul. ANY
+```
 
 -> **Note:** In DNS, all queries are case-insensitive. A lookup of `PostgreSQL.node.dc1.consul` will find all nodes named `postgresql`.
 

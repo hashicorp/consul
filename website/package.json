@@ -14,6 +14,7 @@
     "@hashicorp/react-docs-page": "^1.0.2",
     "@hashicorp/react-docs-sidenav": "^3.0.5",
     "@hashicorp/react-docs-sitemap": "^1.0.0",
+    "@hashicorp/react-enterprise-alert": "^2.0.0",
     "@hashicorp/react-footer": "^3.1.12",
     "@hashicorp/react-global-styles": "^4.1.0",
     "@hashicorp/react-head": "^0.1.1",
