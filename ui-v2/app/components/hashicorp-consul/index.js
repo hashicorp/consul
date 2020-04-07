@@ -42,7 +42,7 @@ export default Component.extend({
         if (!routeName.startsWith('nspace')) {
           routeName = `nspace.${routeName}`;
         }
-        return route.transitionTo(`${routeName}`, `~${get(token, 'Namespace')}`, this.dc);
+        return route.transitionTo(`${routeName}`, `~${get(token, 'Namespace')}`, this.dc.Name);
       } else {
         if (route.routeName === 'dc.acls.index') {
           return route.transitionTo('dc.acls.tokens.index');
