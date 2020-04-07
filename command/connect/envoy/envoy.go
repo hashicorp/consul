@@ -199,16 +199,19 @@ func (c *cmd) Run(args []string) int {
 	if err := c.flags.Parse(args); err != nil {
 		return 1
 	}
-	passThroughArgs := c.flags.Args()
 
 	// Setup Consul client
-	client, err := c.http.APIClient()
+	var err error
+	c.client, err = c.http.APIClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
-	c.client = client
+	// TODO: refactor
+	return c.run(c.flags.Args())
+}
 
+func (c *cmd) run(args []string) int {
 	// Fixup for deprecated mesh-gateway flag
 	if c.meshGateway && c.gateway != "" {
 		c.UI.Error("The mesh-gateway flag is deprecated and cannot be used alongside the gateway flag")
@@ -311,7 +314,7 @@ func (c *cmd) Run(args []string) int {
 			},
 		}
 
-		if err := client.Agent().ServiceRegister(&svc); err != nil {
+		if err := c.client.Agent().ServiceRegister(&svc); err != nil {
 			c.UI.Error(fmt.Sprintf("Error registering service %q: %s", svc.Name, err))
 			return 1
 		}
@@ -363,7 +366,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	err = execEnvoy(binary, nil, passThroughArgs, bootstrapJson)
+	err = execEnvoy(binary, nil, args, bootstrapJson)
 	if err == errUnsupportedOS {
 		c.UI.Error("Directly running Envoy is only supported on linux and macOS " +
 			"since envoy itself doesn't build on other platforms currently.")

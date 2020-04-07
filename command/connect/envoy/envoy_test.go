@@ -589,20 +589,24 @@ func TestGenerateConfig(t *testing.T) {
 			// test.
 			srv := httptest.NewServer(testMockAgent(tc.ProxyConfig, tc.GRPCPort))
 			defer srv.Close()
+			client, err := api.NewClient(&api.Config{Address: srv.URL})
+			require.NoError(err)
 
-			// Set the agent HTTP address in ENV to be our mock
-			tc.Env = append(tc.Env, "CONSUL_HTTP_ADDR="+srv.URL)
 			testDirPrefix := testDir + string(filepath.Separator)
 			myEnv := copyAndReplaceAll(tc.Env, "@@TEMPDIR@@", testDirPrefix)
 			defer testSetAndResetEnv(t, myEnv)()
 
 			ui := cli.NewMockUi()
 			c := New(ui)
+			// explicitly set the client to one which can connect to the httptest.Server
+			c.client = client
 
 			// Run the command
 			myFlags := copyAndReplaceAll(tc.Flags, "@@TEMPDIR@@", testDirPrefix)
 			args := append([]string{"-bootstrap"}, myFlags...)
-			code := c.Run(args)
+
+			require.NoError(c.flags.Parse(args))
+			code := c.run(c.flags.Args())
 			if tc.WantErr == "" {
 				require.Equal(0, code, ui.ErrorWriter.String())
 			} else {
