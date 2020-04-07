@@ -5,4 +5,22 @@
 // - All directories must have an "index.mdx" file to serve as
 //   the landing page for the category
 
-export default []
+export default [
+  'index',
+  {
+    category: 'vs',
+    content: [
+      'zookeeper',
+      'chef-puppet',
+      'nagios-sensu',
+      'skydns',
+      'smartstack',
+      'serf',
+      'eureka',
+      'istio',
+      'proxies',
+      'custom',
+    ],
+  },
+  'getting-started',
+]
