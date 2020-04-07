@@ -1,6 +1,7 @@
 ---
 layout: docs
 page_title: 'Commands: License'
+sidebar_title: 'license'
 sidebar_current: docs-commands-license
 description: >
   The license command provides datacenter-level management of the Consul
@@ -11,7 +12,7 @@ description: >
 
 Command: `consul license`
 
-<%= enterprise_alert :consul %>
+<EnterpriseAlert product="consul" />
 
 The `license` command provides datacenter-level management of the Consul Enterprise license. This was added in Consul 1.1.0.
 
@@ -59,11 +60,12 @@ Usage: `consul license put [options] LICENSE`
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
 @include 'http_api_options_server.mdx'
 
 The output looks like this:
 
-```
+```text
 License is valid
 License ID: 2afbf681-0d1a-0649-cb6c-333ec9f0989c
 Customer ID: 0259271d-8ffc-e85e-0830-c0822c1f5f2b
@@ -88,11 +90,12 @@ Usage: `consul license get [options]`
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
 @include 'http_api_options_server.mdx'
 
 The output looks like this:
 
-```
+```text
 License is valid
 License ID: 2afbf681-0d1a-0649-cb6c-333ec9f0989c
 Customer ID: 0259271d-8ffc-e85e-0830-c0822c1f5f2b

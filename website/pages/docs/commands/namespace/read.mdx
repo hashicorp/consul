@@ -1,12 +1,13 @@
 ---
 layout: docs
 page_title: 'Commands: Namespace Read'
+sidebar_title: 'read'
 sidebar_current: docs-commands-namespace-read
 ---
 
-<%= enterprise_alert :consul %>
-
 # Consul Namespace Read
+
+<EnterpriseAlert product="consul" />
 
 Command: `consul namespace read`
 
@@ -21,6 +22,7 @@ Usage: `consul namespace read <name>`
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
 @include 'http_api_options_server.mdx'
 
 #### Command Options
@@ -34,7 +36,7 @@ Usage: `consul namespace read <name>`
 
 Read a Namespace:
 
-```sh
+```shell
 $ consul namespace read "team-1"
 Name: team-1
 Description:
@@ -42,7 +44,7 @@ Description:
 
 Showing Raft Metadata:
 
-```sh
+```shell
 $ consul namespace read -meta "team-1"
 Name: team-1
 Description:
@@ -52,7 +54,7 @@ Modify Index: 344
 
 JSON Format:
 
-```sh
+```shell
 $ consul namespace read -format=json foo
 {
    "Name": "foo",

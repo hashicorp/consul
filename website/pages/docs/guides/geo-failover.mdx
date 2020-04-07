@@ -34,7 +34,7 @@ Once created, prepared quires can then invoked by applications to perform the qu
 
 Here's an example request to create a prepared query:
 
-```sh
+```shell
 $ curl \
     --request POST \
     --data \
@@ -75,7 +75,7 @@ A static failover policy includes a fixed list of datacenters to contact once th
 
 Here's the example from the introduction, expanded with a static failover policy:
 
-```sh
+```shell
 $ curl \
     --request POST \
     --data \
@@ -108,7 +108,7 @@ Consul continuously maintains an estimate of the network round trip time from th
 
 Here's the example from the introduction, expanded with a dynamic failover policy:
 
-```sh
+```shell
 $ curl \
     --request POST \
     --data \
@@ -132,7 +132,7 @@ This query is resolved in a similar fashion to the previous example, except the 
 
 It is possible to combine `Datacenters` and `NearestN` in the same policy. The `NearestN` queries will be performed first, followed by the list given by `Datacenters`.
 
-```sh
+```shell
 $ curl \
     --request POST \
     --data \
@@ -161,7 +161,7 @@ Templates can match on prefixes or use full regular expressions to determine whi
 
 Below is an example request to create a prepared query template that applies a dynamic geo failover policy to all services. We've chosen the `name_prefix_match` type and given it an empty name, which means that it will match any service.
 
-```sh
+```shell
 $ curl \
     --request POST \
     --data \

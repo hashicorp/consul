@@ -92,7 +92,7 @@ triggered whenever a new server is successfully added to the cluster.
 To update the dead server cleanup feature use `consul operator autopilot set-config`
 with the `-cleanup-dead-servers` flag.
 
-```sh
+```shell
 $ consul operator autopilot set-config -cleanup-dead-servers=false
 Configuration updated!
 
@@ -115,7 +115,7 @@ must be healthy and stable for a certain amount of time before being promoted
 to a full, voting member. This can be configured via the `ServerStabilizationTime`
 setting.
 
-```sh
+```shell
 consul operator autopilot set-config -server-stabilization-time=5s
 Configuration updated!
 
@@ -171,7 +171,7 @@ on standby to be promoted if the active voter leaves or dies.
 Autopilot in Consul _Enterprise_ supports upgrade migrations by default. To disable this
 functionality, set `DisableUpgradeMigration` to true.
 
-```sh
+```shell
 $ consul operator autopilot set-config -disable-upgrade-migration=true
 Configuration updated!
 
@@ -217,7 +217,7 @@ is used when starting a server, that server's version will be `0.0.2` when consi
 a migration. The upgrade logic will follow semantic versioning and the version string
 must be in the form of either `X`, `X.Y`, or `X.Y.Z`.
 
-```sh
+```shell
 $ consul operator autopilot set-config -upgrade-version-tag=1.4.0
 Configuration updated!
 

@@ -1,6 +1,7 @@
 ---
 layout: docs
 page_title: 'Commands: Connect Proxy'
+sidebar_title: 'envoy'
 sidebar_current: docs-commands-connect-envoy
 description: >
   The connect proxy subcommand is used to run the built-in mTLS proxy for
@@ -181,7 +182,7 @@ $ consul connect envoy -sidecar-for db -admin-bind localhost:19001
 
 The mesh gateway Envoy process can be started with.
 
-```sh
+```shell
 $ consul connect envoy -gateway=mesh -register \
   -address '{{ GetInterfaceIP "eth0" }}:8443' \
   -wan-address '{{ GetInterfaceIP "eth1" }}:8443'
@@ -191,7 +192,7 @@ $ consul connect envoy -gateway=mesh -register \
 
 The terminating gateway Envoy process can be started with.
 
-```sh
+```shell
 $ consul connect envoy -gateway=terminating -register \
   -address '{{ GetInterfaceIP "eth0" }}:8443'
 ```

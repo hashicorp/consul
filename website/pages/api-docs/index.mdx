@@ -24,7 +24,7 @@ clients should communicate via TLS. If you don’t provide a token in the reques
 
 Below is an example using `curl` with `X-Consul-Token`.
 
-```sh
+```shell
 $ curl \
     --header "X-Consul-Token: <consul token>" \
     http://127.0.0.1:8500/v1/agent/members
@@ -32,7 +32,7 @@ $ curl \
 
 Below is an example using `curl` with Bearer scheme.
 
-```sh
+```shell
 $ curl \
     --header "Authorization: Bearer <consul token>" \
     http://127.0.0.1:8500/v1/agent/members

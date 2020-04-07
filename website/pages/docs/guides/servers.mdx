@@ -31,7 +31,7 @@ Manually adding new servers is generally straightforward, start the new
 agent with the `-server` flag. At this point the server will not be a member of
 any cluster, and should emit something like:
 
-```sh
+```shell
 consul agent -server
 [WARN] raft: EnableSingleNode disabled, and no known peers. Aborting election.
 ```
@@ -40,7 +40,7 @@ This means that it does not know about any peers and is not configured to elect 
 This is expected, and we can now add this node to the existing cluster using `join`.
 From the new server, we can join any member of the existing cluster:
 
-```sh
+```shell
 $ consul join <Existing Node Address>
 Successfully joined cluster by contacting 1 nodes.
 ```
@@ -56,13 +56,13 @@ In production environments, you should use the [agent configuration](https://www
 
 With the Consul CLI:
 
-```sh
+```shell
 $ consul agent -retry-join=["52.10.110.11", "52.10.110.12", "52.10.100.13"]
 ```
 
 In the agent configuration file:
 
-```sh
+```shell
 {
   "bootstrap": false,
   "bootstrap_expect": 3,
@@ -136,7 +136,7 @@ Once you have verified the existing servers are healthy, and that the cluster
 can handle a node leaving, the actual process is simple. You simply issue a
 `leave` command to the server.
 
-```sh
+```shell
 consul leave
 ```
 
@@ -182,7 +182,7 @@ If the server can be recovered, it is best to bring it back online and then grac
 leave the cluster. However, if this is not a possibility, then the `force-leave` command
 can be used to force removal of a server.
 
-```sh
+```shell
 consul force-leave <node>
 ```
 

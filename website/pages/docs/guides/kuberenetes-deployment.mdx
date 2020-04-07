@@ -40,7 +40,7 @@ to learn more about the default settings.
 First, you will need to clone the official Helm chart from HashiCorp's Github
 repo.
 
-```sh
+```shell
 $ git clone https://github.com/hashicorp/consul-helm.git
 ```
 
@@ -53,7 +53,7 @@ about the chart.
 
 To deploy Consul you will need to be in the same directory as the chart.
 
-```sh
+```shell
 $ cd consul-helm
 ```
 
@@ -61,7 +61,7 @@ Now, you can deploy Consul using `helm install`. This will deploy three servers
 and agents on all Kubernetes nodes. The process should be quick, less than 5
 minutes.
 
-```sh
+```shell
 $ helm install ./consul-helm
 
 NAME:   mollified-robin LAST DEPLOYED: Mon Feb 25 15:57:18 2019 NAMESPACE: default STATUS: DEPLOYED
@@ -124,13 +124,13 @@ Finally, initiate the
 with `helm upgrade` and the `-f` flag that passes in your new values file. This
 processes should also be quick, less than a minute.
 
-```sh
+```shell
 $ helm upgrade consul -f values.yaml
 ```
 
 You can now use `kubectl get services` to discover the external IP of your Consul UI.
 
-```sh
+```shell
 $ kubectl get services
 NAME                            TYPE           CLUSTER-IP     EXTERNAL-IP             PORT(S)        AGE
 consul                          ExternalName   <none>         consul.service.consul   <none>         11d
@@ -169,14 +169,14 @@ HTTP API or by directly connecting to the pod with `kubectl`.
 
 To access the pod and data directory you can exec into the pod with `kubectl` to start a shell session.
 
-```sh
+```shell
 $ kubectl exec -it mollified-robin-consul-server-0 /bin/sh
 ```
 
 This will allow you to navigate the file system and run Consul CLI commands on
 the pod. For example you can view the Consul members.
 
-```sh
+```shell
 $ consul members
 Node                                   Address           Status  Type    Build  Protocol  DC        Segment
 mollified-robin-consul-server-0        172.20.2.18:8301  alive   server  1.4.2  2         hashidc1  <all>

@@ -1,6 +1,7 @@
 ---
 layout: docs
 page_title: Sentinel in Consul
+sidebar_title: 'Sentinel'
 sidebar_current: docs-agent-sentinel
 description: >-
   Consul Enterprise uses Sentinel to augment the built-in ACL system to provide
@@ -10,11 +11,7 @@ description: >-
 
 # Sentinel Overview
 
-[//]: # ' ~> The Sentinel functionality described here is available only in '
-
-[//]: # ( [Consul Enterprise](https://www.hashicorp.com/products/consul/) version 1.0.0 and later. )
-
-<%= enterprise_alert :consul %>
+<EnterpriseAlert product="consul" />
 
 Consul 1.0 adds integration with [Sentinel](https://hashicorp.com/sentinel) for policy enforcement.
 Sentinel policies help extend the ACL system in Consul beyond the static "read", "write", and "deny"

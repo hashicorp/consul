@@ -36,7 +36,7 @@ let's just use `socat` to start a basic echo service. This service will accept
 TCP connections and echo back any data sent to it. If `socat` isn't installed on
 your machine, it should be easily available via a package manager.
 
-```sh
+```shell
 $ socat -v tcp-l:8181,fork exec:"/bin/cat"
 ```
 
@@ -63,7 +63,7 @@ Next, let's register the service with Consul. We'll do this by writing
 a new service definition. This is the same as the previous step in the
 getting started guide, except this time we'll also configure Connect.
 
-```sh
+```shell
 $ cat <<EOF | sudo tee /etc/consul.d/socat.json
 {
   "service": {
@@ -89,7 +89,7 @@ be running, Consul won't actually run a proxy process for you.
 
 We need to start the proxy process in another terminal:
 
-```sh
+```shell
 $ consul connect proxy -sidecar-for socat
 ==> Consul Connect proxy starting...
     Configuration mode: Agent API
@@ -112,7 +112,7 @@ on port 9191. With this configuration, all TCP connections to 9191 will
 perform service discovery for a Connect-capable "socat" endpoint and establish
 a mutual TLS connection identifying as the service "web".
 
-```sh
+```shell
 $ consul connect proxy -service web -upstream socat:9191
 ==> Consul Connect proxy starting...
     Configuration mode: Flags
@@ -143,7 +143,7 @@ We previously established a connection by directly running `consul connect proxy
 to dependencies over Connect. Let's register a service "web" that registers
 "socat" as an upstream dependency in it's sidecar registration:
 
-```sh
+```shell
 $ cat <<EOF | sudo tee /etc/consul.d/web.json
 {
   "service": {
@@ -174,7 +174,7 @@ proxy command from the previous section (with the inline upstream listener) is
 still running, stop it with `Ctrl-C`. Now we can start the web proxy using the
 configuration from the sidecar registration as we did for socat.
 
-```sh
+```shell
 $ consul connect proxy -sidecar-for web
 ==> Consul Connect proxy starting...
     Configuration mode: Agent API
@@ -217,7 +217,7 @@ all" by default.
 
 Let's insert a rule to deny access from web to socat:
 
-```sh
+```shell
 $ consul intention create -deny web socat
 Created: web => socat (deny)
 ```
@@ -225,14 +225,14 @@ Created: web => socat (deny)
 With the proxy processes running that we setup previously, connection
 attempts now fail:
 
-```sh
+```shell
 $ nc 127.0.0.1 9191
 $
 ```
 
 Try deleting the intention and attempt the connection again.
 
-```sh
+```shell
 $ consul intention delete web socat
 Intention deleted.
 $ nc 127.0.0.1 9191

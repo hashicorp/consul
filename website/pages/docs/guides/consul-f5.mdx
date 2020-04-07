@@ -249,7 +249,7 @@ You can read more about composing AS3 declarations in the [F5 documentation](htt
 Use the `consul monitor` command on the consul agent specified in the AS3 URI to
 verify that you are receiving catalog requests from the BIG-IP instance.
 
-```sh
+```shell
 $ consul monitor -log-level=debug
 2019/09/06 03:16:50 [DEBUG] http: Request GET /v1/catalog/service/nginx (103.796µs) from=10.0.0.200:29487
 2019/09/06 03:16:55 [DEBUG] http: Request GET /v1/catalog/service/nginx (104.95µs) from=10.0.0.200:42079

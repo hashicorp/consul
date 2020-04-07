@@ -1,6 +1,7 @@
 ---
 layout: docs
 page_title: 'Commands: ACL Token Update'
+sidebar_title: 'update'
 sidebar_current: docs-commands-acl-token-update
 ---
 
@@ -18,6 +19,7 @@ Usage: `consul acl token update [options]`
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
 @include 'http_api_options_server.mdx'
 
 #### Command Options
@@ -68,7 +70,7 @@ guide.
 
 Update the anonymous token:
 
-```sh
+```shell
 $ consul acl token update -id anonymous -policy-id 06acc
 Token updated successfully.
 AccessorID:   00000000-0000-0000-0000-000000000002
@@ -82,7 +84,7 @@ Policies:
 
 Update a token description and take the policies from the existing token:
 
-```sh
+```shell
 $ consul acl token update -id 986193 -description "WonderToken" -merge-policies
 Token updated successfully.
 AccessorID:   986193b5-e2b5-eb26-6264-b524ea60cc6d

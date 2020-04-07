@@ -1,6 +1,7 @@
 ---
 layout: docs
 page_title: 'Commands: TLS Cert Create'
+sidebar_title: 'cert'
 sidebar_current: docs-commands-tls-cert
 ---
 
@@ -15,7 +16,7 @@ setup.
 
 Create a certificate for servers:
 
-```bash
+```shell
 $ consul tls cert create -server
 ==> WARNING: Server Certificates grants authority to become a
     server and access all state in the cluster including root keys
@@ -28,7 +29,7 @@ $ consul tls cert create -server
 
 Create a certificate for clients:
 
-```bash
+```shell
 $ consul tls cert create -client
 ==> Using consul-ca.pem and consul-ca-key.pem
 ==> Saved consul-client-0.pem
@@ -37,7 +38,7 @@ $ consul tls cert create -client
 
 Create a certificate for cli:
 
-```bash
+```shell
 $ consul tls cert create -cli
 ==> Using consul-ca.pem and consul-ca-key.pem
 ==> Saved consul-cli-0.pem

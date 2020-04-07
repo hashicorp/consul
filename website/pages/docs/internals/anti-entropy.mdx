@@ -1,6 +1,7 @@
 ---
 layout: docs
 page_title: Anti-Entropy
+sidebar_title: 'Anti-Entropy'
 sidebar_current: docs-internals-anti-entropy
 description: |
   This section details the process and use of anti-entropy in Consul.
@@ -18,8 +19,6 @@ It is important to first understand the moving pieces involved in services and
 health checks: the [agent](#agent) and the [catalog](#catalog). These are
 described conceptually below to make anti-entropy easier to understand.
 
-<a name="agent"></a>
-
 #### Agent
 
 Each Consul agent maintains its own set of service and check registrations as
@@ -30,8 +29,6 @@ Services and checks within the context of an agent have a rich set of
 configuration options available. This is because the agent is responsible for
 generating information about its services and their health through the use of
 [health checks](/docs/agent/checks.html).
-
-<a name="catalog"></a>
 
 #### Catalog
 
@@ -50,8 +47,6 @@ health.
 The catalog is maintained only by server nodes. This is because the catalog is
 replicated via the [Raft log](/docs/internals/consensus.html) to provide a
 consolidated and consistent view of the cluster.
-
-<a name="anti-entropy"></a>
 
 ### Anti-Entropy
 
@@ -92,32 +87,13 @@ To avoid saturation, the amount of time between periodic anti-entropy runs will
 vary based on cluster size. The table below defines the relationship between
 cluster size and sync interval:
 
-<table class="table table-bordered table-striped">
-  <tr>
-    <th>Cluster Size</th>
-    <th>Periodic Sync Interval</th>
-  </tr>
-  <tr>
-    <td>1 - 128</td>
-    <td>1 minute</td>
-  </tr>
-  <tr>
-    <td>129 - 256</td>
-    <td>2 minutes</td>
-  </tr>
-  <tr>
-    <td>257 - 512</td>
-    <td>3 minutes</td>
-  </tr>
-  <tr>
-    <td>513 - 1024</td>
-    <td>4 minutes</td>
-  </tr>
-  <tr>
-    <td>...</td>
-    <td>...</td>
-  </tr>
-</table>
+| Cluster Size | Periodic Sync Interval |
+| ------------ | ---------------------- |
+| 1 - 128      | 1 minute               |
+| 129 - 256    | 2 minutes              |
+| 257 - 512    | 3 minutes              |
+| 513 - 1024   | 4 minutes              |
+| ...          | ...                    |
 
 The intervals above are approximate. Each Consul agent will choose a randomly
 staggered start time within the interval window to avoid a thundering herd.

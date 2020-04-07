@@ -1,6 +1,7 @@
 ---
 layout: docs
 page_title: 'Commands: ACL Token Read'
+sidebar_title: 'read'
 sidebar_current: docs-commands-acl-token-read
 ---
 
@@ -17,6 +18,7 @@ Usage: `consul acl token read [options] [args]`
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
 @include 'http_api_options_server.mdx'
 
 #### Command Options
@@ -40,7 +42,7 @@ Usage: `consul acl token read [options] [args]`
 
 Get token details:
 
-```sh
+```shell
 $ consul acl token read -id 986
 AccessorID:   986193b5-e2b5-eb26-6264-b524ea60cc6d
 SecretID:     ec15675e-2999-d789-832e-8c4794daa8d7
@@ -53,7 +55,7 @@ Policies:
 
 Get token details using the token secret ID:
 
-```sh
+```shell
 $consul acl token read -self
 AccessorID:   4d123dff-f460-73c3-02c4-8dd64d136e01
 SecretID:     86cddfb9-2760-d947-358d-a2811156bf31
@@ -66,7 +68,7 @@ Policies:
 
 Get token details (Builtin Tokens)
 
-```sh
+```shell
 $ consul acl token read -id anonymous
 AccessorID:   00000000-0000-0000-0000-000000000002
 SecretID:     anonymous
