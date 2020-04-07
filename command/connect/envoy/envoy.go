@@ -343,21 +343,6 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	// See if we need to lookup grpcAddr
-	if c.grpcAddr == "" {
-		port, err := c.lookupGRPCPort()
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
-		}
-		if port <= 0 {
-			// This is the dev mode default and recommended production setting if
-			// enabled.
-			port = 8502
-			c.UI.Info(fmt.Sprintf("Defaulting to grpc port = %d", port))
-		}
-		c.grpcAddr = fmt.Sprintf("localhost:%v", port)
-	}
-
 	// Generate config
 	bootstrapJson, err := c.generateConfig()
 	if err != nil {
@@ -409,6 +394,21 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 	// Trigger the Client init to do any last-minute updates to the Config.
 	if _, err := api.NewClient(httpCfg); err != nil {
 		return nil, err
+	}
+
+	// See if we need to lookup grpcAddr
+	if c.grpcAddr == "" {
+		port, err := c.lookupGRPCPort()
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
+		}
+		if port <= 0 {
+			// This is the dev mode default and recommended production setting if
+			// enabled.
+			port = 8502
+			c.UI.Info(fmt.Sprintf("Defaulting to grpc port = %d", port))
+		}
+		c.grpcAddr = fmt.Sprintf("localhost:%v", port)
 	}
 
 	// Decide on TLS if the scheme is provided and indicates it, if the HTTP env
