@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	hv1 "google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/resolver"
 )
 
 var ErrGRPCUnhealthy = fmt.Errorf("gRPC application didn't report service healthy")
@@ -52,12 +53,12 @@ func NewGrpcHealthProbe(target string, timeout time.Duration, tlsConfig *tls.Con
 // If nil is returned, target is healthy, otherwise target is not healthy
 func (probe *GrpcHealthProbe) Check(target string) error {
 	serverAndService := strings.SplitN(target, "/", 2)
-	server := serverAndService[0]
+	serverWithScheme := fmt.Sprintf("%s:///%s", resolver.GetDefaultScheme(), serverAndService[0])
 
 	ctx, cancel := context.WithTimeout(context.Background(), probe.timeout)
 	defer cancel()
 
-	connection, err := grpc.DialContext(ctx, server, probe.dialOptions...)
+	connection, err := grpc.DialContext(ctx, serverWithScheme, probe.dialOptions...)
 	if err != nil {
 		return err
 	}
