@@ -34,10 +34,9 @@ func TestRun_Stop(t *testing.T) {
 	plan := mustParse(t, `{"type":"noop"}`)
 
 	var expect uint64 = 2
-	plan.FireOnCreate = "no"
 	doneCh := make(chan struct{})
+	plan.FireOnCreate = "no"
 	plan.Handler = func(idx uint64, val interface{}) {
-		// fmt.Println(expect)
 		if idx != expect {
 			t.Fatalf("Bad: %d %d", expect, idx)
 		}
