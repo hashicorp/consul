@@ -72,15 +72,11 @@ main {
 [role='tabpanel'] > p:only-child,
 .template-error > div,
 %app-view-content > p:only-child,
-%app-view > div.disabled > div,
 %app-view.empty > div {
   @extend %app-view-content-empty;
 }
 [role='tabpanel'] > *:first-child {
   margin-top: 1.25em;
-}
-%app-view > div.disabled > div {
-  margin-top: 0 !important;
 }
 
 /* toggleable toolbar for short screens */

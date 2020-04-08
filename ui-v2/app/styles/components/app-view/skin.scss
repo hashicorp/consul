@@ -47,7 +47,6 @@
 }
 [role='tabpanel'] > p:only-child,
 .template-error > div,
-%app-view-content > p:only-child,
-%app-view > div.disabled > div {
+%app-view-content > p:only-child {
   @extend %frame-gray-500;
 }

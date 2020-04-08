@@ -1,3 +1,7 @@
+%with-popover-menu {
+  position: relative;
+}
+
 %more-popover-menu {
   @extend %display-toggle-siblings;
 }

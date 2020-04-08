@@ -3,7 +3,12 @@
 {{else}}
   {{title 'Access Controls'}}
 {{/if}}
-<AppView @class={{concat "token " (if (and isEnabled (not isAuthorized)) "edit" "list")}} @loading={{isLoading}} @authorized={{isAuthorized}} @enabled={{isEnabled}}>
+<AppView
+  @class="token list"
+  @loading={{isLoading}}
+  @authorized={{isAuthorized}}
+  @enabled={{isEnabled}}
+  >
   <BlockSlot @name="notification" as |status type subject|>
     {{partial 'dc/acls/tokens/notifications'}}
   </BlockSlot>
@@ -81,8 +86,8 @@
                   </li>
 {{/if}}
 {{#if (eq item.AccessorID token.AccessorID) }}
-                  <li role="none">
-                    <label for={{concat confirm 'logout'}} role="menuitem" tabindex="-1" onkeypress={{keypressClick}} data-test-logout>Stop using</label>
+                  <li role="none" class="dangerous">
+                    <label for={{concat confirm 'logout'}} role="menuitem" tabindex="-1" onkeypress={{keypressClick}} data-test-logout>Log out</label>
                     <div role="menu">
                       <div class="confirmation-alert warning">
                         <div>
