@@ -67,7 +67,6 @@ func (p *Plan) RunWithClientAndHclog(client *consulapi.Client, logger hclog.Logg
 	// Loop until we are canceled
 	failures := 0
 	first := true
-
 OUTER:
 	for !p.shouldStop() {
 		// Invoke the handler
