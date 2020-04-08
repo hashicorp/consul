@@ -1,0 +1,18 @@
+%composite-row {
+  list-style-type: none;
+}
+%composite-row a {
+  border-top-color: $gray-200;
+  border-right-color: transparent;
+  border-left-color: transparent;
+}
+%composite-row-intent {
+  border-color: $gray-200;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+%composite-row-header {
+  color: $black;
+}
+%composite-row-detail {
+  color: $gray-500;
+}

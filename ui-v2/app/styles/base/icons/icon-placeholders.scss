@@ -1538,6 +1538,16 @@
   mask-image: $swap-vertical-svg;
 }
 
+%with-tag-icon {
+  @extend %with-icon;
+  background-image: $tag-svg;
+}
+%with-tag-mask {
+  @extend %with-mask;
+  -webkit-mask-image: $tag-svg;
+  mask-image: $tag-svg;
+}
+
 %with-terraform-logo-color-icon {
   @extend %with-icon;
   background-image: $terraform-logo-color-svg;

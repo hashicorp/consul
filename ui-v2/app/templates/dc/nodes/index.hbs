@@ -45,7 +45,7 @@
         <h2>Healthy Nodes</h2>
         <ChangeableSet @dispatcher={{searchableHealthy}}>
           <BlockSlot @name="set" as |healthy|>
-            <ListCollection @cellHeight={{92}} @items={{healthy}} as |item index|>
+            <GridCollection @cellHeight={{92}} @items={{healthy}} as |item index|>
               <HealthcheckedResource @data-test-node={{item.Node}} @href={{href-to "dc.nodes.show" item.Node}} @name={{item.Node}} @address={{item.Address}} @checks={{item.Checks}}>
                 <BlockSlot @name="icon">
                   {{#if (eq item.Address leader.Address)}}
@@ -53,7 +53,7 @@
                   {{/if}}
                 </BlockSlot>
               </HealthcheckedResource>
-            </ListCollection>
+            </GridCollection>
           </BlockSlot>
           <BlockSlot @name="empty">
             <p>
