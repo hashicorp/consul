@@ -1,5 +1,5 @@
 import Controller from '@ember/controller';
-import { get, set } from '@ember/object';
+import { get } from '@ember/object';
 import { inject as service } from '@ember/service';
 import WithEventSource, { listen } from 'consul-ui/mixins/with-event-source';
 export default Controller.extend(WithEventSource, {
