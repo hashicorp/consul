@@ -75,7 +75,7 @@ func (r *FederationStateReplicator) DiffRemoteAndLocalState(localRaw interface{}
 	for localIdx, remoteIdx = 0, 0; localIdx < len(local) && remoteIdx < len(remote); {
 		if local[localIdx].Datacenter == remote[remoteIdx].Datacenter {
 			// fedState is in both the local and remote state - need to check raft indices
-			if remote[remoteIdx].ModifyIndex > lastRemoteIndex {
+			if (remote[remoteIdx].ModifyIndex > lastRemoteIndex) || !remote[remoteIdx].IsSame(local[localIdx]) {
 				updates = append(updates, remote[remoteIdx])
 			}
 			// increment both indices when equal
@@ -171,7 +171,10 @@ func (r *FederationStateReplicator) PerformUpdates(ctx context.Context, updatesR
 		state2 := &dup
 
 		// Keep track of the raft modify index at the primary
-		state2.PrimaryModifyIndex = state.ModifyIndex
+		if state.ModifyIndex != 0 {
+			// For some reason, ModifyIndex can be zero from remote
+			state2.PrimaryModifyIndex = state.ModifyIndex
+		}
 
 		req := structs.FederationStateRequest{
 			Op:         structs.FederationStateUpsert,
