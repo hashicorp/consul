@@ -20,6 +20,6 @@ Feature: components / copy-button
       dc: dc-1
       node: node-0
     ---
-    Then the url should be /dc-1/nodes/node-0
+    Then the url should be /dc-1/nodes/node-0/health-checks
     When I click ".healthcheck-output:nth-child(1) button.copy-btn"
     Then I see the text "Copied output!" in ".healthcheck-output:nth-child(1) p.feedback-dialog-out"

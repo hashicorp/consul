@@ -1,4 +1,4 @@
-export default function(visitable, attribute, collection, text, filter, radiogroup) {
+export default function(visitable, attribute, collection, text, filter, tabs) {
   return {
     visit: visitable('/:dc/services/:service'),
     externalSource: attribute('data-test-external-source', 'h1 span'),
@@ -8,7 +8,7 @@ export default function(visitable, attribute, collection, text, filter, radiogro
     dashboardAnchor: {
       href: attribute('href', '[data-test-dashboard-anchor]'),
     },
-    tabs: radiogroup('tab', ['instances', 'routing', 'tags']),
+    tabs: tabs('tab', ['instances', 'routing', 'tags']),
     filter: filter,
   };
 }
