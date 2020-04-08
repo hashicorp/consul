@@ -69,7 +69,7 @@ export default {
   index: create(index(visitable, collection)),
   dcs: create(dcs(visitable, clickable, attribute, collection)),
   services: create(
-    services(visitable, clickable, attribute, collection, page, catalogFilter, radiogroup)
+    services(visitable, clickable, text, attribute, collection, page, catalogFilter, radiogroup)
   ),
   service: create(service(visitable, attribute, collection, text, catalogFilter, tabgroup)),
   instance: create(instance(visitable, attribute, collection, text, tabgroup)),

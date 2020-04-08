@@ -14,9 +14,26 @@ export default Controller.extend(WithEventSource, WithSearching, {
     };
     this._super(...arguments);
   },
-  searchable: computed('items.[]', function() {
+  searchable: computed('services.[]', function() {
     return get(this, 'searchables.service')
-      .add(this.items)
+      .add(this.services)
       .search(this.terms);
+  }),
+  services: computed('items.[]', function() {
+    return this.items.filter(function(item) {
+      return item.Kind === 'consul';
+    });
+  }),
+  proxies: computed('items.[]', function() {
+    return this.items.filter(function(item) {
+      return item.Kind === 'connect-proxy';
+    });
+  }),
+  withProxies: computed('proxies', function() {
+    const proxies = {};
+    this.proxies.forEach(item => {
+      proxies[item.Name.replace('-proxy', '')] = true;
+    });
+    return proxies;
   }),
 });
