@@ -1,0 +1,11 @@
+@import './consul-service-list/index';
+
+.consul-service-list > ul {
+  @extend %consul-service-list;
+}
+%consul-service-list > li {
+  @extend %consul-service-row;
+}
+%consul-service-row {
+  @extend %composite-row;
+}
