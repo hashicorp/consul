@@ -2,17 +2,14 @@
 Feature: dc / services / list blocking
   Scenario: Viewing the listing pages for service
     Given 1 datacenter model with the value "dc-1"
-    And 6 service models from yaml
+    And 3 service models from yaml
     ---
       - Name: Service-0
-      - Name: Service-0-proxy
-        Kind: 'connect-proxy'
+        Kind: ~
       - Name: Service-1
-      - Name: Service-1-proxy
-        Kind: 'connect-proxy'
+        Kind: ~
       - Name: Service-2
-      - Name: Service-2-proxy
-        Kind: 'connect-proxy'
+        Kind: ~
     ---
     And a network latency of 100
     When I visit the services page for yaml
