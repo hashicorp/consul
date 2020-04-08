@@ -277,3 +277,24 @@ func (e *TerminatingGatewayConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
 
 	return &e.EnterpriseMeta
 }
+
+// GatewayService is used to associate gateways with their linked services.
+type GatewayService struct {
+	Gateway     ServiceID
+	Service     ServiceID
+	GatewayKind ServiceKind
+	CAFile      string
+	CertFile    string
+	KeyFile     string
+}
+
+type GatewayServices []*GatewayService
+
+func (g *GatewayService) IsSame(o *GatewayService) bool {
+	return g.Gateway.Matches(&o.Gateway) &&
+		g.Service.Matches(&o.Service) &&
+		g.GatewayKind == o.GatewayKind &&
+		g.CAFile == o.CAFile &&
+		g.CertFile == o.CertFile &&
+		g.KeyFile == o.KeyFile
+}

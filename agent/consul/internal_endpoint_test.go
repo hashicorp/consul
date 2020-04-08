@@ -2,6 +2,7 @@ package consul
 
 import (
 	"encoding/base64"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"os"
 	"strings"
 	"testing"
@@ -12,7 +13,7 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testrpc"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -652,5 +653,324 @@ func TestInternal_ServiceDump_Kind(t *testing.T) {
 		require.Len(t, nodes, 1)
 		require.Equal(t, "web-proxy", nodes[0].Service.Service)
 		require.Equal(t, "web-proxy", nodes[0].Service.ID)
+	})
+}
+
+func TestInternal_TerminatingGatewayServices(t *testing.T) {
+	t.Parallel()
+
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	{
+		var out struct{}
+
+		// Register a service "api"
+		args := structs.TestRegisterRequest(t)
+		args.Service.Service = "api"
+		args.Check = &structs.HealthCheck{
+			Name:      "api",
+			Status:    api.HealthPassing,
+			ServiceID: args.Service.Service,
+		}
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		// Register a service "db"
+		args = structs.TestRegisterRequest(t)
+		args.Service.Service = "db"
+		args.Check = &structs.HealthCheck{
+			Name:      "db",
+			Status:    api.HealthPassing,
+			ServiceID: args.Service.Service,
+		}
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		// Register a service "redis"
+		args = structs.TestRegisterRequest(t)
+		args.Service.Service = "redis"
+		args.Check = &structs.HealthCheck{
+			Name:      "redis",
+			Status:    api.HealthPassing,
+			ServiceID: args.Service.Service,
+		}
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		// Register a gateway
+		args = &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTerminatingGateway,
+				Service: "gateway",
+				Port:    443,
+			},
+			Check: &structs.HealthCheck{
+				Name:      "gateway",
+				Status:    api.HealthPassing,
+				ServiceID: "gateway",
+			},
+		}
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		entryArgs := &structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry: &structs.TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "gateway",
+				Services: []structs.LinkedService{
+					{
+						Name:     "api",
+						CAFile:   "api/ca.crt",
+						CertFile: "api/client.crt",
+						KeyFile:  "api/client.key",
+					},
+					{
+						Name: "db",
+					},
+					{
+						Name:     "*",
+						CAFile:   "ca.crt",
+						CertFile: "client.crt",
+						KeyFile:  "client.key",
+					},
+				},
+			},
+		}
+		var entryResp bool
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &entryArgs, &entryResp))
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		// List should return all three services
+		req := structs.ServiceSpecificRequest{
+			Datacenter:  "dc1",
+			ServiceName: "gateway",
+			ServiceKind: structs.ServiceKindTerminatingGateway,
+		}
+		var resp structs.IndexedGatewayServices
+		assert.Nil(r, msgpackrpc.CallWithCodec(codec, "Internal.GatewayServices", &req, &resp))
+		assert.Len(r, resp.Services, 3)
+
+		expect := structs.GatewayServices{
+			{
+				Service:     structs.NewServiceID("api", nil),
+				Gateway:     structs.NewServiceID("gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+				CAFile:      "api/ca.crt",
+				CertFile:    "api/client.crt",
+				KeyFile:     "api/client.key",
+			},
+			{
+				Service:     structs.NewServiceID("db", nil),
+				Gateway:     structs.NewServiceID("gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+				CAFile:      "",
+				CertFile:    "",
+				KeyFile:     "",
+			},
+			{
+				Service:     structs.NewServiceID("redis", nil),
+				Gateway:     structs.NewServiceID("gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+				CAFile:      "ca.crt",
+				CertFile:    "client.crt",
+				KeyFile:     "client.key",
+			},
+		}
+		assert.Equal(r, expect, resp.Services)
+	})
+}
+
+func TestInternal_TerminatingGatewayServices_ACLFiltering(t *testing.T) {
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLEnforceVersion8 = true
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
+
+	{
+		var out struct{}
+
+		// Register a service "api"
+		args := structs.TestRegisterRequest(t)
+		args.Service.Service = "api"
+		args.Check = &structs.HealthCheck{
+			Name:      "api",
+			Status:    api.HealthPassing,
+			ServiceID: args.Service.Service,
+		}
+		args.Token = "root"
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		// Register a service "db"
+		args = structs.TestRegisterRequest(t)
+		args.Service.Service = "db"
+		args.Check = &structs.HealthCheck{
+			Name:      "db",
+			Status:    api.HealthPassing,
+			ServiceID: args.Service.Service,
+		}
+		args.Token = "root"
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		// Register a service "redis"
+		args = structs.TestRegisterRequest(t)
+		args.Service.Service = "redis"
+		args.Check = &structs.HealthCheck{
+			Name:      "redis",
+			Status:    api.HealthPassing,
+			ServiceID: args.Service.Service,
+		}
+		args.Token = "root"
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		// Register a gateway
+		args = &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTerminatingGateway,
+				Service: "gateway",
+				Port:    443,
+			},
+			Check: &structs.HealthCheck{
+				Name:      "gateway",
+				Status:    api.HealthPassing,
+				ServiceID: "gateway",
+			},
+		}
+		args.Token = "root"
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		entryArgs := &structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry: &structs.TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "gateway",
+				Services: []structs.LinkedService{
+					{
+						Name:     "api",
+						CAFile:   "api/ca.crt",
+						CertFile: "api/client.crt",
+						KeyFile:  "api/client.key",
+					},
+					{
+						Name: "db",
+					},
+					{
+						Name: "db_replica",
+					},
+					{
+						Name:     "*",
+						CAFile:   "ca.crt",
+						CertFile: "client.crt",
+						KeyFile:  "client.key",
+					},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		var entryResp bool
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &entryArgs, &entryResp))
+	}
+
+	rules := `
+service_prefix "db" {
+	policy = "read"
+}
+`
+	svcToken, err := upsertTestTokenWithPolicyRules(codec, "root", "dc1", rules)
+	require.NoError(t, err)
+
+	retry.Run(t, func(r *retry.R) {
+		// List should return an empty list, since we do not have read on the gateway
+		req := structs.ServiceSpecificRequest{
+			Datacenter:   "dc1",
+			ServiceName:  "gateway",
+			ServiceKind:  structs.ServiceKindTerminatingGateway,
+			QueryOptions: structs.QueryOptions{Token: svcToken.SecretID},
+		}
+		var resp structs.IndexedGatewayServices
+		err := msgpackrpc.CallWithCodec(codec, "Internal.GatewayServices", &req, &resp)
+		require.True(r, acl.IsErrPermissionDenied(err))
+	})
+
+	rules = `
+service "gateway" {
+	policy = "read"
+}
+`
+	gwToken, err := upsertTestTokenWithPolicyRules(codec, "root", "dc1", rules)
+	require.NoError(t, err)
+
+	retry.Run(t, func(r *retry.R) {
+		// List should return an empty list, since we do not have read on db
+		req := structs.ServiceSpecificRequest{
+			Datacenter:   "dc1",
+			ServiceName:  "gateway",
+			ServiceKind:  structs.ServiceKindTerminatingGateway,
+			QueryOptions: structs.QueryOptions{Token: gwToken.SecretID},
+		}
+		var resp structs.IndexedGatewayServices
+		assert.Nil(r, msgpackrpc.CallWithCodec(codec, "Internal.GatewayServices", &req, &resp))
+		assert.Len(r, resp.Services, 0)
+	})
+
+	rules = `
+service_prefix "db" {
+	policy = "read"
+}
+service "gateway" {
+	policy = "read"
+}
+`
+	validToken, err := upsertTestTokenWithPolicyRules(codec, "root", "dc1", rules)
+	require.NoError(t, err)
+
+	retry.Run(t, func(r *retry.R) {
+		// List should return db entry since we have read on db and gateway
+		req := structs.ServiceSpecificRequest{
+			Datacenter:   "dc1",
+			ServiceName:  "gateway",
+			ServiceKind:  structs.ServiceKindTerminatingGateway,
+			QueryOptions: structs.QueryOptions{Token: validToken.SecretID},
+		}
+		var resp structs.IndexedGatewayServices
+		assert.Nil(r, msgpackrpc.CallWithCodec(codec, "Internal.GatewayServices", &req, &resp))
+		assert.Len(r, resp.Services, 2)
+
+		expect := structs.GatewayServices{
+			{
+				Service:     structs.NewServiceID("db", nil),
+				Gateway:     structs.NewServiceID("gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+			},
+			{
+				Service:     structs.NewServiceID("db_replica", nil),
+				Gateway:     structs.NewServiceID("gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+			},
+		}
+		assert.Equal(r, expect, resp.Services)
 	})
 }

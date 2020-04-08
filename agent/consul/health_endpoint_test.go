@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
@@ -1024,6 +1025,122 @@ service "foo" {
 	}
 	assert.Nil(msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &resp))
 	assert.Len(resp.Nodes, 1)
+}
+
+func TestHealth_ServiceNodes_Gateway(t *testing.T) {
+	t.Parallel()
+
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	{
+		var out struct{}
+
+		// Register a service "api"
+		args := structs.TestRegisterRequest(t)
+		args.Service.Service = "api"
+		args.Check = &structs.HealthCheck{
+			Name:      "api",
+			Status:    api.HealthPassing,
+			ServiceID: args.Service.Service,
+		}
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		// Register a proxy for api
+		args = structs.TestRegisterRequestProxy(t)
+		args.Service.Service = "api-proxy"
+		args.Service.Proxy.DestinationServiceName = "api"
+		args.Check = &structs.HealthCheck{
+			Name:      "api-proxy",
+			Status:    api.HealthPassing,
+			ServiceID: args.Service.Service,
+		}
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		// Register a service "web"
+		args = structs.TestRegisterRequest(t)
+		args.Check = &structs.HealthCheck{
+			Name:      "web",
+			Status:    api.HealthPassing,
+			ServiceID: args.Service.Service,
+		}
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		// Register a proxy for web
+		args = structs.TestRegisterRequestProxy(t)
+		args.Check = &structs.HealthCheck{
+			Name:      "proxy",
+			Status:    api.HealthPassing,
+			ServiceID: args.Service.Service,
+		}
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		// Register a gateway for web
+		args = &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTerminatingGateway,
+				Service: "gateway",
+				Port:    443,
+			},
+			Check: &structs.HealthCheck{
+				Name:      "gateway",
+				Status:    api.HealthPassing,
+				ServiceID: args.Service.Service,
+			},
+		}
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		entryArgs := &structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry: &structs.TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "gateway",
+				Services: []structs.LinkedService{
+					{
+						Name: "web",
+					},
+				},
+			},
+		}
+		var entryResp bool
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &entryArgs, &entryResp))
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		// List should return both the terminating-gateway and the connect-proxy associated with web
+		req := structs.ServiceSpecificRequest{
+			Connect:     true,
+			Datacenter:  "dc1",
+			ServiceName: "web",
+		}
+		var resp structs.IndexedCheckServiceNodes
+		assert.Nil(r, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &resp))
+		assert.Len(r, resp.Nodes, 2)
+
+		// Check sidecar
+		assert.Equal(r, structs.ServiceKindConnectProxy, resp.Nodes[0].Service.Kind)
+		assert.Equal(r, "foo", resp.Nodes[0].Node.Node)
+		assert.Equal(r, "web-proxy", resp.Nodes[0].Service.Service)
+		assert.Equal(r, "web-proxy", resp.Nodes[0].Service.ID)
+		assert.Equal(r, "web", resp.Nodes[0].Service.Proxy.DestinationServiceName)
+		assert.Equal(r, 2222, resp.Nodes[0].Service.Port)
+
+		// Check gateway
+		assert.Equal(r, structs.ServiceKindTerminatingGateway, resp.Nodes[1].Service.Kind)
+		assert.Equal(r, "foo", resp.Nodes[1].Node.Node)
+		assert.Equal(r, "gateway", resp.Nodes[1].Service.Service)
+		assert.Equal(r, "gateway", resp.Nodes[1].Service.ID)
+		assert.Equal(r, 443, resp.Nodes[1].Service.Port)
+	})
 }
 
 func TestHealth_NodeChecks_FilterACL(t *testing.T) {

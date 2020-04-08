@@ -2132,6 +2132,58 @@ func TestSnapshotRequestResponse_MsgpackEncodeDecode(t *testing.T) {
 
 }
 
+func TestGatewayService_IsSame(t *testing.T) {
+	gateway := NewServiceID("gateway", nil)
+	svc := NewServiceID("web", nil)
+	kind := ServiceKindTerminatingGateway
+	ca := "ca.pem"
+	cert := "client.pem"
+	key := "tls.key"
+
+	g := &GatewayService{
+		Gateway:     gateway,
+		Service:     svc,
+		GatewayKind: kind,
+		CAFile:      ca,
+		CertFile:    cert,
+		KeyFile:     key,
+	}
+	other := &GatewayService{
+		Gateway:     gateway,
+		Service:     svc,
+		GatewayKind: kind,
+		CAFile:      ca,
+		CertFile:    cert,
+		KeyFile:     key,
+	}
+	check := func(twiddle, restore func()) {
+		t.Helper()
+		if !g.IsSame(other) || !other.IsSame(g) {
+			t.Fatalf("should be the same")
+		}
+
+		twiddle()
+		if g.IsSame(other) || other.IsSame(g) {
+			t.Fatalf("should be different, was %#v VS %#v", g, other)
+		}
+
+		restore()
+		if !g.IsSame(other) || !other.IsSame(g) {
+			t.Fatalf("should be the same")
+		}
+	}
+	check(func() { other.Gateway = NewServiceID("other", nil) }, func() { other.Gateway = gateway })
+	check(func() { other.Service = NewServiceID("other", nil) }, func() { other.Service = svc })
+	check(func() { other.GatewayKind = ServiceKindIngressGateway }, func() { other.GatewayKind = kind })
+	check(func() { other.CAFile = "/certs/cert.pem" }, func() { other.CAFile = ca })
+	check(func() { other.CertFile = "/certs/cert.pem" }, func() { other.CertFile = cert })
+	check(func() { other.KeyFile = "/certs/cert.pem" }, func() { other.KeyFile = key })
+
+	if !g.IsSame(other) {
+		t.Fatalf("should be equal, was %#v VS %#v", g, other)
+	}
+}
+
 func requireErrorContains(t *testing.T, err error, expectedErrorMessage string) {
 	t.Helper()
 	if err == nil {

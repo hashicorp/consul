@@ -214,6 +214,15 @@ func (s *Store) ensureConfigEntryTxn(tx *memdb.Txn, idx uint64, conf structs.Con
 		return err // Err is already sufficiently decorated.
 	}
 
+	// If the config entry is for terminating gateways we update the memdb table
+	// that associates gateways <-> services.
+	if conf.GetKind() == structs.TerminatingGateway {
+		err = s.updateTerminatingGatewayServices(tx, idx, conf, entMeta)
+		if err != nil {
+			return fmt.Errorf("failed to associate services to gateway: %v", err)
+		}
+	}
+
 	// Insert the config entry and update the index
 	if err := s.insertConfigEntryWithTxn(tx, conf); err != nil {
 		return fmt.Errorf("failed inserting config entry: %s", err)
@@ -271,6 +280,17 @@ func (s *Store) DeleteConfigEntry(idx uint64, kind, name string, entMeta *struct
 	}
 	if existing == nil {
 		return nil
+	}
+
+	// If the config entry is for terminating gateways we delete entries from the memdb table
+	// that associates gateways <-> services.
+	if kind == structs.TerminatingGateway {
+		if _, err := tx.DeleteAll(terminatingGatewayServicesTableName, "gateway", structs.NewServiceID(name, entMeta)); err != nil {
+			return fmt.Errorf("failed to truncate gateway services table: %v", err)
+		}
+		if err := indexUpdateMaxTxn(tx, idx, terminatingGatewayServicesTableName); err != nil {
+			return fmt.Errorf("failed updating terminating-gateway-services index: %v", err)
+		}
 	}
 
 	err = s.validateProposedConfigEntryInGraph(

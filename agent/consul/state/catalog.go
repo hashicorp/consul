@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -12,7 +13,8 @@ import (
 )
 
 const (
-	servicesTableName = "services"
+	servicesTableName                   = "services"
+	terminatingGatewayServicesTableName = "terminating-gateway-services"
 
 	// serviceLastExtinctionIndexName keeps track of the last raft index when the last instance
 	// of any service was unregistered. This is used by blocking queries on missing services.
@@ -55,10 +57,108 @@ func nodesTableSchema() *memdb.TableSchema {
 	}
 }
 
+// terminatingGatewayServicesTableSchema returns a new table schema used to store information
+// about services associated with terminating gateways.
+func terminatingGatewayServicesTableSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: terminatingGatewayServicesTableName,
+		Indexes: map[string]*memdb.IndexSchema{
+			"id": {
+				Name:         "id",
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: &memdb.CompoundIndex{
+					Indexes: []memdb.Indexer{
+						&ServiceIDIndex{
+							Field: "Gateway",
+						},
+						&ServiceIDIndex{
+							Field: "Service",
+						},
+					},
+				},
+			},
+			"gateway": {
+				Name:         "gateway",
+				AllowMissing: false,
+				Unique:       false,
+				Indexer: &ServiceIDIndex{
+					Field: "Gateway",
+				},
+			},
+			"service": {
+				Name:         "service",
+				AllowMissing: true,
+				Unique:       false,
+				Indexer: &ServiceIDIndex{
+					Field: "Service",
+				},
+			},
+		},
+	}
+}
+
+type ServiceIDIndex struct {
+	Field string
+}
+
+func (index *ServiceIDIndex) FromObject(obj interface{}) (bool, []byte, error) {
+	v := reflect.ValueOf(obj)
+	v = reflect.Indirect(v) // Dereference the pointer if any
+
+	fv := v.FieldByName(index.Field)
+	isPtr := fv.Kind() == reflect.Ptr
+	fv = reflect.Indirect(fv)
+	if !isPtr && !fv.IsValid() || !fv.CanInterface() {
+		return false, nil,
+			fmt.Errorf("field '%s' for %#v is invalid %v ", index.Field, obj, isPtr)
+	}
+
+	sid, ok := fv.Interface().(structs.ServiceID)
+	if !ok {
+		return false, nil, fmt.Errorf("Field 'ServiceID' is not of type structs.ServiceID")
+	}
+
+	// Enforce lowercase and add null character as terminator
+	id := strings.ToLower(sid.String()) + "\x00"
+
+	return true, []byte(id), nil
+}
+
+func (index *ServiceIDIndex) FromArgs(args ...interface{}) ([]byte, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("must provide only a single argument")
+	}
+	sid, ok := args[0].(structs.ServiceID)
+	if !ok {
+		return nil, fmt.Errorf("argument must be of type structs.ServiceID: %#v", args[0])
+	}
+
+	// Enforce lowercase and add null character as terminator
+	id := strings.ToLower(sid.String()) + "\x00"
+
+	return []byte(strings.ToLower(id)), nil
+}
+
+func (index *ServiceIDIndex) PrefixFromArgs(args ...interface{}) ([]byte, error) {
+	val, err := index.FromArgs(args...)
+	if err != nil {
+		return nil, err
+	}
+
+	// Strip the null terminator, the rest is a prefix
+	n := len(val)
+	if n > 0 {
+		return val[:n-1], nil
+	}
+	return val, nil
+}
+
 func init() {
 	registerSchema(nodesTableSchema)
 	registerSchema(servicesTableSchema)
 	registerSchema(checksTableSchema)
+	registerSchema(terminatingGatewayServicesTableSchema)
 }
 
 const (
@@ -674,6 +774,18 @@ func (s *Store) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *st
 	if err = structs.ValidateServiceMetadata(svc.Kind, svc.Meta, false); err != nil {
 		return fmt.Errorf("Invalid Service Meta for node %s and serviceID %s: %v", node, svc.ID, err)
 	}
+
+	// Check if this service is covered by a terminating gateway's wildcard specifier
+	gateway, err := s.serviceTerminatingGateway(tx, structs.WildcardSpecifier, &svc.EnterpriseMeta)
+	if err != nil {
+		return fmt.Errorf("failed gateway lookup for %q: %s", svc.Service, err)
+	}
+	if gatewaySvc, ok := gateway.(*structs.GatewayService); ok && gatewaySvc != nil {
+		if err = s.updateTerminatingGatewayService(tx, idx, gatewaySvc.Gateway, svc.Service, &svc.EnterpriseMeta); err != nil {
+			return fmt.Errorf("Failed to associate service %q with gateway %q", gatewaySvc.Service.String(), gatewaySvc.Gateway.String())
+		}
+	}
+
 	// Create the service node entry and populate the indexes. Note that
 	// conversion doesn't populate any of the node-specific information.
 	// That's always populated when we read from the state store.
@@ -920,6 +1032,22 @@ func (s *Store) serviceNodes(ws memdb.WatchSet, serviceName string, connect bool
 	var results structs.ServiceNodes
 	for service := services.Next(); service != nil; service = services.Next() {
 		results = append(results, service.(*structs.ServiceNode))
+	}
+
+	// If we are querying for Connect nodes, the associated proxy might be a gateway.
+	// Gateways are tracked in a separate table, and we append them to the result set.
+	// We append rather than replace since it allows users to migrate a service
+	// to the mesh with a mix of sidecars and gateways until all its instances have a sidecar.
+	if connect {
+		// Look up gateway nodes associated with the service
+		nodes, ch, err := s.serviceTerminatingGatewayNodes(tx, serviceName, entMeta)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed gateway nodes lookup: %v", err)
+		}
+		ws.Add(ch)
+		for i := 0; i < len(nodes); i++ {
+			results = append(results, nodes[i])
+		}
 	}
 
 	// Fill in the node details.
@@ -1330,10 +1458,25 @@ func (s *Store) deleteServiceTxn(tx *memdb.Txn, idx uint64, nodeName, serviceID 
 			if err := s.catalogUpdateServiceExtinctionIndex(tx, idx, entMeta); err != nil {
 				return err
 			}
+
+			// Clean up association between service name and gateway
+			gateway, err := s.serviceTerminatingGateway(tx, svc.ServiceName, &svc.EnterpriseMeta)
+			if err != nil {
+				return fmt.Errorf("failed gateway lookup for %q: %s", svc.ServiceName, err)
+			}
+			if gateway != nil {
+				if err := tx.Delete(terminatingGatewayServicesTableName, gateway); err != nil {
+					return fmt.Errorf("failed to delete gateway mapping for %q: %v", svc.ServiceName, err)
+				}
+				if err := indexUpdateMaxTxn(tx, idx, terminatingGatewayServicesTableName); err != nil {
+					return fmt.Errorf("failed updating terminating-gateway-services index: %v", err)
+				}
+			}
 		}
 	} else {
 		return fmt.Errorf("Could not find any service %s: %s", svc.ServiceName, err)
 	}
+
 	return nil
 }
 
@@ -1836,6 +1979,22 @@ func (s *Store) checkServiceNodes(ws memdb.WatchSet, serviceName string, connect
 		serviceNames[sn.ServiceName] = struct{}{}
 	}
 
+	// If we are querying for Connect nodes, the associated proxy might be a gateway.
+	// Gateways are tracked in a separate table, and we append them to the result set.
+	// We append rather than replace since it allows users to migrate a service
+	// to the mesh with a mix of sidecars and gateways until all its instances have a sidecar.
+	if connect {
+		// Look up gateway nodes associated with the service
+		nodes, _, err := s.serviceTerminatingGatewayNodes(tx, serviceName, entMeta)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed gateway nodes lookup: %v", err)
+		}
+		for i := 0; i < len(nodes); i++ {
+			results = append(results, nodes[i])
+			serviceNames[nodes[i].ServiceName] = struct{}{}
+		}
+	}
+
 	// watchOptimized tracks if we meet the necessary condition to optimize
 	// WatchSet size. That is that every service name represented in the result
 	// set must have a service-specific index we can watch instead of many radix
@@ -1934,6 +2093,30 @@ func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName string, tags
 	// Get the table index.
 	idx := s.maxIndexForService(tx, serviceName, serviceExists, true, entMeta)
 	return s.parseCheckServiceNodes(tx, ws, idx, serviceName, results, err)
+}
+
+// TerminatingGatewayServices is used to query all services associated with a terminating gateway
+func (s *Store) TerminatingGatewayServices(ws memdb.WatchSet, gateway string, entMeta *structs.EnterpriseMeta) (uint64, structs.GatewayServices, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	iter, err := s.terminatingGatewayServices(tx, gateway, entMeta)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed gateway services lookup: %s", err)
+	}
+	ws.Add(iter.WatchCh())
+
+	var results structs.GatewayServices
+	for service := iter.Next(); service != nil; service = iter.Next() {
+		svc := service.(*structs.GatewayService)
+
+		if svc.Service.ID != structs.WildcardSpecifier {
+			results = append(results, svc)
+		}
+	}
+
+	idx := maxIndexTxn(tx, terminatingGatewayServicesTableName)
+	return idx, results, nil
 }
 
 // parseCheckServiceNodes is used to parse through a given set of services,
@@ -2178,4 +2361,214 @@ func checkSessionsTxn(tx *memdb.Txn, hc *structs.HealthCheck) ([]*sessionCheck, 
 		sessions = append(sessions, mapping.(*sessionCheck))
 	}
 	return sessions, nil
+}
+
+// updateGatewayService associates services with gateways as specified in a terminating-gateway config entry
+func (s *Store) updateTerminatingGatewayServices(tx *memdb.Txn, idx uint64, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) error {
+	entry, ok := conf.(*structs.TerminatingGatewayConfigEntry)
+	if !ok {
+		return fmt.Errorf("unexpected config entry type: %T", conf)
+	}
+
+	// Check if service list matches the last known list for the config entry, if it does, skip the update
+	_, c, err := s.configEntryTxn(tx, nil, conf.GetKind(), conf.GetName(), entMeta)
+	if err != nil {
+		return fmt.Errorf("failed to get config entry: %v", err)
+	}
+	if cfg, ok := c.(*structs.TerminatingGatewayConfigEntry); ok && cfg != nil {
+		if reflect.DeepEqual(cfg.Services, entry.Services) {
+			// Services are the same, nothing to update
+			return nil
+		}
+	}
+
+	// Delete all associated with gateway first, to avoid keeping mappings that were removed
+	if _, err := tx.DeleteAll(terminatingGatewayServicesTableName, "gateway", structs.NewServiceID(entry.Name, entMeta)); err != nil {
+		return fmt.Errorf("failed to truncate gateway services table: %v", err)
+	}
+
+	gatewayID := structs.NewServiceID(entry.Name, &entry.EnterpriseMeta)
+	for _, svc := range entry.Services {
+		// If the service is a wildcard we need to target all services within the namespace
+		if svc.Name == structs.WildcardSpecifier {
+			if err := s.updateTerminatingGatewayNamespace(tx, gatewayID, svc, entMeta); err != nil {
+				return fmt.Errorf("failed to associate gateway %q with wildcard: %v", gatewayID.String(), err)
+			}
+			// Skip service-specific update below if there was a wildcard update
+			continue
+		}
+
+		// Check if the non-wildcard service is already associated with a gateway
+		existing, err := s.serviceTerminatingGateway(tx, svc.Name, &svc.EnterpriseMeta)
+		if err != nil {
+			return fmt.Errorf("gateway service lookup failed: %s", err)
+		}
+		if gs, ok := existing.(*structs.GatewayService); ok && gs != nil {
+			// Only return an error if the stored gateway does not match the one from the config entry
+			if !gs.Gateway.Matches(&gatewayID) {
+				return fmt.Errorf("service %q is associated with different gateway, %q", gs.Service.String(), gs.Gateway.String())
+			}
+		}
+
+		// Since this service was specified on its own, and not with a wildcard,
+		// if there is an existing entry, we overwrite it. The service entry is the source of truth.
+		//
+		// By extension, if TLS creds are provided with a wildcard but are not provided in
+		// the service entry, the service does not inherit the creds from the wildcard.
+		mapping := &structs.GatewayService{
+			Gateway:     gatewayID,
+			Service:     structs.NewServiceID(svc.Name, &svc.EnterpriseMeta),
+			GatewayKind: structs.ServiceKindTerminatingGateway,
+			KeyFile:     svc.KeyFile,
+			CertFile:    svc.CertFile,
+			CAFile:      svc.CAFile,
+		}
+		if err := tx.Insert(terminatingGatewayServicesTableName, mapping); err != nil {
+			return fmt.Errorf("failed inserting gateway service mapping: %s", err)
+		}
+	}
+
+	if err := indexUpdateMaxTxn(tx, idx, terminatingGatewayServicesTableName); err != nil {
+		return fmt.Errorf("failed updating terminating-gateway-services index: %v", err)
+	}
+	return nil
+}
+
+// updateTerminatingGatewayNamespace is used to target all services within a namespace with a set of TLS certificates
+func (s *Store) updateTerminatingGatewayNamespace(tx *memdb.Txn, gateway structs.ServiceID, service structs.LinkedService, entMeta *structs.EnterpriseMeta) error {
+	services, err := s.catalogServiceListByKind(tx, structs.ServiceKindTypical, entMeta)
+	if err != nil {
+		return fmt.Errorf("failed querying services: %s", err)
+	}
+
+	// Iterate over services in namespace and insert mapping for each
+	for svc := services.Next(); svc != nil; svc = services.Next() {
+		sn := svc.(*structs.ServiceNode)
+
+		// Only associate non-consul services with gateways
+		if sn.ServiceName == "consul" {
+			continue
+		}
+
+		existing, err := s.serviceTerminatingGateway(tx, sn.ServiceName, &sn.EnterpriseMeta)
+		if err != nil {
+			return fmt.Errorf("gateway service lookup failed: %s", err)
+		}
+
+		if gs, ok := existing.(*structs.GatewayService); ok && gs != nil {
+			// Return an error if the wildcard is attempting to cover a service specified by a different gateway's config entry
+			if !gs.Gateway.Matches(&gateway) {
+				return fmt.Errorf("service %q is associated with different gateway, %q", gs.Service.String(), gs.Gateway.String())
+			}
+
+			// If there's an existing service associated with this gateway then we skip it.
+			// This means the service was specified on its own, and the service entry overrides the wildcard entry.
+			continue
+		}
+
+		mapping := &structs.GatewayService{
+			Gateway:     gateway,
+			Service:     structs.NewServiceID(sn.ServiceName, &service.EnterpriseMeta),
+			GatewayKind: structs.ServiceKindTerminatingGateway,
+			KeyFile:     service.KeyFile,
+			CertFile:    service.CertFile,
+			CAFile:      service.CAFile,
+		}
+		if err := tx.Insert(terminatingGatewayServicesTableName, mapping); err != nil {
+			return fmt.Errorf("failed inserting gateway service mapping: %s", err)
+		}
+	}
+
+	// Also store a mapping for the wildcard so that the TLS creds can be pulled
+	// for new services registered in its namespace
+	mapping := &structs.GatewayService{
+		Gateway:     gateway,
+		Service:     structs.NewServiceID(service.Name, &service.EnterpriseMeta),
+		GatewayKind: structs.ServiceKindTerminatingGateway,
+		KeyFile:     service.KeyFile,
+		CertFile:    service.CertFile,
+		CAFile:      service.CAFile,
+	}
+	if err := tx.Insert(terminatingGatewayServicesTableName, mapping); err != nil {
+		return fmt.Errorf("failed inserting gateway service mapping: %s", err)
+	}
+	return nil
+}
+
+// updateGatewayService associates services with gateways after an eligible event
+// ie. Registering a service in a namespace targeted by a gateway
+func (s *Store) updateTerminatingGatewayService(tx *memdb.Txn, idx uint64, gateway structs.ServiceID, service string, entMeta *structs.EnterpriseMeta) error {
+	mapping := &structs.GatewayService{
+		Gateway:     gateway,
+		Service:     structs.NewServiceID(service, entMeta),
+		GatewayKind: structs.ServiceKindTerminatingGateway,
+	}
+
+	// If a wildcard specifier is registered for that namespace, use its TLS config
+	wc, err := s.serviceTerminatingGateway(tx, structs.WildcardSpecifier, entMeta)
+	if err != nil {
+		return fmt.Errorf("gateway service lookup failed: %s", err)
+	}
+	if wc != nil {
+		cfg := wc.(*structs.GatewayService)
+		mapping.CAFile = cfg.CAFile
+		mapping.CertFile = cfg.CertFile
+		mapping.KeyFile = cfg.KeyFile
+	}
+
+	// Check if mapping already exists in table if it's already in the table
+	// Avoid insert if nothing changed
+	existing, err := s.serviceTerminatingGateway(tx, service, entMeta)
+	if err != nil {
+		return fmt.Errorf("gateway service lookup failed: %s", err)
+	}
+	if gs, ok := existing.(*structs.GatewayService); ok && gs != nil {
+		if gs.IsSame(mapping) {
+			return nil
+		}
+	}
+
+	if err := tx.Insert(terminatingGatewayServicesTableName, mapping); err != nil {
+		return fmt.Errorf("failed inserting gateway service mapping: %s", err)
+	}
+
+	if err := indexUpdateMaxTxn(tx, idx, terminatingGatewayServicesTableName); err != nil {
+		return fmt.Errorf("failed updating terminating-gateway-services index: %v", err)
+	}
+	return nil
+}
+
+func (s *Store) serviceTerminatingGateway(tx *memdb.Txn, name string, entMeta *structs.EnterpriseMeta) (interface{}, error) {
+	return tx.First(terminatingGatewayServicesTableName, "service", structs.NewServiceID(name, entMeta))
+}
+
+func (s *Store) terminatingGatewayServices(tx *memdb.Txn, name string, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+	return tx.Get(terminatingGatewayServicesTableName, "gateway", structs.NewServiceID(name, entMeta))
+}
+
+func (s *Store) serviceTerminatingGatewayNodes(tx *memdb.Txn, service string, entMeta *structs.EnterpriseMeta) (structs.ServiceNodes, <-chan struct{}, error) {
+	// Look up gateway name associated with the service
+	gw, err := s.serviceTerminatingGateway(tx, service, entMeta)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed gateway lookup: %s", err)
+	}
+
+	var ret structs.ServiceNodes
+	var watchChan <-chan struct{}
+
+	if gw != nil {
+		mapping := gw.(*structs.GatewayService)
+
+		// Look up nodes for gateway
+		gateways, err := s.catalogServiceNodeList(tx, mapping.Gateway.ID, "service", &mapping.Gateway.EnterpriseMeta)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed service lookup: %s", err)
+		}
+		for gateway := gateways.Next(); gateway != nil; gateway = gateways.Next() {
+			sn := gateway.(*structs.ServiceNode)
+			ret = append(ret, sn)
+		}
+		watchChan = gateways.WatchCh()
+	}
+	return ret, watchChan, nil
 }

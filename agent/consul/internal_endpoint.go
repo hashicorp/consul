@@ -296,3 +296,46 @@ func (m *Internal) aclAccessorID(secretID string) string {
 	}
 	return ident.ID()
 }
+
+func (m *Internal) GatewayServices(args *structs.ServiceSpecificRequest, reply *structs.IndexedGatewayServices) error {
+	if done, err := m.srv.forward("Internal.GatewayServices", args, args, reply); done {
+		return err
+	}
+
+	var authzContext acl.AuthorizerContext
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
+	if err != nil {
+		return err
+	}
+
+	if err := m.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
+	if authz != nil && authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
+		return acl.ErrPermissionDenied
+	}
+
+	return m.srv.blockingQuery(
+		&args.QueryOptions,
+		&reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			var index uint64
+			var services structs.GatewayServices
+
+			switch args.ServiceKind {
+			case structs.ServiceKindTerminatingGateway:
+				index, services, err = state.TerminatingGatewayServices(ws, args.ServiceName, &args.EnterpriseMeta)
+				if err != nil {
+					return err
+				}
+			}
+
+			if err := m.srv.filterACL(args.Token, &services); err != nil {
+				return err
+			}
+
+			reply.Index, reply.Services = index, services
+			return nil
+		})
+}

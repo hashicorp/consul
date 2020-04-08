@@ -502,6 +502,7 @@ type ServiceSpecificRequest struct {
 	Datacenter      string
 	NodeMetaFilters map[string]string
 	ServiceName     string
+	ServiceKind     ServiceKind
 	// DEPRECATED (singular-service-tag) - remove this when backwards RPC compat
 	// with 1.2.x is not required.
 	ServiceTag     string
@@ -1754,6 +1755,11 @@ type DatacenterIndexedCheckServiceNodes struct {
 
 type IndexedNodeDump struct {
 	Dump NodeDump
+	QueryMeta
+}
+
+type IndexedGatewayServices struct {
+	Services GatewayServices
 	QueryMeta
 }
 
