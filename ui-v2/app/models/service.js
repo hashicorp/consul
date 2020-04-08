@@ -13,6 +13,7 @@ export default Model.extend({
       return [];
     },
   }),
+  InstanceCount: attr('number'),
   Kind: attr('string'),
   ExternalSources: attr(),
   Meta: attr(),

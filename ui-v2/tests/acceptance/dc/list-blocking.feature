@@ -23,7 +23,6 @@ Feature: dc / list-blocking
   Where:
     ------------------------------------------------
     | Page       | Model       | Url               |
-    | services   | service     | services          |
     | nodes      | node        | nodes             |
     | intentions | intention   | intentions        |
     ------------------------------------------------
