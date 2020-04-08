@@ -20,7 +20,7 @@ type ServiceAddressValue struct {
 }
 
 func (s *ServiceAddressValue) String() string {
-	if s == nil || s.value.Port == 0 && s.value.Address == "" {
+	if s == nil || (s.value.Port == 0 && s.value.Address == "") {
 		return fmt.Sprintf(":%d", defaultGatewayPort)
 	}
 	return fmt.Sprintf("%v:%d", s.value.Address, s.value.Port)
