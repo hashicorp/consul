@@ -1,0 +1,4 @@
+@import './empty-state/index';
+.empty-state {
+  @extend %empty-state;
+}

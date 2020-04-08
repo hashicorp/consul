@@ -4,3 +4,18 @@
 @import '../confirmation-alert/index';
 @import './skin';
 @import './layout';
+%with-popover-menu > input {
+  @extend %popover-menu;
+}
+%popover-menu {
+  @extend %display-toggle-siblings;
+}
+%popover-menu + label + div {
+  @extend %popover-menu-panel;
+}
+%popover-menu + label > * {
+  @extend %toggle-button;
+}
+%popover-menu-panel {
+  @extend %menu-panel;
+}

@@ -63,12 +63,18 @@ export default Route.extend(WithBlockingActions, {
       // 403 page
       // To note: Consul only gives you back a 403 if a non-existent token has been sent in the header
       // if a token has not been sent at all, it just gives you a 200 with an empty dataset
+      // We set a completely null token here, which is different to just deleting a token
+      // in that deleting a token means 'logout' whereas setting it to completely null means
+      // there was a 403. This is only required to get around the legacy tokens
+      // a lot of this can go once we don't support legacy tokens
       if (error.status === '403') {
-        return this.feedback.execute(() => {
-          return this.settings.delete('token').then(() => {
-            return Promise.reject(this.transitionTo('dc.acls.tokens', model.dc.Name));
-          });
-        }, 'authorize');
+        return this.settings.persist({
+          token: {
+            AccessorID: null,
+            SecretID: null,
+            Namespace: null,
+          },
+        });
       }
       if (error.status === '') {
         error.message = 'Error';

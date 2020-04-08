@@ -3,14 +3,45 @@
 <header>
 {{#each flashMessages.queue as |flash|}}
     <FlashMessage @flash={{flash}} as |component flash|>
-        {{! flashes automatically ucfirst the type }}
+        {{#let (lowercase component.flashType) (lowercase flash.action) as |status type|}}
+          {{! flashes automatically ucfirst the type }}
 
-        <p data-notification class="{{lowercase component.flashType}} notification-{{lowercase flash.action}}">
-          <strong>
-            {{component.flashType}}!
-          </strong>
-          <YieldSlot @name="notification" @params={{block-params (lowercase component.flashType) (lowercase flash.action) flash.item}}>{{yield}}</YieldSlot>
-        </p>
+          <p data-notification class={{concat status ' notification-' type}}>
+            <strong>
+              {{capitalize status}}!
+            </strong>
+            {{#yield-slot name="notification" params=(block-params status type flash.item)}}
+              {{yield}}
+              {{#if (eq type 'logout')}}
+                {{#if (eq status 'success') }}
+                  You are now logged out.
+                {{else}}
+                  There was an error logging out.
+                {{/if}}
+              {{else if (eq type 'authorize')}}
+                {{#if (eq status 'success') }}
+                  You are now logged in.
+                {{else}}
+                  There was an error, please check your SecretID/Token
+                {{/if}}
+              {{/if}}
+            {{else}}
+              {{#if (eq type 'logout')}}
+                {{#if (eq status 'success') }}
+                  You are now logged out.
+                {{else}}
+                  There was an error logging out.
+                {{/if}}
+              {{else if (eq type 'authorize')}}
+                {{#if (eq status 'success') }}
+                  You are now logged in.
+                {{else}}
+                  There was an error, please check your SecretID/Token
+                {{/if}}
+              {{/if}}
+            {{/yield-slot}}
+          </p>
+        {{/let}}
     </FlashMessage>
 {{/each}}
     <div>
