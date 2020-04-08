@@ -1538,6 +1538,28 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 
+		{
+			desc: "Serf Allowed CIDRS LAN, multiple values from flags",
+			args: []string{`-data-dir=` + dataDir, `-serf-lan-allowed-cidrs=127.0.0.0/4`, `-serf-lan-allowed-cidrs=192.168.0.0/24`},
+			json: []string{},
+			hcl:  []string{},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.SerfAllowedCIDRsLAN = []net.IPNet{*(parseCIDR(t, "127.0.0.0/4")), *(parseCIDR(t, "192.168.0.0/24"))}
+			},
+		},
+
+		{
+			desc: "Serf Allowed CIDRS WAN, multiple values from flags",
+			args: []string{`-data-dir=` + dataDir, `-serf-wan-allowed-cidrs=192.168.4.0/24`, `-serf-wan-allowed-cidrs=192.168.3.0/24`},
+			json: []string{},
+			hcl:  []string{},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.SerfAllowedCIDRsWAN = []net.IPNet{*(parseCIDR(t, "192.168.4.0/24")), *(parseCIDR(t, "192.168.3.0/24"))}
+			},
+		},
+
 		// ------------------------------------------------------------
 		// validations
 		//
@@ -6201,7 +6223,11 @@ func TestSanitize(t *testing.T) {
 			},
 		},
 		KVMaxValueSize: 1234567800000000,
-		TxnMaxReqLen:   5678000000000000,
+		SerfAllowedCIDRsLAN: []net.IPNet{
+			*parseCIDR(t, "192.168.1.0/24"),
+			*parseCIDR(t, "127.0.0.0/8"),
+		},
+		TxnMaxReqLen: 5678000000000000,
 	}
 
 	rtJSON := `{
@@ -6424,6 +6450,8 @@ func TestSanitize(t *testing.T) {
 		"Segments": [],
 		"SerfAdvertiseAddrLAN": "tcp://1.2.3.4:5678",
 		"SerfAdvertiseAddrWAN": "",
+		"SerfAllowedCIDRsLAN": ["192.168.1.0/24", "127.0.0.0/8"],
+		"SerfAllowedCIDRsWAN": [],
 		"SerfBindAddrLAN": "",
 		"SerfBindAddrWAN": "",
 		"SerfPortLAN": 0,
