@@ -1,5 +1,4 @@
 import Controller from '@ember/controller';
-import { inject as service } from '@ember/service';
 import { get, computed } from '@ember/object';
 import WithSearching from 'consul-ui/mixins/with-searching';
 
