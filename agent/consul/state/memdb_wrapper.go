@@ -4,8 +4,8 @@ import (
 	"github.com/hashicorp/go-memdb"
 )
 
-// memDBWrapper is a thin shim over memdb.DB which forces all new tranactions to
-// report changes and for those changes to automatically deliver the changed
+// memDBWrapper is a thin shim over memdb.DB which forces all new transactions
+// to report changes and for those changes to automatically deliver the changed
 // objects to our central event handler in case new streaming events need to be
 // omitted.
 type memDBWrapper struct {
@@ -22,7 +22,7 @@ type memDBWrapper struct {
 // non-passthrough behavior for write transactions though.
 func (db *memDBWrapper) Txn(write bool) *txnWrapper {
 	if write {
-		panic("don't use db.Txn(true), use db.WriteTxn(idx uin64)")
+		panic("don't use db.Txn(true), use db.WriteTxn(idx uint64)")
 	}
 	return &txnWrapper{
 		Txn:   db.MemDB.Txn(false),

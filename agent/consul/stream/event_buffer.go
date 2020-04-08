@@ -27,9 +27,9 @@ import (
 // to trade off buffer length config to balance using lots of memory wastefully
 // vs handling occasional slow readers.
 //
-// The buffer is used to deliver all messages broadcast toa topic for active
+// The buffer is used to deliver all messages broadcast to a topic for active
 // subscribers to consume, but it is also an effective way to both deliver and
-// optionally cache snapshots per topic and key. byt using an EventBuffer,
+// optionally cache snapshots per topic and key. by using an EventBuffer,
 // snapshot functions don't have to read the whole snapshot into memory before
 // delivery - they can stream from memdb. However simply by storing a pointer to
 // the first event in the buffer, we can cache the buffered events for future

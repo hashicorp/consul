@@ -4053,7 +4053,7 @@ func TestFullConfig(t *testing.T) {
 				},
 				"udp_answer_limit": 29909,
 				"use_cache": true,
-				"cache_max_age": "5m"
+				"cache_max_age": "5m"` + entFullDNSJSONConfig + `
 			},
 			"enable_acl_replication": true,
 			"enable_agent_tls_for_checks": true,

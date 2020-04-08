@@ -114,122 +114,122 @@ func TestACLEventsFromChanges(t *testing.T) {
 		WantEvents []agentpb.Event
 		WantErr    bool
 	}{
-		// {
-		// 	Name: "token create",
-		// 	Mutate: func(s *Store, tx *txnWrapper) error {
-		// 		if err := s.aclTokenSetTxn(tx, tx.Index, testToken(t, 1), false, false, false, false); err != nil {
-		// 			return err
-		// 		}
-		// 		return nil
-		// 	},
-		// 	WantEvents: []agentpb.Event{
-		// 		testACLTokenEvent(t, 100, 1, false),
-		// 	},
-		// 	WantErr: false,
-		// },
-		// {
-		// 	Name: "token update",
-		// 	Setup: func(s *Store, tx *txnWrapper) error {
-		// 		if err := s.aclTokenSetTxn(tx, tx.Index, testToken(t, 1), false, false, false, false); err != nil {
-		// 			return err
-		// 		}
-		// 		return nil
-		// 	},
-		// 	Mutate: func(s *Store, tx *txnWrapper) error {
-		// 		// Add a policy to the token (never mind it doesn't exist for now) we
-		// 		// allow it in the set command below.
-		// 		token := testToken(t, 1)
-		// 		token.Policies = []structs.ACLTokenPolicyLink{{ID: "33333333-1111-1111-1111-111111111111"}}
-		// 		if err := s.aclTokenSetTxn(tx, tx.Index, token, false, true, false, false); err != nil {
-		// 			return err
-		// 		}
-		// 		return nil
-		// 	},
-		// 	WantEvents: []agentpb.Event{
-		// 		// Should see an event from the update
-		// 		testACLTokenEvent(t, 100, 1, false),
-		// 	},
-		// 	WantErr: false,
-		// },
-		// {
-		// 	Name: "token delete",
-		// 	Setup: func(s *Store, tx *txnWrapper) error {
-		// 		if err := s.aclTokenSetTxn(tx, tx.Index, testToken(t, 1), false, false, false, false); err != nil {
-		// 			return err
-		// 		}
-		// 		return nil
-		// 	},
-		// 	Mutate: func(s *Store, tx *txnWrapper) error {
-		// 		// Delete it
-		// 		token := testToken(t, 1)
-		// 		if err := s.aclTokenDeleteTxn(tx, tx.Index, token.AccessorID, "id", nil); err != nil {
-		// 			return err
-		// 		}
-		// 		return nil
-		// 	},
-		// 	WantEvents: []agentpb.Event{
-		// 		// Should see a delete event
-		// 		testACLTokenEvent(t, 100, 1, true),
-		// 	},
-		// 	WantErr: false,
-		// },
-		// {
-		// 	Name: "policy create",
-		// 	Mutate: func(s *Store, tx *txnWrapper) error {
-		// 		if err := s.aclPolicySetTxn(tx, tx.Index, testPolicy(t, 1)); err != nil {
-		// 			return err
-		// 		}
-		// 		return nil
-		// 	},
-		// 	WantEvents: []agentpb.Event{
-		// 		testACLPolicyEvent(t, 100, 1, false),
-		// 	},
-		// 	WantErr: false,
-		// },
-		// {
-		// 	Name: "policy update",
-		// 	Setup: func(s *Store, tx *txnWrapper) error {
-		// 		if err := s.aclPolicySetTxn(tx, tx.Index, testPolicy(t, 1)); err != nil {
-		// 			return err
-		// 		}
-		// 		return nil
-		// 	},
-		// 	Mutate: func(s *Store, tx *txnWrapper) error {
-		// 		policy := testPolicy(t, 1)
-		// 		policy.Rules = `operator = "write"`
-		// 		if err := s.aclPolicySetTxn(tx, tx.Index, policy); err != nil {
-		// 			return err
-		// 		}
-		// 		return nil
-		// 	},
-		// 	WantEvents: []agentpb.Event{
-		// 		// Should see an event from the update
-		// 		testACLPolicyEvent(t, 100, 1, false),
-		// 	},
-		// 	WantErr: false,
-		// },
-		// {
-		// 	Name: "policy delete",
-		// 	Setup: func(s *Store, tx *txnWrapper) error {
-		// 		if err := s.aclPolicySetTxn(tx, tx.Index, testPolicy(t, 1)); err != nil {
-		// 			return err
-		// 		}
-		// 		return nil
-		// 	},
-		// 	Mutate: func(s *Store, tx *txnWrapper) error {
-		// 		// Delete it
-		// 		policy := testPolicy(t, 1)
-		// 		if err := s.aclPolicyDeleteTxn(tx, tx.Index, policy.ID, s.aclPolicyGetByID, nil); err != nil {
-		// 			return err
-		// 		}
-		// 		return nil
-		// 	},
-		// 	WantEvents: []agentpb.Event{
-		// 		// Should see a delete event
-		// 		testACLPolicyEvent(t, 100, 1, true),
-		// 	},
-		// 	WantErr: false,
-		// },
+		{
+			Name: "token create",
+			Mutate: func(s *Store, tx *txnWrapper) error {
+				if err := s.aclTokenSetTxn(tx, tx.Index, testToken(t, 1), false, false, false, false); err != nil {
+					return err
+				}
+				return nil
+			},
+			WantEvents: []agentpb.Event{
+				testACLTokenEvent(t, 100, 1, false),
+			},
+			WantErr: false,
+		},
+		{
+			Name: "token update",
+			Setup: func(s *Store, tx *txnWrapper) error {
+				if err := s.aclTokenSetTxn(tx, tx.Index, testToken(t, 1), false, false, false, false); err != nil {
+					return err
+				}
+				return nil
+			},
+			Mutate: func(s *Store, tx *txnWrapper) error {
+				// Add a policy to the token (never mind it doesn't exist for now) we
+				// allow it in the set command below.
+				token := testToken(t, 1)
+				token.Policies = []structs.ACLTokenPolicyLink{{ID: "33333333-1111-1111-1111-111111111111"}}
+				if err := s.aclTokenSetTxn(tx, tx.Index, token, false, true, false, false); err != nil {
+					return err
+				}
+				return nil
+			},
+			WantEvents: []agentpb.Event{
+				// Should see an event from the update
+				testACLTokenEvent(t, 100, 1, false),
+			},
+			WantErr: false,
+		},
+		{
+			Name: "token delete",
+			Setup: func(s *Store, tx *txnWrapper) error {
+				if err := s.aclTokenSetTxn(tx, tx.Index, testToken(t, 1), false, false, false, false); err != nil {
+					return err
+				}
+				return nil
+			},
+			Mutate: func(s *Store, tx *txnWrapper) error {
+				// Delete it
+				token := testToken(t, 1)
+				if err := s.aclTokenDeleteTxn(tx, tx.Index, token.AccessorID, "id", nil); err != nil {
+					return err
+				}
+				return nil
+			},
+			WantEvents: []agentpb.Event{
+				// Should see a delete event
+				testACLTokenEvent(t, 100, 1, true),
+			},
+			WantErr: false,
+		},
+		{
+			Name: "policy create",
+			Mutate: func(s *Store, tx *txnWrapper) error {
+				if err := s.aclPolicySetTxn(tx, tx.Index, testPolicy(t, 1)); err != nil {
+					return err
+				}
+				return nil
+			},
+			WantEvents: []agentpb.Event{
+				testACLPolicyEvent(t, 100, 1, false),
+			},
+			WantErr: false,
+		},
+		{
+			Name: "policy update",
+			Setup: func(s *Store, tx *txnWrapper) error {
+				if err := s.aclPolicySetTxn(tx, tx.Index, testPolicy(t, 1)); err != nil {
+					return err
+				}
+				return nil
+			},
+			Mutate: func(s *Store, tx *txnWrapper) error {
+				policy := testPolicy(t, 1)
+				policy.Rules = `operator = "write"`
+				if err := s.aclPolicySetTxn(tx, tx.Index, policy); err != nil {
+					return err
+				}
+				return nil
+			},
+			WantEvents: []agentpb.Event{
+				// Should see an event from the update
+				testACLPolicyEvent(t, 100, 1, false),
+			},
+			WantErr: false,
+		},
+		{
+			Name: "policy delete",
+			Setup: func(s *Store, tx *txnWrapper) error {
+				if err := s.aclPolicySetTxn(tx, tx.Index, testPolicy(t, 1)); err != nil {
+					return err
+				}
+				return nil
+			},
+			Mutate: func(s *Store, tx *txnWrapper) error {
+				// Delete it
+				policy := testPolicy(t, 1)
+				if err := s.aclPolicyDeleteTxn(tx, tx.Index, policy.ID, s.aclPolicyGetByID, nil); err != nil {
+					return err
+				}
+				return nil
+			},
+			WantEvents: []agentpb.Event{
+				// Should see a delete event
+				testACLPolicyEvent(t, 100, 1, true),
+			},
+			WantErr: false,
+		},
 		{
 			Name: "role create",
 			Mutate: func(s *Store, tx *txnWrapper) error {

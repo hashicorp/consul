@@ -698,14 +698,14 @@ func TestHealthServiceNodes_Blocking(t *testing.T) {
 		name string
 		hcl  string
 	}{
-		//{"no streaming", ""},
+		{"no streaming", ""},
 		{"streaming", "enable_backend_streaming = true"},
 	}
 
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			a := NewTestAgent(t, t.Name(), tc.hcl)
+			a := NewTestAgent(t, tc.hcl)
 			defer a.Shutdown()
 			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 

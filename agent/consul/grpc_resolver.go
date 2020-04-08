@@ -79,10 +79,9 @@ func (s *ServerResolverBuilder) rebalanceResolvers() {
 		rand.Shuffle(len(addrs), func(i, j int) {
 			addrs[i], addrs[j] = addrs[j], addrs[i]
 		})
-		resolver.addrLock.Unlock()
-
 		// Pass the shuffled list to the resolver.
-		resolver.updateAddrs(addrs)
+		resolver.updateAddrsLocked(addrs)
+		resolver.addrLock.Unlock()
 	}
 }
 
@@ -204,8 +203,17 @@ type ServerResolver struct {
 	addrLock  sync.Mutex
 }
 
-// updateAddrs updates this ServerResolver's ClientConn to use the given set of addrs.
+// updateAddrs updates this ServerResolver's ClientConn to use the given set of
+// addrs.
 func (r *ServerResolver) updateAddrs(addrs []resolver.Address) {
+	r.addrLock.Lock()
+	defer r.addrLock.Unlock()
+	r.updateAddrsLocked(addrs)
+}
+
+// updateAddrsLocked updates this ServerResolver's ClientConn to use the given
+// set of addrs. addrLock must be held by calleer.
+func (r *ServerResolver) updateAddrsLocked(addrs []resolver.Address) {
 	// Only pass the first address initially, which will cause the
 	// balancer to spin down the connection for its previous first address
 	// if it is different. If we don't do this, it will keep using the old
@@ -221,8 +229,6 @@ func (r *ServerResolver) updateAddrs(addrs []resolver.Address) {
 	// for failover.
 	r.clientConn.UpdateState(resolver.State{Addresses: addrs})
 
-	r.addrLock.Lock()
-	defer r.addrLock.Unlock()
 	r.lastAddrs = addrs
 }
 

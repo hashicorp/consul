@@ -49,11 +49,7 @@ func (h *GRPCSubscribeHandler) Subscribe(req *agentpb.SubscribeRequest, serverSt
 	)
 
 	var sentCount uint64
-	defer func() {
-		h.srv.logger.Trace("subscription closed",
-			"stream_id", streamID,
-		)
-	}()
+	defer h.srv.logger.Trace("subscription closed", "stream_id", streamID)
 
 	// Resolve the token and create the ACL filter.
 	// TODO: handle token expiry gracefully...

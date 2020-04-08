@@ -15,7 +15,7 @@ import (
 func (s *Store) ServiceHealthSnapshot(req *agentpb.SubscribeRequest, buf *stream.EventBuffer) (uint64, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	// TODO(banks): plumb entMeta through from SubscribeRequest
+	// TODO(namespace-streaming): plumb entMeta through from SubscribeRequest
 	idx, nodes, err := s.checkServiceNodesTxn(tx, nil, req.Key, false, nil)
 	if err != nil {
 		return 0, err
@@ -32,7 +32,7 @@ func (s *Store) ServiceHealthSnapshot(req *agentpb.SubscribeRequest, buf *stream
 func (s *Store) ServiceHealthConnectSnapshot(req *agentpb.SubscribeRequest, buf *stream.EventBuffer) (uint64, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	// TODO(banks): plumb entMeta through from SubscribeRequest
+	// TODO(namespace-streaming): plumb entMeta through from SubscribeRequest
 	idx, nodes, err := s.checkServiceNodesTxn(tx, nil, req.Key, true, nil)
 	if err != nil {
 		return 0, err
@@ -337,7 +337,7 @@ func (s *Store) ServiceHealthEventsFromChanges(tx *txnWrapper, changes memdb.Cha
 // parseCheckServiceNodes but is more efficient since we know they are all on
 // the same node.
 func (s *Store) serviceHealthEventsForNode(tx *txnWrapper, node string) ([]agentpb.Event, error) {
-	// TODO(banks): figure out the right EntMeta and mystery arg.
+	// TODO(namespace-streaming): figure out the right EntMeta and mystery arg.
 	services, err := s.catalogServiceListByNode(tx, node, nil, false)
 	if err != nil {
 		return nil, err
@@ -381,7 +381,7 @@ func (s *Store) getNodeAndChecks(tx *txnWrapper, node string) (*structs.Node,
 	}
 	n := nodeRaw.(*structs.Node)
 
-	// TODO(banks): work out what EntMeta is needed here, wildcard?
+	// TODO(namespace-streaming): work out what EntMeta is needed here, wildcard?
 	iter, err := s.catalogListChecksByNode(tx, node, nil)
 	if err != nil {
 		return nil, nil, nil, err

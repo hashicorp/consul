@@ -1630,6 +1630,8 @@ func (s *Store) ensureCheckTxn(tx *txnWrapper, idx uint64, hc *structs.HealthChe
 		}
 	}
 	if !modified {
+		// We update the modify index, ONLY if something has changed to prevent
+		// waking up watchers with an idempotent update.
 		return nil
 	}
 	hc.ModifyIndex = idx
@@ -2360,7 +2362,7 @@ func checkSessionsTxn(tx *txnWrapper, hc *structs.HealthCheck) ([]*sessionCheck,
 }
 
 // updateGatewayService associates services with gateways as specified in a terminating-gateway config entry
-func (s *Store) updateTerminatingGatewayServices(tx *memdb.Txn, idx uint64, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) updateTerminatingGatewayServices(tx *txnWrapper, idx uint64, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) error {
 	entry, ok := conf.(*structs.TerminatingGatewayConfigEntry)
 	if !ok {
 		return fmt.Errorf("unexpected config entry type: %T", conf)
@@ -2431,7 +2433,7 @@ func (s *Store) updateTerminatingGatewayServices(tx *memdb.Txn, idx uint64, conf
 }
 
 // updateTerminatingGatewayNamespace is used to target all services within a namespace with a set of TLS certificates
-func (s *Store) updateTerminatingGatewayNamespace(tx *memdb.Txn, gateway structs.ServiceID, service structs.LinkedService, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) updateTerminatingGatewayNamespace(tx *txnWrapper, gateway structs.ServiceID, service structs.LinkedService, entMeta *structs.EnterpriseMeta) error {
 	services, err := s.catalogServiceListByKind(tx, structs.ServiceKindTypical, entMeta)
 	if err != nil {
 		return fmt.Errorf("failed querying services: %s", err)
@@ -2493,7 +2495,7 @@ func (s *Store) updateTerminatingGatewayNamespace(tx *memdb.Txn, gateway structs
 
 // updateGatewayService associates services with gateways after an eligible event
 // ie. Registering a service in a namespace targeted by a gateway
-func (s *Store) updateTerminatingGatewayService(tx *memdb.Txn, idx uint64, gateway structs.ServiceID, service string, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) updateTerminatingGatewayService(tx *txnWrapper, idx uint64, gateway structs.ServiceID, service string, entMeta *structs.EnterpriseMeta) error {
 	mapping := &structs.GatewayService{
 		Gateway:     gateway,
 		Service:     structs.NewServiceID(service, entMeta),
@@ -2534,15 +2536,15 @@ func (s *Store) updateTerminatingGatewayService(tx *memdb.Txn, idx uint64, gatew
 	return nil
 }
 
-func (s *Store) serviceTerminatingGateway(tx *memdb.Txn, name string, entMeta *structs.EnterpriseMeta) (interface{}, error) {
+func (s *Store) serviceTerminatingGateway(tx *txnWrapper, name string, entMeta *structs.EnterpriseMeta) (interface{}, error) {
 	return tx.First(terminatingGatewayServicesTableName, "service", structs.NewServiceID(name, entMeta))
 }
 
-func (s *Store) terminatingGatewayServices(tx *memdb.Txn, name string, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func (s *Store) terminatingGatewayServices(tx *txnWrapper, name string, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get(terminatingGatewayServicesTableName, "gateway", structs.NewServiceID(name, entMeta))
 }
 
-func (s *Store) serviceTerminatingGatewayNodes(tx *memdb.Txn, service string, entMeta *structs.EnterpriseMeta) (structs.ServiceNodes, <-chan struct{}, error) {
+func (s *Store) serviceTerminatingGatewayNodes(tx *txnWrapper, service string, entMeta *structs.EnterpriseMeta) (structs.ServiceNodes, <-chan struct{}, error) {
 	// Look up gateway name associated with the service
 	gw, err := s.serviceTerminatingGateway(tx, service, entMeta)
 	if err != nil {

@@ -121,7 +121,10 @@ func writeToFile(name string, code []byte) error {
 	if err != nil {
 		return err
 	}
-	f.Sync()
+	err = f.Sync()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

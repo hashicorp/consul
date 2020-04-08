@@ -10,11 +10,11 @@ syntax = "proto3";
 package agentpb;
 
 import "structs.proto";
-// Go Modules now includes the version in the filepath for packages within GOPATH/pkg/mode
-// Therefore unless we want to hardcode a version here like
-// github.com/gogo/protobuf@v1.3.0/gogoproto/gogo.proto then the only other choice is to
-// have a more relative import and pass the right import path to protoc. I don't like it
-// but its necessary.
+// Go Modules now includes the version in the file path for packages within
+// GOPATH/pkg/mode Therefore unless we want to hardcode a version here like
+// github.com/gogo/protobuf@v1.3.0/gogoproto/gogo.proto then the only other
+// choice is to have a more relative import and pass the right import path to
+// protoc. I don't like it but its necessary.
 import "gogoproto/gogo.proto";
 
 option (gogoproto.goproto_unkeyed_all) = false;
@@ -24,11 +24,12 @@ option (gogoproto.goproto_sizecache_all) = false;
 
 // Topic enumerates the supported streaming topics in Consul.
 enum Topic {
-    ServiceHealth = 0;
-    ServiceHealthConnect = 1;
-    ACLTokens = 2;
-    ACLPolicies = 3;
-    ACLRoles = 4;
+    Unknown = 0;
+    ServiceHealth = 1;
+    ServiceHealthConnect = 2;
+    ACLTokens = 3;
+    ACLPolicies = 4;
+    ACLRoles = 5;
 }
 
 // SubscribeRequest is the type used to initiate a streaming Subscribe RPC.
@@ -44,18 +45,18 @@ message SubscribeRequest {
     string Key = 2;
 
     // Token is the ACL token to authenticate the request. The token must have
-    // sufficient priviledges to read the requested information otherwise events
+    // sufficient privileges to read the requested information otherwise events
     // will be filtered, possibly resulting in an empty snapshot and no further
     // updates sent.
     string Token = 3;
 
     // Index is the raft index the subscriber has already observed up to. This
     // is zero on an initial streaming call, but then can be provided by a
-    // client on subsequent reconnections such that the full snapshot doesn't
+    // client on subsequent re-connections such that the full snapshot doesn't
     // need to be resent if the client is up to date.
     uint64 Index = 4;
 
-    // Filter optionally specified a bexpr filter string to apply to the event
+    // Filter optionally specifies a bexpr filter string to apply to the event
     // objects before returning them. This is an optimization only and the
     // server MAY NOT filter the results. In general it may not be possible for
     // the server to correctly apply filters without keeping a history of every
@@ -67,7 +68,7 @@ message SubscribeRequest {
     // server ignores this entirely but we may change that later.
     string Filter = 5;
 
-    // Datacenter specifies the Consul datacenter the request is targetted at.
+    // Datacenter specifies the Consul datacenter the request is targeted at.
     // If it's not the local DC (or empty) the server will forward the stream to
     // the remote DC and proxy the results back.
     string Datacenter = 6;
@@ -111,13 +112,13 @@ message Event {
 
         // ResumeStream indicates that the client is still up-to-date, so there
         // will be no snapshot, and the rest of the stream will be individual
-        // update events. It disambiguates between "up to date, no snapshot" and
-        // "snapshot containes zero events".
+        // update events. It distinguishes between "up to date, no snapshot" and
+        // "snapshot contains zero events".
         bool ResumeStream = 10;
 
         // ResetStream indicates the client should re-start the Subscribe call.
         // It is used when the server can no longer correctly maintain the
-        // stream, for example because the ACL permisions for the token changed
+        // stream, for example because the ACL permissions for the token changed
         // and the server doesn't know which previously delivered events should
         // now not be visible. Clients when receiving this must reset their
         // local copy of the state to empty and start over from index 0 to get a

@@ -1,5 +1,5 @@
 /**
- * Structs.proto contains Protobug versions of the structs defined in
+ * Structs.proto contains Protobuf versions of the structs defined in
  * `agent/structs/structs.go`. It's a pretty random assortment and possibly due
  * for a tidy up and sort into more specific files but until we've entirely
  * replaces the `structs` package versions it seems cleaner to keep the file
