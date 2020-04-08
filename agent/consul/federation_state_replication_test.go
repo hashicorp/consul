@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/require"
 )
 
@@ -42,6 +43,12 @@ func TestReplication_FederationStates(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s1.RPC, "dc2")
 
+	duplicate := func(t *testing.T, s *structs.FederationState) *structs.FederationState {
+		s2, err := copystructure.Copy(s)
+		require.NoError(t, err)
+		return s2.(*structs.FederationState)
+	}
+
 	// Create some new federation states (weird because we're having dc1 update it for the other 50)
 	var fedStates []*structs.FederationState
 	for i := 0; i < 50; i++ {
@@ -67,7 +74,7 @@ func TestReplication_FederationStates(t *testing.T) {
 
 		out := false
 		require.NoError(t, s1.RPC("FederationState.Apply", &arg, &out))
-		fedStates = append(fedStates, arg.State)
+		fedStates = append(fedStates, duplicate(t, arg.State))
 	}
 
 	checkSame := func(t *retry.R) error {
@@ -130,7 +137,7 @@ func TestReplication_FederationStates(t *testing.T) {
 		arg := structs.FederationStateRequest{
 			Datacenter: "dc1",
 			Op:         structs.FederationStateDelete,
-			State:      fedState,
+			State:      duplicate(t, fedState),
 		}
 
 		out := false
