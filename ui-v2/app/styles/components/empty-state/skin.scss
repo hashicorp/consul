@@ -1,0 +1,31 @@
+%empty-state-header {
+  border-bottom: none;
+}
+%empty-state header {
+  color: $gray-500;
+}
+%empty-state header::before {
+  background-color: $gray-500;
+  font-size: 2.6em;
+  position: relative;
+  top: -3px;
+  float: left;
+  margin-right: 10px;
+}
+%empty-state-anchor {
+  @extend %anchor;
+}
+%empty-state-anchor::before {
+  margin-right: 0.5em;
+  background-color: $blue-500;
+  font-size: 0.9em;
+}
+%empty-state.unauthorized header::before {
+  @extend %with-alert-circle-outline-mask, %as-pseudo;
+}
+%empty-state .docs-link > *::before {
+  @extend %with-docs-mask, %as-pseudo;
+}
+%empty-state .learn-link > *::before {
+  @extend %with-learn-mask, %as-pseudo;
+}
