@@ -44,7 +44,7 @@ Feature: dc / list-blocking
     And an external edit results in 0 [Model] models
     And pause until I see the text "deregistered" in "[data-notification]"
   Where:
-    -------------------------------------------------------
-    | Page       | Model       | Url                      |
-    | service    | instance    | services/service-0-proxy |
-    -------------------------------------------------------
+    -----------------------------------------------------------------
+    | Page       | Model       | Url                                |
+    | service    | instance    | services/service-0-proxy/instances |
+    -----------------------------------------------------------------

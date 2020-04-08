@@ -60,7 +60,7 @@ Feature: dc / services / instances / show: Show Service Instance
       node: another-node
       id: service-0-with-id
     ---
-    Then the url should be /dc1/services/service-0/another-node/service-0-with-id
+    Then the url should be /dc1/services/service-0/instances/another-node/service-0-with-id/service-checks
     Then I don't see type on the proxy
     Then I see externalSource like "nomad"
 
@@ -98,7 +98,7 @@ Feature: dc / services / instances / show: Show Service Instance
       node: node-0
       id: service-0-with-id
     ---
-    Then the url should be /dc1/services/service-0/node-0/service-0-with-id
+    Then the url should be /dc1/services/service-0/instances/node-0/service-0-with-id/service-checks
     And an external edit results in 0 instance models
     And pause until I see the text "deregistered" in "[data-notification]"
 
@@ -119,7 +119,7 @@ Feature: dc / services / instances / show: Show Service Instance
       node: another-node
       id: service-0-with-id
     ---
-    Then the url should be /dc1/services/service-0/another-node/service-0-with-id
+    Then the url should be /dc1/services/service-0/instances/another-node/service-0-with-id/service-checks
     And I see serviceChecksIsSelected on the tabs
 
     And I don't see exposedPaths on the tabs
@@ -147,7 +147,7 @@ Feature: dc / services / instances / show: Show Service Instance
       node: another-node
       id: service-0-with-id
     ---
-    Then the url should be /dc1/services/service-0/another-node/service-0-with-id
+    Then the url should be /dc1/services/service-0/instances/another-node/service-0-with-id/service-checks
     And I see serviceChecksIsSelected on the tabs
 
     And I don't see exposedPaths on the tabs

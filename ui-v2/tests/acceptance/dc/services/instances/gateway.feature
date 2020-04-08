@@ -23,7 +23,7 @@ Feature: dc / services / instances / gateway: Show Gateway Service Instance
       node: node-0
       id: gateway-with-id
     ---
-    Then the url should be /dc1/services/gateway/node-0/gateway-with-id
+    Then the url should be /dc1/services/gateway/instances/node-0/gateway-with-id/service-checks
 
     And I see serviceChecksIsSelected on the tabs
 
