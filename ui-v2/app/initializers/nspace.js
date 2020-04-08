@@ -29,6 +29,19 @@ Route.reopen(
 if (env('CONSUL_NSPACES_ENABLED')) {
   const dotRe = /\./g;
   initialize = function(container) {
+    const register = function(route, path) {
+      route.reopen({
+        templateName: path
+          .replace('/root-create', '/create')
+          .replace('/create', '/edit')
+          .replace('/folder', '/index'),
+      });
+      container.register(`route:nspace/${path}`, route);
+      const controller = container.resolveRegistration(`controller:${path}`);
+      if (controller) {
+        container.register(`controller:nspace/${path}`, controller);
+      }
+    };
     const all = Object.keys(flat(routes))
       .filter(function(item) {
         return item.startsWith('dc');
@@ -38,21 +51,21 @@ if (env('CONSUL_NSPACES_ENABLED')) {
       });
     all.forEach(function(item) {
       let route = container.resolveRegistration(`route:${item}`);
+      let indexed;
+      // if the route doesn't exist it probably has an index route instead
       if (!route) {
         item = `${item}/index`;
         route = container.resolveRegistration(`route:${item}`);
+      } else {
+        // if the route does exists
+        // then check to see if it also has an index route
+        indexed = `${item}/index`;
+        const index = container.resolveRegistration(`route:${indexed}`);
+        if (typeof index !== 'undefined') {
+          register(index, indexed);
+        }
       }
-      route.reopen({
-        templateName: item
-          .replace('/root-create', '/create')
-          .replace('/create', '/edit')
-          .replace('/folder', '/index'),
-      });
-      container.register(`route:nspace/${item}`, route);
-      const controller = container.resolveRegistration(`controller:${item}`);
-      if (controller) {
-        container.register(`controller:nspace/${item}`, controller);
-      }
+      register(route, item);
     });
   };
 }

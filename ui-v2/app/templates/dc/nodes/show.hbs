@@ -14,7 +14,16 @@
           {{ item.Node }}
         </h1>
         <label for="toolbar-toggle"></label>
-        <TabNav @items={{compact (array "Health Checks" "Services" (if tomography.distances "Round Trip Time" "") "Lock Sessions" "Meta Data")}} @selected={{selectedTab}} />
+        <TabNav @items={{
+          compact
+              (array
+                          (hash label="Health Checks" href=(href-to "dc.nodes.show.healthchecks") selected=(is-href "dc.nodes.show.healthchecks"))
+                          (hash label="Services" href=(href-to "dc.nodes.show.services") selected=(is-href "dc.nodes.show.services"))
+(if tomography.distances  (hash label="Round Trip Time" href=(href-to "dc.nodes.show.rtt") selected=(is-href "dc.nodes.show.rtt")) '')
+                          (hash label="Lock Sessions" href=(href-to "dc.nodes.show.sessions") selected=(is-href "dc.nodes.show.sessions"))
+                          (hash label="Meta Data" href=(href-to "dc.nodes.show.metadata") selected=(is-href "dc.nodes.show.metadata"))
+              )
+        }}/>
     </BlockSlot>
     <BlockSlot @name="actions">
       <FeedbackDialog @type="inline">
@@ -36,22 +45,6 @@
       </FeedbackDialog>
     </BlockSlot>
     <BlockSlot @name="content">
-        {{#each
-            (compact
-                (array
-                            (hash id=(slugify 'Health Checks') partial='dc/nodes/healthchecks')
-                            (hash id=(slugify 'Services') partial='dc/nodes/services')
-   (if tomography.distances (hash id=(slugify 'Round Trip Time') partial='dc/nodes/rtt') '')
-                            (hash id=(slugify 'Lock Sessions') partial='dc/nodes/sessions')
-                            (hash id=(slugify 'Meta Data') partial='dc/nodes/metadata')
-                )
-            ) key="id" as |panel|
-        }}
-    {{#if (or (not-eq panel.id 'round-trip-time') (gt tomography.distances.length 0)) }}
-            <TabSection @id={{panel.id}} @selected={{eq (if selectedTab selectedTab "") panel.id}} @onchange={{action "change"}}>
-                {{partial panel.partial}}
-            </TabSection>
-    {{/if}}
-        {{/each}}
+      {{outlet}}
     </BlockSlot>
 </AppView>

@@ -16,6 +16,7 @@ import createCancelable from 'consul-ui/tests/lib/page-object/createCancelable';
 
 import page from 'consul-ui/tests/pages/components/page';
 import radiogroup from 'consul-ui/tests/lib/page-object/radiogroup';
+import tabgroup from 'consul-ui/tests/lib/page-object/tabgroup';
 import freetextFilter from 'consul-ui/tests/pages/components/freetext-filter';
 import catalogFilter from 'consul-ui/tests/pages/components/catalog-filter';
 import aclFilter from 'consul-ui/tests/pages/components/acl-filter';
@@ -70,10 +71,10 @@ export default {
   services: create(
     services(visitable, clickable, attribute, collection, page, catalogFilter, radiogroup)
   ),
-  service: create(service(visitable, attribute, collection, text, catalogFilter, radiogroup)),
-  instance: create(instance(visitable, attribute, collection, text, radiogroup)),
+  service: create(service(visitable, attribute, collection, text, catalogFilter, tabgroup)),
+  instance: create(instance(visitable, attribute, collection, text, tabgroup)),
   nodes: create(nodes(visitable, clickable, attribute, collection, catalogFilter)),
-  node: create(node(visitable, deletable, clickable, attribute, collection, radiogroup)),
+  node: create(node(visitable, deletable, clickable, attribute, collection, tabgroup)),
   kvs: create(kvs(visitable, deletable, creatable, clickable, attribute, collection)),
   kv: create(kv(visitable, attribute, submitable, deletable, cancelable, clickable)),
   acls: create(acls(visitable, deletable, creatable, clickable, attribute, collection, aclFilter)),

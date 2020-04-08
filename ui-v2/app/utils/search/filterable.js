@@ -4,8 +4,9 @@ export default function(EventTarget = RSVP.EventTarget, P = Promise) {
   return function(filter) {
     return EventTarget.mixin({
       value: '',
+      _data: [],
       add: function(data) {
-        this.data = data;
+        this.data = this._data = data;
         return this;
       },
       find: function(terms = []) {
@@ -21,7 +22,7 @@ export default function(EventTarget = RSVP.EventTarget, P = Promise) {
             return prev.filter(item => {
               return filter(item, { s: term });
             });
-          }, this.data)
+          }, this._data)
         );
       },
       search: function(terms = []) {
@@ -30,6 +31,7 @@ export default function(EventTarget = RSVP.EventTarget, P = Promise) {
         // flow now for later on
         this.find(Array.isArray(terms) ? terms : [terms]).then(data => {
           // TODO: For the moment, lets just fake a target
+          this.data = data;
           this.trigger('change', {
             target: {
               value: this.value.join('\n'),

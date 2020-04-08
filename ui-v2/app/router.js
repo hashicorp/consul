@@ -13,8 +13,44 @@ export const routes = {
       // Show an individual service
       show: {
         _options: { path: '/:name' },
+        instances: {
+          _options: { path: '/instances' },
+        },
+        intentions: {
+          _options: { path: '/intentions' },
+        },
+        routing: {
+          _options: { path: '/routing' },
+        },
+        tags: {
+          _options: { path: '/tags' },
+        },
       },
       instance: {
+        _options: { path: '/:name/instances/:node/:id' },
+        servicechecks: {
+          _options: { path: '/service-checks' },
+        },
+        nodechecks: {
+          _options: { path: '/node-checks' },
+        },
+        upstreams: {
+          _options: { path: '/upstreams' },
+        },
+        exposedpaths: {
+          _options: { path: '/exposed-paths' },
+        },
+        addresses: {
+          _options: { path: '/addresses' },
+        },
+        tags: {
+          _options: { path: '/tags' },
+        },
+        metadata: {
+          _options: { path: '/metadata' },
+        },
+      },
+      notfound: {
         _options: { path: '/:name/:node/:id' },
       },
     },
@@ -24,6 +60,21 @@ export const routes = {
       // Show an individual node
       show: {
         _options: { path: '/:name' },
+        healthchecks: {
+          _options: { path: '/health-checks' },
+        },
+        services: {
+          _options: { path: '/services' },
+        },
+        rtt: {
+          _options: { path: '/round-trip-time' },
+        },
+        sessions: {
+          _options: { path: '/lock-sessions' },
+        },
+        metadata: {
+          _options: { path: '/meta-data' },
+        },
       },
     },
     // Intentions represent a consul intention
