@@ -131,7 +131,6 @@ OUTER:
 				watchLogger.Error("Handler only supports index-based " +
 					" watches but non index-based watch run. Skipping Handler.")
 			}
-			// fmt.Println(first)
 			if first == true && p.FireOnCreate == "no" {
 				first = false
 				continue
@@ -209,7 +208,6 @@ OUTER:
 				logger.Printf("[ERR] consul.watch: Handler only supports index-based " +
 					" watches but non index-based watch run. Skipping Handler.")
 			}
-			fmt.Println("sdf")
 			p.Handler(uint64(idx), result)
 		}
 	}
