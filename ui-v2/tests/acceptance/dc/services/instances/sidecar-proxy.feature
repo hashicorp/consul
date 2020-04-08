@@ -19,7 +19,7 @@ Feature: dc / services / instances / sidecar-proxy: Show Sidecar Proxy Service I
       node: node-0
       id: service-0-sidecar-proxy-with-id
     ---
-    Then the url should be /dc1/services/service-0-sidecar-proxy/node-0/service-0-sidecar-proxy-with-id
+    Then the url should be /dc1/services/service-0-sidecar-proxy/instances/node-0/service-0-sidecar-proxy-with-id/service-checks
     And I see destination on the proxy like "instance"
 
     And I see serviceChecksIsSelected on the tabs

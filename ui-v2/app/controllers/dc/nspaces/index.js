@@ -18,6 +18,6 @@ export default Controller.extend(WithEventSource, WithSearching, {
   searchable: computed('items.[]', function() {
     return get(this, 'searchables.nspace')
       .add(this.items)
-      .search(this.terms);
+      .search(get(this, this.searchParams.nspace));
   }),
 });

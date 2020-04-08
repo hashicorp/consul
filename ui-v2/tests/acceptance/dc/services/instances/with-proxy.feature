@@ -14,7 +14,7 @@ Feature: dc / services / instances / with-proxy: Show Service Instance with a pr
       node: node-0
       id: service-0-with-id
     ---
-    Then the url should be /dc1/services/service-0/node-0/service-0-with-id
+    Then the url should be /dc1/services/service-0/instances/node-0/service-0-with-id/service-checks
     And I see type on the proxy like "proxy"
 
     And I see serviceChecksIsSelected on the tabs
