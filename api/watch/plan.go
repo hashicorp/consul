@@ -120,7 +120,7 @@ OUTER:
 		p.lastResult = result
 		// If a hybrid handler exists use that
 		if p.HybridHandler != nil {
-			if p.FireOnCreate == "no" && first {
+			if first == true && p.FireOnCreate == "no" {
 				first = false
 				continue
 			}
@@ -131,7 +131,8 @@ OUTER:
 				watchLogger.Error("Handler only supports index-based " +
 					" watches but non index-based watch run. Skipping Handler.")
 			}
-			if p.FireOnCreate == "no" && first {
+			// fmt.Println(first)
+			if first == true && p.FireOnCreate == "no" {
 				first = false
 				continue
 			}

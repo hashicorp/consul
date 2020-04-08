@@ -34,6 +34,7 @@ func TestRun_Stop(t *testing.T) {
 	plan := mustParse(t, `{"type":"noop"}`)
 
 	var expect uint64 = 2
+	plan.FireOnCreate = "no"
 	doneCh := make(chan struct{})
 	plan.Handler = func(idx uint64, val interface{}) {
 		// fmt.Println(expect)
@@ -83,6 +84,7 @@ func TestRun_Stop_Hybrid(t *testing.T) {
 
 	var expect uint64 = 2
 	doneCh := make(chan struct{})
+	plan.FireOnCreate = "no"
 	plan.HybridHandler = func(blockParamVal BlockingParamVal, val interface{}) {
 		idxVal, ok := blockParamVal.(WaitIndexVal)
 		if !ok {

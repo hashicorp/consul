@@ -69,7 +69,7 @@ func (c *cmd) init() {
 		"Specifies the states to watch. Optional for 'checks' type.")
 	c.flags.StringVar(&c.name, "name", "",
 		"Specifies an event name to watch. Only for 'event' type.")
-	c.flags.StringVar(&c.fireOnCreate, "fireoncreate", "yes",
+	c.flags.StringVar(&c.fireOnCreate, "fireoncreate", "no",
 		"Specifies if the watch should fire immediately after creation.")
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
