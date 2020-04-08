@@ -5,9 +5,9 @@
     <fieldset>
         <label class="type-text">
             <span>SecretID or Token</span>
-            <Input @type="password" @value={{secret}} @name="secret" placeholder="SecretID or Token" />
+            <input type="password" name="secret" placeholder="SecretID or Token" oninput={{action (mut secret) value="target.value"}} />
         </label>
     </fieldset>
     {{! authorize is in the routes/dc/acls.js route }}
-    <button type="submit" {{action 'authorize' secret nspace}}>Save</button>
+    <button type="submit" {{action 'authorize' secret nspace}}>Login</button>
 </form>

@@ -51,11 +51,14 @@ const mb = function(path) {
 };
 export default function(assert, library) {
   const pauseUntil = function(run, message = 'assertion timed out') {
-    return new Promise(function(r, reject) {
+    return new Promise(function(r) {
       let count = 0;
       let resolved = false;
       const retry = function() {
         return Promise.resolve();
+      };
+      const reject = function() {
+        return Promise.reject();
       };
       const resolve = function(str = message) {
         resolved = true;

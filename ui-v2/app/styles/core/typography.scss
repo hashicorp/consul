@@ -44,6 +44,8 @@ pre code,
 %phrase-editor input {
   @extend %p1;
 }
+%menu-panel dl,
+%empty-state-anchor,
 .type-dialog,
 %table td p,
 %table td,
@@ -56,9 +58,9 @@ pre code,
   @extend %p2;
 }
 .template-error > div,
+%empty-state-subheader,
 %button,
 %main-content p,
-%app-view > div.disabled > div,
 %form-element-note,
 %menu-panel-separator,
 %form-element-error > strong {
@@ -77,6 +79,7 @@ pre code,
 %button {
   font-weight: $typo-weight-semibold;
 }
+%menu-panel dt,
 %route-card section dt,
 %route-card header:not(.short) dd,
 %splitter-card > header {
@@ -88,6 +91,8 @@ pre code,
 /**/
 
 /* resets */
+%menu-panel dt span,
+%empty-state-subheader,
 %main-content label a[rel*='help'],
 %pill,
 %form-element > strong,

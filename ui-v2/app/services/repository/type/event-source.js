@@ -83,6 +83,7 @@ const createProxy = function(repo, find, settings, cache, serialize = JSON.strin
   };
 };
 let cache = null;
+let cacheMap = null;
 export default LazyProxyService.extend({
   store: service('store'),
   settings: service('settings'),
@@ -91,10 +92,18 @@ export default LazyProxyService.extend({
   init: function() {
     this._super(...arguments);
     if (cache === null) {
-      cache = createCache({});
+      this.resetCache();
     }
   },
+  resetCache: function() {
+    Object.entries(cacheMap || {}).forEach(function([key, item]) {
+      item.close();
+    });
+    cacheMap = {};
+    cache = createCache(cacheMap);
+  },
   willDestroy: function() {
+    cacheMap = null;
     cache = null;
   },
   shouldProxy: function(content, method) {
