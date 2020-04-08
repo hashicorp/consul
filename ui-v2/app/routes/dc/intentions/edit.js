@@ -10,7 +10,19 @@ export default Route.extend(WithIntentionActions, {
   repo: service('repository/intention'),
   servicesRepo: service('repository/service'),
   nspacesRepo: service('repository/nspace/disabled'),
-  model: function(params) {
+  buildRouteInfoMetadata: function() {
+    return { history: this.history };
+  },
+  model: function(params, transition) {
+    const from = get(transition, 'from');
+    this.history = [];
+    if (from && get(from, 'name') === 'dc.services.show.intentions') {
+      this.history.push({
+        key: get(from, 'name'),
+        value: get(from, 'parent.params.name'),
+      });
+    }
+
     const dc = this.modelFor('dc').dc.Name;
     // We load all of your services that you are able to see here
     // as even if it doesn't exist in the namespace you are targetting
@@ -21,6 +33,7 @@ export default Route.extend(WithIntentionActions, {
       item: this.repo.findBySlug(params.id, dc, nspace),
       services: this.servicesRepo.findAllByDatacenter(dc, nspace),
       nspaces: this.nspacesRepo.findAll(),
+      history: this.history,
     }).then(function(model) {
       return {
         ...model,
