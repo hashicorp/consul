@@ -1,5 +1,5 @@
 @import './feedback-dialog/index';
-main .with-feedback {
+.with-feedback {
   @extend %feedback-dialog-inline;
 }
 %feedback-dialog-inline .feedback-dialog-out {

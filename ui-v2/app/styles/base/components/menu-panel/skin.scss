@@ -7,6 +7,9 @@
   border-color: $gray-300;
   background-color: $white;
 }
+%menu-panel dd {
+  color: $gray-500;
+}
 %menu-panel > ul > li {
   list-style-type: none;
 }

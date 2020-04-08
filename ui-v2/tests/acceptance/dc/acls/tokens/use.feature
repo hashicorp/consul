@@ -7,14 +7,17 @@ Feature: dc / acls / tokens / use: Using an ACL token
       AccessorID: token
       SecretID: ee52203d-989f-4f7a-ab5a-2bef004164ca
     ---
+    And settings from yaml
+    ---
+    consul:token:
+      SecretID: secret
+      AccessorID: accessor
+      Namespace: default
+    ---
   Scenario: Using an ACL token from the listing page
     When I visit the tokens page for yaml
     ---
       dc: datacenter
-    ---
-    Then I have settings like yaml
-    ---
-    consul:token: ~
     ---
     And I click actions on the tokens
     And I click use on the tokens
@@ -30,10 +33,6 @@ Feature: dc / acls / tokens / use: Using an ACL token
     ---
       dc: datacenter
       token: token
-    ---
-    Then I have settings like yaml
-    ---
-    consul:token: ~
     ---
     And I click use
     And I click confirmUse

@@ -1,0 +1,62 @@
+## DataSink
+
+```handlebars
+<DataSink
+  @sink="/dc/nspace/intentions/{{intentions.uid}}"
+  @onchange={{action (mut items) value="data"}}
+  @onerror={{action (mut error) value="error"}}
+  as |api|
+></DataSink>
+```
+
+### Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `sink` | `String` | | The location of the sink, this should map to a string based URI |
+| `data` | `Object` | | The data to be saved to the current instance, null or an empty string means remove |
+| `onchange` | `Function` |  | The action to fire when the data has arrived to the sink. Emits an Event-like object with a `data` property containing the data, if the data was deleted this is `undefined`. |
+| `onerror` | `Function` |  | The action to fire when an error occurs. Emits ErrorEvent object with an `error` property containing the Error. |
+
+### Methods/Actions/api
+
+| Method/Action |  Description |
+| --- | --- |
+| `open` | Manually add or remove fom the data sink |
+
+The component takes a `sink` or an identifier (a uri) for the location of a sink and then emits `onchange` events whenever that data has been arrived to the sink (whether persisted or removed). If an error occurs whilst listening for data changes, an `onerror` event is emitted.
+
+Behind the scenes in the Consul UI we map URIs back to our `ember-data` backed `Repositories` meaning we can essentially redesign the URIs used for our data to more closely fit our needs. For example we currently require that **all** HTTP API URIs begin with `/dc/nspace/` values whether they require them or not.
+
+`DataSink` is not just restricted to HTTP API data, and can be configured to listen for data changes using a variety of methods and sources. For example we have also configured `DataSink` to send data to `LocalStorage` using the `settings://` pseudo-protocol in the URI (See examples below).
+
+
+### Examples
+
+```handlebars
+  <DataSink @src="/dc/nspace/intentions/{{intention.uid}}"
+    @onchange={{action (mut item) value="data"}}
+    @onerror={{action (mut error) value="error"}}
+    as |api|
+  >
+    <button type="button" onclick={{action api.open (hash Name="New Name")}}>Create/Update</button>
+    <button type="button" onclick={{action api.open null}}>Delete</button>
+  </DataSink>
+  {{item.Name}}
+```
+
+```handlebars
+  <DataSink @src="/dc/nspace/intentions/{{intention.uid}}"
+    @data=(hash Name="New Name")
+    @onchange={{action (mut item) value="data"}}
+    @onerror={{action (mut error) value="error"}}
+  ></DataSink>
+  {{item.Name}}
+```
+
+### See
+
+- [Component Source Code](./index.js)
+- [Template Source Code](./index.hbs)
+
+---

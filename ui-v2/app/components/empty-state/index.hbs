@@ -1,0 +1,21 @@
+{{yield}}
+<div class="empty-state" ...attributes>
+  <header>
+    {{#yield-slot name="header"}}
+      {{yield}}
+    {{/yield-slot}}
+    {{#yield-slot name="subheader"}}
+      {{yield}}
+    {{/yield-slot}}
+  </header>
+  <p>
+    {{#yield-slot name="body"}}
+      {{yield}}
+    {{/yield-slot}}
+  </p>
+  {{#yield-slot name="actions"}}
+    <ul>
+      {{yield}}
+    </ul>
+  {{/yield-slot}}
+</div>

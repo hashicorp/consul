@@ -8,9 +8,12 @@ Feature: dc / acls / tokens / own-no-delete: The your current token has no delet
       SecretID: ee52203d-989f-4f7a-ab5a-2bef004164ca
     ---
   Scenario: On the listing page
-    Then I have settings like yaml
+    Given settings from yaml
     ---
-    consul:token: ~
+    consul:token:
+      SecretID: secret
+      AccessorID: accessor
+      Namespace: default
     ---
     When I visit the tokens page for yaml
     ---
