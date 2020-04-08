@@ -1,6 +1,5 @@
 @import '../base/components/pill/index';
-td strong,
-%tag-list span {
+td strong {
   @extend %pill;
   margin-right: 3px;
 }
