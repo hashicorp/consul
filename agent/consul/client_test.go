@@ -67,7 +67,7 @@ func testClientDC(t *testing.T, dc string) (string, *Client) {
 	})
 }
 
-func testClientWithConfig(t *testing.T, cb func(c *Config)) (string, *Client) {
+func testClientWithConfigWithErr(t *testing.T, cb func(c *Config)) (string, *Client, error) {
 	dir, config := testClientConfig(t)
 	if cb != nil {
 		cb(config)
@@ -91,6 +91,13 @@ func testClientWithConfig(t *testing.T, cb func(c *Config)) (string, *Client) {
 	client, err := NewClientLogger(config, logger, tlsConf)
 	if err != nil {
 		config.NotifyShutdown()
+	}
+	return dir, client, err
+}
+
+func testClientWithConfig(t *testing.T, cb func(c *Config)) (string, *Client) {
+	dir, client, err := testClientWithConfigWithErr(t, cb)
+	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	return dir, client
