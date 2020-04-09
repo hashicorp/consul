@@ -37,6 +37,7 @@
 
 /* Local Pages */
 @import './downloads/style.css';
+@import './community/style.css';
 
 /* Print Styles */
 @import './print.css';
