@@ -42,7 +42,7 @@ may benefit from additional components in the ACL system:
 
 - **ACL Service Identities** - Service identities are a policy template for
   expressing a link to a policy suitable for use in [Consul
-  Connect](/docs/connect/index.html). At authorization time this acts like an
+  Connect](/docs/connect). At authorization time this acts like an
   additional policy was attached, the contents of which are described further
   below. These are directly attached to tokens and roles and are not
   independently configured. (Added in Consul 1.5.0)
@@ -53,7 +53,7 @@ may benefit from additional components in the ACL system:
 ACL tokens, policies, roles, auth methods, and binding rules are managed by
 Consul operators via Consul's [ACL API](/api/acl/acl.html),
 [ACL CLI](/docs/commands/acl.html), or systems like
-[HashiCorp's Vault](https://www.vaultproject.io/docs/secrets/consul/index.html).
+[HashiCorp's Vault](https://www.vaultproject.io/docs/secrets/consul).
 
 If the ACL system becomes inoperable, you can follow the
 [reset procedure](https://learn.hashicorp.com/consul/security-networking/acl-troubleshooting?utm_source=consul.io&utm_medium=docs) at any time.
@@ -85,7 +85,7 @@ An ACL policy is a named set of rules and is composed of the following elements:
 -> Added in Consul 1.5.0
 
 An ACL service identity is an [ACL policy](/docs/acl/acl-system.html#acl-policies) template for expressing a link to a policy
-suitable for use in [Consul Connect](/docs/connect/index.html). They are usable
+suitable for use in [Consul Connect](/docs/connect). They are usable
 on both tokens and roles and are composed of the following elements:
 
 - **Service Name** - The name of the service.
@@ -175,10 +175,10 @@ injected.
 #### Authorization
 
 The token Secret ID is passed along with each RPC request to the servers. Consul's
-[HTTP endpoints](/api/index.html) can accept tokens via the `token`
+[HTTP endpoints](/api) can accept tokens via the `token`
 query string parameter, the `X-Consul-Token` request header, or an
 [RFC6750](https://tools.ietf.org/html/rfc6750) authorization bearer token. Consul's
-[CLI commands](/docs/commands/index.html) can accept tokens via the
+[CLI commands](/docs/commands) can accept tokens via the
 `token` argument, or the `CONSUL_HTTP_TOKEN` environment variable. The CLI
 commands can also accept token values stored in files with the `token-file`
 argument, or the `CONSUL_HTTP_TOKEN_FILE` environment variable.
@@ -231,7 +231,7 @@ Constructing rules from these policies is covered in detail on the
 [ACL Rules](/docs/acl/acl-rules.html) page.
 
 -> **Consul Enterprise Namespacing** - In addition to directly linked policies, roles and service identities, Consul Enterprise
-will include the ACL policies and roles defined in the [Namespaces definition](/docs/enterprise/namespaces/index.html#namespace-definition). (Added in Consul Enterprise 1.7.0)
+will include the ACL policies and roles defined in the [Namespaces definition](/docs/enterprise/namespaces#namespace-definition). (Added in Consul Enterprise 1.7.0)
 
 ## Configuring ACLs
 

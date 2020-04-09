@@ -96,7 +96,7 @@ The output of the [`members`](/docs/commands/members.html) command is based on
 the [gossip protocol](/docs/internals/gossip.html) and is eventually consistent.
 That is, at any point in time, the view of the world as seen by your local
 agent may not exactly match the state on the servers. For a strongly consistent
-view of the world, use the [HTTP API](/api/index.html) as it forwards the
+view of the world, use the [HTTP API](/api) as it forwards the
 request to the Consul servers:
 
 ```text
@@ -138,7 +138,7 @@ to recover from certain network conditions, while _left_ nodes are no longer con
 Additionally, if an agent is operating as a server, a graceful leave is important
 to avoid causing a potential availability outage affecting the
 [consensus protocol](/docs/internals/consensus.html). See the
-[guides section](/docs/guides/index.html) for details on how to safely add
+[guides section](/docs/guides) for details on how to safely add
 and remove servers.
 
 ## Next Steps

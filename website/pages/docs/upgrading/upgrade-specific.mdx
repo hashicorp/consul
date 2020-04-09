@@ -198,7 +198,7 @@ automatically and without loss of connectivity throughout all datacenters and
 workloads.
 
 For more information see [Connect
-Multi-datacenter](/docs/enterprise/connect-multi-datacenter/index.html).
+Multi-datacenter](/docs/enterprise/connect-multi-datacenter).
 
 ## Consul 1.3.0
 
@@ -706,7 +706,7 @@ and the agents need to be running version 0.7 or later in order to use this
 feature.
 
 These translated addresses could break HTTP endpoint consumers that are
-expecting local addresses, so a new [`X-Consul-Translate-Addresses`](/api/index.html#translate_header)
+expecting local addresses, so a new [`X-Consul-Translate-Addresses`](/api#translate_header)
 header was added to allow clients to detect if translation is enabled for HTTP
 responses. A "lan" tag was added to `TaggedAddresses` for clients that need
 the local address regardless of translation.
