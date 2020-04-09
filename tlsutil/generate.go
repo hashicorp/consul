@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/rsa"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/x509"
@@ -130,6 +131,7 @@ func GenerateCert(signer crypto.Signer, ca string, sn *big.Int, name string, day
 func keyID(raw interface{}) ([]byte, error) {
 	switch raw.(type) {
 	case *ecdsa.PublicKey:
+	case *rsa.PublicKey:
 	default:
 		return nil, fmt.Errorf("invalid key type: %T", raw)
 	}
