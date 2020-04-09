@@ -4076,7 +4076,7 @@ func TestFullConfig(t *testing.T) {
 			"key_file": "IEkkwgIA",
 			"leave_on_terminate": true,
 			"limits": {
-				"http_max_conns_per_client": 9283,
+				"http_max_conns_per_client": 250,
 				"https_handshake_timeout": "2391ms",
 				"rpc_handshake_timeout": "1932ms",
 				"rpc_rate": 12029.43,
@@ -4709,7 +4709,7 @@ func TestFullConfig(t *testing.T) {
 			key_file = "IEkkwgIA"
 			leave_on_terminate = true
 			limits {
-				http_max_conns_per_client = 9283
+				http_max_conns_per_client = 250
 				https_handshake_timeout = "2391ms"
 				rpc_handshake_timeout = "1932ms"
 				rpc_rate = 12029.43
@@ -5416,7 +5416,7 @@ func TestFullConfig(t *testing.T) {
 		HTTPPort:                               7999,
 		HTTPResponseHeaders:                    map[string]string{"M6TKa9NP": "xjuxjOzQ", "JRCrHZed": "rl0mTx81"},
 		HTTPSAddrs:                             []net.Addr{tcpAddr("95.17.17.19:15127")},
-		HTTPMaxConnsPerClient:                  9283,
+		HTTPMaxConnsPerClient:                  250,
 		HTTPSHandshakeTimeout:                  2391 * time.Millisecond,
 		HTTPSPort:                              15127,
 		KeyFile:                                "IEkkwgIA",
