@@ -100,10 +100,14 @@
 
 # Glob Redirects, Ported from Varnish
 
-/intro/getting-started/*    https://learn.hashicorp.com/consul/getting-started/:splat   301!
-/docs/agent/http/*          /api/:splat                                                 301!
-/docs/agent/http.html       /api                                                        301!
-/docs/agent/http            /api                                                        301!
+/intro/index                        /intro                                                                    301!
+/intro/getting-started/*            https://learn.hashicorp.com/consul/getting-started/:splat                 301!
+/intro/getting-started              https://learn.hashicorp.com/consul?track=getting-started#getting-started  301!
+/intro/getting-started/index.html   https://learn.hashicorp.com/consul?track=getting-started#getting-started  301!
+
+/docs/agent/http/*          /api/:splat   301!
+/docs/agent/http.html       /api          301!
+/docs/agent/http            /api          301!
 
 # Replatforming Redirects
 
