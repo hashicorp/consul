@@ -1,5 +1,168 @@
 # REDIRECTS FILE
 #
-# See https://www.netlify.com/docs/redirects/ for documentation. Please do not
+# See the README file in this directory for documentation. Please do not
 # modify or delete existing redirects without first verifying internally.
 
+# Consul Redirects
+
+/api.html                                            /api-docs                                         301!
+/docs/agent/acl-rules.html                           /docs/acl/acl-rules                               301!
+/docs/agent/acl-rules                                /docs/acl/acl-rules                               301!
+/docs/agent/acl-system.html                          /docs/acl/acl-system                              301!
+/docs/agent/acl-system                               /docs/acl/acl-system                              301!
+/docs/agent/http.html                                /api-docs                                         301!
+/docs/agent/http                                     /api-docs                                         301!
+/docs/guides/acl-legacy.html                         /docs/acl/acl-legacy                              301!
+/docs/guides/acl-legacy                              /docs/acl/acl-legacy                              301!
+/docs/guides/acl-migrate-tokens.html                 /docs/acl/acl-migrate-tokens                      301!
+/docs/guides/acl-migrate-tokens                      /docs/acl/acl-migrate-tokens                      301!
+/docs/guides/bootstrapping.html                      /docs/install/bootstrapping                       301!
+/docs/guides/bootstrapping                           /docs/install/bootstrapping                       301!
+/docs/guides/sentinel.html                           /docs/agent/sentinel                              301!
+/docs/guides/sentinel                                /docs/agent/sentinel                              301!
+/docs/connect/proxies/sidecar-service.html           /docs/connect/registration/sidecar-service        301!
+/docs/connect/proxies/sidecar-service                /docs/connect/registration/sidecar-service        301!
+/docs/enterprise/connect-multi-datacenter/index.html /docs/enterprise                                  301!
+/docs/enterprise/connect-multi-datacenter            /docs/enterprise                                  301!
+/segmentation.html                                   /mesh                                             301!
+/segmentation                                        /mesh                                             301!
+/configuration.html                                  /                                                 301!
+/configuration                                       /                                                 301!
+
+# CLI renames
+
+/docs/commands/acl/acl-bootstrap.html       /docs/commands/acl/bootstrap.html         301!
+/docs/commands/acl/acl-bootstrap            /docs/commands/acl/bootstrap.html         301!
+/docs/commands/acl/acl-policy.html          /docs/commands/acl/policy.html            301!
+/docs/commands/acl/acl-policy               /docs/commands/acl/policy.html            301!
+/docs/commands/acl/acl-set-agent-token.html /docs/commands/acl/set-agent-token.html   301!
+/docs/commands/acl/acl-set-agent-token      /docs/commands/acl/set-agent-token.html   301!
+/docs/commands/acl/acl-token.html           /docs/commands/acl/token.html             301!
+/docs/commands/acl/acl-token                /docs/commands/acl/token.html             301!
+/docs/commands/acl/acl-translate-rules.html /docs/commands/acl/translate-rules.html   301!
+/docs/commands/acl/acl-translate-rules      /docs/commands/acl/translate-rules.html   301!
+
+# Consul Learn Redirects
+
+/docs/guides/acl.html                          https://learn.hashicorp.com/consul/security-networking/production-acls         301!
+/docs/guides/acl                               https://learn.hashicorp.com/consul/security-networking/production-acls         301!
+/docs/guides/agent-encryption.html             https://learn.hashicorp.com/consul/security-networking/agent-encryption        301!
+/docs/guides/agent-encryption                  https://learn.hashicorp.com/consul/security-networking/agent-encryption        301!
+/docs/guides/autopilot.html                    https://learn.hashicorp.com/consul/day-2-operations/autopilot                  301!
+/docs/guides/autopilot                         https://learn.hashicorp.com/consul/day-2-operations/autopilot                  301!
+/docs/guides/backup.html                       https://learn.hashicorp.com/consul/datacenter-deploy/backup                    301!
+/docs/guides/backup                            https://learn.hashicorp.com/consul/datacenter-deploy/backup                    301!
+/docs/guides/cluster-monitoring-metrics.html   https://learn.hashicorp.com/consul/day-2-operations/monitoring                 301!
+/docs/guides/cluster-monitoring-metrics        https://learn.hashicorp.com/consul/day-2-operations/monitoring                 301!
+/docs/guides/creating-certificates.html        https://learn.hashicorp.com/consul/security-networking/certificates            301!
+/docs/guides/creating-certificates             https://learn.hashicorp.com/consul/security-networking/certificates            301!
+/docs/guides/deployment-guide.html             https://learn.hashicorp.com/consul/datacenter-deploy/deployment-guide          301!
+/docs/guides/deployment-guide                  https://learn.hashicorp.com/consul/datacenter-deploy/deployment-guide          301!
+/docs/guides/deployment.html                   https://learn.hashicorp.com/consul/datacenter-deploy/reference-architecture    301!
+/docs/guides/deployment                        https://learn.hashicorp.com/consul/datacenter-deploy/reference-architecture    301!
+/docs/guides/dns-cache.html                    https://learn.hashicorp.com/consul/security-networking/dns-caching             301!
+/docs/guides/dns-cache                         https://learn.hashicorp.com/consul/security-networking/dns-caching             301!
+/docs/guides/minikube.html                     https://learn.hashicorp.com/consul/getting-started-k8s/minikube                301!
+/docs/guides/minikube                          https://learn.hashicorp.com/consul/getting-started-k8s/minikube                301!
+/docs/guides/connect-production.html           https://learn.hashicorp.com/consul/developer-segmentation/connect-production   301!
+/docs/guides/connect-production                https://learn.hashicorp.com/consul/developer-segmentation/connect-production   301!
+/docs/guides/connect-envoy.html                https://learn.hashicorp.com/consul/developer-segmentation/connect-envoy        301!
+/docs/guides/connect-envoy                     https://learn.hashicorp.com/consul/developer-segmentation/connect-envoy        301!
+/docs/guides/consul-template.html              https://learn.hashicorp.com/consul/developer-configuration/consul-template     301!
+/docs/guides/consul-template                   https://learn.hashicorp.com/consul/developer-configuration/consul-template     301!
+/docs/guides/consul-aws.html                   https://learn.hashicorp.com/consul/cloud-integrations/consul-aws               301!
+/docs/guides/consul-aws                        https://learn.hashicorp.com/consul/cloud-integrations/consul-aws               301!
+/docs/guides/forwarding.html                   https://learn.hashicorp.com/consul/security-networking/forwarding              301!
+/docs/guides/forwarding                        https://learn.hashicorp.com/consul/security-networking/forwarding              301!
+/docs/guides/external.html                     https://learn.hashicorp.com/consul/developer-discovery/external                301!
+/docs/guides/external                          https://learn.hashicorp.com/consul/developer-discovery/external                301!
+/docs/guides/advanced-federation.html          https://learn.hashicorp.com/consul/day-2-operations/advanced-federation        301!
+/docs/guides/advanced-federation               https://learn.hashicorp.com/consul/day-2-operations/advanced-federation        301!
+/docs/guides/datacenters.html                  https://learn.hashicorp.com/consul/security-networking/datacenters             301!
+/docs/guides/datacenters                       https://learn.hashicorp.com/consul/security-networking/datacenters             301!
+/docs/guides/geo-failover.html                 https://learn.hashicorp.com/consul/developer-discovery/geo-failover            301!
+/docs/guides/geo-failover                      https://learn.hashicorp.com/consul/developer-discovery/geo-failover            301!
+/docs/guides/leader-election.html              https://learn.hashicorp.com/consul/developer-configuration/elections           301!
+/docs/guides/leader-election                   https://learn.hashicorp.com/consul/developer-configuration/elections           301!
+/docs/guides/monitoring-telegraf.html          https://learn.hashicorp.com/consul/integrations/telegraf                       301!
+/docs/guides/monitoring-telegraf               https://learn.hashicorp.com/consul/integrations/telegraf                       301!
+/docs/guides/network-segments.html             https://learn.hashicorp.com/consul/day-2-operations/network-segments           301!
+/docs/guides/network-segments                  https://learn.hashicorp.com/consul/day-2-operations/network-segments           301!
+/docs/guides/semaphore.html                    https://learn.hashicorp.com/consul/developer-configuration/semaphore           301!
+/docs/guides/semaphore                         https://learn.hashicorp.com/consul/developer-configuration/semaphore           301!
+/docs/guides/windows-guide.html                https://learn.hashicorp.com/consul/datacenter-deploy/windows                   301!
+/docs/guides/windows-guide                     https://learn.hashicorp.com/consul/datacenter-deploy/windows                   301!
+/docs/guides/consul-containers.html            https://hub.docker.com/_/consul                                                301!
+/docs/guides/consul-containers                 https://hub.docker.com/_/consul                                                301!
+/docs/guides/kubernetes-reference.html         https://learn.hashicorp.com/consul/day-1-operations/kubernetes-reference       301!
+/docs/guides/kubernetes-reference              https://learn.hashicorp.com/consul/day-1-operations/kubernetes-reference       301!
+/docs/guides/outage.html                       https://learn.hashicorp.com/consul/day-2-operations/outage                     301!
+/docs/guides/outage                            https://learn.hashicorp.com/consul/day-2-operations/outage                     301!
+
+# Glob Redirects, Ported from Varnish
+
+/intro/getting-started/*    https://learn.hashicorp.com/consul/getting-started/:splat   301!
+/docs/agent/http/*          /api/:splat                                                 301!
+/docs/agent/http.html       /api                                                        301!
+/docs/agent/http            /api                                                        301!
+
+# Replatforming Redirects
+
+/api/acl.html                            /api-docs/acl                     301!
+/api/acl/acl.html                        /api-docs/acl                     301!
+/api/acl/acl                             /api-docs/acl                     301!
+/api/agent.html                          /api-docs/agent                   301!
+/api/connect.html                        /api-docs/connect                 301!
+/api/operator.html                       /api-docs/operator                301!
+/docs/upgrading.html                     /docs/upgrading                   301!
+/docs/upgrading/*                        /docs/upgrading/:splat            301!
+
+/docs/commands/acl/auth-method.html      /docs/commands/acl/auth-method    301!
+/docs/commands/acl/binding-rule.html     /docs/commands/acl/binding-rule   301!
+/docs/commands/acl/auth-method.html      /docs/commands/acl/auth-method    301!
+/docs/commands/acl/policy.html           /docs/commands/acl/policy         301!
+/docs/commands/acl/role.html             /docs/commands/acl/role           301!
+/docs/commands/acl/token.html            /docs/commands/acl/token          301!
+/docs/commands/catalog.html              /docs/commands/catalog            301!
+/docs/commands/config.html               /docs/commands/config             301!
+/docs/commands/connect.html              /docs/commands/connect            301!
+/docs/commands/intention.html            /docs/commands/intention          301!
+/docs/commands/kv.html                   /docs/commands/kv                 301!
+/docs/commands/namespace.html            /docs/commands/namespace          301!
+/docs/commands/operator.html             /docs/commands/operator           301!
+/docs/commands/services.html             /docs/commands/services           301!
+/docs/commands/snapshot.html             /docs/commands/snapshot           301!
+/docs/commands/tls.html                  /docs/commands/tls                301!
+
+/docs/agent/basics.html                  /docs/agent                       301!
+/docs/agent/config_entries.html          /docs/agent/config-entries        301!
+/docs/acl/acl-auth-methods.html          /docs/acl/auth-methods            301!
+/docs/connect/proxies.html               /docs/connect/proxies             301!
+/docs/connect/registration.html          /docs/connect/registration        301!
+/docs/connect/ca.html                    /docs/connect/ca                  301!
+/docs/connect/native.html                /docs/connect/native              301!
+/docs/connect/platform/nomad.html        /docs/connect/nomad               301!
+
+/docs/platform/k8s/*                                /docs/k8s/:splat                              301!
+/docs/platform/k8s/run.html                         /docs/k8s/install                             301!
+/docs/platform/k8s/aks.html                         /docs/k8s/install/aks                         301!
+/docs/platform/k8s/gke.html                         /docs/k8s/install/gke                         301!
+/docs/platform/k8s/minikube.html                    /docs/k8s/install/minikube                    301!
+/docs/platform/k8s/consul-enterprise.html           /docs/k8s/install/consul-enterprise           301!
+/docs/platform/k8s/clients-outside-kubernetes.html  /docs/k8s/install/clients-outside-kubernetes  301!
+/docs/platform/k8s/servers-outside-kubernetes.html  /docs/k8s/install/servers-outside-kubernetes  301!
+/docs/platform/k8s/predefined-pvcs.html             /docs/k8s/install/predefined-pvcs             301!
+/docs/platform/k8s/operations.html                  /docs/k8s/operations                          301!
+/docs/platform/k8s/upgrading.html                   /docs/k8s/operations/upgrading                301!
+/docs/platform/k8s/tls-on-existing-cluster.html     /docs/k8s/operations/tls-on-existing-cluster  301!
+/docs/platform/k8s/uninstalling.html                /docs/k8s/operations/upgrading                301!
+
+/docs/partnerships/index.html                       /docs/partnerships                            301!
+/docs/enterprise/backups/index.html                 /docs/enterprise/backups                      301!
+/docs/enterprise/upgrades/index.html                /docs/enterprise/upgrades                     301!
+/docs/enterprise/read-scale/index.html              /docs/enterprise/read-scale                   301!
+/docs/enterprise/redundancy/index.html              /docs/enterprise/redundancy                   301!
+/docs/enterprise/federation/index.html              /docs/enterprise/federation                   301!
+/docs/enterprise/network-segments/index.html        /docs/enterprise/network-segments             301!
+/docs/enterprise/namespaces/index.html              /docs/enterprise/namespaces                   301!
+/docs/enterprise/sentinel/index.html                /docs/enterprise/sentinel                     301!
