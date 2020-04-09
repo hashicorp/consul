@@ -7,7 +7,6 @@ module.exports = withHashicorp({
   mdx: { resolveIncludes: path.join(__dirname, 'pages/partials') },
 })({
   experimental: {
-    css: true,
     modern: true,
     rewrites: () => [
       {
@@ -16,7 +15,6 @@ module.exports = withHashicorp({
       },
     ],
   },
-  exportTrailingSlash: true,
   env: {
     HASHI_ENV: process.env.HASHI_ENV,
   },
