@@ -70,7 +70,7 @@ type cmd struct {
 }
 
 const (
-	defaultEnvoyVersion = "1.13.1"
+	defaultEnvoyVersion = "1.14.1"
 	meshGatewayVal      = "mesh"
 )
 
