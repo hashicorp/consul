@@ -11,7 +11,7 @@ description: |-
 # Intentions - Connect HTTP API
 
 The `/connect/intentions` endpoint provide tools for managing
-[intentions](/docs/connect/intentions.html).
+[intentions](/docs/connect/intentions).
 
 ## Create Intention
 
@@ -27,9 +27,9 @@ existing intention or delete it prior to creating a new one.
 | `POST` | `/connect/intentions` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required                   |
@@ -39,7 +39,7 @@ The table below shows this endpoint's support for
 <p>
   <sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
   See{' '}
-  <a href="/docs/connect/intentions.html#intention-management-permissions">
+  <a href="/docs/connect/intentions#intention-management-permissions">
     Intention Management Permissions
   </a>{' '}
   for more details.
@@ -104,9 +104,9 @@ This endpoint reads a specific intention.
 | `GET`  | `/connect/intentions/:uuid` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required                  |
@@ -116,7 +116,7 @@ The table below shows this endpoint's support for
 <p>
   <sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
   See{' '}
-  <a href="/docs/connect/intentions.html#intention-management-permissions">
+  <a href="/docs/connect/intentions#intention-management-permissions">
     Intention Management Permissions
   </a>{' '}
   for more details.
@@ -166,9 +166,9 @@ This endpoint lists all intentions.
 | `GET`  | `/connect/intentions` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required                  |
@@ -178,7 +178,7 @@ The table below shows this endpoint's support for
 <p>
   <sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
   See{' '}
-  <a href="/docs/connect/intentions.html#intention-management-permissions">
+  <a href="/docs/connect/intentions#intention-management-permissions">
     Intention Management Permissions
   </a>{' '}
   for more details.
@@ -251,9 +251,9 @@ This endpoint updates an intention with the given values.
 | `PUT`  | `/connect/intentions/:uuid` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required                   |
@@ -263,7 +263,7 @@ The table below shows this endpoint's support for
 <p>
   <sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
   See{' '}
-  <a href="/docs/connect/intentions.html#intention-management-permissions">
+  <a href="/docs/connect/intentions#intention-management-permissions">
     Intention Management Permissions
   </a>{' '}
   for more details.
@@ -305,9 +305,9 @@ This endpoint deletes a specific intention.
 | `DELETE` | `/connect/intentions/:uuid` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required                   |
@@ -317,7 +317,7 @@ The table below shows this endpoint's support for
 <p>
   <sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
   See{' '}
-  <a href="/docs/connect/intentions.html#intention-management-permissions">
+  <a href="/docs/connect/intentions#intention-management-permissions">
     Intention Management Permissions
   </a>{' '}
   for more details.
@@ -351,9 +351,9 @@ does not contain any information about the intention itself.
 | `GET`  | `/connect/intentions/check` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required                  |
@@ -363,7 +363,7 @@ The table below shows this endpoint's support for
 <p>
   <sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
   See{' '}
-  <a href="/docs/connect/intentions.html#intention-management-permissions">
+  <a href="/docs/connect/intentions#intention-management-permissions">
     Intention Management Permissions
   </a>{' '}
   for more details.
@@ -404,9 +404,9 @@ The intentions in the response are in evaluation order.
 | `GET`  | `/connect/intentions/match` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required                  |
@@ -416,7 +416,7 @@ The table below shows this endpoint's support for
 <p>
   <sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
   See{' '}
-  <a href="/docs/connect/intentions.html#intention-management-permissions">
+  <a href="/docs/connect/intentions#intention-management-permissions">
     Intention Management Permissions
   </a>{' '}
   for more details.

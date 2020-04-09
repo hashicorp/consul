@@ -15,7 +15,7 @@ guide is to demonstrate a minimal working setup and the moving parts involved,
 it is not intended for production deployments.
 
 For reference documentation on how the integration works and is configured,
-please see our [Envoy documentation](/docs/connect/proxies/envoy.html).
+please see our [Envoy documentation](/docs/connect/proxies/envoy).
 
 ## Setup Overview
 
@@ -37,7 +37,7 @@ yourself.
 
 Starting Envoy requires a bootstrap configuration file that points Envoy to the
 local agent for discovering the rest of it's configuration. The Consul binary
-includes the [`consul connect envoy` command](/docs/commands/connect/envoy.html)
+includes the [`consul connect envoy` command](/docs/commands/connect/envoy)
 which can generate the bootstrap configuration for Envoy and optionally run it
 directly.
 
@@ -77,12 +77,12 @@ mode for simplicity.
 
 -> **Note:** `-dev` mode enables the gRPC server on port 8502 by default. For a
 production agent you'll need to [explicitly configure the gRPC
-port](/docs/agent/options.html#grpc_port).
+port](/docs/agent/options#grpc_port).
 
 In order to start a proxy instance, a [proxy service
-definition](/docs/connect/proxies.html) must exist on the local Consul agent.
+definition](/docs/connect/proxies) must exist on the local Consul agent.
 We'll create one using the [sidecar service
-registration](/docs/connect/proxies/sidecar-service.html) syntax.
+registration](/docs/connect/proxies/sidecar-service) syntax.
 
 Create a configuration file called `envoy_demo.hcl` containing the following
 service definitions.
@@ -165,7 +165,7 @@ from Envoy you can add `-- -l debug` to the end of the commands above. This
 passes the `-l` (log level) option directly through to Envoy. With debug level
 logs you should see the config being delivered to the proxy in the output.
 
-The [`consul connect envoy` command](/docs/commands/connect/envoy.html) here is
+The [`consul connect envoy` command](/docs/commands/connect/envoy) here is
 connecting to the local agent, getting the proxy configuration from the proxy
 service registration and generating the required Envoy bootstrap configuration
 before `exec`ing the envoy binary directly to run it with the generated
@@ -246,7 +246,7 @@ TCP processes communicating over mTLS using Envoy sidecars configured by
 Connect.
 
 For more details on how the Envoy integration works, please see the [Envoy
-reference documentation](/docs/connect/proxies/envoy.html).
+reference documentation](/docs/connect/proxies/envoy).
 
 To see how to get Consul Connect working in different environments like
 Kubernetes see the [Connect Getting

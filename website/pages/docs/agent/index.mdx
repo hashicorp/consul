@@ -16,7 +16,7 @@ information, registers services, runs checks, responds to queries,
 and more. The agent must run on every node that is part of a Consul cluster.
 
 Any agent may run in one of two modes: client or server. A server
-node takes on the additional responsibility of being part of the [consensus quorum](/docs/internals/consensus.html).
+node takes on the additional responsibility of being part of the [consensus quorum](/docs/internals/consensus).
 These nodes take part in Raft and provide strong consistency and availability in
 the case of failure. The higher burden on the server nodes means that usually they
 should be run on dedicated instances -- they are more resource intensive than a client
@@ -26,13 +26,13 @@ of their own.
 
 ## Running an Agent
 
-The agent is started with the [`consul agent`](/docs/commands/agent.html) command. This
+The agent is started with the [`consul agent`](/docs/commands/agent) command. This
 command blocks, running forever or until told to quit. You can test a local agent by following the [Getting Started guides](https://learn.hashicorp.com/consul/getting-started/install?utm_source=consul.io&utm_medium=docs).
 
 The agent command takes a variety
-of [`configuration options`](/docs/agent/options.html#command-line-options), but most have sane defaults.
+of [`configuration options`](/docs/agent/options#command-line-options), but most have sane defaults.
 
-When running [`consul agent`](/docs/commands/agent.html), you should see output similar to this:
+When running [`consul agent`](/docs/commands/agent), you should see output similar to this:
 
 ```text
 $ consul agent -data-dir=/tmp/consul
@@ -50,28 +50,28 @@ $ consul agent -data-dir=/tmp/consul
 ...
 ```
 
-There are several important messages that [`consul agent`](/docs/commands/agent.html) outputs:
+There are several important messages that [`consul agent`](/docs/commands/agent) outputs:
 
 - **Node name**: This is a unique name for the agent. By default, this
   is the hostname of the machine, but you may customize it using the
-  [`-node`](/docs/agent/options.html#_node) flag.
+  [`-node`](/docs/agent/options#_node) flag.
 
 - **Datacenter**: This is the datacenter in which the agent is configured to run.
   Consul has first-class support for multiple datacenters; however, to work efficiently,
-  each node must be configured to report its datacenter. The [`-datacenter`](/docs/agent/options.html#_datacenter)
+  each node must be configured to report its datacenter. The [`-datacenter`](/docs/agent/options#_datacenter)
   flag can be used to set the datacenter. For single-DC configurations, the agent
   will default to "dc1".
 
 - **Server**: This indicates whether the agent is running in server or client mode.
   Server nodes have the extra burden of participating in the consensus quorum,
   storing cluster state, and handling queries. Additionally, a server may be
-  in ["bootstrap"](/docs/agent/options.html#_bootstrap_expect) mode. Multiple servers
+  in ["bootstrap"](/docs/agent/options#_bootstrap_expect) mode. Multiple servers
   cannot be in bootstrap mode as that would put the cluster in an inconsistent state.
 
 - **Client Addr**: This is the address used for client interfaces to the agent.
   This includes the ports for the HTTP and DNS interfaces. By default, this binds only
   to localhost. If you change this address or port, you'll have to specify a `-http-addr`
-  whenever you run commands such as [`consul members`](/docs/commands/members.html) to
+  whenever you run commands such as [`consul members`](/docs/commands/members) to
   indicate how to reach the agent. Other applications can also use the HTTP address and port
   [to control Consul](/api).
 
@@ -114,7 +114,7 @@ with a cluster and how the cluster treats a node.
 
 When an agent is first started, it does not know about any other node in the cluster.
 To discover its peers, it must _join_ the cluster. This is done with the
-[`join`](/docs/commands/join.html)
+[`join`](/docs/commands/join)
 command or by providing the proper configuration to auto-join on start. Once a node
 joins, this information is gossiped to the entire cluster, meaning all nodes will
 eventually be aware of each other. If the agent is a server, existing servers will
@@ -125,7 +125,7 @@ In this case, unreachable nodes are marked as _failed_. It is impossible to dist
 between a network failure and an agent crash, so both cases are handled the same.
 Once a node is marked as failed, this information is updated in the service catalog.
 
--> **Note:** There is some nuance here since this update is only possible if the servers can still [form a quorum](/docs/internals/consensus.html). Once the network recovers or a crashed agent restarts the cluster will repair itself and unmark a node as failed. The health check in the catalog will also be updated to reflect this.
+-> **Note:** There is some nuance here since this update is only possible if the servers can still [form a quorum](/docs/internals/consensus). Once the network recovers or a crashed agent restarts the cluster will repair itself and unmark a node as failed. The health check in the catalog will also be updated to reflect this.
 
 When a node _leaves_, it specifies its intent to do so, and the cluster
 marks that node as having _left_. Unlike the _failed_ case, all of the

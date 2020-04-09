@@ -52,7 +52,7 @@ challenges.
 
 Consul uses a very different architecture for health checking. Instead of only having
 server nodes, Consul clients run on every node in the cluster. These clients are part
-of a [gossip pool](/docs/internals/gossip.html) which serves several functions,
+of a [gossip pool](/docs/internals/gossip) which serves several functions,
 including distributed health checking. The gossip protocol implements an efficient
 failure detector that can scale to clusters of any size without concentrating the work
 on any select group of servers. The clients also enable a much richer set of health

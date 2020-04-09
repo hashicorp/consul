@@ -10,7 +10,7 @@ description: >-
 
 # Upgrading Specific Versions
 
-The [upgrading page](/docs/upgrading.html) covers the details of doing a
+The [upgrading page](/docs/upgrading) covers the details of doing a
 standard upgrade. However, specific versions of Consul may have more details
 provided for their upgrades as a result of new features or changed behavior.
 This page is used to document those details separately from the standard
@@ -48,14 +48,14 @@ in OSS or `web.service.ns1.dc1.consul` for Enterprise.
 
 ### Telemetry: semantics of `consul.rpc.query` changed, see `consul.rpc.queries_blocking`
 
-Consul has changed the semantics of query counts in its [telemetry](/docs/agent/telemetry.html#metrics-reference).
+Consul has changed the semantics of query counts in its [telemetry](/docs/agent/telemetry#metrics-reference).
 `consul.rpc.query` now only increments on the _start_ of a query (blocking or non-blocking), whereas before it would
 measure when blocking queries polled for more data. The `consul.rpc.queries_blocking` gauge has been added
 to more precisely capture the view of _active_ blocking queries.
 
 ### Vault: default `http_max_conns_per_client` too low to run Vault properly
 
-Consul 1.7.0 introduced [limiting of connections per client](/docs/agent/options.html#http_max_conns_per_client). The default value
+Consul 1.7.0 introduced [limiting of connections per client](/docs/agent/options#http_max_conns_per_client). The default value
 was 100, but Vault could use up to 128, which caused problems. If you want to use Vault with Consul 1.7.0, you should change the value to 200.
 Starting with Consul 1.7.1 this is the new default.
 
@@ -63,7 +63,7 @@ Starting with Consul 1.7.1 this is the new default.
 
 ### Vault: default `http_max_conns_per_client` too low to run Vault properly
 
-Consul 1.6.3 introduced [limiting of connections per client](/docs/agent/options.html#http_max_conns_per_client). The default value
+Consul 1.6.3 introduced [limiting of connections per client](/docs/agent/options#http_max_conns_per_client). The default value
 was 100, but Vault could use up to 128, which caused problems. If you want to use Vault with Consul 1.6.3, you should change the value to 200.
 Starting with Consul 1.6.4 this is the new default.
 
@@ -71,10 +71,10 @@ Starting with Consul 1.6.4 this is the new default.
 
 #### Removal of Deprecated Features
 
-Managed proxies (which have been [deprecated](/docs/connect/proxies/managed-deprecated.html)
-since Consul 1.3.0) have now been [removed](/docs/connect/proxies.html). Before
+Managed proxies (which have been [deprecated](/docs/connect/proxies/managed-deprecated)
+since Consul 1.3.0) have now been [removed](/docs/connect/proxies). Before
 upgrading, you will need to migrate any managed proxy usage to [sidecar service
-registrations](/docs/connect/registration/sidecar-service.html).
+registrations](/docs/connect/registration/sidecar-service).
 
 ## Consul 1.4.0
 
@@ -102,14 +102,14 @@ datacenter". All configuration is backwards compatible and shouldn't need to
 change prior to upgrade although it's strongly recommended to migrate ACL
 configuration to the new syntax soon after upgrade. This includes moving to
 `primary_datacenter` rather than `acl_datacenter` and `acl_*` to the new [ACL
-block](/docs/agent/options.html#acl).
+block](/docs/agent/options#acl).
 
 Datacenters can be upgraded in any order although secondaries will remain in
 [Legacy ACL mode](#legacy-acl-mode) until the primary datacenter is fully
 upgraded.
 
 Each datacenter should follow the [standard rolling upgrade
-procedure](/docs/upgrading.html#standard-upgrades).
+procedure](/docs/upgrading#standard-upgrades).
 
 #### Legacy ACL Mode
 
@@ -144,7 +144,7 @@ will not upgrade more than one batch per second so on a cluster with 10,000
 tokens, this may take several minutes.
 
 While this is happening both old and new ACLs will work correctly with the
-caveat that new ACL [Token APIs](/api/acl/tokens.html) may not return an
+caveat that new ACL [Token APIs](/api/acl/tokens) may not return an
 accessor ID for legacy tokens that are not yet migrated.
 
 #### Migrating Existing ACLs
@@ -158,16 +158,16 @@ API so existing integrations that create tokens (e.g. Vault) will continue to
 work. The "legacy" tokens generated though will not be able to take advantage of
 new policy features. It's recommended that you complete migration of all tokens
 as soon as possible after upgrade, as well as updating any integrations to work
-with the the new ACL [Token](/api/acl/tokens.html) and
-[Policy](/api/acl/policies.html) APIs.
+with the the new ACL [Token](/api/acl/tokens) and
+[Policy](/api/acl/policies) APIs.
 
-More complete details on how to upgrade "legacy" tokens is available [here](/docs/acl/acl-migrate-tokens.html).
+More complete details on how to upgrade "legacy" tokens is available [here](/docs/acl/acl-migrate-tokens).
 
 ### Connect Multi-datacenter
 
 This only applies to users upgrading from an older version of Consul Enterprise to Consul Enterprise 1.4.0 (all license types).
 
-In addition, this upgrade will only affect clusters where [Connect is enabled](/docs/connect/configuration.html) on your servers before the migration.
+In addition, this upgrade will only affect clusters where [Connect is enabled](/docs/connect/configuration) on your servers before the migration.
 
 Connect multi-datacenter uses the same primary/secondary approach as ACLs and
 will use the same [primary_datacenter](#primary-datacenter). When a secondary
@@ -221,7 +221,7 @@ The following previously deprecated fields and config options have been removed:
 - `CheckID` has been removed from config file check definitions (use `id` instead).
 - `script` has been removed from config file check definitions (use `args` instead).
 - `enableTagOverride` is no longer valid in service definitions (use `enable_tag_override` instead).
-- The [deprecated set of metric names](/docs/upgrade-specific.html#metric-names-updated) (beginning with `consul.consul.`) has been removed
+- The [deprecated set of metric names](/docs/upgrade-specific#metric-names-updated) (beginning with `consul.consul.`) has been removed
   along with the `enable_deprecated_names` option from the metrics configuration.
 
 #### New defaults for Raft Snapshot Creation
@@ -229,11 +229,11 @@ The following previously deprecated fields and config options have been removed:
 Consul 1.0.1 (and earlier versions of Consul) checked for raft snapshots every
 5 seconds, and created new snapshots for every 8192 writes. These defaults cause
 constant disk IO in large busy clusters. Consul 1.1.0 increases these to larger values,
-and makes them tunable via the [raft_snapshot_interval](/docs/agent/options.html#_raft_snapshot_interval) and
-[raft_snapshot_threshold](/docs/agent/options.html#_raft_snapshot_threshold) parameters. We recommend
+and makes them tunable via the [raft_snapshot_interval](/docs/agent/options#_raft_snapshot_interval) and
+[raft_snapshot_threshold](/docs/agent/options#_raft_snapshot_threshold) parameters. We recommend
 keeping the new defaults. However, operators can go back to the old defaults by changing their
-config if they prefer more frequent snapshots. See the documentation for [raft_snapshot_interval](/docs/agent/options.html#_raft_snapshot_interval)
-and [raft_snapshot_threshold](/docs/agent/options.html#_raft_snapshot_threshold) to understand the trade-offs
+config if they prefer more frequent snapshots. See the documentation for [raft_snapshot_interval](/docs/agent/options#_raft_snapshot_interval)
+and [raft_snapshot_threshold](/docs/agent/options#_raft_snapshot_threshold) to understand the trade-offs
 when tuning these.
 
 ## Consul 1.0.7
@@ -261,7 +261,7 @@ before proceeding.
 #### Carefully Check and Remove Stale Servers During Rolling Upgrades
 
 Consul 1.0 (and earlier versions of Consul when running with [Raft protocol
-3](/docs/agent/options.html#_raft_protocol) had an issue where performing
+3](/docs/agent/options#_raft_protocol) had an issue where performing
 rolling updates of Consul servers could result in an outage from old servers
 remaining in the cluster.
 [Autopilot](https://learn.hashicorp.com/consul/day-2-operations/autopilot)
@@ -272,7 +272,7 @@ soon as they are stable, allowing Autopilot to remove old servers in a safer
 way.
 
 When upgrading from Consul 1.0, you may need to manually
-[force-leave](/docs/commands/force-leave.html) old servers as part of a rolling
+[force-leave](/docs/commands/force-leave) old servers as part of a rolling
 update to Consul 1.0.1.
 
 ## Consul 1.0
@@ -282,7 +282,7 @@ Please be sure to read over all the details here before upgrading.
 
 #### Raft Protocol Now Defaults to 3
 
-The [`-raft-protocol`](/docs/agent/options.html#_raft_protocol) default has
+The [`-raft-protocol`](/docs/agent/options#_raft_protocol) default has
 been changed from 2 to 3, enabling all
 [Autopilot](https://learn.hashicorp.com/consul/day-2-operations/autopilot)
 features by default.
@@ -291,7 +291,7 @@ Raft protocol version 3 requires Consul running 0.8.0 or newer on all servers
 in order to work, so if you are upgrading with older servers in a cluster then
 you will need to set this back to 2 in order to upgrade. See [Raft Protocol
 Version
-Compatibility](/docs/upgrade-specific.html#raft-protocol-version-compatibility)
+Compatibility](/docs/upgrade-specific#raft-protocol-version-compatibility)
 for more details. Also the format of `peers.json` used for outage recovery is
 different when running with the latest Raft protocol. See [Manual Recovery
 Using
@@ -299,7 +299,7 @@ peers.json](https://learn.hashicorp.com/consul/day-2-operations/outage#manual-re
 for a description of the required format.
 
 Please note that the Raft protocol is different from Consul's internal protocol
-as described on the [Protocol Compatibility Promise](/docs/compatibility.html)
+as described on the [Protocol Compatibility Promise](/docs/compatibility)
 page, and as is shown in commands like `consul members` and `consul version`.
 To see the version of the Raft protocol in use on each server, use the `consul operator raft list-peers` command.
 
@@ -311,7 +311,7 @@ servers, and then slowly stand down each of the older servers in a similar
 fashion.
 
 When using Raft protocol version 3, servers are identified by their
-[`-node-id`](/docs/agent/options.html#_node_id) instead of their IP address
+[`-node-id`](/docs/agent/options#_node_id) instead of their IP address
 when Consul makes changes to its internal Raft quorum configuration. This means
 that once a cluster has been upgraded with servers all running Raft protocol
 version 3, it will no longer allow servers running any older Raft protocol
@@ -326,14 +326,14 @@ to map the server to its node ID in the Raft quorum configuration.
 As part of supporting the [HCL](https://github.com/hashicorp/hcl#syntax) format
 for Consul's config files, an `.hcl` or `.json` extension is required for all
 config files loaded by Consul, even when using the
-[`-config-file`](/docs/agent/options.html#_config_file) argument to specify a
+[`-config-file`](/docs/agent/options#_config_file) argument to specify a
 file directly.
 
 #### Service Definition Parameter Case changed
 
 All config file formats now require snake_case fields, so all CamelCased parameter
 names should be changed before upgrading.
-See [Service Definition Parameter Case](https://www.consul.io/docs/agent/services.html#service-definition-parameter-case) documentation for details.
+See [Service Definition Parameter Case](/docs/agent/services#service-definition-parameter-case) documentation for details.
 
 #### Deprecated Options Have Been Removed
 
@@ -341,42 +341,42 @@ All of Consul's previously deprecated command line flags and config options
 have been removed, so these will need to be mapped to their equivalents before
 upgrading. Here's the complete list of removed options and their equivalents:
 
-| Removed Option                                         | Equivalent                                                                                                                                                                                                 |
-| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `-dc`                                                  | [`-datacenter`](/docs/agent/options.html#_datacenter)                                                                                                                                                      |
-| `-retry-join-azure-tag-name`                           | [`-retry-join`](/docs/agent/options.html#microsoft-azure)                                                                                                                                                  |
-| `-retry-join-azure-tag-value`                          | [`-retry-join`](/docs/agent/options.html#microsoft-azure)                                                                                                                                                  |
-| `-retry-join-ec2-region`                               | [`-retry-join`](/docs/agent/options.html#amazon-ec2)                                                                                                                                                       |
-| `-retry-join-ec2-tag-key`                              | [`-retry-join`](/docs/agent/options.html#amazon-ec2)                                                                                                                                                       |
-| `-retry-join-ec2-tag-value`                            | [`-retry-join`](/docs/agent/options.html#amazon-ec2)                                                                                                                                                       |
-| `-retry-join-gce-credentials-file`                     | [`-retry-join`](/docs/agent/options.html#google-compute-engine)                                                                                                                                            |
-| `-retry-join-gce-project-name`                         | [`-retry-join`](/docs/agent/options.html#google-compute-engine)                                                                                                                                            |
-| `-retry-join-gce-tag-name`                             | [`-retry-join`](/docs/agent/options.html#google-compute-engine)                                                                                                                                            |
-| `-retry-join-gce-zone-pattern`                         | [`-retry-join`](/docs/agent/options.html#google-compute-engine)                                                                                                                                            |
-| `addresses.rpc`                                        | None, the RPC server for CLI commands is no longer supported.                                                                                                                                              |
-| `advertise_addrs`                                      | [`ports`](/docs/agent/options.html#ports) with [`advertise_addr`](https://www.consul.io/docs/agent/options.html#advertise_addr) and/or [`advertise_addr_wan`](/docs/agent/options.html#advertise_addr_wan) |
-| `dogstatsd_addr`                                       | [`telemetry.dogstatsd_addr`](/docs/agent/options.html#telemetry-dogstatsd_addr)                                                                                                                            |
-| `dogstatsd_tags`                                       | [`telemetry.dogstatsd_tags`](/docs/agent/options.html#telemetry-dogstatsd_tags)                                                                                                                            |
-| `http_api_response_headers`                            | [`http_config.response_headers`](/docs/agent/options.html#response_headers)                                                                                                                                |
-| `ports.rpc`                                            | None, the RPC server for CLI commands is no longer supported.                                                                                                                                              |
-| `recursor`                                             | [`recursors`](https://github.com/hashicorp/consul/blob/master/website/pages/docs/agent/options.mdx#recursors)                                                                                              |
-| `retry_join_azure`                                     | [`-retry-join`](/docs/agent/options.html#microsoft-azure)                                                                                                                                                  |
-| `retry_join_ec2`                                       | [`-retry-join`](/docs/agent/options.html#amazon-ec2)                                                                                                                                                       |
-| `retry_join_gce`                                       | [`-retry-join`](/docs/agent/options.html#google-compute-engine)                                                                                                                                            |
-| `statsd_addr`                                          | [`telemetry.statsd_address`](https://github.com/hashicorp/consul/blob/master/website/pages/docs/agent/options.mdx#telemetry-statsd_address)                                                                |
-| `statsite_addr`                                        | [`telemetry.statsite_address`](https://github.com/hashicorp/consul/blob/master/website/pages/docs/agent/options.mdx#telemetry-statsite_address)                                                            |
-| `statsite_prefix`                                      | [`telemetry.metrics_prefix`](/docs/agent/options.html#telemetry-metrics_prefix)                                                                                                                            |
-| `telemetry.statsite_prefix`                            | [`telemetry.metrics_prefix`](/docs/agent/options.html#telemetry-metrics_prefix)                                                                                                                            |
-| (service definitions) `serviceid`                      | [`service_id`](/docs/agent/services.html)                                                                                                                                                                  |
-| (service definitions) `dockercontainerid`              | [`docker_container_id`](/docs/agent/services.html)                                                                                                                                                         |
-| (service definitions) `tlsskipverify`                  | [`tls_skip_verify`](/docs/agent/services.html)                                                                                                                                                             |
-| (service definitions) `deregistercriticalserviceafter` | [`deregister_critical_service_after`](/docs/agent/services.html)                                                                                                                                           |
+| Removed Option                                         | Equivalent                                                                                                                                                             |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-dc`                                                  | [`-datacenter`](/docs/agent/options#_datacenter)                                                                                                                       |
+| `-retry-join-azure-tag-name`                           | [`-retry-join`](/docs/agent/options#microsoft-azure)                                                                                                                   |
+| `-retry-join-azure-tag-value`                          | [`-retry-join`](/docs/agent/options#microsoft-azure)                                                                                                                   |
+| `-retry-join-ec2-region`                               | [`-retry-join`](/docs/agent/options#amazon-ec2)                                                                                                                        |
+| `-retry-join-ec2-tag-key`                              | [`-retry-join`](/docs/agent/options#amazon-ec2)                                                                                                                        |
+| `-retry-join-ec2-tag-value`                            | [`-retry-join`](/docs/agent/options#amazon-ec2)                                                                                                                        |
+| `-retry-join-gce-credentials-file`                     | [`-retry-join`](/docs/agent/options#google-compute-engine)                                                                                                             |
+| `-retry-join-gce-project-name`                         | [`-retry-join`](/docs/agent/options#google-compute-engine)                                                                                                             |
+| `-retry-join-gce-tag-name`                             | [`-retry-join`](/docs/agent/options#google-compute-engine)                                                                                                             |
+| `-retry-join-gce-zone-pattern`                         | [`-retry-join`](/docs/agent/options#google-compute-engine)                                                                                                             |
+| `addresses.rpc`                                        | None, the RPC server for CLI commands is no longer supported.                                                                                                          |
+| `advertise_addrs`                                      | [`ports`](/docs/agent/options#ports) with [`advertise_addr`](/docs/agent/options#advertise_addr) and/or [`advertise_addr_wan`](/docs/agent/options#advertise_addr_wan) |
+| `dogstatsd_addr`                                       | [`telemetry.dogstatsd_addr`](/docs/agent/options#telemetry-dogstatsd_addr)                                                                                             |
+| `dogstatsd_tags`                                       | [`telemetry.dogstatsd_tags`](/docs/agent/options#telemetry-dogstatsd_tags)                                                                                             |
+| `http_api_response_headers`                            | [`http_config.response_headers`](/docs/agent/options#response_headers)                                                                                                 |
+| `ports.rpc`                                            | None, the RPC server for CLI commands is no longer supported.                                                                                                          |
+| `recursor`                                             | [`recursors`](https://github.com/hashicorp/consul/blob/master/website/pages/docs/agent/options.mdx#recursors)                                                          |
+| `retry_join_azure`                                     | [`-retry-join`](/docs/agent/options#microsoft-azure)                                                                                                                   |
+| `retry_join_ec2`                                       | [`-retry-join`](/docs/agent/options#amazon-ec2)                                                                                                                        |
+| `retry_join_gce`                                       | [`-retry-join`](/docs/agent/options#google-compute-engine)                                                                                                             |
+| `statsd_addr`                                          | [`telemetry.statsd_address`](https://github.com/hashicorp/consul/blob/master/website/pages/docs/agent/options.mdx#telemetry-statsd_address)                            |
+| `statsite_addr`                                        | [`telemetry.statsite_address`](https://github.com/hashicorp/consul/blob/master/website/pages/docs/agent/options.mdx#telemetry-statsite_address)                        |
+| `statsite_prefix`                                      | [`telemetry.metrics_prefix`](/docs/agent/options#telemetry-metrics_prefix)                                                                                             |
+| `telemetry.statsite_prefix`                            | [`telemetry.metrics_prefix`](/docs/agent/options#telemetry-metrics_prefix)                                                                                             |
+| (service definitions) `serviceid`                      | [`service_id`](/docs/agent/services)                                                                                                                                   |
+| (service definitions) `dockercontainerid`              | [`docker_container_id`](/docs/agent/services)                                                                                                                          |
+| (service definitions) `tlsskipverify`                  | [`tls_skip_verify`](/docs/agent/services)                                                                                                                              |
+| (service definitions) `deregistercriticalserviceafter` | [`deregister_critical_service_after`](/docs/agent/services)                                                                                                            |
 
 #### `statsite_prefix` Renamed to `metrics_prefix`
 
 Since the `statsite_prefix` configuration option applied to all telemetry
 providers, `statsite_prefix` was renamed to
-[`metrics_prefix`](/docs/agent/options.html#telemetry-metrics_prefix).
+[`metrics_prefix`](/docs/agent/options#telemetry-metrics_prefix).
 Configuration files will need to be updated when upgrading to this version of
 Consul.
 
@@ -388,8 +388,8 @@ wrongly stated that you could configure both host and port.
 
 #### Escaping Behavior Changed for go-discover Configs
 
-The format for [`-retry-join`](/docs/agent/options.html#retry-join) and
-[`-retry-join-wan`](/docs/agent/options.html#retry-join-wan) values that use
+The format for [`-retry-join`](/docs/agent/options#retry-join) and
+[`-retry-join-wan`](/docs/agent/options#retry-join-wan) values that use
 [go-discover](https://github.com/hashicorp/go-discover) cloud auto joining has
 changed. Values in `key=val` sequences must no longer be URL encoded and can be
 provided as literals as long as they do not contain spaces, backslashes `\` or
@@ -459,7 +459,7 @@ directly returning one of Consul's internal data structures. This configuration
 structure has been moved under `DebugConfig`, and is documents as for debugging
 use and subject to change, and a small set of elements of `Config` have been
 maintained and documented. See [Read
-Configuration](/api/agent.html#read-configuration) endpoint documentation for
+Configuration](/api/agent#read-configuration) endpoint documentation for
 details.
 
 #### Deprecated `configtest` Command Removed
@@ -507,7 +507,7 @@ invalid health checks would get skipped.
 
 #### Script Checks Are Now Opt-In
 
-A new [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks)
+A new [`enable_script_checks`](/docs/agent/options#_enable_script_checks)
 configuration option was added, and defaults to `false`, meaning that in order
 to allow an agent to run health checks that execute scripts, this will need to
 be configured and set to `true`. This provides a safer out-of-the-box
@@ -524,10 +524,10 @@ could potentially execute scripts on the agent machines.
 
 Consul releases will no longer include a `web_ui.zip` file with the compiled
 web assets. These have been built in to the Consul binary since the 0.7.x
-series and can be enabled with the [`-ui`](/docs/agent/options.html#_ui)
+series and can be enabled with the [`-ui`](/docs/agent/options#_ui)
 configuration option. These built-in web assets have always been identical to
 the contents of the `web_ui.zip` file for each release. The
-[`-ui-dir`](/docs/agent/options.html#_ui_dir) option is still available for
+[`-ui-dir`](/docs/agent/options#_ui_dir) option is still available for
 hosting customized versions of the web assets, but the vast majority of Consul
 users can just use the built in web assets.
 
@@ -559,12 +559,12 @@ to the following commands:
 
 #### Version 8 ACLs Are Now Opt-Out
 
-The [`acl_enforce_version_8`](/docs/agent/options.html#acl_enforce_version_8)
+The [`acl_enforce_version_8`](/docs/agent/options#acl_enforce_version_8)
 configuration now defaults to `true` to enable full version 8 ACL support by
 default. If you are upgrading an existing cluster with ACLs enabled, you will
 need to set this to `false` during the upgrade on **both Consul agents and
 Consul servers**. Version 8 ACLs were also changed so that
-[`acl_datacenter`](/docs/agent/options.html#acl_datacenter) must be set on
+[`acl_datacenter`](/docs/agent/options#acl_datacenter) must be set on
 agents in order to enable the agent-side enforcement of ACLs. This makes for a
 smoother experience in clusters where ACLs aren't enabled at all, but where the
 agents would have to wait to contact a Consul server before learning that.
@@ -572,14 +572,14 @@ agents would have to wait to contact a Consul server before learning that.
 #### Remote Exec Is Now Opt-In
 
 The default for
-[`disable_remote_exec`](/docs/agent/options.html#disable_remote_exec) was
+[`disable_remote_exec`](/docs/agent/options#disable_remote_exec) was
 changed to "true", so now operators need to opt-in to having agents support
-running commands remotely via [`consul exec`](/docs/commands/exec.html).
+running commands remotely via [`consul exec`](/docs/commands/exec).
 
 #### Raft Protocol Version Compatibility
 
 When upgrading to Consul 0.8.0 from a version lower than 0.7.0, users will need
-to set the [`-raft-protocol`](/docs/agent/options.html#_raft_protocol) option
+to set the [`-raft-protocol`](/docs/agent/options#_raft_protocol) option
 to 1 in order to maintain backwards compatibility with the old servers during
 the upgrade. After the servers have been migrated to version 0.8.0,
 `-raft-protocol` can be moved up to 2 and the servers restarted to match the
@@ -614,7 +614,7 @@ process to reap child processes.
 
 #### DNS Resiliency Defaults
 
-The default for [`max_stale`](/docs/agent/options.html#max_stale) has been
+The default for [`max_stale`](/docs/agent/options#max_stale) has been
 increased from 5 seconds to a near-indefinite threshold (10 years) to allow DNS
 queries to continue to be served in the event of a long outage with no leader.
 A new telemetry counter was added at `consul.dns.stale_queries` to track when
@@ -628,7 +628,7 @@ to be aware of during an upgrade are categorized below.
 #### Performance Timing Defaults and Tuning
 
 Consul 0.7 now defaults the DNS configuration to allow for stale queries by
-defaulting [`allow_stale`](/docs/agent/options.html#allow_stale) to true for
+defaulting [`allow_stale`](/docs/agent/options#allow_stale) to true for
 better utilization of available servers. If you want to retain the previous
 behavior, set the following configuration:
 
@@ -641,9 +641,9 @@ behavior, set the following configuration:
 ```
 
 Consul also 0.7 introduced support for tuning Raft performance using a new
-[performance configuration block](/docs/agent/options.html#performance). Also,
+[performance configuration block](/docs/agent/options#performance). Also,
 the default Raft timing is set to a lower-performance mode suitable for
-[minimal Consul servers](/docs/install/performance.html#minimum).
+[minimal Consul servers](/docs/install/performance#minimum).
 
 To continue to use the high-performance settings that were the default prior to
 Consul 0.7 (recommended for production servers), add the following
@@ -657,12 +657,12 @@ configuration to all Consul servers when upgrading:
 }
 ```
 
-See the [Server Performance](/docs/install/performance.html) guide for more details.
+See the [Server Performance](/docs/install/performance) guide for more details.
 
 #### Leave-Related Configuration Defaults
 
-The default behavior of [`leave_on_terminate`](/docs/agent/options.html#leave_on_terminate)
-and [`skip_leave_on_interrupt`](/docs/agent/options.html#skip_leave_on_interrupt)
+The default behavior of [`leave_on_terminate`](/docs/agent/options#leave_on_terminate)
+and [`skip_leave_on_interrupt`](/docs/agent/options#skip_leave_on_interrupt)
 are now dependent on whether or not the agent is acting as a server or client:
 
 - For servers, `leave_on_terminate` defaults to "false" and `skip_leave_on_interrupt`
@@ -686,7 +686,7 @@ to upgrade all agents to a newer version of Consul before upgrading to Consul
 #### Prepared Query Changes
 
 Consul version 0.7 adds a feature which allows prepared queries to store a
-[`Near` parameter](/api/query.html#near) in the query definition
+[`Near` parameter](/api/query#near) in the query definition
 itself. This feature enables using the distance sorting features of prepared
 queries without explicitly providing the node to sort near in requests, but
 requires the agent servicing a request to send additional information about
@@ -701,7 +701,7 @@ using this feature.
 #### WAN Address Translation in HTTP Endpoints
 
 Consul version 0.7 added support for translating WAN addresses in certain
-[HTTP endpoints](/docs/agent/options.html#translate_wan_addrs). The servers
+[HTTP endpoints](/docs/agent/options#translate_wan_addrs). The servers
 and the agents need to be running version 0.7 or later in order to use this
 feature.
 
@@ -732,7 +732,7 @@ require any ACL to manage them, and prepared queries with a `Name` defined are
 now governed by a new `query` ACL policy that will need to be configured
 after the upgrade.
 
-See the [ACL rules documentation](/docs/acl/acl-rules.html#prepared-query-rules) for more details
+See the [ACL rules documentation](/docs/acl/acl-rules#prepared-query-rules) for more details
 about the new behavior and how it compares to previous versions of Consul.
 
 ## Consul 0.6
@@ -783,7 +783,7 @@ which require it:
     }
 
 When the DNS interface is queried, the agent's
-[`acl_token`](/docs/agent/options.html#acl_token) is used, so be sure
+[`acl_token`](/docs/agent/options#acl_token) is used, so be sure
 that token has sufficient privileges to return the DNS records you
 expect to retrieve from it.
 
@@ -840,7 +840,7 @@ this:
 This automatic upgrade will only exist in Consul 0.5.1+ and it will
 be removed starting with Consul 0.6.0+. It will still be possible to upgrade directly
 from pre-0.5.1 versions by using the consul-migrate utility, which is available on the
-[Consul Tools page](/downloads_tools.html).
+[Consul Tools page](/downloads_tools).
 
 ## Consul 0.5
 

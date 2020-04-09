@@ -26,19 +26,19 @@ resolution stage.
 ## Interaction with other Config Entries
 
 - Service splitter config entries are a component of [L7 Traffic
-  Management](/docs/connect/l7-traffic-management.html).
+  Management](/docs/connect/l7-traffic-management).
 
 - Service splitter config entries are restricted to only services that define
   their protocol as http-based via a corresponding
-  [`service-defaults`](/docs/agent/config-entries/service-defaults.html) config
+  [`service-defaults`](/docs/agent/config-entries/service-defaults) config
   entry or globally via
-  [`proxy-defaults`](/docs/agent/config-entries/proxy-defaults.html) .
+  [`proxy-defaults`](/docs/agent/config-entries/proxy-defaults) .
 
 - Any split destination that specifies a different `Service` field and omits
   the `ServiceSubset` field is eligible for further splitting should a splitter
   be configured for that other service, otherwise resolution proceeds according
   to any configured
-  [`service-resolver`](/docs/agent/config-entries/service-resolver.html).
+  [`service-resolver`](/docs/agent/config-entries/service-resolver).
 
 ## Sample Config Entries
 

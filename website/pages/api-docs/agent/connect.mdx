@@ -13,7 +13,7 @@ description: >-
 The `/agent/connect` endpoints interact with [Connect](/docs/connect)
 with agent-local operations.
 
-These endpoints may mirror the [non-agent Connect endpoints](/api/connect.html)
+These endpoints may mirror the [non-agent Connect endpoints](/api/connect)
 in some cases. Almost all agent-local Connect endpoints perform local caching
 to optimize performance of Connect without having to make requests to the server.
 
@@ -21,8 +21,8 @@ to optimize performance of Connect without having to make requests to the server
 
 This endpoint tests whether a connection attempt is authorized between
 two services. This is the primary API that must be implemented by
-[proxies](/docs/connect/proxies.html) or
-[native integrations](/docs/connect/native.html)
+[proxies](/docs/connect/proxies) or
+[native integrations](/docs/connect/native)
 that wish to integrate with Connect. Prior to calling this API, it is expected
 that the client TLS certificate has been properly verified against the
 current CA roots.
@@ -37,9 +37,9 @@ connection attempt.
 | `POST` | `/agent/connect/authorize` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching        | ACL Required    |
@@ -96,11 +96,11 @@ $ curl \
 ## Certificate Authority (CA) Roots
 
 This endpoint returns the trusted certificate authority (CA) root certificates.
-This is used by [proxies](/docs/connect/proxies.html) or
-[native integrations](/docs/connect/native.html) to verify served client
+This is used by [proxies](/docs/connect/proxies) or
+[native integrations](/docs/connect/native) to verify served client
 or server certificates are valid.
 
-This is equivalent to the [non-Agent Connect endpoint](/api/connect.html),
+This is equivalent to the [non-Agent Connect endpoint](/api/connect),
 but the response of this request is cached locally at the agent. This allows
 for very fast response times and for fail open behavior if the server is
 unavailable. This endpoint should be used by proxies and native integrations.
@@ -110,9 +110,9 @@ unavailable. This endpoint should be used by proxies and native integrations.
 | `GET`  | `/agent/connect/ca/roots` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching        | ACL Required |
@@ -160,7 +160,7 @@ connections and is also used as the client certificate for establishing
 outbound connections to other services.
 
 The agent generates a CSR locally and calls the
-[CA sign API](/api/connect/ca.html) to sign it. The resulting certificate
+[CA sign API](/api/connect/ca) to sign it. The resulting certificate
 is cached and returned by this API until it is near expiry or the root
 certificates change.
 
@@ -174,9 +174,9 @@ clients to efficiently wait for certificate rotations.
 | `GET`  | `/agent/connect/ca/leaf/:service` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching        | ACL Required    |

@@ -19,11 +19,11 @@ mechanisms that stem from their designs. However, the security mechanisms
 of Consul have a common goal: to provide
 [confidentiality, integrity, and authentication](https://en.wikipedia.org/wiki/Information_security).
 
-The [gossip protocol](/docs/internals/gossip.html) is powered by [Serf](https://www.serf.io/),
+The [gossip protocol](/docs/internals/gossip) is powered by [Serf](https://www.serf.io/),
 which uses a symmetric key, or shared secret, cryptosystem. There are more
 details on the security of [Serf here](https://www.serf.io/docs/internals/security.html).
 For details on how to enable Serf's gossip encryption in Consul, see the
-[encryption doc here](/docs/agent/encryption.html).
+[encryption doc here](/docs/agent/encryption).
 
 The RPC system supports using end-to-end TLS with optional client authentication.
 [TLS](https://en.wikipedia.org/wiki/Transport_Layer_Security) is a widely deployed asymmetric
@@ -83,16 +83,16 @@ non-default options that potentially present additional security risks.
 
 - **Script checks enabled with network-exposed API.** If a Consul agent (client
   or server) exposes its HTTP API to the network beyond localhost,
-  [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks) must
+  [`enable_script_checks`](/docs/agent/options#_enable_script_checks) must
   be `false` otherwise, even with ACLs configured, script checks present a
   remote code execution threat.
-  [`enable_local_script_checks`](/docs/agent/options.html#_enable_local_script_checks)
+  [`enable_local_script_checks`](/docs/agent/options#_enable_local_script_checks)
   provides a secure alternative if the HTTP API must be exposed and is available
   from 1.3.0 on. This feature was also back-ported to patch releases 0.9.4,
   1.1.1, and 1.2.4 [as described here](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations).
 
 - **Remote exec enabled.** Consul includes a [`consul exec`
-  feature](/docs/commands/exec.html) allowing execution of arbitrary commands
+  feature](/docs/commands/exec) allowing execution of arbitrary commands
   across the cluster. This is disabled by default since 0.8.0. We recommend
   leaving it disabled. If enabled, extreme care must be taken to ensure correct
   ACLs restrict access, for example any management token grants access to
@@ -159,6 +159,6 @@ Consul API clients (the agent itself, the built-in UI, external software) must c
 
 ## Network Ports
 
-For configuring network rules to support Consul, please see [Ports Used](/docs/agent/options.html#ports)
+For configuring network rules to support Consul, please see [Ports Used](/docs/agent/options#ports)
 for a listing of network ports used by Consul and details about which features
 they are used for.

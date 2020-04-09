@@ -71,7 +71,7 @@ Note, the Consul Docker image sets up the Consul configuration directory at `/co
 
 ~> The configuration directory is **not** exposed as a volume and will not persist data. Consul uses it only during startup and does not store any state there.
 
-To avoid mounting volumes or copying files to the container you can also save [configuration JSON](/docs/agent/options.html#configuration-files) to that directory via the environment variable `CONSUL_LOCAL_CONFIG`.
+To avoid mounting volumes or copying files to the container you can also save [configuration JSON](/docs/agent/options#configuration-files) to that directory via the environment variable `CONSUL_LOCAL_CONFIG`.
 
 ### Discover the Server IP Address
 
@@ -266,7 +266,7 @@ $ docker kill --signal=HUP <container_id>
 
 ### Removing Servers from the Datacenter
 
-As long as there are enough servers in the datacenter to maintain [quorum](/docs/internals/consensus.html#deployment-table), Consul's [autopilot](/docs/guides/autopilot.html) feature will handle removing servers whose containers were stopped. Autopilot's default settings are already configured correctly. If you override them, make sure that the following [settings](/docs/agent/options.html#autopilot) are appropriate.
+As long as there are enough servers in the datacenter to maintain [quorum](/docs/internals/consensus#deployment-table), Consul's [autopilot](/docs/guides/autopilot) feature will handle removing servers whose containers were stopped. Autopilot's default settings are already configured correctly. If you override them, make sure that the following [settings](/docs/agent/options#autopilot) are appropriate.
 
 - `cleanup_dead_servers` must be set to true to make sure that a stopped container is removed from the datacenter.
 - `last_contact_threshold` should be reasonably small, so that dead servers are removed quickly.
@@ -278,7 +278,7 @@ When a previously stopped server container is restarted using `docker start <con
 
 ### Backing-up Data
 
-You can back-up your Consul datacenter using the [consul snapshot](/docs/commands/snapshot.html) command.
+You can back-up your Consul datacenter using the [consul snapshot](/docs/commands/snapshot) command.
 
 ```shell
 $ docker exec <container_id> consul snapshot save backup.snap
@@ -290,7 +290,7 @@ This will leave the `backup.snap` snapshot file inside of your container. If you
 $ docker cp <container_id>:backup.snap ./
 ```
 
-Users running the Consul Enterprise Docker containers can run the [consul snapshot agent](/docs/commands/snapshot/agent.html) to save backups automatically. Consul Enterprise's snapshot agent also allows you to save snapshots to Amazon S3 and Azure Blob Storage.
+Users running the Consul Enterprise Docker containers can run the [consul snapshot agent](/docs/commands/snapshot/agent) to save backups automatically. Consul Enterprise's snapshot agent also allows you to save snapshots to Amazon S3 and Azure Blob Storage.
 
 ### Environment Variables
 
@@ -307,7 +307,7 @@ $ docker run \
 	consul agent -server -bootstrap-expect=3
 ```
 
-Setting `CONSUL_CLIENT_INTERFACE` or `CONSUL_BIND_INTERFACE` on `docker run` is equivalent to passing in the `-client` flag(documented [here](/docs/agent/options.html#_client)) or `-bind` flag(documented [here](/docs/agent/options.html#_bind)) to Consul on startup.
+Setting `CONSUL_CLIENT_INTERFACE` or `CONSUL_BIND_INTERFACE` on `docker run` is equivalent to passing in the `-client` flag(documented [here](/docs/agent/options#_client)) or `-bind` flag(documented [here](/docs/agent/options#_bind)) to Consul on startup.
 
 Setting the `CONSUL_ALLOW_PRIVILEGED_PORTS` runs setcap on the Consul binary, allowing it to bind to privileged ports. Note that not all Docker storage backends support this feature (notably AUFS).
 

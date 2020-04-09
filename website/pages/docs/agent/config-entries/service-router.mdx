@@ -22,20 +22,20 @@ service of the same name.
 ## Interaction with other Config Entries
 
 - Service router config entries are a component of [L7 Traffic
-  Management](/docs/connect/l7-traffic-management.html).
+  Management](/docs/connect/l7-traffic-management).
 
 - Service router config entries are restricted to only services that define
   their protocol as http-based via a corresponding
-  [`service-defaults`](/docs/agent/config-entries/service-defaults.html) config
+  [`service-defaults`](/docs/agent/config-entries/service-defaults) config
   entry or globally via
-  [`proxy-defaults`](/docs/agent/config-entries/proxy-defaults.html) .
+  [`proxy-defaults`](/docs/agent/config-entries/proxy-defaults) .
 
 - Any route destination that omits the `ServiceSubset` field is eligible for
   splitting via a
-  [`service-splitter`](/docs/agent/config-entries/service-splitter.html) should
+  [`service-splitter`](/docs/agent/config-entries/service-splitter) should
   one be configured for that service, otherwise resolution proceeds according
   to any configured
-  [`service-resolver`](/docs/agent/config-entries/service-resolver.html).
+  [`service-resolver`](/docs/agent/config-entries/service-resolver).
 
 ## Sample Config Entries
 

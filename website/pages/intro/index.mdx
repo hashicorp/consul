@@ -58,7 +58,7 @@ The key features of Consul are:
 
 - **Secure Service Communication**: Consul can generate and distribute TLS
   certificates for services to establish mutual TLS connections.
-  [Intentions](/docs/connect/intentions.html)
+  [Intentions](/docs/connect/intentions)
   can be used to define which services are allowed to communicate.
   Service segmentation can be easily managed with intentions that can
   be changed in real time instead of using complex network topologies
@@ -76,7 +76,7 @@ application developers, making it perfect for modern, elastic infrastructures.
 Consul is a distributed, highly available system. This section will cover the
 basics, purposely omitting some unnecessary detail, so you can get a quick
 understanding of how Consul works. For more detail, please refer to the
-[in-depth architecture overview](/docs/internals/architecture.html).
+[in-depth architecture overview](/docs/internals/architecture).
 
 Every node that provides services to Consul runs a _Consul agent_. Running
 an agent is not required for discovering other services or getting/setting
@@ -93,7 +93,7 @@ The servers maintain a _catalog_, which is formed by aggregating information
 submitted by the agents. The catalog maintains the high-level view of the cluster,
 including which services are available, which nodes run those services, health
 information, and more. How agents and the catalog interact can be found
-[here](/docs/internals/anti-entropy.html#catalog).
+[here](/docs/internals/anti-entropy#catalog).
 
 Components of your infrastructure that need to discover other services
 or nodes can query any of the Consul servers _or_ any of the Consul agents.

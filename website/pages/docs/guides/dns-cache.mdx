@@ -30,12 +30,12 @@ parameters must be set in set in the agent's configuration file.
 ## Stale Reads
 
 Stale reads can be used to reduce latency and increase the throughput
-of DNS queries. The [settings](/docs/agent/options.html) used to control stale reads
+of DNS queries. The [settings](/docs/agent/options) used to control stale reads
 are:
 
-- [`dns_config.allow_stale`](/docs/agent/options.html#allow_stale) must be
+- [`dns_config.allow_stale`](/docs/agent/options#allow_stale) must be
   set to true to enable stale reads.
-- [`dns_config.max_stale`](/docs/agent/options.html#max_stale) limits how stale results
+- [`dns_config.max_stale`](/docs/agent/options#max_stale) limits how stale results
   are allowed to be when querying DNS.
 
 With these two settings you can allow or prevent stale reads. Below we will discuss
@@ -69,7 +69,7 @@ increase throughput by the number of servers in a cluster.
 
 If you want to prevent stale reads or limit how stale they can be, you can set `allow_stale`
 to false or use a lower value for `max_stale`. Doing the first will ensure that
-all reads are serviced by a [single leader node](/docs/internals/consensus.html).
+all reads are serviced by a [single leader node](/docs/internals/consensus).
 The reads will then be strongly consistent but will be limited by the throughput
 of a single node.
 
@@ -91,8 +91,8 @@ when using DNS for service discovery.
 
 In Consul 1.3.0 and newer, it is now possible to tune SOA
 responses and modify the negative TTL cache for some resolvers. It can
-be achieved using the [`soa.min_ttl`](/docs/agent/options.html#soa_min_ttl)
-configuration within the [`soa`](/docs/agent/options.html#soa) configuration.
+be achieved using the [`soa.min_ttl`](/docs/agent/options#soa_min_ttl)
+configuration within the [`soa`](/docs/agent/options#soa) configuration.
 
 ```javascript
 "dns_config" {
@@ -131,19 +131,19 @@ preventing any caching.
 ### Enable Caching
 
 To enable caching of node lookups (e.g. "foo.node.consul"), we can set the
-[`dns_config.node_ttl`](/docs/agent/options.html#node_ttl) value. This can be set to
+[`dns_config.node_ttl`](/docs/agent/options#node_ttl) value. This can be set to
 "10s" for example, and all node lookups will serve results with a 10 second TTL.
 
 Service TTLs can be specified in a more granular fashion. You can set TTLs
 per-service, with a wildcard TTL as the default. This is specified using the
-[`dns_config.service_ttl`](/docs/agent/options.html#service_ttl) map. The "_"
+[`dns_config.service_ttl`](/docs/agent/options#service_ttl) map. The "_"
 is supported at the end of any prefix and a lower precedence than strict match,
 so 'my-service-x' has precedence over 'my-service-_', when performing wildcard
 match, the longest path is taken into account, thus 'my-service-_' TTL will
 be used instead of 'my-_' or '_'. With the same rule, '_' is the default value
 when nothing else matches. If no match is found the TTL defaults to 0.
 
-For example, a [`dns_config`](/docs/agent/options.html#dns_config) that provides
+For example, a [`dns_config`](/docs/agent/options#dns_config) that provides
 a wildcard TTL and a specific TTL for a service might look like this:
 
 ```javascript
@@ -166,7 +166,7 @@ that would have a 3 seconds TTL.
 
 ### Prepared Queries
 
-[Prepared Queries](/api/query.html) provide an additional
+[Prepared Queries](/api/query) provide an additional
 level of control over TTL. They allow for the TTL to be defined along with
 the query, and they can be changed on the fly by updating the query definition.
 If a TTL is not configured for a prepared query, then it will fall back to the

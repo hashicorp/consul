@@ -22,12 +22,12 @@ your cluster, making configuration for Kubernetes automatic.
 This functionality is provided by the
 [consul-k8s project](https://github.com/hashicorp/consul-k8s) and can be
 automatically installed and configured using the
-[Consul Helm chart](/docs/platform/k8s/run.html).
+[Consul Helm chart](/docs/platform/k8s/run).
 
 ## Usage
 
 When the
-[Connect injector is installed](/docs/platform/k8s/connect.html#installation-and-configuration),
+[Connect injector is installed](/docs/platform/k8s/connect#installation-and-configuration),
 the Connect sidecar is automatically added to all pods. This sidecar can both
 accept and establish connections using Connect, enabling the pod to communicate
 to clients and dependencies exclusively over authorized and encrypted
@@ -79,7 +79,7 @@ spec:
 The only change for Connect is the addition of the
 `consul.hashicorp.com/connect-inject` annotation. This enables injection
 for this pod. The injector can also be
-[configured](/docs/platform/k8s/connect.html#installation-and-configuration)
+[configured](/docs/platform/k8s/connect#installation-and-configuration)
 to automatically inject unless explicitly disabled, but the default
 installation requires opt-in using the annotation shown above.
 
@@ -132,7 +132,7 @@ spec:
 ```
 
 Pods must specify upstream dependencies with the
-[`consul.hashicorp.com/connect-service-upstreams` annotation](/docs/platform/k8s/connect.html#consul-hashicorp-com-connect-service-upstreams).
+[`consul.hashicorp.com/connect-service-upstreams` annotation](/docs/platform/k8s/connect#consul-hashicorp-com-connect-service-upstreams).
 This annotation declares the names of any upstream dependencies and a
 local port for the proxy to listen on. When a connection is established to that local
 port, the proxy establishes a connection to the target service
@@ -161,9 +161,9 @@ $ kubectl exec static-client -- curl -s http://127.0.0.1:1234/
 "hello world"
 ```
 
-We can control access to the server using [intentions](/docs/connect/intentions.html).
-If you use the Consul UI or [CLI](/docs/commands/intention/create.html) to
-create a deny [intention](/docs/connect/intentions.html) between
+We can control access to the server using [intentions](/docs/connect/intentions).
+If you use the Consul UI or [CLI](/docs/commands/intention/create) to
+create a deny [intention](/docs/connect/intentions) between
 "static-client" and "static-server", connections are immediately rejected
 without updating either of the running pods. You can then remove this
 intention to allow connections again.
@@ -228,7 +228,7 @@ Annotations can be used to configure the injection behavior.
     ~> **WARNING:** Setting a namespace when not using Consul Enterprise or using a version < 1.7
     is not supported. It will be treated as part of the service name.
 
-  - [Prepared Query](https://www.consul.io/docs/connect/proxies.html#upstreams)
+  - [Prepared Query](/docs/connect/proxies#upstreams)
 
     ```yaml
     annotations:
@@ -250,11 +250,11 @@ Annotations can be used to configure the injection behavior.
     ```
 
 - `consul.hashicorp.com/connect-service-protocol` - For pods that will be
-  registered with Consul's [central configuration](/docs/agent/config_entries.html)
+  registered with Consul's [central configuration](/docs/agent/config_entries)
   feature, information about the protocol the service uses is required. Users
   can define the protocol directly using this annotation on the pod spec, or by
   defining a default value for all services using the Helm chart's
-  [defaultProtocol](/docs/platform/k8s/helm.html#v-connectinject-centralconfig-defaultprotocol)
+  [defaultProtocol](/docs/platform/k8s/helm#v-connectinject-centralconfig-defaultprotocol)
   option. Specific annotations will always override the default value.
 
 - `consul.hashicorp.com/service-tags` - A comma separated list of tags that will
@@ -324,15 +324,15 @@ provided by the
 [consul-k8s project](https://github.com/hashicorp/consul-k8s).
 This enables the automatic pod mutation shown in the usage section above.
 Installation of the mutating admission webhook is automated using the
-[Helm chart](/docs/platform/k8s/run.html).
+[Helm chart](/docs/platform/k8s/run).
 
 To install the Connect injector, enable the Connect injection feature using
-[Helm values](/docs/platform/k8s/helm.html#configuration-values-) and
+[Helm values](/docs/platform/k8s/helm#configuration-values-) and
 upgrade the installation using `helm upgrade` for existing installs or
 `helm install` for a fresh install. The Connect injector **also requires**
-[client agents](/docs/platform/k8s/helm.html#v-client) are enabled on
+[client agents](/docs/platform/k8s/helm#v-client) are enabled on
 the node with pods that are using Connect and that
-[gRPC is enabled](/docs/platform/k8s/helm.html#v-client-grpc).
+[gRPC is enabled](/docs/platform/k8s/helm#v-client-grpc).
 
 ```yaml
 connectInject:
@@ -504,7 +504,7 @@ See [consul.hashicorp.com/connect-service-upstreams](#consul-hashicorp-com-conne
 ### Verifying the Installation
 
 To verify the installation, run the
-["Accepting Inbound Connections"](/docs/platform/k8s/connect.html#accepting-inbound-connections)
+["Accepting Inbound Connections"](/docs/platform/k8s/connect#accepting-inbound-connections)
 example from the "Usage" section above. After running this example, run
 `kubectl get pod static-server -o yaml`. In the raw YAML output, you should
 see injected Connect containers and an annotation

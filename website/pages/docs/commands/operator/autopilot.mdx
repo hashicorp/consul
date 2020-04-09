@@ -85,10 +85,10 @@ Usage: `consul operator autopilot set-config [options]`
 - `-disable-upgrade-migration` - (Enterprise-only) Controls whether Consul will avoid promoting
   new servers until it can perform a migration. Must be one of `[true|false]`.
 
-- `-redundancy-zone-tag`- (Enterprise-only) Controls the [`-node-meta`](/docs/agent/options.html#_node_meta)
+- `-redundancy-zone-tag`- (Enterprise-only) Controls the [`-node-meta`](/docs/agent/options#_node_meta)
   key name used for separating servers into different redundancy zones.
 
-- `-upgrade-version-tag` - (Enterprise-only) Controls the [`-node-meta`](/docs/agent/options.html#_node_meta)
+- `-upgrade-version-tag` - (Enterprise-only) Controls the [`-node-meta`](/docs/agent/options#_node_meta)
   tag to use for version info when performing upgrade migrations. If left blank, the Consul version will be used.
 
 The output looks like this:

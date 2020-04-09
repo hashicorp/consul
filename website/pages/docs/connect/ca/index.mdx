@@ -16,10 +16,10 @@ such as when a service needs a new certificate or during CA rotation events.
 
 The CA provider abstraction enables Consul to support multiple systems for
 storing and signing certificates. Consul ships with a
-[built-in CA](/docs/connect/ca/consul.html) which generates and stores the
+[built-in CA](/docs/connect/ca/consul) which generates and stores the
 root certificate and private key on the Consul servers. Consul also has
 built-in support for
-[Vault as a CA](/docs/connect/ca/vault.html). With Vault, the root certificate
+[Vault as a CA](/docs/connect/ca/vault). With Vault, the root certificate
 and private key material remain with the Vault cluster. A future version of
 Consul will support pluggable CA systems using external binaries.
 
@@ -27,15 +27,15 @@ Consul will support pluggable CA systems using external binaries.
 
 CA initialization happens automatically when a new Consul leader is elected
 as long as
-[Connect is enabled](/docs/connect/configuration.html#enable-connect-on-the-cluster)
+[Connect is enabled](/docs/connect/configuration#enable-connect-on-the-cluster)
 and the CA system hasn't already been initialized. This initialization process
 will generate the initial root certificates and setup the internal Consul server
 state.
 
 For the initial bootstrap, the CA provider can be configured through the
-[Agent configuration](/docs/agent/options.html#connect_ca_config). After
+[Agent configuration](/docs/agent/options#connect_ca_config). After
 initialization, the CA can only be updated through the
-[Update CA Configuration API endpoint](/api/connect/ca.html#update-ca-configuration).
+[Update CA Configuration API endpoint](/api/connect/ca#update-ca-configuration).
 If a CA is already initialized, any changes to the CA configuration in the
 agent configuration file (including removing the configuration completely)
 will have no effect.
@@ -47,7 +47,7 @@ be generated automatically.
 ## Viewing Root Certificates
 
 Root certificates can be queried with the
-[list CA Roots endpoint](/api/connect/ca.html#list-ca-root-certificates).
+[list CA Roots endpoint](/api/connect/ca#list-ca-root-certificates).
 With this endpoint, you can see the list of currently trusted root certificates.
 When a cluster first initializes, this will only list one trusted root. Multiple
 roots may appear as part of
@@ -82,7 +82,7 @@ $ curl http://localhost:8500/v1/connect/ca/roots
 ## CA Configuration
 
 After initialization, the CA provider configuration can be viewed with the
-[Get CA Configuration API endpoint](/api/connect/ca.html#get-ca-configuration).
+[Get CA Configuration API endpoint](/api/connect/ca#get-ca-configuration).
 Consul will filter sensitive values from this endpoint depending on the
 provider in use, so the configuration may not be complete.
 
@@ -101,7 +101,7 @@ $ curl http://localhost:8500/v1/connect/ca/configuration
 ```
 
 The CA provider can be reconfigured using the
-[Update CA Configuration API endpoint](/api/connect/ca.html#update-ca-configuration).
+[Update CA Configuration API endpoint](/api/connect/ca#update-ca-configuration).
 Specific options for reconfiguration can be found in the specific
 CA provider documentation in the sidebar to the left.
 
@@ -134,7 +134,7 @@ certificate or CA provider has been set up, the new root becomes the active one
 and is immediately used for signing any new incoming certificate requests.
 
 If we check the [list CA roots
-endpoint](/api/connect/ca.html#list-ca-root-certificates) after updating the
+endpoint](/api/connect/ca#list-ca-root-certificates) after updating the
 configuration with a new root certificate, we can see both the old and new root
 certificates are present, and the currently active root has an intermediate
 certificate which has been generated and cross-signed automatically by the old

@@ -19,13 +19,13 @@ definition.
 !> **Consul 1.6.0 removes Managed Proxies completely.**
 This documentation is provided for prior versions only. You may consider using
 [sidecar service
-registrations](/docs/connect/proxies/sidecar-service.html) instead.
+registrations](/docs/connect/proxies/sidecar-service) instead.
 
 Managed proxies have been deprecated since Consul 1.3 and have been fully removed
 in Consul 1.6. Anyone using Managed Proxies should aim to change their workflow
 as soon as possible to avoid issues with a later upgrade.
 
-After transitioning away from all managed proxy usage, the `proxy` subdirectory inside [`data_dir`](https://www.consul.io/docs/agent/options.html#_data_dir) (specified in Consul config) can be deleted to remove extraneous configuration files and free up disk space.
+After transitioning away from all managed proxy usage, the `proxy` subdirectory inside [`data_dir`](/docs/agent/options#_data_dir) (specified in Consul config) can be deleted to remove extraneous configuration files and free up disk space.
 
 **new and known issues will not be fixed**.
 
@@ -43,7 +43,7 @@ with other workloads. So the high implementation cost of building robust process
 supervision didn't actually benefit most real use-cases.
 
 Instead of this Connect 1.3.0 introduces the concept of [sidecar service
-registrations](/docs/connect/proxies/sidecar-service.html) which
+registrations](/docs/connect/proxies/sidecar-service) which
 have almost all of the benefits of simpler configuration but without any of the
 additional process management complexity. As a result they can be used to
 simplify configuration in both container-based and realistic production
@@ -56,7 +56,7 @@ page will document how they work in the interim.
 
 -> **Deprecation Note:** It's _strongly_ recommended you do not build anything
 using Managed proxies and consider using [sidecar service
-registrations](/docs/connect/proxies/sidecar-service.html) instead.
+registrations](/docs/connect/proxies/sidecar-service) instead.
 
 Managed proxies are given
 a unique proxy-specific ACL token that allows read-only access to Connect
@@ -80,7 +80,7 @@ via agent configuration files. They _cannot_ be registered via the HTTP API.
 And 2.) Managed proxies are not started at all if Consul is running as root.
 Both of these default configurations help prevent arbitrary process
 execution or privilege escalation. This behavior can be configured
-[per-agent](/docs/agent/options.html#connect_proxy).
+[per-agent](/docs/agent/options#connect_proxy).
 
 ### Lifecycle
 
@@ -104,7 +104,7 @@ to re-adopt them on restart.
 ### Minimal Configuration
 
 Managed proxies are configured within a
-[service definition](/docs/agent/services.html). The simplest possible
+[service definition](/docs/agent/services). The simplest possible
 managed proxy configuration is an empty configuration. This enables the
 default managed proxy and starts a listener for that service:
 
@@ -120,7 +120,7 @@ default managed proxy and starts a listener for that service:
 
 The listener is started on random port within the configured Connect
 port range. It can be discovered using the
-[DNS interface](/docs/agent/dns.html#connect-capable-service-lookups)
+[DNS interface](/docs/agent/dns#connect-capable-service-lookups)
 or
 [Catalog API](#).
 In most cases, service-to-service communication is established by
@@ -173,12 +173,12 @@ passed to the proxy instance.
 
 For full details of the additional configurable options available when using the
 built-in proxy see the [built-in proxy configuration
-reference](/docs/connect/configuration.html#built-in-proxy-options).
+reference](/docs/connect/configuration#built-in-proxy-options).
 
 ### Prepared Query Upstreams
 
 The upstream destination may also be a
-[prepared query](/api/query.html).
+[prepared query](/api/query).
 This allows complex service discovery behavior such as connecting to
 the nearest neighbor or filtering by tags.
 
@@ -210,11 +210,11 @@ service.
 
 For full details of the additional configurable options available when using the
 built-in proxy see the [built-in proxy configuration
-reference](/docs/connect/configuration.html#built-in-proxy-options).
+reference](/docs/connect/configuration#built-in-proxy-options).
 
 ### Custom Managed Proxy
 
-[Custom proxies](/docs/connect/proxies/integrate.html) can also be
+[Custom proxies](/docs/connect/proxies/integrate) can also be
 configured to run as a managed proxy. To configure custom proxies, specify
 an alternate command to execute for the proxy:
 
@@ -242,7 +242,7 @@ any arguments to execute.
 The "daemon" mode expects a proxy to run as a long-running, blocking
 process. It should not double-fork into the background. The custom
 proxy should retrieve its configuration (such as the port to run on)
-via the [custom proxy integration APIs](/docs/connect/proxies/integrate.html).
+via the [custom proxy integration APIs](/docs/connect/proxies/integrate).
 
 The default proxy command can be changed at an agent-global level
 in the agent configuration. An example in HCL format is shown below.
@@ -261,7 +261,7 @@ proxy command will use `my-proxy` instead of the default built-in proxy.
 The `config` key is an optional opaque JSON object which will be passed through
 to the proxy via the proxy configuration endpoint to allow any configuration
 options the proxy needs to be specified. See the [built-in proxy
-configuration reference](/docs/connect/configuration.html#built-in-proxy-options)
+configuration reference](/docs/connect/configuration#built-in-proxy-options)
 for details of config options that can be passed when using the built-in proxy.
 
 ### Managed Proxy Logs
@@ -276,6 +276,6 @@ level logs showing service discovery, certificate and authorization information.
 
 ~> **Note:** In `-dev` mode there is no `data_dir` unless one is explicitly
 configured so logging is disabled. You can access logs by providing the
-[`-data-dir`](/docs/agent/options.html#_data_dir) CLI option. If a data dir is
+[`-data-dir`](/docs/agent/options#_data_dir) CLI option. If a data dir is
 configured, this will also cause proxy processes to stay running when the agent
 terminates as described in [Lifecycle](#lifecycle).

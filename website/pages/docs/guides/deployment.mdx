@@ -43,7 +43,7 @@ or "Burstable CPU".
 
 ~> **NOTE** For large workloads, ensure that the disks support a high number of IOPS to keep up with the rapid Raft log update rate.
 
-For more information on server requirements, review the [server performance](/docs/install/performance.html) documentation.
+For more information on server requirements, review the [server performance](/docs/install/performance) documentation.
 
 ## Infrastructure Diagram
 
@@ -65,7 +65,7 @@ The recommended maximum cluster size for a single datacenter is 5,000 nodes. For
 
 One must take care to use service tags in a way that assists with the kinds of queries that will be run against the cluster. If two services (e.g. blue and green) are running on the same cluster, appropriate service tags must be used to identify between them. If a query is made without tags, nodes running both blue and green services may show up in the results of the query.
 
-In cases where a full mesh among all agents cannot be established due to network segmentation, Consul’s own [network segments](/docs/enterprise/network-segments) can be used. Network segments is a Consul Enterprise feature that allows the creation of multiple tenants which share Raft servers in the same cluster. Each tenant has its own gossip pool and doesn’t communicate with the agents outside this pool. The KV store, however, is shared between all tenants. If Consul network segments cannot be used, isolation between agents can be accomplished by creating discrete [Consul datacenters](/docs/guides/datacenters.html).
+In cases where a full mesh among all agents cannot be established due to network segmentation, Consul’s own [network segments](/docs/enterprise/network-segments) can be used. Network segments is a Consul Enterprise feature that allows the creation of multiple tenants which share Raft servers in the same cluster. Each tenant has its own gossip pool and doesn’t communicate with the agents outside this pool. The KV store, however, is shared between all tenants. If Consul network segments cannot be used, isolation between agents can be accomplished by creating discrete [Consul datacenters](/docs/guides/datacenters).
 
 ### Multiple Datacenters
 
@@ -73,7 +73,7 @@ Consul clusters in different datacenters running the same service can be joined 
 
 -> A good practice is to enable TLS server name checking to avoid accidental cross-joining of agents.
 
-Advanced federation can be achieved with the [network areas](/api/operator/area.html) feature in Consul Enterprise.
+Advanced federation can be achieved with the [network areas](/api/operator/area) feature in Consul Enterprise.
 
 A typical use case is where datacenter1 (dc1) hosts share services like LDAP (or ACL datacenter) which are leveraged by all other datacenters. However, due to compliance issues, servers in dc2 must not connect with servers in dc3. This cannot be accomplished with the basic WAN federation. Basic federation requires that all the servers in dc1, dc2 and dc3 are connected in a full mesh and opens both gossip (`8302 tcp/udp`) and RPC (`8300`) ports for communication.
 
@@ -81,7 +81,7 @@ Network areas allows peering between datacenters to make the services discoverab
 
 #### Prepared Queries
 
-Consul’s [prepared queries](/api/query.html) allow clients to do a datacenter failover for service discovery. For example, if a service `payment` in the local datacenter dc1 goes down, a prepared query lets users define a geographic fallback order to the nearest datacenter to check for healthy instances of the same service.
+Consul’s [prepared queries](/api/query) allow clients to do a datacenter failover for service discovery. For example, if a service `payment` in the local datacenter dc1 goes down, a prepared query lets users define a geographic fallback order to the nearest datacenter to check for healthy instances of the same service.
 
 ~> **NOTE** Consul clusters must be WAN linked for a prepared query to work across datacenters.
 
@@ -89,7 +89,7 @@ Prepared queries, by default, resolve the query in the local datacenter first. Q
 
 #### Connect
 
-Consul [Connect](/docs/guides/connect-production.html) supports multi-datacenter connections and replicates [intentions](/docs/connect/intentions.html). This allows WAN federated DCs to provide connections from source and destination proxies in any DC.
+Consul [Connect](/docs/guides/connect-production) supports multi-datacenter connections and replicates [intentions](/docs/connect/intentions). This allows WAN federated DCs to provide connections from source and destination proxies in any DC.
 
 ## Network Connectivity
 
@@ -115,8 +115,8 @@ By default agents will only listen for HTTP and DNS traffic on the local interfa
 
 ## Next steps
 
-- Read [Deployment Guide](/docs/guides/deployment-guide.html) to learn
+- Read [Deployment Guide](/docs/guides/deployment-guide) to learn
   the steps required to install and configure a single HashiCorp Consul cluster.
 
-- Read [Server Performance](/docs/install/performance.html) to learn about
+- Read [Server Performance](/docs/install/performance) to learn about
   additional configuration that benefits production deployments.

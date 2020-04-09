@@ -19,7 +19,7 @@ with each other.
 To get started with network segments you can review the guide on HashiCorp Learn for
 [Network Segments](https://learn.hashicorp.com/consul/day-2-operations/network-segments).
 
-~> **Note:** Due to limitations in [Serf](https://www.consul.io/docs/internals/gossip.html), a Consul agent configured with too many network segments may not be able to start
+~> **Note:** Due to limitations in [Serf](/docs/internals/gossip), a Consul agent configured with too many network segments may not be able to start
 
 # Consul Networking Models
 
@@ -28,7 +28,7 @@ Consul networking models and their capabilities.
 
 **Cluster:** A set of Consul servers forming a Raft quorum along with a
 collection of Consul clients, all set to the same
-[datacenter](/docs/agent/options.html#_datacenter), and joined together to form
+[datacenter](/docs/agent/options#_datacenter), and joined together to form
 what we will call a "local cluster". Consul clients discover the Consul servers
 in their local cluster through the gossip mechanism and make RPC requests to
 them. LAN Gossip (OSS) is an open intra-cluster networking model, and Network

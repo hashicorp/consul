@@ -19,7 +19,7 @@ connections. For most Go applications, Connect can be natively integrated
 in just a single line of code excluding imports and struct initialization.
 
 In addition to this, please read and understand the
-[overview of Connect-Native integrations](/docs/connect/native.html).
+[overview of Connect-Native integrations](/docs/connect/native).
 In particular, after integrating applications with Connect, they must declare
 that they accept Connect-based connections via their service definitions.
 
@@ -177,7 +177,7 @@ the following specific limitations:
   - `<name>.service[.<datacenter>].consul` to discover a healthy service
     instance for a given service.
   - `<name>.query[.<datacenter>].consul` to discover an instance via
-    [Prepared Query](/api/query.html).
+    [Prepared Query](/api/query).
 - The top-level domain _must_ be `.consul` even if your cluster has a custom
   `domain` configured for it's DNS interface. This might be relaxed in the
   future.

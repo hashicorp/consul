@@ -11,7 +11,7 @@ description: Consul Connect comes with a built-in proxy for testing and developm
 Consul comes with a built-in L4 proxy for testing and development with Consul
 Connect.
 
-~> **Note:** [Envoy](https://www.consul.io/docs/connect/proxies/envoy.html) should be used for production deployments, or when [layer 7 traffic management](https://www.consul.io/docs/connect/l7-traffic-management.html) features are needed.
+~> **Note:** [Envoy](/docs/connect/proxies/envoy) should be used for production deployments, or when [layer 7 traffic management](/docs/connect/l7-traffic-management) features are needed.
 
 ## Getting Started
 
@@ -61,20 +61,20 @@ All fields are optional with a sane default.
 - <a name="bind_port"></a>
   <a href="#bind_port">`bind_port`</a> - The port the proxy will bind it's _public_
   mTLS listener to. If not provided, the agent will attempt to assign one from its
-  [configured proxy port range](/docs/agent/options.html#proxy_min_port) if available.
+  [configured proxy port range](/docs/agent/options#proxy_min_port) if available.
   By default the range is [20000, 20255] and the port is selected at random from
   that range.
 
 - <a name="tcp_check_address"></a>
   <a href="#tcp_check_address">`tcp_check_address`</a> - The address the agent will
-  run a [TCP health check](/docs/agent/checks.html) against. By default this is the
-  same as the proxy's [bind address](#bind_address) except if the bind*address is
-  `0.0.0.0` or `[::]` in which case this defaults to `127.0.0.1` and assumes the
-  agent can dial the proxy over loopback. For more complex configurations where agent
-  and proxy communicate over a bridge for example, this configuration can be used
-  to specify a different \_address* (but not port) for the agent to use for health
-  checks if it can't talk to the proxy over localhost or it's publicly advertised
-  port. The check always uses the same port that the proxy is bound to.
+  run a [TCP health check](/docs/agent/checks) against. By default this is the same
+  as the proxy's [bind address](#bind_address) except if the bind*address is `0.0.0.0`
+  or `[::]` in which case this defaults to `127.0.0.1` and assumes the agent can
+  dial the proxy over loopback. For more complex configurations where agent and proxy
+  communicate over a bridge for example, this configuration can be used to specify
+  a different \_address* (but not port) for the agent to use for health checks if
+  it can't talk to the proxy over localhost or it's publicly advertised port. The
+  check always uses the same port that the proxy is bound to.
 
 - <a name="disable_tcp_check"></a>
   <a href="#disable_tcp_check">`disable_tcp_check`</a> - If true, this disables a
@@ -104,7 +104,7 @@ All fields are optional with a sane default.
   <a href="#upstreams">`upstreams`</a> - **Deprecated** Upstreams are now specified
   in the `connect.proxy` definition. Upstreams specified in the opaque config map
   here will continue to work for compatibility but it's strongly recommended that
-  you move to using the higher level [upstream configuration](/docs/connect/registration/service-registration.html#upstream-configuration-reference).
+  you move to using the higher level [upstream configuration](/docs/connect/registration/service-registration#upstream-configuration-reference).
 
 ## Proxy Upstream Config Key Reference
 
