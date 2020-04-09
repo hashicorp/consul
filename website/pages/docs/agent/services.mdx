@@ -30,7 +30,7 @@ To configure a service, either provide the service definition as a
 agent. The file must end in the `.json` or `.hcl` extension to be loaded by
 Consul. Check definitions can be updated by sending a `SIGHUP` to the agent.
 Alternatively, the service can be registered dynamically using the [HTTP
-API](/api/index.html).
+API](/api).
 
 A service definition is a configuration that looks like the following. This
 example shows all possible fields, but note that only a few are required.
@@ -204,7 +204,7 @@ until at least 1.5.0 but it's highly recommended to switch to using
 `proxy.destination_service_name`.
 
 The `connect` field can be specified to configure
-[Connect](/docs/connect/index.html) for a service. This field is available in
+[Connect](/docs/connect) for a service. This field is available in
 Consul 1.2.0 and later. The `native` value can be set to true to advertise the
 service as [Connect-native](/docs/connect/native.html). The `sidecar_service`
 field is an optional nested service definition its behavior and defaults are

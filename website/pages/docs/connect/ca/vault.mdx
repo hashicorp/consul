@@ -13,7 +13,7 @@ description: >-
 Consul can be used with [Vault](https://www.vaultproject.io) to
 manage and sign certificates.
 The Vault CA provider uses the
-[Vault PKI secrets engine](https://www.vaultproject.io/docs/secrets/pki/index.html)
+[Vault PKI secrets engine](https://www.vaultproject.io/docs/secrets/pki)
 to generate and sign certificates.
 
 -> This page documents the specifics of the Vault CA provider.
@@ -96,7 +96,7 @@ is used if you're adding configuring to the agent's configuration file.
 ## Root and Intermediate PKI Paths
 
 The Vault CA provider uses two separately configured
-[PKI secrets engines](https://www.vaultproject.io/docs/secrets/pki/index.html)
+[PKI secrets engines](https://www.vaultproject.io/docs/secrets/pki)
 for managing Connect certificates.
 
 The `RootPKIPath` is the PKI engine for the root certificate. Consul will

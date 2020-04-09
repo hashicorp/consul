@@ -77,7 +77,7 @@ You will also need to install [Envoy](https://www.envoyproxy.io/) alongside your
 Consul clients. Both the gateway and sidecar proxies will need to get
 configuration and updates from a local Consul client.
 
-Lastly you should set [`enable_central_service_config = true`](https://www.consul.io/docs/agent/options.html#enable_central_service_config)
+Lastly you should set [`enable_central_service_config = true`](/docs/agent/options.html#enable_central_service_config)
 on your Consul clients, which will allow them to centrally configrure the
 sidecar and mesh gateway proxies.
 
@@ -88,7 +88,7 @@ to enable Connect in each of them sequentially. Connect’s certificate authorit
 (which is distinct from the Consul certificate authority that you manage using
 the CLI) will automatically bootstrap as soon as a server with Connect enabled
 becomes the server cluster’s leader. You can also use [Vault as a Connect
-CA](https://www.consul.io/docs/connect/ca/vault.html).
+CA](/docs/connect/ca/vault.html).
 
 !> **Warning:** If you are using this guide as a production playbook, we
 strongly recommend that you enable Connect in each of your datacenters by
@@ -110,10 +110,10 @@ connect {
 Load the new configuration by restarting each server one at a time, making sure
 to maintain quorum. This will be a similar process to performing a [rolling
 restart during
-upgrades](https://www.consul.io/docs/upgrading.html#standard-upgrades).
+upgrades](/docs/upgrading.html#standard-upgrades).
 
 Stop the first server by running the following [leave
-command](https://www.consul.io/docs/commands/leave.html).
+command](/docs/commands/leave.html).
 
 ```text
 $ consul leave
@@ -138,7 +138,7 @@ connect {
 
 The `primary_datacenter` setting that was required in order to enable ACL
 replication between datacenters also specifies which datacenter will write
-intentions and act as the [root CA for Connect](https://www.consul.io/docs/connect/connect-internals.html#connections-across-datacenters).
+intentions and act as the [root CA for Connect](/docs/connect/connect-internals.html#connections-across-datacenters).
 Intentions, which allow or deny inter-service communication, are automatically
 replicated to the secondary datacenter.
 
@@ -235,7 +235,7 @@ $ consul connect envoy -mesh-gateway -register \
 ### Configure Sidecar Proxies to use Gateways
 
 Next, create a [centralized
-configuration](https://www.consul.io/docs/agent/config_entries/proxy-defaults.html)
+configuration](/docs/agent/config_entries/proxy-defaults.html)
 file for all the sidecar proxies in both datacenters called
 `proxy-defaults.json`. This file will instruct the sidecar proxies to send all
 their inter-datacenter traffic through the gateways. It should contain the
@@ -431,8 +431,8 @@ gateways.
 
 If you are using Kubernetes you can configure Connect and deploy gateways for
 your Kubernetes cluster using the Helm chart. Learn more in the [Consul’s
-Kubernetes documentation](https://www.consul.io/docs/platform/k8s/helm.html)
+Kubernetes documentation](/docs/platform/k8s/helm.html)
 
 Visit the Consul documentation for a full list of configurations for [Consul
-Connect](https://www.consul.io/docs/connect/index.html), including [mesh gateway
-configuration options](https://www.consul.io/docs/connect/mesh_gateway.html).
+Connect](/docs/connect), including [mesh gateway
+configuration options](/docs/connect/mesh_gateway.html).
