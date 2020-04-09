@@ -16,7 +16,7 @@ This guide describes critical aspects of operating a Consul cluster that's run i
 
 Consul's official Docker images are tagged with version numbers. For example, `docker pull consul:1.4.4` will pull the 1.4.4 Consul release image.
 
-For major releases, make sure to read our [upgrade guides](/docs/upgrade-specific.html) before upgrading a cluster.
+For major releases, make sure to read our [upgrade guides](/docs/upgrade-specific) before upgrading a cluster.
 
 To get a development mode Consul instance running the latest version, run `docker run consul`.
 
@@ -30,7 +30,7 @@ For clients, this stores some information about the cluster and the client's ser
 
 For servers, this stores the client information plus snapshots and data related to the consensus algorithm and other state like Consul's key/value store and catalog. **Servers need the volume's data to be available when restarting containers to recover from outage scenarios.** Therefore, care must be taken by operators to make sure that volumes containing consul cluster data are not destroyed during container restarts.
 
-~> We also recommend taking additional backups via [`consul snapshot`](/docs/commands/snapshot.html), and storing them externally.
+~> We also recommend taking additional backups via [`consul snapshot`](/docs/commands/snapshot), and storing them externally.
 
 ## Configuration
 
@@ -104,7 +104,7 @@ To do an in-memory reload, send a SIGHUP to the container:
 $ docker kill --signal=HUP <container_id>
 ```
 
-As long as there are enough servers in the cluster to maintain [quorum](/docs/internals/consensus.html#deployment-table), Consul's [Autopilot](/docs/guides/autopilot.html) feature will handle removing servers whose containers were stopped. Autopilot's default settings are already configured correctly. If you override them, make sure that the following [settings](/docs/agent/options.html#autopilot) are appropriate.
+As long as there are enough servers in the cluster to maintain [quorum](/docs/internals/consensus#deployment-table), Consul's [Autopilot](/docs/guides/autopilot) feature will handle removing servers whose containers were stopped. Autopilot's default settings are already configured correctly. If you override them, make sure that the following [settings](/docs/agent/options#autopilot) are appropriate.
 
 - `cleanup_dead_servers` must be set to true to make sure that a stopped container is removed from the cluster.
 - `last_contact_threshold` should be reasonably small, so that dead servers are removed quickly.

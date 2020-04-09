@@ -16,21 +16,21 @@ description: >-
 ~> The network area functionality described here is available only in [Consul Enterprise](https://www.hashicorp.com/products/consul/) version 0.8.0 and later.
 
 One of the key features of Consul is its support for multiple datacenters.
-The [architecture](/docs/internals/architecture.html) of Consul is designed to
+The [architecture](/docs/internals/architecture) of Consul is designed to
 promote a low coupling of datacenters so that connectivity issues or
 failure of any datacenter does not impact the availability of Consul in other
 datacenters. This means each datacenter runs independently, each having a dedicated
-group of servers and a private LAN [gossip pool](/docs/internals/gossip.html).
+group of servers and a private LAN [gossip pool](/docs/internals/gossip).
 
 This guide covers the advanced form of federating Consul clusters using the new
 network areas capability added in [Consul Enterprise](https://www.hashicorp.com/products/consul/)
 version 0.8.0. For the basic form of federation available in the open source version
-of Consul, please see the [Basic Federation Guide](/docs/guides/datacenters.html)
+of Consul, please see the [Basic Federation Guide](/docs/guides/datacenters)
 for more details.
 
 ## Network Area Overview
 
-Consul's [Basic Federation](/docs/guides/datacenters.html) support relies on all
+Consul's [Basic Federation](/docs/guides/datacenters) support relies on all
 Consul servers in all datacenters having full mesh connectivity via server RPC
 (8300/tcp) and Serf WAN (8302/tcp and 8302/udp). Securing this setup requires TLS
 in combination with managing a gossip keyring. With massive Consul deployments, it
@@ -51,14 +51,14 @@ to via an area (or via the WAN), but future versions of Consul may add routing s
 
 The following can be used to manage network areas:
 
-- [Network Areas HTTP Endpoint](/api/operator/area.html)
-- [Network Areas CLI](/docs/commands/operator/area.html)
+- [Network Areas HTTP Endpoint](/api/operator/area)
+- [Network Areas CLI](/docs/commands/operator/area)
 
 ### Network Areas and the WAN Gossip Pool
 
-Networks areas can be used alongside the Consul's [Basic Federation](/docs/guides/datacenters.html)
+Networks areas can be used alongside the Consul's [Basic Federation](/docs/guides/datacenters)
 model and the WAN gossip pool. This helps ease migration, and clusters like the
-[primary datacenter](/docs/agent/options.html#primary_datacenter) are more easily managed via
+[primary datacenter](/docs/agent/options#primary_datacenter) are more easily managed via
 the WAN because they need to be available to all Consul datacenters.
 
 A peer datacenter can connected via the WAN gossip pool and a network area at the
@@ -159,7 +159,7 @@ network must be able to route traffic between IP addresses across regions as wel
 Usually, this means that all datacenters must be connected using a VPN or other
 tunneling mechanism. Consul does not handle VPN or NAT traversal for you.
 
-The [`translate_wan_addrs`](/docs/agent/options.html#translate_wan_addrs) configuration
+The [`translate_wan_addrs`](/docs/agent/options#translate_wan_addrs) configuration
 provides a basic address rewriting capability.
 
 ## Data Replication
@@ -170,7 +170,7 @@ an RPC request to the remote Consul servers for that resource and return the res
 If the remote datacenter is not available, then those resources will also not be
 available, but that won't otherwise affect the local datacenter. There are some special
 situations where a limited subset of data can be replicated, such as with Consul's built-in
-[ACL replication](/docs/guides/acl.html#outages-and-acl-replication/) capability, or
+[ACL replication](/docs/guides/acl#outages-and-acl-replication/) capability, or
 external tools like [consul-replicate](https://github.com/hashicorp/consul-replicate/).
 
 ## Summary

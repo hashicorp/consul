@@ -18,16 +18,16 @@ automatically connecting via an encrypted TLS connection and authorizing
 which services are allowed to connect to each other.
 
 Applications do not need to be modified at all to use Connect.
-[Sidecar proxies](/docs/connect/proxies.html) can be used
+[Sidecar proxies](/docs/connect/proxies) can be used
 to automatically establish TLS connections for inbound and outbound connections
 without being aware of Connect at all. Applications may also
-[natively integrate with Connect](/docs/connect/native.html)
+[natively integrate with Connect](/docs/connect/native)
 for optimal performance and security.
 
 -> **Security note:** The getting started guide will show Connect features and
 focus on ease of use with a dev-mode agent. We will _not setup_ Connect in a
 production-recommended secure way. Please read the [Connect production
-guide](/docs/guides/connect-production.html) to understand the tradeoffs.
+guide](/docs/guides/connect-production) to understand the tradeoffs.
 
 ## Starting a Connect-unaware Service
 
@@ -242,7 +242,7 @@ hello
 
 Intentions allow services to be segmented via a centralized control plane
 (Consul). To learn more, read the reference documentation on
-[intentions](/docs/connect/intentions.html).
+[intentions](/docs/connect/intentions).
 
 Note that in the current release of Consul, changing intentions will not
 affect existing connections. Therefore, you must establish a new connection
@@ -261,4 +261,4 @@ on setting up Connect with Envoy proxy, with Docker and in Kubernetes.
 We've now configured a service on a single agent and used Connect for
 automatic connection authorization and encryption. This is a great feature
 highlight but let's explore the full value of Consul by [setting up our
-first cluster](/intro/getting-started/join.html)!
+first cluster](/intro/getting-started/join)!

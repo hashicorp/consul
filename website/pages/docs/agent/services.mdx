@@ -116,7 +116,7 @@ can be used to distinguish between `primary` or `secondary` nodes,
 different versions, or any other service level labels.
 
 We recommend using [valid DNS labels](https://en.wikipedia.org/wiki/Hostname#Restrictions_on_valid_hostnames)
-for service definition names and tags for [compatibility with external DNS](/docs/agent/services.html#service-and-tag-names-with-dns)
+for service definition names and tags for [compatibility with external DNS](/docs/agent/services#service-and-tag-names-with-dns)
 
 The `address` field can be used to specify a service-specific IP address. By
 default, the IP address of the agent is used, and this does not need to be provided.
@@ -134,12 +134,12 @@ and all the instances of a given service have their own copy of it.
 
 Services may also contain a `token` field to provide an ACL token. This token is
 used for any interaction with the catalog for the service, including
-[anti-entropy syncs](/docs/internals/anti-entropy.html) and deregistration.
+[anti-entropy syncs](/docs/internals/anti-entropy) and deregistration.
 
 The `enable_tag_override` can optionally be specified to disable the
 anti-entropy feature for this service. If `enable_tag_override` is set to
 `TRUE` then external agents can update this service in the
-[catalog](/api/catalog.html) and modify the tags. Subsequent
+[catalog](/api/catalog) and modify the tags. Subsequent
 local sync operations by this agent will ignore the updated tags. For
 example, if an external agent modified both the tags and the port for
 this service and `enable_tag_override` was set to `TRUE` then after the next
@@ -157,7 +157,7 @@ configuration items are independent of one another. Updating the tags
 for the service registered on one node is independent of the same
 service (by name) registered on another node. If `enable_tag_override` is
 not specified the default value is false. See [anti-entropy
-syncs](/docs/internals/anti-entropy.html) for more info.
+syncs](/docs/internals/anti-entropy) for more info.
 
 For Consul 0.9.3 and earlier you need to use `enableTagOverride`. Consul 1.0
 supports both `enable_tag_override` and `enableTagOverride` but the latter is
@@ -173,30 +173,30 @@ node has any failing system-level check, the DNS interface will omit that
 node from any service query.
 
 There are several check types that have differing required options as
-[documented here](/docs/agent/checks.html). The check name is automatically
+[documented here](/docs/agent/checks). The check name is automatically
 generated as `service:<service-id>`. If there are multiple service checks
 registered, the ID will be generated as `service:<service-id>:<num>` where
 `<num>` is an incrementing number starting from `1`.
 
--> **Note:** There is more information about [checks here](/docs/agent/checks.html).
+-> **Note:** There is more information about [checks here](/docs/agent/checks).
 
 ### Proxy
 
 Service definitions allow for an optional proxy registration. Proxies used with Connect
 are registered as services in Consul's catalog.
-See the [Proxy Service Registration](/docs/connect/registration/service-registration.html) reference
+See the [Proxy Service Registration](/docs/connect/registration/service-registration) reference
 for the available configuration options.
 
 ### Connect
 
 The `kind` field is used to optionally identify the service as a [Connect
-proxy](/docs/connect/proxies.html) instance with the value `connect-proxy` or
-a [Mesh Gateway](/docs/connect/mesh_gateway.html) instance with the value `mesh-gateway`. For
+proxy](/docs/connect/proxies) instance with the value `connect-proxy` or
+a [Mesh Gateway](/docs/connect/mesh_gateway) instance with the value `mesh-gateway`. For
 typical non-proxy instances the `kind` field must be omitted. The `proxy` field
 is also required for Connect proxy registrations and is only valid if `kind` is
 `connect-proxy`. The only required `proxy` field is `destination_service_name`.
 For more detail please see [complete proxy configuration
-example](/docs/connect/registration/service-registration.html#complete-configuration-example)
+example](/docs/connect/registration/service-registration#complete-configuration-example)
 
 -> **Deprecation Notice:** From version 1.2.0 to 1.3.0, proxy destination was
 specified using `proxy_destination` at the top level. This will continue to work
@@ -206,15 +206,15 @@ until at least 1.5.0 but it's highly recommended to switch to using
 The `connect` field can be specified to configure
 [Connect](/docs/connect) for a service. This field is available in
 Consul 1.2.0 and later. The `native` value can be set to true to advertise the
-service as [Connect-native](/docs/connect/native.html). The `sidecar_service`
+service as [Connect-native](/docs/connect/native). The `sidecar_service`
 field is an optional nested service definition its behavior and defaults are
 described in [Sidecar Service
-Registration](/docs/connect/registration/sidecar-service.html). If `native` is true,
+Registration](/docs/connect/registration/sidecar-service). If `native` is true,
 it is an error to also specify a sidecar service registration.
 
 -> **Deprecation Notice:** From version 1.2.0 to 1.3.0 during beta, Connect
 supported "Managed" proxies which are specified with the `connect.proxy` field.
-[Managed Proxies are deprecated](/docs/connect/proxies/managed-deprecated.html)
+[Managed Proxies are deprecated](/docs/connect/proxies/managed-deprecated)
 and the `connect.proxy` field will be removed in a future major release.
 
 ### DNS SRV Weights
@@ -236,7 +236,7 @@ weight.
 
 Services may also contain a `token` field to provide an ACL token. This token is
 used for any interaction with the catalog for the service, including
-[anti-entropy syncs](/docs/internals/anti-entropy.html) and deregistration.
+[anti-entropy syncs](/docs/internals/anti-entropy) and deregistration.
 
 You can optionally disable the anti-entropy feature for this service using the
 `enable_tag_override` flag. External agents can modify tags on services in the
@@ -253,7 +253,7 @@ configuration items are independent of one another. Updating the tags
 for the service registered on one node is independent of the same
 service (by name) registered on another node. If `enable_tag_override` is
 not specified the default value is false. See [anti-entropy
-syncs](/docs/internals/anti-entropy.html) for more info.
+syncs](/docs/internals/anti-entropy) for more info.
 
 For Consul 0.9.3 and earlier you need to use `enableTagOverride`. Consul 1.0
 supports both `enable_tag_override` and `enableTagOverride` but the latter is
@@ -345,7 +345,7 @@ services {
 
 ## Service and Tag Names with DNS
 
-Consul exposes service definitions and tags over the [DNS](/docs/agent/dns.html)
+Consul exposes service definitions and tags over the [DNS](/docs/agent/dns)
 interface. DNS queries have a strict set of allowed characters and a
 well-defined format that Consul cannot override. While it is possible to
 register services or tags with names that don't match the conventions, those

@@ -16,7 +16,7 @@ the same VM or running as a separate container in the same network namespace.
 
 To simplify the configuration experience when deploying a sidecar for a service
 instance, Consul 1.3 introduced a new field in the Connect block of the [service
-definition](/docs/agent/services.html).
+definition](/docs/agent/services).
 
 To deploy a service and sidecar proxy locally, complete the
 [Getting Started guide](https://learn.hashicorp.com/consul/getting-started/connect?utm_source=consul.io&utm_medium=docs).
@@ -43,7 +43,7 @@ To register a service instance with a sidecar, all that's needed is:
 ```
 
 This will register the `web` service as normal, but will also register another
-[proxy service](/docs/connect/proxies.html) with defaults values used.
+[proxy service](/docs/connect/proxies) with defaults values used.
 
 The above expands out to be equivalent to the following explicit service
 definitions:
@@ -114,9 +114,9 @@ overridden to customize the proxy configuration.
 ```
 
 This example customizes the [proxy
-upstreams](/docs/connect/registration/service-registration.html#upstream-configuration-reference)
+upstreams](/docs/connect/registration/service-registration#upstream-configuration-reference)
 and some [built-in proxy
-configuration](/docs/connect/proxies/built-in.html).
+configuration](/docs/connect/proxies/built-in).
 
 ## Sidecar Service Defaults
 
@@ -133,12 +133,12 @@ proxy.
 - `tags` - Defaults to the tags of the parent service.
 - `meta` - Defaults to the service metadata of the parent service.
 - `port` - Defaults to being auto-assigned from a [configurable
-  range](/docs/agent/options.html#sidecar_min_port) that is
+  range](/docs/agent/options#sidecar_min_port) that is
   by default `[21000, 21255]`.
 - `kind` - Defaults to `connect-proxy`. This can't be overridden currently.
 - `check`, `checks` - By default we add a TCP check on the local address and
   port for the proxy, and a [service alias
-  check](/docs/agent/checks.html#alias) for the parent service. If either
+  check](/docs/agent/checks#alias) for the parent service. If either
   `check` or `checks` fields are set, only the provided checks are registered.
 - `proxy.destination_service_name` - Defaults to the parent service name.
 - `proxy.destination_service_id` - Defaults to the parent service ID.
@@ -147,7 +147,7 @@ proxy.
 
 ## Limitations
 
-Almost all fields in a [service definition](/docs/agent/services.html) may be
+Almost all fields in a [service definition](/docs/agent/services) may be
 set on the `connect.sidecar_service` except for the following:
 
 - `id` - Sidecar services get an ID assigned and it is an error to override
@@ -158,7 +158,7 @@ set on the `connect.sidecar_service` except for the following:
   service.
 - `connect.sidecar_service` - Service definitions can't be nested recursively.
 - `connect.proxy` - (Deprecated) [Managed
-  proxies](/docs/connect/proxies/managed-deprecated.html) can't be defined on a
+  proxies](/docs/connect/proxies/managed-deprecated) can't be defined on a
   sidecar.
 - `connect.native` - Currently the `kind` is fixed to `connect-proxy` and it's
   an error to register a `connect-proxy` that is also Connect-native.

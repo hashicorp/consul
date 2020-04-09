@@ -11,20 +11,20 @@ description: >-
 
 # Bootstrapping the ACL System
 
-Consul uses Access Control Lists (ACLs) to secure the UI, API, CLI, service communications, and agent communications. For securing gossip and RPC communication please review [this guide](/docs/guides/agent-encryption.html). When securing your cluster you should configure the ACLs first.
+Consul uses Access Control Lists (ACLs) to secure the UI, API, CLI, service communications, and agent communications. For securing gossip and RPC communication please review [this guide](/docs/guides/agent-encryption). When securing your cluster you should configure the ACLs first.
 
 At the core, ACLs operate by grouping rules into policies, then associating one or more policies with a token.
 
-To complete this guide, you should have an operational Consul 1.4+ cluster. We also recommend reading the [ACL System documentation](/docs/agent/acl-system.html). For securing Consul version 1.3 and older, please read the [legacy ACL documentation](https://www.consul.io/docs/guides/acl-legacy.html).
+To complete this guide, you should have an operational Consul 1.4+ cluster. We also recommend reading the [ACL System documentation](/docs/agent/acl-system). For securing Consul version 1.3 and older, please read the [legacy ACL documentation](/docs/guides/acl-legacy).
 
 Bootstrapping the ACL system is a multi-step process, we will cover all the necessary steps in this guide.
 
-- [Enable ACLs on all the servers](/docs/guides/acl.html#step-1-enable-acls-on-all-the-consul-servers).
-- [Create the initial bootstrap token](/docs/guides/acl.html#step-2-create-the-bootstrap-token).
-- [Create the agent policy](/docs/guides/acl.html#step-3-create-an-agent-token-policy).
-- [Create the agent token](/docs/guides/acl.html#step-4-create-an-agent-token).
-- [Apply the new token to the servers](/docs/guides/acl.html#step-5-add-the-agent-token-to-all-the-servers).
-- [Enable ACLs on the clients and apply the agent token](/docs/guides/acl.html#step-6-enable-acls-on-the-consul-clients).
+- [Enable ACLs on all the servers](/docs/guides/acl#step-1-enable-acls-on-all-the-consul-servers).
+- [Create the initial bootstrap token](/docs/guides/acl#step-2-create-the-bootstrap-token).
+- [Create the agent policy](/docs/guides/acl#step-3-create-an-agent-token-policy).
+- [Create the agent token](/docs/guides/acl#step-4-create-an-agent-token).
+- [Apply the new token to the servers](/docs/guides/acl#step-5-add-the-agent-token-to-all-the-servers).
+- [Enable ACLs on the clients and apply the agent token](/docs/guides/acl#step-6-enable-acls-on-the-consul-clients).
 
 At the end of this guide, there are also several additional and optional steps.
 
@@ -105,14 +105,14 @@ $ export CONSUL_HTTP_TOKEN=4411f091-a4c9-48e6-0884-1fcb092da1c8
 ```
 
 The bootstrap token can also be used in the server configuration file as
-the [`master`](https://www.consul.io/docs/agent/options.html#acl_tokens_master) token.
+the [`master`](/docs/agent/options#acl_tokens_master) token.
 
 Note, the bootstrap token can only be created once, bootstrapping will be disabled after the master token was created. Once the ACL system is bootstrapped, ACL tokens can be managed through the
-[ACL API](/api/acl/acl.html).
+[ACL API](/api/acl/acl).
 
 ## Step 3: Create an Agent Token Policy
 
-Before we can create a token, we will need to create its associated policy. A policy is a set of rules that can be used to specify granular permissions. To learn more about rules, read the ACL rule specification [documentation](/docs/agent/acl-rules.html).
+Before we can create a token, we will need to create its associated policy. A policy is a set of rules that can be used to specify granular permissions. To learn more about rules, read the ACL rule specification [documentation](/docs/agent/acl-rules).
 
 ```bash
 # agent-policy.hcl contains the following:
@@ -402,16 +402,16 @@ The next section shows an alternative to the anonymous token.
 
 #### Set Agent-Specific Default Tokens (Optional)
 
-An alternative to the anonymous token is the [`acl.tokens.default`](/docs/agent/options.html#acl_tokens_default)
+An alternative to the anonymous token is the [`acl.tokens.default`](/docs/agent/options#acl_tokens_default)
 configuration item. When a request is made to a particular Consul agent and no token is
-supplied, the [`acl.tokens.default`](/docs/agent/options.html#acl_tokens_default) will be used for the token, instead of being left empty which would normally invoke the anonymous token.
+supplied, the [`acl.tokens.default`](/docs/agent/options#acl_tokens_default) will be used for the token, instead of being left empty which would normally invoke the anonymous token.
 
 This behaves very similarly to the anonymous token, but can be configured differently on each
 agent, if desired. For example, this allows more fine grained control of what DNS requests a
 given agent can service or can give the agent read access to some key-value store prefixes by
 default.
 
-If using [`acl.tokens.default`](/docs/agent/options.html#acl_tokens_default), then it's likely the anonymous token will have a more restrictive policy than shown in these examples.
+If using [`acl.tokens.default`](/docs/agent/options#acl_tokens_default), then it's likely the anonymous token will have a more restrictive policy than shown in these examples.
 
 #### Create Tokens for UI Use (Optional)
 
@@ -450,24 +450,24 @@ Note, in this example, we have also given full write access to the KV through th
 
 ## Summary
 
-The [ACL API](/api/acl/acl.html) can be used to create tokens for applications specific to their intended use and to create more specific ACL agent tokens for each agent's expected role.
-Now that you have bootstrapped ACLs, learn more about [ACL rules](/docs/agent/acl-rules.html)
+The [ACL API](/api/acl/acl) can be used to create tokens for applications specific to their intended use and to create more specific ACL agent tokens for each agent's expected role.
+Now that you have bootstrapped ACLs, learn more about [ACL rules](/docs/agent/acl-rules)
 
 ### Notes on Security
 
 In this guide we configured a basic ACL environment with the ability to see all nodes
 by default, but with limited access to discover only the "consul" service. If your environment has stricter security requirements we would like to note the following and make some additional recommendations.
 
-1. In this guide we added the agent token to the configuration file. This means the tokens are now saved on disk. If this is a security concern, tokens can be added to agents using the [Consul CLI](https://www.consul.io/docs/commands/acl/acl-set-agent-token.html). However, this process is more complicated and takes additional care.
+1. In this guide we added the agent token to the configuration file. This means the tokens are now saved on disk. If this is a security concern, tokens can be added to agents using the [Consul CLI](/docs/commands/acl/acl-set-agent-token). However, this process is more complicated and takes additional care.
 
 2. It is recommended that each client get an ACL agent token with `node` write privileges for just its own node name, and `service` read privileges for just the service prefixes expected to be registered on that client.
 
-3. [Anti-entropy](/docs/internals/anti-entropy.html) syncing requires the ACL agent token
+3. [Anti-entropy](/docs/internals/anti-entropy) syncing requires the ACL agent token
    to have `service:write` privileges for all services that may be registered with the agent.
    We recommend providing `service:write` for each separate service via a separate token that
    is used when registering via the API, or provided along with the [registration in the
-   configuration file](https://www.consul.io/docs/agent/services.html). Note that `service:write`
+   configuration file](/docs/agent/services). Note that `service:write`
    is the privilege required to assume the identity of a service and so Consul Connect's
    intentions are only enforceable to the extent that each service instance is unable to gain
    `service:write` on any other service name. For more details see the Connect security
-   [documentation](https://www.consul.io/docs/connect/security.html).
+   [documentation](/docs/connect/security).

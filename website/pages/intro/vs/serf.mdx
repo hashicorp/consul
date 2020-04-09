@@ -23,7 +23,7 @@ Serf does not provide any high-level features such as service discovery, health
 checking or key/value storage. Consul is a complete system providing all of those
 features.
 
-The internal [gossip protocol](/docs/internals/gossip.html) used within Consul is in
+The internal [gossip protocol](/docs/internals/gossip) used within Consul is in
 fact powered by the Serf library: Consul leverages the membership and failure detection
 features and builds upon them to add service discovery. By contrast, the discovery
 feature of Serf is at a node level, while Consul provides a service and node level
@@ -44,7 +44,7 @@ catalog while Serf is only eventually-consistent.
 In addition to the service level abstraction and improved health checking,
 Consul provides a key/value store and support for multiple datacenters.
 Serf can run across the WAN but with degraded performance. Consul makes use
-of [multiple gossip pools](/docs/internals/architecture.html) so that
+of [multiple gossip pools](/docs/internals/architecture) so that
 the performance of Serf over a LAN can be retained while still using it over
 a WAN for linking together multiple datacenters.
 

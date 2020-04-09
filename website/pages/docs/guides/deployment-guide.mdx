@@ -11,17 +11,17 @@ ea_version: 1.4
 
 # Consul Deployment Guide
 
-This deployment guide covers the steps required to install and configure a single HashiCorp Consul cluster as defined in the [Consul Reference Architecture](/docs/guides/deployment.html).
+This deployment guide covers the steps required to install and configure a single HashiCorp Consul cluster as defined in the [Consul Reference Architecture](/docs/guides/deployment).
 
 These instructions are for installing and configuring Consul on Linux hosts running the systemd system and service manager.
 
 ## Reference Material
 
-This deployment guide is designed to work in combination with the [Consul Reference Architecture](/docs/guides/deployment.html). Although not a strict requirement to follow the Consul Reference Architecture, please ensure you are familiar with the overall architecture design; for example installing Consul server agents on multiple physical or virtual (with correct anti-affinity) hosts for high-availability.
+This deployment guide is designed to work in combination with the [Consul Reference Architecture](/docs/guides/deployment). Although not a strict requirement to follow the Consul Reference Architecture, please ensure you are familiar with the overall architecture design; for example installing Consul server agents on multiple physical or virtual (with correct anti-affinity) hosts for high-availability.
 
 ## Overview
 
-To provide a highly-available single cluster architecture, we recommend Consul server agents be deployed to more than one host, as shown in the [Consul Reference Architecture](/docs/guides/deployment.html).
+To provide a highly-available single cluster architecture, we recommend Consul server agents be deployed to more than one host, as shown in the [Consul Reference Architecture](/docs/guides/deployment).
 
 ![Reference Diagram](/img/consul-arch-single.png 'Reference Diagram')
 
@@ -129,7 +129,7 @@ The following parameters are set for the `[Install]` stanza:
 
 ## Configure Consul (server)
 
-Consul uses [documented sane defaults](/docs/agent/options.html) so only non-default values must be set in the configuration file. Configuration can be read from multiple files and is loaded in lexical order. See the [full description](/docs/agent/options.html) for more information about configuration loading and merge semantics.
+Consul uses [documented sane defaults](/docs/agent/options) so only non-default values must be set in the configuration file. Configuration can be read from multiple files and is loaded in lexical order. See the [full description](/docs/agent/options) for more information about configuration loading and merge semantics.
 
 Consul server agents typically require a superset of configuration required by Consul client agents. We will specify common configuration used by all Consul agents in `consul.hcl` and server specific configuration in `server.hcl`.
 
@@ -154,13 +154,13 @@ data_dir = "/opt/consul"
 encrypt = "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="
 ```
 
-- [`datacenter`](/docs/agent/options.html#_datacenter) - The datacenter in which the agent is running.
-- [`data_dir`](/docs/agent/options.html#_data_dir) - The data directory for the agent to store state.
-- [`encrypt`](/docs/agent/options.html#_encrypt) - Specifies the secret key to use for encryption of Consul network traffic.
+- [`datacenter`](/docs/agent/options#_datacenter) - The datacenter in which the agent is running.
+- [`data_dir`](/docs/agent/options#_data_dir) - The data directory for the agent to store state.
+- [`encrypt`](/docs/agent/options#_encrypt) - Specifies the secret key to use for encryption of Consul network traffic.
 
 ### ACL configuration
 
-The [ACL](/docs/guides/acl.html) guide provides instructions on configuring and enabling ACLs.
+The [ACL](/docs/guides/acl) guide provides instructions on configuring and enabling ACLs.
 
 ### Cluster auto-join
 
@@ -168,17 +168,17 @@ The `retry_join` parameter allows you to configure all Consul agents to automati
 
 Add the retry_join parameter to the `consul.hcl` configuration file:
 
-~> **NOTE** Replace the `retry_join` parameter value with the correct DNS address, IP address or [cloud auto-join configuration](/docs/agent/cloud-auto-join.html) for your environment.
+~> **NOTE** Replace the `retry_join` parameter value with the correct DNS address, IP address or [cloud auto-join configuration](/docs/agent/cloud-auto-join) for your environment.
 
 ```hcl
 retry_join = ["172.16.0.11"]
 ```
 
-- [`retry_join`](/docs/agent/options.html#retry-join) - Address of another agent to join upon starting up.
+- [`retry_join`](/docs/agent/options#retry-join) - Address of another agent to join upon starting up.
 
 ### Performance stanza
 
-The [`performance`](/docs/agent/options.html#performance) stanza allows tuning the performance of different subsystems in Consul.
+The [`performance`](/docs/agent/options#performance) stanza allows tuning the performance of different subsystems in Consul.
 
 Add the performance configuration to the `consul.hcl` configuration file:
 
@@ -188,19 +188,19 @@ performance {
 }
 ```
 
-- [`raft_multiplier`](/docs/agent/options.html#raft_multiplier) - An integer multiplier used by Consul servers to scale key Raft timing parameters. Setting this to a value of 1 will configure Raft to its highest-performance mode, equivalent to the default timing of Consul prior to 0.7, and is recommended for production Consul servers.
+- [`raft_multiplier`](/docs/agent/options#raft_multiplier) - An integer multiplier used by Consul servers to scale key Raft timing parameters. Setting this to a value of 1 will configure Raft to its highest-performance mode, equivalent to the default timing of Consul prior to 0.7, and is recommended for production Consul servers.
 
-For more information on Raft tuning and the `raft_multiplier` setting, see the [server performance](/docs/install/performance.html) documentation.
+For more information on Raft tuning and the `raft_multiplier` setting, see the [server performance](/docs/install/performance) documentation.
 
 ### Telemetry stanza
 
-The [`telemetry`](/docs/agent/options.html#telemetry) stanza specifies various configurations for Consul to publish metrics to upstream systems.
+The [`telemetry`](/docs/agent/options#telemetry) stanza specifies various configurations for Consul to publish metrics to upstream systems.
 
-If you decide to configure Consul to publish telemtery data, you should review the [telemetry configuration section](/docs/agent/options.html#telemetry) of our documentation.
+If you decide to configure Consul to publish telemtery data, you should review the [telemetry configuration section](/docs/agent/options#telemetry) of our documentation.
 
 ### TLS configuration
 
-The [Creating Certificates](/docs/guides/creating-certificates.html) guide provides instructions on configuring and enabling TLS.
+The [Creating Certificates](/docs/guides/creating-certificates) guide provides instructions on configuring and enabling TLS.
 
 ### Server configuration
 
@@ -215,15 +215,15 @@ sudo chmod 640 /etc/consul.d/server.hcl
 
 Add this configuration to the `server.hcl` configuration file:
 
-~> **NOTE** Replace the `bootstrap_expect` value with the number of Consul servers you will use; three or five [is recommended](/docs/internals/consensus.html#deployment-table).
+~> **NOTE** Replace the `bootstrap_expect` value with the number of Consul servers you will use; three or five [is recommended](/docs/internals/consensus#deployment-table).
 
 ```hcl
 server = true
 bootstrap_expect = 3
 ```
 
-- [`server`](/docs/agent/options.html#_server) - This flag is used to control if an agent is in server or client mode.
-- [`bootstrap-expect`](/docs/agent/options.html#_bootstrap_expect) - This flag provides the number of expected servers in the datacenter. Either this value should not be provided or the value must agree with other servers in the cluster.
+- [`server`](/docs/agent/options#_server) - This flag is used to control if an agent is in server or client mode.
+- [`bootstrap-expect`](/docs/agent/options#_bootstrap_expect) - This flag provides the number of expected servers in the datacenter. Either this value should not be provided or the value must agree with other servers in the cluster.
 
 ### Consul UI
 
@@ -255,11 +255,11 @@ sudo systemctl status consul
 
 Creating server backups is an important step in production deployments. Backups provide a mechanism for the server to recover from an outage (network loss, operator error, or a corrupted data directory). All agents write to the `-data-dir` before commit. This directory persists the local agent’s state and &mdash; in the case of servers &mdash; it also holds the Raft information.
 
-Consul provides the [snapshot](/docs/commands/snapshot.html) command which can be run using the CLI command or the API. The `snapshot` command saves the point-in-time snapshot of the state of the Consul servers which includes KV entries, the service catalog, prepared queries, sessions, and ACL.
+Consul provides the [snapshot](/docs/commands/snapshot) command which can be run using the CLI command or the API. The `snapshot` command saves the point-in-time snapshot of the state of the Consul servers which includes KV entries, the service catalog, prepared queries, sessions, and ACL.
 
-With [Consul Enterprise](/docs/commands/snapshot/agent.html), the `snapshot agent` command runs periodically and writes to local or remote storage (such as Amazon S3).
+With [Consul Enterprise](/docs/commands/snapshot/agent), the `snapshot agent` command runs periodically and writes to local or remote storage (such as Amazon S3).
 
-By default, all snapshots are taken using `consistent` mode where requests are forwarded to the leader which verifies that it is still in power before taking the snapshot. Snapshots will not be saved if the clusted is degraded or if no leader is available. To reduce the burden on the leader, it is possible to [run the snapshot](/docs/commands/snapshot/save.html) on any non-leader server using `stale` consistency mode:
+By default, all snapshots are taken using `consistent` mode where requests are forwarded to the leader which verifies that it is still in power before taking the snapshot. Snapshots will not be saved if the clusted is degraded or if no leader is available. To reduce the burden on the leader, it is possible to [run the snapshot](/docs/commands/snapshot/save) on any non-leader server using `stale` consistency mode:
 
 ```text
 consul snapshot save -stale backup.snap
@@ -269,12 +269,12 @@ This spreads the load across nodes at the possible expense of losing full consis
 
 ## Next Steps
 
-- Read [Monitoring Consul with Telegraf](/docs/guides/monitoring-telegraf.html)
+- Read [Monitoring Consul with Telegraf](/docs/guides/monitoring-telegraf)
   for an example guide to monitoring Consul for improved operational visibility.
 
-- Read [Outage Recovery](/docs/guides/outage.html) to learn the steps required
+- Read [Outage Recovery](/docs/guides/outage) to learn the steps required
   for recovery from a Consul outage due to a majority of server nodes in a
   datacenter being lost.
 
-- Read [Server Performance](/docs/install/performance.html) to learn about
+- Read [Server Performance](/docs/install/performance) to learn about
   additional configuration that benefits production deployments.

@@ -16,7 +16,7 @@ Authority
 to manage and sign certificates.
 
 -> This page documents the specifics of the AWS ACM Private CA provider.
-Please read the [certificate management overview](/docs/connect/ca.html)
+Please read the [certificate management overview](/docs/connect/ca)
 page first to understand how Consul manages certificates with configurable
 CA providers.
 
@@ -104,7 +104,7 @@ For now, the limitation means that once ACM Private CA is configured as the CA
 provider, it is not possible to reconfigure a different CA provider, or rotate
 the root CA key without potentially observing some transient connection
 failures. See the section on [forced rotation without
-cross-signing](/docs/connect/ca.html#forced-rotation-without-cross-signing) for
+cross-signing](/docs/connect/ca#forced-rotation-without-cross-signing) for
 more details.
 
 ### Primary DC Must be a Root CA
@@ -145,6 +145,6 @@ So monthly cost would be calculated as:
   - 500 ⨉ 13.3 = 6,650 certificates issued in dc3
 
 The number of certificates issued could be reduced by increasing
-[`leaf_cert_ttl`](/docs/agent/options.html#ca_leaf_cert_ttl) in the CA Provider
+[`leaf_cert_ttl`](/docs/agent/options#ca_leaf_cert_ttl) in the CA Provider
 configuration if the longer lived credentials are an acceptable risk tradeoff
 against the cost.

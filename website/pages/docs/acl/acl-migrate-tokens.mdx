@@ -61,7 +61,7 @@ blank `AccessorID`.
 
 In addition, it is assumed that all clients that might _create_ ACL tokens (e.g.
 Vault's Consul secrets engine) have been updated to use the [new ACL
-APIs](/api/acl/tokens.html).
+APIs](/api/acl/tokens).
 
 Specifically if you are using Vault's Consul secrets engine you need to be
 running Vault 1.0.0 or higher, _and_ you must update all roles defined in Vault
@@ -85,7 +85,7 @@ have.
 The simplest and most automatic strategy is to create one new policy for every
 existing token. This is easy to automate, but may result in a lot of policies
 with exactly the same rules and with non-human-readable names which will make
-managing policies harder. This approach can be accomplished using the [`consul acl policy create`](/docs/commands/acl/policy/create.html) command with
+managing policies harder. This approach can be accomplished using the [`consul acl policy create`](/docs/commands/acl/policy/create) command with
 `-from-token` option.
 
 | Pros                     | Cons                                        |
@@ -114,7 +114,7 @@ semantics of the old ACL system.
 
 To assist with this approach, there is a CLI tool and corresponding API that can
 translate a legacy ACL token's rules into a new ACL policy that is exactly
-equivalent. See [`consul acl translate-rules`](/docs/commands/acl/translate-rules.html).
+equivalent. See [`consul acl translate-rules`](/docs/commands/acl/translate-rules).
 
 | Pros                                              | Cons                                                               |
 | ------------------------------------------------- | ------------------------------------------------------------------ |
@@ -137,13 +137,13 @@ necessary access for existing clients; this is up to the operator to ensure.
 
 #### Update via API
 
-Use the [`PUT /v1/acl/token/:AccessorID`](/api/acl/tokens.html#update-a-token)
+Use the [`PUT /v1/acl/token/:AccessorID`](/api/acl/tokens#update-a-token)
 endpoint. Specifically, ensure that the `Rules` field is omitted or empty. Empty
 `Rules` indicates that this is now treated as a new token.
 
 #### Update via CLI
 
-Use the [`consul acl token update`](/docs/commands/acl/token/update.html)
+Use the [`consul acl token update`](/docs/commands/acl/token/update)
 command to update the token. Specifically you need to use `-upgrade-legacy`
 which will ensure that legacy rules are removed as well as the new policies
 added.

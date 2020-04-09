@@ -27,9 +27,9 @@ This endpoint creates a new ACL auth method.
 | `PUT`  | `/acl/auth-method` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -51,7 +51,7 @@ The table below shows this endpoint's support for
 - `Config` `(map[string]string: <required>)` - The raw configuration to use for
   the chosen auth method. Contents will vary depending upon the type chosen.
   For more information on configuring specific auth method types, see the [auth
-  method documentation](/docs/acl/acl-auth-methods.html).
+  method documentation](/docs/acl/acl-auth-methods).
 
 - `Namespace` `(string: "")` - **(Enterprise Only)** Specifies the namespace to
   create the auth method within. If not provided in the JSON body, the value of
@@ -110,9 +110,9 @@ auth method exists with the given name, a 404 is returned instead of a
 | `GET`  | `/acl/auth-method/:name` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -162,9 +162,9 @@ This endpoint updates an existing ACL auth method.
 | `PUT`  | `/acl/auth-method/:name` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -188,7 +188,7 @@ The table below shows this endpoint's support for
 - `Config` `(map[string]string: <required>)` - The raw configuration to use for
   the chosen auth method. Contents will vary depending upon the type chosen.
   For more information on configuring specific auth method types, see the [auth
-  method documentation](/docs/acl/acl-auth-methods.html).
+  method documentation](/docs/acl/acl-auth-methods).
 
 - `Namespace` `(string: "")` - **(Enterprise Only)** Specifies the namespace of
   the auth method to update. If not provided in the JSON body, the value of
@@ -240,8 +240,8 @@ $ curl -X PUT \
 This endpoint deletes an ACL auth method.
 
 ~> Deleting an auth method will also immediately delete all associated
-[binding rules](/api/acl/binding-rules.html) as well as any
-outstanding [tokens](/api/acl/tokens.html) created from this auth method.
+[binding rules](/api/acl/binding-rules) as well as any
+outstanding [tokens](/api/acl/tokens) created from this auth method.
 
 | Method   | Path                     | Produces           |
 | -------- | ------------------------ | ------------------ |
@@ -251,9 +251,9 @@ Even though the return type is application/json, the value is either true or
 false indicating whether the delete succeeded.
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -293,9 +293,9 @@ This endpoint lists all the ACL auth methods.
 | `GET`  | `/acl/auth-methods` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |

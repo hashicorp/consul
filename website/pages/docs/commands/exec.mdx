@@ -18,8 +18,8 @@ this can be used to run the `uptime` command across all machines providing
 the `web` service.
 
 Remote execution works by specifying a job, which is stored in the KV store.
-Agents are informed about the new job using the [event system](/docs/commands/event.html),
-which propagates messages via the [gossip protocol](/docs/internals/gossip.html).
+Agents are informed about the new job using the [event system](/docs/commands/event),
+which propagates messages via the [gossip protocol](/docs/internals/gossip).
 As a result, delivery is best-effort, and there is **no guarantee** of execution.
 
 While events are purely gossip driven, remote execution relies on the KV store

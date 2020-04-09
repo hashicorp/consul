@@ -15,11 +15,11 @@ a leader. This ensures the application data is current and stable.
 
 This guide describes how to build client-side leader elections for service
 instances, using Consul. Consul's support for
-[sessions](/docs/internals/sessions.html) allows you to build a system that can gracefully handle failures.
+[sessions](/docs/internals/sessions) allows you to build a system that can gracefully handle failures.
 
 If you
 are interested in the leader election used internally by Consul, please refer to the
-[consensus protocol](/docs/internals/consensus.html) documentation instead.
+[consensus protocol](/docs/internals/consensus) documentation instead.
 
 ## Contending Service Instances
 
@@ -41,7 +41,7 @@ service/mysql/leader
 ### Create a Session
 
 The first step is to create a session using the
-[Session HTTP API](/api/session.html#session_create).
+[Session HTTP API](/api/session#session_create).
 
 ```shell
 $ curl  -X PUT -d '{"Name": "mysql-session"}' http://localhost:8500/v1/session/create
@@ -58,7 +58,7 @@ This will return a JSON object containing the session ID:
 ### Acquire a Session
 
 The next step is to acquire a session for a given key from this instance
-using the PUT method on a [KV entry](/api/kv.html) with the
+using the PUT method on a [KV entry](/api/kv) with the
 `?acquire=<session>` query parameter.
 
 The `<body>` of the PUT should be a
@@ -90,7 +90,7 @@ has not declared the node unhealthy. Additional checks can be specified if desir
 Watching for changes is done via a blocking query against the key. If they ever
 notice that the `Session` field in the response is blank, there is no leader, and then should
 retry lock acquisition. Each attempt to acquire the key should be separated by a timed
-wait. This is because Consul may be enforcing a [`lock-delay`](/docs/internals/sessions.html).
+wait. This is because Consul may be enforcing a [`lock-delay`](/docs/internals/sessions).
 
 ### Release the Session
 
@@ -133,7 +133,7 @@ the `Value` field.
 ### Retrieve Session Information
 
 You can query the
-[`/v1/session/info`](/api/session.html#session_info)
+[`/v1/session/info`](/api/session#session_info)
 endpoint to get details about the session
 
 ```shell

@@ -11,13 +11,13 @@ description: >-
 
 Within a single datacenter, Consul provides automatic failover for services by omitting failed service instances from DNS lookups and by providing service health information in APIs.
 
-When there are no more instances of a service available in the local datacenter, it can be challenging to implement failover policies to other datacenters because typically that logic would need to be written into each application. Fortunately, Consul has a [prepared query](/api/query.html) API
+When there are no more instances of a service available in the local datacenter, it can be challenging to implement failover policies to other datacenters because typically that logic would need to be written into each application. Fortunately, Consul has a [prepared query](/api/query) API
 that provides the capability to let users define failover policies in a centralized way. It's easy to expose these to applications using Consul's DNS interface and it's also available to applications that consume Consul's APIs.
 
 Failover policies are flexible and can be applied in a variety of ways including:
 
 - Fully static lists of alternate datacenters.
-- Fully dynamic policies that make use of Consul's [network coordinate](/docs/internals/coordinates.html) subsystem.
+- Fully dynamic policies that make use of Consul's [network coordinate](/docs/internals/coordinates) subsystem.
 - Automatically determine the next best datacenter to failover to based on network round trip time.
 
 Prepared queries can be made with policies specific to certain services and prepared query templates can allow one policy to apply to many, or even all services, with just a small number of templates.
@@ -49,21 +49,21 @@ $ curl \
 {"ID":"fe3b8d40-0ee0-8783-6cc2-ab1aa9bb16c1"}
 ```
 
-This creates a prepared query called "payments" that does a lookup for all instances of the "payments" service with the tag "v1.2.3". This policy could be used to control which version of a "payments" applications should be using in a centralized way. By [updating this prepared query](/api/query.html#update-prepared-query) to look for the tag "v1.2.4" applications could start to find the newer version of the service without having to reconfigure anything.
+This creates a prepared query called "payments" that does a lookup for all instances of the "payments" service with the tag "v1.2.3". This policy could be used to control which version of a "payments" applications should be using in a centralized way. By [updating this prepared query](/api/query#update-prepared-query) to look for the tag "v1.2.4" applications could start to find the newer version of the service without having to reconfigure anything.
 
 Applications can make use of this query in two ways.
 
 1. Since we gave the prepared query a name, they can simply do a DNS lookup for "payments.query.consul" instead of "payments.service.consul". Now with the prepared query, there's the additional filter policy working behind the scenes that the application doesn't have to know about.
 
-1. Queries can also be executed using the [prepared query execute API](/api/query.html#execute-prepared-query) for applications that integrate with Consul's APIs directly.
+1. Queries can also be executed using the [prepared query execute API](/api/query#execute-prepared-query) for applications that integrate with Consul's APIs directly.
 
 ## Failover Policy Types
 
-Using the techniques in this section you will develop prepared queries with failover policies where simply changing application configurations to look up "payments.query.consul" instead of "payments.service.consul" via DNS will result in automatic geo failover to the next closest [federated](/docs/guides/datacenters.html) Consul datacenters, in order of increasing network round trip time.
+Using the techniques in this section you will develop prepared queries with failover policies where simply changing application configurations to look up "payments.query.consul" instead of "payments.service.consul" via DNS will result in automatic geo failover to the next closest [federated](/docs/guides/datacenters) Consul datacenters, in order of increasing network round trip time.
 
 Failover is just another policy choice for a prepared query, it works in the same manner as the previous example and is similarly transparent to applications. The failover policy is configured using the `Failover` structure, which contains two fields, both of which are optional, and determine what happens if no healthy nodes are available in the local datacenter when the query is executed.
 
-- `NearestN` `(int: 0)` - Specifies that the query will be forwarded to up to `NearestN` other datacenters based on their estimated network round trip time using [network coordinates](/docs/internals/coordinates.html).
+- `NearestN` `(int: 0)` - Specifies that the query will be forwarded to up to `NearestN` other datacenters based on their estimated network round trip time using [network coordinates](/docs/internals/coordinates).
 
 - `Datacenters` `(array<string>: nil)` - Specifies a fixed list of remote datacenters to forward the query to if there are no healthy nodes in the local datacenter. Datacenters are queried in the order given in the list.
 
@@ -102,7 +102,7 @@ When this query is executed, such as with a DNS lookup to "payments.query.consul
 
 ### Dynamic Policy
 
-In a complex federated environment with many Consul datacenters, it can be cumbersome to set static failover policies, so Consul offers a dynamic option based on Consul's [network coordinate](/docs/internals/coordinates.html) subsystem.
+In a complex federated environment with many Consul datacenters, it can be cumbersome to set static failover policies, so Consul offers a dynamic option based on Consul's [network coordinate](/docs/internals/coordinates) subsystem.
 
 Consul continuously maintains an estimate of the network round trip time from the local datacenter to the servers in other datacenters it is federated with. Each server uses the median round trip time from itself to the servers in the remote datacenter. This means that failover can simply try other remote datacenters in order of increasing network round trip time, and if datacenters come and go, or experience network issues, this order will adjust automatically.
 
@@ -155,7 +155,7 @@ Note, a given datacenter will only be queried one time during a failover, even i
 
 ### Prepared Query Template
 
-For datacenters with many services, it can be challenging to define a geo failover policy for each service. To relieve this challenge, Consul provides a [prepared query template](/api/query.html#prepared-query-templates) that allows one prepared query to apply to many, and even all, services.
+For datacenters with many services, it can be challenging to define a geo failover policy for each service. To relieve this challenge, Consul provides a [prepared query template](/api/query#prepared-query-templates) that allows one prepared query to apply to many, and even all, services.
 
 Templates can match on prefixes or use full regular expressions to determine which services they match.
 

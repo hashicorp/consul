@@ -14,7 +14,7 @@ description: >-
 Don't panic! This is a critical first step.
 
 Depending on your
-[deployment configuration](/docs/internals/consensus.html#deployment_table), it
+[deployment configuration](/docs/internals/consensus#deployment_table), it
 may take only a single server failure for cluster unavailability. Recovery
 requires an operator to intervene, but the process is straightforward.
 
@@ -35,8 +35,8 @@ server nodes. We will outline how to recover from:
 
 If you had only a single server and it has failed, simply restart it. A
 single server configuration requires the
-[`-bootstrap`](/docs/agent/options.html#_bootstrap) or
-[`-bootstrap-expect=1`](/docs/agent/options.html#_bootstrap_expect)
+[`-bootstrap`](/docs/agent/options#_bootstrap) or
+[`-bootstrap-expect=1`](/docs/agent/options#_bootstrap_expect)
 flag.
 
 ```shell
@@ -51,7 +51,7 @@ no backup procedure, data loss is inevitable since data was not replicated
 to any other servers. This is why a single server deploy is **never** recommended.
 
 Any services registered with agents will be re-populated when the new server
-comes online as agents perform [anti-entropy](/docs/internals/anti-entropy.html).
+comes online as agents perform [anti-entropy](/docs/internals/anti-entropy).
 
 ## Failure of a Server in a Multi-Server Cluster
 
@@ -70,24 +70,24 @@ consul agent -bootstrap-expect=3 -bind=192.172.2.4 -auto-rejoin=192.172.2.3
 Both of these strategies involve a potentially lengthy time to reboot or rebuild
 a failed server. If this is impractical or if building a new server with the same
 IP isn't an option, you need to remove the failed server. Usually, you can issue
-a [`consul force-leave`](/docs/commands/force-leave.html) command to remove the failed
+a [`consul force-leave`](/docs/commands/force-leave) command to remove the failed
 server if it's still a member of the cluster.
 
 ```shell
 consul force-leave <node.name.consul>
 ```
 
-If [`consul force-leave`](/docs/commands/force-leave.html) isn't able to remove the
+If [`consul force-leave`](/docs/commands/force-leave) isn't able to remove the
 server, you have two methods available to remove it, depending on your version of Consul:
 
-- In Consul 0.7 and later, you can use the [`consul operator`](/docs/commands/operator.html#raft-remove-peer) command to remove the stale peer server on the fly with no downtime if the cluster has a leader.
+- In Consul 0.7 and later, you can use the [`consul operator`](/docs/commands/operator#raft-remove-peer) command to remove the stale peer server on the fly with no downtime if the cluster has a leader.
 
 - In versions of Consul prior to 0.7, you can manually remove the stale peer
   server using the `raft/peers.json` recovery file on all remaining servers. See
   the [section below](#peers.json) for details on this procedure. This process
   requires a Consul downtime to complete.
 
-In Consul 0.7 and later, you can use the [`consul operator`](/docs/commands/operator.html#raft-list-peers)
+In Consul 0.7 and later, you can use the [`consul operator`](/docs/commands/operator#raft-list-peers)
 command to inspect the Raft configuration:
 
 ```
@@ -152,11 +152,11 @@ other option is available to recover a lost server. Make sure you don't have
 any automated processes that will put the peers file in place on a
 periodic basis.
 
-The next step is to go to the [`-data-dir`](/docs/agent/options.html#_data_dir)
+The next step is to go to the [`-data-dir`](/docs/agent/options#_data_dir)
 of each Consul server. Inside that directory, there will be a `raft/`
 sub-directory. We need to create a `raft/peers.json` file. The format of this file
 depends on what the server has configured for its
-[Raft protocol](/docs/agent/options.html#_raft_protocol) version.
+[Raft protocol](/docs/agent/options#_raft_protocol) version.
 
 For Raft protocol version 2 and earlier, this should be formatted as a JSON
 array containing the address and port of each Consul server in the cluster, like
@@ -190,7 +190,7 @@ Consul server in the cluster, like this:
 ]
 ```
 
-- `id` `(string: <required>)` - Specifies the [node ID](/docs/agent/options.html#_node_id)
+- `id` `(string: <required>)` - Specifies the [node ID](/docs/agent/options#_node_id)
   of the server. This can be found in the logs when the server starts up if it was auto-generated,
   and it can also be found inside the `node-id` file in the server's data directory.
 
@@ -198,7 +198,7 @@ Consul server in the cluster, like this:
   server's RPC port used for cluster communications.
 
 - `non_voter` `(bool: <false>)` - This controls whether the server is a non-voter, which is used
-  in some advanced [Autopilot](/docs/guides/autopilot.html) configurations. If omitted, it will
+  in some advanced [Autopilot](/docs/guides/autopilot) configurations. If omitted, it will
   default to false, which is typical for most clusters.
 
 Simply create entries for all servers. You must confirm that servers you do not include here have
@@ -220,7 +220,7 @@ later you will see them ingest recovery file:
 ```
 
 If any servers managed to perform a graceful leave, you may need to have them
-rejoin the cluster using the [`join`](/docs/commands/join.html) command:
+rejoin the cluster using the [`join`](/docs/commands/join) command:
 
 ```text
 $ consul join <Node Address>
@@ -237,7 +237,7 @@ nodes should claim leadership and emit a log like:
 [INFO] consul: cluster leadership acquired
 ```
 
-In Consul 0.7 and later, you can use the [`consul operator`](/docs/commands/operator.html#raft-list-peers)
+In Consul 0.7 and later, you can use the [`consul operator`](/docs/commands/operator#raft-list-peers)
 command to inspect the Raft configuration:
 
 ```

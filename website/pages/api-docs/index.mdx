@@ -42,7 +42,7 @@ Previously this was provided via a `?token=` query parameter. This functionality
 exists on many endpoints for backwards compatibility, but its use is **highly
 discouraged**, since it can show up in access logs as part of the URL.
 
-To learn more about the ACL system read the [documentation](/docs/acl/acl-system.html).
+To learn more about the ACL system read the [documentation](/docs/acl/acl-system).
 
 ## Version Prefix
 
@@ -81,7 +81,7 @@ $ curl \
 
 Consul 0.7 added the ability to translate addresses in HTTP response based on
 the configuration setting for
-[`translate_wan_addrs`](/docs/agent/options.html#translate_wan_addrs). In order
+[`translate_wan_addrs`](/docs/agent/options#translate_wan_addrs). In order
 to allow clients to know if address translation is in effect, the
 `X-Consul-Translate-Addresses` header will be added if translation is enabled,
 and will have a value of `true`. If translation is not enabled then this header

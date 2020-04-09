@@ -58,15 +58,15 @@ A few things to note:
 
 1. Servers will be a part of all segments they have been configured with. They are the common point
    linking the different segments together. The configured list of segments is specified by the
-   [`segments`](/docs/agent/options.html#segments) option.
+   [`segments`](/docs/agent/options#segments) option.
 
-2. Client agents can only be part of one segment at a given time, specified by the [`-segment`](/docs/agent/options.html#_segment) option.
+2. Client agents can only be part of one segment at a given time, specified by the [`-segment`](/docs/agent/options#_segment) option.
 
 3. Clients can only join agents in the same segment as them. If they attempt to join a client in
    another segment, or the listening port of another segment on a server, they will get a segment mismatch error.
 
 Once the servers have been configured with the correct segment info, the clients only need to specify
-their own segment in the [Agent Config](/docs/agent/options.html#_segment) and join by connecting to another
+their own segment in the [Agent Config](/docs/agent/options#_segment) and join by connecting to another
 agent within the same segment. If joining to a Consul server, client will need to provide the server's
 port for their segment along with the address of the server when performing the join (for example,
 `consul agent -retry-join "consul.domain.internal:1234"`).
@@ -171,7 +171,7 @@ Node     ID        Address      DC
 client1  4c29819c  192.168.0.5  dc1
 ```
 
-With this metadata key, we can construct a [Prepared Query](/api/query.html) that can be used
+With this metadata key, we can construct a [Prepared Query](/api/query) that can be used
 for DNS to return only services within the same network segment as the local agent.
 
 ## Configure a Prepared Query to Limit Service Discovery

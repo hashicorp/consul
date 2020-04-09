@@ -15,13 +15,13 @@ Command: `consul force-leave`
 
 The `force-leave` command forces a member of a Consul cluster to enter the
 "left" state. The purpose of this method is to force-remove a node that has failed or
-was shutdown without a [graceful leave](https://www.consul.io/docs/commands/leave.html).
+was shutdown without a [graceful leave](/docs/commands/leave).
 
 Consul periodically tries to reconnect to "failed" nodes in case failure was due
 to a network partition. After some configured amount of time (by default 72 hours),
 Consul will reap "failed" nodes and stop trying to reconnect. The `force-leave`
 command can be used to transition the "failed" nodes to a "left" state more
-quickly, as reported by [`consul members`](https://www.consul.io/docs/commands/members.html).
+quickly, as reported by [`consul members`](/docs/commands/members).
 
 This can be particularly useful for a node that was running as a server,
 as it will eventually be removed from the Raft configuration by the leader.

@@ -15,8 +15,8 @@ Intentions define access control for services via Connect and are used
 to control which services may establish connections. Intentions can be
 managed via the API, CLI, or UI.
 
-Intentions are enforced by the [proxy](/docs/connect/proxies.html)
-or [natively integrated application](/docs/connect/native.html) on
+Intentions are enforced by the [proxy](/docs/connect/proxies)
+or [natively integrated application](/docs/connect/native) on
 inbound connections. After verifying the TLS client certificate, the
 [authorize API endpoint](#) is called which verifies the connection
 is allowed by testing the intentions. If authorize returns false the
@@ -104,7 +104,7 @@ top to bottom, with larger numbers being evaluated first.
 | Exact            | `*`         | `*`                   | `*`              | 2          |
 | `*`              | `*`         | `*`                   | `*`              | 1          |
 
-The precedence value can be read from the [API](/api/connect/intentions.html)
+The precedence value can be read from the [API](/api/connect/intentions)
 after an intention is created.
 Precedence cannot be manually overridden today. This is a feature that will
 be added in a later version of Consul.

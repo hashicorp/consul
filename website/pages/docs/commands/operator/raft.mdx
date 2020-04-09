@@ -70,9 +70,9 @@ There are rare cases where a peer may be left behind in the Raft configuration
 even though the server is no longer present and known to the cluster. This command
 can be used to remove the failed server so that it is no longer affects the
 Raft quorum. If the server still shows in the output of the
-[`consul members`](/docs/commands/members.html) command, it is preferable to
+[`consul members`](/docs/commands/members) command, it is preferable to
 clean up by simply running
-[`consul force-leave`](/docs/commands/force-leave.html)
+[`consul force-leave`](/docs/commands/force-leave)
 instead of this command.
 
 Usage: `consul operator raft remove-peer -address="IP:port"`
