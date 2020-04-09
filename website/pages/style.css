@@ -31,7 +31,6 @@
 @import '~@hashicorp/react-enterprise-alert/dist/style.css';
 @import '~@hashicorp/react-mega-nav/style.css';
 @import '~@hashicorp/react-docs-page/style.css';
-@import '~@hashicorp/react-use-cases/dist/style.css';
 @import '~@hashicorp/react-section-header/dist/style.css';
 
 /* Local Components */
@@ -40,12 +39,13 @@
 
 /* Local Pages */
 @import './downloads/style.css';
+@import './home/style.css';
 
 /* Print Styles */
 @import './print.css';
 
 /* Sticky Footer */
-.content {
+footer .content {
   min-height: calc(100vh - 260px);
 }
 

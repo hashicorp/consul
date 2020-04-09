@@ -1,7 +1,7 @@
 import marked from 'marked'
 import Image from '@hashicorp/react-image'
-import checkIcon from '../../public/img/icons/alert-icon.svg?include'
-import alertIcon from '../../public/img/icons/alert-icon.svg'
+import checkIcon from '../../public/img/icons/check-icon.svg?include'
+import alertIcon from '../../public/img/icons/alert-icon.svg?include'
 
 function BeforeAfterDiagram(props) {
   const markedOptions = generateMarkedOptions()
@@ -60,11 +60,11 @@ function BeforeAfterDiagram(props) {
         </div>
         <div className="content">
           <div className="line">
-            {/* <div
+            <div
               dangerouslySetInnerHTML={{
                 __html: checkIcon,
               }}
-            /> */}
+            />
           </div>
           <div>
             {afterHeadline && (

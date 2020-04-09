@@ -1,8 +1,5 @@
 import marked from 'marked'
 import Hero from '@hashicorp/react-hero'
-import UseCases from '@hashicorp/react-use-cases'
-// import TextSplitWithLogoGrid from '@hashicorp/react-text-split-with-logo-grid'
-import LogoGrid from '@hashicorp/react-logo-grid'
 // import TextAndContent from '@hashicorp/react-text-and-content'
 // import Image from '@hashicorp/react-image'
 // import CaseStudySlider from '@hashicorp/react-case-study-slider'
@@ -90,7 +87,7 @@ export default function HomePage() {
               description="Consul is a service networking tool that allows you to discover services and secure network traffic."
             />
 
-            {/* <div class="g-use-cases">
+            <div className="g-use-cases">
               <div>
                 <div>
                   <img
@@ -106,7 +103,7 @@ export default function HomePage() {
                 <div>
                   <a
                     href="https://learn.hashicorp.com/consul/kubernetes/minikube?utm_source=consul.io&utm_medium=home-page&utm_content=jtbd&utm_term=jtbd-k8s"
-                    class="button download"
+                    className="button download"
                   >
                     Learn more
                   </a>
@@ -127,7 +124,7 @@ export default function HomePage() {
                 <div>
                   <a
                     href="https://learn.hashicorp.com/consul/getting-started/connect?utm_source=consul.io&utm_medium=home-page&utm_content=jtbd&utm_term=connect"
-                    class="button download"
+                    className="button download"
                   >
                     Learn more
                   </a>
@@ -148,13 +145,13 @@ export default function HomePage() {
                 <div>
                   <a
                     href="https://learn.hashicorp.com/consul/integrations/nginx-consul-template?utm_source=consul.io&utm_medium=home-page&utm_content=jtbd&utm_term=lb"
-                    class="button download"
+                    className="button download"
                   >
                     Learn more
                   </a>
                 </div>
               </div>
-            </div> */}
+            </div>
           </div>
         </section>
         {/* Static => Dynamic (Before & After) */}
@@ -184,11 +181,43 @@ export default function HomePage() {
             />
           </div>
         </section>
-        <section>
-          {/* <TextSplitWithLogoGrid
-            textSplit={{ heading: 'Extensible', content: 'Test' }}
-            images={['amazon', 'microsoft', 'github']}
-          /> */}
+        <section class="g-section bg-light border-top">
+          <div class="g-container">
+            <div class="g-text-asset">
+              <div>
+                <div>
+                  <h3 class="g-type-display-3">Extend and Integrate</h3>
+                  <p class="g-type-body">
+                    Provision clusters on any infrastructure, connect to
+                    services over TLS via proxy integrations, and Serve TLS
+                    certificates with pluggable Certificate Authorities.
+                  </p>
+                </div>
+              </div>
+              <div>
+                <picture>
+                  <source
+                    type="image/webp"
+                    srcset="
+              /img/consul-connect/grid_2/grid_2_300.webp 300w,
+              /img/consul-connect/grid_2/grid_2_704.webp 704w,
+              /img/consul-connect/grid_2/grid_2_1256.webp 1256w"
+                  />
+                  <source
+                    type="image/png"
+                    srcset="
+              /img/consul-connect/grid_2/grid_2_300.png 300w,
+              /img/consul-connect/grid_2/grid_2_704.png 704w,
+              /img/consul-connect/grid_2/grid_2_1256.png 1256w"
+                  />
+                  <img
+                    src="/img/consul-connect/grid_2/grid_2_1256.png"
+                    alt="Extend and Integrate"
+                  />
+                </picture>
+              </div>
+            </div>
+          </div>
         </section>
 
         {/* Companies Using Consul Logos */}
@@ -198,11 +227,44 @@ export default function HomePage() {
         >
           <div className="g-container">
             <SectionHeader headline="Companies that trust Consul" />
-            {/* <LogoGrid
-              data={companiesSection.companies}
-              size="small"
-              removeBorders
-            /> */}
+            <div class="g-logo-grid">
+              <div>
+                <img
+                  src="/img/consul-connect/logos/logo_sap-ariba_space.svg"
+                  alt="SAP Ariba"
+                />
+              </div>
+              <div>
+                <img
+                  src="/img/consul-connect/logos/logo_citadel_space.svg"
+                  alt="Citadel"
+                />
+              </div>
+              <div>
+                <img
+                  src="/img/consul-connect/logos/logo_barclays_space.svg"
+                  alt="Barclays"
+                />
+              </div>
+              <div>
+                <img
+                  src="/img/consul-connect/logos/logo_itv_space.svg"
+                  alt="itv"
+                />
+              </div>
+              <div>
+                <img
+                  src="/img/consul-connect/logos/logo_spaceflight-industries_space.svg"
+                  alt="Spaceflight Industries"
+                />
+              </div>
+              <div>
+                <img
+                  src="/img/consul-connect/logos/logo_lotto-nz_space.svg"
+                  alt="MyLotto"
+                />
+              </div>
+            </div>
           </div>
         </section>
       </div>
