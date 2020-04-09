@@ -10,7 +10,7 @@ description: Using predefined Persistent Volume Claims
 
 The only way to use a pre-created PVC is to name them in the format Kubernetes expects:
 
-```
+```text
 data-<kubernetes namespace>-<helm release name>-consul-server-<ordinal>
 ```
 
@@ -20,7 +20,7 @@ need as many PVCs as you have Consul servers. For example, given a Kubernetes
 namespace of "vault," a release name of "consul," and 5 servers, you would need
 to create PVCs with the following names:
 
-```
+```text
 data-vault-consul-consul-server-0
 data-vault-consul-consul-server-1
 data-vault-consul-consul-server-2

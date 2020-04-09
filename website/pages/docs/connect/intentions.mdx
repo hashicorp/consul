@@ -29,9 +29,7 @@ is "deny all", then all Connect connections are denied by default.
 
 ## Intention Basics
 
-Intentions can be managed via the
-[API](#),
-[CLI](#),
+Intentions can be managed via the [API](#), [CLI](#),
 or UI. Please see the respective documentation for each for full details
 on options, flags, etc.
 Below is an example of a basic intention to show the basic attributes
@@ -70,7 +68,7 @@ Arbitrary string key/value data may be associated with intentions. This
 is unused by Consul but can be used by external systems or for visibility
 in the UI.
 
-```
+```shell
 $ consul intention create \
   -deny \
   -meta description='Hello there' \

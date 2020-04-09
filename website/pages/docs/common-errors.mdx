@@ -15,7 +15,7 @@ If you are getting an error message you don't see listed on this page, please co
 
 ### Multiple network interfaces
 
-```
+```text
 Multiple private IPv4 addresses found. Please configure one with 'bind' and/or 'advertise'.
 ```
 
@@ -25,21 +25,21 @@ Your server has multiple active network interfaces. Consul needs to know which i
 
 ### Configuration syntax errors
 
-```
+```text
 Error parsing config.hcl: At 1:12: illegal char
 ```
 
-```
+```text
 Error parsing config.hcl: At 1:32: key 'foo' expected start of object ('{') or assignment ('=')
 ```
 
-```
+```text
 Error parsing server.json: invalid character '`' looking for beginning of value
 ```
 
 There is a syntax error in your configuration file. If the error message doesn't identify the exact location in the file where the problem is, try using [jq] to find it, for example:
 
-```
+```shell
 $ consul agent -server -config-file server.json
 ==> Error parsing server.json: invalid character '`' looking for beginning of value
 $ cat server.json | jq .
@@ -48,7 +48,7 @@ parse error: Invalid numeric literal at line 3, column 29
 
 ## Invalid host name
 
-```
+```text
 Node name "consul_client.internal" will not be discoverable via DNS due to invalid characters.
 ```
 
@@ -56,11 +56,11 @@ Add the [`node name`][node_name] option to your agent configuration and provide 
 
 ## I/O timeouts
 
-```
+```text
 Failed to join 10.0.0.99: dial tcp 10.0.0.99:8301: i/o timeout
 ```
 
-```
+```text
 Failed to sync remote state: No cluster leader
 ```
 
@@ -70,7 +70,7 @@ If they are not on the same LAN, check the [`retry_join`][retry_join] settings i
 
 ## Deadline exceeded
 
-```
+```text
 Error getting server health from "XXX": context deadline exceeded
 ```
 
@@ -78,11 +78,11 @@ These error messages indicate a general performance problem on the Consul server
 
 ## Too many open files
 
-```
+```text
 Error accepting TCP connection: accept tcp [::]:8301: too many open files in system
 ```
 
-```
+```text
 Get http://localhost:8500/: dial tcp 127.0.0.1:31643: socket: too many open files
 ```
 
@@ -100,7 +100,7 @@ This has been a [known issue](https://github.com/docker/libnetwork/issues/1204) 
 
 ## ACL Not Found
 
-```
+```text
 RPC error making call: rpc error making call: ACL not found
 ```
 
@@ -110,11 +110,11 @@ This indicates that you have ACL enabled in your cluster, but you aren't passing
 
 ### Incorrect certificate or certificate name
 
-```
+```text
 Remote error: tls: bad certificate
 ```
 
-```
+```text
 X509: certificate signed by unknown authority
 ```
 
@@ -124,11 +124,11 @@ If you generate your own certificates, make sure the server certificates include
 
 ### HTTP instead of HTTPS
 
-```
+```text
 Error querying agent: malformed HTTP response
 ```
 
-```
+```text
 Net/http: HTTP/1.x transport connection broken: malformed HTTP response "\x15\x03\x01\x00\x02\x02"
 ```
 
@@ -140,7 +140,7 @@ If you are interacting with the API, change the URI scheme to "https".
 
 ## License warnings
 
-```
+```text
 License: expiration time: YYYY-MM-DD HH:MM:SS -0500 EST, time left: 29m0s
 ```
 
