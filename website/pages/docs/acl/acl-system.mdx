@@ -10,9 +10,9 @@ description: >-
   them. It is very similar to AWS IAM in many ways.
 ---
 
--> **1.4.0 and later:** This guide only applies in Consul versions 1.4.0 and later. The documentation for the legacy ACL system is [here](/docs/acl/acl-legacy.html)
-
 # ACL System
+
+-> **1.4.0 and later:** This guide only applies in Consul versions 1.4.0 and later. The documentation for the legacy ACL system is [here](/docs/acl/acl-legacy.html)
 
 Consul provides an optional Access Control List (ACL) system which can be used to control access to data and APIs.
 The ACL is [Capability-based](https://en.wikipedia.org/wiki/Capability-based_security), relying on tokens which
@@ -101,7 +101,7 @@ applied as a policy with the following preconfigured [ACL
 rules](/docs/acl/acl-system.html#acl-rules-and-scope):
 
 ```hcl
-// Allow the service and its sidecar proxy to register into the catalog.
+# Allow the service and its sidecar proxy to register into the catalog.
 service "<Service Name>" {
 	policy = "write"
 }
@@ -109,7 +109,7 @@ service "<Service Name>-sidecar-proxy" {
 	policy = "write"
 }
 
-// Allow for any potential upstreams to be resolved.
+# Allow for any potential upstreams to be resolved.
 service_prefix "" {
 	policy = "read"
 }

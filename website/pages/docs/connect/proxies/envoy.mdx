@@ -42,8 +42,7 @@ compatible Envoy versions.
 | 1.5.0, 1.5.1        | 1.9.1, 1.8.0†                    |
 | 1.3.x, 1.4.x        | 1.9.1, 1.8.0†, 1.7.0†            |
 
-~> Note:
- † Envoy versions lower than 1.9.1 are vulnerable to
+~> **Note:** † Envoy versions lower than 1.9.1 are vulnerable to
 [CVE-2019-9900](https://github.com/envoyproxy/envoy/issues/6434) and
 [CVE-2019-9901](https://github.com/envoyproxy/envoy/issues/6435). Both are
 related to HTTP request parsing and so only affect Consul Connect users if they
@@ -115,16 +114,15 @@ definition](/docs/connect/registration/service-registration.html) or
   users can configure this property once in the [global `proxy-defaults`
   configuration entry](/docs/agent/config-entries/proxy-defaults.html) for convenience. Currently, TCP is not supported.
 
-      ~> **Note:** currently the url **must use an ip address** not a dns name due
-      to the way Envoy is setup for StatsD.
+  ~> **Note:** currently the url **must use an ip address** not a dns name due
+  to the way Envoy is setup for StatsD.
 
-      Users can also specify the whole parameter in the form `$ENV_VAR_NAME`, which
-      will cause the `consul connect envoy` command to resolve the actual URL from
-      the named environment variable when it runs. This, for example, allows each
-      pod in a Kubernetes cluster to learn of a pod-specific IP address for StatsD
-      when the Envoy instance is bootstrapped while still allowing global
-      configuration of all proxies to use StatsD in the [global `proxy-defaults`
-
+  Users can also specify the whole parameter in the form `$ENV_VAR_NAME`, which
+  will cause the `consul connect envoy` command to resolve the actual URL from
+  the named environment variable when it runs. This, for example, allows each
+  pod in a Kubernetes cluster to learn of a pod-specific IP address for StatsD
+  when the Envoy instance is bootstrapped while still allowing global
+  configuration of all proxies to use StatsD in the [global `proxy-defaults`
   configuration entry](/docs/agent/config-entries/proxy-defaults.html). The env variable must contain a full valid URL
   value as specified above and nothing else. It is not currently possible to use
   environment variables as only part of the URL.

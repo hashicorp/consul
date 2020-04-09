@@ -54,7 +54,7 @@ Anything written to stdout is logged.
 Here is an example configuration, where `handler_type` is optionally set to
 `script`:
 
-```javascript
+```json
 {
   "type": "key",
   "key": "foo/bar/baz",
@@ -82,15 +82,15 @@ always sent as a JSON payload.
 
 Here is an example configuration:
 
-```javascript
+```json
 {
   "type": "key",
   "key": "foo/bar/baz",
   "handler_type": "http",
   "http_handler_config": {
-    "path":"https://localhost:8000/watch",
+    "path": "https://localhost:8000/watch",
     "method": "POST",
-    "header": {"x-foo":["bar", "baz"]},
+    "header": { "x-foo": ["bar", "baz"] },
     "timeout": "10s",
     "tls_skip_verify": false
   }
@@ -119,7 +119,7 @@ The following types are supported. Detailed documentation on each is below:
 - [`checks`](#checks) - Watch the value of health checks
 - [`event`](#event) - Watch for custom user events
 
-### <a name="key"></a>Type: key
+### Type: key ((#key))
 
 The "key" watch type is used to watch a specific key in the KV store.
 It requires that the "key" parameter be specified.
@@ -138,11 +138,13 @@ Here is an example configuration:
 
 Or, using the watch command:
 
-    $ consul watch -type=key -key=foo/bar/baz /usr/bin/my-key-handler.sh
+```shell
+$ consul watch -type=key -key=foo/bar/baz /usr/bin/my-key-handler.sh
+```
 
 An example of the output of this command:
 
-```javascript
+```json
 {
   "Key": "foo/bar/baz",
   "CreateIndex": 1793,
@@ -154,7 +156,7 @@ An example of the output of this command:
 }
 ```
 
-### <a name="keyprefix"></a>Type: keyprefix
+### Type: keyprefix ((#keyprefix))
 
 The "keyprefix" watch type is used to watch a prefix of keys in the KV store.
 It requires that the "prefix" parameter be specified. This watch
@@ -165,7 +167,7 @@ This maps to the `/v1/kv/` API internally.
 
 Here is an example configuration:
 
-```javascript
+```json
 {
   "type": "keyprefix",
   "prefix": "foo/",
@@ -175,12 +177,14 @@ Here is an example configuration:
 
 Or, using the watch command:
 
-    $ consul watch -type=keyprefix -prefix=foo/ /usr/bin/my-prefix-handler.sh
+```shell
+$ consul watch -type=keyprefix -prefix=foo/ /usr/bin/my-prefix-handler.sh
+```
 
 An example of the output of this command:
 
-```javascript
-;[
+```text
+[
   {
     Key: 'foo/bar',
     CreateIndex: 1796,
@@ -211,7 +215,7 @@ An example of the output of this command:
 ]
 ```
 
-### <a name="services"></a>Type: services
+### Type: services ((#services))
 
 The "services" watch type is used to watch the list of available
 services. It has no parameters.
@@ -220,7 +224,7 @@ This maps to the `/v1/catalog/services` API internally.
 
 An example of the output of this command:
 
-```javascript
+```json
 {
   "consul": [],
   "redis": [],
@@ -228,7 +232,7 @@ An example of the output of this command:
 }
 ```
 
-### <a name="nodes"></a>Type: nodes
+### Type: nodes ((#nodes))
 
 The "nodes" watch type is used to watch the list of available
 nodes. It has no parameters.
@@ -237,8 +241,8 @@ This maps to the `/v1/catalog/nodes` API internally.
 
 An example of the output of this command:
 
-```javascript
-;[
+```text
+[
   {
     Node: 'nyc1-consul-1',
     Address: '192.241.159.115',
@@ -262,11 +266,11 @@ An example of the output of this command:
   {
     Node: 'nyc1-worker-3',
     Address: '162.243.162.229',
-  },
+  }
 ]
 ```
 
-### <a name="service"></a>Type: service
+### Type: service ((#service))
 
 The "service" watch type is used to monitor the providers
 of a single service. It requires the "service" parameter
@@ -280,7 +284,7 @@ This maps to the `/v1/health/service` API internally.
 
 Here is an example configuration with a single tag:
 
-```javascript
+```json
 {
   "type": "service",
   "service": "redis",
@@ -291,7 +295,7 @@ Here is an example configuration with a single tag:
 
 Here is an example configuration with multiple tags:
 
-```javascript
+```json
 {
   "type": "service",
   "service": "redis",
@@ -304,16 +308,20 @@ Or, using the watch command:
 
 Single tag:
 
-    $ consul watch -type=service -service=redis -tag=bar /usr/bin/my-service-handler.sh
+```shell
+$ consul watch -type=service -service=redis -tag=bar /usr/bin/my-service-handler.sh
+```
 
 Multiple tag:
 
-    $ consul watch -type=service -service=redis -tag=bar -tag=foo /usr/bin/my-service-handler.sh
+```shell
+$ consul watch -type=service -service=redis -tag=bar -tag=foo /usr/bin/my-service-handler.sh
+```
 
 An example of the output of this command:
 
-```javascript
-;[
+```text
+[
   {
     Node: {
       Node: 'foobar',
@@ -347,11 +355,11 @@ An example of the output of this command:
         ServiceName: '',
       },
     ],
-  },
+  }
 ]
 ```
 
-### <a name="checks"></a>Type: checks
+### Type: checks ((#checks))
 
 The "checks" watch type is used to monitor the checks of a given
 service or those in a specific state. It optionally takes the "service"
@@ -385,11 +393,15 @@ Or, using the watch command:
 
 State:
 
-    $ consul watch -type=checks -state=passing /usr/bin/my-check-handler.sh -passing
+```shell
+$ consul watch -type=checks -state=passing /usr/bin/my-check-handler.sh -passing
+```
 
 Service:
 
-    $ consul watch -type=checks -service=redis /usr/bin/my-check-handler.sh -redis
+```shell
+$ consul watch -type=checks -service=redis /usr/bin/my-check-handler.sh -redis
+```
 
 An example of the output of this command:
 
@@ -408,7 +420,7 @@ An example of the output of this command:
 ]
 ```
 
-### <a name="event"></a>Type: event
+### Type: event ((#event))
 
 The "event" watch type is used to monitor for custom user
 events. These are fired using the [consul event](/docs/commands/event.html) command.
@@ -419,7 +431,7 @@ This maps to the `/v1/event/list` API internally.
 
 Here is an example configuration:
 
-```javascript
+```json
 {
   "type": "event",
   "name": "web-deploy",
@@ -429,11 +441,13 @@ Here is an example configuration:
 
 Or, using the watch command:
 
-    $ consul watch -type=event -name=web-deploy /usr/bin/my-event-handler.sh -web-deploy
+```shell
+$ consul watch -type=event -name=web-deploy /usr/bin/my-event-handler.sh -web-deploy
+```
 
 An example of the output of this command:
 
-```javascript
+```json
 [
   {
     "ID": "f07f3fcc-4b7d-3a7c-6d1e-cf414039fcee",
@@ -451,4 +465,6 @@ An example of the output of this command:
 
 To fire a new `web-deploy` event the following could be used:
 
-    $ consul event -name=web-deploy 1609030
+```shell
+$ consul event -name=web-deploy 1609030
+```
