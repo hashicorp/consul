@@ -8,9 +8,9 @@ description: >-
   manipulation at networking layer 7 (e.g. HTTP).
 ---
 
--> **1.6.0+:** This config entry is available in Consul versions 1.6.0 and newer.
-
 # Service Router
+
+-> **1.6.0+:** This config entry is available in Consul versions 1.6.0 and newer.
 
 The `service-router` config entry kind controls Connect traffic routing and
 manipulation at networking layer 7 (e.g. HTTP).
@@ -158,9 +158,9 @@ routes = [
 - `PathRegex` `(string: "")` - Regular expression to match on the HTTP
   request path.
 
-      The syntax when using the Envoy proxy is [documented here](https://en.cppreference.com/w/cpp/regex/ecmascript).
+  The syntax when using the Envoy proxy is [documented here](https://en.cppreference.com/w/cpp/regex/ecmascript).
 
-      At most only one of `PathExact`, `PathPrefix`, or `PathRegex` may be configured.
+  At most only one of `PathExact`, `PathPrefix`, or `PathRegex` may be configured.
 
 - `Header` `(array<ServiceRouteHTTPMatchHeader>)` - A set of criteria that can
   match on HTTP request headers. If more than one is configured all must match
@@ -243,8 +243,8 @@ routes = [
 - `PrefixRewrite` `(string: "")` - Defines how to rewrite the HTTP request path
   before proxying it to its final destination.
 
-      This requires that either `Match.HTTP.PathPrefix` or
-      `Match.HTTP.PathExact` be configured on this route.
+  This requires that either `Match.HTTP.PathPrefix` or
+  `Match.HTTP.PathExact` be configured on this route.
 
 - `RequestTimeout` `(duration: 0s)` - The total amount of time permitted for
   the entire downstream request (and retries) to be processed.
