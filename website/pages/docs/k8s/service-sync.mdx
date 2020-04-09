@@ -313,56 +313,57 @@ There are three options available:
 1.  **Single Destination Namespace** – Sync all Kubernetes services, regardless of namespace,
     into the same Consul namespace.
 
-        This can be configured with:
+    This can be configured with:
 
-        ```yaml
-        global:
-          enableConsulNamespaces: true
+    ```yaml
+    global:
+      enableConsulNamespaces: true
 
-        syncCatalog:
-          enabled: true
-          consulNamespaces:
-            consulDestinationNamespace: "my-consul-ns"
-        ```
+    syncCatalog:
+      enabled: true
+      consulNamespaces:
+        consulDestinationNamespace: 'my-consul-ns'
+    ```
 
-1.  **Mirror Namespaces** - Each Kubernetes service will be synced to a Consul namespace with the same name as its Kubernetes namespace.
+1.  **Mirror Namespaces** - Each Kubernetes service will be synced to a Consul namespace with the same
+    name as its Kubernetes namespace.
+
     For example, service `foo` in Kubernetes namespace `ns-1` will be synced to the Consul namespace `ns-1`.
     If a mirrored namespace does not exist in Consul, it will be created.
 
     This can be configured with:
 
-    ````yaml
+    ```yaml
     global:
-    enableConsulNamespaces: true
+      enableConsulNamespaces: true
 
-       syncCatalog:
-         enabled: true
-         consulNamespaces:
-           mirroringK8S: true
+    syncCatalog:
+      enabled: true
+      consulNamespaces:
+        mirroringK8S: true
 
-       addK8SNamespaceSuffix: false
-       ```
+    addK8SNamespaceSuffix: false
+    ```
 
-    ````
+1.  **Mirror Namespaces With Prefix** - Each Kubernetes service will be synced to a Consul namespace
+    with the same name as its Kubernetes namespace **with a prefix**. For example, given a prefix
+    `k8s-`, service `foo` in Kubernetes namespace `ns-1` will be synced to the Consul namespace
+    `k8s-ns-1`.
 
-1.  **Mirror Namespaces With Prefix** - Each Kubernetes service will be synced to a Consul namespace with the same name as its Kubernetes
-    namespace **with a prefix**.
-    For example, given a prefix `k8s-`, service `foo` in Kubernetes namespace `ns-1` will be synced to the Consul namespace `k8s-ns-1`.
+    This can be configured with:
 
-        This can be configured with:
+    ```yaml
+    global:
+      enableConsulNamespaces: true
 
-        ```yaml
-        global:
-          enableConsulNamespaces: true
+    syncCatalog:
+      enabled: true
+      consulNamespaces:
+        mirroringK8S: true
+        mirroringK8SPrefix: 'k8s-'
 
-        syncCatalog:
-          enabled: true
-          consulNamespaces:
-            mirroringK8S: true
-            mirroringK8SPrefix: "k8s-"
-
-        addK8SNamespaceSuffix: false
-        ```
+    addK8SNamespaceSuffix: false
+    ```
 
 -> Note that in both mirroring examples we're setting `addK8SNamespaceSuffix: false`. If set to `true`
 (the default), the Kubernetes namespace will be added as a suffix to each
