@@ -1,7 +1,7 @@
 ---
 layout: docs
 page_title: Connect Sidecar - Kubernetes
-sidebar_title: 'Kubernetes'
+sidebar_title: 'Connect Sidecar'
 sidebar_current: docs-platform-k8s-connect
 description: >-
   Connect is a feature built into to Consul that enables automatic
@@ -441,19 +441,19 @@ There are three options available:
 1.  **Single Destination Namespace** – Register all Kubernetes pods, regardless of namespace,
     into the same Consul namespace.
 
-        This can be configured with:
+    This can be configured with:
 
-        ```yaml
-        global:
-          enableConsulNamespaces: true
+    ```yaml
+    global:
+      enableConsulNamespaces: true
 
-        connectInject:
-          enabled: true
-          consulNamespaces:
-            consulDestinationNamespace: "my-consul-ns"
-        ```
+    connectInject:
+      enabled: true
+      consulNamespaces:
+        consulDestinationNamespace: 'my-consul-ns'
+    ```
 
-           -> **NOTE:** If the destination namespace does not exist we will create it.
+    -> **NOTE:** If the destination namespace does not exist we will create it.
 
 1.  **Mirror Namespaces** - Register each Kubernetes pod into a Consul namespace with the same name as its Kubernetes namespace.
     For example, pod `foo` in Kubernetes namespace `ns-1` will be synced to the Consul namespace `ns-1`.
@@ -461,34 +461,32 @@ There are three options available:
 
     This can be configured with:
 
-    ````yaml
+    ```yaml
     global:
-    enableConsulNamespaces: true
+      enableConsulNamespaces: true
 
-       connectInject:
-         enabled: true
-         consulNamespaces:
-           mirroringK8S: true
-       ```
-
-    ````
+    connectInject:
+      enabled: true
+      consulNamespaces:
+        mirroringK8S: true
+    ```
 
 1.  **Mirror Namespaces With Prefix** - Register each Kubernetes pod into a Consul namespace with the same name as its Kubernetes
     namespace **with a prefix**.
     For example, given a prefix `k8s-`, pod `foo` in Kubernetes namespace `ns-1` will be synced to the Consul namespace `k8s-ns-1`.
 
-        This can be configured with:
+    This can be configured with:
 
-        ```yaml
-        global:
-          enableConsulNamespaces: true
+    ```yaml
+    global:
+      enableConsulNamespaces: true
 
-        connectInject:
-          enabled: true
-          consulNamespaces:
-            mirroringK8S: true
-            mirroringK8SPrefix: "k8s-"
-        ```
+    connectInject:
+      enabled: true
+      consulNamespaces:
+        mirroringK8S: true
+        mirroringK8SPrefix: 'k8s-'
+    ```
 
 ### Consul Enterprise Namespace Upstreams
 
