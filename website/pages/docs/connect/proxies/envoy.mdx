@@ -18,15 +18,15 @@ Consul can configure Envoy sidecars to proxy http/1.1, http2 or gRPC traffic at
 L7 or any other tcp-based protocol at L4. Prior to Consul 1.5.0 Envoy proxies
 could only proxy tcp at L4.
 
-Configuration of some [L7 features](/docs/connect/l7-traffic-management.html)
-is possible via [configuration entries](/docs/agent/config_entries.html). If
+Configuration of some [L7 features](/docs/connect/l7-traffic-management)
+is possible via [configuration entries](/docs/agent/config_entries). If
 you wish to use an Envoy feature not currently exposed through these config
 entries as an interim solution, you can add [custom Envoy
 configuration](#advanced-configuration) in the [proxy service
-definition](/docs/connect/registration/service-registration.html) allowing you
+definition](/docs/connect/registration/service-registration) allowing you
 to use the more powerful features of Envoy.
 
-~> **Note:** When using Envoy with Consul and not using the [`consul connect envoy` command](/docs/commands/connect/envoy.html)
+~> **Note:** When using Envoy with Consul and not using the [`consul connect envoy` command](/docs/commands/connect/envoy)
 Envoy must be run with the `--max-obj-name-len` option set to `256` or greater.
 
 ## Supported Versions
@@ -50,7 +50,7 @@ have configured HTTP routing rules via the ["escape
 hatch"](#custom-configuration). Still, we recommend that you use the most
 recent supported Envoy for your Consul version where possible.
 
-- Envoy 1.10.0 requires setting [`-envoy-version`](https://www.consul.io/docs/commands/connect/envoy.html#envoy-version) in the `consul connect envoy` command. This was introduced in Consul 1.7.0.
+- Envoy 1.10.0 requires setting [`-envoy-version`](/docs/commands/connect/envoy#envoy-version) in the `consul connect envoy` command. This was introduced in Consul 1.7.0.
 
 ## Getting Started
 
@@ -75,7 +75,7 @@ The dynamic configuration Consul Connect provides to each Envoy instance include
 - Service-discovery results for upstreams to enable each sidecar proxy to load-balance
   outgoing connections.
 - L7 configuration including timeouts and protocol-specific options.
-- Configuration to [expose specific HTTP paths](/docs/connect/registration/service-registration.html#expose-paths-configuration-reference).
+- Configuration to [expose specific HTTP paths](/docs/connect/registration/service-registration#expose-paths-configuration-reference).
 
 For more information on the parts of the Envoy proxy runtime configuration
 that are currently controllable via Consul Connect see [Dynamic
@@ -93,7 +93,7 @@ responsibility for correctly configuring Envoy and ensuring version support etc.
 
 Envoy requires an initial bootstrap configuration file. The easiest way to
 create this is using the [`consul connect envoy`
-command](/docs/commands/connect/envoy.html). The command can either output the
+command](/docs/commands/connect/envoy). The command can either output the
 bootstrap configuration directly to stdout or can generate it and then `exec`
 the Envoy binary as a convenience wrapper.
 
@@ -103,16 +103,16 @@ the ability to control some parts of the bootstrap config via proxy
 configuration options.
 
 Users can add the following configuration items to the [global `proxy-defaults`
-configuration entry](/docs/agent/config-entries/proxy-defaults.html) or override them directly in the `proxy.config` field
+configuration entry](/docs/agent/config-entries/proxy-defaults) or override them directly in the `proxy.config` field
 of a [proxy service
-definition](/docs/connect/registration/service-registration.html) or
-[`sidecar_service`](/docs/connect/registration/sidecar-service.html) block.
+definition](/docs/connect/registration/service-registration) or
+[`sidecar_service`](/docs/connect/registration/sidecar-service) block.
 
 - `envoy_statsd_url` - A URL in the form `udp://ip:port` identifying a UDP
   StatsD listener that Envoy should deliver metrics to. For example, this may be
   `udp://127.0.0.1:8125` if every host has a local StatsD listener. In this case
   users can configure this property once in the [global `proxy-defaults`
-  configuration entry](/docs/agent/config-entries/proxy-defaults.html) for convenience. Currently, TCP is not supported.
+  configuration entry](/docs/agent/config-entries/proxy-defaults) for convenience. Currently, TCP is not supported.
 
   ~> **Note:** currently the url **must use an ip address** not a dns name due
   to the way Envoy is setup for StatsD.
@@ -123,7 +123,7 @@ definition](/docs/connect/registration/service-registration.html) or
   pod in a Kubernetes cluster to learn of a pod-specific IP address for StatsD
   when the Envoy instance is bootstrapped while still allowing global
   configuration of all proxies to use StatsD in the [global `proxy-defaults`
-  configuration entry](/docs/agent/config-entries/proxy-defaults.html). The env variable must contain a full valid URL
+  configuration entry](/docs/agent/config-entries/proxy-defaults). The env variable must contain a full valid URL
   value as specified above and nothing else. It is not currently possible to use
   environment variables as only part of the URL.
 
@@ -167,8 +167,8 @@ to configure appropriate proxy settings for that service's proxies and also for
 the upstream listeners of any downstream service.
 
 One example is how users can define a service's protocol in a [`service-defaults` configuration
-entry](/docs/agent/config-entries/service-defaults.html). Agents with
-[`enable_central_service_config`](/docs/agent/options.html#enable_central_service_config)
+entry](/docs/agent/config-entries/service-defaults). Agents with
+[`enable_central_service_config`](/docs/agent/options#enable_central_service_config)
 set to true will automatically discover the protocol when configuring a proxy
 for a service. The proxy will discover the main protocol of the service it
 represents and use this to configure its main public listener. It will also
@@ -177,18 +177,18 @@ automatically configure its upstream listeners appropriately too as below.
 
 This automated discovery results in Consul auto-populating the `proxy.config`
 and `proxy.upstreams[*].config` fields of the [proxy service
-definition](/docs/connect/registration/service-registration.html) that is
+definition](/docs/connect/registration/service-registration) that is
 actually registered.
 
 To learn about other options that can be configured centrally see the
-[Configuration Entries](/docs/agent/config_entries.html) docs.
+[Configuration Entries](/docs/agent/config_entries) docs.
 
 ### Proxy Config Options
 
 These fields may also be overridden explicitly in the [proxy service
-definition](/docs/connect/registration/service-registration.html), or defined in
+definition](/docs/connect/registration/service-registration), or defined in
 the [global `proxy-defaults` configuration
-entry](/docs/agent/config-entries/proxy-defaults.html) to act as
+entry](/docs/agent/config-entries/proxy-defaults) to act as
 defaults that are inherited by all services.
 
 - `protocol` - The protocol the service speaks. Connect's Envoy integration
@@ -215,12 +215,12 @@ defaults that are inherited by all services.
     metrics with `gRPC-status` trailer codes.
 
     ~> **Note:** The protocol of a service should ideally be configured via the
-    [`protocol`](/docs/agent/config-entries/service-defaults.html#protocol)
+    [`protocol`](/docs/agent/config-entries/service-defaults#protocol)
     field of a
-    [`service-defaults`](/docs/agent/config-entries/service-defaults.html)
+    [`service-defaults`](/docs/agent/config-entries/service-defaults)
     config entry for the service. Configuring it in a
     proxy config will not fully enable some [L7
-    features](/docs/connect/l7-traffic-management.html).
+    features](/docs/connect/l7-traffic-management).
     It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
 
 - `bind_address` - Override the address Envoy's public listener binds to. By
@@ -237,19 +237,19 @@ defaults that are inherited by all services.
 
 The following configuration items may be overridden directly in the
 `proxy.upstreams[].config` field of a [proxy service
-definition](/docs/connect/registration/service-registration.html) or
-[`sidecar_service`](/docs/connect/registration/sidecar-service.html) block.
+definition](/docs/connect/registration/service-registration) or
+[`sidecar_service`](/docs/connect/registration/sidecar-service) block.
 
 - `protocol` - Same as above in main config but affects the listener setup for
   the upstream.
 
   ~> **Note:** The protocol of a service should ideally be configured via the
-  [`protocol`](/docs/agent/config-entries/service-defaults.html#protocol)
+  [`protocol`](/docs/agent/config-entries/service-defaults#protocol)
   field of a
-  [`service-defaults`](/docs/agent/config-entries/service-defaults.html)
+  [`service-defaults`](/docs/agent/config-entries/service-defaults)
   config entry for the upstream destination service. Configuring it in a
   proxy upstream config will not fully enable some [L7
-  features](/docs/connect/l7-traffic-management.html).
+  features](/docs/connect/l7-traffic-management).
   It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
 
 - `connect_timeout_ms` - The number of milliseconds to allow when making upstream
@@ -258,9 +258,9 @@ definition](/docs/connect/registration/service-registration.html) or
 
   ~> **Note:** The connection timeout for a service should ideally be
   configured via the
-  [`connect_timeout`](/docs/agent/config-entries/service-resolver.html#connecttimeout)
+  [`connect_timeout`](/docs/agent/config-entries/service-resolver#connecttimeout)
   field of a
-  [`service-resolver`](/docs/agent/config-entries/service-resolver.html)
+  [`service-resolver`](/docs/agent/config-entries/service-resolver)
   config entry for the upstream destination service. Configuring it in a
   proxy upstream config will override any values defined in config entries.
   It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
@@ -283,9 +283,9 @@ definition](/docs/connect/registration/service-registration.html) or
 ### Gateway Options
 
 These fields may also be overridden explicitly in the [proxy service
-definition](/docs/connect/registration/service-registration.html), or defined in
+definition](/docs/connect/registration/service-registration), or defined in
 the [global `proxy-defaults` configuration
-entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaults) to act as
+entry](/docs/agent/config_entries#proxy-defaults-proxy-defaults) to act as
 defaults that are inherited by all services.
 
 Prior to 1.8.0 these settings were specific to Mesh Gateways. The deprecated
@@ -295,7 +295,7 @@ will continue to be supported.
 - `connect_timeout_ms` - The number of milliseconds to allow when making upstream
   connections before timing out. Defaults to 5000 (5 seconds). If the upstream
   service has the configuration option
-  [`connect_timeout_ms`](/docs/agent/config-entries/service-resolver.html#connecttimeout)
+  [`connect_timeout_ms`](/docs/agent/config-entries/service-resolver#connecttimeout)
   set for the `service-resolver`, that timeout value will take precedence over
   this gateway option.
 
@@ -401,10 +401,10 @@ EOF
 
 Users may add the following configuration items to the [global `proxy-defaults`
 configuration
-entry](/docs/agent/config-entries/proxy-defaults.html) or
+entry](/docs/agent/config-entries/proxy-defaults) or
 override them directly in the `proxy.config` field of a [proxy service
-definition](/docs/connect/registration/service-registration.html) or
-[`sidecar_service`](/docs/connect/registration/sidecar-service.html) block.
+definition](/docs/connect/registration/service-registration) or
+[`sidecar_service`](/docs/connect/registration/sidecar-service) block.
 
 - `envoy_extra_static_clusters_json` - Specifies one or more [Envoy
   clusters](https://www.envoyproxy.io/docs/envoy/v1.10.0/api-v2/api/v2/cds.proto#cluster)
@@ -437,16 +437,16 @@ definition](/docs/connect/registration/service-registration.html) or
 
 Users may add the following configuration items to the [global `proxy-defaults`
 configuration
-entry](/docs/agent/config-entries/proxy-defaults.html) or
+entry](/docs/agent/config-entries/proxy-defaults) or
 override them directly in the `proxy.config` field of a [proxy service
-definition](/docs/connect/registration/service-registration.html) or
-[`sidecar_service`](/docs/connect/registration/sidecar-service.html) block.
+definition](/docs/connect/registration/service-registration) or
+[`sidecar_service`](/docs/connect/registration/sidecar-service) block.
 
 - `envoy_bootstrap_json_tpl` - Specifies a template in Go template syntax that
   is used in place of [the default
   template](https://github.com/hashicorp/consul/blob/b64bda880843afaaf44591c3200f921626716849/command/connect/envoy/bootstrap_tpl.go#L87)
   when generating bootstrap via [`consul connect envoy`
-  command](/docs/commands/connect/envoy.html). The variables that are available
+  command](/docs/commands/connect/envoy). The variables that are available
   to be interpolated are [documented
   here](https://github.com/hashicorp/consul/blob/b64bda880843afaaf44591c3200f921626716849/command/connect/envoy/bootstrap_tpl.go#L5).
   This offers complete control of the proxy's bootstrap although major
@@ -471,13 +471,13 @@ definition](/docs/connect/registration/service-registration.html) or
 
 The following configuration items may be overridden directly in the
 `proxy.upstreams[].config` field of a [proxy service
-definition](/docs/connect/registration/service-registration.html) or
-[`sidecar_service`](/docs/connect/registration/sidecar-service.html) block.
+definition](/docs/connect/registration/service-registration) or
+[`sidecar_service`](/docs/connect/registration/sidecar-service) block.
 
 ~> **Note:** - When a
-[`service-router`](/docs/agent/config-entries/service-router.html),
-[`service-splitter`](/docs/agent/config-entries/service-splitter.html), or
-[`service-resolver`](/docs/agent/config-entries/service-resolver.html) config
+[`service-router`](/docs/agent/config-entries/service-router),
+[`service-splitter`](/docs/agent/config-entries/service-splitter), or
+[`service-resolver`](/docs/agent/config-entries/service-resolver) config
 entry exists for a service the below escape hatches are ignored and will log a
 warning.
 

@@ -73,14 +73,14 @@ all targets for 2 minutes.
 The `-capture` flag can be specified multiple times to capture specific
 information when `debug` is running. By default, it captures all information.
 
-| Target    | Description                                                                                                                                                                              |
-| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `agent`   | Version and configuration information about the agent.                                                                                                                                   |
-| `host`    | Information about resources on the host running the target agent such as CPU, memory, and disk.                                                                                          |
-| `cluster` | A list of all the WAN and LAN members in the cluster.                                                                                                                                    |
-| `metrics` | Metrics from the in-memory metrics endpoint in the target, captured at the interval.                                                                                                     |
-| `logs`    | `DEBUG` level logs for the target agent, captured for the interval.                                                                                                                      |
-| `pprof`   | Golang heap, CPU, goroutine, and trace profiling. This information is not retrieved unless [`enable_debug`](/docs/agent/options.html#enable_debug) is set to `true` on the target agent. |
+| Target    | Description                                                                                                                                                                         |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `agent`   | Version and configuration information about the agent.                                                                                                                              |
+| `host`    | Information about resources on the host running the target agent such as CPU, memory, and disk.                                                                                     |
+| `cluster` | A list of all the WAN and LAN members in the cluster.                                                                                                                               |
+| `metrics` | Metrics from the in-memory metrics endpoint in the target, captured at the interval.                                                                                                |
+| `logs`    | `DEBUG` level logs for the target agent, captured for the interval.                                                                                                                 |
+| `pprof`   | Golang heap, CPU, goroutine, and trace profiling. This information is not retrieved unless [`enable_debug`](/docs/agent/options#enable_debug) is set to `true` on the target agent. |
 
 ## Examples
 

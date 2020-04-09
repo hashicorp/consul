@@ -36,7 +36,7 @@ This upgrade will trigger a rolling update of the clients, as well as any
 other `consul-k8s` components, such as sync catalog or client snapshot deployments.
 
 1. Perform a rolling upgrade of the servers, as described in
-   [Upgrade Consul Servers](/docs/platform/k8s/upgrading.html#upgrading-consul-servers).
+   [Upgrade Consul Servers](/docs/platform/k8s/upgrading#upgrading-consul-servers).
 
 1. Repeat steps 1 and 2, turning on TLS verification by setting `global.tls.verify`
    to `true`.
@@ -73,7 +73,7 @@ applications to it.
    ```
 
    In this configuration, we're setting `server.updatePartition` to the number of
-   server replicas as described in [Upgrade Consul Servers](/docs/platform/k8s/upgrading.html#upgrading-consul-servers)
+   server replicas as described in [Upgrade Consul Servers](/docs/platform/k8s/upgrading#upgrading-consul-servers)
    and `client.updateStrategy` to `OnDelete` to manually trigger an upgrade of the clients.
 
 1. Run `helm upgrade` with the above config file. The upgrade will trigger an update of all
@@ -96,7 +96,7 @@ applications to it.
    the sidecar proxy. Also, Kubernetes should schedule these applications on the new node pool.
 
 1. Perform a rolling upgrade of the servers described in
-   [Upgrade Consul Servers](/docs/platform/k8s/upgrading.html#upgrading-consul-servers).
+   [Upgrade Consul Servers](/docs/platform/k8s/upgrading#upgrading-consul-servers).
 
 1. If everything is healthy, delete the old node pool.
 

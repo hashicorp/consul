@@ -45,7 +45,7 @@ proxy configuration needed.
   be used instead. The scheme can also be set to HTTPS by setting the
   environment variable CONSUL_HTTP_SSL=true. This may be a unix domain socket
   using `unix:///path/to/socket` if the [agent is configured to
-  listen](/docs/agent/options.html#addresses) that way.
+  listen](/docs/agent/options#addresses) that way.
 
   -> **Note:** gRPC uses the same TLS
   settings as the HTTPS API. If HTTPS is enabled then gRPC will require HTTPS
@@ -55,7 +55,7 @@ proxy configuration needed.
 
 #### Envoy Options for both Sidecars and Gateways
 
-- `-proxy-id` - The [proxy service](/docs/connect/registration/service-registration.html) ID on the
+- `-proxy-id` - The [proxy service](/docs/connect/registration/service-registration) ID on the
   local agent. This must already be present on the local agent.
 
 - `-envoy-binary` - The full path to a specific Envoy binary to exec. By
@@ -73,7 +73,7 @@ proxy configuration needed.
   ACL token from `-token` or the environment and so should be handled as a secret.
   This token grants the identity of any service it has `service:write` permission
   for and so can be used to access any upstream service that that service is
-  allowed to access by [Connect intentions](/docs/connect/intentions.html).
+  allowed to access by [Connect intentions](/docs/connect/intentions).
 
 - `-envoy-version` - The version of envoy that is being started. Default is
   `1.13.0`. This is required so that the correct configuration can be generated.
@@ -89,7 +89,7 @@ proxy configuration needed.
 - `-sidecar-for` - The _ID_ (not name if they differ) of the service instance
   this proxy will represent. The target service doesn't need to exist on the
   local agent yet but a [sidecar proxy
-  registration](/docs/connect/registration/service-registration.html) with
+  registration](/docs/connect/registration/service-registration) with
   `proxy.destination_service_id` equal to the passed value must be present. If
   multiple proxy registrations targeting the same local service instance are
   present the command will error and `-proxy-id` should be used instead.
@@ -137,7 +137,7 @@ does not allow decrypting any of their communications.
 
 Assume a local service instance is registered on the local agent with a
 sidecar proxy (using the [sidecar service
-registration](/docs/connect/registration/service-registration.html) helper) as below.
+registration](/docs/connect/registration/service-registration) helper) as below.
 
 ```hcl
 service {

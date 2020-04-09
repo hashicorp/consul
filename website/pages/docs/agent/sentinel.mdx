@@ -21,7 +21,7 @@ policies to support full conditional logic and integration with external systems
 
 Sentinel policies are applied during writes to the KV Store.
 
-An optional `sentinel` field specifying code and enforcement level can be added to [ACL policy definitions](/docs/agent/acl-rules.html#sentinel-integration) for Consul KV. The following policy ensures that the value written during a KV update must end with "dc1".
+An optional `sentinel` field specifying code and enforcement level can be added to [ACL policy definitions](/docs/agent/acl-rules#sentinel-integration) for Consul KV. The following policy ensures that the value written during a KV update must end with "dc1".
 
 ```text
 key "datacenter_name" {
@@ -48,11 +48,11 @@ Consul passes some context as variables into Sentinel, which are available to us
 
 #### Variables injected during KV store writes
 
-| Variable Name | Type     | Description                 |
-| ------------- | -------- | --------------------------- |
-| `key`         | `string` | Key being written           |
-| `value`       | `string` | Value being written         |
-| `flags`       | `uint64` | [Flags](/api/kv.html#flags) |
+| Variable Name | Type     | Description            |
+| ------------- | -------- | ---------------------- |
+| `key`         | `string` | Key being written      |
+| `value`       | `string` | Value being written    |
+| `flags`       | `uint64` | [Flags](/api/kv#flags) |
 
 ## Sentinel Examples
 

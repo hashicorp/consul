@@ -34,9 +34,9 @@ most applications to be Consul unaware, performing the service registration via 
 files and discovery via DNS or load balancer sidecars.
 
 Consul provides a strong consistency guarantee, since servers replicate state using the
-[Raft protocol](/docs/internals/consensus.html). Consul supports a rich set of health checks
+[Raft protocol](/docs/internals/consensus). Consul supports a rich set of health checks
 including TCP, HTTP, Nagios/Sensu compatible scripts, or TTL based like Eureka. Client nodes
-participate in a [gossip based health check](/docs/internals/gossip.html), which distributes
+participate in a [gossip based health check](/docs/internals/gossip), which distributes
 the work of health checking, unlike centralized heartbeating which becomes a scalability challenge.
 Discovery requests are routed to the elected Consul leader which allows them to be strongly consistent
 by default. Clients that allow for stale reads enable any server to process their request allowing

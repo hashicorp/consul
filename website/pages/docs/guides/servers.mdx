@@ -15,7 +15,7 @@ description: >-
 
 Consul is designed to require minimal operator involvement, however any changes
 to the set of Consul servers must be handled carefully. To better understand
-why, reading about the [consensus protocol](/docs/internals/consensus.html) will
+why, reading about the [consensus protocol](/docs/internals/consensus) will
 be useful. In short, the Consul servers perform leader election and replication.
 For changes to be processed, a minimum quorum of servers (N/2)+1 must be available.
 That means if there are 3 server nodes, at least 2 must be available.
@@ -123,7 +123,7 @@ the new servers up-to-date.
 
 Removing servers must be done carefully to avoid causing an availability outage.
 For a cluster of N servers, at least (N/2)+1 must be available for the cluster
-to function. See this [deployment table](/docs/internals/consensus.html#toc_4).
+to function. See this [deployment table](/docs/internals/consensus#toc_4).
 If you have 3 servers and 1 of them is currently failing, removing any other servers
 will cause the cluster to become unavailable.
 
@@ -168,7 +168,7 @@ To remove all agents that accidentally joined the wrong set of servers, clear ou
 
 These graceful methods to remove servers assumes you have a healthly cluster.
 If the cluster has no leader due to loss of quorum or data corruption, you should
-plan for [outage recovery](/docs/guides/outage.html#manual-recovery-using-peers-json).
+plan for [outage recovery](/docs/guides/outage#manual-recovery-using-peers-json).
 
 !> **WARNING** Removing data on server nodes will destroy all state in the cluster
 

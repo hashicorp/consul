@@ -8,9 +8,9 @@ description: The /acl endpoints manage the Consul's ACL system.
 
 # ACL HTTP API
 
--> **1.4.0+:** This API documentation is for Consul versions 1.4.0 and later. The documentation for the legacy ACL API is [here](/api/acl/legacy.html)
+-> **1.4.0+:** This API documentation is for Consul versions 1.4.0 and later. The documentation for the legacy ACL API is [here](/api/acl/legacy)
 
-The `/acl` endpoints are used to manage ACL tokens and policies in Consul, [bootstrap the ACL system](#bootstrap-acls), [check ACL replication status](#check-acl-replication), and [translate rules](#translate-rules). There are additional pages for managing [tokens](/api/acl/tokens.html) and [policies](/api/acl/policies.html) with the `/acl` endpoints.
+The `/acl` endpoints are used to manage ACL tokens and policies in Consul, [bootstrap the ACL system](#bootstrap-acls), [check ACL replication status](#check-acl-replication), and [translate rules](#translate-rules). There are additional pages for managing [tokens](/api/acl/tokens) and [policies](/api/acl/policies) with the `/acl` endpoints.
 
 For more information on how to setup ACLs, please see
 the [ACL Guide](https://learn.hashicorp.com/consul/advanced/day-1-operations/production-acls).
@@ -18,7 +18,7 @@ the [ACL Guide](https://learn.hashicorp.com/consul/advanced/day-1-operations/pro
 ## Bootstrap ACLs
 
 This endpoint does a special one-time bootstrap of the ACL system, making the first
-management token if the [`acl.tokens.master`](/docs/agent/options.html#acl_tokens_master)
+management token if the [`acl.tokens.master`](/docs/agent/options#acl_tokens_master)
 configuration entry is not specified in the Consul server configuration and if the
 cluster has not been bootstrapped previously. This is available in Consul 0.9.1 and later,
 and requires all Consul servers to be upgraded in order to operate.
@@ -31,9 +31,9 @@ configuration files.
 | `PUT`  | `/acl/bootstrap` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -96,9 +96,9 @@ for more details.
 | `GET`  | `/acl/replication` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -142,7 +142,7 @@ $ curl \
 
 - `SourceDatacenter` - The authoritative ACL datacenter that ACLs are being
   replicated from and will match the
-  [`primary_datacenter`](/docs/agent/options.html#primary_datacenter) configuration.
+  [`primary_datacenter`](/docs/agent/options#primary_datacenter) configuration.
 
 - `ReplicationType` - The type of replication that is currently in use.
 
@@ -156,17 +156,17 @@ $ curl \
 - `ReplicatedIndex` - The last index that was successfully replicated. Which data
   the replicated index refers to depends on the replication type. For `legacy`
   replication this can be compared with the value of the `X-Consul-Index` header
-  returned by the [`/v1/acl/list`](/api/acl/legacy.html#acl_list) endpoint to
+  returned by the [`/v1/acl/list`](/api/acl/legacy#acl_list) endpoint to
   determine if the replication process has gotten all available ACLs. When in either
   `tokens` or `policies` mode, this index can be compared with the value of the
-  `X-Consul-Index` header returned by the [`/v1/acl/policies`](/api/acl/policies.html#list-policies)
+  `X-Consul-Index` header returned by the [`/v1/acl/policies`](/api/acl/policies#list-policies)
   endpoint to determine if the policy replication process has gotten all available
   ACL policies. Note that ACL replication is rate limited so the indexes may lag behind
   the primary datacenter.
 
 - `ReplicatedTokenIndex` - The last token index that was successfully replicated.
   This index can be compared with the value of the `X-Consul-Index` header returned
-  by the [`/v1/acl/tokens`](/api/acl/tokens.html#list) endpoint to determine
+  by the [`/v1/acl/tokens`](/api/acl/tokens#list) endpoint to determine
   if the replication process has gotten all available ACL tokens. Note that ACL
   replication is rate limited so the indexes may lag behind the primary
   datacenter.
@@ -195,9 +195,9 @@ migrations.
 | `POST` | `/acl/rules/translate` | `text/plain` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -235,16 +235,16 @@ This endpoint translates the legacy rules embedded within a legacy ACL into the 
 syntax. It is intended to be used by operators managing Consul's ACLs and performing
 legacy token to new policy migrations. Note that this API requires the auto-generated
 Accessor ID of the legacy token. This ID can be retrieved using the
-[`/v1/acl/token/self`](/api/acl/tokens.html#self) endpoint.
+[`/v1/acl/token/self`](/api/acl/tokens#self) endpoint.
 
 | Method | Path                                | Produces     |
 | ------ | ----------------------------------- | ------------ |
 | `GET`  | `/acl/rules/translate/:accessor_id` | `text/plain` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -268,7 +268,7 @@ agent_prefix "" {
 ## Login to Auth Method
 
 This endpoint was added in Consul 1.5.0 and is used to exchange an [auth
-method](/docs/acl/acl-auth-methods.html) bearer token for a newly-created
+method](/docs/acl/acl-auth-methods) bearer token for a newly-created
 Consul ACL token.
 
 | Method | Path         | Produces           |
@@ -276,9 +276,9 @@ Consul ACL token.
 | `POST` | `/acl/login` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -287,7 +287,7 @@ The table below shows this endpoint's support for
 
 -> **Note** - To use the login process to create tokens in any connected
 secondary datacenter, [ACL
-replication](/docs/agent/options.html#acl_enable_token_replication) must be
+replication](/docs/agent/options#acl_enable_token_replication) must be
 enabled. Login requires the ability to create local tokens which is restricted
 to the primary datacenter and any secondary datacenters with ACL token
 replication enabled.
@@ -366,9 +366,9 @@ with the `X-Consul-Token` header or the `token` query parameter.
 | `POST` | `/acl/logout` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |

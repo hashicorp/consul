@@ -10,8 +10,8 @@ description: This guide describes best practices for running Consul Connect in p
 Consul Connect can secure all inter-service communication with mutual TLS. It's
 designed to work with [minimal configuration out of the
 box](https://learn.hashicorp.com/consul/getting-started/connect), however, completing the [security
-checklist](/docs/connect/security.html) and understanding the [Consul security
-model](/docs/internals/security.html) are prerequisites for production
+checklist](/docs/connect/security) and understanding the [Consul security
+model](/docs/internals/security) are prerequisites for production
 deployments.
 
 After completing this guide, you will be able to configure Connect to
@@ -22,8 +22,8 @@ Finally, you will configure your services to use Connect.
 ~> Note: To complete this guide you should already have a Consul cluster
 with an appropriate number of servers and
 clients deployed according to the other reference material including the
-[deployment](/docs/guides/deployment.html) and
-[performance](/docs/install/performance.html) guides.
+[deployment](/docs/guides/deployment) and
+[performance](/docs/install/performance) guides.
 
 The steps we need to get to a secure Connect cluster are:
 
@@ -43,7 +43,7 @@ Consul Connect's security is based on service identity. In practice, the identit
 of the service is only enforcible with sufficiently restrictive ACLs.
 
 This section will not replace reading the full [ACL
-guide](/docs/guides/acl.html) but will highlight the specific requirements
+guide](/docs/guides/acl) but will highlight the specific requirements
 Connect relies on to ensure it's security properties.
 
 A service's identity, in the form of an x.509 certificate, will only be issued
@@ -55,7 +55,7 @@ service is allowed to access.
 A secure ACL setup must meet the following criteria.
 
 1.  **[ACL default
-    policy](/docs/agent/options.html#acl_default_policy)
+    policy](/docs/agent/options#acl_default_policy)
     must be `deny`.** If for any reason you cannot use the default policy of
     `deny`, you must add an explicit ACL denying anonymous `service:write`. Note, in this case the Connect intention graph will also default to
     `allow` and explicit `deny` intentions will be needed to restrict service
@@ -109,11 +109,11 @@ bootstrap a new CA and generate it's own private key which is written to the
 Raft state.
 
 Alternatively, an external private key can be provided via the [CA
-configuration](/docs/connect/ca.html#specifying-a-private-key-and-root-certificate).
+configuration](/docs/connect/ca#specifying-a-private-key-and-root-certificate).
 
 ~> External CAs: Connect has been designed with a pluggable CA component so external CAs can be
 integrated. For production workloads we recommend using [Vault or another external
-CA](/docs/connect/ca.html#external-ca-certificate-authority-providers) once
+CA](/docs/connect/ca#external-ca-certificate-authority-providers) once
 available such that the root key is not stored within Consul state at all.
 
 ## Setup Host Firewall
@@ -123,14 +123,14 @@ configure host or network firewalls to allow incoming connections to proxy
 ports.
 
 In addition to Consul agent's [communication
-ports](/docs/agent/options.html#ports) any
-[proxies](/docs/connect/proxies.html) will need to have
+ports](/docs/agent/options#ports) any
+[proxies](/docs/connect/proxies) will need to have
 ports open to accept incoming connections.
 
 If using [sidecar service
-registration](/docs/connect/proxies/sidecar-service.html) Consul will by default
+registration](/docs/connect/proxies/sidecar-service) Consul will by default
 assign ports from [a configurable
-range](/docs/agent/options.html#sidecar_min_port) the default range is 21000 -
+range](/docs/agent/options#sidecar_min_port) the default range is 21000 -
 
 21255. If this feature is used, the agent assumes all ports in that range are
        both free to use (no other processes listening on them) and are exposed in the
@@ -138,7 +138,7 @@ range](/docs/agent/options.html#sidecar_min_port) the default range is 21000 -
 
 It is possible to prevent automated port selection by [configuring
 `sidecar_min_port` and
-`sidecar_max_port`](/docs/agent/options.html#sidecar_min_port) to both be `0`,
+`sidecar_max_port`](/docs/agent/options#sidecar_min_port) to both be `0`,
 forcing any sidecar service registrations to need an explicit port configured.
 
 It then becomes the same problem as opening ports necessary for any other
@@ -167,7 +167,7 @@ header](/api#authentication), `X-Consul-Token`, or by using the [Go
 client configuration](https://godoc.org/github.com/hashicorp/consul/api#Config).
 
 To avoid the overhead of a proxy, applications may [natively
-integrate](/docs/connect/native.html) with connect.
+integrate](/docs/connect/native) with connect.
 
 ~> Protect Application Listener: If using any kind of proxy for connect, the application must ensure no untrusted
 connections can be made to it's unprotected listening port. This is typically
@@ -175,7 +175,7 @@ done by binding to `localhost` and only allowing loopback traffic, but may also
 be achieved using firewall rules or network namespacing.
 
 For examples of proxy service definitions see the [proxy
-documentation](/docs/connect/proxies.html).
+documentation](/docs/connect/proxies).
 
 ## Summary
 

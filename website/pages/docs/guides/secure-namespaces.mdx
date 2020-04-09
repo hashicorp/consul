@@ -22,7 +22,7 @@ This guide has two main sections, configuring namespaces and creating ACL tokens
 
 To execute the example commands in this guide, you will need a Consul 1.7.x Enterprise datacenter with [ACLs enabled](/consul/security-networking/production-acls). If you do not have an existing datacenter, you can use a single [local agent](/consul/getting-started/agent) or [Consul in containers](/consul/day-0/containers-guide).
 
-You will also need an ACL token with `operator=write` and `acl=write` privileges or you can use a token with the [built-in global management policy](/docs/acl/acl-system.html#builtin-policies).
+You will also need an ACL token with `operator=write` and `acl=write` privileges or you can use a token with the [built-in global management policy](/docs/acl/acl-system#builtin-policies).
 
 ### [Optional] Configure Consul CLI
 
@@ -32,7 +32,7 @@ If you are using Docker or other non-local deployment, you can configure a local
 $ export CONSUL_HTTP_ADDR=192.17.23.4
 ```
 
-Note, this jumphost will need to use an ACL token to access the datacenter. The token's necessary privileges will depend on the operations, learn more about privileges by reviewing the ACL [rule documentation](/docs/acl/acl-rules.html). You can export the token with the `CONSUL_HTTP_TOKEN` [variable](/docs/commands#consul_http_token). Additionally, if you have [TLS encryption configured](/consul/security-networking/certificates) you will need to use valid certificates.
+Note, this jumphost will need to use an ACL token to access the datacenter. The token's necessary privileges will depend on the operations, learn more about privileges by reviewing the ACL [rule documentation](/docs/acl/acl-rules). You can export the token with the `CONSUL_HTTP_TOKEN` [variable](/docs/commands#consul_http_token). Additionally, if you have [TLS encryption configured](/consul/security-networking/certificates) you will need to use valid certificates.
 
 ## Configure namespaces
 
@@ -100,7 +100,7 @@ Nodes are not namespaced, so namespace-operators will be able to see all the nod
 
 ### Create namespace management tokens
 
-First, the super-operator should use the [built-in namespace-policy](/docs/acl/acl-system.html#builtin-policies) to create a token for the namespaced-operators. Note, the namespace-management policy ultimately grants them unrestricted privileges for their namespace. You will need `acl=write` privileges to create namespaced-tokens.
+First, the super-operator should use the [built-in namespace-policy](/docs/acl/acl-system#builtin-policies) to create a token for the namespaced-operators. Note, the namespace-management policy ultimately grants them unrestricted privileges for their namespace. You will need `acl=write` privileges to create namespaced-tokens.
 
 ```shell
 $ consul acl token create \

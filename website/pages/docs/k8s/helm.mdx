@@ -26,7 +26,7 @@ and consider if they're appropriate for your deployment.
 
   - `name` ((#v-global-name)) (`string: null`) - Set the prefix used for all resources in the Helm chart. If not set, the prefix will be `<helm release name>-consul`.
 
-  - `domain` ((#v-global-domain)) (`string: "consul"`) - The domain Consul will answer DNS queries for (see [-domain](/docs/agent/options.html#_domain)) and the domain services synced from
+  - `domain` ((#v-global-domain)) (`string: "consul"`) - The domain Consul will answer DNS queries for (see [-domain](/docs/agent/options#_domain)) and the domain services synced from
     Consul into Kubernetes will have, e.g. `service-name.service.consul`.
 
   - `image` ((#v-global-image)) (`string: "consul:<latest version>"`) - The name (and tag) of the Consul Docker image for clients and servers. This can be overridden per component. This should be pinned to a specific version tag, otherwise you may inadvertently upgrade your Consul version.
@@ -52,7 +52,7 @@ and consider if they're appropriate for your deployment.
     security policies are created for the Consul components created by this chart. See [https://kubernetes.io/docs/concepts/policy/pod-security-policy/](https://kubernetes.io/docs/concepts/policy/pod-security-policy/).
 
   - `gossipEncryption` ((#v-global-gossipencryption)) - Configures which Kubernetes secret to retrieve Consul's
-    gossip encryption key from (see [-encrypt](/docs/agent/options.html#_encrypt)). If secretName or
+    gossip encryption key from (see [-encrypt](/docs/agent/options#_encrypt)). If secretName or
     secretKey are not set, gossip encryption will not be enabled. The secret must
     be in the same namespace that Consul is installed into.
 
@@ -99,7 +99,7 @@ and consider if they're appropriate for your deployment.
     - `verify` ((#v-global-verify)) (`boolean: true`) - If true, `verify_outgoing`, `verify_server_hostname`,
       and `verify_incoming_rpc` will be set to `true` for Consul servers and clients.
       Set this to false to incrementally roll out TLS on an existing Consul cluster.
-      Please see [Configuring TLS on an Existing Cluster](https://www.consul.io/docs/platform/k8s/tls-on-existing-cluster.html)
+      Please see [Configuring TLS on an Existing Cluster](/docs/platform/k8s/tls-on-existing-cluster)
       for more details.
 
     - `httpsOnly` ((#v-global-httpsonly)) (`boolean: true`) - If true, the Helm chart will configure Consul
@@ -143,7 +143,7 @@ and consider if they're appropriate for your deployment.
     tag) for the containers running Consul server agents.
 
   - `replicas` ((#v-server-replicas)) (`integer: 3`) -The number of server agents to run. This
-    determines the fault tolerance of the cluster. Please see the [deployment table](/docs/internals/consensus.html#deployment-table)
+    determines the fault tolerance of the cluster. Please see the [deployment table](/docs/internals/consensus#deployment-table)
     for more information.
 
   - `bootstrapExpect` ((#v-server-bootstrapexpect)) (`integer: 3`) - For new clusters, this is the
@@ -208,7 +208,7 @@ and consider if they're appropriate for your deployment.
       command because of a limitation in the Helm templating language.
 
   - `extraConfig` ((#v-server-extraconfig)) (`string: "{}"`) - A raw string of extra JSON
-    [configuration](/docs/agent/options.html) for Consul servers. This will be saved as-is into a ConfigMap that is read by the Consul server agents. This can be used to add additional configuration that isn't directly exposed by the chart.
+    [configuration](/docs/agent/options) for Consul servers. This will be saved as-is into a ConfigMap that is read by the Consul server agents. This can be used to add additional configuration that isn't directly exposed by the chart.
 
     ```yaml
     # ExtraConfig values are formatted as a multi-line string:
@@ -306,7 +306,7 @@ and consider if they're appropriate for your deployment.
   - `image` ((#v-client-image)) (`string: global.image`) - The name of the Docker image (including any
     tag) for the containers running Consul client agents.
 
-  - `join` ((#v-client-join)) (`array<string>: null`) - A list of valid [`-retry-join` values](/docs/agent/options.html#retry-join). If this is `null` (default), then the clients will attempt to automatically join the server cluster running within Kubernetes. This means that with `server.enabled` set to true, clients will automatically join that cluster. If `server.enabled` is not true, then a value must be specified so the clients can join a valid cluster.
+  - `join` ((#v-client-join)) (`array<string>: null`) - A list of valid [`-retry-join` values](/docs/agent/options#retry-join). If this is `null` (default), then the clients will attempt to automatically join the server cluster running within Kubernetes. This means that with `server.enabled` set to true, clients will automatically join that cluster. If `server.enabled` is not true, then a value must be specified so the clients can join a valid cluster.
 
   - `dataDirectoryPath` ((#v-client-datadirectorypath)) (`string: null`) - An absolute path to a
     directory on the host machine to use as the Consul client data directory. If set to the empty string or null, the Consul agent will store its data in the Pod's local filesystem (which will
@@ -315,7 +315,7 @@ and consider if they're appropriate for your deployment.
 
   - `grpc` ((#v-client-grpc)) (`boolean: true`) - If true, agents will enable their GRPC listener on
     port 8502 and expose it to the host. This will use slightly more resources, but is
-    required for [Connect](/docs/platform/k8s/connect.html).
+    required for [Connect](/docs/platform/k8s/connect).
 
   - `exposeGossipPorts` ((#v-client-exposegossipports)) (`boolean: false`) - If true, the Helm chart
     will expose the clients' gossip ports as hostPorts. This is only necessary if pod IPs in the k8s cluster are not directly routable and the Consul servers are outside of the k8s cluster.
@@ -335,7 +335,7 @@ and consider if they're appropriate for your deployment.
     ```
 
   - `extraConfig` ((#v-client-extraconfig)) (`string: "{}"`) - A raw string of extra JSON
-    [configuration](/docs/agent/options.html) for Consul clients. This will be saved as-is into a ConfigMap that is read by the Consul agents. This can be used to add additional configuration that isn't directly exposed by the chart.
+    [configuration](/docs/agent/options) for Consul clients. This will be saved as-is into a ConfigMap that is read by the Consul agents. This can be used to add additional configuration that isn't directly exposed by the chart.
 
     ```yaml
     # ExtraConfig values are formatted as a multi-line string:
@@ -413,7 +413,7 @@ and consider if they're appropriate for your deployment.
       type: RollingUpdate
     ```
 
-  - `snapshotAgent` ((#v-client-snapshotagent)) [Enterprise Only] - Values for setting up and running [snapshot agents](https://www.consul.io/docs/commands/snapshot/agent.html)
+  - `snapshotAgent` ((#v-client-snapshotagent)) [Enterprise Only] - Values for setting up and running [snapshot agents](/docs/commands/snapshot/agent)
     within the Consul clusters. They are required to be co-located with Consul clients,
     so will inherit the clients' nodeSelector, tolerations and affinity.
 
@@ -424,7 +424,7 @@ and consider if they're appropriate for your deployment.
       to run.
 
     - `configSecret` ((#v-client-snapshotagent-configsecret)) - A Kubernetes secret that should be
-      manually created to contain the entire config to be used on the snapshot agent. This is the preferred method of configuration since there are usually storage credentials present. Please see [Snapshot agent config](https://www.consul.io/docs/commands/snapshot/agent.html#config-file-options-) for details.
+      manually created to contain the entire config to be used on the snapshot agent. This is the preferred method of configuration since there are usually storage credentials present. Please see [Snapshot agent config](/docs/commands/snapshot/agent#config-file-options-) for details.
 
       - secretName ((#v-client-snapshotagent-configsecret-secretname)) `(string: null)` - The name of the Kubernetes secret.
 
@@ -434,7 +434,7 @@ and consider if they're appropriate for your deployment.
 
   - `enabled` ((#v-dns-enabled)) (`boolean: global.enabled`) - If true, a `consul-dns` service will be
     created that exposes port 53 for TCP and UDP to the running Consul agents (servers and
-    clients). This can then be used to [configure kube-dns](/docs/platform/k8s/dns.html).
+    clients). This can then be used to [configure kube-dns](/docs/platform/k8s/dns).
     The Helm chart _does not_ automatically configure kube-dns.
 
   - `clusterIP` ((#v-dns-clusterip)) (`string: null`) - If defined, this value configures the cluster
@@ -443,7 +443,7 @@ and consider if they're appropriate for your deployment.
   - `annotations` ((#v-dns-annotations)) (`string: null`) - Extra annotations to attach to the DNS
     service. This should be a multi-line string of annotations to apply to the DNS service.
 
-- `syncCatalog` ((#v-synccatalog)) - Values that configure the [service sync](/docs/platform/k8s/service-sync.html) process.
+- `syncCatalog` ((#v-synccatalog)) - Values that configure the [service sync](/docs/platform/k8s/service-sync) process.
 
   - `enabled` ((#v-synccatalog-enabled)) (`boolean: false`) - If true, the chart will install all the
     resources necessary for the catalog sync process to run.
@@ -453,7 +453,7 @@ and consider if they're appropriate for your deployment.
     to run the sync program.
 
   - `default` ((#v-synccatalog-default)) (`boolean: true`) - If true, all valid services in K8S are
-    synced by default. If false, the service must be [annotated](/docs/platform/k8s/service-sync.html#sync-enable-disable) properly to sync. In either case an annotation can override the default.
+    synced by default. If false, the service must be [annotated](/docs/platform/k8s/service-sync#sync-enable-disable) properly to sync. In either case an annotation can override the default.
 
   - `toConsul` ((#v-synccatalog-toconsul)) (`boolean: true`) - If true, will sync Kubernetes services
     to Consul. This can be disabled to have a one-way sync.
@@ -558,7 +558,7 @@ and consider if they're appropriate for your deployment.
     - `additionalSpec` ((#v-ui-service-additionalspec)) (`string: null`) - Additional Service spec
       values. This should be a multi-line string mapping directly to a Kubernetes `Service` object.
 
-- `connectInject` ((#v-connectinject)) - Values that configure running the [Connect injector](/docs/platform/k8s/connect.html).
+- `connectInject` ((#v-connectinject)) - Values that configure running the [Connect injector](/docs/platform/k8s/connect).
 
   - `enabled` ((#v-connectinject-enabled)) (`boolean: false`) - If true, the chart will install all the
     resources necessary for the Connect injector process to run. This will enable the injector but will
@@ -568,7 +568,7 @@ and consider if they're appropriate for your deployment.
     (including any tag) for the [consul-k8s](https://github.com/hashicorp/consul-k8s) binary.
 
   - `default` ((#v-connectinject-default)) (`boolean: false`) - If true, the injector will inject the
-    Connect sidecar into all pods by default. Otherwise, pods must specify the. [injection annotation](/docs/platform/k8s/connect.html#consul-hashicorp-com-connect-inject)
+    Connect sidecar into all pods by default. Otherwise, pods must specify the. [injection annotation](/docs/platform/k8s/connect#consul-hashicorp-com-connect-inject)
     to opt-in to Connect injection. If this is true, pods can use the same annotation
     to explicitly opt-out of injection.
 
@@ -646,7 +646,7 @@ and consider if they're appropriate for your deployment.
       beta.kubernetes.io/arch: amd64
     ```
 
-  - `aclBindingRuleSelector` ((#v-connectinject-acl-bindingrule-selector)) (`string: "serviceaccount.name!=default"`) - A [selector](/docs/acl/acl-auth-methods.html#binding-rules)
+  - `aclBindingRuleSelector` ((#v-connectinject-acl-bindingrule-selector)) (`string: "serviceaccount.name!=default"`) - A [selector](/docs/acl/acl-auth-methods#binding-rules)
     for restricting automatic injection to only matching services based on their
     associated service account. By default, services using the `default` Kubernetes
     service account will be prevented from logging in. This only has effect if ACLs
@@ -662,14 +662,14 @@ and consider if they're appropriate for your deployment.
 
     - `secretKey` ((#v-connectinject-aclinjecttoken-secretkey)) `(string: null)` - The key within the Kubernetes secret that holds the acl token.
 
-  - `centralConfig` ((#v-connectinject-centralconfig)) - Values that configure Consul's [central configuration](/docs/agent/config_entries.html)
+  - `centralConfig` ((#v-connectinject-centralconfig)) - Values that configure Consul's [central configuration](/docs/agent/config_entries)
     feature (requires Consul v1.5+ and consul-k8s v0.8.1+).
 
     - `enabled` ((#v-connectinject-centralconfig-enabled)) (`boolean: true`) - Turns on the central
       configuration feature. Pods that have a Connect proxy injected will have their service automatically registered in this central configuration.
 
     - `defaultProtocol` ((#v-connectinject-centralconfig-defaultprotocol)) (`string: null`) - If
-      defined, this value will be used as the default protocol type for all services registered with the central configuration. This can be overridden by using the [protocol annotation](/docs/platform/k8s/connect.html#consul-hashicorp-com-connect-service-protocol) directly on any pod spec.
+      defined, this value will be used as the default protocol type for all services registered with the central configuration. This can be overridden by using the [protocol annotation](/docs/platform/k8s/connect#consul-hashicorp-com-connect-service-protocol) directly on any pod spec.
 
     - `proxyDefaults` ((#v-connectinject-centralconfig-proxydefaults)) (`string: "{}"`) - This value is
       a raw json string that will be applied to all Connect proxy sidecar pods. It can include any valid configuration for the configured proxy.

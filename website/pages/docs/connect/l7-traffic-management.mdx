@@ -14,7 +14,7 @@ description: >-
 
 Layer 7 traffic management allows operators to divide L7 traffic between
 different
-[subsets](/docs/agent/config-entries/service-resolver.html#service-subsets) of
+[subsets](/docs/agent/config-entries/service-resolver#service-subsets) of
 service instances when using Connect.
 
 There are many ways you may wish to carve up a single datacenter's pool of
@@ -25,9 +25,9 @@ carving out portions of the Consul catalog smaller than the level of a single
 service and configuring when that subset should receive traffic.
 
 -> **Note:** This feature is not compatible with the
-[built-in proxy](/docs/connect/proxies/built-in.html),
-[native proxies](/docs/connect/native.html),
-and some [Envoy proxy escape hatches](/docs/connect/proxies/envoy.html#escape-hatch-overrides).
+[built-in proxy](/docs/connect/proxies/built-in),
+[native proxies](/docs/connect/native),
+and some [Envoy proxy escape hatches](/docs/connect/proxies/envoy#escape-hatch-overrides).
 
 ## Stages
 
@@ -38,12 +38,12 @@ traffic.
 ![diagram showing l7 traffic discovery stages: routing to splitting to resolution](/img/l7-traffic-stages.svg)
 
 Each stage of this discovery process can be dynamically reconfigured via various
-[configuration entries](/docs/agent/config_entries.html). When a configuration
+[configuration entries](/docs/agent/config_entries). When a configuration
 entry is missing, that stage will fall back on reasonable default behavior.
 
 ### Routing
 
-A [`service-router`](/docs/agent/config-entries/service-router.html) config
+A [`service-router`](/docs/agent/config-entries/service-router) config
 entry kind is the first configurable stage.
 
 A router config entry allows for a user to intercept traffic using L7 criteria
@@ -53,12 +53,12 @@ traffic to a different service or service subset.
 These config entries may only reference `service-splitter` or
 `service-resolver` entries.
 
-[Examples](/docs/agent/config-entries/service-router.html#sample-config-entries)
+[Examples](/docs/agent/config-entries/service-router#sample-config-entries)
 can be found in the `service-router` documentation.
 
 ### Splitting
 
-A [`service-splitter`](/docs/agent/config-entries/service-splitter.html) config
+A [`service-splitter`](/docs/agent/config-entries/service-splitter) config
 entry kind is the next stage after routing.
 
 A splitter config entry allows for a user to choose to split incoming requests
@@ -78,12 +78,12 @@ union. For instance:
     ---------------------
     splitter[effective_B]: A_v1=25%, A_v2=25%, B=50%
 
-[Examples](/docs/agent/config-entries/service-splitter.html#sample-config-entries)
+[Examples](/docs/agent/config-entries/service-splitter#sample-config-entries)
 can be found in the `service-splitter` documentation.
 
 ### Resolution
 
-A [`service-resolver`](/docs/agent/config-entries/service-resolver.html) config
+A [`service-resolver`](/docs/agent/config-entries/service-resolver) config
 entry kind is the last stage.
 
 A resolver config entry allows for a user to define which instances of a
@@ -115,7 +115,7 @@ not intended to be a drop-in replacement currently.
 
 These config entries may only reference other `service-resolver` entries.
 
-[Examples](/docs/agent/config-entries/service-resolver.html#sample-config-entries)
+[Examples](/docs/agent/config-entries/service-resolver#sample-config-entries)
 can be found in the `service-resolver` documentation.
 
 -> **Note:** `service-resolver` config entries kinds function at L4 (unlike

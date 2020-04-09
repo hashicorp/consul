@@ -16,8 +16,8 @@ sent to Checkpoint . An anonymous ID is sent which helps de-duplicate warning me
 This anonymous ID can be disabled. In fact, using the Checkpoint service is optional
 and can be disabled.
 
-See [`disable_anonymous_signature`](/docs/agent/options.html#disable_anonymous_signature)
-and [`disable_update_check`](/docs/agent/options.html#disable_update_check).
+See [`disable_anonymous_signature`](/docs/agent/options#disable_anonymous_signature)
+and [`disable_update_check`](/docs/agent/options#disable_update_check).
 
 ## Q: Does Consul rely on UDP Broadcast or Multicast?
 
@@ -31,9 +31,9 @@ designed to avoid any dependence on those capabilities.
 Consul has two important subsystems, the service catalog and the gossip protocol.
 The service catalog stores all the nodes, service instances, health check data,
 ACLs, and KV information. It is strongly consistent, and replicated
-using the [consensus protocol](/docs/internals/consensus.html).
+using the [consensus protocol](/docs/internals/consensus).
 
-The [gossip protocol](/docs/internals/gossip.html) is used to track which
+The [gossip protocol](/docs/internals/gossip) is used to track which
 nodes are part of the cluster and to detect a node or agent failure. This information
 is eventually consistent by nature. When the servers detects a change in membership,
 or receive a health update, they update the service catalog appropriately.
@@ -67,7 +67,7 @@ as well as race conditions between data updates and watch registrations.
 
 ## Q: What network ports does Consul use?
 
-The [Ports Used](https://www.consul.io/docs/agent/options.html#ports) section of the Configuration documentation lists all ports that Consul uses.
+The [Ports Used](/docs/agent/options#ports) section of the Configuration documentation lists all ports that Consul uses.
 
 ## Q: Does Consul require certain user process resource limits?
 
@@ -94,7 +94,7 @@ The limit on a key's value size is 512KB. This is strictly enforced and an
 HTTP 413 status will be returned to any client that attempts to store more
 than that limit in a value. It should be noted that the Consul key/value store
 is not designed to be used as a general purpose database. See
-[Server Performance](/docs/install/performance.html) for more details.
+[Server Performance](/docs/install/performance) for more details.
 
 ## Q: What data is replicated between Consul datacenters?
 
@@ -118,4 +118,4 @@ remediation steps that you would normally do for individual processes, based
 on your operating system.
 
 Please see our
-[Security Model](https://www.consul.io/docs/internals/security.html) for more information.
+[Security Model](/docs/internals/security) for more information.

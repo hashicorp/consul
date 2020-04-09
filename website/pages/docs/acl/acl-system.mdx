@@ -12,7 +12,7 @@ description: >-
 
 # ACL System
 
--> **1.4.0 and later:** This guide only applies in Consul versions 1.4.0 and later. The documentation for the legacy ACL system is [here](/docs/acl/acl-legacy.html)
+-> **1.4.0 and later:** This guide only applies in Consul versions 1.4.0 and later. The documentation for the legacy ACL system is [here](/docs/acl/acl-legacy)
 
 Consul provides an optional Access Control List (ACL) system which can be used to control access to data and APIs.
 The ACL is [Capability-based](https://en.wikipedia.org/wiki/Capability-based_security), relying on tokens which
@@ -48,11 +48,11 @@ may benefit from additional components in the ACL system:
   independently configured. (Added in Consul 1.5.0)
 
 - **ACL Auth Methods and Binding Rules** - To learn more about these topics,
-  see the [dedicated auth methods documentation page](/docs/acl/acl-auth-methods.html).
+  see the [dedicated auth methods documentation page](/docs/acl/acl-auth-methods).
 
 ACL tokens, policies, roles, auth methods, and binding rules are managed by
-Consul operators via Consul's [ACL API](/api/acl/acl.html),
-[ACL CLI](/docs/commands/acl.html), or systems like
+Consul operators via Consul's [ACL API](/api/acl/acl),
+[ACL CLI](/docs/commands/acl), or systems like
 [HashiCorp's Vault](https://www.vaultproject.io/docs/secrets/consul).
 
 If the ACL system becomes inoperable, you can follow the
@@ -65,11 +65,11 @@ An ACL policy is a named set of rules and is composed of the following elements:
 - **ID** - The policy's auto-generated public identifier.
 - **Name** - A unique meaningful name for the policy.
 - **Description** - A human readable description of the policy. (Optional)
-- **Rules** - Set of rules granting or denying permissions. See the [Rule Specification](/docs/acl/acl-rules.html#rule-specification) documentation for more details.
+- **Rules** - Set of rules granting or denying permissions. See the [Rule Specification](/docs/acl/acl-rules#rule-specification) documentation for more details.
 - **Datacenters** - A list of datacenters the policy is valid within.
 - **Namespace** - **Enterprise Only** - The namespace this policy resides within. (Added in Consul Enterprise 1.7.0)
 
--> **Consul Enterprise Namespacing** - Rules defined in a policy in any namespace other than `default` will be [restricted](/docs/acl/acl-rules.html#namespace-rules-enterprise) to being able to grant a subset of the overall privileges and only affecting that single namespace.
+-> **Consul Enterprise Namespacing** - Rules defined in a policy in any namespace other than `default` will be [restricted](/docs/acl/acl-rules#namespace-rules-enterprise) to being able to grant a subset of the overall privileges and only affecting that single namespace.
 
 #### Builtin Policies
 
@@ -84,7 +84,7 @@ An ACL policy is a named set of rules and is composed of the following elements:
 
 -> Added in Consul 1.5.0
 
-An ACL service identity is an [ACL policy](/docs/acl/acl-system.html#acl-policies) template for expressing a link to a policy
+An ACL service identity is an [ACL policy](/docs/acl/acl-system#acl-policies) template for expressing a link to a policy
 suitable for use in [Consul Connect](/docs/connect). They are usable
 on both tokens and roles and are composed of the following elements:
 
@@ -98,7 +98,7 @@ template to aid in avoiding boilerplate policy creation.
 
 During the authorization process, the configured service identity is automatically
 applied as a policy with the following preconfigured [ACL
-rules](/docs/acl/acl-system.html#acl-rules-and-scope):
+rules](/docs/acl/acl-system#acl-rules-and-scope):
 
 ```hcl
 # Allow the service and its sidecar proxy to register into the catalog.
@@ -118,7 +118,7 @@ node_prefix "" {
 }
 ```
 
-The [API documentation for roles](/api/acl/roles.html#sample-payload) has some
+The [API documentation for roles](/api/acl/roles#sample-payload) has some
 examples of using a service identity.
 
 -> **Consul Enterprise Namespacing** - Service Identity rules will be scoped to the single namespace that
@@ -191,7 +191,7 @@ token will be used.
 
 The rules from all policies, roles, and service identities linked with a token are combined to form that token's
 effective rule set. Policy rules can be defined in either a whitelist or blacklist
-mode depending on the configuration of [`acl_default_policy`](/docs/agent/options.html#acl_default_policy).
+mode depending on the configuration of [`acl_default_policy`](/docs/agent/options#acl_default_policy).
 If the default policy is to "deny" access to all resources, then policy rules can be set to
 whitelist access to specific resources. Conversely, if the default policy is “allow” then policy rules can
 be used to explicitly deny access to resources.
@@ -199,36 +199,36 @@ be used to explicitly deny access to resources.
 The following table summarizes the ACL resources that are available for constructing
 rules:
 
-| Resource                         | Scope                                                                                                                                                                                                                          |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [`acl`](#acl-rules)              | Operations for managing the ACL system [ACL API](/api/acl/acl.html)                                                                                                                                                            |
-| [`agent`](#agent-rules)          | Utility operations in the [Agent API](/api/agent.html), other than service and check registration                                                                                                                              |
-| [`event`](#event-rules)          | Listing and firing events in the [Event API](/api/event.html)                                                                                                                                                                  |
-| [`key`](#key-value-rules)        | Key/value store operations in the [KV Store API](/api/kv.html)                                                                                                                                                                 |
-| [`keyring`](#keyring-rules)      | Keyring operations in the [Keyring API](/api/operator/keyring.html)                                                                                                                                                            |
-| [`node`](#node-rules)            | Node-level catalog operations in the [Catalog API](/api/catalog.html), [Health API](/api/health.html), [Prepared Query API](/api/query.html), [Network Coordinate API](/api/coordinate.html), and [Agent API](/api/agent.html) |
-| [`operator`](#operator-rules)    | Cluster-level operations in the [Operator API](/api/operator.html), other than the [Keyring API](/api/operator/keyring.html)                                                                                                   |
-| [`query`](#prepared-query-rules) | Prepared query operations in the [Prepared Query API](/api/query.html)                                                                                                                                                         |
-| [`service`](#service-rules)      | Service-level catalog operations in the [Catalog API](/api/catalog.html), [Health API](/api/health.html), [Prepared Query API](/api/query.html), and [Agent API](/api/agent.html)                                              |
-| [`session`](#session-rules)      | Session operations in the [Session API](/api/session.html)                                                                                                                                                                     |
+| Resource                         | Scope                                                                                                                                                                                                 |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`acl`](#acl-rules)              | Operations for managing the ACL system [ACL API](/api/acl/acl)                                                                                                                                        |
+| [`agent`](#agent-rules)          | Utility operations in the [Agent API](/api/agent), other than service and check registration                                                                                                          |
+| [`event`](#event-rules)          | Listing and firing events in the [Event API](/api/event)                                                                                                                                              |
+| [`key`](#key-value-rules)        | Key/value store operations in the [KV Store API](/api/kv)                                                                                                                                             |
+| [`keyring`](#keyring-rules)      | Keyring operations in the [Keyring API](/api/operator/keyring)                                                                                                                                        |
+| [`node`](#node-rules)            | Node-level catalog operations in the [Catalog API](/api/catalog), [Health API](/api/health), [Prepared Query API](/api/query), [Network Coordinate API](/api/coordinate), and [Agent API](/api/agent) |
+| [`operator`](#operator-rules)    | Cluster-level operations in the [Operator API](/api/operator), other than the [Keyring API](/api/operator/keyring)                                                                                    |
+| [`query`](#prepared-query-rules) | Prepared query operations in the [Prepared Query API](/api/query)                                                                                                                                     |
+| [`service`](#service-rules)      | Service-level catalog operations in the [Catalog API](/api/catalog), [Health API](/api/health), [Prepared Query API](/api/query), and [Agent API](/api/agent)                                         |
+| [`session`](#session-rules)      | Session operations in the [Session API](/api/session)                                                                                                                                                 |
 
-Since Consul snapshots actually contain ACL tokens, the [Snapshot API](/api/snapshot.html)
+Since Consul snapshots actually contain ACL tokens, the [Snapshot API](/api/snapshot)
 requires a token with "write" privileges for the ACL system.
 
 The following resources are not covered by ACL policies:
 
-1. The [Status API](/api/status.html) is used by servers when bootstrapping and exposes
+1. The [Status API](/api/status) is used by servers when bootstrapping and exposes
    basic IP and port information about the servers, and does not allow modification
    of any state.
 
 2. The datacenter listing operation of the
-   [Catalog API](/api/catalog.html#list-datacenters) similarly exposes the names of known
+   [Catalog API](/api/catalog#list-datacenters) similarly exposes the names of known
    Consul datacenters, and does not allow modification of any state.
 
-3. The [connect CA roots endpoint](/api/connect/ca.html#list-ca-root-certificates) exposes just the public TLS certificate which other systems can use to verify the TLS connection with Consul.
+3. The [connect CA roots endpoint](/api/connect/ca#list-ca-root-certificates) exposes just the public TLS certificate which other systems can use to verify the TLS connection with Consul.
 
 Constructing rules from these policies is covered in detail on the
-[ACL Rules](/docs/acl/acl-rules.html) page.
+[ACL Rules](/docs/acl/acl-rules) page.
 
 -> **Consul Enterprise Namespacing** - In addition to directly linked policies, roles and service identities, Consul Enterprise
 will include the ACL policies and roles defined in the [Namespaces definition](/docs/enterprise/namespaces#namespace-definition). (Added in Consul Enterprise 1.7.0)
@@ -238,30 +238,30 @@ will include the ACL policies and roles defined in the [Namespaces definition](/
 ACLs are configured using several different configuration options. These are marked
 as to whether they are set on servers, clients, or both.
 
-| Configuration Option                                                | Servers    | Clients    | Purpose                                                                |
-| ------------------------------------------------------------------- | ---------- | ---------- | ---------------------------------------------------------------------- |
-| [`acl.enabled`](/docs/agent/options.html#acl_enabled)               | `REQUIRED` | `REQUIRED` | Controls whether ACLs are enabled                                      |
-| [`acl.default_policy`](/docs/agent/options.html#acl_default_policy) | `OPTIONAL` | `N/A`      | Determines whitelist or blacklist mode                                 |
-| [`acl.down_policy`](/docs/agent/options.html#acl_down_policy)       | `OPTIONAL` | `OPTIONAL` | Determines what to do when the remote token or policy resolution fails |
-| [`acl.role_ttl`](/docs/agent/options.html#acl_role_ttl)             | `OPTIONAL` | `OPTIONAL` | Determines time-to-live for cached ACL Roles                           |
-| [`acl.policy_ttl`](/docs/agent/options.html#acl_policy_ttl)         | `OPTIONAL` | `OPTIONAL` | Determines time-to-live for cached ACL Policies                        |
-| [`acl.token_ttl`](/docs/agent/options.html#acl_token_ttl)           | `OPTIONAL` | `OPTIONAL` | Determines time-to-live for cached ACL Tokens                          |
+| Configuration Option                                           | Servers    | Clients    | Purpose                                                                |
+| -------------------------------------------------------------- | ---------- | ---------- | ---------------------------------------------------------------------- |
+| [`acl.enabled`](/docs/agent/options#acl_enabled)               | `REQUIRED` | `REQUIRED` | Controls whether ACLs are enabled                                      |
+| [`acl.default_policy`](/docs/agent/options#acl_default_policy) | `OPTIONAL` | `N/A`      | Determines whitelist or blacklist mode                                 |
+| [`acl.down_policy`](/docs/agent/options#acl_down_policy)       | `OPTIONAL` | `OPTIONAL` | Determines what to do when the remote token or policy resolution fails |
+| [`acl.role_ttl`](/docs/agent/options#acl_role_ttl)             | `OPTIONAL` | `OPTIONAL` | Determines time-to-live for cached ACL Roles                           |
+| [`acl.policy_ttl`](/docs/agent/options#acl_policy_ttl)         | `OPTIONAL` | `OPTIONAL` | Determines time-to-live for cached ACL Policies                        |
+| [`acl.token_ttl`](/docs/agent/options#acl_token_ttl)           | `OPTIONAL` | `OPTIONAL` | Determines time-to-live for cached ACL Tokens                          |
 
 A number of special tokens can also be configured which allow for bootstrapping the ACL
 system, or accessing Consul in special situations:
 
-| Special Token                                                                 | Servers    | Clients    | Purpose                                                                                                                                                                                                                                                                    |
-| ----------------------------------------------------------------------------- | ---------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`acl.tokens.agent_master`](/docs/agent/options.html#acl_tokens_agent_master) | `OPTIONAL` | `OPTIONAL` | Special token that can be used to access [Agent API](/api/agent.html) when remote bearer token resolution fails; used for setting up the cluster such as doing initial join operations, see the [ACL Agent Master Token](#acl-agent-master-token) section for more details |
-| [`acl.tokens.agent`](/docs/agent/options.html#acl_tokens_agent)               | `OPTIONAL` | `OPTIONAL` | Special token that is used for an agent's internal operations, see the [ACL Agent Token](#acl-agent-token) section for more details                                                                                                                                        |
-| [`acl.tokens.master`](/docs/agent/options.html#acl_tokens_master)             | `OPTIONAL` | `N/A`      | Special token used to bootstrap the ACL system, see the [Bootstrapping ACLs](https://learn.hashicorp.com/consul/advanced/day-1-operations/acl-guide) guide for more details                                                                                                |
-| [`acl.tokens.default`](/docs/agent/options.html#acl_tokens_default)           | `OPTIONAL` | `OPTIONAL` | Default token to use for client requests where no token is supplied; this is often configured with read-only access to services to enable DNS service discovery on agents                                                                                                  |
+| Special Token                                                            | Servers    | Clients    | Purpose                                                                                                                                                                                                                                                               |
+| ------------------------------------------------------------------------ | ---------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`acl.tokens.agent_master`](/docs/agent/options#acl_tokens_agent_master) | `OPTIONAL` | `OPTIONAL` | Special token that can be used to access [Agent API](/api/agent) when remote bearer token resolution fails; used for setting up the cluster such as doing initial join operations, see the [ACL Agent Master Token](#acl-agent-master-token) section for more details |
+| [`acl.tokens.agent`](/docs/agent/options#acl_tokens_agent)               | `OPTIONAL` | `OPTIONAL` | Special token that is used for an agent's internal operations, see the [ACL Agent Token](#acl-agent-token) section for more details                                                                                                                                   |
+| [`acl.tokens.master`](/docs/agent/options#acl_tokens_master)             | `OPTIONAL` | `N/A`      | Special token used to bootstrap the ACL system, see the [Bootstrapping ACLs](https://learn.hashicorp.com/consul/advanced/day-1-operations/acl-guide) guide for more details                                                                                           |
+| [`acl.tokens.default`](/docs/agent/options#acl_tokens_default)           | `OPTIONAL` | `OPTIONAL` | Default token to use for client requests where no token is supplied; this is often configured with read-only access to services to enable DNS service discovery on agents                                                                                             |
 
-All of these tokens except the `master` token can all be introduced or updated via the [/v1/agent/token API](/api/agent.html#update-acl-tokens).
+All of these tokens except the `master` token can all be introduced or updated via the [/v1/agent/token API](/api/agent#update-acl-tokens).
 
 #### ACL Agent Master Token
 
-Since the [`acl.tokens.agent_master`](/docs/agent/options.html#acl_tokens_agent_master) is designed to be used when the Consul servers are not available, its policy is managed locally on the agent and does not need to have a token defined on the Consul servers via the ACL API. Once set, it implicitly has the following policy associated with it
+Since the [`acl.tokens.agent_master`](/docs/agent/options#acl_tokens_agent_master) is designed to be used when the Consul servers are not available, its policy is managed locally on the agent and does not need to have a token defined on the Consul servers via the ACL API. Once set, it implicitly has the following policy associated with it
 
 ```hcl
 agent "<node name of agent>" {
@@ -274,11 +274,11 @@ node_prefix "" {
 
 #### ACL Agent Token
 
-The [`acl.tokens.agent`](/docs/agent/options.html#acl_tokens_agent) is a special token that is used for an agent's internal operations. It isn't used directly for any user-initiated operations like the [`acl.tokens.default`](/docs/agent/options.html#acl_tokens_default), though if the `acl.tokens.agent_token` isn't configured the `acl.tokens.default` will be used. The ACL agent token is used for the following operations by the agent:
+The [`acl.tokens.agent`](/docs/agent/options#acl_tokens_agent) is a special token that is used for an agent's internal operations. It isn't used directly for any user-initiated operations like the [`acl.tokens.default`](/docs/agent/options#acl_tokens_default), though if the `acl.tokens.agent_token` isn't configured the `acl.tokens.default` will be used. The ACL agent token is used for the following operations by the agent:
 
-1. Updating the agent's node entry using the [Catalog API](/api/catalog.html), including updating its node metadata, tagged addresses, and network coordinates
-2. Performing [anti-entropy](/docs/internals/anti-entropy.html) syncing, in particular reading the node metadata and services registered with the catalog
-3. Reading and writing the special `_rexec` section of the KV store when executing [`consul exec`](/docs/commands/exec.html) commands
+1. Updating the agent's node entry using the [Catalog API](/api/catalog), including updating its node metadata, tagged addresses, and network coordinates
+2. Performing [anti-entropy](/docs/internals/anti-entropy) syncing, in particular reading the node metadata and services registered with the catalog
+3. Reading and writing the special `_rexec` section of the KV store when executing [`consul exec`](/docs/commands/exec) commands
 
 Here's an example policy sufficient to accomplish the above for a node called `mynode`:
 
@@ -294,9 +294,9 @@ key_prefix "_rexec" {
 }
 ```
 
-The `service_prefix` policy needs read access for any services that can be registered on the agent. If [remote exec is disabled](/docs/agent/options.html#disable_remote_exec), the default, then the `key_prefix` policy can be omitted.
+The `service_prefix` policy needs read access for any services that can be registered on the agent. If [remote exec is disabled](/docs/agent/options#disable_remote_exec), the default, then the `key_prefix` policy can be omitted.
 
 ## Next Steps
 
 Setup ACLs with the [Bootstrapping the ACL System guide](https://learn.hashicorp.com/consul/security-networking/production-acls?utm_source=consul.io&utm_medium=docs) or continue reading about
-[ACL rules](/docs/acl/acl-rules.html).
+[ACL rules](/docs/acl/acl-rules).

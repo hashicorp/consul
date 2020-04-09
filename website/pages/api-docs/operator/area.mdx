@@ -39,9 +39,9 @@ successfully.
 | `POST` | `/operator/area` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
@@ -105,9 +105,9 @@ This endpoint lists all network areas.
 | `GET`  | `/operator/area` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
@@ -148,9 +148,9 @@ This endpoint updates a network area to the given configuration.
 | `PUT`  | `/operator/area/:uuid` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
@@ -192,9 +192,9 @@ This endpoint lists a specific network area.
 | `GET`  | `/operator/area/:uuid` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
@@ -238,9 +238,9 @@ This endpoint deletes a specific network area.
 | `DELETE` | `/operator/area/:uuid` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
@@ -274,9 +274,9 @@ area.
 | `PUT`  | `/operator/area/:uuid/join` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
@@ -347,9 +347,9 @@ network area.
 | `GET`  | `/operator/area/:uuid/members` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
@@ -406,7 +406,7 @@ $ curl \
 
 - `Build` has the Consul version running on the node.
 
-- `Protocol` is the [protocol version](/docs/upgrading.html#protocol-versions)
+- `Protocol` is the [protocol version](/docs/upgrading#protocol-versions)
   being spoken by the node.
 
 - `Status` is the current health status of the node, as determined by the
@@ -416,4 +416,4 @@ $ curl \
 
 - `RTT` is an estimated network round trip time from the server answering the
   query to the given server, in nanoseconds. This is computed using [network
-  coordinates](/docs/internals/coordinates.html).
+  coordinates](/docs/internals/coordinates).

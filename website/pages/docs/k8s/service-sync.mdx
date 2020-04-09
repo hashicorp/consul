@@ -16,13 +16,13 @@ services are available to Consul agents and services in Consul can be available
 as first-class Kubernetes services. This functionality is provided by the
 [consul-k8s project](https://github.com/hashicorp/consul-k8s) and can be
 automatically installed and configured using the
-[Consul Helm chart](/docs/platform/k8s/run.html).
+[Consul Helm chart](/docs/platform/k8s/run).
 
 **Why sync Kubernetes services to Consul?** Kubernetes services synced to the
 Consul catalog enable Kubernetes services to be accessed by any node that
 is part of the Consul cluster, including other distinct Kubernetes clusters.
 For non-Kubernetes nodes, they can access services using the standard
-[Consul DNS](/docs/agent/dns.html) or HTTP API.
+[Consul DNS](/docs/agent/dns) or HTTP API.
 
 **Why sync Consul services to Kubernetes?** Syncing Consul services to
 Kubernetes services enables non-Kubernetes services (such as external to
@@ -36,7 +36,7 @@ The service sync is done using an external long-running process in the
 [consul-k8s project](https://github.com/hashicorp/consul-k8s). This process
 can run either in or out of a Kubernetes cluster. However, running this within
 the Kubernetes cluster is generally easier since it is automated using the
-[Helm chart](/docs/platform/k8s/helm.html).
+[Helm chart](/docs/platform/k8s/helm).
 
 The Consul server cluster can run either in or out of a Kubernetes cluster.
 The Consul server cluster does not need to be running on the same machine
@@ -45,7 +45,7 @@ with the address to a Consul agent as well as any additional access
 information such as ACL tokens.
 
 To install the sync process, enable the catalog sync feature using
-[Helm values](/docs/platform/k8s/helm.html#configuration-values-) and
+[Helm values](/docs/platform/k8s/helm#configuration-values-) and
 upgrade the installation using `helm upgrade` for existing installs or
 `helm install` for a fresh install.
 
@@ -75,7 +75,7 @@ syncCatalog:
   toK8S: false
 ```
 
-See the [Helm configuration](/docs/platform/k8s/helm.html#v-synccatalog)
+See the [Helm configuration](/docs/platform/k8s/helm#v-synccatalog)
 for more information.
 
 ### Authentication
@@ -92,7 +92,7 @@ then the sync program should work.
 
 For Consul, if ACLs are configured on the cluster, a Consul
 [ACL token](https://learn.hashicorp.com/consul/advanced/day-1-operations/acl-guide)
-will need to be provided. Review the [ACL rules](/docs/agent/acl-rules.html)
+will need to be provided. Review the [ACL rules](/docs/agent/acl-rules)
 when creating this token so that it only allows the necessary privileges. The catalog
 sync process accepts this token by using the [`CONSUL_HTTP_TOKEN`](/docs/commands#consul_http_token)
 environment variable. This token should be set as a
@@ -157,7 +157,7 @@ is routable and configured by some other system.
 ClusterIP services are synced by default as of `consul-k8s` version 0.3.0. In
 many Kubernetes clusters, ClusterIPs may not be accessible outside of the cluster,
 so you may end up with services registered in Consul that are not routable. To
-skip syncing ClusterIP services, set [`syncClusterIPServices`](/docs/platform/k8s/helm.html#v-synccatalog-clusterip-sync)
+skip syncing ClusterIP services, set [`syncClusterIPServices`](/docs/platform/k8s/helm#v-synccatalog-clusterip-sync)
 to `false` in the Helm chart values file.
 
 ### Sync Enable/Disable
@@ -399,11 +399,11 @@ With Consul To Kubernetes syncing enabled, DNS requests of the form `<consul-ser
 will be serviced by Consul DNS. From a different Kubernetes namespace than where Consul
 is deployed, the DNS request would need to be `<consul-service-name>.<consul-namespace>`.
 
--> **Note:** Consul to Kubernetes syncing **isn't required** if you've enabled [Consul DNS on Kubernetes](/docs/platform/k8s/dns.html)
+-> **Note:** Consul to Kubernetes syncing **isn't required** if you've enabled [Consul DNS on Kubernetes](/docs/platform/k8s/dns)
 _and_ all you need to do is address services in the form `<consul-service-name>.service.consul`, i.e. you don't need Kubernetes `Service` objects created.
 
 ~> **Requires Consul DNS via CoreDNS in Kubernetes:** This feature requires that
-[Consul DNS](/docs/platform/k8s/dns.html) is configured within Kubernetes.
+[Consul DNS](/docs/platform/k8s/dns) is configured within Kubernetes.
 Additionally, **[CoreDNS](https://kubernetes.io/docs/tasks/administer-cluster/dns-custom-nameservers/#config-coredns)
 is required (instead of kube-dns)** to resolve an
 issue with resolving `externalName` services pointing to custom domains.

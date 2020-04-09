@@ -18,12 +18,12 @@ our first service and query that service.
 ## Defining a Service
 
 A service can be registered either by providing a
-[service definition](/docs/agent/services.html) or by making the appropriate
+[service definition](/docs/agent/services) or by making the appropriate
 calls to the [HTTP API](/api).
 
 A service definition is the most common way to register services, so we'll
 use that approach for this step. We'll be building on the agent configuration
-we covered in the [previous step](/intro/getting-started/agent.html).
+we covered in the [previous step](/intro/getting-started/agent).
 
 First, create a directory for Consul configuration. Consul loads all
 configuration files in the configuration directory, so a common convention
@@ -71,7 +71,7 @@ service using either the DNS or HTTP API.
 Let's first query our service using the DNS API. For the DNS API, the
 DNS name for services is `NAME.service.consul`. By default, all DNS names
 are always in the `consul` namespace, though
-[this is configurable](/docs/agent/options.html#domain). The `service`
+[this is configurable](/docs/agent/options#domain). The `service`
 subdomain tells Consul we're querying services, and the `NAME` is the name
 of the service.
 
@@ -141,7 +141,7 @@ $ curl http://localhost:8500/v1/catalog/service/web
 ```
 
 The catalog API gives all nodes hosting a given service. As we will see later
-with [health checks](/intro/getting-started/checks.html) you'll typically want
+with [health checks](/intro/getting-started/checks) you'll typically want
 to query just for healthy instances where the checks are passing. This is what
 DNS is doing under the hood. Here's a query to look for only healthy instances:
 
@@ -164,4 +164,4 @@ dynamically.
 
 We've now configured a single agent and registered a service. This is good
 progress, but let's explore the full value of Consul by learning how to
-[automatically encrypt and authorize service-to service communication](/intro/getting-started/connect.html) with Consul Connect.
+[automatically encrypt and authorize service-to service communication](/intro/getting-started/connect) with Consul Connect.

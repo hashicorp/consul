@@ -16,7 +16,7 @@ users and developers of Consul form a mental model of how it works, this
 page documents the system architecture.
 
 -> Before describing the architecture, we recommend reading the
-[glossary](/docs/glossary.html) of terms to help
+[glossary](/docs/glossary) of terms to help
 clarify what is being discussed.
 
 The architecture concepts in this document can be used with the [Reference Architecture guide](https://learn.hashicorp.com/consul/datacenter-deploy/reference-architecture?utm_source=consul.io&utm_medium=docs) when deploying Consul in production.
@@ -38,7 +38,7 @@ availability in the case of failure and performance, as consensus gets progressi
 slower as more machines are added. However, there is no limit to the number of clients,
 and they can easily scale into the thousands or tens of thousands.
 
-All the agents that are in a datacenter participate in a [gossip protocol](/docs/internals/gossip.html).
+All the agents that are in a datacenter participate in a [gossip protocol](/docs/internals/gossip).
 This means there is a gossip pool that contains all the agents for a given datacenter. This serves
 a few purposes: first, there is no need to configure clients with the addresses of servers;
 discovery is done automatically. Second, the work of detecting agent failures
@@ -49,7 +49,7 @@ when important events such as leader election take place.
 The servers in each datacenter are all part of a single Raft peer set. This means that
 they work together to elect a single leader, a selected server which has extra duties. The leader
 is responsible for processing all queries and transactions. Transactions must also be replicated to
-all peers as part of the [consensus protocol](/docs/internals/consensus.html). Because of this
+all peers as part of the [consensus protocol](/docs/internals/consensus). Because of this
 requirement, when a non-leader server receives an RPC request, it forwards it to the cluster leader.
 
 The server agents also operate as part of a WAN gossip pool. This pool is different from the LAN pool
@@ -84,8 +84,8 @@ disrupted or the servers are temporarily unavailable.
 ## Getting in depth
 
 At this point we've covered the high level architecture of Consul, but there are many
-more details for each of the subsystems. The [consensus protocol](/docs/internals/consensus.html) is
-documented in detail as is the [gossip protocol](/docs/internals/gossip.html). The [documentation](/docs/internals/security.html)
+more details for each of the subsystems. The [consensus protocol](/docs/internals/consensus) is
+documented in detail as is the [gossip protocol](/docs/internals/gossip). The [documentation](/docs/internals/security)
 for the security model and protocols used are also available.
 
 For other details, either consult the code, ask in IRC, or reach out to the mailing list.

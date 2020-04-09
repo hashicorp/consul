@@ -19,7 +19,7 @@ is a daemon that functions as an external service monitor that can help run heal
 checks for external services.
 
 Most services are registered in Consul through the use of a
-[service definition](/docs/agent/services.html). However, this approach registers
+[service definition](/docs/agent/services). However, this approach registers
 the local node as the service provider. In the case of external services, we must
 instead register the service with the catalog rather than as part of a standard
 node service definition.
@@ -27,7 +27,7 @@ node service definition.
 Once registered, the DNS interface will be able to return the appropriate A
 records or CNAME records for the service. The service will also appear in standard
 queries against the API. Consul must be configured with a list of
-[recursors](/docs/agent/options.html#recursors) for it to be able to resolve
+[recursors](/docs/agent/options#recursors) for it to be able to resolve
 external service addresses.
 
 Let us suppose we want to register a "search" service that is provided by
@@ -79,4 +79,4 @@ $ curl -X PUT -d '{"Datacenter": "dc1", "Node": "google"}' http://127.0.0.1:8500
 
 This will deregister the `google` node along with all services it provides.
 
-For more information, please see the [HTTP Catalog API](/api/catalog.html).
+For more information, please see the [HTTP Catalog API](/api/catalog).

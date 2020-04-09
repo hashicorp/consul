@@ -136,7 +136,7 @@ registering a proxy instance.
 The following examples show all possible upstream configuration parameters.
 
 -> Note that `snake_case` is used here as it works in both [config file and API
-registrations](/docs/agent/services.html#service-definition-parameter-case).
+registrations](/docs/agent/services#service-definition-parameter-case).
 
 Upstreams support multiple destination types. Both examples are shown below
 followed by documentation for each attribute.
@@ -187,10 +187,10 @@ followed by documentation for each attribute.
   any valid JSON object. This might be used to configure proxy-specific features
   like timeouts or retries for the given upstream. See the [built-in proxy
   configuration
-  reference](/docs/connect/proxies/built-in.html#proxy-upstream-config-key-reference) for
+  reference](/docs/connect/proxies/built-in#proxy-upstream-config-key-reference) for
   options available when using the built-in proxy. If using Envoy as a proxy,
   see [Envoy configuration
-  reference](/docs/connect/proxies/envoy.html#proxy-upstream-config-options)
+  reference](/docs/connect/proxies/envoy#proxy-upstream-config-options)
 - `mesh_gateway` `(object: {})` - Specifies the mesh gateway configuration
   for this proxy. The format is defined in the [Mesh Gateway Configuration Reference](#mesh-gateway-configuration-reference).
 
@@ -199,7 +199,7 @@ followed by documentation for each attribute.
 The following examples show all possible mesh gateway configurations.
 
 -> Note that `snake_case` is used here as it works in both [config file and API
-registrations](/docs/agent/services.html#service-definition-parameter-case).
+registrations](/docs/agent/services#service-definition-parameter-case).
 
 #### Using a Local/Egress Gateway in the Local Datacenter
 
@@ -257,7 +257,7 @@ non-Connect-enabled applications to contact an HTTP endpoint.
 Some examples include: exposing a `/metrics` path for Prometheus or `/healthz` for kubelet liveness checks.
 
 -> Note that `snake_case` is used here as it works in both [config file and API
-registrations](/docs/agent/services.html#service-definition-parameter-case).
+registrations](/docs/agent/services#service-definition-parameter-case).
 
 #### Expose listeners in Envoy for HTTP and GRPC checks registered with the local Consul agent
 
@@ -304,8 +304,8 @@ registrations](/docs/agent/services.html#service-definition-parameter-case).
 
 - `checks` `(bool: false)` - If enabled, all HTTP and gRPC checks registered with the agent are exposed through Envoy.
   Envoy will expose listeners for these checks and will only accept connections originating from localhost or Consul's
-  [advertise address](/docs/agent/options.html#advertise). The port for these listeners are dynamically allocated from
-  [expose_min_port](/docs/agent/options.html#expose_min_port) to [expose_max_port](/docs/agent/options.html#expose_max_port).
+  [advertise address](/docs/agent/options#advertise). The port for these listeners are dynamically allocated from
+  [expose_min_port](/docs/agent/options#expose_min_port) to [expose_max_port](/docs/agent/options#expose_max_port).
   This flag is useful when a Consul client cannot reach registered services over localhost. One example is when running
   Consul on Kubernetes, and Consul agents run in their own pods.
 - `paths` `array<Path>: []` - A list of paths to expose through Envoy.

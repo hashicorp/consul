@@ -27,7 +27,7 @@ and dynamically configures HAProxy. Finally, clients speak to HAProxy, which doe
 health checking and load balancing across service providers.
 
 Consul is a much simpler and more contained system as it does not rely on any external
-components. Consul uses an integrated [gossip protocol](/docs/internals/gossip.html)
+components. Consul uses an integrated [gossip protocol](/docs/internals/gossip)
 to track all nodes and perform server discovery. This means that server addresses
 do not need to be hardcoded and updated fleet-wide on changes, unlike SmartStack.
 

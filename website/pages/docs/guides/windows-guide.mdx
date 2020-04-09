@@ -3,7 +3,7 @@ layout: docs
 page_title: Windows Service
 sidebar_current: docs-guides-windows-service
 description: >-
-  By using the _sc_ command either on Powershell or 
+  By using the _sc_ command either on Powershell or
 
   the Windows command line, you can make Consul run as a service. For more
   details about the _sc_ command
@@ -33,7 +33,7 @@ The steps presented here, assume that you have launched Powershell with _Adminst
 Download the Consul binary for your architecture.
 
 Use the _sc_ command to create a service named **Consul**, that will load configuration files from the `config-dir`. Read the agent configuration
-[documentation](/docs/agent/options.html#configuration-files) to learn more about configuration options.
+[documentation](/docs/agent/options#configuration-files) to learn more about configuration options.
 
 ```text
 sc.exe create "Consul" binPath= "<path to the Consul.exe> agent -config-dir <path to configuration directory>" start= auto

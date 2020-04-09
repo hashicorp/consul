@@ -17,14 +17,14 @@ by adding health checks to both nodes and services. Health checks are a
 critical component of service discovery that prevent using services that
 are unhealthy.
 
-This step builds upon [the Consul cluster created previously](join.html).
+This step builds upon [the Consul cluster created previously](/intro/getting-started/join).
 At this point, you should have a two-node cluster running.
 
 ## Defining Checks
 
 Similar to a service, a check can be registered either by providing a
-[check definition](/docs/agent/checks.html) or by making the
-appropriate calls to the [HTTP API](/api/health.html).
+[check definition](/docs/agent/checks) or by making the
+appropriate calls to the [HTTP API](/api/health).
 
 We will use the check definition approach because, just like with
 services, definitions are the most common way to set up checks.
@@ -51,7 +51,7 @@ health check, the check runs as the same user that started the Consul process.
 If the command exits with an exit code >= 2, then the check will be flagged as
 failing and the service will be considered unhealthy. An exit code of 1 will
 be considered as warning state. This is the contract for any
-[`script`-based health check](/docs/agent/checks.html#check-scripts).
+[`script`-based health check](/docs/agent/checks#check-scripts).
 
 The second command modifies the service named `web`, adding a check that sends a
 request every 10 seconds via curl to verify that the web server is accessible.
@@ -106,8 +106,8 @@ In this section, you learned how easy it is to add health checks. Check definiti
 can be updated by changing configuration files and sending a `SIGHUP` to the agent.
 Alternatively, the HTTP API can be used to add, remove, and modify checks dynamically.
 The API also allows for a "dead man's switch", a
-[TTL-based check](/docs/agent/checks.html#TTL). TTL checks can be used to integrate an
+[TTL-based check](/docs/agent/checks#TTL). TTL checks can be used to integrate an
 application more tightly with Consul, enabling business logic to be evaluated as part
 of assessing the state of the check.
 
-Next, we will explore [Consul's K/V store](kv.html).
+Next, we will explore [Consul's K/V store](/intro/getting-started/kv).

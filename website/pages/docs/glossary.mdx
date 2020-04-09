@@ -50,14 +50,14 @@ transactions are applied to a
 [finite-state machine](https://en.wikipedia.org/wiki/Finite-state_machine), our definition
 of consensus implies the consistency of a replicated state machine. Consensus is described
 in more detail on [Wikipedia](<https://en.wikipedia.org/wiki/Consensus_(computer_science)>),
-and our implementation is described [here](/docs/internals/consensus.html).
+and our implementation is described [here](/docs/internals/consensus).
 
 ## Gossip
 
 Consul is built on top of [Serf](https://www.serf.io/) which provides a full
 [gossip protocol](https://en.wikipedia.org/wiki/Gossip_protocol) that is used for multiple purposes.
 Serf provides membership, failure detection, and event broadcast. Our use of these
-is described more in the [gossip documentation](/docs/internals/gossip.html). It is enough to know
+is described more in the [gossip documentation](/docs/internals/gossip). It is enough to know
 that gossip involves random node-to-node communication, primarily over UDP.
 
 ## LAN Gossip

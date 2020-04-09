@@ -20,23 +20,23 @@ replication between datacenters, please view the
 
 ~> Values in the KV store cannot be larger than 512kb.
 
-For multi-key updates, please consider using [transaction](/api/txn.html).
+For multi-key updates, please consider using [transaction](/api/txn).
 
 ## Read Key
 
 This endpoint returns the specified key. If no key exists at the given path, a
 404 is returned instead of a 200 response.
 
-For multi-key reads, please consider using [transaction](/api/txn.html).
+For multi-key reads, please consider using [transaction](/api/txn).
 
 | Method | Path       | Produces           |
 | ------ | ---------- | ------------------ |
 | `GET`  | `/kv/:key` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -160,9 +160,9 @@ Even though the return type is `application/json`, the value is either `true` or
 `false`, indicating whether the create/update succeeded.
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -245,9 +245,9 @@ This endpoint deletes a single key or all keys sharing a prefix.
 | `DELETE` | `/kv/:key` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
