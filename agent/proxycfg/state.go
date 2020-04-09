@@ -466,6 +466,7 @@ func (s *state) initWatchesIngressGateway() error {
 		Datacenter:     s.source.Datacenter,
 		QueryOptions:   structs.QueryOptions{Token: s.token},
 		ServiceName:    s.service,
+		ServiceKind:    structs.ServiceKindIngressGateway,
 		EnterpriseMeta: s.proxyID.EnterpriseMeta,
 	}, gatewayServicesWatchID, s.ch)
 	if err != nil {
@@ -1058,6 +1059,7 @@ func (s *state) handleUpdateIngressGateway(u cache.UpdateEvent, snap *ConfigSnap
 				return err
 			}
 			watchedSvcs[u.Identifier()] = struct{}{}
+			upstreams = append(upstreams, u)
 		}
 		snap.IngressGateway.Upstreams = upstreams
 
@@ -1078,6 +1080,7 @@ func makeUpstream(g *structs.GatewayService, bindAddr string) structs.Upstream {
 	upstream := structs.Upstream{
 		DestinationName:      g.Service.ID,
 		DestinationNamespace: g.Service.NamespaceOrDefault(),
+		LocalBindPort:        g.Port,
 	}
 	upstream.LocalBindAddress = bindAddr
 	if bindAddr == "" {

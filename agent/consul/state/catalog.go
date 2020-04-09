@@ -2295,7 +2295,7 @@ func (s *Store) serviceDumpKindTxn(tx *memdb.Txn, ws memdb.WatchSet, kind struct
 	return s.parseCheckServiceNodes(tx, nil, idx, "", results, err)
 }
 
-func (s *Store) UpstreamsForIngressGateway(ws memdb.WatchSet, name string, entMeta *structs.EnterpriseMeta) (uint64, structs.Upstreams, error) {
+func (s *Store) IngressGatewayServices(ws memdb.WatchSet, name string, entMeta *structs.EnterpriseMeta) (uint64, structs.GatewayServices, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -2314,33 +2314,33 @@ func (s *Store) UpstreamsForIngressGateway(ws memdb.WatchSet, name string, entMe
 
 	// Loop through all services referenced in the gateway's config entry and create
 	// upstream definitions for them.
-	var upstreams structs.Upstreams
+	var gs structs.GatewayServices
 	ingressConfig := entry.(*structs.IngressGatewayConfigEntry)
 	for _, listener := range ingressConfig.Listeners {
 		for _, service := range listener.Services {
 			// If the wildcard was used in place of a service name, add all services
-			// in this namespace as upstreams.
+			// in this namespace.
 			if service.Name == structs.WildcardSpecifier {
 				for _, s := range services {
 					if s.NamespaceOrDefault() == service.NamespaceOrDefault() {
-						upstreams = append(upstreams, makeUpstream(s.Name, s.NamespaceOrDefault(), listener.Port))
+						gs = append(gs, makeIngressGatewayService(name, s.ToServiceID(), listener.Port, entMeta))
 					}
 				}
 			} else {
 				// Add the service as an upstream.
-				upstreams = append(upstreams, makeUpstream(service.Name, service.NamespaceOrDefault(), listener.Port))
+				gs = append(gs, makeIngressGatewayService(name, service.ToServiceID(), listener.Port, entMeta))
 			}
 		}
 	}
 
-	return idx, upstreams, nil
+	return idx, gs, nil
 }
 
-func makeUpstream(name, namespace string, port int) structs.Upstream {
-	return structs.Upstream{
-		DestinationName:      name,
-		DestinationNamespace: namespace,
-		LocalBindPort:        port,
+func makeIngressGatewayService(gateway string, svc structs.ServiceID, port int, entMeta *structs.EnterpriseMeta) *structs.GatewayService {
+	return &structs.GatewayService{
+		Gateway: structs.NewServiceID(gateway, entMeta),
+		Service: svc,
+		Port:    port,
 	}
 }
 

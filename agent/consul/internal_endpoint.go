@@ -330,25 +330,9 @@ func (m *Internal) GatewayServices(args *structs.ServiceSpecificRequest, reply *
 					return err
 				}
 			case structs.ServiceKindIngressGateway:
-				var upstreams structs.Upstreams
-				index, upstreams, err = state.UpstreamsForIngressGateway(ws, args.ServiceName, &args.EnterpriseMeta)
+				index, services, err = state.IngressGatewayServices(ws, args.ServiceName, &args.EnterpriseMeta)
 				if err != nil {
 					return err
-				}
-
-				for _, u := range upstreams {
-					gs := structs.GatewayService{
-						Gateway: structs.ServiceID{
-							ID:             args.ServiceName,
-							EnterpriseMeta: args.EnterpriseMeta,
-						},
-						Service: structs.ServiceID{
-							ID: u.DestinationName,
-							//EnterpriseMeta: fill this in,
-						},
-						Port: u.LocalBindPort,
-					}
-					services = append(services, &gs)
 				}
 			}
 

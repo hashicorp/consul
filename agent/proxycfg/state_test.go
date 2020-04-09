@@ -709,13 +709,13 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				verificationStage{
 					events: []cache.UpdateEvent{
 						cache.UpdateEvent{
-							CorrelationID: gatewayUpstreamsWatchID,
-							Result: &structs.IndexedUpstreams{
-								Upstreams: structs.Upstreams{
+							CorrelationID: gatewayServicesWatchID,
+							Result: &structs.IndexedGatewayServices{
+								Services: structs.GatewayServices{
 									{
-										DestinationName:      "api",
-										DestinationNamespace: "default",
-										LocalBindPort:        9999,
+										Gateway: structs.NewServiceID("ingress-gateway", nil),
+										Service: structs.NewServiceID("api", nil),
+										Port:    9999,
 									},
 								},
 							},
