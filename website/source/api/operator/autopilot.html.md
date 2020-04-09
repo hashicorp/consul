@@ -48,7 +48,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    http://127.0.0.1:8500/operator/autopilot/configuration
+    http://127.0.0.1:8500/v1/operator/autopilot/configuration
 ```
 
 ### Sample Response
