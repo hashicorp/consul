@@ -73,7 +73,7 @@ instances.
 
 In practice, managing per-instance tokens requires automated ACL provisioning,
 for example using [HashiCorp's
-Vault](https://www.vaultproject.io/docs/secrets/consul/index.html).
+Vault](https://www.vaultproject.io/docs/secrets/consul).
 
 ## Configure Agent Transport Encryption
 
@@ -163,7 +163,7 @@ be set.
 ```
 
 For registration via the API the token is passed in the [request
-header](/api/index.html#authentication), `X-Consul-Token`, or by using the [Go
+header](/api#authentication), `X-Consul-Token`, or by using the [Go
 client configuration](https://godoc.org/github.com/hashicorp/consul/api#Config).
 
 To avoid the overhead of a proxy, applications may [natively

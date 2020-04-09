@@ -49,7 +49,7 @@ Environment variables **cannot** be used to configure the Consul client. They
 _can_ be used when running other `consul` CLI commands that connect with a
 running agent, e.g. `CONSUL_HTTP_ADDR=192.168.0.1:8500 consul members`.
 
-See [Consul Commands](/docs/commands/index.html#environment-variables) for more
+See [Consul Commands](/docs/commands#environment-variables) for more
 information.
 
 ## Command-line Options ((#commandline_options))
@@ -1760,7 +1760,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
   Starting in Consul 0.7 and later, node addresses in responses to HTTP requests will also prefer a
   node's configured [WAN address](#_advertise-wan) when querying for a node in a remote
-  datacenter. An [`X-Consul-Translate-Addresses`](/api/index.html#translated-addresses) header
+  datacenter. An [`X-Consul-Translate-Addresses`](/api#translated-addresses) header
   will be present on all responses when translation is enabled to help clients know that the addresses
   may be translated. The `TaggedAddresses` field in responses also have a `lan` address for clients that
   need knowledge of that address, regardless of translation.

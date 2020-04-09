@@ -18,7 +18,7 @@ checks) which is monitored for updates. When an update is detected, an external 
 is invoked. A handler can be any executable or HTTP endpoint. As an example, you could watch the status
 of health checks and notify an external system when a check is critical.
 
-Watches are implemented using blocking queries in the [HTTP API](/api/index.html).
+Watches are implemented using blocking queries in the [HTTP API](/api).
 Agents automatically make the proper API calls to watch for changes
 and inform a handler when the data view has updated.
 
@@ -43,7 +43,7 @@ with invocation info, following a format that depends on the type of the watch.
 Each watch type documents the format type. Because they map directly to an HTTP
 API, handlers should expect the input to match the format of the API. A Consul
 index is also given, corresponding to the responses from the
-[HTTP API](/api/index.html).
+[HTTP API](/api).
 
 ### Executable
 
