@@ -8,7 +8,7 @@
 export default [
   { category: 'install', content: ['ports', 'bootstrapping', 'performance'] },
   {
-    category: 'upgrading', // todo: this folder didn't exist before
+    category: 'upgrading',
     content: ['compatibility', 'upgrade-specific'],
   },
   'glossary',
@@ -33,7 +33,7 @@ export default [
         category: 'acl',
         content: [
           {
-            category: 'auth-method', // these all had leafs converted to index files
+            category: 'auth-method',
             content: ['create', 'delete', 'list', 'read', 'update'],
           },
           {
@@ -58,23 +58,23 @@ export default [
         ],
       },
       'agent',
-      { category: 'catalog', content: ['datacenters', 'nodes', 'services'] }, // leaf to index
-      { category: 'config', content: ['delete', 'list', 'read', 'write'] }, // leaf to index
-      { category: 'connect', content: ['ca', 'proxy', 'envoy'] }, // leaf to index
+      { category: 'catalog', content: ['datacenters', 'nodes', 'services'] },
+      { category: 'config', content: ['delete', 'list', 'read', 'write'] },
+      { category: 'connect', content: ['ca', 'proxy', 'envoy'] },
       'debug',
       'event',
       'exec',
       'force-leave',
       'info',
       {
-        category: 'intention', // leaf to index
+        category: 'intention',
         content: ['check', 'create', 'delete', 'get', 'match'],
       },
       'join',
       'keygen',
       'keyring',
       {
-        category: 'kv', // leaf to index
+        category: 'kv',
         content: ['delete', 'export', 'get', 'import', 'put'],
       },
       'leave',
@@ -86,33 +86,33 @@ export default [
       'members',
       'monitor',
       {
-        category: 'namespace', // leaf to index
+        category: 'namespace',
         content: ['create', 'delete', 'list', 'read', 'update', 'write'],
       },
       {
-        category: 'operator', // leaf to index
+        category: 'operator',
         content: ['area', 'autopilot', 'raft'],
       },
       'reload',
       'rtt',
-      { category: 'services', content: ['register', 'deregister'] }, // leaf to index
+      { category: 'services', content: ['register', 'deregister'] },
       {
-        category: 'snapshot', // leaf to index
+        category: 'snapshot',
         content: ['agent', 'inspect', 'restore', 'save'],
       },
-      { category: 'tls', content: ['ca', 'cert'] }, // leaf to index
+      { category: 'tls', content: ['ca', 'cert'] },
       'validate',
       'version',
       'watch',
     ],
   },
   {
-    category: 'agent', // index was formerly "basics"
+    category: 'agent',
     content: [
       'dns',
       'options',
       {
-        category: 'config-entries', // index was formerly config_entries
+        category: 'config-entries',
         content: [
           'service-router',
           'service-splitter',
@@ -138,7 +138,7 @@ export default [
       'acl-rules',
       'acl-legacy',
       'acl-migrate-tokens',
-      { category: 'auth-methods', content: ['kubernetes'] }, // index was formerly 'acl-auth-methods'
+      { category: 'auth-methods', content: ['kubernetes'] },
     ],
   },
   {
@@ -150,32 +150,31 @@ export default [
       'intentions',
       'connect-internals',
       {
-        category: 'proxies', // index was formerly 'proxies'
+        category: 'proxies',
         content: ['envoy', 'built-in', 'integrate'],
       },
       'mesh_gateway',
       {
-        category: 'registration', // index was formerly 'registration'
+        category: 'registration',
         content: ['service-registration', 'sidecar-service'],
       },
       'security',
       {
-        category: 'ca', // index was formerly 'ca'
+        category: 'ca',
         content: ['consul', 'vault', 'aws'],
       },
-      { category: 'native', content: ['go'] }, // index was formerly 'native'
+      { category: 'native', content: ['go'] },
       'dev',
-      'nomad', // todo - redirect, was /platform/nomad
-      // todo - 'connect' was removed as an alias
+      'nomad',
+      // TODO: 'k8s/connect' was removed as an alias here
     ],
   },
   {
-    category: 'k8s', // formerly was nested inside /platform
+    category: 'k8s',
     content: [
       {
-        category: 'installation', // todo: these folders didn't exist before
+        category: 'installation',
         content: [
-          // todo: the index here was formerly 'run'
           'aks',
           'gke',
           'minikube',
@@ -186,7 +185,7 @@ export default [
         ],
       },
       {
-        category: 'operations', // index was formerly 'operations'
+        category: 'operations',
         content: ['upgrading', 'tls-on-existing-cluster', 'uninstalling'],
       },
       'dns',
@@ -201,11 +200,11 @@ export default [
   'common-errors',
   'faq',
   '--------',
-  'partnerships', // todo: add leaf redirects
+  'partnerships',
   {
     category: 'enterprise',
     content: [
-      'backups', // todo: add leaf redirects
+      'backups',
       'upgrades',
       'read-scale',
       'redundancy',
