@@ -173,6 +173,10 @@ func ParseSigner(pemValue string) (crypto.Signer, error) {
 	switch block.Type {
 	case "EC PRIVATE KEY":
 		return x509.ParseECPrivateKey(block.Bytes)
+		
+	case "RSA PRIVATE KEY":
+		return x509.ParsePKCS1PrivateKey(block.Bytes)
+		
 	default:
 		return nil, fmt.Errorf("unknown PEM block type for signing key: %s", block.Type)
 	}
