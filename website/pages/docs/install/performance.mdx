@@ -168,7 +168,7 @@ If the leader server is out of memory or the disk is full, the server eventually
 
 It should be noted that `stale` is not appropriate for coordination where strong consistency is important (i.e. locking or application leader election). For critical cases, the optional `consistent` API query mode is required for true linearizability; the trade off is that this turns a read into a full quorum write so requires more resources and takes longer.
 
-**Read-heavy** clusters may take advantage of the [enhanced reading](/docs/enterprise/read-scale/index.html) feature (Enterprise) for better scalability. This feature allows additional servers to be introduced as non-voters. Being a non-voter, the server will still participate in data replication, but it will not block the leader from committing log entries.
+**Read-heavy** clusters may take advantage of the [enhanced reading](/docs/enterprise/read-scale) feature (Enterprise) for better scalability. This feature allows additional servers to be introduced as non-voters. Being a non-voter, the server will still participate in data replication, but it will not block the leader from committing log entries.
 
 Consul’s agents use network sockets for communicating with the other nodes (gossip) and with the server agent. In addition, file descriptors are also opened for watch handlers, health checks, and log files. For a **write heavy** cluster, the `ulimit` size must be increased from the default value (`1024`) to prevent the leader from running out of file descriptors.
 
@@ -180,7 +180,7 @@ In addition, two [performance indicators](/docs/agent/telemetry.html) &mdash; `c
 
 ## Connect Certificate Signing CPU Limits
 
-If you enable [Connect](/docs/connect/index.html), the leader server will need
+If you enable [Connect](/docs/connect), the leader server will need
 to perform public key signing operations for every service instance in the
 cluster. Typically these operations are fast on modern hardware, however when
 the CA is changed or its key rotated, the leader will face an influx of

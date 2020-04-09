@@ -95,7 +95,7 @@ all while providing administrative insight.
 
 The ACL system is based on tokens, which are managed by Consul operators via Consul's
 [ACL API](/api/acl/acl.html), or systems like
-[HashiCorp's Vault](https://www.vaultproject.io/docs/secrets/consul/index.html).
+[HashiCorp's Vault](https://www.vaultproject.io/docs/secrets/consul).
 
 Every token has an ID, name, type, and rule set. The ID is a randomly generated
 UUID, making it infeasible to guess. The name is opaque to Consul and human readable.
@@ -103,10 +103,10 @@ The type is either "client" (meaning the token cannot modify ACL rules) or "mana
 (meaning the token is allowed to perform all actions).
 
 The token ID is passed along with each RPC request to the servers. Consul's
-[HTTP endpoints](/api/index.html) can accept tokens via the `token`
+[HTTP endpoints](/api) can accept tokens via the `token`
 query string parameter, or the `X-Consul-Token` request header, or Authorization Bearer
 token [RFC6750](https://tools.ietf.org/html/rfc6750). Consul's
-[CLI commands](/docs/commands/index.html) can accept tokens via the
+[CLI commands](/docs/commands) can accept tokens via the
 `token` argument, or the `CONSUL_HTTP_TOKEN` environment variable.
 
 If no token is provided, the rules associated with a special, configurable anonymous
@@ -584,7 +584,7 @@ by default, and limited access to just the "consul" service. The [ACL API](/api/
 can be used to create tokens for applications specific to their intended use, and to create
 more specific ACL agent tokens for each agent's expected role.
 
-Also see [HashiCorp's Vault](https://www.vaultproject.io/docs/secrets/consul/index.html), which
+Also see [HashiCorp's Vault](https://www.vaultproject.io/docs/secrets/consul), which
 has an integration with Consul that allows it to generate ACL tokens on the fly and to manage
 their lifetimes.
 
@@ -877,7 +877,7 @@ to use for registration events:
    of multiple tokens on the same agent. Examples of what this looks like are
    available for both [services](/docs/agent/services.html) and
    [checks](/docs/agent/checks.html). Tokens may also be passed to the
-   [HTTP API](/api/index.html) for operations that require them.
+   [HTTP API](/api) for operations that require them.
 
 In addition to ACLs, in Consul 0.9.0 and later, the agent must be configured with
 [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks) set to `true` in order to enable
@@ -1034,7 +1034,7 @@ to use for registration events:
    tokens on the same agent. Examples of what this looks like are available for
    both [services](/docs/agent/services.html) and
    [checks](/docs/agent/checks.html). Tokens may also be passed to the [HTTP
-   API](/api/index.html) for operations that require them. **Note:** all tokens
+   API](/api) for operations that require them. **Note:** all tokens
    passed to an agent are persisted on local disk to allow recovery from
    restarts. See [`-data-dir` flag
    documentation](/docs/agent/options.html#acl_token) for notes on securing

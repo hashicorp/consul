@@ -173,7 +173,7 @@ and consider if they're appropriate for your deployment.
     A `null` value will use the Kubernetes cluster's default StorageClass. If a default
     StorageClass does not exist, you will need to create one.
 
-  - `connect` ((#v-server-connect)) (`boolean: true`) - This will enable/disable [Connect](/docs/connect/index.html). Setting this to true _will not_ automatically secure pod communication, this
+  - `connect` ((#v-server-connect)) (`boolean: true`) - This will enable/disable [Connect](/docs/connect). Setting this to true _will not_ automatically secure pod communication, this
     setting will only enable usage of the feature. Consul will automatically initialize
     a new CA and set of certificates. Additional Connect settings can be configured
     by setting the `server.extraConfig` value.
@@ -449,7 +449,7 @@ and consider if they're appropriate for your deployment.
     resources necessary for the catalog sync process to run.
 
   - `image` ((#v-synccatalog-image)) (`string: global.imageK8S`) - The name of the Docker image
-    (including any tag) for [consul-k8s](/docs/platform/k8s/index.html#quot-consul-k8s-quot-project)
+    (including any tag) for [consul-k8s](/docs/platform/k8s#quot-consul-k8s-quot-project)
     to run the sync program.
 
   - `default` ((#v-synccatalog-default)) (`boolean: true`) - If true, all valid services in K8S are

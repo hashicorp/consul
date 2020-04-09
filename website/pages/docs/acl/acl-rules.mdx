@@ -147,7 +147,7 @@ On success, the Policy is returned:
 
 The created policy can now be specified either by name or by ID when
 [creating a token](https://learn.hashicorp.com/consul/security-networking/production-acls#create-the-agent-token). This will grant the rules
-provided to the [bearer of that token](/api/index.html#authentication).
+provided to the [bearer of that token](/api#authentication).
 
 Below is a breakdown of each rule type.
 
@@ -349,7 +349,7 @@ to use for registration events:
    of multiple tokens on the same agent. Examples of what this looks like are
    available for both [services](/docs/agent/services.html) and
    [checks](/docs/agent/checks.html). Tokens may also be passed to the
-   [HTTP API](/api/index.html) for operations that require them.
+   [HTTP API](/api) for operations that require them.
 
 In addition to ACLs, in Consul 0.9.0 and later, the agent must be configured with
 [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks) set to `true` in order to enable
@@ -503,7 +503,7 @@ to use for registration events:
    tokens on the same agent. Examples of what this looks like are available for
    both [services](/docs/agent/services.html) and
    [checks](/docs/agent/checks.html). Tokens may also be passed to the [HTTP
-   API](/api/index.html) for operations that require them. **Note:** all tokens
+   API](/api) for operations that require them. **Note:** all tokens
    passed to an agent are persisted on local disk to allow recovery from
    restarts. See [`-data-dir` flag
    documentation](/docs/agent/options.html#acl_token) for notes on securing
