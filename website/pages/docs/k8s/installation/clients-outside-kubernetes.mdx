@@ -15,7 +15,7 @@ Consul clients running on non-Kubernetes nodes can join a Consul cluster running
 ## Auto-join
 
 The recommended way to join a cluster running within Kubernetes is to
-use the ["k8s" cloud auto-join provider](/docs/agent/cloud-auto-join.html#kubernetes-k8s-).
+use the ["k8s" cloud auto-join provider](/docs/agent/cloud-auto-join#kubernetes-k8s-).
 
 The auto-join provider dynamically discovers IP addresses to join using
 the Kubernetes API. It authenticates with Kubernetes using a standard
@@ -25,7 +25,7 @@ needs to have permissions to list pods in the namespace where Consul servers
 are deployed.
 
 The auto-join string below will join a Consul server cluster that is
-started using the [official Helm chart](/docs/platform/k8s/helm.html):
+started using the [official Helm chart](/docs/platform/k8s/helm):
 
 ```shell
 $ consul agent -retry-join 'provider=k8s label_selector="app=consul,component=server"'

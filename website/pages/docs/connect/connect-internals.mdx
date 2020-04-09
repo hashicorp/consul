@@ -28,38 +28,38 @@ This enables Connect services to establish and accept connections with
 other SPIFFE-compliant systems.
 
 The client service verifies the destination service certificate
-against the [public CA bundle](/api/connect/ca.html#list-ca-root-certificates).
+against the [public CA bundle](/api/connect/ca#list-ca-root-certificates).
 This is very similar to a typical HTTPS web browser connection. In addition
 to this, the client provides its own client certificate to show its
 identity to the destination service. If the connection handshake succeeds,
 the connection is encrypted and authorized.
 
 The destination service verifies the client certificate
-against the [public CA bundle](/api/connect/ca.html#list-ca-root-certificates).
+against the [public CA bundle](/api/connect/ca#list-ca-root-certificates).
 After verifying the certificate, it must also call the
-[authorization API](/api/agent/connect.html#authorize) to authorize
-the connection against the configured set of Consul [intentions](/docs/connect/intentions.html).
+[authorization API](/api/agent/connect#authorize) to authorize
+the connection against the configured set of Consul [intentions](/docs/connect/intentions).
 If the authorization API responds successfully, the connection is established.
 Otherwise, the connection is rejected.
 
 To generate and distribute certificates, Consul has a built-in CA that
 requires no other dependencies, and
-also ships with built-in support for [Vault](/docs/connect/ca/vault.html). The PKI system is designed to be pluggable
+also ships with built-in support for [Vault](/docs/connect/ca/vault). The PKI system is designed to be pluggable
 and can be extended to support any system by adding additional CA providers.
 
 All APIs required for Connect typically respond in microseconds and impose
 minimal overhead to existing services. To ensure this, Connect-related API calls
 are all made to the local Consul agent over a loopback interface, and all [agent
-Connect endpoints](/api/agent/connect.html) implement local caching, background
+Connect endpoints](/api/agent/connect) implement local caching, background
 updating, and support blocking queries. Most API calls operate on purely local
 in-memory data.
 
 ## Agent Caching and Performance
 
 To enable fast responses on [agent Connect API
-endpoints](/api/agent/connect.html), the Consul agent locally caches most
+endpoints](/api/agent/connect), the Consul agent locally caches most
 Connect-related data and sets up background [blocking
-queries](/api/features/blocking.html) against the server to update the cache in
+queries](/api/features/blocking) against the server to update the cache in
 the background. This allows most API calls such as retrieving certificates or
 authorizing connections to use in-memory data and respond very quickly.
 
@@ -91,11 +91,11 @@ a long period of inactivity (3 days by default), the cache will empty itself.
 
 ## Connections Across Datacenters
 
-Sidecar proxy's [upstream configuration](/docs/connect/registration/service-registration.html#upstream-configuration-reference)
+Sidecar proxy's [upstream configuration](/docs/connect/registration/service-registration#upstream-configuration-reference)
 may specify an alternative datacenter or a prepared query that can address services
 in multiple datacenters (such as the [geo failover](https://learn.hashicorp.com/consul/developer-discovery/geo-failover) pattern).
 
-[Intentions](/docs/connect/intentions.html) verify connections between services by
+[Intentions](/docs/connect/intentions) verify connections between services by
 source and destination name seamlessly across datacenters.
 
 Connections can be made via gateways to enable when communicating across
@@ -105,10 +105,10 @@ without externally routable IPs at the service level.
 ## Intention Replication
 
 Intention replication happens automatically but requires the
-[`primary_datacenter`](/docs/agent/options.html#primary_datacenter)
+[`primary_datacenter`](/docs/agent/options#primary_datacenter)
 configuration to be set to specify a datacenter that is authoritative
 for intentions. In production setups with ACLs enabled, the
-[replication token](/docs/agent/options.html#acl_tokens_replication) must also
+[replication token](/docs/agent/options#acl_tokens_replication) must also
 be set in the secondary datacenter server's configuration.
 
 ## Certificate Authority Federation

@@ -12,7 +12,7 @@ description: |-
 
 The `/snapshot` endpoints save and restore the state of the Consul
 servers for disaster recovery. Snapshots include all state managed by Consul's
-Raft [consensus protocol](/docs/internals/consensus.html).
+Raft [consensus protocol](/docs/internals/consensus).
 
 ## Generate Snapshot
 
@@ -32,9 +32,9 @@ restore.
 | `GET`  | `/snapshot` | `200 application/x-gzip` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -87,9 +87,9 @@ call to the `GET` method.
 | `PUT`  | `/snapshot` | `200 text/plain (empty body)` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |

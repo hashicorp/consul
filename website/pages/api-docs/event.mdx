@@ -22,9 +22,9 @@ This endpoint triggers a new user event.
 | `PUT`  | `/event/fire/:name` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
@@ -88,9 +88,9 @@ $ curl \
 ## List Events
 
 This endpoint returns the most recent events (up to 256) known by the agent. As a
-consequence of how the [event command](/docs/commands/event.html) works, each
+consequence of how the [event command](/docs/commands/event) works, each
 agent may have a different view of the events. Events are broadcast using the
-[gossip protocol](/docs/internals/gossip.html), so they have no global ordering
+[gossip protocol](/docs/internals/gossip), so they have no global ordering
 nor do they make a promise of delivery.
 
 | Method | Path          | Produces           |
@@ -98,9 +98,9 @@ nor do they make a promise of delivery.
 | `GET`  | `/event/list` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -150,7 +150,7 @@ $ curl \
 The semantics of this endpoint's blocking queries are slightly different. Most
 blocking queries provide a monotonic index and block until a newer index is
 available. This can be supported as a consequence of the total ordering of the
-[consensus protocol](/docs/internals/consensus.html). With gossip, there is no
+[consensus protocol](/docs/internals/consensus). With gossip, there is no
 ordering, and instead `X-Consul-Index` maps to the newest event that matches the
 query.
 

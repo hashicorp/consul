@@ -15,12 +15,12 @@ service deregistration. This command simplifies service registration from
 scripts, in dev mode, etc.
 
 This is just one method of service registration. Services can also be
-registered by placing a [service definition](/docs/agent/services.html)
+registered by placing a [service definition](/docs/agent/services)
 in the Consul agent configuration directory and issuing a
-[reload](/docs/commands/reload.html). This approach is easiest for
+[reload](/docs/commands/reload). This approach is easiest for
 configuration management systems that other systems that have access to
 the configuration directory. Clients may also use the
-[HTTP API](/api/agent/service.html) directly.
+[HTTP API](/api/agent/service) directly.
 
 ## Usage
 
@@ -36,7 +36,7 @@ This command returns after registration succeeds. It must be paired with
 a deregistration command or API call to remove the service. To ensure that
 services are properly deregistered, it is **highly recommended** that
 a check is created with the
-[`DeregisterCriticalServiceAfter`](/api/agent/check.html#deregistercriticalserviceafter)
+[`DeregisterCriticalServiceAfter`](/api/agent/check#deregistercriticalserviceafter)
 configuration set. This will ensure that even if deregistration failed for
 any reason, the agent will automatically deregister the service instance after
 it is unhealthy for the specified period of time.
@@ -64,7 +64,7 @@ arguments are given, the flags below can be used to register a single
 service.
 
 Note that the behavior of each of the fields below is exactly the same
-as when constructing a standard [service definition](/docs/agent/services.html).
+as when constructing a standard [service definition](/docs/agent/services).
 Please refer to that documentation for full details.
 
 - `-id` - The ID of the service. This will default to `-name` if not set.

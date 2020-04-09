@@ -34,12 +34,12 @@ Protocol = "http"
 
 - `Protocol` `(string: "tcp")` - Sets the protocol of the service. This is used
   by Connect proxies for things like observability features and to unlock usage
-  of the [`service-splitter`](/docs/agent/config-entries/service-splitter.html) and
-  [`service-router`](/docs/agent/config-entries/service-router.html) config
+  of the [`service-splitter`](/docs/agent/config-entries/service-splitter) and
+  [`service-router`](/docs/agent/config-entries/service-router) config
   entries for a service.
 
 - `MeshGateway` `(MeshGatewayConfig: <optional>)` - Controls the default
-  [mesh gateway configuration](/docs/connect/mesh_gateway.html#connect-proxy-configuration)
+  [mesh gateway configuration](/docs/connect/mesh_gateway#connect-proxy-configuration)
   for this service. Added in v1.6.0.
 
   - `Mode` `(string: "")` - One of `none`, `local`, or `remote`.
@@ -50,7 +50,7 @@ Protocol = "http"
   Added in v1.6.0.
 
 - `Expose` `(ExposeConfig: <optional>)` - Controls the default
-  [expose path configuration](/docs/connect/registration/service-registration.html#expose-paths-configuration-reference)
+  [expose path configuration](/docs/connect/registration/service-registration#expose-paths-configuration-reference)
   for Envoy. Added in v1.6.2.
 
   Exposing paths through Envoy enables a service to protect itself by only listening on localhost, while still allowing
@@ -59,8 +59,8 @@ Protocol = "http"
 
   - `Checks` `(bool: false)` - If enabled, all HTTP and gRPC checks registered with the agent are exposed through Envoy.
     Envoy will expose listeners for these checks and will only accept connections originating from localhost or Consul's
-    [advertise address](/docs/agent/options.html#advertise). The port for these listeners are dynamically allocated from
-    [expose_min_port](/docs/agent/options.html#expose_min_port) to [expose_max_port](/docs/agent/options.html#expose_max_port).
+    [advertise address](/docs/agent/options#advertise). The port for these listeners are dynamically allocated from
+    [expose_min_port](/docs/agent/options#expose_min_port) to [expose_max_port](/docs/agent/options#expose_max_port).
     This flag is useful when a Consul client cannot reach registered services over localhost. One example is when running
     Consul on Kubernetes, and Consul agents run in their own pods.
   - `Paths` `array<Path>: []` - A list of paths to expose through Envoy.

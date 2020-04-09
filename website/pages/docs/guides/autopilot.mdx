@@ -12,10 +12,10 @@ operator-friendly management of Consul servers. It includes cleanup of dead
 servers, monitoring the state of the Raft cluster, and stable server introduction.
 
 To enable Autopilot features (with the exception of dead server cleanup),
-the [`raft_protocol`](/docs/agent/options.html#_raft_protocol) setting in
+the [`raft_protocol`](/docs/agent/options#_raft_protocol) setting in
 the Agent configuration must be set to 3 or higher on all servers. In Consul
 0.8 this setting defaults to 2; in Consul 1.0 it will default to 3. For more
-information, see the [Version Upgrade section](/docs/upgrade-specific.html#raft_protocol)
+information, see the [Version Upgrade section](/docs/upgrade-specific#raft_protocol)
 on Raft Protocol versions.
 
 In this guide we will learn more about Autopilot's features.
@@ -33,7 +33,7 @@ are starting with Autopilot enabled by default.
 ## Default Configuration
 
 The configuration of Autopilot is loaded by the leader from the agent's
-[Autopilot settings](/docs/agent/options.html#autopilot) when initially
+[Autopilot settings](/docs/agent/options#autopilot) when initially
 bootstrapping the cluster. Since Autopilot and it's features are already
 enabled, we only need to update the configuration to disable them. The
 following are the defaults.
@@ -57,8 +57,8 @@ can be configured independently. Meaning you can enable or disable any of the fe
 separately, at any time.
 
 After bootstrapping, the configuration can be viewed or modified either via the
-[`operator autopilot`](/docs/commands/operator/autopilot.html) subcommand or the
-[`/v1/operator/autopilot/configuration`](/api/operator.html#autopilot-configuration)
+[`operator autopilot`](/docs/commands/operator/autopilot) subcommand or the
+[`/v1/operator/autopilot/configuration`](/api/operator#autopilot-configuration)
 HTTP endpoint.
 
 ```
@@ -141,7 +141,7 @@ have an overly-large quorum (2-3 nodes per AZ) or give up redundancy within an A
 deploying just one server in each.
 
 If the `RedundancyZoneTag` setting is set, Consul will use its value to look for a
-zone in each server's specified [`-node-meta`](/docs/agent/options.html#_node_meta)
+zone in each server's specified [`-node-meta`](/docs/agent/options#_node_meta)
 tag. For example, if `RedundancyZoneTag` is set to `zone`, and `-node-meta zone:east1a`
 is used when starting a server, that server's redundancy zone will be `east1a`.
 
@@ -192,7 +192,7 @@ cluster. When the count of new servers equals or exceeds that of the old servers
 Autopilot will begin promoting the new servers to voters and demoting the old servers.
 After this is finished, the old servers can be safely removed from the cluster.
 
-To check the consul version of the servers, you can either use the [autopilot health](/api/operator.html#autopilot-health) endpoint or the `consul members`
+To check the consul version of the servers, you can either use the [autopilot health](/api/operator#autopilot-health) endpoint or the `consul members`
 command.
 
 ```
@@ -211,7 +211,7 @@ a migration, so that the migration logic can be used for updating the cluster wh
 changing configuration.
 
 If the `UpgradeVersionTag` setting is set, Consul will use its value to look for a
-version in each server's specified [`-node-meta`](/docs/agent/options.html#_node_meta)
+version in each server's specified [`-node-meta`](/docs/agent/options#_node_meta)
 tag. For example, if `UpgradeVersionTag` is set to `build`, and `-node-meta build:0.0.2`
 is used when starting a server, that server's version will be `0.0.2` when considered in
 a migration. The upgrade logic will follow semantic versioning and the version string
@@ -245,7 +245,7 @@ true.
 - The number of Raft log entries it trails the leader by does not exceed
   `MaxTrailingLogs`.
 
-The status of these health checks can be viewed through the [`/v1/operator/autopilot/health`](/api/operator.html#autopilot-health) HTTP endpoint, with a top level
+The status of these health checks can be viewed through the [`/v1/operator/autopilot/health`](/api/operator#autopilot-health) HTTP endpoint, with a top level
 `Healthy` field indicating the overall status of the cluster:
 
 ```

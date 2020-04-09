@@ -9,9 +9,9 @@ sidebar_current: docs-commands-snapshot-agent
 
 Command: `consul snapshot agent`
 
-~> The [`agent`](/docs/commands/snapshot/agent.html) subcommand described here is
+~> The [`agent`](/docs/commands/snapshot/agent) subcommand described here is
 available only in [Consul Enterprise](https://www.hashicorp.com/products/consul/)
-version 0.7.1 and later. All other [snapshot subcommands](/docs/commands/snapshot.html)
+version 0.7.1 and later. All other [snapshot subcommands](/docs/commands/snapshot)
 are available in the open source version of Consul.
 
 The `snapshot agent` subcommand starts a process that takes snapshots of the
@@ -49,8 +49,8 @@ in the file name when using local storage, or in the object key when using
 remote storage.
 
 Snapshots can be restored using the
-[`consul snapshot restore`](/docs/commands/snapshot/restore.html) command, or
-the [HTTP API](/api/snapshot.html).
+[`consul snapshot restore`](/docs/commands/snapshot/restore) command, or
+the [HTTP API](/api/snapshot).
 
 If ACLs are enabled the following privileges are required:
 
@@ -309,5 +309,5 @@ leader election or service registration:
 $ consul snapshot agent -interval=0
 ```
 
-Please see the [HTTP API](/api/snapshot.html) documentation for
+Please see the [HTTP API](/api/snapshot) documentation for
 more details about snapshot internals.

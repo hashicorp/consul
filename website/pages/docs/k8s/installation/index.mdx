@@ -19,7 +19,7 @@ a server running inside or outside of Kubernetes.
 
 This page starts with a large how-to section for various specific tasks.
 To learn more about the general architecture of Consul on Kubernetes, scroll
-down to the [architecture](/docs/platform/k8s/run.html#architecture) section.
+down to the [architecture](/docs/platform/k8s/run#architecture) section.
 If you would like to get hands-on experience testing Consul on Kubernetes,
 try the step-by-step beginner tutorial with an accompanying video in the
 [Minikube with Consul guide](https://learn.hashicorp.com/consul/getting-started-k8s/minikube?utm_source=consul.io&utm_medium=docs)
@@ -27,7 +27,7 @@ try the step-by-step beginner tutorial with an accompanying video in the
 ## Helm Chart Installation
 
 The recommended way to run Consul on Kubernetes is via the
-[Helm chart](/docs/platform/k8s/helm.html). This will install and configure
+[Helm chart](/docs/platform/k8s/helm). This will install and configure
 all the necessary components to run Consul. The configuration enables you
 to run just a server cluster, just a client cluster, or both. Using the Helm
 chart, you can have a full Consul deployment up and running in minutes.
@@ -43,13 +43,13 @@ upgrade, etc. the Consul cluster.
 The Helm chart has no required configuration and will install a Consul
 cluster with sane defaults out of the box. Prior to going to production,
 it is highly recommended that you
-[learn about the configuration options](/docs/platform/k8s/helm.html#configuration-values-).
+[learn about the configuration options](/docs/platform/k8s/helm#configuration-values-).
 
 ~> **Security Warning:** By default, the chart will install an insecure configuration
 of Consul. This provides a less complicated out-of-box experience for new users,
 but is not appropriate for a production setup. It is highly recommended to use
 a properly secured Kubernetes cluster or make sure that you understand and enable
-the [recommended security features](/docs/internals/security.html). Currently,
+the [recommended security features](/docs/internals/security). Currently,
 some of these features are not supported in the Helm chart and require additional
 manual configuration.
 
@@ -110,7 +110,7 @@ elected and every node will have a running Consul agent.
 If you want to customize your installation,
 create a `config.yaml` file to override the default settings.
 You can learn what settings are available by running `helm inspect values ./consul-helm`
-or by reading the [Helm Chart Reference](/docs/platform/k8s/helm.html).
+or by reading the [Helm Chart Reference](/docs/platform/k8s/helm).
 
 Once you've created your `config.yaml` file, run `helm install` with the `-f` flag:
 
@@ -119,7 +119,7 @@ $ helm install hashicorp ./consul-helm -f config.yaml
 ```
 
 If you've already installed Consul and want to make changes, you'll need to run
-`helm upgrade`. See the [Upgrading Consul on Kubernetes](/docs/platform/k8s/run.html#upgrading-consul-on-kubernetes)
+`helm upgrade`. See the [Upgrading Consul on Kubernetes](/docs/platform/k8s/run#upgrading-consul-on-kubernetes)
 section for more details.
 
 ## Viewing the Consul UI
@@ -136,7 +136,7 @@ $ kubectl port-forward service/hashicorp-consul-server 8500:8500
 Once the port is forwarded navigate to [http://localhost:8500](http://localhost:8500).
 
 If you want to expose the UI via a Kubernetes Service, configure
-the [`ui.service` chart values](/docs/platform/k8s/helm.html#v-ui-service).
+the [`ui.service` chart values](/docs/platform/k8s/helm#v-ui-service).
 This service will allow requests to the Consul servers so it should
 not be open to the world.
 
@@ -146,10 +146,10 @@ The Consul HTTP API should be accessed by communicating to the local agent
 running on the same node. While technically any listening agent (client or
 server) can respond to the HTTP API, communicating with the local agent
 has important caching behavior, and allows you to use the simpler
-[`/agent` endpoints for services and checks](/api/agent.html).
+[`/agent` endpoints for services and checks](/api/agent).
 
 For Consul installed via the Helm chart, a client agent is installed on
-each Kubernetes node. This is explained in the [architecture](/docs/platform/k8s/run.html#client-agents)
+each Kubernetes node. This is explained in the [architecture](/docs/platform/k8s/run#client-agents)
 section. To access the agent, you may use the
 [downward API](https://kubernetes.io/docs/tasks/inject-data-application/downward-api-volume-expose-pod-information/).
 
@@ -217,7 +217,7 @@ spec:
 ## Architecture
 
 We recommend running Consul on Kubernetes with the same
-[general architecture](/docs/internals/architecture.html)
+[general architecture](/docs/internals/architecture)
 as running it anywhere else. There are some benefits Kubernetes can provide
 that eases operating a Consul cluster and we document those below. The standard
 [production deployment guide](https://learn.hashicorp.com/consul/datacenter-deploy/deployment-guide) is still an
@@ -231,7 +231,7 @@ Kubernetes cluster.
 
 The server agents are run as a **StatefulSet**, using persistent volume
 claims to store the server state. This also ensures that the
-[node ID](/docs/agent/options.html#_node_id) is persisted so that servers
+[node ID](/docs/agent/options#_node_id) is persisted so that servers
 can be rescheduled onto new IP addresses without causing issues. The server agents
 are configured with
 [anti-affinity](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity)
@@ -261,7 +261,7 @@ The clients expose the Consul HTTP API via a static port (default 8500)
 bound to the host port. This enables all other pods on the node to connect
 to the node-local agent using the host IP that can be retrieved via the
 Kubernetes downward API. See
-[accessing the Consul HTTP API](/docs/platform/k8s/run.html#accessing-the-consul-http-api)
+[accessing the Consul HTTP API](/docs/platform/k8s/run#accessing-the-consul-http-api)
 for an example.
 
 There is a major limitation to this: there is no way to bind to a local-only

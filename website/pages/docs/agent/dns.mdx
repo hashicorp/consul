@@ -23,18 +23,18 @@ are located in the `us-east-1` datacenter, and have no failing health checks.
 It's that simple!
 
 There are a number of configuration options that are important for the DNS interface,
-specifically [`client_addr`](/docs/agent/options.html#client_addr),
-[`ports.dns`](/docs/agent/options.html#dns_port), [`recursors`](/docs/agent/options.html#recursors),
-[`domain`](/docs/agent/options.html#domain), and [`dns_config`](/docs/agent/options.html#dns_config).
+specifically [`client_addr`](/docs/agent/options#client_addr),
+[`ports.dns`](/docs/agent/options#dns_port), [`recursors`](/docs/agent/options#recursors),
+[`domain`](/docs/agent/options#domain), and [`dns_config`](/docs/agent/options#dns_config).
 By default, Consul will listen on 127.0.0.1:8600 for DNS queries in the `consul.`
 domain, without support for further DNS recursion. Please consult the
-[documentation on configuration options](/docs/agent/options.html),
+[documentation on configuration options](/docs/agent/options),
 specifically the configuration items linked above, for more details.
 
 There are a few ways to use the DNS interface. One option is to use a custom
 DNS resolver library and point it at Consul. Another option is to set Consul
 as the DNS server for a node and provide a
-[`recursors`](/docs/agent/options.html#recursors) configuration so that non-Consul queries
+[`recursors`](/docs/agent/options#recursors) configuration so that non-Consul queries
 can also be resolved. The last method is to forward all queries for the "consul."
 domain to a Consul agent from the existing DNS server. Review the
 [DNS Forwarding guide](https://learn.hashicorp.com/consul/security-networking/forwarding?utm_source=consul.io&utm_medium=docs) for examples.
@@ -104,7 +104,7 @@ A service lookup is used to query for service providers. Service queries support
 two lookup methods: standard and strict [RFC 2782](https://tools.ietf.org/html/rfc2782).
 
 By default, SRV weights are all set at 1, but changing weights is supported using the
-`Weights` attribute of the [service definition](/docs/agent/services.html).
+`Weights` attribute of the [service definition](/docs/agent/services).
 
 Note that DNS is limited in size per request, even when performing DNS TCP
 queries.
@@ -221,11 +221,11 @@ The `datacenter` is optional, and if not provided, the datacenter of this Consul
 agent is assumed.
 
 The `query or name` is the ID or given name of an existing
-[Prepared Query](/api/query.html). These behave like standard service
+[Prepared Query](/api/query). These behave like standard service
 queries but provide a much richer set of features, such as filtering by multiple
 tags and automatically failing over to look for services in remote datacenters if
 no healthy nodes are available in the local datacenter. Consul 0.6.4 and later also
-added support for [prepared query templates](/api/query.html#templates)
+added support for [prepared query templates](/api/query#templates)
 which can match names using a prefix match, allowing one template to apply to
 potentially many services.
 
@@ -247,15 +247,15 @@ endpoints for the given `service`. A Connect-capable endpoint may be
 both a proxy for a service or a natively integrated Connect application.
 The DNS interface does not differentiate the two.
 
-Most services will use a [proxy](/docs/connect/proxies.html) that handles
+Most services will use a [proxy](/docs/connect/proxies) that handles
 service discovery automatically and therefore won't use this DNS format.
-This DNS format is primarily useful for [Connect-native](/docs/connect/native.html)
+This DNS format is primarily useful for [Connect-native](/docs/connect/native)
 applications.
 
 This endpoint currently only finds services within the same datacenter
 and doesn't support tags. This DNS interface will be expanded over time.
 If you need more complex behavior, please use the
-[catalog API](/api/catalog.html).
+[catalog API](/api/catalog).
 
 ### UDP Based DNS Queries
 
@@ -276,8 +276,8 @@ for [DNS caching](https://learn.hashicorp.com/consul/security-networking/dns-cac
 By default, Consul DNS queries will return a node's local address, even when
 being queried from a remote datacenter. If you need to use a different address
 to reach a node from outside its datacenter, you can configure this behavior
-using the [`advertise-wan`](/docs/agent/options.html#_advertise-wan) and
-[`translate_wan_addrs`](/docs/agent/options.html#translate_wan_addrs) configuration
+using the [`advertise-wan`](/docs/agent/options#_advertise-wan) and
+[`translate_wan_addrs`](/docs/agent/options#translate_wan_addrs) configuration
 options.
 
 ## Namespaced Services <span class="label-enterprise label-enterprise-lg">Enterprise</span>
@@ -293,7 +293,7 @@ services from other namespaces the following form can be used:
 
 This is the canonical name of a Consul Enterprise service with all parts present. Like
 Consul OSS some parts may be omitted but which parts depend on the value of the
-[`prefer_namespace` configuration](https://deploy-preview-6909--consul-docs-preview.netlify.com/docs/agent/options.html#dns_prefer_namespace).
+[`prefer_namespace` configuration](/docs/agent/options#dns_prefer_namespace).
 
 With `prefer_namespace` set to `true` the datacenter may be omitted and will be defaulted
 to the local agents datacenter:

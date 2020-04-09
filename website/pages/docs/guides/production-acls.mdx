@@ -35,7 +35,7 @@ bootstrap token.
 ### Enable ACLs on the Agents
 
 To enable ACLs, add the following [ACL
-parameters](/docs/agent/options.html#configuration-key-reference)
+parameters](/docs/agent/options#configuration-key-reference)
 to the agent's configuration file and then restart the Consul service. If you
 want to reduce Consul client restarts, you can enable the ACLs
 on them when you apply the token.
@@ -125,7 +125,7 @@ node "consul-server-one" {
 }
 ```
 
-When creating agent policies, review the [node rules](/docs/agent/acl-rules.html#node-rules). Now that
+When creating agent policies, review the [node rules](/docs/agent/acl-rules#node-rules). Now that
 you have
 specified the policy, you can initialize it using the Consul
 CLI. To create a programmatic process, you could also use
@@ -195,7 +195,7 @@ agent anti-entropy, registering and de-registering the service, and
 registering and de-registering the service's checks.
 
 Review the [service
-rules](/docs/agent/acl-rules.html#service-rules) before
+rules](/docs/agent/acl-rules#service-rules) before
 getting started.
 
 Below is an example service definition that needs a token after bootstrapping
@@ -218,13 +218,13 @@ the ACL system.
 ```
 
 This service definition should be located in the [configuration
-directory](/docs/agent/options.html#_config_dir) on one of
+directory](/docs/agent/options#_config_dir) on one of
 the clients.
 
 First, create the policy that will grant write privileges to only the
 "dashboard" service. This means the "dashboard" service can register
 itself, update it's health checks, and write any of the fields in the [service
-definition](/docs/agent/services.html).
+definition](/docs/agent/services).
 
 ```shell
 # dashboard-policy.hcl
@@ -281,9 +281,9 @@ definition. Alternatively, you can create a separate token.
 ## Token for DNS
 
 Depending on your use case, the token used for DNS may need policy rules for
-[nodes](/docs/agent/acl-rules.html#node-rules),
-[services](/docs/agent/acl-rules.html#service-rules), and
-[prepared queries](/docs/agent/acl-rules.html#prepared-query-rules).
+[nodes](/docs/agent/acl-rules#node-rules),
+[services](/docs/agent/acl-rules#service-rules), and
+[prepared queries](/docs/agent/acl-rules#prepared-query-rules).
 You should apply the token to the Consul agent serving DNS requests. When the
 DNS server makes a request to Consul, it will include the token in the request.
 Consul can either authorize or revoke the request, depending on the token's
@@ -352,7 +352,7 @@ has many varied use cases.
   update configuration values in the key-value store. .
 
 The [rules for
-KV](/docs/agent/acl-rules.html#key-value-rules) have four
+KV](/docs/agent/acl-rules#key-value-rules) have four
 policy levels; `deny`, `write`, `read`, and `list`. Let's review several
 examples of `read` and `write`.
 
@@ -408,7 +408,7 @@ value. This is useful for configuration parameter updates.
 
 Once you have bootstrapped the ACL system, access to the UI will be limited.
 The anonymous token grants UI access if no [default
-token](/docs/agent/options.html#acl_tokens_default) is set
+token](/docs/agent/options#acl_tokens_default) is set
 on the agents, and all operations will be denied, including viewing nodes and
 services.
 
@@ -449,4 +449,4 @@ node_prefix "" {
 
 In this guide you bootstrapped the ACL system for consul and applied tokens to agents and services. You assigned tokens for DNS, Consul KV, and the Consul UI.
 
-To learn more about Consul’s security model read the [internals documentation](/docs/internals/security.html). You can find commands relating to ACLs in our [reference documentation](/docs/commands/acl.html).
+To learn more about Consul’s security model read the [internals documentation](/docs/internals/security). You can find commands relating to ACLs in our [reference documentation](/docs/commands/acl).

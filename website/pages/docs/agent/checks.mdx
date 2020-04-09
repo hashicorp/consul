@@ -36,10 +36,10 @@ There are several different kinds of checks:
   In Consul 0.9.0 and later, script checks are not enabled by default. To use them you
   can either use :
 
-  - [`enable_local_script_checks`](/docs/agent/options.html#_enable_local_script_checks):
+  - [`enable_local_script_checks`](/docs/agent/options#_enable_local_script_checks):
     enable script checks defined in local config files. Script checks defined via the HTTP
     API will not be allowed.
-  - [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks): enable
+  - [`enable_script_checks`](/docs/agent/options#_enable_script_checks): enable
     script checks regardless of how they are defined.
 
   ~> **Security Warning:** Enabling script checks in some configurations may
@@ -88,9 +88,9 @@ There are several different kinds of checks:
   dead man's switch, relies on the application to directly report its health. For
   example, a healthy app can periodically `PUT` a status update to the HTTP endpoint;
   if the app fails, the TTL will expire and the health check enters a critical state.
-  The endpoints used to update health information for a given check are: [pass](/api/agent/check.html#ttl-check-pass),
-  [warn](/api/agent/check.html#ttl-check-warn), [fail](/api/agent/check.html#ttl-check-fail),
-  and [update](/api/agent/check.html#ttl-check-update). TTL checks also persist their
+  The endpoints used to update health information for a given check are: [pass](/api/agent/check#ttl-check-pass),
+  [warn](/api/agent/check#ttl-check-warn), [fail](/api/agent/check#ttl-check-fail),
+  and [update](/api/agent/check#ttl-check-update). TTL checks also persist their
   last known status to disk. This allows the Consul agent to restore the last known
   status of the check across restarts. Persisted check status is valid through the
   end of the TTL from the time of the last check.
@@ -105,7 +105,7 @@ There are several different kinds of checks:
   has to be performed is configurable which makes it possible to run containers which
   have different shells on the same host. Check output for Docker is limited to
   4KB. Any output larger than this will be truncated. In Consul 0.9.0 and later, the agent
-  must be configured with [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks)
+  must be configured with [`enable_script_checks`](/docs/agent/options#_enable_script_checks)
   set to `true` in order to enable Docker health checks.
 
 - `gRPC + Interval` - These checks are intended for applications that support the standard
@@ -258,7 +258,7 @@ updating a TTL check via the HTTP interface can set the `notes` value.
 
 Checks may also contain a `token` field to provide an ACL token. This token is
 used for any interaction with the catalog for the check, including
-[anti-entropy syncs](/docs/internals/anti-entropy.html) and deregistration.
+[anti-entropy syncs](/docs/internals/anti-entropy) and deregistration.
 For Alias checks, this token is used if a remote blocking query is necessary
 to watch the state of the aliased node or service.
 
@@ -300,7 +300,7 @@ This is the only convention that Consul depends on. Any output of the script
 will be captured and stored in the `output` field.
 
 In Consul 0.9.0 and later, the agent must be configured with
-[`enable_script_checks`](/docs/agent/options.html#_enable_script_checks) set to `true`
+[`enable_script_checks`](/docs/agent/options#_enable_script_checks) set to `true`
 in order to enable script checks.
 
 ## Initial Health Check Status
@@ -350,7 +350,7 @@ provided by the node will remain unchanged.
 
 ## Agent Certificates for TLS Checks
 
-The [enable_agent_tls_for_checks](/docs/agent/options.html#enable_agent_tls_for_checks)
+The [enable_agent_tls_for_checks](/docs/agent/options#enable_agent_tls_for_checks)
 agent configuration option can be utilized to have HTTP or gRPC health checks
 to use the agent's credentials when configured for TLS.
 

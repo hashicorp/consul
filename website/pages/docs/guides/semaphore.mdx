@@ -15,10 +15,10 @@ sessions and Consul KV to build a distributed
 semaphore. Note, there are a number of ways that a semaphore can be built, we will not cover all the possible methods in this guide.
 
 To complete this guide successfully, you should have familiarity with
-[Consul KV](/docs/agent/kv.html) and Consul [sessions](/docs/internals/sessions.html).
+[Consul KV](/docs/agent/kv) and Consul [sessions](/docs/internals/sessions).
 
 ~> If you only need mutual exclusion or leader election,
-[this guide](/docs/guides/leader-election.html)
+[this guide](/docs/guides/leader-election)
 provides a simpler algorithm that can be used instead.
 
 ## Contending Nodes in the Semaphore
@@ -36,7 +36,7 @@ The first step is for each contending node to create a session. Sessions allow u
 can gracefully handle failures.
 
 This is done using the
-[Session HTTP API](/api/session.html#session_create).
+[Session HTTP API](/api/session#session_create).
 
 ```shell
 curl  -X PUT -d '{"Name": "db-semaphore"}' \
@@ -69,7 +69,7 @@ curl -X PUT -d <body> http://localhost:8500/v1/kv/<prefix>/<session>?acquire=<se
 This body is opaque to Consul but can be useful for human operators.
 
 The `<session>` value is the ID returned by the call to
-[`/v1/session/create`](/api/session.html#session_create).
+[`/v1/session/create`](/api/session#session_create).
 
 The call will either return `true` or `false`. If `true`, the contender entry has been
 created. If `false`, the contender node was not created; it's likely that this indicates

@@ -14,7 +14,7 @@ The `/agent` endpoints are used to interact with the local Consul agent.
 Usually, services and checks are registered with an agent which then takes on
 the burden of keeping that data synchronized with the cluster. For example, the
 agent registers services and checks with the Catalog and performs
-[anti-entropy](/docs/internals/anti-entropy.html) to recover from outages.
+[anti-entropy](/docs/internals/anti-entropy) to recover from outages.
 
 In addition to these endpoints, additional endpoints are grouped in the
 navigation for `Checks` and `Services`.
@@ -31,9 +31,9 @@ by agent. The strongly consistent view of nodes is instead provided by
 | `GET`  | `/agent/members` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -97,9 +97,9 @@ to change without notice or deprecation.
 | `GET`  | `/agent/self` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -169,7 +169,7 @@ This endpoint instructs the agent to reload its configuration. Any errors
 encountered during this process are returned.
 
 Not all configuration options are reloadable. See the
-[Reloadable Configuration](/docs/agent/options.html#reloadable-configuration)
+[Reloadable Configuration](/docs/agent/options#reloadable-configuration)
 section on the agent options page for details on which options are supported.
 
 | Method | Path            | Produces           |
@@ -177,9 +177,9 @@ section on the agent options page for details on which options are supported.
 | `PUT`  | `/agent/reload` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
@@ -208,9 +208,9 @@ restart.
 | `PUT`  | `/agent/maintenance` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -240,12 +240,12 @@ $ curl \
 ## View Metrics
 
 This endpoint will dump the metrics for the most recent finished interval.
-For more information about metrics, see the [telemetry](/docs/agent/telemetry.html)
+For more information about metrics, see the [telemetry](/docs/agent/telemetry)
 page.
 
 In order to enable [Prometheus](https://prometheus.io/) support, you need to use the
 configuration directive
-[`prometheus_retention_time`](/docs/agent/options.html#telemetry-prometheus_retention_time).
+[`prometheus_retention_time`](/docs/agent/options#telemetry-prometheus_retention_time).
 
 Note: If your metric includes labels that use the same key name multiple times
 (i.e. tag=tag2 and tag=tag1), only the sorted last value (tag=tag2) will be visible on
@@ -258,9 +258,9 @@ passed to external metrics providers even though it is not visible through this 
 | `GET`  | `/agent/metrics?format=prometheus` | `text/plain; version=0.0.4; charset=utf-8` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -380,9 +380,9 @@ This endpoint streams logs from the local agent until the connection is closed.
 | `GET`  | `/agent/monitor` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -424,9 +424,9 @@ This endpoint instructs the agent to attempt to connect to a given address.
 | `PUT`  | `/agent/join/:address` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
@@ -464,9 +464,9 @@ can affect cluster availability.
 | `PUT`  | `/agent/leave` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
@@ -501,9 +501,9 @@ the list of members entirely.
 | `PUT`  | `/agent/force-leave/:node?prune` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
@@ -527,7 +527,7 @@ $ curl \
 This endpoint updates the ACL tokens currently in use by the agent. It can be
 used to introduce ACL tokens to the agent for the first time, or to update
 tokens that were initially loaded from the agent's configuration. Tokens will be persisted
-only if the [`acl.enable_token_persistence`](/docs/agent/options.html#acl_enable_token_persistence)
+only if the [`acl.enable_token_persistence`](/docs/agent/options#acl_enable_token_persistence)
 configuration is `true`. When not being persisted, they will need to be reset if the agent
 is restarted.
 
@@ -539,9 +539,9 @@ is restarted.
 | `PUT`  | `/agent/token/replication`  | `application/json` |
 
 The paths above correspond to the token names as found in the agent configuration:
-[`default`](/docs/agent/options.html#acl_tokens_default), [`agent`](/docs/agent/options.html#acl_tokens_agent),
-[`agent_master`](/docs/agent/options.html#acl_tokens_agent_master), and
-[`replication`](/docs/agent/options.html#acl_tokens_replication).
+[`default`](/docs/agent/options#acl_tokens_default), [`agent`](/docs/agent/options#acl_tokens_agent),
+[`agent_master`](/docs/agent/options#acl_tokens_agent_master), and
+[`replication`](/docs/agent/options#acl_tokens_replication).
 
 -> **Deprecation Note:** The following paths were deprecated in version 1.4.3
 
@@ -553,14 +553,14 @@ The paths above correspond to the token names as found in the agent configuratio
 | `PUT`  | `/agent/token/acl_replication_token`  | `application/json` |
 
 The paths above correspond to the token names as found in the agent configuration:
-[`acl_token`](/docs/agent/options.html#acl_token_legacy), [`acl_agent_token`](/docs/agent/options.html#acl_agent_token_legacy),
-[`acl_agent_master_token`](/docs/agent/options.html#acl_agent_master_token_legacy), and
-[`acl_replication_token`](/docs/agent/options.html#acl_replication_token_legacy).
+[`acl_token`](/docs/agent/options#acl_token_legacy), [`acl_agent_token`](/docs/agent/options#acl_agent_token_legacy),
+[`acl_agent_master_token`](/docs/agent/options#acl_agent_master_token_legacy), and
+[`acl_replication_token`](/docs/agent/options#acl_replication_token_legacy).
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking.html),
-[consistency modes](/api/features/consistency.html),
-[agent caching](/api/features/caching.html), and
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |

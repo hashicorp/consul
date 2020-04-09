@@ -22,7 +22,7 @@ and discovery terminates.
 ## Interaction with other Config Entries
 
 - Service resolver config entries are a component of [L7 Traffic
-  Management](/docs/connect/l7-traffic-management.html).
+  Management](/docs/connect/l7-traffic-management).
 
 ## Sample Config Entries
 
@@ -93,10 +93,10 @@ name = "web"
   usable.
 
   - `Filter` `(string: "")` - The
-    [filter expression](/api/features/filtering.html) to be used for selecting
+    [filter expression](/api/features/filtering) to be used for selecting
     instances of the requested service. If empty all healthy instances are
     returned. This expression can filter on the same selectors as the
-    [Health API endpoint](/api/health.html#filtering-2).
+    [Health API endpoint](/api/health#filtering-2).
 
   - `OnlyPassing` `(bool: false)` - Specifies the behavior of the resolver's
     health check interpretation. If this is set to false, instances with checks

@@ -30,7 +30,7 @@ For each type of metric, we will review their importance and help identify when 
 
 First, we need to understand the three methods for collecting metrics. We will briefly cover using SIGUSR1, the HTTP API, and telemetry.
 
-Before starting this guide, we recommend configuring [ACLs](/docs/guides/acl.html).
+Before starting this guide, we recommend configuring [ACLs](/docs/guides/acl).
 
 ## How to Collect Metrics
 
@@ -56,7 +56,7 @@ Next let’s use the HTTP API to quickly collect metrics with curl.
 $ curl http://127.0.0.1:8500/v1/agent/metrics
 ```
 
-In production you will want to set up credentials with an ACL token and [enable TLS](/docs/agent/encryption.html) for secure communications. Once ACLs have been configured, you can pass a token with the request.
+In production you will want to set up credentials with an ACL token and [enable TLS](/docs/agent/encryption) for secure communications. Once ACLs have been configured, you can pass a token with the request.
 
 ```shell
 $ curl \
