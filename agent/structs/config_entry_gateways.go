@@ -264,7 +264,7 @@ func (e *TerminatingGatewayConfigEntry) CanRead(authz acl.Authorizer) bool {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
 
-	return authz.OperatorRead(&authzContext) == acl.Allow
+	return authz.ServiceRead(e.Name, &authzContext) == acl.Allow
 }
 
 func (e *TerminatingGatewayConfigEntry) CanWrite(authz acl.Authorizer) bool {
