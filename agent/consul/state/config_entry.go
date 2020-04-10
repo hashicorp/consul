@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
 	memdb "github.com/hashicorp/go-memdb"
@@ -216,8 +217,8 @@ func (s *Store) ensureConfigEntryTxn(tx *memdb.Txn, idx uint64, conf structs.Con
 
 	// If the config entry is for terminating gateways we update the memdb table
 	// that associates gateways <-> services.
-	if conf.GetKind() == structs.TerminatingGateway {
-		err = s.updateTerminatingGatewayServices(tx, idx, conf, entMeta)
+	if conf.GetKind() == structs.TerminatingGateway || conf.GetKind() == structs.IngressGateway {
+		err = s.updateGatewayServices(tx, idx, conf, entMeta)
 		if err != nil {
 			return fmt.Errorf("failed to associate services to gateway: %v", err)
 		}
@@ -284,12 +285,12 @@ func (s *Store) DeleteConfigEntry(idx uint64, kind, name string, entMeta *struct
 
 	// If the config entry is for terminating gateways we delete entries from the memdb table
 	// that associates gateways <-> services.
-	if kind == structs.TerminatingGateway {
-		if _, err := tx.DeleteAll(terminatingGatewayServicesTableName, "gateway", structs.NewServiceID(name, entMeta)); err != nil {
+	if kind == structs.TerminatingGateway || kind == structs.IngressGateway {
+		if _, err := tx.DeleteAll(gatewayServicesTableName, "gateway", structs.NewServiceID(name, entMeta)); err != nil {
 			return fmt.Errorf("failed to truncate gateway services table: %v", err)
 		}
-		if err := indexUpdateMaxTxn(tx, idx, terminatingGatewayServicesTableName); err != nil {
-			return fmt.Errorf("failed updating terminating-gateway-services index: %v", err)
+		if err := indexUpdateMaxTxn(tx, idx, gatewayServicesTableName); err != nil {
+			return fmt.Errorf("failed updating gateway-services index: %v", err)
 		}
 	}
 

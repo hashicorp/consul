@@ -1069,6 +1069,7 @@ func (s *state) handleUpdateIngressGateway(u cache.UpdateEvent, snap *ConfigSnap
 				delete(snap.IngressGateway.WatchedDiscoveryChains, id)
 			}
 		}
+
 	default:
 		return s.handleUpdateUpstreams(u, &snap.IngressGateway.ConfigSnapshotUpstreams)
 	}

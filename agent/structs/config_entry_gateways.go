@@ -330,7 +330,20 @@ func (g *GatewayService) IsSame(o *GatewayService) bool {
 	return g.Gateway.Matches(&o.Gateway) &&
 		g.Service.Matches(&o.Service) &&
 		g.GatewayKind == o.GatewayKind &&
+		g.Port == o.Port &&
 		g.CAFile == o.CAFile &&
 		g.CertFile == o.CertFile &&
 		g.KeyFile == o.KeyFile
+}
+
+func (g *GatewayService) Clone() *GatewayService {
+	return &GatewayService{
+		Gateway:     g.Gateway,
+		Service:     g.Service,
+		GatewayKind: g.GatewayKind,
+		Port:        g.Port,
+		CAFile:      g.CAFile,
+		CertFile:    g.CertFile,
+		KeyFile:     g.KeyFile,
+	}
 }
