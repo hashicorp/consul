@@ -33,7 +33,7 @@
 @import '~@hashicorp/react-docs-page/style.css';
 @import '~@hashicorp/react-section-header/dist/style.css';
 @import '~@hashicorp/react-call-to-action/dist/style.css';
-/* @import '~@hashicorp/react-case-study-slider/style.css'; */
+@import '~@hashicorp/react-case-study-slider/dist/style.css';
 
 /* Local Components */
 @import '../components/footer/style.css';

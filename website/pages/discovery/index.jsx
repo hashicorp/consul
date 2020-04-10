@@ -1,6 +1,6 @@
 import CallToAction from '@hashicorp/react-call-to-action'
 import BeforeAfterDiagram from '../../components/before-after'
-// import CaseStudySlider from '@hashicorp/react-case-study-slider'
+import CaseStudySlider from '@hashicorp/react-case-study-slider'
 // import TextSplitWithCode from '@hashicorp/react-text-split-with-code'
 
 export default function ServiceDiscovery() {
@@ -307,106 +307,82 @@ $ curl http://localhost:8500/v1/catalog/nodes?<code class='keyword'>dc=dc2</code
             </div>
           </div>
         </section>
+        <section className="large-padding bg-dark">
+          <div className="g-grid-container">
+            <div class="intro">
+              <h2 class="g-type-display-2">Use Cases</h2>
+            </div>
+            <CaseStudySlider
+              dark
+              data={{
+                brand: 'consul',
+                caseStudies: [
+                  {
+                    company: {
+                      monochromeLogo: {
+                        url:
+                          'https://www.datocms-assets.com/2885/1586530899-twitchextrudedwordmarkblackops.png',
+                        alt: 'Logo dark',
+                        format: 'png',
+                      },
+                      whiteLogo: {
+                        url:
+                          'https://www.datocms-assets.com/2885/1586530633-twitch-wordmark-white.svg',
+                        alt: 'Logo white',
+                        format: 'png',
+                      },
+                    },
+                    headline:
+                      'Twitch - Driving Towards a Modern Infrastructure',
+                    description:
+                      'In this talk from HashiConf 2015, Tarrant Rollins discusses how Twitch uses HashiCorp Consul to overcome legacy infrastructure and solve complex problems.',
+                    caseStudyResource: {
+                      slug: 'twitch-driving-towards-a-modern-infrastructure',
+                      image: {
+                        url:
+                          '/img/consul-connect/case-studies/case-study_01.jpg',
+                        alt: 'Twitch - Modern Infrastructure',
+                        format: 'jpg',
+                      },
+                    },
+                    buttonLabel: 'Watch Video',
+                  },
+                  {
+                    company: {
+                      monochromeLogo: {
+                        url:
+                          'https://www.datocms-assets.com/2885/1522341143-jet-black.svg',
+                        alt: 'Logo dark',
+                        format: 'svg',
+                      },
+                      whiteLogo: {
+                        url:
+                          'https://www.datocms-assets.com/2885/1522341147-jet-white.svg',
+                        alt: 'Logo white',
+                        format: 'svg',
+                      },
+                    },
+                    headline:
+                      'Jet.com - Nomad Auto-Proxy with Consul-Template and NGINX',
+                    description:
+                      'Justen Walker explains how Jet.com uses HashiCorp Consul and Nomad to allow hundreds of developers to have self-service access, despite relying on NGINX static configs—and with a remarkably small DevOps team.',
+                    caseStudyResource: {
+                      slug: 'jet-com-nomad-auto-proxy-consul-template-nginx',
+                      image: {
+                        url:
+                          '/img/consul-connect/case-studies/case-study_02.jpg',
+                        alt: 'Jet - Nomad Auto-Proxy',
+                        format: 'jpg',
+                      },
+                    },
+                    buttonLabel: 'Watch Video',
+                  },
+                ],
+              }}
+            />
+          </div>
+        </section>
 
-        {/* <CaseStudySlider
-          data={[
-            {
-              caseStudies: [
-                {
-                  company: {
-                    monochromeLogo: {
-                      url:
-                        'https://www.datocms-assets.com/2885/1538067560-proofpoint-logo-reg-k.png',
-                      alt: 'Logo dark',
-                      format: 'png',
-                    },
-                    whiteLogo: {
-                      url:
-                        'https://www.datocms-assets.com/2885/1538067567-proofpoint-logo-reg-reversed.png',
-                      alt: 'Logo white',
-                      format: 'png',
-                    },
-                  },
-                  headline: 'This is the first case study',
-                  description:
-                    'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus ut arcu justo, et convallis lectus. Sed commodo massa eget risus feugiat suscipit. ',
-                  caseStudyResource: {
-                    slug: 'https://www.hashicorp.com',
-                    image: {
-                      url:
-                        'https://www.datocms-assets.com/2885/1538142087-ye-endahl.jpg',
-                      alt: 'Test image',
-                      format: 'jpg',
-                    },
-                  },
-                  buttonLabel: 'Custom Label',
-                },
-                {
-                  company: {
-                    monochromeLogo: {
-                      url:
-                        'https://www.datocms-assets.com/2885/1524097005-adobe-black-1.svg',
-                      alt: 'Logo dark',
-                      format: 'svg',
-                    },
-                    whiteLogo: {
-                      url:
-                        'https://www.datocms-assets.com/2885/1524097013-adobe-white-1.svg',
-                      alt: 'Logo white',
-                      format: 'svg',
-                    },
-                  },
-                  headline: 'This is the second case study',
-                  description:
-                    'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus ut arcu justo, et convallis lectus. Sed commodo massa eget risus feugiat suscipit. Nulla velit lectus, imperdiet cursus tempor at, ',
-                  caseStudyResource: {
-                    slug: 'https://www.hashicorp.com',
-                    image: {
-                      url:
-                        'https://www.datocms-assets.com/2885/1538233406-wa-6h7-400x400.jpg',
-                      alt: 'Test image',
-                      format: 'jpg',
-                    },
-                  },
-                },
-                {
-                  company: {
-                    monochromeLogo: {
-                      url:
-                        'https://www.datocms-assets.com/2885/1535495419-black.png',
-                      alt: 'Logo dark',
-                      format: 'png',
-                    },
-                    whiteLogo: {
-                      url:
-                        'https://www.datocms-assets.com/2885/1535495424-white.png',
-                      alt: 'Logo white',
-                      format: 'png',
-                    },
-                  },
-                  headline: 'This is the third case study',
-                  description:
-                    'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus ut arcu justo, et convallis lectus. Sed commodo massa eget risus feugiat suscipit. Nulla velit lectus, ',
-                  caseStudyResource: {
-                    slug: 'https://www.hashicorp.com',
-                    image: {
-                      url:
-                        'https://www.datocms-assets.com/2885/1535120026-36755049704aeaabe64ddk.jpg',
-                      alt: 'Test image',
-                      format: 'jpg',
-                    },
-                  },
-                  caseStudyImage: {
-                    url:
-                      'https://www.datocms-assets.com/2885/1535120026-36755049704aeaabe64ddk.jpg',
-                    alt: 'Case Study image override',
-                    format: 'jpg',
-                  },
-                },
-              ],
-            },
-          ]}
-        /> */}
         <section class="g-section g-cta-section large-padding">
           <div>
             <h2 class="g-type-display-2">Ready to get started?</h2>

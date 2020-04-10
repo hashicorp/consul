@@ -1,3 +1,7 @@
+.intro {
+  text-align: center;
+}
+
 .g-cta-section.g-section {
   align-items: center;
   background: var(--consul);
@@ -34,4 +38,9 @@
   & .button + .button {
     margin-left: 18px;
   }
+}
+
+.bg-dark {
+  background: #252937 !important;
+  color: #fff;
 }
