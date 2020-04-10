@@ -232,6 +232,9 @@ func (s *Server) listenersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 // See: https://www.consul.io/docs/connect/proxies/envoy.html#mesh-gateway-options
 func (s *Server) listenersFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var resources []proto.Message
+	// TODO(ingress): We give each upstream a distinct listener at the moment,
+	// for http listeners we will need to multiplex upstreams on a single
+	// listener.
 	for _, u := range cfgSnap.IngressGateway.Upstreams {
 		id := u.Identifier()
 
