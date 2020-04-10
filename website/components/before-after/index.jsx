@@ -1,108 +1,47 @@
-import marked from 'marked'
-import Image from '@hashicorp/react-image'
-import checkIcon from '../../public/img/icons/check-icon.svg?include'
-import alertIcon from '../../public/img/icons/alert-icon.svg?include'
-
-function BeforeAfterDiagram(props) {
-  const markedOptions = generateMarkedOptions()
-  const {
-    theme,
-    beforeHeadline,
-    beforeContent,
-    beforeImage,
-    afterHeadline,
-    afterContent,
-    afterImage,
-  } = props
+function BeforeAfterDiagram({
+  beforeHeading,
+  beforeSubTitle,
+  beforeImage,
+  beforeDescription,
+  afterHeading,
+  afterSubTitle,
+  afterImage,
+  afterDescription,
+}) {
   return (
-    <div className={`g-before-after-diagrams ${theme}`}>
-      <div className="before">
-        <div className="image">
-          <div>
-            <Image {...beforeImage} />
-          </div>
-        </div>
-        <div className="content">
-          <span className="line">
-            <span />
-            <div
-              dangerouslySetInnerHTML={{
-                __html: alertIcon,
-              }}
+    <div class="g-timeline">
+      <div>
+        <span class="line"></span>
+        <span class="line">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="11"
+            height="15"
+            viewBox="0 0 11 15"
+          >
+            <path
+              fill="#CA2171"
+              d="M0 0v15l5.499-3.751L11 7.5 5.499 3.749.002 0z"
             />
-            <span />
-          </span>
-          <div>
-            {beforeHeadline && (
-              <h3
-                className="g-type-display-3"
-                dangerouslySetInnerHTML={{
-                  __html: marked.inlineLexer(beforeHeadline, []),
-                }}
-              />
-            )}
-            {beforeContent && (
-              <div
-                className="g-type-body-small"
-                dangerouslySetInnerHTML={{
-                  __html: marked(beforeContent, markedOptions),
-                }}
-              />
-            )}
-          </div>
-        </div>
+          </svg>
+        </span>
+        <span class="dot"></span>
+        <h3>{beforeHeading}</h3>
+        <span class="sub-heading">{beforeSubTitle}</span>
+        <img src={beforeImage} alt={beforeSubTitle} class="static-callout" />
+        {beforeDescription && <p>{beforeDescription}</p>}
       </div>
-      <div className="after">
-        <div className="image">
-          <div>
-            <Image {...afterImage} />
-          </div>
+      <div>
+        <span class="dot"></span>
+        <h3>{afterHeading}</h3>
+        <span class="sub-heading">{afterSubTitle}</span>
+        <div id="index-dynamic-animation">
+          <img src={afterImage} alt={afterSubTitle} class="static-callout" />
         </div>
-        <div className="content">
-          <div className="line">
-            <div
-              dangerouslySetInnerHTML={{
-                __html: checkIcon,
-              }}
-            />
-          </div>
-          <div>
-            {afterHeadline && (
-              <h3
-                className="g-type-display-3"
-                dangerouslySetInnerHTML={{
-                  __html: marked.inlineLexer(afterHeadline, []),
-                }}
-              />
-            )}
-            {afterContent && (
-              <div
-                dangerouslySetInnerHTML={{
-                  __html: marked(afterContent, markedOptions),
-                }}
-              />
-            )}
-          </div>
-        </div>
+        {afterDescription && <p>{afterDescription}</p>}
       </div>
     </div>
   )
 }
 
 export default BeforeAfterDiagram
-
-function generateMarkedOptions() {
-  const markedRenderer = new marked.Renderer()
-
-  markedRenderer.heading = function (text, level) {
-    return `<h${level} class="g-type-label">${text}</h${level}>`
-  }
-  markedRenderer.paragraph = function (text) {
-    return `<p class="g-type-body-small">${text}</p>`
-  }
-  markedRenderer.list = function (text) {
-    return `<ul class="g-type-body-small">${text}</ul>`
-  }
-
-  return { renderer: markedRenderer }
-}

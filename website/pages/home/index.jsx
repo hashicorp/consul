@@ -1,19 +1,16 @@
-import marked from 'marked'
 import Hero from '@hashicorp/react-hero'
-// import TextAndContent from '@hashicorp/react-text-and-content'
-// import Image from '@hashicorp/react-image'
-// import CaseStudySlider from '@hashicorp/react-case-study-slider'
-// import Button from '@hashicorp/react-button'
 import BeforeAfterDiagram from '../../components/before-after'
 import SectionHeader from '@hashicorp/react-section-header'
-// import AlertBanner from '@hashicorp/react-alert-banner'
+import consulEnterpriseLogo from '../../public/img/consul-connect/logos/consul-enterprise-logo.svg?include'
+import consulLogo from '../../public/img/consul-connect/logos/consul-logo.svg?include'
 
-// import PageHeadTags from '../../../components/PageHeadTags'
+import PageHeadTags from '../../components/page-head-tags'
 
 export default function HomePage() {
   return (
     <>
-      <div id="p-product-vault">
+      <PageHeadTags />
+      <div className="consul-connect">
         {/* Hero */}
         <section id="hero">
           <Hero
@@ -79,7 +76,7 @@ export default function HomePage() {
         {/* Use Cases */}
         <section
           id="vault-use-cases"
-          className="g-section-block layout-vertical theme-white-background-black-text"
+          className="g-section-block layout-vertical theme-white-background-black-text bg-light large-padding"
         >
           <div className="g-container">
             <SectionHeader
@@ -157,7 +154,7 @@ export default function HomePage() {
         {/* Static => Dynamic (Before & After) */}
         <section
           id="static-dynamic"
-          className="g-section-block layout-vertical theme-white-background-black-text"
+          className="g-section-block layout-vertical theme-white-background-black-text large-padding"
         >
           <div className="g-grid-container">
             <SectionHeader
@@ -165,29 +162,22 @@ export default function HomePage() {
               description="The shift from static infrastructure to dynamic infrastructure changes the approach to networking from host-based to service-based. Connectivity moves from the use of static IPs to dynamic service discovery, and security moves from static firewalls to service identity."
             />
             <BeforeAfterDiagram
-              theme="nomad"
-              beforeHeadline="Static"
-              beforeContent="Host-based networking"
-              beforeImage={{
-                url: '/img/consul-connect/svgs/static.svg',
-                alt: 'Static',
-              }}
-              afterHeadline="Dynamic"
-              afterContent="Service-based networking"
-              afterImage={{
-                url: '/img/consul-connect/svgs/dynamic.svg',
-                alt: 'Dynamic',
-              }}
+              beforeHeading="Static"
+              beforeSubTitle="Host-based networking"
+              beforeImage="/img/consul-connect/svgs/static.svg"
+              afterHeading="Dynamic"
+              afterSubTitle="Service-based networking"
+              afterImage="/img/consul-connect/svgs/dynamic.svg"
             />
           </div>
         </section>
-        <section class="g-section bg-light border-top">
-          <div class="g-container">
-            <div class="g-text-asset">
+        <section className="g-section bg-light border-top small-padding">
+          <div className="g-container">
+            <div className="g-text-asset">
               <div>
                 <div>
-                  <h3 class="g-type-display-3">Extend and Integrate</h3>
-                  <p class="g-type-body">
+                  <h3 className="g-type-display-3">Extend and Integrate</h3>
+                  <p className="g-type-body">
                     Provision clusters on any infrastructure, connect to
                     services over TLS via proxy integrations, and Serve TLS
                     certificates with pluggable Certificate Authorities.
@@ -223,11 +213,11 @@ export default function HomePage() {
         {/* Companies Using Consul Logos */}
         <section
           id="companies-using-consul"
-          className="g-section-block layout-vertical theme-light-gray"
+          className="g-section-block layout-vertical theme-light-gray large-padding"
         >
           <div className="g-container">
             <SectionHeader headline="Companies that trust Consul" />
-            <div class="g-logo-grid">
+            <div className="g-logo-grid">
               <div>
                 <img
                   src="/img/consul-connect/logos/logo_sap-ariba_space.svg"
@@ -263,6 +253,56 @@ export default function HomePage() {
                   src="/img/consul-connect/logos/logo_lotto-nz_space.svg"
                   alt="MyLotto"
                 />
+              </div>
+            </div>
+          </div>
+        </section>
+        <section className="home-cta-section">
+          <div>
+            <div>
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: consulLogo,
+                }}
+              />
+              <p className="g-type-body">
+                Consul Open Source addresses the technical complexity of
+                connecting services across distributed infrastructure.
+              </p>
+              <div>
+                <a href="/downloads.html" className="button white download">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="22"
+                    viewBox="0 0 20 22"
+                  >
+                    <path d="M9.292 15.706a1 1 0 0 0 1.416 0l3.999-3.999a1 1 0 1 0-1.414-1.414L11 12.586V1a1 1 0 1 0-2 0v11.586l-2.293-2.293a1 1 0 1 0-1.414 1.414l3.999 3.999zM20 16v3c0 1.654-1.346 3-3 3H3c-1.654 0-3-1.346-3-3v-3a1 1 0 1 1 2 0v3c0 .551.448 1 1 1h14c.552 0 1-.449 1-1v-3a1 1 0 1 1 2 0z" />
+                  </svg>
+                  Download
+                </a>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div>
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: consulEnterpriseLogo,
+                }}
+              />
+              <p className="g-type-body">
+                Consul Enterprise addresses the organizational complexity of
+                large user bases and compliance requirements with collaboration
+                and governance features.
+              </p>
+              <div>
+                <a
+                  href="https://www.hashicorp.com/products/consul"
+                  className="button secondary white"
+                >
+                  Learn More
+                </a>
               </div>
             </div>
           </div>

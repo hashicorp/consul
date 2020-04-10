@@ -1,473 +1,146 @@
-.g-before-after-diagrams {
+.g-timeline {
+  align-content: space-between;
   display: flex;
-  flex-wrap: wrap;
-  margin: 0 -16px;
-  position: relative;
+  flex-direction: column;
+  justify-content: center;
+  margin: 0 -15px;
 
-  @media (max-width: 1023px) {
-    margin-left: -12px;
-    margin-right: -12px;
-  }
-
-  @media (max-width: 767px) {
-    flex-direction: column;
-    margin-left: 40px;
-    margin-right: 0;
-  }
-
-  & > div {
-    display: flex;
-    flex-direction: column;
-    margin: 0 16px;
-    position: relative;
-    width: calc(50% - 32px);
-
-    @media (max-width: 1023px) {
-      margin: 0 12px;
-      width: calc(50% - 24px);
-    }
-
-    @media (max-width: 767px) {
-      margin: 0;
-      width: 100%;
-    }
-  }
-
-  & .before {
-    @media (max-width: 767px) {
-      margin-bottom: 62px;
-    }
-
-    & li:before {
-      background: url('/img/icons/alert-triangle.svg');
-      height: 20px;
-      margin-top: 3px;
-      width: 20px;
-    }
-  }
-
-  & .after li:before {
-    background: url('/img/icons/check-circle.svg');
-    height: 18px;
-    margin-top: 4px;
-    width: 18px;
-  }
-
-  & .image {
-    align-items: center;
-    display: flex;
-    height: 320px;
-    justify-content: center;
-    margin-bottom: 96px;
-
-    @media (max-width: 767px) {
-      margin-bottom: 40px;
-    }
-
-    @media (max-width: 640px) {
-      height: 284px;
-    }
-
-    @media (max-width: 540px) {
-      height: 238px;
-    }
-
-    @media (max-width: 480px) {
-      height: 211px;
-    }
-
-    @media (max-width: 375px) {
-      height: 163px;
-    }
-
-    & div {
-      height: 100%;
-      text-align: center;
-      width: 100%;
-    }
-
-    & img,
-    & svg {
-      max-height: 100%;
-      max-width: 100%;
-    }
-  }
-
-  & .content {
-    border: 1px solid var(--DEPRECATED-gray-9);
-    padding: 24px 32px 20px;
-    position: relative;
-    flex-grow: 1;
-
-    @media (max-width: 1023px) {
-      padding-left: 24px;
-      padding-right: 24px;
-    }
-
-    @media (max-width: 767px) {
-      padding-left: 20px;
-      padding-right: 20px;
-    }
-
-    &:before,
-    &:after {
-      bottom: 100%;
-      border: solid transparent;
-      content: '';
-      height: 0;
-      left: 50%;
-      width: 0;
-      position: absolute;
-      pointer-events: none;
-    }
-
-    &:before {
-      border-color: rgba(229, 230, 235, 0);
-      border-bottom-color: var(--DEPRECATED-gray-9);
-      border-width: 18px;
-      margin-left: -18px;
-    }
-
-    &:after {
-      border-color: rgba(255, 255, 255, 0);
-      border-bottom-color: var(--white);
-      border-width: 17px;
-      margin-left: -17px;
-    }
-
-    & > div {
-      height: 100%;
-
-      &.line {
-        height: auto;
-      }
-
-      & > div {
-        @media (min-width: 768px) {
-          max-width: 480px;
-          margin: 0 auto;
-        }
-      }
-    }
-  }
-
-  & h3 {
-    border-bottom: 1px solid var(--DEPRECATED-gray-9);
-    color: var(--black);
-    margin: 0 0 24px;
-    padding-bottom: 24px;
+  @media (min-width: 768px) {
+    flex-direction: row;
     text-align: center;
   }
 
-  & h4 {
-    display: block;
-    margin: 24px 0 26px;
-    text-transform: uppercase;
+  &.no-intro {
+    margin-top: -30px;
+
+    @media (min-width: 768px) {
+      margin-top: -90px;
+    }
+
+    @media (min-width: 992px) {
+      margin-top: -116px;
+    }
   }
 
-  & ul {
-    list-style: none;
-    padding-left: 32px;
+  & > div {
+    margin-left: 18px;
+    padding: 40px 15px 0 42px;
     position: relative;
-  }
 
-  & li {
-    margin: 8px 0;
+    @media (min-width: 768px) {
+      margin-left: 0;
+      padding-left: 15px;
+      width: 50%;
+    }
 
-    &:before {
-      background-repeat: no-repeat;
-      content: '';
+    &:last-child {
+      & .dot {
+        border-color: #ca2171;
+      }
+    }
+
+    & .line {
+      background-image: linear-gradient(180deg, #d2d4dc 50%, #c82070 100%);
+      height: calc(100% - 12px);
+      left: 8px;
+      position: absolute;
+      top: 45px;
+      width: 2px;
+
+      @media (min-width: 768px) {
+        background-image: linear-gradient(
+          90deg,
+          rgba(229, 230, 235, 0),
+          #d2d4dc 0%,
+          #c82070 100%
+        );
+        height: 2px;
+        left: 50%;
+        top: 8px;
+        width: calc(100% - 34px);
+      }
+
+      &:first-child {
+        background-image: linear-gradient(
+          180deg,
+          rgba(229, 230, 235, 0) 5%,
+          #dadce3 70%,
+          #d2d4dc 100%
+        );
+        bottom: calc(100% - 45px);
+        height: 60px;
+        top: auto;
+
+        @media (min-width: 768px) {
+          background-image: linear-gradient(
+            90deg,
+            rgba(229, 230, 235, 0) 5%,
+            #dadce3 26%,
+            #d2d4dc 100%
+          );
+          height: 2px;
+          left: auto;
+          right: 50%;
+          top: 8px;
+          width: calc(50% + 120px);
+        }
+      }
+
+      & svg {
+        position: absolute;
+        top: calc(100% - 8px);
+        transform: rotate(90deg);
+        left: -4px;
+
+        @media (min-width: 768px) {
+          left: auto;
+          right: -10px;
+          top: -6px;
+          transform: none;
+        }
+      }
+    }
+
+    & h2 {
+      margin: 0 0 8px;
+    }
+
+    & .sub-heading {
+      display: block;
+      margin-bottom: 24px;
+
+      @media (min-width: 992px) {
+        margin-bottom: 40px;
+      }
+    }
+
+    & .dot {
+      background: #f7f8fa;
+      border: 2px solid #d2d4dc;
+      border-radius: 50%;
+      display: inline-block;
+      height: 18px;
       left: 0;
       position: absolute;
-    }
-  }
+      top: 45px;
+      width: 18px;
+      z-index: 1;
 
-  & .line {
-    padding: 0;
-    position: absolute;
-    right: 0;
-    top: -75px;
-    width: 100%;
-
-    @media (max-width: 767px) {
-      left: -28px;
-      height: 100%;
-      right: auto;
-      top: 28px;
-      width: auto;
+      @media (min-width: 768px) {
+        margin: 0 0 0 -9px;
+        left: 50%;
+        top: 0;
+      }
     }
 
-    & span {
+    & img {
       display: block;
-      height: 1px;
-      position: absolute;
-      top: 12px;
-      width: calc(100% - 14px);
-
-      @media (max-width: 767px) {
-        width: 1px;
-      }
-
-      &:first-child {
-        background-image: linear-gradient(
-          90deg,
-          rgba(210, 212, 219, 0) 0%,
-          var(--DEPRECATED-gray-8) 100%
-        );
-        right: calc(50% + 20px);
-        width: calc(50% + 140px);
-
-        @media (max-width: 767px) {
-          background-image: linear-gradient(
-            180deg,
-            rgba(210, 212, 219, 0) 0%,
-            var(--DEPRECATED-gray-8) 100%
-          );
-          height: 245px;
-          right: auto;
-          top: -253px;
-          width: 1px;
-        }
-      }
-
-      &:last-child {
-        background-image: linear-gradient(
-          90deg,
-          var(--DEPRECATED-gray-8) 0%,
-          var(--black) 100%
-        );
-        left: calc(50% + 20px);
-
-        @media (max-width: 767px) {
-          background-image: linear-gradient(
-            180deg,
-            var(--DEPRECATED-gray-8) 0%,
-            var(--black) 100%
-          );
-          height: calc(100% + 375px);
-          left: auto;
-          top: 32px;
-        }
-
-        @media (max-width: 640px) {
-          height: calc(100% + 339px);
-        }
-
-        @media (max-width: 540px) {
-          height: calc(100% + 293px);
-        }
-
-        @media (max-width: 480px) {
-          height: calc(100% + 266px);
-        }
-
-        @media (max-width: 375px) {
-          height: calc(100% + 218px);
-        }
-
-        &:after {
-          border-color: transparent transparent transparent #000000;
-          border-style: solid;
-          border-width: 5.5px 0 5.5px 8px;
-          content: '';
-          height: 0;
-          position: absolute;
-          right: -8px;
-          top: -5px;
-          width: 0;
-
-          @media (max-width: 767px) {
-            transform: rotate(90deg);
-            top: auto;
-            bottom: -8px;
-            right: -4px;
-          }
-        }
-      }
+      margin: 0 auto;
+      max-width: 100%;
     }
 
-    & svg {
-      position: absolute;
-      left: 50%;
-      margin: 0 0 0 -11px;
-    }
-  }
-
-  /*
-   * NOMAD THEME
-   */
-  &.nomad {
-    & .line span {
-      &:first-child {
-        background-image: linear-gradient(
-          90deg,
-          rgba(95, 67, 233, 0) 0%,
-          var(--DEPRECATED-gray-8) 100%
-        );
-
-        @media (max-width: 767px) {
-          background-image: linear-gradient(
-            180deg,
-            rgba(95, 67, 233, 0) 0%,
-            var(--DEPRECATED-gray-8) 100%
-          );
-        }
-      }
-
-      &:last-child {
-        background-image: linear-gradient(
-          90deg,
-          var(--DEPRECATED-gray-8) 0%,
-          var(--nomad) 100%
-        );
-
-        @media (max-width: 767px) {
-          background-image: linear-gradient(
-            180deg,
-            var(--DEPRECATED-gray-8) 0%,
-            var(--nomad) 100%
-          );
-        }
-
-        &:after {
-          border-color: transparent transparent transparent var(--nomad);
-          border-style: solid;
-          border-width: 5.5px 0 5.5px 8px;
-        }
-      }
-    }
-    & .after {
-      & li:before {
-        background: url('/img/icons/check-circle-green.svg');
-        height: 19px;
-      }
-
-      & .line svg path:first-child {
-        fill: var(--nomad);
-        stroke: var(--nomad);
-      }
-    }
-  }
-  /*
-   * VAULT THEME
-   */
-  &.vault {
-    & .after {
-      & li:before {
-        background: url('/img/icons/check-circle-blue.svg');
-        height: 19px;
-      }
-    }
-  }
-  /*
-   * TERRAFORM THEME
-   */
-  &.terraform {
-    & .line span {
-      &:first-child {
-        background-image: linear-gradient(
-          90deg,
-          rgba(95, 67, 233, 0) 0%,
-          var(--DEPRECATED-gray-8) 100%
-        );
-
-        @media (max-width: 767px) {
-          background-image: linear-gradient(
-            180deg,
-            rgba(95, 67, 233, 0) 0%,
-            var(--DEPRECATED-gray-8) 100%
-          );
-        }
-      }
-
-      &:last-child {
-        background-image: linear-gradient(
-          90deg,
-          var(--DEPRECATED-gray-8) 0%,
-          var(--terraform) 100%
-        );
-
-        @media (max-width: 767px) {
-          background-image: linear-gradient(
-            180deg,
-            var(--DEPRECATED-gray-8) 0%,
-            var(--terraform) 100%
-          );
-        }
-
-        &:after {
-          border-color: transparent transparent transparent var(--terraform);
-          border-style: solid;
-          border-width: 5.5px 0 5.5px 8px;
-        }
-      }
-    }
-    & .after {
-      & li:before {
-        background: url('/img/icons/check-circle-purple.svg');
-        height: 19px;
-      }
-
-      & .line svg path:first-child {
-        fill: var(--terraform);
-        stroke: var(--terraform);
-      }
-    }
-  }
-
-  /*
-   * CONSUL THEME
-   */
-  &.consul {
-    & .line span {
-      &:first-child {
-        background-image: linear-gradient(
-          90deg,
-          rgba(95, 67, 233, 0) 0%,
-          var(--DEPRECATED-gray-8) 100%
-        );
-
-        @media (max-width: 767px) {
-          background-image: linear-gradient(
-            180deg,
-            rgba(95, 67, 233, 0) 0%,
-            var(--DEPRECATED-gray-8) 100%
-          );
-        }
-      }
-
-      &:last-child {
-        background-image: linear-gradient(
-          90deg,
-          var(--DEPRECATED-gray-8) 0%,
-          var(--consul) 100%
-        );
-
-        @media (max-width: 767px) {
-          background-image: linear-gradient(
-            180deg,
-            var(--DEPRECATED-gray-8) 0%,
-            var(--consul) 100%
-          );
-        }
-
-        &:after {
-          border-color: transparent transparent transparent var(--consul);
-          border-style: solid;
-          border-width: 5.5px 0 5.5px 8px;
-        }
-      }
-    }
-    & .after {
-      & li:before {
-        background: url('/img/icons/check-circle-pink.svg');
-        height: 19px;
-      }
-
-      & .line svg path:first-child {
-        fill: var(--consul);
-        stroke: var(--consul);
-      }
+    & p {
+      margin-top: 40px;
     }
   }
 }
