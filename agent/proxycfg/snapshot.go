@@ -39,7 +39,8 @@ func (c *configSnapshotConnectProxy) IsEmpty() bool {
 	if c == nil {
 		return true
 	}
-	return len(c.DiscoveryChain) == 0 &&
+	return c.Leaf == nil &&
+		len(c.DiscoveryChain) == 0 &&
 		len(c.WatchedUpstreams) == 0 &&
 		len(c.WatchedUpstreamEndpoints) == 0 &&
 		len(c.WatchedGateways) == 0 &&
