@@ -57,9 +57,9 @@ func nodesTableSchema() *memdb.TableSchema {
 	}
 }
 
-// terminatingGatewayServicesTableSchema returns a new table schema used to store information
+//  gatewayServicesTableNameSchema returns a new table schema used to store information
 // about services associated with terminating gateways.
-func terminatingGatewayServicesTableSchema() *memdb.TableSchema {
+func gatewayServicesTableNameSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: gatewayServicesTableName,
 		Indexes: map[string]*memdb.IndexSchema{
@@ -158,7 +158,7 @@ func init() {
 	registerSchema(nodesTableSchema)
 	registerSchema(servicesTableSchema)
 	registerSchema(checksTableSchema)
-	registerSchema(terminatingGatewayServicesTableSchema)
+	registerSchema(gatewayServicesTableNameSchema)
 }
 
 const (
@@ -1046,7 +1046,7 @@ func (s *Store) serviceNodes(ws memdb.WatchSet, serviceName string, connect bool
 	// to the mesh with a mix of sidecars and gateways until all its instances have a sidecar.
 	if connect {
 		// Look up gateway nodes associated with the service
-		nodes, ch, err := s.serviceTerminatingGatewayNodes(tx, serviceName, entMeta)
+		nodes, ch, err := s.serviceGatewayNodes(tx, serviceName, structs.ServiceKindTerminatingGateway, entMeta)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed gateway nodes lookup: %v", err)
 		}
@@ -1985,8 +1985,9 @@ func (s *Store) checkServiceNodesTxn(tx *memdb.Txn, ws memdb.WatchSet, serviceNa
 	// We append rather than replace since it allows users to migrate a service
 	// to the mesh with a mix of sidecars and gateways until all its instances have a sidecar.
 	if connect {
+		// TODO(ingress): This should not ever return ingress gateways, only terminating
 		// Look up gateway nodes associated with the service
-		nodes, _, err := s.serviceTerminatingGatewayNodes(tx, serviceName, entMeta)
+		nodes, _, err := s.serviceGatewayNodes(tx, serviceName, structs.ServiceKindTerminatingGateway, entMeta)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed gateway nodes lookup: %v", err)
 		}
@@ -2096,7 +2097,7 @@ func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName string, tags
 	return s.parseCheckServiceNodes(tx, ws, idx, serviceName, results, err)
 }
 
-// GatewayServices is used to query all services associated with a terminating gateway
+// GatewayServices is used to query all services associated with a gateway
 func (s *Store) GatewayServices(ws memdb.WatchSet, gateway string, entMeta *structs.EnterpriseMeta) (uint64, structs.GatewayServices, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
@@ -2286,55 +2287,6 @@ func (s *Store) serviceDumpKindTxn(tx *memdb.Txn, ws memdb.WatchSet, kind struct
 	}
 
 	return s.parseCheckServiceNodes(tx, nil, idx, "", results, err)
-}
-
-func (s *Store) IngressGatewayServices(ws memdb.WatchSet, name string, entMeta *structs.EnterpriseMeta) (uint64, structs.GatewayServices, error) {
-	tx := s.db.Txn(false)
-	defer tx.Abort()
-
-	idx, services, err := s.serviceListTxn(tx, ws, structs.WildcardEnterpriseMeta())
-	if err != nil {
-		return 0, nil, err
-	}
-
-	configIdx, entry, err := s.configEntryTxn(tx, ws, structs.IngressGateway, name, entMeta)
-	if err != nil {
-		return 0, nil, err
-	}
-	if configIdx > idx {
-		idx = configIdx
-	}
-
-	// Loop through all services referenced in the gateway's config entry and create
-	// upstream definitions for them.
-	var gs structs.GatewayServices
-	ingressConfig := entry.(*structs.IngressGatewayConfigEntry)
-	for _, listener := range ingressConfig.Listeners {
-		for _, service := range listener.Services {
-			// If the wildcard was used in place of a service name, add all services
-			// in this namespace.
-			if service.Name == structs.WildcardSpecifier {
-				for _, s := range services {
-					if s.NamespaceOrDefault() == service.NamespaceOrDefault() {
-						gs = append(gs, makeIngressGatewayService(name, s.ToServiceID(), listener.Port, entMeta))
-					}
-				}
-			} else {
-				// Add the service as an upstream.
-				gs = append(gs, makeIngressGatewayService(name, service.ToServiceID(), listener.Port, entMeta))
-			}
-		}
-	}
-
-	return idx, gs, nil
-}
-
-func makeIngressGatewayService(gateway string, svc structs.ServiceID, port int, entMeta *structs.EnterpriseMeta) *structs.GatewayService {
-	return &structs.GatewayService{
-		Gateway: structs.NewServiceID(gateway, entMeta),
-		Service: svc,
-		Port:    port,
-	}
 }
 
 func (s *Store) IngressGatewaysForService(ws memdb.WatchSet, serviceName string, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
@@ -2647,7 +2599,7 @@ func (s *Store) gatewayServices(tx *memdb.Txn, name string, entMeta *structs.Ent
 	return tx.Get(gatewayServicesTableName, "gateway", structs.NewServiceID(name, entMeta))
 }
 
-func (s *Store) serviceTerminatingGatewayNodes(tx *memdb.Txn, service string, entMeta *structs.EnterpriseMeta) (structs.ServiceNodes, <-chan struct{}, error) {
+func (s *Store) serviceGatewayNodes(tx *memdb.Txn, service string, kind structs.ServiceKind, entMeta *structs.EnterpriseMeta) (structs.ServiceNodes, <-chan struct{}, error) {
 	// Look up gateway name associated with the service
 	gw, err := s.serviceTerminatingGateway(tx, service, entMeta)
 	if err != nil {
@@ -2659,6 +2611,9 @@ func (s *Store) serviceTerminatingGatewayNodes(tx *memdb.Txn, service string, en
 
 	if gw != nil {
 		mapping := gw.(*structs.GatewayService)
+		if mapping.GatewayKind != kind {
+			return nil, nil, nil
+		}
 
 		// Look up nodes for gateway
 		gateways, err := s.catalogServiceNodeList(tx, mapping.Gateway.ID, "service", &mapping.Gateway.EnterpriseMeta)

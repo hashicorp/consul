@@ -1639,7 +1639,7 @@ func TestDNS_ConnectServiceLookup(t *testing.T) {
 func TestDNS_IngressServiceLookup(t *testing.T) {
 	t.Parallel()
 
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 

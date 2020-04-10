@@ -4383,12 +4383,12 @@ func TestStateStore_ensureServiceCASTxn(t *testing.T) {
 	tx.Commit()
 }
 
-func TestStateStore_TerminatingGatewayServices(t *testing.T) {
+func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 	s := testStateStore(t)
 
 	// Listing with no results returns an empty list.
 	ws := memdb.NewWatchSet()
-	idx, nodes, err := s.TerminatingGatewayServices(ws, "db", nil)
+	idx, nodes, err := s.GatewayServices(ws, "db", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(0))
 	assert.Len(t, nodes, 0)
@@ -4444,7 +4444,7 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 
 	// Read everything back.
 	ws = memdb.NewWatchSet()
-	idx, out, err := s.TerminatingGatewayServices(ws, "gateway", nil)
+	idx, out, err := s.GatewayServices(ws, "gateway", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(21))
 	assert.Len(t, out, 2)
@@ -4489,7 +4489,7 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 
 	// Read everything back.
 	ws = memdb.NewWatchSet()
-	idx, out, err = s.TerminatingGatewayServices(ws, "gateway", nil)
+	idx, out, err = s.GatewayServices(ws, "gateway", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(22))
 	assert.Len(t, out, 2)
@@ -4515,7 +4515,7 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 	assert.Nil(t, s.EnsureService(23, "bar", &structs.NodeService{ID: "redis", Service: "redis", Tags: nil, Address: "", Port: 6379}))
 	assert.True(t, watchFired(ws))
 
-	idx, out, err = s.TerminatingGatewayServices(ws, "gateway", nil)
+	idx, out, err = s.GatewayServices(ws, "gateway", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(23))
 	assert.Len(t, out, 3)
@@ -4549,7 +4549,7 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 	assert.Nil(t, s.DeleteService(24, "bar", "redis", nil))
 	assert.True(t, watchFired(ws))
 
-	idx, out, err = s.TerminatingGatewayServices(ws, "gateway", nil)
+	idx, out, err = s.GatewayServices(ws, "gateway", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(24))
 	assert.Len(t, out, 2)
@@ -4583,7 +4583,7 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 	}, nil))
 	assert.True(t, watchFired(ws))
 
-	idx, out, err = s.TerminatingGatewayServices(ws, "gateway", nil)
+	idx, out, err = s.GatewayServices(ws, "gateway", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(25))
 	assert.Len(t, out, 1)
