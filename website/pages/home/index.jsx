@@ -4,12 +4,9 @@ import SectionHeader from '@hashicorp/react-section-header'
 import consulEnterpriseLogo from '../../public/img/consul-connect/logos/consul-enterprise-logo.svg?include'
 import consulLogo from '../../public/img/consul-connect/logos/consul-logo.svg?include'
 
-import PageHeadTags from '../../components/page-head-tags'
-
 export default function HomePage() {
   return (
     <>
-      <PageHeadTags />
       <div className="consul-connect">
         {/* Hero */}
         <section id="hero">
