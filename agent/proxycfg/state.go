@@ -1103,8 +1103,7 @@ func (s *state) watchIngressDiscoveryChain(snap *ConfigSnapshot, u structs.Upstr
 		Name:                 u.DestinationName,
 		EvaluateInDatacenter: s.source.Datacenter,
 		EvaluateInNamespace:  u.DestinationNamespace,
-		// OverrideMeshGateway:    s.proxyCfg.MeshGateway.OverlayWith(u.MeshGateway),
-		// OverrideConnectTimeout: cfg.ConnectTimeout(),
+		// TODO(ingress): Deal with MeshGateway and Protocol overrides here
 	}, "discovery-chain:"+u.Identifier(), s.ch)
 	if err != nil {
 		cancel()

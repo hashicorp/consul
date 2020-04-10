@@ -228,6 +228,8 @@ func (s *Server) listenersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 	return resources, err
 }
 
+// TODO(ingress): Support configured bind addresses from similar to mesh gateways
+// See: https://www.consul.io/docs/connect/proxies/envoy.html#mesh-gateway-options
 func (s *Server) listenersFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var resources []proto.Message
 	for _, u := range cfgSnap.IngressGateway.Upstreams {
