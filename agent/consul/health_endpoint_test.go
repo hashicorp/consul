@@ -1159,6 +1159,7 @@ func TestHealth_ServiceNodes_Ingress(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "ingress-gateway",
 			Service: "ingress-gateway",
+			Kind:    structs.ServiceKindIngressGateway,
 		},
 		Check: &structs.HealthCheck{
 			Name:      "ingress connect",
@@ -1176,6 +1177,7 @@ func TestHealth_ServiceNodes_Ingress(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "ingress-gateway",
 			Service: "ingress-gateway",
+			Kind:    structs.ServiceKindIngressGateway,
 		},
 		Check: &structs.HealthCheck{
 			Name:      "ingress connect",

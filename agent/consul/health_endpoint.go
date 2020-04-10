@@ -290,7 +290,7 @@ func (h *Health) serviceNodesConnect(ws memdb.WatchSet, s *state.Store, args *st
 }
 
 func (h *Health) serviceNodesIngress(ws memdb.WatchSet, s *state.Store, args *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error) {
-	return s.IngressGatewaysForService(ws, args.ServiceName, &args.EnterpriseMeta)
+	return s.CheckIngressServiceNodes(ws, args.ServiceName, &args.EnterpriseMeta)
 }
 
 func (h *Health) serviceNodesTagFilter(ws memdb.WatchSet, s *state.Store, args *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error) {
