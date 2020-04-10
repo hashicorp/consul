@@ -213,24 +213,6 @@ func TestConfig_Apply_TerminatingGateway(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 200, resp.Code, "!200 Response Code: %s", resp.Body.String())
 
-	// Attempt to create an entry for a separate gateway that also routes to web
-	body = bytes.NewBuffer([]byte(`
-	{
-		"Kind": "terminating-gateway",
-		"Name": "east-gw-01",
-		"Services": [
-		  {
-			"Name": "web",
-		  }
-		]
-	}`))
-
-	req, _ = http.NewRequest("PUT", "/v1/config", body)
-	resp = httptest.NewRecorder()
-	_, err = a.srv.ConfigApply(resp, req)
-	require.Error(t, err, "service \"web\" is associated with a different gateway")
-	require.Equal(t, 200, resp.Code, "!200 Response Code: %s", resp.Body.String())
-
 	// List all entries, there should only be one
 	{
 		args := structs.ConfigEntryQuery{
