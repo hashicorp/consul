@@ -112,8 +112,6 @@
 # Replatforming Redirects
 
 /guides                                  /docs/guides                      301!
-/guides/index.html                       /docs/guides                      301!
-
 /api-docs/index                          /api-docs                         301!
 /api/acl.html                            /api-docs/acl                     301!
 /api/acl/acl.html                        /api-docs/acl                     301!
@@ -121,11 +119,14 @@
 /api/agent.html                          /api-docs/agent                   301!
 /api/connect.html                        /api-docs/connect                 301!
 /api/operator.html                       /api-docs/operator                301!
+/api/*/index.html                        /api-docs/:splat                  301!
 /api/*                                   /api-docs/:splat                  200
 
 /docs/upgrading.html                     /docs/upgrading                   301!
-/docs/upgrading/*                        /docs/upgrading/:splat            301!
-/docs/commands/acl/auth-method.html      /docs/commands/acl/auth-method    301!
+/docs/upgrade-specific                   /docs/upgrading/upgrade-specific  301!
+/docs/upgrade-specific.html              /docs/upgrading/upgrade-specific  301!
+/docs/compatibility                      /docs/upgrading/compatibility     301!
+/docs/compatibility.html                 /docs/upgrading/compatibility     301!
 /docs/commands/acl/binding-rule.html     /docs/commands/acl/binding-rule   301!
 /docs/commands/acl/auth-method.html      /docs/commands/acl/auth-method    301!
 /docs/commands/acl/policy.html           /docs/commands/acl/policy         301!
@@ -143,8 +144,11 @@
 /docs/commands/tls.html                  /docs/commands/tls                301!
 
 /docs/agent/basics.html                  /docs/agent                       301!
+/docs/agent/basics                       /docs/agent                       301!
 /docs/agent/config_entries.html          /docs/agent/config-entries        301!
+/docs/agent/config_entries               /docs/agent/config-entries        301!
 /docs/acl/acl-auth-methods.html          /docs/acl/auth-methods            301!
+/docs/acl/acl-auth-methods               /docs/acl/auth-methods            301!
 /docs/connect/proxies.html               /docs/connect/proxies             301!
 /docs/connect/registration.html          /docs/connect/registration        301!
 /docs/connect/ca.html                    /docs/connect/ca                  301!
@@ -152,17 +156,29 @@
 /docs/connect/platform/nomad.html        /docs/connect/nomad               301!
 
 /docs/platform/k8s/run.html                         /docs/k8s/install                             301!
+/docs/platform/k8s/run                              /docs/k8s/install                             301!
 /docs/platform/k8s/aks.html                         /docs/k8s/install/aks                         301!
+/docs/platform/k8s/aks                              /docs/k8s/install/aks                         301!
 /docs/platform/k8s/gke.html                         /docs/k8s/install/gke                         301!
+/docs/platform/k8s/gke                              /docs/k8s/install/gke                         301!
 /docs/platform/k8s/minikube.html                    /docs/k8s/install/minikube                    301!
+/docs/platform/k8s/minikube                         /docs/k8s/install/minikube                    301!
 /docs/platform/k8s/consul-enterprise.html           /docs/k8s/install/consul-enterprise           301!
+/docs/platform/k8s/consul-enterprise                /docs/k8s/install/consul-enterprise           301!
 /docs/platform/k8s/clients-outside-kubernetes.html  /docs/k8s/install/clients-outside-kubernetes  301!
+/docs/platform/k8s/clients-outside-kubernetes       /docs/k8s/install/clients-outside-kubernetes  301!
 /docs/platform/k8s/servers-outside-kubernetes.html  /docs/k8s/install/servers-outside-kubernetes  301!
+/docs/platform/k8s/servers-outside-kubernetes       /docs/k8s/install/servers-outside-kubernetes  301!
 /docs/platform/k8s/predefined-pvcs.html             /docs/k8s/install/predefined-pvcs             301!
+/docs/platform/k8s/predefined-pvcs                  /docs/k8s/install/predefined-pvcs             301!
 /docs/platform/k8s/operations.html                  /docs/k8s/operations                          301!
+/docs/platform/k8s/operations                       /docs/k8s/operations                          301!
 /docs/platform/k8s/upgrading.html                   /docs/k8s/operations/upgrading                301!
+/docs/platform/k8s/upgrading                        /docs/k8s/operations/upgrading                301!
 /docs/platform/k8s/tls-on-existing-cluster.html     /docs/k8s/operations/tls-on-existing-cluster  301!
+/docs/platform/k8s/tls-on-existing-cluster          /docs/k8s/operations/tls-on-existing-cluster  301!
 /docs/platform/k8s/uninstalling.html                /docs/k8s/operations/upgrading                301!
+/docs/platform/k8s/uninstalling                     /docs/k8s/operations/upgrading                301!
 /docs/platform/k8s/*                                /docs/k8s/:splat                              301!
 
 /docs/partnerships/index.html                       /docs/partnerships                            301!
@@ -174,3 +190,5 @@
 /docs/enterprise/network-segments/index.html        /docs/enterprise/network-segments             301!
 /docs/enterprise/namespaces/index.html              /docs/enterprise/namespaces                   301!
 /docs/enterprise/sentinel/index.html                /docs/enterprise/sentinel                     301!
+
+/*/index.html       /:splat     301!
