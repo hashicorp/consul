@@ -168,29 +168,6 @@ func (e *IngressGatewayConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
 	return &e.EnterpriseMeta
 }
 
-// Returns whether or not the given service is contained within the set of
-// services for this ingress config. We explicitly use ServiceID to be able to
-// deal with EnterpriseMeta natively.
-func (e *IngressGatewayConfigEntry) ContainsService(service ServiceID) bool {
-	for _, listener := range e.Listeners {
-		for _, s := range listener.Services {
-			// Special case the wildcard specifier and make sure to check namespace
-			// values here.
-			if s.Name == WildcardSpecifier &&
-				s.NamespaceOrDefault() == service.NamespaceOrDefault() {
-				return true
-			}
-
-			sid := s.ToServiceID()
-			if sid.Matches(&service) {
-				return true
-			}
-		}
-	}
-
-	return false
-}
-
 func (s *IngressService) ToServiceID() ServiceID {
 	return NewServiceID(s.Name, &s.EnterpriseMeta)
 }
