@@ -134,6 +134,7 @@ func (m *Manager) syncState() {
 	services := m.State.Services(structs.WildcardEnterpriseMeta())
 	for sid, svc := range services {
 		if svc.Kind != structs.ServiceKindConnectProxy &&
+			svc.Kind != structs.ServiceKindTerminatingGateway &&
 			svc.Kind != structs.ServiceKindMeshGateway &&
 			svc.Kind != structs.ServiceKindIngressGateway {
 			continue
