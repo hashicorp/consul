@@ -374,7 +374,7 @@ func TestServer_JoinLAN(t *testing.T) {
 
 // TestServer_JoinLAN_SerfAllowedCIDRs test that IPs might be blocked
 // with Serf.
-// To run properlly, this test requires to be able to bind and have access
+// To run properly, this test requires to be able to bind and have access
 // on 127.0.1.1 which is the case for most Linux machines and Windows,
 // so Unit test will run in the CI.
 // To run it on Mac OS, please run this commandd first, otherwise the
