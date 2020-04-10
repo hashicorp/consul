@@ -1469,6 +1469,9 @@ func (s *Store) deleteServiceTxn(tx *memdb.Txn, idx uint64, nodeName, serviceID 
 			if _, err := tx.DeleteAll(gatewayServicesTableName, "service", structs.NewServiceID(svc.ServiceName, entMeta)); err != nil {
 				return fmt.Errorf("failed to truncate gateway services table: %v", err)
 			}
+			if err := indexUpdateMaxTxn(tx, idx, gatewayServicesTableName); err != nil {
+				return fmt.Errorf("failed updating gateway-services index: %v", err)
+			}
 		}
 	} else {
 		return fmt.Errorf("Could not find any service %s: %s", svc.ServiceName, err)
@@ -2407,69 +2410,18 @@ func checkSessionsTxn(tx *memdb.Txn, hc *structs.HealthCheck) ([]*sessionCheck, 
 // updateGatewayServices associates services with gateways as specified in a terminating-gateway config entry
 func (s *Store) updateGatewayServices(tx *memdb.Txn, idx uint64, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) error {
 	var gatewayServices structs.GatewayServices
+	var err error
+
 	gatewayID := structs.NewServiceID(conf.GetName(), conf.GetEnterpriseMeta())
 	switch conf.GetKind() {
 	case structs.IngressGateway:
-		entry, ok := conf.(*structs.IngressGatewayConfigEntry)
-		if !ok {
-			return fmt.Errorf("unexpected config entry type: %T", conf)
-		}
-
-		// Check if service list matches the last known list for the config entry, if it does, skip the update
-		_, c, err := s.configEntryTxn(tx, nil, conf.GetKind(), conf.GetName(), entMeta)
-		if err != nil {
-			return fmt.Errorf("failed to get config entry: %v", err)
-		}
-		if cfg, ok := c.(*structs.IngressGatewayConfigEntry); ok && cfg != nil {
-			if reflect.DeepEqual(cfg.Listeners, entry.Listeners) {
-				// Services are the same, nothing to update
-				return nil
-			}
-		}
-
-		for _, listener := range entry.Listeners {
-			for _, service := range listener.Services {
-				mapping := &structs.GatewayService{
-					Gateway:     gatewayID,
-					Service:     service.ToServiceID(),
-					GatewayKind: structs.ServiceKindIngressGateway,
-					Port:        listener.Port,
-				}
-
-				gatewayServices = append(gatewayServices, mapping)
-			}
-		}
-
+		gatewayServices, err = s.ingressConfigGatewayServices(tx, gatewayID, conf, entMeta)
 	case structs.TerminatingGateway:
-		entry, ok := conf.(*structs.TerminatingGatewayConfigEntry)
-		if !ok {
-			return fmt.Errorf("unexpected config entry type: %T", conf)
-		}
-
-		// Check if service list matches the last known list for the config entry, if it does, skip the update
-		_, c, err := s.configEntryTxn(tx, nil, conf.GetKind(), conf.GetName(), entMeta)
-		if err != nil {
-			return fmt.Errorf("failed to get config entry: %v", err)
-		}
-		if cfg, ok := c.(*structs.TerminatingGatewayConfigEntry); ok && cfg != nil {
-			if reflect.DeepEqual(cfg.Services, entry.Services) {
-				// Services are the same, nothing to update
-				return nil
-			}
-		}
-
-		for _, svc := range entry.Services {
-			mapping := &structs.GatewayService{
-				Gateway:     gatewayID,
-				Service:     structs.NewServiceID(svc.Name, &svc.EnterpriseMeta),
-				GatewayKind: structs.ServiceKindTerminatingGateway,
-				KeyFile:     svc.KeyFile,
-				CertFile:    svc.CertFile,
-				CAFile:      svc.CAFile,
-			}
-
-			gatewayServices = append(gatewayServices, mapping)
-		}
+		gatewayServices, err = s.terminatingConfigGatewayServices(tx, gatewayID, conf, entMeta)
+	}
+	// Return early if there is an error OR we don't have any services to update
+	if err != nil || len(gatewayServices) == 0 {
+		return err
 	}
 
 	// Delete all associated with gateway first, to avoid keeping mappings that were removed
@@ -2487,18 +2439,6 @@ func (s *Store) updateGatewayServices(tx *memdb.Txn, idx uint64, conf structs.Co
 			continue
 		}
 
-		// Check if the non-wildcard service is already associated with a gateway
-		existing, err := s.serviceTerminatingGateway(tx, svc.Service.ID, &svc.Service.EnterpriseMeta)
-		if err != nil {
-			return fmt.Errorf("gateway service lookup failed: %s", err)
-		}
-		if gs, ok := existing.(*structs.GatewayService); ok && gs != nil {
-			// Only return an error if the stored gateway does not match the one from the config entry
-			if !gs.Gateway.Matches(&gatewayID) {
-				return fmt.Errorf("service %q is associated with different gateway, %q", gs.Service.String(), gs.Gateway.String())
-			}
-		}
-
 		// Since this service was specified on its own, and not with a wildcard,
 		// if there is an existing entry, we overwrite it. The service entry is the source of truth.
 		//
@@ -2513,6 +2453,74 @@ func (s *Store) updateGatewayServices(tx *memdb.Txn, idx uint64, conf structs.Co
 		return fmt.Errorf("failed updating terminating-gateway-services index: %v", err)
 	}
 	return nil
+}
+
+func (s *Store) ingressConfigGatewayServices(tx *memdb.Txn, gateway structs.ServiceID, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) (structs.GatewayServices, error) {
+	entry, ok := conf.(*structs.IngressGatewayConfigEntry)
+	if !ok {
+		return nil, fmt.Errorf("unexpected config entry type: %T", conf)
+	}
+
+	// Check if service list matches the last known list for the config entry, if it does, skip the update
+	_, c, err := s.configEntryTxn(tx, nil, conf.GetKind(), conf.GetName(), entMeta)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get config entry: %v", err)
+	}
+	if cfg, ok := c.(*structs.IngressGatewayConfigEntry); ok && cfg != nil {
+		if reflect.DeepEqual(cfg.Listeners, entry.Listeners) {
+			// Services are the same, nothing to update
+			return nil, nil
+		}
+	}
+
+	var gatewayServices structs.GatewayServices
+	for _, listener := range entry.Listeners {
+		for _, service := range listener.Services {
+			mapping := &structs.GatewayService{
+				Gateway:     gateway,
+				Service:     service.ToServiceID(),
+				GatewayKind: structs.ServiceKindIngressGateway,
+				Port:        listener.Port,
+			}
+
+			gatewayServices = append(gatewayServices, mapping)
+		}
+	}
+	return gatewayServices, nil
+}
+
+func (s *Store) terminatingConfigGatewayServices(tx *memdb.Txn, gateway structs.ServiceID, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) (structs.GatewayServices, error) {
+	entry, ok := conf.(*structs.TerminatingGatewayConfigEntry)
+	if !ok {
+		return nil, fmt.Errorf("unexpected config entry type: %T", conf)
+	}
+
+	// Check if service list matches the last known list for the config entry, if it does, skip the update
+	_, c, err := s.configEntryTxn(tx, nil, conf.GetKind(), conf.GetName(), entMeta)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get config entry: %v", err)
+	}
+	if cfg, ok := c.(*structs.TerminatingGatewayConfigEntry); ok && cfg != nil {
+		if reflect.DeepEqual(cfg.Services, entry.Services) {
+			// Services are the same, nothing to update
+			return nil, nil
+		}
+	}
+
+	var gatewayServices structs.GatewayServices
+	for _, svc := range entry.Services {
+		mapping := &structs.GatewayService{
+			Gateway:     gateway,
+			Service:     structs.NewServiceID(svc.Name, &svc.EnterpriseMeta),
+			GatewayKind: structs.ServiceKindTerminatingGateway,
+			KeyFile:     svc.KeyFile,
+			CertFile:    svc.CertFile,
+			CAFile:      svc.CAFile,
+		}
+
+		gatewayServices = append(gatewayServices, mapping)
+	}
+	return gatewayServices, nil
 }
 
 // updateGatewayNamespace is used to target all services within a namespace with a set of TLS certificates
