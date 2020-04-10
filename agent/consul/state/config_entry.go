@@ -346,12 +346,36 @@ func (s *Store) validateProposedConfigEntryInGraph(
 	case structs.ServiceSplitter:
 	case structs.ServiceResolver:
 	case structs.IngressGateway:
+		err := s.validateGatewayConfig(tx, structs.TerminatingGateway, name, entMeta)
+		if err != nil {
+			return err
+		}
 	case structs.TerminatingGateway:
+		err := s.validateGatewayConfig(tx, structs.IngressGateway, name, entMeta)
+		if err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("unhandled kind %q during validation of %q", kind, name)
 	}
 
 	return s.validateProposedConfigEntryInServiceGraph(tx, idx, kind, name, next, validateAllChains, entMeta)
+}
+
+func (s *Store) validateGatewayConfig(
+	tx *memdb.Txn,
+	kind, name string,
+	entMeta *structs.EnterpriseMeta,
+) error {
+	_, entry, err := s.configEntryTxn(tx, nil, kind, name, entMeta)
+	if err != nil {
+		return err
+	}
+	if entry != nil {
+		return fmt.Errorf("cannot create config entry for %q, "+
+			"a %q with that name already exists", name, kind)
+	}
+	return nil
 }
 
 var serviceGraphKinds = []string{
