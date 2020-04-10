@@ -2,10 +2,11 @@ package consul
 
 import (
 	"encoding/base64"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -784,6 +785,11 @@ func TestInternal_TerminatingGatewayServices(t *testing.T) {
 				KeyFile:     "client.key",
 			},
 		}
+
+		// Ignore raft index for equality
+		for _, s := range resp.Services {
+			s.RaftIndex = structs.RaftIndex{}
+		}
 		assert.Equal(r, expect, resp.Services)
 	})
 }
@@ -970,6 +976,11 @@ service "gateway" {
 				Gateway:     structs.NewServiceID("gateway", nil),
 				GatewayKind: structs.ServiceKindTerminatingGateway,
 			},
+		}
+
+		// Ignore raft index for equality
+		for _, s := range resp.Services {
+			s.RaftIndex = structs.RaftIndex{}
 		}
 		assert.Equal(r, expect, resp.Services)
 	})

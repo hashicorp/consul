@@ -299,6 +299,7 @@ type GatewayService struct {
 	CAFile      string
 	CertFile    string
 	KeyFile     string
+	RaftIndex
 }
 
 type GatewayServices []*GatewayService
@@ -322,5 +323,6 @@ func (g *GatewayService) Clone() *GatewayService {
 		CAFile:      g.CAFile,
 		CertFile:    g.CertFile,
 		KeyFile:     g.KeyFile,
+		RaftIndex:   g.RaftIndex,
 	}
 }

@@ -53,50 +53,6 @@ func TestConfigEntries(t *testing.T) {
 	rpc.AssertExpectations(t)
 }
 
-func TestConfigEntry(t *testing.T) {
-	rpc := TestRPC(t)
-	typ := &ConfigEntry{RPC: rpc}
-
-	// Expect the proper RPC call. This also sets the expected value
-	// since that is return-by-pointer in the arguments.
-	var resp *structs.ConfigEntryResponse
-	rpc.On("RPC", "ConfigEntry.Get", mock.Anything, mock.Anything).Return(nil).
-		Run(func(args mock.Arguments) {
-			req := args.Get(1).(*structs.ConfigEntryQuery)
-			require.Equal(t, uint64(24), req.QueryOptions.MinQueryIndex)
-			require.Equal(t, 1*time.Second, req.QueryOptions.MaxQueryTime)
-			require.True(t, req.AllowStale)
-			require.Equal(t, structs.ServiceResolver, req.Kind)
-			require.Equal(t, "foo", req.Name)
-
-			entry := &structs.ServiceResolverConfigEntry{
-				Name: "foo",
-				Kind: structs.ServiceResolver,
-			}
-			reply := args.Get(2).(*structs.ConfigEntryResponse)
-			reply.Entry = entry
-			reply.QueryMeta.Index = 48
-			resp = reply
-		})
-
-	// Fetch
-	resultA, err := typ.Fetch(cache.FetchOptions{
-		MinIndex: 24,
-		Timeout:  1 * time.Second,
-	}, &structs.ConfigEntryQuery{
-		Datacenter: "dc1",
-		Kind:       structs.ServiceResolver,
-		Name:       "foo",
-	})
-	require.NoError(t, err)
-	require.Equal(t, cache.FetchResult{
-		Value: resp,
-		Index: 48,
-	}, resultA)
-
-	rpc.AssertExpectations(t)
-}
-
 func TestConfigEntries_badReqType(t *testing.T) {
 	rpc := TestRPC(t)
 	typ := &ConfigEntries{RPC: rpc}
