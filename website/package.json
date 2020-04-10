@@ -6,13 +6,13 @@
   "dependencies": {
     "@bugsnag/js": "^6.5.2",
     "@bugsnag/plugin-react": "^6.5.0",
-    "@hashicorp/nextjs-scripts": "^6.2.0-9",
+    "@hashicorp/nextjs-scripts": "^6.2.0-10",
     "@hashicorp/react-alert": "^2.0.0",
     "@hashicorp/react-button": "^2.1.7",
     "@hashicorp/react-consent-manager": "^2.0.7",
     "@hashicorp/react-content": "^3.0.0-0",
-    "@hashicorp/react-docs-page": "^1.0.2",
-    "@hashicorp/react-docs-sidenav": "^3.0.5",
+    "@hashicorp/react-docs-page": "^1.1.0",
+    "@hashicorp/react-docs-sidenav": "^3.1.0",
     "@hashicorp/react-docs-sitemap": "^1.0.0",
     "@hashicorp/react-enterprise-alert": "^2.0.0",
     "@hashicorp/react-footer": "^3.1.12",
@@ -49,9 +49,9 @@
   "devDependencies": {
     "dart-linkcheck": "^2.0.15",
     "glob": "^7.1.6",
-    "husky": "^4.2.3",
+    "husky": "^4.2.5",
     "inquirer": "^7.1.0",
-    "prettier": "^2.0.2"
+    "prettier": "^2.0.4"
   },
   "husky": {
     "hooks": {
