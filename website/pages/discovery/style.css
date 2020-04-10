@@ -1,5 +1,10 @@
 .intro {
   text-align: center;
+  margin-bottom: 64px;
+}
+
+.g-section.border-top {
+  border-top: 1px solid #e5e6eb;
 }
 
 .g-cta-section.g-section {

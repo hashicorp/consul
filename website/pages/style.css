@@ -34,6 +34,7 @@
 @import '~@hashicorp/react-section-header/dist/style.css';
 @import '~@hashicorp/react-call-to-action/dist/style.css';
 @import '~@hashicorp/react-case-study-slider/dist/style.css';
+@import '~@hashicorp/react-code-block/dist/style.css';
 
 /* Local Components */
 @import '../components/footer/style.css';

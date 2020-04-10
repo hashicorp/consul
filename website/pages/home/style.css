@@ -131,7 +131,7 @@
     align-content: space-between;
     display: flex;
     justify-content: center;
-    margin: 0 20px;
+    margin: 0 -20px;
     text-align: left;
   }
 
@@ -169,6 +169,7 @@
     & picture > img,
     & img {
       width: 145%;
+      vertical-align: middle;
     }
   }
 

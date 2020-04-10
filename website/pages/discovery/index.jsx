@@ -1,7 +1,7 @@
 import CallToAction from '@hashicorp/react-call-to-action'
 import BeforeAfterDiagram from '../../components/before-after'
 import CaseStudySlider from '@hashicorp/react-case-study-slider'
-// import TextSplitWithCode from '@hashicorp/react-text-split-with-code'
+import CodeBlock from '@hashicorp/react-code-block'
 
 export default function ServiceDiscovery() {
   return (
@@ -37,7 +37,9 @@ export default function ServiceDiscovery() {
             />
           </div>
         </section>
-        <section class="g-section border-top">
+        <section></section>
+
+        <section class="g-section border-top large-padding">
           <div class="g-container">
             <div class="intro">
               <h2 class="g-type-display-2">Features</h2>
@@ -107,40 +109,57 @@ export default function ServiceDiscovery() {
             </div>
           </div>
         </section>
-        {/* <TextSplitWithCode
-          heading="Ttext"
-          content="Test"
-          code={`resource "digitalocean_droplet" "web" {
-  name = "tf-web"n  size = "512mb"
-  image = "centos-5-8-x32"
-  region = "sfo1"
-}
-resource "dnsimple_record" "hello" {
-  domain = "example.com"
-  name = "test"
-  value = "value"
-  type = "A"
-}`}
-        /> */}
 
-        {/* <section class='g-section border-top'>
-    <div class='g-container'>
-      <div class='g-text-asset reverse'>
-        <div>
-          <div>
-            <h3 class="g-type-display-3">DNS Query Interface</h3>
-            <p class="g-type-body">Consul enables service discovery using a built-in DNS server. This allows existing applications to easily integrate, as almost all applications support using DNS to resolve IP addresses. Using DNS instead of a static IP address allows services to scale up/down and route around failures easily.</p>
-            <p>
-              <a class="learn-more g-type-buttons-and-standalone-links" href="https://learn.hashicorp.com/consul/getting-started/services#querying-services">Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
-            </p>
-          </div>
-        </div>
-        <div class='code-sample'>
-          <div>
-            <span></span>
-            <div class='code'><code>
-$ dig <code class='keyword'>web-frontend.service.consul.</code> ANY
-
+        <section class="g-section border-top large-padding">
+          <div class="g-container">
+            <div class="g-text-asset reverse">
+              <div>
+                <div>
+                  <h3 class="g-type-display-3">DNS Query Interface</h3>
+                  <p class="g-type-body">
+                    Consul enables service discovery using a built-in DNS
+                    server. This allows existing applications to easily
+                    integrate, as almost all applications support using DNS to
+                    resolve IP addresses. Using DNS instead of a static IP
+                    address allows services to scale up/down and route around
+                    failures easily.
+                  </p>
+                  <p>
+                    <a
+                      class="learn-more g-type-buttons-and-standalone-links"
+                      href="https://learn.hashicorp.com/consul/getting-started/services#querying-services"
+                    >
+                      Learn more
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="6"
+                        height="10"
+                        viewBox="0 0 6 10"
+                      >
+                        <g
+                          fill="none"
+                          fill-rule="evenodd"
+                          transform="translate(-6 -3)"
+                        >
+                          <mask id="a" fill="#fff">
+                            <path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z" />
+                          </mask>
+                          <g fill="#1563FF" mask="url(#a)">
+                            <path d="M0 0h16v16H0z" />
+                          </g>
+                        </g>
+                      </svg>
+                    </a>
+                  </p>
+                </div>
+              </div>
+              <div class="code-sample">
+                <div>
+                  <span></span>
+                  <CodeBlock
+                    prefix="terminal"
+                    code={`
+$ dig web-frontend.service.consul. ANY
 ; <<>> DiG 9.8.3-P1 <<>> web-frontend.service.consul. ANY
 ;; global options: +cmd
 ;; Got answer:
@@ -151,77 +170,142 @@ $ dig <code class='keyword'>web-frontend.service.consul.</code> ANY
 ;web-frontend.service.consul. IN ANY
 
 ;; ANSWER SECTION:
-web-frontend.service.consul. 0 IN A <code class='keyword'>10.0.3.83</code>
-web-frontend.service.consul. 0 IN A <code class='keyword'>10.0.1.109</code>
-</code>
+web-frontend.service.consul. 0 IN A 10.0.3.83
+web-frontend.service.consul. 0 IN A 10.0.1.109
+          `}
+                  />
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-  </section> */}
+        </section>
 
-        {/* <section class='g-section border-top'>
-    <div class='g-container'>
-      <div class='g-text-asset'>
-        <div>
-          <div>
-            <h3 class="g-type-display-3">HTTP API with Edge Triggers</h3>
-            <p class="g-type-body">Consul provides an HTTP API to query the service registry for nodes, services, and health check information. The API also supports blocking queries, or long-polling for any changes. This allows automation tools to react to services being registered or health status changes to change configurations or traffic routing in real time.</p>
-            <p>
-              <a class="learn-more g-type-buttons-and-standalone-links" href="https://learn.hashicorp.com/consul/getting-started/services#http-api">Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
-            </p>
-          </div>
-        </div>
-        <div class='code-sample'>
-          <div>
-            <span></span>
-            <div class='code'>
-              <code>$ curl <code class='keyword'>http://localhost:8500/v1/health/service/web?index=11&wait=30s</code>
-{
-  ...
-  "Node": "10-0-1-109",
-  "CheckID": "service:web",
-  "Name": "Service 'web' check",
-  "Status": <code class='keyword'>"critical"</code>,
-  "ServiceID": "web",
-  "ServiceName": "web",
-  "CreateIndex": 10,
-  "ModifyIndex": 20
-  ...
-}
-</code>
+        <section class="g-section border-top large-padding">
+          <div class="g-container">
+            <div class="g-text-asset">
+              <div>
+                <div>
+                  <h3 class="g-type-display-3">HTTP API with Edge Triggers</h3>
+                  <p class="g-type-body">
+                    Consul provides an HTTP API to query the service registry
+                    for nodes, services, and health check information. The API
+                    also supports blocking queries, or long-polling for any
+                    changes. This allows automation tools to react to services
+                    being registered or health status changes to change
+                    configurations or traffic routing in real time.
+                  </p>
+                  <p>
+                    <a
+                      class="learn-more g-type-buttons-and-standalone-links"
+                      href="https://learn.hashicorp.com/consul/getting-started/services#http-api"
+                    >
+                      Learn more
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="6"
+                        height="10"
+                        viewBox="0 0 6 10"
+                      >
+                        <g
+                          fill="none"
+                          fill-rule="evenodd"
+                          transform="translate(-6 -3)"
+                        >
+                          <mask id="a" fill="#fff">
+                            <path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z" />
+                          </mask>
+                          <g fill="#1563FF" mask="url(#a)">
+                            <path d="M0 0h16v16H0z" />
+                          </g>
+                        </g>
+                      </svg>
+                    </a>
+                  </p>
+                </div>
+              </div>
+              <div class="code-sample">
+                <div>
+                  <span></span>
+                  <CodeBlock
+                    prefix="terminal"
+                    code={`
+$ curl http://localhost:8500/v1/health/service/web?index=11&wait=30s
+  {
+    ...
+    "Node": "10-0-1-109",
+    "CheckID": "service:web",
+    "Name": "Service 'web' check",
+    "Status": <code class='keyword'>"critical"</code>,
+    "ServiceID": "web",
+    "ServiceName": "web",
+    "CreateIndex": 10,
+    "ModifyIndex": 20
+    ...
+  }
+          `}
+                  />
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-  </section> */}
-        {/*
-  <section class='g-section border-top'>
-    <div class='g-container'>
-      <div class='g-text-asset reverse'>
-        <div>
-          <div>
-            <h3 class="g-type-display-3">Multi Datacenter</h3>
-            <p class="g-type-body">Consul supports multiple datacenters out of the box with no complicated configuration. Look up services in other datacenters or keep the request local. Advanced features like Prepared Queries enable automatic failover to other datacenters.</p>
-            <p>
-              <a class="learn-more g-type-buttons-and-standalone-links" href='https://learn.hashicorp.com/consul/security-networking/datacenters'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
-            </p>
-          </div>
-        </div>
-        <div class='code-sample'>
-          <div>
-            <span></span>
-            <div class='code'>
-              <code>
+        </section>
+
+        <section class="g-section border-top large-padding">
+          <div class="g-container">
+            <div class="g-text-asset reverse">
+              <div>
+                <div>
+                  <h3 class="g-type-display-3">Multi Datacenter</h3>
+                  <p class="g-type-body">
+                    Consul supports multiple datacenters out of the box with no
+                    complicated configuration. Look up services in other
+                    datacenters or keep the request local. Advanced features
+                    like Prepared Queries enable automatic failover to other
+                    datacenters.
+                  </p>
+                  <p>
+                    <a
+                      class="learn-more g-type-buttons-and-standalone-links"
+                      href="https://learn.hashicorp.com/consul/security-networking/datacenters"
+                    >
+                      Learn more
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="6"
+                        height="10"
+                        viewBox="0 0 6 10"
+                      >
+                        <g
+                          fill="none"
+                          fill-rule="evenodd"
+                          transform="translate(-6 -3)"
+                        >
+                          <mask id="a" fill="#fff">
+                            <path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z" />
+                          </mask>
+                          <g fill="#1563FF" mask="url(#a)">
+                            <path d="M0 0h16v16H0z" />
+                          </g>
+                        </g>
+                      </svg>
+                    </a>
+                  </p>
+                </div>
+              </div>
+              <div class="code-sample">
+                <div>
+                  <span></span>
+                  <div class="code">
+                    <CodeBlock
+                      prefix="terminal"
+                      code={`
 $ curl http://localhost:8500/v1/catalog/datacenters
-<code class='keyword'>[
-  "dc1",
-  "dc2"
-]</code>
-$ curl http://localhost:8500/v1/catalog/nodes?<code class='keyword'>dc=dc2</code>
-[
+  [
+    "dc1",
+    "dc2"
+  ]
+  $ curl http://localhost:8500/v1/catalog/nodes?dc=dc2
+  [
     {
         "ID": "7081dcdf-fdc0-0432-f2e8-a357d36084e1",
         "Node": "10-0-1-109",
@@ -234,15 +318,17 @@ $ curl http://localhost:8500/v1/catalog/nodes?<code class='keyword'>dc=dc2</code
         "CreateIndex": 112,
         "ModifyIndex": 125
     },
-...</code>
+...
+          `}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-  </section> */}
+        </section>
 
-        <section class="g-section border-top">
+        <section class="g-section border-top large-padding">
           <div class="g-container">
             <div class="g-text-asset large">
               <div>
