@@ -75,14 +75,14 @@ The options below are all specified on the command-line.
   client agents, and it allows client agents to be reached at this address when being
   accessed from a remote datacenter if the remote datacenter is configured with [`translate_wan_addrs`](#translate_wan_addrs). In Consul 1.0 and later this can be set to a [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template) template
 
-- `-bootstrap` ((#\_bootstrap) - This flag is used to control if a server
+- `-bootstrap` ((#\_bootstrap)) - This flag is used to control if a server
   is in "bootstrap" mode. It is important that no more than one server **per** datacenter
   be running in this mode. Technically, a server in bootstrap mode is allowed to
   self-elect as the Raft leader. It is important that only a single node is in this
   mode; otherwise, consistency cannot be guaranteed as multiple nodes are able to
   self-elect. It is not recommended to use this flag after a cluster has been bootstrapped.
 
-- `-bootstrap-expect` ((#\_bootstrap_expect) - This flag provides the number
+- `-bootstrap-expect` ((#\_bootstrap_expect)) - This flag provides the number
   of expected servers in the datacenter. Either this value should not be provided
   or the value must agree with other servers in the cluster. When provided, Consul
   waits until the specified number of servers are available and then bootstraps the
@@ -90,7 +90,7 @@ The options below are all specified on the command-line.
   be used in conjunction with the legacy [`-bootstrap`](#_bootstrap) flag. This flag
   requires [`-server`](#_server) mode.
 
-- `-bind` ((#\_bind) - The address that should be bound to for internal
+- `-bind` ((#\_bind)) - The address that should be bound to for internal
   cluster communications. This is an IP address that should be reachable by all other
   nodes in the cluster. By default, this is "0.0.0.0", meaning Consul will bind to
   all addresses on the local machine and will [advertise](/docs/agent/options#_advertise)
@@ -659,7 +659,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
     - `agent` ((#acl_tokens_agent)) - Used for clients and servers to perform
       internal operations. If this isn't specified, then the
-      `default` ((#acl_tokens_default)) will be used.
+      [`default`](#acl_tokens_default) will be used.
 
       This token must at least have write access to the node name it will
       register as in order to set any of the node-level information in the
@@ -791,7 +791,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
   For TCP addresses, the environment variable value should be an IP address
   _with the port_. For example: `10.0.0.1:8500` and not `10.0.0.1`. However,
-  ports are set separately in the `ports` ((#ports)) structure when
+  ports are set separately in the [`ports`](#ports) structure when
   defining them in a configuration file.
 
   The following keys are valid:
@@ -1630,7 +1630,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     The Check ID (not **check bundle**) from a previously created HTTPTRAP check.
     The numeric portion of the `check._cid` field in the Check API object.
 
-  - `circonus_check_force_metric_activation` ((#telemetry-circonus_check_force_metric_activation) Force activation of metrics which already exist and are not currently active.
+  - `circonus_check_force_metric_activation` ((#telemetry-circonus_check_force_metric_activation)) Force activation of metrics which already exist and are not currently active.
     If check management is enabled, the default behavior is to add new metrics as
     they are encountered. If the metric already exists in the check, it will **not**
     be activated. This setting overrides that behavior. By default, this is set to
@@ -1702,7 +1702,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
     A leading "**+**" will enable any metrics with the given prefix, and a leading "**-**" will block them. If there is overlap between two rules, the more specific rule will take precedence. Blocking will take priority if the same prefix is listed multiple times.
 
-  - prometheus_retention_time ((#telemetry-prometheus_retention_time)) If the value is greater than `0s` (the default), this enables [Prometheus](https://prometheus.io/)
+  - `prometheus_retention_time` ((#telemetry-prometheus_retention_time)) If the value is greater than `0s` (the default), this enables [Prometheus](https://prometheus.io/)
     export of metrics. The duration can be expressed using the duration semantics
     and will aggregates all counters for the duration specified (it might have an
     impact on Consul's memory usage). A good value for this parameter is at least
@@ -1711,7 +1711,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     days). Fetching the metrics using prometheus can then be performed using the
     [`/v1/agent/metrics?format=prometheus`](/api/agent#view-metrics) endpoint.
     The format is compatible natively with prometheus. When running in this mode,
-    it is recommended to also enable the option `disable_hostname` ((#telemetry-disable_hostname))
+    it is recommended to also enable the option [`disable_hostname`](#telemetry-disable_hostname)
     to avoid having prefixed metrics with hostname. Consul does not use the default
     Prometheus path, so Prometheus must be configured as follows. Note that using
     ?format=prometheus in the path won't work as ? will be escaped, so it must be
