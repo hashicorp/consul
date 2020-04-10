@@ -101,9 +101,9 @@
 # Glob Redirects, Ported from Varnish
 
 /intro/index                        /intro                                                                    301!
-/intro/getting-started/*            https://learn.hashicorp.com/consul/getting-started/:splat                 301!
 /intro/getting-started              https://learn.hashicorp.com/consul?track=getting-started#getting-started  301!
 /intro/getting-started/index.html   https://learn.hashicorp.com/consul?track=getting-started#getting-started  301!
+/intro/getting-started/*            https://learn.hashicorp.com/consul/getting-started/:splat                 301!
 
 /docs/agent/http/*          /api/:splat   301!
 /docs/agent/http.html       /api          301!
@@ -111,9 +111,9 @@
 
 # Replatforming Redirects
 
-/api/*                                   /api-docs/:splat                  200
 /guides                                  /docs/guides                      301!
 /guides/index.html                       /docs/guides                      301!
+
 /api-docs/index                          /api-docs                         301!
 /api/acl.html                            /api-docs/acl                     301!
 /api/acl/acl.html                        /api-docs/acl                     301!
@@ -121,9 +121,10 @@
 /api/agent.html                          /api-docs/agent                   301!
 /api/connect.html                        /api-docs/connect                 301!
 /api/operator.html                       /api-docs/operator                301!
+/api/*                                   /api-docs/:splat                  200
+
 /docs/upgrading.html                     /docs/upgrading                   301!
 /docs/upgrading/*                        /docs/upgrading/:splat            301!
-
 /docs/commands/acl/auth-method.html      /docs/commands/acl/auth-method    301!
 /docs/commands/acl/binding-rule.html     /docs/commands/acl/binding-rule   301!
 /docs/commands/acl/auth-method.html      /docs/commands/acl/auth-method    301!
@@ -150,7 +151,6 @@
 /docs/connect/native.html                /docs/connect/native              301!
 /docs/connect/platform/nomad.html        /docs/connect/nomad               301!
 
-/docs/platform/k8s/*                                /docs/k8s/:splat                              301!
 /docs/platform/k8s/run.html                         /docs/k8s/install                             301!
 /docs/platform/k8s/aks.html                         /docs/k8s/install/aks                         301!
 /docs/platform/k8s/gke.html                         /docs/k8s/install/gke                         301!
@@ -163,6 +163,7 @@
 /docs/platform/k8s/upgrading.html                   /docs/k8s/operations/upgrading                301!
 /docs/platform/k8s/tls-on-existing-cluster.html     /docs/k8s/operations/tls-on-existing-cluster  301!
 /docs/platform/k8s/uninstalling.html                /docs/k8s/operations/upgrading                301!
+/docs/platform/k8s/*                                /docs/k8s/:splat                              301!
 
 /docs/partnerships/index.html                       /docs/partnerships                            301!
 /docs/enterprise/backups/index.html                 /docs/enterprise/backups                      301!
