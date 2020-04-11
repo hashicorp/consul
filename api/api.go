@@ -871,6 +871,7 @@ func (c *Client) doRequest(r *request) (time.Duration, *http.Response, error) {
 	}
 	start := time.Now()
 	resp, err := c.config.HttpClient.Do(req)
+	fmt.Println("~~~Request finished ('do') api/api.go")
 	diff := time.Since(start)
 	return diff, resp, err
 }

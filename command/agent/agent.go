@@ -321,7 +321,8 @@ func (c *cmd) run(args []string) int {
 	// wait for signal
 	signalCh = make(chan os.Signal, 10)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
-
+	first := true
+OUTER:
 	for {
 		var sig os.Signal
 		var reloadErrCh chan error
@@ -349,7 +350,11 @@ func (c *cmd) run(args []string) int {
 
 		case syscall.SIGHUP:
 			c.logger.Info("Caught", "signal", sig)
-
+			fmt.Println("SIGHUP called ONCE!")
+			if first {
+				first = false
+				continue OUTER
+			}
 			conf, err := c.handleReload(agent, config)
 			if conf != nil {
 				config = conf
@@ -420,10 +425,14 @@ func (c *cmd) handleReload(agent *agent.Agent, cfg *config.RuntimeConfig) (*conf
 
 	}
 
+	newCfg.ConsulReloadCommandTriggered = true
+
 	if err := agent.ReloadConfig(newCfg); err != nil {
 		errs = multierror.Append(fmt.Errorf(
 			"Failed to reload configs: %v", err))
 	}
+
+	fmt.Println("handlerReload() finished command/agent/agent.go")
 
 	return newCfg, errs
 }

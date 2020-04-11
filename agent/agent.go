@@ -1063,6 +1063,10 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 			}
 		}
 
+		if cfg.ConsulReloadCommandTriggered {
+			params["consulReloadTriggered"] = true
+		}
+
 		// Parse the watches, excluding 'handler' and 'args'
 		wp, err := watch.ParseExempt(params, []string{"handler", "args"})
 		if err != nil {

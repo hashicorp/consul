@@ -47,6 +47,7 @@ type RuntimeConfig struct {
 	ConsulRaftHeartbeatTimeout       time.Duration
 	ConsulRaftLeaderLeaseTimeout     time.Duration
 	ConsulServerHealthInterval       time.Duration
+	ConsulReloadCommandTriggered     bool
 
 	// ACLDisabledTTL is used by agents to determine how long they will
 	// wait to check again with the servers if they discover ACLs are not

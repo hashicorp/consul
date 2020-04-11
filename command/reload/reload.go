@@ -39,6 +39,8 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	fmt.Println("~~~~~~ before calling .Reload() in command/reload/reload.go")
+
 	if err := client.Agent().Reload(); err != nil {
 		c.UI.Error(fmt.Sprintf("Error reloading: %s", err))
 		return 1
