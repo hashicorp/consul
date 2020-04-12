@@ -7,11 +7,8 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-// Recommended names for registration.
-const (
-	ConfigEntriesName = "config-entries"
-	ConfigEntryName   = "config-entry"
-)
+// Recommended name for registration.
+const ConfigEntriesName = "config-entries"
 
 // ConfigEntries supports fetching discovering configuration entries
 type ConfigEntries struct {
