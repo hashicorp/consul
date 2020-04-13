@@ -6,7 +6,7 @@
   "dependencies": {
     "@bugsnag/js": "^6.5.2",
     "@bugsnag/plugin-react": "^6.5.0",
-    "@hashicorp/nextjs-scripts": "^6.2.0-11",
+    "@hashicorp/nextjs-scripts": "^6.2.0-12",
     "@hashicorp/react-alert": "^2.0.0",
     "@hashicorp/react-button": "^2.1.7",
     "@hashicorp/react-consent-manager": "^2.0.7",
