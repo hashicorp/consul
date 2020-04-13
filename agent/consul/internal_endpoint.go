@@ -323,14 +323,9 @@ func (m *Internal) GatewayServices(args *structs.ServiceSpecificRequest, reply *
 			var index uint64
 			var services structs.GatewayServices
 
-			switch args.ServiceKind {
-			case structs.ServiceKindTerminatingGateway, structs.ServiceKindIngressGateway:
-				index, services, err = state.GatewayServices(ws, args.ServiceName, &args.EnterpriseMeta)
-				if err != nil {
-					return err
-				}
-			default:
-				return fmt.Errorf("unsupported ServiceKind %s", args.ServiceKind)
+			index, services, err = state.GatewayServices(ws, args.ServiceName, &args.EnterpriseMeta)
+			if err != nil {
+				return err
 			}
 
 			if err := m.srv.filterACL(args.Token, &services); err != nil {

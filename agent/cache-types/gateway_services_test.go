@@ -23,7 +23,6 @@ func TestGatewayServices(t *testing.T) {
 			require.Equal(t, uint64(24), req.QueryOptions.MinQueryIndex)
 			require.Equal(t, 1*time.Second, req.QueryOptions.MaxQueryTime)
 			require.True(t, req.AllowStale)
-			require.Equal(t, structs.ServiceKindIngressGateway, req.ServiceKind)
 			require.Equal(t, "foo", req.ServiceName)
 
 			services := structs.GatewayServices{
@@ -49,7 +48,6 @@ func TestGatewayServices(t *testing.T) {
 		Timeout:  1 * time.Second,
 	}, &structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
-		ServiceKind: structs.ServiceKindIngressGateway,
 		ServiceName: "foo",
 	})
 	require.NoError(t, err)

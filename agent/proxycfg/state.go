@@ -466,7 +466,6 @@ func (s *state) initWatchesIngressGateway() error {
 		Datacenter:     s.source.Datacenter,
 		QueryOptions:   structs.QueryOptions{Token: s.token},
 		ServiceName:    s.service,
-		ServiceKind:    structs.ServiceKindIngressGateway,
 		EnterpriseMeta: s.proxyID.EnterpriseMeta,
 	}, gatewayServicesWatchID, s.ch)
 	if err != nil {
