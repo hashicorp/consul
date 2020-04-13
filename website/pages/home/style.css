@@ -1,0 +1,449 @@
+.large-padding {
+  padding: 120px 0;
+}
+
+.small-padding {
+  padding: 56px;
+}
+
+.bg-light {
+  background: #f7f8fa !important;
+}
+
+#companies-using-consul h2 {
+  margin-bottom: 24px;
+}
+
+#static-dynamic {
+  & .g-section-header {
+    margin-bottom: 64px;
+  }
+}
+
+.g-use-cases {
+  margin: 48px 0 8px;
+
+  @media (min-width: 768px) {
+    display: flex;
+    justify-content: center;
+    margin: 0 20px;
+  }
+
+  & .button {
+    background: #ca2171;
+    border-radius: 1px;
+    box-sizing: border-box;
+    color: #ffffff;
+    display: inline-block;
+    font-family: 'gilmer-web', 'Gilmer', Geneva, Tahoma, Helvetica, Verdana,
+      sans-serif;
+    font-size: 0.938rem;
+    font-weight: 500;
+    line-height: 1.6em;
+    margin-bottom: 4px;
+    padding: 14px 20px;
+    text-decoration: none;
+  }
+
+  & img {
+    width: 51%;
+
+    @media (min-width: 768px) {
+      width: 80%;
+    }
+  }
+
+  & h3 {
+    font-weight: 600;
+    margin: 40px 0 0;
+
+    & span {
+      display: block;
+      font-weight: 300;
+    }
+  }
+
+  & p {
+    margin-top: 0.5em;
+
+    @media (min-width: 768px) {
+      margin-top: 1em;
+    }
+  }
+
+  & > div {
+    padding: 0 16px;
+    position: relative;
+    text-align: center;
+
+    @media (min-width: 768px) {
+      padding: 0 20px;
+      width: 33.33333%;
+    }
+
+    @media (min-width: 992px) {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    & + div {
+      margin-top: 56px;
+
+      @media (min-width: 768px) {
+        margin-top: 0;
+      }
+    }
+  }
+
+  & .button {
+    @media (min-width: 768px) {
+      margin-top: 22px;
+    }
+  }
+}
+
+.g-logo-grid {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 auto;
+  max-width: 990px;
+  text-align: center;
+
+  & > div {
+    width: 33%;
+
+    & img {
+      width: 100%;
+    }
+
+    @media (max-width: 768px) {
+      width: 50%;
+    }
+  }
+}
+
+.g-text-asset {
+  text-align: center;
+
+  @media (min-width: 768px) {
+    align-content: space-between;
+    display: flex;
+    justify-content: center;
+    margin: 0 -20px;
+    text-align: left;
+  }
+
+  &.reverse {
+    flex-direction: row-reverse;
+
+    & > div:first-child > div {
+      margin-left: auto;
+
+      @media (min-width: 768px) {
+        padding: 0 24px 0 0;
+      }
+
+      @media (min-width: 992px) {
+        padding-right: 32px;
+      }
+    }
+  }
+
+  &.large {
+    margin-bottom: -56px;
+
+    @media (min-width: 768px) {
+      margin-bottom: -96px;
+    }
+
+    @media (min-width: 992px) {
+      margin-bottom: -120px;
+    }
+
+    & > div:last-child {
+      justify-content: unset;
+    }
+
+    & picture > img,
+    & img {
+      width: 145%;
+      vertical-align: middle;
+    }
+  }
+
+  & > div {
+    @media (min-width: 768px) {
+      align-items: center;
+      margin: 0 auto;
+      display: flex;
+      padding: 0 20px;
+      width: 50%;
+    }
+
+    &:first-child {
+      margin-bottom: 32px;
+
+      @media (min-width: 768px) {
+        margin-bottom: 0;
+      }
+
+      & > div {
+        @media (min-width: 768px) {
+          margin-left: 0;
+          max-width: 454px;
+          padding: 0 0 0 24px;
+        }
+
+        @media (min-width: 992px) {
+          padding-left: 32px;
+        }
+
+        & a {
+          color: #1563ff;
+
+          &:focus,
+          &:hover {
+            color: #2c72fe;
+
+            & path {
+              fill: #2c72fe;
+            }
+          }
+
+          & svg {
+            margin-left: 10px;
+          }
+        }
+      }
+    }
+
+    &:last-child {
+      justify-content: center;
+    }
+
+    & img,
+    & picture > img {
+      width: 100%;
+
+      &.shadow {
+        box-shadow: 0 40px 48px -20px rgba(63, 68, 85, 0.4);
+      }
+    }
+
+    & > svg {
+      max-width: 100%;
+    }
+
+    &.code-sample > div {
+      box-shadow: 0 40px 48px -20px rgba(63, 68, 85, 0.4);
+      color: var(--white);
+      margin: 0;
+      text-align: left;
+      width: 100%;
+
+      & span {
+        background: #252937;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        display: block;
+        height: 32px;
+
+        @media (min-width: 768px) {
+          height: 40px;
+        }
+      }
+
+      & .code {
+        background: #1e212a;
+        overflow: auto;
+        padding: 16px 24px 32px;
+        width: 100%;
+
+        & code {
+          background: #1e212a;
+          border-radius: 0;
+          color: var(--white);
+          white-space: pre;
+
+          &.keyword {
+            color: #be5580;
+          }
+        }
+      }
+    }
+
+    &.logos {
+      justify-content: center;
+
+      & > div {
+        align-items: center;
+        display: flex;
+        flex-direction: column;
+
+        & img,
+        picture {
+          margin: 30px 0;
+
+          @media (max-width: 767px) {
+            margin: 15px 0;
+            max-width: 51%;
+          }
+        }
+      }
+    }
+  }
+
+  & h3 {
+    margin: 0 0 16px 0;
+
+    @media (min-width: 768px) {
+      margin-top: 16px;
+    }
+  }
+
+  & i {
+    list-style-type: none;
+    margin: 16px;
+    text-align: left;
+
+    @media (min-width: 768px) {
+      margin: 16px 0;
+    }
+
+    &:before {
+      background-position: center;
+      background-repeat: no-repeat;
+      background-size: 100%;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="23" height="22" viewBox="0 0 23 22"><path fill="#CA2171" d="M21.293 1.298L11 11.591 8.707 9.298a1 1 0 1 0-1.414 1.414l3 3a.997.997 0 0 0 1.414 0l11-11a1 1 0 1 0-1.414-1.414M22 10.075v.93a10.925 10.925 0 0 1-3.227 7.777A10.926 10.926 0 0 1 11 22h-.007C4.929 21.996-.003 17.058 0 10.993a10.927 10.927 0 0 1 3.226-7.776A10.927 10.927 0 0 1 10.999 0h.008c1.551 0 3.055.32 4.47.952a1 1 0 1 1-.815 1.826A8.926 8.926 0 0 0 11.006 2H11a8.938 8.938 0 0 0-6.36 2.632A8.938 8.938 0 0 0 2 10.994c-.003 4.963 4.032 9.003 8.995 9.006H11c2.401 0 4.66-.935 6.36-2.633A8.936 8.936 0 0 0 20 11.005v-.93a1 1 0 1 1 2 0"/></svg>');
+      content: '';
+      display: block;
+      float: left;
+      height: 24px;
+      margin: 4px 0 0 -40px;
+      width: 24px;
+    }
+  }
+}
+
+#static-dynamic {
+  & .static-callout {
+    width: 85%;
+  }
+
+  & #index-dynamic-animation {
+    width: 85%;
+    margin: 0 auto;
+
+    & svg {
+      width: 100%;
+      height: auto !important;
+    }
+  }
+}
+
+.home-cta-section {
+  color: var(--white);
+
+  @media (min-width: 768px) {
+    display: flex;
+  }
+
+  & > div {
+    display: flex;
+    justify-content: center;
+    padding: 64px 24px;
+    overflow: hidden;
+
+    @media (min-width: 768px) {
+      padding-top: 80px;
+      padding-bottom: 80px;
+      width: 50%;
+    }
+
+    @media (min-width: 992px) {
+      padding-top: 96px;
+      padding-bottom: 96px;
+      width: 50%;
+    }
+
+    & > svg {
+      width: 135px;
+    }
+
+    &:first-child {
+      background: var(--consul);
+      position: relative;
+
+      &:after {
+        content: '';
+        background: url('/img/consul-connect/mesh.svg') top center;
+        background-size: cover;
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        opacity: 0.2;
+        transform: scale(1.3, 1.3);
+      }
+    }
+
+    &:last-child {
+      background: var(--gray-1);
+    }
+
+    & > div {
+      display: flex;
+      flex-direction: column;
+      max-width: 564px;
+      text-align: center;
+      width: 100%;
+      z-index: 1;
+
+      & div:first-child {
+        height: 50px;
+        width: auto;
+      }
+
+      & p {
+        flex: 1 0 auto;
+        margin: 24px 0 32px;
+      }
+    }
+  }
+}
+
+.button {
+  background: #ca2171;
+  border-radius: 1px;
+  box-sizing: border-box;
+  color: #ffffff;
+  display: inline-block;
+  font-family: 'gilmer-web', 'Gilmer', Geneva, Tahoma, Helvetica, Verdana,
+    sans-serif;
+  font-size: 0.938rem;
+  font-weight: 500;
+  line-height: 1.6em;
+  margin-bottom: 4px;
+  padding: 14px 20px;
+  text-decoration: none;
+}
+
+.button.white {
+  background: #ffffff;
+  color: #000000;
+}
+
+.button.secondary.white {
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  color: #ffffff;
+}
+
+.button.secondary {
+  background: transparent;
+  border: 1px solid rgba(29, 30, 35, 0.2);
+  color: #000000;
+  padding: 13px 19px;
+}
+/*  */
