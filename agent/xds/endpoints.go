@@ -3,7 +3,6 @@ package xds
 import (
 	"errors"
 	"fmt"
-
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoyendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
@@ -30,6 +29,8 @@ func (s *Server) endpointsFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, _ strin
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
 		return s.endpointsFromSnapshotConnectProxy(cfgSnap)
+	case structs.ServiceKindTerminatingGateway:
+		return s.endpointsFromSnapshotTerminatingGateway(cfgSnap)
 	case structs.ServiceKindMeshGateway:
 		return s.endpointsFromSnapshotMeshGateway(cfgSnap)
 	case structs.ServiceKindIngressGateway:
@@ -104,6 +105,22 @@ func (s *Server) filterSubsetEndpoints(subset *structs.ServiceResolverSubset, en
 		return raw.(structs.CheckServiceNodes), nil
 	}
 	return endpoints, nil
+}
+
+func (s *Server) endpointsFromSnapshotTerminatingGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+	resources := make([]proto.Message, 0, len(cfgSnap.TerminatingGateway.ServiceGroups))
+
+	// generate the endpoints for the linked service groups
+	for svc, endpoints := range cfgSnap.TerminatingGateway.ServiceGroups {
+		clusterName := connect.ServiceSNI(svc.ID, "", svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+
+		group := []loadAssignmentEndpointGroup{{Endpoints: endpoints, OnlyPassing: false}}
+
+		la := makeLoadAssignment(clusterName, group, cfgSnap.Datacenter)
+		resources = append(resources, la)
+	}
+
+	return resources, nil
 }
 
 func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {

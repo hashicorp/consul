@@ -38,8 +38,10 @@ func (s *Server) listenersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token s
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
 		return s.listenersFromSnapshotConnectProxy(cfgSnap, token)
+	case structs.ServiceKindTerminatingGateway:
+		return s.listenersFromSnapshotGateway(cfgSnap, token)
 	case structs.ServiceKindMeshGateway:
-		return s.listenersFromSnapshotMeshGateway(cfgSnap)
+		return s.listenersFromSnapshotGateway(cfgSnap, token)
 	case structs.ServiceKindIngressGateway:
 		return s.listenersFromSnapshotIngressGateway(cfgSnap)
 	default:
@@ -181,8 +183,8 @@ func parseCheckPath(check structs.CheckType) (structs.ExposePath, error) {
 	return path, nil
 }
 
-// listenersFromSnapshotMeshGateway returns the "listener" for a mesh-gateway service
-func (s *Server) listenersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+// listenersFromSnapshotGateway returns the "listener" for a terminating-gateway or mesh-gateway service
+func (s *Server) listenersFromSnapshotGateway(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
 	cfg, err := ParseGatewayConfig(cfgSnap.Proxy.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
@@ -190,8 +192,14 @@ func (s *Server) listenersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 		s.Logger.Warn("failed to parse Connect.Proxy.Config", "error", err)
 	}
 
-	// TODO - prevent invalid configurations of binding to the same port/addr
-	//        twice including with the any addresses
+	// Prevent invalid configurations of binding to the same port/addr twice
+	// including with the any addresses
+	type namedAddress struct {
+		name string
+		structs.ServiceAddress
+	}
+	seen := make(map[structs.ServiceAddress]bool)
+	addrs := make([]namedAddress, 0)
 
 	var resources []proto.Message
 	if !cfg.NoDefaultBind {
@@ -200,31 +208,58 @@ func (s *Server) listenersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 			addr = "0.0.0.0"
 		}
 
-		l, err := s.makeGatewayListener("default", addr, cfgSnap.Port, cfgSnap)
-		if err != nil {
-			return nil, err
+		a := structs.ServiceAddress{
+			Address: addr,
+			Port:    cfgSnap.Port,
 		}
-		resources = append(resources, l)
+		if !seen[a] {
+			addrs = append(addrs, namedAddress{name: "default", ServiceAddress: a})
+			seen[a] = true
+		}
 	}
 
 	if cfg.BindTaggedAddresses {
 		for name, addrCfg := range cfgSnap.TaggedAddresses {
-			l, err := s.makeGatewayListener(name, addrCfg.Address, addrCfg.Port, cfgSnap)
-			if err != nil {
-				return nil, err
+			a := structs.ServiceAddress{
+				Address: addrCfg.Address,
+				Port:    addrCfg.Port,
 			}
-			resources = append(resources, l)
+			if !seen[a] {
+				addrs = append(addrs, namedAddress{name: name, ServiceAddress: a})
+				seen[a] = true
+			}
 		}
 	}
 
 	for name, addrCfg := range cfg.BindAddresses {
-		l, err := s.makeGatewayListener(name, addrCfg.Address, addrCfg.Port, cfgSnap)
-		if err != nil {
-			return nil, err
+		a := structs.ServiceAddress{
+			Address: addrCfg.Address,
+			Port:    addrCfg.Port,
+		}
+		if !seen[a] {
+			addrs = append(addrs, namedAddress{name: name, ServiceAddress: a})
+			seen[a] = true
+		}
+	}
+
+	// Make listeners once deduplicated
+	for _, a := range addrs {
+		var l *envoy.Listener
+
+		switch cfgSnap.Kind {
+		case structs.ServiceKindTerminatingGateway:
+			l, err = s.makeTerminatingGatewayListener(a.name, a.Address, a.Port, cfgSnap, token)
+			if err != nil {
+				return nil, err
+			}
+		case structs.ServiceKindMeshGateway:
+			l, err = s.makeMeshGatewayListener(a.name, a.Address, a.Port, cfgSnap)
+			if err != nil {
+				return nil, err
+			}
 		}
 		resources = append(resources, l)
 	}
-
 	return resources, err
 }
 
@@ -329,7 +364,7 @@ func makeListenerFromUserConfig(configJSON string) (*envoy.Listener, error) {
 // specify custom listener params in config but still get our certs delivered
 // dynamically and intentions enforced without coming up with some complicated
 // templating/merging solution.
-func injectConnectFilters(cfgSnap *proxycfg.ConfigSnapshot, token string, listener *envoy.Listener) error {
+func injectConnectFilters(cfgSnap *proxycfg.ConfigSnapshot, token string, listener *envoy.Listener, setTLS bool) error {
 	authFilter, err := makeExtAuthFilter(token)
 	if err != nil {
 		return err
@@ -339,10 +374,11 @@ func injectConnectFilters(cfgSnap *proxycfg.ConfigSnapshot, token string, listen
 		listener.FilterChains[idx].Filters =
 			append([]envoylistener.Filter{authFilter}, listener.FilterChains[idx].Filters...)
 
-		// Force our TLS for all filter chains on a public listener
-		listener.FilterChains[idx].TlsContext = &envoyauth.DownstreamTlsContext{
-			CommonTlsContext:         makeCommonTLSContext(cfgSnap),
-			RequireClientCertificate: &types.BoolValue{Value: true},
+		if setTLS {
+			listener.FilterChains[idx].TlsContext = &envoyauth.DownstreamTlsContext{
+				CommonTlsContext:         makeCommonTLSContext(cfgSnap, cfgSnap.Leaf()),
+				RequireClientCertificate: &types.BoolValue{Value: true},
+			}
 		}
 	}
 	return nil
@@ -402,7 +438,7 @@ func (s *Server) makePublicListener(cfgSnap *proxycfg.ConfigSnapshot, token stri
 		}
 	}
 
-	err = injectConnectFilters(cfgSnap, token, l)
+	err = injectConnectFilters(cfgSnap, token, l, true)
 	return l, err
 }
 
@@ -517,7 +553,52 @@ func (s *Server) makeUpstreamListenerIgnoreDiscoveryChain(
 	return l, nil
 }
 
-func (s *Server) makeGatewayListener(name, addr string, port int, cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Listener, error) {
+func (s *Server) makeTerminatingGatewayListener(name, addr string, port int, cfgSnap *proxycfg.ConfigSnapshot, token string) (*envoy.Listener, error) {
+	l := makeListener(name, addr, port)
+
+	tlsInspector, err := makeTLSInspectorListenerFilter()
+	if err != nil {
+		return nil, err
+	}
+	l.ListenerFilters = []envoylistener.ListenerFilter{tlsInspector}
+
+	sniCluster, err := makeSNIClusterFilter()
+	if err != nil {
+		return nil, err
+	}
+
+	// Make a FilterChain for each linked service
+	// Match on the cluster name,
+	for svc, _ := range cfgSnap.TerminatingGateway.ServiceGroups {
+		clusterName := connect.ServiceSNI(svc.ID, "", svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+
+		// The cluster name here doesn't matter as the sni_cluster filter will fill it in for us.
+		tcpProxy, err := makeTCPProxyFilter(name, "", fmt.Sprintf("terminating_gateway_%s_", svc.ID))
+		if err != nil {
+			return nil, err
+		}
+
+		clusterChain := envoylistener.FilterChain{
+			FilterChainMatch: makeSNIFilterChainMatch(clusterName),
+			Filters: []envoylistener.Filter{
+				sniCluster,
+				tcpProxy,
+			},
+			TlsContext: &envoyauth.DownstreamTlsContext{
+				// TODO (gateways) (freddy) Could we get to this point and not have a leaf for the service?
+				CommonTlsContext:         makeCommonTLSContext(cfgSnap, cfgSnap.TerminatingGateway.ServiceLeaves[svc]),
+				RequireClientCertificate: &types.BoolValue{Value: true},
+			},
+		}
+		l.FilterChains = append(l.FilterChains, clusterChain)
+	}
+
+	err = injectConnectFilters(cfgSnap, token, l, false)
+
+	return l, nil
+}
+
+func (s *Server) makeMeshGatewayListener(name, addr string, port int, cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Listener, error) {
 	tlsInspector, err := makeTLSInspectorListenerFilter()
 	if err != nil {
 		return nil, err
@@ -711,11 +792,10 @@ func makeTLSInspectorListenerFilter() (envoylistener.ListenerFilter, error) {
 	return envoylistener.ListenerFilter{Name: util.TlsInspector}, nil
 }
 
-// TODO(rb): should this be dead code?
-func makeSNIFilterChainMatch(sniMatch string) (*envoylistener.FilterChainMatch, error) {
+func makeSNIFilterChainMatch(sniMatch string) *envoylistener.FilterChainMatch {
 	return &envoylistener.FilterChainMatch{
 		ServerNames: []string{sniMatch},
-	}, nil
+	}
 }
 
 func makeSNIClusterFilter() (envoylistener.Filter, error) {
@@ -881,7 +961,7 @@ func makeFilter(name string, cfg proto.Message) (envoylistener.Filter, error) {
 	}, nil
 }
 
-func makeCommonTLSContext(cfgSnap *proxycfg.ConfigSnapshot) *envoyauth.CommonTlsContext {
+func makeCommonTLSContext(cfgSnap *proxycfg.ConfigSnapshot, leaf *structs.IssuedCert) *envoyauth.CommonTlsContext {
 	// Concatenate all the root PEMs into one.
 	// TODO(banks): verify this actually works with Envoy (docs are not clear).
 	rootPEMS := ""
@@ -892,7 +972,6 @@ func makeCommonTLSContext(cfgSnap *proxycfg.ConfigSnapshot) *envoyauth.CommonTls
 		rootPEMS += root.RootCert
 	}
 
-	leaf := cfgSnap.Leaf()
 	return &envoyauth.CommonTlsContext{
 		TlsParams: &envoyauth.TlsParameters{},
 		TlsCertificates: []*envoyauth.TlsCertificate{

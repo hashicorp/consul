@@ -456,6 +456,16 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotIngress_SplitterWithResolverRedirectMultiDC,
 			setup:  nil,
 		},
+		{
+			name:   "terminating-gateway",
+			create: proxycfg.TestConfigSnapshotTerminatingGateway,
+			setup:  nil,
+		},
+		{
+			name:   "terminating-gateway-no-services",
+			create: proxycfg.TestConfigSnapshotTerminatingGatewayNoServices,
+			setup:  nil,
+		},
 	}
 
 	for _, tt := range tests {
