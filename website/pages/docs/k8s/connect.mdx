@@ -227,7 +227,7 @@ Annotations can be used to configure the injection behavior.
     ~> **WARNING:** Setting a namespace when not using Consul Enterprise or using a version < 1.7
     is not supported. It will be treated as part of the service name.
 
-  - [Prepared Query](/docs/connect/proxies#upstreams)
+  - [Prepared Query](/docs/connect/proxies#dynamic-upstreams-require-native-integration)
 
     ```yaml
     annotations:
@@ -326,7 +326,7 @@ Installation of the mutating admission webhook is automated using the
 [Helm chart](/docs/platform/k8s/run).
 
 To install the Connect injector, enable the Connect injection feature using
-[Helm values](/docs/platform/k8s/helm#configuration-values-) and
+[Helm values](/docs/platform/k8s/helm#configuration-values) and
 upgrade the installation using `helm upgrade` for existing installs or
 `helm install` for a fresh install. The Connect injector **also requires**
 [client agents](/docs/platform/k8s/helm#v-client) are enabled on

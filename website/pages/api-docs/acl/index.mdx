@@ -155,7 +155,7 @@ $ curl \
 - `ReplicatedIndex` - The last index that was successfully replicated. Which data
   the replicated index refers to depends on the replication type. For `legacy`
   replication this can be compared with the value of the `X-Consul-Index` header
-  returned by the [`/v1/acl/list`](/api/acl/legacy#acl_list) endpoint to
+  returned by the [`/v1/acl/list`](/api/acl/legacy#list-acls) endpoint to
   determine if the replication process has gotten all available ACLs. When in either
   `tokens` or `policies` mode, this index can be compared with the value of the
   `X-Consul-Index` header returned by the [`/v1/acl/policies`](/api/acl/policies#list-policies)

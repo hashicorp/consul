@@ -422,8 +422,9 @@ $ curl http://localhost:8500/v1/catalog/datacenters
                       'Twitch - Driving Towards a Modern Infrastructure',
                     description:
                       'In this talk from HashiConf 2015, Tarrant Rollins discusses how Twitch uses HashiCorp Consul to overcome legacy infrastructure and solve complex problems.',
+                    caseStudyLink:
+                      'https://www.hashicorp.com/resources/twitch-driving-towards-a-modern-infrastructure',
                     caseStudyResource: {
-                      slug: 'twitch-driving-towards-a-modern-infrastructure',
                       image: {
                         url:
                           '/img/consul-connect/case-studies/case-study_01.jpg',
@@ -452,8 +453,9 @@ $ curl http://localhost:8500/v1/catalog/datacenters
                       'Jet.com - Nomad Auto-Proxy with Consul-Template and NGINX',
                     description:
                       'Justen Walker explains how Jet.com uses HashiCorp Consul and Nomad to allow hundreds of developers to have self-service access, despite relying on NGINX static configs—and with a remarkably small DevOps team.',
+                    caseStudyLink:
+                      'https://www.hashicorp.com/resources/jet-com-nomad-auto-proxy-consul-template-nginx',
                     caseStudyResource: {
-                      slug: 'jet-com-nomad-auto-proxy-consul-template-nginx',
                       image: {
                         url:
                           '/img/consul-connect/case-studies/case-study_02.jpg',

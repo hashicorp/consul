@@ -257,7 +257,7 @@ Those endpoints might be useful for the following use-cases:
 ##### Note
 
 If you know the ID of service you want to target, it is recommended to use
-[`/v1/agent/health/service/id/:service_id`](/api/agent/service#get-local-service-health-by-id)
+[`/v1/agent/health/service/id/:service_id`](/api/agent/service#get-local-service-health-by-its-id)
 so you have the result for the service only. When requesting
 `/v1/agent/health/service/name/:service_name`, the caller will receive the
 worst state of all services having the given name.
