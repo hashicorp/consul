@@ -48,8 +48,7 @@ class NextApp extends App {
           is={Head}
           title="Consul by HashiCorp"
           siteName="Consul by HashiCorp"
-          description="Consul is a free and open source tool for creating golden images for multiple
-          platforms from a single source configuration."
+          description="Consul is a service networking solution to connect and secure services across any runtime platform and public or private cloud."
           image="https://www.consul.io/img/og-image.png"
           stylesheet={[
             { href: '/css/nprogress.css' },
