@@ -1,3 +1,3 @@
 export default function HomePage() {
-  return <p>WIP</p>
+  return <p>Coming soon</p>
 }
