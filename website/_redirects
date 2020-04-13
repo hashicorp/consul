@@ -121,6 +121,7 @@
 /api/operator.html                       /api-docs/operator                301!
 /api/*/index.html                        /api-docs/:splat                  301!
 /api/*                                   /api-docs/:splat                  200
+/api-docs/features                       /api-docs/features/consistency    301!
 
 /docs/upgrading.html                     /docs/upgrading                   301!
 /docs/upgrade-specific                   /docs/upgrading/upgrade-specific  301!

@@ -50,7 +50,7 @@
 @import './print.css';
 
 /* Misc Styles */
-@import './button.css';
+@import './_temporary_button.css';
 
 /* Sticky Footer */
 footer .content {
