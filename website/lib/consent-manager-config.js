@@ -18,7 +18,7 @@ export default {
   version: 3,
   container: '#consent-manager',
   companyName: 'HashiCorp',
-  privacyPolicyLink: '/privacy',
+  privacyPolicyLink: 'https://hashicorp.com/privacy',
   segmentWriteKey: segmentWriteKey,
   utilServerRoot: utilityServerRoot,
   segmentServices: [
