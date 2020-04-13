@@ -61,19 +61,19 @@ func (c *Cache) Notify(ctx context.Context, t string, r Request,
 		return fmt.Errorf("unknown type in cache: %s", t)
 	}
 	if tEntry.Type.SupportsBlocking() {
-		go c.notifyBlockingQuery(ctx, t, r, correlationID, ch)
+		go c.notifyBlockingQuery(ctx, tEntry, r, correlationID, ch)
 	} else {
 		info := r.CacheInfo()
 		if info.MaxAge == 0 {
 			return fmt.Errorf("Cannot use Notify for polling cache types without specifying the MaxAge")
 		}
-		go c.notifyPollingQuery(ctx, t, r, correlationID, ch, info.MaxAge)
+		go c.notifyPollingQuery(ctx, tEntry, r, correlationID, ch, info.MaxAge)
 	}
 
 	return nil
 }
 
-func (c *Cache) notifyBlockingQuery(ctx context.Context, t string, r Request, correlationID string, ch chan<- UpdateEvent) {
+func (c *Cache) notifyBlockingQuery(ctx context.Context, tEntry typeEntry, r Request, correlationID string, ch chan<- UpdateEvent) {
 	// Always start at 0 index to deliver the initial (possibly currently cached
 	// value).
 	index := uint64(0)
@@ -86,7 +86,7 @@ func (c *Cache) notifyBlockingQuery(ctx context.Context, t string, r Request, co
 		}
 
 		// Blocking request
-		res, meta, err := c.getWithIndex(t, r, index)
+		res, meta, err := c.getWithIndex(tEntry, r, index)
 
 		// Check context hasn't been canceled
 		if ctx.Err() != nil {
@@ -132,7 +132,7 @@ func (c *Cache) notifyBlockingQuery(ctx context.Context, t string, r Request, co
 	}
 }
 
-func (c *Cache) notifyPollingQuery(ctx context.Context, t string, r Request, correlationID string, ch chan<- UpdateEvent, maxAge time.Duration) {
+func (c *Cache) notifyPollingQuery(ctx context.Context, tEntry typeEntry, r Request, correlationID string, ch chan<- UpdateEvent, maxAge time.Duration) {
 	index := uint64(0)
 	failures := uint(0)
 
@@ -145,7 +145,7 @@ func (c *Cache) notifyPollingQuery(ctx context.Context, t string, r Request, cor
 		}
 
 		// Make the request
-		res, meta, err := c.getWithIndex(t, r, index)
+		res, meta, err := c.getWithIndex(tEntry, r, index)
 
 		// Check context hasn't been canceled
 		if ctx.Err() != nil {
