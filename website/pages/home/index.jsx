@@ -36,7 +36,8 @@ export default function HomePage() {
                   gaPrefix: null,
                 },
               ],
-              helpText: '<a href="View demo of web UI">View demo of web UI</a>',
+              helpText:
+                '<a href="https://demo.consul.io">View demo of web UI</a>',
               videos: [
                 {
                   name: 'UI',
