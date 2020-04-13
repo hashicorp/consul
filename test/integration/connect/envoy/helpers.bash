@@ -342,7 +342,7 @@ function get_healthy_service_count {
 
 function assert_alive_wan_member_count {
   local EXPECT_COUNT=$1
-  run retry_default assert_alive_wan_member_count_once $EXPECT_COUNT
+  run retry_long assert_alive_wan_member_count_once $EXPECT_COUNT
   [ "$status" -eq 0 ]
 }
 
