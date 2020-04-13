@@ -185,14 +185,14 @@ export default function HomePage() {
                 <picture>
                   <source
                     type="image/webp"
-                    srcset="
+                    srcSet="
               /img/consul-connect/grid_2/grid_2_300.webp 300w,
               /img/consul-connect/grid_2/grid_2_704.webp 704w,
               /img/consul-connect/grid_2/grid_2_1256.webp 1256w"
                   />
                   <source
                     type="image/png"
-                    srcset="
+                    srcSet="
               /img/consul-connect/grid_2/grid_2_300.png 300w,
               /img/consul-connect/grid_2/grid_2_704.png 704w,
               /img/consul-connect/grid_2/grid_2_1256.png 1256w"
