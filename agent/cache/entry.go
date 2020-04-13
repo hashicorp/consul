@@ -47,15 +47,14 @@ type cacheEntry struct {
 // entry. Any modifications to this struct should be done only while
 // the Cache entriesLock is held.
 type cacheEntryExpiry struct {
-	Key       string        // Key in the cache map
-	Expires   time.Time     // Time when entry expires (monotonic clock)
-	TTL       time.Duration // TTL for this entry to extend when resetting
-	HeapIndex int           // Index in the heap
+	Key       string    // Key in the cache map
+	Expires   time.Time // Time when entry expires (monotonic clock)
+	HeapIndex int       // Index in the heap
 }
 
-// Reset resets the expiration to be the ttl duration from now.
-func (e *cacheEntryExpiry) Reset() {
-	e.Expires = time.Now().Add(e.TTL)
+// Update the expiry to d time from now.
+func (e *cacheEntryExpiry) Update(d time.Duration) {
+	e.Expires = time.Now().Add(d)
 }
 
 // expiryHeap is a heap implementation that stores information about
