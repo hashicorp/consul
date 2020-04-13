@@ -65,7 +65,7 @@ func (c *Cache) Notify(
 	}
 
 	if tEntry.Opts.SupportsBlocking {
-		go c.notifyBlockingQuery(ctx, tEntry, r, correlationID, ch)
+		go c.notifyBlockingQuery(ctx, newGetOptions(tEntry, r), correlationID, ch)
 		return nil
 	}
 
@@ -73,11 +73,11 @@ func (c *Cache) Notify(
 	if info.MaxAge == 0 {
 		return fmt.Errorf("Cannot use Notify for polling cache types without specifying the MaxAge")
 	}
-	go c.notifyPollingQuery(ctx, tEntry, r, correlationID, ch, info.MaxAge)
+	go c.notifyPollingQuery(ctx, newGetOptions(tEntry, r), correlationID, ch)
 	return nil
 }
 
-func (c *Cache) notifyBlockingQuery(ctx context.Context, tEntry typeEntry, r Request, correlationID string, ch chan<- UpdateEvent) {
+func (c *Cache) notifyBlockingQuery(ctx context.Context, r getOptions, correlationID string, ch chan<- UpdateEvent) {
 	// Always start at 0 index to deliver the initial (possibly currently cached
 	// value).
 	index := uint64(0)
@@ -90,7 +90,8 @@ func (c *Cache) notifyBlockingQuery(ctx context.Context, tEntry typeEntry, r Req
 		}
 
 		// Blocking request
-		res, meta, err := c.getWithIndex(tEntry, r, index)
+		r.Info.MinIndex = index
+		res, meta, err := c.getWithIndex(r)
 
 		// Check context hasn't been canceled
 		if ctx.Err() != nil {
@@ -136,7 +137,7 @@ func (c *Cache) notifyBlockingQuery(ctx context.Context, tEntry typeEntry, r Req
 	}
 }
 
-func (c *Cache) notifyPollingQuery(ctx context.Context, tEntry typeEntry, r Request, correlationID string, ch chan<- UpdateEvent, maxAge time.Duration) {
+func (c *Cache) notifyPollingQuery(ctx context.Context, r getOptions, correlationID string, ch chan<- UpdateEvent) {
 	index := uint64(0)
 	failures := uint(0)
 
@@ -149,7 +150,8 @@ func (c *Cache) notifyPollingQuery(ctx context.Context, tEntry typeEntry, r Requ
 		}
 
 		// Make the request
-		res, meta, err := c.getWithIndex(tEntry, r, index)
+		r.Info.MinIndex = index
+		res, meta, err := c.getWithIndex(r)
 
 		// Check context hasn't been canceled
 		if ctx.Err() != nil {
@@ -204,8 +206,8 @@ func (c *Cache) notifyPollingQuery(ctx context.Context, tEntry typeEntry, r Requ
 			// Calculate when the cached data's Age will get too stale and
 			// need to be re-queried. When the data's Age already exceeds the
 			// maxAge the pollWait value is left at 0 to immediately re-poll
-			if meta.Age <= maxAge {
-				wait = maxAge - meta.Age
+			if meta.Age <= r.Info.MaxAge {
+				wait = r.Info.MaxAge - meta.Age
 			}
 
 			// Add a small amount of random jitter to the polling time. One
@@ -217,7 +219,7 @@ func (c *Cache) notifyPollingQuery(ctx context.Context, tEntry typeEntry, r Requ
 			// and then immediately have to re-fetch again. That wouldn't
 			// be terrible but it would expend a bunch more cpu cycles when
 			// we can definitely avoid it.
-			wait += lib.RandomStagger(maxAge / 16)
+			wait += lib.RandomStagger(r.Info.MaxAge / 16)
 		}
 
 		select {
