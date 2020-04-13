@@ -9,6 +9,7 @@ export default [
   'index',
   {
     category: 'features',
+    name: 'API Features',
     content: ['consistency', 'blocking', 'filtering', 'caching'],
   },
   '--------',
