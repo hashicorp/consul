@@ -1,0 +1,51 @@
+.intro {
+  text-align: center;
+  margin-bottom: 64px;
+}
+
+.g-section.border-top {
+  border-top: 1px solid #e5e6eb;
+}
+
+.g-cta-section.g-section {
+  align-items: center;
+  background: var(--consul);
+  display: flex;
+  justify-content: center;
+  padding-left: 15px;
+  padding-right: 15px;
+  position: relative;
+  text-align: center;
+  overflow: hidden;
+
+  &:after {
+    content: '';
+    background: url('/img/consul-connect/mesh.svg') top center;
+    background-size: cover;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    opacity: 0.2;
+    transform: scale(1.3, 1.3);
+  }
+
+  & > div {
+    z-index: 1;
+  }
+
+  & h2 {
+    color: var(--white);
+    margin-top: 0;
+  }
+
+  & .button + .button {
+    margin-left: 18px;
+  }
+}
+
+.bg-dark {
+  background: #252937 !important;
+  color: #fff;
+}
