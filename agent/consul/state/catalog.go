@@ -2022,7 +2022,7 @@ func (s *Store) checkServiceNodesTxn(tx *memdb.Txn, ws memdb.WatchSet, serviceNa
 	// Gateways are tracked in a separate table, and we append them to the result set.
 	// We append rather than replace since it allows users to migrate a service
 	// to the mesh with a mix of sidecars and gateways until all its instances have a sidecar.
-	var gatewayChan <-chan struct{}
+	var gatewayNodesCh <-chan struct{}
 	if connect {
 		// Look up gateway nodes associated with the service
 		_, nodes, _, err := s.serviceGatewayNodes(tx, serviceName, structs.ServiceKindTerminatingGateway, entMeta)
@@ -2092,7 +2092,11 @@ func (s *Store) checkServiceNodesTxn(tx *memdb.Txn, ws memdb.WatchSet, serviceNa
 		fallbackWS = ws
 		// We also need to watch the iterator from earlier too.
 		fallbackWS.Add(iter.WatchCh())
-		fallbackWS.Add(gatewayChan)
+
+		// This channel will be nil if there are no known associations between the service and a gateway
+		if gatewayNodesCh != nil {
+			fallbackWS.Add(gatewayNodesCh)
+		}
 	} else if connect {
 		// If this is a connect query then there is a subtlety to watch out for.
 		// In addition to watching the proxy service indexes for changes above, we
