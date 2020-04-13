@@ -165,7 +165,7 @@ $ curl \
 
 - `ReplicatedTokenIndex` - The last token index that was successfully replicated.
   This index can be compared with the value of the `X-Consul-Index` header returned
-  by the [`/v1/acl/tokens`](/api/acl/tokens#list) endpoint to determine
+  by the [`/v1/acl/tokens`](/api/acl/tokens#list-acls) endpoint to determine
   if the replication process has gotten all available ACL tokens. Note that ACL
   replication is rate limited so the indexes may lag behind the primary
   datacenter.
@@ -234,7 +234,7 @@ This endpoint translates the legacy rules embedded within a legacy ACL into the 
 syntax. It is intended to be used by operators managing Consul's ACLs and performing
 legacy token to new policy migrations. Note that this API requires the auto-generated
 Accessor ID of the legacy token. This ID can be retrieved using the
-[`/v1/acl/token/self`](/api/acl/tokens#self) endpoint.
+[`/v1/acl/token/self`](/api/acl/tokens#read-self-token) endpoint.
 
 | Method | Path                                | Produces     |
 | ------ | ----------------------------------- | ------------ |
