@@ -12,7 +12,32 @@ export default function DownloadsPage({ downloadData }) {
         product="Consul"
         version={VERSION}
         downloads={downloadData}
-      />
+      >
+        <p>
+          <a href="/downloads_tools">&raquo; Download Consul Tools</a>
+        </p>
+        <div className="release-candidate">
+          <p>Note for ARM users:</p>
+
+          <ul>
+            <li>Use Armelv5 for all 32-bit armel systems</li>
+            <li>Use Armhfv6 for all armhf systems with v6+ architecture</li>
+            <li>Use Arm64 for all v8 64-bit architectures</li>
+          </ul>
+
+          <p>
+            The following commands can help determine the right version for your
+            system:
+          </p>
+
+          <code>$ uname -m</code>
+          <br />
+          <code>
+            $ readelf -a /proc/self/exe | grep -q -c Tag_ABI_VFP_args && echo
+            &quot;armhf&quot; || echo &quot;armel&quot;
+          </code>
+        </div>
+      </ProductDownloader>
     </div>
   )
 }
