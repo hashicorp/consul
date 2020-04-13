@@ -1,5 +1,12 @@
 export default [
   {
+    text: 'Use Cases',
+    submenu: [
+      { text: 'Service Discovery', url: '/discovery' },
+      { text: 'Service Mesh', url: '/mesh' },
+    ],
+  },
+  {
     text: 'Intro',
     url: '/intro',
     type: 'inbound',
