@@ -44,7 +44,7 @@ with the address to a Consul agent as well as any additional access
 information such as ACL tokens.
 
 To install the sync process, enable the catalog sync feature using
-[Helm values](/docs/platform/k8s/helm#configuration-values-) and
+[Helm values](/docs/platform/k8s/helm#configuration-values) and
 upgrade the installation using `helm upgrade` for existing installs or
 `helm install` for a fresh install.
 
@@ -156,7 +156,7 @@ is routable and configured by some other system.
 ClusterIP services are synced by default as of `consul-k8s` version 0.3.0. In
 many Kubernetes clusters, ClusterIPs may not be accessible outside of the cluster,
 so you may end up with services registered in Consul that are not routable. To
-skip syncing ClusterIP services, set [`syncClusterIPServices`](/docs/platform/k8s/helm#v-synccatalog-clusterip-sync)
+skip syncing ClusterIP services, set [`syncClusterIPServices`](/docs/platform/k8s/helm#v-synccatalog-syncclusteripservices)
 to `false` in the Helm chart values file.
 
 ### Sync Enable/Disable

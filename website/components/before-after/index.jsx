@@ -9,10 +9,10 @@ function BeforeAfterDiagram({
   afterDescription,
 }) {
   return (
-    <div class="g-timeline">
+    <div className="g-timeline">
       <div>
-        <span class="line"></span>
-        <span class="line">
+        <span className="line"></span>
+        <span className="line">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="11"
@@ -25,18 +25,26 @@ function BeforeAfterDiagram({
             />
           </svg>
         </span>
-        <span class="dot"></span>
+        <span className="dot"></span>
         <h3>{beforeHeading}</h3>
-        <span class="sub-heading">{beforeSubTitle}</span>
-        <img src={beforeImage} alt={beforeSubTitle} class="static-callout" />
+        <span className="sub-heading">{beforeSubTitle}</span>
+        <img
+          src={beforeImage}
+          alt={beforeSubTitle}
+          className="static-callout"
+        />
         {beforeDescription && <p>{beforeDescription}</p>}
       </div>
       <div>
-        <span class="dot"></span>
+        <span className="dot"></span>
         <h3>{afterHeading}</h3>
-        <span class="sub-heading">{afterSubTitle}</span>
+        <span className="sub-heading">{afterSubTitle}</span>
         <div id="index-dynamic-animation">
-          <img src={afterImage} alt={afterSubTitle} class="static-callout" />
+          <img
+            src={afterImage}
+            alt={afterSubTitle}
+            className="static-callout"
+          />
         </div>
         {afterDescription && <p>{afterDescription}</p>}
       </div>

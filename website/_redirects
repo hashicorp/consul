@@ -154,6 +154,7 @@
 /docs/connect/ca.html                    /docs/connect/ca                  301!
 /docs/connect/native.html                /docs/connect/native              301!
 /docs/connect/platform/nomad.html        /docs/connect/nomad               301!
+/docs/connect/platform/nomad             /docs/connect/nomad               301!
 
 /docs/platform/k8s/run.html                         /docs/k8s/installation                             301!
 /docs/platform/k8s/run                              /docs/k8s/installation                             301!

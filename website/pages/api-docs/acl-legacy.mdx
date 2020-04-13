@@ -403,7 +403,7 @@ $ curl \
 
 - `ReplicatedIndex` is the last index that was successfully replicated. You can
   compare this to the `X-Consul-Index` header returned by the
-  [`/v1/acl/list`](#acl_list) endpoint to determine if the replication process
+  [`/v1/acl/list`](#list-acls) endpoint to determine if the replication process
   has gotten all available ACLs. Replication runs as a background process
   approximately every 30 seconds, and that local updates are rate limited to 100
   updates/second, so so it may take several minutes to perform the initial sync

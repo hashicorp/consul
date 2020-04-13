@@ -46,7 +46,7 @@ compatible Envoy versions.
 [CVE-2019-9901](https://github.com/envoyproxy/envoy/issues/6435). Both are
 related to HTTP request parsing and so only affect Consul Connect users if they
 have configured HTTP routing rules via the ["escape
-hatch"](#custom-configuration). Still, we recommend that you use the most
+hatch"](#escape-hatch-overrides). Still, we recommend that you use the most
 recent supported Envoy for your Consul version where possible.
 
 - Envoy 1.10.0 requires setting [`-envoy-version`](/docs/commands/connect/envoy#envoy-version) in the `consul connect envoy` command. This was introduced in Consul 1.7.0.
@@ -284,7 +284,7 @@ definition](/docs/connect/registration/service-registration) or
 These fields may also be overridden explicitly in the [proxy service
 definition](/docs/connect/registration/service-registration), or defined in
 the [global `proxy-defaults` configuration
-entry](/docs/agent/config_entries#proxy-defaults-proxy-defaults) to act as
+entry](/docs/agent/config_entries/proxy-defaults) to act as
 defaults that are inherited by all services.
 
 Prior to 1.8.0 these settings were specific to Mesh Gateways. The deprecated
