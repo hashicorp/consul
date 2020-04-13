@@ -3566,23 +3566,14 @@ func TestStateStore_CheckConnectServiceNodes_Gateways(t *testing.T) {
 	assert.Nil(s.EnsureService(14, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}))
 	assert.False(watchFired(ws))
 
-	// Register a sidecar and a gateway for db
-	assert.Nil(s.EnsureService(15, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
-	assert.True(watchFired(ws))
+	// Register node and service checks
+	testRegisterCheck(t, s, 15, "foo", "", "check1", api.HealthPassing)
+	testRegisterCheck(t, s, 16, "bar", "", "check2", api.HealthPassing)
+	testRegisterCheck(t, s, 17, "foo", "db", "check3", api.HealthPassing)
+	assert.False(watchFired(ws))
 
-	assert.Nil(s.EnsureService(16, "bar", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway", Service: "gateway", Port: 443}))
-	assert.True(watchFired(ws))
-
-	// Register node checks
-	testRegisterCheck(t, s, 17, "foo", "", "check1", api.HealthPassing)
-	testRegisterCheck(t, s, 18, "bar", "", "check2", api.HealthPassing)
-
-	// Register checks against the services.
-	testRegisterCheck(t, s, 19, "foo", "db", "check3", api.HealthPassing)
-	testRegisterCheck(t, s, 20, "bar", "gateway", "check4", api.HealthPassing)
-
-	// Associate gateway with db
-	assert.Nil(s.EnsureConfigEntry(21, &structs.TerminatingGatewayConfigEntry{
+	// Watch should fire when a gateway is associated with the service, even if the gateway doesn't exist yet
+	assert.Nil(s.EnsureConfigEntry(18, &structs.TerminatingGatewayConfigEntry{
 		Kind: "terminating-gateway",
 		Name: "gateway",
 		Services: []structs.LinkedService{
@@ -3593,11 +3584,23 @@ func TestStateStore_CheckConnectServiceNodes_Gateways(t *testing.T) {
 	}, nil))
 	assert.True(watchFired(ws))
 
+	// Watch should fire when a gateway is added
+	assert.Nil(s.EnsureService(19, "bar", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway", Service: "gateway", Port: 443}))
+	assert.True(watchFired(ws))
+
+	// Watch should fire when a check is added to the gateway
+	testRegisterCheck(t, s, 20, "bar", "gateway", "check4", api.HealthPassing)
+	assert.True(watchFired(ws))
+
+	// Watch should fire when a different connect service is registered for db
+	assert.Nil(s.EnsureService(21, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
+	assert.True(watchFired(ws))
+
 	// Read everything back.
 	ws = memdb.NewWatchSet()
 	idx, nodes, err = s.CheckConnectServiceNodes(ws, "db", nil)
 	assert.Nil(err)
-	assert.Equal(idx, uint64(20))
+	assert.Equal(idx, uint64(21))
 	assert.Len(nodes, 2)
 
 	// Check sidecar
