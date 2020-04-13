@@ -423,7 +423,7 @@ and consider if they're appropriate for your deployment.
       to run.
 
     - `configSecret` ((#v-client-snapshotagent-configsecret)) - A Kubernetes secret that should be
-      manually created to contain the entire config to be used on the snapshot agent. This is the preferred method of configuration since there are usually storage credentials present. Please see [Snapshot agent config](/docs/commands/snapshot/agent#config-file-options-) for details.
+      manually created to contain the entire config to be used on the snapshot agent. This is the preferred method of configuration since there are usually storage credentials present. Please see [Snapshot agent config](/docs/commands/snapshot/agent#config-file-options) for details.
 
       - secretName ((#v-client-snapshotagent-configsecret-secretname)) `(string: null)` - The name of the Kubernetes secret.
 
@@ -448,7 +448,7 @@ and consider if they're appropriate for your deployment.
     resources necessary for the catalog sync process to run.
 
   - `image` ((#v-synccatalog-image)) (`string: global.imageK8S`) - The name of the Docker image
-    (including any tag) for [consul-k8s](/docs/platform/k8s#quot-consul-k8s-quot-project)
+    (including any tag) for [consul-k8s](/docs/platform/k8s#getting-started-with-consul-and-kubernetes)
     to run the sync program.
 
   - `default` ((#v-synccatalog-default)) (`boolean: true`) - If true, all valid services in K8S are

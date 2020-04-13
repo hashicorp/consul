@@ -25,7 +25,6 @@ export default function HomePage() {
                   url: '/downloads',
                   external: false,
                   theme: '',
-                  gaPrefix: null,
                 },
                 {
                   title: 'Get Started',
@@ -33,7 +32,6 @@ export default function HomePage() {
                     'https://learn.hashicorp.com/consul/getting-started/install',
                   external: false,
                   theme: '',
-                  gaPrefix: null,
                 },
               ],
               helpText:

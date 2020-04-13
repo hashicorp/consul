@@ -955,7 +955,7 @@ here, with examples:
   that is used and known by many clients to provide geo-failover behavior for
   a database.
 
-- [Template queries](/api/query#templates)
+- [Template queries](/api/query#prepared-query-templates)
   queries work like static queries with a `Name` defined, except that a catch-all
   template with an empty `Name` requires an ACL token that can write to any query
   prefix.
@@ -1115,7 +1115,7 @@ a large set of ACLs.
 If there's a partition or other outage affecting the authoritative datacenter,
 and the [`acl_down_policy`](/docs/agent/options#acl_down_policy)
 is set to "extend-cache", tokens will be resolved during the outage using the
-replicated set of ACLs. An [ACL replication status](/api/acl/acl#acl_replication_status)
+replicated set of ACLs. An [ACL replication status](/api/acl/acl#check-acl-replication)
 endpoint is available to monitor the health of the replication process.
 Also note that in recent versions of Consul (greater than 1.2.0), using
 `acl_down_policy = "async-cache"` refreshes token asynchronously when an ACL is
@@ -1133,7 +1133,7 @@ using a process like this:
 1. Enable ACL replication in all datacenters to allow continuation of service
    during the migration, and to populate the target datacenter. Verify replication
    is healthy and caught up to the current ACL index in the target datacenter
-   using the [ACL replication status](/api/acl/acl#acl_replication_status)
+   using the [ACL replication status](/api/acl/acl#check-acl-replication)
    endpoint.
 2. Turn down the old authoritative datacenter servers.
 3. Rolling restart the agents in the target datacenter and change the

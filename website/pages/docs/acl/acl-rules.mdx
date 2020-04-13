@@ -44,7 +44,7 @@ Policies can have several control levels:
 - `read`: allow the resource to be read but not modified.
 - `write`: allow the resource to be read and modified.
 - `deny`: do not allow the resource to be read or modified.
-- `list`: allows access to all the keys under a segment in the Consul KV. Note, this policy can only be used with the `key_prefix` resource and [`acl.enable_key_list_policy`](/docs/agent/options#acl_enable_key_list) must be set to true.
+- `list`: allows access to all the keys under a segment in the Consul KV. Note, this policy can only be used with the `key_prefix` resource and [`acl.enable_key_list_policy`](/docs/agent/options#acl_enable_key_list_policy) must be set to true.
 
 When using prefix-based rules, the most specific prefix match determines the action. This
 allows for flexible rules like an empty prefix to allow read-only access to all
@@ -413,7 +413,7 @@ here, with examples:
   that is used and known by many clients to provide geo-failover behavior for
   a database.
 
-- [Template queries](/api/query#templates)
+- [Template queries](/api/query#prepared-query-templates)
   queries work like static queries with a `Name` defined, except that a catch-all
   template with an empty `Name` requires an ACL token that can write to any query
   prefix.
