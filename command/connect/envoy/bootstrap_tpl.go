@@ -3,6 +3,8 @@ package envoy
 // BootstrapTplArgs is the set of arguments that may be interpolated into the
 // Envoy bootstrap template.
 type BootstrapTplArgs struct {
+	GRPC
+
 	// ProxyCluster is the cluster name for the the Envoy `node` specification and
 	// is typically the same as the ProxyID.
 	ProxyCluster string
@@ -12,25 +14,9 @@ type BootstrapTplArgs struct {
 	// the agent to deliver the correct configuration.
 	ProxyID string
 
-	// AgentAddress is the IP address of the local agent where the proxy instance
-	// is registered.
-	AgentAddress string
-
-	// AgentPort is the gRPC port exposed on the local agent.
-	AgentPort string
-
-	// AgentTLS is true if the local agent gRPC service should be accessed over
-	// TLS.
-	AgentTLS bool
-
 	// AgentCAPEM is the CA to use to verify the local agent gRPC service if
 	// TLS is enabled.
 	AgentCAPEM string
-
-	// AgentSocket is the path to a Unix Socket for communicating with the
-	// local agent's gRPC endpoint. Disabled if the empty (the default),
-	// but overrides AgentAddress and AgentPort if set.
-	AgentSocket string
 
 	// AdminAccessLogPath The path to write the access log for the
 	// administration server. If no access log is desired specify
@@ -100,6 +86,25 @@ type BootstrapTplArgs struct {
 	// EnvoyVersion is the envoy version, which is necessary to generate the
 	// correct configuration.
 	EnvoyVersion string
+}
+
+// GRPC settings used in the bootstrap template.
+type GRPC struct {
+	// AgentAddress is the IP address of the local agent where the proxy instance
+	// is registered.
+	AgentAddress string
+
+	// AgentPort is the gRPC port exposed on the local agent.
+	AgentPort string
+
+	// AgentTLS is true if the local agent gRPC service should be accessed over
+	// TLS.
+	AgentTLS bool
+
+	// AgentSocket is the path to a Unix Socket for communicating with the
+	// local agent's gRPC endpoint. Disabled if the empty (the default),
+	// but overrides AgentAddress and AgentPort if set.
+	AgentSocket string
 }
 
 const bootstrapTemplate = `{
