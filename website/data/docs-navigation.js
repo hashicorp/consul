@@ -166,7 +166,7 @@ export default [
       { category: 'native', content: ['go'] },
       'dev',
       'nomad',
-      // TODO: 'k8s/connect' was removed as an alias here
+      { title: 'Kubernetes', href: '/docs/k8s/connect' },
     ],
   },
   {
