@@ -647,11 +647,46 @@ func TestConfigSnapshotDiscoveryChainDefault(t testing.T) *ConfigSnapshot {
 func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalEntries ...structs.ConfigEntry) *ConfigSnapshot {
 	roots, leaf := TestCerts(t)
 
+	snap := &ConfigSnapshot{
+		Kind:    structs.ServiceKindConnectProxy,
+		Service: "web-sidecar-proxy",
+		ProxyID: structs.NewServiceID("web-sidecar-proxy", nil),
+		Address: "0.0.0.0",
+		Port:    9999,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceID:   "web",
+			DestinationServiceName: "web",
+			LocalServiceAddress:    "127.0.0.1",
+			LocalServicePort:       8080,
+			Config: map[string]interface{}{
+				"foo": "bar",
+			},
+			Upstreams: structs.TestUpstreams(t),
+		},
+		Roots: roots,
+		ConnectProxy: configSnapshotConnectProxy{
+			ConfigSnapshotUpstreams: setupTestVariationConfigEntriesAndSnapshot(
+				t, variation, leaf, additionalEntries...,
+			),
+		},
+		Datacenter: "dc1",
+	}
+
+	return snap
+}
+
+func setupTestVariationConfigEntriesAndSnapshot(
+	t testing.T,
+	variation string,
+	leaf *structs.IssuedCert,
+	additionalEntries ...structs.ConfigEntry,
+) ConfigSnapshotUpstreams {
 	// Compile a chain.
 	var (
 		entries      []structs.ConfigEntry
 		compileSetup func(req *discoverychain.CompileRequest)
 	)
+
 	switch variation {
 	case "default":
 		// no config entries
@@ -834,7 +869,7 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 		)
 	default:
 		t.Fatalf("unexpected variation: %q", variation)
-		return nil
+		return ConfigSnapshotUpstreams{}
 	}
 
 	if len(additionalEntries) > 0 {
@@ -843,37 +878,16 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 
 	dbChain := discoverychain.TestCompileConfigEntries(t, "db", "default", "dc1", connect.TestClusterID+".consul", "dc1", compileSetup, entries...)
 
-	snap := &ConfigSnapshot{
-		Kind:    structs.ServiceKindConnectProxy,
-		Service: "web-sidecar-proxy",
-		ProxyID: structs.NewServiceID("web-sidecar-proxy", nil),
-		Address: "0.0.0.0",
-		Port:    9999,
-		Proxy: structs.ConnectProxyConfig{
-			DestinationServiceID:   "web",
-			DestinationServiceName: "web",
-			LocalServiceAddress:    "127.0.0.1",
-			LocalServicePort:       8080,
-			Config: map[string]interface{}{
-				"foo": "bar",
-			},
-			Upstreams: structs.TestUpstreams(t),
+	snap := ConfigSnapshotUpstreams{
+		Leaf: leaf,
+		DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
+			"db": dbChain,
 		},
-		Roots: roots,
-		ConnectProxy: configSnapshotConnectProxy{
-			ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
-				Leaf: leaf,
-				DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
-					"db": dbChain,
-				},
-				WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
-					"db": map[string]structs.CheckServiceNodes{
-						"db.default.dc1": TestUpstreamNodes(t),
-					},
-				},
+		WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
+			"db": map[string]structs.CheckServiceNodes{
+				"db.default.dc1": TestUpstreamNodes(t),
 			},
 		},
-		Datacenter: "dc1",
 	}
 
 	switch variation {
@@ -882,67 +896,67 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 	case "simple":
 	case "external-sni":
 	case "failover":
-		snap.ConnectProxy.WatchedUpstreamEndpoints["db"]["fail.default.dc1"] =
+		snap.WatchedUpstreamEndpoints["db"]["fail.default.dc1"] =
 			TestUpstreamNodesAlternate(t)
 	case "failover-through-remote-gateway-triggered":
-		snap.ConnectProxy.WatchedUpstreamEndpoints["db"]["db.default.dc1"] =
+		snap.WatchedUpstreamEndpoints["db"]["db.default.dc1"] =
 			TestUpstreamNodesInStatus(t, "critical")
 		fallthrough
 	case "failover-through-remote-gateway":
-		snap.ConnectProxy.WatchedUpstreamEndpoints["db"]["db.default.dc2"] =
+		snap.WatchedUpstreamEndpoints["db"]["db.default.dc2"] =
 			TestUpstreamNodesDC2(t)
-		snap.ConnectProxy.WatchedGatewayEndpoints = map[string]map[string]structs.CheckServiceNodes{
+		snap.WatchedGatewayEndpoints = map[string]map[string]structs.CheckServiceNodes{
 			"db": map[string]structs.CheckServiceNodes{
 				"dc2": TestGatewayNodesDC2(t),
 			},
 		}
 	case "failover-through-double-remote-gateway-triggered":
-		snap.ConnectProxy.WatchedUpstreamEndpoints["db"]["db.default.dc1"] =
+		snap.WatchedUpstreamEndpoints["db"]["db.default.dc1"] =
 			TestUpstreamNodesInStatus(t, "critical")
-		snap.ConnectProxy.WatchedUpstreamEndpoints["db"]["db.default.dc2"] =
+		snap.WatchedUpstreamEndpoints["db"]["db.default.dc2"] =
 			TestUpstreamNodesInStatusDC2(t, "critical")
 		fallthrough
 	case "failover-through-double-remote-gateway":
-		snap.ConnectProxy.WatchedUpstreamEndpoints["db"]["db.default.dc3"] = TestUpstreamNodesDC2(t)
-		snap.ConnectProxy.WatchedGatewayEndpoints = map[string]map[string]structs.CheckServiceNodes{
+		snap.WatchedUpstreamEndpoints["db"]["db.default.dc3"] = TestUpstreamNodesDC2(t)
+		snap.WatchedGatewayEndpoints = map[string]map[string]structs.CheckServiceNodes{
 			"db": map[string]structs.CheckServiceNodes{
 				"dc2": TestGatewayNodesDC2(t),
 				"dc3": TestGatewayNodesDC3(t),
 			},
 		}
 	case "failover-through-local-gateway-triggered":
-		snap.ConnectProxy.WatchedUpstreamEndpoints["db"]["db.default.dc1"] =
+		snap.WatchedUpstreamEndpoints["db"]["db.default.dc1"] =
 			TestUpstreamNodesInStatus(t, "critical")
 		fallthrough
 	case "failover-through-local-gateway":
-		snap.ConnectProxy.WatchedUpstreamEndpoints["db"]["db.default.dc2"] =
+		snap.WatchedUpstreamEndpoints["db"]["db.default.dc2"] =
 			TestUpstreamNodesDC2(t)
-		snap.ConnectProxy.WatchedGatewayEndpoints = map[string]map[string]structs.CheckServiceNodes{
+		snap.WatchedGatewayEndpoints = map[string]map[string]structs.CheckServiceNodes{
 			"db": map[string]structs.CheckServiceNodes{
 				"dc1": TestGatewayNodesDC1(t),
 			},
 		}
 	case "failover-through-double-local-gateway-triggered":
-		snap.ConnectProxy.WatchedUpstreamEndpoints["db"]["db.default.dc1"] =
+		snap.WatchedUpstreamEndpoints["db"]["db.default.dc1"] =
 			TestUpstreamNodesInStatus(t, "critical")
-		snap.ConnectProxy.WatchedUpstreamEndpoints["db"]["db.default.dc2"] =
+		snap.WatchedUpstreamEndpoints["db"]["db.default.dc2"] =
 			TestUpstreamNodesInStatusDC2(t, "critical")
 		fallthrough
 	case "failover-through-double-local-gateway":
-		snap.ConnectProxy.WatchedUpstreamEndpoints["db"]["db.default.dc3"] = TestUpstreamNodesDC2(t)
-		snap.ConnectProxy.WatchedGatewayEndpoints = map[string]map[string]structs.CheckServiceNodes{
+		snap.WatchedUpstreamEndpoints["db"]["db.default.dc3"] = TestUpstreamNodesDC2(t)
+		snap.WatchedGatewayEndpoints = map[string]map[string]structs.CheckServiceNodes{
 			"db": map[string]structs.CheckServiceNodes{
 				"dc1": TestGatewayNodesDC1(t),
 			},
 		}
 	case "splitter-with-resolver-redirect-multidc":
-		snap.ConnectProxy.WatchedUpstreamEndpoints["db"] = map[string]structs.CheckServiceNodes{
+		snap.WatchedUpstreamEndpoints["db"] = map[string]structs.CheckServiceNodes{
 			"v1.db.default.dc1": TestUpstreamNodes(t),
 			"v2.db.default.dc2": TestUpstreamNodesDC2(t),
 		}
 	default:
 		t.Fatalf("unexpected variation: %q", variation)
-		return nil
+		return ConfigSnapshotUpstreams{}
 	}
 
 	return snap
@@ -1019,19 +1033,15 @@ func testConfigSnapshotMeshGateway(t testing.T, populateServices bool, useFedera
 }
 
 func TestConfigSnapshotIngressGateway(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true)
+	return testConfigSnapshotIngressGateway(t, true, "default")
 }
 
 func TestConfigSnapshotIngressGatewayNoServices(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, false)
+	return testConfigSnapshotIngressGateway(t, false, "default")
 }
 
-func testConfigSnapshotIngressGateway(t testing.T, populateServices bool) *ConfigSnapshot {
+func testConfigSnapshotIngressGateway(t testing.T, populateServices bool, variation string) *ConfigSnapshot {
 	roots, leaf := TestCerts(t)
-	dbChain := discoverychain.TestCompileConfigEntries(
-		t, "db", "default", "dc1",
-		connect.TestClusterID+".consul", "dc1", nil)
-
 	snap := &ConfigSnapshot{
 		Kind:       structs.ServiceKindIngressGateway,
 		Service:    "ingress-gateway",
@@ -1042,17 +1052,9 @@ func testConfigSnapshotIngressGateway(t testing.T, populateServices bool) *Confi
 	}
 	if populateServices {
 		snap.IngressGateway = configSnapshotIngressGateway{
-			ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
-				Leaf: leaf,
-				DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
-					"db": dbChain,
-				},
-				WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
-					"db": map[string]structs.CheckServiceNodes{
-						"db.default.dc1": TestUpstreamNodes(t),
-					},
-				},
-			},
+			ConfigSnapshotUpstreams: setupTestVariationConfigEntriesAndSnapshot(
+				t, variation, leaf,
+			),
 			Upstreams: structs.Upstreams{
 				{
 					// We rely on this one having default type in a few tests...
