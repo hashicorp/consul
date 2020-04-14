@@ -56,8 +56,11 @@ Guides
    consul/getting-started-k8s/minikube?utm_source=consul.io&utm_medium=docs)
    walks you through deploying Consul on Kubernetes with the official Helm chart and can be applied to any Kubernetes installation type.
 
- - The [Kubernetes on Azure guide](https://learn.hashicorp.com/consul/
+ - Review production best practices and cloud-specific configurations for deploying Consul on managed Kubernetes runtimes. 
+   - The [Kubernetes on Azure (AKS) guide](https://learn.hashicorp.com/consul/
    getting-started-k8s/azure-k8s?utm_source=consul.io&utm_medium=docs) is a complete walk through on how to deploy Consul on AKS.
+   - The [Kubernetes on AWS (EKS) guide](https://learn.hashicorp.com/consul/kubernetes/aws-k8s?utm_source=consul.io&utm_medium=docs) is a complete walk through on how to deploy Consul on EKS.
+   - The [Kubernetes on Google Cloud (GKE) guide](https://learn.hashicorp.com/consul/kubernetes/google-cloud-k8s?utm_source=consul.io&utm_medium=docs) is a complete walk through on how to deploy Consul on GKE.
 
  - The [Consul and Kubernetes Reference Architecture](
    https://learn.hashicorp.com/consul/day-1-operations/kubernetes-reference?utm_source=consul.io&utm_medium=docs) guide provides recommended practices for production. 
