@@ -588,11 +588,13 @@ func TestGenerateConfig(t *testing.T) {
 			Name:  "ingress-gateway",
 			Flags: []string{"-proxy-id", "ingress-gateway", "-gateway", "ingress"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion:          defaultEnvoyVersion,
-				ProxyCluster:          "ingress-gateway",
-				ProxyID:               "ingress-gateway",
-				AgentAddress:          "127.0.0.1",
-				AgentPort:             "8502", // Note this is the gRPC port
+				EnvoyVersion: defaultEnvoyVersion,
+				ProxyCluster: "ingress-gateway",
+				ProxyID:      "ingress-gateway",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502",
+				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
@@ -603,11 +605,13 @@ func TestGenerateConfig(t *testing.T) {
 			Name:  "ingress-gateway-address-specified",
 			Flags: []string{"-proxy-id", "ingress-gateway", "-gateway", "ingress", "-address", "1.2.3.4:7777"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion:          defaultEnvoyVersion,
-				ProxyCluster:          "ingress-gateway",
-				ProxyID:               "ingress-gateway",
-				AgentAddress:          "127.0.0.1",
-				AgentPort:             "8502", // Note this is the gRPC port
+				EnvoyVersion: defaultEnvoyVersion,
+				ProxyCluster: "ingress-gateway",
+				ProxyID:      "ingress-gateway",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502",
+				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
