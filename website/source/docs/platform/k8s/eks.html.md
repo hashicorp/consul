@@ -1,7 +1,7 @@
 ---
 layout: "docs"
 page_title: "Running Consul on Amazon EKS"
-sidebar_current: "docs-platform-k8s-run-gke"
+sidebar_current: "docs-platform-k8s-run-eks"
 description: |-
   Consul can run directly on Amazon Elastic Kubernetes Service (EKS).
 ---
