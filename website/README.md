@@ -57,6 +57,7 @@ The significant keys in the YAML frontmatter are:
 The structure of the sidebars are controlled by files in the [`/data` directory](data).
 
 - Edit [this file](data/docs-navigation.js) to change the **docs** sidebar
+- Edit [this file](data/api-navigation.js) to change the **api** sidebar
 - Edit [this file](data/guides-navigation.js) to change the **guides** sidebar
 - Edit [this file](data/intro-navigation.js) to change the **intro** sidebar
 
@@ -142,11 +143,11 @@ This website structures URLs based on the filesystem layout. This means that if 
 To add a redirect, head over to the `_redirects` file - the format is fairly simple. On the left is the current path, and on the right is the path that should be redirected to. It's important to note that if there are links to a `.html` version of a page, that must also be explicitly redirected. For example:
 
 ```
-/foo       /bar
-/foo.html  /bar
+/foo       /bar   301!
+/foo.html  /bar   301!
 ```
 
-This redirect rule will send all incoming links to `/foo` and `/foo.html` to `/bar`. For more details on the redirects file format, [check out the docs on netlify](https://docs.netlify.com/routing/redirects/rewrites-proxies).
+This redirect rule will send all incoming links to `/foo` and `/foo.html` to `/bar`. For more details on the redirects file format, [check out the docs on netlify](https://docs.netlify.com/routing/redirects/rewrites-proxies). Note that it is critical that `301!` is added to every one-to-one redirect - if it is left off the redirect may not work.
 
 There are a couple important caveats with redirects. First, redirects are applied at the hosting layer, and therefore will not work by default in local dev mode. To test in local dev mode, you can use [`netlify dev`](https://www.netlify.com/products/dev/), or just push a commit and check using the deploy preview.
 
@@ -155,8 +156,8 @@ Second, redirects do not apply to client-side navigation. By default, all links 
 Let's look at an example. Say you have a page called `/docs/foo` which needs to be moved to `/docs/nested/foo`. Additionally, this is a page that has been around for a while and we know there are links into `/docs/foo.html` left over from our previous website structure. First, we move the page, then adjust the docs sidenav, in `data/docs-navigation.js`. Find the category the page is in, and move it into the appropriate subcategory. Next, we add to `_redirects` as such:
 
 ```
-/foo       /nested/foo
-/foo.html  /nested/foo
+/foo       /nested/foo  301!
+/foo.html  /nested/foo  301!
 ```
 
 Finally, we run a global search for internal links to `/foo`, and make sure to adjust them to be `/nested/foo` - this is to ensure that client-side navigation still works correctly. _Adding a redirect alone is not enough_.
