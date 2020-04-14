@@ -6,6 +6,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* acl: **(Consul Enterprise only)** - Disable the ACL.Bootstrap RPC endpoint when managed service provider tokens are in use. [[GH-7614](https://github.com/hashicorp/consul/pull/7614)]
 * acl: Added a v1/acl/policy/name/:name HTTP endpoint to read a policy by name. [[GH-6615](https://github.com/hashicorp/consul/pull/6615)]
 * acl: Added JSON format output to all of the ACL CLI commands. [[GH-7141](https://github.com/hashicorp/consul/issues/7141)]
 * agent/xds: Update mesh gateway to use the service resolver connect timeout when configured [[GH-6370](https://github.com/hashicorp/consul/issues/6370)] 
