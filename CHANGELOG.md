@@ -175,6 +175,12 @@ BUGFIXES:
 * ui: Discovery-Chain: Improve parsing of redirects [[GH-7174](https://github.com/hashicorp/consul/pull/7174)]
 * ui: Fix styling of ‘duplicate intention’ error message [[GH6936]](https://github.com/hashicorp/consul/pull/6936)
 
+## 1.6.5 (April 14, 2020)
+
+BUG FIXES:
+
+* agent: **(Consul Enterprise only)** Fixed several bugs related to Network Area ann Network Segment compatibility with other features caused by incorrectly doing version or serf tag checking. [[GH-7551](https://github.com/hashicorp/consul/pull/7551)]
+
 ## 1.6.4 (February 20, 2020)
 
 SECURITY:
