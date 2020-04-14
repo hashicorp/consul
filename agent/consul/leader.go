@@ -662,6 +662,9 @@ func (s *Server) initializeACLs(upgrade bool) error {
 			if s.IsACLReplicationEnabled() {
 				s.startLegacyACLReplication()
 			}
+			// return early as we don't want to start new ACL replication
+			// or ACL token reaping as these are new ACL features.
+			return nil
 		}
 
 		if upgrade {
