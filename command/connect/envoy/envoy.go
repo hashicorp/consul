@@ -76,6 +76,7 @@ const (
 var supportedGateways = map[string]api.ServiceKind{
 	"mesh":        api.ServiceKindMeshGateway,
 	"terminating": api.ServiceKindTerminatingGateway,
+	"ingress":     api.ServiceKindIngressGateway,
 }
 
 func (c *cmd) init() {
@@ -216,6 +217,7 @@ func (c *cmd) run(args []string) int {
 		c.UI.Error("The mesh-gateway flag is deprecated and cannot be used alongside the gateway flag")
 		return 1
 	}
+
 	if c.meshGateway {
 		c.gateway = meshGatewayVal
 	}
@@ -235,7 +237,7 @@ func (c *cmd) run(args []string) int {
 	if c.gateway != "" {
 		kind, ok := supportedGateways[c.gateway]
 		if !ok {
-			c.UI.Error("Gateway must be one of: terminating or mesh")
+			c.UI.Error("Gateway must be one of: terminating, mesh, or ingress")
 			return 1
 		}
 		c.gatewayKind = kind
@@ -463,6 +465,17 @@ func (c *cmd) generateConfig() ([]byte, error) {
 	}
 
 	var bsCfg BootstrapConfig
+
+	// Setup ready listener for ingress gateway to pass healthcheck
+	if c.gatewayKind == api.ServiceKindIngressGateway {
+		lanAddr := c.lanAddress.String()
+		// Deal with possibility of address not being specified and defaulting to
+		// ":443"
+		if strings.HasPrefix(lanAddr, ":") {
+			lanAddr = "127.0.0.1" + lanAddr
+		}
+		bsCfg.ReadyBindAddr = lanAddr
+	}
 
 	if !c.disableCentralConfig {
 		// Fetch any customization from the registration

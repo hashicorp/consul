@@ -32,6 +32,11 @@ const (
 	// ServiceKindTerminatingGateway is a Terminating Gateway for the Connect
 	// feature. This service will proxy connections to services outside the mesh.
 	ServiceKindTerminatingGateway ServiceKind = "terminating-gateway"
+
+	// ServiceKindIngressGateway is an Ingress Gateway for the Connect feature.
+	// This service will ingress connections based of configuration defined in
+	// the ingress-gateway config entry.
+	ServiceKindIngressGateway ServiceKind = "ingress-gateway"
 )
 
 // UpstreamDestType is the type of upstream discovery mechanism.
