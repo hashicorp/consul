@@ -2,7 +2,6 @@ package proxycfg
 
 import (
 	"context"
-
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/mitchellh/copystructure"
 )

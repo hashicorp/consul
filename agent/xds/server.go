@@ -219,8 +219,8 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 			resources: s.clustersFromSnapshot,
 			stream:    stream,
 			allowEmptyFn: func(cfgSnap *proxycfg.ConfigSnapshot) bool {
-				// Mesh gateways are allowed to inform CDS of no clusters.
-				return cfgSnap.Kind == structs.ServiceKindMeshGateway
+				// Mesh and Terminating gateways are allowed to inform CDS of no clusters.
+				return cfgSnap.Kind == structs.ServiceKindMeshGateway || cfgSnap.Kind == structs.ServiceKindTerminatingGateway
 			},
 		},
 		RouteType: {

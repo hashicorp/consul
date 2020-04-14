@@ -591,6 +591,20 @@ func (s *Server) makeTerminatingGatewayListener(name, addr string, port int, cfg
 
 	err = injectConnectFilters(cfgSnap, token, l, false)
 
+	// This fallback catch-all filter ensures a listener will be present for health checks to pass
+	// Envoy will reset these connections since known endpoints are caught by filter chain matches above
+	tcpProxy, err := makeTCPProxyFilter(name, "", "terminating_gateway_")
+	if err != nil {
+		return nil, err
+	}
+	fallback := envoylistener.FilterChain{
+		Filters: []envoylistener.Filter{
+			{Name: "envoy.filters.network.sni_cluster"},
+			tcpProxy,
+		},
+	}
+	l.FilterChains = append(l.FilterChains, fallback)
+
 	return l, nil
 }
 
