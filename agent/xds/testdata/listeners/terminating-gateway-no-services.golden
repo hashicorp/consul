@@ -10,6 +10,22 @@
           "portValue": 8443
         }
       },
+      "filterChains": [
+        {
+          "filters": [
+            {
+              "name": "envoy.filters.network.sni_cluster"
+            },
+            {
+              "name": "envoy.tcp_proxy",
+              "config": {
+                  "cluster": "",
+                  "stat_prefix": "terminating_gateway_default_tcp"
+                }
+            }
+          ]
+        }
+      ],
       "listenerFilters": [
         {
           "name": "envoy.listener.tls_inspector"

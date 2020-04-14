@@ -3,7 +3,9 @@ package proxycfg
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"path"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -1489,24 +1491,20 @@ func testConfigSnapshotTerminatingGateway(t testing.T, populateServices bool) *C
 			apiNodes[i].Service.Port = 8081
 		}
 
-		// Hard-coding these certs since TestLeafForCA returns a new leaf each time and will not match the golden file
-		webLeaf := &structs.IssuedCert{
-			CertPEM:       `-----BEGIN CERTIFICATE-----\nMIICKDCCAc+gAwIBAgIIT/zLIOrnlRQwCgYIKoZIzj0EAwIwFTETMBEGA1UEAxMK\nVGVzdCBDQSA4NTAeFw0yMDA0MTEwMDMxMjJaFw0zMDA0MTEwMDMxMjJaMCoxKDAm\nBgNVBAMTH3dlYi5zdmMuZGVmYXVsdC4xMTExMTExMS5jb25zdWwwWTATBgcqhkjO\nPQIBBggqhkjOPQMBBwNCAAR3uNYYt8amLQMfae6GpMyFaMBBkGL2ZPANmCy7nsL7\n5kczishLb0GG1/PoNBQJW5A1Wl7uI/SE77KTThRxk3Wco4HzMIHwMA4GA1UdDwEB\n/wQEAwIDuDAdBgNVHSUEFjAUBggrBgEFBQcDAgYIKwYBBQUHAwEwDAYDVR0TAQH/\nBAIwADApBgNVHQ4EIgQgYbec+6bte/VdH3M63TFVmDU0jH5461iZTsiJ1x+18iow\nKwYDVR0jBCQwIoAgqo5xDZXH+SCNmEyBYOSyc8RlSBX3sJJrSLCtuZp5WxgwWQYD\nVR0RBFIwUIZOc3BpZmZlOi8vMTExMTExMTEtMjIyMi0zMzMzLTQ0NDQtNTU1NTU1\nNTU1NTU1LmNvbnN1bC9ucy9kZWZhdWx0L2RjL2RjMS9zdmMvd2ViMAoGCCqGSM49\nBAMCA0cAMEQCIC/xdLblMMnwXGqBn9XkdGOnUEtJW0LU+tKyen5PxRO7AiBjTefh\n5uZU8QVs2FQTQHN0Omr4ngToHBHNwKl1Flvyqw==\n-----END CERTIFICATE-----\n`,
-			PrivateKeyPEM: `-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIP6roctlkGz+7od7hFwaldpvbnkXmnjvpPBxyKU4NcM9oAoGCCqGSM49\nAwEHoUQDQgAEd7jWGLfGpi0DH2nuhqTMhWjAQZBi9mTwDZgsu57C++ZHM4rIS29B\nhtfz6DQUCVuQNVpe7iP0hO+yk04UcZN1nA==\n-----END EC PRIVATE KEY-----\n`,
-		}
-		apiLeaf := &structs.IssuedCert{
-			CertPEM:       `-----BEGIN CERTIFICATE-----\nMIICKjCCAc+gAwIBAgIICeaPMbQdJsswCgYIKoZIzj0EAwIwFTETMBEGA1UEAxMK\nVGVzdCBDQSA4NTAeFw0yMDA0MTEwMDE3NTZaFw0zMDA0MTEwMDE3NTZaMCoxKDAm\nBgNVBAMTH2FwaS5zdmMuZGVmYXVsdC4xMTExMTExMS5jb25zdWwwWTATBgcqhkjO\nPQIBBggqhkjOPQMBBwNCAASvkFCbA1rP8NxyKAOGoLmVjwSB+dO/ncs5KqourUPw\nbZfQEETsTaTdO5aWgkJilagD7Z1RZltWk+MGhPleo8/bo4HzMIHwMA4GA1UdDwEB\n/wQEAwIDuDAdBgNVHSUEFjAUBggrBgEFBQcDAgYIKwYBBQUHAwEwDAYDVR0TAQH/\nBAIwADApBgNVHQ4EIgQgyNkAhsJy93ueCk9Bjo9DdiZB+eJq7zs4qr9tmrT5zBAw\nKwYDVR0jBCQwIoAgJDQM9fdkMlYIa/hmjVbXie/3qNMaAS8R9dKPQ2XE05gwWQYD\nVR0RBFIwUIZOc3BpZmZlOi8vMTExMTExMTEtMjIyMi0zMzMzLTQ0NDQtNTU1NTU1\nNTU1NTU1LmNvbnN1bC9ucy9kZWZhdWx0L2RjL2RjMS9zdmMvYXBpMAoGCCqGSM49\nBAMCA0kAMEYCIQDN/60bmqjeFQpHw52r63Lftuuexl6AHVDI+o7MPYzfKwIhANMJ\n0s1qRbOUItdIC8y0Ph2woXcj2yXluiPzFT3Ij94k\n-----END CERTIFICATE-----\n`,
-			PrivateKeyPEM: `-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIBdbcIKnjbzUBLHVQANB2P6bQf6SNOtEd6san+82wY21oAoGCCqGSM49\nAwEHoUQDQgAEr5BQmwNaz/DccigDhqC5lY8EgfnTv53LOSqqLq1D8G2X0BBE7E2k\n3TuWloJCYpWoA+2dUWZbVpPjBoT5XqPP2w==\n-----END EC PRIVATE KEY-----\n`,
-		}
-
 		snap.TerminatingGateway = configSnapshotTerminatingGateway{
 			ServiceGroups: map[structs.ServiceID]structs.CheckServiceNodes{
 				web: webNodes,
 				api: apiNodes,
 			},
-			ServiceLeaves: map[structs.ServiceID]*structs.IssuedCert{
-				web: webLeaf,
-				api: apiLeaf,
+		}
+		snap.TerminatingGateway.ServiceLeaves = map[structs.ServiceID]*structs.IssuedCert{
+			structs.NewServiceID("web", nil): {
+				CertPEM:       golden(t, "test-leaf-cert"),
+				PrivateKeyPEM: golden(t, "test-leaf-key"),
+			},
+			structs.NewServiceID("api", nil): {
+				CertPEM:       golden(t, "alt-test-leaf-cert"),
+				PrivateKeyPEM: golden(t, "alt-test-leaf-key"),
 			},
 		}
 	}
@@ -1638,4 +1636,15 @@ func (ct *ControllableCacheType) RegisterOptions() cache.RegisterOptions {
 		SupportsBlocking: ct.blocking,
 		RefreshTimeout:   10 * time.Minute,
 	}
+}
+
+// golden is used to read golden files stores in consul/agent/xds/testdata
+func golden(t testing.T, name string) string {
+	t.Helper()
+
+	golden := filepath.Join("../xds/testdata", name+".golden")
+	expected, err := ioutil.ReadFile(golden)
+	require.NoError(t, err)
+
+	return string(expected)
 }
