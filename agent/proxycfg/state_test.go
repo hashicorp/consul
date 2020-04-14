@@ -206,6 +206,18 @@ func genVerifyLeafWatch(expectedService string, expectedDatacenter string) verif
 	}
 }
 
+func genVerifyResolverWatch(expectedService, expectedDatacenter, expectedKind string) verifyWatchRequest {
+	return func(t testing.TB, cacheType string, request cache.Request) {
+		require.Equal(t, cachetype.ConfigEntriesName, cacheType)
+
+		reqReal, ok := request.(*structs.ConfigEntryQuery)
+		require.True(t, ok)
+		require.Equal(t, expectedDatacenter, reqReal.Datacenter)
+		require.Equal(t, expectedService, reqReal.Name)
+		require.Equal(t, expectedKind, reqReal.Kind)
+	}
+}
+
 func genVerifyIntentionWatch(expectedService string, expectedDatacenter string) verifyWatchRequest {
 	return func(t testing.TB, cacheType string, request cache.Request) {
 		require.Equal(t, cachetype.IntentionMatchName, cacheType)
@@ -827,8 +839,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.ConnectProxy.IsEmpty())
 						require.Equal(t, indexedRoots, snap.Roots)
 						require.Empty(t, snap.TerminatingGateway.WatchedServices)
-						require.Empty(t, snap.TerminatingGateway.WatchedLeaves)
 						require.Empty(t, snap.TerminatingGateway.ServiceGroups)
+						require.Empty(t, snap.TerminatingGateway.WatchedLeaves)
+						require.Empty(t, snap.TerminatingGateway.ServiceLeaves)
+						require.Empty(t, snap.TerminatingGateway.WatchedResolvers)
+						require.Empty(t, snap.TerminatingGateway.ServiceResolvers)
 						require.Empty(t, snap.TerminatingGateway.WatchedIntentions)
 					},
 				},
@@ -904,6 +919,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Len(t, snap.TerminatingGateway.WatchedLeaves, 2)
 						require.Contains(t, snap.TerminatingGateway.WatchedLeaves, db)
 						require.Contains(t, snap.TerminatingGateway.WatchedLeaves, billing)
+
+						require.Len(t, snap.TerminatingGateway.WatchedResolvers, 2)
+						require.Contains(t, snap.TerminatingGateway.WatchedResolvers, db)
+						require.Contains(t, snap.TerminatingGateway.WatchedResolvers, billing)
 					},
 				},
 				verificationStage{
@@ -964,6 +983,41 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 				},
 				verificationStage{
+					requiredWatches: map[string]verifyWatchRequest{
+						"service-resolver:db": genVerifyResolverWatch("db", "dc1", structs.ServiceResolver),
+					},
+					events: []cache.UpdateEvent{
+						cache.UpdateEvent{
+							CorrelationID: "service-resolver:db",
+							Result: &structs.IndexedConfigEntries{
+								Kind: structs.ServiceResolver,
+								Entries: []structs.ConfigEntry{
+									&structs.ServiceResolverConfigEntry{
+										Name: "db",
+										Kind: structs.ServiceResolver,
+										Redirect: &structs.ServiceResolverRedirect{
+											Service:    "db",
+											Datacenter: "dc2",
+										},
+									},
+								},
+							},
+							Err: nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						want := &structs.ServiceResolverConfigEntry{
+							Kind: structs.ServiceResolver,
+							Name: "db",
+							Redirect: &structs.ServiceResolverRedirect{
+								Service:    "db",
+								Datacenter: "dc2",
+							},
+						}
+						require.Equal(t, want, snap.TerminatingGateway.ServiceResolvers[structs.NewServiceID("db", nil)])
+					},
+				},
+				verificationStage{
 					events: []cache.UpdateEvent{
 						cache.UpdateEvent{
 							CorrelationID: gatewayServicesWatchID,
@@ -993,9 +1047,13 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Len(t, snap.TerminatingGateway.WatchedLeaves, 1)
 						require.Contains(t, snap.TerminatingGateway.WatchedLeaves, billing)
 
+						require.Len(t, snap.TerminatingGateway.WatchedResolvers, 1)
+						require.Contains(t, snap.TerminatingGateway.WatchedResolvers, billing)
+
 						// There was no update event for billing's leaf/endpoints, so length is 0
 						require.Len(t, snap.TerminatingGateway.ServiceGroups, 0)
 						require.Len(t, snap.TerminatingGateway.ServiceLeaves, 0)
+						require.Len(t, snap.TerminatingGateway.ServiceResolvers, 0)
 					},
 				},
 			},

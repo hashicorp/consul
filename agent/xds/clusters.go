@@ -120,22 +120,9 @@ func makeExposeClusterName(destinationPort int) string {
 }
 
 // clustersFromSnapshotTerminatingGateway returns the xDS API representation of the "clusters"
-// for a terminating gateway. This will include 1 cluster per service.
+// for a terminating gateway. This will include 1 cluster per service and service subset.
 func (s *Server) clustersFromSnapshotTerminatingGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
-	clusters := make([]proto.Message, 0, len(cfgSnap.TerminatingGateway.ServiceGroups))
-
-	// Generate the per-service clusters
-	for svc, _ := range cfgSnap.TerminatingGateway.ServiceGroups {
-		clusterName := connect.ServiceSNI(svc.ID, "", svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
-
-		cluster, err := s.makeGatewayCluster(clusterName, cfgSnap)
-		if err != nil {
-			return nil, fmt.Errorf("failed to make cluster %q for terminating-gateway: %v", cluster, err)
-		}
-		clusters = append(clusters, cluster)
-	}
-
-	return clusters, nil
+	return s.clustersFromServicesAndResolvers(cfgSnap, cfgSnap.TerminatingGateway.ServiceGroups, cfgSnap.TerminatingGateway.ServiceResolvers)
 }
 
 // clustersFromSnapshotMeshGateway returns the xDS API representation of the "clusters"
@@ -185,10 +172,26 @@ func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 		}
 	}
 
-	// generate the per-service clusters
-	for svc, _ := range cfgSnap.MeshGateway.ServiceGroups {
+	// generate the per-service/subset clusters
+	c, err := s.clustersFromServicesAndResolvers(cfgSnap, cfgSnap.MeshGateway.ServiceGroups, cfgSnap.MeshGateway.ServiceResolvers)
+	if err != nil {
+		return nil, err
+	}
+	clusters = append(clusters, c...)
+
+	return clusters, nil
+}
+
+func (s *Server) clustersFromServicesAndResolvers(
+	cfgSnap *proxycfg.ConfigSnapshot,
+	services map[structs.ServiceID]structs.CheckServiceNodes,
+	resolvers map[structs.ServiceID]*structs.ServiceResolverConfigEntry) ([]proto.Message, error) {
+
+	clusters := make([]proto.Message, 0, len(services))
+
+	for svc, _ := range services {
 		clusterName := connect.ServiceSNI(svc.ID, "", svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
-		resolver, hasResolver := cfgSnap.MeshGateway.ServiceResolvers[svc]
+		resolver, hasResolver := resolvers[svc]
 
 		// Create the cluster for default/unnamed services
 		var cluster *envoy.Cluster
@@ -199,7 +202,7 @@ func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 			cluster, err = s.makeGatewayCluster(clusterName, cfgSnap)
 		}
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to make %s cluster: %v", cfgSnap.Kind, err)
 		}
 		clusters = append(clusters, cluster)
 
@@ -211,7 +214,7 @@ func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 
 				cluster, err := s.makeGatewayClusterWithConnectTimeout(clusterName, cfgSnap, resolver.ConnectTimeout)
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("failed to make %s cluster: %v", cfgSnap.Kind, err)
 				}
 				clusters = append(clusters, cluster)
 			}
@@ -529,9 +532,9 @@ func (s *Server) makeGatewayCluster(clusterName string, cfgSnap *proxycfg.Config
 	return s.makeGatewayClusterWithConnectTimeout(clusterName, cfgSnap, 0)
 }
 
-// makeGatewayClusterWithConnectTimeout initializes a mesh gateway cluster
+// makeGatewayClusterWithConnectTimeout initializes a gateway cluster
 // with the specified connect timeout. If the timeout is 0, the connect timeout
-// defaults to use the mesh gateway timeout.
+// defaults to use the configured gateway timeout.
 func (s *Server) makeGatewayClusterWithConnectTimeout(clusterName string, cfgSnap *proxycfg.ConfigSnapshot,
 	connectTimeout time.Duration) (*envoy.Cluster, error) {
 	cfg, err := ParseGatewayConfig(cfgSnap.Proxy.Config)

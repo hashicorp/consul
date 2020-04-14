@@ -81,6 +81,16 @@ type configSnapshotTerminatingGateway struct {
 	// on the service that the caller is trying to reach.
 	ServiceLeaves map[structs.ServiceID]*structs.IssuedCert
 
+	// WatchedResolvers is a map of ServiceID to a cancel function.
+	// This cancel function is tied to the watch of resolvers for linked services.
+	// As with WatchedServices, resolver watches will be cancelled when services
+	// are no longer linked to the gateway.
+	WatchedResolvers map[structs.ServiceID]context.CancelFunc
+
+	// ServiceResolvers is a map of service id to an associated
+	// service-resolver config entry for that service.
+	ServiceResolvers map[structs.ServiceID]*structs.ServiceResolverConfigEntry
+
 	// ServiceGroups is a map of service id to the service instances of that
 	// service in the local datacenter.
 	ServiceGroups map[structs.ServiceID]structs.CheckServiceNodes
@@ -94,7 +104,8 @@ func (c *configSnapshotTerminatingGateway) IsEmpty() bool {
 		len(c.WatchedLeaves) == 0 &&
 		len(c.WatchedIntentions) == 0 &&
 		len(c.ServiceGroups) == 0 &&
-		len(c.WatchedServices) == 0
+		len(c.WatchedServices) == 0 &&
+		len(c.ServiceResolvers) == 0
 }
 
 type configSnapshotMeshGateway struct {

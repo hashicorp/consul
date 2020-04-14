@@ -1475,6 +1475,12 @@ func testConfigSnapshotTerminatingGateway(t testing.T, populateServices bool) *C
 	if populateServices {
 		web := structs.NewServiceID("web", nil)
 		webNodes := TestUpstreamNodes(t)
+		webNodes[0].Service.Meta = map[string]string{
+			"version": "1",
+		}
+		webNodes[1].Service.Meta = map[string]string{
+			"version": "2",
+		}
 
 		api := structs.NewServiceID("api", nil)
 		apiNodes := TestUpstreamNodes(t)

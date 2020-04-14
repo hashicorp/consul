@@ -562,40 +562,61 @@ func (s *Server) makeTerminatingGatewayListener(name, addr string, port int, cfg
 	}
 	l.ListenerFilters = []envoylistener.ListenerFilter{tlsInspector}
 
-	sniCluster, err := makeSNIClusterFilter()
-	if err != nil {
-		return nil, err
-	}
-
 	// Make a FilterChain for each linked service
 	// Match on the cluster name,
 	for svc, _ := range cfgSnap.TerminatingGateway.ServiceGroups {
 		clusterName := connect.ServiceSNI(svc.ID, "", svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+		resolver, hasResolver := cfgSnap.TerminatingGateway.ServiceResolvers[svc]
 
-		// The cluster name here doesn't matter as the sni_cluster filter will fill it in for us.
-		tcpProxy, err := makeTCPProxyFilter(name, "", fmt.Sprintf("terminating_gateway_%s_", svc.ID))
+		clusterChain, err := s.sniFilterChainTerminatingGateway(name, clusterName, svc, cfgSnap)
 		if err != nil {
-			return nil, err
-		}
-
-		clusterChain := envoylistener.FilterChain{
-			FilterChainMatch: makeSNIFilterChainMatch(clusterName),
-			Filters: []envoylistener.Filter{
-				sniCluster,
-				tcpProxy,
-			},
-			TlsContext: &envoyauth.DownstreamTlsContext{
-				// TODO (gateways) (freddy) Could we get to this point and not have a leaf for the service?
-				CommonTlsContext:         makeCommonTLSContext(cfgSnap, cfgSnap.TerminatingGateway.ServiceLeaves[svc]),
-				RequireClientCertificate: &types.BoolValue{Value: true},
-			},
+			return nil, fmt.Errorf("failed to make filter chain for cluster %q: %v", clusterName, err)
 		}
 		l.FilterChains = append(l.FilterChains, clusterChain)
+
+		// if there is a service-resolver for this service then also setup subset filter chains for it
+		if hasResolver {
+			// generate 1 filter chain for each service subset
+			for subsetName := range resolver.Subsets {
+				clusterName := connect.ServiceSNI(svc.ID, subsetName, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+
+				clusterChain, err := s.sniFilterChainTerminatingGateway(name, clusterName, svc, cfgSnap)
+				if err != nil {
+					return nil, fmt.Errorf("failed to make filter chain for cluster %q: %v", clusterName, err)
+				}
+				l.FilterChains = append(l.FilterChains, clusterChain)
+			}
+		}
 	}
 
 	err = injectConnectFilters(cfgSnap, token, l, false)
 
 	return l, nil
+}
+
+func (s *Server) sniFilterChainTerminatingGateway(listener, cluster string, service structs.ServiceID, cfgSnap *proxycfg.ConfigSnapshot) (envoylistener.FilterChain, error) {
+	sniCluster, err := makeSNIClusterFilter()
+	if err != nil {
+		return envoylistener.FilterChain{}, err
+	}
+
+	// The cluster name here doesn't matter as the sni_cluster filter will fill it in for us.
+	tcpProxy, err := makeTCPProxyFilter(listener, "", fmt.Sprintf("terminating_gateway_%s_", service.String()))
+	if err != nil {
+		return envoylistener.FilterChain{}, err
+	}
+
+	return envoylistener.FilterChain{
+		FilterChainMatch: makeSNIFilterChainMatch(cluster),
+		Filters: []envoylistener.Filter{
+			sniCluster,
+			tcpProxy,
+		},
+		TlsContext: &envoyauth.DownstreamTlsContext{
+			CommonTlsContext:         makeCommonTLSContext(cfgSnap, cfgSnap.TerminatingGateway.ServiceLeaves[service]),
+			RequireClientCertificate: &types.BoolValue{Value: true},
+		},
+	}, err
 }
 
 func (s *Server) makeMeshGatewayListener(name, addr string, port int, cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Listener, error) {
