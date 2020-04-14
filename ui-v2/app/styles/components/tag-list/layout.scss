@@ -7,7 +7,6 @@
 // only add padding to dl's in edit pages
 %tag-list::before {
   @extend %with-tag-mask, %as-pseudo;
-  transform: rotate(-45deg);
   margin-right: 4px;
 }
 %tag-list dd {

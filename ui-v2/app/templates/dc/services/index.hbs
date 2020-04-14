@@ -17,6 +17,11 @@
             <ConsulServiceList @routeName="dc.services.show" @items={{filtered}}>
               <BlockSlot @name="metadata" as |item|>
                 <ul>
+                  <ConsulExternalSource @item={{item}} as |ExternalSource|>
+                    <li>
+                      <ExternalSource />
+                    </li>
+                  </ConsulExternalSource>
                   <li>{{format-number item.InstanceCount}} {{pluralize item.InstanceCount 'Instance' without-count=true}}</li>
                   {{#if (get withProxies item.Name)}}<li class="proxy">connected with proxy</li>{{/if}}
                   <li><TagList @items={{item.Tags}}/></li>
