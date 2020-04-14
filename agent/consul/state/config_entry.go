@@ -346,12 +346,12 @@ func (s *Store) validateProposedConfigEntryInGraph(
 	case structs.ServiceSplitter:
 	case structs.ServiceResolver:
 	case structs.IngressGateway:
-		err := s.validateGatewayConfig(tx, structs.TerminatingGateway, name, entMeta)
+		err := s.checkGatewayClash(tx, name, structs.IngressGateway, structs.TerminatingGateway, entMeta)
 		if err != nil {
 			return err
 		}
 	case structs.TerminatingGateway:
-		err := s.validateGatewayConfig(tx, structs.IngressGateway, name, entMeta)
+		err := s.checkGatewayClash(tx, name, structs.TerminatingGateway, structs.IngressGateway, entMeta)
 		if err != nil {
 			return err
 		}
@@ -362,18 +362,18 @@ func (s *Store) validateProposedConfigEntryInGraph(
 	return s.validateProposedConfigEntryInServiceGraph(tx, idx, kind, name, next, validateAllChains, entMeta)
 }
 
-func (s *Store) validateGatewayConfig(
+func (s *Store) checkGatewayClash(
 	tx *memdb.Txn,
-	kind, name string,
+	name, selfKind, otherKind string,
 	entMeta *structs.EnterpriseMeta,
 ) error {
-	_, entry, err := s.configEntryTxn(tx, nil, kind, name, entMeta)
+	_, entry, err := s.configEntryTxn(tx, nil, otherKind, name, entMeta)
 	if err != nil {
 		return err
 	}
 	if entry != nil {
-		return fmt.Errorf("cannot create config entry for %q, "+
-			"a %q with that name already exists", name, kind)
+		return fmt.Errorf("cannot create a %q config entry with name %q, "+
+			"a %q config entry with that name already exists", selfKind, name, otherKind)
 	}
 	return nil
 }
