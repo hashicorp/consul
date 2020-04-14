@@ -940,6 +940,16 @@ func TestInternal_GatewayServices_BothGateways(t *testing.T) {
 		}
 		assert.Equal(r, expect, resp.Services)
 	})
+
+	// Test a non-gateway service being requested
+	req := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "api",
+	}
+	var resp structs.IndexedGatewayServices
+	err := msgpackrpc.CallWithCodec(codec, "Internal.GatewayServices", &req, &resp)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), `service "api" is not a terminating-gateway or ingress-gateway`)
 }
 
 func TestInternal_GatewayServices_ACLFiltering(t *testing.T) {

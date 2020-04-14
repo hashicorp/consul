@@ -323,6 +323,21 @@ func (m *Internal) GatewayServices(args *structs.ServiceSpecificRequest, reply *
 			var index uint64
 			var services structs.GatewayServices
 
+			// We only use this call to validate the RPC call, don't add the watch set
+			_, ingressCfg, err := state.ConfigEntry(nil, structs.IngressGateway, args.ServiceName, &args.EnterpriseMeta)
+			if err != nil {
+				return err
+			}
+			// We only use this call to validate the RPC call, don't add the watch set
+			_, termCfg, err := state.ConfigEntry(nil, structs.TerminatingGateway, args.ServiceName, &args.EnterpriseMeta)
+			if err != nil {
+				return err
+			}
+
+			if ingressCfg == nil && termCfg == nil {
+				return fmt.Errorf("service %q is not a terminating-gateway or ingress-gateway", args.ServiceName)
+			}
+
 			index, services, err = state.GatewayServices(ws, args.ServiceName, &args.EnterpriseMeta)
 			if err != nil {
 				return err
