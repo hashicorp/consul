@@ -6,38 +6,25 @@
 %consul-service-row > a > span:nth-child(3) {
   @extend %as-pseudo;
 }
+
+// Health Checks
 %consul-service-row .empty {
-  @extend %with-minus-square-fill-color-mask;
+  @extend %with-minus-square-fill-mask;
   background-color: #7c8797;
 }
-%consul-service-row .kubernetes {
-  @extend %with-kubernetes-logo-color-icon;
-}
-%consul-service-row .terraform {
-  @extend %with-terraform-logo-color-icon;
-}
-%consul-service-row .nomad {
-  @extend %with-nomad-logo-color-icon;
-}
-%consul-service-row .consul {
-  @extend %with-consul-logo-color-icon;
-}
-%consul-service-row .aws {
-  @extend %with-logo-aws-color-icon;
-}
 %consul-service-row .passing {
-  @extend %with-check-circle-fill-color-mask;
+  @extend %with-check-circle-fill-mask;
   background-color: $green-500;
 }
 %consul-service-row .warning {
-  @extend %with-alert-triangle-color-mask;
+  @extend %with-alert-triangle-mask;
   background-color: $orange-500;
 }
 %consul-service-row .critical {
-  @extend %with-cancel-square-fill-color-mask;
+  @extend %with-cancel-square-fill-mask;
   background-color: $red-500;
 }
 %consul-service-row .proxy::before {
-  @extend %with-swap-horizontal-mask, %as-pseudo;
+  @extend %with-git-commit-mask, %as-pseudo;
   background-color: $gray-500;
 }

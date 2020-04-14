@@ -1,12 +1,7 @@
-%consul-service-list {
-  // Used for every DOM-Recycle scroll pane
-  // TODO: Refactor to have all this DOM-Recycle styling in one place
-  overflow-x: hidden !important;
-}
 %consul-service-row > a > span:first-child {
   margin-right: 4px;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
 }
 %consul-service-row > a > span:nth-child(3) {
   margin-left: 4px;
