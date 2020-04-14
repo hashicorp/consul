@@ -363,6 +363,15 @@ func (s *Server) CheckServers(datacenter string, fn func(*metadata.Server) bool)
 	}
 }
 
+// CheckServers implements the checkServersProvider interface for the Client
+func (c *Client) CheckServers(datacenter string, fn func(*metadata.Server) bool) {
+	if datacenter != c.config.Datacenter {
+		return
+	}
+
+	c.routers.CheckServers(fn)
+}
+
 type serversACLMode struct {
 	// leader is the address of the leader
 	leader string
