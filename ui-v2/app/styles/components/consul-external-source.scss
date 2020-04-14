@@ -1,0 +1,33 @@
+.consul-external-source {
+  background-color: $gray-100;
+  padding: 0 8px;
+  height: 16px;
+  line-height: 12px;
+  margin-top: 3px;
+  border-radius: $decor-radius-100;
+}
+.consul-external-source > span {
+  position: relative;
+  top: -1px;
+}
+.consul-external-source::before {
+  font-size: 0.7em;
+  margin-right: 2px;
+  position: relative;
+  top: 2px;
+}
+.source-kubernetes::before {
+  @extend %with-kubernetes-logo-color-icon, %as-pseudo;
+}
+.source-terraform::before {
+  @extend %with-terraform-logo-color-icon, %as-pseudo;
+}
+.source-nomad::before {
+  @extend %with-nomad-logo-color-icon, %as-pseudo;
+}
+.source-consul::before {
+  @extend %with-consul-logo-color-icon, %as-pseudo;
+}
+.source-aws::before {
+  @extend %with-logo-aws-color-icon, %as-pseudo;
+}

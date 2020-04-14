@@ -2,3 +2,6 @@
   height: 500px;
   position: relative;
 }
+.list-collection > ul {
+  overflow-x: hidden !important;
+}

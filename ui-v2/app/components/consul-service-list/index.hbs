@@ -6,7 +6,6 @@
     <span>
       {{item.Name}}
     </span>
-    <span data-test-external-source="{{service/external-source item}}" class={{service/external-source item}}></span>
     <YieldSlot @name="metadata" @params={{block-params item}}>
       {{yield}}
     </YieldSlot>

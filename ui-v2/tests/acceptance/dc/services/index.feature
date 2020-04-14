@@ -20,6 +20,10 @@ Feature: dc / services / index: List Services
       Kind: consul
       ExternalSources:
         - kubernetes
+    - Name: Service 5
+      Kind: consul
+      ExternalSources:
+        - aws
     ---
     When I visit the services page for yaml
     ---
@@ -34,5 +38,6 @@ Feature: dc / services / index: List Services
     - nomad
     - terraform
     - kubernetes
+    - aws
     ---
 
