@@ -179,7 +179,7 @@ BUGFIXES:
 
 BUG FIXES:
 
-* agent: **(Consul Enterprise only)** Fixed several bugs related to Network Area ann Network Segment compatibility with other features caused by incorrectly doing version or serf tag checking. [[GH-7551](https://github.com/hashicorp/consul/pull/7551)]
+* agent: **(Consul Enterprise only)** Fixed several bugs related to Network Area and Network Segment compatibility with other features caused by incorrectly doing version or serf tag checking. [[GH-7551](https://github.com/hashicorp/consul/pull/7551)]
 
 ## 1.6.4 (February 20, 2020)
 
