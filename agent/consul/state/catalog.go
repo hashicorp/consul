@@ -775,7 +775,7 @@ func (s *Store) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *st
 		return fmt.Errorf("Invalid Service Meta for node %s and serviceID %s: %v", node, svc.ID, err)
 	}
 
-	// Check if this service is covered by a terminating gateway's wildcard specifier
+	// Check if this service is covered by a gateway's wildcard specifier
 	svcGateways, err := s.serviceGateways(tx, structs.WildcardSpecifier, &svc.EnterpriseMeta)
 	if err != nil {
 		return fmt.Errorf("failed gateway lookup for %q: %s", svc.Service, err)
@@ -2438,7 +2438,7 @@ func (s *Store) updateGatewayServices(tx *memdb.Txn, idx uint64, conf structs.Co
 	for _, svc := range gatewayServices {
 		// If the service is a wildcard we need to target all services within the namespace
 		if svc.Service.ID == structs.WildcardSpecifier {
-			if err := s.updateGatewayNamespace(tx, idx, gatewayID, svc, entMeta); err != nil {
+			if err := s.updateGatewayNamespace(tx, idx, svc, entMeta); err != nil {
 				return fmt.Errorf("failed to associate gateway %q with wildcard: %v", gatewayID.String(), err)
 			}
 			// Skip service-specific update below if there was a wildcard update
@@ -2531,7 +2531,7 @@ func (s *Store) terminatingConfigGatewayServices(tx *memdb.Txn, gateway structs.
 }
 
 // updateGatewayNamespace is used to target all services within a namespace
-func (s *Store) updateGatewayNamespace(tx *memdb.Txn, idx uint64, gateway structs.ServiceID, service *structs.GatewayService, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) updateGatewayNamespace(tx *memdb.Txn, idx uint64, service *structs.GatewayService, entMeta *structs.EnterpriseMeta) error {
 	services, err := s.catalogServiceListByKind(tx, structs.ServiceKindTypical, entMeta)
 	if err != nil {
 		return fmt.Errorf("failed querying services: %s", err)
@@ -2557,7 +2557,6 @@ func (s *Store) updateGatewayNamespace(tx *memdb.Txn, idx uint64, gateway struct
 		}
 
 		mapping := service.Clone()
-		mapping.Gateway = gateway
 		mapping.Service = structs.NewServiceID(sn.ServiceName, &service.Service.EnterpriseMeta)
 		err = s.updateGatewayService(tx, idx, mapping)
 		if err != nil {
