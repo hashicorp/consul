@@ -353,6 +353,71 @@ func TestClustersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotIngressGatewayNoServices,
 			setup:  nil,
 		},
+		{
+			name:   "ingress-with-chain",
+			create: proxycfg.TestConfigSnapshotIngress,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-with-chain-external-sni",
+			create: proxycfg.TestConfigSnapshotIngressExternalSNI,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-with-chain-and-overrides",
+			create: proxycfg.TestConfigSnapshotIngressWithOverrides,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-with-chain-and-failover",
+			create: proxycfg.TestConfigSnapshotIngressWithFailover,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-with-tcp-chain-failover-through-remote-gateway",
+			create: proxycfg.TestConfigSnapshotIngressWithFailoverThroughRemoteGateway,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-with-tcp-chain-failover-through-remote-gateway-triggered",
+			create: proxycfg.TestConfigSnapshotIngressWithFailoverThroughRemoteGatewayTriggered,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-with-tcp-chain-double-failover-through-remote-gateway",
+			create: proxycfg.TestConfigSnapshotIngressWithDoubleFailoverThroughRemoteGateway,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-with-tcp-chain-double-failover-through-remote-gateway-triggered",
+			create: proxycfg.TestConfigSnapshotIngressWithDoubleFailoverThroughRemoteGatewayTriggered,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-with-tcp-chain-failover-through-local-gateway",
+			create: proxycfg.TestConfigSnapshotIngressWithFailoverThroughLocalGateway,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-with-tcp-chain-failover-through-local-gateway-triggered",
+			create: proxycfg.TestConfigSnapshotIngressWithFailoverThroughLocalGatewayTriggered,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-with-tcp-chain-double-failover-through-local-gateway",
+			create: proxycfg.TestConfigSnapshotIngressWithDoubleFailoverThroughLocalGateway,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-with-tcp-chain-double-failover-through-local-gateway-triggered",
+			create: proxycfg.TestConfigSnapshotIngressWithDoubleFailoverThroughLocalGatewayTriggered,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-splitter-with-resolver-redirect",
+			create: proxycfg.TestConfigSnapshotIngress_SplitterWithResolverRedirectMultiDC,
+			setup:  nil,
+		},
 	}
 
 	for _, tt := range tests {
