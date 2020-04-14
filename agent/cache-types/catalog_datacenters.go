@@ -12,6 +12,7 @@ const CatalogDatacentersName = "catalog-datacenters"
 
 // Datacenters supports fetching discovering all the known datacenters
 type CatalogDatacenters struct {
+	RegisterOptionsNoRefresh
 	RPC RPC
 }
 
@@ -74,8 +75,4 @@ func (c *CatalogDatacenters) Fetch(opts cache.FetchOptions, req cache.Request) (
 	}
 
 	return result, nil
-}
-
-func (c *CatalogDatacenters) SupportsBlocking() bool {
-	return false
 }

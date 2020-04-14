@@ -23,7 +23,7 @@ func TestCacheGet_noIndex(t *testing.T) {
 	typ := TestType(t)
 	defer typ.AssertExpectations(t)
 	c := TestCache(t)
-	c.RegisterType("t", typ, nil)
+	c.RegisterType("t", typ)
 
 	// Configure the type
 	typ.Static(FetchResult{Value: 42}, nil).Times(1)
@@ -56,7 +56,7 @@ func TestCacheGet_initError(t *testing.T) {
 	typ := TestType(t)
 	defer typ.AssertExpectations(t)
 	c := TestCache(t)
-	c.RegisterType("t", typ, nil)
+	c.RegisterType("t", typ)
 
 	// Configure the type
 	fetcherr := fmt.Errorf("error")
@@ -91,7 +91,7 @@ func TestCacheGet_cachedErrorsDontStick(t *testing.T) {
 	typ := TestType(t)
 	defer typ.AssertExpectations(t)
 	c := TestCache(t)
-	c.RegisterType("t", typ, nil)
+	c.RegisterType("t", typ)
 
 	// Configure the type
 	fetcherr := fmt.Errorf("initial error")
@@ -152,7 +152,7 @@ func TestCacheGet_blankCacheKey(t *testing.T) {
 	typ := TestType(t)
 	defer typ.AssertExpectations(t)
 	c := TestCache(t)
-	c.RegisterType("t", typ, nil)
+	c.RegisterType("t", typ)
 
 	// Configure the type
 	typ.Static(FetchResult{Value: 42}, nil).Times(2)
@@ -183,7 +183,7 @@ func TestCacheGet_blockingInitSameKey(t *testing.T) {
 	typ := TestType(t)
 	defer typ.AssertExpectations(t)
 	c := TestCache(t)
-	c.RegisterType("t", typ, nil)
+	c.RegisterType("t", typ)
 
 	// Configure the type
 	triggerCh := make(chan time.Time)
@@ -220,7 +220,7 @@ func TestCacheGet_blockingInitDiffKeys(t *testing.T) {
 	typ := TestType(t)
 	defer typ.AssertExpectations(t)
 	c := TestCache(t)
-	c.RegisterType("t", typ, nil)
+	c.RegisterType("t", typ)
 
 	// Keep track of the keys
 	var keysLock sync.Mutex
@@ -270,7 +270,7 @@ func TestCacheGet_blockingIndex(t *testing.T) {
 	typ := TestType(t)
 	defer typ.AssertExpectations(t)
 	c := TestCache(t)
-	c.RegisterType("t", typ, nil)
+	c.RegisterType("t", typ)
 
 	// Configure the type
 	triggerCh := make(chan time.Time)
@@ -304,7 +304,7 @@ func TestCacheGet_blockingIndexTimeout(t *testing.T) {
 	typ := TestType(t)
 	defer typ.AssertExpectations(t)
 	c := TestCache(t)
-	c.RegisterType("t", typ, nil)
+	c.RegisterType("t", typ)
 
 	// Configure the type
 	triggerCh := make(chan time.Time)
@@ -340,7 +340,7 @@ func TestCacheGet_blockingIndexError(t *testing.T) {
 	typ := TestType(t)
 	defer typ.AssertExpectations(t)
 	c := TestCache(t)
-	c.RegisterType("t", typ, nil)
+	c.RegisterType("t", typ)
 
 	// Configure the type
 	var retries uint32
@@ -377,7 +377,7 @@ func TestCacheGet_emptyFetchResult(t *testing.T) {
 	typ := TestType(t)
 	defer typ.AssertExpectations(t)
 	c := TestCache(t)
-	c.RegisterType("t", typ, nil)
+	c.RegisterType("t", typ)
 
 	stateCh := make(chan int, 1)
 
@@ -440,14 +440,15 @@ func TestCacheGet_emptyFetchResult(t *testing.T) {
 func TestCacheGet_periodicRefresh(t *testing.T) {
 	t.Parallel()
 
-	typ := TestType(t)
-	defer typ.AssertExpectations(t)
-	c := TestCache(t)
-	c.RegisterType("t", typ, &RegisterOptions{
+	typ := &MockType{}
+	typ.On("RegisterOptions").Return(RegisterOptions{
 		Refresh:        true,
 		RefreshTimer:   100 * time.Millisecond,
 		RefreshTimeout: 5 * time.Minute,
 	})
+	defer typ.AssertExpectations(t)
+	c := TestCache(t)
+	c.RegisterType("t", typ)
 
 	// This is a bit weird, but we do this to ensure that the final
 	// call to the Fetch (if it happens, depends on timing) just blocks.
@@ -479,14 +480,15 @@ func TestCacheGet_periodicRefresh(t *testing.T) {
 func TestCacheGet_periodicRefreshMultiple(t *testing.T) {
 	t.Parallel()
 
-	typ := TestType(t)
-	defer typ.AssertExpectations(t)
-	c := TestCache(t)
-	c.RegisterType("t", typ, &RegisterOptions{
+	typ := &MockType{}
+	typ.On("RegisterOptions").Return(RegisterOptions{
 		Refresh:        true,
 		RefreshTimer:   0 * time.Millisecond,
 		RefreshTimeout: 5 * time.Minute,
 	})
+	defer typ.AssertExpectations(t)
+	c := TestCache(t)
+	c.RegisterType("t", typ)
 
 	// This is a bit weird, but we do this to ensure that the final
 	// call to the Fetch (if it happens, depends on timing) just blocks.
@@ -527,14 +529,15 @@ func TestCacheGet_periodicRefreshMultiple(t *testing.T) {
 func TestCacheGet_periodicRefreshErrorBackoff(t *testing.T) {
 	t.Parallel()
 
-	typ := TestType(t)
-	defer typ.AssertExpectations(t)
-	c := TestCache(t)
-	c.RegisterType("t", typ, &RegisterOptions{
+	typ := &MockType{}
+	typ.On("RegisterOptions").Return(RegisterOptions{
 		Refresh:        true,
 		RefreshTimer:   0,
 		RefreshTimeout: 5 * time.Minute,
 	})
+	defer typ.AssertExpectations(t)
+	c := TestCache(t)
+	c.RegisterType("t", typ)
 
 	// Configure the type
 	var retries uint32
@@ -568,14 +571,15 @@ func TestCacheGet_periodicRefreshErrorBackoff(t *testing.T) {
 func TestCacheGet_periodicRefreshBadRPCZeroIndexErrorBackoff(t *testing.T) {
 	t.Parallel()
 
-	typ := TestType(t)
-	defer typ.AssertExpectations(t)
-	c := TestCache(t)
-	c.RegisterType("t", typ, &RegisterOptions{
+	typ := &MockType{}
+	typ.On("RegisterOptions").Return(RegisterOptions{
 		Refresh:        true,
 		RefreshTimer:   0,
 		RefreshTimeout: 5 * time.Minute,
 	})
+	defer typ.AssertExpectations(t)
+	c := TestCache(t)
+	c.RegisterType("t", typ)
 
 	// Configure the type
 	var retries uint32
@@ -611,14 +615,16 @@ func TestCacheGet_periodicRefreshBadRPCZeroIndexErrorBackoff(t *testing.T) {
 func TestCacheGet_noIndexSetsOne(t *testing.T) {
 	t.Parallel()
 
-	typ := TestType(t)
+	typ := &MockType{}
+	typ.On("RegisterOptions").Return(RegisterOptions{
+		SupportsBlocking: true,
+		Refresh:          true,
+		RefreshTimer:     0,
+		RefreshTimeout:   5 * time.Minute,
+	})
 	defer typ.AssertExpectations(t)
 	c := TestCache(t)
-	c.RegisterType("t", typ, &RegisterOptions{
-		Refresh:        true,
-		RefreshTimer:   0,
-		RefreshTimeout: 5 * time.Minute,
-	})
+	c.RegisterType("t", typ)
 
 	// Simulate "well behaved" RPC with no data yet but returning 1
 	{
@@ -671,15 +677,17 @@ func TestCacheGet_fetchTimeout(t *testing.T) {
 
 	require := require.New(t)
 
-	typ := TestType(t)
+	typ := &MockType{}
+	timeout := 10 * time.Minute
+	typ.On("RegisterOptions").Return(RegisterOptions{
+		RefreshTimeout:   timeout,
+		SupportsBlocking: true,
+	})
 	defer typ.AssertExpectations(t)
 	c := TestCache(t)
 
 	// Register the type with a timeout
-	timeout := 10 * time.Minute
-	c.RegisterType("t", typ, &RegisterOptions{
-		RefreshTimeout: timeout,
-	})
+	c.RegisterType("t", typ)
 
 	// Configure the type
 	var actual time.Duration
@@ -705,14 +713,15 @@ func TestCacheGet_expire(t *testing.T) {
 
 	require := require.New(t)
 
-	typ := TestType(t)
+	typ := &MockType{}
+	typ.On("RegisterOptions").Return(RegisterOptions{
+		LastGetTTL: 400 * time.Millisecond,
+	})
 	defer typ.AssertExpectations(t)
 	c := TestCache(t)
 
 	// Register the type with a timeout
-	c.RegisterType("t", typ, &RegisterOptions{
-		LastGetTTL: 400 * time.Millisecond,
-	})
+	c.RegisterType("t", typ)
 
 	// Configure the type
 	typ.Static(FetchResult{Value: 42}, nil).Times(2)
@@ -760,14 +769,15 @@ func TestCacheGet_expireResetGet(t *testing.T) {
 
 	require := require.New(t)
 
-	typ := TestType(t)
+	typ := &MockType{}
+	typ.On("RegisterOptions").Return(RegisterOptions{
+		LastGetTTL: 150 * time.Millisecond,
+	})
 	defer typ.AssertExpectations(t)
 	c := TestCache(t)
 
 	// Register the type with a timeout
-	c.RegisterType("t", typ, &RegisterOptions{
-		LastGetTTL: 150 * time.Millisecond,
-	})
+	c.RegisterType("t", typ)
 
 	// Configure the type
 	typ.Static(FetchResult{Value: 42}, nil).Times(2)
@@ -821,8 +831,8 @@ func TestCacheGet_duplicateKeyDifferentType(t *testing.T) {
 	defer typ2.AssertExpectations(t)
 
 	c := TestCache(t)
-	c.RegisterType("t", typ, nil)
-	c.RegisterType("t2", typ2, nil)
+	c.RegisterType("t", typ)
+	c.RegisterType("t2", typ2)
 
 	// Configure the types
 	typ.Static(FetchResult{Value: 100}, nil)
@@ -863,7 +873,7 @@ func TestCacheGet_partitionDC(t *testing.T) {
 	t.Parallel()
 
 	c := TestCache(t)
-	c.RegisterType("t", &testPartitionType{}, nil)
+	c.RegisterType("t", &testPartitionType{})
 
 	// Perform multiple gets
 	getCh1 := TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{
@@ -882,7 +892,7 @@ func TestCacheGet_partitionToken(t *testing.T) {
 	t.Parallel()
 
 	c := TestCache(t)
-	c.RegisterType("t", &testPartitionType{}, nil)
+	c.RegisterType("t", &testPartitionType{})
 
 	// Perform multiple gets
 	getCh1 := TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{
@@ -907,8 +917,10 @@ func (t *testPartitionType) Fetch(opts FetchOptions, r Request) (FetchResult, er
 	}, nil
 }
 
-func (t *testPartitionType) SupportsBlocking() bool {
-	return true
+func (t *testPartitionType) RegisterOptions() RegisterOptions {
+	return RegisterOptions{
+		SupportsBlocking: true,
+	}
 }
 
 // Test that background refreshing reports correct Age in failure and happy
@@ -918,14 +930,15 @@ func TestCacheGet_refreshAge(t *testing.T) {
 
 	require := require.New(t)
 
-	typ := TestType(t)
-	defer typ.AssertExpectations(t)
-	c := TestCache(t)
-	c.RegisterType("t", typ, &RegisterOptions{
+	typ := &MockType{}
+	typ.On("RegisterOptions").Return(RegisterOptions{
 		Refresh:        true,
 		RefreshTimer:   0,
 		RefreshTimeout: 5 * time.Minute,
 	})
+	defer typ.AssertExpectations(t)
+	c := TestCache(t)
+	c.RegisterType("t", typ)
 
 	// Configure the type
 	var index, shouldFail uint64
@@ -1035,13 +1048,14 @@ func TestCacheGet_nonRefreshAge(t *testing.T) {
 
 	require := require.New(t)
 
-	typ := TestType(t)
-	defer typ.AssertExpectations(t)
-	c := TestCache(t)
-	c.RegisterType("t", typ, &RegisterOptions{
+	typ := &MockType{}
+	typ.On("RegisterOptions").Return(RegisterOptions{
 		Refresh:    false,
 		LastGetTTL: 100 * time.Millisecond,
 	})
+	defer typ.AssertExpectations(t)
+	c := TestCache(t)
+	c.RegisterType("t", typ)
 
 	// Configure the type
 	var index uint64
@@ -1121,7 +1135,7 @@ func TestCacheGet_nonBlockingType(t *testing.T) {
 
 	typ := TestTypeNonBlocking(t)
 	c := TestCache(t)
-	c.RegisterType("t", typ, nil)
+	c.RegisterType("t", typ)
 
 	// Configure the type
 	typ.Static(FetchResult{Value: 42, Index: 1}, nil).Once()

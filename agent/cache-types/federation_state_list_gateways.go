@@ -12,6 +12,7 @@ const FederationStateListMeshGatewaysName = "federation-state-list-mesh-gateways
 
 // FederationState supports fetching federation states.
 type FederationStateListMeshGateways struct {
+	RegisterOptionsBlockingRefresh
 	RPC RPC
 }
 
@@ -48,8 +49,4 @@ func (c *FederationStateListMeshGateways) Fetch(opts cache.FetchOptions, req cac
 	result.Value = &reply
 	result.Index = reply.QueryMeta.Index
 	return result, nil
-}
-
-func (c *FederationStateListMeshGateways) SupportsBlocking() bool {
-	return true
 }

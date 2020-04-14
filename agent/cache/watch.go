@@ -64,7 +64,7 @@ func (c *Cache) Notify(
 		return fmt.Errorf("unknown type in cache: %s", t)
 	}
 
-	if tEntry.Type.SupportsBlocking() {
+	if tEntry.Opts.SupportsBlocking {
 		go c.notifyBlockingQuery(ctx, tEntry, r, correlationID, ch)
 		return nil
 	}

@@ -12,6 +12,7 @@ const InternalServiceDumpName = "service-dump"
 
 // InternalServiceDump supports fetching discovering service names via the catalog.
 type InternalServiceDump struct {
+	RegisterOptionsBlockingRefresh
 	RPC RPC
 }
 
@@ -48,8 +49,4 @@ func (c *InternalServiceDump) Fetch(opts cache.FetchOptions, req cache.Request) 
 	result.Value = &reply
 	result.Index = reply.QueryMeta.Index
 	return result, nil
-}
-
-func (c *InternalServiceDump) SupportsBlocking() bool {
-	return true
 }
