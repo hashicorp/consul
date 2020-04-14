@@ -115,6 +115,10 @@ func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.AC
 		return err
 	}
 
+	if err := a.srv.aclBootstrapAllowed(); err != nil {
+		return err
+	}
+
 	// Verify we are allowed to serve this request
 	if !a.srv.InACLDatacenter() {
 		return acl.ErrDisabled
