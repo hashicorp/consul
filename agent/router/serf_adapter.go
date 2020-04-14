@@ -61,6 +61,7 @@ func HandleSerfEvents(logger *log.Logger, router *Router, areaID types.AreaID, s
 
 			// All of these event types are ignored.
 			case serf.EventMemberUpdate:
+				handleMemberEvent(logger, router.AddServer, areaID, e)
 			case serf.EventUser:
 			case serf.EventQuery:
 

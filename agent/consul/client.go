@@ -433,3 +433,10 @@ func (c *Client) ReloadConfig(config *Config) error {
 	c.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
 	return nil
 }
+
+// updateSerfTags is a helper function to propagate a key, value tag to
+// all the necessary Serf instances managed by the Client.
+func (c *Client) updateSerfTags(key, value string) {
+	// Update the LAN serf
+	lib.UpdateSerfTag(c.serf, key, value)
+}

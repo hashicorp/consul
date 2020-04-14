@@ -5,10 +5,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/serf/serf"
 )
 
 var clientACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
@@ -36,22 +33,11 @@ func (c *Client) UseLegacyACLs() bool {
 func (c *Client) monitorACLMode() {
 	waitTime := aclModeCheckMinInterval
 	for {
-		canUpgrade := false
-		for _, member := range c.LANMembers() {
-			if valid, parts := metadata.IsConsulServer(member); valid && parts.Status == serf.StatusAlive {
-				if parts.ACLs != structs.ACLModeEnabled {
-					canUpgrade = false
-					break
-				} else {
-					canUpgrade = true
-				}
-			}
-		}
-
-		if canUpgrade {
-			c.logger.Printf("[DEBUG] acl: transition out of legacy ACL mode")
+		foundServers, mode, _ := ServersGetACLMode(c, "", c.config.Datacenter)
+		if foundServers && mode == structs.ACLModeEnabled {
+			c.logger.Printf("[DEBUG] consul: transitioned out of legacy ACL mode")
+			c.updateSerfTags("acls", string(structs.ACLModeEnabled))
 			atomic.StoreInt32(&c.useNewACLs, 1)
-			lib.UpdateSerfTag(c.serf, "acls", string(structs.ACLModeEnabled))
 			return
 		}
 

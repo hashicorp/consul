@@ -144,6 +144,7 @@ func (s *Server) lanEventHandler() {
 			case serf.EventUser:
 				s.localEvent(e.(serf.UserEvent))
 			case serf.EventMemberUpdate:
+				s.lanNodeUpdate(e.(serf.MemberEvent))
 				s.localMemberEvent(e.(serf.MemberEvent))
 			case serf.EventQuery: // Ignore
 			default:
@@ -229,6 +230,19 @@ func (s *Server) lanNodeJoin(me serf.MemberEvent) {
 
 		// Kick the join flooders.
 		s.FloodNotify()
+	}
+}
+
+func (s *Server) lanNodeUpdate(me serf.MemberEvent) {
+	for _, m := range me.Members {
+		ok, serverMeta := metadata.IsConsulServer(m)
+		if !ok || serverMeta.Segment != "" {
+			continue
+		}
+		s.logger.Printf("[INFO] consul: Updating LAN server: %s", serverMeta.String())
+
+		// Update server lookup
+		s.serverLookup.AddServer(serverMeta)
 	}
 }
 

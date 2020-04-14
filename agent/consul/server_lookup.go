@@ -63,3 +63,14 @@ func (sl *ServerLookup) Servers() []*metadata.Server {
 	}
 	return ret
 }
+
+func (sl *ServerLookup) CheckServers(fn func(srv *metadata.Server) bool) {
+	sl.lock.RLock()
+	defer sl.lock.RUnlock()
+
+	for _, srv := range sl.addressToServer {
+		if !fn(srv) {
+			return
+		}
+	}
+}

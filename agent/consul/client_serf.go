@@ -74,7 +74,8 @@ func (c *Client) lanEventHandler() {
 				c.nodeFail(e.(serf.MemberEvent))
 			case serf.EventUser:
 				c.localEvent(e.(serf.UserEvent))
-			case serf.EventMemberUpdate: // Ignore
+			case serf.EventMemberUpdate:
+				c.nodeUpdate(e.(serf.MemberEvent))
 			case serf.EventQuery: // Ignore
 			default:
 				c.logger.Printf("[WARN] consul: unhandled LAN Serf Event: %#v", e)
@@ -104,6 +105,22 @@ func (c *Client) nodeJoin(me serf.MemberEvent) {
 		if c.config.ServerUp != nil {
 			c.config.ServerUp()
 		}
+	}
+}
+
+// nodeUpdate is used to handle update events on the serf cluster
+func (c *Client) nodeUpdate(me serf.MemberEvent) {
+	for _, m := range me.Members {
+		ok, parts := metadata.IsConsulServer(m)
+		if !ok {
+			continue
+		}
+		if parts.Datacenter != c.config.Datacenter {
+			c.logger.Printf("[WARN] consul: server %s for datacenter %s has joined the wrong cluster", m.Name, parts.Datacenter)
+			continue
+		}
+		c.logger.Printf("[INFO] consul: updating server %s", parts.String())
+		c.routers.AddServer(parts)
 	}
 }
 
