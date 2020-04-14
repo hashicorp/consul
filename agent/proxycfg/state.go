@@ -891,8 +891,8 @@ func (s *state) handleUpdateTerminatingGateway(u cache.UpdateEvent, snap *Config
 	}
 	logger := s.logger.Named(logging.TerminatingGateway)
 
-	switch u.CorrelationID {
-	case rootsWatchID:
+	switch {
+	case u.CorrelationID == rootsWatchID:
 		roots, ok := u.Result.(*structs.IndexedCARoots)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
@@ -900,7 +900,7 @@ func (s *state) handleUpdateTerminatingGateway(u cache.UpdateEvent, snap *Config
 		snap.Roots = roots
 
 	// Update watches based on the current list of services associated with the terminating-gateway
-	case gatewayServicesWatchID:
+	case u.CorrelationID == gatewayServicesWatchID:
 		services, ok := u.Result.(*structs.IndexedGatewayServices)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
@@ -1052,51 +1052,47 @@ func (s *state) handleUpdateTerminatingGateway(u cache.UpdateEvent, snap *Config
 			}
 		}
 
-	default:
-		switch {
-		// Store service instances for watched service
-		case strings.HasPrefix(u.CorrelationID, "external-service:"):
-			resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
-			if !ok {
-				return fmt.Errorf("invalid type for response: %T", u.Result)
-			}
-
-			sid := structs.ServiceIDFromString(strings.TrimPrefix(u.CorrelationID, "external-service:"))
-
-			if len(resp.Nodes) > 0 {
-				snap.TerminatingGateway.ServiceGroups[sid] = resp.Nodes
-			} else if _, ok := snap.TerminatingGateway.ServiceGroups[sid]; ok {
-				delete(snap.TerminatingGateway.ServiceGroups, sid)
-			}
-
-		// Store leaf cert for watched service
-		case strings.HasPrefix(u.CorrelationID, "service-leaf:"):
-			leaf, ok := u.Result.(*structs.IssuedCert)
-			if !ok {
-				return fmt.Errorf("invalid type for response: %T", u.Result)
-			}
-
-			sid := structs.ServiceIDFromString(strings.TrimPrefix(u.CorrelationID, "service-leaf:"))
-			snap.TerminatingGateway.ServiceLeaves[sid] = leaf
-
-		case strings.HasPrefix(u.CorrelationID, "service-resolver:"):
-			configEntries, ok := u.Result.(*structs.IndexedConfigEntries)
-			if !ok {
-				return fmt.Errorf("invalid type for response: %T", u.Result)
-			}
-			// There should only ever be one entry for a service resolver within a namespace
-			if len(configEntries.Entries) == 1 {
-				if resolver, ok := configEntries.Entries[0].(*structs.ServiceResolverConfigEntry); ok {
-					snap.TerminatingGateway.ServiceResolvers[structs.NewServiceID(resolver.Name, &resolver.EnterpriseMeta)] = resolver
-				}
-			}
-
-		case strings.HasPrefix(u.CorrelationID, "service-intentions:"):
-			// no-op: Intentions don't get stored in the snapshot, calls to ConnectAuthorize will fetch them from the cache
-
-		default:
-			// do nothing
+	case strings.HasPrefix(u.CorrelationID, "external-service:"):
+		resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
+
+		sid := structs.ServiceIDFromString(strings.TrimPrefix(u.CorrelationID, "external-service:"))
+
+		if len(resp.Nodes) > 0 {
+			snap.TerminatingGateway.ServiceGroups[sid] = resp.Nodes
+		} else if _, ok := snap.TerminatingGateway.ServiceGroups[sid]; ok {
+			delete(snap.TerminatingGateway.ServiceGroups, sid)
+		}
+
+	// Store leaf cert for watched service
+	case strings.HasPrefix(u.CorrelationID, "service-leaf:"):
+		leaf, ok := u.Result.(*structs.IssuedCert)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+
+		sid := structs.ServiceIDFromString(strings.TrimPrefix(u.CorrelationID, "service-leaf:"))
+		snap.TerminatingGateway.ServiceLeaves[sid] = leaf
+
+	case strings.HasPrefix(u.CorrelationID, "service-resolver:"):
+		configEntries, ok := u.Result.(*structs.IndexedConfigEntries)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+		// There should only ever be one entry for a service resolver within a namespace
+		if len(configEntries.Entries) == 1 {
+			if resolver, ok := configEntries.Entries[0].(*structs.ServiceResolverConfigEntry); ok {
+				snap.TerminatingGateway.ServiceResolvers[structs.NewServiceID(resolver.Name, &resolver.EnterpriseMeta)] = resolver
+			}
+		}
+
+	case strings.HasPrefix(u.CorrelationID, "service-intentions:"):
+		// no-op: Intentions don't get stored in the snapshot, calls to ConnectAuthorize will fetch them from the cache
+
+	default:
+		// do nothing
 	}
 
 	return nil
