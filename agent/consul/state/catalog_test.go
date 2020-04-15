@@ -4691,7 +4691,7 @@ func TestStateStore_CheckIngressServiceNodes(t *testing.T) {
 	ws := setupIngressState(t, s)
 	require := require.New(t)
 
-	{
+	t.Run("check service1 ingress gateway", func(t *testing.T) {
 		idx, results, err := s.CheckIngressServiceNodes(ws, "service1", nil)
 		require.NoError(err)
 		require.Equal(uint64(13), idx)
@@ -4708,9 +4708,9 @@ func TestStateStore_CheckIngressServiceNodes(t *testing.T) {
 			"wildcardIngress": struct{}{},
 		}
 		require.Equal(expectedIds, ids)
-	}
+	})
 
-	{
+	t.Run("check service2 ingress gateway", func(t *testing.T) {
 		idx, results, err := s.CheckIngressServiceNodes(ws, "service2", nil)
 		require.NoError(err)
 		require.Equal(uint64(12), idx)
@@ -4725,18 +4725,17 @@ func TestStateStore_CheckIngressServiceNodes(t *testing.T) {
 			"wildcardIngress": struct{}{},
 		}
 		require.Equal(expectedIds, ids)
-	}
+	})
 
-	{
+	t.Run("check service3 ingress gateway", func(t *testing.T) {
 		idx, results, err := s.CheckIngressServiceNodes(ws, "service3", nil)
 		require.NoError(err)
 		require.Equal(uint64(11), idx)
 		require.Len(results, 1)
 		require.Equal("wildcardIngress", results[0].Service.ID)
-	}
+	})
 
-	// Delete a wildcard config
-	{
+	t.Run("delete a wildcard entry", func(t *testing.T) {
 		require.Nil(s.DeleteConfigEntry(19, "ingress-gateway", "wildcardIngress", nil))
 		require.True(watchFired(ws))
 		idx, results, err := s.CheckIngressServiceNodes(ws, "service1", nil)
@@ -4755,7 +4754,7 @@ func TestStateStore_CheckIngressServiceNodes(t *testing.T) {
 		// TODO(ingress): index goes backward when deleting last config entry
 		// require.Equal(uint64(11), idx)
 		require.Len(results, 0)
-	}
+	})
 }
 
 func TestStateStore_GatewayServices_Ingress(t *testing.T) {
@@ -4763,10 +4762,10 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 	ws := setupIngressState(t, s)
 	require := require.New(t)
 
-	{
+	t.Run("ingress1 gateway services", func(t *testing.T) {
 		idx, results, err := s.GatewayServices(ws, "ingress1", nil)
 		require.NoError(err)
-		require.Equal(uint64(13), idx)
+		require.Equal(uint64(14), idx)
 		require.Len(results, 2)
 		require.Equal("ingress1", results[0].Gateway.ID)
 		require.Equal("service1", results[0].Service.ID)
@@ -4774,29 +4773,29 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 		require.Equal("ingress1", results[1].Gateway.ID)
 		require.Equal("service2", results[1].Service.ID)
 		require.Equal(2222, results[1].Port)
-	}
+	})
 
-	{
+	t.Run("ingress2 gateway services", func(t *testing.T) {
 		idx, results, err := s.GatewayServices(ws, "ingress2", nil)
 		require.NoError(err)
-		require.Equal(uint64(13), idx)
+		require.Equal(uint64(14), idx)
 		require.Len(results, 1)
 		require.Equal("ingress2", results[0].Gateway.ID)
 		require.Equal("service1", results[0].Service.ID)
 		require.Equal(3333, results[0].Port)
-	}
+	})
 
-	{
+	t.Run("No gatway services associated", func(t *testing.T) {
 		idx, results, err := s.GatewayServices(ws, "nothingIngress", nil)
 		require.NoError(err)
-		require.Equal(uint64(13), idx)
+		require.Equal(uint64(14), idx)
 		require.Len(results, 0)
-	}
+	})
 
-	{
+	t.Run("wildcard gateway services", func(t *testing.T) {
 		idx, results, err := s.GatewayServices(ws, "wildcardIngress", nil)
 		require.NoError(err)
-		require.Equal(uint64(13), idx)
+		require.Equal(uint64(14), idx)
 		require.Len(results, 3)
 		require.Equal("wildcardIngress", results[0].Gateway.ID)
 		require.Equal("service1", results[0].Service.ID)
@@ -4807,33 +4806,58 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 		require.Equal("wildcardIngress", results[2].Gateway.ID)
 		require.Equal("service3", results[2].Service.ID)
 		require.Equal(4444, results[2].Port)
-	}
+	})
 
-	// Delete a service covered by wildcard
-	{
+	t.Run("deregistering a service", func(t *testing.T) {
 		require.Nil(s.DeleteService(18, "node1", "service1", nil))
 		require.True(watchFired(ws))
 		idx, results, err := s.GatewayServices(ws, "wildcardIngress", nil)
 		require.NoError(err)
 		require.Equal(uint64(18), idx)
 		require.Len(results, 2)
-	}
+	})
 
-	// Delete a wildcard config
-	{
+	// TODO(ingress): This test case fails right now because of a
+	// bug in DeleteService where we delete are entries associated
+	// to a service, not just an entry created by a wildcard.
+	// t.Run("check ingress2 gateway services again", func(t *testing.T) {
+	// 	idx, results, err := s.GatewayServices(ws, "ingress2", nil)
+	// 	require.NoError(err)
+	// 	require.Equal(uint64(18), idx)
+	// 	require.Len(results, 1)
+	// 	require.Equal("ingress2", results[0].Gateway.ID)
+	// 	require.Equal("service1", results[0].Service.ID)
+	// 	require.Equal(3333, results[0].Port)
+	// })
+
+	t.Run("deleting a wildcard config entry", func(t *testing.T) {
 		require.Nil(s.DeleteConfigEntry(19, "ingress-gateway", "wildcardIngress", nil))
 		require.True(watchFired(ws))
 		idx, results, err := s.GatewayServices(ws, "wildcardIngress", nil)
 		require.NoError(err)
 		require.Equal(uint64(19), idx)
 		require.Len(results, 0)
-	}
+	})
+
+	t.Run("updating a config entry with zero listeners", func(t *testing.T) {
+		ingress1 := &structs.IngressGatewayConfigEntry{
+			Kind:      "ingress-gateway",
+			Name:      "ingress1",
+			Listeners: []structs.IngressListener{},
+		}
+		require.Nil(s.EnsureConfigEntry(20, ingress1, nil))
+		require.True(watchFired(ws))
+		idx, results, err := s.GatewayServices(ws, "ingress1", nil)
+		require.NoError(err)
+		require.Equal(uint64(20), idx)
+		require.Len(results, 0)
+	})
 }
 
 func setupIngressState(t *testing.T, s *Store) memdb.WatchSet {
 	// Querying with no matches gives an empty response
 	ws := memdb.NewWatchSet()
-	idx, res, err := s.GatewayServices(ws, "service1", nil)
+	idx, res, err := s.GatewayServices(ws, "ingress1", nil)
 	if idx != 0 || res != nil || err != nil {
 		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
 	}

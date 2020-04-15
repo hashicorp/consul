@@ -2424,9 +2424,11 @@ func (s *Store) updateGatewayServices(tx *memdb.Txn, idx uint64, conf structs.Co
 		gatewayServices, err = s.ingressConfigGatewayServices(tx, gatewayID, conf, entMeta)
 	case structs.TerminatingGateway:
 		gatewayServices, err = s.terminatingConfigGatewayServices(tx, gatewayID, conf, entMeta)
+	default:
+		return fmt.Errorf("config entry kind %q does not need gateway-services", conf.GetKind())
 	}
 	// Return early if there is an error OR we don't have any services to update
-	if err != nil || len(gatewayServices) == 0 {
+	if err != nil {
 		return err
 	}
 
