@@ -20,6 +20,16 @@
 %app-view-header dt {
   font-weight: bold;
 }
+%app-view-header .title-bar {
+  display: flex;
+  align-items: center;
+}
+%app-view-header .title-bar > h1 {
+  border: 0;
+}
+%app-view-header .title-bar > span {
+  margin-left: 8px;
+}
 /* units */
 %app-view {
   margin-top: 50px;
