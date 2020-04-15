@@ -512,14 +512,13 @@ func (d *DNSServer) addSOA(cfg *dnsConfig, msg *dns.Msg) {
 // in the current cluster which serve as authoritative name servers for zone.
 
 func (d *DNSServer) nameservers(cfg *dnsConfig, maxRecursionLevel int) (ns []dns.RR, extra []dns.RR) {
-	lookup := serviceLookup{
+	out, err := d.lookupServiceNodes(cfg, serviceLookup{
 		Datacenter:     d.agent.config.Datacenter,
 		Service:        structs.ConsulServiceName,
 		Connect:        false,
 		Ingress:        false,
 		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
-	}
-	out, err := d.lookupServiceNodes(cfg, lookup)
+	})
 	if err != nil {
 		d.logger.Warn("Unable to get list of servers", "error", err)
 		return nil, nil
