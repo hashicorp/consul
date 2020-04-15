@@ -9,19 +9,20 @@ export default function(config = {}, win = window, doc = document) {
     const item = win.localStorage.getItem(str);
     return item === null ? undefined : item;
   };
-  const getCurrentResource = function(scripts) {
-    const current = scripts[scripts.length - 1];
+  const getResourceFor = function(src) {
     try {
-      return win.performance.getEntriesByType('resource').find(item => {
-        // current is based on the assumption that whereever this script is it's
-        // likely to be the same as the xmlhttprequests
-        return item.initiatorType === 'script' && current.src === item.name;
-      });
+      return (
+        win.performance.getEntriesByType('resource').find(item => {
+          return item.initiatorType === 'script' && src === item.name;
+        }) || {}
+      );
     } catch (e) {
       return {};
     }
   };
-  const resource = getCurrentResource(doc.getElementsByTagName('script'));
+  const scripts = doc.getElementsByTagName('script');
+  const currentSrc = scripts[scripts.length - 1].src;
+  let resource;
 
   // TODO: Look to see if we can pull in HTTP headers here
   // so we can let things be controlled via HTTP proxies, for example
@@ -30,6 +31,16 @@ export default function(config = {}, win = window, doc = document) {
     let protocol;
     switch (str) {
       case 'CONSUL_HTTP_PROTOCOL':
+        if (typeof resource === 'undefined') {
+          // resource needs to be retrieved lazily as entries aren't guaranteed
+          // to be available at script execution time (caching seems to affect this)
+          // waiting until we retrieve this value lazily at runtime means that
+          // the entries are always available as these values are only retrieved
+          // after initialization
+          // current is based on the assumption that whereever this script is it's
+          // likely to be the same as the xmlhttprequests
+          resource = getResourceFor(currentSrc);
+        }
         return resource.nextHopProtocol || 'http/1.1';
       case 'CONSUL_HTTP_MAX_CONNECTIONS':
         protocol = env('CONSUL_HTTP_PROTOCOL');
