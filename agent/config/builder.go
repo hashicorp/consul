@@ -987,6 +987,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		VerifyOutgoing:                         verifyOutgoing,
 		VerifyServerHostname:                   verifyServerName,
 		Watches:                                c.Watches,
+		ConsulReloadTriggersWatch:              b.stringValWithDefault(c.FireWatchesOnCreate, "yes"),
 	}
 
 	if entCfg, err := b.BuildEnterpriseRuntimeConfig(&c); err != nil {

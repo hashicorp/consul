@@ -359,12 +359,7 @@ func (a *Agent) Metrics() (*MetricsInfo, error) {
 // Reload triggers a configuration reload for the agent we are connected to.
 func (a *Agent) Reload() error {
 	r := a.c.newRequest("PUT", "/v1/agent/reload")
-	fmt.Println("before calling dorequest api/agent.go")
 	_, resp, err := requireOK(a.c.doRequest(r))
-	// _, resp, err := a.c.doRequest(r) ???
-
-	fmt.Println("after calling dorequest api/agent.go")
-
 	if err != nil {
 		return err
 	}

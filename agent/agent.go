@@ -1063,8 +1063,8 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 			}
 		}
 
-		if cfg.ConsulReloadCommandTriggered {
-			params["consulReloadTriggered"] = true
+		if cfg.ConsulReloadTriggersWatch == "yes" {
+			params["ConsulReloadTriggersWatch"] = true
 		}
 
 		// Parse the watches, excluding 'handler' and 'args'

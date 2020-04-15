@@ -63,6 +63,7 @@ func AddFlags(fs *flag.FlagSet, f *Flags) {
 	add(&f.Config.CheckOutputMaxSize, "check_output_max_size", "Sets the maximum output size for checks on this agent")
 	add(&f.ConfigFiles, "config-dir", "Path to a directory to read configuration files from. This will read every file ending in '.json' as configuration in this directory in alphabetical order. Can be specified multiple times.")
 	add(&f.ConfigFiles, "config-file", "Path to a file in JSON or HCL format with a matching file extension. Can be specified multiple times.")
+	add(&f.Config.FireWatchesOnCreate, "fire-on-create", "Fire watches on creation.")
 	add(&f.ConfigFormat, "config-format", "Config files are in this format irrespective of their extension. Must be 'hcl' or 'json'")
 	add(&f.Config.DataDir, "data-dir", "Path to a data directory to store agent state.")
 	add(&f.Config.Datacenter, "datacenter", "Datacenter of the agent.")

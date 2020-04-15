@@ -18,13 +18,12 @@ const DefaultTimeout = 10 * time.Second
 // This view is watched for changes and a handler is invoked to take any
 // appropriate actions.
 type Plan struct {
-	Datacenter            string
-	Token                 string
-	Type                  string
-	HandlerType           string
-	FireOnCreate          string
-	ConsulReloadTriggered bool
-	Exempt                map[string]interface{}
+	Datacenter                string
+	Token                     string
+	Type                      string
+	HandlerType               string
+	ConsulReloadTriggersWatch bool
+	Exempt                    map[string]interface{}
 
 	Watcher WatcherFunc
 	// Handler is kept for backward compatibility but only supports watches based
@@ -159,9 +158,6 @@ func ParseExempt(params map[string]interface{}, exempt []string) (*Plan, error) 
 	if err := assignValue(params, "handler_type", &plan.HandlerType); err != nil {
 		return nil, err
 	}
-	if err := assignValue(params, "fireOnCreate", &plan.FireOnCreate); err != nil {
-		return nil, err
-	}
 	switch plan.HandlerType {
 	case "http":
 		if _, ok := params["http_handler_config"]; !ok {
@@ -177,7 +173,7 @@ func ParseExempt(params map[string]interface{}, exempt []string) (*Plan, error) 
 	case "script":
 		// Let the caller check for configuration in exempt parameters
 	}
-	if err := assignValueBool(params, "consulReloadTriggered", &plan.ConsulReloadTriggered); err != nil {
+	if err := assignValueBool(params, "ConsulReloadTriggersWatch", &plan.ConsulReloadTriggersWatch); err != nil {
 		return nil, err
 	}
 
