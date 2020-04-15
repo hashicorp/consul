@@ -1702,19 +1702,21 @@ func TestDNS_IngressServiceLookup(t *testing.T) {
 		"db.ingress.dc1.consul.",
 	}
 	for _, question := range questions {
-		m := new(dns.Msg)
-		m.SetQuestion(question, dns.TypeA)
+		t.Run(question, func(t *testing.T) {
+			m := new(dns.Msg)
+			m.SetQuestion(question, dns.TypeA)
 
-		c := new(dns.Client)
-		in, _, err := c.Exchange(m, a.DNSAddr())
-		require.Nil(t, err)
-		require.Len(t, in.Answer, 1)
+			c := new(dns.Client)
+			in, _, err := c.Exchange(m, a.DNSAddr())
+			require.Nil(t, err)
+			require.Len(t, in.Answer, 1)
 
-		cnameRec, ok := in.Answer[0].(*dns.A)
-		require.True(t, ok)
-		require.Equal(t, question, cnameRec.Hdr.Name)
-		require.Equal(t, uint32(0), cnameRec.Hdr.Ttl)
-		require.Equal(t, "127.0.0.1", cnameRec.A.String())
+			cnameRec, ok := in.Answer[0].(*dns.A)
+			require.True(t, ok)
+			require.Equal(t, question, cnameRec.Hdr.Name)
+			require.Equal(t, uint32(0), cnameRec.Hdr.Ttl)
+			require.Equal(t, "127.0.0.1", cnameRec.A.String())
+		})
 	}
 }
 
