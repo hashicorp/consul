@@ -767,8 +767,7 @@ func (s *HTTPServer) AgentHealthServiceByID(resp http.ResponseWriter, req *http.
 		return nil, err
 	}
 
-	var sid structs.ServiceID
-	sid.Init(serviceID, &entMeta)
+	sid := structs.NewServiceID(serviceID, &entMeta)
 
 	if service := s.agent.State.Service(sid); service != nil {
 		if authz != nil && authz.ServiceRead(service.Service, &authzContext) != acl.Allow {
@@ -830,8 +829,7 @@ func (s *HTTPServer) AgentHealthServiceByName(resp http.ResponseWriter, req *htt
 	result := make([]api.AgentServiceChecksInfo, 0, 16)
 	for _, service := range services {
 		if service.Service == serviceName {
-			var sid structs.ServiceID
-			sid.Init(service.ID, &entMeta)
+			sid := structs.NewServiceID(service.ID, &entMeta)
 
 			scode, sstatus, healthChecks := agentHealthService(sid, s)
 			serviceInfo := buildAgentService(service)

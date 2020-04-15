@@ -2456,8 +2456,7 @@ func (a *Agent) addServiceInternal(req *addServiceRequest, snap map[structs.Chec
 			}
 		}
 
-		var cid structs.CheckID
-		cid.Init(types.CheckID(checkID), &service.EnterpriseMeta)
+		cid := structs.NewCheckID(types.CheckID(checkID), &service.EnterpriseMeta)
 		existingChecks[cid] = true
 
 		name := chkType.Name
@@ -2531,8 +2530,7 @@ func (a *Agent) addServiceInternal(req *addServiceRequest, snap map[structs.Chec
 
 	// If a proxy service wishes to expose checks, check targets need to be rerouted to the proxy listener
 	// This needs to be called after chkTypes are added to the agent, to avoid being overwritten
-	var psid structs.ServiceID
-	psid.Init(service.Proxy.DestinationServiceID, &service.EnterpriseMeta)
+	psid := structs.NewServiceID(service.Proxy.DestinationServiceID, &service.EnterpriseMeta)
 
 	if service.Proxy.Expose.Checks {
 		err := a.rerouteExposedChecks(psid, service.Address)
@@ -2740,8 +2738,7 @@ func (a *Agent) removeServiceLocked(serviceID structs.ServiceID, persist bool) e
 	svc := a.State.Service(serviceID)
 
 	if svc != nil {
-		var psid structs.ServiceID
-		psid.Init(svc.Proxy.DestinationServiceID, &svc.EnterpriseMeta)
+		psid := structs.NewServiceID(svc.Proxy.DestinationServiceID, &svc.EnterpriseMeta)
 		a.resetExposedChecks(psid)
 	}
 
@@ -2784,8 +2781,7 @@ func (a *Agent) removeServiceLocked(serviceID structs.ServiceID, persist bool) e
 }
 
 func (a *Agent) removeServiceSidecars(serviceID structs.ServiceID, persist bool) error {
-	var sidecarSID structs.ServiceID
-	sidecarSID.Init(a.sidecarServiceID(serviceID.ID), &serviceID.EnterpriseMeta)
+	sidecarSID := structs.NewServiceID(a.sidecarServiceID(serviceID.ID), &serviceID.EnterpriseMeta)
 	if sidecar := a.State.Service(sidecarSID); sidecar != nil {
 		// Double check that it's not just an ID collision and we actually added
 		// this from a sidecar.
@@ -3138,8 +3134,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				rpcReq.Token = token
 			}
 
-			var aliasServiceID structs.ServiceID
-			aliasServiceID.Init(chkType.AliasService, &check.EnterpriseMeta)
+			aliasServiceID := structs.NewServiceID(chkType.AliasService, &check.EnterpriseMeta)
 			chkImpl := &checks.CheckAlias{
 				Notify:         a.State,
 				RPC:            a.delegate,
@@ -3927,9 +3922,8 @@ func (a *Agent) unloadMetadata() {
 
 // serviceMaintCheckID returns the ID of a given service's maintenance check
 func serviceMaintCheckID(serviceID structs.ServiceID) structs.CheckID {
-	var cid structs.CheckID
-	cid.Init(types.CheckID(structs.ServiceMaintPrefix+serviceID.ID), &serviceID.EnterpriseMeta)
-	return cid
+	cid := types.CheckID(structs.ServiceMaintPrefix + serviceID.ID)
+	return structs.NewCheckID(cid, &serviceID.EnterpriseMeta)
 }
 
 // EnableServiceMaintenance will register a false health check against the given

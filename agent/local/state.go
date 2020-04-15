@@ -1224,9 +1224,8 @@ func (l *State) syncService(key structs.ServiceID) error {
 		// Given how the register API works, this info is also updated
 		// every time we sync a service.
 		l.nodeInfoInSync = true
-		var checkKey structs.CheckID
 		for _, check := range checks {
-			checkKey.Init(check.CheckID, &check.EnterpriseMeta)
+			checkKey := structs.NewCheckID(check.CheckID, &check.EnterpriseMeta)
 			l.checks[checkKey].InSync = true
 		}
 		l.logger.Info("Synced service", "service", key.String())
@@ -1236,9 +1235,8 @@ func (l *State) syncService(key structs.ServiceID) error {
 		// todo(fs): mark the service and the checks to be in sync to prevent excessive retrying before next full sync
 		// todo(fs): some backoff strategy might be a better solution
 		l.services[key].InSync = true
-		var checkKey structs.CheckID
 		for _, check := range checks {
-			checkKey.Init(check.CheckID, &check.EnterpriseMeta)
+			checkKey := structs.NewCheckID(check.CheckID, &check.EnterpriseMeta)
 			l.checks[checkKey].InSync = true
 		}
 		accessorID := l.aclAccessorID(st)
@@ -1272,8 +1270,7 @@ func (l *State) syncCheck(key structs.CheckID) error {
 		SkipNodeUpdate:  l.nodeInfoInSync,
 	}
 
-	var serviceKey structs.ServiceID
-	serviceKey.Init(c.Check.ServiceID, &key.EnterpriseMeta)
+	serviceKey := structs.NewServiceID(c.Check.ServiceID, &key.EnterpriseMeta)
 
 	// Pull in the associated service if any
 	s := l.services[serviceKey]
