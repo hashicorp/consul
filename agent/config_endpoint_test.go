@@ -280,7 +280,7 @@ func TestConfig_Apply_IngressGateway(t *testing.T) {
 		require.Len(t, out.Entries, 1)
 
 		got := out.Entries[0].(*structs.IngressGatewayConfigEntry)
-		// Ingore create and modify indices
+		// Ignore create and modify indices
 		got.CreateIndex = 0
 		got.ModifyIndex = 0
 
