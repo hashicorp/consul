@@ -215,7 +215,7 @@ func (s *Store) ensureConfigEntryTxn(tx *memdb.Txn, idx uint64, conf structs.Con
 		return err // Err is already sufficiently decorated.
 	}
 
-	// If the config entry is for terminating gateways we update the memdb table
+	// If the config entry is for a terminating or ingress gateway we update the memdb table
 	// that associates gateways <-> services.
 	if conf.GetKind() == structs.TerminatingGateway || conf.GetKind() == structs.IngressGateway {
 		err = s.updateGatewayServices(tx, idx, conf, entMeta)
@@ -283,7 +283,7 @@ func (s *Store) DeleteConfigEntry(idx uint64, kind, name string, entMeta *struct
 		return nil
 	}
 
-	// If the config entry is for terminating gateways we delete entries from the memdb table
+	// If the config entry is for terminating or ingress gateways we delete entries from the memdb table
 	// that associates gateways <-> services.
 	if kind == structs.TerminatingGateway || kind == structs.IngressGateway {
 		if _, err := tx.DeleteAll(gatewayServicesTableName, "gateway", structs.NewServiceID(name, entMeta)); err != nil {
