@@ -337,7 +337,7 @@ func (m *Internal) GatewayServices(args *structs.ServiceSpecificRequest, reply *
 			}
 
 			if !found {
-				return fmt.Errorf("service %q is not a terminating-gateway or ingress-gateway", args.ServiceName)
+				return fmt.Errorf("service %q is not a configured terminating-gateway or ingress-gateway", args.ServiceName)
 			}
 
 			index, services, err = state.GatewayServices(ws, args.ServiceName, &args.EnterpriseMeta)
