@@ -1967,15 +1967,16 @@ func (s *Store) CheckIngressServiceNodes(ws memdb.WatchSet, serviceName string, 
 		ws.Add(ch)
 	}
 
-	// De-dup service names to lookup
-	serviceNames := make(map[string]struct{})
+	// TODO(ingress): Test namespace functionality here
+	// De-dup services to lookup
+	serviceIDs := make(map[structs.ServiceID]struct{})
 	for _, n := range nodes {
-		serviceNames[n.ServiceName] = struct{}{}
+		serviceIDs[n.CompoundServiceName()] = struct{}{}
 	}
 
 	var results structs.CheckServiceNodes
-	for name := range serviceNames {
-		idx, n, err := s.checkServiceNodesTxn(tx, ws, name, false, entMeta)
+	for sid := range serviceIDs {
+		idx, n, err := s.checkServiceNodesTxn(tx, ws, sid.ID, false, &sid.EnterpriseMeta)
 		if err != nil {
 			return 0, nil, err
 		}
