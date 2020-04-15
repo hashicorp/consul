@@ -949,7 +949,7 @@ func TestInternal_GatewayServices_BothGateways(t *testing.T) {
 	var resp structs.IndexedGatewayServices
 	err := msgpackrpc.CallWithCodec(codec, "Internal.GatewayServices", &req, &resp)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), `service "api" is not a terminating-gateway or ingress-gateway`)
+	assert.Contains(t, err.Error(), `service "api" is not a configured terminating-gateway or ingress-gateway`)
 }
 
 func TestInternal_GatewayServices_ACLFiltering(t *testing.T) {
