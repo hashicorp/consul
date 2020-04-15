@@ -16,10 +16,7 @@ export default function anchorLinkAnalytics() {
     const targets = [].slice.call(
       document.querySelectorAll('.__target-lic, .__target-h')
     )
-    if (targets.find((t) => t.id === hash.replace(/^#/, ''))) {
-      window.analytics.track('Anchor Link', { hash, hit: true })
-    } else {
-      window.analytics.track('Anchor Link', { hash, hit: false })
-    }
+    const targetMatch = targets.find((t) => t.id === hash.replace(/^#/, ''))
+    window.analytics.track('Anchor Link', { hash, hit: !!targetMatch })
   })
 }
