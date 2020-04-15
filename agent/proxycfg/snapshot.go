@@ -7,6 +7,7 @@ import (
 	"github.com/mitchellh/copystructure"
 )
 
+// TODO(ingress): Can we think of a better for this bag of data?
 // A shared data structure that contains information about discovered upstreams
 type ConfigSnapshotUpstreams struct {
 	Leaf *structs.IssuedCert
@@ -24,8 +25,15 @@ type ConfigSnapshotUpstreams struct {
 	// TargetID -> CheckServiceNodes) and is used to determine the backing
 	// endpoints of an upstream.
 	WatchedUpstreamEndpoints map[string]map[string]structs.CheckServiceNodes
-	WatchedGateways          map[string]map[string]context.CancelFunc
-	WatchedGatewayEndpoints  map[string]map[string]structs.CheckServiceNodes
+
+	// WatchedGateways is a map of upstream.Identifier() -> (map of
+	// TargetID -> CancelFunc) in order to cancel watches for mesh gateways
+	WatchedGateways map[string]map[string]context.CancelFunc
+
+	// WatchedGatewayEndpoints is a map of upstream.Identifier() -> (map of
+	// TargetID -> CheckServiceNodes) and is used to determine the backing
+	// endpoints of a mesh gateway.
+	WatchedGatewayEndpoints map[string]map[string]structs.CheckServiceNodes
 }
 
 type configSnapshotConnectProxy struct {
