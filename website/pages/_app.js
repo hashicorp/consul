@@ -11,6 +11,7 @@ import bugsnagClient from '../lib/bugsnag'
 import Error from './_error'
 import Head from 'next/head'
 import HashiHead from '@hashicorp/react-head'
+import anchorLinkAnalytics from '../lib/anchor-link-analytics'
 
 Router.events.on('routeChangeStart', NProgress.start)
 Router.events.on('routeChangeError', NProgress.done)
@@ -37,6 +38,14 @@ class NextApp extends App {
     }
 
     return { pageProps }
+  }
+
+  componentDidMount() {
+    anchorLinkAnalytics()
+  }
+
+  componentDidUpdate() {
+    anchorLinkAnalytics()
   }
 
   render() {
