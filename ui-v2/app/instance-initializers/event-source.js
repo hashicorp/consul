@@ -61,6 +61,7 @@ export function initialize(container) {
         services: {
           repo: 'repository/service/event-source',
           chainRepo: 'repository/discovery-chain/event-source',
+          intentionRepo: 'repository/intention/event-source',
         },
       },
       {

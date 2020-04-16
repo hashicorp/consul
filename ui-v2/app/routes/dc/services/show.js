@@ -5,15 +5,18 @@ import { get } from '@ember/object';
 
 export default Route.extend({
   repo: service('repository/service'),
+  intentionRepo: service('repository/intention'),
   chainRepo: service('repository/discovery-chain'),
   settings: service('settings'),
-  model: function(params) {
+  model: function(params, transition = {}) {
     const dc = this.modelFor('dc').dc.Name;
     const nspace = this.modelFor('nspace').nspace.substr(1);
     return hash({
       item: this.repo.findBySlug(params.name, dc, nspace),
+      intentions: this.intentionRepo.findByService(params.name, dc, nspace),
       urls: this.settings.findBySlug('urls'),
       dc: dc,
+      nspace: nspace,
     }).then(model => {
       return hash({
         chain: ['connect-proxy', 'mesh-gateway'].includes(get(model, 'item.Service.Kind'))
