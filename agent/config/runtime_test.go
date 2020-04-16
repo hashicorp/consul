@@ -4065,6 +4065,7 @@ func TestFullConfig(t *testing.T) {
 			"encrypt": "A4wELWqH",
 			"encrypt_verify_incoming": true,
 			"encrypt_verify_outgoing": true,
+			"fire_watches_on_create": "yes",
 			"http_config": {
 				"block_endpoints": [ "RBvAFcGD", "fWOWFznh" ],
 				"allow_write_http_from": [ "127.0.0.1/8", "22.33.44.55/32", "0.0.0.0/0" ],
@@ -4698,6 +4699,7 @@ func TestFullConfig(t *testing.T) {
 			encrypt = "A4wELWqH"
 			encrypt_verify_incoming = true
 			encrypt_verify_outgoing = true
+			fire_watches_on_create = "yes"
 			http_config {
 				block_endpoints = [ "RBvAFcGD", "fWOWFznh" ]
 				allow_write_http_from = [ "127.0.0.1/8", "22.33.44.55/32", "0.0.0.0/0" ]
@@ -5408,6 +5410,7 @@ func TestFullConfig(t *testing.T) {
 		EncryptKey:                             "A4wELWqH",
 		EncryptVerifyIncoming:                  true,
 		EncryptVerifyOutgoing:                  true,
+		ConsulReloadTriggersWatch:              "yes",
 		GRPCPort:                               4881,
 		GRPCAddrs:                              []net.Addr{tcpAddr("32.31.61.91:4881")},
 		HTTPAddrs:                              []net.Addr{tcpAddr("83.39.91.39:7999")},
@@ -6133,8 +6136,9 @@ func TestSanitize(t *testing.T) {
 				OutputMaxSize: checks.DefaultBufSize,
 			},
 		},
-		KVMaxValueSize: 1234567800000000,
-		TxnMaxReqLen:   5678000000000000,
+		KVMaxValueSize:            1234567800000000,
+		TxnMaxReqLen:              5678000000000000,
+		ConsulReloadTriggersWatch: "yes",
 	}
 
 	rtJSON := `{
@@ -6288,6 +6292,7 @@ func TestSanitize(t *testing.T) {
 		"EncryptKey": "hidden",
 		"EncryptVerifyIncoming": false,
 		"EncryptVerifyOutgoing": false,
+		"ConsulReloadTriggersWatch": "yes",
 		"EnterpriseRuntimeConfig": ` + entRuntimeConfigSanitize + `,
 		"ExposeMaxPort": 0,
 		"ExposeMinPort": 0,
