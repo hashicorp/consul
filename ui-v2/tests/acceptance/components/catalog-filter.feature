@@ -127,26 +127,30 @@ Feature: components / catalog-filter
     -------------------------------------------------
   Scenario: Freetext filtering the service listing
     Given 1 datacenter model with the value "dc-1"
-    And 3 service models from yaml
+    And 6 service models from yaml
     ---
       - Name: Service-0
-        Kind: consul
         Tags: ['one', 'two', 'three']
         ChecksPassing: 0
         ChecksWarning: 0
         ChecksCritical: 1
+      - Name: Service-0-proxy
+        Kind: 'connect-proxy'
       - Name: Service-1
-        Kind: consul
         Tags: ['two', 'three']
         ChecksPassing: 0
         ChecksWarning: 1
         ChecksCritical: 0
+      - Name: Service-1-proxy
+        Kind: 'connect-proxy'
       - Name: Service-2
-        Kind: consul
         Tags: ['three']
         ChecksPassing: 1
         ChecksWarning: 0
         ChecksCritical: 0
+      - Name: Service-2-proxy
+        Kind: 'connect-proxy'
+
     ---
     When I visit the services page for yaml
     ---
