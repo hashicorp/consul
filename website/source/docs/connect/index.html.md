@@ -47,14 +47,15 @@ applications can also send open tracing data through Envoy.
 
 There are several ways to try Connect in different environments.
 
- - The [getting started with Consul service mesh track](https://learn.hashicorp.com/consul/gs-consul-service-mesh/understand-consul-service-mesh?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
+ - The [Getting Started with Consul Service Mesh track](https://learn.hashicorp.com/consul/gs-consul-service-mesh/understand-consul-service-mesh?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
    walks you through installing Consul as service mesh for Kubernetes using the Helm
    chart, deploying services in the service mesh, and using intentions to secure service 
    communications.
    
- - The [secure service-to-service communication guide](https://learn.hashicorp.com/consul/developer-mesh/connect-services?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
+ - The [Secure Service-to-Service Communication guide](https://learn.hashicorp.com/consul/developer-mesh/connect-services?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
    is a simple walk through of connecting two services on your local machine
-   using Consul Connect's built-in proxy, and configuring your first intention.
+   using Consul Connect's built-in proxy and configuring your first intention. The guide also includes an introduction to 
+   using Envoy as the Connect sidecar proxy. 
 
  - The [Kubernetes guide](https://learn.hashicorp.com/consul/getting-started-k8s/minikube?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
    walks you through configuring Consul Connect in Kubernetes using the Helm
