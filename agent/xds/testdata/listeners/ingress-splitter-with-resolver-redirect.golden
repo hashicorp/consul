@@ -3,10 +3,10 @@
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.api.v2.Listener",
-      "name": "db:2.3.4.5:9191",
+      "name": "http:1.2.3.4:9191",
       "address": {
         "socketAddress": {
-          "address": "2.3.4.5",
+          "address": "1.2.3.4",
           "portValue": 9191
         }
       },
@@ -26,9 +26,9 @@
                               "ads": {
                                   }
                             },
-                        "route_config_name": "db"
+                        "route_config_name": "http_9191"
                       },
-                  "stat_prefix": "upstream_db_http",
+                  "stat_prefix": "ingress_upstream_http_9191_http",
                   "tracing": {
                         "operation_name": "EGRESS",
                         "random_sampling": {

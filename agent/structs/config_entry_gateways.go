@@ -300,6 +300,7 @@ type GatewayService struct {
 	Service      ServiceID
 	GatewayKind  ServiceKind
 	Port         int
+	Protocol     string
 	CAFile       string
 	CertFile     string
 	KeyFile      string
@@ -315,6 +316,7 @@ func (g *GatewayService) IsSame(o *GatewayService) bool {
 		g.Service.Matches(&o.Service) &&
 		g.GatewayKind == o.GatewayKind &&
 		g.Port == o.Port &&
+		g.Protocol == o.Protocol &&
 		g.CAFile == o.CAFile &&
 		g.CertFile == o.CertFile &&
 		g.KeyFile == o.KeyFile &&
@@ -328,6 +330,7 @@ func (g *GatewayService) Clone() *GatewayService {
 		Service:      g.Service,
 		GatewayKind:  g.GatewayKind,
 		Port:         g.Port,
+		Protocol:     g.Protocol,
 		CAFile:       g.CAFile,
 		CertFile:     g.CertFile,
 		KeyFile:      g.KeyFile,

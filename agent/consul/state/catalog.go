@@ -2540,6 +2540,7 @@ func (s *Store) ingressConfigGatewayServices(tx *memdb.Txn, gateway structs.Serv
 				Service:     service.ToServiceID(),
 				GatewayKind: structs.ServiceKindIngressGateway,
 				Port:        listener.Port,
+				Protocol:    listener.Protocol,
 			}
 
 			gatewayServices = append(gatewayServices, mapping)

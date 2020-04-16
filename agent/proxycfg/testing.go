@@ -1143,6 +1143,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 				},
 			},
 		)
+	case "http-multiple-services":
 	default:
 		t.Fatalf("unexpected variation: %q", variation)
 		return ConfigSnapshotUpstreams{}
@@ -1233,6 +1234,13 @@ func setupTestVariationConfigEntriesAndSnapshot(
 	case "chain-and-splitter":
 	case "grpc-router":
 	case "chain-and-router":
+	case "http-multiple-services":
+		snap.WatchedUpstreamEndpoints["foo"] = map[string]structs.CheckServiceNodes{
+			"foo.default.dc1": TestUpstreamNodes(t),
+		}
+		snap.WatchedUpstreamEndpoints["bar"] = map[string]structs.CheckServiceNodes{
+			"bar.default.dc1": TestUpstreamNodesAlternate(t),
+		}
 	default:
 		t.Fatalf("unexpected variation: %q", variation)
 		return ConfigSnapshotUpstreams{}
@@ -1312,82 +1320,86 @@ func testConfigSnapshotMeshGateway(t testing.T, populateServices bool, useFedera
 }
 
 func TestConfigSnapshotIngress(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "simple")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "simple")
 }
 
 func TestConfigSnapshotIngressWithOverrides(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "simple-with-overrides")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "simple-with-overrides")
 }
 func TestConfigSnapshotIngress_SplitterWithResolverRedirectMultiDC(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "splitter-with-resolver-redirect-multidc")
+	return testConfigSnapshotIngressGateway(t, true, "http", "splitter-with-resolver-redirect-multidc")
+}
+
+func TestConfigSnapshotIngress_HTTPMultipleServices(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotIngressGateway(t, true, "http", "http-multiple-services")
 }
 
 func TestConfigSnapshotIngressExternalSNI(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "external-sni")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "external-sni")
 }
 
 func TestConfigSnapshotIngressWithFailover(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "failover")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover")
 }
 
 func TestConfigSnapshotIngressWithFailoverThroughRemoteGateway(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "failover-through-remote-gateway")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-remote-gateway")
 }
 
 func TestConfigSnapshotIngressWithFailoverThroughRemoteGatewayTriggered(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "failover-through-remote-gateway-triggered")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-remote-gateway-triggered")
 }
 
 func TestConfigSnapshotIngressWithDoubleFailoverThroughRemoteGateway(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "failover-through-double-remote-gateway")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-double-remote-gateway")
 }
 
 func TestConfigSnapshotIngressWithDoubleFailoverThroughRemoteGatewayTriggered(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "failover-through-double-remote-gateway-triggered")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-double-remote-gateway-triggered")
 }
 
 func TestConfigSnapshotIngressWithFailoverThroughLocalGateway(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "failover-through-local-gateway")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-local-gateway")
 }
 
 func TestConfigSnapshotIngressWithFailoverThroughLocalGatewayTriggered(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "failover-through-local-gateway-triggered")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-local-gateway-triggered")
 }
 
 func TestConfigSnapshotIngressWithDoubleFailoverThroughLocalGateway(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "failover-through-double-local-gateway")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-double-local-gateway")
 }
 
 func TestConfigSnapshotIngressWithDoubleFailoverThroughLocalGatewayTriggered(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "failover-through-double-local-gateway-triggered")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-double-local-gateway-triggered")
 }
 
 func TestConfigSnapshotIngressWithSplitter(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "chain-and-splitter")
+	return testConfigSnapshotIngressGateway(t, true, "http", "chain-and-splitter")
 }
 
 func TestConfigSnapshotIngressWithGRPCRouter(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "grpc-router")
+	return testConfigSnapshotIngressGateway(t, true, "http", "grpc-router")
 }
 
 func TestConfigSnapshotIngressWithRouter(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "chain-and-router")
+	return testConfigSnapshotIngressGateway(t, true, "http", "chain-and-router")
 }
 
 func TestConfigSnapshotIngressGateway(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "default")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "default")
 }
 
 func TestConfigSnapshotIngressGatewayNoServices(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, false, "default")
+	return testConfigSnapshotIngressGateway(t, false, "tcp", "default")
 }
 
 func TestConfigSnapshotIngressDiscoveryChainWithEntries(t testing.T, additionalEntries ...structs.ConfigEntry) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "simple", additionalEntries...)
+	return testConfigSnapshotIngressGateway(t, true, "http", "simple", additionalEntries...)
 }
 
 func testConfigSnapshotIngressGateway(
-	t testing.T, populateServices bool, variation string,
+	t testing.T, populateServices bool, protocol, variation string,
 	additionalEntries ...structs.ConfigEntry,
 ) *ConfigSnapshot {
 	roots, leaf := TestCerts(t)
@@ -1404,12 +1416,14 @@ func testConfigSnapshotIngressGateway(
 			ConfigSnapshotUpstreams: setupTestVariationConfigEntriesAndSnapshot(
 				t, variation, leaf, additionalEntries...,
 			),
-			Upstreams: structs.Upstreams{
-				{
-					// We rely on this one having default type in a few tests...
-					DestinationName:  "db",
-					LocalBindPort:    9191,
-					LocalBindAddress: "2.3.4.5",
+			Upstreams: map[IngressListenerKey]structs.Upstreams{
+				IngressListenerKey{protocol, 9191}: structs.Upstreams{
+					{
+						// We rely on this one having default type in a few tests...
+						DestinationName:  "db",
+						LocalBindPort:    9191,
+						LocalBindAddress: "2.3.4.5",
+					},
 				},
 			},
 		}

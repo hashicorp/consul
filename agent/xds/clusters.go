@@ -236,27 +236,29 @@ func (s *Server) makeGatewayServiceClusters(cfgSnap *proxycfg.ConfigSnapshot) ([
 
 func (s *Server) clustersFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var clusters []proto.Message
-	for _, u := range cfgSnap.IngressGateway.Upstreams {
-		id := u.Identifier()
-		chain, ok := cfgSnap.IngressGateway.DiscoveryChain[id]
-		if !ok {
-			// this should not happen
-			return nil, fmt.Errorf("no discovery chain for upstream %q", id)
-		}
+	for _, upstreams := range cfgSnap.IngressGateway.Upstreams {
+		for _, u := range upstreams {
+			id := u.Identifier()
+			chain, ok := cfgSnap.IngressGateway.DiscoveryChain[id]
+			if !ok {
+				// this should not happen
+				return nil, fmt.Errorf("no discovery chain for upstream %q", id)
+			}
 
-		chainEndpoints, ok := cfgSnap.IngressGateway.WatchedUpstreamEndpoints[id]
-		if !ok {
-			// this should not happen
-			return nil, fmt.Errorf("no endpoint map for upstream %q", id)
-		}
+			chainEndpoints, ok := cfgSnap.IngressGateway.WatchedUpstreamEndpoints[id]
+			if !ok {
+				// this should not happen
+				return nil, fmt.Errorf("no endpoint map for upstream %q", id)
+			}
 
-		upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(u, chain, chainEndpoints, cfgSnap)
-		if err != nil {
-			return nil, err
-		}
+			upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(u, chain, chainEndpoints, cfgSnap)
+			if err != nil {
+				return nil, err
+			}
 
-		for _, c := range upstreamClusters {
-			clusters = append(clusters, c)
+			for _, c := range upstreamClusters {
+				clusters = append(clusters, c)
+			}
 		}
 	}
 	return clusters, nil

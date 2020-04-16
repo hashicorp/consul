@@ -1,0 +1,85 @@
+{
+  "versionInfo": "00000001",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.api.v2.Listener",
+      "name": "http:1.2.3.4:443",
+      "address": {
+        "socketAddress": {
+          "address": "1.2.3.4",
+          "portValue": 443
+        }
+      },
+      "filterChains": [
+        {
+          "filters": [
+            {
+              "name": "envoy.http_connection_manager",
+              "config": {
+                  "http_filters": [
+                        {
+                              "name": "envoy.router"
+                            }
+                      ],
+                  "rds": {
+                        "config_source": {
+                              "ads": {
+                                  }
+                            },
+                        "route_config_name": "http_443"
+                      },
+                  "stat_prefix": "ingress_upstream_http_443_http",
+                  "tracing": {
+                        "operation_name": "EGRESS",
+                        "random_sampling": {
+                            }
+                      }
+                }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "type.googleapis.com/envoy.api.v2.Listener",
+      "name": "http:1.2.3.4:8080",
+      "address": {
+        "socketAddress": {
+          "address": "1.2.3.4",
+          "portValue": 8080
+        }
+      },
+      "filterChains": [
+        {
+          "filters": [
+            {
+              "name": "envoy.http_connection_manager",
+              "config": {
+                  "http_filters": [
+                        {
+                              "name": "envoy.router"
+                            }
+                      ],
+                  "rds": {
+                        "config_source": {
+                              "ads": {
+                                  }
+                            },
+                        "route_config_name": "http_8080"
+                      },
+                  "stat_prefix": "ingress_upstream_http_8080_http",
+                  "tracing": {
+                        "operation_name": "EGRESS",
+                        "random_sampling": {
+                            }
+                      }
+                }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "typeUrl": "type.googleapis.com/envoy.api.v2.Listener",
+  "nonce": "00000001"
+}
