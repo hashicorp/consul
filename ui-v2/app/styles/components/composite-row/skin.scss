@@ -1,9 +1,7 @@
 %composite-row {
   list-style-type: none;
-}
-%composite-row a {
   border-top-color: $gray-200;
-  border-bottom-color: $gray-200;
+  border-bottom-color: transparent;
   border-right-color: transparent;
   border-left-color: transparent;
 }
@@ -16,4 +14,42 @@
 }
 %composite-row-detail {
   color: $gray-500;
+}
+%composite-row:last-child {
+  border-bottom-color: $gray-200;
+}
+
+// Health Checks
+%composite-row .passing::before {
+  @extend %with-check-circle-fill-color-mask, %as-pseudo;
+  background-color: $green-500;
+}
+%composite-row .warning::before {
+  @extend %with-alert-triangle-color-mask, %as-pseudo;
+  background-color: $orange-500;
+}
+%composite-row .critical::before {
+  @extend %with-cancel-square-fill-color-mask, %as-pseudo;
+  background-color: $red-500;
+}
+
+// Metadata
+%composite-row .node a {
+  color: $gray-500;
+}
+%composite-row .node a:hover {
+  color: $color-action;
+  text-decoration: underline;
+}
+%composite-row .node::before {
+  @extend %with-git-commit-mask, %as-pseudo;
+  background-color: $gray-500;
+}
+%composite-row .address::before {
+  @extend %with-public-default-mask, %as-pseudo;
+  background-color: $gray-500;
+}
+%composite-row .proxy::before {
+  @extend %with-swap-horizontal-mask, %as-pseudo;
+  background-color: $gray-500;
 }

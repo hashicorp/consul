@@ -1,4 +1,5 @@
-%composite-row a {
+%composite-row {
+  cursor: pointer;
   display: block;
   box-sizing: border-box;
   padding: 12px;
@@ -18,4 +19,7 @@
 }
 %composite-row-detail > li:not(:first-child) {
   margin-left: 12px;
+}
+%composite-row-detail .node::before {
+  margin-top: 2px;
 }

@@ -1,13 +1,13 @@
 @import './layout';
 @import './skin';
-%composite-row a:hover,
-%composite-row a:focus,
-%composite-row a:active {
+%composite-row:hover,
+%composite-row:focus,
+%composite-row:active {
   @extend %composite-row-intent;
 }
-%composite-row > a > span {
+%composite-row > a {
   @extend %composite-row-header;
 }
-%composite-row > a > ul {
+%composite-row > ul {
   @extend %composite-row-detail;
 }
