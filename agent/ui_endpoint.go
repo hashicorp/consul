@@ -178,11 +178,9 @@ func summarizeServices(dump structs.CheckServiceNodes) []*ServiceSummary {
 		return serv
 	}
 
-	var sid structs.ServiceID
 	for _, csn := range dump {
 		svc := csn.Service
-		sid.Init(svc.Service, &svc.EnterpriseMeta)
-		sum := getService(sid)
+		sum := getService(structs.NewServiceID(svc.Service, &svc.EnterpriseMeta))
 		sum.Nodes = append(sum.Nodes, csn.Node.Node)
 		sum.Kind = svc.Kind
 		sum.InstanceCount += 1
