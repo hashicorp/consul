@@ -1,0 +1,23 @@
+<div id="intentions" class="tab-section">
+  <div role="tabpanel">
+{{#if (gt intentions.length 0) }}
+  <input type="checkbox" id="toolbar-toggle" />
+  <form class="filter-bar">
+    <FreetextFilter @searchable={{searchable}} @value={{s}} @placeholder="Search" />
+  </form>
+{{/if}}
+  <ChangeableSet @dispatcher={{searchable}}>
+    <BlockSlot @name="set" as |filtered|>
+      <ConsulIntentionList
+        @items={{filtered}}
+        @ondelete={{action "route" "delete"}}
+      />
+    </BlockSlot>
+    <BlockSlot @name="empty">
+      <p>
+        There are no intentions for this service.
+      </p>
+    </BlockSlot>
+  </ChangeableSet>
+  </div>
+</div>

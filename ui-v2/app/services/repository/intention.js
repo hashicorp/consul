@@ -8,4 +8,17 @@ export default RepositoryService.extend({
   getPrimaryKey: function() {
     return PRIMARY_KEY;
   },
+  findByService: function(slug, dc, nspace, configuration = {}) {
+    const query = {
+      dc: dc,
+      nspace: nspace,
+      filter: `SourceName == ${slug} or DestinationName == ${slug}`,
+    };
+    if (typeof configuration.cursor !== 'undefined') {
+      query.index = configuration.cursor;
+    }
+    return this.store.query(this.getModelName(), {
+      ...query,
+    });
+  },
 });
