@@ -6,6 +6,89 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestIngressConfigEntry_Normalize(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name     string
+		entry    IngressGatewayConfigEntry
+		expected IngressGatewayConfigEntry
+	}{
+		{
+			name: "empty protocol",
+			entry: IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "",
+						Services: []IngressService{},
+					},
+				},
+			},
+			expected: IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						Services: []IngressService{},
+					},
+				},
+			},
+		},
+		{
+			name: "lowercase protocols",
+			entry: IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "TCP",
+						Services: []IngressService{},
+					},
+					{
+						Port:     1112,
+						Protocol: "HtTP",
+						Services: []IngressService{},
+					},
+				},
+			},
+			expected: IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						Services: []IngressService{},
+					},
+					{
+						Port:     1112,
+						Protocol: "http",
+						Services: []IngressService{},
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range cases {
+		// We explicitly copy the variable for the range statement so that can run
+		// tests in parallel.
+		tc := test
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			err := tc.entry.Normalize()
+			require.NoError(t, err)
+			require.Equal(t, tc.expected, tc.entry)
+		})
+	}
+}
+
 func TestIngressConfigEntry_Validate(t *testing.T) {
 	t.Parallel()
 
@@ -333,6 +416,7 @@ func TestTerminatingConfigEntry_Validate(t *testing.T) {
 		tc := test
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+
 			err := tc.entry.Validate()
 			if tc.expectErr != "" {
 				require.Error(t, err)

@@ -267,6 +267,11 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 			if rule != nil && rule.ServiceWrite(cfgSnap.Service, &authzContext) != acl.Allow {
 				return status.Errorf(codes.PermissionDenied, "permission denied")
 			}
+		case structs.ServiceKindIngressGateway:
+			cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
+			if rule != nil && rule.ServiceWrite(cfgSnap.Service, &authzContext) != acl.Allow {
+				return status.Errorf(codes.PermissionDenied, "permission denied")
+			}
 		default:
 			return status.Errorf(codes.Internal, "Invalid service kind")
 		}

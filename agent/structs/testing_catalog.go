@@ -29,6 +29,17 @@ func TestRegisterRequestProxy(t testing.T) *RegisterRequest {
 	}
 }
 
+// TestRegisterIngressGateway returns a RegisterRequest for registering an
+// ingress gateway
+func TestRegisterIngressGateway(t testing.T) *RegisterRequest {
+	return &RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service:    TestNodeServiceIngressGateway(t, ""),
+	}
+}
+
 // TestNodeService returns a *NodeService representing a valid regular service.
 func TestNodeService(t testing.T) *NodeService {
 	return &NodeService{

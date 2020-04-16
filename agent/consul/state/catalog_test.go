@@ -4383,12 +4383,12 @@ func TestStateStore_ensureServiceCASTxn(t *testing.T) {
 	tx.Commit()
 }
 
-func TestStateStore_TerminatingGatewayServices(t *testing.T) {
+func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 	s := testStateStore(t)
 
 	// Listing with no results returns an empty list.
 	ws := memdb.NewWatchSet()
-	idx, nodes, err := s.TerminatingGatewayServices(ws, "db", nil)
+	idx, nodes, err := s.GatewayServices(ws, "db", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(0))
 	assert.Len(t, nodes, 0)
@@ -4444,7 +4444,7 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 
 	// Read everything back.
 	ws = memdb.NewWatchSet()
-	idx, out, err := s.TerminatingGatewayServices(ws, "gateway", nil)
+	idx, out, err := s.GatewayServices(ws, "gateway", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(21))
 	assert.Len(t, out, 2)
@@ -4454,11 +4454,19 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 			Service:     structs.NewServiceID("api", nil),
 			Gateway:     structs.NewServiceID("gateway", nil),
 			GatewayKind: structs.ServiceKindTerminatingGateway,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 21,
+				ModifyIndex: 21,
+			},
 		},
 		{
 			Service:     structs.NewServiceID("db", nil),
 			Gateway:     structs.NewServiceID("gateway", nil),
 			GatewayKind: structs.ServiceKindTerminatingGateway,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 21,
+				ModifyIndex: 21,
+			},
 		},
 	}
 	assert.Equal(t, expect, out)
@@ -4489,7 +4497,7 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 
 	// Read everything back.
 	ws = memdb.NewWatchSet()
-	idx, out, err = s.TerminatingGatewayServices(ws, "gateway", nil)
+	idx, out, err = s.GatewayServices(ws, "gateway", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(22))
 	assert.Len(t, out, 2)
@@ -4502,11 +4510,19 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 			CAFile:      "api/ca.crt",
 			CertFile:    "api/client.crt",
 			KeyFile:     "api/client.key",
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 22,
+				ModifyIndex: 22,
+			},
 		},
 		{
 			Service:     structs.NewServiceID("db", nil),
 			Gateway:     structs.NewServiceID("gateway", nil),
 			GatewayKind: structs.ServiceKindTerminatingGateway,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 22,
+				ModifyIndex: 22,
+			},
 		},
 	}
 	assert.Equal(t, expect, out)
@@ -4515,7 +4531,7 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 	assert.Nil(t, s.EnsureService(23, "bar", &structs.NodeService{ID: "redis", Service: "redis", Tags: nil, Address: "", Port: 6379}))
 	assert.True(t, watchFired(ws))
 
-	idx, out, err = s.TerminatingGatewayServices(ws, "gateway", nil)
+	idx, out, err = s.GatewayServices(ws, "gateway", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(23))
 	assert.Len(t, out, 3)
@@ -4528,11 +4544,19 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 			CAFile:      "api/ca.crt",
 			CertFile:    "api/client.crt",
 			KeyFile:     "api/client.key",
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 22,
+				ModifyIndex: 22,
+			},
 		},
 		{
 			Service:     structs.NewServiceID("db", nil),
 			Gateway:     structs.NewServiceID("gateway", nil),
 			GatewayKind: structs.ServiceKindTerminatingGateway,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 22,
+				ModifyIndex: 22,
+			},
 		},
 		{
 			Service:     structs.NewServiceID("redis", nil),
@@ -4541,6 +4565,10 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 			CAFile:      "ca.crt",
 			CertFile:    "client.crt",
 			KeyFile:     "client.key",
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 23,
+				ModifyIndex: 23,
+			},
 		},
 	}
 	assert.Equal(t, expect, out)
@@ -4549,7 +4577,7 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 	assert.Nil(t, s.DeleteService(24, "bar", "redis", nil))
 	assert.True(t, watchFired(ws))
 
-	idx, out, err = s.TerminatingGatewayServices(ws, "gateway", nil)
+	idx, out, err = s.GatewayServices(ws, "gateway", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(24))
 	assert.Len(t, out, 2)
@@ -4562,16 +4590,24 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 			CAFile:      "api/ca.crt",
 			CertFile:    "api/client.crt",
 			KeyFile:     "api/client.key",
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 22,
+				ModifyIndex: 22,
+			},
 		},
 		{
 			Service:     structs.NewServiceID("db", nil),
 			Gateway:     structs.NewServiceID("gateway", nil),
 			GatewayKind: structs.ServiceKindTerminatingGateway,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 22,
+				ModifyIndex: 22,
+			},
 		},
 	}
 	assert.Equal(t, expect, out)
 
-	// Create a new entry that only leaves one service
+	// Update the entry that only leaves one service
 	assert.Nil(t, s.EnsureConfigEntry(25, &structs.TerminatingGatewayConfigEntry{
 		Kind: "terminating-gateway",
 		Name: "gateway",
@@ -4583,7 +4619,7 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 	}, nil))
 	assert.True(t, watchFired(ws))
 
-	idx, out, err = s.TerminatingGatewayServices(ws, "gateway", nil)
+	idx, out, err = s.GatewayServices(ws, "gateway", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(25))
 	assert.Len(t, out, 1)
@@ -4594,12 +4630,16 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 			Service:     structs.NewServiceID("db", nil),
 			Gateway:     structs.NewServiceID("gateway", nil),
 			GatewayKind: structs.ServiceKindTerminatingGateway,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 25,
+				ModifyIndex: 25,
+			},
 		},
 	}
 	assert.Equal(t, expect, out)
 
 	// Attempt to associate a different gateway with services that include db
-	assert.Error(t, s.EnsureConfigEntry(26, &structs.TerminatingGatewayConfigEntry{
+	assert.Nil(t, s.EnsureConfigEntry(26, &structs.TerminatingGatewayConfigEntry{
 		Kind: "terminating-gateway",
 		Name: "gateway2",
 		Services: []structs.LinkedService{
@@ -4607,14 +4647,307 @@ func TestStateStore_TerminatingGatewayServices(t *testing.T) {
 				Name: "*",
 			},
 		},
-	}, nil), "service \"db\" is associated with different gateway")
+	}, nil))
 
-	// Deleting the config entry should remove existing mappings
-	assert.Nil(t, s.DeleteConfigEntry(26, "terminating-gateway", "gateway", nil))
-	assert.True(t, watchFired(ws))
-
-	idx, out, err = s.TerminatingGatewayServices(ws, "gateway", nil)
+	idx, out, err = s.GatewayServices(ws, "gateway2", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(26))
+	assert.Len(t, out, 2)
+
+	expect = structs.GatewayServices{
+		{
+			Service:     structs.NewServiceID("api", nil),
+			Gateway:     structs.NewServiceID("gateway2", nil),
+			GatewayKind: structs.ServiceKindTerminatingGateway,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 26,
+				ModifyIndex: 26,
+			},
+		},
+		{
+			Service:     structs.NewServiceID("db", nil),
+			Gateway:     structs.NewServiceID("gateway2", nil),
+			GatewayKind: structs.ServiceKindTerminatingGateway,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 26,
+				ModifyIndex: 26,
+			},
+		},
+	}
+	assert.Equal(t, expect, out)
+
+	// Deleting the config entry should remove existing mappings
+	assert.Nil(t, s.DeleteConfigEntry(27, "terminating-gateway", "gateway", nil))
+	assert.True(t, watchFired(ws))
+
+	idx, out, err = s.GatewayServices(ws, "gateway", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(27))
 	assert.Len(t, out, 0)
+}
+
+func TestStateStore_CheckIngressServiceNodes(t *testing.T) {
+	s := testStateStore(t)
+	ws := setupIngressState(t, s)
+	require := require.New(t)
+
+	t.Run("check service1 ingress gateway", func(t *testing.T) {
+		idx, results, err := s.CheckIngressServiceNodes(ws, "service1", nil)
+		require.NoError(err)
+		require.Equal(uint64(13), idx)
+		// Multiple instances of the ingress2 service
+		require.Len(results, 4)
+
+		ids := make(map[string]struct{})
+		for _, n := range results {
+			ids[n.Service.ID] = struct{}{}
+		}
+		expectedIds := map[string]struct{}{
+			"ingress1":        struct{}{},
+			"ingress2":        struct{}{},
+			"wildcardIngress": struct{}{},
+		}
+		require.Equal(expectedIds, ids)
+	})
+
+	t.Run("check service2 ingress gateway", func(t *testing.T) {
+		idx, results, err := s.CheckIngressServiceNodes(ws, "service2", nil)
+		require.NoError(err)
+		require.Equal(uint64(12), idx)
+		require.Len(results, 2)
+
+		ids := make(map[string]struct{})
+		for _, n := range results {
+			ids[n.Service.ID] = struct{}{}
+		}
+		expectedIds := map[string]struct{}{
+			"ingress1":        struct{}{},
+			"wildcardIngress": struct{}{},
+		}
+		require.Equal(expectedIds, ids)
+	})
+
+	t.Run("check service3 ingress gateway", func(t *testing.T) {
+		idx, results, err := s.CheckIngressServiceNodes(ws, "service3", nil)
+		require.NoError(err)
+		require.Equal(uint64(11), idx)
+		require.Len(results, 1)
+		require.Equal("wildcardIngress", results[0].Service.ID)
+	})
+
+	t.Run("delete a wildcard entry", func(t *testing.T) {
+		require.Nil(s.DeleteConfigEntry(19, "ingress-gateway", "wildcardIngress", nil))
+		require.True(watchFired(ws))
+		idx, results, err := s.CheckIngressServiceNodes(ws, "service1", nil)
+		require.NoError(err)
+		require.Equal(uint64(13), idx)
+		require.Len(results, 3)
+
+		idx, results, err = s.CheckIngressServiceNodes(ws, "service2", nil)
+		require.NoError(err)
+		require.Equal(uint64(12), idx)
+		require.Len(results, 1)
+
+		idx, results, err = s.CheckIngressServiceNodes(ws, "service3", nil)
+		require.NoError(err)
+		require.Equal(uint64(0), idx)
+		// TODO(ingress): index goes backward when deleting last config entry
+		// require.Equal(uint64(11), idx)
+		require.Len(results, 0)
+	})
+}
+
+func TestStateStore_GatewayServices_Ingress(t *testing.T) {
+	s := testStateStore(t)
+	ws := setupIngressState(t, s)
+	require := require.New(t)
+
+	t.Run("ingress1 gateway services", func(t *testing.T) {
+		idx, results, err := s.GatewayServices(ws, "ingress1", nil)
+		require.NoError(err)
+		require.Equal(uint64(14), idx)
+		require.Len(results, 2)
+		require.Equal("ingress1", results[0].Gateway.ID)
+		require.Equal("service1", results[0].Service.ID)
+		require.Equal(1111, results[0].Port)
+		require.Equal("ingress1", results[1].Gateway.ID)
+		require.Equal("service2", results[1].Service.ID)
+		require.Equal(2222, results[1].Port)
+	})
+
+	t.Run("ingress2 gateway services", func(t *testing.T) {
+		idx, results, err := s.GatewayServices(ws, "ingress2", nil)
+		require.NoError(err)
+		require.Equal(uint64(14), idx)
+		require.Len(results, 1)
+		require.Equal("ingress2", results[0].Gateway.ID)
+		require.Equal("service1", results[0].Service.ID)
+		require.Equal(3333, results[0].Port)
+	})
+
+	t.Run("No gatway services associated", func(t *testing.T) {
+		idx, results, err := s.GatewayServices(ws, "nothingIngress", nil)
+		require.NoError(err)
+		require.Equal(uint64(14), idx)
+		require.Len(results, 0)
+	})
+
+	t.Run("wildcard gateway services", func(t *testing.T) {
+		idx, results, err := s.GatewayServices(ws, "wildcardIngress", nil)
+		require.NoError(err)
+		require.Equal(uint64(14), idx)
+		require.Len(results, 3)
+		require.Equal("wildcardIngress", results[0].Gateway.ID)
+		require.Equal("service1", results[0].Service.ID)
+		require.Equal(4444, results[0].Port)
+		require.Equal("wildcardIngress", results[1].Gateway.ID)
+		require.Equal("service2", results[1].Service.ID)
+		require.Equal(4444, results[1].Port)
+		require.Equal("wildcardIngress", results[2].Gateway.ID)
+		require.Equal("service3", results[2].Service.ID)
+		require.Equal(4444, results[2].Port)
+	})
+
+	t.Run("deregistering a service", func(t *testing.T) {
+		require.Nil(s.DeleteService(18, "node1", "service1", nil))
+		require.True(watchFired(ws))
+		idx, results, err := s.GatewayServices(ws, "wildcardIngress", nil)
+		require.NoError(err)
+		require.Equal(uint64(18), idx)
+		require.Len(results, 2)
+	})
+
+	// TODO(ingress): This test case fails right now because of a
+	// bug in DeleteService where we delete are entries associated
+	// to a service, not just an entry created by a wildcard.
+	// t.Run("check ingress2 gateway services again", func(t *testing.T) {
+	// 	idx, results, err := s.GatewayServices(ws, "ingress2", nil)
+	// 	require.NoError(err)
+	// 	require.Equal(uint64(18), idx)
+	// 	require.Len(results, 1)
+	// 	require.Equal("ingress2", results[0].Gateway.ID)
+	// 	require.Equal("service1", results[0].Service.ID)
+	// 	require.Equal(3333, results[0].Port)
+	// })
+
+	t.Run("deleting a wildcard config entry", func(t *testing.T) {
+		require.Nil(s.DeleteConfigEntry(19, "ingress-gateway", "wildcardIngress", nil))
+		require.True(watchFired(ws))
+		idx, results, err := s.GatewayServices(ws, "wildcardIngress", nil)
+		require.NoError(err)
+		require.Equal(uint64(19), idx)
+		require.Len(results, 0)
+	})
+
+	t.Run("updating a config entry with zero listeners", func(t *testing.T) {
+		ingress1 := &structs.IngressGatewayConfigEntry{
+			Kind:      "ingress-gateway",
+			Name:      "ingress1",
+			Listeners: []structs.IngressListener{},
+		}
+		require.Nil(s.EnsureConfigEntry(20, ingress1, nil))
+		require.True(watchFired(ws))
+		idx, results, err := s.GatewayServices(ws, "ingress1", nil)
+		require.NoError(err)
+		require.Equal(uint64(20), idx)
+		require.Len(results, 0)
+	})
+}
+
+func setupIngressState(t *testing.T, s *Store) memdb.WatchSet {
+	// Querying with no matches gives an empty response
+	ws := memdb.NewWatchSet()
+	idx, res, err := s.GatewayServices(ws, "ingress1", nil)
+	if idx != 0 || res != nil || err != nil {
+		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
+	}
+
+	// Register some nodes.
+	testRegisterNode(t, s, 0, "node1")
+	testRegisterNode(t, s, 1, "node2")
+
+	// Register a service against the nodes.
+	testRegisterIngressService(t, s, 3, "node1", "wildcardIngress")
+	testRegisterIngressService(t, s, 4, "node1", "ingress1")
+	testRegisterIngressService(t, s, 5, "node1", "ingress2")
+	testRegisterIngressService(t, s, 6, "node2", "ingress2")
+	testRegisterIngressService(t, s, 7, "node1", "nothingIngress")
+	testRegisterService(t, s, 8, "node1", "service1")
+	testRegisterService(t, s, 9, "node2", "service2")
+	testRegisterService(t, s, 10, "node2", "service3")
+
+	// Register some ingress config entries.
+
+	wildcardIngress := &structs.IngressGatewayConfigEntry{
+		Kind: "ingress-gateway",
+		Name: "wildcardIngress",
+		Listeners: []structs.IngressListener{
+			{
+				Port:     4444,
+				Protocol: "tcp",
+				Services: []structs.IngressService{
+					{
+						Name: "*",
+					},
+				},
+			},
+		},
+	}
+	assert.NoError(t, s.EnsureConfigEntry(11, wildcardIngress, nil))
+
+	assert.True(t, watchFired(ws))
+	ingress1 := &structs.IngressGatewayConfigEntry{
+		Kind: "ingress-gateway",
+		Name: "ingress1",
+		Listeners: []structs.IngressListener{
+			{
+				Port:     1111,
+				Protocol: "tcp",
+				Services: []structs.IngressService{
+					{
+						Name: "service1",
+					},
+				},
+			},
+			{
+				Port:     2222,
+				Protocol: "tcp",
+				Services: []structs.IngressService{
+					{
+						Name: "service2",
+					},
+				},
+			},
+		},
+	}
+	assert.NoError(t, s.EnsureConfigEntry(12, ingress1, nil))
+	assert.True(t, watchFired(ws))
+
+	ingress2 := &structs.IngressGatewayConfigEntry{
+		Kind: "ingress-gateway",
+		Name: "ingress2",
+		Listeners: []structs.IngressListener{
+			{
+				Port:     3333,
+				Protocol: "tcp",
+				Services: []structs.IngressService{
+					{
+						Name: "service1",
+					},
+				},
+			},
+		},
+	}
+	assert.NoError(t, s.EnsureConfigEntry(13, ingress2, nil))
+	assert.True(t, watchFired(ws))
+
+	nothingIngress := &structs.IngressGatewayConfigEntry{
+		Kind:      "ingress-gateway",
+		Name:      "nothingIngress",
+		Listeners: []structs.IngressListener{},
+	}
+	assert.NoError(t, s.EnsureConfigEntry(14, nothingIngress, nil))
+	assert.True(t, watchFired(ws))
+
+	return ws
 }

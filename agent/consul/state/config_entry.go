@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
 	memdb "github.com/hashicorp/go-memdb"
@@ -214,10 +215,10 @@ func (s *Store) ensureConfigEntryTxn(tx *memdb.Txn, idx uint64, conf structs.Con
 		return err // Err is already sufficiently decorated.
 	}
 
-	// If the config entry is for terminating gateways we update the memdb table
+	// If the config entry is for a terminating or ingress gateway we update the memdb table
 	// that associates gateways <-> services.
-	if conf.GetKind() == structs.TerminatingGateway {
-		err = s.updateTerminatingGatewayServices(tx, idx, conf, entMeta)
+	if conf.GetKind() == structs.TerminatingGateway || conf.GetKind() == structs.IngressGateway {
+		err = s.updateGatewayServices(tx, idx, conf, entMeta)
 		if err != nil {
 			return fmt.Errorf("failed to associate services to gateway: %v", err)
 		}
@@ -282,14 +283,14 @@ func (s *Store) DeleteConfigEntry(idx uint64, kind, name string, entMeta *struct
 		return nil
 	}
 
-	// If the config entry is for terminating gateways we delete entries from the memdb table
+	// If the config entry is for terminating or ingress gateways we delete entries from the memdb table
 	// that associates gateways <-> services.
-	if kind == structs.TerminatingGateway {
-		if _, err := tx.DeleteAll(terminatingGatewayServicesTableName, "gateway", structs.NewServiceID(name, entMeta)); err != nil {
+	if kind == structs.TerminatingGateway || kind == structs.IngressGateway {
+		if _, err := tx.DeleteAll(gatewayServicesTableName, "gateway", structs.NewServiceID(name, entMeta)); err != nil {
 			return fmt.Errorf("failed to truncate gateway services table: %v", err)
 		}
-		if err := indexUpdateMaxTxn(tx, idx, terminatingGatewayServicesTableName); err != nil {
-			return fmt.Errorf("failed updating terminating-gateway-services index: %v", err)
+		if err := indexUpdateMaxTxn(tx, idx, gatewayServicesTableName); err != nil {
+			return fmt.Errorf("failed updating gateway-services index: %v", err)
 		}
 	}
 
@@ -345,12 +346,36 @@ func (s *Store) validateProposedConfigEntryInGraph(
 	case structs.ServiceSplitter:
 	case structs.ServiceResolver:
 	case structs.IngressGateway:
+		err := s.checkGatewayClash(tx, name, structs.IngressGateway, structs.TerminatingGateway, entMeta)
+		if err != nil {
+			return err
+		}
 	case structs.TerminatingGateway:
+		err := s.checkGatewayClash(tx, name, structs.TerminatingGateway, structs.IngressGateway, entMeta)
+		if err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("unhandled kind %q during validation of %q", kind, name)
 	}
 
 	return s.validateProposedConfigEntryInServiceGraph(tx, idx, kind, name, next, validateAllChains, entMeta)
+}
+
+func (s *Store) checkGatewayClash(
+	tx *memdb.Txn,
+	name, selfKind, otherKind string,
+	entMeta *structs.EnterpriseMeta,
+) error {
+	_, entry, err := s.configEntryTxn(tx, nil, otherKind, name, entMeta)
+	if err != nil {
+		return err
+	}
+	if entry != nil {
+		return fmt.Errorf("cannot create a %q config entry with name %q, "+
+			"a %q config entry with that name already exists", selfKind, name, otherKind)
+	}
+	return nil
 }
 
 var serviceGraphKinds = []string{

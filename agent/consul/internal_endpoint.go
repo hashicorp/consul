@@ -323,12 +323,26 @@ func (m *Internal) GatewayServices(args *structs.ServiceSpecificRequest, reply *
 			var index uint64
 			var services structs.GatewayServices
 
-			switch args.ServiceKind {
-			case structs.ServiceKindTerminatingGateway:
-				index, services, err = state.TerminatingGatewayServices(ws, args.ServiceName, &args.EnterpriseMeta)
+			supportedGateways := []string{structs.IngressGateway, structs.TerminatingGateway}
+			var found bool
+			for _, kind := range supportedGateways {
+				// We only use this call to validate the RPC call, don't add the watch set
+				_, entry, err := state.ConfigEntry(nil, kind, args.ServiceName, &args.EnterpriseMeta)
 				if err != nil {
 					return err
 				}
+				if entry != nil {
+					found = true
+				}
+			}
+
+			if !found {
+				return fmt.Errorf("service %q is not a configured terminating-gateway or ingress-gateway", args.ServiceName)
+			}
+
+			index, services, err = state.GatewayServices(ws, args.ServiceName, &args.EnterpriseMeta)
+			if err != nil {
+				return err
 			}
 
 			if err := m.srv.filterACL(args.Token, &services); err != nil {

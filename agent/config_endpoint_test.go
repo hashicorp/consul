@@ -213,24 +213,6 @@ func TestConfig_Apply_TerminatingGateway(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 200, resp.Code, "!200 Response Code: %s", resp.Body.String())
 
-	// Attempt to create an entry for a separate gateway that also routes to web
-	body = bytes.NewBuffer([]byte(`
-	{
-		"Kind": "terminating-gateway",
-		"Name": "east-gw-01",
-		"Services": [
-		  {
-			"Name": "web",
-		  }
-		]
-	}`))
-
-	req, _ = http.NewRequest("PUT", "/v1/config", body)
-	resp = httptest.NewRecorder()
-	_, err = a.srv.ConfigApply(resp, req)
-	require.Error(t, err, "service \"web\" is associated with a different gateway")
-	require.Equal(t, 200, resp.Code, "!200 Response Code: %s", resp.Body.String())
-
 	// List all entries, there should only be one
 	{
 		args := structs.ConfigEntryQuery{
@@ -255,6 +237,67 @@ func TestConfig_Apply_TerminatingGateway(t *testing.T) {
 			},
 		}
 		require.Equal(t, expect, got.Services)
+	}
+}
+
+func TestConfig_Apply_IngressGateway(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	// Create some config entries.
+	body := bytes.NewBuffer([]byte(`
+	{
+		"Kind": "ingress-gateway",
+		"Name": "ingress",
+		"Listeners": [
+		  {
+				"Port": 8080,
+				"Services": [
+					{ "Name": "web" }
+				]
+		  }
+		]
+	}`))
+
+	req, _ := http.NewRequest("PUT", "/v1/config", body)
+	resp := httptest.NewRecorder()
+	_, err := a.srv.ConfigApply(resp, req)
+	require.NoError(t, err)
+	require.Equal(t, 200, resp.Code, "!200 Response Code: %s", resp.Body.String())
+
+	// List all entries, there should only be one
+	{
+		args := structs.ConfigEntryQuery{
+			Kind:       structs.IngressGateway,
+			Datacenter: "dc1",
+		}
+		var out structs.IndexedConfigEntries
+		require.NoError(t, a.RPC("ConfigEntry.List", &args, &out))
+		require.NotNil(t, out)
+		require.Len(t, out.Entries, 1)
+
+		got := out.Entries[0].(*structs.IngressGatewayConfigEntry)
+		// Ignore create and modify indices
+		got.CreateIndex = 0
+		got.ModifyIndex = 0
+
+		expect := &structs.IngressGatewayConfigEntry{
+			Name: "ingress",
+			Kind: structs.IngressGateway,
+			Listeners: []structs.IngressListener{
+				{
+					Port:     8080,
+					Protocol: "tcp",
+					Services: []structs.IngressService{
+						{Name: "web"},
+					},
+				},
+			},
+		}
+		require.Equal(t, expect, got)
 	}
 }
 

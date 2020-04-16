@@ -126,6 +126,31 @@ func testRegisterService(t *testing.T, s *Store, idx uint64, nodeID, serviceID s
 	testRegisterServiceWithChange(t, s, idx, nodeID, serviceID, false)
 }
 
+func testRegisterIngressService(t *testing.T, s *Store, idx uint64, nodeID, serviceID string) {
+	svc := &structs.NodeService{
+		ID:      serviceID,
+		Service: serviceID,
+		Kind:    structs.ServiceKindIngressGateway,
+		Address: "1.1.1.1",
+		Port:    1111,
+	}
+	if err := s.EnsureService(idx, nodeID, svc); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+	_, service, err := firstWatchCompoundWithTxn(tx, "services", "id", nil, nodeID, serviceID)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if result, ok := service.(*structs.ServiceNode); !ok ||
+		result.Node != nodeID ||
+		result.ServiceID != serviceID {
+		t.Fatalf("bad service: %#v", result)
+	}
+}
+
 func testRegisterCheck(t *testing.T, s *Store, idx uint64,
 	nodeID string, serviceID string, checkID types.CheckID, state string) {
 	chk := &structs.HealthCheck{

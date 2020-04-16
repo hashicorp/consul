@@ -77,11 +77,19 @@ func (e *IngressGatewayConfigEntry) Normalize() error {
 	}
 
 	e.Kind = IngressGateway
-	for _, listener := range e.Listeners {
+	for i, listener := range e.Listeners {
+		if listener.Protocol == "" {
+			listener.Protocol = "tcp"
+		}
+
 		listener.Protocol = strings.ToLower(listener.Protocol)
 		for i := range listener.Services {
 			listener.Services[i].EnterpriseMeta.Normalize()
 		}
+
+		// Make sure to set the item back into the array, since we are not using
+		// pointers to structs
+		e.Listeners[i] = listener
 	}
 
 	e.EnterpriseMeta.Normalize()
@@ -135,7 +143,7 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 func (e *IngressGatewayConfigEntry) CanRead(authz acl.Authorizer) bool {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.OperatorRead(&authzContext) == acl.Allow
+	return authz.ServiceRead(e.Name, &authzContext) == acl.Allow
 }
 
 func (e *IngressGatewayConfigEntry) CanWrite(authz acl.Authorizer) bool {
@@ -158,6 +166,10 @@ func (e *IngressGatewayConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
 	}
 
 	return &e.EnterpriseMeta
+}
+
+func (s *IngressService) ToServiceID() ServiceID {
+	return NewServiceID(s.Name, &s.EnterpriseMeta)
 }
 
 // TerminatingGatewayConfigEntry manages the configuration for a terminating service
@@ -283,9 +295,11 @@ type GatewayService struct {
 	Gateway     ServiceID
 	Service     ServiceID
 	GatewayKind ServiceKind
+	Port        int
 	CAFile      string
 	CertFile    string
 	KeyFile     string
+	RaftIndex
 }
 
 type GatewayServices []*GatewayService
@@ -294,7 +308,21 @@ func (g *GatewayService) IsSame(o *GatewayService) bool {
 	return g.Gateway.Matches(&o.Gateway) &&
 		g.Service.Matches(&o.Service) &&
 		g.GatewayKind == o.GatewayKind &&
+		g.Port == o.Port &&
 		g.CAFile == o.CAFile &&
 		g.CertFile == o.CertFile &&
 		g.KeyFile == o.KeyFile
+}
+
+func (g *GatewayService) Clone() *GatewayService {
+	return &GatewayService{
+		Gateway:     g.Gateway,
+		Service:     g.Service,
+		GatewayKind: g.GatewayKind,
+		Port:        g.Port,
+		CAFile:      g.CAFile,
+		CertFile:    g.CertFile,
+		KeyFile:     g.KeyFile,
+		RaftIndex:   g.RaftIndex,
+	}
 }

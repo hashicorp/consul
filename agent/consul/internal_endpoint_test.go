@@ -2,10 +2,11 @@ package consul
 
 import (
 	"encoding/base64"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -752,7 +753,6 @@ func TestInternal_TerminatingGatewayServices(t *testing.T) {
 		req := structs.ServiceSpecificRequest{
 			Datacenter:  "dc1",
 			ServiceName: "gateway",
-			ServiceKind: structs.ServiceKindTerminatingGateway,
 		}
 		var resp structs.IndexedGatewayServices
 		assert.Nil(r, msgpackrpc.CallWithCodec(codec, "Internal.GatewayServices", &req, &resp))
@@ -784,11 +784,175 @@ func TestInternal_TerminatingGatewayServices(t *testing.T) {
 				KeyFile:     "client.key",
 			},
 		}
+
+		// Ignore raft index for equality
+		for _, s := range resp.Services {
+			s.RaftIndex = structs.RaftIndex{}
+		}
 		assert.Equal(r, expect, resp.Services)
 	})
 }
 
-func TestInternal_TerminatingGatewayServices_ACLFiltering(t *testing.T) {
+func TestInternal_GatewayServices_BothGateways(t *testing.T) {
+	t.Parallel()
+
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	{
+		var out struct{}
+
+		// Register a service "api"
+		args := structs.TestRegisterRequest(t)
+		args.Service.Service = "api"
+		args.Check = &structs.HealthCheck{
+			Name:      "api",
+			Status:    api.HealthPassing,
+			ServiceID: args.Service.Service,
+		}
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		// Register a terminating gateway
+		args = &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTerminatingGateway,
+				Service: "gateway",
+				Port:    443,
+			},
+			Check: &structs.HealthCheck{
+				Name:      "gateway",
+				Status:    api.HealthPassing,
+				ServiceID: "gateway",
+			},
+		}
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		entryArgs := &structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry: &structs.TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "gateway",
+				Services: []structs.LinkedService{
+					{
+						Name: "api",
+					},
+				},
+			},
+		}
+		var entryResp bool
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &entryArgs, &entryResp))
+
+		// Register a service "db"
+		args = structs.TestRegisterRequest(t)
+		args.Service.Service = "db"
+		args.Check = &structs.HealthCheck{
+			Name:      "db",
+			Status:    api.HealthPassing,
+			ServiceID: args.Service.Service,
+		}
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		// Register an ingress gateway
+		args = &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.2",
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTerminatingGateway,
+				Service: "ingress",
+				Port:    444,
+			},
+			Check: &structs.HealthCheck{
+				Name:      "ingress",
+				Status:    api.HealthPassing,
+				ServiceID: "ingress",
+			},
+		}
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		entryArgs = &structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry: &structs.IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress",
+				Listeners: []structs.IngressListener{
+					{
+						Port: 8888,
+						Services: []structs.IngressService{
+							{Name: "db"},
+						},
+					},
+				},
+			},
+		}
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &entryArgs, &entryResp))
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		req := structs.ServiceSpecificRequest{
+			Datacenter:  "dc1",
+			ServiceName: "gateway",
+		}
+		var resp structs.IndexedGatewayServices
+		assert.Nil(r, msgpackrpc.CallWithCodec(codec, "Internal.GatewayServices", &req, &resp))
+		assert.Len(r, resp.Services, 1)
+
+		expect := structs.GatewayServices{
+			{
+				Service:     structs.NewServiceID("api", nil),
+				Gateway:     structs.NewServiceID("gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+			},
+		}
+
+		// Ignore raft index for equality
+		for _, s := range resp.Services {
+			s.RaftIndex = structs.RaftIndex{}
+		}
+		assert.Equal(r, expect, resp.Services)
+
+		req.ServiceName = "ingress"
+		assert.Nil(r, msgpackrpc.CallWithCodec(codec, "Internal.GatewayServices", &req, &resp))
+		assert.Len(r, resp.Services, 1)
+
+		expect = structs.GatewayServices{
+			{
+				Service:     structs.NewServiceID("db", nil),
+				Gateway:     structs.NewServiceID("ingress", nil),
+				GatewayKind: structs.ServiceKindIngressGateway,
+				Port:        8888,
+			},
+		}
+
+		// Ignore raft index for equality
+		for _, s := range resp.Services {
+			s.RaftIndex = structs.RaftIndex{}
+		}
+		assert.Equal(r, expect, resp.Services)
+	})
+
+	// Test a non-gateway service being requested
+	req := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "api",
+	}
+	var resp structs.IndexedGatewayServices
+	err := msgpackrpc.CallWithCodec(codec, "Internal.GatewayServices", &req, &resp)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), `service "api" is not a configured terminating-gateway or ingress-gateway`)
+}
+
+func TestInternal_GatewayServices_ACLFiltering(t *testing.T) {
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -907,7 +1071,6 @@ service_prefix "db" {
 		req := structs.ServiceSpecificRequest{
 			Datacenter:   "dc1",
 			ServiceName:  "gateway",
-			ServiceKind:  structs.ServiceKindTerminatingGateway,
 			QueryOptions: structs.QueryOptions{Token: svcToken.SecretID},
 		}
 		var resp structs.IndexedGatewayServices
@@ -928,7 +1091,6 @@ service "gateway" {
 		req := structs.ServiceSpecificRequest{
 			Datacenter:   "dc1",
 			ServiceName:  "gateway",
-			ServiceKind:  structs.ServiceKindTerminatingGateway,
 			QueryOptions: structs.QueryOptions{Token: gwToken.SecretID},
 		}
 		var resp structs.IndexedGatewayServices
@@ -952,7 +1114,6 @@ service "gateway" {
 		req := structs.ServiceSpecificRequest{
 			Datacenter:   "dc1",
 			ServiceName:  "gateway",
-			ServiceKind:  structs.ServiceKindTerminatingGateway,
 			QueryOptions: structs.QueryOptions{Token: validToken.SecretID},
 		}
 		var resp structs.IndexedGatewayServices
@@ -970,6 +1131,11 @@ service "gateway" {
 				Gateway:     structs.NewServiceID("gateway", nil),
 				GatewayKind: structs.ServiceKindTerminatingGateway,
 			},
+		}
+
+		// Ignore raft index for equality
+		for _, s := range resp.Services {
+			s.RaftIndex = structs.RaftIndex{}
 		}
 		assert.Equal(r, expect, resp.Services)
 	})

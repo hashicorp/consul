@@ -502,7 +502,6 @@ type ServiceSpecificRequest struct {
 	Datacenter      string
 	NodeMetaFilters map[string]string
 	ServiceName     string
-	ServiceKind     ServiceKind
 	// DEPRECATED (singular-service-tag) - remove this when backwards RPC compat
 	// with 1.2.x is not required.
 	ServiceTag     string
@@ -513,6 +512,12 @@ type ServiceSpecificRequest struct {
 
 	// Connect if true will only search for Connect-compatible services.
 	Connect bool
+
+	// TODO(ingress): Add corresponding API changes after figuring out what the
+	// HTTP endpoint looks like
+
+	// Ingress if true will only search for Ingress gateways for the given service.
+	Ingress bool
 
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
