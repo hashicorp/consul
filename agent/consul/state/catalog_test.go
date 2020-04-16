@@ -392,7 +392,7 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 		Address: "1.2.3.4",
 	}
 	nodeID := string(req.ID)
-	nodeName := string(req.Node)
+	nodeName := req.Node
 	restore := s.Restore()
 	if err := restore.Registration(1, req); err != nil {
 		t.Fatalf("err: %s", err)
@@ -2106,7 +2106,7 @@ func TestStateStore_ConnectServiceNodes(t *testing.T) {
 	ws = memdb.NewWatchSet()
 	idx, nodes, err = s.ConnectServiceNodes(ws, "db", nil)
 	assert.Nil(err)
-	assert.Equal(idx, uint64(idx))
+	assert.Equal(idx, uint64(17))
 	assert.Len(nodes, 3)
 
 	for _, n := range nodes {
@@ -3562,7 +3562,7 @@ func TestStateStore_CheckConnectServiceNodes(t *testing.T) {
 	ws = memdb.NewWatchSet()
 	idx, nodes, err = s.CheckConnectServiceNodes(ws, "db", nil)
 	assert.Nil(err)
-	assert.Equal(idx, uint64(idx))
+	assert.Equal(idx, uint64(20))
 	assert.Len(nodes, 2)
 
 	for _, n := range nodes {

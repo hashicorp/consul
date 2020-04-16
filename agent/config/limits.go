@@ -9,5 +9,6 @@ import "golang.org/x/sys/unix"
 func getrlimit() (uint64, error) {
 	var limit unix.Rlimit
 	err := unix.Getrlimit(unix.RLIMIT_NOFILE, &limit)
+	// nolint:unconvert // Rlimit.Cur may not be uint64 on all platforms
 	return uint64(limit.Cur), err
 }

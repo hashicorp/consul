@@ -4270,7 +4270,7 @@ func TestDNS_TCP_and_UDP_Truncate(t *testing.T) {
 								if protocol == "udp" {
 									maxSz = 8192
 								}
-								m.SetEdns0(uint16(maxSz), true)
+								m.SetEdns0(maxSz, true)
 								c := new(dns.Client)
 								c.Net = protocol
 								m.Compress = compress

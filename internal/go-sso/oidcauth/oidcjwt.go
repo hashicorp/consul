@@ -213,7 +213,7 @@ func stringifyMetadataValue(rawValue interface{}) (string, bool) {
 	case int32:
 		return strconv.FormatInt(int64(v), 10), true
 	case int64:
-		return strconv.FormatInt(int64(v), 10), true
+		return strconv.FormatInt(v, 10), true
 	case int:
 		return strconv.FormatInt(int64(v), 10), true
 	case uint8:

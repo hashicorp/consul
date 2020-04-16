@@ -43,7 +43,7 @@ func (c *Client) RequestAutoEncryptCerts(servers []string, port int, token strin
 	id := &connect.SpiffeIDAgent{
 		Host:       dummyTrustDomain,
 		Datacenter: c.config.Datacenter,
-		Agent:      string(c.config.NodeName),
+		Agent:      c.config.NodeName,
 	}
 
 	conf, err := c.config.CAConfig.GetCommonConfig()
@@ -71,7 +71,7 @@ func (c *Client) RequestAutoEncryptCerts(servers []string, port int, token strin
 	//
 	// The Common Name includes the dummy trust domain for now but Server will
 	// override this when it is signed anyway so it's OK.
-	cn := connect.AgentCN(string(c.config.NodeName), dummyTrustDomain)
+	cn := connect.AgentCN(c.config.NodeName, dummyTrustDomain)
 	csr, err := connect.CreateCSR(id, cn, pk, dnsNames, ipAddresses)
 	if err != nil {
 		return errFn(err)

@@ -170,7 +170,7 @@ type HealthChecks []*HealthCheck
 func (c HealthChecks) AggregatedStatus() string {
 	var passing, warning, critical, maintenance bool
 	for _, check := range c {
-		id := string(check.CheckID)
+		id := check.CheckID
 		if id == NodeMaint || strings.HasPrefix(id, ServiceMaintPrefix) {
 			maintenance = true
 			continue
