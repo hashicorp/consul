@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/go-connlimit"
@@ -177,6 +178,10 @@ type Agent struct {
 
 	// In-memory sink used for collecting metrics
 	MemSink *metrics.InmemSink
+
+	// Eventer provides a backend for handling event logging. APIs are provided on the agent for interacting with
+	// this reloadable type
+	Eventer atomic.Value
 
 	// delegate is either a *consul.Server or *consul.Client
 	// depending on the configuration
@@ -430,7 +435,10 @@ func (a *Agent) Start() error {
 	// waiting to discover a consul server
 	consulCfg.ServerUp = a.sync.SyncFull.Trigger
 
-	a.initEnterprise(consulCfg)
+	err = a.initEnterprise(consulCfg)
+	if err != nil {
+		return fmt.Errorf("failed to start Consul enterprise component: %v", err)
+	}
 
 	tlsConfigurator, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), a.logger)
 	if err != nil {
@@ -4100,6 +4108,11 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	// an in place modification is safe as reloads cannot be
 	// concurrent due to both gaining a full lock on the stateLock
 	a.config.ConfigEntryBootstrap = newCfg.ConfigEntryBootstrap
+
+	err := a.reloadEnterprise(newCfg)
+	if err != nil {
+		return err
+	}
 
 	// create the config for the rpc server/client
 	consulCfg, err := a.consulConfig()

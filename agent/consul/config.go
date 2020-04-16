@@ -523,7 +523,7 @@ func (c *Config) CheckACL() error {
 	return nil
 }
 
-// DefaultConfig returns a sane default configuration.
+// DefaultConfig returns a default configuration.
 func DefaultConfig() *Config {
 	hostname, err := os.Hostname()
 	if err != nil {

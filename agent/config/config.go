@@ -188,6 +188,7 @@ type Config struct {
 	AdvertiseAddrWAN                 *string                  `json:"advertise_addr_wan,omitempty" hcl:"advertise_addr_wan" mapstructure:"advertise_addr_wan"`
 	AdvertiseAddrWANIPv4             *string                  `json:"advertise_addr_wan_ipv4,omitempty" hcl:"advertise_addr_wan_ipv4" mapstructure:"advertise_addr_wan_ipv4"`
 	AdvertiseAddrWANIPv6             *string                  `json:"advertise_addr_wan_ipv6,omitempty" hcl:"advertise_addr_wan_ipv6" mapstructure:"advertise_addr_ipv6"`
+	Audit                            Audit                    `json:"audit,omitempty"     hcl:"audit"     mapstructure:"audit"`
 	Autopilot                        Autopilot                `json:"autopilot,omitempty" hcl:"autopilot" mapstructure:"autopilot"`
 	BindAddr                         *string                  `json:"bind_addr,omitempty" hcl:"bind_addr" mapstructure:"bind_addr"`
 	Bootstrap                        *bool                    `json:"bootstrap,omitempty" hcl:"bootstrap" mapstructure:"bootstrap"`
@@ -365,6 +366,24 @@ type AdvertiseAddrsConfig struct {
 	RPC     *string `json:"rpc,omitempty" hcl:"rpc" mapstructure:"rpc"`
 	SerfLAN *string `json:"serf_lan,omitempty" hcl:"serf_lan" mapstructure:"serf_lan"`
 	SerfWAN *string `json:"serf_wan,omitempty" hcl:"serf_wan" mapstructure:"serf_wan"`
+}
+
+// AuditSink can be provided multiple times to define pipelines for auditing
+type AuditSink struct {
+	Name              *string `json:"name,omitempty"               hcl:"name"               mapstructure:"name"`
+	Type              *string `json:"type,omitempty"               hcl:"type"               mapstructure:"type"`
+	Format            *string `json:"format,omitempty"             hcl:"format"             mapstructure:"format"`
+	Path              *string `json:"path,omitempty"               hcl:"path"               mapstructure:"path"`
+	DeliveryGuarantee *string `json:"delivery_guarantee,omitempty" hcl:"delivery_guarantee" mapstructure:"delivery_guarantee"`
+	RotateBytes       *int    `json:"rotate_bytes,omitempty"       hcl:"rotate_bytes"       mapstructure:"rotate_bytes"`
+	RotateDuration    *string `json:"rotate_duration,omitempty"    hcl:"rotate_duration"    mapstructure:"rotate_duration"`
+	RotateMaxFiles    *int    `json:"rotate_max_files,omitempty"   hcl:"rotate_max_files"   mapstructure:"rotate_max_files"`
+}
+
+// Audit allows us to enable and define destinations for auditing
+type Audit struct {
+	Enabled *bool                `json:"enabled,omitempty" hcl:"enabled" mapstructure:"enabled"`
+	Sinks   map[string]AuditSink `json:"sink,omitempty"    hcl:"sink"    mapstructure:"sink"`
 }
 
 type Autopilot struct {
