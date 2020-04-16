@@ -14,6 +14,8 @@ import createSubmitable from 'consul-ui/tests/lib/page-object/createSubmitable';
 import createCreatable from 'consul-ui/tests/lib/page-object/createCreatable';
 import createCancelable from 'consul-ui/tests/lib/page-object/createCancelable';
 
+// TODO: All component-like page objects should be moved into the component folder
+// along with all of its other dependencies once we can mae ember-cli ignore them
 import page from 'consul-ui/tests/pages/components/page';
 import radiogroup from 'consul-ui/tests/lib/page-object/radiogroup';
 import tabgroup from 'consul-ui/tests/lib/page-object/tabgroup';
@@ -26,6 +28,8 @@ import policyFormFactory from 'consul-ui/tests/pages/components/policy-form';
 import policySelectorFactory from 'consul-ui/tests/pages/components/policy-selector';
 import roleFormFactory from 'consul-ui/tests/pages/components/role-form';
 import roleSelectorFactory from 'consul-ui/tests/pages/components/role-selector';
+import consulIntentionListFactory from 'consul-ui/tests/pages/components/consul-intention-list';
+
 // TODO: should this specifically be modal or form?
 // should all forms be forms?
 
@@ -65,13 +69,26 @@ const policySelector = policySelectorFactory(clickable, deletable, collection, a
 const roleForm = roleFormFactory(submitable, cancelable, policySelector);
 const roleSelector = roleSelectorFactory(clickable, deletable, collection, alias, roleForm);
 
+const consulIntentionList = consulIntentionListFactory(collection, clickable, attribute, deletable);
+
 export default {
   index: create(index(visitable, collection)),
   dcs: create(dcs(visitable, clickable, attribute, collection)),
   services: create(
     services(visitable, clickable, text, attribute, collection, page, catalogFilter, radiogroup)
   ),
-  service: create(service(visitable, attribute, collection, text, catalogFilter, tabgroup)),
+  service: create(
+    service(
+      visitable,
+      clickable,
+      attribute,
+      collection,
+      text,
+      consulIntentionList,
+      catalogFilter,
+      tabgroup
+    )
+  ),
   instance: create(instance(visitable, attribute, collection, text, tabgroup)),
   nodes: create(nodes(visitable, clickable, attribute, collection, catalogFilter)),
   node: create(node(visitable, deletable, clickable, attribute, collection, tabgroup)),
@@ -113,9 +130,7 @@ export default {
   token: create(
     token(visitable, submitable, deletable, cancelable, clickable, policySelector, roleSelector)
   ),
-  intentions: create(
-    intentions(visitable, deletable, creatable, clickable, attribute, collection, intentionFilter)
-  ),
+  intentions: create(intentions(visitable, creatable, consulIntentionList, intentionFilter)),
   intention: create(intention(visitable, submitable, deletable, cancelable)),
   nspaces: create(
     nspaces(visitable, deletable, creatable, clickable, attribute, collection, text, freetextFilter)
