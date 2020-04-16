@@ -49,6 +49,11 @@ There are several ways to try Consul with Kubernetes in different environments.
 
 Guides
 
+ - The [Getting Started with Consul Service Mesh track](https://learn.hashicorp.com/consul/gs-consul-service-mesh/understand-consul-service-mesh?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
+   walks you through installing Consul as service mesh for Kubernetes using the Helm
+   chart, deploying services in the service mesh, and using intentions to secure service 
+   communications.
+
  - The [Consul and minikube guide](https://learn.hashicorp.com/consul/
    getting-started-k8s/minikube?utm_source=consul.io&utm_medium=docs) is a quick walk through of how to deploy Consul with the official Helm chart on a local instance of Minikube. 
 
