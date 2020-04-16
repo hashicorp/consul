@@ -1,6 +1,9 @@
 import Route from '@ember/routing/route';
+import { inject as service } from '@ember/service';
+import WithIntentionActions from 'consul-ui/mixins/intention/with-actions';
 
-export default Route.extend({
+export default Route.extend(WithIntentionActions, {
+  repo: service('repository/intention'),
   model: function() {
     const parent = this.routeName
       .split('.')
@@ -10,5 +13,9 @@ export default Route.extend({
   },
   setupController: function(controller, model) {
     controller.setProperties(model);
+  },
+  // Overwrite default afterDelete action to just refresh
+  afterDelete: function() {
+    return this.refresh();
   },
 });
