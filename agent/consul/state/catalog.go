@@ -1039,7 +1039,7 @@ func (s *Store) serviceNodes(ws memdb.WatchSet, serviceName string, connect bool
 	// to the mesh with a mix of sidecars and gateways until all its instances have a sidecar.
 	if connect {
 		// Look up gateway nodes associated with the service
-		_, nodes, chs, err := s.serviceGatewayNodes(tx, serviceName, structs.ServiceKindTerminatingGateway, entMeta)
+		_, nodes, chs, err := s.serviceGatewayNodes(tx, ws, serviceName, structs.ServiceKindTerminatingGateway, entMeta)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed gateway nodes lookup: %v", err)
 		}
@@ -1943,7 +1943,7 @@ func (s *Store) CheckConnectServiceNodes(ws memdb.WatchSet, serviceName string, 
 func (s *Store) CheckIngressServiceNodes(ws memdb.WatchSet, serviceName string, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	maxIdx, nodes, watchChs, err := s.serviceGatewayNodes(tx, serviceName, structs.ServiceKindIngressGateway, entMeta)
+	maxIdx, nodes, watchChs, err := s.serviceGatewayNodes(tx, ws, serviceName, structs.ServiceKindIngressGateway, entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed gateway nodes lookup: %v", err)
 	}
@@ -2025,7 +2025,7 @@ func (s *Store) checkServiceNodesTxn(tx *memdb.Txn, ws memdb.WatchSet, serviceNa
 	var gatewayNodesCh <-chan struct{}
 	if connect {
 		// Look up gateway nodes associated with the service
-		_, nodes, _, err := s.serviceGatewayNodes(tx, serviceName, structs.ServiceKindTerminatingGateway, entMeta)
+		_, nodes, _, err := s.serviceGatewayNodes(tx, ws, serviceName, structs.ServiceKindTerminatingGateway, entMeta)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed gateway nodes lookup: %v", err)
 		}
@@ -2641,12 +2641,16 @@ func (s *Store) gatewayServices(tx *memdb.Txn, name string, entMeta *structs.Ent
 // TODO(ingress): How to handle index rolling back when a config entry is
 // deleted that references a service?
 // We might need something like the service_last_extinction index?
-func (s *Store) serviceGatewayNodes(tx *memdb.Txn, service string, kind structs.ServiceKind, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceNodes, []<-chan struct{}, error) {
+func (s *Store) serviceGatewayNodes(tx *memdb.Txn, ws memdb.WatchSet, service string, kind structs.ServiceKind, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceNodes, []<-chan struct{}, error) {
 	// Look up gateway name associated with the service
 	gws, err := s.serviceGateways(tx, service, entMeta)
 	if err != nil {
 		return 0, nil, nil, fmt.Errorf("failed gateway lookup: %s", err)
 	}
+
+	// Adding this channel to the WatchSet means that the watch will fire if a config entry targeting the service is added.
+	// Otherwise, if there's no associated gateway, then no watch channel would be returned
+	ws.Add(gws.WatchCh())
 
 	var ret structs.ServiceNodes
 	var watchChans []<-chan struct{}
