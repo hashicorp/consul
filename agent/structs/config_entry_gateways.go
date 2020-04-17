@@ -200,6 +200,9 @@ type LinkedService struct {
 	// from the gateway to the linked service
 	KeyFile string `json:",omitempty"`
 
+	// SNI is the optional name to specify during the TLS handshake with a linked service
+	SNI string `json:",omitempty"`
+
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
 
