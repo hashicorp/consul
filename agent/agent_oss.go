@@ -9,6 +9,9 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
+// enterpriseAgent embeds fields that we only access in consul-enterprise builds
+type enterpriseAgent struct{}
+
 // fillAgentServiceEnterpriseMeta is a noop stub for the func defined agent_ent.go
 func fillAgentServiceEnterpriseMeta(_ *api.AgentService, _ *structs.EnterpriseMeta) {}
 

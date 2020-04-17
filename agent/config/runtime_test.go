@@ -3884,20 +3884,6 @@ func TestFullConfig(t *testing.T) {
 			},
 			"advertise_addr": "17.99.29.16",
 			"advertise_addr_wan": "78.63.37.19",
-			"audit": {
-				"enabled": true,
-				"sink": {
-					"test": {
-						"type": "file",
-						"format": "json",
-						"delivery_guarantee": "best-effort",
-						"path": "/test/path",
-						"rotate_bytes": 0,
-						"rotate_max_files": 0,
-						"rotate_duration": "0"
-					}
-				}
-			},
 			"autopilot": {
 				"cleanup_dead_servers": true,
 				"disable_upgrade_migration": true,
@@ -4529,18 +4515,6 @@ func TestFullConfig(t *testing.T) {
 			}
 			advertise_addr = "17.99.29.16"
 			advertise_addr_wan = "78.63.37.19"
-			audit {
-				enabled = true
-				sink "test" {
-					type = "file"
-					format = "json"
-					delivery_guarantee = "best-effort"
-					path = "/test/path"
-					rotate_bytes = 0
-					rotate_max_files = 0
-					rotate_duration = "0"
-				}
-			}
 			autopilot = {
 				cleanup_dead_servers = true
 				disable_upgrade_migration = true

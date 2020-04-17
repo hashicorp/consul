@@ -16,7 +16,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/go-connlimit"
@@ -179,10 +178,6 @@ type Agent struct {
 	// In-memory sink used for collecting metrics
 	MemSink *metrics.InmemSink
 
-	// Eventer provides a backend for handling event logging. APIs are provided on the agent for interacting with
-	// this reloadable type
-	Eventer atomic.Value
-
 	// delegate is either a *consul.Server or *consul.Client
 	// depending on the configuration
 	delegate delegate
@@ -317,6 +312,9 @@ type Agent struct {
 	// httpConnLimiter is used to limit connections to the HTTP server by client
 	// IP.
 	httpConnLimiter connlimit.Limiter
+
+	// enterpriseAgent embeds fields that we only access in consul-enterprise builds
+	enterpriseAgent
 }
 
 // New verifies the configuration given has a Datacenter and DataDir
