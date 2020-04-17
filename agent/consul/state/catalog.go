@@ -776,21 +776,9 @@ func (s *Store) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *st
 	}
 
 	// Check if this service is covered by a gateway's wildcard specifier
-	svcGateways, err := s.serviceGateways(tx, structs.WildcardSpecifier, &svc.EnterpriseMeta)
+	err = s.checkGatewayWildcardsAndUpdate(tx, idx, svc)
 	if err != nil {
-		return fmt.Errorf("failed gateway lookup for %q: %s", svc.Service, err)
-	}
-	for service := svcGateways.Next(); service != nil; service = svcGateways.Next() {
-		if wildcardSvc, ok := service.(*structs.GatewayService); ok && wildcardSvc != nil {
-
-			// Copy the wildcard mapping and modify it
-			gatewaySvc := wildcardSvc.Clone()
-			gatewaySvc.Service = structs.NewServiceID(svc.Service, &svc.EnterpriseMeta)
-
-			if err = s.updateGatewayService(tx, idx, gatewaySvc); err != nil {
-				return fmt.Errorf("Failed to associate service %q with gateway %q", gatewaySvc.Service.String(), gatewaySvc.Gateway.String())
-			}
-		}
+		return fmt.Errorf("failed updating gateway mapping: %s", err)
 	}
 
 	// Create the service node entry and populate the indexes. Note that
@@ -2602,6 +2590,34 @@ func (s *Store) updateGatewayService(tx *memdb.Txn, idx uint64, mapping *structs
 
 	if err := indexUpdateMaxTxn(tx, idx, gatewayServicesTableName); err != nil {
 		return fmt.Errorf("failed updating gateway-services index: %v", err)
+	}
+	return nil
+}
+
+// checkWildcardForGatewaysAndUpdate checks whether a service matches a
+// wildcard definition in gateway config entries and if so adds it the the
+// gateway-services table.
+func (s *Store) checkGatewayWildcardsAndUpdate(tx *memdb.Txn, idx uint64, svc *structs.NodeService) error {
+	// Do not associate non-typical services with gateways or consul services
+	if svc.Kind != structs.ServiceKindTypical || svc.Service == "consul" {
+		return nil
+	}
+
+	svcGateways, err := s.serviceGateways(tx, structs.WildcardSpecifier, &svc.EnterpriseMeta)
+	if err != nil {
+		return fmt.Errorf("failed gateway lookup for %q: %s", svc.Service, err)
+	}
+	for service := svcGateways.Next(); service != nil; service = svcGateways.Next() {
+		if wildcardSvc, ok := service.(*structs.GatewayService); ok && wildcardSvc != nil {
+
+			// Copy the wildcard mapping and modify it
+			gatewaySvc := wildcardSvc.Clone()
+			gatewaySvc.Service = structs.NewServiceID(svc.Service, &svc.EnterpriseMeta)
+
+			if err = s.updateGatewayService(tx, idx, gatewaySvc); err != nil {
+				return fmt.Errorf("Failed to associate service %q with gateway %q", gatewaySvc.Service.String(), gatewaySvc.Gateway.String())
+			}
+		}
 	}
 	return nil
 }
