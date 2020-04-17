@@ -6,4 +6,9 @@ export default Adapter.extend({
       GET /v1/catalog/datacenters
     `;
   },
+  requestForQuery: function(request) {
+    return request`
+      GET /v1/catalog/datacenters
+    `;
+  },
 });
