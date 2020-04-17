@@ -253,8 +253,9 @@ func (e *TerminatingGatewayConfigEntry) Validate() error {
 		}
 		seen[cid] = true
 
-		// If any TLS config flag was specified, all must be
-		if (svc.CAFile != "" || svc.CertFile != "" || svc.KeyFile != "") &&
+		// If either client cert config file was specified then the CA file, client cert, and key file must be specified
+		// Specifying only a CAFile is allowed for one-way TLS
+		if (svc.CertFile != "" || svc.KeyFile != "") &&
 			!(svc.CAFile != "" && svc.CertFile != "" && svc.KeyFile != "") {
 
 			return fmt.Errorf("Service %q must have a CertFile, CAFile, and KeyFile specified for TLS origination", svc.Name)
