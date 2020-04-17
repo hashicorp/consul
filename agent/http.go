@@ -399,6 +399,10 @@ var (
 func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 	httpLogger := s.agent.logger.Named(logging.HTTP)
 	return func(resp http.ResponseWriter, req *http.Request) {
+
+		// Audit log the request
+		reqPayload := s.auditReq(req)
+
 		setHeaders(resp, s.agent.config.HTTPResponseHeaders)
 		setTranslateAddr(resp, s.agent.config.TranslateWANAddrs)
 
@@ -476,33 +480,44 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 				"from", req.RemoteAddr,
 				"error", err,
 			)
+			var httpCode int
 			switch {
 			case isForbidden(err):
-				resp.WriteHeader(http.StatusForbidden)
+				httpCode = http.StatusForbidden
+				resp.WriteHeader(httpCode)
 				fmt.Fprint(resp, err.Error())
 			case structs.IsErrRPCRateExceeded(err):
-				resp.WriteHeader(http.StatusTooManyRequests)
+				httpCode = http.StatusTooManyRequests
+				resp.WriteHeader(httpCode)
 			case isMethodNotAllowed(err):
 				// RFC2616 states that for 405 Method Not Allowed the response
 				// MUST include an Allow header containing the list of valid
 				// methods for the requested resource.
 				// https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
 				addAllowHeader(err.(MethodNotAllowedError).Allow)
-				resp.WriteHeader(http.StatusMethodNotAllowed) // 405
+				httpCode = http.StatusMethodNotAllowed
+				resp.WriteHeader(httpCode) // 405
 				fmt.Fprint(resp, err.Error())
 			case isBadRequest(err):
-				resp.WriteHeader(http.StatusBadRequest)
+				httpCode = http.StatusBadRequest
+				resp.WriteHeader(httpCode)
 				fmt.Fprint(resp, err.Error())
 			case isNotFound(err):
-				resp.WriteHeader(http.StatusNotFound)
+				httpCode = http.StatusNotFound
+				resp.WriteHeader(httpCode)
 				fmt.Fprintf(resp, err.Error())
 			case isTooManyRequests(err):
-				resp.WriteHeader(http.StatusTooManyRequests)
+				httpCode = http.StatusTooManyRequests
+				resp.WriteHeader(httpCode)
 				fmt.Fprint(resp, err.Error())
 			default:
-				resp.WriteHeader(http.StatusInternalServerError)
+				httpCode = http.StatusInternalServerError
+				resp.WriteHeader(httpCode)
 				fmt.Fprint(resp, err.Error())
 			}
+
+			// Audit log the error response
+			s.auditResp(reqPayload, httpCode)
 		}
 
 		start := time.Now()
@@ -577,6 +592,10 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 		}
 		resp.Header().Set("Content-Type", contentType)
 		resp.WriteHeader(httpCode)
+
+		// Audit log the success response
+		s.auditResp(reqPayload, httpCode)
+
 		resp.Write(buf)
 	}
 }
@@ -925,10 +944,7 @@ func (s *HTTPServer) parseDC(req *http.Request, dc *string) {
 }
 
 // parseTokenInternal is used to parse the ?token query param or the X-Consul-Token header or
-// Authorization Bearer token (RFC6750) and
-// optionally resolve proxy tokens to real ACL tokens. If the token is invalid or not specified it will populate
-// the token with the agents UserToken (acl_token in the consul configuration)
-// Parsing has the following priority: ?token, X-Consul-Token and last "Authorization: Bearer "
+// Authorization Bearer token (RFC6750).
 func (s *HTTPServer) parseTokenInternal(req *http.Request, token *string) {
 	tok := ""
 	if other := req.URL.Query().Get("token"); other != "" {
@@ -949,25 +965,33 @@ func (s *HTTPServer) parseTokenInternal(req *http.Request, token *string) {
 
 			// <Scheme> must be "Bearer"
 			if strings.ToLower(scheme) == "bearer" {
-				// Since Bearer tokens shouldnt contain spaces (rfc6750#section-2.1)
+				// Since Bearer tokens shouldn't contain spaces (rfc6750#section-2.1)
 				// "value" is tokenized, only the first item is used
 				tok = strings.TrimSpace(strings.Split(value, " ")[0])
 			}
 		}
 	}
 
-	if tok != "" {
-		*token = tok
+	*token = tok
+	return
+}
+
+// parseTokenResolveProxy passes through to parseTokenInternal and optionally resolves proxy tokens to real ACL tokens.
+// If the token is invalid or not specified it will populate the token with the agents UserToken (acl_token in the
+// consul configuration)
+func (s *HTTPServer) parseTokenResolveProxy(req *http.Request, token *string) {
+	s.parseTokenInternal(req, token) // parseTokenInternal modifies *token
+	if token != nil && *token == "" {
+		*token = s.agent.tokens.UserToken()
 		return
 	}
-
-	*token = s.agent.tokens.UserToken()
+	return
 }
 
 // parseToken is used to parse the ?token query param or the X-Consul-Token header or
-// Authorization Bearer token header (RFC6750)
+// Authorization Bearer token header (RFC6750). This function is used widely in Consul's endpoints
 func (s *HTTPServer) parseToken(req *http.Request, token *string) {
-	s.parseTokenInternal(req, token)
+	s.parseTokenResolveProxy(req, token)
 }
 
 func sourceAddrFromRequest(req *http.Request) string {
@@ -1027,7 +1051,7 @@ func (s *HTTPServer) parseMetaFilter(req *http.Request) map[string]string {
 func (s *HTTPServer) parseInternal(resp http.ResponseWriter, req *http.Request, dc *string, b structs.QueryOptionsCompat) bool {
 	s.parseDC(req, dc)
 	var token string
-	s.parseTokenInternal(req, &token)
+	s.parseTokenResolveProxy(req, &token)
 	b.SetToken(token)
 	var filter string
 	s.parseFilter(req, &filter)

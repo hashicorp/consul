@@ -312,6 +312,9 @@ type Agent struct {
 	// httpConnLimiter is used to limit connections to the HTTP server by client
 	// IP.
 	httpConnLimiter connlimit.Limiter
+
+	// enterpriseAgent embeds fields that we only access in consul-enterprise builds
+	enterpriseAgent
 }
 
 // New verifies the configuration given has a Datacenter and DataDir
@@ -430,7 +433,10 @@ func (a *Agent) Start() error {
 	// waiting to discover a consul server
 	consulCfg.ServerUp = a.sync.SyncFull.Trigger
 
-	a.initEnterprise(consulCfg)
+	err = a.initEnterprise(consulCfg)
+	if err != nil {
+		return fmt.Errorf("failed to start Consul enterprise component: %v", err)
+	}
 
 	tlsConfigurator, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), a.logger)
 	if err != nil {
@@ -4094,6 +4100,11 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	// an in place modification is safe as reloads cannot be
 	// concurrent due to both gaining a full lock on the stateLock
 	a.config.ConfigEntryBootstrap = newCfg.ConfigEntryBootstrap
+
+	err := a.reloadEnterprise(newCfg)
+	if err != nil {
+		return err
+	}
 
 	// create the config for the rpc server/client
 	consulCfg, err := a.consulConfig()

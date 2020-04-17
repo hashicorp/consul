@@ -316,6 +316,9 @@ type Config struct {
 	SyncCoordinateRateTarget   *float64 `json:"sync_coordinate_rate_target,omitempty" hcl:"sync_coordinate_rate_target" mapstructure:"sync_coordinate_rate_target"`
 	Version                    *string  `json:"version,omitempty" hcl:"version" mapstructure:"version"`
 	VersionPrerelease          *string  `json:"version_prerelease,omitempty" hcl:"version_prerelease" mapstructure:"version_prerelease"`
+
+	// enterpriseConfig embeds fields that we only access in consul-enterprise builds
+	EnterpriseConfig `hcl:",squash" mapstructure:",squash"`
 }
 
 type GossipLANConfig struct {
