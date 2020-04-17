@@ -4854,6 +4854,62 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 	})
 }
 
+func TestStateStore_GatewayServices_WildcardAssociation(t *testing.T) {
+	s := testStateStore(t)
+	setupIngressState(t, s)
+	require := require.New(t)
+	ws := memdb.NewWatchSet()
+
+	t.Run("base case for wildcard", func(t *testing.T) {
+		idx, results, err := s.GatewayServices(ws, "wildcardIngress", nil)
+		require.NoError(err)
+		require.Equal(uint64(14), idx)
+		require.Len(results, 3)
+	})
+
+	t.Run("do not associate ingress services with gateway", func(t *testing.T) {
+		testRegisterIngressService(t, s, 15, "node1", "testIngress")
+		require.False(watchFired(ws))
+		idx, results, err := s.GatewayServices(ws, "wildcardIngress", nil)
+		require.NoError(err)
+		require.Equal(uint64(14), idx)
+		require.Len(results, 3)
+	})
+
+	t.Run("do not associate terminating-gateway services with gateway", func(t *testing.T) {
+		require.Nil(s.EnsureService(16, "node1",
+			&structs.NodeService{
+				Kind: structs.ServiceKindTerminatingGateway, ID: "gateway", Service: "gateway", Port: 443,
+			},
+		))
+		require.False(watchFired(ws))
+		idx, results, err := s.GatewayServices(ws, "wildcardIngress", nil)
+		require.NoError(err)
+		require.Equal(uint64(14), idx)
+		require.Len(results, 3)
+	})
+
+	t.Run("do not associate connect-proxy services with gateway", func(t *testing.T) {
+		testRegisterSidecarProxy(t, s, 17, "node1", "web")
+		require.False(watchFired(ws))
+		idx, results, err := s.GatewayServices(ws, "wildcardIngress", nil)
+		require.NoError(err)
+		require.Equal(uint64(14), idx)
+		require.Len(results, 3)
+	})
+
+	t.Run("do not associate consul services with gateway", func(t *testing.T) {
+		require.Nil(s.EnsureService(18, "node1",
+			&structs.NodeService{ID: "consul", Service: "consul", Tags: nil},
+		))
+		require.False(watchFired(ws))
+		idx, results, err := s.GatewayServices(ws, "wildcardIngress", nil)
+		require.NoError(err)
+		require.Equal(uint64(14), idx)
+		require.Len(results, 3)
+	})
+}
+
 func setupIngressState(t *testing.T, s *Store) memdb.WatchSet {
 	// Querying with no matches gives an empty response
 	ws := memdb.NewWatchSet()
