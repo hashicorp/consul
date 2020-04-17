@@ -25,6 +25,12 @@ export default Service.extend({
   },
   willDestroy: function() {
     this._listeners.remove();
+    Object.entries(sources || {}).forEach(function([key, item]) {
+      item.close();
+    });
+    cache = null;
+    sources = null;
+    usage = null;
   },
 
   open: function(uri, ref) {
@@ -35,13 +41,10 @@ export default Service.extend({
       uri = `consul://${uri}`;
     }
     if (!sources.has(uri)) {
-      const url = new URL(uri);
-      let pathname = url.pathname;
+      let [providerName, pathname] = uri.split('://');
       if (pathname.startsWith('//')) {
         pathname = pathname.substr(2);
       }
-      const providerName = url.protocol.substr(0, url.protocol.length - 1);
-
       const provider = this[providerName];
 
       let configuration = {};
