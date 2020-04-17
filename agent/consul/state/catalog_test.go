@@ -4562,12 +4562,13 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 			},
 		},
 		{
-			Service:     structs.NewServiceID("redis", nil),
-			Gateway:     structs.NewServiceID("gateway", nil),
-			GatewayKind: structs.ServiceKindTerminatingGateway,
-			CAFile:      "ca.crt",
-			CertFile:    "client.crt",
-			KeyFile:     "client.key",
+			Service:      structs.NewServiceID("redis", nil),
+			Gateway:      structs.NewServiceID("gateway", nil),
+			GatewayKind:  structs.ServiceKindTerminatingGateway,
+			CAFile:       "ca.crt",
+			CertFile:     "client.crt",
+			KeyFile:      "client.key",
+			FromWildcard: true,
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 23,
 				ModifyIndex: 23,
@@ -4659,18 +4660,20 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 
 	expect = structs.GatewayServices{
 		{
-			Service:     structs.NewServiceID("api", nil),
-			Gateway:     structs.NewServiceID("gateway2", nil),
-			GatewayKind: structs.ServiceKindTerminatingGateway,
+			Service:      structs.NewServiceID("api", nil),
+			Gateway:      structs.NewServiceID("gateway2", nil),
+			GatewayKind:  structs.ServiceKindTerminatingGateway,
+			FromWildcard: true,
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 26,
 				ModifyIndex: 26,
 			},
 		},
 		{
-			Service:     structs.NewServiceID("db", nil),
-			Gateway:     structs.NewServiceID("gateway2", nil),
-			GatewayKind: structs.ServiceKindTerminatingGateway,
+			Service:      structs.NewServiceID("db", nil),
+			Gateway:      structs.NewServiceID("gateway2", nil),
+			GatewayKind:  structs.ServiceKindTerminatingGateway,
+			FromWildcard: true,
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 26,
 				ModifyIndex: 26,
@@ -4687,6 +4690,154 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(27))
 	assert.Len(t, out, 0)
+}
+
+func TestStateStore_GatewayServices_ServiceDeletion(t *testing.T) {
+	s := testStateStore(t)
+
+	// Listing with no results returns an empty list.
+	ws := memdb.NewWatchSet()
+	idx, nodes, err := s.GatewayServices(ws, "gateway", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(0))
+	assert.Len(t, nodes, 0)
+
+	// Create some nodes
+	assert.Nil(t, s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
+	assert.Nil(t, s.EnsureNode(11, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
+	assert.Nil(t, s.EnsureNode(12, &structs.Node{Node: "baz", Address: "127.0.0.2"}))
+
+	// Typical services and some consul services spread across two nodes
+	assert.Nil(t, s.EnsureService(13, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
+	assert.Nil(t, s.EnsureService(14, "foo", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
+
+	// Register two gateways
+	assert.Nil(t, s.EnsureService(17, "bar", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway", Service: "gateway", Port: 443}))
+	assert.Nil(t, s.EnsureService(18, "baz", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "other-gateway", Service: "other-gateway", Port: 443}))
+
+	// Associate the first gateway with db
+	assert.Nil(t, s.EnsureConfigEntry(19, &structs.TerminatingGatewayConfigEntry{
+		Kind: "terminating-gateway",
+		Name: "gateway",
+		Services: []structs.LinkedService{
+			{
+				Name:   "db",
+				CAFile: "my_ca.pem",
+			},
+		},
+	}, nil))
+	assert.True(t, watchFired(ws))
+
+	// Associate the other gateway with a wildcard
+	assert.Nil(t, s.EnsureConfigEntry(20, &structs.TerminatingGatewayConfigEntry{
+		Kind: "terminating-gateway",
+		Name: "other-gateway",
+		Services: []structs.LinkedService{
+			{
+				Name: "*",
+			},
+		},
+	}, nil))
+	assert.True(t, watchFired(ws))
+
+	// Read everything back for first gateway.
+	ws = memdb.NewWatchSet()
+	idx, out, err := s.GatewayServices(ws, "gateway", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(20))
+	assert.Len(t, out, 1)
+
+	expect := structs.GatewayServices{
+		{
+			Service:     structs.NewServiceID("db", nil),
+			Gateway:     structs.NewServiceID("gateway", nil),
+			GatewayKind: structs.ServiceKindTerminatingGateway,
+			CAFile:      "my_ca.pem",
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 19,
+				ModifyIndex: 19,
+			},
+		},
+	}
+	assert.Equal(t, expect, out)
+
+	// Read everything back for other gateway.
+	otherWS := memdb.NewWatchSet()
+	idx, out, err = s.GatewayServices(otherWS, "other-gateway", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(20))
+	assert.Len(t, out, 2)
+
+	expect = structs.GatewayServices{
+		{
+			Service:      structs.NewServiceID("api", nil),
+			Gateway:      structs.NewServiceID("other-gateway", nil),
+			GatewayKind:  structs.ServiceKindTerminatingGateway,
+			FromWildcard: true,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 20,
+				ModifyIndex: 20,
+			},
+		},
+		{
+			Service:      structs.NewServiceID("db", nil),
+			Gateway:      structs.NewServiceID("other-gateway", nil),
+			GatewayKind:  structs.ServiceKindTerminatingGateway,
+			FromWildcard: true,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 20,
+				ModifyIndex: 20,
+			},
+		},
+	}
+	assert.Equal(t, expect, out)
+
+	// Delete a service specified directly.
+	assert.Nil(t, s.DeleteService(20, "foo", "db", nil))
+
+	// Only the watch for other-gateway should fire, since its association to db came from a wildcard
+	assert.False(t, watchFired(ws))
+	assert.True(t, watchFired(otherWS))
+
+	// db should remain in the original gateway
+	idx, out, err = s.GatewayServices(ws, "gateway", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(20))
+	assert.Len(t, out, 1)
+
+	expect = structs.GatewayServices{
+		{
+			Service:     structs.NewServiceID("db", nil),
+			Gateway:     structs.NewServiceID("gateway", nil),
+			GatewayKind: structs.ServiceKindTerminatingGateway,
+			CAFile:      "my_ca.pem",
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 19,
+				ModifyIndex: 19,
+			},
+		},
+	}
+	assert.Equal(t, expect, out)
+
+	// db should not have been deleted from the other gateway
+	idx, out, err = s.GatewayServices(ws, "other-gateway", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(20))
+	assert.Len(t, out, 1)
+
+	expect = structs.GatewayServices{
+		{
+			Service:      structs.NewServiceID("api", nil),
+			Gateway:      structs.NewServiceID("other-gateway", nil),
+			GatewayKind:  structs.ServiceKindTerminatingGateway,
+			FromWildcard: true,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 20,
+				ModifyIndex: 20,
+			},
+		},
+	}
+	assert.Equal(t, expect, out)
 }
 
 func TestStateStore_CheckIngressServiceNodes(t *testing.T) {

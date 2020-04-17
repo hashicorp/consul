@@ -292,13 +292,14 @@ func (e *TerminatingGatewayConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
 
 // GatewayService is used to associate gateways with their linked services.
 type GatewayService struct {
-	Gateway     ServiceID
-	Service     ServiceID
-	GatewayKind ServiceKind
-	Port        int
-	CAFile      string
-	CertFile    string
-	KeyFile     string
+	Gateway      ServiceID
+	Service      ServiceID
+	GatewayKind  ServiceKind
+	Port         int
+	CAFile       string
+	CertFile     string
+	KeyFile      string
+	FromWildcard bool
 	RaftIndex
 }
 
