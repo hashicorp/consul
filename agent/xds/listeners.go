@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/consul/logging"
 	"net"
 	"net/url"
 	"regexp"
@@ -567,6 +568,15 @@ func (s *Server) makeTerminatingGatewayListener(name, addr string, port int, cfg
 	for svc, _ := range cfgSnap.TerminatingGateway.ServiceGroups {
 		clusterName := connect.ServiceSNI(svc.ID, "", svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 		resolver, hasResolver := cfgSnap.TerminatingGateway.ServiceResolvers[svc]
+
+		// Skip the service if we don't have a cert to present for mTLS
+		if cert, ok := cfgSnap.TerminatingGateway.ServiceLeaves[svc]; !ok || cert == nil {
+			// TODO (gateways) (freddy) Should the error suggest that the issue may be ACLs? (need service:write on service)
+			s.Logger.Named(logging.TerminatingGateway).
+				Error("no client certificate available for linked service, skipping filter chain creation",
+					"service", svc.String(), "error", err)
+			continue
+		}
 
 		clusterChain, err := s.sniFilterChainTerminatingGateway(name, clusterName, svc, cfgSnap)
 		if err != nil {

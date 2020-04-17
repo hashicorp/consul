@@ -381,7 +381,6 @@ func (s *state) initWatchesTerminatingGateway() error {
 		Datacenter:     s.source.Datacenter,
 		QueryOptions:   structs.QueryOptions{Token: s.token},
 		ServiceName:    s.service,
-		ServiceKind:    structs.ServiceKindTerminatingGateway,
 		EnterpriseMeta: s.proxyID.EnterpriseMeta,
 	}, gatewayServicesWatchID, s.ch)
 	if err != nil {

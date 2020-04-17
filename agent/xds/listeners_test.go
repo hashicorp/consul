@@ -363,6 +363,13 @@ func TestListenersFromSnapshot(t *testing.T) {
 				}
 			},
 		},
+		{
+			name:   "terminating-gateway-no-api-cert",
+			create: proxycfg.TestConfigSnapshotTerminatingGateway,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.TerminatingGateway.ServiceLeaves[structs.NewServiceID("api", nil)] = nil
+			},
+		},
 	}
 
 	for _, tt := range tests {
