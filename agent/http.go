@@ -976,10 +976,10 @@ func (s *HTTPServer) parseTokenInternal(req *http.Request, token *string) {
 	return
 }
 
-// parseTokenResolveProxy passes through to parseTokenInternal and optionally resolves proxy tokens to real ACL tokens.
+// parseTokenWithDefault passes through to parseTokenInternal and optionally resolves proxy tokens to real ACL tokens.
 // If the token is invalid or not specified it will populate the token with the agents UserToken (acl_token in the
 // consul configuration)
-func (s *HTTPServer) parseTokenResolveProxy(req *http.Request, token *string) {
+func (s *HTTPServer) parseTokenWithDefault(req *http.Request, token *string) {
 	s.parseTokenInternal(req, token) // parseTokenInternal modifies *token
 	if token != nil && *token == "" {
 		*token = s.agent.tokens.UserToken()
@@ -991,7 +991,7 @@ func (s *HTTPServer) parseTokenResolveProxy(req *http.Request, token *string) {
 // parseToken is used to parse the ?token query param or the X-Consul-Token header or
 // Authorization Bearer token header (RFC6750). This function is used widely in Consul's endpoints
 func (s *HTTPServer) parseToken(req *http.Request, token *string) {
-	s.parseTokenResolveProxy(req, token)
+	s.parseTokenWithDefault(req, token)
 }
 
 func sourceAddrFromRequest(req *http.Request) string {
@@ -1051,7 +1051,7 @@ func (s *HTTPServer) parseMetaFilter(req *http.Request) map[string]string {
 func (s *HTTPServer) parseInternal(resp http.ResponseWriter, req *http.Request, dc *string, b structs.QueryOptionsCompat) bool {
 	s.parseDC(req, dc)
 	var token string
-	s.parseTokenResolveProxy(req, &token)
+	s.parseTokenWithDefault(req, &token)
 	b.SetToken(token)
 	var filter string
 	s.parseFilter(req, &filter)
