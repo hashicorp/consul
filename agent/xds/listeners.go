@@ -259,7 +259,9 @@ func (s *Server) listenersFromSnapshotGateway(cfgSnap *proxycfg.ConfigSnapshot, 
 				return nil, err
 			}
 		}
-		resources = append(resources, l)
+		if l != nil {
+			resources = append(resources, l)
+		}
 	}
 	return resources, err
 }
@@ -600,6 +602,9 @@ func (s *Server) makeTerminatingGatewayListener(name, addr string, port int, cfg
 	}
 
 	err = injectConnectFilters(cfgSnap, token, l, false)
+	if err != nil {
+		return nil, fmt.Errorf("failed to inject authz filer: %v", err)
+	}
 
 	// This fallback catch-all filter ensures a listener will be present for health checks to pass
 	// Envoy will reset these connections since known endpoints are caught by filter chain matches above
