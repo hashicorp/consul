@@ -1,21 +1,19 @@
-<HashicorpConsul @id="wrapper" @permissions={{permissions}} @dcs={{dcs}} @dc={{dc}} @nspaces={{nspaces}} @nspace={{nspace}}>
-    <AppView @class="error show">
-        <BlockSlot @name="header">
-            <h1 data-test-error>
+<AppView @class="error show">
+    <BlockSlot @name="header">
+        <h1 data-test-error>
 {{#if error.status }}
-                {{error.status}} ({{error.message}})
+            {{error.status}} ({{error.message}})
 {{else}}
-                {{error.message}}
+            {{error.message}}
 {{/if}}
-            </h1>
-        </BlockSlot>
-        <BlockSlot @name="content">
-            <p>
-                Consul returned an error.
-                You may have visited a URL that is loading an unknown resource, so you can try going back to the root or try re-submitting your ACL Token/SecretID by going back to ACLs.<br />
-                Try looking in our <a href="{{env 'CONSUL_DOCS_URL'}}" target="_blank">documentation</a>
-            </p>
-            <a data-test-home rel="home" href={{href-to 'index'}}>Go back to root</a>
-        </BlockSlot>
-    </AppView>
-</HashicorpConsul>
+        </h1>
+    </BlockSlot>
+    <BlockSlot @name="content">
+        <p>
+            Consul returned an error.
+            You may have visited a URL that is loading an unknown resource, so you can try going back to the root or try re-submitting your ACL Token/SecretID by going back to ACLs.<br />
+            Try looking in our <a href="{{env 'CONSUL_DOCS_URL'}}" target="_blank">documentation</a>
+        </p>
+        <a data-test-home rel="home" href={{href-to 'index'}}>Go back to root</a>
+    </BlockSlot>
+</AppView>

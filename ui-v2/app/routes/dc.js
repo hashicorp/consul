@@ -28,37 +28,33 @@ export default Route.extend({
   nspacesRepo: service('repository/nspace/disabled'),
   settingsRepo: service('settings'),
   model: function(params) {
-    const repo = this.repo;
-    const nspacesRepo = this.nspacesRepo;
-    const settingsRepo = this.settingsRepo;
+    const app = this.modelFor('application');
     return hash({
-      dcs: repo.findAll(),
-      nspaces: nspacesRepo.findAll(),
-      nspace: nspacesRepo.getActive(),
-      token: settingsRepo.findBySlug('token'),
+      nspace: this.nspacesRepo.getActive(),
+      token: this.settingsRepo.findBySlug('token'),
+      dc: this.repo.findBySlug(params.dc, app.dcs),
     })
       .then(function(model) {
         return hash({
           ...model,
           ...{
-            dc: repo.findBySlug(params.dc, model.dcs),
             // if there is only 1 namespace then use that
             // otherwise find the namespace object that corresponds
             // to the active one
             nspace:
-              model.nspaces.length > 1
-                ? findActiveNspace(model.nspaces, model.nspace)
-                : model.nspaces.firstObject,
+              app.nspaces.length > 1
+                ? findActiveNspace(app.nspaces, model.nspace)
+                : app.nspaces.firstObject,
           },
         });
       })
-      .then(function(model) {
+      .then(model => {
         if (get(model, 'token.SecretID')) {
           return hash({
             ...model,
             ...{
               // When disabled nspaces is [], so nspace is undefined
-              permissions: nspacesRepo.authorize(params.dc, get(model, 'nspace.Name')),
+              permissions: this.nspacesRepo.authorize(params.dc, get(model, 'nspace.Name')),
             },
           });
         } else {
@@ -67,7 +63,10 @@ export default Route.extend({
       });
   },
   setupController: function(controller, model) {
-    controller.setProperties(model);
+    // the model here is actually required for the entire application
+    // but we need to wait until we are in this route so we know what the dc
+    // and or nspace is
+    this.controllerFor('application').setProperties(model);
   },
   actions: {
     // TODO: This will eventually be deprecated please see
@@ -85,15 +84,13 @@ export default Route.extend({
         // including your permissions for being able to manage namespaces
         // Potentially we should just do this on every single transition
         // but then we would need to check to see if nspaces are enabled
+        const controller = this.controllerFor('application');
         Promise.all([
           this.nspacesRepo.findAll(),
-          this.nspacesRepo.authorize(
-            get(this.controller, 'dc.Name'),
-            get(this.controller, 'nspace.Name')
-          ),
+          this.nspacesRepo.authorize(get(controller, 'dc.Name'), get(controller, 'nspace.Name')),
         ]).then(([nspaces, permissions]) => {
-          if (typeof this.controller !== 'undefined') {
-            this.controller.setProperties({
+          if (typeof controller !== 'undefined') {
+            controller.setProperties({
               nspaces: nspaces,
               permissions: permissions,
             });
