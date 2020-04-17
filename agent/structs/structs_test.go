@@ -2139,22 +2139,28 @@ func TestGatewayService_IsSame(t *testing.T) {
 	ca := "ca.pem"
 	cert := "client.pem"
 	key := "tls.key"
+	sni := "mydomain"
+	wildcard := false
 
 	g := &GatewayService{
-		Gateway:     gateway,
-		Service:     svc,
-		GatewayKind: kind,
-		CAFile:      ca,
-		CertFile:    cert,
-		KeyFile:     key,
+		Gateway:      gateway,
+		Service:      svc,
+		GatewayKind:  kind,
+		CAFile:       ca,
+		CertFile:     cert,
+		KeyFile:      key,
+		SNI:          sni,
+		FromWildcard: wildcard,
 	}
 	other := &GatewayService{
-		Gateway:     gateway,
-		Service:     svc,
-		GatewayKind: kind,
-		CAFile:      ca,
-		CertFile:    cert,
-		KeyFile:     key,
+		Gateway:      gateway,
+		Service:      svc,
+		GatewayKind:  kind,
+		CAFile:       ca,
+		CertFile:     cert,
+		KeyFile:      key,
+		SNI:          sni,
+		FromWildcard: wildcard,
 	}
 	check := func(twiddle, restore func()) {
 		t.Helper()
@@ -2178,6 +2184,8 @@ func TestGatewayService_IsSame(t *testing.T) {
 	check(func() { other.CAFile = "/certs/cert.pem" }, func() { other.CAFile = ca })
 	check(func() { other.CertFile = "/certs/cert.pem" }, func() { other.CertFile = cert })
 	check(func() { other.KeyFile = "/certs/cert.pem" }, func() { other.KeyFile = key })
+	check(func() { other.SNI = "alt-domain" }, func() { other.SNI = sni })
+	check(func() { other.FromWildcard = true }, func() { other.FromWildcard = wildcard })
 
 	if !g.IsSame(other) {
 		t.Fatalf("should be equal, was %#v VS %#v", g, other)

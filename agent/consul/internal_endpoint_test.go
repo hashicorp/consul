@@ -731,6 +731,7 @@ func TestInternal_TerminatingGatewayServices(t *testing.T) {
 						CAFile:   "api/ca.crt",
 						CertFile: "api/client.crt",
 						KeyFile:  "api/client.key",
+						SNI:      "my-domain",
 					},
 					{
 						Name: "db",
@@ -740,6 +741,7 @@ func TestInternal_TerminatingGatewayServices(t *testing.T) {
 						CAFile:   "ca.crt",
 						CertFile: "client.crt",
 						KeyFile:  "client.key",
+						SNI:      "my-alt-domain",
 					},
 				},
 			},
@@ -766,6 +768,7 @@ func TestInternal_TerminatingGatewayServices(t *testing.T) {
 				CAFile:      "api/ca.crt",
 				CertFile:    "api/client.crt",
 				KeyFile:     "api/client.key",
+				SNI:         "my-domain",
 			},
 			{
 				Service:     structs.NewServiceID("db", nil),
@@ -782,6 +785,7 @@ func TestInternal_TerminatingGatewayServices(t *testing.T) {
 				CAFile:       "ca.crt",
 				CertFile:     "client.crt",
 				KeyFile:      "client.key",
+				SNI:          "my-alt-domain",
 				FromWildcard: true,
 			},
 		}

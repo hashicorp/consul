@@ -4484,6 +4484,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CAFile:   "api/ca.crt",
 				CertFile: "api/client.crt",
 				KeyFile:  "api/client.key",
+				SNI:      "my-domain",
 			},
 			{
 				Name: "db",
@@ -4493,6 +4494,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CAFile:   "ca.crt",
 				CertFile: "client.crt",
 				KeyFile:  "client.key",
+				SNI:      "my-alt-domain",
 			},
 		},
 	}, nil))
@@ -4513,6 +4515,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 			CAFile:      "api/ca.crt",
 			CertFile:    "api/client.crt",
 			KeyFile:     "api/client.key",
+			SNI:         "my-domain",
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 22,
 				ModifyIndex: 22,
@@ -4547,6 +4550,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 			CAFile:      "api/ca.crt",
 			CertFile:    "api/client.crt",
 			KeyFile:     "api/client.key",
+			SNI:         "my-domain",
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 22,
 				ModifyIndex: 22,
@@ -4568,6 +4572,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 			CAFile:       "ca.crt",
 			CertFile:     "client.crt",
 			KeyFile:      "client.key",
+			SNI:          "my-alt-domain",
 			FromWildcard: true,
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 23,
@@ -4594,6 +4599,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 			CAFile:      "api/ca.crt",
 			CertFile:    "api/client.crt",
 			KeyFile:     "api/client.key",
+			SNI:         "my-domain",
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 22,
 				ModifyIndex: 22,

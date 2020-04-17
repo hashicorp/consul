@@ -2527,6 +2527,7 @@ func (s *Store) terminatingConfigGatewayServices(tx *memdb.Txn, gateway structs.
 			KeyFile:     svc.KeyFile,
 			CertFile:    svc.CertFile,
 			CAFile:      svc.CAFile,
+			SNI:         svc.SNI,
 		}
 
 		gatewayServices = append(gatewayServices, mapping)

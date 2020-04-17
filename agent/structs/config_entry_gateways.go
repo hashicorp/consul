@@ -303,6 +303,7 @@ type GatewayService struct {
 	CAFile       string
 	CertFile     string
 	KeyFile      string
+	SNI          string
 	FromWildcard bool
 	RaftIndex
 }
@@ -316,18 +317,22 @@ func (g *GatewayService) IsSame(o *GatewayService) bool {
 		g.Port == o.Port &&
 		g.CAFile == o.CAFile &&
 		g.CertFile == o.CertFile &&
-		g.KeyFile == o.KeyFile
+		g.KeyFile == o.KeyFile &&
+		g.SNI == o.SNI &&
+		g.FromWildcard == o.FromWildcard
 }
 
 func (g *GatewayService) Clone() *GatewayService {
 	return &GatewayService{
-		Gateway:     g.Gateway,
-		Service:     g.Service,
-		GatewayKind: g.GatewayKind,
-		Port:        g.Port,
-		CAFile:      g.CAFile,
-		CertFile:    g.CertFile,
-		KeyFile:     g.KeyFile,
-		RaftIndex:   g.RaftIndex,
+		Gateway:      g.Gateway,
+		Service:      g.Service,
+		GatewayKind:  g.GatewayKind,
+		Port:         g.Port,
+		CAFile:       g.CAFile,
+		CertFile:     g.CertFile,
+		KeyFile:      g.KeyFile,
+		SNI:          g.SNI,
+		FromWildcard: g.FromWildcard,
+		RaftIndex:    g.RaftIndex,
 	}
 }
