@@ -160,6 +160,12 @@ type RegisterOptions struct {
 	// is to only request data on explicit Get.
 	Refresh bool
 
+	// SupportsBlocking should be set to true if the type supports blocking queries.
+	// Types that do not support blocking queries will not be able to use
+	// background refresh nor will the cache attempt blocking fetches if the
+	// client requests them with MinIndex.
+	SupportsBlocking bool
+
 	// RefreshTimer is the time between attempting to refresh data.
 	// If this is zero, then data is refreshed immediately when a fetch
 	// is returned.
@@ -185,17 +191,15 @@ type RegisterOptions struct {
 //
 // This makes the type available for Get but does not automatically perform
 // any prefetching. In order to populate the cache, Get must be called.
-func (c *Cache) RegisterType(n string, typ Type, opts *RegisterOptions) {
-	if opts == nil {
-		opts = &RegisterOptions{}
-	}
+func (c *Cache) RegisterType(n string, typ Type) {
+	opts := typ.RegisterOptions()
 	if opts.LastGetTTL == 0 {
 		opts.LastGetTTL = 72 * time.Hour // reasonable default is days
 	}
 
 	c.typesLock.Lock()
 	defer c.typesLock.Unlock()
-	c.types[n] = typeEntry{Name: n, Type: typ, Opts: opts}
+	c.types[n] = typeEntry{Name: n, Type: typ, Opts: &opts}
 }
 
 // Get loads the data for the given type and request. If data satisfying the
@@ -241,7 +245,7 @@ func (c *Cache) getEntryLocked(
 
 	// Check index is not specified or lower than value, or the type doesn't
 	// support blocking.
-	if tEntry.Type.SupportsBlocking() && minIndex > 0 && minIndex >= entry.Index {
+	if tEntry.Opts.SupportsBlocking && minIndex > 0 && minIndex >= entry.Index {
 		// MinIndex was given and matches or is higher than current value so we
 		// ignore the cache and fallthrough to blocking on a new value below.
 		return true, false, entry
@@ -465,7 +469,7 @@ func (c *Cache) fetch(tEntry typeEntry, key string, r Request, allowNew bool, at
 		}
 
 		fOpts := FetchOptions{}
-		if tEntry.Type.SupportsBlocking() {
+		if tEntry.Opts.SupportsBlocking {
 			fOpts.MinIndex = entry.Index
 			fOpts.Timeout = tEntry.Opts.RefreshTimeout
 		}

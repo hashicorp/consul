@@ -12,6 +12,7 @@ const GatewayServicesName = "gateway-services"
 
 // GatewayUpstreams supports fetching upstreams for a given gateway name.
 type GatewayServices struct {
+	RegisterOptionsBlockingRefresh
 	RPC RPC
 }
 
@@ -48,8 +49,4 @@ func (g *GatewayServices) Fetch(opts cache.FetchOptions, req cache.Request) (cac
 	result.Value = &reply
 	result.Index = reply.QueryMeta.Index
 	return result, nil
-}
-
-func (g *GatewayServices) SupportsBlocking() bool {
-	return true
 }

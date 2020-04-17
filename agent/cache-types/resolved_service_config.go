@@ -13,6 +13,7 @@ const ResolvedServiceConfigName = "resolved-service-config"
 // ResolvedServiceConfig supports fetching the config for a service resolved from
 // the global proxy defaults and the centrally registered service config.
 type ResolvedServiceConfig struct {
+	RegisterOptionsBlockingRefresh
 	RPC RPC
 }
 
@@ -49,8 +50,4 @@ func (c *ResolvedServiceConfig) Fetch(opts cache.FetchOptions, req cache.Request
 	result.Value = &reply
 	result.Index = reply.QueryMeta.Index
 	return result, nil
-}
-
-func (c *ResolvedServiceConfig) SupportsBlocking() bool {
-	return true
 }

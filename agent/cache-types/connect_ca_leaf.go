@@ -50,6 +50,7 @@ const caChangeJitterWindow = 30 * time.Second
 // ConnectCALeaf supports fetching and generating Connect leaf
 // certificates.
 type ConnectCALeaf struct {
+	RegisterOptionsBlockingRefresh
 	caIndex uint64 // Current index for CA roots
 
 	// rootWatchMu protects access to the rootWatchSubscribers map and
@@ -627,10 +628,6 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 	result.State = state
 	result.Index = reply.ModifyIndex
 	return result, nil
-}
-
-func (c *ConnectCALeaf) SupportsBlocking() bool {
-	return true
 }
 
 // ConnectCALeafRequest is the cache.Request implementation for the

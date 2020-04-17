@@ -50,35 +50,13 @@ func NewTestCacheTypes(t testing.T) *TestCacheTypes {
 // proxycfg will watch suitable for testing a proxycfg.State or Manager.
 func TestCacheWithTypes(t testing.T, types *TestCacheTypes) *cache.Cache {
 	c := cache.TestCache(t)
-	c.RegisterType(cachetype.ConnectCARootName, types.roots, &cache.RegisterOptions{
-		Refresh:        true,
-		RefreshTimer:   0,
-		RefreshTimeout: 10 * time.Minute,
-	})
-	c.RegisterType(cachetype.ConnectCALeafName, types.leaf, &cache.RegisterOptions{
-		Refresh:        true,
-		RefreshTimer:   0,
-		RefreshTimeout: 10 * time.Minute,
-	})
-	c.RegisterType(cachetype.IntentionMatchName, types.intentions, &cache.RegisterOptions{
-		Refresh:        true,
-		RefreshTimer:   0,
-		RefreshTimeout: 10 * time.Minute,
-	})
-	c.RegisterType(cachetype.HealthServicesName, types.health, &cache.RegisterOptions{
-		Refresh:        true,
-		RefreshTimer:   0,
-		RefreshTimeout: 10 * time.Minute,
-	})
-	c.RegisterType(cachetype.PreparedQueryName, types.query, &cache.RegisterOptions{
-		Refresh: false,
-	})
-	c.RegisterType(cachetype.CompiledDiscoveryChainName, types.compiledChain, &cache.RegisterOptions{
-		Refresh:        true,
-		RefreshTimer:   0,
-		RefreshTimeout: 10 * time.Minute,
-	})
-	c.RegisterType(cachetype.ServiceHTTPChecksName, types.serviceHTTPChecks, &cache.RegisterOptions{})
+	c.RegisterType(cachetype.ConnectCARootName, types.roots)
+	c.RegisterType(cachetype.ConnectCALeafName, types.leaf)
+	c.RegisterType(cachetype.IntentionMatchName, types.intentions)
+	c.RegisterType(cachetype.HealthServicesName, types.health)
+	c.RegisterType(cachetype.PreparedQueryName, types.query)
+	c.RegisterType(cachetype.CompiledDiscoveryChainName, types.compiledChain)
+	c.RegisterType(cachetype.ServiceHTTPChecksName, types.serviceHTTPChecks)
 
 	return c
 }
@@ -1221,7 +1199,10 @@ func (ct *ControllableCacheType) Fetch(opts cache.FetchOptions, req cache.Reques
 	}, nil
 }
 
-// SupportsBlocking implements cache.Type
-func (ct *ControllableCacheType) SupportsBlocking() bool {
-	return ct.blocking
+func (ct *ControllableCacheType) RegisterOptions() cache.RegisterOptions {
+	return cache.RegisterOptions{
+		Refresh:          ct.blocking,
+		SupportsBlocking: ct.blocking,
+		RefreshTimeout:   10 * time.Minute,
+	}
 }

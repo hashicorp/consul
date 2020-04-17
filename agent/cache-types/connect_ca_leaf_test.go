@@ -966,6 +966,21 @@ func TestConnectCALeaf_expiringLeaf(t *testing.T) {
 	}
 }
 
+// testConnectCaRoot wraps ConnectCARoot to disable refresh so that the gated
+// channel controls the request directly. Otherwise, we get background refreshes and
+// it screws up the ordering of the channel reads of the testGatedRootsRPC
+// implementation.
+type testConnectCaRoot struct {
+	ConnectCARoot
+}
+
+func (r testConnectCaRoot) RegisterOptions() cache.RegisterOptions {
+	return cache.RegisterOptions{
+		Refresh:          false,
+		SupportsBlocking: true,
+	}
+}
+
 // testCALeafType returns a *ConnectCALeaf that is pre-configured to
 // use the given RPC implementation for "ConnectCA.Sign" operations.
 func testCALeafType(t *testing.T, rpc RPC) (*ConnectCALeaf, chan structs.IndexedCARoots) {
@@ -977,14 +992,9 @@ func testCALeafType(t *testing.T, rpc RPC) (*ConnectCALeaf, chan structs.Indexed
 
 	// Create a cache
 	c := cache.TestCache(t)
-	c.RegisterType(ConnectCARootName, &ConnectCARoot{RPC: rootsRPC}, &cache.RegisterOptions{
-		// Disable refresh so that the gated channel controls the
-		// request directly. Otherwise, we get background refreshes and
-		// it screws up the ordering of the channel reads of the
-		// testGatedRootsRPC implementation.
-		Refresh: false,
+	c.RegisterType(ConnectCARootName, &testConnectCaRoot{
+		ConnectCARoot: ConnectCARoot{RPC: rootsRPC},
 	})
-
 	// Create the leaf type
 	return &ConnectCALeaf{
 		RPC:        rpc,

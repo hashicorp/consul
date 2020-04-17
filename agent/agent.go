@@ -4182,151 +4182,45 @@ func (a *Agent) registerCache() {
 	// the a.delegate directly, otherwise tests that rely on overriding RPC
 	// routing via a.registerEndpoint will not work.
 
-	a.cache.RegisterType(cachetype.ConnectCARootName, &cachetype.ConnectCARoot{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		// Maintain a blocking query, retry dropped connections quickly
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
-	})
+	a.cache.RegisterType(cachetype.ConnectCARootName, &cachetype.ConnectCARoot{RPC: a})
 
 	a.cache.RegisterType(cachetype.ConnectCALeafName, &cachetype.ConnectCALeaf{
 		RPC:                              a,
 		Cache:                            a.cache,
 		Datacenter:                       a.config.Datacenter,
 		TestOverrideCAChangeInitialDelay: a.config.ConnectTestCALeafRootChangeSpread,
-	}, &cache.RegisterOptions{
-		// Maintain a blocking query, retry dropped connections quickly
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
 	})
 
-	a.cache.RegisterType(cachetype.IntentionMatchName, &cachetype.IntentionMatch{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		// Maintain a blocking query, retry dropped connections quickly
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
-	})
+	a.cache.RegisterType(cachetype.IntentionMatchName, &cachetype.IntentionMatch{RPC: a})
 
-	a.cache.RegisterType(cachetype.CatalogServicesName, &cachetype.CatalogServices{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		// Maintain a blocking query, retry dropped connections quickly
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
-	})
+	a.cache.RegisterType(cachetype.CatalogServicesName, &cachetype.CatalogServices{RPC: a})
 
-	a.cache.RegisterType(cachetype.HealthServicesName, &cachetype.HealthServices{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		// Maintain a blocking query, retry dropped connections quickly
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
-	})
+	a.cache.RegisterType(cachetype.HealthServicesName, &cachetype.HealthServices{RPC: a})
 
-	a.cache.RegisterType(cachetype.PreparedQueryName, &cachetype.PreparedQuery{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		// Prepared queries don't support blocking
-		Refresh: false,
-	})
+	a.cache.RegisterType(cachetype.PreparedQueryName, &cachetype.PreparedQuery{RPC: a})
 
-	a.cache.RegisterType(cachetype.NodeServicesName, &cachetype.NodeServices{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		// Maintain a blocking query, retry dropped connections quickly
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
-	})
+	a.cache.RegisterType(cachetype.NodeServicesName, &cachetype.NodeServices{RPC: a})
 
-	a.cache.RegisterType(cachetype.ResolvedServiceConfigName, &cachetype.ResolvedServiceConfig{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		// Maintain a blocking query, retry dropped connections quickly
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
-	})
+	a.cache.RegisterType(cachetype.ResolvedServiceConfigName, &cachetype.ResolvedServiceConfig{RPC: a})
 
-	a.cache.RegisterType(cachetype.CatalogListServicesName, &cachetype.CatalogListServices{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
-	})
+	a.cache.RegisterType(cachetype.CatalogListServicesName, &cachetype.CatalogListServices{RPC: a})
 
-	a.cache.RegisterType(cachetype.CatalogServiceListName, &cachetype.CatalogServiceList{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
-	})
+	a.cache.RegisterType(cachetype.CatalogServiceListName, &cachetype.CatalogServiceList{RPC: a})
 
-	a.cache.RegisterType(cachetype.CatalogDatacentersName, &cachetype.CatalogDatacenters{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		Refresh: false,
-	})
+	a.cache.RegisterType(cachetype.CatalogDatacentersName, &cachetype.CatalogDatacenters{RPC: a})
 
-	a.cache.RegisterType(cachetype.InternalServiceDumpName, &cachetype.InternalServiceDump{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
-	})
+	a.cache.RegisterType(cachetype.InternalServiceDumpName, &cachetype.InternalServiceDump{RPC: a})
 
-	a.cache.RegisterType(cachetype.CompiledDiscoveryChainName, &cachetype.CompiledDiscoveryChain{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		// Maintain a blocking query, retry dropped connections quickly
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
-	})
+	a.cache.RegisterType(cachetype.CompiledDiscoveryChainName, &cachetype.CompiledDiscoveryChain{RPC: a})
 
-	a.cache.RegisterType(cachetype.GatewayServicesName, &cachetype.GatewayServices{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		// Maintain a blocking query, retry dropped connections quickly
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
-	})
+	a.cache.RegisterType(cachetype.GatewayServicesName, &cachetype.GatewayServices{RPC: a})
 
-	a.cache.RegisterType(cachetype.ConfigEntriesName, &cachetype.ConfigEntries{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		// Maintain a blocking query, retry dropped connections quickly
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
-	})
+	a.cache.RegisterType(cachetype.ConfigEntriesName, &cachetype.ConfigEntries{RPC: a})
 
-	a.cache.RegisterType(cachetype.ServiceHTTPChecksName, &cachetype.ServiceHTTPChecks{
-		Agent: a,
-	}, &cache.RegisterOptions{
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
-	})
+	a.cache.RegisterType(cachetype.ServiceHTTPChecksName, &cachetype.ServiceHTTPChecks{Agent: a})
 
-	a.cache.RegisterType(cachetype.FederationStateListMeshGatewaysName, &cachetype.FederationStateListMeshGateways{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
-	})
+	a.cache.RegisterType(cachetype.FederationStateListMeshGatewaysName,
+		&cachetype.FederationStateListMeshGateways{RPC: a})
 }
 
 // LocalState returns the agent's local state
