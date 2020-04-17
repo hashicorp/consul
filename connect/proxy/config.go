@@ -195,8 +195,9 @@ func NewAgentConfigWatcher(client *api.Client, proxyID string,
 
 	// Setup watch plan for config
 	plan, err := watch.Parse(map[string]interface{}{
-		"type":       "agent_service",
-		"service_id": w.proxyID,
+		"type":                      "agent_service",
+		"service_id":                w.proxyID,
+		"ConsulReloadTriggersWatch": true,
 	})
 	if err != nil {
 		return nil, err

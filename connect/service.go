@@ -80,7 +80,8 @@ func NewServiceWithLogger(serviceName string, client *api.Client,
 
 	// Set up root and leaf watches
 	p, err := watch.Parse(map[string]interface{}{
-		"type": "connect_roots",
+		"type":                      "connect_roots",
+		"ConsulReloadTriggersWatch": true,
 	})
 	if err != nil {
 		return nil, err
@@ -89,8 +90,9 @@ func NewServiceWithLogger(serviceName string, client *api.Client,
 	s.rootsWatch.HybridHandler = s.rootsWatchHandler
 
 	p, err = watch.Parse(map[string]interface{}{
-		"type":    "connect_leaf",
-		"service": s.service,
+		"type":                      "connect_leaf",
+		"service":                   s.service,
+		"ConsulReloadTriggersWatch": true,
 	})
 	if err != nil {
 		return nil, err
