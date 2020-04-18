@@ -1,4 +1,4 @@
-package haproxy
+package haproxy2consul
 
 import (
 	"fmt"
@@ -149,8 +149,9 @@ func Test_HAProxyConnect_TestEndToEnd(t *testing.T) {
 
 	registerServiceWithSidecar(t, client, "consul-agent-http-001", ports)
 
+	log := NewTestingLogger(t)
 	// consul has no connect configuration, should fail
-	watcher := NewWatcher("consul", client)
+	watcher := New("consul", client, log)
 	err = watcher.Run()
 	if err == nil {
 		t.Fatal("No Sidecar should be registered, should create an error")
@@ -158,7 +159,7 @@ func Test_HAProxyConnect_TestEndToEnd(t *testing.T) {
 	assert.Equal(t, "No sidecar proxy registered for consul", err.Error())
 
 	// consul-agent-http has config, watch should work and receive first config
-	watcher = NewWatcher("consul-agent-http-001", client)
+	watcher = New("consul-agent-http-001", client, log)
 	go func() {
 		err := watcher.Run()
 		assert.NoError(t, err)

@@ -1,9 +1,9 @@
-package haproxy
+package haproxy2consul
 
+// This file comes from https://github.com/haproxytech/haproxy-consul-connect/
+// Please don't modify it without syncing it with its origin
 import (
 	"crypto/x509"
-	"fmt"
-	"reflect"
 	"sync"
 	"time"
 
@@ -17,67 +17,6 @@ const (
 
 	errorWaitTime = 5 * time.Second
 )
-
-type Config struct {
-	ServiceName string
-	ServiceID   string
-	CAsPool     *x509.CertPool
-	Downstream  Downstream
-	Upstreams   []Upstream
-}
-
-type Upstream struct {
-	Service          string
-	LocalBindAddress string
-	LocalBindPort    int
-
-	TLS
-
-	Nodes []UpstreamNode
-}
-
-func (n Upstream) Equal(o Upstream) bool {
-	return n.LocalBindAddress == o.LocalBindAddress &&
-		n.LocalBindPort == o.LocalBindPort &&
-		n.TLS.Equal(o.TLS)
-}
-
-type UpstreamNode struct {
-	Host   string
-	Port   int
-	Weight int
-}
-
-func (n UpstreamNode) ID() string {
-	return fmt.Sprintf("%s:%d", n.Host, n.Port)
-}
-
-func (n UpstreamNode) Equal(o UpstreamNode) bool {
-	return n == o
-}
-
-type Downstream struct {
-	LocalBindAddress string
-	LocalBindPort    int
-	TargetAddress    string
-	TargetPort       int
-
-	TLS
-}
-
-func (d Downstream) Equal(o Downstream) bool {
-	return reflect.DeepEqual(d, o)
-}
-
-type TLS struct {
-	Cert []byte
-	Key  []byte
-	CAs  [][]byte
-}
-
-func (t TLS) Equal(o TLS) bool {
-	return reflect.DeepEqual(t, o)
-}
 
 type upstream struct {
 	LocalBindAddress string
@@ -120,9 +59,11 @@ type Watcher struct {
 	leaf       *certLeaf
 
 	update chan struct{}
+	log    Logger
 }
 
-func NewWatcher(service string, consul *api.Client) *Watcher {
+// New builds a new watcher
+func New(service string, consul *api.Client, log Logger) *Watcher {
 	return &Watcher{
 		service: service,
 		consul:  consul,
@@ -130,6 +71,7 @@ func NewWatcher(service string, consul *api.Client) *Watcher {
 		C:         make(chan Config),
 		upstreams: make(map[string]*upstream),
 		update:    make(chan struct{}, 1),
+		log:       log,
 	}
 }
 
@@ -206,6 +148,7 @@ func (w *Watcher) handleProxyChange(first bool, srv *api.AgentService) {
 }
 
 func (w *Watcher) startUpstream(up api.Upstream) {
+	w.log.Infof("consul: watching upstream for service %s", up.DestinationName)
 
 	u := &upstream{
 		LocalBindAddress: up.LocalBindAddress,
@@ -230,6 +173,7 @@ func (w *Watcher) startUpstream(up api.Upstream) {
 				WaitIndex:  index,
 			})
 			if err != nil {
+				w.log.Errorf("consul: error fetching service definition for service %s: %s", up.DestinationName, err)
 				time.Sleep(errorWaitTime)
 				index = 0
 				continue
@@ -248,6 +192,7 @@ func (w *Watcher) startUpstream(up api.Upstream) {
 }
 
 func (w *Watcher) removeUpstream(name string) {
+	w.log.Infof("consul: removing upstream for service %s", name)
 
 	w.lock.Lock()
 	w.upstreams[name].done = true
@@ -256,6 +201,8 @@ func (w *Watcher) removeUpstream(name string) {
 }
 
 func (w *Watcher) watchLeaf() {
+	w.log.Debugf("consul: watching leaf cert for %s", w.serviceName)
+
 	var lastIndex uint64
 	first := true
 	for {
@@ -264,6 +211,7 @@ func (w *Watcher) watchLeaf() {
 			WaitIndex: lastIndex,
 		})
 		if err != nil {
+			w.log.Errorf("consul error fetching leaf cert for service %s: %s", w.serviceName, err)
 			time.Sleep(errorWaitTime)
 			lastIndex = 0
 			continue
@@ -273,6 +221,7 @@ func (w *Watcher) watchLeaf() {
 		lastIndex = meta.LastIndex
 
 		if changed {
+			w.log.Infof("consul: leaf cert for service %s changed, serial: %s, valid before: %s, valid after: %s", w.serviceName, cert.SerialNumber, cert.ValidBefore, cert.ValidAfter)
 			w.lock.Lock()
 			if w.leaf == nil {
 				w.leaf = &certLeaf{}
@@ -284,6 +233,7 @@ func (w *Watcher) watchLeaf() {
 		}
 
 		if first {
+			w.log.Infof("consul: leaf cert for %s ready", w.serviceName)
 			w.ready.Done()
 			first = false
 		}
@@ -291,6 +241,7 @@ func (w *Watcher) watchLeaf() {
 }
 
 func (w *Watcher) watchService(service string, handler func(first bool, srv *api.AgentService)) {
+	w.log.Infof("consul: watching service %s", service)
 
 	hash := ""
 	first := true
@@ -300,6 +251,7 @@ func (w *Watcher) watchService(service string, handler func(first bool, srv *api
 			WaitTime: 10 * time.Minute,
 		})
 		if err != nil {
+			w.log.Errorf("consul: error fetching service %s definition: %s", service, err)
 			time.Sleep(errorWaitTime)
 			hash = ""
 			continue
@@ -309,6 +261,7 @@ func (w *Watcher) watchService(service string, handler func(first bool, srv *api
 		hash = meta.LastContentHash
 
 		if changed {
+			w.log.Debugf("consul: service %s changed", service)
 			handler(first, srv)
 			w.notifyChanged()
 		}
@@ -318,6 +271,7 @@ func (w *Watcher) watchService(service string, handler func(first bool, srv *api
 }
 
 func (w *Watcher) watchCA() {
+	w.log.Debugf("consul: watching ca certs")
 
 	first := true
 	var lastIndex uint64
@@ -327,6 +281,7 @@ func (w *Watcher) watchCA() {
 			WaitTime:  10 * time.Minute,
 		})
 		if err != nil {
+			w.log.Errorf("consul: error fetching cas: %s", err)
 			time.Sleep(errorWaitTime)
 			lastIndex = 0
 			continue
@@ -336,6 +291,7 @@ func (w *Watcher) watchCA() {
 		lastIndex = meta.LastIndex
 
 		if changed {
+			w.log.Infof("consul: CA certs changed, active root id: %s", caList.ActiveRootID)
 			w.lock.Lock()
 			w.certCAs = w.certCAs[:0]
 			w.certCAPool = x509.NewCertPool()
@@ -343,7 +299,7 @@ func (w *Watcher) watchCA() {
 				w.certCAs = append(w.certCAs, []byte(ca.RootCertPEM))
 				ok := w.certCAPool.AppendCertsFromPEM([]byte(ca.RootCertPEM))
 				if !ok {
-					fmt.Println("FATAL: CONSUL: unable to add CA certificate to pool")
+					w.log.Warnf("consul: unable to add CA certificate to pool for root id: %s", caList.ActiveRootID)
 				}
 			}
 			w.lock.Unlock()
@@ -351,6 +307,7 @@ func (w *Watcher) watchCA() {
 		}
 
 		if first {
+			w.log.Infof("consul: CA certs ready")
 			w.ready.Done()
 			first = false
 		}
@@ -358,11 +315,14 @@ func (w *Watcher) watchCA() {
 }
 
 func (w *Watcher) genCfg() Config {
+	w.log.Debugf("generating configuration for service %s[%s]...", w.serviceName, w.service)
 	w.lock.Lock()
 	serviceInstancesAlive := 0
 	serviceInstancesTotal := 0
 	defer func() {
 		w.lock.Unlock()
+		w.log.Debugf("done generating configuration, instances: %d/%d total",
+			serviceInstancesAlive, serviceInstancesTotal)
 	}()
 
 	config := Config{
