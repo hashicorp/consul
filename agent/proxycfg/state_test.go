@@ -921,6 +921,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Len(t, snap.TerminatingGateway.WatchedResolvers, 2)
 						require.Contains(t, snap.TerminatingGateway.WatchedResolvers, db)
 						require.Contains(t, snap.TerminatingGateway.WatchedResolvers, billing)
+
+						require.Len(t, snap.TerminatingGateway.GatewayServices, 2)
+						require.Contains(t, snap.TerminatingGateway.GatewayServices, db)
+						require.Contains(t, snap.TerminatingGateway.GatewayServices, billing)
 					},
 				},
 				verificationStage{
@@ -1047,6 +1051,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 
 						require.Len(t, snap.TerminatingGateway.WatchedResolvers, 1)
 						require.Contains(t, snap.TerminatingGateway.WatchedResolvers, billing)
+
+						require.Len(t, snap.TerminatingGateway.GatewayServices, 1)
+						require.Contains(t, snap.TerminatingGateway.GatewayServices, billing)
 
 						// There was no update event for billing's leaf/endpoints, so length is 0
 						require.Len(t, snap.TerminatingGateway.ServiceGroups, 0)
