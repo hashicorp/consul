@@ -642,7 +642,7 @@ func (s *Server) sniFilterChainTerminatingGateway(listener, cluster, token strin
 			tcpProxy,
 		},
 		TlsContext: &envoyauth.DownstreamTlsContext{
-			CommonTlsContext:         makeCommonTLSContext(cfgSnap, cfgSnap.TerminatingGateway.ServiceLeaves[service]),
+			CommonTlsContext:         makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.TerminatingGateway.ServiceLeaves[service]),
 			RequireClientCertificate: &types.BoolValue{Value: true},
 		},
 	}, err
@@ -1011,7 +1011,7 @@ func makeFilter(name string, cfg proto.Message) (envoylistener.Filter, error) {
 	}, nil
 }
 
-func makeCommonTLSContext(cfgSnap *proxycfg.ConfigSnapshot, leaf *structs.IssuedCert) *envoyauth.CommonTlsContext {
+func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *structs.IssuedCert) *envoyauth.CommonTlsContext {
 	// Concatenate all the root PEMs into one.
 	// TODO(banks): verify this actually works with Envoy (docs are not clear).
 	rootPEMS := ""
@@ -1049,4 +1049,44 @@ func makeCommonTLSContext(cfgSnap *proxycfg.ConfigSnapshot, leaf *structs.Issued
 			},
 		},
 	}
+}
+
+// TODO (gateways) (freddy) Should we check if the files exist here? or let Envoy handle it?
+func makeCommonTLSContextFromFiles(caFile, certFile, keyFile string) *envoyauth.CommonTlsContext {
+	ctx := envoyauth.CommonTlsContext{
+		TlsParams: &envoyauth.TlsParameters{},
+	}
+
+	// Verify certificate of peer if caFile is specified
+	if caFile != "" {
+		ctx.ValidationContextType = &envoyauth.CommonTlsContext_ValidationContext{
+			ValidationContext: &envoyauth.CertificateValidationContext{
+				TrustedCa: &envoycore.DataSource{
+					Specifier: &envoycore.DataSource_Filename{
+						Filename: caFile,
+					},
+				},
+			},
+		}
+	}
+
+	// Present certificate for mTLS if cert and key files are specified
+	if certFile != "" && keyFile != "" {
+		ctx.TlsCertificates = []*envoyauth.TlsCertificate{
+			{
+				CertificateChain: &envoycore.DataSource{
+					Specifier: &envoycore.DataSource_Filename{
+						Filename: certFile,
+					},
+				},
+				PrivateKey: &envoycore.DataSource{
+					Specifier: &envoycore.DataSource_Filename{
+						Filename: keyFile,
+					},
+				},
+			},
+		}
+	}
+
+	return &ctx
 }
