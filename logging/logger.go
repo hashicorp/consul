@@ -130,6 +130,10 @@ func Setup(config *Config, ui cli.Ui) (hclog.InterceptLogger, *GatedWriter, io.W
 			MaxBytes: logRotateBytes,
 			MaxFiles: config.LogRotateMaxFiles,
 		}
+		if err := logFile.openNew(); err != nil {
+			ui.Error(fmt.Sprintf("Failed to setup logging: %v", err))
+			return nil, nil, nil, false
+		}
 		writers = append(writers, logFile)
 	}
 

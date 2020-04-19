@@ -2,8 +2,10 @@ package logging
 
 import (
 	"encoding/json"
+	"os"
 	"testing"
 
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
 )
@@ -148,4 +150,65 @@ func TestLogger_SetupLoggerWithJSON(t *testing.T) {
 	require.Equal(jsonOutput["@level"], "warn")
 	require.Contains(jsonOutput, "@message")
 	require.Equal(jsonOutput["@message"], "test warn msg")
+}
+
+func TestLogger_SetupLoggerWithValidLogPath(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+
+	tmpDir := testutil.TempDir(t, t.Name())
+	defer os.RemoveAll(tmpDir)
+
+	cfg := &Config{
+		LogLevel:    "INFO",
+		LogFilePath: tmpDir + "/",
+	}
+	ui := cli.NewMockUi()
+
+	logger, gatedWriter, writer, ok := Setup(cfg, ui)
+	require.True(ok)
+	require.NotNil(logger)
+	require.NotNil(gatedWriter)
+	require.NotNil(writer)
+}
+
+func TestLogger_SetupLoggerWithInValidLogPath(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+
+	cfg := &Config{
+		LogLevel:    "INFO",
+		LogFilePath: "nonexistentdir/",
+	}
+	ui := cli.NewMockUi()
+
+	logger, gatedWriter, writer, ok := Setup(cfg, ui)
+	require.Contains(ui.ErrorWriter.String(), "no such file or directory")
+	require.False(ok)
+	require.Nil(logger)
+	require.Nil(gatedWriter)
+	require.Nil(writer)
+}
+
+func TestLogger_SetupLoggerWithInValidLogPathPermission(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+
+	tmpDir := "/tmp/" + t.Name()
+
+	os.Mkdir(tmpDir, 0000)
+	defer os.RemoveAll(tmpDir)
+
+	cfg := &Config{
+		LogLevel:    "INFO",
+		LogFilePath: tmpDir + "/",
+	}
+	ui := cli.NewMockUi()
+
+	logger, gatedWriter, writer, ok := Setup(cfg, ui)
+	require.Contains(ui.ErrorWriter.String(), "permission denied")
+	require.False(ok)
+	require.Nil(logger)
+	require.Nil(gatedWriter)
+	require.Nil(writer)
 }
