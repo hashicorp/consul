@@ -34,3 +34,7 @@ load helpers
   assert_expected_fortio_name s2-v1
 }
 
+@test "terminating-gateway is used for the upstream connection" {
+  assert_envoy_metric_at_least 127.0.0.1:20000 "v1.s2.default.primary.*cx_total" 1
+}
+

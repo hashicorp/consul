@@ -33,6 +33,10 @@ const (
 	datacentersWatchID                 = "datacenters"
 	serviceResolversWatchID            = "service-resolvers"
 	gatewayServicesWatchID             = "gateway-services"
+	externalServiceIDPrefix            = "external-service:"
+	serviceLeafIDPrefix                = "service-leaf:"
+	serviceResolverIDPrefix            = "service-resolver:"
+	serviceIntentionsIDPrefix          = "service-intentions:"
 	svcChecksWatchIDPrefix             = cachetype.ServiceHTTPChecksName + ":"
 	serviceIDPrefix                    = string(structs.UpstreamDestTypeService) + ":"
 	preparedQueryIDPrefix              = string(structs.UpstreamDestTypePreparedQuery) + ":"
@@ -921,7 +925,7 @@ func (s *state) handleUpdateTerminatingGateway(u cache.UpdateEvent, snap *Config
 
 					// The gateway acts as the service's proxy, so we do NOT want to discover other proxies
 					Connect: false,
-				}, fmt.Sprintf("external-service:%s", svc.Service.String()), s.ch)
+				}, externalServiceIDPrefix+svc.Service.String(), s.ch)
 
 				if err != nil {
 					logger.Error("failed to register watch for external-service",
@@ -950,7 +954,7 @@ func (s *state) handleUpdateTerminatingGateway(u cache.UpdateEvent, snap *Config
 							},
 						},
 					},
-				}, fmt.Sprintf("service-intentions:%s", svc.Service.String()), s.ch)
+				}, serviceIntentionsIDPrefix+svc.Service.String(), s.ch)
 
 				if err != nil {
 					logger.Error("failed to register watch for service-intentions",
@@ -972,7 +976,7 @@ func (s *state) handleUpdateTerminatingGateway(u cache.UpdateEvent, snap *Config
 					Token:          s.token,
 					Service:        svc.Service.ID,
 					EnterpriseMeta: svc.Service.EnterpriseMeta,
-				}, fmt.Sprintf("service-leaf:%s", svc.Service.String()), s.ch)
+				}, serviceLeafIDPrefix+svc.Service.String(), s.ch)
 
 				if err != nil {
 					logger.Error("failed to register watch for a service-leaf",
@@ -995,7 +999,7 @@ func (s *state) handleUpdateTerminatingGateway(u cache.UpdateEvent, snap *Config
 					Kind:           structs.ServiceResolver,
 					Name:           svc.Service.ID,
 					EnterpriseMeta: svc.Service.EnterpriseMeta,
-				}, fmt.Sprintf("service-resolver:%s", svc.Service.String()), s.ch)
+				}, serviceResolverIDPrefix+svc.Service.String(), s.ch)
 
 				if err != nil {
 					logger.Error("failed to register watch for a service-resolver",
@@ -1051,13 +1055,13 @@ func (s *state) handleUpdateTerminatingGateway(u cache.UpdateEvent, snap *Config
 			}
 		}
 
-	case strings.HasPrefix(u.CorrelationID, "external-service:"):
+	case strings.HasPrefix(u.CorrelationID, externalServiceIDPrefix):
 		resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 
-		sid := structs.ServiceIDFromString(strings.TrimPrefix(u.CorrelationID, "external-service:"))
+		sid := structs.ServiceIDFromString(strings.TrimPrefix(u.CorrelationID, externalServiceIDPrefix))
 
 		if len(resp.Nodes) > 0 {
 			snap.TerminatingGateway.ServiceGroups[sid] = resp.Nodes
@@ -1066,13 +1070,13 @@ func (s *state) handleUpdateTerminatingGateway(u cache.UpdateEvent, snap *Config
 		}
 
 	// Store leaf cert for watched service
-	case strings.HasPrefix(u.CorrelationID, "service-leaf:"):
+	case strings.HasPrefix(u.CorrelationID, serviceLeafIDPrefix):
 		leaf, ok := u.Result.(*structs.IssuedCert)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 
-		sid := structs.ServiceIDFromString(strings.TrimPrefix(u.CorrelationID, "service-leaf:"))
+		sid := structs.ServiceIDFromString(strings.TrimPrefix(u.CorrelationID, serviceLeafIDPrefix))
 		snap.TerminatingGateway.ServiceLeaves[sid] = leaf
 
 	case strings.HasPrefix(u.CorrelationID, "service-resolver:"):
@@ -1087,7 +1091,7 @@ func (s *state) handleUpdateTerminatingGateway(u cache.UpdateEvent, snap *Config
 			}
 		}
 
-	case strings.HasPrefix(u.CorrelationID, "service-intentions:"):
+	case strings.HasPrefix(u.CorrelationID, serviceIntentionsIDPrefix):
 		// no-op: Intentions don't get stored in the snapshot, calls to ConnectAuthorize will fetch them from the cache
 
 	default:

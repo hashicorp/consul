@@ -27,3 +27,7 @@ load helpers
   [ "$status" -eq 0 ]
   [ "$output" = "hello" ]
 }
+
+@test "terminating-gateway is used for the upstream connection" {
+  assert_envoy_metric_at_least 127.0.0.1:20000 "s2.default.primary.*cx_total" 1
+}
