@@ -31,9 +31,9 @@ func mustParse(t *testing.T, q string) *Plan {
 
 func TestRun_Stop(t *testing.T) {
 	t.Parallel()
-	plan := mustParse(t, `{"type":"noop"}`)
+	plan := mustParse(t, `{"type":"noop", "ConsulReloadTriggersWatch":true}`)
 
-	var expect uint64 = 2
+	var expect uint64 = 1
 	doneCh := make(chan struct{})
 	plan.Handler = func(idx uint64, val interface{}) {
 		if idx != expect {
@@ -78,9 +78,9 @@ func TestRun_Stop(t *testing.T) {
 
 func TestRun_Stop_Hybrid(t *testing.T) {
 	t.Parallel()
-	plan := mustParse(t, `{"type":"noop"}`)
+	plan := mustParse(t, `{"type":"noop", "ConsulReloadTriggersWatch":true}`)
 
-	var expect uint64 = 2
+	var expect uint64 = 1
 	doneCh := make(chan struct{})
 	plan.HybridHandler = func(blockParamVal BlockingParamVal, val interface{}) {
 		idxVal, ok := blockParamVal.(WaitIndexVal)
