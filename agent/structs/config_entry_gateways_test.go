@@ -37,6 +37,7 @@ func TestIngressConfigEntry_Normalize(t *testing.T) {
 						Services: []IngressService{},
 					},
 				},
+				EnterpriseMeta: *DefaultEnterpriseMeta(),
 			},
 		},
 		{
@@ -72,6 +73,7 @@ func TestIngressConfigEntry_Normalize(t *testing.T) {
 						Services: []IngressService{},
 					},
 				},
+				EnterpriseMeta: *DefaultEnterpriseMeta(),
 			},
 		},
 	}
