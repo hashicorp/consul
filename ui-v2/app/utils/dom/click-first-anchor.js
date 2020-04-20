@@ -14,7 +14,11 @@ const clickEvent = function($el) {
 export default function(closest, click = clickEvent) {
   // TODO: Decide whether we should use `e` for ease
   // or `target`/`el`
-  return function(e) {
+  // TODO: currently, using a string stopElement to tell the func
+  // where to stop looking and currenlty default is 'tr' because
+  // it's backwards compatible.
+  // Long-term this func shouldn't default to 'tr'
+  return function(e, stopElement = 'tr') {
     // click on row functionality
     // so if you click the actual row but not a link
     // find the first link and fire that instead
@@ -26,9 +30,7 @@ export default function(closest, click = clickEvent) {
       case 'button':
         return;
     }
-    // TODO: why should this be restricted to a tr
-    // closest should probably be relaced with a finder function
-    const $a = closest('tr', e.target).querySelector('a');
+    const $a = closest(stopElement, e.target).querySelector('a');
     if ($a) {
       click($a);
     }
