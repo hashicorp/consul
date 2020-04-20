@@ -73,7 +73,7 @@ func (s *Server) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 		if chain == nil || chain.IsDefault() {
 			upstreamListener, err = s.makeUpstreamListenerIgnoreDiscoveryChain(&u, chain, cfgSnap)
 		} else {
-			upstreamListener, err = s.makeUpstreamListenerForDiscoveryChain(&u, chain, cfgSnap)
+			upstreamListener, err = s.makeUpstreamListenerForDiscoveryChain(&u, chain)
 		}
 		if err != nil {
 			return nil, err
@@ -283,7 +283,7 @@ func (s *Server) listenersFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSna
 		if chain == nil || chain.IsDefault() {
 			upstreamListener, err = s.makeUpstreamListenerIgnoreDiscoveryChain(&u, chain, cfgSnap)
 		} else {
-			upstreamListener, err = s.makeUpstreamListenerForDiscoveryChain(&u, chain, cfgSnap)
+			upstreamListener, err = s.makeUpstreamListenerForDiscoveryChain(&u, chain)
 		}
 		if err != nil {
 			return nil, err
@@ -753,7 +753,6 @@ func (s *Server) makeMeshGatewayListener(name, addr string, port int, cfgSnap *p
 func (s *Server) makeUpstreamListenerForDiscoveryChain(
 	u *structs.Upstream,
 	chain *structs.CompiledDiscoveryChain,
-	cfgSnap *proxycfg.ConfigSnapshot,
 ) (proto.Message, error) {
 	cfg, err := ParseUpstreamConfigNoDefaults(u.Config)
 	if err != nil {
