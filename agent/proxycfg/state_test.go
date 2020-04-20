@@ -1041,7 +1041,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 
 						require.True(t, snap.Valid(), "gateway with service list is valid")
 
-						// All three watches should have been cancelled for db
+						// All the watches should have been cancelled for db
 						require.Len(t, snap.TerminatingGateway.WatchedServices, 1)
 						require.Contains(t, snap.TerminatingGateway.WatchedServices, billing)
 
