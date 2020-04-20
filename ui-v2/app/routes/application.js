@@ -19,6 +19,16 @@ export default Route.extend(WithBlockingActions, {
       router: this.router,
       dcs: this.repo.findAll(),
       nspaces: this.nspacesRepo.findAll(),
+
+      // these properties are added to the controller from route/dc
+      // as we don't have access to the dc and nspace params in the URL
+      // until we get to the route/dc route
+      // permissions also requires the dc param
+
+      // dc: null,
+      // nspace: null
+      // token: null
+      // permissions: null
     });
   },
   setupController: function(controller, model) {

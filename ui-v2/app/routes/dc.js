@@ -65,7 +65,8 @@ export default Route.extend({
   setupController: function(controller, model) {
     // the model here is actually required for the entire application
     // but we need to wait until we are in this route so we know what the dc
-    // and or nspace is
+    // and or nspace is if the below changes please revists the comments
+    // in routes/application:model
     this.controllerFor('application').setProperties(model);
   },
   actions: {
