@@ -10,7 +10,6 @@ export default Serializer.extend({
   normalizePayload: function(payload, id, requestType) {
     switch (requestType) {
       case 'query':
-      case 'findAll':
         return payload.map(item => {
           return {
             [this.primaryKey]: item,
