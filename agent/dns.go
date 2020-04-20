@@ -1576,9 +1576,9 @@ func (d *DNSServer) makeRecordFromNode(node *structs.Node, qType uint16, qName s
 // Craft dns records for a service
 // In case of an SRV query the answer will be a IN SRV and additional data will store an IN A to the node IP
 // Otherwise it will return a IN A record
-func (d *DNSServer) makeRecordFromServiceNode(dc string, serviceNode structs.CheckServiceNode, addr net.IP, req *dns.Msg, ttl time.Duration) ([]dns.RR, []dns.RR) {
+func (d *DNSServer) makeRecordFromServiceNode(dc string, serviceNode structs.CheckServiceNode, addr net.IP, req *dns.Msg, ttl time.Duration, nodeTTL time.Duration) ([]dns.RR, []dns.RR) {
 	q := req.Question[0]
-	ipRecord := makeARecord(q.Qtype, addr, ttl)
+	ipRecord := makeARecord(q.Qtype, addr, nodeTTL)
 	if ipRecord == nil {
 		return nil, nil
 	}
@@ -1611,9 +1611,9 @@ func (d *DNSServer) makeRecordFromServiceNode(dc string, serviceNode structs.Che
 // Craft dns records for an IP
 // In case of an SRV query the answer will be a IN SRV and additional data will store an IN A to the IP
 // Otherwise it will return a IN A record
-func (d *DNSServer) makeRecordFromIP(dc string, addr net.IP, serviceNode structs.CheckServiceNode, req *dns.Msg, ttl time.Duration) ([]dns.RR, []dns.RR) {
+func (d *DNSServer) makeRecordFromIP(dc string, addr net.IP, serviceNode structs.CheckServiceNode, req *dns.Msg, ttl time.Duration, nodeTTL time.Duration) ([]dns.RR, []dns.RR) {
 	q := req.Question[0]
-	ipRecord := makeARecord(q.Qtype, addr, ttl)
+	ipRecord := makeARecord(q.Qtype, addr, nodeTTL)
 	if ipRecord == nil {
 		return nil, nil
 	}
@@ -1657,8 +1657,6 @@ MORE_REC:
 	for _, rr := range more {
 		switch rr.Header().Rrtype {
 		case dns.TypeCNAME, dns.TypeA, dns.TypeAAAA:
-			// set the TTL manually
-			rr.Header().Ttl = uint32(ttl / time.Second)
 			additional = append(additional, rr)
 
 			extra++
@@ -1724,10 +1722,10 @@ func (d *DNSServer) nodeServiceRecords(dc string, node structs.CheckServiceNode,
 	if serviceAddr == "" && nodeIPAddr != nil {
 		if node.Node.Address != nodeAddr {
 			// Do not CNAME node address in case of WAN address
-			return d.makeRecordFromIP(dc, nodeIPAddr, node, req, ttl)
+			return d.makeRecordFromIP(dc, nodeIPAddr, node, req, ttl, cfg.NodeTTL)
 		}
 
-		return d.makeRecordFromServiceNode(dc, node, nodeIPAddr, req, ttl)
+		return d.makeRecordFromServiceNode(dc, node, nodeIPAddr, req, ttl, cfg.NodeTTL)
 	}
 
 	// There is no service address and the node address is a FQDN (external service)
@@ -1737,13 +1735,13 @@ func (d *DNSServer) nodeServiceRecords(dc string, node structs.CheckServiceNode,
 
 	// The service address is an IP
 	if serviceIPAddr != nil {
-		return d.makeRecordFromIP(dc, serviceIPAddr, node, req, ttl)
+		return d.makeRecordFromIP(dc, serviceIPAddr, node, req, ttl, cfg.NodeTTL)
 	}
 
 	// If the service address is a CNAME for the service we are looking
 	// for then use the node address.
 	if dns.Fqdn(serviceAddr) == req.Question[0].Name && nodeIPAddr != nil {
-		return d.makeRecordFromServiceNode(dc, node, nodeIPAddr, req, ttl)
+		return d.makeRecordFromServiceNode(dc, node, nodeIPAddr, req, ttl, cfg.NodeTTL)
 	}
 
 	// The service address is a FQDN (external service)

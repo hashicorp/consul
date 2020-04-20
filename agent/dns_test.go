@@ -83,6 +83,7 @@ func dnsA(src, dest string) *dns.A {
 			Name:   dns.Fqdn(src),
 			Rrtype: dns.TypeA,
 			Class:  dns.ClassINET,
+			Ttl:    30,
 		},
 		A: net.ParseIP(dest),
 	}
@@ -441,7 +442,7 @@ func TestDNSCycleRecursorCheck(t *testing.T) {
 	in, _, _ := client.Exchange(m, agent.DNSAddr())
 	wantAnswer := []dns.RR{
 		&dns.A{
-			Hdr: dns.RR_Header{Name: "www.google.com.", Rrtype: dns.TypeA, Class: dns.ClassINET, Rdlength: 0x4},
+			Hdr: dns.RR_Header{Name: "www.google.com.", Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 30, Rdlength: 0x4},
 			A:   []byte{0xAC, 0x15, 0x2D, 0x43}, // 172 , 21, 45, 67
 		},
 	}
@@ -524,7 +525,7 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 			Target: "google.com.",
 		},
 		&dns.A{
-			Hdr: dns.RR_Header{Name: "google.com.", Rrtype: dns.TypeA, Class: dns.ClassINET, Rdlength: 0x4},
+			Hdr: dns.RR_Header{Name: "google.com.", Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 30, Rdlength: 0x4},
 			A:   []byte{0x1, 0x2, 0x3, 0x4}, // 1.2.3.4
 		},
 		&dns.TXT{
@@ -2319,6 +2320,9 @@ func TestDNS_ServiceLookup_ServiceAddress_SRV(t *testing.T) {
 		if cnRec.Target != "google.com." {
 			t.Fatalf("Bad: %#v", in.Extra[0])
 		}
+		if cnRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
 
 		// Check we recursively resolve
 		aRec, ok := in.Extra[1].(*dns.A)
@@ -2328,12 +2332,22 @@ func TestDNS_ServiceLookup_ServiceAddress_SRV(t *testing.T) {
 		if aRec.A.String() != "1.2.3.4" {
 			t.Fatalf("Bad: %s", aRec.A.String())
 		}
+		if aRec.Hdr.Ttl != 30 {
+			t.Fatalf("Bad: %#v", in.Extra[1])
+		}
 	}
 }
 
 func TestDNS_ServiceLookup_ServiceAddressIPV6(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, "")
+	a := NewTestAgent(t, `
+		dns_config {
+			service_ttl {
+				"*" = "10s"
+			}
+			node_ttl = "30s"
+		}
+	`)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -2404,7 +2418,7 @@ func TestDNS_ServiceLookup_ServiceAddressIPV6(t *testing.T) {
 		if srvRec.Target != "2607002040050808000000000000200e.addr.dc1.consul." {
 			t.Fatalf("Bad: %#v", srvRec)
 		}
-		if srvRec.Hdr.Ttl != 0 {
+		if srvRec.Hdr.Ttl != 10 {
 			t.Fatalf("Bad: %#v", in.Answer[0])
 		}
 
@@ -2418,7 +2432,7 @@ func TestDNS_ServiceLookup_ServiceAddressIPV6(t *testing.T) {
 		if aRec.AAAA.String() != "2607:20:4005:808::200e" {
 			t.Fatalf("Bad: %#v", in.Extra[0])
 		}
-		if aRec.Hdr.Ttl != 0 {
+		if aRec.Hdr.Ttl != 30 {
 			t.Fatalf("Bad: %#v", in.Extra[0])
 		}
 	}
@@ -5106,6 +5120,7 @@ func TestDNS_ServiceLookup_TTL(t *testing.T) {
 				"db*" = "66s"
 				"*" = "5s"
 			}
+			node_ttl = "30s"
 		allow_stale = true
 		max_stale = "1s"
 		}
@@ -5159,7 +5174,7 @@ func TestDNS_ServiceLookup_TTL(t *testing.T) {
 			if !ok {
 				t.Fatalf("Bad: %#v", in.Extra[0])
 			}
-			if aRec.Hdr.Ttl != expectedTTL {
+			if aRec.Hdr.Ttl != 30 {
 				t.Fatalf("Bad: %#v", in.Extra[0])
 			}
 		})
@@ -5184,6 +5199,7 @@ func TestDNS_PreparedQuery_TTL(t *testing.T) {
 				"db*" = "66s"
 				"*" = "5s"
 			}
+			node_ttl = "30s"
 		allow_stale = true
 		max_stale = "1s"
 		}
@@ -5274,7 +5290,7 @@ func TestDNS_PreparedQuery_TTL(t *testing.T) {
 			if !ok {
 				t.Fatalf("Bad: %#v", in.Extra[0])
 			}
-			if aRec.Hdr.Ttl != expectedTTL {
+			if aRec.Hdr.Ttl != 30 {
 				t.Fatalf("Bad: %#v", in.Extra[0])
 			}
 		})
