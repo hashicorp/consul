@@ -32,7 +32,7 @@ Feature: dc / list-blocking
     When I visit the [Page] page for yaml
     ---
       dc: dc-1
-      service: service-0-proxy
+      service: service
     ---
     Then the url should be /dc-1/[Url]
     And pause until I see 3 [Model] models
@@ -45,5 +45,5 @@ Feature: dc / list-blocking
   Where:
     -----------------------------------------------------------------
     | Page       | Model       | Url                                |
-    | service    | instance    | services/service-0-proxy/instances |
+    | service    | instance    | services/service/instances |
     -----------------------------------------------------------------

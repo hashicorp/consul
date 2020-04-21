@@ -45,4 +45,9 @@ export default Component.extend(WithResizing, {
       this.updateScrollPosition();
     }
   },
+  actions: {
+    click: function(e) {
+      return this.dom.clickFirstAnchor(e, 'li');
+    },
+  },
 });

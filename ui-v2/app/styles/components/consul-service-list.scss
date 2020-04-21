@@ -1,5 +1,3 @@
-@import './consul-service-list/index';
-
 .consul-service-list > ul {
   @extend %consul-service-list;
 }
@@ -8,4 +6,7 @@
 }
 %consul-service-row {
   @extend %composite-row;
+}
+%consul-service-row > ul {
+  margin-left: 26px;
 }

@@ -115,4 +115,11 @@ main {
   #toolbar-toggle:checked + * {
     display: block;
   }
+  html.template-service.template-show #toolbar-toggle + * {
+    display: block;
+    padding: 4px;
+  }
+  html.template-service.template-show .actions {
+    display: none;
+  }
 }
