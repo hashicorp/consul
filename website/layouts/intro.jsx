@@ -2,9 +2,9 @@ import DocsPage from '@hashicorp/react-docs-page'
 import order from '../data/intro-navigation.js'
 import { frontMatter as data } from '../pages/intro/**/*.mdx'
 import { MDXProvider } from '@mdx-js/react'
+import EnterpriseAlert from '../components/enterprise-alert'
 import Head from 'next/head'
 import Link from 'next/link'
-import EnterpriseAlert from '@hashicorp/react-enterprise-alert'
 
 const DEFAULT_COMPONENTS = { EnterpriseAlert }
 

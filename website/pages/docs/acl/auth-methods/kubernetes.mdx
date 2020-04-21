@@ -37,17 +37,17 @@ parameters are required to properly configure an auth method of type
   ([JWT](https://jwt.io/ 'JSON Web Token')) used by the Consul leader to
   validate application JWTs during login.
 
-- `MapNamespaces` `(bool: <false>)` <span class="label-enterprise">Enterprise</span> - Indicates whether
+- `MapNamespaces` `(bool: <false>)` <EnterpriseAlert inline /> - Indicates whether
   the auth method should attempt to map the Kubernetes namespace to a Consul
   namespace instead of creating tokens in the auth methods own namespace. Note
   that mapping namespaces requires the auth method to reside within the
   `default` namespace.
 
-- `ConsulNamespacePrefix` `(string: <optional>)` <span class="label-enterprise">Enterprise</span> - When
+- `ConsulNamespacePrefix` `(string: <optional>)` <EnterpriseAlert inline /> - When
   `MapNamespaces` is enabled, this value will be prefixed to the Kubernetes
   namespace to determine the Consul namespace to create the new token within.
 
-- `ConsulNamespaceOverrides` `(map: <string:string>)` <span class="label-enterprise">Enterprise</span> -
+- `ConsulNamespaceOverrides` `(map: <string:string>)` <EnterpriseAlert inline /> -
   This field is a mapping of Kubernetes namespace names to Consul namespace
   names. If a Kubernetes namespace is present within this map, the value will
   be used without adding the `ConsulNamespacePrefix`. If the value in the map

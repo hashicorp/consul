@@ -303,7 +303,7 @@ replication enabled.
 - `Meta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata
   linked to the token. Can be useful to track origins.
 
-- `Namespace` `(string: "")` <span class="label-enterprise">Enterprise</span> - Specifies the namespace of
+- `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of
   the Auth Method to use for Login. If not provided in the JSON body, the value of
   the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used.
   If not provided at all, the namespace will be inherited from the request's ACL
