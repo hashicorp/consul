@@ -103,6 +103,9 @@ export default LazyProxyService.extend({
     cache = createCache(cacheMap);
   },
   willDestroy: function() {
+    Object.entries(cacheMap || {}).forEach(function([key, item]) {
+      item.close();
+    });
     cacheMap = null;
     cache = null;
   },

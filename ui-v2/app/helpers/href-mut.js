@@ -1,9 +1,10 @@
 import Helper from '@ember/component/helper';
 import { inject as service } from '@ember/service';
 import { hrefTo } from 'consul-ui/helpers/href-to';
+import { getOwner } from '@ember/application';
 
 const getRouteParams = function(route, params = {}) {
-  return route.paramNames.map(function(item) {
+  return (route.paramNames || []).map(function(item) {
     if (typeof params[item] !== 'undefined') {
       return params[item];
     }
@@ -13,16 +14,20 @@ const getRouteParams = function(route, params = {}) {
 export default Helper.extend({
   router: service('router'),
   compute([params], hash) {
-    let current = this.router.currentRoute;
+    let currentRoute = this.router.currentRoute;
+    if (currentRoute === null) {
+      currentRoute = getOwner(this).lookup('route:application');
+    }
     let parent;
-    let atts = getRouteParams(current, params);
+    let atts = getRouteParams(currentRoute, params);
     // walk up the entire route/s replacing any instances
     // of the specified params with the values specified
+    let current = currentRoute;
     while ((parent = current.parent)) {
       atts = atts.concat(getRouteParams(parent, params));
       current = parent;
     }
-    let route = this.router.currentRoute.name;
+    let route = currentRoute.name || 'application';
     // TODO: this is specific to consul/nspaces
     // 'ideally' we could try and do this elsewhere
     // not super important though.
