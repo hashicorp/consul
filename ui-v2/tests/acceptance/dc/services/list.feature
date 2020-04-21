@@ -2,14 +2,17 @@
 Feature: dc / services / list
   Scenario: Listing service
     Given 1 datacenter model with the value "dc-1"
-    And 3 service models from yaml
+    And 6 service models from yaml
     ---
       - Name: Service-0
-        Kind: consul
+      - Name: Service-0-proxy
+        Kind: 'connect-proxy'
       - Name: Service-1
-        Kind: consul
+      - Name: Service-1-proxy
+        Kind: 'connect-proxy'
       - Name: Service-2
-        Kind: consul
+      - Name: Service-2-proxy
+        Kind: 'connect-proxy'
     ---
     When I visit the services page for yaml
     ---

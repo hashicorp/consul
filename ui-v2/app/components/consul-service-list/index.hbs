@@ -1,14 +1,30 @@
 {{yield}}
 {{#if (gt items.length 0)}}
 <ListCollection @cellHeight={{73}} @items={{items}} class="consul-service-list" as |item index|>
-  <a href={{href-to routeName item.Name}}>
-    <span class={{service/health-checks item}}></span>
-    <span>
-      {{item.Name}}
-    </span>
-    <YieldSlot @name="metadata" @params={{block-params item}}>
-      {{yield}}
-    </YieldSlot>
+  <a href={{href-to routeName item.Name}} class={{service/health-checks item}}>
+    {{item.Name}}
   </a>
+  <ul>
+    <ConsulExternalSource @item={{item}} as |ExternalSource|>
+      <li>
+        <ExternalSource />
+      </li>
+    </ConsulExternalSource>
+  {{#if (not-eq item.InstanceCount 0)}}
+    <li>
+      {{format-number item.InstanceCount}} {{pluralize item.InstanceCount 'Instance' without-count=true}}
+    </li>
+  {{/if}}
+  {{#if (get proxies item.Name)}}
+    <li class="proxy">
+      connected with proxy
+    </li>
+  {{/if}}
+  {{#if (gt items.Tags.length 0)}}
+    <li>
+      <TagList @items={{item.Tags}}/>
+    </li>
+  {{/if}}
+  </ul>
 </ListCollection>
 {{/if}}
