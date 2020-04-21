@@ -725,9 +725,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							Result: &structs.IndexedGatewayServices{
 								Services: structs.GatewayServices{
 									{
-										Gateway: structs.NewServiceID("ingress-gateway", nil),
-										Service: structs.NewServiceID("api", nil),
-										Port:    9999,
+										Gateway:  structs.NewServiceID("ingress-gateway", nil),
+										Service:  structs.NewServiceID("api", nil),
+										Port:     9999,
+										Protocol: "http",
 									},
 								},
 							},
@@ -736,6 +737,18 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.Len(t, snap.IngressGateway.Upstreams, 1)
+						key := IngressListenerKey{Protocol: "http", Port: 9999}
+						require.Equal(t, snap.IngressGateway.Upstreams[key], structs.Upstreams{
+							{
+								DestinationNamespace: "default",
+								DestinationName:      "api",
+								LocalBindAddress:     "10.0.1.1",
+								LocalBindPort:        9999,
+								Config: map[string]interface{}{
+									"protocol": "http",
+								},
+							},
+						})
 						require.Len(t, snap.IngressGateway.WatchedDiscoveryChains, 1)
 						require.Contains(t, snap.IngressGateway.WatchedDiscoveryChains, "api")
 					},

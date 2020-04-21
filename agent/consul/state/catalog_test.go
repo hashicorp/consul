@@ -4920,7 +4920,7 @@ func TestStateStore_CheckIngressServiceNodes(t *testing.T) {
 	t.Run("check service1 ingress gateway", func(t *testing.T) {
 		idx, results, err := s.CheckIngressServiceNodes(ws, "service1", nil)
 		require.NoError(err)
-		require.Equal(uint64(13), idx)
+		require.Equal(uint64(14), idx)
 		// Multiple instances of the ingress2 service
 		require.Len(results, 4)
 
@@ -4939,7 +4939,7 @@ func TestStateStore_CheckIngressServiceNodes(t *testing.T) {
 	t.Run("check service2 ingress gateway", func(t *testing.T) {
 		idx, results, err := s.CheckIngressServiceNodes(ws, "service2", nil)
 		require.NoError(err)
-		require.Equal(uint64(12), idx)
+		require.Equal(uint64(14), idx)
 		require.Len(results, 2)
 
 		ids := make(map[string]struct{})
@@ -4957,7 +4957,7 @@ func TestStateStore_CheckIngressServiceNodes(t *testing.T) {
 		ws := memdb.NewWatchSet()
 		idx, results, err := s.CheckIngressServiceNodes(ws, "service3", nil)
 		require.NoError(err)
-		require.Equal(uint64(11), idx)
+		require.Equal(uint64(14), idx)
 		require.Len(results, 1)
 		require.Equal("wildcardIngress", results[0].Service.ID)
 	})
@@ -4968,17 +4968,17 @@ func TestStateStore_CheckIngressServiceNodes(t *testing.T) {
 
 		idx, results, err := s.CheckIngressServiceNodes(ws, "service1", nil)
 		require.NoError(err)
-		require.Equal(uint64(13), idx)
+		require.Equal(uint64(14), idx)
 		require.Len(results, 3)
 
 		idx, results, err = s.CheckIngressServiceNodes(ws, "service2", nil)
 		require.NoError(err)
-		require.Equal(uint64(12), idx)
+		require.Equal(uint64(14), idx)
 		require.Len(results, 1)
 
 		idx, results, err = s.CheckIngressServiceNodes(ws, "service3", nil)
 		require.NoError(err)
-		require.Equal(uint64(0), idx)
+		require.Equal(uint64(14), idx)
 		// TODO(ingress): index goes backward when deleting last config entry
 		// require.Equal(uint64(11), idx)
 		require.Len(results, 0)
@@ -4993,7 +4993,7 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 	t.Run("ingress1 gateway services", func(t *testing.T) {
 		idx, results, err := s.GatewayServices(ws, "ingress1", nil)
 		require.NoError(err)
-		require.Equal(uint64(14), idx)
+		require.Equal(uint64(15), idx)
 		require.Len(results, 2)
 		require.Equal("ingress1", results[0].Gateway.ID)
 		require.Equal("service1", results[0].Service.ID)
@@ -5006,7 +5006,7 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 	t.Run("ingress2 gateway services", func(t *testing.T) {
 		idx, results, err := s.GatewayServices(ws, "ingress2", nil)
 		require.NoError(err)
-		require.Equal(uint64(14), idx)
+		require.Equal(uint64(15), idx)
 		require.Len(results, 1)
 		require.Equal("ingress2", results[0].Gateway.ID)
 		require.Equal("service1", results[0].Service.ID)
@@ -5016,7 +5016,7 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 	t.Run("No gatway services associated", func(t *testing.T) {
 		idx, results, err := s.GatewayServices(ws, "nothingIngress", nil)
 		require.NoError(err)
-		require.Equal(uint64(14), idx)
+		require.Equal(uint64(15), idx)
 		require.Len(results, 0)
 	})
 
@@ -5024,7 +5024,7 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 		ws = memdb.NewWatchSet()
 		idx, results, err := s.GatewayServices(ws, "wildcardIngress", nil)
 		require.NoError(err)
-		require.Equal(uint64(14), idx)
+		require.Equal(uint64(15), idx)
 		require.Len(results, 3)
 		require.Equal("wildcardIngress", results[0].Gateway.ID)
 		require.Equal("service1", results[0].Service.ID)
@@ -5035,6 +5035,29 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 		require.Equal("wildcardIngress", results[2].Gateway.ID)
 		require.Equal("service3", results[2].Service.ID)
 		require.Equal(4444, results[2].Port)
+	})
+
+	t.Run("gateway with duplicate service", func(t *testing.T) {
+		idx, results, err := s.GatewayServices(ws, "ingress3", nil)
+		require.NoError(err)
+		require.Equal(uint64(15), idx)
+		require.Len(results, 4)
+		require.Equal("ingress3", results[0].Gateway.ID)
+		require.Equal("service1", results[0].Service.ID)
+		require.Equal(6666, results[0].Port)
+		require.Equal("tcp", results[0].Protocol)
+		require.Equal("ingress3", results[1].Gateway.ID)
+		require.Equal("service1", results[1].Service.ID)
+		require.Equal(5555, results[1].Port)
+		require.Equal("http", results[1].Protocol)
+		require.Equal("ingress3", results[2].Gateway.ID)
+		require.Equal("service2", results[2].Service.ID)
+		require.Equal(5555, results[2].Port)
+		require.Equal("http", results[2].Protocol)
+		require.Equal("ingress3", results[3].Gateway.ID)
+		require.Equal("service3", results[3].Service.ID)
+		require.Equal(5555, results[3].Port)
+		require.Equal("http", results[3].Protocol)
 	})
 
 	t.Run("deregistering a service", func(t *testing.T) {
@@ -5098,7 +5121,7 @@ func TestStateStore_GatewayServices_WildcardAssociation(t *testing.T) {
 	t.Run("base case for wildcard", func(t *testing.T) {
 		idx, results, err := s.GatewayServices(ws, "wildcardIngress", nil)
 		require.NoError(err)
-		require.Equal(uint64(14), idx)
+		require.Equal(uint64(15), idx)
 		require.Len(results, 3)
 	})
 
@@ -5107,7 +5130,7 @@ func TestStateStore_GatewayServices_WildcardAssociation(t *testing.T) {
 		require.False(watchFired(ws))
 		idx, results, err := s.GatewayServices(ws, "wildcardIngress", nil)
 		require.NoError(err)
-		require.Equal(uint64(14), idx)
+		require.Equal(uint64(15), idx)
 		require.Len(results, 3)
 	})
 
@@ -5120,7 +5143,7 @@ func TestStateStore_GatewayServices_WildcardAssociation(t *testing.T) {
 		require.False(watchFired(ws))
 		idx, results, err := s.GatewayServices(ws, "wildcardIngress", nil)
 		require.NoError(err)
-		require.Equal(uint64(14), idx)
+		require.Equal(uint64(15), idx)
 		require.Len(results, 3)
 	})
 
@@ -5129,7 +5152,7 @@ func TestStateStore_GatewayServices_WildcardAssociation(t *testing.T) {
 		require.False(watchFired(ws))
 		idx, results, err := s.GatewayServices(ws, "wildcardIngress", nil)
 		require.NoError(err)
-		require.Equal(uint64(14), idx)
+		require.Equal(uint64(15), idx)
 		require.Len(results, 3)
 	})
 
@@ -5140,7 +5163,7 @@ func TestStateStore_GatewayServices_WildcardAssociation(t *testing.T) {
 		require.False(watchFired(ws))
 		idx, results, err := s.GatewayServices(ws, "wildcardIngress", nil)
 		require.NoError(err)
-		require.Equal(uint64(14), idx)
+		require.Equal(uint64(15), idx)
 		require.Len(results, 3)
 	})
 }
@@ -5228,12 +5251,40 @@ func setupIngressState(t *testing.T, s *Store) memdb.WatchSet {
 	}
 	assert.NoError(t, s.EnsureConfigEntry(13, ingress2, nil))
 
+	ingress3 := &structs.IngressGatewayConfigEntry{
+		Kind: "ingress-gateway",
+		Name: "ingress3",
+		Listeners: []structs.IngressListener{
+			{
+				Port:     5555,
+				Protocol: "http",
+				Services: []structs.IngressService{
+					{
+						Name: "*",
+					},
+				},
+			},
+			{
+				Port:     6666,
+				Protocol: "tcp",
+				Services: []structs.IngressService{
+					{
+						Name: "service1",
+					},
+				},
+			},
+		},
+	}
+	assert.NoError(t, s.EnsureConfigEntry(14, ingress3, nil))
+	assert.True(t, watchFired(ws))
+
 	nothingIngress := &structs.IngressGatewayConfigEntry{
 		Kind:      "ingress-gateway",
 		Name:      "nothingIngress",
 		Listeners: []structs.IngressListener{},
 	}
-	assert.NoError(t, s.EnsureConfigEntry(14, nothingIngress, nil))
+	assert.NoError(t, s.EnsureConfigEntry(15, nothingIngress, nil))
+	assert.True(t, watchFired(ws))
 
 	return ws
 }

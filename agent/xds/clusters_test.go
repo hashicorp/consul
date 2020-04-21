@@ -485,6 +485,11 @@ func TestClustersFromSnapshot(t *testing.T) {
 				}
 			},
 		},
+		{
+			name:   "ingress-multiple-listeners-duplicate-service",
+			create: proxycfg.TestConfigSnapshotIngress_MultipleListenersDuplicateService,
+			setup:  nil,
+		},
 	}
 
 	for _, tt := range tests {

@@ -236,9 +236,17 @@ func (s *Server) makeGatewayServiceClusters(cfgSnap *proxycfg.ConfigSnapshot) ([
 
 func (s *Server) clustersFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var clusters []proto.Message
+	createdClusters := make(map[string]bool)
 	for _, upstreams := range cfgSnap.IngressGateway.Upstreams {
 		for _, u := range upstreams {
 			id := u.Identifier()
+
+			// If we've already created a cluster for this upstream, skip it. Multiple listeners may
+			// reference the same upstream, so we don't need to create duplicate clusters in that case.
+			if createdClusters[id] {
+				continue
+			}
+
 			chain, ok := cfgSnap.IngressGateway.DiscoveryChain[id]
 			if !ok {
 				// this should not happen
@@ -259,6 +267,7 @@ func (s *Server) clustersFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnap
 			for _, c := range upstreamClusters {
 				clusters = append(clusters, c)
 			}
+			createdClusters[id] = true
 		}
 	}
 	return clusters, nil

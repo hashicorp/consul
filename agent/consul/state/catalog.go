@@ -75,6 +75,9 @@ func gatewayServicesTableNameSchema() *memdb.TableSchema {
 						&ServiceIDIndex{
 							Field: "Service",
 						},
+						&memdb.IntFieldIndex{
+							Field: "Port",
+						},
 					},
 				},
 			},
@@ -2600,7 +2603,7 @@ func (s *Store) updateGatewayNamespace(tx *memdb.Txn, idx uint64, service *struc
 			continue
 		}
 
-		existing, err := tx.First(gatewayServicesTableName, "id", service.Gateway, sn.CompoundServiceName())
+		existing, err := tx.First(gatewayServicesTableName, "id", service.Gateway, sn.CompoundServiceName(), service.Port)
 		if err != nil {
 			return fmt.Errorf("gateway service lookup failed: %s", err)
 		}
@@ -2635,7 +2638,7 @@ func (s *Store) updateGatewayNamespace(tx *memdb.Txn, idx uint64, service *struc
 func (s *Store) updateGatewayService(tx *memdb.Txn, idx uint64, mapping *structs.GatewayService) error {
 	// Check if mapping already exists in table if it's already in the table
 	// Avoid insert if nothing changed
-	existing, err := tx.First(gatewayServicesTableName, "id", mapping.Gateway, mapping.Service)
+	existing, err := tx.First(gatewayServicesTableName, "id", mapping.Gateway, mapping.Service, mapping.Port)
 	if err != nil {
 		return fmt.Errorf("gateway service lookup failed: %s", err)
 	}

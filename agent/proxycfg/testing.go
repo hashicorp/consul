@@ -1567,6 +1567,39 @@ func TestConfigSnapshotGRPCExposeHTTP1(t testing.T) *ConfigSnapshot {
 	}
 }
 
+func TestConfigSnapshotIngress_MultipleListenersDuplicateService(t testing.T) *ConfigSnapshot {
+	snap := TestConfigSnapshotIngress_HTTPMultipleServices(t)
+
+	snap.IngressGateway.Upstreams = map[IngressListenerKey]structs.Upstreams{
+		IngressListenerKey{Protocol: "http", Port: 8080}: structs.Upstreams{
+			{
+				DestinationName: "foo",
+				LocalBindPort:   8080,
+			},
+			{
+				DestinationName: "bar",
+				LocalBindPort:   8080,
+			},
+		},
+		IngressListenerKey{Protocol: "http", Port: 443}: structs.Upstreams{
+			{
+				DestinationName: "foo",
+				LocalBindPort:   443,
+			},
+		},
+	}
+
+	fooChain := discoverychain.TestCompileConfigEntries(t, "foo", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil)
+	barChain := discoverychain.TestCompileConfigEntries(t, "bar", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil)
+
+	snap.IngressGateway.DiscoveryChain = map[string]*structs.CompiledDiscoveryChain{
+		"foo": fooChain,
+		"bar": barChain,
+	}
+
+	return snap
+}
+
 func httpMatch(http *structs.ServiceRouteHTTPMatch) *structs.ServiceRouteMatch {
 	return &structs.ServiceRouteMatch{HTTP: http}
 }
