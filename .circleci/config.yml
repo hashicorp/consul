@@ -16,7 +16,7 @@ references:
 
   environment: &ENVIRONMENT
     TEST_RESULTS_DIR: *TEST_RESULTS_DIR
-    GOTESTSUM_RELEASE: 0.3.3
+    GOTESTSUM_RELEASE: 0.4.2
     EMAIL: noreply@hashicorp.com
     GIT_AUTHOR_NAME: circleci-consul
     GIT_COMMITTER_NAME: circleci-consul
@@ -95,6 +95,12 @@ jobs:
           at: /go/bin
       - run: sudo apt-get update && sudo apt-get install -y rsyslog
       - run: sudo service rsyslog start
+      - run: &install_gotestsum
+          name: Install gotestsum
+          command: |
+            url=https://github.com/gotestyourself/gotestsum/releases/download
+            curl -sSL "${url}/v${GOTESTSUM_RELEASE}/gotestsum_${GOTESTSUM_RELEASE}_linux_amd64.tar.gz" | \
+              sudo tar -xz --overwrite -C /usr/local/bin gotestsum
       - run: go mod download
       - run:
           name: go test
@@ -131,6 +137,7 @@ jobs:
       - checkout
       - attach_workspace:
           at: /go/bin
+      - run: *install_gotestsum
       - run:
           working_directory: api
           command: go mod download
@@ -162,6 +169,7 @@ jobs:
       - checkout
       - attach_workspace:
           at: /go/bin
+      - run: *install_gotestsum
       - run:
           working_directory: sdk
           command: go mod download
@@ -325,8 +333,7 @@ jobs:
           command: make pkg/linux_amd64/nomad
           working_directory: *NOMAD_WORKING_DIR
 
-      # update gotestsum
-      - run: curl -sSL "https://github.com/gotestyourself/gotestsum/releases/download/v${GOTESTSUM_RELEASE}/gotestsum_${GOTESTSUM_RELEASE}_linux_amd64.tar.gz" | sudo tar --overwrite -xz -C /usr/local/bin gotestsum
+      - run: *install_gotestsum
 
       # run integration tests
       - run:
