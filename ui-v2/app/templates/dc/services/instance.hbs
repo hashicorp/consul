@@ -51,8 +51,7 @@
         <TabNav @items={{
           compact
               (array
-                      (hash label="Service Checks" href=(href-to "dc.services.instance.servicechecks") selected=(is-href "dc.services.instance.servicechecks"))
-                      (hash label="Node Checks" href=(href-to "dc.services.instance.nodechecks") selected=(is-href "dc.services.instance.nodechecks"))
+                      (hash label="Health Checks" href=(href-to "dc.services.instance.healthchecks") selected=(is-href "dc.services.instance.healthchecks"))
 (if
   (eq item.Kind 'connect-proxy')
                       (hash label="Upstreams" href=(href-to "dc.services.instance.upstreams") selected=(is-href "dc.services.instance.upstreams")) ""
