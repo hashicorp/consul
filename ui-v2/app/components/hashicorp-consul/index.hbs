@@ -32,7 +32,7 @@
                             <li role="separator">
                               Namespaces
                               <DataSource
-                                @src={{concat '/*/*/namespaces'}}
+                                @src="/*/*/namespaces"
                                 @onchange={{action (mut nspaces) value="data"}}
                                 @loading="lazy"
                               />
@@ -65,7 +65,7 @@
                             <li role="separator">
                               Datacenters
                               <DataSource
-                                @src={{concat '/*/*/datacenters'}}
+                                @src="/*/*/datacenters"
                                 @onchange={{action (mut dcs) value="data"}}
                                 @loading="lazy"
                               />
