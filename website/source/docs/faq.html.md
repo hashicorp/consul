@@ -106,15 +106,21 @@ situations where a limited subset of data can be replicated, such as with Consul
 [ACL replication](https://learn.hashicorp.com/consul/day-2-operations/acl-replication) capability, or
 external tools like [consul-replicate](https://github.com/hashicorp/consul-replicate).
 
-## Q: Can Consul natively handle protecting against other processes accessing Consul's memory state? 
+## Q: Can Consul natively handle protecting against other processes accessing Consul's memory state?
 
-Consul does not provide built-in memory access protections, and doesn't interact with the host system to change or manipulate 
-viewing and doesn't interact with the host system to change or manipulate 
+Consul does not provide built-in memory access protections, and doesn't interact with the host system to change or manipulate
+viewing and doesn't interact with the host system to change or manipulate
 application security.
 
-We recommend taking any precautions or 
-remediation steps that you would normally do for individual processes, based 
-on your operating system. 
+We recommend taking any precautions or
+remediation steps that you would normally do for individual processes, based
+on your operating system.
 
-Please see our 
+Please see our
 [Security Model](https://www.consul.io/docs/internals/security.html) for more information.
+
+## Q: Does Consul UI support IE 11?
+
+We do not support Internet Explorer 11 (IE 11). Consul follows a similar
+alignment with Microsoft's own stance on IE 11, found on their
+[support website](https://support.microsoft.com/en-us/help/17454/lifecycle-faq-internet-explorer-and-edge).

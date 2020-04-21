@@ -76,3 +76,17 @@ it is on your PATH or you may get an error about Consul not being found.
 ```shell
 $ consul -v
 ```
+
+## Consul UI Supported Versions
+
+Consul currently supports all 'evergreen' browsers, as they are generally on
+up-to-date versions. This means we support:
+
+- Chrome
+- Firefox
+- Safari
+- Microsoft Edge
+
+We do not support Internet Explorer 11 (IE 11). Consul follows a similar
+alignment with Microsoft's own stance on IE 11, found on their
+[support website](https://support.microsoft.com/en-us/help/17454/lifecycle-faq-internet-explorer-and-edge).
