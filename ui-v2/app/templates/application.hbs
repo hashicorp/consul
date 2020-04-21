@@ -1,13 +1,15 @@
 <HeadLayout />
 {{title 'Consul' separator=' - '}}
+{{#if (not-eq router.currentRouteName 'application')}}
+  <HashicorpConsul @id="wrapper" @permissions={{permissions}} @dcs={{dcs}} @dc={{or dc dcs.firstObject}} @nspaces={{nspaces}} @nspace={{or nspace nspaces.firstObject}}>
 {{#if (not loading)}}
   {{outlet}}
 {{else}}
-  <HashicorpConsul @id="wrapper" @permissions={{permissions}} @dcs={{dcs}} @dc={{dc}} @nspaces={{nspaces}} @nspace={{nspace}}>
     <AppView @class="loading show">
       <BlockSlot @name="content">
         {{partial 'consul-loading'}}
       </BlockSlot>
     </AppView>
+{{/if}}
   </HashicorpConsul>
 {{/if}}

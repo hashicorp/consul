@@ -1,43 +1,41 @@
 {{title "Settings"}}
-<HashicorpConsul @id="wrapper" @permissions={{permissions}} @dcs={{dcs}} @dc={{dc}} @nspaces={{nspaces}} @nspace={{nspace}}>
-  <AppView @class="settings show">
-    <BlockSlot @name="header">
-      <h1>
-        Settings
-      </h1>
-    </BlockSlot>
-    <BlockSlot @name="content">
-      <div class="notice info">
-        <h3>Local Storage</h3>
+<AppView @class="settings show">
+  <BlockSlot @name="header">
+    <h1>
+      Settings
+    </h1>
+  </BlockSlot>
+  <BlockSlot @name="content">
+    <div class="notice info">
+      <h3>Local Storage</h3>
+      <p>
+        These settings are immediately saved to local storage and persisted through browser usage.
+      </p>
+    </div>
+    <form>
+      <fieldset>
+        <h2>Dashboard Links</h2>
         <p>
-          These settings are immediately saved to local storage and persisted through browser usage.
+          Add a link to the service detail page in the UI to get quick access to a service-wide metrics dashboard. Enter the dashboard URL into the field below. You can use the placeholders <code>{{'{{Datacenter}}'}}</code> and <code>{{'{{Service.Name}}'}}</code> which will be replaced with the name of the datacenter/service currently being viewed.
         </p>
-      </div>
-      <form>
-        <fieldset>
-          <h2>Dashboard Links</h2>
-          <p>
-            Add a link to the service detail page in the UI to get quick access to a service-wide metrics dashboard. Enter the dashboard URL into the field below. You can use the placeholders <code>{{'{{Datacenter}}'}}</code> and <code>{{'{{Service.Name}}'}}</code> which will be replaced with the name of the datacenter/service currently being viewed.
-          </p>
-          <label class={{concat (if confirming 'confirming') ' type-text'}} id="urls_service">
-            <span>Link template for services</span>
-            <input type="text" name="urls[service]" value={{item.urls.service}} onchange={{action 'change'}} onkeypress={{action 'key'}} onkeydown={{action 'key'}} />
-            <em>e.g. https://grafana.example.com/d/1/consul-service-mesh&amp;orgid=1&amp;datacenter={{'{{Datacenter}}'}}&amp;service-name={{'{{Service.Name}}'}}</em>
+        <label class={{concat (if confirming 'confirming') ' type-text'}} id="urls_service">
+          <span>Link template for services</span>
+          <input type="text" name="urls[service]" value={{item.urls.service}} onchange={{action 'change'}} onkeypress={{action 'key'}} onkeydown={{action 'key'}} />
+          <em>e.g. https://grafana.example.com/d/1/consul-service-mesh&amp;orgid=1&amp;datacenter={{'{{Datacenter}}'}}&amp;service-name={{'{{Service.Name}}'}}</em>
+        </label>
+      </fieldset>
+    {{#if (not (env 'CONSUL_UI_DISABLE_REALTIME'))}}
+      <fieldset data-test-blocking-queries>
+        <h2>Blocking Queries</h2>
+        <p>Keep catalog info up-to-date without refreshing the page. Any changes made to services, nodes and intentions would be reflected in real time.</p>
+        <div class="type-toggle">
+          <label>
+            <input type="checkbox" name="client[blocking]" checked={{if item.client.blocking 'checked'}} onchange={{action 'change'}} />
+            <span>{{if item.client.blocking 'On' 'Off'}}</span>
           </label>
-        </fieldset>
-      {{#if (not (env 'CONSUL_UI_DISABLE_REALTIME'))}}
-        <fieldset data-test-blocking-queries>
-          <h2>Blocking Queries</h2>
-          <p>Keep catalog info up-to-date without refreshing the page. Any changes made to services, nodes and intentions would be reflected in real time.</p>
-          <div class="type-toggle">
-            <label>
-              <input type="checkbox" name="client[blocking]" checked={{if item.client.blocking 'checked'}} onchange={{action 'change'}} />
-              <span>{{if item.client.blocking 'On' 'Off'}}</span>
-            </label>
-          </div>
-        </fieldset>
-      {{/if}}
-      </form>
-    </BlockSlot>
-  </AppView>
-</HashicorpConsul>
+        </div>
+      </fieldset>
+    {{/if}}
+    </form>
+  </BlockSlot>
+</AppView>

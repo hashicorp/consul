@@ -38,11 +38,17 @@ export default Component.extend({
     } else {
       // TODO: Ideally we wouldn't need to use env() at a component level
       // transitionTo should probably remove it instead if NSPACES aren't enabled
-      if (this.env.var('CONSUL_NSPACES_ENABLED') && get(token, 'Namespace') !== this.nspace) {
+      if (this.env.var('CONSUL_NSPACES_ENABLED') && get(token, 'Namespace') !== this.nspace.Name) {
         if (!routeName.startsWith('nspace')) {
           routeName = `nspace.${routeName}`;
         }
-        return route.transitionTo(`${routeName}`, `~${get(token, 'Namespace')}`, this.dc.Name);
+        const nspace = get(token, 'Namespace');
+        // you potentially have a new namespace
+        if (typeof nspace !== 'undefined') {
+          return route.transitionTo(`${routeName}`, `~${nspace}`, this.dc.Name);
+        }
+        // you are logging out, just refresh
+        return route.refresh();
       } else {
         if (route.routeName === 'dc.acls.index') {
           return route.transitionTo('dc.acls.tokens.index');

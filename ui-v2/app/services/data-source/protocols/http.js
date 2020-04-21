@@ -3,10 +3,11 @@ import { get } from '@ember/object';
 
 export default Service.extend({
   datacenters: service('repository/dc'),
+  namespaces: service('repository/nspace'),
   token: service('repository/token'),
   type: service('data-source/protocols/http/blocking'),
   source: function(src, configuration) {
-    const [, dc /*nspace*/, , model, ...rest] = src.split('/');
+    const [, , /*nspace*/ dc, model, ...rest] = src.split('/');
     let find;
     const repo = this[model];
     if (typeof repo.reconcile === 'function') {
@@ -23,6 +24,9 @@ export default Service.extend({
     }
     switch (model) {
       case 'datacenters':
+        find = configuration => repo.findAll(configuration);
+        break;
+      case 'namespaces':
         find = configuration => repo.findAll(configuration);
         break;
       case 'token':
