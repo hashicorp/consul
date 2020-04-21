@@ -14,21 +14,7 @@
     <BlockSlot @name="content">
         <ChangeableSet @dispatcher={{searchable}}>
           <BlockSlot @name="set" as |filtered|>
-            <ConsulServiceList @routeName="dc.services.show" @items={{filtered}}>
-              <BlockSlot @name="metadata" as |item|>
-                <ul>
-                  <ConsulExternalSource @item={{item}} as |ExternalSource|>
-                    <li>
-                      <ExternalSource />
-                    </li>
-                  </ConsulExternalSource>
-                  <li>{{format-number item.InstanceCount}} {{pluralize item.InstanceCount 'Instance' without-count=true}}</li>
-                  {{#if (get withProxies item.Name)}}<li class="proxy">connected with proxy</li>{{/if}}
-                  <li><TagList @items={{item.Tags}}/></li>
-                </ul>
-              </BlockSlot>
-            </ConsulServiceList>
-          </BlockSlot>
+            <ConsulServiceList @routeName="dc.services.show" @items={{filtered}} @proxies={{proxies}}/>          </BlockSlot>
           <BlockSlot @name="empty">
             <p>
               There are no services.

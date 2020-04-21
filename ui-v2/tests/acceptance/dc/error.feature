@@ -6,14 +6,17 @@ Feature: dc / error: Recovering from a dc 500 error
     - dc-1
     - dc-500
     ---
-    And 3 service models from yaml
+    And 6 service models from yaml
     ---
       - Name: Service-0
-        Kind: consul
+      - Name: Service-0-proxy
+        Kind: 'connect-proxy'
       - Name: Service-1
-        Kind: consul
+      - Name: Service-1-proxy
+        Kind: 'connect-proxy'
       - Name: Service-2
-        Kind: consul
+      - Name: Service-2-proxy
+        Kind: 'connect-proxy'
     ---
     And the url "/v1/internal/ui/services" responds with a 500 status
     When I visit the services page for yaml

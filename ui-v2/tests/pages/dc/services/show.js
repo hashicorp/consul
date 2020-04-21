@@ -1,16 +1,9 @@
-export default function(
-  visitable,
-  clickable,
-  attribute,
-  collection,
-  text,
-  intentions,
-  filter,
-  tabs
-) {
+export default function(visitable, attribute, collection, text, intentions, filter, tabs) {
   return {
     visit: visitable('/:dc/services/:service'),
-    externalSource: attribute('data-test-external-source', 'h1 span'),
+    externalSource: attribute('data-test-external-source', '[data-test-external-source]', {
+      scope: '.title-bar',
+    }),
     dashboardAnchor: {
       href: attribute('href', '[data-test-dashboard-anchor]'),
     },
@@ -18,7 +11,7 @@ export default function(
     filter: filter,
 
     // TODO: These need to somehow move to subpages
-    instances: collection('#instances [data-test-tabular-row]', {
+    instances: collection('.consul-service-instance-list > ul > li:not(:first-child)', {
       address: text('[data-test-address]'),
     }),
     intentions: intentions(),

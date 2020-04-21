@@ -10,29 +10,21 @@
     </ol>
   </BlockSlot>
   <BlockSlot @name="header">
-    <h1>
-      {{item.Service.Service}}
-{{#let (service/external-source item.Service) as |externalSource| }}
-    {{#if externalSource }}
-        <span data-test-external-source={{externalSource}} style={{concat 'background-image: var(--' externalSource '-icon)'}} data-tooltip="Registered via {{externalSource}}">Registered via {{externalSource}}</span>
-    {{/if}}
-{{/let}}
-{{#if (eq item.Service.Kind 'connect-proxy')}}
-      <span class="kind-proxy">Proxy</span>
-{{else if (eq item.Service.Kind 'mesh-gateway')}}
-      <span class="kind-proxy">Mesh Gateway</span>
-{{/if}}
-    </h1>
-    <label for="toolbar-toggle"></label>
-        <TabNav @items={{
-          compact
-              (array
-                    (hash label="Instances" href=(href-to "dc.services.show.instances") selected=(is-href "dc.services.show.instances"))
-                    (hash label="Intentions" href=(href-to "dc.services.show.intentions") selected=(is-href "dc.services.show.intentions"))
+    <div class="title-bar">
+      <h1>
+        {{item.Service.Service}}
+      </h1>
+      <ConsulExternalSource @item={{item.Service}} />
+    </div>
+    <TabNav @items={{
+      compact
+          (array
+                (hash label="Instances" href=(href-to "dc.services.show.instances") selected=(is-href "dc.services.show.instances"))
+                (hash label="Intentions" href=(href-to "dc.services.show.intentions") selected=(is-href "dc.services.show.intentions"))
 (if (not-eq chain)  (hash label="Routing" href=(href-to "dc.services.show.routing") selected=(is-href "dc.services.show.routing")) '')
-                    (hash label="Tags" href=(href-to "dc.services.show.tags") selected=(is-href "dc.services.show.tags"))
-              )
-        }}/>
+                (hash label="Tags" href=(href-to "dc.services.show.tags") selected=(is-href "dc.services.show.tags"))
+          )
+    }}/>
   </BlockSlot>
   <BlockSlot @name="actions">
     {{#if urls.service}}
