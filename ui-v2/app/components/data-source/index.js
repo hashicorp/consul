@@ -1,6 +1,7 @@
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
 import { set } from '@ember/object';
+import { schedule } from '@ember/runloop';
 
 import Ember from 'ember';
 /**
@@ -25,30 +26,6 @@ const replace = function(
   return set(obj, prop, value);
 };
 
-/**
- * @module DataSource
- *
- * The DataSource component manages opening and closing data sources via an injectable data service.
- * Data sources are only opened only if the component is visible in the viewport (using IntersectionObserver).
- *
- * Sources returned by the data service should follow an EventTarget/EventSource API.
- * Management of the caching/usage/counting etc of sources should be done in the data service,
- * not the component.
- *
- * @example ```javascript
- *   <DataSource
- *      src="/dc-1/~nspace/services"
- *      onchange={{action (mut items) value='data'}}
- *      onerror={{action (mut error) value='error'}}
- *   />```
- *
- * @param src {string} - An identifier used to determine the source of the data. This is passed
- * @param loading {string} - Either `eager` or `lazy`, lazy will only load the data once the component
- *                           is in the viewport
- * @param onchange {function=} - An action called when the data changes.
- * @param onerror {function=} - An action called on error
- *
- */
 export default Component.extend({
   tagName: '',
 
@@ -67,6 +44,7 @@ export default Component.extend({
     this._super(...arguments);
     this._listeners = this.dom.listeners();
     this._lazyListeners = this.dom.listeners();
+    this.guid = this.dom.guid(this);
   },
   willDestroy: function() {
     this.actions.close.apply(this);
@@ -78,7 +56,7 @@ export default Component.extend({
     this._super(...arguments);
     if (this.loading === 'lazy') {
       this._lazyListeners.add(
-        this.dom.isInViewport(this.element, inViewport => {
+        this.dom.isInViewport(this.dom.element(`#${this.guid}`), inViewport => {
           set(this, 'isIntersecting', inViewport || Ember.testing);
           if (!this.isIntersecting) {
             this.actions.close.bind(this)();
@@ -130,11 +108,13 @@ export default Component.extend({
       if (typeof source.getCurrentEvent === 'function') {
         const currentEvent = source.getCurrentEvent();
         if (currentEvent) {
-          try {
-            this.onchange(currentEvent);
-          } catch (err) {
-            error(err);
-          }
+          schedule('afterRender', () => {
+            try {
+              this.onchange(currentEvent);
+            } catch (err) {
+              error(err);
+            }
+          });
         }
       }
     },
