@@ -1,17 +1,19 @@
 .consul-external-source {
   background-color: $gray-100;
   padding: 0 8px;
-  height: 16px;
-  line-height: 12px;
-  margin-top: 3px;
   border-radius: $decor-radius-100;
+  height: 18px;
+  line-height: 0.7rem;
 }
 .consul-external-source > span {
+  font-size: 14px;
+  font-weight: normal;
   position: relative;
-  top: -1px;
+  color: $gray-500;
 }
 .consul-external-source::before {
-  font-size: 0.7em;
+  width: 14px;
+  height: 14px;
   margin-right: 2px;
   position: relative;
   top: 2px;

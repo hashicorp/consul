@@ -109,6 +109,13 @@ pre code,
 }
 /**/
 
+/* composite row */
+%composite-row-header {
+  font-size: $typo-size-450;
+  font-weight: $typo-weight-medium;
+}
+/**/
+
 /* TODO: We have nothing else with a 500 */
 /* either make this the biggest %p or don't use it */
 %app-view h1 em {

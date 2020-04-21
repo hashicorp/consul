@@ -78,16 +78,7 @@ export default {
     services(visitable, clickable, text, attribute, collection, page, catalogFilter, radiogroup)
   ),
   service: create(
-    service(
-      visitable,
-      clickable,
-      attribute,
-      collection,
-      text,
-      consulIntentionList,
-      catalogFilter,
-      tabgroup
-    )
+    service(visitable, attribute, collection, text, consulIntentionList, catalogFilter, tabgroup)
   ),
   instance: create(instance(visitable, attribute, collection, text, tabgroup)),
   nodes: create(nodes(visitable, clickable, attribute, collection, catalogFilter)),
