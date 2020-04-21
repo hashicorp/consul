@@ -10,7 +10,7 @@ export default RepositoryService.extend({
     return modelName;
   },
   findAll: function() {
-    return this.store.findAll(this.getModelName()).then(function(items) {
+    return this.store.query(this.getModelName(), {}).then(function(items) {
       // TODO: Move to view/template
       return items.sortBy('Name');
     });
