@@ -64,6 +64,11 @@ const undefinedNspace = 'default';
               Datacenter: dc,
               Namespace: item.Namespace || undefinedNspace,
               uid: `["${item.Namespace || undefinedNspace}","${dc}","${item.ID}"]`,
+              meta: {
+                cursor: undefined,
+                dc: dc,
+                nspace: item.Namespace || undefinedNspace,
+              },
             });
           })
         );
