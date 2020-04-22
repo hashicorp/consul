@@ -11,19 +11,12 @@
         </ol>
     </BlockSlot>
     <BlockSlot @name="header">
-      <h1>
-        {{ item.ID }}
-{{#let (service/external-source item) as |externalSource| }}
-    {{#if externalSource }}
-        <span data-test-external-source={{externalSource}} style={{concat 'background-image: var(--' externalSource '-icon)'}} data-tooltip="Registered via {{externalSource}}">Registered via {{externalSource}}</span>
-    {{/if}}
-{{/let}}
-{{#if (eq item.Kind 'connect-proxy')}}
-        <span class="kind-proxy">Proxy</span>
-{{else if (eq item.Kind 'mesh-gateway')}}
-        <span class="kind-proxy">Mesh Gateway</span>
-{{/if}}
-      </h1>
+      <div class="title-bar">
+        <h1>
+          {{ item.ID }}
+        </h1>
+        <ConsulExternalSource @item={{item}} />
+      </div>
       <dl>
         <dt>Service Name</dt>
         <dd><a href="{{href-to 'dc.services.show' item.Service}}">{{item.Service}}</a></dd>
@@ -34,13 +27,6 @@
       </dl>
 {{#if proxy.ServiceName}}
       <dl>
-{{#if proxy.ServiceProxy.DestinationServiceID}}
-        <dt data-test-proxy-type="sidecar-proxy">Sidecar Proxy</dt>
-        <dd><a href="{{href-to 'dc.services.instance' proxy.ServiceName proxy.Node proxy.ServiceID}}">{{proxy.ServiceID}}</a></dd>
-{{else}}
-        <dt data-test-proxy-type="proxy">Proxy</dt>
-        <dd><a href="{{href-to 'dc.services.show' proxy.ServiceName}}">{{proxy.ServiceName}}</a></dd>
-{{/if}}
       </dl>
 {{/if}}
 {{#if (eq item.Kind 'connect-proxy')}}
@@ -65,8 +51,7 @@
         <TabNav @items={{
           compact
               (array
-                      (hash label="Service Checks" href=(href-to "dc.services.instance.servicechecks") selected=(is-href "dc.services.instance.servicechecks"))
-                      (hash label="Node Checks" href=(href-to "dc.services.instance.nodechecks") selected=(is-href "dc.services.instance.nodechecks"))
+                      (hash label="Health Checks" href=(href-to "dc.services.instance.healthchecks") selected=(is-href "dc.services.instance.healthchecks"))
 (if
   (eq item.Kind 'connect-proxy')
                       (hash label="Upstreams" href=(href-to "dc.services.instance.upstreams") selected=(is-href "dc.services.instance.upstreams")) ""
