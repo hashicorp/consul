@@ -7,7 +7,6 @@ export const SLUG_KEY = 'ID';
 export default Model.extend({
   [PRIMARY_KEY]: attr('string'),
   [SLUG_KEY]: attr('string'),
-  meta: attr(),
   Name: attr('string', {
     defaultValue: '',
   }),
@@ -22,6 +21,8 @@ export default Model.extend({
   //
   Datacenter: attr('string'),
   Namespace: attr('string'),
+  SyncTime: attr('number'),
+  meta: attr(),
   Datacenters: attr(),
   CreateIndex: attr('number'),
   ModifyIndex: attr('number'),
