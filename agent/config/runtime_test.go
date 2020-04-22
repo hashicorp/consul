@@ -3258,120 +3258,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			err: "config_entries.bootstrap[0]: invalid name (\"invalid-name\"), only \"global\" is supported",
 		},
 		{
-			desc: "ConfigEntry bootstrap proxy-defaults (snake-case)",
-			args: []string{`-data-dir=` + dataDir},
-			json: []string{`{
-				"config_entries": {
-					"bootstrap": [
-						{
-							"kind": "proxy-defaults",
-							"name": "global",
-							"config": {
-								"bar": "abc",
-								"moreconfig": {
-									"moar": "config"
-								}
-							},
-							"mesh_gateway": {
-								"mode": "remote"
-							}
-						}
-					]
-				}
-			}`},
-			hcl: []string{`
-				config_entries {
-					bootstrap {
-						kind = "proxy-defaults"
-						name = "global"
-						config {
-						  "bar" = "abc"
-						  "moreconfig" {
-							"moar" = "config"
-						  }
-						}
-						mesh_gateway {
-							mode = "remote"
-						}
-					}
-				}`},
-			patch: func(rt *RuntimeConfig) {
-				rt.DataDir = dataDir
-				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
-					&structs.ProxyConfigEntry{
-						Kind: structs.ProxyDefaults,
-						Name: structs.ProxyConfigGlobal,
-						Config: map[string]interface{}{
-							"bar": "abc",
-							"moreconfig": map[string]interface{}{
-								"moar": "config",
-							},
-						},
-						MeshGateway: structs.MeshGatewayConfig{
-							Mode: structs.MeshGatewayModeRemote,
-						},
-					},
-				}
-			},
-		},
-		{
-			desc: "ConfigEntry bootstrap proxy-defaults (camel-case)",
-			args: []string{`-data-dir=` + dataDir},
-			json: []string{`{
-				"config_entries": {
-					"bootstrap": [
-						{
-							"Kind": "proxy-defaults",
-							"Name": "global",
-							"Config": {
-								"bar": "abc",
-								"moreconfig": {
-									"moar": "config"
-								}
-							},
-							"MeshGateway": {
-								"Mode": "remote"
-							}
-						}
-					]
-				}
-			}`},
-			hcl: []string{`
-				config_entries {
-					bootstrap {
-						Kind = "proxy-defaults"
-						Name = "global"
-						Config {
-						  "bar" = "abc"
-						  "moreconfig" {
-							"moar" = "config"
-						  }
-						}
-						MeshGateway {
-							Mode = "remote"
-						}
-					}
-				}`},
-			patch: func(rt *RuntimeConfig) {
-				rt.DataDir = dataDir
-				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
-					&structs.ProxyConfigEntry{
-						Kind: structs.ProxyDefaults,
-						Name: structs.ProxyConfigGlobal,
-						Config: map[string]interface{}{
-							"bar": "abc",
-							"moreconfig": map[string]interface{}{
-								"moar": "config",
-							},
-						},
-						MeshGateway: structs.MeshGatewayConfig{
-							Mode: structs.MeshGatewayModeRemote,
-						},
-					},
-				}
-			},
-		},
-		{
 			desc: "ConfigEntry bootstrap service-defaults (snake-case)",
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{
@@ -3891,9 +3777,6 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				if tt.patch != nil {
 					tt.patch(&patchedRT)
 				}
-				// if err := x.Validate(wantRT); err != nil {
-				// 	t.Fatalf("validate default failed: %s", err)
-				// }
 				if got, want := rt, patchedRT; !verify.Values(t, "", got, want) {
 					t.FailNow()
 				}

@@ -687,6 +687,18 @@ func (c *ConsulProvider) parseTestState(rawConfig map[string]interface{}, state 
 			return
 		}
 
+		// If the state comes from an HCL config it may be wrapped in a slice,
+		// because that is how HCL decodes blocks.
+		if ts, ok := rawTestState.([]map[string]interface{}); ok && len(ts) == 1 {
+			c.testState = make(map[string]string)
+			for k, v := range ts[0] {
+				if s, ok := v.(string); ok {
+					c.testState[k] = s
+				}
+			}
+			return
+		}
+
 		// Secondary's config takes a trip through the state store before Configure
 		// is called and RPC calls that msgpack encode also have the same effect. It
 		// means we end up with map[string]string encoded as map[string]interface{}.

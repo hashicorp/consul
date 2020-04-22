@@ -272,3 +272,41 @@ item {
 	}
 	require.Equal(t, target, expected)
 }
+
+func TestHookNormalizeHCLNestedBlocks_IgnoresOpaqueConfigMaps(t *testing.T) {
+	source := `
+item {
+    name = "first"
+}
+O {
+    something {
+        inner = [1, 2, 3, 4]
+    }
+    another {
+        name = "again"
+    }
+    another {
+        name = "last"
+    }
+}
+`
+	target := &nested{}
+	err := decodeHCLToMapStructure(source, target)
+	require.NoError(t, err)
+
+	expected := &nested{
+		Item: Item{Name: "first"},
+		O: raw{
+			"something": []raw{
+				{"inner": []interface{}{1, 2, 3, 4}},
+			},
+			"another": []raw{
+				{"name": "again"},
+				{"name": "last"},
+			},
+		},
+	}
+	require.Equal(t, expected, target)
+}
+
+type raw = map[string]interface{}

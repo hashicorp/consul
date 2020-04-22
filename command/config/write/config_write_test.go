@@ -222,8 +222,8 @@ func TestParseConfigEntry(t *testing.T) {
 				Config: map[string]interface{}{
 					"foo": 19,
 					"bar": "abc",
-					"moreconfig": map[string]interface{}{
-						"moar": "config",
+					"moreconfig": []map[string]interface{}{
+						{"moar": "config"},
 					},
 				},
 				MeshGateway: api.MeshGatewayConfig{

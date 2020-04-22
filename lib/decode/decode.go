@@ -92,6 +92,8 @@ func canonicalFieldKey(field reflect.StructField) string {
 	return parts[0]
 }
 
+var typeOfEmptyInterface = reflect.TypeOf((*interface{})(nil)).Elem()
+
 // HookWeakDecodeFromSlice looks for []map[string]interface{} in the source
 // data. If the target is not a slice or array it attempts to unpack 1 item
 // out of the slice. If there are more items the source data is left unmodified,
@@ -109,6 +111,12 @@ func canonicalFieldKey(field reflect.StructField) string {
 // and later decoded into a strongly typed structure.
 func HookWeakDecodeFromSlice(from, to reflect.Type, data interface{}) (interface{}, error) {
 	if from.Kind() == reflect.Slice && (to.Kind() == reflect.Slice || to.Kind() == reflect.Array) {
+		return data, nil
+	}
+
+	// If the target is interface{} then the config is opaque, and it should not
+	// be modified.
+	if to == typeOfEmptyInterface {
 		return data, nil
 	}
 
