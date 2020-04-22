@@ -1,11 +1,15 @@
-%breadcrumbs {
+%breadcrumbs > li {
+  list-style-type: none;
   display: inline-flex;
 }
-%breadcrumbs li > * {
-  display: inline-flex;
-  align-items: center;
+%breadcrumb-milestone::before {
+  margin-right: 4px;
+  display: inline-block;
 }
-%breadcrumbs li > *::before,
-%breadcrumbs li {
-  margin-right: 0.5em;
+%breadcrumb {
+  margin-left: 8px;
+}
+%breadcrumb::before {
+  margin-right: 8px;
+  display: inline-block;
 }
