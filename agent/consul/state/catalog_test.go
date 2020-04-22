@@ -2,11 +2,6 @@ package state
 
 import (
 	"fmt"
-	"reflect"
-	"sort"
-	"strings"
-	"testing"
-
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
@@ -16,6 +11,10 @@ import (
 	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"reflect"
+	"sort"
+	"strings"
+	"testing"
 )
 
 func makeRandomNodeID(t *testing.T) types.NodeID {
@@ -3634,6 +3633,449 @@ func TestStateStore_CheckConnectServiceNodes_Gateways(t *testing.T) {
 	assert.Equal("gateway", nodes[1].Service.Service)
 	assert.Equal("gateway-2", nodes[1].Service.ID)
 	assert.Equal(443, nodes[1].Service.Port)
+}
+
+func TestStateStore_CheckGatewayServiceNodes_Terminating(t *testing.T) {
+	assert := assert.New(t)
+	s := testStateStore(t)
+
+	// Listing with no results returns an empty list.
+	ws := memdb.NewWatchSet()
+	idx, nodes, err := s.CheckGatewayServiceNodes(ws, "gateway", nil)
+	assert.Nil(err)
+	assert.Equal(idx, uint64(0))
+	assert.Len(nodes, 0)
+
+	// Create some nodes
+	assert.Nil(s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
+	assert.Nil(s.EnsureNode(11, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
+
+	// and a typical service
+	assert.Nil(s.EnsureService(12, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
+	assert.False(watchFired(ws))
+
+	// Register node and service checks
+	testRegisterCheck(t, s, 13, "foo", "", "foo-node-check", api.HealthPassing)
+	testRegisterCheck(t, s, 14, "bar", "", "bar-node-check", api.HealthPassing)
+	testRegisterCheck(t, s, 15, "foo", "db", "db-check", api.HealthPassing)
+	assert.False(watchFired(ws))
+
+	// Watch should fire when a gateway is associated with the service, even if the gateway doesn't exist yet
+	assert.Nil(s.EnsureConfigEntry(16, &structs.TerminatingGatewayConfigEntry{
+		Kind: "terminating-gateway",
+		Name: "gateway",
+		Services: []structs.LinkedService{
+			{
+				Name: "db",
+			},
+			{
+				Name: "api",
+			},
+		},
+	}, nil))
+	assert.True(watchFired(ws))
+
+	// Watch should fire when a gateway is added
+	assert.Nil(s.EnsureService(17, "bar", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway", Service: "gateway", Port: 443}))
+	assert.True(watchFired(ws))
+
+	// Watch should fire when an instance of db is added
+	assert.Nil(s.EnsureService(18, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}))
+	assert.True(watchFired(ws))
+
+	// Watch should fire when a check is added to db2
+	testRegisterCheck(t, s, 19, "bar", "db2", "db2-check", api.HealthPassing)
+	assert.True(watchFired(ws))
+
+	// Watch should fire when another service linked to the gateway is registered
+	assert.Nil(s.EnsureService(20, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
+	assert.True(watchFired(ws))
+
+	// Watch should fire when a check is added to api
+	testRegisterCheck(t, s, 21, "bar", "api", "api-check", api.HealthPassing)
+	assert.True(watchFired(ws))
+
+	// Read everything back.
+	ws = memdb.NewWatchSet()
+	idx, nodes, err = s.CheckGatewayServiceNodes(ws, "gateway", nil)
+	assert.Nil(err)
+	assert.Equal(idx, uint64(21))
+	assert.Len(nodes, 3)
+
+	// Expect:
+	// 	api service on node bar with bar's node check and api's service check
+	// 	db2 service on node bar with bar's node check and db2's service check
+	// 	db service on node foo with foo's node check and db's service check
+	expect := structs.CheckServiceNodes{
+		{
+			Node: &structs.Node{
+				Node:    "bar",
+				Address: "127.0.0.2",
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 11,
+					ModifyIndex: 11,
+				},
+			},
+			Service: &structs.NodeService{
+				ID:      "api",
+				Service: "api",
+				Port:    5000,
+				Weights: &structs.Weights{Passing: 1, Warning: 1},
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 20,
+					ModifyIndex: 20,
+				},
+			},
+			Checks: structs.HealthChecks{
+				{
+					Node:    "bar",
+					CheckID: "bar-node-check",
+					Status:  "passing",
+					RaftIndex: structs.RaftIndex{
+						CreateIndex: 14,
+						ModifyIndex: 14,
+					},
+				}, {
+					Node:        "bar",
+					CheckID:     "api-check",
+					Status:      "passing",
+					ServiceID:   "api",
+					ServiceName: "api",
+					RaftIndex: structs.RaftIndex{
+						CreateIndex: 21,
+						ModifyIndex: 21,
+					},
+				},
+			},
+		},
+		{
+			Node: &structs.Node{
+				Node:    "bar",
+				Address: "127.0.0.2",
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 11,
+					ModifyIndex: 11,
+				},
+			},
+			Service: &structs.NodeService{
+				ID:      "db2",
+				Service: "db",
+				Tags:    []string{"replica"},
+				Port:    8001,
+				Weights: &structs.Weights{Passing: 1, Warning: 1},
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 18,
+					ModifyIndex: 18,
+				},
+			},
+			Checks: structs.HealthChecks{
+				{
+					Node:    "bar",
+					CheckID: "bar-node-check",
+					Status:  "passing",
+					RaftIndex: structs.RaftIndex{
+						CreateIndex: 14,
+						ModifyIndex: 14,
+					},
+				},
+				{
+					Node:        "bar",
+					CheckID:     "db2-check",
+					Status:      "passing",
+					ServiceID:   "db2",
+					ServiceName: "db",
+					ServiceTags: []string{"replica"},
+					RaftIndex: structs.RaftIndex{
+						CreateIndex: 19,
+						ModifyIndex: 19,
+					},
+				},
+			},
+		},
+		{
+			Node: &structs.Node{
+				Node:    "foo",
+				Address: "127.0.0.1",
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 10,
+					ModifyIndex: 10,
+				},
+			},
+			Service: &structs.NodeService{
+				ID:      "db",
+				Service: "db",
+				Port:    5000,
+				Weights: &structs.Weights{Passing: 1, Warning: 1},
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 12,
+					ModifyIndex: 12,
+				},
+			},
+			Checks: structs.HealthChecks{
+				{
+					Node:    "foo",
+					CheckID: "foo-node-check",
+					Status:  "passing",
+					RaftIndex: structs.RaftIndex{
+						CreateIndex: 13,
+						ModifyIndex: 13,
+					},
+				},
+				{
+					Node:        "foo",
+					CheckID:     "db-check",
+					Status:      "passing",
+					ServiceID:   "db",
+					ServiceName: "db",
+					RaftIndex: structs.RaftIndex{
+						CreateIndex: 15,
+						ModifyIndex: 15,
+					},
+				},
+			},
+		},
+	}
+	assert.Equal(expect, nodes)
+
+	// Watch should fire when the gateway's config entry is truncated
+	assert.Nil(s.EnsureConfigEntry(22, &structs.TerminatingGatewayConfigEntry{
+		Kind:     "terminating-gateway",
+		Name:     "gateway",
+		Services: []structs.LinkedService{},
+	}, nil))
+	assert.True(watchFired(ws))
+
+	// Check results
+	idx, nodes, err = s.CheckGatewayServiceNodes(ws, "gateway", nil)
+	assert.Nil(err)
+
+	// TODO (gateways) prevent index from sliding back on config entry deletion
+	assert.Equal(idx, uint64(0))
+	assert.Len(nodes, 0)
+}
+
+func TestStateStore_CheckGatewayServiceNodes_Ingress(t *testing.T) {
+	assert := assert.New(t)
+	s := testStateStore(t)
+
+	// Listing with no results returns an empty list.
+	ws := memdb.NewWatchSet()
+	idx, nodes, err := s.CheckGatewayServiceNodes(ws, "gateway", nil)
+	assert.Nil(err)
+	assert.Equal(idx, uint64(0))
+	assert.Len(nodes, 0)
+
+	// Create some nodes
+	assert.Nil(s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
+	assert.Nil(s.EnsureNode(11, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
+
+	// and a typical service
+	assert.Nil(s.EnsureService(12, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
+	assert.False(watchFired(ws))
+
+	// Register node and service checks
+	testRegisterCheck(t, s, 13, "foo", "", "foo-node-check", api.HealthPassing)
+	testRegisterCheck(t, s, 14, "bar", "", "bar-node-check", api.HealthPassing)
+	testRegisterCheck(t, s, 15, "foo", "db", "db-check", api.HealthPassing)
+	assert.False(watchFired(ws))
+
+	// Watch should fire when a gateway is associated with the service, even if the gateway doesn't exist yet
+	assert.Nil(s.EnsureConfigEntry(16, &structs.IngressGatewayConfigEntry{
+		Kind: "ingress-gateway",
+		Name: "gateway",
+		Listeners: []structs.IngressListener{
+			{
+				Port: 443,
+				Services: []structs.IngressService{
+					{
+						Name: "db",
+					},
+					{
+						Name: "api",
+					},
+				},
+			},
+		},
+	}, nil))
+	assert.True(watchFired(ws))
+
+	// Watch should fire when a gateway is added
+	assert.Nil(s.EnsureService(17, "bar", &structs.NodeService{Kind: structs.ServiceKindIngressGateway, ID: "gateway", Service: "gateway", Port: 443}))
+	assert.True(watchFired(ws))
+
+	// Watch should fire when an instance of db is added
+	assert.Nil(s.EnsureService(18, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}))
+	assert.True(watchFired(ws))
+
+	// Watch should fire when a check is added to db2
+	testRegisterCheck(t, s, 19, "bar", "db2", "db2-check", api.HealthPassing)
+	assert.True(watchFired(ws))
+
+	// Watch should fire when another service linked to the gateway is registered
+	assert.Nil(s.EnsureService(20, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
+	assert.True(watchFired(ws))
+
+	// Watch should fire when a check is added to api
+	testRegisterCheck(t, s, 21, "bar", "api", "api-check", api.HealthPassing)
+	assert.True(watchFired(ws))
+
+	// Read everything back.
+	ws = memdb.NewWatchSet()
+	idx, nodes, err = s.CheckGatewayServiceNodes(ws, "gateway", nil)
+	assert.Nil(err)
+	assert.Equal(idx, uint64(21))
+	assert.Len(nodes, 3)
+
+	// Expect:
+	// 	api service on node bar with bar's node check and api's service check
+	// 	db2 service on node bar with bar's node check and db2's service check
+	// 	db service on node foo with foo's node check and db's service check
+	expect := structs.CheckServiceNodes{
+		{
+			Node: &structs.Node{
+				Node:    "bar",
+				Address: "127.0.0.2",
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 11,
+					ModifyIndex: 11,
+				},
+			},
+			Service: &structs.NodeService{
+				ID:      "api",
+				Service: "api",
+				Port:    5000,
+				Weights: &structs.Weights{Passing: 1, Warning: 1},
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 20,
+					ModifyIndex: 20,
+				},
+			},
+			Checks: structs.HealthChecks{
+				{
+					Node:    "bar",
+					CheckID: "bar-node-check",
+					Status:  "passing",
+					RaftIndex: structs.RaftIndex{
+						CreateIndex: 14,
+						ModifyIndex: 14,
+					},
+				}, {
+					Node:        "bar",
+					CheckID:     "api-check",
+					Status:      "passing",
+					ServiceID:   "api",
+					ServiceName: "api",
+					RaftIndex: structs.RaftIndex{
+						CreateIndex: 21,
+						ModifyIndex: 21,
+					},
+				},
+			},
+		},
+		{
+			Node: &structs.Node{
+				Node:    "bar",
+				Address: "127.0.0.2",
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 11,
+					ModifyIndex: 11,
+				},
+			},
+			Service: &structs.NodeService{
+				ID:      "db2",
+				Service: "db",
+				Tags:    []string{"replica"},
+				Port:    8001,
+				Weights: &structs.Weights{Passing: 1, Warning: 1},
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 18,
+					ModifyIndex: 18,
+				},
+			},
+			Checks: structs.HealthChecks{
+				{
+					Node:    "bar",
+					CheckID: "bar-node-check",
+					Status:  "passing",
+					RaftIndex: structs.RaftIndex{
+						CreateIndex: 14,
+						ModifyIndex: 14,
+					},
+				},
+				{
+					Node:        "bar",
+					CheckID:     "db2-check",
+					Status:      "passing",
+					ServiceID:   "db2",
+					ServiceName: "db",
+					ServiceTags: []string{"replica"},
+					RaftIndex: structs.RaftIndex{
+						CreateIndex: 19,
+						ModifyIndex: 19,
+					},
+				},
+			},
+		},
+		{
+			Node: &structs.Node{
+				Node:    "foo",
+				Address: "127.0.0.1",
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 10,
+					ModifyIndex: 10,
+				},
+			},
+			Service: &structs.NodeService{
+				ID:      "db",
+				Service: "db",
+				Port:    5000,
+				Weights: &structs.Weights{Passing: 1, Warning: 1},
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 12,
+					ModifyIndex: 12,
+				},
+			},
+			Checks: structs.HealthChecks{
+				{
+					Node:    "foo",
+					CheckID: "foo-node-check",
+					Status:  "passing",
+					RaftIndex: structs.RaftIndex{
+						CreateIndex: 13,
+						ModifyIndex: 13,
+					},
+				},
+				{
+					Node:        "foo",
+					CheckID:     "db-check",
+					Status:      "passing",
+					ServiceID:   "db",
+					ServiceName: "db",
+					RaftIndex: structs.RaftIndex{
+						CreateIndex: 15,
+						ModifyIndex: 15,
+					},
+				},
+			},
+		},
+	}
+	assert.Equal(expect, nodes)
+
+	// Watch should fire when the gateway's config entry is truncated
+	assert.Nil(s.EnsureConfigEntry(16, &structs.IngressGatewayConfigEntry{
+		Kind:      "ingress-gateway",
+		Name:      "gateway",
+		Listeners: []structs.IngressListener{},
+	}, nil))
+	assert.True(watchFired(ws))
+
+	// Check results
+	idx, nodes, err = s.CheckGatewayServiceNodes(ws, "gateway", nil)
+	assert.Nil(err)
+
+	// TODO (gateways) prevent index from sliding back on config entry deletion
+	assert.Equal(idx, uint64(0))
+	assert.Len(nodes, 0)
 }
 
 func BenchmarkCheckServiceNodes(b *testing.B) {

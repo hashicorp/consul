@@ -1938,6 +1938,41 @@ func (s *Store) CheckConnectServiceNodes(ws memdb.WatchSet, serviceName string, 
 	return s.checkServiceNodes(ws, serviceName, true, entMeta)
 }
 
+// CheckGatewayServiceNodes is used to query all nodes and checks for services linked to a gateway
+func (s *Store) CheckGatewayServiceNodes(ws memdb.WatchSet, gateway string, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	iter, err := s.gatewayServices(tx, gateway, entMeta)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed gateway services lookup: %s", err)
+	}
+	ws.Add(iter.WatchCh())
+
+	var results structs.CheckServiceNodes
+	var maxIdx uint64
+
+	// Loop over the gateway <-> serviceName mappings and fetch CheckServiceNodes for each
+	for mapping := iter.Next(); mapping != nil; mapping = iter.Next() {
+		gs := mapping.(*structs.GatewayService)
+		if gs.Service.ID == structs.WildcardSpecifier {
+			continue
+		}
+
+		idx, nodes, err := s.checkServiceNodesTxn(tx, ws, gs.Service.ID, false, &gs.Service.EnterpriseMeta)
+		if err != nil {
+			return 0, nil, err
+		}
+
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+		results = append(results, nodes...)
+	}
+
+	return maxIdx, results, nil
+}
+
 // CheckIngressServiceNodes is used to query all nodes and checks for ingress
 // endpoints for a given service.
 func (s *Store) CheckIngressServiceNodes(ws memdb.WatchSet, serviceName string, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
