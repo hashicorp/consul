@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/decode"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/mapstructure"
@@ -48,97 +48,20 @@ func Parse(data string, format string) (c Config, keys []string, err error) {
 		return Config{}, nil, err
 	}
 
-	// We want to be able to report fields which we cannot map as an
-	// error so that users find typos in their configuration quickly. To
-	// achieve this we use the mapstructure library which maps a a raw
-	// map[string]interface{} to a nested structure and reports unused
-	// fields. The input for a mapstructure.Decode expects a
-	// map[string]interface{} as produced by encoding/json.
-	//
-	// The HCL language allows to repeat map keys which forces it to
-	// store nested structs as []map[string]interface{} instead of
-	// map[string]interface{}. This is an ambiguity which makes the
-	// generated structures incompatible with a corresponding JSON
-	// struct. It also does not work well with the mapstructure library.
-	//
-	// In order to still use the mapstructure library to find unused
-	// fields we patch instances of []map[string]interface{} to a
-	// map[string]interface{} before we decode that into a Config
-	// struct.
-	//
-	// However, Config has some fields which are either
-	// []map[string]interface{} or are arrays of structs which
-	// encoding/json will decode to []map[string]interface{}. Therefore,
-	// we need to be able to specify exceptions for this mapping. The
-	// PatchSliceOfMaps() implements that mapping. All fields of type
-	// []map[string]interface{} are mapped to map[string]interface{} if
-	// it contains at most one value. If there is more than one value it
-	// panics. To define exceptions one can specify the nested field
-	// names in dot notation.
-	//
-	// todo(fs): There might be an easier way to achieve the same thing
-	// todo(fs): but this approach works for now.
-	m := lib.PatchSliceOfMaps(raw, []string{
-		"checks",
-		"segments",
-		"service.checks",
-		"services",
-		"services.checks",
-		"watches",
-		"service.connect.proxy.config.upstreams", // Deprecated
-		"services.connect.proxy.config.upstreams", // Deprecated
-		"service.connect.proxy.upstreams",
-		"services.connect.proxy.upstreams",
-		"service.connect.proxy.expose.paths",
-		"services.connect.proxy.expose.paths",
-		"service.proxy.upstreams",
-		"services.proxy.upstreams",
-		"service.proxy.expose.paths",
-		"services.proxy.expose.paths",
-		"acl.tokens.managed_service_provider",
-
-		// Need all the service(s) exceptions also for nested sidecar service.
-		"service.connect.sidecar_service.checks",
-		"services.connect.sidecar_service.checks",
-		"service.connect.sidecar_service.proxy.upstreams",
-		"services.connect.sidecar_service.proxy.upstreams",
-		"service.connect.sidecar_service.proxy.expose.paths",
-		"services.connect.sidecar_service.proxy.expose.paths",
-	}, []string{
-		"config_entries.bootstrap", // completely ignore this tree (fixed elsewhere)
-	})
-
-	// There is a difference of representation of some fields depending on
-	// where they are used. The HTTP API uses CamelCase whereas the config
-	// files use snake_case and between the two there is no automatic mapping.
-	// While the JSON and HCL parsers match keys without case (both `id` and
-	// `ID` are mapped to an ID field) the same thing does not happen between
-	// CamelCase and snake_case. Since changing either format would break
-	// existing setups we have to support both and slowly transition to one of
-	// the formats. Also, there is at least one case where we use the "wrong"
-	// key and want to map that to the new key to support deprecation -
-	// see [GH-3179]. TranslateKeys maps potentially CamelCased values to the
-	// snake_case that is used in the config file parser. If both the CamelCase
-	// and snake_case values are set the snake_case value is used and the other
-	// value is discarded.
-	lib.TranslateKeys(m, map[string]string{
-		"deregistercriticalserviceafter": "deregister_critical_service_after",
-		"dockercontainerid":              "docker_container_id",
-		"scriptargs":                     "args",
-		"serviceid":                      "service_id",
-		"tlsskipverify":                  "tls_skip_verify",
-		"config_entries.bootstrap":       "",
-	})
-
 	var md mapstructure.Metadata
 	d, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			decode.HookWeakDecodeFromSlice, // TODO: only apply when format is hcl
+			decode.HookTranslateKeys,
+			mapstructure.StringToTimeDurationHookFunc(),
+		),
 		Metadata: &md,
 		Result:   &c,
 	})
 	if err != nil {
 		return Config{}, nil, err
 	}
-	if err := d.Decode(m); err != nil {
+	if err := d.Decode(raw); err != nil {
 		return Config{}, nil, err
 	}
 
@@ -430,10 +353,10 @@ type CheckDefinition struct {
 	ID                             *string             `json:"id,omitempty" hcl:"id" mapstructure:"id"`
 	Name                           *string             `json:"name,omitempty" hcl:"name" mapstructure:"name"`
 	Notes                          *string             `json:"notes,omitempty" hcl:"notes" mapstructure:"notes"`
-	ServiceID                      *string             `json:"service_id,omitempty" hcl:"service_id" mapstructure:"service_id"`
+	ServiceID                      *string             `json:"service_id,omitempty" hcl:"service_id" mapstructure:"service_id" alias:"serviceid"`
 	Token                          *string             `json:"token,omitempty" hcl:"token" mapstructure:"token"`
 	Status                         *string             `json:"status,omitempty" hcl:"status" mapstructure:"status"`
-	ScriptArgs                     []string            `json:"args,omitempty" hcl:"args" mapstructure:"args"`
+	ScriptArgs                     []string            `json:"args,omitempty" hcl:"args" mapstructure:"args" alias:"scriptargs"`
 	HTTP                           *string             `json:"http,omitempty" hcl:"http" mapstructure:"http"`
 	Header                         map[string][]string `json:"header,omitempty" hcl:"header" mapstructure:"header"`
 	Method                         *string             `json:"method,omitempty" hcl:"method" mapstructure:"method"`
@@ -441,18 +364,18 @@ type CheckDefinition struct {
 	OutputMaxSize                  *int                `json:"output_max_size,omitempty" hcl:"output_max_size" mapstructure:"output_max_size"`
 	TCP                            *string             `json:"tcp,omitempty" hcl:"tcp" mapstructure:"tcp"`
 	Interval                       *string             `json:"interval,omitempty" hcl:"interval" mapstructure:"interval"`
-	DockerContainerID              *string             `json:"docker_container_id,omitempty" hcl:"docker_container_id" mapstructure:"docker_container_id"`
+	DockerContainerID              *string             `json:"docker_container_id,omitempty" hcl:"docker_container_id" mapstructure:"docker_container_id" alias:"dockercontainerid"`
 	Shell                          *string             `json:"shell,omitempty" hcl:"shell" mapstructure:"shell"`
 	GRPC                           *string             `json:"grpc,omitempty" hcl:"grpc" mapstructure:"grpc"`
 	GRPCUseTLS                     *bool               `json:"grpc_use_tls,omitempty" hcl:"grpc_use_tls" mapstructure:"grpc_use_tls"`
-	TLSSkipVerify                  *bool               `json:"tls_skip_verify,omitempty" hcl:"tls_skip_verify" mapstructure:"tls_skip_verify"`
+	TLSSkipVerify                  *bool               `json:"tls_skip_verify,omitempty" hcl:"tls_skip_verify" mapstructure:"tls_skip_verify" alias:"tlsskipverify"`
 	AliasNode                      *string             `json:"alias_node,omitempty" hcl:"alias_node" mapstructure:"alias_node"`
 	AliasService                   *string             `json:"alias_service,omitempty" hcl:"alias_service" mapstructure:"alias_service"`
 	Timeout                        *string             `json:"timeout,omitempty" hcl:"timeout" mapstructure:"timeout"`
 	TTL                            *string             `json:"ttl,omitempty" hcl:"ttl" mapstructure:"ttl"`
 	SuccessBeforePassing           *int                `json:"success_before_passing,omitempty" hcl:"success_before_passing" mapstructure:"success_before_passing"`
 	FailuresBeforeCritical         *int                `json:"failures_before_critical,omitempty" hcl:"failures_before_critical" mapstructure:"failures_before_critical"`
-	DeregisterCriticalServiceAfter *string             `json:"deregister_critical_service_after,omitempty" hcl:"deregister_critical_service_after" mapstructure:"deregister_critical_service_after"`
+	DeregisterCriticalServiceAfter *string             `json:"deregister_critical_service_after,omitempty" hcl:"deregister_critical_service_after" mapstructure:"deregister_critical_service_after" alias:"deregistercriticalserviceafter"`
 
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }

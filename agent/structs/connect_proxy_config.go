@@ -410,13 +410,13 @@ type ExposeConfig struct {
 
 type ExposePath struct {
 	// ListenerPort defines the port of the proxy's listener for exposed paths.
-	ListenerPort int `json:",omitempty"`
+	ListenerPort int `json:",omitempty" alias:"listener_port"`
 
 	// ExposePath is the path to expose through the proxy, ie. "/metrics."
 	Path string `json:",omitempty"`
 
 	// LocalPathPort is the port that the service is listening on for the given path.
-	LocalPathPort int `json:",omitempty"`
+	LocalPathPort int `json:",omitempty" alias:"local_path_port"`
 
 	// Protocol describes the upstream's service protocol.
 	// Valid values are "http" and "http2", defaults to "http"
@@ -426,6 +426,8 @@ type ExposePath struct {
 	ParsedFromCheck bool
 }
 
+// TODO: this is most likely not used. The API type is the one to be deserialized
+// with JSON
 func (t *ExposePath) UnmarshalJSON(data []byte) (err error) {
 	type Alias ExposePath
 	aux := &struct {
