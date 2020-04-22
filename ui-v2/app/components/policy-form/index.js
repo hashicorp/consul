@@ -1,10 +1,7 @@
 import FormComponent from '../form-component/index';
-import { inject as service } from '@ember/service';
 import { get, set } from '@ember/object';
 
 export default FormComponent.extend({
-  repo: service('repository/policy/component'),
-  datacenterRepo: service('repository/dc/component'),
   type: 'policy',
   name: 'policy',
   allowServiceIdentity: true,
@@ -14,7 +11,6 @@ export default FormComponent.extend({
   init: function() {
     this._super(...arguments);
     set(this, 'isScoped', get(this, 'item.Datacenters.length') > 0);
-    set(this, 'datacenters', this.datacenterRepo.findAll());
     this.templates = [
       {
         name: 'Policy',

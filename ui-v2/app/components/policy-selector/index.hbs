@@ -41,30 +41,31 @@
   <BlockSlot @name="set">
     <TabularDetails
         data-test-policies
-        @onchange={{action 'loadItem'}}
+        @onchange={{action 'open'}}
         @items={{sort-by 'CreateTime:desc' 'Name:asc' items}} as |item index|
     >
       <BlockSlot @name="header">
         <th>Name</th>
-        <th>Datacenters</th>
       </BlockSlot>
       <BlockSlot @name="row">
         <td class={{policy/typeof item}}>
 {{#if item.ID }}
-          <a href={{href-to 'dc.acls.policies.edit' item.ID}}>{{item.Name}}</a>
+<a href={{href-to 'dc.acls.policies.edit' item.ID}}>{{item.Name}}</a>
 {{else}}
           <a name={{item.Name}}>{{item.Name}}</a>
 {{/if}}
-        </td>
-        <td>
-          {{if (not item.isSaving) (join ', ' (policy/datacenters item)) 'Saving...'}}
         </td>
       </BlockSlot>
       <BlockSlot @name="details">
           <label class="type-text">
             <span>Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
             {{#if (eq item.template '')}}
-              <CodeEditor @syntax="hcl" @readonly={{true}} @value={{item.Rules}} />
+              <DataSource
+                @src={{concat '/' item.Namespace '/' item.Datacenter '/policy/' item.ID}}
+                @onchange={{action (mut loadedItem) value="data"}}
+                @loading="lazy"
+              />
+              <CodeEditor @syntax="hcl" @readonly={{true}} @value={{or loadedItem.Rules item.Rules}} />
             {{else}}
               <CodeEditor @syntax="hcl" @readonly={{true}}>
                 {{~component 'service-identity' name=item.Name~}}

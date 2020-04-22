@@ -1,6 +1,8 @@
 import Service, { inject as service } from '@ember/service';
 import { assert } from '@ember/debug';
 import { typeOf } from '@ember/utils';
+import { get } from '@ember/object';
+
 export default Service.extend({
   getModelName: function() {
     assert('RepositoryService.getModelName should be overridden', false);
@@ -15,12 +17,21 @@ export default Service.extend({
   store: service('store'),
   reconcile: function(meta = {}) {
     // unload anything older than our current sync date/time
-    // FIXME: This needs fixing once again to take nspaces into account
     if (typeof meta.date !== 'undefined') {
+      const checkNspace = meta.nspace !== '';
       this.store.peekAll(this.getModelName()).forEach(item => {
-        const date = item.SyncTime;
-        if (typeof date !== 'undefined' && date != meta.date) {
-          this.store.unloadRecord(item);
+        const dc = get(item, 'Datacenter');
+        if (dc === meta.dc) {
+          if (checkNspace) {
+            const nspace = get(item, 'Namespace');
+            if (nspace !== meta.namespace) {
+              return;
+            }
+          }
+          const date = get(item, 'SyncTime');
+          if (typeof date !== 'undefined' && date != meta.date) {
+            this.store.unloadRecord(item);
+          }
         }
       });
     }
