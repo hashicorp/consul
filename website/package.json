@@ -7,7 +7,7 @@
     "@bugsnag/js": "^6.5.2",
     "@bugsnag/plugin-react": "^6.5.0",
     "@hashicorp/mktg-assets": "^1.0.0-alpha.3",
-    "@hashicorp/nextjs-scripts": "^6.2.0-12",
+    "@hashicorp/nextjs-scripts": "^6.1.0",
     "@hashicorp/react-alert": "^2.0.0",
     "@hashicorp/react-button": "^2.1.7",
     "@hashicorp/react-call-to-action": "^0.1.4",
