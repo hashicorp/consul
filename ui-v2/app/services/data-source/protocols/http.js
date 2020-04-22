@@ -10,7 +10,13 @@ export default Service.extend({
   roles: service('repository/role'),
   type: service('data-source/protocols/http/blocking'),
   source: function(src, configuration) {
+    // TODO: Consider adding/requiring nspace, dc, model, action, ...rest
     const [, nspace, dc, model, ...rest] = src.split('/');
+    // TODO: Consider throwing if we have an empty nspace or dc
+    // we are going to use '*' for 'all' when we need that
+    // and an empty value is the same as 'default'
+    // reasoning for potentially doing it here is, uri's should
+    // always be complete, they should never have things like '///model'
     let find;
     const repo = this[model];
     if (typeof repo.reconcile === 'function') {
