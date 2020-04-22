@@ -1250,6 +1250,315 @@ func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 	})
 }
 
+func TestHealthGatewayServiceNodes(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	// Register gateway and a service that will be associated with it
+	{
+		arg := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				ID:      "terminating-gateway",
+				Service: "terminating-gateway",
+				Kind:    structs.ServiceKindTerminatingGateway,
+				Port:    443,
+			},
+			Check: &structs.HealthCheck{
+				Name:      "terminating connect",
+				Status:    api.HealthPassing,
+				ServiceID: "terminating-gateway",
+			},
+		}
+		var out struct{}
+		require.Nil(t, a.RPC("Catalog.Register", &arg, &out))
+
+		arg = structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "127.0.0.2",
+			Service: &structs.NodeService{
+				ID:      "db",
+				Service: "db",
+			},
+			Check: &structs.HealthCheck{
+				Name:      "db-warning",
+				Status:    api.HealthWarning,
+				ServiceID: "db",
+			},
+		}
+		require.Nil(t, a.RPC("Catalog.Register", &arg, &out))
+	}
+
+	// Register terminating-gateway config entry, linking it to db
+	{
+		args := &structs.TerminatingGatewayConfigEntry{
+			Name: "terminating-gateway",
+			Kind: structs.TerminatingGateway,
+			Services: []structs.LinkedService{
+				{Name: "db"},
+			},
+		}
+
+		req := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry:      args,
+		}
+		var out bool
+		require.Nil(t, a.RPC("ConfigEntry.Apply", &req, &out))
+		require.True(t, out)
+	}
+
+	// Request
+	req, _ := http.NewRequest("GET", "/v1/health/gateway/terminating-gateway", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.HealthGatewayServiceNodes(resp, req)
+	assert.Nil(err)
+	assertIndex(t, resp)
+
+	nodes := obj.(structs.CheckServiceNodes)
+	assert.Len(nodes, 1)
+	assert.Equal("bar", nodes[0].Node.Node)
+	assert.Equal("db", nodes[0].Service.Service)
+	assert.Equal(api.HealthWarning, nodes[0].Checks[0].Status)
+}
+
+func TestHealthGatewayServiceNodes_Filter(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	// Register gateway and two services that will be associated with it
+	{
+		arg := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				ID:      "terminating-gateway",
+				Service: "terminating-gateway",
+				Kind:    structs.ServiceKindTerminatingGateway,
+				Port:    443,
+			},
+			Check: &structs.HealthCheck{
+				Name:      "terminating connect",
+				Status:    api.HealthPassing,
+				ServiceID: "terminating-gateway",
+			},
+		}
+		var out struct{}
+		require.Nil(t, a.RPC("Catalog.Register", &arg, &out))
+
+		arg = structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "127.0.0.2",
+			Service: &structs.NodeService{
+				ID:      "db",
+				Service: "db",
+				Tags:    []string{"prod"},
+			},
+			Check: &structs.HealthCheck{
+				Name:      "db-passing",
+				Status:    api.HealthPassing,
+				ServiceID: "db",
+			},
+		}
+		require.Nil(t, a.RPC("Catalog.Register", &arg, &out))
+
+		arg = structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "127.0.0.2",
+			Service: &structs.NodeService{
+				ID:      "db2",
+				Service: "db",
+				Tags:    []string{"dev"},
+			},
+			Check: &structs.HealthCheck{
+				Name:      "db2-passing",
+				Status:    api.HealthPassing,
+				ServiceID: "db2",
+			},
+		}
+		require.Nil(t, a.RPC("Catalog.Register", &arg, &out))
+	}
+
+	// Register terminating-gateway config entry, linking it to db
+	{
+		args := &structs.TerminatingGatewayConfigEntry{
+			Name: "terminating-gateway",
+			Kind: structs.TerminatingGateway,
+			Services: []structs.LinkedService{
+				{Name: "db"},
+			},
+		}
+
+		req := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry:      args,
+		}
+		var out bool
+		require.Nil(t, a.RPC("ConfigEntry.Apply", &req, &out))
+		require.True(t, out)
+	}
+
+	// Request
+	target := fmt.Sprintf("/v1/health/gateway/terminating-gateway?filter=%s",
+		url.QueryEscape("dev in Service.Tags"))
+
+	req, _ := http.NewRequest("GET", target, nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.HealthGatewayServiceNodes(resp, req)
+	assert.Nil(err)
+	assertIndex(t, resp)
+
+	nodes := obj.(structs.CheckServiceNodes)
+	assert.Len(nodes, 1)
+	assert.Equal("bar", nodes[0].Node.Node)
+	assert.Equal("db2", nodes[0].Service.ID)
+	assert.Equal("dev", nodes[0].Service.Tags[0])
+	assert.Equal(api.HealthPassing, nodes[0].Checks[0].Status)
+}
+
+func TestHealthGatewayServiceNodes_PassingFilter(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	// Register gateway and two services that will be associated with it
+	{
+		arg := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				ID:      "terminating-gateway",
+				Service: "terminating-gateway",
+				Kind:    structs.ServiceKindTerminatingGateway,
+				Port:    443,
+			},
+			Check: &structs.HealthCheck{
+				Name:      "terminating connect",
+				Status:    api.HealthPassing,
+				ServiceID: "terminating-gateway",
+			},
+		}
+		var out struct{}
+		require.Nil(t, a.RPC("Catalog.Register", &arg, &out))
+
+		arg = structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "127.0.0.2",
+			Service: &structs.NodeService{
+				ID:      "db",
+				Service: "db",
+			},
+			Check: &structs.HealthCheck{
+				Name:      "db-passing",
+				Status:    api.HealthPassing,
+				ServiceID: "db",
+			},
+		}
+		require.Nil(t, a.RPC("Catalog.Register", &arg, &out))
+
+		arg = structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "127.0.0.2",
+			Service: &structs.NodeService{
+				ID:      "db2",
+				Service: "db",
+			},
+			Check: &structs.HealthCheck{
+				Name:      "db2-critical",
+				Status:    api.HealthCritical,
+				ServiceID: "db2",
+			},
+		}
+		require.Nil(t, a.RPC("Catalog.Register", &arg, &out))
+	}
+
+	// Register terminating-gateway config entry, linking it to db
+	{
+		args := &structs.TerminatingGatewayConfigEntry{
+			Name: "terminating-gateway",
+			Kind: structs.TerminatingGateway,
+			Services: []structs.LinkedService{
+				{Name: "db"},
+			},
+		}
+
+		req := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry:      args,
+		}
+		var out bool
+		require.Nil(t, a.RPC("ConfigEntry.Apply", &req, &out))
+		require.True(t, out)
+	}
+
+	t.Run("return passing if empty", func(t *testing.T) {
+		assert := assert.New(t)
+		req, _ := http.NewRequest("GET", "/v1/health/gateway/terminating-gateway?passing", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.HealthGatewayServiceNodes(resp, req)
+		assert.Nil(err)
+		assertIndex(t, resp)
+
+		nodes := obj.(structs.CheckServiceNodes)
+		assert.Len(nodes, 1)
+		assert.Equal("bar", nodes[0].Node.Node)
+		assert.Equal("db", nodes[0].Service.ID)
+		assert.Equal(api.HealthPassing, nodes[0].Checks[0].Status)
+	})
+
+	t.Run("return passing if true", func(t *testing.T) {
+		assert := assert.New(t)
+		req, _ := http.NewRequest("GET", "/v1/health/gateway/terminating-gateway?passing=true", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.HealthGatewayServiceNodes(resp, req)
+		assert.Nil(err)
+		assertIndex(t, resp)
+
+		nodes := obj.(structs.CheckServiceNodes)
+		assert.Len(nodes, 1)
+		assert.Equal("bar", nodes[0].Node.Node)
+		assert.Equal("db", nodes[0].Service.ID)
+		assert.Equal(api.HealthPassing, nodes[0].Checks[0].Status)
+	})
+
+	t.Run("return all if passing is false", func(t *testing.T) {
+		assert := assert.New(t)
+		req, _ := http.NewRequest("GET", "/v1/health/gateway/terminating-gateway?passing=false", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.HealthGatewayServiceNodes(resp, req)
+		assert.Nil(err)
+		assertIndex(t, resp)
+
+		nodes := obj.(structs.CheckServiceNodes)
+		assert.Len(nodes, 2)
+		assert.Equal("bar", nodes[0].Node.Node)
+		assert.Equal("db", nodes[0].Service.ID)
+		assert.Equal(api.HealthPassing, nodes[0].Checks[0].Status)
+		assert.Equal("bar", nodes[1].Node.Node)
+		assert.Equal("db2", nodes[1].Service.ID)
+		assert.Equal(api.HealthCritical, nodes[1].Checks[0].Status)
+	})
+}
+
 func TestFilterNonPassing(t *testing.T) {
 	t.Parallel()
 	nodes := structs.CheckServiceNodes{
