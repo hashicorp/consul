@@ -1,20 +1,21 @@
 export default function(visitable, attribute, collection, text, tabs) {
   return {
     visit: visitable('/:dc/services/:service/instances/:node/:id'),
-    externalSource: attribute('data-test-external-source', 'h1 span'),
+    externalSource: attribute('data-test-external-source', '[data-test-external-source]', {
+      scope: '.title-bar',
+    }),
     tabs: tabs('tab', [
-      'service-checks',
-      'node-checks',
+      'health-checks',
       'addresses',
       'upstreams',
       'exposed-paths',
       'tags',
       'meta-data',
     ]),
-    serviceChecks: collection('#service-checks [data-test-healthchecks] li', {
+    serviceChecks: collection('[data-test-service-checks] li', {
       exposed: attribute('data-test-exposed', '[data-test-exposed]'),
     }),
-    nodeChecks: collection('#node-checks [data-test-healthchecks] li', {
+    nodeChecks: collection('[data-test-node-checks] li', {
       exposed: attribute('data-test-exposed', '[data-test-exposed]'),
     }),
     upstreams: collection('#upstreams [data-test-tabular-row]', {
@@ -30,9 +31,5 @@ export default function(visitable, attribute, collection, text, tabs) {
       address: text('[data-test-address]'),
     }),
     metaData: collection('#meta-data [data-test-tabular-row]', {}),
-    proxy: {
-      type: attribute('data-test-proxy-type', '[data-test-proxy-type]'),
-      destination: attribute('data-test-proxy-destination', '[data-test-proxy-destination]'),
-    },
   };
 }

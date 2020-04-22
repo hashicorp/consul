@@ -20,6 +20,9 @@
 %app-view-header dt {
   font-weight: bold;
 }
+%app-view-header dd > a {
+  color: $black;
+}
 %app-view-header .title-bar {
   display: flex;
   align-items: center;
