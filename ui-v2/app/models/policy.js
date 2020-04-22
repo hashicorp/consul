@@ -21,6 +21,8 @@ export default Model.extend({
   //
   Datacenter: attr('string'),
   Namespace: attr('string'),
+  SyncTime: attr('number'),
+  meta: attr(),
   Datacenters: attr(),
   CreateIndex: attr('number'),
   ModifyIndex: attr('number'),
