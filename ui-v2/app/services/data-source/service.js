@@ -42,9 +42,6 @@ export default Service.extend({
     }
     if (!sources.has(uri)) {
       let [providerName, pathname] = uri.split('://');
-      if (pathname.startsWith('//')) {
-        pathname = pathname.substr(2);
-      }
       const provider = this[providerName];
 
       let configuration = {};

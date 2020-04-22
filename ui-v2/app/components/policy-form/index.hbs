@@ -53,6 +53,9 @@
       </label>
     </div>
 {{#if isScoped }}
+    <DataSource @src="/*/*/datacenters"
+      @onchange={{action (mut datacenters) value="data"}}
+    />
     <div class="checkbox-group" role="group">
       {{#each datacenters as |dc| }}
         <label class="type-checkbox">

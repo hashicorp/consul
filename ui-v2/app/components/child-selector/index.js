@@ -53,11 +53,6 @@ export default Component.extend(SlotsMixin, WithListeners, {
     reset: function() {
       this.form.clear({ Datacenter: this.dc, Namespace: this.nspace });
     },
-    open: function() {
-      if (!get(this, 'allOptions.closed')) {
-        set(this, 'allOptions', this.repo.findAllByDatacenter(this.dc, this.nspace));
-      }
-    },
     save: function(item, items, success = function() {}) {
       // Specifically this saves an 'new' option/child
       // and then adds it to the selectedOptions, not options
@@ -68,20 +63,22 @@ export default Component.extend(SlotsMixin, WithListeners, {
       // need to be sure that its saved before adding/closing the modal for now
       // and we don't open the modal on prop change yet
       item = repo.persist(item);
-      this.listen(item, 'message', e => {
-        this.actions.change.bind(this)(
-          {
-            target: {
-              name: 'items[]',
-              value: items,
+      this.listen(item, {
+        message: e => {
+          this.actions.change.apply(this, [
+            {
+              target: {
+                name: 'items[]',
+                value: items,
+              },
             },
-          },
-          items,
-          e.data
-        );
-        success();
+            items,
+            e.data,
+          ]);
+          success();
+        },
+        error: e => this.error(e),
       });
-      this.listen(item, 'error', this.error.bind(this));
     },
     remove: function(item, items) {
       const prop = this.repo.getSlugKey();

@@ -3,7 +3,6 @@ import { inject as service } from '@ember/service';
 import { set } from '@ember/object';
 import { schedule } from '@ember/runloop';
 
-import Ember from 'ember';
 /**
  * Utility function to set, but actually replace if we should replace
  * then call a function on the thing to be replaced (usually a clean up function)
@@ -57,7 +56,7 @@ export default Component.extend({
     if (this.loading === 'lazy') {
       this._lazyListeners.add(
         this.dom.isInViewport(this.dom.element(`#${this.guid}`), inViewport => {
-          set(this, 'isIntersecting', inViewport || Ember.testing);
+          set(this, 'isIntersecting', inViewport);
           if (!this.isIntersecting) {
             this.actions.close.bind(this)();
           } else {
