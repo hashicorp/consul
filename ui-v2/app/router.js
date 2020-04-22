@@ -28,11 +28,8 @@ export const routes = {
       },
       instance: {
         _options: { path: '/:name/instances/:node/:id' },
-        servicechecks: {
-          _options: { path: '/service-checks' },
-        },
-        nodechecks: {
-          _options: { path: '/node-checks' },
+        healthchecks: {
+          _options: { path: '/health-checks' },
         },
         upstreams: {
           _options: { path: '/upstreams' },

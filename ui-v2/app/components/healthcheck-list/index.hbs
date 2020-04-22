@@ -1,7 +1,7 @@
-<ul data-test-healthchecks>
+<ul>
 {{#each (sort-by (action 'sortChecksByImportance') items) as |item| }}
 {{! TODO: this component and its child should be moved to a single component }}
-  <HealthcheckOutput @data-test-node-healthcheck={{item.Name}} @class={{item.Status}} @tagName="li">
+  <HealthcheckOutput class={{item.Status}} @tagName="li">
       <BlockSlot @name="header">
         <h3>{{item.Name}}</h3>
       </BlockSlot>
