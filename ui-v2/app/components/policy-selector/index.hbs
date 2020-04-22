@@ -61,7 +61,7 @@
             <span>Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
             {{#if (eq item.template '')}}
               <DataSource
-                @src={{concat '/' (or nspace 'default') '/' dc '/policy/' item.ID}}
+                @src={{concat '/' item.Namespace '/' item.Datacenter '/policy/' item.ID}}
                 @onchange={{action (mut loadedItem) value="data"}}
                 @loading="lazy"
               />
