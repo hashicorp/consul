@@ -1038,12 +1038,20 @@ func (s *HTTPServer) parseMetaFilter(req *http.Request) map[string]string {
 	if filterList, ok := req.URL.Query()["node-meta"]; ok {
 		filters := make(map[string]string)
 		for _, filter := range filterList {
-			key, value := ParseMetaPair(filter)
+			key, value := parseMetaPair(filter)
 			filters[key] = value
 		}
 		return filters
 	}
 	return nil
+}
+
+func parseMetaPair(raw string) (string, string) {
+	pair := strings.SplitN(raw, ":", 2)
+	if len(pair) == 2 {
+		return pair[0], pair[1]
+	}
+	return pair[0], ""
 }
 
 // parseInternal is a convenience method for endpoints that need
