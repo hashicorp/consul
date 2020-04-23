@@ -176,6 +176,17 @@ func TestSnapshotSaveCommand_TruncatedStream(t *testing.T) {
 			output := ui.ErrorWriter.String()
 			require.Contains(t, output, "Error verifying snapshot file")
 			require.Contains(t, output, "EOF")
+
+			// file should not have been created
+
+			_, err := os.Stat(file)
+			require.Error(t, err, "file is not supposed to exist")
+			require.True(t, os.IsNotExist(err), "file is not supposed to exist")
+
+			// also check that the unverified inputs are gone as well
+			_, err = os.Stat(file + ".unverified")
+			require.Error(t, err, "unverified file is not supposed to exist")
+			require.True(t, os.IsNotExist(err), "unverified file is not supposed to exist")
 		})
 	}
 }

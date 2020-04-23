@@ -344,6 +344,8 @@ github.com/prometheus/common/model
 # github.com/prometheus/procfs v0.0.2
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
+# github.com/rboyer/safeio v0.2.1
+github.com/rboyer/safeio
 # github.com/renier/xmlrpc v0.0.0-20170708154548-ce4a1a486c03
 github.com/renier/xmlrpc
 # github.com/ryanuber/columnize v2.1.0+incompatible
