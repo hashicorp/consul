@@ -1,0 +1,13 @@
+diff --git a/node_modules/ember-cli-code-coverage/index.js b/node_modules/ember-cli-code-coverage/index.js
+index 6d84d18..81ef6fd 100644
+--- a/node_modules/ember-cli-code-coverage/index.js
++++ b/node_modules/ember-cli-code-coverage/index.js
+@@ -65,7 +65,7 @@ module.exports = {
+         )
+           .filter(Boolean)
+           .map(getPlugins)
+-          .forEach((plugins) => plugins.push([IstanbulPlugin, { exclude, include }]));
++          .forEach((plugins) => plugins.push([IstanbulPlugin, { include: ['consul-ui/utils/**/*','consul-ui/search/**/*'] }]));
+ 
+       } else {
+         this.project.ui.writeWarnLine(

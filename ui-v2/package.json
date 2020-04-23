@@ -9,6 +9,7 @@
     "test": "tests"
   },
   "scripts": {
+    "postinstall": "patch-package",
     "build": "ember build --environment=production",
     "build:staging": "ember build --environment staging",
     "build:ci": "ember build --environment test",
@@ -118,6 +119,7 @@
     "mnemonist": "^0.30.0",
     "ngraph.graph": "^18.0.3",
     "node-sass": "^4.9.3",
+    "patch-package": "^6.2.2",
     "pretender": "^3.2.0",
     "prettier": "^1.10.2",
     "qunit-dom": "^1.0.0",
