@@ -120,6 +120,7 @@ export default [
           'service-resolver',
           'service-defaults',
           'proxy-defaults',
+          'ingress-gateway',
         ],
       },
       'cloud-auto-join',
@@ -155,6 +156,7 @@ export default [
         content: ['envoy', 'built-in', 'integrate'],
       },
       'mesh_gateway',
+      'ingress_gateway',
       {
         category: 'registration',
         content: ['service-registration', 'sidecar-service'],
