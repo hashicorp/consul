@@ -57,6 +57,15 @@ type IngressService struct {
 	// protocol and means that the listener will forward traffic to all services.
 	Name string
 
+	// Hosts is a list of hostnames which should be associated to this service on
+	// the defined listener. Only allowed on layer 7 protocols, this will be used
+	// to route traffic to the service by matching the Host header of the HTTP
+	// request.
+	//
+	// This cannot be specified when using the wildcard specifier, "*", or when
+	// using a "tcp" listener.
+	Hosts []string
+
 	// Namespace is the namespace where the service is located.
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`

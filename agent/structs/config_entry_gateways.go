@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/lib"
 )
 
 // IngressGatewayConfigEntry manages the configuration for an ingress service
@@ -50,6 +51,15 @@ type IngressService struct {
 	// "*". If the wildcard specifier is provided, the listener must be of "http"
 	// protocol and means that the listener will forward traffic to all services.
 	Name string
+
+	// Hosts is a list of hostnames which should be associated to this service on
+	// the defined listener. Only allowed on layer 7 protocols, this will be used
+	// to route traffic to the service by matching the Host header of the HTTP
+	// request.
+	//
+	// This cannot be specified when using the wildcard specifier, "*", or when
+	// using a "tcp" listener.
+	Hosts []string
 
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
@@ -109,18 +119,6 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 			return fmt.Errorf("Protocol must be either 'http' or 'tcp', '%s' is an unsupported protocol.", listener.Protocol)
 		}
 
-		for _, s := range listener.Services {
-			if s.Name == WildcardSpecifier && listener.Protocol != "http" {
-				return fmt.Errorf("Wildcard service name is only valid for protocol = 'http' (listener on port %d)", listener.Port)
-			}
-			if s.Name == "" {
-				return fmt.Errorf("Service name cannot be blank (listener on port %d)", listener.Port)
-			}
-			if s.NamespaceOrDefault() == WildcardSpecifier {
-				return fmt.Errorf("Wildcard namespace is not supported for ingress services (listener on port %d)", listener.Port)
-			}
-		}
-
 		if len(listener.Services) == 0 {
 			return fmt.Errorf("No service declared for listener with port %d", listener.Port)
 		}
@@ -129,6 +127,35 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 		if listener.Protocol != "http" && len(listener.Services) > 1 {
 			return fmt.Errorf("Multiple services per listener are only supported for protocol = 'http' (listener on port %d)",
 				listener.Port)
+		}
+
+		declaredHosts := make(map[string]bool)
+		for _, s := range listener.Services {
+			if listener.Protocol == "tcp" {
+				if s.Name == WildcardSpecifier {
+					return fmt.Errorf("Wildcard service name is only valid for protocol = 'http' (listener on port %d)", listener.Port)
+				}
+				if len(s.Hosts) != 0 {
+					return fmt.Errorf("Associating hosts to a service is not supported for the %s protocol (listener on port %d)", listener.Protocol, listener.Port)
+				}
+			}
+			if s.Name == "" {
+				return fmt.Errorf("Service name cannot be blank (listener on port %d)", listener.Port)
+			}
+			if s.Name == WildcardSpecifier && len(s.Hosts) != 0 {
+				return fmt.Errorf("Associating hosts to a wildcard service is not supported (listener on port %d)", listener.Port)
+			}
+			if s.NamespaceOrDefault() == WildcardSpecifier {
+				return fmt.Errorf("Wildcard namespace is not supported for ingress services (listener on port %d)", listener.Port)
+			}
+
+			// TODO(ingress): Validate Hosts are valid?
+			for _, h := range s.Hosts {
+				if declaredHosts[h] {
+					return fmt.Errorf("Hosts must be unique within a specific listener (listener on port %d)", listener.Port)
+				}
+				declaredHosts[h] = true
+			}
 		}
 	}
 
@@ -296,6 +323,7 @@ type GatewayService struct {
 	GatewayKind  ServiceKind
 	Port         int
 	Protocol     string
+	Hosts        []string
 	CAFile       string
 	CertFile     string
 	KeyFile      string
@@ -312,6 +340,7 @@ func (g *GatewayService) IsSame(o *GatewayService) bool {
 		g.GatewayKind == o.GatewayKind &&
 		g.Port == o.Port &&
 		g.Protocol == o.Protocol &&
+		lib.StringSliceEqual(g.Hosts, o.Hosts) &&
 		g.CAFile == o.CAFile &&
 		g.CertFile == o.CertFile &&
 		g.KeyFile == o.KeyFile &&
@@ -321,11 +350,13 @@ func (g *GatewayService) IsSame(o *GatewayService) bool {
 
 func (g *GatewayService) Clone() *GatewayService {
 	return &GatewayService{
-		Gateway:      g.Gateway,
-		Service:      g.Service,
-		GatewayKind:  g.GatewayKind,
-		Port:         g.Port,
-		Protocol:     g.Protocol,
+		Gateway:     g.Gateway,
+		Service:     g.Service,
+		GatewayKind: g.GatewayKind,
+		Port:        g.Port,
+		Protocol:    g.Protocol,
+		// See https://github.com/go101/go101/wiki/How-to-efficiently-clone-a-slice%3F
+		Hosts:        append(g.Hosts[:0:0], g.Hosts...),
 		CAFile:       g.CAFile,
 		CertFile:     g.CertFile,
 		KeyFile:      g.KeyFile,

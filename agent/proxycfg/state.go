@@ -1355,6 +1355,7 @@ func makeUpstream(g *structs.GatewayService, bindAddr string) structs.Upstream {
 		DestinationName:      g.Service.ID,
 		DestinationNamespace: g.Service.NamespaceOrDefault(),
 		LocalBindPort:        g.Port,
+		IngressHosts:         g.Hosts,
 		// Pass the protocol that was configured on the ingress listener in order
 		// to force that protocol on the Envoy listener.
 		Config: map[string]interface{}{

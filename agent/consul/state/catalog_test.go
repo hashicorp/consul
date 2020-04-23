@@ -4997,6 +4997,7 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 		require.Len(results, 2)
 		require.Equal("ingress1", results[0].Gateway.ID)
 		require.Equal("service1", results[0].Service.ID)
+		require.Len(results[0].Hosts, 1)
 		require.Equal(1111, results[0].Port)
 		require.Equal("ingress1", results[1].Gateway.ID)
 		require.Equal("service2", results[1].Service.ID)
@@ -5217,7 +5218,8 @@ func setupIngressState(t *testing.T, s *Store) memdb.WatchSet {
 				Protocol: "tcp",
 				Services: []structs.IngressService{
 					{
-						Name: "service1",
+						Name:  "service1",
+						Hosts: []string{"test.example.com"},
 					},
 				},
 			},

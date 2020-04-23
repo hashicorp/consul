@@ -252,6 +252,70 @@ func TestIngressConfigEntry_Validate(t *testing.T) {
 			},
 			expectErr: "Protocol must be either 'http' or 'tcp', 'asdf' is an unsupported protocol.",
 		},
+		{
+			name: "hosts cannot be set on a tcp listener",
+			entry: IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"db.example.com"},
+							},
+						},
+					},
+				},
+			},
+			expectErr: "Associating hosts to a service is not supported for the tcp protocol",
+		},
+		{
+			name: "hosts cannot be set on a wildcard specifier",
+			entry: IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "*",
+								Hosts: []string{"db.example.com"},
+							},
+						},
+					},
+				},
+			},
+			expectErr: "Associating hosts to a wildcard service is not supported",
+		},
+		{
+			name: "hosts must be unique per listener",
+			entry: IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"test.example.com"},
+							},
+							{
+								Name:  "api",
+								Hosts: []string{"test.example.com"},
+							},
+						},
+					},
+				},
+			},
+			expectErr: "Hosts must be unique within a specific listener",
+		},
 	}
 
 	for _, test := range cases {

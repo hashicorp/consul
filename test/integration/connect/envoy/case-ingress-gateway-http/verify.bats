@@ -31,28 +31,10 @@ load helpers
 }
 
 @test "ingress should be able to connect to s1 via configured path" {
-  run retry_default curl -s -f localhost:9999/s1/debug?env=dump
-  [ "$status" -eq 0 ]
-
-  GOT=$(echo "$output" | grep -E "^FORTIO_NAME=")
-  EXPECT_NAME="s1"
-
-  if [ "$GOT" != "FORTIO_NAME=${EXPECT_NAME}" ]; then
-    echo "expected name: $EXPECT_NAME, actual name: $GOT" 1>&2
-    return 1
-  fi
+  assert_expected_fortio_name s1 localhost 9999 /s1
 }
 
 @test "ingress should be able to connect to s2 via configured path" {
-  run retry_default curl -s -f localhost:9999/s2/debug?env=dump
-  [ "$status" -eq 0 ]
-
-  GOT=$(echo "$output" | grep -E "^FORTIO_NAME=")
-  EXPECT_NAME="s2"
-
-  if [ "$GOT" != "FORTIO_NAME=${EXPECT_NAME}" ]; then
-    echo "expected name: $EXPECT_NAME, actual name: $GOT" 1>&2
-    return 1
-  fi
+  assert_expected_fortio_name s2 localhost 9999 /s2
 }
 

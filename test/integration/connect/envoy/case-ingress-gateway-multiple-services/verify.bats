@@ -31,28 +31,13 @@ load helpers
 }
 
 @test "ingress should be able to connect to s1 using Host header" {
-  run retry_default curl -H"Host: s1.example.consul" -s -f localhost:9999/debug?env=dump
-  [ "$status" -eq 0 ]
-
-  GOT=$(echo "$output" | grep -E "^FORTIO_NAME=")
-  EXPECT_NAME="s1"
-
-  if [ "$GOT" != "FORTIO_NAME=${EXPECT_NAME}" ]; then
-    echo "expected name: $EXPECT_NAME, actual name: $GOT" 1>&2
-    return 1
-  fi
+  assert_expected_fortio_name s1 s1.example.consul 9999
 }
 
 @test "ingress should be able to connect to s2 using Host header" {
-  run retry_default curl -H"Host: s2.example.consul" -s -f localhost:9999/debug?env=dump
-  [ "$status" -eq 0 ]
-
-  GOT=$(echo "$output" | grep -E "^FORTIO_NAME=")
-  EXPECT_NAME="s2"
-
-  if [ "$GOT" != "FORTIO_NAME=${EXPECT_NAME}" ]; then
-    echo "expected name: $EXPECT_NAME, actual name: $GOT" 1>&2
-    return 1
-  fi
+  assert_expected_fortio_name s2 s2.example.consul 9999
 }
 
+@test "ingress should be able to connect to s1 using a user-specified Host" {
+  assert_expected_fortio_name s1 test.example.com 9998
+}

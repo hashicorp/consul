@@ -15,6 +15,16 @@ config_entries {
               name = "*"
             }
           ]
+        },
+        {
+          port = 9998
+          protocol = "http"
+          services = [
+            {
+              name = "s1"
+              hosts = ["test.example.com"]
+            }
+          ]
         }
       ]
     },

@@ -117,6 +117,7 @@ func TestRoutesFromSnapshot(t *testing.T) {
 						{
 							DestinationName: "foo",
 							LocalBindPort:   8080,
+							IngressHosts:    []string{"test1.example.com", "test2.example.com"},
 						},
 						{
 							DestinationName: "bar",

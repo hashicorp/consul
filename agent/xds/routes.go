@@ -49,14 +49,14 @@ func routesFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.M
 		if chain == nil || chain.IsDefault() {
 			// TODO(rb): make this do the old school stuff too
 		} else {
-			virtualHost, err := makeUpstreamRouteForDiscoveryChain(upstreamID, chain, "*")
+			virtualHost, err := makeUpstreamRouteForDiscoveryChain(upstreamID, chain, []string{"*"})
 			if err != nil {
 				return nil, err
 			}
 
 			route := &envoy.RouteConfiguration{
 				Name:             upstreamID,
-				VirtualHosts:     []envoyroute.VirtualHost{*virtualHost},
+				VirtualHosts:     []envoyroute.VirtualHost{virtualHost},
 				ValidateClusters: makeBoolValue(true),
 			}
 			resources = append(resources, route)
@@ -91,21 +91,31 @@ func routesFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto
 		for _, u := range upstreams {
 			upstreamID := u.Identifier()
 			chain := cfgSnap.IngressGateway.DiscoveryChain[upstreamID]
-			if chain != nil {
-				domain := fmt.Sprintf("%s.*", chain.ServiceName)
+			if chain == nil {
+				continue
+			}
+
+			var domains []string
+			switch {
+			case len(upstreams) == 1:
 				// Don't require a service prefix on the domain if there is only 1
 				// upstream. This makes it a smoother experience when only having a
 				// single service associated to a listener, which is probably a common
 				// case when demoing/testing
-				if len(upstreams) == 1 {
-					domain = "*"
-				}
-				virtualHost, err := makeUpstreamRouteForDiscoveryChain(upstreamID, chain, domain)
-				if err != nil {
-					return nil, err
-				}
-				upstreamRoute.VirtualHosts = append(upstreamRoute.VirtualHosts, *virtualHost)
+				domains = []string{"*"}
+			case len(u.IngressHosts) > 0:
+				// If a user has specified hosts, do not add the default
+				// "<service-name>.*" prefix
+				domains = u.IngressHosts
+			default:
+				domains = []string{fmt.Sprintf("%s.*", chain.ServiceName)}
 			}
+
+			virtualHost, err := makeUpstreamRouteForDiscoveryChain(upstreamID, chain, domains)
+			if err != nil {
+				return nil, err
+			}
+			upstreamRoute.VirtualHosts = append(upstreamRoute.VirtualHosts, virtualHost)
 		}
 
 		result = append(result, upstreamRoute)
@@ -117,8 +127,8 @@ func routesFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto
 func makeUpstreamRouteForDiscoveryChain(
 	routeName string,
 	chain *structs.CompiledDiscoveryChain,
-	serviceDomain string,
-) (*envoyroute.VirtualHost, error) {
+	serviceDomains []string,
+) (envoyroute.VirtualHost, error) {
 	var routes []envoyroute.Route
 
 	startNode := chain.Nodes[chain.StartNode]
@@ -143,14 +153,14 @@ func makeUpstreamRouteForDiscoveryChain(
 			case structs.DiscoveryGraphNodeTypeSplitter:
 				routeAction, err = makeRouteActionForSplitter(nextNode.Splits, chain)
 				if err != nil {
-					return nil, err
+					return envoyroute.VirtualHost{}, err
 				}
 
 			case structs.DiscoveryGraphNodeTypeResolver:
 				routeAction = makeRouteActionForSingleCluster(nextNode.Resolver.Target, chain)
 
 			default:
-				return nil, fmt.Errorf("unexpected graph node after route %q", nextNode.Type)
+				return envoyroute.VirtualHost{}, fmt.Errorf("unexpected graph node after route %q", nextNode.Type)
 			}
 
 			// TODO(rb): Better help handle the envoy case where you need (prefix=/foo/,rewrite=/) and (exact=/foo,rewrite=/) to do a full rewrite
@@ -197,7 +207,7 @@ func makeUpstreamRouteForDiscoveryChain(
 	case structs.DiscoveryGraphNodeTypeSplitter:
 		routeAction, err := makeRouteActionForSplitter(startNode.Splits, chain)
 		if err != nil {
-			return nil, err
+			return envoyroute.VirtualHost{}, err
 		}
 
 		defaultRoute := envoyroute.Route{
@@ -221,9 +231,9 @@ func makeUpstreamRouteForDiscoveryChain(
 		panic("unknown first node in discovery chain of type: " + startNode.Type)
 	}
 
-	host := &envoyroute.VirtualHost{
+	host := envoyroute.VirtualHost{
 		Name:    routeName,
-		Domains: []string{serviceDomain},
+		Domains: serviceDomains,
 		Routes:  routes,
 	}
 

@@ -47,7 +47,8 @@
         {
           "name": "foo",
           "domains": [
-            "foo.*"
+            "test1.example.com",
+            "test2.example.com"
           ],
           "routes": [
             {
