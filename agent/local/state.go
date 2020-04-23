@@ -1098,8 +1098,11 @@ func (l *State) deleteService(key structs.ServiceID) error {
 		delete(l.services, key)
 		// service deregister also deletes associated checks
 		for _, c := range l.checks {
-			if c.Deleted && c.Check != nil && c.Check.ServiceID == key.ID {
-				l.pruneCheck(c.Check.CompoundCheckID())
+			if c.Deleted && c.Check != nil {
+				sid := c.Check.CompoundServiceID()
+				if sid.Matches(&key) {
+					l.pruneCheck(c.Check.CompoundCheckID())
+				}
 			}
 		}
 		l.logger.Info("Deregistered service", "service", key.ID)
