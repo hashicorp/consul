@@ -198,7 +198,6 @@ export default [
     ],
   },
   '-------',
-  { category: 'guides', content: [] },
   'common-errors',
   'faq',
   '--------',
