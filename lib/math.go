@@ -20,3 +20,10 @@ func MinInt(a, b int) int {
 	}
 	return a
 }
+
+func MaxUint64(a, b uint64) uint64 {
+	if a > b {
+		return a
+	}
+	return b
+}
