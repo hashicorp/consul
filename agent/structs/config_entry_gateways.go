@@ -51,11 +51,6 @@ type IngressService struct {
 	// protocol and means that the listener will forward traffic to all services.
 	Name string
 
-	// ServiceSubset declares the specific service subset to which traffic should
-	// be sent. This must match an existing service subset declared in a
-	// service-resolver config entry.
-	ServiceSubset string
-
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
 

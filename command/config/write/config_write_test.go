@@ -1395,7 +1395,6 @@ func TestParseConfigEntry(t *testing.T) {
 						services = [
 							{
 								name = "web"
-								service_subset = "v1"
 							},
 							{
 								name = "db"
@@ -1415,7 +1414,6 @@ func TestParseConfigEntry(t *testing.T) {
 						Services = [
 							{
 								Name = "web"
-								ServiceSubset = "v1"
 							},
 							{
 								Name = "db"
@@ -1435,8 +1433,7 @@ func TestParseConfigEntry(t *testing.T) {
 						"protocol": "http",
 						"services": [
 							{
-								"name": "web",
-								"service_subset": "v1"
+								"name": "web"
 							},
 							{
 								"name": "db",
@@ -1457,8 +1454,7 @@ func TestParseConfigEntry(t *testing.T) {
 						"Protocol": "http",
 						"Services": [
 							{
-								"Name": "web",
-								"ServiceSubset": "v1"
+								"Name": "web"
 							},
 							{
 								"Name": "db",
@@ -1478,8 +1474,7 @@ func TestParseConfigEntry(t *testing.T) {
 						Protocol: "http",
 						Services: []api.IngressService{
 							{
-								Name:          "web",
-								ServiceSubset: "v1",
+								Name: "web",
 							},
 							{
 								Name:      "db",

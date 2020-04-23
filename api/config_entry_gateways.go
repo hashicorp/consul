@@ -60,11 +60,6 @@ type IngressService struct {
 	// Namespace is the namespace where the service is located.
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
-
-	// ServiceSubset declares the specific service subset to which traffic should
-	// be sent. This must match an existing service subset declared in a
-	// service-resolver config entry.
-	ServiceSubset string
 }
 
 func (i *IngressGatewayConfigEntry) GetKind() string {
