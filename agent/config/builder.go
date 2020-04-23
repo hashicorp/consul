@@ -1005,7 +1005,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	return rt, nil
 }
 
-// Validate performs semantical validation of the runtime configuration.
+// Validate performs semantic validation of the runtime configuration.
 func (b *Builder) Validate(rt RuntimeConfig) error {
 	// reDatacenter defines a regexp for a valid datacenter name
 	var reDatacenter = regexp.MustCompile("^[a-z0-9_-]+$")
@@ -1418,6 +1418,8 @@ func (b *Builder) serviceKindVal(v *string) structs.ServiceKind {
 		return structs.ServiceKindMeshGateway
 	case string(structs.ServiceKindTerminatingGateway):
 		return structs.ServiceKindTerminatingGateway
+	case string(structs.ServiceKindIngressGateway):
+		return structs.ServiceKindIngressGateway
 	default:
 		return structs.ServiceKindTypical
 	}

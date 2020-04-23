@@ -1170,6 +1170,12 @@ func TestParseConfigEntry(t *testing.T) {
 							listener_port = 21500
 							path = "/healthz"
 							protocol = "http2"
+						},
+						{
+							local_path_port = 8000
+							listener_port = 21501
+							path = "/metrics"
+							protocol = "http"
 						}
 					]
 				}`,
@@ -1184,6 +1190,12 @@ func TestParseConfigEntry(t *testing.T) {
 							ListenerPort = 21500
 							Path = "/healthz"
 							Protocol = "http2"
+						},
+						{
+							LocalPathPort = 8000
+							ListenerPort = 21501
+							Path = "/metrics"
+							Protocol = "http"
 						}
 					]
 				}`,
@@ -1199,6 +1211,12 @@ func TestParseConfigEntry(t *testing.T) {
 							"listener_port": 21500,
 							"path": "/healthz",
 							"protocol": "http2"
+						},
+						{
+							"local_path_port": 8000,
+							"listener_port": 21501,
+							"path": "/metrics",
+							"protocol": "http"
 						}
 					]
 				}
@@ -1216,6 +1234,12 @@ func TestParseConfigEntry(t *testing.T) {
 							"ListenerPort": 21500,
 							"Path": "/healthz",
 							"Protocol": "http2"
+						},
+						{
+							"LocalPathPort": 8000,
+							"ListenerPort": 21501,
+							"Path": "/metrics",
+							"Protocol": "http"
 						}
 					]
 				}
@@ -1232,6 +1256,122 @@ func TestParseConfigEntry(t *testing.T) {
 							Path:          "/healthz",
 							LocalPathPort: 8080,
 							Protocol:      "http2",
+						},
+						{
+							ListenerPort:  21501,
+							Path:          "/metrics",
+							LocalPathPort: 8000,
+							Protocol:      "http",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "expose paths: kitchen sink service defaults",
+			snake: `
+				kind = "service-defaults"
+				name = "web"
+				expose = {
+					checks = true
+					paths = [
+						{
+							local_path_port = 8080
+							listener_port = 21500
+							path = "/healthz"
+							protocol = "http2"
+						},
+						{
+							local_path_port = 8000
+							listener_port = 21501
+							path = "/metrics"
+							protocol = "http"
+						}
+					]
+				}`,
+			camel: `
+				Kind = "service-defaults"
+				Name = "web"
+				Expose = {
+					Checks = true
+					Paths = [
+						{
+							LocalPathPort = 8080
+							ListenerPort = 21500
+							Path = "/healthz"
+							Protocol = "http2"
+						},
+						{
+							LocalPathPort = 8000
+							ListenerPort = 21501
+							Path = "/metrics"
+							Protocol = "http"
+						}
+					]
+				}`,
+			snakeJSON: `
+			{
+				"kind": "service-defaults",
+				"name": "web",
+				"expose": {
+					"checks": true,
+					"paths": [
+						{
+							"local_path_port": 8080,
+							"listener_port": 21500,
+							"path": "/healthz",
+							"protocol": "http2"
+						},
+						{
+							"local_path_port": 8000,
+							"listener_port": 21501,
+							"path": "/metrics",
+							"protocol": "http"
+						}
+					]
+				}
+			}
+			`,
+			camelJSON: `
+			{
+				"Kind": "service-defaults",
+				"Name": "web",
+				"Expose": {
+					"Checks": true,
+					"Paths": [
+						{
+							"LocalPathPort": 8080,
+							"ListenerPort": 21500,
+							"Path": "/healthz",
+							"Protocol": "http2"
+						},
+						{
+							"LocalPathPort": 8000,
+							"ListenerPort": 21501,
+							"Path": "/metrics",
+							"Protocol": "http"
+						}
+					]
+				}
+			}
+			`,
+			expect: &api.ServiceConfigEntry{
+				Kind: "service-defaults",
+				Name: "web",
+				Expose: api.ExposeConfig{
+					Checks: true,
+					Paths: []api.ExposePath{
+						{
+							ListenerPort:  21500,
+							Path:          "/healthz",
+							LocalPathPort: 8080,
+							Protocol:      "http2",
+						},
+						{
+							ListenerPort:  21501,
+							Path:          "/metrics",
+							LocalPathPort: 8000,
+							Protocol:      "http",
 						},
 					},
 				},

@@ -165,11 +165,16 @@ The table below shows this endpoint's support for
 <sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
 See [Intention Management Permissions](/docs/connect/intentions.html#intention-management-permissions) for more details.
 
+### Parameters
+
+- `filter` `(string: "")` - Specifies the expression used to filter the
+  queries results prior to returning the data.
+
 ### Sample Request
 
 ```text
 $ curl \
-    http://127.0.0.1:8500/v1/connect/intentions
+    'http://127.0.0.1:8500/v1/connect/intentions?filter=SourceName==web'
 ```
 
 ### Sample Response
@@ -196,6 +201,27 @@ $ curl \
   }
 ]
 ```
+
+### Filtering
+
+The filter will be executed against each Intention in the result list with
+the following selectors and filter operations being supported:
+
+| Selector        | Supported Operations                               |
+| --------------- | -------------------------------------------------- |
+| Action          | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| DefaultAddr     | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| DefaultPort     | Equal, Not Equal                                   |
+| Description     | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| DestinationNS   | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| DestinationName | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| ID              | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| Meta            | Is Empty, Is Not Empty, In, Not In                 |
+| Meta.<any>      | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| Precedence      | Equal, Not Equal                                   |
+| SourceNS        | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| SourceName      | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| SourceType      | Equal, Not Equal, In, Not In, Matches, Not Matches |
 
 ## Update Intention
 

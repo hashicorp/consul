@@ -24,6 +24,7 @@ type Agent interface {
 
 // ServiceHTTPBasedChecks supports fetching discovering checks in the local state
 type ServiceHTTPChecks struct {
+	RegisterOptionsBlockingRefresh
 	Agent Agent
 }
 
@@ -89,10 +90,6 @@ func (c *ServiceHTTPChecks) Fetch(opts cache.FetchOptions, req cache.Request) (c
 		result.Index += 1
 	}
 	return result, nil
-}
-
-func (c *ServiceHTTPChecks) SupportsBlocking() bool {
-	return true
 }
 
 // ServiceHTTPChecksRequest is the cache.Request implementation for the

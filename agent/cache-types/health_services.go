@@ -13,6 +13,7 @@ const HealthServicesName = "health-services"
 // HealthServices supports fetching discovering service instances via the
 // catalog.
 type HealthServices struct {
+	RegisterOptionsBlockingRefresh
 	RPC RPC
 }
 
@@ -49,8 +50,4 @@ func (c *HealthServices) Fetch(opts cache.FetchOptions, req cache.Request) (cach
 	result.Value = &reply
 	result.Index = reply.QueryMeta.Index
 	return result, nil
-}
-
-func (c *HealthServices) SupportsBlocking() bool {
-	return true
 }

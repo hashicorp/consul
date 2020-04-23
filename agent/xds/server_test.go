@@ -344,10 +344,10 @@ func expectedTLSContextJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, require
 			"tlsCertificates": [
 				{
 					"certificateChain": {
-						"inlineString": "` + strings.Replace(snap.ConnectProxy.Leaf.CertPEM, "\n", "\\n", -1) + `"
+						"inlineString": "` + strings.Replace(snap.Leaf().CertPEM, "\n", "\\n", -1) + `"
 					},
 					"privateKey": {
-						"inlineString": "` + strings.Replace(snap.ConnectProxy.Leaf.PrivateKeyPEM, "\n", "\\n", -1) + `"
+						"inlineString": "` + strings.Replace(snap.Leaf().PrivateKeyPEM, "\n", "\\n", -1) + `"
 					}
 				}
 			],
@@ -400,6 +400,7 @@ func TestServer_StreamAggregatedResources_ACLEnforcement(t *testing.T) {
 		acl         string
 		token       string
 		wantDenied  bool
+		cfgSnap     *proxycfg.ConfigSnapshot
 	}{
 		// Note that although we've stubbed actual ACL checks in the testManager
 		// ConnectAuthorize mock, by asserting against specific reason strings here
@@ -436,6 +437,14 @@ func TestServer_StreamAggregatedResources_ACLEnforcement(t *testing.T) {
 			acl:         `service "not-web" { policy = "write" }`,
 			token:       "service-write-on-not-web",
 			wantDenied:  true,
+		},
+		{
+			name:        "ingress default deny, write token on different service",
+			defaultDeny: true,
+			acl:         `service "not-ingress" { policy = "write" }`,
+			token:       "service-write-on-not-ingress",
+			wantDenied:  true,
+			cfgSnap:     proxycfg.TestConfigSnapshotIngressGateway(t),
 		},
 	}
 
@@ -480,7 +489,10 @@ func TestServer_StreamAggregatedResources_ACLEnforcement(t *testing.T) {
 			mgr.RegisterProxy(t, sid)
 
 			// Deliver a new snapshot
-			snap := proxycfg.TestConfigSnapshot(t)
+			snap := tt.cfgSnap
+			if snap == nil {
+				snap = proxycfg.TestConfigSnapshot(t)
+			}
 			mgr.DeliverConfig(t, sid, snap)
 
 			// Send initial listener discover, in real life Envoy always sends cluster

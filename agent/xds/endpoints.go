@@ -32,6 +32,8 @@ func (s *Server) endpointsFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, _ strin
 		return s.endpointsFromSnapshotConnectProxy(cfgSnap)
 	case structs.ServiceKindMeshGateway:
 		return s.endpointsFromSnapshotMeshGateway(cfgSnap)
+	case structs.ServiceKindIngressGateway:
+		return s.endpointsFromSnapshotIngressGateway(cfgSnap)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
@@ -74,79 +76,13 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 
 		} else {
 			// Newfangled discovery chain plumbing.
-
-			// Find all resolver nodes.
-			for _, node := range chain.Nodes {
-				if node.Type != structs.DiscoveryGraphNodeTypeResolver {
-					continue
-				}
-				failover := node.Resolver.Failover
-				targetID := node.Resolver.Target
-
-				target := chain.Targets[targetID]
-
-				clusterName := CustomizeClusterName(target.Name, chain)
-
-				// Determine if we have to generate the entire cluster differently.
-				failoverThroughMeshGateway := chain.WillFailoverThroughMeshGateway(node)
-
-				if failoverThroughMeshGateway {
-					actualTargetID := firstHealthyTarget(
-						chain.Targets,
-						cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[id],
-						targetID,
-						failover.Targets,
-					)
-					if actualTargetID != targetID {
-						targetID = actualTargetID
-						target = chain.Targets[actualTargetID]
-					}
-
-					failover = nil
-				}
-
-				primaryGroup, valid := makeLoadAssignmentEndpointGroup(
-					chain.Targets,
-					cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[id],
-					cfgSnap.ConnectProxy.WatchedGatewayEndpoints[id],
-					targetID,
-					cfgSnap.Datacenter,
-				)
-				if !valid {
-					continue // skip the cluster if we're still populating the snapshot
-				}
-
-				var endpointGroups []loadAssignmentEndpointGroup
-
-				if failover != nil && len(failover.Targets) > 0 {
-					endpointGroups = make([]loadAssignmentEndpointGroup, 0, len(failover.Targets)+1)
-
-					endpointGroups = append(endpointGroups, primaryGroup)
-
-					for _, failTargetID := range failover.Targets {
-						failoverGroup, valid := makeLoadAssignmentEndpointGroup(
-							chain.Targets,
-							cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[id],
-							cfgSnap.ConnectProxy.WatchedGatewayEndpoints[id],
-							failTargetID,
-							cfgSnap.Datacenter,
-						)
-						if !valid {
-							continue // skip the failover target if we're still populating the snapshot
-						}
-						endpointGroups = append(endpointGroups, failoverGroup)
-					}
-				} else {
-					endpointGroups = append(endpointGroups, primaryGroup)
-				}
-
-				la := makeLoadAssignment(
-					clusterName,
-					endpointGroups,
-					cfgSnap.Datacenter,
-				)
-				resources = append(resources, la)
-			}
+			es := s.endpointsFromDiscoveryChain(
+				chain,
+				cfgSnap.Datacenter,
+				cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[id],
+				cfgSnap.ConnectProxy.WatchedGatewayEndpoints[id],
+			)
+			resources = append(resources, es...)
 		}
 	}
 
@@ -297,6 +233,22 @@ func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 	return resources, nil
 }
 
+func (s *Server) endpointsFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+	var resources []proto.Message
+	for _, u := range cfgSnap.IngressGateway.Upstreams {
+		id := u.Identifier()
+
+		es := s.endpointsFromDiscoveryChain(
+			cfgSnap.IngressGateway.DiscoveryChain[id],
+			cfgSnap.Datacenter,
+			cfgSnap.IngressGateway.WatchedUpstreamEndpoints[id],
+			nil,
+		)
+		resources = append(resources, es...)
+	}
+	return resources, nil
+}
+
 func makeEndpoint(clusterName, host string, port int) envoyendpoint.LbEndpoint {
 	return envoyendpoint.LbEndpoint{
 		HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
@@ -305,6 +257,93 @@ func makeEndpoint(clusterName, host string, port int) envoyendpoint.LbEndpoint {
 			},
 		},
 	}
+}
+
+func (s *Server) endpointsFromDiscoveryChain(
+	chain *structs.CompiledDiscoveryChain,
+	datacenter string,
+	upstreamEndpoints, gatewayEndpoints map[string]structs.CheckServiceNodes,
+) []proto.Message {
+	var resources []proto.Message
+
+	if chain == nil {
+		return resources
+	}
+
+	// Find all resolver nodes.
+	for _, node := range chain.Nodes {
+		if node.Type != structs.DiscoveryGraphNodeTypeResolver {
+			continue
+		}
+		failover := node.Resolver.Failover
+		targetID := node.Resolver.Target
+
+		target := chain.Targets[targetID]
+
+		clusterName := CustomizeClusterName(target.Name, chain)
+
+		// Determine if we have to generate the entire cluster differently.
+		failoverThroughMeshGateway := chain.WillFailoverThroughMeshGateway(node)
+
+		if failoverThroughMeshGateway {
+			actualTargetID := firstHealthyTarget(
+				chain.Targets,
+				upstreamEndpoints,
+				targetID,
+				failover.Targets,
+			)
+			if actualTargetID != targetID {
+				targetID = actualTargetID
+				target = chain.Targets[actualTargetID]
+			}
+
+			failover = nil
+		}
+
+		primaryGroup, valid := makeLoadAssignmentEndpointGroup(
+			chain.Targets,
+			upstreamEndpoints,
+			gatewayEndpoints,
+			targetID,
+			datacenter,
+		)
+		if !valid {
+			continue // skip the cluster if we're still populating the snapshot
+		}
+
+		var endpointGroups []loadAssignmentEndpointGroup
+
+		if failover != nil && len(failover.Targets) > 0 {
+			endpointGroups = make([]loadAssignmentEndpointGroup, 0, len(failover.Targets)+1)
+
+			endpointGroups = append(endpointGroups, primaryGroup)
+
+			for _, failTargetID := range failover.Targets {
+				failoverGroup, valid := makeLoadAssignmentEndpointGroup(
+					chain.Targets,
+					upstreamEndpoints,
+					gatewayEndpoints,
+					failTargetID,
+					datacenter,
+				)
+				if !valid {
+					continue // skip the failover target if we're still populating the snapshot
+				}
+				endpointGroups = append(endpointGroups, failoverGroup)
+			}
+		} else {
+			endpointGroups = append(endpointGroups, primaryGroup)
+		}
+
+		la := makeLoadAssignment(
+			clusterName,
+			endpointGroups,
+			datacenter,
+		)
+		resources = append(resources, la)
+	}
+
+	return resources
 }
 
 type loadAssignmentEndpointGroup struct {

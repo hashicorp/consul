@@ -343,6 +343,16 @@ func TestClustersFromSnapshot(t *testing.T) {
 				}
 			},
 		},
+		{
+			name:   "ingress-gateway",
+			create: proxycfg.TestConfigSnapshotIngressGateway,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-gateway-no-services",
+			create: proxycfg.TestConfigSnapshotIngressGatewayNoServices,
+			setup:  nil,
+		},
 	}
 
 	for _, tt := range tests {
@@ -355,13 +365,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 			// We need to replace the TLS certs with deterministic ones to make golden
 			// files workable. Note we don't update these otherwise they'd change
 			// golder files for every test case and so not be any use!
-			if snap.ConnectProxy.Leaf != nil {
-				snap.ConnectProxy.Leaf.CertPEM = golden(t, "test-leaf-cert", "")
-				snap.ConnectProxy.Leaf.PrivateKeyPEM = golden(t, "test-leaf-key", "")
-			}
-			if snap.Roots != nil {
-				snap.Roots.Roots[0].RootCert = golden(t, "test-root-cert", "")
-			}
+			setupTLSRootsAndLeaf(t, snap)
 
 			if tt.setup != nil {
 				tt.setup(snap)
@@ -536,4 +540,20 @@ func customAppClusterJSON(t *testing.T, opts customClusterJSONOptions) string {
 	err := customAppClusterJSONTemplate.Execute(&buf, opts)
 	require.NoError(t, err)
 	return buf.String()
+}
+
+func setupTLSRootsAndLeaf(t *testing.T, snap *proxycfg.ConfigSnapshot) {
+	if snap.Leaf() != nil {
+		switch snap.Kind {
+		case structs.ServiceKindConnectProxy:
+			snap.ConnectProxy.Leaf.CertPEM = golden(t, "test-leaf-cert", "")
+			snap.ConnectProxy.Leaf.PrivateKeyPEM = golden(t, "test-leaf-key", "")
+		case structs.ServiceKindIngressGateway:
+			snap.IngressGateway.Leaf.CertPEM = golden(t, "test-leaf-cert", "")
+			snap.IngressGateway.Leaf.PrivateKeyPEM = golden(t, "test-leaf-key", "")
+		}
+	}
+	if snap.Roots != nil {
+		snap.Roots.Roots[0].RootCert = golden(t, "test-root-cert", "")
+	}
 }

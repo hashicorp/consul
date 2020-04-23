@@ -47,20 +47,22 @@ applications can also send open tracing data through Envoy.
 
 There are several ways to try Connect in different environments.
 
- - The [Connect introduction guide](https://learn.hashicorp.com/consul/getting-started/connect)
+ - The [Getting Started with Consul Service Mesh track](https://learn.hashicorp.com/consul/gs-consul-service-mesh/understand-consul-service-mesh?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
+   walks you through installing Consul as service mesh for Kubernetes using the Helm
+   chart, deploying services in the service mesh, and using intentions to secure service 
+   communications.
+   
+ - The [Secure Service-to-Service Communication guide](https://learn.hashicorp.com/consul/developer-mesh/connect-services?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
    is a simple walk through of connecting two services on your local machine
-   using only Consul Connect, and configuring your first intention.
+   using Consul Connect's built-in proxy and configuring your first intention. The guide also includes an introduction to 
+   using Envoy as the Connect sidecar proxy. 
 
- - The [Envoy guide](https://learn.hashicorp.com/consul/developer-segmentation/connect-envoy)
-   walks through using Envoy as a proxy. It uses Docker to run components
-   locally without installing anything else.
-
- - The [Kubernetes guide](https://learn.hashicorp.com/consul/getting-started-k8s/minikube)
+ - The [Kubernetes guide](https://learn.hashicorp.com/consul/getting-started-k8s/minikube?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
    walks you through configuring Consul Connect in Kubernetes using the Helm
    chart, and using intentions. You can run the guide on Minikube or an existing
    Kubernetes cluster.
 
- - The [observability guide](https://learn.hashicorp.com/consul/kubernetes/l7-observability-k8s)
+ - The [observability guide](https://learn.hashicorp.com/consul/kubernetes/l7-observability-k8s?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
    shows how to deploy a basic metrics collection and visualization pipeline on
    a Minikube or Kubernetes cluster using the official Helm charts for Consul,
    Prometheus, and Grafana.

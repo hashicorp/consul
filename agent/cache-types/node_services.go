@@ -13,6 +13,7 @@ const NodeServicesName = "node-services"
 // NodeServices supports fetching discovering service instances via the
 // catalog.
 type NodeServices struct {
+	RegisterOptionsBlockingRefresh
 	RPC RPC
 }
 
@@ -49,8 +50,4 @@ func (c *NodeServices) Fetch(opts cache.FetchOptions, req cache.Request) (cache.
 	result.Value = &reply
 	result.Index = reply.QueryMeta.Index
 	return result, nil
-}
-
-func (c *NodeServices) SupportsBlocking() bool {
-	return true
 }

@@ -312,6 +312,9 @@ type Agent struct {
 	// httpConnLimiter is used to limit connections to the HTTP server by client
 	// IP.
 	httpConnLimiter connlimit.Limiter
+
+	// enterpriseAgent embeds fields that we only access in consul-enterprise builds
+	enterpriseAgent
 }
 
 // New verifies the configuration given has a Datacenter and DataDir
@@ -430,7 +433,10 @@ func (a *Agent) Start() error {
 	// waiting to discover a consul server
 	consulCfg.ServerUp = a.sync.SyncFull.Trigger
 
-	a.initEnterprise(consulCfg)
+	err = a.initEnterprise(consulCfg)
+	if err != nil {
+		return fmt.Errorf("failed to start Consul enterprise component: %v", err)
+	}
 
 	tlsConfigurator, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), a.logger)
 	if err != nil {
@@ -1719,15 +1725,6 @@ func (a *Agent) RPC(method string, args interface{}, reply interface{}) error {
 	return a.delegate.RPC(method, args, reply)
 }
 
-// SnapshotRPC performs the requested snapshot RPC against the Consul server in
-// a streaming manner. The contents of in will be read and passed along as the
-// payload, and the response message will determine the error status, and any
-// return payload will be written to out.
-func (a *Agent) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer,
-	replyFn structs.SnapshotReplyFn) error {
-	return a.delegate.SnapshotRPC(args, in, out, replyFn)
-}
-
 // Leave is used to prepare the agent for a graceful shutdown
 func (a *Agent) Leave() error {
 	return a.delegate.Leave()
@@ -2469,8 +2466,7 @@ func (a *Agent) addServiceInternal(req *addServiceRequest, snap map[structs.Chec
 			}
 		}
 
-		var cid structs.CheckID
-		cid.Init(types.CheckID(checkID), &service.EnterpriseMeta)
+		cid := structs.NewCheckID(types.CheckID(checkID), &service.EnterpriseMeta)
 		existingChecks[cid] = true
 
 		name := chkType.Name
@@ -2544,8 +2540,7 @@ func (a *Agent) addServiceInternal(req *addServiceRequest, snap map[structs.Chec
 
 	// If a proxy service wishes to expose checks, check targets need to be rerouted to the proxy listener
 	// This needs to be called after chkTypes are added to the agent, to avoid being overwritten
-	var psid structs.ServiceID
-	psid.Init(service.Proxy.DestinationServiceID, &service.EnterpriseMeta)
+	psid := structs.NewServiceID(service.Proxy.DestinationServiceID, &service.EnterpriseMeta)
 
 	if service.Proxy.Expose.Checks {
 		err := a.rerouteExposedChecks(psid, service.Address)
@@ -2753,8 +2748,7 @@ func (a *Agent) removeServiceLocked(serviceID structs.ServiceID, persist bool) e
 	svc := a.State.Service(serviceID)
 
 	if svc != nil {
-		var psid structs.ServiceID
-		psid.Init(svc.Proxy.DestinationServiceID, &svc.EnterpriseMeta)
+		psid := structs.NewServiceID(svc.Proxy.DestinationServiceID, &svc.EnterpriseMeta)
 		a.resetExposedChecks(psid)
 	}
 
@@ -2797,8 +2791,7 @@ func (a *Agent) removeServiceLocked(serviceID structs.ServiceID, persist bool) e
 }
 
 func (a *Agent) removeServiceSidecars(serviceID structs.ServiceID, persist bool) error {
-	var sidecarSID structs.ServiceID
-	sidecarSID.Init(a.sidecarServiceID(serviceID.ID), &serviceID.EnterpriseMeta)
+	sidecarSID := structs.NewServiceID(a.sidecarServiceID(serviceID.ID), &serviceID.EnterpriseMeta)
 	if sidecar := a.State.Service(sidecarSID); sidecar != nil {
 		// Double check that it's not just an ID collision and we actually added
 		// this from a sidecar.
@@ -3151,8 +3144,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				rpcReq.Token = token
 			}
 
-			var aliasServiceID structs.ServiceID
-			aliasServiceID.Init(chkType.AliasService, &check.EnterpriseMeta)
+			aliasServiceID := structs.NewServiceID(chkType.AliasService, &check.EnterpriseMeta)
 			chkImpl := &checks.CheckAlias{
 				Notify:         a.State,
 				RPC:            a.delegate,
@@ -3940,9 +3932,8 @@ func (a *Agent) unloadMetadata() {
 
 // serviceMaintCheckID returns the ID of a given service's maintenance check
 func serviceMaintCheckID(serviceID structs.ServiceID) structs.CheckID {
-	var cid structs.CheckID
-	cid.Init(types.CheckID(structs.ServiceMaintPrefix+serviceID.ID), &serviceID.EnterpriseMeta)
-	return cid
+	cid := types.CheckID(structs.ServiceMaintPrefix + serviceID.ID)
+	return structs.NewCheckID(cid, &serviceID.EnterpriseMeta)
 }
 
 // EnableServiceMaintenance will register a false health check against the given
@@ -4114,6 +4105,11 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	// concurrent due to both gaining a full lock on the stateLock
 	a.config.ConfigEntryBootstrap = newCfg.ConfigEntryBootstrap
 
+	err := a.reloadEnterprise(newCfg)
+	if err != nil {
+		return err
+	}
+
 	// create the config for the rpc server/client
 	consulCfg, err := a.consulConfig()
 	if err != nil {
@@ -4201,142 +4197,45 @@ func (a *Agent) registerCache() {
 	// the a.delegate directly, otherwise tests that rely on overriding RPC
 	// routing via a.registerEndpoint will not work.
 
-	a.cache.RegisterType(cachetype.ConnectCARootName, &cachetype.ConnectCARoot{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		// Maintain a blocking query, retry dropped connections quickly
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
-	})
+	a.cache.RegisterType(cachetype.ConnectCARootName, &cachetype.ConnectCARoot{RPC: a})
 
 	a.cache.RegisterType(cachetype.ConnectCALeafName, &cachetype.ConnectCALeaf{
 		RPC:                              a,
 		Cache:                            a.cache,
 		Datacenter:                       a.config.Datacenter,
 		TestOverrideCAChangeInitialDelay: a.config.ConnectTestCALeafRootChangeSpread,
-	}, &cache.RegisterOptions{
-		// Maintain a blocking query, retry dropped connections quickly
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
 	})
 
-	a.cache.RegisterType(cachetype.IntentionMatchName, &cachetype.IntentionMatch{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		// Maintain a blocking query, retry dropped connections quickly
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
-	})
+	a.cache.RegisterType(cachetype.IntentionMatchName, &cachetype.IntentionMatch{RPC: a})
 
-	a.cache.RegisterType(cachetype.CatalogServicesName, &cachetype.CatalogServices{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		// Maintain a blocking query, retry dropped connections quickly
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
-	})
+	a.cache.RegisterType(cachetype.CatalogServicesName, &cachetype.CatalogServices{RPC: a})
 
-	a.cache.RegisterType(cachetype.HealthServicesName, &cachetype.HealthServices{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		// Maintain a blocking query, retry dropped connections quickly
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
-	})
+	a.cache.RegisterType(cachetype.HealthServicesName, &cachetype.HealthServices{RPC: a})
 
-	a.cache.RegisterType(cachetype.PreparedQueryName, &cachetype.PreparedQuery{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		// Prepared queries don't support blocking
-		Refresh: false,
-	})
+	a.cache.RegisterType(cachetype.PreparedQueryName, &cachetype.PreparedQuery{RPC: a})
 
-	a.cache.RegisterType(cachetype.NodeServicesName, &cachetype.NodeServices{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		// Maintain a blocking query, retry dropped connections quickly
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
-	})
+	a.cache.RegisterType(cachetype.NodeServicesName, &cachetype.NodeServices{RPC: a})
 
-	a.cache.RegisterType(cachetype.ResolvedServiceConfigName, &cachetype.ResolvedServiceConfig{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		// Maintain a blocking query, retry dropped connections quickly
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
-	})
+	a.cache.RegisterType(cachetype.ResolvedServiceConfigName, &cachetype.ResolvedServiceConfig{RPC: a})
 
-	a.cache.RegisterType(cachetype.CatalogListServicesName, &cachetype.CatalogListServices{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
-	})
+	a.cache.RegisterType(cachetype.CatalogListServicesName, &cachetype.CatalogListServices{RPC: a})
 
-	a.cache.RegisterType(cachetype.CatalogServiceListName, &cachetype.CatalogServiceList{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
-	})
+	a.cache.RegisterType(cachetype.CatalogServiceListName, &cachetype.CatalogServiceList{RPC: a})
 
-	a.cache.RegisterType(cachetype.CatalogDatacentersName, &cachetype.CatalogDatacenters{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		Refresh: false,
-	})
+	a.cache.RegisterType(cachetype.CatalogDatacentersName, &cachetype.CatalogDatacenters{RPC: a})
 
-	a.cache.RegisterType(cachetype.InternalServiceDumpName, &cachetype.InternalServiceDump{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
-	})
+	a.cache.RegisterType(cachetype.InternalServiceDumpName, &cachetype.InternalServiceDump{RPC: a})
 
-	a.cache.RegisterType(cachetype.CompiledDiscoveryChainName, &cachetype.CompiledDiscoveryChain{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		// Maintain a blocking query, retry dropped connections quickly
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
-	})
+	a.cache.RegisterType(cachetype.CompiledDiscoveryChainName, &cachetype.CompiledDiscoveryChain{RPC: a})
 
-	a.cache.RegisterType(cachetype.ConfigEntriesName, &cachetype.ConfigEntries{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		// Maintain a blocking query, retry dropped connections quickly
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
-	})
+	a.cache.RegisterType(cachetype.GatewayServicesName, &cachetype.GatewayServices{RPC: a})
 
-	a.cache.RegisterType(cachetype.ServiceHTTPChecksName, &cachetype.ServiceHTTPChecks{
-		Agent: a,
-	}, &cache.RegisterOptions{
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
-	})
+	a.cache.RegisterType(cachetype.ConfigEntriesName, &cachetype.ConfigEntries{RPC: a})
 
-	a.cache.RegisterType(cachetype.FederationStateListMeshGatewaysName, &cachetype.FederationStateListMeshGateways{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
-	})
+	a.cache.RegisterType(cachetype.ServiceHTTPChecksName, &cachetype.ServiceHTTPChecks{Agent: a})
+
+	a.cache.RegisterType(cachetype.FederationStateListMeshGatewaysName,
+		&cachetype.FederationStateListMeshGateways{RPC: a})
 }
 
 // LocalState returns the agent's local state

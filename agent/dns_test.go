@@ -1636,6 +1636,90 @@ func TestDNS_ConnectServiceLookup(t *testing.T) {
 	}
 }
 
+func TestDNS_IngressServiceLookup(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Register ingress-gateway service
+	{
+		args := structs.TestRegisterIngressGateway(t)
+		var out struct{}
+		require.Nil(t, a.RPC("Catalog.Register", args, &out))
+	}
+
+	// Register db service
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				Service: "db",
+				Address: "",
+				Port:    80,
+			},
+		}
+
+		var out struct{}
+		require.Nil(t, a.RPC("Catalog.Register", args, &out))
+	}
+
+	// Register ingress-gateway config entry
+	{
+		args := &structs.IngressGatewayConfigEntry{
+			Name: "ingress-gateway",
+			Kind: structs.IngressGateway,
+			Listeners: []structs.IngressListener{
+				{
+					Port:     8888,
+					Protocol: "http",
+					Services: []structs.IngressService{
+						{Name: "db"},
+						{Name: "api"},
+					},
+				},
+			},
+		}
+
+		req := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry:      args,
+		}
+		var out bool
+		require.Nil(t, a.RPC("ConfigEntry.Apply", req, &out))
+		require.True(t, out)
+	}
+
+	// Look up the service
+	questions := []string{
+		"api.ingress.consul.",
+		"api.ingress.dc1.consul.",
+		"db.ingress.consul.",
+		"db.ingress.dc1.consul.",
+	}
+	for _, question := range questions {
+		t.Run(question, func(t *testing.T) {
+			m := new(dns.Msg)
+			m.SetQuestion(question, dns.TypeA)
+
+			c := new(dns.Client)
+			in, _, err := c.Exchange(m, a.DNSAddr())
+			require.Nil(t, err)
+			require.Len(t, in.Answer, 1)
+
+			cnameRec, ok := in.Answer[0].(*dns.A)
+			require.True(t, ok)
+			require.Equal(t, question, cnameRec.Hdr.Name)
+			require.Equal(t, uint32(0), cnameRec.Hdr.Ttl)
+			require.Equal(t, "127.0.0.1", cnameRec.A.String())
+		})
+	}
+}
+
 func TestDNS_ExternalServiceLookup(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, "")

@@ -71,16 +71,16 @@ type Intention struct {
 
 	// CreatedAt and UpdatedAt keep track of when this record was created
 	// or modified.
-	CreatedAt, UpdatedAt time.Time `mapstructure:"-"`
+	CreatedAt, UpdatedAt time.Time `mapstructure:"-" bexpr:"-"`
 
 	// Hash of the contents of the intention
 	//
 	// This is needed mainly for replication purposes. When replicating from
 	// one DC to another keeping the content Hash will allow us to detect
 	// content changes more efficiently than checking every single field
-	Hash []byte
+	Hash []byte `bexpr:"-"`
 
-	RaftIndex
+	RaftIndex `bexpr:"-"`
 }
 
 func (t *Intention) UnmarshalJSON(data []byte) (err error) {

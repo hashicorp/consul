@@ -12,6 +12,7 @@ const ConfigEntriesName = "config-entries"
 
 // ConfigEntries supports fetching discovering configuration entries
 type ConfigEntries struct {
+	RegisterOptionsBlockingRefresh
 	RPC RPC
 }
 
@@ -48,8 +49,4 @@ func (c *ConfigEntries) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 	result.Value = &reply
 	result.Index = reply.QueryMeta.Index
 	return result, nil
-}
-
-func (c *ConfigEntries) SupportsBlocking() bool {
-	return true
 }

@@ -105,12 +105,23 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 			require.True(t, ok)
 			require.Equal(t, ingress1.Kind, readIngress.Kind)
 			require.Equal(t, ingress1.Name, readIngress.Name)
+
+			require.Len(t, readIngress.Listeners, 1)
+			require.Len(t, readIngress.Listeners[0].Services, 1)
+			// Set namespace to blank so that OSS and ent can utilize the same tests
+			readIngress.Listeners[0].Services[0].Namespace = ""
+
 			require.Equal(t, ingress1.Listeners, readIngress.Listeners)
 		case "bar":
 			readIngress, ok = entry.(*IngressGatewayConfigEntry)
 			require.True(t, ok)
 			require.Equal(t, ingress2.Kind, readIngress.Kind)
 			require.Equal(t, ingress2.Name, readIngress.Name)
+			require.Len(t, readIngress.Listeners, 1)
+			require.Len(t, readIngress.Listeners[0].Services, 1)
+			// Set namespace to blank so that OSS and ent can utilize the same tests
+			readIngress.Listeners[0].Services[0].Namespace = ""
+
 			require.Equal(t, ingress2.Listeners, readIngress.Listeners)
 		}
 	}
@@ -189,7 +200,12 @@ func TestAPI_ConfigEntries_TerminatingGateway(t *testing.T) {
 	require.NotEqual(t, 0, wm.RequestTime)
 	require.True(t, written)
 
-	// update no cas
+	// re-setting should not yield an error
+	_, wm, err = configEntries.Set(terminating1, nil)
+	require.NoError(t, err)
+	require.NotNil(t, wm)
+	require.NotEqual(t, 0, wm.RequestTime)
+
 	terminating2.Services = []LinkedService{
 		{
 			Name:     "*",
@@ -219,12 +235,20 @@ func TestAPI_ConfigEntries_TerminatingGateway(t *testing.T) {
 			require.True(t, ok)
 			require.Equal(t, terminating1.Kind, readTerminating.Kind)
 			require.Equal(t, terminating1.Name, readTerminating.Name)
+			require.Len(t, readTerminating.Services, 1)
+			// Set namespace to blank so that OSS and ent can utilize the same tests
+			readTerminating.Services[0].Namespace = ""
+
 			require.Equal(t, terminating1.Services, readTerminating.Services)
 		case "bar":
 			readTerminating, ok = entry.(*TerminatingGatewayConfigEntry)
 			require.True(t, ok)
 			require.Equal(t, terminating2.Kind, readTerminating.Kind)
 			require.Equal(t, terminating2.Name, readTerminating.Name)
+			require.Len(t, readTerminating.Services, 1)
+			// Set namespace to blank so that OSS and ent can utilize the same tests
+			readTerminating.Services[0].Namespace = ""
+
 			require.Equal(t, terminating2.Services, readTerminating.Services)
 		}
 	}

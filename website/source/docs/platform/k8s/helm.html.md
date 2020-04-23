@@ -64,11 +64,17 @@ and consider if they're appropriate for your deployment.
 
   * <a name="v-global-enableconsulnamespaces" href="#v-global-enableconsulnamespaces">`enableConsulNamespaces`</a> (`boolean: false`) - [Enterprise Only] `enableConsulNamespaces` indicates that you are running Consul Enterprise v1.7+ with a valid Consul Enterprise license and would like to make use of configuration beyond registering everything into the `default` Consul namespace. Requires consul-k8s v0.12+. Additional configuration options are found in the `consulNamespaces` section of both the catalog sync and connect injector.
   
-  * <a name="v-global-bootstrapacls" href="#v-global-bootstrapacls">`bootstrapACLs`</a> (`boolean: false`) - Automatically create and assign ACL tokens within the Consul cluster. This requires servers to be running inside Kubernetes. Additionally requires Consul >= 1.4 and consul-k8s >= 0.8.0.
+  * <a name="v-global-bootstrapacls" href="#v-global-bootstrapacls">`bootstrapACLs`</a> (`boolean: false`) - **[DEPRECATED]** Use `global.acls.manageSystemACLs` instead.
 
-  * <a name="v-global-tls" href="#v-global-tls">`tls`</a> - Enables TLS [encryption](https://learn.hashicorp.com/consul/security-networking/agent-encryption) across the cluster to verify authenticity of the Consul servers and clients. Requires Consul v1.4.1+ and consul-k8s v0.16.2+
+  * <a name="v-global-acls" href="#v-global-acls">`acls`</a> - Configure ACLs.
+
+      * <a name="v-global-acls-managesystemacls" href="#v-global-acls-managesystemacls">`manageSystemACLs`</a> (`boolean: false`) - If true, the Helm chart will automatically manage ACL tokens and policies for all Consul and consul-k8s components. This requires servers to be running inside Kubernetes. Additionally requires Consul >= 1.4 and consul-k8s >= 0.10.1.
+
+  * <a name="v-global-tls" href="#v-global-tls">`tls`</a> - Enables TLS [encryption](https://learn.hashicorp.com/consul/security-networking/agent-encryption) across the cluster to verify authenticity of the Consul servers and clients. Requires Consul v1.4.1+ and consul-k8s v0.16.2+.
 
       * <a name="v-global-tls-enabled" href="#v-global-enabled">`enabled`</a> (`boolean: false`) - If true, the Helm chart will enable TLS for Consul servers and clients and all consul-k8s components, as well as generate certificate authority (optional) and server and client certificates.
+
+      * <a name="v-global-tls-enableautoencrypt" href="#v-global-enableautoencrypt">`enableAutoEncrypt`</a> (`boolean: false`) - If true, turns on the auto-encrypt feature on clients and servers. It also switches consul-k8s components to retrieve the CA from the servers via the API. Requires Consul 1.7.1+ and consul-k8s 0.13.0+.
 
       * <a name="v-global-tls-serveradditionaldnsssans" href="#v-global-serveradditionaldnsssans">`serverAdditionalDNSSANs`</a> (`array<string>: []`) - A list of additional DNS names to set as Subject Alternative Names (SANs) in the server certificate. This is useful when you need to access the Consul server(s) externally, for example, if you're using the UI.
 
@@ -230,6 +236,19 @@ and consider if they're appropriate for your deployment.
             annotations: |
               "annotation-key": "annotation-value"
             ```
+* <a name="v-externalservers" href="#v-externalservers">`externalServers`</a> - Configuration for Consul servers running externally. This information is required if Consul servers are running outside of Kubernetes and you’re setting `global.tls.enableAutoEncrypt` to `true`.
+
+  * <a name="v-externalservers-enabled" href="#v-externalservers-enabled">`enabled`</a> (`boolean: false`) - If true, the chart will talk to external servers configured here.
+
+  * <a name="v-externalservers-https" href="#v-externalservers-https">`https`</a> - HTTPS configuration for external servers. Note: HTTP connections to the servers are not supported.
+
+      * <a name="v-externalservers-address" href="#v-externalservers-address">`address`</a> (`string: null`) - IP, DNS name, or [cloud auto-join](https://www.consul.io/docs/agent/cloud-auto-join.html) string pointing to the external Consul servers. Note that if you’re providing the cloud auto-join string and multiple addresses can be returned, only the first address will be used. This value is required only if you would like to use a different server address from the one specified in the `client.join` property.
+
+      * <a name="v-externalservers-port" href="#v-externalservers-port">`port`</a> (`integer: 443`) - The HTTPS port of the server.
+
+      * <a name="v-externalservers-tlsservername" href="#v-externalservers-tlsservername">`tlsServerName`</a> (`string: null`) - The server name to use as the SNI host header when connecting with HTTPS. This property is useful in case `externalServers.https.address` is not or can not be included in the server certificate’s SANs.
+
+      * <a name="v-externalservers-usesystemroots" href="#v-externalservers-usesystemroots">`useSystemRoots`</a> (`boolean: false`) - If true, the Helm chart will ignore the CA set in `global.tls.caCert` or generated by the `tls-init` job and will rely on the container's system CAs for TLS verification when talking to Consul servers.
 
 * <a name="v-client" href="#v-client">`client`</a> - Values that configure running a Consul client on Kubernetes nodes.
 
@@ -388,6 +407,7 @@ to run the sync program.
   Namespace suffix is not added if `annotationServiceName` is provided.
 
   * <a name="v-synccatalog-consulPrefix" href="#v-synccatalog-consulPrefix">`consulPrefix`</a> (`string: ""`) - A prefix to prepend to all services registered in Consul from Kubernetes. This defaults to `""` where no prefix is prepended. Service names within Kubernetes remain unchanged. (Kubernetes -> Consul sync only)
+  The prefix is ignored if `annotationServiceName` is provided.
 
   * <a name="v-synccatalog-k8stag" href="#v-synccatalog-k8stag">`k8sTag`</a> (`string: null`) - An optional tag that is applied to all of the Kubernetes services that are synced into Consul. If nothing is set, this defaults to "k8s". (Kubernetes -> Consul sync only)
 
@@ -447,7 +467,7 @@ to run the sync program.
 
   * <a name="v-connectinject-imageConsul" href="#v-connectinject-imageConsul">`imageConsul`</a> (`string: global.image`) - The name of the Docker image (including any tag) for Consul. This is used for proxy service registration, Envoy configuration, etc.
 
-  * <a name="v-connectinject-imageEnvoy" href="#v-connectinject-imageEnvoy">`imageEnvoy`</a> (`string: ""`) - The name of the Docker image (including any tag) for the Envoy sidecar. `envoy` must be on the executable path within this image. This Envoy version must be compatible with the Consul version used by the injector. This defaults to letting the injector choose the Envoy image, which is usually `envoyproxy/envoy-alpine`.
+  * <a name="v-connectinject-imageEnvoy" href="#v-connectinject-imageEnvoy">`imageEnvoy`</a> (`string: ""`) - The name of the Docker image (including any tag) for the Envoy sidecar. `envoy` must be on the executable path within this image. This Envoy version must be compatible with the Consul version used by the injector. If not specified this defaults to letting the injector choose the Envoy image. Check [supported Envoy versions](/docs/connect/proxies/envoy.html#supported-versions) to ensure the version you are using is compatible with Consul.
 
   * <a name="v-connectinject-namespaceselector" href="#v-connectinject-namespaceselector">`namespaceSelector`</a> (`string: ""`) - A [selector](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/) for restricting injection to only matching namespaces. By default all namespaces except `kube-system` and `kube-public` will have injection enabled.
     
@@ -510,9 +530,9 @@ to run the sync program.
   their associated service account. By default, services using the `default` Kubernetes service account will be prevented from logging in.
   This only has effect if ACLs are enabled. Requires Consul 1.5+ and consul-k8s 0.8.0+.
 
-  * <a name="v-connectinject-overrideauthmethodname" href="#v-connectinject-overrideauthmethodname">`overrideAuthMethodName`</a> (`string: ""`) - If not using `global.bootstrapACLs` and instead manually setting up an auth method for Connect inject, set this to the name of your Auth method.
+  * <a name="v-connectinject-overrideauthmethodname" href="#v-connectinject-overrideauthmethodname">`overrideAuthMethodName`</a> (`string: ""`) - If not using `global.acls.manageSystemACLs` and instead manually setting up an auth method for Connect inject, set this to the name of your Auth method.
   
-  * <a name="v-connectinject-aclinjecttoken" href="#v-connectinject-aclinjecttoken">`aclInjectToken`</a> - Refers to a Kubernetes secret that you have created that contains an ACL token for your Consul cluster which allows the Connect injector the correct permissions. This is only needed if Consul namespaces and ACLs are enabled on the Consul cluster and you are not setting `global.bootstrapACLs` to `true`. This token needs to have `operator = "write"` privileges so that it can create namespaces.
+  * <a name="v-connectinject-aclinjecttoken" href="#v-connectinject-aclinjecttoken">`aclInjectToken`</a> - Refers to a Kubernetes secret that you have created that contains an ACL token for your Consul cluster which allows the Connect injector the correct permissions. This is only needed if Consul namespaces and ACLs are enabled on the Consul cluster and you are not setting `global.acls.manageSystemACLs` to `true`. This token needs to have `operator = "write"` privileges so that it can create namespaces.
   
       - <a name="v-connectinject-aclinjecttoken-secretname" href="#v-connectinject-aclinjecttoken-secretname">secretName </a>`(string: null)` - The name of the Kubernetes secret.
     

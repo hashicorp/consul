@@ -9,6 +9,20 @@ import (
 )
 
 const (
+	expectedSelfAdminCluster = `{
+		"name": "self_admin",
+		"connect_timeout": "5s",
+		"type": "STATIC",
+		"http_protocol_options": {},
+		"hosts": [
+			{
+				"socket_address": {
+					"address": "127.0.0.1",
+					"port_value": 19000
+				}
+			}
+		]
+	}`
 	expectedPromListener = `{
 		"name": "envoy_prometheus_metrics_listener",
 		"address": {
@@ -63,20 +77,6 @@ const (
 						}
 					}
 				]
-			}
-		]
-	}`
-	expectedPromCluster = `{
-		"name": "self_admin",
-		"connect_timeout": "5s",
-		"type": "STATIC",
-		"http_protocol_options": {},
-		"hosts": [
-			{
-				"socket_address": {
-					"address": "127.0.0.1",
-					"port_value": 19000
-				}
 			}
 		]
 	}`
@@ -137,17 +137,60 @@ const (
 			}
 		]
 	}`
-	expectedStatsCluster = `{
-		"name": "self_admin",
-		"connect_timeout": "5s",
-		"type": "STATIC",
-		"http_protocol_options": {},
-		"hosts": [
+	expectedReadyListener = `{
+		"name": "envoy_ready_listener",
+		"address": {
+			"socket_address": {
+				"address": "0.0.0.0",
+				"port_value": 4444
+			}
+		},
+		"filter_chains": [
 			{
-				"socket_address": {
-					"address": "127.0.0.1",
-					"port_value": 19000
-				}
+				"filters": [
+					{
+						"name": "envoy.http_connection_manager",
+						"config": {
+							"stat_prefix": "envoy_ready",
+							"codec_type": "HTTP1",
+							"route_config": {
+								"name": "self_admin_route",
+								"virtual_hosts": [
+									{
+										"name": "self_admin",
+										"domains": [
+											"*"
+										],
+										"routes": [
+											{
+												"match": {
+													"path": "/ready"
+												},
+												"route": {
+													"cluster": "self_admin",
+													"prefix_rewrite": "/ready"
+												}
+											},
+											{
+												"match": {
+													"prefix": "/"
+												},
+												"direct_response": {
+													"status": 404
+												}
+											}
+										]
+									}
+								]
+							},
+							"http_filters": [
+								{
+									"name": "envoy.router"
+								}
+							]
+						}
+					}
+				]
 			}
 		]
 	}`
@@ -392,7 +435,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				AdminBindAddress: "127.0.0.1",
 				AdminBindPort:    "19000",
 				// Should add a static cluster for the self-proxy to admin
-				StaticClustersJSON: expectedPromCluster,
+				StaticClustersJSON: expectedSelfAdminCluster,
 				// Should add a static http listener too
 				StaticListenersJSON: expectedPromListener,
 				StatsConfigJSON:     defaultStatsConfigJSON,
@@ -414,7 +457,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				AdminBindAddress: "127.0.0.1",
 				AdminBindPort:    "19000",
 				// Should add a static cluster for the self-proxy to admin
-				StaticClustersJSON: `{"foo":"bar"},` + expectedPromCluster,
+				StaticClustersJSON: `{"foo":"bar"},` + expectedSelfAdminCluster,
 				// Should add a static http listener too
 				StaticListenersJSON: `{"baz":"qux"},` + expectedPromListener,
 				StatsConfigJSON:     defaultStatsConfigJSON,
@@ -434,7 +477,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				AdminBindAddress: "127.0.0.1",
 				AdminBindPort:    "19000",
 				// Should add a static cluster for the self-proxy to admin
-				StaticClustersJSON: expectedStatsCluster,
+				StaticClustersJSON: expectedSelfAdminCluster,
 				// Should add a static http listener too
 				StaticListenersJSON: expectedStatsListener,
 				StatsConfigJSON:     defaultStatsConfigJSON,
@@ -456,7 +499,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				AdminBindAddress: "127.0.0.1",
 				AdminBindPort:    "19000",
 				// Should add a static cluster for the self-proxy to admin
-				StaticClustersJSON: `{"foo":"bar"},` + expectedStatsCluster,
+				StaticClustersJSON: `{"foo":"bar"},` + expectedSelfAdminCluster,
 				// Should add a static http listener too
 				StaticListenersJSON: `{"baz":"qux"},` + expectedStatsListener,
 				StatsConfigJSON:     defaultStatsConfigJSON,
@@ -512,6 +555,48 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				DogstatsdURL: "asdasdsad",
 			},
 			wantErr: true,
+		},
+		{
+			name: "ready-bind-addr",
+			input: BootstrapConfig{
+				ReadyBindAddr: "0.0.0.0:4444",
+			},
+			baseArgs: BootstrapTplArgs{
+				AdminBindAddress: "127.0.0.1",
+				AdminBindPort:    "19000",
+			},
+			wantArgs: BootstrapTplArgs{
+				AdminBindAddress: "127.0.0.1",
+				AdminBindPort:    "19000",
+				// Should add a static cluster for the self-proxy to admin
+				StaticClustersJSON: expectedSelfAdminCluster,
+				// Should add a static http listener too
+				StaticListenersJSON: expectedReadyListener,
+				StatsConfigJSON:     defaultStatsConfigJSON,
+			},
+			wantErr: false,
+		},
+		{
+			name: "ready-bind-addr-with-overrides",
+			input: BootstrapConfig{
+				ReadyBindAddr:       "0.0.0.0:4444",
+				StaticClustersJSON:  `{"foo":"bar"}`,
+				StaticListenersJSON: `{"baz":"qux"}`,
+			},
+			baseArgs: BootstrapTplArgs{
+				AdminBindAddress: "127.0.0.1",
+				AdminBindPort:    "19000",
+			},
+			wantArgs: BootstrapTplArgs{
+				AdminBindAddress: "127.0.0.1",
+				AdminBindPort:    "19000",
+				// Should add a static cluster for the self-proxy to admin
+				StaticClustersJSON: `{"foo":"bar"},` + expectedSelfAdminCluster,
+				// Should add a static http listener too
+				StaticListenersJSON: `{"baz":"qux"},` + expectedReadyListener,
+				StatsConfigJSON:     defaultStatsConfigJSON,
+			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {

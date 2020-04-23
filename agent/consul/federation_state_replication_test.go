@@ -43,7 +43,7 @@ func TestReplication_FederationStates(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc2")
 
 	// Create some new federation states (weird because we're having dc1 update it for the other 50)
-	var fedStates []*structs.FederationState
+	var fedStateDCs []string
 	for i := 0; i < 50; i++ {
 		dc := fmt.Sprintf("alt-dc%d", i+1)
 		ip1 := fmt.Sprintf("1.2.3.%d", i+1)
@@ -67,7 +67,7 @@ func TestReplication_FederationStates(t *testing.T) {
 
 		out := false
 		require.NoError(t, s1.RPC("FederationState.Apply", &arg, &out))
-		fedStates = append(fedStates, arg.State)
+		fedStateDCs = append(fedStateDCs, dc)
 	}
 
 	checkSame := func(t *retry.R) error {
@@ -77,11 +77,15 @@ func TestReplication_FederationStates(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Len(t, local, len(remote))
-		for i, _ := range remote {
+		for i := range remote {
+			// Make lightweight copies so we can zero out the raft fields
+			// without mutating the copies in memdb.
+			remoteCopy := *remote[i]
+			localCopy := *local[i]
 			// zero out the raft data for future comparisons
-			remote[i].RaftIndex = structs.RaftIndex{}
-			local[i].RaftIndex = structs.RaftIndex{}
-			require.Equal(t, remote[i], local[i])
+			remoteCopy.RaftIndex = structs.RaftIndex{}
+			localCopy.RaftIndex = structs.RaftIndex{}
+			require.Equal(t, remoteCopy, localCopy)
 		}
 		return nil
 	}
@@ -126,11 +130,13 @@ func TestReplication_FederationStates(t *testing.T) {
 		checkSame(r)
 	})
 
-	for _, fedState := range fedStates {
+	for _, fedStateDC := range fedStateDCs {
 		arg := structs.FederationStateRequest{
 			Datacenter: "dc1",
 			Op:         structs.FederationStateDelete,
-			State:      fedState,
+			State: &structs.FederationState{
+				Datacenter: fedStateDC,
+			},
 		}
 
 		out := false

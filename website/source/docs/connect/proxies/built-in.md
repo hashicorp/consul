@@ -11,9 +11,7 @@ description: |-
 Consul comes with a built-in L4 proxy for testing and development with Consul
 Connect.
 
-~> **Note:** Although you can configure the built-in proxy using configuration
-entries, it doesn't have the L7 capability necessary for the observability
-features released with Consul 1.5.
+~> **Note:** [Envoy](https://www.consul.io/docs/connect/proxies/envoy.html) should be used for production deployments, or when [layer 7 traffic management](https://www.consul.io/docs/connect/l7-traffic-management.html) features are needed.
 
 ## Getting Started
 

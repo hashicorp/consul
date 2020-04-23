@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 )
@@ -290,6 +291,11 @@ func (s *Intention) List(
 		return err
 	}
 
+	filter, err := bexpr.CreateFilter(args.Filter, nil, reply.Intentions)
+	if err != nil {
+		return err
+	}
+
 	return s.srv.blockingQuery(
 		&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
@@ -303,7 +309,17 @@ func (s *Intention) List(
 				reply.Intentions = make(structs.Intentions, 0)
 			}
 
-			return s.srv.filterACL(args.Token, reply)
+			if err := s.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+
+			raw, err := filter.Execute(reply.Intentions)
+			if err != nil {
+				return err
+			}
+			reply.Intentions = raw.(structs.Intentions)
+
+			return nil
 		},
 	)
 }

@@ -14,6 +14,10 @@ but will help you build a mental model of what's going on under the hood, which
 may help you reason about Connect's behavior in more complex deployment
 scenarios.
 
+To try Connect locally, complete the [Getting Started with Consul service 
+mesh](https://learn.hashicorp.com/consul/gs-consul-service-mesh/understand-consul-service-mesh?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) 
+guide.
+
 ## Mutual Transport Layer Security (mTLS)
 
 The core of Connect is based on [mutual TLS](https://en.wikipedia.org/wiki/Mutual_authentication).

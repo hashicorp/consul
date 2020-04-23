@@ -12,11 +12,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/hashicorp/consul/testrpc"
-
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/testrpc"
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	"github.com/stretchr/testify/require"
 )
@@ -51,6 +50,7 @@ func TestUiIndex(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	defer resp.Body.Close()
 
 	// Verify the response
 	if resp.StatusCode != 200 {

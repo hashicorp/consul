@@ -50,35 +50,13 @@ func NewTestCacheTypes(t testing.T) *TestCacheTypes {
 // proxycfg will watch suitable for testing a proxycfg.State or Manager.
 func TestCacheWithTypes(t testing.T, types *TestCacheTypes) *cache.Cache {
 	c := cache.TestCache(t)
-	c.RegisterType(cachetype.ConnectCARootName, types.roots, &cache.RegisterOptions{
-		Refresh:        true,
-		RefreshTimer:   0,
-		RefreshTimeout: 10 * time.Minute,
-	})
-	c.RegisterType(cachetype.ConnectCALeafName, types.leaf, &cache.RegisterOptions{
-		Refresh:        true,
-		RefreshTimer:   0,
-		RefreshTimeout: 10 * time.Minute,
-	})
-	c.RegisterType(cachetype.IntentionMatchName, types.intentions, &cache.RegisterOptions{
-		Refresh:        true,
-		RefreshTimer:   0,
-		RefreshTimeout: 10 * time.Minute,
-	})
-	c.RegisterType(cachetype.HealthServicesName, types.health, &cache.RegisterOptions{
-		Refresh:        true,
-		RefreshTimer:   0,
-		RefreshTimeout: 10 * time.Minute,
-	})
-	c.RegisterType(cachetype.PreparedQueryName, types.query, &cache.RegisterOptions{
-		Refresh: false,
-	})
-	c.RegisterType(cachetype.CompiledDiscoveryChainName, types.compiledChain, &cache.RegisterOptions{
-		Refresh:        true,
-		RefreshTimer:   0,
-		RefreshTimeout: 10 * time.Minute,
-	})
-	c.RegisterType(cachetype.ServiceHTTPChecksName, types.serviceHTTPChecks, &cache.RegisterOptions{})
+	c.RegisterType(cachetype.ConnectCARootName, types.roots)
+	c.RegisterType(cachetype.ConnectCALeafName, types.leaf)
+	c.RegisterType(cachetype.IntentionMatchName, types.intentions)
+	c.RegisterType(cachetype.HealthServicesName, types.health)
+	c.RegisterType(cachetype.PreparedQueryName, types.query)
+	c.RegisterType(cachetype.CompiledDiscoveryChainName, types.compiledChain)
+	c.RegisterType(cachetype.ServiceHTTPChecksName, types.serviceHTTPChecks)
 
 	return c
 }
@@ -586,17 +564,19 @@ func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
 		},
 		Roots: roots,
 		ConnectProxy: configSnapshotConnectProxy{
-			Leaf: leaf,
-			DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
-				"db": dbChain,
+			ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
+				Leaf: leaf,
+				DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
+					"db": dbChain,
+				},
+				WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
+					"db": map[string]structs.CheckServiceNodes{
+						"db.default.dc1": TestUpstreamNodes(t),
+					},
+				},
 			},
 			PreparedQueryEndpoints: map[string]structs.CheckServiceNodes{
 				"prepared_query:geo-cache": TestUpstreamNodes(t),
-			},
-			WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
-				"db": map[string]structs.CheckServiceNodes{
-					"db.default.dc1": TestUpstreamNodes(t),
-				},
 			},
 		},
 		Datacenter: "dc1",
@@ -881,13 +861,15 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 		},
 		Roots: roots,
 		ConnectProxy: configSnapshotConnectProxy{
-			Leaf: leaf,
-			DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
-				"db": dbChain,
-			},
-			WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
-				"db": map[string]structs.CheckServiceNodes{
-					"db.default.dc1": TestUpstreamNodes(t),
+			ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
+				Leaf: leaf,
+				DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
+					"db": dbChain,
+				},
+				WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
+					"db": map[string]structs.CheckServiceNodes{
+						"db.default.dc1": TestUpstreamNodes(t),
+					},
 				},
 			},
 		},
@@ -1036,6 +1018,54 @@ func testConfigSnapshotMeshGateway(t testing.T, populateServices bool, useFedera
 	return snap
 }
 
+func TestConfigSnapshotIngressGateway(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotIngressGateway(t, true)
+}
+
+func TestConfigSnapshotIngressGatewayNoServices(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotIngressGateway(t, false)
+}
+
+func testConfigSnapshotIngressGateway(t testing.T, populateServices bool) *ConfigSnapshot {
+	roots, leaf := TestCerts(t)
+	dbChain := discoverychain.TestCompileConfigEntries(
+		t, "db", "default", "dc1",
+		connect.TestClusterID+".consul", "dc1", nil)
+
+	snap := &ConfigSnapshot{
+		Kind:       structs.ServiceKindIngressGateway,
+		Service:    "ingress-gateway",
+		ProxyID:    structs.NewServiceID("ingress-gateway", nil),
+		Address:    "1.2.3.4",
+		Roots:      roots,
+		Datacenter: "dc1",
+	}
+	if populateServices {
+		snap.IngressGateway = configSnapshotIngressGateway{
+			ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
+				Leaf: leaf,
+				DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
+					"db": dbChain,
+				},
+				WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
+					"db": map[string]structs.CheckServiceNodes{
+						"db.default.dc1": TestUpstreamNodes(t),
+					},
+				},
+			},
+			Upstreams: structs.Upstreams{
+				{
+					// We rely on this one having default type in a few tests...
+					DestinationName:  "db",
+					LocalBindPort:    9191,
+					LocalBindAddress: "2.3.4.5",
+				},
+			},
+		}
+	}
+	return snap
+}
+
 func TestConfigSnapshotExposeConfig(t testing.T) *ConfigSnapshot {
 	return &ConfigSnapshot{
 		Kind:    structs.ServiceKindConnectProxy,
@@ -1169,7 +1199,10 @@ func (ct *ControllableCacheType) Fetch(opts cache.FetchOptions, req cache.Reques
 	}, nil
 }
 
-// SupportsBlocking implements cache.Type
-func (ct *ControllableCacheType) SupportsBlocking() bool {
-	return ct.blocking
+func (ct *ControllableCacheType) RegisterOptions() cache.RegisterOptions {
+	return cache.RegisterOptions{
+		Refresh:          ct.blocking,
+		SupportsBlocking: ct.blocking,
+		RefreshTimeout:   10 * time.Minute,
+	}
 }

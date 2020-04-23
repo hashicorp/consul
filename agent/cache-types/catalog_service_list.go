@@ -12,6 +12,7 @@ const CatalogServiceListName = "catalog-services-list"
 
 // CatalogServiceList supports fetching service names via the catalog.
 type CatalogServiceList struct {
+	RegisterOptionsBlockingRefresh
 	RPC RPC
 }
 
@@ -48,8 +49,4 @@ func (c *CatalogServiceList) Fetch(opts cache.FetchOptions, req cache.Request) (
 	result.Value = &reply
 	result.Index = reply.QueryMeta.Index
 	return result, nil
-}
-
-func (c *CatalogServiceList) SupportsBlocking() bool {
-	return true
 }

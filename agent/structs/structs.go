@@ -513,6 +513,12 @@ type ServiceSpecificRequest struct {
 	// Connect if true will only search for Connect-compatible services.
 	Connect bool
 
+	// TODO(ingress): Add corresponding API changes after figuring out what the
+	// HTTP endpoint looks like
+
+	// Ingress if true will only search for Ingress gateways for the given service.
+	Ingress bool
+
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
@@ -1618,11 +1624,6 @@ type CheckID struct {
 
 func NewCheckID(id types.CheckID, entMeta *EnterpriseMeta) CheckID {
 	var cid CheckID
-	cid.Init(id, entMeta)
-	return cid
-}
-
-func (cid *CheckID) Init(id types.CheckID, entMeta *EnterpriseMeta) {
 	cid.ID = id
 	if entMeta == nil {
 		entMeta = DefaultEnterpriseMeta()
@@ -1630,6 +1631,7 @@ func (cid *CheckID) Init(id types.CheckID, entMeta *EnterpriseMeta) {
 
 	cid.EnterpriseMeta = *entMeta
 	cid.EnterpriseMeta.Normalize()
+	return cid
 }
 
 // StringHash is used mainly to populate part of the filename of a check
@@ -1648,11 +1650,6 @@ type ServiceID struct {
 
 func NewServiceID(id string, entMeta *EnterpriseMeta) ServiceID {
 	var sid ServiceID
-	sid.Init(id, entMeta)
-	return sid
-}
-
-func (sid *ServiceID) Init(id string, entMeta *EnterpriseMeta) {
 	sid.ID = id
 	if entMeta == nil {
 		entMeta = DefaultEnterpriseMeta()
@@ -1660,6 +1657,7 @@ func (sid *ServiceID) Init(id string, entMeta *EnterpriseMeta) {
 
 	sid.EnterpriseMeta = *entMeta
 	sid.EnterpriseMeta.Normalize()
+	return sid
 }
 
 func (sid *ServiceID) Matches(other *ServiceID) bool {
@@ -1754,6 +1752,11 @@ type DatacenterIndexedCheckServiceNodes struct {
 
 type IndexedNodeDump struct {
 	Dump NodeDump
+	QueryMeta
+}
+
+type IndexedGatewayServices struct {
+	Services GatewayServices
 	QueryMeta
 }
 

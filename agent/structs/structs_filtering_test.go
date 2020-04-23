@@ -525,6 +525,70 @@ var expectedFieldConfigNodeInfo bexpr.FieldConfigurations = bexpr.FieldConfigura
 	},
 }
 
+var expectedFieldConfigIntention bexpr.FieldConfigurations = bexpr.FieldConfigurations{
+	"ID": &bexpr.FieldConfiguration{
+		StructFieldName:     "ID",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"Description": &bexpr.FieldConfiguration{
+		StructFieldName:     "Description",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"SourceNS": &bexpr.FieldConfiguration{
+		StructFieldName:     "SourceNS",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"SourceName": &bexpr.FieldConfiguration{
+		StructFieldName:     "SourceName",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"DestinationNS": &bexpr.FieldConfiguration{
+		StructFieldName:     "DestinationNS",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"DestinationName": &bexpr.FieldConfiguration{
+		StructFieldName:     "DestinationName",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"SourceType": &bexpr.FieldConfiguration{
+		StructFieldName:     "SourceType",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"Action": &bexpr.FieldConfiguration{
+		StructFieldName:     "Action",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"DefaultAddr": &bexpr.FieldConfiguration{
+		StructFieldName:     "DefaultAddr",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"DefaultPort": &bexpr.FieldConfiguration{
+		StructFieldName:     "DefaultPort",
+		CoerceFn:            bexpr.CoerceInt,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+	},
+	"Precedence": &bexpr.FieldConfiguration{
+		StructFieldName:     "Precedence",
+		CoerceFn:            bexpr.CoerceInt,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+	},
+	"Meta": &bexpr.FieldConfiguration{
+		StructFieldName:     "Meta",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchIsEmpty, bexpr.MatchIsNotEmpty, bexpr.MatchIn, bexpr.MatchNotIn},
+		SubFields:           expectedFieldConfigMapStringValue,
+	},
+}
+
 // Only need to generate the field configurations for the top level filtered types
 // The internal types will be checked within these.
 var fieldConfigTests map[string]fieldConfigTest = map[string]fieldConfigTest{
@@ -557,6 +621,10 @@ var fieldConfigTests map[string]fieldConfigTest = map[string]fieldConfigTest{
 		// this also happens to ensure that our API representation of a service that can be
 		// registered with an agent stays in sync with our internal NodeService structure
 		expected: expectedFieldConfigNodeService,
+	},
+	"Intention": fieldConfigTest{
+		dataType: (*Intention)(nil),
+		expected: expectedFieldConfigIntention,
 	},
 }
 

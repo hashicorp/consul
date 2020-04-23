@@ -340,10 +340,15 @@ func ConfigEntryDecodeRulesForKind(kind string) (skipWhenPatching []string, tran
 				"config":          "",
 			}, nil
 	case ServiceDefaults:
-		return nil, map[string]string{
-			"mesh_gateway": "meshgateway",
-			"external_sni": "externalsni",
-		}, nil
+		return []string{
+				"expose.paths",
+				"Expose.Paths",
+			}, map[string]string{
+				"local_path_port": "localpathport",
+				"listener_port":   "listenerport",
+				"mesh_gateway":    "meshgateway",
+				"external_sni":    "externalsni",
+			}, nil
 	case ServiceRouter:
 		return []string{
 				"routes",

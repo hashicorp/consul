@@ -13,10 +13,11 @@ const PreparedQueryName = "prepared-query"
 // PreparedQuery supports fetching discovering service instances via prepared
 // queries.
 type PreparedQuery struct {
+	RegisterOptionsNoRefresh
 	RPC RPC
 }
 
-func (c *PreparedQuery) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (c *PreparedQuery) Fetch(_ cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	// The request should be a PreparedQueryExecuteRequest.
@@ -46,9 +47,4 @@ func (c *PreparedQuery) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 	result.Index = reply.QueryMeta.Index
 
 	return result, nil
-}
-
-func (c *PreparedQuery) SupportsBlocking() bool {
-	// Prepared queries don't support blocking.
-	return false
 }

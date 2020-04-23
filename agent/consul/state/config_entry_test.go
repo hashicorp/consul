@@ -1250,3 +1250,37 @@ func TestStore_ReadDiscoveryChainConfigEntries_SubsetSplit(t *testing.T) {
 	require.Len(t, entrySet.Resolvers, 1)
 	require.Len(t, entrySet.Services, 1)
 }
+
+// TODO(ingress): test that having the same name in different namespace is valid
+func TestStore_ValidateGatewayNamesCannotBeShared(t *testing.T) {
+	s := testStateStore(t)
+
+	ingress := &structs.IngressGatewayConfigEntry{
+		Kind: structs.IngressGateway,
+		Name: "gateway",
+	}
+	require.NoError(t, s.EnsureConfigEntry(0, ingress, nil))
+
+	terminating := &structs.TerminatingGatewayConfigEntry{
+		Kind: structs.TerminatingGateway,
+		Name: "gateway",
+	}
+	// Cannot have 2 gateways with same service name
+	require.Error(t, s.EnsureConfigEntry(1, terminating, nil))
+
+	ingress = &structs.IngressGatewayConfigEntry{
+		Kind: structs.IngressGateway,
+		Name: "gateway",
+		Listeners: []structs.IngressListener{
+			{Port: 8080},
+		},
+	}
+	require.NoError(t, s.EnsureConfigEntry(2, ingress, nil))
+	require.NoError(t, s.DeleteConfigEntry(3, structs.IngressGateway, "gateway", nil))
+
+	// Adding the terminating gateway with same name should now work
+	require.NoError(t, s.EnsureConfigEntry(4, terminating, nil))
+
+	// Cannot have 2 gateways with same service name
+	require.Error(t, s.EnsureConfigEntry(5, ingress, nil))
+}

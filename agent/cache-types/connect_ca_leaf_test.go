@@ -2,6 +2,7 @@ package cachetype
 
 import (
 	"fmt"
+	"net"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -965,6 +966,21 @@ func TestConnectCALeaf_expiringLeaf(t *testing.T) {
 	}
 }
 
+// testConnectCaRoot wraps ConnectCARoot to disable refresh so that the gated
+// channel controls the request directly. Otherwise, we get background refreshes and
+// it screws up the ordering of the channel reads of the testGatedRootsRPC
+// implementation.
+type testConnectCaRoot struct {
+	ConnectCARoot
+}
+
+func (r testConnectCaRoot) RegisterOptions() cache.RegisterOptions {
+	return cache.RegisterOptions{
+		Refresh:          false,
+		SupportsBlocking: true,
+	}
+}
+
 // testCALeafType returns a *ConnectCALeaf that is pre-configured to
 // use the given RPC implementation for "ConnectCA.Sign" operations.
 func testCALeafType(t *testing.T, rpc RPC) (*ConnectCALeaf, chan structs.IndexedCARoots) {
@@ -976,14 +992,9 @@ func testCALeafType(t *testing.T, rpc RPC) (*ConnectCALeaf, chan structs.Indexed
 
 	// Create a cache
 	c := cache.TestCache(t)
-	c.RegisterType(ConnectCARootName, &ConnectCARoot{RPC: rootsRPC}, &cache.RegisterOptions{
-		// Disable refresh so that the gated channel controls the
-		// request directly. Otherwise, we get background refreshes and
-		// it screws up the ordering of the channel reads of the
-		// testGatedRootsRPC implementation.
-		Refresh: false,
+	c.RegisterType(ConnectCARootName, &testConnectCaRoot{
+		ConnectCARoot: ConnectCARoot{RPC: rootsRPC},
 	})
-
 	// Create the leaf type
 	return &ConnectCALeaf{
 		RPC:        rpc,
@@ -1022,12 +1033,26 @@ func TestConnectCALeaf_Key(t *testing.T) {
 	r1 := ConnectCALeafRequest{Service: "web"}
 	r2 := ConnectCALeafRequest{Service: "api"}
 
+	r3 := ConnectCALeafRequest{DNSSAN: []string{"a.com"}}
+	r4 := ConnectCALeafRequest{DNSSAN: []string{"b.com"}}
+
+	r5 := ConnectCALeafRequest{IPSAN: []net.IP{net.ParseIP("192.168.4.139")}}
+	r6 := ConnectCALeafRequest{IPSAN: []net.IP{net.ParseIP("192.168.4.140")}}
 	// hashstructure will hash the service name + ent meta to produce this key
 	r1Key := r1.Key()
 	r2Key := r2.Key()
+
+	r3Key := r3.Key()
+	r4Key := r4.Key()
+
+	r5Key := r5.Key()
+	r6Key := r6.Key()
+
 	require.True(t, strings.HasPrefix(r1Key, "service:"), "Key %s does not start with service:", r1Key)
 	require.True(t, strings.HasPrefix(r2Key, "service:"), "Key %s does not start with service:", r2Key)
 	require.NotEqual(t, r1Key, r2Key, "Cache keys for different services are not equal")
+	require.NotEqual(t, r3Key, r4Key, "Cache keys for different DNSSAN are not equal")
+	require.NotEqual(t, r5Key, r6Key, "Cache keys for different IPSAN are not equal")
 	r := ConnectCALeafRequest{Agent: "abc"}
 	require.Equal(t, "agent:abc", r.Key())
 }

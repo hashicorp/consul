@@ -13,13 +13,14 @@ const CatalogServicesName = "catalog-services"
 // CatalogServices supports fetching discovering service instances via the
 // catalog.
 type CatalogServices struct {
+	RegisterOptionsBlockingRefresh
 	RPC RPC
 }
 
 func (c *CatalogServices) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
-	// The request should be a DCSpecificRequest.
+	// The request should be a ServiceSpecificRequest.
 	reqReal, ok := req.(*structs.ServiceSpecificRequest)
 	if !ok {
 		return result, fmt.Errorf(
@@ -49,8 +50,4 @@ func (c *CatalogServices) Fetch(opts cache.FetchOptions, req cache.Request) (cac
 	result.Value = &reply
 	result.Index = reply.QueryMeta.Index
 	return result, nil
-}
-
-func (c *CatalogServices) SupportsBlocking() bool {
-	return true
 }

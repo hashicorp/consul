@@ -16,7 +16,7 @@ references:
 
   environment: &ENVIRONMENT
     TEST_RESULTS_DIR: *TEST_RESULTS_DIR
-    GOTESTSUM_RELEASE: 0.3.3
+    GOTESTSUM_RELEASE: 0.4.2
     EMAIL: noreply@hashicorp.com
     GIT_AUTHOR_NAME: circleci-consul
     GIT_COMMITTER_NAME: circleci-consul
@@ -95,6 +95,12 @@ jobs:
           at: /go/bin
       - run: sudo apt-get update && sudo apt-get install -y rsyslog
       - run: sudo service rsyslog start
+      - run: &install_gotestsum
+          name: Install gotestsum
+          command: |
+            url=https://github.com/gotestyourself/gotestsum/releases/download
+            curl -sSL "${url}/v${GOTESTSUM_RELEASE}/gotestsum_${GOTESTSUM_RELEASE}_linux_amd64.tar.gz" | \
+              sudo tar -xz --overwrite -C /usr/local/bin gotestsum
       - run: go mod download
       - run:
           name: go test
@@ -131,6 +137,7 @@ jobs:
       - checkout
       - attach_workspace:
           at: /go/bin
+      - run: *install_gotestsum
       - run:
           working_directory: api
           command: go mod download
@@ -162,6 +169,7 @@ jobs:
       - checkout
       - attach_workspace:
           at: /go/bin
+      - run: *install_gotestsum
       - run:
           working_directory: sdk
           command: go mod download
@@ -325,8 +333,7 @@ jobs:
           command: make pkg/linux_amd64/nomad
           working_directory: *NOMAD_WORKING_DIR
 
-      # update gotestsum
-      - run: curl -sSL "https://github.com/gotestyourself/gotestsum/releases/download/v${GOTESTSUM_RELEASE}/gotestsum_${GOTESTSUM_RELEASE}_linux_amd64.tar.gz" | sudo tar --overwrite -xz -C /usr/local/bin gotestsum
+      - run: *install_gotestsum
 
       # run integration tests
       - run:
@@ -554,13 +561,13 @@ jobs:
       - store_test_results:
           path: ui-v2/test-results
 
-  envoy-integration-test-1.10.0:
+  envoy-integration-test-1.11.2:
     docker:
       # We only really need bash and docker-compose which is installed on all
       # Circle images but pick Go since we have to pick one of them.
       - image: *GOLANG_IMAGE
     environment:
-      ENVOY_VERSIONS: "1.10.0"
+      ENVOY_VERSIONS: "1.11.2"
     steps: &ENVOY_INTEGRATION_TEST_STEPS
       - checkout
       # Get go binary from workspace
@@ -579,13 +586,6 @@ jobs:
           path: ./test/integration/connect/envoy/workdir/logs
           destination: container-logs
 
-  envoy-integration-test-1.11.2:
-    docker:
-      - image: *GOLANG_IMAGE
-    environment:
-      ENVOY_VERSIONS: "1.11.2"
-    steps: *ENVOY_INTEGRATION_TEST_STEPS
-
   envoy-integration-test-1.12.2:
     docker:
       - image: *GOLANG_IMAGE
@@ -593,11 +593,18 @@ jobs:
       ENVOY_VERSIONS: "1.12.2"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
-  envoy-integration-test-1.13.0:
+  envoy-integration-test-1.13.1:
     docker:
       - image: *GOLANG_IMAGE
     environment:
-      ENVOY_VERSIONS: "1.13.0"
+      ENVOY_VERSIONS: "1.13.1"
+    steps: *ENVOY_INTEGRATION_TEST_STEPS
+
+  envoy-integration-test-1.14.1:
+    docker:
+      - image: *GOLANG_IMAGE
+    environment:
+      ENVOY_VERSIONS: "1.14.1"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
   # run integration tests for the connect ca providers
@@ -639,38 +646,26 @@ workflows:
   version: 2
   go-tests:
     jobs:
-      - check-vendor:
+      - check-vendor: &filter-ignore-non-go-branches
           filters:
             branches:
               ignore:
                 - stable-website
                 - /^docs\/.*/
                 - /^ui\/.*/
-      - lint-consul-retry:
-          filters:
-            branches:
-              ignore:
-                - stable-website
-                - /^docs\/.*/
-                - /^ui\/.*/
-      - lint
-      - dev-build
+      - lint-consul-retry: *filter-ignore-non-go-branches
+      - lint: *filter-ignore-non-go-branches
+      - test-connect-ca-providers: *filter-ignore-non-go-branches
+      - dev-build: *filter-ignore-non-go-branches
       - go-test:
           requires: [dev-build]
       - go-test-api:
           requires: [dev-build]
-      - go-test-sdk
-      - test-connect-ca-providers
+      - go-test-sdk: *filter-ignore-non-go-branches
 
   build-distros:
     jobs:
-      - check-vendor:
-          filters:
-            branches:
-              ignore:
-                - stable-website
-                - /^docs\/.*/
-                - /^ui\/.*/
+      - check-vendor: *filter-ignore-non-go-branches
       - build-386: &require-check-vendor
           requires:
             - check-vendor
@@ -701,13 +696,7 @@ workflows:
           context: consul-ci
   test-integrations:
     jobs:
-      - dev-build:
-          filters:
-            branches:
-              ignore:
-                - stable-website
-                - /^docs\/.*/
-                - /^ui\/.*/
+      - dev-build: *filter-ignore-non-go-branches
       - dev-upload-s3: &dev-upload
           requires:
             - dev-build
@@ -726,16 +715,16 @@ workflows:
       - nomad-integration-0_8:
           requires:
             - dev-build
-      - envoy-integration-test-1.10.0:
-          requires:
-            - dev-build
       - envoy-integration-test-1.11.2:
           requires:
             - dev-build
       - envoy-integration-test-1.12.2:
           requires:
             - dev-build
-      - envoy-integration-test-1.13.0:
+      - envoy-integration-test-1.13.1:
+          requires:
+            - dev-build
+      - envoy-integration-test-1.14.1:
           requires:
             - dev-build
 
