@@ -65,18 +65,13 @@ test-oss-ci: deps test-node
 test-node:
 	yarn run test:node
 
-# This seems to be the only way to only include a subset of files for coverage
-# Right now we only want the /app/utils/ folder to be included for coverage
-specify-coverage:
-	sed -i "s/exclude, include/include: ['consul-ui\/utils\/**\/*','consul-ui\/search\/**\/*']/g" ./node_modules/ember-cli-code-coverage/index.js
-
-test-coverage: deps specify-coverage
+test-coverage: deps
 	yarn run test:coverage
 
-test-coverage-view: deps specify-coverage
+test-coverage-view: deps
 	yarn run test:coverage:view
 
-test-coverage-ci: deps specify-coverage
+test-coverage-ci: deps
 	yarn run test:coverage:ci
 
 test-parallel: deps
