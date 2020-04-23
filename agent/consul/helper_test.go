@@ -115,6 +115,8 @@ type clientOrServer interface {
 //
 //   member.JoinLAN("127.0.0.1:"+leader.config.SerfLANConfig.MemberlistConfig.BindPort)
 func joinLAN(t *testing.T, member clientOrServer, leader *Server) {
+	t.Helper()
+
 	if member == nil || leader == nil {
 		panic("no server")
 	}
@@ -143,6 +145,8 @@ func joinLAN(t *testing.T, member clientOrServer, leader *Server) {
 //
 //   member.JoinWAN("127.0.0.1:"+leader.config.SerfWANConfig.MemberlistConfig.BindPort)
 func joinWAN(t *testing.T, member, leader *Server) {
+	t.Helper()
+
 	if member == nil || leader == nil {
 		panic("no server")
 	}

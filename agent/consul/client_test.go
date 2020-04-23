@@ -13,6 +13,8 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/go-hclog"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
@@ -46,6 +48,7 @@ func testClientConfig(t *testing.T) (string, *Config) {
 	config.SerfLANConfig.MemberlistConfig.ProbeTimeout = 200 * time.Millisecond
 	config.SerfLANConfig.MemberlistConfig.ProbeInterval = time.Second
 	config.SerfLANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
+	config.LogOutput = testutil.TestWriter(t)
 
 	return dir, config
 }
@@ -69,7 +72,23 @@ func testClientWithConfig(t *testing.T, cb func(c *Config)) (string, *Client) {
 	if cb != nil {
 		cb(config)
 	}
-	client, err := NewClient(config)
+	w := config.LogOutput
+	if w == nil {
+		w = os.Stderr
+	}
+
+	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
+		Name:   config.NodeName,
+		Level:  hclog.Debug,
+		Output: w,
+	})
+
+	tlsConf, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), logger)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	client, err := NewClientLogger(config, logger, tlsConf)
 	if err != nil {
 		config.NotifyShutdown()
 		t.Fatalf("err: %v", err)
