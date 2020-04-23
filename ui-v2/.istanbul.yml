@@ -1,0 +1,4 @@
+instrumentation:
+  excludes: [
+    "!app/+(utils|search)/**/*"
+  ]
