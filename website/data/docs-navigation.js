@@ -120,6 +120,7 @@ export default [
           'service-resolver',
           'service-defaults',
           'proxy-defaults',
+          'ingress-gateway',
         ],
       },
       'cloud-auto-join',
@@ -156,6 +157,7 @@ export default [
       },
       'mesh_gateway',
       'wan-federation-via-mesh-gateways',
+      'ingress_gateway',
       {
         category: 'registration',
         content: ['service-registration', 'sidecar-service'],
