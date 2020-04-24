@@ -1219,6 +1219,13 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		}
 	}
 
+	if rt.ServerMode && rt.AutoEncryptTLS {
+		return fmt.Errorf("auto_encrypt.tls can only be used on a client.")
+	}
+	if !rt.ServerMode && rt.AutoEncryptAllowTLS {
+		return fmt.Errorf("auto_encrypt.allow_tls can only be used on a server.")
+	}
+
 	// ----------------------------------------------------------------
 	// warnings
 	//
