@@ -35,10 +35,14 @@
 @import '~@hashicorp/react-call-to-action/dist/style.css';
 @import '~@hashicorp/react-case-study-slider/dist/style.css';
 @import '~@hashicorp/react-code-block/dist/style.css';
+@import '~@hashicorp/react-use-cases/dist/style.css';
 
 /* Local Components */
+@import '../components/basic-hero/style.css';
+@import '../components/enterprise-comparison/style.css';
 @import '../components/footer/style.css';
 @import '../components/before-after/style.css';
+@import '../components/learn-callout/style.css';
 
 /* Local Pages */
 @import './downloads/style.css';
