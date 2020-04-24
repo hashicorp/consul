@@ -1315,8 +1315,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
   * <a name="meta_max_size"></a><a href="#meta_max_size">`meta_max_size`</a> - The max size of node meta data.
     The default is 512. Consul Enterprise uses node meta data to store information about network segments. The default
-    limits the number of segments severely. Only the LAN version of this option has to be adjusted to allow for more
-    network segments.
+    limits the number of segments severely. 
 
 * <a name="gossip_wan"></a><a href="#gossip_wan">`gossip_wan`</a> - **(Advanced)** This object contains a number of sub-keys
   which can be set to tune the WAN gossip communications. These are only provided for users running especially large
@@ -1352,11 +1351,6 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     larger cluster size. The higher the multiplier, the longer an inaccessible node is considered part of the
     cluster before declaring it dead, giving that suspect node more time to refute if it is indeed still alive. The
     default is 4.
-
-  * <a name="meta_max_size"></a><a href="#gossip_wan_meta_max_size">`meta_max_size`</a> - The max size of node meta data.
-    The default is 512. Consul Enterprise uses node meta data to store information about network segments. The default
-    limits the number of segments severely. Only the LAN version of this option has to be adjusted to allow for more
-    network segments.
 
 * <a name="key_file"></a><a href="#key_file">`key_file`</a> This provides a the file path to a
   PEM-encoded private key. The key is used with the certificate to verify the agent's authenticity.

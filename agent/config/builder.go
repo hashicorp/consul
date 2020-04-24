@@ -775,7 +775,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		GossipWANProbeTimeout:   b.durationVal("gossip_wan..probe_timeout", c.GossipWAN.ProbeTimeout),
 		GossipWANSuspicionMult:  b.intVal(c.GossipWAN.SuspicionMult),
 		GossipWANRetransmitMult: b.intVal(c.GossipWAN.RetransmitMult),
-		GossipWANMetaMaxSize:    b.intVal(c.GossipWAN.MetaMaxSize),
 
 		// ACL
 		ACLEnforceVersion8:        b.boolValWithDefault(c.ACLEnforceVersion8, true),

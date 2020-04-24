@@ -1341,10 +1341,6 @@ type RuntimeConfig struct {
 	// hcl: gossip_wan { retransmit_mult = int }
 	GossipWANRetransmitMult int
 
-	// GossipWANMetaMaxSize is the max size of node meta data. This
-	// configuration only applies to WAN gossip communications.
-	GossipWANMetaMaxSize int
-
 	// ServerMode controls if this agent acts like a Consul server,
 	// or merely as a client. Servers have more state, take part
 	// in leader election, etc.

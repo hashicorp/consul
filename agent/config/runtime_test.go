@@ -4024,8 +4024,7 @@ func TestFullConfig(t *testing.T) {
 				"retransmit_mult" : 16384,
 				"suspicion_mult"  : 16385,
 				"probe_interval"  : "103ms",
-				"probe_timeout"   : "104ms",
-				"meta_max_size"   : 514
+				"probe_timeout"   : "104ms"
 			},
 			"data_dir": "` + dataDir + `",
 			"datacenter": "rzo029wg",
@@ -4659,7 +4658,6 @@ func TestFullConfig(t *testing.T) {
 				suspicion_mult  = 16385
 				probe_interval  = "103ms"
 				probe_timeout   = "104ms"
-				meta_max_size   = 514
 			}
 			data_dir = "` + dataDir + `"
 			datacenter = "rzo029wg"
@@ -5226,7 +5224,6 @@ func TestFullConfig(t *testing.T) {
 		GossipWANProbeTimeout:            104 * time.Millisecond,
 		GossipWANSuspicionMult:           16385,
 		GossipWANRetransmitMult:          16384,
-		GossipWANMetaMaxSize:             514,
 		ConsulServerHealthInterval:       17455 * time.Second,
 
 		// user configurable values
@@ -6244,7 +6241,6 @@ func TestSanitize(t *testing.T) {
 		"GossipWANProbeTimeout": "0s",
 		"GossipWANRetransmitMult": 0,
 		"GossipWANSuspicionMult": 0,
-		"GossipWANMetaMaxSize": 0,
 		"ConsulServerHealthInterval": "0s",
 		"DNSARecordLimit": 0,
 		"DNSAddrs": [
