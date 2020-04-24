@@ -9,13 +9,13 @@
 {{else if (eq type 'update') }}
   {{#if (eq status 'success') }}
     Your intention has been saved.
-  {{else}}
+  {{else if (eq status 'error')}}
     There was an error saving your intention.
   {{/if}}
 {{ else if (eq type 'delete')}}
   {{#if (eq status 'success') }}
     Your intention was deleted.
-  {{else}}
+  {{else if (eq status 'error')}}
     There was an error deleting your intention.
   {{/if}}
 {{/if}}
