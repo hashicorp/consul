@@ -2168,7 +2168,7 @@ func TestStateStore_ConnectServiceNodes_Gateways(t *testing.T) {
 	ws = memdb.NewWatchSet()
 	idx, nodes, err = s.ConnectServiceNodes(ws, "db", nil)
 	assert.Nil(err)
-	assert.Equal(idx, uint64(14))
+	assert.Equal(idx, uint64(17))
 	assert.Len(nodes, 2)
 
 	// Check sidecar
@@ -2191,12 +2191,12 @@ func TestStateStore_ConnectServiceNodes_Gateways(t *testing.T) {
 	assert.True(watchFired(ws))
 
 	// Watch should fire when a gateway instance is de-registered
-	assert.Nil(s.DeleteService(29, "bar", "gateway", nil))
+	assert.Nil(s.DeleteService(19, "bar", "gateway", nil))
 	assert.True(watchFired(ws))
 
 	idx, nodes, err = s.ConnectServiceNodes(ws, "db", nil)
 	assert.Nil(err)
-	assert.Equal(idx, uint64(14))
+	assert.Equal(idx, uint64(19))
 	assert.Len(nodes, 2)
 
 	// Check the new gateway
@@ -2205,6 +2205,22 @@ func TestStateStore_ConnectServiceNodes_Gateways(t *testing.T) {
 	assert.Equal("gateway", nodes[1].ServiceName)
 	assert.Equal("gateway-2", nodes[1].ServiceID)
 	assert.Equal(443, nodes[1].ServicePort)
+
+	// Index should not slide back after deleting all instances of the gateway
+	assert.Nil(s.DeleteService(20, "foo", "gateway-2", nil))
+	assert.True(watchFired(ws))
+
+	idx, nodes, err = s.ConnectServiceNodes(ws, "db", nil)
+	assert.Nil(err)
+	assert.Equal(idx, uint64(20))
+	assert.Len(nodes, 1)
+
+	// Ensure that remaining node is the proxy and not a gateway
+	assert.Equal(structs.ServiceKindConnectProxy, nodes[0].ServiceKind)
+	assert.Equal("foo", nodes[0].Node)
+	assert.Equal("proxy", nodes[0].ServiceName)
+	assert.Equal("proxy", nodes[0].ServiceID)
+	assert.Equal(8000, nodes[0].ServicePort)
 }
 
 func TestStateStore_Service_Snapshot(t *testing.T) {
@@ -3622,6 +3638,11 @@ func TestStateStore_CheckConnectServiceNodes_Gateways(t *testing.T) {
 	assert.Nil(s.EnsureService(22, "foo", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway-2", Service: "gateway", Port: 443}))
 	assert.True(watchFired(ws))
 
+	idx, nodes, err = s.CheckConnectServiceNodes(ws, "db", nil)
+	assert.Nil(err)
+	assert.Equal(idx, uint64(22))
+	assert.Len(nodes, 3)
+
 	// Watch should fire when a gateway instance is de-registered
 	assert.Nil(s.DeleteService(23, "bar", "gateway", nil))
 	assert.True(watchFired(ws))
@@ -3637,6 +3658,22 @@ func TestStateStore_CheckConnectServiceNodes_Gateways(t *testing.T) {
 	assert.Equal("gateway", nodes[1].Service.Service)
 	assert.Equal("gateway-2", nodes[1].Service.ID)
 	assert.Equal(443, nodes[1].Service.Port)
+
+	// Index should not slide back after deleting all instances of the gateway
+	assert.Nil(s.DeleteService(24, "foo", "gateway-2", nil))
+	assert.True(watchFired(ws))
+
+	idx, nodes, err = s.CheckConnectServiceNodes(ws, "db", nil)
+	assert.Nil(err)
+	assert.Equal(idx, uint64(24))
+	assert.Len(nodes, 1)
+
+	// Ensure that remaining node is the proxy and not a gateway
+	assert.Equal(structs.ServiceKindConnectProxy, nodes[0].Service.Kind)
+	assert.Equal("foo", nodes[0].Node.Node)
+	assert.Equal("proxy", nodes[0].Service.Service)
+	assert.Equal("proxy", nodes[0].Service.ID)
+	assert.Equal(8000, nodes[0].Service.Port)
 }
 
 func BenchmarkCheckServiceNodes(b *testing.B) {

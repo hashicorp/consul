@@ -2695,10 +2695,22 @@ func (s *Store) serviceGatewayNodes(tx *memdb.Txn, ws memdb.WatchSet, service st
 		if err != nil {
 			return 0, nil, nil, fmt.Errorf("failed service lookup: %s", err)
 		}
+
+		var exists bool
 		for svc := gwServices.Next(); svc != nil; svc = gwServices.Next() {
 			sn := svc.(*structs.ServiceNode)
 			ret = append(ret, sn)
+
+			// Tracking existence to know whether we should check extinction index for service
+			exists = true
 		}
+
+		// This prevents the index from sliding back in case all instances of the service are deregistered
+		svcIdx := s.maxIndexForService(tx, mapping.Gateway.ID, exists, false, &mapping.Service.EnterpriseMeta)
+		if maxIdx < svcIdx {
+			maxIdx = svcIdx
+		}
+
 		watchChans = append(watchChans, gwServices.WatchCh())
 	}
 	return maxIdx, ret, watchChans, nil
