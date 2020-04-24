@@ -1,15 +1,20 @@
 package restore
 
 import (
+	"crypto/rand"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSnapshotRestoreCommand_noTabs(t *testing.T) {
@@ -71,7 +76,7 @@ func TestSnapshotRestoreCommand(t *testing.T) {
 	dir := testutil.TempDir(t, "snapshot")
 	defer os.RemoveAll(dir)
 
-	file := path.Join(dir, "backup.tgz")
+	file := filepath.Join(dir, "backup.tgz")
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
 		file,
@@ -98,5 +103,60 @@ func TestSnapshotRestoreCommand(t *testing.T) {
 	code := c.Run(args)
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+}
+
+func TestSnapshotRestoreCommand_TruncatedSnapshot(t *testing.T) {
+	t.Parallel()
+	a := agent.NewTestAgent(t, ``)
+	defer a.Shutdown()
+	client := a.Client()
+
+	// Seed it with 64K of random data just so we have something to work with.
+	{
+		blob := make([]byte, 64*1024)
+		_, err := rand.Read(blob)
+		require.NoError(t, err)
+
+		_, err = client.KV().Put(&api.KVPair{Key: "blob", Value: blob}, nil)
+		require.NoError(t, err)
+	}
+
+	// Do a manual snapshot so we can send back roughly reasonable data.
+	var inputData []byte
+	{
+		rc, _, err := client.Snapshot().Save(nil)
+		require.NoError(t, err)
+		defer rc.Close()
+
+		inputData, err = ioutil.ReadAll(rc)
+		require.NoError(t, err)
+	}
+
+	dir := testutil.TempDir(t, "snapshot")
+	defer os.RemoveAll(dir)
+
+	for _, removeBytes := range []int{200, 16, 8, 4, 2, 1} {
+		t.Run(fmt.Sprintf("truncate %d bytes from end", removeBytes), func(t *testing.T) {
+			// Lop off part of the end.
+			data := inputData[0 : len(inputData)-removeBytes]
+
+			ui := cli.NewMockUi()
+			c := New(ui)
+
+			file := filepath.Join(dir, "backup.tgz")
+			require.NoError(t, ioutil.WriteFile(file, data, 0644))
+			args := []string{
+				"-http-addr=" + a.HTTPAddr(),
+				file,
+			}
+
+			code := c.Run(args)
+			require.Equal(t, 1, code, "expected non-zero exit")
+
+			output := ui.ErrorWriter.String()
+			require.Contains(t, output, "Error restoring snapshot")
+			require.Contains(t, output, "EOF")
+		})
 	}
 }
