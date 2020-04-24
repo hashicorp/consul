@@ -816,8 +816,6 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 * <a name="serf_lan"></a><a href="#serf_lan_bind">`serf_lan`</a> Equivalent to
   the [`-serf-lan-bind` command-line flag](#_serf_lan_bind).
 
-* <a name="serf_meta_max_size"></a><a href="#serf_meta_max_size">`serf_meta_max_size`</a> TODO
-
 * <a name="advertise_addr_wan"></a><a href="#advertise_addr_wan">`advertise_addr_wan`</a> Equivalent to
   the [`-advertise-wan` command-line flag](#_advertise-wan).
 
@@ -1315,40 +1313,50 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     cluster before declaring it dead, giving that suspect node more time to refute if it is indeed still alive. The
     default is 4.
 
+  * <a name="meta_max_size"></a><a href="#meta_max_size">`meta_max_size`</a> - The max size of node meta data.
+    The default is 512. Consul Enterprise uses node meta data to store information about network segments. The default
+    limits the number of segments severely. Only the LAN version of this option has to be adjusted to allow for more
+    network segments.
+
 * <a name="gossip_wan"></a><a href="#gossip_wan">`gossip_wan`</a> - **(Advanced)** This object contains a number of sub-keys
   which can be set to tune the WAN gossip communications. These are only provided for users running especially large
   clusters that need fine tuning and are prepared to spend significant effort correctly tuning them for their
   environment and workload. **Tuning these improperly can cause Consul to fail in unexpected ways**.
   The default values are appropriate in almost all deployments.
 
-    * <a name="gossip_nodes"></a><a href="#gossip_nodes">`gossip_nodes`</a> - The number of random nodes to send
+    * <a name="gossip_nodes"></a><a href="#gossip_wan_gossip_nodes">`gossip_nodes`</a> - The number of random nodes to send
      gossip messages to per gossip_interval. Increasing this number causes the gossip messages to propagate
      across the cluster more quickly at the expense of increased bandwidth. The default is 3.
 
-  * <a name="gossip_interval"></a><a href="#gossip_interval">`gossip_interval`</a> - The interval between sending
+  * <a name="gossip_interval"></a><a href="#gossip_wan_gossip_interval">`gossip_interval`</a> - The interval between sending
     messages that need to be gossiped that haven't been able to piggyback on probing messages. If this is set to
     zero, non-piggyback gossip is disabled. By lowering this value (more frequent) gossip messages are propagated
     across the cluster more quickly at the expense of increased bandwidth. The default is 200ms.
 
-  * <a name="probe_interval"></a><a href="#probe_interval">`probe_interval`</a> - The interval between random node
+  * <a name="probe_interval"></a><a href="#gossip_wan_probe_interval">`probe_interval`</a> - The interval between random node
     probes. Setting this lower (more frequent) will cause the cluster to detect failed nodes more quickly
     at the expense of increased bandwidth usage. The default is 1s.
 
-  * <a name="probe_timeout"></a><a href="#probe_timeout">`probe_timeout`</a> - The timeout to wait for an ack from
+  * <a name="probe_timeout"></a><a href="#gossip_wan_probe_timeout">`probe_timeout`</a> - The timeout to wait for an ack from
     a probed node before assuming it is unhealthy. This should be at least the 99-percentile of RTT (round-trip time) on
     your network. The default is 500ms and is a conservative value suitable for almost all realistic deployments.
 
-  * <a name="retransmit_mult"></a><a href="#retransmit_mult">`retransmit_mult`</a> - The multiplier for the number
+  * <a name="retransmit_mult"></a><a href="#gossip_wan_retransmit_mult">`retransmit_mult`</a> - The multiplier for the number
     of retransmissions that are attempted for messages broadcasted over gossip. The number of retransmits is scaled
     using this multiplier and the cluster size. The higher the multiplier, the more likely a failed broadcast is to
     converge at the expense of increased bandwidth. The default is 4.
 
-  * <a name="suspicion_mult"></a><a href="#suspicion_mult">`suspicion_mult`</a> - The multiplier for determining the
+  * <a name="suspicion_mult"></a><a href="#gossip_wan_suspicion_mult">`suspicion_mult`</a> - The multiplier for determining the
     time an inaccessible node is considered suspect before declaring it dead. The timeout is scaled with the cluster
     size and the probe_interval. This allows the timeout to scale properly with expected propagation delay with a
     larger cluster size. The higher the multiplier, the longer an inaccessible node is considered part of the
     cluster before declaring it dead, giving that suspect node more time to refute if it is indeed still alive. The
     default is 4.
+
+  * <a name="meta_max_size"></a><a href="#gossip_wan_meta_max_size">`meta_max_size`</a> - The max size of node meta data.
+    The default is 512. Consul Enterprise uses node meta data to store information about network segments. The default
+    limits the number of segments severely. Only the LAN version of this option has to be adjusted to allow for more
+    network segments.
 
 * <a name="key_file"></a><a href="#key_file">`key_file`</a> This provides a the file path to a
   PEM-encoded private key. The key is used with the certificate to verify the agent's authenticity.

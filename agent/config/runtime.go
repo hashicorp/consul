@@ -1260,7 +1260,8 @@ type RuntimeConfig struct {
 	// hcl: gossip_lan { retransmit_mult = int }
 	GossipLANRetransmitMult int
 
-	// TODO
+	// GossipLANMetaMaxSize is the max size of node meta data. This
+	// configuration only applies to LAN gossip communications.
 	GossipLANMetaMaxSize int
 
 	// GossipWANGossipInterval  is the interval between sending messages that need
@@ -1340,7 +1341,8 @@ type RuntimeConfig struct {
 	// hcl: gossip_wan { retransmit_mult = int }
 	GossipWANRetransmitMult int
 
-	// TODO
+	// GossipWANMetaMaxSize is the max size of node meta data. This
+	// configuration only applies to WAN gossip communications.
 	GossipWANMetaMaxSize int
 
 	// ServerMode controls if this agent acts like a Consul server,
