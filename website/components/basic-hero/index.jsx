@@ -7,7 +7,6 @@ export default function BasicHero({
   brand,
   backgroundImage,
 }) {
-  console.log('background?', backgroundImage)
   return (
     <div className={`g-basic-hero ${backgroundImage ? 'has-background' : ''}`}>
       <div className="g-grid-container">

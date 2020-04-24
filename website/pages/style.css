@@ -46,6 +46,7 @@
 @import '../components/before-after/style.css';
 @import '../components/tabs/style.css';
 @import '../components/learn-callout/style.css';
+@import '../components/case-study-carousel/style.css';
 
 /* Local Pages */
 @import './downloads/style.css';
