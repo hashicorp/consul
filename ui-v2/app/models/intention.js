@@ -20,6 +20,7 @@ export default Model.extend({
   DefaultPort: attr('number'),
   //
   Meta: attr(),
+  SyncTime: attr('number'),
   Datacenter: attr('string'),
   CreatedAt: attr('date'),
   UpdatedAt: attr('date'),
