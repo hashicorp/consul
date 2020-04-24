@@ -104,7 +104,8 @@ func (c *configSnapshotTerminatingGateway) IsEmpty() bool {
 		len(c.WatchedIntentions) == 0 &&
 		len(c.ServiceGroups) == 0 &&
 		len(c.WatchedServices) == 0 &&
-		len(c.ServiceResolvers) == 0
+		len(c.ServiceResolvers) == 0 &&
+		len(c.WatchedResolvers) == 0
 }
 
 type configSnapshotMeshGateway struct {

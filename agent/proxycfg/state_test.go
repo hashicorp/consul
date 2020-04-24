@@ -841,14 +841,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.ConnectProxy.IsEmpty())
 						require.True(t, snap.MeshGateway.IsEmpty())
 						require.True(t, snap.IngressGateway.IsEmpty())
+						require.True(t, snap.TerminatingGateway.IsEmpty())
 						require.Equal(t, indexedRoots, snap.Roots)
-						require.Empty(t, snap.TerminatingGateway.WatchedServices)
-						require.Empty(t, snap.TerminatingGateway.ServiceGroups)
-						require.Empty(t, snap.TerminatingGateway.WatchedLeaves)
-						require.Empty(t, snap.TerminatingGateway.ServiceLeaves)
-						require.Empty(t, snap.TerminatingGateway.WatchedResolvers)
-						require.Empty(t, snap.TerminatingGateway.ServiceResolvers)
-						require.Empty(t, snap.TerminatingGateway.WatchedIntentions)
 					},
 				},
 			},
