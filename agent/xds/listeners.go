@@ -367,7 +367,7 @@ func makeListenerFromUserConfig(configJSON string) (*envoy.Listener, error) {
 // specify custom listener params in config but still get our certs delivered
 // dynamically and intentions enforced without coming up with some complicated
 // templating/merging solution.
-func injectConnectFilters(cfgSnap *proxycfg.ConfigSnapshot, token string, listener *envoy.Listener, setTLS bool) error {
+func injectConnectFilters(cfgSnap *proxycfg.ConfigSnapshot, token string, listener *envoy.Listener) error {
 	authFilter, err := makeExtAuthFilter(token)
 	if err != nil {
 		return err
@@ -377,11 +377,9 @@ func injectConnectFilters(cfgSnap *proxycfg.ConfigSnapshot, token string, listen
 		listener.FilterChains[idx].Filters =
 			append([]envoylistener.Filter{authFilter}, listener.FilterChains[idx].Filters...)
 
-		if setTLS {
-			listener.FilterChains[idx].TlsContext = &envoyauth.DownstreamTlsContext{
-				CommonTlsContext:         makeCommonTLSContext(cfgSnap, cfgSnap.Leaf()),
-				RequireClientCertificate: &types.BoolValue{Value: true},
-			}
+		listener.FilterChains[idx].TlsContext = &envoyauth.DownstreamTlsContext{
+			CommonTlsContext:         makeCommonTLSContext(cfgSnap, cfgSnap.Leaf()),
+			RequireClientCertificate: &types.BoolValue{Value: true},
 		}
 	}
 	return nil
@@ -441,7 +439,7 @@ func (s *Server) makePublicListener(cfgSnap *proxycfg.ConfigSnapshot, token stri
 		}
 	}
 
-	err = injectConnectFilters(cfgSnap, token, l, true)
+	err = injectConnectFilters(cfgSnap, token, l)
 	return l, err
 }
 
@@ -580,7 +578,7 @@ func (s *Server) makeTerminatingGatewayListener(name, addr string, port int, cfg
 			continue
 		}
 
-		clusterChain, err := s.sniFilterChainTerminatingGateway(name, clusterName, svc, cfgSnap)
+		clusterChain, err := s.sniFilterChainTerminatingGateway(name, clusterName, token, svc, cfgSnap)
 		if err != nil {
 			return nil, fmt.Errorf("failed to make filter chain for cluster %q: %v", clusterName, err)
 		}
@@ -592,18 +590,13 @@ func (s *Server) makeTerminatingGatewayListener(name, addr string, port int, cfg
 			for subsetName := range resolver.Subsets {
 				clusterName := connect.ServiceSNI(svc.ID, subsetName, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 
-				clusterChain, err := s.sniFilterChainTerminatingGateway(name, clusterName, svc, cfgSnap)
+				clusterChain, err := s.sniFilterChainTerminatingGateway(name, clusterName, token, svc, cfgSnap)
 				if err != nil {
 					return nil, fmt.Errorf("failed to make filter chain for cluster %q: %v", clusterName, err)
 				}
 				l.FilterChains = append(l.FilterChains, clusterChain)
 			}
 		}
-	}
-
-	err = injectConnectFilters(cfgSnap, token, l, false)
-	if err != nil {
-		return nil, fmt.Errorf("failed to inject authz filer: %v", err)
 	}
 
 	// This fallback catch-all filter ensures a listener will be present for health checks to pass
@@ -623,7 +616,13 @@ func (s *Server) makeTerminatingGatewayListener(name, addr string, port int, cfg
 	return l, nil
 }
 
-func (s *Server) sniFilterChainTerminatingGateway(listener, cluster string, service structs.ServiceID, cfgSnap *proxycfg.ConfigSnapshot) (envoylistener.FilterChain, error) {
+func (s *Server) sniFilterChainTerminatingGateway(listener, cluster, token string, service structs.ServiceID,
+	cfgSnap *proxycfg.ConfigSnapshot) (envoylistener.FilterChain, error) {
+
+	authFilter, err := makeExtAuthFilter(token)
+	if err != nil {
+		return envoylistener.FilterChain{}, err
+	}
 	sniCluster, err := makeSNIClusterFilter()
 	if err != nil {
 		return envoylistener.FilterChain{}, err
@@ -638,6 +637,7 @@ func (s *Server) sniFilterChainTerminatingGateway(listener, cluster string, serv
 	return envoylistener.FilterChain{
 		FilterChainMatch: makeSNIFilterChainMatch(cluster),
 		Filters: []envoylistener.Filter{
+			authFilter,
 			sniCluster,
 			tcpProxy,
 		},
