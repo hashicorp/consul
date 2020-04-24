@@ -1051,7 +1051,6 @@ func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *struct
 	}
 }
 
-// TODO (gateways) (freddy) Should we check if the files exist here? or let Envoy handle it?
 func makeCommonTLSContextFromFiles(caFile, certFile, keyFile string) *envoyauth.CommonTlsContext {
 	ctx := envoyauth.CommonTlsContext{
 		TlsParams: &envoyauth.TlsParameters{},
