@@ -137,7 +137,27 @@ func Verify(in io.Reader) (*raft.SnapshotMeta, error) {
 	if err := read(decomp, &metadata, ioutil.Discard); err != nil {
 		return nil, fmt.Errorf("failed to read snapshot file: %v", err)
 	}
+
+	if err := concludeGzipRead(decomp); err != nil {
+		return nil, err
+	}
+
 	return &metadata, nil
+}
+
+// concludeGzipRead should be invoked after you think you've consumed all of
+// the data from the gzip stream. It will error if the stream was corrupt.
+//
+// The docs for gzip.Reader say: "Clients should treat data returned by Read as
+// tentative until they receive the io.EOF marking the end of the data."
+func concludeGzipRead(decomp *gzip.Reader) error {
+	extra, err := ioutil.ReadAll(decomp) // ReadAll consumes the EOF
+	if err != nil {
+		return err
+	} else if len(extra) != 0 {
+		return fmt.Errorf("%d unread uncompressed bytes remain", len(extra))
+	}
+	return nil
 }
 
 // Restore takes the snapshot from the reader and attempts to apply it to the
@@ -173,6 +193,10 @@ func Restore(logger hclog.Logger, in io.Reader, r *raft.Raft) error {
 	var metadata raft.SnapshotMeta
 	if err := read(decomp, &metadata, snap); err != nil {
 		return fmt.Errorf("failed to read snapshot file: %v", err)
+	}
+
+	if err := concludeGzipRead(decomp); err != nil {
+		return err
 	}
 
 	// Sync and rewind the file so it's ready to be read again.
