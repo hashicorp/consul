@@ -2683,82 +2683,139 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
-			desc: "auto_encrypt.allow works implies connect",
+			desc: "auto_encrypt.allow_tls works implies connect",
 			args: []string{
 				`-data-dir=` + dataDir,
 			},
 			json: []string{`{
 			  "verify_incoming": true,
-			  "auto_encrypt": { "allow_tls": true }
+			  "auto_encrypt": { "allow_tls": true },
+			  "server": true
 			}`},
 			hcl: []string{`
 			  verify_incoming = true
 			  auto_encrypt { allow_tls = true }
+			  server = true
 			`},
 			patch: func(rt *RuntimeConfig) {
 				rt.DataDir = dataDir
 				rt.VerifyIncoming = true
 				rt.AutoEncryptAllowTLS = true
 				rt.ConnectEnabled = true
+
+				// server things
+				rt.ServerMode = true
+				rt.LeaveOnTerm = false
+				rt.SkipLeaveOnInt = true
 			},
 		},
 		{
-			desc: "auto_encrypt.allow works with verify_incoming",
+			desc: "auto_encrypt.allow_tls works with verify_incoming",
 			args: []string{
 				`-data-dir=` + dataDir,
 			},
 			json: []string{`{
 			  "verify_incoming": true,
-			  "auto_encrypt": { "allow_tls": true }
+			  "auto_encrypt": { "allow_tls": true },
+			  "server": true
 			}`},
 			hcl: []string{`
 			  verify_incoming = true
 			  auto_encrypt { allow_tls = true }
+			  server = true
 			`},
 			patch: func(rt *RuntimeConfig) {
 				rt.DataDir = dataDir
 				rt.VerifyIncoming = true
 				rt.AutoEncryptAllowTLS = true
 				rt.ConnectEnabled = true
+
+				// server things
+				rt.ServerMode = true
+				rt.LeaveOnTerm = false
+				rt.SkipLeaveOnInt = true
 			},
 		},
 		{
-			desc: "auto_encrypt.allow works with verify_incoming_rpc",
+			desc: "auto_encrypt.allow_tls works with verify_incoming_rpc",
 			args: []string{
 				`-data-dir=` + dataDir,
 			},
 			json: []string{`{
 			  "verify_incoming_rpc": true,
-			  "auto_encrypt": { "allow_tls": true }
+			  "auto_encrypt": { "allow_tls": true },
+			  "server": true
 			}`},
 			hcl: []string{`
 			  verify_incoming_rpc = true
 			  auto_encrypt { allow_tls = true }
+			  server = true
 			`},
 			patch: func(rt *RuntimeConfig) {
 				rt.DataDir = dataDir
 				rt.VerifyIncomingRPC = true
 				rt.AutoEncryptAllowTLS = true
 				rt.ConnectEnabled = true
+
+				// server things
+				rt.ServerMode = true
+				rt.LeaveOnTerm = false
+				rt.SkipLeaveOnInt = true
 			},
 		},
 		{
-			desc: "auto_encrypt.allow warns without verify_incoming or verify_incoming_rpc",
+			desc: "auto_encrypt.allow_tls warns without verify_incoming or verify_incoming_rpc",
 			args: []string{
 				`-data-dir=` + dataDir,
 			},
 			json: []string{`{
-			  "auto_encrypt": { "allow_tls": true }
+			  "auto_encrypt": { "allow_tls": true },
+			  "server": true
 			}`},
 			hcl: []string{`
 			  auto_encrypt { allow_tls = true }
+			  server = true
 			`},
 			warns: []string{"if auto_encrypt.allow_tls is turned on, either verify_incoming or verify_incoming_rpc should be enabled. It is necessary to turn it off during a migration to TLS, but it should definitely be turned on afterwards."},
 			patch: func(rt *RuntimeConfig) {
 				rt.DataDir = dataDir
 				rt.AutoEncryptAllowTLS = true
 				rt.ConnectEnabled = true
+				// server things
+				rt.ServerMode = true
+				rt.LeaveOnTerm = false
+				rt.SkipLeaveOnInt = true
 			},
+		},
+		{
+			desc: "auto_encrypt.allow_tls errors in client mode",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+			  "auto_encrypt": { "allow_tls": true },
+			  "server": false
+			}`},
+			hcl: []string{`
+			  auto_encrypt { allow_tls = true }
+			  server = false
+			`},
+			err: "auto_encrypt.allow_tls can only be used on a server.",
+		},
+		{
+			desc: "auto_encrypt.tls errors in server mode",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+			  "auto_encrypt": { "tls": true },
+			  "server": true
+			}`},
+			hcl: []string{`
+			  auto_encrypt { tls = true }
+			  server = true
+			`},
+			err: "auto_encrypt.tls can only be used on a client.",
 		},
 		{
 			desc: "test connect vault provider configuration",
@@ -3992,7 +4049,7 @@ func TestFullConfig(t *testing.T) {
 				]
                         },
 			"auto_encrypt": {
-				"tls": true,
+				"tls": false,
 				"dns_san": ["a.com", "b.com"],
 				"ip_san": ["192.168.4.139", "192.168.4.140"],
 				"allow_tls": true
@@ -4076,7 +4133,7 @@ func TestFullConfig(t *testing.T) {
 			"key_file": "IEkkwgIA",
 			"leave_on_terminate": true,
 			"limits": {
-				"http_max_conns_per_client": 250,
+				"http_max_conns_per_client": 100,
 				"https_handshake_timeout": "2391ms",
 				"rpc_handshake_timeout": "1932ms",
 				"rpc_rate": 12029.43,
@@ -4622,7 +4679,7 @@ func TestFullConfig(t *testing.T) {
 				}
 			}
 			auto_encrypt = {
-				tls = true
+				tls = false
 				dns_san = ["a.com", "b.com"]
 				ip_san = ["192.168.4.139", "192.168.4.140"]
 				allow_tls = true
@@ -4709,7 +4766,7 @@ func TestFullConfig(t *testing.T) {
 			key_file = "IEkkwgIA"
 			leave_on_terminate = true
 			limits {
-				http_max_conns_per_client = 250
+				http_max_conns_per_client = 100
 				https_handshake_timeout = "2391ms"
 				rpc_handshake_timeout = "1932ms"
 				rpc_rate = 12029.43
@@ -5348,7 +5405,7 @@ func TestFullConfig(t *testing.T) {
 				},
 			},
 		},
-		AutoEncryptTLS:        true,
+		AutoEncryptTLS:        false,
 		AutoEncryptDNSSAN:     []string{"a.com", "b.com"},
 		AutoEncryptIPSAN:      []net.IP{net.ParseIP("192.168.4.139"), net.ParseIP("192.168.4.140")},
 		AutoEncryptAllowTLS:   true,
@@ -5416,7 +5473,7 @@ func TestFullConfig(t *testing.T) {
 		HTTPPort:                               7999,
 		HTTPResponseHeaders:                    map[string]string{"M6TKa9NP": "xjuxjOzQ", "JRCrHZed": "rl0mTx81"},
 		HTTPSAddrs:                             []net.Addr{tcpAddr("95.17.17.19:15127")},
-		HTTPMaxConnsPerClient:                  250,
+		HTTPMaxConnsPerClient:                  100,
 		HTTPSHandshakeTimeout:                  2391 * time.Millisecond,
 		HTTPSPort:                              15127,
 		KeyFile:                                "IEkkwgIA",
