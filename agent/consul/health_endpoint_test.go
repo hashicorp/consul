@@ -3,6 +3,7 @@ package consul
 import (
 	"github.com/hashicorp/consul/acl"
 	"os"
+	"sort"
 	"testing"
 	"time"
 
@@ -1450,6 +1451,10 @@ func TestHealth_GatewayServiceNodes_Ingress(t *testing.T) {
 	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Health.GatewayServiceNodes", &req, &out2))
 
 	nodes := out2.Nodes
+	sort.Slice(nodes, func(i, j int) bool {
+		return nodes[i].Service.Service < nodes[j].Service.Service
+	})
+
 	require.Len(t, nodes, 2)
 	require.Equal(t, nodes[0].Node.Node, "baz")
 	require.Equal(t, nodes[0].Service.Service, "api")
@@ -1684,6 +1689,10 @@ func TestHealth_GatewayServiceNodes_Terminating(t *testing.T) {
 	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Health.GatewayServiceNodes", &req, &out2))
 
 	nodes := out2.Nodes
+	sort.Slice(nodes, func(i, j int) bool {
+		return nodes[i].Service.Service < nodes[j].Service.Service
+	})
+
 	require.Len(t, nodes, 2)
 	require.Equal(t, nodes[0].Node.Node, "baz")
 	require.Equal(t, nodes[0].Service.Service, "api")

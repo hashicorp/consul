@@ -3636,32 +3636,31 @@ func TestStateStore_CheckConnectServiceNodes_Gateways(t *testing.T) {
 }
 
 func TestStateStore_CheckGatewayServiceNodes_Terminating(t *testing.T) {
-	assert := assert.New(t)
 	s := testStateStore(t)
 
 	// Listing with no results returns an empty list.
 	ws := memdb.NewWatchSet()
 	idx, nodes, err := s.CheckGatewayServiceNodes(ws, "gateway", nil)
-	assert.Nil(err)
-	assert.Equal(idx, uint64(0))
-	assert.Len(nodes, 0)
+	assert.NoError(t, err)
+	assert.Equal(t, idx, uint64(0))
+	assert.Len(t, nodes, 0)
 
 	// Create some nodes
-	assert.Nil(s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
-	assert.Nil(s.EnsureNode(11, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
+	assert.NoError(t, s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
+	assert.NoError(t, s.EnsureNode(11, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
 
 	// and a typical service
-	assert.Nil(s.EnsureService(12, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
-	assert.False(watchFired(ws))
+	assert.NoError(t, s.EnsureService(12, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
+	assert.False(t, watchFired(ws))
 
 	// Register node and service checks
 	testRegisterCheck(t, s, 13, "foo", "", "foo-node-check", api.HealthPassing)
 	testRegisterCheck(t, s, 14, "bar", "", "bar-node-check", api.HealthPassing)
 	testRegisterCheck(t, s, 15, "foo", "db", "db-check", api.HealthPassing)
-	assert.False(watchFired(ws))
+	assert.False(t, watchFired(ws))
 
 	// Watch should fire when a gateway is associated with the service, even if the gateway doesn't exist yet
-	assert.Nil(s.EnsureConfigEntry(16, &structs.TerminatingGatewayConfigEntry{
+	assert.NoError(t, s.EnsureConfigEntry(16, &structs.TerminatingGatewayConfigEntry{
 		Kind: "terminating-gateway",
 		Name: "gateway",
 		Services: []structs.LinkedService{
@@ -3673,34 +3672,34 @@ func TestStateStore_CheckGatewayServiceNodes_Terminating(t *testing.T) {
 			},
 		},
 	}, nil))
-	assert.True(watchFired(ws))
+	assert.True(t, watchFired(ws))
 
 	// Watch should fire when a gateway is added
-	assert.Nil(s.EnsureService(17, "bar", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway", Service: "gateway", Port: 443}))
-	assert.True(watchFired(ws))
+	assert.NoError(t, s.EnsureService(17, "bar", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway", Service: "gateway", Port: 443}))
+	assert.True(t, watchFired(ws))
 
 	// Watch should fire when an instance of db is added
-	assert.Nil(s.EnsureService(18, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}))
-	assert.True(watchFired(ws))
+	assert.NoError(t, s.EnsureService(18, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}))
+	assert.True(t, watchFired(ws))
 
 	// Watch should fire when a check is added to db2
 	testRegisterCheck(t, s, 19, "bar", "db2", "db2-check", api.HealthPassing)
-	assert.True(watchFired(ws))
+	assert.True(t, watchFired(ws))
 
 	// Watch should fire when another service linked to the gateway is registered
-	assert.Nil(s.EnsureService(20, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
-	assert.True(watchFired(ws))
+	assert.NoError(t, s.EnsureService(20, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
+	assert.True(t, watchFired(ws))
 
 	// Watch should fire when a check is added to api
 	testRegisterCheck(t, s, 21, "bar", "api", "api-check", api.HealthPassing)
-	assert.True(watchFired(ws))
+	assert.True(t, watchFired(ws))
 
 	// Read everything back.
 	ws = memdb.NewWatchSet()
 	idx, nodes, err = s.CheckGatewayServiceNodes(ws, "gateway", nil)
-	assert.Nil(err)
-	assert.Equal(idx, uint64(21))
-	assert.Len(nodes, 3)
+	assert.NoError(t, err)
+	assert.Equal(t, idx, uint64(21))
+	assert.Len(t, nodes, 3)
 
 	// Expect:
 	// 	api service on node bar with bar's node check and api's service check
@@ -3835,52 +3834,51 @@ func TestStateStore_CheckGatewayServiceNodes_Terminating(t *testing.T) {
 			},
 		},
 	}
-	assert.Equal(expect, nodes)
+	assert.ElementsMatch(t, expect, nodes)
 
 	// Watch should fire when the gateway's config entry is truncated
-	assert.Nil(s.EnsureConfigEntry(22, &structs.TerminatingGatewayConfigEntry{
+	assert.NoError(t, s.EnsureConfigEntry(22, &structs.TerminatingGatewayConfigEntry{
 		Kind:     "terminating-gateway",
 		Name:     "gateway",
 		Services: []structs.LinkedService{},
 	}, nil))
-	assert.True(watchFired(ws))
+	assert.True(t, watchFired(ws))
 
 	// Check results
 	idx, nodes, err = s.CheckGatewayServiceNodes(ws, "gateway", nil)
-	assert.Nil(err)
+	assert.NoError(t, err)
 
 	// TODO (gateways) prevent index from sliding back on config entry deletion
-	assert.Equal(idx, uint64(0))
-	assert.Len(nodes, 0)
+	assert.Equal(t, idx, uint64(0))
+	assert.Len(t, nodes, 0)
 }
 
 func TestStateStore_CheckGatewayServiceNodes_Ingress(t *testing.T) {
-	assert := assert.New(t)
 	s := testStateStore(t)
 
 	// Listing with no results returns an empty list.
 	ws := memdb.NewWatchSet()
 	idx, nodes, err := s.CheckGatewayServiceNodes(ws, "gateway", nil)
-	assert.Nil(err)
-	assert.Equal(idx, uint64(0))
-	assert.Len(nodes, 0)
+	assert.NoError(t, err)
+	assert.Equal(t, idx, uint64(0))
+	assert.Len(t, nodes, 0)
 
 	// Create some nodes
-	assert.Nil(s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
-	assert.Nil(s.EnsureNode(11, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
+	assert.NoError(t, s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
+	assert.NoError(t, s.EnsureNode(11, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
 
 	// and a typical service
-	assert.Nil(s.EnsureService(12, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
-	assert.False(watchFired(ws))
+	assert.NoError(t, s.EnsureService(12, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
+	assert.False(t, watchFired(ws))
 
 	// Register node and service checks
 	testRegisterCheck(t, s, 13, "foo", "", "foo-node-check", api.HealthPassing)
 	testRegisterCheck(t, s, 14, "bar", "", "bar-node-check", api.HealthPassing)
 	testRegisterCheck(t, s, 15, "foo", "db", "db-check", api.HealthPassing)
-	assert.False(watchFired(ws))
+	assert.False(t, watchFired(ws))
 
 	// Watch should fire when a gateway is associated with the service, even if the gateway doesn't exist yet
-	assert.Nil(s.EnsureConfigEntry(16, &structs.IngressGatewayConfigEntry{
+	assert.NoError(t, s.EnsureConfigEntry(16, &structs.IngressGatewayConfigEntry{
 		Kind: "ingress-gateway",
 		Name: "gateway",
 		Listeners: []structs.IngressListener{
@@ -3897,34 +3895,34 @@ func TestStateStore_CheckGatewayServiceNodes_Ingress(t *testing.T) {
 			},
 		},
 	}, nil))
-	assert.True(watchFired(ws))
+	assert.True(t, watchFired(ws))
 
 	// Watch should fire when a gateway is added
-	assert.Nil(s.EnsureService(17, "bar", &structs.NodeService{Kind: structs.ServiceKindIngressGateway, ID: "gateway", Service: "gateway", Port: 443}))
-	assert.True(watchFired(ws))
+	assert.NoError(t, s.EnsureService(17, "bar", &structs.NodeService{Kind: structs.ServiceKindIngressGateway, ID: "gateway", Service: "gateway", Port: 443}))
+	assert.True(t, watchFired(ws))
 
 	// Watch should fire when an instance of db is added
-	assert.Nil(s.EnsureService(18, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}))
-	assert.True(watchFired(ws))
+	assert.NoError(t, s.EnsureService(18, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}))
+	assert.True(t, watchFired(ws))
 
 	// Watch should fire when a check is added to db2
 	testRegisterCheck(t, s, 19, "bar", "db2", "db2-check", api.HealthPassing)
-	assert.True(watchFired(ws))
+	assert.True(t, watchFired(ws))
 
 	// Watch should fire when another service linked to the gateway is registered
-	assert.Nil(s.EnsureService(20, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
-	assert.True(watchFired(ws))
+	assert.NoError(t, s.EnsureService(20, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
+	assert.True(t, watchFired(ws))
 
 	// Watch should fire when a check is added to api
 	testRegisterCheck(t, s, 21, "bar", "api", "api-check", api.HealthPassing)
-	assert.True(watchFired(ws))
+	assert.True(t, watchFired(ws))
 
 	// Read everything back.
 	ws = memdb.NewWatchSet()
 	idx, nodes, err = s.CheckGatewayServiceNodes(ws, "gateway", nil)
-	assert.Nil(err)
-	assert.Equal(idx, uint64(21))
-	assert.Len(nodes, 3)
+	assert.NoError(t, err)
+	assert.Equal(t, idx, uint64(21))
+	assert.Len(t, nodes, 3)
 
 	// Expect:
 	// 	api service on node bar with bar's node check and api's service check
@@ -4059,23 +4057,23 @@ func TestStateStore_CheckGatewayServiceNodes_Ingress(t *testing.T) {
 			},
 		},
 	}
-	assert.Equal(expect, nodes)
+	assert.ElementsMatch(t, expect, nodes)
 
 	// Watch should fire when the gateway's config entry is truncated
-	assert.Nil(s.EnsureConfigEntry(16, &structs.IngressGatewayConfigEntry{
+	assert.NoError(t, s.EnsureConfigEntry(16, &structs.IngressGatewayConfigEntry{
 		Kind:      "ingress-gateway",
 		Name:      "gateway",
 		Listeners: []structs.IngressListener{},
 	}, nil))
-	assert.True(watchFired(ws))
+	assert.True(t, watchFired(ws))
 
 	// Check results
 	idx, nodes, err = s.CheckGatewayServiceNodes(ws, "gateway", nil)
-	assert.Nil(err)
+	assert.NoError(t, err)
 
 	// TODO (gateways) prevent index from sliding back on config entry deletion
-	assert.Equal(idx, uint64(0))
-	assert.Len(nodes, 0)
+	assert.Equal(t, idx, uint64(0))
+	assert.Len(t, nodes, 0)
 }
 
 func BenchmarkCheckServiceNodes(b *testing.B) {
