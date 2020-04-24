@@ -1,0 +1,333 @@
+{
+  "versionInfo": "00000001",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.api.v2.RouteConfiguration",
+      "name": "db",
+      "virtualHosts": [
+        {
+          "name": "db",
+          "domains": [
+            "*"
+          ],
+          "routes": [
+            {
+              "match": {
+                "prefix": "/prefix"
+              },
+              "route": {
+                "cluster": "prefix.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            },
+            {
+              "match": {
+                "path": "/exact"
+              },
+              "route": {
+                "cluster": "exact.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            },
+            {
+              "match": {
+                "regex": "/regex"
+              },
+              "route": {
+                "cluster": "regex.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            },
+            {
+              "match": {
+                "prefix": "/",
+                "headers": [
+                  {
+                    "name": "x-debug",
+                    "presentMatch": true
+                  }
+                ]
+              },
+              "route": {
+                "cluster": "hdr-present.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            },
+            {
+              "match": {
+                "prefix": "/",
+                "headers": [
+                  {
+                    "name": "x-debug",
+                    "presentMatch": true,
+                    "invertMatch": true
+                  }
+                ]
+              },
+              "route": {
+                "cluster": "hdr-not-present.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            },
+            {
+              "match": {
+                "prefix": "/",
+                "headers": [
+                  {
+                    "name": "x-debug",
+                    "exactMatch": "exact"
+                  }
+                ]
+              },
+              "route": {
+                "cluster": "hdr-exact.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            },
+            {
+              "match": {
+                "prefix": "/",
+                "headers": [
+                  {
+                    "name": "x-debug",
+                    "prefixMatch": "prefix"
+                  }
+                ]
+              },
+              "route": {
+                "cluster": "hdr-prefix.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            },
+            {
+              "match": {
+                "prefix": "/",
+                "headers": [
+                  {
+                    "name": "x-debug",
+                    "suffixMatch": "suffix"
+                  }
+                ]
+              },
+              "route": {
+                "cluster": "hdr-suffix.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            },
+            {
+              "match": {
+                "prefix": "/",
+                "headers": [
+                  {
+                    "name": "x-debug",
+                    "regexMatch": "regex"
+                  }
+                ]
+              },
+              "route": {
+                "cluster": "hdr-regex.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            },
+            {
+              "match": {
+                "prefix": "/",
+                "headers": [
+                  {
+                    "name": ":method",
+                    "regexMatch": "GET|PUT"
+                  }
+                ]
+              },
+              "route": {
+                "cluster": "just-methods.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            },
+            {
+              "match": {
+                "prefix": "/",
+                "headers": [
+                  {
+                    "name": "x-debug",
+                    "exactMatch": "exact"
+                  },
+                  {
+                    "name": ":method",
+                    "regexMatch": "GET|PUT"
+                  }
+                ]
+              },
+              "route": {
+                "cluster": "hdr-exact-with-method.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            },
+            {
+              "match": {
+                "prefix": "/",
+                "queryParameters": [
+                  {
+                    "name": "secretparam1",
+                    "value": "exact"
+                  }
+                ]
+              },
+              "route": {
+                "cluster": "prm-exact.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            },
+            {
+              "match": {
+                "prefix": "/",
+                "queryParameters": [
+                  {
+                    "name": "secretparam2",
+                    "value": "regex",
+                    "regex": true
+                  }
+                ]
+              },
+              "route": {
+                "cluster": "prm-regex.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            },
+            {
+              "match": {
+                "prefix": "/",
+                "queryParameters": [
+                  {
+                    "name": "secretparam3"
+                  }
+                ]
+              },
+              "route": {
+                "cluster": "prm-present.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            },
+            {
+              "match": {
+                "prefix": "/"
+              },
+              "route": {
+                "cluster": "nil-match.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            },
+            {
+              "match": {
+                "prefix": "/"
+              },
+              "route": {
+                "cluster": "empty-match-1.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            },
+            {
+              "match": {
+                "prefix": "/"
+              },
+              "route": {
+                "cluster": "empty-match-2.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            },
+            {
+              "match": {
+                "prefix": "/prefix"
+              },
+              "route": {
+                "cluster": "prefix-rewrite-1.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "prefixRewrite": "/"
+              }
+            },
+            {
+              "match": {
+                "prefix": "/prefix"
+              },
+              "route": {
+                "cluster": "prefix-rewrite-2.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "prefixRewrite": "/nested/newlocation"
+              }
+            },
+            {
+              "match": {
+                "prefix": "/timeout"
+              },
+              "route": {
+                "cluster": "req-timeout.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "timeout": "33s"
+              }
+            },
+            {
+              "match": {
+                "prefix": "/retry-connect"
+              },
+              "route": {
+                "cluster": "retry-connect.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "retryPolicy": {
+                  "retryOn": "connect-failure",
+                  "numRetries": 15
+                }
+              }
+            },
+            {
+              "match": {
+                "prefix": "/retry-codes"
+              },
+              "route": {
+                "cluster": "retry-codes.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "retryPolicy": {
+                  "retryOn": "retriable-status-codes",
+                  "numRetries": 15,
+                  "retriableStatusCodes": [
+                    401,
+                    409,
+                    451
+                  ]
+                }
+              }
+            },
+            {
+              "match": {
+                "prefix": "/retry-both"
+              },
+              "route": {
+                "cluster": "retry-both.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "retryPolicy": {
+                  "retryOn": "connect-failure,retriable-status-codes",
+                  "retriableStatusCodes": [
+                    401,
+                    409,
+                    451
+                  ]
+                }
+              }
+            },
+            {
+              "match": {
+                "prefix": "/split-3-ways"
+              },
+              "route": {
+                "weightedClusters": {
+                  "clusters": [
+                    {
+                      "name": "big-side.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                      "weight": 9550
+                    },
+                    {
+                      "name": "goldilocks-side.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                      "weight": 400
+                    },
+                    {
+                      "name": "lil-bit-side.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                      "weight": 50
+                    }
+                  ],
+                  "totalWeight": 10000
+                }
+              }
+            },
+            {
+              "match": {
+                "prefix": "/"
+              },
+              "route": {
+                "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ]
+        }
+      ],
+      "validateClusters": true
+    }
+  ],
+  "typeUrl": "type.googleapis.com/envoy.api.v2.RouteConfiguration",
+  "nonce": "00000001"
+}
