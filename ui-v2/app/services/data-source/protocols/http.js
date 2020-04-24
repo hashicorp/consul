@@ -25,9 +25,7 @@ export default Service.extend({
           type: 'message',
           data: result,
         };
-        if (repo.reconcile === 'function') {
-          repo.reconcile(get(event, 'data.meta') || {});
-        }
+        repo.reconcile(get(event, 'data.meta'));
         return event;
       };
     }
