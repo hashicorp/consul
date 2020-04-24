@@ -768,12 +768,14 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		GossipLANProbeTimeout:   b.durationVal("gossip_lan..probe_timeout", c.GossipLAN.ProbeTimeout),
 		GossipLANSuspicionMult:  b.intVal(c.GossipLAN.SuspicionMult),
 		GossipLANRetransmitMult: b.intVal(c.GossipLAN.RetransmitMult),
+		GossipLANMetaMaxSize:    b.intVal(c.GossipLAN.MetaMaxSize),
 		GossipWANGossipInterval: b.durationVal("gossip_wan..gossip_interval", c.GossipWAN.GossipInterval),
 		GossipWANGossipNodes:    b.intVal(c.GossipWAN.GossipNodes),
 		GossipWANProbeInterval:  b.durationVal("gossip_wan..probe_interval", c.GossipWAN.ProbeInterval),
 		GossipWANProbeTimeout:   b.durationVal("gossip_wan..probe_timeout", c.GossipWAN.ProbeTimeout),
 		GossipWANSuspicionMult:  b.intVal(c.GossipWAN.SuspicionMult),
 		GossipWANRetransmitMult: b.intVal(c.GossipWAN.RetransmitMult),
+		GossipWANMetaMaxSize:    b.intVal(c.GossipWAN.MetaMaxSize),
 
 		// ACL
 		ACLEnforceVersion8:        b.boolValWithDefault(c.ACLEnforceVersion8, true),

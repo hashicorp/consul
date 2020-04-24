@@ -816,6 +816,8 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 * <a name="serf_lan"></a><a href="#serf_lan_bind">`serf_lan`</a> Equivalent to
   the [`-serf-lan-bind` command-line flag](#_serf_lan_bind).
 
+* <a name="serf_meta_max_size"></a><a href="#serf_meta_max_size">`serf_meta_max_size`</a> TODO
+
 * <a name="advertise_addr_wan"></a><a href="#advertise_addr_wan">`advertise_addr_wan`</a> Equivalent to
   the [`-advertise-wan` command-line flag](#_advertise-wan).
 

@@ -1260,6 +1260,9 @@ type RuntimeConfig struct {
 	// hcl: gossip_lan { retransmit_mult = int }
 	GossipLANRetransmitMult int
 
+	// TODO
+	GossipLANMetaMaxSize int
+
 	// GossipWANGossipInterval  is the interval between sending messages that need
 	// to be gossiped that haven't been able to piggyback on probing messages.
 	// If this is set to zero, non-piggyback gossip is disabled. By lowering
@@ -1336,6 +1339,9 @@ type RuntimeConfig struct {
 	//
 	// hcl: gossip_wan { retransmit_mult = int }
 	GossipWANRetransmitMult int
+
+	// TODO
+	GossipWANMetaMaxSize int
 
 	// ServerMode controls if this agent acts like a Consul server,
 	// or merely as a client. Servers have more state, take part

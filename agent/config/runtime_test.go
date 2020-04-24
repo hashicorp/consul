@@ -4015,15 +4015,17 @@ func TestFullConfig(t *testing.T) {
 				"retransmit_mult" : 1234,
 				"suspicion_mult"  : 1235,
 				"probe_interval"  : "101ms",
-				"probe_timeout"   : "102ms"
+				"probe_timeout"   : "102ms",
+				"meta_max_size"   : 513
 			},
 			"gossip_wan" : {
 				"gossip_nodes" : 2,
 				"gossip_interval" : "6966s",
 				"retransmit_mult" : 16384,
 				"suspicion_mult"  : 16385,
-				"probe_interval" : "103ms",
-				"probe_timeout"  : "104ms"
+				"probe_interval"  : "103ms",
+				"probe_timeout"   : "104ms",
+				"meta_max_size"   : 514
 			},
 			"data_dir": "` + dataDir + `",
 			"datacenter": "rzo029wg",
@@ -4076,7 +4078,7 @@ func TestFullConfig(t *testing.T) {
 			"key_file": "IEkkwgIA",
 			"leave_on_terminate": true,
 			"limits": {
-				"http_max_conns_per_client": 250,
+				"http_max_conns_per_client": 100,
 				"https_handshake_timeout": "2391ms",
 				"rpc_handshake_timeout": "1932ms",
 				"rpc_rate": 12029.43,
@@ -4648,6 +4650,7 @@ func TestFullConfig(t *testing.T) {
 				suspicion_mult  = 1235
 				probe_interval  = "101ms"
 				probe_timeout   = "102ms"
+				meta_max_size   = 513
 			}
 			gossip_wan {
 				gossip_nodes    = 2
@@ -4656,6 +4659,7 @@ func TestFullConfig(t *testing.T) {
 				suspicion_mult  = 16385
 				probe_interval  = "103ms"
 				probe_timeout   = "104ms"
+				meta_max_size   = 514
 			}
 			data_dir = "` + dataDir + `"
 			datacenter = "rzo029wg"
@@ -4709,7 +4713,7 @@ func TestFullConfig(t *testing.T) {
 			key_file = "IEkkwgIA"
 			leave_on_terminate = true
 			limits {
-				http_max_conns_per_client = 250
+				http_max_conns_per_client = 100
 				https_handshake_timeout = "2391ms"
 				rpc_handshake_timeout = "1932ms"
 				rpc_rate = 12029.43
@@ -5215,12 +5219,14 @@ func TestFullConfig(t *testing.T) {
 		GossipLANProbeTimeout:            102 * time.Millisecond,
 		GossipLANSuspicionMult:           1235,
 		GossipLANRetransmitMult:          1234,
+		GossipLANMetaMaxSize:             513,
 		GossipWANGossipInterval:          6966 * time.Second,
 		GossipWANGossipNodes:             2,
 		GossipWANProbeInterval:           103 * time.Millisecond,
 		GossipWANProbeTimeout:            104 * time.Millisecond,
 		GossipWANSuspicionMult:           16385,
 		GossipWANRetransmitMult:          16384,
+		GossipWANMetaMaxSize:             514,
 		ConsulServerHealthInterval:       17455 * time.Second,
 
 		// user configurable values
@@ -5416,7 +5422,7 @@ func TestFullConfig(t *testing.T) {
 		HTTPPort:                               7999,
 		HTTPResponseHeaders:                    map[string]string{"M6TKa9NP": "xjuxjOzQ", "JRCrHZed": "rl0mTx81"},
 		HTTPSAddrs:                             []net.Addr{tcpAddr("95.17.17.19:15127")},
-		HTTPMaxConnsPerClient:                  250,
+		HTTPMaxConnsPerClient:                  100,
 		HTTPSHandshakeTimeout:                  2391 * time.Millisecond,
 		HTTPSPort:                              15127,
 		KeyFile:                                "IEkkwgIA",
@@ -6231,12 +6237,14 @@ func TestSanitize(t *testing.T) {
 		"GossipLANProbeTimeout": "0s",
 		"GossipLANRetransmitMult": 0,
 		"GossipLANSuspicionMult": 0,
+		"GossipLANMetaMaxSize": 0,
 		"GossipWANGossipInterval": "0s",
 		"GossipWANGossipNodes": 0,
 		"GossipWANProbeInterval": "0s",
 		"GossipWANProbeTimeout": "0s",
 		"GossipWANRetransmitMult": 0,
 		"GossipWANSuspicionMult": 0,
+		"GossipWANMetaMaxSize": 0,
 		"ConsulServerHealthInterval": "0s",
 		"DNSARecordLimit": 0,
 		"DNSAddrs": [

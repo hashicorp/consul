@@ -1183,6 +1183,7 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	base.SerfLANConfig.MemberlistConfig.ProbeTimeout = a.config.GossipLANProbeTimeout
 	base.SerfLANConfig.MemberlistConfig.SuspicionMult = a.config.GossipLANSuspicionMult
 	base.SerfLANConfig.MemberlistConfig.RetransmitMult = a.config.GossipLANRetransmitMult
+	base.SerfLANConfig.MemberlistConfig.MetaMaxSize = a.config.GossipLANMetaMaxSize
 	if a.config.ReconnectTimeoutLAN != 0 {
 		base.SerfLANConfig.ReconnectTimeout = a.config.ReconnectTimeoutLAN
 	}
@@ -1200,6 +1201,7 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 		base.SerfWANConfig.MemberlistConfig.ProbeTimeout = a.config.GossipWANProbeTimeout
 		base.SerfWANConfig.MemberlistConfig.SuspicionMult = a.config.GossipWANSuspicionMult
 		base.SerfWANConfig.MemberlistConfig.RetransmitMult = a.config.GossipWANRetransmitMult
+		base.SerfWANConfig.MemberlistConfig.MetaMaxSize = a.config.GossipWANMetaMaxSize
 		if a.config.ReconnectTimeoutWAN != 0 {
 			base.SerfWANConfig.ReconnectTimeout = a.config.ReconnectTimeoutWAN
 		}

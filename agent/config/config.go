@@ -328,6 +328,7 @@ type GossipLANConfig struct {
 	ProbeTimeout   *string `json:"probe_timeout,omitempty" hcl:"probe_timeout" mapstructure:"probe_timeout"`
 	SuspicionMult  *int    `json:"suspicion_mult,omitempty" hcl:"suspicion_mult" mapstructure:"suspicion_mult"`
 	RetransmitMult *int    `json:"retransmit_mult,omitempty" hcl:"retransmit_mult" mapstructure:"retransmit_mult"`
+	MetaMaxSize    *int    `json:"meta_max_size,omitempty" hcl:"meta_max_size" mapstructure:"meta_max_size"`
 }
 
 type GossipWANConfig struct {
@@ -337,6 +338,7 @@ type GossipWANConfig struct {
 	ProbeTimeout   *string `json:"probe_timeout,omitempty" hcl:"probe_timeout" mapstructure:"probe_timeout"`
 	SuspicionMult  *int    `json:"suspicion_mult,omitempty" hcl:"suspicion_mult" mapstructure:"suspicion_mult"`
 	RetransmitMult *int    `json:"retransmit_mult,omitempty" hcl:"retransmit_mult" mapstructure:"retransmit_mult"`
+	MetaMaxSize    *int    `json:"meta_max_size,omitempty" hcl:"meta_max_size" mapstructure:"meta_max_size"`
 }
 
 type Consul struct {
