@@ -37,11 +37,15 @@
 @import '~@hashicorp/react-tabs/dist/style.css';
 @import '~@hashicorp/react-code-block/dist/style.css';
 @import '~@hashicorp/react-alert-banner/dist/style.css';
+@import '~@hashicorp/react-use-cases/dist/style.css';
 
 /* Local Components */
+@import '../components/basic-hero/style.css';
+@import '../components/enterprise-comparison/style.css';
 @import '../components/footer/style.css';
 @import '../components/before-after/style.css';
 @import '../components/tabs/style.css';
+@import '../components/learn-callout/style.css';
 
 /* Local Pages */
 @import './downloads/style.css';
