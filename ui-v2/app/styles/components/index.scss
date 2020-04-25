@@ -1,3 +1,4 @@
+@import './form-elements';
 @import './breadcrumbs';
 @import './anchors';
 @import './progress';
@@ -15,6 +16,7 @@
 @import './app-view';
 @import './product';
 
+@import './tooltip';
 @import './tag-list';
 @import './healthcheck-output';
 @import './healthcheck-info';
@@ -23,12 +25,11 @@
 @import './phrase-editor';
 @import './filter-bar';
 @import './tomography-graph';
-@import './action-group';
 @import './flash-message';
 @import './code-editor';
 @import './confirmation-dialog';
 @import './feedback-dialog';
 @import './modal-dialog';
 @import './notice';
-@import './tooltip';
 @import './sort-control';
+@import './discovery-chain';

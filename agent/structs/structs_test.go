@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/api"
@@ -408,6 +409,112 @@ func TestStructs_NodeService_ValidateMeshGateway(t *testing.T) {
 			if tc.Err == "" {
 				require.NoError(t, err)
 			} else {
+				require.Contains(t, strings.ToLower(err.Error()), strings.ToLower(tc.Err))
+			}
+		})
+	}
+}
+
+func TestStructs_NodeService_ValidateTerminatingGateway(t *testing.T) {
+	type testCase struct {
+		Modify func(*NodeService)
+		Err    string
+	}
+
+	cases := map[string]testCase{
+		"valid": testCase{
+			func(x *NodeService) {},
+			"",
+		},
+		"sidecar-service": testCase{
+			func(x *NodeService) { x.Connect.SidecarService = &ServiceDefinition{} },
+			"cannot have a sidecar service",
+		},
+		"proxy-destination-name": testCase{
+			func(x *NodeService) { x.Proxy.DestinationServiceName = "foo" },
+			"Proxy.DestinationServiceName configuration is invalid",
+		},
+		"proxy-destination-id": testCase{
+			func(x *NodeService) { x.Proxy.DestinationServiceID = "foo" },
+			"Proxy.DestinationServiceID configuration is invalid",
+		},
+		"proxy-local-address": testCase{
+			func(x *NodeService) { x.Proxy.LocalServiceAddress = "127.0.0.1" },
+			"Proxy.LocalServiceAddress configuration is invalid",
+		},
+		"proxy-local-port": testCase{
+			func(x *NodeService) { x.Proxy.LocalServicePort = 36 },
+			"Proxy.LocalServicePort configuration is invalid",
+		},
+		"proxy-upstreams": testCase{
+			func(x *NodeService) { x.Proxy.Upstreams = []Upstream{Upstream{}} },
+			"Proxy.Upstreams configuration is invalid",
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			ns := TestNodeServiceTerminatingGateway(t, "10.0.0.5")
+			tc.Modify(ns)
+
+			err := ns.Validate()
+			if tc.Err == "" {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+				require.Contains(t, strings.ToLower(err.Error()), strings.ToLower(tc.Err))
+			}
+		})
+	}
+}
+
+func TestStructs_NodeService_ValidateIngressGateway(t *testing.T) {
+	type testCase struct {
+		Modify func(*NodeService)
+		Err    string
+	}
+
+	cases := map[string]testCase{
+		"valid": testCase{
+			func(x *NodeService) {},
+			"",
+		},
+		"sidecar-service": testCase{
+			func(x *NodeService) { x.Connect.SidecarService = &ServiceDefinition{} },
+			"cannot have a sidecar service",
+		},
+		"proxy-destination-name": testCase{
+			func(x *NodeService) { x.Proxy.DestinationServiceName = "foo" },
+			"Proxy.DestinationServiceName configuration is invalid",
+		},
+		"proxy-destination-id": testCase{
+			func(x *NodeService) { x.Proxy.DestinationServiceID = "foo" },
+			"Proxy.DestinationServiceID configuration is invalid",
+		},
+		"proxy-local-address": testCase{
+			func(x *NodeService) { x.Proxy.LocalServiceAddress = "127.0.0.1" },
+			"Proxy.LocalServiceAddress configuration is invalid",
+		},
+		"proxy-local-port": testCase{
+			func(x *NodeService) { x.Proxy.LocalServicePort = 36 },
+			"Proxy.LocalServicePort configuration is invalid",
+		},
+		"proxy-upstreams": testCase{
+			func(x *NodeService) { x.Proxy.Upstreams = []Upstream{Upstream{}} },
+			"Proxy.Upstreams configuration is invalid",
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			ns := TestNodeServiceIngressGateway(t, "10.0.0.5")
+			tc.Modify(ns)
+
+			err := ns.Validate()
+			if tc.Err == "" {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
 				require.Contains(t, strings.ToLower(err.Error()), strings.ToLower(tc.Err))
 			}
 		})
@@ -1163,45 +1270,102 @@ func TestStructs_DirEntry_Clone(t *testing.T) {
 	}
 }
 
-func TestStructs_ValidateMetadata(t *testing.T) {
-	// Load a valid set of key/value pairs
-	meta := map[string]string{
-		"key1": "value1",
-		"key2": "value2",
-	}
-	// Should succeed
-	if err := ValidateMetadata(meta, false); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Should get error
-	meta = map[string]string{
-		"": "value1",
-	}
-	if err := ValidateMetadata(meta, false); !strings.Contains(err.Error(), "Couldn't load metadata pair") {
-		t.Fatalf("should have failed")
-	}
-
-	// Should get error
-	meta = make(map[string]string)
+func TestStructs_ValidateServiceAndNodeMetadata(t *testing.T) {
+	tooMuchMeta := make(map[string]string)
 	for i := 0; i < metaMaxKeyPairs+1; i++ {
-		meta[string(i)] = "value"
+		tooMuchMeta[string(i)] = "value"
 	}
-	if err := ValidateMetadata(meta, false); !strings.Contains(err.Error(), "cannot contain more than") {
-		t.Fatalf("should have failed")
+	type testcase struct {
+		Meta              map[string]string
+		AllowConsulPrefix bool
+		NodeError         string
+		ServiceError      string
+		GatewayError      string
+	}
+	cases := map[string]testcase{
+		"should succeed": {
+			map[string]string{
+				"key1": "value1",
+				"key2": "value2",
+			},
+			false,
+			"",
+			"",
+			"",
+		},
+		"invalid key": {
+			map[string]string{
+				"": "value1",
+			},
+			false,
+			"Couldn't load metadata pair",
+			"Couldn't load metadata pair",
+			"Couldn't load metadata pair",
+		},
+		"too many keys": {
+			tooMuchMeta,
+			false,
+			"cannot contain more than",
+			"cannot contain more than",
+			"cannot contain more than",
+		},
+		"reserved key prefix denied": {
+			map[string]string{
+				metaKeyReservedPrefix + "key": "value1",
+			},
+			false,
+			"reserved for internal use",
+			"reserved for internal use",
+			"reserved for internal use",
+		},
+		"reserved key prefix allowed": {
+			map[string]string{
+				metaKeyReservedPrefix + "key": "value1",
+			},
+			true,
+			"",
+			"",
+			"",
+		},
+		"reserved key prefix allowed via whitelist just for gateway - " + MetaWANFederationKey: {
+			map[string]string{
+				MetaWANFederationKey: "value1",
+			},
+			false,
+			"reserved for internal use",
+			"reserved for internal use",
+			"",
+		},
 	}
 
-	// Should not error
-	meta = map[string]string{
-		metaKeyReservedPrefix + "key": "value1",
-	}
-	// Should fail
-	if err := ValidateMetadata(meta, false); err == nil || !strings.Contains(err.Error(), "reserved for internal use") {
-		t.Fatalf("err: %s", err)
-	}
-	// Should succeed
-	if err := ValidateMetadata(meta, true); err != nil {
-		t.Fatalf("err: %s", err)
+	for name, tc := range cases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Run("ValidateNodeMetadata", func(t *testing.T) {
+				err := ValidateNodeMetadata(tc.Meta, tc.AllowConsulPrefix)
+				if tc.NodeError == "" {
+					require.NoError(t, err)
+				} else {
+					requireErrorContains(t, err, tc.NodeError)
+				}
+			})
+			t.Run("ValidateServiceMetadata - typical", func(t *testing.T) {
+				err := ValidateServiceMetadata(ServiceKindTypical, tc.Meta, tc.AllowConsulPrefix)
+				if tc.ServiceError == "" {
+					require.NoError(t, err)
+				} else {
+					requireErrorContains(t, err, tc.ServiceError)
+				}
+			})
+			t.Run("ValidateServiceMetadata - mesh-gateway", func(t *testing.T) {
+				err := ValidateServiceMetadata(ServiceKindMeshGateway, tc.Meta, tc.AllowConsulPrefix)
+				if tc.GatewayError == "" {
+					require.NoError(t, err)
+				} else {
+					requireErrorContains(t, err, tc.GatewayError)
+				}
+			})
+		})
 	}
 }
 
@@ -1213,27 +1377,32 @@ func TestStructs_validateMetaPair(t *testing.T) {
 		Value             string
 		Error             string
 		AllowConsulPrefix bool
+		AllowConsulKeys   map[string]struct{}
 	}{
 		// valid pair
-		{"key", "value", "", false},
+		{"key", "value", "", false, nil},
 		// invalid, blank key
-		{"", "value", "cannot be blank", false},
+		{"", "value", "cannot be blank", false, nil},
 		// allowed special chars in key name
-		{"k_e-y", "value", "", false},
+		{"k_e-y", "value", "", false, nil},
 		// disallowed special chars in key name
-		{"(%key&)", "value", "invalid characters", false},
+		{"(%key&)", "value", "invalid characters", false, nil},
 		// key too long
-		{longKey, "value", "Key is too long", false},
+		{longKey, "value", "Key is too long", false, nil},
 		// reserved prefix
-		{metaKeyReservedPrefix + "key", "value", "reserved for internal use", false},
+		{metaKeyReservedPrefix + "key", "value", "reserved for internal use", false, nil},
 		// reserved prefix, allowed
-		{metaKeyReservedPrefix + "key", "value", "", true},
+		{metaKeyReservedPrefix + "key", "value", "", true, nil},
+		// reserved prefix, not allowed via whitelist
+		{metaKeyReservedPrefix + "bad", "value", "reserved for internal use", false, map[string]struct{}{metaKeyReservedPrefix + "good": struct{}{}}},
+		// reserved prefix, allowed via whitelist
+		{metaKeyReservedPrefix + "good", "value", "", true, map[string]struct{}{metaKeyReservedPrefix + "good": struct{}{}}},
 		// value too long
-		{"key", longValue, "Value is too long", false},
+		{"key", longValue, "Value is too long", false, nil},
 	}
 
 	for _, pair := range pairs {
-		err := validateMetaPair(pair.Key, pair.Value, pair.AllowConsulPrefix)
+		err := validateMetaPair(pair.Key, pair.Value, pair.AllowConsulPrefix, pair.AllowConsulKeys)
 		if pair.Error == "" && err != nil {
 			t.Fatalf("should have succeeded: %v, %v", pair, err)
 		} else if pair.Error != "" && !strings.Contains(err.Error(), pair.Error) {
@@ -1814,4 +1983,213 @@ func TestServiceNode_JSON_Marshal(t *testing.T) {
 	var out ServiceNode
 	require.NoError(t, json.Unmarshal(buf, &out))
 	require.Equal(t, *sn, out)
+}
+
+// frankensteinStruct is an amalgamation of all of the different kinds of
+// fields you could have on struct defined in the agent/structs package that we
+// send through msgpack
+type frankensteinStruct struct {
+	Child      *monsterStruct
+	ChildSlice []*monsterStruct
+	ChildMap   map[string]*monsterStruct
+}
+type monsterStruct struct {
+	Bool    bool
+	Int     int
+	Uint8   uint8
+	Uint64  uint64
+	Float32 float32
+	Float64 float64
+	String  string
+
+	Hash         []byte
+	Uint32Slice  []uint32
+	Float64Slice []float64
+	StringSlice  []string
+
+	MapInt         map[string]int
+	MapString      map[string]string
+	MapStringSlice map[string][]string
+
+	// We explicitly DO NOT try to test the following types that involve
+	// interface{} as the TestMsgpackEncodeDecode test WILL fail.
+	//
+	// These are tested elsewhere for the very specific scenario in question,
+	// which usually takes a secondary trip through mapstructure during decode
+	// which papers over some of the additional conversions necessary to finish
+	// decoding.
+	// MapIface    map[string]interface{}
+	// MapMapIface map[string]map[string]interface{}
+
+	Dur     time.Duration
+	DurPtr  *time.Duration
+	Time    time.Time
+	TimePtr *time.Time
+
+	RaftIndex
+}
+
+func makeFrank() *frankensteinStruct {
+	return &frankensteinStruct{
+		Child: makeMonster(),
+		ChildSlice: []*monsterStruct{
+			makeMonster(),
+			makeMonster(),
+		},
+		ChildMap: map[string]*monsterStruct{
+			"one": makeMonster(), // only put one key in here so the map order is fixed
+		},
+	}
+}
+
+func makeMonster() *monsterStruct {
+	var d time.Duration = 9 * time.Hour
+	var t time.Time = time.Date(2008, 1, 2, 3, 4, 5, 0, time.UTC)
+
+	return &monsterStruct{
+		Bool:    true,
+		Int:     -8,
+		Uint8:   5,
+		Uint64:  9,
+		Float32: 5.25,
+		Float64: 99.5,
+		String:  "strval",
+
+		Hash:         []byte("hello"),
+		Uint32Slice:  []uint32{1, 2, 3, 4},
+		Float64Slice: []float64{9.2, 6.25},
+		StringSlice:  []string{"foo", "bar"},
+
+		// // MapIface will hold an amalgam of what AuthMethods and
+		// // CAConfigurations use in 'Config'
+		// MapIface: map[string]interface{}{
+		// 	"Name":  "inner",
+		// 	"Dur":   "5s",
+		// 	"Bool":  true,
+		// 	"Float": 15.25,
+		// 	"Int":   int64(94),
+		// 	"Nested": map[string]string{ // this doesn't survive
+		// 		"foo": "bar",
+		// 	},
+		// },
+		// // MapMapIface    map[string]map[string]interface{}
+
+		MapInt: map[string]int{
+			"int": 5,
+		},
+		MapString: map[string]string{
+			"aaa": "bbb",
+		},
+		MapStringSlice: map[string][]string{
+			"aaa": []string{"bbb"},
+		},
+
+		Dur:     5 * time.Second,
+		DurPtr:  &d,
+		Time:    t.Add(-5 * time.Hour),
+		TimePtr: &t,
+
+		RaftIndex: RaftIndex{
+			CreateIndex: 1,
+			ModifyIndex: 3,
+		},
+	}
+}
+
+func TestStructs_MsgpackEncodeDecode_Monolith(t *testing.T) {
+	t.Run("monster", func(t *testing.T) {
+		in := makeMonster()
+		TestMsgpackEncodeDecode(t, in, false)
+	})
+	t.Run("frankenstein", func(t *testing.T) {
+		in := makeFrank()
+		TestMsgpackEncodeDecode(t, in, false)
+	})
+}
+
+func TestSnapshotRequestResponse_MsgpackEncodeDecode(t *testing.T) {
+	t.Run("request", func(t *testing.T) {
+		in := &SnapshotRequest{
+			Datacenter: "foo",
+			Token:      "blah",
+			AllowStale: true,
+			Op:         SnapshotRestore,
+		}
+		TestMsgpackEncodeDecode(t, in, true)
+	})
+	t.Run("response", func(t *testing.T) {
+		in := &SnapshotResponse{
+			Error: "blah",
+			QueryMeta: QueryMeta{
+				Index:            3,
+				LastContact:      5 * time.Second,
+				KnownLeader:      true,
+				ConsistencyLevel: "default",
+			},
+		}
+		TestMsgpackEncodeDecode(t, in, true)
+	})
+
+}
+
+func TestGatewayService_IsSame(t *testing.T) {
+	gateway := NewServiceID("gateway", nil)
+	svc := NewServiceID("web", nil)
+	kind := ServiceKindTerminatingGateway
+	ca := "ca.pem"
+	cert := "client.pem"
+	key := "tls.key"
+
+	g := &GatewayService{
+		Gateway:     gateway,
+		Service:     svc,
+		GatewayKind: kind,
+		CAFile:      ca,
+		CertFile:    cert,
+		KeyFile:     key,
+	}
+	other := &GatewayService{
+		Gateway:     gateway,
+		Service:     svc,
+		GatewayKind: kind,
+		CAFile:      ca,
+		CertFile:    cert,
+		KeyFile:     key,
+	}
+	check := func(twiddle, restore func()) {
+		t.Helper()
+		if !g.IsSame(other) || !other.IsSame(g) {
+			t.Fatalf("should be the same")
+		}
+
+		twiddle()
+		if g.IsSame(other) || other.IsSame(g) {
+			t.Fatalf("should be different, was %#v VS %#v", g, other)
+		}
+
+		restore()
+		if !g.IsSame(other) || !other.IsSame(g) {
+			t.Fatalf("should be the same")
+		}
+	}
+	check(func() { other.Gateway = NewServiceID("other", nil) }, func() { other.Gateway = gateway })
+	check(func() { other.Service = NewServiceID("other", nil) }, func() { other.Service = svc })
+	check(func() { other.GatewayKind = ServiceKindIngressGateway }, func() { other.GatewayKind = kind })
+	check(func() { other.CAFile = "/certs/cert.pem" }, func() { other.CAFile = ca })
+	check(func() { other.CertFile = "/certs/cert.pem" }, func() { other.CertFile = cert })
+	check(func() { other.KeyFile = "/certs/cert.pem" }, func() { other.KeyFile = key })
+
+	if !g.IsSame(other) {
+		t.Fatalf("should be equal, was %#v VS %#v", g, other)
+	}
+}
+
+func requireErrorContains(t *testing.T, err error, expectedErrorMessage string) {
+	t.Helper()
+	if err == nil {
+		t.Fatal("An error is expected but got nil.")
+	}
+	if !strings.Contains(err.Error(), expectedErrorMessage) {
+		t.Fatalf("unexpected error: %v", err)
+	}
 }

@@ -613,6 +613,111 @@ func TestDecodeConfigEntry(t *testing.T) {
 				Name: "main",
 			},
 		},
+		{
+			name: "ingress-gateway",
+			body: `
+			{
+				"Kind": "ingress-gateway",
+				"Name": "ingress-web",
+				"Listeners": [
+					{
+						"Port": 8080,
+						"Protocol": "http",
+						"Services": [
+							{
+								"Name": "web",
+								"Namespace": "foo"
+							},
+							{
+								"Name": "db"
+							}
+						]
+					},
+					{
+						"Port": 9999,
+						"Protocol": "tcp",
+						"Services": [
+							{
+								"Name": "mysql"
+							}
+						]
+					}
+				]
+			}
+			`,
+			expect: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					IngressListener{
+						Port:     8080,
+						Protocol: "http",
+						Services: []IngressService{
+							IngressService{
+								Name:      "web",
+								Namespace: "foo",
+							},
+							IngressService{
+								Name: "db",
+							},
+						},
+					},
+					IngressListener{
+						Port:     9999,
+						Protocol: "tcp",
+						Services: []IngressService{
+							IngressService{
+								Name: "mysql",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "terminating-gateway",
+			body: `
+			{
+				"Kind": "terminating-gateway",
+				"Name": "terminating-west",
+				"Services": [
+					{
+						"Namespace": "foo",						
+						"Name": "web",
+						"CAFile": "/etc/ca.pem",
+						"CertFile": "/etc/cert.pem",
+						"KeyFile": "/etc/tls.key"
+					},
+					{
+						"Name": "api"
+					},
+					{
+						"Namespace": "bar",
+						"Name": "*"
+					}
+				]
+			}`,
+			expect: &TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-west",
+				Services: []LinkedService{
+					{
+						Namespace: "foo",
+						Name:      "web",
+						CAFile:    "/etc/ca.pem",
+						CertFile:  "/etc/cert.pem",
+						KeyFile:   "/etc/tls.key",
+					},
+					{
+						Name: "api",
+					},
+					{
+						Namespace: "bar",
+						Name:      "*",
+					},
+				},
+			},
+		},
 	} {
 		tc := tc
 

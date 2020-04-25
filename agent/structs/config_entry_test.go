@@ -532,6 +532,178 @@ func TestDecodeConfigEntry(t *testing.T) {
 				Name: "main",
 			},
 		},
+		{
+			name: "ingress-gateway: kitchen sink",
+			snake: `
+				kind = "ingress-gateway"
+				name = "ingress-web"
+
+				listeners = [
+					{
+						port = 8080
+						protocol = "http"
+						services = [
+							{
+								name = "web"
+							},
+							{
+								name = "db"
+							}
+						]
+					},
+					{
+						port = 9999
+						protocol = "tcp"
+						services = [
+							{
+								name = "mysql"
+							}
+						]
+					},
+					{
+						port = 2234
+						protocol = "tcp"
+						services = [
+							{
+								name = "postgres"
+								service_subset = "v1"
+							}
+						]
+					}
+				]
+			`,
+			camel: `
+				Kind = "ingress-gateway"
+				Name = "ingress-web"
+				Listeners = [
+					{
+						Port = 8080
+						Protocol = "http"
+						Services = [
+							{
+								Name = "web"
+							},
+							{
+								Name = "db"
+							}
+						]
+					},
+					{
+						Port = 9999
+						Protocol = "tcp"
+						Services = [
+							{
+								Name = "mysql"
+							}
+						]
+					},
+					{
+						Port = 2234
+						Protocol = "tcp"
+						Services = [
+							{
+								Name = "postgres"
+								ServiceSubset = "v1"
+							}
+						]
+					}
+				]
+			`,
+			expect: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					IngressListener{
+						Port:     8080,
+						Protocol: "http",
+						Services: []IngressService{
+							IngressService{
+								Name: "web",
+							},
+							IngressService{
+								Name: "db",
+							},
+						},
+					},
+					IngressListener{
+						Port:     9999,
+						Protocol: "tcp",
+						Services: []IngressService{
+							IngressService{
+								Name: "mysql",
+							},
+						},
+					},
+					IngressListener{
+						Port:     2234,
+						Protocol: "tcp",
+						Services: []IngressService{
+							IngressService{
+								Name:          "postgres",
+								ServiceSubset: "v1",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "terminating-gateway: kitchen sink",
+			snake: `
+				kind = "terminating-gateway"
+				name = "terminating-gw-west"
+				services = [
+					{
+						name = "payments",
+						ca_file = "/etc/payments/ca.pem",
+						cert_file = "/etc/payments/cert.pem",
+						key_file = "/etc/payments/tls.key",
+					},
+					{
+						name = "*",
+						ca_file = "/etc/all/ca.pem",
+						cert_file = "/etc/all/cert.pem",
+						key_file = "/etc/all/tls.key",
+					},
+				]
+			`,
+			camel: `
+				Kind = "terminating-gateway"
+				Name = "terminating-gw-west"
+				Services = [
+					{
+						Name = "payments",
+						CAFile = "/etc/payments/ca.pem",
+						CertFile = "/etc/payments/cert.pem",
+						KeyFile = "/etc/payments/tls.key",
+					},
+					{
+						Name = "*",
+						CAFile = "/etc/all/ca.pem",
+						CertFile = "/etc/all/cert.pem",
+						KeyFile = "/etc/all/tls.key",
+					},
+				]
+			`,
+			expect: &TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Services: []LinkedService{
+					{
+						Name:     "payments",
+						CAFile:   "/etc/payments/ca.pem",
+						CertFile: "/etc/payments/cert.pem",
+						KeyFile:  "/etc/payments/tls.key",
+					},
+					{
+						Name:     "*",
+						CAFile:   "/etc/all/ca.pem",
+						CertFile: "/etc/all/cert.pem",
+						KeyFile:  "/etc/all/tls.key",
+					},
+				},
+			},
+		},
 	} {
 		tc := tc
 
@@ -592,12 +764,12 @@ func TestServiceConfigResponse_MsgPack(t *testing.T) {
 
 	// Encode as msgPack using a regular handle i.e. NOT one with RawAsString
 	// since our RPC codec doesn't use that.
-	enc := codec.NewEncoder(&buf, msgpackHandle)
+	enc := codec.NewEncoder(&buf, MsgpackHandle)
 	require.NoError(t, enc.Encode(&a))
 
 	var b ServiceConfigResponse
 
-	dec := codec.NewDecoder(&buf, msgpackHandle)
+	dec := codec.NewDecoder(&buf, MsgpackHandle)
 	require.NoError(t, dec.Decode(&b))
 
 	require.Equal(t, a, b)

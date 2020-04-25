@@ -3,14 +3,14 @@ layout: "docs"
 page_title: "Cloud Auto-join"
 sidebar_current: "docs-agent-cloud-auto-join"
 description: |-
-  Consul supports automatic cluster joining using cloud metadata on various providers.
+  Consul supports automatically joining a Consul datacenter using cloud metadata on various providers.
 ---
 
-# Cloud Auto-joining
+# Cloud Auto-join
 
 As of Consul 0.9.1, `retry-join` accepts a unified interface using the
-[go-discover](https://github.com/hashicorp/go-discover) library for doing
-automatic cluster joining using cloud metadata. To use retry-join with a
+[go-discover](https://github.com/hashicorp/go-discover) library for 
+automatically joining a Consul datacenter using cloud metadata. To use `retry-join` with a
 supported cloud provider, specify the configuration on the command line or
 configuration file as a `key=value key=value ...` string.
 
@@ -76,7 +76,7 @@ $ consul agent -retry-join "provider=aws tag_key=... tag_value=..."
 - EC2 instance role metadata.
 
 The only required IAM permission is `ec2:DescribeInstances`, and it is
-recommended that you make a dedicated key used only for auto-joining. If the
+recommended that you make a dedicated key used only to auto-join the datacenter. If the
 region is omitted it will be discovered through the local instance's [EC2
 metadata
 endpoint](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-identity-documents.html).
@@ -100,7 +100,7 @@ $ consul agent -retry-join "provider=azure tag_name=... tag_value=... tenant_id=
 - `provider` (required) - the name of the provider ("azure" in this case).
 - `tenant_id` (required) - the tenant to join machines in.
 - `client_id` (required) - the client to authenticate with.
-- `secret_access_key` (required) - the secret client key. **NOTE** This value often may have an equals sign in it's value, especially if generated from the Azure Portal, so is important to wrap in single quotes eg. `secret_acccess_key='fpOfcHQJAQBczjAxiVpeyLmX1M0M0KPBST+GU2GvEN4='`
+- `secret_access_key` (required) - the secret client key. **NOTE** This value often may have an equals sign in it's value, especially if generated from the Azure Portal, so is important to wrap in single quotes eg. `secret_access_key='fpOfcHQJAQBczjAxiVpeyLmX1M0M0KPBST+GU2GvEN4='`
 
 Variables can also be provided by environmental variables:
 
@@ -122,6 +122,8 @@ Use these configuration parameters (instead of `tag_name` and `tag_value`) when 
 When using tags the only permission needed is `Microsoft.Network/networkInterfaces`.
 
 When using Virtual Machine Scale Sets the only role action needed is `Microsoft.Compute/virtualMachineScaleSets/*/read`.
+
+~> **Note:** If the Consul datacenter is hosted on Azure, Consul can use Managed Service Identities (MSI) to access Azure instead of an environment variable and shared client id and secret. MSI must be enabled on the VMs hosting Consul, and it is the preferred configuration since MSI prevents your Azure credentials from being stored in Consul configuration. This feature is supported from Consul 1.7 and above.
 
 ### Google Compute Engine
 
@@ -146,6 +148,10 @@ $ consul agent -retry-join "provider=gce project_name=... tag_value=..."
 
 #### Authentication & Precedence
 
+Discovery requires a [GCE Service
+Account](https://cloud.google.com/compute/docs/access/service-accounts).
+Credentials are searched using the following paths, in order of precedence.
+
 - Use credentials from `credentials_file`, if provided.
 - Use JSON file from `GOOGLE_APPLICATION_CREDENTIALS` environment variable.
 - Use JSON file in a location known to the gcloud command-line tool.
@@ -153,10 +159,6 @@ $ consul agent -retry-join "provider=gce project_name=... tag_value=..."
     - On other systems, `$HOME/.config/gcloud/application_default_credentials.json`.
 - On Google Compute Engine, use credentials from the metadata
     server. In this final case any provided scopes are ignored.
-
-Discovery requires a [GCE Service
-Account](https://cloud.google.com/compute/docs/access/service-accounts).
-Credentials are searched using the following paths, in order of precedence.
 
 ### IBM SoftLayer
 
@@ -202,7 +204,7 @@ $ consul agent -retry-join "provider=aliyun region=... tag_key=consul tag_value=
 - `access_key_secret` (required) - the secret key to use for auth.
 
 The required RAM permission is `ecs:DescribeInstances`.
-It is recommended you make a dedicated key used only for auto-joining.
+It is recommended you make a dedicated key used to auto-join.
 
 ### Digital Ocean
 
@@ -242,8 +244,11 @@ $ consul agent -retry-join "provider=os tag_key=consul tag_value=server username
 - `provider` (required) - the name of the provider ("os" in this case).
 - `tag_key` (required) - the key of the tag to auto-join on.
 - `tag_value` (required) - the value of the tag to auto-join on.
+- `domain_name` (optional) - the name of the domain.
+- `domain_id` (optional) - the id of the domain.
 - `project_id` (optional) - the id of the project (tenant id).
-- `username` (optional) - the username to use for auth.
+- `region` (optional) - the name of the region.
+- `user_name` (optional) - the username to use for auth.
 - `password` (optional) - the password to use for auth.
 - `token` (optional) - the token to use for auth.
 - `auth_url` (optional) - the identity endpoint to use for auth.
@@ -271,6 +276,33 @@ $ consul agent -retry-join "provider=scaleway organization=my-org tag_name=consu
 - `tag_name` (required) - the name of the tag to auto-join on.
 - `organization` (required) - the organization access key to use for auth (equal to access key).
 - `token` (required) - the token to use for auth.
+
+
+### TencentCloud
+
+This returns the first IP address of all servers for the given `region` with the given `tag_key` and `tag_value`.
+
+```sh
+$ consul agent -retry-join "provider=tencentcloud region=... tag_key=consul tag_value=... access_key_id=... access_key_secret=..."
+```
+
+```json
+{
+    "retry_join": ["provider=tencentcloud region=... tag_key=consul tag_value=... access_key_id=... access_key_secret=..."]
+}
+```
+
+- `provider` (required) - the name of the provider ("tencentcloud" in this case).
+- `region` (required) - The TencentCloud region.
+- `tag_key` (required) - The tag key to auto-join on.
+- `tag_value` (required) - The tag value to auto-join on.
+- `address_type` (optional) - "private_v4" or "public_v4", default is "private_v4".
+- `access_key_id` (required) - The secret id of TencentCloud.
+- `access_key_secret` (required) - The secret key of TencentCloud.
+
+This required permission to 'cvm:DescribeInstances'.
+It is recommended you make a dedicated key used to auto-join the Consul datacenter.
+
 
 ### Joyent Triton
 
@@ -337,6 +369,29 @@ $ consul agent -retry-join "provider=packet auth_token=token project=uuid url=..
 - `url` (optional) - 		 a REST URL for packet
 - `address_type` (optional) - the type of address to check for in this provider  ("private_v4", "public_v4" or "public_v6".                                   Defaults to "private_v4")
 
+### Linode
+
+This returns the first private IP address of all servers for the given `region` with the given `tag_name`.
+
+```sh
+$ consul agent -retry-join "provider=linode region=us-east tag_name=consul-server"
+```
+
+```json
+{
+        "retry-join": ["provider=linode region=us-east tag_name=consul-server"]
+}
+```
+
+- `provider` (required) is `linode`
+- `api_token` (required) - The Linode API token to use
+- `region` (optional) - The Linode region to filter on
+- `tag_name` (optional) - The tag name to filter on
+- `address_type` (optional) - the type of address to check for in this provider ("private_v4", "public_v4" or "public_v6". Defaults to "private_v4")
+
+Variables can also be provided by environment variables:
+
+- `LINODE_TOKEN` for `api_token`
 
 ### Kubernetes (k8s)
 
@@ -373,3 +428,6 @@ $ consul agent -retry-join "provider=k8s label_selector=\"app=consul,component=s
   set, it defaults to all namespaces.
 - `label_selector` (optional) - the label selector for matching pods.
 - `field_selector` (optional) - the field selector for matching pods.
+
+The Kubernetes token used by the provider needs to have permissions to list pods
+in the desired namespace.

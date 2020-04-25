@@ -14,6 +14,7 @@ Feature: dc / acls / roles / update: ACL Role Update
     ---
     Then the url should be /datacenter/acls/roles/role-id
     Then I see 3 token models
+    And the title should be "Edit Role - Consul"
   Scenario: Update to [Name], [Rules], [Description]
     Then I fill in the role form with yaml
     ---
@@ -21,10 +22,12 @@ Feature: dc / acls / roles / update: ACL Role Update
       Description: [Description]
     ---
     And I submit
-    Then a PUT request is made to "/v1/acl/role/role-id?dc=datacenter" with the body from yaml
+    Then a PUT request was made to "/v1/acl/role/role-id?dc=datacenter" from yaml
     ---
-      Name: [Name]
-      Description: [Description]
+      body:
+        Namespace: @namespace
+        Name: [Name]
+        Description: [Description]
     ---
     Then the url should be /datacenter/acls/roles
     And "[data-notification]" has the "notification-update" class
@@ -42,3 +45,18 @@ Feature: dc / acls / roles / update: ACL Role Update
     Then the url should be /datacenter/acls/roles/role-id
     Then "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "error" class
+
+  @notNamespaceable
+  Scenario: Updating a simple ACL role when Namespaces are disabled does not send Namespace
+    Then I fill in the role form with yaml
+    ---
+      Description: Description
+    ---
+    And I submit
+    Then a PUT request was made to "/v1/acl/role/role-id?dc=datacenter" without properties from yaml
+    ---
+      - Namespace
+    ---
+    Then the url should be /datacenter/acls/roles
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "success" class

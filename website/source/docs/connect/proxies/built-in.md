@@ -11,12 +11,16 @@ description: |-
 Consul comes with a built-in L4 proxy for testing and development with Consul
 Connect.
 
+~> **Note:** [Envoy](https://www.consul.io/docs/connect/proxies/envoy.html) should be used for production deployments, or when [layer 7 traffic management](https://www.consul.io/docs/connect/l7-traffic-management.html) features are needed.
+
+## Getting Started
+
+To get started with the built-in proxy and see a working example you can follow the [Getting Started](https://learn.hashicorp.com/consul/getting-started/connect) guide.
+
+## Proxy Config Key Reference
+
 Below is a complete example of all the configuration options available
 for the built-in proxy.
-
-~> **Note:** Although you can configure the built-in proxy using configuration
-entries, it doesn't have the L7 capability necessary for the observability
-features released with Consul 1.5.
 
 ```javascript
 {
@@ -47,8 +51,6 @@ features released with Consul 1.5.
   }
 }
 ```
-
-## Proxy Config Key Reference
 
 All fields are optional with a sane default.
 

@@ -3,21 +3,17 @@ package fsm
 import (
 	"fmt"
 	"io"
-	"log"
 	"sync"
 	"time"
 
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/go-raftchunking"
 	"github.com/hashicorp/raft"
 )
-
-// msgpackHandle is a shared handle for encoding/decoding msgpack payloads
-var msgpackHandle = &codec.MsgpackHandle{
-	RawToString: true,
-}
 
 // command is a command method on the FSM.
 type command func(buf []byte, index uint64) interface{}
@@ -45,9 +41,8 @@ func registerCommand(msg structs.MessageType, fn unboundCommand) {
 // along with Raft to provide strong consistency. We implement
 // this outside the Server to avoid exposing this outside the package.
 type FSM struct {
-	logOutput io.Writer
-	logger    *log.Logger
-	path      string
+	logger hclog.Logger
+	path   string
 
 	// apply is built off the commands global and is used to route apply
 	// operations to their appropriate handlers.
@@ -66,18 +61,21 @@ type FSM struct {
 }
 
 // New is used to construct a new FSM with a blank state.
-func New(gc *state.TombstoneGC, logOutput io.Writer) (*FSM, error) {
+func New(gc *state.TombstoneGC, logger hclog.Logger) (*FSM, error) {
+	if logger == nil {
+		logger = hclog.New(&hclog.LoggerOptions{})
+	}
+
 	stateNew, err := state.NewStateStore(gc)
 	if err != nil {
 		return nil, err
 	}
 
 	fsm := &FSM{
-		logOutput: logOutput,
-		logger:    log.New(logOutput, "", log.LstdFlags),
-		apply:     make(map[structs.MessageType]command),
-		state:     stateNew,
-		gc:        gc,
+		logger: logger.Named(logging.FSM),
+		apply:  make(map[structs.MessageType]command),
+		state:  stateNew,
+		gc:     gc,
 	}
 
 	// Build out the apply dispatch table based on the registered commands.
@@ -125,7 +123,7 @@ func (c *FSM) Apply(log *raft.Log) interface{} {
 	// Otherwise, see if it's safe to ignore. If not, we have to panic so
 	// that we crash and our state doesn't diverge.
 	if ignoreUnknown {
-		c.logger.Printf("[WARN] consul.fsm: ignoring unknown message type (%d), upgrade to newer version", msgType)
+		c.logger.Warn("ignoring unknown message type, upgrade to newer version", "type", msgType)
 		return nil
 	}
 	panic(fmt.Errorf("failed to apply request: %#v", buf))
@@ -133,7 +131,7 @@ func (c *FSM) Apply(log *raft.Log) interface{} {
 
 func (c *FSM) Snapshot() (raft.FSMSnapshot, error) {
 	defer func(start time.Time) {
-		c.logger.Printf("[INFO] consul.fsm: snapshot created in %v", time.Since(start))
+		c.logger.Info("snapshot created", "duration", time.Since(start).String())
 	}(time.Now())
 
 	chunkState, err := c.chunker.CurrentState()
@@ -163,7 +161,7 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 	defer restore.Abort()
 
 	// Create a decoder
-	dec := codec.NewDecoder(old, msgpackHandle)
+	dec := codec.NewDecoder(old, structs.MsgpackHandle)
 
 	// Read in the header
 	var header snapshotHeader

@@ -61,7 +61,10 @@ export function visitable(path, encoder = encodeURIComponent) {
       return executionContext.runAsync(context => {
         var params;
         let fullPath = (function _try(paths) {
-          const path = paths.shift();
+          let path = paths.shift();
+          if (typeof dynamicSegmentsAndQueryParams.nspace !== 'undefined') {
+            path = `/:nspace${path}`;
+          }
           params = assign({}, dynamicSegmentsAndQueryParams);
           var fullPath;
           try {

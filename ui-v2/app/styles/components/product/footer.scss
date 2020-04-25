@@ -1,5 +1,14 @@
 %footer > a:first-child {
-  @extend %with-hashicorp;
+  position: relative;
+}
+%footer > a:first-child::before {
+  @extend %with-hashicorp-logo-mask, %as-pseudo;
+  background-color: $gray-400;
+  font-size: 1.4em;
+  position: absolute;
+  top: 50%;
+  margin-top: -0.7em;
+  left: -25px;
 }
 %footer {
   border-top: $decor-border-100;

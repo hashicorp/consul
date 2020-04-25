@@ -8,12 +8,14 @@ export default Mixin.create(WithBlockingActions, {
   actions: {
     use: function(item) {
       return this.feedback.execute(() => {
-        // old style legacy ACLs don't have AccessorIDs
-        // therefore set it to null, this way the frontend knows
+        // old style legacy ACLs don't have AccessorIDs or Namespaces
+        // therefore set AccessorID to null, this way the frontend knows
         // to use legacy ACLs
+        // set the Namespace to just use default
         return this.settings
           .persist({
             token: {
+              Namespace: 'default',
               AccessorID: null,
               SecretID: get(item, 'ID'),
             },

@@ -23,7 +23,7 @@ Feature: dc / acls / tokens / use: Using an ACL token
     And "[data-notification]" has the "success" class
     Then I have settings like yaml
     ---
-    consul:token: "{\"AccessorID\":\"token\",\"SecretID\":\"ee52203d-989f-4f7a-ab5a-2bef004164ca\"}"
+    consul:token: "{\"AccessorID\":\"token\",\"SecretID\":\"ee52203d-989f-4f7a-ab5a-2bef004164ca\",\"Namespace\":\"@namespace\"}"
     ---
   Scenario: Using an ACL token from the detail page
     When I visit the token page for yaml
@@ -41,5 +41,5 @@ Feature: dc / acls / tokens / use: Using an ACL token
     And "[data-notification]" has the "success" class
     Then I have settings like yaml
     ---
-    consul:token: "{\"AccessorID\":\"token\",\"SecretID\":\"ee52203d-989f-4f7a-ab5a-2bef004164ca\"}"
+    consul:token: "{\"AccessorID\":\"token\",\"SecretID\":\"ee52203d-989f-4f7a-ab5a-2bef004164ca\",\"Namespace\":\"@namespace\"}"
     ---

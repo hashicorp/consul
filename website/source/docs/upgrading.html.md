@@ -108,3 +108,7 @@ on `consul -v`.
 of Consul, especially newer features, may not be available. If this is the
 case, Consul will typically warn you. In general, you should always upgrade
 your cluster so that you can run the latest protocol version.
+
+## Upgrading on Kubernetes
+
+See the dedicated [Upgrading Consul on Kubernetes](/docs/platform/k8s/upgrading.html) page.

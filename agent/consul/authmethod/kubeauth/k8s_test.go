@@ -1,12 +1,78 @@
 package kubeauth
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/stretchr/testify/require"
 )
+
+func TestStructs_ACLAuthMethod_Kubernetes_MsgpackEncodeDecode(t *testing.T) {
+	in := &structs.ACLAuthMethod{
+		Name:        "k8s",
+		Type:        "kubernetes",
+		Description: "k00b",
+		Config: map[string]interface{}{
+			"Host":              "https://kube.api.internal:8443",
+			"CACert":            "<my garbage ca cert>",
+			"ServiceAccountJWT": "my.fake.jwt",
+		},
+		RaftIndex: structs.RaftIndex{
+			CreateIndex: 5,
+			ModifyIndex: 99,
+		},
+	}
+
+	expectConfig := &Config{
+		Host:              "https://kube.api.internal:8443",
+		CACert:            "<my garbage ca cert>",
+		ServiceAccountJWT: "my.fake.jwt",
+	}
+
+	var (
+		// This is the common configuration pre-1.7.0
+		handle1 = structs.TestingOldPre1dot7MsgpackHandle
+		// This is the common configuration post-1.7.0
+		handle2 = structs.MsgpackHandle
+	)
+
+	decoderCase := func(t *testing.T, encHandle, decHandle *codec.MsgpackHandle) {
+		t.Helper()
+
+		var buf bytes.Buffer
+		enc := codec.NewEncoder(&buf, encHandle)
+		require.NoError(t, enc.Encode(in))
+
+		out := &structs.ACLAuthMethod{}
+		dec := codec.NewDecoder(&buf, decHandle)
+		require.NoError(t, dec.Decode(out))
+
+		var config Config
+		require.NoError(t, authmethod.ParseConfig(in.Config, &config))
+
+		out.Config = in.Config // no longer care about how this field decoded
+		require.Equal(t, in, out)
+		require.Equal(t, expectConfig, &config)
+		// TODO: verify json?
+	}
+
+	t.Run("old encoder and old decoder", func(t *testing.T) {
+		decoderCase(t, handle1, handle1)
+	})
+	t.Run("old encoder and new decoder", func(t *testing.T) {
+		decoderCase(t, handle1, handle2)
+	})
+	t.Run("new encoder and old decoder", func(t *testing.T) {
+		decoderCase(t, handle2, handle1)
+	})
+	t.Run("new encoder and new decoder", func(t *testing.T) {
+		decoderCase(t, handle2, handle2)
+	})
+}
 
 func TestValidateLogin(t *testing.T) {
 	testSrv := StartTestAPIServer(t)
@@ -35,12 +101,12 @@ func TestValidateLogin(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("invalid bearer token", func(t *testing.T) {
-		_, err := validator.ValidateLogin("invalid")
+		_, _, err := validator.ValidateLogin("invalid")
 		require.Error(t, err)
 	})
 
 	t.Run("valid bearer token", func(t *testing.T) {
-		fields, err := validator.ValidateLogin(goodJWT_B)
+		fields, _, err := validator.ValidateLogin(goodJWT_B)
 		require.NoError(t, err)
 		require.Equal(t, map[string]string{
 			"serviceaccount.namespace": "default",
@@ -59,7 +125,7 @@ func TestValidateLogin(t *testing.T) {
 	)
 
 	t.Run("valid bearer token with annotation", func(t *testing.T) {
-		fields, err := validator.ValidateLogin(goodJWT_B)
+		fields, _, err := validator.ValidateLogin(goodJWT_B)
 		require.NoError(t, err)
 		require.Equal(t, map[string]string{
 			"serviceaccount.namespace": "default",

@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/go-uuid"
@@ -33,7 +32,7 @@ func TestBindingRuleReadCommand(t *testing.T) {
 	testDir := testutil.TempDir(t, "acl")
 	defer os.RemoveAll(testDir)
 
-	a := agent.NewTestAgent(t, t.Name(), `
+	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
 	acl {
 		enabled = true
@@ -41,8 +40,6 @@ func TestBindingRuleReadCommand(t *testing.T) {
 			master = "root"
 		}
 	}`)
-
-	a.Agent.LogWriter = logger.NewLogWriter(512)
 
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -139,6 +136,28 @@ func TestBindingRuleReadCommand(t *testing.T) {
 			"-http-addr=" + a.HTTPAddr(),
 			"-token=root",
 			"-id=" + id[0:5],
+		}
+
+		code := cmd.Run(args)
+		require.Equal(t, code, 0)
+		require.Empty(t, ui.ErrorWriter.String())
+
+		output := ui.OutputWriter.String()
+		require.Contains(t, output, fmt.Sprintf("test rule"))
+		require.Contains(t, output, id)
+	})
+
+	t.Run("read by id json formatted", func(t *testing.T) {
+		id := createRule(t)
+
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-id=" + id,
+			"-format=json",
 		}
 
 		code := cmd.Run(args)

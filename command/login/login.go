@@ -54,6 +54,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
+	flags.Merge(c.flags, c.http.NamespaceFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -125,7 +126,7 @@ func (c *cmd) Run(args []string) int {
 
 func (c *cmd) writeToSink(tok *api.ACLToken) error {
 	payload := []byte(tok.SecretID)
-	return file.WriteAtomicWithPerms(c.tokenSinkFile, payload, 0600)
+	return file.WriteAtomicWithPerms(c.tokenSinkFile, payload, 0755, 0600)
 }
 
 func (c *cmd) Synopsis() string {

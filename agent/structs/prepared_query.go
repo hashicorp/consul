@@ -76,6 +76,9 @@ type ServiceQuery struct {
 	// to the _proxy_ and not the service being proxied. In practice, proxies
 	// should be directly next to their services so this isn't an issue.
 	Connect bool
+
+	// EnterpriseMeta is the embedded enterprise metadata
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
 
 const (
@@ -301,6 +304,9 @@ func (q *PreparedQueryExecuteRemoteRequest) RequestDatacenter() string {
 type PreparedQueryExecuteResponse struct {
 	// Service is the service that was queried.
 	Service string
+
+	// EnterpriseMeta of the service that was queried.
+	EnterpriseMeta
 
 	// Nodes has the nodes that were output by the query.
 	Nodes CheckServiceNodes

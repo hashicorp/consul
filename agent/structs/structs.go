@@ -2,6 +2,7 @@ package structs
 
 import (
 	"bytes"
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -20,6 +21,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -65,6 +67,7 @@ const (
 	ACLAuthMethodSetRequestType                 = 27
 	ACLAuthMethodDeleteRequestType              = 28
 	ChunkingStateType                           = 29
+	FederationStateRequestType                  = 30
 )
 
 const (
@@ -96,9 +99,40 @@ const (
 	// MetaSegmentKey is the node metadata key used to store the node's network segment
 	MetaSegmentKey = "consul-network-segment"
 
+	// MetaWANFederationKey is the mesh gateway metadata key that indicates a
+	// mesh gateway is usable for wan federation.
+	MetaWANFederationKey = "consul-wan-federation"
+
 	// MaxLockDelay provides a maximum LockDelay value for
 	// a session. Any value above this will not be respected.
 	MaxLockDelay = 60 * time.Second
+
+	// lockDelayMinThreshold is used in JSON decoding to convert a
+	// numeric lockdelay value from nanoseconds to seconds if it is
+	// below thisthreshold. Users often send a value like 5, which
+	// they assumeis seconds, but because Go uses nanosecond granularity,
+	// ends up being very small. If we see a value below this threshold,
+	// we multiply by time.Second
+	lockDelayMinThreshold = 1000
+
+	// WildcardSpecifier is the string which should be used for specifying a wildcard
+	// The exact semantics of the wildcard is left up to the code where its used.
+	WildcardSpecifier = "*"
+)
+
+var allowedConsulMetaKeysForMeshGateway = map[string]struct{}{MetaWANFederationKey: struct{}{}}
+
+var (
+	NodeMaintCheckID = NewCheckID(NodeMaint, nil)
+)
+
+const (
+	TaggedAddressWAN     = "wan"
+	TaggedAddressWANIPv4 = "wan_ipv4"
+	TaggedAddressWANIPv6 = "wan_ipv6"
+	TaggedAddressLAN     = "lan"
+	TaggedAddressLANIPv4 = "lan_ipv4"
+	TaggedAddressLANIPv6 = "lan_ipv6"
 )
 
 // metaKeyFormat checks if a metadata key string is valid
@@ -114,6 +148,7 @@ type RPCInfo interface {
 	IsRead() bool
 	AllowStaleRead() bool
 	TokenSecret() string
+	SetTokenSecret(string)
 }
 
 // QueryOptions is used to specify various flags for read queries
@@ -203,6 +238,10 @@ func (q QueryOptions) TokenSecret() string {
 	return q.Token
 }
 
+func (q *QueryOptions) SetTokenSecret(s string) {
+	q.Token = s
+}
+
 type WriteRequest struct {
 	// Token is the ACL token ID. If not provided, the 'anonymous'
 	// token is assumed for backwards compatibility.
@@ -220,6 +259,10 @@ func (w WriteRequest) AllowStaleRead() bool {
 
 func (w WriteRequest) TokenSecret() string {
 	return w.Token
+}
+
+func (w *WriteRequest) SetTokenSecret(s string) {
+	w.Token = s
 }
 
 // QueryMeta allows a query response to include potentially
@@ -263,6 +306,9 @@ type RegisterRequest struct {
 	// node portion of this update will not apply.
 	SkipNodeUpdate bool
 
+	// EnterpriseMeta is the embedded enterprise metadata
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+
 	WriteRequest
 }
 
@@ -302,15 +348,31 @@ func (r *RegisterRequest) ChangesNode(node *Node) bool {
 // to deregister a node as providing a service. If no service is
 // provided the entire node is deregistered.
 type DeregisterRequest struct {
-	Datacenter string
-	Node       string
-	ServiceID  string
-	CheckID    types.CheckID
+	Datacenter     string
+	Node           string
+	ServiceID      string
+	CheckID        types.CheckID
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	WriteRequest
 }
 
 func (r *DeregisterRequest) RequestDatacenter() string {
 	return r.Datacenter
+}
+
+func (r *DeregisterRequest) UnmarshalJSON(data []byte) error {
+	type Alias DeregisterRequest
+	aux := &struct {
+		Address string // obsolete field - but we want to explicitly allow it
+		*Alias
+	}{
+		Alias: (*Alias)(r),
+	}
+
+	if err := lib.UnmarshalJSON(data, &aux); err != nil {
+		return err
+	}
+	return nil
 }
 
 // QuerySource is used to pass along information about the source node
@@ -344,6 +406,7 @@ type DCSpecificRequest struct {
 	Datacenter      string
 	NodeMetaFilters map[string]string
 	Source          QuerySource
+	EnterpriseMeta  `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
 
@@ -367,6 +430,7 @@ func (r *DCSpecificRequest) CacheInfo() cache.RequestInfo {
 	v, err := hashstructure.Hash([]interface{}{
 		r.NodeMetaFilters,
 		r.Filter,
+		r.EnterpriseMeta,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -387,6 +451,7 @@ type ServiceDumpRequest struct {
 	ServiceKind    ServiceKind
 	UseServiceKind bool
 	Source         QuerySource
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
 
@@ -416,6 +481,7 @@ func (r *ServiceDumpRequest) CacheInfo() cache.RequestInfo {
 		keyKind,
 		r.UseServiceKind,
 		r.Filter,
+		r.EnterpriseMeta,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -447,6 +513,13 @@ type ServiceSpecificRequest struct {
 	// Connect if true will only search for Connect-compatible services.
 	Connect bool
 
+	// TODO(ingress): Add corresponding API changes after figuring out what the
+	// HTTP endpoint looks like
+
+	// Ingress if true will only search for Ingress gateways for the given service.
+	Ingress bool
+
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
 
@@ -488,6 +561,7 @@ func (r *ServiceSpecificRequest) CacheInfo() cache.RequestInfo {
 		r.TagFilter,
 		r.Connect,
 		r.Filter,
+		r.EnterpriseMeta,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -505,8 +579,9 @@ func (r *ServiceSpecificRequest) CacheMinIndex() uint64 {
 
 // NodeSpecificRequest is used to request the information about a single node
 type NodeSpecificRequest struct {
-	Datacenter string
-	Node       string
+	Datacenter     string
+	Node           string
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
 
@@ -527,6 +602,7 @@ func (r *NodeSpecificRequest) CacheInfo() cache.RequestInfo {
 	v, err := hashstructure.Hash([]interface{}{
 		r.Node,
 		r.Filter,
+		r.EnterpriseMeta,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -544,6 +620,8 @@ type ChecksInStateRequest struct {
 	NodeMetaFilters map[string]string
 	State           string
 	Source          QuerySource
+
+	EnterpriseMeta `mapstructure:",squash"`
 	QueryOptions
 }
 
@@ -565,7 +643,7 @@ type Node struct {
 
 func (n *Node) BestAddress(wan bool) string {
 	if wan {
-		if addr, ok := n.TaggedAddresses["wan"]; ok {
+		if addr, ok := n.TaggedAddresses[TaggedAddressWAN]; ok {
 			return addr
 		}
 	}
@@ -585,14 +663,30 @@ func (n *Node) IsSame(other *Node) bool {
 		reflect.DeepEqual(n.Meta, other.Meta)
 }
 
+// ValidateNodeMetadata validates a set of key/value pairs from the agent
+// config for use on a Node.
+func ValidateNodeMetadata(meta map[string]string, allowConsulPrefix bool) error {
+	return validateMetadata(meta, allowConsulPrefix, nil)
+}
+
+// ValidateServiceMetadata validates a set of key/value pairs from the agent config for use on a Service.
 // ValidateMeta validates a set of key/value pairs from the agent config
-func ValidateMetadata(meta map[string]string, allowConsulPrefix bool) error {
+func ValidateServiceMetadata(kind ServiceKind, meta map[string]string, allowConsulPrefix bool) error {
+	switch kind {
+	case ServiceKindMeshGateway:
+		return validateMetadata(meta, allowConsulPrefix, allowedConsulMetaKeysForMeshGateway)
+	default:
+		return validateMetadata(meta, allowConsulPrefix, nil)
+	}
+}
+
+func validateMetadata(meta map[string]string, allowConsulPrefix bool, allowedConsulKeys map[string]struct{}) error {
 	if len(meta) > metaMaxKeyPairs {
 		return fmt.Errorf("Node metadata cannot contain more than %d key/value pairs", metaMaxKeyPairs)
 	}
 
 	for key, value := range meta {
-		if err := validateMetaPair(key, value, allowConsulPrefix); err != nil {
+		if err := validateMetaPair(key, value, allowConsulPrefix, allowedConsulKeys); err != nil {
 			return fmt.Errorf("Couldn't load metadata pair ('%s', '%s'): %s", key, value, err)
 		}
 	}
@@ -618,7 +712,7 @@ func ValidateWeights(weights *Weights) error {
 }
 
 // validateMetaPair checks that the given key/value pair is in a valid format
-func validateMetaPair(key, value string, allowConsulPrefix bool) error {
+func validateMetaPair(key, value string, allowConsulPrefix bool, allowedConsulKeys map[string]struct{}) error {
 	if key == "" {
 		return fmt.Errorf("Key cannot be blank")
 	}
@@ -628,8 +722,10 @@ func validateMetaPair(key, value string, allowConsulPrefix bool) error {
 	if len(key) > metaKeyMaxLength {
 		return fmt.Errorf("Key is too long (limit: %d characters)", metaKeyMaxLength)
 	}
-	if strings.HasPrefix(key, metaKeyReservedPrefix) && !allowConsulPrefix {
-		return fmt.Errorf("Key prefix '%s' is reserved for internal use", metaKeyReservedPrefix)
+	if strings.HasPrefix(key, metaKeyReservedPrefix) {
+		if _, ok := allowedConsulKeys[key]; !allowConsulPrefix && !ok {
+			return fmt.Errorf("Key prefix '%s' is reserved for internal use", metaKeyReservedPrefix)
+		}
 	}
 	if len(value) > metaValueMaxLength {
 		return fmt.Errorf("Value is too long (limit: %d characters)", metaValueMaxLength)
@@ -676,6 +772,8 @@ type ServiceNode struct {
 	ServiceProxy             ConnectProxyConfig
 	ServiceConnect           ServiceConnect
 
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash" bexpr:"-"`
+
 	RaftIndex `bexpr:"-"`
 }
 
@@ -718,6 +816,7 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
 		},
+		EnterpriseMeta: s.EnterpriseMeta,
 	}
 }
 
@@ -736,11 +835,38 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 		EnableTagOverride: s.ServiceEnableTagOverride,
 		Proxy:             s.ServiceProxy,
 		Connect:           s.ServiceConnect,
+		EnterpriseMeta:    s.EnterpriseMeta,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
 		},
 	}
+}
+
+func (sn *ServiceNode) compoundID(preferName bool) ServiceID {
+	var id string
+	if sn.ServiceID == "" || (preferName && sn.ServiceName != "") {
+		id = sn.ServiceName
+	} else {
+		id = sn.ServiceID
+	}
+
+	// copy the ent meta and normalize it
+	entMeta := sn.EnterpriseMeta
+	entMeta.Normalize()
+
+	return ServiceID{
+		ID:             id,
+		EnterpriseMeta: entMeta,
+	}
+}
+
+func (sn *ServiceNode) CompoundServiceID() ServiceID {
+	return sn.compoundID(false)
+}
+
+func (sn *ServiceNode) CompoundServiceName() ServiceID {
+	return sn.compoundID(true)
 }
 
 // Weights represent the weight used by DNS for a given status
@@ -770,21 +896,16 @@ const (
 	// service will proxy connections based off the SNI header set by other
 	// connect proxies
 	ServiceKindMeshGateway ServiceKind = "mesh-gateway"
-)
 
-func ServiceKindFromString(kind string) (ServiceKind, error) {
-	switch kind {
-	case string(ServiceKindTypical):
-		return ServiceKindTypical, nil
-	case string(ServiceKindConnectProxy):
-		return ServiceKindConnectProxy, nil
-	case string(ServiceKindMeshGateway):
-		return ServiceKindMeshGateway, nil
-	default:
-		// have to return something and it may as well be typical
-		return ServiceKindTypical, fmt.Errorf("Invalid service kind: %s", kind)
-	}
-}
+	// ServiceKindTerminatingGateway is a Terminating Gateway for the Connect
+	// feature. This service will proxy connections to services outside the mesh.
+	ServiceKindTerminatingGateway ServiceKind = "terminating-gateway"
+
+	// ServiceKindIngressGateway is an Ingress Gateway for the Connect feature.
+	// This service allows external traffic to enter the mesh based on
+	// centralized configuration.
+	ServiceKindIngressGateway ServiceKind = "ingress-gateway"
+)
 
 // Type to hold a address and port of a service
 type ServiceAddress struct {
@@ -843,6 +964,8 @@ type NodeService struct {
 	// somewhere this is used in API output.
 	LocallyRegisteredAsSidecar bool `json:"-" bexpr:"-"`
 
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash" bexpr:"-"`
+
 	RaftIndex `bexpr:"-"`
 }
 
@@ -851,7 +974,7 @@ func (ns *NodeService) BestAddress(wan bool) (string, int) {
 	port := ns.Port
 
 	if wan {
-		if wan, ok := ns.TaggedAddresses["wan"]; ok {
+		if wan, ok := ns.TaggedAddresses[TaggedAddressWAN]; ok {
 			addr = wan.Address
 			if wan.Port != 0 {
 				port = wan.Port
@@ -859,6 +982,32 @@ func (ns *NodeService) BestAddress(wan bool) (string, int) {
 		}
 	}
 	return addr, port
+}
+
+func (ns *NodeService) compoundID(preferName bool) ServiceID {
+	var id string
+	if ns.ID == "" || (preferName && ns.Service != "") {
+		id = ns.Service
+	} else {
+		id = ns.ID
+	}
+
+	// copy the ent meta and normalize it
+	entMeta := ns.EnterpriseMeta
+	entMeta.Normalize()
+
+	return ServiceID{
+		ID:             id,
+		EnterpriseMeta: entMeta,
+	}
+}
+
+func (ns *NodeService) CompoundServiceID() ServiceID {
+	return ns.compoundID(false)
+}
+
+func (ns *NodeService) CompoundServiceName() ServiceID {
+	return ns.compoundID(true)
 }
 
 // ServiceConnect are the shared Connect settings between all service
@@ -877,14 +1026,33 @@ type ServiceConnect struct {
 	SidecarService *ServiceDefinition `json:",omitempty" bexpr:"-"`
 }
 
+func (t *ServiceConnect) UnmarshalJSON(data []byte) (err error) {
+	type Alias ServiceConnect
+	aux := &struct {
+		SidecarServiceSnake *ServiceDefinition `json:"sidecar_service"`
+
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+	if err = json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	if t.SidecarService == nil {
+		t.SidecarService = aux.SidecarServiceSnake
+	}
+	return nil
+}
+
 // IsSidecarProxy returns true if the NodeService is a sidecar proxy.
 func (s *NodeService) IsSidecarProxy() bool {
 	return s.Kind == ServiceKindConnectProxy && s.Proxy.DestinationServiceID != ""
 }
 
-func (s *NodeService) IsMeshGateway() bool {
-	// TODO (mesh-gateway) any other things to check?
-	return s.Kind == ServiceKindMeshGateway
+func (s *NodeService) IsGateway() bool {
+	return s.Kind == ServiceKindMeshGateway ||
+		s.Kind == ServiceKindTerminatingGateway ||
+		s.Kind == ServiceKindIngressGateway
 }
 
 // Validate validates the node service configuration.
@@ -981,36 +1149,36 @@ func (s *NodeService) Validate() error {
 		}
 	}
 
-	// MeshGateway validation
-	if s.Kind == ServiceKindMeshGateway {
-		// Gateways must have a port
-		if s.Port == 0 {
-			result = multierror.Append(result, fmt.Errorf("Port must be non-zero for a Mesh Gateway"))
+	// Gateway validation
+	if s.IsGateway() {
+		// Non-ingress gateways must have a port
+		if s.Port == 0 && s.Kind != ServiceKindIngressGateway {
+			result = multierror.Append(result, fmt.Errorf("Port must be non-zero for a %s", s.Kind))
 		}
 
 		// Gateways cannot have sidecars
 		if s.Connect.SidecarService != nil {
-			result = multierror.Append(result, fmt.Errorf("Mesh Gateways cannot have a sidecar service defined"))
+			result = multierror.Append(result, fmt.Errorf("A %s cannot have a sidecar service defined", s.Kind))
 		}
 
 		if s.Proxy.DestinationServiceName != "" {
-			result = multierror.Append(result, fmt.Errorf("The Proxy.DestinationServiceName configuration is invalid for Mesh Gateways"))
+			result = multierror.Append(result, fmt.Errorf("The Proxy.DestinationServiceName configuration is invalid for a %s", s.Kind))
 		}
 
 		if s.Proxy.DestinationServiceID != "" {
-			result = multierror.Append(result, fmt.Errorf("The Proxy.DestinationServiceID configuration is invalid for Mesh Gateways"))
+			result = multierror.Append(result, fmt.Errorf("The Proxy.DestinationServiceID configuration is invalid for a %s", s.Kind))
 		}
 
 		if s.Proxy.LocalServiceAddress != "" {
-			result = multierror.Append(result, fmt.Errorf("The Proxy.LocalServiceAddress configuration is invalid for Mesh Gateways"))
+			result = multierror.Append(result, fmt.Errorf("The Proxy.LocalServiceAddress configuration is invalid for a %s", s.Kind))
 		}
 
 		if s.Proxy.LocalServicePort != 0 {
-			result = multierror.Append(result, fmt.Errorf("The Proxy.LocalServicePort configuration is invalid for Mesh Gateways"))
+			result = multierror.Append(result, fmt.Errorf("The Proxy.LocalServicePort configuration is invalid for a %s", s.Kind))
 		}
 
 		if len(s.Proxy.Upstreams) != 0 {
-			result = multierror.Append(result, fmt.Errorf("The Proxy.Upstreams configuration is invalid for Mesh Gateways"))
+			result = multierror.Append(result, fmt.Errorf("The Proxy.Upstreams configuration is invalid for a %s", s.Kind))
 		}
 	}
 
@@ -1048,7 +1216,8 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 		s.EnableTagOverride != other.EnableTagOverride ||
 		s.Kind != other.Kind ||
 		!reflect.DeepEqual(s.Proxy, other.Proxy) ||
-		s.Connect != other.Connect {
+		s.Connect != other.Connect ||
+		!s.EnterpriseMeta.IsSame(&other.EnterpriseMeta) {
 		return false
 	}
 
@@ -1081,7 +1250,8 @@ func (s *ServiceNode) IsSameService(other *ServiceNode) bool {
 		!reflect.DeepEqual(s.ServiceWeights, other.ServiceWeights) ||
 		s.ServiceEnableTagOverride != other.ServiceEnableTagOverride ||
 		!reflect.DeepEqual(s.ServiceProxy, other.ServiceProxy) ||
-		!reflect.DeepEqual(s.ServiceConnect, other.ServiceConnect) {
+		!reflect.DeepEqual(s.ServiceConnect, other.ServiceConnect) ||
+		!s.EnterpriseMeta.IsSame(&other.EnterpriseMeta) {
 		return false
 	}
 
@@ -1116,6 +1286,7 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 		ServiceEnableTagOverride: s.EnableTagOverride,
 		ServiceProxy:             s.Proxy,
 		ServiceConnect:           s.Connect,
+		EnterpriseMeta:           s.EnterpriseMeta,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
@@ -1126,6 +1297,11 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 type NodeServices struct {
 	Node     *Node
 	Services map[string]*NodeService
+}
+
+type NodeServiceList struct {
+	Node     *Node
+	Services []*NodeService
 }
 
 // HealthCheck represents a single check on a given node
@@ -1139,10 +1315,38 @@ type HealthCheck struct {
 	ServiceID   string        // optional associated service
 	ServiceName string        // optional service name
 	ServiceTags []string      // optional service tags
+	Type        string        // Check type: http/ttl/tcp/etc
 
 	Definition HealthCheckDefinition `bexpr:"-"`
 
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash" bexpr:"-"`
+
 	RaftIndex `bexpr:"-"`
+}
+
+func (hc *HealthCheck) CompoundServiceID() ServiceID {
+	id := hc.ServiceID
+	if id == "" {
+		id = hc.ServiceName
+	}
+
+	entMeta := hc.EnterpriseMeta
+	entMeta.Normalize()
+
+	return ServiceID{
+		ID:             id,
+		EnterpriseMeta: entMeta,
+	}
+}
+
+func (hc *HealthCheck) CompoundCheckID() CheckID {
+	entMeta := hc.EnterpriseMeta
+	entMeta.Normalize()
+
+	return CheckID{
+		ID:             hc.CheckID,
+		EnterpriseMeta: entMeta,
+	}
 }
 
 type HealthCheckDefinition struct {
@@ -1150,6 +1354,7 @@ type HealthCheckDefinition struct {
 	TLSSkipVerify                  bool                `json:",omitempty"`
 	Header                         map[string][]string `json:",omitempty"`
 	Method                         string              `json:",omitempty"`
+	Body                           string              `json:",omitempty"`
 	TCP                            string              `json:",omitempty"`
 	Interval                       time.Duration       `json:",omitempty"`
 	OutputMaxSize                  uint                `json:",omitempty"`
@@ -1193,33 +1398,58 @@ func (d *HealthCheckDefinition) MarshalJSON() ([]byte, error) {
 	return json.Marshal(exported)
 }
 
-func (d *HealthCheckDefinition) UnmarshalJSON(data []byte) error {
+func (t *HealthCheckDefinition) UnmarshalJSON(data []byte) (err error) {
 	type Alias HealthCheckDefinition
 	aux := &struct {
-		Interval                       string
-		Timeout                        string
-		DeregisterCriticalServiceAfter string
+		Interval                       interface{}
+		Timeout                        interface{}
+		DeregisterCriticalServiceAfter interface{}
+		TTL                            interface{}
 		*Alias
 	}{
-		Alias: (*Alias)(d),
+		Alias: (*Alias)(t),
 	}
 	if err := json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
-	var err error
-	if aux.Interval != "" {
-		if d.Interval, err = time.ParseDuration(aux.Interval); err != nil {
-			return err
+	if aux.Interval != nil {
+		switch v := aux.Interval.(type) {
+		case string:
+			if t.Interval, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			t.Interval = time.Duration(v)
 		}
 	}
-	if aux.Timeout != "" {
-		if d.Timeout, err = time.ParseDuration(aux.Timeout); err != nil {
-			return err
+	if aux.Timeout != nil {
+		switch v := aux.Timeout.(type) {
+		case string:
+			if t.Timeout, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			t.Timeout = time.Duration(v)
 		}
 	}
-	if aux.DeregisterCriticalServiceAfter != "" {
-		if d.DeregisterCriticalServiceAfter, err = time.ParseDuration(aux.DeregisterCriticalServiceAfter); err != nil {
-			return err
+	if aux.DeregisterCriticalServiceAfter != nil {
+		switch v := aux.DeregisterCriticalServiceAfter.(type) {
+		case string:
+			if t.DeregisterCriticalServiceAfter, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			t.DeregisterCriticalServiceAfter = time.Duration(v)
+		}
+	}
+	if aux.TTL != nil {
+		switch v := aux.TTL.(type) {
+		case string:
+			if t.TTL, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			t.TTL = time.Duration(v)
 		}
 	}
 	return nil
@@ -1239,7 +1469,8 @@ func (c *HealthCheck) IsSame(other *HealthCheck) bool {
 		c.ServiceID != other.ServiceID ||
 		c.ServiceName != other.ServiceName ||
 		!reflect.DeepEqual(c.ServiceTags, other.ServiceTags) ||
-		!reflect.DeepEqual(c.Definition, other.Definition) {
+		!reflect.DeepEqual(c.Definition, other.Definition) ||
+		!c.EnterpriseMeta.IsSame(&other.EnterpriseMeta) {
 		return false
 	}
 
@@ -1252,6 +1483,33 @@ func (c *HealthCheck) Clone() *HealthCheck {
 	clone := new(HealthCheck)
 	*clone = *c
 	return clone
+}
+
+func (c *HealthCheck) CheckType() *CheckType {
+	return &CheckType{
+		CheckID: c.CheckID,
+		Name:    c.Name,
+		Status:  c.Status,
+		Notes:   c.Notes,
+
+		ScriptArgs:                     c.Definition.ScriptArgs,
+		AliasNode:                      c.Definition.AliasNode,
+		AliasService:                   c.Definition.AliasService,
+		HTTP:                           c.Definition.HTTP,
+		GRPC:                           c.Definition.GRPC,
+		GRPCUseTLS:                     c.Definition.GRPCUseTLS,
+		Header:                         c.Definition.Header,
+		Method:                         c.Definition.Method,
+		Body:                           c.Definition.Body,
+		TCP:                            c.Definition.TCP,
+		Interval:                       c.Definition.Interval,
+		DockerContainerID:              c.Definition.DockerContainerID,
+		Shell:                          c.Definition.Shell,
+		TLSSkipVerify:                  c.Definition.TLSSkipVerify,
+		Timeout:                        c.Definition.Timeout,
+		TTL:                            c.Definition.TTL,
+		DeregisterCriticalServiceAfter: c.Definition.DeregisterCriticalServiceAfter,
+	}
 }
 
 // HealthChecks is a collection of HealthCheck structs.
@@ -1294,6 +1552,13 @@ func (nodes CheckServiceNodes) Shuffle() {
 		j := rand.Int31n(int32(i + 1))
 		nodes[i], nodes[j] = nodes[j], nodes[i]
 	}
+}
+
+// ShallowClone duplicates the slice and underlying array.
+func (nodes CheckServiceNodes) ShallowClone() CheckServiceNodes {
+	dup := make(CheckServiceNodes, len(nodes))
+	copy(dup, nodes)
+	return dup
 }
 
 // Filter removes nodes that are failing health checks (and any non-passing
@@ -1352,6 +1617,78 @@ type NodeInfo struct {
 // as it is rather expensive to generate.
 type NodeDump []*NodeInfo
 
+type CheckID struct {
+	ID types.CheckID
+	EnterpriseMeta
+}
+
+func NewCheckID(id types.CheckID, entMeta *EnterpriseMeta) CheckID {
+	var cid CheckID
+	cid.ID = id
+	if entMeta == nil {
+		entMeta = DefaultEnterpriseMeta()
+	}
+
+	cid.EnterpriseMeta = *entMeta
+	cid.EnterpriseMeta.Normalize()
+	return cid
+}
+
+// StringHash is used mainly to populate part of the filename of a check
+// definition persisted on the local agent
+func (cid *CheckID) StringHash() string {
+	hasher := md5.New()
+	hasher.Write([]byte(cid.ID))
+	cid.EnterpriseMeta.addToHash(hasher, true)
+	return fmt.Sprintf("%x", hasher.Sum(nil))
+}
+
+type ServiceID struct {
+	ID string
+	EnterpriseMeta
+}
+
+func NewServiceID(id string, entMeta *EnterpriseMeta) ServiceID {
+	var sid ServiceID
+	sid.ID = id
+	if entMeta == nil {
+		entMeta = DefaultEnterpriseMeta()
+	}
+
+	sid.EnterpriseMeta = *entMeta
+	sid.EnterpriseMeta.Normalize()
+	return sid
+}
+
+func (sid *ServiceID) Matches(other *ServiceID) bool {
+	if sid == nil && other == nil {
+		return true
+	}
+
+	if sid == nil || other == nil || sid.ID != other.ID || !sid.EnterpriseMeta.Matches(&other.EnterpriseMeta) {
+		return false
+	}
+
+	return true
+}
+
+// StringHash is used mainly to populate part of the filename of a service
+// definition persisted on the local agent
+func (sid *ServiceID) StringHash() string {
+	hasher := md5.New()
+	hasher.Write([]byte(sid.ID))
+	sid.EnterpriseMeta.addToHash(hasher, true)
+	return fmt.Sprintf("%x", hasher.Sum(nil))
+}
+
+func (sid *ServiceID) LessThan(other *ServiceID) bool {
+	if sid.EnterpriseMeta.LessThan(&other.EnterpriseMeta) {
+		return true
+	}
+
+	return sid.ID < other.ID
+}
+
 type IndexedNodes struct {
 	Nodes Nodes
 	QueryMeta
@@ -1359,6 +1696,25 @@ type IndexedNodes struct {
 
 type IndexedServices struct {
 	Services Services
+	// In various situations we need to know the meta that the services are for - in particular
+	// this is needed to be able to properly filter the list based on ACLs
+	EnterpriseMeta
+	QueryMeta
+}
+
+type ServiceInfo struct {
+	Name string
+	EnterpriseMeta
+}
+
+func (si *ServiceInfo) ToServiceID() ServiceID {
+	return ServiceID{ID: si.Name, EnterpriseMeta: si.EnterpriseMeta}
+}
+
+type ServiceList []ServiceInfo
+
+type IndexedServiceList struct {
+	Services ServiceList
 	QueryMeta
 }
 
@@ -1374,6 +1730,11 @@ type IndexedNodeServices struct {
 	QueryMeta
 }
 
+type IndexedNodeServiceList struct {
+	NodeServices NodeServiceList
+	QueryMeta
+}
+
 type IndexedHealthChecks struct {
 	HealthChecks HealthChecks
 	QueryMeta
@@ -1384,8 +1745,18 @@ type IndexedCheckServiceNodes struct {
 	QueryMeta
 }
 
+type DatacenterIndexedCheckServiceNodes struct {
+	DatacenterNodes map[string]CheckServiceNodes
+	QueryMeta
+}
+
 type IndexedNodeDump struct {
 	Dump NodeDump
+	QueryMeta
+}
+
+type IndexedGatewayServices struct {
+	Services GatewayServices
 	QueryMeta
 }
 
@@ -1401,7 +1772,7 @@ func (c *IndexedConfigEntries) MarshalBinary() (data []byte, err error) {
 	// bs will grow if needed but allocate enough to avoid reallocation in common
 	// case.
 	bs := make([]byte, 128)
-	enc := codec.NewEncoderBytes(&bs, msgpackHandle)
+	enc := codec.NewEncoderBytes(&bs, MsgpackHandle)
 
 	// Encode length.
 	err = enc.Encode(len(c.Entries))
@@ -1431,7 +1802,7 @@ func (c *IndexedConfigEntries) MarshalBinary() (data []byte, err error) {
 func (c *IndexedConfigEntries) UnmarshalBinary(data []byte) error {
 	// First decode the number of entries.
 	var numEntries int
-	dec := codec.NewDecoderBytes(data, msgpackHandle)
+	dec := codec.NewDecoderBytes(data, MsgpackHandle)
 	if err := dec.Decode(&numEntries); err != nil {
 		return err
 	}
@@ -1475,7 +1846,7 @@ func (c *IndexedGenericConfigEntries) MarshalBinary() (data []byte, err error) {
 	// bs will grow if needed but allocate enough to avoid reallocation in common
 	// case.
 	bs := make([]byte, 128)
-	enc := codec.NewEncoderBytes(&bs, msgpackHandle)
+	enc := codec.NewEncoderBytes(&bs, MsgpackHandle)
 
 	if err := enc.Encode(len(c.Entries)); err != nil {
 		return nil, err
@@ -1500,7 +1871,7 @@ func (c *IndexedGenericConfigEntries) MarshalBinary() (data []byte, err error) {
 func (c *IndexedGenericConfigEntries) UnmarshalBinary(data []byte) error {
 	// First decode the number of entries.
 	var numEntries int
-	dec := codec.NewDecoderBytes(data, msgpackHandle)
+	dec := codec.NewDecoderBytes(data, MsgpackHandle)
 	if err := dec.Decode(&numEntries); err != nil {
 		return err
 	}
@@ -1542,6 +1913,7 @@ type DirEntry struct {
 	Value     []byte
 	Session   string `json:",omitempty"`
 
+	EnterpriseMeta `bexpr:"-"`
 	RaftIndex
 }
 
@@ -1557,6 +1929,7 @@ func (d *DirEntry) Clone() *DirEntry {
 			CreateIndex: d.CreateIndex,
 			ModifyIndex: d.ModifyIndex,
 		},
+		EnterpriseMeta: d.EnterpriseMeta,
 	}
 }
 
@@ -1586,6 +1959,7 @@ func (r *KVSRequest) RequestDatacenter() string {
 type KeyRequest struct {
 	Datacenter string
 	Key        string
+	EnterpriseMeta
 	QueryOptions
 }
 
@@ -1599,6 +1973,7 @@ type KeyListRequest struct {
 	Prefix     string
 	Seperator  string
 	QueryOptions
+	EnterpriseMeta
 }
 
 func (r *KeyListRequest) RequestDatacenter() string {
@@ -1627,20 +2002,61 @@ const (
 	SessionTTLMultiplier = 2
 )
 
+type Sessions []*Session
+
 // Session is used to represent an open session in the KV store.
 // This issued to associate node checks with acquired locks.
 type Session struct {
-	ID        string
-	Name      string
-	Node      string
-	Checks    []types.CheckID
-	LockDelay time.Duration
-	Behavior  SessionBehavior // What to do when session is invalidated
-	TTL       string
+	ID            string
+	Name          string
+	Node          string
+	LockDelay     time.Duration
+	Behavior      SessionBehavior // What to do when session is invalidated
+	TTL           string
+	NodeChecks    []string
+	ServiceChecks []ServiceCheck
 
+	// Deprecated v1.7.0.
+	Checks []types.CheckID `json:",omitempty"`
+
+	EnterpriseMeta
 	RaftIndex
 }
-type Sessions []*Session
+
+type ServiceCheck struct {
+	ID        string
+	Namespace string
+}
+
+func (s *Session) UnmarshalJSON(data []byte) (err error) {
+	type Alias Session
+	aux := &struct {
+		LockDelay interface{}
+		*Alias
+	}{
+		Alias: (*Alias)(s),
+	}
+	if err = json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	if aux.LockDelay != nil {
+		var dur time.Duration
+		switch v := aux.LockDelay.(type) {
+		case string:
+			if dur, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			dur = time.Duration(v)
+		}
+		// Convert low value integers into seconds
+		if dur < lockDelayMinThreshold {
+			dur = dur * time.Second
+		}
+		s.LockDelay = dur
+	}
+	return nil
+}
 
 type SessionOp string
 
@@ -1664,7 +2080,10 @@ func (r *SessionRequest) RequestDatacenter() string {
 // SessionSpecificRequest is used to request a session by ID
 type SessionSpecificRequest struct {
 	Datacenter string
-	Session    string
+	SessionID  string
+	// DEPRECATED in 1.7.0
+	Session string
+	EnterpriseMeta
 	QueryOptions
 }
 
@@ -1765,20 +2184,56 @@ func (r *TombstoneRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
-// msgpackHandle is a shared handle for encoding/decoding of structs
-var msgpackHandle = &codec.MsgpackHandle{}
+// MsgpackHandle is a shared handle for encoding/decoding msgpack payloads
+var MsgpackHandle = &codec.MsgpackHandle{
+	RawToString: true,
+	BasicHandle: codec.BasicHandle{
+		DecodeOptions: codec.DecodeOptions{
+			MapType: reflect.TypeOf(map[string]interface{}{}),
+		},
+	},
+}
 
 // Decode is used to decode a MsgPack encoded object
 func Decode(buf []byte, out interface{}) error {
-	return codec.NewDecoder(bytes.NewReader(buf), msgpackHandle).Decode(out)
+	return codec.NewDecoder(bytes.NewReader(buf), MsgpackHandle).Decode(out)
 }
 
 // Encode is used to encode a MsgPack object with type prefix
 func Encode(t MessageType, msg interface{}) ([]byte, error) {
 	var buf bytes.Buffer
 	buf.WriteByte(uint8(t))
-	err := codec.NewEncoder(&buf, msgpackHandle).Encode(msg)
+	err := codec.NewEncoder(&buf, MsgpackHandle).Encode(msg)
 	return buf.Bytes(), err
+}
+
+type ProtoMarshaller interface {
+	Size() int
+	MarshalTo([]byte) (int, error)
+	Unmarshal([]byte) error
+	ProtoMessage()
+}
+
+func EncodeProtoInterface(t MessageType, message interface{}) ([]byte, error) {
+	if marshaller, ok := message.(ProtoMarshaller); ok {
+		return EncodeProto(t, marshaller)
+	}
+
+	return nil, fmt.Errorf("message does not implement the ProtoMarshaller interface: %T", message)
+}
+
+func EncodeProto(t MessageType, message ProtoMarshaller) ([]byte, error) {
+	data := make([]byte, message.Size()+1)
+	data[0] = uint8(t)
+	if _, err := message.MarshalTo(data[1:]); err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+func DecodeProto(buf []byte, out ProtoMarshaller) error {
+	// Note that this assumes the leading byte indicating the type as already been stripped off.
+	return out.Unmarshal(buf)
 }
 
 // CompoundResponse is an interface for gathering multiple responses. It is

@@ -25,7 +25,7 @@ export default Component.extend(SlotsMixin, WithListeners, {
     this._super(...arguments);
     this.searchable = this.container.searchable(this.type);
     this.form = this.formContainer.form(this.type);
-    this.form.clear({ Datacenter: this.dc });
+    this.form.clear({ Datacenter: this.dc, Namespace: this.nspace });
   },
   options: computed('selectedOptions.[]', 'allOptions.[]', function() {
     // It's not massively important here that we are defaulting `items` and
@@ -52,11 +52,11 @@ export default Component.extend(SlotsMixin, WithListeners, {
       });
     },
     reset: function() {
-      this.form.clear({ Datacenter: this.dc });
+      this.form.clear({ Datacenter: this.dc, Namespace: this.nspace });
     },
     open: function() {
       if (!get(this, 'allOptions.closed')) {
-        set(this, 'allOptions', this.repo.findAllByDatacenter(this.dc));
+        set(this, 'allOptions', this.repo.findAllByDatacenter(this.dc, this.nspace));
       }
     },
     save: function(item, items, success = function() {}) {

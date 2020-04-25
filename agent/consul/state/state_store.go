@@ -3,9 +3,8 @@ package state
 import (
 	"errors"
 	"fmt"
-
-	"github.com/hashicorp/consul/types"
-	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-memdb"
 )
 
 var (
@@ -82,13 +81,14 @@ var (
 const (
 	// watchLimit is used as a soft limit to cap how many watches we allow
 	// for a given blocking query. If this is exceeded, then we will use a
-	// higher-level watch that's less fine-grained. This isn't as bad as it
-	// seems since we have made the main culprits (nodes and services) more
-	// efficient by diffing before we update via register requests.
-	//
-	// Given the current size of aFew == 32 in memdb's watch_few.go, this
-	// will allow for up to ~64 goroutines per blocking query.
-	watchLimit = 2048
+	// higher-level watch that's less fine-grained.  Choosing the perfect
+	// value is impossible given how different deployments and workload
+	// are. This value was recommended by customers with many servers. We
+	// expect streaming to arrive soon and that should help a lot with
+	// blocking queries. Please see
+	// https://github.com/hashicorp/consul/pull/7200 and linked issues/prs
+	// for more context
+	watchLimit = 8192
 )
 
 // Store is where we store all of Consul's state, including
@@ -137,8 +137,10 @@ type IndexEntry struct {
 // store and thus it is not exported.
 type sessionCheck struct {
 	Node    string
-	CheckID types.CheckID
 	Session string
+
+	CheckID structs.CheckID
+	structs.EnterpriseMeta
 }
 
 // NewStateStore creates a new in-memory state storage layer.

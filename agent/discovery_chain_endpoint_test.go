@@ -18,7 +18,7 @@ import (
 func TestDiscoveryChainRead(t *testing.T) {
 	t.Parallel()
 
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -255,8 +255,6 @@ func TestDiscoveryChainRead(t *testing.T) {
 			}
 		})
 	}))
-
-	// TODO(namespaces): add a test
 
 	expectTarget_DC2 := newTarget("web", "", "default", "dc2")
 	expectTarget_DC2.MeshGateway = structs.MeshGatewayConfig{

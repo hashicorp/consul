@@ -92,7 +92,7 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 		overrideConnectTimeout: req.OverrideConnectTimeout,
 		entries:                entries,
 
-		resolvers:     make(map[string]*structs.ServiceResolverConfigEntry),
+		resolvers:     make(map[structs.ServiceID]*structs.ServiceResolverConfigEntry),
 		splitterNodes: make(map[string]*structs.DiscoveryGraphNode),
 		resolveNodes:  make(map[string]*structs.DiscoveryGraphNode),
 
@@ -134,7 +134,7 @@ type compiler struct {
 
 	// resolvers is initially seeded by copying the provided entries.Resolvers
 	// map and default resolvers are added as they are needed.
-	resolvers map[string]*structs.ServiceResolverConfigEntry
+	resolvers map[structs.ServiceID]*structs.ServiceResolverConfigEntry
 
 	// cached nodes
 	splitterNodes map[string]*structs.DiscoveryGraphNode
@@ -180,6 +180,13 @@ type customizationMarkers struct {
 	ConnectTimeout bool
 }
 
+// serviceIDString deviates from the standard formatting you would get with
+// the String() method on the type itself. It is this way to be more
+// consistent with other string ids within the discovery chain.
+func serviceIDString(sid structs.ServiceID) string {
+	return fmt.Sprintf("%s.%s", sid.ID, sid.NamespaceOrDefault())
+}
+
 func (m *customizationMarkers) IsZero() bool {
 	return !m.MeshGateway && !m.Protocol && !m.ConnectTimeout
 }
@@ -201,19 +208,19 @@ func (c *compiler) recordNode(node *structs.DiscoveryGraphNode) {
 	c.nodes[node.MapKey()] = node
 }
 
-func (c *compiler) recordServiceProtocol(serviceName string) error {
-	if serviceDefault := c.entries.GetService(serviceName); serviceDefault != nil {
-		return c.recordProtocol(serviceName, serviceDefault.Protocol)
+func (c *compiler) recordServiceProtocol(sid structs.ServiceID) error {
+	if serviceDefault := c.entries.GetService(sid); serviceDefault != nil {
+		return c.recordProtocol(sid, serviceDefault.Protocol)
 	}
 	if c.entries.GlobalProxy != nil {
 		var cfg proxyConfig
 		// Ignore errors and fallback on defaults if it does happen.
 		_ = mapstructure.WeakDecode(c.entries.GlobalProxy.Config, &cfg)
 		if cfg.Protocol != "" {
-			return c.recordProtocol(serviceName, cfg.Protocol)
+			return c.recordProtocol(sid, cfg.Protocol)
 		}
 	}
-	return c.recordProtocol(serviceName, "")
+	return c.recordProtocol(sid, "")
 }
 
 // proxyConfig is a snippet from agent/xds/config.go:ProxyConfig
@@ -221,7 +228,7 @@ type proxyConfig struct {
 	Protocol string `mapstructure:"protocol"`
 }
 
-func (c *compiler) recordProtocol(fromService, protocol string) error {
+func (c *compiler) recordProtocol(fromService structs.ServiceID, protocol string) error {
 	if protocol == "" {
 		protocol = "tcp"
 	} else {
@@ -234,7 +241,7 @@ func (c *compiler) recordProtocol(fromService, protocol string) error {
 		return &structs.ConfigEntryGraphError{
 			Message: fmt.Sprintf(
 				"discovery chain %q uses inconsistent protocols; service %q has %q which is not %q",
-				c.serviceName, fromService, protocol, c.protocol,
+				c.serviceName, fromService.String(), protocol, c.protocol,
 			),
 		}
 	}
@@ -494,15 +501,17 @@ func (c *compiler) assembleChain() error {
 		return fmt.Errorf("assembleChain should only be called once")
 	}
 
+	sid := structs.NewServiceID(c.serviceName, c.GetEnterpriseMeta())
+
 	// Check for short circuit path.
 	if len(c.resolvers) == 0 && c.entries.IsChainEmpty() {
 		// Materialize defaults and cache.
-		c.resolvers[c.serviceName] = newDefaultServiceResolver(c.serviceName)
+		c.resolvers[sid] = newDefaultServiceResolver(sid)
 	}
 
 	// The only router we consult is the one for the service name at the top of
 	// the chain.
-	router := c.entries.GetRouter(c.serviceName)
+	router := c.entries.GetRouter(sid)
 	if router != nil && c.disableAdvancedRoutingFeatures {
 		router = nil
 		c.customizedBy.Protocol = true
@@ -520,13 +529,15 @@ func (c *compiler) assembleChain() error {
 		return nil
 	}
 
+	routerID := structs.NewServiceID(router.Name, router.GetEnterpriseMeta())
+
 	routeNode := &structs.DiscoveryGraphNode{
 		Type:   structs.DiscoveryGraphNodeTypeRouter,
-		Name:   router.Name,
+		Name:   serviceIDString(routerID),
 		Routes: make([]*structs.DiscoveryRoute, 0, len(router.Routes)+1),
 	}
 	c.usesAdvancedRoutingFeatures = true
-	if err := c.recordServiceProtocol(router.Name); err != nil {
+	if err := c.recordServiceProtocol(routerID); err != nil {
 		return err
 	}
 
@@ -543,19 +554,20 @@ func (c *compiler) assembleChain() error {
 		dest := route.Destination
 
 		svc := defaultIfEmpty(dest.Service, c.serviceName)
+		destNamespace := defaultIfEmpty(dest.Namespace, router.NamespaceOrDefault())
 
 		// Check to see if the destination is eligible for splitting.
 		var (
 			node *structs.DiscoveryGraphNode
 			err  error
 		)
-		if dest.ServiceSubset == "" && dest.Namespace == "" {
+		if dest.ServiceSubset == "" {
 			node, err = c.getSplitterOrResolverNode(
-				c.newTarget(svc, dest.ServiceSubset, dest.Namespace, ""),
+				c.newTarget(svc, "", destNamespace, ""),
 			)
 		} else {
 			node, err = c.getResolverNode(
-				c.newTarget(svc, dest.ServiceSubset, dest.Namespace, ""),
+				c.newTarget(svc, dest.ServiceSubset, destNamespace, ""),
 				false,
 			)
 		}
@@ -567,13 +579,13 @@ func (c *compiler) assembleChain() error {
 
 	// If we have a router, we'll add a catch-all route at the end to send
 	// unmatched traffic to the next hop in the chain.
-	defaultDestinationNode, err := c.getSplitterOrResolverNode(c.newTarget(c.serviceName, "", "", ""))
+	defaultDestinationNode, err := c.getSplitterOrResolverNode(c.newTarget(router.Name, "", router.NamespaceOrDefault(), ""))
 	if err != nil {
 		return err
 	}
 
 	defaultRoute := &structs.DiscoveryRoute{
-		Definition: newDefaultServiceRoute(c.serviceName),
+		Definition: newDefaultServiceRoute(router.Name, router.NamespaceOrDefault()),
 		NextNode:   defaultDestinationNode.MapKey(),
 	}
 	routeNode.Routes = append(routeNode.Routes, defaultRoute)
@@ -584,7 +596,7 @@ func (c *compiler) assembleChain() error {
 	return nil
 }
 
-func newDefaultServiceRoute(serviceName string) *structs.ServiceRoute {
+func newDefaultServiceRoute(serviceName string, namespace string) *structs.ServiceRoute {
 	return &structs.ServiceRoute{
 		Match: &structs.ServiceRouteMatch{
 			HTTP: &structs.ServiceRouteHTTPMatch{
@@ -592,7 +604,8 @@ func newDefaultServiceRoute(serviceName string) *structs.ServiceRoute {
 			},
 		},
 		Destination: &structs.ServiceRouteDestination{
-			Service: serviceName,
+			Service:   serviceName,
+			Namespace: namespace,
 		},
 	}
 }
@@ -652,7 +665,7 @@ func (c *compiler) rewriteTarget(t *structs.DiscoveryTarget, service, serviceSub
 }
 
 func (c *compiler) getSplitterOrResolverNode(target *structs.DiscoveryTarget) (*structs.DiscoveryGraphNode, error) {
-	nextNode, err := c.getSplitterNode(target.Service)
+	nextNode, err := c.getSplitterNode(target.ServiceID())
 	if err != nil {
 		return nil, err
 	} else if nextNode != nil {
@@ -661,14 +674,15 @@ func (c *compiler) getSplitterOrResolverNode(target *structs.DiscoveryTarget) (*
 	return c.getResolverNode(target, false)
 }
 
-func (c *compiler) getSplitterNode(name string) (*structs.DiscoveryGraphNode, error) {
+func (c *compiler) getSplitterNode(sid structs.ServiceID) (*structs.DiscoveryGraphNode, error) {
+	name := serviceIDString(sid)
 	// Do we already have the node?
 	if prev, ok := c.splitterNodes[name]; ok {
 		return prev, nil
 	}
 
 	// Fetch the config entry.
-	splitter := c.entries.GetSplitter(name)
+	splitter := c.entries.GetSplitter(sid)
 	if splitter != nil && c.disableAdvancedRoutingFeatures {
 		splitter = nil
 		c.customizedBy.Protocol = true
@@ -694,10 +708,15 @@ func (c *compiler) getSplitterNode(name string) (*structs.DiscoveryGraphNode, er
 		}
 		splitNode.Splits = append(splitNode.Splits, compiledSplit)
 
-		svc := defaultIfEmpty(split.Service, name)
+		svc := defaultIfEmpty(split.Service, sid.ID)
+		splitID := structs.ServiceID{
+			ID:             svc,
+			EnterpriseMeta: *split.GetEnterpriseMeta(&sid.EnterpriseMeta),
+		}
+
 		// Check to see if the split is eligible for additional splitting.
-		if svc != name && split.ServiceSubset == "" && split.Namespace == "" {
-			nextNode, err := c.getSplitterNode(svc)
+		if !splitID.Matches(&sid) && split.ServiceSubset == "" {
+			nextNode, err := c.getSplitterNode(splitID)
 			if err != nil {
 				return nil, err
 			} else if nextNode != nil {
@@ -708,7 +727,7 @@ func (c *compiler) getSplitterNode(name string) (*structs.DiscoveryGraphNode, er
 		}
 
 		node, err := c.getResolverNode(
-			c.newTarget(svc, split.ServiceSubset, split.Namespace, ""),
+			c.newTarget(splitID.ID, split.ServiceSubset, splitID.NamespaceOrDefault(), ""),
 			false,
 		)
 		if err != nil {
@@ -738,16 +757,18 @@ RESOLVE_AGAIN:
 		return prev, nil
 	}
 
-	if err := c.recordServiceProtocol(target.Service); err != nil {
+	targetID := target.ServiceID()
+
+	if err := c.recordServiceProtocol(targetID); err != nil {
 		return nil, err
 	}
 
 	// Fetch the config entry.
-	resolver, ok := c.resolvers[target.Service]
+	resolver, ok := c.resolvers[targetID]
 	if !ok {
 		// Materialize defaults and cache.
-		resolver = newDefaultServiceResolver(target.Service)
-		c.resolvers[target.Service] = resolver
+		resolver = newDefaultServiceResolver(targetID)
+		c.resolvers[targetID] = resolver
 	}
 
 	if _, ok := redirectHistory[target.ID]; ok {
@@ -829,7 +850,7 @@ RESOLVE_AGAIN:
 
 	target.Subset = resolver.Subsets[target.ServiceSubset]
 
-	if serviceDefault := c.entries.GetService(target.Service); serviceDefault != nil && serviceDefault.ExternalSNI != "" {
+	if serviceDefault := c.entries.GetService(targetID); serviceDefault != nil && serviceDefault.ExternalSNI != "" {
 		// Override the default SNI value.
 		target.SNI = serviceDefault.ExternalSNI
 		target.External = true
@@ -873,7 +894,7 @@ RESOLVE_AGAIN:
 
 	} else {
 		// Default mesh gateway settings
-		if serviceDefault := c.entries.GetService(target.Service); serviceDefault != nil {
+		if serviceDefault := c.entries.GetService(targetID); serviceDefault != nil {
 			target.MeshGateway = serviceDefault.MeshGateway
 		}
 
@@ -967,10 +988,11 @@ RESOLVE_AGAIN:
 	return node, nil
 }
 
-func newDefaultServiceResolver(serviceName string) *structs.ServiceResolverConfigEntry {
+func newDefaultServiceResolver(sid structs.ServiceID) *structs.ServiceResolverConfigEntry {
 	return &structs.ServiceResolverConfigEntry{
-		Kind: structs.ServiceResolver,
-		Name: serviceName,
+		Kind:           structs.ServiceResolver,
+		Name:           sid.ID,
+		EnterpriseMeta: sid.EnterpriseMeta,
 	}
 }
 

@@ -18,12 +18,12 @@ func (s *Server) reapExpiredTokens(ctx context.Context) error {
 
 		if s.LocalTokensEnabled() {
 			if _, err := s.reapExpiredLocalACLTokens(); err != nil {
-				s.logger.Printf("[ERR] acl: error reaping expired local ACL tokens: %v", err)
+				s.logger.Error("error reaping expired local ACL tokens", "error", err)
 			}
 		}
 		if s.InACLDatacenter() {
 			if _, err := s.reapExpiredGlobalACLTokens(); err != nil {
-				s.logger.Printf("[ERR] acl: error reaping expired global ACL tokens: %v", err)
+				s.logger.Error("error reaping expired global ACL tokens", "error", err)
 			}
 		}
 	}
@@ -98,7 +98,10 @@ func (s *Server) reapExpiredACLTokens(local, global bool) (int, error) {
 		secretIDs = append(secretIDs, token.SecretID)
 	}
 
-	s.logger.Printf("[INFO] acl: deleting %d expired %s tokens", len(req.TokenIDs), locality)
+	s.logger.Info("deleting expired ACL tokens",
+		"amount", len(req.TokenIDs),
+		"locality", locality,
+	)
 	resp, err := s.raftApply(structs.ACLTokenDeleteRequestType, &req)
 	if err != nil {
 		return 0, fmt.Errorf("Failed to apply token expiration deletions: %v", err)
@@ -106,7 +109,7 @@ func (s *Server) reapExpiredACLTokens(local, global bool) (int, error) {
 
 	// Purge the identities from the cache
 	for _, secretID := range secretIDs {
-		s.acls.cache.RemoveIdentity(secretID)
+		s.acls.cache.RemoveIdentity(tokenSecretCacheID(secretID))
 	}
 
 	if respErr, ok := resp.(error); ok {

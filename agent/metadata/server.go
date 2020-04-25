@@ -24,7 +24,8 @@ func (k *Key) Equal(x *Key) bool {
 
 // Server is used to return details of a consul server
 type Server struct {
-	Name         string
+	Name         string // <node>.<dc>
+	ShortName    string // <node>
 	ID           string
 	Datacenter   string
 	Segment      string
@@ -41,6 +42,7 @@ type Server struct {
 	Status       serf.MemberStatus
 	NonVoter     bool
 	ACLs         structs.ACLMode
+	FeatureFlags map[string]int
 
 	// If true, use TLS when connecting to this server
 	UseTLS bool
@@ -103,6 +105,7 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 
 	segmentAddrs := make(map[string]string)
 	segmentPorts := make(map[string]int)
+	featureFlags := make(map[string]int)
 	for name, value := range m.Tags {
 		if strings.HasPrefix(name, "sl_") {
 			addr, port, err := net.SplitHostPort(value)
@@ -117,6 +120,13 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 			segmentName := strings.TrimPrefix(name, "sl_")
 			segmentAddrs[segmentName] = addr
 			segmentPorts[segmentName] = segmentPort
+		} else if strings.HasPrefix(name, "ft_") {
+			featureName := strings.TrimPrefix(name, "ft_")
+			featureState, err := strconv.Atoi(value)
+			if err != nil {
+				return false, nil
+			}
+			featureFlags[featureName] = featureState
 		}
 	}
 
@@ -156,6 +166,7 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 
 	parts := &Server{
 		Name:         m.Name,
+		ShortName:    strings.TrimSuffix(m.Name, "."+datacenter),
 		ID:           m.Tags["id"],
 		Datacenter:   datacenter,
 		Segment:      segment,
@@ -173,6 +184,7 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		UseTLS:       useTLS,
 		NonVoter:     nonVoter,
 		ACLs:         acls,
+		FeatureFlags: featureFlags,
 	}
 	return true, parts
 }

@@ -1,10 +1,23 @@
 import Adapter from './http';
 import { inject as service } from '@ember/service';
+// TODO: This should be changed to use env
+import config from 'consul-ui/config/environment';
 
 export const DATACENTER_QUERY_PARAM = 'dc';
+export const NSPACE_QUERY_PARAM = 'ns';
 export default Adapter.extend({
   repo: service('settings'),
   client: service('client/http'),
+  formatNspace: function(nspace) {
+    if (config.CONSUL_NSPACES_ENABLED) {
+      return nspace !== '' ? { [NSPACE_QUERY_PARAM]: nspace } : undefined;
+    }
+  },
+  formatDatacenter: function(dc) {
+    return {
+      [DATACENTER_QUERY_PARAM]: dc,
+    };
+  },
   // TODO: kinda protected for the moment
   // decide where this should go either read/write from http
   // should somehow use this or vice versa
@@ -16,8 +29,13 @@ export default Adapter.extend({
     let unserialized, serialized;
     const serializer = store.serializerFor(modelName);
     // workable way to decide whether this is a snapshot
+    // essentially 'is attributable'.
     // Snapshot is private so we can't do instanceof here
-    if (obj.constructor.name === 'Snapshot') {
+    // and using obj.constructor.name gets changed/minified
+    // during compilation so you can't rely on it
+    // checking for `attributes` being a function is more
+    // reliable as that is the thing we need to call
+    if (typeof obj.attributes === 'function') {
       unserialized = obj.attributes();
       serialized = serializer.serialize(obj, {});
     } else {

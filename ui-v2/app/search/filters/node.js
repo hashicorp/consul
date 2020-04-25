@@ -5,6 +5,9 @@ export default function(filterable) {
     return (
       get(item, 'Node')
         .toLowerCase()
+        .indexOf(sLower) !== -1 ||
+      get(item, 'Address')
+        .toLowerCase()
         .indexOf(sLower) !== -1
     );
   });

@@ -15,6 +15,7 @@ Feature: dc / acls / policies / update: ACL Policy Update
     ---
     Then the url should be /datacenter/acls/policies/policy-id
     Then I see 3 token models
+    And the title should be "Edit Policy - Consul"
   Scenario: Update to [Name], [Rules], [Description]
     Then I fill in the policy form with yaml
     ---
@@ -25,13 +26,16 @@ Feature: dc / acls / policies / update: ACL Policy Update
     And I click validDatacenters
     And I click datacenter
     And I submit
-    Then a PUT request is made to "/v1/acl/policy/policy-id?dc=datacenter" with the body from yaml
+    Then a PUT request was made to "/v1/acl/policy/policy-id?dc=datacenter" from yaml
     ---
-      Name: [Name]
-      Description: [Description]
-      Rules: [Rules]
-      Datacenters:
-        - datacenter
+      body:
+        Name: [Name]
+        Description: [Description]
+        Rules: [Rules]
+        Namespace: @namespace
+        Datacenters:
+          - datacenter
+
     ---
     Then the url should be /datacenter/acls/policies
     And "[data-notification]" has the "notification-update" class
@@ -49,3 +53,18 @@ Feature: dc / acls / policies / update: ACL Policy Update
     Then the url should be /datacenter/acls/policies/policy-id
     Then "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "error" class
+
+  @notNamespaceable
+  Scenario: Updating a simple ACL policy when Namespaces are disabled does not send Namespace
+    Then I fill in the policy form with yaml
+    ---
+      Description: Description
+    ---
+    And I submit
+    Then a PUT request was made to "/v1/acl/policy/policy-id?dc=datacenter" without properties from yaml
+    ---
+      - Namespace
+    ---
+    Then the url should be /datacenter/acls/policies
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "success" class

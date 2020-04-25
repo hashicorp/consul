@@ -1,5 +1,9 @@
+/* TODO: need to standardize on the selectors used here */
+/* I would guess at the time of writing this we shojuld prefer */
+/* classes */
 html.template-instance.template-show #addresses table tr,
 html.template-instance.template-show #upstreams table tr,
-html.template-instance.template-show #meta-data table tr {
+html.template-instance.template-show #meta-data table tr,
+html.template-instance.template-show table.exposedpaths tr {
   cursor: default;
 }

@@ -34,7 +34,7 @@ func (r *aclTokenReplicator) FetchRemote(srv *Server, lastRemoteIndex uint64) (i
 func (r *aclTokenReplicator) FetchLocal(srv *Server) (int, uint64, error) {
 	r.local = nil
 
-	idx, local, err := srv.fsm.State().ACLTokenList(nil, false, true, "", "", "")
+	idx, local, err := srv.fsm.State().ACLTokenList(nil, false, true, "", "", "", nil, srv.replicationEnterpriseMeta())
 	if err != nil {
 		return 0, 0, err
 	}
@@ -155,7 +155,7 @@ func (r *aclPolicyReplicator) FetchRemote(srv *Server, lastRemoteIndex uint64) (
 func (r *aclPolicyReplicator) FetchLocal(srv *Server) (int, uint64, error) {
 	r.local = nil
 
-	idx, local, err := srv.fsm.State().ACLPolicyList(nil)
+	idx, local, err := srv.fsm.State().ACLPolicyList(nil, srv.replicationEnterpriseMeta())
 	if err != nil {
 		return 0, 0, err
 	}
@@ -265,7 +265,7 @@ func (r *aclRoleReplicator) FetchRemote(srv *Server, lastRemoteIndex uint64) (in
 func (r *aclRoleReplicator) FetchLocal(srv *Server) (int, uint64, error) {
 	r.local = nil
 
-	idx, local, err := srv.fsm.State().ACLRoleList(nil, "")
+	idx, local, err := srv.fsm.State().ACLRoleList(nil, "", srv.replicationEnterpriseMeta())
 	if err != nil {
 		return 0, 0, err
 	}

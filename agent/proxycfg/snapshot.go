@@ -7,24 +7,154 @@ import (
 	"github.com/mitchellh/copystructure"
 )
 
-type configSnapshotConnectProxy struct {
-	Leaf                     *structs.IssuedCert
-	DiscoveryChain           map[string]*structs.CompiledDiscoveryChain // this is keyed by the Upstream.Identifier(), not the chain name
-	WatchedUpstreams         map[string]map[string]context.CancelFunc
-	WatchedUpstreamEndpoints map[string]map[string]structs.CheckServiceNodes
-	WatchedGateways          map[string]map[string]context.CancelFunc
-	WatchedGatewayEndpoints  map[string]map[string]structs.CheckServiceNodes
-	WatchedServiceChecks     map[string][]structs.CheckType
+// TODO(ingress): Can we think of a better for this bag of data?
+// A shared data structure that contains information about discovered upstreams
+type ConfigSnapshotUpstreams struct {
+	Leaf *structs.IssuedCert
+	// DiscoveryChain is a map of upstream.Identifier() ->
+	// CompiledDiscoveryChain's, and is used to determine what services could be
+	// targeted by this upstream. We then instantiate watches for those targets.
+	DiscoveryChain map[string]*structs.CompiledDiscoveryChain
 
-	UpstreamEndpoints map[string]structs.CheckServiceNodes // DEPRECATED:see:WatchedUpstreamEndpoints
+	// WatchedUpstreams is a map of upstream.Identifier() -> (map of TargetID ->
+	// CancelFunc's) in order to cancel any watches when the configuration is
+	// changed.
+	WatchedUpstreams map[string]map[string]context.CancelFunc
+
+	// WatchedUpstreamEndpoints is a map of upstream.Identifier() -> (map of
+	// TargetID -> CheckServiceNodes) and is used to determine the backing
+	// endpoints of an upstream.
+	WatchedUpstreamEndpoints map[string]map[string]structs.CheckServiceNodes
+
+	// WatchedGateways is a map of upstream.Identifier() -> (map of
+	// TargetID -> CancelFunc) in order to cancel watches for mesh gateways
+	WatchedGateways map[string]map[string]context.CancelFunc
+
+	// WatchedGatewayEndpoints is a map of upstream.Identifier() -> (map of
+	// TargetID -> CheckServiceNodes) and is used to determine the backing
+	// endpoints of a mesh gateway.
+	WatchedGatewayEndpoints map[string]map[string]structs.CheckServiceNodes
+}
+
+type configSnapshotConnectProxy struct {
+	ConfigSnapshotUpstreams
+
+	WatchedServiceChecks   map[structs.ServiceID][]structs.CheckType // TODO: missing garbage collection
+	PreparedQueryEndpoints map[string]structs.CheckServiceNodes      // DEPRECATED:see:WatchedUpstreamEndpoints
+}
+
+func (c *configSnapshotConnectProxy) IsEmpty() bool {
+	if c == nil {
+		return true
+	}
+	return c.Leaf == nil &&
+		len(c.DiscoveryChain) == 0 &&
+		len(c.WatchedUpstreams) == 0 &&
+		len(c.WatchedUpstreamEndpoints) == 0 &&
+		len(c.WatchedGateways) == 0 &&
+		len(c.WatchedGatewayEndpoints) == 0 &&
+		len(c.WatchedServiceChecks) == 0 &&
+		len(c.PreparedQueryEndpoints) == 0
 }
 
 type configSnapshotMeshGateway struct {
-	WatchedServices    map[string]context.CancelFunc
+	// WatchedServices is a map of service id to a cancel function. This cancel
+	// function is tied to the watch of connect enabled services for the given
+	// id. If the main datacenter services watch would indicate the removal of
+	// a service all together we then cancel watching that service for its
+	// connect endpoints.
+	WatchedServices map[structs.ServiceID]context.CancelFunc
+
+	// WatchedServicesSet indicates that the watch on the datacenters services
+	// has completed. Even when there are no connect services, this being set
+	// (and the Connect roots being available) will be enough for the config
+	// snapshot to be considered valid. In the case of Envoy, this allows it to
+	// start its listeners even when no services would be proxied and allow its
+	// health check to pass.
+	WatchedServicesSet bool
+
+	// WatchedDatacenters is a map of datacenter name to a cancel function.
+	// This cancel function is tied to the watch of mesh-gateway services in
+	// that datacenter.
 	WatchedDatacenters map[string]context.CancelFunc
-	ServiceGroups      map[string]structs.CheckServiceNodes
-	ServiceResolvers   map[string]*structs.ServiceResolverConfigEntry
-	GatewayGroups      map[string]structs.CheckServiceNodes
+
+	// ServiceGroups is a map of service id to the service instances of that
+	// service in the local datacenter.
+	ServiceGroups map[structs.ServiceID]structs.CheckServiceNodes
+
+	// ServiceResolvers is a map of service id to an associated
+	// service-resolver config entry for that service.
+	ServiceResolvers map[structs.ServiceID]*structs.ServiceResolverConfigEntry
+
+	// GatewayGroups is a map of datacenter names to services of kind
+	// mesh-gateway in that datacenter.
+	GatewayGroups map[string]structs.CheckServiceNodes
+
+	// FedStateGateways is a map of datacenter names to mesh gateways in that
+	// datacenter.
+	FedStateGateways map[string]structs.CheckServiceNodes
+
+	// ConsulServers is the list of consul servers in this datacenter.
+	ConsulServers structs.CheckServiceNodes
+}
+
+func (c *configSnapshotMeshGateway) Datacenters() []string {
+	sz1, sz2 := len(c.GatewayGroups), len(c.FedStateGateways)
+
+	sz := sz1
+	if sz2 > sz1 {
+		sz = sz2
+	}
+
+	dcs := make([]string, 0, sz)
+	for dc, _ := range c.GatewayGroups {
+		dcs = append(dcs, dc)
+	}
+	for dc, _ := range c.FedStateGateways {
+		if _, ok := c.GatewayGroups[dc]; !ok {
+			dcs = append(dcs, dc)
+		}
+	}
+	return dcs
+}
+
+func (c *configSnapshotMeshGateway) IsEmpty() bool {
+	if c == nil {
+		return true
+	}
+	return len(c.WatchedServices) == 0 &&
+		!c.WatchedServicesSet &&
+		len(c.WatchedDatacenters) == 0 &&
+		len(c.ServiceGroups) == 0 &&
+		len(c.ServiceResolvers) == 0 &&
+		len(c.GatewayGroups) == 0 &&
+		len(c.FedStateGateways) == 0 &&
+		len(c.ConsulServers) == 0
+}
+
+type configSnapshotIngressGateway struct {
+	ConfigSnapshotUpstreams
+	// Upstreams is a list of upstreams this ingress gateway should serve traffic
+	// to. This is constructed from the ingress-gateway config entry, and uses
+	// the GatewayServices RPC to retrieve them.
+	Upstreams []structs.Upstream
+
+	// WatchedDiscoveryChains is a map of upstream.Identifier() -> CancelFunc's
+	// in order to cancel any watches when the ingress gateway configuration is
+	// changed. Ingress gateways need this because discovery chain watches are
+	// added and removed through the lifecycle of single proxycfg.state instance.
+	WatchedDiscoveryChains map[string]context.CancelFunc
+}
+
+func (c *configSnapshotIngressGateway) IsEmpty() bool {
+	if c == nil {
+		return true
+	}
+	return len(c.Upstreams) == 0 &&
+		len(c.DiscoveryChain) == 0 &&
+		len(c.WatchedDiscoveryChains) == 0 &&
+		len(c.WatchedUpstreams) == 0 &&
+		len(c.WatchedUpstreamEndpoints) == 0
 }
 
 // ConfigSnapshot captures all the resulting config needed for a proxy instance.
@@ -33,19 +163,25 @@ type configSnapshotMeshGateway struct {
 type ConfigSnapshot struct {
 	Kind            structs.ServiceKind
 	Service         string
-	ProxyID         string
+	ProxyID         structs.ServiceID
 	Address         string
 	Port            int
+	ServiceMeta     map[string]string
 	TaggedAddresses map[string]structs.ServiceAddress
 	Proxy           structs.ConnectProxyConfig
 	Datacenter      string
-	Roots           *structs.IndexedCARoots
+
+	ServerSNIFn ServerSNIFunc
+	Roots       *structs.IndexedCARoots
 
 	// connect-proxy specific
 	ConnectProxy configSnapshotConnectProxy
 
 	// mesh-gateway specific
 	MeshGateway configSnapshotMeshGateway
+
+	// ingress-gateway specific
+	IngressGateway configSnapshotIngressGateway
 
 	// Skip intentions for now as we don't push those down yet, just pre-warm them.
 }
@@ -54,11 +190,17 @@ type ConfigSnapshot struct {
 func (s *ConfigSnapshot) Valid() bool {
 	switch s.Kind {
 	case structs.ServiceKindConnectProxy:
-		// TODO(rb): sanity check discovery chain things here?
 		return s.Roots != nil && s.ConnectProxy.Leaf != nil
 	case structs.ServiceKindMeshGateway:
-		// TODO (mesh-gateway) - what happens if all the connect services go away
-		return s.Roots != nil && len(s.MeshGateway.ServiceGroups) > 0
+		if s.ServiceMeta[structs.MetaWANFederationKey] == "1" {
+			if len(s.MeshGateway.ConsulServers) == 0 {
+				return false
+			}
+		}
+		return s.Roots != nil && (s.MeshGateway.WatchedServicesSet || len(s.MeshGateway.ServiceGroups) > 0)
+	case structs.ServiceKindIngressGateway:
+		return s.Roots != nil &&
+			s.IngressGateway.Leaf != nil
 	default:
 		return false
 	}
@@ -82,7 +224,21 @@ func (s *ConfigSnapshot) Clone() (*ConfigSnapshot, error) {
 	case structs.ServiceKindMeshGateway:
 		snap.MeshGateway.WatchedDatacenters = nil
 		snap.MeshGateway.WatchedServices = nil
+	case structs.ServiceKindIngressGateway:
+		snap.IngressGateway.WatchedUpstreams = nil
+		snap.IngressGateway.WatchedDiscoveryChains = nil
 	}
 
 	return snap, nil
+}
+
+func (s *ConfigSnapshot) Leaf() *structs.IssuedCert {
+	switch s.Kind {
+	case structs.ServiceKindConnectProxy:
+		return s.ConnectProxy.Leaf
+	case structs.ServiceKindIngressGateway:
+		return s.IngressGateway.Leaf
+	default:
+		return nil
+	}
 }

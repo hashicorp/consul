@@ -1,5 +1,6 @@
 @setupApplicationTest
-Feature: dc / acls / roles / as many / add new: Add new
+@notNamespaceable
+Feature: dc / acls / roles / as-many / add-new: Add new
   Background:
     Given 1 datacenter model with the value "datacenter"
     And 1 token model from yaml
@@ -29,18 +30,22 @@ Feature: dc / acls / roles / as many / add new: Add new
     ---
   Scenario: Add Policy-less Role
     And I click submit on the roles.form
-    Then the last PUT request was made to "/v1/acl/role?dc=datacenter" with the body from yaml
+    Then a PUT request was made to "/v1/acl/role?dc=datacenter" from yaml
     ---
-      Name: New-Role
-      Description: New Role Description
+      body:
+        Name: New-Role
+        Namespace: @namespace
+        Description: New Role Description
     ---
     And I submit
-    Then a PUT request is made to "/v1/acl/token/key?dc=datacenter" with the body from yaml
+    Then a PUT request was made to "/v1/acl/token/key?dc=datacenter" from yaml
     ---
-      Description: The Description
-      Roles:
-        - Name: New-Role
-          ID: ee52203d-989f-4f7a-ab5a-2bef004164ca-1
+      body:
+        Description: The Description
+        Namespace: @namespace
+        Roles:
+          - Name: New-Role
+            ID: ee52203d-989f-4f7a-ab5a-2bef004164ca-1
     ---
     Then the url should be /datacenter/acls/tokens
     And "[data-notification]" has the "notification-update" class
@@ -49,21 +54,25 @@ Feature: dc / acls / roles / as many / add new: Add new
     And I click "#new-role-toggle + div .ember-power-select-trigger"
     And I click ".ember-power-select-option:first-child"
     And I click submit on the roles.form
-    Then the last PUT request was made to "/v1/acl/role?dc=datacenter" with the body from yaml
+    Then a PUT request was made to "/v1/acl/role?dc=datacenter" from yaml
     ---
-      Name: New-Role
-      Description: New Role Description
-      Policies:
-        - ID: policy-1
-          Name: policy
+      body:
+        Name: New-Role
+        Description: New Role Description
+        Namespace: @namespace
+        Policies:
+          - ID: policy-1
+            Name: policy
     ---
     And I submit
-    Then a PUT request is made to "/v1/acl/token/key?dc=datacenter" with the body from yaml
+    Then a PUT request was made to "/v1/acl/token/key?dc=datacenter" from yaml
     ---
-      Description: The Description
-      Roles:
-        - Name: New-Role
-          ID: ee52203d-989f-4f7a-ab5a-2bef004164ca-1
+      body:
+        Description: The Description
+        Namespace: @namespace
+        Roles:
+          - Name: New-Role
+            ID: ee52203d-989f-4f7a-ab5a-2bef004164ca-1
     ---
     Then the url should be /datacenter/acls/tokens
     And "[data-notification]" has the "notification-update" class
@@ -78,29 +87,35 @@ Feature: dc / acls / roles / as many / add new: Add new
     ---
     # This next line is actually the popped up policyForm due to the way things currently work
     And I click submit on the roles.form
-    Then the last PUT request was made to "/v1/acl/policy?dc=datacenter" with the body from yaml
+    Then a PUT request was made to "/v1/acl/policy?dc=datacenter" from yaml
     ---
-      Name: New-Policy
-      Description: New Policy Description
-      Rules: key {}
+      body:
+        Name: New-Policy
+        Description: New Policy Description
+        Namespace: @namespace
+        Rules: key {}
     ---
     And I click submit on the roles.form
-    Then the last PUT request was made to "/v1/acl/role?dc=datacenter" with the body from yaml
+    Then a PUT request was made to "/v1/acl/role?dc=datacenter" from yaml
     ---
-      Name: New-Role
-      Description: New Role Description
-      Policies:
-      # TODO: Ouch, we need to do deep partial comparisons here
-        - ID: ee52203d-989f-4f7a-ab5a-2bef004164ca-1
-          Name: New-Policy
+      body:
+        Name: New-Role
+        Description: New Role Description
+        Namespace: @namespace
+        Policies:
+        # TODO: Ouch, we need to do deep partial comparisons here
+          - ID: ee52203d-989f-4f7a-ab5a-2bef004164ca-1
+            Name: New-Policy
     ---
     And I submit
-    Then a PUT request is made to "/v1/acl/token/key?dc=datacenter" with the body from yaml
+    Then a PUT request was made to "/v1/acl/token/key?dc=datacenter" from yaml
     ---
-      Description: The Description
-      Roles:
-        - Name: New-Role
-          ID: ee52203d-989f-4f7a-ab5a-2bef004164ca-1
+      body:
+        Description: The Description
+        Namespace: @namespace
+        Roles:
+          - Name: New-Role
+            ID: ee52203d-989f-4f7a-ab5a-2bef004164ca-1
     ---
     Then the url should be /datacenter/acls/tokens
     And "[data-notification]" has the "notification-update" class
@@ -115,20 +130,24 @@ Feature: dc / acls / roles / as many / add new: Add new
     # This next line is actually the popped up policyForm due to the way things currently work
     And I click submit on the roles.form
     And I click submit on the roles.form
-    Then the last PUT request was made to "/v1/acl/role?dc=datacenter" with the body from yaml
+    Then a PUT request was made to "/v1/acl/role?dc=datacenter" from yaml
     ---
-      Name: New-Role
-      Description: New Role Description
-      ServiceIdentities:
-        - ServiceName: New-Service-Identity
+      body:
+        Name: New-Role
+        Description: New Role Description
+        Namespace: @namespace
+        ServiceIdentities:
+          - ServiceName: New-Service-Identity
     ---
     And I submit
-    Then a PUT request is made to "/v1/acl/token/key?dc=datacenter" with the body from yaml
+    Then a PUT request was made to "/v1/acl/token/key?dc=datacenter" from yaml
     ---
-      Description: The Description
-      Roles:
-        - Name: New-Role
-          ID: ee52203d-989f-4f7a-ab5a-2bef004164ca-1
+      body:
+        Description: The Description
+        Namespace: @namespace
+        Roles:
+          - Name: New-Role
+            ID: ee52203d-989f-4f7a-ab5a-2bef004164ca-1
     ---
     Then the url should be /datacenter/acls/tokens
     And "[data-notification]" has the "notification-update" class

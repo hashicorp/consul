@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"github.com/hashicorp/consul/lib"
 )
 
 // CompiledDiscoveryChain is the result from taking a set of related config
@@ -83,7 +85,7 @@ func (c *CompiledDiscoveryChain) IsDefault() bool {
 
 	target := c.Targets[node.Resolver.Target]
 
-	return target.Service == c.ServiceName
+	return target.Service == c.ServiceName && target.Namespace == c.Namespace
 }
 
 const (
@@ -155,7 +157,7 @@ func (r *DiscoveryResolver) UnmarshalJSON(data []byte) error {
 	}{
 		Alias: (*Alias)(r),
 	}
-	if err := json.Unmarshal(data, &aux); err != nil {
+	if err := lib.UnmarshalJSON(data, &aux); err != nil {
 		return err
 	}
 	var err error
@@ -235,4 +237,8 @@ func (t *DiscoveryTarget) setID() {
 
 func (t *DiscoveryTarget) String() string {
 	return t.ID
+}
+
+func (t *DiscoveryTarget) ServiceID() ServiceID {
+	return NewServiceID(t.Service, t.GetEnterpriseMetadata())
 }

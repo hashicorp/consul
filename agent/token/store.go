@@ -2,6 +2,8 @@ package token
 
 import (
 	"sync"
+
+	"crypto/subtle"
 )
 
 type TokenSource bool
@@ -49,6 +51,9 @@ type Store struct {
 
 	// replicationTokenSource indicates where this token originated from
 	replicationTokenSource TokenSource
+
+	// enterpriseTokens contains tokens only used in consul-enterprise
+	enterpriseTokens
 }
 
 // UpdateUserToken replaces the current user token in the store.
@@ -166,5 +171,5 @@ func (t *Store) IsAgentMasterToken(token string) bool {
 	t.l.RLock()
 	defer t.l.RUnlock()
 
-	return (token != "") && (token == t.agentMasterToken)
+	return (token != "") && (subtle.ConstantTimeCompare([]byte(token), []byte(t.agentMasterToken)) == 1)
 }

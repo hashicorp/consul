@@ -12,7 +12,7 @@ import (
 
 func TestStatusLeader(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -29,9 +29,9 @@ func TestStatusLeader(t *testing.T) {
 
 func TestStatusLeaderSecondary(t *testing.T) {
 	t.Parallel()
-	a1 := NewTestAgent(t, t.Name(), "datacenter = \"primary\"")
+	a1 := NewTestAgent(t, "datacenter = \"primary\"")
 	defer a1.Shutdown()
-	a2 := NewTestAgent(t, t.Name(), "datacenter = \"secondary\"")
+	a2 := NewTestAgent(t, "datacenter = \"secondary\"")
 	defer a2.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a1.RPC, "primary")
@@ -68,7 +68,7 @@ func TestStatusLeaderSecondary(t *testing.T) {
 
 func TestStatusPeers(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/v1/status/peers", nil)
@@ -85,9 +85,9 @@ func TestStatusPeers(t *testing.T) {
 
 func TestStatusPeersSecondary(t *testing.T) {
 	t.Parallel()
-	a1 := NewTestAgent(t, t.Name(), "datacenter = \"primary\"")
+	a1 := NewTestAgent(t, "datacenter = \"primary\"")
 	defer a1.Shutdown()
-	a2 := NewTestAgent(t, t.Name(), "datacenter = \"secondary\"")
+	a2 := NewTestAgent(t, "datacenter = \"secondary\"")
 	defer a2.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a1.RPC, "primary")

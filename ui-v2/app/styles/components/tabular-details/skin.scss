@@ -1,5 +1,5 @@
-%tabular-details-toggle-button {
-  @extend %with-chevron-down;
+%tabular-details-toggle-button::before {
+  @extend %with-chevron-down-icon, %as-pseudo;
 }
 %tabular-details td:only-child {
   cursor: default;

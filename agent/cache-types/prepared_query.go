@@ -13,10 +13,11 @@ const PreparedQueryName = "prepared-query"
 // PreparedQuery supports fetching discovering service instances via prepared
 // queries.
 type PreparedQuery struct {
+	RegisterOptionsNoRefresh
 	RPC RPC
 }
 
-func (c *PreparedQuery) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (c *PreparedQuery) Fetch(_ cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	// The request should be a PreparedQueryExecuteRequest.
@@ -30,7 +31,7 @@ func (c *PreparedQuery) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 	dup := *reqReal
 	reqReal = &dup
 
-	// Allways allow stale - there's no point in hitting leader if the request is
+	// Always allow stale - there's no point in hitting leader if the request is
 	// going to be served from cache and endup arbitrarily stale anyway. This
 	// allows cached service-discover to automatically read scale across all
 	// servers too.
@@ -46,9 +47,4 @@ func (c *PreparedQuery) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 	result.Index = reply.QueryMeta.Index
 
 	return result, nil
-}
-
-func (c *PreparedQuery) SupportsBlocking() bool {
-	// Prepared queries don't support blocking.
-	return false
 }

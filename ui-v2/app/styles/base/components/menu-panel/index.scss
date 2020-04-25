@@ -1,0 +1,16 @@
+@import './skin';
+@import './layout';
+
+%menu-panel [role='separator'] {
+  @extend %menu-panel-separator;
+}
+%menu-panel > div {
+  @extend %menu-panel-header;
+}
+// %menu-panel > ul > li > *:not(div),
+%menu-panel [role='menuitem'] {
+  @extend %internal-button;
+}
+%menu-panel > ul > li.dangerous > *:not(div) {
+  @extend %internal-button-dangerous;
+}

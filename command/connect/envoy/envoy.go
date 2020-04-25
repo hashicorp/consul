@@ -4,22 +4,21 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
 
+	"github.com/mitchellh/cli"
 	"github.com/mitchellh/mapstructure"
 
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/api"
 	proxyCmd "github.com/hashicorp/consul/command/connect/proxy"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/ipaddr"
-	"github.com/hashicorp/go-sockaddr/template"
-
-	"github.com/mitchellh/cli"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -46,6 +45,7 @@ type cmd struct {
 
 	// flags
 	meshGateway          bool
+	gateway              string
 	proxyID              string
 	sidecarFor           string
 	adminAccessLogPath   string
@@ -54,27 +54,45 @@ type cmd struct {
 	bootstrap            bool
 	disableCentralConfig bool
 	grpcAddr             string
+	envoyVersion         string
 
 	// mesh gateway registration information
 	register           bool
-	address            string
-	wanAddress         string
+	lanAddress         ServiceAddressValue
+	wanAddress         ServiceAddressValue
 	deregAfterCritical string
-	bindAddresses      map[string]string
+	bindAddresses      ServiceAddressMapValue
+	exposeServers      bool
 
-	meshGatewaySvcName string
+	gatewaySvcName string
+	gatewayKind    api.ServiceKind
+}
+
+const (
+	defaultEnvoyVersion = "1.14.1"
+	meshGatewayVal      = "mesh"
+)
+
+var supportedGateways = map[string]api.ServiceKind{
+	"mesh":        api.ServiceKindMeshGateway,
+	"terminating": api.ServiceKindTerminatingGateway,
+	"ingress":     api.ServiceKindIngressGateway,
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 
-	c.flags.StringVar(&c.proxyID, "proxy-id", "",
+	c.flags.StringVar(&c.proxyID, "proxy-id", os.Getenv("CONNECT_PROXY_ID"),
 		"The proxy's ID on the local agent.")
 
+	// Deprecated in favor of `gateway`
 	c.flags.BoolVar(&c.meshGateway, "mesh-gateway", false,
-		"Generate the bootstrap.json but don't exec envoy")
+		"Configure Envoy as a Mesh Gateway.")
 
-	c.flags.StringVar(&c.sidecarFor, "sidecar-for", "",
+	c.flags.StringVar(&c.gateway, "gateway", "",
+		"The type of gateway to register. One of: terminating or mesh")
+
+	c.flags.StringVar(&c.sidecarFor, "sidecar-for", os.Getenv("CONNECT_SIDECAR_FOR"),
 		"The ID of a service instance on the local agent that this proxy should "+
 			"become a sidecar for. It requires that the proxy service is registered "+
 			"with the agent as a connect-proxy with Proxy.DestinationServiceID set "+
@@ -104,64 +122,39 @@ func (c *cmd) init() {
 			"cases where either assumption is violated this flag will prevent the "+
 			"command attempting to resolve config from the local agent.")
 
-	c.flags.StringVar(&c.grpcAddr, "grpc-addr", "",
+	c.flags.StringVar(&c.grpcAddr, "grpc-addr", os.Getenv(api.GRPCAddrEnvName),
 		"Set the agent's gRPC address and port (in http(s)://host:port format). "+
 			"Alternatively, you can specify CONSUL_GRPC_ADDR in ENV.")
 
+	c.flags.StringVar(&c.envoyVersion, "envoy-version", defaultEnvoyVersion,
+		"Sets the envoy-version that the envoy binary has.")
+
 	c.flags.BoolVar(&c.register, "register", false,
-		"Register a new Mesh Gateway service before configuring and starting Envoy")
+		"Register a new gateway service before configuring and starting Envoy")
 
-	c.flags.StringVar(&c.address, "address", "",
-		"LAN address to advertise in the Mesh Gateway service registration")
+	c.flags.Var(&c.lanAddress, "address",
+		"LAN address to advertise in the gateway service registration")
 
-	c.flags.StringVar(&c.wanAddress, "wan-address", "",
-		"WAN address to advertise in the Mesh Gateway service registration")
+	c.flags.Var(&c.wanAddress, "wan-address",
+		"WAN address to advertise in the gateway service registration")
 
-	c.flags.Var((*flags.FlagMapValue)(&c.bindAddresses), "bind-address", "Bind "+
+	c.flags.Var(&c.bindAddresses, "bind-address", "Bind "+
 		"address to use instead of the default binding rules given as `<name>=<ip>:<port>` "+
 		"pairs. This flag may be specified multiple times to add multiple bind addresses.")
 
-	c.flags.StringVar(&c.meshGatewaySvcName, "service", "mesh-gateway",
+	c.flags.StringVar(&c.gatewaySvcName, "service", "",
 		"Service name to use for the registration")
+
+	c.flags.BoolVar(&c.exposeServers, "expose-servers", false,
+		"Expose the servers for WAN federation via this mesh gateway")
 
 	c.flags.StringVar(&c.deregAfterCritical, "deregister-after-critical", "6h",
 		"The amount of time the gateway services health check can be failing before being deregistered")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
+	flags.Merge(c.flags, c.http.NamespaceFlags())
 	c.help = flags.Usage(help, c.flags)
-}
-
-const (
-	DefaultMeshGatewayPort int = 443
-)
-
-func parseAddress(addrStr string) (string, int, error) {
-	if addrStr == "" {
-		// defaulting the port to 443
-		return "", DefaultMeshGatewayPort, nil
-	}
-
-	x, err := template.Parse(addrStr)
-	if err != nil {
-		return "", DefaultMeshGatewayPort, fmt.Errorf("Error parsing address %q: %v", addrStr, err)
-	}
-
-	addr, portStr, err := net.SplitHostPort(x)
-	if err != nil {
-		return "", DefaultMeshGatewayPort, fmt.Errorf("Error parsing address %q: %v", x, err)
-	}
-
-	port := DefaultMeshGatewayPort
-
-	if portStr != "" {
-		port, err = strconv.Atoi(portStr)
-		if err != nil {
-			return "", DefaultMeshGatewayPort, fmt.Errorf("Error parsing port %q: %v", portStr, err)
-		}
-	}
-
-	return addr, port, nil
 }
 
 // canBindInternal is here mainly so we can unit test this with a constant net.Addr list
@@ -193,71 +186,85 @@ func canBindInternal(addr string, ifAddrs []net.Addr) bool {
 	return false
 }
 
-func canBind(addr string) bool {
+func canBind(addr api.ServiceAddress) bool {
 	ifAddrs, err := net.InterfaceAddrs()
-
 	if err != nil {
 		return false
 	}
 
-	return canBindInternal(addr, ifAddrs)
+	return canBindInternal(addr.Address, ifAddrs)
 }
 
 func (c *cmd) Run(args []string) int {
 	if err := c.flags.Parse(args); err != nil {
 		return 1
 	}
-	passThroughArgs := c.flags.Args()
-
-	// Load the proxy ID and token from env vars if they're set
-	if c.proxyID == "" {
-		c.proxyID = os.Getenv("CONNECT_PROXY_ID")
-	}
-	if c.sidecarFor == "" {
-		c.sidecarFor = os.Getenv("CONNECT_SIDECAR_FOR")
-	}
-	if c.grpcAddr == "" {
-		c.grpcAddr = os.Getenv(api.GRPCAddrEnvName)
-	}
 
 	// Setup Consul client
-	client, err := c.http.APIClient()
+	var err error
+	c.client, err = c.http.APIClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
-	c.client = client
+	// TODO: refactor
+	return c.run(c.flags.Args())
+}
+
+func (c *cmd) run(args []string) int {
+	// Fixup for deprecated mesh-gateway flag
+	if c.meshGateway && c.gateway != "" {
+		c.UI.Error("The mesh-gateway flag is deprecated and cannot be used alongside the gateway flag")
+		return 1
+	}
+
+	if c.meshGateway {
+		c.gateway = meshGatewayVal
+	}
+
+	if c.exposeServers {
+		if c.gateway != meshGatewayVal {
+			c.UI.Error("'-expose-servers' can only be used for mesh gateways")
+			return 1
+		}
+		if !c.register {
+			c.UI.Error("'-expose-servers' requires '-register'")
+			return 1
+		}
+	}
+
+	// Gateway kind is set so that it is available even if not auto-registering the gateway
+	if c.gateway != "" {
+		kind, ok := supportedGateways[c.gateway]
+		if !ok {
+			c.UI.Error("Gateway must be one of: terminating, mesh, or ingress")
+			return 1
+		}
+		c.gatewayKind = kind
+	}
 
 	if c.register {
-		if !c.meshGateway {
-			c.UI.Error("Auto-Registration can only be used for mesh gateways")
+		if c.gateway == "" {
+			c.UI.Error("Auto-Registration can only be used for gateways")
 			return 1
 		}
 
-		lanAddr, lanPort, err := parseAddress(c.address)
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Failed to parse the -address parameter: %v", err))
-			return 1
+		if c.gatewaySvcName == "" {
+			c.gatewaySvcName = string(c.gatewayKind)
 		}
 
 		taggedAddrs := make(map[string]api.ServiceAddress)
-
-		if lanAddr != "" {
-			taggedAddrs["lan"] = api.ServiceAddress{Address: lanAddr, Port: lanPort}
+		lanAddr := c.lanAddress.Value()
+		if lanAddr.Address != "" {
+			taggedAddrs[structs.TaggedAddressLAN] = lanAddr
 		}
 
-		wanAddr := ""
-		wanPort := lanPort
-		if c.wanAddress != "" {
-			wanAddr, wanPort, err = parseAddress(c.wanAddress)
-			if err != nil {
-				c.UI.Error(fmt.Sprintf("Failed to parse the -wan-address parameter: %v", err))
-				return 1
-			}
-			taggedAddrs["wan"] = api.ServiceAddress{Address: wanAddr, Port: wanPort}
+		wanAddr := c.wanAddress.Value()
+		if wanAddr.Address != "" {
+			taggedAddrs[structs.TaggedAddressWAN] = wanAddr
 		}
 
-		tcpCheckAddr := lanAddr
+		tcpCheckAddr := lanAddr.Address
 		if tcpCheckAddr == "" {
 			// fallback to localhost as the gateway has to reside in the same network namespace
 			// as the agent
@@ -265,25 +272,12 @@ func (c *cmd) Run(args []string) int {
 		}
 
 		var proxyConf *api.AgentServiceConnectProxyConfig
-
-		if len(c.bindAddresses) > 0 {
+		if len(c.bindAddresses.value) > 0 {
 			// override all default binding rules and just bind to the user-supplied addresses
-			bindAddresses := make(map[string]api.ServiceAddress)
-
-			for addrName, addrStr := range c.bindAddresses {
-				addr, port, err := parseAddress(addrStr)
-				if err != nil {
-					c.UI.Error(fmt.Sprintf("Failed to parse the bind address: %s=%s: %v", addrName, addrStr, err))
-					return 1
-				}
-
-				bindAddresses[addrName] = api.ServiceAddress{Address: addr, Port: port}
-			}
-
 			proxyConf = &api.AgentServiceConnectProxyConfig{
 				Config: map[string]interface{}{
-					"envoy_mesh_gateway_no_default_bind": true,
-					"envoy_mesh_gateway_bind_addresses":  bindAddresses,
+					"envoy_gateway_no_default_bind": true,
+					"envoy_gateway_bind_addresses":  c.bindAddresses.value,
 				},
 			}
 		} else if canBind(lanAddr) && canBind(wanAddr) {
@@ -291,31 +285,37 @@ func (c *cmd) Run(args []string) int {
 			// for creating the envoy listeners
 			proxyConf = &api.AgentServiceConnectProxyConfig{
 				Config: map[string]interface{}{
-					"envoy_mesh_gateway_no_default_bind":       true,
-					"envoy_mesh_gateway_bind_tagged_addresses": true,
+					"envoy_gateway_no_default_bind":       true,
+					"envoy_gateway_bind_tagged_addresses": true,
 				},
 			}
-		} else if !canBind(lanAddr) && lanAddr != "" {
-			c.UI.Error(fmt.Sprintf("The LAN address %q will not be bindable. Either set a bindable address or override the bind addresses with -bind-address", lanAddr))
+		} else if !canBind(lanAddr) && lanAddr.Address != "" {
+			c.UI.Error(fmt.Sprintf("The LAN address %q will not be bindable. Either set a bindable address or override the bind addresses with -bind-address", lanAddr.Address))
 			return 1
 		}
 
+		var meta map[string]string
+		if c.exposeServers {
+			meta = map[string]string{structs.MetaWANFederationKey: "1"}
+		}
+
 		svc := api.AgentServiceRegistration{
-			Kind:            api.ServiceKindMeshGateway,
-			Name:            c.meshGatewaySvcName,
-			Address:         lanAddr,
-			Port:            lanPort,
+			Kind:            c.gatewayKind,
+			Name:            c.gatewaySvcName,
+			Address:         lanAddr.Address,
+			Port:            lanAddr.Port,
+			Meta:            meta,
 			TaggedAddresses: taggedAddrs,
 			Proxy:           proxyConf,
 			Check: &api.AgentServiceCheck{
-				Name:                           "Mesh Gateway Listening",
-				TCP:                            ipaddr.FormatAddressPort(tcpCheckAddr, lanPort),
+				Name:                           fmt.Sprintf("%s listening", c.gatewayKind),
+				TCP:                            ipaddr.FormatAddressPort(tcpCheckAddr, lanAddr.Port),
 				Interval:                       "10s",
 				DeregisterCriticalServiceAfter: c.deregAfterCritical,
 			},
 		}
 
-		if err := client.Agent().ServiceRegister(&svc); err != nil {
+		if err := c.client.Agent().ServiceRegister(&svc); err != nil {
 			c.UI.Error(fmt.Sprintf("Error registering service %q: %s", svc.Name, err))
 			return 1
 		}
@@ -325,41 +325,26 @@ func (c *cmd) Run(args []string) int {
 
 	// See if we need to lookup proxyID
 	if c.proxyID == "" && c.sidecarFor != "" {
-		proxyID, err := c.lookupProxyIDForSidecar()
+		proxyID, err := proxyCmd.LookupProxyIDForSidecar(c.client, c.sidecarFor)
 		if err != nil {
 			c.UI.Error(err.Error())
 			return 1
 		}
 		c.proxyID = proxyID
-	} else if c.proxyID == "" && c.meshGateway {
-		gatewaySvc, err := c.lookupGatewayProxy()
+	} else if c.proxyID == "" && c.gateway != "" {
+		gatewaySvc, err := proxyCmd.LookupGatewayProxy(c.client, c.gatewayKind)
 		if err != nil {
 			c.UI.Error(err.Error())
 			return 1
 		}
 		c.proxyID = gatewaySvc.ID
-		c.meshGatewaySvcName = gatewaySvc.Service
+		c.gatewaySvcName = gatewaySvc.Service
 	}
 
 	if c.proxyID == "" {
-		c.UI.Error("No proxy ID specified. One of -proxy-id or -sidecar-for/-mesh-gateway is " +
+		c.UI.Error("No proxy ID specified. One of -proxy-id or -sidecar-for/-gateway is " +
 			"required")
 		return 1
-	}
-
-	// See if we need to lookup grpcAddr
-	if c.grpcAddr == "" {
-		port, err := c.lookupGRPCPort()
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
-		}
-		if port <= 0 {
-			// This is the dev mode default and recommended production setting if
-			// enabled.
-			port = 8502
-			c.UI.Info(fmt.Sprintf("Defaulting to grpc port = %d", port))
-		}
-		c.grpcAddr = fmt.Sprintf("localhost:%v", port)
 	}
 
 	// Generate config
@@ -382,7 +367,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	err = execEnvoy(binary, nil, passThroughArgs, bootstrapJson)
+	err = execEnvoy(binary, nil, args, bootstrapJson)
 	if err == errUnsupportedOS {
 		c.UI.Error("Directly running Envoy is only supported on linux and macOS " +
 			"since envoy itself doesn't build on other platforms currently.")
@@ -410,58 +395,14 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 	httpCfg := api.DefaultConfig()
 	c.http.MergeOntoConfig(httpCfg)
 
-	// Trigger the Client init to do any last-minute updates to the Config.
+	// api.NewClient normalizes some values (Token, Scheme) on the Config.
 	if _, err := api.NewClient(httpCfg); err != nil {
 		return nil, err
 	}
 
-	// Decide on TLS if the scheme is provided and indicates it, if the HTTP env
-	// suggests TLS is supported explicitly (CONSUL_HTTP_SSL) or implicitly
-	// (CONSUL_HTTP_ADDR) is https://
-	useTLS := false
-	if strings.HasPrefix(strings.ToLower(c.grpcAddr), "https://") {
-		useTLS = true
-	} else if useSSLEnv := os.Getenv(api.HTTPSSLEnvName); useSSLEnv != "" {
-		if enabled, err := strconv.ParseBool(useSSLEnv); err != nil {
-			useTLS = enabled
-		}
-	} else if strings.HasPrefix(strings.ToLower(httpCfg.Address), "https://") {
-		useTLS = true
-	}
-
-	// We want to allow grpcAddr set as host:port with no scheme but if the host
-	// is an IP this will fail to parse as a URL with "parse 127.0.0.1:8500: first
-	// path segment in URL cannot contain colon". On the other hand we also
-	// support both http(s)://host:port and unix:///path/to/file.
-	var agentAddr, agentPort, agentSock string
-	if grpcAddr := strings.TrimPrefix(c.grpcAddr, "unix://"); grpcAddr != c.grpcAddr {
-		// Path to unix socket
-		agentSock = grpcAddr
-	} else {
-		// Parse as host:port with option http prefix
-		grpcAddr = strings.TrimPrefix(c.grpcAddr, "http://")
-		grpcAddr = strings.TrimPrefix(c.grpcAddr, "https://")
-
-		var err error
-		agentAddr, agentPort, err = net.SplitHostPort(grpcAddr)
-		if err != nil {
-			return nil, fmt.Errorf("Invalid Consul HTTP address: %s", err)
-		}
-		if agentAddr == "" {
-			agentAddr = "127.0.0.1"
-		}
-
-		// We use STATIC for agent which means we need to resolve DNS names like
-		// `localhost` ourselves. We could use STRICT_DNS or LOGICAL_DNS with envoy
-		// but Envoy resolves `localhost` differently to go on macOS at least which
-		// causes paper cuts like default dev agent (which binds specifically to
-		// 127.0.0.1) isn't reachable since Envoy resolves localhost to `[::]` and
-		// can't connect.
-		agentIP, err := net.ResolveIPAddr("ip", agentAddr)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to resolve agent address: %s", err)
-		}
-		agentAddr = agentIP.String()
+	grpcAddr, err := c.grpcAddress(httpCfg)
+	if err != nil {
+		return nil, err
 	}
 
 	adminAddr, adminPort, err := net.SplitHostPort(c.adminBind)
@@ -484,8 +425,8 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 	cluster := c.proxyID
 	if c.sidecarFor != "" {
 		cluster = c.sidecarFor
-	} else if c.meshGateway && c.meshGatewaySvcName != "" {
-		cluster = c.meshGatewaySvcName
+	} else if c.gateway != "" && c.gatewaySvcName != "" {
+		cluster = c.gatewaySvcName
 	}
 
 	adminAccessLogPath := c.adminAccessLogPath
@@ -493,19 +434,27 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		adminAccessLogPath = DefaultAdminAccessLogPath
 	}
 
+	var caPEM string
+	if httpCfg.TLSConfig.CAFile != "" {
+		content, err := ioutil.ReadFile(httpCfg.TLSConfig.CAFile)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to read CA file: %s", err)
+		}
+		caPEM = strings.Replace(string(content), "\n", "\\n", -1)
+	}
+
 	return &BootstrapTplArgs{
+		GRPC:                  grpcAddr,
 		ProxyCluster:          cluster,
 		ProxyID:               c.proxyID,
-		AgentAddress:          agentAddr,
-		AgentPort:             agentPort,
-		AgentSocket:           agentSock,
-		AgentTLS:              useTLS,
-		AgentCAFile:           httpCfg.TLSConfig.CAFile,
+		AgentCAPEM:            caPEM,
 		AdminAccessLogPath:    adminAccessLogPath,
 		AdminBindAddress:      adminBindIP.String(),
 		AdminBindPort:         adminPort,
 		Token:                 httpCfg.Token,
 		LocalAgentClusterName: xds.LocalAgentClusterName,
+		Namespace:             httpCfg.Namespace,
+		EnvoyVersion:          c.envoyVersion,
 	}, nil
 }
 
@@ -516,6 +465,17 @@ func (c *cmd) generateConfig() ([]byte, error) {
 	}
 
 	var bsCfg BootstrapConfig
+
+	// Setup ready listener for ingress gateway to pass healthcheck
+	if c.gatewayKind == api.ServiceKindIngressGateway {
+		lanAddr := c.lanAddress.String()
+		// Deal with possibility of address not being specified and defaulting to
+		// ":443"
+		if strings.HasPrefix(lanAddr, ":") {
+			lanAddr = "127.0.0.1" + lanAddr
+		}
+		bsCfg.ReadyBindAddr = lanAddr
+	}
 
 	if !c.disableCentralConfig {
 		// Fetch any customization from the registration
@@ -542,12 +502,70 @@ func (c *cmd) generateConfig() ([]byte, error) {
 	return bsCfg.GenerateJSON(args)
 }
 
-func (c *cmd) lookupProxyIDForSidecar() (string, error) {
-	return proxyCmd.LookupProxyIDForSidecar(c.client, c.sidecarFor)
-}
+// TODO: make method a function
+func (c *cmd) grpcAddress(httpCfg *api.Config) (GRPC, error) {
+	g := GRPC{}
 
-func (c *cmd) lookupGatewayProxy() (*api.AgentService, error) {
-	return proxyCmd.LookupGatewayProxy(c.client)
+	addr := c.grpcAddr
+	// See if we need to lookup grpcAddr
+	if addr == "" {
+		port, err := c.lookupGRPCPort()
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
+		}
+		if port <= 0 {
+			// This is the dev mode default and recommended production setting if
+			// enabled.
+			port = 8502
+			c.UI.Info(fmt.Sprintf("Defaulting to grpc port = %d", port))
+		}
+		addr = fmt.Sprintf("localhost:%v", port)
+	}
+
+	// TODO: parse addr as a url instead of strings.HasPrefix/TrimPrefix
+
+	// Decide on TLS if the scheme is provided and indicates it, if the HTTP env
+	// suggests TLS is supported explicitly (CONSUL_HTTP_SSL) or implicitly
+	// (CONSUL_HTTP_ADDR) is https://
+	switch {
+	case strings.HasPrefix(strings.ToLower(addr), "https://"):
+		g.AgentTLS = true
+	case httpCfg.Scheme == "https":
+		g.AgentTLS = true
+	}
+
+	// We want to allow grpcAddr set as host:port with no scheme but if the host
+	// is an IP this will fail to parse as a URL with "parse 127.0.0.1:8500: first
+	// path segment in URL cannot contain colon". On the other hand we also
+	// support both http(s)://host:port and unix:///path/to/file.
+	if grpcAddr := strings.TrimPrefix(addr, "unix://"); grpcAddr != addr {
+		// Path to unix socket
+		g.AgentSocket = grpcAddr
+	} else {
+		// Parse as host:port with option http prefix
+		grpcAddr = strings.TrimPrefix(addr, "http://")
+		grpcAddr = strings.TrimPrefix(addr, "https://")
+
+		var err error
+		var host string
+		host, g.AgentPort, err = net.SplitHostPort(grpcAddr)
+		if err != nil {
+			return g, fmt.Errorf("Invalid Consul HTTP address: %s", err)
+		}
+
+		// We use STATIC for agent which means we need to resolve DNS names like
+		// `localhost` ourselves. We could use STRICT_DNS or LOGICAL_DNS with envoy
+		// but Envoy resolves `localhost` differently to go on macOS at least which
+		// causes paper cuts like default dev agent (which binds specifically to
+		// 127.0.0.1) isn't reachable since Envoy resolves localhost to `[::]` and
+		// can't connect.
+		agentIP, err := net.ResolveIPAddr("ip", host)
+		if err != nil {
+			return g, fmt.Errorf("Failed to resolve agent address: %s", err)
+		}
+		g.AgentAddress = agentIP.String()
+	}
+	return g, nil
 }
 
 func (c *cmd) lookupGRPCPort() (int, error) {
@@ -594,7 +612,7 @@ Usage: consul connect envoy [options]
   arguments using -bootstrap.
 
   The proxy requires service:write permissions for the service it represents.
-  The token may be passed via the CLI or the CONSUL_TOKEN environment
+  The token may be passed via the CLI or the CONSUL_HTTP_TOKEN environment
   variable.
 
   The example below shows how to start a local proxy as a sidecar to a "web"

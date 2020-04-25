@@ -25,7 +25,7 @@ type ServiceManager struct {
 	servicesLock sync.Mutex
 
 	// services tracks all active watches for registered services
-	services map[string]*serviceConfigWatch
+	services map[structs.ServiceID]*serviceConfigWatch
 
 	// registerCh is a channel for processing service registrations in the
 	// background when watches are notified of changes. All sends and receives
@@ -47,7 +47,7 @@ func NewServiceManager(agent *Agent) *ServiceManager {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &ServiceManager{
 		agent:      agent,
-		services:   make(map[string]*serviceConfigWatch),
+		services:   make(map[structs.ServiceID]*serviceConfigWatch),
 		registerCh: make(chan *asyncRegisterRequest), // must be unbuffered
 		ctx:        ctx,
 		cancel:     cancel,
@@ -86,7 +86,7 @@ func (s *ServiceManager) registerOnce(args *addServiceRequest) error {
 	s.agent.stateLock.Lock()
 	defer s.agent.stateLock.Unlock()
 
-	err := s.agent.addServiceInternal(args)
+	err := s.agent.addServiceInternal(args, s.agent.snapshotCheckState())
 	if err != nil {
 		return fmt.Errorf("error updating service registration: %v", err)
 	}
@@ -118,14 +118,16 @@ func (s *ServiceManager) registerOnce(args *addServiceRequest) error {
 func (s *ServiceManager) AddService(req *addServiceRequest) error {
 	req.fixupForAddServiceLocked()
 
-	// For now only sidecar proxies have anything that can be configured
+	req.service.EnterpriseMeta.Normalize()
+
+	// For now only proxies have anything that can be configured
 	// centrally. So bypass the whole manager for regular services.
-	if !req.service.IsSidecarProxy() && !req.service.IsMeshGateway() {
+	if !req.service.IsSidecarProxy() && !req.service.IsGateway() {
 		// previousDefaults are ignored here because they are only relevant for central config.
 		req.persistService = nil
 		req.persistDefaults = nil
 		req.persistServiceConfig = false
-		return s.agent.addServiceInternal(req)
+		return s.agent.addServiceInternal(req, s.agent.snapshotCheckState())
 	}
 
 	var (
@@ -152,11 +154,13 @@ func (s *ServiceManager) AddService(req *addServiceRequest) error {
 	s.servicesLock.Lock()
 	defer s.servicesLock.Unlock()
 
+	sid := service.CompoundServiceID()
+
 	// If a service watch already exists, shut it down and replace it.
-	oldWatch, updating := s.services[service.ID]
+	oldWatch, updating := s.services[sid]
 	if updating {
 		oldWatch.Stop()
-		delete(s.services, service.ID)
+		delete(s.services, sid)
 	}
 
 	// Get the existing global config and do the initial registration with the
@@ -179,19 +183,19 @@ func (s *ServiceManager) AddService(req *addServiceRequest) error {
 		return err
 	}
 
-	s.services[service.ID] = watch
+	s.services[sid] = watch
 
 	if updating {
-		s.agent.logger.Printf("[DEBUG] agent.manager: updated local registration for service %q", service.ID)
+		s.agent.logger.Debug("updated local registration for service", "service", service.ID)
 	} else {
-		s.agent.logger.Printf("[DEBUG] agent.manager: added local registration for service %q", service.ID)
+		s.agent.logger.Debug("added local registration for service", "service", service.ID)
 	}
 
 	return nil
 }
 
 // NOTE: the caller must hold the Agent.stateLock!
-func (s *ServiceManager) RemoveService(serviceID string) {
+func (s *ServiceManager) RemoveService(serviceID structs.ServiceID) {
 	s.servicesLock.Lock()
 	defer s.servicesLock.Unlock()
 
@@ -275,7 +279,7 @@ func (w *serviceConfigWatch) RegisterAndStart(
 		token:                 w.registration.token,
 		replaceExistingChecks: w.registration.replaceExistingChecks,
 		source:                w.registration.source,
-	})
+	}, w.agent.snapshotCheckState())
 	if err != nil {
 		return fmt.Errorf("error updating service registration: %v", err)
 	}
@@ -361,7 +365,7 @@ func (w *serviceConfigWatch) runWatch(wg *sync.WaitGroup) {
 			return
 		case event := <-w.updateCh:
 			if err := w.handleUpdate(event); err != nil {
-				w.agent.logger.Printf("[ERR] agent.manager: error handling service update: %v", err)
+				w.agent.logger.Error("error handling service update", "error", err)
 			}
 		}
 	}
@@ -448,7 +452,7 @@ type asyncRegisterRequest struct {
 func makeConfigRequest(agent *Agent, registration *serviceRegistration) *structs.ServiceConfigRequest {
 	ns := registration.service
 	name := ns.Service
-	var upstreams []string
+	var upstreams []structs.ServiceID
 
 	// Note that only sidecar proxies should even make it here for now although
 	// later that will change to add the condition.
@@ -461,16 +465,19 @@ func makeConfigRequest(agent *Agent, registration *serviceRegistration) *structs
 		// learn about their configs.
 		for _, us := range ns.Proxy.Upstreams {
 			if us.DestinationType == "" || us.DestinationType == structs.UpstreamDestTypeService {
-				upstreams = append(upstreams, us.DestinationName)
+				sid := us.DestinationID()
+				sid.EnterpriseMeta.Merge(&ns.EnterpriseMeta)
+				upstreams = append(upstreams, sid)
 			}
 		}
 	}
 
 	req := &structs.ServiceConfigRequest{
-		Name:         name,
-		Datacenter:   agent.config.Datacenter,
-		QueryOptions: structs.QueryOptions{Token: agent.tokens.AgentToken()},
-		Upstreams:    upstreams,
+		Name:           name,
+		Datacenter:     agent.config.Datacenter,
+		QueryOptions:   structs.QueryOptions{Token: agent.tokens.AgentToken()},
+		UpstreamIDs:    upstreams,
+		EnterpriseMeta: ns.EnterpriseMeta,
 	}
 	if registration.token != "" {
 		req.QueryOptions.Token = registration.token
@@ -523,7 +530,7 @@ func (w *serviceConfigWatch) mergeServiceConfig() (*structs.NodeService, error) 
 			us.MeshGateway.Mode = ns.Proxy.MeshGateway.Mode
 		}
 
-		usCfg, ok := w.defaults.UpstreamConfigs[us.DestinationName]
+		usCfg, ok := w.defaults.UpstreamIDConfigs.GetUpstreamConfig(us.DestinationID())
 		if !ok {
 			// No config defaults to merge
 			continue

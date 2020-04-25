@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -19,7 +18,7 @@ import (
 func TestServiceManager_RegisterService(t *testing.T) {
 	require := require.New(t)
 
-	a := NewTestAgent(t, t.Name(), "enable_central_service_config = true")
+	a := NewTestAgent(t, "enable_central_service_config = true")
 	defer a.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -40,30 +39,33 @@ func TestServiceManager_RegisterService(t *testing.T) {
 
 	// Now register a service locally with no sidecar, it should be a no-op.
 	svc := &structs.NodeService{
-		ID:      "redis",
-		Service: "redis",
-		Port:    8000,
+		ID:             "redis",
+		Service:        "redis",
+		Port:           8000,
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 	require.NoError(a.AddService(svc, nil, false, "", ConfigSourceLocal))
 
 	// Verify both the service and sidecar.
-	redisService := a.State.Service("redis")
+	redisService := a.State.Service(structs.NewServiceID("redis", nil))
 	require.NotNil(redisService)
 	require.Equal(&structs.NodeService{
-		ID:      "redis",
-		Service: "redis",
-		Port:    8000,
+		ID:              "redis",
+		Service:         "redis",
+		Port:            8000,
+		TaggedAddresses: map[string]structs.ServiceAddress{},
 		Weights: &structs.Weights{
 			Passing: 1,
 			Warning: 1,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}, redisService)
 }
 
 func TestServiceManager_RegisterSidecar(t *testing.T) {
 	require := require.New(t)
 
-	a := NewTestAgent(t, t.Name(), "enable_central_service_config = true")
+	a := NewTestAgent(t, "enable_central_service_config = true")
 	defer a.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -107,17 +109,19 @@ func TestServiceManager_RegisterSidecar(t *testing.T) {
 				},
 			},
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 	require.NoError(a.AddService(svc, nil, false, "", ConfigSourceLocal))
 
 	// Verify sidecar got global config loaded
-	sidecarService := a.State.Service("web-sidecar-proxy")
+	sidecarService := a.State.Service(structs.NewServiceID("web-sidecar-proxy", nil))
 	require.NotNil(sidecarService)
 	require.Equal(&structs.NodeService{
-		Kind:    structs.ServiceKindConnectProxy,
-		ID:      "web-sidecar-proxy",
-		Service: "web-sidecar-proxy",
-		Port:    21000,
+		Kind:            structs.ServiceKindConnectProxy,
+		ID:              "web-sidecar-proxy",
+		Service:         "web-sidecar-proxy",
+		Port:            21000,
+		TaggedAddresses: map[string]structs.ServiceAddress{},
 		Proxy: structs.ConnectProxyConfig{
 			DestinationServiceName: "web",
 			DestinationServiceID:   "web",
@@ -141,13 +145,14 @@ func TestServiceManager_RegisterSidecar(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}, sidecarService)
 }
 
 func TestServiceManager_RegisterMeshGateway(t *testing.T) {
 	require := require.New(t)
 
-	a := NewTestAgent(t, t.Name(), "enable_central_service_config = true")
+	a := NewTestAgent(t, "enable_central_service_config = true")
 	defer a.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -168,22 +173,24 @@ func TestServiceManager_RegisterMeshGateway(t *testing.T) {
 
 	// Now register a mesh-gateway.
 	svc := &structs.NodeService{
-		Kind:    structs.ServiceKindMeshGateway,
-		ID:      "mesh-gateway",
-		Service: "mesh-gateway",
-		Port:    443,
+		Kind:           structs.ServiceKindMeshGateway,
+		ID:             "mesh-gateway",
+		Service:        "mesh-gateway",
+		Port:           443,
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 
 	require.NoError(a.AddService(svc, nil, false, "", ConfigSourceLocal))
 
 	// Verify gateway got global config loaded
-	gateway := a.State.Service("mesh-gateway")
+	gateway := a.State.Service(structs.NewServiceID("mesh-gateway", nil))
 	require.NotNil(gateway)
 	require.Equal(&structs.NodeService{
-		Kind:    structs.ServiceKindMeshGateway,
-		ID:      "mesh-gateway",
-		Service: "mesh-gateway",
-		Port:    443,
+		Kind:            structs.ServiceKindMeshGateway,
+		ID:              "mesh-gateway",
+		Service:         "mesh-gateway",
+		Port:            443,
+		TaggedAddresses: map[string]structs.ServiceAddress{},
 		Proxy: structs.ConnectProxyConfig{
 			Config: map[string]interface{}{
 				"foo":      int64(1),
@@ -194,6 +201,63 @@ func TestServiceManager_RegisterMeshGateway(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+	}, gateway)
+}
+
+func TestServiceManager_RegisterTerminatingGateway(t *testing.T) {
+	require := require.New(t)
+
+	a := NewTestAgent(t, "enable_central_service_config = true")
+	defer a.Shutdown()
+
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Register a global proxy and service config
+	testApplyConfigEntries(t, a,
+		&structs.ProxyConfigEntry{
+			Config: map[string]interface{}{
+				"foo": 1,
+			},
+		},
+		&structs.ServiceConfigEntry{
+			Kind:     structs.ServiceDefaults,
+			Name:     "terminating-gateway",
+			Protocol: "http",
+		},
+	)
+
+	// Now register a terminating-gateway.
+	svc := &structs.NodeService{
+		Kind:           structs.ServiceKindTerminatingGateway,
+		ID:             "terminating-gateway",
+		Service:        "terminating-gateway",
+		Port:           443,
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+	}
+
+	require.NoError(a.AddService(svc, nil, false, "", ConfigSourceLocal))
+
+	// Verify gateway got global config loaded
+	gateway := a.State.Service(structs.NewServiceID("terminating-gateway", nil))
+	require.NotNil(gateway)
+	require.Equal(&structs.NodeService{
+		Kind:            structs.ServiceKindTerminatingGateway,
+		ID:              "terminating-gateway",
+		Service:         "terminating-gateway",
+		Port:            443,
+		TaggedAddresses: map[string]structs.ServiceAddress{},
+		Proxy: structs.ConnectProxyConfig{
+			Config: map[string]interface{}{
+				"foo":      int64(1),
+				"protocol": "http",
+			},
+		},
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}, gateway)
 }
 
@@ -205,7 +269,7 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 	require := require.New(t)
 
 	// Launch a server to manage the config entries.
-	serverAgent := NewTestAgent(t, t.Name(), `enable_central_service_config = true`)
+	serverAgent := NewTestAgent(t, `enable_central_service_config = true`)
 	defer serverAgent.Shutdown()
 	testrpc.WaitForLeader(t, serverAgent.RPC, "dc1")
 
@@ -238,7 +302,7 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 		bootstrap = false
 		data_dir = "` + dataDir + `"
 	`
-	a := NewTestAgentWithFields(t, true, TestAgent{HCL: cfg, DataDir: dataDir})
+	a := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: dataDir})
 	defer a.Shutdown()
 
 	// Join first
@@ -267,13 +331,15 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 				},
 			},
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 
 	expectState := &structs.NodeService{
-		Kind:    structs.ServiceKindConnectProxy,
-		ID:      "web-sidecar-proxy",
-		Service: "web-sidecar-proxy",
-		Port:    21000,
+		Kind:            structs.ServiceKindConnectProxy,
+		ID:              "web-sidecar-proxy",
+		Service:         "web-sidecar-proxy",
+		Port:            21000,
+		TaggedAddresses: map[string]structs.ServiceAddress{},
 		Proxy: structs.ConnectProxyConfig{
 			DestinationServiceName: "web",
 			DestinationServiceID:   "web",
@@ -297,10 +363,13 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 
-	svcFile := filepath.Join(a.Config.DataDir, servicesDir, stringHash(svc.ID))
-	configFile := filepath.Join(a.Config.DataDir, serviceConfigDir, stringHash(svc.ID))
+	svcID := svc.CompoundServiceID()
+
+	svcFile := filepath.Join(a.Config.DataDir, servicesDir, svcID.StringHash())
+	configFile := filepath.Join(a.Config.DataDir, serviceConfigDir, svcID.StringHash())
 
 	// Service is not persisted unless requested, but we always persist service configs.
 	require.NoError(a.AddService(svc, nil, false, "", ConfigSourceRemote))
@@ -320,24 +389,29 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 	}, nil)
 
 	// Service config file is sane.
-	expectJSONFile(t, configFile, persistedServiceConfig{
+	pcfg := persistedServiceConfig{
 		ServiceID: "web-sidecar-proxy",
 		Defaults: &structs.ServiceConfigResponse{
 			ProxyConfig: map[string]interface{}{
 				"foo":      1,
 				"protocol": "http",
 			},
-			UpstreamConfigs: map[string]map[string]interface{}{
-				"redis": map[string]interface{}{
-					"protocol": "tcp",
+			UpstreamIDConfigs: structs.UpstreamConfigs{
+				structs.UpstreamConfig{
+					Upstream: structs.NewServiceID("redis", nil),
+					Config: map[string]interface{}{
+						"protocol": "tcp",
+					},
 				},
 			},
 		},
-	}, resetDefaultsQueryMeta)
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+	}
+	expectJSONFile(t, configFile, pcfg, resetDefaultsQueryMeta)
 
 	// Verify in memory state.
 	{
-		sidecarService := a.State.Service("web-sidecar-proxy")
+		sidecarService := a.State.Service(structs.NewServiceID("web-sidecar-proxy", nil))
 		require.NotNil(sidecarService)
 		require.Equal(expectState, sidecarService)
 	}
@@ -356,25 +430,30 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 	}, nil)
 
 	// Service config file is the same.
-	expectJSONFile(t, configFile, persistedServiceConfig{
+	pcfg = persistedServiceConfig{
 		ServiceID: "web-sidecar-proxy",
 		Defaults: &structs.ServiceConfigResponse{
 			ProxyConfig: map[string]interface{}{
 				"foo":      1,
 				"protocol": "http",
 			},
-			UpstreamConfigs: map[string]map[string]interface{}{
-				"redis": map[string]interface{}{
-					"protocol": "tcp",
+			UpstreamIDConfigs: structs.UpstreamConfigs{
+				structs.UpstreamConfig{
+					Upstream: structs.NewServiceID("redis", nil),
+					Config: map[string]interface{}{
+						"protocol": "tcp",
+					},
 				},
 			},
 		},
-	}, resetDefaultsQueryMeta)
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+	}
+	expectJSONFile(t, configFile, pcfg, resetDefaultsQueryMeta)
 
 	// Verify in memory state.
 	expectState.Proxy.LocalServicePort = 8001
 	{
-		sidecarService := a.State.Service("web-sidecar-proxy")
+		sidecarService := a.State.Service(structs.NewServiceID("web-sidecar-proxy", nil))
 		require.NotNil(sidecarService)
 		require.Equal(expectState, sidecarService)
 	}
@@ -386,17 +465,17 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 	serverAgent.Shutdown()
 
 	// Should load it back during later start.
-	a2 := NewTestAgentWithFields(t, true, TestAgent{HCL: cfg, DataDir: dataDir})
+	a2 := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: dataDir})
 	defer a2.Shutdown()
 
 	{
-		restored := a.State.Service("web-sidecar-proxy")
+		restored := a.State.Service(structs.NewServiceID("web-sidecar-proxy", nil))
 		require.NotNil(restored)
 		require.Equal(expectState, restored)
 	}
 
 	// Now remove it.
-	require.NoError(a2.RemoveService("web-sidecar-proxy"))
+	require.NoError(a2.RemoveService(structs.NewServiceID("web-sidecar-proxy", nil)))
 	requireFileIsAbsent(t, svcFile)
 	requireFileIsAbsent(t, configFile)
 }
@@ -406,10 +485,8 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 	// TestAgent_PurgeService but for config files.
 	t.Parallel()
 
-	require := require.New(t)
-
 	// Launch a server to manage the config entries.
-	serverAgent := NewTestAgent(t, t.Name(), `enable_central_service_config = true`)
+	serverAgent := NewTestAgent(t, `enable_central_service_config = true`)
 	defer serverAgent.Shutdown()
 	testrpc.WaitForLeader(t, serverAgent.RPC, "dc1")
 
@@ -463,14 +540,14 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 		bootstrap = false
 	` + serviceSnippet
 
-	a := NewTestAgentWithFields(t, true, TestAgent{HCL: cfg, DataDir: dataDir})
+	a := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: dataDir})
 	defer a.Shutdown()
 
 	// Join first
 	_, err := a.JoinLAN([]string{
 		fmt.Sprintf("127.0.0.1:%d", serverAgent.Config.SerfPortLAN),
 	})
-	require.NoError(err)
+	require.NoError(t, err)
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -478,10 +555,11 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 	svcID := "web-sidecar-proxy"
 
 	expectState := &structs.NodeService{
-		Kind:    structs.ServiceKindConnectProxy,
-		ID:      "web-sidecar-proxy",
-		Service: "web-sidecar-proxy",
-		Port:    21000,
+		Kind:            structs.ServiceKindConnectProxy,
+		ID:              "web-sidecar-proxy",
+		Service:         "web-sidecar-proxy",
+		Port:            21000,
+		TaggedAddresses: map[string]structs.ServiceAddress{},
 		Proxy: structs.ConnectProxyConfig{
 			DestinationServiceName: "web",
 			DestinationServiceID:   "web",
@@ -506,19 +584,18 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 
 	// Now wait until we've re-registered using central config updated data.
 	retry.Run(t, func(r *retry.R) {
 		a.stateLock.Lock()
 		defer a.stateLock.Unlock()
-		current := a.State.Service("web-sidecar-proxy")
+		current := a.State.Service(structs.NewServiceID("web-sidecar-proxy", nil))
 		if current == nil {
 			r.Fatalf("service is missing")
 		}
-		if !reflect.DeepEqual(expectState, current) {
-			r.Fatalf("expected: %#v\nactual  :%#v", expectState, current)
-		}
+		require.Equal(r, expectState, current)
 	})
 
 	svcFile := filepath.Join(a.Config.DataDir, servicesDir, stringHash(svcID))
@@ -536,19 +613,23 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 				"foo":      1,
 				"protocol": "http",
 			},
-			UpstreamConfigs: map[string]map[string]interface{}{
-				"redis": map[string]interface{}{
-					"protocol": "tcp",
+			UpstreamIDConfigs: structs.UpstreamConfigs{
+				structs.UpstreamConfig{
+					Upstream: structs.NewServiceID("redis", nil),
+					Config: map[string]interface{}{
+						"protocol": "tcp",
+					},
 				},
 			},
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}, resetDefaultsQueryMeta)
 
 	// Verify in memory state.
 	{
-		sidecarService := a.State.Service("web-sidecar-proxy")
-		require.NotNil(sidecarService)
-		require.Equal(expectState, sidecarService)
+		sidecarService := a.State.Service(structs.NewServiceID("web-sidecar-proxy", nil))
+		require.NotNil(t, sidecarService)
+		require.Equal(t, expectState, sidecarService)
 	}
 
 	// Kill the agent to restart it.
@@ -558,17 +639,17 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 	serverAgent.Shutdown()
 
 	// Should load it back during later start.
-	a2 := NewTestAgentWithFields(t, true, TestAgent{HCL: cfg, DataDir: dataDir})
+	a2 := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: dataDir})
 	defer a2.Shutdown()
 
 	{
-		restored := a.State.Service("web-sidecar-proxy")
-		require.NotNil(restored)
-		require.Equal(expectState, restored)
+		restored := a.State.Service(structs.NewServiceID("web-sidecar-proxy", nil))
+		require.NotNil(t, restored)
+		require.Equal(t, expectState, restored)
 	}
 
 	// Now remove it.
-	require.NoError(a2.RemoveService("web-sidecar-proxy"))
+	require.NoError(t, a2.RemoveService(structs.NewServiceID("web-sidecar-proxy", nil)))
 	requireFileIsAbsent(t, svcFile)
 	requireFileIsAbsent(t, configFile)
 }
@@ -576,7 +657,7 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 func TestServiceManager_Disabled(t *testing.T) {
 	require := require.New(t)
 
-	a := NewTestAgent(t, t.Name(), "enable_central_service_config = false")
+	a := NewTestAgent(t, "enable_central_service_config = false")
 	defer a.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -620,17 +701,19 @@ func TestServiceManager_Disabled(t *testing.T) {
 				},
 			},
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 	require.NoError(a.AddService(svc, nil, false, "", ConfigSourceLocal))
 
 	// Verify sidecar got global config loaded
-	sidecarService := a.State.Service("web-sidecar-proxy")
+	sidecarService := a.State.Service(structs.NewServiceID("web-sidecar-proxy", nil))
 	require.NotNil(sidecarService)
 	require.Equal(&structs.NodeService{
-		Kind:    structs.ServiceKindConnectProxy,
-		ID:      "web-sidecar-proxy",
-		Service: "web-sidecar-proxy",
-		Port:    21000,
+		Kind:            structs.ServiceKindConnectProxy,
+		ID:              "web-sidecar-proxy",
+		Service:         "web-sidecar-proxy",
+		Port:            21000,
+		TaggedAddresses: map[string]structs.ServiceAddress{},
 		Proxy: structs.ConnectProxyConfig{
 			DestinationServiceName: "web",
 			DestinationServiceID:   "web",
@@ -649,6 +732,7 @@ func TestServiceManager_Disabled(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}, sidecarService)
 }
 

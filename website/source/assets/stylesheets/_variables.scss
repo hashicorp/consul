@@ -1,65 +1,95 @@
 // Colors
 $white: #ffffff;
 $black: #000000;
-$gray-darker: #555555;
-$consul-black: #252937;
+$gray-7: #f7f7f9;
+$gray-6: #dcdde0;
+$gray-5: #bdbec2;
+$gray-4: #7f7f86;
+$gray-3: #4c4c53;
+$gray-2: #323339;
+$gray-1: #1d1e23;
 
-$consul-red: #c62a71;
-$consul-red-dark: #8c1c59;
-$packer-blue: #1daeff;
-$packer-blue-dark: #1d94dd;
-$terraform-purple: #5c4ee5;
-$terraform-purple-dark: #4040b2;
-$vagrant-blue: #1563ff;
-$vagrant-blue-dark: #104eb2;
-$vault-black: #000000;
-$vault-blue: #00abe0;
-$vault-gray: #919fa8;
+$vagrant-l3: #eff5ff;
+$vagrant-l2: #d0e0ff;
+$vagrant-l1: #66a2ff;
+$vagrant: #1563ff;
+$vagrant-d1: #0d44cc;
+$vagrant-d2: #08368b;
+$packer-l3: #ebf8ff;
+$packer-l2: #bfe8fe;
+$packer-l1: #6bceff;
+$packer: #00acff;
+$packer-d1: #0074ba;
+$packer-d2: #005283;
+$nomad-l3: #ebfdf7;
+$nomad-l2: #c1f1e0;
+$nomad-l1: #6bd8b4;
+$nomad-on-dark: #00bc7f;
+$nomad: #00bc7f;
+$nomad-d1: #007854;
+$nomad-d2: #004c3a;
+$terraform-l3: #f5f3ff;
+$terraform-l2: #ddd6fa;
+$terraform-l1: #a28ce8;
+$terraform-on-dark: #7c65ef;
+$terraform: #623ce4;
+$terraform-d1: #3c2aa8;
+$terraform-d2: #2a1c73;
+$consul-l3: #fff2f8;
+$consul-l2: #f8d9e7;
+$consul-l1: #e07eac;
+$consul-on-dark: #e03a89;
+$consul: #ca2171;
+$consul-d1: #8e134a;
+$consul-d2: #650d34;
+$vault-l3: #f7f7f9;
+$vault-l2: #dcdde0;
+$vault-l1: #bdbec2;
+$vault: #4c4c53;
+$vault-d1: #323339;
+$vault-d2: #1d1e23;
 
 // Typography
-$font-family-klavika: 'klavika-web', Helvetica, sans-serif;
-$font-family-open-sans: 'Open Sans', sans-serif;
-$font-family-monospace: 'Fira Mono', monospace;
-$font-size: 15px;
+$font-size-default: 16px;
+$font-weight-light: 300;
+$font-weight-book: $font-weight-light;
 $font-weight-reg: 400;
-$font-weight-bold: 600;
+$font-weight-medium: 500;
+$font-weight-semi-bold: 600;
+$font-weight-bold: 700;
+$font-display: "gilmer-web", "Gilmer", Geneva, Tahoma, Helvetica, Verdana,
+  sans-serif;
+$font-body: "metro-web", "Metro", -apple-system, BlinkMacSystemFont, "Segoe UI",
+  Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+$font-monospace: "dejavu-sans-mono-web", monospace;
 
 // Body
-$body-font-color: $gray-darker;
-$body-link-color: $consul-red;
+$body-font-color: $gray-1;
+$body-link-color: $consul;
 
 // Home
 $home-header-background-color: transparent;
-$home-header-link-color: $gray-darker;
+$home-header-link-color: $gray-1;
 $home-header-link-color-hover: $black;
 
 // Sidebar
 $sidebar-background-color: $white;
-$sidebar-font-size: $font-size - 2;
+$sidebar-font-size: $font-size-default - 2;
 $sidebar-link-color: $body-font-color;
 $sidebar-link-color-hover: $black;
 $sidebar-link-color-active: $body-link-color;
-$sidebar-font-family: $font-family-open-sans;
+$sidebar-font-family: $font-body;
 $sidebar-font-weight: $font-weight-reg;
 
 // Header
-$header-background-color: $consul-red;
-$header-font-size: $font-size - 2;
+$header-background-color: $consul;
+$header-font-size: 0.9375rem;
 $header-height: 92px;
 $header-link-color: rgba($black, 0.85);
 $header-link-color-hover: $black;
-$header-font-family: $font-family-klavika;
+$header-font-family: $font-display;
 
 // Footer
-$footer-font-size: $font-size - 2;
+$footer-font-size: $font-size-default - 2;
 $footer-link-color: $body-font-color;
 $footer-link-color-hover: $black;
-
-// Button
-$button-background: $white;
-$button-font-color: #7b8a8e;
-$button-font-family: $font-family-klavika;
-$button-font-size: $font-size;
-$button-font-weight: $font-weight-bold;
-$button-primary-background: $consul-red;
-$button-primary-font-color: $white;

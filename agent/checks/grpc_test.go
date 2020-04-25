@@ -4,16 +4,18 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
-	"github.com/hashicorp/consul/agent/mock"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/hashicorp/consul/types"
 	"io/ioutil"
 	"log"
 	"net"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/agent/mock"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/go-hclog"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
@@ -106,23 +108,31 @@ func TestGRPC_Proxied(t *testing.T) {
 	t.Parallel()
 
 	notif := mock.NewNotify()
+	logger := hclog.New(&hclog.LoggerOptions{
+		Name:   uniqueID(),
+		Output: ioutil.Discard,
+	})
+
+	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	cid := structs.NewCheckID("foo", nil)
+
 	check := &CheckGRPC{
-		Notify:    notif,
-		CheckID:   types.CheckID("foo"),
-		GRPC:      "",
-		Interval:  10 * time.Millisecond,
-		Logger:    log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
-		ProxyGRPC: server,
+		CheckID:       cid,
+		GRPC:          "",
+		Interval:      10 * time.Millisecond,
+		Logger:        logger,
+		ProxyGRPC:     server,
+		StatusHandler: statusHandler,
 	}
 	check.Start()
 	defer check.Stop()
 
 	// If ProxyGRPC is set, check() reqs should go to that address
 	retry.Run(t, func(r *retry.R) {
-		if got, want := notif.Updates("foo"), 2; got < want {
+		if got, want := notif.Updates(cid), 2; got < want {
 			r.Fatalf("got %d updates want at least %d", got, want)
 		}
-		if got, want := notif.State("foo"), api.HealthPassing; got != want {
+		if got, want := notif.State(cid), api.HealthPassing; got != want {
 			r.Fatalf("got state %q want %q", got, want)
 		}
 	})
@@ -132,23 +142,31 @@ func TestGRPC_NotProxied(t *testing.T) {
 	t.Parallel()
 
 	notif := mock.NewNotify()
+	logger := hclog.New(&hclog.LoggerOptions{
+		Name:   uniqueID(),
+		Output: ioutil.Discard,
+	})
+
+	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	cid := structs.NewCheckID("foo", nil)
+
 	check := &CheckGRPC{
-		Notify:    notif,
-		CheckID:   types.CheckID("foo"),
-		GRPC:      server,
-		Interval:  10 * time.Millisecond,
-		Logger:    log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
-		ProxyGRPC: "",
+		CheckID:       cid,
+		GRPC:          server,
+		Interval:      10 * time.Millisecond,
+		Logger:        logger,
+		ProxyGRPC:     "",
+		StatusHandler: statusHandler,
 	}
 	check.Start()
 	defer check.Stop()
 
 	// If ProxyGRPC is not set, check() reqs should go to check.GRPC
 	retry.Run(t, func(r *retry.R) {
-		if got, want := notif.Updates("foo"), 2; got < want {
+		if got, want := notif.Updates(cid), 2; got < want {
 			r.Fatalf("got %d updates want at least %d", got, want)
 		}
-		if got, want := notif.State("foo"), api.HealthPassing; got != want {
+		if got, want := notif.State(cid), api.HealthPassing; got != want {
 			r.Fatalf("got state %q want %q", got, want)
 		}
 	})

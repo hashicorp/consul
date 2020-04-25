@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
 )
@@ -24,6 +25,7 @@ type cmd struct {
 
 	// flags
 	logLevel string
+	logJSON  bool
 }
 
 func New(ui cli.Ui, shutdownCh <-chan struct{}) *cmd {
@@ -36,6 +38,8 @@ func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.StringVar(&c.logLevel, "log-level", "INFO",
 		"Log level of the agent.")
+	c.flags.BoolVar(&c.logJSON, "log-json", false,
+		"Output logs in JSON format.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -43,18 +47,29 @@ func (c *cmd) init() {
 }
 
 func (c *cmd) Run(args []string) int {
-	if err := c.flags.Parse(args); err != nil {
+	var logCh chan string
+	var err error
+	var client *api.Client
+
+	if err = c.flags.Parse(args); err != nil {
 		return 1
 	}
 
-	client, err := c.http.APIClient()
+	client, err = c.http.APIClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 
 	eventDoneCh := make(chan struct{})
-	logCh, err := client.Agent().Monitor(c.logLevel, eventDoneCh, nil)
+	if c.logJSON {
+		logCh, err = client.Agent().MonitorJSON(c.logLevel, eventDoneCh, nil)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error starting JSON monitor: %s", err))
+			return 1
+		}
+	}
+	logCh, err = client.Agent().Monitor(c.logLevel, eventDoneCh, nil)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error starting monitor: %s", err))
 		return 1

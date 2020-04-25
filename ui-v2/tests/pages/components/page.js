@@ -1,5 +1,5 @@
-import { clickable } from 'ember-cli-page-object';
-export default {
+import { clickable, is } from 'ember-cli-page-object';
+const page = {
   navigation: ['services', 'nodes', 'kvs', 'acls', 'intentions', 'docs', 'settings'].reduce(
     function(prev, item, i, arr) {
       const key = item;
@@ -23,3 +23,11 @@ export default {
     }
   ),
 };
+page.navigation.dc = clickable('[data-test-datacenter-menu] button');
+page.navigation.nspace = clickable('[data-test-nspace-menu] button');
+page.navigation.manageNspaces = clickable('[data-test-main-nav-nspaces] a');
+page.navigation.manageNspacesIsVisible = is(
+  ':checked',
+  '[data-test-nspace-menu] > input[type="checkbox"]'
+);
+export default page;

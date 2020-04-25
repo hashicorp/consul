@@ -3,7 +3,6 @@ package consul
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"net/rpc"
 	"os"
 	"reflect"
@@ -14,11 +13,13 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/hashicorp/go-hclog"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/require"
 )
@@ -77,7 +78,7 @@ func TestPreparedQuery_Apply(t *testing.T) {
 	query.Query.Service.Failover.NearestN = 0
 	query.Query.Session = "nope"
 	err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply)
-	if err == nil || !strings.Contains(err.Error(), "failed session lookup") {
+	if err == nil || !strings.Contains(err.Error(), "invalid session") {
 		t.Fatalf("bad: %v", err)
 	}
 
@@ -852,7 +853,7 @@ func TestPreparedQuery_Get(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Create an ACL with write permissions for redis queries.
 	var token string
@@ -1105,7 +1106,7 @@ func TestPreparedQuery_List(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Create an ACL with write permissions for redis queries.
 	var token string
@@ -1461,6 +1462,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	codec2 := rpcClient(t, s2)
 	defer codec2.Close()
 
+	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 
@@ -2957,6 +2959,7 @@ func TestPreparedQuery_Wrapper(t *testing.T) {
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 
+	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 
@@ -2965,10 +2968,10 @@ func TestPreparedQuery_Wrapper(t *testing.T) {
 
 	// Try all the operations on a real server via the wrapper.
 	wrapper := &queryServerWrapper{s1}
-	wrapper.GetLogger().Printf("[DEBUG] Test")
+	wrapper.GetLogger().Debug("Test")
 
 	ret, err := wrapper.GetOtherDatacentersByDistance()
-	wrapper.GetLogger().Println("Returned value: ", ret)
+	wrapper.GetLogger().Info("Returned value", "value", ret)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -2987,7 +2990,7 @@ type mockQueryServer struct {
 	DatacentersError error
 	QueryLog         []string
 	QueryFn          func(dc string, args interface{}, reply interface{}) error
-	Logger           *log.Logger
+	Logger           hclog.Logger
 	LogBuffer        *bytes.Buffer
 }
 
@@ -2995,10 +2998,15 @@ func (m *mockQueryServer) JoinQueryLog() string {
 	return strings.Join(m.QueryLog, "|")
 }
 
-func (m *mockQueryServer) GetLogger() *log.Logger {
+func (m *mockQueryServer) GetLogger() hclog.Logger {
 	if m.Logger == nil {
 		m.LogBuffer = new(bytes.Buffer)
-		m.Logger = log.New(m.LogBuffer, "", 0)
+
+		m.Logger = hclog.New(&hclog.LoggerOptions{
+			Name:   "mock_query",
+			Output: m.LogBuffer,
+			Level:  hclog.Debug,
+		})
 	}
 	return m.Logger
 }

@@ -210,9 +210,9 @@ func (s *Store) preparedQuerySetTxn(tx *memdb.Txn, idx uint64, query *structs.Pr
 
 	// Verify that the session exists.
 	if query.Session != "" {
-		sess, err := tx.First("sessions", "id", query.Session)
+		sess, err := firstWithTxn(tx, "sessions", "id", query.Session, nil)
 		if err != nil {
-			return fmt.Errorf("failed session lookup: %s", err)
+			return fmt.Errorf("invalid session: %v", err)
 		}
 		if sess == nil {
 			return fmt.Errorf("invalid session %#v", query.Session)

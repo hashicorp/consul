@@ -1,15 +1,16 @@
+{{title item.ID}}
 {{#app-view class="instance show"}}
-    {{#block-slot 'notification' as |status type|}}
+    {{#block-slot name='notification' as |status type|}}
       {{partial 'dc/services/notifications'}}
     {{/block-slot}}
-    {{#block-slot 'breadcrumbs'}}
+    {{#block-slot name='breadcrumbs'}}
         <ol>
             <li><a data-test-back href={{href-to 'dc.services'}}>All Services</a></li>
             <li><a data-test-back href={{href-to 'dc.services.show'}}>Service ({{item.Service}})</a></li>
             <li><strong>Instance</strong></li>
         </ol>
     {{/block-slot}}
-    {{#block-slot 'header'}}
+    {{#block-slot name='header'}}
       <h1>
         {{ item.ID }}
 {{#with (service/external-source item) as |externalSource| }}
@@ -62,7 +63,7 @@
   {{/if}}
 {{/if}}
     {{/block-slot}}
-    {{#block-slot 'content'}}
+    {{#block-slot name='content'}}
         {{tab-nav
             items=(compact
               (array
@@ -71,6 +72,10 @@
 (if
   (eq item.Kind 'connect-proxy')
                 'Upstreams' ''
+)
+(if
+  (and (eq item.Kind 'connect-proxy') (gt item.Proxy.Expose.Paths.length 0))
+                'Exposed Paths' ''
 )
 (if
   (eq item.Kind 'mesh-gateway')
@@ -82,6 +87,7 @@
             )
             selected=selectedTab
         }}
+
         {{#each
             (compact
                 (array
@@ -92,13 +98,17 @@
                     (hash id=(slugify 'Upstreams') partial='dc/services/upstreams') ''
 )
 (if
+  (and (eq item.Kind 'connect-proxy') (gt item.Proxy.Expose.Paths.length 0))
+                    (hash id=(slugify 'Exposed Paths') partial='dc/services/exposedpaths') ''
+)
+(if
   (eq item.Kind 'mesh-gateway')
                     (hash id=(slugify 'Addresses') partial='dc/services/addresses') ''
 )
                     (hash id=(slugify 'Tags') partial='dc/services/tags')
                     (hash id=(slugify 'Meta Data') partial='dc/services/metadata')
                 )
-            ) as |panel|
+            ) key="id" as |panel|
         }}
             {{#tab-section id=panel.id selected=(eq (if selectedTab selectedTab '') panel.id) onchange=(action "change")}}
                 {{partial panel.partial}}

@@ -14,6 +14,7 @@ const ConnectCARootName = "connect-ca-root"
 // straightforward cache type since it only has to block on the given
 // index and return the data.
 type ConnectCARoot struct {
+	RegisterOptionsBlockingRefresh
 	RPC RPC
 }
 
@@ -44,8 +45,4 @@ func (c *ConnectCARoot) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 	result.Value = &reply
 	result.Index = reply.QueryMeta.Index
 	return result, nil
-}
-
-func (c *ConnectCARoot) SupportsBlocking() bool {
-	return true
 }

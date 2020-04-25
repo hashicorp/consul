@@ -1,0 +1,101 @@
+{{title 'Namespaces'}}
+{{#app-view class="nspace list" loading=isLoading}}
+  {{#block-slot name='notification' as |status type subject|}}
+    {{partial 'dc/nspaces/notifications'}}
+  {{/block-slot}}
+  {{#block-slot name='header'}}
+    <h1>
+      Namespaces
+    </h1>
+  {{/block-slot}}
+  {{#block-slot name='actions'}}
+      <a data-test-create href="{{href-to 'dc.nspaces.create'}}" class="type-create">Create</a>
+  {{/block-slot}}
+  {{#block-slot name='content'}}
+{{#if (gt items.length 0) }}
+    <form class="filter-bar">
+      {{freetext-filter searchable=searchable value=s placeholder="Search"}}
+    </form>
+{{/if}}
+    {{#changeable-set dispatcher=searchable}}
+      {{#block-slot name='set' as |filtered|}}
+        {{#tabular-collection
+            items=filtered as |item index|
+        }}
+          {{#block-slot name='header'}}
+              <th>Name</th>
+              <th>Description</th>
+{{#if (env 'CONSUL_ACLS_ENABLED')}}
+              <th>Roles &amp; Policies</th>
+{{/if}}
+          {{/block-slot}}
+          {{#block-slot name='row'}}
+{{#if item.DeletedAt}}
+              <td class="no-actions" colspan="3">
+                <p>
+                  Deleting {{item.Name}}...
+                </p>
+              </td>
+{{else}}
+              <td data-test-namespace={{item.Name}}>
+                <a href={{href-to 'dc.nspaces.edit' item.Name}}>{{item.Name}}</a>
+              </td>
+              <td data-test-description>
+                <p>{{item.Description}}</p>
+              </td>
+  {{#if (env 'CONSUL_ACLS_ENABLED')}}
+              <td>
+                {{#each (compact (append item.ACLs.PolicyDefaults item.ACLs.RoleDefaults)) as |item|}}
+                  <strong data-test-policy class={{policy/typeof item}}>{{item.Name}}</strong>
+                {{/each}}
+              </td>
+  {{/if}}
+{{/if}}
+          {{/block-slot}}
+          {{#block-slot name='actions' as |index change checked|}}
+            {{#popover-menu expanded=(if (eq checked index) true false) onchange=(action change index) keyboardAccess=false}}
+              {{#block-slot name='trigger'}}
+                More
+              {{/block-slot}}
+              {{#block-slot name='menu' as |confirm send keypressClick|}}
+                  <li role="none">
+                    <a data-test-edit role="menuitem" tabindex="-1" href={{href-to 'dc.nspaces.edit' item.Name}}>Edit</a>
+                  </li>
+{{#if (not-eq item.Name 'default') }}
+                  <li role="none" class="dangerous">
+                    <label for={{confirm}} role="menuitem" tabindex="-1" onkeypress={{keypressClick}} data-test-delete>Delete</label>
+                    <div role="menu">
+                      <div class="confirmation-alert warning">
+                        <div>
+                          <header>
+                            Confirm Delete
+                          </header>
+                          <p>
+                            Are you sure you want to delete this key?
+                          </p>
+                        </div>
+                        <ul>
+                          <li class="dangerous">
+                            <button tabindex="-1" type="button" class="type-delete" onclick={{action send 'delete' item}}>Delete</button>
+                          </li>
+                          <li>
+                            <label for={{confirm}}>Cancel</label>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </li>
+{{/if}}
+              {{/block-slot}}
+            {{/popover-menu}}
+          {{/block-slot}}
+        {{/tabular-collection}}
+      {{/block-slot}}
+      {{#block-slot name='empty'}}
+        <p>
+          There are no Namespaces.
+        </p>
+      {{/block-slot}}
+    {{/changeable-set}}
+  {{/block-slot}}
+{{/app-view}}

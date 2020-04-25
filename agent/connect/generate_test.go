@@ -17,27 +17,23 @@ type KeyConfig struct {
 	keyBits int
 }
 
-var goodParams, badParams []KeyConfig
-
-func init() {
-	goodParams = []KeyConfig{
-		{keyType: "rsa", keyBits: 2048},
-		{keyType: "rsa", keyBits: 4096},
-		{keyType: "ec", keyBits: 224},
-		{keyType: "ec", keyBits: 256},
-		{keyType: "ec", keyBits: 384},
-		{keyType: "ec", keyBits: 521},
-	}
-	badParams = []KeyConfig{
-		{keyType: "rsa", keyBits: 0},
-		{keyType: "rsa", keyBits: 1024},
-		{keyType: "rsa", keyBits: 24601},
-		{keyType: "ec", keyBits: 0},
-		{keyType: "ec", keyBits: 512},
-		{keyType: "ec", keyBits: 321},
-		{keyType: "ecdsa", keyBits: 256}, // test for "ecdsa" instead of "ec"
-		{keyType: "aes", keyBits: 128},
-	}
+var goodParams = []KeyConfig{
+	{keyType: "rsa", keyBits: 2048},
+	{keyType: "rsa", keyBits: 4096},
+	{keyType: "ec", keyBits: 224},
+	{keyType: "ec", keyBits: 256},
+	{keyType: "ec", keyBits: 384},
+	{keyType: "ec", keyBits: 521},
+}
+var badParams = []KeyConfig{
+	{keyType: "rsa", keyBits: 0},
+	{keyType: "rsa", keyBits: 1024},
+	{keyType: "rsa", keyBits: 24601},
+	{keyType: "ec", keyBits: 0},
+	{keyType: "ec", keyBits: 512},
+	{keyType: "ec", keyBits: 321},
+	{keyType: "ecdsa", keyBits: 256}, // test for "ecdsa" instead of "ec"
+	{keyType: "aes", keyBits: 128},
 }
 
 func makeConfig(kc KeyConfig) structs.CommonCAProviderConfig {
@@ -121,7 +117,8 @@ func TestValidateBadConfigs(t *testing.T) {
 	}
 }
 
-// Tests the ability of a CA to sign a CSR using a different key type. If the key types differ, the test should fail.
+// Tests the ability of a CA to sign a CSR using a different key type. This is
+// allowed by TLS 1.2 and should succeed in all combinations.
 func TestSignatureMismatches(t *testing.T) {
 	t.Parallel()
 	r := require.New(t)
@@ -134,16 +131,12 @@ func TestSignatureMismatches(t *testing.T) {
 				ca := TestCAWithKeyType(t, nil, p1.keyType, p1.keyBits)
 				r.Equal(p1.keyType, ca.PrivateKeyType)
 				r.Equal(p1.keyBits, ca.PrivateKeyBits)
-				certPEM, keyPEM, err := testLeaf(t, "foobar.service.consul", ca, p2.keyType, p2.keyBits)
-				if p1.keyType == p2.keyType {
-					r.NoError(err)
-					_, err := ParseCert(certPEM)
-					r.NoError(err)
-					_, err = ParseSigner(keyPEM)
-					r.NoError(err)
-				} else {
-					r.Error(err)
-				}
+				certPEM, keyPEM, err := testLeaf(t, "foobar.service.consul", "default", ca, p2.keyType, p2.keyBits)
+				r.NoError(err)
+				_, err = ParseCert(certPEM)
+				r.NoError(err)
+				_, err = ParseSigner(keyPEM)
+				r.NoError(err)
 			})
 		}
 	}

@@ -1,7 +1,6 @@
 import { helper } from '@ember/component/helper';
-import $ from 'consul-ui/config/environment';
-export function env([name, def = ''], hash) {
-  return $[name] != null ? $[name] : def;
-}
-
-export default helper(env);
+import { env } from 'consul-ui/env';
+export default helper(function([name, def = ''], hash) {
+  const val = env(name);
+  return val != null ? val : def;
+});

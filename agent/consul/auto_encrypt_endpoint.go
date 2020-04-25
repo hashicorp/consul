@@ -35,6 +35,9 @@ func (a *AutoEncrypt) Sign(
 	rootsArgs := structs.DCSpecificRequest{Datacenter: args.Datacenter}
 	roots := structs.IndexedCARoots{}
 	err := c.Roots(&rootsArgs, &roots)
+	if err != nil {
+		return err
+	}
 
 	cert := structs.IssuedCert{}
 	err = c.Sign(args, &cert)

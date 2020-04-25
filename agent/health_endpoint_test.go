@@ -22,7 +22,7 @@ import (
 func TestHealthChecksInState(t *testing.T) {
 	t.Parallel()
 	t.Run("warning", func(t *testing.T) {
-		a := NewTestAgent(t, t.Name(), "")
+		a := NewTestAgent(t, "")
 		defer a.Shutdown()
 
 		req, _ := http.NewRequest("GET", "/v1/health/state/warning?dc=dc1", nil)
@@ -45,7 +45,7 @@ func TestHealthChecksInState(t *testing.T) {
 	})
 
 	t.Run("passing", func(t *testing.T) {
-		a := NewTestAgent(t, t.Name(), "")
+		a := NewTestAgent(t, "")
 		defer a.Shutdown()
 
 		req, _ := http.NewRequest("GET", "/v1/health/state/passing?dc=dc1", nil)
@@ -70,7 +70,7 @@ func TestHealthChecksInState(t *testing.T) {
 
 func TestHealthChecksInState_NodeMetaFilter(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	args := &structs.RegisterRequest{
@@ -110,7 +110,7 @@ func TestHealthChecksInState_NodeMetaFilter(t *testing.T) {
 
 func TestHealthChecksInState_Filter(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	args := &structs.RegisterRequest{
@@ -156,7 +156,7 @@ func TestHealthChecksInState_Filter(t *testing.T) {
 
 func TestHealthChecksInState_DistanceSort(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	args := &structs.RegisterRequest{
@@ -230,7 +230,7 @@ func TestHealthChecksInState_DistanceSort(t *testing.T) {
 
 func TestHealthNodeChecks(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -265,7 +265,7 @@ func TestHealthNodeChecks(t *testing.T) {
 
 func TestHealthNodeChecks_Filtering(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -309,7 +309,7 @@ func TestHealthNodeChecks_Filtering(t *testing.T) {
 
 func TestHealthServiceChecks(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -336,6 +336,7 @@ func TestHealthServiceChecks(t *testing.T) {
 			Node:      a.Config.NodeName,
 			Name:      "consul check",
 			ServiceID: "consul",
+			Type:      "grpc",
 		},
 	}
 
@@ -357,11 +358,14 @@ func TestHealthServiceChecks(t *testing.T) {
 	if len(nodes) != 1 {
 		t.Fatalf("bad: %v", obj)
 	}
+	if nodes[0].Type != "grpc" {
+		t.Fatalf("expected grpc check type, got %s", nodes[0].Type)
+	}
 }
 
 func TestHealthServiceChecks_NodeMetaFilter(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -414,7 +418,7 @@ func TestHealthServiceChecks_NodeMetaFilter(t *testing.T) {
 
 func TestHealthServiceChecks_Filtering(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -475,7 +479,7 @@ func TestHealthServiceChecks_Filtering(t *testing.T) {
 
 func TestHealthServiceChecks_DistanceSort(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -555,7 +559,7 @@ func TestHealthServiceChecks_DistanceSort(t *testing.T) {
 
 func TestHealthServiceNodes(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -681,7 +685,7 @@ func TestHealthServiceNodes(t *testing.T) {
 
 func TestHealthServiceNodes_NodeMetaFilter(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -734,9 +738,9 @@ func TestHealthServiceNodes_NodeMetaFilter(t *testing.T) {
 
 func TestHealthServiceNodes_Filter(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	req, _ := http.NewRequest("GET", "/v1/health/service/consul?dc=dc1&filter="+url.QueryEscape("Node.Node == `test-health-node`"), nil)
 	resp := httptest.NewRecorder()
@@ -788,7 +792,7 @@ func TestHealthServiceNodes_Filter(t *testing.T) {
 
 	assertIndex(t, resp)
 
-	// Should be a non-nil empty list for checks
+	// Should be a list of checks with 1 element
 	nodes = obj.(structs.CheckServiceNodes)
 	require.Len(t, nodes, 1)
 	require.Len(t, nodes[0].Checks, 1)
@@ -796,7 +800,7 @@ func TestHealthServiceNodes_Filter(t *testing.T) {
 
 func TestHealthServiceNodes_DistanceSort(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	dc := "dc1"
 	// Create a service check
@@ -875,7 +879,7 @@ func TestHealthServiceNodes_DistanceSort(t *testing.T) {
 
 func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	dc := "dc1"
@@ -970,16 +974,69 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 	})
 }
 
+func TestHealthServiceNodes_CheckType(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	req, _ := http.NewRequest("GET", "/v1/health/service/consul?dc=dc1", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.HealthServiceNodes(resp, req)
+	require.NoError(t, err)
+	assertIndex(t, resp)
+
+	// Should be 1 health check for consul
+	nodes := obj.(structs.CheckServiceNodes)
+	if len(nodes) != 1 {
+		t.Fatalf("expected 1 node, got %d", len(nodes))
+	}
+
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       a.Config.NodeName,
+		Address:    "127.0.0.1",
+		NodeMeta:   map[string]string{"somekey": "somevalue"},
+		Check: &structs.HealthCheck{
+			Node:      a.Config.NodeName,
+			Name:      "consul check",
+			ServiceID: "consul",
+			Type:      "grpc",
+		},
+	}
+
+	var out struct{}
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	req, _ = http.NewRequest("GET", "/v1/health/service/consul?dc=dc1", nil)
+	resp = httptest.NewRecorder()
+	obj, err = a.srv.HealthServiceNodes(resp, req)
+	require.NoError(t, err)
+
+	assertIndex(t, resp)
+
+	// Should be a non-nil empty list for checks
+	nodes = obj.(structs.CheckServiceNodes)
+	require.Len(t, nodes, 1)
+	require.Len(t, nodes[0].Checks, 2)
+
+	for _, check := range nodes[0].Checks {
+		if check.Name == "consul check" && check.Type != "grpc" {
+			t.Fatalf("exptected grpc check type, got %s", check.Type)
+		}
+	}
+}
+
 func TestHealthServiceNodes_WanTranslation(t *testing.T) {
 	t.Parallel()
-	a1 := NewTestAgent(t, t.Name(), `
+	a1 := NewTestAgent(t, `
 		datacenter = "dc1"
 		translate_wan_addrs = true
 		acl_datacenter = ""
 	`)
 	defer a1.Shutdown()
 
-	a2 := NewTestAgent(t, t.Name(), `
+	a2 := NewTestAgent(t, `
 		datacenter = "dc2"
 		translate_wan_addrs = true
 		acl_datacenter = ""
@@ -1060,7 +1117,7 @@ func TestHealthConnectServiceNodes(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// Register
@@ -1085,7 +1142,7 @@ func TestHealthConnectServiceNodes(t *testing.T) {
 func TestHealthConnectServiceNodes_Filter(t *testing.T) {
 	t.Parallel()
 
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -1123,7 +1180,7 @@ func TestHealthConnectServiceNodes_Filter(t *testing.T) {
 func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 	t.Parallel()
 
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// Register

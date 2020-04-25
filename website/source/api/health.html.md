@@ -44,11 +44,18 @@ The table below shows this endpoint's support for
 
 - `filter` `(string: "")` - Specifies the expression used to filter the
   queries results prior to returning the data.
+  
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to list checks. 
+  This value may be provided by either the `ns` URL query parameter or in the 
+  `X-Consul-Namespace` header. If not provided at all, the namespace will be inherited
+  from the request's ACL token or will default to the `default` namespace. To view
+  checks for multiple namespaces the `*` wildcard namespace may be used. Added in Consul 1.7.0.
 
 ### Sample Request
 
 ```text
 $ curl \
+    -H "X-Consul-Namespace: *" \
     http://127.0.0.1:8500/v1/health/node/my-node
 ```
 
@@ -66,7 +73,8 @@ $ curl \
     "Output": "",
     "ServiceID": "",
     "ServiceName": "",
-    "ServiceTags": []
+    "ServiceTags": [],
+    "Namespace": "default"
   },
   {
     "ID": "40e4a748-2192-161a-0510-9bf59fe950b5",
@@ -78,7 +86,8 @@ $ curl \
     "Output": "",
     "ServiceID": "redis",
     "ServiceName": "redis",
-    "ServiceTags": ["primary"]
+    "ServiceTags": ["primary"],
+    "Namespace": "foo"
   }
 ]
 ```
@@ -140,12 +149,17 @@ The table below shows this endpoint's support for
 
 - `filter` `(string: "")` - Specifies the expression used to filter the
   queries results prior to returning the data.
+  
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace of the service.
+  This value may be provided by either the `ns` URL query parameter or in the 
+  `X-Consul-Namespace` header. If not provided at all, the namespace will be inherited
+  from the request's ACL token or will default to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Request
 
 ```text
 $ curl \
-    http://127.0.0.1:8500/v1/health/checks/my-service
+    http://127.0.0.1:8500/v1/health/checks/my-service?ns=default
 ```
 
 ### Sample Response
@@ -161,7 +175,8 @@ $ curl \
     "Output": "",
     "ServiceID": "redis",
     "ServiceName": "redis",
-	  "ServiceTags": ["primary"]
+	  "ServiceTags": ["primary"],
+    "Namespace": "default"
   }
 ]
 ```
@@ -234,12 +249,17 @@ The table below shows this endpoint's support for
 
 - `filter` `(string: "")` - Specifies the expression used to filter the
   queries results prior to returning the data.
+  
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace of the service. 
+  This value may be provided by either the `ns` URL query parameter or in the 
+  `X-Consul-Namespace` header. If not provided at all, the namespace will be inherited
+  from the request's ACL  token or will default to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Request
 
 ```text
 $ curl \
-    http://127.0.0.1:8500/v1/health/service/my-service
+    http://127.0.0.1:8500/v1/health/service/my-service?ns=default
 ```
 
 ### Sample Response
@@ -282,7 +302,8 @@ $ curl \
       "Weights": {
         "Passing": 10,
         "Warning": 1
-      }
+      },
+      "Namespace": "default"
     },
     "Checks": [
       {
@@ -294,7 +315,8 @@ $ curl \
         "Output": "",
         "ServiceID": "redis",
         "ServiceName": "redis",
-        "ServiceTags": ["primary"]
+        "ServiceTags": ["primary"],
+        "Namespace": "default"
       },
       {
         "Node": "foobar",
@@ -305,7 +327,8 @@ $ curl \
         "Output": "",
         "ServiceID": "",
         "ServiceName": "",
-        "ServiceTags": []
+        "ServiceTags": [],
+        "Namespace": "default"
       }
     ]
   }
@@ -421,12 +444,17 @@ The table below shows this endpoint's support for
 
 - `filter` `(string: "")` - Specifies the expression used to filter the
   queries results prior to returning the data.
+  
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to query. 
+  This value may be provided by either the `ns` URL query parameter or in the 
+  `X-Consul-Namespace` header. If not provided at all, the namespace will be inherited
+  from the request's ACL token or will default to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Request
 
 ```text
 $ curl \
-    http://127.0.0.1:8500/v1/health/state/passing
+    http://127.0.0.1:8500/v1/health/state/passing?ns=default
 ```
 
 ### Sample Response
@@ -442,7 +470,8 @@ $ curl \
     "Output": "",
     "ServiceID": "",
     "ServiceName": "",
-    "ServiceTags": []
+    "ServiceTags": [],
+    "Namespace": "default"
   },
   {
     "Node": "foobar",
@@ -453,7 +482,8 @@ $ curl \
     "Output": "",
     "ServiceID": "redis",
     "ServiceName": "redis",
-	  "ServiceTags": ["primary"]
+	  "ServiceTags": ["primary"],
+    "Namespace": "default"
   }
 ]
 ```

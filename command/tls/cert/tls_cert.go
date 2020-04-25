@@ -35,14 +35,14 @@ Usage: consul tls cert <subcommand> [options] [filename-prefix]
   Create a certificate
 
     $ consul tls cert create -server
-    ==> saved consul-server-dc1.pem
-    ==> saved consul-server-dc1-key.pem
+    ==> saved dc1-server-consul.pem
+    ==> saved dc1-server-consul-key.pem
 
   Create a certificate with your own CA:
 
     $ consul tls cert create -server -ca-file my-ca.pem -ca-key-file my-ca-key.pem
-    ==> saved consul-server-dc1.pem
-    ==> saved consul-server-dc1-key.pem
+    ==> saved dc1-server-consul.pem
+    ==> saved dc1-server-consul-key.pem
 
   For more examples, ask for subcommand help or view the documentation.
 `

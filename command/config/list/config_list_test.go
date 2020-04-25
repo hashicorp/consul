@@ -17,7 +17,7 @@ func TestConfigList_noTabs(t *testing.T) {
 }
 
 func TestConfigList(t *testing.T) {
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 

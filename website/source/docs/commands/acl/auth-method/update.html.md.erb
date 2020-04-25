@@ -47,6 +47,12 @@ Usage: `consul acl auth-method update [options] [args]`
   to the command. Instead overwrite all fields with the exception of the auth method
   ID which is immutable.
 
+* `-format={pretty|json}` - Command output format. The default value is `pretty`.
+  
+#### Enterprise Options
+
+<%= partial "docs/commands/http_api_namespace_options" %>
+
 ## Examples
 
 Update an auth method:

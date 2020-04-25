@@ -351,9 +351,9 @@ func TestACLReplication_Tokens(t *testing.T) {
 
 	checkSame := func(t *retry.R) {
 		// only account for global tokens - local tokens shouldn't be replicated
-		index, remote, err := s1.fsm.State().ACLTokenList(nil, false, true, "", "", "")
+		index, remote, err := s1.fsm.State().ACLTokenList(nil, false, true, "", "", "", nil, nil)
 		require.NoError(t, err)
-		_, local, err := s2.fsm.State().ACLTokenList(nil, false, true, "", "", "")
+		_, local, err := s2.fsm.State().ACLTokenList(nil, false, true, "", "", "", nil, nil)
 		require.NoError(t, err)
 
 		require.Len(t, local, len(remote))
@@ -378,7 +378,7 @@ func TestACLReplication_Tokens(t *testing.T) {
 
 	// Wait for s2 global-management policy
 	retry.Run(t, func(r *retry.R) {
-		_, policy, err := s2.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID)
+		_, policy, err := s2.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, nil)
 		require.NoError(r, err)
 		require.NotNil(r, policy)
 	})
@@ -451,7 +451,7 @@ func TestACLReplication_Tokens(t *testing.T) {
 	})
 
 	// verify dc2 local tokens didn't get blown away
-	_, local, err := s2.fsm.State().ACLTokenList(nil, true, false, "", "", "")
+	_, local, err := s2.fsm.State().ACLTokenList(nil, true, false, "", "", "", nil, nil)
 	require.NoError(t, err)
 	require.Len(t, local, 50)
 
@@ -529,9 +529,9 @@ func TestACLReplication_Policies(t *testing.T) {
 
 	checkSame := func(t *retry.R) {
 		// only account for global tokens - local tokens shouldn't be replicated
-		index, remote, err := s1.fsm.State().ACLPolicyList(nil)
+		index, remote, err := s1.fsm.State().ACLPolicyList(nil, nil)
 		require.NoError(t, err)
-		_, local, err := s2.fsm.State().ACLPolicyList(nil)
+		_, local, err := s2.fsm.State().ACLPolicyList(nil, nil)
 		require.NoError(t, err)
 
 		require.Len(t, local, len(remote))
@@ -758,7 +758,7 @@ func TestACLReplication_AllTypes(t *testing.T) {
 		c.ACLsEnabled = true
 		c.ACLTokenReplication = true
 		c.ACLReplicationRate = 100
-		c.ACLReplicationBurst = 100
+		c.ACLReplicationBurst = 25
 		c.ACLReplicationApplyLimit = 1000000
 	})
 	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
@@ -787,10 +787,10 @@ func TestACLReplication_AllTypes(t *testing.T) {
 
 	checkSameTokens := func(t *retry.R) {
 		// only account for global tokens - local tokens shouldn't be replicated
-		index, remote, err := s1.fsm.State().ACLTokenList(nil, false, true, "", "", "")
+		index, remote, err := s1.fsm.State().ACLTokenList(nil, false, true, "", "", "", nil, nil)
 		require.NoError(t, err)
 		// Query for all of them, so that we can prove that no globals snuck in.
-		_, local, err := s2.fsm.State().ACLTokenList(nil, true, true, "", "", "")
+		_, local, err := s2.fsm.State().ACLTokenList(nil, true, true, "", "", "", nil, nil)
 		require.NoError(t, err)
 
 		require.Len(t, remote, len(local))
@@ -809,9 +809,9 @@ func TestACLReplication_AllTypes(t *testing.T) {
 		require.Equal(t, status.SourceDatacenter, "dc1")
 	}
 	checkSamePolicies := func(t *retry.R) {
-		index, remote, err := s1.fsm.State().ACLPolicyList(nil)
+		index, remote, err := s1.fsm.State().ACLPolicyList(nil, nil)
 		require.NoError(t, err)
-		_, local, err := s2.fsm.State().ACLPolicyList(nil)
+		_, local, err := s2.fsm.State().ACLPolicyList(nil, nil)
 		require.NoError(t, err)
 
 		require.Len(t, remote, len(local))
@@ -830,9 +830,9 @@ func TestACLReplication_AllTypes(t *testing.T) {
 		require.Equal(t, status.SourceDatacenter, "dc1")
 	}
 	checkSameRoles := func(t *retry.R) {
-		index, remote, err := s1.fsm.State().ACLRoleList(nil, "")
+		index, remote, err := s1.fsm.State().ACLRoleList(nil, "", nil)
 		require.NoError(t, err)
-		_, local, err := s2.fsm.State().ACLRoleList(nil, "")
+		_, local, err := s2.fsm.State().ACLRoleList(nil, "", nil)
 		require.NoError(t, err)
 
 		require.Len(t, remote, len(local))

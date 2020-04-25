@@ -86,6 +86,16 @@ type Config struct {
 	// DataDir is the directory to store our state in.
 	DataDir string
 
+	// DefaultQueryTime is the amount of time a blocking query will wait before
+	// Consul will force a response. This value can be overridden by the 'wait'
+	// query parameter.
+	DefaultQueryTime time.Duration
+
+	// MaxQueryTime is the maximum amount of time a blocking query can wait
+	// before Consul will force a response. Consul applies jitter to the wait
+	// time. The jittered time will be capped to MaxQueryTime.
+	MaxQueryTime time.Duration
+
 	// DevMode is used to enable a development server mode.
 	DevMode bool
 
@@ -339,6 +349,9 @@ type Config struct {
 	// a Consul server is now up and known about.
 	ServerUp func()
 
+	// Shutdown callback is used to trigger a full Consul shutdown
+	Shutdown func()
+
 	// UserEventHandler callback can be used to handle incoming
 	// user events. This function should not block.
 	UserEventHandler func(serf.UserEvent)
@@ -356,6 +369,20 @@ type Config struct {
 	// apply operations that we allow during a one second period. This is
 	// used to limit the amount of Raft bandwidth used for replication.
 	ConfigReplicationApplyLimit int
+
+	// FederationStateReplicationRate is the max number of replication rounds that can
+	// be run per second. Note that either 1 or 2 RPCs are used during each replication
+	// round
+	FederationStateReplicationRate int
+
+	// FederationStateReplicationBurst is how many replication rounds can be bursted after a
+	// period of idleness
+	FederationStateReplicationBurst int
+
+	// FederationStateReplicationApply limit is the max number of replication-related
+	// apply operations that we allow during a one second period. This is
+	// used to limit the amount of Raft bandwidth used for replication.
+	FederationStateReplicationApplyLimit int
 
 	// CoordinateUpdatePeriod controls how long a server batches coordinate
 	// updates before applying them in a Raft transaction. A larger period
@@ -375,6 +402,12 @@ type Config struct {
 	// CheckOutputMaxSize control the max size of output of checks
 	CheckOutputMaxSize int
 
+	// RPCHandshakeTimeout limits how long we will wait for the initial magic byte
+	// on an RPC client connection. It also governs how long we will wait for a
+	// TLS handshake when TLS is configured however the timout applies separately
+	// for the initial magic byte and the TLS handshake and inner magic byte.
+	RPCHandshakeTimeout time.Duration
+
 	// RPCHoldTimeout is how long an RPC can be "held" before it is errored.
 	// This is used to paper over a loss of leadership by instead holding RPCs,
 	// so that the caller experiences a slow response rather than an error.
@@ -392,6 +425,10 @@ type Config struct {
 	// buckets.
 	RPCRate     rate.Limit
 	RPCMaxBurst int
+
+	// RPCMaxConnsPerClient is the limit of how many concurrent connections are
+	// allowed from a single source IP.
+	RPCMaxConnsPerClient int
 
 	// LeaveDrainTime is used to wait after a server has left the LAN Serf
 	// pool for RPCs to drain and new requests to be sent to other servers.
@@ -412,6 +449,14 @@ type Config struct {
 
 	// ConnectEnabled is whether to enable Connect features such as the CA.
 	ConnectEnabled bool
+
+	// ConnectMeshGatewayWANFederationEnabled determines if wan federation of
+	// datacenters should exclusively traverse mesh gateways.
+	ConnectMeshGatewayWANFederationEnabled bool
+
+	// DisableFederationStateAntiEntropy solely exists for use in unit tests to
+	// disable a background routine.
+	DisableFederationStateAntiEntropy bool
 
 	// CAConfig is used to apply the initial Connect CA configuration when
 	// bootstrapping.
@@ -478,7 +523,7 @@ func (c *Config) CheckACL() error {
 	return nil
 }
 
-// DefaultConfig returns a sane default configuration.
+// DefaultConfig returns a default configuration.
 func DefaultConfig() *Config {
 	hostname, err := os.Hostname()
 	if err != nil {
@@ -486,32 +531,35 @@ func DefaultConfig() *Config {
 	}
 
 	conf := &Config{
-		Build:                       version.Version,
-		Datacenter:                  DefaultDC,
-		NodeName:                    hostname,
-		RPCAddr:                     DefaultRPCAddr,
-		RaftConfig:                  raft.DefaultConfig(),
-		SerfLANConfig:               lib.SerfDefaultConfig(),
-		SerfWANConfig:               lib.SerfDefaultConfig(),
-		SerfFloodInterval:           60 * time.Second,
-		ReconcileInterval:           60 * time.Second,
-		ProtocolVersion:             ProtocolVersion2Compatible,
-		ACLRoleTTL:                  30 * time.Second,
-		ACLPolicyTTL:                30 * time.Second,
-		ACLTokenTTL:                 30 * time.Second,
-		ACLDefaultPolicy:            "allow",
-		ACLDownPolicy:               "extend-cache",
-		ACLReplicationRate:          1,
-		ACLReplicationBurst:         5,
-		ACLReplicationApplyLimit:    100, // ops / sec
-		ConfigReplicationRate:       1,
-		ConfigReplicationBurst:      5,
-		ConfigReplicationApplyLimit: 100, // ops / sec
-		TombstoneTTL:                15 * time.Minute,
-		TombstoneTTLGranularity:     30 * time.Second,
-		SessionTTLMin:               10 * time.Second,
-		ACLTokenMinExpirationTTL:    1 * time.Minute,
-		ACLTokenMaxExpirationTTL:    24 * time.Hour,
+		Build:                                version.Version,
+		Datacenter:                           DefaultDC,
+		NodeName:                             hostname,
+		RPCAddr:                              DefaultRPCAddr,
+		RaftConfig:                           raft.DefaultConfig(),
+		SerfLANConfig:                        lib.SerfDefaultConfig(),
+		SerfWANConfig:                        lib.SerfDefaultConfig(),
+		SerfFloodInterval:                    60 * time.Second,
+		ReconcileInterval:                    60 * time.Second,
+		ProtocolVersion:                      ProtocolVersion2Compatible,
+		ACLRoleTTL:                           30 * time.Second,
+		ACLPolicyTTL:                         30 * time.Second,
+		ACLTokenTTL:                          30 * time.Second,
+		ACLDefaultPolicy:                     "allow",
+		ACLDownPolicy:                        "extend-cache",
+		ACLReplicationRate:                   1,
+		ACLReplicationBurst:                  5,
+		ACLReplicationApplyLimit:             100, // ops / sec
+		ConfigReplicationRate:                1,
+		ConfigReplicationBurst:               5,
+		ConfigReplicationApplyLimit:          100, // ops / sec
+		FederationStateReplicationRate:       1,
+		FederationStateReplicationBurst:      5,
+		FederationStateReplicationApplyLimit: 100, // ops / sec
+		TombstoneTTL:                         15 * time.Minute,
+		TombstoneTTLGranularity:              30 * time.Second,
+		SessionTTLMin:                        10 * time.Second,
+		ACLTokenMinExpirationTTL:             1 * time.Minute,
+		ACLTokenMaxExpirationTTL:             24 * time.Hour,
 
 		// These are tuned to provide a total throughput of 128 updates
 		// per second. If you update these, you should update the client-
@@ -539,13 +587,16 @@ func DefaultConfig() *Config {
 		CAConfig: &structs.CAConfiguration{
 			Provider: "consul",
 			Config: map[string]interface{}{
-				"RotationPeriod": "2160h",
-				"LeafCertTTL":    "72h",
+				"RotationPeriod":      "2160h",
+				"LeafCertTTL":         "72h",
+				"IntermediateCertTTL": "8760h", // 365 * 24h
 			},
 		},
 
 		ServerHealthInterval: 2 * time.Second,
 		AutopilotInterval:    10 * time.Second,
+		DefaultQueryTime:     300 * time.Second,
+		MaxQueryTime:         600 * time.Second,
 		EnterpriseConfig:     DefaultEnterpriseConfig(),
 	}
 

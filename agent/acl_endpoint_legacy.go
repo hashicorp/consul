@@ -65,7 +65,7 @@ func (s *HTTPServer) aclSet(resp http.ResponseWriter, req *http.Request, update 
 
 	// Handle optional request body
 	if req.ContentLength > 0 {
-		if err := decodeBody(req, &args.ACL, nil); err != nil {
+		if err := decodeBody(req.Body, &args.ACL); err != nil {
 			resp.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(resp, "Request decode failed: %v", err)
 			return nil, nil

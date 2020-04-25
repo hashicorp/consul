@@ -392,6 +392,8 @@ The table below shows this endpoint's support for
 
 - `loglevel` `(string: "info")` - Specifies a text string containing a log level
   to filter on, such as `info`.
+- `logjson` `(bool: false)` - Specifies whether the logs will be output in JSON
+  format.
 
 ### Sample Request
 
@@ -490,6 +492,14 @@ state allows its old entries to be removed.
 | ------ | ---------------------------- | -------------------------- |
 | `PUT`  | `/agent/force-leave/:node`   | `application/json`         |
 
+Additionally, by specifying the `prune` flag, a node can be forcibly removed from
+the list of members entirely.
+
+| Method | Path                                    | Produces                   |
+| ------ | --------------------------------------- | -------------------------- |
+| `PUT`  | `/agent/force-leave/:node?prune`   | `application/json`         |
+
+
 The table below shows this endpoint's support for
 [blocking queries](/api/features/blocking.html),
 [consistency modes](/api/features/consistency.html),
@@ -498,7 +508,7 @@ The table below shows this endpoint's support for
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
 | ---------------- | ----------------- | ------------- | ------------- |
-| `NO`             | `none`            | `none`        | `agent:write` |
+| `NO`             | `none`            | `none`        | `operator:write` |
 
 ### Parameters
 

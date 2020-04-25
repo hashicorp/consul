@@ -4,9 +4,14 @@ import { set } from '@ember/object';
 import {
   HEADERS_SYMBOL as HTTP_HEADERS_SYMBOL,
   HEADERS_INDEX as HTTP_HEADERS_INDEX,
+  HEADERS_DATACENTER as HTTP_HEADERS_DATACENTER,
+  HEADERS_NAMESPACE as HTTP_HEADERS_NAMESPACE,
 } from 'consul-ui/utils/http/consul';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
+import { NSPACE_KEY } from 'consul-ui/models/nspace';
 import createFingerprinter from 'consul-ui/utils/create-fingerprinter';
+
+const DEFAULT_NSPACE = 'default';
 
 const map = function(obj, cb) {
   if (!Array.isArray(obj)) {
@@ -15,26 +20,40 @@ const map = function(obj, cb) {
   return obj.map(cb);
 };
 
-const attachHeaders = function(headers, body) {
+const attachHeaders = function(headers, body, query = {}) {
   // lowercase everything incase we get browser inconsistencies
   const lower = {};
   Object.keys(headers).forEach(function(key) {
     lower[key.toLowerCase()] = headers[key];
   });
+  // Add a 'pretend' Datacenter/Nspace header, they are not headers
+  // the come from the request but we add them here so we can use them later
+  // for store reconciliation
+  if (typeof query.dc !== 'undefined') {
+    lower[HTTP_HEADERS_DATACENTER.toLowerCase()] = query.dc;
+  }
+  lower[HTTP_HEADERS_NAMESPACE.toLowerCase()] =
+    typeof query.ns !== 'undefined' ? query.ns : DEFAULT_NSPACE;
+  //
   body[HTTP_HEADERS_SYMBOL] = lower;
   return body;
 };
 
 export default Serializer.extend({
-  fingerprint: createFingerprinter(DATACENTER_KEY),
+  attachHeaders: attachHeaders,
+  fingerprint: createFingerprinter(DATACENTER_KEY, NSPACE_KEY),
   respondForQuery: function(respond, query) {
     return respond((headers, body) =>
-      attachHeaders(headers, map(body, this.fingerprint(this.primaryKey, this.slugKey, query.dc)))
+      attachHeaders(
+        headers,
+        map(body, this.fingerprint(this.primaryKey, this.slugKey, query.dc)),
+        query
+      )
     );
   },
   respondForQueryRecord: function(respond, query) {
     return respond((headers, body) =>
-      attachHeaders(headers, this.fingerprint(this.primaryKey, this.slugKey, query.dc)(body))
+      attachHeaders(headers, this.fingerprint(this.primaryKey, this.slugKey, query.dc)(body), query)
     );
   },
   respondForCreateRecord: function(respond, serialized, data) {
@@ -54,6 +73,10 @@ export default Serializer.extend({
     const primaryKey = this.primaryKey;
     return respond((headers, body) => {
       // If updates are true use the info we already have
+      // TODO: We may aswell avoid re-fingerprinting here if we are just
+      // going to reuse data then its already fingerprinted and as the response
+      // is true we don't have anything changed so the old fingerprint stays the same
+      // as long as nothing in the fingerprint has been edited (the namespace?)
       if (body === true) {
         body = data;
       }
@@ -65,9 +88,12 @@ export default Serializer.extend({
     const primaryKey = this.primaryKey;
     return respond((headers, body) => {
       // Deletes only need the primaryKey/uid returning
+      // and they need the slug key AND potential namespace in order to
+      // create the correct uid/fingerprint
       return {
         [primaryKey]: this.fingerprint(primaryKey, slugKey, data[DATACENTER_KEY])({
           [slugKey]: data[slugKey],
+          [NSPACE_KEY]: data[NSPACE_KEY],
         })[primaryKey],
       };
     });
@@ -116,6 +142,8 @@ export default Serializer.extend({
   normalizeMeta: function(store, primaryModelClass, headers, payload, id, requestType) {
     const meta = {
       cursor: headers[HTTP_HEADERS_INDEX],
+      dc: headers[HTTP_HEADERS_DATACENTER.toLowerCase()],
+      nspace: headers[HTTP_HEADERS_NAMESPACE.toLowerCase()],
     };
     if (requestType === 'query') {
       meta.date = this.timestamp();

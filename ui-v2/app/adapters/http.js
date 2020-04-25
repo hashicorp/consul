@@ -1,4 +1,5 @@
 import Adapter from 'ember-data/adapter';
+import AdapterError from '@ember-data/adapter/error';
 import {
   AbortError,
   TimeoutError,
@@ -8,9 +9,7 @@ import {
   NotFoundError,
   ConflictError,
   InvalidError,
-  AdapterError,
 } from 'ember-data/adapters/errors';
-
 // TODO: This is a little skeleton cb function
 // is to be replaced soon with something slightly more involved
 const responder = function(response) {
@@ -65,6 +64,7 @@ export default Adapter.extend({
       switch (err.statusCode) {
         case 0:
           error = new AbortError();
+          error.errors[0].status = '0';
           break;
         case 401:
           error = new UnauthorizedError(errors, detailedMessage);

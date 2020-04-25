@@ -8,6 +8,7 @@ import (
 
 	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-hclog"
 )
 
 // aclIterator simplifies the algorithm below by providing a basic iterator that
@@ -138,7 +139,7 @@ func reconcileLegacyACLs(local, remote structs.ACLs, lastRemoteIndex uint64) str
 
 // FetchLocalACLs returns the ACLs in the local state store.
 func (s *Server) fetchLocalLegacyACLs() (structs.ACLs, error) {
-	_, local, err := s.fsm.State().ACLTokenList(nil, false, true, "", "", "")
+	_, local, err := s.fsm.State().ACLTokenList(nil, false, true, "", "", "", nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +219,7 @@ func (s *Server) updateLocalLegacyACLs(changes structs.ACLRequests, ctx context.
 // a remote ACL datacenter to local state. If there's any error, this will return
 // 0 for the lastRemoteIndex, which will cause us to immediately do a full sync
 // next time.
-func (s *Server) replicateLegacyACLs(lastRemoteIndex uint64, ctx context.Context) (uint64, bool, error) {
+func (s *Server) replicateLegacyACLs(ctx context.Context, logger hclog.Logger, lastRemoteIndex uint64) (uint64, bool, error) {
 	remote, err := s.fetchRemoteLegacyACLs(lastRemoteIndex)
 	if err != nil {
 		return 0, false, fmt.Errorf("failed to retrieve remote ACLs: %v", err)
@@ -248,7 +249,11 @@ func (s *Server) replicateLegacyACLs(lastRemoteIndex uint64, ctx context.Context
 	// the remote side was rebuilt and we should do a full sync since we
 	// can't make any assumptions about what's going on.
 	if remote.QueryMeta.Index < lastRemoteIndex {
-		s.logger.Printf("[WARN] consul: Legacy ACL replication remote index moved backwards (%d to %d), forcing a full ACL sync", lastRemoteIndex, remote.QueryMeta.Index)
+		logger.Warn(
+			"Legacy ACL replication remote index moved backwards, forcing a full ACL sync",
+			"from", lastRemoteIndex,
+			"to", remote.QueryMeta.Index,
+		)
 		lastRemoteIndex = 0
 	}
 

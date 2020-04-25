@@ -22,7 +22,7 @@ func (op *Operator) RaftGetConfiguration(args *structs.DCSpecificRequest, reply 
 	if err != nil {
 		return err
 	}
-	if rule != nil && !rule.OperatorRead() {
+	if rule != nil && rule.OperatorRead(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -80,11 +80,14 @@ func (op *Operator) RaftRemovePeerByAddress(args *structs.RaftRemovePeerRequest,
 
 	// This is a super dangerous operation that requires operator write
 	// access.
-	rule, err := op.srv.ResolveToken(args.Token)
+	identity, rule, err := op.srv.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
 		return err
 	}
-	if rule != nil && !rule.OperatorWrite() {
+	if err := op.srv.validateEnterpriseToken(identity); err != nil {
+		return err
+	}
+	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -127,12 +130,14 @@ REMOVE:
 		future = op.srv.raft.RemovePeer(args.Address)
 	}
 	if err := future.Error(); err != nil {
-		op.srv.logger.Printf("[WARN] consul.operator: Failed to remove Raft peer %q: %v",
-			args.Address, err)
+		op.logger.Warn("Failed to remove Raft peer",
+			"peer", args.Address,
+			"error", err,
+		)
 		return err
 	}
 
-	op.srv.logger.Printf("[WARN] consul.operator: Removed Raft peer %q", args.Address)
+	op.logger.Warn("Removed Raft peer", "peer", args.Address)
 	return nil
 }
 
@@ -147,11 +152,14 @@ func (op *Operator) RaftRemovePeerByID(args *structs.RaftRemovePeerRequest, repl
 
 	// This is a super dangerous operation that requires operator write
 	// access.
-	rule, err := op.srv.ResolveToken(args.Token)
+	identity, rule, err := op.srv.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
 		return err
 	}
-	if rule != nil && !rule.OperatorWrite() {
+	if err := op.srv.validateEnterpriseToken(identity); err != nil {
+		return err
+	}
+	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -194,11 +202,13 @@ REMOVE:
 		future = op.srv.raft.RemovePeer(args.Address)
 	}
 	if err := future.Error(); err != nil {
-		op.srv.logger.Printf("[WARN] consul.operator: Failed to remove Raft peer with id %q: %v",
-			args.ID, err)
+		op.logger.Warn("Failed to remove Raft peer with id",
+			"peer_id", args.ID,
+			"error", err,
+		)
 		return err
 	}
 
-	op.srv.logger.Printf("[WARN] consul.operator: Removed Raft peer with id %q", args.ID)
+	op.logger.Warn("Removed Raft peer with id", "peer_id", args.ID)
 	return nil
 }

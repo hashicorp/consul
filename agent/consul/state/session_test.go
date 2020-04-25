@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"reflect"
 	"strings"
 	"testing"
@@ -18,7 +19,7 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 
 	// SessionGet returns nil if the session doesn't exist
 	ws := memdb.NewWatchSet()
-	idx, session, err := s.SessionGet(ws, testUUID())
+	idx, session, err := s.SessionGet(ws, testUUID(), nil)
 	if session != nil || err != nil {
 		t.Fatalf("expected (nil, nil), got: (%#v, %#v)", session, err)
 	}
@@ -74,7 +75,7 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 
 	// Retrieve the session again
 	ws = memdb.NewWatchSet()
-	idx, session, err = s.SessionGet(ws, sess.ID)
+	idx, session, err = s.SessionGet(ws, sess.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -88,13 +89,15 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 		ID:       sess.ID,
 		Behavior: structs.SessionKeysRelease,
 		Node:     "node1",
-		RaftIndex: structs.RaftIndex{
-			CreateIndex: 2,
-			ModifyIndex: 2,
-		},
 	}
-	if !reflect.DeepEqual(expect, session) {
-		t.Fatalf("bad session: %#v", session)
+	if session.ID != expect.ID {
+		t.Fatalf("bad session ID: expected %s, got %s", expect.ID, session.ID)
+	}
+	if session.Node != expect.Node {
+		t.Fatalf("bad session Node: expected %s, got %s", expect.Node, session.Node)
+	}
+	if session.Behavior != expect.Behavior {
+		t.Fatalf("bad session Behavior: expected %s, got %s", expect.Behavior, session.Behavior)
 	}
 
 	// Registering with a non-existent check is disallowed
@@ -128,6 +131,32 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 		t.Fatalf("bad")
 	}
 
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Check mappings were inserted
+	{
+
+		check, err := tx.First("session_checks", "session", sess.ID)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if check == nil {
+			t.Fatalf("missing session check")
+		}
+		expectCheck := &sessionCheck{
+			Node:    "node1",
+			CheckID: structs.CheckID{ID: "check1"},
+			Session: sess.ID,
+		}
+
+		actual := check.(*sessionCheck)
+		expectCheck.CheckID.EnterpriseMeta = actual.CheckID.EnterpriseMeta
+		expectCheck.EnterpriseMeta = actual.EnterpriseMeta
+
+		assert.Equal(t, expectCheck, actual)
+	}
+
 	// Register a session against two checks.
 	testRegisterCheck(t, s, 5, "node1", "", "check2", api.HealthPassing)
 	sess2 := &structs.Session{
@@ -139,27 +168,6 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	tx := s.db.Txn(false)
-	defer tx.Abort()
-
-	// Check mappings were inserted
-	{
-		check, err := tx.First("session_checks", "session", sess.ID)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		if check == nil {
-			t.Fatalf("missing session check")
-		}
-		expectCheck := &sessionCheck{
-			Node:    "node1",
-			CheckID: "check1",
-			Session: sess.ID,
-		}
-		if actual := check.(*sessionCheck); !reflect.DeepEqual(actual, expectCheck) {
-			t.Fatalf("expected %#v, got: %#v", expectCheck, actual)
-		}
-	}
 	checks, err := tx.Get("session_checks", "session", sess2.ID)
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -167,16 +175,19 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 	for i, check := 0, checks.Next(); check != nil; i, check = i+1, checks.Next() {
 		expectCheck := &sessionCheck{
 			Node:    "node1",
-			CheckID: types.CheckID(fmt.Sprintf("check%d", i+1)),
+			CheckID: structs.CheckID{ID: types.CheckID(fmt.Sprintf("check%d", i+1))},
 			Session: sess2.ID,
 		}
-		if actual := check.(*sessionCheck); !reflect.DeepEqual(actual, expectCheck) {
-			t.Fatalf("expected %#v, got: %#v", expectCheck, actual)
-		}
+
+		actual := check.(*sessionCheck)
+		expectCheck.CheckID.EnterpriseMeta = actual.CheckID.EnterpriseMeta
+		expectCheck.EnterpriseMeta = actual.EnterpriseMeta
+
+		assert.Equal(t, expectCheck, actual)
 	}
 
 	// Pulling a nonexistent session gives the table index.
-	idx, session, err = s.SessionGet(nil, testUUID())
+	idx, session, err = s.SessionGet(nil, testUUID(), nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -188,12 +199,12 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 	}
 }
 
-func TegstStateStore_SessionList(t *testing.T) {
+func TestStateStore_SessionList(t *testing.T) {
 	s := testStateStore(t)
 
 	// Listing when no sessions exist returns nil
 	ws := memdb.NewWatchSet()
-	idx, res, err := s.SessionList(ws)
+	idx, res, err := s.SessionList(ws, nil)
 	if idx != 0 || res != nil || err != nil {
 		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
 	}
@@ -231,15 +242,20 @@ func TegstStateStore_SessionList(t *testing.T) {
 	}
 
 	// List out all of the sessions
-	idx, sessionList, err := s.SessionList(nil)
+	idx, sessionList, err := s.SessionList(nil, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if idx != 6 {
 		t.Fatalf("bad index: %d", idx)
 	}
-	if !reflect.DeepEqual(sessionList, sessions) {
-		t.Fatalf("bad: %#v", sessions)
+	sessionMap := make(map[string]*structs.Session)
+	for _, session := range sessionList {
+		sessionMap[session.ID] = session
+	}
+
+	for _, expect := range sessions {
+		assert.Equal(t, expect, sessionMap[expect.ID])
 	}
 }
 
@@ -248,7 +264,7 @@ func TestStateStore_NodeSessions(t *testing.T) {
 
 	// Listing sessions with no results returns nil
 	ws := memdb.NewWatchSet()
-	idx, res, err := s.NodeSessions(ws, "node1")
+	idx, res, err := s.NodeSessions(ws, "node1", nil)
 	if idx != 0 || res != nil || err != nil {
 		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
 	}
@@ -290,7 +306,7 @@ func TestStateStore_NodeSessions(t *testing.T) {
 	// Query all of the sessions associated with a specific
 	// node in the state store.
 	ws1 := memdb.NewWatchSet()
-	idx, res, err = s.NodeSessions(ws1, "node1")
+	idx, res, err = s.NodeSessions(ws1, "node1", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -302,7 +318,7 @@ func TestStateStore_NodeSessions(t *testing.T) {
 	}
 
 	ws2 := memdb.NewWatchSet()
-	idx, res, err = s.NodeSessions(ws2, "node2")
+	idx, res, err = s.NodeSessions(ws2, "node2", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -314,7 +330,7 @@ func TestStateStore_NodeSessions(t *testing.T) {
 	}
 
 	// Destroying a session on node1 should not affect node2's watch.
-	if err := s.SessionDestroy(100, sessions1[0].ID); err != nil {
+	if err := s.SessionDestroy(100, sessions1[0].ID, nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if !watchFired(ws1) {
@@ -330,7 +346,7 @@ func TestStateStore_SessionDestroy(t *testing.T) {
 
 	// Session destroy is idempotent and returns no error
 	// if the session doesn't exist.
-	if err := s.SessionDestroy(1, testUUID()); err != nil {
+	if err := s.SessionDestroy(1, testUUID(), nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -352,7 +368,7 @@ func TestStateStore_SessionDestroy(t *testing.T) {
 	}
 
 	// Destroy the session.
-	if err := s.SessionDestroy(3, sess.ID); err != nil {
+	if err := s.SessionDestroy(3, sess.ID, nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -412,7 +428,7 @@ func TestStateStore_Session_Snapshot_Restore(t *testing.T) {
 	defer snap.Close()
 
 	// Alter the real state store.
-	if err := s.SessionDestroy(8, session1); err != nil {
+	if err := s.SessionDestroy(8, session1, nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -456,7 +472,7 @@ func TestStateStore_Session_Snapshot_Restore(t *testing.T) {
 
 		// Read the restored sessions back out and verify that they
 		// match.
-		idx, res, err := s.SessionList(nil)
+		idx, res, err := s.SessionList(nil, nil)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -496,10 +512,15 @@ func TestStateStore_Session_Snapshot_Restore(t *testing.T) {
 		}
 		expectCheck := &sessionCheck{
 			Node:    "node1",
-			CheckID: "check1",
+			CheckID: structs.CheckID{ID: "check1"},
 			Session: session1,
 		}
-		if actual := check.(*sessionCheck); !reflect.DeepEqual(actual, expectCheck) {
+
+		actual := check.(*sessionCheck)
+		expectCheck.CheckID.EnterpriseMeta = actual.CheckID.EnterpriseMeta
+		expectCheck.EnterpriseMeta = actual.EnterpriseMeta
+
+		if !reflect.DeepEqual(actual, expectCheck) {
 			t.Fatalf("expected %#v, got: %#v", expectCheck, actual)
 		}
 	}()
@@ -522,7 +543,7 @@ func TestStateStore_Session_Invalidate_DeleteNode(t *testing.T) {
 
 	// Delete the node and make sure the watch fires.
 	ws := memdb.NewWatchSet()
-	idx, s2, err := s.SessionGet(ws, session.ID)
+	idx, s2, err := s.SessionGet(ws, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -534,7 +555,7 @@ func TestStateStore_Session_Invalidate_DeleteNode(t *testing.T) {
 	}
 
 	// Lookup by ID, should be nil.
-	idx, s2, err = s.SessionGet(nil, session.ID)
+	idx, s2, err = s.SessionGet(nil, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -577,11 +598,11 @@ func TestStateStore_Session_Invalidate_DeleteService(t *testing.T) {
 
 	// Delete the service and make sure the watch fires.
 	ws := memdb.NewWatchSet()
-	idx, s2, err := s.SessionGet(ws, session.ID)
+	idx, s2, err := s.SessionGet(ws, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.DeleteService(15, "foo", "api"); err != nil {
+	if err := s.DeleteService(15, "foo", "api", nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if !watchFired(ws) {
@@ -589,7 +610,7 @@ func TestStateStore_Session_Invalidate_DeleteService(t *testing.T) {
 	}
 
 	// Lookup by ID, should be nil.
-	idx, s2, err = s.SessionGet(nil, session.ID)
+	idx, s2, err = s.SessionGet(nil, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -627,7 +648,7 @@ func TestStateStore_Session_Invalidate_Critical_Check(t *testing.T) {
 
 	// Invalidate the check and make sure the watches fire.
 	ws := memdb.NewWatchSet()
-	idx, s2, err := s.SessionGet(ws, session.ID)
+	idx, s2, err := s.SessionGet(ws, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -640,7 +661,7 @@ func TestStateStore_Session_Invalidate_Critical_Check(t *testing.T) {
 	}
 
 	// Lookup by ID, should be nil.
-	idx, s2, err = s.SessionGet(nil, session.ID)
+	idx, s2, err = s.SessionGet(nil, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -678,11 +699,11 @@ func TestStateStore_Session_Invalidate_DeleteCheck(t *testing.T) {
 
 	// Delete the check and make sure the watches fire.
 	ws := memdb.NewWatchSet()
-	idx, s2, err := s.SessionGet(ws, session.ID)
+	idx, s2, err := s.SessionGet(ws, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.DeleteCheck(15, "foo", "bar"); err != nil {
+	if err := s.DeleteCheck(15, "foo", "bar", nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if !watchFired(ws) {
@@ -690,7 +711,7 @@ func TestStateStore_Session_Invalidate_DeleteCheck(t *testing.T) {
 	}
 
 	// Lookup by ID, should be nil.
-	idx, s2, err = s.SessionGet(nil, session.ID)
+	idx, s2, err = s.SessionGet(nil, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -746,7 +767,7 @@ func TestStateStore_Session_Invalidate_Key_Unlock_Behavior(t *testing.T) {
 
 	// Delete the node and make sure the watches fire.
 	ws := memdb.NewWatchSet()
-	idx, s2, err := s.SessionGet(ws, session.ID)
+	idx, s2, err := s.SessionGet(ws, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -758,7 +779,7 @@ func TestStateStore_Session_Invalidate_Key_Unlock_Behavior(t *testing.T) {
 	}
 
 	// Lookup by ID, should be nil.
-	idx, s2, err = s.SessionGet(nil, session.ID)
+	idx, s2, err = s.SessionGet(nil, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -770,7 +791,7 @@ func TestStateStore_Session_Invalidate_Key_Unlock_Behavior(t *testing.T) {
 	}
 
 	// Key should be unlocked.
-	idx, d2, err := s.KVSGet(nil, "/foo")
+	idx, d2, err := s.KVSGet(nil, "/foo", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -788,7 +809,7 @@ func TestStateStore_Session_Invalidate_Key_Unlock_Behavior(t *testing.T) {
 	}
 
 	// Key should have a lock delay.
-	expires := s.KVSLockDelay("/foo")
+	expires := s.KVSLockDelay("/foo", nil)
 	if expires.Before(time.Now().Add(30 * time.Millisecond)) {
 		t.Fatalf("Bad: %v", expires)
 	}
@@ -828,7 +849,7 @@ func TestStateStore_Session_Invalidate_Key_Delete_Behavior(t *testing.T) {
 
 	// Delete the node and make sure the watches fire.
 	ws := memdb.NewWatchSet()
-	idx, s2, err := s.SessionGet(ws, session.ID)
+	idx, s2, err := s.SessionGet(ws, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -840,7 +861,7 @@ func TestStateStore_Session_Invalidate_Key_Delete_Behavior(t *testing.T) {
 	}
 
 	// Lookup by ID, should be nil.
-	idx, s2, err = s.SessionGet(nil, session.ID)
+	idx, s2, err = s.SessionGet(nil, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -852,7 +873,7 @@ func TestStateStore_Session_Invalidate_Key_Delete_Behavior(t *testing.T) {
 	}
 
 	// Key should be deleted.
-	idx, d2, err := s.KVSGet(nil, "/bar")
+	idx, d2, err := s.KVSGet(nil, "/bar", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -864,7 +885,7 @@ func TestStateStore_Session_Invalidate_Key_Delete_Behavior(t *testing.T) {
 	}
 
 	// Key should have a lock delay.
-	expires := s.KVSLockDelay("/bar")
+	expires := s.KVSLockDelay("/bar", nil)
 	if expires.Before(time.Now().Add(30 * time.Millisecond)) {
 		t.Fatalf("Bad: %v", expires)
 	}
@@ -896,11 +917,11 @@ func TestStateStore_Session_Invalidate_PreparedQuery_Delete(t *testing.T) {
 
 	// Invalidate the session and make sure the watches fire.
 	ws := memdb.NewWatchSet()
-	idx, s2, err := s.SessionGet(ws, session.ID)
+	idx, s2, err := s.SessionGet(ws, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.SessionDestroy(5, session.ID); err != nil {
+	if err := s.SessionDestroy(5, session.ID, nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if !watchFired(ws) {
@@ -908,7 +929,7 @@ func TestStateStore_Session_Invalidate_PreparedQuery_Delete(t *testing.T) {
 	}
 
 	// Make sure the session is gone.
-	idx, s2, err = s.SessionGet(nil, session.ID)
+	idx, s2, err = s.SessionGet(nil, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

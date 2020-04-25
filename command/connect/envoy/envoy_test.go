@@ -29,6 +29,50 @@ func TestEnvoyCommand_noTabs(t *testing.T) {
 	}
 }
 
+func TestEnvoyGateway_Validation(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name   string
+		args   []string
+		output string
+	}{
+		{
+			"-register for non-gateway",
+			[]string{"-register"},
+			"Auto-Registration can only be used for gateways",
+		},
+		{
+			"-mesh-gateway and -gateway cannot be combined",
+			[]string{"-register", "-mesh-gateway", "-gateway", "mesh"},
+			"The mesh-gateway flag is deprecated and cannot be used alongside the gateway flag",
+		},
+		{
+			"no proxy registration specified nor discovered",
+			[]string{""},
+			"No proxy ID specified",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ui := cli.NewMockUi()
+			c := New(ui)
+			c.init()
+
+			code := c.Run(tc.args)
+			if code == 0 {
+				t.Errorf("%s: expected non-zero exit", tc.name)
+			}
+
+			output := ui.ErrorWriter.String()
+			if !strings.Contains(output, tc.output) {
+				t.Errorf("expected %q to contain %q", output, tc.output)
+			}
+		})
+	}
+}
+
 // testSetAndResetEnv sets the env vars passed as KEY=value strings in the
 // current ENV and returns a func() that will undo it's work at the end of the
 // test for use with defer.
@@ -81,12 +125,14 @@ func TestGenerateConfig(t *testing.T) {
 		{
 			Name:  "defaults",
 			Flags: []string{"-proxy-id", "test-proxy"},
-			Env:   []string{},
 			WantArgs: BootstrapTplArgs{
-				ProxyCluster:          "test-proxy",
-				ProxyID:               "test-proxy",
-				AgentAddress:          "127.0.0.1",
-				AgentPort:             "8502", // Note this is the gRPC port
+				EnvoyVersion: defaultEnvoyVersion,
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502", // Note this is the gRPC port
+				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
@@ -97,12 +143,14 @@ func TestGenerateConfig(t *testing.T) {
 			Name: "token-arg",
 			Flags: []string{"-proxy-id", "test-proxy",
 				"-token", "c9a52720-bf6c-4aa6-b8bc-66881a5ade95"},
-			Env: []string{},
 			WantArgs: BootstrapTplArgs{
-				ProxyCluster:          "test-proxy",
-				ProxyID:               "test-proxy",
-				AgentAddress:          "127.0.0.1",
-				AgentPort:             "8502", // Note this is the gRPC port
+				EnvoyVersion: defaultEnvoyVersion,
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502", // Note this is the gRPC port
+				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
@@ -117,10 +165,13 @@ func TestGenerateConfig(t *testing.T) {
 				"CONSUL_HTTP_TOKEN=c9a52720-bf6c-4aa6-b8bc-66881a5ade95",
 			},
 			WantArgs: BootstrapTplArgs{
-				ProxyCluster:          "test-proxy",
-				ProxyID:               "test-proxy",
-				AgentAddress:          "127.0.0.1",
-				AgentPort:             "8502", // Note this is the gRPC port
+				EnvoyVersion: defaultEnvoyVersion,
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502", // Note this is the gRPC port
+				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
@@ -133,15 +184,17 @@ func TestGenerateConfig(t *testing.T) {
 			Flags: []string{"-proxy-id", "test-proxy",
 				"-token-file", "@@TEMPDIR@@token.txt",
 			},
-			Env: []string{},
 			Files: map[string]string{
 				"token.txt": "c9a52720-bf6c-4aa6-b8bc-66881a5ade95",
 			},
 			WantArgs: BootstrapTplArgs{
-				ProxyCluster:          "test-proxy",
-				ProxyID:               "test-proxy",
-				AgentAddress:          "127.0.0.1",
-				AgentPort:             "8502", // Note this is the gRPC port
+				EnvoyVersion: defaultEnvoyVersion,
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502", // Note this is the gRPC port
+				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
@@ -159,10 +212,13 @@ func TestGenerateConfig(t *testing.T) {
 				"token.txt": "c9a52720-bf6c-4aa6-b8bc-66881a5ade95",
 			},
 			WantArgs: BootstrapTplArgs{
-				ProxyCluster:          "test-proxy",
-				ProxyID:               "test-proxy",
-				AgentAddress:          "127.0.0.1",
-				AgentPort:             "8502", // Note this is the gRPC port
+				EnvoyVersion: defaultEnvoyVersion,
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502", // Note this is the gRPC port
+				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
@@ -174,15 +230,17 @@ func TestGenerateConfig(t *testing.T) {
 			Name: "grpc-addr-flag",
 			Flags: []string{"-proxy-id", "test-proxy",
 				"-grpc-addr", "localhost:9999"},
-			Env: []string{},
 			WantArgs: BootstrapTplArgs{
+				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// Should resolve IP, note this might not resolve the same way
 				// everywhere which might make this test brittle but not sure what else
 				// to do.
-				AgentAddress:          "127.0.0.1",
-				AgentPort:             "9999",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "9999",
+				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
@@ -196,13 +254,16 @@ func TestGenerateConfig(t *testing.T) {
 				"CONSUL_GRPC_ADDR=localhost:9999",
 			},
 			WantArgs: BootstrapTplArgs{
+				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// Should resolve IP, note this might not resolve the same way
 				// everywhere which might make this test brittle but not sure what else
 				// to do.
-				AgentAddress:          "127.0.0.1",
-				AgentPort:             "9999",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "9999",
+				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
@@ -213,11 +274,13 @@ func TestGenerateConfig(t *testing.T) {
 			Name: "grpc-addr-unix",
 			Flags: []string{"-proxy-id", "test-proxy",
 				"-grpc-addr", "unix:///var/run/consul.sock"},
-			Env: []string{},
 			WantArgs: BootstrapTplArgs{
-				ProxyCluster:          "test-proxy",
-				ProxyID:               "test-proxy",
-				AgentSocket:           "/var/run/consul.sock",
+				EnvoyVersion: defaultEnvoyVersion,
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				GRPC: GRPC{
+					AgentSocket: "/var/run/consul.sock",
+				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
@@ -229,13 +292,16 @@ func TestGenerateConfig(t *testing.T) {
 			Flags:    []string{"-proxy-id", "test-proxy"},
 			GRPCPort: 9999,
 			WantArgs: BootstrapTplArgs{
+				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// Should resolve IP, note this might not resolve the same way
 				// everywhere which might make this test brittle but not sure what else
 				// to do.
-				AgentAddress:          "127.0.0.1",
-				AgentPort:             "9999",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "9999",
+				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
@@ -245,16 +311,58 @@ func TestGenerateConfig(t *testing.T) {
 		{
 			Name:  "access-log-path",
 			Flags: []string{"-proxy-id", "test-proxy", "-admin-access-log-path", "/some/path/access.log"},
-			Env:   []string{},
 			WantArgs: BootstrapTplArgs{
+				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// Should resolve IP, note this might not resolve the same way
 				// everywhere which might make this test brittle but not sure what else
 				// to do.
-				AgentAddress:          "127.0.0.1",
-				AgentPort:             "8502",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502",
+				},
 				AdminAccessLogPath:    "/some/path/access.log",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+			},
+		},
+		{
+			Name:  "missing-ca-file",
+			Flags: []string{"-proxy-id", "test-proxy", "-ca-file", "some/path"},
+			WantArgs: BootstrapTplArgs{
+				EnvoyVersion: defaultEnvoyVersion,
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				// Should resolve IP, note this might not resolve the same way
+				// everywhere which might make this test brittle but not sure what else
+				// to do.
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502",
+				},
+			},
+			WantErr: "Error loading CA File: open some/path: no such file or directory",
+		},
+		{
+			Name:  "existing-ca-file",
+			Flags: []string{"-proxy-id", "test-proxy", "-ca-file", "../../../test/ca/root.cer"},
+			Env:   []string{"CONSUL_HTTP_SSL=1"},
+			WantArgs: BootstrapTplArgs{
+				EnvoyVersion: defaultEnvoyVersion,
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				// Should resolve IP, note this might not resolve the same way
+				// everywhere which might make this test brittle but not sure what else
+				// to do.
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502",
+					AgentTLS:     true,
+				},
+				AgentCAPEM:            `-----BEGIN CERTIFICATE-----\nMIIEtzCCA5+gAwIBAgIJAIewRMI8OnvTMA0GCSqGSIb3DQEBBQUAMIGYMQswCQYD\nVQQGEwJVUzELMAkGA1UECBMCQ0ExFjAUBgNVBAcTDVNhbiBGcmFuY2lzY28xHDAa\nBgNVBAoTE0hhc2hpQ29ycCBUZXN0IENlcnQxDDAKBgNVBAsTA0RldjEWMBQGA1UE\nAxMNdGVzdC5pbnRlcm5hbDEgMB4GCSqGSIb3DQEJARYRdGVzdEBpbnRlcm5hbC5j\nb20wHhcNMTQwNDA3MTkwMTA4WhcNMjQwNDA0MTkwMTA4WjCBmDELMAkGA1UEBhMC\nVVMxCzAJBgNVBAgTAkNBMRYwFAYDVQQHEw1TYW4gRnJhbmNpc2NvMRwwGgYDVQQK\nExNIYXNoaUNvcnAgVGVzdCBDZXJ0MQwwCgYDVQQLEwNEZXYxFjAUBgNVBAMTDXRl\nc3QuaW50ZXJuYWwxIDAeBgkqhkiG9w0BCQEWEXRlc3RAaW50ZXJuYWwuY29tMIIB\nIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxrs6JK4NpiOItxrpNR/1ppUU\nmH7p2BgLCBZ6eHdclle9J56i68adt8J85zaqphCfz6VDP58DsFx+N50PZyjQaDsU\nd0HejRqfHRMtg2O+UQkv4Z66+Vo+gc6uGuANi2xMtSYDVTAqqzF48OOPQDgYkzcG\nxcFZzTRFFZt2vPnyHj8cHcaFo/NMNVh7C3yTXevRGNm9u2mrbxCEeiHzFC2WUnvg\nU2jQuC7Fhnl33Zd3B6d3mQH6O23ncmwxTcPUJe6xZaIRrDuzwUcyhLj5Z3faag/f\npFIIcHSiHRfoqHLGsGg+3swId/zVJSSDHr7pJUu7Cre+vZa63FqDaooqvnisrQID\nAQABo4IBADCB/TAdBgNVHQ4EFgQUo/nrOfqvbee2VklVKIFlyQEbuJUwgc0GA1Ud\nIwSBxTCBwoAUo/nrOfqvbee2VklVKIFlyQEbuJWhgZ6kgZswgZgxCzAJBgNVBAYT\nAlVTMQswCQYDVQQIEwJDQTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNjbzEcMBoGA1UE\nChMTSGFzaGlDb3JwIFRlc3QgQ2VydDEMMAoGA1UECxMDRGV2MRYwFAYDVQQDEw10\nZXN0LmludGVybmFsMSAwHgYJKoZIhvcNAQkBFhF0ZXN0QGludGVybmFsLmNvbYIJ\nAIewRMI8OnvTMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEFBQADggEBADa9fV9h\ngjapBlkNmu64WX0Ufub5dsJrdHS8672P30S7ILB7Mk0W8sL65IezRsZnG898yHf9\n2uzmz5OvNTM9K380g7xFlyobSVq+6yqmmSAlA/ptAcIIZT727P5jig/DB7fzJM3g\njctDlEGOmEe50GQXc25VKpcpjAsNQi5ER5gowQ0v3IXNZs+yU+LvxLHc0rUJ/XSp\nlFCAMOqd5uRoMOejnT51G6krvLNzPaQ3N9jQfNVY4Q0zfs0M+6dRWvqfqB9Vyq8/\nPOLMld+HyAZEBk9zK3ZVIXx6XS4dkDnSNR91njLq7eouf6M7+7s/oMQZZRtAfQ6r\nwlW975rYa1ZqEdA=\n-----END CERTIFICATE-----\n`,
+				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
@@ -263,7 +371,6 @@ func TestGenerateConfig(t *testing.T) {
 		{
 			Name:  "custom-bootstrap",
 			Flags: []string{"-proxy-id", "test-proxy"},
-			Env:   []string{},
 			ProxyConfig: map[string]interface{}{
 				// Add a completely custom bootstrap template. Never mind if this is
 				// invalid envoy config just as long as it works and gets the variables
@@ -287,10 +394,13 @@ func TestGenerateConfig(t *testing.T) {
 				}`,
 			},
 			WantArgs: BootstrapTplArgs{
-				ProxyCluster:          "test-proxy",
-				ProxyID:               "test-proxy",
-				AgentAddress:          "127.0.0.1",
-				AgentPort:             "8502",
+				EnvoyVersion: defaultEnvoyVersion,
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502",
+				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
@@ -300,7 +410,6 @@ func TestGenerateConfig(t *testing.T) {
 		{
 			Name:  "extra_-single",
 			Flags: []string{"-proxy-id", "test-proxy"},
-			Env:   []string{},
 			ProxyConfig: map[string]interface{}{
 				// Add a custom sections with interpolated variables. These are all
 				// invalid config syntax too but we are just testing they have the right
@@ -319,10 +428,13 @@ func TestGenerateConfig(t *testing.T) {
 				}`,
 			},
 			WantArgs: BootstrapTplArgs{
-				ProxyCluster:          "test-proxy",
-				ProxyID:               "test-proxy",
-				AgentAddress:          "127.0.0.1",
-				AgentPort:             "8502",
+				EnvoyVersion: defaultEnvoyVersion,
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502",
+				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
@@ -332,7 +444,6 @@ func TestGenerateConfig(t *testing.T) {
 		{
 			Name:  "extra_-multiple",
 			Flags: []string{"-proxy-id", "test-proxy"},
-			Env:   []string{},
 			ProxyConfig: map[string]interface{}{
 				// Add a custom sections with interpolated variables. These are all
 				// invalid config syntax too but we are just testing they have the right
@@ -356,10 +467,13 @@ func TestGenerateConfig(t *testing.T) {
 				} , { "name": "fake_sink_2" }`,
 			},
 			WantArgs: BootstrapTplArgs{
-				ProxyCluster:          "test-proxy",
-				ProxyID:               "test-proxy",
-				AgentAddress:          "127.0.0.1",
-				AgentPort:             "8502",
+				EnvoyVersion: defaultEnvoyVersion,
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502",
+				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
@@ -369,7 +483,6 @@ func TestGenerateConfig(t *testing.T) {
 		{
 			Name:  "stats-config-override",
 			Flags: []string{"-proxy-id", "test-proxy"},
-			Env:   []string{},
 			ProxyConfig: map[string]interface{}{
 				// Add a custom sections with interpolated variables. These are all
 				// invalid config syntax too but we are just testing they have the right
@@ -380,10 +493,13 @@ func TestGenerateConfig(t *testing.T) {
 				}`,
 			},
 			WantArgs: BootstrapTplArgs{
-				ProxyCluster:          "test-proxy",
-				ProxyID:               "test-proxy",
-				AgentAddress:          "127.0.0.1",
-				AgentPort:             "8502",
+				EnvoyVersion: defaultEnvoyVersion,
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502",
+				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
@@ -393,7 +509,6 @@ func TestGenerateConfig(t *testing.T) {
 		{
 			Name:  "zipkin-tracing-config",
 			Flags: []string{"-proxy-id", "test-proxy"},
-			Env:   []string{},
 			ProxyConfig: map[string]interface{}{
 				// Add a custom sections with interpolated variables. These are all
 				// invalid config syntax too but we are just testing they have the right
@@ -434,10 +549,69 @@ func TestGenerateConfig(t *testing.T) {
 				}`,
 			},
 			WantArgs: BootstrapTplArgs{
-				ProxyCluster:          "test-proxy",
-				ProxyID:               "test-proxy",
-				AgentAddress:          "127.0.0.1",
-				AgentPort:             "8502",
+				EnvoyVersion: defaultEnvoyVersion,
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502",
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+			},
+		},
+		{
+			Name:  "CONSUL_HTTP_ADDR-with-https-scheme-enables-tls",
+			Flags: []string{"-proxy-id", "test-proxy"},
+			Env:   []string{"CONSUL_HTTP_ADDR=https://127.0.0.1:8888"},
+			WantArgs: BootstrapTplArgs{
+				EnvoyVersion: defaultEnvoyVersion,
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				// Should resolve IP, note this might not resolve the same way
+				// everywhere which might make this test brittle but not sure what else
+				// to do.
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502",
+					AgentTLS:     true,
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+			},
+		},
+		{
+			Name:  "ingress-gateway",
+			Flags: []string{"-proxy-id", "ingress-gateway", "-gateway", "ingress"},
+			WantArgs: BootstrapTplArgs{
+				EnvoyVersion: defaultEnvoyVersion,
+				ProxyCluster: "ingress-gateway",
+				ProxyID:      "ingress-gateway",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502",
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+			},
+		},
+		{
+			Name:  "ingress-gateway-address-specified",
+			Flags: []string{"-proxy-id", "ingress-gateway", "-gateway", "ingress", "-address", "1.2.3.4:7777"},
+			WantArgs: BootstrapTplArgs{
+				EnvoyVersion: defaultEnvoyVersion,
+				ProxyCluster: "ingress-gateway",
+				ProxyID:      "ingress-gateway",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502",
+				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
@@ -468,27 +642,28 @@ func TestGenerateConfig(t *testing.T) {
 				}
 			}
 
-			ui := cli.NewMockUi()
-			c := New(ui)
-
 			// Run a mock agent API that just always returns the proxy config in the
 			// test.
 			srv := httptest.NewServer(testMockAgent(tc.ProxyConfig, tc.GRPCPort))
 			defer srv.Close()
-
-			// Set the agent HTTP address in ENV to be our mock
-			tc.Env = append(tc.Env, "CONSUL_HTTP_ADDR="+srv.URL)
+			client, err := api.NewClient(&api.Config{Address: srv.URL})
+			require.NoError(err)
 
 			testDirPrefix := testDir + string(filepath.Separator)
-
-			myFlags := copyAndReplaceAll(tc.Flags, "@@TEMPDIR@@", testDirPrefix)
 			myEnv := copyAndReplaceAll(tc.Env, "@@TEMPDIR@@", testDirPrefix)
-
 			defer testSetAndResetEnv(t, myEnv)()
 
+			ui := cli.NewMockUi()
+			c := New(ui)
+			// explicitly set the client to one which can connect to the httptest.Server
+			c.client = client
+
 			// Run the command
+			myFlags := copyAndReplaceAll(tc.Flags, "@@TEMPDIR@@", testDirPrefix)
 			args := append([]string{"-bootstrap"}, myFlags...)
-			code := c.Run(args)
+
+			require.NoError(c.flags.Parse(args))
+			code := c.run(c.flags.Args())
 			if tc.WantErr == "" {
 				require.Equal(0, code, ui.ErrorWriter.String())
 			} else {

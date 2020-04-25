@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
@@ -135,6 +136,27 @@ func (c *cmd) Run(args []string) int {
 	return 0
 }
 
+// parseIntentionTarget parses a target of the form <namespace>/<name> and returns
+// the two distinct parts. In some cases the namespace may be elided and this function
+// will return the empty string for the namespace then.
+func parseIntentionTarget(input string) (name string, namespace string, err error) {
+	// Get the index to the '/'. If it doesn't exist, we have just a name
+	// so just set that and return.
+	idx := strings.IndexByte(input, '/')
+	if idx == -1 {
+		// let the agent do token based defaulting of the namespace
+		return input, "", nil
+	}
+
+	namespace = input[:idx]
+	name = input[idx+1:]
+	if strings.IndexByte(name, '/') != -1 {
+		return "", "", fmt.Errorf("target can contain at most one '/'")
+	}
+
+	return name, namespace, nil
+}
+
 // ixnsFromArgs returns the set of intentions to create based on the arguments
 // given and the flags set. This will call ixnsFromFiles if the -file flag
 // was set.
@@ -149,9 +171,21 @@ func (c *cmd) ixnsFromArgs(args []string) ([]*api.Intention, error) {
 		return nil, fmt.Errorf("Must specify two arguments: source and destination")
 	}
 
+	srcName, srcNamespace, err := parseIntentionTarget(args[0])
+	if err != nil {
+		return nil, fmt.Errorf("Invalid intention source: %v", err)
+	}
+
+	dstName, dstNamespace, err := parseIntentionTarget(args[1])
+	if err != nil {
+		return nil, fmt.Errorf("Invalid intention destination: %v", err)
+	}
+
 	return []*api.Intention{&api.Intention{
-		SourceName:      args[0],
-		DestinationName: args[1],
+		SourceNS:        srcNamespace,
+		SourceName:      srcName,
+		DestinationNS:   dstNamespace,
+		DestinationName: dstName,
 		SourceType:      api.IntentionSourceConsul,
 		Action:          c.ixnAction(),
 		Meta:            c.flagMeta,

@@ -8,11 +8,13 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/go-hclog"
 )
 
 // Txn endpoint is used to perform multi-object atomic transactions.
 type Txn struct {
-	srv *Server
+	srv    *Server
+	logger hclog.Logger
 }
 
 // preCheck is used to verify the incoming operations before any further
@@ -24,7 +26,7 @@ func (t *Txn) preCheck(authorizer acl.Authorizer, ops structs.TxnOps) structs.Tx
 	for i, op := range ops {
 		switch {
 		case op.KV != nil:
-			ok, err := kvsPreApply(t.srv, authorizer, op.KV.Verb, &op.KV.DirEnt)
+			ok, err := kvsPreApply(t.logger, t.srv, authorizer, op.KV.Verb, &op.KV.DirEnt)
 			if err != nil {
 				errors = append(errors, &structs.TxnError{
 					OpIndex: i,
@@ -66,6 +68,8 @@ func (t *Txn) preCheck(authorizer acl.Authorizer, ops structs.TxnOps) structs.Tx
 			}
 
 			service := &op.Service.Service
+			// This is intentionally nil as we will authorize the request
+			// using vetServiceTxnOp next instead of doing it in servicePreApply
 			if err := servicePreApply(service, nil); err != nil {
 				errors = append(errors, &structs.TxnError{
 					OpIndex: i,
@@ -122,7 +126,7 @@ func (t *Txn) Apply(args *structs.TxnRequest, reply *structs.TxnResponse) error 
 	// Apply the update.
 	resp, err := t.srv.raftApply(structs.TxnRequestType, args)
 	if err != nil {
-		t.srv.logger.Printf("[ERR] consul.txn: Apply failed: %v", err)
+		t.logger.Error("Raft apply failed", "error", err)
 		return err
 	}
 	if respErr, ok := resp.(error); ok {

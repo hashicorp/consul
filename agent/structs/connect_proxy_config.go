@@ -3,9 +3,9 @@ package structs
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
-	"log"
 )
 
 const (
@@ -120,6 +120,38 @@ type ConnectProxyConfig struct {
 	Expose ExposeConfig `json:",omitempty"`
 }
 
+func (t *ConnectProxyConfig) UnmarshalJSON(data []byte) (err error) {
+	type Alias ConnectProxyConfig
+	aux := &struct {
+		DestinationServiceNameSnake string `json:"destination_service_name"`
+		DestinationServiceIDSnake   string `json:"destination_service_id"`
+		LocalServiceAddressSnake    string `json:"local_service_address"`
+		LocalServicePortSnake       int    `json:"local_service_port"`
+
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+	if err = lib.UnmarshalJSON(data, &aux); err != nil {
+		return err
+	}
+	if t.DestinationServiceName == "" {
+		t.DestinationServiceName = aux.DestinationServiceNameSnake
+	}
+	if t.DestinationServiceID == "" {
+		t.DestinationServiceID = aux.DestinationServiceIDSnake
+	}
+	if t.LocalServiceAddress == "" {
+		t.LocalServiceAddress = aux.LocalServiceAddressSnake
+	}
+	if t.LocalServicePort == 0 {
+		t.LocalServicePort = aux.LocalServicePortSnake
+	}
+
+	return nil
+
+}
+
 func (c *ConnectProxyConfig) MarshalJSON() ([]byte, error) {
 	type typeCopy ConnectProxyConfig
 	copy := typeCopy(*c)
@@ -217,6 +249,41 @@ type Upstream struct {
 	MeshGateway MeshGatewayConfig `json:",omitempty"`
 }
 
+func (t *Upstream) UnmarshalJSON(data []byte) (err error) {
+	type Alias Upstream
+	aux := &struct {
+		DestinationTypeSnake      string `json:"destination_type"`
+		DestinationNamespaceSnake string `json:"destination_namespace"`
+		DestinationNameSnake      string `json:"destination_name"`
+		LocalBindPortSnake        int    `json:"local_bind_port"`
+		LocalBindAddressSnake     string `json:"local_bind_address"`
+
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+	if err = lib.UnmarshalJSON(data, &aux); err != nil {
+		return err
+	}
+	if t.DestinationType == "" {
+		t.DestinationType = aux.DestinationTypeSnake
+	}
+	if t.DestinationNamespace == "" {
+		t.DestinationNamespace = aux.DestinationNamespaceSnake
+	}
+	if t.DestinationName == "" {
+		t.DestinationName = aux.DestinationNameSnake
+	}
+	if t.LocalBindPort == 0 {
+		t.LocalBindPort = aux.LocalBindPortSnake
+	}
+	if t.LocalBindAddress == "" {
+		t.LocalBindAddress = aux.LocalBindAddressSnake
+	}
+
+	return nil
+}
+
 // Validate sanity checks the struct is valid
 func (u *Upstream) Validate() error {
 	switch u.DestinationType {
@@ -289,13 +356,15 @@ func (k UpstreamKey) String() string {
 // upstream in a canonical but human readable way.
 func (u *Upstream) Identifier() string {
 	name := u.DestinationName
-	if u.DestinationNamespace != "" && u.DestinationNamespace != "default" {
+	typ := u.DestinationType
+
+	if typ != UpstreamDestTypePreparedQuery && u.DestinationNamespace != "" && u.DestinationNamespace != IntentionDefaultNamespace {
 		name = u.DestinationNamespace + "/" + u.DestinationName
 	}
 	if u.Datacenter != "" {
 		name += "?dc=" + u.Datacenter
 	}
-	typ := u.DestinationType
+
 	// Service is default type so never prefix it. This is more readable and long
 	// term it is the only type that matters so we can drop the prefix and have
 	// nicer naming in metrics etc.
@@ -352,6 +421,29 @@ type ExposePath struct {
 	ParsedFromCheck bool
 }
 
+func (t *ExposePath) UnmarshalJSON(data []byte) (err error) {
+	type Alias ExposePath
+	aux := &struct {
+		LocalPathPortSnake int `json:"local_path_port"`
+		ListenerPortSnake  int `json:"listener_port"`
+
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+	if err = lib.UnmarshalJSON(data, &aux); err != nil {
+		return err
+	}
+	if t.LocalPathPort == 0 {
+		t.LocalPathPort = aux.LocalPathPortSnake
+	}
+	if t.ListenerPort == 0 {
+		t.ListenerPort = aux.ListenerPortSnake
+	}
+
+	return nil
+}
+
 func (e *ExposeConfig) ToAPI() api.ExposeConfig {
 	paths := make([]api.ExposePath, 0)
 	for _, p := range e.Paths {
@@ -378,7 +470,7 @@ func (p *ExposePath) ToAPI() api.ExposePath {
 }
 
 // Finalize validates ExposeConfig and sets default values
-func (e *ExposeConfig) Finalize(l *log.Logger) {
+func (e *ExposeConfig) Finalize() {
 	for i := 0; i < len(e.Paths); i++ {
 		path := &e.Paths[i]
 

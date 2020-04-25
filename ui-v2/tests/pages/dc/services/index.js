@@ -6,8 +6,11 @@ export default function(visitable, clickable, attribute, collection, page, filte
       service: clickable('a'),
       externalSource: attribute('data-test-external-source', 'a span'),
     }),
-    dcs: collection('[data-test-datacenter-picker]'),
+    dcs: collection('[data-test-datacenter-picker]', {
+      name: clickable('a'),
+    }),
     navigation: page.navigation,
     filter: filter,
+    home: clickable('[data-test-home]'),
   };
 }

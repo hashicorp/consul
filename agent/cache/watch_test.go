@@ -17,11 +17,10 @@ func TestCacheNotify(t *testing.T) {
 	t.Parallel()
 
 	typ := TestType(t)
+	typ.On("RegisterOptions").Return(RegisterOptions{})
 	defer typ.AssertExpectations(t)
 	c := TestCache(t)
-	c.RegisterType("t", typ, &RegisterOptions{
-		Refresh: false,
-	})
+	c.RegisterType("t", typ)
 
 	// Setup triggers to control when "updates" should be delivered
 	trigger := make([]chan time.Time, 5)
@@ -167,9 +166,7 @@ func TestCacheNotifyPolling(t *testing.T) {
 	typ := TestTypeNonBlocking(t)
 	defer typ.AssertExpectations(t)
 	c := TestCache(t)
-	c.RegisterType("t", typ, &RegisterOptions{
-		Refresh: false,
-	})
+	c.RegisterType("t", typ)
 
 	// Configure the type
 	typ.Static(FetchResult{Value: 1, Index: 1}, nil).Once().Run(func(args mock.Arguments) {
@@ -249,7 +246,7 @@ func TestCacheNotifyPolling(t *testing.T) {
 	// wait for the next batch of responses
 	events := make([]UpdateEvent, 0)
 	// At least 110ms is needed to allow for the jitter
-	timeout := time.After(150 * time.Millisecond)
+	timeout := time.After(220 * time.Millisecond)
 
 	for i := 0; i < 2; i++ {
 		select {
@@ -280,11 +277,10 @@ func TestCacheWatch_ErrorBackoff(t *testing.T) {
 	t.Parallel()
 
 	typ := TestType(t)
+	typ.On("RegisterOptions").Return(RegisterOptions{})
 	defer typ.AssertExpectations(t)
 	c := TestCache(t)
-	c.RegisterType("t", typ, &RegisterOptions{
-		Refresh: false,
-	})
+	c.RegisterType("t", typ)
 
 	// Configure the type
 	var retries uint32
@@ -345,9 +341,7 @@ func TestCacheWatch_ErrorBackoffNonBlocking(t *testing.T) {
 	typ := TestTypeNonBlocking(t)
 	defer typ.AssertExpectations(t)
 	c := TestCache(t)
-	c.RegisterType("t", typ, &RegisterOptions{
-		Refresh: false,
-	})
+	c.RegisterType("t", typ)
 
 	// Configure the type
 	var retries uint32

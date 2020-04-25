@@ -13,6 +13,7 @@ const CompiledDiscoveryChainName = "compiled-discovery-chain"
 // CompiledDiscoveryChain supports fetching the complete discovery chain for a
 // service and caching its compilation.
 type CompiledDiscoveryChain struct {
+	RegisterOptionsBlockingRefresh
 	RPC RPC
 }
 
@@ -49,8 +50,4 @@ func (c *CompiledDiscoveryChain) Fetch(opts cache.FetchOptions, req cache.Reques
 	result.Value = &reply
 	result.Index = reply.QueryMeta.Index
 	return result, nil
-}
-
-func (c *CompiledDiscoveryChain) SupportsBlocking() bool {
-	return true
 }

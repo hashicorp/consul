@@ -1,5 +1,6 @@
 import Service from '@ember/service';
 import { getOwner } from '@ember/application';
+import { guidFor } from '@ember/object/internals';
 
 // selecting
 import qsaFactory from 'consul-ui/utils/dom/qsa-factory';
@@ -8,6 +9,7 @@ import qsaFactory from 'consul-ui/utils/dom/qsa-factory';
 // see if its possible to standardize
 import sibling from 'consul-ui/utils/dom/sibling';
 import closest from 'consul-ui/utils/dom/closest';
+import isOutside from 'consul-ui/utils/dom/is-outside';
 import getComponentFactory from 'consul-ui/utils/dom/get-component-factory';
 
 // events
@@ -19,12 +21,14 @@ import clickFirstAnchorFactory from 'consul-ui/utils/dom/click-first-anchor';
 // use $_ for components
 const $$ = qsaFactory();
 let $_;
+let inViewportCallbacks;
 const clickFirstAnchor = clickFirstAnchorFactory(closest);
 export default Service.extend({
   doc: document,
   win: window,
   init: function() {
     this._super(...arguments);
+    inViewportCallbacks = new WeakMap();
     $_ = getComponentFactory(getOwner(this));
   },
   document: function() {
@@ -33,10 +37,14 @@ export default Service.extend({
   viewport: function() {
     return this.win;
   },
+  guid: function(el) {
+    return guidFor(el);
+  },
   // TODO: should this be here? Needs a better name at least
   clickFirstAnchor: clickFirstAnchor,
   closest: closest,
   sibling: sibling,
+  isOutside: isOutside,
   normalizeEvent: normalizeEvent,
   listeners: createListeners,
   root: function() {
@@ -82,5 +90,25 @@ export default Service.extend({
       .filter(function(item) {
         return item != null;
       });
+  },
+  isInViewport: function($el, cb, threshold = 0) {
+    inViewportCallbacks.set($el, cb);
+    const observer = new IntersectionObserver(
+      (entries, observer) => {
+        entries.map(item => {
+          const cb = inViewportCallbacks.get(item.target);
+          if (typeof cb === 'function') {
+            cb(item.isIntersecting);
+          }
+        });
+      },
+      {
+        rootMargin: '0px',
+        threshold: threshold,
+      }
+    );
+    observer.observe($el); // eslint-disable-line ember/no-observers
+    // observer.unobserve($el);
+    return () => observer.disconnect(); // eslint-disable-line ember/no-observers
   },
 });

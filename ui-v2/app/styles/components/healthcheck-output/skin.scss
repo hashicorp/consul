@@ -14,6 +14,14 @@
     margin-right: 8px;
   }
 }
+%healthcheck-output dd em {
+  @extend %pill;
+  /*TODO: Should this be merged into %pill? */
+  cursor: default;
+  font-style: normal;
+  margin-top: -2px;
+  margin-left: 0.5em;
+}
 %healthcheck-output.passing::before {
   @extend %with-check-circle-fill-color-icon;
 }

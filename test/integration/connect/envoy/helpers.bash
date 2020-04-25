@@ -19,7 +19,7 @@ function retry {
 
   for ((i=1;i<=$max;i++))
   do
-    if $@
+    if "$@"
     then
       if test $errtrace -eq 1
       then
@@ -42,13 +42,13 @@ function retry {
 function retry_default {
   set +E
   ret=0
-  retry 5 1 $@ || ret=1
+  retry 5 1 "$@" || ret=1
   set -E
   return $ret
 }
 
 function retry_long {
-  retry 30 1 $@
+  retry 30 1 "$@"
 }
 
 function echored {
@@ -108,15 +108,16 @@ function assert_proxy_presents_cert_uri {
   local HOSTPORT=$1
   local SERVICENAME=$2
   local DC=${3:-primary}
+  local NS=${4:-default}
 
 
   CERT=$(retry_default get_cert $HOSTPORT)
 
-  echo "WANT SERVICE: $SERVICENAME"
+  echo "WANT SERVICE: ${NS}/${SERVICENAME}"
   echo "GOT CERT:"
   echo "$CERT"
 
-  echo "$CERT" | grep -Eo "URI:spiffe://([a-zA-Z0-9-]+).consul/ns/default/dc/${DC}/svc/$SERVICENAME"
+  echo "$CERT" | grep -Eo "URI:spiffe://([a-zA-Z0-9-]+).consul/ns/${NS}/dc/${DC}/svc/$SERVICENAME"
 }
 
 function assert_envoy_version {
@@ -143,7 +144,28 @@ function get_envoy_listener_filters {
   local HOSTPORT=$1
   run retry_default curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
-  echo "$output" | jq --raw-output '.configs[2].dynamic_active_listeners[].listener | "\(.name) \( .filter_chains[0].filters | map(.name) | join(","))"'
+  local ENVOY_VERSION=$(echo $output | jq --raw-output '.configs[0].bootstrap.node.metadata.envoy_version')
+  local QUERY=''
+  # from 1.13.0 on the config json looks slightly different
+  # 1.10.x, 1.11.x, 1.12.x are not affected
+  if [[ "$ENVOY_VERSION" =~ ^1\.1[012]\. ]]; then
+    QUERY='.configs[2].dynamic_active_listeners[].listener | "\(.name) \( .filter_chains[0].filters | map(.name) | join(","))"'
+  else
+    QUERY='.configs[2].dynamic_listeners[].active_state.listener | "\(.name) \( .filter_chains[0].filters | map(.name) | join(","))"'
+  fi
+  echo "$output" | jq --raw-output "$QUERY"
+}
+
+function get_envoy_cluster_threshold {
+  local HOSTPORT=$1
+  local CLUSTER_NAME=$2
+  run retry_default curl -s -f $HOSTPORT/config_dump
+  [ "$status" -eq 0 ]
+  echo "$output" | jq --raw-output "
+    .configs[1].dynamic_active_clusters[]
+    | select(.cluster.name|startswith(\"${CLUSTER_NAME}\"))
+    | .cluster.circuit_breakers.thresholds[0]
+  "
 }
 
 function get_envoy_stats_flush_interval {
@@ -159,11 +181,12 @@ function snapshot_envoy_admin {
   local HOSTPORT=$1
   local ENVOY_NAME=$2
   local DC=${3:-primary}
-
-
-  docker_wget "$DC" "http://${HOSTPORT}/config_dump" -q -O - > "./workdir/${DC}/envoy/${ENVOY_NAME}-config_dump.json"
-  docker_wget "$DC" "http://${HOSTPORT}/clusters?format=json" -q -O - > "./workdir/${DC}/envoy/${ENVOY_NAME}-clusters.json"
-  docker_wget "$DC" "http://${HOSTPORT}/stats" -q -O - > "./workdir/${DC}/envoy/${ENVOY_NAME}-stats.txt"
+  local OUTDIR="${LOG_DIR}/envoy-snapshots/${DC}/${ENVOY_NAME}"
+  
+  mkdir -p "${OUTDIR}"
+  docker_wget "$DC" "http://${HOSTPORT}/config_dump" -q -O - > "${OUTDIR}/config_dump.json"
+  docker_wget "$DC" "http://${HOSTPORT}/clusters?format=json" -q -O - > "${OUTDIR}/clusters.json"
+  docker_wget "$DC" "http://${HOSTPORT}/stats" -q -O - > "${OUTDIR}/stats.txt"
 }
 
 function reset_envoy_metrics {
@@ -278,20 +301,73 @@ function assert_envoy_metric_at_least {
   fi
 }
 
+function assert_envoy_aggregate_metric_at_least {
+  set -eEuo pipefail
+  local HOSTPORT=$1
+  local METRIC=$2
+  local EXPECT_COUNT=$3
+
+  METRICS=$(get_envoy_metrics $HOSTPORT "$METRIC")
+
+  if [ -z "${METRICS}" ]
+  then
+    echo "Metric not found" 1>&2
+    return 1
+  fi
+
+  GOT_COUNT=$(awk '{ sum += $2 } END { print sum }' <<< "$METRICS")
+
+  if [ -z "$GOT_COUNT" ]
+  then
+    echo "Couldn't parse metric count" 1>&2
+    return 1
+  fi
+
+  if [ $EXPECT_COUNT -gt $GOT_COUNT ]
+  then
+    echo "$METRIC - expected >= count: $EXPECT_COUNT, actual count: $GOT_COUNT" 1>&2
+    return 1
+  fi
+}
+
 function get_healthy_service_count {
   local SERVICE_NAME=$1
   local DC=$2
-  run retry_default curl -s -f "127.0.0.1:8500/v1/health/connect/${SERVICE_NAME}?dc=${DC}&passing"
+  local NS=$3
+
+  run retry_default curl -s -f ${HEADERS} "127.0.0.1:8500/v1/health/connect/${SERVICE_NAME}?dc=${DC}&passing&ns=${NS}"
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output '. | length'
+}
+
+function assert_alive_wan_member_count {
+  local EXPECT_COUNT=$1
+  run retry_long assert_alive_wan_member_count_once $EXPECT_COUNT
+  [ "$status" -eq 0 ]
+}
+
+function assert_alive_wan_member_count_once {
+  local EXPECT_COUNT=$1
+
+  GOT_COUNT=$(get_alive_wan_member_count)
+
+  [ "$GOT_COUNT" -eq "$EXPECT_COUNT" ]
+}
+
+function get_alive_wan_member_count {
+  run retry_default curl -sL -f "127.0.0.1:8500/v1/agent/members?wan=1"
+  [ "$status" -eq 0 ]
+  # echo "$output" >&3
+  echo "$output" | jq '.[] | select(.Status == 1) | .Name' | wc -l
 }
 
 function assert_service_has_healthy_instances_once {
   local SERVICE_NAME=$1
   local EXPECT_COUNT=$2
   local DC=${3:-primary}
+  local NS=$4
 
-  GOT_COUNT=$(get_healthy_service_count $SERVICE_NAME $DC)
+  GOT_COUNT=$(get_healthy_service_count "$SERVICE_NAME" "$DC" "$NS")
 
   [ "$GOT_COUNT" -eq $EXPECT_COUNT ]
 }
@@ -300,9 +376,31 @@ function assert_service_has_healthy_instances {
   local SERVICE_NAME=$1
   local EXPECT_COUNT=$2
   local DC=${3:-primary}
+  local NS=$4
 
-  run retry_long assert_service_has_healthy_instances_once $SERVICE_NAME $EXPECT_COUNT $DC
+  run retry_long assert_service_has_healthy_instances_once "$SERVICE_NAME" "$EXPECT_COUNT" "$DC" "$NS"
   [ "$status" -eq 0 ]
+}
+
+function check_intention {
+  local SOURCE=$1
+  local DESTINATION=$2
+
+  curl -s -f "localhost:8500/v1/connect/intentions/check?source=${SOURCE}&destination=${DESTINATION}" | jq ".Allowed"
+}
+
+function assert_intention_allowed {
+  local SOURCE=$1
+  local DESTINATION=$2
+
+  [ "$(check_intention "${SOURCE}" "${DESTINATION}")" == "true" ]
+}
+
+function assert_intention_denied {
+  local SOURCE=$1
+  local DESTINATION=$2
+
+  [ "$(check_intention "${SOURCE}" "${DESTINATION}")" == "false" ]
 }
 
 function docker_consul {
@@ -321,6 +419,20 @@ function docker_curl {
   local DC=$1
   shift 1
   docker run -ti --rm --network container:envoy_consul-${DC}_1 --entrypoint curl consul-dev "$@"
+}
+
+function docker_exec {
+  if ! docker exec -i "$@"
+  then
+    echo "Failed to execute: docker exec -i $@" 1>&2
+    return 1
+  fi
+}
+
+function docker_consul_exec {
+  local DC=$1
+  shift 1
+  docker_exec envoy_consul-${DC}_1 "$@"
 }
 
 function get_envoy_pid {
@@ -370,6 +482,18 @@ function must_match_in_prometheus_response {
   [ "$COUNT" -gt "0" ]
 }
 
+function must_match_in_stats_proxy_response {
+  run curl -f -s $1/$2
+  COUNT=$( echo "$output" | grep -Ec $3 )
+
+  echo "OUTPUT head -n 10"
+  echo "$output" | head -n 10
+  echo "COUNT of '$3' matches: $COUNT"
+
+  [ "$status" == 0 ]
+  [ "$COUNT" -gt "0" ]
+}
+
 # must_fail_tcp_connection checks that a request made through an upstream fails,
 # probably due to authz being denied if all other tests passed already. Although
 # we are using curl, this only works as expected for TCP upstreams as we are
@@ -404,17 +528,19 @@ function gen_envoy_bootstrap {
   SERVICE=$1
   ADMIN_PORT=$2
   DC=${3:-primary}
-  IS_MGW=${4:-0}
+  IS_GW=${4:-0}
+  EXTRA_ENVOY_BS_ARGS="${5-}"
 
   PROXY_ID="$SERVICE"
-  if ! is_set "$IS_MGW"
+  if ! is_set "$IS_GW"
   then
     PROXY_ID="$SERVICE-sidecar-proxy"
   fi
 
   if output=$(docker_consul "$DC" connect envoy -bootstrap \
     -proxy-id $PROXY_ID \
-    -admin-bind 0.0.0.0:$ADMIN_PORT 2>&1); then
+    -envoy-version "$ENVOY_VERSION" \
+    -admin-bind 0.0.0.0:$ADMIN_PORT ${EXTRA_ENVOY_BS_ARGS} 2>&1); then
 
     # All OK, write config to file
     echo "$output" > workdir/${DC}/envoy/$SERVICE-bootstrap.json
@@ -443,6 +569,54 @@ function delete_config_entry {
   local KIND=$1
   local NAME=$2
   retry_default curl -sL -XDELETE "http://127.0.0.1:8500/v1/config/${KIND}/${NAME}"
+}
+
+function list_intentions {
+  curl -s -f "http://localhost:8500/v1/connect/intentions"
+}
+
+function get_intention_target_name {
+  awk -F / '{ if ( NF == 1 ) { print $0 } else { print $2 }}'
+}
+
+function get_intention_target_namespace {
+  awk -F / '{ if ( NF != 1 ) { print $1 } }'
+}
+
+function get_intention_by_targets {
+  local SOURCE=$1
+  local DESTINATION=$2
+
+  local SOURCE_NS=$(get_intention_target_namespace <<< "${SOURCE}")
+  local SOURCE_NAME=$(get_intention_target_name <<< "${SOURCE}")
+  local DESTINATION_NS=$(get_intention_target_namespace <<< "${DESTINATION}")
+  local DESTINATION_NAME=$(get_intention_target_name <<< "${DESTINATION}")
+
+  existing=$(list_intentions | jq ".[] | select(.SourceNS == \"$SOURCE_NS\" and .SourceName == \"$SOURCE_NAME\" and .DestinationNS == \"$DESTINATION_NS\" and .DestinationName == \"$DESTINATION_NAME\")")
+  if test -z "$existing"
+  then
+    return 1
+  fi
+  echo "$existing"
+  return 0
+}
+
+function update_intention {
+  local SOURCE=$1
+  local DESTINATION=$2
+  local ACTION=$3
+
+  intention=$(get_intention_by_targets "${SOURCE}" "${DESTINATION}")
+  if test $? -ne 0
+  then
+    return 1
+  fi
+
+  id=$(jq -r .ID <<< "${intention}")
+  updated=$(jq ".Action = \"$ACTION\"" <<< "${intention}")
+
+  curl -s -X PUT "http://localhost:8500/v1/connect/intentions/${id}" -d "${updated}"
+  return $?
 }
 
 function wait_for_agent_service_register {

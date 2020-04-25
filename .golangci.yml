@@ -1,0 +1,17 @@
+linters:
+  disable-all: true
+  enable:
+    - gofmt
+    - govet
+
+issues:
+  # Disable the default exclude list so that all excludes are explicitly
+  # defined in this file.
+  exclude-use-default: false
+
+linters-settings:
+  gofmt:
+    simplify: false
+
+run:
+  timeout: 5m

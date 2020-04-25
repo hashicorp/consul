@@ -13,6 +13,7 @@ const NodeServicesName = "node-services"
 // NodeServices supports fetching discovering service instances via the
 // catalog.
 type NodeServices struct {
+	RegisterOptionsBlockingRefresh
 	RPC RPC
 }
 
@@ -34,7 +35,7 @@ func (c *NodeServices) Fetch(opts cache.FetchOptions, req cache.Request) (cache.
 	reqReal.QueryOptions.MinQueryIndex = opts.MinIndex
 	reqReal.QueryOptions.MaxQueryTime = opts.Timeout
 
-	// Allways allow stale - there's no point in hitting leader if the request is
+	// Always allow stale - there's no point in hitting leader if the request is
 	// going to be served from cache and endup arbitrarily stale anyway. This
 	// allows cached service-discover to automatically read scale across all
 	// servers too.
@@ -49,8 +50,4 @@ func (c *NodeServices) Fetch(opts cache.FetchOptions, req cache.Request) (cache.
 	result.Value = &reply
 	result.Index = reply.QueryMeta.Index
 	return result, nil
-}
-
-func (c *NodeServices) SupportsBlocking() bool {
-	return true
 }

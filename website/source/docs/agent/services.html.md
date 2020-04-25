@@ -15,6 +15,8 @@ a health check. A health check is considered to be application level if it is
 associated with a service. A service is defined in a configuration file
 or added at runtime over the HTTP interface.
 
+Use the [Getting Started guides](https://learn.hashicorp.com/consul/getting-started/services?utm_source=consul.io&utm_medium=docs) to get hands-on experience registering a simple service with a health check on your local machine.
+
 ## Service Definition
 
 To configure a service, either provide the service definition as a
@@ -91,7 +93,8 @@ example shows all possible fields, but note that only a few are required.
       "passing": 5,
       "warning": 1
     },
-    "token": "233b604b-b92e-48c8-a253-5f11514e4b50"
+    "token": "233b604b-b92e-48c8-a253-5f11514e4b50",
+    "namespace": "foo"
   }
 }
 ```
@@ -105,6 +108,9 @@ unique IDs should be provided.
 The `tags` property is a list of values that are opaque to Consul but
 can be used to distinguish between `primary` or `secondary` nodes,
 different versions, or any other service level labels.
+
+We recommend using [valid DNS labels](https://en.wikipedia.org/wiki/Hostname#Restrictions_on_valid_hostnames)
+for service definition names and tags for [compatibility with external DNS](/docs/agent/services.html#service-and-tag-names-with-dns)
 
 The `address` field can be used to specify a service-specific IP address. By
 default, the IP address of the agent is used, and this does not need to be provided.

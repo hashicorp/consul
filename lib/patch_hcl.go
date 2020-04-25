@@ -2,14 +2,25 @@ package lib
 
 import (
 	"fmt"
+	"strings"
 )
 
 func PatchSliceOfMaps(m map[string]interface{}, skip []string, skipTree []string) map[string]interface{} {
-	return patchValue("", m, skip, skipTree).(map[string]interface{})
+	lowerSkip := make([]string, len(skip))
+	lowerSkipTree := make([]string, len(skipTree))
+
+	for i, val := range skip {
+		lowerSkip[i] = strings.ToLower(val)
+	}
+
+	for i, val := range skipTree {
+		lowerSkipTree[i] = strings.ToLower(val)
+	}
+
+	return patchValue("", m, lowerSkip, lowerSkipTree).(map[string]interface{})
 }
 
 func patchValue(name string, v interface{}, skip []string, skipTree []string) interface{} {
-	// fmt.Printf("%q: %T\n", name, v)
 	switch x := v.(type) {
 	case map[string]interface{}:
 		if len(x) == 0 {
@@ -70,8 +81,9 @@ func patchValue(name string, v interface{}, skip []string, skipTree []string) in
 }
 
 func strSliceContains(s string, v []string) bool {
+	lower := strings.ToLower(s)
 	for _, vv := range v {
-		if s == vv {
+		if lower == vv {
 			return true
 		}
 	}

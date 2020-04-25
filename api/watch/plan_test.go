@@ -127,3 +127,24 @@ func TestRun_Stop_Hybrid(t *testing.T) {
 		t.Fatalf("Bad: %d", expect)
 	}
 }
+
+func TestRunWithClientAndLogger_NilLogger(t *testing.T) {
+	t.Parallel()
+	plan := mustParse(t, `{"type":"noop"}`)
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- plan.RunWithClientAndHclog(nil, nil)
+	}()
+
+	plan.Stop()
+
+	select {
+	case err := <-errCh:
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatalf("watcher didn't exit")
+	}
+}

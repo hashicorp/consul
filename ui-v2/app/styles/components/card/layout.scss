@@ -1,0 +1,15 @@
+%card {
+  display: block;
+  position: relative;
+}
+%card > header {
+  padding: 10px;
+}
+%card > section,
+%card > ul > li {
+  padding: 5px 10px;
+}
+%card ul {
+  margin: 0;
+  padding: 0;
+}

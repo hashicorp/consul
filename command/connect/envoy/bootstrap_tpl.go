@@ -3,6 +3,8 @@ package envoy
 // BootstrapTplArgs is the set of arguments that may be interpolated into the
 // Envoy bootstrap template.
 type BootstrapTplArgs struct {
+	GRPC
+
 	// ProxyCluster is the cluster name for the the Envoy `node` specification and
 	// is typically the same as the ProxyID.
 	ProxyCluster string
@@ -12,25 +14,9 @@ type BootstrapTplArgs struct {
 	// the agent to deliver the correct configuration.
 	ProxyID string
 
-	// AgentAddress is the IP address of the local agent where the proxy instance
-	// is registered.
-	AgentAddress string
-
-	// AgentPort is the gRPC port exposed on the local agent.
-	AgentPort string
-
-	// AgentTLS is true of the local agent gRPC service should be accessed over
-	// TLS.
-	AgentTLS bool
-
-	// AgentCAFile is the CA file to use to verify the local agent gRPC service if
+	// AgentCAPEM is the CA to use to verify the local agent gRPC service if
 	// TLS is enabled.
-	AgentCAFile string
-
-	// AgentSocket is the path to a Unix Socket for communicating with the
-	// local agent's gRPC endpoint. Disabled if the empty (the default),
-	// but overrides AgentAddress and AgentPort if set.
-	AgentSocket string
+	AgentCAPEM string
 
 	// AdminAccessLogPath The path to write the access log for the
 	// administration server. If no access log is desired specify
@@ -92,6 +78,33 @@ type BootstrapTplArgs struct {
 	// the bootstrap config. It's format may vary based on Envoy version used.
 	// See https://www.envoyproxy.io/docs/envoy/v1.9.0/api-v2/config/trace/v2/trace.proto.
 	TracingConfigJSON string
+
+	// Namespace is the Consul Enterprise Namespace of the proxy service instance as
+	// registered with the Consul agent.
+	Namespace string
+
+	// EnvoyVersion is the envoy version, which is necessary to generate the
+	// correct configuration.
+	EnvoyVersion string
+}
+
+// GRPC settings used in the bootstrap template.
+type GRPC struct {
+	// AgentAddress is the IP address of the local agent where the proxy instance
+	// is registered.
+	AgentAddress string
+
+	// AgentPort is the gRPC port exposed on the local agent.
+	AgentPort string
+
+	// AgentTLS is true if the local agent gRPC service should be accessed over
+	// TLS.
+	AgentTLS bool
+
+	// AgentSocket is the path to a Unix Socket for communicating with the
+	// local agent's gRPC endpoint. Disabled if the empty (the default),
+	// but overrides AgentAddress and AgentPort if set.
+	AgentSocket string
 }
 
 const bootstrapTemplate = `{
@@ -106,7 +119,11 @@ const bootstrapTemplate = `{
   },
   "node": {
     "cluster": "{{ .ProxyCluster }}",
-    "id": "{{ .ProxyID }}"
+    "id": "{{ .ProxyID }}",
+    "metadata": {
+      "namespace": "{{if ne .Namespace ""}}{{ .Namespace }}{{else}}default{{end}}",
+      "envoy_version": "{{ .EnvoyVersion }}"
+    }
   },
   "static_resources": {
     "clusters": [
@@ -119,7 +136,7 @@ const bootstrapTemplate = `{
           "common_tls_context": {
             "validation_context": {
               "trusted_ca": {
-                "filename": "{{ .AgentCAFile }}"
+                "inline_string": "{{ .AgentCAPEM }}"
               }
             }
           }
@@ -183,6 +200,20 @@ const bootstrapTemplate = `{
         }
       }
     }
+  {{- if ne .EnvoyVersion "1.10.0"}}
+  },
+  "layered_runtime":{
+    "layers": [
+      {
+        "name": "static_layer",
+        "static_layer": {
+          "envoy.deprecated_features:envoy.api.v2.Cluster.tls_context": true,
+          "envoy.deprecated_features:envoy.config.trace.v2.ZipkinConfig.HTTP_JSON_V1": true,
+          "envoy.deprecated_features:envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager.Tracing.operation_name": true
+        }
+      }
+    ]
+  {{- end }}
   }
 }
 `

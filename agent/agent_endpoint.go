@@ -3,12 +3,12 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"path/filepath"
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/mitchellh/hashstructure"
 
@@ -21,10 +21,10 @@ import (
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/file"
-	"github.com/hashicorp/consul/logger"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/logging/monitor"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-bexpr"
-	"github.com/hashicorp/logutils"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 	"github.com/prometheus/client_golang/prometheus"
@@ -48,7 +48,7 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && !rule.AgentRead(s.agent.config.NodeName) {
+	if rule != nil && rule.AgentRead(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -85,12 +85,30 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 	}, nil
 }
 
+// acceptsOpenMetricsMimeType returns true if mime type is Prometheus-compatible
+func acceptsOpenMetricsMimeType(acceptHeader string) bool {
+	mimeTypes := strings.Split(acceptHeader, ",")
+	for _, v := range mimeTypes {
+		mimeInfo := strings.Split(v, ";")
+		if len(mimeInfo) > 0 {
+			rawMime := strings.ToLower(strings.Trim(mimeInfo[0], " "))
+			if rawMime == "application/openmetrics-text" {
+				return true
+			}
+			if rawMime == "text/plain" && (len(mimeInfo) > 1 && strings.Trim(mimeInfo[1], " ") == "version=0.4.0") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // enablePrometheusOutput will look for Prometheus mime-type or format Query parameter the same way as Nomad
 func enablePrometheusOutput(req *http.Request) bool {
 	if format := req.URL.Query().Get("format"); format == "prometheus" {
 		return true
 	}
-	return false
+	return acceptsOpenMetricsMimeType(req.Header.Get("Accept"))
 }
 
 func (s *HTTPServer) AgentMetrics(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -101,7 +119,7 @@ func (s *HTTPServer) AgentMetrics(resp http.ResponseWriter, req *http.Request) (
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && !rule.AgentRead(s.agent.config.NodeName) {
+	if rule != nil && rule.AgentRead(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 	if enablePrometheusOutput(req) {
@@ -111,7 +129,9 @@ func (s *HTTPServer) AgentMetrics(resp http.ResponseWriter, req *http.Request) (
 			return nil, nil
 		}
 		handlerOptions := promhttp.HandlerOpts{
-			ErrorLog:      s.agent.logger,
+			ErrorLog: s.agent.logger.StandardLogger(&hclog.StandardLoggerOptions{
+				InferLevels: true,
+			}),
 			ErrorHandling: promhttp.ContinueOnError,
 		}
 
@@ -130,7 +150,7 @@ func (s *HTTPServer) AgentReload(resp http.ResponseWriter, req *http.Request) (i
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && !rule.AgentWrite(s.agent.config.NodeName) {
+	if rule != nil && rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -190,9 +210,7 @@ func buildAgentService(s *structs.NodeService) api.AgentService {
 		as.Meta = map[string]string{}
 	}
 	// Attach Proxy config if exists
-	if s.Kind == structs.ServiceKindConnectProxy ||
-		s.Kind == structs.ServiceKindMeshGateway {
-
+	if s.Kind == structs.ServiceKindConnectProxy || s.IsGateway() {
 		as.Proxy = s.Proxy.ToAPI()
 	}
 
@@ -202,6 +220,8 @@ func buildAgentService(s *structs.NodeService) api.AgentService {
 			Native: true,
 		}
 	}
+
+	fillAgentServiceEnterpriseMeta(&as, &s.EnterpriseMeta)
 	return as
 }
 
@@ -210,11 +230,21 @@ func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) 
 	var token string
 	s.parseToken(req, &token)
 
+	var entMeta structs.EnterpriseMeta
+	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
+		return nil, err
+	}
+
 	var filterExpression string
 	s.parseFilter(req, &filterExpression)
 
-	services := s.agent.State.Services()
-	if err := s.agent.filterServices(token, &services); err != nil {
+	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &entMeta, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	services := s.agent.State.Services(&entMeta)
+	if err := s.agent.filterServicesWithAuthorizer(authz, &services); err != nil {
 		return nil, err
 	}
 
@@ -227,7 +257,7 @@ func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) 
 	// Use empty list instead of nil
 	for id, s := range services {
 		agentService := buildAgentService(s)
-		agentSvcs[id] = &agentService
+		agentSvcs[id.ID] = &agentService
 	}
 
 	filter, err := bexpr.CreateFilter(filterExpression, nil, agentSvcs)
@@ -257,17 +287,30 @@ func (s *HTTPServer) AgentService(resp http.ResponseWriter, req *http.Request) (
 	var token string
 	s.parseToken(req, &token)
 
+	var entMeta structs.EnterpriseMeta
+	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
+		return nil, err
+	}
+
+	// need to resolve to default the meta
+	_, err := s.agent.resolveTokenAndDefaultMeta(token, &entMeta, nil)
+	if err != nil {
+		return nil, err
+	}
+
 	// Parse hash specially. Eventually this should happen in parseWait and end up
 	// in QueryOptions but I didn't want to make very general changes right away.
 	hash := req.URL.Query().Get("hash")
 
+	sid := structs.NewServiceID(id, &entMeta)
+
 	resultHash, service, err := s.agent.LocalBlockingQuery(false, hash, queryOpts.MaxQueryTime,
 		func(ws memdb.WatchSet) (string, interface{}, error) {
 
-			svcState := s.agent.State.ServiceState(id)
+			svcState := s.agent.State.ServiceState(sid)
 			if svcState == nil {
 				resp.WriteHeader(http.StatusNotFound)
-				fmt.Fprintf(resp, "unknown proxy service ID: %s", id)
+				fmt.Fprintf(resp, "unknown service ID: %s", sid.String())
 				return "", nil, nil
 			}
 
@@ -277,11 +320,13 @@ func (s *HTTPServer) AgentService(resp http.ResponseWriter, req *http.Request) (
 			ws.Add(svcState.WatchCh)
 
 			// Check ACLs.
-			rule, err := s.agent.resolveToken(token)
+			authz, err := s.agent.resolveToken(token)
 			if err != nil {
 				return "", nil, err
 			}
-			if rule != nil && !rule.ServiceRead(svc.Service) {
+			var authzContext acl.AuthorizerContext
+			svc.FillAuthzContext(&authzContext)
+			if authz != nil && authz.ServiceRead(svc.Service, &authzContext) != acl.Allow {
 				return "", nil, acl.ErrPermissionDenied
 			}
 
@@ -311,6 +356,16 @@ func (s *HTTPServer) AgentChecks(resp http.ResponseWriter, req *http.Request) (i
 	var token string
 	s.parseToken(req, &token)
 
+	var entMeta structs.EnterpriseMeta
+	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
+		return nil, err
+	}
+
+	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &entMeta, nil)
+	if err != nil {
+		return nil, err
+	}
+
 	var filterExpression string
 	s.parseFilter(req, &filterExpression)
 	filter, err := bexpr.CreateFilter(filterExpression, nil, nil)
@@ -318,21 +373,25 @@ func (s *HTTPServer) AgentChecks(resp http.ResponseWriter, req *http.Request) (i
 		return nil, err
 	}
 
-	checks := s.agent.State.Checks()
-	if err := s.agent.filterChecks(token, &checks); err != nil {
+	checks := s.agent.State.Checks(&entMeta)
+	if err := s.agent.filterChecksWithAuthorizer(authz, &checks); err != nil {
 		return nil, err
 	}
+
+	agentChecks := make(map[types.CheckID]*structs.HealthCheck)
 
 	// Use empty list instead of nil
 	for id, c := range checks {
 		if c.ServiceTags == nil {
 			clone := *c
 			clone.ServiceTags = make([]string, 0)
-			checks[id] = &clone
+			agentChecks[id.ID] = &clone
+		} else {
+			agentChecks[id.ID] = c
 		}
 	}
 
-	return filter.Execute(checks)
+	return filter.Execute(agentChecks)
 }
 
 func (s *HTTPServer) AgentMembers(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -388,7 +447,7 @@ func (s *HTTPServer) AgentJoin(resp http.ResponseWriter, req *http.Request) (int
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && !rule.AgentWrite(s.agent.config.NodeName) {
+	if rule != nil && rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -400,7 +459,11 @@ func (s *HTTPServer) AgentJoin(resp http.ResponseWriter, req *http.Request) (int
 
 	// Get the address
 	addr := strings.TrimPrefix(req.URL.Path, "/v1/agent/join/")
+
 	if wan {
+		if s.agent.config.ConnectMeshGatewayWANFederationEnabled {
+			return nil, fmt.Errorf("WAN join is disabled when wan federation via mesh gateways is enabled")
+		}
 		_, err = s.agent.JoinWAN([]string{addr})
 	} else {
 		_, err = s.agent.JoinLAN([]string{addr})
@@ -416,7 +479,7 @@ func (s *HTTPServer) AgentLeave(resp http.ResponseWriter, req *http.Request) (in
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && !rule.AgentWrite(s.agent.config.NodeName) {
+	if rule != nil && rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -434,12 +497,15 @@ func (s *HTTPServer) AgentForceLeave(resp http.ResponseWriter, req *http.Request
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && !rule.AgentWrite(s.agent.config.NodeName) {
+	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
+	//Check the value of the prune query
+	_, prune := req.URL.Query()["prune"]
+
 	addr := strings.TrimPrefix(req.URL.Path, "/v1/agent/force-leave/")
-	return nil, s.agent.ForceLeave(addr)
+	return nil, s.agent.ForceLeave(addr, prune)
 }
 
 // syncChanges is a helper function which wraps a blocking call to sync
@@ -447,17 +513,20 @@ func (s *HTTPServer) AgentForceLeave(resp http.ResponseWriter, req *http.Request
 // only warn because the write did succeed and anti-entropy will sync later.
 func (s *HTTPServer) syncChanges() {
 	if err := s.agent.State.SyncChanges(); err != nil {
-		s.agent.logger.Printf("[ERR] agent: failed to sync changes: %v", err)
+		s.agent.logger.Error("failed to sync changes", "error", err)
 	}
 }
 
 func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	var token string
+	s.parseToken(req, &token)
+
 	var args structs.CheckDefinition
-	// Fixup the type decode of TTL or Interval.
-	decodeCB := func(raw interface{}) error {
-		return FixupCheckType(raw)
+	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
 	}
-	if err := decodeBody(req, &args, decodeCB); err != nil {
+
+	if err := decodeBody(req.Body, &args); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Request decode failed: %v", err)
 		return nil, nil
@@ -476,30 +545,36 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 		return nil, nil
 	}
 
+	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &args.EnterpriseMeta, nil)
+	if err != nil {
+		return nil, err
+	}
+
 	// Construct the health check.
 	health := args.HealthCheck(s.agent.config.NodeName)
 
 	// Verify the check type.
 	chkType := args.CheckType()
-	err := chkType.Validate()
+	err = chkType.Validate()
 	if err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, fmt.Errorf("Invalid check: %v", err))
 		return nil, nil
 	}
 
+	// Store the type of check based on the definition
+	health.Type = chkType.Type()
+
 	if health.ServiceID != "" {
 		// fixup the service name so that vetCheckRegister requires the right ACLs
-		service := s.agent.State.Service(health.ServiceID)
+		service := s.agent.State.Service(health.CompoundServiceID())
 		if service != nil {
 			health.ServiceName = service.Service
 		}
 	}
 
 	// Get the provided token, if any, and vet against any ACL policies.
-	var token string
-	s.parseToken(req, &token)
-	if err := s.agent.vetCheckRegister(token, health); err != nil {
+	if err := s.agent.vetCheckRegisterWithAuthorizer(authz, health); err != nil {
 		return nil, err
 	}
 
@@ -512,12 +587,24 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 }
 
 func (s *HTTPServer) AgentDeregisterCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	checkID := types.CheckID(strings.TrimPrefix(req.URL.Path, "/v1/agent/check/deregister/"))
+	checkID := structs.NewCheckID(types.CheckID(strings.TrimPrefix(req.URL.Path, "/v1/agent/check/deregister/")), nil)
 
 	// Get the provided token, if any, and vet against any ACL policies.
 	var token string
 	s.parseToken(req, &token)
-	if err := s.agent.vetCheckUpdate(token, checkID); err != nil {
+
+	if err := s.parseEntMetaNoWildcard(req, &checkID.EnterpriseMeta); err != nil {
+		return nil, err
+	}
+
+	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &checkID.EnterpriseMeta, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	checkID.Normalize()
+
+	if err := s.agent.vetCheckUpdateWithAuthorizer(authz, checkID); err != nil {
 		return nil, err
 	}
 
@@ -531,55 +618,22 @@ func (s *HTTPServer) AgentDeregisterCheck(resp http.ResponseWriter, req *http.Re
 func (s *HTTPServer) AgentCheckPass(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	checkID := types.CheckID(strings.TrimPrefix(req.URL.Path, "/v1/agent/check/pass/"))
 	note := req.URL.Query().Get("note")
-
-	// Get the provided token, if any, and vet against any ACL policies.
-	var token string
-	s.parseToken(req, &token)
-	if err := s.agent.vetCheckUpdate(token, checkID); err != nil {
-		return nil, err
-	}
-
-	if err := s.agent.updateTTLCheck(checkID, api.HealthPassing, note); err != nil {
-		return nil, err
-	}
-	s.syncChanges()
-	return nil, nil
+	return s.agentCheckUpdate(resp, req, checkID, api.HealthPassing, note)
 }
 
 func (s *HTTPServer) AgentCheckWarn(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	checkID := types.CheckID(strings.TrimPrefix(req.URL.Path, "/v1/agent/check/warn/"))
 	note := req.URL.Query().Get("note")
 
-	// Get the provided token, if any, and vet against any ACL policies.
-	var token string
-	s.parseToken(req, &token)
-	if err := s.agent.vetCheckUpdate(token, checkID); err != nil {
-		return nil, err
-	}
+	return s.agentCheckUpdate(resp, req, checkID, api.HealthWarning, note)
 
-	if err := s.agent.updateTTLCheck(checkID, api.HealthWarning, note); err != nil {
-		return nil, err
-	}
-	s.syncChanges()
-	return nil, nil
 }
 
 func (s *HTTPServer) AgentCheckFail(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	checkID := types.CheckID(strings.TrimPrefix(req.URL.Path, "/v1/agent/check/fail/"))
 	note := req.URL.Query().Get("note")
 
-	// Get the provided token, if any, and vet against any ACL policies.
-	var token string
-	s.parseToken(req, &token)
-	if err := s.agent.vetCheckUpdate(token, checkID); err != nil {
-		return nil, err
-	}
-
-	if err := s.agent.updateTTLCheck(checkID, api.HealthCritical, note); err != nil {
-		return nil, err
-	}
-	s.syncChanges()
-	return nil, nil
+	return s.agentCheckUpdate(resp, req, checkID, api.HealthCritical, note)
 }
 
 // checkUpdate is the payload for a PUT to AgentCheckUpdate.
@@ -599,7 +653,7 @@ type checkUpdate struct {
 // APIs.
 func (s *HTTPServer) AgentCheckUpdate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var update checkUpdate
-	if err := decodeBody(req, &update, nil); err != nil {
+	if err := decodeBody(req.Body, &update); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Request decode failed: %v", err)
 		return nil, nil
@@ -617,14 +671,32 @@ func (s *HTTPServer) AgentCheckUpdate(resp http.ResponseWriter, req *http.Reques
 
 	checkID := types.CheckID(strings.TrimPrefix(req.URL.Path, "/v1/agent/check/update/"))
 
+	return s.agentCheckUpdate(resp, req, checkID, update.Status, update.Output)
+}
+
+func (s *HTTPServer) agentCheckUpdate(resp http.ResponseWriter, req *http.Request, checkID types.CheckID, status string, output string) (interface{}, error) {
+	cid := structs.NewCheckID(checkID, nil)
+
 	// Get the provided token, if any, and vet against any ACL policies.
 	var token string
 	s.parseToken(req, &token)
-	if err := s.agent.vetCheckUpdate(token, checkID); err != nil {
+
+	if err := s.parseEntMetaNoWildcard(req, &cid.EnterpriseMeta); err != nil {
 		return nil, err
 	}
 
-	if err := s.agent.updateTTLCheck(checkID, update.Status, update.Output); err != nil {
+	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &cid.EnterpriseMeta, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	cid.Normalize()
+
+	if err := s.agent.vetCheckUpdateWithAuthorizer(authz, cid); err != nil {
+		return nil, err
+	}
+
+	if err := s.agent.updateTTLCheck(cid, status, output); err != nil {
 		return nil, err
 	}
 	s.syncChanges()
@@ -632,25 +704,24 @@ func (s *HTTPServer) AgentCheckUpdate(resp http.ResponseWriter, req *http.Reques
 }
 
 // agentHealthService Returns Health for a given service ID
-func agentHealthService(serviceID string, s *HTTPServer) (int, string, api.HealthChecks) {
-	checks := s.agent.State.Checks()
+func agentHealthService(serviceID structs.ServiceID, s *HTTPServer) (int, string, api.HealthChecks) {
+	checks := s.agent.State.ChecksForService(serviceID, true)
 	serviceChecks := make(api.HealthChecks, 0)
 	for _, c := range checks {
-		if c.ServiceID == serviceID || c.ServiceID == "" {
-			// TODO: harmonize struct.HealthCheck and api.HealthCheck (or at least extract conversion function)
-			healthCheck := &api.HealthCheck{
-				Node:        c.Node,
-				CheckID:     string(c.CheckID),
-				Name:        c.Name,
-				Status:      c.Status,
-				Notes:       c.Notes,
-				Output:      c.Output,
-				ServiceID:   c.ServiceID,
-				ServiceName: c.ServiceName,
-				ServiceTags: c.ServiceTags,
-			}
-			serviceChecks = append(serviceChecks, healthCheck)
+		// TODO: harmonize struct.HealthCheck and api.HealthCheck (or at least extract conversion function)
+		healthCheck := &api.HealthCheck{
+			Node:        c.Node,
+			CheckID:     string(c.CheckID),
+			Name:        c.Name,
+			Status:      c.Status,
+			Notes:       c.Notes,
+			Output:      c.Output,
+			ServiceID:   c.ServiceID,
+			ServiceName: c.ServiceName,
+			ServiceTags: c.ServiceTags,
 		}
+		fillHealthCheckEnterpriseMeta(healthCheck, &c.EnterpriseMeta)
+		serviceChecks = append(serviceChecks, healthCheck)
 	}
 	status := serviceChecks.AggregatedStatus()
 	switch status {
@@ -680,25 +751,43 @@ func (s *HTTPServer) AgentHealthServiceByID(resp http.ResponseWriter, req *http.
 	if serviceID == "" {
 		return nil, &BadRequestError{Reason: "Missing serviceID"}
 	}
-	services := s.agent.State.Services()
-	for _, service := range services {
-		if service.ID == serviceID {
-			code, status, healthChecks := agentHealthService(serviceID, s)
-			if returnTextPlain(req) {
-				return status, CodeWithPayloadError{StatusCode: code, Reason: status, ContentType: "text/plain"}
-			}
-			serviceInfo := buildAgentService(service)
-			result := &api.AgentServiceChecksInfo{
-				AggregatedStatus: status,
-				Checks:           healthChecks,
-				Service:          &serviceInfo,
-			}
-			return result, CodeWithPayloadError{StatusCode: code, Reason: status, ContentType: "application/json"}
-		}
+
+	var entMeta structs.EnterpriseMeta
+	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
+		return nil, err
 	}
-	notFoundReason := fmt.Sprintf("ServiceId %s not found", serviceID)
+
+	var token string
+	s.parseToken(req, &token)
+
+	// need to resolve to default the meta
+	var authzContext acl.AuthorizerContext
+	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &entMeta, &authzContext)
+	if err != nil {
+		return nil, err
+	}
+
+	sid := structs.NewServiceID(serviceID, &entMeta)
+
+	if service := s.agent.State.Service(sid); service != nil {
+		if authz != nil && authz.ServiceRead(service.Service, &authzContext) != acl.Allow {
+			return nil, acl.ErrPermissionDenied
+		}
+		code, status, healthChecks := agentHealthService(sid, s)
+		if returnTextPlain(req) {
+			return status, CodeWithPayloadError{StatusCode: code, Reason: status, ContentType: "text/plain"}
+		}
+		serviceInfo := buildAgentService(service)
+		result := &api.AgentServiceChecksInfo{
+			AggregatedStatus: status,
+			Checks:           healthChecks,
+			Service:          &serviceInfo,
+		}
+		return result, CodeWithPayloadError{StatusCode: code, Reason: status, ContentType: "application/json"}
+	}
+	notFoundReason := fmt.Sprintf("ServiceId %s not found", sid.String())
 	if returnTextPlain(req) {
-		return notFoundReason, CodeWithPayloadError{StatusCode: http.StatusNotFound, Reason: fmt.Sprintf("ServiceId %s not found", serviceID), ContentType: "application/json"}
+		return notFoundReason, CodeWithPayloadError{StatusCode: http.StatusNotFound, Reason: notFoundReason, ContentType: "application/json"}
 	}
 	return &api.AgentServiceChecksInfo{
 		AggregatedStatus: api.HealthCritical,
@@ -714,13 +803,35 @@ func (s *HTTPServer) AgentHealthServiceByName(resp http.ResponseWriter, req *htt
 	if serviceName == "" {
 		return nil, &BadRequestError{Reason: "Missing service Name"}
 	}
+
+	var entMeta structs.EnterpriseMeta
+	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
+		return nil, err
+	}
+
+	var token string
+	s.parseToken(req, &token)
+
+	// need to resolve to default the meta
+	var authzContext acl.AuthorizerContext
+	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &entMeta, &authzContext)
+	if err != nil {
+		return nil, err
+	}
+
+	if authz != nil && authz.ServiceRead(serviceName, &authzContext) != acl.Allow {
+		return nil, acl.ErrPermissionDenied
+	}
+
 	code := http.StatusNotFound
 	status := fmt.Sprintf("ServiceName %s Not Found", serviceName)
-	services := s.agent.State.Services()
+	services := s.agent.State.Services(&entMeta)
 	result := make([]api.AgentServiceChecksInfo, 0, 16)
 	for _, service := range services {
 		if service.Service == serviceName {
-			scode, sstatus, healthChecks := agentHealthService(service.ID, s)
+			sid := structs.NewServiceID(service.ID, &entMeta)
+
+			scode, sstatus, healthChecks := agentHealthService(sid, s)
 			serviceInfo := buildAgentService(service)
 			res := api.AgentServiceChecksInfo{
 				AggregatedStatus: sstatus,
@@ -750,75 +861,12 @@ func (s *HTTPServer) AgentHealthServiceByName(resp http.ResponseWriter, req *htt
 func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.ServiceDefinition
 	// Fixup the type decode of TTL or Interval if a check if provided.
-	decodeCB := func(raw interface{}) error {
-		rawMap, ok := raw.(map[string]interface{})
-		if !ok {
-			return nil
-		}
 
-		// see https://github.com/hashicorp/consul/pull/3557 why we need this
-		// and why we should get rid of it.
-		lib.TranslateKeys(rawMap, map[string]string{
-			"enable_tag_override": "EnableTagOverride",
-			// Proxy Upstreams
-			"destination_name":      "DestinationName",
-			"destination_type":      "DestinationType",
-			"destination_namespace": "DestinationNamespace",
-			"local_bind_port":       "LocalBindPort",
-			"local_bind_address":    "LocalBindAddress",
-			// Proxy Config
-			"destination_service_name": "DestinationServiceName",
-			"destination_service_id":   "DestinationServiceID",
-			"local_service_port":       "LocalServicePort",
-			"local_service_address":    "LocalServiceAddress",
-			// SidecarService
-			"sidecar_service": "SidecarService",
-			// Expose Config
-			"local_path_port": "LocalPathPort",
-			"listener_port":   "ListenerPort",
-
-			// DON'T Recurse into these opaque config maps or we might mangle user's
-			// keys. Note empty canonical is a special sentinel to prevent recursion.
-			"Meta": "",
-
-			"tagged_addresses": "TaggedAddresses",
-
-			// upstreams is an array but this prevents recursion into config field of
-			// any item in the array.
-			"Proxy.Config":                   "",
-			"Proxy.Upstreams.Config":         "",
-			"Connect.Proxy.Config":           "",
-			"Connect.Proxy.Upstreams.Config": "",
-
-			// Same exceptions as above, but for a nested sidecar_service note we use
-			// the canonical form SidecarService since that is translated by the time
-			// the lookup here happens.
-			"Connect.SidecarService.Meta":                   "",
-			"Connect.SidecarService.Proxy.Config":           "",
-			"Connect.SidecarService.Proxy.Upstreams.config": "",
-		})
-
-		for k, v := range rawMap {
-			switch strings.ToLower(k) {
-			case "check":
-				if err := FixupCheckType(v); err != nil {
-					return err
-				}
-			case "checks":
-				chkTypes, ok := v.([]interface{})
-				if !ok {
-					continue
-				}
-				for _, chkType := range chkTypes {
-					if err := FixupCheckType(chkType); err != nil {
-						return err
-					}
-				}
-			}
-		}
-		return nil
+	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
 	}
-	if err := decodeBody(req, &args, decodeCB); err != nil {
+
+	if err := decodeBody(req.Body, &args); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Request decode failed: %v", err)
 		return nil, nil
@@ -839,6 +887,14 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 		return nil, nil
 	}
 
+	var token string
+	s.parseToken(req, &token)
+
+	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &args.EnterpriseMeta, nil)
+	if err != nil {
+		return nil, err
+	}
+
 	// Get the node service.
 	ns := args.NodeService()
 	if ns.Weights != nil {
@@ -848,7 +904,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 			return nil, nil
 		}
 	}
-	if err := structs.ValidateMetadata(ns.Meta, false); err != nil {
+	if err := structs.ValidateServiceMetadata(ns.Kind, ns.Meta, false); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, fmt.Errorf("Invalid Service Meta: %v", err))
 		return nil, nil
@@ -895,9 +951,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	}
 
 	// Get the provided token, if any, and vet against any ACL policies.
-	var token string
-	s.parseToken(req, &token)
-	if err := s.agent.vetServiceRegister(token, ns); err != nil {
+	if err := s.agent.vetServiceRegisterWithAuthorizer(authz, ns); err != nil {
 		return nil, err
 	}
 
@@ -955,16 +1009,28 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 }
 
 func (s *HTTPServer) AgentDeregisterService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	serviceID := strings.TrimPrefix(req.URL.Path, "/v1/agent/service/deregister/")
+	sid := structs.NewServiceID(strings.TrimPrefix(req.URL.Path, "/v1/agent/service/deregister/"), nil)
 
 	// Get the provided token, if any, and vet against any ACL policies.
 	var token string
 	s.parseToken(req, &token)
-	if err := s.agent.vetServiceUpdate(token, serviceID); err != nil {
+
+	if err := s.parseEntMetaNoWildcard(req, &sid.EnterpriseMeta); err != nil {
 		return nil, err
 	}
 
-	if err := s.agent.RemoveService(serviceID); err != nil {
+	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &sid.EnterpriseMeta, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	sid.Normalize()
+
+	if err := s.agent.vetServiceUpdateWithAuthorizer(authz, sid); err != nil {
+		return nil, err
+	}
+
+	if err := s.agent.RemoveService(sid); err != nil {
 		return nil, err
 	}
 
@@ -974,8 +1040,9 @@ func (s *HTTPServer) AgentDeregisterService(resp http.ResponseWriter, req *http.
 
 func (s *HTTPServer) AgentServiceMaintenance(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Ensure we have a service ID
-	serviceID := strings.TrimPrefix(req.URL.Path, "/v1/agent/service/maintenance/")
-	if serviceID == "" {
+	sid := structs.NewServiceID(strings.TrimPrefix(req.URL.Path, "/v1/agent/service/maintenance/"), nil)
+
+	if sid.ID == "" {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing service ID")
 		return nil, nil
@@ -1000,19 +1067,31 @@ func (s *HTTPServer) AgentServiceMaintenance(resp http.ResponseWriter, req *http
 	// Get the provided token, if any, and vet against any ACL policies.
 	var token string
 	s.parseToken(req, &token)
-	if err := s.agent.vetServiceUpdate(token, serviceID); err != nil {
+
+	if err := s.parseEntMetaNoWildcard(req, &sid.EnterpriseMeta); err != nil {
+		return nil, err
+	}
+
+	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &sid.EnterpriseMeta, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	sid.Normalize()
+
+	if err := s.agent.vetServiceUpdateWithAuthorizer(authz, sid); err != nil {
 		return nil, err
 	}
 
 	if enable {
 		reason := params.Get("reason")
-		if err = s.agent.EnableServiceMaintenance(serviceID, reason, token); err != nil {
+		if err = s.agent.EnableServiceMaintenance(sid, reason, token); err != nil {
 			resp.WriteHeader(http.StatusNotFound)
 			fmt.Fprint(resp, err.Error())
 			return nil, nil
 		}
 	} else {
-		if err = s.agent.DisableServiceMaintenance(serviceID); err != nil {
+		if err = s.agent.DisableServiceMaintenance(sid); err != nil {
 			resp.WriteHeader(http.StatusNotFound)
 			fmt.Fprint(resp, err.Error())
 			return nil, nil
@@ -1046,7 +1125,7 @@ func (s *HTTPServer) AgentNodeMaintenance(resp http.ResponseWriter, req *http.Re
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && !rule.NodeWrite(s.agent.config.NodeName, nil) {
+	if rule != nil && rule.NodeWrite(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -1067,7 +1146,7 @@ func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && !rule.AgentRead(s.agent.config.NodeName) {
+	if rule != nil && rule.AgentRead(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -1077,31 +1156,31 @@ func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (
 		logLevel = "INFO"
 	}
 
-	// Upper case the level since that's required by the filter.
-	logLevel = strings.ToUpper(logLevel)
-
-	// Create a level filter and flusher.
-	filter := logger.LevelFilter()
-	filter.MinLevel = logutils.LogLevel(logLevel)
-	if !logger.ValidateLevelFilter(filter.MinLevel, filter) {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Unknown log level: %s", filter.MinLevel)
-		return nil, nil
+	var logJSON bool
+	if _, ok := req.URL.Query()["logjson"]; ok {
+		logJSON = true
 	}
+
+	if !logging.ValidateLogLevel(logLevel) {
+		return nil, BadRequestError{
+			Reason: fmt.Sprintf("Unknown log level: %s", logLevel),
+		}
+	}
+
 	flusher, ok := resp.(http.Flusher)
 	if !ok {
 		return nil, fmt.Errorf("Streaming not supported")
 	}
 
-	// Set up a log handler.
-	handler := &httpLogHandler{
-		filter: filter,
-		logCh:  make(chan string, 512),
-		logger: s.agent.logger,
-	}
-	s.agent.LogWriter.RegisterHandler(handler)
-	defer s.agent.LogWriter.DeregisterHandler(handler)
-	notify := resp.(http.CloseNotifier).CloseNotify()
+	monitor := monitor.New(monitor.Config{
+		BufferSize: 512,
+		Logger:     s.agent.logger,
+		LoggerOptions: &hclog.LoggerOptions{
+			Level:      logging.LevelFromString(logLevel),
+			JSONFormat: logJSON,
+		},
+	})
+	logsCh := monitor.Start()
 
 	// Send header so client can start streaming body
 	resp.WriteHeader(http.StatusOK)
@@ -1114,39 +1193,16 @@ func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (
 	// Stream logs until the connection is closed.
 	for {
 		select {
-		case <-notify:
-			s.agent.LogWriter.DeregisterHandler(handler)
-			if handler.droppedCount > 0 {
-				s.agent.logger.Printf("[WARN] agent: Dropped %d logs during monitor request", handler.droppedCount)
+		case <-req.Context().Done():
+			droppedCount := monitor.Stop()
+			if droppedCount > 0 {
+				s.agent.logger.Warn("Dropped logs during monitor request", "dropped_count", droppedCount)
 			}
 			return nil, nil
-		case log := <-handler.logCh:
-			fmt.Fprintln(resp, log)
+		case log := <-logsCh:
+			fmt.Fprint(resp, string(log))
 			flusher.Flush()
 		}
-	}
-}
-
-type httpLogHandler struct {
-	filter       *logutils.LevelFilter
-	logCh        chan string
-	logger       *log.Logger
-	droppedCount int
-}
-
-func (h *httpLogHandler) HandleLog(log string) {
-	// Check the log level
-	if !h.filter.Check([]byte(log)) {
-		return
-	}
-
-	// Do a non-blocking send
-	select {
-	case h.logCh <- log:
-	default:
-		// Just increment a counter for dropped logs to this handler; we can't log now
-		// because the lock is already held by the LogWriter invoking this
-		h.droppedCount++
 	}
 }
 
@@ -1162,14 +1218,14 @@ func (s *HTTPServer) AgentToken(resp http.ResponseWriter, req *http.Request) (in
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && !rule.AgentWrite(s.agent.config.NodeName) {
+	if rule != nil && rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
 	// The body is just the token, but it's in a JSON object so we can add
 	// fields to this later if needed.
 	var args api.AgentToken
-	if err := decodeBody(req, &args, nil); err != nil {
+	if err := decodeBody(req.Body, &args); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Request decode failed: %v", err)
 		return nil, nil
@@ -1240,17 +1296,17 @@ func (s *HTTPServer) AgentToken(resp http.ResponseWriter, req *http.Request) (in
 
 		data, err := json.Marshal(tokens)
 		if err != nil {
-			s.agent.logger.Printf("[WARN] agent: failed to persist tokens - %v", err)
+			s.agent.logger.Warn("failed to persist tokens", "error", err)
 			return nil, fmt.Errorf("Failed to marshal tokens for persistence: %v", err)
 		}
 
-		if err := file.WriteAtomicWithPerms(filepath.Join(s.agent.config.DataDir, tokensPath), data, 0600); err != nil {
-			s.agent.logger.Printf("[WARN] agent: failed to persist tokens - %v", err)
+		if err := file.WriteAtomicWithPerms(filepath.Join(s.agent.config.DataDir, tokensPath), data, 0700, 0600); err != nil {
+			s.agent.logger.Warn("failed to persist tokens", "error", err)
 			return nil, fmt.Errorf("Failed to persist tokens - %v", err)
 		}
 	}
 
-	s.agent.logger.Printf("[INFO] agent: Updated agent's ACL token %q", target)
+	s.agent.logger.Info("Updated agent's ACL token", "token", target)
 	return nil, nil
 }
 
@@ -1291,6 +1347,10 @@ func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.
 	}
 	var qOpts structs.QueryOptions
 
+	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
+
 	// Store DC in the ConnectCALeafRequest but query opts separately
 	if done := s.parse(resp, req, &args.Datacenter, &qOpts); done {
 		return nil, nil
@@ -1326,9 +1386,13 @@ func (s *HTTPServer) AgentConnectAuthorize(resp http.ResponseWriter, req *http.R
 	var token string
 	s.parseToken(req, &token)
 
-	// Decode the request from the request body
 	var authReq structs.ConnectAuthorizeRequest
-	if err := decodeBody(req, &authReq, nil); err != nil {
+
+	if err := s.parseEntMetaNoWildcard(req, &authReq.EnterpriseMeta); err != nil {
+		return nil, err
+	}
+
+	if err := decodeBody(req.Body, &authReq); err != nil {
 		return nil, BadRequestError{fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
@@ -1367,7 +1431,7 @@ func (s *HTTPServer) AgentHost(resp http.ResponseWriter, req *http.Request) (int
 		return nil, err
 	}
 
-	if rule != nil && !rule.OperatorRead() {
+	if rule != nil && rule.OperatorRead(nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 

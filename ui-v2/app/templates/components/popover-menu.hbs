@@ -1,0 +1,27 @@
+{{yield (concat 'popover-menu-' guid)}}
+{{#aria-menu keyboardAccess=keyboardAccess as |change keypress ariaLabelledBy ariaControls ariaExpanded keypressClick|}}
+  {{#toggle-button checked=ariaExpanded onchange=(queue change (action 'change')) as |click|}}
+    <button type="button" aria-haspopup="menu" onkeydown={{keypress}} onclick={{click}} id={{ariaLabelledBy}} aria-controls={{ariaControls}}>
+      {{#yield-slot name='trigger'}}
+        {{yield}}
+      {{/yield-slot}}
+    </button>
+  {{/toggle-button}}
+  <div>
+    <input type="checkbox" id={{concat 'popover-menu-' guid '-'}} />
+    {{#each submenus as |sub|}}
+      <input type="checkbox" id={{concat 'popover-menu-' guid '-' sub}} />
+    {{/each}}
+    {{#yield-slot name='header'}}
+      <div>
+        {{yield}}
+      </div>
+    {{else}}
+    {{/yield-slot}}
+    <ul role="menu" id={{ariaControls}} aria-labelledby={{ariaLabelledBy}} aria-expanded={{ariaExpanded}}>
+      {{#yield-slot name='menu' params=(block-params (concat 'popover-menu-' guid '-') send keypressClick) }}
+        {{yield}}
+      {{/yield-slot}}
+    </ul>
+  </div>
+{{/aria-menu}}

@@ -11,6 +11,7 @@ description: |-
 One of the primary roles of the agent is management of system-level and application-level health
 checks. A health check is considered to be application-level if it is associated with a
 service. If not associated with a service, the check monitors the health of the entire node.
+Review the [health checks guide](https://learn.hashicorp.com/consul/developer-discovery/health-checks) to get a more complete example on how to leverage health check capabilities in Consul.
 
 A check is defined in a configuration file or added at runtime over the HTTP interface. Checks
 created via the HTTP interface persist with that node.
@@ -116,6 +117,7 @@ There are several different kinds of checks:
   setting `grpc_use_tls` in the check definition. If TLS is enabled, then by default, a valid
   TLS certificate is expected. Certificate verification can be turned off by setting the
   `tls_skip_verify` field to `true` in the check definition.
+  To check on a specific service instead of the whole gRPC server, add the service identifier after the `gRPC` check's endpoint in the following format `/:service_identifier`.
 
 * <a name="alias"></a>Alias - These checks alias the health state of another registered
   node or service. The state of the check will be updated asynchronously,
@@ -154,7 +156,8 @@ A HTTP check:
     "http": "https://localhost:5000/health",
     "tls_skip_verify": false,
     "method": "POST",
-    "header": {"x-foo":["bar", "baz"]},
+    "header": {"Content-Type": "application/json"},
+    "body": "{\"method\":\"health\"}",
     "interval": "10s",
     "timeout": "1s"
   }
@@ -203,7 +206,7 @@ A Docker check:
 }
 ```
 
-A gRPC check:
+A gRPC check for the whole application:
 
 ```javascript
 {
@@ -211,6 +214,20 @@ A gRPC check:
     "id": "mem-util",
     "name": "Service health status",
     "grpc": "127.0.0.1:12345",
+    "grpc_use_tls": true,
+    "interval": "10s"
+  }
+}
+```
+
+A gRPC check for the specific `my_service` service:
+
+```javascript
+{
+  "check": {
+    "id": "mem-util",
+    "name": "Service health status",
+    "grpc": "127.0.0.1:12345/my_service",
     "grpc_use_tls": true,
     "interval": "10s"
   }
@@ -363,6 +380,31 @@ key in your configuration file.
       "interval": "10s"
     },
     ...
+  ]
+}
+```
+
+## Success/Failures before passing/critical
+
+In Consul 1.7.0 and later, a check may be configured to become passing/critical
+only after a specified number of consecutive checks return passing/critical.
+The status will not transition states until the configured threshold is reached.
+
+This feature is available for HTTP, TCP, gRPC, Docker & Monitor checks.
+By default, both passing and critical thresholds will be set to 0 so the check
+status will always reflect the last check result.
+
+```json
+{
+  "checks": [
+    {
+      "name": "HTTP TCP on port 80",
+      "tcp": "localhost:80",
+      "interval": "10s",
+      "timeout": "1s",
+      "success_before_passing": 3,
+      "failures_before_critical": 3
+    }
   ]
 }
 ```

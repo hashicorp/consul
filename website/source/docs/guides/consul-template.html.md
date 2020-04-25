@@ -21,7 +21,7 @@ of it's use cases.
 1. *Update configuration files*. The Consul template tool can be used
 to update service configuration files. A common use case is managing load
 balancer configuration files that need to be updated regularly in a dynamic
-infrastructure on machines many not be able to directly connect to the Consul cluster.
+infrastructure on machines which may not be able to directly connect to the Consul cluster.
 
 1. *Discover data about the Consul cluster and service*. It is possible to collect
 information about the services in your Consul cluster. For example, you could

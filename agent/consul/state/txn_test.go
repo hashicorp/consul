@@ -2,7 +2,6 @@ package state
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -284,6 +283,7 @@ func TestStateStore_Txn_Service(t *testing.T) {
 					CreateIndex: 2,
 					ModifyIndex: 2,
 				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
 		},
 		&structs.TxnResult{
@@ -294,6 +294,7 @@ func TestStateStore_Txn_Service(t *testing.T) {
 					CreateIndex: 6,
 					ModifyIndex: 6,
 				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
 		},
 		&structs.TxnResult{
@@ -305,13 +306,14 @@ func TestStateStore_Txn_Service(t *testing.T) {
 					CreateIndex: 3,
 					ModifyIndex: 6,
 				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
 		},
 	}
 	verify.Values(t, "", results, expected)
 
 	// Pull the resulting state store contents.
-	idx, actual, err := s.NodeServices(nil, "node1")
+	idx, actual, err := s.NodeServices(nil, "node1", nil)
 	require.NoError(err)
 	if idx != 6 {
 		t.Fatalf("bad index: %d", idx)
@@ -336,7 +338,8 @@ func TestStateStore_Txn_Service(t *testing.T) {
 					CreateIndex: 2,
 					ModifyIndex: 2,
 				},
-				Weights: &structs.Weights{Passing: 1, Warning: 1},
+				Weights:        &structs.Weights{Passing: 1, Warning: 1},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
 			"svc5": &structs.NodeService{
 				ID: "svc5",
@@ -344,7 +347,8 @@ func TestStateStore_Txn_Service(t *testing.T) {
 					CreateIndex: 6,
 					ModifyIndex: 6,
 				},
-				Weights: &structs.Weights{Passing: 1, Warning: 1},
+				Weights:        &structs.Weights{Passing: 1, Warning: 1},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
 			"svc2": &structs.NodeService{
 				ID:   "svc2",
@@ -353,7 +357,8 @@ func TestStateStore_Txn_Service(t *testing.T) {
 					CreateIndex: 3,
 					ModifyIndex: 6,
 				},
-				Weights: &structs.Weights{Passing: 1, Warning: 1},
+				Weights:        &structs.Weights{Passing: 1, Warning: 1},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
 		},
 	}
@@ -429,6 +434,7 @@ func TestStateStore_Txn_Checks(t *testing.T) {
 					CreateIndex: 2,
 					ModifyIndex: 2,
 				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
 		},
 		&structs.TxnResult{
@@ -440,6 +446,7 @@ func TestStateStore_Txn_Checks(t *testing.T) {
 					CreateIndex: 6,
 					ModifyIndex: 6,
 				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
 		},
 		&structs.TxnResult{
@@ -451,13 +458,14 @@ func TestStateStore_Txn_Checks(t *testing.T) {
 					CreateIndex: 3,
 					ModifyIndex: 6,
 				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
 		},
 	}
 	verify.Values(t, "", results, expected)
 
 	// Pull the resulting state store contents.
-	idx, actual, err := s.NodeChecks(nil, "node1")
+	idx, actual, err := s.NodeChecks(nil, "node1", nil)
 	require.NoError(err)
 	if idx != 6 {
 		t.Fatalf("bad index: %d", idx)
@@ -473,6 +481,7 @@ func TestStateStore_Txn_Checks(t *testing.T) {
 				CreateIndex: 2,
 				ModifyIndex: 2,
 			},
+			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 		},
 		&structs.HealthCheck{
 			Node:    "node1",
@@ -482,6 +491,7 @@ func TestStateStore_Txn_Checks(t *testing.T) {
 				CreateIndex: 3,
 				ModifyIndex: 6,
 			},
+			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 		},
 		&structs.HealthCheck{
 			Node:    "node1",
@@ -491,6 +501,7 @@ func TestStateStore_Txn_Checks(t *testing.T) {
 				CreateIndex: 6,
 				ModifyIndex: 6,
 			},
+			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 		},
 	}
 	verify.Values(t, "", actual, expectedChecks)
@@ -500,11 +511,11 @@ func TestStateStore_Txn_KVS(t *testing.T) {
 	s := testStateStore(t)
 
 	// Create KV entries in the state store.
-	testSetKey(t, s, 1, "foo/delete", "bar")
-	testSetKey(t, s, 2, "foo/bar/baz", "baz")
-	testSetKey(t, s, 3, "foo/bar/zip", "zip")
-	testSetKey(t, s, 4, "foo/zorp", "zorp")
-	testSetKey(t, s, 5, "foo/update", "stale")
+	testSetKey(t, s, 1, "foo/delete", "bar", nil)
+	testSetKey(t, s, 2, "foo/bar/baz", "baz", nil)
+	testSetKey(t, s, 3, "foo/bar/zip", "zip", nil)
+	testSetKey(t, s, 4, "foo/zorp", "zorp", nil)
+	testSetKey(t, s, 5, "foo/update", "stale", nil)
 
 	// Make a real session.
 	testRegisterNode(t, s, 6, "node1")
@@ -776,14 +787,23 @@ func TestStateStore_Txn_KVS(t *testing.T) {
 	if len(results) != len(expected) {
 		t.Fatalf("bad: %v", results)
 	}
-	for i := range results {
-		if !reflect.DeepEqual(results[i], expected[i]) {
-			t.Fatalf("bad %d", i)
+	for i, e := range expected {
+		if e.KV.Key != results[i].KV.Key {
+			t.Fatalf("expected key %s, got %s", e.KV.Key, results[i].KV.Key)
+		}
+		if e.KV.LockIndex != results[i].KV.LockIndex {
+			t.Fatalf("expected lock index %d, got %d", e.KV.LockIndex, results[i].KV.LockIndex)
+		}
+		if e.KV.CreateIndex != results[i].KV.CreateIndex {
+			t.Fatalf("expected create index %d, got %d", e.KV.CreateIndex, results[i].KV.CreateIndex)
+		}
+		if e.KV.ModifyIndex != results[i].KV.ModifyIndex {
+			t.Fatalf("expected modify index %d, got %d", e.KV.ModifyIndex, results[i].KV.ModifyIndex)
 		}
 	}
 
 	// Pull the resulting state store contents.
-	idx, actual, err := s.KVSList(nil, "")
+	idx, actual, err := s.KVSList(nil, "", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -821,9 +841,21 @@ func TestStateStore_Txn_KVS(t *testing.T) {
 	if len(actual) != len(entries) {
 		t.Fatalf("bad len: %d != %d", len(actual), len(entries))
 	}
-	for i := range actual {
-		if !reflect.DeepEqual(actual[i], entries[i]) {
-			t.Fatalf("bad %d", i)
+	for i, e := range entries {
+		if e.Key != actual[i].Key {
+			t.Fatalf("expected key %s, got %s", e.Key, actual[i].Key)
+		}
+		if string(e.Value) != string(actual[i].Value) {
+			t.Fatalf("expected value %s, got %s", e.Value, actual[i].Value)
+		}
+		if e.LockIndex != actual[i].LockIndex {
+			t.Fatalf("expected lock index %d, got %d", e.LockIndex, actual[i].LockIndex)
+		}
+		if e.CreateIndex != actual[i].CreateIndex {
+			t.Fatalf("expected create index %d, got %d", e.CreateIndex, actual[i].CreateIndex)
+		}
+		if e.ModifyIndex != actual[i].ModifyIndex {
+			t.Fatalf("expected modify index %d, got %d", e.ModifyIndex, actual[i].ModifyIndex)
 		}
 	}
 }
@@ -832,8 +864,8 @@ func TestStateStore_Txn_KVS_Rollback(t *testing.T) {
 	s := testStateStore(t)
 
 	// Create KV entries in the state store.
-	testSetKey(t, s, 1, "foo/delete", "bar")
-	testSetKey(t, s, 2, "foo/update", "stale")
+	testSetKey(t, s, 1, "foo/delete", "bar", nil)
+	testSetKey(t, s, 2, "foo/update", "stale", nil)
 
 	testRegisterNode(t, s, 3, "node1")
 	session := testUUID()
@@ -852,7 +884,7 @@ func TestStateStore_Txn_KVS_Rollback(t *testing.T) {
 
 	// This function verifies that the state store wasn't changed.
 	verifyStateStore := func(desc string) {
-		idx, actual, err := s.KVSList(nil, "")
+		idx, actual, err := s.KVSList(nil, "", nil)
 		if err != nil {
 			t.Fatalf("err (%s): %s", desc, err)
 		}
@@ -892,9 +924,21 @@ func TestStateStore_Txn_KVS_Rollback(t *testing.T) {
 		if len(actual) != len(entries) {
 			t.Fatalf("bad len (%s): %d != %d", desc, len(actual), len(entries))
 		}
-		for i := range actual {
-			if !reflect.DeepEqual(actual[i], entries[i]) {
-				t.Fatalf("bad (%s): op %d: %v != %v", desc, i, *(actual[i]), *(entries[i]))
+		for i, e := range entries {
+			if e.Key != actual[i].Key {
+				t.Fatalf("expected key %s, got %s", e.Key, actual[i].Key)
+			}
+			if string(e.Value) != string(actual[i].Value) {
+				t.Fatalf("expected value %s, got %s", e.Value, actual[i].Value)
+			}
+			if e.LockIndex != actual[i].LockIndex {
+				t.Fatalf("expected lock index %d, got %d", e.LockIndex, actual[i].LockIndex)
+			}
+			if e.CreateIndex != actual[i].CreateIndex {
+				t.Fatalf("expected create index %d, got %d", e.CreateIndex, actual[i].CreateIndex)
+			}
+			if e.ModifyIndex != actual[i].ModifyIndex {
+				t.Fatalf("expected modify index %d, got %d", e.ModifyIndex, actual[i].ModifyIndex)
 			}
 		}
 	}
@@ -1027,9 +1071,9 @@ func TestStateStore_Txn_KVS_RO(t *testing.T) {
 	s := testStateStore(t)
 
 	// Create KV entries in the state store.
-	testSetKey(t, s, 1, "foo", "bar")
-	testSetKey(t, s, 2, "foo/bar/baz", "baz")
-	testSetKey(t, s, 3, "foo/bar/zip", "zip")
+	testSetKey(t, s, 1, "foo", "bar", nil)
+	testSetKey(t, s, 2, "foo/bar/baz", "baz", nil)
+	testSetKey(t, s, 3, "foo/bar/zip", "zip", nil)
 
 	// Set up a transaction that hits all the read-only operations.
 	ops := structs.TxnOps{
@@ -1129,9 +1173,18 @@ func TestStateStore_Txn_KVS_RO(t *testing.T) {
 	if len(results) != len(expected) {
 		t.Fatalf("bad: %v", results)
 	}
-	for i := range results {
-		if !reflect.DeepEqual(results[i], expected[i]) {
-			t.Fatalf("bad %d", i)
+	for i, e := range expected {
+		if e.KV.Key != results[i].KV.Key {
+			t.Fatalf("expected key %s, got %s", e.KV.Key, results[i].KV.Key)
+		}
+		if e.KV.LockIndex != results[i].KV.LockIndex {
+			t.Fatalf("expected lock index %d, got %d", e.KV.LockIndex, results[i].KV.LockIndex)
+		}
+		if e.KV.CreateIndex != results[i].KV.CreateIndex {
+			t.Fatalf("expected create index %d, got %d", e.KV.CreateIndex, results[i].KV.CreateIndex)
+		}
+		if e.KV.ModifyIndex != results[i].KV.ModifyIndex {
+			t.Fatalf("expected modify index %d, got %d", e.KV.ModifyIndex, results[i].KV.ModifyIndex)
 		}
 	}
 }
@@ -1140,9 +1193,9 @@ func TestStateStore_Txn_KVS_RO_Safety(t *testing.T) {
 	s := testStateStore(t)
 
 	// Create KV entries in the state store.
-	testSetKey(t, s, 1, "foo", "bar")
-	testSetKey(t, s, 2, "foo/bar/baz", "baz")
-	testSetKey(t, s, 3, "foo/bar/zip", "zip")
+	testSetKey(t, s, 1, "foo", "bar", nil)
+	testSetKey(t, s, 2, "foo/bar/baz", "baz", nil)
+	testSetKey(t, s, 3, "foo/bar/zip", "zip", nil)
 
 	// Set up a transaction that hits all the read-only operations.
 	ops := structs.TxnOps{

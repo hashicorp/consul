@@ -20,6 +20,8 @@ func TestAPI_DiscoveryChain_Get(t *testing.T) {
 	config_entries := c.ConfigEntries()
 	discoverychain := c.DiscoveryChain()
 
+	s.WaitForActiveCARoot(t)
+
 	require.True(t, t.Run("read default chain", func(t *testing.T) {
 		resp, _, err := discoverychain.Get("web", nil, nil)
 		require.NoError(t, err)

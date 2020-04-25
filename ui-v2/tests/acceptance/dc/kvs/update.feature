@@ -6,6 +6,7 @@ Feature: dc / kvs / update: KV Update
     And 1 kv model from yaml
     ---
       Key: "[Name]"
+      Flags: 12
     ---
     When I visit the kv page for yaml
     ---
@@ -13,6 +14,7 @@ Feature: dc / kvs / update: KV Update
       kv: "[Name]"
     ---
     Then the url should be /datacenter/kv/[EncodedName]/edit
+    And the title should be "Edit Key/Value - Consul"
     # Turn the Code Editor off so we can fill the value easier
     And I click "[name=json]"
     Then I fill in with yaml
@@ -20,7 +22,7 @@ Feature: dc / kvs / update: KV Update
       value: [Value]
     ---
     And I submit
-    Then a PUT request is made to "/v1/kv/[EncodedName]?dc=datacenter" with the body "[Value]"
+    Then a PUT request was made to "/v1/kv/[EncodedName]?dc=datacenter&flags=12&ns=@!namespace" with the body "[Value]"
     And "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "success" class
   Where:
@@ -36,6 +38,7 @@ Feature: dc / kvs / update: KV Update
     And 1 kv model from yaml
     ---
       Key: key
+      Flags: 12
     ---
     When I visit the kv page for yaml
     ---
@@ -50,14 +53,16 @@ Feature: dc / kvs / update: KV Update
       value: '   '
     ---
     And I submit
-    Then a PUT request is made to "/v1/kv/key?dc=datacenter" with the body "   "
+    Then a PUT request was made to "/v1/kv/key?dc=datacenter&flags=12&ns=@!namespace" with the body "   "
     Then the url should be /datacenter/kv
+    And the title should be "Key/Value - Consul"
     And "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "success" class
   Scenario: Update to a key change value to ''
     And 1 kv model from yaml
     ---
       Key: key
+      Flags: 12
     ---
     When I visit the kv page for yaml
     ---
@@ -72,15 +77,16 @@ Feature: dc / kvs / update: KV Update
       value: ''
     ---
     And I submit
-    Then a PUT request is made to "/v1/kv/key?dc=datacenter" with no body
+    Then a PUT request was made to "/v1/kv/key?dc=datacenter&flags=12&ns=@!namespace" with no body
     Then the url should be /datacenter/kv
     And "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "success" class
   Scenario: Update to a key when the value is empty
     And 1 kv model from yaml
     ---
-    Key: key
-    Value: ~
+      Key: key
+      Value: ~
+      Flags: 12
     ---
     When I visit the kv page for yaml
     ---
@@ -89,7 +95,7 @@ Feature: dc / kvs / update: KV Update
     ---
     Then the url should be /datacenter/kv/key/edit
     And I submit
-    Then a PUT request is made to "/v1/kv/key?dc=datacenter" with no body
+    Then a PUT request was made to "/v1/kv/key?dc=datacenter&flags=12&ns=@!namespace" with no body
     Then the url should be /datacenter/kv
     And "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "success" class

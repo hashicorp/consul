@@ -1,17 +1,18 @@
 package authmethodlist
 
 import (
+	"encoding/json"
 	"os"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/go-uuid"
 	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	// activate testing auth method
@@ -32,7 +33,7 @@ func TestAuthMethodListCommand(t *testing.T) {
 	testDir := testutil.TempDir(t, "acl")
 	defer os.RemoveAll(testDir)
 
-	a := agent.NewTestAgent(t, t.Name(), `
+	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
 	acl {
 		enabled = true
@@ -40,8 +41,6 @@ func TestAuthMethodListCommand(t *testing.T) {
 			master = "root"
 		}
 	}`)
-
-	a.Agent.LogWriter = logger.NewLogWriter(512)
 
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -105,5 +104,75 @@ func TestAuthMethodListCommand(t *testing.T) {
 		for _, methodName := range methodNames {
 			require.Contains(t, output, methodName)
 		}
+	})
+}
+
+func TestAuthMethodListCommand_JSON(t *testing.T) {
+	t.Parallel()
+
+	testDir := testutil.TempDir(t, "acl")
+	defer os.RemoveAll(testDir)
+
+	a := agent.NewTestAgent(t, `
+	primary_datacenter = "dc1"
+	acl {
+		enabled = true
+		tokens {
+			master = "root"
+		}
+	}`)
+
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	client := a.Client()
+
+	createAuthMethod := func(t *testing.T) string {
+		id, err := uuid.GenerateUUID()
+		require.NoError(t, err)
+
+		methodName := "test-" + id
+
+		_, _, err = client.ACL().AuthMethodCreate(
+			&api.ACLAuthMethod{
+				Name:        methodName,
+				Type:        "testing",
+				Description: "test",
+			},
+			&api.WriteOptions{Token: "root"},
+		)
+		require.NoError(t, err)
+
+		return methodName
+	}
+
+	var methodNames []string
+	for i := 0; i < 5; i++ {
+		methodName := createAuthMethod(t)
+		methodNames = append(methodNames, methodName)
+	}
+
+	t.Run("found some", func(t *testing.T) {
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-format=json",
+		}
+
+		code := cmd.Run(args)
+		require.Equal(t, code, 0)
+		require.Empty(t, ui.ErrorWriter.String())
+		output := ui.OutputWriter.String()
+
+		for _, methodName := range methodNames {
+			require.Contains(t, output, methodName)
+		}
+
+		var jsonOutput json.RawMessage
+		err := json.Unmarshal([]byte(output), &jsonOutput)
+		assert.NoError(t, err)
 	})
 }

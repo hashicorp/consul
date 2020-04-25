@@ -40,7 +40,7 @@ func TestPatchSliceOfMaps(t *testing.T) {
 		},
 		{
 			in: `{
-				"services": [
+				"Services": [
 					{
 						"checks": [
 							{
@@ -53,7 +53,7 @@ func TestPatchSliceOfMaps(t *testing.T) {
 				]
 			}`,
 			out: `{
-				"services": [
+				"Services": [
 					{
 						"checks": [
 							{

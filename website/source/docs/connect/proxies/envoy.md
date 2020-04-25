@@ -36,17 +36,21 @@ compatible Envoy versions.
 
 | Consul Version | Compatible Envoy Versions |
 |---|---|
-| 1.5.2 and higher | 1.11.1 1.10.0, 1.9.1, 1.8.0† |
+| 1.8.x | 1.14.1, 1.13.1, 1.12.3, 1.11.2 |
+| 1.7.x | 1.13.1, 1.12.3, 1.11.2, 1.10.0\* |
+| 1.5.2, 1.5.3, 1.6.x | 1.11.1, 1.10.0, 1.9.1, 1.8.0† |
 | 1.5.0, 1.5.1 | 1.9.1, 1.8.0† |
 | 1.3.x, 1.4.x | 1.9.1, 1.8.0†, 1.7.0† |
 
-!> **Security Note:** Envoy versions lower than 1.9.1 are vulnerable to
- [CVE-2019-9900](https://github.com/envoyproxy/envoy/issues/6434) and
- [CVE-2019-9901](https://github.com/envoyproxy/envoy/issues/6435). Both are
- related to HTTP request parsing and so only affect Consul Connect users if they
- have configured HTTP routing rules via the ["escape
- hatch"](#custom-configuration). Still, we recommend that you use the most
- recent supported Envoy for your Consul version where possible.
+~> Note:  
+  † Envoy versions lower than 1.9.1 are vulnerable to
+  [CVE-2019-9900](https://github.com/envoyproxy/envoy/issues/6434) and
+  [CVE-2019-9901](https://github.com/envoyproxy/envoy/issues/6435). Both are
+  related to HTTP request parsing and so only affect Consul Connect users if they
+  have configured HTTP routing rules via the ["escape
+  hatch"](#custom-configuration). Still, we recommend that you use the most
+  recent supported Envoy for your Consul version where possible.  
+  * Envoy 1.10.0 requires setting [`-envoy-version`](https://www.consul.io/docs/commands/connect/envoy.html#envoy-version) in the `consul connect envoy` command. This was introduced in Consul 1.7.0.
 
 ## Getting Started
 
@@ -138,6 +142,11 @@ configuration entry](/docs/agent/config-entries/proxy-defaults.html). The env va
     -> **Note:** Envoy versions prior to 1.10 do not export timing histograms
     using the internal Prometheus endpoint.
 
+- `envoy_stats_bind_addr` - Specifies that the proxy should expose the /stats prefix
+  to the _public_ network. It must be supplied in the form `ip:port` and
+  the ip/port combination must be free within the network namespace the proxy runs.
+  Typically the IP would be `0.0.0.0` to bind to all available interfaces or a pod IP address.
+
 - `envoy_stats_tags` - Specifies one or more static tags that will be added to
   all metrics produced by the proxy.
 
@@ -170,7 +179,7 @@ and `proxy.upstreams[*].config` fields of the [proxy service
 definition](/docs/connect/registration/service-registration.html) that is
 actually registered.
 
-To learn about other options that can be configured centrally see the 
+To learn about other options that can be configured centrally see the
 [Configuration Entries](/docs/agent/config_entries.html) docs.
 
 ### Proxy Config Options
@@ -256,7 +265,22 @@ definition](/docs/connect/registration/service-registration.html) or
     proxy upstream config will override any values defined in config entries.
     It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
 
-### Mesh Gateway Options
+- `limits` - A set of limits to apply when connecting to the upstream service.
+  These limits are applied on a per-service-instance basis.  The following
+  limits are respected:
+
+  - `max_connections` - The maximum number of connections a service instance
+    will be allowed to establish against the given upstream. Use this to limit
+    HTTP/1.1 traffic, since HTTP/1.1 has a request per connection.
+  - `max_pending_requests` - The maximum number of requests that will be queued
+    while waiting for a connection to be established. For this configuration to
+    be respected, a L7 protocol must be defined in the `protocol` field.
+  - `max_concurrent_requests` - The maximum number of concurrent requests that
+    will be allowed at a single point in time. Use this to limit HTTP/2 traffic,
+    since HTTP/2 has many requests per connection. For this configuration to be
+    respected, a L7 protocol must be defined in the `protocol` field.
+
+### Gateway Options
 
 These fields may also be overridden explicitly in the [proxy service
 definition](/docs/connect/registration/service-registration.html), or defined in
@@ -264,22 +288,29 @@ the  [global `proxy-defaults` configuration
 entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaults) to act as
 defaults that are inherited by all services.
 
+Prior to 1.8.0 these settings were specific to Mesh Gateways. The deprecated 
+names such as `envoy_mesh_gateway_bind_addresses` and `envoy_mesh_gateway_no_default_bind`
+will continue to be supported.
+
 - `connect_timeout_ms` - The number of milliseconds to allow when making upstream
-  connections before timing out. Defaults to 5000
-  (5 seconds).
+  connections before timing out. Defaults to 5000 (5 seconds). If the upstream
+  service has the configuration option
+  [`connect_timeout_ms`](/docs/agent/config-entries/service-resolver.html#connecttimeout)
+  set for the `service-resolver`, that timeout value will take precedence over
+  this gateway option.
 
-- `envoy_mesh_gateway_bind_tagged_addresses` - Indicates that the mesh gateway
+- `envoy_gateway_bind_tagged_addresses` - Indicates that the gateway
   services tagged addresses should be bound to listeners in addition to the
-  default listener address.
+  default listener address. 
 
-- `envoy_mesh_gateway_bind_addresses` - A map of additional addresses to be bound.
+- `envoy_gateway_bind_addresses` - A map of additional addresses to be bound.
   This map's keys are the name of the listeners to be created and the values are
   a map with two keys, address and port, that combined make the address to bind the
   listener to. These are bound in addition to the default address.
 
-- `envoy_mesh_gateway_no_default_bind` - Prevents binding to the default address
-  of the mesh gateway service. This should be used with one of the other options
-  to configure the gateways bind addresses.
+- `envoy_gateway_no_default_bind` - Prevents binding to the default address
+  of the gateway service. This should be used with one of the other options
+  to configure the gateway's bind addresses.
 
 ## Advanced Configuration
 
@@ -316,6 +347,56 @@ The JSON supplied may describe a protobuf `types.Any` message with an `@type`
 field set to the appropriate type (for example
 `type.googleapis.com/envoy.api.v2.Listener`), or it may be the direct encoding
 with no `@type` field.
+
+For example, given a tracing config:
+
+```json
+"tracing": {
+  "http": {
+     "name": "envoy.zipkin",
+     "config": {
+        "collector_cluster": "zipkin",
+        "collector_endpoint": "/api/v1/spans",
+        "shared_span_context": false
+     }
+  }
+}
+```
+
+JSON escape the value of `tracing` into a string, for example using [https://codebeautify.org/json-escape-unescape](https://codebeautify.org/json-escape-unescape),
+and then use that as the value for `envoy_tracing_json`:
+
+```json
+{
+  "kind": "proxy-defaults",
+  "name": "global",
+  "config": {
+    "envoy_tracing_json": "{\"http\":{\"name\":\"envoy.zipkin\",\"config\":{\"collector_cluster\":\"zipkin\",\"collector_endpoint\":\"/api/v1/spans\",\"shared_span_context\":false}}}"
+  }
+}
+```
+
+If using HCL, this escaping is done automatically:
+
+```hcl
+Kind = "proxy-defaults"
+Name = "global"
+Config {
+  envoy_tracing_json = <<EOF
+{
+  "http": {
+    "name": "envoy.zipkin",
+    "config": {
+      "collector_cluster": "zipkin",
+      "collector_endpoint": "/api/v1/spans",
+      "shared_span_context": false
+    }
+  }
+}
+EOF
+}
+```
+
 
 ### Advanced Bootstrap Options
 

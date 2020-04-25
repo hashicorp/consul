@@ -11,6 +11,7 @@ Feature: dc / services / error
       dc: 404-datacenter
     ---
     Then I see the text "404 (Page not found)" in "[data-test-error]"
+  @notNamespaceable
   Scenario: Arriving at the service page
     Given 2 datacenter models from yaml
     ---
@@ -23,5 +24,8 @@ Feature: dc / services / error
       dc: dc-1
     ---
     Then I see the text "500 (The backend responded with an error)" in "[data-test-error]"
-    And I click "[data-test-datacenter-selected]"
+    # This is the actual step that works slightly differently
+    # When running through namespaces as the dc menu says 'Error'
+    # which is still kind of ok
+    When I click dc on the navigation
     And I see 2 datacenter models

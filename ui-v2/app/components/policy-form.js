@@ -7,6 +7,7 @@ export default FormComponent.extend({
   datacenterRepo: service('repository/dc/component'),
   type: 'policy',
   name: 'policy',
+  allowServiceIdentity: true,
   classNames: ['policy-form'],
 
   isScoped: false,

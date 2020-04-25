@@ -791,7 +791,7 @@ A token with `write` access on a prefix also has `list` access. A token with `li
 #### Sentinel Integration
 
 Consul Enterprise supports additional optional fields for key write policies for
-[Sentinel](https://docs.hashicorp.com/sentinel/app/consul/) integration. An example key rule with a
+[Sentinel](https://docs.hashicorp.com/sentinel/consul/) integration. An example key rule with a
 Sentinel code policy looks like this:
 
 ```text

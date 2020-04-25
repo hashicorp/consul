@@ -96,20 +96,21 @@ func TestRequest(t testing.T, info RequestInfo) *MockRequest {
 	return req
 }
 
-// TestType returns a MockType that can be used to setup expectations
-// on data fetching.
+// TestType returns a MockType that sets default RegisterOptions.
 func TestType(t testing.T) *MockType {
-	return testTypeInternal(t, true)
+	typ := &MockType{}
+	typ.On("RegisterOptions").Return(RegisterOptions{
+		SupportsBlocking: true,
+	})
+	return typ
 }
 
 // TestTypeNonBlocking returns a MockType that returns false to SupportsBlocking.
 func TestTypeNonBlocking(t testing.T) *MockType {
-	return testTypeInternal(t, false)
-}
-
-func testTypeInternal(t testing.T, enableBlocking bool) *MockType {
 	typ := &MockType{}
-	typ.On("SupportsBlocking").Return(enableBlocking).Maybe()
+	typ.On("RegisterOptions").Return(RegisterOptions{
+		SupportsBlocking: false,
+	})
 	return typ
 }
 

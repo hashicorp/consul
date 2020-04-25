@@ -22,7 +22,7 @@ import (
 // error is returned, otherwise error indicates an unexpected server failure. If
 // access is denied, no error is returned but the first return value is false.
 func (a *Agent) ConnectAuthorize(token string,
-	req *structs.ConnectAuthorizeRequest) (authz bool, reason string, m *cache.ResultMeta, err error) {
+	req *structs.ConnectAuthorizeRequest) (allowed bool, reason string, m *cache.ResultMeta, err error) {
 
 	// Helper to make the error cases read better without resorting to named
 	// returns which get messy and prone to mistakes in a method this long.
@@ -53,11 +53,13 @@ func (a *Agent) ConnectAuthorize(token string,
 	// We need to verify service:write permissions for the given token.
 	// We do this manually here since the RPC request below only verifies
 	// service:read.
-	rule, err := a.resolveToken(token)
+	var authzContext acl.AuthorizerContext
+	authz, err := a.resolveTokenAndDefaultMeta(token, &req.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return returnErr(err)
 	}
-	if rule != nil && !rule.ServiceWrite(req.Target, nil) {
+
+	if authz != nil && authz.ServiceWrite(req.Target, &authzContext) != acl.Allow {
 		return returnErr(acl.ErrPermissionDenied)
 	}
 
@@ -73,7 +75,7 @@ func (a *Agent) ConnectAuthorize(token string,
 			Type: structs.IntentionMatchDestination,
 			Entries: []structs.IntentionMatchEntry{
 				{
-					Namespace: structs.IntentionDefaultNamespace,
+					Namespace: req.TargetNamespace(),
 					Name:      req.Target,
 				},
 			},
@@ -106,14 +108,14 @@ func (a *Agent) ConnectAuthorize(token string,
 	// specifying the anonymous token, which will get the default behavior. The
 	// default behavior if ACLs are disabled is to allow connections to mimic the
 	// behavior of Consul itself: everything is allowed if ACLs are disabled.
-	rule, err = a.resolveToken("")
+	authz, err = a.resolveToken("")
 	if err != nil {
 		return returnErr(err)
 	}
-	if rule == nil {
+	if authz == nil {
 		// ACLs not enabled at all, the default is allow all.
 		return true, "ACLs disabled, access is allowed by default", &meta, nil
 	}
 	reason = "Default behavior configured by ACLs"
-	return rule.IntentionDefaultAllow(), reason, &meta, nil
+	return authz.IntentionDefaultAllow(nil) == acl.Allow, reason, &meta, nil
 }

@@ -10,6 +10,7 @@ Feature: dc / acls / policies / index: ACL Policy List
     ---
     Then the url should be /dc-1/acls/policies
     Then I see 3 policy models
+    And the title should be "Policies - Consul"
   Scenario: Searching the policies
     Given 1 datacenter model with the value "dc-1"
     And 3 policy models from yaml

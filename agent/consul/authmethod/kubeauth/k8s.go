@@ -50,6 +50,8 @@ type Config struct {
 	// other JWTs during login. It also must be able to read ServiceAccount
 	// annotations.
 	ServiceAccountJWT string `json:",omitempty"`
+
+	enterpriseConfig `mapstructure:",squash"`
 }
 
 // Validator is the wrapper around the relevant portions of the Kubernetes API
@@ -116,9 +118,9 @@ func NewValidator(method *structs.ACLAuthMethod) (*Validator, error) {
 
 func (v *Validator) Name() string { return v.name }
 
-func (v *Validator) ValidateLogin(loginToken string) (map[string]string, error) {
+func (v *Validator) ValidateLogin(loginToken string) (map[string]string, *structs.EnterpriseMeta, error) {
 	if _, err := jwt.ParseSigned(loginToken); err != nil {
-		return nil, fmt.Errorf("failed to parse and validate JWT: %v", err)
+		return nil, nil, fmt.Errorf("failed to parse and validate JWT: %v", err)
 	}
 
 	// Check TokenReview for the bulk of the work.
@@ -129,24 +131,24 @@ func (v *Validator) ValidateLogin(loginToken string) (map[string]string, error) 
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	} else if trResp.Status.Error != "" {
-		return nil, fmt.Errorf("lookup failed: %s", trResp.Status.Error)
+		return nil, nil, fmt.Errorf("lookup failed: %s", trResp.Status.Error)
 	}
 
 	if !trResp.Status.Authenticated {
-		return nil, errors.New("lookup failed: service account jwt not valid")
+		return nil, nil, errors.New("lookup failed: service account jwt not valid")
 	}
 
 	// The username is of format: system:serviceaccount:(NAMESPACE):(SERVICEACCOUNT)
 	parts := strings.Split(trResp.Status.User.Username, ":")
 	if len(parts) != 4 {
-		return nil, errors.New("lookup failed: unexpected username format")
+		return nil, nil, errors.New("lookup failed: unexpected username format")
 	}
 
 	// Validate the user that comes back from token review is a service account
 	if parts[0] != "system" || parts[1] != "serviceaccount" {
-		return nil, errors.New("lookup failed: username returned is not a service account")
+		return nil, nil, errors.New("lookup failed: username returned is not a service account")
 	}
 
 	var (
@@ -158,7 +160,7 @@ func (v *Validator) ValidateLogin(loginToken string) (map[string]string, error) 
 	// Check to see  if there is an override name on the ServiceAccount object.
 	sa, err := v.saGetter.ServiceAccounts(saNamespace).Get(saName, client_metav1.GetOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("annotation lookup failed: %v", err)
+		return nil, nil, fmt.Errorf("annotation lookup failed: %v", err)
 	}
 
 	annotations := sa.GetObjectMeta().GetAnnotations()
@@ -166,11 +168,13 @@ func (v *Validator) ValidateLogin(loginToken string) (map[string]string, error) 
 		saName = serviceNameOverride
 	}
 
-	return map[string]string{
+	fields := map[string]string{
 		serviceAccountNamespaceField: saNamespace,
 		serviceAccountNameField:      saName,
 		serviceAccountUIDField:       saUID,
-	}, nil
+	}
+
+	return fields, v.k8sEntMetaFromFields(fields), nil
 }
 
 func (p *Validator) AvailableFields() []string {

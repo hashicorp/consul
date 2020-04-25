@@ -3,8 +3,6 @@ package xds
 import (
 	"bytes"
 	"fmt"
-	"log"
-	"os"
 	"path"
 	"sort"
 	"testing"
@@ -13,6 +11,7 @@ import (
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 )
@@ -225,6 +224,14 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotMeshGateway,
 		},
 		{
+			name:   "mesh-gateway-using-federation-states",
+			create: proxycfg.TestConfigSnapshotMeshGatewayUsingFederationStates,
+		},
+		{
+			name:   "mesh-gateway-no-services",
+			create: proxycfg.TestConfigSnapshotMeshGatewayNoServices,
+		},
+		{
 			name:   "mesh-gateway-tagged-addresses",
 			create: proxycfg.TestConfigSnapshotMeshGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
@@ -256,6 +263,41 @@ func TestListenersFromSnapshot(t *testing.T) {
 				}
 			},
 		},
+		{
+			name:   "ingress-gateway",
+			create: proxycfg.TestConfigSnapshotIngressGateway,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-gateway-no-services",
+			create: proxycfg.TestConfigSnapshotIngressGatewayNoServices,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-with-chain-external-sni",
+			create: proxycfg.TestConfigSnapshotIngressExternalSNI,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-with-chain-and-overrides",
+			create: proxycfg.TestConfigSnapshotIngressWithOverrides,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-with-tcp-chain-failover-through-remote-gateway",
+			create: proxycfg.TestConfigSnapshotIngressWithFailoverThroughRemoteGateway,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-with-tcp-chain-failover-through-local-gateway",
+			create: proxycfg.TestConfigSnapshotIngressWithFailoverThroughLocalGateway,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-splitter-with-resolver-redirect",
+			create: proxycfg.TestConfigSnapshotIngress_SplitterWithResolverRedirectMultiDC,
+			setup:  nil,
+		},
 	}
 
 	for _, tt := range tests {
@@ -268,20 +310,17 @@ func TestListenersFromSnapshot(t *testing.T) {
 			// We need to replace the TLS certs with deterministic ones to make golden
 			// files workable. Note we don't update these otherwise they'd change
 			// golder files for every test case and so not be any use!
-			if snap.ConnectProxy.Leaf != nil {
-				snap.ConnectProxy.Leaf.CertPEM = golden(t, "test-leaf-cert", "")
-				snap.ConnectProxy.Leaf.PrivateKeyPEM = golden(t, "test-leaf-key", "")
-			}
-			if snap.Roots != nil {
-				snap.Roots.Roots[0].RootCert = golden(t, "test-root-cert", "")
-			}
+			setupTLSRootsAndLeaf(t, snap)
 
 			if tt.setup != nil {
 				tt.setup(snap)
 			}
 
 			// Need server just for logger dependency
-			s := Server{Logger: log.New(os.Stderr, "", log.LstdFlags)}
+			logger := testutil.Logger(t)
+			s := Server{
+				Logger: logger,
+			}
 
 			listeners, err := s.listenersFromSnapshot(snap, "my-token")
 			sort.Slice(listeners, func(i, j int) bool {

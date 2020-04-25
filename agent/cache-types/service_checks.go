@@ -2,19 +2,21 @@ package cachetype
 
 import (
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
 	"github.com/mitchellh/hashstructure"
-	"time"
 )
 
 // Recommended name for registration.
 const ServiceHTTPChecksName = "service-http-checks"
 
 type Agent interface {
-	ServiceHTTPBasedChecks(id string) []structs.CheckType
+	ServiceHTTPBasedChecks(id structs.ServiceID) []structs.CheckType
 	LocalState() *local.State
 	LocalBlockingQuery(alwaysBlock bool, hash string, wait time.Duration,
 		fn func(ws memdb.WatchSet) (string, interface{}, error)) (string, interface{}, error)
@@ -22,6 +24,7 @@ type Agent interface {
 
 // ServiceHTTPBasedChecks supports fetching discovering checks in the local state
 type ServiceHTTPChecks struct {
+	RegisterOptionsBlockingRefresh
 	Agent Agent
 }
 
@@ -54,7 +57,8 @@ func (c *ServiceHTTPChecks) Fetch(opts cache.FetchOptions, req cache.Request) (c
 
 	hash, resp, err := c.Agent.LocalBlockingQuery(true, lastHash, reqReal.MaxQueryTime,
 		func(ws memdb.WatchSet) (string, interface{}, error) {
-			svcState := c.Agent.LocalState().ServiceState(reqReal.ServiceID)
+			sid := structs.NewServiceID(reqReal.ServiceID, &reqReal.EnterpriseMeta)
+			svcState := c.Agent.LocalState().ServiceState(sid)
 			if svcState == nil {
 				return "", result, fmt.Errorf("Internal cache failure: service '%s' not in agent state", reqReal.ServiceID)
 			}
@@ -62,7 +66,7 @@ func (c *ServiceHTTPChecks) Fetch(opts cache.FetchOptions, req cache.Request) (c
 			// WatchCh will receive updates on service (de)registrations and check (de)registrations
 			ws.Add(svcState.WatchCh)
 
-			reply := c.Agent.ServiceHTTPBasedChecks(reqReal.ServiceID)
+			reply := c.Agent.ServiceHTTPBasedChecks(sid)
 
 			hash, err := hashChecks(reply)
 			if err != nil {
@@ -88,10 +92,6 @@ func (c *ServiceHTTPChecks) Fetch(opts cache.FetchOptions, req cache.Request) (c
 	return result, nil
 }
 
-func (c *ServiceHTTPChecks) SupportsBlocking() bool {
-	return true
-}
-
 // ServiceHTTPChecksRequest is the cache.Request implementation for the
 // ServiceHTTPBasedChecks cache type. This is implemented here and not in structs
 // since this is only used for cache-related requests and not forwarded
@@ -100,16 +100,28 @@ type ServiceHTTPChecksRequest struct {
 	ServiceID     string
 	MinQueryIndex uint64
 	MaxQueryTime  time.Duration
+	structs.EnterpriseMeta
 }
 
 func (s *ServiceHTTPChecksRequest) CacheInfo() cache.RequestInfo {
-	return cache.RequestInfo{
+	info := cache.RequestInfo{
 		Token:      "",
-		Key:        ServiceHTTPChecksName + ":" + s.ServiceID,
 		Datacenter: "",
 		MinIndex:   s.MinQueryIndex,
 		Timeout:    s.MaxQueryTime,
 	}
+
+	v, err := hashstructure.Hash([]interface{}{
+		s.ServiceID,
+		s.EnterpriseMeta,
+	}, nil)
+	if err == nil {
+		// If there is an error, we don't set the key. A blank key forces
+		// no cache for this request.
+		info.Key = strconv.FormatUint(v, 10)
+	}
+
+	return info
 }
 
 func hashChecks(checks []structs.CheckType) (string, error) {

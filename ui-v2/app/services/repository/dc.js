@@ -2,6 +2,7 @@ import RepositoryService from 'consul-ui/services/repository';
 import { inject as service } from '@ember/service';
 import { get } from '@ember/object';
 import Error from '@ember/error';
+import { Promise } from 'rsvp';
 
 const modelName = 'dc';
 export default RepositoryService.extend({
@@ -11,6 +12,7 @@ export default RepositoryService.extend({
   },
   findAll: function() {
     return this.store.findAll(this.getModelName()).then(function(items) {
+      // TODO: Move to view/template
       return items.sortBy('Name');
     });
   },
@@ -40,5 +42,8 @@ export default RepositoryService.extend({
         });
       }
     );
+  },
+  clearActive: function() {
+    return this.settings.delete('dc');
   },
 });

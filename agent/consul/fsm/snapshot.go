@@ -65,7 +65,7 @@ func (s *snapshot) Persist(sink raft.SnapshotSink) error {
 	header := snapshotHeader{
 		LastIndex: s.state.LastIndex(),
 	}
-	encoder := codec.NewEncoder(sink, msgpackHandle)
+	encoder := codec.NewEncoder(sink, structs.MsgpackHandle)
 	if err := encoder.Encode(&header); err != nil {
 		sink.Cancel()
 		return err

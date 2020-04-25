@@ -21,11 +21,16 @@ type ServiceSummary struct {
 	Name              string
 	Tags              []string
 	Nodes             []string
+	InstanceCount     int
+	ProxyFor          []string            `json:",omitempty"`
+	proxyForSet       map[string]struct{} // internal to track uniqueness
 	ChecksPassing     int
 	ChecksWarning     int
 	ChecksCritical    int
 	ExternalSources   []string
 	externalSourceSet map[string]struct{} // internal to track uniqueness
+
+	structs.EnterpriseMeta
 }
 
 // UINodes is used to list the nodes in a given datacenter. We return a
@@ -36,6 +41,11 @@ func (s *HTTPServer) UINodes(resp http.ResponseWriter, req *http.Request) (inter
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
+
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
+
 	s.parseFilter(req, &args.Filter)
 
 	// Make the RPC request
@@ -73,6 +83,10 @@ func (s *HTTPServer) UINodeInfo(resp http.ResponseWriter, req *http.Request) (in
 	args := structs.NodeSpecificRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
+	}
+
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
 	}
 
 	// Verify we have some DC, or use the default
@@ -121,6 +135,10 @@ func (s *HTTPServer) UIServices(resp http.ResponseWriter, req *http.Request) (in
 		return nil, nil
 	}
 
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
+
 	s.parseFilter(req, &args.Filter)
 
 	// Make the RPC request
@@ -142,12 +160,18 @@ RPC:
 
 func summarizeServices(dump structs.CheckServiceNodes) []*ServiceSummary {
 	// Collect the summary information
-	var services []string
-	summary := make(map[string]*ServiceSummary)
-	getService := func(service string) *ServiceSummary {
+	var services []structs.ServiceID
+	summary := make(map[structs.ServiceID]*ServiceSummary)
+	getService := func(service structs.ServiceID) *ServiceSummary {
 		serv, ok := summary[service]
 		if !ok {
-			serv = &ServiceSummary{Name: service}
+			serv = &ServiceSummary{
+				Name:           service.ID,
+				EnterpriseMeta: service.EnterpriseMeta,
+				// the other code will increment this unconditionally so we
+				// shouldn't initialize it to 1
+				InstanceCount: 0,
+			}
 			summary[service] = serv
 			services = append(services, service)
 		}
@@ -156,9 +180,19 @@ func summarizeServices(dump structs.CheckServiceNodes) []*ServiceSummary {
 
 	for _, csn := range dump {
 		svc := csn.Service
-		sum := getService(svc.Service)
+		sum := getService(structs.NewServiceID(svc.Service, &svc.EnterpriseMeta))
 		sum.Nodes = append(sum.Nodes, csn.Node.Node)
 		sum.Kind = svc.Kind
+		sum.InstanceCount += 1
+		if svc.Kind == structs.ServiceKindConnectProxy {
+			if _, ok := sum.proxyForSet[svc.Proxy.DestinationServiceName]; !ok {
+				if sum.proxyForSet == nil {
+					sum.proxyForSet = make(map[string]struct{})
+				}
+				sum.proxyForSet[svc.Proxy.DestinationServiceName] = struct{}{}
+				sum.ProxyFor = append(sum.ProxyFor, svc.Proxy.DestinationServiceName)
+			}
+		}
 		for _, tag := range svc.Tags {
 			found := false
 			for _, existing := range sum.Tags {
@@ -201,7 +235,9 @@ func summarizeServices(dump structs.CheckServiceNodes) []*ServiceSummary {
 	}
 
 	// Return the services in sorted order
-	sort.Strings(services)
+	sort.Slice(services, func(i, j int) bool {
+		return services[i].LessThan(&services[j])
+	})
 	output := make([]*ServiceSummary, len(summary))
 	for idx, service := range services {
 		// Sort the nodes

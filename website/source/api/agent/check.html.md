@@ -159,7 +159,7 @@ The table below shows this endpoint's support for
 - `GRPC` `(string: "")` - Specifies a `gRPC` check's endpoint that supports the standard
   [gRPC health checking protocol](https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
   The state of the check will be updated at the given `Interval` by probing the configured
-  endpoint.
+  endpoint. Add the service identifier after the `gRPC` check's endpoint in the following format to check for a specific service instead of the whole gRPC server `/:service_identifier`.
 
 - `GRPCUseTLS` `(bool: false)` - Specifies whether to use TLS for this `gRPC` health check.
   If TLS is enabled, then by default, a valid TLS certificate is expected. Certificate
@@ -175,6 +175,8 @@ The table below shows this endpoint's support for
 
 - `Method` `(string: "")` - Specifies a different HTTP method to be used
   for an `HTTP` check. When no value is specified, `GET` is used.
+
+- `Body` `(string: "")` - Specifies a body that should be sent with `HTTP` checks.
 
 - `Header` `(map[string][]string: {})` - Specifies a set of headers that should
   be set for `HTTP` checks. Each header can have multiple values.
@@ -221,10 +223,11 @@ The table below shows this endpoint's support for
   "Shell": "/bin/bash",
   "HTTP": "https://example.com",
   "Method": "POST",
-  "Header": {"x-foo":["bar", "baz"]},
+  "Header": {"Content-Type": "application/json"},
+  "Body": "{\"check\":\"mem\"}",
   "TCP": "example.com:22",
   "Interval": "10s",
-  "TTL": "15s",
+  "Timeout": "5s",
   "TLSSkipVerify": true
 }
 ```

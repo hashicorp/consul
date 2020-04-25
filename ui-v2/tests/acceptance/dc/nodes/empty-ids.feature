@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: Hedge for if nodes come in over the API with no ID
+Feature: dc / nodes / empty-ids: Hedge for if nodes come in over the API with no ID
   Scenario: A node list with some missing IDs
     Given 1 datacenter model with the value "dc-1"
     And 5 node models from yaml

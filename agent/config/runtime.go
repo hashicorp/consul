@@ -196,6 +196,12 @@ type RuntimeConfig struct {
 	// hcl: autopilot { max_trailing_logs = int }
 	AutopilotMaxTrailingLogs int
 
+	// AutopilotMinQuorum sets the minimum number of servers required in a cluster
+	// before autopilot can prune dead servers.
+	//
+	//hcl: autopilot { min_quorum = int }
+	AutopilotMinQuorum uint
+
 	// AutopilotRedundancyZoneTag is the Meta tag to use for separating servers
 	// into zones for redundancy. If left blank, this feature will be disabled.
 	// (Enterprise-only)
@@ -333,12 +339,12 @@ type RuntimeConfig struct {
 	// flag: -recursor string [-recursor string]
 	DNSRecursors []string
 
-	// DNSUseCache wether or not to use cache for dns queries
+	// DNSUseCache whether or not to use cache for dns queries
 	//
 	// hcl: dns_config { use_cache = (true|false) }
 	DNSUseCache bool
 
-	// DNSUseCache wether or not to use cache for dns queries
+	// DNSUseCache whether or not to use cache for dns queries
 	//
 	// hcl: dns_config { cache_max_age = "duration" }
 	DNSCacheMaxAge time.Duration
@@ -523,6 +529,14 @@ type RuntimeConfig struct {
 	// servers.
 	AutoEncryptTLS bool
 
+	// Additional DNS SAN entries that clients request during auto_encrypt
+	// flow for their certificates.
+	AutoEncryptDNSSAN []string
+
+	// Additional IP SAN entries that clients request during auto_encrypt
+	// flow for their certificates.
+	AutoEncryptIPSAN []net.IP
+
 	// AutoEncryptAllowTLS enables the server to respond to
 	// AutoEncrypt.Sign requests.
 	AutoEncryptAllowTLS bool
@@ -554,6 +568,10 @@ type RuntimeConfig struct {
 
 	// ConnectCAConfig is the config to use for the CA provider.
 	ConnectCAConfig map[string]interface{}
+
+	// ConnectMeshGatewayWANFederationEnabled determines if wan federation of
+	// datacenters should exclusively traverse mesh gateways.
+	ConnectMeshGatewayWANFederationEnabled bool
 
 	// ConnectTestCALeafRootChangeSpread is used to control how long the CA leaf
 	// cache with spread CSRs over when a root change occurs. For now we don't
@@ -593,6 +611,14 @@ type RuntimeConfig struct {
 	// hcl: data_dir = string
 	// flag: -data-dir string
 	DataDir string
+
+	// DefaultQueryTime is the amount of time a blocking query will wait before
+	// Consul will force a response. This value can be overridden by the 'wait'
+	// query parameter.
+	//
+	// hcl: default_query_time = "duration"
+	// flag: -default-query-time string
+	DefaultQueryTime time.Duration
 
 	// DevMode enables a fast-path mode of operation to bring up an in-memory
 	// server with minimal configuration. Useful for developing Consul.
@@ -781,10 +807,23 @@ type RuntimeConfig struct {
 	// hcl: client_addr = string addresses { https = string } ports { https = int }
 	HTTPSAddrs []net.Addr
 
+	// HTTPMaxConnsPerClient limits the number of concurrent TCP connections the
+	// HTTP(S) server will accept from any single source IP address.
+	//
+	// hcl: limits{ http_max_conns_per_client = 200 }
+	HTTPMaxConnsPerClient int
+
+	// HTTPSHandshakeTimeout is the time allowed for HTTPS client to complete the
+	// TLS handshake and send first bytes of the request.
+	//
+	// hcl: limits{ https_handshake_timeout = "5s" }
+	HTTPSHandshakeTimeout time.Duration
+
 	// HTTPSPort is the port the HTTP server listens on. The default is -1.
 	// Setting this to a value <= 0 disables the endpoint.
 	//
 	// hcl: ports { https = int }
+	// flags: -https-port int
 	HTTPSPort int
 
 	// KeyFile is used to provide a TLS key that is used for serving TLS
@@ -816,6 +855,12 @@ type RuntimeConfig struct {
 	// hcl: log_level = string
 	LogLevel string
 
+	// LogJSON controls whether to output logs as structured JSON. Defaults to false.
+	//
+	// hcl: log_json = (true|false)
+	// flag: -log-json
+	LogJSON bool
+
 	// LogFile is the path to the file where the logs get written to. Defaults to empty string.
 	//
 	// hcl: log_file = string
@@ -839,6 +884,14 @@ type RuntimeConfig struct {
 	// hcl: log_rotate_max_files = int
 	// flags: -log-rotate-max-files int
 	LogRotateMaxFiles int
+
+	// MaxQueryTime is the maximum amount of time a blocking query can wait
+	// before Consul will force a response. Consul applies jitter to the wait
+	// time. The jittered time will be capped to MaxQueryTime.
+	//
+	// hcl: max_query_time = "duration"
+	// flags: -max-query-time string
+	MaxQueryTime time.Duration
 
 	// Node ID is a unique ID for this node across space and time. Defaults
 	// to a randomly-generated ID that persists in the data-dir.
@@ -877,6 +930,22 @@ type RuntimeConfig struct {
 	// hcl: primary_datacenter = string
 	PrimaryDatacenter string
 
+	// PrimaryGateways is a list of addresses and/or go-discover expressions to
+	// discovery the mesh gateways in the primary datacenter. See
+	// https://www.consul.io/docs/agent/options.html#cloud-auto-joining for
+	// details.
+	//
+	// hcl: primary_gateways = []string
+	// flag: -primary-gateway string -primary-gateway string
+	PrimaryGateways []string
+
+	// PrimaryGatewaysInterval specifies the amount of time to wait in between discovery
+	// attempts on agent start. The minimum allowed value is 1 second and
+	// the default is 30s.
+	//
+	// hcl: primary_gateways_interval = "duration"
+	PrimaryGatewaysInterval time.Duration
+
 	// RPCAdvertiseAddr is the TCP address Consul advertises for its RPC endpoint.
 	// By default this is the bind address on the default RPC Server port. If the
 	// advertise address is specified then it is used.
@@ -889,6 +958,15 @@ type RuntimeConfig struct {
 	//
 	// hcl: bind_addr = string ports { server = int }
 	RPCBindAddr *net.TCPAddr
+
+	// RPCHandshakeTimeout is the timeout for reading the initial magic byte on a
+	// new RPC connection. If this is set high it may allow unauthenticated users
+	// to hold connections open arbitrarily long, even when mutual TLS is being
+	// enforced. It may be set to 0 explicitly to disable the timeout but this
+	// should never be used in production. Default is 5 seconds.
+	//
+	// hcl: limits { rpc_handshake_timeout = "duration" }
+	RPCHandshakeTimeout time.Duration
 
 	// RPCHoldTimeout is how long an RPC can be "held" before it is errored.
 	// This is used to paper over a loss of leadership by instead holding RPCs,
@@ -911,6 +989,12 @@ type RuntimeConfig struct {
 	// hcl: limit { rpc_rate = (float64|MaxFloat64) rpc_max_burst = int }
 	RPCRateLimit rate.Limit
 	RPCMaxBurst  int
+
+	// RPCMaxConnsPerClient limits the number of concurrent TCP connections the
+	// RPC server will accept from any single source IP address.
+	//
+	// hcl: limits{ rpc_max_conns_per_client = 100 }
+	RPCMaxConnsPerClient int
 
 	// RPCProtocol is the Consul protocol version to use.
 	//
@@ -977,14 +1061,14 @@ type RuntimeConfig struct {
 	// attempts on agent start. The minimum allowed value is 1 second and
 	// the default is 30s.
 	//
-	// hcl: retry_join = "duration"
+	// hcl: retry_interval = "duration"
 	RetryJoinIntervalLAN time.Duration
 
 	// RetryJoinIntervalWAN specifies the amount of time to wait in between join
 	// attempts on agent start. The minimum allowed value is 1 second and
 	// the default is 30s.
 	//
-	// hcl: retry_join_wan = "duration"
+	// hcl: retry_interval_wan = "duration"
 	RetryJoinIntervalWAN time.Duration
 
 	// RetryJoinLAN is a list of addresses and/or go-discover expressions to
@@ -1328,28 +1412,16 @@ type RuntimeConfig struct {
 	//
 	// The values should be a list of the following values:
 	//
-	//   TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
-	//   TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
-	//   TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
-	//   TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
-	//   TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-	//   TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
-	//   TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
-	//   TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
-	//   TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
 	//   TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
-	//   TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+	//   TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+	//   TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
 	//   TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
-	//   TLS_RSA_WITH_AES_128_GCM_SHA256
-	//   TLS_RSA_WITH_AES_256_GCM_SHA384
-	//   TLS_RSA_WITH_AES_128_CBC_SHA256
-	//   TLS_RSA_WITH_AES_128_CBC_SHA
-	//   TLS_RSA_WITH_AES_256_CBC_SHA
-	//   TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA
-	//   TLS_RSA_WITH_3DES_EDE_CBC_SHA
-	//   TLS_RSA_WITH_RC4_128_SHA
-	//   TLS_ECDHE_RSA_WITH_RC4_128_SHA
-	//   TLS_ECDHE_ECDSA_WITH_RC4_128_SHA
+	//   TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+	//   TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+	//   TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+	//   TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+	//   TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+	//   TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
 	//
 	// todo(fs): IMHO, we should also support the raw 0xNNNN values from
 	// todo(fs): https://golang.org/pkg/crypto/tls/#pkg-constants
@@ -1359,7 +1431,8 @@ type RuntimeConfig struct {
 	TLSCipherSuites []uint16
 
 	// TLSMinVersion is used to set the minimum TLS version used for TLS
-	// connections. Should be either "tls10", "tls11", or "tls12".
+	// connections. Should be either "tls10", "tls11", "tls12" or "tls13".
+	// Defaults to tls12.
 	//
 	// hcl: tls_min_version = string
 	TLSMinVersion string
@@ -1386,6 +1459,12 @@ type RuntimeConfig struct {
 	//
 	// hcl: translate_wan_addrs = (true|false)
 	TranslateWANAddrs bool
+
+	// TxnMaxReqLen configures the upper limit for the size (in bytes) of the
+	// incoming request bodies for transactions to the /txn endpoint.
+	//
+	// hcl: limits { txn_max_req_len = uint64 }
+	TxnMaxReqLen uint64
 
 	// UIDir is the directory containing the Web UI resources.
 	// If provided, the UI endpoints will be enabled.
@@ -1472,6 +1551,8 @@ type RuntimeConfig struct {
 	// ]
 	//
 	Watches []map[string]interface{}
+
+	EnterpriseRuntimeConfig
 }
 
 func (c *RuntimeConfig) apiAddresses(maxPerType int) (unixAddrs, httpAddrs, httpsAddrs []string) {
@@ -1712,7 +1793,7 @@ func sanitize(name string, v reflect.Value) reflect.Value {
 		return reflect.ValueOf(m)
 
 	case isArray(typ) || isSlice(typ):
-		ma := make([]interface{}, 0)
+		ma := make([]interface{}, 0, v.Len())
 		for i := 0; i < v.Len(); i++ {
 			ma = append(ma, sanitize(fmt.Sprintf("%s[%d]", name, i), v.Index(i)).Interface())
 		}

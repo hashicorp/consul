@@ -1,4 +1,12 @@
-import { create, clickable, is, attribute, collection, text } from 'ember-cli-page-object';
+import {
+  create,
+  clickable,
+  is,
+  attribute,
+  collection,
+  text,
+  isPresent,
+} from 'ember-cli-page-object';
 import { alias } from 'ember-cli-page-object/macros';
 import { visitable } from 'consul-ui/tests/lib/page-object/visitable';
 import createDeletable from 'consul-ui/tests/lib/page-object/createDeletable';
@@ -40,6 +48,8 @@ import tokens from 'consul-ui/tests/pages/dc/acls/tokens/index';
 import token from 'consul-ui/tests/pages/dc/acls/tokens/edit';
 import intentions from 'consul-ui/tests/pages/dc/intentions/index';
 import intention from 'consul-ui/tests/pages/dc/intentions/edit';
+import nspaces from 'consul-ui/tests/pages/dc/nspaces/index';
+import nspace from 'consul-ui/tests/pages/dc/nspaces/edit';
 
 const deletable = createDeletable(clickable);
 const submitable = createSubmitable(clickable, is);
@@ -57,8 +67,10 @@ const roleSelector = roleSelectorFactory(clickable, deletable, collection, alias
 export default {
   index: create(index(visitable, collection)),
   dcs: create(dcs(visitable, clickable, attribute, collection)),
-  services: create(services(visitable, clickable, attribute, collection, page, catalogFilter)),
-  service: create(service(visitable, attribute, collection, text, catalogFilter)),
+  services: create(
+    services(visitable, clickable, attribute, collection, page, catalogFilter, radiogroup)
+  ),
+  service: create(service(visitable, attribute, collection, text, catalogFilter, radiogroup)),
   instance: create(instance(visitable, attribute, collection, text, radiogroup)),
   nodes: create(nodes(visitable, clickable, attribute, collection, catalogFilter)),
   node: create(node(visitable, deletable, clickable, attribute, collection, radiogroup)),
@@ -104,5 +116,11 @@ export default {
     intentions(visitable, deletable, creatable, clickable, attribute, collection, intentionFilter)
   ),
   intention: create(intention(visitable, submitable, deletable, cancelable)),
-  settings: create(settings(visitable, submitable)),
+  nspaces: create(
+    nspaces(visitable, deletable, creatable, clickable, attribute, collection, text, freetextFilter)
+  ),
+  nspace: create(
+    nspace(visitable, submitable, deletable, cancelable, policySelector, roleSelector)
+  ),
+  settings: create(settings(visitable, submitable, isPresent)),
 };

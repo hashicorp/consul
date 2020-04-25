@@ -3,21 +3,25 @@ layout: "docs"
 page_title: "Install Consul"
 sidebar_current: "docs-install-install"
 description: |-
-  Installing Consul is simple. You can download a precompiled binary or compile
-  from source. This page details both methods.
+  Installing Consul is simple. You can download a precompiled binary, compile
+  from source or run on Kubernetes. This page details these methods.
 ---
 
 # Install Consul
 
-Installing Consul is simple. There are two approaches to installing Consul:
+Installing Consul is simple. There are three approaches to installing Consul:
 
 1. Using a [precompiled binary](#precompiled-binaries)
 
 1. Installing [from source](#compiling-from-source)
 
+1. Installing [on Kubernetes](/docs/platform/k8s/run.html)
+
 Downloading a precompiled binary is easiest, and we provide downloads over TLS
 along with SHA256 sums to verify the binary. We also distribute a PGP signature
 with the SHA256 sums that can be verified.
+
+The [Getting Started guides](https://learn.hashicorp.com/consul/getting-started/install?utm_source=consul.io&utm_medium=docs) provide a quick walkthrough of installing and using Consul on your local machine.
 
 ## Precompiled Binaries
 
@@ -31,6 +35,7 @@ additional files, if any, aren't required to run Consul.
 
 Copy the binary to anywhere on your system. If you intend to access it from the
 command-line, make sure to place it somewhere on your `PATH`.
+
 
 ## Compiling from Source
 

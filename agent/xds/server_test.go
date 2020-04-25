@@ -3,8 +3,6 @@ package xds
 import (
 	"context"
 	"errors"
-	"log"
-	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -21,41 +19,43 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 // testManager is a mock of proxycfg.Manager that's simpler to control for
 // testing. It also implements ConnectAuthz to allow control over authorization.
 type testManager struct {
 	sync.Mutex
-	chans   map[string]chan *proxycfg.ConfigSnapshot
-	cancels chan string
+	chans   map[structs.ServiceID]chan *proxycfg.ConfigSnapshot
+	cancels chan structs.ServiceID
 	authz   map[string]connectAuthzResult
 }
 
 type connectAuthzResult struct {
-	authz  bool
-	reason string
-	m      *cache.ResultMeta
-	err    error
+	authz    bool
+	reason   string
+	m        *cache.ResultMeta
+	err      error
+	validate func(req *structs.ConnectAuthorizeRequest) error
 }
 
 func newTestManager(t *testing.T) *testManager {
 	return &testManager{
-		chans:   map[string]chan *proxycfg.ConfigSnapshot{},
-		cancels: make(chan string, 10),
+		chans:   map[structs.ServiceID]chan *proxycfg.ConfigSnapshot{},
+		cancels: make(chan structs.ServiceID, 10),
 		authz:   make(map[string]connectAuthzResult),
 	}
 }
 
 // RegisterProxy simulates a proxy registration
-func (m *testManager) RegisterProxy(t *testing.T, proxyID string) {
+func (m *testManager) RegisterProxy(t *testing.T, proxyID structs.ServiceID) {
 	m.Lock()
 	defer m.Unlock()
 	m.chans[proxyID] = make(chan *proxycfg.ConfigSnapshot, 1)
 }
 
 // Deliver simulates a proxy registration
-func (m *testManager) DeliverConfig(t *testing.T, proxyID string, cfg *proxycfg.ConfigSnapshot) {
+func (m *testManager) DeliverConfig(t *testing.T, proxyID structs.ServiceID, cfg *proxycfg.ConfigSnapshot) {
 	t.Helper()
 	m.Lock()
 	defer m.Unlock()
@@ -67,7 +67,7 @@ func (m *testManager) DeliverConfig(t *testing.T, proxyID string, cfg *proxycfg.
 }
 
 // Watch implements ConfigManager
-func (m *testManager) Watch(proxyID string) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc) {
+func (m *testManager) Watch(proxyID structs.ServiceID) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc) {
 	m.Lock()
 	defer m.Unlock()
 	// ch might be nil but then it will just block forever
@@ -81,7 +81,7 @@ func (m *testManager) Watch(proxyID string) (<-chan *proxycfg.ConfigSnapshot, pr
 // probably won't work if you are running multiple Watches in parallel on
 // multiple proxyIDS due to timing/ordering issues but I don't think we need to
 // do that.
-func (m *testManager) AssertWatchCancelled(t *testing.T, proxyID string) {
+func (m *testManager) AssertWatchCancelled(t *testing.T, proxyID structs.ServiceID) {
 	t.Helper()
 	select {
 	case got := <-m.cancels:
@@ -96,6 +96,11 @@ func (m *testManager) ConnectAuthorize(token string, req *structs.ConnectAuthori
 	m.Lock()
 	defer m.Unlock()
 	if res, ok := m.authz[token]; ok {
+		if res.validate != nil {
+			if err := res.validate(req); err != nil {
+				return false, "", nil, err
+			}
+		}
 		return res.authz, res.reason, res.m, res.err
 	}
 	// Default allow but with reason that won't match by accident in a test case
@@ -103,7 +108,7 @@ func (m *testManager) ConnectAuthorize(token string, req *structs.ConnectAuthori
 }
 
 func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
-	logger := log.New(os.Stderr, "", log.LstdFlags)
+	logger := testutil.Logger(t)
 	mgr := newTestManager(t)
 	aclResolve := func(id string) (acl.Authorizer, error) {
 		// Allow all
@@ -120,13 +125,15 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	}
 	s.Initialize()
 
+	sid := structs.NewServiceID("web-sidecar-proxy", nil)
+
 	go func() {
 		err := s.StreamAggregatedResources(envoy.stream)
 		require.NoError(t, err)
 	}()
 
 	// Register the proxy to create state needed to Watch() on
-	mgr.RegisterProxy(t, "web-sidecar-proxy")
+	mgr.RegisterProxy(t, sid)
 
 	// Send initial cluster discover
 	envoy.SendReq(t, ClusterType, 0, 0)
@@ -136,7 +143,7 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 
 	// Deliver a new snapshot
 	snap := proxycfg.TestConfigSnapshot(t)
-	mgr.DeliverConfig(t, "web-sidecar-proxy", snap)
+	mgr.DeliverConfig(t, sid, snap)
 
 	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(t, snap, "", 1, 1))
 
@@ -179,7 +186,7 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	// doesn't know _what_ changed. We could do something trivial but let's
 	// simulate a leaf cert expiring and being rotated.
 	snap.ConnectProxy.Leaf = proxycfg.TestLeafForCA(t, snap.Roots.Roots[0])
-	mgr.DeliverConfig(t, "web-sidecar-proxy", snap)
+	mgr.DeliverConfig(t, sid, snap)
 
 	// All 3 response that have something to return should return with new version
 	// note that the ordering is not deterministic in general. Trying to make this
@@ -223,7 +230,7 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 
 	// Change config again and make sure it's delivered to everyone!
 	snap.ConnectProxy.Leaf = proxycfg.TestLeafForCA(t, snap.Roots.Roots[0])
-	mgr.DeliverConfig(t, "web-sidecar-proxy", snap)
+	mgr.DeliverConfig(t, sid, snap)
 
 	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(t, snap, "", 3, 7))
 	assertResponseSent(t, envoy.stream.sendCh, expectEndpointsJSON(t, snap, "", 3, 8))
@@ -337,10 +344,10 @@ func expectedTLSContextJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, require
 			"tlsCertificates": [
 				{
 					"certificateChain": {
-						"inlineString": "` + strings.Replace(snap.ConnectProxy.Leaf.CertPEM, "\n", "\\n", -1) + `"
+						"inlineString": "` + strings.Replace(snap.Leaf().CertPEM, "\n", "\\n", -1) + `"
 					},
 					"privateKey": {
-						"inlineString": "` + strings.Replace(snap.ConnectProxy.Leaf.PrivateKeyPEM, "\n", "\\n", -1) + `"
+						"inlineString": "` + strings.Replace(snap.Leaf().PrivateKeyPEM, "\n", "\\n", -1) + `"
 					}
 				}
 			],
@@ -393,6 +400,7 @@ func TestServer_StreamAggregatedResources_ACLEnforcement(t *testing.T) {
 		acl         string
 		token       string
 		wantDenied  bool
+		cfgSnap     *proxycfg.ConfigSnapshot
 	}{
 		// Note that although we've stubbed actual ACL checks in the testManager
 		// ConnectAuthorize mock, by asserting against specific reason strings here
@@ -430,11 +438,19 @@ func TestServer_StreamAggregatedResources_ACLEnforcement(t *testing.T) {
 			token:       "service-write-on-not-web",
 			wantDenied:  true,
 		},
+		{
+			name:        "ingress default deny, write token on different service",
+			defaultDeny: true,
+			acl:         `service "not-ingress" { policy = "write" }`,
+			token:       "service-write-on-not-ingress",
+			wantDenied:  true,
+			cfgSnap:     proxycfg.TestConfigSnapshotIngressGateway(t),
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			logger := log.New(os.Stderr, "", log.LstdFlags)
+			logger := testutil.Logger(t)
 			mgr := newTestManager(t)
 			aclResolve := func(id string) (acl.Authorizer, error) {
 				if !tt.defaultDeny {
@@ -448,9 +464,9 @@ func TestServer_StreamAggregatedResources_ACLEnforcement(t *testing.T) {
 				// Ensure the correct token was passed
 				require.Equal(t, tt.token, id)
 				// Parse the ACL and enforce it
-				policy, err := acl.NewPolicyFromSource("", 0, tt.acl, acl.SyntaxLegacy, nil)
+				policy, err := acl.NewPolicyFromSource("", 0, tt.acl, acl.SyntaxLegacy, nil, nil)
 				require.NoError(t, err)
-				return acl.NewPolicyAuthorizer(acl.RootAuthorizer("deny"), []*acl.Policy{policy}, nil)
+				return acl.NewPolicyAuthorizerWithDefaults(acl.RootAuthorizer("deny"), []*acl.Policy{policy}, nil)
 			}
 			envoy := NewTestEnvoy(t, "web-sidecar-proxy", tt.token)
 			defer envoy.Close()
@@ -468,12 +484,16 @@ func TestServer_StreamAggregatedResources_ACLEnforcement(t *testing.T) {
 				errCh <- s.StreamAggregatedResources(envoy.stream)
 			}()
 
+			sid := structs.NewServiceID("web-sidecar-proxy", nil)
 			// Register the proxy to create state needed to Watch() on
-			mgr.RegisterProxy(t, "web-sidecar-proxy")
+			mgr.RegisterProxy(t, sid)
 
 			// Deliver a new snapshot
-			snap := proxycfg.TestConfigSnapshot(t)
-			mgr.DeliverConfig(t, "web-sidecar-proxy", snap)
+			snap := tt.cfgSnap
+			if snap == nil {
+				snap = proxycfg.TestConfigSnapshot(t)
+			}
+			mgr.DeliverConfig(t, sid, snap)
 
 			// Send initial listener discover, in real life Envoy always sends cluster
 			// first but it doesn't really matter and listener has a response that
@@ -493,7 +513,7 @@ func TestServer_StreamAggregatedResources_ACLEnforcement(t *testing.T) {
 				if tt.wantDenied {
 					require.Error(t, err)
 					require.Contains(t, err.Error(), "permission denied")
-					mgr.AssertWatchCancelled(t, "web-sidecar-proxy")
+					mgr.AssertWatchCancelled(t, sid)
 				} else {
 					require.NoError(t, err)
 				}
@@ -508,20 +528,20 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedDuring
 	aclRules := `service "web" { policy = "write" }`
 	token := "service-write-on-web"
 
-	policy, err := acl.NewPolicyFromSource("", 0, aclRules, acl.SyntaxLegacy, nil)
+	policy, err := acl.NewPolicyFromSource("", 0, aclRules, acl.SyntaxLegacy, nil, nil)
 	require.NoError(t, err)
 
 	var validToken atomic.Value
 	validToken.Store(token)
 
-	logger := log.New(os.Stderr, "", log.LstdFlags)
+	logger := testutil.Logger(t)
 	mgr := newTestManager(t)
 	aclResolve := func(id string) (acl.Authorizer, error) {
 		if token := validToken.Load(); token == nil || id != token.(string) {
 			return nil, acl.ErrNotFound
 		}
 
-		return acl.NewPolicyAuthorizer(acl.RootAuthorizer("deny"), []*acl.Policy{policy}, nil)
+		return acl.NewPolicyAuthorizerWithDefaults(acl.RootAuthorizer("deny"), []*acl.Policy{policy}, nil)
 	}
 	envoy := NewTestEnvoy(t, "web-sidecar-proxy", token)
 	defer envoy.Close()
@@ -549,8 +569,9 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedDuring
 		}
 	}
 
+	sid := structs.NewServiceID("web-sidecar-proxy", nil)
 	// Register the proxy to create state needed to Watch() on
-	mgr.RegisterProxy(t, "web-sidecar-proxy")
+	mgr.RegisterProxy(t, sid)
 
 	// Send initial cluster discover (OK)
 	envoy.SendReq(t, ClusterType, 0, 0)
@@ -570,7 +591,7 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedDuring
 
 	// Deliver a new snapshot
 	snap := proxycfg.TestConfigSnapshot(t)
-	mgr.DeliverConfig(t, "web-sidecar-proxy", snap)
+	mgr.DeliverConfig(t, sid, snap)
 
 	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(t, snap, token, 1, 1))
 
@@ -589,7 +610,7 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedDuring
 		require.Equal(t, codes.Unauthenticated, gerr.Code())
 		require.Equal(t, "unauthenticated: ACL not found", gerr.Message())
 
-		mgr.AssertWatchCancelled(t, "web-sidecar-proxy")
+		mgr.AssertWatchCancelled(t, sid)
 	case <-time.After(50 * time.Millisecond):
 		t.Fatalf("timed out waiting for handler to finish")
 	}
@@ -599,20 +620,20 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedInBack
 	aclRules := `service "web" { policy = "write" }`
 	token := "service-write-on-web"
 
-	policy, err := acl.NewPolicyFromSource("", 0, aclRules, acl.SyntaxLegacy, nil)
+	policy, err := acl.NewPolicyFromSource("", 0, aclRules, acl.SyntaxLegacy, nil, nil)
 	require.NoError(t, err)
 
 	var validToken atomic.Value
 	validToken.Store(token)
 
-	logger := log.New(os.Stderr, "", log.LstdFlags)
+	logger := testutil.Logger(t)
 	mgr := newTestManager(t)
 	aclResolve := func(id string) (acl.Authorizer, error) {
 		if token := validToken.Load(); token == nil || id != token.(string) {
 			return nil, acl.ErrNotFound
 		}
 
-		return acl.NewPolicyAuthorizer(acl.RootAuthorizer("deny"), []*acl.Policy{policy}, nil)
+		return acl.NewPolicyAuthorizerWithDefaults(acl.RootAuthorizer("deny"), []*acl.Policy{policy}, nil)
 	}
 	envoy := NewTestEnvoy(t, "web-sidecar-proxy", token)
 	defer envoy.Close()
@@ -640,8 +661,9 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedInBack
 		}
 	}
 
+	sid := structs.NewServiceID("web-sidecar-proxy", nil)
 	// Register the proxy to create state needed to Watch() on
-	mgr.RegisterProxy(t, "web-sidecar-proxy")
+	mgr.RegisterProxy(t, sid)
 
 	// Send initial cluster discover (OK)
 	envoy.SendReq(t, ClusterType, 0, 0)
@@ -661,7 +683,7 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedInBack
 
 	// Deliver a new snapshot
 	snap := proxycfg.TestConfigSnapshot(t)
-	mgr.DeliverConfig(t, "web-sidecar-proxy", snap)
+	mgr.DeliverConfig(t, sid, snap)
 
 	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(t, snap, token, 1, 1))
 
@@ -688,7 +710,7 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedInBack
 		require.Equal(t, codes.Unauthenticated, gerr.Code())
 		require.Equal(t, "unauthenticated: ACL not found", gerr.Message())
 
-		mgr.AssertWatchCancelled(t, "web-sidecar-proxy")
+		mgr.AssertWatchCancelled(t, sid)
 	case <-time.After(200 * time.Millisecond):
 		t.Fatalf("timed out waiting for handler to finish")
 	}
@@ -713,7 +735,7 @@ func TestServer_Check(t *testing.T) {
 			name:        "auth allowed",
 			source:      "web",
 			dest:        "db",
-			authzResult: connectAuthzResult{true, "default allow", nil, nil},
+			authzResult: connectAuthzResult{true, "default allow", nil, nil, nil},
 			wantDenied:  false,
 			wantReason:  "default allow",
 		},
@@ -721,7 +743,7 @@ func TestServer_Check(t *testing.T) {
 			name:        "auth denied",
 			source:      "web",
 			dest:        "db",
-			authzResult: connectAuthzResult{false, "default deny", nil, nil},
+			authzResult: connectAuthzResult{false, "default deny", nil, nil, nil},
 			wantDenied:  true,
 			wantReason:  "default deny",
 		},
@@ -761,7 +783,7 @@ func TestServer_Check(t *testing.T) {
 			name:        "ACL not got permission for authz call",
 			source:      "web",
 			dest:        "db",
-			authzResult: connectAuthzResult{false, "", nil, acl.ErrPermissionDenied},
+			authzResult: connectAuthzResult{false, "", nil, acl.ErrPermissionDenied, nil},
 			wantErr:     true,
 			wantErrCode: codes.PermissionDenied,
 		},
@@ -769,7 +791,7 @@ func TestServer_Check(t *testing.T) {
 			name:        "Random error running authz",
 			source:      "web",
 			dest:        "db",
-			authzResult: connectAuthzResult{false, "", nil, errors.New("gremlin attack")},
+			authzResult: connectAuthzResult{false, "", nil, errors.New("gremlin attack"), nil},
 			wantErr:     true,
 			wantErrCode: codes.Internal,
 		},
@@ -778,7 +800,7 @@ func TestServer_Check(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			token := "my-real-acl-token"
-			logger := log.New(os.Stderr, "", log.LstdFlags)
+			logger := testutil.Logger(t)
 			mgr := newTestManager(t)
 
 			// Setup expected auth result against that token no lock as no other

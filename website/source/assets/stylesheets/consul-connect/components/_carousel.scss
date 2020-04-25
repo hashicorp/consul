@@ -90,7 +90,7 @@
 
   .card {
     background: #fff;
-    color: $consul-black;
+    color: $gray-1;
     display: block;
     height: 100%;
     text-align: left;
@@ -152,6 +152,7 @@
 
       span {
         display: inline-block;
+        line-height: 20px;
         position: relative;
 
         &:first-child {
@@ -170,7 +171,6 @@
         }
 
         &:last-child {
-          font-weight: 600;
           margin-top: 16px;
 
           @media (min-width: 650px) {
@@ -203,10 +203,6 @@
         @media (min-width: 650px) {
           margin-top: 32px;
         }
-      }
-
-      p {
-        font-size: 1.6rem;
       }
     }
   }

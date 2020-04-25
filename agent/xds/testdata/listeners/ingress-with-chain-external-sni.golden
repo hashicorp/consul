@@ -1,0 +1,30 @@
+{
+  "versionInfo": "00000001",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.api.v2.Listener",
+      "name": "db:2.3.4.5:9191",
+      "address": {
+        "socketAddress": {
+          "address": "2.3.4.5",
+          "portValue": 9191
+        }
+      },
+      "filterChains": [
+        {
+          "filters": [
+            {
+              "name": "envoy.tcp_proxy",
+              "config": {
+                  "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                  "stat_prefix": "upstream_db_tcp"
+                }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "typeUrl": "type.googleapis.com/envoy.api.v2.Listener",
+  "nonce": "00000001"
+}

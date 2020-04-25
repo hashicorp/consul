@@ -15,7 +15,9 @@
 }
 /* TODO: Add to native selector `tbody th` - will involve moving all
  * current th's to `thead th` and changing the templates
+ * at whichpoint we can probably remove the %table a selector from here
  */
+%table a,
 %tbody-th {
   color: $gray-900;
 }

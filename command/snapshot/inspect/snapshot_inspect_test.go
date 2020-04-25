@@ -3,7 +3,7 @@ package inspect
 import (
 	"io"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -61,14 +61,14 @@ func TestSnapshotInspectCommand_Validation(t *testing.T) {
 
 func TestSnapshotInspectCommand(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
 	dir := testutil.TempDir(t, "snapshot")
 	defer os.RemoveAll(dir)
 
-	file := path.Join(dir, "backup.tgz")
+	file := filepath.Join(dir, "backup.tgz")
 
 	// Save a snapshot of the current Consul state
 	f, err := os.Create(file)

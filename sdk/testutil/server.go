@@ -22,6 +22,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -211,10 +212,18 @@ type TestServer struct {
 	tmpdir string
 }
 
-// NewTestServer is an easy helper method to create a new Consul
-// test server with the most basic configuration.
+// Deprecated: Use NewTestServerT instead.
 func NewTestServer() (*TestServer, error) {
 	return NewTestServerConfigT(nil, nil)
+}
+
+// NewTestServerT is an easy helper method to create a new Consul
+// test server with the most basic configuration.
+func NewTestServerT(t *testing.T) (*TestServer, error) {
+	if t == nil {
+		return nil, errors.New("testutil: a non-nil *testing.T is required")
+	}
+	return NewTestServerConfigT(t, nil)
 }
 
 func NewTestServerConfig(cb ServerConfigCallback) (*TestServer, error) {
@@ -342,8 +351,14 @@ func (s *TestServer) Stop() error {
 	}
 
 	if s.cmd.Process != nil {
-		if err := s.cmd.Process.Signal(os.Interrupt); err != nil {
-			return errors.Wrap(err, "failed to kill consul server")
+		if runtime.GOOS == "windows" {
+			if err := s.cmd.Process.Kill(); err != nil {
+				return errors.Wrap(err, "failed to kill consul server")
+			}
+		} else { // interrupt is not supported in windows
+			if err := s.cmd.Process.Signal(os.Interrupt); err != nil {
+				return errors.Wrap(err, "failed to kill consul server")
+			}
 		}
 	}
 
@@ -411,6 +426,45 @@ func (s *TestServer) WaitForLeader(t *testing.T) {
 		}
 		if index < 2 {
 			r.Fatal("consul index should be at least 2")
+		}
+	})
+}
+
+// WaitForActiveCARoot waits until the server can return a Connect CA meaning
+// connect has completed bootstrapping and is ready to use.
+func (s *TestServer) WaitForActiveCARoot(t *testing.T) {
+	// don't need to fully decode the response
+	type rootsResponse struct {
+		ActiveRootID string
+		TrustDomain  string
+		Roots        []interface{}
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		// Query the API and check the status code.
+		url := s.url("/v1/agent/connect/ca/roots")
+		resp, err := s.HTTPClient.Get(url)
+		if err != nil {
+			r.Fatalf("failed http get '%s': %v", url, err)
+		}
+		defer resp.Body.Close()
+		// Roots will return an error status until it's been bootstrapped. We could
+		// parse the body and sanity check but that causes either import cycles
+		// since this is used in both `api` and consul test or duplication. The 200
+		// is all we really need to wait for.
+		if err := s.requireOK(resp); err != nil {
+			r.Fatal("failed OK response", err)
+		}
+
+		var roots rootsResponse
+
+		dec := json.NewDecoder(resp.Body)
+		if err := dec.Decode(&roots); err != nil {
+			r.Fatal(err)
+		}
+
+		if roots.ActiveRootID == "" || len(roots.Roots) < 1 {
+			r.Fatalf("/v1/agent/connect/ca/roots returned 200 but without roots: %+v", roots)
 		}
 	})
 }

@@ -12,6 +12,7 @@ const IntentionMatchName = "intention-match"
 
 // IntentionMatch supports fetching the intentions via match queries.
 type IntentionMatch struct {
+	RegisterOptionsBlockingRefresh
 	RPC RPC
 }
 
@@ -42,8 +43,4 @@ func (c *IntentionMatch) Fetch(opts cache.FetchOptions, req cache.Request) (cach
 	result.Value = &reply
 	result.Index = reply.Index
 	return result, nil
-}
-
-func (c *IntentionMatch) SupportsBlocking() bool {
-	return true
 }

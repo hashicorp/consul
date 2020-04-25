@@ -17,12 +17,17 @@ this is `USR1` while on Windows it is `BREAK`. Once Consul receives the signal,
 it will dump the current telemetry information to the agent's `stderr`.
 
 This telemetry information can be used for debugging or otherwise
-getting a better view of what Consul is doing.
+getting a better view of what Consul is doing. Review the [Monitoring and
+Metrics guide](https://learn.hashicorp.com/consul/day-2-operations/monitoring?utm_source=consul.io&utm_medium=docs) to learn how collect and interpret Consul data.
 
 Additionally, if the [`telemetry` configuration options](/docs/agent/options.html#telemetry)
 are provided, the telemetry information will be streamed to a
 [statsite](http://github.com/armon/statsite) or [statsd](http://github.com/etsy/statsd) server where
-it can be aggregated and flushed to Graphite or any other metrics store. This
+it can be aggregated and flushed to Graphite or any other metrics store. 
+For a configuration example for Telegraf, review the [Monitoring with Telegraf guide](https://learn.hashicorp.com/consul/integrations/telegraf?utm_source=consul.io&utm_medium=docs). 
+
+
+This
 information can also be viewed with the [metrics endpoint](/api/agent.html#view-metrics) in JSON
 format or using [Prometheus](https://prometheus.io/) format.
 
@@ -145,7 +150,7 @@ This is a full list of metrics emitted by Consul.
     <td>counter</td>
   </tr>
   <tr>
-    <td>`consul.acl.blocked.&lt;check|node|service&gt;.registration`</td>
+    <td>`consul.acl.blocked.<check|node|service>.registration`</td>
     <td>This increments whenever a registration fails for an entity (check, node or service) is blocked by an ACL</td>
     <td>requests</td>
     <td>counter</td>
@@ -760,9 +765,15 @@ These metrics are used to monitor the health of the Consul servers.
   </tr>
   <tr>
     <td>`consul.rpc.query`</td>
-    <td>This increments when a server sends a (potentially blocking) RPC query.</td>
+    <td>This increments when a server receives a new blocking RPC request, indicating the rate of new blocking query calls. See consul.rpc.queries_blocking for the current number of in-flight blocking RPC calls. This metric changed in 1.7.0 to only increment on the the start of a query. The rate of queries will appear lower, but is more accurate.</td>
     <td>queries</td>
     <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.rpc.queries_blocking`</td>
+    <td>This shows the current number of in-flight blocking queries the server is handling.</td>
+    <td>queries</td>
+    <td>gauge</td>
   </tr>
   <tr>
     <td>`consul.rpc.cross-dc`</td>

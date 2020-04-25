@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 )
 
 // aclCreateResponse is used to wrap the ACL ID
@@ -110,7 +110,7 @@ func (s *HTTPServer) ACLRulesTranslate(resp http.ResponseWriter, req *http.Reque
 	}
 	// Should this require lesser permissions? Really the only reason to require authorization at all is
 	// to prevent external entities from DoS Consul with repeated rule translation requests
-	if rule != nil && !rule.ACLRead() {
+	if rule != nil && rule.ACLRead(nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -186,6 +186,9 @@ func (s *HTTPServer) ACLPolicyList(resp http.ResponseWriter, req *http.Request) 
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 
 	if args.Datacenter == "" {
 		args.Datacenter = s.agent.config.Datacenter
@@ -214,7 +217,7 @@ func (s *HTTPServer) ACLPolicyCRUD(resp http.ResponseWriter, req *http.Request) 
 
 	switch req.Method {
 	case "GET":
-		fn = s.ACLPolicyRead
+		fn = s.ACLPolicyReadByID
 
 	case "PUT":
 		fn = s.ACLPolicyWrite
@@ -234,13 +237,18 @@ func (s *HTTPServer) ACLPolicyCRUD(resp http.ResponseWriter, req *http.Request) 
 	return fn(resp, req, policyID)
 }
 
-func (s *HTTPServer) ACLPolicyRead(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error) {
+func (s *HTTPServer) ACLPolicyRead(resp http.ResponseWriter, req *http.Request, policyID, policyName string) (interface{}, error) {
 	args := structs.ACLPolicyGetRequest{
 		Datacenter: s.agent.config.Datacenter,
 		PolicyID:   policyID,
+		PolicyName: policyName,
 	}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
+	}
+
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
 	}
 
 	if args.Datacenter == "" {
@@ -261,59 +269,29 @@ func (s *HTTPServer) ACLPolicyRead(resp http.ResponseWriter, req *http.Request, 
 	return out.Policy, nil
 }
 
+func (s *HTTPServer) ACLPolicyReadByName(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if s.checkACLDisabled(resp, req) {
+		return nil, nil
+	}
+
+	policyName := strings.TrimPrefix(req.URL.Path, "/v1/acl/policy/name/")
+	if policyName == "" {
+		return nil, BadRequestError{Reason: "Missing policy Name"}
+	}
+
+	return s.ACLPolicyRead(resp, req, "", policyName)
+}
+
+func (s *HTTPServer) ACLPolicyReadByID(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error) {
+	return s.ACLPolicyRead(resp, req, policyID, "")
+}
+
 func (s *HTTPServer) ACLPolicyCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
 
 	return s.aclPolicyWriteInternal(resp, req, "", true)
-}
-
-// fixTimeAndHashFields is used to help in decoding the ExpirationTTL, ExpirationTime, CreateTime, and Hash
-// attributes from the ACL Token/Policy create/update requests. It is needed
-// to help mapstructure decode things properly when decodeBody is used.
-func fixTimeAndHashFields(raw interface{}) error {
-	rawMap, ok := raw.(map[string]interface{})
-	if !ok {
-		return nil
-	}
-
-	if val, ok := rawMap["ExpirationTTL"]; ok {
-		if sval, ok := val.(string); ok {
-			d, err := time.ParseDuration(sval)
-			if err != nil {
-				return err
-			}
-			rawMap["ExpirationTTL"] = d
-		}
-	}
-
-	if val, ok := rawMap["ExpirationTime"]; ok {
-		if sval, ok := val.(string); ok {
-			t, err := time.Parse(time.RFC3339, sval)
-			if err != nil {
-				return err
-			}
-			rawMap["ExpirationTime"] = t
-		}
-	}
-
-	if val, ok := rawMap["CreateTime"]; ok {
-		if sval, ok := val.(string); ok {
-			t, err := time.Parse(time.RFC3339, sval)
-			if err != nil {
-				return err
-			}
-			rawMap["CreateTime"] = t
-		}
-	}
-
-	if val, ok := rawMap["Hash"]; ok {
-		if sval, ok := val.(string); ok {
-			rawMap["Hash"] = []byte(sval)
-		}
-	}
-	return nil
 }
 
 func (s *HTTPServer) ACLPolicyWrite(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error) {
@@ -325,8 +303,11 @@ func (s *HTTPServer) aclPolicyWriteInternal(resp http.ResponseWriter, req *http.
 		Datacenter: s.agent.config.Datacenter,
 	}
 	s.parseToken(req, &args.Token)
+	if err := s.parseEntMeta(req, &args.Policy.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 
-	if err := decodeBody(req, &args.Policy, fixTimeAndHashFields); err != nil {
+	if err := s.rewordUnknownEnterpriseFieldError(lib.DecodeJSON(req.Body, &args.Policy)); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Policy decoding failed: %v", err)}
 	}
 
@@ -358,6 +339,9 @@ func (s *HTTPServer) ACLPolicyDelete(resp http.ResponseWriter, req *http.Request
 		PolicyID:   policyID,
 	}
 	s.parseToken(req, &args.Token)
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 
 	var ignored string
 	if err := s.agent.RPC("ACL.PolicyDelete", args, &ignored); err != nil {
@@ -380,6 +364,10 @@ func (s *HTTPServer) ACLTokenList(resp http.ResponseWriter, req *http.Request) (
 		return nil, nil
 	}
 
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
+
 	if args.Datacenter == "" {
 		args.Datacenter = s.agent.config.Datacenter
 	}
@@ -387,6 +375,9 @@ func (s *HTTPServer) ACLTokenList(resp http.ResponseWriter, req *http.Request) (
 	args.Policy = req.URL.Query().Get("policy")
 	args.Role = req.URL.Query().Get("role")
 	args.AuthMethod = req.URL.Query().Get("authmethod")
+	if err := parseACLAuthMethodEnterpriseMeta(req, &args.ACLAuthMethodEnterpriseMeta); err != nil {
+		return nil, err
+	}
 
 	var out structs.ACLTokenListResponse
 	defer setMeta(resp, &out.QueryMeta)
@@ -482,6 +473,10 @@ func (s *HTTPServer) ACLTokenGet(resp http.ResponseWriter, req *http.Request, to
 		return nil, nil
 	}
 
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
+
 	if args.Datacenter == "" {
 		args.Datacenter = s.agent.config.Datacenter
 	}
@@ -509,8 +504,11 @@ func (s *HTTPServer) aclTokenSetInternal(resp http.ResponseWriter, req *http.Req
 		Create:     create,
 	}
 	s.parseToken(req, &args.Token)
+	if err := s.parseEntMeta(req, &args.ACLToken.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 
-	if err := decodeBody(req, &args.ACLToken, fixTimeAndHashFields); err != nil {
+	if err := s.rewordUnknownEnterpriseFieldError(lib.DecodeJSON(req.Body, &args.ACLToken)); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Token decoding failed: %v", err)}
 	}
 
@@ -536,6 +534,9 @@ func (s *HTTPServer) ACLTokenDelete(resp http.ResponseWriter, req *http.Request,
 		TokenID:    tokenID,
 	}
 	s.parseToken(req, &args.Token)
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 
 	var ignored string
 	if err := s.agent.RPC("ACL.TokenDelete", args, &ignored); err != nil {
@@ -554,7 +555,10 @@ func (s *HTTPServer) ACLTokenClone(resp http.ResponseWriter, req *http.Request, 
 		Create:     true,
 	}
 
-	if err := decodeBody(req, &args.ACLToken, fixTimeAndHashFields); err != nil && err.Error() != "EOF" {
+	if err := s.parseEntMeta(req, &args.ACLToken.EnterpriseMeta); err != nil {
+		return nil, err
+	}
+	if err := s.rewordUnknownEnterpriseFieldError(lib.DecodeJSON(req.Body, &args.ACLToken)); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Token decoding failed: %v", err)}
 	}
 	s.parseToken(req, &args.Token)
@@ -578,6 +582,9 @@ func (s *HTTPServer) ACLRoleList(resp http.ResponseWriter, req *http.Request) (i
 	var args structs.ACLRoleListRequest
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
+	}
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
 	}
 
 	if args.Datacenter == "" {
@@ -655,6 +662,9 @@ func (s *HTTPServer) ACLRoleRead(resp http.ResponseWriter, req *http.Request, ro
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 
 	if args.Datacenter == "" {
 		args.Datacenter = s.agent.config.Datacenter
@@ -687,8 +697,11 @@ func (s *HTTPServer) ACLRoleWrite(resp http.ResponseWriter, req *http.Request, r
 		Datacenter: s.agent.config.Datacenter,
 	}
 	s.parseToken(req, &args.Token)
+	if err := s.parseEntMeta(req, &args.Role.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 
-	if err := decodeBody(req, &args.Role, fixTimeAndHashFields); err != nil {
+	if err := s.rewordUnknownEnterpriseFieldError(lib.DecodeJSON(req.Body, &args.Role)); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Role decoding failed: %v", err)}
 	}
 
@@ -712,6 +725,9 @@ func (s *HTTPServer) ACLRoleDelete(resp http.ResponseWriter, req *http.Request, 
 		RoleID:     roleID,
 	}
 	s.parseToken(req, &args.Token)
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 
 	var ignored string
 	if err := s.agent.RPC("ACL.RoleDelete", args, &ignored); err != nil {
@@ -729,6 +745,10 @@ func (s *HTTPServer) ACLBindingRuleList(resp http.ResponseWriter, req *http.Requ
 	var args structs.ACLBindingRuleListRequest
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
+	}
+
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
 	}
 
 	if args.Datacenter == "" {
@@ -789,6 +809,10 @@ func (s *HTTPServer) ACLBindingRuleRead(resp http.ResponseWriter, req *http.Requ
 		return nil, nil
 	}
 
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
+
 	if args.Datacenter == "" {
 		args.Datacenter = s.agent.config.Datacenter
 	}
@@ -820,8 +844,11 @@ func (s *HTTPServer) ACLBindingRuleWrite(resp http.ResponseWriter, req *http.Req
 		Datacenter: s.agent.config.Datacenter,
 	}
 	s.parseToken(req, &args.Token)
+	if err := s.parseEntMeta(req, &args.BindingRule.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 
-	if err := decodeBody(req, &args.BindingRule, fixTimeAndHashFields); err != nil {
+	if err := s.rewordUnknownEnterpriseFieldError(lib.DecodeJSON(req.Body, &args.BindingRule)); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("BindingRule decoding failed: %v", err)}
 	}
 
@@ -845,6 +872,9 @@ func (s *HTTPServer) ACLBindingRuleDelete(resp http.ResponseWriter, req *http.Re
 		BindingRuleID: bindingRuleID,
 	}
 	s.parseToken(req, &args.Token)
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 
 	var ignored bool
 	if err := s.agent.RPC("ACL.BindingRuleDelete", args, &ignored); err != nil {
@@ -862,6 +892,9 @@ func (s *HTTPServer) ACLAuthMethodList(resp http.ResponseWriter, req *http.Reque
 	var args structs.ACLAuthMethodListRequest
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
+	}
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
 	}
 
 	if args.Datacenter == "" {
@@ -919,6 +952,9 @@ func (s *HTTPServer) ACLAuthMethodRead(resp http.ResponseWriter, req *http.Reque
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 
 	if args.Datacenter == "" {
 		args.Datacenter = s.agent.config.Datacenter
@@ -952,8 +988,11 @@ func (s *HTTPServer) ACLAuthMethodWrite(resp http.ResponseWriter, req *http.Requ
 		Datacenter: s.agent.config.Datacenter,
 	}
 	s.parseToken(req, &args.Token)
+	if err := s.parseEntMeta(req, &args.AuthMethod.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 
-	if err := decodeBody(req, &args.AuthMethod, fixTimeAndHashFields); err != nil {
+	if err := s.rewordUnknownEnterpriseFieldError(lib.DecodeJSON(req.Body, &args.AuthMethod)); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("AuthMethod decoding failed: %v", err)}
 	}
 
@@ -980,6 +1019,9 @@ func (s *HTTPServer) ACLAuthMethodDelete(resp http.ResponseWriter, req *http.Req
 		AuthMethodName: methodName,
 	}
 	s.parseToken(req, &args.Token)
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 
 	var ignored bool
 	if err := s.agent.RPC("ACL.AuthMethodDelete", args, &ignored); err != nil {
@@ -996,10 +1038,14 @@ func (s *HTTPServer) ACLLogin(resp http.ResponseWriter, req *http.Request) (inte
 
 	args := &structs.ACLLoginRequest{
 		Datacenter: s.agent.config.Datacenter,
+		Auth:       &structs.ACLLoginParams{},
 	}
 	s.parseDC(req, &args.Datacenter)
+	if err := s.parseEntMeta(req, &args.Auth.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 
-	if err := decodeBody(req, &args.Auth, nil); err != nil {
+	if err := s.rewordUnknownEnterpriseFieldError(lib.DecodeJSON(req.Body, &args.Auth)); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Failed to decode request body:: %v", err)}
 	}
 
@@ -1045,4 +1091,84 @@ func fixupAuthMethodConfig(method *structs.ACLAuthMethod) {
 			method.Config[k] = strVal
 		}
 	}
+}
+
+func (s *HTTPServer) ACLAuthorize(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// At first glance it may appear like this endpoint is going to leak security relevant information.
+	// There are a number of reason why this is okay.
+	//
+	// 1. The authorizations performed here are the same as what would be done if other HTTP APIs
+	//    were used. This is just a way to see if it would be allowed. In the future when we have
+	//    audit logging, these authorization checks will be logged along with those from the real
+	//    endpoints. In that respect, you can figure out if you have access just as easily by
+	//    attempting to perform the requested operation.
+	// 2. In order to use this API you must have a valid ACL token secret.
+	// 3. Along with #2 you can use the ACL.GetPolicy RPC endpoint which will return a rolled up
+	//    set of policy rules showing your tokens effective policy. This RPC endpoint exposes
+	//    more information than this one and has been around since before v1.0.0. With that other
+	//    endpoint you get to see all things possible rather than having to have a list of things
+	//    you may want to do and to request authorizations for each one.
+	// 4. In addition to the legacy ACL.GetPolicy RPC endpoint we have an ACL.PolicyResolve and
+	//    ACL.RoleResolve endpoints. These RPC endpoints allow reading roles and policies so long
+	//    as the token used for the request is linked with them. This is needed to allow client
+	//    agents to pull the policy and roles for a token that they are resolving. The only
+	//    alternative to this style of access would be to make every agent use a token
+	//    with acl:read privileges for all policy and role resolution requests. Once you have
+	//    all the associated policies and roles it would be easy enough to recreate the effective
+	//    policy.
+	const maxRequests = 64
+
+	if s.checkACLDisabled(resp, req) {
+		return nil, nil
+	}
+
+	request := structs.RemoteACLAuthorizationRequest{
+		Datacenter: s.agent.config.Datacenter,
+		QueryOptions: structs.QueryOptions{
+			AllowStale:        true,
+			RequireConsistent: false,
+		},
+	}
+	var responses []structs.ACLAuthorizationResponse
+
+	s.parseToken(req, &request.Token)
+	s.parseDC(req, &request.Datacenter)
+
+	if err := decodeBody(req.Body, &request.Requests); err != nil {
+		return nil, BadRequestError{Reason: fmt.Sprintf("Failed to decode request body: %v", err)}
+	}
+
+	if len(request.Requests) > maxRequests {
+		return nil, BadRequestError{Reason: fmt.Sprintf("Refusing to process more than %d authorizations at once", maxRequests)}
+	}
+
+	if len(request.Requests) == 0 {
+		return make([]structs.ACLAuthorizationResponse, 0), nil
+	}
+
+	if request.Datacenter != "" && request.Datacenter != s.agent.config.Datacenter {
+		// when we are targeting a datacenter other than our own then we must issue an RPC
+		// to perform the resolution as it may involve a local token
+		if err := s.agent.RPC("ACL.Authorize", &request, &responses); err != nil {
+			return nil, err
+		}
+	} else {
+		authz, err := s.agent.resolveToken(request.Token)
+		if err != nil {
+			return nil, err
+		} else if authz == nil {
+			return nil, fmt.Errorf("Failed to initialize authorizer")
+		}
+
+		responses, err = structs.CreateACLAuthorizationResponses(authz, request.Requests)
+		if err != nil {
+			return nil, BadRequestError{Reason: err.Error()}
+		}
+	}
+
+	if responses == nil {
+		responses = make([]structs.ACLAuthorizationResponse, 0)
+	}
+
+	return responses, nil
 }

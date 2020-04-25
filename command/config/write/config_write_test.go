@@ -23,7 +23,7 @@ func TestConfigWrite_noTabs(t *testing.T) {
 func TestConfigWrite(t *testing.T) {
 	t.Parallel()
 
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -242,6 +242,121 @@ func TestParseConfigEntry(t *testing.T) {
 				},
 				MeshGateway: api.MeshGatewayConfig{
 					Mode: api.MeshGatewayModeRemote,
+				},
+			},
+		},
+		{
+			name: "terminating-gateway",
+			snake: `
+				kind = "terminating-gateway"
+				name = "terminating-gw-west"
+				namespace = "default"
+				services = [
+				  {
+					name = "billing"
+					namespace = "biz"
+					ca_file = "/etc/ca.crt"
+					cert_file = "/etc/client.crt"
+					key_file = "/etc/tls.key"
+				  },
+				  {
+					name = "*"
+					namespace = "ops"
+				  }
+				]
+			`,
+			camel: `
+				Kind = "terminating-gateway"
+				Name = "terminating-gw-west"
+				Namespace = "default"
+				Services = [
+				  {
+					Name = "billing"
+					Namespace = "biz"
+					CAFile = "/etc/ca.crt"
+					CertFile = "/etc/client.crt"
+					KeyFile = "/etc/tls.key"
+				  },
+				  {
+					Name = "*"
+					Namespace = "ops"
+				  }
+				]
+			`,
+			snakeJSON: `
+			{
+				"kind": "terminating-gateway",
+				"name": "terminating-gw-west",
+				"namespace": "default",
+				"services": [
+				  {
+					"name": "billing",
+					"namespace": "biz",
+					"ca_file": "/etc/ca.crt",
+					"cert_file": "/etc/client.crt",
+					"key_file": "/etc/tls.key"
+				  },
+				  {
+					"name": "*",
+					"namespace": "ops"
+				  }
+				]
+			}
+			`,
+			camelJSON: `
+			{
+				"Kind": "terminating-gateway",
+				"Name": "terminating-gw-west",
+				"Namespace": "default",
+				"Services": [
+				  {
+					"Name": "billing",
+					"Namespace": "biz",
+					"CAFile": "/etc/ca.crt",
+					"CertFile": "/etc/client.crt",
+					"KeyFile": "/etc/tls.key"
+				  },
+				  {
+					"Name": "*",
+					"Namespace": "ops"
+				  }
+				]
+			}
+			`,
+			expect: &api.TerminatingGatewayConfigEntry{
+				Kind:      "terminating-gateway",
+				Name:      "terminating-gw-west",
+				Namespace: "default",
+				Services: []api.LinkedService{
+					{
+						Name:      "billing",
+						Namespace: "biz",
+						CAFile:    "/etc/ca.crt",
+						CertFile:  "/etc/client.crt",
+						KeyFile:   "/etc/tls.key",
+					},
+					{
+						Name:      "*",
+						Namespace: "ops",
+					},
+				},
+			},
+			expectJSON: &api.TerminatingGatewayConfigEntry{
+				Kind:      "terminating-gateway",
+				Name:      "terminating-gw-west",
+				Namespace: "default",
+				Services: []api.LinkedService{
+					{
+						Name:      "billing",
+						Namespace: "biz",
+						CAFile:    "/etc/ca.crt",
+						CertFile:  "/etc/client.crt",
+						KeyFile:   "/etc/tls.key",
+					},
+					{
+						Name:      "*",
+						Namespace: "ops",
+					},
 				},
 			},
 		},
@@ -1055,6 +1170,12 @@ func TestParseConfigEntry(t *testing.T) {
 							listener_port = 21500
 							path = "/healthz"
 							protocol = "http2"
+						},
+						{
+							local_path_port = 8000
+							listener_port = 21501
+							path = "/metrics"
+							protocol = "http"
 						}
 					]
 				}`,
@@ -1069,6 +1190,12 @@ func TestParseConfigEntry(t *testing.T) {
 							ListenerPort = 21500
 							Path = "/healthz"
 							Protocol = "http2"
+						},
+						{
+							LocalPathPort = 8000
+							ListenerPort = 21501
+							Path = "/metrics"
+							Protocol = "http"
 						}
 					]
 				}`,
@@ -1084,6 +1211,12 @@ func TestParseConfigEntry(t *testing.T) {
 							"listener_port": 21500,
 							"path": "/healthz",
 							"protocol": "http2"
+						},
+						{
+							"local_path_port": 8000,
+							"listener_port": 21501,
+							"path": "/metrics",
+							"protocol": "http"
 						}
 					]
 				}
@@ -1101,6 +1234,12 @@ func TestParseConfigEntry(t *testing.T) {
 							"ListenerPort": 21500,
 							"Path": "/healthz",
 							"Protocol": "http2"
+						},
+						{
+							"LocalPathPort": 8000,
+							"ListenerPort": 21501,
+							"Path": "/metrics",
+							"Protocol": "http"
 						}
 					]
 				}
@@ -1117,6 +1256,229 @@ func TestParseConfigEntry(t *testing.T) {
 							Path:          "/healthz",
 							LocalPathPort: 8080,
 							Protocol:      "http2",
+						},
+						{
+							ListenerPort:  21501,
+							Path:          "/metrics",
+							LocalPathPort: 8000,
+							Protocol:      "http",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "expose paths: kitchen sink service defaults",
+			snake: `
+				kind = "service-defaults"
+				name = "web"
+				expose = {
+					checks = true
+					paths = [
+						{
+							local_path_port = 8080
+							listener_port = 21500
+							path = "/healthz"
+							protocol = "http2"
+						},
+						{
+							local_path_port = 8000
+							listener_port = 21501
+							path = "/metrics"
+							protocol = "http"
+						}
+					]
+				}`,
+			camel: `
+				Kind = "service-defaults"
+				Name = "web"
+				Expose = {
+					Checks = true
+					Paths = [
+						{
+							LocalPathPort = 8080
+							ListenerPort = 21500
+							Path = "/healthz"
+							Protocol = "http2"
+						},
+						{
+							LocalPathPort = 8000
+							ListenerPort = 21501
+							Path = "/metrics"
+							Protocol = "http"
+						}
+					]
+				}`,
+			snakeJSON: `
+			{
+				"kind": "service-defaults",
+				"name": "web",
+				"expose": {
+					"checks": true,
+					"paths": [
+						{
+							"local_path_port": 8080,
+							"listener_port": 21500,
+							"path": "/healthz",
+							"protocol": "http2"
+						},
+						{
+							"local_path_port": 8000,
+							"listener_port": 21501,
+							"path": "/metrics",
+							"protocol": "http"
+						}
+					]
+				}
+			}
+			`,
+			camelJSON: `
+			{
+				"Kind": "service-defaults",
+				"Name": "web",
+				"Expose": {
+					"Checks": true,
+					"Paths": [
+						{
+							"LocalPathPort": 8080,
+							"ListenerPort": 21500,
+							"Path": "/healthz",
+							"Protocol": "http2"
+						},
+						{
+							"LocalPathPort": 8000,
+							"ListenerPort": 21501,
+							"Path": "/metrics",
+							"Protocol": "http"
+						}
+					]
+				}
+			}
+			`,
+			expect: &api.ServiceConfigEntry{
+				Kind: "service-defaults",
+				Name: "web",
+				Expose: api.ExposeConfig{
+					Checks: true,
+					Paths: []api.ExposePath{
+						{
+							ListenerPort:  21500,
+							Path:          "/healthz",
+							LocalPathPort: 8080,
+							Protocol:      "http2",
+						},
+						{
+							ListenerPort:  21501,
+							Path:          "/metrics",
+							LocalPathPort: 8000,
+							Protocol:      "http",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "ingress-gateway: kitchen sink",
+			snake: `
+				kind = "ingress-gateway"
+				name = "ingress-web"
+				listeners = [
+					{
+						port = 8080
+						protocol = "http"
+						services = [
+							{
+								name = "web"
+								service_subset = "v1"
+							},
+							{
+								name = "db"
+								namespace = "foo"
+							}
+						]
+					}
+				]
+			`,
+			camel: `
+				Kind = "ingress-gateway"
+				Name = "ingress-web"
+				Listeners = [
+					{
+						Port = 8080
+						Protocol = "http"
+						Services = [
+							{
+								Name = "web"
+								ServiceSubset = "v1"
+							},
+							{
+								Name = "db"
+								Namespace = "foo"
+							}
+						]
+					}
+				]
+			`,
+			snakeJSON: `
+			{
+				"kind": "ingress-gateway",
+				"name": "ingress-web",
+				"listeners": [
+					{
+						"port": 8080,
+						"protocol": "http",
+						"services": [
+							{
+								"name": "web",
+								"service_subset": "v1"
+							},
+							{
+								"name": "db",
+								"namespace": "foo"
+							}
+						]
+					}
+				]
+			}
+			`,
+			camelJSON: `
+			{
+				"Kind": "ingress-gateway",
+				"Name": "ingress-web",
+				"Listeners": [
+					{
+						"Port": 8080,
+						"Protocol": "http",
+						"Services": [
+							{
+								"Name": "web",
+								"ServiceSubset": "v1"
+							},
+							{
+								"Name": "db",
+								"Namespace": "foo"
+							}
+						]
+					}
+				]
+			}
+			`,
+			expect: &api.IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []api.IngressListener{
+					{
+						Port:     8080,
+						Protocol: "http",
+						Services: []api.IngressService{
+							{
+								Name:          "web",
+								ServiceSubset: "v1",
+							},
+							{
+								Name:      "db",
+								Namespace: "foo",
+							},
 						},
 					},
 				},

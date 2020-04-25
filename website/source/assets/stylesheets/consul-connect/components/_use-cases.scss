@@ -9,6 +9,10 @@
 
   img {
     width: 51%;
+
+    @media (min-width: 768px) {
+      width: 80%;
+    }
   }
 
   h3 {
@@ -54,7 +58,7 @@
     }
   }
 
-  .g-btn {
+  .button {
     @media (min-width: 768px) {
       margin-top: 22px;
     }

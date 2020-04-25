@@ -1,10 +1,14 @@
-import ENV from '../../config/environment';
-import { skip } from 'qunit';
-import { setupApplicationTest, setupRenderingTest, setupTest } from 'ember-qunit';
-import api from 'consul-ui/tests/helpers/api';
+import { skip, test } from 'qunit';
+import { setupApplicationTest } from 'ember-qunit';
+import { Promise } from 'rsvp';
+import Yadda from 'yadda';
+
+import { env } from '../../env';
+import api from './api';
+import getDictionary from '../dictionary';
 
 const staticClassList = [...document.documentElement.classList];
-function reset() {
+const reset = function() {
   window.localStorage.clear();
   api.server.reset();
   const list = document.documentElement.classList;
@@ -14,84 +18,87 @@ function reset() {
   staticClassList.forEach(function(item) {
     list.add(item);
   });
-}
-// this logic could be anything, but in this case...
-// if @ignore, then return skip (for backwards compatibility)
-// if have annotations in config, then only run those that have a matching annotation
-function checkAnnotations(annotations) {
-  // if ignore is set then we want to skip for backwards compatibility
-  if (annotations.ignore) {
-    return ignoreIt;
-  }
+};
 
-  // if have annotations set in config, the only run those that have a matching annotation
-  if (ENV.annotations && ENV.annotations.length >= 0) {
-    for (let annotation in annotations) {
-      if (ENV.annotations.indexOf(annotation) >= 0) {
-        // have match, so test it
-        return 'testIt'; // return something other than a function
+const runTest = function(context, libraries, steps, scenarioContext) {
+  return new Promise((resolve, reject) => {
+    Yadda.Yadda(libraries, context).yadda(steps, scenarioContext, function next(err, result) {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+};
+const checkAnnotations = function(annotations, isScenario) {
+  annotations = {
+    namespaceable: env('CONSUL_NSPACES_ENABLED'),
+    ...annotations,
+  };
+  if (annotations.ignore) {
+    return function(test) {
+      skip(`${test.title}`, function(assert) {});
+    };
+  }
+  if (isScenario) {
+    if (env('CONSUL_NSPACES_ENABLED')) {
+      if (!annotations.notnamespaceable) {
+        return function(scenario, feature, yadda, yaddaAnnotations, library) {
+          ['', 'default', 'team-1', undefined].forEach(function(item) {
+            test(`Scenario: ${
+              scenario.title
+            } with the ${item === '' ? 'empty' : typeof item === 'undefined' ? 'undefined' : item} namespace set`, function(assert) {
+              const libraries = library.default({
+                assert: assert,
+                library: Yadda.localisation.English.library(getDictionary(annotations, item)),
+              });
+              const scenarioContext = {
+                ctx: {
+                  nspace: item,
+                },
+              };
+              const result = runTest(this, libraries, scenario.steps, scenarioContext);
+              return result;
+            });
+          });
+        };
+      } else {
+        return function() {};
+      }
+    } else {
+      if (!annotations.onlynamespaceable) {
+        return function(scenario, feature, yadda, yaddaAnnotations, library) {
+          test(`Scenario: ${scenario.title}`, function(assert) {
+            const libraries = library.default({
+              assert: assert,
+              library: Yadda.localisation.English.library(getDictionary(annotations)),
+            });
+            const scenarioContext = {
+              ctx: {},
+            };
+            return runTest(this, libraries, scenario.steps, scenarioContext);
+          });
+        };
+      } else {
+        return function() {};
       }
     }
-
-    // no match, so don't run it
-    return logIt;
   }
-}
-
-// call back functions
-function ignoreIt(testElement) {
-  skip(`${testElement.title}`, function(/*assert*/) {});
-}
-
-function logIt(testElement) {
-  console.info(`Not running or skipping: "${testElement.title}"`); // eslint-disable-line no-console
-}
-
-// exported functions
-function runFeature(annotations) {
-  return checkAnnotations(annotations);
-}
-
-function runScenario(featureAnnotations, scenarioAnnotations) {
-  return checkAnnotations(scenarioAnnotations);
-}
-
-// setup tests
-// you can override these function to add additional setup setups, or handle new setup related annotations
-function setupFeature(featureAnnotations) {
-  return setupYaddaTest(featureAnnotations);
-}
-
-function setupScenario(featureAnnotations, scenarioAnnotations) {
-  let setupFn = setupYaddaTest(scenarioAnnotations);
-  if (
-    setupFn &&
-    (featureAnnotations.setupapplicationtest ||
-      featureAnnotations.setuprenderingtest ||
-      featureAnnotations.setuptest)
-  ) {
-    throw new Error(
-      'You must not assign any @setupapplicationtest, @setuprenderingtest or @setuptest annotations to a scenario as well as its feature!'
-    );
-  }
+};
+export const setupFeature = function(featureAnnotations) {
+  return setupApplicationTest;
+};
+export const setupScenario = function(featureAnnotations, scenarioAnnotations) {
   return function(model) {
     model.afterEach(function() {
       reset();
     });
   };
-  // return setupFn;
-}
+};
+export const runFeature = function(annotations) {
+  return checkAnnotations(annotations);
+};
 
-function setupYaddaTest(annotations) {
-  if (annotations.setupapplicationtest) {
-    return setupApplicationTest;
-  }
-  if (annotations.setuprenderingtest) {
-    return setupRenderingTest;
-  }
-  if (annotations.setuptest) {
-    return setupTest;
-  }
-}
-
-export { runFeature, runScenario, setupFeature, setupScenario };
+export const runScenario = function(featureAnnotations, scenarioAnnotations) {
+  return checkAnnotations({ ...featureAnnotations, ...scenarioAnnotations }, true);
+};

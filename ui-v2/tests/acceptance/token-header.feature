@@ -1,5 +1,6 @@
 @setupApplicationTest
-Feature: token headers
+@notNamespaceable
+Feature: token-header
   In order to authenticate with tokens
   As a user
   I need to be able to specify a ACL token AND/OR leave it blank to authenticate with the API
@@ -7,7 +8,7 @@ Feature: token headers
     Given 1 datacenter model with the value "datacenter"
     When I visit the index page
     Then the url should be /datacenter/services
-    And a GET request is made to "/v1/catalog/datacenters" from yaml
+    And a GET request was made to "/v1/internal/ui/services?dc=datacenter&ns=@namespace" from yaml
     ---
     headers:
       X-Consul-Token: ''
@@ -27,7 +28,7 @@ Feature: token headers
     And I submit
     When I visit the index page
     Then the url should be /datacenter/services
-    And a GET request is made to "/v1/catalog/datacenters" from yaml
+    And a GET request was made to "/v1/internal/ui/services?dc=datacenter&ns=@namespace" from yaml
     ---
     headers:
       X-Consul-Token: [Token]

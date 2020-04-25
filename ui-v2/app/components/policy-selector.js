@@ -12,6 +12,7 @@ export default ChildSelectorComponent.extend({
   datacenterRepo: service('repository/dc/component'),
   name: 'policy',
   type: 'policy',
+  allowServiceIdentity: true,
   classNames: ['policy-selector'],
   init: function() {
     this._super(...arguments);
@@ -73,12 +74,10 @@ export default ChildSelectorComponent.extend({
         }
         // potentially the item could change between load, so we don't check
         // anything to see if its already loaded here
-        const repo = this.repo;
         // TODO: Temporarily add dc here, will soon be serialized onto the policy itself
-        const dc = this.dc;
-        const slugKey = repo.getSlugKey();
+        const slugKey = this.repo.getSlugKey();
         const slug = get(value, slugKey);
-        updateArrayObject(items, repo.findBySlug(slug, dc), slugKey, slug);
+        updateArrayObject(items, this.repo.findBySlug(slug, this.dc, this.nspace), slugKey, slug);
       }
     },
   },

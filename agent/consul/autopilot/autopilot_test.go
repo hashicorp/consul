@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/serf/serf"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMinRaftProtocol(t *testing.T) {
@@ -82,5 +83,29 @@ func TestMinRaftProtocol(t *testing.T) {
 				t.Fatalf("bad: %v, %v, %v", err, tc.err, tc)
 			}
 		}
+	}
+}
+
+func TestAutopilot_canRemoveServers(t *testing.T) {
+	type test struct {
+		peers       int
+		minQuorum   int
+		deadServers int
+		ok          bool
+	}
+
+	tests := []test{
+		{1, 1, 1, false},
+		{3, 3, 1, false},
+		{4, 3, 3, false},
+		{5, 3, 3, false},
+		{5, 3, 2, true},
+		{5, 3, 1, true},
+		{9, 3, 5, false},
+	}
+	for _, test := range tests {
+		ok, msg := canRemoveServers(test.peers, test.minQuorum, test.deadServers)
+		require.Equal(t, test.ok, ok)
+		t.Logf("%+v: %s", test, msg)
 	}
 }

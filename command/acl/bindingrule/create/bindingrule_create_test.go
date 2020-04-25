@@ -1,16 +1,17 @@
 package bindingrulecreate
 
 import (
+	"encoding/json"
 	"os"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	// activate testing auth method
@@ -31,7 +32,7 @@ func TestBindingRuleCreateCommand(t *testing.T) {
 	testDir := testutil.TempDir(t, "acl")
 	defer os.RemoveAll(testDir)
 
-	a := agent.NewTestAgent(t, t.Name(), `
+	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
 	acl {
 		enabled = true
@@ -39,8 +40,6 @@ func TestBindingRuleCreateCommand(t *testing.T) {
 			master = "root"
 		}
 	}`)
-
-	a.Agent.LogWriter = logger.NewLogWriter(512)
 
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -174,5 +173,61 @@ func TestBindingRuleCreateCommand(t *testing.T) {
 		code := cmd.Run(args)
 		require.Equal(t, code, 0)
 		require.Empty(t, ui.ErrorWriter.String())
+	})
+}
+
+func TestBindingRuleCreateCommand_JSON(t *testing.T) {
+	t.Parallel()
+
+	testDir := testutil.TempDir(t, "acl")
+	defer os.RemoveAll(testDir)
+
+	a := agent.NewTestAgent(t, `
+	primary_datacenter = "dc1"
+	acl {
+		enabled = true
+		tokens {
+			master = "root"
+		}
+	}`)
+
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	client := a.Client()
+
+	// create an auth method in advance
+	{
+		_, _, err := client.ACL().AuthMethodCreate(
+			&api.ACLAuthMethod{
+				Name: "test",
+				Type: "testing",
+			},
+			&api.WriteOptions{Token: "root"},
+		)
+		require.NoError(t, err)
+	}
+
+	t.Run("create it with no selector", func(t *testing.T) {
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-method=test",
+			"-bind-type=service",
+			"-bind-name=demo",
+			"-format=json",
+		}
+
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		code := cmd.Run(args)
+		require.Equal(t, code, 0)
+		require.Empty(t, ui.ErrorWriter.String())
+
+		output := ui.OutputWriter.String()
+		var jsonOutput json.RawMessage
+		err := json.Unmarshal([]byte(output), &jsonOutput)
+		assert.NoError(t, err)
 	})
 }

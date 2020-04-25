@@ -18,7 +18,7 @@ func TestConfigDelete_noTabs(t *testing.T) {
 func TestConfigDelete(t *testing.T) {
 	t.Parallel()
 
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -30,6 +30,7 @@ func TestConfigDelete(t *testing.T) {
 		Name:     "web",
 		Protocol: "tcp",
 	}, nil)
+	require.NoError(t, err)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),

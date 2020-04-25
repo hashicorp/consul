@@ -1,6 +1,7 @@
 package ca
 
 import (
+	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -39,9 +40,7 @@ func TestVaultCAProvider_VaultTLSConfig(t *testing.T) {
 func TestVaultCAProvider_Bootstrap(t *testing.T) {
 	t.Parallel()
 
-	if skipIfVaultNotPresent(t) {
-		return
-	}
+	skipIfVaultNotPresent(t)
 
 	provider, testVault := testVaultProvider(t)
 	defer testVault.Stop()
@@ -79,113 +78,198 @@ func TestVaultCAProvider_Bootstrap(t *testing.T) {
 		require.NoError(err)
 		require.True(parsed.IsCA)
 		require.Len(parsed.URIs, 1)
-		require.Equal(parsed.URIs[0].String(), fmt.Sprintf("spiffe://%s.consul", provider.clusterId))
+		require.Equal(fmt.Sprintf("spiffe://%s.consul", provider.clusterID), parsed.URIs[0].String())
+	}
+}
+
+func assertCorrectKeyType(t *testing.T, want, certPEM string) {
+	t.Helper()
+
+	cert, err := connect.ParseCert(certPEM)
+	require.NoError(t, err)
+
+	switch want {
+	case "ec":
+		require.Equal(t, x509.ECDSA, cert.PublicKeyAlgorithm)
+	case "rsa":
+		require.Equal(t, x509.RSA, cert.PublicKeyAlgorithm)
+	default:
+		t.Fatal("test doesn't support key type")
 	}
 }
 
 func TestVaultCAProvider_SignLeaf(t *testing.T) {
 	t.Parallel()
 
-	if skipIfVaultNotPresent(t) {
-		return
-	}
+	skipIfVaultNotPresent(t)
 
-	require := require.New(t)
-	provider, testVault := testVaultProviderWithConfig(t, true, map[string]interface{}{
-		"LeafCertTTL": "1h",
-	})
-	defer testVault.Stop()
+	for _, tc := range KeyTestCases {
+		tc := tc
+		t.Run(tc.Desc, func(t *testing.T) {
+			require := require.New(t)
+			provider, testVault := testVaultProviderWithConfig(t, true, map[string]interface{}{
+				"LeafCertTTL":    "1h",
+				"PrivateKeyType": tc.KeyType,
+				"PrivateKeyBits": tc.KeyBits,
+			})
+			defer testVault.Stop()
 
-	spiffeService := &connect.SpiffeIDService{
-		Host:       "node1",
-		Namespace:  "default",
-		Datacenter: "dc1",
-		Service:    "foo",
-	}
+			spiffeService := &connect.SpiffeIDService{
+				Host:       "node1",
+				Namespace:  "default",
+				Datacenter: "dc1",
+				Service:    "foo",
+			}
 
-	// Generate a leaf cert for the service.
-	var firstSerial uint64
-	{
-		raw, _ := connect.TestCSR(t, spiffeService)
+			rootPEM, err := provider.ActiveRoot()
+			require.NoError(err)
+			assertCorrectKeyType(t, tc.KeyType, rootPEM)
 
-		csr, err := connect.ParseCSR(raw)
-		require.NoError(err)
+			intPEM, err := provider.ActiveIntermediate()
+			require.NoError(err)
+			assertCorrectKeyType(t, tc.KeyType, intPEM)
 
-		cert, err := provider.Sign(csr)
-		require.NoError(err)
+			// Generate a leaf cert for the service.
+			var firstSerial uint64
+			{
+				raw, _ := connect.TestCSR(t, spiffeService)
 
-		parsed, err := connect.ParseCert(cert)
-		require.NoError(err)
-		require.Equal(parsed.URIs[0], spiffeService.URI())
-		firstSerial = parsed.SerialNumber.Uint64()
+				csr, err := connect.ParseCSR(raw)
+				require.NoError(err)
 
-		// Ensure the cert is valid now and expires within the correct limit.
-		now := time.Now()
-		require.True(parsed.NotAfter.Sub(now) < time.Hour)
-		require.True(parsed.NotBefore.Before(now))
-	}
+				cert, err := provider.Sign(csr)
+				require.NoError(err)
 
-	// Generate a new cert for another service and make sure
-	// the serial number is unique.
-	spiffeService.Service = "bar"
-	{
-		raw, _ := connect.TestCSR(t, spiffeService)
+				parsed, err := connect.ParseCert(cert)
+				require.NoError(err)
+				require.Equal(parsed.URIs[0], spiffeService.URI())
+				firstSerial = parsed.SerialNumber.Uint64()
 
-		csr, err := connect.ParseCSR(raw)
-		require.NoError(err)
+				// Ensure the cert is valid now and expires within the correct limit.
+				now := time.Now()
+				require.True(parsed.NotAfter.Sub(now) < time.Hour)
+				require.True(parsed.NotBefore.Before(now))
 
-		cert, err := provider.Sign(csr)
-		require.NoError(err)
+				// Make sure we can validate the cert as expected.
+				require.NoError(connect.ValidateLeaf(rootPEM, cert, []string{intPEM}))
+			}
 
-		parsed, err := connect.ParseCert(cert)
-		require.NoError(err)
-		require.Equal(parsed.URIs[0], spiffeService.URI())
-		require.NotEqual(firstSerial, parsed.SerialNumber.Uint64())
+			// Generate a new cert for another service and make sure
+			// the serial number is unique.
+			spiffeService.Service = "bar"
+			{
+				raw, _ := connect.TestCSR(t, spiffeService)
 
-		// Ensure the cert is valid now and expires within the correct limit.
-		require.True(time.Until(parsed.NotAfter) < time.Hour)
-		require.True(parsed.NotBefore.Before(time.Now()))
+				csr, err := connect.ParseCSR(raw)
+				require.NoError(err)
+
+				cert, err := provider.Sign(csr)
+				require.NoError(err)
+
+				parsed, err := connect.ParseCert(cert)
+				require.NoError(err)
+				require.Equal(parsed.URIs[0], spiffeService.URI())
+				require.NotEqual(firstSerial, parsed.SerialNumber.Uint64())
+
+				// Ensure the cert is valid now and expires within the correct limit.
+				require.True(time.Until(parsed.NotAfter) < time.Hour)
+				require.True(parsed.NotBefore.Before(time.Now()))
+
+				// Make sure we can validate the cert as expected.
+				require.NoError(connect.ValidateLeaf(rootPEM, cert, []string{intPEM}))
+			}
+		})
 	}
 }
 
 func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 	t.Parallel()
 
-	if skipIfVaultNotPresent(t) {
-		return
+	skipIfVaultNotPresent(t)
+
+	tests := CASigningKeyTypeCases()
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.Desc, func(t *testing.T) {
+			require := require.New(t)
+
+			if tc.SigningKeyType != tc.CSRKeyType {
+				// See https://github.com/hashicorp/vault/issues/7709
+				t.Skip("Vault doesn't support cross-signing different key types yet.")
+			}
+			provider1, testVault1 := testVaultProviderWithConfig(t, true, map[string]interface{}{
+				"LeafCertTTL":    "1h",
+				"PrivateKeyType": tc.SigningKeyType,
+				"PrivateKeyBits": tc.SigningKeyBits,
+			})
+			defer testVault1.Stop()
+
+			{
+				rootPEM, err := provider1.ActiveRoot()
+				require.NoError(err)
+				assertCorrectKeyType(t, tc.SigningKeyType, rootPEM)
+
+				intPEM, err := provider1.ActiveIntermediate()
+				require.NoError(err)
+				assertCorrectKeyType(t, tc.SigningKeyType, intPEM)
+			}
+
+			provider2, testVault2 := testVaultProviderWithConfig(t, true, map[string]interface{}{
+				"LeafCertTTL":    "1h",
+				"PrivateKeyType": tc.CSRKeyType,
+				"PrivateKeyBits": tc.CSRKeyBits,
+			})
+			defer testVault2.Stop()
+
+			{
+				rootPEM, err := provider2.ActiveRoot()
+				require.NoError(err)
+				assertCorrectKeyType(t, tc.CSRKeyType, rootPEM)
+
+				intPEM, err := provider2.ActiveIntermediate()
+				require.NoError(err)
+				assertCorrectKeyType(t, tc.CSRKeyType, intPEM)
+			}
+
+			testCrossSignProviders(t, provider1, provider2)
+		})
 	}
-
-	provider1, testVault1 := testVaultProvider(t)
-	defer testVault1.Stop()
-
-	provider2, testVault2 := testVaultProvider(t)
-	defer testVault2.Stop()
-
-	testCrossSignProviders(t, provider1, provider2)
 }
 
 func TestVaultProvider_SignIntermediate(t *testing.T) {
 	t.Parallel()
 
-	if skipIfVaultNotPresent(t) {
-		return
+	skipIfVaultNotPresent(t)
+
+	tests := CASigningKeyTypeCases()
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.Desc, func(t *testing.T) {
+			provider1, testVault1 := testVaultProviderWithConfig(t, true, map[string]interface{}{
+				"LeafCertTTL":    "1h",
+				"PrivateKeyType": tc.SigningKeyType,
+				"PrivateKeyBits": tc.SigningKeyBits,
+			})
+			defer testVault1.Stop()
+
+			provider2, testVault2 := testVaultProviderWithConfig(t, false, map[string]interface{}{
+				"LeafCertTTL":    "1h",
+				"PrivateKeyType": tc.CSRKeyType,
+				"PrivateKeyBits": tc.CSRKeyBits,
+			})
+			defer testVault2.Stop()
+
+			testSignIntermediateCrossDC(t, provider1, provider2)
+		})
 	}
-
-	provider1, testVault1 := testVaultProvider(t)
-	defer testVault1.Stop()
-
-	provider2, testVault2 := testVaultProviderWithConfig(t, false, nil)
-	defer testVault2.Stop()
-
-	testSignIntermediateCrossDC(t, provider1, provider2)
 }
 
 func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
 	t.Parallel()
 
-	if skipIfVaultNotPresent(t) {
-		return
-	}
+	skipIfVaultNotPresent(t)
 
 	// primary = Vault, secondary = Consul
 	t.Run("pri=vault,sec=consul", func(t *testing.T) {
@@ -194,8 +278,11 @@ func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
 
 		conf := testConsulCAConfig()
 		delegate := newMockDelegate(t, conf)
-		provider2 := &ConsulProvider{Delegate: delegate}
-		require.NoError(t, provider2.Configure(conf.ClusterID, false, conf.Config))
+		provider2 := TestConsulProvider(t, delegate)
+		cfg := testProviderConfig(conf)
+		cfg.IsPrimary = false
+		cfg.Datacenter = "dc2"
+		require.NoError(t, provider2.Configure(cfg))
 
 		testSignIntermediateCrossDC(t, provider1, provider2)
 	})
@@ -204,22 +291,50 @@ func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
 	t.Run("pri=consul,sec=vault", func(t *testing.T) {
 		conf := testConsulCAConfig()
 		delegate := newMockDelegate(t, conf)
-		provider1 := &ConsulProvider{Delegate: delegate}
-		require.NoError(t, provider1.Configure(conf.ClusterID, true, conf.Config))
+		provider1 := TestConsulProvider(t, delegate)
+		require.NoError(t, provider1.Configure(testProviderConfig(conf)))
 		require.NoError(t, provider1.GenerateRoot())
 
-		provider2, testVault2 := testVaultProviderWithConfig(t, false, nil)
+		// Ensure that we don't configure vault to try and mint leafs that
+		// outlive their CA during the test (which hard fails in vault).
+		intermediateCertTTL := getIntermediateCertTTL(t, conf)
+		leafCertTTL := intermediateCertTTL - 4*time.Hour
+
+		overrideConf := map[string]interface{}{
+			"LeafCertTTL": []uint8(leafCertTTL.String()),
+		}
+
+		provider2, testVault2 := testVaultProviderWithConfig(t, false, overrideConf)
 		defer testVault2.Stop()
 
 		testSignIntermediateCrossDC(t, provider1, provider2)
 	})
 }
 
+func getIntermediateCertTTL(t *testing.T, caConf *structs.CAConfiguration) time.Duration {
+	t.Helper()
+
+	require.NotNil(t, caConf)
+	require.NotNil(t, caConf.Config)
+
+	iface, ok := caConf.Config["IntermediateCertTTL"]
+	require.True(t, ok)
+
+	ttlBytes, ok := iface.([]uint8)
+	require.True(t, ok)
+
+	ttlString := string(ttlBytes)
+
+	dur, err := time.ParseDuration(ttlString)
+	require.NoError(t, err)
+	return dur
+}
+
 func testVaultProvider(t *testing.T) (*VaultProvider, *testVaultServer) {
 	return testVaultProviderWithConfig(t, true, nil)
 }
 
-func testVaultProviderWithConfig(t *testing.T, isRoot bool, rawConf map[string]interface{}) (*VaultProvider, *testVaultServer) {
+func testVaultProviderWithConfig(t *testing.T, isPrimary bool, rawConf map[string]interface{}) (*VaultProvider, *testVaultServer) {
 	testVault, err := runTestVault()
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -241,11 +356,23 @@ func testVaultProviderWithConfig(t *testing.T, isRoot bool, rawConf map[string]i
 
 	provider := &VaultProvider{}
 
-	if err := provider.Configure("asdf", isRoot, conf); err != nil {
+	cfg := ProviderConfig{
+		ClusterID:  connect.TestClusterID,
+		Datacenter: "dc1",
+		IsPrimary:  true,
+		RawConfig:  conf,
+	}
+
+	if !isPrimary {
+		cfg.IsPrimary = false
+		cfg.Datacenter = "dc2"
+	}
+
+	if err := provider.Configure(cfg); err != nil {
 		testVault.Stop()
 		t.Fatalf("err: %v", err)
 	}
-	if isRoot {
+	if isPrimary {
 		if err = provider.GenerateRoot(); err != nil {
 			testVault.Stop()
 			t.Fatalf("err: %v", err)
@@ -255,14 +382,14 @@ func testVaultProviderWithConfig(t *testing.T, isRoot bool, rawConf map[string]i
 			t.Fatalf("err: %v", err)
 		}
 	}
-
 	return provider, testVault
 }
 
-var printedVaultVersion sync.Once
-
-// skipIfVaultNotPresent skips the test and returns true if vault is not found
-func skipIfVaultNotPresent(t *testing.T) bool {
+// skipIfVaultNotPresent skips the test if the vault binary is not in PATH.
+//
+// These tests may be skipped in CI. They are run as part of a separate
+// integration test suite.
+func skipIfVaultNotPresent(t *testing.T) {
 	vaultBinaryName := os.Getenv("VAULT_BINARY_NAME")
 	if vaultBinaryName == "" {
 		vaultBinaryName = "vault"
@@ -271,9 +398,7 @@ func skipIfVaultNotPresent(t *testing.T) bool {
 	path, err := exec.LookPath(vaultBinaryName)
 	if err != nil || path == "" {
 		t.Skipf("%q not found on $PATH - download and install to run this test", vaultBinaryName)
-		return true
 	}
-	return false
 }
 
 func runTestVault() (*testVaultServer, error) {
@@ -345,6 +470,8 @@ type testVaultServer struct {
 	// returnPortsFn will put the ports claimed for the test back into the
 	returnPortsFn func()
 }
+
+var printedVaultVersion sync.Once
 
 func (v *testVaultServer) WaitUntilReady(t *testing.T) {
 	var version string

@@ -22,7 +22,8 @@ const (
 func (s *Server) initializeSessionTimers() error {
 	// Scan all sessions and reset their timer
 	state := s.fsm.State()
-	_, sessions, err := state.SessionList(nil)
+
+	_, sessions, err := state.SessionList(nil, structs.WildcardEnterpriseMeta())
 	if err != nil {
 		return err
 	}
@@ -41,7 +42,7 @@ func (s *Server) resetSessionTimer(id string, session *structs.Session) error {
 	// Fault the session in if not given
 	if session == nil {
 		state := s.fsm.State()
-		_, s, err := state.SessionGet(nil, id)
+		_, s, err := state.SessionGet(nil, id, nil)
 		if err != nil {
 			return err
 		}
@@ -66,11 +67,11 @@ func (s *Server) resetSessionTimer(id string, session *structs.Session) error {
 		return nil
 	}
 
-	s.createSessionTimer(session.ID, ttl)
+	s.createSessionTimer(session.ID, ttl, &session.EnterpriseMeta)
 	return nil
 }
 
-func (s *Server) createSessionTimer(id string, ttl time.Duration) {
+func (s *Server) createSessionTimer(id string, ttl time.Duration, entMeta *structs.EnterpriseMeta) {
 	// Reset the session timer
 	// Adjust the given TTL by the TTL multiplier. This is done
 	// to give a client a grace period and to compensate for network
@@ -78,12 +79,12 @@ func (s *Server) createSessionTimer(id string, ttl time.Duration) {
 	// before the TTL, but there is no explicit promise about the upper
 	// bound so this is allowable.
 	ttl = ttl * structs.SessionTTLMultiplier
-	s.sessionTimers.ResetOrCreate(id, ttl, func() { s.invalidateSession(id) })
+	s.sessionTimers.ResetOrCreate(id, ttl, func() { s.invalidateSession(id, entMeta) })
 }
 
 // invalidateSession is invoked when a session TTL is reached and we
 // need to invalidate the session.
-func (s *Server) invalidateSession(id string) {
+func (s *Server) invalidateSession(id string, entMeta *structs.EnterpriseMeta) {
 	defer metrics.MeasureSince([]string{"session_ttl", "invalidate"}, time.Now())
 
 	// Clear the session timer
@@ -97,19 +98,22 @@ func (s *Server) invalidateSession(id string) {
 			ID: id,
 		},
 	}
+	if entMeta != nil {
+		args.Session.EnterpriseMeta = *entMeta
+	}
 
 	// Retry with exponential backoff to invalidate the session
 	for attempt := uint(0); attempt < maxInvalidateAttempts; attempt++ {
 		_, err := s.raftApply(structs.SessionRequestType, args)
 		if err == nil {
-			s.logger.Printf("[DEBUG] consul.state: Session %s TTL expired", id)
+			s.logger.Debug("Session TTL expired", "session", id)
 			return
 		}
 
-		s.logger.Printf("[ERR] consul.session: Invalidation failed: %v", err)
+		s.logger.Error("Invalidation failed", "error", err)
 		time.Sleep((1 << attempt) * invalidateRetryBase)
 	}
-	s.logger.Printf("[ERR] consul.session: maximum revoke attempts reached for session: %s", id)
+	s.logger.Error("maximum revoke attempts reached for session", "error", id)
 }
 
 // clearSessionTimer is used to clear the session time for
@@ -126,14 +130,16 @@ func (s *Server) clearAllSessionTimers() {
 	s.sessionTimers.StopAll()
 }
 
-// sessionStats is a long running routine used to capture
-// the number of active sessions being tracked
-func (s *Server) sessionStats() {
+// updateMetrics is a long running routine used to uddate a
+// number of server periodic metrics
+func (s *Server) updateMetrics() {
 	for {
 		select {
-		case <-time.After(5 * time.Second):
+		case <-time.After(time.Second):
 			metrics.SetGauge([]string{"session_ttl", "active"}, float32(s.sessionTimers.Len()))
 
+			metrics.SetGauge([]string{"raft", "applied_index"}, float32(s.raft.AppliedIndex()))
+			metrics.SetGauge([]string{"raft", "last_index"}, float32(s.raft.LastIndex()))
 		case <-s.shutdownCh:
 			return
 		}

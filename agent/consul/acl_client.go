@@ -5,10 +5,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/serf/serf"
 )
 
 var clientACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
@@ -36,22 +34,11 @@ func (c *Client) UseLegacyACLs() bool {
 func (c *Client) monitorACLMode() {
 	waitTime := aclModeCheckMinInterval
 	for {
-		canUpgrade := false
-		for _, member := range c.LANMembers() {
-			if valid, parts := metadata.IsConsulServer(member); valid && parts.Status == serf.StatusAlive {
-				if parts.ACLs != structs.ACLModeEnabled {
-					canUpgrade = false
-					break
-				} else {
-					canUpgrade = true
-				}
-			}
-		}
-
-		if canUpgrade {
-			c.logger.Printf("[DEBUG] acl: transition out of legacy ACL mode")
+		foundServers, mode, _ := ServersGetACLMode(c, "", c.config.Datacenter)
+		if foundServers && mode == structs.ACLModeEnabled {
+			c.logger.Debug("transitioned out of legacy ACL mode")
+			c.updateSerfTags("acls", string(structs.ACLModeEnabled))
 			atomic.StoreInt32(&c.useNewACLs, 1)
-			lib.UpdateSerfTag(c.serf, "acls", string(structs.ACLModeEnabled))
 			return
 		}
 
@@ -105,4 +92,33 @@ func (c *Client) ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error
 
 func (c *Client) ResolveToken(token string) (acl.Authorizer, error) {
 	return c.acls.ResolveToken(token)
+}
+
+func (c *Client) ResolveTokenToIdentityAndAuthorizer(token string) (structs.ACLIdentity, acl.Authorizer, error) {
+	return c.acls.ResolveTokenToIdentityAndAuthorizer(token)
+}
+
+func (c *Client) ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
+	identity, authz, err := c.acls.ResolveTokenToIdentityAndAuthorizer(token)
+	if err != nil {
+		return nil, err
+	}
+
+	// Default the EnterpriseMeta based on the Tokens meta or actual defaults
+	// in the case of unknown identity
+	if identity != nil {
+		entMeta.Merge(identity.EnterpriseMetadata())
+	} else {
+		entMeta.Merge(structs.DefaultEnterpriseMeta())
+	}
+
+	// Use the meta to fill in the ACL authorization context
+	entMeta.FillAuthzContext(authzContext)
+
+	return authz, err
+}
+
+func (c *Client) updateSerfTags(key, value string) {
+	// Update the LAN serf
+	lib.UpdateSerfTag(c.serf, key, value)
 }

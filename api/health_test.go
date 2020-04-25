@@ -223,6 +223,8 @@ func TestAPI_HealthChecks(t *testing.T) {
 				ServiceID:   "foo",
 				ServiceName: "foo",
 				ServiceTags: []string{"bar"},
+				Type:        "ttl",
+				Namespace:   defaultNamespace,
 			},
 		}
 
@@ -272,8 +274,11 @@ func TestAPI_HealthChecks_NodeMetaFilter(t *testing.T) {
 		if meta.LastIndex == 0 {
 			r.Fatalf("bad: %v", meta)
 		}
-		if len(checks) == 0 {
-			r.Fatalf("Bad: %v", checks)
+		if len(checks) != 1 {
+			r.Fatalf("expected 1 check, got %d", len(checks))
+		}
+		if checks[0].Type != "ttl" {
+			r.Fatalf("expected type ttl, got %s", checks[0].Type)
 		}
 	})
 }
@@ -356,6 +361,12 @@ func TestAPI_HealthService_SingleTag(t *testing.T) {
 		require.NotEqual(r, meta.LastIndex, 0)
 		require.Len(r, services, 1)
 		require.Equal(r, services[0].Service.ID, "foo1")
+
+		for _, check := range services[0].Checks {
+			if check.CheckID == "service:foo1" && check.Type != "ttl" {
+				r.Fatalf("expected type ttl, got %s", check.Type)
+			}
+		}
 	})
 }
 func TestAPI_HealthService_MultipleTags(t *testing.T) {

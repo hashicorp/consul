@@ -29,6 +29,17 @@ func TestRegisterRequestProxy(t testing.T) *RegisterRequest {
 	}
 }
 
+// TestRegisterIngressGateway returns a RegisterRequest for registering an
+// ingress gateway
+func TestRegisterIngressGateway(t testing.T) *RegisterRequest {
+	return &RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service:    TestNodeServiceIngressGateway(t, ""),
+	}
+}
+
 // TestNodeService returns a *NodeService representing a valid regular service.
 func TestNodeService(t testing.T) *NodeService {
 	return &NodeService{
@@ -85,6 +96,15 @@ func TestNodeServiceMeshGateway(t testing.T) *NodeService {
 		ServiceAddress{Address: "198.18.4.5", Port: 443})
 }
 
+func TestNodeServiceTerminatingGateway(t testing.T, address string) *NodeService {
+	return &NodeService{
+		Kind:    ServiceKindTerminatingGateway,
+		Port:    8443,
+		Service: "terminating-gateway",
+		Address: address,
+	}
+}
+
 func TestNodeServiceMeshGatewayWithAddrs(t testing.T, address string, port int, lanAddr, wanAddr ServiceAddress) *NodeService {
 	return &NodeService{
 		Kind:    ServiceKindMeshGateway,
@@ -97,9 +117,17 @@ func TestNodeServiceMeshGatewayWithAddrs(t testing.T, address string, port int, 
 			},
 		},
 		TaggedAddresses: map[string]ServiceAddress{
-			"lan": lanAddr,
-			"wan": wanAddr,
+			TaggedAddressLAN: lanAddr,
+			TaggedAddressWAN: wanAddr,
 		},
+	}
+}
+
+func TestNodeServiceIngressGateway(t testing.T, address string) *NodeService {
+	return &NodeService{
+		Kind:    ServiceKindIngressGateway,
+		Service: "ingress-gateway",
+		Address: address,
 	}
 }
 

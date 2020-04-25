@@ -1,17 +1,18 @@
 package bootstrap
 
 import (
+	"encoding/json"
 	"os"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBootstrapCommand_noTabs(t *testing.T) {
@@ -22,20 +23,18 @@ func TestBootstrapCommand_noTabs(t *testing.T) {
 	}
 }
 
-func TestBootstrapCommand(t *testing.T) {
+func TestBootstrapCommand_Pretty(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
 	testDir := testutil.TempDir(t, "acl")
 	defer os.RemoveAll(testDir)
 
-	a := agent.NewTestAgent(t, t.Name(), `
+	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
 	acl {
 		enabled = true
 	}`)
-
-	a.Agent.LogWriter = logger.NewLogWriter(512)
 
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -53,4 +52,40 @@ func TestBootstrapCommand(t *testing.T) {
 	output := ui.OutputWriter.String()
 	assert.Contains(output, "Bootstrap Token")
 	assert.Contains(output, structs.ACLPolicyGlobalManagementID)
+}
+
+func TestBootstrapCommand_JSON(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	testDir := testutil.TempDir(t, "acl")
+	defer os.RemoveAll(testDir)
+
+	a := agent.NewTestAgent(t, `
+	primary_datacenter = "dc1"
+	acl {
+		enabled = true
+	}`)
+
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	ui := cli.NewMockUi()
+	cmd := New(ui)
+
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		"-format=json",
+	}
+
+	code := cmd.Run(args)
+	assert.Equal(code, 0)
+	assert.Empty(ui.ErrorWriter.String())
+	output := ui.OutputWriter.String()
+	assert.Contains(output, "Bootstrap Token")
+	assert.Contains(output, structs.ACLPolicyGlobalManagementID)
+
+	var jsonOutput json.RawMessage
+	err := json.Unmarshal([]byte(output), &jsonOutput)
+	require.NoError(t, err, "token unmarshalling error")
 }

@@ -1,6 +1,6 @@
 .g-cta-section.g-section {
   align-items: center;
-  background: $consul-red;
+  background: $consul;
   display: flex;
   justify-content: center;
   padding-left: 15px;
@@ -30,7 +30,7 @@
     margin-top: 0;
   }
 
-  .g-btn + .g-btn {
+  .button + .button {
     margin-left: 18px;
   }
 }

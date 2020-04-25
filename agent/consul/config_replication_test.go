@@ -74,9 +74,9 @@ func TestReplication_ConfigEntries(t *testing.T) {
 	entries = append(entries, arg.Entry)
 
 	checkSame := func(t *retry.R) error {
-		_, remote, err := s1.fsm.State().ConfigEntries(nil)
+		_, remote, err := s1.fsm.State().ConfigEntries(nil, structs.ReplicationEnterpriseMeta())
 		require.NoError(t, err)
-		_, local, err := s2.fsm.State().ConfigEntries(nil)
+		_, local, err := s2.fsm.State().ConfigEntries(nil, structs.ReplicationEnterpriseMeta())
 		require.NoError(t, err)
 
 		require.Len(t, local, len(remote))

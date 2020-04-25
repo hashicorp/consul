@@ -15,6 +15,56 @@ This page is used to document those details separately from the standard
 upgrade flow.
 
 
+## Consul 1.7.0
+
+Consul 1.7.0 contains three major changes that impact upgrades: 
+[stricter JSON decoding](#stricter-json-decoding), [modified DNS outputs](#dns-ptr-record-output), 
+and [backward-incompatible Session API changes](#session-api).
+
+### Session API
+Consul 1.7.0 introduced a backwards incompatible change to the Session API. 
+Queries to view or renew sessions from agents on earlier versions will be rejected.
+This impacts features and products including: Vault, the Enterprise snapshot agent, and locks.
+
+The issue occurs when clients are still running 1.6.4 or earlier but servers have been upgraded to 1.7.0 or 1.7.1. 
+For this reason, we recommend you upgrade directly to 1.7.2 when it is available as it will include a fix for this issue.
+
+### Stricter JSON Decoding
+
+The HTTP API will now return 400 status codes with a textual error when unknown fields
+are present in the payload of a request. Previously, Consul would simply ignore the
+unknown fields. You will need to ensure that your API usage only uses supported
+fields which are those documented in the example payloads in the API documentation.
+
+### DNS PTR Record Output
+
+Consul will now return the canonical service name in response to PTR queries. For OSS users the
+change is that the datacenter will be present where it was not before. For Consul Enterprise
+users, both the datacenter and the services namespace will be present. For example, where a
+PTR record would previously have contained `web.service.consul`, it will now be `web.service.dc1.consul`
+in OSS or `web.service.ns1.dc1.consul` for Enterprise.
+
+### Telemetry: semantics of `consul.rpc.query` changed, see `consul.rpc.queries_blocking`
+
+Consul has changed the semantics of query counts in its [telemetry](/docs/agent/telemetry.html#metrics-reference).
+`consul.rpc.query` now only increments on the *start* of a query (blocking or non-blocking), whereas before it would
+measure when blocking queries polled for more data. The `consul.rpc.queries_blocking` gauge has been added
+to more precisely capture the view of *active* blocking queries.
+
+### Vault: default `http_max_conns_per_client` too low to run Vault properly
+
+Consul 1.7.0 introduced [limiting of connections per client](/docs/agent/options.html#http_max_conns_per_client). The default value
+was 100, but Vault could use up to 128, which caused problems. If you want to use Vault with Consul 1.7.0, you should change the value to 200.
+Starting with Consul 1.7.1 this is the new default.
+
+## Consul 1.6.3
+
+### Vault: default `http_max_conns_per_client` too low to run Vault properly
+
+Consul 1.6.3 introduced [limiting of connections per client](/docs/agent/options.html#http_max_conns_per_client). The default value
+was 100, but Vault could use up to 128, which caused problems. If you want to use Vault with Consul 1.6.3, you should change the value to 200.
+Starting with Consul 1.6.4 this is the new default.
+
 ## Consul 1.6.0
 
 #### Removal of Deprecated Features
@@ -277,6 +327,12 @@ for Consul's config files, an `.hcl` or `.json` extension is required for all
 config files loaded by Consul, even when using the
 [`-config-file`](/docs/agent/options.html#_config_file) argument to specify a
 file directly.
+
+#### Service Definition Parameter Case changed
+
+All config file formats now require snake_case fields, so all CamelCased parameter
+names should be changed before upgrading.
+See [Service Definition Parameter Case](https://www.consul.io/docs/agent/services.html#service-definition-parameter-case) documentation for details.
 
 #### Deprecated Options Have Been Removed
 

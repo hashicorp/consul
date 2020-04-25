@@ -185,10 +185,10 @@ func TestTakeReturn(t *testing.T) {
 				c.Close()
 			}
 		}()
-		for _, port := range allPorts {
+		for i, port := range allPorts {
 			ln, err := net.ListenTCP("tcp", tcpAddr("127.0.0.1", port))
 			if err != nil {
-				t.Fatalf("err: %v", err)
+				t.Fatalf("%d err: %v", i, err)
 			}
 			leaked = append(leaked, ln)
 		}

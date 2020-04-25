@@ -3,15 +3,15 @@ package autopilot
 import (
 	"context"
 	"fmt"
-	"log"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/raft"
+	"github.com/hashicorp/serf/serf"
 	"net"
 	"strconv"
 	"sync"
 	"time"
-
-	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/raft"
-	"github.com/hashicorp/serf/serf"
 )
 
 // Delegate is the interface for the Autopilot mechanism
@@ -30,7 +30,7 @@ type Delegate interface {
 // quorum using server health information along with updates from Serf gossip.
 // For more information, see https://www.consul.io/docs/guides/autopilot.html
 type Autopilot struct {
-	logger   *log.Logger
+	logger   hclog.Logger
 	delegate Delegate
 
 	interval       time.Duration
@@ -54,9 +54,9 @@ type ServerInfo struct {
 	Status serf.MemberStatus
 }
 
-func NewAutopilot(logger *log.Logger, delegate Delegate, interval, healthInterval time.Duration) *Autopilot {
+func NewAutopilot(logger hclog.Logger, delegate Delegate, interval, healthInterval time.Duration) *Autopilot {
 	return &Autopilot{
-		logger:         logger,
+		logger:         logger.Named(logging.Autopilot),
 		delegate:       delegate,
 		interval:       interval,
 		healthInterval: healthInterval,
@@ -111,15 +111,15 @@ func (a *Autopilot) run() {
 			return
 		case <-ticker.C:
 			if err := a.promoteServers(); err != nil {
-				a.logger.Printf("[ERR] autopilot: Error promoting servers: %v", err)
+				a.logger.Error("Error promoting servers", "error", err)
 			}
 
 			if err := a.pruneDeadServers(); err != nil {
-				a.logger.Printf("[ERR] autopilot: Error checking for dead servers to remove: %s", err)
+				a.logger.Error("Error checking for dead servers to remove", "error", err)
 			}
 		case <-a.removeDeadCh:
 			if err := a.pruneDeadServers(); err != nil {
-				a.logger.Printf("[ERR] autopilot: Error checking for dead servers to remove: %s", err)
+				a.logger.Error("Error checking for dead servers to remove", "error", err)
 			}
 		}
 	}
@@ -174,6 +174,20 @@ func (a *Autopilot) RemoveDeadServers() {
 	}
 }
 
+func canRemoveServers(peers, minQuorum, deadServers int) (bool, string) {
+	if peers-deadServers < int(minQuorum) {
+		return false, fmt.Sprintf("denied, because removing %d/%d servers would leave less then minimal allowed quorum of %d servers", deadServers, peers, minQuorum)
+	}
+
+	// Only do removals if a minority of servers will be affected.
+	// For failure tolerance of F we need n = 2F+1 servers.
+	// This means we can safely remove up to (n-1)/2 servers.
+	if deadServers > (peers-1)/2 {
+		return false, fmt.Sprintf("denied, because removing the majority of servers %d/%d is not safe", deadServers, peers)
+	}
+	return true, fmt.Sprintf("allowed, because removing %d/%d servers leaves a majority of servers above the minimal allowed quorum %d", deadServers, peers, minQuorum)
+}
+
 // pruneDeadServers removes up to numPeers/2 failed servers
 func (a *Autopilot) pruneDeadServers() error {
 	conf := a.delegate.AutopilotConfig()
@@ -200,7 +214,7 @@ func (a *Autopilot) pruneDeadServers() error {
 	for _, member := range serfLAN.Members() {
 		server, err := a.delegate.IsServer(member)
 		if err != nil {
-			a.logger.Printf("[INFO] autopilot: Error parsing server info for %q: %s", member.Name, err)
+			a.logger.Warn("Error parsing server info", "name", member.Name, "error", err)
 			continue
 		}
 		if server != nil {
@@ -213,7 +227,7 @@ func (a *Autopilot) pruneDeadServers() error {
 			if member.Status == serf.StatusFailed {
 				// If the node is a nonvoter, we can remove it immediately.
 				if found && s.Suffrage == raft.Nonvoter {
-					a.logger.Printf("[INFO] autopilot: Attempting removal of failed server node %q", member.Name)
+					a.logger.Info("Attempting removal of failed server node", "name", member.Name)
 					go serfLAN.RemoveFailedNode(member.Name)
 					if serfWAN != nil {
 						go serfWAN.RemoveFailedNode(member.Name)
@@ -226,42 +240,42 @@ func (a *Autopilot) pruneDeadServers() error {
 		}
 	}
 
-	// We can bail early if there's nothing to do.
-	removalCount := len(failed) + len(staleRaftServers)
-	if removalCount == 0 {
+	deadServers := len(failed) + len(staleRaftServers)
+
+	// nothing to do
+	if deadServers == 0 {
 		return nil
 	}
 
-	// Only do removals if a minority of servers will be affected.
-	peers := NumPeers(raftConfig)
-	if removalCount < peers/2 {
-		for _, node := range failed {
-			a.logger.Printf("[INFO] autopilot: Attempting removal of failed server node %q", node.Name)
-			go serfLAN.RemoveFailedNode(node.Name)
-			if serfWAN != nil {
-				go serfWAN.RemoveFailedNode(fmt.Sprintf("%s.%s", node.Name, node.Tags["dc"]))
-			}
+	if ok, msg := canRemoveServers(NumPeers(raftConfig), int(conf.MinQuorum), deadServers); !ok {
+		a.logger.Debug("Failed to remove dead servers", "error", msg)
+		return nil
+	}
 
+	for _, node := range failed {
+		a.logger.Info("Attempting removal of failed server node", "name", node.Name)
+		go serfLAN.RemoveFailedNode(node.Name)
+		if serfWAN != nil {
+			go serfWAN.RemoveFailedNode(fmt.Sprintf("%s.%s", node.Name, node.Tags["dc"]))
 		}
 
-		minRaftProtocol, err := a.MinRaftProtocol()
-		if err != nil {
+	}
+
+	minRaftProtocol, err := a.MinRaftProtocol()
+	if err != nil {
+		return err
+	}
+	for _, raftServer := range staleRaftServers {
+		a.logger.Info("Attempting removal of stale server", "server", fmtServer(raftServer))
+		var future raft.Future
+		if minRaftProtocol >= 2 {
+			future = raftNode.RemoveServer(raftServer.ID, 0, 0)
+		} else {
+			future = raftNode.RemovePeer(raftServer.Address)
+		}
+		if err := future.Error(); err != nil {
 			return err
 		}
-		for _, raftServer := range staleRaftServers {
-			a.logger.Printf("[INFO] autopilot: Attempting removal of stale %s", fmtServer(raftServer))
-			var future raft.Future
-			if minRaftProtocol >= 2 {
-				future = raftNode.RemoveServer(raftServer.ID, 0, 0)
-			} else {
-				future = raftNode.RemovePeer(raftServer.Address)
-			}
-			if err := future.Error(); err != nil {
-				return err
-			}
-		}
-	} else {
-		a.logger.Printf("[DEBUG] autopilot: Failed to remove dead servers: too many dead servers: %d/%d", removalCount, peers)
 	}
 
 	return nil
@@ -320,7 +334,7 @@ func (a *Autopilot) handlePromotions(promotions []raft.Server) error {
 	// to promote early than remove early, so by promoting as soon as
 	// possible we have chosen that as the solution here.
 	for _, server := range promotions {
-		a.logger.Printf("[INFO] autopilot: Promoting %s to voter", fmtServer(server))
+		a.logger.Info("Promoting server to voter", "server", fmtServer(server))
 		addFuture := a.delegate.Raft().AddVoter(server.ID, server.Address, 0, 0)
 		if err := addFuture.Error(); err != nil {
 			return fmt.Errorf("failed to add raft peer: %v", err)
@@ -351,7 +365,7 @@ func (a *Autopilot) serverHealthLoop() {
 			return
 		case <-ticker.C:
 			if err := a.updateClusterHealth(); err != nil {
-				a.logger.Printf("[ERR] autopilot: Error updating cluster health: %s", err)
+				a.logger.Error("Error updating cluster health", "error", err)
 			}
 		}
 	}
@@ -385,7 +399,7 @@ func (a *Autopilot) updateClusterHealth() error {
 
 		server, err := a.delegate.IsServer(member)
 		if err != nil {
-			a.logger.Printf("[INFO] autopilot: Error parsing server info for %q: %s", member.Name, err)
+			a.logger.Warn("Error parsing server info", "name", member.Name, "error", err)
 			continue
 		}
 		if server != nil {
@@ -438,7 +452,7 @@ func (a *Autopilot) updateClusterHealth() error {
 			health.Version = parts.Build.String()
 			if stats, ok := fetchedStats[string(server.ID)]; ok {
 				if err := a.updateServerHealth(&health, parts, stats, autopilotConf, targetLastIndex); err != nil {
-					a.logger.Printf("[WARN] autopilot: Error updating server %s health: %s", fmtServer(server), err)
+					a.logger.Warn("Error updating server health", "server", fmtServer(server), "error", err)
 				}
 			}
 		} else {

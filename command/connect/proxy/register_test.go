@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/stretchr/testify/require"
@@ -15,7 +16,7 @@ func TestRegisterMonitor_good(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
 
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -38,7 +39,7 @@ func TestRegisterMonitor_good(t *testing.T) {
 func TestRegisterMonitor_heartbeat(t *testing.T) {
 	t.Parallel()
 
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -77,7 +78,7 @@ func TestRegisterMonitor_heartbeat(t *testing.T) {
 // It waits until the service appears in the catalog and then returns.
 func testMonitor(t *testing.T, client *api.Client) (*RegisterMonitor, *api.AgentService) {
 	// Setup the monitor
-	m := NewRegisterMonitor()
+	m := NewRegisterMonitor(testutil.Logger(t))
 	m.Client = client
 	m.Service = "foo"
 	m.LocalAddress = "127.0.0.1"

@@ -16,7 +16,9 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/go-version"
@@ -66,7 +68,7 @@ func (s *Server) monitorLeadership() {
 			switch {
 			case isLeader:
 				if weAreLeaderCh != nil {
-					s.logger.Printf("[ERR] consul: attempted to start the leader loop while running")
+					s.logger.Error("attempted to start the leader loop while running")
 					continue
 				}
 
@@ -76,19 +78,19 @@ func (s *Server) monitorLeadership() {
 					defer leaderLoop.Done()
 					s.leaderLoop(ch)
 				}(weAreLeaderCh)
-				s.logger.Printf("[INFO] consul: cluster leadership acquired")
+				s.logger.Info("cluster leadership acquired")
 
 			default:
 				if weAreLeaderCh == nil {
-					s.logger.Printf("[ERR] consul: attempted to stop the leader loop while not running")
+					s.logger.Error("attempted to stop the leader loop while not running")
 					continue
 				}
 
-				s.logger.Printf("[DEBUG] consul: shutting down leader loop")
+				s.logger.Debug("shutting down leader loop")
 				close(weAreLeaderCh)
 				leaderLoop.Wait()
 				weAreLeaderCh = nil
-				s.logger.Printf("[INFO] consul: cluster leadership lost")
+				s.logger.Info("cluster leadership lost")
 			}
 		case <-aclUpgradeCh:
 			if atomic.LoadInt32(&s.useNewACLs) == 0 {
@@ -101,12 +103,12 @@ func (s *Server) monitorLeadership() {
 				if canUpgrade := s.canUpgradeToNewACLs(weAreLeaderCh != nil); canUpgrade {
 					if weAreLeaderCh != nil {
 						if err := s.initializeACLs(true); err != nil {
-							s.logger.Printf("[ERR] consul: error transitioning to using new ACLs: %v", err)
+							s.logger.Error("error transitioning to using new ACLs", "error", err)
 							continue
 						}
 					}
 
-					s.logger.Printf("[DEBUG] acl: transitioning out of legacy ACL mode")
+					s.logger.Debug("transitioning out of legacy ACL mode")
 					atomic.StoreInt32(&s.useNewACLs, 1)
 					s.updateACLAdvertisement()
 
@@ -128,9 +130,16 @@ func (s *Server) leadershipTransfer() error {
 	for i := 0; i < retryCount; i++ {
 		future := s.raft.LeadershipTransfer()
 		if err := future.Error(); err != nil {
-			s.logger.Printf("[ERR] consul: failed to transfer leadership attempt %d/%d: %v", i, retryCount, err)
+			s.logger.Error("failed to transfer leadership attempt, will retry",
+				"attempt", i,
+				"retry_limit", retryCount,
+				"error", err,
+			)
 		} else {
-			s.logger.Printf("[ERR] consul: successfully transferred leadership attempt %d/%d", i, retryCount)
+			s.logger.Info("successfully transferred leadership",
+				"attempt", i,
+				"retry_limit", retryCount,
+			)
 			return nil
 		}
 
@@ -145,7 +154,10 @@ func (s *Server) leaderLoop(stopCh chan struct{}) {
 	payload := []byte(s.config.NodeName)
 	for name, segment := range s.LANSegments() {
 		if err := segment.UserEvent(newLeaderEvent, payload, false); err != nil {
-			s.logger.Printf("[WARN] consul: failed to broadcast new leader event on segment %q: %v", name, err)
+			s.logger.Warn("failed to broadcast new leader event on segment",
+				"segment", name,
+				"error", err,
+			)
 		}
 	}
 
@@ -163,7 +175,7 @@ RECONCILE:
 	start := time.Now()
 	barrier := s.raft.Barrier(barrierWriteTimeout)
 	if err := barrier.Error(); err != nil {
-		s.logger.Printf("[ERR] consul: failed to wait for barrier: %v", err)
+		s.logger.Error("failed to wait for barrier", "error", err)
 		goto WAIT
 	}
 	metrics.MeasureSince([]string{"leader", "barrier"}, start)
@@ -171,7 +183,7 @@ RECONCILE:
 	// Check if we need to handle initial leadership actions
 	if !establishedLeader {
 		if err := s.establishLeadership(); err != nil {
-			s.logger.Printf("[ERR] consul: failed to establish leadership: %v", err)
+			s.logger.Error("failed to establish leadership", "error", err)
 			// Immediately revoke leadership since we didn't successfully
 			// establish leadership.
 			s.revokeLeadership()
@@ -182,7 +194,7 @@ RECONCILE:
 			// will try to acquire it again after
 			// 5 seconds.
 			if err := s.leadershipTransfer(); err != nil {
-				s.logger.Printf("[ERR] consul: %v", err)
+				s.logger.Error("failed to transfer leadership", "error", err)
 				interval = time.After(5 * time.Second)
 				goto WAIT
 			}
@@ -194,7 +206,7 @@ RECONCILE:
 
 	// Reconcile any missing data
 	if err := s.reconcile(); err != nil {
-		s.logger.Printf("[ERR] consul: failed to reconcile: %v", err)
+		s.logger.Error("failed to reconcile", "error", err)
 		goto WAIT
 	}
 
@@ -328,6 +340,10 @@ func (s *Server) establishLeadership() error {
 
 	s.startConfigReplication()
 
+	s.startFederationStateReplication()
+
+	s.startFederationStateAntiEntropy()
+
 	s.startConnectLeader()
 
 	s.setConsistentReadReady()
@@ -345,6 +361,10 @@ func (s *Server) revokeLeadership() {
 	s.clearAllSessionTimers()
 
 	s.revokeEnterpriseLeadership()
+
+	s.stopFederationStateAntiEntropy()
+
+	s.stopFederationStateReplication()
 
 	s.stopConfigReplication()
 
@@ -371,7 +391,7 @@ func (s *Server) initializeLegacyACL() error {
 
 	// Create anonymous token if missing.
 	state := s.fsm.State()
-	_, token, err := state.ACLTokenGetBySecret(nil, anonymousToken)
+	_, token, err := state.ACLTokenGetBySecret(nil, anonymousToken, nil)
 	if err != nil {
 		return fmt.Errorf("failed to get anonymous token: %v", err)
 	}
@@ -390,12 +410,12 @@ func (s *Server) initializeLegacyACL() error {
 		if err != nil {
 			return fmt.Errorf("failed to create anonymous token: %v", err)
 		}
-		s.logger.Printf("[INFO] acl: Created the anonymous token")
+		s.logger.Info("Created the anonymous token")
 	}
 
 	// Check for configured master token.
 	if master := s.config.ACLMasterToken; len(master) > 0 {
-		_, token, err = state.ACLTokenGetBySecret(nil, master)
+		_, token, err = state.ACLTokenGetBySecret(nil, master, nil)
 		if err != nil {
 			return fmt.Errorf("failed to get master token: %v", err)
 		}
@@ -414,7 +434,7 @@ func (s *Server) initializeLegacyACL() error {
 			if err != nil {
 				return fmt.Errorf("failed to create master token: %v", err)
 			}
-			s.logger.Printf("[INFO] consul: Created ACL master token from configuration")
+			s.logger.Info("Created ACL master token from configuration")
 		}
 	}
 
@@ -424,7 +444,7 @@ func (s *Server) initializeLegacyACL() error {
 	// of state in the state store that will cause problems with older
 	// servers consuming snapshots, so we have to wait to create it.
 	var minVersion = version.Must(version.NewVersion("0.9.1"))
-	if ServersMeetMinimumVersion(s.LANMembers(), minVersion) {
+	if ok, _ := ServersInDCMeetMinimumVersion(s, s.config.Datacenter, minVersion); ok {
 		canBootstrap, _, err := state.CanBootstrapACLToken()
 		if err != nil {
 			return fmt.Errorf("failed looking for ACL bootstrap info: %v", err)
@@ -444,9 +464,9 @@ func (s *Server) initializeLegacyACL() error {
 
 			case bool:
 				if v {
-					s.logger.Printf("[INFO] consul: ACL bootstrap enabled")
+					s.logger.Info("ACL bootstrap enabled")
 				} else {
-					s.logger.Printf("[INFO] consul: ACL bootstrap disabled, existing management tokens found")
+					s.logger.Info("ACL bootstrap disabled, existing management tokens found")
 				}
 
 			default:
@@ -454,7 +474,7 @@ func (s *Server) initializeLegacyACL() error {
 			}
 		}
 	} else {
-		s.logger.Printf("[WARN] consul: Can't initialize ACL bootstrap until all servers are >= %s", minVersion.String())
+		s.logger.Warn("Can't initialize ACL bootstrap until all servers are >= " + minVersion.String())
 	}
 
 	return nil
@@ -473,11 +493,11 @@ func (s *Server) initializeACLs(upgrade bool) error {
 
 	// Purge the auth method validators since they could've changed while we
 	// were not leader.
-	s.purgeAuthMethodValidators()
+	s.aclAuthMethodValidators.Purge()
 
 	// Remove any token affected by CVE-2019-8336
 	if !s.InACLDatacenter() {
-		_, token, err := s.fsm.State().ACLTokenGetBySecret(nil, redactedToken)
+		_, token, err := s.fsm.State().ACLTokenGetBySecret(nil, redactedToken, nil)
 		if err == nil && token != nil {
 			req := structs.ACLTokenBatchDeleteRequest{
 				TokenIDs: []string{token.AccessorID},
@@ -492,45 +512,51 @@ func (s *Server) initializeACLs(upgrade bool) error {
 
 	if s.InACLDatacenter() {
 		if s.UseLegacyACLs() && !upgrade {
-			s.logger.Printf("[INFO] acl: initializing legacy acls")
+			s.logger.Info("initializing legacy acls")
 			return s.initializeLegacyACL()
 		}
 
-		s.logger.Printf("[INFO] acl: initializing acls")
+		s.logger.Info("initializing acls")
 
-		// Create the builtin global-management policy
-		_, policy, err := s.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID)
+		// Create/Upgrade the builtin global-management policy
+		_, policy, err := s.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMeta())
 		if err != nil {
 			return fmt.Errorf("failed to get the builtin global-management policy")
 		}
-		if policy == nil {
-			policy := structs.ACLPolicy{
-				ID:          structs.ACLPolicyGlobalManagementID,
-				Name:        "global-management",
-				Description: "Builtin Policy that grants unlimited access",
-				Rules:       structs.ACLPolicyGlobalManagement,
-				Syntax:      acl.SyntaxCurrent,
+		if policy == nil || policy.Rules != structs.ACLPolicyGlobalManagement {
+			newPolicy := structs.ACLPolicy{
+				ID:             structs.ACLPolicyGlobalManagementID,
+				Name:           "global-management",
+				Description:    "Builtin Policy that grants unlimited access",
+				Rules:          structs.ACLPolicyGlobalManagement,
+				Syntax:         acl.SyntaxCurrent,
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			}
-			policy.SetHash(true)
+			if policy != nil {
+				newPolicy.Name = policy.Name
+				newPolicy.Description = policy.Description
+			}
+
+			newPolicy.SetHash(true)
 
 			req := structs.ACLPolicyBatchSetRequest{
-				Policies: structs.ACLPolicies{&policy},
+				Policies: structs.ACLPolicies{&newPolicy},
 			}
 			_, err := s.raftApply(structs.ACLPolicySetRequestType, &req)
 			if err != nil {
 				return fmt.Errorf("failed to create global-management policy: %v", err)
 			}
-			s.logger.Printf("[INFO] consul: Created ACL 'global-management' policy")
+			s.logger.Info("Created ACL 'global-management' policy")
 		}
 
 		// Check for configured master token.
 		if master := s.config.ACLMasterToken; len(master) > 0 {
 			state := s.fsm.State()
 			if _, err := uuid.ParseUUID(master); err != nil {
-				s.logger.Printf("[WARN] consul: Configuring a non-UUID master token is deprecated")
+				s.logger.Warn("Configuring a non-UUID master token is deprecated")
 			}
 
-			_, token, err := state.ACLTokenGetBySecret(nil, master)
+			_, token, err := state.ACLTokenGetBySecret(nil, master, nil)
 			if err != nil {
 				return fmt.Errorf("failed to get master token: %v", err)
 			}
@@ -554,7 +580,8 @@ func (s *Server) initializeACLs(upgrade bool) error {
 					Local:      false,
 
 					// DEPRECATED (ACL-Legacy-Compat) - only needed for compatibility
-					Type: structs.ACLTokenTypeManagement,
+					Type:           structs.ACLTokenTypeManagement,
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				}
 
 				token.SetHash(true)
@@ -566,7 +593,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 						ResetIndex: 0,
 					}
 					if _, err := s.raftApply(structs.ACLBootstrapRequestType, &req); err == nil {
-						s.logger.Printf("[INFO] consul: Bootstrapped ACL master token from configuration")
+						s.logger.Info("Bootstrapped ACL master token from configuration")
 						done = true
 					} else {
 						if err.Error() != structs.ACLBootstrapNotAllowedErr.Error() &&
@@ -586,13 +613,13 @@ func (s *Server) initializeACLs(upgrade bool) error {
 						return fmt.Errorf("failed to create master token: %v", err)
 					}
 
-					s.logger.Printf("[INFO] consul: Created ACL master token from configuration")
+					s.logger.Info("Created ACL master token from configuration")
 				}
 			}
 		}
 
 		state := s.fsm.State()
-		_, token, err := state.ACLTokenGetBySecret(nil, structs.ACLTokenAnonymousID)
+		_, token, err := state.ACLTokenGetBySecret(nil, structs.ACLTokenAnonymousID, nil)
 		if err != nil {
 			return fmt.Errorf("failed to get anonymous token: %v", err)
 		}
@@ -600,7 +627,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 		if token == nil {
 			// DEPRECATED (ACL-Legacy-Compat) - Don't need to query for previous "anonymous" token
 			// check for legacy token that needs an upgrade
-			_, legacyToken, err := state.ACLTokenGetBySecret(nil, anonymousToken)
+			_, legacyToken, err := state.ACLTokenGetBySecret(nil, anonymousToken, nil)
 			if err != nil {
 				return fmt.Errorf("failed to get anonymous token: %v", err)
 			}
@@ -609,10 +636,11 @@ func (s *Server) initializeACLs(upgrade bool) error {
 			// the token upgrade routine will take care of upgrading the token if a legacy version exists
 			if legacyToken == nil {
 				token = &structs.ACLToken{
-					AccessorID:  structs.ACLTokenAnonymousID,
-					SecretID:    anonymousToken,
-					Description: "Anonymous Token",
-					CreateTime:  time.Now(),
+					AccessorID:     structs.ACLTokenAnonymousID,
+					SecretID:       anonymousToken,
+					Description:    "Anonymous Token",
+					CreateTime:     time.Now(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				}
 				token.SetHash(true)
 
@@ -624,7 +652,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 				if err != nil {
 					return fmt.Errorf("failed to create anonymous token: %v", err)
 				}
-				s.logger.Printf("[INFO] consul: Created ACL anonymous token from configuration")
+				s.logger.Info("Created ACL anonymous token from configuration")
 			}
 		}
 		// launch the upgrade go routine to generate accessors for everything
@@ -634,6 +662,9 @@ func (s *Server) initializeACLs(upgrade bool) error {
 			if s.IsACLReplicationEnabled() {
 				s.startLegacyACLReplication()
 			}
+			// return early as we don't want to start new ACL replication
+			// or ACL token reaping as these are new ACL features.
+			return nil
 		}
 
 		if upgrade {
@@ -662,7 +693,7 @@ func (s *Server) legacyACLTokenUpgrade(ctx context.Context) error {
 		state := s.fsm.State()
 		tokens, waitCh, err := state.ACLTokenListUpgradeable(aclUpgradeBatchSize)
 		if err != nil {
-			s.logger.Printf("[WARN] acl: encountered an error while searching for tokens without accessor ids: %v", err)
+			s.logger.Warn("encountered an error while searching for tokens without accessor ids", "error", err)
 		}
 		// No need to check expiration time here, as that only exists for v2 tokens.
 
@@ -690,7 +721,7 @@ func (s *Server) legacyACLTokenUpgrade(ctx context.Context) error {
 			} else {
 				accessor, err := lib.GenerateUUID(s.checkTokenUUID)
 				if err != nil {
-					s.logger.Printf("[WARN] acl: failed to generate accessor during token auto-upgrade: %v", err)
+					s.logger.Warn("failed to generate accessor during token auto-upgrade", "error", err)
 					continue
 				}
 				newToken.AccessorID = accessor
@@ -717,11 +748,11 @@ func (s *Server) legacyACLTokenUpgrade(ctx context.Context) error {
 
 		resp, err := s.raftApply(structs.ACLTokenSetRequestType, req)
 		if err != nil {
-			s.logger.Printf("[ERR] acl: failed to apply acl token upgrade batch: %v", err)
+			s.logger.Error("failed to apply acl token upgrade batch", "error", err)
 		}
 
 		if err, ok := resp.(error); ok {
-			s.logger.Printf("[ERR] acl: failed to apply acl token upgrade batch: %v", err)
+			s.logger.Error("failed to apply acl token upgrade batch", "error", err)
 		}
 	}
 }
@@ -743,6 +774,7 @@ func (s *Server) stopACLUpgrade() {
 // the context passed in indicates that it should exit.
 func (s *Server) runLegacyACLReplication(ctx context.Context) error {
 	var lastRemoteIndex uint64
+	legacyACLLogger := s.aclReplicationLogger(logging.Legacy)
 	limiter := rate.NewLimiter(rate.Limit(s.config.ACLReplicationRate), s.config.ACLReplicationBurst)
 
 	for {
@@ -754,7 +786,7 @@ func (s *Server) runLegacyACLReplication(ctx context.Context) error {
 			continue
 		}
 
-		index, exit, err := s.replicateLegacyACLs(lastRemoteIndex, ctx)
+		index, exit, err := s.replicateLegacyACLs(ctx, legacyACLLogger, lastRemoteIndex)
 		if exit {
 			return nil
 		}
@@ -762,11 +794,11 @@ func (s *Server) runLegacyACLReplication(ctx context.Context) error {
 		if err != nil {
 			lastRemoteIndex = 0
 			s.updateACLReplicationStatusError()
-			s.logger.Printf("[WARN] consul: Legacy ACL replication error (will retry if still leader): %v", err)
+			legacyACLLogger.Warn("Legacy ACL replication error (will retry if still leader)", "error", err)
 		} else {
 			lastRemoteIndex = index
 			s.updateACLReplicationStatusIndex(structs.ACLReplicateLegacy, index)
-			s.logger.Printf("[DEBUG] consul: Legacy ACL replication completed through remote index %d", index)
+			legacyACLLogger.Debug("Legacy ACL replication completed through remote index", "index", index)
 		}
 	}
 }
@@ -786,7 +818,7 @@ func (s *Server) startLegacyACLReplication() {
 	s.initReplicationStatus()
 
 	s.leaderRoutineManager.Start(legacyACLReplicationRoutineName, s.runLegacyACLReplication)
-	s.logger.Printf("[INFO] acl: started legacy ACL replication")
+	s.logger.Info("started legacy ACL replication")
 	s.updateACLReplicationStatusRunning(structs.ACLReplicateLegacy)
 }
 
@@ -814,32 +846,40 @@ func (s *Server) startACLReplication() {
 	}
 }
 
-type replicateFunc func(ctx context.Context, lastRemoteIndex uint64) (uint64, bool, error)
+type replicateFunc func(ctx context.Context, logger hclog.Logger, lastRemoteIndex uint64) (uint64, bool, error)
 
 // This function is only intended to be run as a managed go routine, it will block until
 // the context passed in indicates that it should exit.
 func (s *Server) runACLPolicyReplicator(ctx context.Context) error {
-	s.logger.Printf("[INFO] acl: started ACL Policy replication")
-
-	return s.runACLReplicator(ctx, structs.ACLReplicatePolicies, s.replicateACLPolicies)
+	policyLogger := s.aclReplicationLogger(structs.ACLReplicatePolicies.SingularNoun())
+	policyLogger.Info("started ACL Policy replication")
+	return s.runACLReplicator(ctx, policyLogger, structs.ACLReplicatePolicies, s.replicateACLPolicies)
 }
 
 // This function is only intended to be run as a managed go routine, it will block until
 // the context passed in indicates that it should exit.
 func (s *Server) runACLRoleReplicator(ctx context.Context) error {
-	s.logger.Printf("[INFO] acl: started ACL Role replication")
-	return s.runACLReplicator(ctx, structs.ACLReplicateRoles, s.replicateACLRoles)
+	roleLogger := s.aclReplicationLogger(structs.ACLReplicateRoles.SingularNoun())
+	roleLogger.Info("started ACL Role replication")
+	return s.runACLReplicator(ctx, roleLogger, structs.ACLReplicateRoles, s.replicateACLRoles)
 }
 
 // This function is only intended to be run as a managed go routine, it will block until
 // the context passed in indicates that it should exit.
 func (s *Server) runACLTokenReplicator(ctx context.Context) error {
-	return s.runACLReplicator(ctx, structs.ACLReplicateTokens, s.replicateACLTokens)
+	tokenLogger := s.aclReplicationLogger(structs.ACLReplicateTokens.SingularNoun())
+	tokenLogger.Info("started ACL Token replication")
+	return s.runACLReplicator(ctx, tokenLogger, structs.ACLReplicateTokens, s.replicateACLTokens)
 }
 
 // This function is only intended to be run as a managed go routine, it will block until
 // the context passed in indicates that it should exit.
-func (s *Server) runACLReplicator(ctx context.Context, replicationType structs.ACLReplicationType, replicateFunc replicateFunc) error {
+func (s *Server) runACLReplicator(
+	ctx context.Context,
+	logger hclog.Logger,
+	replicationType structs.ACLReplicationType,
+	replicateFunc replicateFunc,
+) error {
 	var failedAttempts uint
 	limiter := rate.NewLimiter(rate.Limit(s.config.ACLReplicationRate), s.config.ACLReplicationBurst)
 
@@ -853,7 +893,7 @@ func (s *Server) runACLReplicator(ctx context.Context, replicationType structs.A
 			continue
 		}
 
-		index, exit, err := replicateFunc(ctx, lastRemoteIndex)
+		index, exit, err := replicateFunc(ctx, logger, lastRemoteIndex)
 		if exit {
 			return nil
 		}
@@ -861,7 +901,9 @@ func (s *Server) runACLReplicator(ctx context.Context, replicationType structs.A
 		if err != nil {
 			lastRemoteIndex = 0
 			s.updateACLReplicationStatusError()
-			s.logger.Printf("[WARN] consul: ACL %s replication error (will retry if still leader): %v", replicationType.SingularNoun(), err)
+			logger.Warn("ACL replication error (will retry if still leader)",
+				"error", err,
+			)
 			if (1 << failedAttempts) < aclReplicationMaxRetryBackoff {
 				failedAttempts++
 			}
@@ -875,10 +917,19 @@ func (s *Server) runACLReplicator(ctx context.Context, replicationType structs.A
 		} else {
 			lastRemoteIndex = index
 			s.updateACLReplicationStatusIndex(replicationType, index)
-			s.logger.Printf("[DEBUG] consul: ACL %s replication completed through remote index %d", replicationType.SingularNoun(), index)
+			logger.Debug("ACL replication completed through remote index",
+				"index", index,
+			)
 			failedAttempts = 0
 		}
 	}
+}
+
+func (s *Server) aclReplicationLogger(singularNoun string) hclog.Logger {
+	return s.loggers.
+		Named(logging.Replication).
+		Named(logging.ACL).
+		Named(singularNoun)
 }
 
 func (s *Server) stopACLReplication() {
@@ -903,27 +954,42 @@ func (s *Server) stopConfigReplication() {
 	s.leaderRoutineManager.Stop(configReplicationRoutineName)
 }
 
+func (s *Server) startFederationStateReplication() {
+	if s.config.PrimaryDatacenter == "" || s.config.PrimaryDatacenter == s.config.Datacenter {
+		// replication shouldn't run in the primary DC
+		return
+	}
+
+	s.leaderRoutineManager.Start(federationStateReplicationRoutineName, s.federationStateReplicator.Run)
+}
+
+func (s *Server) stopFederationStateReplication() {
+	// will be a no-op when not started
+	s.leaderRoutineManager.Stop(federationStateReplicationRoutineName)
+}
+
 // getOrCreateAutopilotConfig is used to get the autopilot config, initializing it if necessary
 func (s *Server) getOrCreateAutopilotConfig() *autopilot.Config {
+	logger := s.loggers.Named(logging.Autopilot)
 	state := s.fsm.State()
 	_, config, err := state.AutopilotConfig()
 	if err != nil {
-		s.logger.Printf("[ERR] autopilot: failed to get config: %v", err)
+		logger.Error("failed to get config", "error", err)
 		return nil
 	}
 	if config != nil {
 		return config
 	}
 
-	if !ServersMeetMinimumVersion(s.LANMembers(), minAutopilotVersion) {
-		s.logger.Printf("[WARN] autopilot: can't initialize until all servers are >= %s", minAutopilotVersion.String())
+	if ok, _ := ServersInDCMeetMinimumVersion(s, s.config.Datacenter, minAutopilotVersion); !ok {
+		logger.Warn("can't initialize until all servers are >= " + minAutopilotVersion.String())
 		return nil
 	}
 
 	config = s.config.AutopilotConfig
 	req := structs.AutopilotSetConfigRequest{Config: *config}
 	if _, err = s.raftApply(structs.AutopilotRequestType, req); err != nil {
-		s.logger.Printf("[ERR] autopilot: failed to initialize config: %v", err)
+		logger.Error("failed to initialize config", "error", err)
 		return nil
 	}
 
@@ -941,15 +1007,17 @@ func (s *Server) bootstrapConfigEntries(entries []structs.ConfigEntry) error {
 		return nil
 	}
 
-	if !ServersMeetMinimumVersion(s.LANMembers(), minCentralizedConfigVersion) {
-		s.logger.Printf("[WARN] centralized config: can't initialize until all servers >= %s", minCentralizedConfigVersion.String())
+	if ok, _ := ServersInDCMeetMinimumVersion(s, s.config.Datacenter, minCentralizedConfigVersion); !ok {
+		s.loggers.
+			Named(logging.CentralConfig).
+			Warn("config: can't initialize until all servers >=" + minCentralizedConfigVersion.String())
 		return nil
 	}
 
 	state := s.fsm.State()
 	for _, entry := range entries {
 		// avoid a round trip through Raft if we know the CAS is going to fail
-		_, existing, err := state.ConfigEntry(nil, entry.GetKind(), entry.GetName())
+		_, existing, err := state.ConfigEntry(nil, entry.GetKind(), entry.GetName(), entry.GetEnterpriseMeta())
 		if err != nil {
 			return fmt.Errorf("Failed to determine whether the configuration for %q / %q already exists: %v", entry.GetKind(), entry.GetName(), err)
 		}
@@ -983,7 +1051,7 @@ func (s *Server) bootstrapConfigEntries(entries []structs.ConfigEntry) error {
 // We generate a "reap" event to cause the node to be cleaned up.
 func (s *Server) reconcileReaped(known map[string]struct{}) error {
 	state := s.fsm.State()
-	_, checks, err := state.ChecksInState(nil, api.HealthAny)
+	_, checks, err := state.ChecksInState(nil, api.HealthAny, structs.DefaultEnterpriseMeta())
 	if err != nil {
 		return err
 	}
@@ -999,7 +1067,7 @@ func (s *Server) reconcileReaped(known map[string]struct{}) error {
 		}
 
 		// Get the node services, look for ConsulServiceID
-		_, services, err := state.NodeServices(nil, check.Node)
+		_, services, err := state.NodeServices(nil, check.Node, structs.DefaultEnterpriseMeta())
 		if err != nil {
 			return err
 		}
@@ -1012,7 +1080,7 @@ func (s *Server) reconcileReaped(known map[string]struct{}) error {
 			if service.ID == structs.ConsulServiceID {
 				_, node, err := state.GetNode(check.Node)
 				if err != nil {
-					s.logger.Printf("[ERR] consul: Unable to look up node with name %q: %v", check.Node, err)
+					s.logger.Error("Unable to look up node with name", "name", check.Node, "error", err)
 					continue CHECKS
 				}
 
@@ -1057,7 +1125,7 @@ func (s *Server) reconcileReaped(known map[string]struct{}) error {
 func (s *Server) reconcileMember(member serf.Member) error {
 	// Check if this is a member we should handle
 	if !s.shouldHandleMember(member) {
-		s.logger.Printf("[WARN] consul: skipping reconcile of node %v", member)
+		s.logger.Warn("skipping reconcile of node", "member", member)
 		return nil
 	}
 	defer metrics.MeasureSince([]string{"leader", "reconcileMember"}, time.Now())
@@ -1073,8 +1141,10 @@ func (s *Server) reconcileMember(member serf.Member) error {
 		err = s.handleReapMember(member)
 	}
 	if err != nil {
-		s.logger.Printf("[ERR] consul: failed to reconcile member: %v: %v",
-			member, err)
+		s.logger.Error("failed to reconcile member",
+			"member", member,
+			"error", err,
+		)
 
 		// Permission denied should not bubble up
 		if acl.IsErrPermissionDenied(err) {
@@ -1136,7 +1206,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 		// Check if the associated service is available
 		if service != nil {
 			match := false
-			_, services, err := state.NodeServices(nil, member.Name)
+			_, services, err := state.NodeServices(nil, member.Name, structs.DefaultEnterpriseMeta())
 			if err != nil {
 				return err
 			}
@@ -1153,7 +1223,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 		}
 
 		// Check if the serfCheck is in the passing state
-		_, checks, err := state.NodeChecks(nil, member.Name)
+		_, checks, err := state.NodeChecks(nil, member.Name, structs.DefaultEnterpriseMeta())
 		if err != nil {
 			return err
 		}
@@ -1164,7 +1234,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 		}
 	}
 AFTER_CHECK:
-	s.logger.Printf("[INFO] consul: member '%s' joined, marking health alive", member.Name)
+	s.logger.Info("member joined, marking health alive", "member", member.Name)
 
 	// Register with the catalog.
 	req := structs.RegisterRequest{
@@ -1201,13 +1271,13 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 	}
 
 	if node == nil {
-		s.logger.Printf("[INFO] consul: ignoring failed event for member '%s' because it does not exist in the catalog", member.Name)
+		s.logger.Info("ignoring failed event for member because it does not exist in the catalog", "member", member.Name)
 		return nil
 	}
 
 	if node.Address == member.Addr.String() {
 		// Check if the serfCheck is in the critical state
-		_, checks, err := state.NodeChecks(nil, member.Name)
+		_, checks, err := state.NodeChecks(nil, member.Name, structs.DefaultEnterpriseMeta())
 		if err != nil {
 			return err
 		}
@@ -1217,7 +1287,7 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 			}
 		}
 	}
-	s.logger.Printf("[INFO] consul: member '%s' failed, marking health critical", member.Name)
+	s.logger.Info("member failed, marking health critical", "member", member.Name)
 
 	// Register with the catalog
 	req := structs.RegisterRequest{
@@ -1259,7 +1329,7 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member) error
 	// is leaving. Instead, we should allow a follower to take-over and
 	// deregister us later.
 	if member.Name == s.config.NodeName {
-		s.logger.Printf("[WARN] consul: deregistering self (%s) should be done by follower", s.config.NodeName)
+		s.logger.Warn("deregistering self should be done by follower", "name", s.config.NodeName)
 		return nil
 	}
 
@@ -1281,7 +1351,7 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member) error
 	}
 
 	// Deregister the node
-	s.logger.Printf("[INFO] consul: member '%s' %s, deregistering", member.Name, reason)
+	s.logger.Info("deregistering member", "member", member.Name, "reason", reason)
 	req := structs.DeregisterRequest{
 		Datacenter: s.config.Datacenter,
 		Node:       member.Name,
@@ -1298,7 +1368,10 @@ func (s *Server) joinConsulServer(m serf.Member, parts *metadata.Server) error {
 		for _, member := range members {
 			valid, p := metadata.IsConsulServer(member)
 			if valid && member.Name != m.Name && p.Bootstrap {
-				s.logger.Printf("[ERR] consul: '%v' and '%v' are both in bootstrap mode. Only one node should be in bootstrap mode, not adding Raft peer.", m.Name, member.Name)
+				s.logger.Error("Two nodes are in bootstrap mode. Only one node should be in bootstrap mode, not adding Raft peer.",
+					"node_to_add", m.Name,
+					"other", member.Name,
+				)
 				return nil
 			}
 		}
@@ -1309,12 +1382,12 @@ func (s *Server) joinConsulServer(m serf.Member, parts *metadata.Server) error {
 	// safe to attempt if there are multiple servers available.
 	configFuture := s.raft.GetConfiguration()
 	if err := configFuture.Error(); err != nil {
-		s.logger.Printf("[ERR] consul: failed to get raft configuration: %v", err)
+		s.logger.Error("failed to get raft configuration", "error", err)
 		return err
 	}
 	if m.Name == s.config.NodeName {
 		if l := len(configFuture.Configuration().Servers); l < 3 {
-			s.logger.Printf("[DEBUG] consul: Skipping self join check for %q since the cluster is too small", m.Name)
+			s.logger.Debug("Skipping self join check for node since the cluster is too small", "node", m.Name)
 			return nil
 		}
 	}
@@ -1345,12 +1418,12 @@ func (s *Server) joinConsulServer(m serf.Member, parts *metadata.Server) error {
 				if err := future.Error(); err != nil {
 					return fmt.Errorf("error removing server with duplicate address %q: %s", server.Address, err)
 				}
-				s.logger.Printf("[INFO] consul: removed server with duplicate address: %s", server.Address)
+				s.logger.Info("removed server with duplicate address", "address", server.Address)
 			} else {
 				if err := future.Error(); err != nil {
 					return fmt.Errorf("error removing server with duplicate ID %q: %s", server.ID, err)
 				}
-				s.logger.Printf("[INFO] consul: removed server with duplicate ID: %s", server.ID)
+				s.logger.Info("removed server with duplicate ID", "id", server.ID)
 			}
 		}
 	}
@@ -1360,19 +1433,19 @@ func (s *Server) joinConsulServer(m serf.Member, parts *metadata.Server) error {
 	case minRaftProtocol >= 3:
 		addFuture := s.raft.AddNonvoter(raft.ServerID(parts.ID), raft.ServerAddress(addr), 0, 0)
 		if err := addFuture.Error(); err != nil {
-			s.logger.Printf("[ERR] consul: failed to add raft peer: %v", err)
+			s.logger.Error("failed to add raft peer", "error", err)
 			return err
 		}
 	case minRaftProtocol == 2 && parts.RaftVersion >= 3:
 		addFuture := s.raft.AddVoter(raft.ServerID(parts.ID), raft.ServerAddress(addr), 0, 0)
 		if err := addFuture.Error(); err != nil {
-			s.logger.Printf("[ERR] consul: failed to add raft peer: %v", err)
+			s.logger.Error("failed to add raft peer", "error", err)
 			return err
 		}
 	default:
 		addFuture := s.raft.AddPeer(raft.ServerAddress(addr))
 		if err := addFuture.Error(); err != nil {
-			s.logger.Printf("[ERR] consul: failed to add raft peer: %v", err)
+			s.logger.Error("failed to add raft peer", "error", err)
 			return err
 		}
 	}
@@ -1392,7 +1465,7 @@ func (s *Server) removeConsulServer(m serf.Member, port int) error {
 	// log entries.
 	configFuture := s.raft.GetConfiguration()
 	if err := configFuture.Error(); err != nil {
-		s.logger.Printf("[ERR] consul: failed to get raft configuration: %v", err)
+		s.logger.Error("failed to get raft configuration", "error", err)
 		return err
 	}
 
@@ -1407,21 +1480,25 @@ func (s *Server) removeConsulServer(m serf.Member, port int) error {
 	for _, server := range configFuture.Configuration().Servers {
 		// If we understand the new add/remove APIs and the server was added by ID, use the new remove API
 		if minRaftProtocol >= 2 && server.ID == raft.ServerID(parts.ID) {
-			s.logger.Printf("[INFO] consul: removing server by ID: %q", server.ID)
+			s.logger.Info("removing server by ID", "id", server.ID)
 			future := s.raft.RemoveServer(raft.ServerID(parts.ID), 0, 0)
 			if err := future.Error(); err != nil {
-				s.logger.Printf("[ERR] consul: failed to remove raft peer '%v': %v",
-					server.ID, err)
+				s.logger.Error("failed to remove raft peer",
+					"id", server.ID,
+					"error", err,
+				)
 				return err
 			}
 			break
 		} else if server.Address == raft.ServerAddress(addr) {
 			// If not, use the old remove API
-			s.logger.Printf("[INFO] consul: removing server by address: %q", server.Address)
+			s.logger.Info("removing server by address", "address", server.Address)
 			future := s.raft.RemovePeer(raft.ServerAddress(addr))
 			if err := future.Error(); err != nil {
-				s.logger.Printf("[ERR] consul: failed to remove raft peer '%v': %v",
-					addr, err)
+				s.logger.Error("failed to remove raft peer",
+					"address", addr,
+					"error", err,
+				)
 				return err
 			}
 			break
@@ -1446,7 +1523,9 @@ func (s *Server) reapTombstones(index uint64) {
 	}
 	_, err := s.raftApply(structs.TombstoneRequestType, &req)
 	if err != nil {
-		s.logger.Printf("[ERR] consul: failed to reap tombstones up to %d: %v",
-			index, err)
+		s.logger.Error("failed to reap tombstones up to index",
+			"index", index,
+			"error", err,
+		)
 	}
 }

@@ -22,7 +22,7 @@ func TestOperatorAutopilotSetConfigCommand_noTabs(t *testing.T) {
 
 func TestOperatorAutopilotSetConfigCommand(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -34,6 +34,7 @@ func TestOperatorAutopilotSetConfigCommand(t *testing.T) {
 		"-max-trailing-logs=99",
 		"-last-contact-threshold=123ms",
 		"-server-stabilization-time=123ms",
+		"-min-quorum=3",
 	}
 
 	code := c.Run(args)
@@ -63,6 +64,9 @@ func TestOperatorAutopilotSetConfigCommand(t *testing.T) {
 		t.Fatalf("bad: %#v", reply)
 	}
 	if reply.ServerStabilizationTime != 123*time.Millisecond {
+		t.Fatalf("bad: %#v", reply)
+	}
+	if reply.MinQuorum != 3 {
 		t.Fatalf("bad: %#v", reply)
 	}
 }

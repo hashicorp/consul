@@ -4,6 +4,7 @@ import { get } from 'consul-ui/tests/helpers/api';
 module('Integration | Serializer | coordinate', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
+  const nspace = 'default';
   test('respondForQuery returns the correct data for list endpoint', function(assert) {
     const serializer = this.owner.lookup('serializer:coordinate');
     const request = {
@@ -13,7 +14,10 @@ module('Integration | Serializer | coordinate', function(hooks) {
       const expected = payload.map(item =>
         Object.assign({}, item, {
           Datacenter: dc,
-          uid: `["${dc}","${item.Node}"]`,
+          // TODO: default isn't required here, once we've
+          // refactored out our Serializer this can go
+          Namespace: nspace,
+          uid: `["${nspace}","${dc}","${item.Node}"]`,
         })
       );
       const actual = serializer.respondForQuery(

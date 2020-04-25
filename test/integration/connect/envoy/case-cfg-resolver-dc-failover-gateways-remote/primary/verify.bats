@@ -74,6 +74,6 @@ load helpers
   assert_expected_fortio_name s2-secondary
 }
 
-@test "s1 upstream made 1 connection" {
+@test "s1 upstream made 1 connection again" {
   assert_envoy_metric_at_least 127.0.0.1:19000 "cluster.s2.default.primary.*cx_total" 1
 }

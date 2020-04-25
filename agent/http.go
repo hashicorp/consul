@@ -19,13 +19,15 @@ import (
 	"time"
 
 	"github.com/NYTimes/gziphandler"
-	metrics "github.com/armon/go-metrics"
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-cleanhttp"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 )
@@ -161,8 +163,8 @@ func (fs *redirectFS) Open(name string) (http.File, error) {
 }
 
 type templatedIndexFS struct {
-	fs          http.FileSystem
-	ContentPath string
+	fs           http.FileSystem
+	templateVars func() map[string]interface{}
 }
 
 func (fs *templatedIndexFS) Open(name string) (http.File, error) {
@@ -170,9 +172,13 @@ func (fs *templatedIndexFS) Open(name string) (http.File, error) {
 	if err == nil && name == "/index.html" {
 		content, _ := ioutil.ReadAll(file)
 		file.Seek(0, 0)
-		t, _ := template.New("fmtedindex").Parse(string(content))
+		t, err := template.New("fmtedindex").Parse(string(content))
+		if err != nil {
+			return nil, err
+		}
 		var out bytes.Buffer
-		err = t.Execute(&out, fs)
+		err = t.Execute(&out, fs.templateVars())
+
 		file = newTemplatedFile(&out, file)
 	}
 
@@ -192,7 +198,7 @@ var endpoints map[string]unboundEndpoint
 
 // allowedMethods is a map from endpoint prefix to supported HTTP methods.
 // An empty slice means an endpoint handles OPTIONS requests and MethodNotFound errors itself.
-var allowedMethods map[string][]string
+var allowedMethods map[string][]string = make(map[string][]string)
 
 // registerEndpoint registers a new endpoint, which should be done at package
 // init() time.
@@ -279,7 +285,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 
 			// If the token provided does not have the necessary permissions,
 			// write a forbidden response
-			if rule != nil && !rule.OperatorRead() {
+			if rule != nil && rule.OperatorRead(nil) != acl.Allow {
 				resp.WriteHeader(http.StatusForbidden)
 				return
 			}
@@ -316,9 +322,25 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 			fs := assetFS()
 			uifs = fs
 		}
-		uifs = &redirectFS{fs: &templatedIndexFS{fs: uifs, ContentPath: s.agent.config.UIContentPath}}
-		mux.Handle("/robots.txt", http.FileServer(uifs))
-		mux.Handle(s.agent.config.UIContentPath, http.StripPrefix(s.agent.config.UIContentPath, http.FileServer(uifs)))
+
+		uifs = &redirectFS{fs: &templatedIndexFS{fs: uifs, templateVars: s.GenerateHTMLTemplateVars}}
+		// create a http handler using the ui file system
+		// and the headers specified by the http_config.response_headers user config
+		uifsWithHeaders := serveHandlerWithHeaders(
+			http.FileServer(uifs),
+			s.agent.config.HTTPResponseHeaders,
+		)
+		mux.Handle(
+			"/robots.txt",
+			uifsWithHeaders,
+		)
+		mux.Handle(
+			s.agent.config.UIContentPath,
+			http.StripPrefix(
+				s.agent.config.UIContentPath,
+				uifsWithHeaders,
+			),
+		)
 	}
 
 	// Wrap the whole mux with a handler that bans URLs with non-printable
@@ -332,6 +354,17 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 		mux:     mux,
 		handler: h,
 	}
+}
+
+func (s *HTTPServer) GenerateHTMLTemplateVars() map[string]interface{} {
+	vars := map[string]interface{}{
+		"ContentPath": s.agent.config.UIContentPath,
+		"ACLsEnabled": s.agent.delegate.ACLsEnabled(),
+	}
+
+	s.addEnterpriseHTMLTemplateVars(vars)
+
+	return vars
 }
 
 // nodeName returns the node name of the agent
@@ -364,14 +397,22 @@ var (
 
 // wrap is used to wrap functions to make them more convenient
 func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
+	httpLogger := s.agent.logger.Named(logging.HTTP)
 	return func(resp http.ResponseWriter, req *http.Request) {
+
+		// Audit log the request
+		reqPayload := s.auditReq(req)
+
 		setHeaders(resp, s.agent.config.HTTPResponseHeaders)
 		setTranslateAddr(resp, s.agent.config.TranslateWANAddrs)
 
 		// Obfuscate any tokens from appearing in the logs
 		formVals, err := url.ParseQuery(req.URL.RawQuery)
 		if err != nil {
-			s.agent.logger.Printf("[ERR] http: Failed to decode query: %s from=%s", err, req.RemoteAddr)
+			httpLogger.Error("Failed to decode query",
+				"from", req.RemoteAddr,
+				"error", err,
+			)
 			resp.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -389,7 +430,12 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 
 		if s.blacklist.Block(req.URL.Path) {
 			errMsg := "Endpoint is blocked by agent configuration"
-			s.agent.logger.Printf("[ERR] http: Request %s %v, error: %v from=%s", req.Method, logURL, err, req.RemoteAddr)
+			httpLogger.Error("Request error",
+				"method", req.Method,
+				"url", logURL,
+				"from", req.RemoteAddr,
+				"error", errMsg,
+			)
 			resp.WriteHeader(http.StatusForbidden)
 			fmt.Fprint(resp, errMsg)
 			return
@@ -428,39 +474,60 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 		}
 
 		handleErr := func(err error) {
-			s.agent.logger.Printf("[ERR] http: Request %s %v, error: %v from=%s", req.Method, logURL, err, req.RemoteAddr)
+			httpLogger.Error("Request error",
+				"method", req.Method,
+				"url", logURL,
+				"from", req.RemoteAddr,
+				"error", err,
+			)
+			var httpCode int
 			switch {
 			case isForbidden(err):
-				resp.WriteHeader(http.StatusForbidden)
+				httpCode = http.StatusForbidden
+				resp.WriteHeader(httpCode)
 				fmt.Fprint(resp, err.Error())
 			case structs.IsErrRPCRateExceeded(err):
-				resp.WriteHeader(http.StatusTooManyRequests)
+				httpCode = http.StatusTooManyRequests
+				resp.WriteHeader(httpCode)
 			case isMethodNotAllowed(err):
 				// RFC2616 states that for 405 Method Not Allowed the response
 				// MUST include an Allow header containing the list of valid
 				// methods for the requested resource.
 				// https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
 				addAllowHeader(err.(MethodNotAllowedError).Allow)
-				resp.WriteHeader(http.StatusMethodNotAllowed) // 405
+				httpCode = http.StatusMethodNotAllowed
+				resp.WriteHeader(httpCode) // 405
 				fmt.Fprint(resp, err.Error())
 			case isBadRequest(err):
-				resp.WriteHeader(http.StatusBadRequest)
+				httpCode = http.StatusBadRequest
+				resp.WriteHeader(httpCode)
 				fmt.Fprint(resp, err.Error())
 			case isNotFound(err):
-				resp.WriteHeader(http.StatusNotFound)
+				httpCode = http.StatusNotFound
+				resp.WriteHeader(httpCode)
 				fmt.Fprintf(resp, err.Error())
 			case isTooManyRequests(err):
-				resp.WriteHeader(http.StatusTooManyRequests)
+				httpCode = http.StatusTooManyRequests
+				resp.WriteHeader(httpCode)
 				fmt.Fprint(resp, err.Error())
 			default:
-				resp.WriteHeader(http.StatusInternalServerError)
+				httpCode = http.StatusInternalServerError
+				resp.WriteHeader(httpCode)
 				fmt.Fprint(resp, err.Error())
 			}
+
+			// Audit log the error response
+			s.auditResp(reqPayload, httpCode)
 		}
 
 		start := time.Now()
 		defer func() {
-			s.agent.logger.Printf("[DEBUG] http: Request %s %v (%v) from=%s", req.Method, logURL, time.Since(start), req.RemoteAddr)
+			httpLogger.Debug("Request finished",
+				"method", req.Method,
+				"url", logURL,
+				"from", req.RemoteAddr,
+				"latency", time.Since(start).String(),
+			)
 		}()
 
 		var obj interface{}
@@ -525,6 +592,10 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 		}
 		resp.Header().Set("Content-Type", contentType)
 		resp.WriteHeader(httpCode)
+
+		// Audit log the success response
+		s.auditResp(reqPayload, httpCode)
+
 		resp.Write(buf)
 	}
 }
@@ -572,8 +643,13 @@ func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
 	http.Redirect(resp, req, s.agent.config.UIContentPath, http.StatusMovedPermanently) // 301
 }
 
-// decodeBody is used to decode a JSON request body
-func decodeBody(req *http.Request, out interface{}, cb func(interface{}) error) error {
+func decodeBody(body io.Reader, out interface{}) error {
+	return lib.DecodeJSON(body, out)
+}
+
+// decodeBodyDeprecated is deprecated, please ues decodeBody above.
+// decodeBodyDeprecated is used to decode a JSON request body
+func decodeBodyDeprecated(req *http.Request, out interface{}, cb func(interface{}) error) error {
 	// This generally only happens in tests since real HTTP requests set
 	// a non-nil body with no content. We guard against it anyways to prevent
 	// a panic. The EOF response is the same behavior as an empty reader.
@@ -708,6 +784,14 @@ func setCacheMeta(resp http.ResponseWriter, m *cache.ResultMeta) {
 func setHeaders(resp http.ResponseWriter, headers map[string]string) {
 	for field, value := range headers {
 		resp.Header().Set(http.CanonicalHeaderKey(field), value)
+	}
+}
+
+// serveHandlerWithHeaders is used to serve a http.Handler with the specified headers
+func serveHandlerWithHeaders(h http.Handler, headers map[string]string) http.HandlerFunc {
+	return func(resp http.ResponseWriter, req *http.Request) {
+		setHeaders(resp, headers)
+		h.ServeHTTP(resp, req)
 	}
 }
 
@@ -860,10 +944,7 @@ func (s *HTTPServer) parseDC(req *http.Request, dc *string) {
 }
 
 // parseTokenInternal is used to parse the ?token query param or the X-Consul-Token header or
-// Authorization Bearer token (RFC6750) and
-// optionally resolve proxy tokens to real ACL tokens. If the token is invalid or not specified it will populate
-// the token with the agents UserToken (acl_token in the consul configuration)
-// Parsing has the following priority: ?token, X-Consul-Token and last "Authorization: Bearer "
+// Authorization Bearer token (RFC6750).
 func (s *HTTPServer) parseTokenInternal(req *http.Request, token *string) {
 	tok := ""
 	if other := req.URL.Query().Get("token"); other != "" {
@@ -883,26 +964,34 @@ func (s *HTTPServer) parseTokenInternal(req *http.Request, token *string) {
 			value := strings.TrimSpace(strings.Join(parts[1:], " "))
 
 			// <Scheme> must be "Bearer"
-			if scheme == "Bearer" {
-				// Since Bearer tokens shouldnt contain spaces (rfc6750#section-2.1)
+			if strings.ToLower(scheme) == "bearer" {
+				// Since Bearer tokens shouldn't contain spaces (rfc6750#section-2.1)
 				// "value" is tokenized, only the first item is used
 				tok = strings.TrimSpace(strings.Split(value, " ")[0])
 			}
 		}
 	}
 
-	if tok != "" {
-		*token = tok
+	*token = tok
+	return
+}
+
+// parseTokenWithDefault passes through to parseTokenInternal and optionally resolves proxy tokens to real ACL tokens.
+// If the token is invalid or not specified it will populate the token with the agents UserToken (acl_token in the
+// consul configuration)
+func (s *HTTPServer) parseTokenWithDefault(req *http.Request, token *string) {
+	s.parseTokenInternal(req, token) // parseTokenInternal modifies *token
+	if token != nil && *token == "" {
+		*token = s.agent.tokens.UserToken()
 		return
 	}
-
-	*token = s.agent.tokens.UserToken()
+	return
 }
 
 // parseToken is used to parse the ?token query param or the X-Consul-Token header or
-// Authorization Bearer token header (RFC6750)
+// Authorization Bearer token header (RFC6750). This function is used widely in Consul's endpoints
 func (s *HTTPServer) parseToken(req *http.Request, token *string) {
-	s.parseTokenInternal(req, token)
+	s.parseTokenWithDefault(req, token)
 }
 
 func sourceAddrFromRequest(req *http.Request) string {
@@ -962,7 +1051,7 @@ func (s *HTTPServer) parseMetaFilter(req *http.Request) map[string]string {
 func (s *HTTPServer) parseInternal(resp http.ResponseWriter, req *http.Request, dc *string, b structs.QueryOptionsCompat) bool {
 	s.parseDC(req, dc)
 	var token string
-	s.parseTokenInternal(req, &token)
+	s.parseTokenWithDefault(req, &token)
 	b.SetToken(token)
 	var filter string
 	s.parseFilter(req, &filter)
