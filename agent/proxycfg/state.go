@@ -33,6 +33,7 @@ const (
 	datacentersWatchID                 = "datacenters"
 	serviceResolversWatchID            = "service-resolvers"
 	gatewayServicesWatchID             = "gateway-services"
+	gatewayConfigWatchID               = "gateway-config"
 	externalServiceIDPrefix            = "external-service:"
 	serviceLeafIDPrefix                = "service-leaf:"
 	serviceResolverIDPrefix            = "service-resolver:"
@@ -51,6 +52,7 @@ type state struct {
 	logger      hclog.Logger
 	source      *structs.QuerySource
 	cache       CacheNotifier
+	dnsConfig   DNSConfig
 	serverSNIFn ServerSNIFunc
 
 	// ctx and cancel store the context created during initWatches call
@@ -70,6 +72,11 @@ type state struct {
 	ch     chan cache.UpdateEvent
 	snapCh chan ConfigSnapshot
 	reqCh  chan chan *ConfigSnapshot
+}
+
+type DNSConfig struct {
+	Domain    string
+	AltDomain string
 }
 
 type ServerSNIFunc func(dc, nodeName string) string
@@ -487,13 +494,13 @@ func (s *state) initWatchesIngressGateway() error {
 		return err
 	}
 
-	// Watch the leaf cert
-	err = s.cache.Notify(s.ctx, cachetype.ConnectCALeafName, &cachetype.ConnectCALeafRequest{
-		Datacenter:     s.source.Datacenter,
-		Token:          s.token,
-		Service:        s.service,
-		EnterpriseMeta: s.proxyID.EnterpriseMeta,
-	}, leafWatchID, s.ch)
+	// Watch this ingress gateway's config entry
+	err = s.cache.Notify(s.ctx, cachetype.ConfigEntryName, &structs.ConfigEntryQuery{
+		Kind:         structs.IngressGateway,
+		Name:         s.service,
+		Datacenter:   s.source.Datacenter,
+		QueryOptions: structs.QueryOptions{Token: s.token},
+	}, gatewayConfigWatchID, s.ch)
 	if err != nil {
 		return err
 	}
@@ -1314,12 +1321,31 @@ func (s *state) handleUpdateIngressGateway(u cache.UpdateEvent, snap *ConfigSnap
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		snap.Roots = roots
+	case u.CorrelationID == gatewayConfigWatchID:
+		resp, ok := u.Result.(*structs.ConfigEntryResponse)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+		gatewayConf, ok := resp.Entry.(*structs.IngressGatewayConfigEntry)
+		if !ok {
+			return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
+		}
+
+		snap.IngressGateway.TLSEnabled = gatewayConf.TLS.Enabled
+		s.logger.Info("got ingress config entry", gatewayConf.TLS.Enabled)
+		snap.IngressGateway.TLSSet = true
+
+		if err := s.watchIngressLeafCert(snap); err != nil {
+			return err
+		}
+
 	case u.CorrelationID == gatewayServicesWatchID:
 		services, ok := u.Result.(*structs.IndexedGatewayServices)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 
+		// Update our upstreams and watches.
 		watchedSvcs := make(map[string]struct{})
 		upstreamsMap := make(map[IngressListenerKey]structs.Upstreams)
 		for _, service := range services.Services {
@@ -1336,11 +1362,22 @@ func (s *state) handleUpdateIngressGateway(u cache.UpdateEvent, snap *ConfigSnap
 		}
 		snap.IngressGateway.Upstreams = upstreamsMap
 
+		var hosts []string
+		for _, s := range services.Services {
+			hosts = append(hosts, s.Hosts...)
+		}
+		snap.IngressGateway.Hosts = hosts
+		snap.IngressGateway.HostsSet = true
+
 		for id, cancelFn := range snap.IngressGateway.WatchedDiscoveryChains {
 			if _, ok := watchedSvcs[id]; !ok {
 				cancelFn()
 				delete(snap.IngressGateway.WatchedDiscoveryChains, id)
 			}
+		}
+
+		if err := s.watchIngressLeafCert(snap); err != nil {
+			return err
 		}
 
 	default:
@@ -1389,6 +1426,43 @@ func (s *state) watchIngressDiscoveryChain(snap *ConfigSnapshot, u structs.Upstr
 	}
 
 	snap.IngressGateway.WatchedDiscoveryChains[u.Identifier()] = cancel
+	return nil
+}
+
+func (s *state) watchIngressLeafCert(snap *ConfigSnapshot) error {
+	if !snap.IngressGateway.TLSSet || !snap.IngressGateway.HostsSet {
+		return nil
+	}
+
+	// Update our leaf cert watch with wildcard entries for our DNS domains as well as any
+	// configured custom hostnames from the service.
+	var dnsNames []string
+	if snap.IngressGateway.TLSEnabled {
+		dnsNames = append(dnsNames, fmt.Sprintf("*.ingress.%s", s.dnsConfig.Domain))
+		if s.dnsConfig.AltDomain != "" {
+			dnsNames = append(dnsNames, fmt.Sprintf("*.ingress.%s", s.dnsConfig.AltDomain))
+		}
+		dnsNames = append(dnsNames, snap.IngressGateway.Hosts...)
+	}
+
+	// Watch the leaf cert
+	if snap.IngressGateway.LeafCertWatchCancel != nil {
+		snap.IngressGateway.LeafCertWatchCancel()
+	}
+	ctx, cancel := context.WithCancel(s.ctx)
+	err := s.cache.Notify(ctx, cachetype.ConnectCALeafName, &cachetype.ConnectCALeafRequest{
+		Datacenter:     s.source.Datacenter,
+		Token:          s.token,
+		Service:        s.service,
+		DNSSAN:         dnsNames,
+		EnterpriseMeta: s.proxyID.EnterpriseMeta,
+	}, leafWatchID, s.ch)
+	if err != nil {
+		cancel()
+		return err
+	}
+	snap.IngressGateway.LeafCertWatchCancel = cancel
+
 	return nil
 }
 

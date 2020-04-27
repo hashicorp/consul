@@ -398,6 +398,11 @@ func TestListenersFromSnapshot(t *testing.T) {
 				snap.TerminatingGateway.ServiceLeaves[structs.NewServiceID("api", nil)] = nil
 			},
 		},
+		{
+			name:   "ingress-with-tls-listener",
+			create: proxycfg.TestConfigSnapshotIngressWithTLSListener,
+			setup:  nil,
+		},
 	}
 
 	for _, tt := range tests {

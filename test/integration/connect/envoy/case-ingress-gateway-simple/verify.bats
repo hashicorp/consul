@@ -23,6 +23,8 @@ load helpers
 }
 
 @test "ingress should be able to connect to s1 via configured port" {
+  sleep 10000
+  openssl s_client -connect localhost:9999 | openssl x509 -noout -text >&3
   run retry_default curl -s -f -d hello localhost:9999
   [ "$status" -eq 0 ]
   [ "$output" = "hello" ]

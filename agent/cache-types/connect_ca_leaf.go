@@ -521,6 +521,7 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 			Service:    req.Service,
 		}
 		commonName = connect.ServiceCN(req.Service, req.TargetNamespace(), roots.TrustDomain)
+		dnsNames = append(dnsNames, req.DNSSAN...)
 	} else if req.Agent != "" {
 		id = &connect.SpiffeIDAgent{
 			Host:       roots.TrustDomain,

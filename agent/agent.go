@@ -511,6 +511,10 @@ func (a *Agent) Start() error {
 			Datacenter: a.config.Datacenter,
 			Segment:    a.config.SegmentName,
 		},
+		DNSConfig: proxycfg.DNSConfig{
+			Domain:    a.config.DNSDomain,
+			AltDomain: a.config.DNSAltDomain,
+		},
 		TLSConfigurator: a.tlsConfigurator,
 	})
 	if err != nil {
@@ -4227,6 +4231,8 @@ func (a *Agent) registerCache() {
 	a.cache.RegisterType(cachetype.GatewayServicesName, &cachetype.GatewayServices{RPC: a})
 
 	a.cache.RegisterType(cachetype.ConfigEntriesName, &cachetype.ConfigEntries{RPC: a})
+
+	a.cache.RegisterType(cachetype.ConfigEntryName, &cachetype.ConfigEntry{RPC: a})
 
 	a.cache.RegisterType(cachetype.ServiceHTTPChecksName, &cachetype.ServiceHTTPChecks{Agent: a})
 

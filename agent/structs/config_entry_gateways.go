@@ -18,6 +18,9 @@ type IngressGatewayConfigEntry struct {
 	// service. This should match the name provided in the service definition.
 	Name string
 
+	// TLS holds the TLS configuration for this gateway.
+	TLS GatewayTLSConfig
+
 	// Listeners declares what ports the ingress gateway should listen on, and
 	// what services to associated to those ports.
 	Listeners []IngressListener
@@ -69,6 +72,10 @@ type IngressService struct {
 	Hosts []string
 
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+}
+
+type GatewayTLSConfig struct {
+	Enabled bool
 }
 
 func (e *IngressGatewayConfigEntry) GetKind() string {

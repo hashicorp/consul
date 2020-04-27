@@ -335,7 +335,7 @@ func testManager_BasicLifecycle(
 	state.TriggerSyncChanges = func() {}
 
 	// Create manager
-	m, err := NewManager(ManagerConfig{c, state, source, logger, nil})
+	m, err := NewManager(ManagerConfig{c, state, source, DNSConfig{}, logger, nil})
 	require.NoError(err)
 
 	// And run it

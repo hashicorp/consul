@@ -193,6 +193,19 @@ func (c *configSnapshotMeshGateway) IsEmpty() bool {
 
 type configSnapshotIngressGateway struct {
 	ConfigSnapshotUpstreams
+
+	// TLSEnabled is whether this gateway's listeners should have TLS configured.
+	TLSEnabled bool
+	TLSSet     bool
+
+	// Hosts is the list of extra host entries to add to our leaf cert's DNS SANs.
+	Hosts    []string
+	HostsSet bool
+
+	// LeafCertWatchCancel is a CancelFunc to use when refreshing this gateway's
+	// leaf cert watch with different parameters.
+	LeafCertWatchCancel context.CancelFunc
+
 	// Upstreams is a list of upstreams this ingress gateway should serve traffic
 	// to. This is constructed from the ingress-gateway config entry, and uses
 	// the GatewayServices RPC to retrieve them.
@@ -273,7 +286,8 @@ func (s *ConfigSnapshot) Valid() bool {
 		return s.Roots != nil && (s.MeshGateway.WatchedServicesSet || len(s.MeshGateway.ServiceGroups) > 0)
 	case structs.ServiceKindIngressGateway:
 		return s.Roots != nil &&
-			s.IngressGateway.Leaf != nil
+			s.IngressGateway.Leaf != nil &&
+			s.IngressGateway.TLSSet
 	default:
 		return false
 	}
