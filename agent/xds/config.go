@@ -1,13 +1,13 @@
 package xds
 
 import (
+	"fmt"
 	"strings"
 
-	"strings"
-
-	"github.com/hashicorp/consul/lib"
-
+	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	"github.com/gogo/protobuf/types"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -51,6 +51,50 @@ type ProxyConfig struct {
 	// enable proxies in network namespaces to bind to a different port
 	// than the host port being advertised.
 	BindPort int `mapstructure:"bind_port"`
+
+	// LoadBalancer configuration for the envoy.Cluster
+	LoadBalancer LoadBalancer `mapstructure:"load_balancer"`
+}
+
+type LoadBalancer struct {
+	Policy         string
+	RingHashConfig RingHashConfig `mapstructure:"ring_hash"`
+}
+
+// ApplyLbConfig to the envoy.Cluster, configured using the values in LoadBalancer.
+//
+// The type of envoy.Cluster.LBConfig is an interface with unexported methods, so
+// it is impossible to return a type which satisfies that interface. Instead we
+// apply config my modifying the envoy.Cluster.
+func (l LoadBalancer) ApplyToCluster(c *envoy.Cluster) error {
+	switch l.Policy {
+	case "":
+		return nil
+	case "least_request":
+		c.LbPolicy = envoy.Cluster_LEAST_REQUEST
+	case "round_robin":
+		c.LbPolicy = envoy.Cluster_ROUND_ROBIN
+	case "random":
+		c.LbPolicy = envoy.Cluster_RANDOM
+	case "ring_hash":
+		c.LbPolicy = envoy.Cluster_RING_HASH
+		c.LbConfig = &envoy.Cluster_RingHashLbConfig_{
+			RingHashLbConfig: &envoy.Cluster_RingHashLbConfig{
+				MinimumRingSize: &types.UInt64Value{Value: l.RingHashConfig.MinimumRingSize},
+				MaximumRingSize: &types.UInt64Value{Value: l.RingHashConfig.MaximumRingSize},
+			},
+		}
+	case "maglev":
+		c.LbPolicy = envoy.Cluster_MAGLEV
+	default:
+		return fmt.Errorf("unsupported load balancer policy: %v", l.Policy)
+	}
+	return nil
+}
+
+type RingHashConfig struct {
+	MinimumRingSize uint64
+	MaximumRingSize uint64
 }
 
 // ParseProxyConfig returns the ProxyConfig parsed from the an opaque map. If an

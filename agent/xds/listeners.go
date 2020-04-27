@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/logging"
 	"net"
 	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/hashicorp/consul/logging"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoyauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
@@ -1011,12 +1012,13 @@ func makeFilter(name string, cfg proto.Message) (envoylistener.Filter, error) {
 }
 
 func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *structs.IssuedCert) *envoyauth.CommonTlsContext {
-	// Concatenate all the root PEMs into one.
-	// TODO(banks): verify this actually works with Envoy (docs are not clear).
-	rootPEMS := ""
 	if cfgSnap.Roots == nil {
 		return nil
 	}
+
+	rootPEMS := ""
+	// Concatenate all the root PEMs into one.
+	// TODO(banks): verify this actually works with Envoy (docs are not clear).
 	for _, root := range cfgSnap.Roots.Roots {
 		rootPEMS += root.RootCert
 	}
@@ -1024,7 +1026,7 @@ func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *struct
 	return &envoyauth.CommonTlsContext{
 		TlsParams: &envoyauth.TlsParameters{},
 		TlsCertificates: []*envoyauth.TlsCertificate{
-			&envoyauth.TlsCertificate{
+			{
 				CertificateChain: &envoycore.DataSource{
 					Specifier: &envoycore.DataSource_InlineString{
 						InlineString: leaf.CertPEM,

@@ -47,16 +47,14 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 	// TODO(rb): this sizing is a low bound.
 	clusters := make([]proto.Message, 0, len(cfgSnap.Proxy.Upstreams)+1)
 
-	cfg, err := ParseProxyConfig(cfgSnap.Proxy.Config)
+	proxyCfg, err := ParseProxyConfig(cfgSnap.Proxy.Config)
 	if err != nil {
-		// Don't hard fail on a config typo, just warn. The parse func returns
-		// default config if there is an error so it's safe to continue.
 		s.Logger.Warn("failed to parse Connect.Proxy.Config", "error", err)
 	}
 
 	// Include the "app" cluster for the public listener
 	endpoint := makeEndpoint(cfgSnap.Proxy.LocalServiceAddress, cfgSnap.Proxy.LocalServicePort)
-	appCluster, err := s.makeAppCluster(cfg, endpoint, LocalAppClusterName, cfg.Protocol)
+	appCluster, err := s.makeAppCluster(proxyCfg, endpoint, LocalAppClusterName, proxyCfg.Protocol)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +65,7 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 		id := u.Identifier()
 
 		if u.DestinationType == structs.UpstreamDestTypePreparedQuery {
-			upstreamCluster, err := s.makeUpstreamClusterForPreparedQuery(u, cfgSnap)
+			upstreamCluster, err := s.makeUpstreamClusterForPreparedQuery(u, cfgSnap, proxyCfg)
 			if err != nil {
 				return nil, err
 			}
@@ -81,7 +79,7 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 				return nil, fmt.Errorf("no endpoint map for upstream %q", id)
 			}
 
-			upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(u, chain, chainEndpoints, cfgSnap)
+			upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(u, chain, chainEndpoints, cfgSnap, proxyCfg)
 			if err != nil {
 				return nil, err
 			}
@@ -115,10 +113,10 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 		}
 		protocol := path.Protocol
 		if protocol == "" {
-			protocol = cfg.Protocol
+			protocol = proxyCfg.Protocol
 		}
 		endpoint := makeEndpoint(cfgSnap.Proxy.LocalServiceAddress, path.LocalPathPort)
-		c, err := s.makeAppCluster(cfg, endpoint, makeExposeClusterName(path.LocalPathPort), protocol)
+		c, err := s.makeAppCluster(proxyCfg, endpoint, makeExposeClusterName(path.LocalPathPort), protocol)
 		if err != nil {
 			s.Logger.Warn("failed to make local cluster", "path", path.Path, "error", err)
 			continue
@@ -248,6 +246,11 @@ func (s *Server) makeGatewayServiceClusters(cfgSnap *proxycfg.ConfigSnapshot) ([
 }
 
 func (s *Server) clustersFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+	proxyCfg, err := ParseProxyConfig(cfgSnap.Proxy.Config)
+	if err != nil {
+		s.Logger.Warn("failed to parse Connect.Proxy.Config", "error", err)
+	}
+
 	var clusters []proto.Message
 	for _, u := range cfgSnap.IngressGateway.Upstreams {
 		id := u.Identifier()
@@ -263,7 +266,7 @@ func (s *Server) clustersFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnap
 			return nil, fmt.Errorf("no endpoint map for upstream %q", id)
 		}
 
-		upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(u, chain, chainEndpoints, cfgSnap)
+		upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(u, chain, chainEndpoints, cfgSnap, proxyCfg)
 		if err != nil {
 			return nil, err
 		}
@@ -301,7 +304,11 @@ func (s *Server) makeAppCluster(cfg ProxyConfig, endpoint envoyendpoint.LbEndpoi
 	return c, nil
 }
 
-func (s *Server) makeUpstreamClusterForPreparedQuery(upstream structs.Upstream, cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Cluster, error) {
+func (s *Server) makeUpstreamClusterForPreparedQuery(
+	upstream structs.Upstream,
+	cfgSnap *proxycfg.ConfigSnapshot,
+	proxyCfg ProxyConfig,
+) (*envoy.Cluster, error) {
 	var c *envoy.Cluster
 	var err error
 
@@ -346,6 +353,9 @@ func (s *Server) makeUpstreamClusterForPreparedQuery(upstream structs.Upstream, 
 		if cfg.Protocol == "http2" || cfg.Protocol == "grpc" {
 			c.Http2ProtocolOptions = &envoycore.Http2ProtocolOptions{}
 		}
+		if err := proxyCfg.LoadBalancer.ApplyToCluster(c); err != nil {
+			return nil, err
+		}
 	}
 
 	// Enable TLS upstream with the configured client certificate.
@@ -362,6 +372,7 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 	chain *structs.CompiledDiscoveryChain,
 	chainEndpoints map[string]structs.CheckServiceNodes,
 	cfgSnap *proxycfg.ConfigSnapshot,
+	proxyCfg ProxyConfig,
 ) ([]*envoy.Cluster, error) {
 	if chain == nil {
 		return nil, fmt.Errorf("cannot create upstream cluster without discovery chain for %s", upstream.Identifier())
@@ -444,6 +455,9 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 			},
 			// Having an empty config enables outlier detection with default config.
 			OutlierDetection: &envoycluster.OutlierDetection{},
+		}
+		if err := proxyCfg.LoadBalancer.ApplyToCluster(c); err != nil {
+			return nil, err
 		}
 
 		proto := cfg.Protocol
