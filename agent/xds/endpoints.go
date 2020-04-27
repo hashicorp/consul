@@ -242,7 +242,7 @@ func (s *Server) endpointsFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSna
 			cfgSnap.IngressGateway.DiscoveryChain[id],
 			cfgSnap.Datacenter,
 			cfgSnap.IngressGateway.WatchedUpstreamEndpoints[id],
-			nil,
+			cfgSnap.IngressGateway.WatchedGatewayEndpoints[id],
 		)
 		resources = append(resources, es...)
 	}

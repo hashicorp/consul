@@ -273,6 +273,31 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotIngressGatewayNoServices,
 			setup:  nil,
 		},
+		{
+			name:   "ingress-with-chain-external-sni",
+			create: proxycfg.TestConfigSnapshotIngressExternalSNI,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-with-chain-and-overrides",
+			create: proxycfg.TestConfigSnapshotIngressWithOverrides,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-with-tcp-chain-failover-through-remote-gateway",
+			create: proxycfg.TestConfigSnapshotIngressWithFailoverThroughRemoteGateway,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-with-tcp-chain-failover-through-local-gateway",
+			create: proxycfg.TestConfigSnapshotIngressWithFailoverThroughLocalGateway,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-splitter-with-resolver-redirect",
+			create: proxycfg.TestConfigSnapshotIngress_SplitterWithResolverRedirectMultiDC,
+			setup:  nil,
+		},
 	}
 
 	for _, tt := range tests {

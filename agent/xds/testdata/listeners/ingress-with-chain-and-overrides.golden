@@ -1,0 +1,53 @@
+{
+  "versionInfo": "00000001",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.api.v2.Listener",
+      "name": "db:2.3.4.5:9191",
+      "address": {
+        "socketAddress": {
+          "address": "2.3.4.5",
+          "portValue": 9191
+        }
+      },
+      "filterChains": [
+        {
+          "filters": [
+            {
+              "name": "envoy.http_connection_manager",
+              "config": {
+                  "http2_protocol_options": {
+                      },
+                  "http_filters": [
+                        {
+                              "config": {
+                                  },
+                              "name": "envoy.grpc_http1_bridge"
+                            },
+                        {
+                              "name": "envoy.router"
+                            }
+                      ],
+                  "rds": {
+                        "config_source": {
+                              "ads": {
+                                  }
+                            },
+                        "route_config_name": "db"
+                      },
+                  "stat_prefix": "upstream_db_grpc",
+                  "tracing": {
+                        "operation_name": "EGRESS",
+                        "random_sampling": {
+                            }
+                      }
+                }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "typeUrl": "type.googleapis.com/envoy.api.v2.Listener",
+  "nonce": "00000001"
+}

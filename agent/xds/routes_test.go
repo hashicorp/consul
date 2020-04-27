@@ -4,32 +4,14 @@ import (
 	"path"
 	"sort"
 	"testing"
-	"time"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/hashicorp/consul/agent/proxycfg"
-	"github.com/hashicorp/consul/agent/structs"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 )
 
 func TestRoutesFromSnapshot(t *testing.T) {
-	httpMatch := func(http *structs.ServiceRouteHTTPMatch) *structs.ServiceRouteMatch {
-		return &structs.ServiceRouteMatch{HTTP: http}
-	}
-	httpMatchHeader := func(headers ...structs.ServiceRouteHTTPMatchHeader) *structs.ServiceRouteMatch {
-		return httpMatch(&structs.ServiceRouteHTTPMatch{
-			Header: headers,
-		})
-	}
-	httpMatchParam := func(params ...structs.ServiceRouteHTTPMatchQueryParam) *structs.ServiceRouteMatch {
-		return httpMatch(&structs.ServiceRouteHTTPMatch{
-			QueryParam: params,
-		})
-	}
-	toService := func(svc string) *structs.ServiceRouteDestination {
-		return &structs.ServiceRouteDestination{Service: svc}
-	}
 
 	tests := []struct {
 		name   string
@@ -66,263 +48,62 @@ func TestRoutesFromSnapshot(t *testing.T) {
 			setup:  nil,
 		},
 		{
-			name: "connect-proxy-with-chain-and-splitter",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChainWithEntries(t,
-					&structs.ProxyConfigEntry{
-						Kind: structs.ProxyDefaults,
-						Name: structs.ProxyConfigGlobal,
-						Config: map[string]interface{}{
-							"protocol": "http",
-						},
-					},
-					&structs.ServiceSplitterConfigEntry{
-						Kind: structs.ServiceSplitter,
-						Name: "db",
-						Splits: []structs.ServiceSplit{
-							{Weight: 95.5, Service: "big-side"},
-							{Weight: 4, Service: "goldilocks-side"},
-							{Weight: 0.5, Service: "lil-bit-side"},
-						},
-					},
-				)
-			},
-			setup: nil,
+			name:   "connect-proxy-with-chain-and-splitter",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithSplitter,
+			setup:  nil,
 		},
 		{
-			name: "connect-proxy-with-grpc-router",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChainWithEntries(t,
-					&structs.ProxyConfigEntry{
-						Kind: structs.ProxyDefaults,
-						Name: structs.ProxyConfigGlobal,
-						Config: map[string]interface{}{
-							"protocol": "grpc",
-						},
-					},
-					&structs.ServiceRouterConfigEntry{
-						Kind: structs.ServiceRouter,
-						Name: "db",
-						Routes: []structs.ServiceRoute{
-							{
-								Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-									PathExact: "/fgrpc.PingServer/Ping",
-								}),
-								Destination: toService("prefix"),
-							},
-						},
-					},
-				)
-			},
+			name:   "connect-proxy-with-grpc-router",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithGRPCRouter,
+			setup:  nil,
 		},
 		{
-			name: "connect-proxy-with-chain-and-router",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChainWithEntries(t,
-					&structs.ProxyConfigEntry{
-						Kind: structs.ProxyDefaults,
-						Name: structs.ProxyConfigGlobal,
-						Config: map[string]interface{}{
-							"protocol": "http",
-						},
-					},
-					&structs.ServiceSplitterConfigEntry{
-						Kind: structs.ServiceSplitter,
-						Name: "split-3-ways",
-						Splits: []structs.ServiceSplit{
-							{Weight: 95.5, Service: "big-side"},
-							{Weight: 4, Service: "goldilocks-side"},
-							{Weight: 0.5, Service: "lil-bit-side"},
-						},
-					},
-					&structs.ServiceRouterConfigEntry{
-						Kind: structs.ServiceRouter,
-						Name: "db",
-						Routes: []structs.ServiceRoute{
-							{
-								Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-									PathPrefix: "/prefix",
-								}),
-								Destination: toService("prefix"),
-							},
-							{
-								Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-									PathExact: "/exact",
-								}),
-								Destination: toService("exact"),
-							},
-							{
-								Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-									PathRegex: "/regex",
-								}),
-								Destination: toService("regex"),
-							},
-							{
-								Match: httpMatchHeader(structs.ServiceRouteHTTPMatchHeader{
-									Name:    "x-debug",
-									Present: true,
-								}),
-								Destination: toService("hdr-present"),
-							},
-							{
-								Match: httpMatchHeader(structs.ServiceRouteHTTPMatchHeader{
-									Name:    "x-debug",
-									Present: true,
-									Invert:  true,
-								}),
-								Destination: toService("hdr-not-present"),
-							},
-							{
-								Match: httpMatchHeader(structs.ServiceRouteHTTPMatchHeader{
-									Name:  "x-debug",
-									Exact: "exact",
-								}),
-								Destination: toService("hdr-exact"),
-							},
-							{
-								Match: httpMatchHeader(structs.ServiceRouteHTTPMatchHeader{
-									Name:   "x-debug",
-									Prefix: "prefix",
-								}),
-								Destination: toService("hdr-prefix"),
-							},
-							{
-								Match: httpMatchHeader(structs.ServiceRouteHTTPMatchHeader{
-									Name:   "x-debug",
-									Suffix: "suffix",
-								}),
-								Destination: toService("hdr-suffix"),
-							},
-							{
-								Match: httpMatchHeader(structs.ServiceRouteHTTPMatchHeader{
-									Name:  "x-debug",
-									Regex: "regex",
-								}),
-								Destination: toService("hdr-regex"),
-							},
-							{
-								Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-									Methods: []string{"GET", "PUT"},
-								}),
-								Destination: toService("just-methods"),
-							},
-							{
-								Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-									Header: []structs.ServiceRouteHTTPMatchHeader{
-										{
-											Name:  "x-debug",
-											Exact: "exact",
-										},
-									},
-									Methods: []string{"GET", "PUT"},
-								}),
-								Destination: toService("hdr-exact-with-method"),
-							},
-							{
-								Match: httpMatchParam(structs.ServiceRouteHTTPMatchQueryParam{
-									Name:  "secretparam1",
-									Exact: "exact",
-								}),
-								Destination: toService("prm-exact"),
-							},
-							{
-								Match: httpMatchParam(structs.ServiceRouteHTTPMatchQueryParam{
-									Name:  "secretparam2",
-									Regex: "regex",
-								}),
-								Destination: toService("prm-regex"),
-							},
-							{
-								Match: httpMatchParam(structs.ServiceRouteHTTPMatchQueryParam{
-									Name:    "secretparam3",
-									Present: true,
-								}),
-								Destination: toService("prm-present"),
-							},
-							{
-								Match:       nil,
-								Destination: toService("nil-match"),
-							},
-							{
-								Match:       &structs.ServiceRouteMatch{},
-								Destination: toService("empty-match-1"),
-							},
-							{
-								Match: &structs.ServiceRouteMatch{
-									HTTP: &structs.ServiceRouteHTTPMatch{},
-								},
-								Destination: toService("empty-match-2"),
-							},
-							{
-								Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-									PathPrefix: "/prefix",
-								}),
-								Destination: &structs.ServiceRouteDestination{
-									Service:       "prefix-rewrite-1",
-									PrefixRewrite: "/",
-								},
-							},
-							{
-								Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-									PathPrefix: "/prefix",
-								}),
-								Destination: &structs.ServiceRouteDestination{
-									Service:       "prefix-rewrite-2",
-									PrefixRewrite: "/nested/newlocation",
-								},
-							},
-							{
-								Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-									PathPrefix: "/timeout",
-								}),
-								Destination: &structs.ServiceRouteDestination{
-									Service:        "req-timeout",
-									RequestTimeout: 33 * time.Second,
-								},
-							},
-							{
-								Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-									PathPrefix: "/retry-connect",
-								}),
-								Destination: &structs.ServiceRouteDestination{
-									Service:               "retry-connect",
-									NumRetries:            15,
-									RetryOnConnectFailure: true,
-								},
-							},
-							{
-								Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-									PathPrefix: "/retry-codes",
-								}),
-								Destination: &structs.ServiceRouteDestination{
-									Service:            "retry-codes",
-									NumRetries:         15,
-									RetryOnStatusCodes: []uint32{401, 409, 451},
-								},
-							},
-							{
-								Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-									PathPrefix: "/retry-both",
-								}),
-								Destination: &structs.ServiceRouteDestination{
-									Service:               "retry-both",
-									RetryOnConnectFailure: true,
-									RetryOnStatusCodes:    []uint32{401, 409, 451},
-								},
-							},
-							{
-								Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-									PathPrefix: "/split-3-ways",
-								}),
-								Destination: toService("split-3-ways"),
-							},
-						},
-					},
-				)
-			},
-			setup: nil,
+			name:   "connect-proxy-with-chain-and-router",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithRouter,
+			setup:  nil,
 		},
 		// TODO(rb): test match stanza skipped for grpc
+		// Start ingress gateway test cases
+		{
+			name:   "ingress-defaults-no-chain",
+			create: proxycfg.TestConfigSnapshotIngressGateway,
+			setup:  nil, // Default snapshot
+		},
+		{
+			name:   "ingress-with-chain",
+			create: proxycfg.TestConfigSnapshotIngress,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-with-chain-external-sni",
+			create: proxycfg.TestConfigSnapshotIngressExternalSNI,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-with-chain-and-overrides",
+			create: proxycfg.TestConfigSnapshotIngressWithOverrides,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-splitter-with-resolver-redirect",
+			create: proxycfg.TestConfigSnapshotIngress_SplitterWithResolverRedirectMultiDC,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-with-chain-and-splitter",
+			create: proxycfg.TestConfigSnapshotIngressWithSplitter,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-with-grpc-router",
+			create: proxycfg.TestConfigSnapshotIngressWithGRPCRouter,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-with-chain-and-router",
+			create: proxycfg.TestConfigSnapshotIngressWithRouter,
+			setup:  nil,
+		},
 	}
 
 	for _, tt := range tests {
