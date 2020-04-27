@@ -378,7 +378,7 @@ func injectConnectFilters(cfgSnap *proxycfg.ConfigSnapshot, token string, listen
 			append([]envoylistener.Filter{authFilter}, listener.FilterChains[idx].Filters...)
 
 		listener.FilterChains[idx].TlsContext = &envoyauth.DownstreamTlsContext{
-			CommonTlsContext:         makeCommonTLSContext(cfgSnap, cfgSnap.Leaf()),
+			CommonTlsContext:         makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf()),
 			RequireClientCertificate: &types.BoolValue{Value: true},
 		}
 	}
