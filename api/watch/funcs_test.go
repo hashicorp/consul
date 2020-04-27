@@ -1051,6 +1051,7 @@ func mustParse(t *testing.T, q string) *watch.Plan {
 	if err := json.Unmarshal([]byte(q), &params); err != nil {
 		t.Fatal(err)
 	}
+	params["ConsulReloadTriggersWatch"] = true
 	plan, err := watch.Parse(params)
 	if err != nil {
 		t.Fatalf("err: %v", err)
