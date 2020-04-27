@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/consul/logging"
 	"net"
 	"net/url"
 	"regexp"
@@ -38,8 +39,10 @@ func (s *Server) listenersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token s
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
 		return s.listenersFromSnapshotConnectProxy(cfgSnap, token)
+	case structs.ServiceKindTerminatingGateway:
+		return s.listenersFromSnapshotGateway(cfgSnap, token)
 	case structs.ServiceKindMeshGateway:
-		return s.listenersFromSnapshotMeshGateway(cfgSnap)
+		return s.listenersFromSnapshotGateway(cfgSnap, token)
 	case structs.ServiceKindIngressGateway:
 		return s.listenersFromSnapshotIngressGateway(cfgSnap)
 	default:
@@ -181,8 +184,8 @@ func parseCheckPath(check structs.CheckType) (structs.ExposePath, error) {
 	return path, nil
 }
 
-// listenersFromSnapshotMeshGateway returns the "listener" for a mesh-gateway service
-func (s *Server) listenersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+// listenersFromSnapshotGateway returns the "listener" for a terminating-gateway or mesh-gateway service
+func (s *Server) listenersFromSnapshotGateway(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
 	cfg, err := ParseGatewayConfig(cfgSnap.Proxy.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
@@ -190,8 +193,14 @@ func (s *Server) listenersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 		s.Logger.Warn("failed to parse Connect.Proxy.Config", "error", err)
 	}
 
-	// TODO - prevent invalid configurations of binding to the same port/addr
-	//        twice including with the any addresses
+	// Prevent invalid configurations of binding to the same port/addr twice
+	// including with the any addresses
+	type namedAddress struct {
+		name string
+		structs.ServiceAddress
+	}
+	seen := make(map[structs.ServiceAddress]bool)
+	addrs := make([]namedAddress, 0)
 
 	var resources []proto.Message
 	if !cfg.NoDefaultBind {
@@ -200,31 +209,60 @@ func (s *Server) listenersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 			addr = "0.0.0.0"
 		}
 
-		l, err := s.makeGatewayListener("default", addr, cfgSnap.Port, cfgSnap)
-		if err != nil {
-			return nil, err
+		a := structs.ServiceAddress{
+			Address: addr,
+			Port:    cfgSnap.Port,
 		}
-		resources = append(resources, l)
+		if !seen[a] {
+			addrs = append(addrs, namedAddress{name: "default", ServiceAddress: a})
+			seen[a] = true
+		}
 	}
 
 	if cfg.BindTaggedAddresses {
 		for name, addrCfg := range cfgSnap.TaggedAddresses {
-			l, err := s.makeGatewayListener(name, addrCfg.Address, addrCfg.Port, cfgSnap)
-			if err != nil {
-				return nil, err
+			a := structs.ServiceAddress{
+				Address: addrCfg.Address,
+				Port:    addrCfg.Port,
 			}
-			resources = append(resources, l)
+			if !seen[a] {
+				addrs = append(addrs, namedAddress{name: name, ServiceAddress: a})
+				seen[a] = true
+			}
 		}
 	}
 
 	for name, addrCfg := range cfg.BindAddresses {
-		l, err := s.makeGatewayListener(name, addrCfg.Address, addrCfg.Port, cfgSnap)
-		if err != nil {
-			return nil, err
+		a := structs.ServiceAddress{
+			Address: addrCfg.Address,
+			Port:    addrCfg.Port,
 		}
-		resources = append(resources, l)
+		if !seen[a] {
+			addrs = append(addrs, namedAddress{name: name, ServiceAddress: a})
+			seen[a] = true
+		}
 	}
 
+	// Make listeners once deduplicated
+	for _, a := range addrs {
+		var l *envoy.Listener
+
+		switch cfgSnap.Kind {
+		case structs.ServiceKindTerminatingGateway:
+			l, err = s.makeTerminatingGatewayListener(a.name, a.Address, a.Port, cfgSnap, token)
+			if err != nil {
+				return nil, err
+			}
+		case structs.ServiceKindMeshGateway:
+			l, err = s.makeMeshGatewayListener(a.name, a.Address, a.Port, cfgSnap)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if l != nil {
+			resources = append(resources, l)
+		}
+	}
 	return resources, err
 }
 
@@ -339,9 +377,8 @@ func injectConnectFilters(cfgSnap *proxycfg.ConfigSnapshot, token string, listen
 		listener.FilterChains[idx].Filters =
 			append([]envoylistener.Filter{authFilter}, listener.FilterChains[idx].Filters...)
 
-		// Force our TLS for all filter chains on a public listener
 		listener.FilterChains[idx].TlsContext = &envoyauth.DownstreamTlsContext{
-			CommonTlsContext:         makeCommonTLSContext(cfgSnap),
+			CommonTlsContext:         makeCommonTLSContext(cfgSnap, cfgSnap.Leaf()),
 			RequireClientCertificate: &types.BoolValue{Value: true},
 		}
 	}
@@ -517,7 +554,101 @@ func (s *Server) makeUpstreamListenerIgnoreDiscoveryChain(
 	return l, nil
 }
 
-func (s *Server) makeGatewayListener(name, addr string, port int, cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Listener, error) {
+func (s *Server) makeTerminatingGatewayListener(name, addr string, port int, cfgSnap *proxycfg.ConfigSnapshot, token string) (*envoy.Listener, error) {
+	l := makeListener(name, addr, port)
+
+	tlsInspector, err := makeTLSInspectorListenerFilter()
+	if err != nil {
+		return nil, err
+	}
+	l.ListenerFilters = []envoylistener.ListenerFilter{tlsInspector}
+
+	// Make a FilterChain for each linked service
+	// Match on the cluster name,
+	for svc, _ := range cfgSnap.TerminatingGateway.ServiceGroups {
+		clusterName := connect.ServiceSNI(svc.ID, "", svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+		resolver, hasResolver := cfgSnap.TerminatingGateway.ServiceResolvers[svc]
+
+		// Skip the service if we don't have a cert to present for mTLS
+		if cert, ok := cfgSnap.TerminatingGateway.ServiceLeaves[svc]; !ok || cert == nil {
+			// TODO (gateways) (freddy) Should the error suggest that the issue may be ACLs? (need service:write on service)
+			s.Logger.Named(logging.TerminatingGateway).
+				Error("no client certificate available for linked service, skipping filter chain creation",
+					"service", svc.String(), "error", err)
+			continue
+		}
+
+		clusterChain, err := s.sniFilterChainTerminatingGateway(name, clusterName, token, svc, cfgSnap)
+		if err != nil {
+			return nil, fmt.Errorf("failed to make filter chain for cluster %q: %v", clusterName, err)
+		}
+		l.FilterChains = append(l.FilterChains, clusterChain)
+
+		// if there is a service-resolver for this service then also setup subset filter chains for it
+		if hasResolver {
+			// generate 1 filter chain for each service subset
+			for subsetName := range resolver.Subsets {
+				clusterName := connect.ServiceSNI(svc.ID, subsetName, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+
+				clusterChain, err := s.sniFilterChainTerminatingGateway(name, clusterName, token, svc, cfgSnap)
+				if err != nil {
+					return nil, fmt.Errorf("failed to make filter chain for cluster %q: %v", clusterName, err)
+				}
+				l.FilterChains = append(l.FilterChains, clusterChain)
+			}
+		}
+	}
+
+	// This fallback catch-all filter ensures a listener will be present for health checks to pass
+	// Envoy will reset these connections since known endpoints are caught by filter chain matches above
+	tcpProxy, err := makeTCPProxyFilter(name, "", "terminating_gateway_")
+	if err != nil {
+		return nil, err
+	}
+	fallback := envoylistener.FilterChain{
+		Filters: []envoylistener.Filter{
+			{Name: "envoy.filters.network.sni_cluster"},
+			tcpProxy,
+		},
+	}
+	l.FilterChains = append(l.FilterChains, fallback)
+
+	return l, nil
+}
+
+func (s *Server) sniFilterChainTerminatingGateway(listener, cluster, token string, service structs.ServiceID,
+	cfgSnap *proxycfg.ConfigSnapshot) (envoylistener.FilterChain, error) {
+
+	authFilter, err := makeExtAuthFilter(token)
+	if err != nil {
+		return envoylistener.FilterChain{}, err
+	}
+	sniCluster, err := makeSNIClusterFilter()
+	if err != nil {
+		return envoylistener.FilterChain{}, err
+	}
+
+	// The cluster name here doesn't matter as the sni_cluster filter will fill it in for us.
+	tcpProxy, err := makeTCPProxyFilter(listener, "", fmt.Sprintf("terminating_gateway_%s_", service.String()))
+	if err != nil {
+		return envoylistener.FilterChain{}, err
+	}
+
+	return envoylistener.FilterChain{
+		FilterChainMatch: makeSNIFilterChainMatch(cluster),
+		Filters: []envoylistener.Filter{
+			authFilter,
+			sniCluster,
+			tcpProxy,
+		},
+		TlsContext: &envoyauth.DownstreamTlsContext{
+			CommonTlsContext:         makeCommonTLSContext(cfgSnap, cfgSnap.TerminatingGateway.ServiceLeaves[service]),
+			RequireClientCertificate: &types.BoolValue{Value: true},
+		},
+	}, err
+}
+
+func (s *Server) makeMeshGatewayListener(name, addr string, port int, cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Listener, error) {
 	tlsInspector, err := makeTLSInspectorListenerFilter()
 	if err != nil {
 		return nil, err
@@ -711,11 +842,10 @@ func makeTLSInspectorListenerFilter() (envoylistener.ListenerFilter, error) {
 	return envoylistener.ListenerFilter{Name: util.TlsInspector}, nil
 }
 
-// TODO(rb): should this be dead code?
-func makeSNIFilterChainMatch(sniMatch string) (*envoylistener.FilterChainMatch, error) {
+func makeSNIFilterChainMatch(sniMatch string) *envoylistener.FilterChainMatch {
 	return &envoylistener.FilterChainMatch{
 		ServerNames: []string{sniMatch},
-	}, nil
+	}
 }
 
 func makeSNIClusterFilter() (envoylistener.Filter, error) {
@@ -881,7 +1011,7 @@ func makeFilter(name string, cfg proto.Message) (envoylistener.Filter, error) {
 	}, nil
 }
 
-func makeCommonTLSContext(cfgSnap *proxycfg.ConfigSnapshot) *envoyauth.CommonTlsContext {
+func makeCommonTLSContext(cfgSnap *proxycfg.ConfigSnapshot, leaf *structs.IssuedCert) *envoyauth.CommonTlsContext {
 	// Concatenate all the root PEMs into one.
 	// TODO(banks): verify this actually works with Envoy (docs are not clear).
 	rootPEMS := ""
@@ -892,7 +1022,6 @@ func makeCommonTLSContext(cfgSnap *proxycfg.ConfigSnapshot) *envoyauth.CommonTls
 		rootPEMS += root.RootCert
 	}
 
-	leaf := cfgSnap.Leaf()
 	return &envoyauth.CommonTlsContext{
 		TlsParams: &envoyauth.TlsParameters{},
 		TlsCertificates: []*envoyauth.TlsCertificate{

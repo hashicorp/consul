@@ -3014,16 +3014,16 @@ func TestStateStore_ConnectQueryBlocking(t *testing.T) {
 			setupFn:          nil,
 			svc:              "test",
 			wantBeforeResLen: 0,
-			// Only the connect index iterator is watched
-			wantBeforeWatchSetSize: 1,
+			// The connect index and gateway-services iterators are watched
+			wantBeforeWatchSetSize: 2,
 			updateFn: func(s *Store) {
 				testRegisterService(t, s, 4, "node1", "test")
 			},
 			shouldFire:      false,
 			wantAfterIndex:  4, // No results falls back to global service index
 			wantAfterResLen: 0,
-			// Only the connect index iterator is watched
-			wantAfterWatchSetSize: 1,
+			// The connect index and gateway-services iterators are watched
+			wantAfterWatchSetSize: 2,
 		},
 		{
 			name: "not affected by non-connect-enabled target service de-registration",
@@ -3032,8 +3032,8 @@ func TestStateStore_ConnectQueryBlocking(t *testing.T) {
 			},
 			svc:              "test",
 			wantBeforeResLen: 0,
-			// Only the connect index iterator is watched
-			wantBeforeWatchSetSize: 1,
+			// The connect index and gateway-services iterators are watched
+			wantBeforeWatchSetSize: 2,
 			updateFn: func(s *Store) {
 				require.NoError(t, s.DeleteService(5, "node1", "test", nil))
 			},
@@ -3044,25 +3044,25 @@ func TestStateStore_ConnectQueryBlocking(t *testing.T) {
 			shouldFire:      false,
 			wantAfterIndex:  5, // No results falls back to global service index
 			wantAfterResLen: 0,
-			// Only the connect index iterator is watched
-			wantAfterWatchSetSize: 1,
+			// The connect index and gateway-services iterators are watched
+			wantAfterWatchSetSize: 2,
 		},
 		{
 			name:             "unblocks on first connect-native service registration",
 			setupFn:          nil,
 			svc:              "test",
 			wantBeforeResLen: 0,
-			// Only the connect index iterator is watched
-			wantBeforeWatchSetSize: 1,
+			// The connect index and gateway-services iterators are watched
+			wantBeforeWatchSetSize: 2,
 			updateFn: func(s *Store) {
 				testRegisterConnectNativeService(t, s, 4, "node1", "test")
 			},
 			shouldFire:      true,
 			wantAfterIndex:  4,
 			wantAfterResLen: 1,
-			// Should take the optimized path where we only watch the service index
-			// and the connect index iterator.
-			wantAfterWatchSetSize: 2,
+			// Should take the optimized path where we only watch the service index,
+			// connect index iterator, and gateway-services iterator.
+			wantAfterWatchSetSize: 3,
 		},
 		{
 			name: "unblocks on subsequent connect-native service registration",
@@ -3071,18 +3071,18 @@ func TestStateStore_ConnectQueryBlocking(t *testing.T) {
 			},
 			svc:              "test",
 			wantBeforeResLen: 1,
-			// Should take the optimized path where we only watch the service index
-			// and the connect index iterator.
-			wantBeforeWatchSetSize: 2,
+			// Should take the optimized path where we only watch the service index,
+			// connect index iterator, and gateway-services iterator.
+			wantBeforeWatchSetSize: 3,
 			updateFn: func(s *Store) {
 				testRegisterConnectNativeService(t, s, 5, "node2", "test")
 			},
 			shouldFire:      true,
 			wantAfterIndex:  5,
 			wantAfterResLen: 2,
-			// Should take the optimized path where we only watch the service index
-			// and the connect index iterator.
-			wantAfterWatchSetSize: 2,
+			// Should take the optimized path where we only watch the service index,
+			// connect index iterator, and gateway-services iterator.
+			wantAfterWatchSetSize: 3,
 		},
 		{
 			name: "unblocks on connect-native service de-registration",
@@ -3092,18 +3092,18 @@ func TestStateStore_ConnectQueryBlocking(t *testing.T) {
 			},
 			svc:              "test",
 			wantBeforeResLen: 2,
-			// Should take the optimized path where we only watch the service index
-			// and the connect index iterator.
-			wantBeforeWatchSetSize: 2,
+			// Should take the optimized path where we only watch the service index,
+			// connect index iterator, and gateway-services iterator.
+			wantBeforeWatchSetSize: 3,
 			updateFn: func(s *Store) {
 				require.NoError(t, s.DeleteService(6, "node2", "test", nil))
 			},
 			shouldFire:      true,
 			wantAfterIndex:  6,
 			wantAfterResLen: 1,
-			// Should take the optimized path where we only watch the service index
-			// and the connect index iterator.
-			wantAfterWatchSetSize: 2,
+			// Should take the optimized path where we only watch the service index,
+			// connect index iterator, and gateway-services iterator.
+			wantAfterWatchSetSize: 3,
 		},
 		{
 			name: "unblocks on last connect-native service de-registration",
@@ -3112,34 +3112,34 @@ func TestStateStore_ConnectQueryBlocking(t *testing.T) {
 			},
 			svc:              "test",
 			wantBeforeResLen: 1,
-			// Should take the optimized path where we only watch the service index
-			// and the connect index iterator.
-			wantBeforeWatchSetSize: 2,
+			// Should take the optimized path where we only watch the service index,
+			// connect index iterator, and gateway-services iterator.
+			wantBeforeWatchSetSize: 3,
 			updateFn: func(s *Store) {
 				require.NoError(t, s.DeleteService(6, "node1", "test", nil))
 			},
 			shouldFire:      true,
 			wantAfterIndex:  6,
 			wantAfterResLen: 0,
-			// Only the connect index iterator is watched
-			wantAfterWatchSetSize: 1,
+			// The connect index and gateway-services iterators are watched
+			wantAfterWatchSetSize: 2,
 		},
 		{
 			name:             "unblocks on first proxy service registration",
 			setupFn:          nil,
 			svc:              "test",
 			wantBeforeResLen: 0,
-			// Only the connect index iterator is watched
-			wantBeforeWatchSetSize: 1,
+			// The connect index and gateway-services iterators are watched
+			wantBeforeWatchSetSize: 2,
 			updateFn: func(s *Store) {
 				testRegisterSidecarProxy(t, s, 4, "node1", "test")
 			},
 			shouldFire:      true,
 			wantAfterIndex:  4,
 			wantAfterResLen: 1,
-			// Should take the optimized path where we only watch the service index
-			// and the connect index iterator.
-			wantAfterWatchSetSize: 2,
+			// Should take the optimized path where we only watch the service index,
+			// connect index iterator, and gateway-services iterator.
+			wantAfterWatchSetSize: 3,
 		},
 		{
 			name: "unblocks on subsequent proxy service registration",
@@ -3148,18 +3148,18 @@ func TestStateStore_ConnectQueryBlocking(t *testing.T) {
 			},
 			svc:              "test",
 			wantBeforeResLen: 1,
-			// Should take the optimized path where we only watch the service index
-			// and the connect index iterator.
-			wantBeforeWatchSetSize: 2,
+			// Should take the optimized path where we only watch the service index,
+			// connect index iterator, and gateway-services iterator.
+			wantBeforeWatchSetSize: 3,
 			updateFn: func(s *Store) {
 				testRegisterSidecarProxy(t, s, 5, "node2", "test")
 			},
 			shouldFire:      true,
 			wantAfterIndex:  5,
 			wantAfterResLen: 2,
-			// Should take the optimized path where we only watch the service index
-			// and the connect index iterator.
-			wantAfterWatchSetSize: 2,
+			// Should take the optimized path where we only watch the service index,
+			// connect index iterator, and gateway-services iterator.
+			wantAfterWatchSetSize: 3,
 		},
 		{
 			name: "unblocks on proxy service de-registration",
@@ -3169,18 +3169,18 @@ func TestStateStore_ConnectQueryBlocking(t *testing.T) {
 			},
 			svc:              "test",
 			wantBeforeResLen: 2,
-			// Should take the optimized path where we only watch the service index
-			// and the connect index iterator.
-			wantBeforeWatchSetSize: 2,
+			// Should take the optimized path where we only watch the service index,
+			// connect index iterator, and gateway-services iterator.
+			wantBeforeWatchSetSize: 3,
 			updateFn: func(s *Store) {
 				require.NoError(t, s.DeleteService(6, "node2", "test-sidecar-proxy", nil))
 			},
 			shouldFire:      true,
 			wantAfterIndex:  6,
 			wantAfterResLen: 1,
-			// Should take the optimized path where we only watch the service index
-			// and the connect index iterator.
-			wantAfterWatchSetSize: 2,
+			// Should take the optimized path where we only watch the service index,
+			// connect index iterator, and gateway-services iterator.
+			wantAfterWatchSetSize: 3,
 		},
 		{
 			name: "unblocks on last proxy service de-registration",
@@ -3189,17 +3189,17 @@ func TestStateStore_ConnectQueryBlocking(t *testing.T) {
 			},
 			svc:              "test",
 			wantBeforeResLen: 1,
-			// Should take the optimized path where we only watch the service index
-			// and the connect index iterator.
-			wantBeforeWatchSetSize: 2,
+			// Should take the optimized path where we only watch the service index,
+			// connect index iterator, and gateway-services iterator.
+			wantBeforeWatchSetSize: 3,
 			updateFn: func(s *Store) {
 				require.NoError(t, s.DeleteService(6, "node1", "test-sidecar-proxy", nil))
 			},
 			shouldFire:      true,
 			wantAfterIndex:  6,
 			wantAfterResLen: 0,
-			// Only the connect index iterator is watched
-			wantAfterWatchSetSize: 1,
+			// The connect index and gateway-services iterators are watched
+			wantAfterWatchSetSize: 2,
 		},
 		{
 			name: "unblocks on connect-native service health check change",
@@ -3209,18 +3209,18 @@ func TestStateStore_ConnectQueryBlocking(t *testing.T) {
 			},
 			svc:              "test",
 			wantBeforeResLen: 1,
-			// Should take the optimized path where we only watch the service index
-			// and the connect index iterator.
-			wantBeforeWatchSetSize: 2,
+			// Should take the optimized path where we only watch the service index,
+			// connect index iterator, and gateway-services iterator.
+			wantBeforeWatchSetSize: 3,
 			updateFn: func(s *Store) {
 				testRegisterCheck(t, s, 7, "node1", "test", "check1", "critical")
 			},
 			shouldFire:      true,
 			wantAfterIndex:  7,
 			wantAfterResLen: 1, // critical filtering doesn't happen in the state store method.
-			// Should take the optimized path where we only watch the service index
-			// and the connect index iterator.
-			wantAfterWatchSetSize: 2,
+			// Should take the optimized path where we only watch the service index,
+			// connect index iterator, and gateway-services iterator.
+			wantAfterWatchSetSize: 3,
 		},
 		{
 			name: "unblocks on proxy service health check change",
@@ -3230,18 +3230,18 @@ func TestStateStore_ConnectQueryBlocking(t *testing.T) {
 			},
 			svc:              "test",
 			wantBeforeResLen: 1,
-			// Should take the optimized path where we only watch the service index
-			// and the connect index iterator.
-			wantBeforeWatchSetSize: 2,
+			// Should take the optimized path where we only watch the service index,
+			// connect index iterator, and gateway-services iterator.
+			wantBeforeWatchSetSize: 3,
 			updateFn: func(s *Store) {
 				testRegisterCheck(t, s, 7, "node1", "test-sidecar-proxy", "check1", "critical")
 			},
 			shouldFire:      true,
 			wantAfterIndex:  7,
 			wantAfterResLen: 1, // critical filtering doesn't happen in the state store method.
-			// Should take the optimized path where we only watch the service index
-			// and the connect index iterator.
-			wantAfterWatchSetSize: 2,
+			// Should take the optimized path where we only watch the service index,
+			// connect index iterator, and gateway-services iterator.
+			wantAfterWatchSetSize: 3,
 		},
 		{
 			name: "unblocks on connect-native node health check change",
@@ -3251,18 +3251,18 @@ func TestStateStore_ConnectQueryBlocking(t *testing.T) {
 			},
 			svc:              "test",
 			wantBeforeResLen: 1,
-			// Should take the optimized path where we only watch the service index
-			// and the connect index iterator.
-			wantBeforeWatchSetSize: 2,
+			// Should take the optimized path where we only watch the service index,
+			// connect index iterator, and gateway-services iterator.
+			wantBeforeWatchSetSize: 3,
 			updateFn: func(s *Store) {
 				testRegisterCheck(t, s, 7, "node1", "", "check1", "critical")
 			},
 			shouldFire:      true,
 			wantAfterIndex:  7,
 			wantAfterResLen: 1, // critical filtering doesn't happen in the state store method.
-			// Should take the optimized path where we only watch the service index
-			// and the connect index iterator.
-			wantAfterWatchSetSize: 2,
+			// Should take the optimized path where we only watch the service index,
+			// connect index iterator, and gateway-services iterator.
+			wantAfterWatchSetSize: 3,
 		},
 		{
 			name: "unblocks on proxy service health check change",
@@ -3272,18 +3272,18 @@ func TestStateStore_ConnectQueryBlocking(t *testing.T) {
 			},
 			svc:              "test",
 			wantBeforeResLen: 1,
-			// Should take the optimized path where we only watch the service index
-			// and the connect index iterator.
-			wantBeforeWatchSetSize: 2,
+			// Should take the optimized path where we only watch the service index,
+			// connect index iterator, and gateway-services iterator.
+			wantBeforeWatchSetSize: 3,
 			updateFn: func(s *Store) {
 				testRegisterCheck(t, s, 7, "node1", "", "check1", "critical")
 			},
 			shouldFire:      true,
 			wantAfterIndex:  7,
 			wantAfterResLen: 1, // critical filtering doesn't happen in the state store method.
-			// Should take the optimized path where we only watch the service index
-			// and the connect index iterator.
-			wantAfterWatchSetSize: 2,
+			// Should take the optimized path where we only watch the service index,
+			// connect index iterator, and gateway-services iterator.
+			wantAfterWatchSetSize: 3,
 		},
 		{
 			// See https://github.com/hashicorp/consul/issues/5506. The issue is cause
@@ -3302,18 +3302,18 @@ func TestStateStore_ConnectQueryBlocking(t *testing.T) {
 			},
 			svc:              "test",
 			wantBeforeResLen: 1,
-			// Should take the optimized path where we only watch the service index
-			// and the connect index iterator.
-			wantBeforeWatchSetSize: 2,
+			// Should take the optimized path where we only watch the service index,
+			// connect index iterator, and gateway-services iterator.
+			wantBeforeWatchSetSize: 3,
 			updateFn: func(s *Store) {
 				testRegisterCheck(t, s, 7, "node1", "test-sidecar-proxy", "check1", "critical")
 			},
 			shouldFire:      true,
 			wantAfterIndex:  7,
 			wantAfterResLen: 1, // critical filtering doesn't happen in the state store method.
-			// Should take the optimized path where we only watch the service index
-			// and the connect index iterator.
-			wantAfterWatchSetSize: 2,
+			// Should take the optimized path where we only watch the service index,
+			// connect index iterator, and gateway-services iterator.
+			wantAfterWatchSetSize: 3,
 		},
 		{
 			// See https://github.com/hashicorp/consul/issues/5506. This is the edge
@@ -3324,9 +3324,9 @@ func TestStateStore_ConnectQueryBlocking(t *testing.T) {
 			},
 			svc:              "test",
 			wantBeforeResLen: 1,
-			// Should take the optimized path where we only watch the service index
-			// and the connect index iterator.
-			wantBeforeWatchSetSize: 2,
+			// Should take the optimized path where we only watch the service index,
+			// connect index iterator, and gateway-services iterator.
+			wantBeforeWatchSetSize: 3,
 			updateFn: func(s *Store) {
 				// Register a new result with a different service name could be another
 				// proxy with a different name, but a native instance works too.
@@ -3335,9 +3335,9 @@ func TestStateStore_ConnectQueryBlocking(t *testing.T) {
 			shouldFire:      true,
 			wantAfterIndex:  5,
 			wantAfterResLen: 2,
-			// Should take the optimized path where we only watch the teo service
-			// indexes and the connect index iterator.
-			wantAfterWatchSetSize: 3,
+			// Should take the optimized path where we only watch the service indexes,
+			// connect index iterator, and gateway-services iterator.
+			wantAfterWatchSetSize: 4,
 		},
 	}
 
@@ -3566,23 +3566,14 @@ func TestStateStore_CheckConnectServiceNodes_Gateways(t *testing.T) {
 	assert.Nil(s.EnsureService(14, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}))
 	assert.False(watchFired(ws))
 
-	// Register a sidecar and a gateway for db
-	assert.Nil(s.EnsureService(15, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
-	assert.True(watchFired(ws))
+	// Register node and service checks
+	testRegisterCheck(t, s, 15, "foo", "", "check1", api.HealthPassing)
+	testRegisterCheck(t, s, 16, "bar", "", "check2", api.HealthPassing)
+	testRegisterCheck(t, s, 17, "foo", "db", "check3", api.HealthPassing)
+	assert.False(watchFired(ws))
 
-	assert.Nil(s.EnsureService(16, "bar", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway", Service: "gateway", Port: 443}))
-	assert.True(watchFired(ws))
-
-	// Register node checks
-	testRegisterCheck(t, s, 17, "foo", "", "check1", api.HealthPassing)
-	testRegisterCheck(t, s, 18, "bar", "", "check2", api.HealthPassing)
-
-	// Register checks against the services.
-	testRegisterCheck(t, s, 19, "foo", "db", "check3", api.HealthPassing)
-	testRegisterCheck(t, s, 20, "bar", "gateway", "check4", api.HealthPassing)
-
-	// Associate gateway with db
-	assert.Nil(s.EnsureConfigEntry(21, &structs.TerminatingGatewayConfigEntry{
+	// Watch should fire when a gateway is associated with the service, even if the gateway doesn't exist yet
+	assert.Nil(s.EnsureConfigEntry(18, &structs.TerminatingGatewayConfigEntry{
 		Kind: "terminating-gateway",
 		Name: "gateway",
 		Services: []structs.LinkedService{
@@ -3593,11 +3584,23 @@ func TestStateStore_CheckConnectServiceNodes_Gateways(t *testing.T) {
 	}, nil))
 	assert.True(watchFired(ws))
 
+	// Watch should fire when a gateway is added
+	assert.Nil(s.EnsureService(19, "bar", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway", Service: "gateway", Port: 443}))
+	assert.True(watchFired(ws))
+
+	// Watch should fire when a check is added to the gateway
+	testRegisterCheck(t, s, 20, "bar", "gateway", "check4", api.HealthPassing)
+	assert.True(watchFired(ws))
+
+	// Watch should fire when a different connect service is registered for db
+	assert.Nil(s.EnsureService(21, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
+	assert.True(watchFired(ws))
+
 	// Read everything back.
 	ws = memdb.NewWatchSet()
 	idx, nodes, err = s.CheckConnectServiceNodes(ws, "db", nil)
 	assert.Nil(err)
-	assert.Equal(idx, uint64(20))
+	assert.Equal(idx, uint64(21))
 	assert.Len(nodes, 2)
 
 	// Check sidecar
@@ -4559,12 +4562,13 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 			},
 		},
 		{
-			Service:     structs.NewServiceID("redis", nil),
-			Gateway:     structs.NewServiceID("gateway", nil),
-			GatewayKind: structs.ServiceKindTerminatingGateway,
-			CAFile:      "ca.crt",
-			CertFile:    "client.crt",
-			KeyFile:     "client.key",
+			Service:      structs.NewServiceID("redis", nil),
+			Gateway:      structs.NewServiceID("gateway", nil),
+			GatewayKind:  structs.ServiceKindTerminatingGateway,
+			CAFile:       "ca.crt",
+			CertFile:     "client.crt",
+			KeyFile:      "client.key",
+			FromWildcard: true,
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 23,
 				ModifyIndex: 23,
@@ -4656,18 +4660,20 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 
 	expect = structs.GatewayServices{
 		{
-			Service:     structs.NewServiceID("api", nil),
-			Gateway:     structs.NewServiceID("gateway2", nil),
-			GatewayKind: structs.ServiceKindTerminatingGateway,
+			Service:      structs.NewServiceID("api", nil),
+			Gateway:      structs.NewServiceID("gateway2", nil),
+			GatewayKind:  structs.ServiceKindTerminatingGateway,
+			FromWildcard: true,
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 26,
 				ModifyIndex: 26,
 			},
 		},
 		{
-			Service:     structs.NewServiceID("db", nil),
-			Gateway:     structs.NewServiceID("gateway2", nil),
-			GatewayKind: structs.ServiceKindTerminatingGateway,
+			Service:      structs.NewServiceID("db", nil),
+			Gateway:      structs.NewServiceID("gateway2", nil),
+			GatewayKind:  structs.ServiceKindTerminatingGateway,
+			FromWildcard: true,
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 26,
 				ModifyIndex: 26,
@@ -4684,6 +4690,154 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(27))
 	assert.Len(t, out, 0)
+}
+
+func TestStateStore_GatewayServices_ServiceDeletion(t *testing.T) {
+	s := testStateStore(t)
+
+	// Listing with no results returns an empty list.
+	ws := memdb.NewWatchSet()
+	idx, nodes, err := s.GatewayServices(ws, "gateway", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(0))
+	assert.Len(t, nodes, 0)
+
+	// Create some nodes
+	assert.Nil(t, s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
+	assert.Nil(t, s.EnsureNode(11, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
+	assert.Nil(t, s.EnsureNode(12, &structs.Node{Node: "baz", Address: "127.0.0.2"}))
+
+	// Typical services and some consul services spread across two nodes
+	assert.Nil(t, s.EnsureService(13, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
+	assert.Nil(t, s.EnsureService(14, "foo", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
+
+	// Register two gateways
+	assert.Nil(t, s.EnsureService(17, "bar", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway", Service: "gateway", Port: 443}))
+	assert.Nil(t, s.EnsureService(18, "baz", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "other-gateway", Service: "other-gateway", Port: 443}))
+
+	// Associate the first gateway with db
+	assert.Nil(t, s.EnsureConfigEntry(19, &structs.TerminatingGatewayConfigEntry{
+		Kind: "terminating-gateway",
+		Name: "gateway",
+		Services: []structs.LinkedService{
+			{
+				Name:   "db",
+				CAFile: "my_ca.pem",
+			},
+		},
+	}, nil))
+	assert.True(t, watchFired(ws))
+
+	// Associate the other gateway with a wildcard
+	assert.Nil(t, s.EnsureConfigEntry(20, &structs.TerminatingGatewayConfigEntry{
+		Kind: "terminating-gateway",
+		Name: "other-gateway",
+		Services: []structs.LinkedService{
+			{
+				Name: "*",
+			},
+		},
+	}, nil))
+	assert.True(t, watchFired(ws))
+
+	// Read everything back for first gateway.
+	ws = memdb.NewWatchSet()
+	idx, out, err := s.GatewayServices(ws, "gateway", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(20))
+	assert.Len(t, out, 1)
+
+	expect := structs.GatewayServices{
+		{
+			Service:     structs.NewServiceID("db", nil),
+			Gateway:     structs.NewServiceID("gateway", nil),
+			GatewayKind: structs.ServiceKindTerminatingGateway,
+			CAFile:      "my_ca.pem",
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 19,
+				ModifyIndex: 19,
+			},
+		},
+	}
+	assert.Equal(t, expect, out)
+
+	// Read everything back for other gateway.
+	otherWS := memdb.NewWatchSet()
+	idx, out, err = s.GatewayServices(otherWS, "other-gateway", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(20))
+	assert.Len(t, out, 2)
+
+	expect = structs.GatewayServices{
+		{
+			Service:      structs.NewServiceID("api", nil),
+			Gateway:      structs.NewServiceID("other-gateway", nil),
+			GatewayKind:  structs.ServiceKindTerminatingGateway,
+			FromWildcard: true,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 20,
+				ModifyIndex: 20,
+			},
+		},
+		{
+			Service:      structs.NewServiceID("db", nil),
+			Gateway:      structs.NewServiceID("other-gateway", nil),
+			GatewayKind:  structs.ServiceKindTerminatingGateway,
+			FromWildcard: true,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 20,
+				ModifyIndex: 20,
+			},
+		},
+	}
+	assert.Equal(t, expect, out)
+
+	// Delete a service specified directly.
+	assert.Nil(t, s.DeleteService(20, "foo", "db", nil))
+
+	// Only the watch for other-gateway should fire, since its association to db came from a wildcard
+	assert.False(t, watchFired(ws))
+	assert.True(t, watchFired(otherWS))
+
+	// db should remain in the original gateway
+	idx, out, err = s.GatewayServices(ws, "gateway", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(20))
+	assert.Len(t, out, 1)
+
+	expect = structs.GatewayServices{
+		{
+			Service:     structs.NewServiceID("db", nil),
+			Gateway:     structs.NewServiceID("gateway", nil),
+			GatewayKind: structs.ServiceKindTerminatingGateway,
+			CAFile:      "my_ca.pem",
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 19,
+				ModifyIndex: 19,
+			},
+		},
+	}
+	assert.Equal(t, expect, out)
+
+	// db should not have been deleted from the other gateway
+	idx, out, err = s.GatewayServices(ws, "other-gateway", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(20))
+	assert.Len(t, out, 1)
+
+	expect = structs.GatewayServices{
+		{
+			Service:      structs.NewServiceID("api", nil),
+			Gateway:      structs.NewServiceID("other-gateway", nil),
+			GatewayKind:  structs.ServiceKindTerminatingGateway,
+			FromWildcard: true,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 20,
+				ModifyIndex: 20,
+			},
+		},
+	}
+	assert.Equal(t, expect, out)
 }
 
 func TestStateStore_CheckIngressServiceNodes(t *testing.T) {

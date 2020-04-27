@@ -298,6 +298,78 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotIngress_SplitterWithResolverRedirectMultiDC,
 			setup:  nil,
 		},
+		{
+			name:   "terminating-gateway",
+			create: proxycfg.TestConfigSnapshotTerminatingGateway,
+			setup:  nil,
+		},
+		{
+			name:   "terminating-gateway-no-services",
+			create: proxycfg.TestConfigSnapshotTerminatingGatewayNoServices,
+			setup:  nil,
+		},
+		{
+			name:   "terminating-gateway-custom-and-tagged-addresses",
+			create: proxycfg.TestConfigSnapshotTerminatingGateway,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Config = map[string]interface{}{
+					"envoy_gateway_no_default_bind":       true,
+					"envoy_gateway_bind_tagged_addresses": true,
+					"envoy_gateway_bind_addresses": map[string]structs.ServiceAddress{
+						"foo": {
+							Address: "198.17.2.3",
+							Port:    8080,
+						},
+						// This bind address should not get a listener due to deduplication
+						"duplicate-of-tagged-wan-addr": {
+							Address: "198.18.0.1",
+							Port:    443,
+						},
+					},
+				}
+			},
+		},
+		{
+			name:   "terminating-gateway-service-subsets",
+			create: proxycfg.TestConfigSnapshotTerminatingGateway,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceID]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceID("web", nil): {
+						Kind: structs.ServiceResolver,
+						Name: "web",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"v1": {
+								Filter: "Service.Meta.version == 1",
+							},
+							"v2": {
+								Filter:      "Service.Meta.version == 2",
+								OnlyPassing: true,
+							},
+						},
+					},
+					structs.NewServiceID("web", nil): {
+						Kind: structs.ServiceResolver,
+						Name: "web",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"v1": {
+								Filter: "Service.Meta.version == 1",
+							},
+							"v2": {
+								Filter:      "Service.Meta.version == 2",
+								OnlyPassing: true,
+							},
+						},
+					},
+				}
+			},
+		},
+		{
+			name:   "terminating-gateway-no-api-cert",
+			create: proxycfg.TestConfigSnapshotTerminatingGateway,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.TerminatingGateway.ServiceLeaves[structs.NewServiceID("api", nil)] = nil
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -326,6 +398,19 @@ func TestListenersFromSnapshot(t *testing.T) {
 			sort.Slice(listeners, func(i, j int) bool {
 				return listeners[i].(*envoy.Listener).Name < listeners[j].(*envoy.Listener).Name
 			})
+
+			// For terminating gateways we create filter chain matches for services/subsets from the ServiceGroups map
+			if snap.Kind == structs.ServiceKindTerminatingGateway {
+				for i := 0; i < len(listeners); i++ {
+					l := listeners[i].(*envoy.Listener)
+
+					// Sort chains by the matched name with the exception of the last one
+					// The last chain is a fallback and does not have a FilterChainMatch
+					sort.Slice(l.FilterChains[:len(l.FilterChains)-1], func(i, j int) bool {
+						return l.FilterChains[i].FilterChainMatch.ServerNames[0] < l.FilterChains[j].FilterChainMatch.ServerNames[0]
+					})
+				}
+			}
 
 			require.NoError(err)
 			r, err := createResponse(ListenerType, "00000001", "00000001", listeners)

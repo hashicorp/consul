@@ -776,12 +776,13 @@ func TestInternal_TerminatingGatewayServices(t *testing.T) {
 				KeyFile:     "",
 			},
 			{
-				Service:     structs.NewServiceID("redis", nil),
-				Gateway:     structs.NewServiceID("gateway", nil),
-				GatewayKind: structs.ServiceKindTerminatingGateway,
-				CAFile:      "ca.crt",
-				CertFile:    "client.crt",
-				KeyFile:     "client.key",
+				Service:      structs.NewServiceID("redis", nil),
+				Gateway:      structs.NewServiceID("gateway", nil),
+				GatewayKind:  structs.ServiceKindTerminatingGateway,
+				CAFile:       "ca.crt",
+				CertFile:     "client.crt",
+				KeyFile:      "client.key",
+				FromWildcard: true,
 			},
 		}
 

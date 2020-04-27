@@ -3,7 +3,9 @@ package proxycfg
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"path"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -1446,6 +1448,69 @@ func TestConfigSnapshotExposeConfig(t testing.T) *ConfigSnapshot {
 	}
 }
 
+func TestConfigSnapshotTerminatingGateway(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotTerminatingGateway(t, true)
+}
+
+func TestConfigSnapshotTerminatingGatewayNoServices(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotTerminatingGateway(t, false)
+}
+
+func testConfigSnapshotTerminatingGateway(t testing.T, populateServices bool) *ConfigSnapshot {
+	roots, _ := TestCerts(t)
+
+	snap := &ConfigSnapshot{
+		Kind:    structs.ServiceKindTerminatingGateway,
+		Service: "terminating-gateway",
+		ProxyID: structs.NewServiceID("terminating-gateway", nil),
+		Address: "1.2.3.4",
+		TaggedAddresses: map[string]structs.ServiceAddress{
+			structs.TaggedAddressWAN: structs.ServiceAddress{
+				Address: "198.18.0.1",
+				Port:    443,
+			},
+		},
+		Port:       8443,
+		Roots:      roots,
+		Datacenter: "dc1",
+	}
+	if populateServices {
+		web := structs.NewServiceID("web", nil)
+		webNodes := TestUpstreamNodes(t)
+		webNodes[0].Service.Meta = map[string]string{
+			"version": "1",
+		}
+		webNodes[1].Service.Meta = map[string]string{
+			"version": "2",
+		}
+
+		api := structs.NewServiceID("api", nil)
+		apiNodes := TestUpstreamNodes(t)
+		for i := 0; i < len(apiNodes); i++ {
+			apiNodes[i].Service.Service = "api"
+			apiNodes[i].Service.Port = 8081
+		}
+
+		snap.TerminatingGateway = configSnapshotTerminatingGateway{
+			ServiceGroups: map[structs.ServiceID]structs.CheckServiceNodes{
+				web: webNodes,
+				api: apiNodes,
+			},
+		}
+		snap.TerminatingGateway.ServiceLeaves = map[structs.ServiceID]*structs.IssuedCert{
+			structs.NewServiceID("web", nil): {
+				CertPEM:       golden(t, "test-leaf-cert"),
+				PrivateKeyPEM: golden(t, "test-leaf-key"),
+			},
+			structs.NewServiceID("api", nil): {
+				CertPEM:       golden(t, "alt-test-leaf-cert"),
+				PrivateKeyPEM: golden(t, "alt-test-leaf-key"),
+			},
+		}
+	}
+	return snap
+}
+
 func TestConfigSnapshotGRPCExposeHTTP1(t testing.T) *ConfigSnapshot {
 	return &ConfigSnapshot{
 		Kind:    structs.ServiceKindConnectProxy,
@@ -1571,4 +1636,15 @@ func (ct *ControllableCacheType) RegisterOptions() cache.RegisterOptions {
 		SupportsBlocking: ct.blocking,
 		RefreshTimeout:   10 * time.Minute,
 	}
+}
+
+// golden is used to read golden files stores in consul/agent/xds/testdata
+func golden(t testing.T, name string) string {
+	t.Helper()
+
+	golden := filepath.Join("../xds/testdata", name+".golden")
+	expected, err := ioutil.ReadFile(golden)
+	require.NoError(t, err)
+
+	return string(expected)
 }
