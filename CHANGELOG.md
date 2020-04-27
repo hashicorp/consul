@@ -21,6 +21,7 @@ BUGFIXES:
 * namespace: **(Consul Enterprise only)** Fixed several bugs where results from multiple namespaces would be returned when only a single namespace was being queried when the token making the request had permissions to see all of them.
 * sdk: Fix race condition in freeport [[GH-7567](https://github.com/hashicorp/consul/issues/7567)]
 * server: strip local ACL tokens from RPCs during forwarding if crossing datacenters [[GH-7419](https://github.com/hashicorp/consul/issues/7419)]
+* snapshot agent **(Consul Enterprise only)**: Ensure snapshots persisted with the local backend are fsync safe and also only writes to the requested file on success.
 * snapshot agent **(Consul Enterprise only)**: Verify integrity of snapshots locally before storing with the configured backend.
 * xds: Fix flapping of mesh gateway connect-service watches [[GH-7575](https://github.com/hashicorp/consul/pull/7575)]
 
