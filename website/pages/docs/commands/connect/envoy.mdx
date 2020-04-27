@@ -103,7 +103,7 @@ proxy configuration needed.
 #### Envoy Gateway Options
 
 - `-gateway` - Flag to indicate that Envoy should be configured as a Gateway.
-  Must be one of: `terminating` or `mesh`.
+  Must be one of: `terminating`, `ingress`, or `mesh`.
   If multiple gateways are managed by the same local agent then
   `-proxy-id` should be used as well to specify the instance this represents.
 
@@ -195,6 +195,15 @@ The terminating gateway Envoy process can be started with.
 ```shell
 $ consul connect envoy -gateway=terminating -register \
   -address '{{ GetInterfaceIP "eth0" }}:8443'
+```
+
+### Ingress Gateways
+
+The terminating gateway Envoy process can be started with.
+
+```shell
+$ consul connect envoy -gateway=ingress -register \
+  -address '{{ GetInterfaceIP "eth0" }}:8888'
 ```
 
 ## Exec Security Details
