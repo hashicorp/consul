@@ -14,3 +14,19 @@ description: >-
 
 ## Prerequisites
 
+Ingress gateways also require that your Consul datacenters are configured correctly:
+
+- You'll need to use Consul version 1.8.0.
+- Consul [Connect](/docs/agent/options#connect) must be enabled in both datacenters.
+- [gRPC](/docs/agent/options#grpc_port) must be enabled.
+- [Centralized configuration](/docs/agent/options#enable_central_service_config) must be enabled.
+
+Currently, Envoy is the only proxy with ingress gateway capabilities in Consul.
+
+## Running and Using an Ingress Gateway
+
+The steps that need to occur for an Ingress Gateway to proxy traffic to services in the Consul mesh are as follows:
+
+1. Run an envoy proxy using the [envoy subcommand](/docs/commands/connect/envoy), specifying the `ingress` gateway type.
+2. Create an `ingress-gateway` [configuration entry](/docs/agent/config-entries/ingress-gateway) that defines a set of listeners that expose the desired backing services.
+3. Ensure that [intentions](/docs/connect/intentions) are setup between the ingress gateway service and the backing services.
