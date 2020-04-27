@@ -360,8 +360,7 @@ func (s *Server) makeUpstreamClusterForPreparedQuery(upstream structs.Upstream, 
 			CircuitBreakers: &envoycluster.CircuitBreakers{
 				Thresholds: makeThresholdsIfNeeded(cfg.Limits),
 			},
-			// Having an empty config enables outlier detection with default config.
-			OutlierDetection: &envoycluster.OutlierDetection{},
+			OutlierDetection: cfg.PassiveHealthCheck.AsOutlierDetection(),
 		}
 		if cfg.Protocol == "http2" || cfg.Protocol == "grpc" {
 			c.Http2ProtocolOptions = &envoycore.Http2ProtocolOptions{}
@@ -462,8 +461,7 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 			CircuitBreakers: &envoycluster.CircuitBreakers{
 				Thresholds: makeThresholdsIfNeeded(cfg.Limits),
 			},
-			// Having an empty config enables outlier detection with default config.
-			OutlierDetection: &envoycluster.OutlierDetection{},
+			OutlierDetection: cfg.PassiveHealthCheck.AsOutlierDetection(),
 		}
 
 		proto := cfg.Protocol

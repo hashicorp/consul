@@ -1,10 +1,13 @@
 package xds
 
 import (
-	"github.com/hashicorp/consul/lib"
 	"strings"
+	"time"
 
+	envoycluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
+	"github.com/gogo/protobuf/types"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -160,6 +163,32 @@ type UpstreamConfig struct {
 	// Limits are the set of limits that are applied to the proxy for a specific upstream of a
 	// service instance.
 	Limits UpstreamLimits `mapstructure:"limits"`
+
+	// PassiveHealthCheck configuration
+	PassiveHealthCheck PassiveHealthCheck `mapstructure:"passive_health_check"`
+}
+
+type PassiveHealthCheck struct {
+	// Interval between health check analysis sweeps. Each sweep may remove
+	// hosts or return hosts to the pool.
+	Interval time.Duration
+	// MaxFailures is the count of consecutive failures that results in a host
+	// being removed from the pool.
+	MaxFailures uint32 `mapstructure:"max_failures"`
+}
+
+// Return an envoy.OutlierDetection populated by the values from this struct.
+// If all values are zero a default empty OutlierDetection will be returned to
+// enable outlier detection with default values.
+func (p PassiveHealthCheck) AsOutlierDetection() *envoycluster.OutlierDetection {
+	od := &envoycluster.OutlierDetection{}
+	if p.Interval != 0 {
+		od.Interval = types.DurationProto(p.Interval)
+	}
+	if p.MaxFailures != 0 {
+		od.Consecutive_5Xx = &types.UInt32Value{Value: p.MaxFailures}
+	}
+	return od
 }
 
 func ParseUpstreamConfigNoDefaults(m map[string]interface{}) (UpstreamConfig, error) {

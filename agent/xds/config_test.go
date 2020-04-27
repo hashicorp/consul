@@ -1,9 +1,10 @@
 package xds
 
 import (
-	"github.com/hashicorp/consul/agent/structs"
 	"testing"
+	"time"
 
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/require"
 )
 
@@ -241,6 +242,23 @@ func TestParseUpstreamConfig(t *testing.T) {
 					MaxConnections:        intPointer(0),
 					MaxPendingRequests:    intPointer(0),
 					MaxConcurrentRequests: intPointer(0),
+				},
+			},
+		},
+		{
+			name: "passive health check map",
+			input: map[string]interface{}{
+				"passive_health_check": map[string]interface{}{
+					"interval":     22 * time.Second,
+					"max_failures": 7,
+				},
+			},
+			want: UpstreamConfig{
+				ConnectTimeoutMs: 5000,
+				Protocol:         "tcp",
+				PassiveHealthCheck: PassiveHealthCheck{
+					Interval:    22 * time.Second,
+					MaxFailures: 7,
 				},
 			},
 		},

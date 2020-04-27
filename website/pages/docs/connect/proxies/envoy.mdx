@@ -277,6 +277,17 @@ definition](/docs/connect/registration/service-registration) or
     since HTTP/2 has many requests per connection. For this configuration to be
     respected, a L7 protocol must be defined in the `protocol` field.
 
+- `passive_health_check` - Passive health checks are used to remove hosts from
+  the upstream cluster which are unreachable or are returning errors.
+
+  - `interval` - The time between checks. Each check will cause hosts which
+    have exceeded `max_failures` to be removed from the load balancer, and
+    any hosts which have passed their ejection time to be returned to the
+    load balancer.
+  - `max_failures` - The number of consecutive failures which cause a host to be
+    removed from the load balancer.
+
+
 ### Gateway Options
 
 These fields may also be overridden explicitly in the [proxy service
