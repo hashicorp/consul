@@ -50,3 +50,10 @@ load helpers
   [ "$(echo $CLUSTER_CONFIG | jq --raw-output '.outlier_detection.consecutive_5xx')" = "4" ]
   [ "$(echo $CLUSTER_CONFIG | jq --raw-output '.outlier_detection.interval')" = "22s" ]
 }
+
+@test "s1 proxy should have been configured with load balancer ring_hash" {
+  CLUSTER_CONFIG=$(get_envoy_cluster_config localhost:19000 s2.default.primary)
+  echo $CLUSTER_CONFIG
+
+  [ "$(echo $CLUSTER_CONFIG | jq --raw-output '.lb_policy')" = "RANDOM" ]
+}

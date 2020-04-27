@@ -170,7 +170,7 @@ func (s *Server) StreamAggregatedResources(stream ADSStream) error {
 
 	err := s.process(stream, reqCh)
 	if err != nil {
-		s.Logger.Debug("Error handling ADS stream", "error", err)
+		s.Logger.Error("Error handling ADS stream", "error", err)
 	}
 
 	// prevents writing to a closed channel if send failed on blocked recv

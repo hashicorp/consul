@@ -18,6 +18,9 @@ services {
                 interval = "22s"
                 max_failures = 4
               }
+              load_balancer {
+                policy = "random"
+              }
             }
           }
         ]

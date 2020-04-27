@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/require"
 )
@@ -272,6 +273,37 @@ func TestParseUpstreamConfig(t *testing.T) {
 	}
 }
 
+type raw map[string]interface{}
+
+func TestParseUpstreamConfigNoDefaults_LoadBalancer(t *testing.T) {
+	tests := []struct {
+		name  string
+		input map[string]interface{}
+		want  UpstreamConfig
+	}{
+		{
+			name: "random",
+			input: raw{
+				"load_balancer": raw{
+					"policy": "random",
+				},
+			},
+			want: UpstreamConfig{
+				LoadBalancer: LoadBalancer{
+					Policy: "random",
+				},
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := ParseUpstreamConfigNoDefaults(tc.input)
+			require.NoError(t, err)
+			require.Equal(t, tc.want, got)
+		})
+	}
+}
+
 func TestParseGatewayConfig(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -366,4 +398,39 @@ func TestParseGatewayConfig(t *testing.T) {
 
 func intPointer(i int) *int {
 	return &i
+}
+
+func TestLoadBalancer_ApplyToCluster(t *testing.T) {
+	var tests = []struct {
+		name     string
+		lb       LoadBalancer
+		expected envoy.Cluster
+	}{
+		{
+			name: "random",
+			lb: LoadBalancer{
+				Policy: "random",
+			},
+			expected: envoy.Cluster{LbPolicy: envoy.Cluster_RANDOM},
+		},
+		{
+			name: "least_request",
+			lb: LoadBalancer{
+				Policy: "least_request",
+			},
+			expected: envoy.Cluster{
+				LbPolicy: envoy.Cluster_LEAST_REQUEST,
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			c := &envoy.Cluster{}
+			err := tc.lb.ApplyToCluster(c)
+			require.NoError(t, err)
+
+			require.Equal(t, &tc.expected, c)
+		})
+	}
 }

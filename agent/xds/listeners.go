@@ -1052,12 +1052,13 @@ func makeFilter(name string, cfg proto.Message) (*envoylistener.Filter, error) {
 }
 
 func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *structs.IssuedCert) *envoyauth.CommonTlsContext {
-	// Concatenate all the root PEMs into one.
-	// TODO(banks): verify this actually works with Envoy (docs are not clear).
-	rootPEMS := ""
 	if cfgSnap.Roots == nil {
 		return nil
 	}
+
+	rootPEMS := ""
+	// Concatenate all the root PEMs into one.
+	// TODO(banks): verify this actually works with Envoy (docs are not clear).
 	for _, root := range cfgSnap.Roots.Roots {
 		rootPEMS += root.RootCert
 	}
