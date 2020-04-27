@@ -22,6 +22,7 @@ func noopWatch(params map[string]interface{}) (WatcherFunc, error) {
 
 func mustParse(t *testing.T, q string) *Plan {
 	params := makeParams(t, q)
+	params["ConsulReloadTriggersWatch"] = true
 	plan, err := Parse(params)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -42,7 +43,7 @@ func TestRun_Stop(t *testing.T) {
 		if val != expect {
 			t.Fatalf("Bad: %d %d", expect, val)
 		}
-		if expect == 2 {
+		if expect == 1 {
 			close(doneCh)
 		}
 		expect++
@@ -78,7 +79,7 @@ func TestRun_Stop(t *testing.T) {
 
 func TestRun_Stop_Hybrid(t *testing.T) {
 	t.Parallel()
-	plan := mustParse(t, `{"type":"noop", "ConsulReloadTriggersWatch":true}`)
+	plan := mustParse(t, `{"type":"noop"}`)
 
 	var expect uint64 = 1
 	doneCh := make(chan struct{})
@@ -94,7 +95,7 @@ func TestRun_Stop_Hybrid(t *testing.T) {
 		if val != expect {
 			t.Fatalf("Bad: %d %d", expect, val)
 		}
-		if expect == 2 {
+		if expect == 1 {
 			close(doneCh)
 		}
 		expect++
