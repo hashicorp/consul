@@ -3600,6 +3600,12 @@ func TestStateStore_CheckConnectServiceNodes_Gateways(t *testing.T) {
 	}, nil))
 	assert.True(watchFired(ws))
 
+	ws = memdb.NewWatchSet()
+	idx, nodes, err = s.CheckConnectServiceNodes(ws, "db", nil)
+	assert.Nil(err)
+	assert.Equal(idx, uint64(18))
+	assert.Len(nodes, 0)
+
 	// Watch should fire when a gateway is added
 	assert.Nil(s.EnsureService(19, "bar", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway", Service: "gateway", Port: 443}))
 	assert.True(watchFired(ws))

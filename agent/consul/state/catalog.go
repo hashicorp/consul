@@ -2100,7 +2100,10 @@ func (s *Store) checkServiceNodesTxn(tx *memdb.Txn, ws memdb.WatchSet, serviceNa
 		// use target serviceName here but it actually doesn't matter. No chan will
 		// be returned as we can't use the optimization in this case (and don't need
 		// to as there is only one chan to watch anyway).
-		idx, _ = s.maxIndexAndWatchChForService(tx, serviceName, false, true, entMeta)
+		svcIdx, _ := s.maxIndexAndWatchChForService(tx, serviceName, false, true, entMeta)
+		if idx < svcIdx {
+			idx = svcIdx
+		}
 	}
 
 	// Create a nil watchset to pass below, we'll only pass the real one if we
@@ -2695,6 +2698,7 @@ func (s *Store) serviceGatewayNodes(tx *memdb.Txn, ws memdb.WatchSet, service st
 		if err != nil {
 			return 0, nil, nil, fmt.Errorf("failed service lookup: %s", err)
 		}
+		watchChans = append(watchChans, gwServices.WatchCh())
 
 		var exists bool
 		for svc := gwServices.Next(); svc != nil; svc = gwServices.Next() {
@@ -2705,13 +2709,16 @@ func (s *Store) serviceGatewayNodes(tx *memdb.Txn, ws memdb.WatchSet, service st
 			exists = true
 		}
 
+		// Ensure that blocking queries wake up if the gateway-service mapping exists, but the gateway does not exist yet
+		if !exists {
+			ws.Add(gwServices.WatchCh())
+		}
+
 		// This prevents the index from sliding back in case all instances of the service are deregistered
 		svcIdx := s.maxIndexForService(tx, mapping.Gateway.ID, exists, false, &mapping.Service.EnterpriseMeta)
 		if maxIdx < svcIdx {
 			maxIdx = svcIdx
 		}
-
-		watchChans = append(watchChans, gwServices.WatchCh())
 	}
 	return maxIdx, ret, watchChans, nil
 }
