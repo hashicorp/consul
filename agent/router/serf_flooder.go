@@ -18,21 +18,21 @@ type FloodAddrFn func(*metadata.Server) (string, bool)
 // will return false if it doesn't have one.
 type FloodPortFn func(*metadata.Server) (int, bool)
 
-// FloodJoins attempts to make sure all Consul servers in the local Serf
-// instance are joined in the global Serf instance. It assumes names in the
-// local area are of the form <node> and those in the global area are of the
+// FloodJoins attempts to make sure all Consul servers in the src Serf
+// instance are joined in the dst Serf instance. It assumes names in the
+// src area are of the form <node> and those in the dst area are of the
 // form <node>.<dc> as is done for WAN and general network areas in Consul
 // Enterprise.
 func FloodJoins(logger hclog.Logger, addrFn FloodAddrFn, portFn FloodPortFn,
-	localDatacenter string, localSerf *serf.Serf, globalSerf *serf.Serf) {
+	localDatacenter string, srcSerf *serf.Serf, dstSerf *serf.Serf) {
 
-	// Names in the global Serf have the datacenter suffixed.
+	// Names in the dst Serf have the datacenter suffixed.
 	suffix := fmt.Sprintf(".%s", localDatacenter)
 
-	// Index the global side so we can do one pass through the local side
+	// Index the dst side so we can do one pass through the src side
 	// with cheap lookups.
 	index := make(map[string]*metadata.Server)
-	for _, m := range globalSerf.Members() {
+	for _, m := range dstSerf.Members() {
 		ok, server := metadata.IsConsulServer(m)
 		if !ok {
 			continue
@@ -42,12 +42,12 @@ func FloodJoins(logger hclog.Logger, addrFn FloodAddrFn, portFn FloodPortFn,
 			continue
 		}
 
-		localName := strings.TrimSuffix(server.Name, suffix)
-		index[localName] = server
+		srcName := strings.TrimSuffix(server.Name, suffix)
+		index[srcName] = server
 	}
 
-	// Now run through the local side and look for joins.
-	for _, m := range localSerf.Members() {
+	// Now run through the src side and look for joins.
+	for _, m := range srcSerf.Members() {
 		if m.Status != serf.StatusAlive {
 			continue
 		}
@@ -61,7 +61,11 @@ func FloodJoins(logger hclog.Logger, addrFn FloodAddrFn, portFn FloodPortFn,
 			continue
 		}
 
-		// We can't use the port number from the local Serf, so we just
+		// TODO make RPC
+
+		// TODO refactor into one function:
+
+		// We can't use the port number from the src Serf, so we just
 		// get the host part.
 		addr, _, err := net.SplitHostPort(server.Addr.String())
 		if err != nil {
@@ -83,7 +87,7 @@ func FloodJoins(logger hclog.Logger, addrFn FloodAddrFn, portFn FloodPortFn,
 			addr = net.JoinHostPort(addr, fmt.Sprintf("%d", port))
 		} else {
 			// If we have an IPv6 address, we should add brackets,
-			// single globalSerf.Join expects that.
+			// single dstSerf.Join expects that.
 			if ip := net.ParseIP(addr); ip != nil {
 				if ip.To4() == nil {
 					addr = fmt.Sprintf("[%s]", addr)
@@ -93,19 +97,21 @@ func FloodJoins(logger hclog.Logger, addrFn FloodAddrFn, portFn FloodPortFn,
 			}
 		}
 
-		globalServerName := fmt.Sprintf("%s.%s", server.Name, server.Datacenter)
+		// end refactor
+
+		dstServerName := fmt.Sprintf("%s.%s", server.Name, server.Datacenter)
 
 		// Do the join!
-		n, err := globalSerf.Join([]string{globalServerName + "/" + addr}, true)
+		n, err := dstSerf.Join([]string{dstServerName + "/" + addr}, true)
 		if err != nil {
 			logger.Debug("Failed to flood-join server at address",
-				"server", globalServerName,
+				"server", dstServerName,
 				"address", addr,
 				"error", err,
 			)
 		} else if n > 0 {
 			logger.Debug("Successfully performed flood-join for server at address",
-				"server", globalServerName,
+				"server", dstServerName,
 				"address", addr,
 			)
 		}
