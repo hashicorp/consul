@@ -1037,11 +1037,15 @@ func (s *Store) serviceNodes(ws memdb.WatchSet, serviceName string, connect bool
 	// Gateways are tracked in a separate table, and we append them to the result set.
 	// We append rather than replace since it allows users to migrate a service
 	// to the mesh with a mix of sidecars and gateways until all its instances have a sidecar.
+	var idx uint64
 	if connect {
 		// Look up gateway nodes associated with the service
-		_, nodes, chs, err := s.serviceGatewayNodes(tx, ws, serviceName, structs.ServiceKindTerminatingGateway, entMeta)
+		gwIdx, nodes, chs, err := s.serviceGatewayNodes(tx, ws, serviceName, structs.ServiceKindTerminatingGateway, entMeta)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed gateway nodes lookup: %v", err)
+		}
+		if idx < gwIdx {
+			idx = gwIdx
 		}
 
 		for _, ch := range chs {
@@ -1059,7 +1063,10 @@ func (s *Store) serviceNodes(ws memdb.WatchSet, serviceName string, connect bool
 	}
 
 	// Get the table index.
-	idx := s.maxIndexForService(tx, serviceName, len(results) > 0, false, entMeta)
+	svcIdx := s.maxIndexForService(tx, serviceName, len(results) > 0, false, entMeta)
+	if idx < svcIdx {
+		idx = svcIdx
+	}
 
 	return idx, results, nil
 }
@@ -2035,11 +2042,15 @@ func (s *Store) checkServiceNodesTxn(tx *memdb.Txn, ws memdb.WatchSet, serviceNa
 	// Gateways are tracked in a separate table, and we append them to the result set.
 	// We append rather than replace since it allows users to migrate a service
 	// to the mesh with a mix of sidecars and gateways until all its instances have a sidecar.
+	var idx uint64
 	if connect {
 		// Look up gateway nodes associated with the service
-		_, nodes, _, err := s.serviceGatewayNodes(tx, ws, serviceName, structs.ServiceKindTerminatingGateway, entMeta)
+		gwIdx, nodes, _, err := s.serviceGatewayNodes(tx, ws, serviceName, structs.ServiceKindTerminatingGateway, entMeta)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed gateway nodes lookup: %v", err)
+		}
+		if idx < gwIdx {
+			idx = gwIdx
 		}
 		for i := 0; i < len(nodes); i++ {
 			results = append(results, nodes[i])
@@ -2056,7 +2067,6 @@ func (s *Store) checkServiceNodesTxn(tx *memdb.Txn, ws memdb.WatchSet, serviceNa
 	// (~682 service instances). See
 	// https://github.com/hashicorp/consul/issues/4984
 	watchOptimized := false
-	idx := uint64(0)
 	if len(serviceNames) > 0 {
 		// Assume optimization will work since it really should at this point. For
 		// safety we'll sanity check this below for each service name.
@@ -2527,6 +2537,7 @@ func (s *Store) terminatingConfigGatewayServices(tx *memdb.Txn, gateway structs.
 			KeyFile:     svc.KeyFile,
 			CertFile:    svc.CertFile,
 			CAFile:      svc.CAFile,
+			SNI:         svc.SNI,
 		}
 
 		gatewayServices = append(gatewayServices, mapping)
@@ -2684,10 +2695,22 @@ func (s *Store) serviceGatewayNodes(tx *memdb.Txn, ws memdb.WatchSet, service st
 		if err != nil {
 			return 0, nil, nil, fmt.Errorf("failed service lookup: %s", err)
 		}
+
+		var exists bool
 		for svc := gwServices.Next(); svc != nil; svc = gwServices.Next() {
 			sn := svc.(*structs.ServiceNode)
 			ret = append(ret, sn)
+
+			// Tracking existence to know whether we should check extinction index for service
+			exists = true
 		}
+
+		// This prevents the index from sliding back in case all instances of the service are deregistered
+		svcIdx := s.maxIndexForService(tx, mapping.Gateway.ID, exists, false, &mapping.Service.EnterpriseMeta)
+		if maxIdx < svcIdx {
+			maxIdx = svcIdx
+		}
+
 		watchChans = append(watchChans, gwServices.WatchCh())
 	}
 	return maxIdx, ret, watchChans, nil

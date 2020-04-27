@@ -129,6 +129,9 @@ type LinkedService struct {
 	// KeyFile is the optional path to a private key to use for TLS connections
 	// from the gateway to the linked service
 	KeyFile string `json:",omitempty"`
+
+	// SNI is the optional name to specify during the TLS handshake with a linked service
+	SNI string `json:",omitempty"`
 }
 
 func (g *TerminatingGatewayConfigEntry) GetKind() string {

@@ -34,6 +34,7 @@ func TestGatewayServices(t *testing.T) {
 					CAFile:      "api/ca.crt",
 					CertFile:    "api/client.crt",
 					KeyFile:     "api/client.key",
+					SNI:         "my-domain",
 				},
 			}
 			reply := args.Get(2).(*structs.IndexedGatewayServices)

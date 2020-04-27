@@ -200,6 +200,9 @@ type LinkedService struct {
 	// from the gateway to the linked service
 	KeyFile string `json:",omitempty"`
 
+	// SNI is the optional name to specify during the TLS handshake with a linked service
+	SNI string `json:",omitempty"`
+
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
 
@@ -250,8 +253,9 @@ func (e *TerminatingGatewayConfigEntry) Validate() error {
 		}
 		seen[cid] = true
 
-		// If any TLS config flag was specified, all must be
-		if (svc.CAFile != "" || svc.CertFile != "" || svc.KeyFile != "") &&
+		// If either client cert config file was specified then the CA file, client cert, and key file must be specified
+		// Specifying only a CAFile is allowed for one-way TLS
+		if (svc.CertFile != "" || svc.KeyFile != "") &&
 			!(svc.CAFile != "" && svc.CertFile != "" && svc.KeyFile != "") {
 
 			return fmt.Errorf("Service %q must have a CertFile, CAFile, and KeyFile specified for TLS origination", svc.Name)
@@ -299,6 +303,7 @@ type GatewayService struct {
 	CAFile       string
 	CertFile     string
 	KeyFile      string
+	SNI          string
 	FromWildcard bool
 	RaftIndex
 }
@@ -312,18 +317,22 @@ func (g *GatewayService) IsSame(o *GatewayService) bool {
 		g.Port == o.Port &&
 		g.CAFile == o.CAFile &&
 		g.CertFile == o.CertFile &&
-		g.KeyFile == o.KeyFile
+		g.KeyFile == o.KeyFile &&
+		g.SNI == o.SNI &&
+		g.FromWildcard == o.FromWildcard
 }
 
 func (g *GatewayService) Clone() *GatewayService {
 	return &GatewayService{
-		Gateway:     g.Gateway,
-		Service:     g.Service,
-		GatewayKind: g.GatewayKind,
-		Port:        g.Port,
-		CAFile:      g.CAFile,
-		CertFile:    g.CertFile,
-		KeyFile:     g.KeyFile,
-		RaftIndex:   g.RaftIndex,
+		Gateway:      g.Gateway,
+		Service:      g.Service,
+		GatewayKind:  g.GatewayKind,
+		Port:         g.Port,
+		CAFile:       g.CAFile,
+		CertFile:     g.CertFile,
+		KeyFile:      g.KeyFile,
+		SNI:          g.SNI,
+		FromWildcard: g.FromWildcard,
+		RaftIndex:    g.RaftIndex,
 	}
 }

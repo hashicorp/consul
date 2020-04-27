@@ -185,6 +185,7 @@ func TestAPI_ConfigEntries_TerminatingGateway(t *testing.T) {
 			CAFile:   "/etc/web/ca.crt",
 			CertFile: "/etc/web/client.crt",
 			KeyFile:  "/etc/web/tls.key",
+			SNI:      "mydomain",
 		},
 	}
 
@@ -212,6 +213,7 @@ func TestAPI_ConfigEntries_TerminatingGateway(t *testing.T) {
 			CAFile:   "/etc/certs/ca.crt",
 			CertFile: "/etc/certs/client.crt",
 			KeyFile:  "/etc/certs/tls.key",
+			SNI:      "mydomain",
 		},
 	}
 	_, wm, err = configEntries.Set(terminating2, nil)

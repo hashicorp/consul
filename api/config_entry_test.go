@@ -686,7 +686,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 						"Name": "web",
 						"CAFile": "/etc/ca.pem",
 						"CertFile": "/etc/cert.pem",
-						"KeyFile": "/etc/tls.key"
+						"KeyFile": "/etc/tls.key",
+						"SNI": "mydomain"
 					},
 					{
 						"Name": "api"
@@ -707,6 +708,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 						CAFile:    "/etc/ca.pem",
 						CertFile:  "/etc/cert.pem",
 						KeyFile:   "/etc/tls.key",
+						SNI:       "mydomain",
 					},
 					{
 						Name: "api",

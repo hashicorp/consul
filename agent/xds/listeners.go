@@ -367,7 +367,7 @@ func makeListenerFromUserConfig(configJSON string) (*envoy.Listener, error) {
 // specify custom listener params in config but still get our certs delivered
 // dynamically and intentions enforced without coming up with some complicated
 // templating/merging solution.
-func injectConnectFilters(cfgSnap *proxycfg.ConfigSnapshot, token string, listener *envoy.Listener) error {
+func injectConnectFilters(cfgSnap *proxycfg.ConfigSnapshot, token string, listener *envoy.Listener, setTLS bool) error {
 	authFilter, err := makeExtAuthFilter(token)
 	if err != nil {
 		return err
@@ -378,7 +378,7 @@ func injectConnectFilters(cfgSnap *proxycfg.ConfigSnapshot, token string, listen
 			append([]envoylistener.Filter{authFilter}, listener.FilterChains[idx].Filters...)
 
 		listener.FilterChains[idx].TlsContext = &envoyauth.DownstreamTlsContext{
-			CommonTlsContext:         makeCommonTLSContext(cfgSnap, cfgSnap.Leaf()),
+			CommonTlsContext:         makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf()),
 			RequireClientCertificate: &types.BoolValue{Value: true},
 		}
 	}
@@ -439,7 +439,7 @@ func (s *Server) makePublicListener(cfgSnap *proxycfg.ConfigSnapshot, token stri
 		}
 	}
 
-	err = injectConnectFilters(cfgSnap, token, l)
+	err = injectConnectFilters(cfgSnap, token, l, true)
 	return l, err
 }
 
@@ -642,7 +642,7 @@ func (s *Server) sniFilterChainTerminatingGateway(listener, cluster, token strin
 			tcpProxy,
 		},
 		TlsContext: &envoyauth.DownstreamTlsContext{
-			CommonTlsContext:         makeCommonTLSContext(cfgSnap, cfgSnap.TerminatingGateway.ServiceLeaves[service]),
+			CommonTlsContext:         makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.TerminatingGateway.ServiceLeaves[service]),
 			RequireClientCertificate: &types.BoolValue{Value: true},
 		},
 	}, err
@@ -1011,7 +1011,7 @@ func makeFilter(name string, cfg proto.Message) (envoylistener.Filter, error) {
 	}, nil
 }
 
-func makeCommonTLSContext(cfgSnap *proxycfg.ConfigSnapshot, leaf *structs.IssuedCert) *envoyauth.CommonTlsContext {
+func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *structs.IssuedCert) *envoyauth.CommonTlsContext {
 	// Concatenate all the root PEMs into one.
 	// TODO(banks): verify this actually works with Envoy (docs are not clear).
 	rootPEMS := ""
@@ -1049,4 +1049,43 @@ func makeCommonTLSContext(cfgSnap *proxycfg.ConfigSnapshot, leaf *structs.Issued
 			},
 		},
 	}
+}
+
+func makeCommonTLSContextFromFiles(caFile, certFile, keyFile string) *envoyauth.CommonTlsContext {
+	ctx := envoyauth.CommonTlsContext{
+		TlsParams: &envoyauth.TlsParameters{},
+	}
+
+	// Verify certificate of peer if caFile is specified
+	if caFile != "" {
+		ctx.ValidationContextType = &envoyauth.CommonTlsContext_ValidationContext{
+			ValidationContext: &envoyauth.CertificateValidationContext{
+				TrustedCa: &envoycore.DataSource{
+					Specifier: &envoycore.DataSource_Filename{
+						Filename: caFile,
+					},
+				},
+			},
+		}
+	}
+
+	// Present certificate for mTLS if cert and key files are specified
+	if certFile != "" && keyFile != "" {
+		ctx.TlsCertificates = []*envoyauth.TlsCertificate{
+			{
+				CertificateChain: &envoycore.DataSource{
+					Specifier: &envoycore.DataSource_Filename{
+						Filename: certFile,
+					},
+				},
+				PrivateKey: &envoycore.DataSource{
+					Specifier: &envoycore.DataSource_Filename{
+						Filename: keyFile,
+					},
+				},
+			},
+		}
+	}
+
+	return &ctx
 }

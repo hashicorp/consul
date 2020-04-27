@@ -1496,6 +1496,18 @@ func testConfigSnapshotTerminatingGateway(t testing.T, populateServices bool) *C
 				web: webNodes,
 				api: apiNodes,
 			},
+			GatewayServices: map[structs.ServiceID]structs.GatewayService{
+				web: {
+					Service: web,
+					CAFile:  "ca.cert.pem",
+				},
+				api: {
+					Service:  api,
+					CAFile:   "ca.cert.pem",
+					CertFile: "api.cert.pem",
+					KeyFile:  "api.key.pem",
+				},
+			},
 		}
 		snap.TerminatingGateway.ServiceLeaves = map[structs.ServiceID]*structs.IssuedCert{
 			structs.NewServiceID("web", nil): {

@@ -315,8 +315,8 @@ func TestTerminatingConfigEntry_Validate(t *testing.T) {
 				Name: "terminating-gw-west",
 				Services: []LinkedService{
 					{
-						Name:   "web",
-						CAFile: "ca.crt",
+						Name:     "web",
+						CertFile: "client.crt",
 					},
 				},
 			},
@@ -329,67 +329,8 @@ func TestTerminatingConfigEntry_Validate(t *testing.T) {
 				Name: "terminating-gw-west",
 				Services: []LinkedService{
 					{
-						Name:     "web",
-						CertFile: "client.crt",
-					},
-				},
-			},
-			expectErr: "must have a CertFile, CAFile, and KeyFile",
-		},
-		{
-			name: "not all TLS options provided-3",
-			entry: TerminatingGatewayConfigEntry{
-				Kind: "terminating-gateway",
-				Name: "terminating-gw-west",
-				Services: []LinkedService{
-					{
 						Name:    "web",
 						KeyFile: "tls.key",
-					},
-				},
-			},
-			expectErr: "must have a CertFile, CAFile, and KeyFile",
-		},
-		{
-			name: "not all TLS options provided-4",
-			entry: TerminatingGatewayConfigEntry{
-				Kind: "terminating-gateway",
-				Name: "terminating-gw-west",
-				Services: []LinkedService{
-					{
-						Name:    "web",
-						CAFile:  "ca.crt",
-						KeyFile: "tls.key",
-					},
-				},
-			},
-			expectErr: "must have a CertFile, CAFile, and KeyFile",
-		},
-		{
-			name: "not all TLS options provided-5",
-			entry: TerminatingGatewayConfigEntry{
-				Kind: "terminating-gateway",
-				Name: "terminating-gw-west",
-				Services: []LinkedService{
-					{
-						Name:     "web",
-						CAFile:   "ca.crt",
-						CertFile: "client.crt",
-					},
-				},
-			},
-			expectErr: "must have a CertFile, CAFile, and KeyFile",
-		},
-		{
-			name: "not all TLS options provided-6",
-			entry: TerminatingGatewayConfigEntry{
-				Kind: "terminating-gateway",
-				Name: "terminating-gw-west",
-				Services: []LinkedService{
-					{
-						Name:     "web",
-						KeyFile:  "tls.key",
-						CertFile: "client.crt",
 					},
 				},
 			},
@@ -406,6 +347,19 @@ func TestTerminatingConfigEntry_Validate(t *testing.T) {
 						CAFile:   "ca.crt",
 						CertFile: "client.crt",
 						KeyFile:  "tls.key",
+					},
+				},
+			},
+		},
+		{
+			name: "only providing ca file is allowed",
+			entry: TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Services: []LinkedService{
+					{
+						Name:   "web",
+						CAFile: "ca.crt",
 					},
 				},
 			},

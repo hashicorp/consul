@@ -543,6 +543,7 @@ func (s *state) initialConfigSnapshot() ConfigSnapshot {
 		snap.TerminatingGateway.ServiceLeaves = make(map[structs.ServiceID]*structs.IssuedCert)
 		snap.TerminatingGateway.ServiceGroups = make(map[structs.ServiceID]structs.CheckServiceNodes)
 		snap.TerminatingGateway.ServiceResolvers = make(map[structs.ServiceID]*structs.ServiceResolverConfigEntry)
+		snap.TerminatingGateway.GatewayServices = make(map[structs.ServiceID]structs.GatewayService)
 	case structs.ServiceKindMeshGateway:
 		snap.MeshGateway.WatchedServices = make(map[structs.ServiceID]context.CancelFunc)
 		snap.MeshGateway.WatchedDatacenters = make(map[string]context.CancelFunc)
@@ -914,6 +915,9 @@ func (s *state) handleUpdateTerminatingGateway(u cache.UpdateEvent, snap *Config
 			// Make sure to add every service to this map, we use it to cancel watches below.
 			svcMap[svc.Service] = struct{}{}
 
+			// Store the gateway <-> service mapping for TLS origination
+			snap.TerminatingGateway.GatewayServices[svc.Service] = *svc
+
 			// Watch the health endpoint to discover endpoints for the service
 			if _, ok := snap.TerminatingGateway.WatchedServices[svc.Service]; !ok {
 				ctx, cancel := context.WithCancel(s.ctx)
@@ -1010,6 +1014,13 @@ func (s *state) handleUpdateTerminatingGateway(u cache.UpdateEvent, snap *Config
 					return err
 				}
 				snap.TerminatingGateway.WatchedResolvers[svc.Service] = cancel
+			}
+		}
+
+		// Delete gateway service mapping for services that were not in the update
+		for sid, _ := range snap.TerminatingGateway.GatewayServices {
+			if _, ok := svcMap[sid]; !ok {
+				delete(snap.TerminatingGateway.GatewayServices, sid)
 			}
 		}
 

@@ -93,6 +93,11 @@ type configSnapshotTerminatingGateway struct {
 	// ServiceGroups is a map of service id to the service instances of that
 	// service in the local datacenter.
 	ServiceGroups map[structs.ServiceID]structs.CheckServiceNodes
+
+	// GatewayServices is a map of service id to the config entry association
+	// between the gateway and a service. TLS configuration stored here is
+	// used for TLS origination from the gateway to the linked service.
+	GatewayServices map[structs.ServiceID]structs.GatewayService
 }
 
 func (c *configSnapshotTerminatingGateway) IsEmpty() bool {
@@ -105,7 +110,8 @@ func (c *configSnapshotTerminatingGateway) IsEmpty() bool {
 		len(c.ServiceGroups) == 0 &&
 		len(c.WatchedServices) == 0 &&
 		len(c.ServiceResolvers) == 0 &&
-		len(c.WatchedResolvers) == 0
+		len(c.WatchedResolvers) == 0 &&
+		len(c.GatewayServices) == 0
 }
 
 type configSnapshotMeshGateway struct {
