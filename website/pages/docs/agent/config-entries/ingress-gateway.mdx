@@ -9,6 +9,8 @@ description: >-
 
 # Ingress Gateway
 
+-> **1.8.0+:** This config entry is available in Consul versions 1.8.0 and newer.
+
   The `ingress-gateway` config entry kind allows for configuring Ingress gateways
   with listeners that expose a set of services outside the Consul service mesh.
   See [Ingress Gateway](/docs/connect/ingress_gateway) for more information.
@@ -76,7 +78,7 @@ listeners = [
 
 - `Name` `(string: <required>)` - Set to the name of the gateway being configured.
 
-- `Namespace` `(string: "default")` - **Enterprise Only** Specifies the namespace the config entry will apply to.
+- `Namespace` `(string: "default")` - <EnterpriseAlert inline /> Specifies the namespace the config entry will apply to.
 
 - `Listeners` `(array<IngressListener>: <optional>)` - A list of listeners that
   the ingress gateway should setup, uniquely identified by their port number.
@@ -94,7 +96,7 @@ listeners = [
       ALL services will be exposed through the listener. This is not supported
       for listener's with protocol "tcp".
 
-    - `Namespace` `(string: "")` - The namespace to resolve the service from
+    - `Namespace` `(string: "")` - <EnterpriseAlert inline /> The namespace to resolve the service from
       instead of the current namespace. If empty the current namespace is
       assumed.
 
