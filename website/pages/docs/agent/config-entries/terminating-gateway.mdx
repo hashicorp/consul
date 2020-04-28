@@ -1,0 +1,125 @@
+---
+layout: docs
+page_title: 'Configuration Entry Kind: Terminating Gateway'
+sidebar_title: terminating-gateway
+description: >-
+  The terminating-gateway config entry kind allows for configuring terminating gateways
+  to proxy traffic from services in the Consul service mesh to services outside the mesh.
+---
+
+# Terminating Gateway
+
+-> **1.8.0+:** This config entry is available in Consul versions 1.8.0 and newer.
+
+  The `terminating-gateway` config entry kind allows for configuring terminating gateways
+  to proxy traffic from services in the mesh to services outside the mesh.
+  See [Terminating Gateway](/docs/connect/terminating_gateway) for more information.
+
+## Wildcard service specification
+
+  Terminating gateways can optionally target all services within a namespace by specifying a wildcard "*"
+  as the service name. Configuration options set on the wildcard act as defaults that can be overridden
+  by options set on a specific service name.
+
+  Note that if the wildcard specifier is used, and some services in that namespace have a Connect sidecar proxy,
+  traffic from the mesh to those services will be evenly load-balanced between the gateway and their sidecars. 
+
+## Sample Config Entries
+
+Associate a gateway with the billing service:
+
+```hcl
+kind = "terminating-gateway"
+name = "us-west-gateway"
+namespace = "default"
+services = [
+  {
+    name = "billing"
+  }
+]
+```
+
+Associate a gateway with all services in the pci namespace, and verify destination
+service certificates with a CA file for one-way TLS authentication:
+
+```hcl
+kind = "terminating-gateway"
+name = "us-west-gateway"
+namespace = "default"
+services = [
+  {
+    namespace = "pci"
+    name = "*"
+    ca_file   = "/etc/certs/ca-chain.cert.pem"
+  }
+]
+```
+
+Associate a gateway with all services in the finance namespace, and configure default certificates for mutual TLS.
+Also override the SNI and CA file used for connections to the billing service:
+
+```hcl
+kind = "terminating-gateway"
+name = "us-west-gateway"
+namespace = "finance"
+services = [
+  {
+    name      = "*"
+    ca_file   = "/etc/common-certs/ca-chain.cert.pem"
+    key_file  = "/etc/common-certs/gateway.key.pem"
+    cert_file = "/etc/common-certs/gateway.cert.pem"
+  },
+  {
+    name      = "billing"
+    ca_file   = "/etc/billing-ca/ca-chain.cert.pem"
+    sni       = "billing.service.com"
+  }
+]
+```
+
+## Available Fields
+
+- `Kind` - Must be set to `terminating-gateway`
+
+- `Name` `(string: <required>)` - Set to the name of the gateway being configured.
+
+- `Namespace` `(string: "default")` - <EnterpriseAlert inline /> Specifies the namespace 
+    the config entry will apply to. If omitted, the namespace will be inherited from [the 
+    request](/api/config#ns) or will default to the `default` namespace.
+
+- `Services` `(array<LinkedService>: <optional>)` - A list of services to associate
+    with the gateway. The gateway will proxy traffic to these services.
+
+    - `Name` `(string: "")` - The name of the service to associate with the gateway.
+    If the wildcard specifier, `*`, is provided, then ALL services within the namespace
+    will be associated with the gateway.
+
+    - `Namespace` `(string: "")` - <EnterpriseAlert inline /> The namespace of the service.
+    If omitted, the namespace will be inherited from the config entry.
+
+    - `CAFile` `(string: "")` - A file path to a PEM-encoded certificate authority.
+    The file must be present on the proxy's filesystem.
+    The certificate authority is used to verify the authenticity of the service associated with the gateway.
+    It can be provided along with a CertFile and KeyFile for mutual TLS authentication, or on its own
+    for one-way TLS authentication. If none is provided the gateway **will not** encrypt the traffic to the destination.
+
+    - `CertFile` `(string: "")` - A file path to a PEM-encoded certificate.
+    The file must be present on the proxy's filesystem.
+    The certificate is provided servers to verify the gateway's authenticity. It must be provided if a KeyFile was specified.
+
+    - `KeyFile` `(string: "")` - A file path to a PEM-encoded private key.
+     The file must be present on the proxy's filesystem.
+     The key is used with the certificate to verify the gateway's authenticity. It must be provided along if a CertFile was specified.
+
+    - `SNI` `(string: "")` - An optional hostname or domain name to specify during the TLS handshake.
+
+## ACLs
+
+Configuration entries may be protected by
+[ACLs](https://learn.hashicorp.com/consul/security-networking/production-acls).
+
+Reading a `terminating-gateway` config entry requires `service:read` on the `Name`
+field of the config entry.
+
+Creating, updating, or deleting a `terminating-gateway` config entry requires
+`operator:write`.

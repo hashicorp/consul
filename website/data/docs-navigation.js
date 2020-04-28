@@ -121,6 +121,7 @@ export default [
           'service-defaults',
           'proxy-defaults',
           'ingress-gateway',
+          'terminating-gateway',
         ],
       },
       'cloud-auto-join',
@@ -157,6 +158,7 @@ export default [
       },
       'mesh_gateway',
       'ingress_gateway',
+      'terminating-gateway',
       {
         category: 'registration',
         content: ['service-registration', 'sidecar-service'],
