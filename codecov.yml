@@ -11,6 +11,8 @@ coverage:
         # TODO: should any paths be excluded from coverage metrics?
         # paths:
       ui:
+        flags:
+          - ui
         informational: true
     # https://docs.codecov.io/docs/commit-status#section-changes-status
     # TODO: enable after eliminating current unexpected coverage changes?
@@ -33,7 +35,8 @@ comment: false
 # TODO: split out test coverage for API, SDK, UI, website?
 flags:
   ui:
-    paths: /ui-v2/
+    paths:
+      - ui-v2/
 
 ignore:
   - "agent/bindata_assetfs.go"

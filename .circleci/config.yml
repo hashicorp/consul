@@ -510,11 +510,11 @@ jobs:
           at: ui-v2
       - run:
           working_directory: ui-v2
-          command: make test-coverage-ci
+          command: yarn run test:coverage
       - run:
           name: codecov ui upload
           working_directory: ui-v2
-          command: bash <(curl -s https://codecov.io/bash) -v -c -C $CIRCLE_SHA1 -F ui
+          command: bash <(curl -s https://codecov.io/bash) -v -c -C $CIRCLE_SHA1 -F ui -f coverage/lcov.info
 
   envoy-integration-test-1.11.2:
     docker:
