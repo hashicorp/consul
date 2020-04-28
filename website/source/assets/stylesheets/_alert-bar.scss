@@ -1,0 +1,29 @@
+.alert-bar {
+  color: white;
+  position: relative;
+  background: linear-gradient(90deg, #ca2171 1.56%, #8e134a 100%);
+  display: flex;
+  justify-content: center;
+
+  & a {
+    text-decoration: none;
+    display: inline-flex;
+    color: white;
+    padding: 14px 15px;
+
+    &:hover {
+      text-decoration: none;
+    }
+
+    & p {
+      padding: 0;
+      margin: 0;
+    }
+
+    & .link {
+      margin-left: 30px;
+      text-decoration: underline;
+      font-weight: 500;
+    }
+  }
+}
