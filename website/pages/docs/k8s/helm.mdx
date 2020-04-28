@@ -83,13 +83,26 @@ and consider if they're appropriate for your deployment.
 
   - `acls` ((#v-global-acls)) - Configure ACLs.
 
-    - `manageSystemACLs` ((#v-global-acls-managesystemacls)) (`boolean: false`) - If true, the Helm chart will automatically manage ACL tokens and policies for all Consul and consul-k8s components. This requires servers to be running inside Kubernetes. Additionally requires Consul >= 1.4 and consul-k8s >= 0.10.1.
+    - `manageSystemACLs` ((#v-global-acls-managesystemacls)) (`boolean: false`) - If true, the Helm chart will automatically manage ACL tokens and policies for all Consul and consul-k8s components.
+      This requires servers to be running inside Kubernetes. Additionally requires Consul >= 1.4 and consul-k8s >= 0.14.0.
+
+    - `bootstrapToken` ((#v-global-acls-bootstraptoken)) - A Kubernetes secret containing the bootstrap token to use for
+      creating policies and tokens for all Consul and consul-k8s components.
+      If set, we will skip ACL bootstrapping of the servers and will only initialize ACLs for the Consul clients and consul-k8s system components.
+      Requires consul-k8s >= 0.14.0.
+
+      - `secretName` ((#v-global-acls-bootstraptoken-secretname)) (`string: null`) - The name of the Kubernetes secret.
+
+      - `secretKey` ((#v-global-acls-bootstraptoken-secretkey)) (`string: null`) - The key of the Kubernetes secret.
 
   - `tls` ((#v-global-tls)) - Enables TLS [encryption](https://learn.hashicorp.com/consul/security-networking/agent-encryption) across the cluster to verify authenticity of the Consul servers and clients. Requires Consul v1.4.1+ and consul-k8s v0.16.2+
 
-    - `enabled` ((#v-global-enabled)) (`boolean: false`) - If true, the Helm chart will enable TLS for Consul
+    - `enabled` ((#v-global-tls-enabled)) (`boolean: false`) - If true, the Helm chart will enable TLS for Consul
       servers and clients and all consul-k8s components, as well as generate certificate
       authority (optional) and server and client certificates.
+
+    - `enableAutoEncrypt` ((#v-global-tls-enableAutoEncrypt)) (`boolean: false`) - If true, turns on the auto-encrypt feature on clients and servers.
+      It also switches consul-k8s components to retrieve the CA from the servers via the API. Requires Consul 1.7.1+ and consul-k8s 0.13.0
 
     - `serverAdditionalDNSSANs` ((#v-global-serveradditionaldnsssans)) (`array<string>: []`) - A list of additional DNS names to set as Subject Alternative Names (SANs) in the server certificate. This is useful when you need to access the Consul server(s) externally, for example, if you're using the UI.
 
@@ -296,6 +309,42 @@ and consider if they're appropriate for your deployment.
         "annotation-key": "annotation-value"
       ```
 
+- `externalServers` ((#v-externalservers)) - Configuration for Consul servers when the servers are running outside of Kubernetes.
+   When running external servers, configuring these values is recommended
+   if setting global.tls.enableAutoEncrypt to true (requires consul-k8s >= 0.13.0)
+   or global.acls.manageSystemACLs to true (requires consul-k8s >= 0.14.0).
+
+  - `enabled` ((#v-externalservers-enabled)) (`boolean: false`) - If true, the Helm chart will be configured to talk to the external servers.
+     If setting this to true, you must also set server.enabled to false.
+
+  - `hosts` ((#v-externalservers-hosts)) (`array<string>: null`) - An array of external Consul server hosts that are used to make
+    HTTPS connections from the components in this Helm chart.
+    Valid values include IPs, DNS names, or Cloud auto-join string.
+    The port must be provided separately below.
+    Note: `client.join` must also be set to the hosts that should be
+    used to join the cluster. In most cases, the `client.join` values
+    should be the same, however, they may be different if you
+    wish to use separate hosts for the HTTPS connections.
+
+  - `httpsPort` ((#v-externalservers-httpsport)) (`integer: 8501`) - The HTTPS port of the Consul servers.
+
+  - `tlsServerName` ((#v-externalservers-tlsservername)) (`string: null`) - The server name to use as the SNI host header when connecting with HTTPS.
+
+  - `useSystemRoots` ((#v-externalservers-usesystemroots)) (`boolean: false`) - If true, the Helm chart will ignore the CA set in `global.tls.caCert`
+    and will rely on the container's system CAs for TLS verification when talking to Consul servers. Otherwise, the chart will use `global.tls.caCert`.
+
+  - `k8sAuthMethodHost` ((#v-externalservers-k8sauthmethodhost)) (`string: null`) - If you are setting `global.acls.manageSystemACLs` and
+    `connectInject.enabled` to true, set `k8sAuthMethodHost` to the address of the Kubernetes API server.
+    This address must be reachable from the Consul servers.
+    Please see https://www.consul.io/docs/acl/auth-methods/kubernetes.html. Requires consul-k8s >= 0.14.0.
+
+    You could retrieve this value from your `kubeconfig` by running:
+
+      ```shell
+      kubectl config view \
+              -o jsonpath="{.clusters[?(@.name=='<your cluster name>')].cluster.server}"
+      ```
+
 - `client` ((#v-client)) - Values that configure running a Consul client on Kubernetes nodes.
 
   - `enabled` ((#v-client-enabled)) (`boolean: global.enabled`) - If true, the chart will install all
@@ -427,7 +476,7 @@ and consider if they're appropriate for your deployment.
 
       - secretName ((#v-client-snapshotagent-configsecret-secretname)) `(string: null)` - The name of the Kubernetes secret.
 
-      - secretKey ((#v-client-snapshotagent-configsecret-secretkey)) `(string: null)` - The key for the Kubernetes secret.
+      - secretKey ((#v-client-snapshotagent-configsecret-secretkey)) `(string: null)` - The key of the Kubernetes secret.
 
 - `dns` ((#v-dns)) - Values that configure Consul DNS service.
 
