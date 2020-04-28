@@ -47,7 +47,9 @@
 
   <body id="<%= body_id_for(current_page) %>" class="<%= body_classes_for(current_page) %>">
 
-    <%= partial("layouts/_alert-bar") %>
+    <% if current_page.data.show_alert_bar == true %>
+      <%= partial("layouts/_alert-bar") %>
+    <% end %>
 
     <%= mega_nav :consul %>
 
