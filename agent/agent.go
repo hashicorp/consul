@@ -1412,8 +1412,8 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	}
 
 	base.ConfigEntryBootstrap = a.config.ConfigEntryBootstrap
-
-	return base, nil
+	
+	return a.enterpriseConsulConfig(base)
 }
 
 // Setup the serf and memberlist config for any defined network segments.

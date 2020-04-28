@@ -713,6 +713,7 @@ type ACL struct {
 	Tokens                 Tokens  `json:"tokens,omitempty" hcl:"tokens" mapstructure:"tokens"`
 	DisabledTTL            *string `json:"disabled_ttl,omitempty" hcl:"disabled_ttl" mapstructure:"disabled_ttl"`
 	EnableTokenPersistence *bool   `json:"enable_token_persistence" hcl:"enable_token_persistence" mapstructure:"enable_token_persistence"`
+	EnterpriseACLConfig    `hcl:",squash" mapstructure:",squash"`
 }
 
 type Tokens struct {
