@@ -26,7 +26,7 @@ description: >-
 
 ## Sample Config Entries
 
-Associate a gateway with the billing service:
+Link a gateway with the billing service:
 
 ```hcl
 kind = "terminating-gateway"
@@ -39,7 +39,7 @@ services = [
 ]
 ```
 
-Associate a gateway with all services in the pci namespace, and verify destination
+Link a gateway with all services in the pci namespace, and verify destination
 service certificates with a CA file for one-way TLS authentication:
 
 ```hcl
@@ -55,7 +55,7 @@ services = [
 ]
 ```
 
-Associate a gateway with all services in the finance namespace, and configure default certificates for mutual TLS.
+Link a gateway with all services in the finance namespace, and configure default certificates for mutual TLS.
 Also override the SNI and CA file used for connections to the billing service:
 
 ```hcl
@@ -87,19 +87,19 @@ services = [
     the config entry will apply to. If omitted, the namespace will be inherited from [the 
     request](/api/config#ns) or will default to the `default` namespace.
 
-- `Services` `(array<LinkedService>: <optional>)` - A list of services to associate
+- `Services` `(array<LinkedService>: <optional>)` - A list of services to link
     with the gateway. The gateway will proxy traffic to these services.
 
-    - `Name` `(string: "")` - The name of the service to associate with the gateway.
+    - `Name` `(string: "")` - The name of the service to link with the gateway.
     If the wildcard specifier, `*`, is provided, then ALL services within the namespace
-    will be associated with the gateway.
+    will be linked with the gateway.
 
     - `Namespace` `(string: "")` - <EnterpriseAlert inline /> The namespace of the service.
     If omitted, the namespace will be inherited from the config entry.
 
     - `CAFile` `(string: "")` - A file path to a PEM-encoded certificate authority.
     The file must be present on the proxy's filesystem.
-    The certificate authority is used to verify the authenticity of the service associated with the gateway.
+    The certificate authority is used to verify the authenticity of the service linked with the gateway.
     It can be provided along with a CertFile and KeyFile for mutual TLS authentication, or on its own
     for one-way TLS authentication. If none is provided the gateway **will not** encrypt the traffic to the destination.
 
