@@ -127,12 +127,6 @@ proxy configuration needed.
 - `-deregister-after-critical` - The amount of time the gateway services health check can
   be failing before being deregistered. This flag is used in combination with `-register`
 
--> **Note:** If ACLs are enabled, a token granting `service:write` for the
-gateway's service name must be passed using the `-token` option or
-`CONSUL_HTTP_TOKEN` environment variable. This token authorizes the proxy
-to obtain receive and route communications for other Connect services but
-does not allow decrypting any of their communications.
-
 ## Examples
 
 Assume a local service instance is registered on the local agent with a
