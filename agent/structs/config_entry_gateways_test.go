@@ -316,6 +316,85 @@ func TestIngressConfigEntry_Validate(t *testing.T) {
 			},
 			expectErr: "Hosts must be unique within a specific listener",
 		},
+		{
+			name: "hosts must be a valid DNS name",
+			entry: IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"example..com"},
+							},
+						},
+					},
+				},
+			},
+			expectErr: `Host "example..com" must be a valid DNS hostname`,
+		},
+		{
+			name: "wildcard specifier is only allowed in the leftmost label",
+			entry: IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"*.example.com"},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "wildcard specifier is not allowed in non-leftmost labels",
+			entry: IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"example.*.com"},
+							},
+						},
+					},
+				},
+			},
+			expectErr: `Host "example.*.com" is not valid, a wildcard specifier is only allowed as the leftmost label`,
+		},
+		{
+			name: "wildcard specifier is not allowed in leftmost labels as a partial",
+			entry: IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"*-test.example.com"},
+							},
+						},
+					},
+				},
+			},
+			expectErr: `Host "*-test.example.com" is not valid, a wildcard specifier is only allowed as the leftmost label`,
+		},
 	}
 
 	for _, test := range cases {
