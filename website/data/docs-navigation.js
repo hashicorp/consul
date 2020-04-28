@@ -159,7 +159,7 @@ export default [
       'mesh_gateway',
       'wan-federation-via-mesh-gateways',
       'ingress_gateway',
-      'terminating-gateway',
+      'terminating_gateway',
       {
         category: 'registration',
         content: ['service-registration', 'sidecar-service'],
