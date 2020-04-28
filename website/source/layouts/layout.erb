@@ -47,6 +47,8 @@
 
   <body id="<%= body_id_for(current_page) %>" class="<%= body_classes_for(current_page) %>">
 
+    <%= partial("layouts/_alert-bar") %>
+
     <%= mega_nav :consul %>
 
     <div id="header" class="navigation navbar-static-top hidden-print">
