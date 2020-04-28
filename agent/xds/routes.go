@@ -22,32 +22,12 @@ func routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, _ string) ([]proto.Mes
 
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
-		return routesFromSnapshotConnectProxy(cfgSnap)
+		return routesFromUpstreams(cfgSnap.ConnectProxy.ConfigSnapshotUpstreams, cfgSnap.Proxy.Upstreams)
 	case structs.ServiceKindIngressGateway:
-		return routesFromSnapshotIngressGateway(cfgSnap)
+		return routesFromUpstreams(cfgSnap.IngressGateway.ConfigSnapshotUpstreams, cfgSnap.IngressGateway.Upstreams)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
-}
-
-// routesFromSnapshotConnectProxy returns the xDS API representation of the
-// "routes" in the snapshot.
-func routesFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
-	if cfgSnap == nil {
-		return nil, errors.New("nil config given")
-	}
-
-	return routesFromUpstreams(cfgSnap.ConnectProxy.ConfigSnapshotUpstreams, cfgSnap.Proxy.Upstreams)
-}
-
-// routesFromSnapshotIngressGateway returns the xDS API representation of the
-// "routes" in the snapshot.
-func routesFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
-	if cfgSnap == nil {
-		return nil, errors.New("nil config given")
-	}
-
-	return routesFromUpstreams(cfgSnap.IngressGateway.ConfigSnapshotUpstreams, cfgSnap.IngressGateway.Upstreams)
 }
 
 func routesFromUpstreams(snap proxycfg.ConfigSnapshotUpstreams, upstreams structs.Upstreams) ([]proto.Message, error) {
@@ -311,9 +291,7 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute) env
 
 func makeDefaultRouteMatch() envoyroute.RouteMatch {
 	return envoyroute.RouteMatch{
-		PathSpecifier: &envoyroute.RouteMatch_Prefix{
-			Prefix: "/",
-		},
+		PathSpecifier: &envoyroute.RouteMatch_Prefix{Prefix: "/"},
 		// TODO(banks) Envoy supports matching only valid GRPC
 		// requests which might be nice to add here for gRPC services
 		// but it's not supported in our current envoy SDK version
@@ -329,9 +307,8 @@ func makeRouteActionForSingleCluster(targetID string, chain *structs.CompiledDis
 
 	return &envoyroute.Route_Route{
 		Route: &envoyroute.RouteAction{
-			ClusterSpecifier: &envoyroute.RouteAction_Cluster{
-				Cluster: clusterName,
-			},
+			ClusterSpecifier: &envoyroute.RouteAction_Cluster{Cluster: clusterName},
+			// TODO: HashPolicy:
 		},
 	}
 }
@@ -368,6 +345,7 @@ func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, chain *structs
 					TotalWeight: makeUint32Value(10000), // scaled up 100%
 				},
 			},
+			// TODO: HashPolicy:
 		},
 	}, nil
 }
