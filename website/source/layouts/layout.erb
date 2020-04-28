@@ -47,6 +47,10 @@
 
   <body id="<%= body_id_for(current_page) %>" class="<%= body_classes_for(current_page) %>">
 
+    <% if current_page.data.show_alert_bar == true %>
+      <%= partial("layouts/_alert-bar") %>
+    <% end %>
+
     <%= mega_nav :consul %>
 
     <div id="header" class="navigation navbar-static-top hidden-print">
