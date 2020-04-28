@@ -1,0 +1,33 @@
+---
+layout: docs
+page_title: Connect - Terminating Gateways
+sidebar_title: Terminating Gateways
+description: >-
+  A Terminating Gateway enables traffic from services in the Consul
+  service mesh to services outside the mesh. This section details
+  how to use Envoy and describes how you can plug in a gateway of your choice.
+---
+
+-> **1.8.0+:**  This feature is available in Consul versions 1.8.0 and newer.
+
+# Terminating Gateways
+
+## Prerequisites
+
+Terminating gateways also require that your Consul datacenters are configured correctly:
+
+- You'll need to use Consul version 1.8.0.
+- Consul [Connect](/docs/agent/options#connect) must be enabled in the datacenter.
+- [gRPC](/docs/agent/options#grpc_port) must be enabled.
+
+Currently, Envoy is the only proxy with terminating gateway capabilities in Consul.
+
+## Running and Using a Terminating Gateway
+
+The steps that need to occur for a terminating gateway to proxy traffic from services in the Consul mesh are as follows:
+
+1. Run an envoy proxy using the [envoy subcommand](/docs/commands/connect/envoy), specifying the `terminating` gateway type.
+2. Create a `terminating-gateway` [configuration entry](/docs/agent/config-entries/terminating-gateway) that defines 
+a set of services that the gateway will proxy traffic to.
+3. Ensure that [intentions](/docs/connect/intentions) are set up between the source services in the mesh 
+and the services associated with the gateway.
