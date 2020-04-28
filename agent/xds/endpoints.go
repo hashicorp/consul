@@ -269,11 +269,14 @@ func (s *Server) endpointsFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSna
 	return resources, nil
 }
 
-func makeEndpoint(clusterName, host string, port int) envoyendpoint.LbEndpoint {
+func makeEndpoint(addr string, port int) envoyendpoint.LbEndpoint {
+	if addr == "" {
+		addr = "127.0.0.1"
+	}
 	return envoyendpoint.LbEndpoint{
 		HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 			Endpoint: &envoyendpoint.Endpoint{
-				Address: makeAddressPtr(host, port),
+				Address: makeAddressPtr(addr, port),
 			},
 		},
 	}

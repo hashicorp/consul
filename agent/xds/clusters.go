@@ -47,8 +47,16 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 	// TODO(rb): this sizing is a low bound.
 	clusters := make([]proto.Message, 0, len(cfgSnap.Proxy.Upstreams)+1)
 
+	cfg, err := ParseProxyConfig(cfgSnap.Proxy.Config)
+	if err != nil {
+		// Don't hard fail on a config typo, just warn. The parse func returns
+		// default config if there is an error so it's safe to continue.
+		s.Logger.Warn("failed to parse Connect.Proxy.Config", "error", err)
+	}
+
 	// Include the "app" cluster for the public listener
-	appCluster, err := s.makeAppCluster(cfgSnap, LocalAppClusterName, "", cfgSnap.Proxy.LocalServicePort)
+	endpoint := makeEndpoint(cfgSnap.Proxy.LocalServiceAddress, cfgSnap.Proxy.LocalServicePort)
+	appCluster, err := s.makeAppCluster(cfg, endpoint, LocalAppClusterName, cfg.Protocol)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +113,12 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 		if path.LocalPathPort == cfgSnap.Proxy.LocalServicePort {
 			continue
 		}
-		c, err := s.makeAppCluster(cfgSnap, makeExposeClusterName(path.LocalPathPort), path.Protocol, path.LocalPathPort)
+		protocol := path.Protocol
+		if protocol == "" {
+			protocol = cfg.Protocol
+		}
+		endpoint := makeEndpoint(cfgSnap.Proxy.LocalServiceAddress, path.LocalPathPort)
+		c, err := s.makeAppCluster(cfg, endpoint, makeExposeClusterName(path.LocalPathPort), protocol)
 		if err != nil {
 			s.Logger.Warn("failed to make local cluster", "path", path.Path, "error", err)
 			continue
@@ -262,27 +275,13 @@ func (s *Server) clustersFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnap
 	return clusters, nil
 }
 
-func (s *Server) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, name, pathProtocol string, port int) (*envoy.Cluster, error) {
-	var c *envoy.Cluster
-	var err error
-
-	cfg, err := ParseProxyConfig(cfgSnap.Proxy.Config)
-	if err != nil {
-		// Don't hard fail on a config typo, just warn. The parse func returns
-		// default config if there is an error so it's safe to continue.
-		s.Logger.Warn("failed to parse Connect.Proxy.Config", "error", err)
-	}
-
+func (s *Server) makeAppCluster(cfg ProxyConfig, endpoint envoyendpoint.LbEndpoint, name, protocol string) (*envoy.Cluster, error) {
 	// If we have overridden local cluster config try to parse it into an Envoy cluster
 	if cfg.LocalClusterJSON != "" {
 		return makeClusterFromUserConfig(cfg.LocalClusterJSON)
 	}
 
-	addr := cfgSnap.Proxy.LocalServiceAddress
-	if addr == "" {
-		addr = "127.0.0.1"
-	}
-	c = &envoy.Cluster{
+	c := &envoy.Cluster{
 		Name:                 name,
 		ConnectTimeout:       time.Duration(cfg.LocalConnectTimeoutMs) * time.Millisecond,
 		ClusterDiscoveryType: &envoy.Cluster_Type{Type: envoy.Cluster_STATIC},
@@ -290,24 +289,16 @@ func (s *Server) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, name, pathProt
 			ClusterName: name,
 			Endpoints: []envoyendpoint.LocalityLbEndpoints{
 				{
-					LbEndpoints: []envoyendpoint.LbEndpoint{
-						makeEndpoint(name,
-							addr,
-							port),
-					},
+					LbEndpoints: []envoyendpoint.LbEndpoint{endpoint},
 				},
 			},
 		},
 	}
-	protocol := pathProtocol
-	if protocol == "" {
-		protocol = cfg.Protocol
-	}
+
 	if protocol == "http2" || protocol == "grpc" {
 		c.Http2ProtocolOptions = &envoycore.Http2ProtocolOptions{}
 	}
-
-	return c, err
+	return c, nil
 }
 
 func (s *Server) makeUpstreamClusterForPreparedQuery(upstream structs.Upstream, cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Cluster, error) {

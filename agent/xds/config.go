@@ -1,8 +1,11 @@
 package xds
 
 import (
-	"github.com/hashicorp/consul/lib"
 	"strings"
+
+	"strings"
+
+	"github.com/hashicorp/consul/lib"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/mitchellh/mapstructure"
