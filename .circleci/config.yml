@@ -660,6 +660,7 @@ workflows:
   website:
     jobs:
       - build-website-docker-image:
+          context: website-docker-image
           filters:
             branches:
               only:
