@@ -9,6 +9,7 @@
     "@hashicorp/mktg-assets": "^1.0.0-alpha.7",
     "@hashicorp/nextjs-scripts": "^6.1.0",
     "@hashicorp/react-alert": "^2.0.0",
+    "@hashicorp/react-alert-banner": "^3.0.13",
     "@hashicorp/react-button": "^2.1.9",
     "@hashicorp/react-call-to-action": "^0.1.6",
     "@hashicorp/react-case-study-slider": "^2.0.13",

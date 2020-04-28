@@ -5,13 +5,15 @@ import Router from 'next/router'
 import ProductSubnav from '../components/subnav'
 import MegaNav from '@hashicorp/react-mega-nav'
 import Footer from '../components/footer'
+import AlertBanner from '@hashicorp/react-alert-banner'
 import { ConsentManager, open } from '@hashicorp/react-consent-manager'
 import consentManagerConfig from '../lib/consent-manager-config'
 import bugsnagClient from '../lib/bugsnag'
+import anchorLinkAnalytics from '../lib/anchor-link-analytics'
+import alertBannerData, { ALERT_BANNER_ACTIVE } from '../data/alert-banner'
 import Error from './_error'
 import Head from 'next/head'
 import HashiHead from '@hashicorp/react-head'
-import anchorLinkAnalytics from '../lib/anchor-link-analytics'
 
 Router.events.on('routeChangeStart', NProgress.start)
 Router.events.on('routeChangeError', NProgress.done)
@@ -80,6 +82,9 @@ class NextApp extends App {
             { href: '/fonts/dejavu/mono.woff2', as: 'font' },
           ]}
         />
+        {ALERT_BANNER_ACTIVE && (
+          <AlertBanner {...alertBannerData} theme="consul" />
+        )}
         <MegaNav product="Consul" />
         <ProductSubnav />
         <div className="content">
