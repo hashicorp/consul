@@ -1412,7 +1412,7 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	}
 
 	base.ConfigEntryBootstrap = a.config.ConfigEntryBootstrap
-	
+
 	return a.enterpriseConsulConfig(base)
 }
 
