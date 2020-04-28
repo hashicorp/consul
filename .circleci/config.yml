@@ -119,12 +119,12 @@ jobs:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
           path: *TEST_RESULTS_DIR
-      - run: &codecov_upload
+      - run:
           name: codecov upload
           when: always
           # The -C flag shouldn't be necessary, but it fails to find the commit
           # without it.
-          command: bash <(curl -s https://codecov.io/bash) -C "$CIRCLE_SHA1"
+          command: bash <(curl -s https://codecov.io/bash) -C "$CIRCLE_SHA1" -F backend
 
   # split off a job for the API package since it is separate
   go-test-api:
@@ -156,7 +156,12 @@ jobs:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
           path: *TEST_RESULTS_DIR
-      - run: *codecov_upload
+      - run:
+          name: codecov upload
+          when: always
+          # The -C flag shouldn't be necessary, but it fails to find the commit
+          # without it.
+          command: bash <(curl -s https://codecov.io/bash) -C "$CIRCLE_SHA1" -F api
 
   # split off a job for the SDK package since it is separate
   go-test-sdk:
@@ -188,7 +193,12 @@ jobs:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
           path: *TEST_RESULTS_DIR
-      - run: *codecov_upload
+      - run:
+          name: codecov upload
+          when: always
+          # The -C flag shouldn't be necessary, but it fails to find the commit
+          # without it.
+          command: bash <(curl -s https://codecov.io/bash) -C "$CIRCLE_SHA1" -F sdk
 
   # build all distros
   build-distros: &build-distros

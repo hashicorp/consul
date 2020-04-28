@@ -4,12 +4,20 @@ coverage:
     # only measure diff changes, not unexpected project changes from flakiness
     project: off
     patch:
-      default:
+      default: off
+      backend:
+        flags:
+          - backend
         # https://docs.codecov.io/docs/commit-status#section-informational
         informational: true
-        # https://docs.codecov.io/docs/commit-status#section-excluding-tests-example-
-        # TODO: should any paths be excluded from coverage metrics?
-        # paths:
+      api:
+        flags:
+          - api
+        informational: true
+      sdk:
+        flags:
+          - sdk
+        informational: true
       ui:
         flags:
           - ui
@@ -32,8 +40,16 @@ coverage:
 comment: false
 
 # https://docs.codecov.io/docs/flags
-# TODO: split out test coverage for API, SDK, UI, website?
 flags:
+  backend:
+    paths:
+      - !ui-v2/
+  api:
+    paths:
+      - api/
+  sdk:
+    paths:
+      - sdk/
   ui:
     paths:
       - ui-v2/
