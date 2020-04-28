@@ -61,5 +61,5 @@ ignore:
 
 # Fix relative coverage path processing by reducing CI-specific paths
 # https://docs.codecov.io/docs/fixing-paths
-# fixes:
-#    - "/home/circleci/project/::"
+fixes:
+   - "/home/circleci/project/::"
