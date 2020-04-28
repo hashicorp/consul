@@ -609,6 +609,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.NonVotingServer = true
 				rt.DataDir = dataDir
 			},
+			warns: enterpriseNonVotingServerWarnings,
 		},
 		{
 			desc: "-pid-file",
@@ -3915,6 +3916,7 @@ func TestFullConfig(t *testing.T) {
 				"role_ttl": "9876s",
 				"token_ttl": "3321s",
 				"enable_token_replication" : true,
+				"msp_disable_bootstrap": true,
 				"tokens" : {
 					"master" : "8a19ac27",
 					"agent_master" : "64fd0e08",
@@ -4110,7 +4112,8 @@ func TestFullConfig(t *testing.T) {
 				},
 				"udp_answer_limit": 29909,
 				"use_cache": true,
-				"cache_max_age": "5m"` + entFullDNSJSONConfig + `
+				"cache_max_age": "5m",
+				"prefer_namespace": true
 			},
 			"enable_acl_replication": true,
 			"enable_agent_tls_for_checks": true,
@@ -4546,6 +4549,7 @@ func TestFullConfig(t *testing.T) {
 				role_ttl = "9876s"
 				token_ttl = "3321s"
 				enable_token_replication = true
+				msp_disable_bootstrap = true
 				tokens = {
 					master = "8a19ac27",
 					agent_master = "64fd0e08",
@@ -4743,7 +4747,7 @@ func TestFullConfig(t *testing.T) {
 				udp_answer_limit = 29909
 				use_cache = true
 				cache_max_age = "5m"
-				` + entFullDNSHCLConfig + `
+				prefer_namespace = true
 			}
 			enable_acl_replication = true
 			enable_agent_tls_for_checks = true
@@ -5885,6 +5889,8 @@ func TestFullConfig(t *testing.T) {
 		`bootstrap_expect > 0: expecting 53 servers`,
 	}
 
+	warns = append(warns, enterpriseConfigKeyWarnings...)
+
 	// ensure that all fields are set to unique non-zero values
 	// todo(fs): This currently fails since ServiceDefinition.Check is not used
 	// todo(fs): not sure on how to work around this. Possible options are:
@@ -5947,9 +5953,7 @@ func TestFullConfig(t *testing.T) {
 			}
 
 			// check the warnings
-			if got, want := b.Warnings, warns; !verify.Values(t, "warnings", got, want) {
-				t.FailNow()
-			}
+			require.ElementsMatch(t, warns, b.Warnings, "Warnings: %v", b.Warnings)
 		})
 	}
 }

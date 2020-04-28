@@ -12,7 +12,7 @@ import (
 
 func DefaultRPCProtocol() (int, error) {
 	src := DefaultSource()
-	c, err := Parse(src.Data, src.Format)
+	c, _, err := Parse(src.Data, src.Format)
 	if err != nil {
 		return 0, fmt.Errorf("Error parsing default config: %s", err)
 	}
