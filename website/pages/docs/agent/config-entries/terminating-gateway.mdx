@@ -29,12 +29,12 @@ description: >-
 Link a gateway with the billing service:
 
 ```hcl
-kind = "terminating-gateway"
-name = "us-west-gateway"
-namespace = "default"
-services = [
+Kind = "terminating-gateway"
+Name = "us-west-gateway"
+Namespace = "default"
+Services = [
   {
-    name = "billing"
+    Name = "billing"
   }
 ]
 ```
@@ -43,14 +43,14 @@ Link a gateway with all services in the pci namespace, and verify destination
 service certificates with a CA file for one-way TLS authentication:
 
 ```hcl
-kind = "terminating-gateway"
-name = "us-west-gateway"
-namespace = "default"
-services = [
+Kind = "terminating-gateway"
+Name = "us-west-gateway"
+Namespace = "default"
+Services = [
   {
-    namespace = "pci"
-    name = "*"
-    ca_file   = "/etc/certs/ca-chain.cert.pem"
+    Namespace = "pci"
+    Name      = "*"
+    CAFile    = "/etc/certs/ca-chain.cert.pem"
   }
 ]
 ```
@@ -59,20 +59,20 @@ Link a gateway with all services in the finance namespace, and configure default
 Also override the SNI and CA file used for connections to the billing service:
 
 ```hcl
-kind = "terminating-gateway"
-name = "us-west-gateway"
-namespace = "finance"
-services = [
+Kind = "terminating-gateway"
+Name = "us-west-gateway"
+Namespace = "finance"
+Services = [
   {
-    name      = "*"
-    ca_file   = "/etc/common-certs/ca-chain.cert.pem"
-    key_file  = "/etc/common-certs/gateway.key.pem"
-    cert_file = "/etc/common-certs/gateway.cert.pem"
+    Name     = "*"
+    CAFile   = "/etc/common-certs/ca-chain.cert.pem"
+    KeyFile  = "/etc/common-certs/gateway.key.pem"
+    CertFile = "/etc/common-certs/gateway.cert.pem"
   },
   {
-    name      = "billing"
-    ca_file   = "/etc/billing-ca/ca-chain.cert.pem"
-    sni       = "billing.service.com"
+    Name   = "billing"
+    CAFile = "/etc/billing-ca/ca-chain.cert.pem"
+    SNI    = "billing.service.com"
   }
 ]
 ```

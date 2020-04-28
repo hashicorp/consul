@@ -20,17 +20,17 @@ description: >-
 Set up a TCP listener for a single service:
 
 ```hcl
-kind = "ingress-gateway"
-name = "ingress-service"
-namespace = "default"
+Kind = "ingress-gateway"
+Name = "ingress-service"
+Namespace = "default"
 
-listeners = [
+Listeners = [
   {
-    port = 3456
-    protocol = "tcp"
-    services = [
+    Port = 3456
+    Protocol = "tcp"
+    Services = [
       {
-        name = "db"
+        Name = "db"
       }
     ]
   }
@@ -41,31 +41,31 @@ Set up a wildcard HTTP listener to proxy traffic to all available services, and
 make two services available over a custom port with user-provided hosts:
 
 ```hcl
-kind = "ingress-gateway"
-name = "ingress-service"
-namespace = "default"
+Kind = "ingress-gateway"
+Name = "ingress-service"
+Namespace = "default"
 
-listeners = [
+Listeners = [
   {
-    port = 8080
-    protocol = "http"
-    services = [
+    Port = 8080
+    Protocol = "http"
+    Services = [
       {
-        name = "*"
+        Name = "*"
       }
     ]
   },
   {
-    port = 4567
-    protocol = "http"
-    services = [
+    Port = 4567
+    Protocol = "http"
+    Services = [
       {
-        name = "api"
-        hosts ["foo.example.com"]
+        Name = "api"
+        Hosts = ["foo.example.com"]
       },
       {
-        name = "web"
-        hosts ["website.example.com"]
+        Name = "web"
+        Hosts = ["website.example.com"]
       }
     ]
   }
