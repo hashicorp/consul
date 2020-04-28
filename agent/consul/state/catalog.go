@@ -2698,7 +2698,6 @@ func (s *Store) serviceGatewayNodes(tx *memdb.Txn, ws memdb.WatchSet, service st
 		if err != nil {
 			return 0, nil, nil, fmt.Errorf("failed service lookup: %s", err)
 		}
-		watchChans = append(watchChans, gwServices.WatchCh())
 
 		var exists bool
 		for svc := gwServices.Next(); svc != nil; svc = gwServices.Next() {
@@ -2709,16 +2708,20 @@ func (s *Store) serviceGatewayNodes(tx *memdb.Txn, ws memdb.WatchSet, service st
 			exists = true
 		}
 
-		// Ensure that blocking queries wake up if the gateway-service mapping exists, but the gateway does not exist yet
-		if !exists {
-			ws.Add(gwServices.WatchCh())
-		}
-
 		// This prevents the index from sliding back in case all instances of the service are deregistered
 		svcIdx := s.maxIndexForService(tx, mapping.Gateway.ID, exists, false, &mapping.Service.EnterpriseMeta)
 		if maxIdx < svcIdx {
 			maxIdx = svcIdx
 		}
+
+		// Ensure that blocking queries wake up if the gateway-service mapping exists, but the gateway does not exist yet
+		if !exists {
+			ws.Add(gwServices.WatchCh())
+
+			// Do not return this watch channel to the caller, since it has already been added to the WatchSet
+			continue
+		}
+		watchChans = append(watchChans, gwServices.WatchCh())
 	}
 	return maxIdx, ret, watchChans, nil
 }
