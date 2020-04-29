@@ -2151,6 +2151,11 @@ func TestStateStore_ConnectServiceNodes_Gateways(t *testing.T) {
 	assert.Nil(s.EnsureService(15, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
 	assert.True(watchFired(ws))
 
+	// Reset WatchSet to ensure watch fires when associating db with gateway
+	ws = memdb.NewWatchSet()
+	_, _, err = s.ConnectServiceNodes(ws, "db", nil)
+	assert.Nil(err)
+
 	// Associate gateway with db
 	assert.Nil(s.EnsureService(16, "bar", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway", Service: "gateway", Port: 443}))
 	assert.Nil(s.EnsureConfigEntry(17, &structs.TerminatingGatewayConfigEntry{
@@ -2190,10 +2195,16 @@ func TestStateStore_ConnectServiceNodes_Gateways(t *testing.T) {
 	assert.Nil(s.EnsureService(18, "foo", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway-2", Service: "gateway", Port: 443}))
 	assert.True(watchFired(ws))
 
+	// Reset WatchSet to ensure watch fires when deregistering gateway
+	ws = memdb.NewWatchSet()
+	_, _, err = s.ConnectServiceNodes(ws, "db", nil)
+	assert.Nil(err)
+
 	// Watch should fire when a gateway instance is de-registered
 	assert.Nil(s.DeleteService(19, "bar", "gateway", nil))
 	assert.True(watchFired(ws))
 
+	ws = memdb.NewWatchSet()
 	idx, nodes, err = s.ConnectServiceNodes(ws, "db", nil)
 	assert.Nil(err)
 	assert.Equal(idx, uint64(19))
@@ -3644,6 +3655,7 @@ func TestStateStore_CheckConnectServiceNodes_Gateways(t *testing.T) {
 	assert.Nil(s.EnsureService(22, "foo", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway-2", Service: "gateway", Port: 443}))
 	assert.True(watchFired(ws))
 
+	ws = memdb.NewWatchSet()
 	idx, nodes, err = s.CheckConnectServiceNodes(ws, "db", nil)
 	assert.Nil(err)
 	assert.Equal(idx, uint64(22))
@@ -3653,6 +3665,7 @@ func TestStateStore_CheckConnectServiceNodes_Gateways(t *testing.T) {
 	assert.Nil(s.DeleteService(23, "bar", "gateway", nil))
 	assert.True(watchFired(ws))
 
+	ws = memdb.NewWatchSet()
 	idx, nodes, err = s.CheckConnectServiceNodes(ws, "db", nil)
 	assert.Nil(err)
 	assert.Equal(idx, uint64(23))
@@ -4580,6 +4593,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 	assert.Nil(t, s.EnsureService(23, "bar", &structs.NodeService{ID: "redis", Service: "redis", Tags: nil, Address: "", Port: 6379}))
 	assert.True(t, watchFired(ws))
 
+	ws = memdb.NewWatchSet()
 	idx, out, err = s.GatewayServices(ws, "gateway", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(23))
@@ -4629,6 +4643,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 	assert.Nil(t, s.DeleteService(24, "bar", "redis", nil))
 	assert.True(t, watchFired(ws))
 
+	ws = memdb.NewWatchSet()
 	idx, out, err = s.GatewayServices(ws, "gateway", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(24))
@@ -4702,6 +4717,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 		},
 	}, nil))
 
+	ws = memdb.NewWatchSet()
 	idx, out, err = s.GatewayServices(ws, "gateway2", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(26))
@@ -4744,13 +4760,6 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 func TestStateStore_GatewayServices_ServiceDeletion(t *testing.T) {
 	s := testStateStore(t)
 
-	// Listing with no results returns an empty list.
-	ws := memdb.NewWatchSet()
-	idx, nodes, err := s.GatewayServices(ws, "gateway", nil)
-	assert.Nil(t, err)
-	assert.Equal(t, idx, uint64(0))
-	assert.Len(t, nodes, 0)
-
 	// Create some nodes
 	assert.Nil(t, s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
 	assert.Nil(t, s.EnsureNode(11, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
@@ -4763,6 +4772,13 @@ func TestStateStore_GatewayServices_ServiceDeletion(t *testing.T) {
 	// Register two gateways
 	assert.Nil(t, s.EnsureService(17, "bar", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway", Service: "gateway", Port: 443}))
 	assert.Nil(t, s.EnsureService(18, "baz", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "other-gateway", Service: "other-gateway", Port: 443}))
+
+	// Listing with no results returns an empty list.
+	ws := memdb.NewWatchSet()
+	idx, nodes, err := s.GatewayServices(ws, "gateway", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(0))
+	assert.Len(t, nodes, 0)
 
 	// Associate the first gateway with db
 	assert.Nil(t, s.EnsureConfigEntry(19, &structs.TerminatingGatewayConfigEntry{
@@ -4777,7 +4793,14 @@ func TestStateStore_GatewayServices_ServiceDeletion(t *testing.T) {
 	}, nil))
 	assert.True(t, watchFired(ws))
 
-	// Associate the other gateway with a wildcard
+	// Listing with no results returns an empty list.
+	otherWS := memdb.NewWatchSet()
+	idx, _, err = s.GatewayServices(otherWS, "other-gateway", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(19))
+	assert.Len(t, nodes, 0)
+
+	// Associate the second gateway with wildcard
 	assert.Nil(t, s.EnsureConfigEntry(20, &structs.TerminatingGatewayConfigEntry{
 		Kind: "terminating-gateway",
 		Name: "other-gateway",
@@ -4811,7 +4834,7 @@ func TestStateStore_GatewayServices_ServiceDeletion(t *testing.T) {
 	assert.Equal(t, expect, out)
 
 	// Read everything back for other gateway.
-	otherWS := memdb.NewWatchSet()
+	otherWS = memdb.NewWatchSet()
 	idx, out, err = s.GatewayServices(otherWS, "other-gateway", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(20))
@@ -4931,6 +4954,7 @@ func TestStateStore_CheckIngressServiceNodes(t *testing.T) {
 	})
 
 	t.Run("check service3 ingress gateway", func(t *testing.T) {
+		ws := memdb.NewWatchSet()
 		idx, results, err := s.CheckIngressServiceNodes(ws, "service3", nil)
 		require.NoError(err)
 		require.Equal(uint64(11), idx)
@@ -4941,6 +4965,7 @@ func TestStateStore_CheckIngressServiceNodes(t *testing.T) {
 	t.Run("delete a wildcard entry", func(t *testing.T) {
 		require.Nil(s.DeleteConfigEntry(19, "ingress-gateway", "wildcardIngress", nil))
 		require.True(watchFired(ws))
+
 		idx, results, err := s.CheckIngressServiceNodes(ws, "service1", nil)
 		require.NoError(err)
 		require.Equal(uint64(13), idx)
@@ -4996,6 +5021,7 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 	})
 
 	t.Run("wildcard gateway services", func(t *testing.T) {
+		ws = memdb.NewWatchSet()
 		idx, results, err := s.GatewayServices(ws, "wildcardIngress", nil)
 		require.NoError(err)
 		require.Equal(uint64(14), idx)
@@ -5014,6 +5040,8 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 	t.Run("deregistering a service", func(t *testing.T) {
 		require.Nil(s.DeleteService(18, "node1", "service1", nil))
 		require.True(watchFired(ws))
+
+		ws = memdb.NewWatchSet()
 		idx, results, err := s.GatewayServices(ws, "wildcardIngress", nil)
 		require.NoError(err)
 		require.Equal(uint64(18), idx)
@@ -5024,6 +5052,7 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 	// bug in DeleteService where we delete are entries associated
 	// to a service, not just an entry created by a wildcard.
 	// t.Run("check ingress2 gateway services again", func(t *testing.T) {
+	// 	ws = memdb.NewWatchSet()
 	// 	idx, results, err := s.GatewayServices(ws, "ingress2", nil)
 	// 	require.NoError(err)
 	// 	require.Equal(uint64(18), idx)
@@ -5036,6 +5065,8 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 	t.Run("deleting a wildcard config entry", func(t *testing.T) {
 		require.Nil(s.DeleteConfigEntry(19, "ingress-gateway", "wildcardIngress", nil))
 		require.True(watchFired(ws))
+
+		ws = memdb.NewWatchSet()
 		idx, results, err := s.GatewayServices(ws, "wildcardIngress", nil)
 		require.NoError(err)
 		require.Equal(uint64(19), idx)
@@ -5050,6 +5081,7 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 		}
 		require.Nil(s.EnsureConfigEntry(20, ingress1, nil))
 		require.True(watchFired(ws))
+
 		idx, results, err := s.GatewayServices(ws, "ingress1", nil)
 		require.NoError(err)
 		require.Equal(uint64(20), idx)
@@ -5136,7 +5168,6 @@ func setupIngressState(t *testing.T, s *Store) memdb.WatchSet {
 	testRegisterService(t, s, 10, "node2", "service3")
 
 	// Register some ingress config entries.
-
 	wildcardIngress := &structs.IngressGatewayConfigEntry{
 		Kind: "ingress-gateway",
 		Name: "wildcardIngress",
@@ -5154,7 +5185,6 @@ func setupIngressState(t *testing.T, s *Store) memdb.WatchSet {
 	}
 	assert.NoError(t, s.EnsureConfigEntry(11, wildcardIngress, nil))
 
-	assert.True(t, watchFired(ws))
 	ingress1 := &structs.IngressGatewayConfigEntry{
 		Kind: "ingress-gateway",
 		Name: "ingress1",
@@ -5180,7 +5210,6 @@ func setupIngressState(t *testing.T, s *Store) memdb.WatchSet {
 		},
 	}
 	assert.NoError(t, s.EnsureConfigEntry(12, ingress1, nil))
-	assert.True(t, watchFired(ws))
 
 	ingress2 := &structs.IngressGatewayConfigEntry{
 		Kind: "ingress-gateway",
@@ -5198,7 +5227,6 @@ func setupIngressState(t *testing.T, s *Store) memdb.WatchSet {
 		},
 	}
 	assert.NoError(t, s.EnsureConfigEntry(13, ingress2, nil))
-	assert.True(t, watchFired(ws))
 
 	nothingIngress := &structs.IngressGatewayConfigEntry{
 		Kind:      "ingress-gateway",
@@ -5206,7 +5234,6 @@ func setupIngressState(t *testing.T, s *Store) memdb.WatchSet {
 		Listeners: []structs.IngressListener{},
 	}
 	assert.NoError(t, s.EnsureConfigEntry(14, nothingIngress, nil))
-	assert.True(t, watchFired(ws))
 
 	return ws
 }
