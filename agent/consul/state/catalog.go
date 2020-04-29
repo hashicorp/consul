@@ -2751,9 +2751,6 @@ func (s *Store) serviceGatewayNodes(tx *memdb.Txn, ws memdb.WatchSet, service st
 		// Ensure that blocking queries wake up if the gateway-service mapping exists, but the gateway does not exist yet
 		if !exists {
 			ws.Add(gwServices.WatchCh())
-
-			// Do not return this watch channel to the caller, since it has already been added to the WatchSet
-			continue
 		}
 	}
 	return maxIdx, ret, nil
