@@ -22,8 +22,13 @@ load helpers
    assert_upstream_has_endpoints_in_status 127.0.0.1:20000 s1 HEALTHY 1
 }
 
-@test "ingress should be able to connect to s1 via configured port" {
-  run retry_default curl -s -f -d hello localhost:9999
+@test "should be able to connect to s1 through the TLS-enabled ingress port" {
+  assert_dnssan_in_cert localhost:9999 '\*.ingress.consul'
+  # Use the --resolve argument to fake dns resolution for now so we can use the
+  # s1.ingress.consul domain to validate the cert
+  run retry_default curl --cacert <(get_ca_root) -s -f -d hello \
+    --resolve s1.ingress.consul:9999:127.0.0.1 \
+    https://s1.ingress.consul:9999
   [ "$status" -eq 0 ]
   [ "$output" = "hello" ]
 }

@@ -100,7 +100,7 @@ function is_set {
 
 function get_cert {
   local HOSTPORT=$1
-  CERT=$(openssl s_client -connect $HOSTPORT -showcerts )
+  CERT=$(openssl s_client -connect $HOSTPORT -showcerts </dev/null)
   openssl x509 -noout -text <<< "$CERT"
 }
 
@@ -118,6 +118,19 @@ function assert_proxy_presents_cert_uri {
   echo "$CERT"
 
   echo "$CERT" | grep -Eo "URI:spiffe://([a-zA-Z0-9-]+).consul/ns/${NS}/dc/${DC}/svc/$SERVICENAME"
+}
+
+function assert_dnssan_in_cert {
+  local HOSTPORT=$1
+  local DNSSAN=$2
+
+  CERT=$(retry_default get_cert $HOSTPORT)
+
+  echo "WANT DNSSAN: ${DNSSAN}"
+  echo "GOT CERT:"
+  echo "$CERT"
+
+  echo "$CERT" | grep -Eo "DNS:${DNSSAN}"
 }
 
 function assert_envoy_version {
@@ -617,6 +630,10 @@ function update_intention {
 
   curl -s -X PUT "http://localhost:8500/v1/connect/intentions/${id}" -d "${updated}"
   return $?
+}
+
+function get_ca_root {
+  curl -s -f "http://localhost:8500/v1/connect/ca/roots" | jq -r ".Roots[0].RootCert"
 }
 
 function wait_for_agent_service_register {

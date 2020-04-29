@@ -5,6 +5,10 @@ config_entries {
     kind = "ingress-gateway"
     name = "ingress-gateway"
 
+    tls {
+      enabled = true
+    }
+
     listeners = [
       {
         port = 9999
