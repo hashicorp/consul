@@ -47,4 +47,4 @@ The steps that need to occur for an Ingress Gateway to proxy traffic to services
 1. Run an envoy proxy using the [envoy subcommand](/docs/commands/connect/envoy), specifying the `ingress` gateway type.
 2. Create an `ingress-gateway` [configuration entry](/docs/agent/config-entries/ingress-gateway) that defines a set of listeners that expose the desired backing services.
 3. Ensure that [intentions](/docs/connect/intentions) are setup between the ingress gateway service and the backing services.
-4. **Optionally** use the `<service>.ingress.<domain>` [DNS subdomain](/docs/agent/dns#ingress-service-lookups) to send requests through the ingress gateway
+4. **Optionally** use the `<service>.ingress.<domain>` [DNS subdomain](/docs/agent/dns#ingress-service-lookups) to discover the ingress gateways for a service.
