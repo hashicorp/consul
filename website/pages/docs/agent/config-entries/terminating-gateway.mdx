@@ -27,12 +27,11 @@ description: >-
 
 ## Sample Config Entries
 
-Link a gateway with the billing service:
+Link gateway "us-west-gateway" with the billing service:
 
 ```hcl
 Kind = "terminating-gateway"
 Name = "us-west-gateway"
-Namespace = "default"
 Services = [
   {
     Name = "billing"
@@ -40,8 +39,8 @@ Services = [
 ]
 ```
 
-Link a gateway with all services in the pci namespace, and verify destination
-service certificates with a CA file for one-way TLS authentication:
+Link gateway "us-west-gateway" with all services in the pci namespace,
+and specify a CA file for one-way TLS authentication:
 
 ```hcl
 Kind = "terminating-gateway"
@@ -56,24 +55,44 @@ Services = [
 ]
 ```
 
-Link a gateway with all services in the finance namespace, and configure default certificates for mutual TLS.
+Link gateway "us-west-gateway" with all services in the pci namespace, 
+and specify a CA file, key file, and cert file for mutual TLS authentication:
+
+```hcl
+Kind = "terminating-gateway"
+Name = "us-west-gateway"
+Namespace = "default"
+Services = [
+  {
+    Namespace = "pci"
+    Name      = "*"
+    CAFile    = "/etc/certs/ca-chain.cert.pem"
+    KeyFile   = "/etc/certs/gateway.key.pem"
+    CertFile  = "/etc/certs/gateway.cert.pem"
+  }
+]
+```
+
+Link gateway "us-west-gateway" with all services in the finance namespace, and configure default certificates for mutual TLS.
 Also override the SNI and CA file used for connections to the billing service:
 
 ```hcl
 Kind = "terminating-gateway"
 Name = "us-west-gateway"
-Namespace = "finance"
+Namespace = "default"
 Services = [
   {
-    Name     = "*"
-    CAFile   = "/etc/common-certs/ca-chain.cert.pem"
-    KeyFile  = "/etc/common-certs/gateway.key.pem"
-    CertFile = "/etc/common-certs/gateway.cert.pem"
+    Namespace = "finance"
+    Name      = "*"
+    CAFile    = "/etc/common-certs/ca-chain.cert.pem"
+    KeyFile   = "/etc/common-certs/gateway.key.pem"
+    CertFile  = "/etc/common-certs/gateway.cert.pem"
   },
   {
-    Name   = "billing"
-    CAFile = "/etc/billing-ca/ca-chain.cert.pem"
-    SNI    = "billing.service.com"
+    Namespace = "finance"
+    Name      = "billing"
+    CAFile    = "/etc/billing-ca/ca-chain.cert.pem"
+    SNI       = "billing.service.com"
   }
 ]
 ```
@@ -84,9 +103,10 @@ Services = [
 
 - `Name` `(string: <required>)` - Set to the name of the gateway being configured.
 
-- `Namespace` `(string: "default")` - <EnterpriseAlert inline /> Specifies the namespace 
-    the config entry will apply to. If omitted, the namespace will be inherited from [the 
-    request](/api/config#ns) or will default to the `default` namespace.
+- `Namespace` `(string: "default")` - <EnterpriseAlert inline /> Specifies the namespace
+    the config entry will apply to. This must be the namespace the gateway is registered in.
+    If omitted, the namespace will be inherited from [the request](/api/config#ns)
+    or will default to the `default` namespace.
 
 - `Services` `(array<LinkedService>: <optional>)` - A list of services to link
     with the gateway. The gateway will proxy traffic to these services. These linked services
