@@ -2,9 +2,11 @@ package xds
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoyroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/gogo/protobuf/types"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
@@ -171,6 +173,8 @@ type UpstreamConfig struct {
 type LoadBalancer struct {
 	Policy         string
 	RingHashConfig RingHashConfig `mapstructure:"ring_hash"`
+
+	HashPolicies []HashPolicy `mapstructure:"hash_policies"`
 }
 
 // ApplyLbConfig to the envoy.Cluster, configured using the values in LoadBalancer.
@@ -204,9 +208,55 @@ func (l LoadBalancer) ApplyToCluster(c *envoy.Cluster) error {
 	return nil
 }
 
+func (l LoadBalancer) ApplyHashPolicyToRouteAction(c *envoyroute.RouteAction) error {
+	switch l.Policy {
+	case "ring_hash", "maglev":
+	default:
+		return nil
+	}
+
+	result := make([]*envoyroute.RouteAction_HashPolicy, 0, len(l.HashPolicies))
+	for _, policy := range l.HashPolicies {
+		switch policy.Field {
+		case "header":
+			result = append(result, &envoyroute.RouteAction_HashPolicy{
+				PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Header_{
+					Header: &envoyroute.RouteAction_HashPolicy_Header{
+						HeaderName: policy.MatchValue,
+					},
+				},
+				Terminal: policy.Terminal,
+			})
+		case "connection_property_source_ip":
+			v, err := strconv.ParseBool(policy.MatchValue)
+			if err != nil {
+				return fmt.Errorf("load balancer hash policy match value for connection_property_source_ip must be true/false, not: %v", policy.MatchValue)
+			}
+			result = append(result, &envoyroute.RouteAction_HashPolicy{
+				PolicySpecifier: &envoyroute.RouteAction_HashPolicy_ConnectionProperties_{
+					ConnectionProperties: &envoyroute.RouteAction_HashPolicy_ConnectionProperties{
+						SourceIp: v,
+					},
+				},
+				Terminal: policy.Terminal,
+			})
+		default:
+			return fmt.Errorf("unsupported load balancer hash policy field: %v", policy.Field)
+		}
+	}
+	c.HashPolicy = result
+	return nil
+}
+
 type RingHashConfig struct {
 	MinimumRingSize uint64
 	MaximumRingSize uint64
+}
+
+type HashPolicy struct {
+	Field      string
+	MatchValue string
+	Terminal   bool
 }
 
 func ParseUpstreamConfigNoDefaults(m map[string]interface{}) (UpstreamConfig, error) {

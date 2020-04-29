@@ -73,6 +73,12 @@ func makeUpstreamRouteForDiscoveryChain(
 		panic("missing first node in compiled discovery chain for: " + chain.ServiceName)
 	}
 
+	cfg, err := ParseUpstreamConfig(u.Config)
+	if err != nil {
+		// TODO: ok to fatal error?
+		return nil, err
+	}
+
 	switch startNode.Type {
 	case structs.DiscoveryGraphNodeTypeRouter:
 		routes = make([]envoyroute.Route, 0, len(startNode.Routes))
@@ -135,6 +141,10 @@ func makeUpstreamRouteForDiscoveryChain(
 				}
 			}
 
+			if err := cfg.LoadBalancer.ApplyHashPolicyToRouteAction(routeAction.Route); err != nil {
+				return nil, err
+			}
+
 			routes = append(routes, envoyroute.Route{
 				Match:  routeMatch,
 				Action: routeAction,
@@ -144,6 +154,9 @@ func makeUpstreamRouteForDiscoveryChain(
 	case structs.DiscoveryGraphNodeTypeSplitter:
 		routeAction, err := makeRouteActionForSplitter(startNode.Splits, chain)
 		if err != nil {
+			return nil, err
+		}
+		if err := cfg.LoadBalancer.ApplyHashPolicyToRouteAction(routeAction.Route); err != nil {
 			return nil, err
 		}
 
@@ -156,6 +169,9 @@ func makeUpstreamRouteForDiscoveryChain(
 
 	case structs.DiscoveryGraphNodeTypeResolver:
 		routeAction := makeRouteActionForSingleCluster(startNode.Resolver.Target, chain)
+		if err := cfg.LoadBalancer.ApplyHashPolicyToRouteAction(routeAction.Route); err != nil {
+			return nil, err
+		}
 
 		defaultRoute := envoyroute.Route{
 			Match:  makeDefaultRouteMatch(),
@@ -171,7 +187,7 @@ func makeUpstreamRouteForDiscoveryChain(
 	return &envoy.RouteConfiguration{
 		Name: routeName,
 		VirtualHosts: []envoyroute.VirtualHost{
-			envoyroute.VirtualHost{
+			{
 				Name:    routeName,
 				Domains: []string{"*"},
 				Routes:  routes,
@@ -308,7 +324,6 @@ func makeRouteActionForSingleCluster(targetID string, chain *structs.CompiledDis
 	return &envoyroute.Route_Route{
 		Route: &envoyroute.RouteAction{
 			ClusterSpecifier: &envoyroute.RouteAction_Cluster{Cluster: clusterName},
-			// TODO: HashPolicy:
 		},
 	}
 }
@@ -345,7 +360,6 @@ func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, chain *structs
 					TotalWeight: makeUint32Value(10000), // scaled up 100%
 				},
 			},
-			// TODO: HashPolicy:
 		},
 	}, nil
 }
