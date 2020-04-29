@@ -186,7 +186,7 @@ func NewClientLogger(config *Config, logger hclog.InterceptLogger, tlsConfigurat
 	}
 
 	// Start maintenance task for servers
-	c.routers = router.New(c.logger, c.shutdownCh, c.serf, c.connPool)
+	c.routers = router.New(c.logger, c.shutdownCh, c.serf, c.connPool, "")
 	go c.routers.Start()
 
 	// Start LAN event handlers after the router is complete since the event

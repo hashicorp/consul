@@ -26,6 +26,10 @@ type Router struct {
 	// used to short-circuit RTT calculations for local servers.
 	localDatacenter string
 
+	// serverName has the name of the router's server. This is used to
+	// short-circuit pinging to itself.
+	serverName string
+
 	// areas maps area IDs to structures holding information about that
 	// area.
 	areas map[types.AreaID]*areaInfo
@@ -83,7 +87,7 @@ type areaInfo struct {
 }
 
 // NewRouter returns a new Router with the given configuration.
-func NewRouter(logger hclog.Logger, localDatacenter string) *Router {
+func NewRouter(logger hclog.Logger, localDatacenter, serverName string) *Router {
 	if logger == nil {
 		logger = hclog.New(&hclog.LoggerOptions{})
 	}
@@ -91,6 +95,7 @@ func NewRouter(logger hclog.Logger, localDatacenter string) *Router {
 	router := &Router{
 		logger:          logger.Named(logging.Router),
 		localDatacenter: localDatacenter,
+		serverName:      serverName,
 		areas:           make(map[types.AreaID]*areaInfo),
 		managers:        make(map[string][]*Manager),
 	}
@@ -120,7 +125,7 @@ func (r *Router) Shutdown() {
 }
 
 // AddArea registers a new network area with the router.
-func (r *Router) AddArea(areaID types.AreaID, cluster RouterSerfCluster, pinger Pinger, useTLS bool) error {
+func (r *Router) AddArea(areaID types.AreaID, cluster RouterSerfCluster, pinger Pinger) error {
 	r.Lock()
 	defer r.Unlock()
 
@@ -136,7 +141,6 @@ func (r *Router) AddArea(areaID types.AreaID, cluster RouterSerfCluster, pinger 
 		cluster:  cluster,
 		pinger:   pinger,
 		managers: make(map[string]*managerInfo),
-		useTLS:   useTLS,
 	}
 	r.areas[areaID] = area
 
@@ -159,6 +163,23 @@ func (r *Router) AddArea(areaID types.AreaID, cluster RouterSerfCluster, pinger 
 		}
 	}
 
+	return nil
+}
+
+// GetServerMetadataByAddr returns server metadata by dc and address. If it
+// didn't find anything, nil is returned.
+func (r *Router) GetServerMetadataByAddr(dc, addr string) *metadata.Server {
+	r.RLock()
+	defer r.RUnlock()
+	if ms, ok := r.managers[dc]; ok {
+		for _, m := range ms {
+			for _, s := range m.getServerList().servers {
+				if s.Addr.String() == addr {
+					return s
+				}
+			}
+		}
+	}
 	return nil
 }
 
@@ -219,7 +240,7 @@ func (r *Router) addServer(area *areaInfo, s *metadata.Server) error {
 	info, ok := area.managers[s.Datacenter]
 	if !ok {
 		shutdownCh := make(chan struct{})
-		manager := New(r.logger, shutdownCh, area.cluster, area.pinger)
+		manager := New(r.logger, shutdownCh, area.cluster, area.pinger, r.serverName)
 		info = &managerInfo{
 			manager:    manager,
 			shutdownCh: shutdownCh,

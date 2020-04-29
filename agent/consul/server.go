@@ -391,7 +391,7 @@ func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token
 		loggers:                 loggers,
 		leaveCh:                 make(chan struct{}),
 		reconcileCh:             make(chan serf.Member, reconcileChSize),
-		router:                  router.NewRouter(serverLogger, config.Datacenter),
+		router:                  router.NewRouter(serverLogger, config.Datacenter, fmt.Sprintf("%s.%s", config.NodeName, config.Datacenter)),
 		rpcServer:               rpc.NewServer(),
 		insecureRPCServer:       rpc.NewServer(),
 		tlsConfigurator:         tlsConfigurator,
@@ -551,7 +551,7 @@ func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token
 
 	// Add a "static route" to the WAN Serf and hook it up to Serf events.
 	if s.serfWAN != nil {
-		if err := s.router.AddArea(types.AreaWAN, s.serfWAN, s.connPool, s.config.VerifyOutgoing); err != nil {
+		if err := s.router.AddArea(types.AreaWAN, s.serfWAN, s.connPool); err != nil {
 			s.Shutdown()
 			return nil, fmt.Errorf("Failed to add WAN serf route: %v", err)
 		}
@@ -1361,6 +1361,7 @@ func (s *Server) ReloadConfig(config *Config) error {
 		// this will error if we lose leadership while bootstrapping here.
 		return s.bootstrapConfigEntries(config.ConfigEntryBootstrap)
 	}
+
 	return nil
 }
 
