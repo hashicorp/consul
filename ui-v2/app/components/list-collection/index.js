@@ -47,7 +47,7 @@ export default Component.extend(WithResizing, {
   },
   actions: {
     click: function(e) {
-      return this.dom.clickFirstAnchor(e, 'li');
+      return this.dom.clickFirstAnchor(e, '.list-collection > ul > li');
     },
   },
 });
