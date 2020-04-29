@@ -21,15 +21,23 @@ export default function(config = {}, win = window, doc = document) {
     }
   };
   const scripts = doc.getElementsByTagName('script');
+  // we use the currently executing script as a reference
+  // to figure out where we are for other things such as
+  // base url, api url etc
   const currentSrc = scripts[scripts.length - 1].src;
   let resource;
-
-  // TODO: Look to see if we can pull in HTTP headers here
-  // so we can let things be controlled via HTTP proxies, for example
-  // turning off blocking queries if its a busy cluster etc
+  // TODO: Potentially use ui_config {}, for example
+  // turning off blocking queries if its a busy cluster
+  // forcing/providing amount of possible HTTP connections
+  // re-setting the base url for the API etc
   const operator = function(str, env) {
     let protocol;
     switch (str) {
+      case 'CONSUL_BASE_UI_URL':
+        return currentSrc
+          .split('/')
+          .slice(0, -2)
+          .join('/');
       case 'CONSUL_HTTP_PROTOCOL':
         if (typeof resource === 'undefined') {
           // resource needs to be retrieved lazily as entries aren't guaranteed
@@ -99,6 +107,7 @@ export default function(config = {}, win = window, doc = document) {
         // these are strings
         return user(str) || ui(str);
 
+      case 'CONSUL_BASE_UI_URL':
       case 'CONSUL_HTTP_PROTOCOL':
       case 'CONSUL_HTTP_MAX_CONNECTIONS':
         // We allow the operator to set these ones via various methods
