@@ -70,7 +70,7 @@
 {{/if}}
 <div>
 {{#if loading}}
-    {{partial 'consul-loading'}}
+    <ConsulLoader />
 {{else}}
     {{#if (not enabled) }}
       <YieldSlot @name="disabled">{{yield}}</YieldSlot>
