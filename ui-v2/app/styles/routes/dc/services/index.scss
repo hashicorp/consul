@@ -1,0 +1,30 @@
+.proxy-upstreams-list {
+  @extend %proxy-upstreams-list;
+}
+%proxy-upstreams-list > li {
+  @extend %composite-row;
+  cursor: default;
+}
+%proxy-upstreams-list > li:hover {
+  box-shadow: none;
+  border-top-color: $gray-200;
+  border-bottom-color: transparent;
+  border-right-color: transparent;
+  border-left-color: transparent;
+}
+%proxy-upstreams-list > li:last-child:hover {
+  border-bottom-color: $gray-200;
+}
+.proxy-exposed-paths-table tbody tr {
+  @extend %proxy-exposed-paths-row;
+  cursor: default !important;
+}
+%proxy-exposed-paths-row:hover {
+  box-shadow: none !important;
+}
+%proxy-exposed-paths-row .combined-address > div {
+  display: inline;
+}
+%proxy-exposed-paths-row .combined-address > div button:hover {
+  background-color: transparent !important;
+}

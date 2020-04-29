@@ -53,3 +53,7 @@
   @extend %with-swap-horizontal-mask, %as-pseudo;
   background-color: $gray-500;
 }
+%composite-row .datacenter::before {
+  @extend %with-user-organization-mask, %as-pseudo;
+  background-color: $gray-500;
+}

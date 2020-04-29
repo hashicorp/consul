@@ -16,9 +16,15 @@
   padding-top: 13px;
   padding-bottom: 13px;
 }
-%tab-section section h3 {
-  margin: 24px 0;
+%tab-section section {
+  padding-bottom: 24px;
 }
 %tab-section section:not(:last-child) {
   border-bottom: 1px solid $gray-200;
+}
+%tab-section section p {
+  @extend %p1;
+}
+%tab-section section > h3 {
+  margin: 24px 0;
 }

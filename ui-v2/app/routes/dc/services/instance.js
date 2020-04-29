@@ -16,12 +16,25 @@ export default Route.extend({
       // its highly unlikely that a service will suddenly change to being a
       // connect-proxy or vice versa so leave as is for now
       return hash({
-        proxy:
+        proxyMeta:
           // proxies and mesh-gateways can't have proxies themselves so don't even look
-          ['connect-proxy', 'mesh-gateway'].includes(get(model.item, 'Kind'))
+          ['connect-proxy'].includes(get(model.item, 'Kind'))
             ? null
             : this.proxyRepo.findInstanceBySlug(params.id, params.node, params.name, dc, nspace),
         ...model,
+      }).then(model => {
+        if (get(model, 'proxyMeta.ServiceID') === undefined) {
+          return model;
+        }
+        const proxyName = get(model, 'proxyMeta.ServiceName');
+        const proxyID = get(model, 'proxyMeta.ServiceID');
+        const proxyNode = get(model, 'proxyMeta.Node');
+        return hash({
+          // Proxies have identical dc/nspace as their parent instance
+          // No need to use Proxy's dc/nspace response
+          proxy: this.repo.findInstanceBySlug(proxyID, proxyNode, proxyName, dc, nspace),
+          ...model,
+        });
       });
     });
   },

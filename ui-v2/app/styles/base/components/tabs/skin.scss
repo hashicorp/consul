@@ -4,6 +4,9 @@
   /* TODO: structure tabs don't actually have a top border */
   border-top: $decor-border-200;
 }
+%tab-nav .with-title-bar {
+  border-top: 0;
+}
 %tab-nav {
   /* %frame-gray-something */
   border-color: $gray-200;
