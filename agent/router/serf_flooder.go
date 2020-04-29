@@ -56,10 +56,6 @@ func FloodJoins(logger hclog.Logger, addrFn FloodAddrFn,
 			continue
 		}
 
-		// TODO make RPC
-
-		// TODO refactor into one function:
-
 		addr, err := addrFn(server)
 		if err != nil {
 			logger.Debug("Failed to flood-join server", "server",
@@ -68,39 +64,6 @@ func FloodJoins(logger hclog.Logger, addrFn FloodAddrFn,
 			)
 			continue
 		}
-		// // We can't use the port number from the src Serf, so we just
-		// // get the host part.
-		// addr, _, err := net.SplitHostPort(server.Addr.String())
-		// if err != nil {
-		// 	logger.Debug("Failed to flood-join server (bad address)",
-		// 		"server", server.Name,
-		// 		"address", server.Addr.String(),
-		// 		"error", err,
-		// 	)
-		// }
-		// if addrFn != nil {
-		// 	if a, ok := addrFn(server); ok {
-		// 		addr = a
-		// 	}
-		// }
-
-		// // Let the callback see if it can get the port number, otherwise
-		// // leave it blank to behave as if we just supplied an address.
-		// if port, ok := portFn(server); ok {
-		// 	addr = net.JoinHostPort(addr, fmt.Sprintf("%d", port))
-		// } else {
-		// 	// If we have an IPv6 address, we should add brackets,
-		// 	// single dstSerf.Join expects that.
-		// 	if ip := net.ParseIP(addr); ip != nil {
-		// 		if ip.To4() == nil {
-		// 			addr = fmt.Sprintf("[%s]", addr)
-		// 		}
-		// 	} else {
-		// 		logger.Debug("Failed to parse IP", "ip", addr)
-		// 	}
-		// }
-
-		// end refactor
 
 		dstServerName := fmt.Sprintf("%s.%s", server.Name, server.Datacenter)
 
