@@ -21,13 +21,14 @@ to a set of backing
 [services](/docs/agent/config-entries/ingress-gateway#services).
 
 Depending on the
-[protocol](/docs/agent/config-entries/ingress-gateway#services) defined for a
+[protocol](/docs/agent/config-entries/ingress-gateway#protocol) defined for a
 listener, multiple services can be specified for a single listener. In this
 case, the ingress gateway relies on host/authority headers to decide the
 service that should receive the traffic.
 
 To enable easier service discovery, a new Consul [DNS
-subdomain](/docs/agent/dns#ingress-service-lookups) is provided, on `.ingress`.
+subdomain](/docs/agent/dns#ingress-service-lookups) is provided, on
+`<service>.ingress.<domain>`.
 
 ## Prerequisites
 
