@@ -120,6 +120,22 @@ func BuildRequestBody(opts interface{}, parent string) (map[string]interface{}, 
 				continue
 			}
 
+			if v.Kind() == reflect.Slice || (v.Kind() == reflect.Ptr && v.Elem().Kind() == reflect.Slice) {
+				sliceValue := v
+				if sliceValue.Kind() == reflect.Ptr {
+					sliceValue = sliceValue.Elem()
+				}
+
+				for i := 0; i < sliceValue.Len(); i++ {
+					element := sliceValue.Index(i)
+					if element.Kind() == reflect.Struct || (element.Kind() == reflect.Ptr && element.Elem().Kind() == reflect.Struct) {
+						_, err := BuildRequestBody(element.Interface(), "")
+						if err != nil {
+							return nil, err
+						}
+					}
+				}
+			}
 			if v.Kind() == reflect.Struct || (v.Kind() == reflect.Ptr && v.Elem().Kind() == reflect.Struct) {
 				if zero {
 					//fmt.Printf("value before change: %+v\n", optsValue.Field(i))

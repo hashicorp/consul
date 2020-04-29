@@ -122,6 +122,11 @@ type ErrDefault408 struct {
 	ErrUnexpectedResponseCode
 }
 
+// ErrDefault409 is the default error type returned on a 409 HTTP response code.
+type ErrDefault409 struct {
+	ErrUnexpectedResponseCode
+}
+
 // ErrDefault429 is the default error type returned on a 429 HTTP response code.
 type ErrDefault429 struct {
 	ErrUnexpectedResponseCode
@@ -209,6 +214,12 @@ type Err405er interface {
 // from a 408 error.
 type Err408er interface {
 	Error408(ErrUnexpectedResponseCode) error
+}
+
+// Err409er is the interface resource error types implement to override the error message
+// from a 409 error.
+type Err409er interface {
+	Error409(ErrUnexpectedResponseCode) error
 }
 
 // Err429er is the interface resource error types implement to override the error message
@@ -450,4 +461,11 @@ type ErrScopeEmpty struct{ BaseError }
 
 func (e ErrScopeEmpty) Error() string {
 	return "You must provide either a Project or Domain in a Scope"
+}
+
+// ErrAppCredMissingSecret indicates that no Application Credential Secret was provided with Application Credential ID or Name
+type ErrAppCredMissingSecret struct{ BaseError }
+
+func (e ErrAppCredMissingSecret) Error() string {
+	return "You must provide an Application Credential Secret"
 }

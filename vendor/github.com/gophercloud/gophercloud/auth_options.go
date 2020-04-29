@@ -84,6 +84,12 @@ type AuthOptions struct {
 
 	// Scope determines the scoping of the authentication request.
 	Scope *AuthScope `json:"-"`
+
+	// Authentication through Application Credentials requires supplying name, project and secret
+	// For project we can use TenantID
+	ApplicationCredentialID     string `json:"-"`
+	ApplicationCredentialName   string `json:"-"`
+	ApplicationCredentialSecret string `json:"-"`
 }
 
 // AuthScope allows a created token to be limited to a specific domain or project.
@@ -142,7 +148,7 @@ func (opts *AuthOptions) ToTokenV3CreateMap(scope map[string]interface{}) (map[s
 	type userReq struct {
 		ID       *string    `json:"id,omitempty"`
 		Name     *string    `json:"name,omitempty"`
-		Password string     `json:"password"`
+		Password string     `json:"password,omitempty"`
 		Domain   *domainReq `json:"domain,omitempty"`
 	}
 
@@ -154,10 +160,18 @@ func (opts *AuthOptions) ToTokenV3CreateMap(scope map[string]interface{}) (map[s
 		ID string `json:"id"`
 	}
 
+	type applicationCredentialReq struct {
+		ID     *string  `json:"id,omitempty"`
+		Name   *string  `json:"name,omitempty"`
+		User   *userReq `json:"user,omitempty"`
+		Secret *string  `json:"secret,omitempty"`
+	}
+
 	type identityReq struct {
-		Methods  []string     `json:"methods"`
-		Password *passwordReq `json:"password,omitempty"`
-		Token    *tokenReq    `json:"token,omitempty"`
+		Methods               []string                  `json:"methods"`
+		Password              *passwordReq              `json:"password,omitempty"`
+		Token                 *tokenReq                 `json:"token,omitempty"`
+		ApplicationCredential *applicationCredentialReq `json:"application_credential,omitempty"`
 	}
 
 	type authReq struct {
@@ -194,8 +208,68 @@ func (opts *AuthOptions) ToTokenV3CreateMap(scope map[string]interface{}) (map[s
 			req.Auth.Identity.Token = &tokenReq{
 				ID: opts.TokenID,
 			}
+
+		} else if opts.ApplicationCredentialID != "" {
+			// Configure the request for ApplicationCredentialID authentication.
+			// https://github.com/openstack/keystoneauth/blob/stable/rocky/keystoneauth1/identity/v3/application_credential.py#L48-L67
+			// There are three kinds of possible application_credential requests
+			// 1. application_credential id + secret
+			// 2. application_credential name + secret + user_id
+			// 3. application_credential name + secret + username + domain_id / domain_name
+			if opts.ApplicationCredentialSecret == "" {
+				return nil, ErrAppCredMissingSecret{}
+			}
+			req.Auth.Identity.Methods = []string{"application_credential"}
+			req.Auth.Identity.ApplicationCredential = &applicationCredentialReq{
+				ID:     &opts.ApplicationCredentialID,
+				Secret: &opts.ApplicationCredentialSecret,
+			}
+		} else if opts.ApplicationCredentialName != "" {
+			if opts.ApplicationCredentialSecret == "" {
+				return nil, ErrAppCredMissingSecret{}
+			}
+
+			var userRequest *userReq
+
+			if opts.UserID != "" {
+				// UserID could be used without the domain information
+				userRequest = &userReq{
+					ID: &opts.UserID,
+				}
+			}
+
+			if userRequest == nil && opts.Username == "" {
+				// Make sure that Username or UserID are provided
+				return nil, ErrUsernameOrUserID{}
+			}
+
+			if userRequest == nil && opts.DomainID != "" {
+				userRequest = &userReq{
+					Name:   &opts.Username,
+					Domain: &domainReq{ID: &opts.DomainID},
+				}
+			}
+
+			if userRequest == nil && opts.DomainName != "" {
+				userRequest = &userReq{
+					Name:   &opts.Username,
+					Domain: &domainReq{Name: &opts.DomainName},
+				}
+			}
+
+			// Make sure that DomainID or DomainName are provided among Username
+			if userRequest == nil {
+				return nil, ErrDomainIDOrDomainName{}
+			}
+
+			req.Auth.Identity.Methods = []string{"application_credential"}
+			req.Auth.Identity.ApplicationCredential = &applicationCredentialReq{
+				Name:   &opts.ApplicationCredentialName,
+				User:   userRequest,
+				Secret: &opts.ApplicationCredentialSecret,
+			}
 		} else {
-			// If no password or token ID are available, authentication can't continue.
+			// If no password or token ID or ApplicationCredential are available, authentication can't continue.
 			return nil, ErrMissingPassword{}
 		}
 	} else {
