@@ -38,12 +38,6 @@ export default function(config = {}, win = window, doc = document) {
           .split('/')
           .slice(0, -2)
           .join('/');
-      case 'CONSUL_BASE_API_URL':
-        return currentSrc
-          .split('/')
-          .slice(0, -3)
-          .concat('v1')
-          .join('/');
       case 'CONSUL_HTTP_PROTOCOL':
         if (typeof resource === 'undefined') {
           // resource needs to be retrieved lazily as entries aren't guaranteed
@@ -114,7 +108,6 @@ export default function(config = {}, win = window, doc = document) {
         return user(str) || ui(str);
 
       case 'CONSUL_BASE_UI_URL':
-      case 'CONSUL_BASE_API_URL':
       case 'CONSUL_HTTP_PROTOCOL':
       case 'CONSUL_HTTP_MAX_CONNECTIONS':
         // We allow the operator to set these ones via various methods
