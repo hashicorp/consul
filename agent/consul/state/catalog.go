@@ -1000,6 +1000,31 @@ func (s *Store) maxIndexAndWatchChForService(tx *memdb.Txn, serviceName string, 
 	return s.catalogMaxIndex(tx, entMeta, checks), nil
 }
 
+// Wrapper for maxIndexAndWatchChForService that operates on a list of ServiceNodes
+func (s *Store) maxIndexAndWatchChsForServiceNodes(tx *memdb.Txn,
+	nodes structs.ServiceNodes, watchChecks bool, entMeta *structs.EnterpriseMeta) (uint64, []<-chan struct{}) {
+
+	var watchChans []<-chan struct{}
+	var maxIdx uint64
+
+	seen := make(map[string]bool)
+	for i := 0; i < len(nodes); i++ {
+		svc := nodes[i].ServiceName
+		if ok := seen[svc]; !ok {
+			idx, svcCh := s.maxIndexAndWatchChForService(tx, svc, true, watchChecks, entMeta)
+			if idx > maxIdx {
+				maxIdx = idx
+			}
+			if svcCh != nil {
+				watchChans = append(watchChans, svcCh)
+			}
+			seen[svc] = true
+		}
+	}
+
+	return maxIdx, watchChans
+}
+
 // ConnectServiceNodes returns the nodes associated with a Connect
 // compatible destination for the given service name. This will include
 // both proxies and native integrations.
@@ -1040,7 +1065,7 @@ func (s *Store) serviceNodes(ws memdb.WatchSet, serviceName string, connect bool
 	var idx uint64
 	if connect {
 		// Look up gateway nodes associated with the service
-		gwIdx, nodes, chs, err := s.serviceGatewayNodes(tx, ws, serviceName, structs.ServiceKindTerminatingGateway, entMeta)
+		gwIdx, nodes, err := s.serviceGatewayNodes(tx, ws, serviceName, structs.ServiceKindTerminatingGateway, entMeta)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed gateway nodes lookup: %v", err)
 		}
@@ -1048,9 +1073,15 @@ func (s *Store) serviceNodes(ws memdb.WatchSet, serviceName string, connect bool
 			idx = gwIdx
 		}
 
-		for _, ch := range chs {
+		// Watch for index changes to the gateway nodes
+		svcIdx, chans := s.maxIndexAndWatchChsForServiceNodes(tx, nodes, false, entMeta)
+		if svcIdx > idx {
+			idx = svcIdx
+		}
+		for _, ch := range chans {
 			ws.Add(ch)
 		}
+
 		for i := 0; i < len(nodes); i++ {
 			results = append(results, nodes[i])
 		}
@@ -1963,15 +1994,19 @@ func (s *Store) CheckConnectServiceNodes(ws memdb.WatchSet, serviceName string, 
 func (s *Store) CheckIngressServiceNodes(ws memdb.WatchSet, serviceName string, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	maxIdx, nodes, watchChs, err := s.serviceGatewayNodes(tx, ws, serviceName, structs.ServiceKindIngressGateway, entMeta)
+
+	maxIdx, nodes, err := s.serviceGatewayNodes(tx, ws, serviceName, structs.ServiceKindIngressGateway, entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed gateway nodes lookup: %v", err)
 	}
 
 	// TODO(ingress) : Deal with incorporating index from mapping table
-
-	// Watch list of gateway nodes for changes
-	for _, ch := range watchChs {
+	// Watch for index changes to the gateway nodes
+	idx, chans := s.maxIndexAndWatchChsForServiceNodes(tx, nodes, false, entMeta)
+	if idx > maxIdx {
+		maxIdx = idx
+	}
+	for _, ch := range chans {
 		ws.Add(ch)
 	}
 
@@ -2045,7 +2080,7 @@ func (s *Store) checkServiceNodesTxn(tx *memdb.Txn, ws memdb.WatchSet, serviceNa
 	var idx uint64
 	if connect {
 		// Look up gateway nodes associated with the service
-		gwIdx, nodes, _, err := s.serviceGatewayNodes(tx, ws, serviceName, structs.ServiceKindTerminatingGateway, entMeta)
+		gwIdx, nodes, err := s.serviceGatewayNodes(tx, ws, serviceName, structs.ServiceKindTerminatingGateway, entMeta)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed gateway nodes lookup: %v", err)
 		}
@@ -2100,7 +2135,10 @@ func (s *Store) checkServiceNodesTxn(tx *memdb.Txn, ws memdb.WatchSet, serviceNa
 		// use target serviceName here but it actually doesn't matter. No chan will
 		// be returned as we can't use the optimization in this case (and don't need
 		// to as there is only one chan to watch anyway).
-		idx, _ = s.maxIndexAndWatchChForService(tx, serviceName, false, true, entMeta)
+		svcIdx, _ := s.maxIndexAndWatchChForService(tx, serviceName, false, true, entMeta)
+		if idx < svcIdx {
+			idx = svcIdx
+		}
 	}
 
 	// Create a nil watchset to pass below, we'll only pass the real one if we
@@ -2664,11 +2702,11 @@ func (s *Store) gatewayServices(tx *memdb.Txn, name string, entMeta *structs.Ent
 // TODO(ingress): How to handle index rolling back when a config entry is
 // deleted that references a service?
 // We might need something like the service_last_extinction index?
-func (s *Store) serviceGatewayNodes(tx *memdb.Txn, ws memdb.WatchSet, service string, kind structs.ServiceKind, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceNodes, []<-chan struct{}, error) {
+func (s *Store) serviceGatewayNodes(tx *memdb.Txn, ws memdb.WatchSet, service string, kind structs.ServiceKind, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceNodes, error) {
 	// Look up gateway name associated with the service
 	gws, err := s.serviceGateways(tx, service, entMeta)
 	if err != nil {
-		return 0, nil, nil, fmt.Errorf("failed gateway lookup: %s", err)
+		return 0, nil, fmt.Errorf("failed gateway lookup: %s", err)
 	}
 
 	// Adding this channel to the WatchSet means that the watch will fire if a config entry targeting the service is added.
@@ -2676,7 +2714,6 @@ func (s *Store) serviceGatewayNodes(tx *memdb.Txn, ws memdb.WatchSet, service st
 	ws.Add(gws.WatchCh())
 
 	var ret structs.ServiceNodes
-	var watchChans []<-chan struct{}
 	var maxIdx uint64
 
 	for gateway := gws.Next(); gateway != nil; gateway = gws.Next() {
@@ -2693,7 +2730,7 @@ func (s *Store) serviceGatewayNodes(tx *memdb.Txn, ws memdb.WatchSet, service st
 		// Look up nodes for gateway
 		gwServices, err := s.catalogServiceNodeList(tx, mapping.Gateway.ID, "service", &mapping.Gateway.EnterpriseMeta)
 		if err != nil {
-			return 0, nil, nil, fmt.Errorf("failed service lookup: %s", err)
+			return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 		}
 
 		var exists bool
@@ -2711,7 +2748,10 @@ func (s *Store) serviceGatewayNodes(tx *memdb.Txn, ws memdb.WatchSet, service st
 			maxIdx = svcIdx
 		}
 
-		watchChans = append(watchChans, gwServices.WatchCh())
+		// Ensure that blocking queries wake up if the gateway-service mapping exists, but the gateway does not exist yet
+		if !exists {
+			ws.Add(gwServices.WatchCh())
+		}
 	}
-	return maxIdx, ret, watchChans, nil
+	return maxIdx, ret, nil
 }
