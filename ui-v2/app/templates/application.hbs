@@ -7,7 +7,7 @@
 {{else}}
     <AppView @class="loading show">
       <BlockSlot @name="content">
-        {{partial 'consul-loading'}}
+        <ConsulLoader />
       </BlockSlot>
     </AppView>
 {{/if}}
