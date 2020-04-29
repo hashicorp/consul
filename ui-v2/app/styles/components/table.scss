@@ -1,9 +1,8 @@
 @import '../base/components/table/index';
 @import '../base/components/popover-menu/index';
-table {
-  @extend %table, %table-flex;
+%main-content table {
+  @extend %table;
 }
-
 %table-actions > [type='checkbox'] {
   @extend %more-popover-menu;
 }

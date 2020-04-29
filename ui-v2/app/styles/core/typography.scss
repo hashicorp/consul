@@ -41,7 +41,8 @@ pre code,
 %notice p,
 %flash-message p,
 %filter-bar input,
-%phrase-editor input {
+%phrase-editor input,
+%tab-section section p {
   @extend %p1;
 }
 %menu-panel dl,

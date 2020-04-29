@@ -19,7 +19,8 @@
   border-bottom: none;
 }
 @media #{$--horizontal-selects} {
-  %app-view header h1 {
+  %app-view header h1,
+  %app-view-header .title-bar {
     border-bottom: $decor-border-200;
   }
 }
@@ -30,9 +31,13 @@
 }
 %app-view header > div > div:last-child,
 %app-view header h1,
+%app-view-header .title-bar,
 %app-view h2,
 %app-view fieldset {
   border-color: $gray-200;
+}
+%app-view-header .with-nav {
+  border: 0;
 }
 // We know that any sibling navs might have a top border
 // by default. As its squashed up to a h1, in this

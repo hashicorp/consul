@@ -29,7 +29,6 @@
 %table td.no-actions ~ .actions {
   display: none;
 }
-%table td:not(.actions),
 %table td:not(.actions) > *:only-child {
   overflow-x: hidden;
 }
@@ -41,6 +40,7 @@
 }
 %table td {
   height: 50px;
+  vertical-align: middle;
 }
 %table caption {
   margin-bottom: 0.8em;

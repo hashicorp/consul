@@ -1,0 +1,17 @@
+.proxy-upstreams > ul {
+  @extend %proxy-upstreams-list;
+}
+%proxy-upstreams-list > li {
+  @extend %composite-row;
+}
+.proxy-exposed-paths tbody tr {
+  @extend %proxy-exposed-paths-row;
+  cursor: default !important;
+}
+%proxy-exposed-paths-row:hover {
+  box-shadow: none !important;
+}
+%proxy-exposed-paths-row .combined-address button:hover {
+  // In this case we do not need a background on the icon
+  background-color: transparent !important;
+}

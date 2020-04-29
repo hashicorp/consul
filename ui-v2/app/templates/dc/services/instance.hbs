@@ -24,27 +24,6 @@
         <dt>Node Name</dt>
         <dd><a href="{{href-to 'dc.nodes.show' item.Node.Node}}">{{item.Node.Node}}</a></dd>
       </dl>
-{{#if proxy.ServiceName}}
-      <dl>
-      </dl>
-{{/if}}
-{{#if (eq item.Kind 'connect-proxy')}}
-  {{#if item.Proxy.DestinationServiceID}}
-      <dl>
-        <dt data-test-proxy-destination="instance">Dest. Service Instance</dt>
-        <dd><a href="{{href-to 'dc.services.instance' item.Proxy.DestinationServiceName item.Node.Node item.Proxy.DestinationServiceID}}">{{item.Proxy.DestinationServiceID}}</a></dd>
-      </dl>
-      <dl>
-        <dt>Local Service Address</dt>
-        <dd>{{item.Proxy.LocalServiceAddress}}:{{item.Proxy.LocalServicePort}}</dd>
-      </dl>
-  {{else}}
-      <dl>
-        <dt data-test-proxy-destination="service">Dest. Service</dt>
-        <dd><a href="{{href-to 'dc.services.show' item.Proxy.DestinationServiceName}}">{{item.Proxy.DestinationServiceName}}</a></dd>
-      </dl>
-  {{/if}}
-{{/if}}
     </BlockSlot>
     <BlockSlot @name="content">
         <TabNav @items={{
@@ -52,16 +31,12 @@
               (array
                       (hash label="Health Checks" href=(href-to "dc.services.instance.healthchecks") selected=(is-href "dc.services.instance.healthchecks"))
 (if
-  (eq item.Kind 'connect-proxy')
-                      (hash label="Upstreams" href=(href-to "dc.services.instance.upstreams") selected=(is-href "dc.services.instance.upstreams")) ""
-)
-(if
-  (and (eq item.Kind 'connect-proxy') (gt item.Proxy.Expose.Paths.length 0))
-                      (hash label="Exposed Paths" href=(href-to "dc.services.instance.exposedpaths") selected=(is-href "dc.services.instance.exposedpaths")) ""
-)
-(if
   (eq item.Kind 'mesh-gateway')
                       (hash label="Addresses" href=(href-to "dc.services.instance.addresses") selected=(is-href "dc.services.instance.addresses")) ""
+)
+(if proxy
+                      (hash label="Proxy Info" href=(href-to "dc.services.instance.proxy") selected=(is-href "dc.services.instance.proxy"))
+
 )
                       (hash label="Tags" href=(href-to "dc.services.instance.tags") selected=(is-href "dc.services.instance.tags"))
                       (hash label="Metadata" href=(href-to "dc.services.instance.metadata") selected=(is-href "dc.services.instance.metadata"))
