@@ -15,6 +15,17 @@ description: >-
   with listeners that expose a set of services outside the Consul service mesh.
   See [Ingress Gateway](/docs/connect/ingress_gateway) for more information.
 
+## Wildcard service specification
+
+  Ingress gateways can optionally target all services within a namespace by
+  specifying a wildcard `*` as the service name. A wildcard specifier allows
+  for a single listener to route traffic to all available services on the
+  Consul mesh, differentiating between the services by their host/authority
+  header. For a wildcard, the host/authority header is expected to match
+  `<service-name>.*`.
+
+  A wildcard specifier cannot be set on a listener of protocol `tcp`.
+
 ## Sample Config Entries
 
 Set up a TCP listener for a single service:
@@ -86,15 +97,19 @@ Listeners = [
   - `Port` `(int: 0)` - The port that the listener should receive traffic on.
 
   - `Protocol` `(string: "tcp")` - The protocol associated with the listener.
+    This can be any protocol supported by
+    [service-defaults](/docs/agent/config-entries/service-defaults#protocol).
 
   - `Services` `(array<IngressService>: <optional>)` - A list of services to be
     exposed via this listener. For "tcp" listeners, only a single service is
     allowed.
 
     - `Name` `(string: "")` - The name of the service that should be exposed
-      through this listener. If the wildcard specifier, `*`, is provided, then
-      ALL services will be exposed through the listener. This is not supported
-      for listener's with protocol "tcp".
+      through this listener. This can be either a service registered in the
+      catalog, or a service defined only by [other config
+      entries](/docs/connect/l7-traffic-management). If the wildcard specifier,
+      `*`, is provided, then ALL services will be exposed through the listener.
+      This is not supported for listener's with protocol "tcp".
 
     - `Namespace` `(string: "")` - <EnterpriseAlert inline /> The namespace to resolve the service from
       instead of the current namespace. If empty the current namespace is

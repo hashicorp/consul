@@ -8,9 +8,26 @@ description: >-
   how to use Envoy and describes how you can plug in a gateway of your choice.
 ---
 
+# Ingress Gateways
+
 -> **1.8.0+:**  This feature is available in Consul versions 1.8.0 and newer.
 
-# Ingress Gateways
+Ingress gateways enable services from outside the Consul service mesh to send
+traffic to services inside the mesh. These gateways act as an entrypoint for
+outside traffic and allow users to define what services should be exposed and
+on what port. They allow for defining a set of
+[listeners](/docs/agent/config-entries/ingress-gateway#listeners) that each map
+to a set of backing
+[services](/docs/agent/config-entries/ingress-gateway#services).
+
+Depending on the
+[protocol](/docs/agent/config-entries/ingress-gateway#services) defined for a
+listener, multiple services can be specified for a single listener. In this
+case, the ingress gateway relies on host/authority headers to decide the
+service that should receive the traffic.
+
+To enable easier service discovery, a new Consul [DNS
+subdomain](/docs/agent/dns#ingress-service-lookups) is provided, on `.ingress`.
 
 ## Prerequisites
 
@@ -29,3 +46,4 @@ The steps that need to occur for an Ingress Gateway to proxy traffic to services
 1. Run an envoy proxy using the [envoy subcommand](/docs/commands/connect/envoy), specifying the `ingress` gateway type.
 2. Create an `ingress-gateway` [configuration entry](/docs/agent/config-entries/ingress-gateway) that defines a set of listeners that expose the desired backing services.
 3. Ensure that [intentions](/docs/connect/intentions) are setup between the ingress gateway service and the backing services.
+4. **Optionally** use the `<service>.ingress.<domain>` [DNS subdomain](/docs/agent/dns#ingress-service-lookups) to send requests through the ingress gateway
