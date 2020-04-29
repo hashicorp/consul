@@ -17,19 +17,13 @@ services outside the mesh. These gateways effectively act as Connect proxies tha
 represent more than one service. They terminate Connect mTLS connections, enforce intentions,
 and forward requests to the appropriate destination.
 
-The services that the gateway will proxy for must be registered with Consul. These services
-can be registered with a local Consul agent. If the service's host does not have a Consul agent, the
-service can be registered [directly in the catalog](/api/catalog#register-entity). Since Consul's
-all services must be associated with a node, direct registrations to the catalog must define a node as well.
-This node's name and ID **must not** overlap with an existing node managed by a Consul agent.
-Otherwise the service registration will be deleted by that agent during its periodic
-[anti-entropy sync](/docs/internals/anti-entropy).
-
 For data that must be encrypted in transit to the final destination, terminating gateways
-support TLS Origination. By specifying a [CA file](/docs/agent/config-entries/terminating-gateway#cafile),
+support TLS origination. By specifying a [CA file](/docs/agent/config-entries/terminating-gateway#cafile),
 [client certificate](/docs/agent/config-entries/terminating-gateway#certfile), and
 [private key](/docs/agent/config-entries/terminating-gateway#keyfile),
 connections from the gateway to a linked service can be encrypted using one-way or mutual TLS.
+If none of these are provided, Consul will only encrypt connections to the gateway and not
+to the destination service.
 
 ## Prerequisites
 
@@ -67,9 +61,21 @@ Connect proxy service to define opaque configuration parameters useful for the a
 For Envoy there are some supported [gateway options](/docs/connect/proxies/envoy#gateway-options) as well as
 [escape-hatch overrides](/docs/connect/proxies/envoy#escape-hatch-overrides).
 
--> **Note:** If ACLs are enabled, the gateway's must be registered with a token granting `service:write`
+-> **Note:** If ACLs are enabled, the gateways must be registered with a token granting `service:write`
 for the gateway's service name **and** all linked services. These permissions will authorize the gateway
 to terminate mTLS connections on behalf of the linked services.
+
+Linking services to a terminating gateway is done with a `terminating-gateway`
+[configuration entry](/docs/agent/config-entries/terminating-gateway).
+The services that the gateway will proxy for must be registered with Consul for the gateway to discover their addresses.
+These services can be registered with a local Consul agent, or if there is no agent present,
+the services can be registered [directly in the catalog](/api/catalog#register-entity).
+
+Since Consul's services must be associated with a node, direct registrations to the catalog must define a node as well.
+This node's [name](/api/catalog.html#node) **must not** overlap with a node managed by a Consul agent.
+Otherwise the service registration will be deleted by that agent during the periodic
+[anti-entropy sync](/docs/internals/anti-entropy). Lastly, all agent-less services with the same address can
+be registered under the same node name and address.
 
 ## Running and Using a Terminating Gateway
 
