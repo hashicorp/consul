@@ -82,7 +82,7 @@ Usage: `consul snapshot agent [options]`
   Config files referenced using `-config-dir` and `-config-file` have the following
   format (shown populated with default values):
 
-```javascript
+```json
   {
     "snapshot_agent": {
       "http_addr": "127.0.0.1:8500",
@@ -105,7 +105,8 @@ Usage: `consul snapshot agent [options]`
         "service": "consul-snapshot",
         "deregister_after": "72h",
         "lock_key": "consul-snapshot/lock",
-        "max_failures": 3
+        "max_failures": 3,
+        "local_scratch_path": ""
       },
       "local_storage": {
         "path": "."
@@ -116,9 +117,9 @@ Usage: `consul snapshot agent [options]`
         "s3_region": "",
         "s3_bucket": "",
         "s3_key_prefix": "consul-snapshot",
-        "s3_server_side_encryption":false,
-        "s3_static_snapshot_name":""
-      }
+        "s3_server_side_encryption": false,
+        "s3_static_snapshot_name": ""
+      },
       "azure_blob_storage": {
         "account_name": "",
         "account_key": "",
@@ -139,7 +140,7 @@ if desired.
 
 #### Snapshot Options
 
-- <a name="interval">`-interval`</a> - Interval at which to perform snapshots as
+- `-interval` - Interval at which to perform snapshots as
   a time with a unit suffix, which can be "s", "m", "h" for seconds, minutes, or
   hours. If 0 is provided, the agent will take a single snapshot and then exit, which
   is useful for running snapshots via batch jobs. Defaults to "1h"
@@ -160,6 +161,11 @@ if desired.
   oldest snapshots will start to be deleted in order to retain at most this many
   snapshots. If this is set to 0, the agent will not perform this and snapshots
   will accumulate forever. Defaults to 30.
+
+- `-local-scratch-path` - Location to store all temporary snapshots in prior to
+  sending them off to the configured storage backend. If not configured the
+  system temporary directory will be used. When using the local storage backend
+  this is not configurable and `-local-path` will be used.
 
 #### Agent Options
 
