@@ -3,7 +3,7 @@
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.api.v2.RouteConfiguration",
-      "name": "http_443",
+      "name": "443",
       "virtualHosts": [
         {
           "name": "baz",
@@ -42,7 +42,7 @@
     },
     {
       "@type": "type.googleapis.com/envoy.api.v2.RouteConfiguration",
-      "name": "http_8080",
+      "name": "8080",
       "virtualHosts": [
         {
           "name": "foo",

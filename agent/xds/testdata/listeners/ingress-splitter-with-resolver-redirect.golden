@@ -26,9 +26,9 @@
                               "ads": {
                                   }
                             },
-                        "route_config_name": "http_9191"
+                        "route_config_name": "9191"
                       },
-                  "stat_prefix": "ingress_upstream_http_9191_http",
+                  "stat_prefix": "ingress_upstream_9191_http",
                   "tracing": {
                         "operation_name": "EGRESS",
                         "random_sampling": {

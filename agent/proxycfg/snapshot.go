@@ -222,7 +222,7 @@ type IngressListenerKey struct {
 }
 
 func (k *IngressListenerKey) RouteName() string {
-	return fmt.Sprintf("%s_%d", k.Protocol, k.Port)
+	return fmt.Sprintf("%d", k.Port)
 }
 
 // ConfigSnapshot captures all the resulting config needed for a proxy instance.

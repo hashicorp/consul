@@ -26,9 +26,9 @@
                               "ads": {
                                   }
                             },
-                        "route_config_name": "http_443"
+                        "route_config_name": "443"
                       },
-                  "stat_prefix": "ingress_upstream_http_443_http",
+                  "stat_prefix": "ingress_upstream_443_http",
                   "tracing": {
                         "operation_name": "EGRESS",
                         "random_sampling": {
@@ -65,9 +65,9 @@
                               "ads": {
                                   }
                             },
-                        "route_config_name": "http_8080"
+                        "route_config_name": "8080"
                       },
-                  "stat_prefix": "ingress_upstream_http_8080_http",
+                  "stat_prefix": "ingress_upstream_8080_http",
                   "tracing": {
                         "operation_name": "EGRESS",
                         "random_sampling": {

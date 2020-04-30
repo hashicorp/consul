@@ -3,7 +3,7 @@
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.api.v2.RouteConfiguration",
-      "name": "http_9191",
+      "name": "9191",
       "virtualHosts": [
         {
           "name": "db",
