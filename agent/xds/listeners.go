@@ -272,6 +272,9 @@ func (s *Server) listenersFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSna
 	var resources []proto.Message
 	for listenerKey, upstreams := range cfgSnap.IngressGateway.Upstreams {
 		if listenerKey.Protocol == "tcp" {
+			// We rely on the invariant of upstreams slice always having at least 1
+			// member, because this key/value pair is created only when a
+			// GatewayService is returned in the RPC
 			u := upstreams[0]
 			id := u.Identifier()
 
