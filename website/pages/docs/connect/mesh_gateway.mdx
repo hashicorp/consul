@@ -77,10 +77,10 @@ your network, the proxy's connection to the gateway can happen in one of the fol
 
 ## Mesh Gateway Configuration
 
-Mesh gateways are defined very similarly to other typical services, with two exceptions.
-The first is that the [service kind](/api/agent/service#kind) must be "mesh-gateway". The other
-is that a mesh gateway service definition may contain a `Proxy.Config` entry just like a
-Connect proxy service to define opaque configuration parameters useful for the actual proxy software.
+Mesh gateways are defined similarly to other services registered with Consul, with two exceptions.
+The first is that the [service kind](/api/agent/service#kind) must be "mesh-gateway". Second,
+the mesh gateway service definition may contain a `Proxy.Config` entry just like a
+Connect proxy service, to define opaque configuration parameters useful for the actual proxy software.
 For Envoy there are some supported [gateway options](/docs/connect/proxies/envoy#gateway-options) as well as
 [escape-hatch overrides](/docs/connect/proxies/envoy#escape-hatch-overrides).
 
