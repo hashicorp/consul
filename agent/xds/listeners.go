@@ -542,7 +542,7 @@ func (s *Server) makeUpstreamListenerIgnoreDiscoveryChain(
 	l := makeListener(upstreamID, addr, u.LocalBindPort)
 	filter, err := makeListenerFilter(
 		cfg.Protocol, upstreamID, clusterName, "upstream_",
-		withRouteSpecifierStatic(upstreamID, clusterName),
+		withRouteSpecifierStatic(upstreamID, clusterName, withLBHashPolicy(cfg.LoadBalancer)),
 		withTracing(envoyhttp.EGRESS))
 	if err != nil {
 		return nil, err
@@ -961,6 +961,16 @@ func withRouteMatchPathSpecifier(routePath string) func(c *envoyroute.Route) err
 	return func(route *envoyroute.Route) error {
 		route.Match.PathSpecifier = &envoyroute.RouteMatch_Path{Path: routePath}
 		return nil
+	}
+}
+
+func withLBHashPolicy(lb LoadBalancer) func(c *envoyroute.Route) error {
+	return func(route *envoyroute.Route) error {
+		ra, ok := route.Action.(*envoyroute.Route_Route)
+		if !ok {
+			return fmt.Errorf("a hash policy may only be applied to a route action")
+		}
+		return lb.ApplyHashPolicyToRouteAction(ra.Route)
 	}
 }
 
