@@ -519,7 +519,7 @@ service definition keys for compatibility with the config file format.
   or "ingress-gateway" for instances of a [ingress gateway](/docs/connect/ingress_gateway).
 
 - `Proxy` `(Proxy: nil)` - From 1.2.3 on, specifies the configuration for a
-  Connect proxy instance. This is only valid if `Kind != ""`.
+  Connect service proxy instance. This is only valid if `Kind` defines a proxy or gateway.
   See the [Proxy documentation](/docs/connect/registration/service-registration)
   for full details.
 

@@ -44,12 +44,18 @@ Currently, [Envoy](https://www.envoyproxy.io/) is the only proxy with ingress ga
 
 You must complete the following steps to configure an ingress gateway to proxy traffic to services in the Consul service mesh:
 
-1. Start an Envoy proxy using the [envoy subcommand](/docs/commands/connect/envoy#ingress-gateways), specifying the `ingress` gateway type.
-1. Create an `ingress-gateway` [configuration
-entry](/docs/agent/config-entries/ingress-gateway) that defines a set of listeners that expose the desired backing services.
-The config entry can be applied via the [CLI](/docs/commands/config/write) or [API](/api/config#apply-configuration).
-1. Ensure that [Consul intentions](/docs/connect/intentions) are setup between the ingress gateway and the backing services.
-1. **Optionally** use the `<service>.ingress.<domain>` [DNS subdomain](/docs/agent/dns#ingress-service-lookups) to discover the ingress
+1. Start an Envoy proxy using the [envoy subcommand](/docs/commands/connect/envoy), specifying the `ingress` gateway type:
+    ```shell
+    $ consul connect envoy -gateway=ingress -register -address '0.0.0.0:8888'
+    ```
+
+2. Create and apply an `ingress-gateway` [configuration entry](/docs/agent/config-entries/ingress-gateway) that defines
+a set of listeners that expose the desired backing services. The config entry can be applied via the
+[CLI](/docs/commands/config/write) or [API](/api/config#apply-configuration).
+
+3. Ensure that [Consul intentions](/docs/connect/intentions) are setup between the ingress gateway and the backing services.
+
+4. **Optionally** use the `<service>.ingress.<domain>` [DNS subdomain](/docs/agent/dns#ingress-service-lookups) to discover the ingress
 gateways for a service.
 
 ## Ingress Gateway Configuration

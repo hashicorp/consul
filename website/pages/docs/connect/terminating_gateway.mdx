@@ -3,7 +3,7 @@ layout: docs
 page_title: Connect - Terminating Gateways
 sidebar_title: Terminating Gateways
 description: >-
-  A Terminating Gateway enables traffic from services in the Consul
+  A terminating gateway enables traffic from services in the Consul
   service mesh to services outside the mesh. This section details
   how to configure and run a terminating gateway.
 ---
@@ -30,7 +30,7 @@ Client applications can issue plain HTTP requests even when connecting to server
 
 ## Prerequisites
 
-Each terminating gateway needs two things:
+Each terminating gateway needs:
 
 1. A local Consul agent to manage its configuration.
 2. General network connectivity to services within its local Consul datacenter.
@@ -49,9 +49,9 @@ Currently, [Envoy](https://www.envoyproxy.io/) is the only proxy with terminatin
   can only translate terminating gateway registration information into Envoy
   configuration, therefore the proxies acting as terminating gateways must be Envoy.
 
-Sidecar proxies that send upstream traffic through a gateway aren't
+Connect proxies that send upstream traffic through a gateway aren't
 affected when you deploy terminating gateways. If you are using non-Envoy proxies as
-Connect sidecars they will continue to work for traffic directed at services linked to
+Connect proxies they will continue to work for traffic directed at services linked to
 a terminating gateway as long as they discover upstreams with the
 [/health/connect](/api/health#list-nodes-for-connect-capable-service) endpoint.
 
@@ -59,19 +59,19 @@ a terminating gateway as long as they discover upstreams with the
 
 You must complete the following steps to configure a terminating gateway to proxy traffic from services in the Consul service mesh:
 
-1. Start an Envoy proxy using the [envoy subcommand](/docs/commands/connect/envoy#terminating-gateways), specifying the `terminating` gateway type.
-2. Create a `terminating-gateway` [configuration entry](/docs/agent/config-entries/terminating-gateway) that defines 
+1. Start an Envoy proxy using the [envoy subcommand](/docs/commands/connect/envoy#terminating-gateways), specifying the `terminating` gateway type:
+    ```shell
+    $ consul connect envoy -gateway=terminating -register -address '0.0.0.0:8443'
+    ```
+
+2. Create and apply a `terminating-gateway` [configuration entry](/docs/agent/config-entries/terminating-gateway) that defines 
 a set of services that the gateway will proxy traffic to. The config entry can be applied via the 
 [CLI](/docs/commands/config/write) or [API](/api/config#apply-configuration).
+
 3. Ensure that [Consul intentions](/docs/commands/intention#consul-intention) are set up between the source services in the mesh 
 and the gateway's linked services. The intentions must reference the destination service's name and not the gateway itself.
 
 ## Terminating Gateway Configuration
-
-Ingress gateways are defined similarly to other services registered with Consul, with two exceptions.
-The first is that the [kind](/api/agent/service#kind) must be "ingress-gateway". Second,
-the ingress gateway service definition may contain a `Proxy.Config` entry just like a
-Connect proxy service, to define opaque configuration parameters useful for the actual proxy software.
 
 Terminating gateways are defined similarly to other services registered with Consul, with two exceptions.
 The first is that the [kind](/api/agent/service#kind) must be "terminating-gateway". Second,
@@ -80,7 +80,7 @@ Connect proxy service, to define opaque configuration parameters useful for the 
 For Envoy there are some supported [gateway options](/docs/connect/proxies/envoy#gateway-options) as well as
 [escape-hatch overrides](/docs/connect/proxies/envoy#escape-hatch-overrides).
 
--> **Note:** If ACLs are enabled, the gateways must be registered with a token granting `service:write`
+-> **Note:** If ACLs are enabled, the terminating gateways must be registered with a token granting `service:write`
 for the gateway's service name **and** all linked services. These permissions will authorize the gateway
 to terminate mTLS connections on behalf of the linked services.
 
@@ -88,8 +88,8 @@ Linking services to a terminating gateway is done with a `terminating-gateway`
 [configuration entry](/docs/agent/config-entries/terminating-gateway). This config entry can be applied via the 
 [CLI](/docs/commands/config/write) or [API](/api/config#apply-configuration).
 
-The services that the gateway will proxy for must be registered with Consul for the gateway to discover their addresses.
-These services can be registered with a local Consul agent, or if there is no agent present,
+The services that the terminating gateway will proxy for must be registered with Consul for the terminating gateway
+to discover their addresses. These services can be registered with a local Consul agent, or if there is no agent present,
 the services can be registered [directly in the catalog](/api/catalog#register-entity).
 
 Since Consul's services must be associated with a node, direct registrations to the catalog must define a node as well.
