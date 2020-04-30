@@ -1388,6 +1388,9 @@ func TestParseConfigEntry(t *testing.T) {
 			snake: `
 				kind = "ingress-gateway"
 				name = "ingress-web"
+				tls {
+					enabled = true
+				}
 				listeners = [
 					{
 						port = 8080
@@ -1408,6 +1411,9 @@ func TestParseConfigEntry(t *testing.T) {
 			camel: `
 				Kind = "ingress-gateway"
 				Name = "ingress-web"
+				Tls {
+					Enabled = true
+				}
 				Listeners = [
 					{
 						Port = 8080
@@ -1429,6 +1435,9 @@ func TestParseConfigEntry(t *testing.T) {
 			{
 				"kind": "ingress-gateway",
 				"name": "ingress-web",
+				"tls": {
+					"enabled": true
+				},
 				"listeners": [
 					{
 						"port": 8080,
@@ -1451,6 +1460,9 @@ func TestParseConfigEntry(t *testing.T) {
 			{
 				"Kind": "ingress-gateway",
 				"Name": "ingress-web",
+				"Tls": {
+					"Enabled": true
+				},
 				"Listeners": [
 					{
 						"Port": 8080,
@@ -1472,6 +1484,9 @@ func TestParseConfigEntry(t *testing.T) {
 			expect: &api.IngressGatewayConfigEntry{
 				Kind: "ingress-gateway",
 				Name: "ingress-web",
+				TLS: api.GatewayTLSConfig{
+					Enabled: true,
+				},
 				Listeners: []api.IngressListener{
 					{
 						Port:     8080,

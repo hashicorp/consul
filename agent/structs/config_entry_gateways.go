@@ -76,6 +76,7 @@ type IngressService struct {
 }
 
 type GatewayTLSConfig struct {
+	// Indicates that TLS should be enabled for this gateway service
 	Enabled bool
 }
 

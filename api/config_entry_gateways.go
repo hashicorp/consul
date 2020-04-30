@@ -14,6 +14,9 @@ type IngressGatewayConfigEntry struct {
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
 
+	// TLS holds the TLS configuration for this gateway.
+	TLS GatewayTLSConfig
+
 	// Listeners declares what ports the ingress gateway should listen on, and
 	// what services to associated to those ports.
 	Listeners []IngressListener
@@ -26,6 +29,11 @@ type IngressGatewayConfigEntry struct {
 	// back into the WaitIndex of the QueryOptions in order to perform blocking
 	// queries.
 	ModifyIndex uint64
+}
+
+type GatewayTLSConfig struct {
+	// Indicates that TLS should be enabled for this gateway service
+	Enabled bool
 }
 
 // IngressListener manages the configuration for a listener on a specific port.

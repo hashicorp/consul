@@ -21,6 +21,9 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 	ingress2 := &IngressGatewayConfigEntry{
 		Kind: IngressGateway,
 		Name: "bar",
+		TLS: GatewayTLSConfig{
+			Enabled: true,
+		},
 	}
 
 	// set it
