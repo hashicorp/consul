@@ -61,7 +61,7 @@ type ManagerSerfCluster interface {
 // Pinger is an interface wrapping client.ConnPool to prevent a cyclic import
 // dependency.
 type Pinger interface {
-	Ping(dc, nodeName string, addr net.Addr, version int, useTLS bool) (bool, error)
+	Ping(dc, nodeName string, addr net.Addr, version int) (bool, error)
 }
 
 // serverList is a local copy of the struct used to maintain the list of
@@ -97,6 +97,10 @@ type Manager struct {
 	// connection pool.  Pinger is an interface that wraps
 	// client.ConnPool.
 	connPoolPinger Pinger
+
+	// serverName has the name of the managers's server. This is used to
+	// short-circuit pinging to itself.
+	serverName string
 
 	// notifyFailedBarrier is acts as a barrier to prevent queuing behind
 	// serverListLog and acts as a TryLock().
@@ -256,7 +260,7 @@ func (m *Manager) saveServerList(l serverList) {
 }
 
 // New is the only way to safely create a new Manager struct.
-func New(logger hclog.Logger, shutdownCh chan struct{}, clusterInfo ManagerSerfCluster, connPoolPinger Pinger) (m *Manager) {
+func New(logger hclog.Logger, shutdownCh chan struct{}, clusterInfo ManagerSerfCluster, connPoolPinger Pinger, serverName string) (m *Manager) {
 	if logger == nil {
 		logger = hclog.New(&hclog.LoggerOptions{})
 	}
@@ -267,6 +271,7 @@ func New(logger hclog.Logger, shutdownCh chan struct{}, clusterInfo ManagerSerfC
 	m.connPoolPinger = connPoolPinger // can't pass *consul.ConnPool: import cycle
 	m.rebalanceTimer = time.NewTimer(clientRPCMinReuseDuration)
 	m.shutdownCh = shutdownCh
+	m.serverName = serverName
 	atomic.StoreInt32(&m.offline, 1)
 
 	l := serverList{}
@@ -340,7 +345,12 @@ func (m *Manager) RebalanceServers() {
 		// while Serf detects the node has failed.
 		srv := l.servers[0]
 
-		ok, err := m.connPoolPinger.Ping(srv.Datacenter, srv.ShortName, srv.Addr, srv.Version, srv.UseTLS)
+		// check to see if the manager is trying to ping itself,
+		// continue if that is the case.
+		if m.serverName != "" && srv.Name == m.serverName {
+			continue
+		}
+		ok, err := m.connPoolPinger.Ping(srv.Datacenter, srv.ShortName, srv.Addr, srv.Version)
 		if ok {
 			foundHealthyServer = true
 			break

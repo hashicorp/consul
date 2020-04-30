@@ -307,7 +307,42 @@ func (s *Server) handleMultiplexV2(conn net.Conn) {
 			}
 			return
 		}
-		go s.handleConsulConn(sub)
+
+		// In the beginning only RPC was supposed to be multiplexed
+		// with yamux. In order to add the ability to multiplex network
+		// area connections, this workaround was added.
+		// This code peeks the first byte and checks if it is
+		// RPCGossip, in which case this is handled by enterprise code.
+		// Otherwise this connection is handled like before by the RPC
+		// handler.
+		// This wouldn't work if a normal RPC could start with
+		// RPCGossip(6). In messagepack a 6 encodes a positive fixint:
+		// https://github.com/msgpack/msgpack/blob/master/spec.md.
+		// None of the RPCs we are doing starts with that, usually it is
+		// a string for datacenter.
+		peeked, first, err := pool.PeekFirstByte(sub)
+		if err != nil {
+			s.rpcLogger().Error("Problem peeking connection", "conn", logConn(sub), "err", err)
+			sub.Close()
+			return
+		}
+		sub = peeked
+		switch first {
+		case pool.RPCGossip:
+			buf := make([]byte, 1)
+			sub.Read(buf)
+			go func() {
+				if !s.handleEnterpriseRPCConn(pool.RPCGossip, sub, false) {
+					s.rpcLogger().Error("unrecognized RPC byte",
+						"byte", pool.RPCGossip,
+						"conn", logConn(conn),
+					)
+					sub.Close()
+				}
+			}()
+		default:
+			go s.handleConsulConn(sub)
+		}
 	}
 }
 
@@ -517,7 +552,7 @@ CHECK_LEADER:
 	rpcErr := structs.ErrNoLeader
 	if leader != nil {
 		rpcErr = s.connPool.RPC(s.config.Datacenter, leader.ShortName, leader.Addr,
-			leader.Version, method, leader.UseTLS, args, reply)
+			leader.Version, method, args, reply)
 		if rpcErr != nil && canRetry(info, rpcErr) {
 			goto RETRY
 		}
@@ -582,7 +617,7 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 
 	metrics.IncrCounterWithLabels([]string{"rpc", "cross-dc"}, 1,
 		[]metrics.Label{{Name: "datacenter", Value: dc}})
-	if err := s.connPool.RPC(dc, server.ShortName, server.Addr, server.Version, method, server.UseTLS, args, reply); err != nil {
+	if err := s.connPool.RPC(dc, server.ShortName, server.Addr, server.Version, method, args, reply); err != nil {
 		manager.NotifyFailedServer(server)
 		s.rpcLogger().Error("RPC failed to server in DC",
 			"server", server.Addr,

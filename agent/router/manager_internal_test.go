@@ -33,7 +33,7 @@ type fauxConnPool struct {
 	failPct float64
 }
 
-func (cp *fauxConnPool) Ping(string, string, net.Addr, int, bool) (bool, error) {
+func (cp *fauxConnPool) Ping(string, string, net.Addr, int) (bool, error) {
 	var success bool
 	successProb := rand.Float64()
 	if successProb > cp.failPct {
@@ -53,14 +53,14 @@ func (s *fauxSerf) NumNodes() int {
 func testManager() (m *Manager) {
 	logger := GetBufferedLogger()
 	shutdownCh := make(chan struct{})
-	m = New(logger, shutdownCh, &fauxSerf{numNodes: 16384}, &fauxConnPool{})
+	m = New(logger, shutdownCh, &fauxSerf{numNodes: 16384}, &fauxConnPool{}, "")
 	return m
 }
 
 func testManagerFailProb(failPct float64) (m *Manager) {
 	logger := GetBufferedLogger()
 	shutdownCh := make(chan struct{})
-	m = New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct})
+	m = New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct}, "")
 	return m
 }
 
@@ -179,7 +179,7 @@ func test_reconcileServerList(maxServers int) (bool, error) {
 			// failPct of the servers for the reconcile.  This
 			// allows for the selected server to no longer be
 			// healthy for the reconcile below.
-			if ok, _ := m.connPoolPinger.Ping(node.Datacenter, node.ShortName, node.Addr, node.Version, node.UseTLS); ok {
+			if ok, _ := m.connPoolPinger.Ping(node.Datacenter, node.ShortName, node.Addr, node.Version); ok {
 				// Will still be present
 				healthyServers = append(healthyServers, node)
 			} else {
@@ -299,7 +299,7 @@ func TestManagerInternal_refreshServerRebalanceTimer(t *testing.T) {
 	shutdownCh := make(chan struct{})
 
 	for _, s := range clusters {
-		m := New(logger, shutdownCh, &fauxSerf{numNodes: s.numNodes}, &fauxConnPool{})
+		m := New(logger, shutdownCh, &fauxSerf{numNodes: s.numNodes}, &fauxConnPool{}, "")
 		for i := 0; i < s.numServers; i++ {
 			nodeName := fmt.Sprintf("s%02d", i)
 			m.AddServer(&metadata.Server{Name: nodeName})
