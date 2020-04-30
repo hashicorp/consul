@@ -17,6 +17,7 @@ BUGFIXES:
 * ui: Fix a refreshing/rescrolling issue for the healthcheck listings [[GH-7550](https://github.com/hashicorp/consul/pull/7550)] [[GH-7365](https://github.com/hashicorp/consul/issues/7365)]
 * ui: Fix token duplication action bug [[GH-7552](https://github.com/hashicorp/consul/pull/7552)]
 * ui: Lazily detect HTTP protocol along with a fallback for non-detection [[GH-7644](https://github.com/hashicorp/consul/pull/7644)] [[GH-7643](https://github.com/hashicorp/consul/issues/7643)]
+* ui: Ensure KV names using 'special' terms within the default namespace are editable when the URL doesn't include the default namespace  [[GH-7734](https://github.com/hashicorp/consul/pull/7734)] 
 
 ## 1.7.2 (March 16, 2020)
 
