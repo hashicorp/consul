@@ -11,7 +11,7 @@ Feature: dc / services / instances / show: Show Service Instance
       Node:
         Node: node-0
     - Service:
-        ID: service-0-with-id
+        ID: service-1-with-id
         Tags: ['Tag1', 'Tag2']
         Meta:
           consul-dashboard-url: http://url.com
@@ -47,14 +47,20 @@ Feature: dc / services / instances / show: Show Service Instance
           Status: critical
     ---
   Scenario: A Service instance has no Proxy
+    Given 1 proxy model from yaml	
+    ---	
+    - ServiceProxy:	
+        DestinationServiceName: service-1	
+        DestinationServiceID: ~	
+    ---
     When I visit the instance page for yaml
     ---
       dc: dc1
       service: service-0
       node: another-node
-      id: service-0-with-id
+      id: service-1-with-id
     ---
-    Then the url should be /dc1/services/service-0/instances/another-node/service-0-with-id/health-checks
+    Then the url should be /dc1/services/service-0/instances/another-node/service-1-with-id/health-checks
     Then I see externalSource like "nomad"
 
     And I don't see upstreams on the tabs
@@ -71,9 +77,15 @@ Feature: dc / services / instances / show: Show Service Instance
     When I click metadata on the tabs
     And I see metadataIsSelected on the tabs
     And I see 3 of the metadata object
-    And the title should be "service-0-with-id - Consul"
+    And the title should be "service-1-with-id - Consul"
 
   Scenario: A Service instance warns when deregistered whilst blocking
+    Given 1 proxy model from yaml
+    ---	
+    - ServiceProxy:	
+        DestinationServiceName: service-1	
+        DestinationServiceID: ~	
+    ---
     Given settings from yaml
     ---
     consul:client:
@@ -91,3 +103,19 @@ Feature: dc / services / instances / show: Show Service Instance
     Then the url should be /dc1/services/service-0/instances/node-0/service-0-with-id/health-checks
     And an external edit results in 0 instance models
     And pause until I see the text "deregistered" in "[data-notification]"
+  Scenario: A Service instance without a Proxy does not display Proxy Info tab
+    Given 1 proxy model from yaml
+    ---	
+    - ServiceProxy:	
+        DestinationServiceName: service-1	
+        DestinationServiceID: ~	
+    ---
+    When I visit the instance page for yaml
+    ---
+      dc: dc1
+      service: service-0
+      node: node-0
+      id: service-0-with-id
+    ---
+    Then the url should be /dc1/services/service-0/instances/node-0/service-0-with-id/health-checks
+    And I don't see proxy on the tabs

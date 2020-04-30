@@ -2,6 +2,12 @@
 Feature: dc / services / instances / gateway: Show Gateway Service Instance
   Scenario: A Gateway Service instance
     Given 1 datacenter model with the value "dc1"
+    Given 1 proxy model from yaml	
+    ---	
+    - ServiceProxy:	
+        DestinationServiceName: service-1	
+        DestinationServiceID: ~	
+    ---
     And 1 instance model from yaml
     ---
     - Service:

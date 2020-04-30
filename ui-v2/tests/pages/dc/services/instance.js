@@ -4,29 +4,16 @@ export default function(visitable, attribute, collection, text, tabs) {
     externalSource: attribute('data-test-external-source', '[data-test-external-source]', {
       scope: '.title-bar',
     }),
-    tabs: tabs('tab', [
-      'health-checks',
-      'addresses',
-      'upstreams',
-      'exposed-paths',
-      'tags',
-      'metadata',
-    ]),
-    serviceChecks: collection('[data-test-service-checks] li', {
-      exposed: attribute('data-test-exposed', '[data-test-exposed]'),
-    }),
-    nodeChecks: collection('[data-test-node-checks] li', {
-      exposed: attribute('data-test-exposed', '[data-test-exposed]'),
-    }),
-    upstreams: collection('#upstreams [data-test-tabular-row]', {
+    tabs: tabs('tab', ['health-checks', 'proxy-info', 'addresses', 'tags', 'metadata']),
+    serviceChecks: collection('[data-test-service-checks] li'),
+    nodeChecks: collection('[data-test-node-checks] li'),
+    upstreams: collection('[data-test-proxy-upstreams] > li', {
       name: text('[data-test-destination-name]'),
-      datacenter: text('[data-test-destination-datacenter]'),
-      type: text('[data-test-destination-type]'),
-      address: text('[data-test-local-bind-address]'),
     }),
-    exposedPaths: collection('#exposed-paths [data-test-tabular-row]', {
+    exposedPaths: collection('[data-test-proxy-exposed-paths] > tbody tr', {
       combinedAddress: text('[data-test-combined-address]'),
     }),
+    proxyChecks: collection('[data-test-proxy-checks] li'),
     addresses: collection('#addresses [data-test-tabular-row]', {
       address: text('[data-test-address]'),
     }),
