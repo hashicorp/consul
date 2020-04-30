@@ -306,7 +306,7 @@ func DialTimeoutWithRPCType(dc string, addr net.Addr, src *net.TCPAddr, timeout 
 	}
 
 	// Check if TLS is enabled
-	if (useTLS) && wrapper != nil {
+	if useTLS && wrapper != nil {
 		// Switch the connection into TLS mode
 		if _, err := conn.Write([]byte{byte(rpcType)}); err != nil {
 			conn.Close()
@@ -425,11 +425,11 @@ START:
 }
 
 // RPC is used to make an RPC call to a remote host
-func (p *ConnPool) RPC(dc string, addr net.Addr, version int, method string, useTLS bool, args interface{}, reply interface{}) error {
+func (p *ConnPool) RPC(dc string, addr net.Addr, version int, method string, args interface{}, reply interface{}) error {
 	if method == "AutoEncrypt.Sign" {
 		return p.rpcInsecure(dc, addr, method, args, reply)
 	} else {
-		return p.rpc(dc, addr, version, method, useTLS, args, reply)
+		return p.rpc(dc, addr, version, method, args, reply)
 	}
 }
 
@@ -455,10 +455,11 @@ func (p *ConnPool) rpcInsecure(dc string, addr net.Addr, method string, args int
 	return nil
 }
 
-func (p *ConnPool) rpc(dc string, addr net.Addr, version int, method string, useTLS bool, args interface{}, reply interface{}) error {
+func (p *ConnPool) rpc(dc string, addr net.Addr, version int, method string, args interface{}, reply interface{}) error {
 	p.once.Do(p.init)
 
 	// Get a usable client
+	useTLS := p.TLSConfigurator.UseTLS(dc)
 	conn, sc, err := p.getClient(dc, addr, version, useTLS)
 	if err != nil {
 		return fmt.Errorf("rpc error getting client: %v", err)
@@ -489,9 +490,9 @@ func (p *ConnPool) rpc(dc string, addr net.Addr, version int, method string, use
 
 // Ping sends a Status.Ping message to the specified server and
 // returns true if healthy, false if an error occurred
-func (p *ConnPool) Ping(dc string, addr net.Addr, version int, useTLS bool) (bool, error) {
+func (p *ConnPool) Ping(dc string, addr net.Addr, version int) (bool, error) {
 	var out struct{}
-	err := p.RPC(dc, addr, version, "Status.Ping", useTLS, struct{}{}, &out)
+	err := p.RPC(dc, addr, version, "Status.Ping", struct{}{}, &out)
 	return err == nil, err
 }
 
