@@ -12,10 +12,10 @@ description: >-
 
 -> **1.8.0+:**  This feature is available in Consul versions 1.8.0 and newer.
 
-Ingress gateways enable services from outside the Consul service mesh to send
-traffic to services inside the mesh. These gateways act as an entrypoint for
-outside traffic and allow users to define what services should be exposed and
-on what port. They allow for defining a set of
+Ingress gateways enable ingress traffic from services outside the Consul
+service mesh to services inside the Consul service mesh. These gateways act as
+an entrypoint for outside traffic and allow users to define what services
+should be exposed and on what port. They allow for defining a set of
 [listeners](/docs/agent/config-entries/ingress-gateway#listeners) that each map
 to a set of backing
 [services](/docs/agent/config-entries/ingress-gateway#services).
@@ -45,6 +45,22 @@ Currently, Envoy is the only proxy with ingress gateway capabilities in Consul.
 The steps that need to occur for an Ingress Gateway to proxy traffic to services in the Consul mesh are as follows:
 
 1. Run an envoy proxy using the [envoy subcommand](/docs/commands/connect/envoy), specifying the `ingress` gateway type.
-2. Create an `ingress-gateway` [configuration entry](/docs/agent/config-entries/ingress-gateway) that defines a set of listeners that expose the desired backing services.
+2. Create an `ingress-gateway` [configuration
+entry](/docs/agent/config-entries/ingress-gateway) that defines a set of listeners that expose the desired backing services.
+The config entry can be applied via the [CLI](/docs/commands/config/write) or [API](/api/config#apply-configuration).
 3. Ensure that [intentions](/docs/connect/intentions) are setup between the ingress gateway service and the backing services.
-4. **Optionally** use the `<service>.ingress.<domain>` [DNS subdomain](/docs/agent/dns#ingress-service-lookups) to discover the ingress gateways for a service.
+4. **Optionally** use the `<service>.ingress.<domain>` [DNS subdomain](/docs/agent/dns#ingress-service-lookups) to discover the ingress
+gateways for a service.
+
+## Ingress Gateway Configuration
+
+Ingress gateways are defined very similarly to other typical services, with two exceptions.
+The first is that the [kind](/api/agent/service#kind) must be "ingress-gateway". The other
+is that a ingress gateway service definition may contain a `Proxy.Config` entry just like a
+Connect proxy service to define opaque configuration parameters useful for the actual proxy software.
+For Envoy there are some supported [gateway options](/docs/connect/proxies/envoy#gateway-options) as well as
+[escape-hatch overrides](/docs/connect/proxies/envoy#escape-hatch-overrides).
+
+-> **Note:** If ACLs are enabled, a token granting `service:write` for the gateway's service name
+and `service:read` for all services in the datacenter. These permissions authorize the token to route
+communications for other Connect services.
