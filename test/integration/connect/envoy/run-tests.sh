@@ -16,8 +16,8 @@ FILTER_TESTS=${FILTER_TESTS:-}
 # only fail when run as part of a whole suite but work in isolation.
 STOP_ON_FAIL=${STOP_ON_FAIL:-}
 
-# ENVOY_VERSIONS is the list of envoy versions to run each test against
-ENVOY_VERSIONS=${ENVOY_VERSIONS:-"1.11.2 1.12.3 1.13.1 1.14.1"}
+# ENVOY_VERSION to run each test against
+ENVOY_VERSION=${ENVOY_VERSION:-"1.14.1"}
 
 if [ ! -z "$DEBUG" ] ; then
   set -x
@@ -26,9 +26,6 @@ fi
 DIR=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
 
 cd $DIR
-
-LEAVE_CONSUL_UP=${LEAVE_CONSUL_UP:-}
-PROXY_LOGS_ON_FAIL=${PROXY_LOGS_ON_FAIL:-}
 
 source helpers.bash
 
@@ -319,12 +316,9 @@ function runTest {
 RESULT=0
 
 for c in ./case-*/ ; do
-  for ev in $ENVOY_VERSIONS ; do
     export CASE_DIR="${c}"
     export CASE_NAME=$( basename $c | cut -c6- )
-    export CASE_ENVOY_VERSION="envoy $ev"
-    export CASE_STR="$CASE_NAME, $CASE_ENVOY_VERSION"
-    export ENVOY_VERSION="${ev}"
+    export CASE_STR="$CASE_NAME, envoy $ENVOY_VERSION"
     export LOG_DIR="workdir/logs/${CASE_DIR}/${ENVOY_VERSION}"
     echo "================================================"
     echoblue "CASE $CASE_STR"
@@ -344,7 +338,6 @@ for c in ./case-*/ ; do
       echo "  => STOPPING because STOP_ON_FAIL set"
       break 2
     fi
-  done
 done
 
 cleanup
