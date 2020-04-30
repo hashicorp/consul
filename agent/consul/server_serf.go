@@ -364,7 +364,7 @@ func (s *Server) maybeBootstrap() {
 		// Retry with exponential backoff to get peer status from this server
 		for attempt := uint(0); attempt < maxPeerRetries; attempt++ {
 			if err := s.connPool.RPC(s.config.Datacenter, server.ShortName, server.Addr, server.Version,
-				"Status.Peers", server.UseTLS, &structs.DCSpecificRequest{Datacenter: s.config.Datacenter}, &peers); err != nil {
+				"Status.Peers", &structs.DCSpecificRequest{Datacenter: s.config.Datacenter}, &peers); err != nil {
 				nextRetry := time.Duration((1 << attempt) * peerRetryBase)
 				s.logger.Error("Failed to confirm peer status for server (will retry).",
 					"server", server.Name,

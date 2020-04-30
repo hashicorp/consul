@@ -389,7 +389,7 @@ func DialTimeoutWithRPCTypeDirectly(
 	}
 
 	// Check if TLS is enabled
-	if (useTLS) && wrapper != nil {
+	if useTLS && wrapper != nil {
 		// Switch the connection into TLS mode
 		if _, err := conn.Write([]byte{byte(tlsRPCType)}); err != nil {
 			conn.Close()
@@ -600,7 +600,6 @@ func (p *ConnPool) RPC(
 	addr net.Addr,
 	version int,
 	method string,
-	useTLS bool,
 	args interface{},
 	reply interface{},
 ) error {
@@ -611,7 +610,7 @@ func (p *ConnPool) RPC(
 	if method == "AutoEncrypt.Sign" {
 		return p.rpcInsecure(dc, nodeName, addr, method, args, reply)
 	} else {
-		return p.rpc(dc, nodeName, addr, version, method, useTLS, args, reply)
+		return p.rpc(dc, nodeName, addr, version, method, args, reply)
 	}
 }
 
@@ -637,10 +636,11 @@ func (p *ConnPool) rpcInsecure(dc string, nodeName string, addr net.Addr, method
 	return nil
 }
 
-func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, version int, method string, useTLS bool, args interface{}, reply interface{}) error {
+func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, version int, method string, args interface{}, reply interface{}) error {
 	p.once.Do(p.init)
 
 	// Get a usable client
+	useTLS := p.TLSConfigurator.UseTLS(dc)
 	conn, sc, err := p.getClient(dc, nodeName, addr, version, useTLS)
 	if err != nil {
 		return fmt.Errorf("rpc error getting client: %v", err)
@@ -671,9 +671,9 @@ func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, version int, m
 
 // Ping sends a Status.Ping message to the specified server and
 // returns true if healthy, false if an error occurred
-func (p *ConnPool) Ping(dc string, nodeName string, addr net.Addr, version int, useTLS bool) (bool, error) {
+func (p *ConnPool) Ping(dc string, nodeName string, addr net.Addr, version int) (bool, error) {
 	var out struct{}
-	err := p.RPC(dc, nodeName, addr, version, "Status.Ping", useTLS, struct{}{}, &out)
+	err := p.RPC(dc, nodeName, addr, version, "Status.Ping", struct{}{}, &out)
 	return err == nil, err
 }
 

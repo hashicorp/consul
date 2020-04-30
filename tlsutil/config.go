@@ -553,7 +553,7 @@ func (c *Configurator) outgoingRPCTLSDisabled() bool {
 	}
 
 	// if CAs are provided or VerifyOutgoing is set, use TLS
-	if c.caPool != nil || c.base.VerifyOutgoing {
+	if c.base.VerifyOutgoing {
 		return false
 	}
 

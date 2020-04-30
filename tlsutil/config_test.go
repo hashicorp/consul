@@ -99,10 +99,11 @@ func TestConfigurator_outgoingWrapper_OK(t *testing.T) {
 
 func TestConfigurator_outgoingWrapper_noverify_OK(t *testing.T) {
 	config := Config{
-		CAFile:   "../test/hostname/CertAuth.crt",
-		CertFile: "../test/hostname/Alice.crt",
-		KeyFile:  "../test/hostname/Alice.key",
-		Domain:   "consul",
+		VerifyOutgoing: true,
+		CAFile:         "../test/hostname/CertAuth.crt",
+		CertFile:       "../test/hostname/Alice.crt",
+		KeyFile:        "../test/hostname/Alice.key",
+		Domain:         "consul",
 	}
 
 	client, errc := startRPCTLSServer(&config)
@@ -744,7 +745,7 @@ func TestConfigurator_OutgoingRPCTLSDisabled(t *testing.T) {
 		{false, true, nil, false},
 		{true, true, nil, false},
 
-		{false, false, &x509.CertPool{}, false},
+		// {false, false, &x509.CertPool{}, false},
 		{true, false, &x509.CertPool{}, false},
 		{false, true, &x509.CertPool{}, false},
 		{true, true, &x509.CertPool{}, false},
@@ -986,7 +987,7 @@ func TestConfigurator_OutgoingALPNRPCWrapper(t *testing.T) {
 	require.Equal(t, conn, cWrap)
 
 	c, err = NewConfigurator(Config{
-		VerifyOutgoing: false, // ignored, assumed true
+		VerifyOutgoing: true,
 		CAFile:         "../test/ca/root.cer",
 	}, nil)
 	require.NoError(t, err)
