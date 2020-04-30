@@ -1,16 +1,7 @@
 import Service, { inject as service } from '@ember/service';
 
 const parts = function(uri) {
-  if (uri.indexOf('://') === -1) {
-    uri = `data://${uri}`;
-  }
-  const url = new URL(uri);
-  let pathname = url.pathname;
-  if (pathname.startsWith('//')) {
-    pathname = pathname.substr(2);
-  }
-  const providerName = url.protocol.substr(0, url.protocol.length - 1);
-  return [providerName, pathname];
+  return uri.split('://');
 };
 export default Service.extend({
   data: service('data-sink/protocols/http'),
