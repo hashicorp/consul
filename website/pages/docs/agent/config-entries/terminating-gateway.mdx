@@ -3,7 +3,7 @@ layout: docs
 page_title: 'Configuration Entry Kind: Terminating Gateway'
 sidebar_title: terminating-gateway
 description: >-
-  The terminating-gateway config entry kind allows for configuring terminating gateways
+  The `terminating-gateway` config entry kind allows for configuring terminating gateways
   to proxy traffic from services in the Consul service mesh to services outside the mesh.
 ---
 
@@ -11,14 +11,14 @@ description: >-
 
 -> **1.8.0+:** This config entry is available in Consul versions 1.8.0 and newer.
 
-  The `terminating-gateway` config entry kind allows for configuring terminating gateways
-  to proxy traffic from services in the mesh to services registered with Consul that do not have a
-  [Connect proxy](/docs/connect/proxies). See [Terminating Gateway](/docs/connect/terminating_gateway)
+  The `terminating-gateway` config entry kind you to configure terminating gateways
+  to proxy traffic from services in the Consul service mesh to services registered with Consul that do not have a
+  [Connect service sidecar proxy](/docs/connect/proxies). See [Terminating Gateway](/docs/connect/terminating_gateway)
   for more information.
 
 ## Wildcard service specification
 
-  Terminating gateways can optionally target all services within a namespace by specifying a wildcard "*"
+  Terminating gateways can optionally target all services within a Consul namespace by specifying a wildcard "*"
   as the service name. Configuration options set on the wildcard act as defaults that can be overridden
   by options set on a specific service name.
 

@@ -38,11 +38,11 @@ Each terminating gateway needs two things:
 Terminating gateways also require that your Consul datacenters are configured correctly:
 
 - You'll need to use Consul version 1.8.0.
-- Consul [Connect](/docs/agent/options#connect) must be enabled in the datacenter.
-- [gRPC](/docs/agent/options#grpc_port) must be enabled.
+- Consul [Connect](/docs/agent/options#connect) must be enabled on the datacenter's Consul servers.
+- [gRPC](/docs/agent/options#grpc_port) must be enabled on all client agents.
 - [Centralized configuration](/docs/agent/options#enable_central_service_config) must be enabled.
 
-Currently, Envoy is the only proxy with terminating gateway capabilities in Consul.
+Currently, [Envoy](https://www.envoyproxy.io/) is the only proxy with terminating gateway capabilities in Consul.
 
 - Terminating gateway proxies receive their configuration through Consul, which
   automatically generates it based on the gateway's registration. Currently Consul
@@ -57,21 +57,26 @@ a terminating gateway as long as they discover upstreams with the
 
 ## Running and Using a Terminating Gateway
 
-The steps that need to occur for a terminating gateway to proxy traffic from services in the Consul mesh are as follows:
+You must complete the following steps to configure a terminating gateway to proxy traffic from services in the Consul service mesh:
 
-1. Run an envoy proxy using the [envoy subcommand](/docs/commands/connect/envoy#terminating-gateways), specifying the `terminating` gateway type.
+1. Start an Envoy proxy using the [envoy subcommand](/docs/commands/connect/envoy#terminating-gateways), specifying the `terminating` gateway type.
 2. Create a `terminating-gateway` [configuration entry](/docs/agent/config-entries/terminating-gateway) that defines 
 a set of services that the gateway will proxy traffic to. The config entry can be applied via the 
 [CLI](/docs/commands/config/write) or [API](/api/config#apply-configuration).
-3. Ensure that [intentions](/docs/commands/intention#consul-intention) are set up between the source services in the mesh 
+3. Ensure that [Consul intentions](/docs/commands/intention#consul-intention) are set up between the source services in the mesh 
 and the gateway's linked services. The intentions must reference the destination service's name and not the gateway itself.
 
 ## Terminating Gateway Configuration
 
-Terminating gateways are defined very similarly to other typical services, with two exceptions.
-The first is that the [kind](/api/agent/service#kind) must be "terminating-gateway". The other
-is that a terminating gateway service definition may contain a `Proxy.Config` entry just like a
-Connect proxy service to define opaque configuration parameters useful for the actual proxy software.
+Ingress gateways are defined similarly to other services registered with Consul, with two exceptions.
+The first is that the [kind](/api/agent/service#kind) must be "ingress-gateway". Second,
+the ingress gateway service definition may contain a `Proxy.Config` entry just like a
+Connect proxy service, to define opaque configuration parameters useful for the actual proxy software.
+
+Terminating gateways are defined similarly to other services registered with Consul, with two exceptions.
+The first is that the [kind](/api/agent/service#kind) must be "terminating-gateway". Second,
+the terminating gateway service definition may contain a `Proxy.Config` entry just like a
+Connect proxy service, to define opaque configuration parameters useful for the actual proxy software.
 For Envoy there are some supported [gateway options](/docs/connect/proxies/envoy#gateway-options) as well as
 [escape-hatch overrides](/docs/connect/proxies/envoy#escape-hatch-overrides).
 
