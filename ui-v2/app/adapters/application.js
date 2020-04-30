@@ -1,7 +1,6 @@
 import Adapter from './http';
 import { inject as service } from '@ember/service';
-// TODO: This should be changed to use env
-import config from 'consul-ui/config/environment';
+import { env } from 'consul-ui/env';
 
 export const DATACENTER_QUERY_PARAM = 'dc';
 export const NSPACE_QUERY_PARAM = 'ns';
@@ -9,7 +8,7 @@ export default Adapter.extend({
   repo: service('settings'),
   client: service('client/http'),
   formatNspace: function(nspace) {
-    if (config.CONSUL_NSPACES_ENABLED) {
+    if (env('CONSUL_NSPACES_ENABLED')) {
       return nspace !== '' ? { [NSPACE_QUERY_PARAM]: nspace } : undefined;
     }
   },
