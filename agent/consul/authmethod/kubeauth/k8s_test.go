@@ -2,6 +2,7 @@ package kubeauth
 
 import (
 	"bytes"
+	"context"
 	"testing"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -74,6 +75,35 @@ func TestStructs_ACLAuthMethod_Kubernetes_MsgpackEncodeDecode(t *testing.T) {
 	})
 }
 
+func TestNewIdentity(t *testing.T) {
+	testSrv := StartTestAPIServer(t)
+	defer testSrv.Stop()
+
+	method := &structs.ACLAuthMethod{
+		Name:        "test-k8s",
+		Description: "k8s test",
+		Type:        "kubernetes",
+		Config: map[string]interface{}{
+			"Host":              testSrv.Addr(),
+			"CACert":            testSrv.CACert(),
+			"ServiceAccountJWT": goodJWT_A,
+		},
+	}
+	validator, err := NewValidator(method)
+	require.NoError(t, err)
+
+	id := validator.NewIdentity()
+	authmethod.RequireIdentityMatch(t, id, map[string]string{
+		"serviceaccount.namespace": "",
+		"serviceaccount.name":      "",
+		"serviceaccount.uid":       "",
+	},
+		`serviceaccount.namespace == ""`,
+		`serviceaccount.name == ""`,
+		`serviceaccount.uid == ""`,
+	)
+}
+
 func TestValidateLogin(t *testing.T) {
 	testSrv := StartTestAPIServer(t)
 	defer testSrv.Stop()
@@ -101,18 +131,23 @@ func TestValidateLogin(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("invalid bearer token", func(t *testing.T) {
-		_, _, err := validator.ValidateLogin("invalid")
+		_, err := validator.ValidateLogin(context.Background(), "invalid")
 		require.Error(t, err)
 	})
 
 	t.Run("valid bearer token", func(t *testing.T) {
-		fields, _, err := validator.ValidateLogin(goodJWT_B)
+		id, err := validator.ValidateLogin(context.Background(), goodJWT_B)
 		require.NoError(t, err)
-		require.Equal(t, map[string]string{
+
+		authmethod.RequireIdentityMatch(t, id, map[string]string{
 			"serviceaccount.namespace": "default",
 			"serviceaccount.name":      "demo",
 			"serviceaccount.uid":       "76091af4-4b56-11e9-ac4b-708b11801cbe",
-		}, fields)
+		},
+			`serviceaccount.namespace == default`,
+			`serviceaccount.name == "demo"`,
+			`serviceaccount.uid == "76091af4-4b56-11e9-ac4b-708b11801cbe"`,
+		)
 	})
 
 	// annotate the account
@@ -125,13 +160,18 @@ func TestValidateLogin(t *testing.T) {
 	)
 
 	t.Run("valid bearer token with annotation", func(t *testing.T) {
-		fields, _, err := validator.ValidateLogin(goodJWT_B)
+		id, err := validator.ValidateLogin(context.Background(), goodJWT_B)
 		require.NoError(t, err)
-		require.Equal(t, map[string]string{
+
+		authmethod.RequireIdentityMatch(t, id, map[string]string{
 			"serviceaccount.namespace": "default",
 			"serviceaccount.name":      "alternate-name",
 			"serviceaccount.uid":       "76091af4-4b56-11e9-ac4b-708b11801cbe",
-		}, fields)
+		},
+			`serviceaccount.namespace == default`,
+			`serviceaccount.name == "alternate-name"`,
+			`serviceaccount.uid == "76091af4-4b56-11e9-ac4b-708b11801cbe"`,
+		)
 	})
 }
 
