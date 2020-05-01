@@ -6003,16 +6003,11 @@ func TestFullConfig(t *testing.T) {
 				t.Fatalf("ParseFlags: %s", err)
 			}
 
-			// ensure that all fields are set to unique non-zero values
-			// if err := nonZero("Config", nil, c); err != nil {
-			// 	t.Fatal(err)
-			// }
-
 			b, err := NewBuilder(flags)
 			if err != nil {
 				t.Fatalf("NewBuilder: %s", err)
 			}
-			b.Sources = append(b.Sources, Source{Name: "full." + format, Data: data})
+			b.Sources = append(b.Sources, Source{Name: "full." + format, Data: data, Format: format})
 			b.Tail = append(b.Tail, tail[format]...)
 			b.Tail = append(b.Tail, VersionSource("JNtPSav3", "R909Hblt", "ZT1JOQLn"))
 

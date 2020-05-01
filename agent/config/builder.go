@@ -81,8 +81,7 @@ type Builder struct {
 	err error
 }
 
-// NewBuilder returns a new configuration builder based on the given command
-// line flags.
+// NewBuilder returns a new configuration Builder from the BuilderOpts.
 func NewBuilder(opts BuilderOpts) (*Builder, error) {
 	newSource := func(name string, v interface{}) Source {
 		b, err := json.MarshalIndent(v, "", "    ")
@@ -97,7 +96,7 @@ func NewBuilder(opts BuilderOpts) (*Builder, error) {
 		Head:    []Source{DefaultSource(), DefaultEnterpriseSource()},
 	}
 
-	if b.boolVal(b.options.DevMode) {
+	if b.boolVal(opts.DevMode) {
 		b.Head = append(b.Head, DevSource())
 	}
 
@@ -106,17 +105,17 @@ func NewBuilder(opts BuilderOpts) (*Builder, error) {
 	// we need to merge all slice values defined in flags before we
 	// merge the config files since the flag values for slices are
 	// otherwise appended instead of prepended.
-	slices, values := b.splitSlicesAndValues(b.options.Config)
+	slices, values := b.splitSlicesAndValues(opts.Config)
 	b.Head = append(b.Head, newSource("flags.slices", slices))
-	for _, path := range b.options.ConfigFiles {
-		sources, err := b.ReadPath(path)
+	for _, path := range opts.ConfigFiles {
+		sources, err := sourcesFromPath(path, opts)
 		if err != nil {
 			return nil, err
 		}
 		b.Sources = append(b.Sources, sources...)
 	}
 	b.Tail = append(b.Tail, newSource("flags.values", values))
-	for i, s := range b.options.HCL {
+	for i, s := range opts.HCL {
 		b.Tail = append(b.Tail, Source{
 			Name:   fmt.Sprintf("flags-%d.hcl", i),
 			Format: "hcl",
@@ -124,16 +123,16 @@ func NewBuilder(opts BuilderOpts) (*Builder, error) {
 		})
 	}
 	b.Tail = append(b.Tail, NonUserSource(), DefaultConsulSource(), OverrideEnterpriseSource(), DefaultVersionSource())
-	if b.boolVal(b.options.DevMode) {
+	if b.boolVal(opts.DevMode) {
 		b.Tail = append(b.Tail, DevConsulSource())
 	}
 	return b, nil
 }
 
-// ReadPath reads a single config file or all files in a directory (but
-// not its sub-directories) and appends them to the list of config
-// sources.
-func (b *Builder) ReadPath(path string) ([]Source, error) {
+// sourcesFromPath reads a single config file or all files in a directory (but
+// not its sub-directories) and returns Sources created from the
+// files.
+func sourcesFromPath(path string, options BuilderOpts) ([]Source, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("config: Open failed on %s. %s", path, err)
@@ -146,7 +145,12 @@ func (b *Builder) ReadPath(path string) ([]Source, error) {
 	}
 
 	if !fi.IsDir() {
-		src, err := b.ReadFile(path)
+		if !shouldParseFile(path, options.ConfigFormat) {
+			// TODO: log warning
+			return nil, nil
+		}
+
+		src, err := newSourceFromFile(path, options.ConfigFormat)
 		if err != nil {
 			return nil, err
 		}
@@ -181,36 +185,46 @@ func (b *Builder) ReadPath(path string) ([]Source, error) {
 			continue
 		}
 
-		if b.shouldParseFile(fp) {
-			src, err := b.ReadFile(fp)
-			if err != nil {
-				return nil, err
-			}
-			sources = append(sources, src)
+		if !shouldParseFile(fp, options.ConfigFormat) {
+			// TODO: log warning
+			continue
 		}
+		src, err := newSourceFromFile(fp, options.ConfigFormat)
+		if err != nil {
+			return nil, err
+		}
+		sources = append(sources, src)
 	}
 	return sources, nil
 }
 
-// ReadFile parses a JSON or HCL config file and appends it to the list of
-// config sources.
-func (b *Builder) ReadFile(path string) (Source, error) {
+// newSourceFromFile creates a Source from the contents of the file at path.
+func newSourceFromFile(path string, format string) (Source, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
-		return Source{}, fmt.Errorf("config: ReadFile failed on %s: %s", path, err)
+		return Source{}, fmt.Errorf("config: failed to read %s: %s", path, err)
 	}
-	return Source{Name: path, Data: string(data)}, nil
+	if format == "" {
+		format = formatFromFileExtension(path)
+	}
+	return Source{Name: path, Data: string(data), Format: format}, nil
 }
 
 // shouldParse file determines whether the file to be read is of a supported extension
-func (b *Builder) shouldParseFile(path string) bool {
-	srcFormat := FormatFrom(path)
+func shouldParseFile(path string, configFormat string) bool {
+	srcFormat := formatFromFileExtension(path)
+	return configFormat != "" || srcFormat == "hcl" || srcFormat == "json"
+}
 
-	// If config-format is not set, only read files with supported extensions
-	if b.options.ConfigFormat == "" && srcFormat != "hcl" && srcFormat != "json" {
-		return false
+func formatFromFileExtension(name string) string {
+	switch {
+	case strings.HasSuffix(name, ".json"):
+		return "json"
+	case strings.HasSuffix(name, ".hcl"):
+		return "hcl"
+	default:
+		return ""
 	}
-	return true
 }
 
 type byName []os.FileInfo
@@ -240,9 +254,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	b.err = nil
 	b.Warnings = nil
 
-	// ----------------------------------------------------------------
-	// merge config sources as follows
-	//
+	// TODO: move to NewBuilder to remove Builder.options field
 	configFormat := b.options.ConfigFormat
 	if configFormat != "" && configFormat != "json" && configFormat != "hcl" {
 		return RuntimeConfig{}, fmt.Errorf("config: -config-format must be either 'hcl' or 'json'")
@@ -251,19 +263,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	// build the list of config sources
 	var srcs []Source
 	srcs = append(srcs, b.Head...)
-	for _, src := range b.Sources {
-		// skip file if it should not be parsed
-		if !b.shouldParseFile(src.Name) {
-			continue
-		}
-
-		// if config-format is set, files of any extension will be interpreted in that format
-		src.Format = FormatFrom(src.Name)
-		if configFormat != "" {
-			src.Format = configFormat
-		}
-		srcs = append(srcs, src)
-	}
+	srcs = append(srcs, b.Sources...)
 	srcs = append(srcs, b.Tail...)
 
 	// parse the config sources into a configuration
