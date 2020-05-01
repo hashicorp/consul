@@ -110,7 +110,8 @@ Services = [
 
 - `Services` `(array<LinkedService>: <optional>)` - A list of services to link
     with the gateway. The gateway will proxy traffic to these services. These linked services
-    must be registered with Consul for the gateway to discover their addresses.
+    must be registered with Consul for the gateway to discover their addresses. They must also
+    be registered in the same Consul datacenter as the terminating gateway.
 
     - `Name` `(string: "")` - The name of the service to link with the gateway.
     If the wildcard specifier, `*`, is provided, then ALL services within the namespace
