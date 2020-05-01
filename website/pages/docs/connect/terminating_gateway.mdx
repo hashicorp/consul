@@ -61,7 +61,7 @@ You must complete the following steps to configure a terminating gateway to prox
 
 1. Start an Envoy proxy using the [envoy subcommand](/docs/commands/connect/envoy#terminating-gateways), specifying the `terminating` gateway type:
     ```shell
-    $ consul connect envoy -gateway=terminating -register -address '0.0.0.0:8443'
+    $ consul connect envoy -gateway=terminating -register -address '{{ GetInterfaceIP "eth0" }}:8443'
     ```
 
 2. Create and apply a `terminating-gateway` [configuration entry](/docs/agent/config-entries/terminating-gateway) that defines 
@@ -88,9 +88,11 @@ Linking services to a terminating gateway is done with a `terminating-gateway`
 [configuration entry](/docs/agent/config-entries/terminating-gateway). This config entry can be applied via the 
 [CLI](/docs/commands/config/write) or [API](/api/config#apply-configuration).
 
-The services that the terminating gateway will proxy for must be registered with Consul for the terminating gateway
-to discover their addresses. These services can be registered with a local Consul agent, or if there is no agent present,
-the services can be registered [directly in the catalog](/api/catalog#register-entity).
+The services that the terminating gateway will proxy for must be registered with Consul. They must also be registered
+in the same Consul datacenter as the terminating gateway. Otherwise the terminating gateway will not be able to
+discover the services' addresses. These services can be registered with a local Consul agent.
+If there is no agent present, the services can be registered [directly in the catalog](/api/catalog#register-entity)
+by sending the registration request to a client or server agent on a different host.
 
 Since Consul's services must be associated with a node, direct registrations to the catalog must define a node as well.
 This node's [name](/api/catalog.html#node) **must not** overlap with a node managed by a Consul agent.
