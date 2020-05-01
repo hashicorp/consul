@@ -55,8 +55,11 @@ func routesFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.M
 			}
 
 			route := &envoy.RouteConfiguration{
-				Name:             upstreamID,
-				VirtualHosts:     []envoyroute.VirtualHost{virtualHost},
+				Name:         upstreamID,
+				VirtualHosts: []envoyroute.VirtualHost{virtualHost},
+				// ValidateClusters defaults to true when defined statically and false
+				// when done via RDS. Re-set the sane value of true to prevent
+				// null-routing traffic.
 				ValidateClusters: makeBoolValue(true),
 			}
 			resources = append(resources, route)
