@@ -204,11 +204,10 @@ func (b *Builder) ReadFile(path string) (Source, error) {
 
 // shouldParse file determines whether the file to be read is of a supported extension
 func (b *Builder) shouldParseFile(path string) bool {
-	configFormat := b.stringVal(b.options.ConfigFormat)
 	srcFormat := FormatFrom(path)
 
 	// If config-format is not set, only read files with supported extensions
-	if configFormat == "" && srcFormat != "hcl" && srcFormat != "json" {
+	if b.options.ConfigFormat == "" && srcFormat != "hcl" && srcFormat != "json" {
 		return false
 	}
 	return true
@@ -244,7 +243,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	// ----------------------------------------------------------------
 	// merge config sources as follows
 	//
-	configFormat := b.stringVal(b.options.ConfigFormat)
+	configFormat := b.options.ConfigFormat
 	if configFormat != "" && configFormat != "json" && configFormat != "hcl" {
 		return RuntimeConfig{}, fmt.Errorf("config: -config-format must be either 'hcl' or 'json'")
 	}

@@ -18,7 +18,7 @@ type BuilderOpts struct {
 
 	// ConfigFormat forces all config files to be interpreted as this
 	// format independent of their extension.
-	ConfigFormat *string
+	ConfigFormat string
 
 	// DevMode indicates whether the agent should be started in development
 	// mode. This cannot be configured in a config file.
@@ -60,7 +60,7 @@ func AddFlags(fs *flag.FlagSet, f *BuilderOpts) {
 	add(&f.Config.CheckOutputMaxSize, "check_output_max_size", "Sets the maximum output size for checks on this agent")
 	add(&f.ConfigFiles, "config-dir", "Path to a directory to read configuration files from. This will read every file ending in '.json' as configuration in this directory in alphabetical order. Can be specified multiple times.")
 	add(&f.ConfigFiles, "config-file", "Path to a file in JSON or HCL format with a matching file extension. Can be specified multiple times.")
-	add(&f.ConfigFormat, "config-format", "Config files are in this format irrespective of their extension. Must be 'hcl' or 'json'")
+	fs.StringVar(&f.ConfigFormat, "config-format", "", "Config files are in this format irrespective of their extension. Must be 'hcl' or 'json'")
 	add(&f.Config.DataDir, "data-dir", "Path to a data directory to store agent state.")
 	add(&f.Config.Datacenter, "datacenter", "Datacenter of the agent.")
 	add(&f.Config.DefaultQueryTime, "default-query-time", "the amount of time a blocking query will wait before Consul will force a response. This value can be overridden by the 'wait' query parameter.")
