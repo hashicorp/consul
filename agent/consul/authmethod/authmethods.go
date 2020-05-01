@@ -141,7 +141,7 @@ func NewValidator(logger hclog.Logger, method *structs.ACLAuthMethod) (Validator
 		return nil, fmt.Errorf("no auth method registered with type: %s", method.Type)
 	}
 
-	logger = logger.Named("authmethod").With("authMethodType", method.Type, "authMethodName", method.Name)
+	logger = logger.Named("authmethod").With("type", method.Type, "name", method.Name)
 
 	return factory(logger, method)
 }
