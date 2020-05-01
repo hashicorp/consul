@@ -264,7 +264,7 @@ func DevConsulSource() Source {
 }
 
 func DefaultRuntimeConfig(hcl string) *RuntimeConfig {
-	b, err := NewBuilder(Flags{HCL: []string{hcl}})
+	b, err := NewBuilder(BuilderOpts{HCL: []string{hcl}})
 	if err != nil {
 		panic(err)
 	}

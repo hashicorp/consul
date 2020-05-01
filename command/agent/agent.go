@@ -57,7 +57,7 @@ type cmd struct {
 	versionPrerelease string
 	versionHuman      string
 	shutdownCh        <-chan struct{}
-	flagArgs          config.Flags
+	flagArgs          config.BuilderOpts
 	logger            hclog.InterceptLogger
 }
 

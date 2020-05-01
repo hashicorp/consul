@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-// Flags defines the command line flags.
-type Flags struct {
+// BuilderOpts used by Builder to construct and validate a RuntimeConfig.
+type BuilderOpts struct {
 	// Config contains the command line arguments that can also be set
 	// in a config file.
 	Config Config
@@ -29,7 +29,7 @@ type Flags struct {
 }
 
 // AddFlags adds the command line flags for the agent.
-func AddFlags(fs *flag.FlagSet, f *Flags) {
+func AddFlags(fs *flag.FlagSet, f *BuilderOpts) {
 	add := func(p interface{}, name, help string) {
 		switch x := p.(type) {
 		case **bool:

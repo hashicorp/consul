@@ -17,7 +17,7 @@ func ServicesFromFiles(files []string) ([]*api.AgentServiceRegistration, error) 
 	// configuration. devMode doesn't set any services by default so this
 	// is okay since we only look at services.
 	devMode := true
-	b, err := config.NewBuilder(config.Flags{
+	b, err := config.NewBuilder(config.BuilderOpts{
 		ConfigFiles: files,
 		DevMode:     &devMode,
 	})

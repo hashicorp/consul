@@ -3844,7 +3844,7 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 
 			t.Run(strings.Join(desc, ":"), func(t *testing.T) {
 				// first parse the flags
-				flags := Flags{}
+				flags := BuilderOpts{}
 				fs := flag.NewFlagSet("", flag.ContinueOnError)
 				AddFlags(fs, &flags)
 				err := fs.Parse(tt.args)
@@ -3930,7 +3930,7 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				// build a default configuration, then patch the fields we expect to change
 				// and compare it with the generated configuration. Since the expected
 				// runtime config has been validated we do not need to validate it again.
-				x, err := NewBuilder(Flags{})
+				x, err := NewBuilder(BuilderOpts{})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -5996,7 +5996,7 @@ func TestFullConfig(t *testing.T) {
 		t.Run(format, func(t *testing.T) {
 			// parse the flags since this is the only way we can set the
 			// DevMode flag
-			var flags Flags
+			var flags BuilderOpts
 			fs := flag.NewFlagSet("", flag.ContinueOnError)
 			AddFlags(fs, &flags)
 			if err := fs.Parse(flagSrc); err != nil {

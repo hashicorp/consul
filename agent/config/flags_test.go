@@ -15,78 +15,78 @@ import (
 func TestAddFlags_WithParse(t *testing.T) {
 	tests := []struct {
 		args     []string
-		expected Flags
+		expected BuilderOpts
 		extra    []string
 	}{
 		{},
 		{
 			args:     []string{`-bind`, `a`},
-			expected: Flags{Config: Config{BindAddr: pString("a")}},
+			expected: BuilderOpts{Config: Config{BindAddr: pString("a")}},
 		},
 		{
 			args:     []string{`-bootstrap`},
-			expected: Flags{Config: Config{Bootstrap: pBool(true)}},
+			expected: BuilderOpts{Config: Config{Bootstrap: pBool(true)}},
 		},
 		{
 			args:     []string{`-bootstrap=true`},
-			expected: Flags{Config: Config{Bootstrap: pBool(true)}},
+			expected: BuilderOpts{Config: Config{Bootstrap: pBool(true)}},
 		},
 		{
 			args:     []string{`-bootstrap=false`},
-			expected: Flags{Config: Config{Bootstrap: pBool(false)}},
+			expected: BuilderOpts{Config: Config{Bootstrap: pBool(false)}},
 		},
 		{
 			args:     []string{`-config-file`, `a`, `-config-dir`, `b`, `-config-file`, `c`, `-config-dir`, `d`},
-			expected: Flags{ConfigFiles: []string{"a", "b", "c", "d"}},
+			expected: BuilderOpts{ConfigFiles: []string{"a", "b", "c", "d"}},
 		},
 		{
 			args:     []string{`-datacenter`, `a`},
-			expected: Flags{Config: Config{Datacenter: pString("a")}},
+			expected: BuilderOpts{Config: Config{Datacenter: pString("a")}},
 		},
 		{
 			args:     []string{`-dns-port`, `1`},
-			expected: Flags{Config: Config{Ports: Ports{DNS: pInt(1)}}},
+			expected: BuilderOpts{Config: Config{Ports: Ports{DNS: pInt(1)}}},
 		},
 		{
 			args:     []string{`-grpc-port`, `1`},
-			expected: Flags{Config: Config{Ports: Ports{GRPC: pInt(1)}}},
+			expected: BuilderOpts{Config: Config{Ports: Ports{GRPC: pInt(1)}}},
 		},
 		{
 			args:     []string{`-http-port`, `1`},
-			expected: Flags{Config: Config{Ports: Ports{HTTP: pInt(1)}}},
+			expected: BuilderOpts{Config: Config{Ports: Ports{HTTP: pInt(1)}}},
 		},
 		{
 			args:     []string{`-https-port`, `1`},
-			expected: Flags{Config: Config{Ports: Ports{HTTPS: pInt(1)}}},
+			expected: BuilderOpts{Config: Config{Ports: Ports{HTTPS: pInt(1)}}},
 		},
 		{
 			args:     []string{`-serf-lan-port`, `1`},
-			expected: Flags{Config: Config{Ports: Ports{SerfLAN: pInt(1)}}},
+			expected: BuilderOpts{Config: Config{Ports: Ports{SerfLAN: pInt(1)}}},
 		},
 		{
 			args:     []string{`-serf-wan-port`, `1`},
-			expected: Flags{Config: Config{Ports: Ports{SerfWAN: pInt(1)}}},
+			expected: BuilderOpts{Config: Config{Ports: Ports{SerfWAN: pInt(1)}}},
 		},
 		{
 			args:     []string{`-server-port`, `1`},
-			expected: Flags{Config: Config{Ports: Ports{Server: pInt(1)}}},
+			expected: BuilderOpts{Config: Config{Ports: Ports{Server: pInt(1)}}},
 		},
 		{
 			args:     []string{`-join`, `a`, `-join`, `b`},
-			expected: Flags{Config: Config{StartJoinAddrsLAN: []string{"a", "b"}}},
+			expected: BuilderOpts{Config: Config{StartJoinAddrsLAN: []string{"a", "b"}}},
 		},
 		{
 			args:     []string{`-node-meta`, `a:b`, `-node-meta`, `c:d`},
-			expected: Flags{Config: Config{NodeMeta: map[string]string{"a": "b", "c": "d"}}},
+			expected: BuilderOpts{Config: Config{NodeMeta: map[string]string{"a": "b", "c": "d"}}},
 		},
 		{
 			args:     []string{`-bootstrap`, `true`},
-			expected: Flags{Config: Config{Bootstrap: pBool(true)}},
+			expected: BuilderOpts{Config: Config{Bootstrap: pBool(true)}},
 			extra:    []string{"true"},
 		},
 		{
 			args: []string{`-primary-gateway`, `foo.local`, `-primary-gateway`, `bar.local`},
-			expected: Flags{Config: Config{PrimaryGateways: []string{
+			expected: BuilderOpts{Config: Config{PrimaryGateways: []string{
 				"foo.local", "bar.local",
 			}}},
 		},
@@ -94,7 +94,7 @@ func TestAddFlags_WithParse(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(strings.Join(tt.args, " "), func(t *testing.T) {
-			flags := Flags{}
+			flags := BuilderOpts{}
 			fs := flag.NewFlagSet("", flag.ContinueOnError)
 			AddFlags(fs, &flags)
 
