@@ -58,6 +58,7 @@
     "@glimmer/tracking": "^1.0.0",
     "@hashicorp/consul-api-double": "^2.6.2",
     "@hashicorp/ember-cli-api-double": "^3.0.2",
+    "@xstate/fsm": "^1.4.0",
     "babel-eslint": "^10.0.3",
     "base64-js": "^1.3.0",
     "broccoli-asset-rev": "^3.0.0",
