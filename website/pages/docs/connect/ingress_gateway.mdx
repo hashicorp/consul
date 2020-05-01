@@ -54,7 +54,7 @@ You must complete the following steps to configure an ingress gateway to proxy t
 a set of listeners that expose the desired backing services. The config entry can be applied via the
 [CLI](/docs/commands/config/write) or [API](/api/config#apply-configuration).
 
-3. Ensure that [Consul intentions](/docs/connect/intentions) are setup between the ingress gateway and the backing services.
+3. Ensure that [Consul intentions](/docs/commands/intention) are setup between the ingress gateway and the backing services.
 
 4. **Optionally** use the `<service>.ingress.<domain>` [DNS subdomain](/docs/agent/dns#ingress-service-lookups) to discover the ingress
 gateways for a service.
