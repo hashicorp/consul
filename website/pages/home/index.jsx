@@ -4,6 +4,7 @@ import BasicHero from '../../components/basic-hero'
 import ConsulEnterpriseComparison from '../../components/consul-enterprise-comparison'
 import LearnCallout from '../../components/learn-callout'
 import CaseStudyCarousel from '../../components/case-study-carousel'
+import ProductFeaturesList from '@hashicorp/react-product-features-list'
 
 export default function HomePage() {
   return (
@@ -25,6 +26,53 @@ export default function HomePage() {
           },
         ]}
         backgroundImage
+      />
+      <ProductFeaturesList
+        heading="Why Nomad?"
+        features={[
+          {
+            title: 'First Class Kubernetes Experience',
+            content:
+              'Consul provides a Helm chart for a Kubernetes first experience for Service Discovery and Service Mesh use cases.',
+            icon:
+              'https://d33wubrfki0l68.cloudfront.net/d9ed5629918bfe6e41dd9a35226d4c86e69cb54b/f2b68/img/icons/home-solution-consul.svg',
+          },
+          {
+            title: 'Service Mesh Across Runtime Platforms',
+            content:
+              'Establish a service mesh between Bare Metal, Virtual Machines, and Kubernetes clusters, across any cloud. ',
+            icon:
+              'https://d33wubrfki0l68.cloudfront.net/d9ed5629918bfe6e41dd9a35226d4c86e69cb54b/f2b68/img/icons/home-solution-consul.svg',
+          },
+          {
+            title: 'Modernize Legacy Applications without Rewrite',
+            content:
+              'Bring orchestration benefits to existing services. Achieve zero downtime deployments, improved resilience, higher resource utilization, and more without containerization.',
+            icon:
+              'https://d33wubrfki0l68.cloudfront.net/d9ed5629918bfe6e41dd9a35226d4c86e69cb54b/f2b68/img/icons/home-solution-consul.svg',
+          },
+          {
+            title: 'Secure, Multi-Cloud Service Networking ',
+            content:
+              'Secure any service running in any environment. Consul enables users to automate and secure service to service communication.',
+            icon:
+              'https://d33wubrfki0l68.cloudfront.net/d9ed5629918bfe6e41dd9a35226d4c86e69cb54b/f2b68/img/icons/home-solution-consul.svg',
+          },
+          {
+            title: 'Automated Service Discovery with Health Checking',
+            content:
+              'Enable Consul to detect the deployment of new services, changes to existing ones, and provide real time agent health to reduce downtime. ',
+            icon:
+              'https://d33wubrfki0l68.cloudfront.net/d9ed5629918bfe6e41dd9a35226d4c86e69cb54b/f2b68/img/icons/home-solution-consul.svg',
+          },
+          {
+            title: 'Decentralized Configuration',
+            content:
+              'Consul runs as a decentralized platform allowing massive scale and performance.',
+            icon:
+              'https://d33wubrfki0l68.cloudfront.net/d9ed5629918bfe6e41dd9a35226d4c86e69cb54b/f2b68/img/icons/home-solution-consul.svg',
+          },
+        ]}
       />
       <CaseStudyCarousel
         title="Trusted by startups and the world’s largest organizations"
@@ -118,31 +166,6 @@ export default function HomePage() {
               url:
                 'https://www.datocms-assets.com/2885/1582180745-circleci-logo.svg',
             },
-            // {
-            //   companyName: 'SAP Ariba',
-            //   url:
-            //     'https://www.datocms-assets.com/2885/1580419436-logosap-ariba.svg',
-            // },
-            // {
-            //   companyName: 'Pandora',
-            //   url:
-            //     'https://www.datocms-assets.com/2885/1523044075-pandora-black.svg',
-            // },
-            // {
-            //   companyName: 'Citadel',
-            //   url:
-            //     'https://www.datocms-assets.com/2885/1582323352-logocitadelwhite-knockout.svg',
-            // },
-            // {
-            //   companyName: 'Jet',
-            //   url:
-            //     'https://www.datocms-assets.com/2885/1522341143-jet-black.svg',
-            // },
-            // {
-            //   companyName: 'Deluxe',
-            //   url:
-            //     'https://www.datocms-assets.com/2885/1582323254-deluxe-logo.svg',
-            // },
           ],
         }}
       />
