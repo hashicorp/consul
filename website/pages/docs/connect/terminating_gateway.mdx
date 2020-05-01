@@ -72,6 +72,10 @@ a set of services that the gateway will proxy traffic to. The config entry can b
 3. Ensure that [Consul intentions](/docs/commands/intention) are set up between the source services in the mesh 
 and the gateway's linked services. The intentions must reference the destination service's name and not the gateway itself.
 
+4. Ensure necessary [upstreams](/docs/connect/registration/service-registration#upstream-configuration-reference)
+have been added to service definitions of the source services in the Consul service mesh. Each source service that needs
+to connect to a service proxied by a terminating gateway will need to add the external service as an upstream destination.
+
 ## Terminating Gateway Configuration
 
 Terminating gateways are defined similarly to other services registered with Consul, with two exceptions.
@@ -99,4 +103,5 @@ Since Consul's services must be associated with a node, direct registrations to 
 This node's [name](/api/catalog.html#node) **must not** overlap with a node managed by a Consul agent.
 Otherwise the service registration will be deleted by that agent during the periodic
 [anti-entropy sync](/docs/internals/anti-entropy). Lastly, all agent-less services with the same address can
-be registered under the same node name and address.
+be registered under the same node name and address. For a complete example of how to register external services
+review the [external services guide](https://learn.hashicorp.com/consul/developer-discovery/external).
