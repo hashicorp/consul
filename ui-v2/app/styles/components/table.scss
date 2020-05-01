@@ -6,6 +6,21 @@
 %table-actions > [type='checkbox'] {
   @extend %more-popover-menu;
 }
+%more-popover-menu-panel [type='checkbox']:checked ~ * {
+  /* this needs to autocalculate */
+  min-height: 143px;
+  max-height: 143px;
+}
+%more-popover-menu-panel [id$='logout']:checked ~ * {
+  /* this needs to autocalculate */
+  min-height: 183px;
+  max-height: 183px;
+}
+%more-popover-menu-panel [id$='delete']:checked ~ ul label[for$='delete'] + [role='menu'],
+%more-popover-menu-panel [id$='logout']:checked ~ ul label[for$='logout'] + [role='menu'],
+%more-popover-menu-panel [id$='use']:checked ~ ul label[for$='use'] + [role='menu'] {
+  display: block;
+}
 %table-actions .confirmation-alert {
   @extend %confirmation-alert;
 }
@@ -15,18 +30,27 @@
   right: 15px;
 }
 
-html.template-service.template-list td:first-child a span,
-html.template-node.template-show #services td:first-child a span,
-html.template-service.template-show #instances td:first-child a span {
+/*TODO: Rename this to %app-view-brand-icon or similar */
+%with-external-source-icon {
+  background-repeat: no-repeat;
+  background-size: contain;
+  width: 18px;
+  height: 18px;
+
+  --kubernetes-icon: #{$kubernetes-logo-color-svg};
+  --terraform-icon: #{$terraform-logo-color-svg};
+  --nomad-icon: #{$nomad-logo-color-svg};
+  --consul-icon: #{$consul-logo-color-svg};
+  --aws-icon: #{$aws-logo-color-svg};
+}
+html.template-node.template-show #services td:first-child a span {
   @extend %with-external-source-icon;
   float: left;
   margin-right: 10px;
   margin-top: 2px;
 }
 /* This nudges the th in for the external source icons */
-html.template-node.template-show #services th:first-child,
-html.template-service.template-show #instances th:first-child,
-html.template-service.template-list main th:first-child {
+html.template-node.template-show #services th:first-child {
   text-indent: 28px;
 }
 
@@ -72,16 +96,10 @@ th span em {
   html.template-policy.template-list tr > :nth-child(2) {
     display: none;
   }
-  html.template-service.template-list tr > :nth-child(2) {
-    display: none;
-  }
 }
 @media #{$--lt-wide-table} {
   /* hide actions on narrow screens, you can always click in do everything from there */
   tr > .actions {
-    display: none;
-  }
-  html.template-service.template-list tr > :last-child {
     display: none;
   }
   html.template-node.template-show #services tr > :last-child {
