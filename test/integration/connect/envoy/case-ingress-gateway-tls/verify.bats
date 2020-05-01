@@ -32,3 +32,12 @@ load helpers
   [ "$status" -eq 0 ]
   [ "$output" = "hello" ]
 }
+
+@test "should be able to connect to s1 through the TLS-enabled ingress port using the custom host" {
+  assert_dnssan_in_cert localhost:9999 'test.example.com'
+  run retry_default curl --cacert <(get_ca_root) -s -f -d hello \
+    --resolve test.example.com:9999:127.0.0.1 \
+    https://test.example.com:9999
+  [ "$status" -eq 0 ]
+  [ "$output" = "hello" ]
+}
