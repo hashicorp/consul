@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-hclog"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -24,7 +25,7 @@ type Cache interface {
 	Purge()
 }
 
-type ValidatorFactory func(method *structs.ACLAuthMethod) (Validator, error)
+type ValidatorFactory func(logger hclog.Logger, method *structs.ACLAuthMethod) (Validator, error)
 
 type Validator interface {
 	// Name returns the name of the auth method backing this validator.
@@ -131,7 +132,7 @@ func (c *authMethodCache) Purge() {
 // NewValidator instantiates a new Validator for the given auth method
 // configuration. If no auth method is registered with the provided type an
 // error is returned.
-func NewValidator(method *structs.ACLAuthMethod) (Validator, error) {
+func NewValidator(logger hclog.Logger, method *structs.ACLAuthMethod) (Validator, error) {
 	typesMu.RLock()
 	factory, ok := types[method.Type]
 	typesMu.RUnlock()
@@ -140,7 +141,9 @@ func NewValidator(method *structs.ACLAuthMethod) (Validator, error) {
 		return nil, fmt.Errorf("no auth method registered with type: %s", method.Type)
 	}
 
-	return factory(method)
+	logger = logger.Named("authmethod").With("type", method.Type, "name", method.Name)
+
+	return factory(logger, method)
 }
 
 // Types returns a sorted list of the names of the registered types.
