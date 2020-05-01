@@ -17,5 +17,13 @@
   justify-content: space-between;
 
   margin-top: 1.5em;
-  padding-top: 0.5em;
+  padding-top: 0.6em;
+  border-top: 1px solid;
+}
+%empty-state-anchor {
+  display: inline-flex;
+  align-items: center;
+}
+%empty-state-anchor::before {
+  margin-top: -1px;
 }
