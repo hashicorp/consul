@@ -1875,8 +1875,7 @@ func (a *ACL) BindingRuleSet(args *structs.ACLBindingRuleSetRequest, reply *stru
 	blankID := validator.NewIdentity()
 
 	if rule.Selector != "" {
-		_, err := bexpr.CreateEvaluatorForType(rule.Selector, nil, blankID.SelectableFields)
-		if err != nil {
+		if _, err := bexpr.CreateEvaluatorForType(rule.Selector, nil, blankID.SelectableFields); err != nil {
 			return fmt.Errorf("invalid Binding Rule: Selector is invalid: %v", err)
 		}
 	}
