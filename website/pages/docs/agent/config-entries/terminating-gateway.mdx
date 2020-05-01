@@ -39,33 +39,27 @@ Services = [
 ]
 ```
 
-Link gateway "us-west-gateway" with all services in the pci namespace,
-and specify a CA file for one-way TLS authentication:
+Link gateway "us-west-gateway" with the api service and specify a CA file for one-way TLS authentication:
 
 ```hcl
 Kind = "terminating-gateway"
 Name = "us-west-gateway"
-Namespace = "default"
 Services = [
   {
-    Namespace = "pci"
-    Name      = "*"
+    Name      = "api"
     CAFile    = "/etc/certs/ca-chain.cert.pem"
   }
 ]
 ```
 
-Link gateway "us-west-gateway" with all services in the pci namespace, 
-and specify a CA file, key file, and cert file for mutual TLS authentication:
+Link gateway "us-west-gateway" with the payments service and specify a CA file, key file, and cert file for mutual TLS authentication:
 
 ```hcl
 Kind = "terminating-gateway"
 Name = "us-west-gateway"
-Namespace = "default"
 Services = [
   {
-    Namespace = "pci"
-    Name      = "*"
+    Name      = "payments"
     CAFile    = "/etc/certs/ca-chain.cert.pem"
     KeyFile   = "/etc/certs/gateway.key.pem"
     CertFile  = "/etc/certs/gateway.cert.pem"
