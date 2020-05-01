@@ -17,8 +17,7 @@ export default Service.extend({
         instance = repo.peek(slug);
       }
     }
-    setProperties(instance, data);
-    return instance;
+    return setProperties(instance, data);
   },
   persist: function(sink, instance) {
     const [, , , /*dc*/ /*nspace*/ model] = sink.split('/');
