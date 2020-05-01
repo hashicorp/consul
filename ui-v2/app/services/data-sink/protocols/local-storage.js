@@ -3,12 +3,11 @@ import { setProperties } from '@ember/object';
 
 export default Service.extend({
   settings: service('settings'),
-  prepare: function(sink, data, instance) {
-    if (data === null || data || '') {
+  prepare: function(sink, data, instance = {}) {
+    if (data === null || data === '') {
       return instance;
     }
-    setProperties(instance, data);
-    return instance;
+    return setProperties(instance, data);
   },
   persist: function(sink, instance) {
     const slug = sink.split(':').pop();
