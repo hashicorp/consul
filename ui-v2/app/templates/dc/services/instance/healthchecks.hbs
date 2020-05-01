@@ -2,7 +2,6 @@
   <div role="tabpanel">
     {{#if (gt item.ServiceChecks.length 0) }}
       <section data-test-service-checks>
-        <h3>Service Checks</h3>
         <HealthcheckList @items={{item.ServiceChecks}} @exposed={{proxy.ServiceProxy.Expose.Checks}} />
       </section>
     {{else}}
@@ -12,7 +11,6 @@
     {{/if}}
     {{#if (gt item.NodeChecks.length 0) }}
       <section data-test-node-checks>
-        <h3>Node Checks</h3>
         <HealthcheckList @items={{item.NodeChecks}} />
       </section>
     {{else}}
