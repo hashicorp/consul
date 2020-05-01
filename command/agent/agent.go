@@ -174,14 +174,17 @@ func (c *cmd) startupJoinWan(agent *agent.Agent, cfg *config.RuntimeConfig) erro
 }
 
 func (c *cmd) run(args []string) int {
-	// Parse our configs
 	if err := c.flags.Parse(args); err != nil {
 		if !strings.Contains(err.Error(), "help requested") {
 			c.UI.Error(fmt.Sprintf("error parsing flags: %v", err))
 		}
 		return 1
 	}
-	c.flagArgs.Args = c.flags.Args()
+	if len(c.flags.Args()) > 0 {
+		c.UI.Error(fmt.Sprintf("Unexpected extra arguments: %v", c.flags.Args()))
+		return 1
+	}
+
 	config := c.readConfig()
 	if config == nil {
 		return 1

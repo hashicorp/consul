@@ -20,15 +20,12 @@ type Flags struct {
 	// format independent of their extension.
 	ConfigFormat *string
 
-	// HCL contains an arbitrary config in hcl format.
 	// DevMode indicates whether the agent should be started in development
 	// mode. This cannot be configured in a config file.
 	DevMode *bool
 
+	// HCL contains an arbitrary config in hcl format.
 	HCL []string
-
-	// Args contains the remaining unparsed flags.
-	Args []string
 }
 
 // AddFlags adds the command line flags for the agent.

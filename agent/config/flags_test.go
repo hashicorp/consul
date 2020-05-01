@@ -2,91 +2,91 @@ package config
 
 import (
 	"flag"
-	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
-// TestParseFlags tests whether command line flags are properly parsed
+// TestAddFlags_WithParse tests whether command line flags are properly parsed
 // into the Flags/File structure. It contains an example for every type
 // that is parsed. It does not test the conversion into the final
 // runtime configuration. See TestConfig for that.
-func TestParseFlags(t *testing.T) {
+func TestAddFlags_WithParse(t *testing.T) {
 	tests := []struct {
-		args  []string
-		flags Flags
-		err   error
+		args     []string
+		expected Flags
+		extra    []string
 	}{
 		{},
 		{
-			args:  []string{`-bind`, `a`},
-			flags: Flags{Config: Config{BindAddr: pString("a")}},
+			args:     []string{`-bind`, `a`},
+			expected: Flags{Config: Config{BindAddr: pString("a")}},
 		},
 		{
-			args:  []string{`-bootstrap`},
-			flags: Flags{Config: Config{Bootstrap: pBool(true)}},
+			args:     []string{`-bootstrap`},
+			expected: Flags{Config: Config{Bootstrap: pBool(true)}},
 		},
 		{
-			args:  []string{`-bootstrap=true`},
-			flags: Flags{Config: Config{Bootstrap: pBool(true)}},
+			args:     []string{`-bootstrap=true`},
+			expected: Flags{Config: Config{Bootstrap: pBool(true)}},
 		},
 		{
-			args:  []string{`-bootstrap=false`},
-			flags: Flags{Config: Config{Bootstrap: pBool(false)}},
+			args:     []string{`-bootstrap=false`},
+			expected: Flags{Config: Config{Bootstrap: pBool(false)}},
 		},
 		{
-			args:  []string{`-config-file`, `a`, `-config-dir`, `b`, `-config-file`, `c`, `-config-dir`, `d`},
-			flags: Flags{ConfigFiles: []string{"a", "b", "c", "d"}},
+			args:     []string{`-config-file`, `a`, `-config-dir`, `b`, `-config-file`, `c`, `-config-dir`, `d`},
+			expected: Flags{ConfigFiles: []string{"a", "b", "c", "d"}},
 		},
 		{
-			args:  []string{`-datacenter`, `a`},
-			flags: Flags{Config: Config{Datacenter: pString("a")}},
+			args:     []string{`-datacenter`, `a`},
+			expected: Flags{Config: Config{Datacenter: pString("a")}},
 		},
 		{
-			args:  []string{`-dns-port`, `1`},
-			flags: Flags{Config: Config{Ports: Ports{DNS: pInt(1)}}},
+			args:     []string{`-dns-port`, `1`},
+			expected: Flags{Config: Config{Ports: Ports{DNS: pInt(1)}}},
 		},
 		{
-			args:  []string{`-grpc-port`, `1`},
-			flags: Flags{Config: Config{Ports: Ports{GRPC: pInt(1)}}},
+			args:     []string{`-grpc-port`, `1`},
+			expected: Flags{Config: Config{Ports: Ports{GRPC: pInt(1)}}},
 		},
 		{
-			args:  []string{`-http-port`, `1`},
-			flags: Flags{Config: Config{Ports: Ports{HTTP: pInt(1)}}},
+			args:     []string{`-http-port`, `1`},
+			expected: Flags{Config: Config{Ports: Ports{HTTP: pInt(1)}}},
 		},
 		{
-			args:  []string{`-https-port`, `1`},
-			flags: Flags{Config: Config{Ports: Ports{HTTPS: pInt(1)}}},
+			args:     []string{`-https-port`, `1`},
+			expected: Flags{Config: Config{Ports: Ports{HTTPS: pInt(1)}}},
 		},
 		{
-			args:  []string{`-serf-lan-port`, `1`},
-			flags: Flags{Config: Config{Ports: Ports{SerfLAN: pInt(1)}}},
+			args:     []string{`-serf-lan-port`, `1`},
+			expected: Flags{Config: Config{Ports: Ports{SerfLAN: pInt(1)}}},
 		},
 		{
-			args:  []string{`-serf-wan-port`, `1`},
-			flags: Flags{Config: Config{Ports: Ports{SerfWAN: pInt(1)}}},
+			args:     []string{`-serf-wan-port`, `1`},
+			expected: Flags{Config: Config{Ports: Ports{SerfWAN: pInt(1)}}},
 		},
 		{
-			args:  []string{`-server-port`, `1`},
-			flags: Flags{Config: Config{Ports: Ports{Server: pInt(1)}}},
+			args:     []string{`-server-port`, `1`},
+			expected: Flags{Config: Config{Ports: Ports{Server: pInt(1)}}},
 		},
 		{
-			args:  []string{`-join`, `a`, `-join`, `b`},
-			flags: Flags{Config: Config{StartJoinAddrsLAN: []string{"a", "b"}}},
+			args:     []string{`-join`, `a`, `-join`, `b`},
+			expected: Flags{Config: Config{StartJoinAddrsLAN: []string{"a", "b"}}},
 		},
 		{
-			args:  []string{`-node-meta`, `a:b`, `-node-meta`, `c:d`},
-			flags: Flags{Config: Config{NodeMeta: map[string]string{"a": "b", "c": "d"}}},
+			args:     []string{`-node-meta`, `a:b`, `-node-meta`, `c:d`},
+			expected: Flags{Config: Config{NodeMeta: map[string]string{"a": "b", "c": "d"}}},
 		},
 		{
-			args:  []string{`-bootstrap`, `true`},
-			flags: Flags{Config: Config{Bootstrap: pBool(true)}, Args: []string{"true"}},
+			args:     []string{`-bootstrap`, `true`},
+			expected: Flags{Config: Config{Bootstrap: pBool(true)}},
+			extra:    []string{"true"},
 		},
 		{
 			args: []string{`-primary-gateway`, `foo.local`, `-primary-gateway`, `bar.local`},
-			flags: Flags{Config: Config{PrimaryGateways: []string{
+			expected: Flags{Config: Config{PrimaryGateways: []string{
 				"foo.local", "bar.local",
 			}}},
 		},
@@ -97,22 +97,20 @@ func TestParseFlags(t *testing.T) {
 			flags := Flags{}
 			fs := flag.NewFlagSet("", flag.ContinueOnError)
 			AddFlags(fs, &flags)
+
 			err := fs.Parse(tt.args)
-			if got, want := err, tt.err; !reflect.DeepEqual(got, want) {
-				t.Fatalf("got error %v want %v", got, want)
-			}
-			flags.Args = fs.Args()
+			require.NoError(t, err)
 
 			// Normalize the expected value because require.Equal considers
 			// empty slices/maps and nil slices/maps to be different.
-			if len(tt.flags.Args) == 0 && flags.Args != nil {
-				tt.flags.Args = []string{}
+			if tt.extra == nil && fs.Args() != nil {
+				tt.extra = []string{}
 			}
-			if len(tt.flags.Config.NodeMeta) == 0 {
-				tt.flags.Config.NodeMeta = map[string]string{}
+			if len(tt.expected.Config.NodeMeta) == 0 {
+				tt.expected.Config.NodeMeta = map[string]string{}
 			}
-
-			require.Equal(t, tt.flags, flags)
+			require.Equal(t, tt.extra, fs.Args())
+			require.Equal(t, tt.expected, flags)
 		})
 	}
 }

@@ -34,7 +34,7 @@ func TestConfigFail(t *testing.T) {
 		},
 		{
 			args: []string{"agent", "-server", "-bind=10.0.0.1", "-datacenter=foo", "some-other-arg"},
-			out:  "==> config: Unknown extra arguments: [some-other-arg]\n",
+			out:  "==> Unexpected extra arguments: [some-other-arg]\n",
 		},
 		{
 			args: []string{"agent", "-server", "-bind=10.0.0.1"},

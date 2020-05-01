@@ -3851,7 +3851,7 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				if err != nil {
 					t.Fatalf("ParseFlags failed: %s", err)
 				}
-				flags.Args = fs.Args()
+				require.Len(t, fs.Args(), 0)
 
 				if tt.pre != nil {
 					tt.pre()
