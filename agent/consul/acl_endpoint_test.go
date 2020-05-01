@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	uuid "github.com/hashicorp/go-uuid"
@@ -1001,7 +1002,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		resp := structs.ACLToken{}
 
 		err := acl.TokenSet(&req, &resp)
-		requireErrorContains(t, err, "AuthMethod field is disallowed outside of Login")
+		testutil.RequireErrorContains(t, err, "AuthMethod field is disallowed outside of Login")
 	})
 
 	t.Run("Update auth method linked token and try to change auth method", func(t *testing.T) {
@@ -1046,7 +1047,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		resp := structs.ACLToken{}
 
 		err = acl.TokenSet(&req, &resp)
-		requireErrorContains(t, err, "Cannot change AuthMethod")
+		testutil.RequireErrorContains(t, err, "Cannot change AuthMethod")
 	})
 
 	t.Run("Update auth method linked token and let the SecretID and AuthMethod be defaulted", func(t *testing.T) {
@@ -1117,7 +1118,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		resp := structs.ACLToken{}
 
 		err := acl.TokenSet(&req, &resp)
-		requireErrorContains(t, err, "Service identity is missing the service name field")
+		testutil.RequireErrorContains(t, err, "Service identity is missing the service name field")
 	})
 
 	t.Run("Create it with invalid service identity (too large)", func(t *testing.T) {
@@ -1281,7 +1282,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		resp := structs.ACLToken{}
 
 		err := acl.TokenSet(&req, &resp)
-		requireErrorContains(t, err, "cannot specify a list of datacenters on a local token")
+		testutil.RequireErrorContains(t, err, "cannot specify a list of datacenters on a local token")
 	})
 
 	for _, test := range []struct {
@@ -1310,7 +1311,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 			err := acl.TokenSet(&req, &resp)
 			if test.errString != "" {
-				requireErrorContains(t, err, test.errString)
+				testutil.RequireErrorContains(t, err, test.errString)
 			} else {
 				require.NotNil(t, err)
 			}
@@ -1332,7 +1333,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 			err := acl.TokenSet(&req, &resp)
 			if test.errString != "" {
-				requireErrorContains(t, err, test.errStringTTL)
+				testutil.RequireErrorContains(t, err, test.errStringTTL)
 			} else {
 				require.NotNil(t, err)
 			}
@@ -1355,7 +1356,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		resp := structs.ACLToken{}
 
 		err := acl.TokenSet(&req, &resp)
-		requireErrorContains(t, err, "Expiration TTL and Expiration Time cannot both be set")
+		testutil.RequireErrorContains(t, err, "Expiration TTL and Expiration Time cannot both be set")
 	})
 
 	t.Run("Create it with expiration time using TTLs", func(t *testing.T) {
@@ -1440,7 +1441,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		resp := structs.ACLToken{}
 
 		err := acl.TokenSet(&req, &resp)
-		requireErrorContains(t, err, "Cannot change expiration time")
+		testutil.RequireErrorContains(t, err, "Cannot change expiration time")
 	})
 
 	// do not insert another test at this point: these tests need to be serial
@@ -1522,7 +1523,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		resp := structs.ACLToken{}
 
 		err = acl.TokenSet(&req, &resp)
-		requireErrorContains(t, err, "Cannot find token")
+		testutil.RequireErrorContains(t, err, "Cannot find token")
 	})
 }
 
@@ -2912,7 +2913,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 		resp := structs.ACLRole{}
 
 		err := acl.RoleSet(&req, &resp)
-		requireErrorContains(t, err, "Service identity is missing the service name field")
+		testutil.RequireErrorContains(t, err, "Service identity is missing the service name field")
 	})
 
 	t.Run("Create it with invalid service identity (too large)", func(t *testing.T) {
@@ -4072,27 +4073,27 @@ func TestACLEndpoint_SecureIntroEndpoints_LocalTokensDisabled(t *testing.T) {
 	errString := errAuthMethodsRequireTokenReplication.Error()
 
 	t.Run("AuthMethodRead", func(t *testing.T) {
-		requireErrorContains(t,
+		testutil.RequireErrorContains(t,
 			acl2.AuthMethodRead(&structs.ACLAuthMethodGetRequest{Datacenter: "dc2"},
 				&structs.ACLAuthMethodResponse{}),
 			errString,
 		)
 	})
 	t.Run("AuthMethodSet", func(t *testing.T) {
-		requireErrorContains(t,
+		testutil.RequireErrorContains(t,
 			acl2.AuthMethodSet(&structs.ACLAuthMethodSetRequest{Datacenter: "dc2"},
 				&structs.ACLAuthMethod{}),
 			errString,
 		)
 	})
 	t.Run("AuthMethodDelete", func(t *testing.T) {
-		requireErrorContains(t,
+		testutil.RequireErrorContains(t,
 			acl2.AuthMethodDelete(&structs.ACLAuthMethodDeleteRequest{Datacenter: "dc2"}, &ignored),
 			errString,
 		)
 	})
 	t.Run("AuthMethodList", func(t *testing.T) {
-		requireErrorContains(t,
+		testutil.RequireErrorContains(t,
 			acl2.AuthMethodList(&structs.ACLAuthMethodListRequest{Datacenter: "dc2"},
 				&structs.ACLAuthMethodListResponse{}),
 			errString,
@@ -4100,27 +4101,27 @@ func TestACLEndpoint_SecureIntroEndpoints_LocalTokensDisabled(t *testing.T) {
 	})
 
 	t.Run("BindingRuleRead", func(t *testing.T) {
-		requireErrorContains(t,
+		testutil.RequireErrorContains(t,
 			acl2.BindingRuleRead(&structs.ACLBindingRuleGetRequest{Datacenter: "dc2"},
 				&structs.ACLBindingRuleResponse{}),
 			errString,
 		)
 	})
 	t.Run("BindingRuleSet", func(t *testing.T) {
-		requireErrorContains(t,
+		testutil.RequireErrorContains(t,
 			acl2.BindingRuleSet(&structs.ACLBindingRuleSetRequest{Datacenter: "dc2"},
 				&structs.ACLBindingRule{}),
 			errString,
 		)
 	})
 	t.Run("BindingRuleDelete", func(t *testing.T) {
-		requireErrorContains(t,
+		testutil.RequireErrorContains(t,
 			acl2.BindingRuleDelete(&structs.ACLBindingRuleDeleteRequest{Datacenter: "dc2"}, &ignored),
 			errString,
 		)
 	})
 	t.Run("BindingRuleList", func(t *testing.T) {
-		requireErrorContains(t,
+		testutil.RequireErrorContains(t,
 			acl2.BindingRuleList(&structs.ACLBindingRuleListRequest{Datacenter: "dc2"},
 				&structs.ACLBindingRuleListResponse{}),
 			errString,
@@ -4128,14 +4129,14 @@ func TestACLEndpoint_SecureIntroEndpoints_LocalTokensDisabled(t *testing.T) {
 	})
 
 	t.Run("Login", func(t *testing.T) {
-		requireErrorContains(t,
+		testutil.RequireErrorContains(t,
 			acl2.Login(&structs.ACLLoginRequest{Datacenter: "dc2"},
 				&structs.ACLToken{}),
 			errString,
 		)
 	})
 	t.Run("Logout", func(t *testing.T) {
-		requireErrorContains(t,
+		testutil.RequireErrorContains(t,
 			acl2.Logout(&structs.ACLLogoutRequest{Datacenter: "dc2"}, &ignored),
 			errString,
 		)
@@ -4524,7 +4525,7 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		}
 
 		var ignored bool
-		requireErrorContains(t, acl.Logout(&req, &ignored), "ACL not found")
+		testutil.RequireErrorContains(t, acl.Logout(&req, &ignored), "ACL not found")
 
 		// present in dc1
 		resp2, err := retrieveTestToken(codec1, "root", "dc1", primaryToken.AccessorID)
@@ -4672,7 +4673,7 @@ func TestACLEndpoint_Login(t *testing.T) {
 		req.Token = "nope"
 		resp := structs.ACLToken{}
 
-		requireErrorContains(t, acl.Login(&req, &resp), "do not provide a token")
+		testutil.RequireErrorContains(t, acl.Login(&req, &resp), "do not provide a token")
 	})
 
 	t.Run("unknown method", func(t *testing.T) {
@@ -4686,7 +4687,7 @@ func TestACLEndpoint_Login(t *testing.T) {
 		}
 		resp := structs.ACLToken{}
 
-		requireErrorContains(t, acl.Login(&req, &resp), "ACL not found")
+		testutil.RequireErrorContains(t, acl.Login(&req, &resp), "ACL not found")
 	})
 
 	t.Run("invalid method token", func(t *testing.T) {
@@ -4714,7 +4715,7 @@ func TestACLEndpoint_Login(t *testing.T) {
 		}
 		resp := structs.ACLToken{}
 
-		requireErrorContains(t, acl.Login(&req, &resp), "Permission denied")
+		testutil.RequireErrorContains(t, acl.Login(&req, &resp), "Permission denied")
 	})
 
 	t.Run("valid method token 1 role binding and role does not exist", func(t *testing.T) {
@@ -4728,7 +4729,7 @@ func TestACLEndpoint_Login(t *testing.T) {
 		}
 		resp := structs.ACLToken{}
 
-		requireErrorContains(t, acl.Login(&req, &resp), "Permission denied")
+		testutil.RequireErrorContains(t, acl.Login(&req, &resp), "Permission denied")
 	})
 
 	// create the role so that the bindtype=role login works
@@ -4933,7 +4934,7 @@ func TestACLEndpoint_Login(t *testing.T) {
 		}
 		resp := structs.ACLToken{}
 
-		requireErrorContains(t, acl.Login(&req, &resp), "ACL not found")
+		testutil.RequireErrorContains(t, acl.Login(&req, &resp), "ACL not found")
 	})
 }
 
@@ -5000,7 +5001,7 @@ func TestACLEndpoint_Login_k8s(t *testing.T) {
 		}
 		resp := structs.ACLToken{}
 
-		requireErrorContains(t, acl.Login(&req, &resp), "Permission denied")
+		testutil.RequireErrorContains(t, acl.Login(&req, &resp), "Permission denied")
 	})
 
 	_, err = upsertTestBindingRule(
@@ -5111,7 +5112,7 @@ func TestACLEndpoint_Logout(t *testing.T) {
 		req.Token = ""
 		var ignored bool
 
-		requireErrorContains(t, acl.Logout(&req, &ignored), "ACL not found")
+		testutil.RequireErrorContains(t, acl.Logout(&req, &ignored), "ACL not found")
 	})
 
 	t.Run("logout from deleted token", func(t *testing.T) {
@@ -5120,7 +5121,7 @@ func TestACLEndpoint_Logout(t *testing.T) {
 			WriteRequest: structs.WriteRequest{Token: "not-found"},
 		}
 		var ignored bool
-		requireErrorContains(t, acl.Logout(&req, &ignored), "ACL not found")
+		testutil.RequireErrorContains(t, acl.Logout(&req, &ignored), "ACL not found")
 	})
 
 	t.Run("logout from non-auth method-linked token should fail", func(t *testing.T) {
@@ -5129,7 +5130,7 @@ func TestACLEndpoint_Logout(t *testing.T) {
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
 		var ignored bool
-		requireErrorContains(t, acl.Logout(&req, &ignored), "Permission denied")
+		testutil.RequireErrorContains(t, acl.Logout(&req, &ignored), "Permission denied")
 	})
 
 	t.Run("login then logout", func(t *testing.T) {
@@ -5776,16 +5777,6 @@ func requireTimeEquals(t *testing.T, expect, got *time.Time) {
 		t.Fatalf("expected=%q != got=NIL", *expect)
 	} else if !expect.Equal(*got) {
 		t.Fatalf("expected=%q != got=%q", *expect, *got)
-	}
-}
-
-func requireErrorContains(t *testing.T, err error, expectedErrorMessage string) {
-	t.Helper()
-	if err == nil {
-		t.Fatal("An error is expected but got nil.")
-	}
-	if !strings.Contains(err.Error(), expectedErrorMessage) {
-		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
