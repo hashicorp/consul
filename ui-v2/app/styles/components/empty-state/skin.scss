@@ -1,30 +1,41 @@
+%empty-state {
+  color: $gray-500;
+}
+%empty-state > ul {
+  border-color: $gray-300;
+}
 %empty-state-header {
   border-bottom: none;
 }
-%empty-state header {
-  color: $gray-500;
-}
+/* Icons */
 %empty-state header::before {
-  background-color: $gray-500;
   font-size: 2.6em;
   position: relative;
   top: -3px;
   float: left;
   margin-right: 10px;
 }
-%empty-state-anchor {
-  @extend %anchor;
-}
 %empty-state-anchor::before {
   margin-right: 0.5em;
-  background-color: $blue-500;
   font-size: 0.9em;
 }
-%empty-state.unauthorized header::before {
-  @extend %with-alert-circle-outline-mask, %as-pseudo;
+%empty-state[class*='status-'] header::before {
+  @extend %as-pseudo;
+}
+%empty-state.status- header::before {
+  @extend %with-alert-circle-outline-mask;
+}
+%empty-state.status-404 header::before {
+  @extend %with-help-circle-outline-mask;
+}
+%empty-state.status-403 header::before {
+  @extend %with-disabled-mask;
 }
 %empty-state .docs-link > *::before {
   @extend %with-docs-mask, %as-pseudo;
+}
+%empty-state .back-link > *::before {
+  @extend %with-chevron-left-mask, %as-pseudo;
 }
 %empty-state .learn-link > *::before {
   @extend %with-learn-mask, %as-pseudo;

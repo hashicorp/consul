@@ -21,6 +21,9 @@
 .notice.warning {
   @extend %notice-warning;
 }
+.notice.error {
+  @extend %notice-error;
+}
 .notice.info {
   @extend %notice-info;
 }
