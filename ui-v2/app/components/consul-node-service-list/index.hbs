@@ -1,0 +1,47 @@
+{{yield}}
+{{#if (gt items.length 0)}}
+  <ListCollection @cellHeight={{73}} @items={{items}} class="consul-node-service-list" as |item index|>
+    <a href={{href-to routeName item.Service}}>
+      {{item.Service}}
+    </a>
+    <ul>
+      <ConsulExternalSource @item={{item.Service}} as |ExternalSource|>
+        <li>
+          <ExternalSource />
+        </li>
+      </ConsulExternalSource>
+    {{#with (reject-by 'ServiceID' '' item.Checks) as |checks|}}
+      <li class={{service/instance-checks checks}}>
+        {{checks.length}} service checks
+      </li>
+    {{/with}}
+    {{#with (filter-by 'ServiceID' '' item.Checks) as |checks|}}
+      <li class={{service/instance-checks checks}}>
+        {{checks.length}} node checks
+      </li>
+    {{/with}}
+    {{#if (get proxies item.Service.ID)}}
+      <li class="proxy">
+        connected with proxy
+      </li>
+    {{/if}}
+    {{#if (gt item.Node.Node.length 0)}}
+        <li class="node">
+          <a href={{href-to 'dc.nodes.show' item.Node.Node}}>{{item.Node.Node}}</a>
+      </li>
+    {{/if}}
+      <li class="address" data-test-address>
+        {{#if (not-eq item.Service.Address '')}}
+          {{item.Service.Address}}:{{item.Service.Port}}
+        {{else}}
+          {{item.Node.Address}}:{{item.Service.Port}}
+        {{/if}}
+      </li>
+    {{#if (gt item.Service.Tags.length 0)}}
+      <li>
+        <TagList @items={{item.Service.Tags}}/>
+      </li>
+    {{/if}}
+    </ul>
+  </ListCollection>
+{{/if}}

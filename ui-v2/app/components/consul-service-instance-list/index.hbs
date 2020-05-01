@@ -1,80 +1,25 @@
 {{#if (gt items.length 0)}}
   <ListCollection @items={{items}} class="consul-service-instance-list" as |item index|>
     <BlockSlot @name="header">
-      <a href={{href-to routeName item.Service.Service item.Node.Node (or item.Service.ID item.Service.Service)}}>
-        {{item.Service.ID}}
-      </a>
+      {{#if (eq routeName "dc.services.show")}}
+        <a data-test-service-name href={{href-to routeName item.Service}}>
+          {{item.ID}}
+        </a>
+      {{else}}
+        <a data-test-service-name href={{href-to routeName item.Service.Service item.Node.Node (or item.Service.ID item.Service.Service)}}>
+          {{item.Service.ID}}
+        </a>
+      {{/if}}
     </BlockSlot>
     <BlockSlot @name="details">
+    {{#if checks}}
+      <ConsulExternalSource @item={{item}} />
+      <ConsulInstanceChecks @type="service" @items={{get checks item.Service}} />
+    {{else}}
       <ConsulExternalSource @item={{item.Service}} />
-{{#let (reject-by 'ServiceID' '' item.Checks) as |checks|}}
-  {{#let (service/instance-checks checks) as |serviceCheck| }}
-    {{#if (eq serviceCheck.check 'empty') }}
-      <dl class={{serviceCheck.check}}>
-        <dt>
-           <Tooltip>
-            Service Checks
-          </Tooltip>
-        </dt>
-        <dd>No service checks</dd>
-      </dl>
-    {{else}}
-      {{#if (eq serviceCheck.count checks.length)}}
-      <dl class={{serviceCheck.check}}>
-        <dt>
-          <Tooltip>
-            Service Checks
-          </Tooltip>
-        </dt>
-        <dd>All service checks {{serviceCheck.status}}</dd>
-      </dl>
-      {{else}}
-      <dl class={{serviceCheck.check}}>
-        <dt>
-          <Tooltip>
-            Service Checks
-          </Tooltip>
-        </dt>
-        <dd>{{serviceCheck.count}}/{{checks.length}} service checks {{serviceCheck.status}}</dd>
-      </dl>
-      {{/if}}
+      <ConsulInstanceChecks @type="service" @items={{reject-by 'ServiceID' '' item.Checks}} />
+      <ConsulInstanceChecks @type="node" @items={{filter-by 'ServiceID' '' item.Checks}} />
     {{/if}}
-  {{/let}}
-{{/let}}
-{{#let (filter-by 'ServiceID' '' item.Checks) as |checks|}}
-  {{#let (service/instance-checks checks) as |nodeCheck| }}
-    {{#if (eq nodeCheck.check 'empty') }}
-      <dl class={{nodeCheck.check}}>
-        <dt>
-          <Tooltip>
-            Node Checks
-          </Tooltip>
-        </dt>
-        <dd>No node checks</dd>
-      </dl>
-    {{else}}
-      {{#if (eq nodeCheck.count checks.length)}}
-      <dl class={{nodeCheck.check}}>
-        <dt>
-          <Tooltip>
-            Node Checks
-          </Tooltip>
-        </dt>
-        <dd>All node checks {{nodeCheck.status}}</dd>
-      </dl>
-      {{else}}
-      <dl class={{nodeCheck.check}}>
-        <dt>
-          <Tooltip>
-            Node Checks
-          </Tooltip>
-        </dt>
-        <dd>{{nodeCheck.count}}/{{checks.length}} node checks {{nodeCheck.status}}</dd>
-      </dl>
-      {{/if}}
-    {{/if}}
-  {{/let}}
-{{/let}}
 {{#if (get proxies item.Service.ID)}}
       <dl class="proxy">
         <dt>
@@ -99,6 +44,7 @@
         </dd>
       </dl>
 {{/if}}
+{{#if item.Service.Port}}
       <dl class="address" data-test-address>
         <dt>
           <Tooltip>
@@ -113,7 +59,23 @@
           {{/if}}
         </dd>
       </dl>
+{{/if}}
+{{#if (and checks item.Port)}}
+      <dl>
+        <dt>
+          <CopyButton
+            @value={{item.Port}}
+            @name="Port"
+          />
+        </dt>
+        <dd data-test-service-port={{item.Port}}>:{{item.Port}}</dd>
+      </dl>
+{{/if}}
+{{#if checks}}
+      <TagList @item={{item}} />
+{{else}}
       <TagList @item={{item.Service}} />
+{{/if}}
     </BlockSlot>
   </ListCollection>
 {{/if}}
