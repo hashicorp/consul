@@ -11,8 +11,8 @@ label span {
 .has-error {
   @extend %form-element-error;
 }
-%modal-dialog .type-text,
-%app-view-content .type-text {
+%main-content .type-password,
+%main-content .type-text {
   @extend %form-element;
 }
 .type-toggle {
