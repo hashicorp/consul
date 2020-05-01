@@ -13,14 +13,18 @@ import (
 func RequireIdentityMatch(t testing.T, id *Identity, projectedVars map[string]string, filters ...string) {
 	t.Helper()
 
+	gotNames := id.ProjectedVarNames()
+
 	require.Equal(t, projectedVars, id.ProjectedVars)
 
-	names := make([]string, 0, len(projectedVars))
+	expectNames := make([]string, 0, len(projectedVars))
 	for k, _ := range projectedVars {
-		names = append(names, k)
+		expectNames = append(expectNames, k)
 	}
-	sort.Strings(names)
-	require.Equal(t, names, id.ProjectedVarNames())
+	sort.Strings(expectNames)
+	sort.Strings(gotNames)
+
+	require.Equal(t, expectNames, gotNames)
 	require.Nil(t, id.EnterpriseMeta)
 
 	for _, filter := range filters {

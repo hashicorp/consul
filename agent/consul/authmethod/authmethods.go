@@ -71,7 +71,6 @@ func (i *Identity) ProjectedVarNames() []string {
 	for k, _ := range i.ProjectedVars {
 		v = append(v, k)
 	}
-	sort.Strings(v)
 	return v
 }
 
