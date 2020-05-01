@@ -25,7 +25,7 @@ func (s *Server) loadAuthMethodValidator(idx uint64, method *structs.ACLAuthMeth
 		return v, nil
 	}
 
-	v, err := authmethod.NewValidator(method)
+	v, err := authmethod.NewValidator(s.logger, method)
 	if err != nil {
 		return nil, fmt.Errorf("auth method validator for %q could not be initialized: %v", method.Name, err)
 	}

@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/structs"
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-hclog"
 	"gopkg.in/square/go-jose.v2/jwt"
 	authv1 "k8s.io/api/authentication/v1"
 	client_metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,7 +21,7 @@ import (
 
 func init() {
 	// register this as an available auth method type
-	authmethod.Register("kubernetes", func(method *structs.ACLAuthMethod) (authmethod.Validator, error) {
+	authmethod.Register("kubernetes", func(_ hclog.Logger, method *structs.ACLAuthMethod) (authmethod.Validator, error) {
 		v, err := NewValidator(method)
 		if err != nil {
 			return nil, err

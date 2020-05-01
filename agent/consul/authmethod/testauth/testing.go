@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 )
 
@@ -84,7 +85,7 @@ type Config struct {
 	enterpriseConfig `mapstructure:",squash"`
 }
 
-func newValidator(method *structs.ACLAuthMethod) (authmethod.Validator, error) {
+func newValidator(logger hclog.Logger, method *structs.ACLAuthMethod) (authmethod.Validator, error) {
 	if method.Type != "testing" {
 		return nil, fmt.Errorf("%q is not a testing auth method", method.Name)
 	}
