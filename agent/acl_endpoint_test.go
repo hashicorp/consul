@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 )
 
@@ -2030,4 +2031,59 @@ func TestACL_Authorize(t *testing.T) {
 		require.Equal(t, acl.ErrNotFound, err)
 		require.Nil(t, raw)
 	})
+}
+
+type rpcFn func(string, interface{}, interface{}) error
+
+func upsertTestCustomizedAuthMethod(
+	rpc rpcFn, masterToken string, datacenter string,
+	modify func(method *structs.ACLAuthMethod),
+) (*structs.ACLAuthMethod, error) {
+	name, err := uuid.GenerateUUID()
+	if err != nil {
+		return nil, err
+	}
+
+	req := structs.ACLAuthMethodSetRequest{
+		Datacenter: datacenter,
+		AuthMethod: structs.ACLAuthMethod{
+			Name: "test-method-" + name,
+			Type: "testing",
+		},
+		WriteRequest: structs.WriteRequest{Token: masterToken},
+	}
+
+	if modify != nil {
+		modify(&req.AuthMethod)
+	}
+
+	var out structs.ACLAuthMethod
+
+	err = rpc("ACL.AuthMethodSet", &req, &out)
+	if err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+func upsertTestCustomizedBindingRule(rpc rpcFn, masterToken string, datacenter string, modify func(rule *structs.ACLBindingRule)) (*structs.ACLBindingRule, error) {
+	req := structs.ACLBindingRuleSetRequest{
+		Datacenter:   datacenter,
+		BindingRule:  structs.ACLBindingRule{},
+		WriteRequest: structs.WriteRequest{Token: masterToken},
+	}
+
+	if modify != nil {
+		modify(&req.BindingRule)
+	}
+
+	var out structs.ACLBindingRule
+
+	err := rpc("ACL.BindingRuleSet", &req, &out)
+	if err != nil {
+		return nil, err
+	}
+
+	return &out, nil
 }
