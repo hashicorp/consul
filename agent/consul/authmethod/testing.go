@@ -21,13 +21,7 @@ func RequireIdentityMatch(t testing.T, id *Identity, projectedVars map[string]st
 	}
 	sort.Strings(names)
 	require.Equal(t, names, id.ProjectedVarNames())
-
 	require.Nil(t, id.EnterpriseMeta)
-	// defaultEntMeta := *structs.DefaultEnterpriseMeta()
-
-	// id.EnterpriseMeta.Normalize()
-	// require.Equal(t, defaultEntMeta, id.EnterpriseMeta,
-	// 	"this auth method doesn't modify ent meta")
 
 	for _, filter := range filters {
 		eval, err := bexpr.CreateEvaluatorForType(filter, nil, id.SelectableFields)
