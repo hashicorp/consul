@@ -54,7 +54,7 @@ export default function CaseStudyCarousel({
       </button>
     )
   }
-  console.log('logo rows', logoRows)
+
   return (
     <section
       className={`g-case-carousel ${grayBackground ? 'has-background' : ''}`}
