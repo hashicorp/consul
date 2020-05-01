@@ -2,7 +2,7 @@ export default function(visitable, attribute, collection, text, intentions, filt
   return {
     visit: visitable('/:dc/services/:service'),
     externalSource: attribute('data-test-external-source', '[data-test-external-source]', {
-      scope: '.title-bar',
+      scope: '.title',
     }),
     dashboardAnchor: {
       href: attribute('href', '[data-test-dashboard-anchor]'),

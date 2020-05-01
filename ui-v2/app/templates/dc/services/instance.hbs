@@ -10,12 +10,12 @@
         </ol>
     </BlockSlot>
     <BlockSlot @name="header">
-      <div class="title-bar">
-        <h1>
-          {{ item.ID }}
-        </h1>
-        <ConsulExternalSource @item={{item}} />
-      </div>
+      <h1>
+        {{ item.ID }}
+      </h1>
+      <ConsulExternalSource @item={{item}} />
+    </BlockSlot>
+    <BlockSlot @name="nav">
       <dl>
         <dt>Service Name</dt>
         <dd><a href="{{href-to 'dc.services.show' item.Service}}">{{item.Service}}</a></dd>

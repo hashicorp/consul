@@ -1,57 +1,33 @@
-/*TODO: Rename this to %app-view-brand-icon or similar */
-%with-external-source-icon {
-  background-repeat: no-repeat;
-  background-size: contain;
-  width: 18px;
-  height: 18px;
-
-  --kubernetes-icon: #{$kubernetes-logo-color-svg};
-  --terraform-icon: #{$terraform-logo-color-svg};
-  --nomad-icon: #{$nomad-logo-color-svg};
-  --consul-icon: #{$consul-logo-color-svg};
-  --aws-icon: #{$aws-logo-color-svg};
+%app-view-content-empty {
+  @extend %frame-gray-500;
 }
-%app-view h2,
-%app-view fieldset {
+%app-view-title {
   border-bottom: $decor-border-200;
 }
-%app-view fieldset h2 {
+%app-view-content h2,
+%app-view-content fieldset {
+  border-bottom: $decor-border-200;
+}
+%app-view-content fieldset h2 {
   border-bottom: none;
 }
-@media #{$--horizontal-selects} {
-  %app-view header h1,
-  %app-view-header .title-bar {
-    border-bottom: $decor-border-200;
-  }
+%app-view-header h1 > em {
+  color: $gray-600;
 }
-@media #{$--lt-horizontal-selects} {
-  %app-view header > div > div:last-child {
-    border-bottom: $decor-border-200;
-  }
-}
-%app-view header > div > div:last-child,
-%app-view header h1,
-%app-view-header .title-bar,
-%app-view h2,
-%app-view fieldset {
-  border-color: $gray-200;
-}
-%app-view-header .with-nav {
-  border: 0;
-}
-// We know that any sibling navs might have a top border
-// by default. As its squashed up to a h1, in this
-// case hide its border to avoid double border
-@media #{$--horizontal-selects} {
-  %app-view header h1 ~ nav {
-    border-top: 0 !important;
-  }
+%app-view-header dd > a {
+  color: $black;
 }
 %app-view-content div > dl > dd {
   color: $gray-400;
 }
-[role='tabpanel'] > p:only-child,
-.template-error > div,
-%app-view-content > p:only-child {
-  @extend %frame-gray-500;
+%app-view-title,
+%app-view-content h2,
+%app-view-content fieldset {
+  border-color: $gray-200;
+}
+// We know that any sibling navs might have a top border
+// by default. As its squashed up to a %app-view-title, in this
+// case hide its border to avoid double border
+%app-view-title ~ nav {
+  border-top: 0 !important;
 }

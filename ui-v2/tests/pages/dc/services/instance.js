@@ -2,7 +2,7 @@ export default function(visitable, attribute, collection, text, tabs) {
   return {
     visit: visitable('/:dc/services/:service/instances/:node/:id'),
     externalSource: attribute('data-test-external-source', '[data-test-external-source]', {
-      scope: '.title-bar',
+      scope: '.title',
     }),
     tabs: tabs('tab', ['health-checks', 'proxy-info', 'addresses', 'tags', 'metadata']),
     serviceChecks: collection('[data-test-service-checks] li'),

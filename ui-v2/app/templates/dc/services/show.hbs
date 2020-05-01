@@ -10,19 +10,19 @@
     </ol>
   </BlockSlot>
   <BlockSlot @name="header">
-    <div class="title-bar with-nav">
       <h1>
         {{item.Service.Service}}
       </h1>
       <ConsulExternalSource @item={{item.Service}} />
-    </div>
+  </BlockSlot>
+  <BlockSlot @name="nav">
   {{#if (not item.Service.Kind)}}
     <TabNav @items={{
       compact
           (array
                 (hash label="Instances" href=(href-to "dc.services.show.instances") selected=(is-href "dc.services.show.instances"))
                 (hash label="Intentions" href=(href-to "dc.services.show.intentions") selected=(is-href "dc.services.show.intentions"))
-(if (not-eq chain)  (hash label="Routing" href=(href-to "dc.services.show.routing") selected=(is-href "dc.services.show.routing")) '')
+  (if (not-eq chain)  (hash label="Routing" href=(href-to "dc.services.show.routing") selected=(is-href "dc.services.show.routing")) '')
                 (hash label="Tags" href=(href-to "dc.services.show.tags") selected=(is-href "dc.services.show.tags"))
           )
     }}/>
