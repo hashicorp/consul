@@ -1,6 +1,5 @@
 import CallToAction from '@hashicorp/react-call-to-action'
 import CodeBlock from '@hashicorp/react-code-block'
-import BeforeAfterDiagram from '../../components/before-after'
 
 export default function ServiceMesh() {
   return (
@@ -19,23 +18,6 @@ export default function ServiceMesh() {
             },
           ]}
         />
-        <section
-          id="static-dynamic"
-          className="g-section-block layout-vertical theme-white-background-black-text small-padding"
-        >
-          <div className="g-grid-container">
-            <BeforeAfterDiagram
-              beforeHeading="The Challenge"
-              beforeSubTitle="Network appliances, like load balancers or firewalls with manual processes, don't scale in dynamic settings to support modern applications."
-              beforeImage="/img/consul-connect/svgs/segmentation-challenge.svg"
-              beforeDescription="East-west firewalls use IP-based rules to secure ingress and egress traffic. But in a dynamic world where services move across machines and machines are frequently created and destroyed, this perimeter-based approach is difficult to scale as it results in complex network topologies and a sprawl of short-lived firewall rules and proxy configuration."
-              afterHeading="The Solution"
-              afterSubTitle="Service mesh as an automated and distributed approach to networking and security that can operate across platforms and private and public cloud"
-              afterImage="/img/consul-connect/svgs/segmentation-solution.svg"
-              afterDescription="Service mesh is a new approach to secure the service itself rather than relying on the network. Consul uses centrally managed service policies and configuration to enable dynamic routing and security based on service identity. These policies scale across datacenters and large fleets without IP-based rules or networking middleware."
-            />
-          </div>
-        </section>
 
         <section class="g-section border-top large-padding">
           <div class="g-container">

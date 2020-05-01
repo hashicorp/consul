@@ -1,7 +1,6 @@
 import CallToAction from '@hashicorp/react-call-to-action'
 import CaseStudySlider from '@hashicorp/react-case-study-slider'
 import CodeBlock from '@hashicorp/react-code-block'
-import BeforeAfterDiagram from '../../components/before-after'
 
 export default function ServiceDiscovery() {
   return (
@@ -20,24 +19,6 @@ export default function ServiceDiscovery() {
             },
           ]}
         />
-        <section
-          id="static-dynamic"
-          className="g-section-block layout-vertical theme-white-background-black-text small-padding"
-        >
-          <div className="g-grid-container">
-            <BeforeAfterDiagram
-              beforeHeading="The Challenge"
-              beforeSubTitle="Service load balancers aren't efficient in a dynamic world."
-              beforeImage="/img/consul-connect/svgs/discovery-challenge.svg"
-              beforeDescription="Load balancers are often used to front a service tier and provide a static IP. These load balancers add cost, increase latency, introduce single points of failure, and must be updated as services scale up/down."
-              afterHeading="The Solution"
-              afterSubTitle="Service discovery for dynamic infrastructure."
-              afterImage="/img/consul-connect/svgs/discovery-solution.svg"
-              afterDescription="Instead of load balancers, connectivity in dynamic infrastructure is best solved with service discovery. Service discovery uses a registry to keep a real-time list of services, their location, and their health. Services query the registry to discover the location of upstream services and then connect directly. This allows services to scale up/down and gracefully handle failure without a load balancer intermediary."
-            />
-          </div>
-        </section>
-        <section></section>
 
         <section class="g-section border-top large-padding">
           <div class="g-container">
