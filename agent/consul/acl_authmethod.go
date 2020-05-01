@@ -42,7 +42,7 @@ func (s *Server) loadAuthMethodValidator(idx uint64, method *structs.ACLAuthMeth
 // A list of role links and service identities are returned.
 func (s *Server) evaluateRoleBindings(
 	validator authmethod.Validator,
-	verifiedFields map[string]string,
+	verifiedIdentity *authmethod.Identity,
 	methodMeta *structs.EnterpriseMeta,
 	targetMeta *structs.EnterpriseMeta,
 ) ([]*structs.ACLServiceIdentity, []structs.ACLTokenRoleLink, error) {
@@ -54,13 +54,10 @@ func (s *Server) evaluateRoleBindings(
 		return nil, nil, nil
 	}
 
-	// Convert the fields into something suitable for go-bexpr.
-	selectableVars := validator.MakeFieldMapSelectable(verifiedFields)
-
 	// Find all binding rules that match the provided fields.
 	var matchingRules []*structs.ACLBindingRule
 	for _, rule := range rules {
-		if doesBindingRuleMatch(rule, selectableVars) {
+		if doesSelectorMatch(rule.Selector, verifiedIdentity.SelectableFields) {
 			matchingRules = append(matchingRules, rule)
 		}
 	}
@@ -74,7 +71,7 @@ func (s *Server) evaluateRoleBindings(
 		serviceIdentities []*structs.ACLServiceIdentity
 	)
 	for _, rule := range matchingRules {
-		bindName, valid, err := computeBindingRuleBindName(rule.BindType, rule.BindName, verifiedFields)
+		bindName, valid, err := computeBindingRuleBindName(rule.BindType, rule.BindName, verifiedIdentity.ProjectedVars)
 		if err != nil {
 			return nil, nil, fmt.Errorf("cannot compute %q bind name for bind target: %v", rule.BindType, err)
 		} else if !valid {
@@ -107,14 +104,13 @@ func (s *Server) evaluateRoleBindings(
 	return serviceIdentities, roleLinks, nil
 }
 
-// doesBindingRuleMatch checks that a single binding rule matches the provided
-// vars.
-func doesBindingRuleMatch(rule *structs.ACLBindingRule, selectableVars interface{}) bool {
-	if rule.Selector == "" {
+// doesSelectorMatch checks that a single selector matches the provided vars.
+func doesSelectorMatch(selector string, selectableVars interface{}) bool {
+	if selector == "" {
 		return true // catch-all
 	}
 
-	eval, err := bexpr.CreateEvaluatorForType(rule.Selector, nil, selectableVars)
+	eval, err := bexpr.CreateEvaluatorForType(selector, nil, selectableVars)
 	if err != nil {
 		return false // fails to match if selector is invalid
 	}

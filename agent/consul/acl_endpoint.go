@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -685,13 +686,13 @@ func validateBindingRuleBindName(bindType, bindName string, availableFields []st
 }
 
 // computeBindingRuleBindName processes the HIL for the provided bind type+name
-// using the verified fields.
+// using the projected variables.
 //
 // - If the HIL is invalid ("", false, AN_ERROR) is returned.
 // - If the computed name is not valid for the type ("INVALID_NAME", false, nil) is returned.
 // - If the computed name is valid for the type ("VALID_NAME", true, nil) is returned.
-func computeBindingRuleBindName(bindType, bindName string, verifiedFields map[string]string) (string, bool, error) {
-	bindName, err := InterpolateHIL(bindName, verifiedFields)
+func computeBindingRuleBindName(bindType, bindName string, projectedVars map[string]string) (string, bool, error) {
+	bindName, err := InterpolateHIL(bindName, projectedVars, true)
 	if err != nil {
 		return "", false, err
 	}
@@ -1870,10 +1871,11 @@ func (a *ACL) BindingRuleSet(args *structs.ACLBindingRuleSetRequest, reply *stru
 		return err
 	}
 
+	// Create a blank placeholder identity for use in validation below.
+	blankID := validator.NewIdentity()
+
 	if rule.Selector != "" {
-		selectableVars := validator.MakeFieldMapSelectable(map[string]string{})
-		_, err := bexpr.CreateEvaluatorForType(rule.Selector, nil, selectableVars)
-		if err != nil {
+		if _, err := bexpr.CreateEvaluatorForType(rule.Selector, nil, blankID.SelectableFields); err != nil {
 			return fmt.Errorf("invalid Binding Rule: Selector is invalid: %v", err)
 		}
 	}
@@ -1893,7 +1895,7 @@ func (a *ACL) BindingRuleSet(args *structs.ACLBindingRuleSetRequest, reply *stru
 		return fmt.Errorf("Invalid Binding Rule: unknown BindType %q", rule.BindType)
 	}
 
-	if valid, err := validateBindingRuleBindName(rule.BindType, rule.BindName, validator.AvailableFields()); err != nil {
+	if valid, err := validateBindingRuleBindName(rule.BindType, rule.BindName, blankID.ProjectedVarNames()); err != nil {
 		return fmt.Errorf("Invalid Binding Rule: invalid BindName: %v", err)
 	} else if !valid {
 		return fmt.Errorf("Invalid Binding Rule: invalid BindName")
@@ -1909,7 +1911,7 @@ func (a *ACL) BindingRuleSet(args *structs.ACLBindingRuleSetRequest, reply *stru
 	}
 
 	if respErr, ok := resp.(error); ok {
-		return respErr
+		return fmt.Errorf("Failed to apply binding rule upsert request: %v", respErr)
 	}
 
 	if _, rule, err := a.srv.fsm.State().ACLBindingRuleGetByID(nil, rule.ID, &rule.EnterpriseMeta); err == nil && rule != nil {
@@ -2283,16 +2285,16 @@ func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) erro
 	}
 
 	// 2. Send args.Data.BearerToken to method validator and get back a fields map
-	verifiedFields, desiredMeta, err := validator.ValidateLogin(auth.BearerToken)
+	verifiedIdentity, err := validator.ValidateLogin(context.Background(), auth.BearerToken)
 	if err != nil {
 		return err
 	}
 
 	// This always will return a valid pointer
-	targetMeta := method.TargetEnterpriseMeta(desiredMeta)
+	targetMeta := method.TargetEnterpriseMeta(verifiedIdentity.EnterpriseMeta)
 
 	// 3. send map through role bindings
-	serviceIdentities, roleLinks, err := a.srv.evaluateRoleBindings(validator, verifiedFields, &auth.EnterpriseMeta, targetMeta)
+	serviceIdentities, roleLinks, err := a.srv.evaluateRoleBindings(validator, verifiedIdentity, &auth.EnterpriseMeta, targetMeta)
 	if err != nil {
 		return err
 	}
