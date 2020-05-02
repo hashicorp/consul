@@ -155,7 +155,7 @@ A HTTP check:
     "http": "https://localhost:5000/health",
     "tls_skip_verify": false,
     "method": "POST",
-    "header": {"Content-Type": "application/json"},
+    "header": {"Content-Type": ["application/json"]},
     "body": "{\"method\":\"health\"}",
     "interval": "10s",
     "timeout": "1s"
