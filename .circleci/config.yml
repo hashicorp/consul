@@ -106,10 +106,12 @@ jobs:
           name: go test
           command: |
             mkdir -p $TEST_RESULTS_DIR
-            PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
+            mkdir -p $TEST_RESULTS_DIR /tmp/jsonfile
+            PACKAGE_NAMES=$(go list -tags "$GOTAGS" ./... | circleci tests split --split-by=timings --timings-type=classname)
             echo "Running $(echo $PACKAGE_NAMES | wc -w) packages"
             echo $PACKAGE_NAMES
             gotestsum --format=short-verbose \
+              --jsonfile /tmp/jsonfile/go-test-${CIRCLE_NODE_INDEX}.log \
               --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- \
               -tags="$GOTAGS" -p 2 \
               -cover -coverprofile=coverage.txt \
@@ -119,6 +121,8 @@ jobs:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
           path: *TEST_RESULTS_DIR
+      - store_artifacts:
+          path: /tmp/jsonfile
       - run: &codecov_upload
           name: codecov upload
           when: always
@@ -145,9 +149,10 @@ jobs:
           working_directory: api
           name: go test
           command: |
-            mkdir -p $TEST_RESULTS_DIR
+            mkdir -p $TEST_RESULTS_DIR /tmp/jsonfile
             gotestsum \
               --format=short-verbose \
+              --jsonfile /tmp/jsonfile/go-test-api.log \
               --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- \
               -tags="$GOTAGS" -cover -coverprofile=coverage.txt \
               ./...
@@ -156,6 +161,8 @@ jobs:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
           path: *TEST_RESULTS_DIR
+      - store_artifacts:
+          path: /tmp/jsonfile
       - run: *codecov_upload
 
   # split off a job for the SDK package since it is separate
