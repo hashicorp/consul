@@ -7,12 +7,13 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/mitchellh/cli"
 	"github.com/mitchellh/mapstructure"
 )
 
 // ServicesFromFiles returns the list of agent service registration structs
 // from a set of file arguments.
-func ServicesFromFiles(files []string) ([]*api.AgentServiceRegistration, error) {
+func ServicesFromFiles(ui cli.Ui, files []string) ([]*api.AgentServiceRegistration, error) {
 	// We set devMode to true so we can get the basic valid default
 	// configuration. devMode doesn't set any services by default so this
 	// is okay since we only look at services.
@@ -28,6 +29,9 @@ func ServicesFromFiles(files []string) ([]*api.AgentServiceRegistration, error) 
 	cfg, err := b.BuildAndValidate()
 	if err != nil {
 		return nil, err
+	}
+	for _, w := range b.Warnings {
+		ui.Warn(w)
 	}
 
 	// The services are now in "structs.ServiceDefinition" form and we need

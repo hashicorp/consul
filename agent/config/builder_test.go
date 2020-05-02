@@ -44,6 +44,7 @@ func TestNewBuilder_PopulatesSourcesFromConfigFiles(t *testing.T) {
 		{Name: filepath.Join(paths[3], "b.json"), Format: "json", Data: "content b"},
 	}
 	require.Equal(t, expected, b.Sources)
+	require.Len(t, b.Warnings, 2)
 }
 
 func TestNewBuilder_PopulatesSourcesFromConfigFiles_WithConfigFormat(t *testing.T) {

@@ -61,6 +61,9 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 	if !c.quiet {
+		for _, w := range b.Warnings {
+			c.UI.Warn(w)
+		}
 		c.UI.Output("Configuration is valid!")
 	}
 	return 0

@@ -451,6 +451,9 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				writeFile(filepath.Join(dataDir, "conf", "valid.json"), []byte(`{"datacenter":"a"}`))
 				writeFile(filepath.Join(dataDir, "conf", "invalid.skip"), []byte(`NOPE`))
 			},
+			warns: []string{
+				"skipping file " + filepath.Join(dataDir, "conf", "invalid.skip") + ", extension must be .hcl or .json, or config format must be set",
+			},
 		},
 		{
 			desc: "-config-format=json",
@@ -6002,6 +6005,7 @@ func TestFullConfig(t *testing.T) {
 			if err := fs.Parse(flagSrc); err != nil {
 				t.Fatalf("ParseFlags: %s", err)
 			}
+			require.Len(t, fs.Args(), 0)
 
 			b, err := NewBuilder(flags)
 			if err != nil {
