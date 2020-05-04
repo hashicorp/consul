@@ -73,7 +73,7 @@ func (c *cmd) init() {
 		"",
 		"The configuration for the auth method. Must be JSON. The config is updated as one field"+
 			"May be prefixed with '@' to indicate that the value is a file path to load the config from. "+
-			"'-' may also be given to indicate that the rules are available on stdin. ",
+			"'-' may also be given to indicate that the config are available on stdin. ",
 	)
 
 	c.flags.StringVar(
