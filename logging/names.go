@@ -31,6 +31,7 @@ const (
 	Memberlist    string = "memberlist"
 	MeshGateway   string = "mesh_gateway"
 	Namespace     string = "namespace"
+	NetworkAreas  string = "network_areas"
 	Operator      string = "operator"
 	PreparedQuery string = "prepared_query"
 	Proxy         string = "proxy"
