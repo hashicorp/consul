@@ -176,8 +176,12 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	envoy.SendReq(t, RouteType, 0, 0)
 	envoy.SendReq(t, ListenerType, 1, 3)
 
-	// We don't serve routes yet so this should block with no response
-	assertChanBlocked(t, envoy.stream.sendCh)
+	// We serve routes even though we just have an empty resource. Allowing empty
+	// responses through to Envoy ensures that we can set resources to empty when
+	// necessary. We previously did not allow empty resources to get passed to
+	// Envoy, but this causes an issue where we are unable to distinguish between
+	// "not-set-yet" and "empty".
+	assertResponseSent(t, envoy.stream.sendCh, expectRoutesJSON(1, 4))
 
 	// WOOP! Envoy now has full connect config. Lets verify that if we update it,
 	// all the responses get resent with the new version. We don't actually want
@@ -195,9 +199,10 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	// don't know the order the nonces will be assigned. For now we rely and
 	// require our implementation to always deliver updates in a specific order
 	// which is reasonable anyway to ensure consistency of the config Envoy sees.
-	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(t, snap, "", 2, 4))
-	assertResponseSent(t, envoy.stream.sendCh, expectEndpointsJSON(t, snap, "", 2, 5))
-	assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(t, snap, "", 2, 6))
+	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(t, snap, "", 2, 5))
+	assertResponseSent(t, envoy.stream.sendCh, expectEndpointsJSON(t, snap, "", 2, 6))
+	assertResponseSent(t, envoy.stream.sendCh, expectRoutesJSON(2, 7))
+	assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(t, snap, "", 2, 8))
 
 	// Let's pretend that Envoy doesn't like that new listener config. It will ACK
 	// all the others (same version) but NACK the listener. This is the most
@@ -220,9 +225,9 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	// In this case we are simulating that Envoy failed to apply the Listener
 	// response but did apply the other types so all get the new nonces, but
 	// listener stays on v1.
-	envoy.SendReq(t, ClusterType, 2, 4)
-	envoy.SendReq(t, EndpointType, 2, 5)
-	envoy.SendReq(t, ListenerType, 1, 6) // v1 is a NACK
+	envoy.SendReq(t, ClusterType, 2, 5)
+	envoy.SendReq(t, EndpointType, 2, 6)
+	envoy.SendReq(t, ListenerType, 1, 8) // v1 is a NACK
 
 	// Even though we nacked, we should still NOT get then v2 listeners
 	// redelivered since nothing has changed.
@@ -232,9 +237,19 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	snap.ConnectProxy.Leaf = proxycfg.TestLeafForCA(t, snap.Roots.Roots[0])
 	mgr.DeliverConfig(t, sid, snap)
 
-	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(t, snap, "", 3, 7))
-	assertResponseSent(t, envoy.stream.sendCh, expectEndpointsJSON(t, snap, "", 3, 8))
-	assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(t, snap, "", 3, 9))
+	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(t, snap, "", 3, 9))
+	assertResponseSent(t, envoy.stream.sendCh, expectEndpointsJSON(t, snap, "", 3, 10))
+	assertResponseSent(t, envoy.stream.sendCh, expectRoutesJSON(3, 11))
+	assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(t, snap, "", 3, 12))
+}
+
+func expectRoutesJSON(v, n uint64) string {
+	return `{
+		"versionInfo": "` + hexString(v) + `",
+		"resources": [],
+		"typeUrl": "type.googleapis.com/envoy.api.v2.RouteConfiguration",
+		"nonce": "` + hexString(n) + `"
+	}`
 }
 
 func expectEndpointsJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token string, v, n uint64) string {
