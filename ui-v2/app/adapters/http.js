@@ -124,6 +124,10 @@ export default Adapter.extend({
     } catch (e) {
       error = e;
     }
+    // TODO: This comes originates from ember-data
+    // This can be confusing if you need to use this with Promise.reject
+    // Consider changing this to return the error and then
+    // throw from the call site instead
     throw error;
   },
   query: function(store, type, query) {

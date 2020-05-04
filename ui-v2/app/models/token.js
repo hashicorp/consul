@@ -20,6 +20,7 @@ export default Model.extend({
   Description: attr('string', {
     defaultValue: '',
   }),
+  meta: attr(),
   Datacenter: attr('string'),
   Namespace: attr('string'),
   Local: attr('boolean'),
