@@ -20,3 +20,8 @@ func (a *Agent) initEnterprise(consulCfg *consul.Config) {
 
 func (a *Agent) loadEnterpriseTokens(conf *config.RuntimeConfig) {
 }
+
+// enterpriseConsulConfig is a noop stub for the func defined in agent_ent.go
+func (a *Agent) enterpriseConsulConfig(base *consul.Config) (*consul.Config, error) {
+	return base, nil
+}
