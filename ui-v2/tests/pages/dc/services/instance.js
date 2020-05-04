@@ -30,6 +30,6 @@ export default function(visitable, attribute, collection, text, tabs) {
     addresses: collection('#addresses [data-test-tabular-row]', {
       address: text('[data-test-address]'),
     }),
-    metaData: collection('#metadata [data-test-tabular-row]', {}),
+    metadata: collection('#metadata [data-test-tabular-row]', {}),
   };
 }

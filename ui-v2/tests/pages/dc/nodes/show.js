@@ -23,6 +23,6 @@ export default function(visitable, deletable, clickable, attribute, collection, 
         TTL: attribute('data-test-session-ttl', '[data-test-session-ttl]'),
       })
     ),
-    metaData: collection('#metadata [data-test-tabular-row]', {}),
+    metadata: collection('#metadata [data-test-tabular-row]', {}),
   };
 }
