@@ -27,6 +27,7 @@ type cmd struct {
 
 	name string
 
+	displayName string
 	description string
 
 	k8sHost              string
@@ -56,6 +57,13 @@ func (c *cmd) init() {
 		"name",
 		"",
 		"The auth method name.",
+	)
+
+	c.flags.StringVar(
+		&c.displayName,
+		"display-name",
+		"",
+		"An optional name to use instead of the name when displaying this auth method in a UI.",
 	)
 
 	c.flags.StringVar(
@@ -147,6 +155,7 @@ func (c *cmd) Run(args []string) int {
 		method = &api.ACLAuthMethod{
 			Name:        currentAuthMethod.Name,
 			Type:        currentAuthMethod.Type,
+			DisplayName: c.displayName,
 			Description: c.description,
 		}
 
@@ -172,6 +181,9 @@ func (c *cmd) Run(args []string) int {
 		methodCopy := *currentAuthMethod
 		method = &methodCopy
 
+		if c.displayName != "" {
+			method.DisplayName = c.displayName
+		}
 		if c.description != "" {
 			method.Description = c.description
 		}

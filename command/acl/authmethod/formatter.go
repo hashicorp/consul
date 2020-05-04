@@ -54,6 +54,9 @@ func (f *prettyFormatter) FormatAuthMethod(method *api.ACLAuthMethod) (string, e
 	if method.Namespace != "" {
 		buffer.WriteString(fmt.Sprintf("Namespace:    %s\n", method.Namespace))
 	}
+	if method.DisplayName != "" {
+		buffer.WriteString(fmt.Sprintf("DisplayName:  %s\n", method.DisplayName))
+	}
 	buffer.WriteString(fmt.Sprintf("Description:  %s\n", method.Description))
 	if f.showMeta {
 		buffer.WriteString(fmt.Sprintf("Create Index: %d\n", method.CreateIndex))
@@ -86,6 +89,9 @@ func (f *prettyFormatter) formatAuthMethodListEntry(method *api.ACLAuthMethodLis
 	buffer.WriteString(fmt.Sprintf("   Type:         %s\n", method.Type))
 	if method.Namespace != "" {
 		buffer.WriteString(fmt.Sprintf("   Namespace:    %s\n", method.Namespace))
+	}
+	if method.DisplayName != "" {
+		buffer.WriteString(fmt.Sprintf("   DisplayName:  %s\n", method.DisplayName))
 	}
 	buffer.WriteString(fmt.Sprintf("   Description:  %s\n", method.Description))
 	if f.showMeta {

@@ -37,6 +37,7 @@ type ACLToken struct {
 	Roles             []*ACLTokenRoleLink   `json:",omitempty"`
 	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
 	Local             bool
+	AuthMethod        string        `json:",omitempty"`
 	ExpirationTTL     time.Duration `json:",omitempty"`
 	ExpirationTime    *time.Time    `json:",omitempty"`
 	CreateTime        time.Time     `json:",omitempty"`
@@ -60,6 +61,7 @@ type ACLTokenListEntry struct {
 	Roles             []*ACLTokenRoleLink   `json:",omitempty"`
 	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
 	Local             bool
+	AuthMethod        string     `json:",omitempty"`
 	ExpirationTime    *time.Time `json:",omitempty"`
 	CreateTime        time.Time
 	Hash              []byte
@@ -180,7 +182,8 @@ type ACLBindingRule struct {
 type ACLAuthMethod struct {
 	Name        string
 	Type        string
-	Description string
+	DisplayName string `json:",omitempty"`
+	Description string `json:",omitempty"`
 
 	// Configuration is arbitrary configuration for the auth method. This
 	// should only contain primitive values and containers (such as lists and
@@ -198,7 +201,8 @@ type ACLAuthMethod struct {
 type ACLAuthMethodListEntry struct {
 	Name        string
 	Type        string
-	Description string
+	DisplayName string `json:",omitempty"`
+	Description string `json:",omitempty"`
 	CreateIndex uint64
 	ModifyIndex uint64
 

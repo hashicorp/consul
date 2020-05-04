@@ -994,8 +994,9 @@ func (rules ACLBindingRules) Sort() {
 
 type ACLAuthMethodListStub struct {
 	Name        string
-	Description string
 	Type        string
+	DisplayName string `json:",omitempty"`
+	Description string `json:",omitempty"`
 	CreateIndex uint64
 	ModifyIndex uint64
 	EnterpriseMeta
@@ -1004,8 +1005,9 @@ type ACLAuthMethodListStub struct {
 func (p *ACLAuthMethod) Stub() *ACLAuthMethodListStub {
 	return &ACLAuthMethodListStub{
 		Name:           p.Name,
-		Description:    p.Description,
 		Type:           p.Type,
+		DisplayName:    p.DisplayName,
+		Description:    p.Description,
 		CreateIndex:    p.CreateIndex,
 		ModifyIndex:    p.ModifyIndex,
 		EnterpriseMeta: p.EnterpriseMeta,
@@ -1038,8 +1040,13 @@ type ACLAuthMethod struct {
 	// Immutable once set and only settable during create.
 	Type string
 
+	// DisplayName is an optional name to use instead of the Name field when
+	// displaying information about this auth method in any kind of user
+	// interface.
+	DisplayName string `json:",omitempty"`
+
 	// Description is just an optional bunch of explanatory text.
-	Description string
+	Description string `json:",omitempty"`
 
 	// Configuration is arbitrary configuration for the auth method. This
 	// should only contain primitive values and containers (such as lists and

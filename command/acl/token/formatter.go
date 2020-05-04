@@ -57,6 +57,9 @@ func (f *prettyFormatter) FormatToken(token *api.ACLToken) (string, error) {
 	}
 	buffer.WriteString(fmt.Sprintf("Description:      %s\n", token.Description))
 	buffer.WriteString(fmt.Sprintf("Local:            %t\n", token.Local))
+	if token.AuthMethod != "" {
+		buffer.WriteString(fmt.Sprintf("Auth Method:      %s\n", token.AuthMethod))
+	}
 	buffer.WriteString(fmt.Sprintf("Create Time:      %v\n", token.CreateTime))
 	if token.ExpirationTime != nil && !token.ExpirationTime.IsZero() {
 		buffer.WriteString(fmt.Sprintf("Expiration Time:  %v\n", *token.ExpirationTime))
@@ -121,6 +124,9 @@ func (f *prettyFormatter) formatTokenListEntry(token *api.ACLTokenListEntry) str
 	}
 	buffer.WriteString(fmt.Sprintf("Description:      %s\n", token.Description))
 	buffer.WriteString(fmt.Sprintf("Local:            %t\n", token.Local))
+	if token.AuthMethod != "" {
+		buffer.WriteString(fmt.Sprintf("Auth Method:      %s\n", token.AuthMethod))
+	}
 	buffer.WriteString(fmt.Sprintf("Create Time:      %v\n", token.CreateTime))
 	if token.ExpirationTime != nil && !token.ExpirationTime.IsZero() {
 		buffer.WriteString(fmt.Sprintf("Expiration Time:  %v\n", *token.ExpirationTime))
