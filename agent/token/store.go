@@ -113,6 +113,10 @@ func (t *Store) AgentToken() string {
 	t.l.RLock()
 	defer t.l.RUnlock()
 
+	if tok := t.enterpriseAgentToken(); tok != "" {
+		return tok
+	}
+
 	if t.agentToken != "" {
 		return t.agentToken
 	}
