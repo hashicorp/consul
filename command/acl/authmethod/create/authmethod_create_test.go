@@ -2,6 +2,7 @@ package authmethodcreate
 
 import (
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
@@ -253,7 +255,7 @@ func TestAuthMethodCreateCommand_k8s(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 	})
 
@@ -278,4 +280,94 @@ func TestAuthMethodCreateCommand_k8s(t *testing.T) {
 		require.Equal(t, code, 0)
 		require.Empty(t, ui.ErrorWriter.String())
 	})
+}
+func TestAuthMethodCreateCommand_config(t *testing.T) {
+	t.Parallel()
+
+	testDir := testutil.TempDir(t, "auth-method")
+	defer os.RemoveAll(testDir)
+
+	a := agent.NewTestAgent(t, `
+	primary_datacenter = "dc1"
+	acl {
+		enabled = true
+		tokens {
+			master = "root"
+		}
+	}`)
+
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	client := a.Client()
+
+	checkMethod := func(t *testing.T, methodName string) {
+
+		method, _, err := client.ACL().AuthMethodRead(
+			methodName,
+			&api.QueryOptions{Token: "root"},
+		)
+		require.NoError(t, err)
+		require.NotNil(t, method)
+		require.Equal(t, "foo", method.Config["SessionID"])
+	}
+
+	t.Run("config file", func(t *testing.T) {
+		configFile := filepath.Join(testDir, "config.json")
+		jsonConfig := `{"SessionID":"foo"}`
+		require.NoError(t, ioutil.WriteFile(configFile, []byte(jsonConfig), 0644))
+
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-type=testing",
+			"-name=test",
+			"-config=@" + configFile,
+		}
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+		code := cmd.Run(args)
+		require.Equal(t, code, 0)
+		require.Empty(t, ui.ErrorWriter.String())
+		checkMethod(t, "test")
+	})
+
+	t.Run("config std-in", func(t *testing.T) {
+		stdinR, stdinW := io.Pipe()
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+		cmd.testStdin = stdinR
+		go func() {
+			stdinW.Write([]byte(`{"SessionID":"foo"}`))
+			stdinW.Close()
+		}()
+
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-type=testing",
+			"-name=test2",
+			"-config=-",
+		}
+		code := cmd.Run(args)
+		require.Equal(t, code, 0)
+		require.Empty(t, ui.ErrorWriter.String())
+		checkMethod(t, "test2")
+
+	})
+	t.Run("config string", func(t *testing.T) {
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-type=testing",
+			"-name=test3",
+			"-config=" + `{"SessionID":"foo"}`,
+		}
+		code := cmd.Run(args)
+		require.Equal(t, code, 0)
+		require.Empty(t, ui.ErrorWriter.String())
+		checkMethod(t, "test3")
+	})
+
 }

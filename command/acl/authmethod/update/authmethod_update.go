@@ -1,6 +1,7 @@
 package authmethodupdate
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -27,8 +28,9 @@ type cmd struct {
 
 	name string
 
-	description string
-
+	displayName          string
+	description          string
+	config               string
 	k8sHost              string
 	k8sCACert            string
 	k8sServiceAccountJWT string
@@ -64,6 +66,23 @@ func (c *cmd) init() {
 		"",
 		"A description of the auth method.",
 	)
+	c.flags.StringVar(
+		&c.configFile,
+		"config-file",
+		"",
+		"The configuration file for the auth method. Must be JSON. May be prefixed with '@' "+
+			"to indicate that the value is a file path to load the rules from. '-' may also be "+
+			"given to indicate that the rules are available on stdin",
+	)
+
+	c.flags.StringVar(
+		&c.config,
+		"config",
+		"",
+		"The configuration for the auth method. Must be JSON. The config is updated as one field"+
+			"May be prefixed with '@' to indicate that the value is a file path to load the rules from. "+
+			"'-' may also be given to indicate that the rules are available on stdin. ",
+	)
 
 	c.flags.StringVar(
 		&c.k8sHost,
@@ -91,7 +110,7 @@ func (c *cmd) init() {
 
 	c.flags.BoolVar(&c.noMerge, "no-merge", false, "Do not merge the current auth method "+
 		"information with what is provided to the command. Instead overwrite all fields "+
-		"with the exception of the name which is immutable.")
+		"with the exception of the name which is immutable. Cannot be used with '-config-file'")
 	c.flags.StringVar(
 		&c.format,
 		"format",
@@ -149,7 +168,21 @@ func (c *cmd) Run(args []string) int {
 			Type:        currentAuthMethod.Type,
 			Description: c.description,
 		}
-
+		if c.config != "" {
+			if c.k8sHost != "" || c.k8sCACert != "" || c.k8sServiceAccountJWT != "" {
+				c.UI.Error(fmt.Sprintf("Cannot use command line arguments with '-config' flag"))
+				return 1
+			}
+			data, err := helpers.LoadDataSource(c.config, c.testStdin)
+			if err != nil {
+				c.UI.Error(fmt.Sprintf("Error loading configuration file: %v", err))
+				return 1
+			}
+			if err := json.Unmarshal([]byte(data), &method.Config); err != nil {
+				c.UI.Error(fmt.Sprintf("Error parsing JSON for auth method config: %v", err))
+				return 1
+			}
+		}
 		if currentAuthMethod.Type == "kubernetes" {
 			if c.k8sHost == "" {
 				c.UI.Error(fmt.Sprintf("Missing required '-kubernetes-host' flag"))
@@ -171,9 +204,26 @@ func (c *cmd) Run(args []string) int {
 	} else {
 		methodCopy := *currentAuthMethod
 		method = &methodCopy
-
 		if c.description != "" {
 			method.Description = c.description
+		}
+		if c.displayName != "" {
+			method.DisplayName = c.displayName
+		}
+		if c.config != "" {
+			if c.k8sHost != "" || c.k8sCACert != "" || c.k8sServiceAccountJWT != "" {
+				c.UI.Error(fmt.Sprintf("Cannot use command line arguments with '-config' flag"))
+				return 1
+			}
+			data, err := helpers.LoadDataSource(c.config, c.testStdin)
+			if err != nil {
+				c.UI.Error(fmt.Sprintf("Error loading configuration file: %v", err))
+				return 1
+			}
+			if err := json.Unmarshal([]byte(data), &method.Config); err != nil {
+				c.UI.Error(fmt.Sprintf("Error parsing JSON for auth method config: %v", err))
+				return 1
+			}
 		}
 		if method.Config == nil {
 			method.Config = make(map[string]interface{})
