@@ -33,7 +33,6 @@ export default Adapter.extend({
       ${{
         ...Namespace(ns),
         AuthMethod: id,
-        // FIXME: Make this dynamic
         RedirectURI: `${this.env.var('CONSUL_BASE_UI_URL')}/torii/redirect.html`,
       }}
     `;
@@ -88,7 +87,8 @@ export default Adapter.extend({
         return adapter.requestForLogout(request, serialized, unserialized);
       },
       function(serializer, respond, serialized, unserialized) {
-        // return serializer.respondForLogout(respond, serialized, unserialized);
+        // its ok to return nothing here for the moment at least
+        return {};
       },
       snapshot,
       type.modelName

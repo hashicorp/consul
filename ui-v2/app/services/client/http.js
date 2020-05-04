@@ -163,7 +163,7 @@ export default Service.extend({
               if (typeof requestHeaders[CACHE_CONTROL] !== 'undefined') {
                 // if cache-control was on the request, artificially tag
                 // it back onto the response, also see comment above
-                headers[CACHE_CONTROL] = 'no-store';
+                headers[CACHE_CONTROL] = requestHeaders[CACHE_CONTROL];
               }
               const respond = function(cb) {
                 return cb(headers, response);
