@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -35,13 +36,24 @@ func NewExpressRouteServiceProvidersClient(subscriptionID string) ExpressRouteSe
 }
 
 // NewExpressRouteServiceProvidersClientWithBaseURI creates an instance of the ExpressRouteServiceProvidersClient
-// client.
+// client using a custom endpoint.  Use this when interacting with an Azure cloud that uses a non-standard base URI
+// (sovereign clouds, Azure stack).
 func NewExpressRouteServiceProvidersClientWithBaseURI(baseURI string, subscriptionID string) ExpressRouteServiceProvidersClient {
 	return ExpressRouteServiceProvidersClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // List gets all the available express route service providers.
 func (client ExpressRouteServiceProvidersClient) List(ctx context.Context) (result ExpressRouteServiceProviderListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ExpressRouteServiceProvidersClient.List")
+		defer func() {
+			sc := -1
+			if result.ersplr.Response.Response != nil {
+				sc = result.ersplr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx)
 	if err != nil {
@@ -86,8 +98,7 @@ func (client ExpressRouteServiceProvidersClient) ListPreparer(ctx context.Contex
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client ExpressRouteServiceProvidersClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	return client.Send(req, azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -104,8 +115,8 @@ func (client ExpressRouteServiceProvidersClient) ListResponder(resp *http.Respon
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client ExpressRouteServiceProvidersClient) listNextResults(lastResults ExpressRouteServiceProviderListResult) (result ExpressRouteServiceProviderListResult, err error) {
-	req, err := lastResults.expressRouteServiceProviderListResultPreparer()
+func (client ExpressRouteServiceProvidersClient) listNextResults(ctx context.Context, lastResults ExpressRouteServiceProviderListResult) (result ExpressRouteServiceProviderListResult, err error) {
+	req, err := lastResults.expressRouteServiceProviderListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "network.ExpressRouteServiceProvidersClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -126,6 +137,16 @@ func (client ExpressRouteServiceProvidersClient) listNextResults(lastResults Exp
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ExpressRouteServiceProvidersClient) ListComplete(ctx context.Context) (result ExpressRouteServiceProviderListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ExpressRouteServiceProvidersClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx)
 	return
 }
