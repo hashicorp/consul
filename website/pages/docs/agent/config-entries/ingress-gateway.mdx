@@ -33,7 +33,6 @@ Set up a TCP listener for a single service:
 ```hcl
 Kind = "ingress-gateway"
 Name = "ingress-service"
-Namespace = "default"
 
 Listeners = [
   {
@@ -54,7 +53,6 @@ make two services available over a custom port with user-provided hosts:
 ```hcl
 Kind = "ingress-gateway"
 Name = "ingress-service"
-Namespace = "default"
 
 Listeners = [
   {
