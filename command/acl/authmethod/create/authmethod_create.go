@@ -143,12 +143,12 @@ func (c *cmd) Run(args []string) int {
 		Description: c.description,
 	}
 
-	if c.configFile != "" {
+	if c.config!= "" {
 		if c.k8sHost != "" || c.k8sCACert != "" || c.k8sServiceAccountJWT != "" {
-			c.UI.Error(fmt.Sprintf("Cannot use command line arguments with '-config-file' flags"))
+			c.UI.Error(fmt.Sprintf("Cannot use command line arguments with '-config' flags"))
 			return 1
 		}
-		data, err := helpers.LoadDataSource(c.configFile, c.testStdin)
+		data, err := helpers.LoadDataSource(c.config, c.testStdin)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error loading configuration file: %v", err))
 			return 1
