@@ -28,6 +28,7 @@ type cmd struct {
 
 	authMethodType string
 	name           string
+	displayName    string
 	description    string
 
 	k8sHost              string
@@ -63,6 +64,12 @@ func (c *cmd) init() {
 		"name",
 		"",
 		"The new auth method's name. This flag is required.",
+	)
+	c.flags.StringVar(
+		&c.displayName,
+		"display-name",
+		"",
+		"An optional name to use instead of the name when displaying this auth method in a UI.",
 	)
 	c.flags.StringVar(
 		&c.description,
@@ -140,6 +147,7 @@ func (c *cmd) Run(args []string) int {
 	newAuthMethod := &api.ACLAuthMethod{
 		Type:        c.authMethodType,
 		Name:        c.name,
+		DisplayName: c.displayName,
 		Description: c.description,
 	}
 

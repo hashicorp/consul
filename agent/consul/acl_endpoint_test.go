@@ -3336,6 +3336,7 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 
 	t.Run("Update - allow type to default", func(t *testing.T) {
 		reqMethod := newAuthMethod("test")
+		reqMethod.DisplayName = "updated display name 1"
 		reqMethod.Description = "test modified 1"
 		reqMethod.Type = "" // unset
 
@@ -3355,12 +3356,14 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 		method := methodResp.AuthMethod
 
 		require.Equal(t, method.Name, "test")
+		require.Equal(t, method.DisplayName, "updated display name 1")
 		require.Equal(t, method.Description, "test modified 1")
 		require.Equal(t, method.Type, "testing")
 	})
 
 	t.Run("Update - specify type", func(t *testing.T) {
 		reqMethod := newAuthMethod("test")
+		reqMethod.DisplayName = "updated display name 2"
 		reqMethod.Description = "test modified 2"
 
 		req := structs.ACLAuthMethodSetRequest{
@@ -3379,6 +3382,7 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 		method := methodResp.AuthMethod
 
 		require.Equal(t, method.Name, "test")
+		require.Equal(t, method.DisplayName, "updated display name 2")
 		require.Equal(t, method.Description, "test modified 2")
 		require.Equal(t, method.Type, "testing")
 	})

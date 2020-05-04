@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/go-uuid"
 	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	// activate testing auth method
@@ -67,10 +66,11 @@ func TestAuthMethodUpdateCommand(t *testing.T) {
 	})
 
 	t.Run("update nonexistent method", func(t *testing.T) {
+		name := getTestName(t)
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-token=root",
-			"-name=test",
+			"-name", name,
 		}
 
 		ui := cli.NewMockUi()
@@ -107,6 +107,7 @@ func TestAuthMethodUpdateCommand(t *testing.T) {
 			"-http-addr=" + a.HTTPAddr(),
 			"-token=root",
 			"-name=" + name,
+			"-display-name", "updated display",
 			"-description", "updated description",
 		}
 
@@ -117,13 +118,15 @@ func TestAuthMethodUpdateCommand(t *testing.T) {
 		require.Equal(t, code, 0)
 		require.Empty(t, ui.ErrorWriter.String())
 
-		method, _, err := client.ACL().AuthMethodRead(
-			name,
-			&api.QueryOptions{Token: "root"},
-		)
-		require.NoError(t, err)
-		require.NotNil(t, method)
-		require.Equal(t, "updated description", method.Description)
+		got := getTestMethod(t, client, name)
+		expect := &api.ACLAuthMethod{
+			Name:        name,
+			Type:        "testing",
+			DisplayName: "updated display",
+			Description: "updated description",
+			Config:      map[string]interface{}{},
+		}
+		require.Equal(t, expect, got)
 	})
 }
 
@@ -188,6 +191,7 @@ func TestAuthMethodUpdateCommand_JSON(t *testing.T) {
 			"-http-addr=" + a.HTTPAddr(),
 			"-token=root",
 			"-name=" + name,
+			"-display-name", "updated display",
 			"-description", "updated description",
 			"-format=json",
 		}
@@ -196,22 +200,23 @@ func TestAuthMethodUpdateCommand_JSON(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
+		output := ui.OutputWriter.String()
+
 		require.Equal(t, code, 0)
 		require.Empty(t, ui.ErrorWriter.String())
 
-		method, _, err := client.ACL().AuthMethodRead(
-			name,
-			&api.QueryOptions{Token: "root"},
-		)
-		require.NoError(t, err)
-		require.NotNil(t, method)
-		require.Equal(t, "updated description", method.Description)
-
-		output := ui.OutputWriter.String()
-
 		var jsonOutput json.RawMessage
-		err = json.Unmarshal([]byte(output), &jsonOutput)
-		assert.NoError(t, err)
+		require.NoError(t, json.Unmarshal([]byte(output), &jsonOutput))
+
+		got := getTestMethod(t, client, name)
+		expect := &api.ACLAuthMethod{
+			Name:        name,
+			Type:        "testing",
+			DisplayName: "updated display",
+			Description: "updated description",
+			Config:      map[string]interface{}{},
+		}
+		require.Equal(t, expect, got)
 	})
 }
 
@@ -251,11 +256,12 @@ func TestAuthMethodUpdateCommand_noMerge(t *testing.T) {
 	})
 
 	t.Run("update nonexistent method", func(t *testing.T) {
+		name := getTestName(t)
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-token=root",
 			"-no-merge",
-			"-name=test",
+			"-name", name,
 		}
 
 		ui := cli.NewMockUi()
@@ -293,6 +299,7 @@ func TestAuthMethodUpdateCommand_noMerge(t *testing.T) {
 			"-token=root",
 			"-no-merge",
 			"-name=" + name,
+			"-display-name", "updated display",
 			"-description", "updated description",
 		}
 
@@ -303,13 +310,14 @@ func TestAuthMethodUpdateCommand_noMerge(t *testing.T) {
 		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 
-		method, _, err := client.ACL().AuthMethodRead(
-			name,
-			&api.QueryOptions{Token: "root"},
-		)
-		require.NoError(t, err)
-		require.NotNil(t, method)
-		require.Equal(t, "updated description", method.Description)
+		got := getTestMethod(t, client, name)
+		expect := &api.ACLAuthMethod{
+			Name:        name,
+			Type:        "testing",
+			DisplayName: "updated display",
+			Description: "updated description",
+		}
+		require.Equal(t, expect, got)
 	})
 }
 
@@ -367,6 +375,7 @@ func TestAuthMethodUpdateCommand_k8s(t *testing.T) {
 			"-http-addr=" + a.HTTPAddr(),
 			"-token=root",
 			"-name=" + name,
+			"-display-name", "updated display",
 			"-description", "updated description",
 			"-kubernetes-host", "https://foo-new.internal:8443",
 			"-kubernetes-ca-cert", ca2.RootCert,
@@ -380,15 +389,22 @@ func TestAuthMethodUpdateCommand_k8s(t *testing.T) {
 		require.Equal(t, code, 0)
 		require.Empty(t, ui.ErrorWriter.String())
 
-		method, _, err := client.ACL().AuthMethodRead(
-			name,
-			&api.QueryOptions{Token: "root"},
-		)
-		require.NoError(t, err)
-		require.NotNil(t, method)
-		require.Equal(t, "updated description", method.Description)
+		got := getTestMethod(t, client, name)
+		expect := &api.ACLAuthMethod{
+			Name:        name,
+			Type:        "kubernetes",
+			DisplayName: "updated display",
+			Description: "updated description",
+			Config: map[string]interface{}{
+				"Host":              "https://foo-new.internal:8443",
+				"CACert":            ca2.RootCert,
+				"ServiceAccountJWT": acl.TestKubernetesJWT_B,
+			},
+		}
+		require.Equal(t, expect, got)
 
-		config, err := api.ParseKubernetesAuthMethodConfig(method.Config)
+		// also just double check our convenience parsing
+		config, err := api.ParseKubernetesAuthMethodConfig(got.Config)
 		require.NoError(t, err)
 		require.Equal(t, "https://foo-new.internal:8443", config.Host)
 		require.Equal(t, ca2.RootCert, config.CACert)
@@ -728,6 +744,7 @@ func TestAuthMethodUpdateCommand_k8s_noMerge(t *testing.T) {
 	})
 }
 
+
 func TestAuthMethodUpdateCommand_config(t *testing.T) {
 	t.Parallel()
 	testDir := testutil.TempDir(t, "auth-method")
@@ -858,5 +875,30 @@ func TestAuthMethodUpdateCommand_config(t *testing.T) {
 		require.Empty(t, ui.ErrorWriter.String())
 		readUpdate(t, methodName)
 	})
+
+
+func getTestMethod(t *testing.T, client *api.Client, methodName string) *api.ACLAuthMethod {
+	t.Helper()
+
+	method, _, err := client.ACL().AuthMethodRead(
+		methodName,
+		&api.QueryOptions{Token: "root"},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, method)
+
+	// zero these out since we don't really care
+	method.CreateIndex = 0
+	method.ModifyIndex = 0
+
+	return method
+}
+
+func getTestName(t *testing.T) string {
+	t.Helper()
+
+	id, err := uuid.GenerateUUID()
+	require.NoError(t, err)
+	return "test-" + id
 
 }
