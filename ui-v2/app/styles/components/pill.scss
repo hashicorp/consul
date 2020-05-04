@@ -42,3 +42,8 @@ td.policy-management a::after {
   @extend %with-star-icon, %as-pseudo;
   margin-left: 3px;
 }
+
+.consul-external-source,
+.consul-kind {
+  @extend %reduced-pill;
+}

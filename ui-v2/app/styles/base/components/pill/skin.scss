@@ -12,3 +12,25 @@
   width: 10px;
   height: 10px;
 }
+%reduced-pill::before {
+  @extend %as-pseudo;
+}
+%reduced-pill.kubernetes::before {
+  @extend %with-kubernetes-logo-color-icon;
+}
+%reduced-pill.terraform::before {
+  @extend %with-terraform-logo-color-icon;
+}
+%reduced-pill.nomad::before {
+  @extend %with-nomad-logo-color-icon;
+}
+%reduced-pill.consul::before {
+  @extend %with-consul-logo-color-icon;
+}
+%reduced-pill.aws::before {
+  @extend %with-logo-aws-color-icon;
+}
+%reduced-pill.gateway::before {
+  @extend %with-gateway-mask;
+  background-color: $gray-500;
+}
