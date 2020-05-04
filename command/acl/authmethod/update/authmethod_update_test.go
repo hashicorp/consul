@@ -744,7 +744,6 @@ func TestAuthMethodUpdateCommand_k8s_noMerge(t *testing.T) {
 	})
 }
 
-
 func TestAuthMethodUpdateCommand_config(t *testing.T) {
 	t.Parallel()
 	testDir := testutil.TempDir(t, "auth-method")
@@ -875,7 +874,7 @@ func TestAuthMethodUpdateCommand_config(t *testing.T) {
 		require.Empty(t, ui.ErrorWriter.String())
 		readUpdate(t, methodName)
 	})
-
+}
 
 func getTestMethod(t *testing.T, client *api.Client, methodName string) *api.ACLAuthMethod {
 	t.Helper()

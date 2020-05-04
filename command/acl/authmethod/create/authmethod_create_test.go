@@ -423,7 +423,7 @@ func TestAuthMethodCreateCommand_config(t *testing.T) {
 		require.Empty(t, ui.ErrorWriter.String())
 		checkMethod(t, "test3")
 	})
-
+}
 
 func getTestMethod(t *testing.T, client *api.Client, methodName string) *api.ACLAuthMethod {
 	t.Helper()

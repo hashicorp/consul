@@ -151,7 +151,7 @@ func (c *cmd) Run(args []string) int {
 		Description: c.description,
 	}
 
-	if c.config!= "" {
+	if c.config != "" {
 		if c.k8sHost != "" || c.k8sCACert != "" || c.k8sServiceAccountJWT != "" {
 			c.UI.Error(fmt.Sprintf("Cannot use command line arguments with '-config' flags"))
 			return 1

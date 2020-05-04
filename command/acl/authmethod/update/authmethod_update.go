@@ -28,7 +28,6 @@ type cmd struct {
 
 	name string
 
-
 	displayName          string
 	description          string
 	config               string
