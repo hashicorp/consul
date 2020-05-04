@@ -2,19 +2,25 @@
   clear: both;
 }
 %tab-nav ul {
-  padding: 0;
-  margin: 0;
   display: inline-flex;
   align-items: center;
+  position: relative;
+  padding: 0;
+  margin: 0;
 }
-%tab-button {
-  padding-left: 16px;
-  padding-right: 16px;
+%with-animated-tab-selection ul::after {
+  @extend %as-pseudo, %with-transition-500;
+  position: absolute;
+  bottom: 0;
+  height: 0;
+  border-top: 0;
+  width: calc(var(--selected-width, 0) * 1px);
+  transform: translate(calc(var(--selected-left, 0) * 1px), 0);
+  transition-property: transform, width;
 }
 %tab-button {
   display: inline-block;
-  padding-top: 13px;
-  padding-bottom: 13px;
+  padding: 16px 13px;
 }
 %tab-section section h3 {
   margin: 24px 0;
