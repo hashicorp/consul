@@ -55,8 +55,8 @@ You may also consider adopting Consul Enterprise for
 ## Configuring TLS with Auto-encrypt
 
 Consul's auto-encrypt feature allows clients to automatically provision their own certificates by making a request to the servers at startup.
-If you would like to use this feature with the external Consul servers, you need to configure the Helm chart with the information about the server
-so that it can retrieve client's CA to use for securing the rest of the cluster.
+If you would like to use this feature with external Consul servers, you need to configure the Helm chart with information about the servers
+so that it can retrieve the clients' CA to use for securing the rest of the cluster.
 To do that, you must add the following values, in addition to the values mentioned above:
 
 ```yaml
@@ -70,9 +70,9 @@ externalServers:
   - "provider=my-cloud config=val ..."
 ```
 
-In most cases, `externalServers.hosts` will be the same as `client.join`, however, this value must be provided for both values because
-this they are used for different purposes: one for Serf LAN and the other for HTTPS connections.
-Please see [reference documentation](https://www.consul.io/docs/platform/k8s/helm.html#v-externalservers-hosts)
+In most cases, `externalServers.hosts` will be the same as `client.join`, however both keys must be set because
+they are used for different purposes: one for Serf LAN and the other for HTTPS connections.
+Please see the [reference documentation](https://www.consul.io/docs/platform/k8s/helm.html#v-externalservers-hosts)
 for this value for more info. If your HTTPS port is different from Consul's default `8501`, you must also set
 `externalServers.httpsPort`.
 
@@ -83,13 +83,13 @@ to help initialize ACL tokens for Consul clients and consul-k8s components for y
 
 ### Manually Bootstrapping ACLs
 
-If you would like to call the ACL bootstrapping API yourself or if your cluster has already been bootstrapped with ACLs,
+If you would like to call the [ACL bootstrapping API](/api/acl/acl.html#bootstrap-acls) yourself or if your cluster has already been bootstrapped with ACLs,
 you can provide the bootstrap token to the Helm chart. The Helm chart will then use this token to configure ACLs
 for Consul clients and any consul-k8s components you are enabling.
 
 First, create a Kubernetes secret containing your bootstrap token:
 
-```shell script
+```shell
 kubectl create secret generic bootstrap-token --from-literal='token=<your bootstrap token>'
 ```
 
@@ -111,7 +111,7 @@ The bootstrap token requires the following minimal permissions:
 * `agent:read` if using WAN federation over mesh gateways
 
 Next, configure external servers. The Helm chart will use this configuration to talk to the Consul server's API
-to create policies, tokens, and an auth method. If you are enabling Consul Connect,
+to create policies, tokens, and an auth method. If you are [enabling Consul Connect](/docs/platform/k8s/connect.html),
 `k8sAuthMethodHost` should be set to the address of your Kubernetes API server
 so that the Consul servers can validate a Kubernetes service account token when using the [Kubernetes auth method](https://www.consul.io/docs/acl/auth-methods/kubernetes.html)
 with `consul login`.
