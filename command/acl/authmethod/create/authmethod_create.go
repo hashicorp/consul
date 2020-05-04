@@ -169,23 +169,6 @@ func (c *cmd) Run(args []string) int {
 
 	}
 
-	if c.config != "" {
-		if c.k8sHost != "" || c.k8sCACert != "" || c.k8sServiceAccountJWT != "" {
-			c.UI.Error(fmt.Sprintf("Cannot use command line arguments with '-config' flags"))
-			return 1
-		}
-		data, err := helpers.LoadDataSource(c.config, c.testStdin)
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error loading auth method config: %v", err))
-			return 1
-		}
-		if err := json.Unmarshal([]byte(data), &newAuthMethod.Config); err != nil {
-			c.UI.Error(fmt.Sprintf("Error parsing JSON for auth method config: %v", err))
-			return 1
-		}
-
-	}
-
 	if c.authMethodType == "kubernetes" {
 		if c.k8sHost == "" {
 			c.UI.Error(fmt.Sprintf("Missing required '-kubernetes-host' flag"))

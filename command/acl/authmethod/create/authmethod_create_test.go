@@ -380,7 +380,7 @@ func TestAuthMethodCreateCommand_config(t *testing.T) {
 		ui := cli.NewMockUi()
 		cmd := New(ui)
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 		checkMethod(t, "test")
 	})
@@ -403,7 +403,7 @@ func TestAuthMethodCreateCommand_config(t *testing.T) {
 			"-config=-",
 		}
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 		checkMethod(t, "test2")
 
@@ -419,7 +419,7 @@ func TestAuthMethodCreateCommand_config(t *testing.T) {
 			"-config=" + `{"SessionID":"foo"}`,
 		}
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 		checkMethod(t, "test3")
 	})
