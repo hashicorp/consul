@@ -1286,6 +1286,25 @@ func TestHealth_ServiceNodes_Ingress_ACL(t *testing.T) {
 	}
 	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
 
+	// Register proxy-defaults with 'http' protocol
+	{
+		req := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry: &structs.ProxyConfigEntry{
+				Kind: structs.ProxyDefaults,
+				Name: structs.ProxyConfigGlobal,
+				Config: map[string]interface{}{
+					"protocol": "http",
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		var out bool
+		require.Nil(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &out))
+		require.True(t, out)
+	}
+
 	// Register ingress-gateway config entry
 	{
 		args := &structs.IngressGatewayConfigEntry{

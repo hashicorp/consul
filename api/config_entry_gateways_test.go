@@ -23,8 +23,21 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 		Name: "bar",
 	}
 
+	global := &ProxyConfigEntry{
+		Kind: ProxyDefaults,
+		Name: ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			"protocol": "http",
+		},
+	}
+	// set default protocol to http so that ingress gateways pass validation
+	_, wm, err := config_entries.Set(global, nil)
+	require.NoError(t, err)
+	require.NotNil(t, wm)
+	require.NotEqual(t, 0, wm.RequestTime)
+
 	// set it
-	_, wm, err := config_entries.Set(ingress1, nil)
+	_, wm, err = config_entries.Set(ingress1, nil)
 	require.NoError(t, err)
 	require.NotNil(t, wm)
 	require.NotEqual(t, 0, wm.RequestTime)
