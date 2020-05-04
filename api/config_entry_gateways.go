@@ -52,15 +52,22 @@ type IngressListener struct {
 type IngressService struct {
 	// Name declares the service to which traffic should be forwarded.
 	//
-	// This can either be a specific service instance, or the wildcard specifier,
+	// This can either be a specific service, or the wildcard specifier,
 	// "*". If the wildcard specifier is provided, the listener must be of "http"
 	// protocol and means that the listener will forward traffic to all services.
+	//
+	// A name can be specified on multiple listeners, and will be exposed on both
+	// of the listeners
 	Name string
 
 	// Hosts is a list of hostnames which should be associated to this service on
 	// the defined listener. Only allowed on layer 7 protocols, this will be used
 	// to route traffic to the service by matching the Host header of the HTTP
 	// request.
+	//
+	// If a host is provided for a service that also has a wildcard specifier
+	// defined, the host will override the wildcard-specifier-provided
+	// "<service-name>.*" domain for that listener.
 	//
 	// This cannot be specified when using the wildcard specifier, "*", or when
 	// using a "tcp" listener.
