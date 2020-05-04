@@ -190,7 +190,7 @@ type AgentCheckRegistration struct {
 type AgentServiceCheck struct {
 	CheckID           string              `json:",omitempty"`
 	Name              string              `json:",omitempty"`
-	Args              []string            `json:"ScriptArgs,omitempty"`
+	ScriptArgs        []string            `json:",omitempty"`
 	DockerContainerID string              `json:",omitempty"`
 	Shell             string              `json:",omitempty"` // Only supported for Docker.
 	Interval          string              `json:",omitempty"`
