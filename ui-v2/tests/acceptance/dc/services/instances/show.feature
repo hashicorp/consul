@@ -68,9 +68,9 @@ Feature: dc / services / instances / show: Show Service Instance
     Then I see the text "Tag1" in "[data-test-tags] span:nth-child(1)"
     Then I see the text "Tag2" in "[data-test-tags] span:nth-child(2)"
 
-    When I click metaData on the tabs
-    And I see metaDataIsSelected on the tabs
-    And I see 3 of the metaData object
+    When I click metadata on the tabs
+    And I see metadataIsSelected on the tabs
+    And I see 3 of the metadata object
     And the title should be "service-0-with-id - Consul"
 
   Scenario: A Service instance warns when deregistered whilst blocking

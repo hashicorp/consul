@@ -6,7 +6,7 @@ export default function(visitable, deletable, clickable, attribute, collection, 
       'services',
       'round-trip-time',
       'lock-sessions',
-      'meta-data',
+      'metadata',
     ]),
     healthchecks: collection('[data-test-node-healthcheck]', {
       name: attribute('data-test-node-healthcheck'),
@@ -23,6 +23,6 @@ export default function(visitable, deletable, clickable, attribute, collection, 
         TTL: attribute('data-test-session-ttl', '[data-test-session-ttl]'),
       })
     ),
-    metaData: collection('#meta-data [data-test-tabular-row]', {}),
+    metadata: collection('#metadata [data-test-tabular-row]', {}),
   };
 }
