@@ -1,4 +1,8 @@
-<nav role="tablist" class="tab-nav" id={{guid}}>
+<nav
+  style={{if selectedWidth (concat '--selected-width:' selectedWidth ';--selected-left:' selectedLeft ';--selected-height:' selectedHeight ';--selected-top:' selectedTop) undefined}}
+  role="tablist"
+  class={{concat 'tab-nav' (if isAnimatable ' animatable' '')}}
+  id={{guid}}>
   <ul>
 {{#each items as |item|}}
 <li

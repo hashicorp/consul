@@ -71,22 +71,6 @@ export default Service.extend({
     // TODO: This can just use querySelector
     return [...$$(selector, context)][0];
   },
-  style: function(style, selector, context) {
-    let $els;
-    if (typeof selector === 'string') {
-      $els = this.elements(selector, context);
-    } else {
-      if (typeof selector.length === 'undefined') {
-        $els = [selector];
-      } else {
-        $els = selector;
-      }
-    }
-    [...$els].forEach($el =>
-      Object.entries(style).forEach(([prop, value]) => $el.style.setProperty(prop, value))
-    );
-    return $els;
-  },
   // ember components aren't strictly 'dom-like'
   // but if you think of them as a web component 'shim'
   // then it makes more sense to think of them as part of the dom
