@@ -23,6 +23,9 @@ export default Component.extend({
     schedule('afterRender', () => this.select(this.dom.element(SELECTED, this.$nav)));
   },
   select: function($el) {
+    if (!$el) {
+      return;
+    }
     this.dom.style(
       {
         '--selected-width': $el.offsetWidth,
