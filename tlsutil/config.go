@@ -787,6 +787,10 @@ func (c *Configurator) OutgoingALPNRPCWrapper() ALPNWrapper {
 	}
 }
 
+func (c *Configurator) UseTLS(dc string) bool {
+	return !c.outgoingRPCTLSDisabled() && c.getAreaForPeerDatacenterUseTLS(dc)
+}
+
 // AutoEncryptCertNotAfter returns NotAfter from the auto_encrypt cert. In case
 // there is no cert, it will return a time in the past.
 func (c *Configurator) AutoEncryptCertNotAfter() time.Time {

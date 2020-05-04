@@ -360,7 +360,6 @@ func TestServersInDCMeetMinimumVersion(t *testing.T) {
 	makeServer := func(versionStr string, datacenter string) metadata.Server {
 		return metadata.Server{
 			Name:        "foo",
-			ShortName:   "foo",
 			ID:          "asdf",
 			Port:        10000,
 			Expect:      3,
@@ -600,7 +599,6 @@ func TestServersGetACLMode(t *testing.T) {
 	makeServer := func(datacenter string, acls structs.ACLMode, status serf.MemberStatus, addr net.IP) metadata.Server {
 		return metadata.Server{
 			Name:        "foo",
-			ShortName:   "foo",
 			ID:          "asdf",
 			Port:        10000,
 			Expect:      3,
