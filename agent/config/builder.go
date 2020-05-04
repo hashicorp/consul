@@ -278,10 +278,13 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		if s.Name == "" || s.Data == "" {
 			continue
 		}
-		c2, err := Parse(s.Data, s.Format)
+		c2, keys, err := Parse(s.Data, s.Format)
 		if err != nil {
 			return RuntimeConfig{}, fmt.Errorf("Error parsing %s: %s", s.Name, err)
 		}
+
+		// for now this is a soft failure that will cause warnings but not actual problems
+		b.validateEnterpriseConfigKeys(&c2, keys)
 
 		// if we have a single 'check' or 'service' we need to add them to the
 		// list of checks and services first since we cannot merge them

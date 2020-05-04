@@ -24,6 +24,10 @@ func (a *ACL) Bootstrap(args *structs.DCSpecificRequest, reply *structs.ACL) err
 		return acl.ErrDisabled
 	}
 
+	if err := a.srv.aclBootstrapAllowed(); err != nil {
+		return err
+	}
+
 	// By doing some pre-checks we can head off later bootstrap attempts
 	// without having to run them through Raft, which should curb abuse.
 	state := a.srv.fsm.State()
