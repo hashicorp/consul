@@ -10,7 +10,7 @@ export default function(visitable, attribute, collection, text, tabs) {
       'upstreams',
       'exposed-paths',
       'tags',
-      'meta-data',
+      'metadata',
     ]),
     serviceChecks: collection('[data-test-service-checks] li', {
       exposed: attribute('data-test-exposed', '[data-test-exposed]'),
@@ -30,6 +30,6 @@ export default function(visitable, attribute, collection, text, tabs) {
     addresses: collection('#addresses [data-test-tabular-row]', {
       address: text('[data-test-address]'),
     }),
-    metaData: collection('#meta-data [data-test-tabular-row]', {}),
+    metadata: collection('#metadata [data-test-tabular-row]', {}),
   };
 }

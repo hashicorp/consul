@@ -70,7 +70,7 @@ export const routes = {
           _options: { path: '/lock-sessions' },
         },
         metadata: {
-          _options: { path: '/meta-data' },
+          _options: { path: '/metadata' },
         },
       },
     },
