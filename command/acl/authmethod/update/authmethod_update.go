@@ -66,21 +66,13 @@ func (c *cmd) init() {
 		"",
 		"A description of the auth method.",
 	)
-	c.flags.StringVar(
-		&c.config,
-		"config",
-		"",
-		"The configuration file for the auth method. Must be JSON. May be prefixed with '@' "+
-			"to indicate that the value is a file path to load the rules from. '-' may also be "+
-			"given to indicate that the rules are available on stdin",
-	)
 
 	c.flags.StringVar(
 		&c.config,
 		"config",
 		"",
 		"The configuration for the auth method. Must be JSON. The config is updated as one field"+
-			"May be prefixed with '@' to indicate that the value is a file path to load the rules from. "+
+			"May be prefixed with '@' to indicate that the value is a file path to load the config from. "+
 			"'-' may also be given to indicate that the rules are available on stdin. ",
 	)
 
@@ -111,6 +103,7 @@ func (c *cmd) init() {
 	c.flags.BoolVar(&c.noMerge, "no-merge", false, "Do not merge the current auth method "+
 		"information with what is provided to the command. Instead overwrite all fields "+
 		"with the exception of the name which is immutable.")
+
 	c.flags.StringVar(
 		&c.format,
 		"format",
