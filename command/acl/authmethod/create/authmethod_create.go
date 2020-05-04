@@ -1,6 +1,7 @@
 package authmethodcreate
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -33,6 +34,7 @@ type cmd struct {
 	k8sHost              string
 	k8sCACert            string
 	k8sServiceAccountJWT string
+	config               string
 
 	showMeta bool
 	format   string
@@ -105,6 +107,14 @@ func (c *cmd) init() {
 		authmethod.PrettyFormat,
 		fmt.Sprintf("Output format {%s}", strings.Join(authmethod.GetSupportedFormats(), "|")),
 	)
+	c.flags.StringVar(
+		&c.config,
+		"config",
+		"",
+		"The configuration for the auth method. Must be JSON. May be prefixed with '@' "+
+			"to indicate that the value is a file path to load the config from. '-' may also be "+
+			"given to indicate that the config is available on stdin",
+	)
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -139,6 +149,24 @@ func (c *cmd) Run(args []string) int {
 		Name:        c.name,
 		DisplayName: c.displayName,
 		Description: c.description,
+	}
+
+	if c.config != "" {
+		if c.k8sHost != "" || c.k8sCACert != "" || c.k8sServiceAccountJWT != "" {
+			c.UI.Error(fmt.Sprintf("Cannot use command line arguments with '-config' flags"))
+			return 1
+		}
+		data, err := helpers.LoadDataSource(c.config, c.testStdin)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error loading configuration file: %v", err))
+			return 1
+		}
+		err = json.Unmarshal([]byte(data), &newAuthMethod.Config)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error parsing JSON configuration file: %v", err))
+			return 1
+		}
+
 	}
 
 	if c.authMethodType == "kubernetes" {
