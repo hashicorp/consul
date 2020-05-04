@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl/authmethod"
@@ -30,11 +31,12 @@ type cmd struct {
 	name           string
 	displayName    string
 	description    string
+	maxTokenTTL    time.Duration
+	config         string
 
 	k8sHost              string
 	k8sCACert            string
 	k8sServiceAccountJWT string
-	config               string
 
 	showMeta bool
 	format   string
@@ -76,6 +78,12 @@ func (c *cmd) init() {
 		"description",
 		"",
 		"A description of the auth method.",
+	)
+	c.flags.DurationVar(
+		&c.maxTokenTTL,
+		"max-token-ttl",
+		0,
+		"Duration of time all tokens created by this auth method should be valid for",
 	)
 
 	c.flags.StringVar(
@@ -149,6 +157,9 @@ func (c *cmd) Run(args []string) int {
 		Name:        c.name,
 		DisplayName: c.displayName,
 		Description: c.description,
+	}
+	if c.maxTokenTTL > 0 {
+		newAuthMethod.MaxTokenTTL = c.maxTokenTTL
 	}
 
 	if c.config != "" {

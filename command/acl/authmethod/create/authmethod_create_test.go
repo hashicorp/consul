@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/connect"
@@ -121,6 +122,35 @@ func TestAuthMethodCreateCommand(t *testing.T) {
 		}
 		require.Equal(t, expect, got)
 	})
+
+	t.Run("create testing with max token ttl", func(t *testing.T) {
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-type=testing",
+			"-name=test",
+			"-description=desc",
+			"-display-name=display",
+			"-max-token-ttl=5m",
+		}
+
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		code := cmd.Run(args)
+		require.Equal(t, code, 0, "err: "+ui.ErrorWriter.String())
+		require.Empty(t, ui.ErrorWriter.String())
+
+		got := getTestMethod(t, client, "test")
+		expect := &api.ACLAuthMethod{
+			Name:        "test",
+			Type:        "testing",
+			DisplayName: "display",
+			Description: "desc",
+			MaxTokenTTL: 5 * time.Minute,
+		}
+		require.Equal(t, expect, got)
+	})
 }
 
 func TestAuthMethodCreateCommand_JSON(t *testing.T) {
@@ -189,6 +219,53 @@ func TestAuthMethodCreateCommand_JSON(t *testing.T) {
 			Description: "desc",
 		}
 		require.Equal(t, expect, got)
+	})
+
+	t.Run("create testing with max token ttl", func(t *testing.T) {
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-type=testing",
+			"-name=test",
+			"-description=desc",
+			"-display-name=display",
+			"-max-token-ttl=5m",
+			"-format=json",
+		}
+
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		code := cmd.Run(args)
+		out := ui.OutputWriter.String()
+
+		require.Equal(t, code, 0)
+		require.Empty(t, ui.ErrorWriter.String())
+		require.Contains(t, out, "test")
+
+		got := getTestMethod(t, client, "test")
+		expect := &api.ACLAuthMethod{
+			Name:        "test",
+			Type:        "testing",
+			DisplayName: "display",
+			Description: "desc",
+			MaxTokenTTL: 5 * time.Minute,
+		}
+		require.Equal(t, expect, got)
+
+		var raw map[string]interface{}
+		require.NoError(t, json.Unmarshal([]byte(out), &raw))
+		delete(raw, "CreateIndex")
+		delete(raw, "ModifyIndex")
+
+		require.Equal(t, map[string]interface{}{
+			"Name":        "test",
+			"Type":        "testing",
+			"DisplayName": "display",
+			"Description": "desc",
+			"MaxTokenTTL": "5m0s",
+			"Config":      nil,
+		}, raw)
 	})
 }
 

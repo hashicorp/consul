@@ -3468,6 +3468,89 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("Create with MaxTokenTTL", func(t *testing.T) {
+		reqMethod := newAuthMethod("test")
+		reqMethod.MaxTokenTTL = 5 * time.Minute
+
+		req := structs.ACLAuthMethodSetRequest{
+			Datacenter:   "dc1",
+			AuthMethod:   reqMethod,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		resp := structs.ACLAuthMethod{}
+
+		err := acl.AuthMethodSet(&req, &resp)
+		require.NoError(t, err)
+
+		// Get the method directly to validate that it exists
+		methodResp, err := retrieveTestAuthMethod(codec, "root", "dc1", resp.Name)
+		require.NoError(t, err)
+		method := methodResp.AuthMethod
+
+		require.Equal(t, method.Name, "test")
+		require.Equal(t, method.Description, "test")
+		require.Equal(t, method.Type, "testing")
+		require.Equal(t, method.MaxTokenTTL, 5*time.Minute)
+	})
+
+	t.Run("Update - change MaxTokenTTL", func(t *testing.T) {
+		reqMethod := newAuthMethod("test")
+		reqMethod.DisplayName = "updated display name 2"
+		reqMethod.Description = "test modified 2"
+		reqMethod.MaxTokenTTL = 8 * time.Minute
+
+		req := structs.ACLAuthMethodSetRequest{
+			Datacenter:   "dc1",
+			AuthMethod:   reqMethod,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		resp := structs.ACLAuthMethod{}
+
+		err := acl.AuthMethodSet(&req, &resp)
+		require.NoError(t, err)
+
+		// Get the method directly to validate that it exists
+		methodResp, err := retrieveTestAuthMethod(codec, "root", "dc1", resp.Name)
+		require.NoError(t, err)
+		method := methodResp.AuthMethod
+
+		require.Equal(t, method.Name, "test")
+		require.Equal(t, method.DisplayName, "updated display name 2")
+		require.Equal(t, method.Description, "test modified 2")
+		require.Equal(t, method.Type, "testing")
+		require.Equal(t, method.MaxTokenTTL, 8*time.Minute)
+	})
+
+	t.Run("Create with MaxTokenTTL too small", func(t *testing.T) {
+		reqMethod := newAuthMethod("test")
+		reqMethod.MaxTokenTTL = 1 * time.Millisecond
+
+		req := structs.ACLAuthMethodSetRequest{
+			Datacenter:   "dc1",
+			AuthMethod:   reqMethod,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		resp := structs.ACLAuthMethod{}
+
+		err := acl.AuthMethodSet(&req, &resp)
+		testutil.RequireErrorContains(t, err, "MaxTokenTTL 1ms cannot be less than")
+	})
+
+	t.Run("Create with MaxTokenTTL too big", func(t *testing.T) {
+		reqMethod := newAuthMethod("test")
+		reqMethod.MaxTokenTTL = 25 * time.Hour
+
+		req := structs.ACLAuthMethodSetRequest{
+			Datacenter:   "dc1",
+			AuthMethod:   reqMethod,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		resp := structs.ACLAuthMethod{}
+
+		err := acl.AuthMethodSet(&req, &resp)
+		testutil.RequireErrorContains(t, err, "MaxTokenTTL 25h0m0s cannot be more than")
+	})
 }
 
 func TestACLEndpoint_AuthMethodDelete(t *testing.T) {
@@ -4940,6 +5023,81 @@ func TestACLEndpoint_Login(t *testing.T) {
 
 		testutil.RequireErrorContains(t, acl.Login(&req, &resp), "ACL not found")
 	})
+}
+
+func TestACLEndpoint_Login_with_MaxTokenTTL(t *testing.T) {
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	acl := ACL{srv: s1}
+
+	testSessionID := testauth.StartSession()
+	defer testauth.ResetSession(testSessionID)
+
+	testauth.InstallSessionToken(
+		testSessionID,
+		"fake-web", // no rules
+		"default", "web", "abc123",
+	)
+
+	method, err := upsertTestCustomizedAuthMethod(codec, "root", "dc1", func(method *structs.ACLAuthMethod) {
+		method.MaxTokenTTL = 5 * time.Minute
+		method.Config = map[string]interface{}{
+			"SessionID": testSessionID,
+		}
+	})
+	require.NoError(t, err)
+
+	_, err = upsertTestBindingRule(
+		codec, "root", "dc1", method.Name,
+		"",
+		structs.BindingRuleBindTypeService,
+		"web",
+	)
+	require.NoError(t, err)
+
+	// Create a token.
+	req := structs.ACLLoginRequest{
+		Auth: &structs.ACLLoginParams{
+			AuthMethod:  method.Name,
+			BearerToken: "fake-web",
+			Meta:        map[string]string{"pod": "pod1"},
+		},
+		Datacenter: "dc1",
+	}
+
+	resp := structs.ACLToken{}
+	require.NoError(t, acl.Login(&req, &resp))
+
+	got := &resp
+	got.CreateIndex = 0
+	got.ModifyIndex = 0
+	got.AccessorID = ""
+	got.SecretID = ""
+	got.Hash = nil
+
+	expect := &structs.ACLToken{
+		AuthMethod:     method.Name,
+		Description:    `token created via login: {"pod":"pod1"}`,
+		Local:          true,
+		CreateTime:     got.CreateTime,
+		ExpirationTime: timePointer(got.CreateTime.Add(method.MaxTokenTTL)),
+		ServiceIdentities: []*structs.ACLServiceIdentity{
+			{ServiceName: "web"},
+		},
+	}
+	require.Equal(t, got, expect)
 }
 
 func TestACLEndpoint_Login_k8s(t *testing.T) {

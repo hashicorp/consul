@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl/authmethod"
@@ -28,9 +29,11 @@ type cmd struct {
 
 	name string
 
-	displayName          string
-	description          string
-	config               string
+	displayName string
+	description string
+	maxTokenTTL time.Duration
+	config      string
+
 	k8sHost              string
 	k8sCACert            string
 	k8sServiceAccountJWT string
@@ -72,6 +75,13 @@ func (c *cmd) init() {
 		"description",
 		"",
 		"A description of the auth method.",
+	)
+
+	c.flags.DurationVar(
+		&c.maxTokenTTL,
+		"max-token-ttl",
+		0,
+		"Duration of time all tokens created by this auth method should be valid for",
 	)
 
 	c.flags.StringVar(
@@ -169,6 +179,10 @@ func (c *cmd) Run(args []string) int {
 			DisplayName: c.displayName,
 			Description: c.description,
 		}
+		if c.maxTokenTTL > 0 {
+			method.MaxTokenTTL = c.maxTokenTTL
+		}
+
 		if c.config != "" {
 			if c.k8sHost != "" || c.k8sCACert != "" || c.k8sServiceAccountJWT != "" {
 				c.UI.Error(fmt.Sprintf("Cannot use command line arguments with '-config' flag"))
@@ -184,6 +198,7 @@ func (c *cmd) Run(args []string) int {
 				return 1
 			}
 		}
+
 		if currentAuthMethod.Type == "kubernetes" {
 			if c.k8sHost == "" {
 				c.UI.Error(fmt.Sprintf("Missing required '-kubernetes-host' flag"))
@@ -210,6 +225,9 @@ func (c *cmd) Run(args []string) int {
 		}
 		if c.displayName != "" {
 			method.DisplayName = c.displayName
+		}
+		if c.maxTokenTTL > 0 {
+			method.MaxTokenTTL = c.maxTokenTTL
 		}
 		if c.config != "" {
 			if c.k8sHost != "" || c.k8sCACert != "" || c.k8sServiceAccountJWT != "" {

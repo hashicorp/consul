@@ -2111,6 +2111,16 @@ func (a *ACL) AuthMethodSet(args *structs.ACLAuthMethodSetRequest, reply *struct
 		return fmt.Errorf("Invalid Auth Method: Type should be one of: %v", authmethod.Types())
 	}
 
+	if method.MaxTokenTTL != 0 {
+		if method.MaxTokenTTL > a.srv.config.ACLTokenMaxExpirationTTL {
+			return fmt.Errorf("MaxTokenTTL %s cannot be more than %s",
+				method.MaxTokenTTL, a.srv.config.ACLTokenMaxExpirationTTL)
+		} else if method.MaxTokenTTL < a.srv.config.ACLTokenMinExpirationTTL {
+			return fmt.Errorf("MaxTokenTTL %s cannot be less than %s",
+				method.MaxTokenTTL, a.srv.config.ACLTokenMinExpirationTTL)
+		}
+	}
+
 	// Instantiate a validator but do not cache it yet. This will validate the
 	// configuration.
 	if _, err := authmethod.NewValidator(a.srv.logger, method); err != nil {
@@ -2323,6 +2333,7 @@ func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) erro
 			AuthMethod:        auth.AuthMethod,
 			ServiceIdentities: serviceIdentities,
 			Roles:             roleLinks,
+			ExpirationTTL:     method.MaxTokenTTL,
 			EnterpriseMeta:    *targetMeta,
 		},
 		WriteRequest: args.WriteRequest,

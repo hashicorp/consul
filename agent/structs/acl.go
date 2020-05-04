@@ -2,6 +2,7 @@ package structs
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"hash"
@@ -1048,6 +1049,9 @@ type ACLAuthMethod struct {
 	// Description is just an optional bunch of explanatory text.
 	Description string `json:",omitempty"`
 
+	// MaxTokenTTL this is the maximum life of a token created by this method.
+	MaxTokenTTL time.Duration `json:",omitempty"`
+
 	// Configuration is arbitrary configuration for the auth method. This
 	// should only contain primitive values and containers (such as lists and
 	// maps).
@@ -1058,6 +1062,47 @@ type ACLAuthMethod struct {
 
 	// Embedded Raft Metadata
 	RaftIndex `hash:"ignore"`
+}
+
+func (m *ACLAuthMethod) MarshalJSON() ([]byte, error) {
+	type Alias ACLAuthMethod
+	exported := &struct {
+		MaxTokenTTL string `json:",omitempty"`
+		*Alias
+	}{
+		MaxTokenTTL: m.MaxTokenTTL.String(),
+		Alias:       (*Alias)(m),
+	}
+	if m.MaxTokenTTL == 0 {
+		exported.MaxTokenTTL = ""
+	}
+
+	return json.Marshal(exported)
+}
+
+func (m *ACLAuthMethod) UnmarshalJSON(data []byte) (err error) {
+	type Alias ACLAuthMethod
+	aux := &struct {
+		MaxTokenTTL interface{}
+		*Alias
+	}{
+		Alias: (*Alias)(m),
+	}
+	if err = lib.UnmarshalJSON(data, &aux); err != nil {
+		return err
+	}
+	if aux.MaxTokenTTL != nil {
+		switch v := aux.MaxTokenTTL.(type) {
+		case string:
+			if m.MaxTokenTTL, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			m.MaxTokenTTL = time.Duration(v)
+		}
+	}
+
+	return nil
 }
 
 type ACLReplicationType string
