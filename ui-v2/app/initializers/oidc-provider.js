@@ -9,8 +9,7 @@ const Provider = Oauth2CodeProvider.extend({
     const name = this.get('name'),
       url = this.buildUrl(),
       responseParams = ['state', 'code'],
-      responseType = 'code',
-      state = this.get('state');
+      responseType = 'code';
     return this.get('popup')
       .open(url, responseParams, options)
       .then(function(authData) {
