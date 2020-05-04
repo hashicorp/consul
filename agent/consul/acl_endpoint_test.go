@@ -5052,7 +5052,7 @@ func TestACLEndpoint_Login_with_MaxTokenTTL(t *testing.T) {
 	)
 
 	method, err := upsertTestCustomizedAuthMethod(codec, "root", "dc1", func(method *structs.ACLAuthMethod) {
-		method.MaxTokenTTL = 200 * time.Millisecond
+		method.MaxTokenTTL = 5 * time.Minute
 		method.Config = map[string]interface{}{
 			"SessionID": testSessionID,
 		}
