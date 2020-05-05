@@ -552,7 +552,12 @@ func (c *compiler) assembleChain() error {
 		routeNode.Routes = append(routeNode.Routes, compiledRoute)
 
 		dest := route.Destination
-
+		if dest == nil {
+			dest = &structs.ServiceRouteDestination{
+				Service:   c.serviceName,
+				Namespace: router.NamespaceOrDefault(),
+			}
+		}
 		svc := defaultIfEmpty(dest.Service, c.serviceName)
 		destNamespace := defaultIfEmpty(dest.Namespace, router.NamespaceOrDefault())
 
