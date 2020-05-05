@@ -16,6 +16,7 @@ IMPROVEMENTS:
 
 BUGFIXES:
 
+* agent: don't let left nodes hold onto their node-id [[GH-7775](https://github.com/hashicorp/consul/pull/7775)]
 * agent: **(Consul Enterprise only)** Fixed several bugs related to Network Area ann Network Segment compatibility with other features caused by incorrectly doing version or serf tag checking. [[GH-7491](https://github.com/hashicorp/consul/pull/7491)]
 * cli: ensure that 'snapshot save' is fsync safe and also only writes to the requested file on success [[GH-7698](https://github.com/hashicorp/consul/issues/7698)]
 * cli: fix usage of gzip.Reader to better detect corrupt snapshots during save/restore [[GH-7697](https://github.com/hashicorp/consul/issues/7697)]
