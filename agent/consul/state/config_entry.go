@@ -847,7 +847,6 @@ func (s *Store) protocolForService(
 		return 0, "", err
 	}
 
-	// Check the wildcard entry's protocol against the discovery chain protocol for the service.
 	idx, serviceDefaults, err := s.configEntryTxn(tx, ws, structs.ServiceDefaults, svc.ID, &svc.EnterpriseMeta)
 	if err != nil {
 		return 0, "", err
