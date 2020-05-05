@@ -22,7 +22,7 @@ IMPROVEMENTS:
 
 BUGFIXES:
 
-* agent: **(Consul Enterprise only)** Fixed several bugs related to Network Area ann Network Segment compatibility with other features caused by incorrectly doing version or serf tag checking. [[GH-7491](https://github.com/hashicorp/consul/pull/7491)]
+* agent: **(Consul Enterprise only)** Fixed several bugs related to Network Area and Network Segment compatibility with other features caused by incorrectly doing version or serf tag checking. [[GH-7491](https://github.com/hashicorp/consul/pull/7491)]
 * cli: ensure that 'snapshot save' is fsync safe and also only writes to the requested file on success [[GH-7698](https://github.com/hashicorp/consul/issues/7698)]
 * cli: fix usage of gzip.Reader to better detect corrupt snapshots during save/restore [[GH-7697](https://github.com/hashicorp/consul/issues/7697)]
 * connect: Fix panic when validating a service-router config entry with no destination [[GH-7783](https://github.com/hashicorp/consul/pull/7783)]
@@ -32,6 +32,39 @@ BUGFIXES:
 * server: strip local ACL tokens from RPCs during forwarding if crossing datacenters [[GH-7419](https://github.com/hashicorp/consul/issues/7419)]
 * snapshot agent **(Consul Enterprise only)**: Ensure snapshots persisted with the local backend are fsync safe and also only writes to the requested file on success.
 * snapshot agent **(Consul Enterprise only)**: Verify integrity of snapshots locally before storing with the configured backend.
+* xds: Fix flapping of mesh gateway connect-service watches [[GH-7575](https://github.com/hashicorp/consul/pull/7575)]
+
+## 1.7.3 (May 05, 2020)
+
+IMPROVEMENTS:
+
+* acl: **(Consul Enterprise only)** - Disable the ACL.Bootstrap RPC endpoints when managed service provider tokens are in use. [[GH-7614](https://github.com/hashicorp/consul/pull/7614)]
+* acl: **(Consul Enterprise only)** - Consul agents will now use the first managed service provider token for the agents token when any are present.
+* acl: Added a v1/acl/policy/name/:name HTTP endpoint to read a policy by name. [[GH-6615](https://github.com/hashicorp/consul/pull/6615)]
+* acl: Added JSON format output to all of the ACL CLI commands. [[GH-7141](https://github.com/hashicorp/consul/issues/7141)]
+* agent/xds: Update mesh gateway to use the service resolver connect timeout when configured [[GH-6370](https://github.com/hashicorp/consul/issues/6370)]
+* cli: Log "newer version available" message at `INFO` level [[GH-7457](https://github.com/hashicorp/consul/issues/7457)]
+* config: Consul Enterprise specific configuration are now parseable in OSS but will emit warnings about them not being used. [[GH-7714](https://github.com/hashicorp/consul/pull/7714)
+* network areas: **(Consul Enterprise only)** - Network areas are using memberlist with TCP and for every message a new connection was established. Now the connections multiplexed with yamux, which means that way fewer connections are created.
+* network segments: **(Consul Enterprise only)** - The segment configuration is no longer stored in serf node tags. There is now an RPC endpoint for the same information, which means that the number of network segment is no longer limited by node meta tag size.
+* snapshot agent: **(Consul Enterprise only)** - Azure has different environments, of which it was only possible to use the public one so far. A new flag was added so that every other environment can be used as well, like Azure China.
+
+
+BUGFIXES:
+
+* agent: don't let left nodes hold onto their node-id [[GH-7775](https://github.com/hashicorp/consul/pull/7775)]
+* agent: **(Consul Enterprise only)** Fixed several bugs related to Network Area ann Network Segment compatibility with other features caused by incorrectly doing version or serf tag checking. [[GH-7491](https://github.com/hashicorp/consul/pull/7491)]
+* cli: ensure that 'snapshot save' is fsync safe and also only writes to the requested file on success [[GH-7698](https://github.com/hashicorp/consul/issues/7698)]
+* cli: fix usage of gzip.Reader to better detect corrupt snapshots during save/restore [[GH-7697](https://github.com/hashicorp/consul/issues/7697)]
+* connect: Fix panic when validating a service-router config entry with no destination [[GH-7783](https://github.com/hashicorp/consul/pull/7783)]
+* namespace: **(Consul Enterprise only)** Fixed several bugs where results from multiple namespaces would be returned when only a single namespace was being queried when the token making the request had permissions to see all of them.
+* snapshot agent **(Consul Enterprise only)**: Ensure snapshots persisted with the local backend are fsync safe and also only writes to the requested file on success.
+* snapshot agent **(Consul Enterprise only)**: Verify integrity of snapshots locally before storing with the configured backend.
+* ui: Ensure blocking queries are used in the service instance page instead of polling [[GH-7543](https://github.com/hashicorp/consul/pull/7543)]
+* ui: Fix a refreshing/rescrolling issue for the healthcheck listings [[GH-7550](https://github.com/hashicorp/consul/pull/7550)] [[GH-7365](https://github.com/hashicorp/consul/issues/7365)]
+* ui: Fix token duplication action bug [[GH-7552](https://github.com/hashicorp/consul/pull/7552)]
+* ui: Lazily detect HTTP protocol along with a fallback for non-detection [[GH-7644](https://github.com/hashicorp/consul/pull/7644)] [[GH-7643](https://github.com/hashicorp/consul/issues/7643)]
+* ui: Ensure KV names using 'special' terms within the default namespace are editable when the URL doesn't include the default namespace  [[GH-7734](https://github.com/hashicorp/consul/pull/7734)] 
 * xds: Fix flapping of mesh gateway connect-service watches [[GH-7575](https://github.com/hashicorp/consul/pull/7575)]
 
 ## 1.7.2 (March 16, 2020)
