@@ -123,7 +123,8 @@
     "prettier": "^1.10.2",
     "qunit-dom": "^1.0.0",
     "tape": "^4.13.0",
-    "text-encoding": "^0.7.0"
+    "text-encoding": "^0.7.0",
+    "torii": "^0.10.1"
   },
   "engines": {
     "node": "10.* || >= 12"

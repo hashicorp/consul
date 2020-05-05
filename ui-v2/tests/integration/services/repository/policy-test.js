@@ -71,6 +71,7 @@ const undefinedNspace = 'default';
               Namespace: item.Namespace || undefinedNspace,
               uid: `["${item.Namespace || undefinedNspace}","${dc}","${item.ID}"]`,
               meta: {
+                cacheControl: undefined,
                 cursor: undefined,
                 dc: dc,
                 nspace: item.Namespace || undefinedNspace,

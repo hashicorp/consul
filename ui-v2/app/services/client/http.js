@@ -2,6 +2,10 @@
 import Service, { inject as service } from '@ember/service';
 import { get, set } from '@ember/object';
 
+import { CACHE_CONTROL, CONTENT_TYPE } from 'consul-ui/utils/http/headers';
+
+import { HEADERS_TOKEN as CONSUL_TOKEN } from 'consul-ui/utils/http/consul';
+
 import { env } from 'consul-ui/env';
 import getObjectPool from 'consul-ui/utils/get-object-pool';
 import Request from 'consul-ui/utils/http/request';
@@ -29,7 +33,7 @@ class HTTPError extends Error {
   }
 }
 const dispose = function(request) {
-  if (request.headers()['content-type'] === 'text/event-stream') {
+  if (request.headers()[CONTENT_TYPE.toLowerCase()] === 'text/event-stream') {
     const xhr = request.connection();
     // unsent and opened get aborted
     // headers and loading means wait for it
@@ -127,30 +131,40 @@ export default Service.extend({
       const [url, ...headerParts] = urlParts.join(' ').split('\n');
 
       return client.settings.findBySlug('token').then(function(token) {
+        const requestHeaders = createHeaders(headerParts);
         const headers = {
           // default to application/json
           ...{
-            'Content-Type': 'application/json; charset=utf-8',
+            [CONTENT_TYPE]: 'application/json; charset=utf-8',
           },
           // add any application level headers
           ...{
-            'X-Consul-Token': typeof token.SecretID === 'undefined' ? '' : token.SecretID,
+            [CONSUL_TOKEN]: typeof token.SecretID === 'undefined' ? '' : token.SecretID,
           },
           // but overwrite or add to those from anything in the specific request
-          ...createHeaders(headerParts),
+          ...requestHeaders,
         };
+        // We use cache-control in the response
+        // but we don't want to send it, but we artificially
+        // tag it onto the response below if it is set on the request
+        delete headers[CACHE_CONTROL];
 
         return new Promise(function(resolve, reject) {
           const options = {
             url: url.trim(),
             method: method,
-            contentType: headers['Content-Type'],
+            contentType: headers[CONTENT_TYPE],
             // type: 'json',
             complete: function(xhr, textStatus) {
               client.complete(this.id);
             },
             success: function(response, status, xhr) {
               const headers = createHeaders(xhr.getAllResponseHeaders().split('\n'));
+              if (typeof requestHeaders[CACHE_CONTROL] !== 'undefined') {
+                // if cache-control was on the request, artificially tag
+                // it back onto the response, also see comment above
+                headers[CACHE_CONTROL] = requestHeaders[CACHE_CONTROL];
+              }
               const respond = function(cb) {
                 return cb(headers, response);
               };
@@ -191,7 +205,7 @@ export default Service.extend({
             // for write-like actions
             // potentially we should change things so you _have_ to do that
             // as doing it this way is a little magical
-            if (method !== 'GET' && headers['Content-Type'].indexOf('json') !== -1) {
+            if (method !== 'GET' && headers[CONTENT_TYPE].indexOf('json') !== -1) {
               options.data = JSON.stringify(body);
             } else {
               // TODO: Does this need urlencoding? Assuming jQuery does this
@@ -204,7 +218,7 @@ export default Service.extend({
           // also see adapters/kv content-types in requestForCreate/UpdateRecord
           // also see https://github.com/hashicorp/consul/issues/3804
           options.contentType = 'application/json; charset=utf-8';
-          headers['Content-Type'] = options.contentType;
+          headers[CONTENT_TYPE] = options.contentType;
           //
           options.beforeSend = function(xhr) {
             if (headers) {
