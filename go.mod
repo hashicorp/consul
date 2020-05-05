@@ -59,7 +59,7 @@ require (
 	github.com/miekg/dns v1.1.26
 	github.com/mitchellh/cli v1.0.0
 	github.com/mitchellh/copystructure v1.0.0
-	github.com/mitchellh/go-testing-interface v1.0.0
+	github.com/mitchellh/go-testing-interface v1.0.3
 	github.com/mitchellh/hashstructure v0.0.0-20170609045927-2bca23e0e452
 	github.com/mitchellh/mapstructure v1.2.3
 	github.com/mitchellh/reflectwalk v1.0.1
@@ -67,6 +67,7 @@ require (
 	github.com/pascaldekloe/goe v0.1.0
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v0.9.2
+	github.com/rboyer/safeio v0.2.1
 	github.com/ryanuber/columnize v2.1.0+incompatible
 	github.com/shirou/gopsutil v0.0.0-20181107111621-48177ef5f880
 	github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4 // indirect
