@@ -40,6 +40,5 @@
 }
 %form-element-note > code {
   background-color: $gray-200;
-  /* consul color but its a code looking style?*/
-  color: $magenta-600;
+  color: var(--typo-brand-600, inherit);
 }
