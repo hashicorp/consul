@@ -25,6 +25,7 @@ BUGFIXES:
 * agent: **(Consul Enterprise only)** Fixed several bugs related to Network Area ann Network Segment compatibility with other features caused by incorrectly doing version or serf tag checking. [[GH-7491](https://github.com/hashicorp/consul/pull/7491)]
 * cli: ensure that 'snapshot save' is fsync safe and also only writes to the requested file on success [[GH-7698](https://github.com/hashicorp/consul/issues/7698)]
 * cli: fix usage of gzip.Reader to better detect corrupt snapshots during save/restore [[GH-7697](https://github.com/hashicorp/consul/issues/7697)]
+* connect: Fix panic when validating a service-router config entry with no destination [[GH-7783](https://github.com/hashicorp/consul/pull/7783)]
 * license: **(Consul Enterprise only)** Fixed a bug that would cause a license reset request to only be applied on the leader server.
 * namespace: **(Consul Enterprise only)** Fixed several bugs where results from multiple namespaces would be returned when only a single namespace was being queried when the token making the request had permissions to see all of them.
 * sdk: Fix race condition in freeport [[GH-7567](https://github.com/hashicorp/consul/issues/7567)]
