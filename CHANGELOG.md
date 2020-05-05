@@ -9,6 +9,10 @@ IMPROVEMENTS:
 * agent/xds: Update mesh gateway to use the service resolver connect timeout when configured [[GH-6370](https://github.com/hashicorp/consul/issues/6370)]
 * cli: Log "newer version available" message at `INFO` level [[GH-7457](https://github.com/hashicorp/consul/issues/7457)]
 * config: Consul Enterprise specific configuration are now parseable in OSS but will emit warnings about them not being used. [[GH-7714](https://github.com/hashicorp/consul/pull/7714)
+* network areas: **(Consul Enterprise only)** - Network areas are using memberlist with TCP and for every message a new connection was established. Now the connections multiplexed with yamux, which means that way fewer connections are created.
+* network segments: **(Consul Enterprise only)** - The segment configuration is no longer stored in serf node tags. There is now an RPC endpoint for the same information, which means that the number of network segment is no longer limited by node meta tag size.
+* snapshot agent: **(Consul Enterprise only)** - Azure has different environments, of which it was only possible to use the public one so far. A new flag was added so that every other environment can be used as well, like Azure China.
+
 
 BUGFIXES:
 
