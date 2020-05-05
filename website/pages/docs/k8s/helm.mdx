@@ -311,11 +311,11 @@ and consider if they're appropriate for your deployment.
 
 - `externalServers` ((#v-externalservers)) - Configuration for Consul servers when the servers are running outside of Kubernetes.
    When running external servers, configuring these values is recommended
-   if setting global.tls.enableAutoEncrypt to true (requires consul-k8s >= 0.13.0)
-   or global.acls.manageSystemACLs to true (requires consul-k8s >= 0.14.0).
+   if setting `global.tls.enableAutoEncrypt` to true (requires consul-k8s >= 0.13.0)
+   or `global.acls.manageSystemACLs` to true (requires consul-k8s >= 0.14.0).
 
   - `enabled` ((#v-externalservers-enabled)) (`boolean: false`) - If true, the Helm chart will be configured to talk to the external servers.
-     If setting this to true, you must also set server.enabled to false.
+     If setting this to true, you must also set `server.enabled` to false.
 
   - `hosts` ((#v-externalservers-hosts)) (`array<string>: null`) - An array of external Consul server hosts that are used to make
     HTTPS connections from the components in this Helm chart.
@@ -336,7 +336,7 @@ and consider if they're appropriate for your deployment.
   - `k8sAuthMethodHost` ((#v-externalservers-k8sauthmethodhost)) (`string: null`) - If you are setting `global.acls.manageSystemACLs` and
     `connectInject.enabled` to true, set `k8sAuthMethodHost` to the address of the Kubernetes API server.
     This address must be reachable from the Consul servers.
-    Please see https://www.consul.io/docs/acl/auth-methods/kubernetes.html. Requires consul-k8s >= 0.14.0.
+    Please see the [Kubernetes Auth Method documentation](https://www.consul.io/docs/acl/auth-methods/kubernetes.html). Requires consul-k8s >= 0.14.0.
 
     You could retrieve this value from your `kubeconfig` by running:
 
