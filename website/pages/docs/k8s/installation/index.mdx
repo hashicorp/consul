@@ -60,44 +60,31 @@ need to install Tiller by following the
 
 ### Installing Consul
 
-Determine the latest version of the Consul Helm chart
-by visiting [https://github.com/hashicorp/consul-helm/releases](https://github.com/hashicorp/consul-helm/releases).
+Add the HashiCorp Helm Repository:
 
-Clone the chart at that version. For example, if the latest version is
-`v0.8.1`, you would run:
-
-```bash
-$ git clone --single-branch --branch v0.8.1 https://github.com/hashicorp/consul-helm.git
-Cloning into 'consul-helm'...
-...
-You are in 'detached HEAD' state...
+```shell
+$ helm repo add hashicorp https://helm.releases.hashicorp.com
+"hashicorp" has been added to your repositories
 ```
 
-Ensure you've checked out the correct version with `helm inspect chart`:
+Ensure you have access to the consul chart:
 
-```bash
-$ helm inspect chart ./consul-helm
-apiVersion: v1
-description: Install and configure Consul on Kubernetes.
-home: https://www.consul.io
-name: consul
-sources:
-- https://github.com/hashicorp/consul
-- https://github.com/hashicorp/consul-helm
-- https://github.com/hashicorp/consul-k8s
-version: 0.8.1
+```shell
+$ helm search repo hashicorp/consul
+NAME            	CHART VERSION	APP VERSION	DESCRIPTION
+hashicorp/consul	0.20.1       	1.7.2      	Official HashiCorp Consul Chart
 ```
 
 Now you're ready to install Consul! To install Consul with the default
 configuration using Helm 3 run:
 
 ```shell
-$ helm install hashicorp ./consul-helm
-NAME: hashicorp
+$ helm install consul hashicorp/consul --set global.name=consul
+NAME: consul
 ...
 ```
 
--> If using Helm 2, run: `helm install --name hashicorp ./consul-helm`
+-> If using Helm 2, run: `helm install --name consul hashicorp/consul --set global.name=consul`
 
 _That's it._ The Helm chart does everything to set up a recommended
 Consul-on-Kubernetes deployment.
@@ -108,13 +95,26 @@ elected and every node will have a running Consul agent.
 
 If you want to customize your installation,
 create a `config.yaml` file to override the default settings.
-You can learn what settings are available by running `helm inspect values ./consul-helm`
+You can learn what settings are available by running `helm inspect values hashicorp/consul`
 or by reading the [Helm Chart Reference](/docs/platform/k8s/helm).
+
+For example, if you want to enable the [Consul Connect](/docs/k8s/connect) feature,
+use the following config file:
+
+```yaml
+# config.yaml
+global:
+  name: consul
+connectInject:
+  enabled: true
+```
 
 Once you've created your `config.yaml` file, run `helm install` with the `-f` flag:
 
-```bash
-$ helm install hashicorp ./consul-helm -f config.yaml
+```shell
+$ helm install consul hashicorp/consul -f config.yaml
+NAME: consul
+...
 ```
 
 If you've already installed Consul and want to make changes, you'll need to run
@@ -128,7 +128,7 @@ For security reasons, it isn't exposed via a `LoadBalancer` Service by default s
 use `kubectl port-forward` to visit the UI:
 
 ```
-$ kubectl port-forward service/hashicorp-consul-server 8500:8500
+$ kubectl port-forward service/consul-server 8500:8500
 ...
 ```
 

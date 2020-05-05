@@ -188,6 +188,7 @@ export default [
       },
       {
         category: 'operations',
+        name: 'Operations',
         content: ['upgrading', 'tls-on-existing-cluster', 'uninstalling'],
       },
       'dns',
