@@ -21,7 +21,7 @@ export default Controller.extend(WithEventSource, WithSearching, {
   }),
   services: computed('items.[]', function() {
     return this.items.filter(function(item) {
-      return typeof item.Kind === 'undefined';
+      return item.Kind !== 'connect-proxy';
     });
   }),
   proxies: computed('items.[]', function() {

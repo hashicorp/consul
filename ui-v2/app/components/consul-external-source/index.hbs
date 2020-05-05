@@ -6,7 +6,7 @@
           (component 'consul-external-source' item=item _externalSource=externalSource)
         }}
       {{else}}
-        <span data-test-external-source={{externalSource}} class="consul-external-source source-{{externalSource}}">
+        <span data-test-external-source={{externalSource}} class="consul-external-source {{externalSource}}">
           {{#if (eq externalSource 'aws')}}
             <span>Registered via {{uppercase externalSource}}</span>
           {{else}}

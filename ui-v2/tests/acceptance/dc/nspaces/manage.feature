@@ -13,26 +13,20 @@ Feature: dc / nspaces / manage : Managing Namespaces
     ---
       - dc-1
     ---
-    And 12 service models from yaml
+    And 6 service models from yaml
     ---
       - Name: Service-0
-      - Name: Service-0-proxy
-        Kind: 'connect-proxy'
+        Kind: ~
       - Name: Service-1
-      - Name: Service-1-proxy
-        Kind: 'connect-proxy'
+        Kind: ~
       - Name: Service-2
-      - Name: Service-2-proxy
-        Kind: 'connect-proxy'
+        Kind: ~
       - Name: Service-3
-      - Name: Service-3-proxy
-        Kind: 'connect-proxy'
+        Kind: ~
       - Name: Service-4
-      - Name: Service-4-proxy
-        Kind: 'connect-proxy'
+        Kind: ~
       - Name: Service-5
-      - Name: Service-5-proxy
-        Kind: 'connect-proxy'
+        Kind: ~
     ---
 
     When I visit the services page for yaml
