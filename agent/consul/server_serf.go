@@ -49,11 +49,6 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	conf.Tags["role"] = "consul"
 	conf.Tags["dc"] = s.config.Datacenter
 	conf.Tags["segment"] = segment
-	if segment == "" {
-		for _, s := range s.config.Segments {
-			conf.Tags["sl_"+s.Name] = net.JoinHostPort(s.Advertise, fmt.Sprintf("%d", s.Port))
-		}
-	}
 	conf.Tags["id"] = string(s.config.NodeID)
 	conf.Tags["vsn"] = fmt.Sprintf("%d", s.config.ProtocolVersion)
 	conf.Tags["vsn_min"] = fmt.Sprintf("%d", ProtocolVersionMin)

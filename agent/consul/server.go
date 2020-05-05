@@ -558,13 +558,17 @@ func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token
 		go router.HandleSerfEvents(s.logger, s.router, types.AreaWAN, s.serfWAN.ShutdownCh(), s.eventChWAN)
 
 		// Fire up the LAN <-> WAN join flooder.
-		portFn := func(s *metadata.Server) (int, bool) {
-			if s.WanJoinPort > 0 {
-				return s.WanJoinPort, true
+		addrFn := func(s *metadata.Server) (string, error) {
+			if s.WanJoinPort == 0 {
+				return "", fmt.Errorf("no wan join  port for server: %s", s.Addr.String())
 			}
-			return 0, false
+			addr, _, err := net.SplitHostPort(s.Addr.String())
+			if err != nil {
+				return "", err
+			}
+			return fmt.Sprintf("%s:%d", addr, s.WanJoinPort), nil
 		}
-		go s.Flood(nil, portFn, s.serfWAN)
+		go s.Flood(addrFn, s.serfWAN)
 	}
 
 	// Start enterprise specific functionality
