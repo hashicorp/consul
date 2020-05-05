@@ -5,6 +5,11 @@
     {{item.Name}}
   </a>
   <ul>
+    <ConsulKind @item={{item}} as |Kind|>
+      <li>
+        <Kind />
+      </li>
+    </ConsulKind>
     <ConsulExternalSource @item={{item}} as |ExternalSource|>
       <li>
         <ExternalSource />

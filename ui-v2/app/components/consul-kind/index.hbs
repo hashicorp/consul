@@ -1,0 +1,11 @@
+{{#if item.Kind}}
+  {{#if (has-block)}}
+    {{yield
+      (component 'consul-kind' item=item)
+    }}
+  {{else}}
+    <span data-test-kind={{item.Kind}} class="consul-kind gateway">
+        <span>{{titleize (humanize item.Kind)}}</span>
+    </span>
+  {{/if}}
+{{/if}}
