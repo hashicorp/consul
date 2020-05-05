@@ -108,7 +108,7 @@ func TestSnapshotRestoreCommand(t *testing.T) {
 
 func TestSnapshotRestoreCommand_TruncatedSnapshot(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 
