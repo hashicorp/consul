@@ -31,6 +31,9 @@ export default Serializer.extend(WithPolicies, WithRoles, {
     }
     return data;
   },
+  respondForSelf: function(respond, query) {
+    return this.respondForQueryRecord(respond, query);
+  },
   respondForUpdateRecord: function(respond, serialized, data) {
     return this._super(
       cb =>
