@@ -9,7 +9,8 @@ FEATURES:
 
 IMPROVEMENTS:
 
-* acl: **(Consul Enterprise only)** - Disable the ACL.Bootstrap RPC endpoint when managed service provider tokens are in use. [[GH-7614](https://github.com/hashicorp/consul/pull/7614)]
+* acl: **(Consul Enterprise only)** - Disable the ACL.Bootstrap RPC endpoints when managed service provider tokens are in use. [[GH-7614](https://github.com/hashicorp/consul/pull/7614)]
+* acl: **(Consul Enterprise only)** - Consul agents will now use the first managed service provider token for the agents token when any are present.
 * acl: Added a v1/acl/policy/name/:name HTTP endpoint to read a policy by name. [[GH-6615](https://github.com/hashicorp/consul/pull/6615)]
 * acl: Added JSON format output to all of the ACL CLI commands. [[GH-7141](https://github.com/hashicorp/consul/issues/7141)]
 * acl: change authmethod.Validator to take a logger [[GH-7758](https://github.com/hashicorp/consul/issues/7758)]
