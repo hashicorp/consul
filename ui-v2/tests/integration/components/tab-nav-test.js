@@ -10,15 +10,15 @@ module('Integration | Component | tab nav', function(hooks) {
     // Set any properties with this.set('myProperty', 'value');
     // Handle any actions with this.on('myAction', function(val) { ... });
 
-    await render(hbs`{{tab-nav}}`);
-
-    assert.dom('*').hasText('');
-
-    // Template block usage:
     await render(hbs`
-      {{#tab-nav}}{{/tab-nav}}
+      <TabNav @items={{array
+        (hash
+          label="Tab Label"
+          href="/"
+        )
+      }} />
     `);
 
-    assert.dom('*').hasText('');
+    assert.dom('*').hasText('Tab Label');
   });
 });
