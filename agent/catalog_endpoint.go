@@ -291,11 +291,15 @@ func (s *HTTPServer) catalogServiceNodes(resp http.ResponseWriter, req *http.Req
 		out.ServiceNodes = make(structs.ServiceNodes, 0)
 	}
 	for i, s := range out.ServiceNodes {
+		clone := *s
 		if s.ServiceTags == nil {
-			clone := *s
 			clone.ServiceTags = make([]string, 0)
-			out.ServiceNodes[i] = &clone
 		}
+
+		if s.ServiceAddress == "" {
+			clone.ServiceAddress = s.Address
+		}
+		out.ServiceNodes[i] = &clone
 	}
 	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_service_nodes"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})

@@ -631,6 +631,7 @@ func TestCatalogServiceNodes(t *testing.T) {
 	if len(nodes) != 1 {
 		t.Fatalf("bad: %v", obj)
 	}
+	assert.Equal(nodes[0].Address, nodes[0].ServiceAddress)
 
 	// Test caching
 	{

@@ -625,6 +625,7 @@ func TestHealthServiceNodes(t *testing.T) {
 	if len(nodes) != 1 || nodes[0].Checks == nil || len(nodes[0].Checks) != 0 {
 		t.Fatalf("bad: %v", obj)
 	}
+	assert.Equal(args.Address, nodes[0].Service.Address)
 
 	// Test caching
 	{

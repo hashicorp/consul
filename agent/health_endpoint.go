@@ -264,9 +264,16 @@ func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Requ
 				out.Nodes[i].Checks[j] = &clone
 			}
 		}
-		if out.Nodes[i].Service != nil && out.Nodes[i].Service.Tags == nil {
+		if out.Nodes[i].Service != nil {
 			clone := *out.Nodes[i].Service
-			clone.Tags = make([]string, 0)
+			// Here we use Node.Address, if Service.Address is empty(#4599)
+			if out.Nodes[i].Service.Address == "" {
+				clone.Address = out.Nodes[i].Node.Address
+			}
+
+			if out.Nodes[i].Service.Tags == nil {
+				clone.Tags = make([]string, 0)
+			}
 			out.Nodes[i].Service = &clone
 		}
 	}
