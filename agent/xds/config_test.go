@@ -249,7 +249,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 			name: "passive health check map",
 			input: map[string]interface{}{
 				"passive_health_check": map[string]interface{}{
-					"interval":     22 * time.Second,
+					"interval":     "22s",
 					"max_failures": 7,
 				},
 			},

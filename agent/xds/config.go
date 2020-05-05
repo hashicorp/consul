@@ -193,7 +193,18 @@ func (p PassiveHealthCheck) AsOutlierDetection() *envoycluster.OutlierDetection 
 
 func ParseUpstreamConfigNoDefaults(m map[string]interface{}) (UpstreamConfig, error) {
 	var cfg UpstreamConfig
-	err := mapstructure.WeakDecode(m, &cfg)
+	config := &mapstructure.DecoderConfig{
+		DecodeHook:       mapstructure.StringToTimeDurationHookFunc(),
+		Result:           &cfg,
+		WeaklyTypedInput: true,
+	}
+
+	decoder, err := mapstructure.NewDecoder(config)
+	if err != nil {
+		return cfg, err
+	}
+
+	err = decoder.Decode(m)
 	return cfg, err
 }
 
