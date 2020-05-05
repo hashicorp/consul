@@ -54,7 +54,7 @@ You may also consider adopting Consul Enterprise for
 
 ## Configuring TLS with Auto-encrypt
 
-Consul's auto-encrypt feature allows clients to automatically provision their own certificates by making a request to the servers at startup.
+Consul's auto-encrypt feature allows clients to automatically provision their certificates by making a request to the servers at startup.
 If you would like to use this feature with external Consul servers, you need to configure the Helm chart with information about the servers
 so that it can retrieve the clients' CA to use for securing the rest of the cluster.
 To do that, you must add the following values, in addition to the values mentioned above:
@@ -70,10 +70,10 @@ externalServers:
   - "provider=my-cloud config=val ..."
 ```
 
-In most cases, `externalServers.hosts` will be the same as `client.join`, however both keys must be set because
+In most cases, `externalServers.hosts` will be the same as `client.join`, however, both keys must be set because
 they are used for different purposes: one for Serf LAN and the other for HTTPS connections.
 Please see the [reference documentation](https://www.consul.io/docs/platform/k8s/helm.html#v-externalservers-hosts)
-for this value for more info. If your HTTPS port is different from Consul's default `8501`, you must also set
+for more info. If your HTTPS port is different from Consul's default `8501`, you must also set
 `externalServers.httpsPort`.
 
 ## Configuring ACLs
