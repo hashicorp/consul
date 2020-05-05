@@ -6,6 +6,12 @@
   /* same as decor-border-000 - but need to think about being able to import color on its own*/
   border-style: solid;
 }
+%frame-brand-300 {
+  @extend %frame-border-000;
+  background-color: $transparent;
+  border-color: var(--decor-brand-600, inherit);
+  color: var(--typo-brand-600, inherit);
+}
 
 /* possibly filter bar */
 /* modal close button */

@@ -17,7 +17,7 @@ export default function(name, items, blankKey = 'all') {
       ...prev,
       ...{
         [`${key}IsSelected`]: is('.selected', `[data-test-tab="${name}_${item}"]`),
-        [key]: clickable(`[data-test-tab="${name}_${item}"] > label > a`),
+        [key]: clickable(`[data-test-tab="${name}_${item}"] a`),
       },
     };
   }, {});

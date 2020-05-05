@@ -1,6 +1,6 @@
 td a.is-management::after {
   @extend %with-star-fill-mask, %as-pseudo;
-  background-color: $magenta-600;
+  background-color: var(--swatch-brand-600, $black);
   height: 16px;
   top: 2px;
   padding-left: 32px;
