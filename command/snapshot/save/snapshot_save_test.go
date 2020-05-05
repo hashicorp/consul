@@ -103,7 +103,7 @@ func TestSnapshotSaveCommand(t *testing.T) {
 
 func TestSnapshotSaveCommand_TruncatedStream(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -131,7 +131,7 @@ func TestSnapshotSaveCommand_TruncatedStream(t *testing.T) {
 	var fakeResult atomic.Value
 
 	// Run a fake webserver to pretend to be the snapshot API.
-	fakeAddr := lib.StartTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+	fakeAddr, cleanup := lib.StartTestServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.URL.Path != "/v1/snapshot" {
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -150,6 +150,7 @@ func TestSnapshotSaveCommand_TruncatedStream(t *testing.T) {
 		data := raw.([]byte)
 		_, _ = w.Write(data)
 	}))
+	defer cleanup()
 
 	dir := testutil.TempDir(t, "snapshot")
 	defer os.RemoveAll(dir)

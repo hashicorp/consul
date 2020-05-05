@@ -1,4 +1,9 @@
-// +build !go1.9
+// +build go1.9
+
+// NOTE: This is a temporary copy of testing.go for Go 1.9 with the addition
+// of "Helper" to the T interface. Go 1.9 at the time of typing is in RC
+// and is set for release shortly. We'll support this on master as the default
+// as soon as 1.9 is released.
 
 package testing
 
@@ -22,22 +27,20 @@ type T interface {
 	Log(args ...interface{})
 	Logf(format string, args ...interface{})
 	Name() string
-	Parallel()
 	Skip(args ...interface{})
 	SkipNow()
 	Skipf(format string, args ...interface{})
 	Skipped() bool
+	Helper()
 }
 
 // RuntimeT implements T and can be instantiated and run at runtime to
 // mimic *testing.T behavior. Unlike *testing.T, this will simply panic
 // for calls to Fatal. For calls to Error, you'll have to check the errors
 // list to determine whether to exit yourself.
-//
-// Parallel does not do anything.
 type RuntimeT struct {
-	failed  bool
 	skipped bool
+	failed  bool
 }
 
 func (t *RuntimeT) Error(args ...interface{}) {
@@ -46,18 +49,8 @@ func (t *RuntimeT) Error(args ...interface{}) {
 }
 
 func (t *RuntimeT) Errorf(format string, args ...interface{}) {
-	log.Println(fmt.Sprintf(format, args...))
+	log.Printf(format, args...)
 	t.Fail()
-}
-
-func (t *RuntimeT) Fatal(args ...interface{}) {
-	log.Println(fmt.Sprintln(args...))
-	t.FailNow()
-}
-
-func (t *RuntimeT) Fatalf(format string, args ...interface{}) {
-	log.Println(fmt.Sprintf(format, args...))
-	t.FailNow()
 }
 
 func (t *RuntimeT) Fail() {
@@ -72,6 +65,16 @@ func (t *RuntimeT) Failed() bool {
 	return t.failed
 }
 
+func (t *RuntimeT) Fatal(args ...interface{}) {
+	log.Print(args...)
+	t.FailNow()
+}
+
+func (t *RuntimeT) Fatalf(format string, args ...interface{}) {
+	log.Printf(format, args...)
+	t.FailNow()
+}
+
 func (t *RuntimeT) Log(args ...interface{}) {
 	log.Println(fmt.Sprintln(args...))
 }
@@ -83,8 +86,6 @@ func (t *RuntimeT) Logf(format string, args ...interface{}) {
 func (t *RuntimeT) Name() string {
 	return ""
 }
-
-func (t *RuntimeT) Parallel() {}
 
 func (t *RuntimeT) Skip(args ...interface{}) {
 	log.Print(args...)
@@ -103,3 +104,5 @@ func (t *RuntimeT) Skipf(format string, args ...interface{}) {
 func (t *RuntimeT) Skipped() bool {
 	return t.skipped
 }
+
+func (t *RuntimeT) Helper() {}
