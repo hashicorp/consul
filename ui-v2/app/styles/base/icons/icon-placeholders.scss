@@ -618,6 +618,16 @@
   mask-image: $folder-outline-svg;
 }
 
+%with-gateway-icon {
+  @extend %with-icon;
+  background-image: $gateway-svg;
+}
+%with-gateway-mask {
+  @extend %with-mask;
+  -webkit-mask-image: $gateway-svg;
+  mask-image: $gateway-svg;
+}
+
 %with-gift-fill-icon {
   @extend %with-icon;
   background-image: $gift-fill-svg;
