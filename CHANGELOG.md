@@ -17,6 +17,7 @@ IMPROVEMENTS:
 * agent/xds: Update mesh gateway to use the service resolver connect timeout when configured [[GH-6370](https://github.com/hashicorp/consul/issues/6370)] 
 * api: Added filtering support to the v1/connect/intentions endpoint. [[GH-7478](https://github.com/hashicorp/consul/issues/7478)]
 * cli: Log "newer version available" message at `INFO` level [[GH-7457](https://github.com/hashicorp/consul/issues/7457)]
+* config: Consul Enterprise specific configuration are now parseable in OSS but will emit warnings about them not being used. [[GH-7714](https://github.com/hashicorp/consul/pull/7714)
 * license: **(Consul Enterprise only)** Update licensing to align with the current modules licensing structure.
 
 BUGFIXES:
