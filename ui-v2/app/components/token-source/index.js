@@ -17,9 +17,10 @@ export default Component.extend({
         return {
           AccessorID: this.AccessorID,
           // TODO: In the past we've always ignored the SecretID returned
-          // from the server and used what the user typed in instead
-          // is this still the preferred thing to do?
-          SecretID: secret, //this.SecretID,
+          // from the server and used what the user typed in instead, now
+          // as we don't know the SecretID when we use SSO we use the SecretID
+          // in the response
+          SecretID: this.SecretID,
           Namespace: this.Namespace,
           ...{
             AuthMethod: typeof this.AuthMethod !== 'undefined' ? this.AuthMethod : undefined,
