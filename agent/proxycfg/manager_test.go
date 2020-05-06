@@ -487,9 +487,10 @@ func TestManager_deliverLatest(t *testing.T) {
 
 	// Put an overall time limit on this test case so we don't have to guard every
 	// call to ensure the whole test doesn't deadlock.
-	time.AfterFunc(100*time.Millisecond, func() {
+	timer := time.AfterFunc(100*time.Millisecond, func() {
 		t.Fatal("test timed out")
 	})
+	defer timer.Stop()
 
 	// test 1 buffered chan
 	ch1 := make(chan *ConfigSnapshot, 1)
