@@ -68,6 +68,14 @@ function get_envoy_cluster_config {
   "
 }
 
+function get_envoy_route_config {
+  local HOSTPORT=$1
+  local ROUTE_NAME=$2
+  run retry_default curl -s -f $HOSTPORT/config_dump
+  [ "$status" -eq 0 ]
+  echo "$output" | jq --raw-output
+}
+
 @test "s1 proxy should have been configured with load balancer ring_hash" {
   CLUSTER_CONFIG=$(get_envoy_cluster_config localhost:19000 s2.default.primary)
   echo $CLUSTER_CONFIG
@@ -75,4 +83,8 @@ function get_envoy_cluster_config {
   [ "$(echo $CLUSTER_CONFIG | jq --raw-output '.lb_policy')" = "RING_HASH" ]
   [ "$(echo $CLUSTER_CONFIG | jq --raw-output '.ring_hash_lb_config.minimum_ring_size')" = 3 ]
   [ "$(echo $CLUSTER_CONFIG | jq --raw-output '.ring_hash_lb_config.maximum_ring_size')" = 7 ]
+
+#  get_envoy_route_config localhost:19000 s2.default.primary
+# TODO: test hash_policy is setup
+  false
 }

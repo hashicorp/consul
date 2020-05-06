@@ -15,6 +15,16 @@ services {
                   minimum_ring_size = 3
                   maximum_ring_size = 7
                 }
+                hash_policy {
+                  field = "header"
+                  match_value = "x-my-header"
+                  terminal = "true"
+                }
+#                hash_policy {
+#                  field = "header"
+#                  match_value = "x-other-header"
+#                  terminal = "true"
+#                }
               }
             }
           }
