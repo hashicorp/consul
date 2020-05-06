@@ -14,13 +14,14 @@ export default Route.extend({
     const nspace = this.modelFor('nspace').nspace.substr(1);
     return hash({
       item: this.repo.findBySlug(params.name, dc, nspace),
-      intentions: this.intentionRepo.findByService(params.name, dc, nspace),
       urls: this.settings.findBySlug('urls'),
       dc: dc,
+      proxies: [],
     }).then(model => {
       return ['connect-proxy', 'mesh-gateway'].includes(get(model, 'item.Service.Kind'))
         ? model
         : hash({
+            intentions: this.intentionRepo.findByService(params.name, dc, nspace),
             chain: this.chainRepo.findBySlug(params.name, dc, nspace).catch(function(e) {
               const code = get(e, 'errors.firstObject.status');
               // Currently we are specifically catching a 500, but we return null

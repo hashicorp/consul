@@ -16,6 +16,7 @@
       </h1>
       <ConsulExternalSource @item={{item.Service}} />
     </div>
+  {{#if (not item.Service.Kind)}}
     <TabNav @items={{
       compact
           (array
@@ -25,6 +26,7 @@
                 (hash label="Tags" href=(href-to "dc.services.show.tags") selected=(is-href "dc.services.show.tags"))
           )
     }}/>
+  {{/if}}
   </BlockSlot>
   <BlockSlot @name="actions">
     {{#if urls.service}}
