@@ -1,0 +1,99 @@
+<StateChart @src={{chart}} as |State Guard Action dispatch state|>
+  {{yield (hash
+    reset=(action dispatch "RESET")
+  )}}
+  <Guard @name="hasValue" @cond={{action 'hasValue'}} />
+  {{!FIXME: Call this reset or similar }}
+  <Action @name="clearError" @exec={{queue (action (mut error) undefined) (action (mut secret) undefined)}} />
+  <div class="auth-form" ...attributes>
+    <State @matches="error">
+      {{#if error.status}}
+        <p class="notice error">
+          {{#if value.Name}}
+            {{#if (eq error.status '403')}}
+              <strong>Consul login failed</strong><br />
+              We received a token from your OIDC provider but could not log in to Consul with it.
+            {{else if (eq error.status '401')}}
+              <strong>Could not log in to provider</strong><br />
+              The OIDC provider has rejected this access token. Please have an administrator check your auth method configuration.
+            {{else if (eq error.status '499')}}
+              <strong>SSO log in window closed</strong><br />
+              The OIDC provider window was closed. Please try again.
+            {{else}}
+              <strong>Error</strong><br />
+              {{error.detail}}
+            {{/if}}
+          {{else}}
+            {{#if (eq error.status '403')}}
+              <strong>Invalid token</strong><br />
+              The token entered does not exist. Please enter a valid token to log in.
+            {{else}}
+              <strong>Error</strong><br />
+              {{error.detail}}
+            {{/if}}
+          {{/if}}
+        </p>
+      {{/if}}
+    </State>
+    <form onsubmit={{action dispatch "SUBMIT"}}>
+      <fieldset>
+        <label class={{concat "type-password" (if (and (state-matches state 'error') (not error.status)) ' has-error' '')}}>
+          <span>Log in with a token</span>
+          <input
+            {{ref this 'input'}}
+            disabled={{state-matches state "loading"}}
+            type="password"
+            name="auth[SecretID]"
+            placeholder="SecretID"
+            value={{secret}}
+            oninput={{queue
+              (action (mut secret) value="target.value")
+              (action (mut value) value="target.value")
+              (action dispatch "TYPING")
+            }}
+          />
+          <State @matches="error">
+            {{#if (not error.status)}}
+              <strong>
+                Please enter your secret
+              </strong>
+            {{/if}}
+          </State>
+        </label>
+      </fieldset>
+      <button type="submit" disabled={{state-matches state "loading"}}>
+        Log in
+      </button>
+      <em>Contact your administrator for login credentials.</em>
+    </form>
+{{#if (env 'CONSUL_SSO_ENABLED')}}
+    <DataSource
+      @src={{concat '/' (or nspace 'default') '/' dc '/oidc/providers'}}
+      @onchange={{queue (action (mut providers) value="data")}}
+      @onerror={{queue (action (mut error) value="error.errors.firstObject")}}
+      @loading="lazy"
+    />
+  {{#if (gt providers.length 0)}}
+    <p>
+      <span>or</span>
+    </p>
+  {{/if}}
+  <OidcSelect
+    @items={{providers}}
+    @disabled={{state-matches state "loading"}}
+    @onchange={{queue (action (mut value)) (action dispatch "SUBMIT") }}
+    @onerror={{queue (action (mut error) value="error.errors.firstObject") (action dispatch "ERROR")}}
+  />
+{{/if}}
+  </div>
+  <State @matches="loading">
+    <TokenSource
+      @dc={{dc}}
+      @nspace={{nspace}}
+      @type={{if value.Name 'oidc' 'secret'}}
+      @value={{if value.Name value.Name value}}
+      @onchange={{action onsubmit}}
+      @onerror={{queue (action (mut error) value="error.errors.firstObject") (action dispatch "ERROR")}}
+    />
+  </State>
+</StateChart>

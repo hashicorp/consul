@@ -1,0 +1,34 @@
+<StateChart @src={{chart}} @initial={{if (eq type 'oidc') 'provider' 'secret'}} as |State Guard Action dispatch state|>
+  <Ref @target={{this}} @name="dispatch" @value={{dispatch}} />
+  <Guard @name="isSecret" @cond={{action 'isSecret'}} />
+  {{#let (concat '/' (or nspace 'default') '/' dc) as |path|}}
+    <State @matches="secret">
+      <DataSource
+        @src={{concat path '/token/self/' value}}
+        @onchange={{action 'change'}}
+        @onerror={{action onerror}}
+      />
+    </State>
+    <State @matches="provider">
+      <DataSource
+        @src={{concat path '/oidc/provider/' value}}
+        @onchange={{queue (action (mut provider) value="data") (action dispatch "SUCCESS")}}
+        @onerror={{action onerror}}
+      />
+    </State>
+    <State @matches="jwt">
+      <JwtSource
+        @src={{provider.AuthURL}}
+        @onchange={{queue (action (mut jwt) value="data") (action dispatch "SUCCESS")}}
+        @onerror={{action onerror}}
+      />
+    </State>
+    <State @matches="token">
+      <DataSource
+        @src={{concat path '/oidc/authorize/' provider.Name '/' jwt.authorizationCode '/' jwt.authorizationState}}
+        @onchange={{action 'change'}}
+        @onerror={{action onerror}}
+      />
+    </State>
+  {{/let}}
+</StateChart>

@@ -1,0 +1,48 @@
+## AuthDialog
+
+```handlebars
+<AuthDialog @dc={{dc}} @nspace={{}} @onchange={{action 'change'}}>
+  <BlockSlot @name="unauthorized" as |AuthForm login|>
+    Here's the login form:
+    <AuthForm />
+  </BlockSlot>
+  <BlockSlot @name="authorized" as |AuthProfile logout token|>
+    Here's your profile:
+    <AuthProfile />
+    <button onclick={{action logout}} />
+  </BlockSlot>
+</AuthDialog>
+```
+
+### Arguments
+
+A component to help orchestrate a login/logout flow.
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `dc` | `String` | | The name of the current datacenter |
+| `nspace` | `String` | | The name of the current namespace |
+| `onchange` | `Function` | | An action to fire when the users token has changed (logged in/logged out/token changed) |
+
+### Slots
+
+| Name  | Description |
+| --- | --- |
+| `unauthorized` | This slot is only rendered when the user doesn't have a token |
+| `authorized`   | This slot is only rendered whtn the user does have a token.|
+
+#### Unauthorized Slot
+
+The authorized slot yields an `AuthForm` contextual component plus a `login` action. This slot is only shown when the user doesn't have a token saved.
+
+#### Authorized Slot
+
+The unauthorized slot yields an `AuthProfile` contextual component, a `logout` action and the current users `token`. This slot is only shown when the user has a token saved.
+
+
+### See
+
+- [Component Source Code](./index.js)
+- [Template Source Code](./index.hbs)
+
+---

@@ -1,0 +1,46 @@
+<StateChart @src={{chart}} as |State Guard Action dispatch state|>
+  <Ref @target={{this}} @name="dispatch" @value={{dispatch}} />
+  <State @matches="loaded">
+    <div class="oidc-select" ...attributes>
+        {{#if (lt items.length 3)}}
+            <ul>
+            {{#each items as |item|}}
+              <li>
+                <button
+                  disabled={{disabled}}
+                  type="button" class={{concat item.Kind '-oidc-provider'}}
+                  onclick={{action onchange item}}
+                >
+                  Continue with {{or item.DisplayName item.Name}}
+                </button>
+              </li>
+            {{/each}}
+            </ul>
+        {{else}}
+          {{#let (or provider (object-at 0 items)) as |item|}}
+            <label>
+              <span>SSO Provider</span>
+                <PowerSelect
+                  @disabled={{disabled}}
+                  @onChange={{action (mut provider)}}
+                  @selected={{item}}
+                  @searchEnabled={{false}}
+                  @options={{items}} as |item|>
+                  <span class={{concat item.Kind '-oidc-provider'}}>{{or item.DisplayName item.Name}}</span>
+                </PowerSelect>
+            </label>
+            <button
+              disabled={{disabled}}
+              type="button"
+              onclick={{action onchange item}}
+            >
+              Log in
+            </button>
+          {{/let}}
+        {{/if}}
+    </div>
+  </State>
+  <State @matches="loading">
+    <div class="progress indeterminate"></div>
+  </State>
+</StateChart>

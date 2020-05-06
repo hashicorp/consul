@@ -1,0 +1,35 @@
+<StateChart @src={{chart}} as |State Guard Action dispatch state|>
+
+  <Guard @name="hasToken" @cond={{action 'hasToken'}} />
+  <Action @name="login" @exec={{action 'login'}} />
+  <Action @name="logout" @exec={{action 'logout'}} />
+
+  <DataSource
+    @src="settings://consul:token"
+    @onchange={{queue (action (mut token) value="data") (action dispatch "CHANGE") (action (mut previousToken) value="data")}}
+  />
+  <DataSink
+    @sink="settings://consul:token"
+    as |sink|
+  >
+    {{yield}}
+    <State @matches="authorized">
+      {{#yield-slot
+        name="authorized"
+        params=(block-params
+          (component 'auth-profile' item=token)
+          (action sink.open null)
+          token)
+        }}
+          {{yield}}
+      {{/yield-slot}}
+    </State>
+    <State @matches="unauthorized">
+      {{#yield-slot
+        name="unauthorized"
+        params=(block-params (component 'auth-form' dc=dc nspace=nspace onsubmit=(action sink.open value="data")) (action sink.open))}}
+          {{yield}}
+      {{/yield-slot}}
+    </State>
+  </DataSink>
+</StateChart>
