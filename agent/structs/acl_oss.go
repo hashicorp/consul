@@ -28,6 +28,8 @@ node_prefix "" {
 }`
 )
 
+type ACLAuthMethodEnterpriseFields struct{}
+
 type ACLAuthMethodEnterpriseMeta struct{}
 
 func (_ *ACLAuthMethodEnterpriseMeta) FillWithEnterpriseMeta(_ *EnterpriseMeta) {

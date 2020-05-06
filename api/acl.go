@@ -195,6 +195,10 @@ type ACLAuthMethod struct {
 	CreateIndex uint64
 	ModifyIndex uint64
 
+	// NamespaceRules apply only on auth methods defined in the default namespace.
+	// Namespacing is a Consul Enterprise feature.
+	NamespaceRules []*ACLAuthMethodNamespaceRule `json:",omitempty"`
+
 	// Namespace is the namespace the ACLAuthMethod is associated with.
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
@@ -235,6 +239,18 @@ func (m *ACLAuthMethod) UnmarshalJSON(data []byte) error {
 	}
 
 	return nil
+}
+
+type ACLAuthMethodNamespaceRule struct {
+	// Selector is an expression that matches against verified identity
+	// attributes returned from the auth method during login.
+	Selector string `json:",omitempty"`
+
+	// BindNamespace is the target namespace of the binding. Can be lightly
+	// templated using HIL ${foo} syntax from available field names.
+	//
+	// If empty it's created in the same namespace as the auth method.
+	BindNamespace string `json:",omitempty"`
 }
 
 type ACLAuthMethodListEntry struct {
