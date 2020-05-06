@@ -3,6 +3,13 @@ enable_central_service_config = true
 config_entries {
   bootstrap = [
     {
+      kind = "proxy-defaults"
+      name = "global"
+      config {
+        protocol = "http"
+      }
+    },
+    {
       kind = "ingress-gateway"
       name = "ingress-gateway"
 
@@ -27,13 +34,6 @@ config_entries {
           ]
         }
       ]
-    },
-    {
-      kind = "proxy-defaults"
-      name = "global"
-      config {
-        protocol = "http"
-      }
     }
   ]
 }

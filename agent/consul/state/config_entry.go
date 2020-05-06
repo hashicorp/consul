@@ -351,6 +351,10 @@ func (s *Store) validateProposedConfigEntryInGraph(
 		if err != nil {
 			return err
 		}
+		err = s.validateProposedIngressProtocolsInServiceGraph(tx, next, entMeta)
+		if err != nil {
+			return err
+		}
 	case structs.TerminatingGateway:
 		err := s.checkGatewayClash(tx, name, structs.TerminatingGateway, structs.IngressGateway, entMeta)
 		if err != nil {
@@ -832,6 +836,48 @@ func (s *Store) configEntryWithOverridesTxn(
 	}
 
 	return s.configEntryTxn(tx, ws, kind, name, entMeta)
+}
+
+func (s *Store) validateProposedIngressProtocolsInServiceGraph(
+	tx *memdb.Txn,
+	next structs.ConfigEntry,
+	entMeta *structs.EnterpriseMeta,
+) error {
+	// This is the case for deleting a config entry
+	if next == nil {
+		return nil
+	}
+	ingress, ok := next.(*structs.IngressGatewayConfigEntry)
+	if !ok {
+		return fmt.Errorf("type %T is not an ingress gateway config entry", next)
+	}
+
+	validationFn := func(svc structs.ServiceID, expectedProto string) error {
+		_, svcProto, err := s.protocolForService(tx, nil, svc)
+		if err != nil {
+			return err
+		}
+
+		if svcProto != expectedProto {
+			return fmt.Errorf("service %q has protocol %q, which does not match defined listener protocol %q",
+				svc.String(), svcProto, expectedProto)
+		}
+
+		return nil
+	}
+
+	for _, l := range ingress.Listeners {
+		for _, s := range l.Services {
+			if s.Name == structs.WildcardSpecifier {
+				continue
+			}
+			err := validationFn(s.ToServiceID(), l.Protocol)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // protocolForService returns the service graph protocol associated to the

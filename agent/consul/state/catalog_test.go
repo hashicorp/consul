@@ -5433,46 +5433,6 @@ func TestStateStore_GatewayServices_IngressProtocolFiltering(t *testing.T) {
 		require.Equal(uint64(8), idx)
 		require.ElementsMatch(results, expected)
 	})
-
-	// Relies on service defaults for service1 being set to grpc above
-	t.Run("only filters on gateway services from wildcards", func(t *testing.T) {
-		require := require.New(t)
-		expected := structs.GatewayServices{
-			{
-				Gateway:     structs.NewServiceID("ingress1", nil),
-				Service:     structs.NewServiceID("service1", nil),
-				GatewayKind: structs.ServiceKindIngressGateway,
-				Port:        4444,
-				Protocol:    "http",
-				RaftIndex: structs.RaftIndex{
-					CreateIndex: 8,
-					ModifyIndex: 8,
-				},
-			},
-		}
-
-		ingress1 := &structs.IngressGatewayConfigEntry{
-			Kind: "ingress-gateway",
-			Name: "ingress1",
-			Listeners: []structs.IngressListener{
-				{
-					Port:     4444,
-					Protocol: "http",
-					Services: []structs.IngressService{
-						{
-							Name: "service1",
-						},
-					},
-				},
-			},
-		}
-		assert.NoError(t, s.EnsureConfigEntry(8, ingress1, nil))
-
-		idx, results, err := s.GatewayServices(nil, "ingress1", nil)
-		require.NoError(err)
-		require.Equal(uint64(8), idx)
-		require.ElementsMatch(results, expected)
-	})
 }
 
 func setupIngressState(t *testing.T, s *Store) memdb.WatchSet {
