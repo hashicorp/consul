@@ -174,7 +174,7 @@ type LoadBalancer struct {
 	Policy         string
 	RingHashConfig RingHashConfig `mapstructure:"ring_hash"`
 
-	HashPolicies []HashPolicy `mapstructure:"hash_policies"`
+	HashPolicy []HashPolicy `mapstructure:"hash_policy"`
 }
 
 // ApplyLbConfig to the envoy.Cluster, configured using the values in LoadBalancer.
@@ -215,8 +215,8 @@ func (l LoadBalancer) ApplyHashPolicyToRouteAction(c *envoyroute.RouteAction) er
 		return nil
 	}
 
-	result := make([]*envoyroute.RouteAction_HashPolicy, 0, len(l.HashPolicies))
-	for _, policy := range l.HashPolicies {
+	result := make([]*envoyroute.RouteAction_HashPolicy, 0, len(l.HashPolicy))
+	for _, policy := range l.HashPolicy {
 		switch policy.Field {
 		case "header":
 			result = append(result, &envoyroute.RouteAction_HashPolicy{
@@ -249,13 +249,13 @@ func (l LoadBalancer) ApplyHashPolicyToRouteAction(c *envoyroute.RouteAction) er
 }
 
 type RingHashConfig struct {
-	MinimumRingSize uint64
-	MaximumRingSize uint64
+	MinimumRingSize uint64 `mapstructure:"minimum_ring_size"`
+	MaximumRingSize uint64 `mapstructure:"maximum_ring_size"`
 }
 
 type HashPolicy struct {
 	Field      string
-	MatchValue string
+	MatchValue string `mapstructure:"match_value"`
 	Terminal   bool
 }
 

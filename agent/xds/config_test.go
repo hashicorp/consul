@@ -1,9 +1,12 @@
 package xds
 
 import (
-	"github.com/hashicorp/consul/agent/structs"
 	"testing"
 
+	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoyroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	"github.com/gogo/protobuf/types"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/require"
 )
 
@@ -254,6 +257,66 @@ func TestParseUpstreamConfig(t *testing.T) {
 	}
 }
 
+type raw map[string]interface{}
+
+func TestParseUpstreamConfigNoDefaults_LoadBalancer(t *testing.T) {
+	tests := []struct {
+		name  string
+		input map[string]interface{}
+		want  UpstreamConfig
+	}{
+		{
+			name: "random",
+			input: raw{
+				"load_balancer": raw{
+					"policy": "random",
+				},
+			},
+			want: UpstreamConfig{
+				LoadBalancer: LoadBalancer{
+					Policy: "random",
+				},
+			},
+		},
+		{
+			name: "ring hash",
+			input: raw{
+				"load_balancer": raw{
+					"policy": "ring_hash",
+					"ring_hash": raw{
+						"minimum_ring_size": 3,
+						"maximum_ring_size": 7,
+					},
+					"hash_policy": []raw{
+						{"field": "header", "match_value": "x-route-key", "terminal": "true"},
+						{"field": "connection_property_source_ip", "terminal": "true"},
+					},
+				},
+			},
+			want: UpstreamConfig{
+				LoadBalancer: LoadBalancer{
+					Policy: "ring_hash",
+					RingHashConfig: RingHashConfig{
+						MinimumRingSize: 3,
+						MaximumRingSize: 7,
+					},
+					HashPolicy: []HashPolicy{
+						{Field: "header", MatchValue: "x-route-key", Terminal: true},
+						{Field: "connection_property_source_ip", Terminal: true},
+					},
+				},
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := ParseUpstreamConfigNoDefaults(tc.input)
+			require.NoError(t, err)
+			require.Equal(t, tc.want, got)
+		})
+	}
+}
+
 func TestParseGatewayConfig(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -346,4 +409,108 @@ func TestParseGatewayConfig(t *testing.T) {
 
 func intPointer(i int) *int {
 	return &i
+}
+
+func TestLoadBalancer_ApplyToCluster(t *testing.T) {
+	var tests = []struct {
+		name     string
+		lb       LoadBalancer
+		expected envoy.Cluster
+	}{
+		{
+			name: "random",
+			lb: LoadBalancer{
+				Policy: "random",
+			},
+			expected: envoy.Cluster{LbPolicy: envoy.Cluster_RANDOM},
+		},
+		{
+			name: "ring_hash",
+			lb: LoadBalancer{
+				Policy: "ring_hash",
+				RingHashConfig: RingHashConfig{
+					MinimumRingSize: 3,
+					MaximumRingSize: 7,
+				},
+			},
+			expected: envoy.Cluster{
+				LbPolicy: envoy.Cluster_RING_HASH,
+				LbConfig: &envoy.Cluster_RingHashLbConfig_{
+					RingHashLbConfig: &envoy.Cluster_RingHashLbConfig{
+						MinimumRingSize: &types.UInt64Value{Value: 3},
+						MaximumRingSize: &types.UInt64Value{Value: 7},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			c := &envoy.Cluster{}
+			err := tc.lb.ApplyToCluster(c)
+			require.NoError(t, err)
+
+			require.Equal(t, &tc.expected, c)
+		})
+	}
+}
+
+func TestLoadBalancer_ApplyHashPolicyToRouteAction(t *testing.T) {
+	var tests = []struct {
+		name     string
+		lb       LoadBalancer
+		expected envoyroute.RouteAction
+	}{
+		{
+			name: "random",
+			lb: LoadBalancer{
+				Policy: "random",
+			},
+			expected: envoyroute.RouteAction{},
+		},
+		{
+			name: "ring_hash",
+			lb: LoadBalancer{
+				Policy: "ring_hash",
+				RingHashConfig: RingHashConfig{
+					MinimumRingSize: 3,
+					MaximumRingSize: 7,
+				},
+				HashPolicy: []HashPolicy{
+					{Field: "header", MatchValue: "x-route-key", Terminal: true},
+					{Field: "connection_property_source_ip", MatchValue: "true"},
+				},
+			},
+			expected: envoyroute.RouteAction{
+				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
+					{
+						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Header_{
+							Header: &envoyroute.RouteAction_HashPolicy_Header{
+								HeaderName: "x-route-key",
+							},
+						},
+						Terminal: true,
+					},
+					{
+						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_ConnectionProperties_{
+							ConnectionProperties: &envoyroute.RouteAction_HashPolicy_ConnectionProperties{
+								SourceIp: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ra := &envoyroute.RouteAction{}
+			err := tc.lb.ApplyHashPolicyToRouteAction(ra)
+			require.NoError(t, err)
+
+			require.Equal(t, &tc.expected, ra)
+		})
+	}
 }
