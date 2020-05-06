@@ -70,6 +70,31 @@ The table below shows this endpoint's support for
   If not provided at all, the namespace will be inherited from the request's ACL
   token or will default to the `default` namespace. Added in Consul 1.7.0.
 
+- `NamespaceRules` `(array<NamespaceRule>)` <EnterpriseAlert inline /> - A set
+  of rules that can control which namespace tokens created via this auth method
+  will be created within. Note that assigning namespaces via rules requires the
+  auth method to reside within the `default` namespace. Unlike binding rules,
+  the **first** matching namespace rule wins. Added in Consul 1.8.0.
+
+  - `Selector` `(string: "")` - Specifies the expression used to match this
+    namespace rule against valid identities returned from an auth method
+    validation. If empty this namespace rule matches all valid identities
+    returned from the auth method. For example:
+
+    ```text
+    serviceaccount.namespace==default and serviceaccount.name!=vault
+    ```
+
+  - `BindNamespace` `(string: <required>)` - If the namespace rule's `Selector`
+    matches then this is used to control the namespace where the token is
+    created. This can either be a plain string or lightly templated
+    using [HIL syntax](https://github.com/hashicorp/hil) to interpolate the
+    same values that are usable by the `Selector` syntax. For example:
+
+    ```text
+    prefixed-${serviceaccount.name}
+    ```
+
 ### Sample Payload
 
 ```json
@@ -217,6 +242,31 @@ The table below shows this endpoint's support for
   the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used.
   If not provided at all, the namespace will be inherited from the request's ACL
   token or will default to the `default` namespace. Added in Consul 1.7.0.
+
+- `NamespaceRules` `(array<NamespaceRule>)` <EnterpriseAlert inline /> - A set
+  of rules that can control which namespace tokens created via this auth method
+  will be created within. Note that assigning namespaces via rules requires the
+  auth method to reside within the `default` namespace. Unlike binding rules,
+  the **first** matching namespace rule wins. Added in Consul 1.8.0.
+
+  - `Selector` `(string: "")` - Specifies the expression used to match this
+    namespace rule against valid identities returned from an auth method
+    validation. If empty this namespace rule matches all valid identities
+    returned from the auth method. For example:
+
+    ```text
+    serviceaccount.namespace==default and serviceaccount.name!=vault
+    ```
+
+  - `BindNamespace` `(string: <required>)` - If the namespace rule's `Selector`
+    matches then this is used to control the namespace where the token is
+    created. This can either be a plain string or lightly templated
+    using [HIL syntax](https://github.com/hashicorp/hil) to interpolate the
+    same values that are usable by the `Selector` syntax. For example:
+
+    ```text
+    prefixed-${serviceaccount.name}
+    ```
 
 ### Sample Payload
 

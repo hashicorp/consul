@@ -1060,6 +1060,8 @@ type ACLAuthMethod struct {
 	// Embedded Enterprise ACL Meta
 	EnterpriseMeta `mapstructure:",squash"`
 
+	ACLAuthMethodEnterpriseFields `mapstructure:",squash"`
+
 	// Embedded Raft Metadata
 	RaftIndex `hash:"ignore"`
 }

@@ -5087,6 +5087,7 @@ func TestACLEndpoint_Login_with_MaxTokenTTL(t *testing.T) {
 	got.SecretID = ""
 	got.Hash = nil
 
+	defaultEntMeta := structs.DefaultEnterpriseMeta()
 	expect := &structs.ACLToken{
 		AuthMethod:     method.Name,
 		Description:    `token created via login: {"pod":"pod1"}`,
@@ -5096,7 +5097,9 @@ func TestACLEndpoint_Login_with_MaxTokenTTL(t *testing.T) {
 		ServiceIdentities: []*structs.ACLServiceIdentity{
 			{ServiceName: "web"},
 		},
+		EnterpriseMeta: *defaultEntMeta,
 	}
+	expect.ACLAuthMethodEnterpriseMeta.FillWithEnterpriseMeta(defaultEntMeta)
 	require.Equal(t, got, expect)
 }
 

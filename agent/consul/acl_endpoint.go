@@ -2123,8 +2123,13 @@ func (a *ACL) AuthMethodSet(args *structs.ACLAuthMethodSetRequest, reply *struct
 
 	// Instantiate a validator but do not cache it yet. This will validate the
 	// configuration.
-	if _, err := authmethod.NewValidator(a.srv.logger, method); err != nil {
+	validator, err := authmethod.NewValidator(a.srv.logger, method)
+	if err != nil {
 		return fmt.Errorf("Invalid Auth Method: %v", err)
+	}
+
+	if err := enterpriseAuthMethodValidation(method, validator); err != nil {
+		return err
 	}
 
 	if err := a.srv.fsm.State().ACLAuthMethodUpsertValidateEnterprise(method, existing); err != nil {
@@ -2301,7 +2306,10 @@ func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) erro
 	}
 
 	// This always will return a valid pointer
-	targetMeta := method.TargetEnterpriseMeta(verifiedIdentity.EnterpriseMeta)
+	targetMeta, err := computeTargetEnterpriseMeta(method, verifiedIdentity)
+	if err != nil {
+		return err
+	}
 
 	// 3. send map through role bindings
 	serviceIdentities, roleLinks, err := a.srv.evaluateRoleBindings(validator, verifiedIdentity, &auth.EnterpriseMeta, targetMeta)
