@@ -95,15 +95,7 @@ func (s *Snapshot) ConfigEntries() ([]structs.ConfigEntry, error) {
 
 // ConfigEntry is used when restoring from a snapshot.
 func (s *Restore) ConfigEntry(c structs.ConfigEntry) error {
-	// Insert
-	if err := s.tx.Insert(configTableName, c); err != nil {
-		return fmt.Errorf("failed restoring config entry object: %s", err)
-	}
-	if err := indexUpdateMaxTxn(s.tx, c.GetRaftIndex().ModifyIndex, configTableName); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
-	}
-
-	return nil
+	return s.store.ensureConfigEntryTxn(s.tx, c.GetRaftIndex().ModifyIndex, c, false, c.GetEnterpriseMeta())
 }
 
 // ConfigEntry is called to get a given config entry.
@@ -177,7 +169,7 @@ func (s *Store) EnsureConfigEntry(idx uint64, conf structs.ConfigEntry, entMeta 
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
-	if err := s.ensureConfigEntryTxn(tx, idx, conf, entMeta); err != nil {
+	if err := s.ensureConfigEntryTxn(tx, idx, conf, true, entMeta); err != nil {
 		return err
 	}
 
@@ -186,7 +178,7 @@ func (s *Store) EnsureConfigEntry(idx uint64, conf structs.ConfigEntry, entMeta 
 }
 
 // ensureConfigEntryTxn upserts a config entry inside of a transaction.
-func (s *Store) ensureConfigEntryTxn(tx *memdb.Txn, idx uint64, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) ensureConfigEntryTxn(tx *memdb.Txn, idx uint64, conf structs.ConfigEntry, validate bool, entMeta *structs.EnterpriseMeta) error {
 	// Check for existing configuration.
 	existing, err := s.firstConfigEntryWithTxn(tx, conf.GetKind(), conf.GetName(), entMeta)
 	if err != nil {
@@ -203,16 +195,23 @@ func (s *Store) ensureConfigEntryTxn(tx *memdb.Txn, idx uint64, conf structs.Con
 	}
 	raftIndex.ModifyIndex = idx
 
-	err = s.validateProposedConfigEntryInGraph(
-		tx,
-		idx,
-		conf.GetKind(),
-		conf.GetName(),
-		conf,
-		entMeta,
-	)
-	if err != nil {
-		return err // Err is already sufficiently decorated.
+	// When restoring config entries from a snapshot, the order of insertion is
+	// not the same as when the config entries were originally inserted. That
+	// means a valid config entry might fail this check because a dependency of
+	// that config entry has not been restored to the state store yet. Thus, we
+	// skip validation when restoring from a snapshot.
+	if validate {
+		err = s.validateProposedConfigEntryInGraph(
+			tx,
+			idx,
+			conf.GetKind(),
+			conf.GetName(),
+			conf,
+			entMeta,
+		)
+		if err != nil {
+			return err // Err is already sufficiently decorated.
+		}
 	}
 
 	// If the config entry is for a terminating or ingress gateway we update the memdb table
@@ -262,7 +261,7 @@ func (s *Store) EnsureConfigEntryCAS(idx, cidx uint64, conf structs.ConfigEntry,
 		return false, nil
 	}
 
-	if err := s.ensureConfigEntryTxn(tx, idx, conf, entMeta); err != nil {
+	if err := s.ensureConfigEntryTxn(tx, idx, conf, true, entMeta); err != nil {
 		return false, err
 	}
 
