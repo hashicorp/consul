@@ -853,3 +853,70 @@ func TestServer_Check(t *testing.T) {
 		})
 	}
 }
+
+func TestServer_StreamAggregatedResources_IngressEmptyResponse(t *testing.T) {
+	logger := testutil.Logger(t)
+	mgr := newTestManager(t)
+	aclResolve := func(id string) (acl.Authorizer, error) {
+		// Allow all
+		return acl.RootAuthorizer("manage"), nil
+	}
+	envoy := NewTestEnvoy(t, "ingress-gateway", "")
+	defer envoy.Close()
+
+	s := Server{
+		Logger:       logger,
+		CfgMgr:       mgr,
+		Authz:        mgr,
+		ResolveToken: aclResolve,
+	}
+	s.Initialize()
+
+	sid := structs.NewServiceID("ingress-gateway", nil)
+
+	go func() {
+		err := s.StreamAggregatedResources(envoy.stream)
+		require.NoError(t, err)
+	}()
+
+	// Register the proxy to create state needed to Watch() on
+	mgr.RegisterProxy(t, sid)
+
+	// Send initial cluster discover
+	envoy.SendReq(t, ClusterType, 0, 0)
+
+	// Check no response sent yet
+	assertChanBlocked(t, envoy.stream.sendCh)
+
+	// Deliver a new snapshot with no services
+	snap := proxycfg.TestConfigSnapshotIngressGatewayNoServices(t)
+	mgr.DeliverConfig(t, sid, snap)
+
+	emptyClusterJSON := `{
+		"versionInfo": "` + hexString(1) + `",
+		"resources": [],
+		"typeUrl": "type.googleapis.com/envoy.api.v2.Cluster",
+		"nonce": "` + hexString(1) + `"
+		}`
+	emptyListenerJSON := `{
+		"versionInfo": "` + hexString(1) + `",
+		"resources": [],
+		"typeUrl": "type.googleapis.com/envoy.api.v2.Listener",
+		"nonce": "` + hexString(2) + `"
+		}`
+	emptyRouteJSON := `{
+		"versionInfo": "` + hexString(1) + `",
+		"resources": [],
+		"typeUrl": "type.googleapis.com/envoy.api.v2.RouteConfiguration",
+		"nonce": "` + hexString(3) + `"
+		}`
+
+	assertResponseSent(t, envoy.stream.sendCh, emptyClusterJSON)
+
+	// Send initial listener discover
+	envoy.SendReq(t, ListenerType, 0, 0)
+	assertResponseSent(t, envoy.stream.sendCh, emptyListenerJSON)
+
+	envoy.SendReq(t, RouteType, 0, 0)
+	assertResponseSent(t, envoy.stream.sendCh, emptyRouteJSON)
+}
