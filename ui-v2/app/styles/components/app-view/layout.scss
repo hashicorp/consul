@@ -5,6 +5,7 @@
 %app-view-title {
   display: flex;
   align-items: center;
+  white-space: nowrap;
 }
 %app-view-actions {
   margin-left: auto;
