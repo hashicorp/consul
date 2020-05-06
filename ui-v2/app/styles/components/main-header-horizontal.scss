@@ -20,7 +20,7 @@
 }
 @media #{$--lt-horizontal-nav} {
   %main-nav-horizontal-panel {
-    background-color: var(---swatch-brand-600, $black);
+    background-color: var(--swatch-brand-600, $black);
   }
 }
 @media #{$--horizontal-nav} {
