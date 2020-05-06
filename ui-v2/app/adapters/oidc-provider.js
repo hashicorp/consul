@@ -33,7 +33,7 @@ export default Adapter.extend({
       ${{
         ...Namespace(ns),
         AuthMethod: id,
-        RedirectURI: `${this.env.var('CONSUL_BASE_UI_URL')}/torii/redirect.html`,
+        RedirectURI: `${this.env.var('CONSUL_BASE_UI_URL')}/oidc/redirect.html`,
       }}
     `;
   },
