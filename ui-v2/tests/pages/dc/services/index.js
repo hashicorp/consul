@@ -1,4 +1,4 @@
-export default function(visitable, clickable, text, attribute, collection, page, popoverSort) {
+export default function(visitable, clickable, text, attribute, collection, popoverSort) {
   const service = {
     name: text('[data-test-service-name]'),
     service: clickable('a'),
@@ -11,7 +11,7 @@ export default function(visitable, clickable, text, attribute, collection, page,
     dcs: collection('[data-test-datacenter-picker]', {
       name: clickable('a'),
     }),
-    navigation: page.navigation,
+    filter: filter,
     home: clickable('[data-test-home]'),
     sort: popoverSort,
   };

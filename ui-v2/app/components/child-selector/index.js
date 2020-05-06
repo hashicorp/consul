@@ -8,6 +8,7 @@ import WithListeners from 'consul-ui/mixins/with-listeners';
 
 export default Component.extend(SlotsMixin, WithListeners, {
   onchange: function() {},
+  tagName: '',
 
   error: function() {},
   type: '',

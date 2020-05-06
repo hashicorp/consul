@@ -6,6 +6,7 @@ import WithListeners from 'consul-ui/mixins/with-listeners';
 // match anything that isn't a [ or ] into multiple groups
 const propRe = /([^[\]])+/g;
 export default Component.extend(WithListeners, SlotsMixin, {
+  tagName: '',
   onreset: function() {},
   onchange: function() {},
   onerror: function() {},
