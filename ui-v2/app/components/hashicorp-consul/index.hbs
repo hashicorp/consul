@@ -1,4 +1,4 @@
-
+    <ModalLayer />
     <header role="banner" data-test-navigation>
       <a data-test-main-nav-logo href={{href-to 'index'}}><svg width="28" height="27" xmlns="http://www.w3.org/2000/svg"><title>Consul</title><path d="M13.284 16.178a2.876 2.876 0 1 1-.008-5.751 2.876 2.876 0 0 1 .008 5.75zm5.596-1.547a1.333 1.333 0 1 1 0-2.667 1.333 1.333 0 0 1 0 2.667zm4.853 1.249a1.271 1.271 0 1 1 .027-.107c0 .031 0 .067-.027.107zm-.937-3.436a1.333 1.333 0 1 1 .986-1.595c.033.172.033.348 0 .52-.07.53-.465.96-.986 1.075zm4.72 3.29a1.333 1.333 0 1 1-1.076-1.538 1.333 1.333 0 0 1 1.116 1.417.342.342 0 0 0-.027.12h-.013zm-1.08-3.33a1.333 1.333 0 1 1 1.088-1.524c.014.114.014.229 0 .342a1.333 1.333 0 0 1-1.102 1.182h.014zm-.925 7.925a1.333 1.333 0 1 1 .165-.547c-.01.193-.067.38-.165.547zm-.48-12.191a1.333 1.333 0 1 1 .507-1.814c.14.237.198.514.164.787-.038.438-.289.828-.67 1.045v-.018zM13.333 26.667C5.97 26.667 0 20.697 0 13.333 0 5.97 5.97 0 13.333 0c2.929-.01 5.778.955 8.098 2.742L19.8 4.89a10.667 10.667 0 0 0-17.133 8.444 10.667 10.667 0 0 0 17.137 8.471l1.627 2.13a13.218 13.218 0 0 1-8.098 2.733z" fill="#FFF"/></svg></a>
         <input type="checkbox" name="menu" id="main-nav-toggle" onchange={{action 'change'}} />
@@ -100,7 +100,7 @@
             </nav>
             <nav>
                 <ul>
-                    <li data-test-main-nav-docs>
+                    <li data-test-main-nav-help>
                       <PopoverMenu @position="right">
                         <BlockSlot @name="trigger">
                           Help
@@ -123,42 +123,48 @@
                         <a href={{href-to 'settings'}}>Settings</a>
                     </li>
 {{#if (env 'CONSUL_ACLS_ENABLED')}}
-                    <DataSource
-                      @src="settings://consul:token"
-                      @onchange={{action "changeToken" value="data"}}
-                    />
-                    <DataSink
-                      @sink="settings://consul:token"
-                    as |tokenSink|>
-  {{#if (not-eq token.AccessorID undefined)}}
-                      <li data-test-main-nav-auth>
-                        <PopoverMenu @position="right">
-                          <BlockSlot @name="trigger">
-                            Logout
-                          </BlockSlot>
-                          <BlockSlot @name="menu">
-                      {{#if token.AccessorID}}
-                            <li role="none">
-                              <dl>
-                                <dt>
-                                  <span>My ACL Token</span><br />
-                                  AccessorID
-                                </dt>
-                                <dd>
-                                  {{substr token.AccessorID -8}}
-                                </dd>
-                              </dl>
-                            </li>
-                            <li role="separator"></li>
-                      {{/if}}
-                            <li class="dangerous" role="none">
-                                <button type="button" tabindex="-1" role="menuitem" onclick={{action tokenSink.open null}}>Logout</button>
-                            </li>
-                          </BlockSlot>
-                        </PopoverMenu>
-                      </li>
+                    <li data-test-main-nav-auth>
+                      <AuthDialog @dc={{dc.Name}} @nspace={{nspace.Name}} @onchange={{action onchange}}>
+                        <BlockSlot @name="unauthorized" as |AuthForm login|>
+                          <label for="login-toggle">
+                            <span>Log in</span>
+                          </label>
+                          <ModalDialog @name="login-toggle" @onclose={{action 'close'}}>
+                            <BlockSlot @name="header">
+                              <h2>Log in to Consul</h2>
+                            </BlockSlot>
+                            <BlockSlot @name="body">
+                              <AuthForm as |api|>
+                                <Ref @target={{this}} @name="authForm" @value={{api}} />
+                              </AuthForm>
+                            </BlockSlot>
+                            <BlockSlot @name="actions" as |close|>
+                              <button type="button" onclick={{action close}}>
+                                Continue without logging in
+                              </button>
+                            </BlockSlot>
+                          </ModalDialog>
+                        </BlockSlot>
+                        <BlockSlot @name="authorized" as |Profile logout token|>
+                          <PopoverMenu @position="right">
+                            <BlockSlot @name="trigger">
+                              Logout
+                            </BlockSlot>
+                            <BlockSlot @name="menu">
+  {{#if token.AccessorID}}
+                              <li role="none">
+                                <Profile />
+                              </li>
+                              <li role="separator"></li>
   {{/if}}
-                    </DataSink>
+                              <li class="dangerous" role="none">
+                                <button type="button" tabindex="-1" role="menuitem" onclick={{action logout}}>Logout</button>
+                              </li>
+                            </BlockSlot>
+                          </PopoverMenu>
+                        </BlockSlot>
+                      </AuthDialog>
+                    </li>
 {{/if}}
                 </ul>
             </nav>
@@ -173,4 +179,3 @@
         <a data-test-footer-docs href="{{env 'CONSUL_DOCS_URL'}}" rel="help noopener noreferrer" target="_blank">Documentation</a>
         {{{concat '<!-- ' (env 'CONSUL_GIT_SHA') '-->'}}}
     </footer>
-    <ModalLayer />

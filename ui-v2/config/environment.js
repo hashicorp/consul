@@ -69,6 +69,7 @@ module.exports = function(environment, $ = process.env) {
     CONSUL_BINARY_TYPE: process.env.CONSUL_BINARY_TYPE ? process.env.CONSUL_BINARY_TYPE : 'oss',
     CONSUL_ACLS_ENABLED: false,
     CONSUL_NSPACES_ENABLED: false,
+    CONSUL_SSO_ENABLED: false,
 
     CONSUL_HOME_URL: 'https://www.consul.io',
     CONSUL_REPO_ISSUES_URL: 'https://github.com/hashicorp/consul/issues/new/choose',
@@ -77,6 +78,7 @@ module.exports = function(environment, $ = process.env) {
     CONSUL_DOCS_API_URL: 'https://www.consul.io/api',
     CONSUL_COPYRIGHT_URL: 'https://www.hashicorp.com',
   });
+  const isTestLike = ['staging', 'test'].indexOf(environment) > -1;
   const isDevLike = ['development', 'staging', 'test'].indexOf(environment) > -1;
   const isProdLike = ['production', 'staging'].indexOf(environment) > -1;
   switch (true) {
@@ -88,6 +90,10 @@ module.exports = function(environment, $ = process.env) {
           typeof $['CONSUL_NSPACES_ENABLED'] !== 'undefined'
             ? !!JSON.parse(String($['CONSUL_NSPACES_ENABLED']).toLowerCase())
             : true,
+        CONSUL_SSO_ENABLED:
+          typeof $['CONSUL_SSO_ENABLED'] !== 'undefined'
+            ? !!JSON.parse(String($['CONSUL_SSO_ENABLED']).toLowerCase())
+            : false,
         '@hashicorp/ember-cli-api-double': {
           'auto-import': false,
           enabled: true,
@@ -107,6 +113,7 @@ module.exports = function(environment, $ = process.env) {
     case environment === 'staging':
       ENV = Object.assign({}, ENV, {
         CONSUL_NSPACES_ENABLED: true,
+        CONSUL_SSO_ENABLED: true,
         '@hashicorp/ember-cli-api-double': {
           enabled: true,
           endpoints: {
@@ -118,13 +125,14 @@ module.exports = function(environment, $ = process.env) {
     case environment === 'production':
       ENV = Object.assign({}, ENV, {
         CONSUL_ACLS_ENABLED: '{{.ACLsEnabled}}',
+        CONSUL_SSO_ENABLED: '{{.SSOEnabled}}',
         CONSUL_NSPACES_ENABLED:
           '{{ if .NamespacesEnabled }}{{.NamespacesEnabled}}{{ else }}false{{ end }}',
       });
       break;
   }
   switch (true) {
-    case isDevLike:
+    case isTestLike:
       ENV = Object.assign({}, ENV, {
         CONSUL_ACLS_ENABLED: true,
         // 'APP': Object.assign({}, ENV.APP, {

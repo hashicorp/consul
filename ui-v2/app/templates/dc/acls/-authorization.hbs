@@ -1,13 +1,21 @@
-<p>
-  The Access Control List (ACL) system, which controls permissions for this UI, is enabled for this cluster. Your token ID will be saved locally and persist through visits.
-</p>
-<form>
-    <fieldset>
-        <label class="type-text">
-            <span>SecretID or Token</span>
-            <input type="password" name="secret" placeholder="SecretID or Token" oninput={{action (mut secret) value="target.value"}} />
-        </label>
-    </fieldset>
-    {{! authorize is in the routes/dc/acls.js route }}
-    <button type="submit" {{action 'authorize' secret nspace}}>Login</button>
-</form>
+<EmptyState class="status-403">
+  <BlockSlot @name="header">
+    <h2>You are not authorized</h2>
+  </BlockSlot>
+  <BlockSlot @name="subheader">
+    <h3>Error 403</h3>
+  </BlockSlot>
+  <BlockSlot @name="body">
+    <p>
+      You must be granted permissions to view this data. Ask your administrator if you think you should have access.
+    </p>
+  </BlockSlot>
+  <BlockSlot @name="actions">
+    <li class="docs-link">
+      <a href="{{env 'CONSUL_DOCS_URL'}}/acl/index.html" rel="noopener noreferrer" target="_blank">Read the documentation</a>
+    </li>
+    <li class="learn-link">
+      <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/security-networking/production-acls" rel="noopener noreferrer" target="_blank">Follow the guide</a>
+    </li>
+  </BlockSlot>
+</EmptyState>

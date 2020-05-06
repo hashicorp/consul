@@ -82,6 +82,9 @@ export default function(config = {}, win = window, doc = document) {
             case 'CONSUL_NSPACES_ENABLE':
               prev['CONSUL_NSPACES_ENABLED'] = !!JSON.parse(String(value).toLowerCase());
               break;
+            case 'CONSUL_SSO_ENABLE':
+              prev['CONSUL_SSO_ENABLED'] = !!JSON.parse(String(value).toLowerCase());
+              break;
             default:
               prev[key] = value;
           }

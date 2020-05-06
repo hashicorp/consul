@@ -8,6 +8,7 @@ export default Service.extend({
   policies: service('repository/policy'),
   policy: service('repository/policy'),
   roles: service('repository/role'),
+  oidc: service('repository/oidc-provider'),
   type: service('data-source/protocols/http/blocking'),
   source: function(src, configuration) {
     // TODO: Consider adding/requiring nspace, dc, model, action, ...rest
@@ -29,6 +30,7 @@ export default Service.extend({
         return event;
       };
     }
+    let method, slug;
     switch (model) {
       case 'datacenters':
         find = configuration => repo.findAll(configuration);
@@ -45,6 +47,23 @@ export default Service.extend({
         break;
       case 'policy':
         find = configuration => repo.findBySlug(rest[0], dc, nspace, configuration);
+        break;
+      case 'oidc':
+        [method, ...slug] = rest;
+        switch (method) {
+          case 'providers':
+            find = configuration => repo.findAllByDatacenter(dc, nspace, configuration);
+            break;
+          case 'provider':
+            find = configuration => {
+              return repo.findBySlug(slug[0], dc, nspace);
+            };
+            break;
+          case 'authorize':
+            find = configuration =>
+              repo.authorize(slug[0], slug[1], slug[2], dc, nspace, configuration);
+            break;
+        }
         break;
     }
     return this.type.source(find, configuration);

@@ -1,19 +1,53 @@
+{{#if error}}
 <AppView @class="error show">
-    <BlockSlot @name="header">
-        <h1 data-test-error>
-{{#if error.status }}
-            {{error.status}} ({{error.message}})
-{{else}}
-            {{error.message}}
-{{/if}}
-        </h1>
-    </BlockSlot>
     <BlockSlot @name="content">
-        <p>
-            Consul returned an error.
-            You may have visited a URL that is loading an unknown resource, so you can try going back to the root or try re-submitting your ACL Token/SecretID by going back to ACLs.<br />
-            Try looking in our <a href="{{env 'CONSUL_DOCS_URL'}}" target="_blank">documentation</a>
-        </p>
-        <a data-test-home rel="home" href={{href-to 'index'}}>Go back to root</a>
+      {{#if (not-eq error.status "403")}}
+          <EmptyState class={{concat "status-" error.status}}>
+            <BlockSlot @name="header">
+              <h2>{{or error.message "Consul returned an error"}}</h2>
+            </BlockSlot>
+{{#if error.status }}
+            <BlockSlot @name="subheader">
+              <h3 data-test-status={{error.status}}>Error {{error.status}}</h3>
+            </BlockSlot>
+{{/if}}
+            <BlockSlot @name="body">
+              <p>
+                You may have visited a URL that is loading an unknown resource, so you can try going back to the root or try re-submitting your ACL Token/SecretID by going back to ACLs.
+              </p>
+            </BlockSlot>
+            <BlockSlot @name="actions">
+              <li class="back-link">
+                <a data-test-home rel="home" href={{href-to 'index'}}>Go back to root</a>
+              </li>
+              <li class="docs-link">
+                <a href="{{env 'CONSUL_DOCS_URL'}}" rel="noopener noreferrer" target="_blank">Read the documentation</a>
+              </li>
+            </BlockSlot>
+          </EmptyState>
+        {{else}}
+          <EmptyState class="status-403">
+            <BlockSlot @name="header">
+              <h2 data-test-status={{error.status}}>You are not authorized</h2>
+            </BlockSlot>
+            <BlockSlot @name="subheader">
+              <h3>Error 403</h3>
+            </BlockSlot>
+            <BlockSlot @name="body">
+              <p>
+                You must be granted permissions to view this data. Ask your administrator if you think you should have access.
+              </p>
+            </BlockSlot>
+            <BlockSlot @name="actions">
+              <li class="docs-link">
+                <a href="{{env 'CONSUL_DOCS_URL'}}/acl/index.html" rel="noopener noreferrer" target="_blank">Read the documentation</a>
+              </li>
+              <li class="learn-link">
+                <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/security-networking/production-acls" rel="noopener noreferrer" target="_blank">Follow the guide</a>
+              </li>
+            </BlockSlot>
+          </EmptyState>
+        {{/if}}
     </BlockSlot>
 </AppView>
+{{/if}}
