@@ -257,6 +257,7 @@ func TestAuthMethodCreateCommand_JSON(t *testing.T) {
 		require.NoError(t, json.Unmarshal([]byte(out), &raw))
 		delete(raw, "CreateIndex")
 		delete(raw, "ModifyIndex")
+		delete(raw, "Namespace")
 
 		require.Equal(t, map[string]interface{}{
 			"Name":        "test",
