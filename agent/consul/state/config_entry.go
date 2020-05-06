@@ -842,7 +842,7 @@ func (s *Store) protocolForService(
 	svc structs.ServiceID,
 ) (uint64, string, error) {
 	// Get the global proxy defaults (for default protocol)
-	maxIdx, proxyConfig, err := s.configEntryTxn(tx, ws, structs.ProxyDefaults, structs.ProxyConfigGlobal, &svc.EnterpriseMeta)
+	maxIdx, proxyConfig, err := s.configEntryTxn(tx, ws, structs.ProxyDefaults, structs.ProxyConfigGlobal, structs.DefaultEnterpriseMeta())
 	if err != nil {
 		return 0, "", err
 	}
