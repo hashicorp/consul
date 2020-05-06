@@ -6,7 +6,7 @@ Feature: dc / services / intentions: Intentions per service
     And 1 service model from yaml
     ---
     - Service:
-        Kind: consul
+        Kind: ~
         Name: service-0
         ID: service-0-with-id
     ---
