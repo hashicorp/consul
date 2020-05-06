@@ -20,6 +20,7 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-hclog"
 	uuid "github.com/hashicorp/go-uuid"
@@ -186,7 +187,7 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 
 	logOutput := a.LogOutput
 	if logOutput == nil {
-		logOutput = os.Stderr
+		logOutput = testutil.NewLogBuffer(t)
 	}
 
 	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{

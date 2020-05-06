@@ -697,7 +697,7 @@ func newTestACLResolver(t *testing.T, delegate *ACLResolverTestDelegate, cb func
 	config.ACLsEnabled = delegate.enabled
 	rconf := &ACLResolverConfig{
 		Config: config,
-		Logger: testutil.LoggerWithName(t, t.Name()),
+		Logger: testutil.Logger(t),
 		CacheConfig: &structs.ACLCachesConfig{
 			Identities:     4,
 			Policies:       4,

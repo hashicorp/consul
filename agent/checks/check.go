@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -14,7 +15,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/armon/circbuf"
@@ -613,7 +613,7 @@ func (c *CheckDocker) Start() {
 	}
 
 	if c.Logger == nil {
-		c.Logger = testutil.NewDiscardLogger()
+		c.Logger = hclog.New(&hclog.LoggerOptions{Output: ioutil.Discard})
 	}
 
 	if c.Shell == "" {
