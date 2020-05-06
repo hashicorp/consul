@@ -890,6 +890,10 @@ func getTestMethod(t *testing.T, client *api.Client, methodName string) *api.ACL
 	method.CreateIndex = 0
 	method.ModifyIndex = 0
 
+	if method.Namespace == "default" {
+		method.Namespace = ""
+	}
+
 	return method
 }
 
