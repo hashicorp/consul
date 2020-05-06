@@ -236,27 +236,38 @@ func (s *Server) makeGatewayServiceClusters(cfgSnap *proxycfg.ConfigSnapshot) ([
 
 func (s *Server) clustersFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var clusters []proto.Message
-	for _, u := range cfgSnap.IngressGateway.Upstreams {
-		id := u.Identifier()
-		chain, ok := cfgSnap.IngressGateway.DiscoveryChain[id]
-		if !ok {
-			// this should not happen
-			return nil, fmt.Errorf("no discovery chain for upstream %q", id)
-		}
+	createdClusters := make(map[string]bool)
+	for _, upstreams := range cfgSnap.IngressGateway.Upstreams {
+		for _, u := range upstreams {
+			id := u.Identifier()
 
-		chainEndpoints, ok := cfgSnap.IngressGateway.WatchedUpstreamEndpoints[id]
-		if !ok {
-			// this should not happen
-			return nil, fmt.Errorf("no endpoint map for upstream %q", id)
-		}
+			// If we've already created a cluster for this upstream, skip it. Multiple listeners may
+			// reference the same upstream, so we don't need to create duplicate clusters in that case.
+			if createdClusters[id] {
+				continue
+			}
 
-		upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(u, chain, chainEndpoints, cfgSnap)
-		if err != nil {
-			return nil, err
-		}
+			chain, ok := cfgSnap.IngressGateway.DiscoveryChain[id]
+			if !ok {
+				// this should not happen
+				return nil, fmt.Errorf("no discovery chain for upstream %q", id)
+			}
 
-		for _, c := range upstreamClusters {
-			clusters = append(clusters, c)
+			chainEndpoints, ok := cfgSnap.IngressGateway.WatchedUpstreamEndpoints[id]
+			if !ok {
+				// this should not happen
+				return nil, fmt.Errorf("no endpoint map for upstream %q", id)
+			}
+
+			upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(u, chain, chainEndpoints, cfgSnap)
+			if err != nil {
+				return nil, err
+			}
+
+			for _, c := range upstreamClusters {
+				clusters = append(clusters, c)
+			}
+			createdClusters[id] = true
 		}
 	}
 	return clusters, nil

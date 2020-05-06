@@ -30,11 +30,14 @@ load helpers
    assert_upstream_has_endpoints_in_status 127.0.0.1:20000 s2 HEALTHY 1
 }
 
-@test "ingress should be able to connect to s1 via configured path" {
-  assert_expected_fortio_name s1 localhost 9999 /s1
+@test "ingress should be able to connect to s1 using Host header" {
+  assert_expected_fortio_name s1 s1.example.consul 9999
 }
 
-@test "ingress should be able to connect to s2 via configured path" {
-  assert_expected_fortio_name s2 localhost 9999 /s2
+@test "ingress should be able to connect to s2 using Host header" {
+  assert_expected_fortio_name s2 s2.example.consul 9999
 }
 
+@test "ingress should be able to connect to s1 using a user-specified Host" {
+  assert_expected_fortio_name s1 test.example.com 9998
+}

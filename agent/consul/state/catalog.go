@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
@@ -74,6 +75,9 @@ func gatewayServicesTableNameSchema() *memdb.TableSchema {
 						},
 						&ServiceIDIndex{
 							Field: "Service",
+						},
+						&memdb.IntFieldIndex{
+							Field: "Port",
 						},
 					},
 				},
@@ -2003,9 +2007,7 @@ func (s *Store) CheckIngressServiceNodes(ws memdb.WatchSet, serviceName string, 
 	// TODO(ingress) : Deal with incorporating index from mapping table
 	// Watch for index changes to the gateway nodes
 	idx, chans := s.maxIndexAndWatchChsForServiceNodes(tx, nodes, false, entMeta)
-	if idx > maxIdx {
-		maxIdx = idx
-	}
+	maxIdx = lib.MaxUint64(maxIdx, idx)
 	for _, ch := range chans {
 		ws.Add(ch)
 	}
@@ -2023,10 +2025,7 @@ func (s *Store) CheckIngressServiceNodes(ws memdb.WatchSet, serviceName string, 
 		if err != nil {
 			return 0, nil, err
 		}
-		if idx > maxIdx {
-			maxIdx = idx
-		}
-
+		maxIdx = lib.MaxUint64(maxIdx, idx)
 		results = append(results, n...)
 	}
 	return maxIdx, results, nil
@@ -2084,9 +2083,7 @@ func (s *Store) checkServiceNodesTxn(tx *memdb.Txn, ws memdb.WatchSet, serviceNa
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed gateway nodes lookup: %v", err)
 		}
-		if idx < gwIdx {
-			idx = gwIdx
-		}
+		idx = lib.MaxUint64(idx, gwIdx)
 		for i := 0; i < len(nodes); i++ {
 			results = append(results, nodes[i])
 			serviceNames[nodes[i].ServiceName] = struct{}{}
@@ -2114,9 +2111,7 @@ func (s *Store) checkServiceNodesTxn(tx *memdb.Txn, ws memdb.WatchSet, serviceNa
 			// below is always true.
 			svcIdx, svcCh := s.maxIndexAndWatchChForService(tx, svcName, true, true, entMeta)
 			// Take the max index represented
-			if idx < svcIdx {
-				idx = svcIdx
-			}
+			idx = lib.MaxUint64(idx, svcIdx)
 			if svcCh != nil {
 				// Watch the service-specific index for changes in liu of all iradix nodes
 				// for checks etc.
@@ -2136,9 +2131,7 @@ func (s *Store) checkServiceNodesTxn(tx *memdb.Txn, ws memdb.WatchSet, serviceNa
 		// be returned as we can't use the optimization in this case (and don't need
 		// to as there is only one chan to watch anyway).
 		svcIdx, _ := s.maxIndexAndWatchChForService(tx, serviceName, false, true, entMeta)
-		if idx < svcIdx {
-			idx = svcIdx
-		}
+		idx = lib.MaxUint64(idx, svcIdx)
 	}
 
 	// Create a nil watchset to pass below, we'll only pass the real one if we
@@ -2199,6 +2192,7 @@ func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName string, tags
 func (s *Store) GatewayServices(ws memdb.WatchSet, gateway string, entMeta *structs.EnterpriseMeta) (uint64, structs.GatewayServices, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
+	var maxIdx uint64
 
 	iter, err := s.gatewayServices(tx, gateway, entMeta)
 	if err != nil {
@@ -2211,12 +2205,19 @@ func (s *Store) GatewayServices(ws memdb.WatchSet, gateway string, entMeta *stru
 		svc := service.(*structs.GatewayService)
 
 		if svc.Service.ID != structs.WildcardSpecifier {
-			results = append(results, svc)
+			idx, matches, err := s.checkProtocolMatch(tx, ws, svc)
+			if err != nil {
+				return 0, nil, fmt.Errorf("failed checking protocol: %s", err)
+			}
+			maxIdx = lib.MaxUint64(maxIdx, idx)
+			if matches {
+				results = append(results, svc)
+			}
 		}
 	}
 
 	idx := maxIndexTxn(tx, gatewayServicesTableName)
-	return idx, results, nil
+	return lib.MaxUint64(maxIdx, idx), results, nil
 }
 
 // parseCheckServiceNodes is used to parse through a given set of services,
@@ -2539,7 +2540,9 @@ func (s *Store) ingressConfigGatewayServices(tx *memdb.Txn, gateway structs.Serv
 				Gateway:     gateway,
 				Service:     service.ToServiceID(),
 				GatewayKind: structs.ServiceKindIngressGateway,
+				Hosts:       service.Hosts,
 				Port:        listener.Port,
+				Protocol:    listener.Protocol,
 			}
 
 			gatewayServices = append(gatewayServices, mapping)
@@ -2599,7 +2602,7 @@ func (s *Store) updateGatewayNamespace(tx *memdb.Txn, idx uint64, service *struc
 			continue
 		}
 
-		existing, err := tx.First(gatewayServicesTableName, "id", service.Gateway, sn.CompoundServiceName())
+		existing, err := tx.First(gatewayServicesTableName, "id", service.Gateway, sn.CompoundServiceName(), service.Port)
 		if err != nil {
 			return fmt.Errorf("gateway service lookup failed: %s", err)
 		}
@@ -2634,7 +2637,7 @@ func (s *Store) updateGatewayNamespace(tx *memdb.Txn, idx uint64, service *struc
 func (s *Store) updateGatewayService(tx *memdb.Txn, idx uint64, mapping *structs.GatewayService) error {
 	// Check if mapping already exists in table if it's already in the table
 	// Avoid insert if nothing changed
-	existing, err := tx.First(gatewayServicesTableName, "id", mapping.Gateway, mapping.Service)
+	existing, err := tx.First(gatewayServicesTableName, "id", mapping.Gateway, mapping.Service, mapping.Port)
 	if err != nil {
 		return fmt.Errorf("gateway service lookup failed: %s", err)
 	}
@@ -2722,10 +2725,7 @@ func (s *Store) serviceGatewayNodes(tx *memdb.Txn, ws memdb.WatchSet, service st
 		if mapping.GatewayKind != kind {
 			continue
 		}
-
-		if mapping.ModifyIndex > maxIdx {
-			maxIdx = mapping.ModifyIndex
-		}
+		maxIdx = lib.MaxUint64(maxIdx, mapping.ModifyIndex)
 
 		// Look up nodes for gateway
 		gwServices, err := s.catalogServiceNodeList(tx, mapping.Gateway.ID, "service", &mapping.Gateway.EnterpriseMeta)
@@ -2744,9 +2744,7 @@ func (s *Store) serviceGatewayNodes(tx *memdb.Txn, ws memdb.WatchSet, service st
 
 		// This prevents the index from sliding back in case all instances of the service are deregistered
 		svcIdx := s.maxIndexForService(tx, mapping.Gateway.ID, exists, false, &mapping.Service.EnterpriseMeta)
-		if maxIdx < svcIdx {
-			maxIdx = svcIdx
-		}
+		maxIdx = lib.MaxUint64(maxIdx, svcIdx)
 
 		// Ensure that blocking queries wake up if the gateway-service mapping exists, but the gateway does not exist yet
 		if !exists {
@@ -2754,4 +2752,23 @@ func (s *Store) serviceGatewayNodes(tx *memdb.Txn, ws memdb.WatchSet, service st
 		}
 	}
 	return maxIdx, ret, nil
+}
+
+// checkProtocolMatch filters out any GatewayService entries added from a wildcard with a protocol
+// that doesn't match the one configured in their discovery chain.
+func (s *Store) checkProtocolMatch(
+	tx *memdb.Txn,
+	ws memdb.WatchSet,
+	svc *structs.GatewayService,
+) (uint64, bool, error) {
+	if svc.GatewayKind != structs.ServiceKindIngressGateway || !svc.FromWildcard {
+		return 0, true, nil
+	}
+
+	idx, protocol, err := s.protocolForService(tx, ws, svc.Service)
+	if err != nil {
+		return 0, false, err
+	}
+
+	return idx, svc.Protocol == protocol, nil
 }

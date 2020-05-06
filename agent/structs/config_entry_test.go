@@ -545,6 +545,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 						services = [
 							{
 								name = "web"
+								hosts = ["test.example.com", "test2.example.com"]
 							},
 							{
 								name = "db"
@@ -566,7 +567,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 						services = [
 							{
 								name = "postgres"
-								service_subset = "v1"
 							}
 						]
 					}
@@ -582,6 +582,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 						Services = [
 							{
 								Name = "web"
+								Hosts = ["test.example.com", "test2.example.com"]
 							},
 							{
 								Name = "db"
@@ -603,7 +604,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 						Services = [
 							{
 								Name = "postgres"
-								ServiceSubset = "v1"
 							}
 						]
 					}
@@ -618,7 +618,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 						Protocol: "http",
 						Services: []IngressService{
 							IngressService{
-								Name: "web",
+								Name:  "web",
+								Hosts: []string{"test.example.com", "test2.example.com"},
 							},
 							IngressService{
 								Name: "db",
@@ -639,8 +640,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 						Protocol: "tcp",
 						Services: []IngressService{
 							IngressService{
-								Name:          "postgres",
-								ServiceSubset: "v1",
+								Name: "postgres",
 							},
 						},
 					},

@@ -270,25 +270,50 @@ func (s *Server) listenersFromSnapshotGateway(cfgSnap *proxycfg.ConfigSnapshot, 
 // See: https://www.consul.io/docs/connect/proxies/envoy.html#mesh-gateway-options
 func (s *Server) listenersFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var resources []proto.Message
-	// TODO(ingress): We give each upstream a distinct listener at the moment,
-	// for http listeners we will need to multiplex upstreams on a single
-	// listener.
-	for _, u := range cfgSnap.IngressGateway.Upstreams {
-		id := u.Identifier()
+	for listenerKey, upstreams := range cfgSnap.IngressGateway.Upstreams {
+		if listenerKey.Protocol == "tcp" {
+			// We rely on the invariant of upstreams slice always having at least 1
+			// member, because this key/value pair is created only when a
+			// GatewayService is returned in the RPC
+			u := upstreams[0]
+			id := u.Identifier()
 
-		chain := cfgSnap.IngressGateway.DiscoveryChain[id]
+			chain := cfgSnap.IngressGateway.DiscoveryChain[id]
 
-		var upstreamListener proto.Message
-		var err error
-		if chain == nil || chain.IsDefault() {
-			upstreamListener, err = s.makeUpstreamListenerIgnoreDiscoveryChain(&u, chain, cfgSnap)
+			var upstreamListener proto.Message
+			var err error
+			if chain == nil || chain.IsDefault() {
+				upstreamListener, err = s.makeUpstreamListenerIgnoreDiscoveryChain(&u, chain, cfgSnap)
+			} else {
+				upstreamListener, err = s.makeUpstreamListenerForDiscoveryChain(&u, chain, cfgSnap)
+			}
+			if err != nil {
+				return nil, err
+			}
+			resources = append(resources, upstreamListener)
 		} else {
-			upstreamListener, err = s.makeUpstreamListenerForDiscoveryChain(&u, chain, cfgSnap)
+			// If multiple upstreams share this port, make a special listener for the protocol.
+			addr := cfgSnap.Address
+			if addr == "" {
+				addr = "0.0.0.0"
+			}
+
+			listener := makeListener(listenerKey.Protocol, addr, listenerKey.Port)
+			filter, err := makeListenerFilter(
+				true, listenerKey.Protocol, listenerKey.RouteName(), "", "ingress_upstream_", "", false)
+			if err != nil {
+				return nil, err
+			}
+
+			listener.FilterChains = []envoylistener.FilterChain{
+				{
+					Filters: []envoylistener.Filter{
+						filter,
+					},
+				},
+			}
+			resources = append(resources, listener)
 		}
-		if err != nil {
-			return nil, err
-		}
-		resources = append(resources, upstreamListener)
 	}
 
 	return resources, nil

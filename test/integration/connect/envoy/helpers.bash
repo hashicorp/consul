@@ -646,15 +646,21 @@ function set_ttl_check_state {
 }
 
 function get_upstream_fortio_name {
-  run retry_default curl -v -s -f localhost:5000/debug?env=dump
+  local HOST=$1
+  local PORT=$2
+  local PREFIX=$3
+  run retry_default curl -v -s -f -H"Host: ${HOST}" "localhost:${PORT}${PREFIX}/debug?env=dump"
   [ "$status" == 0 ]
   echo "$output" | grep -E "^FORTIO_NAME="
 }
 
 function assert_expected_fortio_name {
   local EXPECT_NAME=$1
+  local HOST=${2:-"localhost"}
+  local PORT=${3:-5000}
+  local URL_PREFIX=${4:-""}
 
-  GOT=$(get_upstream_fortio_name)
+  GOT=$(get_upstream_fortio_name ${HOST} ${PORT} ${URL_PREFIX})
 
   if [ "$GOT" != "FORTIO_NAME=${EXPECT_NAME}" ]; then
     echo "expected name: $EXPECT_NAME, actual name: $GOT" 1>&2

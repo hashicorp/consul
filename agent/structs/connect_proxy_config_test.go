@@ -100,6 +100,8 @@ func TestUpstream_MarshalJSON(t *testing.T) {
 				DestinationName: "foo",
 				Datacenter:      "dc1",
 				LocalBindPort:   1234,
+				// Test IngressHosts does not marshal
+				IngressHosts: []string{"test.example.com"},
 			},
 			want: `{
 				"DestinationType": "service",
@@ -178,6 +180,22 @@ func TestUpstream_UnmarshalJSON(t *testing.T) {
 				Datacenter:      "dc1",
 			},
 			wantErr: false,
+		},
+		{
+			name: "ingress-hosts-do-not-unmarshal",
+			json: `{
+				"DestinationType": "service",
+				"DestinationName": "foo",
+				"Datacenter": "dc1",
+				"IngressHosts": ["asdf"]
+			}`,
+			want: Upstream{
+				DestinationType: UpstreamDestTypeService,
+				DestinationName: "foo",
+				Datacenter:      "dc1",
+				IngressHosts:    nil, // Make sure this doesn't get parsed
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {

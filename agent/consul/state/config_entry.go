@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 	memdb "github.com/hashicorp/go-memdb"
 )
 
@@ -831,4 +832,46 @@ func (s *Store) configEntryWithOverridesTxn(
 	}
 
 	return s.configEntryTxn(tx, ws, kind, name, entMeta)
+}
+
+// protocolForService returns the service graph protocol associated to the
+// provided service, checking all relevant config entries.
+func (s *Store) protocolForService(
+	tx *memdb.Txn,
+	ws memdb.WatchSet,
+	svc structs.ServiceID,
+) (uint64, string, error) {
+	// Get the global proxy defaults (for default protocol)
+	maxIdx, proxyConfig, err := s.configEntryTxn(tx, ws, structs.ProxyDefaults, structs.ProxyConfigGlobal, structs.DefaultEnterpriseMeta())
+	if err != nil {
+		return 0, "", err
+	}
+
+	idx, serviceDefaults, err := s.configEntryTxn(tx, ws, structs.ServiceDefaults, svc.ID, &svc.EnterpriseMeta)
+	if err != nil {
+		return 0, "", err
+	}
+	maxIdx = lib.MaxUint64(maxIdx, idx)
+
+	entries := structs.NewDiscoveryChainConfigEntries()
+	if proxyConfig != nil {
+		entries.AddEntries(proxyConfig)
+	}
+	if serviceDefaults != nil {
+		entries.AddEntries(serviceDefaults)
+	}
+	req := discoverychain.CompileRequest{
+		ServiceName:          svc.ID,
+		EvaluateInNamespace:  svc.NamespaceOrDefault(),
+		EvaluateInDatacenter: "dc1",
+		// Use a dummy trust domain since that won't affect the protocol here.
+		EvaluateInTrustDomain: "b6fc9da3-03d4-4b5a-9134-c045e9b20152.consul",
+		UseInDatacenter:       "dc1",
+		Entries:               entries,
+	}
+	chain, err := discoverychain.Compile(req)
+	if err != nil {
+		return 0, "", err
+	}
+	return maxIdx, chain.Protocol, nil
 }

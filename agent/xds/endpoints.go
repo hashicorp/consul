@@ -255,16 +255,26 @@ func (s *Server) endpointsFromServicesAndResolvers(
 
 func (s *Server) endpointsFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var resources []proto.Message
-	for _, u := range cfgSnap.IngressGateway.Upstreams {
-		id := u.Identifier()
+	createdClusters := make(map[string]bool)
+	for _, upstreams := range cfgSnap.IngressGateway.Upstreams {
+		for _, u := range upstreams {
+			id := u.Identifier()
 
-		es := s.endpointsFromDiscoveryChain(
-			cfgSnap.IngressGateway.DiscoveryChain[id],
-			cfgSnap.Datacenter,
-			cfgSnap.IngressGateway.WatchedUpstreamEndpoints[id],
-			cfgSnap.IngressGateway.WatchedGatewayEndpoints[id],
-		)
-		resources = append(resources, es...)
+			// If we've already created endpoints for this upstream, skip it. Multiple listeners may
+			// reference the same upstream, so we don't need to create duplicate endpoints in that case.
+			if createdClusters[id] {
+				continue
+			}
+
+			es := s.endpointsFromDiscoveryChain(
+				cfgSnap.IngressGateway.DiscoveryChain[id],
+				cfgSnap.Datacenter,
+				cfgSnap.IngressGateway.WatchedUpstreamEndpoints[id],
+				cfgSnap.IngressGateway.WatchedGatewayEndpoints[id],
+			)
+			resources = append(resources, es...)
+			createdClusters[id] = true
+		}
 	}
 	return resources, nil
 }

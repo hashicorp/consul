@@ -247,6 +247,11 @@ type Upstream struct {
 
 	// MeshGateway is the configuration for mesh gateway usage of this upstream
 	MeshGateway MeshGatewayConfig `json:",omitempty"`
+
+	// IngressHosts are a list of hosts that should route to this upstream from
+	// an ingress gateway. This cannot and should not be set by a user, it is
+	// used internally to store the association of hosts to an upstream service.
+	IngressHosts []string `json:"-" bexpr:"-"`
 }
 
 func (t *Upstream) UnmarshalJSON(data []byte) (err error) {

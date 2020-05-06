@@ -725,9 +725,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							Result: &structs.IndexedGatewayServices{
 								Services: structs.GatewayServices{
 									{
-										Gateway: structs.NewServiceID("ingress-gateway", nil),
-										Service: structs.NewServiceID("api", nil),
-										Port:    9999,
+										Gateway:  structs.NewServiceID("ingress-gateway", nil),
+										Service:  structs.NewServiceID("api", nil),
+										Port:     9999,
+										Protocol: "http",
 									},
 								},
 							},
@@ -736,6 +737,18 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.Len(t, snap.IngressGateway.Upstreams, 1)
+						key := IngressListenerKey{Protocol: "http", Port: 9999}
+						require.Equal(t, snap.IngressGateway.Upstreams[key], structs.Upstreams{
+							{
+								DestinationNamespace: "default",
+								DestinationName:      "api",
+								LocalBindAddress:     "10.0.1.1",
+								LocalBindPort:        9999,
+								Config: map[string]interface{}{
+									"protocol": "http",
+								},
+							},
+						})
 						require.Len(t, snap.IngressGateway.WatchedDiscoveryChains, 1)
 						require.Contains(t, snap.IngressGateway.WatchedDiscoveryChains, "api")
 					},
@@ -806,6 +819,66 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 								},
 							},
 						)
+					},
+				},
+			},
+		},
+		"ingress-gateway-update-upstreams": testCase{
+			ns: structs.NodeService{
+				Kind:    structs.ServiceKindIngressGateway,
+				ID:      "ingress-gateway",
+				Service: "ingress-gateway",
+				Address: "10.0.1.1",
+			},
+			sourceDC: "dc1",
+			stages: []verificationStage{
+				verificationStage{
+					requiredWatches: map[string]verifyWatchRequest{
+						rootsWatchID: genVerifyRootsWatch("dc1"),
+						leafWatchID:  genVerifyLeafWatch("ingress-gateway", "dc1"),
+					},
+					events: []cache.UpdateEvent{
+						rootWatchEvent(),
+						cache.UpdateEvent{
+							CorrelationID: leafWatchID,
+							Result:        issuedCert,
+							Err:           nil,
+						},
+						cache.UpdateEvent{
+							CorrelationID: gatewayServicesWatchID,
+							Result: &structs.IndexedGatewayServices{
+								Services: structs.GatewayServices{
+									{
+										Gateway: structs.NewServiceID("ingress-gateway", nil),
+										Service: structs.NewServiceID("api", nil),
+										Port:    9999,
+									},
+								},
+							},
+							Err: nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid())
+						require.Len(t, snap.IngressGateway.Upstreams, 1)
+						require.Len(t, snap.IngressGateway.WatchedDiscoveryChains, 1)
+						require.Contains(t, snap.IngressGateway.WatchedDiscoveryChains, "api")
+					},
+				},
+				verificationStage{
+					requiredWatches: map[string]verifyWatchRequest{},
+					events: []cache.UpdateEvent{
+						cache.UpdateEvent{
+							CorrelationID: gatewayServicesWatchID,
+							Result:        &structs.IndexedGatewayServices{},
+							Err:           nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid())
+						require.Len(t, snap.IngressGateway.Upstreams, 0)
+						require.Len(t, snap.IngressGateway.WatchedDiscoveryChains, 0)
+						require.NotContains(t, snap.IngressGateway.WatchedDiscoveryChains, "api")
 					},
 				},
 			},
