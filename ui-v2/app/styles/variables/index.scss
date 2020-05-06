@@ -22,6 +22,11 @@
   --brand-800: #{$magenta-800};
   // --brand-900: #{$magenta-900};
 
+  /* themeable ui colors */
+  --typo-action-500: #{$blue-500};
+  --decor-error-500: #{$red-500};
+  --typo-contrast-999: #{$black};
+
   /* themeable brand colors */
   --typo-brand-050: var(--brand-050);
   --typo-brand-600: var(--brand-600);

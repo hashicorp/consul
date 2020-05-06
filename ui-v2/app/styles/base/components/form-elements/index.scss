@@ -8,10 +8,7 @@
 %form-element > span {
   @extend %form-element-label;
 }
-form button + em {
-  margin-top: 0.5em;
-}
-form button + em,
+%form button + em,
 %form-element > em {
   @extend %form-element-note;
 }

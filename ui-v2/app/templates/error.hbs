@@ -1,5 +1,10 @@
 {{#if error}}
 <AppView @class="error show">
+    <BlockSlot @name="header">
+      <h1>
+        Error {{error.status}}
+      </h1>
+    </BlockSlot>
     <BlockSlot @name="content">
       {{#if (not-eq error.status "403")}}
           <EmptyState class={{concat "status-" error.status}}>
