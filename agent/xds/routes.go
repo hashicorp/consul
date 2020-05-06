@@ -98,6 +98,7 @@ func routesFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto
 				continue
 			}
 
+			namespace := u.GetEnterpriseMeta().NamespaceOrDefault()
 			var domains []string
 			switch {
 			case len(upstreams) == 1:
@@ -110,6 +111,8 @@ func routesFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto
 				// If a user has specified hosts, do not add the default
 				// "<service-name>.*" prefix
 				domains = u.IngressHosts
+			case namespace != structs.IntentionDefaultNamespace:
+				domains = []string{fmt.Sprintf("%s.ingress.%s.*", chain.ServiceName, namespace)}
 			default:
 				domains = []string{fmt.Sprintf("%s.*", chain.ServiceName)}
 			}
