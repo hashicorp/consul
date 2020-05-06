@@ -3,15 +3,16 @@ button[type='submit'],
 a.type-create {
   @extend %primary-button;
 }
-// the :not(li)'s here avoid styling action-group buttons
 // TODO: Once we move action-groups to use aria menu we can get rid of
 // some of this and just use not(aria-haspopup)
 button[type='reset'],
-:not(li) > button[type='button']:not(.copy-btn):not(.type-delete):not([aria-haspopup='menu']),
+form button[type='button']:not([aria-haspopup='menu']),
+header .actions button[type='button'],
+button.type-cancel,
 html.template-error div > a {
   @extend %secondary-button;
 }
-:not(li) > button.type-delete {
+form button[type='button'].type-delete {
   @extend %dangerous-button;
 }
 button.copy-btn {
