@@ -282,67 +282,6 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 	return err
 }
 
-// GatewayServiceNodes returns all the nodes for services associated with a gateway
-func (h *Health) GatewayServiceNodes(args *structs.ServiceSpecificRequest, reply *structs.IndexedCheckServiceNodes) error {
-	if done, err := h.srv.forward("Health.GatewayServiceNodes", args, args, reply); done {
-		return err
-	}
-
-	// Verify the arguments
-	if args.ServiceName == "" {
-		return fmt.Errorf("Must provide service name")
-	}
-
-	var authzContext acl.AuthorizerContext
-	authz, err := h.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
-	if err != nil {
-		return err
-	}
-
-	if err := h.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
-		return err
-	}
-
-	// We need read access to the gateway we're trying to find services for, so check that first.
-	if authz != nil && authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
-	}
-
-	filter, err := bexpr.CreateFilter(args.Filter, nil, reply.Nodes)
-	if err != nil {
-		return err
-	}
-
-	err = h.srv.blockingQuery(
-		&args.QueryOptions,
-		&reply.QueryMeta,
-		func(ws memdb.WatchSet, state *state.Store) error {
-			index, nodes, err := state.CheckGatewayServiceNodes(ws, args.ServiceName, &args.EnterpriseMeta)
-			if err != nil {
-				return err
-			}
-
-			reply.Index, reply.Nodes = index, nodes
-			if len(args.NodeMetaFilters) > 0 {
-				reply.Nodes = nodeMetaFilter(args.NodeMetaFilters, reply.Nodes)
-			}
-
-			if err := h.srv.filterACL(args.Token, reply); err != nil {
-				return err
-			}
-
-			raw, err := filter.Execute(reply.Nodes)
-			if err != nil {
-				return err
-			}
-			reply.Nodes = raw.(structs.CheckServiceNodes)
-
-			return h.srv.sortNodesByDistanceFrom(args.Source, reply.Nodes)
-		})
-
-	return err
-}
-
 // The serviceNodes* functions below are the various lookup methods that
 // can be used by the ServiceNodes endpoint.
 

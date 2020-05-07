@@ -11,12 +11,6 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-const (
-	servicePrefix = "/v1/health/service/"
-	connectPrefix = "/v1/health/connect/"
-	gatewayPrefix = "/v1/health/gateway/"
-)
-
 func (s *HTTPServer) HealthChecksInState(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Set default DC
 	args := structs.ChecksInStateRequest{}
@@ -160,23 +154,16 @@ RETRY_ONCE:
 }
 
 func (s *HTTPServer) HealthConnectServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	return s.healthServiceNodes(resp, req, connectPrefix)
+	return s.healthServiceNodes(resp, req, true)
 }
 
 func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	return s.healthServiceNodes(resp, req, servicePrefix)
+	return s.healthServiceNodes(resp, req, false)
 }
 
-func (s *HTTPServer) HealthGatewayServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	return s.healthServiceNodes(resp, req, gatewayPrefix)
-}
-
-func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Request, prefix string) (interface{}, error) {
+func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Request, connect bool) (interface{}, error) {
 	// Set default DC
-	args := structs.ServiceSpecificRequest{}
-	if prefix == connectPrefix {
-		args.Connect = true
-	}
+	args := structs.ServiceSpecificRequest{Connect: connect}
 	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
 	}
@@ -191,6 +178,12 @@ func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Requ
 	if _, ok := params["tag"]; ok {
 		args.ServiceTags = params["tag"]
 		args.TagFilter = true
+	}
+
+	// Determine the prefix
+	prefix := "/v1/health/service/"
+	if connect {
+		prefix = "/v1/health/connect/"
 	}
 
 	// Pull out the service name
@@ -219,12 +212,7 @@ func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Requ
 		out = *reply
 	} else {
 	RETRY_ONCE:
-		method := "Health.ServiceNodes"
-		if prefix == gatewayPrefix {
-			method = "Health.GatewayServiceNodes"
-		}
-
-		if err := s.agent.RPC(method, &args, &out); err != nil {
+		if err := s.agent.RPC("Health.ServiceNodes", &args, &out); err != nil {
 			return nil, err
 		}
 		if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
