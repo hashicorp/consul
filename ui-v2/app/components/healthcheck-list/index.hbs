@@ -7,8 +7,13 @@
       </BlockSlot>
       <BlockSlot @name="content">
       <dl>
+      {{#if (eq item.ServiceName "")}}
+        <dt>NodeName</dt>
+        <dd>{{item.Node}}</dd>
+      {{else}}
         <dt>ServiceName</dt>
-        <dd>{{or item.ServiceName '-'}}</dd>
+        <dd>{{item.ServiceName}}</dd>
+      {{/if}}
       </dl>
       <dl>
         <dt>CheckID</dt>

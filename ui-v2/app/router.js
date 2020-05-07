@@ -31,6 +31,9 @@ export const routes = {
         healthchecks: {
           _options: { path: '/health-checks' },
         },
+        proxy: {
+          _options: { path: '/proxy' },
+        },
         upstreams: {
           _options: { path: '/upstreams' },
         },

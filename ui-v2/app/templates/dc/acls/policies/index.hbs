@@ -16,9 +16,11 @@
     <h1>
       Access Controls
     </h1>
-    {{#if isAuthorized }}
-      {{partial 'dc/acls/nav'}}
-    {{/if}}
+  </BlockSlot>
+  <BlockSlot @name="nav">
+{{#if isAuthorized }}
+    {{partial 'dc/acls/nav'}}
+{{/if}}
   </BlockSlot>
   <BlockSlot @name="disabled">
     {{partial 'dc/acls/disabled'}}

@@ -5,5 +5,5 @@
   @extend %consul-service-instance-row;
 }
 %consul-service-instance-row {
-  @extend %composite-row;
+  @extend %composite-row, %with-composite-row-intent;
 }

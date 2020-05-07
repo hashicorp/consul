@@ -1,9 +1,9 @@
 %healthcheck-output {
   display: flex;
-
   padding: 20px 16px;
   padding-right: 24px;
-
+}
+%healthcheck-output:not(:last-child) {
   margin-bottom: 24px;
 }
 %healthcheck-output::before {
