@@ -1617,6 +1617,15 @@ type NodeInfo struct {
 // as it is rather expensive to generate.
 type NodeDump []*NodeInfo
 
+type ServiceInfo struct {
+	Node           *Node
+	Service        *NodeService
+	Checks         HealthChecks
+	GatewayService *GatewayService
+}
+
+type ServiceDump []*ServiceInfo
+
 type CheckID struct {
 	ID types.CheckID
 	EnterpriseMeta
@@ -1753,6 +1762,11 @@ type DatacenterIndexedCheckServiceNodes struct {
 
 type IndexedNodeDump struct {
 	Dump NodeDump
+	QueryMeta
+}
+
+type IndexedServiceDump struct {
+	Dump ServiceDump
 	QueryMeta
 }
 

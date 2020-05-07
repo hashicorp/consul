@@ -158,6 +158,40 @@ RPC:
 	return summarizeServices(out.Nodes), nil
 }
 
+// UIGatewayServices is used to query all the nodes for services associated with a gateway along with their gateway config
+func (s *HTTPServer) UIGatewayServicesNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Parse arguments
+	args := structs.ServiceSpecificRequest{}
+	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	// Pull out the service name
+	args.ServiceName = strings.TrimPrefix(req.URL.Path, "/v1/internal/ui/gateway-services-nodes/")
+	if args.ServiceName == "" {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(resp, "Missing gateway name")
+		return nil, nil
+	}
+
+	// Make the RPC request
+	var out structs.IndexedServiceDump
+	defer setMeta(resp, &out.QueryMeta)
+RPC:
+	if err := s.agent.RPC("Internal.GatewayServiceDump", &args, &out); err != nil {
+		// Retry the request allowing stale data if no leader
+		if strings.Contains(err.Error(), structs.ErrNoLeader.Error()) && !args.AllowStale {
+			args.AllowStale = true
+			goto RPC
+		}
+		return nil, err
+	}
+	return out.Dump, nil
+}
+
 func summarizeServices(dump structs.CheckServiceNodes) []*ServiceSummary {
 	// Collect the summary information
 	var services []structs.ServiceID
