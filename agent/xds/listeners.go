@@ -654,7 +654,8 @@ func (s *Server) sniFilterChainTerminatingGateway(listener, cluster, token strin
 	}
 
 	// The cluster name here doesn't matter as the sni_cluster filter will fill it in for us.
-	tcpProxy, err := makeTCPProxyFilter(listener, "", fmt.Sprintf("terminating_gateway_%s_", service.String()))
+	statPrefix := fmt.Sprintf("terminating_gateway_%s_%s_", service.NamespaceOrDefault(), service.ID)
+	tcpProxy, err := makeTCPProxyFilter(listener, "", statPrefix)
 	if err != nil {
 		return envoylistener.FilterChain{}, err
 	}

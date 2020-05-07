@@ -65,7 +65,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "",
-                  "stat_prefix": "terminating_gateway_api_default_tcp"
+                  "stat_prefix": "terminating_gateway_default_api_default_tcp"
                 }
             }
           ]
@@ -124,7 +124,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "",
-                  "stat_prefix": "terminating_gateway_web_default_tcp"
+                  "stat_prefix": "terminating_gateway_default_web_default_tcp"
                 }
             }
           ]

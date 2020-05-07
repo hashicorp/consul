@@ -89,6 +89,8 @@ func (e *IngressGatewayConfigEntry) Normalize() error {
 	}
 
 	e.Kind = IngressGateway
+	e.EnterpriseMeta.Normalize()
+
 	for i, listener := range e.Listeners {
 		if listener.Protocol == "" {
 			listener.Protocol = "tcp"
@@ -96,6 +98,7 @@ func (e *IngressGatewayConfigEntry) Normalize() error {
 
 		listener.Protocol = strings.ToLower(listener.Protocol)
 		for i := range listener.Services {
+			listener.Services[i].EnterpriseMeta.Merge(&e.EnterpriseMeta)
 			listener.Services[i].EnterpriseMeta.Normalize()
 		}
 
@@ -103,8 +106,6 @@ func (e *IngressGatewayConfigEntry) Normalize() error {
 		// pointers to structs
 		e.Listeners[i] = listener
 	}
-
-	e.EnterpriseMeta.Normalize()
 
 	return nil
 }
@@ -253,11 +254,12 @@ func (e *TerminatingGatewayConfigEntry) Normalize() error {
 	}
 
 	e.Kind = TerminatingGateway
+	e.EnterpriseMeta.Normalize()
 
 	for i := range e.Services {
+		e.Services[i].EnterpriseMeta.Merge(&e.EnterpriseMeta)
 		e.Services[i].EnterpriseMeta.Normalize()
 	}
-	e.EnterpriseMeta.Normalize()
 
 	return nil
 }
