@@ -47,13 +47,13 @@
   &.has-background {
     background-repeat: no-repeat;
     background-color: var(--gray-7);
-    background-image: url(/img/hero-pattern.svg);
+    background-image: url(/img/hero/pattern-desktop.svg);
     width: 100%;
     background-size: cover;
     background-position: center;
 
     @media (max-width: 800px) {
-      background-image: url(/img/hero-pattern-mobile.svg);
+      background-image: url(/img/hero/pattern-mobile.svg);
     }
 
     & .g-btn {

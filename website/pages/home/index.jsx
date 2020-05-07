@@ -12,17 +12,17 @@ export default function HomePage() {
       <BasicHero
         brand="consul"
         heading="Service Networking Across Any Cloud or Runtime"
-        content="Automate network configurations, discover services, and enable secure connectivity across any cloud or runtime"
+        content="Automate network configurations, discover services, and enable secure connectivity across any cloud or runtime."
         links={[
           {
-            text: 'Explore HashiCorp Learn',
-            url: 'https://learn.hashicorp.com/nomad',
-            type: 'outbound',
+            text: 'Download',
+            url: '/downloads',
+            type: 'download',
           },
           {
-            text: 'Explore Documentation',
-            url: '/docs',
-            type: 'inbound',
+            text: 'Get Started',
+            url: 'https://learn.hashicorp.com/consul',
+            type: 'outbound',
           },
         ]}
         backgroundImage
