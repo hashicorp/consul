@@ -39,6 +39,7 @@
 @import '~@hashicorp/react-code-block/dist/style.css';
 @import '~@hashicorp/react-alert-banner/dist/style.css';
 @import '~@hashicorp/react-use-cases/dist/style.css';
+@import '~@hashicorp/react-featured-slider/dist/style.css';
 
 /* Local Components */
 @import '../components/basic-hero/style.css';

@@ -20,6 +20,7 @@
     "@hashicorp/react-docs-sidenav": "^3.2.3",
     "@hashicorp/react-docs-sitemap": "^1.0.0",
     "@hashicorp/react-enterprise-alert": "^2.1.0",
+    "@hashicorp/react-featured-slider": "^1.1.0",
     "@hashicorp/react-footer": "^3.1.14",
     "@hashicorp/react-global-styles": "^4.2.0",
     "@hashicorp/react-head": "^0.1.1",
