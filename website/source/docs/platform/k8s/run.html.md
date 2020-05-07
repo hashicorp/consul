@@ -94,7 +94,7 @@ create a `config.yaml` file to override the default settings.
 You can learn what settings are available by running `helm inspect values hashicorp/consul`
 or by reading the [Helm Chart Reference](/docs/platform/k8s/helm.html).
 
-For example, if you want to enable the [Consul Connect](/docs/k8s/connect) feature,
+For example, if you want to enable the [Consul Connect](/docs/platform/k8s/connect.html) feature,
 use the following config file:
 
 ```yaml
