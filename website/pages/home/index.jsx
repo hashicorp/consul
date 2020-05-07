@@ -164,52 +164,46 @@ export default function HomePage() {
         }}
       />
       <div className="use-cases g-grid-container">
+        <h2 className="g-type-display-2">Use Cases</h2>
         <UseCases
           items={[
             {
-              title: 'Infrastructure as Code',
+              title: 'Network Middleware Automation',
               description:
-                'Use infrastructure as code to provision infrastructure. Codification enables version control and automation, reducing human error and increasing productivity.',
+                'Reduce burden of manual, ticket-based networking tasks.',
               image: {
-                url:
-                  'https://www.datocms-assets.com/2885/1538425176-secrets.svg',
-                alt: 'optional image',
-                format: 'svg',
+                url: require('./img/use-cases/network-middleware-automation.png?url'),
+                format: 'png',
               },
               link: {
                 title: 'Learn more',
-                url: 'https://hashicorp.com',
+                url: '/use-cases/network-middleware-automation',
               },
             },
             {
-              title: 'Multi-Cloud Compliance and Management',
+              title: 'Multi-Platform Service Mesh',
               description:
-                'Provision and manage public cloud, private infrastructure, and cloud services with one workflow to learn, secure, govern, and audit.',
+                'Secure, modern application networking across any cloud or runtime.',
               image: {
-                url:
-                  'https://www.datocms-assets.com/2885/1538425176-secrets.svg',
-                alt: 'optional image',
-                format: 'svg',
+                url: require('./img/use-cases/multi-platform-service-mesh.png?url'),
+                format: 'png',
               },
               link: {
                 title: 'Learn more',
-                url: 'https://hashicorp.com/products/terraform',
+                url: '/use-cases/multi-platform-service-mesh',
               },
             },
             {
-              title: 'Self-Service Infrastructure',
+              title: 'Service Discovery & Health Checks',
               description:
-                'Enable users to easily provision infrastructure on-demand with a library of approved infrastructure.',
+                'Enable services to locate other services running in any environment and provide real-time health status.',
               image: {
-                url:
-                  'https://www.datocms-assets.com/2885/1538425176-secrets.svg',
-                alt: 'optional image',
-                format: 'svg',
+                url: require('./img/use-cases/service-discovery-and-health-checks.png?url'),
+                format: 'png',
               },
               link: {
                 title: 'Learn more',
-                url: 'https://terraform.io',
-                external: true,
+                url: '/use-cases/service-discovery-and-health-checks',
               },
             },
           ]}

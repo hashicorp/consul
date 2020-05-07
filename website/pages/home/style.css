@@ -14,7 +14,7 @@
 
     & .g-use-cases {
       & .icon {
-        /* min-height: 140px; */
+        min-height: 140px;
         margin-bottom: 25px;
       }
     }
