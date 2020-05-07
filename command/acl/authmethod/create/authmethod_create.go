@@ -42,6 +42,8 @@ type cmd struct {
 	format   string
 
 	testStdin io.Reader
+
+	enterpriseCmd
 }
 
 func (c *cmd) init() {
@@ -124,6 +126,8 @@ func (c *cmd) init() {
 			"given to indicate that the config is available on stdin",
 	)
 
+	c.initEnterpriseFlags()
+
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
@@ -160,6 +164,11 @@ func (c *cmd) Run(args []string) int {
 	}
 	if c.maxTokenTTL > 0 {
 		newAuthMethod.MaxTokenTTL = c.maxTokenTTL
+	}
+
+	if err := c.enterprisePopulateAuthMethod(newAuthMethod); err != nil {
+		c.UI.Error(err.Error())
+		return 1
 	}
 
 	if c.config != "" {

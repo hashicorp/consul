@@ -43,6 +43,8 @@ type cmd struct {
 	format   string
 
 	testStdin io.Reader
+
+	enterpriseCmd
 }
 
 func (c *cmd) init() {
@@ -127,6 +129,9 @@ func (c *cmd) init() {
 		authmethod.PrettyFormat,
 		fmt.Sprintf("Output format {%s}", strings.Join(authmethod.GetSupportedFormats(), "|")),
 	)
+
+	c.initEnterpriseFlags()
+
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
@@ -183,6 +188,11 @@ func (c *cmd) Run(args []string) int {
 			method.MaxTokenTTL = c.maxTokenTTL
 		}
 
+		if err := c.enterprisePopulateAuthMethod(method); err != nil {
+			c.UI.Error(err.Error())
+			return 1
+		}
+
 		if c.config != "" {
 			if c.k8sHost != "" || c.k8sCACert != "" || c.k8sServiceAccountJWT != "" {
 				c.UI.Error(fmt.Sprintf("Cannot use command line arguments with '-config' flag"))
@@ -228,6 +238,10 @@ func (c *cmd) Run(args []string) int {
 		}
 		if c.maxTokenTTL > 0 {
 			method.MaxTokenTTL = c.maxTokenTTL
+		}
+		if err := c.enterprisePopulateAuthMethod(method); err != nil {
+			c.UI.Error(err.Error())
+			return 1
 		}
 		if c.config != "" {
 			if c.k8sHost != "" || c.k8sCACert != "" || c.k8sServiceAccountJWT != "" {

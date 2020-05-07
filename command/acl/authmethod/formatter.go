@@ -58,6 +58,16 @@ func (f *prettyFormatter) FormatAuthMethod(method *api.ACLAuthMethod) (string, e
 		buffer.WriteString(fmt.Sprintf("DisplayName:  %s\n", method.DisplayName))
 	}
 	buffer.WriteString(fmt.Sprintf("Description:  %s\n", method.Description))
+	if method.MaxTokenTTL > 0 {
+		buffer.WriteString(fmt.Sprintf("MaxTokenTTL:  %s\n", method.MaxTokenTTL))
+	}
+	if len(method.NamespaceRules) > 0 {
+		buffer.WriteString(fmt.Sprintln("NamespaceRules:"))
+		for _, rule := range method.NamespaceRules {
+			buffer.WriteString(fmt.Sprintf("   Selector:      %s\n", rule.Selector))
+			buffer.WriteString(fmt.Sprintf("   BindNamespace: %s\n", rule.BindNamespace))
+		}
+	}
 	if f.showMeta {
 		buffer.WriteString(fmt.Sprintf("Create Index: %d\n", method.CreateIndex))
 		buffer.WriteString(fmt.Sprintf("Modify Index: %d\n", method.ModifyIndex))
