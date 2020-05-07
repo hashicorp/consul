@@ -1,11 +1,12 @@
 @import './layout';
 @import './skin';
-%composite-row:hover,
-%composite-row:focus,
-%composite-row:active {
+%with-composite-row-intent:hover,
+%with-composite-row-intent:focus,
+%with-composite-row-intent:active {
   @extend %composite-row-intent;
 }
-%composite-row > a {
+%composite-row > a,
+%composite-row > p {
   @extend %composite-row-header;
 }
 %composite-row > ul {

@@ -8,6 +8,7 @@
 %composite-row-intent {
   border-color: $gray-200;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
 }
 %composite-row-header {
   color: $black;
@@ -51,5 +52,13 @@
 }
 %composite-row .proxy::before {
   @extend %with-swap-horizontal-mask, %as-pseudo;
+  background-color: $gray-500;
+}
+%composite-row .datacenter::before {
+  @extend %with-user-organization-mask, %as-pseudo;
+  background-color: $gray-500;
+}
+%composite-row .nspace::before {
+  @extend %with-folder-outline-mask, %as-pseudo;
   background-color: $gray-500;
 }

@@ -1,0 +1,96 @@
+<div class="tab-section">
+  <div role="tabpanel">
+  {{#if (or (gt proxy.ServiceChecks.length 0) (gt proxy.NodeChecks.length 0))}}
+    <section>
+      <h3>Proxy health checks</h3>
+      <HealthcheckList data-test-proxy-checks @items={{append proxy.ServiceChecks proxy.NodeChecks}} />
+    </section>
+  {{/if}}
+  {{#if (gt proxy.Proxy.Upstreams.length 0)}}
+    <section class="proxy-upstreams">
+      <h3>Upstreams</h3>
+      <ul data-test-proxy-upstreams>
+      {{#let proxy.Datacenter as |proxyDatacenter|}}
+        {{#each proxy.Proxy.Upstreams as |item|}}
+          <li>
+            <p data-test-destination-name>
+              {{item.DestinationName}}
+            </p>
+            <ul>
+          {{#if (env 'CONSUL_NSPACES_ENABLED')}}
+            {{#if (not-eq item.DestinationType 'prepared_query')}}
+              <li class="nspace">
+                {{or item.DestinationNamespace 'default'}}
+              </li>
+            {{/if}}
+          {{/if}}
+            {{#if (and (not-eq item.Datacenter proxyDatacenter) (not-eq item.Datacenter ""))}}
+              <li class="datacenter">
+                {{item.Datacenter}}
+              </li>
+            {{/if}}
+            {{#if (gt item.LocalBindPort 0)}}
+              {{#let (concat (or item.LocalBindAddress '127.0.0.1') ':' item.LocalBindPort) as |combinedAddress| }}
+              <li class="port">
+                <CopyButtonFeedback 
+                  @copy={{combinedAddress}} 
+                  @name="Address" 
+                />
+                <span>{{combinedAddress}}</span>
+              </li>
+              {{/let}}
+            {{/if}}
+            </ul>
+          </li>
+        {{/each}}
+      {{/let}}
+      </ul>
+    </section>
+  {{/if}}
+  {{#if (gt proxy.Proxy.Upstreams.length 0)}}
+    <section class="proxy-exposed-paths">
+      <h3>Exposed paths</h3>
+      <p>
+        The following list shows individual HTTP paths exposed through Envoy for external services like Prometheus. Read more about this in our documentation.
+      </p>
+      <table data-test-proxy-exposed-paths>
+        <thead>
+          <th>Path</th>
+          <th>Protocol</th>
+          <th>Listener port</th>
+          <th>Local path port</th>
+          <th>Combined address<span><em role="tooltip">Service address, listener port, and path all combined into one URL.</em></span></th>
+        </thead>
+          <tbody>
+          {{#each proxy.Proxy.Expose.Paths as |path|}}
+            <tr>
+              <td>
+                <span>{{or path.Path '-'}}</span>
+              </td>
+              <td>
+                {{or path.Protocol '-'}}
+              </td>
+              <td>
+                {{or path.ListenerPort '-'}}
+              </td>
+              <td>
+                {{or path.LocalPathPort '-'}}
+              </td>
+            {{#let (concat item.Address ':' path.ListenerPort path.Path) as |combinedAddress| }}
+              <td class="combined-address">
+              {{#if combinedAddress}}
+                <span data-test-combined-address>{{combinedAddress}}</span>
+                <CopyButtonFeedback @copy={{combinedAddress}} @name="Combined Address" />
+              {{else}}
+                {{'-'}}
+              {{/if}}
+              </td>
+            {{/let}}
+            </tr>
+          {{/each}}
+          </tbody>
+      </table>
+    </section>
+  {{/if}}
+  </div>
+</div>

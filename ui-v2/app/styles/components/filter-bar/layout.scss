@@ -1,8 +1,11 @@
 %filter-bar {
   padding: 4px;
   display: block;
+  margin-bottom: 8px;
   margin-top: 0 !important;
-  margin-bottom: 8px !important;
+}
+%filter-bar + :not(.notice) {
+  margin-top: 1.8em;
 }
 @media #{$--horizontal-filters} {
   %filter-bar {

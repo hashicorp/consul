@@ -1,67 +1,61 @@
 /* layout */
-%app-view-header > div:last-of-type > div:first-child {
-  flex-grow: 1;
-}
 %app-view {
   position: relative;
 }
-%app-view-header .actions {
-  float: right;
-  display: flex;
-  align-items: flex-start;
-  margin-top: 9px;
-}
-%app-view-header dl {
-  float: left;
-  margin-top: 25px;
-  margin-right: 50px;
-  margin-bottom: 20px;
-}
-%app-view-header dt {
-  font-weight: bold;
-}
-%app-view-header dd > a {
-  color: $black;
-}
-%app-view-header .title-bar {
+%app-view-title {
   display: flex;
   align-items: center;
 }
-%app-view-header .title-bar > h1 {
-  border: 0;
+%app-view-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: flex-start;
 }
-%app-view-header .title-bar > span {
-  margin-left: 8px;
+%app-view-header dl {
+  float: left;
 }
 /* units */
 %app-view {
   margin-top: 50px;
 }
+/* give anything after the header a bit of room */
 %app-view-header + div > *:first-child {
   margin-top: 1.8em;
 }
-%app-view h2 {
+%app-view-title {
   padding-bottom: 0.2em;
-  margin-bottom: 0.5em;
 }
-%app-view-header .actions > *:not(:last-child) {
+%app-view-title > :not(:last-child) {
+  margin-right: 8px;
+}
+%app-view-actions {
+  margin-top: 9px;
+}
+%app-view-actions > *:not(:last-child) {
   margin-right: 12px;
 }
-
-// content
-%app-view-content div > dl > dt {
-  position: absolute;
+%app-view-header dl {
+  margin-top: 19px;
+  margin-bottom: 23px;
+  margin-right: 50px;
 }
-%app-view-content div > dl {
-  position: relative;
+
+/* content */
+%app-view-content h2 {
+  padding-bottom: 0.2em;
+  margin-bottom: 0.5em;
 }
 %app-view-content-empty {
   margin-top: 0;
   padding: 50px;
   text-align: center;
 }
-%app-view-content form:not(:last-child) {
-  margin-bottom: 2.2em;
+/* this should probably be its own component */
+%app-view-content div > dl {
+  position: relative;
+}
+%app-view-content div > dl > dt {
+  position: absolute;
 }
 %app-view-content div > dl > dt {
   width: 140px;
@@ -73,7 +67,8 @@
   min-height: 1em;
   margin-bottom: 0.4em;
 }
-// TODO: Think about an %app-form or similar
+/* */
+/* TODO: Think about an %app-form or similar */
 %app-view-content fieldset:not(.freetext-filter) {
   padding-bottom: 0.3em;
   margin-bottom: 2em;
