@@ -28,49 +28,43 @@ export default function HomePage() {
         backgroundImage
       />
       <ProductFeaturesList
-        heading="Why Nomad?"
+        heading="Why Consul?"
         features={[
           {
             title: 'First Class Kubernetes Experience',
             content:
               'Consul provides a Helm chart for a Kubernetes first experience for Service Discovery and Service Mesh use cases.',
-            icon:
-              'https://d33wubrfki0l68.cloudfront.net/d9ed5629918bfe6e41dd9a35226d4c86e69cb54b/f2b68/img/icons/home-solution-consul.svg',
+            icon: require('./img/why-consul/kubernetes.svg'),
           },
           {
             title: 'Service Mesh Across Runtime Platforms',
             content:
-              'Establish a service mesh between Bare Metal, Virtual Machines, and Kubernetes clusters, across any cloud. ',
-            icon:
-              'https://d33wubrfki0l68.cloudfront.net/d9ed5629918bfe6e41dd9a35226d4c86e69cb54b/f2b68/img/icons/home-solution-consul.svg',
+              'Establish a service mesh between Bare Metal, Virtual Machines, and Kubernetes clusters, across any cloud.',
+            icon: require('./img/why-consul/service-mesh-runtime.svg'),
           },
           {
-            title: 'Modernize Legacy Applications without Rewrite',
+            title: 'Dynamic Load Balancing Configurations',
             content:
-              'Bring orchestration benefits to existing services. Achieve zero downtime deployments, improved resilience, higher resource utilization, and more without containerization.',
-            icon:
-              'https://d33wubrfki0l68.cloudfront.net/d9ed5629918bfe6e41dd9a35226d4c86e69cb54b/f2b68/img/icons/home-solution-consul.svg',
+              'Use Consul to automate service updates to popular load balancers (F5, NGINX, HAProxy) and eliminate manual configuration.',
+            icon: require('./img/why-consul/dynamic-load-balancing.svg'),
           },
           {
-            title: 'Secure, Multi-Cloud Service Networking ',
+            title: 'Secure, Multi-Cloud Service Networking',
             content:
               'Secure any service running in any environment. Consul enables users to automate and secure service to service communication.',
-            icon:
-              'https://d33wubrfki0l68.cloudfront.net/d9ed5629918bfe6e41dd9a35226d4c86e69cb54b/f2b68/img/icons/home-solution-consul.svg',
+            icon: require('./img/why-consul/cloud.svg'),
           },
           {
-            title: 'Automated Service Discovery with Health Checking',
+            title: 'Service Discovery with Health Checking',
             content:
-              'Enable Consul to detect the deployment of new services, changes to existing ones, and provide real time agent health to reduce downtime. ',
-            icon:
-              'https://d33wubrfki0l68.cloudfront.net/d9ed5629918bfe6e41dd9a35226d4c86e69cb54b/f2b68/img/icons/home-solution-consul.svg',
+              'Consul enables detecting the deployment of new services, changes to existing ones, and provides real time agent health to reduce downtime.',
+            icon: require('./img/why-consul/health.svg'),
           },
           {
-            title: 'Decentralized Configuration',
+            title: 'Robust Ecosystem',
             content:
-              'Consul runs as a decentralized platform allowing massive scale and performance.',
-            icon:
-              'https://d33wubrfki0l68.cloudfront.net/d9ed5629918bfe6e41dd9a35226d4c86e69cb54b/f2b68/img/icons/home-solution-consul.svg',
+              'Consul offers support for and integrations with many popular DevOps and Networking tools.',
+            icon: require('./img/why-consul/world.svg'),
           },
         ]}
       />
