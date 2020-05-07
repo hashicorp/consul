@@ -1702,16 +1702,17 @@ type IndexedServices struct {
 	QueryMeta
 }
 
-type ServiceInfo struct {
+// TODO (freddy) is this name change backwards incompatible? Used internally for Catalog.ServiceList RPC endpoint
+type ServiceName struct {
 	Name string
 	EnterpriseMeta
 }
 
-func (si *ServiceInfo) ToServiceID() ServiceID {
+func (si *ServiceName) ToServiceID() ServiceID {
 	return ServiceID{ID: si.Name, EnterpriseMeta: si.EnterpriseMeta}
 }
 
-type ServiceList []ServiceInfo
+type ServiceList []ServiceName
 
 type IndexedServiceList struct {
 	Services ServiceList
