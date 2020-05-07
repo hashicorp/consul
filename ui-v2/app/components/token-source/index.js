@@ -12,7 +12,6 @@ export default Component.extend({
       return this.type === 'secret';
     },
     change: function(e) {
-      const secret = this.value;
       e.data.toJSON = function() {
         return {
           AccessorID: this.AccessorID,
@@ -24,6 +23,8 @@ export default Component.extend({
           Namespace: this.Namespace,
           ...{
             AuthMethod: typeof this.AuthMethod !== 'undefined' ? this.AuthMethod : undefined,
+            // TODO: We should be able to only set namespaces if they are enabled
+            // but we might be testing for nspaces everywhere
             // Namespace: typeof this.Namespace !== 'undefined' ? this.Namespace : undefined
           },
         };
