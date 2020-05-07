@@ -929,7 +929,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						leafWatchID: genVerifyLeafWatchWithDNSSANs("ingress-gateway", "dc1", []string{
 							"test.example.com",
 							"*.ingress.consul.",
+							"*.ingress.dc1.consul.",
 							"*.ingress.alt.consul.",
+							"*.ingress.dc1.alt.consul.",
 						}),
 					},
 					events: []cache.UpdateEvent{

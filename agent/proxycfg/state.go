@@ -1429,20 +1429,46 @@ func (s *state) watchIngressDiscoveryChain(snap *ConfigSnapshot, u structs.Upstr
 	return nil
 }
 
-func (s *state) watchIngressLeafCert(snap *ConfigSnapshot) error {
-	if !snap.IngressGateway.TLSSet || !snap.IngressGateway.HostsSet {
+func (s *state) generateIngressDNSSANs(snap *ConfigSnapshot) []string {
+	// Update our leaf cert watch with wildcard entries for our DNS domains as well as any
+	// configured custom hostnames from the service.
+	if !snap.IngressGateway.TLSEnabled {
 		return nil
 	}
 
-	// Update our leaf cert watch with wildcard entries for our DNS domains as well as any
-	// configured custom hostnames from the service.
 	var dnsNames []string
-	if snap.IngressGateway.TLSEnabled {
-		dnsNames = append(dnsNames, fmt.Sprintf("*.ingress.%s", s.dnsConfig.Domain))
-		if s.dnsConfig.AltDomain != "" {
-			dnsNames = append(dnsNames, fmt.Sprintf("*.ingress.%s", s.dnsConfig.AltDomain))
+	namespaces := make(map[string]struct{})
+	for _, upstreams := range snap.IngressGateway.Upstreams {
+		for _, u := range upstreams {
+			namespaces[u.DestinationNamespace] = struct{}{}
 		}
-		dnsNames = append(dnsNames, snap.IngressGateway.Hosts...)
+	}
+
+	for ns := range namespaces {
+		// The default namespace is special cased in DNS resolution, so special
+		// case it here.
+		if ns == structs.IntentionDefaultNamespace {
+			ns = ""
+		} else {
+			ns = ns + "."
+		}
+
+		dnsNames = append(dnsNames, fmt.Sprintf("*.ingress.%s%s", ns, s.dnsConfig.Domain))
+		dnsNames = append(dnsNames, fmt.Sprintf("*.ingress.%s%s.%s", ns, s.source.Datacenter, s.dnsConfig.Domain))
+		if s.dnsConfig.AltDomain != "" {
+			dnsNames = append(dnsNames, fmt.Sprintf("*.ingress.%s%s", ns, s.dnsConfig.AltDomain))
+			dnsNames = append(dnsNames, fmt.Sprintf("*.ingress.%s%s.%s", ns, s.source.Datacenter, s.dnsConfig.AltDomain))
+		}
+	}
+
+	dnsNames = append(dnsNames, snap.IngressGateway.Hosts...)
+
+	return dnsNames
+}
+
+func (s *state) watchIngressLeafCert(snap *ConfigSnapshot) error {
+	if !snap.IngressGateway.TLSSet || !snap.IngressGateway.HostsSet {
+		return nil
 	}
 
 	// Watch the leaf cert
@@ -1454,7 +1480,7 @@ func (s *state) watchIngressLeafCert(snap *ConfigSnapshot) error {
 		Datacenter:     s.source.Datacenter,
 		Token:          s.token,
 		Service:        s.service,
-		DNSSAN:         dnsNames,
+		DNSSAN:         s.generateIngressDNSSANs(snap),
 		EnterpriseMeta: s.proxyID.EnterpriseMeta,
 	}, leafWatchID, s.ch)
 	if err != nil {
