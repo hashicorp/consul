@@ -1,6 +1,6 @@
 import UseCases from '@hashicorp/react-use-cases'
 import BasicHero from '../../components/basic-hero'
-import ConsulEnterpriseComparison from '../../components/consul-enterprise-comparison'
+import ConsulEnterpriseComparison from '../../components/enterprise-comparison/consul'
 import PrefooterCTA from '../../components/prefooter-cta'
 import LearnCallout from '../../components/learn-callout'
 import CaseStudyCarousel from '../../components/case-study-carousel'

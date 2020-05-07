@@ -49,6 +49,9 @@
 @import '../components/learn-callout/style.css';
 @import '../components/case-study-carousel/style.css';
 
+/* Layouts */
+@import '../layouts/use-cases/style.css';
+
 /* Local Pages */
 @import './downloads/style.css';
 @import './community/style.css';

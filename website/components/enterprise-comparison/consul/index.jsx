@@ -1,4 +1,4 @@
-import EnterpriseComparison from '../enterprise-comparison'
+import EnterpriseComparison from '../../enterprise-comparison'
 
 export default function ConsulEnterpriseComparison() {
   return (
