@@ -217,18 +217,18 @@ export default function HomePage() {
           {
             title: 'Getting Started',
             category: 'Step-by-Step Guides',
-            time: '24 mins',
+            time: '48 mins',
             link:
-              'https://learn.hashicorp.com/nomad?track=getting-started#getting-started',
-            image: 'https://www.datocms-assets.com/2885/1538425176-secrets.svg',
+              'https://learn.hashicorp.com/consul?track=getting-started#getting-started',
+            image: require('./img/learn/getting-started.svg?url'),
           },
           {
-            title: 'Deploy and Manage Nomad Jobs',
+            title: 'Run Consul on Kubernetes',
             category: 'Step-by-Step Guides',
-            time: '36 mins',
+            time: '142 mins',
             link:
-              'https://learn.hashicorp.com/nomad?track=managing-jobs#getting-started',
-            image: 'https://www.datocms-assets.com/2885/1538425176-secrets.svg',
+              'https://learn.hashicorp.com/consul?track=kubernetes#kubernetes',
+            image: require('./img/learn/getting-started.svg?url'),
           },
         ]}
       />
