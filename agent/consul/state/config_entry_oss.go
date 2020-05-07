@@ -59,8 +59,8 @@ func (s *Store) firstWatchConfigEntryWithTxn(tx *memdb.Txn,
 	return tx.FirstWatch(configTableName, "id", kind, name)
 }
 
-func (s *Store) insertConfigEntryWithTxn(tx *memdb.Txn, conf structs.ConfigEntry) error {
-	return tx.Insert(configTableName, conf)
+func (s *Store) validateConfigEntryEnterprise(tx *memdb.Txn, conf structs.ConfigEntry) error {
+	return nil
 }
 
 func getAllConfigEntriesWithTxn(tx *memdb.Txn, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {

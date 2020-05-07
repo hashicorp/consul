@@ -244,6 +244,25 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.NoError(fsm.state.EnsureConfigEntry(18, serviceConfig, structs.DefaultEnterpriseMeta()))
 	require.NoError(fsm.state.EnsureConfigEntry(19, proxyConfig, structs.DefaultEnterpriseMeta()))
 
+	ingress := &structs.IngressGatewayConfigEntry{
+		Kind: structs.IngressGateway,
+		Name: "ingress",
+		Listeners: []structs.IngressListener{
+			{
+				Port:     8080,
+				Protocol: "http",
+				Services: []structs.IngressService{
+					{
+						Name: "foo",
+					},
+				},
+			},
+		},
+	}
+	require.NoError(fsm.state.EnsureConfigEntry(20, ingress, structs.DefaultEnterpriseMeta()))
+	_, gatewayServices, err := fsm.state.GatewayServices(nil, "ingress", structs.DefaultEnterpriseMeta())
+	require.NoError(err)
+
 	// Raft Chunking
 	chunkState := &raftchunking.State{
 		ChunkMap: make(raftchunking.ChunkMap),
@@ -592,6 +611,14 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	_, proxyConfEntry, err := fsm2.state.ConfigEntry(nil, structs.ProxyDefaults, "global", structs.DefaultEnterpriseMeta())
 	require.NoError(err)
 	assert.Equal(proxyConfig, proxyConfEntry)
+
+	_, ingressRestored, err := fsm2.state.ConfigEntry(nil, structs.IngressGateway, "ingress", structs.DefaultEnterpriseMeta())
+	require.NoError(err)
+	assert.Equal(ingress, ingressRestored)
+
+	_, restoredGatewayServices, err := fsm2.state.GatewayServices(nil, "ingress", structs.DefaultEnterpriseMeta())
+	require.NoError(err)
+	require.Equal(gatewayServices, restoredGatewayServices)
 
 	newChunkState, err := fsm2.chunker.CurrentState()
 	require.NoError(err)

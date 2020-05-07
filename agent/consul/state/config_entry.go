@@ -96,15 +96,7 @@ func (s *Snapshot) ConfigEntries() ([]structs.ConfigEntry, error) {
 
 // ConfigEntry is used when restoring from a snapshot.
 func (s *Restore) ConfigEntry(c structs.ConfigEntry) error {
-	// Insert
-	if err := s.tx.Insert(configTableName, c); err != nil {
-		return fmt.Errorf("failed restoring config entry object: %s", err)
-	}
-	if err := indexUpdateMaxTxn(s.tx, c.GetRaftIndex().ModifyIndex, configTableName); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
-	}
-
-	return nil
+	return s.store.insertConfigEntryWithTxn(s.tx, c.GetRaftIndex().ModifyIndex, c)
 }
 
 // ConfigEntry is called to get a given config entry.
@@ -216,24 +208,11 @@ func (s *Store) ensureConfigEntryTxn(tx *memdb.Txn, idx uint64, conf structs.Con
 		return err // Err is already sufficiently decorated.
 	}
 
-	// If the config entry is for a terminating or ingress gateway we update the memdb table
-	// that associates gateways <-> services.
-	if conf.GetKind() == structs.TerminatingGateway || conf.GetKind() == structs.IngressGateway {
-		err = s.updateGatewayServices(tx, idx, conf, entMeta)
-		if err != nil {
-			return fmt.Errorf("failed to associate services to gateway: %v", err)
-		}
+	if err := s.validateConfigEntryEnterprise(tx, conf); err != nil {
+		return err
 	}
 
-	// Insert the config entry and update the index
-	if err := s.insertConfigEntryWithTxn(tx, conf); err != nil {
-		return fmt.Errorf("failed inserting config entry: %s", err)
-	}
-	if err := indexUpdateMaxTxn(tx, idx, configTableName); err != nil {
-		return fmt.Errorf("failed updating index: %v", err)
-	}
-
-	return nil
+	return s.insertConfigEntryWithTxn(tx, idx, conf)
 }
 
 // EnsureConfigEntryCAS is called to do a check-and-set upsert of a given config entry.
@@ -316,6 +295,30 @@ func (s *Store) DeleteConfigEntry(idx uint64, kind, name string, entMeta *struct
 	}
 
 	tx.Commit()
+	return nil
+}
+
+func (s *Store) insertConfigEntryWithTxn(tx *memdb.Txn, idx uint64, conf structs.ConfigEntry) error {
+	if conf == nil {
+		return fmt.Errorf("cannot insert nil config entry")
+	}
+	// If the config entry is for a terminating or ingress gateway we update the memdb table
+	// that associates gateways <-> services.
+	if conf.GetKind() == structs.TerminatingGateway || conf.GetKind() == structs.IngressGateway {
+		err := s.updateGatewayServices(tx, idx, conf, conf.GetEnterpriseMeta())
+		if err != nil {
+			return fmt.Errorf("failed to associate services to gateway: %v", err)
+		}
+	}
+
+	// Insert the config entry and update the index
+	if err := tx.Insert(configTableName, conf); err != nil {
+		return fmt.Errorf("failed inserting config entry: %s", err)
+	}
+	if err := indexUpdateMaxTxn(tx, idx, configTableName); err != nil {
+		return fmt.Errorf("failed updating index: %v", err)
+	}
+
 	return nil
 }
 

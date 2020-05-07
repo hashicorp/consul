@@ -1251,7 +1251,6 @@ func TestStore_ReadDiscoveryChainConfigEntries_SubsetSplit(t *testing.T) {
 	require.Len(t, entrySet.Services, 1)
 }
 
-// TODO(ingress): test that having the same name in different namespace is valid
 func TestStore_ValidateGatewayNamesCannotBeShared(t *testing.T) {
 	s := testStateStore(t)
 
@@ -1305,7 +1304,7 @@ func TestStore_ValidateIngressGatewayErrorOnMismatchedProtocols(t *testing.T) {
 	t.Run("default to tcp", func(t *testing.T) {
 		err := s.EnsureConfigEntry(0, ingress, nil)
 		require.Error(t, err)
-		require.Contains(t, err.Error(), `service "web" has protocol "tcp"`)
+		require.Contains(t, err.Error(), `has protocol "tcp"`)
 	})
 
 	t.Run("with proxy-default", func(t *testing.T) {
@@ -1320,7 +1319,7 @@ func TestStore_ValidateIngressGatewayErrorOnMismatchedProtocols(t *testing.T) {
 
 		err := s.EnsureConfigEntry(1, ingress, nil)
 		require.Error(t, err)
-		require.Contains(t, err.Error(), `service "web" has protocol "http2"`)
+		require.Contains(t, err.Error(), `has protocol "http2"`)
 	})
 
 	t.Run("with service-defaults override", func(t *testing.T) {
@@ -1332,7 +1331,7 @@ func TestStore_ValidateIngressGatewayErrorOnMismatchedProtocols(t *testing.T) {
 		require.NoError(t, s.EnsureConfigEntry(1, expected, nil))
 		err := s.EnsureConfigEntry(2, ingress, nil)
 		require.Error(t, err)
-		require.Contains(t, err.Error(), `service "web" has protocol "grpc"`)
+		require.Contains(t, err.Error(), `has protocol "grpc"`)
 	})
 
 	t.Run("with service-defaults correct protocol", func(t *testing.T) {
