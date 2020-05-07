@@ -150,7 +150,7 @@ Almost all fields in a [service definition](/docs/agent/services) may be
 set on the `connect.sidecar_service` except for the following:
 
 - `id` - Sidecar services get an ID assigned and it is an error to override
-  this. This ensures the agent can correctly de-register the sidecar service
+  this. This ensures the agent can correctly deregister the sidecar service
   later when the parent service is removed.
 - `kind` - Kind defaults to `connect-proxy` and there is currently no way to
   unset this to make the registration be for a regular non-connect-proxy
