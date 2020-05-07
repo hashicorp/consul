@@ -243,7 +243,7 @@ export default function HomePage() {
 
       <CallToAction
         heading="Ready to get started?"
-        content="Consul open source addresses the technical complexity of managing production services by providing a way to discover, secure, automate and connect applications and networking configurations across distributed infrastructure and clouds."
+        content="Consul open source addresses the technical complexity of managing production services by providing a way to discover, automate, secure and connect applications and networking configurations across distributed infrastructure and clouds."
         brand="consul"
         links={[
           {
