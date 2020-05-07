@@ -1,7 +1,7 @@
-import CallToAction from '@hashicorp/react-call-to-action'
 import UseCases from '@hashicorp/react-use-cases'
 import BasicHero from '../../components/basic-hero'
 import ConsulEnterpriseComparison from '../../components/consul-enterprise-comparison'
+import PrefooterCTA from '../../components/prefooter-cta'
 import LearnCallout from '../../components/learn-callout'
 import CaseStudyCarousel from '../../components/case-study-carousel'
 import ProductFeaturesList from '@hashicorp/react-product-features-list'
@@ -168,28 +168,8 @@ export default function HomePage() {
           },
         ]}
       />
-
       <ConsulEnterpriseComparison />
-
-      <CallToAction
-        heading="Ready to get started?"
-        content="Consul open source addresses the technical complexity of managing production services by providing a way to discover, automate, secure and connect applications and networking configurations across distributed infrastructure and clouds."
-        brand="consul"
-        links={[
-          {
-            text: 'Explore HashiCorp Learn',
-            url: 'https://learn.hashicorp.com/consul',
-            type: 'outbound',
-          },
-          {
-            text: 'Explore Documentation',
-            url: '/docs',
-            type: 'inbound',
-          },
-        ]}
-        variant="compact"
-        theme="light"
-      />
+      <PrefooterCTA />
     </div>
   )
 }
