@@ -27,6 +27,7 @@ export default function HomePage() {
         ]}
         backgroundImage
       />
+
       <ProductFeaturesList
         heading="Why Consul?"
         features={[
@@ -68,101 +69,36 @@ export default function HomePage() {
           },
         ]}
       />
+
       <CaseStudyCarousel
         title="Trusted by startups and the world’s largest organizations"
-        caseStudies={[
-          {
-            quote:
-              'Kubernetes is the 800-pound gorilla of container orchestration, coming with a price tag. So we looked into alternatives - and fell in love with Nomad.',
-            caseStudyURL:
-              'https://endler.dev/2019/maybe-you-dont-need-kubernetes/',
-            person: {
-              firstName: 'Matthias',
-              lastName: 'Endler',
-              photo:
-                'https://www.datocms-assets.com/2885/1582163422-matthias-endler.png',
-              title: 'Backend Engineer',
-            },
-            company: {
-              name: 'Trivago',
-              logo:
-                'https://www.datocms-assets.com/2885/1582162145-trivago.svg',
-            },
+        caseStudies={Array(5).fill({
+          quote:
+            "Here's a quote about Consul, Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore.",
+          caseStudyURL: 'https://www.hashicorp.com',
+          person: {
+            firstName: 'Brandon',
+            lastName: 'Romano',
+            photo:
+              'https://avatars1.githubusercontent.com/u/2105067?s=460&u=d20ade7241340fb1a277b55816f0a5336a26d95c&v=4',
+            title: 'A Real Person',
           },
-          {
-            quote:
-              'We have people who are first-time system administrators deploying applications. There is a guy on our team who worked in IT help desk for 8 years - just today he upgraded an entire cluster himself.',
-            caseStudyURL: 'https://www.hashicorp.com/case-studies/roblox/',
-            person: {
-              firstName: 'Rob',
-              lastName: 'Cameron',
-              photo:
-                'https://www.datocms-assets.com/2885/1582180216-rob-cameron.jpeg',
-              title: 'Technical Director of Infrastructure',
-            },
-            company: {
-              name: 'Roblox',
-              logo:
-                'https://www.datocms-assets.com/2885/1582180369-roblox-color.svg',
-            },
+          company: {
+            name: 'HashiCorp',
+            logo:
+              'https://www.datocms-assets.com/2885/1503088697-blog-hashicorp.svg',
           },
-          {
-            quote:
-              'Our customers’ jobs are changing constantly. It’s challenging to dynamically predict demand, what types of jobs, and the resource requirements. We found that Nomad excelled in this area.',
-            caseStudyURL:
-              'https://www.hashicorp.com/resources/nomad-vault-circleci-security-scheduling',
-            person: {
-              firstName: 'Rob',
-              lastName: 'Zuber',
-              photo:
-                'https://www.datocms-assets.com/2885/1582180618-rob-zuber.jpeg',
-              title: 'CTO',
-            },
-            company: {
-              name: 'CircleCI',
-              logo:
-                'https://www.datocms-assets.com/2885/1582180745-circleci-logo.svg',
-            },
-          },
-          {
-            quote:
-              'Adopting Nomad did not require us to change our packaging format — we could continue to package Python in Docker and build binaries for the rest of our applications.',
-            caseStudyURL:
-              'https://medium.com/@copyconstruct/schedulers-kubernetes-and-nomad-b0f2e14a896',
-            person: {
-              firstName: 'Cindy',
-              lastName: 'Sridharan',
-              photo:
-                'https://www.datocms-assets.com/2885/1582181517-cindy-sridharan.png',
-              title: 'Engineer',
-            },
-            company: {
-              name: 'imgix',
-              logo: 'https://www.datocms-assets.com/2885/1582181250-imgix.svg',
-            },
-          },
-        ]}
+        })}
         logoSection={{
           grayBackground: true,
-          featuredLogos: [
-            {
-              companyName: 'Trivago',
-              url:
-                'https://www.datocms-assets.com/2885/1582162317-trivago-monochromatic.svg',
-            },
-            {
-              companyName: 'Roblox',
-              url:
-                'https://www.datocms-assets.com/2885/1582180373-roblox-monochrome.svg',
-            },
-            {
-              companyName: 'CircleCI',
-              url:
-                'https://www.datocms-assets.com/2885/1582180745-circleci-logo.svg',
-            },
-          ],
+          featuredLogos: Array(6).fill({
+            companyName: 'HashiCorp',
+            url:
+              'https://www.datocms-assets.com/2885/1503088697-blog-hashicorp.svg',
+          }),
         }}
       />
+
       <div className="use-cases g-grid-container">
         <h2 className="g-type-display-2">Use Cases</h2>
         <UseCases
