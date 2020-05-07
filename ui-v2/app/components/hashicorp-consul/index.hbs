@@ -124,45 +124,52 @@
                     </li>
 {{#if (env 'CONSUL_ACLS_ENABLED')}}
                     <li data-test-main-nav-auth>
-                      <AuthDialog @dc={{dc.Name}} @nspace={{nspace.Name}} @onchange={{action onchange}}>
-                        <BlockSlot @name="unauthorized" as |AuthForm login|>
-                          <label for="login-toggle">
-                            <span>Log in</span>
-                          </label>
-                          <ModalDialog @name="login-toggle" @onclose={{action 'close'}}>
-                            <BlockSlot @name="header">
-                              <h2>Log in to Consul</h2>
-                            </BlockSlot>
-                            <BlockSlot @name="body">
-                              <AuthForm as |api|>
-                                <Ref @target={{this}} @name="authForm" @value={{api}} />
-                              </AuthForm>
-                            </BlockSlot>
-                            <BlockSlot @name="actions" as |close|>
-                              <button type="button" onclick={{action close}}>
-                                Continue without logging in
-                              </button>
-                            </BlockSlot>
-                          </ModalDialog>
-                        </BlockSlot>
-                        <BlockSlot @name="authorized" as |Profile logout token|>
-                          <PopoverMenu @position="right">
-                            <BlockSlot @name="trigger">
-                              Logout
-                            </BlockSlot>
-                            <BlockSlot @name="menu">
-  {{#if token.AccessorID}}
-                              <li role="none">
-                                <Profile />
-                              </li>
-                              <li role="separator"></li>
-  {{/if}}
-                              <li class="dangerous" role="none">
-                                <button type="button" tabindex="-1" role="menuitem" onclick={{action logout}}>Logout</button>
-                              </li>
-                            </BlockSlot>
-                          </PopoverMenu>
-                        </BlockSlot>
+                      <AuthDialog
+                        @dc={{dc.Name}}
+                        @nspace={{nspace.Name}}
+                        @onchange={{action onchange}} as |authDialog components|
+                      >
+                        {{#let components.AuthForm components.AuthProfile as |AuthForm AuthProfile|}}
+                          <BlockSlot @name="unauthorized">
+                            <label for="login-toggle">
+                              <span>Log in</span>
+                            </label>
+                            <ModalDialog @name="login-toggle" @onclose={{action 'close'}}>
+                              <BlockSlot @name="header">
+                                <h2>Log in to Consul</h2>
+                              </BlockSlot>
+                              <BlockSlot @name="body">
+                                <AuthForm as |api|>
+                                  <Ref @target={{this}} @name="authForm" @value={{api}} />
+                                </AuthForm>
+                              </BlockSlot>
+                              <BlockSlot @name="actions" as |close|>
+                                <button type="button" onclick={{action close}}>
+                                  Continue without logging in
+                                </button>
+                              </BlockSlot>
+                            </ModalDialog>
+                          </BlockSlot>
+                          <BlockSlot @name="authorized">
+                            <PopoverMenu @position="right">
+                              <BlockSlot @name="trigger">
+                                Logout
+                              </BlockSlot>
+                              <BlockSlot @name="menu">
+    {{!TODO: It might be nice to use one of our recursive components here}}
+    {{#if authDialog.token.AccessorID}}
+                                <li role="none">
+                                  <AuthProfile />
+                                </li>
+                                <li role="separator"></li>
+    {{/if}}
+                                <li class="dangerous" role="none">
+                                  <button type="button" tabindex="-1" role="menuitem" onclick={{action authDialog.logout}}>Logout</button>
+                                </li>
+                              </BlockSlot>
+                            </PopoverMenu>
+                          </BlockSlot>
+                        {{/let}}
                       </AuthDialog>
                     </li>
 {{/if}}

@@ -1,16 +1,18 @@
 ## AuthDialog
 
 ```handlebars
-<AuthDialog @dc={{dc}} @nspace={{}} @onchange={{action 'change'}}>
-  <BlockSlot @name="unauthorized" as |AuthForm login|>
-    Here's the login form:
-    <AuthForm />
-  </BlockSlot>
-  <BlockSlot @name="authorized" as |AuthProfile logout token|>
-    Here's your profile:
-    <AuthProfile />
-    <button onclick={{action logout}} />
-  </BlockSlot>
+<AuthDialog @dc={{dc}} @nspace={{}} @onchange={{action 'change'}} as |api components|>
+  {{#let components.AuthForm components.AuthProfile as |AuthForm AuthProfile|}}
+    <BlockSlot @name="unauthorized">
+      Here's the login form:
+      <AuthForm />
+    </BlockSlot>
+    <BlockSlot @name="authorized">
+      Here's your profile:
+      <AuthProfile />
+      <button onclick={{action api.logout}} />
+    </BlockSlot>
+  {{/let}}
 </AuthDialog>
 ```
 
@@ -24,21 +26,27 @@ A component to help orchestrate a login/logout flow.
 | `nspace` | `String` | | The name of the current namespace |
 | `onchange` | `Function` | | An action to fire when the users token has changed (logged in/logged out/token changed) |
 
+### Methods/Actions/api
+
+| Method/Action |  Description |
+| --- | --- |
+| `login` | Login with a specified token |
+| `logout` | Logout (delete token) |
+| `token` | The current token itself (as a property not a method) |
+
+### Components
+
+| Name |  Description |
+| --- | --- |
+| [`AuthForm`](../auth-form/README.mdx) | Renders an Authorization form |
+| [`AuthProfile`](../auth-profile/README.mdx) | Renders a User Profile |
+
 ### Slots
 
 | Name  | Description |
 | --- | --- |
 | `unauthorized` | This slot is only rendered when the user doesn't have a token |
-| `authorized`   | This slot is only rendered whtn the user does have a token.|
-
-#### Unauthorized Slot
-
-The authorized slot yields an `AuthForm` contextual component plus a `login` action. This slot is only shown when the user doesn't have a token saved.
-
-#### Authorized Slot
-
-The unauthorized slot yields an `AuthProfile` contextual component, a `logout` action and the current users `token`. This slot is only shown when the user has a token saved.
-
+| `authorized`   | This slot is only rendered whtn the user has a token.|
 
 ### See
 
