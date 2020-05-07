@@ -496,10 +496,11 @@ func (s *state) initWatchesIngressGateway() error {
 
 	// Watch this ingress gateway's config entry
 	err = s.cache.Notify(s.ctx, cachetype.ConfigEntryName, &structs.ConfigEntryQuery{
-		Kind:         structs.IngressGateway,
-		Name:         s.service,
-		Datacenter:   s.source.Datacenter,
-		QueryOptions: structs.QueryOptions{Token: s.token},
+		Kind:           structs.IngressGateway,
+		Name:           s.service,
+		Datacenter:     s.source.Datacenter,
+		QueryOptions:   structs.QueryOptions{Token: s.token},
+		EnterpriseMeta: s.proxyID.EnterpriseMeta,
 	}, gatewayConfigWatchID, s.ch)
 	if err != nil {
 		return err
@@ -1346,6 +1347,7 @@ func (s *state) handleUpdateIngressGateway(u cache.UpdateEvent, snap *ConfigSnap
 		}
 
 		// Update our upstreams and watches.
+		var hosts []string
 		watchedSvcs := make(map[string]struct{})
 		upstreamsMap := make(map[IngressListenerKey]structs.Upstreams)
 		for _, service := range services.Services {
@@ -1357,15 +1359,13 @@ func (s *state) handleUpdateIngressGateway(u cache.UpdateEvent, snap *ConfigSnap
 			}
 			watchedSvcs[u.Identifier()] = struct{}{}
 
+			hosts = append(hosts, service.Hosts...)
+
 			id := IngressListenerKey{Protocol: service.Protocol, Port: service.Port}
 			upstreamsMap[id] = append(upstreamsMap[id], u)
 		}
-		snap.IngressGateway.Upstreams = upstreamsMap
 
-		var hosts []string
-		for _, s := range services.Services {
-			hosts = append(hosts, s.Hosts...)
-		}
+		snap.IngressGateway.Upstreams = upstreamsMap
 		snap.IngressGateway.Hosts = hosts
 		snap.IngressGateway.HostsSet = true
 

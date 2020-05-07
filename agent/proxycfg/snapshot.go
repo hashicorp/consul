@@ -287,7 +287,8 @@ func (s *ConfigSnapshot) Valid() bool {
 	case structs.ServiceKindIngressGateway:
 		return s.Roots != nil &&
 			s.IngressGateway.Leaf != nil &&
-			s.IngressGateway.TLSSet
+			s.IngressGateway.TLSSet &&
+			s.IngressGateway.HostsSet
 	default:
 		return false
 	}
@@ -317,7 +318,9 @@ func (s *ConfigSnapshot) Clone() (*ConfigSnapshot, error) {
 		snap.MeshGateway.WatchedServices = nil
 	case structs.ServiceKindIngressGateway:
 		snap.IngressGateway.WatchedUpstreams = nil
+		snap.IngressGateway.WatchedGateways = nil
 		snap.IngressGateway.WatchedDiscoveryChains = nil
+		snap.IngressGateway.LeafCertWatchCancel = nil
 	}
 
 	return snap, nil
