@@ -1,7 +1,6 @@
 export default {
   id: 'auth-form',
   initial: 'idle',
-  context: {},
   on: {
     RESET: [
       {
@@ -50,11 +49,6 @@ export default {
             target: 'error',
           },
         ],
-      },
-      states: {
-        user: {},
-        client: {},
-        server: {},
       },
     },
   },

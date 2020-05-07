@@ -1,7 +1,6 @@
 export default {
   id: 'auth-dialog',
   initial: 'idle',
-  context: {},
   on: {
     CHANGE: [
       {

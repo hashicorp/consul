@@ -20,14 +20,14 @@
           {{#let (or provider (object-at 0 items)) as |item|}}
             <label>
               <span>SSO Provider</span>
-                <PowerSelect
-                  @disabled={{disabled}}
-                  @onChange={{action (mut provider)}}
-                  @selected={{item}}
-                  @searchEnabled={{false}}
-                  @options={{items}} as |item|>
-                  <span class={{concat item.Kind '-oidc-provider'}}>{{or item.DisplayName item.Name}}</span>
-                </PowerSelect>
+              <PowerSelect
+                @disabled={{disabled}}
+                @onChange={{action (mut provider)}}
+                @selected={{item}}
+                @searchEnabled={{false}}
+                @options={{items}} as |item|>
+                <span class={{concat item.Kind '-oidc-provider'}}>{{or item.DisplayName item.Name}}</span>
+              </PowerSelect>
             </label>
             <button
               disabled={{disabled}}

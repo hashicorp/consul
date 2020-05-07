@@ -1,6 +1,7 @@
 <StateChart @src={{chart}} as |State Guard Action dispatch state|>
   {{yield (hash
     reset=(action dispatch "RESET")
+    focus=(action 'focus')
   )}}
   <Guard @name="hasValue" @cond={{action 'hasValue'}} />
   {{!FIXME: Call this reset or similar }}
@@ -8,7 +9,7 @@
   <div class="auth-form" ...attributes>
     <State @matches="error">
       {{#if error.status}}
-        <p class="notice error">
+        <p role="alert" class="notice error">
           {{#if value.Name}}
             {{#if (eq error.status '403')}}
               <strong>Consul login failed</strong><br />
@@ -54,7 +55,7 @@
           />
           <State @matches="error">
             {{#if (not error.status)}}
-              <strong>
+              <strong role="alert">
                 Please enter your secret
               </strong>
             {{/if}}

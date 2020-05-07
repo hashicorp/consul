@@ -18,10 +18,18 @@ export default Service.extend({
 
   init: function() {
     this._super(...arguments);
+    if (typeof cache === 'undefined') {
+      this.resetCache();
+    }
+    this._listeners = this.dom.listeners();
+  },
+  resetCache: function() {
+    Object.entries(sources || {}).forEach(function([key, item]) {
+      item.close();
+    });
     cache = new Map();
     sources = new Map();
     usage = new MultiMap(Set);
-    this._listeners = this.dom.listeners();
   },
   willDestroy: function() {
     this._listeners.remove();

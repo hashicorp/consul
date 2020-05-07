@@ -6,6 +6,7 @@ export default Component.extend({
   dom: service('dom'),
 
   didInsertElement: function() {
+    this._super(...arguments);
     this.dom.root().classList.remove('template-with-vertical-menu');
   },
   // TODO: Right now this is the only place where we need permissions
@@ -18,9 +19,11 @@ export default Component.extend({
     );
   }),
   actions: {
-    send: function(el, method, ...rest) {
-      const component = this.dom.component(el);
-      component.actions[method].apply(component, rest || []);
+    keypressClick: function(e) {
+      e.target.dispatchEvent(new MouseEvent('click'));
+    },
+    open: function() {
+      this.authForm.focus();
     },
     close: function() {
       this.authForm.reset();

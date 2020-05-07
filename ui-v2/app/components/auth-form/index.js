@@ -14,5 +14,8 @@ export default Component.extend({
     hasValue: function(context, event, meta) {
       return this.value !== '' && typeof this.value !== 'undefined';
     },
+    focus: function() {
+      this.input.focus();
+    },
   },
 });

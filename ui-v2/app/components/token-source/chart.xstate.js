@@ -1,7 +1,6 @@
 export default {
   id: 'token-source',
   initial: 'idle',
-  context: {},
   on: {
     RESTART: [
       {

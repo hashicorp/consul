@@ -21,7 +21,7 @@ export default Component.extend({
     if (this.source) {
       this.source.close();
     }
-    // FIXME: Could this use once?
+    // TODO: Could this use once? Double check but I don't think it can
     this.source = fromPromise(this.repo.findCodeByURL(this.src));
     this._listeners.add(this.source, {
       message: e => this.onchange(e),

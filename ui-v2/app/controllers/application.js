@@ -7,6 +7,7 @@ import transitionable from 'consul-ui/utils/routing/transitionable';
 export default Controller.extend({
   router: service('router'),
   http: service('repository/type/event-source'),
+  dataSource: service('data-source/service'),
   client: service('client/http'),
   store: service('store'),
   feedback: service('feedback'),
@@ -22,15 +23,16 @@ export default Controller.extend({
       // used for the feedback service.
       this.feedback.execute(
         () => {
-          // FIXME: Also need to reset the cache of DataSources
+          // TODO: Centralize this elsewhere
           this.client.abort();
           this.http.resetCache();
+          this.dataSource.resetCache();
           this.store.init();
 
           const params = {};
           if (e.data) {
             const token = e.data;
-            // FIXME: Do I actually need to check to see if nspaces are enabled here?
+            // TODO: Do I actually need to check to see if nspaces are enabled here?
             if (typeof this.nspace !== 'undefined') {
               const nspace = get(token, 'Namespace') || this.nspace.Name;
               // you potentially have a new namespace
@@ -42,7 +44,7 @@ export default Controller.extend({
           }
           const routeName = this.router.currentRoute.name;
           const route = getOwner(this).lookup(`route:${routeName}`);
-          // We use hrefMut here as refresh doesn't work if you are on an error page
+          // We use transitionable here as refresh doesn't work if you are on an error page
           // which is highly likely to happen here (403s)
           if (routeName !== this.router.currentRouteName) {
             return route.transitionTo(...transitionable(this.router, params, getOwner(this)));

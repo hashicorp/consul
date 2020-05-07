@@ -1,5 +1,4 @@
 <StateChart @src={{chart}} @initial={{if (eq type 'oidc') 'provider' 'secret'}} as |State Guard Action dispatch state|>
-  <Ref @target={{this}} @name="dispatch" @value={{dispatch}} />
   <Guard @name="isSecret" @cond={{action 'isSecret'}} />
   {{#let (concat '/' (or nspace 'default') '/' dc) as |path|}}
     <State @matches="secret">

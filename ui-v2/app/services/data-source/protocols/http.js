@@ -55,9 +55,7 @@ export default Service.extend({
             find = configuration => repo.findAllByDatacenter(dc, nspace, configuration);
             break;
           case 'provider':
-            find = configuration => {
-              return repo.findBySlug(slug[0], dc, nspace);
-            };
+            find = configuration => repo.findBySlug(slug[0], dc, nspace);
             break;
           case 'authorize':
             find = configuration =>

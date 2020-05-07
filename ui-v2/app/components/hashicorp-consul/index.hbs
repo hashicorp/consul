@@ -131,10 +131,10 @@
                       >
                         {{#let components.AuthForm components.AuthProfile as |AuthForm AuthProfile|}}
                           <BlockSlot @name="unauthorized">
-                            <label for="login-toggle">
+                            <label tabindex="0" for="login-toggle" onkeypress={{action 'keypressClick'}}>
                               <span>Log in</span>
                             </label>
-                            <ModalDialog @name="login-toggle" @onclose={{action 'close'}}>
+                            <ModalDialog @name="login-toggle" @onclose={{action 'close'}} @onopen={{action 'open'}}>
                               <BlockSlot @name="header">
                                 <h2>Log in to Consul</h2>
                               </BlockSlot>
