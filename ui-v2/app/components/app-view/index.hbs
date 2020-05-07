@@ -45,19 +45,25 @@
     </FlashMessage>
 {{/each}}
     <div>
-        <div class="actions">
-  {{#if authorized}}
-            <YieldSlot @name="actions">{{yield}}</YieldSlot>
-  {{/if}}
-        </div>
-
         <div>
   {{#if authorized}}
             <nav aria-label="Breadcrumb">
                 <YieldSlot @name="breadcrumbs">{{yield}}</YieldSlot>
             </nav>
   {{/if}}
-            <YieldSlot @name="header">{{yield}}</YieldSlot>
+            <div class="title">
+              <YieldSlot @name="header">
+                  {{yield}}
+              </YieldSlot>
+              <div class="actions">
+        {{#if authorized}}
+                  <YieldSlot @name="actions">{{yield}}</YieldSlot>
+        {{/if}}
+              </div>
+            </div>
+            <YieldSlot @name="nav">
+              {{yield}}
+            </YieldSlot>
         </div>
     </div>
   {{#if authorized}}

@@ -3,8 +3,8 @@
 }
 %healthcheck-output::before {
   @extend %as-pseudo;
-  min-width: 26px;
-  min-height: 26px;
+  min-width: 20px;
+  min-height: 20px;
   margin-right: 15px;
 }
 @media #{$--lt-spacious-healthcheck-output} {

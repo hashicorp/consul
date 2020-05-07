@@ -5,7 +5,7 @@
   @extend %consul-service-row;
 }
 %consul-service-row {
-  @extend %composite-row;
+  @extend %composite-row, %with-composite-row-intent;
 }
 %consul-service-row > ul {
   margin-left: 26px;

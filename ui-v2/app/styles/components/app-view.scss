@@ -4,66 +4,19 @@
 
 @import '../base/components/popover-menu/index';
 
-%app-view-header .actions > [type='checkbox'] {
-  @extend %more-popover-menu;
-}
-%more-popover-menu-panel [type='checkbox']:checked ~ * {
-  /* this needs to autocalculate */
-  min-height: 143px;
-  max-height: 143px;
-}
-%more-popover-menu-panel [id$='logout']:checked ~ * {
-  /* this needs to autocalculate */
-  min-height: 163px;
-  max-height: 163px;
-}
-%more-popover-menu-panel [id$='delete']:checked ~ ul label[for$='delete'] + [role='menu'],
-%more-popover-menu-panel [id$='logout']:checked ~ ul label[for$='logout'] + [role='menu'],
-%more-popover-menu-panel [id$='use']:checked ~ ul label[for$='use'] + [role='menu'] {
-  display: block;
-}
-%app-view-header .actions label + div {
-  // We need this extra to allow tooltips to show
+%app-view-actions label + div {
+  /* We need this extra to allow tooltips to show */
   overflow: visible !important;
 }
 
 main {
   @extend %app-view;
 }
-%app-view > div > header {
-  @extend %app-view-header;
-}
-%app-view > div > div {
-  @extend %app-view-content;
-}
-%app-view header form {
+%app-view-header form {
   @extend %filter-bar;
 }
-@media #{$--lt-spacious-page-header} {
-  %app-view-header .actions {
-    margin-top: 9px;
-  }
-}
-// TODO: This should be its own component
-%app-view h1 {
-  padding-bottom: 0.2em;
-}
-%app-view h1 span[data-tooltip] {
-  @extend %with-external-source-icon;
-  margin-top: 13px;
-}
-%app-view h1 span.kind-proxy {
-  @extend %frame-gray-900;
-  @extend %pill;
-}
-%app-view h1 span.kind-proxy::before {
-  width: 0.3em !important;
-}
-%app-view h1 em {
-  color: $gray-600;
-}
-%app-view-header .actions a,
-%app-view-header .actions button {
+%app-view-actions a,
+%app-view-actions button {
   @extend %button-compact;
 }
 %app-view-content div > dl {
@@ -97,12 +50,14 @@ main {
     display: none;
   }
 }
+@media #{$--lt-spacious-page-header} {
+  %app-view-actions {
+    margin-top: 9px;
+  }
+}
 // reduced search magnifying icon layout
 @media #{$--lt-horizontal-selects} {
-  %app-view header h1 {
-    display: inline-block;
-  }
-  %app-view header h1 {
+  %app-view-header h1 {
     display: inline-block;
   }
   // on the instance detail page we don't have the magnifier
