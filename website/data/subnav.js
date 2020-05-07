@@ -3,8 +3,18 @@ export default [
   {
     text: 'Use Cases',
     submenu: [
-      { text: 'Service Discovery', url: '/discovery' },
-      { text: 'Service Mesh', url: '/mesh' },
+      {
+        text: 'Network Middleware Automation',
+        url: '/use-cases/network-middleware-automation',
+      },
+      {
+        text: 'Multi-Platform Service Mesh',
+        url: '/use-cases/multi-platform-service-mesh',
+      },
+      {
+        text: 'Service Discovery and Health Checking',
+        url: '/use-cases/service-discovery-and-health-checking',
+      },
     ],
   },
   {
