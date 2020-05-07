@@ -216,8 +216,6 @@ export default function HomePage() {
         />
       </div>
 
-      <ConsulEnterpriseComparison />
-
       <LearnCallout
         headline="Learn the latest Consul skills"
         brand="consul"
@@ -240,6 +238,8 @@ export default function HomePage() {
           },
         ]}
       />
+
+      <ConsulEnterpriseComparison />
 
       <CallToAction
         heading="Ready to get started?"

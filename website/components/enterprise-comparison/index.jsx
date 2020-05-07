@@ -3,7 +3,12 @@ import Button from '@hashicorp/react-button'
 import InlineSvg from '@hashicorp/react-inline-svg'
 import ArrowIcon from './img/arrow.svg?include'
 
-export default function EnterpriseInfo({ title, itemOne, itemTwo, brand }) {
+export default function EnterpriseComparison({
+  title,
+  itemOne,
+  itemTwo,
+  brand,
+}) {
   return (
     <div className="g-enterprise-comparison">
       <div className="g-grid-container">
