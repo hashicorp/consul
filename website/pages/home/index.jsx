@@ -130,7 +130,7 @@ export default function HomePage() {
               },
             },
             {
-              title: 'Service Discovery & Health Checks',
+              title: 'Service Discovery and Health Checking',
               description:
                 'Enable services to locate other services running in any environment and provide real-time health status.',
               image: {
@@ -139,7 +139,7 @@ export default function HomePage() {
               },
               link: {
                 title: 'Learn more',
-                url: '/use-cases/service-discovery-and-health-checks',
+                url: '/use-cases/service-discovery-and-health-checking',
               },
             },
           ]}
