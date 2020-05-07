@@ -1,4 +1,5 @@
 export default [
+  { text: 'Overview', url: '/', type: 'inbound' },
   {
     text: 'Use Cases',
     submenu: [
@@ -7,10 +8,12 @@ export default [
     ],
   },
   {
-    text: 'Intro',
-    url: '/intro',
-    type: 'inbound',
+    text: 'Enterprise',
+    url:
+      'https://www.hashicorp.com/products/consul/?utm_source=oss&utm_medium=header-nav&utm_campaign=consul',
+    type: 'outbound',
   },
+  'divider',
   {
     text: 'Learn',
     url: 'https://learn.hashicorp.com/consul',
@@ -30,11 +33,5 @@ export default [
     text: 'Community',
     url: '/community',
     type: 'inbound',
-  },
-  {
-    text: 'Enterprise',
-    url:
-      'https://www.hashicorp.com/products/consul/?utm_source=oss&utm_medium=header-nav&utm_campaign=consul',
-    type: 'outbound',
   },
 ]
