@@ -21,8 +21,16 @@ description: >-
   specifying a wildcard `*` as the service name. A wildcard specifier allows
   for a single listener to route traffic to all available services on the
   Consul service mesh, differentiating between the services by their host/authority
-  header. For a wildcard, the host/authority header is expected to match
-  `<service-name>.*`.
+  header.
+
+  A wildcard specifier provides the following properties for an ingress
+  gateway:
+  - All services with the same
+    [protocol](/docs/agent/config-entries/ingress-gateway#protocol) as the
+    listener will be routable.
+  - The ingress gateway will route traffic based on the host/authority header,
+    expecting a value matching `<service-name>.*`, or if using namespaces,
+    `<service-name>.ingress.<namespace>.*`.
 
   A wildcard specifier cannot be set on a listener of protocol `tcp`.
 
