@@ -97,11 +97,12 @@ func TestAuthMethodCreateCommand(t *testing.T) {
 	})
 
 	t.Run("create testing", func(t *testing.T) {
+		name := getTestName(t)
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-token=root",
 			"-type=testing",
-			"-name=test",
+			"-name", name,
 			"-description=desc",
 			"-display-name=display",
 		}
@@ -113,9 +114,9 @@ func TestAuthMethodCreateCommand(t *testing.T) {
 		require.Equal(t, code, 0)
 		require.Empty(t, ui.ErrorWriter.String())
 
-		got := getTestMethod(t, client, "test")
+		got := getTestMethod(t, client, name)
 		expect := &api.ACLAuthMethod{
-			Name:        "test",
+			Name:        name,
 			Type:        "testing",
 			DisplayName: "display",
 			Description: "desc",
@@ -124,11 +125,12 @@ func TestAuthMethodCreateCommand(t *testing.T) {
 	})
 
 	t.Run("create testing with max token ttl", func(t *testing.T) {
+		name := getTestName(t)
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-token=root",
 			"-type=testing",
-			"-name=test",
+			"-name", name,
 			"-description=desc",
 			"-display-name=display",
 			"-max-token-ttl=5m",
@@ -141,9 +143,9 @@ func TestAuthMethodCreateCommand(t *testing.T) {
 		require.Equal(t, code, 0, "err: "+ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 
-		got := getTestMethod(t, client, "test")
+		got := getTestMethod(t, client, name)
 		expect := &api.ACLAuthMethod{
-			Name:        "test",
+			Name:        name,
 			Type:        "testing",
 			DisplayName: "display",
 			Description: "desc",
@@ -188,11 +190,12 @@ func TestAuthMethodCreateCommand_JSON(t *testing.T) {
 	})
 
 	t.Run("create testing", func(t *testing.T) {
+		name := getTestName(t)
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-token=root",
 			"-type=testing",
-			"-name=test",
+			"-name", name,
 			"-description=desc",
 			"-display-name=display",
 			"-format=json",
@@ -206,14 +209,14 @@ func TestAuthMethodCreateCommand_JSON(t *testing.T) {
 
 		require.Equal(t, code, 0)
 		require.Empty(t, ui.ErrorWriter.String())
-		require.Contains(t, out, "test")
+		require.Contains(t, out, name)
 
 		var jsonOutput json.RawMessage
 		require.NoError(t, json.Unmarshal([]byte(out), &jsonOutput))
 
-		got := getTestMethod(t, client, "test")
+		got := getTestMethod(t, client, name)
 		expect := &api.ACLAuthMethod{
-			Name:        "test",
+			Name:        name,
 			Type:        "testing",
 			DisplayName: "display",
 			Description: "desc",
@@ -222,11 +225,12 @@ func TestAuthMethodCreateCommand_JSON(t *testing.T) {
 	})
 
 	t.Run("create testing with max token ttl", func(t *testing.T) {
+		name := getTestName(t)
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-token=root",
 			"-type=testing",
-			"-name=test",
+			"-name", name,
 			"-description=desc",
 			"-display-name=display",
 			"-max-token-ttl=5m",
@@ -241,11 +245,11 @@ func TestAuthMethodCreateCommand_JSON(t *testing.T) {
 
 		require.Equal(t, code, 0)
 		require.Empty(t, ui.ErrorWriter.String())
-		require.Contains(t, out, "test")
+		require.Contains(t, out, name)
 
-		got := getTestMethod(t, client, "test")
+		got := getTestMethod(t, client, name)
 		expect := &api.ACLAuthMethod{
-			Name:        "test",
+			Name:        name,
 			Type:        "testing",
 			DisplayName: "display",
 			Description: "desc",
@@ -260,7 +264,7 @@ func TestAuthMethodCreateCommand_JSON(t *testing.T) {
 		delete(raw, "Namespace")
 
 		require.Equal(t, map[string]interface{}{
-			"Name":        "test",
+			"Name":        name,
 			"Type":        "testing",
 			"DisplayName": "display",
 			"Description": "desc",
@@ -444,6 +448,7 @@ func TestAuthMethodCreateCommand_config(t *testing.T) {
 	}
 
 	t.Run("config file", func(t *testing.T) {
+		name := getTestName(t)
 		configFile := filepath.Join(testDir, "config.json")
 		jsonConfig := `{"SessionID":"foo"}`
 		require.NoError(t, ioutil.WriteFile(configFile, []byte(jsonConfig), 0644))
@@ -452,7 +457,7 @@ func TestAuthMethodCreateCommand_config(t *testing.T) {
 			"-http-addr=" + a.HTTPAddr(),
 			"-token=root",
 			"-type=testing",
-			"-name=test",
+			"-name", name,
 			"-config=@" + configFile,
 		}
 		ui := cli.NewMockUi()
@@ -460,10 +465,11 @@ func TestAuthMethodCreateCommand_config(t *testing.T) {
 		code := cmd.Run(args)
 		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
-		checkMethod(t, "test")
+		checkMethod(t, name)
 	})
 
 	t.Run("config std-in", func(t *testing.T) {
+		name := getTestName(t)
 		stdinR, stdinW := io.Pipe()
 		ui := cli.NewMockUi()
 		cmd := New(ui)
@@ -477,29 +483,30 @@ func TestAuthMethodCreateCommand_config(t *testing.T) {
 			"-http-addr=" + a.HTTPAddr(),
 			"-token=root",
 			"-type=testing",
-			"-name=test2",
+			"-name", name,
 			"-config=-",
 		}
 		code := cmd.Run(args)
 		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
-		checkMethod(t, "test2")
+		checkMethod(t, name)
 
 	})
 	t.Run("config string", func(t *testing.T) {
+		name := getTestName(t)
 		ui := cli.NewMockUi()
 		cmd := New(ui)
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-token=root",
 			"-type=testing",
-			"-name=test3",
+			"-name", name,
 			"-config=" + `{"SessionID":"foo"}`,
 		}
 		code := cmd.Run(args)
 		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
-		checkMethod(t, "test3")
+		checkMethod(t, name)
 	})
 }
 
