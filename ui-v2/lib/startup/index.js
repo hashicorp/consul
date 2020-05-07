@@ -17,6 +17,9 @@ const express = require('express');
 module.exports = {
   name: 'startup',
   serverMiddleware: function(server) {
+    // TODO: see if we can move these into the project specific `/server` directory
+    // instead of inside an addon
+
     // Serve the coverage folder for easy viewing during development
     server.app.use('/coverage', express.static('coverage'));
 
