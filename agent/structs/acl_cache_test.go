@@ -8,13 +8,10 @@ import (
 )
 
 func TestStructs_ACLCaches(t *testing.T) {
-	t.Parallel()
 
 	t.Run("New", func(t *testing.T) {
-		t.Parallel()
 
 		t.Run("Valid Sizes", func(t *testing.T) {
-			t.Parallel()
 			// 1 isn't valid due to a bug in golang-lru library
 			config := ACLCachesConfig{2, 2, 2, 2, 2}
 
@@ -28,7 +25,6 @@ func TestStructs_ACLCaches(t *testing.T) {
 		})
 
 		t.Run("Zero Sizes", func(t *testing.T) {
-			t.Parallel()
 			// 1 isn't valid due to a bug in golang-lru library
 			config := ACLCachesConfig{0, 0, 0, 0, 0}
 
@@ -43,7 +39,6 @@ func TestStructs_ACLCaches(t *testing.T) {
 	})
 
 	t.Run("Identities", func(t *testing.T) {
-		t.Parallel()
 		// 1 isn't valid due to a bug in golang-lru library
 		config := ACLCachesConfig{Identities: 4}
 
@@ -58,7 +53,6 @@ func TestStructs_ACLCaches(t *testing.T) {
 	})
 
 	t.Run("Policies", func(t *testing.T) {
-		t.Parallel()
 		// 1 isn't valid due to a bug in golang-lru library
 		config := ACLCachesConfig{Policies: 4}
 
@@ -73,7 +67,6 @@ func TestStructs_ACLCaches(t *testing.T) {
 	})
 
 	t.Run("ParsedPolicies", func(t *testing.T) {
-		t.Parallel()
 		// 1 isn't valid due to a bug in golang-lru library
 		config := ACLCachesConfig{ParsedPolicies: 4}
 
@@ -88,7 +81,6 @@ func TestStructs_ACLCaches(t *testing.T) {
 	})
 
 	t.Run("Authorizers", func(t *testing.T) {
-		t.Parallel()
 		// 1 isn't valid due to a bug in golang-lru library
 		config := ACLCachesConfig{Authorizers: 4}
 
@@ -104,7 +96,6 @@ func TestStructs_ACLCaches(t *testing.T) {
 	})
 
 	t.Run("Roles", func(t *testing.T) {
-		t.Parallel()
 		// 1 isn't valid due to a bug in golang-lru library
 		config := ACLCachesConfig{Roles: 4}
 

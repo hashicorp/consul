@@ -13,7 +13,6 @@ import (
 
 func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 	// This test tests both of these because they are related functions.
-	t.Parallel()
 
 	newServiceACL := func(t *testing.T, canRead, canWrite []string) acl.Authorizer {
 		var buf bytes.Buffer
@@ -248,7 +247,6 @@ func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 }
 
 func TestServiceResolverConfigEntry(t *testing.T) {
-	t.Parallel()
 
 	type testcase struct {
 		name         string
@@ -538,7 +536,6 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 }
 
 func TestServiceSplitterConfigEntry(t *testing.T) {
-	t.Parallel()
 
 	makesplitter := func(splits ...ServiceSplit) *ServiceSplitterConfigEntry {
 		return &ServiceSplitterConfigEntry{
@@ -723,7 +720,6 @@ func TestServiceSplitterConfigEntry(t *testing.T) {
 }
 
 func TestServiceRouterConfigEntry(t *testing.T) {
-	t.Parallel()
 
 	httpMatch := func(http *ServiceRouteHTTPMatch) *ServiceRouteMatch {
 		return &ServiceRouteMatch{HTTP: http}

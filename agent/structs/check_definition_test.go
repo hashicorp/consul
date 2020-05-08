@@ -12,7 +12,6 @@ import (
 )
 
 func TestCheckDefinition_Defaults(t *testing.T) {
-	t.Parallel()
 	def := CheckDefinition{}
 	check := def.HealthCheck("node1")
 
@@ -47,7 +46,6 @@ func mapFields(t *testing.T, obj interface{}) map[string]reflect.Value {
 }
 
 func TestCheckDefinition_CheckType(t *testing.T) {
-	t.Parallel()
 
 	// Fuzz a definition to fill all its fields with data.
 	var def CheckDefinition
@@ -77,7 +75,6 @@ func TestCheckDefinition_CheckType(t *testing.T) {
 }
 
 func TestCheckDefinitionToCheckType(t *testing.T) {
-	t.Parallel()
 	got := &CheckDefinition{
 		ID:     "id",
 		Name:   "name",

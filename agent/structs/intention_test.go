@@ -11,7 +11,6 @@ import (
 )
 
 func TestIntention_ACLs(t *testing.T) {
-	t.Parallel()
 	type testCase struct {
 		intention Intention
 		rules     string

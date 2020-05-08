@@ -11,7 +11,6 @@ import (
 )
 
 func TestAgentStructs_CheckTypes(t *testing.T) {
-	t.Parallel()
 	svc := new(ServiceDefinition)
 
 	// Singular Check field works

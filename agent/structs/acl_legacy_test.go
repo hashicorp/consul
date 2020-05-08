@@ -54,7 +54,6 @@ func TestStructs_ACL_IsSame(t *testing.T) {
 }
 
 func TestStructs_ACL_Convert(t *testing.T) {
-	t.Parallel()
 
 	acl := &ACL{
 		ID:    "guid",
@@ -76,10 +75,8 @@ func TestStructs_ACL_Convert(t *testing.T) {
 }
 
 func TestStructs_ACLToken_Convert(t *testing.T) {
-	t.Parallel()
 
 	t.Run("Management", func(t *testing.T) {
-		t.Parallel()
 		token := &ACLToken{
 			AccessorID:  "6c4eb178-c7f3-4620-b899-91eb8696c265",
 			SecretID:    "67c29ecd-cabc-42e0-a20e-771e9a1ab70c",
@@ -101,7 +98,6 @@ func TestStructs_ACLToken_Convert(t *testing.T) {
 	})
 
 	t.Run("Client", func(t *testing.T) {
-		t.Parallel()
 		token := &ACLToken{
 			AccessorID:  "6c4eb178-c7f3-4620-b899-91eb8696c265",
 			SecretID:    "67c29ecd-cabc-42e0-a20e-771e9a1ab70c",
@@ -120,7 +116,6 @@ func TestStructs_ACLToken_Convert(t *testing.T) {
 	})
 
 	t.Run("Unconvertible", func(t *testing.T) {
-		t.Parallel()
 		token := &ACLToken{
 			AccessorID:  "6c4eb178-c7f3-4620-b899-91eb8696c265",
 			SecretID:    "67c29ecd-cabc-42e0-a20e-771e9a1ab70c",

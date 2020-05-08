@@ -733,7 +733,6 @@ func (d *fieldDumper) DumpFields(name string, fields bexpr.FieldConfigurations) 
 }
 
 func TestStructs_FilterFieldConfigurations(t *testing.T) {
-	t.Parallel()
 
 	var d *fieldDumper
 	if *dumpFieldConfig {
