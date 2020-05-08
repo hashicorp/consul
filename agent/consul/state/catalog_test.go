@@ -2200,7 +2200,7 @@ func TestStateStore_ConnectServiceNodes_Gateways(t *testing.T) {
 	_, _, err = s.ConnectServiceNodes(ws, "db", nil)
 	assert.Nil(err)
 
-	// Watch should fire when a gateway instance is de-registered
+	// Watch should fire when a gateway instance is deregistered
 	assert.Nil(s.DeleteService(19, "bar", "gateway", nil))
 	assert.True(watchFired(ws))
 
@@ -3661,7 +3661,7 @@ func TestStateStore_CheckConnectServiceNodes_Gateways(t *testing.T) {
 	assert.Equal(idx, uint64(22))
 	assert.Len(nodes, 3)
 
-	// Watch should fire when a gateway instance is de-registered
+	// Watch should fire when a gateway instance is deregistered
 	assert.Nil(s.DeleteService(23, "bar", "gateway", nil))
 	assert.True(watchFired(ws))
 

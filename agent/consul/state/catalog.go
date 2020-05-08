@@ -2126,7 +2126,7 @@ func (s *Store) checkServiceNodesTxn(tx *memdb.Txn, ws memdb.WatchSet, serviceNa
 		}
 	} else {
 		// If we have no results, we should use the index of the last service
-		// extinction event so we don't go backwards when services de-register. We
+		// extinction event so we don't go backwards when services deregister. We
 		// use target serviceName here but it actually doesn't matter. No chan will
 		// be returned as we can't use the optimization in this case (and don't need
 		// to as there is only one chan to watch anyway).
