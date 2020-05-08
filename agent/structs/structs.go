@@ -1554,6 +1554,20 @@ func (nodes CheckServiceNodes) Shuffle() {
 	}
 }
 
+func (nodes CheckServiceNodes) ToServiceDump() ServiceDump {
+	var ret ServiceDump
+	for i := 0; i < len(nodes); i++ {
+		svc := ServiceInfo{
+			Node:           nodes[i].Node,
+			Service:        nodes[i].Service,
+			Checks:         nodes[i].Checks,
+			GatewayService: nil,
+		}
+		ret = append(ret, &svc)
+	}
+	return ret
+}
+
 // ShallowClone duplicates the slice and underlying array.
 func (nodes CheckServiceNodes) ShallowClone() CheckServiceNodes {
 	dup := make(CheckServiceNodes, len(nodes))

@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/consul/types"
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -452,11 +451,29 @@ func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
 			Service: &structs.NodeService{
 				ID:      "db",
 				Service: "db",
+				Tags:    []string{"primary"},
 			},
 			Check: &structs.HealthCheck{
 				Name:      "db-warning",
 				Status:    api.HealthWarning,
 				ServiceID: "db",
+			},
+		}
+		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
+
+		arg = structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "baz",
+			Address:    "127.0.0.3",
+			Service: &structs.NodeService{
+				ID:      "db2",
+				Service: "db",
+				Tags:    []string{"backup"},
+			},
+			Check: &structs.HealthCheck{
+				Name:      "db2-passing",
+				Status:    api.HealthPassing,
+				ServiceID: "db2",
 			},
 		}
 		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
@@ -495,56 +512,19 @@ func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
 	assert.Nil(t, err)
 	assertIndex(t, resp)
 
-	dump := obj.(structs.ServiceDump)
-
-	// Reset raft indices to facilitate assertion
-	dump[0].Node.RaftIndex = structs.RaftIndex{}
-	dump[0].Service.RaftIndex = structs.RaftIndex{}
-	dump[0].Checks[0].RaftIndex = structs.RaftIndex{}
-	dump[0].GatewayService.RaftIndex = structs.RaftIndex{}
-	dump[1].GatewayService.RaftIndex = structs.RaftIndex{}
-
-	expect := structs.ServiceDump{
+	dump := obj.([]*ServiceSummary)
+	expect := []*ServiceSummary{
 		{
-			Node: &structs.Node{
-				Node:       "bar",
-				Address:    "127.0.0.2",
-				Datacenter: "dc1",
-			},
-			Service: &structs.NodeService{
-				ID:      "db",
-				Service: "db",
-				Weights: &structs.Weights{
-					Passing: 1,
-					Warning: 1,
-				},
-			},
-			Checks: structs.HealthChecks{
-				{
-					Node:        "bar",
-					CheckID:     types.CheckID("db-warning"),
-					Name:        "db-warning",
-					Status:      "warning",
-					ServiceID:   "db",
-					ServiceName: "db",
-				},
-			},
-			GatewayService: &structs.GatewayService{
-				Gateway:     structs.ServiceID{ID: "terminating-gateway"},
-				Service:     structs.ServiceID{ID: "db"},
-				GatewayKind: "terminating-gateway",
-			},
+			Name: "redis",
 		},
 		{
-			// Only GatewayService should be returned when linked service isn't registered
-			GatewayService: &structs.GatewayService{
-				Gateway:     structs.ServiceID{ID: "terminating-gateway"},
-				Service:     structs.ServiceID{ID: "redis"},
-				GatewayKind: "terminating-gateway",
-				CAFile:      "/etc/certs/ca.pem",
-				CertFile:    "/etc/certs/cert.pem",
-				KeyFile:     "/etc/certs/key.pem",
-			},
+			Name:           "db",
+			Tags:           []string{"backup", "primary"},
+			Nodes:          []string{"bar", "baz"},
+			InstanceCount:  2,
+			ChecksPassing:  1,
+			ChecksWarning:  1,
+			ChecksCritical: 0,
 		},
 	}
 	assert.ElementsMatch(t, expect, dump)
@@ -584,11 +564,29 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 			Service: &structs.NodeService{
 				ID:      "db",
 				Service: "db",
+				Tags:    []string{"primary"},
 			},
 			Check: &structs.HealthCheck{
 				Name:      "db-warning",
 				Status:    api.HealthWarning,
 				ServiceID: "db",
+			},
+		}
+		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
+
+		arg = structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "baz",
+			Address:    "127.0.0.3",
+			Service: &structs.NodeService{
+				ID:      "db2",
+				Service: "db",
+				Tags:    []string{"backup"},
+			},
+			Check: &structs.HealthCheck{
+				Name:      "db2-passing",
+				Status:    api.HealthPassing,
+				ServiceID: "db2",
 			},
 		}
 		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
@@ -636,56 +634,21 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 	assert.Nil(t, err)
 	assertIndex(t, resp)
 
-	dump := obj.(structs.ServiceDump)
-
-	// Reset raft indices to facilitate assertion
-	dump[0].Node.RaftIndex = structs.RaftIndex{}
-	dump[0].Service.RaftIndex = structs.RaftIndex{}
-	dump[0].Checks[0].RaftIndex = structs.RaftIndex{}
-	dump[0].GatewayService.RaftIndex = structs.RaftIndex{}
-	dump[1].GatewayService.RaftIndex = structs.RaftIndex{}
-
-	expect := structs.ServiceDump{
+	dump := obj.([]*ServiceSummary)
+	expect := []*ServiceSummary{
 		{
-			Node: &structs.Node{
-				Node:       "bar",
-				Address:    "127.0.0.2",
-				Datacenter: "dc1",
-			},
-			Service: &structs.NodeService{
-				Kind:    "",
-				ID:      "db",
-				Service: "db",
-				Weights: &structs.Weights{
-					Passing: 1,
-					Warning: 1,
-				},
-			},
-			Checks: structs.HealthChecks{
-				{
-					Node:        "bar",
-					CheckID:     types.CheckID("db-warning"),
-					Name:        "db-warning",
-					Status:      "warning",
-					ServiceID:   "db",
-					ServiceName: "db",
-				},
-			},
-			GatewayService: &structs.GatewayService{
-				Gateway:     structs.ServiceID{ID: "ingress-gateway"},
-				Service:     structs.ServiceID{ID: "db"},
-				GatewayKind: "ingress-gateway",
-				Port:        8888,
-			},
+			Name:          "web",
+			GatewayConfig: GatewayConfig{ListenerPort: 8080},
 		},
 		{
-			// Only GatewayService should be returned when upstream isn't registered
-			GatewayService: &structs.GatewayService{
-				Gateway:     structs.ServiceID{ID: "ingress-gateway"},
-				Service:     structs.ServiceID{ID: "web"},
-				GatewayKind: "ingress-gateway",
-				Port:        8080,
-			},
+			Name:           "db",
+			Tags:           []string{"backup", "primary"},
+			Nodes:          []string{"bar", "baz"},
+			InstanceCount:  2,
+			ChecksPassing:  1,
+			ChecksWarning:  1,
+			ChecksCritical: 0,
+			GatewayConfig:  GatewayConfig{ListenerPort: 8888},
 		},
 	}
 	assert.ElementsMatch(t, expect, dump)
