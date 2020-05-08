@@ -156,7 +156,7 @@ function get_envoy_listener_filters {
   echo "$output" | jq --raw-output "$QUERY"
 }
 
-function get_envoy_cluster_threshold {
+function get_envoy_cluster_config {
   local HOSTPORT=$1
   local CLUSTER_NAME=$2
   run retry_default curl -s -f $HOSTPORT/config_dump
@@ -164,7 +164,7 @@ function get_envoy_cluster_threshold {
   echo "$output" | jq --raw-output "
     .configs[1].dynamic_active_clusters[]
     | select(.cluster.name|startswith(\"${CLUSTER_NAME}\"))
-    | .cluster.circuit_breakers.thresholds[0]
+    | .cluster
   "
 }
 

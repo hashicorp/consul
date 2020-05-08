@@ -14,6 +14,10 @@ services {
                 max_pending_requests = 4
                 max_concurrent_requests = 5
               }
+              passive_health_check {
+                interval = "22s"
+                max_failures = 4
+              }
             }
           }
         ]

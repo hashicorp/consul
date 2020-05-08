@@ -27,7 +27,7 @@ load helpers
 }
 
 @test "s1 proxy should have been configured with max_connections on the cluster" {
-  CLUSTER_THRESHOLD=$(get_envoy_cluster_threshold localhost:19000 s2.default.primary)
+  CLUSTER_THRESHOLD=$(get_envoy_cluster_config localhost:19000 s2.default.primary | jq '.circuit_breakers.thresholds[0]')
   echo $CLUSTER_THRESHOLD
 
   MAX_CONNS=$(echo $CLUSTER_THRESHOLD | jq  --raw-output '.max_connections')
@@ -41,4 +41,12 @@ load helpers
   [ "$MAX_CONNS" = "3" ]
   [ "$MAX_PENDING_REQS" = "4" ]
   [ "$MAX_REQS" = "5" ]
+}
+
+@test "s1 proxy should have been configured with passive_health_check" {
+  CLUSTER_CONFIG=$(get_envoy_cluster_config localhost:19000 s2.default.primary)
+  echo $CLUSTER_CONFIG
+
+  [ "$(echo $CLUSTER_CONFIG | jq --raw-output '.outlier_detection.consecutive_5xx')" = "4" ]
+  [ "$(echo $CLUSTER_CONFIG | jq --raw-output '.outlier_detection.interval')" = "22s" ]
 }
