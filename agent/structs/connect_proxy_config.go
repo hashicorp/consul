@@ -426,8 +426,6 @@ type ExposePath struct {
 	ParsedFromCheck bool
 }
 
-// TODO: this is most likely not used. The API type is the one to be deserialized
-// with JSON
 func (t *ExposePath) UnmarshalJSON(data []byte) (err error) {
 	type Alias ExposePath
 	aux := &struct {

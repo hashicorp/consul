@@ -58,7 +58,6 @@ type ProxyConfig struct {
 // allows caller to choose whether and how to report the error.
 func ParseProxyConfig(m map[string]interface{}) (ProxyConfig, error) {
 	var cfg ProxyConfig
-	err := mapstructure.WeakDecode(m, &cfg)
 	decodeConf := &mapstructure.DecoderConfig{
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(
 			decode.HookWeakDecodeFromSlice,
