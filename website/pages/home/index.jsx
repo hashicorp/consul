@@ -164,7 +164,7 @@ export default function HomePage() {
             time: '142 mins',
             link:
               'https://learn.hashicorp.com/consul?track=kubernetes#kubernetes',
-            image: require('./img/learn/getting-started.svg?url'),
+            image: require('./img/learn/kubernetes.svg?url'),
           },
         ]}
       />
