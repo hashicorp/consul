@@ -16,7 +16,9 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/types"
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -414,4 +416,277 @@ func TestUiServices(t *testing.T) {
 		}
 		require.ElementsMatch(t, expected, summary)
 	})
+}
+
+func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	// Register terminating gateway and a service that will be associated with it
+	{
+		arg := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				ID:      "terminating-gateway",
+				Service: "terminating-gateway",
+				Kind:    structs.ServiceKindTerminatingGateway,
+				Port:    443,
+			},
+			Check: &structs.HealthCheck{
+				Name:      "terminating connect",
+				Status:    api.HealthPassing,
+				ServiceID: "terminating-gateway",
+			},
+		}
+		var regOutput struct{}
+		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
+
+		arg = structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "127.0.0.2",
+			Service: &structs.NodeService{
+				ID:      "db",
+				Service: "db",
+			},
+			Check: &structs.HealthCheck{
+				Name:      "db-warning",
+				Status:    api.HealthWarning,
+				ServiceID: "db",
+			},
+		}
+		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
+
+		// Register terminating-gateway config entry, linking it to db and redis (dne)
+		args := &structs.TerminatingGatewayConfigEntry{
+			Name: "terminating-gateway",
+			Kind: structs.TerminatingGateway,
+			Services: []structs.LinkedService{
+				{
+					Name: "db",
+				},
+				{
+					Name:     "redis",
+					CAFile:   "/etc/certs/ca.pem",
+					CertFile: "/etc/certs/cert.pem",
+					KeyFile:  "/etc/certs/key.pem",
+				},
+			},
+		}
+
+		req := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry:      args,
+		}
+		var configOutput bool
+		require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &configOutput))
+		require.True(t, configOutput)
+	}
+
+	// Request
+	req, _ := http.NewRequest("GET", "/v1/internal/ui/gateway-services-nodes/terminating-gateway", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.UIGatewayServicesNodes(resp, req)
+	assert.Nil(t, err)
+	assertIndex(t, resp)
+
+	dump := obj.(structs.ServiceDump)
+
+	// Reset raft indices to facilitate assertion
+	dump[0].Node.RaftIndex = structs.RaftIndex{}
+	dump[0].Service.RaftIndex = structs.RaftIndex{}
+	dump[0].Checks[0].RaftIndex = structs.RaftIndex{}
+	dump[0].GatewayService.RaftIndex = structs.RaftIndex{}
+	dump[1].GatewayService.RaftIndex = structs.RaftIndex{}
+
+	expect := structs.ServiceDump{
+		{
+			Node: &structs.Node{
+				Node:       "bar",
+				Address:    "127.0.0.2",
+				Datacenter: "dc1",
+			},
+			Service: &structs.NodeService{
+				ID:      "db",
+				Service: "db",
+				Weights: &structs.Weights{
+					Passing: 1,
+					Warning: 1,
+				},
+			},
+			Checks: structs.HealthChecks{
+				{
+					Node:        "bar",
+					CheckID:     types.CheckID("db-warning"),
+					Name:        "db-warning",
+					Status:      "warning",
+					ServiceID:   "db",
+					ServiceName: "db",
+				},
+			},
+			GatewayService: &structs.GatewayService{
+				Gateway:     structs.ServiceID{ID: "terminating-gateway"},
+				Service:     structs.ServiceID{ID: "db"},
+				GatewayKind: "terminating-gateway",
+			},
+		},
+		{
+			// Only GatewayService should be returned when linked service isn't registered
+			GatewayService: &structs.GatewayService{
+				Gateway:     structs.ServiceID{ID: "terminating-gateway"},
+				Service:     structs.ServiceID{ID: "redis"},
+				GatewayKind: "terminating-gateway",
+				CAFile:      "/etc/certs/ca.pem",
+				CertFile:    "/etc/certs/cert.pem",
+				KeyFile:     "/etc/certs/key.pem",
+			},
+		},
+	}
+	assert.ElementsMatch(t, expect, dump)
+}
+
+func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	// Register ingress gateway and a service that will be associated with it
+	{
+		arg := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				ID:      "ingress-gateway",
+				Service: "ingress-gateway",
+				Kind:    structs.ServiceKindIngressGateway,
+				Port:    8443,
+			},
+			Check: &structs.HealthCheck{
+				Name:      "ingress connect",
+				Status:    api.HealthPassing,
+				ServiceID: "ingress-gateway",
+			},
+		}
+		var regOutput struct{}
+		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
+
+		arg = structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "127.0.0.2",
+			Service: &structs.NodeService{
+				ID:      "db",
+				Service: "db",
+			},
+			Check: &structs.HealthCheck{
+				Name:      "db-warning",
+				Status:    api.HealthWarning,
+				ServiceID: "db",
+			},
+		}
+		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
+
+		// Register ingress-gateway config entry, linking it to db and redis (dne)
+		args := &structs.IngressGatewayConfigEntry{
+			Name: "ingress-gateway",
+			Kind: structs.IngressGateway,
+			Listeners: []structs.IngressListener{
+				{
+					Port:     8888,
+					Protocol: "tcp",
+					Services: []structs.IngressService{
+						{
+							Name: "db",
+						},
+					},
+				},
+				{
+					Port:     8080,
+					Protocol: "http",
+					Services: []structs.IngressService{
+						{
+							Name: "web",
+						},
+					},
+				},
+			},
+		}
+
+		req := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry:      args,
+		}
+		var configOutput bool
+		require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &configOutput))
+		require.True(t, configOutput)
+	}
+
+	// Request
+	req, _ := http.NewRequest("GET", "/v1/internal/ui/gateway-services-nodes/ingress-gateway", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.UIGatewayServicesNodes(resp, req)
+	assert.Nil(t, err)
+	assertIndex(t, resp)
+
+	dump := obj.(structs.ServiceDump)
+
+	// Reset raft indices to facilitate assertion
+	dump[0].Node.RaftIndex = structs.RaftIndex{}
+	dump[0].Service.RaftIndex = structs.RaftIndex{}
+	dump[0].Checks[0].RaftIndex = structs.RaftIndex{}
+	dump[0].GatewayService.RaftIndex = structs.RaftIndex{}
+	dump[1].GatewayService.RaftIndex = structs.RaftIndex{}
+
+	expect := structs.ServiceDump{
+		{
+			Node: &structs.Node{
+				Node:       "bar",
+				Address:    "127.0.0.2",
+				Datacenter: "dc1",
+			},
+			Service: &structs.NodeService{
+				Kind:    "",
+				ID:      "db",
+				Service: "db",
+				Weights: &structs.Weights{
+					Passing: 1,
+					Warning: 1,
+				},
+			},
+			Checks: structs.HealthChecks{
+				{
+					Node:        "bar",
+					CheckID:     types.CheckID("db-warning"),
+					Name:        "db-warning",
+					Status:      "warning",
+					ServiceID:   "db",
+					ServiceName: "db",
+				},
+			},
+			GatewayService: &structs.GatewayService{
+				Gateway:     structs.ServiceID{ID: "ingress-gateway"},
+				Service:     structs.ServiceID{ID: "db"},
+				GatewayKind: "ingress-gateway",
+				Port:        8888,
+			},
+		},
+		{
+			// Only GatewayService should be returned when upstream isn't registered
+			GatewayService: &structs.GatewayService{
+				Gateway:     structs.ServiceID{ID: "ingress-gateway"},
+				Service:     structs.ServiceID{ID: "web"},
+				GatewayKind: "ingress-gateway",
+				Port:        8080,
+			},
+		},
+	}
+	assert.ElementsMatch(t, expect, dump)
 }

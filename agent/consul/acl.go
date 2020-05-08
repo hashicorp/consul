@@ -1446,11 +1446,15 @@ func (f *aclFilter) filterServiceDump(services *structs.ServiceDump) {
 	for i := 0; i < len(svcs); i++ {
 		service := svcs[i]
 		service.Service.FillAuthzContext(&authzContext)
-		if f.allowNode(service.Node.Node, &authzContext) &&
-			f.allowService(service.Service.Service, &authzContext) &&
-			f.allowService(service.GatewayService.Service.ID, &authzContext) {
-			continue
+
+		// Need read on node, service, and gateway. Gateway may have different EnterpriseMeta.
+		if f.allowNode(service.Node.Node, &authzContext) && f.allowService(service.Service.Service, &authzContext) {
+			service.GatewayService.Gateway.FillAuthzContext(&authzContext)
+			if f.allowService(service.GatewayService.Gateway.ID, &authzContext) {
+				continue
+			}
 		}
+
 		f.logger.Debug("dropping service from result due to ACLs", "service", service.Service.Service)
 		svcs = append(svcs[:i], svcs[i+1:]...)
 		i--

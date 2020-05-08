@@ -185,6 +185,14 @@ func (m *Internal) GatewayServiceDump(args *structs.ServiceSpecificRequest, repl
 					}
 					result = append(result, &svc)
 				}
+
+				// Ensure we store the gateway <-> service mapping even if there are no instances of the service
+				if len(instances) == 0 {
+					svc := structs.ServiceInfo{
+						GatewayService: gs,
+					}
+					result = append(result, &svc)
+				}
 			}
 			reply.Index, reply.Dump = maxIdx, result
 
