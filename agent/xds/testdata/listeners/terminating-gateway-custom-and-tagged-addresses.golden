@@ -65,7 +65,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "",
-                  "stat_prefix": "terminating_gateway_api_foo_tcp"
+                  "stat_prefix": "terminating_gateway_default_api_foo_tcp"
                 }
             }
           ]
@@ -124,7 +124,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "",
-                  "stat_prefix": "terminating_gateway_web_foo_tcp"
+                  "stat_prefix": "terminating_gateway_default_web_foo_tcp"
                 }
             }
           ]
@@ -214,7 +214,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "",
-                  "stat_prefix": "terminating_gateway_api_wan_tcp"
+                  "stat_prefix": "terminating_gateway_default_api_wan_tcp"
                 }
             }
           ]
@@ -273,7 +273,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "",
-                  "stat_prefix": "terminating_gateway_web_wan_tcp"
+                  "stat_prefix": "terminating_gateway_default_web_wan_tcp"
                 }
             }
           ]

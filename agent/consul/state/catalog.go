@@ -1006,23 +1006,23 @@ func (s *Store) maxIndexAndWatchChForService(tx *memdb.Txn, serviceName string, 
 
 // Wrapper for maxIndexAndWatchChForService that operates on a list of ServiceNodes
 func (s *Store) maxIndexAndWatchChsForServiceNodes(tx *memdb.Txn,
-	nodes structs.ServiceNodes, watchChecks bool, entMeta *structs.EnterpriseMeta) (uint64, []<-chan struct{}) {
+	nodes structs.ServiceNodes, watchChecks bool) (uint64, []<-chan struct{}) {
 
 	var watchChans []<-chan struct{}
 	var maxIdx uint64
 
-	seen := make(map[string]bool)
+	seen := make(map[structs.ServiceID]bool)
 	for i := 0; i < len(nodes); i++ {
-		svc := nodes[i].ServiceName
-		if ok := seen[svc]; !ok {
-			idx, svcCh := s.maxIndexAndWatchChForService(tx, svc, true, watchChecks, entMeta)
+		sid := structs.NewServiceID(nodes[i].ServiceName, &nodes[i].EnterpriseMeta)
+		if ok := seen[sid]; !ok {
+			idx, svcCh := s.maxIndexAndWatchChForService(tx, sid.ID, true, watchChecks, &sid.EnterpriseMeta)
 			if idx > maxIdx {
 				maxIdx = idx
 			}
 			if svcCh != nil {
 				watchChans = append(watchChans, svcCh)
 			}
-			seen[svc] = true
+			seen[sid] = true
 		}
 	}
 
@@ -1078,7 +1078,7 @@ func (s *Store) serviceNodes(ws memdb.WatchSet, serviceName string, connect bool
 		}
 
 		// Watch for index changes to the gateway nodes
-		svcIdx, chans := s.maxIndexAndWatchChsForServiceNodes(tx, nodes, false, entMeta)
+		svcIdx, chans := s.maxIndexAndWatchChsForServiceNodes(tx, nodes, false)
 		if svcIdx > idx {
 			idx = svcIdx
 		}
@@ -1098,6 +1098,8 @@ func (s *Store) serviceNodes(ws memdb.WatchSet, serviceName string, connect bool
 	}
 
 	// Get the table index.
+	// TODO (gateways) (freddy) Why do we always consider the main service index here?
+	//      This doesn't seem to make sense for Connect when there's more than 1 result
 	svcIdx := s.maxIndexForService(tx, serviceName, len(results) > 0, false, entMeta)
 	if idx < svcIdx {
 		idx = svcIdx
@@ -2006,11 +2008,11 @@ func (s *Store) CheckIngressServiceNodes(ws memdb.WatchSet, serviceName string, 
 
 	// TODO(ingress) : Deal with incorporating index from mapping table
 	// Watch for index changes to the gateway nodes
-	idx, chans := s.maxIndexAndWatchChsForServiceNodes(tx, nodes, false, entMeta)
-	maxIdx = lib.MaxUint64(maxIdx, idx)
+	idx, chans := s.maxIndexAndWatchChsForServiceNodes(tx, nodes, false)
 	for _, ch := range chans {
 		ws.Add(ch)
 	}
+	maxIdx = lib.MaxUint64(maxIdx, idx)
 
 	// TODO(ingress): Test namespace functionality here
 	// De-dup services to lookup
@@ -2065,11 +2067,13 @@ func (s *Store) checkServiceNodesTxn(tx *memdb.Txn, ws memdb.WatchSet, serviceNa
 	// service name IFF there is at least one Connect-native instance of that
 	// service. Either way there is usually only one distinct name if proxies are
 	// named consistently but could be multiple.
-	serviceNames := make(map[string]struct{}, 2)
+	serviceNames := make(map[structs.ServiceID]struct{}, 2)
 	for service := iter.Next(); service != nil; service = iter.Next() {
 		sn := service.(*structs.ServiceNode)
 		results = append(results, sn)
-		serviceNames[sn.ServiceName] = struct{}{}
+
+		sid := structs.NewServiceID(sn.ServiceName, &sn.EnterpriseMeta)
+		serviceNames[sid] = struct{}{}
 	}
 
 	// If we are querying for Connect nodes, the associated proxy might be a terminating-gateway.
@@ -2086,7 +2090,9 @@ func (s *Store) checkServiceNodesTxn(tx *memdb.Txn, ws memdb.WatchSet, serviceNa
 		idx = lib.MaxUint64(idx, gwIdx)
 		for i := 0; i < len(nodes); i++ {
 			results = append(results, nodes[i])
-			serviceNames[nodes[i].ServiceName] = struct{}{}
+
+			sid := structs.NewServiceID(nodes[i].ServiceName, &nodes[i].EnterpriseMeta)
+			serviceNames[sid] = struct{}{}
 		}
 	}
 
@@ -2109,7 +2115,7 @@ func (s *Store) checkServiceNodesTxn(tx *memdb.Txn, ws memdb.WatchSet, serviceNa
 			// We know service values should exist since the serviceNames map is only
 			// populated if there is at least one result above. so serviceExists arg
 			// below is always true.
-			svcIdx, svcCh := s.maxIndexAndWatchChForService(tx, svcName, true, true, entMeta)
+			svcIdx, svcCh := s.maxIndexAndWatchChForService(tx, svcName.ID, true, true, &svcName.EnterpriseMeta)
 			// Take the max index represented
 			idx = lib.MaxUint64(idx, svcIdx)
 			if svcCh != nil {
@@ -2469,7 +2475,7 @@ func (s *Store) updateGatewayServices(tx *memdb.Txn, idx uint64, conf structs.Co
 	var gatewayServices structs.GatewayServices
 	var err error
 
-	gatewayID := structs.NewServiceID(conf.GetName(), conf.GetEnterpriseMeta())
+	gatewayID := structs.NewServiceID(conf.GetName(), entMeta)
 	switch conf.GetKind() {
 	case structs.IngressGateway:
 		gatewayServices, err = s.ingressConfigGatewayServices(tx, gatewayID, conf, entMeta)
@@ -2742,8 +2748,8 @@ func (s *Store) serviceGatewayNodes(tx *memdb.Txn, ws memdb.WatchSet, service st
 			exists = true
 		}
 
-		// This prevents the index from sliding back in case all instances of the service are deregistered
-		svcIdx := s.maxIndexForService(tx, mapping.Gateway.ID, exists, false, &mapping.Service.EnterpriseMeta)
+		// This prevents the index from sliding back if case all instances of the gateway service are deregistered
+		svcIdx := s.maxIndexForService(tx, mapping.Gateway.ID, exists, false, &mapping.Gateway.EnterpriseMeta)
 		maxIdx = lib.MaxUint64(maxIdx, svcIdx)
 
 		// Ensure that blocking queries wake up if the gateway-service mapping exists, but the gateway does not exist yet

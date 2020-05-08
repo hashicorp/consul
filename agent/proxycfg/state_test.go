@@ -560,6 +560,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 		}
 	}
 
+	// Used in terminating-gateway cases to account for differences in OSS/ent implementations of ServiceID.String()
+	db := structs.NewServiceID("db", nil)
+	dbStr := db.String()
+
 	cases := map[string]testCase{
 		"initial-gateway": testCase{
 			ns: structs.NodeService{
@@ -1002,11 +1006,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				},
 				verificationStage{
 					requiredWatches: map[string]verifyWatchRequest{
-						"external-service:db": genVerifyServiceWatch("db", "", "dc1", false),
+						"external-service:" + dbStr: genVerifyServiceWatch("db", "", "dc1", false),
 					},
 					events: []cache.UpdateEvent{
 						cache.UpdateEvent{
-							CorrelationID: "external-service:db",
+							CorrelationID: "external-service:" + dbStr,
 							Result: &structs.IndexedCheckServiceNodes{
 								Nodes: structs.CheckServiceNodes{
 									{
@@ -1044,11 +1048,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				},
 				verificationStage{
 					requiredWatches: map[string]verifyWatchRequest{
-						"service-leaf:db": genVerifyLeafWatch("db", "dc1"),
+						"service-leaf:" + dbStr: genVerifyLeafWatch("db", "dc1"),
 					},
 					events: []cache.UpdateEvent{
 						cache.UpdateEvent{
-							CorrelationID: "service-leaf:db",
+							CorrelationID: "service-leaf:" + dbStr,
 							Result:        issuedCert,
 							Err:           nil,
 						},
@@ -1059,11 +1063,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				},
 				verificationStage{
 					requiredWatches: map[string]verifyWatchRequest{
-						"service-resolver:db": genVerifyResolverWatch("db", "dc1", structs.ServiceResolver),
+						"service-resolver:" + dbStr: genVerifyResolverWatch("db", "dc1", structs.ServiceResolver),
 					},
 					events: []cache.UpdateEvent{
 						cache.UpdateEvent{
-							CorrelationID: "service-resolver:db",
+							CorrelationID: "service-resolver:" + dbStr,
 							Result: &structs.IndexedConfigEntries{
 								Kind: structs.ServiceResolver,
 								Entries: []structs.ConfigEntry{

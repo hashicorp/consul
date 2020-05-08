@@ -1251,7 +1251,6 @@ func TestStore_ReadDiscoveryChainConfigEntries_SubsetSplit(t *testing.T) {
 	require.Len(t, entrySet.Services, 1)
 }
 
-// TODO(ingress): test that having the same name in different namespace is valid
 func TestStore_ValidateGatewayNamesCannotBeShared(t *testing.T) {
 	s := testStateStore(t)
 
