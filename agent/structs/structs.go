@@ -1556,7 +1556,7 @@ func (nodes CheckServiceNodes) Shuffle() {
 
 func (nodes CheckServiceNodes) ToServiceDump() ServiceDump {
 	var ret ServiceDump
-	for i := 0; i < len(nodes); i++ {
+	for i := range nodes {
 		svc := ServiceInfo{
 			Node:           nodes[i].Node,
 			Service:        nodes[i].Service,
