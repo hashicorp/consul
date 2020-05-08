@@ -14,6 +14,7 @@ export default Model.extend({
     },
   }),
   InstanceCount: attr('number'),
+  ProxyFor: attr(),
   Kind: attr('string'),
   ExternalSources: attr(),
   Meta: attr(),
