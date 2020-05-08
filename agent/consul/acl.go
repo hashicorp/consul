@@ -1171,6 +1171,23 @@ func (f *aclFilter) allowNode(node string, ent *acl.AuthorizerContext) bool {
 	return f.authorizer.NodeRead(node, ent) == acl.Allow
 }
 
+// allowNode is used to determine if the gateway and service are accessible for an ACL
+func (f *aclFilter) allowGateway(gs *structs.GatewayService) bool {
+	var authzContext acl.AuthorizerContext
+
+	// Need read on service and gateway. Gateway may have different EnterpriseMeta so we fill authzContext twice
+	gs.Gateway.FillAuthzContext(&authzContext)
+	if !f.allowService(gs.Gateway.ID, &authzContext) {
+		return false
+	}
+
+	gs.Service.FillAuthzContext(&authzContext)
+	if !f.allowService(gs.Service.ID, &authzContext) {
+		return false
+	}
+	return true
+}
+
 // allowService is used to determine if a service is accessible for an ACL.
 func (f *aclFilter) allowService(service string, ent *acl.AuthorizerContext) bool {
 	if service == "" {
@@ -1445,17 +1462,20 @@ func (f *aclFilter) filterServiceDump(services *structs.ServiceDump) {
 
 	for i := 0; i < len(svcs); i++ {
 		service := svcs[i]
-		service.Service.FillAuthzContext(&authzContext)
 
-		// Need read on node, service, and gateway. Gateway may have different EnterpriseMeta.
-		if f.allowNode(service.Node.Node, &authzContext) && f.allowService(service.Service.Service, &authzContext) {
-			service.GatewayService.Gateway.FillAuthzContext(&authzContext)
-			if f.allowService(service.GatewayService.Gateway.ID, &authzContext) {
+		if f.allowGateway(service.GatewayService) {
+			// ServiceDump might only have gateway config and no node information
+			if service.Node == nil {
+				continue
+			}
+
+			service.Service.FillAuthzContext(&authzContext)
+			if f.allowNode(service.Node.Node, &authzContext) {
 				continue
 			}
 		}
 
-		f.logger.Debug("dropping service from result due to ACLs", "service", service.Service.Service)
+		f.logger.Debug("dropping service from result due to ACLs", "service", service.GatewayService.Service)
 		svcs = append(svcs[:i], svcs[i+1:]...)
 		i--
 	}

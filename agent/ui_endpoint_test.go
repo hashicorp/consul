@@ -461,7 +461,7 @@ func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
 		}
 		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
 
-		// Register terminating-gateway config entry, linking it to db and redis (dne)
+		// Register terminating-gateway config entry, linking it to db and redis (does not exist)
 		args := &structs.TerminatingGatewayConfigEntry{
 			Name: "terminating-gateway",
 			Kind: structs.TerminatingGateway,
@@ -593,7 +593,7 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 		}
 		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
 
-		// Register ingress-gateway config entry, linking it to db and redis (dne)
+		// Register ingress-gateway config entry, linking it to db and redis (does not exist)
 		args := &structs.IngressGatewayConfigEntry{
 			Name: "ingress-gateway",
 			Kind: structs.IngressGateway,
@@ -609,7 +609,7 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 				},
 				{
 					Port:     8080,
-					Protocol: "http",
+					Protocol: "tcp",
 					Services: []structs.IngressService{
 						{
 							Name: "web",

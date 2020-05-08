@@ -1541,7 +1541,7 @@ func TestInternal_GatewayServiceDump_Ingress(t *testing.T) {
 				},
 				{
 					Port:     8080,
-					Protocol: "http",
+					Protocol: "tcp",
 					Services: []structs.IngressService{
 						{
 							Name: "web",
@@ -1751,10 +1751,20 @@ func TestInternal_GatewayServiceDump_Ingress_ACL(t *testing.T) {
 			Listeners: []structs.IngressListener{
 				{
 					Port:     8888,
-					Protocol: "http",
+					Protocol: "tcp",
 					Services: []structs.IngressService{
-						{Name: "db"},
-						{Name: "api"},
+						{
+							Name: "db",
+						},
+					},
+				},
+				{
+					Port:     8080,
+					Protocol: "tcp",
+					Services: []structs.IngressService{
+						{
+							Name: "web",
+						},
 					},
 				},
 			},
