@@ -141,6 +141,7 @@ There are several custom markdown plugins that are available by default that enh
 There are also a couple of custom components that can be used within markdown, see the list below for documentation and details:
 
 - [Enterprise Alert](components/enterprise-alert/README.md)
+- [Tabs](components/tabs/README.md)
 
 ### Redirects
 

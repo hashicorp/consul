@@ -34,12 +34,14 @@
 @import '~@hashicorp/react-section-header/dist/style.css';
 @import '~@hashicorp/react-call-to-action/dist/style.css';
 @import '~@hashicorp/react-case-study-slider/dist/style.css';
+@import '~@hashicorp/react-tabs/dist/style.css';
 @import '~@hashicorp/react-code-block/dist/style.css';
 @import '~@hashicorp/react-alert-banner/dist/style.css';
 
 /* Local Components */
 @import '../components/footer/style.css';
 @import '../components/before-after/style.css';
+@import '../components/tabs/style.css';
 
 /* Local Pages */
 @import './downloads/style.css';
