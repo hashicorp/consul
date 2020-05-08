@@ -42,12 +42,17 @@ Usage: consul license <subcommand> [options] [args]
   Retrieve the current license:
 
       $ consul license get
+   
+  Reset the current license:
+
+      $ consul license reset
 
   For more examples, ask for subcommand help or view the documentation.
 
 Subcommands:
-    get    Get the current license
-    put    Puts a new license in the datacenter
+    get      Get the current license
+    put      Puts a new license in the datacenter
+    reset    Resets the license in the datacenter
 ```
 
 ## put
@@ -85,6 +90,37 @@ Licensed Features:
 This command gets the Consul Enterprise license.
 
 Usage: `consul license get [options]`
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
+
+The output looks like this:
+
+```text
+License is valid
+License ID: 2afbf681-0d1a-0649-cb6c-333ec9f0989c
+Customer ID: 0259271d-8ffc-e85e-0830-c0822c1f5f2b
+Expires At: 2019-05-22 03:59:59.999 +0000 UTC
+Datacenter: *
+Package: premium
+Licensed Features:
+        Automated Backups
+        Automated Upgrades
+        Enhanced Read Scalability
+        Network Segments
+        Redundancy Zone
+        Advanced Network Federation
+```
+
+## reset
+
+Resets license for the datacenter to the one builtin in Consul binary, if it is still valid. 
+If the builtin license is invalid, the current one stays active.
+
+Usage: `consul license reset [options]`
 
 #### API Options
 
