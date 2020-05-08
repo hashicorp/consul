@@ -3,10 +3,11 @@ import order from '../data/intro-navigation.js'
 import { frontMatter as data } from '../pages/intro/**/*.mdx'
 import { MDXProvider } from '@mdx-js/react'
 import EnterpriseAlert from '../components/enterprise-alert'
+import { Tabs, Tab } from '../components/tabs'
 import Head from 'next/head'
 import Link from 'next/link'
 
-const DEFAULT_COMPONENTS = { EnterpriseAlert }
+const DEFAULT_COMPONENTS = { EnterpriseAlert, Tabs, Tab }
 
 function IntroLayoutWrapper(pageMeta) {
   function IntroLayout(props) {
