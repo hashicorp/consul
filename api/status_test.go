@@ -12,7 +12,11 @@ func TestAPI_StatusLeader(t *testing.T) {
 
 	status := c.Status()
 
-	leader, err := status.Leader()
+	opts := QueryOptions{
+		Datacenter: "dc1",
+	}
+
+	leader, err := status.Leader(&opts)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -29,7 +33,10 @@ func TestAPI_StatusPeers(t *testing.T) {
 
 	status := c.Status()
 
-	peers, err := status.Peers()
+	opts := QueryOptions{
+		Datacenter: "dc1",
+	}
+	peers, err := status.Peers(&opts)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

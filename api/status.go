@@ -11,8 +11,9 @@ func (c *Client) Status() *Status {
 }
 
 // Leader is used to query for a known leader
-func (s *Status) Leader() (string, error) {
+func (s *Status) Leader(q *QueryOptions) (string, error) {
 	r := s.c.newRequest("GET", "/v1/status/leader")
+	r.setQueryOptions(q)
 	_, resp, err := requireOK(s.c.doRequest(r))
 	if err != nil {
 		return "", err
@@ -27,8 +28,9 @@ func (s *Status) Leader() (string, error) {
 }
 
 // Peers is used to query for a known raft peers
-func (s *Status) Peers() ([]string, error) {
+func (s *Status) Peers(q *QueryOptions) ([]string, error) {
 	r := s.c.newRequest("GET", "/v1/status/peers")
+	r.setQueryOptions(q)
 	_, resp, err := requireOK(s.c.doRequest(r))
 	if err != nil {
 		return nil, err
