@@ -1711,7 +1711,6 @@ type IndexedServices struct {
 	QueryMeta
 }
 
-// TODO (freddy) is this name change backwards incompatible? Used internally for Catalog.ServiceList RPC endpoint
 type ServiceName struct {
 	Name string
 	EnterpriseMeta
