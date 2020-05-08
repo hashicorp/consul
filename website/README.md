@@ -138,6 +138,10 @@ There are several custom markdown plugins that are available by default that enh
 
   ...while it perhaps would not be an improved user experience, no links would break because of it. The best approach is to **avoid changing headlines and inline code at the start of a list item**. If you must change one of these items, make sure to tag someone from the digital marketing development team on your pull request, they will help to ensure as much compatibility as possible.
 
+There are also a couple of custom components that can be used within markdown, see the list below for documentation and details:
+
+- [Enterprise Alert](components/enterprise-alert/README.md)
+
 ### Redirects
 
 This website structures URLs based on the filesystem layout. This means that if a file is moved, removed, or a folder is re-organized, links will break. If a path change is necessary, it can be mitigated using redirects.
