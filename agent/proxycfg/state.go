@@ -1333,7 +1333,6 @@ func (s *state) handleUpdateIngressGateway(u cache.UpdateEvent, snap *ConfigSnap
 		}
 
 		snap.IngressGateway.TLSEnabled = gatewayConf.TLS.Enabled
-		s.logger.Info("got ingress config entry", gatewayConf.TLS.Enabled)
 		snap.IngressGateway.TLSSet = true
 
 		if err := s.watchIngressLeafCert(snap); err != nil {
