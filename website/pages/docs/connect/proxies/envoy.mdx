@@ -287,6 +287,10 @@ definition](/docs/connect/registration/service-registration) or
   - `max_failures` - The number of consecutive failures which cause a host to be
     removed from the load balancer.
 
+- `load_balancer` - Load balancer settings determine which host in the upstream
+  cluster will receive a request.
+
+  - `policy` - one of `round_robin` (default), `random`, `least_request`
 
 ### Gateway Options
 
