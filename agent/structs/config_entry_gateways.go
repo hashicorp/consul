@@ -190,6 +190,10 @@ func validateHost(host string) error {
 		return fmt.Errorf("Host %q is not valid, a wildcard specifier is only allowed as the leftmost label", host)
 	}
 
+	if host == "*" {
+		return fmt.Errorf("Host '*' is not allowed, wildcards can only be used as a prefix/suffix")
+	}
+
 	return nil
 }
 
