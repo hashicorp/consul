@@ -7,36 +7,13 @@ DEBUG=${DEBUG:-}
 
 # ENVOY_VERSION to run each test against
 ENVOY_VERSION=${ENVOY_VERSION:-"1.14.1"}
-
-CASE_DIR="${CASE_DIR?CASE_DIR must be set to the path of the test case}"
-CASE_NAME=$( basename $CASE_DIR | cut -c6- )
-export CASE_NAME
+export ENVOY_VERSION
 
 if [ ! -z "$DEBUG" ] ; then
   set -x
 fi
 
 source helpers.bash
-
-RESULT=1
-CLEANED_UP=0
-
-function cleanup {
-  local STATUS="$?"
-
-  if [ "$CLEANED_UP" != 0 ] ; then
-    return
-  fi
-  CLEANED_UP=1
-
-  if [ "$STATUS" -ne 0 ]
-  then
-    capture_logs
-  fi
-
-  docker-compose down --volumes --timeout 0 --remove-orphans
-}
-trap cleanup EXIT
 
 function command_error {
   echo "ERR: command exited with status $1" 1>&2
@@ -178,7 +155,7 @@ function stop_services {
   docker-compose rm -s -v -f $REQUIRED_SERVICES || true
 }
 
-function initVars {
+function init_vars {
   source "defaults.sh"
   if [ -f "${CASE_DIR}/vars.sh" ] ; then
     source "${CASE_DIR}/vars.sh"
@@ -191,8 +168,14 @@ function global_setup {
   fi
 }
 
-function runTest {
-  initVars
+function run_tests {
+  CASE_DIR="${CASE_DIR?CASE_DIR must be set to the path of the test case}"
+  CASE_NAME=$( basename $CASE_DIR | cut -c6- )
+  export CASE_NAME
+
+  export LOG_DIR="workdir/logs/${CASE_DIR}/${ENVOY_VERSION}"
+
+  init_vars
 
   # Initialize the workdir
   init_workdir primary
@@ -288,23 +271,29 @@ function runTest {
   return $TESTRESULT
 }
 
+function suite_setup {
+    # Set a log dir to prevent docker-compose warning about unset var
+    export LOG_DIR="workdir/logs/"
+    # Cleanup from any previous unclean runs.
+    docker-compose down --volumes --timeout 0 --remove-orphans
 
-RESULT=0
+    # Start the volume container
+    docker-compose up -d workdir
+}
 
-# Cleanup from any previous unclean runs.
-docker-compose down --volumes --timeout 0 --remove-orphans
+function suite_teardown {
+    # Set a log dir to prevent docker-compose warning about unset var
+    export LOG_DIR="workdir/logs/"
 
-# Start the volume container
-docker-compose up -d workdir
+    docker-compose down --volumes --timeout 0 --remove-orphans
+}
 
-export LOG_DIR="workdir/logs/${CASE_DIR}/${ENVOY_VERSION}"
 
-if ! runTest; then
-  RESULT=1
-fi
+case "${1-}" in
+  "")
+    echo "command required"
+    exit 1 ;;
+  *)
+    "$@" ;;
+esac
 
-cleanup
-
-if [ $RESULT -ne 0 ] ; then
-  exit 1
-fi
