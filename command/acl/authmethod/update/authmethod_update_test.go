@@ -100,15 +100,17 @@ func TestAuthMethodUpdateCommand(t *testing.T) {
 		return methodName
 	}
 
-	t.Run("update all fields", func(t *testing.T) {
-		name := createAuthMethod(t)
+	finalName := createAuthMethod(t)
 
+	t.Run("update all fields", func(t *testing.T) {
+		name := finalName
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-token=root",
 			"-name=" + name,
 			"-display-name", "updated display",
 			"-description", "updated description",
+			"-config", `{ "SessionID": "foo" }`,
 		}
 
 		ui := cli.NewMockUi()
@@ -124,7 +126,42 @@ func TestAuthMethodUpdateCommand(t *testing.T) {
 			Type:        "testing",
 			DisplayName: "updated display",
 			Description: "updated description",
-			Config:      map[string]interface{}{},
+			Config: map[string]interface{}{
+				"SessionID": "foo",
+			},
+		}
+		require.Equal(t, expect, got)
+	})
+
+	t.Run("update config field and prove no merging happens", func(t *testing.T) {
+		name := finalName
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-name=" + name,
+			"-display-name", "updated display",
+			"-description", "updated description",
+			"-config", `{ "Data": { "foo": "bar"} }`,
+		}
+
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		code := cmd.Run(args)
+		require.Equal(t, code, 0)
+		require.Empty(t, ui.ErrorWriter.String())
+
+		got := getTestMethod(t, client, name)
+		expect := &api.ACLAuthMethod{
+			Name:        name,
+			Type:        "testing",
+			DisplayName: "updated display",
+			Description: "updated description",
+			Config: map[string]interface{}{
+				"Data": map[string]interface{}{
+					"foo": "bar",
+				},
+			},
 		}
 		require.Equal(t, expect, got)
 	})

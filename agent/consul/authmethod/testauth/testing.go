@@ -81,7 +81,8 @@ func GetSessionToken(sessionID string, token string) (map[string]string, bool) {
 }
 
 type Config struct {
-	SessionID string // unique identifier for this set of tokens in the database
+	SessionID string            // unique identifier for this set of tokens in the database
+	Data      map[string]string `json:",omitempty"` // random data for testing
 
 	enterpriseConfig `mapstructure:",squash"`
 }
