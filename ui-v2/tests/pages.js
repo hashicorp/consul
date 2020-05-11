@@ -1,5 +1,5 @@
 import {
-  create,
+  create as createPage,
   clickable,
   is,
   attribute,
@@ -16,7 +16,6 @@ import createCancelable from 'consul-ui/tests/lib/page-object/createCancelable';
 
 // TODO: All component-like page objects should be moved into the component folder
 // along with all of its other dependencies once we can mae ember-cli ignore them
-import page from 'consul-ui/tests/pages/components/page';
 import radiogroup from 'consul-ui/tests/lib/page-object/radiogroup';
 import tabgroup from 'consul-ui/tests/lib/page-object/tabgroup';
 import freetextFilter from 'consul-ui/tests/pages/components/freetext-filter';
@@ -30,7 +29,9 @@ import policyFormFactory from 'consul-ui/tests/pages/components/policy-form';
 import policySelectorFactory from 'consul-ui/tests/pages/components/policy-selector';
 import roleFormFactory from 'consul-ui/tests/pages/components/role-form';
 import roleSelectorFactory from 'consul-ui/tests/pages/components/role-selector';
+import pageFactory from 'consul-ui/tests/pages/components/page';
 import consulIntentionListFactory from 'consul-ui/tests/pages/components/consul-intention-list';
+import authFormFactory from 'consul-ui/tests/pages/components/auth-form';
 
 // TODO: should this specifically be modal or form?
 // should all forms be forms?
@@ -72,12 +73,21 @@ const roleForm = roleFormFactory(submitable, cancelable, policySelector);
 const roleSelector = roleSelectorFactory(clickable, deletable, collection, alias, roleForm);
 
 const consulIntentionList = consulIntentionListFactory(collection, clickable, attribute, deletable);
+const authForm = authFormFactory(submitable, clickable, attribute);
+const page = pageFactory(clickable, attribute, is, authForm);
 
+const create = function(appView) {
+  appView = {
+    ...page(),
+    ...appView,
+  };
+  return createPage(appView);
+};
 export default {
   index: create(index(visitable, collection)),
   dcs: create(dcs(visitable, clickable, attribute, collection)),
   services: create(
-    services(visitable, clickable, text, attribute, collection, page, popoverSort, radiogroup)
+    services(visitable, clickable, text, attribute, collection, popoverSort, radiogroup)
   ),
   service: create(
     service(visitable, attribute, collection, text, consulIntentionList, catalogToolbar, tabgroup)

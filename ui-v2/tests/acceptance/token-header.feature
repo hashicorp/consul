@@ -21,11 +21,12 @@ Feature: token-header
       dc: datacenter
     ---
     Then the url should be /datacenter/acls/tokens
-    Then I fill in with yaml
+    And I click login on the navigation
+    And I fill in the auth form with yaml
     ---
-      secret: [Token]
+    SecretID: [Token]
     ---
-    And I submit
+    And I click submit on the authdialog.form
     When I visit the index page
     Then the url should be /datacenter/services
     And a GET request was made to "/v1/internal/ui/services?dc=datacenter&ns=@namespace" from yaml

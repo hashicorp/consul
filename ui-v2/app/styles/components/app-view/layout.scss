@@ -46,6 +46,9 @@
   padding-bottom: 0.2em;
   margin-bottom: 0.5em;
 }
+%app-view-error > div {
+  padding: 1px 0 30px 0;
+}
 %app-view-content-empty {
   margin-top: 0;
   padding: 50px;

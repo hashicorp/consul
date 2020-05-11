@@ -9,9 +9,9 @@ export default function(
 ) {
   return {
     visit: visitable(['/:dc/acls/tokens/:token', '/:dc/acls/tokens/create']),
-    ...submitable({}, 'form > div'),
-    ...cancelable({}, 'form > div'),
-    ...deletable({}, 'form > div'),
+    ...submitable({}, 'main form > div'),
+    ...cancelable({}, 'main form > div'),
+    ...deletable({}, 'main form > div'),
     use: clickable('[data-test-use]'),
     confirmUse: clickable('button.type-delete'),
     clone: clickable('[data-test-clone]'),
