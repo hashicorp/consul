@@ -14,7 +14,7 @@
   .actions .with-feedback p::after {
     bottom: auto;
     top: -13px !important;
-    border-bottom: 18px solid $gray-800;
-    border-top: 0;
+    border-bottom-width: 18px;
+    border-top-width: 0;
   }
 }
