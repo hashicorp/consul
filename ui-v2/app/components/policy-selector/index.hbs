@@ -57,14 +57,22 @@
         </td>
       </BlockSlot>
       <BlockSlot @name="details">
+          {{#if (eq item.template '')}}
+            <DataSource
+              @src={{concat '/' item.Namespace '/' item.Datacenter '/policy/' item.ID}}
+              @onchange={{action (mut loadedItem) value="data"}}
+              @loading="lazy"
+            />
+          {{/if}}
+          <dl>
+            <dt>Datacenters:</dt>
+            <dd>
+              {{join ', ' (policy/datacenters (or loadedItem item))}}
+            </dd>
+          </dl>
           <label class="type-text">
             <span>Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
             {{#if (eq item.template '')}}
-              <DataSource
-                @src={{concat '/' item.Namespace '/' item.Datacenter '/policy/' item.ID}}
-                @onchange={{action (mut loadedItem) value="data"}}
-                @loading="lazy"
-              />
               <CodeEditor @syntax="hcl" @readonly={{true}} @value={{or loadedItem.Rules item.Rules}} />
             {{else}}
               <CodeEditor @syntax="hcl" @readonly={{true}}>
