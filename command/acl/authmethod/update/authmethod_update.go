@@ -253,6 +253,8 @@ func (c *cmd) Run(args []string) int {
 				c.UI.Error(fmt.Sprintf("Error loading configuration file: %v", err))
 				return 1
 			}
+			// Don't attempt a deep merge.
+			method.Config = make(map[string]interface{})
 			if err := json.Unmarshal([]byte(data), &method.Config); err != nil {
 				c.UI.Error(fmt.Sprintf("Error parsing JSON for auth method config: %v", err))
 				return 1
