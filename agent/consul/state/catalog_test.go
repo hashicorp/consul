@@ -2,11 +2,6 @@ package state
 
 import (
 	"fmt"
-	"reflect"
-	"sort"
-	"strings"
-	"testing"
-
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
@@ -16,6 +11,10 @@ import (
 	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"reflect"
+	"sort"
+	"strings"
+	"testing"
 )
 
 func makeRandomNodeID(t *testing.T) types.NodeID {

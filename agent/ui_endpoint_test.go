@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -414,4 +415,241 @@ func TestUiServices(t *testing.T) {
 		}
 		require.ElementsMatch(t, expected, summary)
 	})
+}
+
+func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	// Register terminating gateway and a service that will be associated with it
+	{
+		arg := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				ID:      "terminating-gateway",
+				Service: "terminating-gateway",
+				Kind:    structs.ServiceKindTerminatingGateway,
+				Port:    443,
+			},
+			Check: &structs.HealthCheck{
+				Name:      "terminating connect",
+				Status:    api.HealthPassing,
+				ServiceID: "terminating-gateway",
+			},
+		}
+		var regOutput struct{}
+		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
+
+		arg = structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "127.0.0.2",
+			Service: &structs.NodeService{
+				ID:      "db",
+				Service: "db",
+				Tags:    []string{"primary"},
+			},
+			Check: &structs.HealthCheck{
+				Name:      "db-warning",
+				Status:    api.HealthWarning,
+				ServiceID: "db",
+			},
+		}
+		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
+
+		arg = structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "baz",
+			Address:    "127.0.0.3",
+			Service: &structs.NodeService{
+				ID:      "db2",
+				Service: "db",
+				Tags:    []string{"backup"},
+			},
+			Check: &structs.HealthCheck{
+				Name:      "db2-passing",
+				Status:    api.HealthPassing,
+				ServiceID: "db2",
+			},
+		}
+		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
+
+		// Register terminating-gateway config entry, linking it to db and redis (does not exist)
+		args := &structs.TerminatingGatewayConfigEntry{
+			Name: "terminating-gateway",
+			Kind: structs.TerminatingGateway,
+			Services: []structs.LinkedService{
+				{
+					Name: "db",
+				},
+				{
+					Name:     "redis",
+					CAFile:   "/etc/certs/ca.pem",
+					CertFile: "/etc/certs/cert.pem",
+					KeyFile:  "/etc/certs/key.pem",
+				},
+			},
+		}
+
+		req := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry:      args,
+		}
+		var configOutput bool
+		require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &configOutput))
+		require.True(t, configOutput)
+	}
+
+	// Request
+	req, _ := http.NewRequest("GET", "/v1/internal/ui/gateway-services-nodes/terminating-gateway", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.UIGatewayServicesNodes(resp, req)
+	assert.Nil(t, err)
+	assertIndex(t, resp)
+
+	dump := obj.([]*ServiceSummary)
+	expect := []*ServiceSummary{
+		{
+			Name: "redis",
+		},
+		{
+			Name:           "db",
+			Tags:           []string{"backup", "primary"},
+			Nodes:          []string{"bar", "baz"},
+			InstanceCount:  2,
+			ChecksPassing:  1,
+			ChecksWarning:  1,
+			ChecksCritical: 0,
+		},
+	}
+	assert.ElementsMatch(t, expect, dump)
+}
+
+func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	// Register ingress gateway and a service that will be associated with it
+	{
+		arg := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				ID:      "ingress-gateway",
+				Service: "ingress-gateway",
+				Kind:    structs.ServiceKindIngressGateway,
+				Port:    8443,
+			},
+			Check: &structs.HealthCheck{
+				Name:      "ingress connect",
+				Status:    api.HealthPassing,
+				ServiceID: "ingress-gateway",
+			},
+		}
+		var regOutput struct{}
+		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
+
+		arg = structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "127.0.0.2",
+			Service: &structs.NodeService{
+				ID:      "db",
+				Service: "db",
+				Tags:    []string{"primary"},
+			},
+			Check: &structs.HealthCheck{
+				Name:      "db-warning",
+				Status:    api.HealthWarning,
+				ServiceID: "db",
+			},
+		}
+		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
+
+		arg = structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "baz",
+			Address:    "127.0.0.3",
+			Service: &structs.NodeService{
+				ID:      "db2",
+				Service: "db",
+				Tags:    []string{"backup"},
+			},
+			Check: &structs.HealthCheck{
+				Name:      "db2-passing",
+				Status:    api.HealthPassing,
+				ServiceID: "db2",
+			},
+		}
+		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
+
+		// Register ingress-gateway config entry, linking it to db and redis (does not exist)
+		args := &structs.IngressGatewayConfigEntry{
+			Name: "ingress-gateway",
+			Kind: structs.IngressGateway,
+			Listeners: []structs.IngressListener{
+				{
+					Port:     8888,
+					Protocol: "tcp",
+					Services: []structs.IngressService{
+						{
+							Name: "db",
+						},
+					},
+				},
+				{
+					Port:     8080,
+					Protocol: "tcp",
+					Services: []structs.IngressService{
+						{
+							Name: "web",
+						},
+					},
+				},
+			},
+		}
+
+		req := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry:      args,
+		}
+		var configOutput bool
+		require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &configOutput))
+		require.True(t, configOutput)
+	}
+
+	// Request
+	req, _ := http.NewRequest("GET", "/v1/internal/ui/gateway-services-nodes/ingress-gateway", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.UIGatewayServicesNodes(resp, req)
+	assert.Nil(t, err)
+	assertIndex(t, resp)
+
+	dump := obj.([]*ServiceSummary)
+	expect := []*ServiceSummary{
+		{
+			Name:          "web",
+			GatewayConfig: GatewayConfig{ListenerPort: 8080},
+		},
+		{
+			Name:           "db",
+			Tags:           []string{"backup", "primary"},
+			Nodes:          []string{"bar", "baz"},
+			InstanceCount:  2,
+			ChecksPassing:  1,
+			ChecksWarning:  1,
+			ChecksCritical: 0,
+			GatewayConfig:  GatewayConfig{ListenerPort: 8888},
+		},
+	}
+	assert.ElementsMatch(t, expect, dump)
 }

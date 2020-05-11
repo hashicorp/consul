@@ -882,7 +882,7 @@ func (s *Store) serviceListTxn(tx *memdb.Txn, ws memdb.WatchSet, entMeta *struct
 
 	results := make(structs.ServiceList, 0, len(unique))
 	for sid, _ := range unique {
-		results = append(results, structs.ServiceInfo{Name: sid.ID, EnterpriseMeta: sid.EnterpriseMeta})
+		results = append(results, structs.ServiceName{Name: sid.ID, EnterpriseMeta: sid.EnterpriseMeta})
 	}
 
 	return idx, results, nil
