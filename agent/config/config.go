@@ -320,7 +320,7 @@ type Config struct {
 	VersionPrerelease          *string  `json:"version_prerelease,omitempty" hcl:"version_prerelease" mapstructure:"version_prerelease"`
 
 	// Enterprise Only
-	Audit Audit `json:"audit,omitempty" hcl:"audit" mapstructure:"audit"`
+	Audit *Audit `json:"audit,omitempty" hcl:"audit" mapstructure:"audit"`
 	// Enterprise Only
 	NonVotingServer *bool `json:"non_voting_server,omitempty" hcl:"non_voting_server" mapstructure:"non_voting_server"`
 	// Enterprise Only

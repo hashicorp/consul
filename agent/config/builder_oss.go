@@ -38,7 +38,7 @@ var (
 			c.ACL.Tokens.ManagedServiceProvider = nil
 		},
 		"audit": func(c *Config) {
-			c.Audit = Audit{}
+			c.Audit = nil
 		},
 	}
 )
