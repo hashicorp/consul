@@ -42,7 +42,7 @@ Feature: page-navigation
   Where:
     -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     | Item      | Model      | URL                                                      | Endpoint                                                                    | Back                |
-    | service   | services   | /dc-1/services/service-0-terminating-gateway/instances                       | /v1/discovery-chain/service-0-terminating-gateway?dc=dc-1&ns=@namespace                         | /dc-1/services      |
+    | service   | services   | /dc-1/services/service-0/instances                       | /v1/discovery-chain/service-0?dc=dc-1&ns=@namespace                         | /dc-1/services      |
     | node      | nodes      | /dc-1/nodes/node-0/health-checks                         | /v1/session/node/node-0?dc=dc-1&ns=@namespace                               | /dc-1/nodes         |
     | kv        | kvs        | /dc-1/kv/0-key-value/edit                                | /v1/session/info/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=dc-1&ns=@namespace | /dc-1/kv            |
     # | acl       | acls       | /dc-1/acls/anonymous                                     | /v1/acl/info/anonymous?dc=dc-1                                             | /dc-1/acls         |
