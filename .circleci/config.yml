@@ -45,7 +45,7 @@ jobs:
           name: Install golangci-lint
           command: |
             download=https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh
-            wget -O- -q $download | sh -s -- -b /go/bin/ v1.23.6
+            wget -O- -q $download | sh -x -s -- -d -b /go/bin/ v1.23.6
       - run: go mod download
       - run:
           name: lint
