@@ -9,10 +9,11 @@ export default Component.extend({
   },
   didInsertElement: function() {
     this._super(...arguments);
-    this.buffer.add(this.getBufferName(), this.element);
+    this._element = this.buffer.add(this.getBufferName(), this.element);
   },
   didDestroyElement: function() {
     this._super(...arguments);
-    this.buffer.remove(this.getBufferName());
+    this.buffer.remove(this.getBufferName(), this._element);
+    this._element = null;
   },
 });
