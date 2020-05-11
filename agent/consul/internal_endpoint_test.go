@@ -1624,6 +1624,7 @@ func TestInternal_GatewayServiceDump_Ingress(t *testing.T) {
 				Service:     structs.ServiceID{ID: "db"},
 				GatewayKind: "ingress-gateway",
 				Port:        8888,
+				Protocol:    "tcp",
 			},
 		},
 		{
@@ -1655,6 +1656,7 @@ func TestInternal_GatewayServiceDump_Ingress(t *testing.T) {
 				Service:     structs.ServiceID{ID: "db"},
 				GatewayKind: "ingress-gateway",
 				Port:        8888,
+				Protocol:    "tcp",
 			},
 		},
 		{
@@ -1664,6 +1666,7 @@ func TestInternal_GatewayServiceDump_Ingress(t *testing.T) {
 				Service:     structs.ServiceID{ID: "web"},
 				GatewayKind: "ingress-gateway",
 				Port:        8080,
+				Protocol:    "tcp",
 			},
 		},
 	}
