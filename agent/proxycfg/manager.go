@@ -65,6 +65,8 @@ type ManagerConfig struct {
 	// Datacenter name into other request types that need it. This is sufficient
 	// for now and cleaner than passing the entire RuntimeConfig.
 	Source *structs.QuerySource
+	// DNSConfig is the agent's relevant DNS config for any proxies.
+	DNSConfig DNSConfig
 	// logger is the agent's logger to be used for logging logs.
 	Logger          hclog.Logger
 	TLSConfigurator *tlsutil.Configurator
@@ -189,6 +191,7 @@ func (m *Manager) ensureProxyServiceLocked(ns *structs.NodeService, token string
 	state.logger = m.Logger
 	state.cache = m.Cache
 	state.source = m.Source
+	state.dnsConfig = m.DNSConfig
 	if m.TLSConfigurator != nil {
 		state.serverSNIFn = m.TLSConfigurator.ServerSNI
 	}

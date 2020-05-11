@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/lib"
+	"github.com/miekg/dns"
 )
 
 // IngressGatewayConfigEntry manages the configuration for an ingress service
@@ -17,6 +18,9 @@ type IngressGatewayConfigEntry struct {
 	// Name is used to match the config entry with its associated ingress gateway
 	// service. This should match the name provided in the service definition.
 	Name string
+
+	// TLS holds the TLS configuration for this gateway.
+	TLS GatewayTLSConfig
 
 	// Listeners declares what ports the ingress gateway should listen on, and
 	// what services to associated to those ports.
@@ -69,6 +73,11 @@ type IngressService struct {
 	Hosts []string
 
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+}
+
+type GatewayTLSConfig struct {
+	// Indicates that TLS should be enabled for this gateway service
+	Enabled bool
 }
 
 func (e *IngressGatewayConfigEntry) GetKind() string {
@@ -157,14 +166,33 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 				return fmt.Errorf("Wildcard namespace is not supported for ingress services (listener on port %d)", listener.Port)
 			}
 
-			// TODO(ingress): Validate Hosts are valid?
 			for _, h := range s.Hosts {
 				if declaredHosts[h] {
 					return fmt.Errorf("Hosts must be unique within a specific listener (listener on port %d)", listener.Port)
 				}
 				declaredHosts[h] = true
+				if err := validateHost(h); err != nil {
+					return err
+				}
 			}
 		}
+	}
+
+	return nil
+}
+
+func validateHost(host string) error {
+	wildcardPrefix := "*."
+	if _, ok := dns.IsDomainName(host); !ok {
+		return fmt.Errorf("Host %q must be a valid DNS hostname", host)
+	}
+
+	if strings.ContainsRune(strings.TrimPrefix(host, wildcardPrefix), '*') {
+		return fmt.Errorf("Host %q is not valid, a wildcard specifier is only allowed as the leftmost label", host)
+	}
+
+	if host == "*" {
+		return fmt.Errorf("Host '*' is not allowed, wildcards can only be used as a prefix/suffix")
 	}
 
 	return nil

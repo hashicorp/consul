@@ -538,6 +538,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 				kind = "ingress-gateway"
 				name = "ingress-web"
 
+				tls {
+					enabled = true
+				}
+
 				listeners = [
 					{
 						port = 8080
@@ -575,6 +579,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 			camel: `
 				Kind = "ingress-gateway"
 				Name = "ingress-web"
+				TLS {
+					Enabled = true
+				}
 				Listeners = [
 					{
 						Port = 8080
@@ -612,6 +619,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 			expect: &IngressGatewayConfigEntry{
 				Kind: "ingress-gateway",
 				Name: "ingress-web",
+				TLS: GatewayTLSConfig{
+					Enabled: true,
+				},
 				Listeners: []IngressListener{
 					IngressListener{
 						Port:     8080,

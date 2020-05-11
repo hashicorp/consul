@@ -1323,6 +1323,12 @@ func TestConfigSnapshotIngress(t testing.T) *ConfigSnapshot {
 	return testConfigSnapshotIngressGateway(t, true, "tcp", "simple")
 }
 
+func TestConfigSnapshotIngressWithTLSListener(t testing.T) *ConfigSnapshot {
+	snap := testConfigSnapshotIngressGateway(t, true, "tcp", "default")
+	snap.IngressGateway.TLSEnabled = true
+	return snap
+}
+
 func TestConfigSnapshotIngressWithOverrides(t testing.T) *ConfigSnapshot {
 	return testConfigSnapshotIngressGateway(t, true, "tcp", "simple-with-overrides")
 }

@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/logging"
 	"net"
 	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/hashicorp/consul/logging"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoyauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
@@ -71,9 +72,9 @@ func (s *Server) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 
 		var upstreamListener proto.Message
 		if chain == nil || chain.IsDefault() {
-			upstreamListener, err = s.makeUpstreamListenerIgnoreDiscoveryChain(&u, chain, cfgSnap)
+			upstreamListener, err = s.makeUpstreamListenerIgnoreDiscoveryChain(&u, chain, cfgSnap, nil)
 		} else {
-			upstreamListener, err = s.makeUpstreamListenerForDiscoveryChain(&u, chain, cfgSnap)
+			upstreamListener, err = s.makeUpstreamListenerForDiscoveryChain(&u, chain, cfgSnap, nil)
 		}
 		if err != nil {
 			return nil, err
@@ -271,6 +272,14 @@ func (s *Server) listenersFromSnapshotGateway(cfgSnap *proxycfg.ConfigSnapshot, 
 func (s *Server) listenersFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var resources []proto.Message
 	for listenerKey, upstreams := range cfgSnap.IngressGateway.Upstreams {
+		var tlsContext *envoyauth.DownstreamTlsContext
+		if cfgSnap.IngressGateway.TLSEnabled {
+			tlsContext = &envoyauth.DownstreamTlsContext{
+				CommonTlsContext:         makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf()),
+				RequireClientCertificate: &types.BoolValue{Value: false},
+			}
+		}
+
 		if listenerKey.Protocol == "tcp" {
 			// We rely on the invariant of upstreams slice always having at least 1
 			// member, because this key/value pair is created only when a
@@ -283,9 +292,9 @@ func (s *Server) listenersFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSna
 			var upstreamListener proto.Message
 			var err error
 			if chain == nil || chain.IsDefault() {
-				upstreamListener, err = s.makeUpstreamListenerIgnoreDiscoveryChain(&u, chain, cfgSnap)
+				upstreamListener, err = s.makeUpstreamListenerIgnoreDiscoveryChain(&u, chain, cfgSnap, tlsContext)
 			} else {
-				upstreamListener, err = s.makeUpstreamListenerForDiscoveryChain(&u, chain, cfgSnap)
+				upstreamListener, err = s.makeUpstreamListenerForDiscoveryChain(&u, chain, cfgSnap, tlsContext)
 			}
 			if err != nil {
 				return nil, err
@@ -310,6 +319,7 @@ func (s *Server) listenersFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSna
 					Filters: []envoylistener.Filter{
 						filter,
 					},
+					TlsContext: tlsContext,
 				},
 			}
 			resources = append(resources, listener)
@@ -536,6 +546,7 @@ func (s *Server) makeUpstreamListenerIgnoreDiscoveryChain(
 	u *structs.Upstream,
 	chain *structs.CompiledDiscoveryChain,
 	cfgSnap *proxycfg.ConfigSnapshot,
+	tlsContext *envoyauth.DownstreamTlsContext,
 ) (proto.Message, error) {
 	cfg, err := ParseUpstreamConfig(u.Config)
 	if err != nil {
@@ -574,6 +585,7 @@ func (s *Server) makeUpstreamListenerIgnoreDiscoveryChain(
 			Filters: []envoylistener.Filter{
 				filter,
 			},
+			TlsContext: tlsContext,
 		},
 	}
 	return l, nil
@@ -780,6 +792,7 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 	u *structs.Upstream,
 	chain *structs.CompiledDiscoveryChain,
 	cfgSnap *proxycfg.ConfigSnapshot,
+	tlsContext *envoyauth.DownstreamTlsContext,
 ) (proto.Message, error) {
 	cfg, err := ParseUpstreamConfigNoDefaults(u.Config)
 	if err != nil {
@@ -836,6 +849,7 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 			Filters: []envoylistener.Filter{
 				filter,
 			},
+			TlsContext: tlsContext,
 		},
 	}
 	return l, nil
