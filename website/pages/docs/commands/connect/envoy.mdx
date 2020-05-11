@@ -186,7 +186,7 @@ $ consul connect envoy -gateway=mesh -register \
 The terminating gateway Envoy process can be auto-registered and started with the following command.
 
 ```shell
-$ consul connect envoy -gateway=terminating -register \
+$ consul connect envoy -gateway=terminating -register --service my-gateway \
   -address '{{ GetInterfaceIP "eth0" }}:8443'
 ```
 

@@ -59,9 +59,10 @@ a terminating gateway as long as they discover upstreams with the
 
 You must complete the following steps to configure a terminating gateway to proxy traffic from services in the Consul service mesh:
 
-1. Start an Envoy proxy using the [envoy subcommand](/docs/commands/connect/envoy#terminating-gateways), specifying the `terminating` gateway type:
+1. On a dedicated host for the gateway start an Envoy proxy using the [envoy subcommand](/docs/commands/connect/envoy#terminating-gateways) and
+specifying the `terminating` gateway type:
     ```shell
-    $ consul connect envoy -gateway=terminating -register \
+    $ consul connect envoy -gateway=terminating -register --service us-west-gateway \
       -address '{{ GetInterfaceIP "eth0" }}:8443'
     ```
 
@@ -92,6 +93,12 @@ to terminate mTLS connections on behalf of the linked services.
 Linking services to a terminating gateway is done with a `terminating-gateway`
 [configuration entry](/docs/agent/config-entries/terminating-gateway). This config entry can be applied via the 
 [CLI](/docs/commands/config/write) or [API](/api/config#apply-configuration).
+
+Gateways with the same name in Consul's service catalog are configured with a single configuration entry.
+This means that additional gateway instances registered with the same name will determine their routing based on the existing configuration entry.
+Adding replicas of a gateway that routes to a particular set of services requires running the
+[envoy subcommand](/docs/commands/connect/envoy#terminating-gateways) on additional hosts and specifying
+the same gateway name with the `service` flag.
 
 The services that the terminating gateway will proxy for must be registered with Consul. They must also be registered
 in the same Consul datacenter as the terminating gateway. Otherwise the terminating gateway will not be able to
