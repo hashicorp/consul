@@ -2472,20 +2472,23 @@ func checkSessionsTxn(tx *memdb.Txn, hc *structs.HealthCheck) ([]*sessionCheck, 
 
 // updateGatewayServices associates services with gateways as specified in a gateway config entry
 func (s *Store) updateGatewayServices(tx *memdb.Txn, idx uint64, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) error {
-	var gatewayServices structs.GatewayServices
-	var err error
+	var (
+		noChange        bool
+		gatewayServices structs.GatewayServices
+		err             error
+	)
 
 	gatewayID := structs.NewServiceID(conf.GetName(), entMeta)
 	switch conf.GetKind() {
 	case structs.IngressGateway:
-		gatewayServices, err = s.ingressConfigGatewayServices(tx, gatewayID, conf, entMeta)
+		noChange, gatewayServices, err = s.ingressConfigGatewayServices(tx, gatewayID, conf, entMeta)
 	case structs.TerminatingGateway:
-		gatewayServices, err = s.terminatingConfigGatewayServices(tx, gatewayID, conf, entMeta)
+		noChange, gatewayServices, err = s.terminatingConfigGatewayServices(tx, gatewayID, conf, entMeta)
 	default:
 		return fmt.Errorf("config entry kind %q does not need gateway-services", conf.GetKind())
 	}
 	// Return early if there is an error OR we don't have any services to update
-	if err != nil {
+	if err != nil || noChange {
 		return err
 	}
 
@@ -2521,21 +2524,29 @@ func (s *Store) updateGatewayServices(tx *memdb.Txn, idx uint64, conf structs.Co
 	return nil
 }
 
-func (s *Store) ingressConfigGatewayServices(tx *memdb.Txn, gateway structs.ServiceID, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) (structs.GatewayServices, error) {
+// ingressConfigGatewayServices constructs a list of GatewayService structs for
+// insertion into the memdb table, specific to ingress gateways. The boolean
+// returned indicates that there are no changes necessary to the memdb table.
+func (s *Store) ingressConfigGatewayServices(
+	tx *memdb.Txn,
+	gateway structs.ServiceID,
+	conf structs.ConfigEntry,
+	entMeta *structs.EnterpriseMeta,
+) (bool, structs.GatewayServices, error) {
 	entry, ok := conf.(*structs.IngressGatewayConfigEntry)
 	if !ok {
-		return nil, fmt.Errorf("unexpected config entry type: %T", conf)
+		return false, nil, fmt.Errorf("unexpected config entry type: %T", conf)
 	}
 
 	// Check if service list matches the last known list for the config entry, if it does, skip the update
 	_, c, err := s.configEntryTxn(tx, nil, conf.GetKind(), conf.GetName(), entMeta)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get config entry: %v", err)
+		return false, nil, fmt.Errorf("failed to get config entry: %v", err)
 	}
 	if cfg, ok := c.(*structs.IngressGatewayConfigEntry); ok && cfg != nil {
 		if reflect.DeepEqual(cfg.Listeners, entry.Listeners) {
 			// Services are the same, nothing to update
-			return nil, nil
+			return true, nil, nil
 		}
 	}
 
@@ -2554,24 +2565,33 @@ func (s *Store) ingressConfigGatewayServices(tx *memdb.Txn, gateway structs.Serv
 			gatewayServices = append(gatewayServices, mapping)
 		}
 	}
-	return gatewayServices, nil
+	return false, gatewayServices, nil
 }
 
-func (s *Store) terminatingConfigGatewayServices(tx *memdb.Txn, gateway structs.ServiceID, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) (structs.GatewayServices, error) {
+// terminatingConfigGatewayServices constructs a list of GatewayService structs
+// for insertion into the memdb table, specific to terminating gateways. The
+// boolean returned indicates that there are no changes necessary to the memdb
+// table.
+func (s *Store) terminatingConfigGatewayServices(
+	tx *memdb.Txn,
+	gateway structs.ServiceID,
+	conf structs.ConfigEntry,
+	entMeta *structs.EnterpriseMeta,
+) (bool, structs.GatewayServices, error) {
 	entry, ok := conf.(*structs.TerminatingGatewayConfigEntry)
 	if !ok {
-		return nil, fmt.Errorf("unexpected config entry type: %T", conf)
+		return false, nil, fmt.Errorf("unexpected config entry type: %T", conf)
 	}
 
 	// Check if service list matches the last known list for the config entry, if it does, skip the update
 	_, c, err := s.configEntryTxn(tx, nil, conf.GetKind(), conf.GetName(), entMeta)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get config entry: %v", err)
+		return false, nil, fmt.Errorf("failed to get config entry: %v", err)
 	}
 	if cfg, ok := c.(*structs.TerminatingGatewayConfigEntry); ok && cfg != nil {
 		if reflect.DeepEqual(cfg.Services, entry.Services) {
 			// Services are the same, nothing to update
-			return nil, nil
+			return true, nil, nil
 		}
 	}
 
@@ -2589,7 +2609,7 @@ func (s *Store) terminatingConfigGatewayServices(tx *memdb.Txn, gateway structs.
 
 		gatewayServices = append(gatewayServices, mapping)
 	}
-	return gatewayServices, nil
+	return false, gatewayServices, nil
 }
 
 // updateGatewayNamespace is used to target all services within a namespace
