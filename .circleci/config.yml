@@ -529,13 +529,22 @@ jobs:
       - run: docker build -t consul-dev -f ./build-support/docker/Consul-Dev.dockerfile .
       - run:
           name: Envoy Integration Tests
-          command: make test-envoy-integ SKIP_DOCKER_BUILD=1
+          command: |
+            mkdir -p /tmp/test-results/
+            gotestsum -- -timeout=30m -tags integration ./test/integration/connect/envoy
           environment:
+            GOTESTSUM_JUNITFILE: /tmp/test-results/results.xml
+            GOTESTSUM_FORMAT: standard-verbose
+            COMPOSE_INTERACTIVE_NO_CLI: 1
             # tput complains if this isn't set to something.
             TERM: ansi
       - store_artifacts:
           path: ./test/integration/connect/envoy/workdir/logs
           destination: container-logs
+      - store_test_results:
+          path: *TEST_RESULTS_DIR
+      - store_artifacts:
+          path: *TEST_RESULTS_DIR
 
   envoy-integration-test-1.12.2:
     docker:
