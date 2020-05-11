@@ -21,6 +21,8 @@ import radiogroup from 'consul-ui/tests/lib/page-object/radiogroup';
 import tabgroup from 'consul-ui/tests/lib/page-object/tabgroup';
 import freetextFilter from 'consul-ui/tests/pages/components/freetext-filter';
 import catalogFilter from 'consul-ui/tests/pages/components/catalog-filter';
+import catalogToolbar from 'consul-ui/tests/pages/components/catalog-toolbar';
+import popoverSort from 'consul-ui/tests/pages/components/popover-sort';
 import aclFilter from 'consul-ui/tests/pages/components/acl-filter';
 import intentionFilter from 'consul-ui/tests/pages/components/intention-filter';
 import tokenListFactory from 'consul-ui/tests/pages/components/token-list';
@@ -75,10 +77,10 @@ export default {
   index: create(index(visitable, collection)),
   dcs: create(dcs(visitable, clickable, attribute, collection)),
   services: create(
-    services(visitable, clickable, text, attribute, collection, page, catalogFilter, radiogroup)
+    services(visitable, clickable, text, attribute, collection, page, popoverSort, radiogroup)
   ),
   service: create(
-    service(visitable, attribute, collection, text, consulIntentionList, catalogFilter, tabgroup)
+    service(visitable, attribute, collection, text, consulIntentionList, catalogToolbar, tabgroup)
   ),
   instance: create(instance(visitable, attribute, collection, text, tabgroup)),
   nodes: create(nodes(visitable, clickable, attribute, collection, catalogFilter)),

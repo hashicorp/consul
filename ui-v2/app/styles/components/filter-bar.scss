@@ -3,6 +3,12 @@
 .filter-bar {
   @extend %filter-bar;
 }
+.catalog-toolbar {
+  @extend %catalog-toolbar;
+}
+%catalog-toolbar {
+  @extend %filter-bar;
+}
 %filter-bar [role='radiogroup'] {
   @extend %expanded-single-select;
 }

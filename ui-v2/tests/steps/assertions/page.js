@@ -1,4 +1,6 @@
 /* eslint no-console: "off" */
+import $ from '-jquery';
+
 const notFound = 'Element not found';
 const cannotDestructure = "Cannot destructure property 'context'";
 const cannotReadContext = "Cannot read property 'context' of undefined";
@@ -46,6 +48,40 @@ export default function(scenario, assert, find, currentPage) {
         // if the yaml has numbers, cast them to strings
         // TODO: This would get problematic for deeper objects
         // will have to look to do this recursively
+        const expected = typeof yaml[i] === 'number' ? yaml[i].toString() : yaml[i];
+
+        assert.deepEqual(
+          actual,
+          expected,
+          `Expected to see ${property} on ${component}[${i}] as ${JSON.stringify(
+            expected
+          )}, was ${JSON.stringify(actual)}`
+        );
+      });
+    })
+    .then('I see $property on the $component vertically like yaml\n$yaml', function(
+      property,
+      component,
+      yaml
+    ) {
+      const _component = currentPage()[component];
+      const iterator = new Array(_component.length).fill(true);
+      assert.ok(iterator.length > 0);
+
+      const items = _component.toArray().sort((a, b) => {
+        return (
+          $(a.scope)
+            .get(0)
+            .getBoundingClientRect().top -
+          $(b.scope)
+            .get(0)
+            .getBoundingClientRect().top
+        );
+      });
+
+      iterator.forEach(function(item, i, arr) {
+        const actual = typeof items[i][property] === 'undefined' ? null : items[i][property];
+
         const expected = typeof yaml[i] === 'number' ? yaml[i].toString() : yaml[i];
 
         assert.deepEqual(

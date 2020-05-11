@@ -48,3 +48,9 @@
   display: inline-block;
   box-sizing: border-box;
 }
+%split-button {
+  @extend %secondary-button;
+  padding: 0 8px !important;
+  position: relative;
+  height: 100%;
+}
