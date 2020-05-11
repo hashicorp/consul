@@ -7,6 +7,10 @@ module.exports = function(environment, $ = process.env) {
     environment,
     rootURL: '/ui/',
     locationType: 'auto',
+    // We use a complete dynamically (from Consul) configured
+    // torii provider. We provide this object here to
+    // prevent ember from giving a log message when starting ember up
+    torii: {},
     EmberENV: {
       FEATURES: {
         // Here you can enable experimental features on an ember canary build
