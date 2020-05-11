@@ -46,9 +46,11 @@ Currently, [Envoy](https://www.envoyproxy.io/) is the only proxy with ingress ga
 
 You must complete the following steps to configure an ingress gateway to proxy traffic to services in the Consul service mesh:
 
-1. Start an Envoy proxy using the [envoy subcommand](/docs/commands/connect/envoy), specifying the `ingress` gateway type:
+1. On a dedicated host for the gateway, start an Envoy proxy using the [envoy
+subcommand](/docs/commands/connect/envoy), specifying the `ingress` gateway
+type:
     ```shell
-    $ consul connect envoy -gateway=ingress -register \
+    $ consul connect envoy -gateway=ingress -register -service ingress-service \
       -address '{{ GetInterfaceIP "eth0" }}:8888'
     ```
 

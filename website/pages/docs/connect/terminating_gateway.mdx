@@ -67,10 +67,10 @@ a terminating gateway as long as they discover upstreams with the
 
 You must complete the following steps to configure a terminating gateway to proxy traffic from services in the Consul service mesh:
 
-1. On a dedicated host for the gateway start an Envoy proxy using the [envoy subcommand](/docs/commands/connect/envoy#terminating-gateways) and
+1. On a dedicated host for the gateway, start an Envoy proxy using the [envoy subcommand](/docs/commands/connect/envoy#terminating-gateways) and
 specifying the `terminating` gateway type:
     ```shell
-    $ consul connect envoy -gateway=terminating -register --service us-west-gateway \
+    $ consul connect envoy -gateway=terminating -register -service us-west-gateway \
       -address '{{ GetInterfaceIP "eth0" }}:8443'
     ```
 
