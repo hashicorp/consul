@@ -1,9 +1,3 @@
-%form-element-note {
-  font-style: normal;
-}
-%form-element-label {
-  font-weight: $typo-weight-semibold;
-}
 %form-element-text-input {
   -moz-appearance: none;
   -webkit-appearance: none;
@@ -12,6 +6,8 @@
   border: $decor-border-100;
   outline: none;
 }
+%form fieldset > p,
+%form-element-note,
 %form-element-text-input::placeholder {
   color: $gray-400;
 }
@@ -20,7 +16,7 @@
 }
 %form-element-error > input,
 %form-element-error > textarea {
-  border-color: $color-failure !important;
+  border-color: var(--decor-error-500, $red-500) !important;
 }
 %form-element-text-input {
   color: $gray-500;
@@ -30,13 +26,10 @@
   border-color: $gray-500;
 }
 %form-element-text-input-focus {
-  border-color: $blue-500;
+  border-color: var(--typo-action-500, $blue-500);
 }
 %form-element-label {
-  color: $black;
-}
-%form-element-note {
-  color: $gray-400;
+  color: var(--typo-contrast-999, inherit);
 }
 %form-element-note > code {
   background-color: $gray-200;

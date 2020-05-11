@@ -18,9 +18,6 @@
   border-radius: $decor-radius-200;
 }
 %main-nav-horizontal-action {
-  cursor: default;
-}
-%main-nav-horizontal-action:not(span) {
   cursor: pointer;
 }
 %main-nav-horizontal-action,

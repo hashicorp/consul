@@ -1,0 +1,12 @@
+%auth-form-hr {
+  text-transform: uppercase;
+}
+%auth-form-hr::before {
+  border-top: 1px solid $gray-200;
+}
+/* This is to mask off the hr so it has a space */
+/* in the center so if the background color of what the */
+/* line is on is different, then this should be different */
+%auth-form-hr span {
+  background-color: $white;
+}

@@ -77,6 +77,7 @@ pre code,
 
 /*TODO: See if we can collapse these into a */
 /* strong %p3 */
+%form-element-label,
 %button {
   font-weight: $typo-weight-semibold;
 }
@@ -104,7 +105,7 @@ pre code,
   font-weight: $typo-weight-normal;
 }
 
-%form-element > em,
+%form-element-note,
 %tbody-th em,
 %app-view h1 em {
   font-style: normal;

@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: dc / acls / tokens / login-errors: ACL Login Errors
+Feature: login-errors: Login Errors
 
   Scenario: I get any 500 error that is not the specific legacy token cluster one
     Given 1 datacenter model with the value "dc-1"
@@ -9,7 +9,7 @@ Feature: dc / acls / tokens / login-errors: ACL Login Errors
       dc: dc-1
     ---
     Then the url should be /dc-1/acls/tokens
-    Then I see the text "500 (The backend responded with an error)" in "[data-test-error]"
+    Then I see status on the error like "500"
   Scenario: I get a 500 error from acl/tokens that is the specific legacy one
     Given 1 datacenter model with the value "dc-1"
     And the url "/v1/acl/tokens?ns=@namespace" responds with from yaml
@@ -43,11 +43,11 @@ Feature: dc / acls / tokens / login-errors: ACL Login Errors
     ---
     Then the url should be /dc-1/acls/tokens
     Then ".app-view" has the "unauthorized" class
-    Then I fill in with yaml
+    And I click login on the navigation
+    And I fill in the auth form with yaml
     ---
-    secret: something
+    SecretID: something
     ---
-    And I submit
-    Then ".app-view" has the "unauthorized" class
-    And "[data-notification]" has the "error" class
+    And I click submit on the authdialog.form
+    Then I see status on the error like "403"
 

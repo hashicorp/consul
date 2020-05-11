@@ -1,5 +1,5 @@
 {{yield}}
-<fieldset>
+<fieldset class="role-form" data-test-role-form>
     <label class="type-text{{if item.error.Name ' has-error'}}">
         <span>Name</span>
         <input type="text" value={{item.Name}} name="role[Name]" autofocus="autofocus" oninput={{action 'change'}} />

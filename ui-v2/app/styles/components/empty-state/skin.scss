@@ -31,6 +31,9 @@
 %empty-state.status-403 header::before {
   @extend %with-disabled-mask;
 }
+%empty-state[class*='status-5'] header::before {
+  @extend %with-alert-circle-outline-mask;
+}
 %empty-state .docs-link > *::before {
   @extend %with-docs-mask, %as-pseudo;
 }

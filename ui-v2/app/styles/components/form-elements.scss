@@ -11,32 +11,29 @@ label span {
 .has-error {
   @extend %form-element-error;
 }
-%main-content .type-password,
-%main-content .type-text {
-  @extend %form-element;
-}
 .type-toggle {
   @extend %form-element, %sliding-toggle;
-}
-%form-element,
-%radio-group,
-%checkbox-group,
-form table,
-%app-view-content form dl {
-  @extend %form-row;
-}
-%app-view-content form:not(.filter-bar) [role='radiogroup'],
-%modal-window [role='radiogroup'] {
-  @extend %radio-group;
-}
-%radio-group label {
-  @extend %form-element;
 }
 .checkbox-group {
   @extend %checkbox-group;
 }
-fieldset > p {
-  color: $gray-400;
+%main-content form {
+  @extend %form;
+}
+%form table,
+%radio-group,
+%checkbox-group,
+%main-content form dl {
+  @extend %form-row;
+}
+%radio-group label,
+%main-content .type-password,
+%main-content .type-text {
+  @extend %form-element;
+}
+%app-view-content form:not(.filter-bar) [role='radiogroup'],
+%modal-window [role='radiogroup'] {
+  @extend %radio-group;
 }
 %sliding-toggle + .checkbox-group {
   margin-top: -1em;
