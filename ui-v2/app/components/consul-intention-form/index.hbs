@@ -10,7 +10,7 @@
               @searchField="Name"
               @selected={{SourceName}}
               @searchPlaceholder="Type service name"
-              @buildSuggestion={{action "createNewLabel" "Use a future Consul Service called '{{term}}'"}}
+              @buildSuggestion={{action "createNewLabel" "Use a Consul Service called '{{term}}'"}}
               @showCreateWhen={{action "isUnique"}}
               @onCreate={{action "change" "SourceName"}}
               @onChange={{action "change" "SourceName"}} as |service|>
@@ -20,7 +20,7 @@
                     {{service.Name}}
                   {{/if}}
           </PowerSelectWithCreate>
-          <em>Search for an existing service, write in a future one, or write in any Service URI.</em>
+          <em>Search for an existing service, or enter any Service name.</em>
         </label>
   {{#if (env 'CONSUL_NSPACES_ENABLED')}}
         <label data-test-source-nspace class="type-text{{if _item.error.SourceNS ' has-error'}}">
@@ -30,7 +30,7 @@
               @searchField="Name"
               @selected={{SourceNS}}
               @searchPlaceholder="Type namespace name"
-              @buildSuggestion={{action "createNewLabel" "Use a future Consul Namespace called '{{term}}'"}}
+              @buildSuggestion={{action "createNewLabel" "Use a Consul Namespace called '{{term}}'"}}
               @showCreateWhen={{action "isUnique"}}
               @onCreate={{action "change" "SourceNS"}}
               @onChange={{action "change" "SourceNS"}} as |nspace|>
@@ -40,7 +40,7 @@
                   {{nspace.Name}}
                 {{/if}}
           </PowerSelectWithCreate>
-          <em>Search for an existing namespace, write in a future one.</em>
+          <em>Search for an existing namespace, or enter any Namespace name.</em>
         </label>
 {{/if}}
       </fieldset>
@@ -53,7 +53,7 @@
               @searchField="Name"
               @selected={{DestinationName}}
               @searchPlaceholder="Type service name"
-              @buildSuggestion={{action "createNewLabel" "Use a future Consul Service called '{{term}}'"}}
+              @buildSuggestion={{action "createNewLabel" "Use a Consul Service called '{{term}}'"}}
               @showCreateWhen={{action "isUnique"}}
               @onCreate={{action "change" "DestinationName"}}
               @onChange={{action "change" "DestinationName"}} as |service|>
@@ -63,7 +63,7 @@
                     {{service.Name}}
                   {{/if}}
           </PowerSelectWithCreate>
-          <em>Search for an existing service or write in a future one.</em>
+          <em>Search for an existing service, or enter any Service name.</em>
         </label>
   {{#if (env 'CONSUL_NSPACES_ENABLED')}}
         <label data-test-destination-nspace class="type-text{{if _item.error.DestinationNS ' has-error'}}">
