@@ -94,6 +94,10 @@ func NewValidator(method *structs.ACLAuthMethod) (*Validator, error) {
 		return nil, fmt.Errorf("Config.ServiceAccountJWT is not a valid JWT: %v", err)
 	}
 
+	if err := enterpriseValidation(method, &config); err != nil {
+		return nil, err
+	}
+
 	transport := cleanhttp.DefaultTransport()
 	client, err := k8s.NewForConfig(&client_rest.Config{
 		Host:        config.Host,

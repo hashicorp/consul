@@ -305,9 +305,70 @@ func (c *KubernetesAuthMethodConfig) RenderToConfig() map[string]interface{} {
 	}
 }
 
+// OIDCAuthMethodConfig is the config for the built-in Consul auth method for
+// OIDC and JWT.
+type OIDCAuthMethodConfig struct {
+	// common for type=oidc and type=jwt
+	JWTSupportedAlgs    []string          `json:",omitempty"`
+	BoundAudiences      []string          `json:",omitempty"`
+	ClaimMappings       map[string]string `json:",omitempty"`
+	ListClaimMappings   map[string]string `json:",omitempty"`
+	OIDCDiscoveryURL    string            `json:",omitempty"`
+	OIDCDiscoveryCACert string            `json:",omitempty"`
+	// just for type=oidc
+	OIDCClientID        string   `json:",omitempty"`
+	OIDCClientSecret    string   `json:",omitempty"`
+	OIDCScopes          []string `json:",omitempty"`
+	AllowedRedirectURIs []string `json:",omitempty"`
+	VerboseOIDCLogging  bool     `json:",omitempty"`
+	// just for type=jwt
+	JWKSURL              string        `json:",omitempty"`
+	JWKSCACert           string        `json:",omitempty"`
+	JWTValidationPubKeys []string      `json:",omitempty"`
+	BoundIssuer          string        `json:",omitempty"`
+	ExpirationLeeway     time.Duration `json:",omitempty"`
+	NotBeforeLeeway      time.Duration `json:",omitempty"`
+	ClockSkewLeeway      time.Duration `json:",omitempty"`
+}
+
+// RenderToConfig converts this into a map[string]interface{} suitable for use
+// in the ACLAuthMethod.Config field.
+func (c *OIDCAuthMethodConfig) RenderToConfig() map[string]interface{} {
+	return map[string]interface{}{
+		// common for type=oidc and type=jwt
+		"JWTSupportedAlgs":    c.JWTSupportedAlgs,
+		"BoundAudiences":      c.BoundAudiences,
+		"ClaimMappings":       c.ClaimMappings,
+		"ListClaimMappings":   c.ListClaimMappings,
+		"OIDCDiscoveryURL":    c.OIDCDiscoveryURL,
+		"OIDCDiscoveryCACert": c.OIDCDiscoveryCACert,
+		// just for type=oidc
+		"OIDCClientID":        c.OIDCClientID,
+		"OIDCClientSecret":    c.OIDCClientSecret,
+		"OIDCScopes":          c.OIDCScopes,
+		"AllowedRedirectURIs": c.AllowedRedirectURIs,
+		"VerboseOIDCLogging":  c.VerboseOIDCLogging,
+		// just for type=jwt
+		"JWKSURL":              c.JWKSURL,
+		"JWKSCACert":           c.JWKSCACert,
+		"JWTValidationPubKeys": c.JWTValidationPubKeys,
+		"BoundIssuer":          c.BoundIssuer,
+		"ExpirationLeeway":     c.ExpirationLeeway,
+		"NotBeforeLeeway":      c.NotBeforeLeeway,
+		"ClockSkewLeeway":      c.ClockSkewLeeway,
+	}
+}
+
 type ACLLoginParams struct {
 	AuthMethod  string
 	BearerToken string
+	Meta        map[string]string `json:",omitempty"`
+}
+
+type ACLOIDCAuthURLParams struct {
+	AuthMethod  string
+	RedirectURI string
+	ClientNonce string
 	Meta        map[string]string `json:",omitempty"`
 }
 
@@ -1226,4 +1287,63 @@ func (a *ACL) Logout(q *WriteOptions) (*WriteMeta, error) {
 
 	wm := &WriteMeta{RequestTime: rtt}
 	return wm, nil
+}
+
+// OIDCAuthURL requests an authorization URL to start an OIDC login flow.
+func (a *ACL) OIDCAuthURL(auth *ACLOIDCAuthURLParams, q *WriteOptions) (string, *WriteMeta, error) {
+	if auth.AuthMethod == "" {
+		return "", nil, fmt.Errorf("Must specify an auth method name")
+	}
+
+	r := a.c.newRequest("POST", "/v1/acl/oidc/auth-url")
+	r.setWriteOptions(q)
+	r.obj = auth
+
+	rtt, resp, err := requireOK(a.c.doRequest(r))
+	if err != nil {
+		return "", nil, err
+	}
+	defer resp.Body.Close()
+
+	wm := &WriteMeta{RequestTime: rtt}
+	var out aclOIDCAuthURLResponse
+	if err := decodeBody(resp, &out); err != nil {
+		return "", nil, err
+	}
+	return out.AuthURL, wm, nil
+}
+
+type aclOIDCAuthURLResponse struct {
+	AuthURL string
+}
+
+type ACLOIDCCallbackParams struct {
+	AuthMethod  string
+	State       string
+	Code        string
+	ClientNonce string
+}
+
+// OIDCCallback is the callback endpoint to complete an OIDC login.
+func (a *ACL) OIDCCallback(auth *ACLOIDCCallbackParams, q *WriteOptions) (*ACLToken, *WriteMeta, error) {
+	if auth.AuthMethod == "" {
+		return nil, nil, fmt.Errorf("Must specify an auth method name")
+	}
+
+	r := a.c.newRequest("POST", "/v1/acl/oidc/callback")
+	r.setWriteOptions(q)
+	r.obj = auth
+
+	rtt, resp, err := requireOK(a.c.doRequest(r))
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+
+	wm := &WriteMeta{RequestTime: rtt}
+	var out ACLToken
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+	return &out, wm, nil
 }

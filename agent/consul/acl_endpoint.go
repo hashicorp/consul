@@ -1909,7 +1909,6 @@ func (a *ACL) BindingRuleSet(args *structs.ACLBindingRuleSetRequest, reply *stru
 	if err != nil {
 		return fmt.Errorf("Failed to apply binding rule upsert request: %v", err)
 	}
-
 	if respErr, ok := resp.(error); ok {
 		return fmt.Errorf("Failed to apply binding rule upsert request: %v", respErr)
 	}
@@ -2049,6 +2048,10 @@ func (a *ACL) AuthMethodRead(args *structs.ACLAuthMethodGetRequest, reply *struc
 				return err
 			}
 
+			if method != nil {
+				_ = a.enterpriseAuthMethodTypeValidation(method.Type)
+			}
+
 			reply.Index, reply.AuthMethod = index, method
 			return nil
 		})
@@ -2091,6 +2094,10 @@ func (a *ACL) AuthMethodSet(args *structs.ACLAuthMethodSetRequest, reply *struct
 	}
 	if !validAuthMethod.MatchString(method.Name) {
 		return fmt.Errorf("Invalid Auth Method: invalid Name. Only alphanumeric characters, '-' and '_' are allowed")
+	}
+
+	if err := a.enterpriseAuthMethodTypeValidation(method.Type); err != nil {
+		return err
 	}
 
 	// Check to see if the method exists first.
@@ -2193,6 +2200,10 @@ func (a *ACL) AuthMethodDelete(args *structs.ACLAuthMethodDeleteRequest, reply *
 		return nil
 	}
 
+	if err := a.enterpriseAuthMethodTypeValidation(method.Type); err != nil {
+		return err
+	}
+
 	req := structs.ACLAuthMethodBatchDeleteRequest{
 		AuthMethodNames: []string{args.AuthMethodName},
 		EnterpriseMeta:  args.EnterpriseMeta,
@@ -2249,6 +2260,7 @@ func (a *ACL) AuthMethodList(args *structs.ACLAuthMethodListRequest, reply *stru
 
 			var stubs structs.ACLAuthMethodListStubs
 			for _, method := range methods {
+				_ = a.enterpriseAuthMethodTypeValidation(method.Type)
 				stubs = append(stubs, method.Stub())
 			}
 
@@ -2294,6 +2306,10 @@ func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) erro
 		return acl.ErrNotFound
 	}
 
+	if err := a.enterpriseAuthMethodTypeValidation(method.Type); err != nil {
+		return err
+	}
+
 	validator, err := a.srv.loadAuthMethodValidator(idx, method)
 	if err != nil {
 		return err
@@ -2305,6 +2321,31 @@ func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) erro
 		return err
 	}
 
+	return a.tokenSetFromAuthMethod(
+		method,
+		&auth.EnterpriseMeta,
+		"token created via login",
+		auth.Meta,
+		validator,
+		verifiedIdentity,
+		&structs.ACLTokenSetRequest{
+			Datacenter:   args.Datacenter,
+			WriteRequest: args.WriteRequest,
+		},
+		reply,
+	)
+}
+
+func (a *ACL) tokenSetFromAuthMethod(
+	method *structs.ACLAuthMethod,
+	entMeta *structs.EnterpriseMeta,
+	tokenDescriptionPrefix string,
+	tokenMetadata map[string]string,
+	validator authmethod.Validator,
+	verifiedIdentity *authmethod.Identity,
+	createReq *structs.ACLTokenSetRequest, // this should be prepopulated with datacenter+writerequest
+	reply *structs.ACLToken,
+) error {
 	// This always will return a valid pointer
 	targetMeta, err := computeTargetEnterpriseMeta(method, verifiedIdentity)
 	if err != nil {
@@ -2312,7 +2353,7 @@ func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) erro
 	}
 
 	// 3. send map through role bindings
-	serviceIdentities, roleLinks, err := a.srv.evaluateRoleBindings(validator, verifiedIdentity, &auth.EnterpriseMeta, targetMeta)
+	serviceIdentities, roleLinks, err := a.srv.evaluateRoleBindings(validator, verifiedIdentity, entMeta, targetMeta)
 	if err != nil {
 		return err
 	}
@@ -2323,8 +2364,10 @@ func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) erro
 		return acl.ErrPermissionDenied
 	}
 
-	description := "token created via login"
-	loginMeta, err := encodeLoginMeta(auth.Meta)
+	// TODO(sso): add a CapturedField to ACLAuthMethod that would pluck fields from the returned identity and stuff into `auth.Meta`.
+
+	description := tokenDescriptionPrefix
+	loginMeta, err := encodeLoginMeta(tokenMetadata)
 	if err != nil {
 		return err
 	}
@@ -2333,24 +2376,20 @@ func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) erro
 	}
 
 	// 4. create token
-	createReq := structs.ACLTokenSetRequest{
-		Datacenter: args.Datacenter,
-		ACLToken: structs.ACLToken{
-			Description:       description,
-			Local:             true,
-			AuthMethod:        auth.AuthMethod,
-			ServiceIdentities: serviceIdentities,
-			Roles:             roleLinks,
-			ExpirationTTL:     method.MaxTokenTTL,
-			EnterpriseMeta:    *targetMeta,
-		},
-		WriteRequest: args.WriteRequest,
+	createReq.ACLToken = structs.ACLToken{
+		Description:       description,
+		Local:             true,
+		AuthMethod:        method.Name,
+		ServiceIdentities: serviceIdentities,
+		Roles:             roleLinks,
+		ExpirationTTL:     method.MaxTokenTTL,
+		EnterpriseMeta:    *targetMeta,
 	}
 
-	createReq.ACLToken.ACLAuthMethodEnterpriseMeta.FillWithEnterpriseMeta(&auth.EnterpriseMeta)
+	createReq.ACLToken.ACLAuthMethodEnterpriseMeta.FillWithEnterpriseMeta(entMeta)
 
 	// 5. return token information like a TokenCreate would
-	err = a.tokenSetInternal(&createReq, reply, true)
+	err = a.tokenSetInternal(createReq, reply, true)
 
 	// If we were in a slight race with a role delete operation then we may
 	// still end up failing to insert an unprivileged token in the state

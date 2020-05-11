@@ -7,6 +7,10 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
+func (a *ACL) enterpriseAuthMethodTypeValidation(authMethodType string) error {
+	return nil
+}
+
 func enterpriseAuthMethodValidation(method *structs.ACLAuthMethod, validator authmethod.Validator) error {
 	return nil
 }
