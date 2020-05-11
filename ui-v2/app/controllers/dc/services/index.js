@@ -4,6 +4,7 @@ import WithEventSource from 'consul-ui/mixins/with-event-source';
 import WithSearching from 'consul-ui/mixins/with-searching';
 export default Controller.extend(WithEventSource, WithSearching, {
   queryParams: {
+    sortBy: 'sort',
     s: {
       as: 'filter',
     },

@@ -16,7 +16,8 @@ module.exports = {
   rules: {
     'no-unused-vars': ['error', { args: 'none' }],
     'ember/no-new-mixins': ['warn'],
-    'ember/no-jquery': 'warn'
+    'ember/no-jquery': 'warn',
+    'ember/no-global-jquery': 'warn'
   },
   overrides: [
     // node files

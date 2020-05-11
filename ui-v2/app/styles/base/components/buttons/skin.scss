@@ -112,3 +112,23 @@
 %internal-button-dangerous:hover {
   @extend %internal-button-dangerous-intent;
 }
+
+%split-button span::after {
+  @extend %as-pseudo;
+  position: absolute;
+  background-color: $gray-300;
+  width: 1px;
+  top: 0;
+  height: 100%;
+  margin-left: 8px;
+}
+%split-button::before {
+  @extend %as-pseudo;
+  height: 16px;
+}
+%sort-button::before {
+  @extend %with-sort-icon;
+  margin-top: 8px;
+  width: 16px;
+  height: 16px;
+}

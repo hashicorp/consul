@@ -1,0 +1,19 @@
+<div class="popover-select" ...attributes>
+  <PopoverMenu @keyboardAccess={{false}}>
+    <BlockSlot @name="trigger">
+      <span>
+        {{selected.value}}
+      </span>
+    </BlockSlot>
+    <BlockSlot @name="menu" as |id send keypressClick change|>
+      <li role="separator">
+        {{title}}
+      </li>
+    {{#each options as |option|}}
+      <li role="none" class={{if (eq selected.key option.key) 'is-active'}}>
+        <button tabindex="-1" role="menuitem" type="button" value={{option.key}} onclick={{action (queue (action 'change' option) change )}}>{{option.value}}</button>
+      </li>
+    {{/each}}
+    </BlockSlot>
+  </PopoverMenu>
+</div>
