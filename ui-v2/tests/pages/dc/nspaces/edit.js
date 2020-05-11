@@ -8,9 +8,9 @@ export default function(
 ) {
   return {
     visit: visitable(['/:dc/namespaces/:namespace', '/:dc/namespaces/create']),
-    ...submitable({}, 'form > div'),
-    ...cancelable({}, 'form > div'),
-    ...deletable({}, 'form > div'),
+    ...submitable({}, 'main form > div'),
+    ...cancelable({}, 'main form > div'),
+    ...deletable({}, 'main form > div'),
     policies: policySelector(),
     roles: roleSelector(),
   };

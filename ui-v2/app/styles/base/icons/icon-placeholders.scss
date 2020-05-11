@@ -868,6 +868,16 @@
   mask-image: $logo-alicloud-monochrome-svg;
 }
 
+%with-logo-auth0-color-icon {
+  @extend %with-icon;
+  background-image: $logo-auth0-color-svg;
+}
+%with-logo-auth0-color-mask {
+  @extend %with-mask;
+  -webkit-mask-image: $logo-auth0-color-svg;
+  mask-image: $logo-auth0-color-svg;
+}
+
 %with-logo-aws-color-icon {
   @extend %with-icon;
   background-image: $logo-aws-color-svg;
@@ -1006,6 +1016,16 @@
   @extend %with-mask;
   -webkit-mask-image: $logo-kubernetes-monochrome-svg;
   mask-image: $logo-kubernetes-monochrome-svg;
+}
+
+%with-logo-okta-color-icon {
+  @extend %with-icon;
+  background-image: $logo-okta-color-svg;
+}
+%with-logo-okta-color-mask {
+  @extend %with-mask;
+  -webkit-mask-image: $logo-okta-color-svg;
+  mask-image: $logo-okta-color-svg;
 }
 
 %with-logo-oracle-color-icon {

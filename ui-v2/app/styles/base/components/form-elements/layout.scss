@@ -38,6 +38,10 @@
   min-height: 70px;
   padding: 6px 13px;
 }
+/* TODO: notes after buttons need less space, ideally they'd be the same */
+%form button + em {
+  margin-top: 0.5em;
+}
 %form-element-note {
   margin-top: 2px;
 }

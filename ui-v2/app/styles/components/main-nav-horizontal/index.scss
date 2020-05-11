@@ -5,13 +5,20 @@
 %main-nav-horizontal > ul > li > label > * {
   @extend %main-nav-horizontal-action;
 }
-%main-nav-horizontal > ul > li > label {
-  display: block;
-}
 %main-nav-horizontal-action:not(span):hover,
 %main-nav-horizontal-action:not(span):focus {
   @extend %main-nav-horizontal-action-intent;
 }
+/* Whilst we want spans to look the same as actions */
+/* we don't want them to act the same */
+%main-nav-horizontal > ul > li > span {
+  cursor: default;
+}
+%main-nav-horizontal > ul > li > label {
+  display: block;
+}
+/* ^ why not in layout? because we want these */
+/* overwrites to be close to where we extend? */
 %main-nav-horizontal [type='checkbox']:checked + label > *,
 %main-nav-horizontal > ul > li > a:active,
 %main-nav-horizontal > ul > li.is-active > a,

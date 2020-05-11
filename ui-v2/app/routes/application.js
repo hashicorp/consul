@@ -18,7 +18,9 @@ export default Route.extend(WithBlockingActions, {
     return hash({
       router: this.router,
       dcs: this.repo.findAll(),
-      nspaces: this.nspacesRepo.findAll(),
+      nspaces: this.nspacesRepo.findAll().catch(function() {
+        return [];
+      }),
 
       // these properties are added to the controller from route/dc
       // as we don't have access to the dc and nspace params in the URL
@@ -72,30 +74,6 @@ export default Route.extend(WithBlockingActions, {
         error = e.errors[0];
         error.message = error.title || error.detail || 'Error';
       }
-      // TODO: Unfortunately ember will not maintain the correct URL
-      // for you i.e. when this happens the URL in your browser location bar
-      // will be the URL where you clicked on the link to come here
-      // not the URL where you got the 403 response
-      // Currently this is dealt with a lot better with the new ACLs system, in that
-      // if you get a 403 in the ACLs area, the URL is correct
-      // Moving that app wide right now wouldn't be ideal, therefore simply redirect
-      // to the ACLs URL instead of maintaining the actual URL, which is better than the old
-      // 403 page
-      // To note: Consul only gives you back a 403 if a non-existent token has been sent in the header
-      // if a token has not been sent at all, it just gives you a 200 with an empty dataset
-      // We set a completely null token here, which is different to just deleting a token
-      // in that deleting a token means 'logout' whereas setting it to completely null means
-      // there was a 403. This is only required to get around the legacy tokens
-      // a lot of this can go once we don't support legacy tokens
-      if (error.status === '403') {
-        return this.settings.persist({
-          token: {
-            AccessorID: null,
-            SecretID: null,
-            Namespace: null,
-          },
-        });
-      }
       if (error.status === '') {
         error.message = 'Error';
       }
@@ -136,16 +114,12 @@ export default Route.extend(WithBlockingActions, {
           removeLoading($root);
           // we can't use setupController as we received an error
           // so we do it manually instead
-          next(() => {
-            this.controllerFor('application').setProperties(model);
-            this.controllerFor('error').setProperties({ error: error });
-          });
+          this.controllerFor('application').setProperties(model);
+          this.controllerFor('error').setProperties({ error: error });
         })
         .catch(e => {
           removeLoading($root);
-          next(() => {
-            this.controllerFor('error').setProperties({ error: error });
-          });
+          this.controllerFor('error').setProperties({ error: error });
         });
       return true;
     },
