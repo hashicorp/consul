@@ -4545,7 +4545,6 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 	}, nil))
 	assert.False(t, watchFired(ws))
 
-	ws = memdb.NewWatchSet()
 	idx, out, err = s.GatewayServices(ws, "gateway", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(21))

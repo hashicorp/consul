@@ -2524,7 +2524,15 @@ func (s *Store) updateGatewayServices(tx *memdb.Txn, idx uint64, conf structs.Co
 	return nil
 }
 
-func (s *Store) ingressConfigGatewayServices(tx *memdb.Txn, gateway structs.ServiceID, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) (bool, structs.GatewayServices, error) {
+// ingressConfigGatewayServices constructs a list of GatewayService structs for
+// insertion into the memdb table, specific to ingress gateways. The boolean
+// returned indicates that there are no changes necessary to the memdb table.
+func (s *Store) ingressConfigGatewayServices(
+	tx *memdb.Txn,
+	gateway structs.ServiceID,
+	conf structs.ConfigEntry,
+	entMeta *structs.EnterpriseMeta,
+) (bool, structs.GatewayServices, error) {
 	entry, ok := conf.(*structs.IngressGatewayConfigEntry)
 	if !ok {
 		return false, nil, fmt.Errorf("unexpected config entry type: %T", conf)
@@ -2560,7 +2568,16 @@ func (s *Store) ingressConfigGatewayServices(tx *memdb.Txn, gateway structs.Serv
 	return false, gatewayServices, nil
 }
 
-func (s *Store) terminatingConfigGatewayServices(tx *memdb.Txn, gateway structs.ServiceID, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) (bool, structs.GatewayServices, error) {
+// terminatingConfigGatewayServices constructs a list of GatewayService structs
+// for insertion into the memdb table, specific to terminating gateways. The
+// boolean returned indicates that there are no changes necessary to the memdb
+// table.
+func (s *Store) terminatingConfigGatewayServices(
+	tx *memdb.Txn,
+	gateway structs.ServiceID,
+	conf structs.ConfigEntry,
+	entMeta *structs.EnterpriseMeta,
+) (bool, structs.GatewayServices, error) {
 	entry, ok := conf.(*structs.TerminatingGatewayConfigEntry)
 	if !ok {
 		return false, nil, fmt.Errorf("unexpected config entry type: %T", conf)
