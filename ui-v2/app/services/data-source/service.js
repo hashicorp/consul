@@ -5,11 +5,11 @@ import MultiMap from 'mnemonist/multi-map';
 // TODO: Expose sizes of things via env vars
 
 // caches cursors and previous events when the EventSources are destroyed
-let cache;
+let cache = null;
 // keeps a record of currently in use EventSources
-let sources;
+let sources = null;
 // keeps a count of currently in use EventSources
-let usage;
+let usage = null;
 
 export default Service.extend({
   dom: service('dom'),
@@ -18,7 +18,7 @@ export default Service.extend({
 
   init: function() {
     this._super(...arguments);
-    if (typeof cache === 'undefined') {
+    if (cache === null) {
       this.resetCache();
     }
     this._listeners = this.dom.listeners();
