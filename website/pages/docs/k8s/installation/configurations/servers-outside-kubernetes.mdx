@@ -65,12 +65,12 @@ global:
 externalServers:
   enabled: true
   hosts:
-  - "provider=my-cloud config=val ..."
+    - 'provider=my-cloud config=val ...'
 ```
 
 In most cases, `externalServers.hosts` will be the same as `client.join`, however, both keys must be set because
 they are used for different purposes: one for Serf LAN and the other for HTTPS connections.
-Please see the [reference documentation](https://www.consul.io/docs/platform/k8s/helm.html#v-externalservers-hosts)
+Please see the [reference documentation](https://www.consul.io/docs/k8s/helm.html#v-externalservers-hosts)
 for more info. If your HTTPS port is different from Consul's default `8501`, you must also set
 `externalServers.httpsPort`.
 
@@ -104,12 +104,12 @@ global:
 
 The bootstrap token requires the following minimal permissions:
 
-* `acl:write`
-* `operator:write` if enabling Consul namespaces
-* `agent:read` if using WAN federation over mesh gateways
+- `acl:write`
+- `operator:write` if enabling Consul namespaces
+- `agent:read` if using WAN federation over mesh gateways
 
 Next, configure external servers. The Helm chart will use this configuration to talk to the Consul server's API
-to create policies, tokens, and an auth method. If you are [enabling Consul Connect](/docs/platform/k8s/connect.html),
+to create policies, tokens, and an auth method. If you are [enabling Consul Connect](/docs/k8s/connect.html),
 `k8sAuthMethodHost` should be set to the address of your Kubernetes API server
 so that the Consul servers can validate a Kubernetes service account token when using the [Kubernetes auth method](https://www.consul.io/docs/acl/auth-methods/kubernetes.html)
 with `consul login`.
@@ -118,8 +118,8 @@ with `consul login`.
 externalServers:
   enabled: true
   hosts:
-  - "provider=my-cloud config=val ..."
-  k8sAuthMethodHost: "https://kubernetes.example.com:443"
+    - 'provider=my-cloud config=val ...'
+  k8sAuthMethodHost: 'https://kubernetes.example.com:443'
 ```
 
 Your resulting Helm configuration will end up looking similar to this:
@@ -138,12 +138,12 @@ client:
   # IPs. If false, the pod IPs must be routable from the external servers.
   exposeGossipPorts: true
   join:
-    - "provider=my-cloud config=val ..."
+    - 'provider=my-cloud config=val ...'
 externalServers:
   enabled: true
   hosts:
-  - "provider=my-cloud config=val ..."
-  k8sAuthMethodHost: "https://kubernetes.example.com:443"
+    - 'provider=my-cloud config=val ...'
+  k8sAuthMethodHost: 'https://kubernetes.example.com:443'
 ```
 
 ### Bootstrapping ACLs via the Helm chart
@@ -162,10 +162,10 @@ client:
   # IPs. If false, the pod IPs must be routable from the external servers.
   exposeGossipPorts: true
   join:
-    - "provider=my-cloud config=val ..."
+    - 'provider=my-cloud config=val ...'
 externalServers:
   enabled: true
   hosts:
-  - "provider=my-cloud config=val ..."
-  k8sAuthMethodHost: "https://kubernetes.example.com:443"
+    - 'provider=my-cloud config=val ...'
+  k8sAuthMethodHost: 'https://kubernetes.example.com:443'
 ```

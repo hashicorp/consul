@@ -111,7 +111,7 @@ and consider if they're appropriate for your deployment.
     - `verify` ((#v-global-verify)) (`boolean: true`) - If true, `verify_outgoing`, `verify_server_hostname`,
       and `verify_incoming_rpc` will be set to `true` for Consul servers and clients.
       Set this to false to incrementally roll out TLS on an existing Consul cluster.
-      Please see [Configuring TLS on an Existing Cluster](/docs/platform/k8s/tls-on-existing-cluster)
+      Please see [Configuring TLS on an Existing Cluster](/docs/k8s/tls-on-existing-cluster)
       for more details.
 
     - `httpsOnly` ((#v-global-httpsonly)) (`boolean: true`) - If true, the Helm chart will configure Consul
@@ -310,12 +310,12 @@ and consider if they're appropriate for your deployment.
       ```
 
 - `externalServers` ((#v-externalservers)) - Configuration for Consul servers when the servers are running outside of Kubernetes.
-   When running external servers, configuring these values is recommended
-   if setting `global.tls.enableAutoEncrypt` to true (requires consul-k8s >= 0.13.0)
-   or `global.acls.manageSystemACLs` to true (requires consul-k8s >= 0.14.0).
+  When running external servers, configuring these values is recommended
+  if setting `global.tls.enableAutoEncrypt` to true (requires consul-k8s >= 0.13.0)
+  or `global.acls.manageSystemACLs` to true (requires consul-k8s >= 0.14.0).
 
   - `enabled` ((#v-externalservers-enabled)) (`boolean: false`) - If true, the Helm chart will be configured to talk to the external servers.
-     If setting this to true, you must also set `server.enabled` to false.
+    If setting this to true, you must also set `server.enabled` to false.
 
   - `hosts` ((#v-externalservers-hosts)) (`array<string>: null`) - An array of external Consul server hosts that are used to make
     HTTPS connections from the components in this Helm chart.
@@ -340,10 +340,10 @@ and consider if they're appropriate for your deployment.
 
     You could retrieve this value from your `kubeconfig` by running:
 
-      ```shell
-      kubectl config view \
-              -o jsonpath="{.clusters[?(@.name=='<your cluster name>')].cluster.server}"
-      ```
+    ```shell
+    kubectl config view \
+            -o jsonpath="{.clusters[?(@.name=='<your cluster name>')].cluster.server}"
+    ```
 
 - `client` ((#v-client)) - Values that configure running a Consul client on Kubernetes nodes.
 
@@ -363,7 +363,7 @@ and consider if they're appropriate for your deployment.
 
   - `grpc` ((#v-client-grpc)) (`boolean: true`) - If true, agents will enable their GRPC listener on
     port 8502 and expose it to the host. This will use slightly more resources, but is
-    required for [Connect](/docs/platform/k8s/connect).
+    required for [Connect](/docs/k8s/connect).
 
   - `exposeGossipPorts` ((#v-client-exposegossipports)) (`boolean: false`) - If true, the Helm chart
     will expose the clients' gossip ports as hostPorts. This is only necessary if pod IPs in the k8s cluster are not directly routable and the Consul servers are outside of the k8s cluster.
@@ -482,7 +482,7 @@ and consider if they're appropriate for your deployment.
 
   - `enabled` ((#v-dns-enabled)) (`boolean: global.enabled`) - If true, a `consul-dns` service will be
     created that exposes port 53 for TCP and UDP to the running Consul agents (servers and
-    clients). This can then be used to [configure kube-dns](/docs/platform/k8s/dns).
+    clients). This can then be used to [configure kube-dns](/docs/k8s/dns).
     The Helm chart _does not_ automatically configure kube-dns.
 
   - `clusterIP` ((#v-dns-clusterip)) (`string: null`) - If defined, this value configures the cluster
@@ -491,17 +491,17 @@ and consider if they're appropriate for your deployment.
   - `annotations` ((#v-dns-annotations)) (`string: null`) - Extra annotations to attach to the DNS
     service. This should be a multi-line string of annotations to apply to the DNS service.
 
-- `syncCatalog` ((#v-synccatalog)) - Values that configure the [service sync](/docs/platform/k8s/service-sync) process.
+- `syncCatalog` ((#v-synccatalog)) - Values that configure the [service sync](/docs/k8s/service-sync) process.
 
   - `enabled` ((#v-synccatalog-enabled)) (`boolean: false`) - If true, the chart will install all the
     resources necessary for the catalog sync process to run.
 
   - `image` ((#v-synccatalog-image)) (`string: global.imageK8S`) - The name of the Docker image
-    (including any tag) for [consul-k8s](/docs/platform/k8s#getting-started-with-consul-and-kubernetes)
+    (including any tag) for [consul-k8s](/docs/k8s#getting-started-with-consul-and-kubernetes)
     to run the sync program.
 
   - `default` ((#v-synccatalog-default)) (`boolean: true`) - If true, all valid services in K8S are
-    synced by default. If false, the service must be [annotated](/docs/platform/k8s/service-sync#sync-enable-disable) properly to sync. In either case an annotation can override the default.
+    synced by default. If false, the service must be [annotated](/docs/k8s/service-sync#sync-enable-disable) properly to sync. In either case an annotation can override the default.
 
   - `toConsul` ((#v-synccatalog-toconsul)) (`boolean: true`) - If true, will sync Kubernetes services
     to Consul. This can be disabled to have a one-way sync.
@@ -606,7 +606,7 @@ and consider if they're appropriate for your deployment.
     - `additionalSpec` ((#v-ui-service-additionalspec)) (`string: null`) - Additional Service spec
       values. This should be a multi-line string mapping directly to a Kubernetes `Service` object.
 
-- `connectInject` ((#v-connectinject)) - Values that configure running the [Connect injector](/docs/platform/k8s/connect).
+- `connectInject` ((#v-connectinject)) - Values that configure running the [Connect injector](/docs/k8s/connect).
 
   - `enabled` ((#v-connectinject-enabled)) (`boolean: false`) - If true, the chart will install all the
     resources necessary for the Connect injector process to run. This will enable the injector but will
@@ -616,7 +616,7 @@ and consider if they're appropriate for your deployment.
     (including any tag) for the [consul-k8s](https://github.com/hashicorp/consul-k8s) binary.
 
   - `default` ((#v-connectinject-default)) (`boolean: false`) - If true, the injector will inject the
-    Connect sidecar into all pods by default. Otherwise, pods must specify the. [injection annotation](/docs/platform/k8s/connect#consul-hashicorp-com-connect-inject)
+    Connect sidecar into all pods by default. Otherwise, pods must specify the. [injection annotation](/docs/k8s/connect#consul-hashicorp-com-connect-inject)
     to opt-in to Connect injection. If this is true, pods can use the same annotation
     to explicitly opt-out of injection.
 
@@ -717,7 +717,7 @@ and consider if they're appropriate for your deployment.
       configuration feature. Pods that have a Connect proxy injected will have their service automatically registered in this central configuration.
 
     - `defaultProtocol` ((#v-connectinject-centralconfig-defaultprotocol)) (`string: null`) - If
-      defined, this value will be used as the default protocol type for all services registered with the central configuration. This can be overridden by using the [protocol annotation](/docs/platform/k8s/connect#consul-hashicorp-com-connect-service-protocol) directly on any pod spec.
+      defined, this value will be used as the default protocol type for all services registered with the central configuration. This can be overridden by using the [protocol annotation](/docs/k8s/connect#consul-hashicorp-com-connect-service-protocol) directly on any pod spec.
 
     - `proxyDefaults` ((#v-connectinject-centralconfig-proxydefaults)) (`string: "{}"`) - This value is
       a raw json string that will be applied to all Connect proxy sidecar pods. It can include any valid configuration for the configured proxy.

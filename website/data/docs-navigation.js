@@ -174,16 +174,25 @@ export default [
     category: 'k8s',
     content: [
       {
+        name: 'Installation',
         category: 'installation',
         content: [
-          'aks',
-          'eks',
-          'gke',
-          'minikube',
-          'consul-enterprise',
-          'clients-outside-kubernetes',
-          'servers-outside-kubernetes',
-          'predefined-pvcs',
+          'overview',
+          {
+            category: 'platforms',
+            name: 'Platform Guides',
+            content: ['aks', 'eks', 'gke', 'minikube'],
+          },
+          {
+            category: 'configurations',
+            name: 'Configurations',
+            content: [
+              'clients-outside-kubernetes',
+              'servers-outside-kubernetes',
+              'consul-enterprise',
+              'predefined-pvcs',
+            ],
+          },
         ],
       },
       {
@@ -191,10 +200,11 @@ export default [
         name: 'Operations',
         content: ['upgrading', 'tls-on-existing-cluster', 'uninstalling'],
       },
-      'dns',
-      'service-sync',
-      'connect',
-      'ambassador',
+      {
+        category: 'features',
+        name: 'Features',
+        content: ['connect', 'service-sync', 'dns', 'ambassador'],
+      },
       'helm',
     ],
   },

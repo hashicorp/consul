@@ -1,7 +1,7 @@
 ---
 layout: docs
-page_title: Connect Sidecar - Kubernetes
-sidebar_title: Connect Sidecar
+page_title: Connect Service Mesh - Kubernetes
+sidebar_title: Connect - Service Mesh
 description: >-
   Connect is a feature built into to Consul that enables automatic
   service-to-service authorization and connection encryption across your Consul
@@ -9,7 +9,7 @@ description: >-
   other services.
 ---
 
-# Connect Sidecar on Kubernetes
+# Connect Service Mesh on Kubernetes
 
 [Connect](/docs/connect) is a feature built into to Consul that enables
 automatic service-to-service authorization and connection encryption across
@@ -21,12 +21,12 @@ your cluster, making configuration for Kubernetes automatic.
 This functionality is provided by the
 [consul-k8s project](https://github.com/hashicorp/consul-k8s) and can be
 automatically installed and configured using the
-[Consul Helm chart](/docs/platform/k8s/run).
+[Consul Helm chart](/docs/k8s/run).
 
 ## Usage
 
 When the
-[Connect injector is installed](/docs/platform/k8s/connect#installation-and-configuration),
+[Connect injector is installed](/docs/k8s/connect#installation-and-configuration),
 the Connect sidecar is automatically added to all pods. This sidecar can both
 accept and establish connections using Connect, enabling the pod to communicate
 to clients and dependencies exclusively over authorized and encrypted
@@ -78,7 +78,7 @@ spec:
 The only change for Connect is the addition of the
 `consul.hashicorp.com/connect-inject` annotation. This enables injection
 for this pod. The injector can also be
-[configured](/docs/platform/k8s/connect#installation-and-configuration)
+[configured](/docs/k8s/connect#installation-and-configuration)
 to automatically inject unless explicitly disabled, but the default
 installation requires opt-in using the annotation shown above.
 
@@ -131,7 +131,7 @@ spec:
 ```
 
 Pods must specify upstream dependencies with the
-[`consul.hashicorp.com/connect-service-upstreams` annotation](/docs/platform/k8s/connect#consul-hashicorp-com-connect-service-upstreams).
+[`consul.hashicorp.com/connect-service-upstreams` annotation](/docs/k8s/connect#consul-hashicorp-com-connect-service-upstreams).
 This annotation declares the names of any upstream dependencies and a
 local port for the proxy to listen on. When a connection is established to that local
 port, the proxy establishes a connection to the target service
@@ -253,7 +253,7 @@ Annotations can be used to configure the injection behavior.
   feature, information about the protocol the service uses is required. Users
   can define the protocol directly using this annotation on the pod spec, or by
   defining a default value for all services using the Helm chart's
-  [defaultProtocol](/docs/platform/k8s/helm#v-connectinject-centralconfig-defaultprotocol)
+  [defaultProtocol](/docs/k8s/helm#v-connectinject-centralconfig-defaultprotocol)
   option. Specific annotations will always override the default value.
 
 - `consul.hashicorp.com/service-tags` - A comma separated list of tags that will
@@ -323,15 +323,15 @@ provided by the
 [consul-k8s project](https://github.com/hashicorp/consul-k8s).
 This enables the automatic pod mutation shown in the usage section above.
 Installation of the mutating admission webhook is automated using the
-[Helm chart](/docs/platform/k8s/run).
+[Helm chart](/docs/k8s/run).
 
 To install the Connect injector, enable the Connect injection feature using
-[Helm values](/docs/platform/k8s/helm#configuration-values) and
+[Helm values](/docs/k8s/helm#configuration-values) and
 upgrade the installation using `helm upgrade` for existing installs or
 `helm install` for a fresh install. The Connect injector **also requires**
-[client agents](/docs/platform/k8s/helm#v-client) are enabled on
+[client agents](/docs/k8s/helm#v-client) are enabled on
 the node with pods that are using Connect and that
-[gRPC is enabled](/docs/platform/k8s/helm#v-client-grpc).
+[gRPC is enabled](/docs/k8s/helm#v-client-grpc).
 
 ```yaml
 connectInject:
@@ -503,7 +503,7 @@ See [consul.hashicorp.com/connect-service-upstreams](#consul-hashicorp-com-conne
 ### Verifying the Installation
 
 To verify the installation, run the
-["Accepting Inbound Connections"](/docs/platform/k8s/connect#accepting-inbound-connections)
+["Accepting Inbound Connections"](/docs/k8s/connect#accepting-inbound-connections)
 example from the "Usage" section above. After running this example, run
 `kubectl get pod static-server -o yaml`. In the raw YAML output, you should
 see injected Connect containers and an annotation
