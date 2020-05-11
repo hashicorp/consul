@@ -17,13 +17,21 @@ services outside the mesh. These gateways effectively act as Connect proxies tha
 represent more than one service. They terminate Connect mTLS connections, enforce intentions,
 and forward requests to the appropriate destination.
 
-For data that must be encrypted in transit to the final destination, terminating gateways
-support TLS origination. By specifying a [CA file](/docs/agent/config-entries/terminating-gateway#cafile),
-[client certificate](/docs/agent/config-entries/terminating-gateway#certfile), and
-[private key](/docs/agent/config-entries/terminating-gateway#keyfile),
-connections from the gateway to a linked service can be encrypted using one-way or mutual TLS.
-If none of these are provided, Consul will only encrypt connections to the gateway and not
-from the gateway to the destination service. 
+## Security Considerations
+
+We recommend that terminating gateways not be exposed to the WAN or open internet. This is because terminating gateways
+hold certificates to decrypt Consul Connect traffic directed at them and may be configured with credentials to connect
+to linked services. Connections over the WAN or open internet should flow through [Mesh Gateways](/docs/connect/mesh_gateway)
+whenever possible since they are not capable of decrypting traffic or connecting directly to services.
+
+By specifying a path to a [CA file](/docs/agent/config-entries/terminating-gateway#cafile) connections
+from the gateway will be encrypted using one-way TLS authentication. If a path to a
+[client certificate](/docs/agent/config-entries/terminating-gateway#certfile)
+and [private key](/docs/agent/config-entries/terminating-gateway#keyfile) are also specified connections
+from the gateway will be encrypted using mutual TLS authentication.
+
+If none of these are provided, Consul will **only** encrypt connections to the gateway and not
+from the gateway to the destination service.
 
 -> **Note:** If certificates and keys are configured the gateway will upgrade HTTP connections to TLS. 
 Client applications can issue plain HTTP requests even when connecting to servers that require HTTPS.

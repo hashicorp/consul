@@ -13,8 +13,20 @@ description: >-
 
   The `terminating-gateway` config entry kind you to configure terminating gateways
   to proxy traffic from services in the Consul service mesh to services registered with Consul that do not have a
-  [Connect service sidecar proxy](/docs/connect/proxies). See [Terminating Gateway](/docs/connect/terminating_gateway)
-  for more information.
+  [Connect service sidecar proxy](/docs/connect/proxies). The configuration is associated with the name of a gateway service
+  and will apply to all instances of the gateway with that name.
+
+  See [Terminating Gateway](/docs/connect/terminating_gateway) for more information.
+
+## TLS Origination
+  By specifying a path to a [CA file](/docs/agent/config-entries/terminating-gateway#cafile) connections
+  from the gateway will be encrypted using one-way TLS authentication. If a path to a
+  [client certificate](/docs/agent/config-entries/terminating-gateway#certfile)
+  and [private key](/docs/agent/config-entries/terminating-gateway#keyfile) are also specified connections
+  from the gateway will be encrypted using mutual TLS authentication.
+
+  If none of these are provided, Consul will **only** encrypt connections to the gateway and not
+  from the gateway to the destination service.
 
 ## Wildcard service specification
 
