@@ -27,3 +27,28 @@
 %more-popover-menu-panel [id$='-']:first-child:checked ~ ul label[for$='-'] + [role='menu'] {
   display: block;
 }
+%popover-menu {
+  @extend %display-toggle-siblings;
+}
+%popover-menu + label > * {
+  @extend %toggle-button;
+}
+%popover-menu-panel {
+  @extend %menu-panel;
+  width: 192px;
+}
+%popover-menu + label + div {
+  @extend %popover-menu-panel;
+}
+%popover-menu-panel:not(.above) {
+  top: 38px;
+}
+%popover-menu-panel:not(.left) {
+  right: 10px;
+}
+%popover-menu-panel li [role='menu'] {
+  display: none;
+}
+%popover-menu-panel [id$='-']:first-child:checked ~ ul label[for$='-'] + [role='menu'] {
+  display: block;
+}

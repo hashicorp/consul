@@ -1,7 +1,7 @@
 {{yield}}
 {{#if (gt items.length 0)}}
 <ListCollection @cellHeight={{73}} @items={{items}} class="consul-service-list" as |item index|>
-  <a href={{href-to routeName item.Name}} class={{service/health-checks item}}>
+  <a data-test-service-name href={{href-to routeName item.Name}} class={{service/health-checks item}}>
     {{item.Name}}
   </a>
   <ul>
