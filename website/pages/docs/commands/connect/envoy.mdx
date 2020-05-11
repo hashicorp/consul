@@ -54,8 +54,9 @@ proxy configuration needed.
 
 #### Envoy Options for both Sidecars and Gateways
 
-- `-proxy-id` - The [proxy service](/docs/connect/registration/service-registration) ID on the
-  local agent. This must already be present on the local agent.
+- `-proxy-id` - The [proxy service](/docs/connect/registration/service-registration) ID.
+  This service ID must already be registered with the local agent unless a gateway is being
+  registered with the `-register` flag.
 
 - `-envoy-binary` - The full path to a specific Envoy binary to exec. By
   default the current `$PATH` is searched for `envoy`.

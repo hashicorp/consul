@@ -299,9 +299,13 @@ func (c *cmd) run(args []string) int {
 			meta = map[string]string{structs.MetaWANFederationKey: "1"}
 		}
 
+		if c.proxyID == "" {
+			c.proxyID = c.gatewaySvcName
+		}
 		svc := api.AgentServiceRegistration{
 			Kind:            c.gatewayKind,
 			Name:            c.gatewaySvcName,
+			ID:              c.proxyID,
 			Address:         lanAddr.Address,
 			Port:            lanAddr.Port,
 			Meta:            meta,
@@ -342,7 +346,7 @@ func (c *cmd) run(args []string) int {
 	}
 
 	if c.proxyID == "" {
-		c.UI.Error("No proxy ID specified. One of -proxy-id or -sidecar-for/-gateway is " +
+		c.UI.Error("No proxy ID specified. One of -proxy-id, -sidecar-for, or -gateway is " +
 			"required")
 		return 1
 	}
@@ -485,7 +489,7 @@ func (c *cmd) generateConfig() ([]byte, error) {
 		}
 
 		if svc.Proxy == nil {
-			return nil, errors.New("service is not a Connect proxy or mesh gateway")
+			return nil, errors.New("service is not a Connect proxy or gateway")
 		}
 
 		// Parse the bootstrap config
