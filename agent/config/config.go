@@ -320,14 +320,13 @@ type Config struct {
 	VersionPrerelease          *string  `json:"version_prerelease,omitempty" hcl:"version_prerelease" mapstructure:"version_prerelease"`
 
 	// Enterprise Only
+	Audit Audit `json:"audit,omitempty" hcl:"audit" mapstructure:"audit"`
+	// Enterprise Only
 	NonVotingServer *bool `json:"non_voting_server,omitempty" hcl:"non_voting_server" mapstructure:"non_voting_server"`
 	// Enterprise Only
 	SegmentName *string `json:"segment,omitempty" hcl:"segment" mapstructure:"segment"`
 	// Enterprise Only
 	Segments []Segment `json:"segments,omitempty" hcl:"segments" mapstructure:"segments"`
-
-	// enterpriseConfig embeds fields that we only access in consul-enterprise builds
-	EnterpriseConfig `hcl:",squash" mapstructure:",squash"`
 }
 
 type GossipLANConfig struct {
@@ -757,4 +756,22 @@ type ConfigEntries struct {
 	// need to figure out the right concrete type before we can decode it
 	// unabiguously.
 	Bootstrap []map[string]interface{} `json:"bootstrap,omitempty" hcl:"bootstrap" mapstructure:"bootstrap"`
+}
+
+// Audit allows us to enable and define destinations for auditing
+type Audit struct {
+	Enabled *bool                `json:"enabled,omitempty" hcl:"enabled" mapstructure:"enabled"`
+	Sinks   map[string]AuditSink `json:"sink,omitempty"    hcl:"sink"    mapstructure:"sink"`
+}
+
+// AuditSink can be provided multiple times to define pipelines for auditing
+type AuditSink struct {
+	Name              *string `json:"name,omitempty"               hcl:"name"               mapstructure:"name"`
+	Type              *string `json:"type,omitempty"               hcl:"type"               mapstructure:"type"`
+	Format            *string `json:"format,omitempty"             hcl:"format"             mapstructure:"format"`
+	Path              *string `json:"path,omitempty"               hcl:"path"               mapstructure:"path"`
+	DeliveryGuarantee *string `json:"delivery_guarantee,omitempty" hcl:"delivery_guarantee" mapstructure:"delivery_guarantee"`
+	RotateBytes       *int    `json:"rotate_bytes,omitempty"       hcl:"rotate_bytes"       mapstructure:"rotate_bytes"`
+	RotateDuration    *string `json:"rotate_duration,omitempty"    hcl:"rotate_duration"    mapstructure:"rotate_duration"`
+	RotateMaxFiles    *int    `json:"rotate_max_files,omitempty"   hcl:"rotate_max_files"   mapstructure:"rotate_max_files"`
 }
