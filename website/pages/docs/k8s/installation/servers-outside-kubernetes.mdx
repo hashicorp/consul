@@ -49,3 +49,123 @@ If this isn't possible, consider running a separate Consul cluster inside Kubern
 and federating it with your cluster outside Kubernetes.
 You may also consider adopting Consul Enterprise for
 [network segments](/docs/enterprise/network-segments).
+
+## Configuring TLS with Auto-encrypt
+
+Consul's auto-encrypt feature allows clients to automatically provision their certificates by making a request to the servers at startup.
+If you would like to use this feature with external Consul servers, you need to configure the Helm chart with information about the servers
+so that it can retrieve the clients' CA to use for securing the rest of the cluster.
+To do that, you must add the following values, in addition to the values mentioned above:
+
+```yaml
+global:
+  tls:
+    enabled: true
+    enableAutoEncrypt: true
+externalServers:
+  enabled: true
+  hosts:
+  - "provider=my-cloud config=val ..."
+```
+
+In most cases, `externalServers.hosts` will be the same as `client.join`, however, both keys must be set because
+they are used for different purposes: one for Serf LAN and the other for HTTPS connections.
+Please see the [reference documentation](https://www.consul.io/docs/platform/k8s/helm.html#v-externalservers-hosts)
+for more info. If your HTTPS port is different from Consul's default `8501`, you must also set
+`externalServers.httpsPort`.
+
+## Configuring ACLs
+
+If you are running external servers with ACLs enabled, there are a couple of ways to configure the Helm chart
+to help initialize ACL tokens for Consul clients and consul-k8s components for you.
+
+### Manually Bootstrapping ACLs
+
+If you would like to call the [ACL bootstrapping API](/api/acl/acl.html#bootstrap-acls) yourself or if your cluster has already been bootstrapped with ACLs,
+you can provide the bootstrap token to the Helm chart. The Helm chart will then use this token to configure ACLs
+for Consul clients and any consul-k8s components you are enabling.
+
+First, create a Kubernetes secret containing your bootstrap token:
+
+```shell
+kubectl create secret generic bootstrap-token --from-literal='token=<your bootstrap token>'
+```
+
+Then provide that secret to the Helm chart:
+
+```yaml
+global:
+  acls:
+    manageSystemACLs: true
+    bootstrapToken:
+      secretName: bootstrap-token
+      secretKey: token
+```
+
+The bootstrap token requires the following minimal permissions:
+
+* `acl:write`
+* `operator:write` if enabling Consul namespaces
+* `agent:read` if using WAN federation over mesh gateways
+
+Next, configure external servers. The Helm chart will use this configuration to talk to the Consul server's API
+to create policies, tokens, and an auth method. If you are [enabling Consul Connect](/docs/platform/k8s/connect.html),
+`k8sAuthMethodHost` should be set to the address of your Kubernetes API server
+so that the Consul servers can validate a Kubernetes service account token when using the [Kubernetes auth method](https://www.consul.io/docs/acl/auth-methods/kubernetes.html)
+with `consul login`.
+
+```yaml
+externalServers:
+  enabled: true
+  hosts:
+  - "provider=my-cloud config=val ..."
+  k8sAuthMethodHost: "https://kubernetes.example.com:443"
+```
+
+Your resulting Helm configuration will end up looking similar to this:
+
+```yaml
+global:
+  enabled: false
+  acls:
+    manageSystemACLs: true
+    bootstrapToken:
+      secretName: bootstrap-token
+      secretKey: token
+client:
+  enabled: true
+  # Set this to true to expose the Consul clients using the Kubernetes node
+  # IPs. If false, the pod IPs must be routable from the external servers.
+  exposeGossipPorts: true
+  join:
+    - "provider=my-cloud config=val ..."
+externalServers:
+  enabled: true
+  hosts:
+  - "provider=my-cloud config=val ..."
+  k8sAuthMethodHost: "https://kubernetes.example.com:443"
+```
+
+### Bootstrapping ACLs via the Helm chart
+
+If you would like the Helm chart to call the bootstrapping API and set the server tokens for you, then the steps are similar.
+The only difference is that you don't need to set the bootstrap token. The Helm chart will save the bootstrap token as a Kubernetes secret.
+
+```yaml
+global:
+  enabled: false
+  acls:
+    manageSystemACLs: true
+client:
+  enabled: true
+  # Set this to true to expose the Consul clients using the Kubernetes node
+  # IPs. If false, the pod IPs must be routable from the external servers.
+  exposeGossipPorts: true
+  join:
+    - "provider=my-cloud config=val ..."
+externalServers:
+  enabled: true
+  hosts:
+  - "provider=my-cloud config=val ..."
+  k8sAuthMethodHost: "https://kubernetes.example.com:443"
+```
