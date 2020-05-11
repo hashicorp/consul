@@ -11,7 +11,6 @@ export default function(visitable, clickable, text, attribute, collection, popov
     dcs: collection('[data-test-datacenter-picker]', {
       name: clickable('a'),
     }),
-    filter: filter,
     home: clickable('[data-test-home]'),
     sort: popoverSort,
   };
