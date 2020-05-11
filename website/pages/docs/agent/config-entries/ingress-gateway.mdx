@@ -55,12 +55,17 @@ Listeners = [
 ]
 ```
 
-Set up a wildcard HTTP listener to proxy traffic to all available services, and
-make two services available over a custom port with user-provided hosts:
+Set up a wildcard HTTP listener to proxy traffic to all available services,
+make two services available over a custom port with user-provided hosts, and
+enable TLS on every listener:
 
 ```hcl
 Kind = "ingress-gateway"
 Name = "ingress-service"
+
+TLS {
+  Enabled = true
+}
 
 Listeners = [
   {
@@ -100,6 +105,11 @@ Listeners = [
   the gateway is registered in. If omitted, the  namespace will be inherited
   from [the request](/api/config#ns) or will default to the `default` namespace.
 
+- `TLS` `(TLSConfig: <optional>)` - TLS configuration for this gateway.
+
+    - `Enabled` `(bool: false)` - Set this configuration to enable TLS for
+  every listener on the gateway.
+
 - `Listeners` `(array<IngressListener>: <optional>)` - A list of listeners that
   the ingress gateway should setup, uniquely identified by their port number.
 
@@ -127,6 +137,9 @@ Listeners = [
     - `Hosts` `(array<string>: <optional>)` - A list of hosts that specify what
       requests will match to this service. This cannot be used with a `tcp`
       listener, and cannot be specified alongside a `*` service name.
+
+      If TLS is enabled, then each host will be added as a DNSSAN to the
+      gateway's x509 certificate.
 
 ## ACLs
 
