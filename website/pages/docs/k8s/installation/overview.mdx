@@ -1,7 +1,7 @@
 ---
 layout: docs
 page_title: Installing Consul on Kubernetes - Kubernetes
-sidebar_title: Installation
+sidebar_title: Overview
 description: >-
   Consul can run directly on Kubernetes, both in server or client mode. For
   pure-Kubernetes workloads, this enables Consul to also exist purely within
@@ -18,7 +18,7 @@ a server running inside or outside of Kubernetes.
 
 This page starts with a large how-to section for various specific tasks.
 To learn more about the general architecture of Consul on Kubernetes, scroll
-down to the [architecture](/docs/platform/k8s/run.html#architecture) section.
+down to the [architecture](/docs/k8s/installation/overview.html#architecture) section.
 If you would like to get hands-on experience testing Consul as a service mesh
 for Kubernetes, check the guides in the [Getting Started with Consul service
 mesh](https://learn.hashicorp.com/consul/gs-consul-service-mesh/understand-consul-service-mesh?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) track.
@@ -26,7 +26,7 @@ mesh](https://learn.hashicorp.com/consul/gs-consul-service-mesh/understand-consu
 ## Helm Chart Installation
 
 The recommended way to run Consul on Kubernetes is via the
-[Helm chart](/docs/platform/k8s/helm). This will install and configure
+[Helm chart](/docs/k8s/helm). This will install and configure
 all the necessary components to run Consul. The configuration enables you
 to run just a server cluster, just a client cluster, or both. Using the Helm
 chart, you can have a full Consul deployment up and running in minutes.
@@ -42,7 +42,7 @@ upgrade, etc. the Consul cluster.
 The Helm chart has no required configuration and will install a Consul
 cluster with sane defaults out of the box. Prior to going to production,
 it is highly recommended that you
-[learn about the configuration options](/docs/platform/k8s/helm#configuration-values).
+[learn about the configuration options](/docs/k8s/helm#configuration-values).
 
 ~> **Security Warning:** By default, the chart will install an insecure configuration
 of Consul. This provides a less complicated out-of-box experience for new users,
@@ -96,7 +96,7 @@ elected and every node will have a running Consul agent.
 If you want to customize your installation,
 create a `config.yaml` file to override the default settings.
 You can learn what settings are available by running `helm inspect values hashicorp/consul`
-or by reading the [Helm Chart Reference](/docs/platform/k8s/helm).
+or by reading the [Helm Chart Reference](/docs/k8s/helm).
 
 For example, if you want to enable the [Consul Connect](/docs/k8s/connect) feature,
 use the following config file:
@@ -118,14 +118,17 @@ NAME: consul
 ```
 
 If you've already installed Consul and want to make changes, you'll need to run
-`helm upgrade`. See the [Upgrading Consul on Kubernetes](/docs/platform/k8s/run#upgrading-consul-on-kubernetes)
-section for more details.
+`helm upgrade`. See [Upgrading](/docs/k8s/operations/upgrading) for more details.
 
 ## Viewing the Consul UI
 
 The Consul UI is enabled by default when using the Helm chart.
 For security reasons, it isn't exposed via a `LoadBalancer` Service by default so you must
-use `kubectl port-forward` to visit the UI:
+use `kubectl port-forward` to visit the UI.
+
+#### TLS Disabled
+
+If running with TLS disabled, the Consul UI will be accessible via http on port 8500:
 
 ```
 $ kubectl port-forward service/consul-server 8500:8500
@@ -134,8 +137,42 @@ $ kubectl port-forward service/consul-server 8500:8500
 
 Once the port is forwarded navigate to [http://localhost:8500](http://localhost:8500).
 
+#### TLS Enabled
+
+If running with TLS enabled, the Consul UI will be accessible via https on port 8501:
+
+```
+$ kubectl port-forward service/consul-server 8501:8501
+...
+```
+
+Once the port is forwarded navigate to [https://localhost:8501](https://localhost:8501).
+
+~> You'll need to click through an SSL warning from your browser because the
+Consul certificate authority is self-signed and not in the browser's trust store.
+
+#### ACLs Enabled
+
+If ACLs are enabled, you will need to input an ACL token into the UI in order
+to see all resources and make modifications.
+
+To retrieve the bootstrap token that has full permissions, run:
+
+```sh
+$ kubectl get secrets/consul-bootstrap-acl-token --template={{.data.token}} | base64 -D
+e7924dd1-dc3f-f644-da54-81a73ba0a178%
+```
+
+Then paste the token into the UI under the ACLs tab (without the `%`).
+
+~> NOTE: If using multi-cluster federation, your kubectl context must be in the primary datacenter
+to retrieve the bootstrap token since secondary datacenters use a separate token
+with less permissions.
+
+### Exposing the UI via a service
+
 If you want to expose the UI via a Kubernetes Service, configure
-the [`ui.service` chart values](/docs/platform/k8s/helm#v-ui-service).
+the [`ui.service` chart values](/docs/k8s/helm#v-ui-service).
 This service will allow requests to the Consul servers so it should
 not be open to the world.
 
@@ -148,7 +185,7 @@ has important caching behavior, and allows you to use the simpler
 [`/agent` endpoints for services and checks](/api/agent).
 
 For Consul installed via the Helm chart, a client agent is installed on
-each Kubernetes node. This is explained in the [architecture](/docs/platform/k8s/run#client-agents)
+each Kubernetes node. This is explained in the [architecture](/docs/k8s/installation/overview#client-agents)
 section. To access the agent, you may use the
 [downward API](https://kubernetes.io/docs/tasks/inject-data-application/downward-api-volume-expose-pod-information/).
 
@@ -260,7 +297,7 @@ The clients expose the Consul HTTP API via a static port (default 8500)
 bound to the host port. This enables all other pods on the node to connect
 to the node-local agent using the host IP that can be retrieved via the
 Kubernetes downward API. See
-[accessing the Consul HTTP API](/docs/platform/k8s/run#accessing-the-consul-http-api)
+[accessing the Consul HTTP API](/docs/k8s/installation/overview#accessing-the-consul-http-api)
 for an example.
 
 There is a major limitation to this: there is no way to bind to a local-only
