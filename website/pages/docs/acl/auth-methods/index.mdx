@@ -10,14 +10,11 @@ description: >-
 
 # ACL Auth Methods
 
--> **1.5.0+:** This guide only applies in Consul versions 1.5.0 and newer.
+-> **1.5.0+:** Auth methods only exist in Consul versions 1.5.0 and newer.
 
 An auth method is a component in Consul that performs authentication against a
 trusted external party to authorize the creation of an ACL tokens usable within
 the local datacenter.
-
-The only supported type of auth method in Consul 1.5.0 is
-[`kubernetes`](/docs/acl/auth-methods/kubernetes).
 
 ## Overview
 
@@ -35,6 +32,14 @@ properly-scoped policies without additional operator intervention.
 In Consul 1.5.0 the focus is around simplifying the creation of tokens with the
 privileges necessary to participate in a [Connect](/docs/connect)
 service mesh with minimal operator intervention.
+
+## Supported Types
+
+| Types | Consul Version |
+| ----- | -------------- |
+| [`kubernetes`](/docs/acl/auth-methods/kubernetes) | 1.5.0+ |
+| [`jwt`](/docs/acl/auth-methods/jwt) | 1.8.0+ |
+| [`oidc`](/docs/acl/auth-methods/oidc) | 1.8.0+ <EnterpriseAlert inline /> |
 
 ## Operator Configuration
 
