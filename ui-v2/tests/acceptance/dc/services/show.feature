@@ -56,7 +56,6 @@ Feature: dc / services / show: Show Service
       dc: dc1
       service: service-0
     ---
-    And pause for 3000
     And I click tags on the tabs
     Then I see the text "Tag1" in "[data-test-tags] span:nth-child(1)"
     Then I see the text "Tag2" in "[data-test-tags] span:nth-child(2)"
