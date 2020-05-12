@@ -1,3 +1,15 @@
+// Services - Linked Services tab
+.gateway-services-list > ul {
+  @extend %gateway-services-list;
+}
+%gateway-services-list > li:not(:first-child) {
+  @extend %gateway-service-row;
+}
+%gateway-service-row {
+  @extend %composite-row, %with-composite-row-intent;
+}
+
+// Service Detail - Proxy Info tab
 .proxy-upstreams > ul {
   @extend %proxy-upstreams-list;
 }
