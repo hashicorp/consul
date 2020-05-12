@@ -52,7 +52,7 @@ within the JWT. If the desired key is at the top of level of the JWT, the name
 can be provided directly. If it is nested at a lower level, a JSON Pointer may
 be used.
 
-Assume the following JSON data to be referenced:
+Assume the following JWT claims are decoded:
 
 ```json
 {
@@ -60,7 +60,13 @@ Assume the following JSON data to be referenced:
   "groups": {
     "primary": "Engineering",
     "secondary": "Software"
-  }
+  },
+  "iss": "https://my-corp-app-name.auth0.com/",
+  "sub": "auth0|eiw7OWoh5ieSh7ieyahC3ief0uyuraphaengae9d",
+  "aud": "V1RPi2MYptMV1RPi2MYptMV1RPi2MYpt",
+  "iat": 1589224148,
+  "exp": 1589260148,
+  "nonce": "eKiihooH3Fah8Ieshah4leeti6ien3"
 }
 ```
 
