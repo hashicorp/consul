@@ -32,9 +32,9 @@
             {{#if (gt item.LocalBindPort 0)}}
               {{#let (concat (or item.LocalBindAddress '127.0.0.1') ':' item.LocalBindPort) as |combinedAddress| }}
               <li class="port">
-                <CopyButtonFeedback 
-                  @copy={{combinedAddress}} 
-                  @name="Address" 
+                <CopyButton
+                  @value={{combinedAddress}}
+                  @name="Address"
                 />
                 <span>{{combinedAddress}}</span>
               </li>
@@ -80,7 +80,7 @@
               <td class="combined-address">
               {{#if combinedAddress}}
                 <span data-test-combined-address>{{combinedAddress}}</span>
-                <CopyButtonFeedback @copy={{combinedAddress}} @name="Combined Address" />
+                <CopyButton @copy={{combinedAddress}} @name="Combined Address" />
               {{else}}
                 {{'-'}}
               {{/if}}

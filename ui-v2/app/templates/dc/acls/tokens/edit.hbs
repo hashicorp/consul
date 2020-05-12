@@ -70,11 +70,11 @@
           <dl>
             <dt>AccessorID</dt>
             <dd>
-              <CopyButtonFeedback @title="Copy AccessorID to the clipboard" @copy={{item.AccessorID}} @name="AccessorID" /> {{item.AccessorID}}
+              <CopyButton @value={{item.AccessorID}} @name="AccessorID" /> {{item.AccessorID}}
             </dd>
             <dt>Token</dt>
             <dd>
-              <CopyButtonFeedback @title="Copy SecretID to the clipboard" @copy={{item.SecretID}} @name="Token" /> <SecretButton>{{item.SecretID}}</SecretButton>
+              <CopyButton @value={{item.SecretID}} @name="Token" /> <SecretButton>{{item.SecretID}}</SecretButton>
             </dd>
 {{#if (and (not (token/is-legacy item)) (not create))}}
             <dt>Scope</dt>

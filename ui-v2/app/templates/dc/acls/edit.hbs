@@ -18,23 +18,9 @@
     </BlockSlot>
     <BlockSlot @name="actions">
 {{#if (not create) }}
-        <FeedbackDialog @type="inline">
-            <BlockSlot @name="action" as |success error|>
-                <CopyButton @success={{action success}} @error={{action error}} @clipboardText={{item.ID}} @title="copy token ID to clipboard">
-                    Copy token ID
-                </CopyButton>
-            </BlockSlot>
-            <BlockSlot @name="success" as |transition|>
-                <p class={{transition}}>
-                    Copied token ID!
-                </p>
-            </BlockSlot>
-            <BlockSlot @name="error" as |transition|>
-                <p class={{transition}}>
-                    Sorry, something went wrong!
-                </p>
-            </BlockSlot>
-        </FeedbackDialog>
+        <CopyButton @value={{item.ID}} @name="token ID">
+            Copy token ID
+        </CopyButton>
         <button type="button" {{ action "clone" item }}>Clone token</button>
         <ConfirmationDialog @message="Are you sure you want to use this ACL token?">
             <BlockSlot @name="action" as |confirm|>

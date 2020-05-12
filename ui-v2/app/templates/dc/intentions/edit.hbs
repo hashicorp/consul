@@ -31,23 +31,9 @@
     </BlockSlot>
     <BlockSlot @name="actions">
 {{#if (not create) }}
-        <FeedbackDialog @type="inline">
-            <BlockSlot @name="action" as |success error|>
-                <CopyButton @success={{action success}} @error={{action error}} @clipboardText={{item.ID}} @title="copy UUID to clipboard">
-                    Copy UUID
-                </CopyButton>
-            </BlockSlot>
-            <BlockSlot @name="success" as |transition|>
-                <p class={{transition}}>
-                    Copied UUID!
-                </p>
-            </BlockSlot>
-            <BlockSlot @name="error" as |transition|>
-                <p class={{transition}}>
-                    Sorry, something went wrong!
-                </p>
-            </BlockSlot>
-        </FeedbackDialog>
+        <CopyButton @value={{item.ID}} @name="UUID">
+            Copy UUID
+        </CopyButton>
 {{/if}}
     </BlockSlot>
     <BlockSlot @name="content">
