@@ -281,18 +281,6 @@ func summarizeServices(dump structs.ServiceDump) []*ServiceSummary {
 		}
 	}
 
-	// Loop over services one more time and populate whether they're connected with proxy using the info in the connected map
-	for _, csn := range dump {
-		// Will happen in cases where we only have the GatewayServices mapping in ServiceInfo
-		if csn.Service == nil {
-			continue
-		}
-		sid := structs.NewServiceID(csn.Service.Service, &csn.Service.EnterpriseMeta)
-		if sum, ok := summary[sid]; ok && connected[sid] {
-			sum.ConnectedWithProxy = true
-		}
-	}
-
 	// Return the services in sorted order
 	sort.Slice(services, func(i, j int) bool {
 		return services[i].LessThan(&services[j])
@@ -301,6 +289,9 @@ func summarizeServices(dump structs.ServiceDump) []*ServiceSummary {
 	for idx, service := range services {
 		// Sort the nodes and tags
 		sum := summary[service]
+		if connected[service] {
+			sum.ConnectedWithProxy = true
+		}
 		sort.Strings(sum.Nodes)
 		sort.Strings(sum.Tags)
 		output[idx] = sum
