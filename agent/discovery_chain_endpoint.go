@@ -95,63 +95,6 @@ type discoveryChainReadRequest struct {
 	OverrideConnectTimeout time.Duration
 }
 
-func (t *discoveryChainReadRequest) UnmarshalJSON(data []byte) (err error) {
-	type Alias discoveryChainReadRequest
-	aux := &struct {
-		OverrideConnectTimeout interface{}
-		OverrideProtocol       interface{}
-		OverrideMeshGateway    *struct{ Mode interface{} }
-
-		OverrideConnectTimeoutSnake interface{}                 `json:"override_connect_timeout"`
-		OverrideProtocolSnake       interface{}                 `json:"override_protocol"`
-		OverrideMeshGatewaySnake    *struct{ Mode interface{} } `json:"override_mesh_gateway"`
-
-		*Alias
-	}{
-		Alias: (*Alias)(t),
-	}
-	if err = lib.UnmarshalJSON(data, &aux); err != nil {
-		return err
-	}
-
-	if aux.OverrideConnectTimeout == nil {
-		aux.OverrideConnectTimeout = aux.OverrideConnectTimeoutSnake
-	}
-	if aux.OverrideProtocol == nil {
-		aux.OverrideProtocol = aux.OverrideProtocolSnake
-	}
-	if aux.OverrideMeshGateway == nil {
-		aux.OverrideMeshGateway = aux.OverrideMeshGatewaySnake
-	}
-
-	// weakly typed input
-	if aux.OverrideProtocol != nil {
-		switch v := aux.OverrideProtocol.(type) {
-		case string, float64, bool:
-			t.OverrideProtocol = fmt.Sprintf("%v", v)
-		default:
-			return fmt.Errorf("OverrideProtocol: invalid type %T", v)
-		}
-	}
-	if aux.OverrideMeshGateway != nil {
-		t.OverrideMeshGateway.Mode = structs.MeshGatewayMode(fmt.Sprintf("%v", aux.OverrideMeshGateway.Mode))
-	}
-
-	// duration
-	if aux.OverrideConnectTimeout != nil {
-		switch v := aux.OverrideConnectTimeout.(type) {
-		case string:
-			if t.OverrideConnectTimeout, err = time.ParseDuration(v); err != nil {
-				return err
-			}
-		case float64:
-			t.OverrideConnectTimeout = time.Duration(v)
-		}
-	}
-
-	return nil
-}
-
 // discoveryChainReadResponse is the API variation of structs.DiscoveryChainResponse
 type discoveryChainReadResponse struct {
 	Chain *structs.CompiledDiscoveryChain
