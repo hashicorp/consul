@@ -18,7 +18,7 @@
     </BlockSlot>
     <BlockSlot @name="actions">
 {{#if (not create) }}
-        <CopyButton @success={{action success}} @error={{action error}} @copy={{item.ID}} @name="token ID">
+        <CopyButton @value={{item.ID}} @name="token ID">
             Copy token ID
         </CopyButton>
         <button type="button" {{ action "clone" item }}>Clone token</button>
