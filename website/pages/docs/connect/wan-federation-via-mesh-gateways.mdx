@@ -21,6 +21,8 @@ Consul cluster, operators must ensure that all Consul servers in every
 datacenter must be directly connectable over their WAN-advertised network
 address from each other.
 
+If you are using Kubernetes, refer to our [Kubernetes Multi Cluster](/docs/k8s/installation/multi-cluster) documentation.
+
 This requires that operators setting up the virtual machines or containers
 hosting the servers take additional steps to ensure the necessary routing and
 firewall rules are in place to allow the servers to speak to each other over
@@ -54,21 +56,6 @@ the gulf between disparate Consul datacenters:
   over `8300/tcp`. Several distinct kinds of messages can be received on this
   port, such as RPC requests forwarded from servers in other datacenters.
 
-        TODO(wanfed): <NORMAL-DIAGRAM>
-
-        [ name:server1/dc1 ]  <----(wan-gossip  )----> [ name:server3/dc2 ]
-        | lan: 10.0.0.1    |                           [ lan: 10.1.2.1    ]
-        [ wan: 37.4.5.7    ]  <----(cross-dc RPC)----> [ wan: 54.6.7.9    ]
-
-                /\
-                ||
-            (lan-gossip )
-                ||
-            (RPC for dc2)
-                ||
-
-        [ name:client9/dc1 ]
-        [ lan: 10.0.0.9    ]
 
 In this network topology individual Consul client agents on a LAN in one
 datacenter never need to directly dial servers in other datacenters. This
@@ -81,26 +68,9 @@ to allow for services in the service mesh to freely connect between datacenters
 regardless of the lateral connectivity of the nodes hosting the Consul client
 agents.
 
-By activating WAN federation via mesh gateways [TODO(wanfed):link] the servers
+By activating WAN federation via mesh gateways the servers
 can similarly use the existing mesh gateways to reach each other without
-themeselves being directly reachable.
-
-        TODO(wanfed): <WANFED-DIAGRAM>
-
-        [ name:gateway1/dc1 ]  <----(wan-gossip  )----> [ name:gateway4/dc2 ]
-        | lan: 10.0.0.5     |                           [ lan: 10.1.2.5     ]
-        [ wan: 37.4.5.7     ]  <----(cross-dc RPC)----> [ wan: 54.6.7.9     ]
-
-                /\                                             /\
-                ||                                             ||
-            (wan-gossip )                                  (wan-gossip )
-                ||                                             ||
-            (cross-dc RPC)                                 (cross-dc RPC)
-                ||                                             ||
-                \/                                             \/
-
-        [ name:server1/dc1  ]                           [ name: server3/dc2  ]
-        [ lan: 10.0.0.1     ]                           [ lan: 10.1.2.1      ]
+themselves being directly reachable.
 
 ## Configuration
 
@@ -111,8 +81,6 @@ these SAN fields:
 
     server.<this_datacenter>.<domain>              (normal)
     <node_name>.server.<this_datacenter>.<domain>  (needed for wan federation)
-
-[TODO(wanfed):link]
 
 This can be achieved using any number of tools, including `consul tls cert
 create` with the `-node` flag.
