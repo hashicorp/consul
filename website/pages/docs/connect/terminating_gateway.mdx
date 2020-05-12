@@ -33,7 +33,7 @@ from the gateway will be encrypted using mutual TLS authentication.
 If none of these are provided, Consul will **only** encrypt connections to the gateway and not
 from the gateway to the destination service.
 
--> **Note:** If certificates and keys are configured the gateway will upgrade HTTP connections to TLS. 
+-> **Note:** If certificates and keys are configured the terminating gateway will upgrade HTTP connections to TLS. 
 Client applications can issue plain HTTP requests even when connecting to servers that require HTTPS.
 
 ## Prerequisites
