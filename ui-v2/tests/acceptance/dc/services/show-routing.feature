@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: dc / services / Show Routing for Service
+Feature: dc / services / show-routing: Show Routing for Service
   Scenario: Given a service, the Routing tab should display
     Given 1 datacenter model with the value "dc1"
     And 1 node models
