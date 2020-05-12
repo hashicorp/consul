@@ -105,35 +105,6 @@ export default function(scenario, assert, find, currentPage) {
         );
       });
     })
-    // .then(["I don't see $property"], function(property) {
-    //   const message = `Expected to not see ${property}`;
-    //   let prop;
-    //   try {
-    //     prop = currentPage()[property];
-    //   } catch (e) {
-    //     if (isExpectedError(e)) {
-    //       assert.ok(true, message);
-    //     } else {
-    //       throw e;
-    //     }
-    //   }
-    //   if (typeof prop === 'function') {
-    //     assert.throws(
-    //       function() {
-    //         prop();
-    //       },
-    //       function(e) {
-    //         return isExpectedError(e);
-    //       },
-    //       message
-    //     );
-    //   } else {
-    //     assert.notOk(prop);
-    //   }
-    // })
-    // .then(['I see $property'], function(property) {
-    //   assert.ok(currentPage()[property], `Expected to see ${property}`);
-    // })
     .then([`I${dont} see $property`, `I${dont} see $property on the $component`], function(
       negative,
       property,
