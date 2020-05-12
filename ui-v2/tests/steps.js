@@ -114,7 +114,7 @@ export default function(assert, library) {
     }
     obj = parent[last];
     if (typeof obj === 'undefined') {
-      throw new Error(`The '${path}' object doesn't exist`);
+      throw new Error(`PageObject not found: The '${path}' object doesn't exist`);
     }
     if (typeof obj === 'function') {
       obj = obj.bind(parent);

@@ -87,7 +87,7 @@ export default {
   index: create(index(visitable, collection)),
   dcs: create(dcs(visitable, clickable, attribute, collection)),
   services: create(
-    services(visitable, clickable, text, attribute, collection, popoverSort, radiogroup)
+    services(visitable, clickable, text, attribute, isPresent, collection, popoverSort, radiogroup)
   ),
   service: create(
     service(visitable, attribute, collection, text, consulIntentionList, catalogToolbar, tabgroup)
