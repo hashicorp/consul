@@ -182,8 +182,8 @@ customize that use the optional flag
 The amount of configuration required for OIDC is relatively small, but it can
 be tricky to debug why things aren't working. Some tips for setting up OIDC:
 
-- Monitor Consul's log output. Important information about OIDC validation
-  failures will be emitted.
+- Monitor the log output for the Consul servers. Important information about
+  OIDC validation failures will be emitted.
 
 - Ensure Redirect URIs are correct in Consul and on the provider. They need to
   match exactly. Check: http/https, 127.0.0.1/localhost, port numbers, whether
