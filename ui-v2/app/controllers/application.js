@@ -44,13 +44,22 @@ export default Controller.extend({
           }
           const routeName = this.router.currentRoute.name;
           const route = getOwner(this).lookup(`route:${routeName}`);
-          // We use transitionable here as refresh doesn't work if you are on an error page
-          // which is highly likely to happen here (403s)
-          if (routeName !== this.router.currentRouteName) {
-            return route.transitionTo(...transitionable(this.router, params, getOwner(this)));
-          } else {
-            return route.refresh();
-          }
+          const router = this.router;
+          // Refresh the application route
+          return getOwner(this)
+            .lookup('route:application')
+            .refresh()
+            .promise.then(() => {
+              // We use transitionable here as refresh doesn't work if you are on an error page
+              // which is highly likely to happen here (403s)
+              if (routeName !== router.currentRouteName || typeof params.nspace !== 'undefined') {
+                return route.transitionTo(
+                  ...transitionable(router.currentRoute, params, getOwner(this))
+                );
+              } else {
+                return route.refresh();
+              }
+            });
         },
         e.type,
         function(type, e) {

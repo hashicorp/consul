@@ -11,7 +11,7 @@
                   type="button" class={{concat item.Kind '-oidc-provider'}}
                   onclick={{action onchange item}}
                 >
-                  Continue with {{or item.DisplayName item.Name}}
+                  Continue with {{or item.DisplayName item.Name}}{{#if (not-eq item.Namespace 'default')}} ({{item.Namespace}}){{/if}}
                 </button>
               </li>
             {{/each}}
@@ -26,7 +26,9 @@
                 @selected={{item}}
                 @searchEnabled={{false}}
                 @options={{items}} as |item|>
-                <span class={{concat item.Kind '-oidc-provider'}}>{{or item.DisplayName item.Name}}</span>
+                <span class={{concat item.Kind '-oidc-provider'}}>
+                  {{or item.DisplayName item.Name}}{{#if (not-eq item.Namespace 'default')}} ({{item.Namespace}}){{/if}}
+                </span>
               </PowerSelect>
             </label>
             <button
