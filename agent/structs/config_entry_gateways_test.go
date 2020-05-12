@@ -7,7 +7,6 @@ import (
 )
 
 func TestIngressConfigEntry_Normalize(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name     string
@@ -83,7 +82,6 @@ func TestIngressConfigEntry_Normalize(t *testing.T) {
 		// tests in parallel.
 		tc := test
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
 			err := tc.entry.Normalize()
 			require.NoError(t, err)
 			require.Equal(t, tc.expected, tc.entry)
@@ -92,7 +90,6 @@ func TestIngressConfigEntry_Normalize(t *testing.T) {
 }
 
 func TestIngressConfigEntry_Validate(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name      string
@@ -402,7 +399,6 @@ func TestIngressConfigEntry_Validate(t *testing.T) {
 		// tests in parallel.
 		tc := test
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
 			err := tc.entry.Validate()
 			if tc.expectErr != "" {
 				require.Error(t, err)
@@ -415,7 +411,6 @@ func TestIngressConfigEntry_Validate(t *testing.T) {
 }
 
 func TestTerminatingConfigEntry_Validate(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name      string
@@ -514,7 +509,6 @@ func TestTerminatingConfigEntry_Validate(t *testing.T) {
 		// tests in parallel.
 		tc := test
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
 
 			err := tc.entry.Validate()
 			if tc.expectErr != "" {

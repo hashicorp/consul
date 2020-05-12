@@ -11,10 +11,8 @@ import (
 )
 
 func TestStructs_ACLToken_PolicyIDs(t *testing.T) {
-	t.Parallel()
 
 	t.Run("Basic", func(t *testing.T) {
-		t.Parallel()
 
 		token := &ACLToken{
 			Policies: []ACLTokenPolicyLink{
@@ -38,7 +36,6 @@ func TestStructs_ACLToken_PolicyIDs(t *testing.T) {
 	})
 
 	t.Run("Legacy Management", func(t *testing.T) {
-		t.Parallel()
 
 		a := &ACL{
 			ID:   "root",
@@ -57,7 +54,6 @@ func TestStructs_ACLToken_PolicyIDs(t *testing.T) {
 	})
 
 	t.Run("Legacy Management With Rules", func(t *testing.T) {
-		t.Parallel()
 
 		a := &ACL{
 			ID:    "root",
@@ -77,7 +73,6 @@ func TestStructs_ACLToken_PolicyIDs(t *testing.T) {
 	})
 
 	t.Run("No Policies", func(t *testing.T) {
-		t.Parallel()
 
 		token := &ACLToken{}
 
@@ -87,17 +82,14 @@ func TestStructs_ACLToken_PolicyIDs(t *testing.T) {
 }
 
 func TestStructs_ACLToken_EmbeddedPolicy(t *testing.T) {
-	t.Parallel()
 
 	t.Run("No Rules", func(t *testing.T) {
-		t.Parallel()
 
 		token := &ACLToken{}
 		require.Nil(t, token.EmbeddedPolicy())
 	})
 
 	t.Run("Legacy Client", func(t *testing.T) {
-		t.Parallel()
 
 		// None of the other fields should be considered
 		token := &ACLToken{
@@ -116,7 +108,6 @@ func TestStructs_ACLToken_EmbeddedPolicy(t *testing.T) {
 	})
 
 	t.Run("Same Policy for Tokens with same Rules", func(t *testing.T) {
-		t.Parallel()
 
 		token1 := &ACLToken{
 			AccessorID:  "f55b260c-5e05-418e-ab19-d421d1ab4b52",
@@ -141,7 +132,6 @@ func TestStructs_ACLToken_EmbeddedPolicy(t *testing.T) {
 }
 
 func TestStructs_ACLServiceIdentity_SyntheticPolicy(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		serviceName string
@@ -183,7 +173,6 @@ func TestStructs_ACLServiceIdentity_SyntheticPolicy(t *testing.T) {
 }
 
 func TestStructs_ACLToken_SetHash(t *testing.T) {
-	t.Parallel()
 
 	token := ACLToken{
 		AccessorID:  "09d1c059-961a-46bd-a2e4-76adebe35fa5",
@@ -228,7 +217,6 @@ func TestStructs_ACLToken_SetHash(t *testing.T) {
 }
 
 func TestStructs_ACLToken_EstimateSize(t *testing.T) {
-	t.Parallel()
 
 	// estimated size here should
 	token := ACLToken{
@@ -254,10 +242,8 @@ func TestStructs_ACLToken_EstimateSize(t *testing.T) {
 }
 
 func TestStructs_ACLToken_Stub(t *testing.T) {
-	t.Parallel()
 
 	t.Run("Basic", func(t *testing.T) {
-		t.Parallel()
 
 		token := ACLToken{
 			AccessorID:  "09d1c059-961a-46bd-a2e4-76adebe35fa5",
@@ -290,7 +276,6 @@ func TestStructs_ACLToken_Stub(t *testing.T) {
 	})
 
 	t.Run("Legacy", func(t *testing.T) {
-		t.Parallel()
 		token := ACLToken{
 			AccessorID:  "09d1c059-961a-46bd-a2e4-76adebe35fa5",
 			SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
@@ -313,7 +298,6 @@ func TestStructs_ACLToken_Stub(t *testing.T) {
 }
 
 func TestStructs_ACLTokens_Sort(t *testing.T) {
-	t.Parallel()
 
 	tokens := ACLTokens{
 		&ACLToken{
@@ -338,7 +322,6 @@ func TestStructs_ACLTokens_Sort(t *testing.T) {
 }
 
 func TestStructs_ACLTokenListStubs_Sort(t *testing.T) {
-	t.Parallel()
 
 	tokens := ACLTokenListStubs{
 		&ACLTokenListStub{
@@ -363,7 +346,6 @@ func TestStructs_ACLTokenListStubs_Sort(t *testing.T) {
 }
 
 func TestStructs_ACLPolicy_Stub(t *testing.T) {
-	t.Parallel()
 
 	policy := &ACLPolicy{
 		ID:          "09d1c059-961a-46bd-a2e4-76adebe35fa5",
@@ -384,7 +366,6 @@ func TestStructs_ACLPolicy_Stub(t *testing.T) {
 }
 
 func TestStructs_ACLPolicy_SetHash(t *testing.T) {
-	t.Parallel()
 
 	policy := &ACLPolicy{
 		ID:          "09d1c059-961a-46bd-a2e4-76adebe35fa5",
@@ -419,7 +400,6 @@ func TestStructs_ACLPolicy_SetHash(t *testing.T) {
 }
 
 func TestStructs_ACLPolicy_EstimateSize(t *testing.T) {
-	t.Parallel()
 
 	policy := ACLPolicy{
 		ID:          "09d1c059-961a-46bd-a2e4-76adebe35fa5",
@@ -436,7 +416,6 @@ func TestStructs_ACLPolicy_EstimateSize(t *testing.T) {
 }
 
 func TestStructs_ACLPolicies_Sort(t *testing.T) {
-	t.Parallel()
 
 	policies := ACLPolicies{
 		&ACLPolicy{
@@ -461,7 +440,6 @@ func TestStructs_ACLPolicies_Sort(t *testing.T) {
 }
 
 func TestStructs_ACLPolicyListStubs_Sort(t *testing.T) {
-	t.Parallel()
 
 	policies := ACLPolicyListStubs{
 		&ACLPolicyListStub{
@@ -486,7 +464,6 @@ func TestStructs_ACLPolicyListStubs_Sort(t *testing.T) {
 }
 
 func TestStructs_ACLPolicies_resolveWithCache(t *testing.T) {
-	t.Parallel()
 
 	config := ACLCachesConfig{
 		Identities:     0,
@@ -579,7 +556,6 @@ func TestStructs_ACLPolicies_resolveWithCache(t *testing.T) {
 }
 
 func TestStructs_ACLPolicies_Compile(t *testing.T) {
-	t.Parallel()
 
 	config := ACLCachesConfig{
 		Identities:     0,

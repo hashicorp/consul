@@ -14,7 +14,6 @@ import (
 // TestDecodeConfigEntry is the 'structs' mirror image of
 // command/config/write/config_write_test.go:TestParseConfigEntry
 func TestDecodeConfigEntry(t *testing.T) {
-	t.Parallel()
 
 	for _, tc := range []struct {
 		name      string
@@ -792,7 +791,6 @@ func TestServiceConfigResponse_MsgPack(t *testing.T) {
 }
 
 func TestConfigEntryResponseMarshalling(t *testing.T) {
-	t.Parallel()
 
 	cases := map[string]ConfigEntryResponse{
 		"nil entry": ConfigEntryResponse{},
@@ -819,7 +817,6 @@ func TestConfigEntryResponseMarshalling(t *testing.T) {
 		name := name
 		tcase := tcase
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
 
 			data, err := tcase.MarshalBinary()
 			require.NoError(t, err)

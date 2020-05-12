@@ -1549,7 +1549,6 @@ func TestSpecificServiceRequest_CacheInfo(t *testing.T) {
 }
 
 func TestNodeService_JSON_OmitTaggedAdddresses(t *testing.T) {
-	t.Parallel()
 	cases := []struct {
 		name string
 		ns   NodeService
@@ -1572,7 +1571,6 @@ func TestNodeService_JSON_OmitTaggedAdddresses(t *testing.T) {
 		name := tc.name
 		ns := tc.ns
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
 			data, err := json.Marshal(ns)
 			require.NoError(t, err)
 			var raw map[string]interface{}
@@ -1585,7 +1583,6 @@ func TestNodeService_JSON_OmitTaggedAdddresses(t *testing.T) {
 }
 
 func TestServiceNode_JSON_OmitServiceTaggedAdddresses(t *testing.T) {
-	t.Parallel()
 	cases := []struct {
 		name string
 		sn   ServiceNode
@@ -1608,7 +1605,6 @@ func TestServiceNode_JSON_OmitServiceTaggedAdddresses(t *testing.T) {
 		name := tc.name
 		sn := tc.sn
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
 			data, err := json.Marshal(sn)
 			require.NoError(t, err)
 			var raw map[string]interface{}
@@ -1621,7 +1617,6 @@ func TestServiceNode_JSON_OmitServiceTaggedAdddresses(t *testing.T) {
 }
 
 func TestNode_BestAddress(t *testing.T) {
-	t.Parallel()
 
 	type testCase struct {
 		input   Node
@@ -1658,7 +1653,6 @@ func TestNode_BestAddress(t *testing.T) {
 		name := name
 		tc := tc
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
 
 			require.Equal(t, tc.lanAddr, tc.input.BestAddress(false))
 			require.Equal(t, tc.wanAddr, tc.input.BestAddress(true))
@@ -1667,7 +1661,6 @@ func TestNode_BestAddress(t *testing.T) {
 }
 
 func TestNodeService_BestAddress(t *testing.T) {
-	t.Parallel()
 
 	type testCase struct {
 		input   NodeService
@@ -1760,7 +1753,6 @@ func TestNodeService_BestAddress(t *testing.T) {
 		name := name
 		tc := tc
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
 
 			addr, port := tc.input.BestAddress(false)
 			require.Equal(t, tc.lanAddr, addr)
@@ -1774,7 +1766,6 @@ func TestNodeService_BestAddress(t *testing.T) {
 }
 
 func TestCheckServiceNode_BestAddress(t *testing.T) {
-	t.Parallel()
 
 	type testCase struct {
 		input   CheckServiceNode
@@ -1928,7 +1919,6 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 		name := name
 		tc := tc
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
 
 			addr, port := tc.input.BestAddress(false)
 			require.Equal(t, tc.lanAddr, addr)
