@@ -91,6 +91,8 @@ github.com/circonus-labs/circonus-gometrics/checkmgr
 github.com/circonus-labs/circonusllhist
 # github.com/coredns/coredns v1.1.2
 github.com/coredns/coredns/plugin/pkg/dnsutil
+# github.com/coreos/go-oidc v2.1.0+incompatible
+github.com/coreos/go-oidc
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
 # github.com/denverdino/aliyungo v0.0.0-20170926055100-d3308649c661
@@ -222,7 +224,7 @@ github.com/hashicorp/go-sockaddr
 github.com/hashicorp/go-sockaddr/template
 # github.com/hashicorp/go-syslog v1.0.0
 github.com/hashicorp/go-syslog
-# github.com/hashicorp/go-uuid v1.0.1
+# github.com/hashicorp/go-uuid v1.0.2
 github.com/hashicorp/go-uuid
 # github.com/hashicorp/go-version v1.2.0
 github.com/hashicorp/go-version
@@ -307,6 +309,8 @@ github.com/mitchellh/go-testing-interface
 github.com/mitchellh/hashstructure
 # github.com/mitchellh/mapstructure v1.2.3
 github.com/mitchellh/mapstructure
+# github.com/mitchellh/pointerstructure v1.0.0
+github.com/mitchellh/pointerstructure
 # github.com/mitchellh/reflectwalk v1.0.1
 github.com/mitchellh/reflectwalk
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
@@ -319,6 +323,8 @@ github.com/nicolai86/scaleway-sdk
 github.com/packethost/packngo
 # github.com/pascaldekloe/goe v0.1.0
 github.com/pascaldekloe/goe/verify
+# github.com/patrickmn/go-cache v2.1.0+incompatible
+github.com/patrickmn/go-cache
 # github.com/pierrec/lz4 v2.0.5+incompatible
 github.com/pierrec/lz4
 github.com/pierrec/lz4/internal/xxh32
@@ -330,6 +336,9 @@ github.com/pmezard/go-difflib/difflib
 github.com/posener/complete
 github.com/posener/complete/cmd
 github.com/posener/complete/cmd/install
+# github.com/pquerna/cachecontrol v0.0.0-20180517163645-1555304b9b35
+github.com/pquerna/cachecontrol
+github.com/pquerna/cachecontrol/cacheobject
 # github.com/prometheus/client_golang v1.0.0
 github.com/prometheus/client_golang/prometheus
 github.com/prometheus/client_golang/prometheus/internal
@@ -543,7 +552,7 @@ google.golang.org/grpc/tap
 gopkg.in/inf.v0
 # gopkg.in/resty.v1 v1.12.0
 gopkg.in/resty.v1
-# gopkg.in/square/go-jose.v2 v2.3.1
+# gopkg.in/square/go-jose.v2 v2.4.1
 gopkg.in/square/go-jose.v2
 gopkg.in/square/go-jose.v2/cipher
 gopkg.in/square/go-jose.v2/json

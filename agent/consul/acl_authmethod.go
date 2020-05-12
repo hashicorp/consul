@@ -7,8 +7,9 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-bexpr"
 
-	// register this as a builtin auth method
+	// register these as a builtin auth method
 	_ "github.com/hashicorp/consul/agent/consul/authmethod/kubeauth"
+	_ "github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 )
 
 type authMethodValidatorEntry struct {
