@@ -32,7 +32,13 @@ export default Controller.extend(WithEventSource, WithSearching, {
         return item.Kind === 'connect-proxy';
       })
       .forEach(item => {
-        proxies[item.Name.replace('-proxy', '')] = true;
+        // Iterating to cover the usecase of a proxy being
+        // used by more than one service
+        if (item.ProxyFor) {
+          item.ProxyFor.forEach(service => {
+            proxies[service] = true;
+          });
+        }
       });
 
     return proxies;
