@@ -219,19 +219,28 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 			resources: s.clustersFromSnapshot,
 			stream:    stream,
 			allowEmptyFn: func(cfgSnap *proxycfg.ConfigSnapshot) bool {
-				// Mesh gateways are allowed to inform CDS of no clusters.
-				return cfgSnap.Kind == structs.ServiceKindMeshGateway
+				// Mesh, Ingress, and Terminating gateways are allowed to inform CDS of
+				// no clusters.
+				return cfgSnap.Kind == structs.ServiceKindMeshGateway ||
+					cfgSnap.Kind == structs.ServiceKindTerminatingGateway ||
+					cfgSnap.Kind == structs.ServiceKindIngressGateway
 			},
 		},
 		RouteType: {
 			typeURL:   RouteType,
 			resources: routesFromSnapshot,
 			stream:    stream,
+			allowEmptyFn: func(cfgSnap *proxycfg.ConfigSnapshot) bool {
+				return cfgSnap.Kind == structs.ServiceKindIngressGateway
+			},
 		},
 		ListenerType: {
 			typeURL:   ListenerType,
 			resources: s.listenersFromSnapshot,
 			stream:    stream,
+			allowEmptyFn: func(cfgSnap *proxycfg.ConfigSnapshot) bool {
+				return cfgSnap.Kind == structs.ServiceKindIngressGateway
+			},
 		},
 	}
 
@@ -262,12 +271,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 			if rule != nil && rule.ServiceWrite(cfgSnap.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
 				return status.Errorf(codes.PermissionDenied, "permission denied")
 			}
-		case structs.ServiceKindMeshGateway:
-			cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
-			if rule != nil && rule.ServiceWrite(cfgSnap.Service, &authzContext) != acl.Allow {
-				return status.Errorf(codes.PermissionDenied, "permission denied")
-			}
-		case structs.ServiceKindIngressGateway:
+		case structs.ServiceKindMeshGateway, structs.ServiceKindTerminatingGateway, structs.ServiceKindIngressGateway:
 			cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
 			if rule != nil && rule.ServiceWrite(cfgSnap.Service, &authzContext) != acl.Allow {
 				return status.Errorf(codes.PermissionDenied, "permission denied")

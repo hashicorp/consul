@@ -443,7 +443,7 @@ func ServersGetACLMode(provider checkServersProvider, leaderAddr string, datacen
 
 // InterpolateHIL processes the string as if it were HIL and interpolates only
 // the provided string->string map as possible variables.
-func InterpolateHIL(s string, vars map[string]string) (string, error) {
+func InterpolateHIL(s string, vars map[string]string, lowercase bool) (string, error) {
 	if strings.Index(s, "${") == -1 {
 		// Skip going to the trouble of parsing something that has no HIL.
 		return s, nil
@@ -456,6 +456,9 @@ func InterpolateHIL(s string, vars map[string]string) (string, error) {
 
 	vm := make(map[string]ast.Variable)
 	for k, v := range vars {
+		if lowercase {
+			v = strings.ToLower(v)
+		}
 		vm[k] = ast.Variable{
 			Type:  ast.TypeString,
 			Value: v,

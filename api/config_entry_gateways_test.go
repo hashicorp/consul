@@ -21,10 +21,26 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 	ingress2 := &IngressGatewayConfigEntry{
 		Kind: IngressGateway,
 		Name: "bar",
+		TLS: GatewayTLSConfig{
+			Enabled: true,
+		},
 	}
 
+	global := &ProxyConfigEntry{
+		Kind: ProxyDefaults,
+		Name: ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			"protocol": "http",
+		},
+	}
+	// set default protocol to http so that ingress gateways pass validation
+	_, wm, err := config_entries.Set(global, nil)
+	require.NoError(t, err)
+	require.NotNil(t, wm)
+	require.NotEqual(t, 0, wm.RequestTime)
+
 	// set it
-	_, wm, err := config_entries.Set(ingress1, nil)
+	_, wm, err = config_entries.Set(ingress1, nil)
 	require.NoError(t, err)
 	require.NotNil(t, wm)
 	require.NotEqual(t, 0, wm.RequestTime)
@@ -51,10 +67,11 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 	ingress1.Listeners = []IngressListener{
 		{
 			Port:     2222,
-			Protocol: "tcp",
+			Protocol: "http",
 			Services: []IngressService{
 				{
-					Name: "asdf",
+					Name:  "asdf",
+					Hosts: []string{"test.example.com"},
 				},
 			},
 		},
@@ -185,6 +202,7 @@ func TestAPI_ConfigEntries_TerminatingGateway(t *testing.T) {
 			CAFile:   "/etc/web/ca.crt",
 			CertFile: "/etc/web/client.crt",
 			KeyFile:  "/etc/web/tls.key",
+			SNI:      "mydomain",
 		},
 	}
 
@@ -212,6 +230,7 @@ func TestAPI_ConfigEntries_TerminatingGateway(t *testing.T) {
 			CAFile:   "/etc/certs/ca.crt",
 			CertFile: "/etc/certs/client.crt",
 			KeyFile:  "/etc/certs/tls.key",
+			SNI:      "mydomain",
 		},
 	}
 	_, wm, err = configEntries.Set(terminating2, nil)

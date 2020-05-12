@@ -34,7 +34,7 @@ func FormatFrom(name string) string {
 }
 
 // Parse parses a config fragment in either JSON or HCL format.
-func Parse(data string, format string) (c Config, err error) {
+func Parse(data string, format string) (c Config, keys []string, err error) {
 	var raw map[string]interface{}
 	switch format {
 	case "json":
@@ -45,7 +45,7 @@ func Parse(data string, format string) (c Config, err error) {
 		err = fmt.Errorf("invalid format: %s", format)
 	}
 	if err != nil {
-		return Config{}, err
+		return Config{}, nil, err
 	}
 
 	// We want to be able to report fields which we cannot map as an
@@ -136,15 +136,20 @@ func Parse(data string, format string) (c Config, err error) {
 		Result:   &c,
 	})
 	if err != nil {
-		return Config{}, err
+		return Config{}, nil, err
 	}
 	if err := d.Decode(m); err != nil {
-		return Config{}, err
+		return Config{}, nil, err
 	}
 
 	for _, k := range md.Unused {
 		err = multierror.Append(err, fmt.Errorf("invalid config key %s", k))
 	}
+
+	// Don't check these here. The builder can emit warnings for fields it
+	// doesn't like
+	keys = md.Keys
+
 	return
 }
 
@@ -245,7 +250,6 @@ type Config struct {
 	NodeID                           *string                  `json:"node_id,omitempty" hcl:"node_id" mapstructure:"node_id"`
 	NodeMeta                         map[string]string        `json:"node_meta,omitempty" hcl:"node_meta" mapstructure:"node_meta"`
 	NodeName                         *string                  `json:"node_name,omitempty" hcl:"node_name" mapstructure:"node_name"`
-	NonVotingServer                  *bool                    `json:"non_voting_server,omitempty" hcl:"non_voting_server" mapstructure:"non_voting_server"`
 	Performance                      Performance              `json:"performance,omitempty" hcl:"performance" mapstructure:"performance"`
 	PidFile                          *string                  `json:"pid_file,omitempty" hcl:"pid_file" mapstructure:"pid_file"`
 	Ports                            Ports                    `json:"ports,omitempty" hcl:"ports" mapstructure:"ports"`
@@ -266,8 +270,6 @@ type Config struct {
 	RetryJoinMaxAttemptsLAN          *int                     `json:"retry_max,omitempty" hcl:"retry_max" mapstructure:"retry_max"`
 	RetryJoinMaxAttemptsWAN          *int                     `json:"retry_max_wan,omitempty" hcl:"retry_max_wan" mapstructure:"retry_max_wan"`
 	RetryJoinWAN                     []string                 `json:"retry_join_wan,omitempty" hcl:"retry_join_wan" mapstructure:"retry_join_wan"`
-	SegmentName                      *string                  `json:"segment,omitempty" hcl:"segment" mapstructure:"segment"`
-	Segments                         []Segment                `json:"segments,omitempty" hcl:"segments" mapstructure:"segments"`
 	SerfBindAddrLAN                  *string                  `json:"serf_lan,omitempty" hcl:"serf_lan" mapstructure:"serf_lan"`
 	SerfBindAddrWAN                  *string                  `json:"serf_wan,omitempty" hcl:"serf_wan" mapstructure:"serf_wan"`
 	ServerMode                       *bool                    `json:"server,omitempty" hcl:"server" mapstructure:"server"`
@@ -317,8 +319,14 @@ type Config struct {
 	Version                    *string  `json:"version,omitempty" hcl:"version" mapstructure:"version"`
 	VersionPrerelease          *string  `json:"version_prerelease,omitempty" hcl:"version_prerelease" mapstructure:"version_prerelease"`
 
-	// enterpriseConfig embeds fields that we only access in consul-enterprise builds
-	EnterpriseConfig `hcl:",squash" mapstructure:",squash"`
+	// Enterprise Only
+	Audit *Audit `json:"audit,omitempty" hcl:"audit" mapstructure:"audit"`
+	// Enterprise Only
+	NonVotingServer *bool `json:"non_voting_server,omitempty" hcl:"non_voting_server" mapstructure:"non_voting_server"`
+	// Enterprise Only
+	SegmentName *string `json:"segment,omitempty" hcl:"segment" mapstructure:"segment"`
+	// Enterprise Only
+	Segments []Segment `json:"segments,omitempty" hcl:"segments" mapstructure:"segments"`
 }
 
 type GossipLANConfig struct {
@@ -372,13 +380,17 @@ type AdvertiseAddrsConfig struct {
 
 type Autopilot struct {
 	CleanupDeadServers      *bool   `json:"cleanup_dead_servers,omitempty" hcl:"cleanup_dead_servers" mapstructure:"cleanup_dead_servers"`
-	DisableUpgradeMigration *bool   `json:"disable_upgrade_migration,omitempty" hcl:"disable_upgrade_migration" mapstructure:"disable_upgrade_migration"`
 	LastContactThreshold    *string `json:"last_contact_threshold,omitempty" hcl:"last_contact_threshold" mapstructure:"last_contact_threshold"`
 	MaxTrailingLogs         *int    `json:"max_trailing_logs,omitempty" hcl:"max_trailing_logs" mapstructure:"max_trailing_logs"`
 	MinQuorum               *uint   `json:"min_quorum,omitempty" hcl:"min_quorum" mapstructure:"min_quorum"`
-	RedundancyZoneTag       *string `json:"redundancy_zone_tag,omitempty" hcl:"redundancy_zone_tag" mapstructure:"redundancy_zone_tag"`
 	ServerStabilizationTime *string `json:"server_stabilization_time,omitempty" hcl:"server_stabilization_time" mapstructure:"server_stabilization_time"`
-	UpgradeVersionTag       *string `json:"upgrade_version_tag,omitempty" hcl:"upgrade_version_tag" mapstructure:"upgrade_version_tag"`
+
+	// Enterprise Only
+	DisableUpgradeMigration *bool `json:"disable_upgrade_migration,omitempty" hcl:"disable_upgrade_migration" mapstructure:"disable_upgrade_migration"`
+	// Enterprise Only
+	RedundancyZoneTag *string `json:"redundancy_zone_tag,omitempty" hcl:"redundancy_zone_tag" mapstructure:"redundancy_zone_tag"`
+	// Enterprise Only
+	UpgradeVersionTag *string `json:"upgrade_version_tag,omitempty" hcl:"upgrade_version_tag" mapstructure:"upgrade_version_tag"`
 }
 
 // ServiceWeights defines the registration of weights used in DNS for a Service
@@ -606,21 +618,23 @@ type SOA struct {
 }
 
 type DNS struct {
-	AllowStale          *bool             `json:"allow_stale,omitempty" hcl:"allow_stale" mapstructure:"allow_stale"`
-	ARecordLimit        *int              `json:"a_record_limit,omitempty" hcl:"a_record_limit" mapstructure:"a_record_limit"`
-	DisableCompression  *bool             `json:"disable_compression,omitempty" hcl:"disable_compression" mapstructure:"disable_compression"`
-	EnableTruncate      *bool             `json:"enable_truncate,omitempty" hcl:"enable_truncate" mapstructure:"enable_truncate"`
-	MaxStale            *string           `json:"max_stale,omitempty" hcl:"max_stale" mapstructure:"max_stale"`
-	NodeTTL             *string           `json:"node_ttl,omitempty" hcl:"node_ttl" mapstructure:"node_ttl"`
-	OnlyPassing         *bool             `json:"only_passing,omitempty" hcl:"only_passing" mapstructure:"only_passing"`
-	RecursorTimeout     *string           `json:"recursor_timeout,omitempty" hcl:"recursor_timeout" mapstructure:"recursor_timeout"`
-	ServiceTTL          map[string]string `json:"service_ttl,omitempty" hcl:"service_ttl" mapstructure:"service_ttl"`
-	UDPAnswerLimit      *int              `json:"udp_answer_limit,omitempty" hcl:"udp_answer_limit" mapstructure:"udp_answer_limit"`
-	NodeMetaTXT         *bool             `json:"enable_additional_node_meta_txt,omitempty" hcl:"enable_additional_node_meta_txt" mapstructure:"enable_additional_node_meta_txt"`
-	SOA                 *SOA              `json:"soa,omitempty" hcl:"soa" mapstructure:"soa"`
-	UseCache            *bool             `json:"use_cache,omitempty" hcl:"use_cache" mapstructure:"use_cache"`
-	CacheMaxAge         *string           `json:"cache_max_age,omitempty" hcl:"cache_max_age" mapstructure:"cache_max_age"`
-	EnterpriseDNSConfig `hcl:",squash" mapstructure:",squash"`
+	AllowStale         *bool             `json:"allow_stale,omitempty" hcl:"allow_stale" mapstructure:"allow_stale"`
+	ARecordLimit       *int              `json:"a_record_limit,omitempty" hcl:"a_record_limit" mapstructure:"a_record_limit"`
+	DisableCompression *bool             `json:"disable_compression,omitempty" hcl:"disable_compression" mapstructure:"disable_compression"`
+	EnableTruncate     *bool             `json:"enable_truncate,omitempty" hcl:"enable_truncate" mapstructure:"enable_truncate"`
+	MaxStale           *string           `json:"max_stale,omitempty" hcl:"max_stale" mapstructure:"max_stale"`
+	NodeTTL            *string           `json:"node_ttl,omitempty" hcl:"node_ttl" mapstructure:"node_ttl"`
+	OnlyPassing        *bool             `json:"only_passing,omitempty" hcl:"only_passing" mapstructure:"only_passing"`
+	RecursorTimeout    *string           `json:"recursor_timeout,omitempty" hcl:"recursor_timeout" mapstructure:"recursor_timeout"`
+	ServiceTTL         map[string]string `json:"service_ttl,omitempty" hcl:"service_ttl" mapstructure:"service_ttl"`
+	UDPAnswerLimit     *int              `json:"udp_answer_limit,omitempty" hcl:"udp_answer_limit" mapstructure:"udp_answer_limit"`
+	NodeMetaTXT        *bool             `json:"enable_additional_node_meta_txt,omitempty" hcl:"enable_additional_node_meta_txt" mapstructure:"enable_additional_node_meta_txt"`
+	SOA                *SOA              `json:"soa,omitempty" hcl:"soa" mapstructure:"soa"`
+	UseCache           *bool             `json:"use_cache,omitempty" hcl:"use_cache" mapstructure:"use_cache"`
+	CacheMaxAge        *string           `json:"cache_max_age,omitempty" hcl:"cache_max_age" mapstructure:"cache_max_age"`
+
+	// Enterprise Only
+	PreferNamespace *bool `json:"prefer_namespace,omitempty" hcl:"prefer_namespace" mapstructure:"prefer_namespace"`
 }
 
 type HTTPConfig struct {
@@ -713,17 +727,23 @@ type ACL struct {
 	Tokens                 Tokens  `json:"tokens,omitempty" hcl:"tokens" mapstructure:"tokens"`
 	DisabledTTL            *string `json:"disabled_ttl,omitempty" hcl:"disabled_ttl" mapstructure:"disabled_ttl"`
 	EnableTokenPersistence *bool   `json:"enable_token_persistence" hcl:"enable_token_persistence" mapstructure:"enable_token_persistence"`
+
+	// Enterprise Only
+	MSPDisableBootstrap *bool `json:"msp_disable_bootstrap" hcl:"msp_disable_bootstrap" mapstructure:"msp_disable_bootstrap"`
 }
 
 type Tokens struct {
-	Master                 *string                `json:"master,omitempty" hcl:"master" mapstructure:"master"`
-	Replication            *string                `json:"replication,omitempty" hcl:"replication" mapstructure:"replication"`
-	AgentMaster            *string                `json:"agent_master,omitempty" hcl:"agent_master" mapstructure:"agent_master"`
-	Default                *string                `json:"default,omitempty" hcl:"default" mapstructure:"default"`
-	Agent                  *string                `json:"agent,omitempty" hcl:"agent" mapstructure:"agent"`
+	Master      *string `json:"master,omitempty" hcl:"master" mapstructure:"master"`
+	Replication *string `json:"replication,omitempty" hcl:"replication" mapstructure:"replication"`
+	AgentMaster *string `json:"agent_master,omitempty" hcl:"agent_master" mapstructure:"agent_master"`
+	Default     *string `json:"default,omitempty" hcl:"default" mapstructure:"default"`
+	Agent       *string `json:"agent,omitempty" hcl:"agent" mapstructure:"agent"`
+
+	// Enterprise Only
 	ManagedServiceProvider []ServiceProviderToken `json:"managed_service_provider,omitempty" hcl:"managed_service_provider" mapstructure:"managed_service_provider"`
 }
 
+// ServiceProviderToken groups an accessor and secret for a service provider token. Enterprise Only
 type ServiceProviderToken struct {
 	AccessorID *string `json:"accessor_id,omitempty" hcl:"accessor_id" mapstructure:"accessor_id"`
 	SecretID   *string `json:"secret_id,omitempty" hcl:"secret_id" mapstructure:"secret_id"`
@@ -736,4 +756,22 @@ type ConfigEntries struct {
 	// need to figure out the right concrete type before we can decode it
 	// unabiguously.
 	Bootstrap []map[string]interface{} `json:"bootstrap,omitempty" hcl:"bootstrap" mapstructure:"bootstrap"`
+}
+
+// Audit allows us to enable and define destinations for auditing
+type Audit struct {
+	Enabled *bool                `json:"enabled,omitempty" hcl:"enabled" mapstructure:"enabled"`
+	Sinks   map[string]AuditSink `json:"sink,omitempty"    hcl:"sink"    mapstructure:"sink"`
+}
+
+// AuditSink can be provided multiple times to define pipelines for auditing
+type AuditSink struct {
+	Name              *string `json:"name,omitempty"               hcl:"name"               mapstructure:"name"`
+	Type              *string `json:"type,omitempty"               hcl:"type"               mapstructure:"type"`
+	Format            *string `json:"format,omitempty"             hcl:"format"             mapstructure:"format"`
+	Path              *string `json:"path,omitempty"               hcl:"path"               mapstructure:"path"`
+	DeliveryGuarantee *string `json:"delivery_guarantee,omitempty" hcl:"delivery_guarantee" mapstructure:"delivery_guarantee"`
+	RotateBytes       *int    `json:"rotate_bytes,omitempty"       hcl:"rotate_bytes"       mapstructure:"rotate_bytes"`
+	RotateDuration    *string `json:"rotate_duration,omitempty"    hcl:"rotate_duration"    mapstructure:"rotate_duration"`
+	RotateMaxFiles    *int    `json:"rotate_max_files,omitempty"   hcl:"rotate_max_files"   mapstructure:"rotate_max_files"`
 }

@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1346,7 +1347,7 @@ func TestStructs_ValidateServiceAndNodeMetadata(t *testing.T) {
 				if tc.NodeError == "" {
 					require.NoError(t, err)
 				} else {
-					requireErrorContains(t, err, tc.NodeError)
+					testutil.RequireErrorContains(t, err, tc.NodeError)
 				}
 			})
 			t.Run("ValidateServiceMetadata - typical", func(t *testing.T) {
@@ -1354,7 +1355,7 @@ func TestStructs_ValidateServiceAndNodeMetadata(t *testing.T) {
 				if tc.ServiceError == "" {
 					require.NoError(t, err)
 				} else {
-					requireErrorContains(t, err, tc.ServiceError)
+					testutil.RequireErrorContains(t, err, tc.ServiceError)
 				}
 			})
 			t.Run("ValidateServiceMetadata - mesh-gateway", func(t *testing.T) {
@@ -1362,7 +1363,7 @@ func TestStructs_ValidateServiceAndNodeMetadata(t *testing.T) {
 				if tc.GatewayError == "" {
 					require.NoError(t, err)
 				} else {
-					requireErrorContains(t, err, tc.GatewayError)
+					testutil.RequireErrorContains(t, err, tc.GatewayError)
 				}
 			})
 		})
@@ -2139,22 +2140,28 @@ func TestGatewayService_IsSame(t *testing.T) {
 	ca := "ca.pem"
 	cert := "client.pem"
 	key := "tls.key"
+	sni := "mydomain"
+	wildcard := false
 
 	g := &GatewayService{
-		Gateway:     gateway,
-		Service:     svc,
-		GatewayKind: kind,
-		CAFile:      ca,
-		CertFile:    cert,
-		KeyFile:     key,
+		Gateway:      gateway,
+		Service:      svc,
+		GatewayKind:  kind,
+		CAFile:       ca,
+		CertFile:     cert,
+		KeyFile:      key,
+		SNI:          sni,
+		FromWildcard: wildcard,
 	}
 	other := &GatewayService{
-		Gateway:     gateway,
-		Service:     svc,
-		GatewayKind: kind,
-		CAFile:      ca,
-		CertFile:    cert,
-		KeyFile:     key,
+		Gateway:      gateway,
+		Service:      svc,
+		GatewayKind:  kind,
+		CAFile:       ca,
+		CertFile:     cert,
+		KeyFile:      key,
+		SNI:          sni,
+		FromWildcard: wildcard,
 	}
 	check := func(twiddle, restore func()) {
 		t.Helper()
@@ -2178,18 +2185,10 @@ func TestGatewayService_IsSame(t *testing.T) {
 	check(func() { other.CAFile = "/certs/cert.pem" }, func() { other.CAFile = ca })
 	check(func() { other.CertFile = "/certs/cert.pem" }, func() { other.CertFile = cert })
 	check(func() { other.KeyFile = "/certs/cert.pem" }, func() { other.KeyFile = key })
+	check(func() { other.SNI = "alt-domain" }, func() { other.SNI = sni })
+	check(func() { other.FromWildcard = true }, func() { other.FromWildcard = wildcard })
 
 	if !g.IsSame(other) {
 		t.Fatalf("should be equal, was %#v VS %#v", g, other)
-	}
-}
-
-func requireErrorContains(t *testing.T, err error, expectedErrorMessage string) {
-	t.Helper()
-	if err == nil {
-		t.Fatal("An error is expected but got nil.")
-	}
-	if !strings.Contains(err.Error(), expectedErrorMessage) {
-		t.Fatalf("unexpected error: %v", err)
 	}
 }

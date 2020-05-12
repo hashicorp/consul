@@ -3,11 +3,10 @@ package consul
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/require"
 )
 
-func TestDoesBindingRuleMatch(t *testing.T) {
+func TestDoesSelectorMatch(t *testing.T) {
 	type matchable struct {
 		A string `bexpr:"a"`
 		C string `bexpr:"c"`
@@ -40,8 +39,7 @@ func TestDoesBindingRuleMatch(t *testing.T) {
 			"", &matchable{A: "b"}, true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			rule := structs.ACLBindingRule{Selector: test.selector}
-			ok := doesBindingRuleMatch(&rule, test.details)
+			ok := doesSelectorMatch(test.selector, test.details)
 			require.Equal(t, test.ok, ok)
 		})
 	}

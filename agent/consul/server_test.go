@@ -145,7 +145,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	config.ServerHealthInterval = 50 * time.Millisecond
 	config.AutopilotInterval = 100 * time.Millisecond
 
-	config.Build = "1.4.0"
+	config.Build = "1.7.2"
 
 	config.CoordinateUpdatePeriod = 100 * time.Millisecond
 	config.LeaveDrainTime = 1 * time.Millisecond
@@ -1213,7 +1213,7 @@ func testVerifyRPC(s1, s2 *Server, t *testing.T) (bool, error) {
 	if leader == nil {
 		t.Fatal("no leader")
 	}
-	return s2.connPool.Ping(leader.Datacenter, leader.ShortName, leader.Addr, leader.Version, leader.UseTLS)
+	return s2.connPool.Ping(leader.Datacenter, leader.ShortName, leader.Addr, leader.Version)
 }
 
 func TestServer_TLSToNoTLS(t *testing.T) {
@@ -1277,7 +1277,6 @@ func TestServer_TLSToFullVerify(t *testing.T) {
 		c.CAFile = "../../test/client_certs/rootca.crt"
 		c.CertFile = "../../test/client_certs/server.crt"
 		c.KeyFile = "../../test/client_certs/server.key"
-		c.VerifyIncoming = true
 		c.VerifyOutgoing = true
 	})
 	defer os.RemoveAll(dir1)

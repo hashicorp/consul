@@ -538,6 +538,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 				kind = "ingress-gateway"
 				name = "ingress-web"
 
+				tls {
+					enabled = true
+				}
+
 				listeners = [
 					{
 						port = 8080
@@ -545,6 +549,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 						services = [
 							{
 								name = "web"
+								hosts = ["test.example.com", "test2.example.com"]
 							},
 							{
 								name = "db"
@@ -566,7 +571,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 						services = [
 							{
 								name = "postgres"
-								service_subset = "v1"
 							}
 						]
 					}
@@ -575,6 +579,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 			camel: `
 				Kind = "ingress-gateway"
 				Name = "ingress-web"
+				TLS {
+					Enabled = true
+				}
 				Listeners = [
 					{
 						Port = 8080
@@ -582,6 +589,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 						Services = [
 							{
 								Name = "web"
+								Hosts = ["test.example.com", "test2.example.com"]
 							},
 							{
 								Name = "db"
@@ -603,7 +611,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 						Services = [
 							{
 								Name = "postgres"
-								ServiceSubset = "v1"
 							}
 						]
 					}
@@ -612,13 +619,17 @@ func TestDecodeConfigEntry(t *testing.T) {
 			expect: &IngressGatewayConfigEntry{
 				Kind: "ingress-gateway",
 				Name: "ingress-web",
+				TLS: GatewayTLSConfig{
+					Enabled: true,
+				},
 				Listeners: []IngressListener{
 					IngressListener{
 						Port:     8080,
 						Protocol: "http",
 						Services: []IngressService{
 							IngressService{
-								Name: "web",
+								Name:  "web",
+								Hosts: []string{"test.example.com", "test2.example.com"},
 							},
 							IngressService{
 								Name: "db",
@@ -639,8 +650,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 						Protocol: "tcp",
 						Services: []IngressService{
 							IngressService{
-								Name:          "postgres",
-								ServiceSubset: "v1",
+								Name: "postgres",
 							},
 						},
 					},
@@ -658,12 +668,14 @@ func TestDecodeConfigEntry(t *testing.T) {
 						ca_file = "/etc/payments/ca.pem",
 						cert_file = "/etc/payments/cert.pem",
 						key_file = "/etc/payments/tls.key",
+						sni = "mydomain",
 					},
 					{
 						name = "*",
 						ca_file = "/etc/all/ca.pem",
 						cert_file = "/etc/all/cert.pem",
 						key_file = "/etc/all/tls.key",
+						sni = "my-alt-domain",
 					},
 				]
 			`,
@@ -676,12 +688,14 @@ func TestDecodeConfigEntry(t *testing.T) {
 						CAFile = "/etc/payments/ca.pem",
 						CertFile = "/etc/payments/cert.pem",
 						KeyFile = "/etc/payments/tls.key",
+						SNI = "mydomain",
 					},
 					{
 						Name = "*",
 						CAFile = "/etc/all/ca.pem",
 						CertFile = "/etc/all/cert.pem",
 						KeyFile = "/etc/all/tls.key",
+						SNI = "my-alt-domain",
 					},
 				]
 			`,
@@ -694,12 +708,14 @@ func TestDecodeConfigEntry(t *testing.T) {
 						CAFile:   "/etc/payments/ca.pem",
 						CertFile: "/etc/payments/cert.pem",
 						KeyFile:  "/etc/payments/tls.key",
+						SNI:      "mydomain",
 					},
 					{
 						Name:     "*",
 						CAFile:   "/etc/all/ca.pem",
 						CertFile: "/etc/all/cert.pem",
 						KeyFile:  "/etc/all/tls.key",
+						SNI:      "my-alt-domain",
 					},
 				},
 			},

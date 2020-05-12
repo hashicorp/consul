@@ -179,9 +179,10 @@ type manual struct {
 // *tls.Config necessary for Consul. Except the one in the api package.
 type Configurator struct {
 	sync.RWMutex
-	base        *Config
-	autoEncrypt *autoEncrypt
-	manual      *manual
+	base                 *Config
+	autoEncrypt          *autoEncrypt
+	manual               *manual
+	peerDatacenterUseTLS map[string]bool
 
 	caPool  *x509.CertPool
 	logger  hclog.Logger
@@ -198,9 +199,10 @@ func NewConfigurator(config Config, logger hclog.Logger) (*Configurator, error) 
 	}
 
 	c := &Configurator{
-		logger:      logger.Named(logging.TLSUtil),
-		manual:      &manual{},
-		autoEncrypt: &autoEncrypt{},
+		logger:               logger.Named(logging.TLSUtil),
+		manual:               &manual{},
+		autoEncrypt:          &autoEncrypt{},
+		peerDatacenterUseTLS: map[string]bool{},
 	}
 	err := c.Update(config)
 	if err != nil {
@@ -321,6 +323,22 @@ func (c *Configurator) UpdateAutoEncrypt(manualCAPems, connectCAPems []string, p
 	c.autoEncrypt.verifyServerHostname = verifyServerHostname
 	c.version++
 	return nil
+}
+
+func (c *Configurator) UpdateAreaPeerDatacenterUseTLS(peerDatacenter string, useTLS bool) {
+	c.Lock()
+	defer c.Unlock()
+	c.version++
+	c.peerDatacenterUseTLS[peerDatacenter] = useTLS
+}
+
+func (c *Configurator) getAreaForPeerDatacenterUseTLS(peerDatacenter string) bool {
+	c.RLock()
+	defer c.RUnlock()
+	if v, ok := c.peerDatacenterUseTLS[peerDatacenter]; ok {
+		return v
+	}
+	return true
 }
 
 func (c *Configurator) Base() Config {
@@ -535,7 +553,7 @@ func (c *Configurator) outgoingRPCTLSDisabled() bool {
 	}
 
 	// if CAs are provided or VerifyOutgoing is set, use TLS
-	if c.caPool != nil || c.base.VerifyOutgoing {
+	if c.base.VerifyOutgoing {
 		return false
 	}
 
@@ -742,14 +760,18 @@ func (c *Configurator) OutgoingALPNRPCConfig() *tls.Config {
 // decides if verify server hostname should be used.
 func (c *Configurator) OutgoingRPCWrapper() DCWrapper {
 	c.log("OutgoingRPCWrapper")
-	if c.outgoingRPCTLSDisabled() {
-		return nil
-	}
 
 	// Generate the wrapper based on dc
 	return func(dc string, conn net.Conn) (net.Conn, error) {
-		return c.wrapTLSClient(dc, conn)
+		if c.UseTLS(dc) {
+			return c.wrapTLSClient(dc, conn)
+		}
+		return conn, nil
 	}
+}
+
+func (c *Configurator) UseTLS(dc string) bool {
+	return !c.outgoingRPCTLSDisabled() && c.getAreaForPeerDatacenterUseTLS(dc)
 }
 
 // OutgoingALPNRPCWrapper wraps the result of OutgoingALPNRPCConfig in an

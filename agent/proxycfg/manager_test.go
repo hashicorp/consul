@@ -335,7 +335,7 @@ func testManager_BasicLifecycle(
 	state.TriggerSyncChanges = func() {}
 
 	// Create manager
-	m, err := NewManager(ManagerConfig{c, state, source, logger, nil})
+	m, err := NewManager(ManagerConfig{c, state, source, DNSConfig{}, logger, nil})
 	require.NoError(err)
 
 	// And run it
@@ -484,12 +484,6 @@ func TestManager_deliverLatest(t *testing.T) {
 		ProxyID: structs.NewServiceID("test-proxy", nil),
 		Port:    2222,
 	}
-
-	// Put an overall time limit on this test case so we don't have to guard every
-	// call to ensure the whole test doesn't deadlock.
-	time.AfterFunc(100*time.Millisecond, func() {
-		t.Fatal("test timed out")
-	})
 
 	// test 1 buffered chan
 	ch1 := make(chan *ConfigSnapshot, 1)

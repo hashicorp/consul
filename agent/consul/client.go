@@ -186,7 +186,7 @@ func NewClientLogger(config *Config, logger hclog.InterceptLogger, tlsConfigurat
 	}
 
 	// Start maintenance task for servers
-	c.routers = router.New(c.logger, c.shutdownCh, c.serf, c.connPool)
+	c.routers = router.New(c.logger, c.shutdownCh, c.serf, c.connPool, "")
 	go c.routers.Start()
 
 	// Start LAN event handlers after the router is complete since the event
@@ -308,7 +308,7 @@ TRY:
 	}
 
 	// Make the request.
-	rpcErr := c.connPool.RPC(c.config.Datacenter, server.ShortName, server.Addr, server.Version, method, server.UseTLS, args, reply)
+	rpcErr := c.connPool.RPC(c.config.Datacenter, server.ShortName, server.Addr, server.Version, method, args, reply)
 	if rpcErr == nil {
 		return nil
 	}

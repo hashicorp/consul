@@ -28,6 +28,7 @@ func TestCompile(t *testing.T) {
 		"router with defaults and resolver":                testcase_RouterWithDefaults_NoSplit_WithResolver(),
 		"router with defaults and noop split":              testcase_RouterWithDefaults_WithNoopSplit_DefaultResolver(),
 		"router with defaults and noop split and resolver": testcase_RouterWithDefaults_WithNoopSplit_WithResolver(),
+		"router with no destination":                       testcase_JustRouterWithNoDestination(),
 		"route bypasses splitter":                          testcase_RouteBypassesSplit(),
 		"noop split":                                       testcase_NoopSplit_DefaultResolver(),
 		"noop split with protocol from proxy defaults":     testcase_NoopSplit_DefaultResolver_ProtocolFromProxyDefaults(),
@@ -160,6 +161,68 @@ func testcase_JustRouterWithDefaults() compileTestCase {
 				Type: structs.DiscoveryGraphNodeTypeRouter,
 				Name: "main.default",
 				Routes: []*structs.DiscoveryRoute{
+					{
+						Definition: newDefaultServiceRoute("main", "default"),
+						NextNode:   "resolver:main.default.dc1",
+					},
+				},
+			},
+			"resolver:main.default.dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main.default.dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         "main.default.dc1",
+				},
+			},
+		},
+		Targets: map[string]*structs.DiscoveryTarget{
+			"main.default.dc1": newTarget("main", "", "default", "dc1", nil),
+		},
+	}
+
+	return compileTestCase{entries: entries, expect: expect}
+}
+
+func testcase_JustRouterWithNoDestination() compileTestCase {
+	entries := newEntries()
+	setServiceProtocol(entries, "main", "http")
+
+	entries.AddRouters(
+		&structs.ServiceRouterConfigEntry{
+			Kind: "service-router",
+			Name: "main",
+			Routes: []structs.ServiceRoute{
+				{
+					Match: &structs.ServiceRouteMatch{
+						HTTP: &structs.ServiceRouteHTTPMatch{
+							PathPrefix: "/",
+						},
+					},
+				},
+			},
+		},
+	)
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol:  "http",
+		StartNode: "router:main.default",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"router:main.default": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeRouter,
+				Name: "main.default",
+				Routes: []*structs.DiscoveryRoute{
+					{
+						Definition: &structs.ServiceRoute{
+							Match: &structs.ServiceRouteMatch{
+								HTTP: &structs.ServiceRouteHTTPMatch{
+									PathPrefix: "/",
+								},
+							},
+						},
+						NextNode: "resolver:main.default.dc1",
+					},
 					{
 						Definition: newDefaultServiceRoute("main", "default"),
 						NextNode:   "resolver:main.default.dc1",

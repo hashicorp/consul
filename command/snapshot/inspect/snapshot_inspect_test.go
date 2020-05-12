@@ -3,7 +3,7 @@ package inspect
 import (
 	"io"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -68,7 +68,7 @@ func TestSnapshotInspectCommand(t *testing.T) {
 	dir := testutil.TempDir(t, "snapshot")
 	defer os.RemoveAll(dir)
 
-	file := path.Join(dir, "backup.tgz")
+	file := filepath.Join(dir, "backup.tgz")
 
 	// Save a snapshot of the current Consul state
 	f, err := os.Create(file)

@@ -16,12 +16,16 @@ import (
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	uuid "github.com/hashicorp/go-uuid"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/square/go-jose.v2/jwt"
 )
 
 func TestACLEndpoint_Bootstrap(t *testing.T) {
@@ -1001,7 +1005,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		resp := structs.ACLToken{}
 
 		err := acl.TokenSet(&req, &resp)
-		requireErrorContains(t, err, "AuthMethod field is disallowed outside of Login")
+		testutil.RequireErrorContains(t, err, "AuthMethod field is disallowed outside of Login")
 	})
 
 	t.Run("Update auth method linked token and try to change auth method", func(t *testing.T) {
@@ -1046,7 +1050,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		resp := structs.ACLToken{}
 
 		err = acl.TokenSet(&req, &resp)
-		requireErrorContains(t, err, "Cannot change AuthMethod")
+		testutil.RequireErrorContains(t, err, "Cannot change AuthMethod")
 	})
 
 	t.Run("Update auth method linked token and let the SecretID and AuthMethod be defaulted", func(t *testing.T) {
@@ -1117,7 +1121,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		resp := structs.ACLToken{}
 
 		err := acl.TokenSet(&req, &resp)
-		requireErrorContains(t, err, "Service identity is missing the service name field")
+		testutil.RequireErrorContains(t, err, "Service identity is missing the service name field")
 	})
 
 	t.Run("Create it with invalid service identity (too large)", func(t *testing.T) {
@@ -1281,7 +1285,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		resp := structs.ACLToken{}
 
 		err := acl.TokenSet(&req, &resp)
-		requireErrorContains(t, err, "cannot specify a list of datacenters on a local token")
+		testutil.RequireErrorContains(t, err, "cannot specify a list of datacenters on a local token")
 	})
 
 	for _, test := range []struct {
@@ -1310,7 +1314,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 			err := acl.TokenSet(&req, &resp)
 			if test.errString != "" {
-				requireErrorContains(t, err, test.errString)
+				testutil.RequireErrorContains(t, err, test.errString)
 			} else {
 				require.NotNil(t, err)
 			}
@@ -1332,7 +1336,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 			err := acl.TokenSet(&req, &resp)
 			if test.errString != "" {
-				requireErrorContains(t, err, test.errStringTTL)
+				testutil.RequireErrorContains(t, err, test.errStringTTL)
 			} else {
 				require.NotNil(t, err)
 			}
@@ -1355,7 +1359,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		resp := structs.ACLToken{}
 
 		err := acl.TokenSet(&req, &resp)
-		requireErrorContains(t, err, "Expiration TTL and Expiration Time cannot both be set")
+		testutil.RequireErrorContains(t, err, "Expiration TTL and Expiration Time cannot both be set")
 	})
 
 	t.Run("Create it with expiration time using TTLs", func(t *testing.T) {
@@ -1440,7 +1444,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		resp := structs.ACLToken{}
 
 		err := acl.TokenSet(&req, &resp)
-		requireErrorContains(t, err, "Cannot change expiration time")
+		testutil.RequireErrorContains(t, err, "Cannot change expiration time")
 	})
 
 	// do not insert another test at this point: these tests need to be serial
@@ -1522,7 +1526,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		resp := structs.ACLToken{}
 
 		err = acl.TokenSet(&req, &resp)
-		requireErrorContains(t, err, "Cannot find token")
+		testutil.RequireErrorContains(t, err, "Cannot find token")
 	})
 }
 
@@ -2912,7 +2916,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 		resp := structs.ACLRole{}
 
 		err := acl.RoleSet(&req, &resp)
-		requireErrorContains(t, err, "Service identity is missing the service name field")
+		testutil.RequireErrorContains(t, err, "Service identity is missing the service name field")
 	})
 
 	t.Run("Create it with invalid service identity (too large)", func(t *testing.T) {
@@ -3335,6 +3339,7 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 
 	t.Run("Update - allow type to default", func(t *testing.T) {
 		reqMethod := newAuthMethod("test")
+		reqMethod.DisplayName = "updated display name 1"
 		reqMethod.Description = "test modified 1"
 		reqMethod.Type = "" // unset
 
@@ -3354,12 +3359,14 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 		method := methodResp.AuthMethod
 
 		require.Equal(t, method.Name, "test")
+		require.Equal(t, method.DisplayName, "updated display name 1")
 		require.Equal(t, method.Description, "test modified 1")
 		require.Equal(t, method.Type, "testing")
 	})
 
 	t.Run("Update - specify type", func(t *testing.T) {
 		reqMethod := newAuthMethod("test")
+		reqMethod.DisplayName = "updated display name 2"
 		reqMethod.Description = "test modified 2"
 
 		req := structs.ACLAuthMethodSetRequest{
@@ -3378,6 +3385,7 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 		method := methodResp.AuthMethod
 
 		require.Equal(t, method.Name, "test")
+		require.Equal(t, method.DisplayName, "updated display name 2")
 		require.Equal(t, method.Description, "test modified 2")
 		require.Equal(t, method.Type, "testing")
 	})
@@ -3463,6 +3471,89 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("Create with MaxTokenTTL", func(t *testing.T) {
+		reqMethod := newAuthMethod("test")
+		reqMethod.MaxTokenTTL = 5 * time.Minute
+
+		req := structs.ACLAuthMethodSetRequest{
+			Datacenter:   "dc1",
+			AuthMethod:   reqMethod,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		resp := structs.ACLAuthMethod{}
+
+		err := acl.AuthMethodSet(&req, &resp)
+		require.NoError(t, err)
+
+		// Get the method directly to validate that it exists
+		methodResp, err := retrieveTestAuthMethod(codec, "root", "dc1", resp.Name)
+		require.NoError(t, err)
+		method := methodResp.AuthMethod
+
+		require.Equal(t, method.Name, "test")
+		require.Equal(t, method.Description, "test")
+		require.Equal(t, method.Type, "testing")
+		require.Equal(t, method.MaxTokenTTL, 5*time.Minute)
+	})
+
+	t.Run("Update - change MaxTokenTTL", func(t *testing.T) {
+		reqMethod := newAuthMethod("test")
+		reqMethod.DisplayName = "updated display name 2"
+		reqMethod.Description = "test modified 2"
+		reqMethod.MaxTokenTTL = 8 * time.Minute
+
+		req := structs.ACLAuthMethodSetRequest{
+			Datacenter:   "dc1",
+			AuthMethod:   reqMethod,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		resp := structs.ACLAuthMethod{}
+
+		err := acl.AuthMethodSet(&req, &resp)
+		require.NoError(t, err)
+
+		// Get the method directly to validate that it exists
+		methodResp, err := retrieveTestAuthMethod(codec, "root", "dc1", resp.Name)
+		require.NoError(t, err)
+		method := methodResp.AuthMethod
+
+		require.Equal(t, method.Name, "test")
+		require.Equal(t, method.DisplayName, "updated display name 2")
+		require.Equal(t, method.Description, "test modified 2")
+		require.Equal(t, method.Type, "testing")
+		require.Equal(t, method.MaxTokenTTL, 8*time.Minute)
+	})
+
+	t.Run("Create with MaxTokenTTL too small", func(t *testing.T) {
+		reqMethod := newAuthMethod("test")
+		reqMethod.MaxTokenTTL = 1 * time.Millisecond
+
+		req := structs.ACLAuthMethodSetRequest{
+			Datacenter:   "dc1",
+			AuthMethod:   reqMethod,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		resp := structs.ACLAuthMethod{}
+
+		err := acl.AuthMethodSet(&req, &resp)
+		testutil.RequireErrorContains(t, err, "MaxTokenTTL 1ms cannot be less than")
+	})
+
+	t.Run("Create with MaxTokenTTL too big", func(t *testing.T) {
+		reqMethod := newAuthMethod("test")
+		reqMethod.MaxTokenTTL = 25 * time.Hour
+
+		req := structs.ACLAuthMethodSetRequest{
+			Datacenter:   "dc1",
+			AuthMethod:   reqMethod,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		resp := structs.ACLAuthMethod{}
+
+		err := acl.AuthMethodSet(&req, &resp)
+		testutil.RequireErrorContains(t, err, "MaxTokenTTL 25h0m0s cannot be more than")
+	})
 }
 
 func TestACLEndpoint_AuthMethodDelete(t *testing.T) {
@@ -4072,27 +4163,27 @@ func TestACLEndpoint_SecureIntroEndpoints_LocalTokensDisabled(t *testing.T) {
 	errString := errAuthMethodsRequireTokenReplication.Error()
 
 	t.Run("AuthMethodRead", func(t *testing.T) {
-		requireErrorContains(t,
+		testutil.RequireErrorContains(t,
 			acl2.AuthMethodRead(&structs.ACLAuthMethodGetRequest{Datacenter: "dc2"},
 				&structs.ACLAuthMethodResponse{}),
 			errString,
 		)
 	})
 	t.Run("AuthMethodSet", func(t *testing.T) {
-		requireErrorContains(t,
+		testutil.RequireErrorContains(t,
 			acl2.AuthMethodSet(&structs.ACLAuthMethodSetRequest{Datacenter: "dc2"},
 				&structs.ACLAuthMethod{}),
 			errString,
 		)
 	})
 	t.Run("AuthMethodDelete", func(t *testing.T) {
-		requireErrorContains(t,
+		testutil.RequireErrorContains(t,
 			acl2.AuthMethodDelete(&structs.ACLAuthMethodDeleteRequest{Datacenter: "dc2"}, &ignored),
 			errString,
 		)
 	})
 	t.Run("AuthMethodList", func(t *testing.T) {
-		requireErrorContains(t,
+		testutil.RequireErrorContains(t,
 			acl2.AuthMethodList(&structs.ACLAuthMethodListRequest{Datacenter: "dc2"},
 				&structs.ACLAuthMethodListResponse{}),
 			errString,
@@ -4100,27 +4191,27 @@ func TestACLEndpoint_SecureIntroEndpoints_LocalTokensDisabled(t *testing.T) {
 	})
 
 	t.Run("BindingRuleRead", func(t *testing.T) {
-		requireErrorContains(t,
+		testutil.RequireErrorContains(t,
 			acl2.BindingRuleRead(&structs.ACLBindingRuleGetRequest{Datacenter: "dc2"},
 				&structs.ACLBindingRuleResponse{}),
 			errString,
 		)
 	})
 	t.Run("BindingRuleSet", func(t *testing.T) {
-		requireErrorContains(t,
+		testutil.RequireErrorContains(t,
 			acl2.BindingRuleSet(&structs.ACLBindingRuleSetRequest{Datacenter: "dc2"},
 				&structs.ACLBindingRule{}),
 			errString,
 		)
 	})
 	t.Run("BindingRuleDelete", func(t *testing.T) {
-		requireErrorContains(t,
+		testutil.RequireErrorContains(t,
 			acl2.BindingRuleDelete(&structs.ACLBindingRuleDeleteRequest{Datacenter: "dc2"}, &ignored),
 			errString,
 		)
 	})
 	t.Run("BindingRuleList", func(t *testing.T) {
-		requireErrorContains(t,
+		testutil.RequireErrorContains(t,
 			acl2.BindingRuleList(&structs.ACLBindingRuleListRequest{Datacenter: "dc2"},
 				&structs.ACLBindingRuleListResponse{}),
 			errString,
@@ -4128,14 +4219,14 @@ func TestACLEndpoint_SecureIntroEndpoints_LocalTokensDisabled(t *testing.T) {
 	})
 
 	t.Run("Login", func(t *testing.T) {
-		requireErrorContains(t,
+		testutil.RequireErrorContains(t,
 			acl2.Login(&structs.ACLLoginRequest{Datacenter: "dc2"},
 				&structs.ACLToken{}),
 			errString,
 		)
 	})
 	t.Run("Logout", func(t *testing.T) {
-		requireErrorContains(t,
+		testutil.RequireErrorContains(t,
 			acl2.Logout(&structs.ACLLogoutRequest{Datacenter: "dc2"}, &ignored),
 			errString,
 		)
@@ -4524,7 +4615,7 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		}
 
 		var ignored bool
-		requireErrorContains(t, acl.Logout(&req, &ignored), "ACL not found")
+		testutil.RequireErrorContains(t, acl.Logout(&req, &ignored), "ACL not found")
 
 		// present in dc1
 		resp2, err := retrieveTestToken(codec1, "root", "dc1", primaryToken.AccessorID)
@@ -4672,7 +4763,7 @@ func TestACLEndpoint_Login(t *testing.T) {
 		req.Token = "nope"
 		resp := structs.ACLToken{}
 
-		requireErrorContains(t, acl.Login(&req, &resp), "do not provide a token")
+		testutil.RequireErrorContains(t, acl.Login(&req, &resp), "do not provide a token")
 	})
 
 	t.Run("unknown method", func(t *testing.T) {
@@ -4686,7 +4777,7 @@ func TestACLEndpoint_Login(t *testing.T) {
 		}
 		resp := structs.ACLToken{}
 
-		requireErrorContains(t, acl.Login(&req, &resp), "ACL not found")
+		testutil.RequireErrorContains(t, acl.Login(&req, &resp), "ACL not found")
 	})
 
 	t.Run("invalid method token", func(t *testing.T) {
@@ -4714,7 +4805,7 @@ func TestACLEndpoint_Login(t *testing.T) {
 		}
 		resp := structs.ACLToken{}
 
-		requireErrorContains(t, acl.Login(&req, &resp), "Permission denied")
+		testutil.RequireErrorContains(t, acl.Login(&req, &resp), "Permission denied")
 	})
 
 	t.Run("valid method token 1 role binding and role does not exist", func(t *testing.T) {
@@ -4728,7 +4819,7 @@ func TestACLEndpoint_Login(t *testing.T) {
 		}
 		resp := structs.ACLToken{}
 
-		requireErrorContains(t, acl.Login(&req, &resp), "Permission denied")
+		testutil.RequireErrorContains(t, acl.Login(&req, &resp), "Permission denied")
 	})
 
 	// create the role so that the bindtype=role login works
@@ -4933,8 +5024,86 @@ func TestACLEndpoint_Login(t *testing.T) {
 		}
 		resp := structs.ACLToken{}
 
-		requireErrorContains(t, acl.Login(&req, &resp), "ACL not found")
+		testutil.RequireErrorContains(t, acl.Login(&req, &resp), "ACL not found")
 	})
+}
+
+func TestACLEndpoint_Login_with_MaxTokenTTL(t *testing.T) {
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	acl := ACL{srv: s1}
+
+	testSessionID := testauth.StartSession()
+	defer testauth.ResetSession(testSessionID)
+
+	testauth.InstallSessionToken(
+		testSessionID,
+		"fake-web", // no rules
+		"default", "web", "abc123",
+	)
+
+	method, err := upsertTestCustomizedAuthMethod(codec, "root", "dc1", func(method *structs.ACLAuthMethod) {
+		method.MaxTokenTTL = 5 * time.Minute
+		method.Config = map[string]interface{}{
+			"SessionID": testSessionID,
+		}
+	})
+	require.NoError(t, err)
+
+	_, err = upsertTestBindingRule(
+		codec, "root", "dc1", method.Name,
+		"",
+		structs.BindingRuleBindTypeService,
+		"web",
+	)
+	require.NoError(t, err)
+
+	// Create a token.
+	req := structs.ACLLoginRequest{
+		Auth: &structs.ACLLoginParams{
+			AuthMethod:  method.Name,
+			BearerToken: "fake-web",
+			Meta:        map[string]string{"pod": "pod1"},
+		},
+		Datacenter: "dc1",
+	}
+
+	resp := structs.ACLToken{}
+	require.NoError(t, acl.Login(&req, &resp))
+
+	got := &resp
+	got.CreateIndex = 0
+	got.ModifyIndex = 0
+	got.AccessorID = ""
+	got.SecretID = ""
+	got.Hash = nil
+
+	defaultEntMeta := structs.DefaultEnterpriseMeta()
+	expect := &structs.ACLToken{
+		AuthMethod:     method.Name,
+		Description:    `token created via login: {"pod":"pod1"}`,
+		Local:          true,
+		CreateTime:     got.CreateTime,
+		ExpirationTime: timePointer(got.CreateTime.Add(method.MaxTokenTTL)),
+		ServiceIdentities: []*structs.ACLServiceIdentity{
+			{ServiceName: "web"},
+		},
+		EnterpriseMeta: *defaultEntMeta,
+	}
+	expect.ACLAuthMethodEnterpriseMeta.FillWithEnterpriseMeta(defaultEntMeta)
+	require.Equal(t, got, expect)
 }
 
 func TestACLEndpoint_Login_k8s(t *testing.T) {
@@ -5000,7 +5169,7 @@ func TestACLEndpoint_Login_k8s(t *testing.T) {
 		}
 		resp := structs.ACLToken{}
 
-		requireErrorContains(t, acl.Login(&req, &resp), "Permission denied")
+		testutil.RequireErrorContains(t, acl.Login(&req, &resp), "Permission denied")
 	})
 
 	_, err = upsertTestBindingRule(
@@ -5067,6 +5236,167 @@ func TestACLEndpoint_Login_k8s(t *testing.T) {
 	})
 }
 
+func TestACLEndpoint_Login_jwt(t *testing.T) {
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	acl := ACL{srv: s1}
+
+	// spin up a fake oidc server
+	oidcServer := startSSOTestServer(t)
+	pubKey, privKey := oidcServer.SigningKeys()
+
+	type mConfig = map[string]interface{}
+	cases := map[string]struct {
+		f         func(config mConfig)
+		issuer    string
+		expectErr string
+	}{
+		"success - jwt static keys": {func(config mConfig) {
+			config["BoundIssuer"] = "https://legit.issuer.internal/"
+			config["JWTValidationPubKeys"] = []string{pubKey}
+		},
+			"https://legit.issuer.internal/",
+			""},
+		"success - jwt jwks": {func(config mConfig) {
+			config["JWKSURL"] = oidcServer.Addr() + "/certs"
+			config["JWKSCACert"] = oidcServer.CACert()
+		},
+			"https://legit.issuer.internal/",
+			""},
+		"success - jwt oidc discovery": {func(config mConfig) {
+			config["OIDCDiscoveryURL"] = oidcServer.Addr()
+			config["OIDCDiscoveryCACert"] = oidcServer.CACert()
+		},
+			oidcServer.Addr(),
+			""},
+	}
+
+	for name, tc := range cases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			method, err := upsertTestCustomizedAuthMethod(codec, "root", "dc1", func(method *structs.ACLAuthMethod) {
+				method.Type = "jwt"
+				method.Config = map[string]interface{}{
+					"JWTSupportedAlgs": []string{"ES256"},
+					"ClaimMappings": map[string]string{
+						"first_name":   "name",
+						"/org/primary": "primary_org",
+					},
+					"ListClaimMappings": map[string]string{
+						"https://consul.test/groups": "groups",
+					},
+					"BoundAudiences": []string{"https://consul.test"},
+				}
+				if tc.f != nil {
+					tc.f(method.Config)
+				}
+			})
+			require.NoError(t, err)
+
+			t.Run("invalid bearer token", func(t *testing.T) {
+				req := structs.ACLLoginRequest{
+					Auth: &structs.ACLLoginParams{
+						AuthMethod:  method.Name,
+						BearerToken: "invalid",
+					},
+					Datacenter: "dc1",
+				}
+				resp := structs.ACLToken{}
+
+				require.Error(t, acl.Login(&req, &resp))
+			})
+
+			cl := jwt.Claims{
+				Subject:   "r3qXcK2bix9eFECzsU3Sbmh0K16fatW6@clients",
+				Audience:  jwt.Audience{"https://consul.test"},
+				Issuer:    tc.issuer,
+				NotBefore: jwt.NewNumericDate(time.Now().Add(-5 * time.Second)),
+				Expiry:    jwt.NewNumericDate(time.Now().Add(5 * time.Second)),
+			}
+
+			type orgs struct {
+				Primary string `json:"primary"`
+			}
+
+			privateCl := struct {
+				FirstName string   `json:"first_name"`
+				Org       orgs     `json:"org"`
+				Groups    []string `json:"https://consul.test/groups"`
+			}{
+				FirstName: "jeff2",
+				Org:       orgs{"engineering"},
+				Groups:    []string{"foo", "bar"},
+			}
+
+			jwtData, err := oidcauthtest.SignJWT(privKey, cl, privateCl)
+			require.NoError(t, err)
+
+			t.Run("valid bearer token no bindings", func(t *testing.T) {
+				req := structs.ACLLoginRequest{
+					Auth: &structs.ACLLoginParams{
+						AuthMethod:  method.Name,
+						BearerToken: jwtData,
+					},
+					Datacenter: "dc1",
+				}
+				resp := structs.ACLToken{}
+
+				testutil.RequireErrorContains(t, acl.Login(&req, &resp), "Permission denied")
+			})
+
+			_, err = upsertTestBindingRule(
+				codec, "root", "dc1", method.Name,
+				"value.name == jeff2 and value.primary_org == engineering and foo in list.groups",
+				structs.BindingRuleBindTypeService,
+				"test--${value.name}--${value.primary_org}",
+			)
+			require.NoError(t, err)
+
+			t.Run("valid bearer token 1 service binding", func(t *testing.T) {
+				req := structs.ACLLoginRequest{
+					Auth: &structs.ACLLoginParams{
+						AuthMethod:  method.Name,
+						BearerToken: jwtData,
+					},
+					Datacenter: "dc1",
+				}
+				resp := structs.ACLToken{}
+
+				require.NoError(t, acl.Login(&req, &resp))
+
+				require.Equal(t, method.Name, resp.AuthMethod)
+				require.Equal(t, `token created via login`, resp.Description)
+				require.True(t, resp.Local)
+				require.Len(t, resp.Roles, 0)
+				require.Len(t, resp.ServiceIdentities, 1)
+				svcid := resp.ServiceIdentities[0]
+				require.Len(t, svcid.Datacenters, 0)
+				require.Equal(t, "test--jeff2--engineering", svcid.ServiceName)
+			})
+		})
+	}
+}
+
+func startSSOTestServer(t *testing.T) *oidcauthtest.Server {
+	ports := freeport.MustTake(1)
+	return oidcauthtest.Start(t, oidcauthtest.WithPort(
+		ports[0],
+		func() { freeport.Return(ports) },
+	))
+}
+
 func TestACLEndpoint_Logout(t *testing.T) {
 	t.Parallel()
 
@@ -5111,7 +5441,7 @@ func TestACLEndpoint_Logout(t *testing.T) {
 		req.Token = ""
 		var ignored bool
 
-		requireErrorContains(t, acl.Logout(&req, &ignored), "ACL not found")
+		testutil.RequireErrorContains(t, acl.Logout(&req, &ignored), "ACL not found")
 	})
 
 	t.Run("logout from deleted token", func(t *testing.T) {
@@ -5120,7 +5450,7 @@ func TestACLEndpoint_Logout(t *testing.T) {
 			WriteRequest: structs.WriteRequest{Token: "not-found"},
 		}
 		var ignored bool
-		requireErrorContains(t, acl.Logout(&req, &ignored), "ACL not found")
+		testutil.RequireErrorContains(t, acl.Logout(&req, &ignored), "ACL not found")
 	})
 
 	t.Run("logout from non-auth method-linked token should fail", func(t *testing.T) {
@@ -5129,7 +5459,7 @@ func TestACLEndpoint_Logout(t *testing.T) {
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
 		var ignored bool
-		requireErrorContains(t, acl.Logout(&req, &ignored), "Permission denied")
+		testutil.RequireErrorContains(t, acl.Logout(&req, &ignored), "Permission denied")
 	})
 
 	t.Run("login then logout", func(t *testing.T) {
@@ -5776,16 +6106,6 @@ func requireTimeEquals(t *testing.T, expect, got *time.Time) {
 		t.Fatalf("expected=%q != got=NIL", *expect)
 	} else if !expect.Equal(*got) {
 		t.Fatalf("expected=%q != got=%q", *expect, *got)
-	}
-}
-
-func requireErrorContains(t *testing.T, err error, expectedErrorMessage string) {
-	t.Helper()
-	if err == nil {
-		t.Fatal("An error is expected but got nil.")
-	}
-	if !strings.Contains(err.Error(), expectedErrorMessage) {
-		t.Fatalf("unexpected error: %v", err)
 	}
 }
 

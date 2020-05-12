@@ -3,7 +3,9 @@ package proxycfg
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"path"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -1141,6 +1143,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 				},
 			},
 		)
+	case "http-multiple-services":
 	default:
 		t.Fatalf("unexpected variation: %q", variation)
 		return ConfigSnapshotUpstreams{}
@@ -1231,6 +1234,13 @@ func setupTestVariationConfigEntriesAndSnapshot(
 	case "chain-and-splitter":
 	case "grpc-router":
 	case "chain-and-router":
+	case "http-multiple-services":
+		snap.WatchedUpstreamEndpoints["foo"] = map[string]structs.CheckServiceNodes{
+			"foo.default.dc1": TestUpstreamNodes(t),
+		}
+		snap.WatchedUpstreamEndpoints["bar"] = map[string]structs.CheckServiceNodes{
+			"bar.default.dc1": TestUpstreamNodesAlternate(t),
+		}
 	default:
 		t.Fatalf("unexpected variation: %q", variation)
 		return ConfigSnapshotUpstreams{}
@@ -1310,82 +1320,92 @@ func testConfigSnapshotMeshGateway(t testing.T, populateServices bool, useFedera
 }
 
 func TestConfigSnapshotIngress(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "simple")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "simple")
+}
+
+func TestConfigSnapshotIngressWithTLSListener(t testing.T) *ConfigSnapshot {
+	snap := testConfigSnapshotIngressGateway(t, true, "tcp", "default")
+	snap.IngressGateway.TLSEnabled = true
+	return snap
 }
 
 func TestConfigSnapshotIngressWithOverrides(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "simple-with-overrides")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "simple-with-overrides")
 }
 func TestConfigSnapshotIngress_SplitterWithResolverRedirectMultiDC(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "splitter-with-resolver-redirect-multidc")
+	return testConfigSnapshotIngressGateway(t, true, "http", "splitter-with-resolver-redirect-multidc")
+}
+
+func TestConfigSnapshotIngress_HTTPMultipleServices(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotIngressGateway(t, true, "http", "http-multiple-services")
 }
 
 func TestConfigSnapshotIngressExternalSNI(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "external-sni")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "external-sni")
 }
 
 func TestConfigSnapshotIngressWithFailover(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "failover")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover")
 }
 
 func TestConfigSnapshotIngressWithFailoverThroughRemoteGateway(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "failover-through-remote-gateway")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-remote-gateway")
 }
 
 func TestConfigSnapshotIngressWithFailoverThroughRemoteGatewayTriggered(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "failover-through-remote-gateway-triggered")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-remote-gateway-triggered")
 }
 
 func TestConfigSnapshotIngressWithDoubleFailoverThroughRemoteGateway(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "failover-through-double-remote-gateway")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-double-remote-gateway")
 }
 
 func TestConfigSnapshotIngressWithDoubleFailoverThroughRemoteGatewayTriggered(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "failover-through-double-remote-gateway-triggered")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-double-remote-gateway-triggered")
 }
 
 func TestConfigSnapshotIngressWithFailoverThroughLocalGateway(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "failover-through-local-gateway")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-local-gateway")
 }
 
 func TestConfigSnapshotIngressWithFailoverThroughLocalGatewayTriggered(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "failover-through-local-gateway-triggered")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-local-gateway-triggered")
 }
 
 func TestConfigSnapshotIngressWithDoubleFailoverThroughLocalGateway(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "failover-through-double-local-gateway")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-double-local-gateway")
 }
 
 func TestConfigSnapshotIngressWithDoubleFailoverThroughLocalGatewayTriggered(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "failover-through-double-local-gateway-triggered")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-double-local-gateway-triggered")
 }
 
 func TestConfigSnapshotIngressWithSplitter(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "chain-and-splitter")
+	return testConfigSnapshotIngressGateway(t, true, "http", "chain-and-splitter")
 }
 
 func TestConfigSnapshotIngressWithGRPCRouter(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "grpc-router")
+	return testConfigSnapshotIngressGateway(t, true, "http", "grpc-router")
 }
 
 func TestConfigSnapshotIngressWithRouter(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "chain-and-router")
+	return testConfigSnapshotIngressGateway(t, true, "http", "chain-and-router")
 }
 
 func TestConfigSnapshotIngressGateway(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "default")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "default")
 }
 
 func TestConfigSnapshotIngressGatewayNoServices(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, false, "default")
+	return testConfigSnapshotIngressGateway(t, false, "tcp", "default")
 }
 
 func TestConfigSnapshotIngressDiscoveryChainWithEntries(t testing.T, additionalEntries ...structs.ConfigEntry) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "simple", additionalEntries...)
+	return testConfigSnapshotIngressGateway(t, true, "http", "simple", additionalEntries...)
 }
 
 func testConfigSnapshotIngressGateway(
-	t testing.T, populateServices bool, variation string,
+	t testing.T, populateServices bool, protocol, variation string,
 	additionalEntries ...structs.ConfigEntry,
 ) *ConfigSnapshot {
 	roots, leaf := TestCerts(t)
@@ -1402,12 +1422,14 @@ func testConfigSnapshotIngressGateway(
 			ConfigSnapshotUpstreams: setupTestVariationConfigEntriesAndSnapshot(
 				t, variation, leaf, additionalEntries...,
 			),
-			Upstreams: structs.Upstreams{
-				{
-					// We rely on this one having default type in a few tests...
-					DestinationName:  "db",
-					LocalBindPort:    9191,
-					LocalBindAddress: "2.3.4.5",
+			Upstreams: map[IngressListenerKey]structs.Upstreams{
+				IngressListenerKey{protocol, 9191}: structs.Upstreams{
+					{
+						// We rely on this one having default type in a few tests...
+						DestinationName:  "db",
+						LocalBindPort:    9191,
+						LocalBindAddress: "2.3.4.5",
+					},
 				},
 			},
 		}
@@ -1446,6 +1468,81 @@ func TestConfigSnapshotExposeConfig(t testing.T) *ConfigSnapshot {
 	}
 }
 
+func TestConfigSnapshotTerminatingGateway(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotTerminatingGateway(t, true)
+}
+
+func TestConfigSnapshotTerminatingGatewayNoServices(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotTerminatingGateway(t, false)
+}
+
+func testConfigSnapshotTerminatingGateway(t testing.T, populateServices bool) *ConfigSnapshot {
+	roots, _ := TestCerts(t)
+
+	snap := &ConfigSnapshot{
+		Kind:    structs.ServiceKindTerminatingGateway,
+		Service: "terminating-gateway",
+		ProxyID: structs.NewServiceID("terminating-gateway", nil),
+		Address: "1.2.3.4",
+		TaggedAddresses: map[string]structs.ServiceAddress{
+			structs.TaggedAddressWAN: structs.ServiceAddress{
+				Address: "198.18.0.1",
+				Port:    443,
+			},
+		},
+		Port:       8443,
+		Roots:      roots,
+		Datacenter: "dc1",
+	}
+	if populateServices {
+		web := structs.NewServiceID("web", nil)
+		webNodes := TestUpstreamNodes(t)
+		webNodes[0].Service.Meta = map[string]string{
+			"version": "1",
+		}
+		webNodes[1].Service.Meta = map[string]string{
+			"version": "2",
+		}
+
+		api := structs.NewServiceID("api", nil)
+		apiNodes := TestUpstreamNodes(t)
+		for i := 0; i < len(apiNodes); i++ {
+			apiNodes[i].Service.Service = "api"
+			apiNodes[i].Service.Port = 8081
+		}
+
+		snap.TerminatingGateway = configSnapshotTerminatingGateway{
+			ServiceGroups: map[structs.ServiceID]structs.CheckServiceNodes{
+				web: webNodes,
+				api: apiNodes,
+			},
+			GatewayServices: map[structs.ServiceID]structs.GatewayService{
+				web: {
+					Service: web,
+					CAFile:  "ca.cert.pem",
+				},
+				api: {
+					Service:  api,
+					CAFile:   "ca.cert.pem",
+					CertFile: "api.cert.pem",
+					KeyFile:  "api.key.pem",
+				},
+			},
+		}
+		snap.TerminatingGateway.ServiceLeaves = map[structs.ServiceID]*structs.IssuedCert{
+			structs.NewServiceID("web", nil): {
+				CertPEM:       golden(t, "test-leaf-cert"),
+				PrivateKeyPEM: golden(t, "test-leaf-key"),
+			},
+			structs.NewServiceID("api", nil): {
+				CertPEM:       golden(t, "alt-test-leaf-cert"),
+				PrivateKeyPEM: golden(t, "alt-test-leaf-key"),
+			},
+		}
+	}
+	return snap
+}
+
 func TestConfigSnapshotGRPCExposeHTTP1(t testing.T) *ConfigSnapshot {
 	return &ConfigSnapshot{
 		Kind:    structs.ServiceKindConnectProxy,
@@ -1474,6 +1571,39 @@ func TestConfigSnapshotGRPCExposeHTTP1(t testing.T) *ConfigSnapshot {
 		},
 		Datacenter: "dc1",
 	}
+}
+
+func TestConfigSnapshotIngress_MultipleListenersDuplicateService(t testing.T) *ConfigSnapshot {
+	snap := TestConfigSnapshotIngress_HTTPMultipleServices(t)
+
+	snap.IngressGateway.Upstreams = map[IngressListenerKey]structs.Upstreams{
+		IngressListenerKey{Protocol: "http", Port: 8080}: structs.Upstreams{
+			{
+				DestinationName: "foo",
+				LocalBindPort:   8080,
+			},
+			{
+				DestinationName: "bar",
+				LocalBindPort:   8080,
+			},
+		},
+		IngressListenerKey{Protocol: "http", Port: 443}: structs.Upstreams{
+			{
+				DestinationName: "foo",
+				LocalBindPort:   443,
+			},
+		},
+	}
+
+	fooChain := discoverychain.TestCompileConfigEntries(t, "foo", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil)
+	barChain := discoverychain.TestCompileConfigEntries(t, "bar", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil)
+
+	snap.IngressGateway.DiscoveryChain = map[string]*structs.CompiledDiscoveryChain{
+		"foo": fooChain,
+		"bar": barChain,
+	}
+
+	return snap
 }
 
 func httpMatch(http *structs.ServiceRouteHTTPMatch) *structs.ServiceRouteMatch {
@@ -1571,4 +1701,15 @@ func (ct *ControllableCacheType) RegisterOptions() cache.RegisterOptions {
 		SupportsBlocking: ct.blocking,
 		RefreshTimeout:   10 * time.Minute,
 	}
+}
+
+// golden is used to read golden files stores in consul/agent/xds/testdata
+func golden(t testing.T, name string) string {
+	t.Helper()
+
+	golden := filepath.Join("../xds/testdata", name+".golden")
+	expected, err := ioutil.ReadFile(golden)
+	require.NoError(t, err)
+
+	return string(expected)
 }

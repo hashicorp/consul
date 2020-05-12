@@ -26,10 +26,10 @@ func TestCatalogServiceList(t *testing.T) {
 
 			reply := args.Get(2).(*structs.IndexedServiceList)
 			reply.Services = structs.ServiceList{
-				structs.ServiceInfo{
+				structs.ServiceName{
 					Name: "foo",
 				},
-				structs.ServiceInfo{
+				structs.ServiceName{
 					Name: "bar",
 				},
 			}

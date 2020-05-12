@@ -100,7 +100,7 @@ function is_set {
 
 function get_cert {
   local HOSTPORT=$1
-  CERT=$(openssl s_client -connect $HOSTPORT -showcerts )
+  CERT=$(openssl s_client -connect $HOSTPORT -showcerts </dev/null)
   openssl x509 -noout -text <<< "$CERT"
 }
 
@@ -118,6 +118,19 @@ function assert_proxy_presents_cert_uri {
   echo "$CERT"
 
   echo "$CERT" | grep -Eo "URI:spiffe://([a-zA-Z0-9-]+).consul/ns/${NS}/dc/${DC}/svc/$SERVICENAME"
+}
+
+function assert_dnssan_in_cert {
+  local HOSTPORT=$1
+  local DNSSAN=$2
+
+  CERT=$(retry_default get_cert $HOSTPORT)
+
+  echo "WANT DNSSAN: ${DNSSAN}"
+  echo "GOT CERT:"
+  echo "$CERT"
+
+  echo "$CERT" | grep -Eo "DNS:${DNSSAN}"
 }
 
 function assert_envoy_version {
@@ -156,7 +169,7 @@ function get_envoy_listener_filters {
   echo "$output" | jq --raw-output "$QUERY"
 }
 
-function get_envoy_cluster_threshold {
+function get_envoy_cluster_config {
   local HOSTPORT=$1
   local CLUSTER_NAME=$2
   run retry_default curl -s -f $HOSTPORT/config_dump
@@ -164,7 +177,7 @@ function get_envoy_cluster_threshold {
   echo "$output" | jq --raw-output "
     .configs[1].dynamic_active_clusters[]
     | select(.cluster.name|startswith(\"${CLUSTER_NAME}\"))
-    | .cluster.circuit_breakers.thresholds[0]
+    | .cluster
   "
 }
 
@@ -619,6 +632,10 @@ function update_intention {
   return $?
 }
 
+function get_ca_root {
+  curl -s -f "http://localhost:8500/v1/connect/ca/roots" | jq -r ".Roots[0].RootCert"
+}
+
 function wait_for_agent_service_register {
   local SERVICE_ID=$1
   local DC=${2:-primary}
@@ -646,15 +663,21 @@ function set_ttl_check_state {
 }
 
 function get_upstream_fortio_name {
-  run retry_default curl -v -s -f localhost:5000/debug?env=dump
+  local HOST=$1
+  local PORT=$2
+  local PREFIX=$3
+  run retry_default curl -v -s -f -H"Host: ${HOST}" "localhost:${PORT}${PREFIX}/debug?env=dump"
   [ "$status" == 0 ]
   echo "$output" | grep -E "^FORTIO_NAME="
 }
 
 function assert_expected_fortio_name {
   local EXPECT_NAME=$1
+  local HOST=${2:-"localhost"}
+  local PORT=${3:-5000}
+  local URL_PREFIX=${4:-""}
 
-  GOT=$(get_upstream_fortio_name)
+  GOT=$(get_upstream_fortio_name ${HOST} ${PORT} ${URL_PREFIX})
 
   if [ "$GOT" != "FORTIO_NAME=${EXPECT_NAME}" ]; then
     echo "expected name: $EXPECT_NAME, actual name: $GOT" 1>&2

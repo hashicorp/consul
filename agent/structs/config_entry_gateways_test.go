@@ -252,6 +252,149 @@ func TestIngressConfigEntry_Validate(t *testing.T) {
 			},
 			expectErr: "Protocol must be either 'http' or 'tcp', 'asdf' is an unsupported protocol.",
 		},
+		{
+			name: "hosts cannot be set on a tcp listener",
+			entry: IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"db.example.com"},
+							},
+						},
+					},
+				},
+			},
+			expectErr: "Associating hosts to a service is not supported for the tcp protocol",
+		},
+		{
+			name: "hosts cannot be set on a wildcard specifier",
+			entry: IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "*",
+								Hosts: []string{"db.example.com"},
+							},
+						},
+					},
+				},
+			},
+			expectErr: "Associating hosts to a wildcard service is not supported",
+		},
+		{
+			name: "hosts must be unique per listener",
+			entry: IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"test.example.com"},
+							},
+							{
+								Name:  "api",
+								Hosts: []string{"test.example.com"},
+							},
+						},
+					},
+				},
+			},
+			expectErr: "Hosts must be unique within a specific listener",
+		},
+		{
+			name: "hosts must be a valid DNS name",
+			entry: IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"example..com"},
+							},
+						},
+					},
+				},
+			},
+			expectErr: `Host "example..com" must be a valid DNS hostname`,
+		},
+		{
+			name: "wildcard specifier is only allowed in the leftmost label",
+			entry: IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"*.example.com"},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "wildcard specifier is not allowed in non-leftmost labels",
+			entry: IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"example.*.com"},
+							},
+						},
+					},
+				},
+			},
+			expectErr: `Host "example.*.com" is not valid, a wildcard specifier is only allowed as the leftmost label`,
+		},
+		{
+			name: "wildcard specifier is not allowed in leftmost labels as a partial",
+			entry: IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"*-test.example.com"},
+							},
+						},
+					},
+				},
+			},
+			expectErr: `Host "*-test.example.com" is not valid, a wildcard specifier is only allowed as the leftmost label`,
+		},
 	}
 
 	for _, test := range cases {
@@ -315,8 +458,8 @@ func TestTerminatingConfigEntry_Validate(t *testing.T) {
 				Name: "terminating-gw-west",
 				Services: []LinkedService{
 					{
-						Name:   "web",
-						CAFile: "ca.crt",
+						Name:     "web",
+						CertFile: "client.crt",
 					},
 				},
 			},
@@ -329,67 +472,8 @@ func TestTerminatingConfigEntry_Validate(t *testing.T) {
 				Name: "terminating-gw-west",
 				Services: []LinkedService{
 					{
-						Name:     "web",
-						CertFile: "client.crt",
-					},
-				},
-			},
-			expectErr: "must have a CertFile, CAFile, and KeyFile",
-		},
-		{
-			name: "not all TLS options provided-3",
-			entry: TerminatingGatewayConfigEntry{
-				Kind: "terminating-gateway",
-				Name: "terminating-gw-west",
-				Services: []LinkedService{
-					{
 						Name:    "web",
 						KeyFile: "tls.key",
-					},
-				},
-			},
-			expectErr: "must have a CertFile, CAFile, and KeyFile",
-		},
-		{
-			name: "not all TLS options provided-4",
-			entry: TerminatingGatewayConfigEntry{
-				Kind: "terminating-gateway",
-				Name: "terminating-gw-west",
-				Services: []LinkedService{
-					{
-						Name:    "web",
-						CAFile:  "ca.crt",
-						KeyFile: "tls.key",
-					},
-				},
-			},
-			expectErr: "must have a CertFile, CAFile, and KeyFile",
-		},
-		{
-			name: "not all TLS options provided-5",
-			entry: TerminatingGatewayConfigEntry{
-				Kind: "terminating-gateway",
-				Name: "terminating-gw-west",
-				Services: []LinkedService{
-					{
-						Name:     "web",
-						CAFile:   "ca.crt",
-						CertFile: "client.crt",
-					},
-				},
-			},
-			expectErr: "must have a CertFile, CAFile, and KeyFile",
-		},
-		{
-			name: "not all TLS options provided-6",
-			entry: TerminatingGatewayConfigEntry{
-				Kind: "terminating-gateway",
-				Name: "terminating-gw-west",
-				Services: []LinkedService{
-					{
-						Name:     "web",
-						KeyFile:  "tls.key",
-						CertFile: "client.crt",
 					},
 				},
 			},
@@ -406,6 +490,19 @@ func TestTerminatingConfigEntry_Validate(t *testing.T) {
 						CAFile:   "ca.crt",
 						CertFile: "client.crt",
 						KeyFile:  "tls.key",
+					},
+				},
+			},
+		},
+		{
+			name: "only providing ca file is allowed",
+			entry: TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Services: []LinkedService{
+					{
+						Name:   "web",
+						CAFile: "ca.crt",
 					},
 				},
 			},

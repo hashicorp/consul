@@ -17,11 +17,15 @@ limitations under the License.
 package transport
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+
+	utilnet "k8s.io/apimachinery/pkg/util/net"
+	"k8s.io/klog"
 )
 
 // New returns an http.RoundTripper that will provide the authentication
@@ -52,7 +56,7 @@ func New(config *Config) (http.RoundTripper, error) {
 // TLSConfigFor returns a tls.Config that will provide the transport level security defined
 // by the provided Config. Will return nil if no transport level security is requested.
 func TLSConfigFor(c *Config) (*tls.Config, error) {
-	if !(c.HasCA() || c.HasCertAuth() || c.HasCertCallback() || c.TLS.Insecure || len(c.TLS.ServerName) > 0) {
+	if !(c.HasCA() || c.HasCertAuth() || c.HasCertCallback() || c.TLS.Insecure || len(c.TLS.ServerName) > 0 || len(c.TLS.NextProtos) > 0) {
 		return nil, nil
 	}
 	if c.HasCA() && c.TLS.Insecure {
@@ -69,6 +73,7 @@ func TLSConfigFor(c *Config) (*tls.Config, error) {
 		MinVersion:         tls.VersionTLS12,
 		InsecureSkipVerify: c.TLS.Insecure,
 		ServerName:         c.TLS.ServerName,
+		NextProtos:         c.TLS.NextProtos,
 	}
 
 	if c.HasCA() {
@@ -166,4 +171,75 @@ func rootCertPool(caData []byte) *x509.CertPool {
 	certPool := x509.NewCertPool()
 	certPool.AppendCertsFromPEM(caData)
 	return certPool
+}
+
+// WrapperFunc wraps an http.RoundTripper when a new transport
+// is created for a client, allowing per connection behavior
+// to be injected.
+type WrapperFunc func(rt http.RoundTripper) http.RoundTripper
+
+// Wrappers accepts any number of wrappers and returns a wrapper
+// function that is the equivalent of calling each of them in order. Nil
+// values are ignored, which makes this function convenient for incrementally
+// wrapping a function.
+func Wrappers(fns ...WrapperFunc) WrapperFunc {
+	if len(fns) == 0 {
+		return nil
+	}
+	// optimize the common case of wrapping a possibly nil transport wrapper
+	// with an additional wrapper
+	if len(fns) == 2 && fns[0] == nil {
+		return fns[1]
+	}
+	return func(rt http.RoundTripper) http.RoundTripper {
+		base := rt
+		for _, fn := range fns {
+			if fn != nil {
+				base = fn(base)
+			}
+		}
+		return base
+	}
+}
+
+// ContextCanceller prevents new requests after the provided context is finished.
+// err is returned when the context is closed, allowing the caller to provide a context
+// appropriate error.
+func ContextCanceller(ctx context.Context, err error) WrapperFunc {
+	return func(rt http.RoundTripper) http.RoundTripper {
+		return &contextCanceller{
+			ctx: ctx,
+			rt:  rt,
+			err: err,
+		}
+	}
+}
+
+type contextCanceller struct {
+	ctx context.Context
+	rt  http.RoundTripper
+	err error
+}
+
+func (b *contextCanceller) RoundTrip(req *http.Request) (*http.Response, error) {
+	select {
+	case <-b.ctx.Done():
+		return nil, b.err
+	default:
+		return b.rt.RoundTrip(req)
+	}
+}
+
+func tryCancelRequest(rt http.RoundTripper, req *http.Request) {
+	type canceler interface {
+		CancelRequest(*http.Request)
+	}
+	switch rt := rt.(type) {
+	case canceler:
+		rt.CancelRequest(req)
+	case utilnet.RoundTripperWrapper:
+		tryCancelRequest(rt.WrappedRoundTripper(), req)
+	default:
+		klog.Warningf("Unable to cancel request for %T", rt)
+	}
 }

@@ -391,7 +391,7 @@ func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token
 		loggers:                 loggers,
 		leaveCh:                 make(chan struct{}),
 		reconcileCh:             make(chan serf.Member, reconcileChSize),
-		router:                  router.NewRouter(serverLogger, config.Datacenter),
+		router:                  router.NewRouter(serverLogger, config.Datacenter, fmt.Sprintf("%s.%s", config.NodeName, config.Datacenter)),
 		rpcServer:               rpc.NewServer(),
 		insecureRPCServer:       rpc.NewServer(),
 		tlsConfigurator:         tlsConfigurator,
@@ -551,20 +551,24 @@ func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token
 
 	// Add a "static route" to the WAN Serf and hook it up to Serf events.
 	if s.serfWAN != nil {
-		if err := s.router.AddArea(types.AreaWAN, s.serfWAN, s.connPool, s.config.VerifyOutgoing); err != nil {
+		if err := s.router.AddArea(types.AreaWAN, s.serfWAN, s.connPool); err != nil {
 			s.Shutdown()
 			return nil, fmt.Errorf("Failed to add WAN serf route: %v", err)
 		}
 		go router.HandleSerfEvents(s.logger, s.router, types.AreaWAN, s.serfWAN.ShutdownCh(), s.eventChWAN)
 
 		// Fire up the LAN <-> WAN join flooder.
-		portFn := func(s *metadata.Server) (int, bool) {
-			if s.WanJoinPort > 0 {
-				return s.WanJoinPort, true
+		addrFn := func(s *metadata.Server) (string, error) {
+			if s.WanJoinPort == 0 {
+				return "", fmt.Errorf("no wan join  port for server: %s", s.Addr.String())
 			}
-			return 0, false
+			addr, _, err := net.SplitHostPort(s.Addr.String())
+			if err != nil {
+				return "", err
+			}
+			return fmt.Sprintf("%s:%d", addr, s.WanJoinPort), nil
 		}
-		go s.Flood(nil, portFn, s.serfWAN)
+		go s.Flood(addrFn, s.serfWAN)
 	}
 
 	// Start enterprise specific functionality
@@ -839,23 +843,16 @@ func (s *Server) setupRPC() error {
 		return fmt.Errorf("RPC advertise address is not advertisable: %v", s.config.RPCAdvertise)
 	}
 
+	// TODO (hans) switch NewRaftLayer to tlsConfigurator
+
 	// Provide a DC specific wrapper. Raft replication is only
 	// ever done in the same datacenter, so we can provide it as a constant.
 	wrapper := tlsutil.SpecificDC(s.config.Datacenter, s.tlsConfigurator.OutgoingRPCWrapper())
 
 	// Define a callback for determining whether to wrap a connection with TLS
 	tlsFunc := func(address raft.ServerAddress) bool {
-		if s.config.VerifyOutgoing {
-			return true
-		}
-
-		server := s.serverLookup.Server(address)
-
-		if server == nil {
-			return false
-		}
-
-		return server.UseTLS
+		// raft only talks to its own datacenter
+		return s.tlsConfigurator.UseTLS(s.config.Datacenter)
 	}
 	s.raftLayer = NewRaftLayer(s.config.RPCSrcAddr, s.config.RPCAdvertise, wrapper, tlsFunc)
 	return nil
@@ -1361,6 +1358,7 @@ func (s *Server) ReloadConfig(config *Config) error {
 		// this will error if we lose leadership while bootstrapping here.
 		return s.bootstrapConfigEntries(config.ConfigEntryBootstrap)
 	}
+
 	return nil
 }
 

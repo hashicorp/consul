@@ -1,12 +1,14 @@
 package testauth
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 )
 
@@ -79,12 +81,13 @@ func GetSessionToken(sessionID string, token string) (map[string]string, bool) {
 }
 
 type Config struct {
-	SessionID string // unique identifier for this set of tokens in the database
+	SessionID string            // unique identifier for this set of tokens in the database
+	Data      map[string]string `json:",omitempty"` // random data for testing
 
 	enterpriseConfig `mapstructure:",squash"`
 }
 
-func newValidator(method *structs.ACLAuthMethod) (authmethod.Validator, error) {
+func newValidator(logger hclog.Logger, method *structs.ACLAuthMethod) (authmethod.Validator, error) {
 	if method.Type != "testing" {
 		return nil, fmt.Errorf("%q is not a testing auth method", method.Name)
 	}
@@ -114,6 +117,8 @@ type Validator struct {
 
 func (v *Validator) Name() string { return v.name }
 
+func (v *Validator) Stop() {}
+
 // ValidateLogin takes raw user-provided auth method metadata and ensures it is
 // sane, provably correct, and currently valid. Relevant identifying data is
 // extracted and returned for immediate use by the role binding process.
@@ -122,16 +127,40 @@ func (v *Validator) Name() string { return v.name }
 // to extend the life of the underlying token.
 //
 // Returns auth method specific metadata suitable for the Role Binding process.
-func (v *Validator) ValidateLogin(loginToken string) (map[string]string, *structs.EnterpriseMeta, error) {
+func (v *Validator) ValidateLogin(ctx context.Context, loginToken string) (*authmethod.Identity, error) {
 	fields, valid := GetSessionToken(v.config.SessionID, loginToken)
 	if !valid {
-		return nil, nil, acl.ErrNotFound
+		return nil, acl.ErrNotFound
 	}
 
-	return fields, v.testAuthEntMetaFromFields(fields), nil
+	id := v.NewIdentity()
+	id.SelectableFields = &selectableVars{
+		ServiceAccount: selectableServiceAccount{
+			Namespace: fields[serviceAccountNamespaceField],
+			Name:      fields[serviceAccountNameField],
+			UID:       fields[serviceAccountUIDField],
+		},
+	}
+	for k, val := range fields {
+		id.ProjectedVars[k] = val
+	}
+	id.EnterpriseMeta = v.testAuthEntMetaFromFields(fields)
+
+	return id, nil
 }
 
-func (v *Validator) AvailableFields() []string { return availableFields }
+func (v *Validator) NewIdentity() *authmethod.Identity {
+	id := &authmethod.Identity{
+		SelectableFields: &selectableVars{},
+		ProjectedVars:    map[string]string{},
+	}
+
+	for _, f := range availableFields {
+		id.ProjectedVars[f] = ""
+	}
+
+	return id
+}
 
 const (
 	serviceAccountNamespaceField = "serviceaccount.namespace"
@@ -143,18 +172,6 @@ var availableFields = []string{
 	serviceAccountNamespaceField,
 	serviceAccountNameField,
 	serviceAccountUIDField,
-}
-
-// MakeFieldMapSelectable converts a field map as returned by ValidateLogin
-// into a structure suitable for selection with a binding rule.
-func (v *Validator) MakeFieldMapSelectable(fieldMap map[string]string) interface{} {
-	return &selectableVars{
-		ServiceAccount: selectableServiceAccount{
-			Namespace: fieldMap[serviceAccountNamespaceField],
-			Name:      fieldMap[serviceAccountNameField],
-			UID:       fieldMap[serviceAccountUIDField],
-		},
-	}
 }
 
 type selectableVars struct {

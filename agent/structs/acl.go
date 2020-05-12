@@ -2,6 +2,7 @@ package structs
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"hash"
@@ -994,8 +995,9 @@ func (rules ACLBindingRules) Sort() {
 
 type ACLAuthMethodListStub struct {
 	Name        string
-	Description string
 	Type        string
+	DisplayName string `json:",omitempty"`
+	Description string `json:",omitempty"`
 	CreateIndex uint64
 	ModifyIndex uint64
 	EnterpriseMeta
@@ -1004,8 +1006,9 @@ type ACLAuthMethodListStub struct {
 func (p *ACLAuthMethod) Stub() *ACLAuthMethodListStub {
 	return &ACLAuthMethodListStub{
 		Name:           p.Name,
-		Description:    p.Description,
 		Type:           p.Type,
+		DisplayName:    p.DisplayName,
+		Description:    p.Description,
 		CreateIndex:    p.CreateIndex,
 		ModifyIndex:    p.ModifyIndex,
 		EnterpriseMeta: p.EnterpriseMeta,
@@ -1038,8 +1041,16 @@ type ACLAuthMethod struct {
 	// Immutable once set and only settable during create.
 	Type string
 
+	// DisplayName is an optional name to use instead of the Name field when
+	// displaying information about this auth method in any kind of user
+	// interface.
+	DisplayName string `json:",omitempty"`
+
 	// Description is just an optional bunch of explanatory text.
-	Description string
+	Description string `json:",omitempty"`
+
+	// MaxTokenTTL this is the maximum life of a token created by this method.
+	MaxTokenTTL time.Duration `json:",omitempty"`
 
 	// Configuration is arbitrary configuration for the auth method. This
 	// should only contain primitive values and containers (such as lists and
@@ -1049,8 +1060,51 @@ type ACLAuthMethod struct {
 	// Embedded Enterprise ACL Meta
 	EnterpriseMeta `mapstructure:",squash"`
 
+	ACLAuthMethodEnterpriseFields `mapstructure:",squash"`
+
 	// Embedded Raft Metadata
 	RaftIndex `hash:"ignore"`
+}
+
+func (m *ACLAuthMethod) MarshalJSON() ([]byte, error) {
+	type Alias ACLAuthMethod
+	exported := &struct {
+		MaxTokenTTL string `json:",omitempty"`
+		*Alias
+	}{
+		MaxTokenTTL: m.MaxTokenTTL.String(),
+		Alias:       (*Alias)(m),
+	}
+	if m.MaxTokenTTL == 0 {
+		exported.MaxTokenTTL = ""
+	}
+
+	return json.Marshal(exported)
+}
+
+func (m *ACLAuthMethod) UnmarshalJSON(data []byte) (err error) {
+	type Alias ACLAuthMethod
+	aux := &struct {
+		MaxTokenTTL interface{}
+		*Alias
+	}{
+		Alias: (*Alias)(m),
+	}
+	if err = lib.UnmarshalJSON(data, &aux); err != nil {
+		return err
+	}
+	if aux.MaxTokenTTL != nil {
+		switch v := aux.MaxTokenTTL.(type) {
+		case string:
+			if m.MaxTokenTTL, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			m.MaxTokenTTL = time.Duration(v)
+		}
+	}
+
+	return nil
 }
 
 type ACLReplicationType string

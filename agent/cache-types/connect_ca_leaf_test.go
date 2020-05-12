@@ -1,6 +1,8 @@
 package cachetype
 
 import (
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"net"
 	"strings"
@@ -964,6 +966,53 @@ func TestConnectCALeaf_expiringLeaf(t *testing.T) {
 		t.Fatalf("should not return: %#v", result)
 	case <-time.After(100 * time.Millisecond):
 	}
+}
+
+func TestConnectCALeaf_DNSSANForService(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	rpc := TestRPC(t)
+	defer rpc.AssertExpectations(t)
+
+	typ, rootsCh := testCALeafType(t, rpc)
+	defer close(rootsCh)
+
+	caRoot := connect.TestCA(t, nil)
+	caRoot.Active = true
+	rootsCh <- structs.IndexedCARoots{
+		ActiveRootID: caRoot.ID,
+		TrustDomain:  "fake-trust-domain.consul",
+		Roots: []*structs.CARoot{
+			caRoot,
+		},
+		QueryMeta: structs.QueryMeta{Index: 1},
+	}
+
+	// Instrument ConnectCA.Sign to
+	var caReq *structs.CASignRequest
+	rpc.On("RPC", "ConnectCA.Sign", mock.Anything, mock.Anything).Return(nil).
+		Run(func(args mock.Arguments) {
+			reply := args.Get(2).(*structs.IssuedCert)
+			leaf, _ := connect.TestLeaf(t, "web", caRoot)
+			reply.CertPEM = leaf
+
+			caReq = args.Get(1).(*structs.CASignRequest)
+		})
+
+	opts := cache.FetchOptions{MinIndex: 0, Timeout: 10 * time.Second}
+	req := &ConnectCALeafRequest{
+		Datacenter: "dc1",
+		Service:    "web",
+		DNSSAN:     []string{"test.example.com"},
+	}
+	_, err := typ.Fetch(opts, req)
+	require.NoError(err)
+
+	pemBlock, _ := pem.Decode([]byte(caReq.CSR))
+	csr, err := x509.ParseCertificateRequest(pemBlock.Bytes)
+	require.NoError(err)
+	require.Equal(csr.DNSNames, []string{"test.example.com"})
 }
 
 // testConnectCaRoot wraps ConnectCARoot to disable refresh so that the gated

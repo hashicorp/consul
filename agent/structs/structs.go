@@ -1554,6 +1554,20 @@ func (nodes CheckServiceNodes) Shuffle() {
 	}
 }
 
+func (nodes CheckServiceNodes) ToServiceDump() ServiceDump {
+	var ret ServiceDump
+	for i := range nodes {
+		svc := ServiceInfo{
+			Node:           nodes[i].Node,
+			Service:        nodes[i].Service,
+			Checks:         nodes[i].Checks,
+			GatewayService: nil,
+		}
+		ret = append(ret, &svc)
+	}
+	return ret
+}
+
 // ShallowClone duplicates the slice and underlying array.
 func (nodes CheckServiceNodes) ShallowClone() CheckServiceNodes {
 	dup := make(CheckServiceNodes, len(nodes))
@@ -1616,6 +1630,15 @@ type NodeInfo struct {
 // associated data. This is currently used for the UI only,
 // as it is rather expensive to generate.
 type NodeDump []*NodeInfo
+
+type ServiceInfo struct {
+	Node           *Node
+	Service        *NodeService
+	Checks         HealthChecks
+	GatewayService *GatewayService
+}
+
+type ServiceDump []*ServiceInfo
 
 type CheckID struct {
 	ID types.CheckID
@@ -1702,16 +1725,16 @@ type IndexedServices struct {
 	QueryMeta
 }
 
-type ServiceInfo struct {
+type ServiceName struct {
 	Name string
 	EnterpriseMeta
 }
 
-func (si *ServiceInfo) ToServiceID() ServiceID {
+func (si *ServiceName) ToServiceID() ServiceID {
 	return ServiceID{ID: si.Name, EnterpriseMeta: si.EnterpriseMeta}
 }
 
-type ServiceList []ServiceInfo
+type ServiceList []ServiceName
 
 type IndexedServiceList struct {
 	Services ServiceList
@@ -1752,6 +1775,11 @@ type DatacenterIndexedCheckServiceNodes struct {
 
 type IndexedNodeDump struct {
 	Dump NodeDump
+	QueryMeta
+}
+
+type IndexedServiceDump struct {
+	Dump ServiceDump
 	QueryMeta
 }
 

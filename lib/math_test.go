@@ -36,3 +36,14 @@ func TestMathMinInt(t *testing.T) {
 		}
 	}
 }
+
+func TestMathMaxUint64(t *testing.T) {
+	tests := [][3]uint64{{1, 2, 2}, {0, 1, 1}, {2, 0, 2}}
+	for _, test := range tests {
+		expected := test[2]
+		actual := lib.MaxUint64(test[0], test[1])
+		if expected != actual {
+			t.Fatalf("expected %d, got %d", expected, actual)
+		}
+	}
+}

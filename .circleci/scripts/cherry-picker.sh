@@ -100,13 +100,14 @@ for label in $labels; do
     git config --local user.email "hashicorp-ci@users.noreply.github.com"
     git config --local user.name "hashicorp-ci"
     status "checking label: $label"
+    # TODO: enable this when replatform is merged into stable-website
     # if the label matches docs-cherrypick, it will attempt to cherry-pick to stable-website
-    if [[ $label == docs-cherrypick ]]; then
-        status "backporting to stable-website"
-        branch="stable-website"
-        cherry_pick_with_slack_notification "$branch" "$CIRCLE_SHA1" "$pr_url"
+    # if [[ $label == docs-cherrypick ]]; then
+    #     status "backporting to stable-website"
+    #     branch="stable-website"
+    #     cherry_pick_with_slack_notification "$branch" "$CIRCLE_SHA1" "$pr_url"
     # else if the label matches backport/*, it will attempt to cherry-pick to the release branch
-    elif [[ $label =~ backport/* ]]; then
+    if [[ $label =~ backport/* ]]; then
         status "backporting to $label"
         branch="${label/backport/release}.x"
         cherry_pick_with_slack_notification "$branch" "$CIRCLE_SHA1" "$pr_url"

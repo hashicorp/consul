@@ -385,13 +385,11 @@ func ConfigEntryDecodeRulesForKind(kind string) (skipWhenPatching []string, tran
 		}, nil
 	case IngressGateway:
 		return []string{
-				"listeners",
-				"Listeners",
-				"listeners.services",
-				"Listeners.Services",
-			}, map[string]string{
-				"service_subset": "servicesubset",
-			}, nil
+			"listeners",
+			"Listeners",
+			"listeners.services",
+			"Listeners.Services",
+		}, nil, nil
 	case TerminatingGateway:
 		return []string{
 				"services",

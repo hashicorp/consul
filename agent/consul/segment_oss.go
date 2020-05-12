@@ -57,7 +57,7 @@ func (s *Server) floodSegments(config *Config) {
 // reconcile is used to reconcile the differences between Serf membership and
 // what is reflected in our strongly consistent store. Mainly we need to ensure
 // all live nodes are registered, all failed nodes are marked as such, and all
-// left nodes are de-registered.
+// left nodes are deregistered.
 func (s *Server) reconcile() (err error) {
 	defer metrics.MeasureSince([]string{"leader", "reconcile"}, time.Now())
 	members := s.serfLAN.Members()

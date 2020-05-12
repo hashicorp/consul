@@ -8,12 +8,18 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
+	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/square/go-jose.v2/jwt"
 )
 
 // NOTE: The tests contained herein are designed to test the HTTP API
@@ -1590,6 +1596,168 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 	})
 }
 
+func TestACLEndpoint_LoginLogout_jwt(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, TestACLConfigWithParams(nil))
+	defer a.Shutdown()
+
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// spin up a fake oidc server
+	oidcServer := startSSOTestServer(t)
+	pubKey, privKey := oidcServer.SigningKeys()
+
+	type mConfig = map[string]interface{}
+	cases := map[string]struct {
+		f         func(config mConfig)
+		issuer    string
+		expectErr string
+	}{
+		"success - jwt static keys": {func(config mConfig) {
+			config["BoundIssuer"] = "https://legit.issuer.internal/"
+			config["JWTValidationPubKeys"] = []string{pubKey}
+		},
+			"https://legit.issuer.internal/",
+			""},
+		"success - jwt jwks": {func(config mConfig) {
+			config["JWKSURL"] = oidcServer.Addr() + "/certs"
+			config["JWKSCACert"] = oidcServer.CACert()
+		},
+			"https://legit.issuer.internal/",
+			""},
+		"success - jwt oidc discovery": {func(config mConfig) {
+			config["OIDCDiscoveryURL"] = oidcServer.Addr()
+			config["OIDCDiscoveryCACert"] = oidcServer.CACert()
+		},
+			oidcServer.Addr(),
+			""},
+	}
+
+	for name, tc := range cases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			method, err := upsertTestCustomizedAuthMethod(a.RPC, TestDefaultMasterToken, "dc1", func(method *structs.ACLAuthMethod) {
+				method.Type = "jwt"
+				method.Config = map[string]interface{}{
+					"JWTSupportedAlgs": []string{"ES256"},
+					"ClaimMappings": map[string]string{
+						"first_name":   "name",
+						"/org/primary": "primary_org",
+					},
+					"ListClaimMappings": map[string]string{
+						"https://consul.test/groups": "groups",
+					},
+					"BoundAudiences": []string{"https://consul.test"},
+				}
+				if tc.f != nil {
+					tc.f(method.Config)
+				}
+			})
+			require.NoError(t, err)
+
+			t.Run("invalid bearer token", func(t *testing.T) {
+				loginInput := &structs.ACLLoginParams{
+					AuthMethod:  method.Name,
+					BearerToken: "invalid",
+				}
+
+				req, _ := http.NewRequest("POST", "/v1/acl/login", jsonBody(loginInput))
+				resp := httptest.NewRecorder()
+				_, err := a.srv.ACLLogin(resp, req)
+				require.Error(t, err)
+			})
+
+			cl := jwt.Claims{
+				Subject:   "r3qXcK2bix9eFECzsU3Sbmh0K16fatW6@clients",
+				Audience:  jwt.Audience{"https://consul.test"},
+				Issuer:    tc.issuer,
+				NotBefore: jwt.NewNumericDate(time.Now().Add(-5 * time.Second)),
+				Expiry:    jwt.NewNumericDate(time.Now().Add(5 * time.Second)),
+			}
+
+			type orgs struct {
+				Primary string `json:"primary"`
+			}
+
+			privateCl := struct {
+				FirstName string   `json:"first_name"`
+				Org       orgs     `json:"org"`
+				Groups    []string `json:"https://consul.test/groups"`
+			}{
+				FirstName: "jeff2",
+				Org:       orgs{"engineering"},
+				Groups:    []string{"foo", "bar"},
+			}
+
+			jwtData, err := oidcauthtest.SignJWT(privKey, cl, privateCl)
+			require.NoError(t, err)
+
+			t.Run("valid bearer token no bindings", func(t *testing.T) {
+				loginInput := &structs.ACLLoginParams{
+					AuthMethod:  method.Name,
+					BearerToken: jwtData,
+				}
+
+				req, _ := http.NewRequest("POST", "/v1/acl/login", jsonBody(loginInput))
+				resp := httptest.NewRecorder()
+				_, err := a.srv.ACLLogin(resp, req)
+
+				testutil.RequireErrorContains(t, err, "Permission denied")
+			})
+
+			_, err = upsertTestCustomizedBindingRule(a.RPC, TestDefaultMasterToken, "dc1", func(rule *structs.ACLBindingRule) {
+				rule.AuthMethod = method.Name
+				rule.BindType = structs.BindingRuleBindTypeService
+				rule.BindName = "test--${value.name}--${value.primary_org}"
+				rule.Selector = "value.name == jeff2 and value.primary_org == engineering and foo in list.groups"
+			})
+			require.NoError(t, err)
+
+			t.Run("valid bearer token 1 service binding", func(t *testing.T) {
+				loginInput := &structs.ACLLoginParams{
+					AuthMethod:  method.Name,
+					BearerToken: jwtData,
+				}
+
+				req, _ := http.NewRequest("POST", "/v1/acl/login", jsonBody(loginInput))
+				resp := httptest.NewRecorder()
+				obj, err := a.srv.ACLLogin(resp, req)
+				require.NoError(t, err)
+
+				token, ok := obj.(*structs.ACLToken)
+				require.True(t, ok)
+
+				require.Equal(t, method.Name, token.AuthMethod)
+				require.Equal(t, `token created via login`, token.Description)
+				require.True(t, token.Local)
+				require.Len(t, token.Roles, 0)
+				require.Len(t, token.ServiceIdentities, 1)
+				svcid := token.ServiceIdentities[0]
+				require.Len(t, svcid.Datacenters, 0)
+				require.Equal(t, "test--jeff2--engineering", svcid.ServiceName)
+
+				// and delete it
+				req, _ = http.NewRequest("GET", "/v1/acl/logout", nil)
+				req.Header.Add("X-Consul-Token", token.SecretID)
+				resp = httptest.NewRecorder()
+				_, err = a.srv.ACLLogout(resp, req)
+				require.NoError(t, err)
+
+				// verify the token was deleted
+				req, _ = http.NewRequest("GET", "/v1/acl/token/"+token.AccessorID, nil)
+				req.Header.Add("X-Consul-Token", TestDefaultMasterToken)
+				resp = httptest.NewRecorder()
+
+				// make the request
+				_, err = a.srv.ACLTokenCRUD(resp, req)
+				require.Error(t, err)
+				require.Equal(t, acl.ErrNotFound, err)
+			})
+		})
+	}
+}
+
 func TestACL_Authorize(t *testing.T) {
 	t.Parallel()
 	a1 := NewTestAgent(t, TestACLConfigWithParams(nil))
@@ -2030,4 +2198,67 @@ func TestACL_Authorize(t *testing.T) {
 		require.Equal(t, acl.ErrNotFound, err)
 		require.Nil(t, raw)
 	})
+}
+
+type rpcFn func(string, interface{}, interface{}) error
+
+func upsertTestCustomizedAuthMethod(
+	rpc rpcFn, masterToken string, datacenter string,
+	modify func(method *structs.ACLAuthMethod),
+) (*structs.ACLAuthMethod, error) {
+	name, err := uuid.GenerateUUID()
+	if err != nil {
+		return nil, err
+	}
+
+	req := structs.ACLAuthMethodSetRequest{
+		Datacenter: datacenter,
+		AuthMethod: structs.ACLAuthMethod{
+			Name: "test-method-" + name,
+			Type: "testing",
+		},
+		WriteRequest: structs.WriteRequest{Token: masterToken},
+	}
+
+	if modify != nil {
+		modify(&req.AuthMethod)
+	}
+
+	var out structs.ACLAuthMethod
+
+	err = rpc("ACL.AuthMethodSet", &req, &out)
+	if err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+func upsertTestCustomizedBindingRule(rpc rpcFn, masterToken string, datacenter string, modify func(rule *structs.ACLBindingRule)) (*structs.ACLBindingRule, error) {
+	req := structs.ACLBindingRuleSetRequest{
+		Datacenter:   datacenter,
+		BindingRule:  structs.ACLBindingRule{},
+		WriteRequest: structs.WriteRequest{Token: masterToken},
+	}
+
+	if modify != nil {
+		modify(&req.BindingRule)
+	}
+
+	var out structs.ACLBindingRule
+
+	err := rpc("ACL.BindingRuleSet", &req, &out)
+	if err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+func startSSOTestServer(t *testing.T) *oidcauthtest.Server {
+	ports := freeport.MustTake(1)
+	return oidcauthtest.Start(t, oidcauthtest.WithPort(
+		ports[0],
+		func() { freeport.Return(ports) },
+	))
 }

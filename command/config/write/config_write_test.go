@@ -258,6 +258,7 @@ func TestParseConfigEntry(t *testing.T) {
 					ca_file = "/etc/ca.crt"
 					cert_file = "/etc/client.crt"
 					key_file = "/etc/tls.key"
+					sni = "mydomain"
 				  },
 				  {
 					name = "*"
@@ -276,6 +277,7 @@ func TestParseConfigEntry(t *testing.T) {
 					CAFile = "/etc/ca.crt"
 					CertFile = "/etc/client.crt"
 					KeyFile = "/etc/tls.key"
+					SNI = "mydomain"
 				  },
 				  {
 					Name = "*"
@@ -294,7 +296,8 @@ func TestParseConfigEntry(t *testing.T) {
 					"namespace": "biz",
 					"ca_file": "/etc/ca.crt",
 					"cert_file": "/etc/client.crt",
-					"key_file": "/etc/tls.key"
+					"key_file": "/etc/tls.key",
+					"sni": "mydomain"
 				  },
 				  {
 					"name": "*",
@@ -314,7 +317,8 @@ func TestParseConfigEntry(t *testing.T) {
 					"Namespace": "biz",
 					"CAFile": "/etc/ca.crt",
 					"CertFile": "/etc/client.crt",
-					"KeyFile": "/etc/tls.key"
+					"KeyFile": "/etc/tls.key",
+					"SNI": "mydomain"
 				  },
 				  {
 					"Name": "*",
@@ -334,6 +338,7 @@ func TestParseConfigEntry(t *testing.T) {
 						CAFile:    "/etc/ca.crt",
 						CertFile:  "/etc/client.crt",
 						KeyFile:   "/etc/tls.key",
+						SNI:       "mydomain",
 					},
 					{
 						Name:      "*",
@@ -352,6 +357,7 @@ func TestParseConfigEntry(t *testing.T) {
 						CAFile:    "/etc/ca.crt",
 						CertFile:  "/etc/client.crt",
 						KeyFile:   "/etc/tls.key",
+						SNI:       "mydomain",
 					},
 					{
 						Name:      "*",
@@ -1382,6 +1388,9 @@ func TestParseConfigEntry(t *testing.T) {
 			snake: `
 				kind = "ingress-gateway"
 				name = "ingress-web"
+				tls {
+					enabled = true
+				}
 				listeners = [
 					{
 						port = 8080
@@ -1389,7 +1398,7 @@ func TestParseConfigEntry(t *testing.T) {
 						services = [
 							{
 								name = "web"
-								service_subset = "v1"
+								hosts = ["test.example.com"]
 							},
 							{
 								name = "db"
@@ -1402,6 +1411,9 @@ func TestParseConfigEntry(t *testing.T) {
 			camel: `
 				Kind = "ingress-gateway"
 				Name = "ingress-web"
+				Tls {
+					Enabled = true
+				}
 				Listeners = [
 					{
 						Port = 8080
@@ -1409,7 +1421,7 @@ func TestParseConfigEntry(t *testing.T) {
 						Services = [
 							{
 								Name = "web"
-								ServiceSubset = "v1"
+								Hosts = ["test.example.com"]
 							},
 							{
 								Name = "db"
@@ -1423,6 +1435,9 @@ func TestParseConfigEntry(t *testing.T) {
 			{
 				"kind": "ingress-gateway",
 				"name": "ingress-web",
+				"tls": {
+					"enabled": true
+				},
 				"listeners": [
 					{
 						"port": 8080,
@@ -1430,7 +1445,7 @@ func TestParseConfigEntry(t *testing.T) {
 						"services": [
 							{
 								"name": "web",
-								"service_subset": "v1"
+								"hosts": ["test.example.com"]
 							},
 							{
 								"name": "db",
@@ -1445,6 +1460,9 @@ func TestParseConfigEntry(t *testing.T) {
 			{
 				"Kind": "ingress-gateway",
 				"Name": "ingress-web",
+				"Tls": {
+					"Enabled": true
+				},
 				"Listeners": [
 					{
 						"Port": 8080,
@@ -1452,7 +1470,7 @@ func TestParseConfigEntry(t *testing.T) {
 						"Services": [
 							{
 								"Name": "web",
-								"ServiceSubset": "v1"
+								"Hosts": ["test.example.com"]
 							},
 							{
 								"Name": "db",
@@ -1466,14 +1484,17 @@ func TestParseConfigEntry(t *testing.T) {
 			expect: &api.IngressGatewayConfigEntry{
 				Kind: "ingress-gateway",
 				Name: "ingress-web",
+				TLS: api.GatewayTLSConfig{
+					Enabled: true,
+				},
 				Listeners: []api.IngressListener{
 					{
 						Port:     8080,
 						Protocol: "http",
 						Services: []api.IngressService{
 							{
-								Name:          "web",
-								ServiceSubset: "v1",
+								Name:  "web",
+								Hosts: []string{"test.example.com"},
 							},
 							{
 								Name:      "db",

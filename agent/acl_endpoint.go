@@ -1046,7 +1046,7 @@ func (s *HTTPServer) ACLLogin(resp http.ResponseWriter, req *http.Request) (inte
 	}
 
 	if err := s.rewordUnknownEnterpriseFieldError(lib.DecodeJSON(req.Body, &args.Auth)); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Failed to decode request body:: %v", err)}
+		return nil, BadRequestError{Reason: fmt.Sprintf("Failed to decode request body: %v", err)}
 	}
 
 	var out structs.ACLToken

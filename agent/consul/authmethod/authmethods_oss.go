@@ -33,6 +33,6 @@ func (c *syncCache) PutValidatorIfNewer(method *structs.ACLAuthMethod, validator
 
 func (c *syncCache) Purge() {
 	c.lock.Lock()
+	defer c.lock.Unlock()
 	c.cache.Purge()
-	c.lock.Unlock()
 }
