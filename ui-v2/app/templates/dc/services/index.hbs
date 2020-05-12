@@ -30,7 +30,7 @@
       <BlockSlot @name="content">
         <ChangeableSet @dispatcher={{searchable}}>
           <BlockSlot @name="set" as |filtered|>
-            <ConsulServiceList @routeName="dc.services.show" @items={{sort-by sort.selected.key filtered}} @proxies={{proxies}}/>          
+            <ConsulServiceList @routeName="dc.services.show" @items={{sort-by sort.selected.key filtered}} @proxies={{proxies}}/>
           </BlockSlot>
           <BlockSlot @name="empty">
             <p>
