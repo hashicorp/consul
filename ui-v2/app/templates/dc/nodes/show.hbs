@@ -28,23 +28,7 @@
         }}/>
     </BlockSlot>
     <BlockSlot @name="actions">
-      <FeedbackDialog @type="inline">
-          <BlockSlot @name="action" as |success error|>
-              <CopyButton @success={{action success}} @error={{action error}} @clipboardText={{item.Address}} @title="copy IP address to clipboard">
-                  {{item.Address}}
-              </CopyButton>
-          </BlockSlot>
-          <BlockSlot @name="success" as |transition|>
-              <p class={{transition}}>
-                  Copied IP Address!
-              </p>
-          </BlockSlot>
-          <BlockSlot @name="error" as |transition|>
-              <p class={{transition}}>
-                  Sorry, something went wrong!
-              </p>
-          </BlockSlot>
-      </FeedbackDialog>
+      <CopyButton @value={{item.Address}} @name="Address">{{item.Address}}</CopyButton>
     </BlockSlot>
     <BlockSlot @name="content">
       {{outlet}}

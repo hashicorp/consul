@@ -37,21 +37,7 @@
         <dt>Output</dt>
         <dd>
             <pre><code>{{item.Output}}</code></pre>
-    <FeedbackDialog @type="inline">
-      <BlockSlot @name="action" as |success error|>
-          <CopyButton @success={{action success}} @error={{action error}} @clipboardText={{item.Output}} @title="copy output to clipboard" />
-      </BlockSlot>
-      <BlockSlot @name="success" as |transition|>
-        <p class={{transition}}>
-          Copied output!
-        </p>
-      </BlockSlot>
-      <BlockSlot @name="error" as |transition|>
-        <p class={{transition}}>
-          Sorry, something went wrong!
-        </p>
-      </BlockSlot>
-    </FeedbackDialog>
+            <CopyButton @value={{item.Output}} @name="output" />
         </dd>
 {{/if}}
       </dl>

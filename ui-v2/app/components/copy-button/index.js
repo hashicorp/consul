@@ -1,38 +1,29 @@
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
 
-import WithListeners from 'consul-ui/mixins/with-listeners';
-
-export default Component.extend(WithListeners, {
+export default Component.extend({
   clipboard: service('clipboard/os'),
-  tagName: 'button',
-  classNames: ['copy-btn'],
-  buttonType: 'button',
-  disabled: false,
-  error: function() {},
-  success: function() {},
-  attributeBindings: [
-    'clipboardText:data-clipboard-text',
-    'clipboardTarget:data-clipboard-target',
-    'clipboardAction:data-clipboard-action',
-    'buttonType:type',
-    'disabled',
-    'aria-label',
-    'title',
-  ],
-  delegateClickEvent: true,
-
+  dom: service('dom'),
+  tagName: '',
+  init: function() {
+    this._super(...arguments);
+    this.guid = this.dom.guid(this);
+    this._listeners = this.dom.listeners();
+  },
+  willDestroyElement: function() {
+    this._super(...arguments);
+    this._listeners.remove();
+  },
   didInsertElement: function() {
     this._super(...arguments);
-    const clipboard = this.clipboard.execute(
-      this.delegateClickEvent ? `#${this.elementId}` : this.element
-    );
-    ['success', 'error'].map(event => {
-      return this.listen(clipboard, event, () => {
-        if (!this.disabled) {
-          this[event](...arguments);
-        }
-      });
+    const component = this;
+    this._listeners.add(this.clipboard.execute(`#${this.guid}`), {
+      success: function() {
+        component.success(...arguments);
+      },
+      error: function() {
+        component.error(...arguments);
+      },
     });
   },
 });
