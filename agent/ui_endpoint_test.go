@@ -319,16 +319,16 @@ func TestUiServices(t *testing.T) {
 
 		expected := []*ServiceSummary{
 			&ServiceSummary{
-				Kind:           structs.ServiceKindTypical,
-				Name:           "api",
-				Tags:           []string{"tag1", "tag2"},
-				Nodes:          []string{"foo"},
-				Connected:      true,
-				InstanceCount:  1,
-				ChecksPassing:  2,
-				ChecksWarning:  1,
-				ChecksCritical: 0,
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				Kind:               structs.ServiceKindTypical,
+				Name:               "api",
+				Tags:               []string{"tag1", "tag2"},
+				Nodes:              []string{"foo"},
+				ConnectedWithProxy: true,
+				InstanceCount:      1,
+				ChecksPassing:      2,
+				ChecksWarning:      1,
+				ChecksCritical:     0,
+				EnterpriseMeta:     *structs.DefaultEnterpriseMeta(),
 			},
 			&ServiceSummary{
 				Kind:           structs.ServiceKindTypical,
@@ -387,16 +387,16 @@ func TestUiServices(t *testing.T) {
 
 		expected := []*ServiceSummary{
 			&ServiceSummary{
-				Kind:           structs.ServiceKindTypical,
-				Name:           "api",
-				Tags:           []string{"tag1", "tag2"},
-				Nodes:          []string{"foo"},
-				Connected:      true,
-				InstanceCount:  1,
-				ChecksPassing:  2,
-				ChecksWarning:  1,
-				ChecksCritical: 0,
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				Kind:               structs.ServiceKindTypical,
+				Name:               "api",
+				Tags:               []string{"tag1", "tag2"},
+				Nodes:              []string{"foo"},
+				ConnectedWithProxy: true,
+				InstanceCount:      1,
+				ChecksPassing:      2,
+				ChecksWarning:      1,
+				ChecksCritical:     0,
+				EnterpriseMeta:     *structs.DefaultEnterpriseMeta(),
 			},
 			&ServiceSummary{
 				Kind:            structs.ServiceKindConnectProxy,

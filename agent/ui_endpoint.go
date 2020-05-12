@@ -21,18 +21,18 @@ type GatewayConfig struct {
 
 // ServiceSummary is used to summarize a service
 type ServiceSummary struct {
-	Kind              structs.ServiceKind `json:",omitempty"`
-	Name              string
-	Tags              []string
-	Nodes             []string
-	Connected         bool
-	InstanceCount     int
-	ChecksPassing     int
-	ChecksWarning     int
-	ChecksCritical    int
-	ExternalSources   []string
-	externalSourceSet map[string]struct{} // internal to track uniqueness
-	GatewayConfig     GatewayConfig       `json:",omitempty"`
+	Kind               structs.ServiceKind `json:",omitempty"`
+	Name               string
+	Tags               []string
+	Nodes              []string
+	ConnectedWithProxy bool
+	InstanceCount      int
+	ChecksPassing      int
+	ChecksWarning      int
+	ChecksCritical     int
+	ExternalSources    []string
+	externalSourceSet  map[string]struct{} // internal to track uniqueness
+	GatewayConfig      GatewayConfig       `json:",omitempty"`
 
 	structs.EnterpriseMeta
 }
@@ -283,9 +283,13 @@ func summarizeServices(dump structs.ServiceDump) []*ServiceSummary {
 
 	// Loop over services one more time and populate whether they're connected with proxy using the info in the connected map
 	for _, csn := range dump {
+		// Will happen in cases where we only have the GatewayServices mapping in ServiceInfo
+		if csn.Service == nil {
+			continue
+		}
 		sid := structs.NewServiceID(csn.Service.Service, &csn.Service.EnterpriseMeta)
 		if sum, ok := summary[sid]; ok && connected[sid] {
-			sum.Connected = true
+			sum.ConnectedWithProxy = true
 		}
 	}
 
