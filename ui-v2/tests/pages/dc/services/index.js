@@ -1,9 +1,10 @@
-export default function(visitable, clickable, text, attribute, collection, popoverSort) {
+export default function(visitable, clickable, text, attribute, present, collection, popoverSort) {
   const service = {
     name: text('[data-test-service-name]'),
     service: clickable('a'),
     externalSource: attribute('data-test-external-source', '[data-test-external-source]'),
     kind: attribute('data-test-kind', '[data-test-kind]'),
+    proxy: present('[data-test-proxy]'),
   };
   return {
     visit: visitable('/:dc/services'),
