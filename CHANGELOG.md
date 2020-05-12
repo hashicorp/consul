@@ -9,6 +9,7 @@ FEATURES:
 * acl: **(Consul Enterprise only)** Auth methods can now generically create rules to target namespaces.
 * agent: WAN federation via mesh gateways [[GH-6884](https://github.com/hashicorp/consul/issues/6884)]
 * cli: Add -config flag to "acl authmethod update/create" [[GH-7776](https://github.com/hashicorp/consul/pull/7776)]
+* agent/xds: add support for configuring passive health checks [[GH-7713](https://github.com/hashicorp/consul/pull/7713)]
 
 IMPROVEMENTS:
 
@@ -22,6 +23,7 @@ BUGFIXES:
 * license: **(Consul Enterprise only)** Fixed a bug that would cause a license reset request to only be applied on the leader server.
 * sdk: Fix race condition in freeport [[GH-7567](https://github.com/hashicorp/consul/issues/7567)]
 * server: strip local ACL tokens from RPCs during forwarding if crossing datacenters [[GH-7419](https://github.com/hashicorp/consul/issues/7419)]
+* cli: enable TLS when `CONSUL_HTTP_ADDR` has an `https` scheme [[GH-7608](https://github.com/hashicorp/consul/pull/7608)]
 
 ## 1.7.3 (May 05, 2020)
 
