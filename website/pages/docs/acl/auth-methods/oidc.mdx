@@ -201,9 +201,9 @@ be tricky to debug why things aren't working. Some tips for setting up OIDC:
 - If you're seeing claim-related errors in logs, review the provider's docs
   very carefully to see how they're naming and structuring their claims.
   Depending on the provider, you may be able to construct a simple `curl`
-  implicit grant request to obtain a JWT that you can inspect. An example of
-  how to decode the JWT (in this case located in the "access_token" field of a
-  JSON response):
+  [implicit grant](https://developer.okta.com/blog/2018/05/24/what-is-the-oauth2-implicit-grant-type)
+  request to obtain a JWT that you can inspect. An example of how to decode the
+  JWT (in this case located in the `access_token` field of a JSON response):
 
       cat jwt.json | jq -r .access_token | cut -d. -f2 | base64 -D
 
