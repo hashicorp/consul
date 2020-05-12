@@ -17,6 +17,8 @@ services outside the mesh. These gateways effectively act as Connect proxies tha
 represent more than one service. They terminate Connect mTLS connections, enforce intentions,
 and forward requests to the appropriate destination.
 
+![Terminating Gateway Architecture](/img/terminating-gateways.png)
+
 ## Security Considerations
 
 We recommend that terminating gateways are not exposed to the WAN or open internet. This is because terminating gateways
