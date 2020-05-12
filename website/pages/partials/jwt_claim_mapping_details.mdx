@@ -10,8 +10,11 @@ the [`ClaimMappings`](#claimmappings) and
 with elements of the form: `"<JWT claim>":"<attribute suffix>"`.
 
 The only difference between these two types of mappings is that `ClaimMappings`
-is used to map values which can be interpolated while `ListClaimMappings` is
-used to map to map lists of values that cannot be interpolated.
+is used to map singular values (such as a name, department, or team) while
+`ListClaimMappings` is used to map lists of values.
+
+The singular values mapped by `ClaimMappings` can be interpolated in a binding
+rule, and the lists of values mapped by `ListClaimMappings` cannot.
 
 Assume this is your config snippet:
 
