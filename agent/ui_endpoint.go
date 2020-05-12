@@ -25,9 +25,8 @@ type ServiceSummary struct {
 	Name              string
 	Tags              []string
 	Nodes             []string
+	Connected         bool
 	InstanceCount     int
-	ProxyFor          []string            `json:",omitempty"`
-	proxyForSet       map[string]struct{} // internal to track uniqueness
 	ChecksPassing     int
 	ChecksWarning     int
 	ChecksCritical    int
@@ -201,7 +200,10 @@ RPC:
 func summarizeServices(dump structs.ServiceDump) []*ServiceSummary {
 	// Collect the summary information
 	var services []structs.ServiceID
+
 	summary := make(map[structs.ServiceID]*ServiceSummary)
+	connected := make(map[structs.ServiceID]bool)
+
 	getService := func(service structs.ServiceID) *ServiceSummary {
 		serv, ok := summary[service]
 		if !ok {
@@ -236,13 +238,7 @@ func summarizeServices(dump structs.ServiceDump) []*ServiceSummary {
 		sum.Kind = svc.Kind
 		sum.InstanceCount += 1
 		if svc.Kind == structs.ServiceKindConnectProxy {
-			if _, ok := sum.proxyForSet[svc.Proxy.DestinationServiceName]; !ok {
-				if sum.proxyForSet == nil {
-					sum.proxyForSet = make(map[string]struct{})
-				}
-				sum.proxyForSet[svc.Proxy.DestinationServiceName] = struct{}{}
-				sum.ProxyFor = append(sum.ProxyFor, svc.Proxy.DestinationServiceName)
-			}
+			connected[structs.NewServiceID(svc.Proxy.DestinationServiceName, &svc.EnterpriseMeta)] = true
 		}
 		for _, tag := range svc.Tags {
 			found := false
@@ -282,6 +278,14 @@ func summarizeServices(dump structs.ServiceDump) []*ServiceSummary {
 			case api.HealthCritical:
 				sum.ChecksCritical++
 			}
+		}
+	}
+
+	// Loop over services one more time and populate whether they're connected with proxy using the info in the connected map
+	for _, csn := range dump {
+		sid := structs.NewServiceID(csn.Service.Service, &csn.Service.EnterpriseMeta)
+		if sum, ok := summary[sid]; ok && connected[sid] {
+			sum.Connected = true
 		}
 	}
 

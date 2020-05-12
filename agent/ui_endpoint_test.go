@@ -315,7 +315,6 @@ func TestUiServices(t *testing.T) {
 		// internal accounting that users don't see can be blown away
 		for _, sum := range summary {
 			sum.externalSourceSet = nil
-			sum.proxyForSet = nil
 		}
 
 		expected := []*ServiceSummary{
@@ -324,6 +323,7 @@ func TestUiServices(t *testing.T) {
 				Name:           "api",
 				Tags:           []string{"tag1", "tag2"},
 				Nodes:          []string{"foo"},
+				Connected:      true,
 				InstanceCount:  1,
 				ChecksPassing:  2,
 				ChecksWarning:  1,
@@ -347,7 +347,6 @@ func TestUiServices(t *testing.T) {
 				Tags:            nil,
 				Nodes:           []string{"bar", "foo"},
 				InstanceCount:   2,
-				ProxyFor:        []string{"api"},
 				ChecksPassing:   2,
 				ChecksWarning:   1,
 				ChecksCritical:  1,
@@ -384,7 +383,6 @@ func TestUiServices(t *testing.T) {
 		// internal accounting that users don't see can be blown away
 		for _, sum := range summary {
 			sum.externalSourceSet = nil
-			sum.proxyForSet = nil
 		}
 
 		expected := []*ServiceSummary{
@@ -393,6 +391,7 @@ func TestUiServices(t *testing.T) {
 				Name:           "api",
 				Tags:           []string{"tag1", "tag2"},
 				Nodes:          []string{"foo"},
+				Connected:      true,
 				InstanceCount:  1,
 				ChecksPassing:  2,
 				ChecksWarning:  1,
@@ -405,7 +404,6 @@ func TestUiServices(t *testing.T) {
 				Tags:            nil,
 				Nodes:           []string{"bar", "foo"},
 				InstanceCount:   2,
-				ProxyFor:        []string{"api"},
 				ChecksPassing:   2,
 				ChecksWarning:   1,
 				ChecksCritical:  1,
