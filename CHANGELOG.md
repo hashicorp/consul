@@ -3,6 +3,7 @@
 FEATURES:
 
 * acl: add auth method for JWTs [[GH-7846](https://github.com/hashicorp/consul/issues/7846)]
+* acl: **(Consul Enterprise only)** add auth method for OIDC login
 * acl: add DisplayName field to auth methods [[GH-7769](https://github.com/hashicorp/consul/issues/7769)]
 * acl: add MaxTokenTTL field to auth methods [[GH-7779](https://github.com/hashicorp/consul/issues/7779)]
 * acl: **(Consul Enterprise only)** Auth methods can now generically create rules to target namespaces.
