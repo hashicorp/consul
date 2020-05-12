@@ -2,6 +2,12 @@
 Feature: dc / services / instances / gateway: Show Gateway Service Instance
   Scenario: A Gateway Service instance
     Given 1 datacenter model with the value "dc1"
+    Given 1 proxy model from yaml	
+    ---	
+    - ServiceProxy:	
+        DestinationServiceName: service-1	
+        DestinationServiceID: ~	
+    ---
     And 1 instance model from yaml
     ---
     - Service:
@@ -23,9 +29,9 @@ Feature: dc / services / instances / gateway: Show Gateway Service Instance
       node: node-0
       id: gateway-with-id
     ---
-    Then the url should be /dc1/services/gateway/node-0/gateway-with-id
+    Then the url should be /dc1/services/gateway/instances/node-0/gateway-with-id/health-checks
 
-    And I see serviceChecksIsSelected on the tabs
+    And I see healthChecksIsSelected on the tabs
 
     When I click addresses on the tabs
     And I see addressesIsSelected on the tabs

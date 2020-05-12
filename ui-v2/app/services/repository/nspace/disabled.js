@@ -1,9 +1,15 @@
 import RepositoryService from 'consul-ui/services/repository';
-import { Promise } from 'rsvp';
+import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/nspace';
 
 const modelName = 'nspace';
 const DEFAULT_NSPACE = 'default';
 export default RepositoryService.extend({
+  getPrimaryKey: function() {
+    return PRIMARY_KEY;
+  },
+  getSlugKey: function() {
+    return SLUG_KEY;
+  },
   getModelName: function() {
     return modelName;
   },

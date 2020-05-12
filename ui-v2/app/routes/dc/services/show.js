@@ -5,26 +5,24 @@ import { get } from '@ember/object';
 
 export default Route.extend({
   repo: service('repository/service'),
+  intentionRepo: service('repository/intention'),
   chainRepo: service('repository/discovery-chain'),
+  proxyRepo: service('repository/proxy'),
   settings: service('settings'),
-  queryParams: {
-    s: {
-      as: 'filter',
-      replace: true,
-    },
-  },
-  model: function(params) {
+  model: function(params, transition = {}) {
     const dc = this.modelFor('dc').dc.Name;
     const nspace = this.modelFor('nspace').nspace.substr(1);
     return hash({
       item: this.repo.findBySlug(params.name, dc, nspace),
       urls: this.settings.findBySlug('urls'),
       dc: dc,
+      proxies: [],
     }).then(model => {
-      return hash({
-        chain: ['connect-proxy', 'mesh-gateway'].includes(get(model, 'item.Service.Kind'))
-          ? null
-          : this.chainRepo.findBySlug(params.name, dc, nspace).catch(function(e) {
+      return ['connect-proxy', 'mesh-gateway'].includes(get(model, 'item.Service.Kind'))
+        ? model
+        : hash({
+            intentions: this.intentionRepo.findByService(params.name, dc, nspace),
+            chain: this.chainRepo.findBySlug(params.name, dc, nspace).catch(function(e) {
               const code = get(e, 'errors.firstObject.status');
               // Currently we are specifically catching a 500, but we return null
               // by default, so null for all errors.
@@ -41,8 +39,9 @@ export default Route.extend({
                   return null;
               }
             }),
-        ...model,
-      });
+            proxies: this.proxyRepo.findAllBySlug(params.name, dc, nspace),
+            ...model,
+          });
     });
   },
   setupController: function(controller, model) {

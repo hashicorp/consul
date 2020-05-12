@@ -1,0 +1,20 @@
+<div id="instances" class="tab-section">
+  <div role="tabpanel">
+  {{#if (gt items.length 0) }}
+    <input type="checkbox" id="toolbar-toggle" />
+    <form class="filter-bar">
+      <FreetextFilter @searchable={{searchable}} @value={{s}} @placeholder="Search" />
+    </form>
+  {{/if}}
+    <ChangeableSet @dispatcher={{searchable}}>
+      <BlockSlot @name="set" as |filtered|>
+        <ConsulServiceInstanceList @routeName="dc.services.instance" @items={{filtered}} @proxies={{keyedProxies}}/>
+      </BlockSlot>
+      <BlockSlot @name="empty">
+        <p>
+          There are no services.
+        </p>
+      </BlockSlot>
+    </ChangeableSet>
+  </div>
+</div>

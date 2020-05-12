@@ -1,6 +1,18 @@
-<p>
-  ACLs are disabled in this Consul cluster. This  is the default behavior, as you have to explicitly enable them.
-</p>
-<p>
-  Learn more in the <a href="{{ env 'CONSUL_DOCS_URL'}}/guides/acl.html" rel="noopener noreferrer" target="_blank">ACL documentation</a>
-</p>
+<EmptyState>
+  <BlockSlot @name="header">
+    <h2>Welcome to ACLs</h2>
+  </BlockSlot>
+  <BlockSlot @name="body">
+    <p>
+      ACLs are not enabled. We strongly encourage the use of ACLs in production environments for the best security practices.
+    </p>
+  </BlockSlot>
+  <BlockSlot @name="actions">
+    <li class="docs-link">
+      <a href="{{env 'CONSUL_DOCS_URL'}}/acl/index.html" rel="noopener noreferrer" target="_blank">Read the documentation</a>
+    </li>
+    <li class="learn-link">
+      <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/security-networking/production-acls" rel="noopener noreferrer" target="_blank">Follow the guide</a>
+    </li>
+  </BlockSlot>
+</EmptyState>

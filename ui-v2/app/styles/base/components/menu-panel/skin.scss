@@ -1,11 +1,14 @@
 %menu-panel {
   border: $decor-border-100;
   border-radius: $decor-radius-200;
-  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.21);
+  box-shadow: $decor-elevation-600;
 }
 %menu-panel {
   border-color: $gray-300;
   background-color: $white;
+}
+%menu-panel dd {
+  color: $gray-500;
 }
 %menu-panel > ul > li {
   list-style-type: none;
@@ -28,5 +31,5 @@
 }
 %menu-panel .is-active > *::after {
   @extend %with-check-plain-mask, %as-pseudo;
-  background-color: $magenta-600;
+  background-color: var(--swatch-brand-600, $black);
 }

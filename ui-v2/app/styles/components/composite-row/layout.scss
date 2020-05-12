@@ -1,0 +1,35 @@
+%composite-row {
+  display: block;
+  box-sizing: border-box;
+  padding: 12px;
+  padding-right: 0;
+  border: 1px solid;
+}
+%composite-row-header {
+  margin-bottom: 0 !important;
+}
+%composite-row-intent {
+  border: 1px solid;
+  position: relative;
+}
+%composite-row-detail {
+  display: flex;
+  flex-wrap: nowrap;
+}
+%composite-row-detail * {
+  white-space: nowrap;
+}
+%composite-row-detail > li:not(:first-child) {
+  margin-left: 12px;
+}
+%composite-row-detail .node::before {
+  margin-top: 2px;
+}
+// In this case we do not need a background on the icon
+%composite-row-detail .port button {
+  padding: 0 !important;
+  margin-top: 1px !important;
+}
+%composite-row-detail .port button:hover {
+  background-color: transparent !important;
+}

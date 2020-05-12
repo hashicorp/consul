@@ -1,0 +1,17 @@
+<FeedbackDialog @type="inline">
+  <BlockSlot @name="action" as |success error|>
+    <Ref @target={{this}} @name="success" @value={{success}} />
+    <Ref @target={{this}} @name="error" @value={{error}} />
+    <button id={{guid}} title={{concat "Copy " name " to the clipboard"}} ...attributes type="button" class="copy-btn" data-clipboard-text={{value}}>{{~yield~}}</button>
+  </BlockSlot>
+  <BlockSlot @name="success" as |transition|>
+    <p class={{transition}}>
+      Copied {{name}}!
+    </p>
+  </BlockSlot>
+  <BlockSlot @name="error" as |transition|>
+    <p class={{transition}}>
+      Sorry, something went wrong!
+    </p>
+  </BlockSlot>
+</FeedbackDialog>

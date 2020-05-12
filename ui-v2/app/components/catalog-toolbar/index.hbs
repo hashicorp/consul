@@ -1,0 +1,10 @@
+<form class="catalog-toolbar" data-test-catalog-toolbar>
+  <FreetextFilter @searchable={{searchable}} @value={{value}} @placeholder="Search" />
+  <PopoverSelect
+    data-popover-select
+    @selected={{selected}}
+    @options={{options}} 
+    @onchange={{onchange}} 
+    @title='Sort By'
+  />
+</form>

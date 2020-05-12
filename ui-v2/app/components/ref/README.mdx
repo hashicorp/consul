@@ -1,0 +1,52 @@
+## Ref
+
+`<Ref @target={{this}} @name="api" @value={{api}} />`
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `target` | `Object` | | The object to assign the property/value to |
+| `name` | `String` | | The property name |
+| `value` | `Object` |  | The value |
+
+`<Ref />` allows component users use an author defined public API of a component. The component is renderless in that it yields nothing to the DOM.
+
+The component takes a property name and value and sets it on the specified target, similar to the `{{ref this "name"}}` modifier.
+
+Occasionally it's necessary call actions belonging to a component from outside the component. For example, you may have a form that needs submitting by clicking a button in another area of the
+page. In order to do this, the button needs access to the `submit` action of the form component.
+
+This can be thought of as providing the public API for the component, the author of the component has control over what the user of the component can and can't call in this way.
+
+### Example
+
+Here we provide a public API for a form component whilst authoring.
+
+```handlebars
+{{! /components/form/index.hbs }}
+<form onsubmit={{action "submit"}}>
+  {{yield (hash
+    focus=(action "focus")
+    submit=(action "submit")
+    cancel=(action "cancel")
+  )}}
+  ...
+  <button type="submit">Submit</button>
+</form>
+```
+
+The user of the component now has access to the public API of the ember/glimmer `<Form>` component, in the same way that using the `{{ref}}` modifier gives the user access to the public API of native DOM elements (for example `<input {{ref this 'input'}}/>` / `this.input.focus()`).
+
+```handlebars
+{{! /templates/index.hbs}}
+<Form as |api|>
+  <Ref @target={{this}} @name="form" @value={{api}} />
+</Form>
+...
+<button type="button" onclick={{action this.form.submit}}}></button>
+```
+
+### See
+
+- [Component Source Code](./index.js)
+
+---

@@ -1,2 +1,5 @@
 @import './card/index';
 @import './discovery-chain/index';
+.discovery-chain {
+  @extend %discovery-chain;
+}

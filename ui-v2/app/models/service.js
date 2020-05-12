@@ -13,6 +13,8 @@ export default Model.extend({
       return [];
     },
   }),
+  InstanceCount: attr('number'),
+  ProxyFor: attr(),
   Kind: attr('string'),
   ExternalSources: attr(),
   Meta: attr(),

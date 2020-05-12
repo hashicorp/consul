@@ -8,6 +8,7 @@
 %form-element > span {
   @extend %form-element-label;
 }
+%form button + em,
 %form-element > em {
   @extend %form-element-note;
 }

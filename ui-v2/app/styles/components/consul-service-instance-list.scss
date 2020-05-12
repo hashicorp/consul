@@ -1,0 +1,9 @@
+.consul-service-instance-list > ul {
+  @extend %consul-service-instance-list;
+}
+%consul-service-instance-list > li:not(:first-child) {
+  @extend %consul-service-instance-row;
+}
+%consul-service-instance-row {
+  @extend %composite-row, %with-composite-row-intent;
+}

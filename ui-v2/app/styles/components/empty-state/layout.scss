@@ -1,0 +1,29 @@
+%empty-state-header {
+  padding: 0;
+  margin: 0;
+}
+%empty-state {
+  width: 320px;
+  margin: 0 auto;
+}
+%empty-state-header {
+  margin-bottom: -3px;
+}
+%empty-state header {
+  margin-bottom: 0.5em;
+}
+%empty-state > ul {
+  display: flex;
+  justify-content: space-between;
+
+  margin-top: 1.5em;
+  padding-top: 0.6em;
+  border-top: 1px solid;
+}
+%empty-state-anchor {
+  display: inline-flex;
+  align-items: center;
+}
+%empty-state-anchor::before {
+  margin-top: -1px;
+}

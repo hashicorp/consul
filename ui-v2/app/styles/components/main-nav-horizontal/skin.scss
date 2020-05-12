@@ -8,7 +8,7 @@
   font-size: 1.2em;
 }
 
-%main-nav-horizontal button {
+%main-nav-horizontal label > button {
   font-size: inherit;
   font-weight: inherit;
   color: inherit;
@@ -18,9 +18,6 @@
   border-radius: $decor-radius-200;
 }
 %main-nav-horizontal-action {
-  cursor: default;
-}
-%main-nav-horizontal-action:not(span) {
   cursor: pointer;
 }
 %main-nav-horizontal-action,
@@ -32,7 +29,7 @@
   color: inherit;
 }
 %main-nav-horizontal-toggle,
-%main-nav-horizontal input {
+%main-nav-horizontal input[type='checkbox'] {
   display: none;
 }
 %main-nav-horizontal [type='checkbox'] + label > *::after {

@@ -1,4 +1,5 @@
 import { moduleFor, test, skip } from 'ember-qunit';
+import { get } from '@ember/object';
 import repo from 'consul-ui/tests/helpers/repo';
 const NAME = 'policy';
 moduleFor(`service:repository/${NAME}`, `Integration | Service | ${NAME}`, {
@@ -6,11 +7,15 @@ moduleFor(`service:repository/${NAME}`, `Integration | Service | ${NAME}`, {
   integration: true,
 });
 skip('translate returns the correct data for the translate endpoint');
+const now = new Date().getTime();
 const dc = 'dc-1';
 const id = 'policy-name';
 const undefinedNspace = 'default';
 [undefinedNspace, 'team-1', undefined].forEach(nspace => {
   test(`findByDatacenter returns the correct data for list endpoint when nspace is ${nspace}`, function(assert) {
+    get(this.subject(), 'store').serializerFor(NAME).timestamp = function() {
+      return now;
+    };
     return repo(
       'Policy',
       'findAllByDatacenter',
@@ -32,6 +37,7 @@ const undefinedNspace = 'default';
           expected(function(payload) {
             return payload.map(item =>
               Object.assign({}, item, {
+                SyncTime: now,
                 Datacenter: dc,
                 Namespace: item.Namespace || undefinedNspace,
                 uid: `["${item.Namespace || undefinedNspace}","${dc}","${item.ID}"]`,
@@ -64,6 +70,12 @@ const undefinedNspace = 'default';
               Datacenter: dc,
               Namespace: item.Namespace || undefinedNspace,
               uid: `["${item.Namespace || undefinedNspace}","${dc}","${item.ID}"]`,
+              meta: {
+                cacheControl: undefined,
+                cursor: undefined,
+                dc: dc,
+                nspace: item.Namespace || undefinedNspace,
+              },
             });
           })
         );

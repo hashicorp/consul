@@ -40,11 +40,17 @@
   margin-top: -5px;
 }
 %copy-button:not(:empty)::before {
-  margin-right: 10px;
+  margin-right: 4px;
 }
 %internal-button {
   padding: 0.9em 1em;
   text-align: center;
   display: inline-block;
   box-sizing: border-box;
+}
+%split-button {
+  @extend %secondary-button;
+  padding: 0 8px !important;
+  position: relative;
+  height: 100%;
 }

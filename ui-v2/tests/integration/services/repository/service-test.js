@@ -118,6 +118,7 @@ const undefinedNspace = 'default';
             service.Tags = [...new Set(payload.Nodes[0].Service.Tags)];
             service.Namespace = payload.Namespace;
             service.meta = {
+              cacheControl: undefined,
               cursor: undefined,
               dc: dc,
               nspace: payload.Namespace,

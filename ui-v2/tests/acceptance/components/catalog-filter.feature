@@ -129,18 +129,26 @@ Feature: components / catalog-filter
     Given 1 datacenter model with the value "dc-1"
     And 3 service models from yaml
     ---
-      - Tags: ['one', 'two', 'three']
+      - Name: Service-0
+        Tags: ['one', 'two', 'three']
         ChecksPassing: 0
         ChecksWarning: 0
         ChecksCritical: 1
-      - Tags: ['two', 'three']
+        Kind: ~
+      - Name: Service-1
+        Tags: ['two', 'three']
         ChecksPassing: 0
         ChecksWarning: 1
         ChecksCritical: 0
-      - Tags: ['three']
+        Kind: ~
+      - Name: Service-2
+        Tags: ['three']
         ChecksPassing: 1
         ChecksWarning: 0
         ChecksCritical: 0
+        Kind: ~
+
+
     ---
     When I visit the services page for yaml
     ---

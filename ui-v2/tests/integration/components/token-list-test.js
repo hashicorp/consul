@@ -12,7 +12,7 @@ module('Integration | Component | token list', function(hooks) {
 
     await render(hbs`{{token-list}}`);
 
-    assert.dom('*').hasText('');
+    assert.equal(this.element.textContent.trim(), '');
 
     // Template block usage:
     await render(hbs`
@@ -20,6 +20,6 @@ module('Integration | Component | token list', function(hooks) {
       {{/token-list}}
     `);
 
-    assert.dom('*').hasText('');
+    assert.equal(this.element.textContent.trim(), '');
   });
 });

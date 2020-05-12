@@ -4,26 +4,8 @@
 
 @import '../base/components/popover-menu/index';
 
-%app-view-header .actions > [type='checkbox'] {
-  @extend %more-popover-menu;
-}
-%more-popover-menu-panel [type='checkbox']:checked ~ * {
-  /* this needs to autocalculate */
-  min-height: 143px;
-  max-height: 143px;
-}
-%more-popover-menu-panel [id$='logout']:checked ~ * {
-  /* this needs to autocalculate */
-  min-height: 163px;
-  max-height: 163px;
-}
-%more-popover-menu-panel [id$='delete']:checked ~ ul label[for$='delete'] + [role='menu'],
-%more-popover-menu-panel [id$='logout']:checked ~ ul label[for$='logout'] + [role='menu'],
-%more-popover-menu-panel [id$='use']:checked ~ ul label[for$='use'] + [role='menu'] {
-  display: block;
-}
-%app-view-header .actions label + div {
-  // We need this extra to allow tooltips to show
+%app-view-actions label + div {
+  /* We need this extra to allow tooltips to show */
   overflow: visible !important;
 }
 
@@ -36,49 +18,71 @@ main {
 %app-view > div > div {
   @extend %app-view-content;
 }
+%app-view > div.unauthorized,
+%app-view > div.error {
+  @extend %app-view-error;
+}
 %app-view header form {
   @extend %filter-bar;
 }
-@media #{$--lt-spacious-page-header} {
-  %app-view-header .actions {
-    margin-top: 9px;
-  }
-}
-// TODO: This should be its own component
-%app-view h1 {
-  padding-bottom: 0.2em;
-}
-%app-view h1 span[data-tooltip] {
-  @extend %with-external-source-icon;
-  margin-top: 13px;
-}
-%app-view h1 span.kind-proxy {
-  @extend %frame-gray-900;
-  @extend %pill;
-}
-%app-view h1 span.kind-proxy::before {
-  width: 0.3em !important;
-}
-%app-view h1 em {
-  color: $gray-600;
-}
-%app-view-header .actions a,
-%app-view-header .actions button {
+%app-view-actions a,
+%app-view-actions button {
   @extend %button-compact;
 }
 %app-view-content div > dl {
   @extend %form-row;
 }
 [role='tabpanel'] > p:only-child,
-.template-error > div,
-%app-view-content > p:only-child,
-%app-view > div.disabled > div,
-%app-view.empty > div {
+%app-view-content > p:only-child {
   @extend %app-view-content-empty;
 }
 [role='tabpanel'] > *:first-child {
   margin-top: 1.25em;
 }
-%app-view > div.disabled > div {
-  margin-top: 0 !important;
+
+/* toggleable toolbar for short screens */
+[for='toolbar-toggle'] {
+  @extend %with-search-color-icon;
+  background-position: 0 4px;
+  display: inline-block;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+  color: $blue-500;
+}
+#toolbar-toggle {
+  display: none;
+}
+@media #{$--horizontal-selects} {
+  [for='toolbar-toggle'] {
+    display: none;
+  }
+}
+@media #{$--lt-spacious-page-header} {
+  %app-view-actions {
+    margin-top: 9px;
+  }
+}
+// reduced search magnifying icon layout
+@media #{$--lt-horizontal-selects} {
+  %app-view-header h1 {
+    display: inline-block;
+  }
+  // on the instance detail page we don't have the magnifier
+  html.template-instance.template-show h1 {
+    display: block;
+  }
+  #toolbar-toggle + * {
+    display: none;
+  }
+  #toolbar-toggle:checked + * {
+    display: block;
+  }
+  html.template-service.template-show #toolbar-toggle + * {
+    display: block;
+    padding: 4px;
+  }
+  html.template-service.template-show .actions {
+    display: none;
+  }
 }

@@ -1,5 +1,5 @@
 @import './feedback-dialog/index';
-main .with-feedback {
+.with-feedback {
   @extend %feedback-dialog-inline;
 }
 %feedback-dialog-inline .feedback-dialog-out {
@@ -14,7 +14,7 @@ main .with-feedback {
   .actions .with-feedback p::after {
     bottom: auto;
     top: -13px !important;
-    border-bottom: 18px solid $gray-800;
-    border-top: 0;
+    border-bottom-width: 18px;
+    border-top-width: 0;
   }
 }

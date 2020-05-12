@@ -3,19 +3,12 @@
 @import './anchors';
 @import './progress';
 @import './buttons';
+@import './composite-row';
 @import './secret-button';
 @import './tabs';
 @import './pill';
 @import './table';
 @import './form-elements';
-
-@import './tabular-details';
-@import './tabular-collection';
-@import './list-collection';
-
-@import './app-view';
-@import './product';
-
 @import './tooltip';
 @import './tag-list';
 @import './healthcheck-output';
@@ -30,6 +23,27 @@
 @import './confirmation-dialog';
 @import './feedback-dialog';
 @import './modal-dialog';
+@import './auth-form';
+@import './auth-modal';
 @import './notice';
 @import './sort-control';
+@import './oidc-select';
 @import './discovery-chain';
+@import './consul-intention-list';
+@import './empty-state';
+@import './tabular-details';
+@import './tabular-collection';
+@import './list-collection';
+@import './grid-collection';
+@import './consul-service-list';
+@import './consul-service-instance-list';
+@import './popover-select';
+
+/**/
+
+@import './brand-loader';
+@import './loader';
+@import './main-header-horizontal';
+@import './main-nav-horizontal';
+@import './app-view';
+@import './footer';

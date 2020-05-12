@@ -41,11 +41,11 @@
 /* this is only for pseudo tooltips be want to avoid */
 /* specifying pseudo in this file */
 %tooltip::after {
-  bottom: calc(100% - 7px);
+  bottom: calc(100% - 8px);
 }
 %tooltip-bottom::before {
   bottom: auto;
-  top: calc(100% + 7px);
+  top: calc(100% + 8px);
 }
 %tooltip-bottom::after {
   bottom: -12px;

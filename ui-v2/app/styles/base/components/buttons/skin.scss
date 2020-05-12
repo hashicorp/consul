@@ -27,7 +27,7 @@
   @extend %button;
   border-width: 1px;
   border-radius: $decor-radius-100;
-  box-shadow: 0 3px 1px 0 rgba($black, 0.12);
+  box-shadow: $decor-elevation-300;
 }
 /* color */
 %copy-button {
@@ -111,4 +111,24 @@
 %internal-button-dangerous:focus,
 %internal-button-dangerous:hover {
   @extend %internal-button-dangerous-intent;
+}
+
+%split-button span::after {
+  @extend %as-pseudo;
+  position: absolute;
+  background-color: $gray-300;
+  width: 1px;
+  top: 0;
+  height: 100%;
+  margin-left: 8px;
+}
+%split-button::before {
+  @extend %as-pseudo;
+  height: 16px;
+}
+%sort-button::before {
+  @extend %with-sort-icon;
+  margin-top: 8px;
+  width: 16px;
+  height: 16px;
 }

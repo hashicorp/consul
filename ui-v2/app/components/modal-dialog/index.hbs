@@ -1,0 +1,19 @@
+{{yield}}
+<input id={{name}} type="radio" name="modal" data-checked="{{checked}}" checked={{checked}} onchange={{action 'change'}} />
+<div role="dialog" aria-modal="true">
+  <label for="modal_close"></label>
+  <div>
+    <div>
+      <header>
+        <label for="modal_close">Close</label>
+        <YieldSlot @name="header">{{yield}}</YieldSlot>
+      </header>
+      <div>
+        <YieldSlot @name="body">{{yield}}</YieldSlot>
+      </div>
+      <footer>
+        <YieldSlot @name="actions" @params={{block-params (action "close")}}>{{yield}}</YieldSlot>
+      </footer>
+    </div>
+  </div>
+</div>

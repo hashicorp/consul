@@ -15,12 +15,9 @@
 .me ~ :nth-last-child(2) {
   @extend %token-yours;
 }
-.template-token.template-list main .notice {
-  margin-top: -20px;
-}
-.template-token.template-edit dd {
+.template-token.template-edit main dd {
   display: flex;
 }
-.template-token.template-edit dl {
+.template-token.template-edit main dl {
   @extend %form-row;
 }

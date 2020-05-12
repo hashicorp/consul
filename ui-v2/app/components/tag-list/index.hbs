@@ -1,0 +1,16 @@
+{{#if (gt item.Tags.length 0)}}
+  {{#if (has-block)}}
+    {{yield
+      (component 'tag-list' item=item)
+    }}
+  {{else}}
+    <dl class="tag-list">
+      <dt>Tags</dt>
+      <dd data-test-tags>
+        {{#each item.Tags as |item|}}
+          <span>{{item}}</span>
+        {{/each}}
+      </dd>
+    </dl>
+  {{/if}}
+{{/if}}

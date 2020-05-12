@@ -35,23 +35,25 @@ export default Mixin.create(WithListeners, {
     return this._super(_model);
   },
   reset: function(exiting) {
-    if (exiting) {
-      Object.keys(this).forEach(prop => {
-        if (this[prop] && typeof this[prop].close === 'function') {
-          this[prop].close();
-          // ember doesn't delete on 'resetController' by default
-          // right now we only call reset when we are exiting, therefore a full
-          // setProperties will be called the next time we enter the Route so this
-          // is ok for what we need and means that the above conditional works
-          // as expected (see 'here' comment above)
-          // delete this[prop];
-          // TODO: Check that nulling this out instead of deleting is fine
-          // pretty sure it is as above is just a falsey check
-          set(this, prop, null);
-        }
-      });
-    }
+    Object.keys(this).forEach(prop => {
+      if (this[prop] && typeof this[prop].close === 'function') {
+        this[prop].willDestroy();
+        // ember doesn't delete on 'resetController' by default
+        // right now we only call reset when we are exiting, therefore a full
+        // setProperties will be called the next time we enter the Route so this
+        // is ok for what we need and means that the above conditional works
+        // as expected (see 'here' comment above)
+        // delete this[prop];
+        // TODO: Check that nulling this out instead of deleting is fine
+        // pretty sure it is as above is just a falsey check
+        set(this, prop, null);
+      }
+    });
     return this._super(...arguments);
+  },
+  willDestroy: function() {
+    this.reset(true);
+    this._super(...arguments);
   },
 });
 export const listen = purify(catchable, function(props) {

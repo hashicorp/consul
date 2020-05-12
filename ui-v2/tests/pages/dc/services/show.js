@@ -1,14 +1,19 @@
-export default function(visitable, attribute, collection, text, filter, radiogroup) {
+export default function(visitable, attribute, collection, text, intentions, filter, tabs) {
   return {
     visit: visitable('/:dc/services/:service'),
-    externalSource: attribute('data-test-external-source', 'h1 span'),
-    instances: collection('#instances [data-test-tabular-row]', {
-      address: text('[data-test-address]'),
+    externalSource: attribute('data-test-external-source', '[data-test-external-source]', {
+      scope: '.title',
     }),
     dashboardAnchor: {
       href: attribute('href', '[data-test-dashboard-anchor]'),
     },
-    tabs: radiogroup('tab', ['instances', 'routing', 'tags']),
+    tabs: tabs('tab', ['instances', 'intentions', 'routing', 'tags']),
     filter: filter,
+
+    // TODO: These need to somehow move to subpages
+    instances: collection('.consul-service-instance-list > ul > li:not(:first-child)', {
+      address: text('[data-test-address]'),
+    }),
+    intentions: intentions(),
   };
 }

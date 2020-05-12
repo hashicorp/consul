@@ -20,8 +20,8 @@ Feature: dc / nodes / show: Show node
     When I click lockSessions on the tabs
     And I see lockSessionsIsSelected on the tabs
 
-    When I click metaData on the tabs
-    And I see metaDataIsSelected on the tabs
+    When I click metadata on the tabs
+    And I see metadataIsSelected on the tabs
   Scenario: Given 1 node all the tabs are visible and clickable and the RTT one isn't there
     Given 1 node models from yaml
     ---
@@ -54,7 +54,7 @@ Feature: dc / nodes / show: Show node
     ---
     And I see healthChecks on the tabs
     And I see services on the tabs
-    And I see roundTripTime on the tabs
+    And I don't see roundTripTime on the tabs
     And I see lockSessions on the tabs
     And I see servicesIsSelected on the tabs
   Scenario: A node warns when deregistered whilst blocking
@@ -74,7 +74,7 @@ Feature: dc / nodes / show: Show node
       dc: dc1
       node: node-0
     ---
-    Then the url should be /dc1/nodes/node-0
+    Then the url should be /dc1/nodes/node-0/health-checks
     And the title should be "node-0 - Consul"
     And the url "/v1/internal/ui/node/node-0" responds with a 404 status
     And pause until I see the text "no longer exists" in "[data-notification]"

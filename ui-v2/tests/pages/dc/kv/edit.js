@@ -8,7 +8,7 @@ export default function(visitable, attribute, submitable, deletable, cancelable)
         .map(encodeURIComponent)
         .join('/');
     }),
-    ...submitable(),
+    ...submitable({}, 'main'),
     ...cancelable(),
     ...deletable(),
     session: {

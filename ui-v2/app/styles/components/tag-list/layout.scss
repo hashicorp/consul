@@ -5,17 +5,16 @@
 // the default definition list layout used in edit pages
 // ideally we'd be more specific with those to say
 // only add padding to dl's in edit pages
+%tag-list::before {
+  @extend %with-tag-mask, %as-pseudo;
+  margin-right: 4px;
+}
 %tag-list dd {
   display: inline-flex;
-  padding-left: 0;
-  flex-wrap: wrap;
-  justify-content: space-between;
+  padding-left: 0px;
 }
-%tag-list dd:after {
-  content: '';
-  flex: auto;
-}
-%tag-list dd > * {
-  margin-right: 3px;
-  margin-bottom: 10px;
+%tag-list dd > *:not(:last-child)::after {
+  content: ', ';
+  white-space: pre;
+  display: inline;
 }

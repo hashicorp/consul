@@ -6,6 +6,7 @@ Feature: dc / services / show: Show Service
     And 1 service model from yaml
     ---
     - Service:
+        Kind: ~
         Tags: ['Tag1', 'Tag2']
         Meta:
           external-source: consul
@@ -24,6 +25,7 @@ Feature: dc / services / show: Show Service
     And 1 service model from yaml
     ---
     - Service:
+        Kind: ~
         Tags: ['Tag1', 'Tag2']
         Meta:
           external-source: 'not-supported'
@@ -40,10 +42,13 @@ Feature: dc / services / show: Show Service
     And 1 service model from yaml
     ---
     - Service:
+        Kind: ~
         Tags: ['Tag1', 'Tag2']
     - Service:
+        Kind: ~
         Tags: ['Tag3', 'Tag1']
     - Service:
+        Kind: ~
         Tags: ['Tag2', 'Tag3']
     ---
     When I visit the service page for yaml
@@ -51,6 +56,7 @@ Feature: dc / services / show: Show Service
       dc: dc1
       service: service-0
     ---
+    And I click tags on the tabs
     Then I see the text "Tag1" in "[data-test-tags] span:nth-child(1)"
     Then I see the text "Tag2" in "[data-test-tags] span:nth-child(2)"
     Then I see the text "Tag3" in "[data-test-tags] span:nth-child(3)"
@@ -62,18 +68,21 @@ Feature: dc / services / show: Show Service
     - Checks:
         - Status: passing
       Service:
+        Kind: ~
         ID: passing-service-8080
         Port: 8080
         Address: 1.1.1.1
       Node:
         Address: 1.2.2.2
     - Service:
+        Kind: ~
         ID: service-8000
         Port: 8000
         Address: 2.2.2.2
       Node:
         Address: 2.3.3.3
     - Service:
+        Kind: ~
         ID: service-8888
         Port: 8888
         Address: 3.3.3.3

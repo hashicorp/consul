@@ -5,13 +5,13 @@ references:
   images:
     go: &GOLANG_IMAGE circleci/golang:1.14.1
     middleman: &MIDDLEMAN_IMAGE hashicorp/middleman-hashicorp:0.3.40
-    ember: &EMBER_IMAGE circleci/node:8-browsers
+    ember: &EMBER_IMAGE circleci/node:12-browsers
 
   paths:
     test-results: &TEST_RESULTS_DIR /tmp/test-results
 
   cache:
-    yarn: &YARN_CACHE_KEY consul-ui-v1-{{ checksum "ui-v2/yarn.lock" }}
+    yarn: &YARN_CACHE_KEY consul-ui-v2-{{ checksum "ui-v2/yarn.lock" }}
     rubygem: &RUBYGEM_CACHE_KEY static-site-gems-v1-{{ checksum "Gemfile.lock" }}
 
   environment: &ENVIRONMENT
@@ -461,6 +461,9 @@ jobs:
       - image: *EMBER_IMAGE
     environment:
       EMBER_TEST_REPORT: test-results/report-oss.xml #outputs test report for CircleCI test summary
+      EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
+      CONSUL_NSPACES_ENABLED: 0
+    parallelism: 2
     steps:
       - checkout
       - restore_cache:
@@ -469,7 +472,7 @@ jobs:
           at: ui-v2
       - run:
           working_directory: ui-v2
-          command: make test-oss-ci
+          command: node_modules/.bin/ember exam --split=$CIRCLE_NODE_TOTAL --partition=`expr $CIRCLE_NODE_INDEX + 1` --path dist --silent -r xunit
       - store_test_results:
           path: ui-v2/test-results
   # run ember frontend tests
@@ -478,6 +481,8 @@ jobs:
       - image: *EMBER_IMAGE
     environment:
       EMBER_TEST_REPORT: test-results/report-ent.xml #outputs test report for CircleCI test summary
+      EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
+    parallelism: 2
     steps:
       - checkout
       - restore_cache:
@@ -486,9 +491,26 @@ jobs:
           at: ui-v2
       - run:
           working_directory: ui-v2
-          command: make test-ci
+          command: node_modules/.bin/ember exam --split=$CIRCLE_NODE_TOTAL --partition=`expr $CIRCLE_NODE_INDEX + 1` --path dist --silent -r xunit
       - store_test_results:
           path: ui-v2/test-results
+  # run ember frontend unit tests to produce coverage report
+  ember-coverage:
+    docker:
+      - image: *EMBER_IMAGE
+    steps:
+      - checkout
+      - restore_cache:
+          key: *YARN_CACHE_KEY
+      - attach_workspace:
+          at: ui-v2
+      - run:
+          working_directory: ui-v2
+          command: make test-coverage-ci
+      - run:
+          name: codecov ui upload
+          working_directory: ui-v2
+          command: bash <(curl -s https://codecov.io/bash) -v -c -C $CIRCLE_SHA1 -F ui
 
   envoy-integration-test-1.11.2:
     docker:
@@ -680,6 +702,9 @@ workflows:
           requires:
             - ember-build
       - ember-test-ent:
+          requires:
+            - ember-build
+      - ember-coverage:
           requires:
             - ember-build
   cherry-pick:

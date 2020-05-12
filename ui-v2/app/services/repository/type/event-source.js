@@ -1,41 +1,27 @@
 import { inject as service } from '@ember/service';
 import { get } from '@ember/object';
 
+import { restartWhenAvailable } from 'consul-ui/services/client/http';
 import LazyProxyService from 'consul-ui/services/lazy-proxy';
 
 import { cache as createCache, BlockingEventSource } from 'consul-ui/utils/dom/event-source';
 
 const createProxy = function(repo, find, settings, cache, serialize = JSON.stringify) {
   const client = this.client;
-  const store = this.store;
   // custom createEvent, here used to reconcile the ember-data store for each tick
-  const createEvent = function(result, configuration) {
-    const event = {
-      type: 'message',
-      data: result,
+  let createEvent;
+  if (typeof repo.reconcile === 'function') {
+    createEvent = function(result = {}, configuration) {
+      const event = {
+        type: 'message',
+        data: result,
+      };
+      if (repo.reconcile === 'function') {
+        repo.reconcile(get(event, 'data.meta'));
+      }
+      return event;
     };
-    const meta = get(event.data || {}, 'meta') || {};
-    if (typeof meta.date !== 'undefined') {
-      // unload anything older than our current sync date/time
-      const checkNspace = meta.nspace !== '';
-      store.peekAll(repo.getModelName()).forEach(function(item) {
-        const dc = get(item, 'Datacenter');
-        if (dc === meta.dc) {
-          if (checkNspace) {
-            const nspace = get(item, 'Namespace');
-            if (nspace !== meta.namespace) {
-              return;
-            }
-          }
-          const date = get(item, 'SyncTime');
-          if (typeof date !== 'undefined' && date != meta.date) {
-            store.unloadRecord(item);
-          }
-        }
-      });
-    }
-    return event;
-  };
+  }
   // proxied find*..(id, dc)
   return function() {
     const key = `${repo.getModelName()}.${find}.${serialize([...arguments])}`;
@@ -58,18 +44,7 @@ const createProxy = function(repo, find, settings, cache, serialize = JSON.strin
             }
             return res;
           })
-          .catch(function(e) {
-            // setup the aborted connection restarting
-            // this should happen here to avoid cache deletion
-            const status = get(e, 'errors.firstObject.status');
-            if (status === '0') {
-              // Any '0' errors (abort) should possibly try again, depending upon the circumstances
-              // whenAvailable returns a Promise that resolves when the client is available
-              // again
-              return client.whenAvailable(e);
-            }
-            throw e;
-          });
+          .catch(restartWhenAvailable(client));
       },
       {
         key: key,
@@ -83,18 +58,28 @@ const createProxy = function(repo, find, settings, cache, serialize = JSON.strin
   };
 };
 let cache = null;
+let cacheMap = null;
 export default LazyProxyService.extend({
-  store: service('store'),
   settings: service('settings'),
-  wait: service('timeout'),
   client: service('client/http'),
   init: function() {
     this._super(...arguments);
     if (cache === null) {
-      cache = createCache({});
+      this.resetCache();
     }
   },
+  resetCache: function() {
+    Object.entries(cacheMap || {}).forEach(function([key, item]) {
+      item.close();
+    });
+    cacheMap = {};
+    cache = createCache(cacheMap);
+  },
   willDestroy: function() {
+    Object.entries(cacheMap || {}).forEach(function([key, item]) {
+      item.close();
+    });
+    cacheMap = null;
     cache = null;
   },
   shouldProxy: function(content, method) {

@@ -10,6 +10,7 @@ test(
         environment: 'production',
         CONSUL_BINARY_TYPE: 'oss',
         CONSUL_ACLS_ENABLED: '{{.ACLsEnabled}}',
+        CONSUL_SSO_ENABLED: '{{.SSOEnabled}}',
         CONSUL_NSPACES_ENABLED: '{{ if .NamespacesEnabled }}{{.NamespacesEnabled}}{{ else }}false{{ end }}',
       },
       {
@@ -17,6 +18,7 @@ test(
         CONSUL_BINARY_TYPE: 'oss',
         CONSUL_ACLS_ENABLED: true,
         CONSUL_NSPACES_ENABLED: true,
+        CONSUL_SSO_ENABLED: false,
       },
       {
         $: {
@@ -26,12 +28,24 @@ test(
         CONSUL_BINARY_TYPE: 'oss',
         CONSUL_ACLS_ENABLED: true,
         CONSUL_NSPACES_ENABLED: false,
+        CONSUL_SSO_ENABLED: false,
+      },
+      {
+        $: {
+          CONSUL_SSO_ENABLED: 0
+        },
+        environment: 'test',
+        CONSUL_BINARY_TYPE: 'oss',
+        CONSUL_ACLS_ENABLED: true,
+        CONSUL_NSPACES_ENABLED: true,
+        CONSUL_SSO_ENABLED: false,
       },
       {
         environment: 'staging',
         CONSUL_BINARY_TYPE: 'oss',
         CONSUL_ACLS_ENABLED: true,
         CONSUL_NSPACES_ENABLED: true,
+        CONSUL_SSO_ENABLED: true,
       }
     ].forEach(
       function(item) {

@@ -3,7 +3,7 @@ import { setupRenderingTest } from 'ember-qunit';
 import { render } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 
-module('helper:slugify', function(hooks) {
+module('Integration | Helper | slugify', function(hooks) {
   setupRenderingTest(hooks);
 
   // Replace this with your real tests.
@@ -12,7 +12,7 @@ module('helper:slugify', function(hooks) {
 
     await render(hbs`{{slugify inputValue}}`);
 
-    assert.dom('*').hasText('hi-there');
+    assert.equal(this.element.textContent.trim(), 'hi-there');
   });
   skip("it copes with more values such as ' etc");
 });

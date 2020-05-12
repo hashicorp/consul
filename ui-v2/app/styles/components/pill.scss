@@ -1,6 +1,5 @@
 @import '../base/components/pill/index';
-td strong,
-%tag-list span {
+td strong {
   @extend %pill;
   margin-right: 3px;
 }
@@ -42,4 +41,9 @@ td.policy-service-identity a::after {
 td.policy-management a::after {
   @extend %with-star-icon, %as-pseudo;
   margin-left: 3px;
+}
+
+.consul-external-source,
+.consul-kind {
+  @extend %reduced-pill;
 }

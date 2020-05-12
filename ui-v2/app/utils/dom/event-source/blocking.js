@@ -1,5 +1,4 @@
 import { get } from '@ember/object';
-import { Promise } from 'rsvp';
 
 const pause = 2000;
 // native EventSource retry is ~3s wait
@@ -97,10 +96,13 @@ export default function(EventSource, backoff = create5xxBackoff()) {
               // pick off the `cursor` from the meta and add it to configuration
               // along with cursor validation
               configuration.cursor = validateCursor(meta.cursor, configuration.cursor);
+              configuration.cacheControl = meta.cacheControl;
             }
-            this.currentEvent = event;
-            this.dispatchEvent(this.currentEvent);
-            const throttledResolve = throttle(configuration, this.currentEvent, this.previousEvent);
+            if ((configuration.cacheControl || '').indexOf('no-store') === -1) {
+              this.currentEvent = event;
+            }
+            this.dispatchEvent(event);
+            const throttledResolve = throttle(configuration, event, this.previousEvent);
             this.previousEvent = this.currentEvent;
             return throttledResolve(result);
           });

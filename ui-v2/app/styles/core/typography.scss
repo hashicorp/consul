@@ -41,9 +41,12 @@ pre code,
 %notice p,
 %flash-message p,
 %filter-bar input,
-%phrase-editor input {
+%phrase-editor input,
+%tab-section section p {
   @extend %p1;
 }
+%menu-panel dl,
+%empty-state-anchor,
 .type-dialog,
 %table td p,
 %table td,
@@ -56,9 +59,9 @@ pre code,
   @extend %p2;
 }
 .template-error > div,
+%empty-state-subheader,
 %button,
 %main-content p,
-%app-view > div.disabled > div,
 %form-element-note,
 %menu-panel-separator,
 %form-element-error > strong {
@@ -74,9 +77,12 @@ pre code,
 
 /*TODO: See if we can collapse these into a */
 /* strong %p3 */
+%form-element-label,
 %button {
   font-weight: $typo-weight-semibold;
 }
+%app-view-header dt,
+%menu-panel dt,
 %route-card section dt,
 %route-card header:not(.short) dd,
 %splitter-card > header {
@@ -88,6 +94,8 @@ pre code,
 /**/
 
 /* resets */
+%menu-panel dt span,
+%empty-state-subheader,
 %main-content label a[rel*='help'],
 %pill,
 %form-element > strong,
@@ -97,10 +105,17 @@ pre code,
   font-weight: $typo-weight-normal;
 }
 
-%form-element > em,
+%form-element-note,
 %tbody-th em,
 %app-view h1 em {
   font-style: normal;
+}
+/**/
+
+/* composite row */
+%composite-row-header {
+  font-size: $typo-size-450;
+  font-weight: $typo-weight-medium;
 }
 /**/
 
@@ -108,4 +123,10 @@ pre code,
 /* either make this the biggest %p or don't use it */
 %app-view h1 em {
   font-size: $typo-size-500;
+}
+/*TODO: This should go in reset, and probably needs select etc adding  */
+@media (max-width: 420px) and (-webkit-min-device-pixel-ratio: 0) {
+  input {
+    font-size: 16px !important;
+  }
 }

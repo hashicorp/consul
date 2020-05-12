@@ -1,6 +1,5 @@
 import { skip, test } from 'qunit';
 import { setupApplicationTest } from 'ember-qunit';
-import { Promise } from 'rsvp';
 import Yadda from 'yadda';
 
 import { env } from '../../env';

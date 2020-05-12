@@ -4,16 +4,23 @@
     {{title 'New Intention'}}
 {{/if}}
 
-{{#app-view class="intention edit" loading=isLoading}}
-    {{#block-slot name='notification' as |status type|}}
+<AppView @class="intention edit" @loading={{isLoading}}>
+    <BlockSlot @name="notification" as |status type|>
       {{partial 'dc/intentions/notifications'}}
-    {{/block-slot}}
-    {{#block-slot name='breadcrumbs'}}
+    </BlockSlot>
+    <BlockSlot @name="breadcrumbs">
         <ol>
-            <li><a data-test-back href={{href-to 'dc.intentions'}}>All Intentions</a></li>
+      {{#if (gt history.length 0)}}
+          <li><a href={{href-to 'dc.services'}}>All Services</a></li>
+        {{#let history.firstObject as |back|}}
+          <li><a data-test-back href={{href-to back.key back.value}}>{{concat 'Service (' back.value ')'}}</a></li>
+        {{/let}}
+      {{else}}
+          <li><a data-test-back href={{href-to 'dc.intentions'}}>All Intentions</a></li>
+      {{/if}}
         </ol>
-    {{/block-slot}}
-    {{#block-slot name='header'}}
+    </BlockSlot>
+    <BlockSlot @name="header">
         <h1>
 {{#if item.ID }}
             Edit Intention
@@ -21,29 +28,22 @@
             New Intention
 {{/if}}
         </h1>
-    {{/block-slot}}
-    {{#block-slot name='actions'}}
+    </BlockSlot>
+    <BlockSlot @name="actions">
 {{#if (not create) }}
-        {{#feedback-dialog type='inline'}}
-            {{#block-slot name='action' as |success error|}}
-                {{#copy-button success=(action success) error=(action error) clipboardText=item.ID title='copy UUID to clipboard'}}
-                    Copy UUID
-                {{/copy-button}}
-            {{/block-slot}}
-            {{#block-slot name='success' as |transition|}}
-                <p class={{transition}}>
-                    Copied UUID!
-                </p>
-            {{/block-slot}}
-            {{#block-slot name='error' as |transition|}}
-                <p class={{transition}}>
-                    Sorry, something went wrong!
-                </p>
-            {{/block-slot}}
-        {{/feedback-dialog}}
+        <CopyButton @value={{item.ID}} @name="UUID">
+            Copy UUID
+        </CopyButton>
 {{/if}}
-    {{/block-slot}}
-    {{#block-slot name='content'}}
-        {{ partial 'dc/intentions/form'}}
-    {{/block-slot}}
-{{/app-view}}
+    </BlockSlot>
+    <BlockSlot @name="content">
+      <ConsulIntentionForm
+        @item={{item}}
+        @services={{services}}
+        @nspaces={{nspaces}}
+        @ondelete={{action "route" "delete"}}
+        @onsubmit={{action "route" (if item.isNew "create" "update")}}
+        @oncancel={{action "route" "cancel"}}
+      />
+    </BlockSlot>
+</AppView>

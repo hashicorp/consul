@@ -65,6 +65,15 @@ test-oss-ci: deps test-node
 test-node:
 	yarn run test:node
 
+test-coverage: deps
+	yarn run test:coverage
+
+test-coverage-view: deps
+	yarn run test:coverage:view
+
+test-coverage-ci: deps
+	yarn run test:coverage:ci
+
 test-parallel: deps
 	yarn run test:parallel
 

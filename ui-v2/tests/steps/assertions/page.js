@@ -1,7 +1,12 @@
 /* eslint no-console: "off" */
-const notFound = 'Element not found';
+import $ from '-jquery';
+
+const elementNotFound = 'Element not found';
+// this error comes from our pageObject `find `function
+const pageObjectNotFound = 'PageObject not found';
 const cannotDestructure = "Cannot destructure property 'context'";
 const cannotReadContext = "Cannot read property 'context' of undefined";
+
 // checking for existence of pageObjects is pretty difficult
 // errors are thrown but we should check to make sure its the error that we
 // want and not another real error
@@ -22,11 +27,20 @@ const cannotReadContext = "Cannot read property 'context' of undefined";
 // that real errors are picked up by the tests, so if this gets unmanageable at any point
 // look at checking for the instance of e being TypeError or similar
 const isExpectedError = function(e) {
-  return [notFound, cannotDestructure, cannotReadContext].some(item => e.message.startsWith(item));
+  return [pageObjectNotFound, elementNotFound, cannotDestructure, cannotReadContext].some(item =>
+    e.message.startsWith(item)
+  );
 };
-
+const dont = `( don't| shouldn't| can't)?`;
 export default function(scenario, assert, find, currentPage) {
   scenario
+    .then(['I see $num of the $component object'], function(num, component) {
+      assert.equal(
+        currentPage()[component].length,
+        num,
+        `Expected to see ${num} items in the ${component} object`
+      );
+    })
     .then('I see $property on the $component like yaml\n$yaml', function(
       property,
       component,
@@ -57,99 +71,91 @@ export default function(scenario, assert, find, currentPage) {
         );
       });
     })
-    .then(['I see $property on the $component'], function(property, component) {
-      // TODO: Time to work on repetition
-      // Collection
-      var obj;
-      if (typeof currentPage()[component].objectAt === 'function') {
-        obj = currentPage()[component].objectAt(0);
-      } else {
-        obj = currentPage()[component];
-      }
-      let _component;
-      if (typeof obj === 'function') {
-        const func = obj[property].bind(obj);
-        try {
-          _component = func();
-        } catch (e) {
+    .then('I see $property on the $component vertically like yaml\n$yaml', function(
+      property,
+      component,
+      yaml
+    ) {
+      const _component = currentPage()[component];
+      const iterator = new Array(_component.length).fill(true);
+      assert.ok(iterator.length > 0);
+
+      const items = _component.toArray().sort((a, b) => {
+        return (
+          $(a.scope)
+            .get(0)
+            .getBoundingClientRect().top -
+          $(b.scope)
+            .get(0)
+            .getBoundingClientRect().top
+        );
+      });
+
+      iterator.forEach(function(item, i, arr) {
+        const actual = typeof items[i][property] === 'undefined' ? null : items[i][property];
+
+        const expected = typeof yaml[i] === 'number' ? yaml[i].toString() : yaml[i];
+
+        assert.deepEqual(
+          actual,
+          expected,
+          `Expected to see ${property} on ${component}[${i}] as ${JSON.stringify(
+            expected
+          )}, was ${JSON.stringify(actual)}`
+        );
+      });
+    })
+    .then([`I${dont} see $property`, `I${dont} see $property on the $component`], function(
+      negative,
+      property,
+      component
+    ) {
+      const isNegative = typeof negative !== 'undefined';
+      let message = `Expected to${isNegative ? ' not' : ''} see ${property}`;
+      let target;
+      try {
+        if (typeof component === 'string') {
+          property = `${component}.${property}`;
+          message = `${message} on ${component}`;
+        }
+        target = find(property);
+      } catch (e) {
+        if (isNegative) {
+          if (isExpectedError(e)) {
+            assert.ok(true, message);
+            return Promise.resolve();
+          } else {
+            console.error(e);
+            throw e;
+          }
+        } else {
           console.error(e);
-          throw new Error(
-            `The '${property}' property on the '${component}' page object doesn't exist`
+          throw e;
+        }
+      }
+      if (typeof target === 'function') {
+        if (isNegative) {
+          assert.throws(
+            function() {
+              target();
+            },
+            function(e) {
+              return isExpectedError(e);
+            },
+            message
           );
-        }
-      } else {
-        _component = obj;
-      }
-      assert.ok(_component[property], `Expected to see ${property} on ${component}`);
-    })
-    .then(['I see $num of the $component object'], function(num, component) {
-      assert.equal(
-        currentPage()[component].length,
-        num,
-        `Expected to see ${num} items in the ${component} object`
-      );
-    })
-    .then(["I don't see $property on the $component"], function(property, component) {
-      const message = `Expected to not see ${property} on ${component}`;
-      // Cope with collections
-      let obj;
-      if (typeof currentPage()[component].objectAt === 'function') {
-        obj = currentPage()[component].objectAt(0);
-      } else {
-        obj = currentPage()[component];
-      }
-      let prop;
-      try {
-        prop = obj[property];
-      } catch (e) {
-        if (isExpectedError(e)) {
-          assert.ok(true, message);
+          return Promise.resolve();
         } else {
-          throw e;
+          try {
+            target = target();
+          } catch (e) {
+            console.error(e);
+            throw new Error(`The '${property}' page object doesn't exist`);
+          }
         }
       }
-      if (typeof prop === 'function') {
-        assert.throws(
-          function() {
-            prop();
-          },
-          function(e) {
-            return isExpectedError(e);
-          },
-          message
-        );
-      } else {
-        assert.notOk(prop);
-      }
-    })
-    .then(["I don't see $property"], function(property) {
-      const message = `Expected to not see ${property}`;
-      let prop;
-      try {
-        prop = currentPage()[property];
-      } catch (e) {
-        if (isExpectedError(e)) {
-          assert.ok(true, message);
-        } else {
-          throw e;
-        }
-      }
-      if (typeof prop === 'function') {
-        assert.throws(
-          function() {
-            prop();
-          },
-          function(e) {
-            return isExpectedError(e);
-          },
-          message
-        );
-      } else {
-        assert.notOk(prop);
-      }
-    })
-    .then(['I see $property'], function(property) {
-      assert.ok(currentPage()[property], `Expected to see ${property}`);
+      assert[isNegative ? 'notOk' : 'ok'](target, message);
+      return Promise.resolve();
     })
     .then(
       [

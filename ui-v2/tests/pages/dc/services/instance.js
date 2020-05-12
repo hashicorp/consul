@@ -1,38 +1,22 @@
-export default function(visitable, attribute, collection, text, radiogroup) {
+export default function(visitable, attribute, collection, text, tabs) {
   return {
-    visit: visitable('/:dc/services/:service/:node/:id'),
-    externalSource: attribute('data-test-external-source', 'h1 span'),
-    tabs: radiogroup('tab', [
-      'service-checks',
-      'node-checks',
-      'addresses',
-      'upstreams',
-      'exposed-paths',
-      'tags',
-      'meta-data',
-    ]),
-    serviceChecks: collection('#service-checks [data-test-healthchecks] li', {
-      exposed: attribute('data-test-exposed', '[data-test-exposed]'),
+    visit: visitable('/:dc/services/:service/instances/:node/:id'),
+    externalSource: attribute('data-test-external-source', '[data-test-external-source]', {
+      scope: '.title',
     }),
-    nodeChecks: collection('#node-checks [data-test-healthchecks] li', {
-      exposed: attribute('data-test-exposed', '[data-test-exposed]'),
-    }),
-    upstreams: collection('#upstreams [data-test-tabular-row]', {
+    tabs: tabs('tab', ['health-checks', 'proxy-info', 'addresses', 'tags', 'metadata']),
+    serviceChecks: collection('[data-test-service-checks] li'),
+    nodeChecks: collection('[data-test-node-checks] li'),
+    upstreams: collection('[data-test-proxy-upstreams] > li', {
       name: text('[data-test-destination-name]'),
-      datacenter: text('[data-test-destination-datacenter]'),
-      type: text('[data-test-destination-type]'),
-      address: text('[data-test-local-bind-address]'),
     }),
-    exposedPaths: collection('#exposed-paths [data-test-tabular-row]', {
+    exposedPaths: collection('[data-test-proxy-exposed-paths] > tbody tr', {
       combinedAddress: text('[data-test-combined-address]'),
     }),
+    proxyChecks: collection('[data-test-proxy-checks] li'),
     addresses: collection('#addresses [data-test-tabular-row]', {
       address: text('[data-test-address]'),
     }),
-    metaData: collection('#meta-data [data-test-tabular-row]', {}),
-    proxy: {
-      type: attribute('data-test-proxy-type', '[data-test-proxy-type]'),
-      destination: attribute('data-test-proxy-destination', '[data-test-proxy-destination]'),
-    },
+    metadata: collection('#metadata [data-test-tabular-row]', {}),
   };
 }

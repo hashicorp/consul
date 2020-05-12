@@ -1,0 +1,11 @@
+<div id="tags" class="tab-section">
+  <div role="tabpanel">
+    {{#if (gt item.Tags.length 0) }}
+      <TagList @item={{item}} />
+    {{else}}
+      <p>
+        There are no tags.
+      </p>
+    {{/if}}
+  </div>
+</div>

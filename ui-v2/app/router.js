@@ -2,10 +2,6 @@ import EmberRouter from '@ember/routing/router';
 import { env } from 'consul-ui/env';
 import walk from 'consul-ui/utils/routing/walk';
 
-const Router = EmberRouter.extend({
-  location: env('locationType'),
-  rootURL: env('rootURL'),
-});
 export const routes = {
   // Our parent datacenter resource sets the namespace
   // for the entire application
@@ -17,8 +13,44 @@ export const routes = {
       // Show an individual service
       show: {
         _options: { path: '/:name' },
+        instances: {
+          _options: { path: '/instances' },
+        },
+        intentions: {
+          _options: { path: '/intentions' },
+        },
+        routing: {
+          _options: { path: '/routing' },
+        },
+        tags: {
+          _options: { path: '/tags' },
+        },
       },
       instance: {
+        _options: { path: '/:name/instances/:node/:id' },
+        healthchecks: {
+          _options: { path: '/health-checks' },
+        },
+        proxy: {
+          _options: { path: '/proxy' },
+        },
+        upstreams: {
+          _options: { path: '/upstreams' },
+        },
+        exposedpaths: {
+          _options: { path: '/exposed-paths' },
+        },
+        addresses: {
+          _options: { path: '/addresses' },
+        },
+        tags: {
+          _options: { path: '/tags' },
+        },
+        metadata: {
+          _options: { path: '/metadata' },
+        },
+      },
+      notfound: {
         _options: { path: '/:name/:node/:id' },
       },
     },
@@ -28,6 +60,21 @@ export const routes = {
       // Show an individual node
       show: {
         _options: { path: '/:name' },
+        healthchecks: {
+          _options: { path: '/health-checks' },
+        },
+        services: {
+          _options: { path: '/services' },
+        },
+        rtt: {
+          _options: { path: '/round-trip-time' },
+        },
+        sessions: {
+          _options: { path: '/lock-sessions' },
+        },
+        metadata: {
+          _options: { path: '/metadata' },
+        },
       },
     },
     // Intentions represent a consul intention
@@ -122,4 +169,9 @@ if (env('CONSUL_NSPACES_ENABLED')) {
     dc: routes.dc,
   };
 }
-export default Router.map(walk(routes));
+export default class Router extends EmberRouter {
+  location = env('locationType');
+  rootURL = env('rootURL');
+}
+
+Router.map(walk(routes));
