@@ -1,7 +1,7 @@
 .consul-service-list > ul {
   @extend %consul-service-list;
 }
-%consul-service-list > li {
+%consul-service-list > li:not(:first-child) {
   @extend %consul-service-row;
 }
 %consul-service-row {
