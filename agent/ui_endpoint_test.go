@@ -515,7 +515,8 @@ func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
 	dump := obj.([]*ServiceSummary)
 	expect := []*ServiceSummary{
 		{
-			Name: "redis",
+			Name:           "redis",
+			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 		},
 		{
 			Name:           "db",
@@ -525,6 +526,7 @@ func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
 			ChecksPassing:  1,
 			ChecksWarning:  1,
 			ChecksCritical: 0,
+			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 		},
 	}
 	assert.ElementsMatch(t, expect, dump)
@@ -637,8 +639,9 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 	dump := obj.([]*ServiceSummary)
 	expect := []*ServiceSummary{
 		{
-			Name:          "web",
-			GatewayConfig: GatewayConfig{ListenerPort: 8080},
+			Name:           "web",
+			GatewayConfig:  GatewayConfig{ListenerPort: 8080},
+			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 		},
 		{
 			Name:           "db",
@@ -649,6 +652,7 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 			ChecksWarning:  1,
 			ChecksCritical: 0,
 			GatewayConfig:  GatewayConfig{ListenerPort: 8888},
+			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 		},
 	}
 	assert.ElementsMatch(t, expect, dump)
