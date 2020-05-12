@@ -25,11 +25,11 @@
       connected with proxy
     </li>
   {{/if}}
-  {{#if (gt items.Tags.length 0)}}
-    <li>
-      <TagList @items={{item.Tags}}/>
-    </li>
-  {{/if}}
+    <TagList @item={{item}} as |Tags|>
+      <li>
+        <Tags />
+      </li>
+    </TagList>
   </ul>
 </ListCollection>
 {{/if}}

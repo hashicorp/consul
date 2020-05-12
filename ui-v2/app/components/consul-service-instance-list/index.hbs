@@ -37,11 +37,11 @@
           {{item.Node.Address}}:{{item.Service.Port}}
         {{/if}}
       </li>
-    {{#if (gt item.Service.Tags.length 0)}}
-      <li>
-        <TagList @items={{item.Service.Tags}}/>
-      </li>
-    {{/if}}
+      <TagList @item={{item.Service}} as |Tags|>
+        <li>
+          <Tags />
+        </li>
+      </TagList>
     </ul>
   </ListCollection>
 {{/if}}

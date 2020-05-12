@@ -10,16 +10,17 @@ module('Integration | Component | tag list', function(hooks) {
     // Set any properties with this.set('myProperty', 'value');
     // Handle any actions with this.on('myAction', function(val) { ... });
 
-    await render(hbs`{{tag-list}}`);
+    await render(hbs`<TagList @item={{hash Tags=(array 'tag')}} />`);
 
-    assert.dom('*').hasText('');
+    assert.dom('dd').hasText('tag');
 
     // Template block usage:
     await render(hbs`
-      {{#tag-list}}
-      {{/tag-list}}
+      <TagList @item={{hash Tags=(array 'tag')}} as |Tags|>
+        <Tags />
+      </TagList>
     `);
 
-    assert.dom('*').hasText('');
+    assert.dom('dd').hasText('tag');
   });
 });
