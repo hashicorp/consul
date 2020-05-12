@@ -449,7 +449,7 @@ func (e *ServiceSplitterConfigEntry) Normalize() error {
 
 func NormalizeServiceSplitWeight(weight float32) float32 {
 	weightScaled := scaleWeight(weight)
-	return float32(float32(weightScaled) / 100.0)
+	return float32(weightScaled) / 100.0
 }
 
 func (e *ServiceSplitterConfigEntry) Validate() error {

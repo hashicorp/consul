@@ -162,7 +162,7 @@ func (v *Validator) ValidateLogin(ctx context.Context, loginToken string) (*auth
 	var (
 		saNamespace = parts[2]
 		saName      = parts[3]
-		saUID       = string(trResp.Status.User.UID)
+		saUID       = trResp.Status.User.UID
 	)
 
 	// Check to see  if there is an override name on the ServiceAccount object.

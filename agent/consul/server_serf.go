@@ -28,9 +28,6 @@ const (
 
 	// maxPeerRetries limits how many invalidate attempts are made
 	maxPeerRetries = 6
-
-	// peerRetryBase is a baseline retry time
-	peerRetryBase = 1 * time.Second
 )
 
 // setupSerf is used to setup and initialize a Serf
@@ -360,7 +357,7 @@ func (s *Server) maybeBootstrap() {
 		for attempt := uint(0); attempt < maxPeerRetries; attempt++ {
 			if err := s.connPool.RPC(s.config.Datacenter, server.ShortName, server.Addr, server.Version,
 				"Status.Peers", &structs.DCSpecificRequest{Datacenter: s.config.Datacenter}, &peers); err != nil {
-				nextRetry := time.Duration((1 << attempt) * peerRetryBase)
+				nextRetry := (1 << attempt) * time.Second
 				s.logger.Error("Failed to confirm peer status for server (will retry).",
 					"server", server.Name,
 					"retry_interval", nextRetry.String(),

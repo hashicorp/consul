@@ -109,7 +109,7 @@ func (c *cmd) Run(args []string) int {
 		}
 
 		for _, k := range keys {
-			c.UI.Info(string(k))
+			c.UI.Info(k)
 		}
 
 		return 0

@@ -65,7 +65,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	entry, err := parseConfigEntry(string(data))
+	entry, err := parseConfigEntry(data)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Failed to decode config entry input: %v", err))
 		return 1

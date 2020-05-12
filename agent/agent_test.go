@@ -323,7 +323,7 @@ func TestAgent_makeNodeID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if _, err := uuid.ParseUUID(string(id)); err != nil {
+	if _, err := uuid.ParseUUID(id); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 

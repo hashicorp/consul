@@ -3,6 +3,7 @@ linters:
   enable:
     - gofmt
     - govet
+    - unconvert
 
 issues:
   # Disable the default exclude list so that all excludes are explicitly

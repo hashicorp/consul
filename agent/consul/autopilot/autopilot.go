@@ -3,15 +3,16 @@ package autopilot
 import (
 	"context"
 	"fmt"
+	"net"
+	"strconv"
+	"sync"
+	"time"
+
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
-	"net"
-	"strconv"
-	"sync"
-	"time"
 )
 
 // Delegate is the interface for the Autopilot mechanism
@@ -175,7 +176,7 @@ func (a *Autopilot) RemoveDeadServers() {
 }
 
 func canRemoveServers(peers, minQuorum, deadServers int) (bool, string) {
-	if peers-deadServers < int(minQuorum) {
+	if peers-deadServers < minQuorum {
 		return false, fmt.Sprintf("denied, because removing %d/%d servers would leave less then minimal allowed quorum of %d servers", deadServers, peers, minQuorum)
 	}
 

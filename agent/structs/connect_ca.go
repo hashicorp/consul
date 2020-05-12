@@ -529,7 +529,7 @@ func ParseDurationFunc() mapstructure.DecodeHookFunc {
 func Uint8ToString(bs []uint8) string {
 	b := make([]byte, len(bs))
 	for i, v := range bs {
-		b[i] = byte(v)
+		b[i] = v
 	}
 	return string(b)
 }
