@@ -54,7 +54,7 @@ Feature: dc / nodes / show: Show node
     ---
     And I see healthChecks on the tabs
     And I see services on the tabs
-    And I see roundTripTime on the tabs
+    And I don't see roundTripTime on the tabs
     And I see lockSessions on the tabs
     And I see servicesIsSelected on the tabs
   Scenario: A node warns when deregistered whilst blocking
