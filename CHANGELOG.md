@@ -10,12 +10,23 @@ FEATURES:
 * agent: WAN federation via mesh gateways [[GH-6884](https://github.com/hashicorp/consul/issues/6884)]
 * cli: Add -config flag to "acl authmethod update/create" [[GH-7776](https://github.com/hashicorp/consul/pull/7776)]
 * agent/xds: add support for configuring passive health checks [[GH-7713](https://github.com/hashicorp/consul/pull/7713)]
+* ui: Help menu to provide further documentation/learn links [[GH-7310](https://github.com/hashicorp/consul/pull/7310)]
+* ui: **(Consul Enterprise only)** SSO support [[GH-7742](https://github.com/hashicorp/consul/pull/7742)] [[GH-7771](https://github.com/hashicorp/consul/pull/7771)] [[GH-7790](https://github.com/hashicorp/consul/pull/7790)]
+* ui: Support for termininating and ingress gateways [[GH-7858](https://github.com/hashicorp/consul/pull/7858)] [[GH-7865](https://github.com/hashicorp/consul/pull/7865)]
 
 IMPROVEMENTS:
 
 * acl: change authmethod.Validator to take a logger [[GH-7758](https://github.com/hashicorp/consul/issues/7758)]
 * api: Added filtering support to the v1/connect/intentions endpoint. [[GH-7478](https://github.com/hashicorp/consul/issues/7478)]
 * license: **(Consul Enterprise only)** Update licensing to align with the current modules licensing structure.
+* ui: Show the last 8 characters of AccessorIDs in listing views [[GH-7327](https://github.com/hashicorp/consul/pull/7327)]
+* ui: Make all tabs within the UI linkable/bookmarkable and include in history [[GH-7592](https://github.com/hashicorp/consul/pull/7592)]
+* ui: Redesign of all service pages [[GH-7605](https://github.com/hashicorp/consul/pull/7605)] [[GH-7632](https://github.com/hashicorp/consul/pull/7632)] [[GH-7655](https://github.com/hashicorp/consul/pull/7655)] [[GH-7683](https://github.com/hashicorp/consul/pull/7683)]
+* ui: Show intentions per individual service [[GH-7615](https://github.com/hashicorp/consul/pull/7615)]
+* ui: Improved login/logout flow [[GH-7790](https://github.com/hashicorp/consul/pull/7790)]
+* ui: Revert search to search as you type, add sort control for the service listing page [[GH-7489](https://github.com/hashicorp/consul/pull/7489)]
+* ui: Omit proxy services from the service listing view and mark services as being proxied [[GH-7820](https://github.com/hashicorp/consul/pull/7820)]
+* ui: Display proxies in a proxy info tab with the service instance detail page [[GH-7745](https://github.com/hashicorp/consul/pull/7745)]
 
 BUGFIXES:
 
