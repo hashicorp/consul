@@ -4,12 +4,15 @@ FEATURES:
 
 * **Terminating Gateway**: Envoy can now be run as a gateway to enable services in a Consul service mesh to connect to external services through their local proxy. Terminating gateways unlock several of the benefits of a service mesh in the cases where a sidecar proxy cannot be deployed alongside services such as legacy applications or managed cloud databases.
 * **Ingress Gateway**: Envoy can now be run as a gateway to ingress traffic into the Consul service mesh, enabling a more incremental transition for applications.
+* **WAN Federation over Mesh Gateways**: Allows Consul datacenters to federate by forwarding WAN gossip and RPC traffic through Mesh Gateways rather than requiring the servers to be exposed to the WAN directly.
+* **JSON Web Token (JWT) Auth Method**: Allows exchanging a signed JWT from a trusted external identity provider for a Consul ACL token.
+* **Single Sign-On (SSO) [Enterprise]**: Lets an operator configure Consul to use an external OpenID Connect (OIDC) provider to automatically handle the lifecycle of creating, distributing and managing ACL tokens for performing CLI operations or accessing the UI. 
+* **Audit Logging [Enterprise]**: Adds instrumentation to record a trail of events (both attempted and authorized) by users of Consul’s HTTP API for purposes of regulatory compliance.
+
+
 * acl: add auth method for JWTs [[GH-7846](https://github.com/hashicorp/consul/issues/7846)]
-* acl: **(Consul Enterprise only)** add auth method for OIDC login
 * acl: add DisplayName field to auth methods [[GH-7769](https://github.com/hashicorp/consul/issues/7769)]
 * acl: add MaxTokenTTL field to auth methods [[GH-7779](https://github.com/hashicorp/consul/issues/7779)]
-* acl: **(Consul Enterprise only)** Auth methods can now generically create rules to target namespaces.
-* agent: WAN federation via mesh gateways [[GH-6884](https://github.com/hashicorp/consul/issues/6884)]
 * cli: Add -config flag to "acl authmethod update/create" [[GH-7776](https://github.com/hashicorp/consul/pull/7776)]
 * agent/xds: add support for configuring passive health checks [[GH-7713](https://github.com/hashicorp/consul/pull/7713)]
 * ui: Help menu to provide further documentation/learn links [[GH-7310](https://github.com/hashicorp/consul/pull/7310)]
