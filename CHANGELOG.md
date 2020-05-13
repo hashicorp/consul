@@ -2,6 +2,7 @@
 
 FEATURES:
 
+* **Terminating Gateway**: Envoy can now be run as a gateway to enable services in a Consul service mesh to connect to external services through their local proxy. Terminating gateways unlock several of the benefits of a service mesh in the cases where a sidecar proxy cannot be deployed alongside services such as legacy applications or managed cloud databases.
 * **Ingress Gateway**: Envoy can now be run as a gateway to ingress traffic into the Consul service mesh, enabling a more incremental transition for applications.
 * acl: add auth method for JWTs [[GH-7846](https://github.com/hashicorp/consul/issues/7846)]
 * acl: **(Consul Enterprise only)** add auth method for OIDC login
