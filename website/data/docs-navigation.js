@@ -155,6 +155,7 @@ export default [
         content: ['envoy', 'built-in', 'integrate'],
       },
       'mesh_gateway',
+      'wan-federation-via-mesh-gateways',
       {
         category: 'registration',
         content: ['service-registration', 'sidecar-service'],
