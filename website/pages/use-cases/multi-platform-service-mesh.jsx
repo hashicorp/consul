@@ -124,19 +124,17 @@ Splits = [
         }}
       />
 
-      <div className="with-border">
-        <TextSplitWithImage
-          textSplit={{
-            heading: 'Improved Observability',
-            content:
-              'Centrally managed service observability at Layer 7 including detailed metrics on all service-to-service communication such as connections, bytes transferred, retries, timeouts, open circuits, and request rates, response codes.',
-            textSide: 'right',
-          }}
-          image={{
-            url: require('./img/observability.svg?url'),
-          }}
-        />
-      </div>
+      <TextSplitWithImage
+        textSplit={{
+          heading: 'Improved Observability',
+          content:
+            'Centrally managed service observability at Layer 7 including detailed metrics on all service-to-service communication such as connections, bytes transferred, retries, timeouts, open circuits, and request rates, response codes.',
+          textSide: 'right',
+        }}
+        image={{
+          url: require('./img/observability.svg?url'),
+        }}
+      />
 
       <div className="with-border">
         <TextSplitWithImage
