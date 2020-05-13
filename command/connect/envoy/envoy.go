@@ -90,7 +90,7 @@ func (c *cmd) init() {
 		"Configure Envoy as a Mesh Gateway.")
 
 	c.flags.StringVar(&c.gateway, "gateway", "",
-		"The type of gateway to register. One of: terminating or mesh")
+		"The type of gateway to register. One of: terminating, ingress, or mesh")
 
 	c.flags.StringVar(&c.sidecarFor, "sidecar-for", os.Getenv("CONNECT_SIDECAR_FOR"),
 		"The ID of a service instance on the local agent that this proxy should "+
@@ -241,16 +241,46 @@ func (c *cmd) run(args []string) int {
 			return 1
 		}
 		c.gatewayKind = kind
+
+		if c.gatewaySvcName == "" {
+			c.gatewaySvcName = string(c.gatewayKind)
+		}
+	}
+
+	if c.proxyID == "" {
+		switch {
+		case c.sidecarFor != "":
+			proxyID, err := proxyCmd.LookupProxyIDForSidecar(c.client, c.sidecarFor)
+			if err != nil {
+				c.UI.Error(err.Error())
+				return 1
+			}
+			c.proxyID = proxyID
+
+		case c.gateway != "" && !c.register:
+			gatewaySvc, err := proxyCmd.LookupGatewayProxy(c.client, c.gatewayKind)
+			if err != nil {
+				c.UI.Error(err.Error())
+				return 1
+			}
+			c.proxyID = gatewaySvc.ID
+			c.gatewaySvcName = gatewaySvc.Service
+
+		case c.gateway != "" && c.register:
+			c.proxyID = c.gatewaySvcName
+
+		}
+	}
+	if c.proxyID == "" {
+		c.UI.Error("No proxy ID specified. One of -proxy-id, -sidecar-for, or -gateway is " +
+			"required")
+		return 1
 	}
 
 	if c.register {
 		if c.gateway == "" {
 			c.UI.Error("Auto-Registration can only be used for gateways")
 			return 1
-		}
-
-		if c.gatewaySvcName == "" {
-			c.gatewaySvcName = string(c.gatewayKind)
 		}
 
 		taggedAddrs := make(map[string]api.ServiceAddress)
@@ -302,6 +332,7 @@ func (c *cmd) run(args []string) int {
 		svc := api.AgentServiceRegistration{
 			Kind:            c.gatewayKind,
 			Name:            c.gatewaySvcName,
+			ID:              c.proxyID,
 			Address:         lanAddr.Address,
 			Port:            lanAddr.Port,
 			Meta:            meta,
@@ -321,30 +352,6 @@ func (c *cmd) run(args []string) int {
 		}
 
 		c.UI.Output(fmt.Sprintf("Registered service: %s", svc.Name))
-	}
-
-	// See if we need to lookup proxyID
-	if c.proxyID == "" && c.sidecarFor != "" {
-		proxyID, err := proxyCmd.LookupProxyIDForSidecar(c.client, c.sidecarFor)
-		if err != nil {
-			c.UI.Error(err.Error())
-			return 1
-		}
-		c.proxyID = proxyID
-	} else if c.proxyID == "" && c.gateway != "" {
-		gatewaySvc, err := proxyCmd.LookupGatewayProxy(c.client, c.gatewayKind)
-		if err != nil {
-			c.UI.Error(err.Error())
-			return 1
-		}
-		c.proxyID = gatewaySvc.ID
-		c.gatewaySvcName = gatewaySvc.Service
-	}
-
-	if c.proxyID == "" {
-		c.UI.Error("No proxy ID specified. One of -proxy-id or -sidecar-for/-gateway is " +
-			"required")
-		return 1
 	}
 
 	// Generate config
@@ -485,7 +492,7 @@ func (c *cmd) generateConfig() ([]byte, error) {
 		}
 
 		if svc.Proxy == nil {
-			return nil, errors.New("service is not a Connect proxy or mesh gateway")
+			return nil, errors.New("service is not a Connect proxy or gateway")
 		}
 
 		// Parse the bootstrap config

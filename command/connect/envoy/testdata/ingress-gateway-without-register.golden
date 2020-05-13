@@ -9,8 +9,8 @@
     }
   },
   "node": {
-    "cluster": "ingress-gateway-1",
-    "id": "ingress-gateway-1",
+    "cluster": "ingress-gateway",
+    "id": "ingress-gateway",
     "metadata": {
       "namespace": "default",
       "envoy_version": "1.14.1"
@@ -53,7 +53,7 @@
         "address": {
           "socket_address": {
             "address": "127.0.0.1",
-            "port_value": 443
+            "port_value": 7777
           }
         },
         "filter_chains": [
@@ -147,7 +147,7 @@
       },
       {
         "tag_name": "local_cluster",
-        "fixed_value": "ingress-gateway-1"
+        "fixed_value": "ingress-gateway"
       }
     ],
     "use_all_default_tags": true

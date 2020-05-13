@@ -3,6 +3,7 @@ package envoy
 import (
 	"encoding/json"
 	"flag"
+	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -39,7 +40,7 @@ func TestEnvoyGateway_Validation(t *testing.T) {
 	}{
 		{
 			"-register for non-gateway",
-			[]string{"-register"},
+			[]string{"-register", "-proxy-id", "not-a-gateway"},
 			"Auto-Registration can only be used for gateways",
 		},
 		{
@@ -586,7 +587,24 @@ func TestGenerateConfig(t *testing.T) {
 		},
 		{
 			Name:  "ingress-gateway",
-			Flags: []string{"-proxy-id", "ingress-gateway", "-gateway", "ingress"},
+			Flags: []string{"-proxy-id", "ingress-gateway-1", "-gateway", "ingress"},
+			WantArgs: BootstrapTplArgs{
+				EnvoyVersion: defaultEnvoyVersion,
+				ProxyCluster: "ingress-gateway",
+				ProxyID:      "ingress-gateway-1",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502",
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+			},
+		},
+		{
+			Name:  "ingress-gateway-address-specified",
+			Flags: []string{"-proxy-id", "ingress-gateway", "-gateway", "ingress", "-address", "1.2.3.4:7777"},
 			WantArgs: BootstrapTplArgs{
 				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "ingress-gateway",
@@ -602,8 +620,42 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
-			Name:  "ingress-gateway-address-specified",
-			Flags: []string{"-proxy-id", "ingress-gateway", "-gateway", "ingress", "-address", "1.2.3.4:7777"},
+			Name:  "ingress-gateway-register-with-service-without-proxy-id",
+			Flags: []string{"-gateway", "ingress", "-register", "-service", "my-gateway", "-address", "127.0.0.1:7777"},
+			WantArgs: BootstrapTplArgs{
+				EnvoyVersion: defaultEnvoyVersion,
+				ProxyCluster: "my-gateway",
+				ProxyID:      "my-gateway",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502",
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+			},
+		},
+		{
+			Name:  "ingress-gateway-register-with-service-and-proxy-id",
+			Flags: []string{"-gateway", "ingress", "-register", "-service", "my-gateway", "-proxy-id", "my-gateway-123", "-address", "127.0.0.1:7777"},
+			WantArgs: BootstrapTplArgs{
+				EnvoyVersion: defaultEnvoyVersion,
+				ProxyCluster: "my-gateway",
+				ProxyID:      "my-gateway-123",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502",
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+			},
+		},
+		{
+			Name:  "ingress-gateway-no-auto-register",
+			Flags: []string{"-gateway", "ingress", "-address", "127.0.0.1:7777"},
 			WantArgs: BootstrapTplArgs{
 				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "ingress-gateway",
@@ -696,11 +748,105 @@ func TestGenerateConfig(t *testing.T) {
 	}
 }
 
+func TestEnvoy_GatewayRegistration(t *testing.T) {
+	t.Parallel()
+	a := agent.NewTestAgent(t, ``)
+	defer a.Shutdown()
+	client := a.Client()
+
+	tt := []struct {
+		name    string
+		args    []string
+		kind    api.ServiceKind
+		id      string
+		service string
+	}{
+		{
+			name: "register gateway with proxy-id and name",
+			args: []string{
+				"-http-addr=" + a.HTTPAddr(),
+				"-register",
+				"-bootstrap",
+				"-gateway", "ingress",
+				"-service", "us-ingress",
+				"-proxy-id", "us-ingress-1",
+			},
+			kind:    api.ServiceKindIngressGateway,
+			id:      "us-ingress-1",
+			service: "us-ingress",
+		},
+		{
+			name: "register gateway without proxy-id with name",
+			args: []string{
+				"-http-addr=" + a.HTTPAddr(),
+				"-register",
+				"-bootstrap",
+				"-gateway", "ingress",
+				"-service", "us-ingress",
+			},
+			kind:    api.ServiceKindIngressGateway,
+			id:      "us-ingress",
+			service: "us-ingress",
+		},
+		{
+			name: "register gateway without proxy-id and without name",
+			args: []string{
+				"-http-addr=" + a.HTTPAddr(),
+				"-register",
+				"-bootstrap",
+				"-gateway", "ingress",
+			},
+			kind:    api.ServiceKindIngressGateway,
+			id:      "ingress-gateway",
+			service: "ingress-gateway",
+		},
+		{
+			name: "register gateway with proxy-id without name",
+			args: []string{
+				"-http-addr=" + a.HTTPAddr(),
+				"-register",
+				"-bootstrap",
+				"-gateway", "ingress",
+				"-proxy-id", "us-ingress-1",
+			},
+			kind:    api.ServiceKindIngressGateway,
+			id:      "us-ingress-1",
+			service: "ingress-gateway",
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			ui := cli.NewMockUi()
+			c := New(ui)
+
+			code := c.Run(tc.args)
+			if code != 0 {
+				t.Fatalf("bad exit code: %d. %#v", code, ui.ErrorWriter.String())
+			}
+
+			data, _, err := client.Agent().Service(tc.id, nil)
+			assert.NoError(t, err)
+
+			assert.NotNil(t, data)
+			assert.Equal(t, tc.kind, data.Kind)
+			assert.Equal(t, tc.id, data.ID)
+			assert.Equal(t, tc.service, data.Service)
+			assert.Equal(t, defaultGatewayPort, data.Port)
+		})
+	}
+}
+
 // testMockAgent combines testMockAgentProxyConfig and testMockAgentSelf,
 // routing /agent/service/... requests to testMockAgentProxyConfig and
 // routing /agent/self requests to testMockAgentSelf.
 func testMockAgent(agentCfg map[string]interface{}, grpcPort int) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "/agent/services") {
+			testMockAgentGatewayConfig()(w, r)
+			return
+		}
+
 		if strings.Contains(r.URL.Path, "/agent/service") {
 			testMockAgentProxyConfig(agentCfg)(w, r)
 			return
@@ -712,6 +858,39 @@ func testMockAgent(agentCfg map[string]interface{}, grpcPort int) http.HandlerFu
 		}
 
 		http.NotFound(w, r)
+	})
+}
+
+func testMockAgentGatewayConfig() http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Parse the proxy-id from the end of the URL (blindly assuming it's correct
+		// format)
+		params := r.URL.Query()
+		filter := params["filter"][0]
+
+		var kind api.ServiceKind
+		switch {
+		case strings.Contains(filter, string(api.ServiceKindTerminatingGateway)):
+			kind = api.ServiceKindTerminatingGateway
+		case strings.Contains(filter, string(api.ServiceKindIngressGateway)):
+			kind = api.ServiceKindIngressGateway
+		}
+
+		svc := map[string]*api.AgentService{
+			string(kind): {
+				Kind:    kind,
+				ID:      string(kind),
+				Service: string(kind),
+			},
+		}
+
+		cfgJSON, err := json.Marshal(svc)
+		if err != nil {
+			w.WriteHeader(500)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		w.Write(cfgJSON)
 	})
 }
 
