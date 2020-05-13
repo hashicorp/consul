@@ -1,9 +1,9 @@
 %composite-row {
   list-style-type: none;
-  border-top-color: $gray-200;
-  border-bottom-color: transparent;
-  border-right-color: transparent;
-  border-left-color: transparent;
+  border-top-color: $transparent;
+  border-bottom-color: $gray-200;
+  border-right-color: $transparent;
+  border-left-color: $transparent;
 }
 %composite-row-intent {
   border-color: $gray-200;
@@ -15,9 +15,6 @@
 }
 %composite-row-detail {
   color: $gray-500;
-}
-%composite-row:last-child {
-  border-bottom-color: $gray-200;
 }
 
 // Health Checks
