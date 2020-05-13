@@ -96,7 +96,7 @@ For Envoy there are some supported [gateway options](/docs/connect/proxies/envoy
 [escape-hatch overrides](/docs/connect/proxies/envoy#escape-hatch-overrides).
 
 -> **Note:** If ACLs are enabled, the terminating gateways must be registered with a token granting `service:write`
-for the gateway's service name **and** all linked services. These permissions will authorize the gateway
+for the gateway's service name **and** all linked services. These privileges will authorize the gateway
 to terminate mTLS connections on behalf of the linked services.
 
 Linking services to a terminating gateway is done with a `terminating-gateway`
