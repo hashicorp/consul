@@ -9,7 +9,7 @@ export default function ConsulEnterpriseComparison() {
         label: 'Open Source',
         imageUrl: require('./img/consul-oss.svg?url'),
         description:
-          'Consul open source enables individuals to discover services and securely manage connections between them across cloud, on-premise, and hybrid environments.',
+          'Consul Open Source enables individuals to discover services and securely manage connections between them across cloud, on-prem, and hybrid environments.',
         link: {
           text: 'View Open Source Features',
           url: 'https://www.hashicorp.com/products/consul/pricing/',
