@@ -124,11 +124,11 @@ discover the services' addresses. These services can be registered with a local 
 If there is no agent present, the services can be registered [directly in the catalog](/api/catalog#register-entity)
 by sending the registration request to a client or server agent on a different host.
 
-Since Consul's services must be associated with a node, direct registrations to the catalog must define a node as well.
-This node's [name](/api/catalog.html#node) **must not** overlap with a node managed by a Consul agent.
-Otherwise the service registration will be deleted by that agent during the periodic
-[anti-entropy sync](/docs/internals/anti-entropy). Lastly, all agent-less services with the same address can
-be registered under the same node name and address.
+All services registered in the Consul catalog must be associated with a node, even when their node is
+not managed by a Consul client agent. All agent-less services with the same address can be registered under the same node name and address.
+However, ensure that the [node name](/api/catalog.html#node) for external services registered directly in the catalog
+does not match the node name of any Consul client agent node. If the node name overlaps with the node name of a Consul client agent,
+Consul's [anti-entropy sync](/docs/internals/anti-entropy) will delete the services registered via the `/catalog/register` HTTP API endpoint.
 
 For a complete example of how to register external services review the
 [external services guide](https://learn.hashicorp.com/consul/developer-discovery/external).
