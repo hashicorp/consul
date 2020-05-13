@@ -694,9 +694,10 @@ workflows:
       - frontend-cache:
           filters:
             branches:
-              ignore:
-                - stable-website
-                - /^docs\/.*/
+              only:
+                - master
+                - ui-staging
+                - /^ui\/.*/
       - ember-build:
           requires:
             - frontend-cache
