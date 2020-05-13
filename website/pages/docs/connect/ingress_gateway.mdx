@@ -77,3 +77,7 @@ For Envoy there are some supported [gateway options](/docs/connect/proxies/envoy
 -> **Note:** If ACLs are enabled, a token granting `service:write` for the gateway's service name
 and `service:read` for all services in the datacenter. These permissions authorize the token to route
 communications for other Connect services.
+
+~> [Configuration Entries](/docs/agent/config_entries) are global in scope. A configuration entry for a gateway name applies
+   across all federated Consul datacenters. If ingress gateways in different Consul datacenters need to route to different
+   sets of services within their datacenter then the ingress gateways **must** be registered with different names.

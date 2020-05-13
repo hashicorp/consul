@@ -19,6 +19,11 @@ and forward requests to the appropriate destination.
 
 ![Terminating Gateway Architecture](/img/terminating-gateways.png)
 
+~> **Beta limitations:** Terminating Gateways currently do not support targeting service subsets with
+[L7 configuration](/docs/connect/l7-traffic-management). They route to all instances of a service with no capabilities
+for filtering by instance. Terminating Gateways also currently do not support routing to services with a hostname
+defined as a its address. The address registered with Consul for services the gateway will route to **must** be a resolved IP address.
+
 ## Security Considerations
 
 ~> We recommend that terminating gateways are not exposed to the WAN or open internet. This is because terminating gateways
@@ -108,6 +113,10 @@ This means that additional gateway instances registered with the same name will 
 Adding replicas of a gateway that routes to a particular set of services requires running the
 [envoy subcommand](/docs/commands/connect/envoy#terminating-gateways) on additional hosts and specifying
 the same gateway name with the `service` flag.
+
+~> [Configuration Entries](/docs/agent/config_entries) are global in scope. A configuration entry for a gateway name applies
+   across all federated Consul datacenters. If terminating gateways in different Consul datacenters need to route to different
+   sets of services within their datacenter then the terminating gateways **must** be registered with different names.
 
 The services that the terminating gateway will proxy for must be registered with Consul. They must also be registered
 in the same Consul datacenter as the terminating gateway. Otherwise the terminating gateway will not be able to
