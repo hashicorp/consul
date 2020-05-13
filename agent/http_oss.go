@@ -53,13 +53,7 @@ func parseACLAuthMethodEnterpriseMeta(req *http.Request, _ *structs.ACLAuthMetho
 	return nil
 }
 
-// auditReq is a noop stub for the corresponding func in http_ent.go
-func (s *HTTPServer) auditReq(req *http.Request) interface{} {
-	// note(kit): We return an nil here so we can pass it to auditResp. Auditing the response requires the
-	//  request object for context, so we have it pass it even when it's disabled
-	return nil
-}
-
-// auditResp is a noop stub for the corresponding func in http_ent.go
-func (s *HTTPServer) auditResp(reqPayload interface{}, httpCode int) {
+// enterpriseHandler is a noop for the enterprise implementation. we pass the original back
+func (s *HTTPServer) enterpriseHandler(next http.Handler) http.Handler {
+	return next
 }

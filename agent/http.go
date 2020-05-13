@@ -350,6 +350,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 	if s.agent.config.DisableHTTPUnprintableCharFilter {
 		h = mux
 	}
+	h = s.enterpriseHandler(h)
 	return &wrappedMux{
 		mux:     mux,
 		handler: h,
@@ -399,10 +400,6 @@ var (
 func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 	httpLogger := s.agent.logger.Named(logging.HTTP)
 	return func(resp http.ResponseWriter, req *http.Request) {
-
-		// Audit log the request
-		reqPayload := s.auditReq(req)
-
 		setHeaders(resp, s.agent.config.HTTPResponseHeaders)
 		setTranslateAddr(resp, s.agent.config.TranslateWANAddrs)
 
@@ -480,44 +477,33 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 				"from", req.RemoteAddr,
 				"error", err,
 			)
-			var httpCode int
 			switch {
 			case isForbidden(err):
-				httpCode = http.StatusForbidden
-				resp.WriteHeader(httpCode)
+				resp.WriteHeader(http.StatusForbidden)
 				fmt.Fprint(resp, err.Error())
 			case structs.IsErrRPCRateExceeded(err):
-				httpCode = http.StatusTooManyRequests
-				resp.WriteHeader(httpCode)
+				resp.WriteHeader(http.StatusTooManyRequests)
 			case isMethodNotAllowed(err):
 				// RFC2616 states that for 405 Method Not Allowed the response
 				// MUST include an Allow header containing the list of valid
 				// methods for the requested resource.
 				// https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
 				addAllowHeader(err.(MethodNotAllowedError).Allow)
-				httpCode = http.StatusMethodNotAllowed
-				resp.WriteHeader(httpCode) // 405
+				resp.WriteHeader(http.StatusMethodNotAllowed) // 405
 				fmt.Fprint(resp, err.Error())
 			case isBadRequest(err):
-				httpCode = http.StatusBadRequest
-				resp.WriteHeader(httpCode)
+				resp.WriteHeader(http.StatusBadRequest)
 				fmt.Fprint(resp, err.Error())
 			case isNotFound(err):
-				httpCode = http.StatusNotFound
-				resp.WriteHeader(httpCode)
+				resp.WriteHeader(http.StatusNotFound)
 				fmt.Fprintf(resp, err.Error())
 			case isTooManyRequests(err):
-				httpCode = http.StatusTooManyRequests
-				resp.WriteHeader(httpCode)
+				resp.WriteHeader(http.StatusTooManyRequests)
 				fmt.Fprint(resp, err.Error())
 			default:
-				httpCode = http.StatusInternalServerError
-				resp.WriteHeader(httpCode)
+				resp.WriteHeader(http.StatusInternalServerError)
 				fmt.Fprint(resp, err.Error())
 			}
-
-			// Audit log the error response
-			s.auditResp(reqPayload, httpCode)
 		}
 
 		start := time.Now()
@@ -592,10 +578,6 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 		}
 		resp.Header().Set("Content-Type", contentType)
 		resp.WriteHeader(httpCode)
-
-		// Audit log the success response
-		s.auditResp(reqPayload, httpCode)
-
 		resp.Write(buf)
 	}
 }
