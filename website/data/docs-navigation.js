@@ -139,7 +139,7 @@ export default [
       'acl-rules',
       'acl-legacy',
       'acl-migrate-tokens',
-      { category: 'auth-methods', content: ['kubernetes'] },
+      { category: 'auth-methods', content: ['kubernetes', 'jwt', 'oidc']},
     ],
   },
   {

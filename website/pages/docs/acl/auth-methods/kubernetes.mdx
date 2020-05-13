@@ -8,9 +8,9 @@ description: >-
   easy to introduce a Consul token into a Kubernetes pod.
 ---
 
--> **1.5.0+:** This guide only applies in Consul versions 1.5.0 and newer.
-
 # Kubernetes Auth Method
+
+-> **1.5.0+:** This feature is available in Consul versions 1.5.0 and newer.
 
 The `kubernetes` auth method type allows for a Kubernetes service account token
 to be used to authenticate to Consul. This method of authentication makes it
@@ -18,7 +18,7 @@ easy to introduce a Consul token into a Kubernetes pod.
 
 This page assumes general knowledge of [Kubernetes](https://kubernetes.io/) and
 the concepts described in the main [auth method
-documentation](/docs/acl/acl-auth-methods).
+documentation](/docs/acl/auth-methods).
 
 ## Config Parameters
 
@@ -31,7 +31,7 @@ parameters are required to properly configure an auth method of type
 
 - `CACert` `(string: <required>)` - PEM encoded CA cert for use by the TLS
   client used to talk with the Kubernetes API. NOTE: Every line must end with a
-  newline (`\n`).
+  newline (`\n`). If not set, system certificates are used.
 
 - `ServiceAccountJWT` `(string: <required>)` - A Service Account Token
   ([JWT](https://jwt.io/ 'JSON Web Token')) used by the Consul leader to
@@ -43,11 +43,13 @@ parameters are required to properly configure an auth method of type
   namespace instead of creating tokens in the auth methods own namespace. Note
   that mapping namespaces requires the auth method to reside within the
   `default` namespace.
+  Deprecated in Consul 1.8.0 in favor of [namespace rules](/api/acl/auth-methods#namespacerules).
 
 - `ConsulNamespacePrefix` `(string: <optional>)` <EnterpriseAlert inline /> -
   **Deprecated in Consul 1.8.0 in favor of [namespace rules](/api/acl/auth-methods#namespacerules).**
   When `MapNamespaces` is enabled, this value will be prefixed to the Kubernetes
   namespace to determine the Consul namespace to create the new token within.
+  Deprecated in Consul 1.8.0 in favor of [namespace rules](/api/acl/auth-methods#namespacerules).
 
 - `ConsulNamespaceOverrides` `(map: <string:string>)` <EnterpriseAlert inline /> -
   **Deprecated in Consul 1.8.0 in favor of [namespace rules](/api/acl/auth-methods#namespacerules).**
@@ -56,6 +58,7 @@ parameters are required to properly configure an auth method of type
   be used without adding the `ConsulNamespacePrefix`. If the value in the map
   is `""` then the auth methods namespace will be used instead of attempting
   to determine an alternate namespace.
+  Deprecated in Consul 1.8.0 in favor of [namespace rules](/api/acl/auth-methods#namespacerules).
 
 ### Sample Config
 
@@ -131,17 +134,6 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 ```
 
-## Trusted Identity Attributes
-
-The authentication step returns the following trusted identity attributes for
-use in binding rule selectors and bind name interpolation.
-
-| Attributes                 | Supported Selector Operations                      | Can be Interpolated |
-| -------------------------- | -------------------------------------------------- | ------------------- |
-| `serviceaccount.namespace` | Equal, Not Equal, In, Not In, Matches, Not Matches | yes                 |
-| `serviceaccount.name`      | Equal, Not Equal, In, Not In, Matches, Not Matches | yes                 |
-| `serviceaccount.uid`       | Equal, Not Equal, In, Not In, Matches, Not Matches | yes                 |
-
 ## Kubernetes Authentication Details
 
 Initially the
@@ -156,3 +148,14 @@ API to check for the existence of an annotation of
 `consul.hashicorp.com/service-name` on the ServiceAccount object. If one is
 found its value will override the trusted attribute of `serviceaccount.name`
 for the purposes of evaluating any binding rules.
+
+## Trusted Identity Attributes
+
+The authentication step returns the following trusted identity attributes for
+use in binding rule selectors and bind name interpolation.
+
+| Attributes                 | Supported Selector Operations                      | Can be Interpolated |
+| -------------------------- | -------------------------------------------------- | ------------------- |
+| `serviceaccount.namespace` | Equal, Not Equal, In, Not In, Matches, Not Matches | yes                 |
+| `serviceaccount.name`      | Equal, Not Equal, In, Not In, Matches, Not Matches | yes                 |
+| `serviceaccount.uid`       | Equal, Not Equal, In, Not In, Matches, Not Matches | yes                 |

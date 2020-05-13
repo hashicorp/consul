@@ -1,0 +1,77 @@
+## Trusted Identity Attributes via Claim Mappings
+
+Data from JWT claims can be returned from the authentication step as trusted
+identity attributes for use in binding rule selectors and bind name
+interpolation.
+
+Control of which claims are mapped to which identity attributes is governed by
+the [`ClaimMappings`](#claimmappings) and
+[`ListClaimMappings`](#listclaimmappings). These are both maps of items to copy
+with elements of the form: `"<JWT claim>":"<attribute suffix>"`.
+
+The only difference between these two types of mappings is that `ClaimMappings`
+is used to map singular values (such as a name, department, or team) while
+`ListClaimMappings` is used to map lists of values.
+
+The singular values mapped by `ClaimMappings` can be interpolated in a binding
+rule, and the lists of values mapped by `ListClaimMappings` cannot.
+
+Assume this is your config snippet:
+
+```json
+{ ...other fields...
+  "ClaimMappings": {
+    "givenName": "first_name",
+    "surname": "last_name"
+  },
+  "ListClaimMappings": {
+    "groups": "groups"
+  }
+}
+```
+
+This specifies that the values in the JWT claims `"givenName"` and `"surname"`
+should be copied to attributes named `"value.first_name"` and
+`"value.last_name"` respectively. Additionally the list of values in the JWT
+claim `"groups"` should be copied to an attribute named `"list.groups"`.
+
+The following table shows the resulting attributes that will be extracted, and
+the ways they may be used in Rule Bindings:
+
+| Attributes         | Supported Selector Operations                      | Can be Interpolated |
+| ------------------ | -------------------------------------------------- | ------------------- |
+| `value.first_name` | Equal, Not Equal, In, Not In, Matches, Not Matches | yes                 |
+| `value.last_name`  | Equal, Not Equal, In, Not In, Matches, Not Matches | yes                 |
+| `list.groups`      | In, Not In, Is Empty, Is Not Empty                 | no                  |
+
+### Claim Specifications and JSON Pointer
+
+The [`ClaimMappings`](#claimmappings) and
+[`ListClaimMappings`](#listclaimmappings) fields are used to point to data
+within the JWT. If the desired key is at the top of level of the JWT, the name
+can be provided directly. If it is nested at a lower level, a JSON Pointer may
+be used.
+
+Assume the following JWT claims are decoded:
+
+```json
+{
+  "division": "North America",
+  "groups": {
+    "primary": "Engineering",
+    "secondary": "Software"
+  },
+  "iss": "https://my-corp-app-name.auth0.com/",
+  "sub": "auth0|eiw7OWoh5ieSh7ieyahC3ief0uyuraphaengae9d",
+  "aud": "V1RPi2MYptMV1RPi2MYptMV1RPi2MYpt",
+  "iat": 1589224148,
+  "exp": 1589260148,
+  "nonce": "eKiihooH3Fah8Ieshah4leeti6ien3"
+}
+```
+
+A parameter of `"division"` will reference `"North America"`, as this is a top
+level key. A parameter `"/groups/primary"` uses JSON Pointer syntax to
+reference `"Engineering"` at a lower level. Any valid JSON Pointer can be used
+as a selector. Refer to the [JSON Pointer
+RFC](https://tools.ietf.org/html/rfc6901) for a full description of the syntax

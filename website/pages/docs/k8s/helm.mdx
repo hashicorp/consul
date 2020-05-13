@@ -694,7 +694,7 @@ and consider if they're appropriate for your deployment.
       beta.kubernetes.io/arch: amd64
     ```
 
-  - `aclBindingRuleSelector` ((#v-connectinject-acl-bindingrule-selector)) (`string: "serviceaccount.name!=default"`) - A [selector](/docs/acl/acl-auth-methods#binding-rules)
+  - `aclBindingRuleSelector` ((#v-connectinject-acl-bindingrule-selector)) (`string: "serviceaccount.name!=default"`) - A [selector](/docs/acl/auth-methods#binding-rules)
     for restricting automatic injection to only matching services based on their
     associated service account. By default, services using the `default` Kubernetes
     service account will be prevented from logging in. This only has effect if ACLs

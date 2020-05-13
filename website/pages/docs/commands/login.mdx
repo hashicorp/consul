@@ -37,6 +37,17 @@ Usage: `consul login [options]`
 - `-token-sink-file=<string>` - The most recent token's SecretID is kept up to
   date in this file.
 
+- `-type=<string>` - Type of the auth method to login to. This field is
+  optional and defaults to no type. Required for `type=oidc` auth method login.
+  Added in Consul 1.8.0.
+
+#### Enterprise Options
+
+@include 'http_api_namespace_options.mdx'
+
+- `-oidc-callback-listen-addr=<string>` - The address to bind a webserver on to
+  handle the browser callback from the OIDC workflow. Added in Consul 1.8.0.
+
 ### Examples
 
 Login to an auth method.
