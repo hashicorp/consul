@@ -21,6 +21,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type authzResolver func(string) (structs.ACLIdentity, acl.Authorizer, error)
+type identResolver func(string) (structs.ACLIdentity, error)
+
 type TestACLAgent struct {
 	// Name is an optional name of the agent.
 	Name string
@@ -43,16 +46,17 @@ type TestACLAgent struct {
 	// Shutdown() is called.
 	DataDir string
 
-	resolveTokenFn func(string) (structs.ACLIdentity, acl.Authorizer, error)
+	resolveAuthzFn authzResolver
+	resolveIdentFn identResolver
 
 	*Agent
 }
 
-// NewTestACLAGent does just enough so that all the code within agent/acl.go can work
+// NewTestACLAgent does just enough so that all the code within agent/acl.go can work
 // Basically it needs a local state for some of the vet* functions, a logger and a delegate.
 // The key is that we are the delegate so we can control the ResolveToken responses
-func NewTestACLAgent(t *testing.T, name string, hcl string, resolveFn func(string) (structs.ACLIdentity, acl.Authorizer, error)) *TestACLAgent {
-	a := &TestACLAgent{Name: name, HCL: hcl, resolveTokenFn: resolveFn}
+func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzResolver, resolveIdent identResolver) *TestACLAgent {
+	a := &TestACLAgent{Name: name, HCL: hcl, resolveAuthzFn: resolveAuthz, resolveIdentFn: resolveIdent}
 	hclDataDir := `data_dir = "acl-agent"`
 
 	logOutput := testutil.TestWriter(t)
@@ -68,9 +72,7 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveFn func(strin
 	)
 
 	agent, err := New(a.Config, logger)
-	if err != nil {
-		panic(fmt.Sprintf("Error creating agent: %v", err))
-	}
+	require.NoError(t, err)
 	a.Agent = agent
 
 	agent.LogOutput = logOutput
@@ -93,20 +95,28 @@ func (a *TestACLAgent) UseLegacyACLs() bool {
 }
 
 func (a *TestACLAgent) ResolveToken(secretID string) (acl.Authorizer, error) {
-	if a.resolveTokenFn == nil {
-		panic("This agent is useless without providing a token resolution function")
+	if a.resolveAuthzFn == nil {
+		return nil, fmt.Errorf("ResolveToken call is unexpected - no authz resolver callback set")
 	}
 
-	_, authz, err := a.resolveTokenFn(secretID)
+	_, authz, err := a.resolveAuthzFn(secretID)
 	return authz, err
 }
 
 func (a *TestACLAgent) ResolveTokenToIdentityAndAuthorizer(secretID string) (structs.ACLIdentity, acl.Authorizer, error) {
-	if a.resolveTokenFn == nil {
-		panic("This agent is useless without providing a token resolution function")
+	if a.resolveAuthzFn == nil {
+		return nil, nil, fmt.Errorf("ResolveTokenToIdentityAndAuthorizer call is unexpected - no authz resolver callback set")
 	}
 
-	return a.resolveTokenFn(secretID)
+	return a.resolveAuthzFn(secretID)
+}
+
+func (a *TestACLAgent) ResolveTokenToIdentity(secretID string) (structs.ACLIdentity, error) {
+	if a.resolveIdentFn == nil {
+		return nil, fmt.Errorf("ResolveTokenToIdentity call is unexpected - no ident resolver callback set")
+	}
+
+	return a.resolveIdentFn(secretID)
 }
 
 func (a *TestACLAgent) ResolveTokenAndDefaultMeta(secretID string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
@@ -127,19 +137,6 @@ func (a *TestACLAgent) ResolveTokenAndDefaultMeta(secretID string, entMeta *stru
 	entMeta.FillAuthzContext(authzContext)
 
 	return authz, err
-}
-
-func (a *TestACLAgent) ResolveIdentityFromToken(secretID string) (bool, structs.ACLIdentity, error) {
-	if a.resolveTokenFn == nil {
-		panic("This agent is useless without providing a token resolution function")
-	}
-
-	identity, _, err := a.resolveTokenFn(secretID)
-	if err != nil {
-		return true, nil, err
-	}
-
-	return true, identity, nil
 }
 
 // All of these are stubs to satisfy the interface
@@ -188,14 +185,9 @@ func TestACL_Version8(t *testing.T) {
 	t.Parallel()
 
 	t.Run("version 8 disabled", func(t *testing.T) {
-		resolveFn := func(string) (structs.ACLIdentity, acl.Authorizer, error) {
-			require.Fail(t, "should not have called delegate.ResolveToken")
-			return nil, nil, fmt.Errorf("should not have called delegate.ResolveToken")
-		}
-
 		a := NewTestACLAgent(t, t.Name(), TestACLConfig()+`
  		acl_enforce_version_8 = false
- 	`, resolveFn)
+ 	`, nil, nil)
 
 		token, err := a.resolveToken("nope")
 		require.Nil(t, token)
@@ -210,7 +202,7 @@ func TestACL_Version8(t *testing.T) {
 		}
 		a := NewTestACLAgent(t, t.Name(), TestACLConfig()+`
  		acl_enforce_version_8 = true
- 	`, resolveFn)
+ 	`, resolveFn, nil)
 
 		_, err := a.resolveToken("nope")
 		require.Error(t, err)
@@ -221,12 +213,7 @@ func TestACL_Version8(t *testing.T) {
 func TestACL_AgentMasterToken(t *testing.T) {
 	t.Parallel()
 
-	resolveFn := func(string) (structs.ACLIdentity, acl.Authorizer, error) {
-		require.Fail(t, "should not have called delegate.ResolveToken")
-		return nil, nil, fmt.Errorf("should not have called delegate.ResolveToken")
-	}
-
-	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), resolveFn)
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), nil, nil)
 	a.loadTokens(a.config)
 	authz, err := a.resolveToken("towel")
 	require.NotNil(t, authz)
@@ -241,12 +228,7 @@ func TestACL_AgentMasterToken(t *testing.T) {
 func TestACL_RootAuthorizersDenied(t *testing.T) {
 	t.Parallel()
 
-	resolveFn := func(string) (structs.ACLIdentity, acl.Authorizer, error) {
-		require.Fail(t, "should not have called delegate.ResolveToken")
-		return nil, nil, fmt.Errorf("should not have called delegate.ResolveToken")
-	}
-
-	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), resolveFn)
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), nil, nil)
 	authz, err := a.resolveToken("deny")
 	require.Nil(t, authz)
 	require.Error(t, err)
@@ -280,35 +262,35 @@ var (
 	otherRWSecret   = "a38e8016-91b6-4876-b3e7-a307abbb2002"
 
 	testTokens = map[string]testToken{
-		nodeROSecret: testToken{
+		nodeROSecret: {
 			token: structs.ACLToken{
 				AccessorID: "9df2d1a4-2d07-414e-8ead-6053f56ed2eb",
 				SecretID:   nodeROSecret,
 			},
 			rules: `node_prefix "Node" { policy = "read" }`,
 		},
-		nodeRWSecret: testToken{
+		nodeRWSecret: {
 			token: structs.ACLToken{
 				AccessorID: "efb6b7d5-d343-47c1-b4cb-aa6b94d2f490",
 				SecretID:   nodeROSecret,
 			},
 			rules: `node_prefix "Node" { policy = "write" }`,
 		},
-		serviceROSecret: testToken{
+		serviceROSecret: {
 			token: structs.ACLToken{
 				AccessorID: "0da53edb-36e5-4603-9c31-79965bad45f5",
 				SecretID:   serviceROSecret,
 			},
 			rules: `service_prefix "service" { policy = "read" }`,
 		},
-		serviceRWSecret: testToken{
+		serviceRWSecret: {
 			token: structs.ACLToken{
 				AccessorID: "52504258-137a-41e6-9326-01f40e80872e",
 				SecretID:   serviceRWSecret,
 			},
 			rules: `service_prefix "service" { policy = "write" }`,
 		},
-		otherRWSecret: testToken{
+		otherRWSecret: {
 			token: structs.ACLToken{
 				AccessorID: "5e032c5b-c39e-4552-b5ad-8a9365b099c4",
 				SecretID:   otherRWSecret,
@@ -333,9 +315,18 @@ func catalogPolicy(token string) (structs.ACLIdentity, acl.Authorizer, error) {
 	return &tok.token, authz, err
 }
 
+func catalogIdent(token string) (structs.ACLIdentity, error) {
+	tok, ok := testTokens[token]
+	if !ok {
+		return nil, acl.ErrNotFound
+	}
+
+	return &tok.token, nil
+}
+
 func TestACL_vetServiceRegister(t *testing.T) {
 	t.Parallel()
-	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy, catalogIdent)
 
 	// Register a new service, with permission.
 	err := a.vetServiceRegister(serviceRWSecret, &structs.NodeService{
@@ -366,7 +357,7 @@ func TestACL_vetServiceRegister(t *testing.T) {
 
 func TestACL_vetServiceUpdate(t *testing.T) {
 	t.Parallel()
-	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy, catalogIdent)
 
 	// Update a service that doesn't exist.
 	err := a.vetServiceUpdate(serviceRWSecret, structs.NewServiceID("my-service", nil))
@@ -389,7 +380,7 @@ func TestACL_vetServiceUpdate(t *testing.T) {
 
 func TestACL_vetCheckRegister(t *testing.T) {
 	t.Parallel()
-	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy, catalogIdent)
 
 	// Register a new service check with write privs.
 	err := a.vetCheckRegister(serviceRWSecret, &structs.HealthCheck{
@@ -455,7 +446,7 @@ func TestACL_vetCheckRegister(t *testing.T) {
 
 func TestACL_vetCheckUpdate(t *testing.T) {
 	t.Parallel()
-	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy, catalogIdent)
 
 	// Update a check that doesn't exist.
 	err := a.vetCheckUpdate(nodeRWSecret, structs.NewCheckID("my-check", nil))
@@ -495,7 +486,7 @@ func TestACL_vetCheckUpdate(t *testing.T) {
 
 func TestACL_filterMembers(t *testing.T) {
 	t.Parallel()
-	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy, catalogIdent)
 
 	var members []serf.Member
 	require.NoError(t, a.filterMembers(nodeROSecret, &members))
@@ -514,7 +505,7 @@ func TestACL_filterMembers(t *testing.T) {
 
 func TestACL_filterServices(t *testing.T) {
 	t.Parallel()
-	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy, catalogIdent)
 
 	services := make(map[structs.ServiceID]*structs.NodeService)
 	require.NoError(t, a.filterServices(nodeROSecret, &services))
@@ -528,7 +519,7 @@ func TestACL_filterServices(t *testing.T) {
 
 func TestACL_filterChecks(t *testing.T) {
 	t.Parallel()
-	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy, catalogIdent)
 
 	checks := make(map[structs.CheckID]*structs.HealthCheck)
 	require.NoError(t, a.filterChecks(nodeROSecret, &checks))
@@ -554,4 +545,22 @@ func TestACL_filterChecks(t *testing.T) {
 	require.False(t, ok)
 	_, ok = checks[structs.NewCheckID("my-other", nil)]
 	require.False(t, ok)
+}
+
+func TestACL_ResolveIdentity(t *testing.T) {
+	t.Parallel()
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), nil, catalogIdent)
+
+	// this test is meant to ensure we are calling the correct function
+	// which is ResolveTokenToIdentity on the Agent delegate. Our
+	// nil authz resolver will cause it to emit an error if used
+	ident, err := a.resolveIdentityFromToken(nodeROSecret)
+	require.NoError(t, err)
+	require.NotNil(t, ident)
+
+	// just double checkingto ensure if we had used the wrong function
+	// that an error would be produced
+	_, err = a.resolveToken(nodeROSecret)
+	require.Error(t, err)
+
 }

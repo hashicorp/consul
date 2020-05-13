@@ -1114,6 +1114,30 @@ func (r *ACLResolver) ResolveToken(token string) (acl.Authorizer, error) {
 	return authz, err
 }
 
+func (r *ACLResolver) ResolveTokenToIdentity(token string) (structs.ACLIdentity, error) {
+	if !r.ACLsEnabled() {
+		return nil, nil
+	}
+
+	if acl.RootAuthorizer(token) != nil {
+		return nil, acl.ErrRootDenied
+	}
+
+	// handle the anonymous token
+	if token == "" {
+		token = anonymousToken
+	}
+
+	if r.delegate.UseLegacyACLs() {
+		identity, _, err := r.resolveTokenLegacy(token)
+		return identity, r.disableACLsWhenUpstreamDisabled(err)
+	}
+
+	defer metrics.MeasureSince([]string{"acl", "ResolveTokenToIdentity"}, time.Now())
+
+	return r.resolveIdentityFromToken(token)
+}
+
 func (r *ACLResolver) ACLsEnabled() bool {
 	// Whether we desire ACLs to be enabled according to configuration
 	if !r.delegate.ACLsEnabled() {

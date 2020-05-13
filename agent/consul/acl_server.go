@@ -222,6 +222,13 @@ func (s *Server) ResolveToken(token string) (acl.Authorizer, error) {
 	return authz, err
 }
 
+func (s *Server) ResolveTokenToIdentity(token string) (structs.ACLIdentity, error) {
+	// not using ResolveTokenToIdentityAndAuthorizer because in this case we don't
+	// need to resolve the roles, policies and namespace but just want the identity
+	// information such as accessor id.
+	return s.acls.ResolveTokenToIdentity(token)
+}
+
 func (s *Server) ResolveTokenToIdentityAndAuthorizer(token string) (structs.ACLIdentity, acl.Authorizer, error) {
 	if id, authz := s.ResolveEntTokenToIdentityAndAuthorizer(token); id != nil && authz != nil {
 		return id, authz, nil
