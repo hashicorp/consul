@@ -42,25 +42,15 @@ func (a *Agent) resolveTokenAndDefaultMeta(id string, entMeta *structs.Enterpris
 }
 
 // resolveIdentityFromToken is used to resolve an ACLToken's secretID to a structs.ACLIdentity
-func (a *Agent) resolveIdentityFromToken(secretID string) (bool, structs.ACLIdentity, error) {
-	// ACLs are disabled
-	if !a.delegate.ACLsEnabled() {
-		return false, nil, nil
-	}
-
-	// Disable ACLs if version 8 enforcement isn't enabled.
-	if !a.config.ACLEnforceVersion8 {
-		return false, nil, nil
-	}
-
-	return a.delegate.ResolveIdentityFromToken(secretID)
+func (a *Agent) resolveIdentityFromToken(secretID string) (structs.ACLIdentity, error) {
+	return a.delegate.ResolveTokenToIdentity(secretID)
 }
 
 // aclAccessorID is used to convert an ACLToken's secretID to its accessorID for non-
 // critical purposes, such as logging. Therefore we interpret all errors as empty-string
 // so we can safely log it without handling non-critical errors at the usage site.
 func (a *Agent) aclAccessorID(secretID string) string {
-	_, ident, err := a.resolveIdentityFromToken(secretID)
+	ident, err := a.resolveIdentityFromToken(secretID)
 	if acl.IsErrNotFound(err) {
 		return ""
 	}

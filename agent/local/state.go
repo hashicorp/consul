@@ -121,7 +121,7 @@ func (c *CheckState) CriticalFor() time.Duration {
 
 type rpc interface {
 	RPC(method string, args interface{}, reply interface{}) error
-	ResolveIdentityFromToken(secretID string) (bool, structs.ACLIdentity, error)
+	ResolveTokenToIdentity(secretID string) (structs.ACLIdentity, error)
 }
 
 // State is used to represent the node's services,
@@ -1364,7 +1364,7 @@ func (l *State) notifyIfAliased(serviceID structs.ServiceID) {
 // critical purposes, such as logging. Therefore we interpret all errors as empty-string
 // so we can safely log it without handling non-critical errors at the usage site.
 func (l *State) aclAccessorID(secretID string) string {
-	_, ident, err := l.Delegate.ResolveIdentityFromToken(secretID)
+	ident, err := l.Delegate.ResolveTokenToIdentity(secretID)
 	if acl.IsErrNotFound(err) {
 		return ""
 	}
