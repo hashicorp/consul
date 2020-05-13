@@ -386,7 +386,9 @@ $ curl \
     http://127.0.0.1:8500/v1/acl/logout
 ```
 
-## OIDC Authorization URL Request <EnterpriseAlert inline/> <sup>Beta</sup>
+## OIDC Authorization URL Request
+
+<EnterpriseAlert> This is an enterprise only endpoint. This feature is currently in beta. </EnterpriseAlert>
 
 This endpoint was added in Consul 1.8.0 and is used to obtain an authorization
 URL from Consul to start an [OIDC login flow](/docs/acl/auth-methods/oidc).
@@ -460,7 +462,9 @@ $ curl \
 }
 ```
 
-## OIDC Callback <EnterpriseAlert inline /> <sup>Beta</sup>
+## OIDC Callback
+
+<EnterpriseAlert> This is an enterprise only endpoint. This feature is currently in beta. </EnterpriseAlert>
 
 This endpoint was added in Consul 1.8.0 and is used to exchange an OIDC
 authorization code for an OIDC ID Token. The ID token will in turn be exchanged
@@ -511,7 +515,7 @@ replication enabled.
   If not provided at all, the namespace will be inherited from the request's ACL
   token, or will default to the `default` namespace.
 
-  This must match the namespace provided on the [OIDC Callback](#oidc-callback-beta).
+  This must match the namespace provided on the [OIDC Callback](#oidc-callback).
 
 ### Sample Payload
 
