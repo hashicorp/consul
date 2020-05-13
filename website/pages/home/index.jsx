@@ -138,6 +138,19 @@ export default function HomePage() {
         <UseCases
           items={[
             {
+              title: 'Service Discovery and Health Checking',
+              description:
+                'Enable services to locate other services running in any environment and provide real-time health status.',
+              image: {
+                url: require('./img/use-cases/service-discovery-and-health-checks.png?url'),
+                format: 'png',
+              },
+              link: {
+                title: 'Learn more',
+                url: '/use-cases/service-discovery-and-health-checking',
+              },
+            },
+            {
               title: 'Network Middleware Automation',
               description:
                 'Reduce burden of manual, ticket-based networking tasks.',
@@ -161,19 +174,6 @@ export default function HomePage() {
               link: {
                 title: 'Learn more',
                 url: '/use-cases/multi-platform-service-mesh',
-              },
-            },
-            {
-              title: 'Service Discovery and Health Checking',
-              description:
-                'Enable services to locate other services running in any environment and provide real-time health status.',
-              image: {
-                url: require('./img/use-cases/service-discovery-and-health-checks.png?url'),
-                format: 'png',
-              },
-              link: {
-                title: 'Learn more',
-                url: '/use-cases/service-discovery-and-health-checking',
               },
             },
           ]}
