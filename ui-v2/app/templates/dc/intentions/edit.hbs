@@ -5,7 +5,7 @@
 {{/if}}
 
 <AppView @class="intention edit" @loading={{isLoading}}>
-    <BlockSlot @name="notification" as |status type|>
+    <BlockSlot @name="notification" as |status type item error|>
       {{partial 'dc/intentions/notifications'}}
     </BlockSlot>
     <BlockSlot @name="breadcrumbs">

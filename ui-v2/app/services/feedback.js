@@ -55,6 +55,7 @@ export default Service.extend({
               ...notificationDefaults(),
               type: getStatus(TYPE_ERROR, e),
               action: getAction(),
+              error: e,
             });
           }
         })
