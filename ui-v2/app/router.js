@@ -22,6 +22,9 @@ export const routes = {
         services: {
           _options: { path: '/services' },
         },
+        upstreams: {
+          _options: { path: '/upstreams' },
+        },
         routing: {
           _options: { path: '/routing' },
         },

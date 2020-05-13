@@ -81,8 +81,6 @@ module.exports = function(environment, $ = process.env) {
     CONSUL_DOCS_LEARN_URL: 'https://learn.hashicorp.com',
     CONSUL_DOCS_API_URL: 'https://www.consul.io/api',
     CONSUL_COPYRIGHT_URL: 'https://www.hashicorp.com',
-    CONSUL_TERMINATING_GATEWAYS_URL: 'https://www.consul.io/docs/connect/terminating_gateway',
-    CONSUL_INGRESS_GATEWAYS_URL: 'https://www.consul.io/docs/connect/ingress_gateway',
   });
   const isTestLike = ['staging', 'test'].indexOf(environment) > -1;
   const isDevLike = ['development', 'staging', 'test'].indexOf(environment) > -1;

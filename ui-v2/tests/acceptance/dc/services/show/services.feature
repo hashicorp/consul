@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: dc / services / gateway
+Feature: dc / services / show / services
   Background:
     Given 1 datacenter model with the value "dc1"
     And 1 node models
@@ -29,6 +29,29 @@ Feature: dc / services / gateway
     And the title should be "terminating-gateway-1 - Consul"
     When I click linkedServices on the tabs
     Then I see 3 service models
+  Scenario: Don't see the Linked Services tab
+    Given 1 datacenter model with the value "dc1"
+    And 1 node models
+    And 1 service model from yaml
+    ---
+    - Service:
+        Name: [Name]
+        Kind: [Kind]
+    ---
+    When I visit the service page for yaml
+    ---
+      dc: dc1
+      service: [Name]
+    ---
+    And the title should be "[Name] - Consul"
+    And I don't see linkedServices on the tabs
+    Where:
+    ---------------------------------------------
+    | Name                | Kind                |
+    | service             | ~                   | 
+    | ingress-gateway     | ingress-gateway     | 
+    | mesh-gateway        | mesh-gateway        |
+    ---------------------------------------------
 
     
 
