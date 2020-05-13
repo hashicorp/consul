@@ -1,6 +1,5 @@
 import UseCaseLayout from '../../layouts/use-cases'
 import TextSplitWithImage from '@hashicorp/react-text-split-with-image'
-import FeaturedSlider from '@hashicorp/react-featured-slider'
 
 export default function NetworkMiddlewareAutomationPage() {
   return (
@@ -88,32 +87,6 @@ export default function NetworkMiddlewareAutomationPage() {
           }}
         />
       </div>
-
-      <FeaturedSlider
-        heading="Case Study"
-        theme="dark"
-        brand="consul"
-        features={[
-          {
-            logo: {
-              url: require('./img/mercedes-logo.svg?url'),
-              alt: 'Mercedes-Benz',
-            },
-            image: {
-              url: require('./img/mercedes-card.jpg?url'),
-              alt: 'Mercedes-Benz Case Study',
-            },
-            heading: 'On the Road Again',
-            content:
-              'How Mercedes-Benz delivers on service networking to accelerate delivery of its next-gen connected vehicles.',
-            link: {
-              text: 'Read Case Study',
-              url: 'https://www.hashicorp.com/case-studies/mercedes/',
-              type: 'outbound',
-            },
-          },
-        ]}
-      />
     </UseCaseLayout>
   )
 }
