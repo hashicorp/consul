@@ -1,0 +1,32 @@
+<div id="upstreams" class="tab-section">
+  <div role="tabpanel">
+  {{#if (gt gateway.Services.length 0)}}
+    <section>
+      <p>
+        Upstreams are services that may receive traffic from this gateway. Learn more about configuring gateways in our
+        <a href="{{env 'CONSUL_DOCS_URL'}}/connect/ingress_gateway.html" target="_blank" rel="noopener noreferrer">documentation.</a>
+      </p>
+      <ListCollection @cellHeight={{73}} @items={{gateway.Services}} class="consul-gateway-services-list" as |item index|>
+        <a data-test-service-name href={{href-to 'dc.services.show' item.Name}}>
+          {{item.Name}}
+        </a>
+        <ul>
+        {{#if (not-eq item.GatewayConfig.ListenerPort 0)}}
+          <li class="port">
+            <CopyButton
+              @value={{item.GatewayConfig.ListenerPort}}
+              @name="Port"
+            />
+            <span>:{{item.GatewayConfig.ListenerPort}}</span>
+          </li>
+        {{/if}}
+        </ul>
+      </ListCollection>
+    </section>
+  {{else}}
+    <p>
+      There are no upstreams.
+    </p>
+  {{/if}}
+  </div>
+</div>

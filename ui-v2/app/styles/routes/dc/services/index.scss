@@ -1,8 +1,9 @@
 // Services - Linked Services tab
-.gateway-services-list > ul {
-  @extend %gateway-services-list;
+// TODO - move this into composite-row
+.consul-gateway-services-list > ul {
+  @extend %consul-gateway-services-list;
 }
-%gateway-services-list > li:not(:first-child) {
+%consul-gateway-services-list > li:not(:first-child) {
   @extend %gateway-service-row;
 }
 %gateway-service-row {
@@ -12,6 +13,7 @@
 // Service Detail - Proxy Info tab
 .proxy-upstreams > ul {
   @extend %proxy-upstreams-list;
+  border-top: 1px solid $gray-200;
 }
 %proxy-upstreams-list > li {
   @extend %composite-row;
