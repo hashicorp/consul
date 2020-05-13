@@ -637,6 +637,23 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
+			Name:  "ingress-gateway-register-with-service-and-proxy-id",
+			Flags: []string{"-gateway", "ingress", "-register", "-service", "my-gateway", "-proxy-id", "my-gateway-123", "-address", "127.0.0.1:7777"},
+			WantArgs: BootstrapTplArgs{
+				EnvoyVersion: defaultEnvoyVersion,
+				ProxyCluster: "my-gateway",
+				ProxyID:      "my-gateway-123",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502",
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+			},
+		},
+		{
 			Name:  "ingress-gateway-no-auto-register",
 			Flags: []string{"-gateway", "ingress", "-address", "127.0.0.1:7777"},
 			WantArgs: BootstrapTplArgs{
