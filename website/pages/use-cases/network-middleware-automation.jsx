@@ -84,7 +84,7 @@ export default function NetworkMiddlewareAutomationPage() {
             ],
           }}
           image={{
-            url: require('./img/reduce-downtime.png?url'),
+            url: require('./img/services-screenshot.png?url'),
           }}
         />
       </div>

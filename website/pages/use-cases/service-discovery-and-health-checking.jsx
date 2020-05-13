@@ -150,7 +150,7 @@ Judiths-MBP.lan.node.dc1.consul. 0 IN   TXT "consul-network-segment="
             ],
           }}
           image={{
-            url: require('./img/enterprise-scale.png?url'),
+            url: require('./img/services-screenshot.png?url'),
           }}
         />
       </div>
