@@ -33,3 +33,12 @@
 %composite-row-detail .port button:hover {
   background-color: transparent !important;
 }
+
+// Tooltip
+%composite-row-detail .feedback-dialog-out {
+  left: -12px;
+  bottom: 12px;
+}
+%composite-row-detail .feedback-dialog-out::after {
+  left: 18px;
+}

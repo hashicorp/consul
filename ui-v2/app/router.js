@@ -19,6 +19,12 @@ export const routes = {
         intentions: {
           _options: { path: '/intentions' },
         },
+        services: {
+          _options: { path: '/services' },
+        },
+        upstreams: {
+          _options: { path: '/upstreams' },
+        },
         routing: {
           _options: { path: '/routing' },
         },

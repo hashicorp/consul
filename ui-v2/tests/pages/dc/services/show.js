@@ -7,7 +7,14 @@ export default function(visitable, attribute, collection, text, intentions, filt
     dashboardAnchor: {
       href: attribute('href', '[data-test-dashboard-anchor]'),
     },
-    tabs: tabs('tab', ['instances', 'intentions', 'routing', 'tags']),
+    tabs: tabs('tab', [
+      'instances',
+      'linked-services',
+      'upstreams',
+      'intentions',
+      'routing',
+      'tags',
+    ]),
     filter: filter,
 
     // TODO: These need to somehow move to subpages
@@ -15,5 +22,8 @@ export default function(visitable, attribute, collection, text, intentions, filt
       address: text('[data-test-address]'),
     }),
     intentions: intentions(),
+    services: collection('.consul-gateway-services-list> ul > li:not(:first-child)', {
+      name: text('[data-test-service-name]'),
+    }),
   };
 }
