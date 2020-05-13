@@ -411,6 +411,7 @@ jobs:
   ember-build:
     docker:
       - image: *EMBER_IMAGE
+    resource_class: medium+
     steps:
       - checkout
       - restore_cache:
@@ -427,6 +428,7 @@ jobs:
   ember-build-prod:
     docker:
       - image: *EMBER_IMAGE
+    resource_class: medium+
     steps:
       - checkout
       - restore_cache:
@@ -692,9 +694,10 @@ workflows:
       - frontend-cache:
           filters:
             branches:
-              ignore:
-                - stable-website
-                - /^docs\/.*/
+              only:
+                - master
+                - ui-staging
+                - /^ui\/.*/
       - ember-build:
           requires:
             - frontend-cache
