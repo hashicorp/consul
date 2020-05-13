@@ -256,6 +256,22 @@ and doesn't support tags. This DNS interface will be expanded over time.
 If you need more complex behavior, please use the
 [catalog API](/api/catalog).
 
+### Ingress Service Lookups
+
+To find ingress-enabled services:
+
+```text
+<service>.ingress.<domain>
+```
+
+This will find all [ingress gateway](/docs/connect/ingress_gateway)
+endpoints for the given `service`.
+
+This endpoint currently only finds services within the same datacenter
+and doesn't support tags. This DNS interface will be expanded over time.
+If you need more complex behavior, please use the
+[catalog API](/api/catalog).
+
 ### UDP Based DNS Queries
 
 When the DNS query is performed using UDP, Consul will truncate the results
