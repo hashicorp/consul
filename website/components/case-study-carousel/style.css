@@ -50,7 +50,7 @@
       margin-top: 70px;
       flex-wrap: wrap;
 
-      & img {
+      & > img {
         max-height: 40px;
         width: 33.33%;
         padding: 0 30px;
@@ -59,6 +59,24 @@
         @media (max-width: 800px) {
           padding: 0 20px;
           max-height: 28px;
+        }
+      }
+
+      & > picture {
+        max-height: 40px;
+        width: 33.33%;
+        padding: 0 30px;
+        margin: 24px 0px;
+
+        @media (max-width: 800px) {
+          padding: 0 20px;
+          max-height: 28px;
+        }
+
+        & > img {
+          width: 100%;
+          height: auto;
+          display: flex;
         }
       }
     }

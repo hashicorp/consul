@@ -11,7 +11,7 @@ export default function HomePage() {
     <div className="p-home">
       <BasicHero
         brand="consul"
-        heading="Service Networking Across Any Cloud or Runtime"
+        heading="Service Networking Across Any Cloud"
         content="Automate network configurations, discover services, and enable secure connectivity across any cloud or runtime."
         links={[
           {
@@ -32,27 +32,27 @@ export default function HomePage() {
         heading="Why Consul?"
         features={[
           {
-            title: 'First Class Kubernetes Experience',
+            title: 'Integrate and Extend With Kubernetes',
             content:
-              'Consul provides a Helm chart for a Kubernetes first experience for Service Discovery and Service Mesh use cases.',
+              'Quickly deploy Consul on Kubernetes leveraging Helm. Automatically inject sidecars for Kubernetes resources. Federate multiple clusters into a single service mesh.',
             icon: require('./img/why-consul/kubernetes.svg'),
           },
           {
-            title: 'Service Mesh Across Runtime Platforms',
+            title: 'Service Mesh Across Any Runtime',
             content:
-              'Establish a service mesh between Bare Metal, Virtual Machines, and Kubernetes clusters, across any cloud.',
+              'Deploy service mesh within any runtime or infrastructure - Bare Metal, Virtual Machines, and Kubernetes clusters, across any cloud.',
             icon: require('./img/why-consul/service-mesh-runtime.svg'),
           },
           {
-            title: 'Dynamic Load Balancing Configurations',
+            title: 'Dynamic Load Balancing',
             content:
-              'Use Consul to automate service updates to popular load balancers (F5, NGINX, HAProxy) and eliminate manual configuration.',
+              'Resolve discovered services through integrated DNS. Automate 3rd party load balancers (F5, NGINX, HAProxy). Eliminate manual configuration of network devices.',
             icon: require('./img/why-consul/dynamic-load-balancing.svg'),
           },
           {
             title: 'Secure, Multi-Cloud Service Networking',
             content:
-              'Secure any service running in any environment. Consul enables users to automate and secure service to service communication.',
+              'Secure services running in any environment leveraging intention based policies and automatic mTLS encryption between service mesh resources',
             icon: require('./img/why-consul/cloud.svg'),
           },
           {
@@ -72,30 +72,64 @@ export default function HomePage() {
 
       <CaseStudyCarousel
         title="Trusted by startups and the world’s largest organizations"
-        caseStudies={Array(5).fill({
-          quote:
-            "Here's a quote about Consul, Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore.",
-          caseStudyURL: 'https://www.hashicorp.com',
-          person: {
-            firstName: 'Brandon',
-            lastName: 'Romano',
-            photo:
-              'https://avatars1.githubusercontent.com/u/2105067?s=460&u=d20ade7241340fb1a277b55816f0a5336a26d95c&v=4',
-            title: 'A Real Person',
+        caseStudies={[
+          {
+            quote:
+              'Consul lets us spread more than 200 microservices over several AKS clusters. Each AKS cluster connects to a local Consul client, which feeds into a Consul cluster that forms a larger service discovery mesh that allows us to find and connect services in a matter of minutes with minimal effort.',
+            caseStudyURL: 'https://www.hashicorp.com/case-studies/mercedes/',
+            person: {
+              firstName: 'Sriram',
+              lastName: 'Govindarajan',
+              photo: require('./img/quotes/sriram-govindarajan.jpg?url'),
+              title: 'Principal Infrastructure Engineer',
+            },
+            company: {
+              name: 'Mercedes-Benz Research & Development (MBRDNA)',
+              logo: require('./img/quotes/mercedes-logo.svg?url'),
+            },
           },
-          company: {
-            name: 'HashiCorp',
-            logo:
-              'https://www.datocms-assets.com/2885/1503088697-blog-hashicorp.svg',
+          {
+            quote:
+              'Consul has fully replaced our manual service discovery activities with automated workflows and we’ve repurposed as much as 80% of our Consul staff to other projects because the tool is so reliable, efficient, and intelligent. We don’t even work on discovery anymore unless there’s a specific reason.',
+            caseStudyURL:
+              'https://www.hashicorp.com/resources/criteo-containers-consul-connect/',
+            person: {
+              firstName: 'Pierre',
+              lastName: 'Souchay',
+              photo: require('./img/quotes/pierre-souchay.jpg?url'),
+              title: 'Discovery and Security Authorization Lead',
+            },
+            company: {
+              name: 'Criteo',
+              logo: require('./img/quotes/criteo-logo.svg?url'),
+            },
           },
-        })}
+        ]}
         logoSection={{
           grayBackground: true,
-          featuredLogos: Array(6).fill({
-            companyName: 'HashiCorp',
-            url:
-              'https://www.datocms-assets.com/2885/1503088697-blog-hashicorp.svg',
-          }),
+          featuredLogos: [
+            {
+              companyName: 'Mercedes-Benz Research & Development (MBRDNA)',
+              url: require('./img/quotes/mercedes-logo.svg?url'),
+            },
+            {
+              companyName: 'Criteo',
+              url: require('./img/quotes/criteo-logo.svg?url'),
+            },
+            {
+              companyName: 'Barclays',
+              url: require('./img/quotes/barclays-logo.svg?url'),
+            },
+            {
+              companyName: 'Citadel',
+              url: require('./img/quotes/citadel-logo.svg?url'),
+            },
+            {
+              companyName: 'Ample Organics',
+              url:
+                'https://www.datocms-assets.com/2885/1589354369-ample-organics-logo.png?w=600',
+            },
+          ],
         }}
       />
 
