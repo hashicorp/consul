@@ -7,11 +7,19 @@
         <a href="{{env 'CONSUL_DOCS_URL'}}/connect/terminating_gateway.html" target="_blank" rel="noopener noreferrer">step-by-step guide.</a>
         
       </p>
+    {{#let item.Service.Namespace as |nspace|}}
       <ListCollection @cellHeight={{73}} @items={{gateway.Services}} class="consul-gateway-services-list" as |item index|>
         <a data-test-service-name href={{href-to 'dc.services.show' item.Name}} class={{service/health-checks item}}>
           {{item.Name}}
         </a>
         <ul>
+          {{#if (env 'CONSUL_NSPACES_ENABLED')}}
+            {{#if (not-eq item.Namespace nspace)}}
+              <li class="nspace">
+                {{item.Namespace}}
+              </li>
+            {{/if}}
+          {{/if}}
           {{#if (not-eq item.InstanceCount 0)}}
             <li>
               {{format-number item.InstanceCount}} {{pluralize item.InstanceCount 'Instance' without-count=true}}
@@ -24,6 +32,7 @@
           </TagList>
         </ul>
       </ListCollection>
+    {{/let}}
     </section>
   {{else}}
     <p>
