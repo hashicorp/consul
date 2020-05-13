@@ -75,7 +75,7 @@ export default function HomePage() {
         caseStudies={[
           {
             quote:
-              'Consul lets us spread more than 200 microservices over several AKS clusters. Each AKS cluster connects to a local Consul client, which feeds into a Consul cluster that forms a larger service discovery mesh that allows us to find and connect services in a matter of minutes with minimal effort.',
+              'Consul lets us spread more than 200 microservices over several AKS clusters. Each AKS cluster feeds into a Consul cluster that forms a larger service discovery mesh that allows us to find and connect services in a matter of minutes.',
             caseStudyURL: 'https://www.hashicorp.com/case-studies/mercedes/',
             person: {
               firstName: 'Sriram',
@@ -90,7 +90,7 @@ export default function HomePage() {
           },
           {
             quote:
-              'Consul has fully replaced our manual service discovery activities with automated workflows and we’ve repurposed as much as 80% of our Consul staff to other projects because the tool is so reliable, efficient, and intelligent. We don’t even work on discovery anymore unless there’s a specific reason.',
+              'Consul has fully replaced our manual service discovery activities with automated workflows and we’ve repurposed as much as 80% of our Consul staff to other projects because the tool is so reliable, efficient, and intelligent.',
             caseStudyURL:
               'https://www.hashicorp.com/resources/criteo-containers-consul-connect/',
             person: {
