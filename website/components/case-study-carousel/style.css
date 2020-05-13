@@ -43,6 +43,7 @@
     width: 100%;
 
     & .mono-logos {
+      align-items: baseline;
       display: flex;
       justify-content: center;
       max-width: 750px;
@@ -51,6 +52,7 @@
       flex-wrap: wrap;
 
       & > img {
+        height: 100%;
         max-height: 40px;
         width: 33.33%;
         padding: 0 30px;
