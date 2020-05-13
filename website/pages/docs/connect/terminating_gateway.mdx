@@ -118,7 +118,7 @@ the same gateway name with the `service` flag.
    across all federated Consul datacenters. If terminating gateways in different Consul datacenters need to route to different
    sets of services within their datacenter then the terminating gateways **must** be registered with different names.
 
-The services that the terminating gateway will proxy for must be registered with Consul. They must also be registered
+The services that the terminating gateway will proxy for must be registered with Consul, even the services outside the mesh. They must also be registered
 in the same Consul datacenter as the terminating gateway. Otherwise the terminating gateway will not be able to
 discover the services' addresses. These services can be registered with a local Consul agent.
 If there is no agent present, the services can be registered [directly in the catalog](/api/catalog#register-entity)
