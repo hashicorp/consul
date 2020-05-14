@@ -25,7 +25,11 @@ export default Route.extend({
         )
           ? model
           : hash({
-              intentions: this.intentionRepo.findByService(params.name, dc, nspace),
+              intentions: this.intentionRepo
+                .findByService(params.name, dc, nspace)
+                .catch(function() {
+                  return null;
+                }),
               chain: this.chainRepo.findBySlug(params.name, dc, nspace).catch(function(e) {
                 const code = get(e, 'errors.firstObject.status');
                 // Currently we are specifically catching a 500, but we return null
