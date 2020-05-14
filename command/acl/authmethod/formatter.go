@@ -61,6 +61,9 @@ func (f *prettyFormatter) FormatAuthMethod(method *api.ACLAuthMethod) (string, e
 	if method.MaxTokenTTL > 0 {
 		buffer.WriteString(fmt.Sprintf("MaxTokenTTL:  %s\n", method.MaxTokenTTL))
 	}
+	if method.TokenType != "" {
+		buffer.WriteString(fmt.Sprintf("TokenType:    %s\n", method.TokenType))
+	}
 	if len(method.NamespaceRules) > 0 {
 		buffer.WriteString(fmt.Sprintln("NamespaceRules:"))
 		for _, rule := range method.NamespaceRules {
