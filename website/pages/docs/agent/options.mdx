@@ -853,7 +853,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
         limit that Consul should follow before it deletes old log files.
       - `rotate_bytes` - Specifies how large an
         individual log file can grow before Consul rotates to a new file. At least one of `rotate_bytes` or
-        `rotate_duration` or  must be configured to enable audit logging.
+        `rotate_duration` must be configured to enable audit logging.
 
 - `autopilot` Added in Consul 0.8, this object allows a
   number of sub-keys to be set which can configure operator-friendly settings for
