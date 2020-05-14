@@ -127,13 +127,12 @@ func (s *Store) kvsSetTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry, up
 	}
 	existing, _ := existingNode.(*structs.DirEntry)
 
-	// Set the indexes.
+	// Set the CreateIndex.
 	if existing != nil {
 		entry.CreateIndex = existing.CreateIndex
 	} else {
 		entry.CreateIndex = idx
 	}
-	entry.ModifyIndex = idx
 
 	// Preserve the existing session unless told otherwise. The "existing"
 	// session for a new entry is "no session".
@@ -145,10 +144,15 @@ func (s *Store) kvsSetTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry, up
 		}
 	}
 
-	// skip write if the entry did not change
+	// Set the ModifyIndex.
 	if existing != nil && existing.Equal(entry) {
+		// Skip further writing in the state store if the entry is not actually
+		// changed. Nevertheless, the input's ModifyIndex should be reset
+		// since the TXN API returns a copy in the response.
+		entry.ModifyIndex = existing.ModifyIndex
 		return nil
 	}
+	entry.ModifyIndex = idx
 
 	// Store the kv pair in the state store and update the index.
 	if err := s.insertKVTxn(tx, entry, false); err != nil {

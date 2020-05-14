@@ -1252,3 +1252,132 @@ func TestStateStore_Txn_KVS_RO_Safety(t *testing.T) {
 		}
 	}
 }
+
+func TestStateStore_Txn_KVS_ModifyIndexes(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create KV entries in the state store.
+	testSetKey(t, s, 1, "foo/a", "bar", nil)
+	testSetKey(t, s, 2, "foo/b", "bar", nil)
+
+	// Set up a transaction that actually changes `a`,
+	// but passes original value for `b`.
+	ops := structs.TxnOps{
+		&structs.TxnOp{
+			KV: &structs.TxnKVOp{
+				Verb: api.KVCAS,
+				DirEnt: structs.DirEntry{
+					Key:   "foo/a",
+					Value: []byte("new"),
+					RaftIndex: structs.RaftIndex{
+						ModifyIndex: 1,
+					},
+				},
+			},
+		},
+		&structs.TxnOp{
+			KV: &structs.TxnKVOp{
+				Verb: api.KVCAS,
+				DirEnt: structs.DirEntry{
+					Key:   "foo/b",
+					Value: []byte("bar"),
+					RaftIndex: structs.RaftIndex{
+						ModifyIndex: 2,
+					},
+				},
+			},
+		},
+	}
+	results, errors := s.TxnRW(3, ops)
+	if len(errors) > 0 {
+		t.Fatalf("err: %v", errors)
+	}
+
+	// Make sure the response looks as expected.
+	expected := structs.TxnResults{
+		&structs.TxnResult{
+			KV: &structs.DirEntry{
+				Key: "foo/a",
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 1,
+					ModifyIndex: 3,
+				},
+			},
+		},
+		&structs.TxnResult{
+			KV: &structs.DirEntry{
+				Key: "foo/b",
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 2,
+					ModifyIndex: 2,
+				},
+			},
+		},
+	}
+	if len(results) != len(expected) {
+		t.Fatalf("bad: %v", results)
+	}
+	for i, e := range expected {
+		if e.KV.Key != results[i].KV.Key {
+			t.Fatalf("expected key %s, got %s", e.KV.Key, results[i].KV.Key)
+		}
+		if e.KV.LockIndex != results[i].KV.LockIndex {
+			t.Fatalf("expected lock index %d, got %d", e.KV.LockIndex, results[i].KV.LockIndex)
+		}
+		if e.KV.CreateIndex != results[i].KV.CreateIndex {
+			t.Fatalf("expected create index %d, got %d", e.KV.CreateIndex, results[i].KV.CreateIndex)
+		}
+		if e.KV.ModifyIndex != results[i].KV.ModifyIndex {
+			t.Fatalf("expected modify index %d, got %d", e.KV.ModifyIndex, results[i].KV.ModifyIndex)
+		}
+	}
+
+	// Pull the resulting state store contents.
+	idx, actual, err := s.KVSList(nil, "", nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 3 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Make sure it looks as expected.
+	entries := structs.DirEntries{
+		&structs.DirEntry{
+			Key:   "foo/a",
+			Value: []byte("new"),
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 1,
+				ModifyIndex: 3,
+			},
+		},
+		&structs.DirEntry{
+			Key:   "foo/b",
+			Value: []byte("bar"),
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 2,
+				ModifyIndex: 2,
+			},
+		},
+	}
+	if len(actual) != len(entries) {
+		t.Fatalf("bad len: %d != %d", len(actual), len(entries))
+	}
+	for i, e := range entries {
+		if e.Key != actual[i].Key {
+			t.Fatalf("expected key %s, got %s", e.Key, actual[i].Key)
+		}
+		if string(e.Value) != string(actual[i].Value) {
+			t.Fatalf("expected value %s, got %s", e.Value, actual[i].Value)
+		}
+		if e.LockIndex != actual[i].LockIndex {
+			t.Fatalf("expected lock index %d, got %d", e.LockIndex, actual[i].LockIndex)
+		}
+		if e.CreateIndex != actual[i].CreateIndex {
+			t.Fatalf("expected create index %d, got %d", e.CreateIndex, actual[i].CreateIndex)
+		}
+		if e.ModifyIndex != actual[i].ModifyIndex {
+			t.Fatalf("expected modify index %d, got %d", e.ModifyIndex, actual[i].ModifyIndex)
+		}
+	}
+}
