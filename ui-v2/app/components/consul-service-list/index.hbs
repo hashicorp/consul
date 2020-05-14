@@ -5,6 +5,13 @@
     {{item.Name}}
   </a>
   <ul>
+  {{#if (and nspace (env 'CONSUL_NSPACES_ENABLED'))}}
+    {{#if (not-eq item.Namespace nspace)}}
+      <li class="nspace">
+        {{item.Namespace}}
+      </li>
+    {{/if}}
+  {{/if}}
     <ConsulKind @item={{item}} as |Kind|>
       <li>
         <Kind />
