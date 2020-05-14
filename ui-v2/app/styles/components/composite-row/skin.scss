@@ -8,6 +8,7 @@
 %composite-row-intent {
   border-color: $gray-200;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-top-color: $transparent;
   cursor: pointer;
 }
 %composite-row-header {
@@ -29,6 +30,10 @@
 %composite-row .critical::before {
   @extend %with-cancel-square-fill-color-mask, %as-pseudo;
   background-color: $red-500;
+}
+%composite-row .empty::before {
+  @extend %with-minus-square-fill-color-mask, %as-pseudo;
+  background-color: $gray-500;
 }
 
 // Metadata
