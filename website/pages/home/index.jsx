@@ -80,7 +80,8 @@ export default function HomePage() {
             person: {
               firstName: 'Sriram',
               lastName: 'Govindarajan',
-              photo: require('./img/quotes/sriram-govindarajan.jpg?url'),
+              photo:
+                'https://www.datocms-assets.com/2885/1589431834-sriram-govindarajan.jpg',
               title: 'Principal Infrastructure Engineer',
             },
             company: {
@@ -96,7 +97,8 @@ export default function HomePage() {
             person: {
               firstName: 'Pierre',
               lastName: 'Souchay',
-              photo: require('./img/quotes/pierre-souchay.jpg?url'),
+              photo:
+                'https://www.datocms-assets.com/2885/1589431828-pierre-souchay.jpg',
               title: 'Discovery and Security Authorization Lead',
             },
             company: {
