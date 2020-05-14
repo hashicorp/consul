@@ -9,8 +9,6 @@ FEATURES:
 * **Single Sign-On (SSO) [Enterprise]**: Lets an operator configure Consul to use an external OpenID Connect (OIDC) provider to automatically handle the lifecycle of creating, distributing and managing ACL tokens for performing CLI operations or accessing the UI. 
 * **Audit Logging [Enterprise]**: Adds instrumentation to record a trail of events (both attempted and authorized) by users of Consul’s HTTP API for purposes of regulatory compliance.
 
-
-* acl: add auth method for JWTs [[GH-7846](https://github.com/hashicorp/consul/issues/7846)]
 * acl: add DisplayName field to auth methods [[GH-7769](https://github.com/hashicorp/consul/issues/7769)]
 * acl: add MaxTokenTTL field to auth methods [[GH-7779](https://github.com/hashicorp/consul/issues/7779)]
 * cli: Add -config flag to "acl authmethod update/create" [[GH-7776](https://github.com/hashicorp/consul/pull/7776)]
