@@ -954,8 +954,11 @@ func TestInternal_GatewayServices_BothGateways(t *testing.T) {
 	}
 	var resp structs.IndexedGatewayServices
 	err := msgpackrpc.CallWithCodec(codec, "Internal.GatewayServices", &req, &resp)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), `service "api" is not a configured terminating-gateway or ingress-gateway`)
+	assert.NoError(t, err)
+	assert.Empty(t, resp.Services)
+	// Ensure that the index is not zero so that a blocking query still gets the
+	// latest GatewayServices index
+	assert.NotEqual(t, 0, resp.Index)
 }
 
 func TestInternal_GatewayServices_ACLFiltering(t *testing.T) {
