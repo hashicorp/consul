@@ -5,6 +5,8 @@
 
 # Consul Redirects
 
+/discovery.html                                      /use-cases/service-discovery-and-health-checking  301!
+/mesh.html                                           /use-cases/multi-platform-service-mesh            301!
 /api.html                                            /api-docs                                         301!
 /docs/agent/acl-rules.html                           /docs/acl/acl-rules                               301!
 /docs/agent/acl-rules                                /docs/acl/acl-rules                               301!
