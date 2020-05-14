@@ -551,7 +551,7 @@ func (c *cmd) grpcAddress(httpCfg *api.Config) (GRPC, error) {
 	} else {
 		// Parse as host:port with option http prefix
 		grpcAddr = strings.TrimPrefix(addr, "http://")
-		grpcAddr = strings.TrimPrefix(addr, "https://")
+		grpcAddr = strings.TrimPrefix(grpcAddr, "https://")
 
 		var err error
 		var host string

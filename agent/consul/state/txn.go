@@ -217,11 +217,14 @@ func (s *Store) txnService(tx *memdb.Txn, idx uint64, op *structs.TxnServiceOp) 
 	case api.ServiceGet:
 		entry, err = s.getNodeServiceTxn(tx, op.Node, op.Service.ID, &op.Service.EnterpriseMeta)
 		if entry == nil && err == nil {
-			err = fmt.Errorf("service %q on node %q doesn't exist", op.Service.ID, op.Node)
+			return nil, fmt.Errorf("service %q on node %q doesn't exist", op.Service.ID, op.Node)
 		}
 
 	case api.ServiceSet:
 		err = s.ensureServiceTxn(tx, idx, op.Node, &op.Service)
+		if err != nil {
+			return nil, err
+		}
 		entry, err = s.getNodeServiceTxn(tx, op.Node, op.Service.ID, &op.Service.EnterpriseMeta)
 
 	case api.ServiceCAS:
@@ -240,11 +243,11 @@ func (s *Store) txnService(tx *memdb.Txn, idx uint64, op *structs.TxnServiceOp) 
 		var ok bool
 		ok, err = s.deleteServiceCASTxn(tx, idx, op.Service.ModifyIndex, op.Node, op.Service.ID, &op.Service.EnterpriseMeta)
 		if !ok && err == nil {
-			err = fmt.Errorf("failed to delete service %q on node %q, index is stale", op.Service.ID, op.Node)
+			return nil, fmt.Errorf("failed to delete service %q on node %q, index is stale", op.Service.ID, op.Node)
 		}
 
 	default:
-		err = fmt.Errorf("unknown Service verb %q", op.Verb)
+		return nil, fmt.Errorf("unknown Service verb %q", op.Verb)
 	}
 	if err != nil {
 		return nil, err

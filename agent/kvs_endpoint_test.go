@@ -416,7 +416,7 @@ func TestKVSEndpoint_GET_Raw(t *testing.T) {
 
 	req, _ = http.NewRequest("GET", "/v1/kv/test?raw", nil)
 	resp = httptest.NewRecorder()
-	obj, err = a.srv.KVSEndpoint(resp, req)
+	_, err = a.srv.KVSEndpoint(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
