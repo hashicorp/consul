@@ -8,6 +8,7 @@
 %composite-row-intent {
   border-color: $gray-200;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-top-color: $transparent;
   cursor: pointer;
 }
 %composite-row-header {
