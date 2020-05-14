@@ -1,5 +1,7 @@
 ## UNRELEASED
 
+## 1.8.0-beta1 (May 14, 2020)
+
 FEATURES:
 
 * **Terminating Gateway**: Envoy can now be run as a gateway to enable services in a Consul service mesh to connect to external services through their local proxy. Terminating gateways unlock several of the benefits of a service mesh in the cases where a sidecar proxy cannot be deployed alongside services such as legacy applications or managed cloud databases.
@@ -48,6 +50,10 @@ BUGFIXES:
 * license: **(Consul Enterprise only)** Fixed a bug that would cause a license reset request to only be applied on the leader server.
 * sdk: Fix race condition in freeport [[GH-7567](https://github.com/hashicorp/consul/issues/7567)]
 * server: strip local ACL tokens from RPCs during forwarding if crossing datacenters [[GH-7419](https://github.com/hashicorp/consul/issues/7419)]
+
+KNOWN ISSUES:
+
+* ui: service pages in the UI for services with non-alphanumeric characters will not render. They instead show a page that says `The backend responded with an error` and `Error 500`. [[GH-7896](https://github.com/hashicorp/consul/issues/7896)]
 
 ## 1.7.3 (May 05, 2020)
 
