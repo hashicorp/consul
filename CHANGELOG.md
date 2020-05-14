@@ -11,8 +11,8 @@ FEATURES:
 
 * acl: add DisplayName field to auth methods [[GH-7769](https://github.com/hashicorp/consul/issues/7769)]
 * acl: add MaxTokenTTL field to auth methods [[GH-7779](https://github.com/hashicorp/consul/issues/7779)]
-* cli: Add -config flag to "acl authmethod update/create" [[GH-7776](https://github.com/hashicorp/consul/pull/7776)]
 * agent/xds: add support for configuring passive health checks [[GH-7713](https://github.com/hashicorp/consul/pull/7713)]
+* cli: Add -config flag to "acl authmethod update/create" [[GH-7776](https://github.com/hashicorp/consul/pull/7776)]
 * ui: Help menu to provide further documentation/learn links [[GH-7310](https://github.com/hashicorp/consul/pull/7310)]
 * ui: **(Consul Enterprise only)** SSO support [[GH-7742](https://github.com/hashicorp/consul/pull/7742)] [[GH-7771](https://github.com/hashicorp/consul/pull/7771)] [[GH-7790](https://github.com/hashicorp/consul/pull/7790)]
 * ui: Support for termininating and ingress gateways [[GH-7858](https://github.com/hashicorp/consul/pull/7858)] [[GH-7865](https://github.com/hashicorp/consul/pull/7865)]
@@ -20,8 +20,17 @@ FEATURES:
 IMPROVEMENTS:
 
 * acl: change authmethod.Validator to take a logger [[GH-7758](https://github.com/hashicorp/consul/issues/7758)]
+* agent: show warning when enable_script_checks is enabled without safty net [[GH-7437](https://github.com/hashicorp/consul/pull/7437)]
 * api: Added filtering support to the v1/connect/intentions endpoint. [[GH-7478](https://github.com/hashicorp/consul/issues/7478)]
+* auto_encrypt: add validations for auto_encrypt.{tls,allow_tls} [[GH-7704](https://github.com/hashicorp/consul/pull/7704)]
+* build: switched to compile with Go 1.14.1 [[GH-7481](https://github.com/hashicorp/consul/pull/7481)]
+* config: validate system limits against limits.http_max_conns_per_client [[GH-7434](https://github.com/hashicorp/consul/pull/7434)]
+* connect: support envoy 1.12.3, 1.13.1, and 1.14.1. Envoy 1.10 is no longer officially supported. [[GH-7380](https://github.com/hashicorp/consul/pull/7380)],[[GH-7624](https://github.com/hashicorp/consul/pull/7624)]
+* connect: add DNSSAN and IPSAN to cache key for ConnectCALeafRequest [[GH-7597](https://github.com/hashicorp/consul/pull/7597)]
 * license: **(Consul Enterprise only)** Update licensing to align with the current modules licensing structure.
+* logging: catch problems with the log destination earlier by creating the file immediately [[GH-7469](https://github.com/hashicorp/consul/pull/7469)]
+* proxycfg: support path exposed with non-HTTP2 protocol [[GH-7510](https://github.com/hashicorp/consul/pull/7510)]
+* tls: remove old ciphers [[GH-7282](https://github.com/hashicorp/consul/pull/7282)]
 * ui: Show the last 8 characters of AccessorIDs in listing views [[GH-7327](https://github.com/hashicorp/consul/pull/7327)]
 * ui: Make all tabs within the UI linkable/bookmarkable and include in history [[GH-7592](https://github.com/hashicorp/consul/pull/7592)]
 * ui: Redesign of all service pages [[GH-7605](https://github.com/hashicorp/consul/pull/7605)] [[GH-7632](https://github.com/hashicorp/consul/pull/7632)] [[GH-7655](https://github.com/hashicorp/consul/pull/7655)] [[GH-7683](https://github.com/hashicorp/consul/pull/7683)]
@@ -34,10 +43,11 @@ IMPROVEMENTS:
 BUGFIXES:
 
 * agent: **(Consul Enterprise only)** Fixed several bugs related to Network Area and Network Segment compatibility with other features caused by incorrectly doing version or serf tag checking. [[GH-7491](https://github.com/hashicorp/consul/pull/7491)]
+* agent: rewrite checks with proxy address, not local service address [[GH-7518](https://github.com/hashicorp/consul/pull/7518)]
+* cli: enable TLS when `CONSUL_HTTP_ADDR` has an `https` scheme [[GH-7608](https://github.com/hashicorp/consul/pull/7608)]
 * license: **(Consul Enterprise only)** Fixed a bug that would cause a license reset request to only be applied on the leader server.
 * sdk: Fix race condition in freeport [[GH-7567](https://github.com/hashicorp/consul/issues/7567)]
 * server: strip local ACL tokens from RPCs during forwarding if crossing datacenters [[GH-7419](https://github.com/hashicorp/consul/issues/7419)]
-* cli: enable TLS when `CONSUL_HTTP_ADDR` has an `https` scheme [[GH-7608](https://github.com/hashicorp/consul/pull/7608)]
 
 ## 1.7.3 (May 05, 2020)
 
