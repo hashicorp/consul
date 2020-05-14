@@ -989,96 +989,104 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 	}
 	var checks structs.IndexedHealthChecks
 
-	// Verify that we are in sync
-	if err := a.RPC("Health.NodeChecks", &req, &checks); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	retry.Run(t, func(r *retry.R) {
 
-	// We should have 5 checks (serf included)
-	if len(checks.HealthChecks) != 5 {
-		t.Fatalf("bad: %v", checks)
-	}
-
-	// All the checks should match
-	for _, chk := range checks.HealthChecks {
-		chk.CreateIndex, chk.ModifyIndex = 0, 0
-		switch chk.CheckID {
-		case "mysql":
-			require.Equal(t, chk, chk1)
-		case "redis":
-			require.Equal(t, chk, chk2)
-		case "web":
-			require.Equal(t, chk, chk3)
-		case "cache":
-			require.Equal(t, chk, chk5)
-		case "serfHealth":
-			// ignore
-		default:
-			t.Fatalf("unexpected check: %v", chk)
-		}
-	}
-
-	if err := checksInSync(a.State, 4, structs.DefaultEnterpriseMeta()); err != nil {
-		t.Fatal(err)
-	}
-
-	// Make sure we sent along our node info addresses when we synced.
-	{
-		req := structs.NodeSpecificRequest{
-			Datacenter: "dc1",
-			Node:       a.Config.NodeName,
-		}
-		var services structs.IndexedNodeServices
-		if err := a.RPC("Catalog.NodeServices", &req, &services); err != nil {
-			t.Fatalf("err: %v", err)
+		// Verify that we are in sync
+		if err := a.RPC("Health.NodeChecks", &req, &checks); err != nil {
+			r.Fatalf("err: %v", err)
 		}
 
-		id := services.NodeServices.Node.ID
-		addrs := services.NodeServices.Node.TaggedAddresses
-		meta := services.NodeServices.Node.Meta
-		delete(meta, structs.MetaSegmentKey) // Added later, not in config.
-		assert.Equal(t, a.Config.NodeID, id)
-		assert.Equal(t, a.Config.TaggedAddresses, addrs)
-		assert.Equal(t, a.Config.NodeMeta, meta)
-	}
-
-	// Remove one of the checks
-	a.State.RemoveCheck(structs.NewCheckID("redis", nil))
-
-	if err := a.State.SyncFull(); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Verify that we are in sync
-	if err := a.RPC("Health.NodeChecks", &req, &checks); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// We should have 5 checks (serf included)
-	if len(checks.HealthChecks) != 4 {
-		t.Fatalf("bad: %v", checks)
-	}
-
-	// All the checks should match
-	for _, chk := range checks.HealthChecks {
-		chk.CreateIndex, chk.ModifyIndex = 0, 0
-		switch chk.CheckID {
-		case "mysql":
-			require.Equal(t, chk1, chk)
-		case "web":
-			require.Equal(t, chk3, chk)
-		case "cache":
-			require.Equal(t, chk5, chk)
-		case "serfHealth":
-			// ignore
-		default:
-			t.Fatalf("unexpected check: %v", chk)
+		// We should have 5 checks (serf included)
+		if len(checks.HealthChecks) != 5 {
+			r.Fatalf("bad: %v", checks)
 		}
-	}
 
-	if err := checksInSync(a.State, 3, structs.DefaultEnterpriseMeta()); err != nil {
-		t.Fatal(err)
-	}
+		// All the checks should match
+		for _, chk := range checks.HealthChecks {
+			chk.CreateIndex, chk.ModifyIndex = 0, 0
+			switch chk.CheckID {
+			case "mysql":
+				require.Equal(t, chk, chk1)
+			case "redis":
+				require.Equal(t, chk, chk2)
+			case "web":
+				require.Equal(t, chk, chk3)
+			case "cache":
+				require.Equal(t, chk, chk5)
+			case "serfHealth":
+				// ignore
+			default:
+				r.Fatalf("unexpected check: %v", chk)
+			}
+		}
+
+		if err := checksInSync(a.State, 4, structs.DefaultEnterpriseMeta()); err != nil {
+			r.Fatal(err)
+		}
+	})
+
+	retry.Run(t, func(r *retry.R) {
+
+		// Make sure we sent along our node info addresses when we synced.
+		{
+			req := structs.NodeSpecificRequest{
+				Datacenter: "dc1",
+				Node:       a.Config.NodeName,
+			}
+			var services structs.IndexedNodeServices
+			if err := a.RPC("Catalog.NodeServices", &req, &services); err != nil {
+				r.Fatalf("err: %v", err)
+			}
+
+			id := services.NodeServices.Node.ID
+			addrs := services.NodeServices.Node.TaggedAddresses
+			meta := services.NodeServices.Node.Meta
+			delete(meta, structs.MetaSegmentKey) // Added later, not in config.
+			assert.Equal(t, a.Config.NodeID, id)
+			assert.Equal(t, a.Config.TaggedAddresses, addrs)
+			assert.Equal(t, a.Config.NodeMeta, meta)
+		}
+	})
+	retry.Run(t, func(r *retry.R) {
+
+		// Remove one of the checks
+		a.State.RemoveCheck(structs.NewCheckID("redis", nil))
+
+		if err := a.State.SyncFull(); err != nil {
+			r.Fatalf("err: %v", err)
+		}
+
+		// Verify that we are in sync
+		if err := a.RPC("Health.NodeChecks", &req, &checks); err != nil {
+			r.Fatalf("err: %v", err)
+		}
+
+		// We should have 5 checks (serf included)
+		if len(checks.HealthChecks) != 4 {
+			r.Fatalf("bad: %v", checks)
+		}
+
+		// All the checks should match
+		for _, chk := range checks.HealthChecks {
+			chk.CreateIndex, chk.ModifyIndex = 0, 0
+			switch chk.CheckID {
+			case "mysql":
+				require.Equal(t, chk1, chk)
+			case "web":
+				require.Equal(t, chk3, chk)
+			case "cache":
+				require.Equal(t, chk5, chk)
+			case "serfHealth":
+				// ignore
+			default:
+				r.Fatalf("unexpected check: %v", chk)
+			}
+		}
+
+		if err := checksInSync(a.State, 3, structs.DefaultEnterpriseMeta()); err != nil {
+			r.Fatal(err)
+		}
+	})
 }
 
 func TestAgentAntiEntropy_RemovingServiceAndCheck(t *testing.T) {
