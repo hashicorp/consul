@@ -22,7 +22,7 @@
   // In this case we do not need a background on the icon
   background-color: $transparent !important;
 }
-.proxy-upstreams > ul,
-.proxy-exposed-paths > ul {
+.proxy-exposed-paths > ul,
+.proxy-upstreams > ul {
   border-top: 1px solid $gray-200;
 }
