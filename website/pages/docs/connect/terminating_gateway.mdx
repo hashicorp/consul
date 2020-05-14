@@ -75,10 +75,10 @@ You must complete the following steps to configure a terminating gateway to prox
 
 1. On a host with a Consul client agent, start an Envoy proxy using the [envoy subcommand](/docs/commands/connect/envoy#terminating-gateways) and
 specifying the `terminating` gateway type:
-    ```shell
-    $ consul connect envoy -gateway=terminating -register -service us-west-gateway \
-      -address '{{ GetInterfaceIP "eth0" }}:8443'
-    ```
+  ```shell
+  $ consul connect envoy -gateway=terminating -register -service us-west-gateway \
+    -address '{{ GetInterfaceIP "eth0" }}:8443'
+  ```
 
 2. Create and apply a `terminating-gateway` [configuration entry](/docs/agent/config-entries/terminating-gateway) that defines 
 a set of services that the gateway will proxy traffic to. The config entry can be applied via the 
