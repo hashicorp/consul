@@ -1,6 +1,6 @@
 // Services - Linked Services tab
 // TODO - move this into composite-row
-.consul-gateway-services-list > ul {
+.consul-gateway-service-list > ul {
   @extend %consul-gateway-services-list;
 }
 %consul-gateway-services-list > li:not(:first-child) {

@@ -17,6 +17,7 @@ export default Route.extend({
       item: this.repo.findBySlug(params.name, dc, nspace),
       urls: this.settings.findBySlug('urls'),
       dc: dc,
+      nspace: nspace || 'default',
       proxies: [],
     })
       .then(model => {
