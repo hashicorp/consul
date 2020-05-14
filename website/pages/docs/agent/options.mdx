@@ -811,7 +811,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 - `audit` <EnterpriseAlert inline /> - Added in Consul 1.8, the audit object allow users to enable auditing
     and configure a sink and filters for their audit logs.
 
-    ```
+    ```hcl
       audit {
         enabled = true
         sink "My sink" {
@@ -831,8 +831,8 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     - `enable` - Controls whether Consul logs out each time a user
     performs an operation. ACLs must be enabled to use this feature. Defaults to `false`.
 
-    - `sink` - This object provides users configuration for where Consul
-    logs auditing events to. Sink is an object containing keys to sink objects, where the key is the name of the sink. 
+    - `sink` - This object provides configuration for the destination to which 
+    Consul will log auditing events. Sink is an object containing keys to sink objects, where the key is the name of the sink. 
 
       - `type` - Type specifies what kind of sink this is.
         The following keys are valid:
