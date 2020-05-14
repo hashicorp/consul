@@ -5,13 +5,13 @@ import Head from 'next/head'
 import HashiHead from '@hashicorp/react-head'
 
 export default function UseCaseLayout({ title, description, children }) {
+  const pageTitle = `Consul ${title}`
   return (
     <>
-      <HashiHead
-        is={Head}
-        title={`Consul ${title}`}
-        description={description}
-      />
+      <HashiHead is={Head} title={pageTitle} description={description}>
+        <meta property="og:title" content={pageTitle} />
+      </HashiHead>
+
       <div id="p-use-case">
         <BasicHero
           heading={title}
