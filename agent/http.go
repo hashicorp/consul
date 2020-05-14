@@ -169,20 +169,21 @@ type templatedIndexFS struct {
 
 func (fs *templatedIndexFS) Open(name string) (http.File, error) {
 	file, err := fs.fs.Open(name)
-	if err == nil && name == "/index.html" {
-		content, _ := ioutil.ReadAll(file)
-		file.Seek(0, 0)
-		t, err := template.New("fmtedindex").Parse(string(content))
-		if err != nil {
-			return nil, err
-		}
-		var out bytes.Buffer
-		err = t.Execute(&out, fs.templateVars())
-
-		file = newTemplatedFile(&out, file)
+	if err != nil || name != "/index.html" {
+		return file, err
 	}
 
-	return file, err
+	content, _ := ioutil.ReadAll(file)
+	file.Seek(0, 0)
+	t, err := template.New("fmtedindex").Parse(string(content))
+	if err != nil {
+		return nil, err
+	}
+	var out bytes.Buffer
+	if err := t.Execute(&out, fs.templateVars()); err != nil {
+		return nil, err
+	}
+	return newTemplatedFile(&out, file), nil
 }
 
 // endpoint is a Consul-specific HTTP handler that takes the usual arguments in
