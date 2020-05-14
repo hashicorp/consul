@@ -31,6 +31,10 @@
   @extend %with-cancel-square-fill-color-mask, %as-pseudo;
   background-color: $red-500;
 }
+%composite-row .empty::before {
+  @extend %with-minus-square-fill-color-mask, %as-pseudo;
+  background-color: $gray-500;
+}
 
 // Metadata
 %composite-row .node a {
