@@ -808,6 +808,53 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
 - `advertise_addr_wan` Equivalent to the [`-advertise-wan` command-line flag](#_advertise-wan).
 
+- `audit` <EnterpriseAlert inline /> - Added in Consul 1.8, the audit object allow users to enable auditing
+    and configure a sink and filters for their audit logs.
+
+    ```hcl
+      audit {
+        enabled = true
+        sink "My sink" {
+          type   = "file"
+          format = "json"
+          path   = "data/audit/audit.json"
+          delivery_guarantee = "best-effort"
+          rotate_duration = "24h"
+          rotate_max_files = 15
+          rotate_bytes = 25165824
+        }
+    }
+    ```
+
+    The following sub-keys are available:
+
+    - `enabled` - Controls whether Consul logs out each time a user
+    performs an operation. ACLs must be enabled to use this feature. Defaults to `false`.
+
+    - `sink` - This object provides configuration for the destination to which 
+    Consul will log auditing events. Sink is an object containing keys to sink objects, where the key is the name of the sink. 
+
+      - `type` - Type specifies what kind of sink this is.
+        The following keys are valid:
+        - `file` - Currently only file sinks are available, they take the following keys.
+      - `format` - Format specifies what format the events will
+        be emitted with.
+        The following keys are valid:
+        - `json` - Currently only json events are offered.
+      - `path` - The directory and filename to write audit events to.
+      - `delivery_guarantee` - Specifies
+        the rules governing how audit events are written.
+        The following keys are valid:
+        - `best-effort` - Consul only supports `best-effort` event delivery.
+      - `rotate_duration` - Specifies the
+        interval by which the system rotates to a new log file. At least one of `rotate_duration` or `rotate_bytes`
+        must be configured to enable audit logging.
+      - `rotate_max_files` - Defines the
+        limit that Consul should follow before it deletes old log files.
+      - `rotate_bytes` - Specifies how large an
+        individual log file can grow before Consul rotates to a new file. At least one of `rotate_bytes` or
+        `rotate_duration` must be configured to enable audit logging.
+
 - `autopilot` Added in Consul 0.8, this object allows a
   number of sub-keys to be set which can configure operator-friendly settings for
   Consul servers. When these keys are provided as configuration, they will only be
