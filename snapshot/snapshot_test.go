@@ -239,7 +239,6 @@ func TestSnapshot_TruncatedVerify(t *testing.T) {
 
 	// Make a Raft and populate it with some data. We tee everything we
 	// apply off to a buffer for checking post-snapshot.
-	var expected []bytes.Buffer
 	entries := 64 * 1024
 	before, _ := makeRaft(t, filepath.Join(dir, "before"))
 	defer before.Shutdown()
@@ -253,7 +252,6 @@ func TestSnapshot_TruncatedVerify(t *testing.T) {
 
 		future := before.Apply(log.Bytes(), time.Second)
 		require.NoError(t, future.Error())
-		expected = append(expected, copy)
 	}
 
 	// Take a snapshot.
