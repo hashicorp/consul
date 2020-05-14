@@ -325,7 +325,6 @@ func (s *Server) endpointsFromDiscoveryChain(
 			)
 			if actualTargetID != targetID {
 				targetID = actualTargetID
-				target = chain.Targets[actualTargetID]
 			}
 
 			failover = nil
