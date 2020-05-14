@@ -20,7 +20,7 @@ FEATURES:
 IMPROVEMENTS:
 
 * acl: change authmethod.Validator to take a logger [[GH-7758](https://github.com/hashicorp/consul/issues/7758)]
-* agent: show warning when enable_script_checks is enabled without safty net [[GH-7437](https://github.com/hashicorp/consul/pull/7437)]
+* agent: show warning when enable_script_checks is enabled without safety net [[GH-7437](https://github.com/hashicorp/consul/pull/7437)]
 * api: Added filtering support to the v1/connect/intentions endpoint. [[GH-7478](https://github.com/hashicorp/consul/issues/7478)]
 * auto_encrypt: add validations for auto_encrypt.{tls,allow_tls} [[GH-7704](https://github.com/hashicorp/consul/pull/7704)]
 * build: switched to compile with Go 1.14.1 [[GH-7481](https://github.com/hashicorp/consul/pull/7481)]
