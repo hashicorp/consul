@@ -59,7 +59,7 @@ class NextApp extends App {
           is={Head}
           title="Consul by HashiCorp"
           siteName="Consul by HashiCorp"
-          description="Consul is a service networking solution to connect and secure services across any runtime platform and public or private cloud."
+          description="Consul is a service networking solution to automate network configurations, discover services, and enable secure connectivity across any cloud or runtime."
           image="https://www.consul.io/img/og-image.png"
           stylesheet={[
             { href: '/css/nprogress.css' },
