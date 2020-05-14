@@ -7,7 +7,7 @@
         <a href="{{env 'CONSUL_DOCS_URL'}}/connect/ingress_gateway.html" target="_blank" rel="noopener noreferrer">documentation.</a>
       </p>
     {{#let item.Service.Namespace as |nspace|}}
-      <ListCollection @cellHeight={{73}} @items={{gateway.Services}} class="consul-gateway-services-list" as |item index|>
+      <ListCollection @items={{gateway.Services}} class="consul-gateway-services-list" as |item index|>
         <a data-test-service-name href={{href-to 'dc.services.show' item.Name}}>
           {{item.Name}}
         </a>
