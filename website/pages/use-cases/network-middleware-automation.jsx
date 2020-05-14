@@ -5,7 +5,7 @@ export default function NetworkMiddlewareAutomationPage() {
   return (
     <UseCaseLayout
       title="Network Middleware Automation"
-      description="Reduce time to deploy and eliminate manual processes by automating complex networking tasks. Developers can rollout new services, scale up and down, and gracefully handle failure without operator intervention."
+      description="Reduce the time to deploy applications and eliminate manual processes by automating complex networking tasks. Enable operators to easily deploy, manage and optimize network middleware."
     >
       <TextSplitWithImage
         textSplit={{
@@ -62,7 +62,7 @@ export default function NetworkMiddlewareAutomationPage() {
           ],
         }}
         image={{
-          url: require('./img/ecosystem.svg?url'),
+          url: require('./img/flexible-architecture.png?url'),
         }}
       />
 

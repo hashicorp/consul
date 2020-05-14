@@ -6,13 +6,13 @@ export default function MultiPlatformServiceMeshPage() {
   return (
     <UseCaseLayout
       title="Multi-Platform Service Mesh"
-      description="Establish a service mesh between multiple runtime and cloud environments. Create a consistent platform for application networking and security with identity based authorization, L7 traffic management, and service-to-service encryption."
+      description="Create a consistent platform for modern application networking and security with identity based authorization, L7 traffic management, and service-to-service encryption."
     >
       <TextSplitWithImage
         textSplit={{
           heading: 'Multi-Datacenter, Multi-Region',
           content:
-            'Federate consul between multiple clusters and environments creating a global service mesh. Consistently apply policies and security across platforms.',
+            'Federate Consul between multiple clusters and environments creating a global service mesh. Consistently apply policies and security across platforms.',
           textSide: 'right',
           links: [
             {
@@ -141,7 +141,7 @@ Splits = [
           textSplit={{
             heading: 'Scale to Enterprise',
             content:
-              'Enterprise addresses solutions for operating Consul at enterprise scale both from an environmental complexity perspective as well as a resilience perspective.',
+              'Consul addresses the challenge of running a service mesh at enterprise scale from both an environmental complexity and resiliency perspective.',
             textSide: 'left',
             links: [
               {
