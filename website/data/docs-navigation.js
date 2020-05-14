@@ -141,7 +141,7 @@ export default [
       'acl-rules',
       'acl-legacy',
       'acl-migrate-tokens',
-      { category: 'auth-methods', content: ['kubernetes', 'jwt', 'oidc']},
+      { category: 'auth-methods', content: ['kubernetes', 'jwt', 'oidc'] },
     ],
   },
   {
@@ -179,16 +179,51 @@ export default [
     category: 'k8s',
     content: [
       {
+        name: 'Installation',
         category: 'installation',
         content: [
-          'aks',
-          'eks',
-          'gke',
-          'minikube',
-          'consul-enterprise',
-          'clients-outside-kubernetes',
-          'servers-outside-kubernetes',
-          'predefined-pvcs',
+          'overview',
+          {
+            category: 'platforms',
+            name: 'Platform Guides',
+            content: [
+              {
+                title: 'Minikube',
+                href:
+                  'https://learn.hashicorp.com/consul/kubernetes/minikube?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=mk',
+              },
+              {
+                title: 'AKS (Azure)',
+                href:
+                  'https://learn.hashicorp.com/consul/kubernetes/azure-k8s?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=aks',
+              },
+              {
+                title: 'EKS (AWS)',
+                href:
+                  'https://learn.hashicorp.com/consul/kubernetes/aws-k8s?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=eks',
+              },
+              {
+                title: 'GKE (Google Cloud)',
+                href:
+                  'https://learn.hashicorp.com/consul/kubernetes/google-cloud-k8s?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=gke',
+              },
+              'self-hosted-kubernetes',
+            ],
+          },
+          {
+            category: 'deployment-configurations',
+            name: 'Deployment Configurations',
+            content: [
+              'clients-outside-kubernetes',
+              'servers-outside-kubernetes',
+              'consul-enterprise',
+            ],
+          },
+          {
+            category: 'multi-cluster',
+            name: 'Multi-Cluster Federation <sup> Beta </sup>',
+            content: ['overview', 'kubernetes', 'vms-and-kubernetes'],
+          },
         ],
       },
       {
@@ -196,9 +231,9 @@ export default [
         name: 'Operations',
         content: ['upgrading', 'tls-on-existing-cluster', 'uninstalling'],
       },
-      'dns',
-      'service-sync',
       'connect',
+      'service-sync',
+      'dns',
       'ambassador',
       'helm',
     ],
