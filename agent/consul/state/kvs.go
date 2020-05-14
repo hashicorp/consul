@@ -144,9 +144,11 @@ func (s *Store) kvsSetTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry, up
 		}
 	}
 
-	// Set the ModifyIndex. Skip further writing in the state store
-	// if the entry is not actually changed.
+	// Set the ModifyIndex.
 	if existing != nil && existing.Equal(entry) {
+		// Skip further writing in the state store if the entry is not actually
+		// changed. Nevertheless, the input's ModifyIndex should be reset
+		// since the TXN API returns a copy in the response.
 		entry.ModifyIndex = existing.ModifyIndex
 		return nil
 	}
