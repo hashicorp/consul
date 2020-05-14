@@ -51,10 +51,10 @@ You must complete the following steps to configure an ingress gateway to proxy t
 1. On a host with a Consul client agent, start an Envoy proxy using the [envoy
 subcommand](/docs/commands/connect/envoy), specifying the `ingress` gateway
 type:
-    ```shell
-    $ consul connect envoy -gateway=ingress -register -service ingress-service \
-      -address '{{ GetInterfaceIP "eth0" }}:8888'
-    ```
+  ```shell
+  $ consul connect envoy -gateway=ingress -register -service ingress-service \
+    -address '{{ GetInterfaceIP "eth0" }}:8888'
+  ```
 
 2. Create and apply an `ingress-gateway` [configuration entry](/docs/agent/config-entries/ingress-gateway) that defines
 a set of listeners that expose the desired backing services. The config entry can be applied via the
