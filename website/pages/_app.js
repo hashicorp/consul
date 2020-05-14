@@ -82,7 +82,11 @@ class NextApp extends App {
             { href: '/fonts/dejavu/mono.woff2', as: 'font' },
           ]}
         >
-          <meta property="og:title" content="Consul by HashiCorp" />
+          <meta
+            name="og:title"
+            property="og:title"
+            content="Consul by HashiCorp"
+          />
         </HashiHead>
         {ALERT_BANNER_ACTIVE && (
           <AlertBanner {...alertBannerData} theme="consul" />

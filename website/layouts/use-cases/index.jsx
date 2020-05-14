@@ -9,7 +9,7 @@ export default function UseCaseLayout({ title, description, children }) {
   return (
     <>
       <HashiHead is={Head} title={pageTitle} description={description}>
-        <meta property="og:title" content={pageTitle} />
+        <meta name="og:title" property="og:title" content={pageTitle} />
       </HashiHead>
 
       <div id="p-use-case">
