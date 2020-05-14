@@ -142,8 +142,8 @@ export default function HomePage() {
               description:
                 'Enable services to locate other services running in any environment and provide real-time health status.',
               image: {
-                url: require('./img/use-cases/service-discovery-and-health-checks.png?url'),
-                format: 'png',
+                url: require('./img/use-cases/service-discovery-and-health-checking.svg?url'),
+                format: 'svg',
               },
               link: {
                 title: 'Learn more',
@@ -155,8 +155,8 @@ export default function HomePage() {
               description:
                 'Reduce burden of manual, ticket-based networking tasks.',
               image: {
-                url: require('./img/use-cases/network-middleware-automation.png?url'),
-                format: 'png',
+                url: require('./img/use-cases/network-middleware-automation.svg?url'),
+                format: 'svg',
               },
               link: {
                 title: 'Learn more',
@@ -168,8 +168,8 @@ export default function HomePage() {
               description:
                 'Secure, modern application networking across any cloud or runtime.',
               image: {
-                url: require('./img/use-cases/multi-platform-service-mesh.png?url'),
-                format: 'png',
+                url: require('./img/use-cases/multi-platform-service-mesh.svg?url'),
+                format: 'svg',
               },
               link: {
                 title: 'Learn more',
