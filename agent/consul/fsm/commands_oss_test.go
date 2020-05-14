@@ -1487,7 +1487,6 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 	require.NoError(err)
 
 	var logOfLogs [][]*raft.Log
-	var bufs [][]byte
 	for i := 0; i < 10; i++ {
 		req := structs.RegisterRequest{
 			Datacenter: "dc1",
@@ -1527,7 +1526,6 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 				Extensions: chunkBytes,
 			})
 		}
-		bufs = append(bufs, buf)
 		logOfLogs = append(logOfLogs, logs)
 	}
 

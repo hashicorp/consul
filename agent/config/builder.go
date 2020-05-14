@@ -627,6 +627,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		return RuntimeConfig{}, fmt.Errorf("'connect.enable_mesh_gateway_wan_federation=true' requires 'connect.enabled=true'")
 	}
 	if connectCAConfig != nil {
+		// nolint: staticcheck // CA config should be changed to use HookTranslateKeys
 		lib.TranslateKeys(connectCAConfig, map[string]string{
 			// Consul CA config
 			"private_key":           "PrivateKey",

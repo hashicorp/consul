@@ -354,12 +354,10 @@ func TestManager_RemoveServer(t *testing.T) {
 	m.AddServer(s2)
 
 	const maxServers = 19
-	servers := make([]*metadata.Server, maxServers)
 	// Already added two servers above
 	for i := maxServers; i > 2; i-- {
 		nodeName := fmt.Sprintf(nodeNameFmt, i)
 		server := &metadata.Server{Name: nodeName}
-		servers = append(servers, server)
 		m.AddServer(server)
 	}
 	if m.NumServers() != maxServers {

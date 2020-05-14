@@ -126,7 +126,13 @@ func TestTokenListCommand_JSON(t *testing.T) {
 	assert.Equal(code, 0)
 	assert.Empty(ui.ErrorWriter.String())
 
-	var jsonOutput json.RawMessage
+	var jsonOutput []api.ACLTokenListEntry
 	err := json.Unmarshal([]byte(ui.OutputWriter.String()), &jsonOutput)
 	require.NoError(t, err, "token unmarshalling error")
+
+	respIDs := make([]string, 0, len(jsonOutput))
+	for _, obj := range jsonOutput {
+		respIDs = append(respIDs, obj.AccessorID)
+	}
+	require.Subset(t, respIDs, tokenIds)
 }

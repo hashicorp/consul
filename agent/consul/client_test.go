@@ -380,7 +380,6 @@ func TestClient_RPC_Pool(t *testing.T) {
 func TestClient_RPC_ConsulServerPing(t *testing.T) {
 	t.Parallel()
 	var servers []*Server
-	var serverDirs []string
 	const numServers = 5
 
 	for n := 0; n < numServers; n++ {
@@ -390,7 +389,6 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 		defer s.Shutdown()
 
 		servers = append(servers, s)
-		serverDirs = append(serverDirs, dir)
 	}
 
 	const numClients = 1

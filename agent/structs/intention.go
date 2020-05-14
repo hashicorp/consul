@@ -103,6 +103,7 @@ func (t *Intention) UnmarshalJSON(data []byte) (err error) {
 	return nil
 }
 
+// nolint: staticcheck // should be fixed in https://github.com/hashicorp/consul/pull/7900
 func (x *Intention) SetHash(force bool) []byte {
 	if force || x.Hash == nil {
 		hash, err := blake2b.New256(nil)

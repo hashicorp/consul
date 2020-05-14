@@ -668,9 +668,11 @@ func TestSessionList(t *testing.T) {
 		if !ok {
 			t.Fatalf("should work")
 		}
-		if len(respObj) != 10 {
-			t.Fatalf("bad: %v", respObj)
+		respIDs := make([]string, 0, len(respObj))
+		for _, obj := range respObj {
+			respIDs = append(respIDs, obj.ID)
 		}
+		require.ElementsMatch(t, respIDs, ids)
 	})
 }
 

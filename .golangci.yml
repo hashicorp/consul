@@ -4,11 +4,26 @@ linters:
     - gofmt
     - govet
     - unconvert
+    - staticcheck
 
 issues:
   # Disable the default exclude list so that all excludes are explicitly
   # defined in this file.
   exclude-use-default: false
+
+  exclude-rules:
+    # Temp Ignore SA9004: only the first constant in this group has an explicit type
+    # https://staticcheck.io/docs/checks#SA9004
+    - linters: [staticcheck]
+      text: "SA9004:"
+
+    # Temp ignore SA4006: this value of `x` is never used
+    - linters: [staticcheck]
+      text: "SA4006:"
+
+    # Temp ignore SA2002: the goroutine calls T.Fatalf, which must be called in the same goroutine as the test
+    - linters: [staticcheck]
+      text: "SA2002:"
 
 linters-settings:
   gofmt:

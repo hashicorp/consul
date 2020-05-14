@@ -1110,6 +1110,7 @@ func (s *state) handleUpdateTerminatingGateway(u cache.UpdateEvent, snap *Config
 			}
 		}
 
+	// nolint: staticcheck // github.com/dominikh/go-tools/issues/580
 	case strings.HasPrefix(u.CorrelationID, serviceIntentionsIDPrefix):
 		// no-op: Intentions don't get stored in the snapshot, calls to ConnectAuthorize will fetch them from the cache
 

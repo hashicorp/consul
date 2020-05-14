@@ -832,7 +832,7 @@ func (a *Agent) listenAndServeDNS() error {
 			merr = multierror.Append(merr, err)
 		case <-timeout:
 			merr = multierror.Append(merr, fmt.Errorf("agent: timeout starting DNS servers"))
-			break
+			return merr.ErrorOrNil()
 		}
 	}
 	return merr.ErrorOrNil()
