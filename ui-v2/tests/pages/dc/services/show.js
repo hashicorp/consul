@@ -1,5 +1,5 @@
 export default function(visitable, attribute, collection, text, intentions, filter, tabs) {
-  return {
+  const page = {
     visit: visitable('/:dc/services/:service'),
     externalSource: attribute('data-test-external-source', '[data-test-external-source]', {
       scope: '.title',
@@ -22,8 +22,16 @@ export default function(visitable, attribute, collection, text, intentions, filt
       address: text('[data-test-address]'),
     }),
     intentions: intentions(),
-    services: collection('.consul-gateway-services-list> ul > li:not(:first-child)', {
+  };
+  page.tabs.upstreamsTab = {
+    services: collection('.consul-upstream-list > ul > li:not(:first-child)', {
       name: text('[data-test-service-name]'),
     }),
   };
+  page.tabs.linkedServicesTab = {
+    services: collection('.consul-service-list > ul > li:not(:first-child)', {
+      name: text('[data-test-service-name]'),
+    }),
+  };
+  return page;
 }
