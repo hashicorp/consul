@@ -12,7 +12,7 @@ export default RepositoryService.extend({
     const query = {
       dc: dc,
       nspace: nspace,
-      filter: `SourceName == ${slug} or DestinationName == ${slug}`,
+      filter: `SourceName == "${slug}" or DestinationName == "${slug}"`,
     };
     if (typeof configuration.cursor !== 'undefined') {
       query.index = configuration.cursor;
