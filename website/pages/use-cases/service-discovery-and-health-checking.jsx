@@ -166,7 +166,8 @@ Judiths-MBP.lan.node.dc1.consul. 0 IN   TXT "consul-network-segment="
               alt: 'Mercedes-Benz',
             },
             image: {
-              url: require('./img/mercedes-card.jpg?url'),
+              url:
+                'https://www.datocms-assets.com/2885/1589432019-mercedes-card-d0e7f12d215e93fee7011984315e94b7.jpg',
               alt: 'Mercedes-Benz Case Study',
             },
             heading: 'On the Road Again',
