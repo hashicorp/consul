@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.8.0-beta1 (May 14, 2020)
 
 FEATURES:
 
