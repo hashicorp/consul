@@ -1996,8 +1996,6 @@ func TestDecodeCatalogRegister(t *testing.T) {
 //     DestinationName	string
 //     SourceType	structs.IntentionSourceType
 //     Action	structs.IntentionAction
-//     DefaultAddr	string
-//     DefaultPort	int
 //     Meta	map[string]string
 //     Precedence	int
 //     CreatedAt	time.Time	mapstructure:'-'

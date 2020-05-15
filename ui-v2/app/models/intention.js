@@ -14,11 +14,6 @@ export default Model.extend({
   Precedence: attr('number'),
   SourceType: attr('string', { defaultValue: 'consul' }),
   Action: attr('string', { defaultValue: 'deny' }),
-  // These are in the API response but up until now
-  // aren't used for anything
-  DefaultAddr: attr('string'),
-  DefaultPort: attr('number'),
-  //
   Meta: attr(),
   SyncTime: attr('number'),
   Datacenter: attr('string'),

@@ -334,3 +334,28 @@ func TestIntentionPrecedenceSorter(t *testing.T) {
 		})
 	}
 }
+
+func TestIntention_SetHash(t *testing.T) {
+	i := Intention{
+		ID:              "the-id",
+		Description:     "the-description",
+		SourceNS:        "source-ns",
+		SourceName:      "source-name",
+		DestinationNS:   "dest-ns",
+		DestinationName: "dest-name",
+		SourceType:      "source-type",
+		Action:          "action",
+		Precedence:      123,
+		Meta: map[string]string{
+			"meta1": "one",
+			"meta2": "two",
+		},
+	}
+	i.SetHash()
+	expected := []byte{
+		0x20, 0x89, 0x55, 0xdb, 0x69, 0x34, 0xce, 0x89, 0xd8, 0xb9, 0x2e, 0x3a,
+		0x85, 0xb6, 0xea, 0x43, 0xb2, 0x23, 0x16, 0x93, 0x94, 0x13, 0x2a, 0xe4,
+		0x81, 0xfe, 0xe, 0x34, 0x91, 0x99, 0xe9, 0x8d,
+	}
+	require.Equal(t, expected, i.Hash)
+}

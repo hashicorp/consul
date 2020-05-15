@@ -145,8 +145,6 @@ $ curl \
   "DestinationName": "db",
   "SourceType": "consul",
   "Action": "allow",
-  "DefaultAddr": "",
-  "DefaultPort": 0,
   "Meta": {},
   "Precedence": 9,
   "CreatedAt": "2018-05-21T16:41:27.977155457Z",
@@ -208,8 +206,6 @@ $ curl \
     "DestinationName": "db",
     "SourceType": "consul",
     "Action": "allow",
-    "DefaultAddr": "",
-    "DefaultPort": 0,
     "Meta": {},
     "Precedence": 9,
     "CreatedAt": "2018-05-21T16:41:27.977155457Z",
@@ -228,8 +224,6 @@ the following selectors and filter operations being supported:
 | Selector          | Supported Operations                               |
 | ----------------- | -------------------------------------------------- |
 | `Action`          | Equal, Not Equal, In, Not In, Matches, Not Matches |
-| `DefaultAddr`     | Equal, Not Equal, In, Not In, Matches, Not Matches |
-| `DefaultPort`     | Equal, Not Equal                                   |
 | `Description`     | Equal, Not Equal, In, Not In, Matches, Not Matches |
 | `DestinationNS`   | Equal, Not Equal, In, Not In, Matches, Not Matches |
 | `DestinationName` | Equal, Not Equal, In, Not In, Matches, Not Matches |
@@ -450,8 +444,6 @@ $ curl \
       "DestinationName": "db",
       "SourceType": "consul",
       "Action": "deny",
-      "DefaultAddr": "",
-      "DefaultPort": 0,
       "Meta": {},
       "CreatedAt": "2018-05-21T16:41:33.296693825Z",
       "UpdatedAt": "2018-05-21T16:41:33.296694288Z",
@@ -467,8 +459,6 @@ $ curl \
       "DestinationName": "*",
       "SourceType": "consul",
       "Action": "allow",
-      "DefaultAddr": "",
-      "DefaultPort": 0,
       "Meta": {},
       "CreatedAt": "2018-05-21T16:41:27.977155457Z",
       "UpdatedAt": "2018-05-21T16:41:27.977157724Z",
