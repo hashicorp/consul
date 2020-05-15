@@ -62,7 +62,7 @@ export default function NetworkMiddlewareAutomationPage() {
           ],
         }}
         image={{
-          url: require('./img/flexible-architecture.png?url'),
+          url: require('./img/flexible-architecture.svg?url'),
         }}
       />
 
