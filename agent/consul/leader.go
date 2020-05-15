@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"reflect"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -1211,9 +1212,10 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 				return err
 			}
 			if services != nil {
-				for id := range services.Services {
+				for id, serv := range services.Services {
 					if id == service.ID {
-						match = true
+						// If metadata are different, be sure to update it
+						match = reflect.DeepEqual(serv.Meta, service.Meta)
 					}
 				}
 			}
