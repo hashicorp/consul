@@ -782,7 +782,6 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							{
 								DestinationNamespace: "default",
 								DestinationName:      "api",
-								LocalBindAddress:     "10.0.1.1",
 								LocalBindPort:        9999,
 								Config: map[string]interface{}{
 									"protocol": "http",

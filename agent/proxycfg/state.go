@@ -1350,7 +1350,7 @@ func (s *state) handleUpdateIngressGateway(u cache.UpdateEvent, snap *ConfigSnap
 		watchedSvcs := make(map[string]struct{})
 		upstreamsMap := make(map[IngressListenerKey]structs.Upstreams)
 		for _, service := range services.Services {
-			u := makeUpstream(service, s.address)
+			u := makeUpstream(service)
 
 			err := s.watchIngressDiscoveryChain(snap, u)
 			if err != nil {
@@ -1386,7 +1386,7 @@ func (s *state) handleUpdateIngressGateway(u cache.UpdateEvent, snap *ConfigSnap
 	return nil
 }
 
-func makeUpstream(g *structs.GatewayService, bindAddr string) structs.Upstream {
+func makeUpstream(g *structs.GatewayService) structs.Upstream {
 	upstream := structs.Upstream{
 		DestinationName:      g.Service.ID,
 		DestinationNamespace: g.Service.NamespaceOrDefault(),
@@ -1397,10 +1397,6 @@ func makeUpstream(g *structs.GatewayService, bindAddr string) structs.Upstream {
 		Config: map[string]interface{}{
 			"protocol": g.Protocol,
 		},
-	}
-	upstream.LocalBindAddress = bindAddr
-	if bindAddr == "" {
-		upstream.LocalBindAddress = "0.0.0.0"
 	}
 
 	return upstream
