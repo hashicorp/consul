@@ -13,6 +13,3 @@
   height: 16px;
   margin-left: 16px;
 }
-%popover-menu + label > * {
-  @extend %split-button, %sort-button;
-}
