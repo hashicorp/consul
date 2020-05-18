@@ -127,9 +127,11 @@ module.exports = function(environment, $ = process.env) {
       });
       break;
     case environment === 'production':
+      // Make sure all templated variables check for existence first
+      // before outputting them, this means they all should be conditionals
       ENV = Object.assign({}, ENV, {
-        CONSUL_ACLS_ENABLED: '{{.ACLsEnabled}}',
-        CONSUL_SSO_ENABLED: '{{.SSOEnabled}}',
+        CONSUL_ACLS_ENABLED: '{{ if .ACLsEnabled }}{{.ACLsEnabled}}{{ else }}false{{ end }}',
+        CONSUL_SSO_ENABLED: '{{ if .SSOEnabled }}{{.SSOEnabled}}{{ else }}false{{ end }}',
         CONSUL_NSPACES_ENABLED:
           '{{ if .NamespacesEnabled }}{{.NamespacesEnabled}}{{ else }}false{{ end }}',
       });
