@@ -1268,6 +1268,16 @@
   mask-image: $partner-svg;
 }
 
+%with-path-icon {
+  @extend %with-icon;
+  background-image: $path-svg;
+}
+%with-path-mask {
+  @extend %with-mask;
+  -webkit-mask-image: $path-svg;
+  mask-image: $path-svg;
+}
+
 %with-plus-circle-fill-icon {
   @extend %with-icon;
   background-image: $plus-circle-fill-svg;
@@ -1306,6 +1316,26 @@
   @extend %with-mask;
   -webkit-mask-image: $plus-square-fill-svg;
   mask-image: $plus-square-fill-svg;
+}
+
+%with-port-icon {
+  @extend %with-icon;
+  background-image: $port-svg;
+}
+%with-port-mask {
+  @extend %with-mask;
+  -webkit-mask-image: $port-svg;
+  mask-image: $port-svg;
+}
+
+%with-protocol-icon {
+  @extend %with-icon;
+  background-image: $protocol-svg;
+}
+%with-protocol-mask {
+  @extend %with-mask;
+  -webkit-mask-image: $protocol-svg;
+  mask-image: $protocol-svg;
 }
 
 %with-provider-icon {
