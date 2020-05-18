@@ -1,13 +1,9 @@
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
 import { set, get, computed } from '@ember/object';
+import { schedule } from '@ember/runloop';
 
-import {
-  createRoute,
-  getSplitters,
-  getRoutes,
-  getResolvers,
-} from 'consul-ui/utils/components/discovery-chain/index';
+import { createRoute, getSplitters, getRoutes, getResolvers } from './utils';
 
 export default Component.extend({
   dom: service('dom'),
@@ -67,13 +63,15 @@ export default Component.extend({
       let nextNode;
       const resolverID = `resolver:${this.chain.ServiceName}.${this.chain.Namespace}.${this.chain.Datacenter}`;
       const splitterID = `splitter:${this.chain.ServiceName}.${this.chain.Namespace}`;
-      if (typeof this.chain.Nodes[resolverID] !== 'undefined') {
-        nextNode = resolverID;
-      } else if (typeof this.chain.Nodes[splitterID] !== 'undefined') {
+      // The default router should look for a splitter first,
+      // if there isn't one try the default resolver
+      if (typeof this.chain.Nodes[splitterID] !== 'undefined') {
         nextNode = splitterID;
+      } else if (typeof this.chain.Nodes[resolverID] !== 'undefined') {
+        nextNode = resolverID;
       }
       if (typeof nextNode !== 'undefined') {
-        routes.push({
+        const route = {
           Default: true,
           ID: `route:${this.chain.ServiceName}`,
           Name: this.chain.ServiceName,
@@ -85,7 +83,8 @@ export default Component.extend({
             },
           },
           NextNode: nextNode,
-        });
+        };
+        routes.push(createRoute(route, this.chain.ServiceName, this.dom.guid));
       }
     }
     return routes;
@@ -98,16 +97,14 @@ export default Component.extend({
       get(this, 'chain.Nodes')
     );
   }),
-  graph: computed('splitters', 'routes', function() {
+  graph: computed('splitters', 'routes.[]', function() {
     const graph = this.dataStructs.graph();
-    const router = this.chain.ServiceName;
     this.splitters.forEach(item => {
       item.Splits.forEach(splitter => {
         graph.addLink(item.ID, splitter.NextNode);
       });
     });
     this.routes.forEach((route, i) => {
-      route = createRoute(route, router, this.dom.guid);
       graph.addLink(route.ID, route.NextNode);
     });
     return graph;
@@ -146,22 +143,29 @@ export default Component.extend({
   // the developer access to the mouse event therefore we just use JS to add our events
   // revisit this post Octane
   addPathListeners: function() {
-    this._listeners.remove();
-    this._listeners.add(this.dom.document(), {
-      click: e => {
-        // all route/splitter/resolver components currently
-        // have classes that end in '-card'
-        if (!this.dom.closest('[class$="-card"]', e.target)) {
-          set(this, 'active', false);
-          set(this, 'selectedId', '');
-        }
-      },
-    });
-    [...this.dom.elements('path.split', this.element)].forEach(item => {
-      this._listeners.add(item, {
-        mouseover: e => this.actions.showSplit.apply(this, [e]),
-        mouseout: e => this.actions.hideSplit.apply(this, [e]),
-      });
+    schedule('afterRender', () => {
+      this._listeners.remove();
+      // as this is now afterRender, theoretically
+      // it could happen after the component is destroyed?
+      // watch for that incase
+      if (this.element && !this.isDestroyed) {
+        this._listeners.add(this.dom.document(), {
+          click: e => {
+            // all route/splitter/resolver components currently
+            // have classes that end in '-card'
+            if (!this.dom.closest('[class$="-card"]', e.target)) {
+              set(this, 'active', false);
+              set(this, 'selectedId', '');
+            }
+          },
+        });
+        [...this.dom.elements('path.split', this.element)].forEach(item => {
+          this._listeners.add(item, {
+            mouseover: e => this.actions.showSplit.apply(this, [e]),
+            mouseout: e => this.actions.hideSplit.apply(this, [e]),
+          });
+        });
+      }
     });
     // TODO: currently don't think there is a way to listen
     // for an element being removed inside a component, possibly
