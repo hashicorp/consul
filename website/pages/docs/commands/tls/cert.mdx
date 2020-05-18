@@ -50,22 +50,34 @@ Usage: `consul tls cert create [filename-prefix] [options]`
 
 #### TLS Cert Create Options
 
-- `-additional-dnsname=<string>` - Provide additional dnsname for Subject Alternative Names.
+- `-additional-dnsname=<string>` - Provide an additional dnsname for Subject
+  Alternative Names. localhost is always included. This flag may be provided
+  multiple times.
 
-- `-additional-ipaddress=<string>` - Provide additional ipaddress for Subject Alternative Names.
+- `-additional-ipaddress=<string>` - Provide an additional ipaddress for
+  Subject Alternative Names. `127.0.0.1` is always included. This flag may be
+  provided multiple times.
 
-- `-ca=<string>` - Provide path to the ca
+- `-ca=<string>` - Provide path to the ca. Defaults to `#DOMAIN#-agent-ca.pem`.
 
-- `-cli` - Generate cli certificate
+- `-cli` - Generate cli certificate.
 
-- `-client` - Generate client certificate
+- `-client` - Generate client certificate.
 
-- `-days=<int>` - Provide number of days the certificate is valid for from now on.
+- `-days=<int>` - Provide number of days the certificate is valid for from now
+  on. Defaults to 1 year.
 
-- `-dc=<string>` - Provide the datacenter. Matters only for -server certificates
+- `-dc=<string>` - Provide the datacenter. Matters only for `-server`
+  certificates. Defaults to `dc1`.
 
-- `-domain=<string>` - Provide the domain. Matters only for -server certificates
+- `-domain=<string>` - Provide the domain. Matters only for `-server`
+  certificates.
 
-- `-key=<string>` - Provide path to the key
+- `-key=<string>` - Provide path to the key. Defaults to
+  `#DOMAIN#-agent-ca-key.pem`.
 
-- `-server` - Generate server certificate
+- `-node=<string>` - When generating a server cert and this is set an
+  additional dns name is included of the form
+  `<node>.server.<datacenter>.<domain>`.
+
+- `-server` - Generate server certificate.
