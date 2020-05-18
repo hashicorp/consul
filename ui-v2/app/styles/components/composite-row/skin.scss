@@ -64,3 +64,20 @@
   @extend %with-folder-outline-mask, %as-pseudo;
   background-color: $gray-500;
 }
+%composite-row-detail .path::before {
+  @extend %with-path-mask, %as-pseudo;
+  background-color: $gray-500;
+}
+%composite-row-detail .port::before {
+  @extend %with-port-mask, %as-pseudo;
+  background-color: $gray-500;
+}
+%composite-row-detail .protocol::before {
+  @extend %with-protocol-mask, %as-pseudo;
+  background-color: $gray-500;
+}
+// In this case we do not need a background on the icon
+%composite-row .combined-address .copy-button button:hover,
+%composite-row-detail .port .copy-button button:hover {
+  background-color: transparent !important;
+}
