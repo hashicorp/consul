@@ -43,6 +43,11 @@ export default Component.extend({
   },
   actions: {
     click: function(e) {
+      // only preventDefault if the target isn't an external link
+      // TODO: this should be changed for an explicit close
+      if ((e.target.rel || '').indexOf('noopener') === -1) {
+        e.preventDefault();
+      }
       this.input.checked = !this.input.checked;
       // manually dispatched mouse events have a detail = 0
       // real mouse events have the number of click counts

@@ -31,6 +31,11 @@ export default Service.extend({
     inViewportCallbacks = new WeakMap();
     $_ = getComponentFactory(getOwner(this));
   },
+  willDestroy: function() {
+    this._super(...arguments);
+    inViewportCallbacks = null;
+    $_ = null;
+  },
   document: function() {
     return this.doc;
   },
@@ -93,7 +98,7 @@ export default Service.extend({
   },
   isInViewport: function($el, cb, threshold = 0) {
     inViewportCallbacks.set($el, cb);
-    const observer = new IntersectionObserver(
+    let observer = new IntersectionObserver(
       (entries, observer) => {
         entries.map(item => {
           const cb = inViewportCallbacks.get(item.target);
@@ -109,6 +114,13 @@ export default Service.extend({
     );
     observer.observe($el); // eslint-disable-line ember/no-observers
     // observer.unobserve($el);
-    return () => observer.disconnect(); // eslint-disable-line ember/no-observers
+    return () => {
+      observer.unobserve($el); // eslint-disable-line ember/no-observers
+      if (inViewportCallbacks) {
+        inViewportCallbacks.delete($el);
+      }
+      observer.disconnect(); // eslint-disable-line ember/no-observers
+      observer = null;
+    };
   },
 });
