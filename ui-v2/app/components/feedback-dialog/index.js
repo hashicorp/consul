@@ -31,7 +31,7 @@ export default Component.extend(SlotsMixin, {
       .then(() => {
         return new Promise(resolve => {
           this.dom
-            .element(`.${className}`, this.element)
+            .element(`.${className}`, this.$feedback)
             .addEventListener('transitionend', resolve);
         });
       })
