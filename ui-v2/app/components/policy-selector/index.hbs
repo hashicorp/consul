@@ -59,7 +59,7 @@
       <BlockSlot @name="details">
           {{#if (eq item.template '')}}
             <DataSource
-              @src={{concat '/' item.Namespace '/' item.Datacenter '/policy/' item.ID}}
+              @src={{concat '/' item.Namespace '/' dc '/policy/' item.ID}}
               @onchange={{action (mut loadedItem) value="data"}}
               @loading="lazy"
             />
