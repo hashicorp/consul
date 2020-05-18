@@ -188,7 +188,7 @@ func (m *Manager) ensureProxyServiceLocked(ns *structs.NodeService, token string
 	}
 
 	// Set the necessary dependencies
-	state.logger = m.Logger
+	state.logger = m.Logger.With("service_id", sid.String())
 	state.cache = m.Cache
 	state.source = m.Source
 	state.dnsConfig = m.DNSConfig
