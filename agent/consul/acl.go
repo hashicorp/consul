@@ -1154,16 +1154,17 @@ func (r *ACLResolver) ACLsEnabled() bool {
 	return true
 }
 
-func (r *ACLResolver) GetMergedPolicyForToken(token string) (*acl.Policy, error) {
-	policies, err := r.resolveTokenToPolicies(token)
+func (r *ACLResolver) GetMergedPolicyForToken(token string) (structs.ACLIdentity, *acl.Policy, error) {
+	ident, policies, err := r.resolveTokenToIdentityAndPolicies(token)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if len(policies) == 0 {
-		return nil, acl.ErrNotFound
+		return nil, nil, acl.ErrNotFound
 	}
 
-	return policies.Merge(r.cache, r.aclConf)
+	policy, err := policies.Merge(r.cache, r.aclConf)
+	return ident, policy, err
 }
 
 // aclFilter is used to filter results from our state store based on ACL rules

@@ -453,6 +453,7 @@ func TestACLEndpoint_GetPolicy(t *testing.T) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -471,9 +472,7 @@ func TestACLEndpoint_GetPolicy(t *testing.T) {
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var out string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out))
 
 	getR := structs.ACLPolicyResolveLegacyRequest{
 		Datacenter: "dc1",
@@ -482,32 +481,43 @@ func TestACLEndpoint_GetPolicy(t *testing.T) {
 
 	var acls structs.ACLPolicyResolveLegacyResponse
 	retry.Run(t, func(r *retry.R) {
-
-		if err := msgpackrpc.CallWithCodec(codec, "ACL.GetPolicy", &getR, &acls); err != nil {
-			r.Fatalf("err: %v", err)
-		}
-
-		if acls.Policy == nil {
-			r.Fatalf("Bad: %v", acls)
-		}
-		if acls.TTL != 30*time.Second {
-			r.Fatalf("bad: %v", acls)
-		}
+		require.NoError(r, msgpackrpc.CallWithCodec(codec, "ACL.GetPolicy", &getR, &acls))
+		require.NotNil(t, acls.Policy)
+		require.Equal(t, "deny", acls.Parent)
+		require.Equal(t, 30*time.Second, acls.TTL)
 	})
 
 	// Do a conditional lookup with etag
 	getR.ETag = acls.ETag
 	var out2 structs.ACLPolicyResolveLegacyResponse
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.GetPolicy", &getR, &out2); err != nil {
-		t.Fatalf("err: %v", err)
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.GetPolicy", &getR, &out2))
+
+	require.Nil(t, out2.Policy)
+	require.Equal(t, 30*time.Second, out2.TTL)
+}
+
+func TestACLEndpoint_GetPolicy_Management(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, testServerACLConfig(nil))
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// wait for leader election and leader establishment to finish.
+	// after this the global management policy, master token and
+	// anonymous token will have been injected into the state store
+	// and we will be ready to resolve the master token
+	waitForLeaderEstablishment(t, s1)
+
+	req := structs.ACLPolicyResolveLegacyRequest{
+		Datacenter: s1.config.Datacenter,
+		ACL:        TestDefaultMasterToken,
 	}
 
-	if out2.Policy != nil {
-		t.Fatalf("Bad: %v", out2)
-	}
-	if out2.TTL != 30*time.Second {
-		t.Fatalf("bad: %v", out2)
-	}
+	var resp structs.ACLPolicyResolveLegacyResponse
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.GetPolicy", &req, &resp))
+	require.Equal(t, "manage", resp.Parent)
 }
 
 func TestACLEndpoint_List(t *testing.T) {
