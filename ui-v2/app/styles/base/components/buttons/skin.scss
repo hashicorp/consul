@@ -94,6 +94,7 @@
 
 %internal-button {
   color: $gray-900;
+  background-color: $white;
 }
 %internal-button-dangerous {
   @extend %frame-red-300;

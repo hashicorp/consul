@@ -6,6 +6,8 @@ const toKeyValue = function(el) {
   let value = '';
   switch (el.type) {
     case 'radio':
+      value = el.value === 'on' ? '' : el.value;
+      break;
     case 'search':
     case 'text':
       value = el.value;
