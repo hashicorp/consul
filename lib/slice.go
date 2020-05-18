@@ -15,3 +15,42 @@ func StringSliceEqual(a, b []string) bool {
 	}
 	return true
 }
+
+// StringSliceMergeSorted takes two string slices that are assumed to be sorted
+// and does a zipper merge of the two sorted slices, removing any cross-slice
+// duplicates. If any individual slice contained duplicates those will be
+// retained.
+func StringSliceMergeSorted(a, b []string) []string {
+	if len(a) == 0 && len(b) == 0 {
+		return nil
+	} else if len(a) == 0 {
+		return b
+	} else if len(b) == 0 {
+		return a
+	}
+
+	out := make([]string, 0, len(a)+len(b))
+
+	i, j := 0, 0
+	for i < len(a) && j < len(b) {
+		switch {
+		case a[i] < b[j]:
+			out = append(out, a[i])
+			i++
+		case a[i] > b[j]:
+			out = append(out, b[j])
+			j++
+		default:
+			out = append(out, a[i])
+			i++
+			j++
+		}
+	}
+	if i < len(a) {
+		out = append(out, a[i:]...)
+	}
+	if j < len(b) {
+		out = append(out, b[j:]...)
+	}
+	return out
+}
