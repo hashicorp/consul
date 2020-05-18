@@ -14,6 +14,3 @@
   font-size: 0;
   background-color: $transparent;
 }
-%popover-menu + label > * {
-  @extend %split-button, %sort-button;
-}

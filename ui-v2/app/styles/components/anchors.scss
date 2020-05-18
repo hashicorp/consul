@@ -1,4 +1,3 @@
-@import '../base/components/anchors/index';
 a[rel*='external']::after {
   @extend %with-exit-icon, %as-pseudo;
   margin-left: 8px;
