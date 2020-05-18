@@ -1,7 +1,7 @@
-import { getSplitters } from 'consul-ui/utils/components/discovery-chain/index';
+import { getSplitters } from 'consul-ui/components/discovery-chain/utils';
 import { module, test } from 'qunit';
 
-module('Unit | Utility | components/discovery-chain/get-splitters', function() {
+module('Unit | Component | discovery-chain/get-splitters', function() {
   test('it collects and correctly parses splitter Names', function(assert) {
     const actual = getSplitters({
       'splitter:splitter-name.default': {

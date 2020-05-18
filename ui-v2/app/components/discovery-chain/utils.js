@@ -138,7 +138,7 @@ export const getResolvers = function(dc, nspace = 'default', targets = {}, nodes
 export const createRoute = function(route, router, uid) {
   return {
     ...route,
-    Default: typeof route.Definition.Match === 'undefined',
+    Default: route.Default || typeof route.Definition.Match === 'undefined',
     ID: `route:${router}-${uid(route.Definition)}`,
   };
 };
