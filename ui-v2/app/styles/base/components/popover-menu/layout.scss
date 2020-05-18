@@ -1,7 +1,9 @@
 %with-popover-menu {
   position: relative;
 }
-
+%with-popover-menu > [type='checkbox'] {
+  @extend %popover-menu;
+}
 %more-popover-menu {
   @extend %display-toggle-siblings;
 }

@@ -1,11 +1,13 @@
 .popover-select {
   @extend %popover-select;
 }
-%popover-select > [type='checkbox'] {
-  @extend %popover-menu;
+%popover-select {
+  @extend %with-popover-menu;
+}
+%popover-select label > * {
+  @extend %split-button, %sort-button;
 }
 %popover-select {
-  position: relative;
   z-index: 3;
   padding-left: 12px;
   height: 100%;
