@@ -6,11 +6,11 @@
         {{#let (lowercase component.flashType) (lowercase flash.action) as |status type|}}
           {{! flashes automatically ucfirst the type }}
 
-          <p data-notification class={{concat status ' notification-' type}}>
+          <p data-notification role="alert" class={{concat status ' notification-' type}}>
             <strong>
               {{capitalize status}}!
             </strong>
-            {{#yield-slot name="notification" params=(block-params status type flash.item)}}
+            {{#yield-slot name="notification" params=(block-params status type flash.item flash.error)}}
               {{yield}}
               {{#if (eq type 'logout')}}
                 {{#if (eq status 'success') }}

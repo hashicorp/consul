@@ -13,7 +13,7 @@
   @authorized={{isAuthorized}}
   @enabled={{isEnabled}}
   >
-    <BlockSlot @name="notification" as |status type|>
+    <BlockSlot @name="notification" as |status type item error|>
       {{partial 'dc/acls/roles/notifications'}}
     </BlockSlot>
     <BlockSlot @name="disabled">
