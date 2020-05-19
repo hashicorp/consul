@@ -5,11 +5,11 @@ coverage:
     project: off
     patch:
       default: off
-      backend:
-        flags:
-          - backend
-        # https://docs.codecov.io/docs/commit-status#section-informational
-        informational: true
+      # backend:
+      #   flags:
+      #     - backend
+      #   # https://docs.codecov.io/docs/commit-status#section-informational
+      #   informational: true
       api:
         flags:
           - api
@@ -44,15 +44,19 @@ flags:
   backend:
     paths:
       - !ui-v2/
+    carryforward: true
   api:
     paths:
       - api/
+    carryforward: true
   sdk:
     paths:
       - sdk/
+    carryforward: true
   ui:
     paths:
       - ui-v2/
+    carryforward: true
 
 ignore:
   - "agent/bindata_assetfs.go"
