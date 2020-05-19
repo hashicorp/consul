@@ -66,6 +66,8 @@
     }
 
     & > a {
+      display: flex;
+      cursor: pointer;
       margin: 0 16px;
       width: 33.333%;
       transition: box-shadow 0.25s, transform 0.25s, -webkit-transform 0.25s;
