@@ -411,7 +411,8 @@ jobs:
   ember-build:
     docker:
       - image: *EMBER_IMAGE
-    resource_class: medium+
+    environment:
+      JOBS: 2 # limit parallelism for broccoli-babel-transpiler
     steps:
       - checkout
       - restore_cache:
@@ -428,7 +429,8 @@ jobs:
   ember-build-prod:
     docker:
       - image: *EMBER_IMAGE
-    resource_class: medium+
+    environment:
+      JOBS: 2 # limit parallelism for broccoli-babel-transpiler
     steps:
       - checkout
       - restore_cache:
