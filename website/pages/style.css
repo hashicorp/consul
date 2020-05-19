@@ -121,16 +121,16 @@ footer .content {
 .g-section-block section {
   padding-top: 96px;
   padding-bottom: 96px;
-}
 
-.g-section-block section > .g-section-header + *,
-.g-section-block section > .g-container > .g-section-header + * {
-  margin-top: 72px;
-}
+  & > .g-section-header + *,
+  & > .g-container > .g-section-header + * {
+    margin-top: 72px;
+  }
 
-.g-section-block section > * + *,
-.g-section-block section > .g-container > * + * {
-  margin-top: 96px;
+  & > * + *,
+  & > .g-container > * + * {
+    margin-top: 96px;
+  }
 }
 
 .g-section-block .button-container {

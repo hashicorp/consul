@@ -1,7 +1,7 @@
 #p-use-case {
   & .features-header {
     text-align: center;
-    margin-bottom: 0px;
+    margin-bottom: 0;
   }
 
   /* Overriding the g-text-split component to have
