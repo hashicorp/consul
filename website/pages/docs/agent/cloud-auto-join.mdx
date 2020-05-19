@@ -22,7 +22,7 @@ As of Consul 1.0 the values are taken literally and must not be URL
 encoded. If the values contain spaces, equals, backslashes or double quotes then
 they need to be double quoted and the usual escaping rules apply.
 
-```shell
+```shell-session
 $ consul agent -retry-join 'provider=my-cloud config=val config2="some other val" ...'
 ```
 
@@ -50,7 +50,7 @@ provider.
 This returns the first private IP address of all servers in the given
 region which have the given `tag_key` and `tag_value`.
 
-```shell
+```shell-session
 $ consul agent -retry-join "provider=aws tag_key=... tag_value=..."
 ```
 
@@ -88,7 +88,7 @@ This returns the first private IP address of all servers in the given region
 which have the given `tag_key` and `tag_value` in the tenant and subscription, or in
 the given `resource_group` of a `vm_scale_set` for Virtual Machine Scale Sets.
 
-```shell
+```shell-session
 $ consul agent -retry-join "provider=azure tag_name=... tag_value=... tenant_id=... client_id=... subscription_id=... secret_access_key=..."
 ```
 
@@ -133,7 +133,7 @@ When using Virtual Machine Scale Sets the only role action needed is `Microsoft.
 This returns the first private IP address of all servers in the given
 project which have the given `tag_value`.
 
-```shell
+```shell-session
 $ consul agent -retry-join "provider=gce project_name=... tag_value=..."
 ```
 
@@ -168,7 +168,7 @@ Credentials are searched using the following paths, in order of precedence.
 This returns the first private IP address of all servers for the given
 datacenter with the given `tag_value`.
 
-```shell
+```shell-session
 $ consul agent -retry-join "provider=softlayer datacenter=... tag_value=... username=... api_key=..."
 ```
 
@@ -194,7 +194,7 @@ $ consul agent -retry-join "provider=softlayer datacenter=... tag_value=... user
 This returns the first private IP address of all servers for the given
 `region` with the given `tag_key` and `tag_value`.
 
-```shell
+```shell-session
 $ consul agent -retry-join "provider=aliyun region=... tag_key=consul tag_value=... access_key_id=... access_key_secret=..."
 ```
 
@@ -221,7 +221,7 @@ It is recommended you make a dedicated key used to auto-join.
 This returns the first private IP address of all servers for the given
 `region` with the given `tag_name`.
 
-```shell
+```shell-session
 $ consul agent -retry-join "provider=digitalocean region=... tag_name=... api_token=..."
 ```
 
@@ -241,7 +241,7 @@ $ consul agent -retry-join "provider=digitalocean region=... tag_name=... api_to
 This returns the first private IP address of all servers for the given
 `region` with the given `tag_key` and `tag_value`.
 
-```shell
+```shell-session
 $ consul agent -retry-join "provider=os tag_key=consul tag_value=server username=... password=... auth_url=..."
 ```
 
@@ -273,7 +273,7 @@ The configuration can also be provided by environment variables.
 This returns the first private IP address of all servers for the given
 `region` with the given `tag_name`.
 
-```shell
+```shell-session
 $ consul agent -retry-join "provider=scaleway organization=my-org tag_name=consul-server token=... region=..."
 ```
 
@@ -295,7 +295,7 @@ $ consul agent -retry-join "provider=scaleway organization=my-org tag_name=consu
 
 This returns the first IP address of all servers for the given `region` with the given `tag_key` and `tag_value`.
 
-```shell
+```shell-session
 $ consul agent -retry-join "provider=tencentcloud region=... tag_key=consul tag_value=... access_key_id=... access_key_secret=..."
 ```
 
@@ -322,7 +322,7 @@ It is recommended you make a dedicated key used to auto-join the Consul datacent
 
 This returns the first PrimaryIP addresses for all servers with the given `tag_key` and `tag_value`.
 
-```shell
+```shell-session
 $ consul agent -retry-join "provider=triton account=testaccount url=https://us-sw-1.api.joyentcloud.com key_id=... tag_key=consul-role tag_value=server"
 ```
 
@@ -345,7 +345,7 @@ $ consul agent -retry-join "provider=triton account=testaccount url=https://us-s
 
 This returns the first private IP address of all servers for the given region with the given `tag_name` and `category_name`.
 
-```shell
+```shell-session
 $ consul agent -retry-join "provider=vsphere category_name=consul-role tag_name=consul-server host=... user=... password=... insecure_ssl=[true|false]"
 ```
 
@@ -370,7 +370,7 @@ $ consul agent -retry-join "provider=vsphere category_name=consul-role tag_name=
 
 This returns the first private IP address (or the IP address of `address type`) of all servers with the given `project` and `auth_token`.
 
-```shell
+```shell-session
 $ consul agent -retry-join "provider=packet auth_token=token project=uuid url=... address_type=..."
 ```
 
@@ -392,7 +392,7 @@ $ consul agent -retry-join "provider=packet auth_token=token project=uuid url=..
 
 This returns the first private IP address of all servers for the given `region` with the given `tag_name`.
 
-```shell
+```shell-session
 $ consul agent -retry-join "provider=linode region=us-east tag_name=consul-server"
 ```
 
@@ -429,7 +429,7 @@ gossip port (default behavior with all join requests). The pod may specify
 the `consul.hashicorp.com/auto-join-port` annotation to set the port. The value
 may be an integer or a named port.
 
-```shell
+```shell-session
 $ consul agent -retry-join "provider=k8s label_selector=\"app=consul,component=server\""
 ```
 

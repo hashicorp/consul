@@ -145,7 +145,7 @@ service {
 
 The sidecar Envoy process can be started with.
 
-```text
+```shell-session
 $ consul connect envoy -sidecar-for web
 ```
 
@@ -158,7 +158,7 @@ agent is using all-default configuration.
 To pass additional arguments directly to Envoy, for example output logging
 level, you can use:
 
-```text
+```shell-session
 $ consul connect envoy -sidecar-for web -- -l debug
 ```
 
@@ -168,7 +168,7 @@ To run multiple different proxy instances on the same host, you will
 need to use `-admin-bind` on all but one to ensure they don't attempt to bind to
 the same port as in the following example.
 
-```text
+```shell-session
 $ consul connect envoy -sidecar-for db -admin-bind localhost:19001
 ```
 
@@ -176,7 +176,7 @@ $ consul connect envoy -sidecar-for db -admin-bind localhost:19001
 
 The mesh gateway Envoy process can be auto-registered and started with the following command.
 
-```shell
+```shell-session
 $ consul connect envoy -gateway=mesh -register \
   -address '{{ GetInterfaceIP "eth0" }}:8443' \
   -wan-address '{{ GetInterfaceIP "eth1" }}:8443'
@@ -186,7 +186,7 @@ $ consul connect envoy -gateway=mesh -register \
 
 The terminating gateway Envoy process can be auto-registered and started with the following command.
 
-```shell
+```shell-session
 $ consul connect envoy -gateway=terminating -register -service my-gateway \
   -address '{{ GetInterfaceIP "eth0" }}:8443'
 ```
@@ -195,7 +195,7 @@ $ consul connect envoy -gateway=terminating -register -service my-gateway \
 
 The ingress gateway Envoy process can be auto-registered and started with the following command.
 
-```shell
+```shell-session
 $ consul connect envoy -gateway=ingress -register -service ingress-service \
   -address '{{ GetInterfaceIP "eth0" }}:8888'
 ```

@@ -91,7 +91,7 @@ directory) on the host where the command runs.
 By default the command will capture all available data from the default
 agent address on loopback for 2 minutes at 30 second intervals.
 
-```text
+```shell-session
 $ consul debug
 ...
 ```
@@ -99,7 +99,7 @@ $ consul debug
 In this example, the archive is collected from a different agent on the
 network using the standard Consul CLI flag to change the API address.
 
-```text
+```shell-session
 $ consul debug -http-addr=10.0.1.10:8500
 ...
 ```
@@ -107,7 +107,7 @@ $ consul debug -http-addr=10.0.1.10:8500
 The capture flag can be specified to only record a subset of data
 about the agent and environment.
 
-```text
+```shell-session
 $ consul debug -capture agent -capture host -capture logs
 ...
 ```
@@ -116,7 +116,7 @@ The duration of the command and interval of capturing dynamic
 information (such as metrics) can be specified with the `-interval`
 and `-duration` flags.
 
-```text
+```shell-session
 $ consul debug -interval=15s -duration=1m
 ...
 ```

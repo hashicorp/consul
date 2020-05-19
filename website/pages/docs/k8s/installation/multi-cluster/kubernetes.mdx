@@ -178,15 +178,15 @@ global:
 After the installation into your primary cluster you will need to export
 this secret:
 
-```sh
+```shell-session
 $ kubectl get secret consul-federation -o yaml > consul-federation-secret.yaml
 ```
 
 !> **Security note:** The federation secret makes it possible to gain
-   full admin privileges in Consul. This secret must be kept securely, i.e.
-   it should be deleted from your filesystem after importing it to your secondary
-   cluster and you should use RBAC permissions to ensure only administrators
-   can read it from Kubernetes.
+full admin privileges in Consul. This secret must be kept securely, i.e.
+it should be deleted from your filesystem after importing it to your secondary
+cluster and you should use RBAC permissions to ensure only administrators
+can read it from Kubernetes.
 
 ~> **Secret doesn't exist?** If you haven't set `global.name` to `consul` then the name of the secret will
 be your Helm release name suffixed with `-consul-federation` e.g. `helm-release-consul-federation`.
@@ -196,14 +196,14 @@ Now you're ready to import the secret into your secondary cluster(s).
 Switch `kubectl` context to your secondary Kubernetes cluster. In this example
 our context for our secondary cluster is `dc2`:
 
-```sh
+```shell-session
 $ kubectl config use-context dc2
 Switched to context "dc2".
 ```
 
 And import the secret:
 
-```sh
+```shell-session
 $ kubectl apply -f consul-federation-secret.yaml
 secret/consul-federation configured
 ```
@@ -222,6 +222,7 @@ The automatically generated federation secret contains:
 
   !> **Security note:** The certificate authority key would enable an attacker to compromise Consul,
   it should be kept securely.
+
 - **Consul server config** - This is a JSON snippet that must be used as part of the server config for secondary datacenters.
   It sets:
 
@@ -353,7 +354,7 @@ to install Consul on your secondary cluster(s).
 To verify that both datacenters are federated, run the
 `consul members -wan` command on one of the Consul server pods:
 
-```sh
+```shell-session
 $ kubectl exec statefulset/consul-server -- consul members -wan
 Node                 Address              Status  Type    Build     Protocol  DC   Segment
 consul-server-0.dc1  10.32.4.216:8302     alive   server  1.8.0  2         dc1  <all>
@@ -371,7 +372,7 @@ You can also use the `consul catalog services` command with the `-datacenter` fl
 each datacenter can read each other's services. In this example, our `kubectl`
 context is `dc1` and we're querying for the list of services in `dc2`:
 
-```sh
+```shell-session
 $ kubectl exec statefulset/consul-server -- consul catalog services -datacenter dc2
 consul
 mesh-gateway

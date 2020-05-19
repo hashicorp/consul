@@ -29,7 +29,7 @@ The key must be 32-bytes, Base64 encoded. As a convenience, Consul provides the
 [`consul keygen`](/docs/commands/keygen) command to generate a
 cryptographically suitable key:
 
-```text
+```shell-session
 $ consul keygen
 pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=
 ```
@@ -37,7 +37,7 @@ pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=
 With that key, you can enable encryption on the agent. If encryption is enabled,
 the output of [`consul agent`](/docs/commands/agent) will include "Encrypt: true":
 
-```text
+```shell-session
 $ cat encrypt.json
 {"encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="}
 

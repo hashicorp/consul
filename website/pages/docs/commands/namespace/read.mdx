@@ -35,7 +35,7 @@ Usage: `consul namespace read <name>`
 
 Read a Namespace:
 
-```shell
+```shell-session
 $ consul namespace read "team-1"
 Name: team-1
 Description:
@@ -43,7 +43,7 @@ Description:
 
 Showing Raft Metadata:
 
-```shell
+```shell-session
 $ consul namespace read -meta "team-1"
 Name: team-1
 Description:
@@ -53,7 +53,7 @@ Modify Index: 344
 
 JSON Format:
 
-```shell
+```shell-session
 $ consul namespace read -format=json foo
 {
    "Name": "foo",

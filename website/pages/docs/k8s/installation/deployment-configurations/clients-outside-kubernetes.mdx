@@ -26,7 +26,7 @@ are deployed.
 The auto-join string below will join a Consul server cluster that is
 started using the [official Helm chart](/docs/k8s/helm):
 
-```shell
+```shell-session
 $ consul agent -retry-join 'provider=k8s label_selector="app=consul,component=server"'
 ```
 

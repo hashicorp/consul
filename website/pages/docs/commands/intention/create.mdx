@@ -39,18 +39,18 @@ Usage: `consul intention create [options] -f FILE...`
 
 Create an intention `web => db`:
 
-```shell
+```shell-session
 $ consul intention create web db
 ```
 
 Create intentions from a set of files:
 
-```shell
+```shell-session
 $ consul intention create -file one.json two.json
 ```
 
 Create intentions from a directory using shell expansion:
 
-```shell
+```shell-session
 $ consul intention create -file intentions/*.json
 ```

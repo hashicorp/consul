@@ -38,7 +38,7 @@ Error parsing server.json: invalid character '`' looking for beginning of value
 
 There is a syntax error in your configuration file. If the error message doesn't identify the exact location in the file where the problem is, try using [jq] to find it, for example:
 
-```shell
+```shell-session
 $ consul agent -server -config-file server.json
 ==> Error parsing server.json: invalid character '`' looking for beginning of value
 $ cat server.json | jq .

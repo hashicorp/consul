@@ -18,7 +18,7 @@ The catalog is also accessible via the [HTTP API](/api/catalog).
 
 List all datacenters:
 
-```text
+```shell-session
 $ consul catalog datacenters
 dc1
 dc2
@@ -27,7 +27,7 @@ dc3
 
 List all nodes:
 
-```text
+```shell-session
 $ consul catalog nodes
 Node       ID        Address    DC
 worker-01  1b662d97  10.4.5.31  dc1
@@ -35,7 +35,7 @@ worker-01  1b662d97  10.4.5.31  dc1
 
 List all nodes which provide a particular service:
 
-```text
+```shell-session
 $ consul catalog nodes -service=redis
 Node       ID        Address     DC
 worker-01  1b662d97  10.4.5.31   dc1
@@ -44,7 +44,7 @@ worker-02  d407a592  10.4.4.158  dc1
 
 List all services:
 
-```text
+```shell-session
 $ consul catalog services
 consul
 postgresql
@@ -53,7 +53,7 @@ redis
 
 List all services on a node:
 
-```text
+```shell-session
 $ consul catalog services -node=worker-01
 consul
 postgres

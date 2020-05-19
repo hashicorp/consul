@@ -16,7 +16,7 @@ particular service.
 
 List all nodes:
 
-```text
+```shell-session
 $ consul catalog nodes
 Node       ID        Address    DC
 worker-01  1b662d97  10.4.5.31  dc1
@@ -24,7 +24,7 @@ worker-01  1b662d97  10.4.5.31  dc1
 
 Print detailed node information such as tagged addresses and node metadata:
 
-```text
+```shell-session
 $ consul catalog nodes -detailed
 Node       ID                                    Address    DC   TaggedAddresses               Meta
 worker-01  1b662d97-8b5c-3cc2-0ac0-96f55ad423b5  10.4.5.31  dc1  lan=10.4.5.31, wan=10.4.5.31
@@ -32,7 +32,7 @@ worker-01  1b662d97-8b5c-3cc2-0ac0-96f55ad423b5  10.4.5.31  dc1  lan=10.4.5.31, 
 
 List nodes which provide the service name "web":
 
-```text
+```shell-session
 $ consul catalog nodes -service=web
 Node       ID                                    Address    DC   TaggedAddresses               Meta
 worker-01  1b662d97-8b5c-3cc2-0ac0-96f55ad423b5  10.4.5.31  dc1  lan=10.4.5.31, wan=10.4.5.31
@@ -40,7 +40,7 @@ worker-01  1b662d97-8b5c-3cc2-0ac0-96f55ad423b5  10.4.5.31  dc1  lan=10.4.5.31, 
 
 Sort the resulting node list by estimated round trip time to worker-05:
 
-```text
+```shell-session
 $ consul catalog nodes -near=web-05
 Node       ID                                    Address     DC   TaggedAddresses                Meta
 worker-01  1b662d97-8b5c-3cc2-0ac0-96f55ad423b5  10.4.5.31   dc1  lan=10.4.5.31, wan=10.4.5.31

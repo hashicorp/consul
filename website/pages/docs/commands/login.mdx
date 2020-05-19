@@ -52,7 +52,7 @@ Usage: `consul login [options]`
 
 Login to an auth method.
 
-```shell
+```shell-session
 $ consul login -method 'minikube' \
     -bearer-token-file '/run/secrets/kubernetes.io/serviceaccount/token' \
     -token-sink-file 'consul.token'

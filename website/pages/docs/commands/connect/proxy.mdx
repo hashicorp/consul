@@ -82,14 +82,14 @@ connections to "db" representing the frontend service. Once running, any
 process that creates a TCP connection to the specified port (8181) will
 establish a mutual TLS connection to "db" identified as "frontend".
 
-```text
+```shell-session
 $ consul connect proxy -service frontend -upstream db:8181
 ```
 
 The next example starts a local proxy that also accepts inbound connections
 on port 8443, authorizes the connection, then proxies it to port 8080:
 
-```text
+```shell-session
 $ consul connect proxy \
     -service frontend \
     -service-addr 127.0.0.1:8080 \

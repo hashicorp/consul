@@ -40,7 +40,7 @@ domain to a Consul agent from the existing DNS server. Review the
 
 You can experiment with Consul's DNS server on the command line using tools such as `dig`:
 
-```shell
+```shell-session
 $ dig @127.0.0.1 -p 8600 redis.service.dc1.consul. ANY
 ```
 
@@ -68,7 +68,7 @@ For a node lookup, the only records returned are A and AAAA records
 containing the IP address, and TXT records containing the
 `node_meta` values of the node.
 
-```text
+```shell-session
 $ dig @127.0.0.1 -p 8600 foo.node.consul ANY
 
 ; <<>> DiG 9.8.3-P1 <<>> @127.0.0.1 -p 8600 foo.node.consul ANY
@@ -146,7 +146,7 @@ provide the port that a service is registered on, enabling clients to avoid rely
 on well-known ports. SRV records are only served if the client specifically requests
 them, like so:
 
-```text
+```shell-session
 $ dig @127.0.0.1 -p 8600 consul.service.consul SRV
 
 ; <<>> DiG 9.8.3-P1 <<>> @127.0.0.1 -p 8600 consul.service.consul ANY
@@ -185,7 +185,7 @@ of the RFC style lookup is the same as the standard style of lookup.
 If you registered the service `rabbitmq` on port 5672 and tagged it with `amqp`,
 you could make an RFC 2782 query for its SRV record as `_rabbitmq._amqp.service.consul`:
 
-```text
+```shell-session
 $ dig @127.0.0.1 -p 8600 _rabbitmq._amqp.service.consul SRV
 
 ; <<>> DiG 9.8.3-P1 <<>> @127.0.0.1 -p 8600 _rabbitmq._amqp.service.consul ANY

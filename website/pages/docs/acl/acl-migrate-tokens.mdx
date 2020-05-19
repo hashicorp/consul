@@ -167,7 +167,7 @@ potentially identical policies to manage or clean up later.
 You can get the AccessorID of every legacy token from the API. For example,
 using `curl` and `jq` in bash:
 
-```shell
+```shell-session
 $ LEGACY_IDS=$(curl -sH "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
    'localhost:8500/v1/acl/tokens' | jq -r '.[] | select (.Legacy) | .AccessorID')
 $ echo "$LEGACY_IDS"
@@ -188,7 +188,7 @@ done
 Each policy now has an identical set of rules to the original token. You can
 inspect these:
 
-```shell
+```shell-session
 $ consul acl policy read -name migrated-621cbd12-dde7-de06-9be0-e28d067b5b7f
 ID:           573d84bd-8b08-3061-e391-d2602e1b4947
 Name:         migrated-621cbd12-dde7-de06-9be0-e28d067b5b7f
@@ -230,7 +230,7 @@ manipulate policies.
 You can get the AccessorID of every legacy token from the API. For example,
 using `curl` and `jq` in bash:
 
-```shell
+```shell-session
 $ LEGACY_IDS=$(curl -sH "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
    'localhost:8500/v1/acl/tokens' | jq -r '.[] | select (.Legacy) | .AccessorID')
 $ echo "$LEGACY_IDS"
@@ -243,7 +243,7 @@ Now we want to read the actual policy for each legacy token and de-duplicate
 them. We can use the `translate-rules` helper sub-command which will read the
 token's policy and return a new ACL policy that is exactly equivalent.
 
-```shell
+```shell-session
 $ for id in $LEGACY_IDS; do \
   echo "Policy for $id:"
   consul acl translate-rules -token-accessor "$id"; \
@@ -268,7 +268,7 @@ We can change the loop above to take a hash of this policy definition to
 de-duplicate the policies into a set of files locally. This example uses command
 available on macOS but equivalents for other platforms should be easy to find.
 
-```shell
+```shell-session
 $ mkdir policies
 $ for id in $LEGACY_IDS; do \
   # Fetch the equivalent new policy rules based on the legacy token rules
@@ -290,7 +290,7 @@ You can now manually inspect and potentially edit these policies. For example we
 could rename them according to their intended use. In this case we maintain the
 hash as it will allow us to match tokens to policies later.
 
-```shell
+```shell-session
 $ cat policies/024ce11f26f59436c518fb31f0999d1400485c17.hcl
 service_prefix "bar" {
   policy = "write"
@@ -304,7 +304,7 @@ You might also choose to tighten up the rules, for example if you know you never
 rely on prefix-matching the service name `foo` you might choose to modify the
 policy to use exact match.
 
-```shell
+```shell-session
 $ cat policies/501b787c9444fbd62f346ab257eeb27197be2444.hcl
 service_prefix "foo" {
   policy = "write"
@@ -320,7 +320,7 @@ $ mv policies/501b787c9444fbd62f346ab257eeb27197be2444.hcl \
 We now have a minimal set of policies to create, with human-readable names. We
 can create each one with something like the following.
 
-```shell
+```shell-session
 $ for p in $(ls policies | grep ".hcl"); do \
   # Extract the hash part of the file name
   HASH=$(echo "$p" | cut -d - -f 1); \
@@ -356,7 +356,7 @@ policy file names. The `-upgrade-legacy` flag removes the token's legacy
 embedded rules at the same time as associating them with the new policies
 created from those rules.
 
-```shell
+```shell-session
 $ for id in $LEGACY_IDS; do \
   NEW_POLICY=$(consul acl translate-rules -token-accessor "$id"); \
   HASH=$(echo -n "$NEW_POLICY" | shasum | awk '{ print $1 }'); \

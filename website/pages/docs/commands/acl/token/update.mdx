@@ -69,7 +69,7 @@ guide.
 
 Update the anonymous token:
 
-```shell
+```shell-session
 $ consul acl token update -id anonymous -policy-id 06acc
 Token updated successfully.
 AccessorID:   00000000-0000-0000-0000-000000000002
@@ -83,7 +83,7 @@ Policies:
 
 Update a token description and take the policies from the existing token:
 
-```shell
+```shell-session
 $ consul acl token update -id 986193 -description "WonderToken" -merge-policies
 Token updated successfully.
 AccessorID:   986193b5-e2b5-eb26-6264-b524ea60cc6d

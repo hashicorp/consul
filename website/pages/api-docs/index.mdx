@@ -23,7 +23,7 @@ clients should communicate via TLS. If you don’t provide a token in the reques
 
 Below is an example using `curl` with `X-Consul-Token`.
 
-```shell
+```shell-session
 $ curl \
     --header "X-Consul-Token: <consul token>" \
     http://127.0.0.1:8500/v1/agent/members
@@ -31,7 +31,7 @@ $ curl \
 
 Below is an example using `curl` with Bearer scheme.
 
-```shell
+```shell-session
 $ curl \
     --header "Authorization: Bearer <consul token>" \
     http://127.0.0.1:8500/v1/agent/members
@@ -69,7 +69,7 @@ the `GET` operation reads an existing key.
 
 Here is the same example using `curl`:
 
-```shell
+```shell-session
 $ curl \
     --request PUT \
     --data 'hello consul' \

@@ -28,7 +28,7 @@ you may want to use the [Consul KV HTTP API][kv-api]
 First let us explore the KV store. We can ask Consul for the value of the key at
 the path named `redis/config/minconns`:
 
-```shell
+```shell-session
 $ consul kv get redis/config/minconns
 Error! No key exists at: redis/config/minconns
 ```
@@ -36,7 +36,7 @@ Error! No key exists at: redis/config/minconns
 As you can see, we get no result, which makes sense because there is no data in
 the KV store. Next we can insert or "put" values into the KV store.
 
-```shell
+```shell-session
 $ consul kv put redis/config/minconns 1
 Success! Data written to: redis/config/minconns
 
@@ -50,7 +50,7 @@ Success! Data written to: redis/config/users/admin
 Now that we have keys in the store, we can query for the value of individual
 keys:
 
-```shell
+```shell-session
 $ consul kv get redis/config/minconns
 1
 ```
@@ -58,7 +58,7 @@ $ consul kv get redis/config/minconns
 Consul retains additional metadata about the field, which is retrieved using the
 `-detailed` flag:
 
-```shell
+```shell-session
 $ consul kv get -detailed redis/config/minconns
 CreateIndex      207
 Flags            0
@@ -76,7 +76,7 @@ Consul, but it can be used by clients to add meaningful metadata to any KV.
 It is possible to list all the keys in the store using the `recurse` options.
 Results will be returned in lexicographical order:
 
-```shell
+```shell-session
 $ consul kv get -recurse
 redis/config/maxconns:25
 redis/config/minconns:1
@@ -85,21 +85,21 @@ redis/config/users/admin:abcd1234
 
 To delete a key from the Consul KV store, issue a "delete" call:
 
-```shell
+```shell-session
 $ consul kv delete redis/config/minconns
 Success! Deleted key: redis/config/minconns
 ```
 
 It is also possible to delete an entire prefix using the `recurse` option:
 
-```shell
+```shell-session
 $ consul kv delete -recurse redis
 Success! Deleted keys with prefix: redis
 ```
 
 To update the value of an existing key, "put" a value at the same path:
 
-```shell
+```shell-session
 $ consul kv put foo bar
 
 $ consul kv get foo
@@ -113,7 +113,7 @@ zip
 
 Consul can provide atomic key updates using a Check-And-Set operation. To perform a CAS operation, specify the `-cas` flag:
 
-```shell
+```shell-session
 $ consul kv put -cas -modify-index=123 foo bar
 Success! Data written to: foo
 

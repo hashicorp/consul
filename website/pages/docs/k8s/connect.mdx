@@ -155,7 +155,7 @@ We can verify access to the static text server using `kubectl exec`. Notice
 that we use the local address and port from the upstream annotation (1234)
 for this verification.
 
-```shell
+```shell-session
 $ kubectl exec static-client -- curl -s http://127.0.0.1:1234/
 "hello world"
 ```
@@ -167,7 +167,7 @@ create a deny [intention](/docs/connect/intentions) between
 without updating either of the running pods. You can then remove this
 intention to allow connections again.
 
-```shell
+```shell-session
 $ kubectl exec static-client -- curl -s http://127.0.0.1:1234/
 command terminated with exit code 52
 ```

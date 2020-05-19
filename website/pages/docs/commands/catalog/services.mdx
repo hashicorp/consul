@@ -16,7 +16,7 @@ particular node provides.
 
 List all services:
 
-```text
+```shell-session
 $ consul catalog services
 consul
 postgresql
@@ -25,7 +25,7 @@ redis
 
 Show all services with their tags:
 
-```text
+```shell-session
 $ consul catalog services -tags
 consul
 postgresql  leader
@@ -34,7 +34,7 @@ redis       primary,v1
 
 List services for the node "worker-01":
 
-```text
+```shell-session
 $ consul catalog services -node=worker-01
 consul
 redis

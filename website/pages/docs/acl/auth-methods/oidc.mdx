@@ -55,7 +55,7 @@ parameters are required to properly configure an auth method of type
 - `AllowedRedirectURIs` `(array<string>)` - Comma-separated list of allowed
   values for `redirect_uri`. Must be non-empty.
 
-- `ClaimMappings` `(map[string]string)` - Mappings of claims (key) that 
+- `ClaimMappings` `(map[string]string)` - Mappings of claims (key) that
   [will be copied to a metadata field](#trusted-identity-attributes-via-claim-mappings)
   (value). Use this if the claim you are capturing is singular (such as an attribute).
 
@@ -79,7 +79,7 @@ parameters are required to properly configure an auth method of type
   login; any match is sufficient.
 
 - `VerboseOIDCLogging` `(bool: false)` - Log received OIDC tokens and claims when
-  debug-level logging is active.  Not recommended in production since sensitive
+  debug-level logging is active. Not recommended in production since sensitive
   information may be present in OIDC responses.
 
 ### Sample Config
@@ -140,8 +140,7 @@ The "host:port" must be correct for the Consul agent serving the Consul UI.
 
 #### CLI
 
-If you plan to support authentication via `consul login -type=oidc
--method=<name>`, a localhost redirect URI must be set (usually this is
+If you plan to support authentication via `consul login -type=oidc -method=<name>`, a localhost redirect URI must be set (usually this is
 `http://localhost:8550/oidc/callback`). Logins via the CLI may specify a
 different host and/or listening port if needed, and a URI with this host/port
 must match one of the configured redirected URIs. These same "localhost" URIs
@@ -157,7 +156,7 @@ must be added to the provider as well.
 
 #### CLI
 
-```
+```shell-session
 $ consul login -method=oidc -type=oidc -token-sink-file=consul.token
 
 Complete the login via your OIDC provider. Launching browser to:

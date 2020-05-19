@@ -15,7 +15,7 @@ setup.
 
 Create a certificate for servers:
 
-```shell
+```shell-session
 $ consul tls cert create -server
 ==> WARNING: Server Certificates grants authority to become a
     server and access all state in the cluster including root keys
@@ -28,7 +28,7 @@ $ consul tls cert create -server
 
 Create a certificate for clients:
 
-```shell
+```shell-session
 $ consul tls cert create -client
 ==> Using consul-ca.pem and consul-ca-key.pem
 ==> Saved consul-client-0.pem
@@ -37,7 +37,7 @@ $ consul tls cert create -client
 
 Create a certificate for cli:
 
-```shell
+```shell-session
 $ consul tls cert create -cli
 ==> Using consul-ca.pem and consul-ca-key.pem
 ==> Saved consul-cli-0.pem

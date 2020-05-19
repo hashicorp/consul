@@ -40,7 +40,7 @@ Usage: `consul acl policy read [options] [args]`
 
 Get policy details:
 
-```shell
+```shell-session
 $ consul acl policy read -id 00000000-0000-0000-0000-000000000001
 ID:           00000000-0000-0000-0000-000000000001
 Name:         global-management
@@ -77,7 +77,7 @@ session_prefix "" {
 
 Get policy details by name:
 
-```shell
+```shell-session
 $ consul acl policy read -name "acl-replication"
 ID:           35b8ecb0-707c-ee18-2002-81b238b54b38
 Name:         acl-replication
@@ -91,7 +91,7 @@ Get policy details (Builtin Policies):
 
 Builtin policies can be accessed by specifying their original name as the value to the `-id` parameter.
 
-```shell
+```shell-session
 $ consul acl policy read -id global-management
 ID:           00000000-0000-0000-0000-000000000001
 Name:         global-management

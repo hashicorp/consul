@@ -9,7 +9,7 @@ description: Uninstalling Consul on Kubernetes
 
 Consul can be uninstalled via the `helm delete` command:
 
-```bash
+```shell-session
 $ helm delete hashicorp
 release "hashicorp" uninstalled
 ```
@@ -20,7 +20,7 @@ After deleting the Helm release, you need to delete the `PersistentVolumeClaim`'
 for the persistent volumes that store Consul's data. These are not deleted by Helm due to a [bug](https://github.com/helm/helm/issues/5156).
 To delete, run:
 
-```bash
+```shell-session
 $ kubectl get pvc -l chart=consul-helm
 NAME                                   STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   AGE
 data-default-hashicorp-consul-server-0   Bound    pvc-32cb296b-1213-11ea-b6f0-42010a8001db   10Gi       RWO            standard       17m

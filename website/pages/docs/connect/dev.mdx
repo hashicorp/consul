@@ -30,7 +30,7 @@ we want to connect to via `psql`, but the only non-loopback listener is
 via Connect. Let's also assume that we have an ACL token to identify as
 `operator-mitchellh`. We can start a local proxy:
 
-```shell
+```shell-session
 $ consul connect proxy \
   -service operator-mitchellh \
   -upstream postgresql:8181
@@ -44,7 +44,7 @@ the example above, the proxy is identifying as `operator-mitchellh`.
 
 With the proxy running, we can now use `psql` like normal:
 
-```
+```shell-session
 $ psql -h 127.0.0.1 -p 8181 -U mitchellh mydb
 >
 ```
@@ -63,7 +63,7 @@ For example, if you have an ACL token that allows `service:write` for
 `web` and you want to connect to the `postgresql` service as "web", you
 can start a proxy like so:
 
-```shell
+```shell-session
 $ consul connect proxy \
   -service web \
   -upstream postgresql:8181

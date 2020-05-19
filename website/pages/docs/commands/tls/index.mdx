@@ -14,7 +14,7 @@ The `tls` command is used to help with setting up a CA and certificates for Cons
 
 Create a CA:
 
-```text
+```shell-session
 $ consul tls ca create
 ==> Saved consul-agent-ca.pem
 ==> Saved consul-agent-ca-key.pem
@@ -22,7 +22,7 @@ $ consul tls ca create
 
 Create a client certificate:
 
-```text
+```shell-session
 $ consul tls cert create -client
 ==> Using consul-agent-ca.pem and consul-agent-ca-key.pem
 ==> Saved dc1-client-consul-0.pem

@@ -167,7 +167,7 @@ If you followed the above installation guide, Consul should have registered a se
 
 To check whether Ambassador is allowed to connect, use the [`intention check`][intention-check] subcommand.
 
-```shell
+```shell-session
 $ consul intention check ambassador http-echo
 Allowed
 ```
@@ -176,7 +176,7 @@ Allowed
 
 First, find the name of the pod that contains your service.
 
-```shell
+```shell-session
 $ kubectl get pods -l app=http-echo,role=server
 NAME                         READY     STATUS    RESTARTS   AGE
 http-echo-7fb79566d6-jmccp   2/2       Running   0          1d
@@ -184,7 +184,7 @@ http-echo-7fb79566d6-jmccp   2/2       Running   0          1d
 
 Then describe the pod to make sure that the sidecar is present and running.
 
-```shell
+```shell-session
 $ kubectl describe pod http-echo-7fb79566d6-jmccp
 [...]
 Containers:
@@ -198,7 +198,7 @@ Containers:
 
 Log into one of your Consul server pods (or any pod that has a Consul binary in it).
 
-```shell
+```shell-session
 $ kubectl exec -ti consul-server-0 -- /bin/sh
 ```
 
@@ -233,7 +233,7 @@ Don't forget to kill the test proxy when you're done.
 
 Find the name of the Connect Integration pod and make sure it is running.
 
-```shell
+```shell-session
 $ kubectl get pods -l app=ambassador-pro,component=consul-connect
 NAME                                                        READY     STATUS    RESTARTS   AGE
 ambassador-pro-consul-connect-integration-f88fcb99f-hxk75   1/1       Running   0          1d
@@ -241,7 +241,7 @@ ambassador-pro-consul-connect-integration-f88fcb99f-hxk75   1/1       Running   
 
 Dump the logs from the integration pod. If the service is running correctly, there won't be much in there.
 
-```shell
+```shell-session
 $ kubectl logs ambassador-pro-consul-connect-integration-f88fcb99f-hxk75
 
 time="2019-03-13T19:42:12Z" level=info msg="Starting Consul Connect Integration" consul_host=10.142.0.21 consul_port=8500 version=0.2.3
@@ -254,7 +254,7 @@ time="2019-03-13T19:42:14Z" level=info msg="Updating TLS certificate secret" nam
 
 Make sure the Ambassador pod itself is running.
 
-```shell
+```shell-session
 $ kubectl get pods -l service=ambassador
 NAME                          READY     STATUS    RESTARTS   AGE
 ambassador-655875b5d9-vpc2v   2/2       Running   0          1d
@@ -262,7 +262,7 @@ ambassador-655875b5d9-vpc2v   2/2       Running   0          1d
 
 Finally, check the logs for the main Ambassador pod.
 
-```shell
+```shell-session
 $ kubectl logs ambassador-655875b5d9-vpc2v
 ```
 
@@ -270,7 +270,7 @@ $ kubectl logs ambassador-655875b5d9-vpc2v
 
 Forward the admin port from the Ambassador pod to your local machine.
 
-```shell
+```shell-session
 $ kubectl port-forward pods/ambassador-655875b5d9-vpc2v 8877:8877
 ```
 

@@ -29,14 +29,14 @@ Usage: `consul kv import [options] [DATA]`
 
 To import from a file, prepend the filename with `@`:
 
-```shell
+```shell-session
 $ consul kv import @values.json
 # Output
 ```
 
 To import from stdin, use `-` as the data parameter:
 
-```shell
+```shell-session
 $ cat values.json | consul kv import -
 # Output
 ```
@@ -44,7 +44,7 @@ $ cat values.json | consul kv import -
 You can also pass the JSON directly, however care must be taken with shell
 escaping:
 
-```shell
+```shell-session
 $ consul kv import "$(cat values.json)"
 # Output
 ```

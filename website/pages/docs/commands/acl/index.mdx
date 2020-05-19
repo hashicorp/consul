@@ -17,7 +17,7 @@ ACLs are also accessible via the [HTTP API](/api/acl/acl).
 
 Bootstrap Consul's ACLs:
 
-```shell
+```shell-session
 $ consul acl bootstrap
 AccessorID:   4d123dff-f460-73c3-02c4-8dd64d136e01
 SecretID:     86cddfb9-2760-d947-358d-a2811156bf31
@@ -30,7 +30,7 @@ Policies:
 
 Create a policy:
 
-```shell
+```shell-session
 $ consul acl policy create -name "acl-replication" -description "Token capable of replicating ACL policies" -rules 'acl = "read"'
 ID:           35b8ecb0-707c-ee18-2002-81b238b54b38
 Name:         acl-replication
@@ -42,7 +42,7 @@ acl = "read"
 
 Create a token:
 
-```shell
+```shell-session
 $ consul acl token create -description "Agent Policy Replication - my-agent" -policy-name "acl-replication"
 AccessorID:   c24c11aa-4e08-e25c-1a67-705a2e8d75a4
 SecretID:     e7024f9c-f016-02dd-6217-daedbffb86ac

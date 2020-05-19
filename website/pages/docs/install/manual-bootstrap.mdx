@@ -52,14 +52,14 @@ itself as leader. We can now join these machines together. Since a join
 operation is symmetric it does not matter which node initiates it. From
 `Node B` and `Node C` you can do the following:
 
-```text
+```shell-session
 $ consul join <Node A Address>
 Successfully joined cluster by contacting 1 nodes.
 ```
 
 Alternatively, from `Node A` you can do the following:
 
-```text
+```shell-session
 $ consul join <Node B Address> <Node C Address>
 Successfully joined cluster by contacting 2 nodes.
 ```

@@ -57,7 +57,7 @@ Usage: `consul acl policy update [options] [args]`
 
 Update a policy:
 
-```shell
+```shell-session
 $ consul acl policy update -id 35b8 -name "replication" -description "Policy capable of replication ACL policies and Intentions" -rules @rules.hcl
 Policy updated successfully
 ID:           35b8ecb0-707c-ee18-2002-81b238b54b38
@@ -75,7 +75,7 @@ service_prefix "" {
 
 Rename a policy:
 
-```shell
+```shell-session
 $ consul acl policy update -id 35b8 -name "dc1-replication"
 Policy updated successfully
 ID:           35b8ecb0-707c-ee18-2002-81b238b54b38
