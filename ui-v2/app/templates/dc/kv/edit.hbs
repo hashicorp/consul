@@ -4,7 +4,7 @@
   {{title 'Edit Key/Value'}}
 {{/if}}
 <AppView @class="kv edit" @loading={{isLoading}}>
-  <BlockSlot @name="notification" as |status type|>
+  <BlockSlot @name="notification" as |status type item error|>
     {{partial 'dc/kv/notifications'}}
   </BlockSlot>
   <BlockSlot @name="breadcrumbs">

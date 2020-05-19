@@ -20,7 +20,7 @@ Feature: dc / services / show / upstreams
     When I click upstreams on the tabs
     And I see upstreamsIsSelected on the tabs
   Scenario: Seeing the list of Upstreams
-    Given 3 service models from yaml
+    Given 3 service models
     When I visit the service page for yaml
     ---
       dc: dc1
@@ -28,7 +28,7 @@ Feature: dc / services / show / upstreams
     ---
     And the title should be "ingress-gateway-1 - Consul"
     When I click upstreams on the tabs
-    Then I see 3 service models
+    Then I see 3 service models on the tabs.upstreamsTab component
   Scenario: Don't see the Upstreams tab
     Given 1 datacenter model with the value "dc1"
     And 1 node models
@@ -48,7 +48,7 @@ Feature: dc / services / show / upstreams
     Where:
     ---------------------------------------------
     | Name                | Kind                |
-    | service             | ~                   | 
-    | terminating-gateway | terminating-gateway | 
+    | service             | ~                   |
+    | terminating-gateway | terminating-gateway |
     | mesh-gateway        | mesh-gateway        |
     ---------------------------------------------

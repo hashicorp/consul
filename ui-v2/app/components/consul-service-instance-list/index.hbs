@@ -1,6 +1,6 @@
 {{yield}}
 {{#if (gt items.length 0)}}
-  <ListCollection @cellHeight={{73}} @items={{items}} class="consul-service-instance-list" as |item index|>
+  <ListCollection @items={{items}} class="consul-service-instance-list" as |item index|>
     <a href={{href-to routeName item.Service.Service item.Node.Node (or item.Service.ID item.Service.Service)}}>
       {{item.Service.ID}}
     </a>

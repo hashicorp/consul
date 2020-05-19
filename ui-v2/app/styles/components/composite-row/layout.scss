@@ -25,13 +25,25 @@
 %composite-row-detail .node::before {
   margin-top: 2px;
 }
-// In this case we do not need a background on the icon
-%composite-row-detail .port button {
+
+// Copy Button with Feedback
+%composite-row .copy-button button {
   padding: 0 !important;
-  margin-top: 1px !important;
+  margin: 0 !important;
 }
-%composite-row-detail .port button:hover {
-  background-color: transparent !important;
+%composite-row-detail .copy-button {
+  margin-left: 4px;
+}
+%composite-row-header .copy-button {
+  top: 3px;
+}
+%composite-row-header .copy-button,
+%composite-row-detail .copy-button {
+  display: none;
+}
+%composite-row-header:hover .copy-button,
+%composite-row-detail:hover .copy-button {
+  display: inline-flex;
 }
 
 // Tooltip

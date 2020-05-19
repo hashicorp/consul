@@ -8,6 +8,7 @@
 %composite-row-intent {
   border-color: $gray-200;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-top-color: $transparent;
   cursor: pointer;
 }
 %composite-row-header {
@@ -29,6 +30,10 @@
 %composite-row .critical::before {
   @extend %with-cancel-square-fill-color-mask, %as-pseudo;
   background-color: $red-500;
+}
+%composite-row .empty::before {
+  @extend %with-minus-square-fill-color-mask, %as-pseudo;
+  background-color: $gray-500;
 }
 
 // Metadata
@@ -58,4 +63,21 @@
 %composite-row .nspace::before {
   @extend %with-folder-outline-mask, %as-pseudo;
   background-color: $gray-500;
+}
+%composite-row-detail .path::before {
+  @extend %with-path-mask, %as-pseudo;
+  background-color: $gray-500;
+}
+%composite-row-detail .port::before {
+  @extend %with-port-mask, %as-pseudo;
+  background-color: $gray-500;
+}
+%composite-row-detail .protocol::before {
+  @extend %with-protocol-mask, %as-pseudo;
+  background-color: $gray-500;
+}
+// In this case we do not need a background on the icon
+%composite-row .combined-address .copy-button button:hover,
+%composite-row-detail .port .copy-button button:hover {
+  background-color: transparent !important;
 }

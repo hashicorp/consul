@@ -1,0 +1,28 @@
+@import './composite-row/index';
+
+.proxy-upstreams > ul > li,
+.proxy-exposed-paths > ul > li,
+.list-collection > ul > li:not(:first-child) {
+  @extend %composite-row;
+}
+/* hoverable rows */
+.consul-upstream-list > ul > li:not(:first-child),
+.consul-gateway-service-list > ul > li:not(:first-child),
+.consul-service-instance-list > ul > li:not(:first-child),
+.consul-service-list > ul > li:not(:first-child) {
+  @extend %with-composite-row-intent;
+}
+.proxy-exposed-paths tbody tr {
+  cursor: default !important;
+}
+.proxy-exposed-paths tbody tr:hover {
+  box-shadow: none !important;
+}
+.proxy-exposed-paths tbody tr .combined-address button:hover {
+  // In this case we do not need a background on the icon
+  background-color: $transparent !important;
+}
+.proxy-upstreams > ul,
+.proxy-exposed-paths > ul {
+  border-top: 1px solid $gray-200;
+}

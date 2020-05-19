@@ -1,9 +1,0 @@
-@import './consul-intention-list/index';
-.consul-intention-list {
-  @extend %consul-intention-list;
-}
-@media #{$--lt-wide-table} {
-  %consul-intention-list tr > :nth-last-child(2) {
-    display: none;
-  }
-}

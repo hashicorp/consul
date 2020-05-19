@@ -1,3 +1,4 @@
+@import './card/index';
 @import './form-elements';
 @import './breadcrumbs';
 @import './anchors';
@@ -8,14 +9,12 @@
 @import './tabs';
 @import './pill';
 @import './table';
-@import './form-elements';
 @import './tooltip';
 @import './tag-list';
 @import './healthcheck-output';
 @import './healthcheck-info';
 @import './healthchecked-resource';
 @import './freetext-filter';
-@import './phrase-editor';
 @import './filter-bar';
 @import './tomography-graph';
 @import './flash-message';
@@ -26,17 +25,13 @@
 @import './auth-form';
 @import './auth-modal';
 @import './notice';
-@import './sort-control';
 @import './oidc-select';
 @import './discovery-chain';
-@import './consul-intention-list';
 @import './empty-state';
 @import './tabular-details';
 @import './tabular-collection';
 @import './list-collection';
 @import './grid-collection';
-@import './consul-service-list';
-@import './consul-service-instance-list';
 @import './popover-select';
 
 /**/

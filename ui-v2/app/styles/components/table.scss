@@ -1,5 +1,3 @@
-@import '../base/components/table/index';
-@import '../base/components/popover-menu/index';
 %main-content table {
   @extend %table;
 }
@@ -60,15 +58,34 @@ td.folder::before {
   margin-top: 1px;
   margin-right: 5px;
 }
+td.destination {
+  @extend %tbody-th;
+}
+td.intent-allow strong,
+td.intent-deny strong {
+  visibility: hidden;
+}
+td.intent-allow strong::before {
+  @extend %with-arrow-right-color-icon, %as-pseudo;
+  background-size: 24px;
+}
+td.intent-deny strong::before {
+  @extend %with-deny-color-icon, %as-pseudo;
+}
 table:not(.sessions) tbody tr {
   cursor: pointer;
 }
 table:not(.sessions) td:first-child {
   padding: 0;
 }
-
 table:not(.sessions) tbody tr:hover {
   box-shadow: $decor-elevation-300;
+}
+table.consul-metadata-list tbody tr {
+  cursor: default;
+}
+table.consul-metadata-list tbody tr:hover {
+  box-shadow: none;
 }
 /* Header Tooltips/Icon*/
 th {
@@ -110,5 +127,8 @@ th span em {
   }
   html.template-node.template-show #lock-sessions td:last-child {
     padding: 0;
+  }
+  .consul-intention-list tr > :nth-last-child(2) {
+    display: none;
   }
 }
