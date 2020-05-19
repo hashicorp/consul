@@ -431,7 +431,7 @@ function docker_wget {
 function docker_curl {
   local DC=$1
   shift 1
-  docker run -ti --rm --network container:envoy_consul-${DC}_1 --entrypoint curl consul-dev "$@"
+  docker run --rm --network container:envoy_consul-${DC}_1 --entrypoint curl consul-dev "$@"
 }
 
 function docker_exec {

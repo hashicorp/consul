@@ -354,7 +354,7 @@ ui-docker: ui-build-image
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh ui
 
 test-envoy-integ: $(ENVOY_INTEG_DEPS)
-	@$(SHELL) $(CURDIR)/test/integration/connect/envoy/run-tests.sh
+	@go test -v -timeout=30m -tags integration ./test/integration/connect/envoy
 
 test-connect-ca-providers:
 ifeq ("$(CIRCLECI)","true")

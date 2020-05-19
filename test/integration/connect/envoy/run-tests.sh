@@ -1,56 +1,19 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -eEuo pipefail
 
 # DEBUG=1 enables set -x for this script so echos every command run
 DEBUG=${DEBUG:-}
 
-# FILTER_TESTS="<pattern>" skips any test whose CASENAME doesn't match the
-# pattern. CASENAME is combination of the name from the case-<name> dir and the
-# envoy version for example: "http, envoy 1.8.0". The pattern is passed to grep
-# over that string.
-FILTER_TESTS=${FILTER_TESTS:-}
-
-# STOP_ON_FAIL exits after a case fails so the workdir state can be viewed and
-# the components interacted with to debug the failure. This is useful when tests
-# only fail when run as part of a whole suite but work in isolation.
-STOP_ON_FAIL=${STOP_ON_FAIL:-}
-
-# ENVOY_VERSIONS is the list of envoy versions to run each test against
-ENVOY_VERSIONS=${ENVOY_VERSIONS:-"1.11.2 1.12.3 1.13.1 1.14.1"}
+# ENVOY_VERSION to run each test against
+ENVOY_VERSION=${ENVOY_VERSION:-"1.14.1"}
+export ENVOY_VERSION
 
 if [ ! -z "$DEBUG" ] ; then
   set -x
 fi
 
-DIR=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
-
-cd $DIR
-
-LEAVE_CONSUL_UP=${LEAVE_CONSUL_UP:-}
-PROXY_LOGS_ON_FAIL=${PROXY_LOGS_ON_FAIL:-}
-
 source helpers.bash
-
-RESULT=1
-CLEANED_UP=0
-
-function cleanup {
-  local STATUS="$?"
-
-  if [ "$CLEANED_UP" != 0 ] ; then
-    return
-  fi
-  CLEANED_UP=1
-
-  if [ "$STATUS" -ne 0 ]
-  then
-    capture_logs
-  fi
-
-  docker-compose down -v --remove-orphans
-}
-trap cleanup EXIT
 
 function command_error {
   echo "ERR: command exited with status $1" 1>&2
@@ -64,12 +27,6 @@ function command_error {
 }
 
 trap 'command_error $? "${BASH_COMMAND}" "${LINENO}" "${FUNCNAME[0]:-main}" "${BASH_SOURCE[0]}:${BASH_LINENO[0]}"' ERR
-
-# Cleanup from any previous unclean runs.
-docker-compose down -v --remove-orphans
-
-# Start the volume container
-docker-compose up -d workdir
 
 function init_workdir {
   local DC="$1"
@@ -123,11 +80,11 @@ function pre_service_setup {
   local DC=${1:-primary}
 
   # Run test case setup (e.g. generating Envoy bootstrap, starting containers)
-  if [ -f "${CASE_DIR}${DC}/setup.sh" ]
+  if [ -f "${CASE_DIR}/${DC}/setup.sh" ]
   then
-    source ${CASE_DIR}${DC}/setup.sh
+    source ${CASE_DIR}/${DC}/setup.sh
   else
-    source ${CASE_DIR}setup.sh
+    source ${CASE_DIR}/setup.sh
   fi
 }
 
@@ -147,17 +104,12 @@ function start_services {
 
 function verify {
   local DC=$1
-  if test -z "$DC"
-  then
+  if test -z "$DC"; then
     DC=primary
   fi
 
   # Execute tests
   res=0
-
-  echo "- - - - - - - - - - - - - - - - - - - - - - - -"
-  echoblue -n "CASE $CASE_STR"
-  echo -n ": "
 
   # Nuke any previous case's verify container.
   docker-compose rm -s -v -f verify-${DC} || true
@@ -168,13 +120,12 @@ function verify {
     echored "⨯ FAIL"
     res=1
   fi
-  echo "================================================"
 
   return $res
 }
 
 function capture_logs {
-  echo "Capturing Logs for $CASE_STR"
+  echo "Capturing Logs"
   mkdir -p "$LOG_DIR"
   services="$REQUIRED_SERVICES consul-primary"
   if is_set $REQUIRE_SECONDARY
@@ -182,10 +133,10 @@ function capture_logs {
     services="$services consul-secondary"
   fi
 
-  if [ -f "${CASE_DIR}capture.sh" ]
+  if [ -f "${CASE_DIR}/capture.sh" ]
   then
-    echo "Executing ${CASE_DIR}capture.sh"
-    source ${CASE_DIR}capture.sh || true
+    echo "Executing ${CASE_DIR}/capture.sh"
+    source ${CASE_DIR}/capture.sh || true
   fi
 
 
@@ -197,29 +148,34 @@ function capture_logs {
 }
 
 function stop_services {
-
   # Teardown
-  if [ -f "${CASE_DIR}teardown.sh" ] ; then
-    source "${CASE_DIR}teardown.sh"
+  if [ -f "${CASE_DIR}/teardown.sh" ] ; then
+    source "${CASE_DIR}/teardown.sh"
   fi
   docker-compose rm -s -v -f $REQUIRED_SERVICES || true
 }
 
-function initVars {
+function init_vars {
   source "defaults.sh"
-  if [ -f "${CASE_DIR}vars.sh" ] ; then
-    source "${CASE_DIR}vars.sh"
+  if [ -f "${CASE_DIR}/vars.sh" ] ; then
+    source "${CASE_DIR}/vars.sh"
   fi
 }
 
 function global_setup {
-  if [ -f "${CASE_DIR}global-setup.sh" ] ; then
-    source "${CASE_DIR}global-setup.sh"
+  if [ -f "${CASE_DIR}/global-setup.sh" ] ; then
+    source "${CASE_DIR}/global-setup.sh"
   fi
 }
 
-function runTest {
-  initVars
+function run_tests {
+  CASE_DIR="${CASE_DIR?CASE_DIR must be set to the path of the test case}"
+  CASE_NAME=$( basename $CASE_DIR | cut -c6- )
+  export CASE_NAME
+
+  export LOG_DIR="workdir/logs/${CASE_DIR}/${ENVOY_VERSION}"
+
+  init_vars
 
   # Initialize the workdir
   init_workdir primary
@@ -315,43 +271,29 @@ function runTest {
   return $TESTRESULT
 }
 
+function suite_setup {
+    # Set a log dir to prevent docker-compose warning about unset var
+    export LOG_DIR="workdir/logs/"
+    # Cleanup from any previous unclean runs.
+    docker-compose down --volumes --timeout 0 --remove-orphans
 
-RESULT=0
+    # Start the volume container
+    docker-compose up -d workdir
+}
 
-for c in ./case-*/ ; do
-  for ev in $ENVOY_VERSIONS ; do
-    export CASE_DIR="${c}"
-    export CASE_NAME=$( basename $c | cut -c6- )
-    export CASE_ENVOY_VERSION="envoy $ev"
-    export CASE_STR="$CASE_NAME, $CASE_ENVOY_VERSION"
-    export ENVOY_VERSION="${ev}"
-    export LOG_DIR="workdir/logs/${CASE_DIR}/${ENVOY_VERSION}"
-    echo "================================================"
-    echoblue "CASE $CASE_STR"
-    echo "- - - - - - - - - - - - - - - - - - - - - - - -"
+function suite_teardown {
+    # Set a log dir to prevent docker-compose warning about unset var
+    export LOG_DIR="workdir/logs/"
 
-    if [ ! -z "$FILTER_TESTS" ] && echo "$CASE_STR" | grep -v "$FILTER_TESTS" > /dev/null ; then
-      echo "   SKIPPED: doesn't match FILTER_TESTS=$FILTER_TESTS"
-      continue 1
-    fi
+    docker-compose down --volumes --timeout 0 --remove-orphans
+}
 
-    if ! runTest
-    then
-      RESULT=1
-    fi
 
-    if [ $RESULT -ne 0 ] && [ ! -z "$STOP_ON_FAIL" ] ; then
-      echo "  => STOPPING because STOP_ON_FAIL set"
-      break 2
-    fi
-  done
-done
+case "${1-}" in
+  "")
+    echo "command required"
+    exit 1 ;;
+  *)
+    "$@" ;;
+esac
 
-cleanup
-
-if [ $RESULT -eq 0 ] ; then
-  echogreen "✓ PASS"
-else
-  echored "⨯ FAIL"
-  exit 1
-fi

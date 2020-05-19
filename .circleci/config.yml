@@ -522,7 +522,7 @@ jobs:
       # Circle images but pick Go since we have to pick one of them.
       - image: *GOLANG_IMAGE
     environment:
-      ENVOY_VERSIONS: "1.11.2"
+      ENVOY_VERSION: "1.11.2"
     steps: &ENVOY_INTEGRATION_TEST_STEPS
       - checkout
       # Get go binary from workspace
@@ -533,33 +533,42 @@ jobs:
       - run: docker build -t consul-dev -f ./build-support/docker/Consul-Dev.dockerfile .
       - run:
           name: Envoy Integration Tests
-          command: make test-envoy-integ SKIP_DOCKER_BUILD=1
+          command: |
+            mkdir -p /tmp/test-results/
+            gotestsum -- -timeout=30m -tags integration ./test/integration/connect/envoy
           environment:
+            GOTESTSUM_JUNITFILE: /tmp/test-results/results.xml
+            GOTESTSUM_FORMAT: standard-verbose
+            COMPOSE_INTERACTIVE_NO_CLI: 1
             # tput complains if this isn't set to something.
             TERM: ansi
       - store_artifacts:
           path: ./test/integration/connect/envoy/workdir/logs
           destination: container-logs
+      - store_test_results:
+          path: *TEST_RESULTS_DIR
+      - store_artifacts:
+          path: *TEST_RESULTS_DIR
 
   envoy-integration-test-1.12.2:
     docker:
       - image: *GOLANG_IMAGE
     environment:
-      ENVOY_VERSIONS: "1.12.2"
+      ENVOY_VERSION: "1.12.2"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
   envoy-integration-test-1.13.1:
     docker:
       - image: *GOLANG_IMAGE
     environment:
-      ENVOY_VERSIONS: "1.13.1"
+      ENVOY_VERSION: "1.13.1"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
   envoy-integration-test-1.14.1:
     docker:
       - image: *GOLANG_IMAGE
     environment:
-      ENVOY_VERSIONS: "1.14.1"
+      ENVOY_VERSION: "1.14.1"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
   # run integration tests for the connect ca providers
