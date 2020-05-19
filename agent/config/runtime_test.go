@@ -1548,7 +1548,19 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SerfAllowedCIDRsLAN = []net.IPNet{*(parseCIDR(t, "127.0.0.0/4")), *(parseCIDR(t, "192.168.0.0/24"))}
 			},
 		},
-
+		{
+			desc: "Serf Allowed CIDRS LAN/WAN, multiple values from HCL/JSON",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{"serf_lan_allowed_cidrs": ["127.0.0.0/4", "192.168.0.0/24"]}`,
+				`{"serf_wan_allowed_cidrs": ["10.228.85.46/25"]}`},
+			hcl: []string{`serf_lan_allowed_cidrs=["127.0.0.0/4", "192.168.0.0/24"]`,
+				`serf_wan_allowed_cidrs=["10.228.85.46/25"]`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.SerfAllowedCIDRsLAN = []net.IPNet{*(parseCIDR(t, "127.0.0.0/4")), *(parseCIDR(t, "192.168.0.0/24"))}
+				rt.SerfAllowedCIDRsWAN = []net.IPNet{*(parseCIDR(t, "10.228.85.46/25"))}
+			},
+		},
 		{
 			desc: "Serf Allowed CIDRS WAN, multiple values from flags",
 			args: []string{`-data-dir=` + dataDir, `-serf-wan-allowed-cidrs=192.168.4.0/24`, `-serf-wan-allowed-cidrs=192.168.3.0/24`},
