@@ -76,9 +76,13 @@ export default Component.extend(SlotsMixin, WithListeners, {
             items,
             e.data,
           ]);
+          item.willDestroy();
           success();
         },
-        error: e => this.error(e),
+        error: e => {
+          item.willDestroy();
+          this.error(e);
+        },
       });
     },
     remove: function(item, items) {
