@@ -116,13 +116,9 @@ func (ct *CompiledTemplate) Render(name string, source structs.QuerySource) (*st
 		return nil, fmt.Errorf("Failed to copy query")
 	}
 
-	// Run the regular expression, if provided. We execute on a copy here
-	// to avoid internal lock contention because we expect this to be called
-	// from multiple goroutines.
 	var matches []string
 	if ct.re != nil {
-		re := ct.re.Copy()
-		matches = re.FindStringSubmatch(name)
+		matches = ct.re.FindStringSubmatch(name)
 	}
 
 	// Create a safe match function that can't fail at run time. It will

@@ -323,11 +323,11 @@ func TestHTTPAPI_Ban_Nonprintable_Characters(t *testing.T) {
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
-	req, err := http.NewRequest("GET", "/v1/kv/bad\x00ness", nil)
+	_, err := http.NewRequest("GET", "/v1/kv/bad\x00ness", nil)
 	if err == nil {
 		t.Fatal("expected error")
 	}
-	req, err = http.NewRequest("GET", "/v1/kv/bad%00ness", nil)
+	req, err := http.NewRequest("GET", "/v1/kv/bad%00ness", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -342,11 +342,11 @@ func TestHTTPAPI_Allow_Nonprintable_Characters_With_Flag(t *testing.T) {
 	a := NewTestAgent(t, "disable_http_unprintable_char_filter = true")
 	defer a.Shutdown()
 
-	req, err := http.NewRequest("GET", "/v1/kv/bad\x00ness", nil)
+	_, err := http.NewRequest("GET", "/v1/kv/bad\x00ness", nil)
 	if err == nil {
 		t.Fatal("expected error")
 	}
-	req, err = http.NewRequest("GET", "/v1/kv/bad%00ness", nil)
+	req, err := http.NewRequest("GET", "/v1/kv/bad%00ness", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

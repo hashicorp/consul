@@ -420,12 +420,6 @@ func (a *Autopilot) updateClusterHealth() error {
 	// consistent of a sample as possible. We capture the leader's index
 	// here as well so it roughly lines up with the same point in time.
 	targetLastIndex := raftNode.LastIndex()
-	var fetchList []*ServerInfo
-	for _, server := range servers {
-		if parts, ok := serverMap[string(server.ID)]; ok {
-			fetchList = append(fetchList, parts)
-		}
-	}
 	d := time.Now().Add(a.healthInterval / 2)
 	ctx, cancel := context.WithDeadline(context.Background(), d)
 	defer cancel()

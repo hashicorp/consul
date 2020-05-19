@@ -48,7 +48,7 @@ func (m *LeaderRoutineManager) IsRunning(name string) bool {
 }
 
 func (m *LeaderRoutineManager) Start(name string, routine LeaderRoutine) error {
-	return m.StartWithContext(nil, name, routine)
+	return m.StartWithContext(context.TODO(), name, routine)
 }
 
 func (m *LeaderRoutineManager) StartWithContext(parentCtx context.Context, name string, routine LeaderRoutine) error {

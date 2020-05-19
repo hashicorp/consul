@@ -36,7 +36,7 @@ func TestUiIndex(t *testing.T) {
 
 	// Create file
 	path := filepath.Join(a.Config.UIDir, "my-file")
-	if err := ioutil.WriteFile(path, []byte("test"), 777); err != nil {
+	if err := ioutil.WriteFile(path, []byte("test"), 0777); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 

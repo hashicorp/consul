@@ -914,7 +914,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	// the catalog endpoint so it helps ensure the sync will work properly.
 	if err := ns.Validate(); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, err.Error())
+		fmt.Fprint(resp, err.Error())
 		return nil, nil
 	}
 
