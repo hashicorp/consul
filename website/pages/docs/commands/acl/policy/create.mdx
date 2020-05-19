@@ -66,7 +66,7 @@ Usage: `consul acl policy create [options] [args]`
 
 Create a new policy that is valid in all datacenters:
 
-```shell
+```shell-session
 $ consul acl policy create -name "acl-replication" -description "Policy capable of replicating ACL policies" -rules 'acl = "read"'
 ID:           35b8ecb0-707c-ee18-2002-81b238b54b38
 Name:         acl-replication
@@ -78,7 +78,7 @@ acl = "read"
 
 Create a new policy valid only in specific datacenters with rules read from a file:
 
-```shell
+```shell-session
 $ consul acl policy create -name "replication" -description "Replication" -rules @rules.hcl -valid-datacenter dc1 -valid-datacenter dc2
 ID:           ca44555b-a2d8-94de-d763-88caffdaf11f
 Name:         replication
@@ -94,7 +94,7 @@ service_prefix "" {
 
 Create a new policy with rules equivalent to that of a legacy ACL token:
 
-```shell
+```shell-session
 $ consul acl policy create -name "node-services-read" -from-token 5793a5ce -description "Can read any node and service"
 ID:           06acc965-df4b-5a99-58cb-3250930c6324
 Name:         node-services-read

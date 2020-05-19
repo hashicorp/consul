@@ -48,7 +48,7 @@ Usage: `consul acl binding-rule create [options] [args]`
 
 Create a new binding rule that binds to a service identity:
 
-```shell
+```shell-session
 $ consul acl binding-rule create -method 'minikube' \
     -description 'wildcard service' \
     -bind-type 'service' \
@@ -64,7 +64,7 @@ Selector:     serviceaccount.namespace==default and serviceaccount.name!=vault
 
 Create a new binding rule that binds to a role:
 
-```shell
+```shell-session
 $ consul acl binding-rule create -method 'minikube' \
     -description 'just vault role' \
     -bind-type 'role' \

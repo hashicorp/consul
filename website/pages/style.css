@@ -1,6 +1,6 @@
 /* Global Component Styles */
 @import '~@hashicorp/react-global-styles/style.css';
-@import '~@hashicorp/react-global-styles/code-highlighting.css';
+@import '~@hashicorp/nextjs-scripts/prism/style.css';
 @import '~@hashicorp/react-global-styles/custom-properties/color.css';
 @import '~@hashicorp/react-global-styles/custom-properties/font.css';
 @import '~@hashicorp/react-global-styles/_temporary-to-remove/layout.css';
@@ -83,6 +83,39 @@ footer .content {
  */
 .g-subnav ~ * :target {
   scroll-margin-top: calc(64px + 0.5em);
+}
+
+/* 404 page styles */
+#p-404 {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin: 64px auto; /* this is being overridden at the request of the learn team */
+  max-width: 784px;
+  min-height: 50vh;
+  padding-inline: 32px;
+  text-align: center;
+
+  @media (--large) {
+    padding-inline: 24px;
+  }
+
+  & h1 {
+    font-size: 1.5rem;
+    letter-spacing: -0.004em;
+    line-height: 1.375em;
+
+    @media (--medium-up) {
+      font-size: 1.75rem;
+      line-height: 1.321em;
+    }
+
+    @media (--large) {
+      font-size: 2rem;
+      letter-spacing: -0.006em;
+      line-height: 1.313em;
+    }
+  }
 }
 
 /* Layout Styles */

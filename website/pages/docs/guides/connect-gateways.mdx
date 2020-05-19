@@ -114,7 +114,7 @@ upgrades](/docs/upgrading#standard-upgrades).
 Stop the first server by running the following [leave
 command](/docs/commands/leave).
 
-```text
+```shell-session
 $ consul leave
 ```
 
@@ -184,7 +184,7 @@ Create a file named `mesh-gateway-policy.json` containing the following content.
 
 Next, create and name a new ACL policy using the file you just made.
 
-```text
+```shell-session
 $ consul acl policy create \
   -name mesh-gateway \
   -rules @mesh-gateway-policy.json
@@ -192,12 +192,12 @@ $ consul acl policy create \
 
 Generate a token for each gateway from the new policy.
 
-```text
+```shell-session
 $ consul acl token create -description "mesh-gateway primary datacenter token" \
   -policy-name mesh-gateway
 ```
 
-```text
+```shell-session
 $ consul acl token create \
   -description "mesh-gateway secondary datacenter token" \
   -policy-name mesh-gateway
@@ -210,7 +210,7 @@ You’ll apply those tokens when you deploy the gateways.
 Register and start the gateway in your primary datacenter with the following
 command.
 
-```text
+```shell-session
 $ consul connect envoy -mesh-gateway -register \
                      -service-name "gateway-primary"
                      -address "<your private address>" \
@@ -223,7 +223,7 @@ $ consul connect envoy -mesh-gateway -register \
 Register and start the gateway in your secondary datacenter with the following
 command.
 
-```text
+```shell-session
 $ consul connect envoy -mesh-gateway -register \
                      -service-name "gateway-secondary"
                      -address "<your private address>" \
@@ -250,7 +250,7 @@ following:
 
 Write the centralized configuration you just created with the following command.
 
-```text
+```shell-session
 $ consul config write proxy-defaults.json
 ```
 
@@ -299,27 +299,27 @@ if you are not using socat as an example.
 
 Reload the client with the new or modified registration.
 
-```text
+```shell-session
 $ consul reload
 ```
 
 Then start Envoy specifying which service it will proxy.
 
-```text
+```shell-session
 $ consul connect envoy -sidecar-for socat
 ```
 
 If you are using socat as your example, start it now on the port you specified
 in your registration by running the following command.
 
-```text
+```shell-session
 $ socat -v tcp-l:8181,fork exec:"/bin/cat"
 ```
 
 Check that the socat service is running by accessing it using netcat on the same
 node. It will echo back anything you type.
 
-```text
+```shell-session
 $ nc 127.0.0.1 8181
 hello
 hello
@@ -369,13 +369,13 @@ its name and the `8181` with its port.
 
 Reload the client with the new or modified registration.
 
-```text
+```shell-session
 $ consul reload
 ```
 
 Then start Envoy and specify which service it will proxy.
 
-```text
+```shell-session
 $ consul connect envoy -sidecar-for web
 ```
 
@@ -386,7 +386,7 @@ in order for them to communicate with each other. Add an intention to allow the
 front end service to access the back end service. For web and socat the command
 would look like this.
 
-```text
+```shell-session
 $ consul intention create web socat
 ```
 
@@ -402,7 +402,7 @@ other. If you have been using the example web and socat services, from the node
 and datacenter where you registered the web service, start netcat and type
 something for it to echo.
 
-```text
+```shell-session
 $ nc 127.0.0.1 8181
 hello
 hello

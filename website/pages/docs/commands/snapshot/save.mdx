@@ -30,7 +30,7 @@ Usage: `consul snapshot save [options] FILE`
 
 To create a snapshot from the leader server and save it to "backup.snap":
 
-```text
+```shell-session
 $ consul snapshot save backup.snap
 Saved and verified snapshot to index 8419
 ```
@@ -45,7 +45,7 @@ integrity.
 To create a potentially stale snapshot from any available server, use the stale
 consistency mode:
 
-```text
+```shell-session
 $ consul snapshot save -stale backup.snap
 # ...
 ```

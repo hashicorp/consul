@@ -35,7 +35,7 @@ Below is an example of a basic intention to show the basic attributes
 of an intention. The full data model of an intention can be found in the
 [API documentation](#).
 
-```
+```shell-session
 $ consul intention create -deny web db
 Created: web => db (deny)
 ```
@@ -54,7 +54,7 @@ the near term roadmap for Consul.
 An intention source or destination may also be the special wildcard
 value `*`. This matches _any_ value and is used as a catch-all. Example:
 
-```
+```shell-session
 $ consul intention create -deny web '*'
 Created: web => * (deny)
 ```
@@ -67,7 +67,7 @@ Arbitrary string key/value data may be associated with intentions. This
 is unused by Consul but can be used by external systems or for visibility
 in the UI.
 
-```shell
+```shell-session
 $ consul intention create \
   -deny \
   -meta description='Hello there' \

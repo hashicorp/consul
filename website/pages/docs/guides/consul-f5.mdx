@@ -52,7 +52,7 @@ Check your environment to ensure you have a healthy Consul datacenter by
 checking your datacenter members. You can do this by running the `consul members` command on the machine where Consul is running, or by accessing the
 Consul web UI at the IP address of your consul instances, on port 8500.
 
-```shell
+```shell-session
 $ consul memberss
 Node           Address          Status  Type    Build  Protocol  DC   Segment
 consul         10.0.0.100:8301  alive   server  1.5.3  2         dc1  <all>
@@ -89,7 +89,7 @@ check for the web server so that Consul can monitor its health.
 
 Reload the client to read the new service definition.
 
-```shell
+```shell-session
 $ consul reload
 ```
 
@@ -110,7 +110,7 @@ First construct an authorization header to authenticate our API call with
 BIG-IP. You will need to use a username and password for your instance. Below is
 an example for username “admin”, and password “password”.
 
-```shell
+```shell-session
 $ echo -n 'admin:password' | base64
 YWRtaW46YWRtaW4=
 ```
@@ -119,7 +119,7 @@ Now use cURL to send the authorized declaration to the BIG-IP Instance. Use the
 value you created above for your BIG-IP instance in the authorization header.
 Remember t o replace `<your-BIG-IP-mgmt-ip>` with the real IP address.
 
-```shell
+```shell-session
 $ curl -X POST \
   https://<your-BIG-IP-mgmt-ip>/mgmt/shared/appsvcs/declare \
   -H 'authorization: Basic <your-authorization-header>' \
@@ -249,7 +249,7 @@ You can read more about composing AS3 declarations in the [F5 documentation](htt
 Use the `consul monitor` command on the consul agent specified in the AS3 URI to
 verify that you are receiving catalog requests from the BIG-IP instance.
 
-```shell
+```shell-session
 $ consul monitor -log-level=debug
 2019/09/06 03:16:50 [DEBUG] http: Request GET /v1/catalog/service/nginx (103.796µs) from=10.0.0.200:29487
 2019/09/06 03:16:55 [DEBUG] http: Request GET /v1/catalog/service/nginx (104.95µs) from=10.0.0.200:42079
@@ -279,7 +279,7 @@ documentation](https://support.f5.com/csp/article/K20448153#accessing%20map).
 Now that you have a healthy virtual service, you can use it to access your web
 server.
 
-```shell
+```shell-session
 $ curl <your-BIG-IP-virtual-ip>:8080
 <!DOCTYPE html>
 <html>

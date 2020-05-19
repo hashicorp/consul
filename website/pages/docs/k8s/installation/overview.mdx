@@ -62,14 +62,14 @@ need to install Tiller by following the
 
 Add the HashiCorp Helm Repository:
 
-```shell
+```shell-session
 $ helm repo add hashicorp https://helm.releases.hashicorp.com
 "hashicorp" has been added to your repositories
 ```
 
 Ensure you have access to the consul chart:
 
-```shell
+```shell-session
 $ helm search repo hashicorp/consul
 NAME            	CHART VERSION	APP VERSION	DESCRIPTION
 hashicorp/consul	0.20.1       	1.7.2      	Official HashiCorp Consul Chart
@@ -78,7 +78,7 @@ hashicorp/consul	0.20.1       	1.7.2      	Official HashiCorp Consul Chart
 Now you're ready to install Consul! To install Consul with the default
 configuration using Helm 3 run:
 
-```shell
+```shell-session
 $ helm install consul hashicorp/consul --set global.name=consul
 NAME: consul
 ...
@@ -111,7 +111,7 @@ connectInject:
 
 Once you've created your `config.yaml` file, run `helm install` with the `-f` flag:
 
-```shell
+```shell-session
 $ helm install consul hashicorp/consul -f config.yaml
 NAME: consul
 ...
@@ -130,7 +130,7 @@ use `kubectl port-forward` to visit the UI.
 
 If running with TLS disabled, the Consul UI will be accessible via http on port 8500:
 
-```
+```shell-session
 $ kubectl port-forward service/consul-server 8500:8500
 ...
 ```
@@ -141,7 +141,7 @@ Once the port is forwarded navigate to [http://localhost:8500](http://localhost:
 
 If running with TLS enabled, the Consul UI will be accessible via https on port 8501:
 
-```
+```shell-session
 $ kubectl port-forward service/consul-server 8501:8501
 ...
 ```
@@ -158,7 +158,7 @@ to see all resources and make modifications.
 
 To retrieve the bootstrap token that has full permissions, run:
 
-```sh
+```shell-session
 $ kubectl get secrets/consul-bootstrap-acl-token --template={{.data.token}} | base64 -D
 e7924dd1-dc3f-f644-da54-81a73ba0a178%
 ```

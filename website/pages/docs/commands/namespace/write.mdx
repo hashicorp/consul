@@ -37,7 +37,7 @@ or HCL format. See [here](/docs/enterprise/namespaces#namespace-definition) for 
 
 Create a new Namespace:
 
-```shell
+```shell-session
 $ consul namespace write - <<< 'Name = "team-1"'
 Name: team-1
 Description:
@@ -45,7 +45,7 @@ Description:
 
 Showing Raft Metadata:
 
-```shell
+```shell-session
 $ consul namespace write -meta - <<< 'Name = "team-1"'
 Name: team-1
 Description:
@@ -55,7 +55,7 @@ Modify Index: 344
 
 JSON Format:
 
-```shell
+```shell-session
 $ cat ns.hcl
 Name = "foo"
 Description = "Example Namespace"

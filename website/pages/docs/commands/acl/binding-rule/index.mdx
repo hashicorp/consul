@@ -55,7 +55,7 @@ resolved to the full UUID and used.
 
 Create a new binding rule:
 
-```shell
+```shell-session
 $ consul acl binding-rule create \
       -method=minikube \
       -bind-type=service \
@@ -65,25 +65,25 @@ $ consul acl binding-rule create \
 
 List all binding rules:
 
-```shell
+```shell-session
 $ consul acl binding-rule list
 ```
 
 Update a binding rule:
 
-```shell
+```shell-session
 $ consul acl binding-rule update -id=43cb72df-9c6f-4315-ac8a-01a9d98155ef \
       -bind-name='k8s-${serviceaccount.name}'
 ```
 
 Read a binding rule:
 
-```shell
+```shell-session
 $ consul acl binding-rule read -id fdabbcb5-9de5-4b1a-961f-77214ae88cba
 ```
 
 Delete a binding rule:
 
-```shell
+```shell-session
 $ consul acl binding-rule delete -id b6b856da-5193-4e78-845a-7d61ca8371ba
 ```

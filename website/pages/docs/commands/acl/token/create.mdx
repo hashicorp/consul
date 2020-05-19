@@ -63,7 +63,7 @@ Usage: `consul acl token create [options] [args]`
 
 Create a new token:
 
-```shell
+```shell-session
 $ consul acl token create -description "Read Nodes and Services" -policy-id 06acc965
 AccessorID:   986193b5-e2b5-eb26-6264-b524ea60cc6d
 SecretID:     ec15675e-2999-d789-832e-8c4794daa8d7
@@ -76,7 +76,7 @@ Policies:
 
 Create a new local token:
 
-```shell
+```shell-session
 $ consul acl token create -description "Read Nodes and Services" -policy-id 06acc965 -local
 AccessorID:   4fdf0ec8-d251-3865-079c-7247c974fc50
 SecretID:     02143514-abf2-6c23-0aa1-ec2107e68f6b
@@ -89,7 +89,7 @@ Policies:
 
 Create a new token and link with policies by name:
 
-```shell
+```shell-session
 $ consul acl token create -description "Super User" -policy-name global-management
 AccessorID:   59f86a9b-d3b6-166c-32a0-be4ab3f94caa
 SecretID:     ada7f751-f654-8872-7f93-498e799158b6
@@ -102,7 +102,7 @@ Policies:
 
 Create a new token with one service identity that expires in 15 minutes:
 
-```shell
+```shell-session
 $ consul acl token create -description 'crawler token' -service-identity 'crawler' -expires-ttl '15m'
 AccessorID:       0c083aca-6c15-f0cc-c4d9-30578db54cd9
 SecretID:         930dafb6-5c08-040b-23fb-a368a95256f9

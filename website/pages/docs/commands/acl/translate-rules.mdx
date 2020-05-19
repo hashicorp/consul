@@ -42,30 +42,30 @@ Usage: `consul acl translate rules [options] TRANSLATE`
 
 Translate rules within a file:
 
-```shell
+```shell-session
 $ consul acl translate-rules @rules.hcl
 ```
 
 Translate rules from stdin:
 
-```shell
+```shell-session
 $ consul acl translate-rules -
 ```
 
 Translate rules from a string argument:
 
-```shell
+```shell-session
 $ consul acl translate-rules 'key "" { policy = "write"}'
 ```
 
 Translate rules for a legacy ACL token using its SecretID passed from stdin:
 
-```shell
+```shell-session
 $ consul acl translate-rules --token-secret -
 ```
 
 Translate rules for a legacy ACL token using its AccessorID:
 
-```shell
+```shell-session
 $ consul acl translate-rules 429cd746-03d5-4bbb-a83a-18b164171c89
 ```

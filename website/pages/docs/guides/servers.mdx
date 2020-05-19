@@ -39,7 +39,7 @@ This means that it does not know about any peers and is not configured to elect 
 This is expected, and we can now add this node to the existing cluster using `join`.
 From the new server, we can join any member of the existing cluster:
 
-```shell
+```shell-session
 $ consul join <Existing Node Address>
 Successfully joined cluster by contacting 1 nodes.
 ```
@@ -55,7 +55,7 @@ In production environments, you should use the [agent configuration](https://www
 
 With the Consul CLI:
 
-```shell
+```shell-session
 $ consul agent -retry-join=["52.10.110.11", "52.10.110.12", "52.10.100.13"]
 ```
 
@@ -92,7 +92,7 @@ This means that raft, the underlying consensus protocol, has added the peer and 
 replicating state. Since the existing cluster may be very far ahead, it can take some
 time for the new node to catch up. To check on this, run `info` on the leader:
 
-```text
+```shell-session
 $ consul info
 ...
 raft:

@@ -61,7 +61,7 @@ with the existing namespace definition.
 
 Update a namespace with a new description:
 
-```shell
+```shell-session
 $ consul namespace update -name "team-1" -description "example description"
 Name: team-1
 Description:
@@ -70,7 +70,7 @@ Description:
 
 Showing Raft Metadata:
 
-```shell
+```shell-session
 $ consul namespace update -name team-1 -show-meta -default-policy-id 1206bf1c-6239-46e8-b9f8-b426667cf428
 Name: team-1
 ACLs:
@@ -82,7 +82,7 @@ Modify Index: 344
 
 JSON Format:
 
-```shell
+```shell-session
 $ consul namespace update -name team2 -description "Example Namespace" -meta "external-source=kubernetes" -format=json
 {
    "Name": "team2",

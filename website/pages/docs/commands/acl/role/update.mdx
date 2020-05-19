@@ -60,7 +60,7 @@ Usage: `consul acl role update [options] [args]`
 
 Update a role:
 
-```shell
+```shell-session
 $ consul acl role update -id 57147d87-6bf7-f794-1a6e-7d038c4e4ae9 \
     -description 'web crawler updated role' -service-identity 'crawler'
 Role updated successfully
@@ -75,7 +75,7 @@ Service Identities:
 
 Rename a role by prefix:
 
-```shell
+```shell-session
 $ consul acl role update -id 57147 -name web-crawler
 Role updated successfully
 ID:           57147d87-6bf7-f794-1a6e-7d038c4e4ae9

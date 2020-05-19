@@ -49,36 +49,36 @@ of the subcommand in the sidebar.
 
 Create a Namespace
 
-```shell
+```shell-session
 $ consul namespace create -name team1
 ```
 
 Create or Update a Namespace from its full definition:
 
-```shell
+```shell-session
 $ consul namespace write ns1.hcl
 ```
 
 Read a Namespace:
 
-```shell
+```shell-session
 $ consul namespace read ns1
 ```
 
 List all Namespaces:
 
-```shell
+```shell-session
 $ consul namespace list
 ```
 
 Update a namespace
 
-```shell
+```shell-session
 $ consul namespace update -name team1 -description "first namespace"
 ```
 
 Delete a Namespace:
 
-```shell
+```shell-session
 $ consul namespace delete team1
 ```

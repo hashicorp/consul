@@ -39,7 +39,7 @@ to learn more about the default settings.
 First, you will need to clone the official Helm chart from HashiCorp's Github
 repo.
 
-```shell
+```shell-session
 $ git clone https://github.com/hashicorp/consul-helm.git
 ```
 
@@ -52,7 +52,7 @@ about the chart.
 
 To deploy Consul you will need to be in the same directory as the chart.
 
-```shell
+```shell-session
 $ cd consul-helm
 ```
 
@@ -60,7 +60,7 @@ Now, you can deploy Consul using `helm install`. This will deploy three servers
 and agents on all Kubernetes nodes. The process should be quick, less than 5
 minutes.
 
-```shell
+```shell-session
 $ helm install ./consul-helm
 
 NAME:   mollified-robin LAST DEPLOYED: Mon Feb 25 15:57:18 2019 NAMESPACE: default STATUS: DEPLOYED
@@ -123,13 +123,13 @@ Finally, initiate the
 with `helm upgrade` and the `-f` flag that passes in your new values file. This
 processes should also be quick, less than a minute.
 
-```shell
+```shell-session
 $ helm upgrade consul -f values.yaml
 ```
 
 You can now use `kubectl get services` to discover the external IP of your Consul UI.
 
-```shell
+```shell-session
 $ kubectl get services
 NAME                            TYPE           CLUSTER-IP     EXTERNAL-IP             PORT(S)        AGE
 consul                          ExternalName   <none>         consul.service.consul   <none>         11d
@@ -144,7 +144,7 @@ process. The [catalog sync](https://www.consul.io/docs/platform/k8s/helm.html#v-
 Consul and Kubernetes services bidirectionally by
 default.
 
-```
+```shell-session
 $ kubectl get pods
 NAME                                                 READY   STATUS      RESTARTS   AGE
 mollified-robin-consul-d8mnp                          1/1     Running     0         15d
@@ -168,14 +168,14 @@ HTTP API or by directly connecting to the pod with `kubectl`.
 
 To access the pod and data directory you can exec into the pod with `kubectl` to start a shell session.
 
-```shell
+```shell-session
 $ kubectl exec -it mollified-robin-consul-server-0 /bin/sh
 ```
 
 This will allow you to navigate the file system and run Consul CLI commands on
 the pod. For example you can view the Consul members.
 
-```shell
+```shell-session
 $ consul members
 Node                                   Address           Status  Type    Build  Protocol  DC        Segment
 mollified-robin-consul-server-0        172.20.2.18:8301  alive   server  1.4.2  2         hashidc1  <all>

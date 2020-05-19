@@ -45,7 +45,7 @@ of the subcommand in the sidebar.
 
 Create a new auth method:
 
-```shell
+```shell-session
 $ consul acl auth-method create -type "kubernetes" \
                         -name "my-k8s" \
                         -description "This is an example kube auth method" \
@@ -56,13 +56,13 @@ $ consul acl auth-method create -type "kubernetes" \
 
 List all auth methods:
 
-```shell
+```shell-session
 $ consul acl auth-method list
 ```
 
 Update all editable fields of the auth method:
 
-```shell
+```shell-session
 $ consul acl auth-method update -name "my-k8s" \
                         -description "new description" \
                         -kubernetes-host "https://new-apiserver.example.com:8443" \
@@ -72,12 +72,12 @@ $ consul acl auth-method update -name "my-k8s" \
 
 Read an auth method:
 
-```shell
+```shell-session
 $ consul acl auth-method read -name my-k8s
 ```
 
 Delete an auth method:
 
-```shell
+```shell-session
 $ consul acl auth-method delete -name my-k8s
 ```

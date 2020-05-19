@@ -58,7 +58,7 @@ in a canary deployment.
 
 First clone the repo containing the source and examples for this guide.
 
-```shell
+```shell-session
 $ git clone git@github.com:hashicorp/consul-demo-traffic-splitting.git
 ```
 
@@ -66,7 +66,7 @@ Change directories into the cloned folder, and start the demo environment with
 `docker-compose up`. This command will run in the foreground, so you’ll need to
 open a new terminal window after you run it.
 
-```shell
+```shell-session
 $ docker-compose up
 
 Creating consul-demo-traffic-splitting_api_v1_1    ... done
@@ -135,7 +135,7 @@ version 1 of the API service, and a sidecar for the API service.
 Curl the Web endpoint to make sure that the whole application is running. The
 Web service will get a response from version 1 of the API service.
 
-```hcl
+```shell-session
 $ curl localhost:9090
 Hello World
 ###Upstream Data: localhost:9091###
@@ -178,7 +178,7 @@ contains the following.
 To apply the configuration, you can either use the Consul CLI or the API. In
 this example we’ll use the CLI to write the configuration, providing the file location.
 
-```shell
+```shell-session
 $ consul config write l7_config/api_service_defaults.json
 ```
 
@@ -227,7 +227,7 @@ configuration.
 Write the service resolver configuration entry using the CLI and providing the
 location, just like in the previous example.
 
-```shell
+```shell-session
 $ consul config write l7_config/api_service_resolver.json
 ```
 
@@ -278,7 +278,7 @@ configuration.
 
 Write this configuration entry using the CLI as well.
 
-```shell
+```shell-session
 $ consul config write l7_config/api_service_splitter_100_0.json
 ```
 
@@ -293,7 +293,7 @@ splitting. Start the service, register it, and start its connect sidecar with
 the following command. This command will run in the foreground, so you’ll need
 to open a new terminal window after you run it.
 
-```shell
+```shell-session
 $ docker-compose -f docker-compose-v2.yml up
 ```
 
@@ -333,7 +333,7 @@ contains the following.
 
 Write the new configuration using the CLI.
 
-```shell
+```shell-session
 $ consul config write l7_config/api_service_splitter_50_50.json
 ```
 
@@ -341,7 +341,7 @@ Now that you’ve increased the percentage of traffic to v2, curl the web servic
 again. Consul will equally distribute traffic across both of the service
 subsets.
 
-```hcl
+```shell-session
 $ curl localhost:9090
 Hello World
 ###Upstream Data: localhost:9091###
@@ -381,14 +381,14 @@ configuration for a 100% split to version 2 contains the following.
 
 Apply it with the CLI, providing the path to the configuration entry.
 
-```shell
+```shell-session
 $ consul config write l7_config/api_service_splitter_0_100.json
 ```
 
 Now when you curl the web service again. 100% of traffic goes to the version
 2 subset.
 
-```hcl
+```shell-session
 $ curl localhost:9090
 Hello World
 ###Upstream Data: localhost:9091###
@@ -423,7 +423,7 @@ environments in the opposite order that you created them in.
 
 First you’ll stop and remove the containers created for v2 of the API service.
 
-```shell
+```shell-session
 $ docker-compose -f docker-compose-v2.yml down
 Stopping consul-demo-traffic-splitting_api_proxy_v2_1 ... done
 Stopping consul-demo-traffic-splitting_api_v2_1       ... done
@@ -436,7 +436,7 @@ Network consul-demo-traffic-splitting_vpcbr is external, skipping
 Then, you’ll stop and remove the containers and the network that you created in
 the first docker compose command.
 
-```shell
+```shell-session
 $ docker-compose down
 Stopping consul-demo-traffic-splitting_api_proxy_v1_1 ... done
 Stopping consul-demo-traffic-splitting_web_envoy_1    ... done

@@ -63,7 +63,7 @@ Builtin policies:
 
 Create a new ACL policy:
 
-```shell
+```shell-session
 $ consul acl policy create -name "new-policy" \
                          -description "This is an example policy" \
                          -datacenter "dc1" \
@@ -73,24 +73,24 @@ $ consul acl policy create -name "new-policy" \
 
 List all policies:
 
-```shell
+```shell-session
 $ consul acl policy list
 ```
 
 Update a policy:
 
-```shell
+```shell-session
 $ consul acl policy update -name "other-policy" -datacenter "dc1"
 ```
 
 Read a policy:
 
-```shell
+```shell-session
 $ consul acl policy read -id 0479e93e-091c-4475-9b06-79a004765c24
 ```
 
 Delete a policy
 
-```shell
+```shell-session
 $ consul acl policy delete -name "my-policy"
 ```

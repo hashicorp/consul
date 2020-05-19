@@ -52,7 +52,7 @@ When a cluster first initializes, this will only list one trusted root. Multiple
 roots may appear as part of
 [rotation](#).
 
-```bash
+```shell-session
 $ curl http://localhost:8500/v1/connect/ca/roots
 {
     "ActiveRootID": "31:6c:06:fb:49:94:42:d5:e4:55:cc:2e:27:b3:b2:2e:96:67:3e:7e",
@@ -85,7 +85,7 @@ After initialization, the CA provider configuration can be viewed with the
 Consul will filter sensitive values from this endpoint depending on the
 provider in use, so the configuration may not be complete.
 
-```bash
+```shell-session
 $ curl http://localhost:8500/v1/connect/ca/configuration
 {
     "Provider": "consul",
@@ -139,7 +139,7 @@ certificates are present, and the currently active root has an intermediate
 certificate which has been generated and cross-signed automatically by the old
 root during the rotation process:
 
-```bash
+```shell-session
 $ curl localhost:8500/v1/connect/ca/roots
 {
     "ActiveRootID": "d2:2c:41:94:1e:50:04:ea:86:fc:08:d6:b0:45:a4:af:8a:eb:76:a0",

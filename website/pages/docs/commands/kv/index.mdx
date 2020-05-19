@@ -51,21 +51,21 @@ of the subcommand in the sidebar or one of the links below:
 To create or update the key named "redis/config/connections" to the value "5" in
 Consul's KV store:
 
-```text
+```shell-session
 $ consul kv put redis/config/connections 5
 Success! Data written to: redis/config/connections
 ```
 
 To read a value back from Consul:
 
-```text
+```shell-session
 $ consul kv get redis/config/connections
 5
 ```
 
 Or you can query for detailed information:
 
-```text
+```shell-session
 $ consul kv get -detailed redis/config/connections
 CreateIndex      336
 Flags            0
@@ -78,7 +78,7 @@ Value            5
 
 Finally, deleting a key is just as easy:
 
-```text
+```shell-session
 $ consul kv delete redis/config/connections
 Success! Data deleted at key: redis/config/connections
 ```

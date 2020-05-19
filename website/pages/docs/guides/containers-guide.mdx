@@ -40,13 +40,13 @@ If you would like to interact with your containerized Consul agents using a loca
 
 First, pull the latest image. You will use Consul's official Docker image in this guide.
 
-```shell
+```shell-session
 $ docker pull consul
 ```
 
 Check the image was downloaded by listing Docker images that match `consul`.
 
-```shell
+```shell-session
 $ docker images -f 'reference=consul'
 REPOSITORY     TAG      IMAGE ID        CREATED             SIZE
 consul         latest   c836e84db154     4 days ago         107MB
@@ -56,7 +56,7 @@ consul         latest   c836e84db154     4 days ago         107MB
 
 Next, you will use Docker command-line flags to start the agent as a server, configure networking, and bootstrap the datacenter when one server is up.
 
-```shell
+```shell-session
 $ docker run \
     -d \
     -p 8500:8500 \
@@ -77,7 +77,7 @@ To avoid mounting volumes or copying files to the container you can also save [c
 
 You can find the IP address of the Consul server by executing the `consul members` command inside of the `badger` container.
 
-```shell
+```shell-session
 $  docker exec badger consul members
 Node       Address         Status    Type    Build  Protocol  DC   Segment
 server-1  172.17.0.2:8301  alive     server  1.4.4  2         dc1  <all>
@@ -87,7 +87,7 @@ server-1  172.17.0.2:8301  alive     server  1.4.4  2         dc1  <all>
 
 Next, deploy a containerized Consul client and instruct it to join the server by giving it the server's IP address. Do not use detached mode, so you can reference the client logs during later steps.
 
-```shell
+```shell-session
 $ docker run \
    --name=fox \
    consul agent -node=client-1 -join=172.17.0.2
@@ -108,7 +108,7 @@ $ docker run \
 
 In a new terminal, check that the client has joined by executing the `consul members` command again in the Consul server container.
 
-```shell
+```shell-session
 $  docker exec badger consul members
 Node      Address          Status  Type    Build  Protocol  DC   Segment
 server-1  172.17.0.2:8301  alive   server  1.4.3  2         dc1  <all>
@@ -125,7 +125,7 @@ Start a service in a third container and register it with the Consul client. The
 
 Pull the container and run it with port forwarding so that you can access it from your web browser by visiting [http://localhost:9001](http://localhost:9001).
 
-```shell
+```shell-session
 $ docker pull hashicorp/counting-service:0.0.2
 $ docker run \
    -p 9001:9001 \
@@ -136,14 +136,14 @@ $ docker run \
 
 Next, you will register the counting service with the Consul client by adding a service definition file called `counting.json` in the directory `consul/config`.
 
-```shell
+```shell-session
 $ docker exec fox /bin/sh -c "echo '{\"service\": {\"name\": \"counting\", \"tags\": [\"go\"], \"port\": 9001}}' >> /consul/config/counting.json"
 ```
 
 Since the Consul client does not automatically detect changes in the
 configuration directory, you will need to issue a reload command for the same container.
 
-```shell
+```shell-session
 $ docker exec fox consul reload
 Configuration reload triggered
 ```
@@ -160,7 +160,7 @@ If you go back to the terminal window where you started the client, you should s
 
 Now you can query Consul for the location of your service using the following dig command against Consul's DNS.
 
-```shell
+```shell-session
 $ dig @127.0.0.1 -p 8600 counting.service.consul
 
 ; <<>> DiG 9.10.6 <<>> @127.0.0.1 -p 8600 counting.service.consul
@@ -202,7 +202,7 @@ You can access a containerized Consul datacenter in several different ways.
 
 You can execute Consul commands directly inside of your Consul containers using `docker exec`.
 
-```shell
+```shell-session
 $ docker exec <container_id> consul members
 Node      Address          Status  Type    Build  Protocol  DC   Segment
 server-1  172.17.0.2:8301  alive   server  1.5.2  2         dc1  <all>
@@ -213,7 +213,7 @@ client-1  172.17.0.3:8301  alive   client  1.5.2  2         dc1  <default>
 
 You can also issue commands inside of your container by opening an interactive shell and using the Consul binary included in the container.
 
-```shell
+```shell-session
 $ docker exec -it <container_id> /bin/sh
 / # consul members
 Node      Address          Status  Type    Build  Protocol  DC   Segment
@@ -225,7 +225,7 @@ client-1  172.17.0.3:8301  alive   client  1.5.2  2         dc1  <default>
 
 If you have a local Consul binary in your PATH you can also export the `CONSUL_HTTP_ADDR` environment variable to point to the HTTP address of a remote Consul server. This will allow you to bypass `docker exec <container_id> consul <command>` and use `consul <command>` directly.
 
-```shell
+```shell-session
 $ export CONSUL_HTTP_ADDR=<consul_server_ip>:8500
 $ consul members
 Node      Address          Status  Type    Build  Protocol  DC   Segment
@@ -235,7 +235,7 @@ client-1  172.17.0.3:8301  alive   client  1.5.2  2         dc1  <default>
 
 In this guide, you are binding your containerized Consul server's client address to 0.0.0.0 which allows us to communicate with our Consul datacenter with a local Consul install. By default, the client address is bound to localhost.
 
-```shell
+```shell-session
 $ which consul
 /usr/local/bin/consul
 $ consul members
@@ -248,19 +248,19 @@ client-1  172.17.0.3:8301  alive   client  1.5.2  2         dc1  <default>
 
 The official Consul container supports stopping, starting, and restarting. To stop a container, run `docker stop`.
 
-```shell
+```shell-session
 $ docker stop <container_id>
 ```
 
 To start a container, run `docker start`.
 
-```shell
+```shell-session
 $ docker start <container_id>
 ```
 
 To do an in-memory reload, send a SIGHUP to the container.
 
-```shell
+```shell-session
 $ docker kill --signal=HUP <container_id>
 ```
 
@@ -280,13 +280,13 @@ When a previously stopped server container is restarted using `docker start <con
 
 You can back-up your Consul datacenter using the [consul snapshot](/docs/commands/snapshot) command.
 
-```shell
+```shell-session
 $ docker exec <container_id> consul snapshot save backup.snap
 ```
 
 This will leave the `backup.snap` snapshot file inside of your container. If you are not saving your snapshot to a [persistent volume](https://docs.docker.com/storage/volumes/) then you will need to use `docker cp` to move your snapshot to a location outside of your container.
 
-```shell
+```shell-session
 $ docker cp <container_id>:backup.snap ./
 ```
 
@@ -296,7 +296,7 @@ Users running the Consul Enterprise Docker containers can run the [consul snapsh
 
 You can add configuration by passing the configuration JSON via the environment variable `CONSUL_LOCAL_CONFIG`.
 
-```shell
+```shell-session
 $ docker run \
 	-d \
 	-e CONSUL_LOCAL_CONFIG='{
@@ -311,7 +311,7 @@ Setting `CONSUL_CLIENT_INTERFACE` or `CONSUL_BIND_INTERFACE` on `docker run` is 
 
 Setting the `CONSUL_ALLOW_PRIVILEGED_PORTS` runs setcap on the Consul binary, allowing it to bind to privileged ports. Note that not all Docker storage backends support this feature (notably AUFS).
 
-```shell
+```shell-session
 $ docker run -d --net=host -e 'CONSUL_ALLOW_PRIVILEGED_PORTS=' consul -dns-port=53 -recursor=8.8.8.8
 ```
 

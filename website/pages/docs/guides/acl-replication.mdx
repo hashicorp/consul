@@ -73,7 +73,7 @@ requests to the servers.
 
 Finally, start the agent.
 
-```shell
+```shell-session
 $ consul agent -config-file=server.json
 ```
 
@@ -103,7 +103,7 @@ service_prefix "" {
 
 Now that you have the ACL rules defined, create a policy with those rules.
 
-```shell
+```shell-session
 $ consul acl policy create -name replication -rules @replication-policy.hcl
 ID:           240f1d01-6517-78d3-ec32-1d237f92ab58
 Name:         replication
@@ -117,7 +117,7 @@ service_prefix "" { policy = "read" intentions = "read" }
 
 Finally, use your newly created policy to create the replication token.
 
-```shell
+```shell-session
 $ consul acl token create description "replication token" -policy-name replication
 AccessorID:   67d55dc1-b667-1835-42ab-64658d64a2ff
 SecretID:     fc48e84d-3f4d-3646-4b6a-2bff7c4aaffb
@@ -157,7 +157,7 @@ primary datacenter and `enable_token_replication` to true on all the servers.
 
 Now you can start the agent.
 
-```shell
+```shell-session
 $ consul agent -config-file=server.json
 ```
 
@@ -167,7 +167,7 @@ Repeat this process on all the servers.
 
 Finally, apply the replication token to all the servers using the CLI.
 
-```shell
+```shell-session
 $ consul acl set-agent-token replication <token>
 ACL token "replication" set successfully
 ```
@@ -201,7 +201,7 @@ name of your primary datacenter and `enable_token_replication` to true.
 
 Now you can start the agent.
 
-```shell
+```shell-session
 $ consul agent -config-file=server.json
 ```
 
@@ -213,7 +213,7 @@ first time, you will also need to [set the agent token](/consul/security-network
 Now that you have set up ACL replication, you can use the [HTTP API](/api/acl#check-acl-replication) to check
 the configuration.
 
-```shell
+```shell-session
 $ curl http://localhost:8500/v1/acl/replication?pretty
 {
   "Enabled":true,

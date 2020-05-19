@@ -83,53 +83,53 @@ Usage: `consul snapshot agent [options]`
   format (shown populated with default values):
 
 ```json
-  {
-    "snapshot_agent": {
-      "http_addr": "127.0.0.1:8500",
-      "token": "",
-      "datacenter": "",
-      "ca_file": "",
-      "ca_path": "",
-      "cert_file": "",
-      "key_file": "",
-      "tls_server_name": "",
-      "log": {
-        "level": "INFO",
-        "enable_syslog": false,
-        "syslog_facility": "LOCAL0"
-      },
-      "snapshot": {
-        "interval": "1h",
-        "retain": 30,
-        "stale": false,
-        "service": "consul-snapshot",
-        "deregister_after": "72h",
-        "lock_key": "consul-snapshot/lock",
-        "max_failures": 3,
-        "local_scratch_path": ""
-      },
-      "local_storage": {
-        "path": "."
-      },
-      "aws_storage": {
-        "access_key_id": "",
-        "secret_access_key": "",
-        "s3_region": "",
-        "s3_bucket": "",
-        "s3_key_prefix": "consul-snapshot",
-        "s3_server_side_encryption": false,
-        "s3_static_snapshot_name": ""
-      },
-      "azure_blob_storage": {
-        "account_name": "",
-        "account_key": "",
-        "container_name": ""
-      },
-      "google_storage": {
-        "bucket": ""
-      }
+{
+  "snapshot_agent": {
+    "http_addr": "127.0.0.1:8500",
+    "token": "",
+    "datacenter": "",
+    "ca_file": "",
+    "ca_path": "",
+    "cert_file": "",
+    "key_file": "",
+    "tls_server_name": "",
+    "log": {
+      "level": "INFO",
+      "enable_syslog": false,
+      "syslog_facility": "LOCAL0"
+    },
+    "snapshot": {
+      "interval": "1h",
+      "retain": 30,
+      "stale": false,
+      "service": "consul-snapshot",
+      "deregister_after": "72h",
+      "lock_key": "consul-snapshot/lock",
+      "max_failures": 3,
+      "local_scratch_path": ""
+    },
+    "local_storage": {
+      "path": "."
+    },
+    "aws_storage": {
+      "access_key_id": "",
+      "secret_access_key": "",
+      "s3_region": "",
+      "s3_bucket": "",
+      "s3_key_prefix": "consul-snapshot",
+      "s3_server_side_encryption": false,
+      "s3_static_snapshot_name": ""
+    },
+    "azure_blob_storage": {
+      "account_name": "",
+      "account_key": "",
+      "container_name": ""
+    },
+    "google_storage": {
+      "bucket": ""
     }
   }
+}
 ```
 
 All fields are optional, and config files without a `snapshot_agent` object will
@@ -303,7 +303,7 @@ perform leader election for highly available operation, register itself with Con
 service discovery with health checks, take snapshots every hour, retain the last 30
 snapshots, and save snapshots into the current working directory:
 
-```shell
+```shell-session
 $ consul snapshot agent
 ```
 
@@ -311,7 +311,7 @@ To run a one-shot backup, set the backup interval to 0. This will run a single s
 and delete any old snapshots based on the retain settings, but it will not perform any
 leader election or service registration:
 
-```shell
+```shell-session
 $ consul snapshot agent -interval=0
 ```
 

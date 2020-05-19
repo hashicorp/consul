@@ -42,7 +42,7 @@ server:
 
 Now run `helm install`:
 
-```bash
+```shell-session
 $ helm install --wait hashicorp hashicorp/consul -f config.yaml
 ```
 
@@ -52,13 +52,13 @@ using the `consul license get` command.
 First, forward your local port 8500 to the Consul servers so you can run `consul`
 commands locally against the Consul servers in Kubernetes:
 
-```bash
+```shell-session
 $ kubectl port-forward service/hashicorp-consul-server 8500:8500
 ```
 
 In a separate tab, run the `consul license get` command (if using ACLs see below):
 
-```bash
+```shell-session
 $ consul license get
 License is valid
 License ID: 1931d1f4-bdfd-6881-f3f5-19349374841f
@@ -89,13 +89,13 @@ Error getting license: invalid character 'r' looking for beginning of value
 Then you have likely enabled ACLs. You need to specify your ACL token when
 running the `license get` command. First, assign the ACL token to the `CONSUL_HTTP_TOKEN` environment variable:
 
-```bash
+```shell-session
 $ export CONSUL_HTTP_TOKEN=$(kubectl get secrets/hashicorp-consul-bootstrap-acl-token --template={{.data.token}} | base64 -D)
 ```
 
 Now the token will be used when running Consul commands:
 
-```bash
+```shell-session
 $ consul license get
 License is valid
 License ID: 1931d1f4-bdfd-6881-f3f5-19349374841f

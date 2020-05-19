@@ -156,7 +156,7 @@ and vice versa. A catalog entry can have either, neither, or both.
 
 ### Sample Request
 
-```text
+```shell-session
 $ curl \
     --request PUT \
     --data @payload.json \
@@ -236,7 +236,7 @@ The behavior of the endpoint depends on what keys are provided.
 
 ### Sample Request
 
-```text
+```shell-session
 $ curl \
     --request PUT \
     --data @payload.json \
@@ -269,7 +269,7 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
+```shell-session
 $ curl \
     http://127.0.0.1:8500/v1/catalog/datacenters
 ```
@@ -319,7 +319,7 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
+```shell-session
 $ curl \
     http://127.0.0.1:8500/v1/catalog/nodes
 ```
@@ -409,7 +409,7 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
+```shell-session
 $ curl \
     http://127.0.0.1:8500/v1/catalog/services?ns=foo
 ```
@@ -478,7 +478,7 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
+```shell-session
 $ curl \
     http://127.0.0.1:8500/v1/catalog/service/my-service?ns=default
 ```
@@ -682,7 +682,7 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
+```shell-session
 $ curl \
     http://127.0.0.1:8500/v1/catalog/node/my-node
 ```
@@ -810,7 +810,7 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
+```shell-session
 $ curl \
     http://127.0.0.1:8500/v1/catalog/node-services/my-node
 ```

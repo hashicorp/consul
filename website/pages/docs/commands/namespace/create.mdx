@@ -56,14 +56,14 @@ from the CLI arguments.
 
 Create a new Namespace:
 
-```shell
+```shell-session
 $ consul namespace create -name "team-1"
 Name: team-1
 ```
 
 Showing Raft Metadata:
 
-```shell
+```shell-session
 $ consul namespace create -name team-1 -show-meta
 Name: team-1
 Create Index: 339
@@ -72,7 +72,7 @@ Modify Index: 344
 
 JSON Format:
 
-```shell
+```shell-session
 $ consul namespace create -name team2 -description "Example Namespace" -meta "team-id=574407f3-8b26-4c84-8e51-028bb8cbdd37" -format=json
 {
    "Name": "team2",

@@ -61,7 +61,7 @@ Builtin Tokens:
 
 Create a new ACL token:
 
-```shell
+```shell-session
 $ consul acl token create \
              -description "This is an example token" \
              -policy-id 06acc965
@@ -69,24 +69,24 @@ $ consul acl token create \
 
 List all tokens:
 
-```shell
+```shell-session
 $ consul acl token list
 ```
 
 Update a token:
 
-```shell
+```shell-session
 $ consul acl token update -id 986193 -description "WonderToken"
 ```
 
 Read a token with an accessor ID:
 
-```shell
+```shell-session
 $ consul acl token read -id 986193
 ```
 
 Delete a token
 
-```shell
+```shell-session
 $ consul acl token delete -id 986193
 ```

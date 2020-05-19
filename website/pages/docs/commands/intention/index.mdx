@@ -42,25 +42,25 @@ of the subcommand in the sidebar.
 
 Create an intention to allow "web" to talk to "db":
 
-```shell
+```shell-session
 $ consul intention create web db
 ```
 
 Create an intention to deny "db" from initiating connections to _any_ service:
 
-```shell
+```shell-session
 $ consul intention create -deny db '*'
 Created: db => * (deny)
 ```
 
 Test whether a "web" is allowed to connect to "db":
 
-```shell
+```shell-session
 $ consul intention check web db
 ```
 
 Find all intentions for communicating to the "db" service:
 
-```shell
+```shell-session
 $ consul intention match db
 ```

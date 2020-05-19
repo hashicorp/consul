@@ -294,7 +294,7 @@ In Consul 0.9.1 and later, you can use the [/v1/acl/bootstrap API](/api/acl/acl#
 to make the initial master token, so a token never needs to be placed into a configuration
 file. To use this approach, omit `acl_master_token` from the above config and then call the API:
 
-```text
+```shell-session
 $ curl \
     --request PUT \
     http://127.0.0.1:8500/v1/acl/bootstrap
@@ -325,7 +325,7 @@ own internal operations like updating its node information in the catalog and pe
 [anti-entropy](/docs/internals/anti-entropy) syncing. We can create a token using the
 ACL API, and the ACL master token we set in the previous step:
 
-```text
+```shell-session
 $ curl \
     --request PUT \
     --header "X-Consul-Token: b1gs33cr3t" \
@@ -355,7 +355,7 @@ configuration and restart the servers once more to apply it:
 In Consul 0.9.1 and later you can also introduce the agent token using an API,
 so it doesn't need to be set in the configuration file:
 
-```text
+```shell-session
 $ curl \
     --request PUT \
     --header "X-Consul-Token: b1gs33cr3t" \
@@ -390,7 +390,7 @@ with a configuration file that enables ACLs:
 Similar to the previous example, in Consul 0.9.1 and later you can also introduce the
 agent token using an API, so it doesn't need to be set in the configuration file:
 
-```text
+```shell-session
 $ curl \
     --request PUT \
     --header "X-Consul-Token: b1gs33cr3t" \
@@ -419,7 +419,7 @@ At this point ACLs are bootstrapped with ACL agent tokens configured, but there 
 other policies set up. Even basic operations like `consul members` will be restricted
 by the ACL default policy of "deny":
 
-```
+```shell-session
 $ consul members
 ```
 
@@ -429,7 +429,7 @@ see any nodes by default.
 If we supply the token we created above we will be able to see a listing of nodes because
 it has write privileges to an empty `node` prefix, meaning it has access to all nodes:
 
-```
+```shell-session
 $ CONSUL_HTTP_TOKEN=fe3b8d40-0ee0-8783-6cc2-ab1aa9bb16c1 consul members
 Node    Address         Status  Type    Build     Protocol  DC
 node-1  127.0.0.1:8301  alive   server  0.9.0dev  2         dc1
@@ -442,7 +442,7 @@ configure Consul's behavior when no token is supplied. The anonymous token is ma
 like any other ACL token, except that `anonymous` is used for the ID. In this example
 we will give the anonymous token read privileges for all nodes:
 
-```text
+```shell-session
 $ curl \
     --request PUT \
     --header "X-Consul-Token: b1gs33cr3t" \
@@ -459,7 +459,7 @@ $ curl \
 The anonymous token is implicitly used if no token is supplied, so now we can run
 `consul members` without supplying a token and we will be able to see the nodes:
 
-```
+```shell-session
 $ consul members
 Node    Address         Status  Type    Build     Protocol  DC
 node-1  127.0.0.1:8301  alive   server  0.9.0dev  2         dc1
@@ -469,7 +469,7 @@ node-2  127.0.0.2:8301  alive   client  0.9.0dev  2         dc1
 The anonymous token is also used for DNS lookups since there's no way to pass a
 token as part of a DNS request. Here's an example lookup for the "consul" service:
 
-```
+```shell-session
 $ dig @127.0.0.1 -p 8600 consul.service.consul
 
 ; <<>> DiG 9.8.3-P1 <<>> @127.0.0.1 -p 8600 consul.service.consul
@@ -495,7 +495,7 @@ consul.                 0       IN      SOA     ns.consul. postmaster.consul. 14
 Now we get an `NXDOMAIN` error because the anonymous token doesn't have access to the
 "consul" service. Let's add that to the anonymous token's policy:
 
-```text
+```shell-session
 $ curl \
     --request PUT \
     --header "X-Consul-Token: b1gs33cr3t" \
@@ -511,7 +511,7 @@ $ curl \
 
 With that new policy in place, the DNS lookup will succeed:
 
-```
+```shell-session
 $ dig @127.0.0.1 -p 8600 consul.service.consul
 
 ; <<>> DiG 9.8.3-P1 <<>> @127.0.0.1 -p 8600 consul.service.consul
@@ -561,7 +561,7 @@ not function fully using the anonymous ACL token. It is recommended
 that a UI-specific ACL token is used, which can be set in the UI during the
 web browser session to authenticate the interface.
 
-```text
+```shell-session
 $ curl \
     --request PUT \
     --header "X-Consul-Token: b1gs33cr3t" \
@@ -651,7 +651,7 @@ of the rules section.
 
 Here's a sample request using the HCL form:
 
-```text
+```shell-session
 $ curl \
     --request PUT \
     --data \
@@ -664,7 +664,7 @@ $ curl \
 
 Here's an equivalent request using the JSON form:
 
-```text
+```shell-session
 $ curl \
     --request PUT \
     --data \

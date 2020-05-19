@@ -54,7 +54,7 @@ On the API pages, each endpoint will have a table that includes required ACLs. T
 
 Finally, before using a token in production, you should test that it has the correct privileges. If the token being used is missing a privilege, then Consul will issue a 403 permission denied error.
 
-```shell
+```shell-session
 $ consul operator raft list-peers
 Error getting peers: Failed to retrieve raft configuration: Unexpected response code: 403 (rpc error making call: Permission denied)
 ```
@@ -140,7 +140,7 @@ node_prefix "" {
 
 With the token the Developer can then register the service with Consul using the `register` command.
 
-```shell
+```shell-session
 $ consul services register mysql
 ```
 

@@ -55,7 +55,7 @@ full UUID and used.
 
 Create a new ACL role:
 
-```shell
+```shell-session
 $ consul acl role create -name "new-role" \
                        -description "This is an example role" \
                        -policy-id 06acc965
@@ -63,24 +63,24 @@ $ consul acl role create -name "new-role" \
 
 List all roles:
 
-```shell
+```shell-session
 $ consul acl role list
 ```
 
 Update a role:
 
-```shell
+```shell-session
 $ consul acl role update -name "other-role" -datacenter "dc1"
 ```
 
 Read a role:
 
-```shell
+```shell-session
 $ consul acl role read -id 0479e93e-091c-4475-9b06-79a004765c24
 ```
 
 Delete a role
 
-```shell
+```shell-session
 $ consul acl role delete -name "my-role"
 ```

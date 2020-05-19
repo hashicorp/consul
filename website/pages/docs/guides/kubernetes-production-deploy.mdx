@@ -40,7 +40,7 @@ the cloud or on premises.
 Once you have a service account, you will also need to add a permission to
 deploy the helm chart. This is done with the `clusterrolebinding` method.
 
-```shell
+```shell-session
 $ kubectl create clusterrolebinding kubernetes-dashboard -n kube-system --clusterrole=cluster-admin --serviceaccount=kube-system:kubernetes-dashboard
 ```
 
@@ -61,7 +61,7 @@ necessary.
 Now that you have prepared your Kubernetes cluster, you can customize the Helm
 chart. First, you will need to download the latest official Helm chart.
 
-```shell
+```shell-session
 $ git clone https://github.com/hashicorp/consul-helm.git
 ```
 
@@ -241,13 +241,13 @@ Helm. This should only take a few minutes. The Consul pods should appear in the
 Kubernetes dashboard immediately and you can monitor the deployment process
 there.
 
-```shell
+```shell-session
 $ helm install ./consul-helm -f values.yaml
 ```
 
 To check the deployment process on the command line you can use `kubectl`.
 
-```shell
+```shell-session
 $ kubectl get pods
 ```
 
@@ -266,13 +266,13 @@ If you exposed the UI using a load balancer it will be available at the
 command. Note, you will need to replace _consul server_ with the server name
 from your cluster.
 
-```shell
+```shell-session
 $ kubectl describe services consul-server
 ```
 
 To access the Consul CLI, open a terminal session using the Kubernetes CLI.
 
-```shell
+```shell-session
 $ kubectl exec <pod name> -it /bin/ash
 ```
 

@@ -49,7 +49,7 @@ the executables to follow along.
 To ensure that Consul is running and accessible from the command line, use the
 `consul members` command to verify your agent status.
 
-```shell
+```shell-session
 $ consul members
 Node            Address         Status  Type    Build  Protocol  DC   Segment
 hostname.local  127.0.0.1:8301  alive   server  1.6.1  2         dc1  <all>
@@ -165,12 +165,12 @@ Finally, you can submit the service definitions to your Consul agent. If you
 are using the JSON definitions, ensure that the filenames end in ".json"
 instead of ".hcl".
 
-```shell
+```shell-session
 $ consul services register counting.hcl
 Registered service: counting
 ```
 
-```shell
+```shell-session
 $ consul services register dashboard.hcl
 Registered service: dashboard
 ```
@@ -183,7 +183,7 @@ register the services.
 
 Now that you have registered your services and sidecar proxies, run `consul catalog services` to verify that they are present.
 
-```shell
+```shell-session
 $ consul catalog services
 consul
 counting
@@ -208,7 +208,7 @@ service against changes to the implied permissions. For example, a change in
 `default_policy` or the introduction of a global deny-all intention would
 impact services without explicit intentions defined.
 
-```shell
+```shell-session
 $ consul intention create dashboard counting
 Created: dashboard => counting (allow)
 ```
@@ -223,7 +223,7 @@ shell session.
 
 Run these commands to start the applications:
 
-```shell
+```shell-session
 $ PORT=9002 COUNTING_SERVICE_URL="http://localhost:5000" ./dashboard-service &
 $ PORT=9003 ./counting-service &
 ```
@@ -234,7 +234,7 @@ the service applications.
 We are using the Consul Connect's built-in proxy for this guide. In a
 production deployment, we recommend using Envoy instead.
 
-```shell
+```shell-session
 $ consul connect proxy -sidecar-for counting > counting-proxy.log &
 $ consul connect proxy -sidecar-for dashboard > dashboard-proxy.log &
 ```
@@ -264,7 +264,7 @@ traffic with an intention.
 
 First, deny the Dashboard service access to the Counting service.
 
-```shell
+```shell-session
 $ consul intention create -deny -replace dashboard counting
 Created: dashboard => counting (deny)
 ```
@@ -282,7 +282,7 @@ numbers.][img-screenshot2]][img-screenshot2]
 You can restore communication between the services by replacing the `deny`
 intention with an `allow`.
 
-```shell
+```shell-session
 $ consul intention create -allow -replace dashboard counting
 ```
 
@@ -297,14 +297,14 @@ running. This should automatically stop these processes.
 
 Delete the intention from Consul.
 
-```shell
+```shell-session
 $ consul intention delete dashboard counting
 Intention deleted.
 ```
 
 Deregister the services.
 
-```shell
+```shell-session
 $ consul services deregister counting.hcl
 Deregistered service: counting
 
@@ -365,7 +365,7 @@ extract the binary from the official Envoy Docker containers.
 To do this, create a container named "envoy-extract" based on the
 "envoyproxy/envoy" container.
 
-```shell
+```shell-session
 $ docker create --name "envoy-extract" "envoyproxy/envoy"
 docker create --name "envoy-extract" "envoyproxy/envoy"
 Unable to find image 'envoyproxy/envoy:latest' locally
@@ -387,13 +387,13 @@ Status: Downloaded newer image for envoyproxy/envoy:latest
 Use the `docker cp` command to copy the envoy file out of the container into
 the current directory.
 
-```shell
+```shell-session
 $ docker cp "envoy-extract:/usr/local/bin/envoy" "envoy"
 ```
 
 Now that you have the binary, you can remove the "envoy-extract" container.
 
-```shell
+```shell-session
 $ docker rm "envoy-extract"
 envoy-extract
 ```
@@ -402,7 +402,7 @@ Once you have the binary extracted and in your path, Consul will automatically
 use it when you run the `consul connect envoy` command. The following examples
 demonstrate how to start the service sidecar proxies with Envoy.
 
-```shell
+```shell-session
 $ consul connect envoy -sidecar-for counting > counting-proxy.log &
 $ consul connect envoy -sidecar-for dashboard > dashboard-proxy.log &
 ```

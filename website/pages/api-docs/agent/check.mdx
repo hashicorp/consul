@@ -43,7 +43,7 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
+```shell-session
 $ curl \
     http://127.0.0.1:8500/v1/agent/checks
 ```
@@ -220,7 +220,7 @@ The table below shows this endpoint's support for
   "Shell": "/bin/bash",
   "HTTP": "https://example.com",
   "Method": "POST",
-  "Header": { "Content-Type": ["application/json"]},
+  "Header": { "Content-Type": ["application/json"] },
   "Body": "{\"check\":\"mem\"}",
   "TCP": "example.com:22",
   "Interval": "10s",
@@ -231,7 +231,7 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
+```shell-session
 $ curl \
    --request PUT \
    --data @payload.json \
@@ -265,7 +265,7 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
+```shell-session
 $ curl \
     --request PUT \
     http://127.0.0.1:8500/v1/agent/check/deregister/my-check-id
@@ -300,7 +300,7 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
+```shell-session
 $ curl \
     http://127.0.0.1:8500/v1/agent/check/pass/my-check-id
 ```
@@ -334,7 +334,7 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
+```shell-session
 $ curl \
     http://127.0.0.1:8500/v1/agent/check/warn/my-check-id
 ```
@@ -368,7 +368,7 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
+```shell-session
 $ curl \
     http://127.0.0.1:8500/v1/agent/check/fail/my-check-id
 ```
@@ -414,7 +414,7 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
+```shell-session
 $ curl \
     --request PUT \
     --data @payload.json \
