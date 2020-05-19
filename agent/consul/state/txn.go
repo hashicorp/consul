@@ -210,61 +210,62 @@ func (s *Store) txnNode(tx *memdb.Txn, idx uint64, op *structs.TxnNodeOp) (struc
 
 // txnService handles all Service-related operations.
 func (s *Store) txnService(tx *memdb.Txn, idx uint64, op *structs.TxnServiceOp) (structs.TxnResults, error) {
-	var entry *structs.NodeService
-	var err error
-
 	switch op.Verb {
 	case api.ServiceGet:
-		entry, err = s.getNodeServiceTxn(tx, op.Node, op.Service.ID, &op.Service.EnterpriseMeta)
-		if entry == nil && err == nil {
-			err = fmt.Errorf("service %q on node %q doesn't exist", op.Service.ID, op.Node)
+		entry, err := s.getNodeServiceTxn(tx, op.Node, op.Service.ID, &op.Service.EnterpriseMeta)
+		switch {
+		case err != nil:
+			return nil, err
+		case entry == nil:
+			return nil, fmt.Errorf("service %q on node %q doesn't exist", op.Service.ID, op.Node)
+		default:
+			return structs.TxnResults{&structs.TxnResult{Service: entry}}, nil
 		}
 
 	case api.ServiceSet:
-		err = s.ensureServiceTxn(tx, idx, op.Node, &op.Service)
-		entry, err = s.getNodeServiceTxn(tx, op.Node, op.Service.ID, &op.Service.EnterpriseMeta)
+		if err := s.ensureServiceTxn(tx, idx, op.Node, &op.Service); err != nil {
+			return nil, err
+		}
+		entry, err := s.getNodeServiceTxn(tx, op.Node, op.Service.ID, &op.Service.EnterpriseMeta)
+		return newTxnResultFromNodeServiceEntry(entry), err
 
 	case api.ServiceCAS:
-		var ok bool
-		ok, err = s.ensureServiceCASTxn(tx, idx, op.Node, &op.Service)
+		ok, err := s.ensureServiceCASTxn(tx, idx, op.Node, &op.Service)
+		// TODO: err != nil case is ignored
 		if !ok && err == nil {
-			err = fmt.Errorf("failed to set service %q on node %q, index is stale", op.Service.ID, op.Node)
-			break
+			err := fmt.Errorf("failed to set service %q on node %q, index is stale", op.Service.ID, op.Node)
+			return nil, err
 		}
-		entry, err = s.getNodeServiceTxn(tx, op.Node, op.Service.ID, &op.Service.EnterpriseMeta)
+
+		entry, err := s.getNodeServiceTxn(tx, op.Node, op.Service.ID, &op.Service.EnterpriseMeta)
+		return newTxnResultFromNodeServiceEntry(entry), err
 
 	case api.ServiceDelete:
-		err = s.deleteServiceTxn(tx, idx, op.Node, op.Service.ID, &op.Service.EnterpriseMeta)
+		err := s.deleteServiceTxn(tx, idx, op.Node, op.Service.ID, &op.Service.EnterpriseMeta)
+		return nil, err
 
 	case api.ServiceDeleteCAS:
-		var ok bool
-		ok, err = s.deleteServiceCASTxn(tx, idx, op.Service.ModifyIndex, op.Node, op.Service.ID, &op.Service.EnterpriseMeta)
+		ok, err := s.deleteServiceCASTxn(tx, idx, op.Service.ModifyIndex, op.Node, op.Service.ID, &op.Service.EnterpriseMeta)
 		if !ok && err == nil {
-			err = fmt.Errorf("failed to delete service %q on node %q, index is stale", op.Service.ID, op.Node)
+			return nil, fmt.Errorf("failed to delete service %q on node %q, index is stale", op.Service.ID, op.Node)
 		}
+		return nil, err
 
 	default:
-		err = fmt.Errorf("unknown Service verb %q", op.Verb)
+		return nil, fmt.Errorf("unknown Service verb %q", op.Verb)
 	}
-	if err != nil {
-		return nil, err
+}
+
+// newTxnResultFromNodeServiceEntry returns a TxnResults with a single result,
+// a copy of entry. The entry is copied to prevent modification of the state
+// store.
+func newTxnResultFromNodeServiceEntry(entry *structs.NodeService) structs.TxnResults {
+	if entry == nil {
+		return nil
 	}
-
-	// For a GET we keep the value, otherwise we clone and blank out the
-	// value (we have to clone so we don't modify the entry being used by
-	// the state store).
-	if entry != nil {
-		if op.Verb == api.ServiceGet {
-			result := structs.TxnResult{Service: entry}
-			return structs.TxnResults{&result}, nil
-		}
-
-		clone := *entry
-		result := structs.TxnResult{Service: &clone}
-		return structs.TxnResults{&result}, nil
-	}
-
-	return nil, nil
+	clone := *entry
+	result := structs.TxnResult{Service: &clone}
+	return structs.TxnResults{&result}
 }
 
 // txnCheck handles all Check-related operations.

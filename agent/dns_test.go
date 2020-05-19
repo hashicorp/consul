@@ -116,11 +116,11 @@ func TestRecursorAddr(t *testing.T) {
 	if addr != "[2001:4860:4860::8888]:53" {
 		t.Fatalf("bad: %v", addr)
 	}
-	addr, err = recursorAddr("1.2.3.4::53")
+	_, err = recursorAddr("1.2.3.4::53")
 	if err == nil || !strings.Contains(err.Error(), "too many colons in address") {
 		t.Fatalf("err: %v", err)
 	}
-	addr, err = recursorAddr("2001:4860:4860::8888:::53")
+	_, err = recursorAddr("2001:4860:4860::8888:::53")
 	if err == nil || !strings.Contains(err.Error(), "too many colons in address") {
 		t.Fatalf("err: %v", err)
 	}
@@ -282,7 +282,7 @@ func TestDNS_NodeLookup(t *testing.T) {
 	require.Equal(t, "127.0.0.1", aRec.A.String())
 	require.Equal(t, uint32(0), aRec.Hdr.Ttl)
 
-	txt, ok = in.Answer[1].(*dns.TXT)
+	_, ok = in.Answer[1].(*dns.TXT)
 	require.True(t, ok, "Second answer is not a TXT record")
 
 	// lookup a non-existing node, we should receive a SOA

@@ -378,16 +378,17 @@ func (m *Manager) RebalanceServers() {
 			"number_of_servers", len(l.servers),
 			"active_server", l.servers[0].String(),
 		)
-	} else {
-		// reconcileServerList failed because Serf removed the server
-		// that was at the front of the list that had successfully
-		// been Ping'ed.  Between the Ping and reconcile, a Serf
-		// event had shown up removing the node.
-		//
-		// Instead of doing any heroics, "freeze in place" and
-		// continue to use the existing connection until the next
-		// rebalance occurs.
 	}
+	// else {
+	// reconcileServerList failed because Serf removed the server
+	// that was at the front of the list that had successfully
+	// been Ping'ed.  Between the Ping and reconcile, a Serf
+	// event had shown up removing the node.
+	//
+	// Instead of doing any heroics, "freeze in place" and
+	// continue to use the existing connection until the next
+	// rebalance occurs.
+	// }
 }
 
 // reconcileServerList returns true when the first server in serverList

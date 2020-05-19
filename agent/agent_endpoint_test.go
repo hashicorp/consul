@@ -3683,7 +3683,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 				require.Nil(obj)
 
 				svcs := a.State.Services(nil)
-				svc, ok = svcs[structs.NewServiceID(tt.wantNS.ID, nil)]
+				_, ok = svcs[structs.NewServiceID(tt.wantNS.ID, nil)]
 				if tt.wantSidecarIDLeftAfterDereg {
 					require.True(ok, "removed non-sidecar service at "+tt.wantNS.ID)
 				} else {
