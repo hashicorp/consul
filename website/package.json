@@ -4,6 +4,9 @@
   "version": "0.0.1",
   "author": "HashiCorp",
   "dependencies": {
+    "@bugsnag/js": "^7.0.1",
+    "@bugsnag/plugin-react": "^7.0.1",
+    "@hashicorp/mktg-assets": "^1.0.0-alpha.7",
     "@hashicorp/nextjs-scripts": "^8.0.0",
     "@hashicorp/react-alert": "^2.0.0",
     "@hashicorp/react-alert-banner": "^3.1.0",
