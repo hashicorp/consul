@@ -24,7 +24,7 @@
     width: 100%;
     height: var(--background-height);
     position: absolute;
-    bottom: 0px;
+    bottom: 0;
     z-index: -1;
   }
 
@@ -56,7 +56,7 @@
         max-height: 40px;
         width: 33.33%;
         padding: 0 30px;
-        margin: 24px 0px;
+        margin: 24px 0;
 
         @media (max-width: 800px) {
           padding: 0 20px;
@@ -68,7 +68,7 @@
         max-height: 40px;
         width: 33.33%;
         padding: 0 30px;
-        margin: 24px 0px;
+        margin: 24px 0;
 
         @media (max-width: 800px) {
           padding: 0 20px;
@@ -116,6 +116,7 @@
       outline: none !important;
     }
   }
+
   /* End `nuka-carousel` styles  */
 
   & .side-control {
@@ -150,7 +151,7 @@
     width: 100%;
     background: var(--white);
     padding: 64px;
-    box-shadow: 0px 8px 22px #dedede;
+    box-shadow: 0 8px 22px #dedede;
 
     @media (max-width: 800px) {
       box-shadow: none;
@@ -231,12 +232,13 @@
       & .person-name {
         & h5 {
           margin: 0;
+
+          @media (max-width: 400px) {
+            font-size: 16px;
+          }
         }
 
         @media (max-width: 400px) {
-          & h5 {
-            font-size: 16px;
-          }
           & p {
             font-size: 15px;
           }
@@ -256,7 +258,7 @@
     & .case {
       color: var(--gray-5);
       font-size: 24px;
-      line-height: 31px; /* Called for within the design, no custom property seemed appropriate*/
+      line-height: 31px; /* Called for within the design, no custom property seemed appropriate */
     }
   }
 

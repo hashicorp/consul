@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "author": "HashiCorp",
   "dependencies": {
-    "@hashicorp/nextjs-scripts": "^7.2.1",
+    "@hashicorp/nextjs-scripts": "^8.0.0",
     "@hashicorp/react-alert": "^2.0.0",
     "@hashicorp/react-alert-banner": "^3.1.0",
     "@hashicorp/react-button": "^2.2.0",

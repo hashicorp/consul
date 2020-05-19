@@ -69,9 +69,11 @@
       margin: 0 16px;
       width: 33.333%;
       transition: box-shadow 0.25s, transform 0.25s, -webkit-transform 0.25s;
+      display: flex;
+      cursor: pointer;
 
       &:hover {
-        box-shadow: 0px 16px 28px rgba(37, 38, 45, 0.12);
+        box-shadow: 0 16px 28px rgba(37, 38, 45, 0.12);
         transform: translateY(-4px);
       }
 
@@ -87,89 +89,84 @@
           margin-bottom: 48px;
         }
       }
-    }
 
-    & > a {
-      display: flex;
-      cursor: pointer;
-    }
-
-    & > a .course {
-      border: 1px solid var(--gray-6);
-      display: flex;
-      flex-direction: column;
-      width: 100%;
-
-      & > div {
-        min-height: 200px;
-        padding: 25px;
-      }
-
-      & .image {
-        background: var(--gray-7);
-        position: relative;
+      & .course {
+        border: 1px solid var(--gray-6);
         display: flex;
-        justify-content: center;
-        align-items: center;
+        flex-direction: column;
+        width: 100%;
 
-        & img {
-          max-width: 80px;
-          max-height: 80px;
-          width: 100%;
+        & > div {
+          min-height: 200px;
+          padding: 25px;
         }
-      }
 
-      & h4 {
-        color: var(--gray-2);
-      }
-
-      & .time {
-        color: var(--gray-4);
-        position: absolute;
-        top: 10px;
-        right: 10px;
-      }
-
-      & .content {
-        text-align: center;
-        background: #fff;
-        @media (max-width: 768px) {
+        & .image {
+          background: var(--gray-7);
+          position: relative;
           display: flex;
           justify-content: center;
           align-items: center;
+
+          & img {
+            max-width: 80px;
+            max-height: 80px;
+            width: 100%;
+          }
         }
 
         & h4 {
-          margin: 24px 0px;
+          color: var(--gray-2);
+        }
+
+        & .time {
+          color: var(--gray-4);
+          position: absolute;
+          top: 10px;
+          right: 10px;
+        }
+
+        & .content {
+          text-align: center;
+          background: #fff;
+          @media (max-width: 768px) {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+          }
+
+          & h4 {
+            margin: 24px 0;
+          }
         }
       }
     }
-  }
 
-  &.brand-consul {
-    & .content label {
-      color: var(--consul);
+    &.brand-consul {
+      & .content label {
+        color: var(--consul);
+      }
     }
-  }
 
-  /* Brand -- Nomad */
-  &.brand-nomad {
-    & .content label {
-      color: var(--nomad);
+    /* Brand -- Nomad */
+    &.brand-nomad {
+      & .content label {
+        color: var(--nomad);
+      }
     }
-  }
 
-  /* Brand -- Packer */
-  &.brand-packer {
-    & .content label {
-      color: var(--packer);
+    /* Brand -- Packer */
+    &.brand-packer {
+      & .content label {
+        color: var(--packer);
+      }
     }
-  }
 
-  /* Brand -- Terraform */
-  &.brand-terraform {
-    & .content label {
-      color: var(--terraform);
+    /* Brand -- Terraform */
+    &.brand-terraform {
+      & .content label {
+        color: var(--terraform);
+      }
     }
   }
 }

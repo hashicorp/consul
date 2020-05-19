@@ -21,6 +21,7 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
+
     /*
      * Margins here compensate for extra 8px margin on buttons
      * which are needed to center and space properly regardless of whether
