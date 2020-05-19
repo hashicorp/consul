@@ -1,4 +1,3 @@
-import fetch from 'isomorphic-unfetch'
 import VERSION from '../../data/version.js'
 import ProductDownloader from '@hashicorp/react-product-downloader'
 import Head from 'next/head'
@@ -18,7 +17,6 @@ export default function DownloadsPage({ downloadData }) {
           version: '1.8.0-beta1', // the actual version tag that was pushed to releases.hashicorp.com
         }}
       >
-
         <p>
           <a href="/downloads_tools">&raquo; Download Consul Tools</a>
         </p>

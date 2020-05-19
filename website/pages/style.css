@@ -10,12 +10,7 @@
   --highlight-color: var(--consul);
 }
 
-@import '~@hashicorp/react-newsletter-signup-form/dist/style.css';
-@import '~@hashicorp/react-text-input/dist/style.css';
 @import '~@hashicorp/react-button/dist/style.css';
-@import '~@hashicorp/react-consent-manager/dist/style.css';
-@import '~@hashicorp/react-checkbox-input/dist/style.css';
-@import '~@hashicorp/react-hero/dist/style.css';
 @import '~@hashicorp/react-section-header/dist/style.css';
 @import '~@hashicorp/react-logo-grid/dist/style.css';
 @import '~@hashicorp/react-product-features-list/dist/style.css';
@@ -26,13 +21,13 @@
 @import '~@hashicorp/react-subnav/dist/style.css';
 @import '~@hashicorp/react-text-and-content/dist/style.css';
 @import '~@hashicorp/react-consent-manager/dist/style.css';
+@import '~@hashicorp/react-toggle/dist/style.css';
 @import '~@hashicorp/react-alert/dist/style.css';
 @import '~@hashicorp/react-text-split/dist/style.css';
 @import '~@hashicorp/react-text-split-with-code/dist/style.css';
 @import '~@hashicorp/react-enterprise-alert/dist/style.css';
 @import '~@hashicorp/react-mega-nav/style.css';
 @import '~@hashicorp/react-docs-page/style.css';
-@import '~@hashicorp/react-section-header/dist/style.css';
 @import '~@hashicorp/react-call-to-action/dist/style.css';
 @import '~@hashicorp/react-case-study-slider/dist/style.css';
 @import '~@hashicorp/react-tabs/dist/style.css';
@@ -115,6 +110,10 @@ footer .content {
       letter-spacing: -0.006em;
       line-height: 1.313em;
     }
+  }
+
+  & a {
+    color: var(--highlight-color);
   }
 }
 
