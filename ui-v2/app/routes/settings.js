@@ -25,11 +25,17 @@ export default Route.extend({
     controller.setProperties(model);
   },
   actions: {
-    update: function(item) {
-      if (!get(item, 'client.blocking')) {
-        this.client.abort();
+    update: function(slug, item) {
+      switch (slug) {
+        case 'client':
+          if (!get(item, 'client.blocking')) {
+            this.client.abort();
+          }
+          break;
       }
-      this.repo.persist(item);
+      this.repo.persist({
+        [slug]: item,
+      });
     },
   },
 });
