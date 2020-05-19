@@ -32,11 +32,11 @@
             {{#if (gt item.LocalBindPort 0)}}
               {{#let (concat (or item.LocalBindAddress '127.0.0.1') ':' item.LocalBindPort) as |combinedAddress| }}
               <li class="port">
+                <span>{{combinedAddress}}</span>
                 <CopyButton
                   @value={{combinedAddress}}
                   @name="Address"
                 />
-                <span>{{combinedAddress}}</span>
               </li>
               {{/let}}
             {{/if}}
@@ -47,49 +47,51 @@
       </ul>
     </section>
   {{/if}}
-  {{#if (gt proxy.Proxy.Upstreams.length 0)}}
+  {{#if (gt proxy.Proxy.Expose.Paths.length 0)}}
     <section class="proxy-exposed-paths">
       <h3>Exposed paths</h3>
       <p>
         The following list shows individual HTTP paths exposed through Envoy for external services like Prometheus. Read more about this in our documentation.
       </p>
-      <table data-test-proxy-exposed-paths>
-        <thead>
-          <th>Path</th>
-          <th>Protocol</th>
-          <th>Listener port</th>
-          <th>Local path port</th>
-          <th>Combined address<span><em role="tooltip">Service address, listener port, and path all combined into one URL.</em></span></th>
-        </thead>
-          <tbody>
-          {{#each proxy.Proxy.Expose.Paths as |path|}}
-            <tr>
-              <td>
-                <span>{{or path.Path '-'}}</span>
-              </td>
-              <td>
-                {{or path.Protocol '-'}}
-              </td>
-              <td>
-                {{or path.ListenerPort '-'}}
-              </td>
-              <td>
-                {{or path.LocalPathPort '-'}}
-              </td>
-            {{#let (concat item.Address ':' path.ListenerPort path.Path) as |combinedAddress| }}
-              <td class="combined-address">
-              {{#if combinedAddress}}
-                <span data-test-combined-address>{{combinedAddress}}</span>
-                <CopyButton @copy={{combinedAddress}} @name="Combined Address" />
-              {{else}}
-                {{'-'}}
-              {{/if}}
-              </td>
-            {{/let}}
-            </tr>
-          {{/each}}
-          </tbody>
-      </table>
+      <ul data-test-proxy-exposed-paths>
+      {{#each proxy.Proxy.Expose.Paths as |path|}}
+        <li>
+      {{#let (concat item.Address ':' path.Path) as |combinedAddress| }}
+        <p class="combined-address">
+          <span>
+            {{combinedAddress}}
+          </span>
+          <CopyButton
+            @value={{combinedAddress}}
+            @name="Address"
+          />
+        </p>
+      {{/let}}
+          <ul>
+          {{#if path.Protocol}}
+            <li class="protocol">
+              {{path.Protocol}}
+            </li>
+          {{/if}}
+          {{#if path.ListenerPort}}
+            <li class="port">
+              listening on :{{path.ListenerPort}}
+            </li>
+          {{/if}}
+          {{#if path.LocalPathPort}}
+            <li class="port">
+              local port :{{path.LocalPathPort}}
+            </li>
+          {{/if}}
+          {{#if path.Path}}
+            <li class="path">
+              {{path.Path}}
+            </li>
+          {{/if}}
+        </ul>
+        </li>
+      {{/each}}
+      </ul>
     </section>
   {{/if}}
   </div>

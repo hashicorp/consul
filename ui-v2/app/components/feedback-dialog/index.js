@@ -9,11 +9,11 @@ const STATE_ERROR = 'error';
 export default Component.extend(SlotsMixin, {
   wait: service('timeout'),
   dom: service('dom'),
-  classNames: ['with-feedback'],
   transition: '',
   transitionClassName: 'feedback-dialog-out',
   state: STATE_READY,
   permanent: true,
+  tagName: '',
   init: function() {
     this._super(...arguments);
     this.success = this._success.bind(this);
@@ -31,7 +31,7 @@ export default Component.extend(SlotsMixin, {
       .then(() => {
         return new Promise(resolve => {
           this.dom
-            .element(`.${className}`, this.element)
+            .element(`.${className}`, this.$feedback)
             .addEventListener('transitionend', resolve);
         });
       })

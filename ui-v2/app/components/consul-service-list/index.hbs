@@ -1,10 +1,17 @@
 {{yield}}
 {{#if (gt items.length 0)}}
-<ListCollection @cellHeight={{73}} @items={{items}} class="consul-service-list" as |item index|>
+<ListCollection @items={{items}} class="consul-service-list" as |item index|>
   <a data-test-service-name href={{href-to routeName item.Name}} class={{service/health-checks item}}>
     {{item.Name}}
   </a>
   <ul>
+  {{#if (and nspace (env 'CONSUL_NSPACES_ENABLED'))}}
+    {{#if (not-eq item.Namespace nspace)}}
+      <li class="nspace">
+        {{item.Namespace}}
+      </li>
+    {{/if}}
+  {{/if}}
     <ConsulKind @item={{item}} as |Kind|>
       <li>
         <Kind />

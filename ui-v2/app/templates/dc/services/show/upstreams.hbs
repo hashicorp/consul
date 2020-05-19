@@ -3,11 +3,10 @@
   {{#if (gt gateway.Services.length 0)}}
     <section>
       <p>
-        Upstreams are services that may receive traffic from this gateway. Learn more about configuring gateways in our
-        <a href="{{env 'CONSUL_DOCS_URL'}}/connect/ingress_gateway.html" target="_blank" rel="noopener noreferrer">documentation.</a>
+        Upstreams are services that may receive traffic from this gateway. Learn more about configuring gateways in our <a href="{{env 'CONSUL_DOCS_URL'}}/connect/ingress_gateway.html" target="_blank" rel="noopener noreferrer">documentation</a>.
       </p>
     {{#let item.Service.Namespace as |nspace|}}
-      <ListCollection @cellHeight={{73}} @items={{gateway.Services}} class="consul-gateway-services-list" as |item index|>
+      <ListCollection @items={{gateway.Services}} class="consul-upstream-list" as |item index|>
         <a data-test-service-name href={{href-to 'dc.services.show' item.Name}}>
           {{item.Name}}
         </a>
@@ -21,11 +20,11 @@
         {{/if}}
         {{#if (not-eq item.GatewayConfig.ListenerPort 0)}}
           <li class="port">
+            <span>:{{item.GatewayConfig.ListenerPort}}</span>
             <CopyButton
               @value={{item.GatewayConfig.ListenerPort}}
               @name="Port"
             />
-            <span>:{{item.GatewayConfig.ListenerPort}}</span>
           </li>
         {{/if}}
         </ul>

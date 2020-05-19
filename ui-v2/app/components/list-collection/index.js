@@ -10,6 +10,7 @@ export default Component.extend(WithResizing, {
   tagName: 'div',
   attributeBindings: ['style'],
   height: 500,
+  cellHeight: 73,
   style: style('getStyle'),
   classNames: ['list-collection'],
   init: function() {

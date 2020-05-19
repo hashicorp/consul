@@ -1,4 +1,4 @@
-import { getResolvers } from 'consul-ui/utils/components/discovery-chain/index';
+import { getResolvers } from 'consul-ui/components/discovery-chain/utils';
 import { module, test } from 'qunit';
 import { get } from 'consul-ui/tests/helpers/api';
 
@@ -7,7 +7,7 @@ const nspace = 'default';
 const request = {
   url: `/v1/discovery-chain/service-name?dc=${dc}`,
 };
-module('Unit | Utility | components/discovery-chain/get-resolvers', function() {
+module('Unit | Component | discovery-chain/get-resolvers', function() {
   test('it assigns Subsets correctly', function(assert) {
     return get(request.url, {
       headers: {
