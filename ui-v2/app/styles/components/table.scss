@@ -78,9 +78,14 @@ table:not(.sessions) tbody tr {
 table:not(.sessions) td:first-child {
   padding: 0;
 }
-
 table:not(.sessions) tbody tr:hover {
   box-shadow: $decor-elevation-300;
+}
+table.consul-metadata-list tbody tr {
+  cursor: default;
+}
+table.consul-metadata-list tbody tr:hover {
+  box-shadow: none;
 }
 /* Header Tooltips/Icon*/
 th {
