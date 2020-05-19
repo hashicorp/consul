@@ -4,7 +4,7 @@ module.exports = {
     'selector-pseudo-class-no-unknown': [
       true,
       {
-        ignoreAtRules: ['page'],
+        ignorePseudoClasses: ['first', 'last'],
       },
     ],
   },
