@@ -75,6 +75,11 @@ func TestServiceAddressValue_Set(t *testing.T) {
 			},
 		},
 		{
+			name:        "invalid addres",
+			input:       "not-an-ip-address",
+			expectedErr: "not an IP address",
+		},
+		{
 			name:        "invalid port",
 			input:       "localhost:notaport",
 			expectedErr: `Error parsing port "notaport"`,

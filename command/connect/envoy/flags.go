@@ -52,7 +52,11 @@ func parseAddress(raw string) (api.ServiceAddress, error) {
 		if !strings.Contains(err.Error(), "missing port in address") {
 			return result, fmt.Errorf("Error parsing address %q: %v", x, err)
 		}
+
 		// Use the whole input as the address if there wasn't a port.
+		if ip := net.ParseIP(x); ip == nil {
+			return result, fmt.Errorf("Error parsing address %q: not an IP address", x)
+		}
 		addr = x
 	}
 
