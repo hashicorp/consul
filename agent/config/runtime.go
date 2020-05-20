@@ -1153,6 +1153,18 @@ type RuntimeConfig struct {
 	// hcl: bind_addr = string advertise_addr_wan = string ports { serf_wan = int }
 	SerfAdvertiseAddrWAN *net.TCPAddr
 
+	// SerfAllowedCIDRsLAN if set to a non-empty value, will restrict which networks
+	// are allowed to connect to Serf on the LAN.
+	// hcl: serf_lan_allowed_cidrs = []string
+	// flag: serf-lan-allowed-cidrs string (can be specified multiple times)
+	SerfAllowedCIDRsLAN []net.IPNet
+
+	// SerfAllowedCIDRsWAN if set to a non-empty value, will restrict which networks
+	// are allowed to connect to Serf on the WAN.
+	// hcl: serf_wan_allowed_cidrs = []string
+	// flag: serf-wan-allowed-cidrs string (can be specified multiple times)
+	SerfAllowedCIDRsWAN []net.IPNet
+
 	// SerfBindAddrLAN is the address to bind the Serf LAN TCP and UDP
 	// listeners to. The ip address is either the default bind address or the
 	// 'serf_lan' address which can be either an ip address or a go-sockaddr
@@ -1794,6 +1806,14 @@ func sanitize(name string, v reflect.Value) reflect.Value {
 
 	case isArray(typ) || isSlice(typ):
 		ma := make([]interface{}, 0, v.Len())
+		if strings.HasPrefix(name, "SerfAllowedCIDRs") {
+			for i := 0; i < v.Len(); i++ {
+				addr := v.Index(i).Addr()
+				ip := addr.Interface().(*net.IPNet)
+				ma = append(ma, ip.String())
+			}
+			return reflect.ValueOf(ma)
+		}
 		for i := 0; i < v.Len(); i++ {
 			ma = append(ma, sanitize(fmt.Sprintf("%s[%d]", name, i), v.Index(i)).Interface())
 		}

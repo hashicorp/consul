@@ -270,6 +270,8 @@ type Config struct {
 	RetryJoinMaxAttemptsLAN          *int                     `json:"retry_max,omitempty" hcl:"retry_max" mapstructure:"retry_max"`
 	RetryJoinMaxAttemptsWAN          *int                     `json:"retry_max_wan,omitempty" hcl:"retry_max_wan" mapstructure:"retry_max_wan"`
 	RetryJoinWAN                     []string                 `json:"retry_join_wan,omitempty" hcl:"retry_join_wan" mapstructure:"retry_join_wan"`
+	SerfAllowedCIDRsLAN              []string                 `json:"serf_lan_allowed_cidrs,omitempty" hcl:"serf_lan_allowed_cidrs" mapstructure:"serf_lan_allowed_cidrs"`
+	SerfAllowedCIDRsWAN              []string                 `json:"serf_wan_allowed_cidrs,omitempty" hcl:"serf_wan_allowed_cidrs" mapstructure:"serf_wan_allowed_cidrs"`
 	SerfBindAddrLAN                  *string                  `json:"serf_lan,omitempty" hcl:"serf_lan" mapstructure:"serf_lan"`
 	SerfBindAddrWAN                  *string                  `json:"serf_wan,omitempty" hcl:"serf_wan" mapstructure:"serf_wan"`
 	ServerMode                       *bool                    `json:"server,omitempty" hcl:"server" mapstructure:"server"`
