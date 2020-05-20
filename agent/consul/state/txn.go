@@ -230,10 +230,12 @@ func (s *Store) txnService(tx *memdb.Txn, idx uint64, op *structs.TxnServiceOp) 
 		return newTxnResultFromNodeServiceEntry(entry), err
 
 	case api.ServiceCAS:
-		ok, err := s.ensureServiceCASTxn(tx, idx, op.Node, &op.Service)
-		// TODO: err != nil case is ignored
-		if !ok && err == nil {
+		err := s.ensureServiceCASTxn(tx, idx, op.Node, &op.Service)
+		switch {
+		case err == errCASCompareFailed:
 			err := fmt.Errorf("failed to set service %q on node %q, index is stale", op.Service.ID, op.Node)
+			return nil, err
+		case err != nil:
 			return nil, err
 		}
 

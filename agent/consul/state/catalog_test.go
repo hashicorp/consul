@@ -2,6 +2,11 @@ package state
 
 import (
 	"fmt"
+	"reflect"
+	"sort"
+	"strings"
+	"testing"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
@@ -11,10 +16,6 @@ import (
 	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"reflect"
-	"sort"
-	"strings"
-	"testing"
 )
 
 func makeRandomNodeID(t *testing.T) types.NodeID {
@@ -4395,9 +4396,8 @@ func TestStateStore_ensureServiceCASTxn(t *testing.T) {
 
 	// attempt to update with a 0 index
 	tx := s.db.Txn(true)
-	update, err := s.ensureServiceCASTxn(tx, 3, "node1", &ns)
-	require.False(t, update)
-	require.NoError(t, err)
+	err := s.ensureServiceCASTxn(tx, 3, "node1", &ns)
+	require.Equal(t, err, errCASCompareFailed)
 	tx.Commit()
 
 	// ensure no update happened
@@ -4411,9 +4411,8 @@ func TestStateStore_ensureServiceCASTxn(t *testing.T) {
 	ns.ModifyIndex = 99
 	// attempt to update with a non-matching index
 	tx = s.db.Txn(true)
-	update, err = s.ensureServiceCASTxn(tx, 4, "node1", &ns)
-	require.False(t, update)
-	require.NoError(t, err)
+	err = s.ensureServiceCASTxn(tx, 4, "node1", &ns)
+	require.Equal(t, err, errCASCompareFailed)
 	tx.Commit()
 
 	// ensure no update happened
@@ -4427,8 +4426,7 @@ func TestStateStore_ensureServiceCASTxn(t *testing.T) {
 	ns.ModifyIndex = 2
 	// update with the matching modify index
 	tx = s.db.Txn(true)
-	update, err = s.ensureServiceCASTxn(tx, 7, "node1", &ns)
-	require.True(t, update)
+	err = s.ensureServiceCASTxn(tx, 7, "node1", &ns)
 	require.NoError(t, err)
 	tx.Commit()
 
