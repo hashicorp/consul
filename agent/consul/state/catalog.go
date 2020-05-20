@@ -1,6 +1,7 @@
 package state
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -736,34 +737,31 @@ func (s *Store) EnsureService(idx uint64, node string, svc *structs.NodeService)
 	return nil
 }
 
+var errCASCompareFailed = errors.New("compare-and-set: comparison failed")
+
 // ensureServiceCASTxn updates a service only if the existing index matches the given index.
 // Returns a bool indicating if a write happened and any error.
-func (s *Store) ensureServiceCASTxn(tx *memdb.Txn, idx uint64, node string, svc *structs.NodeService) (bool, error) {
+func (s *Store) ensureServiceCASTxn(tx *memdb.Txn, idx uint64, node string, svc *structs.NodeService) error {
 	// Retrieve the existing service.
 	_, existing, err := firstWatchCompoundWithTxn(tx, "services", "id", &svc.EnterpriseMeta, node, svc.ID)
 	if err != nil {
-		return false, fmt.Errorf("failed service lookup: %s", err)
+		return fmt.Errorf("failed service lookup: %s", err)
 	}
 
 	// Check if the we should do the set. A ModifyIndex of 0 means that
 	// we are doing a set-if-not-exists.
 	if svc.ModifyIndex == 0 && existing != nil {
-		return false, nil
+		return errCASCompareFailed
 	}
 	if svc.ModifyIndex != 0 && existing == nil {
-		return false, nil
+		return errCASCompareFailed
 	}
 	e, ok := existing.(*structs.ServiceNode)
 	if ok && svc.ModifyIndex != 0 && svc.ModifyIndex != e.ModifyIndex {
-		return false, nil
+		return errCASCompareFailed
 	}
 
-	// Perform the update.
-	if err := s.ensureServiceTxn(tx, idx, node, svc); err != nil {
-		return false, err
-	}
-
-	return true, nil
+	return s.ensureServiceTxn(tx, idx, node, svc)
 }
 
 // ensureServiceTxn is used to upsert a service registration within an
