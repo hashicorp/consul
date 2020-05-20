@@ -8,9 +8,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -1372,6 +1374,153 @@ func TestAgent_Reload(t *testing.T) {
 			t.Fatalf("Reloading configs should stop watch plans of the previous configuration")
 		}
 	}
+}
+
+// TestAgent_ReloadDoesNotTriggerWatch Ensure watches not triggered after reload
+// see https://github.com/hashicorp/consul/issues/7446
+func TestAgent_ReloadDoesNotTriggerWatch(t *testing.T) {
+	dc1 := "dc1"
+	tmpFileRaw, err := ioutil.TempFile("", "rexec")
+	require.NoError(t, err)
+	tmpFile := tmpFileRaw.Name()
+	defer os.Remove(tmpFile)
+	handlerShell := fmt.Sprintf("(cat ; echo CONSUL_INDEX $CONSUL_INDEX) | tee '%s.atomic' ; mv '%s.atomic' '%s'", tmpFile, tmpFile, tmpFile)
+
+	a := NewTestAgent(t, `
+		acl_enforce_version_8 = false
+		services = [
+			{
+				name = "redis"
+				checks = [
+					{
+						id =  "red-is-dead"
+						ttl = "30s"
+						notes = "initial check"
+					}
+				]
+			}
+		]
+		watches = [
+			{
+				datacenter = "`+dc1+`"
+				type = "service"
+				service = "redis"
+				args = ["bash", "-c", "`+handlerShell+`"]
+			}
+		]
+	`)
+	checkID := structs.NewCheckID("red-is-dead", nil)
+	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, dc1)
+	require.NoError(t, a.updateTTLCheck(checkID, api.HealthPassing, "testing-agent-reload-001"))
+
+	checkStr := func(r *retry.R, evaluator func(string) error) {
+		t.Helper()
+		contentsStr := ""
+		// Wait for watch to be populated
+		for i := 1; i < 7; i++ {
+			contents, err := ioutil.ReadFile(tmpFile)
+			if err != nil {
+				t.Fatalf("should be able to read file, but had: %#v", err)
+			}
+			contentsStr = string(contents)
+			if contentsStr != "" {
+				break
+			}
+			time.Sleep(time.Duration(i) * time.Second)
+			testutil.Logger(t).Info("Watch not yet populated, retrying")
+		}
+		if err := evaluator(contentsStr); err != nil {
+			r.Errorf("ERROR: Test failing: %s", err)
+		}
+	}
+	ensureNothingCritical := func(r *retry.R, mustContain string) {
+		t.Helper()
+		eval := func(contentsStr string) error {
+			if strings.Contains(contentsStr, "critical") {
+				return fmt.Errorf("MUST NOT contain critical:= %s", contentsStr)
+			}
+			if !strings.Contains(contentsStr, mustContain) {
+				return fmt.Errorf("MUST contain '%s' := %s", mustContain, contentsStr)
+			}
+			return nil
+		}
+		checkStr(r, eval)
+	}
+
+	retriesWithDelay := func() *retry.Counter {
+		return &retry.Counter{Count: 10, Wait: 1 * time.Second}
+	}
+
+	retry.RunWith(retriesWithDelay(), t, func(r *retry.R) {
+		testutil.Logger(t).Info("Consul is now ready")
+		// it should contain the output
+		checkStr(r, func(contentStr string) error {
+			if contentStr == "[]" {
+				return fmt.Errorf("Consul is still starting up")
+			}
+			return nil
+		})
+	})
+
+	retry.RunWith(retriesWithDelay(), t, func(r *retry.R) {
+		ensureNothingCritical(r, "testing-agent-reload-001")
+	})
+
+	// Let's take almost the same config
+	cfg2 := TestConfig(testutil.Logger(t), config.Source{
+		Name:   "reload",
+		Format: "hcl",
+		Data: `
+			data_dir = "` + a.Config.DataDir + `"
+			node_id = "` + string(a.Config.NodeID) + `"
+			node_name = "` + a.Config.NodeName + `"
+
+			acl_enforce_version_8 = false
+			services = [
+				{
+					name = "redis"
+					checks = [
+						{
+							id  = "red-is-dead"
+							ttl = "30s"
+							notes = "initial check"
+						}
+					]
+				}
+			]
+			watches = [
+				{
+					datacenter = "` + dc1 + `"
+					type = "service"
+					service = "redis"
+					args = ["bash", "-c", "` + handlerShell + `"]
+				}
+			]
+		`,
+	})
+
+	justOnce := func() *retry.Counter {
+		return &retry.Counter{Count: 1, Wait: 25 * time.Millisecond}
+	}
+
+	retry.RunWith(justOnce(), t, func(r *retry.R) {
+		// We check that reload does not go to critical
+		ensureNothingCritical(r, "red-is-dead")
+
+		if err := a.ReloadConfig(cfg2); err != nil {
+			t.Fatalf("got error %v want nil", err)
+		}
+
+		// We check that reload does not go to critical
+		ensureNothingCritical(r, "red-is-dead")
+		ensureNothingCritical(r, "testing-agent-reload-001")
+
+		require.NoError(t, a.updateTTLCheck(checkID, api.HealthPassing, "testing-agent-reload-002"))
+
+		ensureNothingCritical(r, "red-is-dead")
+	})
 }
 
 func TestAgent_Reload_ACLDeny(t *testing.T) {
