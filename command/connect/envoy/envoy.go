@@ -137,7 +137,7 @@ func (c *cmd) init() {
 
 	c.flags.Var(&c.wanAddress, "wan-address",
 		"WAN address to advertise in the gateway service registration. For ingress gateways, "+
-			"only an IP address (not a port) is required.")
+			"only an IP address (without a port) is required.")
 
 	c.flags.Var(&c.bindAddresses, "bind-address", "Bind "+
 		"address to use instead of the default binding rules given as `<name>=<ip>:<port>` "+
