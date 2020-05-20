@@ -445,9 +445,19 @@ The options below are all specified on the command-line.
   more details. By default, this is an empty string, which is the default network
   segment.
 
+- `-serf-lan-allowed-cidrs` - The Serf LAN allowed CIDRs allow to accept incoming
+  connections for Serf only from several networks (mutiple values are supported).
+  Those networks are specified with CIDR notation (eg: 192.168.1.0/24).
+  This is available in Consul 1.8 and later.
+
 - `-serf-lan-port` ((#\_serf_lan_port)) - the Serf LAN port to listen on.
   This overrides the default Serf LAN port 8301. This is available in Consul 1.2.2
   and later.
+
+- `-serf-lan-allowed-cidrs` - he Serf LAN allowed CIDRs allow to accept incoming
+  connections for Serf only from several networks (mutiple values are supported).
+  Those networks are specified with CIDR notation (eg: 192.168.1.0/24).
+  This is available in Consul 1.8 and later.
 
 - `-serf-wan-port` ((#\_serf_wan_port)) - the Serf WAN port to listen on.
   This overrides the default Serf WAN port 8302. This is available in Consul 1.2.2
