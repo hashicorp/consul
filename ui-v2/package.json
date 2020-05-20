@@ -106,6 +106,7 @@
     "ember-sinon-qunit": "4.0.1",
     "ember-source": "~3.16.0",
     "ember-test-selectors": "^4.0.0",
+    "ember-tooltips": "^3.4.3",
     "ember-truth-helpers": "^2.0.0",
     "eslint-plugin-ember": "^7.7.2",
     "eslint-plugin-node": "^11.0.0",
