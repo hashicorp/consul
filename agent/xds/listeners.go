@@ -771,7 +771,7 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 
 		useRDS = false
 		clusterName = CustomizeClusterName(sni, chain)
-		
+
 	} else if cfg.Protocol == "tcp" {
 		startNode := chain.Nodes[chain.StartNode]
 		if startNode == nil {
