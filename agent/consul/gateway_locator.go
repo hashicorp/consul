@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
-	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
 	memdb "github.com/hashicorp/go-memdb"
@@ -190,7 +190,7 @@ func (g *GatewayLocator) listGateways(primary bool) []string {
 			// *duplicates* (which shouldn't happen) it's not great but it
 			// won't break anything other than biasing our eventual random
 			// choice a little bit.
-			addrs = lib.StringSliceMergeSorted(g.primaryGateways, g.PrimaryGatewayFallbackAddresses())
+			addrs = stringslice.MergeSorted(g.primaryGateways, g.PrimaryGatewayFallbackAddresses())
 		}
 	} else {
 		addrs = g.localGateways
@@ -207,7 +207,7 @@ func (g *GatewayLocator) RefreshPrimaryGatewayFallbackAddresses(addrs []string) 
 	g.primaryMeshGatewayDiscoveredAddressesLock.Lock()
 	defer g.primaryMeshGatewayDiscoveredAddressesLock.Unlock()
 
-	if !lib.StringSliceEqual(addrs, g.primaryMeshGatewayDiscoveredAddresses) {
+	if !stringslice.Equal(addrs, g.primaryMeshGatewayDiscoveredAddresses) {
 		g.primaryMeshGatewayDiscoveredAddresses = addrs
 		g.logger.Info("updated fallback list of primary mesh gateways", "mesh_gateways", addrs)
 	}
@@ -363,12 +363,12 @@ func (g *GatewayLocator) updateFromState(results []*structs.FederationState) {
 
 	changed := false
 	primaryReady := false
-	if !lib.StringSliceEqual(g.primaryGateways, primaryAddrs) {
+	if !stringslice.Equal(g.primaryGateways, primaryAddrs) {
 		g.primaryGateways = primaryAddrs
 		primaryReady = len(g.primaryGateways) > 0
 		changed = true
 	}
-	if !lib.StringSliceEqual(g.localGateways, localAddrs) {
+	if !stringslice.Equal(g.localGateways, localAddrs) {
 		g.localGateways = localAddrs
 		changed = true
 	}

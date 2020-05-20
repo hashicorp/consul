@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
-	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -564,7 +564,7 @@ func TestACLEndpoint_List(t *testing.T) {
 		if s.ID == anonymousToken || s.ID == "root" {
 			continue
 		}
-		if !lib.StrContains(ids, s.ID) {
+		if !stringslice.Contains(ids, s.ID) {
 			t.Fatalf("bad: %v", s)
 		}
 		if s.Name != "User token" {

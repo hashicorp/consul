@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/testrpc"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 )
@@ -370,7 +370,7 @@ func TestSession_List(t *testing.T) {
 	}
 	for i := 0; i < len(sessions.Sessions); i++ {
 		s := sessions.Sessions[i]
-		if !lib.StrContains(ids, s.ID) {
+		if !stringslice.Contains(ids, s.ID) {
 			t.Fatalf("bad: %v", s)
 		}
 		if s.Node != "foo" {
@@ -649,7 +649,7 @@ func TestSession_Renew(t *testing.T) {
 	}
 	for i := 0; i < len(sessions.Sessions); i++ {
 		s := sessions.Sessions[i]
-		if !lib.StrContains(ids, s.ID) {
+		if !stringslice.Contains(ids, s.ID) {
 			t.Fatalf("bad: %v", s)
 		}
 		if s.Node != "foo" {
@@ -683,7 +683,7 @@ func TestSession_Renew(t *testing.T) {
 		}
 
 		s := session.Sessions[0]
-		if !lib.StrContains(ids, s.ID) {
+		if !stringslice.Contains(ids, s.ID) {
 			t.Fatalf("bad: %v", s)
 		}
 		if s.Node != "foo" {
@@ -710,7 +710,7 @@ func TestSession_Renew(t *testing.T) {
 
 	for i := 0; i < len(sessionsL1.Sessions); i++ {
 		s := sessionsL1.Sessions[i]
-		if !lib.StrContains(ids, s.ID) {
+		if !stringslice.Contains(ids, s.ID) {
 			t.Fatalf("bad: %v", s)
 		}
 		if s.Node != "foo" {
@@ -742,7 +742,7 @@ func TestSession_Renew(t *testing.T) {
 	if len(sessionsL2.Sessions) != 0 {
 		for i := 0; i < len(sessionsL2.Sessions); i++ {
 			s := sessionsL2.Sessions[i]
-			if !lib.StrContains(ids, s.ID) {
+			if !stringslice.Contains(ids, s.ID) {
 				t.Fatalf("bad: %v", s)
 			}
 			if s.Node != "foo" {
@@ -947,7 +947,7 @@ func TestSession_NodeSessions(t *testing.T) {
 	}
 	for i := 0; i < len(sessions.Sessions); i++ {
 		s := sessions.Sessions[i]
-		if !lib.StrContains(ids, s.ID) {
+		if !stringslice.Contains(ids, s.ID) {
 			t.Fatalf("bad: %v", s)
 		}
 		if s.Node != "foo" {
