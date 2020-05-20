@@ -43,7 +43,7 @@
           <input
             {{ref this 'input'}}
             disabled={{state-matches state "loading"}}
-            type="password"
+            type={{inputType}}
             name="auth[SecretID]"
             placeholder="SecretID"
             value={{secret}}
