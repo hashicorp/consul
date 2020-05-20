@@ -31,7 +31,7 @@ export default function ServiceDiscoveryAndHealthCheckingPage() {
 
       <TextSplitWithImage
         textSplit={{
-          heading: 'Real time Health Monitoring',
+          heading: 'Real-time Health Monitoring',
           content:
             'Improve application resiliency by using Consul health checks to track the health of deployed services.',
           textSide: 'left',
