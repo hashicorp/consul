@@ -258,7 +258,7 @@ func (s *Server) listenersFromSnapshotGateway(cfgSnap *proxycfg.ConfigSnapshot, 
 				return nil, err
 			}
 		case structs.ServiceKindIngressGateway:
-			listeners, err := s.listenersFromSnapshotIngressGateway(a.Address, cfgSnap)
+			listeners, err := s.makeIngressGatewayListeners(a.Address, cfgSnap)
 			if err != nil {
 				return nil, err
 			}
@@ -276,9 +276,7 @@ func (s *Server) listenersFromSnapshotGateway(cfgSnap *proxycfg.ConfigSnapshot, 
 	return resources, err
 }
 
-// TODO(ingress): Support configured bind addresses from similar to mesh gateways
-// See: https://www.consul.io/docs/connect/proxies/envoy.html#mesh-gateway-options
-func (s *Server) listenersFromSnapshotIngressGateway(address string, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+func (s *Server) makeIngressGatewayListeners(address string, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var resources []proto.Message
 
 	for listenerKey, upstreams := range cfgSnap.IngressGateway.Upstreams {
