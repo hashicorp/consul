@@ -24,6 +24,15 @@
   border-bottom-width: 18px;
 }
 %tooltip-bubble {
-  border-radius: $decor-radius-200;
+  border-radius: $decor-radius-100;
   box-shadow: $decor-elevation-400;
+}
+
+// Ember Tooltips
+.ember-tooltip {
+  background-color: $gray-700;
+  border-radius: $decor-radius-100;
+}
+.ember-tooltip[x-placement^='top'] .ember-tooltip-arrow {
+  border-top-color: $gray-700;
 }
