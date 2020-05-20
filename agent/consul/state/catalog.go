@@ -740,7 +740,7 @@ func (s *Store) EnsureService(idx uint64, node string, svc *structs.NodeService)
 var errCASCompareFailed = errors.New("compare-and-set: comparison failed")
 
 // ensureServiceCASTxn updates a service only if the existing index matches the given index.
-// Returns a bool indicating if a write happened and any error.
+// Returns an error if the write didn't happen and nil if write was successful.
 func (s *Store) ensureServiceCASTxn(tx *memdb.Txn, idx uint64, node string, svc *structs.NodeService) error {
 	// Retrieve the existing service.
 	_, existing, err := firstWatchCompoundWithTxn(tx, "services", "id", &svc.EnterpriseMeta, node, svc.ID)
