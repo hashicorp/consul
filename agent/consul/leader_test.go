@@ -344,7 +344,7 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 		member.Tags["build"] = versionToExpect
 		err := s1.handleAliveMember(member)
 		if err != nil {
-			t.Fatalf("Unexpected error :%v", err)
+			r.Fatalf("Unexpected error :%v", err)
 		}
 		_, service, err := state.NodeService(s3.config.NodeName, "consul", &consulService.EnterpriseMeta)
 		if err != nil {
