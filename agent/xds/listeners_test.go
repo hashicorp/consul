@@ -129,6 +129,17 @@ func TestListenersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name:   "custom-upstream-typed-ignored-with-disco-chain",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailover,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Upstreams[0].Config["envoy_listener_json"] =
+					customListenerJSON(t, customListenerJSONOptions{
+						Name:        "custom-upstream",
+						IncludeType: true,
+					})
+			},
+		},
+		{
 			name:   "splitter-with-resolver-redirect",
 			create: proxycfg.TestConfigSnapshotDiscoveryChain_SplitterWithResolverRedirectMultiDC,
 			setup:  nil,
@@ -267,6 +278,23 @@ func TestListenersFromSnapshot(t *testing.T) {
 			name:   "ingress-gateway",
 			create: proxycfg.TestConfigSnapshotIngressGateway,
 			setup:  nil,
+		},
+		{
+			name:   "ingress-gateway-bind-addrs",
+			create: proxycfg.TestConfigSnapshotIngressGateway,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.TaggedAddresses = map[string]structs.ServiceAddress{
+					"lan": structs.ServiceAddress{Address: "10.0.0.1"},
+					"wan": structs.ServiceAddress{Address: "172.16.0.1"},
+				}
+				snap.Proxy.Config = map[string]interface{}{
+					"envoy_gateway_no_default_bind":       true,
+					"envoy_gateway_bind_tagged_addresses": true,
+					"envoy_gateway_bind_addresses": map[string]structs.ServiceAddress{
+						"foo": structs.ServiceAddress{Address: "8.8.8.8"},
+					},
+				}
+			},
 		},
 		{
 			name:   "ingress-gateway-no-services",

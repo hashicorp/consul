@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoyauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
@@ -45,7 +46,7 @@ func (s *Server) listenersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token s
 	case structs.ServiceKindMeshGateway:
 		return s.listenersFromSnapshotGateway(cfgSnap, token)
 	case structs.ServiceKindIngressGateway:
-		return s.listenersFromSnapshotIngressGateway(cfgSnap)
+		return s.listenersFromSnapshotGateway(cfgSnap, token)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
@@ -71,11 +72,13 @@ func (s *Server) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 		}
 
 		var upstreamListener proto.Message
-		if chain == nil || chain.IsDefault() {
-			upstreamListener, err = s.makeUpstreamListenerIgnoreDiscoveryChain(&u, chain, cfgSnap, nil)
-		} else {
-			upstreamListener, err = s.makeUpstreamListenerForDiscoveryChain(&u, chain, cfgSnap, nil)
-		}
+		upstreamListener, err = s.makeUpstreamListenerForDiscoveryChain(
+			&u,
+			u.LocalBindAddress,
+			chain,
+			cfgSnap,
+			nil,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -254,6 +257,12 @@ func (s *Server) listenersFromSnapshotGateway(cfgSnap *proxycfg.ConfigSnapshot, 
 			if err != nil {
 				return nil, err
 			}
+		case structs.ServiceKindIngressGateway:
+			listeners, err := s.makeIngressGatewayListeners(a.Address, cfgSnap)
+			if err != nil {
+				return nil, err
+			}
+			resources = append(resources, listeners...)
 		case structs.ServiceKindMeshGateway:
 			l, err = s.makeMeshGatewayListener(a.name, a.Address, a.Port, cfgSnap)
 			if err != nil {
@@ -267,10 +276,9 @@ func (s *Server) listenersFromSnapshotGateway(cfgSnap *proxycfg.ConfigSnapshot, 
 	return resources, err
 }
 
-// TODO(ingress): Support configured bind addresses from similar to mesh gateways
-// See: https://www.consul.io/docs/connect/proxies/envoy.html#mesh-gateway-options
-func (s *Server) listenersFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+func (s *Server) makeIngressGatewayListeners(address string, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var resources []proto.Message
+
 	for listenerKey, upstreams := range cfgSnap.IngressGateway.Upstreams {
 		var tlsContext *envoyauth.DownstreamTlsContext
 		if cfgSnap.IngressGateway.TLSEnabled {
@@ -290,24 +298,20 @@ func (s *Server) listenersFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSna
 			chain := cfgSnap.IngressGateway.DiscoveryChain[id]
 
 			var upstreamListener proto.Message
-			var err error
-			if chain == nil || chain.IsDefault() {
-				upstreamListener, err = s.makeUpstreamListenerIgnoreDiscoveryChain(&u, chain, cfgSnap, tlsContext)
-			} else {
-				upstreamListener, err = s.makeUpstreamListenerForDiscoveryChain(&u, chain, cfgSnap, tlsContext)
-			}
+			upstreamListener, err := s.makeUpstreamListenerForDiscoveryChain(
+				&u,
+				address,
+				chain,
+				cfgSnap,
+				tlsContext,
+			)
 			if err != nil {
 				return nil, err
 			}
 			resources = append(resources, upstreamListener)
 		} else {
 			// If multiple upstreams share this port, make a special listener for the protocol.
-			addr := cfgSnap.Address
-			if addr == "" {
-				addr = "0.0.0.0"
-			}
-
-			listener := makeListener(listenerKey.Protocol, addr, listenerKey.Port)
+			listener := makeListener(listenerKey.Protocol, address, listenerKey.Port)
 			filter, err := makeListenerFilter(
 				true, listenerKey.Protocol, listenerKey.RouteName(), "", "ingress_upstream_", "", false)
 			if err != nil {
@@ -541,56 +545,6 @@ func (s *Server) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, clus
 	return l, err
 }
 
-// makeUpstreamListenerIgnoreDiscoveryChain counterintuitively takes an (optional) chain
-func (s *Server) makeUpstreamListenerIgnoreDiscoveryChain(
-	u *structs.Upstream,
-	chain *structs.CompiledDiscoveryChain,
-	cfgSnap *proxycfg.ConfigSnapshot,
-	tlsContext *envoyauth.DownstreamTlsContext,
-) (proto.Message, error) {
-	cfg, err := ParseUpstreamConfig(u.Config)
-	if err != nil {
-		// Don't hard fail on a config typo, just warn. The parse func returns
-		// default config if there is an error so it's safe to continue.
-		s.Logger.Warn("failed to parse", "upstream", u.Identifier(), "error", err)
-	}
-	if cfg.ListenerJSON != "" {
-		return makeListenerFromUserConfig(cfg.ListenerJSON)
-	}
-
-	addr := u.LocalBindAddress
-	if addr == "" {
-		addr = "127.0.0.1"
-	}
-
-	upstreamID := u.Identifier()
-
-	dc := u.Datacenter
-	if dc == "" {
-		dc = cfgSnap.Datacenter
-	}
-	sni := connect.UpstreamSNI(u, "", dc, cfgSnap.Roots.TrustDomain)
-
-	clusterName := CustomizeClusterName(sni, chain)
-
-	l := makeListener(upstreamID, addr, u.LocalBindPort)
-	filter, err := makeListenerFilter(
-		false, cfg.Protocol, upstreamID, clusterName, "upstream_", "", false)
-	if err != nil {
-		return nil, err
-	}
-
-	l.FilterChains = []envoylistener.FilterChain{
-		{
-			Filters: []envoylistener.Filter{
-				filter,
-			},
-			TlsContext: tlsContext,
-		},
-	}
-	return l, nil
-}
-
 func (s *Server) makeTerminatingGatewayListener(name, addr string, port int, cfgSnap *proxycfg.ConfigSnapshot, token string) (*envoy.Listener, error) {
 	l := makeListener(name, addr, port)
 
@@ -790,56 +744,50 @@ func (s *Server) makeMeshGatewayListener(name, addr string, port int, cfgSnap *p
 
 func (s *Server) makeUpstreamListenerForDiscoveryChain(
 	u *structs.Upstream,
+	address string,
 	chain *structs.CompiledDiscoveryChain,
 	cfgSnap *proxycfg.ConfigSnapshot,
 	tlsContext *envoyauth.DownstreamTlsContext,
 ) (proto.Message, error) {
-	cfg, err := ParseUpstreamConfigNoDefaults(u.Config)
-	if err != nil {
-		// Don't hard fail on a config typo, just warn. The parse func returns
-		// default config if there is an error so it's safe to continue.
-		s.Logger.Warn("failed to parse", "upstream", u.Identifier(), "error", err)
+	if address == "" {
+		address = "127.0.0.1"
 	}
-	if cfg.ListenerJSON != "" {
-		s.Logger.Warn("ignoring escape hatch setting because already configured for",
-			"discovery chain", chain.ServiceName, "upstream", u.Identifier(), "config", "envoy_listener_json")
-	}
-
-	addr := u.LocalBindAddress
-	if addr == "" {
-		addr = "127.0.0.1"
-	}
-
 	upstreamID := u.Identifier()
+	l := makeListener(upstreamID, address, u.LocalBindPort)
 
-	l := makeListener(upstreamID, addr, u.LocalBindPort)
-
-	proto := cfg.Protocol
-	if proto == "" {
-		proto = chain.Protocol
-	}
-
-	if proto == "" {
-		proto = "tcp"
+	cfg := getAndModifyUpstreamConfigForListener(s.Logger, u, chain)
+	if cfg.ListenerJSON != "" {
+		return makeListenerFromUserConfig(cfg.ListenerJSON)
 	}
 
 	useRDS := true
 	clusterName := ""
-	if proto == "tcp" {
+	if chain == nil || chain.IsDefault() {
+		dc := u.Datacenter
+		if dc == "" {
+			dc = cfgSnap.Datacenter
+		}
+		sni := connect.UpstreamSNI(u, "", dc, cfgSnap.Roots.TrustDomain)
+
+		useRDS = false
+		clusterName = CustomizeClusterName(sni, chain)
+
+	} else if cfg.Protocol == "tcp" {
 		startNode := chain.Nodes[chain.StartNode]
 		if startNode == nil {
 			panic("missing first node in compiled discovery chain for: " + chain.ServiceName)
 		} else if startNode.Type != structs.DiscoveryGraphNodeTypeResolver {
-			panic(fmt.Sprintf("unexpected first node in discovery chain using protocol=%q: %s", proto, startNode.Type))
+			panic(fmt.Sprintf("unexpected first node in discovery chain using protocol=%q: %s", cfg.Protocol, startNode.Type))
 		}
 		targetID := startNode.Resolver.Target
 		target := chain.Targets[targetID]
-		clusterName = CustomizeClusterName(target.Name, chain)
+
 		useRDS = false
+		clusterName = CustomizeClusterName(target.Name, chain)
 	}
 
 	filter, err := makeListenerFilter(
-		useRDS, proto, upstreamID, clusterName, "upstream_", "", false)
+		useRDS, cfg.Protocol, upstreamID, clusterName, "upstream_", "", false)
 	if err != nil {
 		return nil, err
 	}
@@ -853,6 +801,53 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 		},
 	}
 	return l, nil
+}
+
+func getAndModifyUpstreamConfigForListener(logger hclog.Logger, u *structs.Upstream, chain *structs.CompiledDiscoveryChain) UpstreamConfig {
+	var (
+		cfg UpstreamConfig
+		err error
+	)
+
+	if chain == nil || chain.IsDefault() {
+		cfg, err = ParseUpstreamConfig(u.Config)
+		if err != nil {
+			// Don't hard fail on a config typo, just warn. The parse func returns
+			// default config if there is an error so it's safe to continue.
+			logger.Warn("failed to parse", "upstream", u.Identifier(), "error", err)
+		}
+	} else {
+		// Use NoDefaults here so that we can set the protocol to the chain
+		// protocol if necessary
+		cfg, err = ParseUpstreamConfigNoDefaults(u.Config)
+		if err != nil {
+			// Don't hard fail on a config typo, just warn. The parse func returns
+			// default config if there is an error so it's safe to continue.
+			logger.Warn("failed to parse", "upstream", u.Identifier(), "error", err)
+		}
+
+		if cfg.ListenerJSON != "" {
+			logger.Warn("ignoring escape hatch setting because already configured for",
+				"discovery chain", chain.ServiceName, "upstream", u.Identifier(), "config", "envoy_listener_json")
+
+			// Remove from config struct so we don't use it later on
+			cfg.ListenerJSON = ""
+		}
+
+		proto := cfg.Protocol
+		if proto == "" {
+			proto = chain.Protocol
+		}
+
+		if proto == "" {
+			proto = "tcp"
+		}
+
+		// set back on the config so that we can use it from return value
+		cfg.Protocol = proto
+	}
+
+	return cfg
 }
 
 func makeListenerFilter(
