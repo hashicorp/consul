@@ -15,6 +15,7 @@ module.exports = withHashicorp({
       },
     ],
   },
+  // Note: These are meant to be public, it's not a mistake that they are here
   env: {
     HASHI_ENV: process.env.HASHI_ENV || 'development',
     SEGMENT_WRITE_KEY: 'IyzLrqXkox5KJ8XL4fo8vTYNGfiKlTCm',
