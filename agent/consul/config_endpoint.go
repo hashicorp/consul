@@ -360,14 +360,9 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 					}
 				}
 
-				// No upstream found; skip.
-				if upstreamConf == nil {
-					continue
-				}
-
 				// Fallback to proxyConf global protocol.
 				protocol := proxyConfGlobalProtocol
-				if upstreamConf.Protocol != "" {
+				if upstreamConf != nil && upstreamConf.Protocol != "" {
 					protocol = upstreamConf.Protocol
 				}
 
