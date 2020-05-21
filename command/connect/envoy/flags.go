@@ -47,8 +47,17 @@ func parseAddress(raw string) (api.ServiceAddress, error) {
 	}
 
 	addr, portStr, err := net.SplitHostPort(x)
+	// Error message from Go's net/ipsock.go
 	if err != nil {
-		return result, fmt.Errorf("Error parsing address %q: %v", x, err)
+		if !strings.Contains(err.Error(), "missing port in address") {
+			return result, fmt.Errorf("Error parsing address %q: %v", x, err)
+		}
+
+		// Use the whole input as the address if there wasn't a port.
+		if ip := net.ParseIP(x); ip == nil {
+			return result, fmt.Errorf("Error parsing address %q: not an IP address", x)
+		}
+		addr = x
 	}
 
 	port := defaultGatewayPort
