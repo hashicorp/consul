@@ -4,7 +4,7 @@ export default function(visitable, attribute, collection, text, tabs) {
     externalSource: attribute('data-test-external-source', '[data-test-external-source]', {
       scope: '.title',
     }),
-    tabs: tabs('tab', ['health-checks', 'proxy-info', 'addresses', 'tags', 'metadata']),
+    tabs: tabs('tab', ['health-checks', 'proxy-info', 'addresses', 'tags-&-meta']),
     serviceChecks: collection('[data-test-service-checks] li'),
     nodeChecks: collection('[data-test-node-checks] li'),
     upstreams: collection('[data-test-proxy-upstreams] > li', {
@@ -17,6 +17,6 @@ export default function(visitable, attribute, collection, text, tabs) {
     addresses: collection('#addresses [data-test-tabular-row]', {
       address: text('[data-test-address]'),
     }),
-    metadata: collection('#metadata [data-test-tabular-row]', {}),
+    metadata: collection('.metadata [data-test-tabular-row]', {}),
   };
 }
