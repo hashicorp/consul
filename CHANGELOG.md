@@ -9,7 +9,7 @@ BUGFIXES:
 * xds: Fixed bug where deleting a gateway config entry did not correctly remove xDS configuration from the envoy proxy [[GH-7898](https://github.com/hashicorp/consul/pull/7898)]
 * ui: Quote service names when filtering intentions to prevent 500 errors when accessing a service [[GH-7896](https://github.com/hashicorp/consul/issues/7896)] [[GH-7888](https://github.com/hashicorp/consul/pull/7888)]
 * ui: Miscellaneous amends for Safari and Firefox [[GH-7904](https://github.com/hashicorp/consul/issues/7904)] [[GH-7907](https://github.com/hashicorp/consul/pull/7907)]
-* ui: Ensure a vlaue is always passed to CONSUL_SSO_ENABLED [[GH-7913](https://github.com/hashicorp/consul/pull/7913)]
+* ui: Ensure a value is always passed to CONSUL_SSO_ENABLED [[GH-7913](https://github.com/hashicorp/consul/pull/7913)]
 
 ## 1.8.0-beta1 (May 14, 2020)
 
