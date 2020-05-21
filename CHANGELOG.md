@@ -1,5 +1,13 @@
 ## UNRELEASED
 
+IMPROVEMENTS:
+
+* xds: Ingress gateways now respect the same binding options as mesh and terminating gateways [[GH-7924](https://github.com/hashicorp/consul/pull/7924)]
+
+BUGFIXES:
+
+* xds: Fixed bug where deleting a gateway config entry did not correctly remove xDS configuration from the envoy proxy [[GH-7898](https://github.com/hashicorp/consul/pull/7898)]
+
 ## 1.8.0-beta1 (May 14, 2020)
 
 FEATURES:
