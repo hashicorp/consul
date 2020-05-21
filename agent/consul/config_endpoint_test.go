@@ -1019,8 +1019,55 @@ func TestConfigEntry_ResolveServiceConfig_UpstreamProxyDefaultsProtocol(t *testi
 			"other": map[string]interface{}{
 				"protocol": "http",
 			},
+			"dne": map[string]interface{}{
+				"protocol": "http",
+			},
 			"alreadyprotocol": map[string]interface{}{
 				"protocol": "grpc",
+			},
+		},
+		// Don't know what this is deterministically
+		QueryMeta: out.QueryMeta,
+	}
+	require.Equal(expected, out)
+}
+
+func TestConfigEntry_ResolveServiceConfig_ProxyDefaultsProtocol_UsedForAllUpstreams(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// Create a dummy proxy/service config in the state store to look up.
+	state := s1.fsm.State()
+	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			"protocol": "http",
+		},
+	}, nil))
+
+	args := structs.ServiceConfigRequest{
+		Name:       "foo",
+		Datacenter: s1.config.Datacenter,
+		Upstreams:  []string{"bar"},
+	}
+	var out structs.ServiceConfigResponse
+	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out))
+
+	expected := structs.ServiceConfigResponse{
+		ProxyConfig: map[string]interface{}{
+			"protocol": "http",
+		},
+		UpstreamConfigs: map[string]map[string]interface{}{
+			"bar": map[string]interface{}{
+				"protocol": "http",
 			},
 		},
 		// Don't know what this is deterministically
