@@ -127,14 +127,15 @@
                       <AuthDialog
                         @dc={{dc.Name}}
                         @nspace={{nspace.Name}}
-                        @onchange={{action onchange}} as |authDialog components|
+                        @onchange={{action "reauthorize"}} as |authDialog components|
                       >
                         {{#let components.AuthForm components.AuthProfile as |AuthForm AuthProfile|}}
                           <BlockSlot @name="unauthorized">
                             <label tabindex="0" for="login-toggle" onkeypress={{action 'keypressClick'}}>
                               <span>Log in</span>
                             </label>
-                            <ModalDialog @name="login-toggle" @onclose={{action 'close'}} @onopen={{action 'open'}}>
+                            <ModalDialog @name="login-toggle" @onclose={{action 'close'}} @onopen={{action 'open'}} as |api|>
+                              <Ref @target={{this}} @name="modal" @value={{api}} />
                               <BlockSlot @name="header">
                                 <h2>Log in to Consul</h2>
                               </BlockSlot>
@@ -151,6 +152,22 @@
                             </ModalDialog>
                           </BlockSlot>
                           <BlockSlot @name="authorized">
+                            <ModalDialog @name="login-toggle" @onclose={{action 'close'}} @onopen={{action 'open'}} as |api|>
+                              <Ref @target={{this}} @name="modal" @value={{api}} />
+                              <BlockSlot @name="header">
+                                <h2>Log in with a different token</h2>
+                              </BlockSlot>
+                              <BlockSlot @name="body">
+                                <AuthForm as |api|>
+                                  <Ref @target={{this}} @name="authForm" @value={{api}} />
+                                </AuthForm>
+                              </BlockSlot>
+                              <BlockSlot @name="actions" as |close|>
+                                <button type="button" onclick={{action close}}>
+                                  Continue without logging in
+                                </button>
+                              </BlockSlot>
+                            </ModalDialog>
                             <PopoverMenu @position="right">
                               <BlockSlot @name="trigger">
                                 Logout
