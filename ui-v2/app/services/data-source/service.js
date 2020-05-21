@@ -18,22 +18,17 @@ export default Service.extend({
 
   init: function() {
     this._super(...arguments);
-    if (cache === null) {
-      this.resetCache();
-    }
-    this._listeners = this.dom.listeners();
-  },
-  resetCache: function() {
-    Object.entries(sources || {}).forEach(function([key, item]) {
-      item.close();
-    });
     cache = new Map();
     sources = new Map();
     usage = new MultiMap(Set);
+    this._listeners = this.dom.listeners();
+  },
+  resetCache: function() {
+    cache = new Map();
   },
   willDestroy: function() {
     this._listeners.remove();
-    Object.entries(sources || {}).forEach(function([key, item]) {
+    sources.forEach(function(item) {
       item.close();
     });
     cache = null;
@@ -61,10 +56,15 @@ export default Service.extend({
         close: e => {
           const source = e.target;
           source.removeEventListener('close', close);
-          cache.set(uri, {
-            currentEvent: source.getCurrentEvent(),
-            cursor: source.configuration.cursor,
-          });
+          const event = source.getCurrentEvent();
+          const cursor = source.configuration.cursor;
+          // only cache data if we have any
+          if (typeof event !== 'undefined' && typeof cursor !== 'undefined') {
+            cache.set(uri, {
+              currentEvent: source.getCurrentEvent(),
+              cursor: source.configuration.cursor,
+            });
+          }
           // the data is cached delete the EventSource
           sources.delete(uri);
         },
