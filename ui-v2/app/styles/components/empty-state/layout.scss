@@ -3,13 +3,20 @@
   margin: 0;
 }
 %empty-state {
-  width: 320px;
+  display: flex;
+  flex-direction: column;
+  margin-top: 0 !important;
+  padding-bottom: 2.8em;
+}
+%empty-state > * {
+  width: 370px;
   margin: 0 auto;
 }
 %empty-state-header {
   margin-bottom: -3px;
 }
 %empty-state header {
+  margin-top: 1.8em;
   margin-bottom: 0.5em;
 }
 %empty-state > ul {
@@ -26,4 +33,8 @@
 }
 %empty-state-anchor::before {
   margin-top: -1px;
+}
+%empty-state > div {
+  display: flex;
+  flex-direction: column;
 }
