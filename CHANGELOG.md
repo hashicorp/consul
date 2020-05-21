@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.8.0-beta2 (May 21, 2020)
 
 IMPROVEMENTS:
 
