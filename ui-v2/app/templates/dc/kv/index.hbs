@@ -87,9 +87,24 @@
         </TabularCollection>
       </BlockSlot>
       <BlockSlot @name="empty">
-        <p>
-          There are no Key / Value pairs.
-        </p>
+        <EmptyState @allowLogin={{true}}>
+          <BlockSlot @name="header">
+            <h2>Welcome to Key/Value</h2>
+          </BlockSlot>
+          <BlockSlot @name="body">
+            <p>
+              You don't have any K/V pairs, or you may not have access to view K/V pairs yet.
+            </p>
+          </BlockSlot>
+          <BlockSlot @name="actions">
+            <li class="docs-link">
+              <a href="{{env 'CONSUL_DOCS_URL'}}/agent/kv" rel="noopener noreferrer" target="_blank">Documentation on K/V</a>
+            </li>
+            <li class="learn-link">
+              <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/kv" rel="noopener noreferrer" target="_blank">Read the guide</a>
+            </li>
+          </BlockSlot>
+        </EmptyState>
       </BlockSlot>
     </ChangeableSet>
   </BlockSlot>

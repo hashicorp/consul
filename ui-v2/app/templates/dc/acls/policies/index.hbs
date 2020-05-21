@@ -101,9 +101,24 @@
         </TabularCollection>
       </BlockSlot>
       <BlockSlot @name="empty">
-        <p>
-          There are no Policies.
-        </p>
+        <EmptyState @allowLogin={{true}}>
+          <BlockSlot @name="header">
+            <h2>Welcome to Policies</h2>
+          </BlockSlot>
+          <BlockSlot @name="body">
+            <p>
+              There don't seem to be any policies, or you may not have access to view policies yet.
+            </p>
+          </BlockSlot>
+          <BlockSlot @name="actions">
+            <li class="docs-link">
+              <a href="{{env 'CONSUL_DOCS_URL'}}/commands/acl/policy" rel="noopener noreferrer" target="_blank">Documentation on policies</a>
+            </li>
+            <li class="learn-link">
+              <a href="{{env 'CONSUL_LEARN_URL'}}/consul/security-networking/managing-acl-policies" rel="noopener noreferrer" target="_blank">Read the guide</a>
+            </li>
+          </BlockSlot>
+        </EmptyState>
       </BlockSlot>
     </ChangeableSet>
   </BlockSlot>
