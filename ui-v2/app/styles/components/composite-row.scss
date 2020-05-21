@@ -6,7 +6,7 @@
   @extend %composite-row;
 }
 /* hoverable rows */
-.consul-upstream-list > ul > li:not(:first-child),
+%composite-row.linkable,
 .consul-gateway-service-list > ul > li:not(:first-child),
 .consul-service-instance-list > ul > li:not(:first-child),
 .consul-service-list > ul > li:not(:first-child) {
