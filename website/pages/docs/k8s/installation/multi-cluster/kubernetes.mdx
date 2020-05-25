@@ -38,7 +38,7 @@ with the possible modifications listed below.
 ```yaml
 global:
   name: consul
-  image: consul:1.8.0-beta1
+  image: consul:beta
   datacenter: dc1
 
   # TLS configures whether Consul components use TLS.
@@ -81,7 +81,7 @@ Modifications:
 1. Note the Docker image:
    ```yaml
    global:
-     image: consul:1.8.0-beta1
+     image: consul:beta
    ```
    Kubernetes support for federation is currently only available in Consul 1.8.0 beta.
 1. The Consul datacenter name is `dc1`. The datacenter name in each federated
@@ -124,6 +124,8 @@ With your `config.yaml` ready to go, follow our [Installation Guide](/docs/k8s/i
 to install Consul on your primary cluster and then skip ahead to the [Federation Secret](#federation-secret)
 section.
 
+-> **NOTE:** You must be using consul-helm 0.21.0+. To update, run `helm repo update`.
+
 #### Upgrading An Existing Cluster
 
 If you have an existing cluster, you will need to upgrade it to ensure it has
@@ -131,7 +133,7 @@ the following config:
 
 ```yaml
 global:
-  image: consul:1.8.0-beta1
+  image: consul:beta
   tls:
     enabled: true
   federation:
@@ -144,7 +146,7 @@ meshGateway:
   enabled: true
 ```
 
-1. `global.image` must be set to `consul:1.8.0-beta1` because Kubernetes support
+1. `global.image` must be set to `consul:beta` because Kubernetes support
    for federation is currently only available in Consul 1.8.0 beta.
 1. `global.tls.enabled` must be `true`. See [Configuring TLS on an Existing Cluster](/docs/k8s/operations/tls-on-existing-cluster)
    for more information on safely upgrading a cluster to use TLS.
@@ -162,6 +164,8 @@ If you've set `enableAutoEncrypt: true`, this is also supported.
 
 With the above settings added to your existing config, follow the [Upgrading](/localhost:3000/docs/k8s/operations/upgrading)
 guide to upgrade your cluster and then come back to the [Federation Secret](#federation-secret) section.
+
+-> **NOTE:** You must be using consul-helm 0.21.0+. To update, run `helm repo update`.
 
 ## Federation Secret
 
@@ -263,7 +267,7 @@ settings are different.
 ```yaml
 global:
   name: consul
-  image: consul:1.8.0-beta1
+  image: consul:beta
   datacenter: dc2
   tls:
     enabled: true
@@ -310,7 +314,7 @@ server:
 
 Modifications:
 
-1. Note `global.image: consul:1.8.0-beta1`. Kubernetes support for federation is currently only available
+1. Note `global.image: consul:beta`. Kubernetes support for federation is currently only available
    in Consul 1.8.0 beta.
 1. The Consul datacenter name is `dc2`. The primary datacenter's name was `dc1`.
    The datacenter name in **each** federated cluster **must be unique**.
