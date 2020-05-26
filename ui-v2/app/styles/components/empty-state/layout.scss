@@ -1,16 +1,22 @@
+%empty-state,
+%empty-state > div {
+  display: flex;
+  flex-direction: column;
+}
 %empty-state-header {
   padding: 0;
   margin: 0;
 }
 %empty-state {
-  display: flex;
-  flex-direction: column;
   margin-top: 0 !important;
   padding-bottom: 2.8em;
 }
 %empty-state > * {
   width: 370px;
   margin: 0 auto;
+}
+%empty-state label {
+  margin: 0 auto !important;
 }
 %empty-state-header {
   margin-bottom: -3px;
@@ -33,8 +39,4 @@
 }
 %empty-state-anchor::before {
   margin-top: -1px;
-}
-%empty-state > div {
-  display: flex;
-  flex-direction: column;
 }
