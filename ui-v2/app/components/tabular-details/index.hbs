@@ -7,6 +7,7 @@
     </tr>
   </thead>
   <tbody>
+  {{#let (concat 'tabular-details-' name '-toggle-' guid '_') as |inputId|}}
     {{#each items as |item index|}}
       <tr data-test-tabular-row onclick={{action 'click'}}>
           <YieldSlot @name="row">{{yield item index}}</YieldSlot>
@@ -28,5 +29,6 @@
         </td>
       </tr>
     {{/each}}
+  {{/let}}
   </tbody>
 </table>

@@ -1,7 +1,7 @@
 import Controller from '@ember/controller';
 import { computed } from '@ember/object';
-import WithEventSource from 'consul-ui/mixins/with-event-source';
-export default Controller.extend(WithEventSource, {
+
+export default Controller.extend({
   queryParams: {
     sortBy: 'sort',
     search: {
