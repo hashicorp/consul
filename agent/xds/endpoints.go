@@ -79,6 +79,7 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 		} else {
 			// Newfangled discovery chain plumbing.
 			es := s.endpointsFromDiscoveryChain(
+				u,
 				chain,
 				cfgSnap.Datacenter,
 				cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[id],
@@ -268,6 +269,7 @@ func (s *Server) endpointsFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSna
 			}
 
 			es := s.endpointsFromDiscoveryChain(
+				u,
 				cfgSnap.IngressGateway.DiscoveryChain[id],
 				cfgSnap.Datacenter,
 				cfgSnap.IngressGateway.WatchedUpstreamEndpoints[id],
@@ -291,6 +293,7 @@ func makeEndpoint(clusterName, host string, port int) envoyendpoint.LbEndpoint {
 }
 
 func (s *Server) endpointsFromDiscoveryChain(
+	upstream structs.Upstream,
 	chain *structs.CompiledDiscoveryChain,
 	datacenter string,
 	upstreamEndpoints, gatewayEndpoints map[string]structs.CheckServiceNodes,
@@ -299,6 +302,30 @@ func (s *Server) endpointsFromDiscoveryChain(
 
 	if chain == nil {
 		return resources
+	}
+
+	cfg, err := ParseUpstreamConfigNoDefaults(upstream.Config)
+	if err != nil {
+		// Don't hard fail on a config typo, just warn. The parse func returns
+		// default config if there is an error so it's safe to continue.
+		s.Logger.Warn("failed to parse", "upstream", upstream.Identifier(),
+			"error", err)
+	}
+
+	var escapeHatchCluster *envoy.Cluster
+	if cfg.ClusterJSON != "" {
+		if chain.IsDefault() {
+			// If you haven't done anything to setup the discovery chain, then
+			// you can use the envoy_cluster_json escape hatch.
+			escapeHatchCluster, err = makeClusterFromUserConfig(cfg.ClusterJSON)
+			if err != nil {
+				return resources
+			}
+		} else {
+			s.Logger.Warn("ignoring escape hatch setting, because a discovery chain is configued for",
+				"discovery chain", chain.ServiceName, "upstream", upstream.Identifier(),
+				"envoy_cluster_json", chain.ServiceName)
+		}
 	}
 
 	// Find all resolver nodes.
@@ -312,6 +339,10 @@ func (s *Server) endpointsFromDiscoveryChain(
 		target := chain.Targets[targetID]
 
 		clusterName := CustomizeClusterName(target.Name, chain)
+		if escapeHatchCluster != nil {
+			clusterName = escapeHatchCluster.Name
+		}
+		s.Logger.Debug("generating endpoints for", "cluster", clusterName)
 
 		// Determine if we have to generate the entire cluster differently.
 		failoverThroughMeshGateway := chain.WillFailoverThroughMeshGateway(node)
