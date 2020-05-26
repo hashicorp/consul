@@ -181,10 +181,6 @@ func NewClientLogger(config *Config, logger hclog.InterceptLogger, tlsConfigurat
 		return nil, fmt.Errorf("Failed to start lan serf: %v", err)
 	}
 
-	if c.acls.ACLsEnabled() {
-		go c.monitorACLMode()
-	}
-
 	// Start maintenance task for servers
 	c.routers = router.New(c.logger, c.shutdownCh, c.serf, c.connPool, "")
 	go c.routers.Start()
@@ -192,6 +188,12 @@ func NewClientLogger(config *Config, logger hclog.InterceptLogger, tlsConfigurat
 	// Start LAN event handlers after the router is complete since the event
 	// handlers depend on the router and the router depends on Serf.
 	go c.lanEventHandler()
+
+	// This needs to happen after initializing c.routers to prevent a race
+	// condition where the router manager is used when the pointer is nil
+	if c.acls.ACLsEnabled() {
+		go c.monitorACLMode()
+	}
 
 	if err := c.startEnterprise(); err != nil {
 		c.Shutdown()
