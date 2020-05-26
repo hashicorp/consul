@@ -30,6 +30,9 @@
 /segmentation                                        /mesh                                             301!
 /configuration.html                                  /                                                 301!
 /configuration                                       /                                                 301!
+/docs/connect/mesh_gateway                           /docs/connect/mesh-gateway                        301!
+/docs/connect/ingress_gateway                        /docs/connect/ingress-gateway                     301!
+/docs/connect/terminating_gateway                    /docs/connect/terminating-gateway                 301!
 
 # CLI renames
 

@@ -28,7 +28,7 @@ defined as a their address. The service address registered with Consul, that the
 
 ~> We recommend that terminating gateways are not exposed to the WAN or open internet. This is because terminating gateways
 hold certificates to decrypt Consul Connect traffic directed at them and may be configured with credentials to connect
-to linked services. Connections over the WAN or open internet should flow through [mesh gateways](/docs/connect/mesh_gateway)
+to linked services. Connections over the WAN or open internet should flow through [mesh gateways](/docs/connect/mesh-gateway)
 whenever possible since they are not capable of decrypting traffic or connecting directly to services.
 
 By specifying a path to a [CA file](/docs/agent/config-entries/terminating-gateway#cafile) connections
