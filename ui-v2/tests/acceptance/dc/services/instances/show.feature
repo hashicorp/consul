@@ -68,14 +68,11 @@ Feature: dc / services / instances / show: Show Service Instance
     And I see 3 of the serviceChecks object
     And I see 3 of the nodeChecks object
 
-    When I click tags on the tabs
-    And I see tagsIsSelected on the tabs
+    When I click tags&Meta on the tabs
+    And I see tags&MetaIsSelected on the tabs
 
     Then I see the text "Tag1" in "[data-test-tags] span:nth-child(1)"
     Then I see the text "Tag2" in "[data-test-tags] span:nth-child(2)"
-
-    When I click metadata on the tabs
-    And I see metadataIsSelected on the tabs
     And I see 3 of the metadata object
     And the title should be "service-1-with-id - Consul"
 
