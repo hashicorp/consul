@@ -8,7 +8,6 @@ export default Route.extend({
   intentionRepo: service('repository/intention'),
   chainRepo: service('repository/discovery-chain'),
   proxyRepo: service('repository/proxy'),
-  gatewayRepo: service('repository/gateway'),
   settings: service('settings'),
   model: function(params, transition = {}) {
     const dc = this.modelFor('dc').dc.Name;
@@ -55,7 +54,7 @@ export default Route.extend({
       .then(model => {
         return ['ingress-gateway', 'terminating-gateway'].includes(get(model, 'item.Service.Kind'))
           ? hash({
-              gateway: this.gatewayRepo.findBySlug(params.name, dc, nspace),
+              gateway: this.repo.findGatewayBySlug(params.name, dc, nspace),
               ...model,
             })
           : model;

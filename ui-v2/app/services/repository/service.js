@@ -69,4 +69,16 @@ export default RepositoryService.extend({
       throw e;
     });
   },
+  findGatewayBySlug: function(slug, dc, nspace, configuration) {
+    const query = {
+      dc: dc,
+      ns: nspace,
+      gateway: slug,
+    };
+    if (typeof configuration.cursor !== 'undefined') {
+      query.index = configuration.cursor;
+    }
+    console.log(query);
+    return this.store.query(this.getModelName(), query);
+  },
 });
