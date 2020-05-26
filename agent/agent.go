@@ -1035,13 +1035,18 @@ func (a *Agent) serveHTTP(srv *HTTPServer) error {
 	}
 }
 
+// stopAllWatches stops all the currently running watches
+func (a *Agent) stopAllWatches() {
+	for _, wp := range a.watchPlans {
+		wp.Stop()
+	}
+}
+
 // reloadWatches stops any existing watch plans and attempts to load the given
 // set of watches.
 func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 	// Stop the current watches.
-	for _, wp := range a.watchPlans {
-		wp.Stop()
-	}
+	a.stopAllWatches()
 	a.watchPlans = nil
 
 	// Return if there are no watches now.
@@ -1743,6 +1748,8 @@ func (a *Agent) ShutdownAgent() error {
 		return nil
 	}
 	a.logger.Info("Requesting shutdown")
+	// Stop the watches to avoid any notification/state change during shutdown
+	a.stopAllWatches()
 
 	// Stop the service manager (must happen before we take the stateLock to avoid deadlock)
 	if a.serviceManager != nil {
