@@ -307,6 +307,17 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			setup:  nil,
 		},
 		{
+			name:   "connect-proxy-with-default-chain-and-custom-cluster",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainDefault,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
+					customAppClusterJSON(t, customClusterJSONOptions{
+						Name:        "myservice",
+						IncludeType: false,
+					})
+			},
+		},
+		{
 			name:   "splitter-with-resolver-redirect",
 			create: proxycfg.TestConfigSnapshotDiscoveryChain_SplitterWithResolverRedirectMultiDC,
 			setup:  nil,
