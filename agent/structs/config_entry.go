@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/decode"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/hashstructure"
@@ -283,7 +284,7 @@ func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 		return nil, fmt.Errorf("Kind value in payload is not a string")
 	}
 
-	skipWhenPatching, translateKeysDict, err := ConfigEntryDecodeRulesForKind(entry.GetKind())
+	skipWhenPatching, err := ConfigEntryDecodeRulesForKind(entry.GetKind())
 	if err != nil {
 		return nil, err
 	}
@@ -292,11 +293,12 @@ func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 	// to do this part first.
 	raw = lib.PatchSliceOfMaps(raw, skipWhenPatching, nil)
 
-	lib.TranslateKeys(raw, translateKeysDict)
-
 	var md mapstructure.Metadata
 	decodeConf := &mapstructure.DecoderConfig{
-		DecodeHook:       mapstructure.StringToTimeDurationHookFunc(),
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			decode.HookTranslateKeys,
+			mapstructure.StringToTimeDurationHookFunc(),
+		),
 		Metadata:         &md,
 		Result:           &entry,
 		WeaklyTypedInput: true,
@@ -327,80 +329,48 @@ func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 // ConfigEntryDecodeRulesForKind returns rules for 'fixing' config entry key
 // formats by kind. This is shared between the 'structs' and 'api' variations
 // of config entries.
-func ConfigEntryDecodeRulesForKind(kind string) (skipWhenPatching []string, translateKeysDict map[string]string, err error) {
+func ConfigEntryDecodeRulesForKind(kind string) (skipWhenPatching []string, err error) {
 	switch kind {
 	case ProxyDefaults:
 		return []string{
-				"expose.paths",
-				"Expose.Paths",
-			}, map[string]string{
-				"local_path_port": "localpathport",
-				"listener_port":   "listenerport",
-				"mesh_gateway":    "meshgateway",
-				"config":          "",
-			}, nil
+			"expose.paths",
+			"Expose.Paths",
+		}, nil
 	case ServiceDefaults:
 		return []string{
-				"expose.paths",
-				"Expose.Paths",
-			}, map[string]string{
-				"local_path_port": "localpathport",
-				"listener_port":   "listenerport",
-				"mesh_gateway":    "meshgateway",
-				"external_sni":    "externalsni",
-			}, nil
+			"expose.paths",
+			"Expose.Paths",
+		}, nil
 	case ServiceRouter:
 		return []string{
-				"routes",
-				"Routes",
-				"routes.match.http.header",
-				"Routes.Match.HTTP.Header",
-				"routes.match.http.query_param",
-				"Routes.Match.HTTP.QueryParam",
-			}, map[string]string{
-				"num_retries":              "numretries",
-				"path_exact":               "pathexact",
-				"path_prefix":              "pathprefix",
-				"path_regex":               "pathregex",
-				"prefix_rewrite":           "prefixrewrite",
-				"query_param":              "queryparam",
-				"request_timeout":          "requesttimeout",
-				"retry_on_connect_failure": "retryonconnectfailure",
-				"retry_on_status_codes":    "retryonstatuscodes",
-				"service_subset":           "servicesubset",
-			}, nil
+			"routes",
+			"Routes",
+			"routes.match.http.header",
+			"Routes.Match.HTTP.Header",
+			"routes.match.http.query_param",
+			"Routes.Match.HTTP.QueryParam",
+		}, nil
 	case ServiceSplitter:
 		return []string{
-				"splits",
-				"Splits",
-			}, map[string]string{
-				"service_subset": "servicesubset",
-			}, nil
-	case ServiceResolver:
-		return nil, map[string]string{
-			"connect_timeout": "connecttimeout",
-			"default_subset":  "defaultsubset",
-			"only_passing":    "onlypassing",
-			"service_subset":  "servicesubset",
+			"splits",
+			"Splits",
 		}, nil
+	case ServiceResolver:
+		return nil, nil
 	case IngressGateway:
 		return []string{
 			"listeners",
 			"Listeners",
 			"listeners.services",
 			"Listeners.Services",
-		}, nil, nil
+		}, nil
 	case TerminatingGateway:
 		return []string{
-				"services",
-				"Services",
-			}, map[string]string{
-				"ca_file":   "cafile",
-				"cert_file": "certfile",
-				"key_file":  "keyfile",
-			}, nil
+			"services",
+			"Services",
+		}, nil
 	default:
-		return nil, nil, fmt.Errorf("kind %q should be explicitly handled here", kind)
+		return nil, fmt.Errorf("kind %q should be explicitly handled here", kind)
 	}
 }
 
