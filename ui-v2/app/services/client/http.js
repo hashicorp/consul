@@ -69,18 +69,26 @@ export default Service.extend({
   settings: service('settings'),
   init: function() {
     this._super(...arguments);
+    this._listeners = this.dom.listeners();
     const maxConnections = env('CONSUL_HTTP_MAX_CONNECTIONS');
     set(this, 'connections', getObjectPool(dispose, maxConnections));
     if (typeof maxConnections !== 'undefined') {
       set(this, 'maxConnections', maxConnections);
-      const doc = this.dom.document();
       // when the user hides the tab, abort all connections
-      doc.addEventListener('visibilitychange', e => {
-        if (e.target.hidden) {
-          this.connections.purge();
-        }
+      this._listeners.add(this.dom.document(), {
+        visibilitychange: e => {
+          if (e.target.hidden) {
+            this.connections.purge();
+          }
+        },
       });
     }
+  },
+  willDestroy: function() {
+    this._listeners.remove();
+    this.connections.purge();
+    set(this, 'connections', undefined);
+    this._super(...arguments);
   },
   url: function() {
     return url(...arguments);
@@ -235,14 +243,18 @@ export default Service.extend({
     this.connections.purge();
   },
   whenAvailable: function(e) {
-    const doc = this.dom.document();
     // if we are using a connection limited protocol and the user has hidden the tab (hidden browser/tab switch)
     // any aborted errors should restart
+    const doc = this.dom.document();
     if (typeof this.maxConnections !== 'undefined' && doc.hidden) {
-      return new Promise(function(resolve) {
-        doc.addEventListener('visibilitychange', function listen(event) {
-          doc.removeEventListener('visibilitychange', listen);
-          resolve(e);
+      return new Promise(resolve => {
+        const remove = this._listeners.add(doc, {
+          visibilitychange: function(event) {
+            remove();
+            // we resolve with the event that comes from
+            // whenAvailable not visibilitychange
+            resolve(e);
+          },
         });
       });
     }

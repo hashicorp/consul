@@ -93,7 +93,7 @@
       @nspace={{or value.Namespace nspace}}
       @type={{if value.Name 'oidc' 'secret'}}
       @value={{if value.Name value.Name value}}
-      @onchange={{action onsubmit}}
+      @onchange={{queue (action dispatch "RESET") (action onsubmit)}}
       @onerror={{queue (action (mut error) value="error.errors.firstObject") (action dispatch "ERROR")}}
     />
   </State>
