@@ -35,11 +35,21 @@
           <BlockSlot @name="empty">
             <EmptyState @allowLogin={{true}}>
               <BlockSlot @name="header">
-                <h2>{{if (gt services.length 0) "No services found" "Welcome to Services"}}</h2>
+                <h2>
+                  {{#if (gt services.length 0)}}
+                    No services found
+                  {{else}}
+                    Welcome to Services
+                  {{/if}}
+                </h2>
               </BlockSlot>
               <BlockSlot @name="body">
                 <p>
-                  There don't seem to be any registered services, or you may not have access to view services yet.
+                  {{#if (gt services.length 0)}}
+                    No services where found matching that search, or you may not have access to view the services you are searching for.
+                  {{else}}
+                    There don't seem to be any registered services, or you may not have access to view services yet.
+                  {{/if}}
                 </p>
               </BlockSlot>
               <BlockSlot @name="actions">

@@ -167,9 +167,26 @@
         </TabularCollection>
       </BlockSlot>
       <BlockSlot @name="empty">
-        <p>
-          There are no Tokens.
-        </p>
+            <EmptyState @allowLogin={{true}}>
+              <BlockSlot @name="header">
+                <h2>
+                  {{#if (gt items.length 0)}}
+                    No tokens found
+                  {{else}}
+                    Welcome to ACL Tokens
+                  {{/if}}
+                </h2>
+              </BlockSlot>
+              <BlockSlot @name="body">
+                <p>
+                  {{#if (gt items.length 0)}}
+                    No tokens where found matching that search, or you may not have access to view the tokens you are searching for.
+                  {{else}}
+                    There don't seem to be any tokens, or you may not have access to view tokens yet.
+                  {{/if}}
+                </p>
+              </BlockSlot>
+            </EmptyState>
       </BlockSlot>
     </ChangeableSet>
   </BlockSlot>

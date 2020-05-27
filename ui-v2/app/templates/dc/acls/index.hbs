@@ -130,20 +130,22 @@
       <BlockSlot @name="empty">
         <EmptyState @allowLogin={{true}}>
           <BlockSlot @name="header">
-            <h2>No ACLs</h2>
+            <h2>
+              {{#if (gt items.length 0)}}
+                No ACLs found
+              {{else}}
+                Welcome to ACLs
+              {{/if}}
+            </h2>
           </BlockSlot>
           <BlockSlot @name="body">
             <p>
-              There don't seem to be any ACLs yet, or you may not have access to view ACLs yet.
+              {{#if (gt items.length 0)}}
+                No ACLs where found matching that search, or you may not have access to view the ACLs you are searching for.
+              {{else}}
+                There don't seem to be any ACLs yet, or you may not have access to view ACLs yet.
+              {{/if}}
             </p>
-          </BlockSlot>
-          <BlockSlot @name="actions">
-            <li class="docs-link">
-              <a href="{{env 'CONSUL_DOCS_URL'}}" rel="noopener noreferrer" target="_blank">Read the documentation</a>
-            </li>
-            <li class="learn-link">
-              <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/" rel="noopener noreferrer" target="_blank">Follow the guide</a>
-            </li>
           </BlockSlot>
         </EmptyState>
       </BlockSlot>

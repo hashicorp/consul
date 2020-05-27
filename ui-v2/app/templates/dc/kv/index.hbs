@@ -89,11 +89,21 @@
       <BlockSlot @name="empty">
         <EmptyState @allowLogin={{true}}>
           <BlockSlot @name="header">
-            <h2>Welcome to Key/Value</h2>
+            <h2>
+              {{#if (gt items.length 0)}}
+                No K/V pairs found
+              {{else}}
+                Welcome to Key/Value
+              {{/if}}
+            </h2>
           </BlockSlot>
           <BlockSlot @name="body">
             <p>
-              You don't have any K/V pairs, or you may not have access to view K/V pairs yet.
+              {{#if (gt items.length 0)}}
+                No K/V pairs where found matching that search, or you may not have access to view the K/V pairs you are searching for.
+              {{else}}
+                You don't have any K/V pairs, or you may not have access to view K/V pairs yet.
+              {{/if}}
             </p>
           </BlockSlot>
           <BlockSlot @name="actions">

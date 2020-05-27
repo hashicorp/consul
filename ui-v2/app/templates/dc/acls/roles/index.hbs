@@ -98,11 +98,21 @@
       <BlockSlot @name="empty">
         <EmptyState @allowLogin={{true}}>
           <BlockSlot @name="header">
-            <h2>Welcome to Roles</h2>
+            <h2>
+              {{#if (gt items.length 0)}}
+                No tokens found
+              {{else}}
+                Welcome to Roles
+              {{/if}}
+            </h2>
           </BlockSlot>
           <BlockSlot @name="body">
             <p>
-              There don't seem to be any roles, or you may not have access to view roles yet.
+              {{#if (gt items.length 0)}}
+                No roles where found matching that search, or you may not have access to view the roles you are searching for.
+              {{else}}
+                There don't seem to be any roles, or you may not have access to view roles yet.
+              {{/if}}
             </p>
           </BlockSlot>
           <BlockSlot @name="actions">
