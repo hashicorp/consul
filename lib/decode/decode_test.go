@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/mapstructure"
 	"github.com/stretchr/testify/require"
 )
@@ -204,4 +205,70 @@ type nested struct {
 
 type Item struct {
 	Name string
+}
+
+func TestHookWeakDecodeFromSlice_DoesNotModifySliceTargets(t *testing.T) {
+	source := `
+slice {
+    name = "first"
+}
+slice {
+    name = "second"
+}
+`
+	target := &nested{}
+	err := decodeHCLToMapStructure(source, target)
+	require.NoError(t, err)
+
+	expected := &nested{
+		Slice: []Item{{Name: "first"}, {Name: "second"}},
+	}
+	require.Equal(t, target, expected)
+}
+
+func decodeHCLToMapStructure(source string, target interface{}) error {
+	raw := map[string]interface{}{}
+	err := hcl.Decode(&raw, source)
+	if err != nil {
+		return err
+	}
+
+	md := new(mapstructure.Metadata)
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		DecodeHook: HookWeakDecodeFromSlice,
+		Metadata:   md,
+		Result:     target,
+	})
+	return decoder.Decode(&raw)
+}
+
+func TestHookWeakDecodeFromSlice_ErrorsWithMultipleNestedBlocks(t *testing.T) {
+	source := `
+item {
+    name = "first"
+}
+item {
+    name = "second"
+}
+`
+	target := &nested{}
+	err := decodeHCLToMapStructure(source, target)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "'Item' expected a map, got 'slice'")
+}
+
+func TestHookWeakDecodeFromSlice_UnpacksNestedBlocks(t *testing.T) {
+	source := `
+item {
+    name = "first"
+}
+`
+	target := &nested{}
+	err := decodeHCLToMapStructure(source, target)
+	require.NoError(t, err)
+
+	expected := &nested{
+		Item: Item{Name: "first"},
+	}
+	require.Equal(t, target, expected)
 }
