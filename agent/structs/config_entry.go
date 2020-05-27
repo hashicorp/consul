@@ -53,10 +53,10 @@ type ServiceConfigEntry struct {
 	Kind        string
 	Name        string
 	Protocol    string
-	MeshGateway MeshGatewayConfig `json:",omitempty"`
+	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway"`
 	Expose      ExposeConfig      `json:",omitempty"`
 
-	ExternalSNI string `json:",omitempty"`
+	ExternalSNI string `json:",omitempty" alias:"external_sni"`
 
 	// TODO(banks): enable this once we have upstreams supported too. Enabling
 	// sidecars actually makes no sense and adds complications when you don't
@@ -134,7 +134,7 @@ type ProxyConfigEntry struct {
 	Kind        string
 	Name        string
 	Config      map[string]interface{}
-	MeshGateway MeshGatewayConfig `json:",omitempty"`
+	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway"`
 	Expose      ExposeConfig      `json:",omitempty"`
 
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`

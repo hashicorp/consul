@@ -248,15 +248,15 @@ type LinkedService struct {
 
 	// CAFile is the optional path to a CA certificate to use for TLS connections
 	// from the gateway to the linked service
-	CAFile string `json:",omitempty"`
+	CAFile string `json:",omitempty" alias:"ca_file"`
 
 	// CertFile is the optional path to a client certificate to use for TLS connections
 	// from the gateway to the linked service
-	CertFile string `json:",omitempty"`
+	CertFile string `json:",omitempty" alias:"cert_file"`
 
 	// KeyFile is the optional path to a private key to use for TLS connections
 	// from the gateway to the linked service
-	KeyFile string `json:",omitempty"`
+	KeyFile string `json:",omitempty" alias:"key_file"`
 
 	// SNI is the optional name to specify during the TLS handshake with a linked service
 	SNI string `json:",omitempty"`
