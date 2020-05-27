@@ -10,7 +10,8 @@ import (
 )
 
 type FederationStateReplicator struct {
-	srv *Server
+	srv            *Server
+	gatewayLocator *GatewayLocator
 }
 
 var _ IndexReplicatorDelegate = (*FederationStateReplicator)(nil)
@@ -26,6 +27,14 @@ func (r *FederationStateReplicator) MetricName() string { return "federation-sta
 
 // FetchRemote implements IndexReplicatorDelegate.
 func (r *FederationStateReplicator) FetchRemote(lastRemoteIndex uint64) (int, interface{}, uint64, error) {
+	lenRemote, remote, remoteIndex, err := r.fetchRemote(lastRemoteIndex)
+	if r.gatewayLocator != nil {
+		r.gatewayLocator.SetLastFederationStateReplicationError(err)
+	}
+	return lenRemote, remote, remoteIndex, err
+}
+
+func (r *FederationStateReplicator) fetchRemote(lastRemoteIndex uint64) (int, interface{}, uint64, error) {
 	req := structs.DCSpecificRequest{
 		Datacenter: r.srv.config.PrimaryDatacenter,
 		QueryOptions: structs.QueryOptions{
