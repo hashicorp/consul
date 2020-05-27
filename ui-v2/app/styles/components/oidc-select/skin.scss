@@ -1,5 +1,4 @@
 %oidc-select [class$='-oidc-provider']::before {
-  @extend %as-pseudo;
   width: 22px;
   height: 22px;
   /* this is to prevent resizing in an inline-flex context */
@@ -8,23 +7,14 @@
   margin-right: 10px;
 }
 %oidc-select .auth0-oidc-provider::before {
-  @extend %with-logo-auth0-color-icon;
+  @extend %with-logo-auth0-color-icon, %as-pseudo;
 }
 %oidc-select .okta-oidc-provider::before {
-  @extend %with-logo-okta-color-icon;
+  @extend %with-logo-okta-color-icon, %as-pseudo;
 }
-%oidc-select .gitlab-oidc-provider::before {
-  @extend %with-logo-gitlab-color-icon;
+%oidc-select .google-oidc-provider::before {
+  @extend %with-logo-google-color-icon, %as-pseudo;
 }
-%oidc-select .aws-oidc-provider::before {
-  @extend %with-logo-aws-color-icon;
-}
-%oidc-select .azure-oidc-provider::before {
-  @extend %with-logo-azure-color-icon;
-}
-%oidc-select .bitbucket-oidc-provider::before {
-  @extend %with-logo-bitbucket-color-icon;
-}
-%oidc-select .gcp-oidc-provider::before {
-  @extend %with-logo-gcp-color-icon;
+%oidc-select .microsoft-oidc-provider::before {
+  @extend %with-logo-microsoft-color-icon, %as-pseudo;
 }
