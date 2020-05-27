@@ -9,6 +9,7 @@ import (
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/decode"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -90,9 +91,9 @@ func (s *HTTPServer) DiscoveryChainRead(resp http.ResponseWriter, req *http.Requ
 
 // discoveryChainReadRequest is the API variation of structs.DiscoveryChainRequest
 type discoveryChainReadRequest struct {
-	OverrideMeshGateway    structs.MeshGatewayConfig
-	OverrideProtocol       string
-	OverrideConnectTimeout time.Duration
+	OverrideMeshGateway    structs.MeshGatewayConfig `alias:"override_mesh_gateway"`
+	OverrideProtocol       string                    `alias:"override_protocol"`
+	OverrideConnectTimeout time.Duration             `alias:"override_connect_timeout"`
 }
 
 // discoveryChainReadResponse is the API variation of structs.DiscoveryChainResponse
@@ -105,15 +106,12 @@ func decodeDiscoveryChainReadRequest(raw map[string]interface{}) (*discoveryChai
 	// to do this part first.
 	raw = lib.PatchSliceOfMaps(raw, nil, nil)
 
-	lib.TranslateKeys(raw, map[string]string{
-		"override_mesh_gateway":    "overridemeshgateway",
-		"override_protocol":        "overrideprotocol",
-		"override_connect_timeout": "overrideconnecttimeout",
-	})
-
 	var apiReq discoveryChainReadRequest
 	decodeConf := &mapstructure.DecoderConfig{
-		DecodeHook:       mapstructure.StringToTimeDurationHookFunc(),
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			decode.HookTranslateKeys,
+			mapstructure.StringToTimeDurationHookFunc(),
+		),
 		Result:           &apiReq,
 		WeaklyTypedInput: true,
 	}
