@@ -12,30 +12,30 @@
       </BlockSlot>
       <BlockSlot @name="header">
           <h1>
-              Services <em>{{format-number items.length}} total</em>
+              Services <em>{{format-number services.length}} total</em>
           </h1>
           <label for="toolbar-toggle"></label>
       </BlockSlot>
       <BlockSlot @name="toolbar">
-        {{#if (gt items.length 0) }}
+        {{#if (gt services.length 0) }}
           <CatalogToolbar
-            @searchable={{searchable}}
             @value={{search}}
             @selected={{sort.selected}}
             @options={{sort.items}}
+            @onsearch={{action (mut search) value="target.value"}}
             @onchange={{action (mut sortBy) value='target.selected.key'}}
           />
         {{/if}}
       </BlockSlot>
       <BlockSlot @name="content">
-        <ChangeableSet @dispatcher={{searchable}}>
+        <ChangeableSet @dispatcher={{get-searchable 'service' (sort-by sort.selected.key services)}} @terms={{search}}>
           <BlockSlot @name="set" as |filtered|>
-            <ConsulServiceList @routeName="dc.services.show" @items={{sort-by sort.selected.key filtered}} @proxies={{proxies}}/>
+            <ConsulServiceList @routeName="dc.services.show" @items={{filtered}} @proxies={{proxies}}/>
           </BlockSlot>
           <BlockSlot @name="empty">
             <EmptyState @allowLogin={{true}}>
               <BlockSlot @name="header">
-                <h2>Welcome to Services</h2>
+                <h2>{{if (gt services.length 0) "No services found" "Welcome to Services"}}</h2>
               </BlockSlot>
               <BlockSlot @name="body">
                 <p>
