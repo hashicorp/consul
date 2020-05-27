@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
@@ -64,7 +64,7 @@ func TestInternal_NodeInfo(t *testing.T) {
 	if nodes[0].Node != "foo" {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
-	if !lib.StrContains(nodes[0].Services[0].Tags, "master") {
+	if !stringslice.Contains(nodes[0].Services[0].Tags, "master") {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
 	if nodes[0].Checks[0].Status != api.HealthPassing {
@@ -139,7 +139,7 @@ func TestInternal_NodeDump(t *testing.T) {
 		switch node.Node {
 		case "foo":
 			foundFoo = true
-			if !lib.StrContains(node.Services[0].Tags, "master") {
+			if !stringslice.Contains(node.Services[0].Tags, "master") {
 				t.Fatalf("Bad: %v", nodes[0])
 			}
 			if node.Checks[0].Status != api.HealthPassing {
@@ -148,7 +148,7 @@ func TestInternal_NodeDump(t *testing.T) {
 
 		case "bar":
 			foundBar = true
-			if !lib.StrContains(node.Services[0].Tags, "slave") {
+			if !stringslice.Contains(node.Services[0].Tags, "slave") {
 				t.Fatalf("Bad: %v", nodes[1])
 			}
 			if node.Checks[0].Status != api.HealthWarning {

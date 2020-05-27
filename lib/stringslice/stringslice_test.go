@@ -1,4 +1,4 @@
-package lib
+package stringslice
 
 import (
 	"fmt"
@@ -7,7 +7,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestStringSliceEqual(t *testing.T) {
+func TestContains(t *testing.T) {
+	l := []string{"a", "b", "c"}
+	if !Contains(l, "b") {
+		t.Fatalf("should contain")
+	}
+	if Contains(l, "d") {
+		t.Fatalf("should not contain")
+	}
+}
+
+func TestEqual(t *testing.T) {
 	for _, tc := range []struct {
 		a, b  []string
 		equal bool
@@ -23,13 +33,13 @@ func TestStringSliceEqual(t *testing.T) {
 	} {
 		name := fmt.Sprintf("%#v =?= %#v", tc.a, tc.b)
 		t.Run(name, func(t *testing.T) {
-			require.Equal(t, tc.equal, StringSliceEqual(tc.a, tc.b))
-			require.Equal(t, tc.equal, StringSliceEqual(tc.b, tc.a))
+			require.Equal(t, tc.equal, Equal(tc.a, tc.b))
+			require.Equal(t, tc.equal, Equal(tc.b, tc.a))
 		})
 	}
 }
 
-func TestStringSliceMergeSorted(t *testing.T) {
+func TestMergeSorted(t *testing.T) {
 	for name, tc := range map[string]struct {
 		a, b   []string
 		expect []string
@@ -45,8 +55,8 @@ func TestStringSliceMergeSorted(t *testing.T) {
 	} {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
-			require.Equal(t, tc.expect, StringSliceMergeSorted(tc.a, tc.b))
-			require.Equal(t, tc.expect, StringSliceMergeSorted(tc.b, tc.a))
+			require.Equal(t, tc.expect, MergeSorted(tc.a, tc.b))
+			require.Equal(t, tc.expect, MergeSorted(tc.b, tc.a))
 		})
 	}
 }

@@ -1,9 +1,23 @@
-package lib
+package stringslice
 
-// StringSliceEqual compares two string slices for equality. Both the existence
+// StrContains => Contains
+// StringSliceEqual => Equal
+// StringSliceMergeSorted => MergeSorted
+
+// Contains checks if a list contains a string
+func Contains(l []string, s string) bool {
+	for _, v := range l {
+		if v == s {
+			return true
+		}
+	}
+	return false
+}
+
+// Equal compares two string slices for equality. Both the existence
 // of the elements and the order of those elements matter for equality. Empty
 // slices are treated identically to nil slices.
-func StringSliceEqual(a, b []string) bool {
+func Equal(a, b []string) bool {
 	if len(a) != len(b) {
 		return false
 	}
@@ -16,11 +30,11 @@ func StringSliceEqual(a, b []string) bool {
 	return true
 }
 
-// StringSliceMergeSorted takes two string slices that are assumed to be sorted
+// MergeSorted takes two string slices that are assumed to be sorted
 // and does a zipper merge of the two sorted slices, removing any cross-slice
 // duplicates. If any individual slice contained duplicates those will be
 // retained.
-func StringSliceMergeSorted(a, b []string) []string {
+func MergeSorted(a, b []string) []string {
 	if len(a) == 0 && len(b) == 0 {
 		return nil
 	} else if len(a) == 0 {

@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/go-raftchunking"
 	"github.com/stretchr/testify/assert"
@@ -456,7 +456,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	if len(fooSrv.Services) != 2 {
 		t.Fatalf("Bad: %v", fooSrv)
 	}
-	if !lib.StrContains(fooSrv.Services["db"].Tags, "primary") {
+	if !stringslice.Contains(fooSrv.Services["db"].Tags, "primary") {
 		t.Fatalf("Bad: %v", fooSrv)
 	}
 	if fooSrv.Services["db"].Port != 5000 {
