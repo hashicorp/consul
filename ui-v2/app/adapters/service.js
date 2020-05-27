@@ -13,12 +13,12 @@ export default Adapter.extend({
       `;
     } else {
       return request`
-      GET /v1/internal/ui/services?${{ dc }}
+        GET /v1/internal/ui/services?${{ dc }}
 
-      ${{
-        ...this.formatNspace(ns),
-        index,
-      }}
+        ${{
+          ...this.formatNspace(ns),
+          index,
+        }}
     `;
     }
   },
