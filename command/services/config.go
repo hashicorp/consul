@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib/decode"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -52,8 +53,12 @@ func serviceToAgentService(svc *structs.ServiceDefinition) (*api.AgentServiceReg
 	// helper function in case we need to change the logic in the future.
 	var result api.AgentServiceRegistration
 	d, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		Result:           &result,
-		DecodeHook:       timeDurationToStringHookFunc(),
+		Result: &result,
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			decode.HookWeakDecodeFromSlice,
+			decode.HookTranslateKeys,
+			timeDurationToStringHookFunc(),
+		),
 		WeaklyTypedInput: true,
 	})
 	if err != nil {

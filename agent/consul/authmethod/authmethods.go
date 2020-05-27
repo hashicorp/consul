@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib/decode"
 	"github.com/hashicorp/go-hclog"
 	"github.com/mitchellh/mapstructure"
 )
@@ -185,6 +186,7 @@ func Types() []string {
 // ParseConfig parses the config block for a auth method.
 func ParseConfig(rawConfig map[string]interface{}, out interface{}) error {
 	decodeConf := &mapstructure.DecoderConfig{
+		DecodeHook:       decode.HookWeakDecodeFromSlice,
 		Result:           out,
 		WeaklyTypedInput: true,
 		ErrorUnused:      true,

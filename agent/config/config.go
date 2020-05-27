@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/decode"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl"
@@ -49,76 +48,19 @@ func Parse(data string, format string) (c Config, keys []string, err error) {
 		return Config{}, nil, err
 	}
 
-	// We want to be able to report fields which we cannot map as an
-	// error so that users find typos in their configuration quickly. To
-	// achieve this we use the mapstructure library which maps a a raw
-	// map[string]interface{} to a nested structure and reports unused
-	// fields. The input for a mapstructure.Decode expects a
-	// map[string]interface{} as produced by encoding/json.
-	//
-	// The HCL language allows to repeat map keys which forces it to
-	// store nested structs as []map[string]interface{} instead of
-	// map[string]interface{}. This is an ambiguity which makes the
-	// generated structures incompatible with a corresponding JSON
-	// struct. It also does not work well with the mapstructure library.
-	//
-	// In order to still use the mapstructure library to find unused
-	// fields we patch instances of []map[string]interface{} to a
-	// map[string]interface{} before we decode that into a Config
-	// struct.
-	//
-	// However, Config has some fields which are either
-	// []map[string]interface{} or are arrays of structs which
-	// encoding/json will decode to []map[string]interface{}. Therefore,
-	// we need to be able to specify exceptions for this mapping. The
-	// PatchSliceOfMaps() implements that mapping. All fields of type
-	// []map[string]interface{} are mapped to map[string]interface{} if
-	// it contains at most one value. If there is more than one value it
-	// panics. To define exceptions one can specify the nested field
-	// names in dot notation.
-	//
-	// todo(fs): There might be an easier way to achieve the same thing
-	// todo(fs): but this approach works for now.
-	m := lib.PatchSliceOfMaps(raw, []string{
-		"checks",
-		"segments",
-		"service.checks",
-		"services",
-		"services.checks",
-		"watches",
-		"service.connect.proxy.config.upstreams", // Deprecated
-		"services.connect.proxy.config.upstreams", // Deprecated
-		"service.connect.proxy.upstreams",
-		"services.connect.proxy.upstreams",
-		"service.connect.proxy.expose.paths",
-		"services.connect.proxy.expose.paths",
-		"service.proxy.upstreams",
-		"services.proxy.upstreams",
-		"service.proxy.expose.paths",
-		"services.proxy.expose.paths",
-		"acl.tokens.managed_service_provider",
-
-		// Need all the service(s) exceptions also for nested sidecar service.
-		"service.connect.sidecar_service.checks",
-		"services.connect.sidecar_service.checks",
-		"service.connect.sidecar_service.proxy.upstreams",
-		"services.connect.sidecar_service.proxy.upstreams",
-		"service.connect.sidecar_service.proxy.expose.paths",
-		"services.connect.sidecar_service.proxy.expose.paths",
-	}, []string{
-		"config_entries.bootstrap", // completely ignore this tree (fixed elsewhere)
-	})
-
 	var md mapstructure.Metadata
 	d, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		DecodeHook: decode.HookTranslateKeys,
-		Metadata:   &md,
-		Result:     &c,
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			decode.HookWeakDecodeFromSlice, // TODO: only apply when format is hcl
+			decode.HookTranslateKeys,
+		),
+		Metadata: &md,
+		Result:   &c,
 	})
 	if err != nil {
 		return Config{}, nil, err
 	}
-	if err := d.Decode(m); err != nil {
+	if err := d.Decode(raw); err != nil {
 		return Config{}, nil, err
 	}
 

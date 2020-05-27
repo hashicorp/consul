@@ -114,7 +114,10 @@ type GatewayConfig struct {
 func ParseGatewayConfig(m map[string]interface{}) (GatewayConfig, error) {
 	var cfg GatewayConfig
 	d, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		DecodeHook:       decode.HookTranslateKeys,
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			decode.HookWeakDecodeFromSlice,
+			decode.HookTranslateKeys,
+		),
 		Result:           &cfg,
 		WeaklyTypedInput: true,
 	})
@@ -212,7 +215,11 @@ func (p PassiveHealthCheck) AsOutlierDetection() *envoycluster.OutlierDetection 
 func ParseUpstreamConfigNoDefaults(m map[string]interface{}) (UpstreamConfig, error) {
 	var cfg UpstreamConfig
 	config := &mapstructure.DecoderConfig{
-		DecodeHook:       mapstructure.StringToTimeDurationHookFunc(),
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			decode.HookWeakDecodeFromSlice,
+			decode.HookTranslateKeys,
+			mapstructure.StringToTimeDurationHookFunc(),
+		),
 		Result:           &cfg,
 		WeaklyTypedInput: true,
 	}

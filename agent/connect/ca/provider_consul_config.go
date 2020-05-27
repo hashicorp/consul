@@ -6,13 +6,18 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib/decode"
 	"github.com/mitchellh/mapstructure"
 )
 
 func ParseConsulCAConfig(raw map[string]interface{}) (*structs.ConsulCAProviderConfig, error) {
 	config := defaultConsulCAProviderConfig()
 	decodeConf := &mapstructure.DecoderConfig{
-		DecodeHook:       structs.ParseDurationFunc(),
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			decode.HookWeakDecodeFromSlice,
+			decode.HookTranslateKeys,
+			structs.ParseDurationFunc(),
+		),
 		Result:           &config,
 		WeaklyTypedInput: true,
 	}

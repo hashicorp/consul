@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/decode"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -290,7 +291,11 @@ func (c *CAConfiguration) GetCommonConfig() (*CommonCAProviderConfig, error) {
 	config.CSRMaxPerSecond = 50 // See doc comment for rationale here.
 
 	decodeConf := &mapstructure.DecoderConfig{
-		DecodeHook:       ParseDurationFunc(),
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			decode.HookWeakDecodeFromSlice,
+			decode.HookTranslateKeys,
+			ParseDurationFunc(),
+		),
 		Result:           &config,
 		WeaklyTypedInput: true,
 	}
