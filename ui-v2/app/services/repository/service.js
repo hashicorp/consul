@@ -78,7 +78,6 @@ export default RepositoryService.extend({
     if (typeof configuration.cursor !== 'undefined') {
       query.index = configuration.cursor;
     }
-    console.log(query);
     return this.store.query(this.getModelName(), query);
   },
 });

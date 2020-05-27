@@ -54,7 +54,7 @@ export default Route.extend({
       .then(model => {
         return ['ingress-gateway', 'terminating-gateway'].includes(get(model, 'item.Service.Kind'))
           ? hash({
-              gateway: this.repo.findGatewayBySlug(params.name, dc, nspace),
+              gatewayServices: this.repo.findGatewayBySlug(params.name, dc, nspace),
               ...model,
             })
           : model;

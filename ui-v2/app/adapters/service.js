@@ -3,7 +3,6 @@ import Adapter from './application';
 export default Adapter.extend({
   requestForQuery: function(request, { dc, ns, index, gateway }) {
     if (typeof gateway !== 'undefined') {
-      console.log(index);
       return request`
         GET /v1/internal/ui/gateway-services-nodes/${gateway}?${{ dc }}
 
