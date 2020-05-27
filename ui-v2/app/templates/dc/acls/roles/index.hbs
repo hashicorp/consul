@@ -96,9 +96,24 @@
         </TabularCollection>
       </BlockSlot>
       <BlockSlot @name="empty">
-        <p>
-          There are no Roles.
-        </p>
+        <EmptyState @allowLogin={{true}}>
+          <BlockSlot @name="header">
+            <h2>Welcome to Roles</h2>
+          </BlockSlot>
+          <BlockSlot @name="body">
+            <p>
+              There don't seem to be any roles, or you may not have access to view roles yet.
+            </p>
+          </BlockSlot>
+          <BlockSlot @name="actions">
+            <li class="docs-link">
+              <a href="{{env 'CONSUL_DOCS_URL'}}/commands/acl/role" rel="noopener noreferrer" target="_blank">Documentation on roles</a>
+            </li>
+            <li class="learn-link">
+              <a href="{{env 'CONSUL_DOCS_API_URL'}}/acl/roles.html" rel="noopener noreferrer" target="_blank">Read the guide</a>
+            </li>
+          </BlockSlot>
+        </EmptyState>
       </BlockSlot>
     </ChangeableSet>
   </BlockSlot>

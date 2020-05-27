@@ -128,9 +128,24 @@
         </TabularCollection>
       </BlockSlot>
       <BlockSlot @name="empty">
-        <p>
-          There are no ACLs.
-        </p>
+        <EmptyState @allowLogin={{true}}>
+          <BlockSlot @name="header">
+            <h2>No ACLs</h2>
+          </BlockSlot>
+          <BlockSlot @name="body">
+            <p>
+              There don't seem to be any ACLs yet, or you may not have access to view ACLs yet.
+            </p>
+          </BlockSlot>
+          <BlockSlot @name="actions">
+            <li class="docs-link">
+              <a href="{{env 'CONSUL_DOCS_URL'}}" rel="noopener noreferrer" target="_blank">Read the documentation</a>
+            </li>
+            <li class="learn-link">
+              <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/" rel="noopener noreferrer" target="_blank">Follow the guide</a>
+            </li>
+          </BlockSlot>
+        </EmptyState>
       </BlockSlot>
     </ChangeableSet>
   </BlockSlot>

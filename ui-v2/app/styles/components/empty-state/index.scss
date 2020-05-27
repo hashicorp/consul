@@ -16,3 +16,6 @@
 %empty-state > ul > li {
   @extend %with-popover-menu;
 }
+%empty-state label {
+  @extend %primary-button;
+}
