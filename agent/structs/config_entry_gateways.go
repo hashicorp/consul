@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/miekg/dns"
 )
 
@@ -377,7 +377,7 @@ func (g *GatewayService) IsSame(o *GatewayService) bool {
 		g.GatewayKind == o.GatewayKind &&
 		g.Port == o.Port &&
 		g.Protocol == o.Protocol &&
-		lib.StringSliceEqual(g.Hosts, o.Hosts) &&
+		stringslice.Equal(g.Hosts, o.Hosts) &&
 		g.CAFile == o.CAFile &&
 		g.CertFile == o.CertFile &&
 		g.KeyFile == o.KeyFile &&

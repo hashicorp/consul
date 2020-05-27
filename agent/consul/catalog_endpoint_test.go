@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
@@ -2440,7 +2441,7 @@ func TestCatalog_NodeServices(t *testing.T) {
 		t.Fatalf("bad: %v", out)
 	}
 	services := out.NodeServices.Services
-	if !lib.StrContains(services["db"].Tags, "primary") || services["db"].Port != 5000 {
+	if !stringslice.Contains(services["db"].Tags, "primary") || services["db"].Port != 5000 {
 		t.Fatalf("bad: %v", out)
 	}
 	if len(services["web"].Tags) != 0 || services["web"].Port != 80 {

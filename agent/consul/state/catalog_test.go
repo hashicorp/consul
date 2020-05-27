@@ -9,7 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-memdb"
 	uuid "github.com/hashicorp/go-uuid"
@@ -1814,7 +1814,7 @@ func TestStateStore_ServiceNodes(t *testing.T) {
 	if nodes[0].ServiceID != "db" {
 		t.Fatalf("bad: %v", nodes)
 	}
-	if !lib.StrContains(nodes[0].ServiceTags, "slave") {
+	if !stringslice.Contains(nodes[0].ServiceTags, "slave") {
 		t.Fatalf("bad: %v", nodes)
 	}
 	if nodes[0].ServicePort != 8000 {
@@ -1829,7 +1829,7 @@ func TestStateStore_ServiceNodes(t *testing.T) {
 	if nodes[1].ServiceID != "db2" {
 		t.Fatalf("bad: %v", nodes)
 	}
-	if !lib.StrContains(nodes[1].ServiceTags, "slave") {
+	if !stringslice.Contains(nodes[1].ServiceTags, "slave") {
 		t.Fatalf("bad: %v", nodes)
 	}
 	if nodes[1].ServicePort != 8001 {
@@ -1844,7 +1844,7 @@ func TestStateStore_ServiceNodes(t *testing.T) {
 	if nodes[2].ServiceID != "db" {
 		t.Fatalf("bad: %v", nodes)
 	}
-	if !lib.StrContains(nodes[2].ServiceTags, "master") {
+	if !stringslice.Contains(nodes[2].ServiceTags, "master") {
 		t.Fatalf("bad: %v", nodes)
 	}
 	if nodes[2].ServicePort != 8000 {
@@ -1947,7 +1947,7 @@ func TestStateStore_ServiceTagNodes(t *testing.T) {
 	if nodes[0].Address != "127.0.0.1" {
 		t.Fatalf("bad: %v", nodes)
 	}
-	if !lib.StrContains(nodes[0].ServiceTags, "master") {
+	if !stringslice.Contains(nodes[0].ServiceTags, "master") {
 		t.Fatalf("bad: %v", nodes)
 	}
 	if nodes[0].ServicePort != 8000 {

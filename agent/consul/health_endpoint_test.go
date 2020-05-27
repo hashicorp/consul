@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
@@ -591,10 +592,10 @@ func TestHealth_ServiceNodes(t *testing.T) {
 	if nodes[1].Node.Node != "foo" {
 		t.Fatalf("Bad: %v", nodes[1])
 	}
-	if !lib.StrContains(nodes[0].Service.Tags, "slave") {
+	if !stringslice.Contains(nodes[0].Service.Tags, "slave") {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
-	if !lib.StrContains(nodes[1].Service.Tags, "master") {
+	if !stringslice.Contains(nodes[1].Service.Tags, "master") {
 		t.Fatalf("Bad: %v", nodes[1])
 	}
 	if nodes[0].Checks[0].Status != api.HealthWarning {
@@ -629,10 +630,10 @@ func TestHealth_ServiceNodes(t *testing.T) {
 		if nodes[1].Node.Node != "foo" {
 			t.Fatalf("Bad: %v", nodes[1])
 		}
-		if !lib.StrContains(nodes[0].Service.Tags, "slave") {
+		if !stringslice.Contains(nodes[0].Service.Tags, "slave") {
 			t.Fatalf("Bad: %v", nodes[0])
 		}
-		if !lib.StrContains(nodes[1].Service.Tags, "master") {
+		if !stringslice.Contains(nodes[1].Service.Tags, "master") {
 			t.Fatalf("Bad: %v", nodes[1])
 		}
 		if nodes[0].Checks[0].Status != api.HealthWarning {
