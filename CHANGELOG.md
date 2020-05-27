@@ -1,5 +1,9 @@
 ## UNRELEASED
 
+FEATURES:
+
+* agent: handle re-bootstrapping in a secondary datacenter when WAN federation via mesh gateways is configured [[GH-7931](https://github.com/hashicorp/consul/issues/7931)]
+
 BUGFIXES:
 
 * connect: ensure proxy-defaults protocol is used for upstreams [[GH-7938](https://github.com/hashicorp/consul/issues/7938)]
