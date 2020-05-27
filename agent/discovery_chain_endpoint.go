@@ -8,7 +8,6 @@ import (
 
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/decode"
 	"github.com/mitchellh/mapstructure"
 )
@@ -102,13 +101,14 @@ type discoveryChainReadResponse struct {
 }
 
 func decodeDiscoveryChainReadRequest(raw map[string]interface{}) (*discoveryChainReadRequest, error) {
-	// lib.TranslateKeys doesn't understand []map[string]interface{} so we have
-	// to do this part first.
-	raw = lib.PatchSliceOfMaps(raw, nil, nil)
-
 	var apiReq discoveryChainReadRequest
+	// TODO(dnephin): at this time only JSON payloads are read, so it is unlikely
+	// that HookWeakDecodeFromSlice is necessary. It was added while porting
+	// from lib.PatchSliceOfMaps to decode.HookWeakDecodeFromSlice. It may be
+	// safe to remove in the future.
 	decodeConf := &mapstructure.DecoderConfig{
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			decode.HookWeakDecodeFromSlice,
 			decode.HookTranslateKeys,
 			mapstructure.StringToTimeDurationHookFunc(),
 		),

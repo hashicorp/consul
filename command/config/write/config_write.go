@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/helpers"
-	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/decode"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/cli"
@@ -133,18 +131,10 @@ func newDecodeConfigEntry(raw map[string]interface{}) (api.ConfigEntry, error) {
 		return nil, fmt.Errorf("Kind value in payload is not a string")
 	}
 
-	skipWhenPatching, err := structs.ConfigEntryDecodeRulesForKind(entry.GetKind())
-	if err != nil {
-		return nil, err
-	}
-
-	// lib.TranslateKeys doesn't understand []map[string]interface{} so we have
-	// to do this part first.
-	raw = lib.PatchSliceOfMaps(raw, skipWhenPatching, nil)
-
 	var md mapstructure.Metadata
 	decodeConf := &mapstructure.DecoderConfig{
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			decode.HookWeakDecodeFromSlice,
 			decode.HookTranslateKeys,
 			mapstructure.StringToTimeDurationHookFunc(),
 		),

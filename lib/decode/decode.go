@@ -91,3 +91,44 @@ func canonicalFieldKey(field reflect.StructField) string {
 	}
 	return parts[0]
 }
+
+// HookWeakDecodeFromSlice looks for []map[string]interface{} in the source
+// data. If the target is not a slice or array it attempts to unpack 1 item
+// out of the slice. If there are more items the source data is left unmodified,
+// allowing mapstructure to handle and report the decode error caused by
+// mismatched types.
+//
+// If this hook is being used on a "second pass" decode to decode an opaque
+// configuration into a type, the DecodeConfig should set WeaklyTypedInput=true,
+// (or another hook) to convert any scalar values into a slice of one value when
+// the target is a slice. This is necessary because this hook would have converted
+// the initial slices into single values on the first pass.
+//
+// Background
+//
+// HCL allows for repeated blocks which forces it to store structures
+// as []map[string]interface{} instead of map[string]interface{}. This is an
+// ambiguity which makes the generated structures incompatible with the
+// corresponding JSON data.
+//
+// This hook allows config to be read from the HCL format into a raw structure,
+// and later decoded into a strongly typed structure.
+func HookWeakDecodeFromSlice(from, to reflect.Type, data interface{}) (interface{}, error) {
+	if from.Kind() == reflect.Slice && (to.Kind() == reflect.Slice || to.Kind() == reflect.Array) {
+		return data, nil
+	}
+
+	switch d := data.(type) {
+	case []map[string]interface{}:
+		switch {
+		case len(d) == 0:
+			return nil, nil
+		case len(d) == 1:
+			return d[0], nil
+		default:
+			return data, nil
+		}
+	default:
+		return data, nil
+	}
+}

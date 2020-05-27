@@ -284,18 +284,10 @@ func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 		return nil, fmt.Errorf("Kind value in payload is not a string")
 	}
 
-	skipWhenPatching, err := ConfigEntryDecodeRulesForKind(entry.GetKind())
-	if err != nil {
-		return nil, err
-	}
-
-	// lib.TranslateKeys doesn't understand []map[string]interface{} so we have
-	// to do this part first.
-	raw = lib.PatchSliceOfMaps(raw, skipWhenPatching, nil)
-
 	var md mapstructure.Metadata
 	decodeConf := &mapstructure.DecoderConfig{
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			decode.HookWeakDecodeFromSlice,
 			decode.HookTranslateKeys,
 			mapstructure.StringToTimeDurationHookFunc(),
 		),
@@ -324,54 +316,6 @@ func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 		return nil, err
 	}
 	return entry, nil
-}
-
-// ConfigEntryDecodeRulesForKind returns rules for 'fixing' config entry key
-// formats by kind. This is shared between the 'structs' and 'api' variations
-// of config entries.
-func ConfigEntryDecodeRulesForKind(kind string) (skipWhenPatching []string, err error) {
-	switch kind {
-	case ProxyDefaults:
-		return []string{
-			"expose.paths",
-			"Expose.Paths",
-		}, nil
-	case ServiceDefaults:
-		return []string{
-			"expose.paths",
-			"Expose.Paths",
-		}, nil
-	case ServiceRouter:
-		return []string{
-			"routes",
-			"Routes",
-			"routes.match.http.header",
-			"Routes.Match.HTTP.Header",
-			"routes.match.http.query_param",
-			"Routes.Match.HTTP.QueryParam",
-		}, nil
-	case ServiceSplitter:
-		return []string{
-			"splits",
-			"Splits",
-		}, nil
-	case ServiceResolver:
-		return nil, nil
-	case IngressGateway:
-		return []string{
-			"listeners",
-			"Listeners",
-			"listeners.services",
-			"Listeners.Services",
-		}, nil
-	case TerminatingGateway:
-		return []string{
-			"services",
-			"Services",
-		}, nil
-	default:
-		return nil, fmt.Errorf("kind %q should be explicitly handled here", kind)
-	}
 }
 
 type ConfigEntryOp string
