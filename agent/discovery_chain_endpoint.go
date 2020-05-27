@@ -9,6 +9,7 @@ import (
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/decode"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -105,15 +106,12 @@ func decodeDiscoveryChainReadRequest(raw map[string]interface{}) (*discoveryChai
 	// to do this part first.
 	raw = lib.PatchSliceOfMaps(raw, nil, nil)
 
-	lib.TranslateKeys(raw, map[string]string{
-		"override_mesh_gateway":    "overridemeshgateway",
-		"override_protocol":        "overrideprotocol",
-		"override_connect_timeout": "overrideconnecttimeout",
-	})
-
 	var apiReq discoveryChainReadRequest
 	decodeConf := &mapstructure.DecoderConfig{
-		DecodeHook:       mapstructure.StringToTimeDurationHookFunc(),
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			decode.HookTranslateKeys,
+			mapstructure.StringToTimeDurationHookFunc(),
+		),
 		Result:           &apiReq,
 		WeaklyTypedInput: true,
 	}
