@@ -46,7 +46,6 @@ type Conn struct {
 	addr     net.Addr
 	session  muxSession
 	lastUsed time.Time
-	version  int
 
 	pool *ConnPool
 
@@ -209,7 +208,7 @@ func (p *ConnPool) Shutdown() error {
 // wait for an existing connection attempt to finish, if one if in progress,
 // and will return that one if it succeeds. If all else fails, it will return a
 // newly-created connection and add it to the pool.
-func (p *ConnPool) acquire(dc string, nodeName string, addr net.Addr, version int, useTLS bool) (*Conn, error) {
+func (p *ConnPool) acquire(dc string, nodeName string, addr net.Addr, useTLS bool) (*Conn, error) {
 	if nodeName == "" {
 		return nil, fmt.Errorf("pool: ConnPool.acquire requires a node name")
 	}
@@ -244,7 +243,7 @@ func (p *ConnPool) acquire(dc string, nodeName string, addr net.Addr, version in
 	// If we are the lead thread, make the new connection and then wake
 	// everybody else up to see if we got it.
 	if isLeadThread {
-		c, err := p.getNewConn(dc, nodeName, addr, version, useTLS)
+		c, err := p.getNewConn(dc, nodeName, addr, useTLS)
 		p.Lock()
 		delete(p.limiter, addrStr)
 		close(wait)
@@ -497,15 +496,9 @@ func DialTimeoutWithRPCTypeViaMeshGateway(
 }
 
 // getNewConn is used to return a new connection
-func (p *ConnPool) getNewConn(dc string, nodeName string, addr net.Addr, version int, useTLS bool) (*Conn, error) {
+func (p *ConnPool) getNewConn(dc string, nodeName string, addr net.Addr, useTLS bool) (*Conn, error) {
 	if nodeName == "" {
 		return nil, fmt.Errorf("pool: ConnPool.getNewConn requires a node name")
-	}
-
-	// Switch the multiplexing based on version
-	var session muxSession
-	if version < 2 {
-		return nil, fmt.Errorf("cannot make client connection, unsupported protocol version %d", version)
 	}
 
 	// Get a new, raw connection and write the Consul multiplex byte to set the mode
@@ -519,7 +512,7 @@ func (p *ConnPool) getNewConn(dc string, nodeName string, addr net.Addr, version
 	conf.LogOutput = p.LogOutput
 
 	// Create a multiplexed session
-	session, _ = yamux.Client(conn, conf)
+	session, _ := yamux.Client(conn, conf)
 
 	// Wrap the connection
 	c := &Conn{
@@ -529,7 +522,6 @@ func (p *ConnPool) getNewConn(dc string, nodeName string, addr net.Addr, version
 		session:  session,
 		clients:  list.New(),
 		lastUsed: time.Now(),
-		version:  version,
 		pool:     p,
 	}
 	return c, nil
@@ -567,12 +559,12 @@ func (p *ConnPool) releaseConn(conn *Conn) {
 	}
 }
 
-// getClient is used to get a usable client for an address and protocol version
-func (p *ConnPool) getClient(dc string, nodeName string, addr net.Addr, version int, useTLS bool) (*Conn, *StreamClient, error) {
+// getClient is used to get a usable client for an address
+func (p *ConnPool) getClient(dc string, nodeName string, addr net.Addr, useTLS bool) (*Conn, *StreamClient, error) {
 	retries := 0
 START:
 	// Try to get a conn first
-	conn, err := p.acquire(dc, nodeName, addr, version, useTLS)
+	conn, err := p.acquire(dc, nodeName, addr, useTLS)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get conn: %v", err)
 	}
@@ -598,7 +590,6 @@ func (p *ConnPool) RPC(
 	dc string,
 	nodeName string,
 	addr net.Addr,
-	version int,
 	method string,
 	args interface{},
 	reply interface{},
@@ -610,7 +601,7 @@ func (p *ConnPool) RPC(
 	if method == "AutoEncrypt.Sign" {
 		return p.rpcInsecure(dc, nodeName, addr, method, args, reply)
 	} else {
-		return p.rpc(dc, nodeName, addr, version, method, args, reply)
+		return p.rpc(dc, nodeName, addr, method, args, reply)
 	}
 }
 
@@ -636,12 +627,12 @@ func (p *ConnPool) rpcInsecure(dc string, nodeName string, addr net.Addr, method
 	return nil
 }
 
-func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, version int, method string, args interface{}, reply interface{}) error {
+func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, method string, args interface{}, reply interface{}) error {
 	p.once.Do(p.init)
 
 	// Get a usable client
 	useTLS := p.TLSConfigurator.UseTLS(dc)
-	conn, sc, err := p.getClient(dc, nodeName, addr, version, useTLS)
+	conn, sc, err := p.getClient(dc, nodeName, addr, useTLS)
 	if err != nil {
 		return fmt.Errorf("rpc error getting client: %v", err)
 	}
@@ -671,9 +662,9 @@ func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, version int, m
 
 // Ping sends a Status.Ping message to the specified server and
 // returns true if healthy, false if an error occurred
-func (p *ConnPool) Ping(dc string, nodeName string, addr net.Addr, version int) (bool, error) {
+func (p *ConnPool) Ping(dc string, nodeName string, addr net.Addr) (bool, error) {
 	var out struct{}
-	err := p.RPC(dc, nodeName, addr, version, "Status.Ping", struct{}{}, &out)
+	err := p.RPC(dc, nodeName, addr, "Status.Ping", struct{}{}, &out)
 	return err == nil, err
 }
 

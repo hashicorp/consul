@@ -61,7 +61,7 @@ type ManagerSerfCluster interface {
 // Pinger is an interface wrapping client.ConnPool to prevent a cyclic import
 // dependency.
 type Pinger interface {
-	Ping(dc, nodeName string, addr net.Addr, version int) (bool, error)
+	Ping(dc, nodeName string, addr net.Addr) (bool, error)
 }
 
 // serverList is a local copy of the struct used to maintain the list of
@@ -350,7 +350,7 @@ func (m *Manager) RebalanceServers() {
 		if m.serverName != "" && srv.Name == m.serverName {
 			continue
 		}
-		ok, err := m.connPoolPinger.Ping(srv.Datacenter, srv.ShortName, srv.Addr, srv.Version)
+		ok, err := m.connPoolPinger.Ping(srv.Datacenter, srv.ShortName, srv.Addr)
 		if ok {
 			foundHealthyServer = true
 			break

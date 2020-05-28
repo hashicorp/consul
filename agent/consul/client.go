@@ -308,7 +308,7 @@ TRY:
 	}
 
 	// Make the request.
-	rpcErr := c.connPool.RPC(c.config.Datacenter, server.ShortName, server.Addr, server.Version, method, args, reply)
+	rpcErr := c.connPool.RPC(c.config.Datacenter, server.ShortName, server.Addr, method, args, reply)
 	if rpcErr == nil {
 		return nil
 	}
