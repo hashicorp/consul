@@ -74,6 +74,18 @@ The table below shows this endpoint's support for
     policy is valid in all datacenters including those which do not yet exist
     but may in the future.
 
+- `NodeIdentities` `(array<NodeIdentity>)` - The list of [node
+  identities](/docs/acl/acl-system#acl-node-identities) that should be
+  applied to the token. Added in Consul 1.8.1.
+
+  - `NodeName` `(string: <required>)` - The name of the node. The name
+    must be no longer than 256 characters, must start and end with a lowercase
+    alphanumeric character, and can only contain lowercase alphanumeric
+    characters as well as `-` and `_`.
+
+  - `Datacenter` `(string: <required>)` - Specifies the nodes datacenter. This
+    will result in effective policy only being valid in that datacenter.
+
 - `Local` `(bool: false)` - If true, indicates that the token should not be
   replicated globally and instead be local to the current datacenter.
 
@@ -322,6 +334,18 @@ The table below shows this endpoint's support for
     policy is valid within. When no datacenters are provided the effective
     policy is valid in all datacenters including those which do not yet exist
     but may in the future.
+
+- `NodeIdentities` `(array<NodeIdentity>)` - The list of [node
+  identities](/docs/acl/acl-system#acl-node-identities) that should be
+  applied to the token. Added in Consul 1.8.1.
+
+  - `NodeName` `(string: <required>)` - The name of the node. The name
+    must be no longer than 256 characters, must start and end with a lowercase
+    alphanumeric character, and can only contain lowercase alphanumeric
+    characters as well as `-` and `_`.
+
+  - `Datacenter` `(string: <required>)` - Specifies the nodes datacenter. This
+    will result in effective policy only being valid in that datacenter.
 
 - `Local` `(bool: false)` - If true, indicates that this token should not be
   replicated globally and instead be local to the current datacenter. This

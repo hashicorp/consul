@@ -742,8 +742,17 @@ func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToke
 		}
 	}
 
+	for _, nodeid := range token.NodeIdentities {
+		if nodeid.NodeName == "" {
+			return fmt.Errorf("Encountered a Token with an empty node identity name in the state store")
+		}
+		if nodeid.Datacenter == "" {
+			return fmt.Errorf("Encountered a Token with an empty node identity datacenter in the state store")
+		}
+	}
+
 	if prohibitUnprivileged {
-		if numValidRoles == 0 && numValidPolicies == 0 && len(token.ServiceIdentities) == 0 {
+		if numValidRoles == 0 && numValidPolicies == 0 && len(token.ServiceIdentities) == 0 && len(token.NodeIdentities) == 0 {
 			return ErrTokenHasNoPrivileges
 		}
 	}
@@ -1366,6 +1375,15 @@ func (s *Store) aclRoleSetTxn(tx *memdb.Txn, idx uint64, role *structs.ACLRole, 
 	for _, svcid := range role.ServiceIdentities {
 		if svcid.ServiceName == "" {
 			return fmt.Errorf("Encountered a Role with an empty service identity name in the state store")
+		}
+	}
+
+	for _, nodeid := range role.NodeIdentities {
+		if nodeid.NodeName == "" {
+			return fmt.Errorf("Encountered a Role with an empty node identity name in the state store")
+		}
+		if nodeid.Datacenter == "" {
+			return fmt.Errorf("Encountered a Role with an empty node identity datacenter in the state store")
 		}
 	}
 

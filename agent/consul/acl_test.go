@@ -179,6 +179,48 @@ func testIdentityForToken(token string) (bool, structs.ACLIdentity, error) {
 				},
 			},
 		}, nil
+	case "found-synthetic-policy-3":
+		return true, &structs.ACLToken{
+			AccessorID: "bebccc92-3987-489d-84c2-ffd00d93ef93",
+			SecretID:   "de70f2e2-69d9-4e88-9815-f91c03c6bcb1",
+			NodeIdentities: []*structs.ACLNodeIdentity{
+				&structs.ACLNodeIdentity{
+					NodeName:   "test-node1",
+					Datacenter: "dc1",
+				},
+				// as the resolver is in dc1 this identity should be ignored
+				&structs.ACLNodeIdentity{
+					NodeName:   "test-node-dc2",
+					Datacenter: "dc2",
+				},
+			},
+		}, nil
+	case "found-synthetic-policy-4":
+		return true, &structs.ACLToken{
+			AccessorID: "359b9927-25fd-46b9-bd14-3470f848ec65",
+			SecretID:   "83c4d500-847d-49f7-8c08-0483f6b4156e",
+			NodeIdentities: []*structs.ACLNodeIdentity{
+				&structs.ACLNodeIdentity{
+					NodeName:   "test-node2",
+					Datacenter: "dc1",
+				},
+				// as the resolver is in dc1 this identity should be ignored
+				&structs.ACLNodeIdentity{
+					NodeName:   "test-node-dc2",
+					Datacenter: "dc2",
+				},
+			},
+		}, nil
+	case "found-role-node-identity":
+		return true, &structs.ACLToken{
+			AccessorID: "f3f47a09-de29-4c57-8f54-b65a9be79641",
+			SecretID:   "e96aca00-5951-4b97-b0e5-5816f42dfb93",
+			Roles: []structs.ACLTokenRoleLink{
+				{
+					ID: "node-identity",
+				},
+			},
+		}, nil
 	case "acl-ro":
 		return true, &structs.ACLToken{
 			AccessorID: "435a75af-1763-4980-89f4-f0951dda53b4",
@@ -440,6 +482,22 @@ func testRoleForID(roleID string) (bool, *structs.ACLRole, error) {
 				},
 				structs.ACLRolePolicyLink{
 					ID: "acl-wr",
+				},
+			},
+		}, nil
+	case "node-identity":
+		return true, &structs.ACLRole{
+			ID:          "node-identity",
+			Name:        "node-identity",
+			Description: "node-identity",
+			NodeIdentities: []*structs.ACLNodeIdentity{
+				&structs.ACLNodeIdentity{
+					NodeName:   "test-node",
+					Datacenter: "dc1",
+				},
+				&structs.ACLNodeIdentity{
+					NodeName:   "test-node-dc2",
+					Datacenter: "dc2",
 				},
 			},
 		}, nil
@@ -1729,8 +1787,18 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 		require.Equal(t, acl.Allow, authz.ServiceRead("bar", nil))
 	})
 
+	runTwiceAndReset("Role With Node Identity", func(t *testing.T) {
+		authz, err := r.ResolveToken("found-role-node-identity")
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		require.Equal(t, acl.Allow, authz.NodeWrite("test-node", nil))
+		require.Equal(t, acl.Deny, authz.NodeWrite("test-node-dc2", nil))
+		require.Equal(t, acl.Allow, authz.ServiceRead("something", nil))
+		require.Equal(t, acl.Deny, authz.ServiceWrite("something", nil))
+	})
+
 	runTwiceAndReset("Synthetic Policies Independently Cache", func(t *testing.T) {
-		// We resolve both of these tokens in the same cache session
+		// We resolve these tokens in the same cache session
 		// to verify that the keys for caching synthetic policies don't bleed
 		// over between each other.
 		{
@@ -1760,6 +1828,38 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 			require.Equal(t, acl.Allow, authz.ServiceWrite("service2", nil))
 			require.Equal(t, acl.Allow, authz.ServiceRead("literally-anything", nil))
 			require.Equal(t, acl.Allow, authz.NodeRead("any-node", nil))
+		}
+		{
+			authz, err := r.ResolveToken("found-synthetic-policy-3")
+			require.NoError(t, err)
+			require.NotNil(t, authz)
+
+			// spot check some random perms
+			require.Equal(t, acl.Deny, authz.ACLRead(nil))
+			require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
+			// ensure we didn't bleed over to the other synthetic policy
+			require.Equal(t, acl.Deny, authz.NodeWrite("test-node2", nil))
+			// check our own synthetic policy
+			require.Equal(t, acl.Allow, authz.ServiceRead("literally-anything", nil))
+			require.Equal(t, acl.Allow, authz.NodeWrite("test-node1", nil))
+			// ensure node identity for other DC is ignored
+			require.Equal(t, acl.Deny, authz.NodeWrite("test-node-dc2", nil))
+		}
+		{
+			authz, err := r.ResolveToken("found-synthetic-policy-4")
+			require.NoError(t, err)
+			require.NotNil(t, authz)
+
+			// spot check some random perms
+			require.Equal(t, acl.Deny, authz.ACLRead(nil))
+			require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
+			// ensure we didn't bleed over to the other synthetic policy
+			require.Equal(t, acl.Deny, authz.NodeWrite("test-node1", nil))
+			// check our own synthetic policy
+			require.Equal(t, acl.Allow, authz.ServiceRead("literally-anything", nil))
+			require.Equal(t, acl.Allow, authz.NodeWrite("test-node2", nil))
+			// ensure node identity for other DC is ignored
+			require.Equal(t, acl.Deny, authz.NodeWrite("test-node-dc2", nil))
 		}
 	})
 

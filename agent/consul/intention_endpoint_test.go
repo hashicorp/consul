@@ -392,13 +392,8 @@ service "foo" {
 func TestIntention_WildcardACLEnforcement(t *testing.T) {
 	t.Parallel()
 
-	dir, srv := testACLServerWithConfig(t, nil, false)
-	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
-	codec := rpcClient(t, srv)
-	defer codec.Close()
-
-	testrpc.WaitForLeader(t, srv.RPC, "dc1")
+	_, srv, codec := testACLServerWithConfig(t, nil, false)
+	waitForLeaderEstablishment(t, srv)
 
 	// create some test policies.
 
@@ -1222,13 +1217,8 @@ func TestIntentionMatch_good(t *testing.T) {
 func TestIntentionMatch_acl(t *testing.T) {
 	t.Parallel()
 
-	dir1, s1 := testACLServerWithConfig(t, nil, false)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
-	defer codec.Close()
-
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	_, srv, codec := testACLServerWithConfig(t, nil, false)
+	waitForLeaderEstablishment(t, srv)
 
 	token, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `service "bar" { policy = "write" }`)
 	require.NoError(t, err)
@@ -1464,13 +1454,8 @@ service "bar" {
 func TestIntentionCheck_match(t *testing.T) {
 	t.Parallel()
 
-	dir1, s1 := testACLServerWithConfig(t, nil, false)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
-	defer codec.Close()
-
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	_, srv, codec := testACLServerWithConfig(t, nil, false)
+	waitForLeaderEstablishment(t, srv)
 
 	token, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `service "api" { policy = "read" }`)
 	require.NoError(t, err)

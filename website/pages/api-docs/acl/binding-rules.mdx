@@ -63,6 +63,17 @@ The table below shows this endpoint's support for
             ]
         }
         ```
+        
+  - `BindType=node` - The computed bind name value is used as an
+    `ACLNodeIdentity.NodeName` field in the token that is created.
+
+        ```json
+        { ...other fields...
+            "NodeIdentities": [
+                { "NodeName": "<computed BindName>", "Datacenter": "<local datacenter>" }
+            ]
+        }
+        ```
 
   - `BindType=role` - The computed bind name value is used as a `RoleLink.Name`
     field in the token that is created. This binding rule will only apply if a
@@ -232,7 +243,18 @@ The table below shows this endpoint's support for
             ]
         }
         ```
+        
+  - `BindType=node` - The computed bind name value is used as an
+    `ACLNodeIdentity.NodeName` field in the token that is created.
 
+        ```json
+        { ...other fields...
+            "NodeIdentities": [
+                { "NodeName": "<computed BindName>", "Datacenter": "<local datacenter>" }
+            ]
+        }
+        ```
+        
   - `BindType=role` - The computed bind name value is used as a `RoleLink.Name`
     field in the token that is created. This binding rule will only apply if a
     role with the given name exists at login-time. If it does not then this
@@ -394,6 +416,7 @@ $ curl -X GET http://127.0.0.1:8500/v1/acl/binding-rules
     "ID": "b4f0a0a3-69f2-7a4f-6bef-326034ace9fa",
     "Description": "example 2",
     "AuthMethod": "minikube-2",
+    "BindType": "service",
     "Selector": "serviceaccount.namespace==default",
     "BindName": "k8s-{{ serviceaccount.name }}",
     "CreateIndex": 18,

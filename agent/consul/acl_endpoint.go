@@ -34,6 +34,8 @@ var (
 	validPolicyName              = regexp.MustCompile(`^[A-Za-z0-9\-_]{1,128}$`)
 	validServiceIdentityName     = regexp.MustCompile(`^[a-z0-9]([a-z0-9\-_]*[a-z0-9])?$`)
 	serviceIdentityNameMaxLength = 256
+	validNodeIdentityName        = regexp.MustCompile(`^[a-z0-9]([a-z0-9\-_]*[a-z0-9])?$`)
+	nodeIdentityNameMaxLength    = 256
 	validRoleName                = regexp.MustCompile(`^[A-Za-z0-9\-_]{1,256}$`)
 	validAuthMethod              = regexp.MustCompile(`^[A-Za-z0-9\-_]{1,128}$`)
 )
@@ -319,6 +321,7 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 			Policies:          token.Policies,
 			Roles:             token.Roles,
 			ServiceIdentities: token.ServiceIdentities,
+			NodeIdentities:    token.NodeIdentities,
 			Local:             token.Local,
 			Description:       token.Description,
 			ExpirationTime:    token.ExpirationTime,
@@ -615,6 +618,19 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 	}
 	token.ServiceIdentities = dedupeServiceIdentities(token.ServiceIdentities)
 
+	for _, nodeid := range token.NodeIdentities {
+		if nodeid.NodeName == "" {
+			return fmt.Errorf("Node identity is missing the node name field on this token")
+		}
+		if nodeid.Datacenter == "" {
+			return fmt.Errorf("Node identity is missing the datacenter field on this token")
+		}
+		if !isValidNodeIdentityName(nodeid.NodeName) {
+			return fmt.Errorf("Node identity has an invalid name. Only alphanumeric characters, '-' and '_' are allowed")
+		}
+	}
+	token.NodeIdentities = dedupeNodeIdentities(token.NodeIdentities)
+
 	if token.Rules != "" {
 		return fmt.Errorf("Rules cannot be specified for this token")
 	}
@@ -700,7 +716,8 @@ func computeBindingRuleBindName(bindType, bindName string, projectedVars map[str
 	switch bindType {
 	case structs.BindingRuleBindTypeService:
 		valid = isValidServiceIdentityName(bindName)
-
+	case structs.BindingRuleBindTypeNode:
+		valid = isValidNodeIdentityName(bindName)
 	case structs.BindingRuleBindTypeRole:
 		valid = validRoleName.MatchString(bindName)
 
@@ -720,6 +737,17 @@ func isValidServiceIdentityName(name string) bool {
 		return false
 	}
 	return validServiceIdentityName.MatchString(name)
+}
+
+// isValidNodeIdentityName returns true if the provided name can be used as
+// an ACLNodeIdentity NodeName. This is more restrictive than standard
+// catalog registration, which basically takes the view that "everything is
+// valid".
+func isValidNodeIdentityName(name string) bool {
+	if len(name) < 1 || len(name) > nodeIdentityNameMaxLength {
+		return false
+	}
+	return validNodeIdentityName.MatchString(name)
 }
 
 func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) error {
@@ -1572,6 +1600,19 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 	}
 	role.ServiceIdentities = dedupeServiceIdentities(role.ServiceIdentities)
 
+	for _, nodeid := range role.NodeIdentities {
+		if nodeid.NodeName == "" {
+			return fmt.Errorf("Node identity is missing the node name field on this role")
+		}
+		if nodeid.Datacenter == "" {
+			return fmt.Errorf("Node identity is missing the datacenter field on this role")
+		}
+		if !isValidNodeIdentityName(nodeid.NodeName) {
+			return fmt.Errorf("Node identity has an invalid name. Only alphanumeric characters, '-' and '_' are allowed")
+		}
+	}
+	role.NodeIdentities = dedupeNodeIdentities(role.NodeIdentities)
+
 	// calculate the hash for this role
 	role.SetHash(true)
 
@@ -1892,6 +1933,7 @@ func (a *ACL) BindingRuleSet(args *structs.ACLBindingRuleSetRequest, reply *stru
 
 	switch rule.BindType {
 	case structs.BindingRuleBindTypeService:
+	case structs.BindingRuleBindTypeNode:
 	case structs.BindingRuleBindTypeRole:
 	default:
 		return fmt.Errorf("Invalid Binding Rule: unknown BindType %q", rule.BindType)
@@ -2365,14 +2407,14 @@ func (a *ACL) tokenSetFromAuthMethod(
 	}
 
 	// 3. send map through role bindings
-	serviceIdentities, roleLinks, err := a.srv.evaluateRoleBindings(validator, verifiedIdentity, entMeta, targetMeta)
+	bindings, err := a.srv.evaluateRoleBindings(validator, verifiedIdentity, entMeta, targetMeta)
 	if err != nil {
 		return err
 	}
 
 	// We try to prevent the creation of a useless token without taking a trip
 	// through the state store if we can.
-	if len(serviceIdentities) == 0 && len(roleLinks) == 0 {
+	if bindings == nil || (len(bindings.serviceIdentities) == 0 && len(bindings.nodeIdentities) == 0 && len(bindings.roles) == 0) {
 		return acl.ErrPermissionDenied
 	}
 
@@ -2392,8 +2434,9 @@ func (a *ACL) tokenSetFromAuthMethod(
 		Description:       description,
 		Local:             true,
 		AuthMethod:        method.Name,
-		ServiceIdentities: serviceIdentities,
-		Roles:             roleLinks,
+		ServiceIdentities: bindings.serviceIdentities,
+		NodeIdentities:    bindings.nodeIdentities,
+		Roles:             bindings.roles,
 		ExpirationTTL:     method.MaxTokenTTL,
 		EnterpriseMeta:    *targetMeta,
 	}

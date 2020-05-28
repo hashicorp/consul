@@ -730,6 +730,7 @@ func (s *Server) legacyACLTokenUpgrade(ctx context.Context) error {
 			// Assign the global-management policy to legacy management tokens
 			if len(newToken.Policies) == 0 &&
 				len(newToken.ServiceIdentities) == 0 &&
+				len(newToken.NodeIdentities) == 0 &&
 				len(newToken.Roles) == 0 &&
 				newToken.Type == structs.ACLTokenTypeManagement {
 				newToken.Policies = append(newToken.Policies, structs.ACLTokenPolicyLink{ID: structs.ACLPolicyGlobalManagementID})
