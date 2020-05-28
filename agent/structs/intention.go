@@ -349,7 +349,7 @@ func (x *Intention) EstimateSize() int {
 }
 
 // IntentionAction is the action that the intention represents. This
-// can be "allow" or "deny" to allowlist or denylist intentions.
+// can be "allow" or "deny".
 type IntentionAction string
 
 const (

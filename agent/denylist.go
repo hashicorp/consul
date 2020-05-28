@@ -21,7 +21,7 @@ func NewDenylist(prefixes []string) *Denylist {
 
 // Block will return true if the given path is included among any of the
 // blocked prefixes.
-func (b *Denylist) Block(path string) bool {
-	_, _, blocked := b.tree.LongestPrefix(path)
+func (d *Denylist) Block(path string) bool {
+	_, _, blocked := d.tree.LongestPrefix(path)
 	return blocked
 }
