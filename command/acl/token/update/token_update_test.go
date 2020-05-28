@@ -64,7 +64,7 @@ func TestTokenUpdateCommand(t *testing.T) {
 	)
 	req.NoError(err)
 
-	// create a legacy token
+	// nolint: staticcheck // we want the deprecated legacy token
 	legacyTokenSecretID, _, err := client.ACL().Create(&api.ACLEntry{
 		Name:  "Legacy token",
 		Type:  "client",

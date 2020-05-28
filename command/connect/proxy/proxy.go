@@ -244,18 +244,13 @@ func LookupProxyIDForSidecar(client *api.Client, sidecarFor string) (string, err
 	return proxyIDs[0], nil
 }
 
-// LookupGatewayProxyID finds the gateway service registered with the local
-// agent if any and returns its service ID. It will return an ID if and only if
-// there is exactly one gateway of this kind registered to the agent.
+// LookupGatewayProxy finds the gateway service registered with the local
+// agent. If exactly one gateway exists it will be returned, otherwise an error
+// is returned.
 func LookupGatewayProxy(client *api.Client, kind api.ServiceKind) (*api.AgentService, error) {
 	svcs, err := client.Agent().ServicesWithFilter(fmt.Sprintf("Kind == `%s`", kind))
 	if err != nil {
 		return nil, fmt.Errorf("Failed looking up %s instances: %v", kind, err)
-	}
-
-	var proxyIDs []string
-	for _, svc := range svcs {
-		proxyIDs = append(proxyIDs, svc.ID)
 	}
 
 	switch len(svcs) {

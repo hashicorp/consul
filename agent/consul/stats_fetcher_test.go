@@ -36,13 +36,11 @@ func TestStatsFetcher(t *testing.T) {
 		t.Fatalf("bad len: %d", len(members))
 	}
 
-	var servers []*metadata.Server
 	for _, member := range members {
-		ok, server := metadata.IsConsulServer(member)
+		ok, _ := metadata.IsConsulServer(member)
 		if !ok {
-			t.Fatalf("bad: %#v", member)
+			t.Fatalf("expected member to be a server: %#v", member)
 		}
-		servers = append(servers, server)
 	}
 
 	// Do a normal fetch and make sure we get three responses.
