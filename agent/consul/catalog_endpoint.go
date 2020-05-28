@@ -267,7 +267,13 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 				return err
 			}
 
-			reply.Index, reply.Nodes = index, nodes
+			reply.Index = index
+			if CanSendEmptyResult(&args.QueryOptions, &reply.QueryMeta) {
+				reply.SetEmptyCacheResult(true)
+				reply.Nodes = nil
+				return nil
+			}
+			reply.Nodes = nodes
 			if err := c.srv.filterACL(args.Token, reply); err != nil {
 				return err
 			}
@@ -316,6 +322,11 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 			}
 
 			reply.Index, reply.Services, reply.EnterpriseMeta = index, services, args.EnterpriseMeta
+			if CanSendEmptyResult(&args.QueryOptions, &reply.QueryMeta) {
+				reply.SetEmptyCacheResult(true)
+				reply.Services = nil
+				return nil
+			}
 			return c.srv.filterACLWithAuthorizer(authz, reply)
 		})
 }
@@ -344,6 +355,11 @@ func (c *Catalog) ServiceList(args *structs.DCSpecificRequest, reply *structs.In
 			}
 
 			reply.Index, reply.Services = index, services
+			if CanSendEmptyResult(&args.QueryOptions, &reply.QueryMeta) {
+				reply.SetEmptyCacheResult(true)
+				reply.Services = nil
+				return nil
+			}
 			return c.srv.filterACLWithAuthorizer(authz, reply)
 		})
 }
@@ -424,6 +440,11 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 			}
 
 			reply.Index, reply.ServiceNodes = index, services
+			if CanSendEmptyResult(&args.QueryOptions, &reply.QueryMeta) {
+				reply.SetEmptyCacheResult(true)
+				reply.ServiceNodes = nil
+				return nil
+			}
 			if len(args.NodeMetaFilters) > 0 {
 				var filtered structs.ServiceNodes
 				for _, service := range services {
@@ -522,6 +543,11 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 			}
 
 			reply.Index, reply.NodeServices = index, services
+			if CanSendEmptyResult(&args.QueryOptions, &reply.QueryMeta) {
+				reply.SetEmptyCacheResult(true)
+				reply.NodeServices = nil
+				return nil
+			}
 			if err := c.srv.filterACL(args.Token, reply); err != nil {
 				return err
 			}
@@ -577,6 +603,11 @@ func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *stru
 			}
 
 			reply.Index = index
+			if CanSendEmptyResult(&args.QueryOptions, &reply.QueryMeta) {
+				reply.SetEmptyCacheResult(true)
+				reply.NodeServices = structs.NodeServiceList{}
+				return nil
+			}
 			if services != nil {
 				reply.NodeServices = *services
 

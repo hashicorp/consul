@@ -202,6 +202,8 @@ type QueryOptions struct {
 	// Filter specifies the go-bexpr filter expression to be used for
 	// filtering the data prior to returning a response
 	Filter string `protobuf:"bytes,11,opt,name=Filter,proto3" json:"Filter,omitempty"`
+	// EmptyCacheResult tells that result might be ommited in result if equal to previous cached value
+	EmptyCacheResult bool `protobuf:"varint,12,opt,name=EmptyCacheResult,proto3" json:"RequireConsistent,omitempty"`
 }
 
 func (m *QueryOptions) Reset()         { *m = QueryOptions{} }

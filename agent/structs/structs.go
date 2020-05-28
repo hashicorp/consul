@@ -212,6 +212,10 @@ type QueryOptions struct {
 	// Filter specifies the go-bexpr filter expression to be used for
 	// filtering the data prior to returning a response
 	Filter string
+
+	// ReturnEmptyResultOnUnmodified will return an empty result if data
+	// is unchanged since last call.
+	ReturnEmptyResultOnUnmodified bool
 }
 
 // IsRead is always true for QueryOption.
@@ -283,6 +287,10 @@ type QueryMeta struct {
 	// Having `discovery_max_stale` on the agent can affect whether
 	// the request was served by a leader.
 	ConsistencyLevel string
+
+	// EmptyCacheResult tells the result is empty because query was containing
+	// ReturnEmptyResultOnUnmodified, so result is unchanged and not present
+	EmptyCacheResult bool
 }
 
 // RegisterRequest is used for the Catalog.Register endpoint

@@ -54,6 +54,11 @@ func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 				return err
 			}
 			reply.Index, reply.HealthChecks = index, checks
+			if CanSendEmptyResult(&args.QueryOptions, &reply.QueryMeta) {
+				reply.SetEmptyCacheResult(true)
+				reply.HealthChecks = nil
+				return nil
+			}
 			if err := h.srv.filterACL(args.Token, reply); err != nil {
 				return err
 			}
@@ -98,6 +103,11 @@ func (h *Health) NodeChecks(args *structs.NodeSpecificRequest,
 				return err
 			}
 			reply.Index, reply.HealthChecks = index, checks
+			if CanSendEmptyResult(&args.QueryOptions, &reply.QueryMeta) {
+				reply.SetEmptyCacheResult(true)
+				reply.HealthChecks = nil
+				return nil
+			}
 			if err := h.srv.filterACL(args.Token, reply); err != nil {
 				return err
 			}
@@ -155,6 +165,11 @@ func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 				return err
 			}
 			reply.Index, reply.HealthChecks = index, checks
+			if CanSendEmptyResult(&args.QueryOptions, &reply.QueryMeta) {
+				reply.SetEmptyCacheResult(true)
+				reply.HealthChecks = nil
+				return nil
+			}
 			if err := h.srv.filterACL(args.Token, reply); err != nil {
 				return err
 			}
@@ -227,6 +242,11 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 			}
 
 			reply.Index, reply.Nodes = index, nodes
+			if CanSendEmptyResult(&args.QueryOptions, &reply.QueryMeta) {
+				reply.SetEmptyCacheResult(true)
+				reply.Nodes = nil
+				return nil
+			}
 			if len(args.NodeMetaFilters) > 0 {
 				reply.Nodes = nodeMetaFilter(args.NodeMetaFilters, reply.Nodes)
 			}

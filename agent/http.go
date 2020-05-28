@@ -32,6 +32,9 @@ import (
 	"github.com/pkg/errors"
 )
 
+// UnmodifiedCachedDataResponseHeader is a header of Consul to specify data does not need any refresh
+const UnmodifiedCachedDataResponseHeader = "X-Consul-Unmodified-Response"
+
 // MethodNotAllowedError should be returned by a handler when the HTTP method is not allowed.
 type MethodNotAllowedError struct {
 	Method string
@@ -560,7 +563,7 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 				return
 			}
 		}
-		if obj == nil {
+		if obj == nil || resp.Header().Get(UnmodifiedCachedDataResponseHeader) == "true" {
 			return
 		}
 		var buf []byte
@@ -746,6 +749,10 @@ func setMeta(resp http.ResponseWriter, m structs.QueryMetaCompat) {
 	setLastContact(resp, m.GetLastContact())
 	setKnownLeader(resp, m.GetKnownLeader())
 	setConsistency(resp, m.GetConsistencyLevel())
+	if m.GetEmptyCacheResult() {
+		resp.Header().Set(UnmodifiedCachedDataResponseHeader, "true")
+		resp.WriteHeader(304)
+	}
 }
 
 // setCacheMeta sets http response headers to indicate cache status.
@@ -866,6 +873,9 @@ func parseCacheControl(resp http.ResponseWriter, req *http.Request, b structs.Qu
 func (s *HTTPServer) parseConsistency(resp http.ResponseWriter, req *http.Request, b structs.QueryOptionsCompat) bool {
 	query := req.URL.Query()
 	defaults := true
+	if req.Header.Get("X-Consul-Unmodified-Empty") == "true" {
+		b.SetReturnEmptyResultOnUnmodified(true)
+	}
 	if _, ok := query["stale"]; ok {
 		b.SetAllowStale(true)
 		defaults = false
