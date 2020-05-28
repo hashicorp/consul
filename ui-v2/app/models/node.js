@@ -1,8 +1,5 @@
 import Model from 'ember-data/model';
 import attr from 'ember-data/attr';
-import { computed, get } from '@ember/object';
-import sumOfUnhealthy from 'consul-ui/utils/sumOfUnhealthy';
-import hasStatus from 'consul-ui/utils/hasStatus';
 
 export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'ID';
@@ -23,13 +20,4 @@ export default Model.extend({
   Coord: attr(),
   SyncTime: attr('number'),
   meta: attr(),
-  hasStatus: function(status) {
-    return hasStatus(get(this, 'Checks'), status);
-  },
-  isHealthy: computed('Checks', function() {
-    return sumOfUnhealthy(get(this, 'Checks')) === 0;
-  }),
-  isUnhealthy: computed('Checks', function() {
-    return sumOfUnhealthy(get(this, 'Checks')) > 0;
-  }),
 });

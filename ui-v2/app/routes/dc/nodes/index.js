@@ -5,7 +5,7 @@ import { hash } from 'rsvp';
 export default Route.extend({
   repo: service('repository/node'),
   queryParams: {
-    s: {
+    search: {
       as: 'filter',
       replace: true,
     },

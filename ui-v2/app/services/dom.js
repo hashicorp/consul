@@ -51,6 +51,24 @@ export default Service.extend({
   sibling: sibling,
   isOutside: isOutside,
   normalizeEvent: normalizeEvent,
+  setEventTargetProperty: function(e, property, cb) {
+    const target = e.target;
+    return new Proxy(e, {
+      get: function(obj, prop, receiver) {
+        if (prop === 'target') {
+          return new Proxy(target, {
+            get: function(obj, prop, receiver) {
+              if (prop === property) {
+                return cb(e.target[property]);
+              }
+              return target[prop];
+            },
+          });
+        }
+        return Reflect.get(...arguments);
+      },
+    });
+  },
   listeners: createListeners,
   root: function() {
     return this.doc.documentElement;

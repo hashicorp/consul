@@ -33,11 +33,12 @@
   </BlockSlot>
   <BlockSlot @name="content">
 {{#if (gt items.length 0) }}
-    <form class="filter-bar">
-      <FreetextFilter @searchable={{searchable}} @value={{s}} @placeholder="Search" />
-    </form>
+    <SearchBar
+      @value={{search}}
+      @onsearch={{action (mut search) value="target.value"}}
+    />
 {{/if}}
-    <ChangeableSet @dispatcher={{searchable}}>
+    <ChangeableSet @dispatcher={{searchable 'role' items}} @terms={{search}}>
       <BlockSlot @name="set" as |filtered|>
         <TabularCollection @items={{sort-by "CreateIndex:desc" "Name:asc" filtered}} as |item index|>
             <BlockSlot @name="header">
@@ -100,7 +101,7 @@
           <BlockSlot @name="header">
             <h2>
               {{#if (gt items.length 0)}}
-                No tokens found
+                No roles found
               {{else}}
                 Welcome to Roles
               {{/if}}

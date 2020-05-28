@@ -2,11 +2,13 @@
   <div role="tabpanel">
   {{#if (gt items.length 0) }}
     <input type="checkbox" id="toolbar-toggle" />
-    <form class="filter-bar">
-      <FreetextFilter @searchable={{searchable}} @value={{s}} @placeholder="Search by name/port" />
-    </form>
+    <SearchBar
+      @placeholder="Search by name/port"
+      @value={{search}}
+      @onsearch={{action (mut search) value="target.value"}}
+    />
   {{/if}}
-    <ChangeableSet @dispatcher={{searchable}}>
+    <ChangeableSet @dispatcher={{searchable 'nodeservice' items}} @terms={{search}}>
       <BlockSlot @name="set" as |filtered|>
           <TabularCollection
             data-test-services

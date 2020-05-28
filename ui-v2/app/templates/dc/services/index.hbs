@@ -18,17 +18,18 @@
       </BlockSlot>
       <BlockSlot @name="toolbar">
         {{#if (gt services.length 0) }}
-          <CatalogToolbar
+          <SearchBar
             @value={{search}}
+            @onsearch={{action (mut search) value="target.value"}}
+            @secondary="sort"
             @selected={{sort.selected}}
             @options={{sort.items}}
-            @onsearch={{action (mut search) value="target.value"}}
             @onchange={{action (mut sortBy) value='target.selected.key'}}
           />
         {{/if}}
       </BlockSlot>
       <BlockSlot @name="content">
-        <ChangeableSet @dispatcher={{get-searchable 'service' (sort-by sort.selected.key services)}} @terms={{search}}>
+        <ChangeableSet @dispatcher={{searchable 'service' (sort-by sort.selected.key services)}} @terms={{search}}>
           <BlockSlot @name="set" as |filtered|>
             <ConsulServiceList @routeName="dc.services.show" @items={{filtered}} @proxies={{proxies}}/>
           </BlockSlot>

@@ -13,11 +13,13 @@
   </BlockSlot>
   <BlockSlot @name="content">
 {{#if (gt items.length 0) }}
-    <form class="filter-bar">
-      <FreetextFilter @searchable={{searchable}} @value={{s}} @placeholder="Search" />
-    </form>
+    <SearchBar
+      @placeholder="Search by name"
+      @value={{search}}
+      @onsearch={{action (mut search) value="target.value"}}
+    />
 {{/if}}
-    <ChangeableSet @dispatcher={{searchable}}>
+    <ChangeableSet @dispatcher={{searchable 'nspace' items}} @terms={{search}}>
       <BlockSlot @name="set" as |filtered|>
         <TabularCollection @items={{filtered}} as |item index|>
           <BlockSlot @name="header">

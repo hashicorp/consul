@@ -25,9 +25,11 @@
   </BlockSlot>
   <BlockSlot @name="toolbar">
 {{#if (gt items.length 0) }}
-    <form class="filter-bar">
-      <FreetextFilter @searchable={{searchable}} @value={{s}} @placeholder="Search by name" />
-    </form>
+    <SearchBar
+      @placeholder="Search by name"
+      @value={{search}}
+      @onsearch={{action (mut search) value="target.value"}}
+    />
 {{/if}}
   </BlockSlot>
   <BlockSlot @name="actions">
@@ -38,7 +40,7 @@
 {{/if}}
   </BlockSlot>
   <BlockSlot @name="content">
-    <ChangeableSet @dispatcher={{searchable}}>
+    <ChangeableSet @dispatcher={{searchable 'kv' items}} @terms={{search}}>
       <BlockSlot @name="set" as |filtered|>
         <TabularCollection @items={{sort-by "isFolder:desc" "Key:asc" filtered}} as |item index|>
           <BlockSlot @name="header">
