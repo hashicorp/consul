@@ -286,7 +286,6 @@ func (p *ConnPool) DialTimeout(
 	dc string,
 	nodeName string,
 	addr net.Addr,
-	timeout time.Duration,
 	actualRPCType RPCType,
 ) (net.Conn, HalfCloser, error) {
 	p.once.Do(p.init)
@@ -298,7 +297,6 @@ func (p *ConnPool) DialTimeout(
 			nodeName,
 			addr,
 			p.SrcAddr,
-			timeout,
 			p.TLSConfigurator.OutgoingALPNRPCWrapper(),
 			actualRPCType,
 			RPCTLS,
@@ -314,7 +312,6 @@ func (p *ConnPool) DialTimeout(
 		dc,
 		nodeName,
 		addr,
-		timeout,
 		actualRPCType,
 		RPCTLS,
 	)
@@ -324,12 +321,11 @@ func (p *ConnPool) dial(
 	dc string,
 	nodeName string,
 	addr net.Addr,
-	timeout time.Duration,
 	actualRPCType RPCType,
 	tlsRPCType RPCType,
 ) (net.Conn, HalfCloser, error) {
 	// Try to dial the conn
-	d := &net.Dialer{LocalAddr: p.SrcAddr, Timeout: timeout}
+	d := &net.Dialer{LocalAddr: p.SrcAddr, Timeout: defaultDialTimeout}
 	conn, err := d.Dial("tcp", addr.String())
 	if err != nil {
 		return nil, nil, err
@@ -393,7 +389,6 @@ func DialTimeoutWithRPCTypeViaMeshGateway(
 	nodeName string,
 	addr net.Addr,
 	src *net.TCPAddr,
-	timeout time.Duration,
 	wrapper tlsutil.ALPNWrapper,
 	actualRPCType RPCType,
 	tlsRPCType RPCType,
@@ -425,7 +420,7 @@ func DialTimeoutWithRPCTypeViaMeshGateway(
 		return nil, nil, structs.ErrDCNotAvailable
 	}
 
-	dialer := &net.Dialer{LocalAddr: src, Timeout: timeout}
+	dialer := &net.Dialer{LocalAddr: src, Timeout: defaultDialTimeout}
 
 	rawConn, err := dialer.Dial("tcp", gwAddr)
 	if err != nil {
@@ -461,7 +456,7 @@ func (p *ConnPool) getNewConn(dc string, nodeName string, addr net.Addr) (*Conn,
 	}
 
 	// Get a new, raw connection and write the Consul multiplex byte to set the mode
-	conn, _, err := p.DialTimeout(dc, nodeName, addr, defaultDialTimeout, RPCMultiplexV2)
+	conn, _, err := p.DialTimeout(dc, nodeName, addr, RPCMultiplexV2)
 	if err != nil {
 		return nil, err
 	}
@@ -575,7 +570,7 @@ func (p *ConnPool) rpcInsecure(dc string, nodeName string, addr net.Addr, method
 	}
 
 	var codec rpc.ClientCodec
-	conn, _, err := p.dial(dc, nodeName, addr, 1*time.Second, 0, RPCTLSInsecure)
+	conn, _, err := p.dial(dc, nodeName, addr, 0, RPCTLSInsecure)
 	if err != nil {
 		return fmt.Errorf("rpcinsecure error establishing connection: %v", err)
 	}

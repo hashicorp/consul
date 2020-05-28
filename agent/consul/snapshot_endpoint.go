@@ -200,7 +200,7 @@ func SnapshotRPC(
 ) (io.ReadCloser, error) {
 	// Write the snapshot RPC byte to set the mode, then perform the
 	// request.
-	conn, hc, err := connPool.DialTimeout(dc, nodeName, addr, 10*time.Second, pool.RPCSnapshot)
+	conn, hc, err := connPool.DialTimeout(dc, nodeName, addr, pool.RPCSnapshot)
 	if err != nil {
 		return nil, err
 	}
