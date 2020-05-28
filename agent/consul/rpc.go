@@ -751,6 +751,11 @@ func (s *Server) raftApplyWithEncoder(t structs.MessageType, msg interface{}, en
 // a snapshot.
 type queryFn func(memdb.WatchSet, *state.Store) error
 
+// CanSendEmptyResult will return true if we can return an empty result
+func CanSendEmptyResult(queryOpts structs.QueryOptionsCompat, queryMeta structs.QueryMetaCompat) bool {
+	return queryOpts.GetReturnEmptyResultOnUnmodified() && queryOpts.GetMinQueryIndex() == queryMeta.GetIndex()
+}
+
 // blockingQuery is used to process a potentially blocking query operation.
 func (s *Server) blockingQuery(queryOpts structs.QueryOptionsCompat, queryMeta structs.QueryMetaCompat, fn queryFn) error {
 	var cancel func()

@@ -30,6 +30,8 @@ type QueryOptionsCompat interface {
 	SetStaleIfError(time.Duration)
 	GetFilter() string
 	SetFilter(string)
+	GetReturnEmptyResultOnUnmodified() bool
+	SetReturnEmptyResultOnUnmodified(bool)
 }
 
 // QueryMetaCompat is the interface that both the structs.QueryMeta
@@ -44,6 +46,8 @@ type QueryMetaCompat interface {
 	SetIndex(uint64)
 	GetConsistencyLevel() string
 	SetConsistencyLevel(string)
+	GetEmptyCacheResult() bool
+	SetEmptyCacheResult(bool)
 }
 
 // GetToken helps implement the QueryOptionsCompat interface
@@ -211,6 +215,16 @@ func (q *QueryOptions) SetFilter(filter string) {
 	q.Filter = filter
 }
 
+// GetReturnEmptyResultOnUnmodified when true, means that returned data might be empty if cached data is not modified
+func (q *QueryOptions) GetReturnEmptyResultOnUnmodified() bool {
+	return q.ReturnEmptyResultOnUnmodified
+}
+
+// SetReturnEmptyResultOnUnmodified if true data might be ommited in response when cached data did not change
+func (q *QueryOptions) SetReturnEmptyResultOnUnmodified(v bool) {
+	q.ReturnEmptyResultOnUnmodified = v
+}
+
 //
 func (m *QueryMeta) GetIndex() uint64 {
 	if m != nil {
@@ -244,6 +258,16 @@ func (m *QueryMeta) GetConsistencyLevel() string {
 		return m.ConsistencyLevel
 	}
 	return ""
+}
+
+// GetEmptyCacheResult helps implement the QueryMetaCompat interface
+func (m *QueryMeta) GetEmptyCacheResult() bool {
+	return m != nil && m.EmptyCacheResult
+}
+
+// SetEmptyCacheResult is needed to implement the structs.QueryMetaCompat interface
+func (m *QueryMeta) SetEmptyCacheResult(emptyCacheResult bool) {
+	m.EmptyCacheResult = emptyCacheResult
 }
 
 // SetLastContact is needed to implement the structs.QueryMetaCompat interface

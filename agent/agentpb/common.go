@@ -77,6 +77,16 @@ func (q *QueryOptions) SetFilter(filter string) {
 	q.Filter = filter
 }
 
+// GetReturnEmptyResultOnUnmodified when true, means that returned data might be empty if cached data is not modified
+func (q *QueryOptions) GetReturnEmptyResultOnUnmodified() bool {
+	return q.EmptyCacheResult
+}
+
+// SetReturnEmptyResultOnUnmodified if true data might be ommited in response when cached data did not change
+func (q *QueryOptions) SetReturnEmptyResultOnUnmodified(v bool) {
+	q.EmptyCacheResult = v
+}
+
 // SetLastContact is needed to implement the structs.QueryMetaCompat interface
 func (q *QueryMeta) SetLastContact(lastContact time.Duration) {
 	q.LastContact = lastContact
