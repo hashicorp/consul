@@ -115,11 +115,11 @@ token are automatically applied. The anonymous token is managed using the
 #### ACL Rules and Scope
 
 Tokens are bound to a set of rules that control which Consul resources the token
-has access to. Policies can be defined in either a whitelist or blacklist mode
+has access to. Policies can be defined in either an allowlist or denylist mode
 depending on the configuration of
 [`acl_default_policy`](/docs/agent/options#acl_default_policy). If the default
-policy is to "deny" all actions, then token rules can be set to whitelist specific
-actions. In the inverse, the "allow" all default behavior is a blacklist where rules
+policy is to "deny" all actions, then token rules can be set to allowlist specific
+actions. In the inverse, the "allow" all default behavior is a denylist where rules
 are used to prohibit actions. By default, Consul will allow all actions.
 
 The following table summarizes the ACL policies that are available for constructing
@@ -187,7 +187,7 @@ as to whether they are set on servers, clients, or both.
 | Configuration Option                                                  | Servers    | Clients    | Purpose                                                                                   |
 | --------------------------------------------------------------------- | ---------- | ---------- | ----------------------------------------------------------------------------------------- |
 | [`primary_datacenter`](/docs/agent/options#primary_datacenter)        | `REQUIRED` | `REQUIRED` | Master control that enables ACLs by defining the authoritative Consul datacenter for ACLs |
-| [`acl_default_policy`](/docs/agent/options#acl_default_policy_legacy) | `OPTIONAL` | `N/A`      | Determines whitelist or blacklist mode                                                    |
+| [`acl_default_policy`](/docs/agent/options#acl_default_policy_legacy) | `OPTIONAL` | `N/A`      | Determines allowlist or denylist mode                                                    |
 | [`acl_down_policy`](/docs/agent/options#acl_down_policy_legacy)       | `OPTIONAL` | `OPTIONAL` | Determines what to do when the ACL datacenter is offline                                  |
 | [`acl_ttl`](/docs/agent/options#acl_ttl_legacy)                       | `OPTIONAL` | `OPTIONAL` | Determines time-to-live for cached ACLs                                                   |
 
@@ -263,7 +263,7 @@ datacenter. In this example, we are configuring the following:
 
 1. An ACL datacenter of "dc1", which is where these servers are
 2. An ACL master token of "b1gs33cr3t"; see below for an alternative using the [/v1/acl/bootstrap API](/api/acl/acl#bootstrap-acls)
-3. A default policy of "deny" which means we are in whitelist mode
+3. A default policy of "deny" which means we are in allowlist mode
 4. A down policy of "extend-cache" which means that we will ignore token TTLs during an
    outage
 

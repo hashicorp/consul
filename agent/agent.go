@@ -905,7 +905,7 @@ func (a *Agent) listenHTTP() ([]*HTTPServer, error) {
 				},
 				ln:        l,
 				agent:     a,
-				blacklist: NewBlacklist(a.config.HTTPBlockEndpoints),
+				denylist:  NewDenylist(a.config.HTTPBlockEndpoints), 
 				proto:     proto,
 			}
 			srv.Server.Handler = srv.handler(a.config.EnableDebug)

@@ -458,14 +458,14 @@ function find_git_remote {
    return ${ret}
 }
 
-function git_remote_not_blacklisted {
+function git_remote_not_denylisted {
    # Arguments:
    #   $1 - path to the repo
    #   $2 - the remote name
    #
    # Returns:
-   #   0 - not blacklisted
-   #   * - blacklisted
+   #   0 - not denylisted
+   #   * - denylisted
    return 0
 }
 

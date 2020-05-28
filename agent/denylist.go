@@ -4,24 +4,24 @@ import (
 	"github.com/armon/go-radix"
 )
 
-// Blacklist implements an HTTP endpoint blacklist based on a list of endpoint
+// Denylist implements an HTTP endpoint denylist based on a list of endpoint
 // prefixes which should be blocked.
-type Blacklist struct {
+type Denylist struct {
 	tree *radix.Tree
 }
 
-// NewBlacklist returns a blacklist for the given list of prefixes.
-func NewBlacklist(prefixes []string) *Blacklist {
+// NewDenylist returns a denylist for the given list of prefixes.
+func NewDenylist(prefixes []string) *Denylist {
 	tree := radix.New()
 	for _, prefix := range prefixes {
 		tree.Insert(prefix, nil)
 	}
-	return &Blacklist{tree}
+	return &Denylist{tree}
 }
 
 // Block will return true if the given path is included among any of the
 // blocked prefixes.
-func (b *Blacklist) Block(path string) bool {
+func (b *Denylist) Block(path string) bool {
 	_, _, blocked := b.tree.LongestPrefix(path)
 	return blocked
 }

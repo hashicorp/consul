@@ -1328,7 +1328,7 @@ func TestStructs_ValidateServiceAndNodeMetadata(t *testing.T) {
 			"",
 			"",
 		},
-		"reserved key prefix allowed via whitelist just for gateway - " + MetaWANFederationKey: {
+		"reserved key prefix allowed via an allowlist just for gateway - " + MetaWANFederationKey: {
 			map[string]string{
 				MetaWANFederationKey: "value1",
 			},
@@ -1394,9 +1394,9 @@ func TestStructs_validateMetaPair(t *testing.T) {
 		{metaKeyReservedPrefix + "key", "value", "reserved for internal use", false, nil},
 		// reserved prefix, allowed
 		{metaKeyReservedPrefix + "key", "value", "", true, nil},
-		// reserved prefix, not allowed via whitelist
+		// reserved prefix, not allowed via an allowlist
 		{metaKeyReservedPrefix + "bad", "value", "reserved for internal use", false, map[string]struct{}{metaKeyReservedPrefix + "good": struct{}{}}},
-		// reserved prefix, allowed via whitelist
+		// reserved prefix, allowed via an allowlist
 		{metaKeyReservedPrefix + "good", "value", "", true, map[string]struct{}{metaKeyReservedPrefix + "good": struct{}{}}},
 		// value too long
 		{"key", longValue, "Value is too long", false, nil},
