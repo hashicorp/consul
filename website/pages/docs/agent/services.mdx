@@ -191,9 +191,9 @@ for the available configuration options.
 The `kind` field is used to optionally identify the service as a [Connect
 proxy](/docs/connect/proxies) instance. This value may be "connect-proxy" for
 [Connect-capable](/docs/connect) proxies representing another service,
-"mesh-gateway" for instances of a [mesh gateway](/docs/connect/mesh_gateway),
-"terminating-gateway" for instances of a [terminating gateway](/docs/connect/terminating_gateway),
-or "ingress-gateway" for instances of a [ingress gateway](/docs/connect/ingress_gateway).
+"mesh-gateway" for instances of a [mesh gateway](/docs/connect/mesh-gateway),
+"terminating-gateway" for instances of a [terminating gateway](/docs/connect/terminating-gateway),
+or "ingress-gateway" for instances of a [ingress gateway](/docs/connect/ingress-gateway).
 For typical non-proxy instances the `kind` field must be omitted. The `proxy` field
 is also required for Connect proxy registrations and is only valid if `kind` is
 `connect-proxy`. The only required `proxy` field for a `connect-proxy` is `destination_service_name`.
