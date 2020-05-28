@@ -37,7 +37,7 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 			return nil, structs.ErrNoDCPath
 		}
 
-		snap, err := SnapshotRPC(s.connPool, dc, server.ShortName, server.Addr, server.UseTLS, args, in, reply)
+		snap, err := SnapshotRPC(s.connPool, dc, server.ShortName, server.Addr, args, in, reply)
 		if err != nil {
 			manager.NotifyFailedServer(server)
 			return nil, err
@@ -52,7 +52,7 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 			if server == nil {
 				return nil, structs.ErrNoLeader
 			}
-			return SnapshotRPC(s.connPool, args.Datacenter, server.ShortName, server.Addr, server.UseTLS, args, in, reply)
+			return SnapshotRPC(s.connPool, args.Datacenter, server.ShortName, server.Addr, args, in, reply)
 		}
 	}
 
@@ -194,14 +194,13 @@ func SnapshotRPC(
 	dc string,
 	nodeName string,
 	addr net.Addr,
-	useTLS bool,
 	args *structs.SnapshotRequest,
 	in io.Reader,
 	reply *structs.SnapshotResponse,
 ) (io.ReadCloser, error) {
 	// Write the snapshot RPC byte to set the mode, then perform the
 	// request.
-	conn, hc, err := connPool.DialTimeout(dc, nodeName, addr, 10*time.Second, useTLS, pool.RPCSnapshot)
+	conn, hc, err := connPool.DialTimeout(dc, nodeName, addr, 10*time.Second, pool.RPCSnapshot)
 	if err != nil {
 		return nil, err
 	}

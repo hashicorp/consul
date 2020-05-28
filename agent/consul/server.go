@@ -374,7 +374,6 @@ func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token
 		MaxTime:         serverRPCCache,
 		MaxStreams:      serverMaxStreams,
 		TLSConfigurator: tlsConfigurator,
-		ForceTLS:        config.VerifyOutgoing,
 		Datacenter:      config.Datacenter,
 	}
 

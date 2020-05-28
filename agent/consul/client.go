@@ -137,7 +137,6 @@ func NewClientLogger(config *Config, logger hclog.InterceptLogger, tlsConfigurat
 		MaxTime:         clientRPCConnMaxIdle,
 		MaxStreams:      clientMaxStreams,
 		TLSConfigurator: tlsConfigurator,
-		ForceTLS:        config.VerifyOutgoing,
 		Datacenter:      config.Datacenter,
 	}
 
@@ -356,7 +355,7 @@ func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 
 	// Request the operation.
 	var reply structs.SnapshotResponse
-	snap, err := SnapshotRPC(c.connPool, c.config.Datacenter, server.ShortName, server.Addr, server.UseTLS, args, in, &reply)
+	snap, err := SnapshotRPC(c.connPool, c.config.Datacenter, server.ShortName, server.Addr, args, in, &reply)
 	if err != nil {
 		return err
 	}
