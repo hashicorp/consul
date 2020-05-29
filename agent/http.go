@@ -82,9 +82,9 @@ func (e ForbiddenError) Error() string {
 // HTTPServer provides an HTTP api for an agent.
 type HTTPServer struct {
 	*http.Server
-	ln        net.Listener
-	agent     *Agent
-	blacklist *Blacklist
+	ln       net.Listener
+	agent    *Agent
+	denylist *Denylist
 
 	// proto is filled by the agent to "http" or "https".
 	proto string
@@ -426,7 +426,7 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 		}
 		logURL = aclEndpointRE.ReplaceAllString(logURL, "$1<hidden>$4")
 
-		if s.blacklist.Block(req.URL.Path) {
+		if s.denylist.Block(req.URL.Path) {
 			errMsg := "Endpoint is blocked by agent configuration"
 			httpLogger.Error("Request error",
 				"method", req.Method,

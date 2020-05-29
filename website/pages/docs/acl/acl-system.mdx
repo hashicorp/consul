@@ -189,10 +189,10 @@ token will be used.
 #### ACL Rules and Scope
 
 The rules from all policies, roles, and service identities linked with a token are combined to form that token's
-effective rule set. Policy rules can be defined in either a whitelist or blacklist
+effective rule set. Policy rules can be defined in either an allowlist or denylist
 mode depending on the configuration of [`acl_default_policy`](/docs/agent/options#acl_default_policy).
 If the default policy is to "deny" access to all resources, then policy rules can be set to
-whitelist access to specific resources. Conversely, if the default policy is “allow” then policy rules can
+allowlist access to specific resources. Conversely, if the default policy is “allow” then policy rules can
 be used to explicitly deny access to resources.
 
 The following table summarizes the ACL resources that are available for constructing
@@ -240,7 +240,7 @@ as to whether they are set on servers, clients, or both.
 | Configuration Option                                           | Servers    | Clients    | Purpose                                                                |
 | -------------------------------------------------------------- | ---------- | ---------- | ---------------------------------------------------------------------- |
 | [`acl.enabled`](/docs/agent/options#acl_enabled)               | `REQUIRED` | `REQUIRED` | Controls whether ACLs are enabled                                      |
-| [`acl.default_policy`](/docs/agent/options#acl_default_policy) | `OPTIONAL` | `N/A`      | Determines whitelist or blacklist mode                                 |
+| [`acl.default_policy`](/docs/agent/options#acl_default_policy) | `OPTIONAL` | `N/A`      | Determines allowlist or denylist mode                                 |
 | [`acl.down_policy`](/docs/agent/options#acl_down_policy)       | `OPTIONAL` | `OPTIONAL` | Determines what to do when the remote token or policy resolution fails |
 | [`acl.role_ttl`](/docs/agent/options#acl_role_ttl)             | `OPTIONAL` | `OPTIONAL` | Determines time-to-live for cached ACL Roles                           |
 | [`acl.policy_ttl`](/docs/agent/options#acl_policy_ttl)         | `OPTIONAL` | `OPTIONAL` | Determines time-to-live for cached ACL Policies                        |

@@ -903,10 +903,10 @@ func (a *Agent) listenHTTP() ([]*HTTPServer, error) {
 					Addr:      l.Addr().String(),
 					TLSConfig: tlscfg,
 				},
-				ln:        l,
-				agent:     a,
-				blacklist: NewBlacklist(a.config.HTTPBlockEndpoints),
-				proto:     proto,
+				ln:       l,
+				agent:    a,
+				denylist: NewDenylist(a.config.HTTPBlockEndpoints),
+				proto:    proto,
 			}
 			srv.Server.Handler = srv.handler(a.config.EnableDebug)
 

@@ -54,7 +54,7 @@ items outside of Consul's threat model as noted in sections below.
   - Secure against unprivileged users becoming root
 
 - **ACLs enabled with default deny.** Consul must be configured to use ACLs with
-  a whitelist (default deny) approach. This forces all requests to have explicit
+  an allowlist (default deny) approach. This forces all requests to have explicit
   anonymous access or provide an ACL token.
 
 - **Encryption enabled.** TCP and UDP encryption must be enabled and configured

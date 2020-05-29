@@ -622,9 +622,9 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   - `default_policy` ((#acl_default_policy)) - Either "allow" or "deny";
     defaults to "allow" but this will be changed in a future major release. The default
     policy controls the behavior of a token when there is no matching rule. In "allow"
-    mode, ACLs are a blacklist: any operation not specifically prohibited is allowed.
-    In "deny" mode, ACLs are a whitelist: any operation not specifically allowed
-    is blocked. **Note**: this will not take effect until you've enabled ACLs.
+    mode, ACLs are a denylist: any operation not specifically prohibited is allowed.
+    In "deny" mode, ACLs are an allowlist: any operation not specifically
+    allowed is blocked. **Note**: this will not take effect until you'veenabled ACLs.
 
   - `enable_key_list_policy` ((#acl_enable_key_list_policy)) - Either "enabled"
     or "disabled", defaults to "disabled". When enabled, the `list` permission will
@@ -702,8 +702,8 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 - `acl_default_policy` ((#acl_default_policy_legacy)) - **Deprecated in Consul 1.4.0. See the [`acl.default_policy`](#acl_default_policy) field instead.**
   Either "allow" or "deny"; defaults to "allow". The default policy controls the
   behavior of a token when there is no matching rule. In "allow" mode, ACLs are a
-  blacklist: any operation not specifically prohibited is allowed. In "deny" mode,
-  ACLs are a whitelist: any operation not specifically allowed is blocked. **Note**:
+  denylist: any operation not specifically prohibited is allowed. In "deny" mode,
+  ACLs are an allowlist: any operation not specifically allowed is blocked. **Note**:
   this will not take effect until you've set `primary_datacenter` to enable ACL support.
 
 - `acl_down_policy` ((#acl_down_policy_legacy)) - **Deprecated in Consul
