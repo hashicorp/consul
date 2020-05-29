@@ -59,6 +59,7 @@ func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 				reply.HealthChecks = nil
 				return nil
 			}
+			reply.SetEmptyCacheResult(false)
 			if err := h.srv.filterACL(args.Token, reply); err != nil {
 				return err
 			}
@@ -108,6 +109,7 @@ func (h *Health) NodeChecks(args *structs.NodeSpecificRequest,
 				reply.HealthChecks = nil
 				return nil
 			}
+			reply.SetEmptyCacheResult(false)
 			if err := h.srv.filterACL(args.Token, reply); err != nil {
 				return err
 			}
@@ -170,6 +172,7 @@ func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 				reply.HealthChecks = nil
 				return nil
 			}
+			reply.SetEmptyCacheResult(false)
 			if err := h.srv.filterACL(args.Token, reply); err != nil {
 				return err
 			}
@@ -247,6 +250,7 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 				reply.Nodes = nil
 				return nil
 			}
+			reply.SetEmptyCacheResult(false)
 			if len(args.NodeMetaFilters) > 0 {
 				reply.Nodes = nodeMetaFilter(args.NodeMetaFilters, reply.Nodes)
 			}

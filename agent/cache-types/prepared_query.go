@@ -36,6 +36,7 @@ func (c *PreparedQuery) Fetch(_ cache.FetchOptions, req cache.Request) (cache.Fe
 	// allows cached service-discover to automatically read scale across all
 	// servers too.
 	reqReal.AllowStale = true
+	reqReal.ReturnEmptyResultOnUnmodified = true
 
 	// Fetch
 	var reply structs.PreparedQueryExecuteResponse
@@ -45,6 +46,7 @@ func (c *PreparedQuery) Fetch(_ cache.FetchOptions, req cache.Request) (cache.Fe
 
 	result.Value = &reply
 	result.Index = reply.QueryMeta.Index
+	result.EmptyCacheResult = reply.QueryMeta.EmptyCacheResult
 
 	return result, nil
 }

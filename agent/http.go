@@ -563,7 +563,11 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 				return
 			}
 		}
-		if obj == nil || resp.Header().Get(UnmodifiedCachedDataResponseHeader) == "true" {
+		if resp.Header().Get(UnmodifiedCachedDataResponseHeader) == "true" {
+			resp.WriteHeader(http.StatusNotModified)
+			return
+		}
+		if obj == nil {
 			return
 		}
 		var buf []byte
@@ -751,12 +755,11 @@ func setMeta(resp http.ResponseWriter, m structs.QueryMetaCompat) {
 	setConsistency(resp, m.GetConsistencyLevel())
 	if m.GetEmptyCacheResult() {
 		resp.Header().Set(UnmodifiedCachedDataResponseHeader, "true")
-		resp.WriteHeader(304)
 	}
 }
 
 // setCacheMeta sets http response headers to indicate cache status.
-func setCacheMeta(resp http.ResponseWriter, m *cache.ResultMeta) {
+func setCacheMeta(resp http.ResponseWriter, m *cache.ResultMeta, qOpts *structs.QueryOptions) {
 	if m == nil {
 		return
 	}
@@ -767,6 +770,9 @@ func setCacheMeta(resp http.ResponseWriter, m *cache.ResultMeta) {
 	resp.Header().Set("X-Cache", str)
 	if m.Hit {
 		resp.Header().Set("Age", fmt.Sprintf("%.0f", m.Age.Seconds()))
+	}
+	if qOpts != nil && qOpts.ReturnEmptyResultOnUnmodified && m.Index == qOpts.MinQueryIndex {
+		resp.Header().Set(UnmodifiedCachedDataResponseHeader, "true")
 	}
 }
 

@@ -40,6 +40,7 @@ func (c *CompiledDiscoveryChain) Fetch(opts cache.FetchOptions, req cache.Reques
 	// allows cached compiled-discovery-chain to automatically read scale across all
 	// servers too.
 	reqReal.AllowStale = true
+	reqReal.ReturnEmptyResultOnUnmodified = true
 
 	// Fetch
 	var reply structs.DiscoveryChainResponse
@@ -49,5 +50,6 @@ func (c *CompiledDiscoveryChain) Fetch(opts cache.FetchOptions, req cache.Reques
 
 	result.Value = &reply
 	result.Index = reply.QueryMeta.Index
+	result.EmptyCacheResult = reply.QueryMeta.EmptyCacheResult
 	return result, nil
 }

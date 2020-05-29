@@ -39,6 +39,7 @@ func (c *FederationStateListMeshGateways) Fetch(opts cache.FetchOptions, req cac
 	// allows cached service-discover to automatically read scale across all
 	// servers too.
 	reqReal.AllowStale = true
+	reqReal.ReturnEmptyResultOnUnmodified = true
 
 	// Fetch
 	var reply structs.DatacenterIndexedCheckServiceNodes
@@ -48,5 +49,6 @@ func (c *FederationStateListMeshGateways) Fetch(opts cache.FetchOptions, req cac
 
 	result.Value = &reply
 	result.Index = reply.QueryMeta.Index
+	result.EmptyCacheResult = reply.QueryMeta.EmptyCacheResult
 	return result, nil
 }

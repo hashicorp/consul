@@ -78,4 +78,7 @@ type FetchResult struct {
 
 	// Index is the corresponding index value for this data.
 	Index uint64
+
+	// EmptyCacheResult Tell the result is empty because entry was not modified
+	EmptyCacheResult bool
 }

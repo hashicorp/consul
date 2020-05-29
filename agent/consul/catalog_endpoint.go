@@ -273,6 +273,7 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 				reply.Nodes = nil
 				return nil
 			}
+			reply.SetEmptyCacheResult(false)
 			reply.Nodes = nodes
 			if err := c.srv.filterACL(args.Token, reply); err != nil {
 				return err
@@ -327,6 +328,7 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 				reply.Services = nil
 				return nil
 			}
+			reply.SetEmptyCacheResult(false)
 			return c.srv.filterACLWithAuthorizer(authz, reply)
 		})
 }
@@ -360,6 +362,7 @@ func (c *Catalog) ServiceList(args *structs.DCSpecificRequest, reply *structs.In
 				reply.Services = nil
 				return nil
 			}
+			reply.SetEmptyCacheResult(false)
 			return c.srv.filterACLWithAuthorizer(authz, reply)
 		})
 }
@@ -445,6 +448,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 				reply.ServiceNodes = nil
 				return nil
 			}
+			reply.SetEmptyCacheResult(false)
 			if len(args.NodeMetaFilters) > 0 {
 				var filtered structs.ServiceNodes
 				for _, service := range services {
@@ -464,9 +468,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 			if err != nil {
 				return err
 			}
-
 			reply.ServiceNodes = raw.(structs.ServiceNodes)
-
 			return c.srv.sortNodesByDistanceFrom(args.Source, reply.ServiceNodes)
 		})
 
@@ -548,6 +550,7 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 				reply.NodeServices = nil
 				return nil
 			}
+			reply.SetEmptyCacheResult(false)
 			if err := c.srv.filterACL(args.Token, reply); err != nil {
 				return err
 			}
@@ -608,6 +611,7 @@ func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *stru
 				reply.NodeServices = structs.NodeServiceList{}
 				return nil
 			}
+			reply.SetEmptyCacheResult(false)
 			if services != nil {
 				reply.NodeServices = *services
 

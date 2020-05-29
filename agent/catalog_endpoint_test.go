@@ -677,7 +677,7 @@ func TestCatalogServiceNodes(t *testing.T) {
 
 			nodes := obj.(structs.ServiceNodes)
 			if len(nodes) != 2 {
-				r.Fatalf("Want 2 nodes")
+				r.Fatalf("Want 2 nodes, has %v", len(nodes))
 			}
 
 			// Should be a cache hit! The data should've updated in the cache

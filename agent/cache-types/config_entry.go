@@ -42,6 +42,7 @@ func (c *ConfigEntries) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 	// allows cached service-discover to automatically read scale across all
 	// servers too.
 	reqReal.AllowStale = true
+	reqReal.ReturnEmptyResultOnUnmodified = true
 
 	// Fetch
 	var reply structs.IndexedConfigEntries
@@ -51,6 +52,7 @@ func (c *ConfigEntries) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 
 	result.Value = &reply
 	result.Index = reply.QueryMeta.Index
+	result.EmptyCacheResult = reply.QueryMeta.EmptyCacheResult
 	return result, nil
 }
 
@@ -83,6 +85,7 @@ func (c *ConfigEntry) Fetch(opts cache.FetchOptions, req cache.Request) (cache.F
 	// allows cached service-discover to automatically read scale across all
 	// servers too.
 	reqReal.AllowStale = true
+	reqReal.ReturnEmptyResultOnUnmodified = true
 
 	// Fetch
 	var reply structs.ConfigEntryResponse
@@ -92,5 +95,6 @@ func (c *ConfigEntry) Fetch(opts cache.FetchOptions, req cache.Request) (cache.F
 
 	result.Value = &reply
 	result.Index = reply.QueryMeta.Index
+	result.EmptyCacheResult = reply.QueryMeta.EmptyCacheResult
 	return result, nil
 }

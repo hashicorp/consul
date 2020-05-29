@@ -65,7 +65,7 @@ func (s *HTTPServer) DiscoveryChainRead(resp http.ResponseWriter, req *http.Requ
 		if err != nil {
 			return nil, err
 		}
-		defer setCacheMeta(resp, &m)
+		defer setCacheMeta(resp, &m, &args.QueryOptions)
 
 		reply, ok := raw.(*structs.DiscoveryChainResponse)
 		if !ok {

@@ -752,7 +752,7 @@ type queryFn func(memdb.WatchSet, *state.Store) error
 
 // CanSendEmptyResult will return true if we can return an empty result
 func CanSendEmptyResult(queryOpts structs.QueryOptionsCompat, queryMeta structs.QueryMetaCompat) bool {
-	return queryOpts.GetReturnEmptyResultOnUnmodified() && queryOpts.GetMinQueryIndex() == queryMeta.GetIndex()
+	return queryOpts.GetReturnEmptyResultOnUnmodified() && queryOpts.GetMinQueryIndex() > 1 && queryOpts.GetMinQueryIndex() == queryMeta.GetIndex()
 }
 
 // blockingQuery is used to process a potentially blocking query operation.

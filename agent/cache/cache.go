@@ -17,6 +17,7 @@ package cache
 import (
 	"container/heap"
 	"fmt"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -515,9 +516,13 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 		// code below. See https://github.com/hashicorp/consul/issues/4480.
 		newEntry.Error = err
 
-		if result.Value != nil {
+		labels := []metrics.Label{{Name: "updated", Value: strconv.FormatBool(result.EmptyCacheResult)}}
+		if result.Value != nil || result.EmptyCacheResult {
 			// A new value was given, so we create a brand new entry.
-			newEntry.Value = result.Value
+			if !result.EmptyCacheResult {
+				newEntry.Value = result.Value
+			}
+			metrics.SetGaugeWithLabels([]string{"consul", "cache", "entries_count"}, float32(len(c.entries)), labels)
 			newEntry.State = result.State
 			newEntry.Index = result.Index
 			newEntry.FetchedAt = time.Now()
@@ -548,8 +553,8 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 
 		// Error handling
 		if err == nil {
-			metrics.IncrCounter([]string{"consul", "cache", "fetch_success"}, 1)
-			metrics.IncrCounter([]string{"consul", "cache", tEntry.Name, "fetch_success"}, 1)
+			metrics.IncrCounterWithLabels([]string{"consul", "cache", "fetch_success"}, 1, labels)
+			metrics.IncrCounterWithLabels([]string{"consul", "cache", tEntry.Name, "fetch_success"}, 1, labels)
 
 			if result.Index > 0 {
 				// Reset the attempts counter so we don't have any backoff
