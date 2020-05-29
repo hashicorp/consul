@@ -21,7 +21,6 @@ import (
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/mitchellh/mapstructure"
-	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -944,7 +943,7 @@ func TestFSM_ACL_CRUD(t *testing.T) {
 	}
 	bootstrap.ACL.CreateIndex = respACL.CreateIndex
 	bootstrap.ACL.ModifyIndex = respACL.ModifyIndex
-	verify.Values(t, "", respACL, &bootstrap.ACL)
+	require.Equal(t, &bootstrap.ACL, respACL)
 }
 
 func TestFSM_PreparedQuery_CRUD(t *testing.T) {

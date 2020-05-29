@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-memdb"
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -180,9 +179,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("got err %s want nil", err)
 		}
-		if got, want := out, node; !verify.Values(t, "GetNode", got, want) {
-			t.FailNow()
-		}
+		require.Equal(t, node, out)
 
 		_, out2, err := s.GetNodeID(nodeID)
 		if err != nil {
@@ -191,9 +188,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 		if out2 == nil {
 			t.Fatalf("out2 should not be nil")
 		}
-		if got, want := out, out2; !verify.Values(t, "GetNodeID", got, want) {
-			t.FailNow()
-		}
+		require.Equal(t, out, out2)
 	}
 	verifyNode()
 
@@ -242,17 +237,13 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 		if gotidx, wantidx := idx, uint64(2); err != nil || gotidx != wantidx {
 			t.Fatalf("got err, idx: %s, %d want nil, %d", err, gotidx, wantidx)
 		}
-		if got, want := out.Services, svcmap; !verify.Values(t, "NodeServices", got, want) {
-			t.FailNow()
-		}
+		require.Equal(t, svcmap, out.Services)
 
 		idx, r, err := s.NodeService("node1", "redis1", nil)
 		if gotidx, wantidx := idx, uint64(2); err != nil || gotidx != wantidx {
 			t.Fatalf("got err, idx: %s, %d want nil, %d", err, gotidx, wantidx)
 		}
-		if got, want := r, svcmap["redis1"]; !verify.Values(t, "NodeService", got, want) {
-			t.FailNow()
-		}
+		require.Equal(t, svcmap["redis1"], r)
 	}
 	verifyNode()
 	verifyService()
@@ -284,17 +275,13 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 		if gotidx, wantidx := idx, uint64(3); err != nil || gotidx != wantidx {
 			t.Fatalf("got err, idx: %s, %d want nil, %d", err, gotidx, wantidx)
 		}
-		if got, want := out, checks; !verify.Values(t, "NodeChecks", got, want) {
-			t.FailNow()
-		}
+		require.Equal(t, checks, out)
 
 		idx, c, err := s.NodeCheck("node1", "check1", nil)
 		if gotidx, wantidx := idx, uint64(3); err != nil || gotidx != wantidx {
 			t.Fatalf("got err, idx: %s, %d want nil, %d", err, gotidx, wantidx)
 		}
-		if got, want := c, checks[0]; !verify.Values(t, "NodeCheck", got, want) {
-			t.FailNow()
-		}
+		require.Equal(t, checks[0], c)
 	}
 	verifyNode()
 	verifyService()
@@ -344,9 +331,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 		if gotidx, wantidx := idx, uint64(4); err != nil || gotidx != wantidx {
 			t.Fatalf("got err, idx: %s, %d want nil, %d", err, gotidx, wantidx)
 		}
-		if got, want := out, checks; !verify.Values(t, "NodeChecks", got, want) {
-			t.FailNow()
-		}
+		require.Equal(t, checks, out)
 	}
 	verifyChecks()
 

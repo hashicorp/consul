@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/raft"
-	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/require"
 )
 
 func TestOperator_RaftGetConfiguration(t *testing.T) {
@@ -55,7 +55,7 @@ func TestOperator_RaftGetConfiguration(t *testing.T) {
 		},
 		Index: future.Index(),
 	}
-	verify.Values(t, "", reply, expected)
+	require.Equal(t, expected, reply)
 }
 
 func TestOperator_RaftGetConfiguration_ACLDeny(t *testing.T) {
@@ -132,7 +132,7 @@ func TestOperator_RaftGetConfiguration_ACLDeny(t *testing.T) {
 		},
 		Index: future.Index(),
 	}
-	verify.Values(t, "", reply, expected)
+	require.Equal(t, expected, reply)
 }
 
 func TestOperator_RaftRemovePeerByAddress(t *testing.T) {

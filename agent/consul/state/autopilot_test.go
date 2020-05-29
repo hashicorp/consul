@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/consul/autopilot"
-	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStateStore_Autopilot(t *testing.T) {
@@ -117,7 +117,7 @@ func TestStateStore_Autopilot_Snapshot_Restore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	verify.Values(t, "", before, snapped)
+	require.Equal(t, snapped, before, "autopilot snapshot")
 
 	s2 := testStateStore(t)
 	restore := s2.Restore()
@@ -133,5 +133,5 @@ func TestStateStore_Autopilot_Snapshot_Restore(t *testing.T) {
 	if idx != 99 {
 		t.Fatalf("bad index: %d", idx)
 	}
-	verify.Values(t, "", before, res)
+	require.Equal(t, res, before, "autopilot config")
 }

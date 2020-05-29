@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/require"
 )
 
 func TestKVS_Apply(t *testing.T) {
@@ -584,7 +584,7 @@ key "zip" {
 		actualKeys = append(actualKeys, entry.Key)
 	}
 
-	verify.Values(t, "", actualKeys, expectedKeys)
+	require.Equal(t, expectedKeys, actualKeys)
 
 	// list keys with a prefix that has list permissions should succeed
 	getKeysReq2 := structs.KeyListRequest{
@@ -598,7 +598,7 @@ key "zip" {
 
 	actualKeys = keyList.Keys
 
-	verify.Values(t, "", actualKeys, expectedKeys)
+	require.Equal(t, expectedKeys, actualKeys)
 
 }
 
