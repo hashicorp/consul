@@ -33,11 +33,12 @@
   </BlockSlot>
   <BlockSlot @name="content">
 {{#if (gt items.length 0) }}
-      <form class="filter-bar">
-        <FreetextFilter @searchable={{searchable}} @value={{s}} @placeholder="Search" />
-      </form>
+    <SearchBar
+      @value={{search}}
+      @onsearch={{action (mut search) value="target.value"}}
+    />
 {{/if}}
-    <ChangeableSet @dispatcher={{searchable}}>
+    <ChangeableSet @dispatcher={{searchable 'policy' items}} @terms={{search}}>
       <BlockSlot @name="set" as |filtered|>
         <TabularCollection @items={{sort-by "CreateIndex:desc" "Name:asc" filtered}} as |item index|>
           <BlockSlot @name="header">
@@ -103,11 +104,21 @@
       <BlockSlot @name="empty">
         <EmptyState @allowLogin={{true}}>
           <BlockSlot @name="header">
-            <h2>Welcome to Policies</h2>
+            <h2>
+              {{#if (gt items.length 0)}}
+                No policies found
+              {{else}}
+                Welcome to Policies
+              {{/if}}
+            </h2>
           </BlockSlot>
           <BlockSlot @name="body">
             <p>
-              There don't seem to be any policies, or you may not have access to view policies yet.
+              {{#if (gt items.length 0)}}
+                No policies where found matching that search, or you may not have access to view the policies you are searching for.
+              {{else}}
+                There don't seem to be any policies, or you may not have access to view policies yet.
+              {{/if}}
             </p>
           </BlockSlot>
           <BlockSlot @name="actions">

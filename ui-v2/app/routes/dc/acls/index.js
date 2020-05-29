@@ -9,7 +9,7 @@ export default Route.extend(WithAclActions, {
   repo: service('repository/acl'),
   settings: service('settings'),
   queryParams: {
-    s: {
+    search: {
       as: 'filter',
       replace: true,
     },

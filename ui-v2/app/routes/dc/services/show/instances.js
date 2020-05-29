@@ -2,7 +2,7 @@ import Route from '@ember/routing/route';
 
 export default Route.extend({
   queryParams: {
-    s: {
+    search: {
       as: 'filter',
       replace: true,
     },

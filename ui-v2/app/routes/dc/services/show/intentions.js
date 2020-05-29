@@ -3,6 +3,12 @@ import { inject as service } from '@ember/service';
 import WithIntentionActions from 'consul-ui/mixins/intention/with-actions';
 
 export default Route.extend(WithIntentionActions, {
+  queryParams: {
+    search: {
+      as: 'filter',
+      replace: true,
+    },
+  },
   repo: service('repository/intention'),
   model: function() {
     const parent = this.routeName
