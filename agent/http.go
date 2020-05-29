@@ -82,9 +82,9 @@ func (e ForbiddenError) Error() string {
 // HTTPServer provides an HTTP api for an agent.
 type HTTPServer struct {
 	*http.Server
-	ln        net.Listener
-	agent     *Agent
-	denylist  *Denylist
+	ln       net.Listener
+	agent    *Agent
+	denylist *Denylist
 
 	// proto is filled by the agent to "http" or "https".
 	proto string
