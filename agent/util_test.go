@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStringHash(t *testing.T) {
@@ -121,7 +121,7 @@ func TestDurationFixer(t *testing.T) {
 	}
 
 	// Ensure we only processed the intended fieldnames
-	verify.Values(t, "", obj, expected)
+	require.Equal(t, expected, obj)
 }
 
 // helperProcessSentinel is a sentinel value that is put as the first

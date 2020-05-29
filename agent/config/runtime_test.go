@@ -3860,7 +3860,7 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				}
 
 				// build/merge the config fragments
-				rt, err := b.BuildAndValidate()
+				actual, err := b.BuildAndValidate()
 				if err == nil && tt.err != "" {
 					t.Fatalf("got no error want %q", tt.err)
 				}
@@ -3873,11 +3873,7 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				if err != nil && tt.err != "" && !strings.Contains(err.Error(), tt.err) {
 					t.Fatalf("error %q does not contain %q", err.Error(), tt.err)
 				}
-
-				// check the warnings
-				if !verify.Values(t, "warnings", b.Warnings, tt.warns) {
-					t.FailNow()
-				}
+				require.Equal(t, tt.warns, b.Warnings, "warnings")
 
 				// stop if we expected an error
 				if tt.err != "" {
@@ -3894,19 +3890,14 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				x.Hostname = b.Hostname
 				x.GetPrivateIPv4 = func() ([]*net.IPAddr, error) { return []*net.IPAddr{ipAddr("10.0.0.1")}, nil }
 				x.GetPublicIPv6 = func() ([]*net.IPAddr, error) { return []*net.IPAddr{ipAddr("dead:beef::1")}, nil }
-				patchedRT, err := x.Build()
+				expected, err := x.Build()
 				if err != nil {
 					t.Fatalf("build default failed: %s", err)
 				}
 				if tt.patch != nil {
-					tt.patch(&patchedRT)
+					tt.patch(&expected)
 				}
-				// if err := x.Validate(wantRT); err != nil {
-				// 	t.Fatalf("validate default failed: %s", err)
-				// }
-				if got, want := rt, patchedRT; !verify.Values(t, "", got, want) {
-					t.FailNow()
-				}
+				require.Equal(t, expected, actual)
 			})
 		}
 	}
