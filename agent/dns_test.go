@@ -18,7 +18,6 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/miekg/dns"
-	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/require"
 )
 
@@ -151,7 +150,7 @@ func TestEncodeKVasRFC1464(t *testing.T) {
 
 	for _, test := range tests {
 		answer := encodeKVasRFC1464(test.key, test.value)
-		verify.Values(t, "internalForm", answer, test.internalForm)
+		require.Equal(t, test.internalForm, answer)
 	}
 }
 
@@ -445,7 +444,7 @@ func TestDNSCycleRecursorCheck(t *testing.T) {
 			A:   []byte{0xAC, 0x15, 0x2D, 0x43}, // 172 , 21, 45, 67
 		},
 	}
-	verify.Values(t, "Answer", in.Answer, wantAnswer)
+	require.Equal(t, wantAnswer, in.Answer)
 }
 func TestDNSCycleRecursorCheckAllFail(t *testing.T) {
 	t.Parallel()
@@ -474,7 +473,7 @@ func TestDNSCycleRecursorCheckAllFail(t *testing.T) {
 	client := new(dns.Client)
 	in, _, _ := client.Exchange(m, agent.DNSAddr())
 	//Verify if we hit SERVFAIL from Consul
-	verify.Values(t, "Answer", in.Rcode, dns.RcodeServerFailure)
+	require.Equal(t, dns.RcodeServerFailure, in.Rcode)
 }
 func TestDNS_NodeLookup_CNAME(t *testing.T) {
 	t.Parallel()
@@ -532,7 +531,7 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 			Txt: []string{"my_txt_value"},
 		},
 	}
-	verify.Values(t, "answer", in.Answer, wantAnswer)
+	require.Equal(t, wantAnswer, in.Answer)
 }
 
 func TestDNS_NodeLookup_TXT(t *testing.T) {
@@ -665,7 +664,7 @@ func TestDNS_NodeLookup_ANY(t *testing.T) {
 			Txt: []string{"key=value"},
 		},
 	}
-	verify.Values(t, "answer", in.Answer, wantAnswer)
+	require.Equal(t, wantAnswer, in.Answer)
 }
 
 func TestDNS_NodeLookup_ANY_DontSuppressTXT(t *testing.T) {
@@ -706,7 +705,7 @@ func TestDNS_NodeLookup_ANY_DontSuppressTXT(t *testing.T) {
 			Txt: []string{"key=value"},
 		},
 	}
-	verify.Values(t, "answer", in.Answer, wantAnswer)
+	require.Equal(t, wantAnswer, in.Answer)
 }
 
 func TestDNS_NodeLookup_A_SuppressTXT(t *testing.T) {
@@ -739,7 +738,7 @@ func TestDNS_NodeLookup_A_SuppressTXT(t *testing.T) {
 			A:   []byte{0x7f, 0x0, 0x0, 0x1}, // 127.0.0.1
 		},
 	}
-	verify.Values(t, "answer", in.Answer, wantAnswer)
+	require.Equal(t, wantAnswer, in.Answer)
 
 	// ensure TXT RR suppression
 	require.Len(t, in.Extra, 0)
@@ -1581,14 +1580,14 @@ func TestDNS_ServiceLookupWithInternalServiceAddress(t *testing.T) {
 			Target:   "foo.node.dc1.consul.",
 		},
 	}
-	verify.Values(t, "answer", in.Answer, wantAnswer)
+	require.Equal(t, wantAnswer, in.Answer, "answer")
 	wantExtra := []dns.RR{
 		&dns.A{
 			Hdr: dns.RR_Header{Name: "foo.node.dc1.consul.", Rrtype: 0x1, Class: 0x1, Rdlength: 0x4},
 			A:   []byte{0x7f, 0x0, 0x0, 0x1}, // 127.0.0.1
 		},
 	}
-	verify.Values(t, "extra", in.Extra, wantExtra)
+	require.Equal(t, wantExtra, in.Extra, "extra")
 }
 
 func TestDNS_ConnectServiceLookup(t *testing.T) {
@@ -1975,7 +1974,7 @@ func TestDNS_NSRecords(t *testing.T) {
 			Ns:  "server1.node.dc1.consul.",
 		},
 	}
-	verify.Values(t, "answer", in.Answer, wantAnswer)
+	require.Equal(t, wantAnswer, in.Answer, "answer")
 	wantExtra := []dns.RR{
 		&dns.A{
 			Hdr: dns.RR_Header{Name: "server1.node.dc1.consul.", Rrtype: dns.TypeA, Class: dns.ClassINET, Rdlength: 0x4, Ttl: 0},
@@ -1983,7 +1982,7 @@ func TestDNS_NSRecords(t *testing.T) {
 		},
 	}
 
-	verify.Values(t, "extra", in.Extra, wantExtra)
+	require.Equal(t, wantExtra, in.Extra, "extra")
 }
 
 func TestDNS_NSRecords_IPV6(t *testing.T) {
@@ -2011,7 +2010,7 @@ func TestDNS_NSRecords_IPV6(t *testing.T) {
 			Ns:  "server1.node.dc1.consul.",
 		},
 	}
-	verify.Values(t, "answer", in.Answer, wantAnswer)
+	require.Equal(t, wantAnswer, in.Answer, "answer")
 	wantExtra := []dns.RR{
 		&dns.AAAA{
 			Hdr:  dns.RR_Header{Name: "server1.node.dc1.consul.", Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Rdlength: 0x10, Ttl: 0},
@@ -2019,7 +2018,7 @@ func TestDNS_NSRecords_IPV6(t *testing.T) {
 		},
 	}
 
-	verify.Values(t, "extra", in.Extra, wantExtra)
+	require.Equal(t, wantExtra, in.Extra, "extra")
 
 }
 
@@ -5670,7 +5669,7 @@ func TestDNS_ServiceLookup_MetaTXT(t *testing.T) {
 			Txt: []string{"key=value"},
 		},
 	}
-	verify.Values(t, "additional", in.Extra, wantAdditional)
+	require.Equal(t, wantAdditional, in.Extra)
 }
 
 func TestDNS_ServiceLookup_SuppressTXT(t *testing.T) {
@@ -5713,7 +5712,7 @@ func TestDNS_ServiceLookup_SuppressTXT(t *testing.T) {
 			A:   []byte{0x7f, 0x0, 0x0, 0x1}, // 127.0.0.1
 		},
 	}
-	verify.Values(t, "additional", in.Extra, wantAdditional)
+	require.Equal(t, wantAdditional, in.Extra)
 }
 
 func TestDNS_AddressLookup(t *testing.T) {
