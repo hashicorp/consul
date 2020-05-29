@@ -7,7 +7,7 @@ import WithKvActions from 'consul-ui/mixins/kv/with-actions';
 
 export default Route.extend(WithKvActions, {
   queryParams: {
-    s: {
+    search: {
       as: 'filter',
       replace: true,
     },

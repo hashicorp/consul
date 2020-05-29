@@ -7,10 +7,10 @@ import WithIntentionActions from 'consul-ui/mixins/intention/with-actions';
 export default Route.extend(WithIntentionActions, {
   repo: service('repository/intention'),
   queryParams: {
-    currentFilter: {
+    filterBy: {
       as: 'action',
     },
-    s: {
+    search: {
       as: 'filter',
       replace: true,
     },

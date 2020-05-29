@@ -23,6 +23,9 @@
   display: grid;
   grid-auto-rows: 12px;
 }
+%card-grid li.empty {
+  grid-column: 1 / -1;
+}
 @media #{$--fixed-grid} {
   %card-grid > ul,
   %card-grid > ol {

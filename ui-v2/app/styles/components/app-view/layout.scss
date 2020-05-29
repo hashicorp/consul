@@ -73,7 +73,7 @@
 }
 /* */
 /* TODO: Think about an %app-form or similar */
-%app-view-content fieldset:not(.freetext-filter) {
+%app-view-content form:not(.filter-bar) fieldset {
   padding-bottom: 0.3em;
   margin-bottom: 2em;
 }

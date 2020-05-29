@@ -1,4 +1,13 @@
 {{title 'Nodes'}}
+{{#let (selectable-key-values
+    (array "" "All (Any Status)")
+    (array "critical" "Critical Checks")
+    (array "warning" "Warning Checks")
+    (array "passing" "Passing Checks")
+      selected=filterBy
+  )
+  as |filter|
+}}
 <AppView @class="node list">
   <BlockSlot @name="header">
     <h1>
@@ -8,17 +17,35 @@
   </BlockSlot>
   <BlockSlot @name="toolbar">
 {{#if (gt items.length 0) }}
-    <CatalogFilter @searchable={{array searchableHealthy searchableUnhealthy}} @search={{s}} @status={{filters.status}} @onchange={{action "filter"}} />
+      <SearchBar
+        data-test-catalog-filter
+        @value={{search}}
+        @onsearch={{action (mut search) value="target.value"}}
+        @selected={{filter.selected}}
+        @options={{filter.items}}
+        @onchange={{action (mut filterBy) value='target.value'}}
+      />
 {{/if}}
   </BlockSlot>
   <BlockSlot @name="content">
-{{#if (gt unhealthy.length 0) }}
+{{#let (filter-by "Checks" (action "isUnhealthy") items) as |unhealthy|}}
+  {{#if (gt unhealthy.length 0) }}
       <div class="unhealthy">
         <h2>Unhealthy Nodes</h2>
         <div>
           {{! think about 2 differing views here }}
           <ul>
-            <ChangeableSet @dispatcher={{searchableUnhealthy}}>
+            <ChangeableSet
+              @dispatcher={{
+                searchable
+                  'unhealthyNode'
+                  (if (eq filter.selected.key "")
+                    unhealthy
+                    (filter-by "Checks" (action "hasStatus" filter.selected.key) unhealthy filter.selected.key)
+                  )
+              }}
+              @terms={{search}}
+            >
               <BlockSlot @name="set" as |unhealthy|>
                 {{#each unhealthy as |item|}}
                   <HealthcheckedResource @tagName="li" @data-test-node={{item.Node}} @href={{href-to "dc.nodes.show" item.Node}} @name={{item.Node}} @address={{item.Address}} @checks={{item.Checks}}>
@@ -31,19 +58,40 @@
                 {{/each}}
               </BlockSlot>
               <BlockSlot @name="empty">
-                <p>
-                  There are no unhealthy nodes for that search.
-                </p>
+                <li class="empty">
+                  <EmptyState>
+                    <BlockSlot @name="header">
+                      <h2>No nodes found</h2>
+                    </BlockSlot>
+                    <BlockSlot @name="body">
+                      <p>
+                        There don't seem to be any nodes matching that search.
+                      </p>
+                    </BlockSlot>
+                  </EmptyState>
+                </li>
               </BlockSlot>
             </ChangeableSet>
           </ul>
         </div>
       </div>
-{{/if}}
-{{#if (gt healthy.length 0) }}
+  {{/if}}
+{{/let}}
+{{#let (filter-by "Checks" (action "isHealthy") items) as |healthy|}}
+  {{#if (gt healthy.length 0) }}
       <div class="healthy">
         <h2>Healthy Nodes</h2>
-        <ChangeableSet @dispatcher={{searchableHealthy}}>
+        <ChangeableSet
+          @dispatcher={{
+            searchable
+              'healthyNode'
+              (if (eq filter.selected.key "")
+                healthy
+                (filter-by "Checks" (action "hasStatus" filter.selected.key) healthy filter.selected.key)
+              )
+          }}
+          @terms={{search}}
+        >
           <BlockSlot @name="set" as |healthy|>
             <GridCollection @cellHeight={{92}} @items={{healthy}} as |item index|>
               <HealthcheckedResource @data-test-node={{item.Node}} @href={{href-to "dc.nodes.show" item.Node}} @name={{item.Node}} @address={{item.Address}} @checks={{item.Checks}}>
@@ -56,14 +104,22 @@
             </GridCollection>
           </BlockSlot>
           <BlockSlot @name="empty">
-            <p>
-              There are no healthy nodes for that search.
-            </p>
+            <EmptyState>
+              <BlockSlot @name="header">
+                <h2>No nodes found</h2>
+              </BlockSlot>
+              <BlockSlot @name="body">
+                <p>
+                  There don't seem to be any nodes matching that search.
+                </p>
+              </BlockSlot>
+            </EmptyState>
           </BlockSlot>
         </ChangeableSet>
       </div>
-{{/if}}
-{{#if (and (eq healthy.length 0) (eq unhealthy.length 0)) }}
+  {{/if}}
+{{/let}}
+{{#if (eq items.length 0) }}
       <EmptyState @allowLogin={{true}}>
         <BlockSlot @name="header">
           <h2>Welcome to Nodes</h2>
@@ -73,15 +129,8 @@
             There don't seem to be any nodes, or you may not have access to view nodes yet.
           </p>
         </BlockSlot>
-        <BlockSlot @name="actions">
-          <li class="docs-link">
-            <a href="{{env 'CONSUL_DOCS_URL'}}" rel="noopener noreferrer" target="_blank">Documentation on nodes</a>
-          </li>
-          <li class="learn-link">
-            <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/" rel="noopener noreferrer" target="_blank">Read the guide</a>
-          </li>
-        </BlockSlot>
       </EmptyState>
 {{/if}}
   </BlockSlot>
 </AppView>
+{{/let}}

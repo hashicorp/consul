@@ -1,25 +1,13 @@
 import Controller from '@ember/controller';
-import { get, computed } from '@ember/object';
+import { computed } from '@ember/object';
 import WithEventSource from 'consul-ui/mixins/with-event-source';
-import WithSearching from 'consul-ui/mixins/with-searching';
-export default Controller.extend(WithEventSource, WithSearching, {
+export default Controller.extend(WithEventSource, {
   queryParams: {
     sortBy: 'sort',
-    s: {
+    search: {
       as: 'filter',
     },
   },
-  init: function() {
-    this.searchParams = {
-      service: 's',
-    };
-    this._super(...arguments);
-  },
-  searchable: computed('services.[]', function() {
-    return get(this, 'searchables.service')
-      .add(this.services)
-      .search(this.terms);
-  }),
   services: computed('items.[]', function() {
     return this.items.filter(function(item) {
       return item.Kind !== 'connect-proxy';
