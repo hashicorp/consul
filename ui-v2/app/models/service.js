@@ -17,6 +17,7 @@ export default Model.extend({
   ProxyFor: attr(),
   Kind: attr('string'),
   ExternalSources: attr(),
+  GatewayConfig: attr(),
   Meta: attr(),
   Address: attr('string'),
   TaggedAddresses: attr(),

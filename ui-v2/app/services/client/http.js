@@ -96,6 +96,11 @@ export default Service.extend({
   body: function(strs, ...values) {
     let body = {};
     const doubleBreak = strs.reduce(function(prev, item, i) {
+      // Ensure each line has no whitespace either end, including empty lines
+      item = item
+        .split('\n')
+        .map(item => item.trim())
+        .join('\n');
       if (item.indexOf('\n\n') !== -1) {
         return i;
       }
