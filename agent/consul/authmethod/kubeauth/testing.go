@@ -66,7 +66,7 @@ func StartTestAPIServer(t testing.T) *TestAPIServer {
 	return s
 }
 
-// AuthorizeJWT whitelists the given JWT as able to use the API server.
+// AuthorizeJWT allowlists the given JWT as able to use the API server.
 func (s *TestAPIServer) AuthorizeJWT(jwt string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

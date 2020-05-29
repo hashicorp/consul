@@ -398,7 +398,7 @@ func (s *ConnectCA) Roots(
 			}
 
 			// The API response must NEVER contain the secret information
-			// such as keys and so on. We use a whitelist below to copy the
+			// such as keys and so on. We use an allowlist below to copy the
 			// specific fields we want to expose.
 			for i, r := range reply.Roots {
 				// IMPORTANT: r must NEVER be modified, since it is a pointer
