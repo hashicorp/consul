@@ -8,7 +8,7 @@
         {
           "name": "db",
           "domains": [
-            "*"
+            "db.ingress.*"
           ],
           "routes": [
             {
