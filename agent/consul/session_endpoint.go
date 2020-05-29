@@ -59,7 +59,7 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 		return err
 	}
 
-	if authz != nil && s.srv.config.ACLEnforceVersion8 {
+	if authz != nil {
 		switch args.Op {
 		case structs.SessionDestroy:
 			state := s.srv.fsm.State()
@@ -302,7 +302,7 @@ func (s *Session) Renew(args *structs.SessionSpecificRequest,
 		return nil
 	}
 
-	if authz != nil && s.srv.config.ACLEnforceVersion8 && authz.SessionWrite(session.Node, &authzContext) != acl.Allow {
+	if authz != nil && authz.SessionWrite(session.Node, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 

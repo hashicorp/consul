@@ -936,14 +936,13 @@ func TestHealth_ServiceNodes_ConnectProxy_ACL(t *testing.T) {
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
-		c.ACLEnforceVersion8 = false
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
 	// Create the ACL.
 	arg := structs.ACLRequest{
@@ -954,6 +953,9 @@ func TestHealth_ServiceNodes_ConnectProxy_ACL(t *testing.T) {
 			Type: structs.ACLTokenTypeClient,
 			Rules: `
 service "foo" {
+	policy = "write"
+}
+node "foo" {
 	policy = "write"
 }
 `,
@@ -1236,14 +1238,13 @@ func TestHealth_ServiceNodes_Ingress_ACL(t *testing.T) {
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
-		c.ACLEnforceVersion8 = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
 	// Create the ACL.
 	token, err := upsertTestTokenWithPolicyRules(codec, "root", "dc1", `

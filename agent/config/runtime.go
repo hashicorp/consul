@@ -104,13 +104,6 @@ type RuntimeConfig struct {
 	// hcl: acl.down_policy = ("allow"|"deny"|"extend-cache"|"async-cache")
 	ACLDownPolicy string
 
-	// DEPRECATED (ACL-Legacy-Compat)
-	// ACLEnforceVersion8 is used to gate a set of ACL policy features that
-	// are opt-in prior to Consul 0.8 and opt-out in Consul 0.8 and later.
-	//
-	// hcl: acl_enforce_version_8 = (true|false)
-	ACLEnforceVersion8 bool
-
 	// ACLEnableKeyListPolicy is used to opt-in to the "list" policy added to
 	// KV ACLs in Consul 1.0.
 	//

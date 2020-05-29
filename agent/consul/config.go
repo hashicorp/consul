@@ -237,10 +237,6 @@ type Config struct {
 	// ACLEnabled is used to enable ACLs
 	ACLsEnabled bool
 
-	// ACLEnforceVersion8 is used to gate a set of ACL policy features that
-	// are opt-in prior to Consul 0.8 and opt-out in Consul 0.8 and later.
-	ACLEnforceVersion8 bool
-
 	// ACLMasterToken is used to bootstrap the ACL system. It should be specified
 	// on the servers in the ACLDatacenter. When the leader comes online, it ensures
 	// that the Master token is available. This provides the initial token.

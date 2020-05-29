@@ -26,7 +26,6 @@ func TestLeader_RegisterMember(t *testing.T) {
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
-		c.ACLEnforceVersion8 = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -98,7 +97,6 @@ func TestLeader_FailedMember(t *testing.T) {
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
-		c.ACLEnforceVersion8 = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -160,7 +158,6 @@ func TestLeader_LeftMember(t *testing.T) {
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
-		c.ACLEnforceVersion8 = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -207,7 +204,6 @@ func TestLeader_ReapMember(t *testing.T) {
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
-		c.ACLEnforceVersion8 = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -269,7 +265,6 @@ func TestLeader_ReapServer(t *testing.T) {
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "allow"
-		c.ACLEnforceVersion8 = true
 		c.Bootstrap = true
 	})
 	defer os.RemoveAll(dir1)
@@ -280,7 +275,6 @@ func TestLeader_ReapServer(t *testing.T) {
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "allow"
-		c.ACLEnforceVersion8 = true
 		c.Bootstrap = false
 	})
 	defer os.RemoveAll(dir2)
@@ -291,7 +285,6 @@ func TestLeader_ReapServer(t *testing.T) {
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "allow"
-		c.ACLEnforceVersion8 = true
 		c.Bootstrap = false
 	})
 	defer os.RemoveAll(dir3)
@@ -347,7 +340,6 @@ func TestLeader_Reconcile_ReapMember(t *testing.T) {
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
-		c.ACLEnforceVersion8 = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -397,7 +389,6 @@ func TestLeader_Reconcile(t *testing.T) {
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
-		c.ACLEnforceVersion8 = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()

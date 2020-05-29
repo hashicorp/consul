@@ -145,7 +145,6 @@ func TestSession_Apply_ACLDeny(t *testing.T) {
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
-		c.ACLEnforceVersion8 = false
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -153,7 +152,7 @@ func TestSession_Apply_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
 	// Create the ACL.
 	req := structs.ACLRequest{
@@ -179,8 +178,7 @@ session "foo" {
 	// Just add a node.
 	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
 
-	// Try to create without a token, which will go through since version 8
-	// enforcement isn't enabled.
+	// Try to create without a token, which will be denied.
 	arg := structs.SessionRequest{
 		Datacenter: "dc1",
 		Op:         structs.SessionCreate,
@@ -189,40 +187,23 @@ session "foo" {
 			Name: "my-session",
 		},
 	}
-	var id1 string
-	if err := msgpackrpc.CallWithCodec(codec, "Session.Apply", &arg, &id1); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Now turn on version 8 enforcement and try again, it should be denied.
-	var id2 string
-	s1.config.ACLEnforceVersion8 = true
-	err := msgpackrpc.CallWithCodec(codec, "Session.Apply", &arg, &id2)
+	var id string
+	err := msgpackrpc.CallWithCodec(codec, "Session.Apply", &arg, &id)
 	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Now set a token and try again. This should go through.
 	arg.Token = token
-	if err := msgpackrpc.CallWithCodec(codec, "Session.Apply", &arg, &id2); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Session.Apply", &arg, &id); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Do a delete on the first session with version 8 enforcement off and
-	// no token. This should go through.
+	// Make sure the delete of the session fails without a token.
 	var out string
-	s1.config.ACLEnforceVersion8 = false
 	arg.Op = structs.SessionDestroy
+	arg.Session.ID = id
 	arg.Token = ""
-	arg.Session.ID = id1
-	if err := msgpackrpc.CallWithCodec(codec, "Session.Apply", &arg, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Turn on version 8 enforcement and make sure the delete of the second
-	// session fails.
-	s1.config.ACLEnforceVersion8 = true
-	arg.Session.ID = id2
 	err = msgpackrpc.CallWithCodec(codec, "Session.Apply", &arg, &out)
 	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
@@ -386,7 +367,6 @@ func TestSession_Get_List_NodeSessions_ACLFilter(t *testing.T) {
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
-		c.ACLEnforceVersion8 = false
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -394,7 +374,7 @@ func TestSession_Get_List_NodeSessions_ACLFilter(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
 	// Create the ACL.
 	req := structs.ACLRequest{
@@ -432,8 +412,7 @@ session "foo" {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Perform all the read operations, which should go through since version
-	// 8 ACL enforcement isn't enabled.
+	// Perform all the read operations, and make sure everything is empty.
 	getR := structs.SessionSpecificRequest{
 		Datacenter: "dc1",
 		SessionID:  out,
@@ -443,7 +422,7 @@ session "foo" {
 		if err := msgpackrpc.CallWithCodec(codec, "Session.Get", &getR, &sessions); err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		if len(sessions.Sessions) != 1 {
+		if len(sessions.Sessions) != 0 {
 			t.Fatalf("bad: %v", sessions.Sessions)
 		}
 	}
@@ -452,47 +431,17 @@ session "foo" {
 	}
 	{
 		var sessions structs.IndexedSessions
+
 		if err := msgpackrpc.CallWithCodec(codec, "Session.List", &listR, &sessions); err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		if len(sessions.Sessions) != 1 {
+		if len(sessions.Sessions) != 0 {
 			t.Fatalf("bad: %v", sessions.Sessions)
 		}
 	}
 	nodeR := structs.NodeSpecificRequest{
 		Datacenter: "dc1",
 		Node:       "foo",
-	}
-	{
-		var sessions structs.IndexedSessions
-		if err := msgpackrpc.CallWithCodec(codec, "Session.NodeSessions", &nodeR, &sessions); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if len(sessions.Sessions) != 1 {
-			t.Fatalf("bad: %v", sessions.Sessions)
-		}
-	}
-
-	// Now turn on version 8 enforcement and make sure everything is empty.
-	s1.config.ACLEnforceVersion8 = true
-	{
-		var sessions structs.IndexedSessions
-		if err := msgpackrpc.CallWithCodec(codec, "Session.Get", &getR, &sessions); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if len(sessions.Sessions) != 0 {
-			t.Fatalf("bad: %v", sessions.Sessions)
-		}
-	}
-	{
-		var sessions structs.IndexedSessions
-
-		if err := msgpackrpc.CallWithCodec(codec, "Session.List", &listR, &sessions); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if len(sessions.Sessions) != 0 {
-			t.Fatalf("bad: %v", sessions.Sessions)
-		}
 	}
 	{
 		var sessions structs.IndexedSessions
@@ -765,7 +714,6 @@ func TestSession_Renew_ACLDeny(t *testing.T) {
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
-		c.ACLEnforceVersion8 = false
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -773,7 +721,7 @@ func TestSession_Renew_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
 	// Create the ACL.
 	req := structs.ACLRequest{
@@ -799,8 +747,7 @@ session "foo" {
 	// Just add a node.
 	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
 
-	// Create a session. The token won't matter here since we don't have
-	// version 8 ACL enforcement on yet.
+	// Create a session.
 	arg := structs.SessionRequest{
 		Datacenter: "dc1",
 		Op:         structs.SessionCreate,
@@ -808,25 +755,19 @@ session "foo" {
 			Node: "foo",
 			Name: "my-session",
 		},
+		WriteRequest: structs.WriteRequest{Token: token},
 	}
 	var id string
 	if err := msgpackrpc.CallWithCodec(codec, "Session.Apply", &arg, &id); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Renew without a token should go through without version 8 ACL
-	// enforcement.
+	// Renew without a token should be rejected.
 	renewR := structs.SessionSpecificRequest{
 		Datacenter: "dc1",
 		SessionID:  id,
 	}
 	var session structs.IndexedSessions
-	if err := msgpackrpc.CallWithCodec(codec, "Session.Renew", &renewR, &session); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Now turn on version 8 enforcement and the renew should be rejected.
-	s1.config.ACLEnforceVersion8 = true
 	err := msgpackrpc.CallWithCodec(codec, "Session.Renew", &renewR, &session)
 	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)

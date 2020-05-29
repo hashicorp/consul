@@ -1620,6 +1620,16 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
+			desc: "acl_enforce_version_8 is deprecated",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{ "acl_enforce_version_8": true }`},
+			hcl:  []string{`acl_enforce_version_8 = true`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+			},
+			warns: []string{`config key "acl_enforce_version_8" is deprecated and should be removed`},
+		},
+		{
 			desc: "advertise address detect fails v4",
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{ "bind_addr": "0.0.0.0"}`},
@@ -3934,7 +3944,6 @@ func TestFullConfig(t *testing.T) {
 			"acl_datacenter": "m3urck3z",
 			"acl_default_policy": "ArK3WIfE",
 			"acl_down_policy": "vZXMfMP0",
-			"acl_enforce_version_8": true,
 			"acl_enable_key_list_policy": true,
 			"acl_master_token": "C1Q1oIwh",
 			"acl_replication_token": "LMmgy5dO",
@@ -4570,7 +4579,6 @@ func TestFullConfig(t *testing.T) {
 			acl_datacenter = "m3urck3z"
 			acl_default_policy = "ArK3WIfE"
 			acl_down_policy = "vZXMfMP0"
-			acl_enforce_version_8 = true
 			acl_enable_key_list_policy = true
 			acl_master_token = "C1Q1oIwh"
 			acl_replication_token = "LMmgy5dO"
@@ -5332,7 +5340,6 @@ func TestFullConfig(t *testing.T) {
 		ACLDatacenter:                    "ejtmd43d",
 		ACLDefaultPolicy:                 "72c2e7a0",
 		ACLDownPolicy:                    "03eb2aee",
-		ACLEnforceVersion8:               true,
 		ACLEnableKeyListPolicy:           true,
 		ACLEnableTokenPersistence:        true,
 		ACLMasterToken:                   "8a19ac27",
@@ -6251,7 +6258,6 @@ func TestSanitize(t *testing.T) {
 		"ACLDownPolicy": "",
 		"ACLEnableKeyListPolicy": false,
 		"ACLEnableTokenPersistence": false,
-		"ACLEnforceVersion8": false,
 		"ACLMasterToken": "hidden",
 		"ACLPolicyTTL": "0s",
 		"ACLReplicationToken": "hidden",

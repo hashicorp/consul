@@ -1169,29 +1169,23 @@ func (r *ACLResolver) GetMergedPolicyForToken(token string) (*acl.Policy, error)
 // aclFilter is used to filter results from our state store based on ACL rules
 // configured for the provided token.
 type aclFilter struct {
-	authorizer      acl.Authorizer
-	logger          hclog.Logger
-	enforceVersion8 bool
+	authorizer acl.Authorizer
+	logger     hclog.Logger
 }
 
 // newACLFilter constructs a new aclFilter.
-func newACLFilter(authorizer acl.Authorizer, logger hclog.Logger, enforceVersion8 bool) *aclFilter {
+func newACLFilter(authorizer acl.Authorizer, logger hclog.Logger) *aclFilter {
 	if logger == nil {
 		logger = hclog.New(&hclog.LoggerOptions{})
 	}
 	return &aclFilter{
-		authorizer:      authorizer,
-		logger:          logger,
-		enforceVersion8: enforceVersion8,
+		authorizer: authorizer,
+		logger:     logger,
 	}
 }
 
 // allowNode is used to determine if a node is accessible for an ACL.
 func (f *aclFilter) allowNode(node string, ent *acl.AuthorizerContext) bool {
-	if !f.enforceVersion8 {
-		return true
-	}
-
 	return f.authorizer.NodeRead(node, ent) == acl.Allow
 }
 
@@ -1218,18 +1212,12 @@ func (f *aclFilter) allowService(service string, ent *acl.AuthorizerContext) boo
 		return true
 	}
 
-	if !f.enforceVersion8 && service == structs.ConsulServiceID {
-		return true
-	}
 	return f.authorizer.ServiceRead(service, ent) == acl.Allow
 }
 
 // allowSession is used to determine if a session for a node is accessible for
 // an ACL.
 func (f *aclFilter) allowSession(node string, ent *acl.AuthorizerContext) bool {
-	if !f.enforceVersion8 {
-		return true
-	}
 	return f.authorizer.SessionRead(node, ent) == acl.Allow
 }
 
@@ -1793,7 +1781,7 @@ func (r *ACLResolver) filterACLWithAuthorizer(authorizer acl.Authorizer, subj in
 		return nil
 	}
 	// Create the filter
-	filt := newACLFilter(authorizer, r.logger, r.config.ACLEnforceVersion8)
+	filt := newACLFilter(authorizer, r.logger)
 
 	switch v := subj.(type) {
 	case *structs.CheckServiceNodes:

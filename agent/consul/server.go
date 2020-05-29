@@ -46,6 +46,8 @@ import (
 // Consul-level protocol versions, that are used to configure the Serf
 // protocol versions.
 const (
+	DefaultRPCProtocol = 2
+
 	ProtocolVersionMin uint8 = 2
 
 	// Version 3 added support for network coordinates but we kept the
