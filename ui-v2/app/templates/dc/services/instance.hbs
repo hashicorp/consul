@@ -27,7 +27,9 @@
       </dl>
     </BlockSlot>
     <BlockSlot @name="actions">
-      <CopyButton @value={{item.Address}} @name="Address">{{item.Address}}</CopyButton>
+      {{#let (or item.Address item.Node.Address) as |address|}}
+        <CopyButton @value={{address}} @name="Address">{{address}}</CopyButton>
+      {{/let}}
     </BlockSlot>
     <BlockSlot @name="content">
         <TabNav @items={{
