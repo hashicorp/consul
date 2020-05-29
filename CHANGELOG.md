@@ -1,5 +1,9 @@
 ## UNRELEASED
 
+BREAKING CHANGES:
+
+* acl: remove the deprecated `acl_enforce_version_8` option [[GH-7991](https://github.com/hashicorp/consul/issues/7991)]
+
 FEATURES:
 
 * agent: handle re-bootstrapping in a secondary datacenter when WAN federation via mesh gateways is configured [[GH-7931](https://github.com/hashicorp/consul/issues/7931)]
