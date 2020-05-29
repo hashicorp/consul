@@ -130,4 +130,46 @@ const undefinedNspace = 'default';
       }
     );
   });
+  test(`findGatewayBySlug returns the correct data for list endpoint when nspace is ${nspace}`, function(assert) {
+    get(this.subject(), 'store').serializerFor(NAME).timestamp = function() {
+      return now;
+    };
+    const gateway = 'gateway';
+    const conf = {
+      cursor: 1,
+    };
+    return repo(
+      'Service',
+      'findGatewayBySlug',
+      this.subject(),
+      function retrieveStub(stub) {
+        return stub(
+          `/v1/internal/ui/gateway-services-nodes/${gateway}?dc=${dc}${
+            typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``
+          }`,
+          {
+            CONSUL_SERVICE_COUNT: '100',
+          }
+        );
+      },
+      function performTest(service) {
+        return service.findGatewayBySlug(gateway, dc, nspace || undefinedNspace, conf);
+      },
+      function performAssertion(actual, expected) {
+        assert.deepEqual(
+          actual,
+          expected(function(payload) {
+            return payload.map(item =>
+              Object.assign({}, item, {
+                SyncTime: now,
+                Datacenter: dc,
+                Namespace: item.Namespace || undefinedNspace,
+                uid: `["${item.Namespace || undefinedNspace}","${dc}","${item.Name}"]`,
+              })
+            );
+          })
+        );
+      }
+    );
+  });
 });

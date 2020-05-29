@@ -20,7 +20,7 @@ export default Service.extend({
     // always be complete, they should never have things like '///model'
     let find;
     const repo = this[model];
-    if (typeof repo.reconcile === 'function') {
+    if (repo.shouldReconcile(src)) {
       configuration.createEvent = function(result = {}, configuration) {
         const event = {
           type: 'message',

@@ -1,15 +1,26 @@
 import Adapter from './application';
 // TODO: Update to use this.formatDatacenter()
 export default Adapter.extend({
-  requestForQuery: function(request, { dc, ns, index }) {
-    return request`
-      GET /v1/internal/ui/services?${{ dc }}
+  requestForQuery: function(request, { dc, ns, index, gateway }) {
+    if (typeof gateway !== 'undefined') {
+      return request`
+        GET /v1/internal/ui/gateway-services-nodes/${gateway}?${{ dc }}
 
-      ${{
-        ...this.formatNspace(ns),
-        index,
-      }}
+        ${{
+          ...this.formatNspace(ns),
+          index,
+        }}
+      `;
+    } else {
+      return request`
+        GET /v1/internal/ui/services?${{ dc }}
+
+        ${{
+          ...this.formatNspace(ns),
+          index,
+        }}
     `;
+    }
   },
   requestForQueryRecord: function(request, { dc, ns, index, id }) {
     if (typeof id === 'undefined') {
