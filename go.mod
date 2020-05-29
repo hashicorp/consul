@@ -68,7 +68,6 @@ require (
 	github.com/mitchellh/mapstructure v1.2.3
 	github.com/mitchellh/pointerstructure v1.0.0
 	github.com/mitchellh/reflectwalk v1.0.1
-	github.com/pascaldekloe/goe v0.1.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.8.1
 	github.com/pquerna/cachecontrol v0.0.0-20180517163645-1555304b9b35 // indirect

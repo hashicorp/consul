@@ -321,8 +321,6 @@ github.com/modern-go/reflect2
 github.com/nicolai86/scaleway-sdk
 # github.com/packethost/packngo v0.1.1-0.20180711074735-b9cb5096f54c
 github.com/packethost/packngo
-# github.com/pascaldekloe/goe v0.1.0
-github.com/pascaldekloe/goe/verify
 # github.com/patrickmn/go-cache v2.1.0+incompatible
 github.com/patrickmn/go-cache
 # github.com/pierrec/lz4 v2.0.5+incompatible
