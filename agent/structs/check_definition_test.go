@@ -8,7 +8,7 @@ import (
 	fuzz "github.com/google/gofuzz"
 	"github.com/hashicorp/consul/api"
 	"github.com/mitchellh/reflectwalk"
-	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCheckDefinition_Defaults(t *testing.T) {
@@ -111,5 +111,5 @@ func TestCheckDefinitionToCheckType(t *testing.T) {
 		TTL:                            3 * time.Second,
 		DeregisterCriticalServiceAfter: 4 * time.Second,
 	}
-	verify.Values(t, "", got.CheckType(), want)
+	require.Equal(t, want, got.CheckType())
 }
