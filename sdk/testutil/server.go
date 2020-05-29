@@ -88,7 +88,6 @@ type TestServerConfig struct {
 	ACLDatacenter       string                 `json:"acl_datacenter,omitempty"`
 	PrimaryDatacenter   string                 `json:"primary_datacenter,omitempty"`
 	ACLDefaultPolicy    string                 `json:"acl_default_policy,omitempty"`
-	ACLEnforceVersion8  bool                   `json:"acl_enforce_version_8"`
 	ACL                 TestACLs               `json:"acl,omitempty"`
 	Encrypt             string                 `json:"encrypt,omitempty"`
 	CAFile              string                 `json:"ca_file,omitempty"`
@@ -381,7 +380,8 @@ func (s *TestServer) waitForAPI() error {
 	for !time.Now().After(deadline) {
 		time.Sleep(timer.Wait)
 
-		resp, err := s.HTTPClient.Get(s.url("/v1/agent/self"))
+		url := s.url("/v1/agent/self")
+		resp, err := s.masterGet(url)
 		if err != nil {
 			failed = true
 			continue
@@ -407,7 +407,7 @@ func (s *TestServer) WaitForLeader(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		// Query the API and check the status code.
 		url := s.url("/v1/catalog/nodes")
-		resp, err := s.HTTPClient.Get(url)
+		resp, err := s.masterGet(url)
 		if err != nil {
 			r.Fatalf("failed http get '%s': %v", url, err)
 		}
@@ -443,7 +443,7 @@ func (s *TestServer) WaitForActiveCARoot(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		// Query the API and check the status code.
 		url := s.url("/v1/agent/connect/ca/roots")
-		resp, err := s.HTTPClient.Get(url)
+		resp, err := s.masterGet(url)
 		if err != nil {
 			r.Fatalf("failed http get '%s': %v", url, err)
 		}
@@ -475,7 +475,7 @@ func (s *TestServer) WaitForSerfCheck(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		// Query the API and check the status code.
 		url := s.url("/v1/catalog/nodes?index=0")
-		resp, err := s.HTTPClient.Get(url)
+		resp, err := s.masterGet(url)
 		if err != nil {
 			r.Fatal("failed http get", err)
 		}
@@ -496,7 +496,7 @@ func (s *TestServer) WaitForSerfCheck(t *testing.T) {
 
 		// Ensure the serfHealth check is registered
 		url = s.url(fmt.Sprintf("/v1/health/node/%s", payload[0]["Node"]))
-		resp, err = s.HTTPClient.Get(url)
+		resp, err = s.masterGet(url)
 		if err != nil {
 			r.Fatal("failed http get", err)
 		}
@@ -520,4 +520,15 @@ func (s *TestServer) WaitForSerfCheck(t *testing.T) {
 			r.Fatal("missing serfHealth registration")
 		}
 	})
+}
+
+func (s *TestServer) masterGet(url string) (*http.Response, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	if s.Config.ACL.Tokens.Master != "" {
+		req.Header.Set("x-consul-token", s.Config.ACL.Tokens.Master)
+	}
+	return s.HTTPClient.Do(req)
 }

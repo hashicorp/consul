@@ -25,11 +25,6 @@ func (a *Agent) resolveTokenAndDefaultMeta(id string, entMeta *structs.Enterpris
 		return nil, nil
 	}
 
-	// Disable ACLs if version 8 enforcement isn't enabled.
-	if !a.config.ACLEnforceVersion8 {
-		return nil, nil
-	}
-
 	if acl.RootAuthorizer(id) != nil {
 		return nil, acl.ErrRootDenied
 	}

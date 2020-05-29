@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/decode"
-	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/mapstructure"
 )
@@ -35,7 +34,7 @@ func FormatFrom(name string) string {
 }
 
 // Parse parses a config fragment in either JSON or HCL format.
-func Parse(data string, format string) (c Config, keys []string, err error) {
+func Parse(data string, format string) (c Config, md mapstructure.Metadata, err error) {
 	var raw map[string]interface{}
 	switch format {
 	case "json":
@@ -46,7 +45,7 @@ func Parse(data string, format string) (c Config, keys []string, err error) {
 		err = fmt.Errorf("invalid format: %s", format)
 	}
 	if err != nil {
-		return Config{}, nil, err
+		return Config{}, mapstructure.Metadata{}, err
 	}
 
 	// We want to be able to report fields which we cannot map as an
@@ -109,28 +108,19 @@ func Parse(data string, format string) (c Config, keys []string, err error) {
 		"config_entries.bootstrap", // completely ignore this tree (fixed elsewhere)
 	})
 
-	var md mapstructure.Metadata
 	d, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		DecodeHook: decode.HookTranslateKeys,
 		Metadata:   &md,
 		Result:     &c,
 	})
 	if err != nil {
-		return Config{}, nil, err
+		return Config{}, mapstructure.Metadata{}, err
 	}
 	if err := d.Decode(m); err != nil {
-		return Config{}, nil, err
+		return Config{}, mapstructure.Metadata{}, err
 	}
 
-	for _, k := range md.Unused {
-		err = multierror.Append(err, fmt.Errorf("invalid config key %s", k))
-	}
-
-	// Don't check these here. The builder can emit warnings for fields it
-	// doesn't like
-	keys = md.Keys
-
-	return
+	return c, md, nil
 }
 
 // Config defines the format of a configuration file in either JSON or
@@ -155,8 +145,6 @@ type Config struct {
 	ACLDownPolicy *string `json:"acl_down_policy,omitempty" hcl:"acl_down_policy" mapstructure:"acl_down_policy"`
 	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
 	ACLEnableKeyListPolicy *bool `json:"acl_enable_key_list_policy,omitempty" hcl:"acl_enable_key_list_policy" mapstructure:"acl_enable_key_list_policy"`
-	// DEPRECATED (ACL-Legacy-Compat) -  pre-version8 enforcement is deprecated.
-	ACLEnforceVersion8 *bool `json:"acl_enforce_version_8,omitempty" hcl:"acl_enforce_version_8" mapstructure:"acl_enforce_version_8"`
 	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
 	ACLMasterToken *string `json:"acl_master_token,omitempty" hcl:"acl_master_token" mapstructure:"acl_master_token"`
 	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza

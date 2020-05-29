@@ -810,7 +810,6 @@ func TestPProfHandlers_ACLs(t *testing.T) {
 	acl_master_token = "master"
 	acl_agent_token = "agent"
 	acl_agent_master_token = "towel"
-	acl_enforce_version_8 = true
 	enable_debug = false
 `)
 

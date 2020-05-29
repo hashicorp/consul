@@ -150,7 +150,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 	}
 
 	// Check the complete register request against the given ACL policy.
-	if authz != nil && c.srv.config.ACLEnforceVersion8 {
+	if authz != nil {
 		state := c.srv.fsm.State()
 		_, ns, err := state.NodeServices(nil, args.Node, entMeta)
 		if err != nil {
@@ -194,7 +194,7 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 	}
 
 	// Check the complete deregister request against the given ACL policy.
-	if authz != nil && c.srv.config.ACLEnforceVersion8 {
+	if authz != nil {
 		state := c.srv.fsm.State()
 
 		var ns *structs.NodeService

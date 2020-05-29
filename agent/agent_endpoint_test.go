@@ -1307,7 +1307,6 @@ func TestAgent_Reload(t *testing.T) {
 	t.Parallel()
 	dc1 := "dc1"
 	a := NewTestAgent(t, `
-		acl_enforce_version_8 = false
 		services = [
 			{
 				name = "redis"
@@ -1341,7 +1340,6 @@ func TestAgent_Reload(t *testing.T) {
 			node_id = "` + string(a.Config.NodeID) + `"
 			node_name = "` + a.Config.NodeName + `"
 
-			acl_enforce_version_8 = false
 			services = [
 				{
 					name = "redis-reloaded"
@@ -1387,7 +1385,6 @@ func TestAgent_ReloadDoesNotTriggerWatch(t *testing.T) {
 	handlerShell := fmt.Sprintf("(cat ; echo CONSUL_INDEX $CONSUL_INDEX) | tee '%s.atomic' ; mv '%s.atomic' '%s'", tmpFile, tmpFile, tmpFile)
 
 	a := NewTestAgent(t, `
-		acl_enforce_version_8 = false
 		services = [
 			{
 				name = "redis"
@@ -1477,7 +1474,6 @@ func TestAgent_ReloadDoesNotTriggerWatch(t *testing.T) {
 			node_id = "` + string(a.Config.NodeID) + `"
 			node_name = "` + a.Config.NodeName + `"
 
-			acl_enforce_version_8 = false
 			services = [
 				{
 					name = "redis"
@@ -6031,7 +6027,6 @@ func TestAgentConnectAuthorize_defaultAllow(t *testing.T) {
 		acl_master_token = "root"
 		acl_agent_token = "root"
 		acl_agent_master_token = "towel"
-		acl_enforce_version_8 = true
 	`)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, dc1)
@@ -6063,7 +6058,6 @@ func TestAgent_Host(t *testing.T) {
 	acl_master_token = "master"
 	acl_agent_token = "agent"
 	acl_agent_master_token = "towel"
-	acl_enforce_version_8 = true
 `)
 	defer a.Shutdown()
 
@@ -6091,7 +6085,6 @@ func TestAgent_HostBadACL(t *testing.T) {
 	acl_master_token = "root"
 	acl_agent_token = "agent"
 	acl_agent_master_token = "towel"
-	acl_enforce_version_8 = true
 `)
 	defer a.Shutdown()
 

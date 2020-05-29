@@ -11,12 +11,20 @@ import (
 type rpcFn func(string, interface{}, interface{}) error
 
 // WaitForLeader ensures we have a leader and a node registration.
-func WaitForLeader(t *testing.T, rpc rpcFn, dc string) {
+func WaitForLeader(t *testing.T, rpc rpcFn, dc string, options ...waitOption) {
 	t.Helper()
+
+	flat := flattenOptions(options)
+	if flat.WaitForAntiEntropySync {
+		t.Fatalf("WaitForLeader doesn't accept the WaitForAntiEntropySync option")
+	}
 
 	var out structs.IndexedNodes
 	retry.Run(t, func(r *retry.R) {
-		args := &structs.DCSpecificRequest{Datacenter: dc}
+		args := &structs.DCSpecificRequest{
+			Datacenter:   dc,
+			QueryOptions: structs.QueryOptions{Token: flat.Token},
+		}
 		if err := rpc("Catalog.ListNodes", args, &out); err != nil {
 			r.Fatalf("Catalog.ListNodes failed: %v", err)
 		}
@@ -30,12 +38,20 @@ func WaitForLeader(t *testing.T, rpc rpcFn, dc string) {
 }
 
 // WaitUntilNoLeader ensures no leader is present, useful for testing lost leadership.
-func WaitUntilNoLeader(t *testing.T, rpc rpcFn, dc string) {
+func WaitUntilNoLeader(t *testing.T, rpc rpcFn, dc string, options ...waitOption) {
 	t.Helper()
+
+	flat := flattenOptions(options)
+	if flat.WaitForAntiEntropySync {
+		t.Fatalf("WaitUntilNoLeader doesn't accept the WaitForAntiEntropySync option")
+	}
 
 	var out structs.IndexedNodes
 	retry.Run(t, func(r *retry.R) {
-		args := &structs.DCSpecificRequest{Datacenter: dc}
+		args := &structs.DCSpecificRequest{
+			Datacenter:   dc,
+			QueryOptions: structs.QueryOptions{Token: flat.Token},
+		}
 		if err := rpc("Catalog.ListNodes", args, &out); err == nil {
 			r.Fatalf("It still has a leader: %#v", out)
 		}
@@ -58,30 +74,32 @@ func WaitForAntiEntropySync() waitOption {
 	return waitOption{WaitForAntiEntropySync: true}
 }
 
+func flattenOptions(options []waitOption) waitOption {
+	var flat waitOption
+	for _, opt := range options {
+		if opt.Token != "" {
+			flat.Token = opt.Token
+		}
+		if opt.WaitForAntiEntropySync {
+			flat.WaitForAntiEntropySync = true
+		}
+	}
+	return flat
+}
+
 // WaitForTestAgent ensures we have a node with serfHealth check registered
 func WaitForTestAgent(t *testing.T, rpc rpcFn, dc string, options ...waitOption) {
 	t.Helper()
 
+	flat := flattenOptions(options)
+
 	var nodes structs.IndexedNodes
 	var checks structs.IndexedHealthChecks
-
-	var (
-		token                  string
-		waitForAntiEntropySync bool
-	)
-	for _, opt := range options {
-		if opt.Token != "" {
-			token = opt.Token
-		}
-		if opt.WaitForAntiEntropySync {
-			waitForAntiEntropySync = true
-		}
-	}
 
 	retry.Run(t, func(r *retry.R) {
 		dcReq := &structs.DCSpecificRequest{
 			Datacenter:   dc,
-			QueryOptions: structs.QueryOptions{Token: token},
+			QueryOptions: structs.QueryOptions{Token: flat.Token},
 		}
 		if err := rpc("Catalog.ListNodes", dcReq, &nodes); err != nil {
 			r.Fatalf("Catalog.ListNodes failed: %v", err)
@@ -90,7 +108,7 @@ func WaitForTestAgent(t *testing.T, rpc rpcFn, dc string, options ...waitOption)
 			r.Fatalf("No registered nodes")
 		}
 
-		if waitForAntiEntropySync {
+		if flat.WaitForAntiEntropySync {
 			if len(nodes.Nodes[0].TaggedAddresses) == 0 {
 				r.Fatalf("Not synced via anti entropy yet")
 			}
@@ -100,7 +118,7 @@ func WaitForTestAgent(t *testing.T, rpc rpcFn, dc string, options ...waitOption)
 		nodeReq := &structs.NodeSpecificRequest{
 			Datacenter:   dc,
 			Node:         nodes.Nodes[0].Node,
-			QueryOptions: structs.QueryOptions{Token: token},
+			QueryOptions: structs.QueryOptions{Token: flat.Token},
 		}
 		if err := rpc("Health.NodeChecks", nodeReq, &checks); err != nil {
 			r.Fatalf("Health.NodeChecks failed: %v", err)

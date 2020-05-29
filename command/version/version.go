@@ -3,7 +3,6 @@ package version
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/mitchellh/cli"
 )
@@ -20,11 +19,8 @@ type cmd struct {
 func (c *cmd) Run(_ []string) int {
 	c.UI.Output(fmt.Sprintf("Consul %s", c.version))
 
-	rpcProtocol, err := config.DefaultRPCProtocol()
-	if err != nil {
-		c.UI.Error(err.Error())
-		return 2
-	}
+	const rpcProtocol = consul.DefaultRPCProtocol
+
 	var supplement string
 	if rpcProtocol < consul.ProtocolVersionMax {
 		supplement = fmt.Sprintf(" (agent will automatically use protocol >%d when speaking to compatible agents)",
