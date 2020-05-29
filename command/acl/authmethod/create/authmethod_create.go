@@ -32,7 +32,7 @@ type cmd struct {
 	displayName    string
 	description    string
 	maxTokenTTL    time.Duration
-	tokenType      string
+	tokenLocality  string
 	config         string
 
 	k8sHost              string
@@ -89,8 +89,8 @@ func (c *cmd) init() {
 		"Duration of time all tokens created by this auth method should be valid for",
 	)
 	c.flags.StringVar(
-		&c.tokenType,
-		"token-type",
+		&c.tokenLocality,
+		"token-locality",
 		"",
 		"Defines the kind of token that this auth method should produce. "+
 			"This can be either 'local' or 'global'. If empty the value of 'local' is assumed.",
@@ -165,11 +165,11 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	newAuthMethod := &api.ACLAuthMethod{
-		Type:        c.authMethodType,
-		Name:        c.name,
-		DisplayName: c.displayName,
-		Description: c.description,
-		TokenType:   c.tokenType,
+		Type:          c.authMethodType,
+		Name:          c.name,
+		DisplayName:   c.displayName,
+		Description:   c.description,
+		TokenLocality: c.tokenLocality,
 	}
 	if c.maxTokenTTL > 0 {
 		newAuthMethod.MaxTokenTTL = c.maxTokenTTL

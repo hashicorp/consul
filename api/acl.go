@@ -187,9 +187,9 @@ type ACLAuthMethod struct {
 	Description string        `json:",omitempty"`
 	MaxTokenTTL time.Duration `json:",omitempty"`
 
-	// TokenType defines the kind of token that this auth method produces. This
-	// can be either 'local' or 'global'. If empty 'local' is assumed.
-	TokenType string `json:",omitempty"`
+	// TokenLocality defines the kind of token that this auth method produces.
+	// This can be either 'local' or 'global'. If empty 'local' is assumed.
+	TokenLocality string `json:",omitempty"`
 
 	// Configuration is arbitrary configuration for the auth method. This
 	// should only contain primitive values and containers (such as lists and

@@ -163,7 +163,7 @@ func TestAuthMethodCreateCommand(t *testing.T) {
 			"-name", name,
 			"-description=desc",
 			"-display-name=display",
-			"-token-type=global",
+			"-token-locality=global",
 		}
 
 		ui := cli.NewMockUi()
@@ -175,11 +175,11 @@ func TestAuthMethodCreateCommand(t *testing.T) {
 
 		got := getTestMethod(t, client, name)
 		expect := &api.ACLAuthMethod{
-			Name:        name,
-			Type:        "testing",
-			DisplayName: "display",
-			Description: "desc",
-			TokenType:   "global",
+			Name:          name,
+			Type:          "testing",
+			DisplayName:   "display",
+			Description:   "desc",
+			TokenLocality: "global",
 		}
 		require.Equal(t, expect, got)
 	})
@@ -312,7 +312,7 @@ func TestAuthMethodCreateCommand_JSON(t *testing.T) {
 			"-name", name,
 			"-description=desc",
 			"-display-name=display",
-			"-token-type=global",
+			"-token-locality=global",
 			"-format=json",
 		}
 
@@ -328,11 +328,11 @@ func TestAuthMethodCreateCommand_JSON(t *testing.T) {
 
 		got := getTestMethod(t, client, name)
 		expect := &api.ACLAuthMethod{
-			Name:        name,
-			Type:        "testing",
-			DisplayName: "display",
-			Description: "desc",
-			TokenType:   "global",
+			Name:          name,
+			Type:          "testing",
+			DisplayName:   "display",
+			Description:   "desc",
+			TokenLocality: "global",
 		}
 		require.Equal(t, expect, got)
 
@@ -343,12 +343,12 @@ func TestAuthMethodCreateCommand_JSON(t *testing.T) {
 		delete(raw, "Namespace")
 
 		require.Equal(t, map[string]interface{}{
-			"Name":        name,
-			"Type":        "testing",
-			"DisplayName": "display",
-			"Description": "desc",
-			"TokenType":   "global",
-			"Config":      nil,
+			"Name":          name,
+			"Type":          "testing",
+			"DisplayName":   "display",
+			"Description":   "desc",
+			"TokenLocality": "global",
+			"Config":        nil,
 		}, raw)
 	})
 }

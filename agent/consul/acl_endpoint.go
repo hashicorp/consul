@@ -2125,14 +2125,14 @@ func (a *ACL) AuthMethodSet(args *structs.ACLAuthMethodSetRequest, reply *struct
 		}
 	}
 
-	switch method.TokenType {
+	switch method.TokenLocality {
 	case "local", "":
 	case "global":
 		if !a.srv.InACLDatacenter() {
-			return fmt.Errorf("Invalid Auth Method: TokenType 'global' can only be used in the primary datacenter")
+			return fmt.Errorf("Invalid Auth Method: TokenLocality 'global' can only be used in the primary datacenter")
 		}
 	default:
-		return fmt.Errorf("Invalid Auth Method: TokenType should be one of 'local' or 'global'")
+		return fmt.Errorf("Invalid Auth Method: TokenLocality should be one of 'local' or 'global'")
 	}
 
 	// Instantiate a validator but do not cache it yet. This will validate the
@@ -2393,7 +2393,7 @@ func (a *ACL) tokenSetFromAuthMethod(
 		EnterpriseMeta:    *targetMeta,
 	}
 
-	if method.TokenType == "global" {
+	if method.TokenLocality == "global" {
 		if !a.srv.InACLDatacenter() {
 			return errors.New("creating global tokens via auth methods is only permitted in the primary datacenter")
 		}

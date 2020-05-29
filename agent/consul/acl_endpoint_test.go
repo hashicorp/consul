@@ -5106,7 +5106,7 @@ func TestACLEndpoint_Login_with_MaxTokenTTL(t *testing.T) {
 	require.Equal(t, got, expect)
 }
 
-func TestACLEndpoint_Login_with_TokenType(t *testing.T) {
+func TestACLEndpoint_Login_with_TokenLocality(t *testing.T) {
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -5133,19 +5133,19 @@ func TestACLEndpoint_Login_with_TokenType(t *testing.T) {
 	)
 
 	cases := map[string]struct {
-		tokenType   string
-		expectLocal bool
+		tokenLocality string
+		expectLocal   bool
 	}{
-		"empty":  {tokenType: "", expectLocal: true},
-		"local":  {tokenType: "local", expectLocal: true},
-		"global": {tokenType: "global", expectLocal: false},
+		"empty":  {tokenLocality: "", expectLocal: true},
+		"local":  {tokenLocality: "local", expectLocal: true},
+		"global": {tokenLocality: "global", expectLocal: false},
 	}
 
 	for name, tc := range cases {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
 			method, err := upsertTestCustomizedAuthMethod(codec, "root", "dc1", func(method *structs.ACLAuthMethod) {
-				method.TokenType = tc.tokenType
+				method.TokenLocality = tc.tokenLocality
 				method.Config = map[string]interface{}{
 					"SessionID": testSessionID,
 				}
