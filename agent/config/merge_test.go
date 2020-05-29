@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMerge(t *testing.T) {
@@ -39,7 +39,12 @@ func TestMerge(t *testing.T) {
 					"a": "b",
 					"c": "e",
 				},
-				Ports: Ports{DNS: pInt(2), HTTP: pInt(3)},
+				Ports:           Ports{DNS: pInt(2), HTTP: pInt(3)},
+				SnapshotAgent:   map[string]interface{}{},
+				TaggedAddresses: map[string]string{},
+				HTTPConfig:      HTTPConfig{ResponseHeaders: map[string]string{}},
+				DNS:             DNS{ServiceTTL: map[string]string{}},
+				Connect:         Connect{CAConfig: map[string]interface{}{}},
 			},
 		},
 	}
@@ -47,9 +52,7 @@ func TestMerge(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
 			got, want := Merge(tt.cfgs...), tt.want
-			if !verify.Values(t, "", got, want) {
-				t.FailNow()
-			}
+			require.Equal(t, want, got)
 		})
 	}
 }

@@ -23,7 +23,6 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/require"
 )
 
@@ -5743,6 +5742,7 @@ func TestFullConfig(t *testing.T) {
 					Config: map[string]interface{}{
 						"1CuJHVfw": "Kzqsa7yc",
 					},
+					Upstreams: structs.Upstreams{},
 				},
 				Weights: &structs.Weights{
 					Passing: 1,
@@ -5852,6 +5852,8 @@ func TestFullConfig(t *testing.T) {
 		SerfAdvertiseAddrWAN: tcpAddr("78.63.37.19:8302"),
 		SerfBindAddrLAN:      tcpAddr("99.43.63.15:8301"),
 		SerfBindAddrWAN:      tcpAddr("67.88.33.19:8302"),
+		SerfAllowedCIDRsLAN:  []net.IPNet{},
+		SerfAllowedCIDRsWAN:  []net.IPNet{},
 		SessionTTLMin:        26627 * time.Second,
 		SkipLeaveOnInt:       true,
 		StartJoinAddrsLAN:    []string{"LR3hGDoG", "MwVpZ4Up"},
@@ -5969,10 +5971,7 @@ func TestFullConfig(t *testing.T) {
 				t.Fatalf("Build: %s", err)
 			}
 
-			// verify that all fields are set
-			if !verify.Values(t, "runtime_config", rt, want) {
-				t.FailNow()
-			}
+			require.Equal(t, want, rt)
 
 			// at this point we have confirmed that the parsing worked
 			// for all fields but the validation will fail since certain
