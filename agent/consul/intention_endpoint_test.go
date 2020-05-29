@@ -1334,7 +1334,7 @@ func TestIntentionCheck_defaultNoACL(t *testing.T) {
 	require.True(resp.Allowed)
 }
 
-// Test the Check method defaults to deny with whitelist ACLs.
+// Test the Check method defaults to deny with allowlist ACLs.
 func TestIntentionCheck_defaultACLDeny(t *testing.T) {
 	t.Parallel()
 
@@ -1369,7 +1369,7 @@ func TestIntentionCheck_defaultACLDeny(t *testing.T) {
 	require.False(resp.Allowed)
 }
 
-// Test the Check method defaults to deny with blacklist ACLs.
+// Test the Check method defaults to deny with denylist ACLs.
 func TestIntentionCheck_defaultACLAllow(t *testing.T) {
 	t.Parallel()
 

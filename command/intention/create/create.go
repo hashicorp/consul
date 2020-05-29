@@ -249,7 +249,7 @@ Usage: consul intention create [options] -file FILE...
 
       $ echo "{ ... }" | consul intention create -file -
 
-  An "allow" intention is created by default (whitelist). To create a
+  An "allow" intention is created by default (allowlist). To create a
   "deny" intention, the "-deny" flag should be specified.
 
   If a conflicting intention is found, creation will fail. To replace any

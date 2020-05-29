@@ -24,7 +24,7 @@ var (
 
 // StaticAuthorizer is used to implement a base ACL policy. It either
 // allows or denies all requests. This can be used as a parent
-// ACL to act in a blacklist or whitelist mode.
+// ACL to act in a denylist or allowlist mode.
 type staticAuthorizer struct {
 	allowManage  bool
 	defaultAllow bool

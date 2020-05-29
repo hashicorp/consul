@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestBlacklist(t *testing.T) {
+func TestDenylist(t *testing.T) {
 	t.Parallel()
 
 	complex := []string{
@@ -30,8 +30,8 @@ func TestBlacklist(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			blacklist := NewBlacklist(tt.prefixes)
-			if got, want := blacklist.Block(tt.path), tt.block; got != want {
+			denylist := NewDenylist(tt.prefixes)
+			if got, want := denylist.Block(tt.path), tt.block; got != want {
 				t.Fatalf("got %v want %v", got, want)
 			}
 		})
