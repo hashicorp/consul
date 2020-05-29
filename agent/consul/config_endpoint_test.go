@@ -145,7 +145,7 @@ func TestConfigEntry_Apply_ACLDeny(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
@@ -266,7 +266,7 @@ func TestConfigEntry_Get_ACLDeny(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
@@ -421,7 +421,7 @@ func TestConfigEntry_List_ACLDeny(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
@@ -502,7 +502,7 @@ func TestConfigEntry_ListAll_ACLDeny(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
@@ -652,7 +652,7 @@ func TestConfigEntry_Delete_ACLDeny(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
@@ -1119,7 +1119,7 @@ func TestConfigEntry_ResolveServiceConfig_ACLDeny(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 

@@ -112,7 +112,7 @@ func TestFederationState_Apply_Upsert_ACLDeny(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
 	codec := rpcClient(t, s1)
 	defer codec.Close()
@@ -224,7 +224,7 @@ func TestFederationState_Get_ACLDeny(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
 	codec := rpcClient(t, s1)
 	defer codec.Close()
@@ -383,7 +383,6 @@ func TestFederationState_List_ACLDeny(t *testing.T) {
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
-		c.ACLEnforceVersion8 = true // apparently this is still not defaulted to true in server code
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -400,7 +399,6 @@ func TestFederationState_List_ACLDeny(t *testing.T) {
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
-		c.ACLEnforceVersion8 = true // ugh
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()

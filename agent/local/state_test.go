@@ -754,8 +754,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 	a := agent.NewTestAgent(t, `
 		acl_datacenter = "dc1"
 		acl_master_token = "root"
-		acl_default_policy = "deny"
-		acl_enforce_version_8 = true`)
+		acl_default_policy = "deny" `)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -1170,8 +1169,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 	a := &agent.TestAgent{HCL: `
 		acl_datacenter = "` + dc + `"
 		acl_master_token = "root"
-		acl_default_policy = "deny"
-		acl_enforce_version_8 = true`}
+		acl_default_policy = "deny" `}
 	if err := a.Start(t); err != nil {
 		t.Fatal(err)
 	}

@@ -2258,20 +2258,9 @@ func TestACL_filterHealthChecks(t *testing.T) {
 		}
 	}
 
-	// Try permissive filtering.
 	{
 		hc := fill()
-		filt := newACLFilter(acl.AllowAll(), nil, false)
-		filt.filterHealthChecks(&hc)
-		if len(hc) != 1 {
-			t.Fatalf("bad: %#v", hc)
-		}
-	}
-
-	// Try restrictive filtering.
-	{
-		hc := fill()
-		filt := newACLFilter(acl.DenyAll(), nil, false)
+		filt := newACLFilter(acl.DenyAll(), nil)
 		filt.filterHealthChecks(&hc)
 		if len(hc) != 0 {
 			t.Fatalf("bad: %#v", hc)
@@ -2292,20 +2281,9 @@ service "foo" {
 		t.Fatalf("err: %v", err)
 	}
 
-	// This will work because version 8 ACLs aren't being enforced.
 	{
 		hc := fill()
-		filt := newACLFilter(perms, nil, false)
-		filt.filterHealthChecks(&hc)
-		if len(hc) != 1 {
-			t.Fatalf("bad: %#v", hc)
-		}
-	}
-
-	// But with version 8 the node will block it.
-	{
-		hc := fill()
-		filt := newACLFilter(perms, nil, true)
+		filt := newACLFilter(perms, nil)
 		filt.filterHealthChecks(&hc)
 		if len(hc) != 0 {
 			t.Fatalf("bad: %#v", hc)
@@ -2329,7 +2307,7 @@ node "node1" {
 	// Now it should go through.
 	{
 		hc := fill()
-		filt := newACLFilter(perms, nil, true)
+		filt := newACLFilter(perms, nil)
 		filt.filterHealthChecks(&hc)
 		if len(hc) != 1 {
 			t.Fatalf("bad: %#v", hc)
@@ -2357,7 +2335,7 @@ func TestACL_filterIntentions(t *testing.T) {
 	// Try permissive filtering.
 	{
 		ixns := fill()
-		filt := newACLFilter(acl.AllowAll(), nil, false)
+		filt := newACLFilter(acl.AllowAll(), nil)
 		filt.filterIntentions(&ixns)
 		assert.Len(ixns, 2)
 	}
@@ -2365,7 +2343,7 @@ func TestACL_filterIntentions(t *testing.T) {
 	// Try restrictive filtering.
 	{
 		ixns := fill()
-		filt := newACLFilter(acl.DenyAll(), nil, false)
+		filt := newACLFilter(acl.DenyAll(), nil)
 		filt.filterIntentions(&ixns)
 		assert.Len(ixns, 0)
 	}
@@ -2383,7 +2361,7 @@ service "foo" {
 	// Filter
 	{
 		ixns := fill()
-		filt := newACLFilter(perms, nil, false)
+		filt := newACLFilter(perms, nil)
 		filt.filterIntentions(&ixns)
 		assert.Len(ixns, 1)
 	}
@@ -2399,24 +2377,14 @@ func TestACL_filterServices(t *testing.T) {
 	}
 
 	// Try permissive filtering.
-	filt := newACLFilter(acl.AllowAll(), nil, false)
+	filt := newACLFilter(acl.AllowAll(), nil)
 	filt.filterServices(services, nil)
 	if len(services) != 3 {
 		t.Fatalf("bad: %#v", services)
 	}
 
 	// Try restrictive filtering.
-	filt = newACLFilter(acl.DenyAll(), nil, false)
-	filt.filterServices(services, nil)
-	if len(services) != 1 {
-		t.Fatalf("bad: %#v", services)
-	}
-	if _, ok := services["consul"]; !ok {
-		t.Fatalf("bad: %#v", services)
-	}
-
-	// Try restrictive filtering with version 8 enforcement.
-	filt = newACLFilter(acl.DenyAll(), nil, true)
+	filt = newACLFilter(acl.DenyAll(), nil)
 	filt.filterServices(services, nil)
 	if len(services) != 0 {
 		t.Fatalf("bad: %#v", services)
@@ -2438,7 +2406,7 @@ func TestACL_filterServiceNodes(t *testing.T) {
 	// Try permissive filtering.
 	{
 		nodes := fill()
-		filt := newACLFilter(acl.AllowAll(), nil, false)
+		filt := newACLFilter(acl.AllowAll(), nil)
 		filt.filterServiceNodes(&nodes)
 		if len(nodes) != 1 {
 			t.Fatalf("bad: %#v", nodes)
@@ -2448,7 +2416,7 @@ func TestACL_filterServiceNodes(t *testing.T) {
 	// Try restrictive filtering.
 	{
 		nodes := fill()
-		filt := newACLFilter(acl.DenyAll(), nil, false)
+		filt := newACLFilter(acl.DenyAll(), nil)
 		filt.filterServiceNodes(&nodes)
 		if len(nodes) != 0 {
 			t.Fatalf("bad: %#v", nodes)
@@ -2469,20 +2437,10 @@ service "foo" {
 		t.Fatalf("err: %v", err)
 	}
 
-	// This will work because version 8 ACLs aren't being enforced.
-	{
-		nodes := fill()
-		filt := newACLFilter(perms, nil, false)
-		filt.filterServiceNodes(&nodes)
-		if len(nodes) != 1 {
-			t.Fatalf("bad: %#v", nodes)
-		}
-	}
-
 	// But with version 8 the node will block it.
 	{
 		nodes := fill()
-		filt := newACLFilter(perms, nil, true)
+		filt := newACLFilter(perms, nil)
 		filt.filterServiceNodes(&nodes)
 		if len(nodes) != 0 {
 			t.Fatalf("bad: %#v", nodes)
@@ -2506,7 +2464,7 @@ node "node1" {
 	// Now it should go through.
 	{
 		nodes := fill()
-		filt := newACLFilter(perms, nil, true)
+		filt := newACLFilter(perms, nil)
 		filt.filterServiceNodes(&nodes)
 		if len(nodes) != 1 {
 			t.Fatalf("bad: %#v", nodes)
@@ -2534,7 +2492,7 @@ func TestACL_filterNodeServices(t *testing.T) {
 	// Try nil, which is a possible input.
 	{
 		var services *structs.NodeServices
-		filt := newACLFilter(acl.AllowAll(), nil, false)
+		filt := newACLFilter(acl.AllowAll(), nil)
 		filt.filterNodeServices(&services)
 		if services != nil {
 			t.Fatalf("bad: %#v", services)
@@ -2544,7 +2502,7 @@ func TestACL_filterNodeServices(t *testing.T) {
 	// Try permissive filtering.
 	{
 		services := fill()
-		filt := newACLFilter(acl.AllowAll(), nil, false)
+		filt := newACLFilter(acl.AllowAll(), nil)
 		filt.filterNodeServices(&services)
 		if len(services.Services) != 1 {
 			t.Fatalf("bad: %#v", services.Services)
@@ -2554,10 +2512,10 @@ func TestACL_filterNodeServices(t *testing.T) {
 	// Try restrictive filtering.
 	{
 		services := fill()
-		filt := newACLFilter(acl.DenyAll(), nil, false)
+		filt := newACLFilter(acl.DenyAll(), nil)
 		filt.filterNodeServices(&services)
-		if len((*services).Services) != 0 {
-			t.Fatalf("bad: %#v", (*services).Services)
+		if services != nil {
+			t.Fatalf("bad: %#v", *services)
 		}
 	}
 
@@ -2575,20 +2533,10 @@ service "foo" {
 		t.Fatalf("err: %v", err)
 	}
 
-	// This will work because version 8 ACLs aren't being enforced.
+	// Node will block it.
 	{
 		services := fill()
-		filt := newACLFilter(perms, nil, false)
-		filt.filterNodeServices(&services)
-		if len((*services).Services) != 1 {
-			t.Fatalf("bad: %#v", (*services).Services)
-		}
-	}
-
-	// But with version 8 the node will block it.
-	{
-		services := fill()
-		filt := newACLFilter(perms, nil, true)
+		filt := newACLFilter(perms, nil)
 		filt.filterNodeServices(&services)
 		if services != nil {
 			t.Fatalf("bad: %#v", services)
@@ -2612,7 +2560,7 @@ node "node1" {
 	// Now it should go through.
 	{
 		services := fill()
-		filt := newACLFilter(perms, nil, true)
+		filt := newACLFilter(perms, nil)
 		filt.filterNodeServices(&services)
 		if len((*services).Services) != 1 {
 			t.Fatalf("bad: %#v", (*services).Services)
@@ -2647,7 +2595,7 @@ func TestACL_filterCheckServiceNodes(t *testing.T) {
 	// Try permissive filtering.
 	{
 		nodes := fill()
-		filt := newACLFilter(acl.AllowAll(), nil, false)
+		filt := newACLFilter(acl.AllowAll(), nil)
 		filt.filterCheckServiceNodes(&nodes)
 		if len(nodes) != 1 {
 			t.Fatalf("bad: %#v", nodes)
@@ -2660,7 +2608,7 @@ func TestACL_filterCheckServiceNodes(t *testing.T) {
 	// Try restrictive filtering.
 	{
 		nodes := fill()
-		filt := newACLFilter(acl.DenyAll(), nil, false)
+		filt := newACLFilter(acl.DenyAll(), nil)
 		filt.filterCheckServiceNodes(&nodes)
 		if len(nodes) != 0 {
 			t.Fatalf("bad: %#v", nodes)
@@ -2681,23 +2629,9 @@ service "foo" {
 		t.Fatalf("err: %v", err)
 	}
 
-	// This will work because version 8 ACLs aren't being enforced.
 	{
 		nodes := fill()
-		filt := newACLFilter(perms, nil, false)
-		filt.filterCheckServiceNodes(&nodes)
-		if len(nodes) != 1 {
-			t.Fatalf("bad: %#v", nodes)
-		}
-		if len(nodes[0].Checks) != 1 {
-			t.Fatalf("bad: %#v", nodes[0].Checks)
-		}
-	}
-
-	// But with version 8 the node will block it.
-	{
-		nodes := fill()
-		filt := newACLFilter(perms, nil, true)
+		filt := newACLFilter(perms, nil)
 		filt.filterCheckServiceNodes(&nodes)
 		if len(nodes) != 0 {
 			t.Fatalf("bad: %#v", nodes)
@@ -2721,7 +2655,7 @@ node "node1" {
 	// Now it should go through.
 	{
 		nodes := fill()
-		filt := newACLFilter(perms, nil, true)
+		filt := newACLFilter(perms, nil)
 		filt.filterCheckServiceNodes(&nodes)
 		if len(nodes) != 1 {
 			t.Fatalf("bad: %#v", nodes)
@@ -2747,21 +2681,14 @@ func TestACL_filterCoordinates(t *testing.T) {
 	}
 
 	// Try permissive filtering.
-	filt := newACLFilter(acl.AllowAll(), nil, false)
+	filt := newACLFilter(acl.AllowAll(), nil)
 	filt.filterCoordinates(&coords)
 	if len(coords) != 2 {
 		t.Fatalf("bad: %#v", coords)
 	}
 
-	// Try restrictive filtering without version 8 ACL enforcement.
-	filt = newACLFilter(acl.DenyAll(), nil, false)
-	filt.filterCoordinates(&coords)
-	if len(coords) != 2 {
-		t.Fatalf("bad: %#v", coords)
-	}
-
-	// Try restrictive filtering with version 8 ACL enforcement.
-	filt = newACLFilter(acl.DenyAll(), nil, true)
+	// Try restrictive filtering
+	filt = newACLFilter(acl.DenyAll(), nil)
 	filt.filterCoordinates(&coords)
 	if len(coords) != 0 {
 		t.Fatalf("bad: %#v", coords)
@@ -2781,21 +2708,14 @@ func TestACL_filterSessions(t *testing.T) {
 	}
 
 	// Try permissive filtering.
-	filt := newACLFilter(acl.AllowAll(), nil, true)
+	filt := newACLFilter(acl.AllowAll(), nil)
 	filt.filterSessions(&sessions)
 	if len(sessions) != 2 {
 		t.Fatalf("bad: %#v", sessions)
 	}
 
-	// Try restrictive filtering but with version 8 enforcement turned off.
-	filt = newACLFilter(acl.DenyAll(), nil, false)
-	filt.filterSessions(&sessions)
-	if len(sessions) != 2 {
-		t.Fatalf("bad: %#v", sessions)
-	}
-
-	// Try restrictive filtering with version 8 enforcement turned on.
-	filt = newACLFilter(acl.DenyAll(), nil, true)
+	// Try restrictive filtering
+	filt = newACLFilter(acl.DenyAll(), nil)
 	filt.filterSessions(&sessions)
 	if len(sessions) != 0 {
 		t.Fatalf("bad: %#v", sessions)
@@ -2829,7 +2749,7 @@ func TestACL_filterNodeDump(t *testing.T) {
 	// Try permissive filtering.
 	{
 		dump := fill()
-		filt := newACLFilter(acl.AllowAll(), nil, false)
+		filt := newACLFilter(acl.AllowAll(), nil)
 		filt.filterNodeDump(&dump)
 		if len(dump) != 1 {
 			t.Fatalf("bad: %#v", dump)
@@ -2845,16 +2765,10 @@ func TestACL_filterNodeDump(t *testing.T) {
 	// Try restrictive filtering.
 	{
 		dump := fill()
-		filt := newACLFilter(acl.DenyAll(), nil, false)
+		filt := newACLFilter(acl.DenyAll(), nil)
 		filt.filterNodeDump(&dump)
-		if len(dump) != 1 {
+		if len(dump) != 0 {
 			t.Fatalf("bad: %#v", dump)
-		}
-		if len(dump[0].Services) != 0 {
-			t.Fatalf("bad: %#v", dump[0].Services)
-		}
-		if len(dump[0].Checks) != 0 {
-			t.Fatalf("bad: %#v", dump[0].Checks)
 		}
 	}
 
@@ -2872,26 +2786,10 @@ service "foo" {
 		t.Fatalf("err: %v", err)
 	}
 
-	// This will work because version 8 ACLs aren't being enforced.
+	// But the node will block it.
 	{
 		dump := fill()
-		filt := newACLFilter(perms, nil, false)
-		filt.filterNodeDump(&dump)
-		if len(dump) != 1 {
-			t.Fatalf("bad: %#v", dump)
-		}
-		if len(dump[0].Services) != 1 {
-			t.Fatalf("bad: %#v", dump[0].Services)
-		}
-		if len(dump[0].Checks) != 1 {
-			t.Fatalf("bad: %#v", dump[0].Checks)
-		}
-	}
-
-	// But with version 8 the node will block it.
-	{
-		dump := fill()
-		filt := newACLFilter(perms, nil, true)
+		filt := newACLFilter(perms, nil)
 		filt.filterNodeDump(&dump)
 		if len(dump) != 0 {
 			t.Fatalf("bad: %#v", dump)
@@ -2915,7 +2813,7 @@ node "node1" {
 	// Now it should go through.
 	{
 		dump := fill()
-		filt := newACLFilter(perms, nil, true)
+		filt := newACLFilter(perms, nil)
 		filt.filterNodeDump(&dump)
 		if len(dump) != 1 {
 			t.Fatalf("bad: %#v", dump)
@@ -2942,21 +2840,14 @@ func TestACL_filterNodes(t *testing.T) {
 	}
 
 	// Try permissive filtering.
-	filt := newACLFilter(acl.AllowAll(), nil, true)
+	filt := newACLFilter(acl.AllowAll(), nil)
 	filt.filterNodes(&nodes)
 	if len(nodes) != 2 {
 		t.Fatalf("bad: %#v", nodes)
 	}
 
-	// Try restrictive filtering but with version 8 enforcement turned off.
-	filt = newACLFilter(acl.DenyAll(), nil, false)
-	filt.filterNodes(&nodes)
-	if len(nodes) != 2 {
-		t.Fatalf("bad: %#v", nodes)
-	}
-
-	// Try restrictive filtering with version 8 enforcement turned on.
-	filt = newACLFilter(acl.DenyAll(), nil, true)
+	// Try restrictive filtering
+	filt = newACLFilter(acl.DenyAll(), nil)
 	filt.filterNodes(&nodes)
 	if len(nodes) != 0 {
 		t.Fatalf("bad: %#v", nodes)
@@ -2995,7 +2886,7 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 	// Try permissive filtering.
 	{
 		dcNodes := fill(t)
-		filt := newACLFilter(acl.AllowAll(), nil, true)
+		filt := newACLFilter(acl.AllowAll(), nil)
 		filt.filterDatacenterCheckServiceNodes(&dcNodes)
 		require.Len(t, dcNodes, 2)
 		require.Equal(t, fill(t), dcNodes)
@@ -3004,7 +2895,7 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 	// Try restrictive filtering.
 	{
 		dcNodes := fill(t)
-		filt := newACLFilter(acl.DenyAll(), nil, true)
+		filt := newACLFilter(acl.DenyAll(), nil)
 		filt.filterDatacenterCheckServiceNodes(&dcNodes)
 		require.Len(t, dcNodes, 0)
 	}
@@ -3024,7 +2915,7 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 
 	{
 		dcNodes := fill(t)
-		filt := newACLFilter(perms, nil, true)
+		filt := newACLFilter(perms, nil)
 		filt.filterDatacenterCheckServiceNodes(&dcNodes)
 		require.Len(t, dcNodes, 0)
 	}
@@ -3039,7 +2930,7 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 
 	{
 		dcNodes := fill(t)
-		filt := newACLFilter(perms, nil, true)
+		filt := newACLFilter(perms, nil)
 		filt.filterDatacenterCheckServiceNodes(&dcNodes)
 		require.Len(t, dcNodes, 0)
 	}
@@ -3056,7 +2947,7 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 	// Now it should go through.
 	{
 		dcNodes := fill(t)
-		filt := newACLFilter(acl.AllowAll(), nil, true)
+		filt := newACLFilter(acl.AllowAll(), nil)
 		filt.filterDatacenterCheckServiceNodes(&dcNodes)
 		require.Len(t, dcNodes, 2)
 		require.Equal(t, fill(t), dcNodes)
@@ -3077,7 +2968,7 @@ func TestACL_redactPreparedQueryTokens(t *testing.T) {
 
 	// Try permissive filtering with a management token. This will allow the
 	// embedded token to be seen.
-	filt := newACLFilter(acl.ManageAll(), nil, false)
+	filt := newACLFilter(acl.ManageAll(), nil)
 	filt.redactPreparedQueryTokens(&query)
 	if !reflect.DeepEqual(query, expected) {
 		t.Fatalf("bad: %#v", &query)
@@ -3089,7 +2980,7 @@ func TestACL_redactPreparedQueryTokens(t *testing.T) {
 
 	// Now try permissive filtering with a client token, which should cause
 	// the embedded token to get redacted.
-	filt = newACLFilter(acl.AllowAll(), nil, false)
+	filt = newACLFilter(acl.AllowAll(), nil)
 	filt.redactPreparedQueryTokens(&query)
 	expected.Token = redactedToken
 	if !reflect.DeepEqual(query, expected) {
@@ -3190,7 +3081,7 @@ func TestACL_filterPreparedQueries(t *testing.T) {
 
 	// Try permissive filtering with a management token. This will allow the
 	// embedded token to be seen.
-	filt := newACLFilter(acl.ManageAll(), nil, false)
+	filt := newACLFilter(acl.ManageAll(), nil)
 	filt.filterPreparedQueries(&queries)
 	if !reflect.DeepEqual(queries, expected) {
 		t.Fatalf("bad: %#v", queries)
@@ -3203,7 +3094,7 @@ func TestACL_filterPreparedQueries(t *testing.T) {
 	// Now try permissive filtering with a client token, which should cause
 	// the embedded token to get redacted, and the query with no name to get
 	// filtered out.
-	filt = newACLFilter(acl.AllowAll(), nil, false)
+	filt = newACLFilter(acl.AllowAll(), nil)
 	filt.filterPreparedQueries(&queries)
 	expected[2].Token = redactedToken
 	expected = append(structs.PreparedQueries{}, expected[1], expected[2])
@@ -3217,7 +3108,7 @@ func TestACL_filterPreparedQueries(t *testing.T) {
 	}
 
 	// Now try restrictive filtering.
-	filt = newACLFilter(acl.DenyAll(), nil, false)
+	filt = newACLFilter(acl.DenyAll(), nil)
 	filt.filterPreparedQueries(&queries)
 	if len(queries) != 0 {
 		t.Fatalf("bad: %#v", queries)

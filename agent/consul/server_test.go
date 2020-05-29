@@ -47,7 +47,6 @@ func testServerACLConfig(cb func(*Config)) func(*Config) {
 		c.ACLsEnabled = true
 		c.ACLMasterToken = TestDefaultMasterToken
 		c.ACLDefaultPolicy = "deny"
-		c.ACLEnforceVersion8 = true
 
 		if cb != nil {
 			cb(c)

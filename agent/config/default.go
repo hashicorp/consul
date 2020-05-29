@@ -10,18 +10,6 @@ import (
 	"github.com/hashicorp/raft"
 )
 
-func DefaultRPCProtocol() (int, error) {
-	src := DefaultSource()
-	c, _, err := Parse(src.Data, src.Format)
-	if err != nil {
-		return 0, fmt.Errorf("Error parsing default config: %s", err)
-	}
-	if c.RPCProtocol == nil {
-		return 0, fmt.Errorf("No default RPC protocol set")
-	}
-	return *c.RPCProtocol, nil
-}
-
 // DefaultSource is the default agent configuration.
 // This needs to be merged first in the head.
 // todo(fs): The values are sourced from multiple sources.
@@ -43,7 +31,6 @@ func DefaultSource() Source {
 		Data: `
 		acl_default_policy = "allow"
 		acl_down_policy = "extend-cache"
-		acl_enforce_version_8 = true
 		acl_ttl = "30s"
 		acl = {
 			policy_ttl = "30s"
@@ -65,7 +52,7 @@ func DefaultSource() Source {
 		log_level = "INFO"
 		max_query_time = "600s"
 		primary_gateways_interval = "30s"
-		protocol =  2
+		protocol = ` + strconv.Itoa(consul.DefaultRPCProtocol) + `
 		retry_interval = "30s"
 		retry_interval_wan = "30s"
 		server = false

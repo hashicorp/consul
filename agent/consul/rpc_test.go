@@ -743,7 +743,6 @@ func TestRPC_LocalTokenStrippedOnForward(t *testing.T) {
 		c.ACLsEnabled = true
 		c.ACLDefaultPolicy = "deny"
 		c.ACLMasterToken = "root"
-		c.ACLEnforceVersion8 = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -757,7 +756,6 @@ func TestRPC_LocalTokenStrippedOnForward(t *testing.T) {
 		c.ACLsEnabled = true
 		c.ACLDefaultPolicy = "deny"
 		c.ACLTokenReplication = true
-		c.ACLEnforceVersion8 = true
 		c.ACLReplicationRate = 100
 		c.ACLReplicationBurst = 100
 		c.ACLReplicationApplyLimit = 1000000

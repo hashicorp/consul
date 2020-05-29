@@ -279,13 +279,26 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		if s.Name == "" || s.Data == "" {
 			continue
 		}
-		c2, keys, err := Parse(s.Data, s.Format)
+		c2, md, err := Parse(s.Data, s.Format)
 		if err != nil {
 			return RuntimeConfig{}, fmt.Errorf("Error parsing %s: %s", s.Name, err)
 		}
 
+		var unusedErr error
+		for _, k := range md.Unused {
+			switch k {
+			case "acl_enforce_version_8":
+				b.warn("config key %q is deprecated and should be removed", k)
+			default:
+				unusedErr = multierror.Append(unusedErr, fmt.Errorf("invalid config key %s", k))
+			}
+		}
+		if unusedErr != nil {
+			return RuntimeConfig{}, fmt.Errorf("Error parsing %s: %s", s.Name, unusedErr)
+		}
+
 		// for now this is a soft failure that will cause warnings but not actual problems
-		b.validateEnterpriseConfigKeys(&c2, keys)
+		b.validateEnterpriseConfigKeys(&c2, md.Keys)
 
 		// if we have a single 'check' or 'service' we need to add them to the
 		// list of checks and services first since we cannot merge them
@@ -790,7 +803,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		GossipWANRetransmitMult: b.intVal(c.GossipWAN.RetransmitMult),
 
 		// ACL
-		ACLEnforceVersion8:        b.boolValWithDefault(c.ACLEnforceVersion8, true),
 		ACLsEnabled:               aclsEnabled,
 		ACLAgentMasterToken:       b.stringValWithDefault(c.ACL.Tokens.AgentMaster, b.stringVal(c.ACLAgentMasterToken)),
 		ACLAgentToken:             b.stringValWithDefault(c.ACL.Tokens.Agent, b.stringVal(c.ACLAgentToken)),

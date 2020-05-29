@@ -181,33 +181,19 @@ func (a *TestACLAgent) ReloadConfig(config *consul.Config) error {
 	return fmt.Errorf("Unimplemented")
 }
 
-func TestACL_Version8(t *testing.T) {
+func TestACL_Version8EnabledByDefault(t *testing.T) {
 	t.Parallel()
 
-	t.Run("version 8 disabled", func(t *testing.T) {
-		a := NewTestACLAgent(t, t.Name(), TestACLConfig()+`
- 		acl_enforce_version_8 = false
- 	`, nil, nil)
+	called := false
+	resolveFn := func(string) (structs.ACLIdentity, acl.Authorizer, error) {
+		called = true
+		return nil, nil, acl.ErrNotFound
+	}
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), resolveFn, nil)
 
-		token, err := a.resolveToken("nope")
-		require.Nil(t, token)
-		require.Nil(t, err)
-	})
-
-	t.Run("version 8 enabled", func(t *testing.T) {
-		called := false
-		resolveFn := func(string) (structs.ACLIdentity, acl.Authorizer, error) {
-			called = true
-			return nil, nil, acl.ErrNotFound
-		}
-		a := NewTestACLAgent(t, t.Name(), TestACLConfig()+`
- 		acl_enforce_version_8 = true
- 	`, resolveFn, nil)
-
-		_, err := a.resolveToken("nope")
-		require.Error(t, err)
-		require.True(t, called)
-	})
+	_, err := a.resolveToken("nope")
+	require.Error(t, err)
+	require.True(t, called)
 }
 
 func TestACL_AgentMasterToken(t *testing.T) {
