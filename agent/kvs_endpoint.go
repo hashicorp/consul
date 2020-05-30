@@ -72,7 +72,7 @@ func (s *HTTPServer) KVSGet(resp http.ResponseWriter, req *http.Request, args *s
 	if err := s.agent.RPC(method, &args, &out); err != nil {
 		return nil, err
 	}
-	setMeta(resp, &out.QueryMeta)
+	s.setMeta(resp, &out.QueryMeta, req)
 
 	// Check if we get a not found
 	if len(out.Entries) == 0 {
@@ -123,7 +123,7 @@ func (s *HTTPServer) KVSGetKeys(resp http.ResponseWriter, req *http.Request, arg
 	if err := s.agent.RPC("KVS.ListKeys", &listArgs, &out); err != nil {
 		return nil, err
 	}
-	setMeta(resp, &out.QueryMeta)
+	s.setMeta(resp, &out.QueryMeta, req)
 
 	// Check if we get a not found. We do not generate
 	// not found for the root, but just provide the empty list

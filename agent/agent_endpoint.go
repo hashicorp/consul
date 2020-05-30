@@ -1330,7 +1330,7 @@ func (s *HTTPServer) AgentConnectCARoots(resp http.ResponseWriter, req *http.Req
 		// This should never happen, but we want to protect against panics
 		return nil, fmt.Errorf("internal error: response type not correct")
 	}
-	defer setMeta(resp, &reply.QueryMeta)
+	defer s.setMeta(resp, &reply.QueryMeta, req)
 
 	return *reply, nil
 }

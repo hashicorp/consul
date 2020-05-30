@@ -55,7 +55,7 @@ func (s *HTTPServer) UINodes(resp http.ResponseWriter, req *http.Request) (inter
 
 	// Make the RPC request
 	var out structs.IndexedNodeDump
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 RPC:
 	if err := s.agent.RPC("Internal.NodeDump", &args, &out); err != nil {
 		// Retry the request allowing stale data if no leader
@@ -104,7 +104,7 @@ func (s *HTTPServer) UINodeInfo(resp http.ResponseWriter, req *http.Request) (in
 
 	// Make the RPC request
 	var out structs.IndexedNodeDump
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 RPC:
 	if err := s.agent.RPC("Internal.NodeInfo", &args, &out); err != nil {
 		// Retry the request allowing stale data if no leader
@@ -148,7 +148,7 @@ func (s *HTTPServer) UIServices(resp http.ResponseWriter, req *http.Request) (in
 
 	// Make the RPC request
 	var out structs.IndexedCheckServiceNodes
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 RPC:
 	if err := s.agent.RPC("Internal.ServiceDump", &args, &out); err != nil {
 		// Retry the request allowing stale data if no leader
@@ -185,7 +185,7 @@ func (s *HTTPServer) UIGatewayServicesNodes(resp http.ResponseWriter, req *http.
 
 	// Make the RPC request
 	var out structs.IndexedServiceDump
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 RPC:
 	if err := s.agent.RPC("Internal.GatewayServiceDump", &args, &out); err != nil {
 		// Retry the request allowing stale data if no leader

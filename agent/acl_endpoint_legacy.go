@@ -112,7 +112,7 @@ func (s *HTTPServer) ACLClone(resp http.ResponseWriter, req *http.Request) (inte
 	}
 
 	var out structs.IndexedACLs
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 	if err := s.agent.RPC("ACL.Get", &args, &out); err != nil {
 		return nil, err
 	}
@@ -164,7 +164,7 @@ func (s *HTTPServer) ACLGet(resp http.ResponseWriter, req *http.Request) (interf
 	}
 
 	var out structs.IndexedACLs
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 	if err := s.agent.RPC("ACL.Get", &args, &out); err != nil {
 		return nil, err
 	}
@@ -190,7 +190,7 @@ func (s *HTTPServer) ACLList(resp http.ResponseWriter, req *http.Request) (inter
 	}
 
 	var out structs.IndexedACLs
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 	if err := s.agent.RPC("ACL.List", &args, &out); err != nil {
 		return nil, err
 	}

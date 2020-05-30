@@ -24,7 +24,7 @@ func (s *HTTPServer) Snapshot(resp http.ResponseWriter, req *http.Request) (inte
 
 		// Headers need to go out before we stream the body.
 		replyFn := func(reply *structs.SnapshotResponse) error {
-			setMeta(resp, &reply.QueryMeta)
+			s.setMeta(resp, &reply.QueryMeta, req)
 			return nil
 		}
 

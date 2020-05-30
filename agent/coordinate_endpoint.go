@@ -84,7 +84,7 @@ func (s *HTTPServer) CoordinateNodes(resp http.ResponseWriter, req *http.Request
 	}
 
 	var out structs.IndexedCoordinates
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 	if err := s.agent.RPC("Coordinate.ListNodes", &args, &out); err != nil {
 		sort.Sort(&sorter{out.Coordinates})
 		return nil, err
@@ -107,7 +107,7 @@ func (s *HTTPServer) CoordinateNode(resp http.ResponseWriter, req *http.Request)
 	}
 
 	var out structs.IndexedCoordinates
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 	if err := s.agent.RPC("Coordinate.Node", &args, &out); err != nil {
 		return nil, err
 	}

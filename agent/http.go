@@ -28,6 +28,7 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-cleanhttp"
+	"github.com/mitchellh/hashstructure"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 )
@@ -747,14 +748,27 @@ func setLastContact(resp http.ResponseWriter, last time.Duration) {
 	resp.Header().Set("X-Consul-LastContact", strconv.FormatUint(lastMsec, 10))
 }
 
-// setMeta is used to set the query response meta data
-func setMeta(resp http.ResponseWriter, m structs.QueryMetaCompat) {
+func setMetaWithoutETag(resp http.ResponseWriter, m structs.QueryMetaCompat) {
 	setIndex(resp, m.GetIndex())
 	setLastContact(resp, m.GetLastContact())
 	setKnownLeader(resp, m.GetKnownLeader())
 	setConsistency(resp, m.GetConsistencyLevel())
 	if m.GetEmptyCacheResult() {
 		resp.Header().Set(UnmodifiedCachedDataResponseHeader, "true")
+	}
+}
+
+// setMeta is used to set the query response meta data
+func (s *HTTPServer) setMeta(resp http.ResponseWriter, m structs.QueryMetaCompat, req *http.Request) {
+	setMetaWithoutETag(resp, m)
+	if m.GetIndex() > 0 {
+		// ETag computation
+		dc := ""
+		b := structs.QueryOptions{}
+		if !s.parseInternal(resp, req, &dc, &b) {
+			// No error, we are fine
+			resp.Header().Set("ETag", fmt.Sprintf("%d-%s", m.GetIndex(), ComputeETagSuffix(&b, &dc)))
+		}
 	}
 }
 
@@ -1053,6 +1067,54 @@ func parseMetaPair(raw string) (string, string) {
 	return pair[0], ""
 }
 
+// ComputeETagSuffix computes the ETag of a resource and ignores non-significant fields
+func ComputeETagSuffix(options structs.QueryOptionsCompat, dc *string) string {
+	o := &options
+	dup := *o
+	dup.SetMinQueryIndex(0)
+	dup.SetMaxQueryTime(0)
+	dup.SetReturnEmptyResultOnUnmodified(false)
+	dup.SetUseCache(false)
+	toCompute := []interface{}{
+		dup,
+		*dc,
+	}
+	v, err := hashstructure.Hash(toCompute, nil)
+	if err == nil {
+		return strconv.FormatUint(v, 16)
+	}
+	return ""
+}
+
+func parseIfNoneMatch(resp http.ResponseWriter, req *http.Request, dc *string, b structs.QueryOptionsCompat) {
+	ifNoneMatch := req.Header.Get("If-None-Match")
+	if ifNoneMatch != "" {
+		fields := strings.Split(ifNoneMatch, "-")
+		// Do we have the right format?
+		if len(fields) == 2 {
+			if ComputeETagSuffix(b, dc) == fields[1] {
+				// OK, all fields are consistent
+				indexInTag, err := strconv.ParseUint(fields[0], 10, 64)
+				if err == nil {
+					// index is provided
+					if indexInTag > 0 {
+						indexInReq := b.GetMinQueryIndex()
+						// If either index is provided and equal in query or index is not specified
+						if indexInTag == indexInReq || indexInReq == 0 {
+							b.SetMinQueryIndex(indexInTag)
+							b.SetReturnEmptyResultOnUnmodified(true)
+							// If wait is not specified, use minimal value
+							if b.GetMaxQueryTime() < 1 {
+								b.SetMaxQueryTime(1)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
 // parseInternal is a convenience method for endpoints that need
 // to use both parseWait and parseDC.
 func (s *HTTPServer) parseInternal(resp http.ResponseWriter, req *http.Request, dc *string, b structs.QueryOptionsCompat) bool {
@@ -1075,7 +1137,12 @@ func (s *HTTPServer) parseInternal(resp http.ResponseWriter, req *http.Request, 
 // parse is a convenience method for endpoints that need
 // to use both parseWait and parseDC.
 func (s *HTTPServer) parse(resp http.ResponseWriter, req *http.Request, dc *string, b structs.QueryOptionsCompat) bool {
-	return s.parseInternal(resp, req, dc, b)
+	val := s.parseInternal(resp, req, dc, b)
+	if val {
+		return true
+	}
+	parseIfNoneMatch(resp, req, dc, b)
+	return false
 }
 
 func (s *HTTPServer) checkWriteAccess(req *http.Request) error {

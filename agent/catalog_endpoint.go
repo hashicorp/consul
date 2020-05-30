@@ -126,7 +126,7 @@ func (s *HTTPServer) CatalogNodes(resp http.ResponseWriter, req *http.Request) (
 	}
 
 	var out structs.IndexedNodes
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 RETRY_ONCE:
 	if err := s.agent.RPC("Catalog.ListNodes", &args, &out); err != nil {
 		return nil, err
@@ -164,7 +164,7 @@ func (s *HTTPServer) CatalogServices(resp http.ResponseWriter, req *http.Request
 		return nil, nil
 	}
 	var out structs.IndexedServices
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 
 	if args.QueryOptions.UseCache {
 		raw, m, err := s.agent.cache.Get(cachetype.CatalogListServicesName, &args)
@@ -253,7 +253,7 @@ func (s *HTTPServer) catalogServiceNodes(resp http.ResponseWriter, req *http.Req
 
 	// Make the RPC request
 	var out structs.IndexedServiceNodes
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 
 	if args.QueryOptions.UseCache {
 		raw, m, err := s.agent.cache.Get(cachetype.CatalogServicesName, &args)
@@ -326,7 +326,7 @@ func (s *HTTPServer) CatalogNodeServices(resp http.ResponseWriter, req *http.Req
 
 	// Make the RPC request
 	var out structs.IndexedNodeServices
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 RETRY_ONCE:
 	if err := s.agent.RPC("Catalog.NodeServices", &args, &out); err != nil {
 		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_node_services"}, 1,
@@ -389,7 +389,7 @@ func (s *HTTPServer) CatalogNodeServiceList(resp http.ResponseWriter, req *http.
 
 	// Make the RPC request
 	var out structs.IndexedNodeServiceList
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 RETRY_ONCE:
 	if err := s.agent.RPC("Catalog.NodeServiceList", &args, &out); err != nil {
 		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_node_service_list"}, 1,

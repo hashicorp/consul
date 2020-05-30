@@ -58,7 +58,7 @@ func (s *HTTPServer) DiscoveryChainRead(resp http.ResponseWriter, req *http.Requ
 
 	// Make the RPC request
 	var out structs.DiscoveryChainResponse
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 
 	if args.QueryOptions.UseCache {
 		raw, m, err := s.agent.cache.Get(cachetype.CompiledDiscoveryChainName, &args)

@@ -33,7 +33,7 @@ func (s *HTTPServer) HealthChecksInState(resp http.ResponseWriter, req *http.Req
 
 	// Make the RPC request
 	var out structs.IndexedHealthChecks
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 RETRY_ONCE:
 	if err := s.agent.RPC("Health.ChecksInState", &args, &out); err != nil {
 		return nil, err
@@ -79,7 +79,7 @@ func (s *HTTPServer) HealthNodeChecks(resp http.ResponseWriter, req *http.Reques
 
 	// Make the RPC request
 	var out structs.IndexedHealthChecks
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 RETRY_ONCE:
 	if err := s.agent.RPC("Health.NodeChecks", &args, &out); err != nil {
 		return nil, err
@@ -127,7 +127,7 @@ func (s *HTTPServer) HealthServiceChecks(resp http.ResponseWriter, req *http.Req
 
 	// Make the RPC request
 	var out structs.IndexedHealthChecks
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 RETRY_ONCE:
 	if err := s.agent.RPC("Health.ServiceChecks", &args, &out); err != nil {
 		return nil, err
@@ -196,7 +196,7 @@ func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Requ
 
 	// Make the RPC request
 	var out structs.IndexedCheckServiceNodes
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 
 	if args.QueryOptions.UseCache {
 		raw, m, err := s.agent.cache.Get(cachetype.HealthServicesName, &args)

@@ -155,7 +155,7 @@ func (s *HTTPServer) ACLRulesTranslateLegacyToken(resp http.ResponseWriter, req 
 	args.QueryOptions.MinQueryIndex = 0
 
 	var out structs.ACLTokenResponse
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 	if err := s.agent.RPC("ACL.TokenRead", &args, &out); err != nil {
 		return nil, err
 	}
@@ -195,7 +195,7 @@ func (s *HTTPServer) ACLPolicyList(resp http.ResponseWriter, req *http.Request) 
 	}
 
 	var out structs.ACLPolicyListResponse
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 	if err := s.agent.RPC("ACL.PolicyList", &args, &out); err != nil {
 		return nil, err
 	}
@@ -256,7 +256,7 @@ func (s *HTTPServer) ACLPolicyRead(resp http.ResponseWriter, req *http.Request, 
 	}
 
 	var out structs.ACLPolicyResponse
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 	if err := s.agent.RPC("ACL.PolicyRead", &args, &out); err != nil {
 		return nil, err
 	}
@@ -380,7 +380,7 @@ func (s *HTTPServer) ACLTokenList(resp http.ResponseWriter, req *http.Request) (
 	}
 
 	var out structs.ACLTokenListResponse
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 	if err := s.agent.RPC("ACL.TokenList", &args, &out); err != nil {
 		return nil, err
 	}
@@ -442,7 +442,7 @@ func (s *HTTPServer) ACLTokenSelf(resp http.ResponseWriter, req *http.Request) (
 	}
 
 	var out structs.ACLTokenResponse
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 	if err := s.agent.RPC("ACL.TokenRead", &args, &out); err != nil {
 		return nil, err
 	}
@@ -482,7 +482,7 @@ func (s *HTTPServer) ACLTokenGet(resp http.ResponseWriter, req *http.Request, to
 	}
 
 	var out structs.ACLTokenResponse
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 	if err := s.agent.RPC("ACL.TokenRead", &args, &out); err != nil {
 		return nil, err
 	}
@@ -594,7 +594,7 @@ func (s *HTTPServer) ACLRoleList(resp http.ResponseWriter, req *http.Request) (i
 	args.Policy = req.URL.Query().Get("policy")
 
 	var out structs.ACLRoleListResponse
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 	if err := s.agent.RPC("ACL.RoleList", &args, &out); err != nil {
 		return nil, err
 	}
@@ -671,7 +671,7 @@ func (s *HTTPServer) ACLRoleRead(resp http.ResponseWriter, req *http.Request, ro
 	}
 
 	var out structs.ACLRoleResponse
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 	if err := s.agent.RPC("ACL.RoleRead", &args, &out); err != nil {
 		return nil, err
 	}
@@ -758,7 +758,7 @@ func (s *HTTPServer) ACLBindingRuleList(resp http.ResponseWriter, req *http.Requ
 	args.AuthMethod = req.URL.Query().Get("authmethod")
 
 	var out structs.ACLBindingRuleListResponse
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 	if err := s.agent.RPC("ACL.BindingRuleList", &args, &out); err != nil {
 		return nil, err
 	}
@@ -818,7 +818,7 @@ func (s *HTTPServer) ACLBindingRuleRead(resp http.ResponseWriter, req *http.Requ
 	}
 
 	var out structs.ACLBindingRuleResponse
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 	if err := s.agent.RPC("ACL.BindingRuleRead", &args, &out); err != nil {
 		return nil, err
 	}
@@ -902,7 +902,7 @@ func (s *HTTPServer) ACLAuthMethodList(resp http.ResponseWriter, req *http.Reque
 	}
 
 	var out structs.ACLAuthMethodListResponse
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 	if err := s.agent.RPC("ACL.AuthMethodList", &args, &out); err != nil {
 		return nil, err
 	}
@@ -961,7 +961,7 @@ func (s *HTTPServer) ACLAuthMethodRead(resp http.ResponseWriter, req *http.Reque
 	}
 
 	var out structs.ACLAuthMethodResponse
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 	if err := s.agent.RPC("ACL.AuthMethodRead", &args, &out); err != nil {
 		return nil, err
 	}

@@ -16,7 +16,7 @@ func (s *HTTPServer) ConnectCARoots(resp http.ResponseWriter, req *http.Request)
 	}
 
 	var reply structs.IndexedCARoots
-	defer setMeta(resp, &reply.QueryMeta)
+	defer s.setMeta(resp, &reply.QueryMeta, req)
 	if err := s.agent.RPC("ConnectCA.Roots", &args, &reply); err != nil {
 		return nil, err
 	}

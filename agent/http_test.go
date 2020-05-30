@@ -269,7 +269,7 @@ func TestSetMeta(t *testing.T) {
 		LastContact: 123456 * time.Microsecond,
 	}
 	resp := httptest.NewRecorder()
-	setMeta(resp, &meta)
+	setMetaWithoutETag(resp, &meta)
 	header := resp.Header().Get("X-Consul-Index")
 	if header != "1000" {
 		t.Fatalf("Bad: %v", header)

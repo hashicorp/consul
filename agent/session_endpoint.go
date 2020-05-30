@@ -137,7 +137,7 @@ func (s *HTTPServer) SessionGet(resp http.ResponseWriter, req *http.Request) (in
 	}
 
 	var out structs.IndexedSessions
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 	if err := s.agent.RPC("Session.Get", &args, &out); err != nil {
 		return nil, err
 	}
@@ -160,7 +160,7 @@ func (s *HTTPServer) SessionList(resp http.ResponseWriter, req *http.Request) (i
 	}
 
 	var out structs.IndexedSessions
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 	if err := s.agent.RPC("Session.List", &args, &out); err != nil {
 		return nil, err
 	}
@@ -191,7 +191,7 @@ func (s *HTTPServer) SessionsForNode(resp http.ResponseWriter, req *http.Request
 	}
 
 	var out structs.IndexedSessions
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 	if err := s.agent.RPC("Session.NodeSessions", &args, &out); err != nil {
 		return nil, err
 	}

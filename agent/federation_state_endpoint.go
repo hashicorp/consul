@@ -22,7 +22,7 @@ func (s *HTTPServer) FederationStateGet(resp http.ResponseWriter, req *http.Requ
 	}
 
 	var out structs.FederationStateResponse
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 	if err := s.agent.RPC("FederationState.Get", &args, &out); err != nil {
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func (s *HTTPServer) FederationStateList(resp http.ResponseWriter, req *http.Req
 	}
 
 	var out structs.IndexedFederationStates
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 	if err := s.agent.RPC("FederationState.List", &args, &out); err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func (s *HTTPServer) FederationStateListMeshGateways(resp http.ResponseWriter, r
 	}
 
 	var out structs.DatacenterIndexedCheckServiceNodes
-	defer setMeta(resp, &out.QueryMeta)
+	defer s.setMeta(resp, &out.QueryMeta, req)
 	if err := s.agent.RPC("FederationState.ListMeshGateways", &args, &out); err != nil {
 		return nil, err
 	}
