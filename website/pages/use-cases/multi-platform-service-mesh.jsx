@@ -7,6 +7,7 @@ export default function MultiPlatformServiceMeshPage() {
     <UseCaseLayout
       title="Multi-Platform Service Mesh"
       description="Create a consistent platform for modern application networking and security with identity based authorization, L7 traffic management, and service-to-service encryption."
+      guideLink="https://learn.hashicorp.com/consul/gs-consul-service-mesh/understand-consul-service-mesh"
     >
       <TextSplitWithImage
         textSplit={{

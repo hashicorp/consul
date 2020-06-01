@@ -4,7 +4,12 @@ import ConsulEnterpriseComparison from '../../components/enterprise-comparison/c
 import Head from 'next/head'
 import HashiHead from '@hashicorp/react-head'
 
-export default function UseCaseLayout({ title, description, children }) {
+export default function UseCaseLayout({
+  title,
+  description,
+  guideLink,
+  children,
+}) {
   const pageTitle = `Consul ${title}`
   return (
     <>
@@ -20,7 +25,7 @@ export default function UseCaseLayout({ title, description, children }) {
           links={[
             {
               text: 'Explore HashiCorp Learn',
-              url: 'https://learn.hashicorp.com/consul',
+              url: guideLink,
               type: 'outbound',
             },
             {

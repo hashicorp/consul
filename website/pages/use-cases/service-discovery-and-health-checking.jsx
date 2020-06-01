@@ -8,6 +8,7 @@ export default function ServiceDiscoveryAndHealthCheckingPage() {
     <UseCaseLayout
       title="Service Discovery and Health Checking"
       description="Discover, Register and Resolve services for application workloads across any cloud. Automatically add and remove services based on health checking."
+      guideLink="https://learn.hashicorp.com/consul/getting-started/services#update-services"
     >
       <TextSplitWithImage
         textSplit={{
