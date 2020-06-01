@@ -61,6 +61,10 @@ The table below shows this endpoint's support for
 
   This must be set to a nonzero value for `type=oidc`.
 
+- `TokenLocality` `(string: "")` - Defines the kind of token that this auth method
+  should produce. This can be either `"local"` or `"global"`. If empty the
+  value of `"local"` is assumed. Added in Consul 1.8.0.
+
 - `Config` `(map[string]string: <required>)` - The raw configuration to use for
   the chosen auth method. Contents will vary depending upon the type chosen.
   For more information on configuring specific auth method types, see the [auth
@@ -235,6 +239,10 @@ The table below shows this endpoint's support for
   smaller than 1 minute and no longer than 24 hours. Added in Consul 1.8.0.
 
   This must be set to a nonzero value for `type=oidc`.
+
+- `TokenLocality` `(string: "")` - Defines the kind of token that this auth method
+  should produce. This can be either `"local"` or `"global"`. If empty the
+  value of `"local"` is assumed. Added in Consul 1.8.0.
 
 - `Config` `(map[string]string: <required>)` - The raw configuration to use for
   the chosen auth method. Contents will vary depending upon the type chosen.

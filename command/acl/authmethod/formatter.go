@@ -49,17 +49,20 @@ type prettyFormatter struct {
 func (f *prettyFormatter) FormatAuthMethod(method *api.ACLAuthMethod) (string, error) {
 	var buffer bytes.Buffer
 
-	buffer.WriteString(fmt.Sprintf("Name:         %s\n", method.Name))
-	buffer.WriteString(fmt.Sprintf("Type:         %s\n", method.Type))
+	buffer.WriteString(fmt.Sprintf("Name:          %s\n", method.Name))
+	buffer.WriteString(fmt.Sprintf("Type:          %s\n", method.Type))
 	if method.Namespace != "" {
-		buffer.WriteString(fmt.Sprintf("Namespace:    %s\n", method.Namespace))
+		buffer.WriteString(fmt.Sprintf("Namespace:     %s\n", method.Namespace))
 	}
 	if method.DisplayName != "" {
-		buffer.WriteString(fmt.Sprintf("DisplayName:  %s\n", method.DisplayName))
+		buffer.WriteString(fmt.Sprintf("DisplayName:   %s\n", method.DisplayName))
 	}
-	buffer.WriteString(fmt.Sprintf("Description:  %s\n", method.Description))
+	buffer.WriteString(fmt.Sprintf("Description:   %s\n", method.Description))
 	if method.MaxTokenTTL > 0 {
-		buffer.WriteString(fmt.Sprintf("MaxTokenTTL:  %s\n", method.MaxTokenTTL))
+		buffer.WriteString(fmt.Sprintf("MaxTokenTTL:   %s\n", method.MaxTokenTTL))
+	}
+	if method.TokenLocality != "" {
+		buffer.WriteString(fmt.Sprintf("TokenLocality: %s\n", method.TokenLocality))
 	}
 	if len(method.NamespaceRules) > 0 {
 		buffer.WriteString(fmt.Sprintln("NamespaceRules:"))
@@ -69,8 +72,8 @@ func (f *prettyFormatter) FormatAuthMethod(method *api.ACLAuthMethod) (string, e
 		}
 	}
 	if f.showMeta {
-		buffer.WriteString(fmt.Sprintf("Create Index: %d\n", method.CreateIndex))
-		buffer.WriteString(fmt.Sprintf("Modify Index: %d\n", method.ModifyIndex))
+		buffer.WriteString(fmt.Sprintf("Create Index:  %d\n", method.CreateIndex))
+		buffer.WriteString(fmt.Sprintf("Modify Index:  %d\n", method.ModifyIndex))
 	}
 	buffer.WriteString(fmt.Sprintln("Config:"))
 	output, err := json.MarshalIndent(method.Config, "", "  ")

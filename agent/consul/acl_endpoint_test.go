@@ -5106,6 +5106,108 @@ func TestACLEndpoint_Login_with_MaxTokenTTL(t *testing.T) {
 	require.Equal(t, got, expect)
 }
 
+func TestACLEndpoint_Login_with_TokenLocality(t *testing.T) {
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	acl := ACL{srv: s1}
+
+	testSessionID := testauth.StartSession()
+	defer testauth.ResetSession(testSessionID)
+
+	testauth.InstallSessionToken(
+		testSessionID,
+		"fake-web", // no rules
+		"default", "web", "abc123",
+	)
+
+	cases := map[string]struct {
+		tokenLocality string
+		expectLocal   bool
+	}{
+		"empty":  {tokenLocality: "", expectLocal: true},
+		"local":  {tokenLocality: "local", expectLocal: true},
+		"global": {tokenLocality: "global", expectLocal: false},
+	}
+
+	for name, tc := range cases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			method, err := upsertTestCustomizedAuthMethod(codec, "root", "dc1", func(method *structs.ACLAuthMethod) {
+				method.TokenLocality = tc.tokenLocality
+				method.Config = map[string]interface{}{
+					"SessionID": testSessionID,
+				}
+			})
+			require.NoError(t, err)
+
+			_, err = upsertTestBindingRule(
+				codec, "root", "dc1", method.Name,
+				"",
+				structs.BindingRuleBindTypeService,
+				"web",
+			)
+			require.NoError(t, err)
+
+			// Create a token.
+			req := structs.ACLLoginRequest{
+				Auth: &structs.ACLLoginParams{
+					AuthMethod:  method.Name,
+					BearerToken: "fake-web",
+					Meta:        map[string]string{"pod": "pod1"},
+				},
+				Datacenter: "dc1",
+			}
+
+			resp := structs.ACLToken{}
+			require.NoError(t, acl.Login(&req, &resp))
+
+			secretID := resp.SecretID
+
+			got := &resp
+			got.CreateIndex = 0
+			got.ModifyIndex = 0
+			got.AccessorID = ""
+			got.SecretID = ""
+			got.Hash = nil
+
+			defaultEntMeta := structs.DefaultEnterpriseMeta()
+			expect := &structs.ACLToken{
+				AuthMethod:  method.Name,
+				Description: `token created via login: {"pod":"pod1"}`,
+				Local:       tc.expectLocal,
+				CreateTime:  got.CreateTime,
+				ServiceIdentities: []*structs.ACLServiceIdentity{
+					{ServiceName: "web"},
+				},
+				EnterpriseMeta: *defaultEntMeta,
+			}
+			expect.ACLAuthMethodEnterpriseMeta.FillWithEnterpriseMeta(defaultEntMeta)
+			require.Equal(t, got, expect)
+
+			// Now turn around and nuke it.
+			logoutReq := structs.ACLLogoutRequest{
+				Datacenter:   "dc1",
+				WriteRequest: structs.WriteRequest{Token: secretID},
+			}
+
+			var ignored bool
+			require.NoError(t, acl.Logout(&logoutReq, &ignored))
+		})
+	}
+}
+
 func TestACLEndpoint_Login_k8s(t *testing.T) {
 	t.Parallel()
 
