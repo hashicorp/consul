@@ -15,6 +15,21 @@ BUGFIXES:
 * connect: ensure proxy-defaults protocol is used for upstreams [[GH-7938](https://github.com/hashicorp/consul/issues/7938)]
 * xds: Fixed bug where deleting a gateway config entry did not correctly remove xDS configuration from the envoy proxy [[GH-7898](https://github.com/hashicorp/consul/pull/7898)]
 
+## 1.8.0-beta2 (May 21, 2020)
+
+IMPROVEMENTS:
+
+* xds: Ingress gateways now respect the same binding options as mesh and terminating gateways [[GH-7924](https://github.com/hashicorp/consul/pull/7924)]
+
+BUGFIXES:
+
+* xds: Fixed bug where deleting a gateway config entry did not correctly remove xDS configuration from the envoy proxy [[GH-7898](https://github.com/hashicorp/consul/pull/7898)]
+* ui: Quote service names when filtering intentions to prevent 500 errors when accessing a service [[GH-7896](https://github.com/hashicorp/consul/issues/7896)] [[GH-7888](https://github.com/hashicorp/consul/pull/7888)]
+* ui: Miscellaneous amends for Safari and Firefox [[GH-7904](https://github.com/hashicorp/consul/issues/7904)] [[GH-7907](https://github.com/hashicorp/consul/pull/7907)]
+* ui: Ensure a value is always passed to CONSUL_SSO_ENABLED [[GH-7913](https://github.com/hashicorp/consul/pull/7913)]
+* agent: Preserve ModifyIndex for unchanged entry in KV transaciton [[GH-7832](https://github.com/hashicorp/consul/pull/7832)]
+* agent: use default resolver scheme for gRPC dialing [[GH-7617](https://github.com/hashicorp/consul/pull/7617)]
+
 ## 1.8.0-beta1 (May 14, 2020)
 
 FEATURES:
@@ -23,7 +38,7 @@ FEATURES:
 * **Ingress Gateway**: Envoy can now be run as a gateway to ingress traffic into the Consul service mesh, enabling a more incremental transition for applications.
 * **WAN Federation over Mesh Gateways**: Allows Consul datacenters to federate by forwarding WAN gossip and RPC traffic through Mesh Gateways rather than requiring the servers to be exposed to the WAN directly.
 * **JSON Web Token (JWT) Auth Method**: Allows exchanging a signed JWT from a trusted external identity provider for a Consul ACL token.
-* **Single Sign-On (SSO) [Enterprise]**: Lets an operator configure Consul to use an external OpenID Connect (OIDC) provider to automatically handle the lifecycle of creating, distributing and managing ACL tokens for performing CLI operations or accessing the UI. 
+* **Single Sign-On (SSO) [Enterprise]**: Lets an operator configure Consul to use an external OpenID Connect (OIDC) provider to automatically handle the lifecycle of creating, distributing and managing ACL tokens for performing CLI operations or accessing the UI.
 * **Audit Logging [Enterprise]**: Adds instrumentation to record a trail of events (both attempted and authorized) by users of Consul’s HTTP API for purposes of regulatory compliance.
 
 * acl: add DisplayName field to auth methods [[GH-7769](https://github.com/hashicorp/consul/issues/7769)]
@@ -100,7 +115,7 @@ BUGFIXES:
 * ui: Fix a refreshing/rescrolling issue for the healthcheck listings [[GH-7550](https://github.com/hashicorp/consul/pull/7550)] [[GH-7365](https://github.com/hashicorp/consul/issues/7365)]
 * ui: Fix token duplication action bug [[GH-7552](https://github.com/hashicorp/consul/pull/7552)]
 * ui: Lazily detect HTTP protocol along with a fallback for non-detection [[GH-7644](https://github.com/hashicorp/consul/pull/7644)] [[GH-7643](https://github.com/hashicorp/consul/issues/7643)]
-* ui: Ensure KV names using 'special' terms within the default namespace are editable when the URL doesn't include the default namespace  [[GH-7734](https://github.com/hashicorp/consul/pull/7734)] 
+* ui: Ensure KV names using 'special' terms within the default namespace are editable when the URL doesn't include the default namespace  [[GH-7734](https://github.com/hashicorp/consul/pull/7734)]
 * xds: Fix flapping of mesh gateway connect-service watches [[GH-7575](https://github.com/hashicorp/consul/pull/7575)]
 
 ## 1.7.2 (March 16, 2020)
