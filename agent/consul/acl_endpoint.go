@@ -442,9 +442,6 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 			if token.AuthMethod == "" {
 				return fmt.Errorf("AuthMethod field is required during Login")
 			}
-			if !token.Local {
-				return fmt.Errorf("Cannot create Global token via Login")
-			}
 		} else {
 			if token.AuthMethod != "" {
 				return fmt.Errorf("AuthMethod field is disallowed outside of Login")
@@ -2128,6 +2125,16 @@ func (a *ACL) AuthMethodSet(args *structs.ACLAuthMethodSetRequest, reply *struct
 		}
 	}
 
+	switch method.TokenLocality {
+	case "local", "":
+	case "global":
+		if !a.srv.InACLDatacenter() {
+			return fmt.Errorf("Invalid Auth Method: TokenLocality 'global' can only be used in the primary datacenter")
+		}
+	default:
+		return fmt.Errorf("Invalid Auth Method: TokenLocality should be one of 'local' or 'global'")
+	}
+
 	// Instantiate a validator but do not cache it yet. This will validate the
 	// configuration.
 	validator, err := authmethod.NewValidator(a.srv.logger, method)
@@ -2384,6 +2391,13 @@ func (a *ACL) tokenSetFromAuthMethod(
 		Roles:             roleLinks,
 		ExpirationTTL:     method.MaxTokenTTL,
 		EnterpriseMeta:    *targetMeta,
+	}
+
+	if method.TokenLocality == "global" {
+		if !a.srv.InACLDatacenter() {
+			return errors.New("creating global tokens via auth methods is only permitted in the primary datacenter")
+		}
+		createReq.ACLToken.Local = false
 	}
 
 	createReq.ACLToken.ACLAuthMethodEnterpriseMeta.FillWithEnterpriseMeta(entMeta)
