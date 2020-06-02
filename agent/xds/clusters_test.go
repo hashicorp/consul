@@ -450,6 +450,23 @@ func TestClustersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name:   "terminating-gateway-hostname-service-subsets",
+			create: proxycfg.TestConfigSnapshotTerminatingGateway,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceID]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceID("api", nil): {
+						Kind: structs.ServiceResolver,
+						Name: "api",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"alt": {
+								Filter: "Service.Meta.domain == alt",
+							},
+						},
+					},
+				}
+			},
+		},
+		{
 			name:   "terminating-gateway-ignore-extra-resolvers",
 			create: proxycfg.TestConfigSnapshotTerminatingGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {

@@ -1647,6 +1647,9 @@ func testConfigSnapshotTerminatingGateway(t testing.T, populateServices bool) *C
 					Service: "api",
 					Address: "api.altdomain",
 					Port:    8081,
+					Meta: map[string]string{
+						"domain": "alt",
+					},
 				},
 				Checks: structs.HealthChecks{
 					{

@@ -1542,7 +1542,7 @@ func (s *state) Changed(ns *structs.NodeService, token string) bool {
 		s.token != token
 }
 
-// When endpoints come in for mesh gateways or external services we check to see if any instances have a hostname their address.
+// hostnameEndpoints returns all CheckServiceNodes that have hostnames instead of IPs as the address.
 // Envoy cannot resolve hostnames provided through EDS, so we exclusively use CDS for these clusters.
 // If there is a mix of hostnames and addresses we exclusively use the hostnames, since clusters cannot discover
 // services with both EDS and DNS.

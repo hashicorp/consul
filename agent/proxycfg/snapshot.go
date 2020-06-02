@@ -101,7 +101,7 @@ type configSnapshotTerminatingGateway struct {
 	// used for TLS origination from the gateway to the linked service.
 	GatewayServices map[structs.ServiceID]structs.GatewayService
 
-	// HostnameDatacenters is a map of service id to service instances with a hostname as the address.
+	// HostnameServices is a map of service id to service instances with a hostname as the address.
 	// If hostnames are configured they must be provided to Envoy via CDS not EDS.
 	HostnameServices map[structs.ServiceID]structs.CheckServiceNodes
 }

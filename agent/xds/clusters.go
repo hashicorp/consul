@@ -133,58 +133,43 @@ func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 		if dc == cfgSnap.Datacenter {
 			continue // skip local
 		}
-		useEDS := true
-		if len(cfgSnap.MeshGateway.HostnameDatacenters[dc]) > 0 {
-			useEDS = false
-		}
+		name := connect.DatacenterSNI(dc, cfgSnap.Roots.TrustDomain)
+		isRemote := dc != cfgSnap.Datacenter
 
-		cluster := &envoy.Cluster{
-			Name: connect.DatacenterSNI(dc, cfgSnap.Roots.TrustDomain),
-		}
-		err := s.populateGatewayCluster(cfgSnap, cluster, 0, useEDS)
+		cluster, err := s.makeGatewayCluster(cfgSnap, name, cfgSnap.MeshGateway.HostnameDatacenters[dc], isRemote, false, 0)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to make cluster for gateway %q: %v", name, err)
 		}
-		if !useEDS {
-			injectHostnameEndpoints(cluster, cfgSnap.MeshGateway.HostnameDatacenters[dc], dc != cfgSnap.Datacenter, false)
-		}
-
 		clusters = append(clusters, cluster)
 	}
 
 	if cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" && cfgSnap.ServerSNIFn != nil {
 		// Add all of the remote wildcard datacenter mappings for servers.
 		for _, dc := range datacenters {
+			hostnameEndpoints := cfgSnap.MeshGateway.HostnameDatacenters[dc]
+
+			// If the DC is our current DC then this cluster is for traffic from a remote DC to a local server.
+			// HostnameDatacenters is populated with gateway addresses, so it does not apply here.
 			if dc == cfgSnap.Datacenter {
-				continue // skip local
-			}
-			useEDS := true
-			if len(cfgSnap.MeshGateway.HostnameDatacenters[dc]) > 0 {
-				useEDS = false
+				hostnameEndpoints = nil
 			}
 
-			cluster := &envoy.Cluster{
-				Name: cfgSnap.ServerSNIFn(dc, ""),
-			}
-			err := s.populateGatewayCluster(cfgSnap, cluster, 0, useEDS)
+			name := cfgSnap.ServerSNIFn(dc, "")
+			isRemote := dc != cfgSnap.Datacenter
+
+			cluster, err := s.makeGatewayCluster(cfgSnap, name, hostnameEndpoints, isRemote, false, 0)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to make cluster for gateway %q: %v", name, err)
 			}
-			if !useEDS {
-				injectHostnameEndpoints(cluster, cfgSnap.MeshGateway.HostnameDatacenters[dc], dc != cfgSnap.Datacenter, false)
-			}
-
 			clusters = append(clusters, cluster)
 		}
 
 		// And for the current datacenter, send all flavors appropriately.
 		for _, srv := range cfgSnap.MeshGateway.ConsulServers {
-			cluster := &envoy.Cluster{
-				Name: cfgSnap.ServerSNIFn(cfgSnap.Datacenter, srv.Node.Node),
-			}
-			err := s.populateGatewayCluster(cfgSnap, cluster, 0, true)
+			name := cfgSnap.ServerSNIFn(cfgSnap.Datacenter, srv.Node.Node)
+			cluster, err := s.makeGatewayCluster(cfgSnap, name, nil, false, false, 0)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to make cluster for gateway %q: %v", name, err)
 			}
 			clusters = append(clusters, cluster)
 		}
@@ -203,6 +188,7 @@ func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 func (s *Server) makeGatewayServiceClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var services map[structs.ServiceID]structs.CheckServiceNodes
 	var resolvers map[structs.ServiceID]*structs.ServiceResolverConfigEntry
+	var hostnameEndpoints structs.CheckServiceNodes
 
 	switch cfgSnap.Kind {
 	case structs.ServiceKindTerminatingGateway:
@@ -226,43 +212,35 @@ func (s *Server) makeGatewayServiceClusters(cfgSnap *proxycfg.ConfigSnapshot) ([
 			resolver = &structs.ServiceResolverConfigEntry{}
 		}
 
-		useEDS := true
-		if cfgSnap.Kind == structs.ServiceKindTerminatingGateway && len(cfgSnap.TerminatingGateway.HostnameServices[svc]) > 0 {
-			useEDS = false
+		// When making service clusters we only pass endpoints with hostnames if the kind is a terminating gateway
+		// This is because the services a mesh gateway will route to are not external services and are not addressed by a hostname.
+		if cfgSnap.Kind == structs.ServiceKindTerminatingGateway {
+			hostnameEndpoints = cfgSnap.TerminatingGateway.HostnameServices[svc]
 		}
 
-		// Create the cluster for default/unnamed services
-		cluster := &envoy.Cluster{
-			Name: clusterName,
-		}
-		err := s.populateGatewayCluster(cfgSnap, cluster, resolver.ConnectTimeout, useEDS)
+		cluster, err := s.makeGatewayCluster(cfgSnap, clusterName, hostnameEndpoints, false, false, resolver.ConnectTimeout)
 		if err != nil {
-			return nil, fmt.Errorf("failed to make %s cluster: %v", cfgSnap.Kind, err)
+			return nil, fmt.Errorf("failed to make cluster for gateway %q: %v", clusterName, err)
 		}
-
 		if cfgSnap.Kind == structs.ServiceKindTerminatingGateway {
 			injectTerminatingGatewayTLSContext(cfgSnap, cluster, svc)
-		}
-		if !useEDS {
-			injectHostnameEndpoints(cluster, cfgSnap.TerminatingGateway.HostnameServices[svc], false, false)
 		}
 		clusters = append(clusters, cluster)
 
 		// If there is a service-resolver for this service then also setup a cluster for each subset
 		for name, subset := range resolver.Subsets {
-			cluster := &envoy.Cluster{
-				Name: connect.ServiceSNI(svc.ID, name, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain),
-			}
-			err = s.populateGatewayCluster(cfgSnap, cluster, resolver.ConnectTimeout, useEDS)
+			subsetHostnameEndpoints, err := s.filterSubsetEndpoints(&subset, hostnameEndpoints)
 			if err != nil {
-				return nil, fmt.Errorf("failed to make %s cluster: %v", cfgSnap.Kind, err)
+				return nil, err
 			}
 
+			clusterName := connect.ServiceSNI(svc.ID, name, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+			cluster, err := s.makeGatewayCluster(cfgSnap, clusterName, subsetHostnameEndpoints, false, subset.OnlyPassing, resolver.ConnectTimeout)
+			if err != nil {
+				return nil, fmt.Errorf("failed to make cluster for gateway %q: %v", clusterName, err)
+			}
 			if cfgSnap.Kind == structs.ServiceKindTerminatingGateway {
 				injectTerminatingGatewayTLSContext(cfgSnap, cluster, svc)
-			}
-			if !useEDS {
-				injectHostnameEndpoints(cluster, cfgSnap.TerminatingGateway.HostnameServices[svc], false, subset.OnlyPassing)
 			}
 
 			clusters = append(clusters, cluster)
@@ -585,27 +563,33 @@ func makeClusterFromUserConfig(configJSON string) (*envoy.Cluster, error) {
 	return &c, err
 }
 
-// populateGatewayCluster initializes a gateway cluster
-// with the specified connect timeout. If the timeout is 0, the connect timeout
-// defaults to use the configured gateway timeout.
-func (s *Server) populateGatewayCluster(cfgSnap *proxycfg.ConfigSnapshot, cluster *envoy.Cluster,
-	connectTimeout time.Duration, useEDS bool) error {
+func (s *Server) makeGatewayCluster(snap *proxycfg.ConfigSnapshot,
+	name string, hostnameEndpoints structs.CheckServiceNodes, isRemote, onlyPassing bool, connectTimeout time.Duration) (*envoy.Cluster, error) {
 
-	cfg, err := ParseGatewayConfig(cfgSnap.Proxy.Config)
+	cfg, err := ParseGatewayConfig(snap.Proxy.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
 		s.Logger.Warn("failed to parse gateway config", "error", err)
 	}
-
-	cluster.ConnectTimeout = connectTimeout
 	if connectTimeout <= 0 {
-		cluster.ConnectTimeout = time.Duration(cfg.ConnectTimeoutMs) * time.Millisecond
+		connectTimeout = time.Duration(cfg.ConnectTimeoutMs) * time.Millisecond
 	}
 
-	// Having an empty config enables outlier detection with default config.
-	cluster.OutlierDetection = &envoycluster.OutlierDetection{}
+	cluster := &envoy.Cluster{
+		Name:           name,
+		ConnectTimeout: connectTimeout,
 
+		// Having an empty config enables outlier detection with default config.
+		OutlierDetection: &envoycluster.OutlierDetection{},
+	}
+
+	useEDS := true
+	if len(hostnameEndpoints) > 0 {
+		useEDS = false
+	}
+
+	// If none of the service instances are addressed by a hostname we provide the endpoint IP addresses via EDS
 	if useEDS {
 		cluster.ClusterDiscoveryType = &envoy.Cluster_Type{Type: envoy.Cluster_EDS}
 		cluster.EdsClusterConfig = &envoy.Cluster_EdsClusterConfig{
@@ -615,15 +599,30 @@ func (s *Server) populateGatewayCluster(cfgSnap *proxycfg.ConfigSnapshot, cluste
 				},
 			},
 		}
-	} else {
-		discoveryType := envoy.Cluster_LOGICAL_DNS
-		if cfg.DNSDiscoveryType == "strict_dns" {
-			discoveryType = envoy.Cluster_STRICT_DNS
-		}
-
-		cluster.ClusterDiscoveryType = &envoy.Cluster_Type{Type: discoveryType}
+		return cluster, nil
 	}
-	return nil
+
+	// When a service instance is addressed by a hostname we have Envoy do the DNS resolution
+	// by setting a DNS cluster type and passing the hostname endpoints via CDS.
+	discoveryType := envoy.Cluster_Type{Type: envoy.Cluster_LOGICAL_DNS}
+	if cfg.DNSDiscoveryType == "strict_dns" {
+		discoveryType.Type = envoy.Cluster_STRICT_DNS
+	}
+	cluster.ClusterDiscoveryType = &discoveryType
+
+	var endpoints []envoyendpoint.LbEndpoint
+	for _, e := range hostnameEndpoints {
+		endpoints = append(endpoints, makeLbEndpoint(e, isRemote, onlyPassing))
+	}
+	cluster.LoadAssignment = &envoy.ClusterLoadAssignment{
+		ClusterName: cluster.Name,
+		Endpoints: []envoyendpoint.LocalityLbEndpoints{
+			{
+				LbEndpoints: endpoints,
+			},
+		},
+	}
+	return cluster, nil
 }
 
 // injectTerminatingGatewayTLSContext adds an UpstreamTlsContext to a cluster for TLS origination
@@ -635,23 +634,6 @@ func injectTerminatingGatewayTLSContext(cfgSnap *proxycfg.ConfigSnapshot, cluste
 			// TODO (gateways) (freddy) If mapping.SNI is empty, does Envoy behave any differently if TlsContext.Sni is excluded?
 			Sni: mapping.SNI,
 		}
-	}
-}
-
-// injectHostnameEndpoints adds endpoints with hostname addresses to an Envoy cluster.
-// This should only be used for clusters using DNS rather than EDS as the discovery type.
-func injectHostnameEndpoints(cluster *envoy.Cluster, hostnameEndpoints structs.CheckServiceNodes, wan, onlyPassing bool) {
-	var endpoints []envoyendpoint.LbEndpoint
-	for _, e := range hostnameEndpoints {
-		endpoints = append(endpoints, makeLbEndpoint(e, wan, onlyPassing))
-	}
-	cluster.LoadAssignment = &envoy.ClusterLoadAssignment{
-		ClusterName: cluster.Name,
-		Endpoints: []envoyendpoint.LocalityLbEndpoints{
-			{
-				LbEndpoints: endpoints,
-			},
-		},
 	}
 }
 
@@ -679,9 +661,9 @@ func makeThresholdsIfNeeded(limits UpstreamLimits) []*envoycluster.CircuitBreake
 	return []*envoycluster.CircuitBreakers_Thresholds{threshold}
 }
 
-func makeLbEndpoint(csn structs.CheckServiceNode, wan, onlyPassing bool) envoyendpoint.LbEndpoint {
+func makeLbEndpoint(csn structs.CheckServiceNode, isRemote, onlyPassing bool) envoyendpoint.LbEndpoint {
 	health, weight := calculateEndpointHealthAndWeight(csn, onlyPassing)
-	addr, port := csn.BestAddress(wan)
+	addr, port := csn.BestAddress(isRemote)
 
 	return envoyendpoint.LbEndpoint{
 		HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
