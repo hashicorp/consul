@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/coordinate"
-	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/require"
 )
 
 // generateRandomCoordinate creates a random coordinate. This mucks with the
@@ -83,13 +83,13 @@ func TestCoordinate_Update(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	verify.Values(t, "", c, lib.CoordinateSet{})
+	require.Equal(t, lib.CoordinateSet{}, c)
 
 	_, c, err = state.Coordinate("node2", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	verify.Values(t, "", c, lib.CoordinateSet{})
+	require.Equal(t, lib.CoordinateSet{}, c)
 
 	// Send another update for the second node. It should take precedence
 	// since there will be two updates in the same batch.
@@ -107,7 +107,7 @@ func TestCoordinate_Update(t *testing.T) {
 	expected := lib.CoordinateSet{
 		"": arg1.Coord,
 	}
-	verify.Values(t, "", c, expected)
+	require.Equal(t, expected, c)
 
 	_, c, err = state.Coordinate("node2", nil)
 	if err != nil {
@@ -116,7 +116,7 @@ func TestCoordinate_Update(t *testing.T) {
 	expected = lib.CoordinateSet{
 		"": arg2.Coord,
 	}
-	verify.Values(t, "", c, expected)
+	require.Equal(t, expected, c)
 
 	// Register a bunch of additional nodes.
 	spamLen := s1.config.CoordinateUpdateBatchSize*s1.config.CoordinateUpdateMaxBatches + 1
@@ -273,7 +273,7 @@ func TestCoordinate_ListDatacenters(t *testing.T) {
 	if err != nil {
 		t.Fatalf("bad: %v", err)
 	}
-	verify.Values(t, "", c, out[0].Coordinates[0].Coord)
+	require.Equal(t, out[0].Coordinates[0].Coord, c)
 }
 
 func TestCoordinate_ListNodes(t *testing.T) {
@@ -335,9 +335,9 @@ func TestCoordinate_ListNodes(t *testing.T) {
 			resp.Coordinates[2].Node != "foo" {
 			r.Fatalf("bad: %v", resp.Coordinates)
 		}
-		verify.Values(t, "", resp.Coordinates[0].Coord, arg2.Coord) // bar
-		verify.Values(t, "", resp.Coordinates[1].Coord, arg3.Coord) // baz
-		verify.Values(t, "", resp.Coordinates[2].Coord, arg1.Coord) // foo
+		require.Equal(r, arg2.Coord, resp.Coordinates[0].Coord) // bar
+		require.Equal(r, arg3.Coord, resp.Coordinates[1].Coord) // baz
+		require.Equal(r, arg1.Coord, resp.Coordinates[2].Coord) // foo
 	})
 }
 
@@ -521,7 +521,7 @@ func TestCoordinate_Node(t *testing.T) {
 			resp.Coordinates[0].Node != "foo" {
 			r.Fatalf("bad: %v", resp.Coordinates)
 		}
-		verify.Values(t, "", resp.Coordinates[0].Coord, arg1.Coord) // foo
+		require.Equal(r, arg1.Coord, resp.Coordinates[0].Coord) // foo
 	})
 }
 

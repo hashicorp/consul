@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/serf/coordinate"
-	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/require"
 )
 
 // generateRandomCoordinate creates a random coordinate. This mucks with the
@@ -40,14 +40,14 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 	if idx != 0 {
 		t.Fatalf("bad index: %d", idx)
 	}
-	verify.Values(t, "", all, structs.Coordinates{})
+	require.Nil(t, all)
 
 	coordinateWs := memdb.NewWatchSet()
 	_, coords, err := s.Coordinate("nope", coordinateWs)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	verify.Values(t, "", coords, lib.CoordinateSet{})
+	require.Equal(t, lib.CoordinateSet{}, coords)
 
 	// Make an update for nodes that don't exist and make sure they get
 	// ignored.
@@ -78,7 +78,7 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 	if idx != 1 {
 		t.Fatalf("bad index: %d", idx)
 	}
-	verify.Values(t, "", all, structs.Coordinates{})
+	require.Nil(t, all)
 
 	coordinateWs = memdb.NewWatchSet()
 	idx, coords, err = s.Coordinate("node1", coordinateWs)
@@ -108,7 +108,7 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 	if idx != 3 {
 		t.Fatalf("bad index: %d", idx)
 	}
-	verify.Values(t, "", all, updates)
+	require.Equal(t, updates, all)
 
 	// Also verify the per-node coordinate interface.
 	nodeWs := make([]memdb.WatchSet, len(updates))
@@ -124,7 +124,7 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 		expected := lib.CoordinateSet{
 			"": update.Coord,
 		}
-		verify.Values(t, "", coords, expected)
+		require.Equal(t, expected, coords)
 	}
 
 	// Update the coordinate for one of the nodes.
@@ -149,7 +149,7 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 	if idx != 4 {
 		t.Fatalf("bad index: %d", idx)
 	}
-	verify.Values(t, "", all, updates)
+	require.Equal(t, updates, all)
 
 	// And check the per-node coordinate version of the same thing.
 	for _, update := range updates {
@@ -163,7 +163,7 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 		expected := lib.CoordinateSet{
 			"": update.Coord,
 		}
-		verify.Values(t, "", coords, expected)
+		require.Equal(t, expected, coords)
 	}
 
 	// Apply an invalid update and make sure it gets ignored.
@@ -186,7 +186,7 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 	if idx != 5 {
 		t.Fatalf("bad index: %d", idx)
 	}
-	verify.Values(t, "", all, updates)
+	require.Equal(t, updates, all)
 }
 
 func TestStateStore_Coordinate_Cleanup(t *testing.T) {
@@ -219,7 +219,7 @@ func TestStateStore_Coordinate_Cleanup(t *testing.T) {
 		"alpha": updates[0].Coord,
 		"beta":  updates[1].Coord,
 	}
-	verify.Values(t, "", coords, expected)
+	require.Equal(t, expected, coords)
 
 	// Now delete the node.
 	if err := s.DeleteNode(3, "node1"); err != nil {
@@ -231,7 +231,7 @@ func TestStateStore_Coordinate_Cleanup(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	verify.Values(t, "", coords, lib.CoordinateSet{})
+	require.Equal(t, lib.CoordinateSet{}, coords)
 
 	// Make sure the index got updated.
 	idx, all, err := s.Coordinates(nil)
@@ -241,7 +241,7 @@ func TestStateStore_Coordinate_Cleanup(t *testing.T) {
 	if idx != 3 {
 		t.Fatalf("bad index: %d", idx)
 	}
-	verify.Values(t, "", all, structs.Coordinates{})
+	require.Nil(t, all)
 }
 
 func TestStateStore_Coordinate_Snapshot_Restore(t *testing.T) {
@@ -310,7 +310,7 @@ func TestStateStore_Coordinate_Snapshot_Restore(t *testing.T) {
 
 	// The snapshot will have the bad update in it, since we don't filter on
 	// the read side.
-	verify.Values(t, "", dump, append(updates, badUpdate))
+	require.Equal(t, append(updates, badUpdate), dump)
 
 	// Restore the values into a new state store.
 	func() {
@@ -329,7 +329,7 @@ func TestStateStore_Coordinate_Snapshot_Restore(t *testing.T) {
 		if idx != 6 {
 			t.Fatalf("bad index: %d", idx)
 		}
-		verify.Values(t, "", res, updates)
+		require.Equal(t, updates, res)
 
 		// Check that the index was updated (note that it got passed
 		// in during the restore).

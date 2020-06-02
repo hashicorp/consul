@@ -23,7 +23,6 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/require"
 )
 
@@ -3860,7 +3859,7 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				}
 
 				// build/merge the config fragments
-				rt, err := b.BuildAndValidate()
+				actual, err := b.BuildAndValidate()
 				if err == nil && tt.err != "" {
 					t.Fatalf("got no error want %q", tt.err)
 				}
@@ -3873,11 +3872,7 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				if err != nil && tt.err != "" && !strings.Contains(err.Error(), tt.err) {
 					t.Fatalf("error %q does not contain %q", err.Error(), tt.err)
 				}
-
-				// check the warnings
-				if !verify.Values(t, "warnings", b.Warnings, tt.warns) {
-					t.FailNow()
-				}
+				require.Equal(t, tt.warns, b.Warnings, "warnings")
 
 				// stop if we expected an error
 				if tt.err != "" {
@@ -3894,19 +3889,14 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				x.Hostname = b.Hostname
 				x.GetPrivateIPv4 = func() ([]*net.IPAddr, error) { return []*net.IPAddr{ipAddr("10.0.0.1")}, nil }
 				x.GetPublicIPv6 = func() ([]*net.IPAddr, error) { return []*net.IPAddr{ipAddr("dead:beef::1")}, nil }
-				patchedRT, err := x.Build()
+				expected, err := x.Build()
 				if err != nil {
 					t.Fatalf("build default failed: %s", err)
 				}
 				if tt.patch != nil {
-					tt.patch(&patchedRT)
+					tt.patch(&expected)
 				}
-				// if err := x.Validate(wantRT); err != nil {
-				// 	t.Fatalf("validate default failed: %s", err)
-				// }
-				if got, want := rt, patchedRT; !verify.Values(t, "", got, want) {
-					t.FailNow()
-				}
+				require.Equal(t, expected, actual)
 			})
 		}
 	}
@@ -5752,6 +5742,7 @@ func TestFullConfig(t *testing.T) {
 					Config: map[string]interface{}{
 						"1CuJHVfw": "Kzqsa7yc",
 					},
+					Upstreams: structs.Upstreams{},
 				},
 				Weights: &structs.Weights{
 					Passing: 1,
@@ -5861,6 +5852,8 @@ func TestFullConfig(t *testing.T) {
 		SerfAdvertiseAddrWAN: tcpAddr("78.63.37.19:8302"),
 		SerfBindAddrLAN:      tcpAddr("99.43.63.15:8301"),
 		SerfBindAddrWAN:      tcpAddr("67.88.33.19:8302"),
+		SerfAllowedCIDRsLAN:  []net.IPNet{},
+		SerfAllowedCIDRsWAN:  []net.IPNet{},
 		SessionTTLMin:        26627 * time.Second,
 		SkipLeaveOnInt:       true,
 		StartJoinAddrsLAN:    []string{"LR3hGDoG", "MwVpZ4Up"},
@@ -5978,10 +5971,7 @@ func TestFullConfig(t *testing.T) {
 				t.Fatalf("Build: %s", err)
 			}
 
-			// verify that all fields are set
-			if !verify.Values(t, "runtime_config", rt, want) {
-				t.FailNow()
-			}
+			require.Equal(t, want, rt)
 
 			// at this point we have confirmed that the parsing worked
 			// for all fields but the validation will fail since certain

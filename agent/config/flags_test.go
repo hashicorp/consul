@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/require"
 )
 
 // TestParseFlags tests whether command line flags are properly parsed
@@ -102,9 +102,17 @@ func TestParseFlags(t *testing.T) {
 				t.Fatalf("got error %v want %v", got, want)
 			}
 			flags.Args = fs.Args()
-			if !verify.Values(t, "flag", flags, tt.flags) {
-				t.FailNow()
+
+			// Normalize the expected value because require.Equal considers
+			// empty slices/maps and nil slices/maps to be different.
+			if len(tt.flags.Args) == 0 && flags.Args != nil {
+				tt.flags.Args = []string{}
 			}
+			if len(tt.flags.Config.NodeMeta) == 0 {
+				tt.flags.Config.NodeMeta = map[string]string{}
+			}
+
+			require.Equal(t, tt.flags, flags)
 		})
 	}
 }

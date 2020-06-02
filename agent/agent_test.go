@@ -33,7 +33,6 @@ import (
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/serf"
-	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1026,8 +1025,6 @@ func TestAgent_IndexChurn(t *testing.T) {
 // verifyIndexChurn registers some things and runs anti-entropy a bunch of times
 // in a row to make sure there are no index bumps.
 func verifyIndexChurn(t *testing.T, tags []string) {
-	t.Helper()
-
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -1115,7 +1112,7 @@ func verifyIndexChurn(t *testing.T, tags []string) {
 	if err := a.RPC("Health.ServiceNodes", args, &after); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	verify.Values(t, "", after, before)
+	require.Equal(t, before, after)
 }
 
 func TestAgent_AddCheck(t *testing.T) {
