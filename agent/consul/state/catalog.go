@@ -233,8 +233,7 @@ func (s *Store) EnsureRegistration(idx uint64, req *structs.RegisterRequest) err
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (s *Store) ensureCheckIfNodeMatches(tx *txnWrapper, idx uint64, node string, check *structs.HealthCheck) error {
@@ -324,8 +323,7 @@ func (s *Store) EnsureNode(idx uint64, node *structs.Node) error {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // ensureNoNodeWithSimilarNameTxn checks that no other node has conflict in its name
@@ -599,8 +597,7 @@ func (s *Store) DeleteNode(idx uint64, nodeName string) error {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // deleteNodeCASTxn is used to try doing a node delete operation with a given
@@ -733,8 +730,7 @@ func (s *Store) EnsureService(idx uint64, node string, svc *structs.NodeService)
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 var errCASCompareFailed = errors.New("compare-and-set: comparison failed")
@@ -1403,8 +1399,7 @@ func (s *Store) DeleteService(idx uint64, nodeName, serviceID string, entMeta *s
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // deleteServiceCASTxn is used to try doing a service delete operation with a given
@@ -1541,8 +1536,7 @@ func (s *Store) EnsureCheck(idx uint64, hc *structs.HealthCheck) error {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // updateAllServiceIndexesOfNode updates the Raft index of all the services associated with this node
@@ -1879,8 +1873,7 @@ func (s *Store) DeleteCheck(idx uint64, node string, checkID types.CheckID, entM
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // deleteCheckCASTxn is used to try doing a check delete operation with a given

@@ -3,6 +3,8 @@ package state
 import (
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestGraveyard_Lifecycle(t *testing.T) {
@@ -29,7 +31,7 @@ func TestGraveyard_Lifecycle(t *testing.T) {
 		if err := g.InsertTxn(tx, "some/other/path", 9, nil); err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		tx.Commit()
+		require.NoError(t, tx.Commit())
 	}()
 
 	// Check some prefixes.
@@ -68,7 +70,7 @@ func TestGraveyard_Lifecycle(t *testing.T) {
 		if err := g.ReapTxn(tx, 6); err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		tx.Commit()
+		require.NoError(t, tx.Commit())
 	}()
 
 	// Check prefixes to see that the reap took effect at the right index.
@@ -142,7 +144,7 @@ func TestGraveyard_GC_Trigger(t *testing.T) {
 		if err := g.InsertTxn(tx, "foo/in/the/house", 2, nil); err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		tx.Commit()
+		require.NoError(t, tx.Commit())
 	}()
 
 	// Make sure the GC got hinted.
@@ -185,7 +187,7 @@ func TestGraveyard_Snapshot_Restore(t *testing.T) {
 		if err := g.InsertTxn(tx, "some/other/path", 9, nil); err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		tx.Commit()
+		require.NoError(t, tx.Commit())
 	}()
 
 	// Verify the index was set correctly.
@@ -240,7 +242,7 @@ func TestGraveyard_Snapshot_Restore(t *testing.T) {
 					t.Fatalf("err: %s", err)
 				}
 			}
-			tx.Commit()
+			require.NoError(t, tx.Commit())
 		}()
 
 		// Verify that the restore works.

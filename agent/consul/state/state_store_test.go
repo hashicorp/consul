@@ -300,7 +300,7 @@ func TestStateStore_indexUpdateMaxTxn(t *testing.T) {
 	if err := indexUpdateMaxTxn(tx, 3, "nodes"); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	tx.Commit()
+	require.NoError(t, tx.Commit())
 
 	if max := s.maxIndex("nodes"); max != 3 {
 		t.Fatalf("bad max: %d", max)

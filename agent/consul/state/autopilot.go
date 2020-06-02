@@ -81,8 +81,7 @@ func (s *Store) AutopilotSetConfig(idx uint64, config *autopilot.Config) error {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // AutopilotCASConfig is used to try updating the Autopilot configuration with a
@@ -110,8 +109,8 @@ func (s *Store) AutopilotCASConfig(idx, cidx uint64, config *autopilot.Config) (
 		return false, err
 	}
 
-	tx.Commit()
-	return true, nil
+	err = tx.Commit()
+	return err == nil, err
 }
 
 func (s *Store) autopilotSetConfigTxn(idx uint64, tx *txnWrapper, config *autopilot.Config) error {

@@ -96,8 +96,7 @@ func (s *Store) ReapTombstones(idx uint64, index uint64) error {
 		return fmt.Errorf("failed to reap kvs tombstones: %s", err)
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // KVSSet is used to store a key/value pair.
@@ -110,8 +109,7 @@ func (s *Store) KVSSet(idx uint64, entry *structs.DirEntry) error {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // kvsSetTxn is used to insert or update a key/value pair in the state
@@ -249,8 +247,7 @@ func (s *Store) KVSDelete(idx uint64, key string, entMeta *structs.EnterpriseMet
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // kvsDeleteTxn is the inner method used to perform the actual deletion
@@ -286,8 +283,8 @@ func (s *Store) KVSDeleteCAS(idx, cidx uint64, key string, entMeta *structs.Ente
 		return false, err
 	}
 
-	tx.Commit()
-	return true, nil
+	err = tx.Commit()
+	return err == nil, err
 }
 
 // kvsDeleteCASTxn is the inner method that does a CAS delete within an existing
@@ -327,8 +324,8 @@ func (s *Store) KVSSetCAS(idx uint64, entry *structs.DirEntry) (bool, error) {
 		return false, err
 	}
 
-	tx.Commit()
-	return true, nil
+	err = tx.Commit()
+	return err == nil, err
 }
 
 // kvsSetCASTxn is the inner method used to do a CAS inside an existing
@@ -371,8 +368,7 @@ func (s *Store) KVSDeleteTree(idx uint64, prefix string, entMeta *structs.Enterp
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // KVSLockDelay returns the expiration time for any lock delay associated with
@@ -392,8 +388,8 @@ func (s *Store) KVSLock(idx uint64, entry *structs.DirEntry) (bool, error) {
 		return false, err
 	}
 
-	tx.Commit()
-	return true, nil
+	err = tx.Commit()
+	return err == nil, err
 }
 
 // kvsLockTxn is the inner method that does a lock inside an existing
@@ -458,8 +454,8 @@ func (s *Store) KVSUnlock(idx uint64, entry *structs.DirEntry) (bool, error) {
 		return false, err
 	}
 
-	tx.Commit()
-	return true, nil
+	err = tx.Commit()
+	return err == nil, err
 }
 
 // kvsUnlockTxn is the inner method that does an unlock inside an existing

@@ -390,7 +390,12 @@ func (s *Store) TxnRW(idx uint64, ops structs.TxnOps) (structs.TxnResults, struc
 		return nil, errors
 	}
 
-	tx.Commit()
+	err := tx.Commit()
+	if err != nil {
+		return nil, structs.TxnErrors{
+			{What: err.Error(), OpIndex: 0},
+		}
+	}
 	return results, nil
 }
 

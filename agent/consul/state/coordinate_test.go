@@ -274,7 +274,7 @@ func TestStateStore_Coordinate_Snapshot_Restore(t *testing.T) {
 	if err := tx.Insert("coordinates", badUpdate); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	tx.Commit()
+	require.NoError(t, tx.Commit())
 
 	// Snapshot the coordinates.
 	snap := s.Snapshot()

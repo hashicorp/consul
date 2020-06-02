@@ -167,6 +167,5 @@ func (s *Store) CoordinateBatchUpdate(idx uint64, updates structs.Coordinates) e
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }

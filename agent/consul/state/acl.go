@@ -310,8 +310,7 @@ func (s *Store) ACLBootstrap(idx, resetIndex uint64, token *structs.ACLToken, le
 	if err := tx.Insert("index", &IndexEntry{"acl-token-bootstrap", idx}); err != nil {
 		return fmt.Errorf("failed to mark ACL bootstrapping as complete: %v", err)
 	}
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // CanBootstrapACLToken checks if bootstrapping is possible and returns the reset index
@@ -636,8 +635,7 @@ func (s *Store) ACLTokenSet(idx uint64, token *structs.ACLToken, legacy bool) er
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (s *Store) ACLTokenBatchSet(idx uint64, tokens structs.ACLTokens, cas, allowMissingPolicyAndRoleIDs, prohibitUnprivileged bool) error {
@@ -650,8 +648,7 @@ func (s *Store) ACLTokenBatchSet(idx uint64, tokens structs.ACLTokens, cas, allo
 		}
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // aclTokenSetTxn is the inner method used to insert an ACL token with the
@@ -1030,8 +1027,7 @@ func (s *Store) ACLTokenBatchDelete(idx uint64, tokenIDs []string) error {
 		}
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (s *Store) aclTokenDelete(idx uint64, value, index string, entMeta *structs.EnterpriseMeta) error {
@@ -1042,8 +1038,7 @@ func (s *Store) aclTokenDelete(idx uint64, value, index string, entMeta *structs
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (s *Store) aclTokenDeleteTxn(tx *txnWrapper, idx uint64, value, index string, entMeta *structs.EnterpriseMeta) error {
@@ -1099,8 +1094,7 @@ func (s *Store) ACLPolicyBatchSet(idx uint64, policies structs.ACLPolicies) erro
 		}
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (s *Store) ACLPolicySet(idx uint64, policy *structs.ACLPolicy) error {
@@ -1111,8 +1105,7 @@ func (s *Store) ACLPolicySet(idx uint64, policy *structs.ACLPolicy) error {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (s *Store) aclPolicySetTxn(tx *txnWrapper, idx uint64, policy *structs.ACLPolicy) error {
@@ -1277,8 +1270,7 @@ func (s *Store) ACLPolicyBatchDelete(idx uint64, policyIDs []string) error {
 			return err
 		}
 	}
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (s *Store) aclPolicyDelete(idx uint64, value string, fn aclPolicyGetFn, entMeta *structs.EnterpriseMeta) error {
@@ -1289,8 +1281,7 @@ func (s *Store) aclPolicyDelete(idx uint64, value string, fn aclPolicyGetFn, ent
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (s *Store) aclPolicyDeleteTxn(tx *txnWrapper, idx uint64, value string, fn aclPolicyGetFn, entMeta *structs.EnterpriseMeta) error {
@@ -1323,8 +1314,7 @@ func (s *Store) ACLRoleBatchSet(idx uint64, roles structs.ACLRoles, allowMissing
 		}
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (s *Store) ACLRoleSet(idx uint64, role *structs.ACLRole) error {
@@ -1335,8 +1325,7 @@ func (s *Store) ACLRoleSet(idx uint64, role *structs.ACLRole) error {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (s *Store) aclRoleSetTxn(tx *txnWrapper, idx uint64, role *structs.ACLRole, allowMissing bool) error {
@@ -1518,8 +1507,7 @@ func (s *Store) ACLRoleBatchDelete(idx uint64, roleIDs []string) error {
 			return err
 		}
 	}
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (s *Store) aclRoleDelete(idx uint64, value string, fn aclRoleGetFn, entMeta *structs.EnterpriseMeta) error {
@@ -1530,8 +1518,7 @@ func (s *Store) aclRoleDelete(idx uint64, value string, fn aclRoleGetFn, entMeta
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (s *Store) aclRoleDeleteTxn(tx *txnWrapper, idx uint64, value string, fn aclRoleGetFn, entMeta *structs.EnterpriseMeta) error {
@@ -1560,8 +1547,7 @@ func (s *Store) ACLBindingRuleBatchSet(idx uint64, rules structs.ACLBindingRules
 		}
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (s *Store) ACLBindingRuleSet(idx uint64, rule *structs.ACLBindingRule) error {
@@ -1571,8 +1557,7 @@ func (s *Store) ACLBindingRuleSet(idx uint64, rule *structs.ACLBindingRule) erro
 	if err := s.aclBindingRuleSetTxn(tx, idx, rule); err != nil {
 		return err
 	}
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (s *Store) aclBindingRuleSetTxn(tx *txnWrapper, idx uint64, rule *structs.ACLBindingRule) error {
@@ -1677,8 +1662,7 @@ func (s *Store) ACLBindingRuleBatchDelete(idx uint64, bindingRuleIDs []string) e
 	for _, bindingRuleID := range bindingRuleIDs {
 		s.aclBindingRuleDeleteTxn(tx, idx, bindingRuleID, nil)
 	}
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (s *Store) aclBindingRuleDelete(idx uint64, id string, entMeta *structs.EnterpriseMeta) error {
@@ -1689,8 +1673,7 @@ func (s *Store) aclBindingRuleDelete(idx uint64, id string, entMeta *structs.Ent
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (s *Store) aclBindingRuleDeleteTxn(tx *txnWrapper, idx uint64, id string, entMeta *structs.EnterpriseMeta) error {
@@ -1748,8 +1731,7 @@ func (s *Store) ACLAuthMethodBatchSet(idx uint64, methods structs.ACLAuthMethods
 			return err
 		}
 	}
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (s *Store) ACLAuthMethodSet(idx uint64, method *structs.ACLAuthMethod) error {
@@ -1760,8 +1742,7 @@ func (s *Store) ACLAuthMethodSet(idx uint64, method *structs.ACLAuthMethod) erro
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (s *Store) aclAuthMethodSetTxn(tx *txnWrapper, idx uint64, method *structs.ACLAuthMethod) error {
@@ -1865,8 +1846,7 @@ func (s *Store) ACLAuthMethodBatchDelete(idx uint64, names []string, entMeta *st
 		s.aclAuthMethodDeleteTxn(tx, idx, name, entMeta)
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (s *Store) aclAuthMethodDelete(idx uint64, name string, entMeta *structs.EnterpriseMeta) error {
@@ -1877,8 +1857,7 @@ func (s *Store) aclAuthMethodDelete(idx uint64, name string, entMeta *structs.En
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (s *Store) aclAuthMethodDeleteTxn(tx *txnWrapper, idx uint64, name string, entMeta *structs.EnterpriseMeta) error {

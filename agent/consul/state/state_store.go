@@ -221,8 +221,8 @@ func (s *Restore) Abort() {
 
 // Commit commits the changes made by a restore. This or Abort should always be
 // called.
-func (s *Restore) Commit() {
-	s.tx.Commit()
+func (s *Restore) Commit() error {
+	return s.tx.Commit()
 }
 
 // AbandonCh returns a channel you can wait on to know if the state store was

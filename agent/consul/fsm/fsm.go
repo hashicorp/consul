@@ -202,7 +202,9 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 			return fmt.Errorf("Unrecognized msg type %d", msg)
 		}
 	}
-	restore.Commit()
+	if err := restore.Commit(); err != nil {
+		return err
+	}
 
 	// External code might be calling State(), so we need to synchronize
 	// here to make sure we swap in the new state store atomically.

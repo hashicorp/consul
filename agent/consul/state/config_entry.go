@@ -174,8 +174,7 @@ func (s *Store) EnsureConfigEntry(idx uint64, conf structs.ConfigEntry, entMeta 
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // ensureConfigEntryTxn upserts a config entry inside of a transaction.
@@ -246,8 +245,8 @@ func (s *Store) EnsureConfigEntryCAS(idx, cidx uint64, conf structs.ConfigEntry,
 		return false, err
 	}
 
-	tx.Commit()
-	return true, nil
+	err = tx.Commit()
+	return err == nil, err
 }
 
 func (s *Store) DeleteConfigEntry(idx uint64, kind, name string, entMeta *structs.EnterpriseMeta) error {
@@ -294,8 +293,7 @@ func (s *Store) DeleteConfigEntry(idx uint64, kind, name string, entMeta *struct
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (s *Store) insertConfigEntryWithTxn(tx *txnWrapper, idx uint64, conf structs.ConfigEntry) error {

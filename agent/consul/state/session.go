@@ -170,8 +170,7 @@ func (s *Store) SessionCreate(idx uint64, sess *structs.Session) error {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // sessionCreateTxn is the inner method used for creating session entries in
@@ -297,8 +296,7 @@ func (s *Store) SessionDestroy(idx uint64, sessionID string, entMeta *structs.En
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // deleteSessionTxn is the inner method, which is used to do the actual

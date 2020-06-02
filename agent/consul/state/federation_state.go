@@ -68,8 +68,7 @@ func (s *Store) FederationStateBatchSet(idx uint64, configs structs.FederationSt
 		}
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // FederationStateSet is called to do an upsert of a given federation state.
@@ -81,8 +80,7 @@ func (s *Store) FederationStateSet(idx uint64, config *structs.FederationState) 
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // federationStateSetTxn upserts a federation state inside of a transaction.
@@ -191,8 +189,7 @@ func (s *Store) FederationStateDelete(idx uint64, datacenter string) error {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (s *Store) FederationStateBatchDelete(idx uint64, datacenters []string) error {
@@ -205,8 +202,7 @@ func (s *Store) FederationStateBatchDelete(idx uint64, datacenters []string) err
 		}
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (s *Store) federationStateDeleteTxn(tx *txnWrapper, idx uint64, datacenter string) error {

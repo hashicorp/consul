@@ -164,8 +164,7 @@ func (s *Store) IntentionSet(idx uint64, ixn *structs.Intention) error {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // intentionSetTxn is the inner method used to insert an intention with
@@ -260,8 +259,7 @@ func (s *Store) IntentionDelete(idx uint64, id string) error {
 		return fmt.Errorf("failed intention delete: %s", err)
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // intentionDeleteTxn is the inner method used to delete a intention

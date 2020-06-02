@@ -85,11 +85,9 @@ type txnWrapper struct {
 // Note that this function, unlike memdb.Txn, returns an error which must be checked
 // by the caller. A non-nil error indicates that a commit failed and was not
 // applied.
-// TODO: currently none of the callers check error, should they all be changed?
 func (tx *txnWrapper) Commit() error {
 	// changes may be empty if this is a read-only or WriteTxnRestore transaction.
-	//changes := tx.Txn.Changes()
-	// TODO: publish changes
+	// TODO: publish changes: changes := tx.Txn.Changes()
 
 	tx.Txn.Commit()
 	return nil

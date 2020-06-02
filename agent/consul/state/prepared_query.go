@@ -137,8 +137,7 @@ func (s *Store) PreparedQuerySet(idx uint64, query *structs.PreparedQuery) error
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // preparedQuerySetTxn is the inner method used to insert a prepared query with
@@ -254,8 +253,7 @@ func (s *Store) PreparedQueryDelete(idx uint64, queryID string) error {
 		return fmt.Errorf("failed prepared query delete: %s", err)
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // preparedQueryDeleteTxn is the inner method used to delete a prepared query

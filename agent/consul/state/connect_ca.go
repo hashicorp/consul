@@ -142,8 +142,7 @@ func (s *Store) CASetConfig(idx uint64, config *structs.CAConfiguration) error {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // CACheckAndSetConfig is used to try updating the CA configuration with a
@@ -171,8 +170,8 @@ func (s *Store) CACheckAndSetConfig(idx, cidx uint64, config *structs.CAConfigur
 		return false, err
 	}
 
-	tx.Commit()
-	return true, nil
+	err = tx.Commit()
+	return err == nil, err
 }
 
 func (s *Store) caSetConfigTxn(idx uint64, tx *txnWrapper, config *structs.CAConfiguration) error {
@@ -336,8 +335,8 @@ func (s *Store) CARootSetCAS(idx, cidx uint64, rs []*structs.CARoot) (bool, erro
 		return false, fmt.Errorf("failed updating index: %s", err)
 	}
 
-	tx.Commit()
-	return true, nil
+	err = tx.Commit()
+	return err == nil, err
 }
 
 // CAProviderState is used to pull the built-in provider states from the snapshot.
@@ -417,9 +416,8 @@ func (s *Store) CASetProviderState(idx uint64, state *structs.CAConsulProviderSt
 		return false, fmt.Errorf("failed updating index: %s", err)
 	}
 
-	tx.Commit()
-
-	return true, nil
+	err = tx.Commit()
+	return err == nil, err
 }
 
 // CADeleteProviderState is used to remove the built-in Consul CA provider
@@ -447,9 +445,7 @@ func (s *Store) CADeleteProviderState(idx uint64, id string) error {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	tx.Commit()
-
-	return nil
+	return tx.Commit()
 }
 
 func (s *Store) CALeafSetIndex(idx uint64, index uint64) error {
@@ -504,7 +500,6 @@ func (s *Store) CAIncrementProviderSerialNumber(idx uint64) (uint64, error) {
 		return 0, fmt.Errorf("failed updating index: %s", err)
 	}
 
-	tx.Commit()
-
-	return next, nil
+	err = tx.Commit()
+	return next, err
 }
