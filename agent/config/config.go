@@ -108,6 +108,7 @@ type Config struct {
 	AdvertiseAddrWAN                 *string                  `json:"advertise_addr_wan,omitempty" hcl:"advertise_addr_wan" mapstructure:"advertise_addr_wan"`
 	AdvertiseAddrWANIPv4             *string                  `json:"advertise_addr_wan_ipv4,omitempty" hcl:"advertise_addr_wan_ipv4" mapstructure:"advertise_addr_wan_ipv4"`
 	AdvertiseAddrWANIPv6             *string                  `json:"advertise_addr_wan_ipv6,omitempty" hcl:"advertise_addr_wan_ipv6" mapstructure:"advertise_addr_ipv6"`
+	AutoConfig                       AutoConfigRaw            `json:"auto_config,omitempty" hcl:"auto_config" mapstructure:"auto_config"`
 	Autopilot                        Autopilot                `json:"autopilot,omitempty" hcl:"autopilot" mapstructure:"autopilot"`
 	BindAddr                         *string                  `json:"bind_addr,omitempty" hcl:"bind_addr" mapstructure:"bind_addr"`
 	Bootstrap                        *bool                    `json:"bootstrap,omitempty" hcl:"bootstrap" mapstructure:"bootstrap"`
@@ -692,4 +693,35 @@ type AuditSink struct {
 	RotateBytes       *int    `json:"rotate_bytes,omitempty"       hcl:"rotate_bytes"       mapstructure:"rotate_bytes"`
 	RotateDuration    *string `json:"rotate_duration,omitempty"    hcl:"rotate_duration"    mapstructure:"rotate_duration"`
 	RotateMaxFiles    *int    `json:"rotate_max_files,omitempty"   hcl:"rotate_max_files"   mapstructure:"rotate_max_files"`
+}
+
+type AutoConfigRaw struct {
+	Enabled         *bool                   `json:"enabled,omitempty" hcl:"enabled" mapstructure:"enabled"`
+	IntroToken      *string                 `json:"intro_token,omitempty" hcl:"intro_token" mapstructure:"intro_token"`
+	IntroTokenFile  *string                 `json:"intro_token_file,omitempty" hcl:"intro_token_file" mapstructure:"intro_token_file"`
+	ServerAddresses []string                `json:"server_addresses,omitempty" hcl:"server_addresses" mapstructure:"server_addresses"`
+	DNSSANs         []string                `json:"dns_sans,omitempty" hcl:"dns_sans" mapstructure:"dns_sans"`
+	IPSANs          []string                `json:"ip_sans,omitempty" hcl:"ip_sans" mapstructure:"ip_sans"`
+	Authorizer      AutoConfigAuthorizerRaw `json:"authorizer,omitempty" hcl:"authorizer" mapstructure:"authorizer"`
+}
+
+type AutoConfigAuthorizerRaw struct {
+	Enabled         *bool    `json:"enabled,omitempty" hcl:"enabled" mapstructure:"enabled"`
+	ClaimAssertions []string `json:"claim_assertions,omitempty" hcl:"claim_assertions" mapstructure:"claim_assertions"`
+	AllowReuse      *bool    `json:"allow_reuse,omitempty" hcl:"allow_reuse" mapstructure:"allow_reuse"`
+
+	// Fields to be shared with the JWT Auth Method
+	JWTSupportedAlgs     []string          `json:"jwt_supported_algs,omitempty" hcl:"jwt_supported_algs" mapstructure:"jwt_supported_algs"`
+	BoundAudiences       []string          `json:"bound_audiences,omitempty" hcl:"bound_audiences" mapstructure:"bound_audiences"`
+	ClaimMappings        map[string]string `json:"claim_mappings,omitempty" hcl:"claim_mappings" mapstructure:"claim_mappings"`
+	ListClaimMappings    map[string]string `json:"list_claim_mappings,omitempty" hcl:"list_claim_mappings" mapstructure:"list_claim_mappings"`
+	OIDCDiscoveryURL     *string           `json:"oidc_discovery_url,omitempty" hcl:"oidc_discovery_url" mapstructure:"oidc_discovery_url"`
+	OIDCDiscoveryCACert  *string           `json:"oidc_discovery_ca_cert,omitempty" hcl:"oidc_discovery_ca_cert" mapstructure:"oidc_discovery_ca_cert"`
+	JWKSURL              *string           `json:"jwks_url,omitempty" hcl:"jwks_url" mapstructure:"jwks_url"`
+	JWKSCACert           *string           `json:"jwks_ca_cert,omitempty" hcl:"jwks_ca_cert" mapstructure:"jwks_ca_cert"`
+	JWTValidationPubKeys []string          `json:"jwt_validation_pub_keys,omitempty" hcl:"jwt_validation_pub_keys" mapstructure:"jwt_validation_pub_keys"`
+	BoundIssuer          *string           `json:"bound_issuer,omitempty" hcl:"bound_issuer" mapstructure:"bound_issuer"`
+	ExpirationLeeway     *string           `json:"expiration_leeway,omitempty" hcl:"expiration_leeway" mapstructure:"expiration_leeway"`
+	NotBeforeLeeway      *string           `json:"not_before_leeway,omitempty" hcl:"not_before_leeway" mapstructure:"not_before_leeway"`
+	ClockSkewLeeway      *string           `json:"clock_skew_leeway,omitempty" hcl:"clock_skew_leeway" mapstructure:"clock_skew_leeway"`
 }
