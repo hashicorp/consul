@@ -17,11 +17,15 @@ import (
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
+	libtempl "github.com/hashicorp/consul/lib/template"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-sockaddr/template"
 	"github.com/hashicorp/memberlist"
@@ -905,6 +909,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		AutoEncryptDNSSAN:                      autoEncryptDNSSAN,
 		AutoEncryptIPSAN:                       autoEncryptIPSAN,
 		AutoEncryptAllowTLS:                    autoEncryptAllowTLS,
+		AutoConfig:                             b.autoConfigVal(c.AutoConfig),
 		ConnectEnabled:                         connectEnabled,
 		ConnectCAProvider:                      connectCAProvider,
 		ConnectCAConfig:                        connectCAConfig,
@@ -1282,6 +1287,10 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	}
 
 	if err := checkLimitsFromMaxConnsPerClient(rt.HTTPMaxConnsPerClient); err != nil {
+		return err
+	}
+
+	if err := b.validateAutoConfig(rt); err != nil {
 		return err
 	}
 
@@ -1916,6 +1925,142 @@ func (b *Builder) makeAddrs(pri []net.Addr, sec []*net.IPAddr, port int) []net.A
 func (b *Builder) isUnixAddr(a net.Addr) bool {
 	_, ok := a.(*net.UnixAddr)
 	return a != nil && ok
+}
+
+func (b *Builder) autoConfigVal(raw AutoConfigRaw) AutoConfig {
+	var val AutoConfig
+
+	val.Enabled = b.boolValWithDefault(raw.Enabled, false)
+	val.IntroToken = b.stringVal(raw.IntroToken)
+	val.IntroTokenFile = b.stringVal(raw.IntroTokenFile)
+	// These can be go-discover values and so don't have to resolve fully yet
+	val.ServerAddresses = b.expandAllOptionalAddrs("auto_config.server_addresses", raw.ServerAddresses)
+	val.DNSSANs = raw.DNSSANs
+
+	for _, i := range raw.IPSANs {
+		ip := net.ParseIP(i)
+		if ip == nil {
+			b.warn(fmt.Sprintf("Cannot parse ip %q from auto_config.ip_sans", i))
+			continue
+		}
+		val.IPSANs = append(val.IPSANs, ip)
+	}
+
+	val.Authorizer = b.autoConfigAuthorizerVal(raw.Authorizer)
+
+	return val
+}
+
+func (b *Builder) autoConfigAuthorizerVal(raw AutoConfigAuthorizerRaw) AutoConfigAuthorizer {
+	var val AutoConfigAuthorizer
+
+	val.Enabled = b.boolValWithDefault(raw.Enabled, false)
+	val.ClaimAssertions = raw.ClaimAssertions
+	val.AllowReuse = b.boolValWithDefault(raw.AllowReuse, false)
+	val.AuthMethod = structs.ACLAuthMethod{
+		Name: "Auto Config Authorizer",
+		Type: "jwt",
+		// TODO (autoconf) - Configurable token TTL
+		MaxTokenTTL:    72 * time.Hour,
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		Config: map[string]interface{}{
+			"JWTSupportedAlgs":     raw.JWTSupportedAlgs,
+			"BoundAudiences":       raw.BoundAudiences,
+			"ClaimMappings":        raw.ClaimMappings,
+			"ListClaimMappings":    raw.ListClaimMappings,
+			"OIDCDiscoveryURL":     b.stringVal(raw.OIDCDiscoveryURL),
+			"OIDCDiscoveryCACert":  b.stringVal(raw.OIDCDiscoveryCACert),
+			"JWKSURL":              b.stringVal(raw.JWKSURL),
+			"JWKSCACert":           b.stringVal(raw.JWKSCACert),
+			"JWTValidationPubKeys": raw.JWTValidationPubKeys,
+			"BoundIssuer":          b.stringVal(raw.BoundIssuer),
+			"ExpirationLeeway":     b.durationVal("auto_config.authorizer.expiration_leeway", raw.ExpirationLeeway),
+			"NotBeforeLeeway":      b.durationVal("auto_config.authorizer.not_before_leeway", raw.NotBeforeLeeway),
+			"ClockSkewLeeway":      b.durationVal("auto_config.authorizer.clock_skew_leeway", raw.ClockSkewLeeway),
+		},
+		// should be unnecessary as we aren't using the typical login process to create tokens but this is our
+		// desired mode regardless so if it ever did matter its probably better to be explicit.
+		TokenLocality: "local",
+	}
+
+	return val
+}
+
+func (b *Builder) validateAutoConfig(rt RuntimeConfig) error {
+	autoconf := rt.AutoConfig
+
+	if err := b.validateAutoConfigAuthorizer(rt); err != nil {
+		return err
+	}
+
+	if !autoconf.Enabled {
+		return nil
+	}
+
+	// Auto Config doesn't currently support configuring servers
+	if rt.ServerMode {
+		return fmt.Errorf("auto_config.enabled cannot be set to true for server agents.")
+	}
+
+	// When both are set we will prefer the given value over the file.
+	if autoconf.IntroToken != "" && autoconf.IntroTokenFile != "" {
+		b.warn("auto_config.intro_token and auto_config.intro_token_file are both set. Using the value of auto_config.intro_token")
+	} else if autoconf.IntroToken == "" && autoconf.IntroTokenFile == "" {
+		return fmt.Errorf("one of auto_config.intro_token or auto_config.intro_token_file must be set to enable auto_config")
+	}
+
+	if len(autoconf.ServerAddresses) == 0 {
+		// TODO (autoconf) can we/should we infer this from the join/retry join addresses. I think no, as we will potentially
+		// be overriding those retry join addresses with the autoconf process anyways.
+		return fmt.Errorf("auto_config.enabled is set without providing a list of addresses")
+	}
+
+	// TODO (autoconf) should we validate the DNS and IP SANs? The IP SANs have already been parsed into IPs
+	return nil
+}
+
+func (b *Builder) validateAutoConfigAuthorizer(rt RuntimeConfig) error {
+	authz := rt.AutoConfig.Authorizer
+
+	if !authz.Enabled {
+		return nil
+	}
+	// Auto Config Authorization is only supported on servers
+	if !rt.ServerMode {
+		return fmt.Errorf("auto_config.authorizer.enabled cannot be set to true for client agents")
+	}
+
+	// build out the validator to ensure that the given configuration was valid
+	null := hclog.NewNullLogger()
+	validator, err := ssoauth.NewValidator(null, &authz.AuthMethod)
+
+	if err != nil {
+		return fmt.Errorf("auto_config.authorizer has invalid configuration: %v", err)
+	}
+
+	// create a blank identity for use to validate the claim assertions.
+	blankID := validator.NewIdentity()
+	varMap := map[string]string{
+		"node":    "fake",
+		"segment": "fake",
+	}
+
+	// validate all the claim assertions
+	for _, raw := range authz.ClaimAssertions {
+		// validate any HIL
+		filled, err := libtempl.InterpolateHIL(raw, varMap, true)
+		if err != nil {
+			return fmt.Errorf("auto_config.claim_assertion %q is invalid: %v", raw, err)
+		}
+
+		// validate the bexpr syntax - note that for now all the keys mapped by the claim mappings
+		// are not validateable due to them being put inside a map. Some bexpr updates to setup keys
+		// from current map keys would probably be nice here.
+		if _, err := bexpr.CreateEvaluatorForType(filled, nil, blankID.SelectableFields); err != nil {
+			return fmt.Errorf("auto_config.claim_assertion %q is invalid: %v", raw, err)
+		}
+	}
+	return nil
 }
 
 // decodeBytes returns the encryption key decoded.

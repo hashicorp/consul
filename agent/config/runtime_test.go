@@ -1628,6 +1628,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			warns: []string{`config key "acl_enforce_version_8" is deprecated and should be removed`},
 		},
+
 		{
 			desc: "advertise address detect fails v4",
 			args: []string{`-data-dir=` + dataDir},
@@ -3795,6 +3796,272 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.RPCMaxConnsPerClient = 100
 			},
 		},
+
+		///////////////////////////////////
+		// Auto Config related tests
+		{
+			desc: "auto config not allowed for servers",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			hcl: []string{`
+				server = true
+				auto_config {
+					enabled = true
+					intro_token = "blah"
+					server_addresses = ["198.18.0.1"]
+				}
+			`},
+			json: []string{`
+			{
+				"server": true,
+				"auto_config": {
+					"enabled": true,
+					"intro_token": "blah",
+					"server_addresses": ["198.18.0.1"]
+				}
+			}`},
+			err: "auto_config.enabled cannot be set to true for server agents",
+		},
+
+		{
+			desc: "auto config no intro token",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			hcl: []string{`
+				auto_config {
+					enabled = true
+				 	server_addresses = ["198.18.0.1"]
+
+				}
+			`},
+			json: []string{`
+			{
+				"auto_config": {
+					"enabled": true,
+					"server_addresses": ["198.18.0.1"]
+				}
+			}`},
+			err: "one of auto_config.intro_token or auto_config.intro_token_file must be set to enable auto_config",
+		},
+
+		{
+			desc: "auto config no server addresses",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			hcl: []string{`
+				auto_config {
+					enabled = true
+					intro_token = "blah"
+				}
+			`},
+			json: []string{`
+			{
+				"auto_config": {
+					"enabled": true,
+					"intro_token": "blah"
+				}
+			}`},
+			err: "auto_config.enabled is set without providing a list of addresses",
+		},
+
+		{
+			desc: "auto config client",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			hcl: []string{`
+				auto_config {
+					enabled = true
+					intro_token = "blah" 
+					intro_token_file = "blah"
+					server_addresses = ["198.18.0.1"]
+					dns_sans = ["foo"]
+					ip_sans = ["invalid", "127.0.0.1"]
+				}
+			`},
+			json: []string{`
+			{
+				"auto_config": {
+					"enabled": true,
+					"intro_token": "blah",
+					"intro_token_file": "blah",
+					"server_addresses": ["198.18.0.1"],
+					"dns_sans": ["foo"],
+					"ip_sans": ["invalid", "127.0.0.1"]
+				}
+			}`},
+			warns: []string{
+				"Cannot parse ip \"invalid\" from auto_config.ip_sans",
+				"auto_config.intro_token and auto_config.intro_token_file are both set. Using the value of auto_config.intro_token",
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.AutoConfig.Enabled = true
+				rt.AutoConfig.IntroToken = "blah"
+				rt.AutoConfig.IntroTokenFile = "blah"
+				rt.AutoConfig.ServerAddresses = []string{"198.18.0.1"}
+				rt.AutoConfig.DNSSANs = []string{"foo"}
+				rt.AutoConfig.IPSANs = []net.IP{net.IPv4(127, 0, 0, 1)}
+				rt.DataDir = dataDir
+			},
+		},
+
+		{
+			desc: "auto config authorizer client not allowed",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			hcl: []string{`
+				auto_config {
+					authorizer {
+						enabled = true
+					}
+				}
+			`},
+			json: []string{`
+			{
+				"auto_config": {
+					"authorizer": {
+						"enabled": true
+					}
+				}
+			}`},
+			err: "auto_config.authorizer.enabled cannot be set to true for client agents",
+		},
+
+		{
+			desc: "auto config authorizer invalid config",
+			args: []string{
+				`-data-dir=` + dataDir,
+				`-server`,
+			},
+			hcl: []string{`
+				auto_config {
+					authorizer {
+						enabled = true
+					}
+				}
+			`},
+			json: []string{`
+			{
+				"auto_config": {
+					"authorizer": {
+						"enabled": true
+					}
+				}
+			}`},
+			err: `auto_config.authorizer has invalid configuration: exactly one of 'JWTValidationPubKeys', 'JWKSURL', or 'OIDCDiscoveryURL' must be set for type "jwt"`,
+		},
+
+		{
+			desc: "auto config authorizer invalid config 2",
+			args: []string{
+				`-data-dir=` + dataDir,
+				`-server`,
+			},
+			hcl: []string{`
+				auto_config {
+					authorizer {
+						enabled = true
+						jwks_url = "https://fake.uri.local"
+						oidc_discovery_url = "https://fake.uri.local"
+					}
+				}
+			`},
+			json: []string{`
+			{
+				"auto_config": {
+					"authorizer": {
+						"enabled": true,
+						"jwks_url": "https://fake.uri.local",
+						"oidc_discovery_url": "https://fake.uri.local"
+					}
+				}
+			}`},
+			err: `auto_config.authorizer has invalid configuration: exactly one of 'JWTValidationPubKeys', 'JWKSURL', or 'OIDCDiscoveryURL' must be set for type "jwt"`,
+		},
+
+		{
+			desc: "auto config authorizer invalid claim assertion",
+			args: []string{
+				`-data-dir=` + dataDir,
+				`-server`,
+			},
+			hcl: []string{`
+				auto_config {
+					authorizer {
+						enabled = true
+						jwt_validation_pub_keys = ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"]
+						claim_assertions = [
+							"values.node == ${node}"
+						]
+					}
+				}
+			`},
+			json: []string{`
+			{
+				"auto_config": {
+					"authorizer": {
+						"enabled": true,
+						"jwt_validation_pub_keys": ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"],
+						"claim_assertions": [
+							"values.node == ${node}"
+						]
+					}
+				}
+			}`},
+			err: `auto_config.claim_assertion "values.node == ${node}" is invalid: Selector "values" is not valid`,
+		},
+		{
+			desc: "auto config authorizer ok",
+			args: []string{
+				`-data-dir=` + dataDir,
+				`-server`,
+			},
+			hcl: []string{`
+				auto_config {
+					authorizer {
+						enabled = true
+						jwt_validation_pub_keys = ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"]
+						claim_assertions = [
+							"value.node == ${node}"
+						]
+						claim_mappings = {
+							node = "node"
+						}
+					}
+				}
+			`},
+			json: []string{`
+			{
+				"auto_config": {
+					"authorizer": {
+						"enabled": true,
+						"jwt_validation_pub_keys": ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"],
+						"claim_assertions": [
+							"value.node == ${node}"
+						],
+						"claim_mappings": {
+							"node": "node"
+						}
+					}
+				}
+			}`},
+			patch: func(rt *RuntimeConfig) {
+				rt.AutoConfig.Authorizer.Enabled = true
+				rt.AutoConfig.Authorizer.AuthMethod.Config["ClaimMappings"] = map[string]string{
+					"node": "node",
+				}
+				rt.AutoConfig.Authorizer.AuthMethod.Config["JWTValidationPubKeys"] = []string{"-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"}
+				rt.AutoConfig.Authorizer.ClaimAssertions = []string{"value.node == ${node}"}
+				rt.DataDir = dataDir
+				rt.LeaveOnTerm = false
+				rt.ServerMode = true
+				rt.SkipLeaveOnInt = true
+			},
+		},
 	}
 
 	testConfig(t, tests, dataDir)
@@ -4026,6 +4293,28 @@ func TestFullConfig(t *testing.T) {
 			"advertise_addr_wan": "78.63.37.19",
 			"audit": {
 				"enabled": false
+			},
+			"auto_config": {
+				"enabled": false,
+				"intro_token": "OpBPGRwt",
+				"intro_token_file": "gFvAXwI8",
+				"dns_sans": ["6zdaWg9J"],
+				"ip_sans": ["198.18.99.99"],
+				"server_addresses": ["198.18.100.1"],
+				"authorizer": {
+					"enabled": true,
+					"allow_reuse": true,
+					"claim_mappings": {
+						"node": "node"
+					},
+					"list_claim_mappings": {
+						"foo": "bar"
+					},
+					"bound_issuer": "consul",
+					"bound_audiences": ["consul-cluster-1"],
+					"claim_assertions": ["value.node == \"${node}\""],
+					"jwt_validation_pub_keys": ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"]
+				}
 			},
 			"autopilot": {
 				"cleanup_dead_servers": true,
@@ -4662,6 +4951,28 @@ func TestFullConfig(t *testing.T) {
 			advertise_addr_wan = "78.63.37.19"
 			audit = {
 				enabled = false
+			}
+			auto_config = {
+				enabled = false
+				intro_token = "OpBPGRwt"
+				intro_token_file = "gFvAXwI8"
+				dns_sans = ["6zdaWg9J"]
+				ip_sans = ["198.18.99.99"]
+				server_addresses = ["198.18.100.1"]
+				authorizer = {
+					enabled = true
+					allow_reuse = true
+					claim_mappings = {
+						node = "node"
+					}
+					list_claim_mappings = {
+						foo = "bar"
+					}
+					bound_issuer = "consul"
+					bound_audiences = ["consul-cluster-1"]
+					claim_assertions = ["value.node == \"${node}\""]
+					jwt_validation_pub_keys = ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"]
+				}
 			}
 			autopilot = {
 				cleanup_dead_servers = true
@@ -5496,10 +5807,49 @@ func TestFullConfig(t *testing.T) {
 				},
 			},
 		},
-		AutoEncryptTLS:        false,
-		AutoEncryptDNSSAN:     []string{"a.com", "b.com"},
-		AutoEncryptIPSAN:      []net.IP{net.ParseIP("192.168.4.139"), net.ParseIP("192.168.4.140")},
-		AutoEncryptAllowTLS:   true,
+		AutoEncryptTLS:      false,
+		AutoEncryptDNSSAN:   []string{"a.com", "b.com"},
+		AutoEncryptIPSAN:    []net.IP{net.ParseIP("192.168.4.139"), net.ParseIP("192.168.4.140")},
+		AutoEncryptAllowTLS: true,
+		AutoConfig: AutoConfig{
+			Enabled:         false,
+			IntroToken:      "OpBPGRwt",
+			IntroTokenFile:  "gFvAXwI8",
+			DNSSANs:         []string{"6zdaWg9J"},
+			IPSANs:          []net.IP{net.IPv4(198, 18, 99, 99)},
+			ServerAddresses: []string{"198.18.100.1"},
+			Authorizer: AutoConfigAuthorizer{
+				Enabled:         true,
+				AllowReuse:      true,
+				ClaimAssertions: []string{"value.node == \"${node}\""},
+				AuthMethod: structs.ACLAuthMethod{
+					Name:           "Auto Config Authorizer",
+					Type:           "jwt",
+					MaxTokenTTL:    72 * time.Hour,
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					Config: map[string]interface{}{
+						"JWTValidationPubKeys": []string{"-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"},
+						"ClaimMappings": map[string]string{
+							"node": "node",
+						},
+						"BoundIssuer":    "consul",
+						"BoundAudiences": []string{"consul-cluster-1"},
+						"ListClaimMappings": map[string]string{
+							"foo": "bar",
+						},
+						"OIDCDiscoveryURL":    "",
+						"OIDCDiscoveryCACert": "",
+						"JWKSURL":             "",
+						"JWKSCACert":          "",
+						"ExpirationLeeway":    0 * time.Second,
+						"NotBeforeLeeway":     0 * time.Second,
+						"ClockSkewLeeway":     0 * time.Second,
+						"JWTSupportedAlgs":    []string(nil),
+					},
+					TokenLocality: "local",
+				},
+			},
+		},
 		ConnectEnabled:        true,
 		ConnectSidecarMinPort: 8888,
 		ConnectSidecarMaxPort: 9999,
@@ -6621,7 +6971,35 @@ func TestSanitize(t *testing.T) {
 		"AllowWriteHTTPFrom": [
 			"127.0.0.0/8",
 			"::1/128"
-		]
+		],
+		"AutoConfig": {
+			"Authorizer": {
+				"Enabled": false,
+				"AllowReuse": false,
+				"AuthMethod": {
+					"ACLAuthMethodEnterpriseFields": {},
+					"Config": {},
+					"Description": "",
+					"DisplayName": "",
+					"EnterpriseMeta": {},
+					"MaxTokenTTL": "0s",
+					"Name": "",
+					"RaftIndex": {
+						"CreateIndex": 0,
+						"ModifyIndex": 0
+					},
+					"Type": "",
+					"TokenLocality": ""			
+				},
+				"ClaimAssertions": []
+			},
+			"Enabled": false,
+			"DNSSANs": [],
+			"IntroToken": "hidden",
+			"IntroTokenFile": "",
+			"IPSANs": [],
+			"ServerAddresses": []
+		}
 	}`
 	b, err := json.MarshalIndent(rt.Sanitized(), "", "    ")
 	if err != nil {

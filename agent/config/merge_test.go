@@ -39,12 +39,7 @@ func TestMerge(t *testing.T) {
 					"a": "b",
 					"c": "e",
 				},
-				Ports:           Ports{DNS: pInt(2), HTTP: pInt(3)},
-				SnapshotAgent:   map[string]interface{}{},
-				TaggedAddresses: map[string]string{},
-				HTTPConfig:      HTTPConfig{ResponseHeaders: map[string]string{}},
-				DNS:             DNS{ServiceTTL: map[string]string{}},
-				Connect:         Connect{CAConfig: map[string]interface{}{}},
+				Ports: Ports{DNS: pInt(2), HTTP: pInt(3)},
 			},
 		},
 	}
