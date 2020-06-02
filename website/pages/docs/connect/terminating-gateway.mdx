@@ -24,8 +24,7 @@ services outside the mesh, review the [terminating gateway guide](https://learn.
 
 ~> **Beta limitations:** Terminating Gateways currently do not support targeting service subsets with
 [L7 configuration](/docs/connect/l7-traffic-management). They route to all instances of a service with no capabilities
-for filtering by instance. Terminating Gateways also currently do not support routing to services with a hostname
-defined as a their address. The service address registered with Consul, that the gateway will route traffic to, **must** be a resolved IP address.
+for filtering by instance.
 
 ## Security Considerations
 
