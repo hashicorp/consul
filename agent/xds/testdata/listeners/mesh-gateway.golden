@@ -14,6 +14,22 @@
         {
           "filterChainMatch": {
             "serverNames": [
+              "*.dc4.internal.11111111-2222-3333-4444-555555555555.consul"
+            ]
+          },
+          "filters": [
+            {
+              "name": "envoy.tcp_proxy",
+              "config": {
+                  "cluster": "dc4.internal.11111111-2222-3333-4444-555555555555.consul",
+                  "stat_prefix": "mesh_gateway_remote_default_dc4_tcp"
+                }
+            }
+          ]
+        },
+        {
+          "filterChainMatch": {
+            "serverNames": [
               "*.dc2.internal.11111111-2222-3333-4444-555555555555.consul"
             ]
           },

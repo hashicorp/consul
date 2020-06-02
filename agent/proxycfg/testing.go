@@ -1389,6 +1389,34 @@ func testConfigSnapshotMeshGateway(t testing.T, populateServices bool, useFedera
 				"dc2": TestGatewayNodesDC2(t),
 				"dc4": TestGatewayNodesDC4Hostname(t),
 			},
+			HostnameDatacenters: map[string]structs.CheckServiceNodes{
+				"dc4": {
+					structs.CheckServiceNode{
+						Node: &structs.Node{
+							ID:         "mesh-gateway-1",
+							Node:       "mesh-gateway",
+							Address:    "10.30.1.1",
+							Datacenter: "dc4",
+						},
+						Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+							"10.30.1.1", 8443,
+							structs.ServiceAddress{Address: "10.0.1.1", Port: 8443},
+							structs.ServiceAddress{Address: "123.us-west-2.elb.notaws.com", Port: 443}),
+					},
+					structs.CheckServiceNode{
+						Node: &structs.Node{
+							ID:         "mesh-gateway-2",
+							Node:       "mesh-gateway",
+							Address:    "10.30.1.2",
+							Datacenter: "dc4",
+						},
+						Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+							"10.30.1.2", 8443,
+							structs.ServiceAddress{Address: "10.30.1.2", Port: 8443},
+							structs.ServiceAddress{Address: "456.us-west-2.elb.notaws.com", Port: 443}),
+					},
+				},
+			},
 		}
 		if useFederationStates {
 			snap.MeshGateway.FedStateGateways = map[string]structs.CheckServiceNodes{
