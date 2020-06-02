@@ -4,41 +4,45 @@ import (
 	"github.com/hashicorp/go-memdb"
 )
 
-// memDBWrapper is a thin shim over memdb.DB which forces all new tranactions to
-// report changes and for those changes to automatically deliver the changed
-// objects to our central event handler in case new streaming events need to be
-// omitted.
+// memDBWrapper is a thin wrapper around memdb.DB which enables TrackChanges on
+// all write transactions. When the transaction is committed the changes are
+// sent to the eventPublisher which will create and emit change events.
 type memDBWrapper struct {
-	*memdb.MemDB
+	db *memdb.MemDB
 	// TODO: add publisher
 }
 
-// Txn intercepts MemDB.Txn(). It allows read-only transactions to pass through
-// but fails write transactions as we now need to force callers to use a
-// slightly different API so that change capture can happen automatically. The
-// returned Txn object is wrapped with a no-op wrapper that just keeps all
-// transactions in our state store the same type. The wrapper only has
-// non-passthrough behavior for write transactions though.
+// Txn exists to maintain backwards compatibility with memdb.DB.Txn. Preexisting
+// code may use it to create a read-only transaction, but it will panic if called
+// with write=true.
+//
+// Deprecated: use either ReadTxn, or WriteTxn.
 func (db *memDBWrapper) Txn(write bool) *txnWrapper {
 	if write {
 		panic("don't use db.Txn(true), use db.WriteTxn(idx uin64)")
 	}
-	return &txnWrapper{
-		Txn: db.MemDB.Txn(false),
-	}
+	return db.ReadTxn()
+}
+
+// ReadTxn returns a read-only transaction which behaves exactly the same as
+// memdb.Txn
+func (db *memDBWrapper) ReadTxn() *txnWrapper {
+	return &txnWrapper{Txn: db.db.Txn(false)}
 }
 
 // WriteTxn returns a wrapped memdb.Txn suitable for writes to the state store.
-// It will track changes and publish events for them automatically when Commit
-// is called. The idx argument should be the index of the currently operating
-// Raft operation. Almost all mutations to state should happen as part of a raft
-// apply so the index of that log being applied should be plumbed through to
-// here. A few exceptional cases are transactions that are only executed on a
-// fresh memdb store during a Restore and a few places in tests where we insert
+// It will track changes and publish events for the changes when Commit
+// is called.
+//
+// The idx argument must be the index of the current Raft operation. Almost
+// all mutations to state should happen as part of a raft apply so the index of
+// the log being applied can be passed to WriteTxn.
+// The exceptional cases are transactions that are executed on an empty
+// memdb.DB as part of Restore, and those executed by tests where we insert
 // data directly into the DB. These cases may use WriteTxnRestore.
 func (db *memDBWrapper) WriteTxn(idx uint64) *txnWrapper {
 	t := &txnWrapper{
-		Txn:   db.MemDB.Txn(true),
+		Txn:   db.db.Txn(true),
 		Index: idx,
 	}
 	t.Txn.TrackChanges()
@@ -47,40 +51,43 @@ func (db *memDBWrapper) WriteTxn(idx uint64) *txnWrapper {
 
 // WriteTxnRestore returns a wrapped RW transaction that does NOT have change
 // tracking enabled. This should only be used in Restore where we need to
-// replace the entire contents of the Store without a need to track the changes
-// made and emit events. Subscribers will all reset on a restore and start
-// again. It also uses a zero index since the whole restore doesn't really occur
+// replace the entire contents of the Store without a need to track the changes.
+// WriteTxnRestore uses a zero index since the whole restore doesn't really occur
 // at one index - the effect is to write many values that were previously
 // written across many indexes.
 func (db *memDBWrapper) WriteTxnRestore() *txnWrapper {
 	t := &txnWrapper{
-		Txn:   db.MemDB.Txn(true),
+		Txn:   db.db.Txn(true),
 		Index: 0,
 	}
 	return t
 }
 
-// txnWrapper wraps a memdb.Txn to automatically capture changes and process
-// events for the write as it commits. This can't be done just with txn.Defer
-// because errors the callback is invoked after commit completes so errors
-// during event publishing would cause silent dropped events while the state
-// store still changed and the write looked successful from the outside.
+// txnWrapper wraps a memdb.Txn to capture changes and send them to the
+// EventPublisher.
+//
+// This can not be done with txn.Defer because the callback passed to Defer is
+// invoked after commit completes, and because the callback can not return an
+// error. Any errors from the callback would be lost,  which would result in a
+// missing change event, even though the state store had changed.
 type txnWrapper struct {
-	// Index stores the index the write is occuring at in raft if this is a write
-	// transaction. If it's zero it means this is a read transaction.
+	// Index in raft where the write is occurring. The value is zero for a
+	// read-only transaction, and for a WriteTxnRestore transaction.
+	// Index is stored so that it may be passed along to any subscribers as part
+	// of a change event.
 	Index uint64
 	*memdb.Txn
-
-	store *Store
 }
 
-// Commit overrides Commit on the underlying memdb.Txn and causes events to be
-// published for any changes. Note that it has a different signature to
-// memdb.Txn - returning an error that should be checked since an error implies
-// that something prevented the commit from completing.
+// Commit first pushes changes to EventPublisher, then calls Commit on the
+// underlying transaction.
 //
+// Note that this function, unlike memdb.Txn, returns an error which must be checked
+// by the caller. A non-nil error indicates that a commit failed and was not
+// applied.
 // TODO: currently none of the callers check error, should they all be changed?
 func (tx *txnWrapper) Commit() error {
+	// changes may be empty if this is a read-only or WriteTxnRestore transaction.
 	//changes := tx.Txn.Changes()
 	// TODO: publish changes
 
