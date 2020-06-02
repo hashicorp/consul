@@ -6,6 +6,7 @@ export default function NetworkMiddlewareAutomationPage() {
     <UseCaseLayout
       title="Network Middleware Automation"
       description="Reduce the time to deploy applications and eliminate manual processes by automating complex networking tasks. Enable operators to easily deploy, manage and optimize network middleware."
+      guideLink="https://learn.hashicorp.com/consul?track=integrations"
     >
       <TextSplitWithImage
         textSplit={{
