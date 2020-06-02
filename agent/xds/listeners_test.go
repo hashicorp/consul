@@ -472,9 +472,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 					})
 				}
 			}
-			if snap.Kind == structs.ServiceKindTerminatingGateway {
-
-			}
 
 			require.NoError(err)
 			r, err := createResponse(ListenerType, "00000001", "00000001", listeners)
