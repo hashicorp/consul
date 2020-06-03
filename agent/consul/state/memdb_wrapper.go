@@ -4,12 +4,12 @@ import (
 	"github.com/hashicorp/go-memdb"
 )
 
-// memDBWrapper is a thin wrapper around memdb.DB which enables TrackChanges on
+// changeTrackerDB is a thin wrapper around memdb.DB which enables TrackChanges on
 // all write transactions. When the transaction is committed the changes are
 // sent to the eventPublisher which will create and emit change events.
-type memDBWrapper struct {
+type changeTrackerDB struct {
 	db *memdb.MemDB
-	// TODO: add publisher
+	// TODO(streaming): add publisher
 }
 
 // Txn exists to maintain backwards compatibility with memdb.DB.Txn. Preexisting
@@ -17,7 +17,7 @@ type memDBWrapper struct {
 // with write=true.
 //
 // Deprecated: use either ReadTxn, or WriteTxn.
-func (db *memDBWrapper) Txn(write bool) *txnWrapper {
+func (db *changeTrackerDB) Txn(write bool) *txnWrapper {
 	if write {
 		panic("don't use db.Txn(true), use db.WriteTxn(idx uin64)")
 	}
@@ -26,7 +26,7 @@ func (db *memDBWrapper) Txn(write bool) *txnWrapper {
 
 // ReadTxn returns a read-only transaction which behaves exactly the same as
 // memdb.Txn
-func (db *memDBWrapper) ReadTxn() *txnWrapper {
+func (db *changeTrackerDB) ReadTxn() *txnWrapper {
 	return &txnWrapper{Txn: db.db.Txn(false)}
 }
 
@@ -40,7 +40,7 @@ func (db *memDBWrapper) ReadTxn() *txnWrapper {
 // The exceptional cases are transactions that are executed on an empty
 // memdb.DB as part of Restore, and those executed by tests where we insert
 // data directly into the DB. These cases may use WriteTxnRestore.
-func (db *memDBWrapper) WriteTxn(idx uint64) *txnWrapper {
+func (db *changeTrackerDB) WriteTxn(idx uint64) *txnWrapper {
 	t := &txnWrapper{
 		Txn:   db.db.Txn(true),
 		Index: idx,
@@ -55,7 +55,7 @@ func (db *memDBWrapper) WriteTxn(idx uint64) *txnWrapper {
 // WriteTxnRestore uses a zero index since the whole restore doesn't really occur
 // at one index - the effect is to write many values that were previously
 // written across many indexes.
-func (db *memDBWrapper) WriteTxnRestore() *txnWrapper {
+func (db *changeTrackerDB) WriteTxnRestore() *txnWrapper {
 	t := &txnWrapper{
 		Txn:   db.db.Txn(true),
 		Index: 0,

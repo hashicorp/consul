@@ -98,7 +98,7 @@ const (
 // from the Raft log through the FSM.
 type Store struct {
 	schema *memdb.DBSchema
-	db     *memDBWrapper
+	db     *changeTrackerDB
 
 	// abandonCh is used to signal watchers that this state store has been
 	// abandoned (usually during a restore). This is only ever closed.
@@ -160,7 +160,7 @@ func NewStateStore(gc *TombstoneGC) (*Store, error) {
 		kvsGraveyard: NewGraveyard(gc),
 		lockDelay:    NewDelay(),
 	}
-	s.db = &memDBWrapper{
+	s.db = &changeTrackerDB{
 		db: db,
 	}
 	return s, nil
