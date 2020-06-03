@@ -17,6 +17,7 @@ func TestLeader_FederationStateAntiEntropy_BlockingQuery(t *testing.T) {
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Build = "1.8.0"
 		c.PrimaryDatacenter = "dc1"
 	})
 	defer os.RemoveAll(dir1)
@@ -24,6 +25,7 @@ func TestLeader_FederationStateAntiEntropy_BlockingQuery(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Build = "1.8.0"
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
 		c.FederationStateReplicationRate = 100
@@ -193,6 +195,7 @@ func TestLeader_FederationStateAntiEntropyPruning(t *testing.T) {
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Build = "1.8.0"
 		c.PrimaryDatacenter = "dc1"
 	})
 	defer os.RemoveAll(dir1)
@@ -202,6 +205,7 @@ func TestLeader_FederationStateAntiEntropyPruning(t *testing.T) {
 	defer client.Close()
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Build = "1.8.0"
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
 	})
@@ -266,6 +270,7 @@ func TestLeader_FederationStateAntiEntropyPruning_ACLDeny(t *testing.T) {
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Build = "1.8.0"
 		c.PrimaryDatacenter = "dc1"
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -279,6 +284,7 @@ func TestLeader_FederationStateAntiEntropyPruning_ACLDeny(t *testing.T) {
 	defer client.Close()
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Build = "1.8.0"
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
 		c.ACLDatacenter = "dc1"
