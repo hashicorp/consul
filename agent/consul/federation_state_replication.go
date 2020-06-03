@@ -4,10 +4,27 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
+
+const federationStatsNotSupportedMessage = "Not all servers in the datacenter support federation states - preventing replication"
+
+var (
+	federationStatesNotSupported = federationStatesNotSupportedError{}
+)
+
+type federationStatesNotSupportedError struct{}
+
+func (e federationStatesNotSupportedError) Error() string {
+	return federationStatsNotSupportedMessage
+}
+
+func areFederationStatesNotSupportedError(err error) bool {
+	return strings.Contains(err.Error(), federationStatsNotSupportedMessage)
+}
 
 type FederationStateReplicator struct {
 	srv            *Server
@@ -27,6 +44,9 @@ func (r *FederationStateReplicator) MetricName() string { return "federation-sta
 
 // FetchRemote implements IndexReplicatorDelegate.
 func (r *FederationStateReplicator) FetchRemote(lastRemoteIndex uint64) (int, interface{}, uint64, error) {
+	if !r.srv.DatacenterSupportsFederationStates() {
+		return 0, nil, 0, federationStatesNotSupported
+	}
 	lenRemote, remote, remoteIndex, err := r.fetchRemote(lastRemoteIndex)
 	if r.gatewayLocator != nil {
 		r.gatewayLocator.SetLastFederationStateReplicationError(err)
