@@ -38,6 +38,7 @@ func TestEnvoy(t *testing.T) {
 		"case-prometheus",
 		"case-statsd-udp",
 		"case-stats-proxy",
+		"case-terminating-gateway-hostnames",
 		"case-terminating-gateway-simple",
 		"case-terminating-gateway-subsets",
 		"case-terminating-gateway-without-services",
