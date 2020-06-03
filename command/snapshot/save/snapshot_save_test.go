@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
 )
@@ -150,6 +151,13 @@ func TestSnapshotSaveCommand_TruncatedStream(t *testing.T) {
 		data := raw.([]byte)
 		_, _ = w.Write(data)
 	}))
+
+	// Wait until the server is actually listening.
+	retry.Run(t, func(r *retry.R) {
+		resp, err := http.Get("http://" + fakeAddr + "/not-real")
+		require.NoError(r, err)
+		require.Equal(r, http.StatusNotFound, resp.StatusCode)
+	})
 
 	dir := testutil.TempDir(t, "snapshot")
 	defer os.RemoveAll(dir)
