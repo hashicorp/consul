@@ -12,12 +12,8 @@ import (
 	memdb "github.com/hashicorp/go-memdb"
 )
 
-const (
-	federationStatesNotEnabledMessage = "Federation states are currently disabled until all servers in the datacenter support the feature"
-)
-
 var (
-	federationStatesNotEnabled = errors.New(federationStatesNotEnabledMessage)
+	errFederationStatesNotEnabled = errors.New("Federation states are currently disabled until all servers in the datacenter support the feature")
 )
 
 // FederationState endpoint is used to manipulate federation states from all
@@ -36,7 +32,7 @@ func (c *FederationState) Apply(args *structs.FederationStateRequest, reply *boo
 	}
 
 	if !c.srv.DatacenterSupportsFederationStates() {
-		return federationStatesNotEnabled
+		return errFederationStatesNotEnabled
 	}
 
 	defer metrics.MeasureSince([]string{"federation_state", "apply"}, time.Now())
@@ -85,7 +81,7 @@ func (c *FederationState) Get(args *structs.FederationStateQuery, reply *structs
 	}
 
 	if !c.srv.DatacenterSupportsFederationStates() {
-		return federationStatesNotEnabled
+		return errFederationStatesNotEnabled
 	}
 
 	defer metrics.MeasureSince([]string{"federation_state", "get"}, time.Now())
@@ -126,7 +122,7 @@ func (c *FederationState) List(args *structs.DCSpecificRequest, reply *structs.I
 	}
 
 	if !c.srv.DatacenterSupportsFederationStates() {
-		return federationStatesNotEnabled
+		return errFederationStatesNotEnabled
 	}
 
 	defer metrics.MeasureSince([]string{"federation_state", "list"}, time.Now())
@@ -169,7 +165,7 @@ func (c *FederationState) ListMeshGateways(args *structs.DCSpecificRequest, repl
 	}
 
 	if !c.srv.DatacenterSupportsFederationStates() {
-		return federationStatesNotEnabled
+		return errFederationStatesNotEnabled
 	}
 
 	defer metrics.MeasureSince([]string{"federation_state", "list_mesh_gateways"}, time.Now())
