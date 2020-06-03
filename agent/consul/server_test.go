@@ -618,7 +618,6 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", gwPort[0])
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.Build = "1.8.0"
 		c.Domain = "consul"
 		c.NodeName = "bob"
 		c.Datacenter = "dc1"
@@ -638,7 +637,6 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 	defer s1.Shutdown()
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
-		c.Build = "1.8.0"
 		c.Domain = "consul"
 		c.NodeName = "betty"
 		c.Datacenter = "dc2"
@@ -658,7 +656,6 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 	defer s2.Shutdown()
 
 	dir3, s3 := testServerWithConfig(t, func(c *Config) {
-		c.Build = "1.8.0"
 		c.Domain = "consul"
 		c.NodeName = "bonnie"
 		c.Datacenter = "dc3"

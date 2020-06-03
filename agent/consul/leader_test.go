@@ -1251,10 +1251,11 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 			c.NodeName = "node1"
 			c.Datacenter = "dc1"
 			c.PrimaryDatacenter = "dc1"
-			c.Build = "1.7.0"
 		})
 		defer os.RemoveAll(dir1)
 		defer s1.Shutdown()
+
+		s1.updateSerfTags("ft_fs", "0")
 
 		waitForLeaderEstablishment(t, s1)
 
@@ -1272,7 +1273,6 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 			c.NodeName = "node1"
 			c.Datacenter = "dc1"
 			c.PrimaryDatacenter = "dc1"
-			c.Build = "1.8.0"
 		})
 		defer os.RemoveAll(dir1)
 		defer s1.Shutdown()
@@ -1306,10 +1306,11 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 			c.NodeName = "node1"
 			c.Datacenter = "dc1"
 			c.PrimaryDatacenter = "dc1"
-			c.Build = "1.7.0"
 		})
 		defer os.RemoveAll(dir1)
 		defer s1.Shutdown()
+
+		s1.updateSerfTags("ft_fs", "0")
 
 		waitForLeaderEstablishment(t, s1)
 
@@ -1317,7 +1318,6 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 			c.NodeName = "node2"
 			c.Datacenter = "dc1"
 			c.PrimaryDatacenter = "dc1"
-			c.Build = "1.8.0"
 			c.Bootstrap = false
 		})
 		defer os.RemoveAll(dir2)
@@ -1353,7 +1353,6 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 			c.NodeName = "node1"
 			c.Datacenter = "dc1"
 			c.PrimaryDatacenter = "dc1"
-			c.Build = "1.8.0"
 		})
 		defer os.RemoveAll(dir1)
 		defer s1.Shutdown()
@@ -1364,7 +1363,6 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 			c.NodeName = "node2"
 			c.Datacenter = "dc1"
 			c.PrimaryDatacenter = "dc1"
-			c.Build = "1.8.0"
 			c.Bootstrap = false
 		})
 		defer os.RemoveAll(dir2)
@@ -1413,7 +1411,6 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 			c.NodeName = "node1"
 			c.Datacenter = "dc1"
 			c.PrimaryDatacenter = "dc1"
-			c.Build = "1.8.0"
 		})
 		defer os.RemoveAll(dir1)
 		defer s1.Shutdown()
@@ -1424,7 +1421,6 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 			c.NodeName = "node2"
 			c.Datacenter = "dc2"
 			c.PrimaryDatacenter = "dc1"
-			c.Build = "1.8.0"
 			c.FederationStateReplicationRate = 100
 			c.FederationStateReplicationBurst = 100
 			c.FederationStateReplicationApplyLimit = 1000000
@@ -1485,10 +1481,11 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 			c.NodeName = "node1"
 			c.Datacenter = "dc1"
 			c.PrimaryDatacenter = "dc1"
-			c.Build = "1.7.0"
 		})
 		defer os.RemoveAll(dir1)
 		defer s1.Shutdown()
+
+		s1.updateSerfTags("ft_fs", "0")
 
 		waitForLeaderEstablishment(t, s1)
 
@@ -1496,7 +1493,6 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 			c.NodeName = "node2"
 			c.Datacenter = "dc2"
 			c.PrimaryDatacenter = "dc1"
-			c.Build = "1.8.0"
 			c.FederationStateReplicationRate = 100
 			c.FederationStateReplicationBurst = 100
 			c.FederationStateReplicationApplyLimit = 1000000

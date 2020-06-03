@@ -16,7 +16,6 @@ import (
 func TestReplication_FederationStates(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.Build = "1.8.0"
 		c.PrimaryDatacenter = "dc1"
 		c.DisableFederationStateAntiEntropy = true
 	})
@@ -27,7 +26,6 @@ func TestReplication_FederationStates(t *testing.T) {
 	defer client.Close()
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
-		c.Build = "1.8.0"
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
 		c.FederationStateReplicationRate = 100

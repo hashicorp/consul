@@ -21,7 +21,6 @@ func TestFederationState_Apply_Upsert(t *testing.T) {
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.Build = "1.8.0"
 		c.DisableFederationStateAntiEntropy = true
 	})
 	defer os.RemoveAll(dir1)
@@ -32,7 +31,6 @@ func TestFederationState_Apply_Upsert(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
-		c.Build = "1.8.0"
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
 		c.DisableFederationStateAntiEntropy = true
@@ -105,7 +103,6 @@ func TestFederationState_Apply_Upsert_ACLDeny(t *testing.T) {
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.Build = "1.8.0"
 		c.DisableFederationStateAntiEntropy = true
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -179,7 +176,6 @@ func TestFederationState_Get(t *testing.T) {
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.Build = "1.8.0"
 		c.DisableFederationStateAntiEntropy = true
 	})
 	defer os.RemoveAll(dir1)
@@ -219,7 +215,6 @@ func TestFederationState_Get_ACLDeny(t *testing.T) {
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.Build = "1.8.0"
 		c.DisableFederationStateAntiEntropy = true
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -289,7 +284,6 @@ func TestFederationState_List(t *testing.T) {
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.Build = "1.8.0"
 		c.DisableFederationStateAntiEntropy = true
 	})
 	defer os.RemoveAll(dir1)
@@ -300,7 +294,6 @@ func TestFederationState_List(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
-		c.Build = "1.8.0"
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
 		c.DisableFederationStateAntiEntropy = true
@@ -383,7 +376,6 @@ func TestFederationState_List_ACLDeny(t *testing.T) {
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.Build = "1.8.0"
 		c.DisableFederationStateAntiEntropy = true
 		c.Datacenter = "dc1"
 		c.PrimaryDatacenter = "dc1"
@@ -400,7 +392,6 @@ func TestFederationState_List_ACLDeny(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
-		c.Build = "1.8.0"
 		c.DisableFederationStateAntiEntropy = true
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
@@ -575,7 +566,6 @@ func TestFederationState_Apply_Delete(t *testing.T) {
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.Build = "1.8.0"
 		c.DisableFederationStateAntiEntropy = true
 	})
 	defer os.RemoveAll(dir1)
@@ -586,7 +576,6 @@ func TestFederationState_Apply_Delete(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
-		c.Build = "1.8.0"
 		c.DisableFederationStateAntiEntropy = true
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
@@ -656,7 +645,6 @@ func TestFederationState_Apply_Delete_ACLDeny(t *testing.T) {
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.Build = "1.8.0"
 		c.DisableFederationStateAntiEntropy = true
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true

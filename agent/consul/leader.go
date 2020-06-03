@@ -1584,7 +1584,7 @@ func (s *serversFederationStatesInfo) update(srv *metadata.Server) bool {
 	// mark that we processed at least one server
 	s.found = true
 
-	if srv.Build.GreaterThanOrEqual(minFederationStatesVersion) {
+	if supported, ok := srv.FeatureFlags["fs"]; ok && supported == 1 {
 		return true
 	}
 
