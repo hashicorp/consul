@@ -6,16 +6,34 @@ Feature: dc / services / sorting
     ---
     - Name: Service-A
       Kind: ~
+      ChecksPassing: 1
+      ChecksWarning: 1
+      ChecksCritical: 3
     - Name: Service-B
       Kind: ~
+      ChecksPassing: 1
+      ChecksWarning: 1
+      ChecksCritical: 5
     - Name: Service-C
       Kind: ~
+      ChecksPassing: 1
+      ChecksWarning: 1
+      ChecksCritical: 4
     - Name: Service-D
       Kind: ~
+      ChecksPassing: 1
+      ChecksWarning: 5
+      ChecksCritical: 1
     - Name: Service-E
       Kind: ~
+      ChecksPassing: 1
+      ChecksWarning: 3
+      ChecksCritical: 1
     - Name: Service-F
       Kind: ~
+      ChecksPassing: 1
+      ChecksWarning: 4
+      ChecksCritical: 1
     ---
     When I visit the services page for yaml
     ---
@@ -42,4 +60,26 @@ Feature: dc / services / sorting
     - Service-D
     - Service-E
     - Service-F
+    ---
+    When I click selected on the sort
+    When I click options.2.button on the sort
+    Then I see name on the services vertically like yaml
+    ---
+    - Service-B
+    - Service-C
+    - Service-A
+    - Service-D
+    - Service-F
+    - Service-E
+    ---
+    When I click selected on the sort
+    When I click options.3.button on the sort
+    Then I see name on the services vertically like yaml
+    ---
+    - Service-E
+    - Service-F
+    - Service-D
+    - Service-A
+    - Service-C
+    - Service-B
     ---

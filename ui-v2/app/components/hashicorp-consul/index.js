@@ -28,6 +28,10 @@ export default Component.extend({
     close: function() {
       this.authForm.reset();
     },
+    reauthorize: function(e) {
+      this.modal.close();
+      this.onchange(e);
+    },
     change: function(e) {
       const win = this.dom.viewport();
       const $root = this.dom.root();

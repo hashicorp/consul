@@ -1,45 +1,38 @@
 %filter-bar {
-  padding: 4px;
-  display: block;
-  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 8px;
   margin-top: 0 !important;
+  margin-bottom: -12px;
 }
 %filter-bar + :not(.notice) {
   margin-top: 1.8em;
 }
-%catalog-toolbar {
-  padding: 4px 8px;
-  display: flex;
-  margin-top: 0 !important;
-  margin-bottom: -12px !important;
-  border-bottom: 1px solid $gray-200;
+%filter-bar-reversed {
+  flex-direction: row-reverse;
+  padding: 4px;
+  margin-bottom: 8px !important;
 }
-@media #{$--horizontal-filters} {
-  %filter-bar {
-    display: flex;
-    flex-direction: row-reverse;
-    justify-content: space-between;
-  }
-  %catalog-toolbar {
-    flex-direction: row;
-  }
-  %filter-bar > *:first-child {
-    margin-left: 12px;
-  }
-  %catalog-toolbar > *:first-child {
-    margin-left: 0px;
-  }
-  %filter-bar fieldset {
-    min-width: 210px;
-    width: auto;
-  }
-  %catalog-toolbar fieldset {
-    min-width: none;
-    width: 100%;
-  }
+%filter-bar fieldset {
+  flex: 0 1 auto;
+  width: auto;
+}
+%filter-bar fieldset:first-child:not(:last-child) {
+  flex: 1 1 auto;
+}
+%filter-bar-reversed fieldset:first-child:not(:last-child) {
+  flex: 0 1 auto;
+  margin-left: auto;
+}
+%filter-bar-reversed fieldset {
+  min-width: 210px;
+  width: auto;
+}
+%filter-bar-reversed > *:first-child {
+  margin-left: 12px;
 }
 @media #{$--lt-horizontal-filters} {
-  %filter-bar > *:first-child {
-    margin: 2px 0;
+  %filter-bar-reversed > *:first-child {
+    margin-left: 0;
   }
 }

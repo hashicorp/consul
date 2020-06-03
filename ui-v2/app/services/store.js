@@ -1,6 +1,21 @@
 import Store from 'ember-data/store';
+import { inject as service } from '@ember/service';
 
 export default Store.extend({
+  // TODO: This should eventually go on a static method
+  // of the abstract Repository class
+  http: service('repository/type/event-source'),
+  dataSource: service('data-source/service'),
+  client: service('client/http'),
+  clear: function() {
+    // Aborting the client will close all open http type sources
+    this.client.abort();
+    // once they are closed clear their caches
+    this.http.resetCache();
+    this.dataSource.resetCache();
+    this.init();
+  },
+  //
   // TODO: These only exist for ACLs, should probably make sure they fail
   // nicely if you aren't on ACLs for good DX
   // cloning immediately refreshes the view

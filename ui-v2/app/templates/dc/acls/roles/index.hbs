@@ -33,11 +33,12 @@
   </BlockSlot>
   <BlockSlot @name="content">
 {{#if (gt items.length 0) }}
-    <form class="filter-bar">
-      <FreetextFilter @searchable={{searchable}} @value={{s}} @placeholder="Search" />
-    </form>
+    <SearchBar
+      @value={{search}}
+      @onsearch={{action (mut search) value="target.value"}}
+    />
 {{/if}}
-    <ChangeableSet @dispatcher={{searchable}}>
+    <ChangeableSet @dispatcher={{searchable 'role' items}} @terms={{search}}>
       <BlockSlot @name="set" as |filtered|>
         <TabularCollection @items={{sort-by "CreateIndex:desc" "Name:asc" filtered}} as |item index|>
             <BlockSlot @name="header">
@@ -96,9 +97,34 @@
         </TabularCollection>
       </BlockSlot>
       <BlockSlot @name="empty">
-        <p>
-          There are no Roles.
-        </p>
+        <EmptyState @allowLogin={{true}}>
+          <BlockSlot @name="header">
+            <h2>
+              {{#if (gt items.length 0)}}
+                No roles found
+              {{else}}
+                Welcome to Roles
+              {{/if}}
+            </h2>
+          </BlockSlot>
+          <BlockSlot @name="body">
+            <p>
+              {{#if (gt items.length 0)}}
+                No roles where found matching that search, or you may not have access to view the roles you are searching for.
+              {{else}}
+                There don't seem to be any roles, or you may not have access to view roles yet.
+              {{/if}}
+            </p>
+          </BlockSlot>
+          <BlockSlot @name="actions">
+            <li class="docs-link">
+              <a href="{{env 'CONSUL_DOCS_URL'}}/commands/acl/role" rel="noopener noreferrer" target="_blank">Documentation on roles</a>
+            </li>
+            <li class="learn-link">
+              <a href="{{env 'CONSUL_DOCS_API_URL'}}/acl/roles.html" rel="noopener noreferrer" target="_blank">Read the guide</a>
+            </li>
+          </BlockSlot>
+        </EmptyState>
       </BlockSlot>
     </ChangeableSet>
   </BlockSlot>

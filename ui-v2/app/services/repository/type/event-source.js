@@ -10,15 +10,13 @@ const createProxy = function(repo, find, settings, cache, serialize = JSON.strin
   const client = this.client;
   // custom createEvent, here used to reconcile the ember-data store for each tick
   let createEvent;
-  if (typeof repo.reconcile === 'function') {
+  if (repo.shouldReconcile(find)) {
     createEvent = function(result = {}, configuration) {
       const event = {
         type: 'message',
         data: result,
       };
-      if (repo.reconcile === 'function') {
-        repo.reconcile(get(event, 'data.meta'));
-      }
+      repo.reconcile(get(event, 'data.meta'));
       return event;
     };
   }

@@ -1,20 +1,37 @@
 <div id="upstreams" class="tab-section">
   <div role="tabpanel">
-  {{#if (gt gateway.Services.length 0)}}
+  {{#if (gt gatewayServices.length 0)}}
     <section>
       <p>
         Upstreams are services that may receive traffic from this gateway. Learn more about configuring gateways in our <a href="{{env 'CONSUL_DOCS_URL'}}/connect/ingress_gateway.html" target="_blank" rel="noopener noreferrer">documentation</a>.
       </p>
     {{#let item.Service.Namespace as |nspace|}}
-      <ListCollection @items={{gateway.Services}} class="consul-upstream-list" as |item index|>
-        <a data-test-service-name href={{href-to 'dc.services.show' item.Name}}>
+      <ListCollection @items={{gatewayServices}} class="consul-upstream-list" as |item index|>
+      {{#if (service/exists item)}}
+      {{#let item.Namespace as |gatewayNspace|}}
+        {{#if (and (env 'CONSUL_NSPACES_ENABLED') (not-eq gatewayNspace nspace))}}
+          <a data-test-service-name href={{href-to 'nspace.dc.services.show' (concat '~' gatewayNspace) dc item.Name}}>
+            {{item.Name}}
+          </a>
+        {{else}}
+          <a data-test-service-name href={{href-to 'dc.services.show' item.Name}}>
+            {{item.Name}}
+          </a>
+        {{/if}}
+      {{/let}}
+      {{else}}
+        <p data-test-service-name>
           {{item.Name}}
-        </a>
+        </p>
+      {{/if}}
         <ul>
         {{#if (env 'CONSUL_NSPACES_ENABLED')}}
           {{#if (not-eq item.Namespace nspace)}}
             <li class="nspace">
               {{item.Namespace}}
+              <Tooltip>
+                  Namespace
+                </Tooltip>
             </li>
           {{/if}}
         {{/if}}
@@ -25,6 +42,9 @@
               @value={{item.GatewayConfig.ListenerPort}}
               @name="Port"
             />
+            <Tooltip>
+              Port
+            </Tooltip>
           </li>
         {{/if}}
         </ul>

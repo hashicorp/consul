@@ -6,9 +6,6 @@ import transitionable from 'consul-ui/utils/routing/transitionable';
 
 export default Controller.extend({
   router: service('router'),
-  http: service('repository/type/event-source'),
-  dataSource: service('data-source/service'),
-  client: service('client/http'),
   store: service('store'),
   feedback: service('feedback'),
   actions: {
@@ -23,12 +20,11 @@ export default Controller.extend({
       // used for the feedback service.
       this.feedback.execute(
         () => {
-          // TODO: Centralize this elsewhere
-          this.client.abort();
-          this.http.resetCache();
-          this.dataSource.resetCache();
-          this.store.init();
-
+          // TODO: Currently we clear cache from the ember-data store
+          // ideally this would be a static method of the abstract Repository class
+          // once we move to proper classes for services take another look at this.
+          this.store.clear();
+          //
           const params = {};
           if (e.data) {
             const token = e.data;
@@ -42,22 +38,24 @@ export default Controller.extend({
               }
             }
           }
+          const container = getOwner(this);
           const routeName = this.router.currentRoute.name;
-          const route = getOwner(this).lookup(`route:${routeName}`);
-          const router = this.router;
+          const route = container.lookup(`route:${routeName}`);
           // Refresh the application route
-          return getOwner(this)
+          return container
             .lookup('route:application')
             .refresh()
-            .promise.then(() => {
-              // We use transitionable here as refresh doesn't work if you are on an error page
-              // which is highly likely to happen here (403s)
-              if (routeName !== router.currentRouteName || typeof params.nspace !== 'undefined') {
+            .promise.then(res => {
+              // Use transitionable if we need to change a section of the URL
+              if (
+                routeName !== this.router.currentRouteName ||
+                typeof params.nspace !== 'undefined'
+              ) {
                 return route.transitionTo(
-                  ...transitionable(router.currentRoute, params, getOwner(this))
+                  ...transitionable(this.router.currentRoute, params, container)
                 );
               } else {
-                return route.refresh();
+                return res;
               }
             });
         },

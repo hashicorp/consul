@@ -1,12 +1,32 @@
+{{#let (filter-by "Action" "deny" intentions) as |denied|}}
+  {{#let (selectable-key-values
+      (array "" (concat "All (" intentions.length ")"))
+      (array "allow" (concat "Allow (" (sub intentions.length denied.length) ")"))
+      (array "deny" (concat "Deny (" denied.length ")"))
+        selected=filterBy
+    )
+    as |filter|
+  }}
 <div id="intentions" class="tab-section">
   <div role="tabpanel">
 {{#if (gt intentions.length 0) }}
   <input type="checkbox" id="toolbar-toggle" />
-  <form class="filter-bar">
-    <FreetextFilter @searchable={{searchable}} @value={{s}} @placeholder="Search" />
-  </form>
+  <SearchBar
+    @value={{search}}
+    @onsearch={{action (mut search) value="target.value"}}
+    @selected={{filter.selected}}
+    @options={{filter.items}}
+    @onchange={{action (mut filterBy) value='target.value'}}
+  />
 {{/if}}
-  <ChangeableSet @dispatcher={{searchable}}>
+    <ChangeableSet
+      @dispatcher={{
+        searchable
+          'intention'
+          (if (eq filter.selected.key "") intentions (filter-by "Action" filter.selected.key intentions))
+        }}
+        @terms={{search}}
+      >
     <BlockSlot @name="set" as |filtered|>
       <ConsulIntentionList
         @items={{filtered}}
@@ -21,3 +41,5 @@
   </ChangeableSet>
   </div>
 </div>
+  {{/let}}
+{{/let}}
