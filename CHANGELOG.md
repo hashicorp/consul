@@ -12,6 +12,7 @@ FEATURES:
 
 BUGFIXES:
 
+* agent: Fixed a race condition that could cause an agent to crash when first starting. [[GH-7955](https://github.com/hashicorp/consul/issues/7955)]
 * connect: ensure proxy-defaults protocol is used for upstreams [[GH-7938](https://github.com/hashicorp/consul/issues/7938)]
 * xds: Fixed bug where deleting a gateway config entry did not correctly remove xDS configuration from the envoy proxy [[GH-7898](https://github.com/hashicorp/consul/pull/7898)]
 
