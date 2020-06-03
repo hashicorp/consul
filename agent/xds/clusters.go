@@ -593,6 +593,10 @@ func (s *Server) makeGatewayCluster(snap *proxycfg.ConfigSnapshot,
 
 	// When a service instance is addressed by a hostname we have Envoy do the DNS resolution
 	// by setting a DNS cluster type and passing the hostname endpoints via CDS.
+	rate := 10 * time.Second
+	cluster.DnsRefreshRate = &rate
+	cluster.DnsLookupFamily = envoy.Cluster_V4_ONLY
+
 	discoveryType := envoy.Cluster_Type{Type: envoy.Cluster_LOGICAL_DNS}
 	if cfg.DNSDiscoveryType == "strict_dns" {
 		discoveryType.Type = envoy.Cluster_STRICT_DNS
