@@ -88,6 +88,10 @@ type GatewayConfig struct {
 	// gateway service
 	NoDefaultBind bool `mapstructure:"envoy_gateway_no_default_bind" alias:"envoy_mesh_gateway_no_default_bind"`
 
+	// DNSDiscoveryType indicates the DNS service discovery type.
+	// See: https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/service_discovery#arch-overview-service-discovery-types
+	DNSDiscoveryType string `mapstructure:"envoy_dns_discovery_type"`
+
 	// ConnectTimeoutMs is the number of milliseconds to timeout making a new
 	// connection to this upstream. Defaults to 5000 (5 seconds) if not set.
 	ConnectTimeoutMs int `mapstructure:"connect_timeout_ms"`
@@ -113,6 +117,9 @@ func ParseGatewayConfig(m map[string]interface{}) (GatewayConfig, error) {
 	if cfg.ConnectTimeoutMs < 1 {
 		cfg.ConnectTimeoutMs = 5000
 	}
+
+	cfg.DNSDiscoveryType = strings.ToLower(cfg.DNSDiscoveryType)
+
 	return cfg, err
 }
 

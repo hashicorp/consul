@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"reflect"
 	"strings"
 	"time"
@@ -552,12 +553,14 @@ func (s *state) initialConfigSnapshot() ConfigSnapshot {
 		snap.TerminatingGateway.ServiceGroups = make(map[structs.ServiceID]structs.CheckServiceNodes)
 		snap.TerminatingGateway.ServiceResolvers = make(map[structs.ServiceID]*structs.ServiceResolverConfigEntry)
 		snap.TerminatingGateway.GatewayServices = make(map[structs.ServiceID]structs.GatewayService)
+		snap.TerminatingGateway.HostnameServices = make(map[structs.ServiceID]structs.CheckServiceNodes)
 	case structs.ServiceKindMeshGateway:
 		snap.MeshGateway.WatchedServices = make(map[structs.ServiceID]context.CancelFunc)
 		snap.MeshGateway.WatchedDatacenters = make(map[string]context.CancelFunc)
 		snap.MeshGateway.ServiceGroups = make(map[structs.ServiceID]structs.CheckServiceNodes)
 		snap.MeshGateway.GatewayGroups = make(map[string]structs.CheckServiceNodes)
 		snap.MeshGateway.ServiceResolvers = make(map[structs.ServiceID]*structs.ServiceResolverConfigEntry)
+		snap.MeshGateway.HostnameDatacenters = make(map[string]structs.CheckServiceNodes)
 		// there is no need to initialize the map of service resolvers as we
 		// fully rebuild it every time we get updates
 	case structs.ServiceKindIngressGateway:
@@ -1032,6 +1035,13 @@ func (s *state) handleUpdateTerminatingGateway(u cache.UpdateEvent, snap *Config
 			}
 		}
 
+		// Clean up services with hostname mapping for services that were not in the update
+		for sid, _ := range snap.TerminatingGateway.HostnameServices {
+			if _, ok := svcMap[sid]; !ok {
+				delete(snap.TerminatingGateway.HostnameServices, sid)
+			}
+		}
+
 		// Cancel service instance watches for services that were not in the update
 		for sid, cancelFn := range snap.TerminatingGateway.WatchedServices {
 			if _, ok := svcMap[sid]; !ok {
@@ -1081,11 +1091,12 @@ func (s *state) handleUpdateTerminatingGateway(u cache.UpdateEvent, snap *Config
 		}
 
 		sid := structs.ServiceIDFromString(strings.TrimPrefix(u.CorrelationID, externalServiceIDPrefix))
+		delete(snap.TerminatingGateway.ServiceGroups, sid)
+		delete(snap.TerminatingGateway.HostnameServices, sid)
 
 		if len(resp.Nodes) > 0 {
 			snap.TerminatingGateway.ServiceGroups[sid] = resp.Nodes
-		} else if _, ok := snap.TerminatingGateway.ServiceGroups[sid]; ok {
-			delete(snap.TerminatingGateway.ServiceGroups, sid)
+			snap.TerminatingGateway.HostnameServices[sid] = s.hostnameEndpoints(logging.TerminatingGateway, snap.Datacenter, resp.Nodes)
 		}
 
 	// Store leaf cert for watched service
@@ -1141,6 +1152,17 @@ func (s *state) handleUpdateMeshGateway(u cache.UpdateEvent, snap *ConfigSnapsho
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		snap.MeshGateway.FedStateGateways = dcIndexedNodes.DatacenterNodes
+
+		for dc, nodes := range dcIndexedNodes.DatacenterNodes {
+			snap.MeshGateway.HostnameDatacenters[dc] = s.hostnameEndpoints(logging.MeshGateway, snap.Datacenter, nodes)
+		}
+
+		for dc, _ := range snap.MeshGateway.HostnameDatacenters {
+			if _, ok := dcIndexedNodes.DatacenterNodes[dc]; !ok {
+				delete(snap.MeshGateway.HostnameDatacenters, dc)
+			}
+		}
+
 	case serviceListWatchID:
 		services, ok := u.Result.(*structs.IndexedServiceList)
 		if !ok {
@@ -1297,11 +1319,12 @@ func (s *state) handleUpdateMeshGateway(u cache.UpdateEvent, snap *ConfigSnapsho
 			}
 
 			dc := strings.TrimPrefix(u.CorrelationID, "mesh-gateway:")
+			delete(snap.MeshGateway.GatewayGroups, dc)
+			delete(snap.MeshGateway.HostnameDatacenters, dc)
 
 			if len(resp.Nodes) > 0 {
 				snap.MeshGateway.GatewayGroups[dc] = resp.Nodes
-			} else if _, ok := snap.MeshGateway.GatewayGroups[dc]; ok {
-				delete(snap.MeshGateway.GatewayGroups, dc)
+				snap.MeshGateway.HostnameDatacenters[dc] = s.hostnameEndpoints(logging.MeshGateway, snap.Datacenter, resp.Nodes)
 			}
 		default:
 			// do nothing for now
@@ -1517,4 +1540,36 @@ func (s *state) Changed(ns *structs.NodeService, token string) bool {
 		s.port != ns.Port ||
 		!reflect.DeepEqual(s.proxyCfg, proxyCfg) ||
 		s.token != token
+}
+
+// hostnameEndpoints returns all CheckServiceNodes that have hostnames instead of IPs as the address.
+// Envoy cannot resolve hostnames provided through EDS, so we exclusively use CDS for these clusters.
+// If there is a mix of hostnames and addresses we exclusively use the hostnames, since clusters cannot discover
+// services with both EDS and DNS.
+func (s *state) hostnameEndpoints(loggerName string, localDC string, nodes structs.CheckServiceNodes) structs.CheckServiceNodes {
+	var (
+		hasIP       bool
+		hasHostname bool
+		resp        structs.CheckServiceNodes
+	)
+
+	for _, n := range nodes {
+		addr, _ := n.BestAddress(localDC != n.Node.Datacenter)
+		if net.ParseIP(addr) != nil {
+			hasIP = true
+			continue
+		}
+		hasHostname = true
+		resp = append(resp, n)
+	}
+
+	if hasHostname && hasIP {
+		dc := nodes[0].Node.Datacenter
+		sid := nodes[0].Service.CompoundServiceName()
+
+		s.logger.Named(loggerName).
+			Warn("service contains instances with mix of hostnames and IP addresses; only hostnames will be passed to Envoy.",
+				"dc", dc, "service", sid.String())
+	}
+	return resp
 }

@@ -172,6 +172,22 @@ services:
      - "disabled"
     network_mode: service:consul-primary
 
+  s4:
+    depends_on:
+      - consul-primary
+    image: "fortio/fortio"
+    environment:
+      - "FORTIO_NAME=s4"
+    command:
+      - "server"
+      - "-http-port"
+      - ":8382"
+      - "-grpc-port"
+      - ":8281"
+      - "-redirect-port"
+      - "disabled"
+    network_mode: service:consul-primary
+
   s1-sidecar-proxy:
     depends_on:
       - consul-primary

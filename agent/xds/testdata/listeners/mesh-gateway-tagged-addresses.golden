@@ -28,6 +28,22 @@
           ]
         },
         {
+          "filterChainMatch": {
+            "serverNames": [
+              "*.dc4.internal.11111111-2222-3333-4444-555555555555.consul"
+            ]
+          },
+          "filters": [
+            {
+              "name": "envoy.tcp_proxy",
+              "config": {
+                  "cluster": "dc4.internal.11111111-2222-3333-4444-555555555555.consul",
+                  "stat_prefix": "mesh_gateway_remote_lan_dc4_tcp"
+                }
+            }
+          ]
+        },
+        {
           "filters": [
             {
               "name": "envoy.filters.network.sni_cluster"
@@ -70,6 +86,22 @@
               "config": {
                   "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555.consul",
                   "stat_prefix": "mesh_gateway_remote_wan_dc2_tcp"
+                }
+            }
+          ]
+        },
+        {
+          "filterChainMatch": {
+            "serverNames": [
+              "*.dc4.internal.11111111-2222-3333-4444-555555555555.consul"
+            ]
+          },
+          "filters": [
+            {
+              "name": "envoy.tcp_proxy",
+              "config": {
+                  "cluster": "dc4.internal.11111111-2222-3333-4444-555555555555.consul",
+                  "stat_prefix": "mesh_gateway_remote_wan_dc4_tcp"
                 }
             }
           ]

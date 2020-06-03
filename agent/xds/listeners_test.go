@@ -461,10 +461,10 @@ func TestListenersFromSnapshot(t *testing.T) {
 			})
 
 			// For terminating gateways we create filter chain matches for services/subsets from the ServiceGroups map
-			if snap.Kind == structs.ServiceKindTerminatingGateway {
-				for i := 0; i < len(listeners); i++ {
-					l := listeners[i].(*envoy.Listener)
+			for i := 0; i < len(listeners); i++ {
+				l := listeners[i].(*envoy.Listener)
 
+				if l.FilterChains != nil {
 					// Sort chains by the matched name with the exception of the last one
 					// The last chain is a fallback and does not have a FilterChainMatch
 					sort.Slice(l.FilterChains[:len(l.FilterChains)-1], func(i, j int) bool {

@@ -308,6 +308,7 @@ func TestParseGatewayConfig(t *testing.T) {
 				"envoy_gateway_bind_tagged_addresses": true,
 				"envoy_gateway_bind_addresses":        map[string]structs.ServiceAddress{"foo": {Address: "127.0.0.1", Port: 80}},
 				"envoy_gateway_no_default_bind":       true,
+				"envoy_dns_discovery_type":            "StRiCt_DnS",
 				"connect_timeout_ms":                  10,
 			},
 			want: GatewayConfig{
@@ -315,6 +316,7 @@ func TestParseGatewayConfig(t *testing.T) {
 				BindTaggedAddresses: true,
 				NoDefaultBind:       true,
 				BindAddresses:       map[string]structs.ServiceAddress{"foo": {Address: "127.0.0.1", Port: 80}},
+				DNSDiscoveryType:    "strict_dns",
 			},
 		},
 		{
