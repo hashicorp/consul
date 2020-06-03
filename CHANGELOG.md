@@ -1,5 +1,11 @@
 ## UNRELEASED
 
+IMPROVEMENTS:
+
+* ui: Add live updates/blocking queries to gateway listings [[GH-7967](https://github.com/hashicorp/consul/pull/7967)]
+* ui: Improved 'empty states'  [[GH-7940](https://github.com/hashicorp/consul/pull/7940)]
+* ui: Add ability to sort services based on health  [[GH-7989](https://github.com/hashicorp/consul/pull/7989)]
+
 ## 1.8.0-beta2 (May 21, 2020)
 
 IMPROVEMENTS:
