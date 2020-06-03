@@ -1,5 +1,9 @@
 ## UNRELEASED
 
+BUG FIXES:
+
+* agent: Fixed a race condition that could cause an agent to crash when first starting. [[GH-7955](https://github.com/hashicorp/consul/issues/7955)]
+
 ## 1.7.3 (May 05, 2020)
 
 IMPROVEMENTS:
