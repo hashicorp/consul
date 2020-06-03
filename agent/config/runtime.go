@@ -342,6 +342,12 @@ type RuntimeConfig struct {
 	// hcl: dns_config { cache_max_age = "duration" }
 	DNSCacheMaxAge time.Duration
 
+	// HTTPUseCache whether or not to use cache for http queries. Defaults
+	// to true.
+	//
+	// hcl: http_config { use_cache = (true|false) }
+	HTTPUseCache bool
+
 	// HTTPBlockEndpoints is a list of endpoint prefixes to block in the
 	// HTTP API. Any requests to these will get a 403 response.
 	//

@@ -2119,6 +2119,54 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			err: "Serf Advertise WAN address 10.0.0.1:1000 already configured for RPC Advertise",
 		},
 		{
+			desc: "http use_cache defaults to true",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+				"http_config": {}
+			}`},
+			hcl: []string{`
+				http_config = {}
+			`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.HTTPUseCache = true
+			},
+		},
+		{
+			desc: "http use_cache is enabled when true",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+				"http_config": { "use_cache": true }
+			}`},
+			hcl: []string{`
+				http_config = { use_cache = true }
+			`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.HTTPUseCache = true
+			},
+		},
+		{
+			desc: "http use_cache is disabled when false",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+				"http_config": { "use_cache": false }
+			}`},
+			hcl: []string{`
+				http_config = { use_cache = false }
+			`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.HTTPUseCache = false
+			},
+		},
+		{
 			desc: "sidecar_service can't have ID",
 			args: []string{
 				`-data-dir=` + dataDir,
@@ -4167,7 +4215,8 @@ func TestFullConfig(t *testing.T) {
 				"response_headers": {
 					"M6TKa9NP": "xjuxjOzQ",
 					"JRCrHZed": "rl0mTx81"
-				}
+				},
+				"use_cache": false
 			},
 			"key_file": "IEkkwgIA",
 			"leave_on_terminate": true,
@@ -4804,6 +4853,7 @@ func TestFullConfig(t *testing.T) {
 					"M6TKa9NP" = "xjuxjOzQ"
 					"JRCrHZed" = "rl0mTx81"
 				}
+				use_cache = false
 			}
 			key_file = "IEkkwgIA"
 			leave_on_terminate = true
@@ -5517,6 +5567,7 @@ func TestFullConfig(t *testing.T) {
 		HTTPMaxConnsPerClient:                  100,
 		HTTPSHandshakeTimeout:                  2391 * time.Millisecond,
 		HTTPSPort:                              15127,
+		HTTPUseCache:                           false,
 		KeyFile:                                "IEkkwgIA",
 		KVMaxValueSize:                         1234567800000000,
 		LeaveDrainTime:                         8265 * time.Second,
@@ -6402,6 +6453,7 @@ func TestSanitize(t *testing.T) {
 		"HTTPMaxConnsPerClient": 0,
 		"HTTPPort": 0,
 		"HTTPResponseHeaders": {},
+		"HTTPUseCache": false,
 		"HTTPSAddrs": [],
 		"HTTPSHandshakeTimeout": "0s",
 		"HTTPSPort": 0,
