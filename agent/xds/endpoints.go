@@ -3,7 +3,6 @@ package xds
 import (
 	"errors"
 	"fmt"
-
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoyendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
@@ -119,9 +118,12 @@ func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 
 	// generate the endpoints for the gateways in the remote datacenters
 	for _, dc := range datacenters {
-		if dc == cfgSnap.Datacenter {
-			continue // skip local
+		// Skip creating endpoints for mesh gateways in local DC and gateways in remote DCs with a hostname as their address
+		// EDS cannot resolve hostnames so we provide them through CDS instead
+		if dc == cfgSnap.Datacenter || len(cfgSnap.MeshGateway.HostnameDatacenters[dc]) > 0 {
+			continue
 		}
+
 		endpoints, ok := cfgSnap.MeshGateway.GatewayGroups[dc]
 		if !ok {
 			endpoints, ok = cfgSnap.MeshGateway.FedStateGateways[dc]
@@ -158,9 +160,8 @@ func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 		}
 	}
 
+	// generate endpoints for our servers if WAN federation is enabled
 	if cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" && cfgSnap.ServerSNIFn != nil {
-		// generate endpoints for our servers
-
 		var allServersLbEndpoints []envoyendpoint.LbEndpoint
 
 		for _, srv := range cfgSnap.MeshGateway.ConsulServers {
@@ -217,6 +218,12 @@ func (s *Server) endpointsFromServicesAndResolvers(
 
 	// generate the endpoints for the linked service groups
 	for svc, endpoints := range services {
+		// Skip creating endpoints for services that have hostnames as addresses
+		// EDS cannot resolve hostnames so we provide them through CDS instead
+		if cfgSnap.Kind == structs.ServiceKindTerminatingGateway && len(cfgSnap.TerminatingGateway.HostnameServices[svc]) > 0 {
+			continue
+		}
+
 		clusterEndpoints := make(map[string][]loadAssignmentEndpointGroup)
 		clusterEndpoints[UnnamedSubset] = []loadAssignmentEndpointGroup{{Endpoints: endpoints, OnlyPassing: false}}
 

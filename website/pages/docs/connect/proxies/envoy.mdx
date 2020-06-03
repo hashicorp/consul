@@ -319,6 +319,13 @@ will continue to be supported.
 - `envoy_gateway_no_default_bind` - Prevents binding to the default address
   of the gateway service. This should be used with one of the other options
   to configure the gateway's bind addresses.
+  
+- `envoy_dns_discovery_type` - Determines how Envoy will resolve hostnames. Defaults to `LOGICAL_DNS`.
+  Must be one of `STRICT_DNS` or `LOGICAL_DNS`. Details for each type are available in
+  the [Envoy documentation](https://www.envoyproxy.io/docs/envoy/v1.14.1/intro/arch_overview/upstream/service_discovery).
+  This option applies to terminating gateways that route to services
+  addressed by a hostname, such as a managed databased. It also applies to mesh gateways,
+  such as when gateways in other Consul datacenters are behind a load balancer that is addressed by a hostname.
 
 ## Advanced Configuration
 

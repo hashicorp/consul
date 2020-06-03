@@ -374,6 +374,88 @@ func TestGatewayNodesDC3(t testing.T) structs.CheckServiceNodes {
 	}
 }
 
+func TestGatewayNodesDC4Hostname(t testing.T) structs.CheckServiceNodes {
+	return structs.CheckServiceNodes{
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "mesh-gateway-1",
+				Node:       "mesh-gateway",
+				Address:    "10.30.1.1",
+				Datacenter: "dc4",
+			},
+			Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+				"10.30.1.1", 8443,
+				structs.ServiceAddress{Address: "10.0.1.1", Port: 8443},
+				structs.ServiceAddress{Address: "123.us-west-2.elb.notaws.com", Port: 443}),
+		},
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "mesh-gateway-2",
+				Node:       "mesh-gateway",
+				Address:    "10.30.1.2",
+				Datacenter: "dc4",
+			},
+			Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+				"10.30.1.2", 8443,
+				structs.ServiceAddress{Address: "10.30.1.2", Port: 8443},
+				structs.ServiceAddress{Address: "456.us-west-2.elb.notaws.com", Port: 443}),
+		},
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "mesh-gateway-3",
+				Node:       "mesh-gateway",
+				Address:    "10.30.1.3",
+				Datacenter: "dc4",
+			},
+			Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+				"10.30.1.3", 8443,
+				structs.ServiceAddress{Address: "10.30.1.3", Port: 8443},
+				structs.ServiceAddress{Address: "198.38.1.1", Port: 443}),
+		},
+	}
+}
+
+func TestGatewayNodesDC5Hostname(t testing.T) structs.CheckServiceNodes {
+	return structs.CheckServiceNodes{
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "mesh-gateway-1",
+				Node:       "mesh-gateway",
+				Address:    "10.30.1.1",
+				Datacenter: "dc5",
+			},
+			Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+				"10.30.1.1", 8443,
+				structs.ServiceAddress{Address: "10.0.1.1", Port: 8443},
+				structs.ServiceAddress{Address: "123.us-west-2.elb.notaws.com", Port: 443}),
+		},
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "mesh-gateway-2",
+				Node:       "mesh-gateway",
+				Address:    "10.30.1.2",
+				Datacenter: "dc5",
+			},
+			Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+				"10.30.1.2", 8443,
+				structs.ServiceAddress{Address: "10.30.1.2", Port: 8443},
+				structs.ServiceAddress{Address: "456.us-west-2.elb.notaws.com", Port: 443}),
+		},
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "mesh-gateway-3",
+				Node:       "mesh-gateway",
+				Address:    "10.30.1.3",
+				Datacenter: "dc5",
+			},
+			Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+				"10.30.1.3", 8443,
+				structs.ServiceAddress{Address: "10.30.1.3", Port: 8443},
+				structs.ServiceAddress{Address: "198.38.1.1", Port: 443}),
+		},
+	}
+}
+
 func TestGatewayServiceGroupBarDC1(t testing.T) structs.CheckServiceNodes {
 	return structs.CheckServiceNodes{
 		structs.CheckServiceNode{
@@ -1305,11 +1387,41 @@ func testConfigSnapshotMeshGateway(t testing.T, populateServices bool, useFedera
 			},
 			GatewayGroups: map[string]structs.CheckServiceNodes{
 				"dc2": TestGatewayNodesDC2(t),
+				"dc4": TestGatewayNodesDC4Hostname(t),
+			},
+			HostnameDatacenters: map[string]structs.CheckServiceNodes{
+				"dc4": {
+					structs.CheckServiceNode{
+						Node: &structs.Node{
+							ID:         "mesh-gateway-1",
+							Node:       "mesh-gateway",
+							Address:    "10.30.1.1",
+							Datacenter: "dc4",
+						},
+						Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+							"10.30.1.1", 8443,
+							structs.ServiceAddress{Address: "10.0.1.1", Port: 8443},
+							structs.ServiceAddress{Address: "123.us-west-2.elb.notaws.com", Port: 443}),
+					},
+					structs.CheckServiceNode{
+						Node: &structs.Node{
+							ID:         "mesh-gateway-2",
+							Node:       "mesh-gateway",
+							Address:    "10.30.1.2",
+							Datacenter: "dc4",
+						},
+						Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+							"10.30.1.2", 8443,
+							structs.ServiceAddress{Address: "10.30.1.2", Port: 8443},
+							structs.ServiceAddress{Address: "456.us-west-2.elb.notaws.com", Port: 443}),
+					},
+				},
 			},
 		}
 		if useFederationStates {
 			snap.MeshGateway.FedStateGateways = map[string]structs.CheckServiceNodes{
 				"dc2": TestGatewayNodesDC2(t),
+				"dc4": TestGatewayNodesDC4Hostname(t),
 			}
 
 			delete(snap.MeshGateway.GatewayGroups, "dc2")
@@ -1505,10 +1617,59 @@ func testConfigSnapshotTerminatingGateway(t testing.T, populateServices bool) *C
 		}
 
 		api := structs.NewServiceID("api", nil)
-		apiNodes := TestUpstreamNodes(t)
-		for i := 0; i < len(apiNodes); i++ {
-			apiNodes[i].Service.Service = "api"
-			apiNodes[i].Service.Port = 8081
+		apiNodes := structs.CheckServiceNodes{
+			structs.CheckServiceNode{
+				Node: &structs.Node{
+					ID:         "api",
+					Node:       "test1",
+					Address:    "10.10.1.1",
+					Datacenter: "dc1",
+				},
+				Service: &structs.NodeService{
+					Service: "api",
+					Address: "api.mydomain",
+					Port:    8081,
+				},
+				Checks: structs.HealthChecks{
+					{
+						Status: "critical",
+					},
+				},
+			},
+			structs.CheckServiceNode{
+				Node: &structs.Node{
+					ID:         "test2",
+					Node:       "test2",
+					Address:    "10.10.1.2",
+					Datacenter: "dc1",
+				},
+				Service: &structs.NodeService{
+					Service: "api",
+					Address: "api.altdomain",
+					Port:    8081,
+					Meta: map[string]string{
+						"domain": "alt",
+					},
+				},
+				Checks: structs.HealthChecks{
+					{
+						Status: "passing",
+					},
+				},
+			},
+			structs.CheckServiceNode{
+				Node: &structs.Node{
+					ID:         "test3",
+					Node:       "test3",
+					Address:    "10.10.1.3",
+					Datacenter: "dc1",
+				},
+				Service: &structs.NodeService{
+					Service: "api",
+					Address: "10.10.1.3",
+					Port:    8081,
+				},
+			},
 		}
 
 		snap.TerminatingGateway = configSnapshotTerminatingGateway{
@@ -1527,6 +1688,9 @@ func testConfigSnapshotTerminatingGateway(t testing.T, populateServices bool) *C
 					CertFile: "api.cert.pem",
 					KeyFile:  "api.key.pem",
 				},
+			},
+			HostnameServices: map[structs.ServiceID]structs.CheckServiceNodes{
+				api: {apiNodes[0], apiNodes[1]},
 			},
 		}
 		snap.TerminatingGateway.ServiceLeaves = map[structs.ServiceID]*structs.IssuedCert{

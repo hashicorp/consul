@@ -100,6 +100,10 @@ type configSnapshotTerminatingGateway struct {
 	// between the gateway and a service. TLS configuration stored here is
 	// used for TLS origination from the gateway to the linked service.
 	GatewayServices map[structs.ServiceID]structs.GatewayService
+
+	// HostnameServices is a map of service id to service instances with a hostname as the address.
+	// If hostnames are configured they must be provided to Envoy via CDS not EDS.
+	HostnameServices map[structs.ServiceID]structs.CheckServiceNodes
 }
 
 func (c *configSnapshotTerminatingGateway) IsEmpty() bool {
@@ -113,7 +117,8 @@ func (c *configSnapshotTerminatingGateway) IsEmpty() bool {
 		len(c.WatchedServices) == 0 &&
 		len(c.ServiceResolvers) == 0 &&
 		len(c.WatchedResolvers) == 0 &&
-		len(c.GatewayServices) == 0
+		len(c.GatewayServices) == 0 &&
+		len(c.HostnameServices) == 0
 }
 
 type configSnapshotMeshGateway struct {
@@ -155,6 +160,10 @@ type configSnapshotMeshGateway struct {
 
 	// ConsulServers is the list of consul servers in this datacenter.
 	ConsulServers structs.CheckServiceNodes
+
+	// HostnameDatacenters is a map of datacenters to mesh gateway instances with a hostname as the address.
+	// If hostnames are configured they must be provided to Envoy via CDS not EDS.
+	HostnameDatacenters map[string]structs.CheckServiceNodes
 }
 
 func (c *configSnapshotMeshGateway) Datacenters() []string {
@@ -188,7 +197,8 @@ func (c *configSnapshotMeshGateway) IsEmpty() bool {
 		len(c.ServiceResolvers) == 0 &&
 		len(c.GatewayGroups) == 0 &&
 		len(c.FedStateGateways) == 0 &&
-		len(c.ConsulServers) == 0
+		len(c.ConsulServers) == 0 &&
+		len(c.HostnameDatacenters) == 0
 }
 
 type configSnapshotIngressGateway struct {

@@ -599,6 +599,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 	db := structs.NewServiceID("db", nil)
 	dbStr := db.String()
 
+	api := structs.NewServiceID("api", nil)
+	apiStr := api.String()
+
 	cases := map[string]testCase{
 		"initial-gateway": testCase{
 			ns: structs.NodeService{
@@ -712,6 +715,96 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.Valid(), "gateway with service list is valid")
 						require.Len(t, snap.MeshGateway.WatchedServices, 2)
 						require.True(t, snap.MeshGateway.WatchedServicesSet)
+					},
+				},
+				verificationStage{
+					events: []cache.UpdateEvent{
+						cache.UpdateEvent{
+							CorrelationID: "mesh-gateway:dc4",
+							Result: &structs.IndexedCheckServiceNodes{
+								Nodes: TestGatewayNodesDC4Hostname(t),
+							},
+							Err: nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid(), "gateway with service list is valid")
+						require.Len(t, snap.MeshGateway.WatchedServices, 2)
+						require.True(t, snap.MeshGateway.WatchedServicesSet)
+
+						expect := structs.CheckServiceNodes{
+							structs.CheckServiceNode{
+								Node: &structs.Node{
+									ID:         "mesh-gateway-1",
+									Node:       "mesh-gateway",
+									Address:    "10.30.1.1",
+									Datacenter: "dc4",
+								},
+								Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+									"10.30.1.1", 8443,
+									structs.ServiceAddress{Address: "10.0.1.1", Port: 8443},
+									structs.ServiceAddress{Address: "123.us-west-2.elb.notaws.com", Port: 443}),
+							},
+							structs.CheckServiceNode{
+								Node: &structs.Node{
+									ID:         "mesh-gateway-2",
+									Node:       "mesh-gateway",
+									Address:    "10.30.1.2",
+									Datacenter: "dc4",
+								},
+								Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+									"10.30.1.2", 8443,
+									structs.ServiceAddress{Address: "10.30.1.2", Port: 8443},
+									structs.ServiceAddress{Address: "456.us-west-2.elb.notaws.com", Port: 443}),
+							},
+						}
+						require.Equal(t, snap.MeshGateway.HostnameDatacenters["dc4"], expect)
+					},
+				},
+				verificationStage{
+					events: []cache.UpdateEvent{
+						cache.UpdateEvent{
+							CorrelationID: federationStateListGatewaysWatchID,
+							Result: &structs.DatacenterIndexedCheckServiceNodes{
+								DatacenterNodes: map[string]structs.CheckServiceNodes{
+									"dc5": TestGatewayNodesDC5Hostname(t),
+								},
+							},
+							Err: nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid(), "gateway with service list is valid")
+						require.Len(t, snap.MeshGateway.WatchedServices, 2)
+						require.True(t, snap.MeshGateway.WatchedServicesSet)
+
+						expect := structs.CheckServiceNodes{
+							structs.CheckServiceNode{
+								Node: &structs.Node{
+									ID:         "mesh-gateway-1",
+									Node:       "mesh-gateway",
+									Address:    "10.30.1.1",
+									Datacenter: "dc5",
+								},
+								Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+									"10.30.1.1", 8443,
+									structs.ServiceAddress{Address: "10.0.1.1", Port: 8443},
+									structs.ServiceAddress{Address: "123.us-west-2.elb.notaws.com", Port: 443}),
+							},
+							structs.CheckServiceNode{
+								Node: &structs.Node{
+									ID:         "mesh-gateway-2",
+									Node:       "mesh-gateway",
+									Address:    "10.30.1.2",
+									Datacenter: "dc5",
+								},
+								Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+									"10.30.1.2", 8443,
+									structs.ServiceAddress{Address: "10.30.1.2", Port: 8443},
+									structs.ServiceAddress{Address: "456.us-west-2.elb.notaws.com", Port: 443}),
+							},
+						}
+						require.Equal(t, snap.MeshGateway.HostnameDatacenters["dc5"], expect)
 					},
 				},
 			},
@@ -1039,6 +1132,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 										Service: structs.NewServiceID("billing", nil),
 										Gateway: structs.NewServiceID("terminating-gateway", nil),
 									},
+									{
+										Service: structs.NewServiceID("api", nil),
+										Gateway: structs.NewServiceID("terminating-gateway", nil),
+									},
 								},
 							},
 							Err: nil,
@@ -1047,27 +1144,33 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						db := structs.NewServiceID("db", nil)
 						billing := structs.NewServiceID("billing", nil)
+						api := structs.NewServiceID("api", nil)
 
 						require.True(t, snap.Valid(), "gateway with service list is valid")
-						require.Len(t, snap.TerminatingGateway.WatchedServices, 2)
+						require.Len(t, snap.TerminatingGateway.WatchedServices, 3)
 						require.Contains(t, snap.TerminatingGateway.WatchedServices, db)
 						require.Contains(t, snap.TerminatingGateway.WatchedServices, billing)
+						require.Contains(t, snap.TerminatingGateway.WatchedServices, api)
 
-						require.Len(t, snap.TerminatingGateway.WatchedIntentions, 2)
+						require.Len(t, snap.TerminatingGateway.WatchedIntentions, 3)
 						require.Contains(t, snap.TerminatingGateway.WatchedIntentions, db)
 						require.Contains(t, snap.TerminatingGateway.WatchedIntentions, billing)
+						require.Contains(t, snap.TerminatingGateway.WatchedIntentions, api)
 
-						require.Len(t, snap.TerminatingGateway.WatchedLeaves, 2)
+						require.Len(t, snap.TerminatingGateway.WatchedLeaves, 3)
 						require.Contains(t, snap.TerminatingGateway.WatchedLeaves, db)
 						require.Contains(t, snap.TerminatingGateway.WatchedLeaves, billing)
+						require.Contains(t, snap.TerminatingGateway.WatchedLeaves, api)
 
-						require.Len(t, snap.TerminatingGateway.WatchedResolvers, 2)
+						require.Len(t, snap.TerminatingGateway.WatchedResolvers, 3)
 						require.Contains(t, snap.TerminatingGateway.WatchedResolvers, db)
 						require.Contains(t, snap.TerminatingGateway.WatchedResolvers, billing)
+						require.Contains(t, snap.TerminatingGateway.WatchedResolvers, api)
 
-						require.Len(t, snap.TerminatingGateway.GatewayServices, 2)
+						require.Len(t, snap.TerminatingGateway.GatewayServices, 3)
 						require.Contains(t, snap.TerminatingGateway.GatewayServices, db)
 						require.Contains(t, snap.TerminatingGateway.GatewayServices, billing)
+						require.Contains(t, snap.TerminatingGateway.GatewayServices, api)
 					},
 				},
 				verificationStage{
@@ -1110,6 +1213,97 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 								},
 							},
 						)
+					},
+				},
+				verificationStage{
+					requiredWatches: map[string]verifyWatchRequest{
+						"external-service:" + apiStr: genVerifyServiceWatch("api", "", "dc1", false),
+					},
+					events: []cache.UpdateEvent{
+						cache.UpdateEvent{
+							CorrelationID: "external-service:" + apiStr,
+							Result: &structs.IndexedCheckServiceNodes{
+								Nodes: structs.CheckServiceNodes{
+									{
+										Node: &structs.Node{
+											Node:    "node1",
+											Address: "10.0.1.1",
+										},
+										Service: &structs.NodeService{
+											ID:      "api",
+											Service: "api",
+											Address: "api.mydomain",
+										},
+									},
+									{
+										Node: &structs.Node{
+											Node:    "node2",
+											Address: "10.0.1.2",
+										},
+										Service: &structs.NodeService{
+											ID:      "api",
+											Service: "api",
+											Address: "api.altdomain",
+										},
+									},
+									{
+										Node: &structs.Node{
+											Node:    "node3",
+											Address: "10.0.1.3",
+										},
+										Service: &structs.NodeService{
+											ID:      "api",
+											Service: "api",
+											Address: "10.0.1.3",
+										},
+									},
+								},
+							},
+							Err: nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.Len(t, snap.TerminatingGateway.ServiceGroups, 2)
+						expect := structs.CheckServiceNodes{
+							{
+								Node: &structs.Node{
+									Node:    "node1",
+									Address: "10.0.1.1",
+								},
+								Service: &structs.NodeService{
+									ID:      "api",
+									Service: "api",
+									Address: "api.mydomain",
+								},
+							},
+							{
+								Node: &structs.Node{
+									Node:    "node2",
+									Address: "10.0.1.2",
+								},
+								Service: &structs.NodeService{
+									ID:      "api",
+									Service: "api",
+									Address: "api.altdomain",
+								},
+							},
+							{
+								Node: &structs.Node{
+									Node:    "node3",
+									Address: "10.0.1.3",
+								},
+								Service: &structs.NodeService{
+									ID:      "api",
+									Service: "api",
+									Address: "10.0.1.3",
+								},
+							},
+						}
+						sid := structs.NewServiceID("api", nil)
+						require.Equal(t, snap.TerminatingGateway.ServiceGroups[sid], expect)
+
+						// The instance in node3 should not be present in HostnameDatacenters because it has a valid IP
+						require.ElementsMatch(t, snap.TerminatingGateway.HostnameServices[sid], expect[:2])
 					},
 				},
 				verificationStage{
@@ -1198,10 +1392,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Len(t, snap.TerminatingGateway.GatewayServices, 1)
 						require.Contains(t, snap.TerminatingGateway.GatewayServices, billing)
 
-						// There was no update event for billing's leaf/endpoints, so length is 0
+						// There was no update event for billing's leaf/endpoints/resolvers, so length is 0
 						require.Len(t, snap.TerminatingGateway.ServiceGroups, 0)
 						require.Len(t, snap.TerminatingGateway.ServiceLeaves, 0)
 						require.Len(t, snap.TerminatingGateway.ServiceResolvers, 0)
+						require.Len(t, snap.TerminatingGateway.HostnameServices, 0)
 					},
 				},
 			},
