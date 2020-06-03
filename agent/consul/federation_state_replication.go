@@ -2,6 +2,7 @@ package consul
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -13,14 +14,8 @@ import (
 const federationStatsNotSupportedMessage = "Not all servers in the datacenter support federation states - preventing replication"
 
 var (
-	federationStatesNotSupported = federationStatesNotSupportedError{}
+	errFederationStatesNotSupported = errors.New(federationStatsNotSupportedMessage)
 )
-
-type federationStatesNotSupportedError struct{}
-
-func (e federationStatesNotSupportedError) Error() string {
-	return federationStatsNotSupportedMessage
-}
 
 func areFederationStatesNotSupportedError(err error) bool {
 	return strings.Contains(err.Error(), federationStatsNotSupportedMessage)
@@ -45,7 +40,7 @@ func (r *FederationStateReplicator) MetricName() string { return "federation-sta
 // FetchRemote implements IndexReplicatorDelegate.
 func (r *FederationStateReplicator) FetchRemote(lastRemoteIndex uint64) (int, interface{}, uint64, error) {
 	if !r.srv.DatacenterSupportsFederationStates() {
-		return 0, nil, 0, federationStatesNotSupported
+		return 0, nil, 0, errFederationStatesNotSupported
 	}
 	lenRemote, remote, remoteIndex, err := r.fetchRemote(lastRemoteIndex)
 	if r.gatewayLocator != nil {
