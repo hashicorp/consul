@@ -25,9 +25,11 @@
   </BlockSlot>
   <BlockSlot @name="toolbar">
 {{#if (gt items.length 0) }}
-    <form class="filter-bar">
-      <FreetextFilter @searchable={{searchable}} @value={{s}} @placeholder="Search by name" />
-    </form>
+    <SearchBar
+      @placeholder="Search by name"
+      @value={{search}}
+      @onsearch={{action (mut search) value="target.value"}}
+    />
 {{/if}}
   </BlockSlot>
   <BlockSlot @name="actions">
@@ -38,7 +40,7 @@
 {{/if}}
   </BlockSlot>
   <BlockSlot @name="content">
-    <ChangeableSet @dispatcher={{searchable}}>
+    <ChangeableSet @dispatcher={{searchable 'kv' items}} @terms={{search}}>
       <BlockSlot @name="set" as |filtered|>
         <TabularCollection @items={{sort-by "isFolder:desc" "Key:asc" filtered}} as |item index|>
           <BlockSlot @name="header">
@@ -87,9 +89,34 @@
         </TabularCollection>
       </BlockSlot>
       <BlockSlot @name="empty">
-        <p>
-          There are no Key / Value pairs.
-        </p>
+        <EmptyState @allowLogin={{true}}>
+          <BlockSlot @name="header">
+            <h2>
+              {{#if (gt items.length 0)}}
+                No K/V pairs found
+              {{else}}
+                Welcome to Key/Value
+              {{/if}}
+            </h2>
+          </BlockSlot>
+          <BlockSlot @name="body">
+            <p>
+              {{#if (gt items.length 0)}}
+                No K/V pairs where found matching that search, or you may not have access to view the K/V pairs you are searching for.
+              {{else}}
+                You don't have any K/V pairs, or you may not have access to view K/V pairs yet.
+              {{/if}}
+            </p>
+          </BlockSlot>
+          <BlockSlot @name="actions">
+            <li class="docs-link">
+              <a href="{{env 'CONSUL_DOCS_URL'}}/agent/kv" rel="noopener noreferrer" target="_blank">Documentation on K/V</a>
+            </li>
+            <li class="learn-link">
+              <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/kv" rel="noopener noreferrer" target="_blank">Read the guide</a>
+            </li>
+          </BlockSlot>
+        </EmptyState>
       </BlockSlot>
     </ChangeableSet>
   </BlockSlot>

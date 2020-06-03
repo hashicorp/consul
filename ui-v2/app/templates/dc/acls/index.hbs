@@ -1,3 +1,12 @@
+{{#let (filter-by "Type" "client" items) as |client|}}
+  {{#let (selectable-key-values
+      (array "" (concat "All (" items.length ")"))
+      (array "management" (concat "Management (" (sub items.length client.length) ")"))
+      (array "client" (concat "Client (" client.length ")"))
+        selected=filterBy
+    )
+    as |filter|
+  }}
 <AppView @class="acl list" @loading={{isLoading}}>
   <BlockSlot @name="notification" as |status type|>
     {{partial 'dc/acls/notifications'}}
@@ -13,11 +22,18 @@
   </BlockSlot>
   <BlockSlot @name="toolbar">
 {{#if (gt items.length 0) }}
-    <AclFilter @searchable={{searchable}} @filters={{typeFilters}} @search={{filters.s}} @type={{filters.type}} @onchange={{action "filter"}} />
+    <SearchBar
+      data-test-acl-filter="true"
+      @value={{search}}
+      @onsearch={{action (mut search) value="target.value"}}
+      @selected={{filter.selected}}
+      @options={{filter.items}}
+      @onchange={{action (mut filterBy) value='target.value'}}
+    />
 {{/if}}
   </BlockSlot>
   <BlockSlot @name="content">
-    <ChangeableSet @dispatcher={{searchable}}>
+    <ChangeableSet @dispatcher={{searchable 'acl' (if (eq filter.selected.key "") items (filter-by "Type" filter.selected.key items))}} @terms={{search}}>
       <BlockSlot @name="set" as |filtered|>
         <TabularCollection @items={{sort-by "Name:asc" filtered}} as |item index|>
           <BlockSlot @name="header">
@@ -128,10 +144,29 @@
         </TabularCollection>
       </BlockSlot>
       <BlockSlot @name="empty">
-        <p>
-          There are no ACLs.
-        </p>
+        <EmptyState @allowLogin={{true}}>
+          <BlockSlot @name="header">
+            <h2>
+              {{#if (gt items.length 0)}}
+                No ACLs found
+              {{else}}
+                Welcome to ACLs
+              {{/if}}
+            </h2>
+          </BlockSlot>
+          <BlockSlot @name="body">
+            <p>
+              {{#if (gt items.length 0)}}
+                No ACLs where found matching that search, or you may not have access to view the ACLs you are searching for.
+              {{else}}
+                There don't seem to be any ACLs yet, or you may not have access to view ACLs yet.
+              {{/if}}
+            </p>
+          </BlockSlot>
+        </EmptyState>
       </BlockSlot>
     </ChangeableSet>
   </BlockSlot>
 </AppView>
+  {{/let}}
+{{/let}}

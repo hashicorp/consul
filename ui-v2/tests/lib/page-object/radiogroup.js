@@ -1,5 +1,7 @@
 import { is, clickable } from 'ember-cli-page-object';
 import ucfirst from 'consul-ui/utils/ucfirst';
+// TODO: We no longer need to use name here
+// remove the arg in all objects
 export default function(name, items, blankKey = 'all') {
   return items.reduce(function(prev, item, i, arr) {
     // if item is empty then it means 'all'
@@ -18,9 +20,9 @@ export default function(name, items, blankKey = 'all') {
       ...{
         [`${key}IsSelected`]: is(
           ':checked',
-          `[data-test-radiobutton="${name}_${item}"] > input[type="radio"]`
+          `[data-test-radiobutton$="_${item}"] > input[type="radio"]`
         ),
-        [key]: clickable(`[data-test-radiobutton="${name}_${item}"]`),
+        [key]: clickable(`[data-test-radiobutton$="_${item}"]`),
       },
     };
   }, {});

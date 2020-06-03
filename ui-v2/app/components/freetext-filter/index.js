@@ -1,14 +1,19 @@
 import Component from '@ember/component';
+import { inject as service } from '@ember/service';
+const ENTER = 13;
 export default Component.extend({
-  tagName: 'fieldset',
-  classNames: ['freetext-filter'],
-  onchange: function(e) {
-    let searchable = this.searchable;
-    if (!Array.isArray(searchable)) {
-      searchable = [searchable];
-    }
-    searchable.forEach(function(item) {
-      item.search(e.target.value);
-    });
+  dom: service('dom'),
+  tagName: '',
+  actions: {
+    change: function(e) {
+      this.onsearch(
+        this.dom.setEventTargetProperty(e, 'value', value => (value === '' ? undefined : value))
+      );
+    },
+    keydown: function(e) {
+      if (e.keyCode === ENTER) {
+        e.preventDefault();
+      }
+    },
   },
 });

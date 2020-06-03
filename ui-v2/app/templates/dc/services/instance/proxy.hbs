@@ -8,7 +8,7 @@
   {{/if}}
   {{#if (gt proxy.Proxy.Upstreams.length 0)}}
     <section class="proxy-upstreams">
-      <h3>Upstreams</h3>
+      <h3> Upstreams</h3>
       <ul data-test-proxy-upstreams>
       {{#let proxy.Datacenter as |proxyDatacenter|}}
         {{#each proxy.Proxy.Upstreams as |item|}}
@@ -21,12 +21,18 @@
             {{#if (not-eq item.DestinationType 'prepared_query')}}
               <li class="nspace">
                 {{or item.DestinationNamespace 'default'}}
+                <Tooltip>
+                  Namespace
+                </Tooltip>
               </li>
             {{/if}}
           {{/if}}
             {{#if (and (not-eq item.Datacenter proxyDatacenter) (not-eq item.Datacenter ""))}}
               <li class="datacenter">
                 {{item.Datacenter}}
+                <Tooltip>
+                  Datacenter
+                </Tooltip>
               </li>
             {{/if}}
             {{#if (gt item.LocalBindPort 0)}}
@@ -37,6 +43,9 @@
                   @value={{combinedAddress}}
                   @name="Address"
                 />
+                <Tooltip>
+                  Address
+                </Tooltip>
               </li>
               {{/let}}
             {{/if}}

@@ -998,6 +998,16 @@
   mask-image: $logo-gitlab-monochrome-svg;
 }
 
+%with-logo-google-color-icon {
+  @extend %with-icon;
+  background-image: $logo-google-color-svg;
+}
+%with-logo-google-color-mask {
+  @extend %with-mask;
+  -webkit-mask-image: $logo-google-color-svg;
+  mask-image: $logo-google-color-svg;
+}
+
 %with-logo-kubernetes-color-icon {
   @extend %with-icon;
   background-image: $logo-kubernetes-color-svg;
@@ -1016,6 +1026,16 @@
   @extend %with-mask;
   -webkit-mask-image: $logo-kubernetes-monochrome-svg;
   mask-image: $logo-kubernetes-monochrome-svg;
+}
+
+%with-logo-microsoft-color-icon {
+  @extend %with-icon;
+  background-image: $logo-microsoft-color-svg;
+}
+%with-logo-microsoft-color-mask {
+  @extend %with-mask;
+  -webkit-mask-image: $logo-microsoft-color-svg;
+  mask-image: $logo-microsoft-color-svg;
 }
 
 %with-logo-okta-color-icon {

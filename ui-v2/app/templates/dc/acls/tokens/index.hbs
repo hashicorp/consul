@@ -33,14 +33,15 @@
   </BlockSlot>
   <BlockSlot @name="content">
 {{#if (gt items.length 0) }}
-    <form class="filter-bar">
-      <FreetextFilter @searchable={{searchable}} @value={{s}} @placeholder="Search" />
-    </form>
+    <SearchBar
+      @value={{search}}
+      @onsearch={{action (mut search) value="target.value"}}
+    />
 {{/if}}
 {{#if (token/is-legacy items)}}
     <p data-test-notification-update class="notice info"><strong>Update.</strong> We have upgraded our ACL System to allow the creation of reusable policies that can be applied to tokens. Read more about the changes and how to upgrade legacy tokens in our <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
 {{/if}}
-    <ChangeableSet @dispatcher={{searchable}}>
+    <ChangeableSet @dispatcher={{searchable 'token' items}} @terms={{search}}>
       <BlockSlot @name="set" as |filtered|>
         <TabularCollection @items={{sort-by "CreateTime:desc" filtered}} as |item index|>
           <BlockSlot @name="header">
@@ -167,9 +168,26 @@
         </TabularCollection>
       </BlockSlot>
       <BlockSlot @name="empty">
-        <p>
-          There are no Tokens.
-        </p>
+            <EmptyState @allowLogin={{true}}>
+              <BlockSlot @name="header">
+                <h2>
+                  {{#if (gt items.length 0)}}
+                    No tokens found
+                  {{else}}
+                    Welcome to ACL Tokens
+                  {{/if}}
+                </h2>
+              </BlockSlot>
+              <BlockSlot @name="body">
+                <p>
+                  {{#if (gt items.length 0)}}
+                    No tokens where found matching that search, or you may not have access to view the tokens you are searching for.
+                  {{else}}
+                    There don't seem to be any tokens, or you may not have access to view tokens yet.
+                  {{/if}}
+                </p>
+              </BlockSlot>
+            </EmptyState>
       </BlockSlot>
     </ChangeableSet>
   </BlockSlot>

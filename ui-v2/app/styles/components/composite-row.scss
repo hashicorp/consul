@@ -6,7 +6,7 @@
   @extend %composite-row;
 }
 /* hoverable rows */
-.consul-upstream-list > ul > li:not(:first-child),
+%composite-row.linkable,
 .consul-gateway-service-list > ul > li:not(:first-child),
 .consul-service-instance-list > ul > li:not(:first-child),
 .consul-service-list > ul > li:not(:first-child) {
@@ -22,7 +22,7 @@
   // In this case we do not need a background on the icon
   background-color: $transparent !important;
 }
-.proxy-upstreams > ul,
-.proxy-exposed-paths > ul {
+.proxy-exposed-paths > ul,
+.proxy-upstreams > ul {
   border-top: 1px solid $gray-200;
 }

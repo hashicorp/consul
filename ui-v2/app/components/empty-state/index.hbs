@@ -8,11 +8,24 @@
       {{yield}}
     {{/yield-slot}}
   </header>
-  <p>
-    {{#yield-slot name="body"}}
+  {{#yield-slot name="body"}}
+    <div>
       {{yield}}
-    {{/yield-slot}}
-  </p>
+      {{#if (and (env 'CONSUL_ACLS_ENABLED') allowLogin)}}
+        <label for="login-toggle">
+          <DataSource
+            @src="settings://consul:token"
+            @onchange={{action (mut token) value="data"}}
+          />
+          {{#if token.AccessorID}}
+            Log in with a different token
+          {{else}}
+            Log in
+          {{/if}}
+        </label>
+      {{/if}}
+    </div>
+  {{/yield-slot}}
   {{#yield-slot name="actions"}}
     <ul>
       {{yield}}

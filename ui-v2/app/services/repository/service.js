@@ -5,6 +5,13 @@ export default RepositoryService.extend({
   getModelName: function() {
     return modelName;
   },
+  shouldReconcile: function(method) {
+    switch (method) {
+      case 'findGatewayBySlug':
+        return false;
+    }
+    return this._super(...arguments);
+  },
   findBySlug: function(slug, dc) {
     return this._super(...arguments).then(function(item) {
       // TODO: Move this to the Serializer
@@ -68,5 +75,16 @@ export default RepositoryService.extend({
       ];
       throw e;
     });
+  },
+  findGatewayBySlug: function(slug, dc, nspace, configuration = {}) {
+    const query = {
+      dc: dc,
+      ns: nspace,
+      gateway: slug,
+    };
+    if (typeof configuration.cursor !== 'undefined') {
+      query.index = configuration.cursor;
+    }
+    return this.store.query(this.getModelName(), query);
   },
 });

@@ -1,5 +1,6 @@
 %empty-state {
   color: $gray-500;
+  background-color: $gray-010;
 }
 %empty-state > ul {
   border-color: $gray-300;
@@ -34,12 +35,16 @@
 %empty-state[class*='status-5'] header::before {
   @extend %with-alert-circle-outline-mask;
 }
-%empty-state .docs-link > *::before {
-  @extend %with-docs-mask, %as-pseudo;
+%empty-state li[class*='-link'] > *::after {
+  @extend %as-pseudo;
+  margin-left: 5px;
 }
-%empty-state .back-link > *::before {
-  @extend %with-chevron-left-mask, %as-pseudo;
+%empty-state .docs-link > *::after {
+  @extend %with-docs-mask;
 }
-%empty-state .learn-link > *::before {
-  @extend %with-learn-mask, %as-pseudo;
+%empty-state .back-link > *::after {
+  @extend %with-chevron-left-mask;
+}
+%empty-state .learn-link > *::after {
+  @extend %with-learn-mask;
 }

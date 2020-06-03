@@ -26,6 +26,11 @@
         <dd><a href="{{href-to 'dc.nodes.show' item.Node.Node}}">{{item.Node.Node}}</a></dd>
       </dl>
     </BlockSlot>
+    <BlockSlot @name="actions">
+      {{#let (or item.Address item.Node.Address) as |address|}}
+        <CopyButton @value={{address}} @name="Address">{{address}}</CopyButton>
+      {{/let}}
+    </BlockSlot>
     <BlockSlot @name="content">
         <TabNav @items={{
           compact
@@ -39,8 +44,7 @@
                       (hash label="Proxy Info" href=(href-to "dc.services.instance.proxy") selected=(is-href "dc.services.instance.proxy"))
 
 )
-                      (hash label="Tags" href=(href-to "dc.services.instance.tags") selected=(is-href "dc.services.instance.tags"))
-                      (hash label="Metadata" href=(href-to "dc.services.instance.metadata") selected=(is-href "dc.services.instance.metadata"))
+                      (hash label="Tags & Meta" href=(href-to "dc.services.instance.metadata") selected=(is-href "dc.services.instance.metadata"))
               )
         }}/>
         {{outlet}}
