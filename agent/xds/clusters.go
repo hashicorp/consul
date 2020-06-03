@@ -133,13 +133,11 @@ func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 		if dc == cfgSnap.Datacenter {
 			continue // skip local
 		}
+
 		name := connect.DatacenterSNI(dc, cfgSnap.Roots.TrustDomain)
 		isRemote := dc != cfgSnap.Datacenter
 
-		cluster, err := s.makeGatewayCluster(cfgSnap, name, cfgSnap.MeshGateway.HostnameDatacenters[dc], isRemote, false, 0)
-		if err != nil {
-			return nil, fmt.Errorf("failed to make cluster for gateway %q: %v", name, err)
-		}
+		cluster := s.makeGatewayCluster(cfgSnap, name, cfgSnap.MeshGateway.HostnameDatacenters[dc], isRemote, false, 0)
 		clusters = append(clusters, cluster)
 	}
 
@@ -157,20 +155,15 @@ func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 			name := cfgSnap.ServerSNIFn(dc, "")
 			isRemote := dc != cfgSnap.Datacenter
 
-			cluster, err := s.makeGatewayCluster(cfgSnap, name, hostnameEndpoints, isRemote, false, 0)
-			if err != nil {
-				return nil, fmt.Errorf("failed to make cluster for gateway %q: %v", name, err)
-			}
+			cluster := s.makeGatewayCluster(cfgSnap, name, hostnameEndpoints, isRemote, false, 0)
 			clusters = append(clusters, cluster)
 		}
 
 		// And for the current datacenter, send all flavors appropriately.
 		for _, srv := range cfgSnap.MeshGateway.ConsulServers {
 			name := cfgSnap.ServerSNIFn(cfgSnap.Datacenter, srv.Node.Node)
-			cluster, err := s.makeGatewayCluster(cfgSnap, name, nil, false, false, 0)
-			if err != nil {
-				return nil, fmt.Errorf("failed to make cluster for gateway %q: %v", name, err)
-			}
+
+			cluster := s.makeGatewayCluster(cfgSnap, name, nil, false, false, 0)
 			clusters = append(clusters, cluster)
 		}
 	}
@@ -218,10 +211,8 @@ func (s *Server) makeGatewayServiceClusters(cfgSnap *proxycfg.ConfigSnapshot) ([
 			hostnameEndpoints = cfgSnap.TerminatingGateway.HostnameServices[svc]
 		}
 
-		cluster, err := s.makeGatewayCluster(cfgSnap, clusterName, hostnameEndpoints, false, false, resolver.ConnectTimeout)
-		if err != nil {
-			return nil, fmt.Errorf("failed to make cluster for gateway %q: %v", clusterName, err)
-		}
+		cluster := s.makeGatewayCluster(cfgSnap, clusterName, hostnameEndpoints, false, false, resolver.ConnectTimeout)
+
 		if cfgSnap.Kind == structs.ServiceKindTerminatingGateway {
 			injectTerminatingGatewayTLSContext(cfgSnap, cluster, svc)
 		}
@@ -235,14 +226,12 @@ func (s *Server) makeGatewayServiceClusters(cfgSnap *proxycfg.ConfigSnapshot) ([
 			}
 
 			clusterName := connect.ServiceSNI(svc.ID, name, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
-			cluster, err := s.makeGatewayCluster(cfgSnap, clusterName, subsetHostnameEndpoints, false, subset.OnlyPassing, resolver.ConnectTimeout)
-			if err != nil {
-				return nil, fmt.Errorf("failed to make cluster for gateway %q: %v", clusterName, err)
-			}
+
+			cluster := s.makeGatewayCluster(cfgSnap, clusterName, subsetHostnameEndpoints, false, subset.OnlyPassing, resolver.ConnectTimeout)
+
 			if cfgSnap.Kind == structs.ServiceKindTerminatingGateway {
 				injectTerminatingGatewayTLSContext(cfgSnap, cluster, svc)
 			}
-
 			clusters = append(clusters, cluster)
 		}
 	}
@@ -564,7 +553,7 @@ func makeClusterFromUserConfig(configJSON string) (*envoy.Cluster, error) {
 }
 
 func (s *Server) makeGatewayCluster(snap *proxycfg.ConfigSnapshot,
-	name string, hostnameEndpoints structs.CheckServiceNodes, isRemote, onlyPassing bool, connectTimeout time.Duration) (*envoy.Cluster, error) {
+	name string, hostnameEndpoints structs.CheckServiceNodes, isRemote, onlyPassing bool, connectTimeout time.Duration) *envoy.Cluster {
 
 	cfg, err := ParseGatewayConfig(snap.Proxy.Config)
 	if err != nil {
@@ -599,7 +588,7 @@ func (s *Server) makeGatewayCluster(snap *proxycfg.ConfigSnapshot,
 				},
 			},
 		}
-		return cluster, nil
+		return cluster
 	}
 
 	// When a service instance is addressed by a hostname we have Envoy do the DNS resolution
@@ -622,7 +611,7 @@ func (s *Server) makeGatewayCluster(snap *proxycfg.ConfigSnapshot,
 			},
 		},
 	}
-	return cluster, nil
+	return cluster
 }
 
 // injectTerminatingGatewayTLSContext adds an UpstreamTlsContext to a cluster for TLS origination
