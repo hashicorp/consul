@@ -31,11 +31,7 @@
         {{/if}}
       </BlockSlot>
       <BlockSlot @name="content">
-{{#let (if (starts-with 'Name:' sort.selected.key)
-          (sort-by sort.selected.key services)
-          (sort-by (action "healthStatusComparator" sort.selected.key) services key=sort.selected.key)
-        )
-as |sorted|}}
+{{#let (sort-by (comparator 'service' sort.selected.key) services) as |sorted|}}
         <ChangeableSet @dispatcher={{searchable 'service' sorted}} @terms={{search}}>
           <BlockSlot @name="set" as |filtered|>
             <ConsulServiceList @routeName="dc.services.show" @items={{filtered}} @proxies={{proxies}}/>
