@@ -2,6 +2,7 @@
 
 BUG FIXES:
 
+* acl: Fixed an issue where legacy management tokens could not be used in secondary datacenters. [[GH-7908](https://github.com/hashicorp/consul/pull/7908)]
 * agent: Fixed a race condition that could cause an agent to crash when first starting. [[GH-7955](https://github.com/hashicorp/consul/issues/7955)]
 
 ## 1.7.3 (May 05, 2020)
