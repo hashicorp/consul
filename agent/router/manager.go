@@ -220,6 +220,10 @@ func (m *Manager) FindServer() *metadata.Server {
 // checkServers executes the given check against all managed servers
 // and returns whether that function decided to break the loop early
 func (m *Manager) checkServers(fn func(srv *metadata.Server) bool) bool {
+	if m == nil {
+		return true
+	}
+
 	for _, srv := range m.getServerList().servers {
 		if !fn(srv) {
 			return false
