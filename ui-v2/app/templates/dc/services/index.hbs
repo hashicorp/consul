@@ -2,6 +2,8 @@
 {{#let (selectable-key-values
     (array "Name:asc" "A to Z")
     (array "Name:desc" "Z to A")
+    (array "Status:asc" "Unhealthy to Healthy")
+    (array "Status:desc" "Healthy to Unhealthy")
       selected=sortBy
   )
   as |sort|
@@ -29,7 +31,8 @@
         {{/if}}
       </BlockSlot>
       <BlockSlot @name="content">
-        <ChangeableSet @dispatcher={{searchable 'service' (sort-by sort.selected.key services)}} @terms={{search}}>
+{{#let (sort-by (comparator 'service' sort.selected.key) services) as |sorted|}}
+        <ChangeableSet @dispatcher={{searchable 'service' sorted}} @terms={{search}}>
           <BlockSlot @name="set" as |filtered|>
             <ConsulServiceList @routeName="dc.services.show" @items={{filtered}} @proxies={{proxies}}/>
           </BlockSlot>
@@ -64,6 +67,7 @@
             </EmptyState>
           </BlockSlot>
         </ChangeableSet>
+      {{/let}}
       </BlockSlot>
     </AppView>
 {{/let}}
