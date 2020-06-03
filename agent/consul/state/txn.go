@@ -8,7 +8,7 @@ import (
 )
 
 // txnKVS handles all KV-related operations.
-func (s *Store) txnKVS(tx *txnWrapper, idx uint64, op *structs.TxnKVOp) (structs.TxnResults, error) {
+func (s *Store) txnKVS(tx *txn, idx uint64, op *structs.TxnKVOp) (structs.TxnResults, error) {
 	var entry *structs.DirEntry
 	var err error
 
@@ -110,7 +110,7 @@ func (s *Store) txnKVS(tx *txnWrapper, idx uint64, op *structs.TxnKVOp) (structs
 }
 
 // txnSession handles all Session-related operations.
-func (s *Store) txnSession(tx *txnWrapper, idx uint64, op *structs.TxnSessionOp) error {
+func (s *Store) txnSession(tx *txn, idx uint64, op *structs.TxnSessionOp) error {
 	var err error
 
 	switch op.Verb {
@@ -127,7 +127,7 @@ func (s *Store) txnSession(tx *txnWrapper, idx uint64, op *structs.TxnSessionOp)
 }
 
 // txnIntention handles all Intention-related operations.
-func (s *Store) txnIntention(tx *txnWrapper, idx uint64, op *structs.TxnIntentionOp) error {
+func (s *Store) txnIntention(tx *txn, idx uint64, op *structs.TxnIntentionOp) error {
 	switch op.Op {
 	case structs.IntentionOpCreate, structs.IntentionOpUpdate:
 		return s.intentionSetTxn(tx, idx, op.Intention)
@@ -139,7 +139,7 @@ func (s *Store) txnIntention(tx *txnWrapper, idx uint64, op *structs.TxnIntentio
 }
 
 // txnNode handles all Node-related operations.
-func (s *Store) txnNode(tx *txnWrapper, idx uint64, op *structs.TxnNodeOp) (structs.TxnResults, error) {
+func (s *Store) txnNode(tx *txn, idx uint64, op *structs.TxnNodeOp) (structs.TxnResults, error) {
 	var entry *structs.Node
 	var err error
 
@@ -208,7 +208,7 @@ func (s *Store) txnNode(tx *txnWrapper, idx uint64, op *structs.TxnNodeOp) (stru
 }
 
 // txnService handles all Service-related operations.
-func (s *Store) txnService(tx *txnWrapper, idx uint64, op *structs.TxnServiceOp) (structs.TxnResults, error) {
+func (s *Store) txnService(tx *txn, idx uint64, op *structs.TxnServiceOp) (structs.TxnResults, error) {
 	switch op.Verb {
 	case api.ServiceGet:
 		entry, err := s.getNodeServiceTxn(tx, op.Node, op.Service.ID, &op.Service.EnterpriseMeta)
@@ -270,7 +270,7 @@ func newTxnResultFromNodeServiceEntry(entry *structs.NodeService) structs.TxnRes
 }
 
 // txnCheck handles all Check-related operations.
-func (s *Store) txnCheck(tx *txnWrapper, idx uint64, op *structs.TxnCheckOp) (structs.TxnResults, error) {
+func (s *Store) txnCheck(tx *txn, idx uint64, op *structs.TxnCheckOp) (structs.TxnResults, error) {
 	var entry *structs.HealthCheck
 	var err error
 
@@ -332,7 +332,7 @@ func (s *Store) txnCheck(tx *txnWrapper, idx uint64, op *structs.TxnCheckOp) (st
 }
 
 // txnDispatch runs the given operations inside the state store transaction.
-func (s *Store) txnDispatch(tx *txnWrapper, idx uint64, ops structs.TxnOps) (structs.TxnResults, structs.TxnErrors) {
+func (s *Store) txnDispatch(tx *txn, idx uint64, ops structs.TxnOps) (structs.TxnResults, structs.TxnErrors) {
 	results := make(structs.TxnResults, 0, len(ops))
 	errors := make(structs.TxnErrors, 0, len(ops))
 	for i, op := range ops {

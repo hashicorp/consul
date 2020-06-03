@@ -113,7 +113,7 @@ func (s *Store) AutopilotCASConfig(idx, cidx uint64, config *autopilot.Config) (
 	return err == nil, err
 }
 
-func (s *Store) autopilotSetConfigTxn(idx uint64, tx *txnWrapper, config *autopilot.Config) error {
+func (s *Store) autopilotSetConfigTxn(idx uint64, tx *txn, config *autopilot.Config) error {
 	// Check for an existing config
 	existing, err := tx.First("autopilot-config", "id")
 	if err != nil {

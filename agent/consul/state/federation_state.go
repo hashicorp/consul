@@ -84,7 +84,7 @@ func (s *Store) FederationStateSet(idx uint64, config *structs.FederationState) 
 }
 
 // federationStateSetTxn upserts a federation state inside of a transaction.
-func (s *Store) federationStateSetTxn(tx *txnWrapper, idx uint64, config *structs.FederationState) error {
+func (s *Store) federationStateSetTxn(tx *txn, idx uint64, config *structs.FederationState) error {
 	if config.Datacenter == "" {
 		return fmt.Errorf("missing datacenter on federation state")
 	}
@@ -134,7 +134,7 @@ func (s *Store) FederationStateGet(ws memdb.WatchSet, datacenter string) (uint64
 	return s.federationStateGetTxn(tx, ws, datacenter)
 }
 
-func (s *Store) federationStateGetTxn(tx *txnWrapper, ws memdb.WatchSet, datacenter string) (uint64, *structs.FederationState, error) {
+func (s *Store) federationStateGetTxn(tx *txn, ws memdb.WatchSet, datacenter string) (uint64, *structs.FederationState, error) {
 	// Get the index
 	idx := maxIndexTxn(tx, federationStateTableName)
 
@@ -164,7 +164,7 @@ func (s *Store) FederationStateList(ws memdb.WatchSet) (uint64, []*structs.Feder
 	return s.federationStateListTxn(tx, ws)
 }
 
-func (s *Store) federationStateListTxn(tx *txnWrapper, ws memdb.WatchSet) (uint64, []*structs.FederationState, error) {
+func (s *Store) federationStateListTxn(tx *txn, ws memdb.WatchSet) (uint64, []*structs.FederationState, error) {
 	// Get the index
 	idx := maxIndexTxn(tx, federationStateTableName)
 
@@ -205,7 +205,7 @@ func (s *Store) FederationStateBatchDelete(idx uint64, datacenters []string) err
 	return tx.Commit()
 }
 
-func (s *Store) federationStateDeleteTxn(tx *txnWrapper, idx uint64, datacenter string) error {
+func (s *Store) federationStateDeleteTxn(tx *txn, idx uint64, datacenter string) error {
 	// Try to retrieve the existing federation state.
 	existing, err := tx.First(federationStateTableName, "id", datacenter)
 	if err != nil {

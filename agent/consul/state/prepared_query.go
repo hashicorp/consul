@@ -142,7 +142,7 @@ func (s *Store) PreparedQuerySet(idx uint64, query *structs.PreparedQuery) error
 
 // preparedQuerySetTxn is the inner method used to insert a prepared query with
 // the proper indexes into the state store.
-func (s *Store) preparedQuerySetTxn(tx *txnWrapper, idx uint64, query *structs.PreparedQuery) error {
+func (s *Store) preparedQuerySetTxn(tx *txn, idx uint64, query *structs.PreparedQuery) error {
 	// Check that the ID is set.
 	if query.ID == "" {
 		return ErrMissingQueryID
@@ -258,7 +258,7 @@ func (s *Store) PreparedQueryDelete(idx uint64, queryID string) error {
 
 // preparedQueryDeleteTxn is the inner method used to delete a prepared query
 // with the proper indexes into the state store.
-func (s *Store) preparedQueryDeleteTxn(tx *txnWrapper, idx uint64, queryID string) error {
+func (s *Store) preparedQueryDeleteTxn(tx *txn, idx uint64, queryID string) error {
 	// Pull the query.
 	wrapped, err := tx.First("prepared-queries", "id", queryID)
 	if err != nil {

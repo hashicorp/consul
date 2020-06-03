@@ -115,7 +115,7 @@ type Store struct {
 // works by starting a read transaction against the whole state store.
 type Snapshot struct {
 	store     *Store
-	tx        *txnWrapper
+	tx        *txn
 	lastIndex uint64
 }
 
@@ -123,7 +123,7 @@ type Snapshot struct {
 // data to a state store.
 type Restore struct {
 	store *Store
-	tx    *txnWrapper
+	tx    *txn
 }
 
 // IndexEntry keeps a record of the last index per-table.
@@ -247,11 +247,11 @@ func (s *Store) maxIndex(tables ...string) uint64 {
 
 // maxIndexTxn is a helper used to retrieve the highest known index
 // amongst a set of tables in the db.
-func maxIndexTxn(tx *txnWrapper, tables ...string) uint64 {
+func maxIndexTxn(tx *txn, tables ...string) uint64 {
 	return maxIndexWatchTxn(tx, nil, tables...)
 }
 
-func maxIndexWatchTxn(tx *txnWrapper, ws memdb.WatchSet, tables ...string) uint64 {
+func maxIndexWatchTxn(tx *txn, ws memdb.WatchSet, tables ...string) uint64 {
 	var lindex uint64
 	for _, table := range tables {
 		ch, ti, err := tx.FirstWatch("index", "id", table)
@@ -268,7 +268,7 @@ func maxIndexWatchTxn(tx *txnWrapper, ws memdb.WatchSet, tables ...string) uint6
 
 // indexUpdateMaxTxn is used when restoring entries and sets the table's index to
 // the given idx only if it's greater than the current index.
-func indexUpdateMaxTxn(tx *txnWrapper, idx uint64, table string) error {
+func indexUpdateMaxTxn(tx *txn, idx uint64, table string) error {
 	ti, err := tx.First("index", "id", table)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve existing index: %s", err)

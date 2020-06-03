@@ -169,7 +169,7 @@ func (s *Store) IntentionSet(idx uint64, ixn *structs.Intention) error {
 
 // intentionSetTxn is the inner method used to insert an intention with
 // the proper indexes into the state store.
-func (s *Store) intentionSetTxn(tx *txnWrapper, idx uint64, ixn *structs.Intention) error {
+func (s *Store) intentionSetTxn(tx *txn, idx uint64, ixn *structs.Intention) error {
 	// ID is required
 	if ixn.ID == "" {
 		return ErrMissingIntentionID
@@ -264,7 +264,7 @@ func (s *Store) IntentionDelete(idx uint64, id string) error {
 
 // intentionDeleteTxn is the inner method used to delete a intention
 // with the proper indexes into the state store.
-func (s *Store) intentionDeleteTxn(tx *txnWrapper, idx uint64, queryID string) error {
+func (s *Store) intentionDeleteTxn(tx *txn, idx uint64, queryID string) error {
 	// Pull the query.
 	wrapped, err := tx.First(intentionsTableName, "id", queryID)
 	if err != nil {

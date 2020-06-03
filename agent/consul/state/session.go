@@ -176,7 +176,7 @@ func (s *Store) SessionCreate(idx uint64, sess *structs.Session) error {
 // sessionCreateTxn is the inner method used for creating session entries in
 // an open transaction. Any health checks registered with the session will be
 // checked for failing status. Returns any error encountered.
-func (s *Store) sessionCreateTxn(tx *txnWrapper, idx uint64, sess *structs.Session) error {
+func (s *Store) sessionCreateTxn(tx *txn, idx uint64, sess *structs.Session) error {
 	// Check that we have a session ID
 	if sess.ID == "" {
 		return ErrMissingSessionID
@@ -301,7 +301,7 @@ func (s *Store) SessionDestroy(idx uint64, sessionID string, entMeta *structs.En
 
 // deleteSessionTxn is the inner method, which is used to do the actual
 // session deletion and handle session invalidation, etc.
-func (s *Store) deleteSessionTxn(tx *txnWrapper, idx uint64, sessionID string, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) deleteSessionTxn(tx *txn, idx uint64, sessionID string, entMeta *structs.EnterpriseMeta) error {
 	// Look up the session.
 	sess, err := firstWithTxn(tx, "sessions", "id", sessionID, entMeta)
 	if err != nil {
