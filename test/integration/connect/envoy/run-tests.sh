@@ -125,6 +125,11 @@ function verify {
 }
 
 function capture_logs {
+  # exported to prevent docker-compose warning about unset var
+  export LOG_DIR="workdir/logs/${CASE_DIR}/${ENVOY_VERSION}"
+
+  init_vars
+
   echo "Capturing Logs"
   mkdir -p "$LOG_DIR"
   services="$REQUIRED_SERVICES consul-primary"
@@ -138,7 +143,6 @@ function capture_logs {
     echo "Executing ${CASE_DIR}/capture.sh"
     source ${CASE_DIR}/capture.sh || true
   fi
-
 
   for cont in $services
   do
@@ -195,80 +199,41 @@ function run_tests {
   docker cp workdir/. envoy_workdir_1:/workdir
 
   start_consul primary
-  if [ $? -ne 0 ]
-  then
-    capture_logs
-    return 1
-  fi
 
-  if is_set $REQUIRE_SECONDARY
-  then
+  if is_set $REQUIRE_SECONDARY; then
     start_consul secondary
-    if [ $? -ne 0 ]
-    then
-      capture_logs
-      return 1
-    fi
   fi
 
   echo "Setting up the primary datacenter"
   pre_service_setup primary
-  if [ $? -ne 0 ]
-  then
-    echo "Setting up the primary datacenter failed"
-    capture_logs
-    return 1
-  fi
 
-  if is_set $REQUIRE_SECONDARY
-  then
+  if is_set $REQUIRE_SECONDARY; then
     echo "Setting up the secondary datacenter"
     pre_service_setup secondary
-    if [ $? -ne 0 ]
-    then
-      echo "Setting up the secondary datacenter failed"
-      capture_logs
-      return 1
-    fi
   fi
 
   echo "Starting services"
   start_services
-  if [ $? -ne 0 ]
-  then
-    capture_logs
-    return 1
-  fi
 
   # Run the verify container and report on the output
   verify primary
-  TESTRESULT=$?
 
-  if is_set $REQUIRE_SECONDARY && test "$TESTRESULT" -eq 0
-  then
+  if is_set $REQUIRE_SECONDARY; then
     verify secondary
-    SECONDARYRESULT=$?
+  fi
+}
 
-    if [ "$SECONDARYRESULT" -ne 0 ]
-    then
-      TESTRESULT=$SECONDARYRESULT
+function test_teardown {
+    # Set a log dir to prevent docker-compose warning about unset var
+    export LOG_DIR="workdir/logs/"
+
+    init_vars
+
+    stop_services primary
+
+    if is_set $REQUIRE_SECONDARY; then
+      stop_services secondary
     fi
-  fi
-
-  if [ "$TESTRESULT" -ne 0 ]
-  then
-    capture_logs
-  fi
-
-  stop_services primary
-
-  if is_set $REQUIRE_SECONDARY
-  then
-    stop_services secondary
-  fi
-
-
-  return $TESTRESULT
 }
 
 function suite_setup {

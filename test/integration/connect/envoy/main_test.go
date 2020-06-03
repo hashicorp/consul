@@ -51,7 +51,17 @@ func TestEnvoy(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc, func(t *testing.T) {
-			runCmd(t, "run_tests", "CASE_DIR="+tc)
+			caseDir := "CASE_DIR=" + tc
+
+			t.Cleanup(func() {
+				if t.Failed() {
+					runCmd(t, "capture_logs", caseDir)
+				}
+
+				runCmd(t, "test_teardown", caseDir)
+			})
+
+			runCmd(t, "run_tests", caseDir)
 		})
 	}
 }
