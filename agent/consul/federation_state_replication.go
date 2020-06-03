@@ -5,20 +5,15 @@ import (
 	"errors"
 	"fmt"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-const federationStatsNotSupportedMessage = "Not all servers in the datacenter support federation states - preventing replication"
+var errFederationStatesNotSupported = errors.New("Not all servers in the datacenter support federation states - preventing replication")
 
-var (
-	errFederationStatesNotSupported = errors.New(federationStatsNotSupportedMessage)
-)
-
-func areFederationStatesNotSupportedError(err error) bool {
-	return strings.Contains(err.Error(), federationStatsNotSupportedMessage)
+func isErrFederationStatesNotSupported(err error) bool {
+	return errors.Is(err, errFederationStatesNotSupported)
 }
 
 type FederationStateReplicator struct {

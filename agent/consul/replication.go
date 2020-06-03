@@ -183,7 +183,7 @@ func (r *IndexReplicator) Replicate(ctx context.Context, lastRemoteIndex uint64,
 	metrics.MeasureSince([]string{"leader", "replication", r.Delegate.MetricName(), "fetch"}, fetchStart)
 
 	if err != nil {
-		return 0, false, fmt.Errorf("failed to retrieve %s: %v", r.Delegate.PluralNoun(), err)
+		return 0, false, fmt.Errorf("failed to retrieve %s: %w", r.Delegate.PluralNoun(), err)
 	}
 
 	r.Logger.Debug("finished fetching remote objects",

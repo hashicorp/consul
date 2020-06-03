@@ -456,7 +456,7 @@ func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token
 		Rate:             s.config.FederationStateReplicationRate,
 		Burst:            s.config.FederationStateReplicationBurst,
 		Logger:           logger,
-		SuppressErrorLog: areFederationStatesNotSupportedError,
+		SuppressErrorLog: isErrFederationStatesNotSupported,
 	}
 	s.federationStateReplicator, err = NewReplicator(&federationStateReplicatorConfig)
 	if err != nil {
