@@ -1321,9 +1321,13 @@ func (a *ACL) GetPolicy(args *structs.ACLPolicyResolveLegacyRequest, reply *stru
 	// Get the policy via the cache
 	parent := a.srv.config.ACLDefaultPolicy
 
-	policy, err := a.srv.acls.GetMergedPolicyForToken(args.ACL)
+	ident, policy, err := a.srv.acls.GetMergedPolicyForToken(args.ACL)
 	if err != nil {
 		return err
+	}
+
+	if token, ok := ident.(*structs.ACLToken); ok && token.Type == structs.ACLTokenTypeManagement {
+		parent = "manage"
 	}
 
 	// translates the structures internals to most closely match what could be expressed in the original rule language
