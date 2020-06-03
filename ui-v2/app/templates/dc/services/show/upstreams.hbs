@@ -8,9 +8,17 @@
     {{#let item.Service.Namespace as |nspace|}}
       <ListCollection @items={{gatewayServices}} class="consul-upstream-list" as |item index|>
       {{#if (service/exists item)}}
-        <a data-test-service-name href={{href-to 'dc.services.show' item.Name}}>
-          {{item.Name}}
-        </a>
+      {{#let item.Namespace as |gatewayNspace|}}
+        {{#if (and (env 'CONSUL_NSPACES_ENABLED') (not-eq gatewayNspace nspace))}}
+          <a data-test-service-name href={{href-to 'nspace.dc.services.show' (concat '~' gatewayNspace) dc item.Name}}>
+            {{item.Name}}
+          </a>
+        {{else}}
+          <a data-test-service-name href={{href-to 'dc.services.show' item.Name}}>
+            {{item.Name}}
+          </a>
+        {{/if}}
+      {{/let}}
       {{else}}
         <p data-test-service-name>
           {{item.Name}}

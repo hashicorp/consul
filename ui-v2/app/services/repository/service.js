@@ -76,7 +76,7 @@ export default RepositoryService.extend({
       throw e;
     });
   },
-  findGatewayBySlug: function(slug, dc, nspace, configuration) {
+  findGatewayBySlug: function(slug, dc, nspace, configuration = {}) {
     const query = {
       dc: dc,
       ns: nspace,
