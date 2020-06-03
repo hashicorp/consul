@@ -1570,10 +1570,6 @@ type serversFederationStatesInfo struct {
 	found bool
 }
 
-var (
-	minFederationStatesVersion = version.Must(version.NewVersion("1.8.0"))
-)
-
 func (s *serversFederationStatesInfo) update(srv *metadata.Server) bool {
 	if srv.Status != serf.StatusAlive && srv.Status != serf.StatusFailed {
 		// they are left or something so regardless we treat these servers as meeting
