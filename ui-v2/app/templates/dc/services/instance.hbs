@@ -26,6 +26,11 @@
         <dd><a href="{{href-to 'dc.nodes.show' item.Node.Node}}">{{item.Node.Node}}</a></dd>
       </dl>
     </BlockSlot>
+    <BlockSlot @name="actions">
+      {{#let (or item.Address item.Node.Address) as |address|}}
+        <CopyButton @value={{address}} @name="Address">{{address}}</CopyButton>
+      {{/let}}
+    </BlockSlot>
     <BlockSlot @name="content">
         <TabNav @items={{
           compact
