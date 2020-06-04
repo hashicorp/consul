@@ -33,7 +33,7 @@ type fauxConnPool struct {
 	failPct float64
 }
 
-func (cp *fauxConnPool) Ping(string, string, net.Addr, int) (bool, error) {
+func (cp *fauxConnPool) Ping(string, string, net.Addr) (bool, error) {
 	var success bool
 	successProb := rand.Float64()
 	if successProb > cp.failPct {
@@ -179,7 +179,7 @@ func test_reconcileServerList(maxServers int) (bool, error) {
 			// failPct of the servers for the reconcile.  This
 			// allows for the selected server to no longer be
 			// healthy for the reconcile below.
-			if ok, _ := m.connPoolPinger.Ping(node.Datacenter, node.ShortName, node.Addr, node.Version); ok {
+			if ok, _ := m.connPoolPinger.Ping(node.Datacenter, node.ShortName, node.Addr); ok {
 				// Will still be present
 				healthyServers = append(healthyServers, node)
 			} else {
