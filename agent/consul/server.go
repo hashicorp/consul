@@ -163,6 +163,12 @@ type Server struct {
 	// federation states
 	federationStateReplicator *Replicator
 
+	// dcSupportsFederationStates is used to determine whether we can
+	// replicate federation states or not. All servers in the local
+	// DC must be on a version of Consul supporting federation states
+	// before this will get enabled.
+	dcSupportsFederationStates int32
+
 	// tokens holds ACL tokens initially from the configuration, but can
 	// be updated at runtime, so should always be used instead of going to
 	// the configuration directly.
@@ -446,9 +452,10 @@ func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token
 			},
 			Logger: s.logger,
 		},
-		Rate:   s.config.FederationStateReplicationRate,
-		Burst:  s.config.FederationStateReplicationBurst,
-		Logger: logger,
+		Rate:             s.config.FederationStateReplicationRate,
+		Burst:            s.config.FederationStateReplicationBurst,
+		Logger:           logger,
+		SuppressErrorLog: isErrFederationStatesNotSupported,
 	}
 	s.federationStateReplicator, err = NewReplicator(&federationStateReplicatorConfig)
 	if err != nil {

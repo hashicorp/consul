@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -9,6 +10,10 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	memdb "github.com/hashicorp/go-memdb"
+)
+
+var (
+	errFederationStatesNotEnabled = errors.New("Federation states are currently disabled until all servers in the datacenter support the feature")
 )
 
 // FederationState endpoint is used to manipulate federation states from all
@@ -25,6 +30,11 @@ func (c *FederationState) Apply(args *structs.FederationStateRequest, reply *boo
 	if done, err := c.srv.forward("FederationState.Apply", args, args, reply); done {
 		return err
 	}
+
+	if !c.srv.DatacenterSupportsFederationStates() {
+		return errFederationStatesNotEnabled
+	}
+
 	defer metrics.MeasureSince([]string{"federation_state", "apply"}, time.Now())
 
 	// Fetch the ACL token, if any.
@@ -69,6 +79,11 @@ func (c *FederationState) Get(args *structs.FederationStateQuery, reply *structs
 	if done, err := c.srv.forward("FederationState.Get", args, args, reply); done {
 		return err
 	}
+
+	if !c.srv.DatacenterSupportsFederationStates() {
+		return errFederationStatesNotEnabled
+	}
+
 	defer metrics.MeasureSince([]string{"federation_state", "get"}, time.Now())
 
 	// Fetch the ACL token, if any.
@@ -105,6 +120,11 @@ func (c *FederationState) List(args *structs.DCSpecificRequest, reply *structs.I
 	if done, err := c.srv.forward("FederationState.List", args, args, reply); done {
 		return err
 	}
+
+	if !c.srv.DatacenterSupportsFederationStates() {
+		return errFederationStatesNotEnabled
+	}
+
 	defer metrics.MeasureSince([]string{"federation_state", "list"}, time.Now())
 
 	// Fetch the ACL token, if any.
@@ -143,6 +163,11 @@ func (c *FederationState) ListMeshGateways(args *structs.DCSpecificRequest, repl
 	if done, err := c.srv.forward("FederationState.ListMeshGateways", args, args, reply); done {
 		return err
 	}
+
+	if !c.srv.DatacenterSupportsFederationStates() {
+		return errFederationStatesNotEnabled
+	}
+
 	defer metrics.MeasureSince([]string{"federation_state", "list_mesh_gateways"}, time.Now())
 
 	return c.srv.blockingQuery(

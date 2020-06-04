@@ -1529,3 +1529,64 @@ func (s *Server) reapTombstones(index uint64) {
 		)
 	}
 }
+
+func (s *Server) DatacenterSupportsFederationStates() bool {
+	if atomic.LoadInt32(&s.dcSupportsFederationStates) != 0 {
+		return true
+	}
+
+	state := serversFederationStatesInfo{
+		supported: true,
+		found:     false,
+	}
+
+	// check if they are supported in the primary dc
+	if s.config.PrimaryDatacenter != s.config.Datacenter {
+		s.router.CheckServers(s.config.PrimaryDatacenter, state.update)
+
+		if !state.supported || !state.found {
+			s.logger.Debug("federation states are not enabled in the primary dc")
+			return false
+		}
+	}
+
+	// check the servers in the local DC
+	s.router.CheckServers(s.config.Datacenter, state.update)
+
+	if state.supported && state.found {
+		atomic.StoreInt32(&s.dcSupportsFederationStates, 1)
+		return true
+	}
+
+	s.logger.Debug("federation states are not enabled in this datacenter", "datacenter", s.config.Datacenter)
+	return false
+}
+
+type serversFederationStatesInfo struct {
+	// supported indicates whether every processed server supports federation states
+	supported bool
+
+	// found indicates that at least one server was processed
+	found bool
+}
+
+func (s *serversFederationStatesInfo) update(srv *metadata.Server) bool {
+	if srv.Status != serf.StatusAlive && srv.Status != serf.StatusFailed {
+		// they are left or something so regardless we treat these servers as meeting
+		// the version requirement
+		return true
+	}
+
+	// mark that we processed at least one server
+	s.found = true
+
+	if supported, ok := srv.FeatureFlags["fs"]; ok && supported == 1 {
+		return true
+	}
+
+	// mark that at least one server does not support federation states
+	s.supported = false
+
+	// prevent continuing server evaluation
+	return false
+}

@@ -74,6 +74,9 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 		conf.Tags["acls"] = string(structs.ACLModeDisabled)
 	}
 
+	// feature flag: advertise support for federation states
+	conf.Tags["ft_fs"] = "1"
+
 	var subLoggerName string
 	if wan {
 		subLoggerName = logging.WAN
