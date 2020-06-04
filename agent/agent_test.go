@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -583,7 +584,13 @@ func testAgent_AddServices_AliasUpdateCheckNotReverted(t *testing.T, extraHCL st
 
 	services := make([]*structs.ServiceDefinition, numServices)
 	checkIDs := make([]types.CheckID, numServices)
-	for i := 0; i < numServices; i++ {
+	services[0] = &structs.ServiceDefinition{
+		ID:     "fake",
+		Name:   "fake",
+		Port:   8080,
+		Checks: []*structs.CheckType{},
+	}
+	for i := 1; i < numServices; i++ {
 		name := fmt.Sprintf("web-%d", i)
 
 		services[i] = &structs.ServiceDefinition{
@@ -618,6 +625,152 @@ func testAgent_AddServices_AliasUpdateCheckNotReverted(t *testing.T, extraHCL st
 			require.Equal(r, "No checks found.", check.Output, "check %q is wrong", id)
 		}
 	})
+}
+
+func test_createAlias(t *testing.T, agent *TestAgent, chk *structs.CheckType, expectedResult string) func(r *retry.R) {
+	t.Helper()
+	serviceNum := rand.Int()
+	srv := &structs.NodeService{
+		Service: fmt.Sprintf("serviceAlias-%d", serviceNum),
+		Tags:    []string{"tag1"},
+		Port:    8900 + serviceNum,
+	}
+	if srv.ID == "" {
+		srv.ID = fmt.Sprintf("serviceAlias-%d", serviceNum)
+	}
+	chk.Status = api.HealthWarning
+	if chk.CheckID == "" {
+		chk.CheckID = types.CheckID(fmt.Sprintf("check-%d", serviceNum))
+	}
+	err := agent.AddService(srv, []*structs.CheckType{chk}, false, "", ConfigSourceLocal)
+	assert.NoError(t, err)
+	return func(r *retry.R) {
+		t.Helper()
+		found := false
+		for _, c := range agent.State.CheckStates(structs.WildcardEnterpriseMeta()) {
+			if c.Check.CheckID == chk.CheckID {
+				found = true
+				assert.Equal(t, expectedResult, c.Check.Status, "Check state should be %s, was %s in %#v", expectedResult, c.Check.Status, c.Check)
+				var srvID structs.ServiceID
+				srvID.Init(srv.ID, structs.WildcardEnterpriseMeta())
+				if err := agent.Agent.State.RemoveService(structs.ServiceID(srvID)); err != nil {
+					fmt.Println("[DEBUG] Fail to remove service", srvID, ", err:=", err)
+				}
+				fmt.Println("[DEBUG] Service Removed", srvID, ", err:=", err)
+				break
+			}
+		}
+		assert.True(t, found)
+	}
+}
+
+// TestAgent_CheckAliasRPC test the Alias Check to be properly sync remotely
+// and locally.
+// It contains a few hacks such as unlockIndexOnNode because watch performed
+// in CheckAlias.runQuery() waits for 1 min, so Shutdoww the agent might take time
+// So, we ensure the agent will update regularilly the index
+func TestAgent_CheckAliasRPC(t *testing.T) {
+	t.Helper()
+
+	a := NewTestAgent(t, `
+		node_name = "node1"
+	`)
+
+	srv := &structs.NodeService{
+		ID:      "svcid1",
+		Service: "svcname1",
+		Tags:    []string{"tag1"},
+		Port:    8100,
+	}
+	unlockIndexOnNode := func() {
+		// We ensure to not block and update Agent's index
+		srv.Tags = []string{fmt.Sprintf("tag-%s", time.Now())}
+		assert.NoError(t, a.waitForUp())
+		err := a.AddService(srv, []*structs.CheckType{}, false, "", ConfigSourceLocal)
+		assert.NoError(t, err)
+	}
+	shutdownAgent := func() {
+		// This is to be sure Alias Checks on remote won't be blocked during 1 min
+		unlockIndexOnNode()
+		fmt.Println("[DEBUG] STARTING shutdown for TestAgent_CheckAliasRPC", time.Now())
+		go a.Shutdown()
+		unlockIndexOnNode()
+		fmt.Println("[DEBUG] DONE shutdown for TestAgent_CheckAliasRPC", time.Now())
+	}
+	defer shutdownAgent()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	assert.NoError(t, a.waitForUp())
+	err := a.AddService(srv, []*structs.CheckType{}, false, "", ConfigSourceLocal)
+	assert.NoError(t, err)
+
+	retry.Run(t, func(r *retry.R) {
+		t.Helper()
+		var args structs.NodeSpecificRequest
+		args.Datacenter = "dc1"
+		args.Node = "node1"
+		args.AllowStale = true
+		var out structs.IndexedNodeServices
+		err := a.RPC("Catalog.NodeServices", &args, &out)
+		assert.NoError(r, err)
+		foundService := false
+		var lookup structs.ServiceID
+		lookup.Init("svcid1", structs.WildcardEnterpriseMeta())
+		for _, srv := range out.NodeServices.Services {
+			sid := srv.CompoundServiceID()
+			if lookup.Matches(&sid) {
+				foundService = true
+			}
+		}
+		assert.True(r, foundService, "could not find svcid1 in %#v", out.NodeServices.Services)
+	})
+
+	checks := make([](func(*retry.R)), 0)
+
+	checks = append(checks, test_createAlias(t, a, &structs.CheckType{
+		Name:         "Check_Local_Ok",
+		AliasService: "svcid1",
+	}, api.HealthPassing))
+
+	checks = append(checks, test_createAlias(t, a, &structs.CheckType{
+		Name:         "Check_Local_Fail",
+		AliasService: "svcidNoExistingID",
+	}, api.HealthCritical))
+
+	checks = append(checks, test_createAlias(t, a, &structs.CheckType{
+		Name:         "Check_Remote_Host_Ok",
+		AliasNode:    "node1",
+		AliasService: "svcid1",
+	}, api.HealthPassing))
+
+	checks = append(checks, test_createAlias(t, a, &structs.CheckType{
+		Name:         "Check_Remote_Host_Non_Existing_Service",
+		AliasNode:    "node1",
+		AliasService: "svcidNoExistingID",
+	}, api.HealthCritical))
+
+	// We wait for max 5s for all checks to be in sync
+	{
+		for i := 0; i < 50; i++ {
+			unlockIndexOnNode()
+			allNonWarning := true
+			for _, chk := range a.State.Checks(structs.WildcardEnterpriseMeta()) {
+				if chk.Status == api.HealthWarning {
+					allNonWarning = false
+				}
+			}
+			if allNonWarning {
+				break
+			} else {
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+	}
+
+	for _, toRun := range checks {
+		unlockIndexOnNode()
+		retry.Run(t, toRun)
+	}
 }
 
 func TestAgent_AddServiceNoExec(t *testing.T) {

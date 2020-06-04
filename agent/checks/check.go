@@ -52,6 +52,8 @@ type RPC interface {
 // should take care to be idempotent.
 type CheckNotifier interface {
 	UpdateCheck(checkID structs.CheckID, status, output string)
+	// ServiceExists return true if the given service does exists
+	ServiceExists(serviceID structs.ServiceID) bool
 }
 
 // CheckMonitor is used to periodically invoke a script to
