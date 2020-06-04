@@ -651,9 +651,8 @@ func test_createAlias(t *testing.T, agent *TestAgent, chk *structs.CheckType, ex
 			if c.Check.CheckID == chk.CheckID {
 				found = true
 				assert.Equal(t, expectedResult, c.Check.Status, "Check state should be %s, was %s in %#v", expectedResult, c.Check.Status, c.Check)
-				var srvID structs.ServiceID
-				srvID.Init(srv.ID, structs.WildcardEnterpriseMeta())
-				if err := agent.Agent.State.RemoveService(structs.ServiceID(srvID)); err != nil {
+				srvID := structs.NewServiceID(srv.ID, structs.WildcardEnterpriseMeta())
+				if err := agent.Agent.State.RemoveService(srvID); err != nil {
 					fmt.Println("[DEBUG] Fail to remove service", srvID, ", err:=", err)
 				}
 				fmt.Println("[DEBUG] Service Removed", srvID, ", err:=", err)
@@ -714,8 +713,7 @@ func TestAgent_CheckAliasRPC(t *testing.T) {
 		err := a.RPC("Catalog.NodeServices", &args, &out)
 		assert.NoError(r, err)
 		foundService := false
-		var lookup structs.ServiceID
-		lookup.Init("svcid1", structs.WildcardEnterpriseMeta())
+		lookup := structs.NewServiceID("svcid1", structs.WildcardEnterpriseMeta())
 		for _, srv := range out.NodeServices.Services {
 			sid := srv.CompoundServiceID()
 			if lookup.Matches(&sid) {

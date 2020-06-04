@@ -144,7 +144,7 @@ func (c *CheckAlias) checkServiceExistsOnRemoteServer(serviceID *structs.Service
 	args.AllowStale = true
 	args.EnterpriseMeta = c.EnterpriseMeta
 	// We are late at maximum of 15s compared to leader
-	args.MaxStaleDuration = time.Duration(15 * time.Second)
+	args.MaxStaleDuration = 15 * time.Second
 	attempts := 0
 RETRY_CALL:
 	var out structs.IndexedNodeServices
@@ -172,7 +172,7 @@ func (c *CheckAlias) runQuery(stopCh chan struct{}) {
 	args.MaxQueryTime = 1 * time.Minute
 	args.EnterpriseMeta = c.EnterpriseMeta
 	// We are late at maximum of 15s compared to leader
-	args.MaxStaleDuration = time.Duration(15 * time.Second)
+	args.MaxStaleDuration = 15 * time.Second
 
 	var attempt uint
 	for {
