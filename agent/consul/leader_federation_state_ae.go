@@ -43,6 +43,10 @@ func (s *Server) federationStateAntiEntropySync(ctx context.Context) error {
 	var lastFetchIndex uint64
 
 	retryLoopBackoff(ctx.Done(), func() error {
+		if !s.DatacenterSupportsFederationStates() {
+			return nil
+		}
+
 		idx, err := s.federationStateAntiEntropyMaybeSync(ctx, lastFetchIndex)
 		if err != nil {
 			return err

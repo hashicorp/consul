@@ -1226,3 +1226,299 @@ func TestLeader_ACLLegacyReplication(t *testing.T) {
 	require.False(t, srv.leaderRoutineManager.IsRunning(aclRoleReplicationRoutineName))
 	require.False(t, srv.leaderRoutineManager.IsRunning(aclTokenReplicationRoutineName))
 }
+
+func TestDatacenterSupportsFederationStates(t *testing.T) {
+	addGateway := func(t *testing.T, srv *Server, dc, node string) {
+		t.Helper()
+		arg := structs.RegisterRequest{
+			Datacenter: dc,
+			Node:       node,
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindMeshGateway,
+				ID:      "mesh-gateway",
+				Service: "mesh-gateway",
+				Port:    8080,
+			},
+		}
+
+		var out struct{}
+		require.NoError(t, srv.RPC("Catalog.Register", &arg, &out))
+	}
+
+	t.Run("one node primary with old version", func(t *testing.T) {
+		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+			c.NodeName = "node1"
+			c.Datacenter = "dc1"
+			c.PrimaryDatacenter = "dc1"
+		})
+		defer os.RemoveAll(dir1)
+		defer s1.Shutdown()
+
+		s1.updateSerfTags("ft_fs", "0")
+
+		waitForLeaderEstablishment(t, s1)
+
+		addGateway(t, s1, "dc1", "node1")
+
+		retry.Run(t, func(r *retry.R) {
+			if s1.DatacenterSupportsFederationStates() {
+				r.Fatal("server 1 shouldn't activate fedstates")
+			}
+		})
+	})
+
+	t.Run("one node primary with new version", func(t *testing.T) {
+		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+			c.NodeName = "node1"
+			c.Datacenter = "dc1"
+			c.PrimaryDatacenter = "dc1"
+		})
+		defer os.RemoveAll(dir1)
+		defer s1.Shutdown()
+
+		waitForLeaderEstablishment(t, s1)
+
+		addGateway(t, s1, "dc1", "node1")
+
+		retry.Run(t, func(r *retry.R) {
+			if !s1.DatacenterSupportsFederationStates() {
+				r.Fatal("server 1 didn't activate fedstates")
+			}
+		})
+
+		// Wait until after AE runs at least once.
+		retry.Run(t, func(r *retry.R) {
+			arg := structs.FederationStateQuery{
+				Datacenter:       "dc1",
+				TargetDatacenter: "dc1",
+			}
+
+			var out structs.FederationStateResponse
+			require.NoError(r, s1.RPC("FederationState.Get", &arg, &out))
+			require.NotNil(r, out.State)
+			require.Len(r, out.State.MeshGateways, 1)
+		})
+	})
+
+	t.Run("two node primary with mixed versions", func(t *testing.T) {
+		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+			c.NodeName = "node1"
+			c.Datacenter = "dc1"
+			c.PrimaryDatacenter = "dc1"
+		})
+		defer os.RemoveAll(dir1)
+		defer s1.Shutdown()
+
+		s1.updateSerfTags("ft_fs", "0")
+
+		waitForLeaderEstablishment(t, s1)
+
+		dir2, s2 := testServerWithConfig(t, func(c *Config) {
+			c.NodeName = "node2"
+			c.Datacenter = "dc1"
+			c.PrimaryDatacenter = "dc1"
+			c.Bootstrap = false
+		})
+		defer os.RemoveAll(dir2)
+		defer s2.Shutdown()
+
+		// Put s1 last so we don't trigger a leader election.
+		servers := []*Server{s2, s1}
+
+		// Try to join
+		joinLAN(t, s2, s1)
+		for _, s := range servers {
+			retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 2)) })
+		}
+
+		waitForLeaderEstablishment(t, s1)
+
+		addGateway(t, s1, "dc1", "node1")
+
+		retry.Run(t, func(r *retry.R) {
+			if s1.DatacenterSupportsFederationStates() {
+				r.Fatal("server 1 shouldn't activate fedstates")
+			}
+		})
+		retry.Run(t, func(r *retry.R) {
+			if s2.DatacenterSupportsFederationStates() {
+				r.Fatal("server 2 shouldn't activate fedstates")
+			}
+		})
+	})
+
+	t.Run("two node primary with new version", func(t *testing.T) {
+		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+			c.NodeName = "node1"
+			c.Datacenter = "dc1"
+			c.PrimaryDatacenter = "dc1"
+		})
+		defer os.RemoveAll(dir1)
+		defer s1.Shutdown()
+
+		waitForLeaderEstablishment(t, s1)
+
+		dir2, s2 := testServerWithConfig(t, func(c *Config) {
+			c.NodeName = "node2"
+			c.Datacenter = "dc1"
+			c.PrimaryDatacenter = "dc1"
+			c.Bootstrap = false
+		})
+		defer os.RemoveAll(dir2)
+		defer s2.Shutdown()
+
+		// Put s1 last so we don't trigger a leader election.
+		servers := []*Server{s2, s1}
+
+		// Try to join
+		joinLAN(t, s2, s1)
+		for _, s := range servers {
+			retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 2)) })
+		}
+
+		testrpc.WaitForLeader(t, s1.RPC, "dc1")
+		testrpc.WaitForLeader(t, s2.RPC, "dc1")
+
+		addGateway(t, s1, "dc1", "node1")
+
+		retry.Run(t, func(r *retry.R) {
+			if !s1.DatacenterSupportsFederationStates() {
+				r.Fatal("server 1 didn't activate fedstates")
+			}
+		})
+		retry.Run(t, func(r *retry.R) {
+			if !s2.DatacenterSupportsFederationStates() {
+				r.Fatal("server 2 didn't activate fedstates")
+			}
+		})
+
+		// Wait until after AE runs at least once.
+		retry.Run(t, func(r *retry.R) {
+			arg := structs.DCSpecificRequest{
+				Datacenter: "dc1",
+			}
+
+			var out structs.IndexedFederationStates
+			require.NoError(r, s1.RPC("FederationState.List", &arg, &out))
+			require.Len(r, out.States, 1)
+			require.Len(r, out.States[0].MeshGateways, 1)
+		})
+	})
+
+	t.Run("primary and secondary with new version", func(t *testing.T) {
+		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+			c.NodeName = "node1"
+			c.Datacenter = "dc1"
+			c.PrimaryDatacenter = "dc1"
+		})
+		defer os.RemoveAll(dir1)
+		defer s1.Shutdown()
+
+		waitForLeaderEstablishment(t, s1)
+
+		dir2, s2 := testServerWithConfig(t, func(c *Config) {
+			c.NodeName = "node2"
+			c.Datacenter = "dc2"
+			c.PrimaryDatacenter = "dc1"
+			c.FederationStateReplicationRate = 100
+			c.FederationStateReplicationBurst = 100
+			c.FederationStateReplicationApplyLimit = 1000000
+		})
+		defer os.RemoveAll(dir2)
+		defer s2.Shutdown()
+
+		waitForLeaderEstablishment(t, s2)
+
+		// Try to join
+		joinWAN(t, s2, s1)
+		testrpc.WaitForLeader(t, s1.RPC, "dc1")
+		testrpc.WaitForLeader(t, s1.RPC, "dc2")
+
+		addGateway(t, s1, "dc1", "node1")
+		addGateway(t, s2, "dc2", "node2")
+
+		retry.Run(t, func(r *retry.R) {
+			if !s1.DatacenterSupportsFederationStates() {
+				r.Fatal("server 1 didn't activate fedstates")
+			}
+		})
+		retry.Run(t, func(r *retry.R) {
+			if !s2.DatacenterSupportsFederationStates() {
+				r.Fatal("server 2 didn't activate fedstates")
+			}
+		})
+
+		// Wait until after AE runs at least once for both.
+		retry.Run(t, func(r *retry.R) {
+			arg := structs.DCSpecificRequest{
+				Datacenter: "dc1",
+			}
+
+			var out structs.IndexedFederationStates
+			require.NoError(r, s1.RPC("FederationState.List", &arg, &out))
+			require.Len(r, out.States, 2)
+			require.Len(r, out.States[0].MeshGateways, 1)
+			require.Len(r, out.States[1].MeshGateways, 1)
+		})
+
+		// Wait until after replication runs for the secondary.
+		retry.Run(t, func(r *retry.R) {
+			arg := structs.DCSpecificRequest{
+				Datacenter: "dc2",
+			}
+
+			var out structs.IndexedFederationStates
+			require.NoError(r, s1.RPC("FederationState.List", &arg, &out))
+			require.Len(r, out.States, 2)
+			require.Len(r, out.States[0].MeshGateways, 1)
+			require.Len(r, out.States[1].MeshGateways, 1)
+		})
+	})
+
+	t.Run("primary and secondary with mixed versions", func(t *testing.T) {
+		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+			c.NodeName = "node1"
+			c.Datacenter = "dc1"
+			c.PrimaryDatacenter = "dc1"
+		})
+		defer os.RemoveAll(dir1)
+		defer s1.Shutdown()
+
+		s1.updateSerfTags("ft_fs", "0")
+
+		waitForLeaderEstablishment(t, s1)
+
+		dir2, s2 := testServerWithConfig(t, func(c *Config) {
+			c.NodeName = "node2"
+			c.Datacenter = "dc2"
+			c.PrimaryDatacenter = "dc1"
+			c.FederationStateReplicationRate = 100
+			c.FederationStateReplicationBurst = 100
+			c.FederationStateReplicationApplyLimit = 1000000
+		})
+		defer os.RemoveAll(dir2)
+		defer s2.Shutdown()
+
+		waitForLeaderEstablishment(t, s2)
+
+		// Try to join
+		joinWAN(t, s2, s1)
+		testrpc.WaitForLeader(t, s1.RPC, "dc1")
+		testrpc.WaitForLeader(t, s1.RPC, "dc2")
+
+		addGateway(t, s1, "dc1", "node1")
+		addGateway(t, s2, "dc2", "node2")
+
+		retry.Run(t, func(r *retry.R) {
+			if s1.DatacenterSupportsFederationStates() {
+				r.Fatal("server 1 shouldn't activate fedstates")
+			}
+		})
+		retry.Run(t, func(r *retry.R) {
+			if s2.DatacenterSupportsFederationStates() {
+				r.Fatal("server 2 shouldn't activate fedstates")
+			}
+		})
+	})
+}

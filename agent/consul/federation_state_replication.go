@@ -2,12 +2,19 @@ package consul
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
+
+var errFederationStatesNotSupported = errors.New("Not all servers in the datacenter support federation states - preventing replication")
+
+func isErrFederationStatesNotSupported(err error) bool {
+	return errors.Is(err, errFederationStatesNotSupported)
+}
 
 type FederationStateReplicator struct {
 	srv            *Server
@@ -27,6 +34,9 @@ func (r *FederationStateReplicator) MetricName() string { return "federation-sta
 
 // FetchRemote implements IndexReplicatorDelegate.
 func (r *FederationStateReplicator) FetchRemote(lastRemoteIndex uint64) (int, interface{}, uint64, error) {
+	if !r.srv.DatacenterSupportsFederationStates() {
+		return 0, nil, 0, errFederationStatesNotSupported
+	}
 	lenRemote, remote, remoteIndex, err := r.fetchRemote(lastRemoteIndex)
 	if r.gatewayLocator != nil {
 		r.gatewayLocator.SetLastFederationStateReplicationError(err)
