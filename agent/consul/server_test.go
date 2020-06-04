@@ -1276,7 +1276,7 @@ func testVerifyRPC(s1, s2 *Server, t *testing.T) (bool, error) {
 	if leader == nil {
 		t.Fatal("no leader")
 	}
-	return s2.connPool.Ping(leader.Datacenter, leader.ShortName, leader.Addr, leader.Version)
+	return s2.connPool.Ping(leader.Datacenter, leader.ShortName, leader.Addr)
 }
 
 func TestServer_TLSToNoTLS(t *testing.T) {

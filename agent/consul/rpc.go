@@ -552,7 +552,7 @@ CHECK_LEADER:
 	rpcErr := structs.ErrNoLeader
 	if leader != nil {
 		rpcErr = s.connPool.RPC(s.config.Datacenter, leader.ShortName, leader.Addr,
-			leader.Version, method, args, reply)
+			method, args, reply)
 		if rpcErr != nil && canRetry(info, rpcErr) {
 			goto RETRY
 		}
@@ -617,7 +617,7 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 
 	metrics.IncrCounterWithLabels([]string{"rpc", "cross-dc"}, 1,
 		[]metrics.Label{{Name: "datacenter", Value: dc}})
-	if err := s.connPool.RPC(dc, server.ShortName, server.Addr, server.Version, method, args, reply); err != nil {
+	if err := s.connPool.RPC(dc, server.ShortName, server.Addr, method, args, reply); err != nil {
 		manager.NotifyFailedServer(server)
 		s.rpcLogger().Error("RPC failed to server in DC",
 			"server", server.Addr,

@@ -37,20 +37,25 @@ func insecureRPCClient(s *Server, c tlsutil.Config) (rpc.ClientCodec, error) {
 	if wrapper == nil {
 		return nil, err
 	}
-	conn, _, err := pool.DialTimeoutWithRPCTypeDirectly(
-		s.config.Datacenter,
-		s.config.NodeName,
-		addr,
-		nil,
-		time.Second,
-		true,
-		wrapper,
-		pool.RPCTLSInsecure,
-		pool.RPCTLSInsecure,
-	)
+	d := &net.Dialer{Timeout: time.Second}
+	conn, err := d.Dial("tcp", addr.String())
 	if err != nil {
 		return nil, err
 	}
+	// Switch the connection into TLS mode
+	if _, err = conn.Write([]byte{byte(pool.RPCTLSInsecure)}); err != nil {
+		conn.Close()
+		return nil, err
+	}
+
+	// Wrap the connection in a TLS client
+	tlsConn, err := wrapper(s.config.Datacenter, conn)
+	if err != nil {
+		conn.Close()
+		return nil, err
+	}
+	conn = tlsConn
+
 	return msgpackrpc.NewCodecFromHandle(true, true, conn, structs.MsgpackHandle), nil
 }
 
