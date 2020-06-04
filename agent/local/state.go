@@ -485,6 +485,13 @@ func (l *State) AddAliasCheck(checkID structs.CheckID, srcServiceID structs.Serv
 	return nil
 }
 
+// ServiceExists return true if the given service does exists
+func (l *State) ServiceExists(serviceID structs.ServiceID) bool {
+	l.Lock()
+	defer l.Unlock()
+	return l.services[serviceID] != nil
+}
+
 // RemoveAliasCheck removes the mapping for the alias check.
 func (l *State) RemoveAliasCheck(checkID structs.CheckID, srcServiceID structs.ServiceID) {
 	l.Lock()
