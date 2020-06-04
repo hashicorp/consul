@@ -3,10 +3,10 @@
   @extend %main-header-horizontal;
 }
 %main-nav-horizontal .docs-link a::after {
-  @extend %with-learn-icon, %as-pseudo;
+  @extend %with-docs-icon, %as-pseudo;
 }
 %main-nav-horizontal .learn-link a::after {
-  @extend %with-docs-icon, %as-pseudo;
+  @extend %with-learn-icon, %as-pseudo;
 }
 %main-nav-horizontal .feedback-link a::after {
   @extend %with-logo-github-monochrome-icon, %as-pseudo;
