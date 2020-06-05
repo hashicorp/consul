@@ -8,6 +8,13 @@ export default RepositoryService.extend({
   getPrimaryKey: function() {
     return PRIMARY_KEY;
   },
+  shouldReconcile: function(method) {
+    switch (method) {
+      case 'findByService':
+        return false;
+    }
+    return this._super(...arguments);
+  },
   findByService: function(slug, dc, nspace, configuration = {}) {
     const query = {
       dc: dc,
