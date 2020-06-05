@@ -50,6 +50,22 @@
        * The left and right excess is left as is - it's needed for proper centering when wrapping.
        */
       margin: 8px;
+
+      /*
+       * Overrides for tertiary links. Otherwise they would use brand colors
+       * and be too close to the other links.
+       */
+      &.variant-tertiary {
+        margin-top: 16px;
+
+        &:not(.background-brand):not([disabled]).brand-consul {
+          color: var(--gray-4);
+
+          & .icon svg [stroke] {
+            stroke: var(--gray-4);
+          }
+        }
+      }
     }
   }
 
