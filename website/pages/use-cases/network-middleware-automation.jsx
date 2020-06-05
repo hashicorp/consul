@@ -1,11 +1,11 @@
 import UseCaseLayout from '../../layouts/use-cases'
 import TextSplitWithImage from '@hashicorp/react-text-split-with-image'
 
-export default function NetworkMiddlewareAutomationPage() {
+export default function NetworkInfrastructureAutomationPage() {
   return (
     <UseCaseLayout
-      title="Network Middleware Automation"
-      description="Reduce the time to deploy applications and eliminate manual processes by automating complex networking tasks. Enable operators to easily deploy, manage and optimize network middleware."
+      title="Network Infrastructure Automation"
+      description="Reduce the time to deploy applications and eliminate manual processes by automating complex networking tasks. Enable operators to easily deploy, manage and optimize network infrastructure."
       guideLink="https://learn.hashicorp.com/consul?track=integrations"
     >
       <TextSplitWithImage
