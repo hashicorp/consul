@@ -136,10 +136,10 @@ func (c *cmd) Run(args []string) int {
 	return 0
 }
 
-// parseIntentionTarget parses a target of the form <namespace>/<name> and returns
+// ParseIntentionTarget parses a target of the form <namespace>/<name> and returns
 // the two distinct parts. In some cases the namespace may be elided and this function
 // will return the empty string for the namespace then.
-func parseIntentionTarget(input string) (name string, namespace string, err error) {
+func ParseIntentionTarget(input string) (name string, namespace string, err error) {
 	// Get the index to the '/'. If it doesn't exist, we have just a name
 	// so just set that and return.
 	idx := strings.IndexByte(input, '/')
@@ -171,12 +171,12 @@ func (c *cmd) ixnsFromArgs(args []string) ([]*api.Intention, error) {
 		return nil, fmt.Errorf("Must specify two arguments: source and destination")
 	}
 
-	srcName, srcNamespace, err := parseIntentionTarget(args[0])
+	srcName, srcNamespace, err := ParseIntentionTarget(args[0])
 	if err != nil {
 		return nil, fmt.Errorf("Invalid intention source: %v", err)
 	}
 
-	dstName, dstNamespace, err := parseIntentionTarget(args[1])
+	dstName, dstNamespace, err := ParseIntentionTarget(args[1])
 	if err != nil {
 		return nil, fmt.Errorf("Invalid intention destination: %v", err)
 	}
