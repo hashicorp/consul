@@ -5,7 +5,6 @@ import (
 	"testing"
 	time "time"
 
-	"github.com/hashicorp/consul/agent/agentpb"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,14 +16,14 @@ func TestSubscription(t *testing.T) {
 	startHead := eb.Head()
 
 	// Start with an event in the buffer
-	testPublish(index, eb, "test")
+	publishTestEvent(index, eb, "test")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	// Create a subscription
-	req := &agentpb.SubscribeRequest{
-		Topic: agentpb.Topic_ServiceHealth,
+	req := &SubscribeRequest{
+		Topic: Topic_ServiceHealth,
 		Key:   "test",
 	}
 	sub := NewSubscription(ctx, req, startHead)
@@ -43,7 +42,7 @@ func TestSubscription(t *testing.T) {
 	index++
 	start = time.Now()
 	time.AfterFunc(200*time.Millisecond, func() {
-		testPublish(index, eb, "test")
+		publishTestEvent(index, eb, "test")
 	})
 
 	// Next call should block until event is delivered
@@ -60,9 +59,9 @@ func TestSubscription(t *testing.T) {
 	// Event with wrong key should not be delivered. Deliver a good message right
 	// so we don't have to block test thread forever or cancel func yet.
 	index++
-	testPublish(index, eb, "nope")
+	publishTestEvent(index, eb, "nope")
 	index++
-	testPublish(index, eb, "test")
+	publishTestEvent(index, eb, "test")
 
 	start = time.Now()
 	got, err = sub.Next()
@@ -97,14 +96,14 @@ func TestSubscriptionCloseReload(t *testing.T) {
 	startHead := eb.Head()
 
 	// Start with an event in the buffer
-	testPublish(index, eb, "test")
+	publishTestEvent(index, eb, "test")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	// Create a subscription
-	req := &agentpb.SubscribeRequest{
-		Topic: agentpb.Topic_ServiceHealth,
+	req := &SubscribeRequest{
+		Topic: Topic_ServiceHealth,
 		Key:   "test",
 	}
 	sub := NewSubscription(ctx, req, startHead)
@@ -136,17 +135,14 @@ func TestSubscriptionCloseReload(t *testing.T) {
 		"Reload should have been delivered after short time, took %s", elapsed)
 }
 
-func testPublish(index uint64, b *EventBuffer, key string) {
-	// Don't care about the event payload for now just the semantics of publising
+func publishTestEvent(index uint64, b *EventBuffer, key string) {
+	// Don't care about the event payload for now just the semantics of publishing
 	// something. This is not a valid stream in the end-to-end streaming protocol
 	// but enough to test subscription mechanics.
-	e := agentpb.Event{
+	e := Event{
 		Index: index,
-		Topic: agentpb.Topic_ServiceHealth,
+		Topic: Topic_ServiceHealth,
 		Key:   key,
-		Payload: &agentpb.Event_EndOfSnapshot{
-			EndOfSnapshot: true,
-		},
 	}
-	b.Append([]agentpb.Event{e})
+	b.Append([]Event{e})
 }

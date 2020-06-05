@@ -4,21 +4,19 @@ import (
 	"context"
 	"errors"
 	"sync/atomic"
-
-	"github.com/hashicorp/consul/agent/agentpb"
 )
 
 // EventBuffer is a single-writer, multiple-reader, unlimited length concurrent
 // buffer of events that have been published on a topic. The buffer is
 // effectively just the head of an atomically updated single-linked list. Atomic
 // accesses are usually to be suspected as premature optimization but this
-// specifc design has several important features that significantly simplify a
+// specific design has several important features that significantly simplify a
 // lot of our PubSub machinery.
 //
 // The Buffer itself only ever tracks the most recent set of events published so
 // if there are no consumers older events are automatically garbage collected.
 // Notification of new events is done by closing a channel on the previous head
-// alowing efficient broadcast to many watchers without having to run multile
+// allowing efficient broadcast to many watchers without having to run multiple
 // goroutines or deliver to O(N) separate channels.
 //
 // Because it's a linked list with atomically updated pointers, readers don't
@@ -35,7 +33,7 @@ import (
 // the first event in the buffer, we can cache the buffered events for future
 // watchers on the same topic. Finally, once we've delivered all the snapshot
 // events to the buffer, we can append a next-element which is the first topic
-// buffer element with a higher index and so consuers can just keep reading the
+// buffer element with a higher index and so consumers can just keep reading the
 // same buffer.
 //
 // A huge benefit here is that caching snapshots becomes very simple - we don't
@@ -78,7 +76,7 @@ func NewEventBuffer() *EventBuffer {
 // mutations to the events as they may have been exposed to subscribers in other
 // goroutines. Append only supports a single concurrent caller and must be
 // externally synchronized with other Append, AppendBuffer or AppendErr calls.
-func (b *EventBuffer) Append(events []agentpb.Event) {
+func (b *EventBuffer) Append(events []Event) {
 	// Push events to the head
 	it := NewBufferItem()
 	it.Events = events
@@ -146,7 +144,7 @@ type BufferItem struct {
 	// should check and skip nil Events at any point in the buffer. It will also
 	// be nil if the producer appends an Error event because they can't complete
 	// the request to populate the buffer. Err will be non-nil in this case.
-	Events []agentpb.Event
+	Events []Event
 
 	// Err is non-nil if the producer can't complete their task and terminates the
 	// buffer. Subscribers should return the error to clients and cease attempting

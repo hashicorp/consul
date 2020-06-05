@@ -6,14 +6,13 @@ import (
 	"testing"
 	time "time"
 
-	"github.com/hashicorp/consul/agent/agentpb"
 	"github.com/stretchr/testify/require"
 )
 
 func TestEventSnapshot(t *testing.T) {
 	// Setup a dummy state that we can manipulate easily. The properties we care
 	// about are that we publish some sequence of events as a snapshot and then
-	// follow them up with "live updates". We control the interleavings. Our state
+	// follow them up with "live updates". We control the interleaving. Our state
 	// consists of health events (only type fully defined so far) for service
 	// instances with consecutive ID numbers starting from 0 (e.g. test-000,
 	// test-001). The snapshot is delivered at index 1000. updatesBeforeSnap
@@ -85,12 +84,12 @@ func TestEventSnapshot(t *testing.T) {
 				// Use an instance index that's unique and should never appear in the
 				// output so we can be sure these were not included as they came before
 				// the snapshot.
-				tb.Append([]agentpb.Event{testHealthEvent(index, 10000+i)})
+				tb.Append([]Event{newDefaultHealthEvent(index, 10000+i)})
 			}
 
 			// Create EventSnapshot, (will call snFn in another goroutine). The
 			// Request is ignored by the SnapFn so doesn't matter for now.
-			es := NewEventSnapshot(&agentpb.SubscribeRequest{}, tbHead, snFn)
+			es := NewEventSnapshot(&SubscribeRequest{}, tbHead, snFn)
 
 			// Deliver any post-snapshot events simulating updates that occur
 			// logically after snapshot. It doesn't matter that these might actually
@@ -102,7 +101,7 @@ func TestEventSnapshot(t *testing.T) {
 			for i := 0; i < tc.updatesAfterSnap; i++ {
 				index := snapIndex + 1 + uint64(i)
 				// Use an instance index that's unique.
-				tb.Append([]agentpb.Event{testHealthEvent(index, 20000+i)})
+				tb.Append([]Event{newDefaultHealthEvent(index, 20000+i)})
 			}
 
 			// Now read the snapshot buffer until we've received everything we expect.
@@ -123,20 +122,21 @@ func TestEventSnapshot(t *testing.T) {
 					"current state: snapDone=%v snapIDs=%s updateIDs=%s", snapDone,
 					snapIDs, updateIDs)
 				e := curItem.Events[0]
-				if snapDone {
-					sh := e.GetServiceHealth()
-					require.NotNil(t, sh, "want health event got: %#v", e.Payload)
-					updateIDs = append(updateIDs, sh.CheckServiceNode.Service.ID)
+				switch {
+				case snapDone:
+					payload, ok := e.Payload.(string)
+					require.True(t, ok, "want health event got: %#v", e.Payload)
+					updateIDs = append(updateIDs, payload)
 					if len(updateIDs) == tc.updatesAfterSnap {
 						// We're done!
 						break RECV
 					}
-				} else if e.GetEndOfSnapshot() {
+				case e.isEndOfSnapshot():
 					snapDone = true
-				} else {
-					sh := e.GetServiceHealth()
-					require.NotNil(t, sh, "want health event got: %#v", e.Payload)
-					snapIDs = append(snapIDs, sh.CheckServiceNode.Service.ID)
+				default:
+					payload, ok := e.Payload.(string)
+					require.True(t, ok, "want health event got: %#v", e.Payload)
+					snapIDs = append(snapIDs, payload)
 				}
 			}
 
@@ -150,42 +150,27 @@ func TestEventSnapshot(t *testing.T) {
 func genSequentialIDs(start, end int) []string {
 	ids := make([]string, 0, end-start)
 	for i := start; i < end; i++ {
-		ids = append(ids, fmt.Sprintf("test-%03d", i))
+		ids = append(ids, fmt.Sprintf("test-event-%03d", i))
 	}
 	return ids
 }
 
 func testHealthConsecutiveSnapshotFn(size int, index uint64) SnapFn {
-	return func(req *agentpb.SubscribeRequest, buf *EventBuffer) (uint64, error) {
+	return func(req *SubscribeRequest, buf *EventBuffer) (uint64, error) {
 		for i := 0; i < size; i++ {
 			// Event content is arbitrary we are just using Health because it's the
 			// first type defined. We just want a set of things with consecutive
 			// names.
-			buf.Append([]agentpb.Event{testHealthEvent(index, i)})
+			buf.Append([]Event{newDefaultHealthEvent(index, i)})
 		}
 		return index, nil
 	}
 }
 
-func testHealthEvent(index uint64, n int) agentpb.Event {
-	return agentpb.Event{
-		Index: index,
-		Topic: agentpb.Topic_ServiceHealth,
-		Payload: &agentpb.Event_ServiceHealth{
-			ServiceHealth: &agentpb.ServiceHealthUpdate{
-				Op: agentpb.CatalogOp_Register,
-				CheckServiceNode: &agentpb.CheckServiceNode{
-					Node: &agentpb.Node{
-						Node:    "n1",
-						Address: "10.10.10.10",
-					},
-					Service: &agentpb.NodeService{
-						ID:      fmt.Sprintf("test-%03d", n),
-						Service: "test",
-						Port:    8080,
-					},
-				},
-			},
-		},
+func newDefaultHealthEvent(index uint64, n int) Event {
+	return Event{
+		Index:   index,
+		Topic:   Topic_ServiceHealth,
+		Payload: fmt.Sprintf("test-event-%03d", n),
 	}
 }

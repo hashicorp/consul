@@ -4,8 +4,6 @@ import (
 	context "context"
 	"errors"
 	"sync/atomic"
-
-	"github.com/hashicorp/consul/agent/agentpb"
 )
 
 const (
@@ -31,7 +29,7 @@ type Subscription struct {
 	state uint32
 
 	// req is the requests that we are responding to
-	req *agentpb.SubscribeRequest
+	req *SubscribeRequest
 
 	// currentItem stores the current snapshot or topic buffer item we are on. It
 	// is mutated by calls to Next.
@@ -46,8 +44,15 @@ type Subscription struct {
 	cancelFn func()
 }
 
+type SubscribeRequest struct {
+	Topic Topic
+	Key   string
+	Token string
+	Index uint64
+}
+
 // NewSubscription return a new subscription.
-func NewSubscription(ctx context.Context, req *agentpb.SubscribeRequest, item *BufferItem) *Subscription {
+func NewSubscription(ctx context.Context, req *SubscribeRequest, item *BufferItem) *Subscription {
 	subCtx, cancel := context.WithCancel(ctx)
 	return &Subscription{
 		ctx:         subCtx,
@@ -59,7 +64,7 @@ func NewSubscription(ctx context.Context, req *agentpb.SubscribeRequest, item *B
 
 // Next returns the next set of events to deliver. It must only be called from a
 // single goroutine concurrently as it mutates the Subscription.
-func (s *Subscription) Next() ([]agentpb.Event, error) {
+func (s *Subscription) Next() ([]Event, error) {
 	state := atomic.LoadUint32(&s.state)
 	if state == SubscriptionStateCloseReload {
 		return nil, ErrSubscriptionReload
@@ -95,7 +100,7 @@ func (s *Subscription) Next() ([]agentpb.Event, error) {
 		// as this is a hot loop.
 		events := next.Events
 		if !allMatch {
-			events = make([]agentpb.Event, 0, len(next.Events))
+			events = make([]Event, 0, len(next.Events))
 			for _, e := range next.Events {
 				// Only return it if the key matches.
 				if s.req.Key == "" || s.req.Key == e.Key {
@@ -123,6 +128,6 @@ func (s *Subscription) CloseReload() {
 }
 
 // Request returns the request object that started the subscription.
-func (s *Subscription) Request() *agentpb.SubscribeRequest {
+func (s *Subscription) Request() *SubscribeRequest {
 	return s.req
 }
