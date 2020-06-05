@@ -37,16 +37,18 @@ type cmd struct {
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.StringVar(&c.ingressGateway, "ingress-gateway", "",
-		"The name of the ingress gateway service to use. Required.")
+		"(Required) The name of the ingress gateway service to use. A namespace "+
+			"can optionally be specified as a prefix via the 'namespace/service' format.")
 
 	c.flags.StringVar(&c.service, "service", "",
-		"The name of destination service to expose. Required.")
+		"(Required) The name of destination service to expose. A namespace "+
+			"can optionally be specified as a prefix via the 'namespace/service' format.")
 
 	c.flags.StringVar(&c.portRaw, "port", "",
-		"The listener port to use for the service on the Ingress gateway. Required.")
+		"(Required) The listener port to use for the service on the Ingress gateway.")
 
 	c.flags.StringVar(&c.protocol, "protocol", "tcp",
-		"The protocol for the service. Defaults to 'tcp'. Optional.")
+		"The protocol for the service. Defaults to 'tcp'.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())

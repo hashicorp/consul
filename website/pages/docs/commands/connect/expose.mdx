@@ -33,14 +33,18 @@ Usage: consul connect expose [options]
 
 #### Expose Options
 
-- `-ingress-gateway` - The name of the ingress gateway service to use. Required.
+- `-ingress-gateway` - (Required) The name of the ingress gateway service to use.
+  A namespace can optionally be specified as a prefix via the
+  'namespace/service' format
 
-- `-port` - The listener port to use for the service on the Ingress gateway.
-  Required.
+- `-port` - (Required) The listener port to use for the service on the Ingress
+  gateway.
 
-- `-protocol` - The protocol for the service. Defaults to 'tcp'. Optional.
+- `-protocol` - The protocol for the service. Defaults to 'tcp'.
 
-- `-service` - The name of destination service to expose. Required.
+- `-service` - (Required) The name of destination service to expose. A namespace
+  can optionally be specified as a prefix via the 'namespace/service'
+  format.
 
 ## Examples
 
