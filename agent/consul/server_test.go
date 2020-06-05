@@ -2,6 +2,10 @@ package consul
 
 import (
 	"bytes"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
 	"fmt"
 	"net"
 	"net/rpc"
@@ -37,6 +41,46 @@ import (
 const (
 	TestDefaultMasterToken = "d9f05e83-a7ae-47ce-839e-c0d53a68c00a"
 )
+
+// testTLSCertificates Generates a TLS CA and server key/cert and returns them
+// in PEM encoded form.
+func testTLSCertificates(serverName string) (cert string, key string, cacert string, err error) {
+	// generate CA
+	serial, err := tlsutil.GenerateSerialNumber()
+	if err != nil {
+		return "", "", "", err
+	}
+	signer, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return "", "", "", err
+	}
+	ca, err := tlsutil.GenerateCA(signer, serial, 365, nil)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	// generate leaf
+	serial, err = tlsutil.GenerateSerialNumber()
+	if err != nil {
+		return "", "", "", err
+	}
+
+	cert, privateKey, err := tlsutil.GenerateCert(
+		signer,
+		ca,
+		serial,
+		"Test Cert Name",
+		365,
+		[]string{serverName},
+		nil,
+		[]x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+	)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	return cert, privateKey, ca, nil
+}
 
 // testServerACLConfig wraps another arbitrary Config altering callback
 // to setup some common ACL configurations. A new callback func will

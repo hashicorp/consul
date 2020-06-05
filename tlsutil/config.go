@@ -936,6 +936,7 @@ func ParseCiphers(cipherStr string) ([]uint16, error) {
 	}
 	ciphers := strings.Split(cipherStr, ",")
 
+	// Note: this needs to be kept up to date with the cipherMap in CipherString
 	cipherMap := map[string]uint16{
 		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA":    tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
 		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256": tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
@@ -957,4 +958,32 @@ func ParseCiphers(cipherStr string) ([]uint16, error) {
 	}
 
 	return suites, nil
+}
+
+// CipherString performs the inverse operation of ParseCiphers
+func CipherString(ciphers []uint16) (string, error) {
+	// Note: this needs to be kept up to date with the cipherMap in ParseCiphers
+	cipherMap := map[uint16]string{
+		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA:    "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
+		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256: "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
+		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256: "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+		tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA:    "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
+		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384: "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA:      "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256:   "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
+		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:   "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+		tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA:      "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
+		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:   "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+	}
+
+	cipherStrings := make([]string, len(ciphers))
+	for i, cipher := range ciphers {
+		if v, ok := cipherMap[cipher]; ok {
+			cipherStrings[i] = v
+		} else {
+			return "", fmt.Errorf("unsupported cipher %d", cipher)
+		}
+	}
+
+	return strings.Join(cipherStrings, ","), nil
 }

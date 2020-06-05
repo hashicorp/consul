@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package config;
+
+option go_package = "github.com/hashicorp/consul/agent/agentpb/config";
+
+message Config {
+   string      Datacenter = 1;
+   string      PrimaryDatacenter = 2;
+   string      NodeName = 3;
+   ACL         ACL = 4;
+   AutoEncrypt AutoEncrypt = 5;
+
+   // Gossip Configurations
+   string          EncryptKey = 6;
+   bool            EncryptVerifyIncoming = 7;
+   bool            EncryptVerifyOutgoing = 8;
+   repeated string RetryJoinLAN = 9;
+   string          SegmentName = 10;
+
+   // TLS Configurations
+   bool   VerifyOutgoing = 11;
+   bool   VerifyServerHostname = 12;
+   string TLSCipherSuites = 13; 
+   string TLSMinVersion = 14;      
+   bool   TLSPreferServerCipherSuites = 15;
+}
+
+message ACL {
+   bool Enabled = 1;
+   string PolicyTTL = 2;
+   string RoleTTL = 3;
+   string TokenTTL = 4;
+   string DownPolicy = 5;
+   string DefaultPolicy = 6;
+   bool EnableKeyListPolicy = 7;
+   ACLTokens Tokens = 8;
+   string DisabledTTL = 9;
+   bool EnableTokenPersistence = 10;
+   bool MSPDisableBootstrap = 11;
+}
+
+message ACLTokens {
+   string Master = 1;
+   string Replication = 2;
+   string AgentMaster = 3;
+   string Default = 4;
+   string Agent = 5;
+   repeated ACLServiceProviderToken ManagedServiceProvider = 6;
+}
+
+message ACLServiceProviderToken {
+   string AccessorID = 1;
+   string SecretID = 2;
+}
+
+message AutoEncrypt {
+   bool TLS = 1;
+   repeated string DNSSAN = 2;
+   repeated string IPSAN = 3;
+   bool AllowTLS = 4;
+}
