@@ -153,7 +153,7 @@ export default function HomePage() {
               },
             },
             {
-              title: 'Network Middleware Automation',
+              title: 'Network Infrastructure Automation',
               description:
                 'Reduce burden of manual, ticket-based networking tasks.',
               image: {
