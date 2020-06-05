@@ -706,18 +706,17 @@ func (a *Agent) setupClientAutoEncryptWatching(rootsReq *structs.DCSpecificReque
 	// in time. The agent would be stuck in that case because the watches
 	// never use the AutoEncrypt.Sign endpoint.
 	go func() {
+		// Check 10sec after cert expires. The agent cache
+		// should be handling the expiration and renew before
+		// it.
+		// If there is no cert, AutoEncryptCertNotAfter returns
+		// a value in the past which immediately triggers the
+		// renew, but this case shouldn't happen because at
+		// this point, auto_encrypt was just being setup
+		// successfully.
+		interval := a.tlsConfigurator.AutoEncryptCertNotAfter().Sub(time.Now().Add(10 * time.Second))
+		autoLogger := a.logger.Named(logging.AutoEncrypt)
 		for {
-
-			// Check 10sec after cert expires. The agent cache
-			// should be handling the expiration and renew before
-			// it.
-			// If there is no cert, AutoEncryptCertNotAfter returns
-			// a value in the past which immediately triggers the
-			// renew, but this case shouldn't happen because at
-			// this point, auto_encrypt was just being setup
-			// successfully.
-			autoLogger := a.logger.Named(logging.AutoEncrypt)
-			interval := a.tlsConfigurator.AutoEncryptCertNotAfter().Sub(time.Now().Add(10 * time.Second))
 			a.logger.Debug("setting up client certificate expiration check on interval", "interval", interval)
 			select {
 			case <-a.shutdownCh:

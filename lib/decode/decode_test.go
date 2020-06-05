@@ -282,6 +282,9 @@ func decodeHCLToMapStructure(source string, target interface{}) error {
 		Metadata:   md,
 		Result:     target,
 	})
+	if err != nil {
+		return err
+	}
 	return decoder.Decode(&raw)
 }
 
@@ -305,6 +308,7 @@ func TestHookWeakDecodeFromSlice_DoesNotModifySliceTargetsFromSliceInterface(t *
 	})
 	require.NoError(t, err)
 	err = decoder.Decode(&raw)
+	require.NoError(t, err)
 
 	expected := &nested{
 		Slice: []Item{{Name: "first"}},

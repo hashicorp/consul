@@ -4400,6 +4400,7 @@ func TestACLEndpoint_Login(t *testing.T) {
 		structs.BindingRuleBindTypeNode,
 		"${serviceaccount.name}",
 	)
+	require.NoError(t, err)
 
 	t.Run("do not provide a token", func(t *testing.T) {
 		req := structs.ACLLoginRequest{
