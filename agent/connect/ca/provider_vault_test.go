@@ -37,6 +37,20 @@ func TestVaultCAProvider_VaultTLSConfig(t *testing.T) {
 	require.Equal(config.TLSSkipVerify, tlsConfig.Insecure)
 }
 
+func TestVaultCAProvider_SecondaryActiveIntermediate(t *testing.T) {
+	t.Parallel()
+
+	skipIfVaultNotPresent(t)
+
+	provider, testVault := testVaultProviderWithConfig(t, false, nil)
+	defer testVault.Stop()
+	require := require.New(t)
+
+	cert, err := provider.ActiveIntermediate()
+	require.Empty(cert)
+	require.NoError(err)
+}
+
 func TestVaultCAProvider_Bootstrap(t *testing.T) {
 	t.Parallel()
 

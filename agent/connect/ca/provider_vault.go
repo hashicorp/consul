@@ -21,11 +21,12 @@ var ErrBackendNotMounted = fmt.Errorf("backend not mounted")
 var ErrBackendNotInitialized = fmt.Errorf("backend not initialized")
 
 type VaultProvider struct {
-	config    *structs.VaultCAProviderConfig
-	client    *vaultapi.Client
-	isPrimary bool
-	clusterID string
-	spiffeID  *connect.SpiffeIDSigning
+	config                       *structs.VaultCAProviderConfig
+	client                       *vaultapi.Client
+	isPrimary                    bool
+	clusterID                    string
+	spiffeID                     *connect.SpiffeIDSigning
+	setupIntermediatePKIPathDone bool
 }
 
 func vaultTLSConfig(config *structs.VaultCAProviderConfig) *vaultapi.TLSConfig {
@@ -137,10 +138,13 @@ func (v *VaultProvider) GenerateIntermediateCSR() (string, error) {
 	return v.generateIntermediateCSR()
 }
 
-func (v *VaultProvider) generateIntermediateCSR() (string, error) {
+func (v *VaultProvider) setupIntermediatePKIPath() error {
+	if v.setupIntermediatePKIPathDone {
+		return nil
+	}
 	mounts, err := v.client.Sys().ListMounts()
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	// Mount the backend if it isn't mounted already.
@@ -154,7 +158,7 @@ func (v *VaultProvider) generateIntermediateCSR() (string, error) {
 		})
 
 		if err != nil {
-			return "", err
+			return err
 		}
 	}
 
@@ -162,7 +166,7 @@ func (v *VaultProvider) generateIntermediateCSR() (string, error) {
 	rolePath := v.config.IntermediatePKIPath + "roles/" + VaultCALeafCertRole
 	role, err := v.client.Logical().Read(rolePath)
 	if err != nil {
-		return "", err
+		return err
 	}
 	if role == nil {
 		_, err := v.client.Logical().Write(rolePath, map[string]interface{}{
@@ -174,8 +178,17 @@ func (v *VaultProvider) generateIntermediateCSR() (string, error) {
 			"require_cn":       false,
 		})
 		if err != nil {
-			return "", err
+			return err
 		}
+	}
+	v.setupIntermediatePKIPathDone = true
+	return nil
+}
+
+func (v *VaultProvider) generateIntermediateCSR() (string, error) {
+	err := v.setupIntermediatePKIPath()
+	if err != nil {
+		return "", err
 	}
 
 	// Generate a new intermediate CSR for the root to sign.
@@ -231,7 +244,22 @@ func (v *VaultProvider) SetIntermediate(intermediatePEM, rootPEM string) error {
 
 // ActiveIntermediate returns the current intermediate certificate.
 func (v *VaultProvider) ActiveIntermediate() (string, error) {
-	return v.getCA(v.config.IntermediatePKIPath)
+	if err := v.setupIntermediatePKIPath(); err != nil {
+		return "", err
+	}
+
+	cert, err := v.getCA(v.config.IntermediatePKIPath)
+
+	// This error is expected when calling initializeSecondaryCA for the
+	// first time. It means that the backend is mounted and ready, but
+	// there is no intermediate.
+	// This error is swallowed because there is nothing the caller can do
+	// about it. The caller needs to handle the empty cert though and
+	// create an intermediate CA.
+	if err == ErrBackendNotInitialized {
+		return "", nil
+	}
+	return cert, err
 }
 
 // getCA returns the raw CA cert for the given endpoint if there is one.
