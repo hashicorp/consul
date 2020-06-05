@@ -45,6 +45,23 @@
     }
   }
 
+  & .third-link {
+    display: flex;
+    justify-content: center;
+    margin-top: 32px;
+
+    & a {
+      display: flex;
+      align-items: center;
+      color: var(--gray-4);
+
+      & .icon {
+        margin-left: 8px;
+        height: 24px;
+      }
+    }
+  }
+
   &.has-background {
     background-repeat: no-repeat;
     background-color: var(--gray-7);
