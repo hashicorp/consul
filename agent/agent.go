@@ -1403,6 +1403,18 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 		}
 	}
 
+	// copy over auto config settings
+	base.AutoConfigEnabled = a.config.AutoConfig.Enabled
+	base.AutoConfigIntroToken = a.config.AutoConfig.IntroToken
+	base.AutoConfigIntroTokenFile = a.config.AutoConfig.IntroTokenFile
+	base.AutoConfigServerAddresses = a.config.AutoConfig.ServerAddresses
+	base.AutoConfigDNSSANs = a.config.AutoConfig.DNSSANs
+	base.AutoConfigIPSANs = a.config.AutoConfig.IPSANs
+	base.AutoConfigAuthzEnabled = a.config.AutoConfig.Authorizer.Enabled
+	base.AutoConfigAuthzAuthMethod = a.config.AutoConfig.Authorizer.AuthMethod
+	base.AutoConfigAuthzClaimAssertions = a.config.AutoConfig.Authorizer.ClaimAssertions
+	base.AutoConfigAuthzAllowReuse = a.config.AutoConfig.Authorizer.AllowReuse
+
 	// Setup the user event callback
 	base.UserEventHandler = func(e serf.UserEvent) {
 		select {

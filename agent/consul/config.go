@@ -305,6 +305,17 @@ type Config struct {
 	// by default in Consul 1.0 and later.
 	ACLEnableKeyListPolicy bool
 
+	AutoConfigEnabled              bool
+	AutoConfigIntroToken           string
+	AutoConfigIntroTokenFile       string
+	AutoConfigServerAddresses      []string
+	AutoConfigDNSSANs              []string
+	AutoConfigIPSANs               []net.IP
+	AutoConfigAuthzEnabled         bool
+	AutoConfigAuthzAuthMethod      structs.ACLAuthMethod
+	AutoConfigAuthzClaimAssertions []string
+	AutoConfigAuthzAllowReuse      bool
+
 	// TombstoneTTL is used to control how long KV tombstones are retained.
 	// This provides a window of time where the X-Consul-Index is monotonic.
 	// Outside this window, the index may not be monotonic. This is a result
