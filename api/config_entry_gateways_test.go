@@ -150,7 +150,7 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 	require.NotEqual(t, 0, wm.RequestTime)
 
 	// verify deletion
-	entry, qm, err = config_entries.Get(IngressGateway, "foo", nil)
+	_, _, err = config_entries.Get(IngressGateway, "foo", nil)
 	require.Error(t, err)
 }
 
@@ -279,6 +279,6 @@ func TestAPI_ConfigEntries_TerminatingGateway(t *testing.T) {
 	require.NotEqual(t, 0, wm.RequestTime)
 
 	// verify deletion
-	entry, qm, err = configEntries.Get(TerminatingGateway, "foo", nil)
+	_, _, err = configEntries.Get(TerminatingGateway, "foo", nil)
 	require.Error(t, err)
 }

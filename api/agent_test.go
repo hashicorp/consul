@@ -741,7 +741,7 @@ func TestAPI_AgentService(t *testing.T) {
 		WaitTime: 100 * time.Millisecond, // Just long enough to be reliably measurable
 	}
 	start := time.Now()
-	got, qm, err = agent.Service("foo", &opts)
+	_, _, err = agent.Service("foo", &opts)
 	elapsed := time.Since(start)
 	require.NoError(err)
 	require.True(elapsed >= opts.WaitTime)

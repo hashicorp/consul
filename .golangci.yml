@@ -17,10 +17,6 @@ issues:
     - linters: [staticcheck]
       text: "SA9004:"
 
-    # Temp ignore SA4006: this value of `x` is never used
-    - linters: [staticcheck]
-      text: "SA4006:"
-
 linters-settings:
   gofmt:
     simplify: false

@@ -227,7 +227,7 @@ func TestAPI_SemaphoreBadLimit(t *testing.T) {
 
 	s.WaitForSerfCheck(t)
 
-	sema, err := c.SemaphorePrefix("test/semaphore", 0)
+	_, err := c.SemaphorePrefix("test/semaphore", 0)
 	if err == nil {
 		t.Fatalf("should error, limit must be positive")
 	}
