@@ -10,9 +10,6 @@ export default Route.extend(WithIntentionActions, {
   repo: service('repository/intention'),
   servicesRepo: service('repository/service'),
   nspacesRepo: service('repository/nspace/disabled'),
-  beforeModel: function() {
-    this.repo.invalidate();
-  },
   model: function(params) {
     const dc = this.modelFor('dc').dc.Name;
     const nspace = '*';
