@@ -153,7 +153,7 @@ export default function HomePage() {
               },
             },
             {
-              title: 'Network Middleware Automation',
+              title: 'Network Infrastructure Automation',
               description:
                 'Reduce burden of manual, ticket-based networking tasks.',
               image: {
@@ -162,7 +162,7 @@ export default function HomePage() {
               },
               link: {
                 title: 'Learn more',
-                url: '/use-cases/network-middleware-automation',
+                url: '/use-cases/network-infrastructure-automation',
               },
             },
             {
