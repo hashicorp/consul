@@ -15,8 +15,22 @@ export default function BasicHero({
         {links && links.length > 0 && (
           <div className="links">
             {links.map((link, stableIdx) => {
-              const buttonVariant = stableIdx === 0 ? 'primary' : 'secondary'
+              let buttonVariant
+              switch (stableIdx) {
+                case 0:
+                  buttonVariant = 'primary'
+                  break
+                case 1:
+                  buttonVariant = 'secondary'
+                  break
+                case 2:
+                  buttonVariant = 'tertiary'
+                  break
+                default:
+                  break
+              }
               const linkType = link.type || 'inbound'
+
               return (
                 <Button
                   // eslint-disable-next-line react/no-array-index-key
