@@ -33,6 +33,14 @@
       margin-top: calc(40px - 8px);
     }
 
+    /*
+     * This max-width/margin allows any tertiary links to wrap below
+     * primary/secondary buttons.
+     */
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+
     & .g-btn {
       /*
        * This ensures 16px between buttons at all times, while maintaining proper centering
