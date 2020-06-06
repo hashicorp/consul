@@ -196,4 +196,6 @@
 /docs/enterprise/namespaces/index.html              /docs/enterprise/namespaces                   301!
 /docs/enterprise/sentinel/index.html                /docs/enterprise/sentinel                     301!
 
+/use-cases/network-middleware-automation            /use-cases/network-infrastructure-automation  301!
+
 /*/index.html       /:splat     301!
