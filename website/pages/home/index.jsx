@@ -157,7 +157,7 @@ export default function HomePage() {
               description:
                 'Reduce burden of manual, ticket-based networking tasks.',
               image: {
-                url: require('./img/use-cases/network-middleware-automation.svg?url'),
+                url: require('./img/use-cases/network-infrastructure-automation.svg?url'),
                 format: 'svg',
               },
               link: {
