@@ -8,8 +8,8 @@ export default [
         url: '/use-cases/service-discovery-and-health-checking',
       },
       {
-        text: 'Network Middleware Automation',
-        url: '/use-cases/network-middleware-automation',
+        text: 'Network Infrastructure Automation',
+        url: '/use-cases/network-infrastructure-automation',
       },
       {
         text: 'Multi-Platform Service Mesh',
