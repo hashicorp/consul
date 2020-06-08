@@ -72,6 +72,7 @@ func TestStructs_ACL_Convert(t *testing.T) {
 	require.Equal(t, acl.Rules, token.Rules)
 	require.Equal(t, acl.CreateIndex, token.CreateIndex)
 	require.Equal(t, acl.ModifyIndex, token.ModifyIndex)
+	require.NotEmpty(t, token.Hash)
 }
 
 func TestStructs_ACLToken_Convert(t *testing.T) {
