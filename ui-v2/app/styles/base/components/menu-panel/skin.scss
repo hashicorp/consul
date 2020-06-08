@@ -24,10 +24,10 @@
 }
 
 %menu-panel .docs-link a::after {
-  @extend %with-docs-icon, %as-pseudo;
+  @extend %with-docs-mask, %as-pseudo;
 }
 %menu-panel .learn-link a::after {
-  @extend %with-learn-icon, %as-pseudo;
+  @extend %with-learn-mask, %as-pseudo;
 }
 %menu-panel .is-active > *::after {
   @extend %with-check-plain-mask, %as-pseudo;

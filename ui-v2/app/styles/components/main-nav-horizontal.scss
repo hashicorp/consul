@@ -15,7 +15,8 @@
   padding-left: 36px;
 }
 %primary-nav .nspaces .menu-panel > div::before {
-  @extend %with-info-circle-fill-color-icon, %as-pseudo;
+  @extend %with-info-circle-fill-mask, %as-pseudo;
+  color: $blue-500;
   font-size: 1.1em;
 }
 

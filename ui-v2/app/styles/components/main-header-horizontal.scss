@@ -9,7 +9,7 @@
   @extend %with-docs-icon, %as-pseudo;
 }
 %main-nav-horizontal .feedback-link a::after {
-  @extend %with-logo-github-monochrome-icon, %as-pseudo;
+  @extend %with-logo-github-monochrome-mask, %as-pseudo;
 }
 %main-header-horizontal::before {
   background-color: var(--swatch-brand-600, $black);

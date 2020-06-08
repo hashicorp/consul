@@ -20,7 +20,6 @@
 }
 %menu-panel [role='menuitem']:after {
   @extend %as-pseudo;
-  padding-left: 34px;
   display: block !important;
   background-position: center right !important;
 }
