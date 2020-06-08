@@ -765,6 +765,9 @@ func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToke
 		token.ModifyIndex = idx
 	}
 
+	// ensure that a hash is set
+	token.SetHash(false)
+
 	return s.aclTokenInsert(tx, token)
 }
 

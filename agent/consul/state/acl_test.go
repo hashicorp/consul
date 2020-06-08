@@ -501,6 +501,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 		idx, rtoken, err := s.ACLTokenGetByAccessor(nil, "daf37c07-d04d-4fd5-9678-a8206a57d61a", nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(2), idx)
+		require.NotEmpty(t, rtoken.Hash)
 		compareTokens(t, token, rtoken)
 		require.Equal(t, uint64(2), rtoken.CreateIndex)
 		require.Equal(t, uint64(2), rtoken.ModifyIndex)
@@ -3843,6 +3844,10 @@ func stripIrrelevantTokenFields(token *structs.ACLToken) *structs.ACLToken {
 	// The raft indexes won't match either because the requester will not
 	// have access to that.
 	tokenCopy.RaftIndex = structs.RaftIndex{}
+
+	// nil out the hash - this is a computed field and we should assert
+	// elsewhere that its not empty when expected
+	tokenCopy.Hash = nil
 	return tokenCopy
 }
 

@@ -658,6 +658,9 @@ func restoreToken(header *snapshotHeader, restore *state.Restore, decoder *codec
 		structs.SanitizeLegacyACLToken(&req)
 	}
 
+	// only set if unset - mitigates a bug where converted legacy tokens could end up without a hash
+	req.SetHash(false)
+
 	return restore.ACLToken(&req)
 }
 
