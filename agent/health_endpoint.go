@@ -198,7 +198,7 @@ func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Requ
 	var out structs.IndexedCheckServiceNodes
 	defer setMeta(resp, &out.QueryMeta)
 
-	if args.QueryOptions.UseCache {
+	if s.agent.config.HTTPUseCache && args.QueryOptions.UseCache {
 		raw, m, err := s.agent.cache.Get(cachetype.HealthServicesName, &args)
 		if err != nil {
 			return nil, err
