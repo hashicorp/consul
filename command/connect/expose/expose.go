@@ -30,6 +30,7 @@ type cmd struct {
 	service        string
 	port           int
 	protocol       string
+	hosts          flags.AppendSliceValue
 }
 
 func (c *cmd) init() {
@@ -47,6 +48,9 @@ func (c *cmd) init() {
 
 	c.flags.StringVar(&c.protocol, "protocol", "tcp",
 		"The protocol for the service. Defaults to 'tcp'.")
+
+	c.flags.Var(&c.hosts, "host", "Additional DNS hostname to use for routing to this service."+
+		"Can be specified multiple times.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -144,6 +148,7 @@ func (c *cmd) Run(args []string) int {
 		ingressConf.Listeners[listenerIdx].Services = append(ingressConf.Listeners[listenerIdx].Services, api.IngressService{
 			Name:      svc,
 			Namespace: svcNamespace,
+			Hosts:     c.hosts,
 		})
 	} else {
 		ingressConf.Listeners = append(ingressConf.Listeners, api.IngressListener{
@@ -153,6 +158,7 @@ func (c *cmd) Run(args []string) int {
 				{
 					Name:      svc,
 					Namespace: svcNamespace,
+					Hosts:     c.hosts,
 				},
 			},
 		})

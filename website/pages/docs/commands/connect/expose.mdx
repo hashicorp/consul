@@ -40,11 +40,14 @@ Usage: consul connect expose [options]
 - `-port` - (Required) The listener port to use for the service on the Ingress
   gateway.
 
-- `-protocol` - The protocol for the service. Defaults to 'tcp'.
-
 - `-service` - (Required) The name of destination service to expose. A namespace
   can optionally be specified as a prefix via the 'namespace/service'
   format.
+
+- `-protocol` - The protocol for the service. Defaults to 'tcp'.
+
+- `-host` - Additional DNS hostname to use for routing to this service. Can be 
+  specified multiple times.
 
 ## Examples
 

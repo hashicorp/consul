@@ -279,6 +279,8 @@ func TestConnectExpose_existingConfig(t *testing.T) {
 			"-ingress-gateway=ingress",
 			"-port=9999",
 			"-protocol=http",
+			"-host=foo.com",
+			"-host=foo.net",
 		}
 
 		code := c.Run(args)
@@ -291,7 +293,8 @@ func TestConnectExpose_existingConfig(t *testing.T) {
 		require.NoError(err)
 
 		ingressConf.Listeners[1].Services = append(ingressConf.Listeners[1].Services, api.IngressService{
-			Name: "zoo",
+			Name:  "zoo",
+			Hosts: []string{"foo.com", "foo.net"},
 		})
 		ingressConf.CreateIndex = entry.GetCreateIndex()
 		ingressConf.ModifyIndex = entry.GetModifyIndex()
