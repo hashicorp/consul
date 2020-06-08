@@ -121,7 +121,7 @@ func (s *HTTPServer) preparedQueryExecute(id string, resp http.ResponseWriter, r
 	var reply structs.PreparedQueryExecuteResponse
 	defer setMeta(resp, &reply.QueryMeta)
 
-	if args.QueryOptions.UseCache {
+	if s.agent.config.HTTPUseCache && args.QueryOptions.UseCache {
 		raw, m, err := s.agent.cache.Get(cachetype.PreparedQueryName, &args)
 		if err != nil {
 			// Don't return error if StaleIfError is set and we are within it and had

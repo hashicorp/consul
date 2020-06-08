@@ -77,7 +77,7 @@ func (s *HTTPServer) CatalogDatacenters(resp http.ResponseWriter, req *http.Requ
 	parseCacheControl(resp, req, &args.QueryOptions)
 	var out []string
 
-	if args.QueryOptions.UseCache {
+	if s.agent.config.HTTPUseCache && args.QueryOptions.UseCache {
 		raw, m, err := s.agent.cache.Get(cachetype.CatalogDatacentersName, &args)
 		if err != nil {
 			metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_datacenters"}, 1,
@@ -155,7 +155,7 @@ func (s *HTTPServer) CatalogServices(resp http.ResponseWriter, req *http.Request
 	var out structs.IndexedServices
 	defer setMeta(resp, &out.QueryMeta)
 
-	if args.QueryOptions.UseCache {
+	if s.agent.config.HTTPUseCache && args.QueryOptions.UseCache {
 		raw, m, err := s.agent.cache.Get(cachetype.CatalogListServicesName, &args)
 		if err != nil {
 			metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_services"}, 1,
@@ -240,7 +240,7 @@ func (s *HTTPServer) catalogServiceNodes(resp http.ResponseWriter, req *http.Req
 	var out structs.IndexedServiceNodes
 	defer setMeta(resp, &out.QueryMeta)
 
-	if args.QueryOptions.UseCache {
+	if s.agent.config.HTTPUseCache && args.QueryOptions.UseCache {
 		raw, m, err := s.agent.cache.Get(cachetype.CatalogServicesName, &args)
 		if err != nil {
 			metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_service_nodes"}, 1,
