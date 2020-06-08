@@ -831,6 +831,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		HTTPBlockEndpoints:  c.HTTPConfig.BlockEndpoints,
 		HTTPResponseHeaders: c.HTTPConfig.ResponseHeaders,
 		AllowWriteHTTPFrom:  b.cidrsVal("allow_write_http_from", c.HTTPConfig.AllowWriteHTTPFrom),
+		HTTPUseCache:        b.boolValWithDefault(c.HTTPConfig.UseCache, true),
 
 		// Telemetry
 		Telemetry: lib.TelemetryConfig{
