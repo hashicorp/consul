@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/NYTimes/gziphandler"
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -460,6 +461,45 @@ func TestUIResponseHeaders(t *testing.T) {
 	if frameOptions != "SAMEORIGIN" {
 		t.Fatalf("bad X-XSS-Protection header: expected %q, got %q", "SAMEORIGIN", frameOptions)
 	}
+}
+
+func TestAcceptEncodingGzip(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	// Setting up the KV to store a short and a long value
+	buf := bytes.NewBuffer([]byte("short"))
+	req, _ := http.NewRequest("PUT", "/v1/kv/short", buf)
+	resp := httptest.NewRecorder()
+	_, err := a.srv.KVSEndpoint(resp, req)
+	require.NoError(t, err)
+
+	// this generates a string which is longer than
+	// gziphandler.DefaultMinSize to trigger compression.
+	long := fmt.Sprintf(fmt.Sprintf("%%0%dd", gziphandler.DefaultMinSize+1), 1)
+	buf = bytes.NewBuffer([]byte(long))
+	req, _ = http.NewRequest("PUT", "/v1/kv/long", buf)
+	resp = httptest.NewRecorder()
+	_, err = a.srv.KVSEndpoint(resp, req)
+	require.NoError(t, err)
+
+	resp = httptest.NewRecorder()
+	req, _ = http.NewRequest("GET", "/v1/kv/short", nil)
+	// Usually this would be automatically set by transport content
+	// negotiation, but since this call doesn't go through a real
+	// transport, the header has to be set manually
+	req.Header["Accept-Encoding"] = []string{"gzip"}
+	a.srv.Handler.ServeHTTP(resp, req)
+	require.Equal(t, 200, resp.Code)
+	require.Equal(t, "", resp.Header().Get("Content-Encoding"))
+
+	resp = httptest.NewRecorder()
+	req, _ = http.NewRequest("GET", "/v1/kv/long", nil)
+	req.Header["Accept-Encoding"] = []string{"gzip"}
+	a.srv.Handler.ServeHTTP(resp, req)
+	require.Equal(t, 200, resp.Code)
+	require.Equal(t, "gzip", resp.Header().Get("Content-Encoding"))
 }
 
 func TestContentTypeIsJSON(t *testing.T) {

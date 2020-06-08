@@ -258,8 +258,17 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 			metrics.MeasureSince(key, start)
 		}
 
-		gzipWrapper, _ := gziphandler.GzipHandlerWithOpts(gziphandler.MinSize(0))
-		gzipHandler := gzipWrapper(http.HandlerFunc(wrapper))
+		var gzipHandler http.Handler
+		minSize := gziphandler.DefaultMinSize
+		if pattern == "/v1/agent/monitor" {
+			minSize = 0
+		}
+		gzipWrapper, err := gziphandler.GzipHandlerWithOpts(gziphandler.MinSize(minSize))
+		if err == nil {
+			gzipHandler = gzipWrapper(http.HandlerFunc(wrapper))
+		} else {
+			gzipHandler = gziphandler.GzipHandler(http.HandlerFunc(wrapper))
+		}
 		mux.Handle(pattern, gzipHandler)
 	}
 
