@@ -502,8 +502,8 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.NotNil(t, rtoken)
 	// the state store function will add on the Hash if its empty
 	require.NotEmpty(t, rtoken.Hash)
-	token.CreateTime.Round(0)
-	rtoken.CreateTime.Round(0)
+	token.CreateTime = token.CreateTime.Round(0)
+	rtoken.CreateTime = rtoken.CreateTime.Round(0)
 
 	// note that this can work because the state store will add the Hash to the token before
 	// storing. That token just happens to be a pointer to the one in this function so it
@@ -527,8 +527,8 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.NotEmpty(t, rtoken.Hash)
 	// nil the Hash so we can compare them
 	rtoken.Hash = nil
-	token2.CreateTime.Round(0)
-	rtoken.CreateTime.Round(0)
+	token2.CreateTime = token2.CreateTime.Round(0)
+	rtoken.CreateTime = rtoken.CreateTime.Round(0)
 	require.Equal(t, token2, rtoken)
 
 	// Verify the acl-token-bootstrap index was restored
