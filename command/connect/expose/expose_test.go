@@ -64,7 +64,7 @@ func TestConnectExpose(t *testing.T) {
 	require.Equal("foo", ixns[0].DestinationName)
 
 	// Run the command again with a different port, make sure the config entry
-	// and intentions aren't modified.
+	// is updated while intentions are unmodified.
 	{
 		ui := cli.NewMockUi()
 		c := New(ui)
@@ -81,9 +81,20 @@ func TestConnectExpose(t *testing.T) {
 			t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 		}
 
+		expected.Listeners = append(expected.Listeners, api.IngressListener{
+			Port:     7777,
+			Protocol: "tcp",
+			Services: []api.IngressService{
+				{
+					Name: "foo",
+				},
+			},
+		})
+
 		// Make sure the config entry/intention weren't affected.
 		entry, _, err = client.ConfigEntries().Get(api.IngressGateway, "ingress", nil)
 		require.NoError(err)
+		expected.ModifyIndex = entry.GetModifyIndex()
 		require.Equal(expected, entry)
 
 		ixns, _, err = client.Connect().Intentions(nil)

@@ -3,7 +3,6 @@ package expose
 import (
 	"flag"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/hashicorp/consul/agent"
@@ -29,7 +28,6 @@ type cmd struct {
 	// flags
 	ingressGateway string
 	service        string
-	portRaw        string
 	port           int
 	protocol       string
 }
@@ -44,7 +42,7 @@ func (c *cmd) init() {
 		"(Required) The name of destination service to expose. A namespace "+
 			"can optionally be specified as a prefix via the 'namespace/service' format.")
 
-	c.flags.StringVar(&c.portRaw, "port", "",
+	c.flags.IntVar(&c.port, "port", 0,
 		"(Required) The listener port to use for the service on the Ingress gateway.")
 
 	c.flags.StringVar(&c.protocol, "protocol", "tcp",
@@ -93,15 +91,9 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if c.portRaw == "" {
+	if c.port == 0 {
 		c.UI.Error("A port must be provided via the -port flag.")
 		return 1
-	} else {
-		c.port, err = strconv.Atoi(c.portRaw)
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error parsing port: %s", err))
-			return 1
-		}
 	}
 
 	// First get the config entry for the ingress gateway, if it exists. Don't error if it's a 404 as that
@@ -131,8 +123,8 @@ func (c *cmd) Run(args []string) int {
 	for i, listener := range ingressConf.Listeners {
 		// Make sure the service isn't already exposed in this gateway
 		for _, service := range listener.Services {
-			if service.Name == svc {
-				c.UI.Error(fmt.Sprintf("Service %q already exposed through listener with port %d", svc, listener.Port))
+			if service.Name == svc && listener.Port == c.port {
+				c.UI.Output(fmt.Sprintf("Service %q already exposed through listener with port %d", svc, listener.Port))
 				goto CREATE_INTENTION
 			}
 		}
@@ -190,7 +182,7 @@ CREATE_INTENTION:
 		return 1
 	}
 	if existing != nil && existing.Action == api.IntentionActionAllow {
-		c.UI.Error(fmt.Sprintf("Intention already exists for %q -> %q", c.ingressGateway, c.service))
+		c.UI.Output(fmt.Sprintf("Intention already exists for %q -> %q", c.ingressGateway, c.service))
 		return 0
 	}
 
