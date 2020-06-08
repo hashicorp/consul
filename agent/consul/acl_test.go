@@ -3703,3 +3703,49 @@ func TestDedupeServiceIdentities(t *testing.T) {
 		})
 	}
 }
+func TestACL_LocalToken(t *testing.T) {
+	t.Run("local token in same dc", func(t *testing.T) {
+		d := &ACLResolverTestDelegate{
+			datacenter: "dc1",
+			tokenReadFn: func(_ *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
+				reply.Token = &structs.ACLToken{Local: true}
+				// different dc
+				reply.SourceDatacenter = "dc1"
+				return nil
+			},
+		}
+		r := newTestACLResolver(t, d, nil)
+		_, err := r.fetchAndCacheIdentityFromToken("", nil)
+		require.NoError(t, err)
+	})
+
+	t.Run("non local token in remote dc", func(t *testing.T) {
+		d := &ACLResolverTestDelegate{
+			datacenter: "dc1",
+			tokenReadFn: func(_ *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
+				reply.Token = &structs.ACLToken{Local: false}
+				// different dc
+				reply.SourceDatacenter = "remote"
+				return nil
+			},
+		}
+		r := newTestACLResolver(t, d, nil)
+		_, err := r.fetchAndCacheIdentityFromToken("", nil)
+		require.NoError(t, err)
+	})
+
+	t.Run("local token in remote dc", func(t *testing.T) {
+		d := &ACLResolverTestDelegate{
+			datacenter: "dc1",
+			tokenReadFn: func(_ *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
+				reply.Token = &structs.ACLToken{Local: true}
+				// different dc
+				reply.SourceDatacenter = "remote"
+				return nil
+			},
+		}
+		r := newTestACLResolver(t, d, nil)
+		_, err := r.fetchAndCacheIdentityFromToken("", nil)
+		require.Equal(t, acl.PermissionDeniedError{Cause: "This is a local token in datacenter \"remote\""}, err)
+	})
+}

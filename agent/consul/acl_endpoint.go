@@ -260,6 +260,7 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 			}
 
 			reply.Index, reply.Token = index, token
+			reply.SourceDatacenter = args.Datacenter
 			return nil
 		})
 }
