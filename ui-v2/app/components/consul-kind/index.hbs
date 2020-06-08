@@ -34,12 +34,12 @@
                   {{/if}}
                 </li>
           {{#let (from-entries
-            (array 'ingress-gateway' '/ingress')
-            (array 'terminating-gateway' '/terminating')
-            (array 'mesh-gateway' '/mesh')
+            (array 'ingress-gateway' '/consul/developer-mesh/ingress-gateways')
+            (array 'terminating-gateway' '/consul/developer-mesh/understand-terminating-gateways')
+            (array 'mesh-gateway' '/consul/developer-mesh/connect-gateways')
           ) as |link|}}
                 <li role="none" class="learn-link">
-                  <a tabindex="-1" role="menuitem" href={{concat (env 'CONSUL_DOCS_LEARN_URL') '/consul' (get link item.Kind)}} rel="noopener noreferrer" target="_blank">
+                  <a tabindex="-1" role="menuitem" href={{concat (env 'CONSUL_DOCS_LEARN_URL') (get link item.Kind)}} rel="noopener noreferrer" target="_blank">
                     Learn guides
                   </a>
                 </li>
@@ -50,7 +50,7 @@
             (array 'mesh-gateway' '/connect/mesh_gateway.html')
           ) as |link|}}
                 <li role="none" class="docs-link">
-                  <a tabindex="-1" role="menuitem" href={{concat (env 'CONSUL_DOCS_URL') '/' (get link item.Kind)}} rel="noopener noreferrer" target="_blank">
+                  <a tabindex="-1" role="menuitem" href={{concat (env 'CONSUL_DOCS_URL') (get link item.Kind)}} rel="noopener noreferrer" target="_blank">
                     Documentation
                   </a>
                 </li>
@@ -59,21 +59,21 @@
                 </li>
               {{#if (not-eq item.Kind 'mesh-gateway')}}
                 <li role="none" class="docs-link">
-                  <a tabindex="-1" role="menuitem" href={{concat (env 'CONSUL_DOCS_URL') '/' (get link 'mesh-gateway')}} rel="noopener noreferrer" target="_blank">
+                  <a tabindex="-1" role="menuitem" href={{concat (env 'CONSUL_DOCS_URL') (get link 'mesh-gateway')}} rel="noopener noreferrer" target="_blank">
                     Mesh gateways
                   </a>
                 </li>
               {{/if}}
               {{#if (not-eq item.Kind 'terminating-gateway')}}
                 <li role="none" class="docs-link">
-                  <a tabindex="-1" role="menuitem" href={{concat (env 'CONSUL_DOCS_URL') '/' (get link 'terminating-gateway')}} rel="noopener noreferrer" target="_blank">
+                  <a tabindex="-1" role="menuitem" href={{concat (env 'CONSUL_DOCS_URL') (get link 'terminating-gateway')}} rel="noopener noreferrer" target="_blank">
                     Terminating gateways
                   </a>
                 </li>
               {{/if}}
               {{#if (not-eq item.Kind 'ingress-gateway')}}
                 <li role="none" class="docs-link">
-                  <a tabindex="-1" role="menuitem" href={{concat (env 'CONSUL_DOCS_URL') '/' (get link 'ingress-gateway')}} rel="noopener noreferrer" target="_blank">
+                  <a tabindex="-1" role="menuitem" href={{concat (env 'CONSUL_DOCS_URL') (get link 'ingress-gateway')}} rel="noopener noreferrer" target="_blank">
                     Ingress gateways
                   </a>
                 </li>
