@@ -1049,7 +1049,7 @@ func TestConfigEntry_ResolveServiceConfig_ProxyDefaultsProtocol_UsedForAllUpstre
 		Config: map[string]interface{}{
 			"protocol": "http",
 		},
-	}, nil))
+	}))
 
 	args := structs.ServiceConfigRequest{
 		Name:       "foo",
