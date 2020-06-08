@@ -33,14 +33,6 @@
       margin-top: calc(40px - 8px);
     }
 
-    /*
-     * This max-width/margin allows any tertiary links to wrap below
-     * primary/secondary buttons.
-     */
-    max-width: 400px;
-    margin-left: auto;
-    margin-right: auto;
-
     & .g-btn {
       /*
        * This ensures 16px between buttons at all times, while maintaining proper centering
@@ -50,21 +42,22 @@
        * The left and right excess is left as is - it's needed for proper centering when wrapping.
        */
       margin: 8px;
+    }
+  }
 
-      /*
-       * Overrides for tertiary links. Otherwise they would use brand colors
-       * and be too close to the other links.
-       */
-      &.variant-tertiary {
-        margin-top: 16px;
+  & .third-link {
+    display: flex;
+    justify-content: center;
+    margin-top: 16px;
 
-        &:not(.background-brand):not([disabled]).brand-consul {
-          color: var(--gray-4);
+    & a {
+      display: flex;
+      align-items: center;
+      color: var(--gray-4);
 
-          & .icon svg [stroke] {
-            stroke: var(--gray-4);
-          }
-        }
+      & .icon {
+        margin-left: 8px;
+        height: 24px;
       }
     }
   }
