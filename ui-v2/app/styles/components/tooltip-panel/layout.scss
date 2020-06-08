@@ -1,0 +1,19 @@
+%tooltip-panel {
+  margin: 0 !important;
+}
+%tooltip-panel dd > div {
+  top: auto !important;
+}
+%tooltip-panel dt {
+  cursor: pointer;
+}
+%tooltip-panel dd {
+  display: none;
+  position: relative;
+}
+%tooltip-panel:hover dd {
+  display: block;
+}
+%tooltip-panel dd > div {
+  width: 250px;
+}

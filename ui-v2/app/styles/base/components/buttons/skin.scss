@@ -4,6 +4,7 @@
   @extend %user-select-none;
   cursor: pointer;
   white-space: nowrap;
+  text-decoration: none;
 }
 %button:disabled,
 %internal-button:disabled {

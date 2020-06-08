@@ -1,0 +1,15 @@
+{{yield}}
+<div class="menu-panel {{position}}">
+  <YieldSlot @name="controls">
+    {{yield}}
+  </YieldSlot>
+  {{#yield-slot name="header"}}
+    <div>{{yield}}</div>
+  {{else}}
+  {{/yield-slot}}
+  <ul role="menu" ...attributes>
+    <YieldSlot @name="menu">
+      {{yield}}
+    </YieldSlot>
+  </ul>
+</div>

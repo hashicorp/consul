@@ -2,6 +2,7 @@
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
 import Slotted from 'block-slots';
+import { set } from '@ember/object';
 
 export default Component.extend(Slotted, {
   tagName: '',
@@ -15,6 +16,9 @@ export default Component.extend(Slotted, {
   init: function() {
     this._super(...arguments);
     this.guid = this.dom.guid(this);
+  },
+  willRender: function() {
+    set(this, 'hasHeader', this._isRegistered('header'));
   },
   actions: {
     change: function(e) {
