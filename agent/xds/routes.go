@@ -101,20 +101,14 @@ func routesFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto
 			namespace := u.GetEnterpriseMeta().NamespaceOrDefault()
 			var domains []string
 			switch {
-			case len(upstreams) == 1:
-				// Don't require a service prefix on the domain if there is only 1
-				// upstream. This makes it a smoother experience when only having a
-				// single service associated to a listener, which is probably a common
-				// case when demoing/testing
-				domains = []string{"*"}
 			case len(u.IngressHosts) > 0:
 				// If a user has specified hosts, do not add the default
-				// "<service-name>.*" prefix
+				// "<service-name>.ingress.*" prefixes
 				domains = u.IngressHosts
 			case namespace != structs.IntentionDefaultNamespace:
 				domains = []string{fmt.Sprintf("%s.ingress.%s.*", chain.ServiceName, namespace)}
 			default:
-				domains = []string{fmt.Sprintf("%s.*", chain.ServiceName)}
+				domains = []string{fmt.Sprintf("%s.ingress.*", chain.ServiceName)}
 			}
 
 			virtualHost, err := makeUpstreamRouteForDiscoveryChain(upstreamID, chain, domains)

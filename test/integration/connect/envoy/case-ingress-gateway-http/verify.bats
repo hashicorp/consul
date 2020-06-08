@@ -31,10 +31,10 @@ load helpers
 }
 
 @test "ingress should be able to connect to s1 via configured path" {
-  assert_expected_fortio_name s1 localhost 9999 /s1
+  assert_expected_fortio_name s1 router.ingress.consul 9999 /s1
 }
 
 @test "ingress should be able to connect to s2 via configured path" {
-  assert_expected_fortio_name s2 localhost 9999 /s2
+  assert_expected_fortio_name s2 router.ingress.consul 9999 /s2
 }
 
