@@ -923,6 +923,9 @@ func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToke
 		token.ModifyIndex = idx
 	}
 
+	// ensure that a hash is set
+	token.SetHash(false)
+
 	// Insert the ACL
 	if err := tx.Insert("acl-tokens", token); err != nil {
 		return fmt.Errorf("failed inserting acl token: %v", err)
