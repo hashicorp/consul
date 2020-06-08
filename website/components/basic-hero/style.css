@@ -48,7 +48,7 @@
   & .third-link {
     display: flex;
     justify-content: center;
-    margin-top: 16px;
+    margin-top: 32px;
 
     & a {
       display: flex;
