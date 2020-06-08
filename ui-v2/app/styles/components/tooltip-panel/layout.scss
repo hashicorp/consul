@@ -10,6 +10,8 @@
 %tooltip-panel dd {
   display: none;
   position: relative;
+  padding-top: 10px;
+  margin-bottom: -10px;
 }
 %tooltip-panel:hover dd {
   display: block;
