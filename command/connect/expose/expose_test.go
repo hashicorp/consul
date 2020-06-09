@@ -38,16 +38,19 @@ func TestConnectExpose(t *testing.T) {
 	// Make sure the config entry and intention have been created.
 	entry, _, err := client.ConfigEntries().Get(api.IngressGateway, "ingress", nil)
 	require.NoError(err)
+	ns := entry.(*api.IngressGatewayConfigEntry).Namespace
 	expected := &api.IngressGatewayConfigEntry{
-		Kind: api.IngressGateway,
-		Name: "ingress",
+		Kind:      api.IngressGateway,
+		Name:      "ingress",
+		Namespace: ns,
 		Listeners: []api.IngressListener{
 			{
 				Port:     8888,
 				Protocol: "tcp",
 				Services: []api.IngressService{
 					{
-						Name: "foo",
+						Name:      "foo",
+						Namespace: ns,
 					},
 				},
 			},
@@ -86,7 +89,8 @@ func TestConnectExpose(t *testing.T) {
 			Protocol: "tcp",
 			Services: []api.IngressService{
 				{
-					Name: "foo",
+					Name:      "foo",
+					Namespace: ns,
 				},
 			},
 		})
@@ -254,6 +258,7 @@ func TestConnectExpose_existingConfig(t *testing.T) {
 		entry, _, err := client.ConfigEntries().Get(api.IngressGateway, "ingress", nil)
 		require.NoError(err)
 
+		entryConf := entry.(*api.IngressGatewayConfigEntry)
 		ingressConf.Listeners = append(ingressConf.Listeners, api.IngressListener{
 			Port:     10000,
 			Protocol: "tcp",
@@ -263,6 +268,10 @@ func TestConnectExpose_existingConfig(t *testing.T) {
 				},
 			},
 		})
+		ingressConf.Namespace = entryConf.Namespace
+		for i, listener := range ingressConf.Listeners {
+			listener.Services[0].Namespace = entryConf.Listeners[i].Services[0].Namespace
+		}
 		ingressConf.CreateIndex = entry.GetCreateIndex()
 		ingressConf.ModifyIndex = entry.GetModifyIndex()
 		require.Equal(ingressConf, entry)
@@ -292,9 +301,11 @@ func TestConnectExpose_existingConfig(t *testing.T) {
 		entry, _, err := client.ConfigEntries().Get(api.IngressGateway, "ingress", nil)
 		require.NoError(err)
 
+		entryConf := entry.(*api.IngressGatewayConfigEntry)
 		ingressConf.Listeners[1].Services = append(ingressConf.Listeners[1].Services, api.IngressService{
-			Name:  "zoo",
-			Hosts: []string{"foo.com", "foo.net"},
+			Name:      "zoo",
+			Namespace: entryConf.Listeners[1].Services[1].Namespace,
+			Hosts:     []string{"foo.com", "foo.net"},
 		})
 		ingressConf.CreateIndex = entry.GetCreateIndex()
 		ingressConf.ModifyIndex = entry.GetModifyIndex()
