@@ -1,0 +1,4 @@
+@import './tooltip-panel/index';
+.tooltip-panel {
+  @extend %tooltip-panel;
+}

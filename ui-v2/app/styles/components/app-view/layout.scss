@@ -6,6 +6,8 @@
   display: flex;
   align-items: center;
   white-space: nowrap;
+  position: relative;
+  z-index: 1;
 }
 %app-view-actions {
   margin-left: auto;

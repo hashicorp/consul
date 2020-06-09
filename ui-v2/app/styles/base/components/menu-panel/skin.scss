@@ -22,12 +22,12 @@
   border-top: $decor-border-100;
   border-color: $gray-300;
 }
-%menu-panel-header {
-  background-color: $gray-050;
+
+%menu-panel .docs-link a::after {
+  @extend %with-docs-mask, %as-pseudo;
 }
-%menu-panel-header::before {
-  @extend %with-info-circle-fill-color-icon, %as-pseudo;
-  font-size: 1.1em;
+%menu-panel .learn-link a::after {
+  @extend %with-learn-mask, %as-pseudo;
 }
 %menu-panel .is-active > *::after {
   @extend %with-check-plain-mask, %as-pseudo;
