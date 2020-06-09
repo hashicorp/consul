@@ -34,7 +34,7 @@
 {{#let (sort-by (comparator 'service' sort.selected.key) services) as |sorted|}}
         <ChangeableSet @dispatcher={{searchable 'service' sorted}} @terms={{search}}>
           <BlockSlot @name="set" as |filtered|>
-            <ConsulServiceList @routeName="dc.services.show" @items={{filtered}} @proxies={{proxies}}/>
+            <ConsulServiceList @items={{filtered}} @proxies={{proxies}}/>
           </BlockSlot>
           <BlockSlot @name="empty">
             <EmptyState @allowLogin={{true}}>
