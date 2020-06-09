@@ -513,9 +513,6 @@ type ServiceSpecificRequest struct {
 	// Connect if true will only search for Connect-compatible services.
 	Connect bool
 
-	// TODO(ingress): Add corresponding API changes after figuring out what the
-	// HTTP endpoint looks like
-
 	// Ingress if true will only search for Ingress gateways for the given service.
 	Ingress bool
 
