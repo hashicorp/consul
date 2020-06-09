@@ -9,6 +9,8 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
+const ConfigEntryNotFoundErr string = "Config entry not found"
+
 // Config switches on the different CRUD operations for config entries.
 func (s *HTTPServer) Config(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	switch req.Method {
@@ -48,7 +50,7 @@ func (s *HTTPServer) configGet(resp http.ResponseWriter, req *http.Request) (int
 		setMeta(resp, &reply.QueryMeta)
 
 		if reply.Entry == nil {
-			return nil, NotFoundError{Reason: fmt.Sprintf("Config entry not found for %q / %q", pathArgs[0], pathArgs[1])}
+			return nil, NotFoundError{Reason: fmt.Sprintf("%s for %q / %q", ConfigEntryNotFoundErr, pathArgs[0], pathArgs[1])}
 		}
 
 		return reply.Entry, nil

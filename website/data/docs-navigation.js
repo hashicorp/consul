@@ -61,7 +61,7 @@ export default [
       'agent',
       { category: 'catalog', content: ['datacenters', 'nodes', 'services'] },
       { category: 'config', content: ['delete', 'list', 'read', 'write'] },
-      { category: 'connect', content: ['ca', 'proxy', 'envoy'] },
+      { category: 'connect', content: ['ca', 'proxy', 'envoy', 'expose'] },
       'debug',
       'event',
       'exec',
