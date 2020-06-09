@@ -523,13 +523,8 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 // arbitrary proto3 json format string or an error if it's invalid.
 //
 // For now we only support embedding in JSON strings because of the hcl parsing
-// pain (see config.go comment above call to PatchSliceOfMaps). Until we
-// refactor config parser a _lot_ user's opaque config that contains arrays will
-// be mangled. We could actually fix that up in mapstructure which knows the
-// type of the target so could resolve the slices to singletons unambiguously
-// and it would work for us here... but we still have the problem that the
-// config would render incorrectly in general in our HTTP API responses so we
-// really need to fix it "properly".
+// pain (see Background section in the comment for decode.HookWeakDecodeFromSlice).
+// This may be fixed in decode.HookWeakDecodeFromSlice in the future.
 //
 // When we do that we can support just nesting the config directly into the
 // JSON/hcl naturally but this is a stop-gap that gets us an escape hatch

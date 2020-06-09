@@ -55,12 +55,6 @@ There are four specific cases covered with increasing complexity:
            state for client agent's RPC client.
       - [ ] Add a test to `agent/agent_test.go` similar to others with prefix
         `TestAgent_reloadConfig*`.
- - [ ] **If** the new config field(s) include an array of structs or maps.
-      - [ ] Add the path to the call to `lib.PatchSliceOfMaps` in Parse in
-        `agent/config/config.go`.
-      - [ ] If none of the tests in `agent/config/runtime_test.go` failed before you did that,
-        then you didn't actually test the slice part yet, go back and add tests
-        that populate that slice.
  - [ ] Add documentation to `website/source/docs/agent/options.html.md`.
 
 Done! You can now use your new field in a client agent by accessing
