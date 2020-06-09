@@ -269,7 +269,7 @@ func TestEventList_Blocking(t *testing.T) {
 		time.Sleep(50 * time.Millisecond)
 		p := &UserEvent{Name: "second"}
 		if err := a.UserEvent("dc1", "root", p); err != nil {
-			t.Fatalf("err: %v", err)
+			t.Errorf("err: %v", err)
 		}
 	}()
 

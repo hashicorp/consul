@@ -21,10 +21,6 @@ issues:
     - linters: [staticcheck]
       text: "SA4006:"
 
-    # Temp ignore SA2002: the goroutine calls T.Fatalf, which must be called in the same goroutine as the test
-    - linters: [staticcheck]
-      text: "SA2002:"
-
 linters-settings:
   gofmt:
     simplify: false

@@ -127,7 +127,7 @@ func TestKeyWatch(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		if err := plan.Run(s.HTTPAddr); err != nil {
-			t.Fatalf("err: %v", err)
+			t.Errorf("err: %v", err)
 		}
 	}()
 	defer plan.Stop()
@@ -194,7 +194,7 @@ func TestKeyWatch_With_PrefixDelete(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		if err := plan.Run(s.HTTPAddr); err != nil {
-			t.Fatalf("err: %v", err)
+			t.Errorf("err: %v", err)
 		}
 	}()
 	defer plan.Stop()
@@ -259,7 +259,7 @@ func TestKeyPrefixWatch(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		if err := plan.Run(s.HTTPAddr); err != nil {
-			t.Fatalf("err: %v", err)
+			t.Errorf("err: %v", err)
 		}
 	}()
 	defer plan.Stop()
@@ -325,7 +325,7 @@ func TestServicesWatch(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		if err := plan.Run(s.HTTPAddr); err != nil {
-			t.Fatalf("err: %v", err)
+			t.Errorf("err: %v", err)
 		}
 	}()
 	defer plan.Stop()
@@ -399,7 +399,7 @@ func TestNodesWatch(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		if err := plan.Run(s.HTTPAddr); err != nil {
-			t.Fatalf("err: %v", err)
+			t.Errorf("err: %v", err)
 		}
 	}()
 	defer plan.Stop()
@@ -475,7 +475,7 @@ func TestServiceWatch(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		if err := plan.Run(s.HTTPAddr); err != nil {
-			t.Fatalf("err: %v", err)
+			t.Errorf("err: %v", err)
 		}
 	}()
 	defer plan.Stop()
@@ -545,7 +545,7 @@ func TestServiceMultipleTagsWatch(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		if err := plan.Run(s.HTTPAddr); err != nil {
-			t.Fatalf("err: %v", err)
+			t.Errorf("err: %v", err)
 		}
 	}()
 	defer plan.Stop()
@@ -637,7 +637,7 @@ func TestChecksWatch_State(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		if err := plan.Run(s.HTTPAddr); err != nil {
-			t.Fatalf("err: %v", err)
+			t.Errorf("err: %v", err)
 		}
 	}()
 	defer plan.Stop()
@@ -713,7 +713,7 @@ func TestChecksWatch_Service(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		if err := plan.Run(s.HTTPAddr); err != nil {
-			t.Fatalf("err: %v", err)
+			t.Errorf("err: %v", err)
 		}
 	}()
 	defer plan.Stop()
@@ -791,7 +791,7 @@ func TestEventWatch(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		if err := plan.Run(s.HTTPAddr); err != nil {
-			t.Fatalf("err: %v", err)
+			t.Errorf("err: %v", err)
 		}
 	}()
 	defer plan.Stop()
@@ -855,7 +855,7 @@ func TestConnectRootsWatch(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		if err := plan.Run(s.HTTPAddr); err != nil {
-			t.Fatalf("err: %v", err)
+			t.Errorf("err: %v", err)
 		}
 	}()
 	defer plan.Stop()
@@ -931,7 +931,7 @@ func TestConnectLeafWatch(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		if err := plan.Run(s.HTTPAddr); err != nil {
-			t.Fatalf("err: %v", err)
+			t.Errorf("err: %v", err)
 		}
 	}()
 	defer plan.Stop()
@@ -1013,7 +1013,7 @@ func TestAgentServiceWatch(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		if err := plan.Run(s.HTTPAddr); err != nil {
-			t.Fatalf("err: %v", err)
+			t.Errorf("err: %v", err)
 		}
 	}()
 	defer plan.Stop()

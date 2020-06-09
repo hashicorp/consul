@@ -315,7 +315,7 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 		}
 		var out struct{}
 		if err := a.RPC("Catalog.Register", args, &out); err != nil {
-			t.Fatalf("err: %v", err)
+			t.Errorf("err: %v", err)
 		}
 	}()
 

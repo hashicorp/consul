@@ -354,7 +354,7 @@ func TestKVSEndpoint_List_Blocking(t *testing.T) {
 		}
 		var out bool
 		if err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &arg, &out); err != nil {
-			t.Fatalf("err: %v", err)
+			t.Errorf("RPC call failed: %v", err)
 		}
 	}()
 
@@ -891,7 +891,8 @@ func TestKVS_Issue_1626(t *testing.T) {
 		}
 		var dirent structs.IndexedDirEntries
 		if err := msgpackrpc.CallWithCodec(codec, "KVS.Get", &getR, &dirent); err != nil {
-			t.Fatalf("err: %v", err)
+			t.Errorf("RPC call failed: %v", err)
+			return
 		}
 		doneCh <- &dirent
 	}()
