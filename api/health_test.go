@@ -211,7 +211,6 @@ func TestAPI_HealthChecks(t *testing.T) {
 	if err := agent.ServiceRegister(reg); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer agent.ServiceDeregister("foo")
 
 	retry.Run(t, func(r *retry.R) {
 		checks := HealthChecks{
@@ -264,7 +263,6 @@ func TestAPI_HealthChecks_NodeMetaFilter(t *testing.T) {
 	if err := agent.ServiceRegister(reg); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer agent.ServiceDeregister("foo")
 
 	retry.Run(t, func(r *retry.R) {
 		checks, meta, err := health.Checks("foo", &QueryOptions{NodeMeta: meta})
@@ -354,7 +352,6 @@ func TestAPI_HealthService_SingleTag(t *testing.T) {
 		},
 	}
 	require.NoError(t, agent.ServiceRegister(reg))
-	defer agent.ServiceDeregister("foo1")
 	retry.Run(t, func(r *retry.R) {
 		services, meta, err := health.Service("foo", "bar", true, nil)
 		require.NoError(r, err)
@@ -390,7 +387,6 @@ func TestAPI_HealthService_MultipleTags(t *testing.T) {
 		},
 	}
 	require.NoError(t, agent.ServiceRegister(reg))
-	defer agent.ServiceDeregister("foo1")
 
 	reg2 := &AgentServiceRegistration{
 		Name: "foo",
@@ -402,7 +398,6 @@ func TestAPI_HealthService_MultipleTags(t *testing.T) {
 		},
 	}
 	require.NoError(t, agent.ServiceRegister(reg2))
-	defer agent.ServiceDeregister("foo2")
 
 	// Test searching with one tag (two results)
 	retry.Run(t, func(r *retry.R) {
@@ -488,7 +483,6 @@ func TestAPI_HealthConnect(t *testing.T) {
 	}
 	err := agent.ServiceRegister(reg)
 	require.NoError(t, err)
-	defer agent.ServiceDeregister("foo")
 
 	// Register the proxy
 	proxyReg := &AgentServiceRegistration{
@@ -501,7 +495,6 @@ func TestAPI_HealthConnect(t *testing.T) {
 	}
 	err = agent.ServiceRegister(proxyReg)
 	require.NoError(t, err)
-	defer agent.ServiceDeregister("foo-proxy")
 
 	retry.Run(t, func(r *retry.R) {
 		services, meta, err := health.Connect("foo", "", true, nil)
@@ -563,7 +556,6 @@ func TestAPI_HealthConnect_Ingress(t *testing.T) {
 	}
 	err := agent.ServiceRegister(reg)
 	require.NoError(t, err)
-	defer agent.ServiceDeregister("foo")
 
 	// Register the gateway
 	gatewayReg := &AgentServiceRegistration{
@@ -573,7 +565,6 @@ func TestAPI_HealthConnect_Ingress(t *testing.T) {
 	}
 	err = agent.ServiceRegister(gatewayReg)
 	require.NoError(t, err)
-	defer agent.ServiceDeregister("foo-gateway")
 
 	// Associate service and gateway
 	gatewayConfig := &IngressGatewayConfigEntry{
