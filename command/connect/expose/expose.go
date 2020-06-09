@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/intention/create"
@@ -145,7 +146,7 @@ func (c *cmd) Run(args []string) int {
 
 		// Make sure the service isn't already exposed in this gateway
 		for j, service := range listener.Services {
-			if service.Name == svc && service.Namespace == svcNamespace {
+			if service.Name == svc && namespaceMatch(service.Namespace, svcNamespace) {
 				serviceIdx = j
 				c.UI.Output(fmt.Sprintf("Updating service definition for %q on listener with port %d", c.service, listener.Port))
 				break
@@ -218,6 +219,19 @@ func (c *cmd) Run(args []string) int {
 
 	c.UI.Output(fmt.Sprintf("Successfully set up intention for %q -> %q", c.ingressGateway, c.service))
 	return 0
+}
+
+func namespaceMatch(a, b string) bool {
+	namespaceA := a
+	namespaceB := b
+	if namespaceA == "" {
+		namespaceA = structs.IntentionDefaultNamespace
+	}
+	if namespaceB == "" {
+		namespaceB = structs.IntentionDefaultNamespace
+	}
+
+	return namespaceA == namespaceB
 }
 
 func (c *cmd) Synopsis() string {
