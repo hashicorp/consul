@@ -300,4 +300,33 @@ func TestConnectExpose_existingConfig(t *testing.T) {
 		ingressConf.ModifyIndex = entry.GetModifyIndex()
 		require.Equal(ingressConf, entry)
 	}
+
+	// Update the bar service and add a custom host.
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	{
+		ui := cli.NewMockUi()
+		c := New(ui)
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-service=bar",
+			"-ingress-gateway=ingress",
+			"-port=9999",
+			"-protocol=http",
+			"-host=bar.com",
+		}
+
+		code := c.Run(args)
+		if code != 0 {
+			t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+		}
+
+		// Make sure the ingress config was updated and existing services preserved.
+		entry, _, err := client.ConfigEntries().Get(api.IngressGateway, "ingress", nil)
+		require.NoError(err)
+
+		ingressConf.Listeners[1].Services[0].Hosts = []string{"bar.com"}
+		ingressConf.CreateIndex = entry.GetCreateIndex()
+		ingressConf.ModifyIndex = entry.GetModifyIndex()
+		require.Equal(ingressConf, entry)
+	}
 }

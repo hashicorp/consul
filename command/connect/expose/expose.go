@@ -124,62 +124,63 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	listenerIdx := -1
+	serviceIdx := -1
+	newService := api.IngressService{
+		Name:      svc,
+		Namespace: svcNamespace,
+		Hosts:     c.hosts,
+	}
 	for i, listener := range ingressConf.Listeners {
-		// Make sure the service isn't already exposed in this gateway
-		for _, service := range listener.Services {
-			if service.Name == svc && listener.Port == c.port {
-				c.UI.Output(fmt.Sprintf("Service %q already exposed through listener with port %d", svc, listener.Port))
-				goto CREATE_INTENTION
-			}
+		// Find the listener for the specified port, if one exists.
+		if listener.Port != c.port {
+			continue
 		}
 
-		// If there's already a listener for the given port, make sure the protocol matches.
-		if listener.Port == c.port {
-			listenerIdx = i
-			if listener.Protocol != c.protocol {
-				c.UI.Error(fmt.Sprintf("Listener on port %d already configured with conflicting protocol %q", listener.Port, listener.Protocol))
-				return 1
+		// Make sure the given protocol matches the existing one.
+		listenerIdx = i
+		if listener.Protocol != c.protocol {
+			c.UI.Error(fmt.Sprintf("Listener on port %d already configured with conflicting protocol %q", listener.Port, listener.Protocol))
+			return 1
+		}
+
+		// Make sure the service isn't already exposed in this gateway
+		for j, service := range listener.Services {
+			if service.Name == svc && service.Namespace == svcNamespace {
+				serviceIdx = j
+				c.UI.Output(fmt.Sprintf("Updating service definition for %q on listener with port %d", c.service, listener.Port))
+				break
 			}
 		}
 	}
 
 	// Add a service to the existing listener for the port if one exists, or make a new listener.
 	if listenerIdx >= 0 {
-		ingressConf.Listeners[listenerIdx].Services = append(ingressConf.Listeners[listenerIdx].Services, api.IngressService{
-			Name:      svc,
-			Namespace: svcNamespace,
-			Hosts:     c.hosts,
-		})
+		if serviceIdx >= 0 {
+			ingressConf.Listeners[listenerIdx].Services[serviceIdx] = newService
+		} else {
+			ingressConf.Listeners[listenerIdx].Services = append(ingressConf.Listeners[listenerIdx].Services, newService)
+		}
 	} else {
 		ingressConf.Listeners = append(ingressConf.Listeners, api.IngressListener{
 			Port:     c.port,
 			Protocol: c.protocol,
-			Services: []api.IngressService{
-				{
-					Name:      svc,
-					Namespace: svcNamespace,
-					Hosts:     c.hosts,
-				},
-			},
+			Services: []api.IngressService{newService},
 		})
 	}
 
 	// Write the updated config entry using a check-and-set, so it fails if the entry
 	// has been changed since we looked it up.
-	{
-		succeeded, _, err := client.ConfigEntries().CAS(ingressConf, ingressConf.GetModifyIndex(), nil)
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error writing ingress config entry: %v", err))
-			return 1
-		}
-		if !succeeded {
-			c.UI.Error("Ingress config entry was changed while attempting to update, please try again.")
-			return 1
-		}
-		c.UI.Output(fmt.Sprintf("Successfully updated config entry for ingress service %q", gateway))
+	succeeded, _, err := client.ConfigEntries().CAS(ingressConf, ingressConf.GetModifyIndex(), nil)
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error writing ingress config entry: %v", err))
+		return 1
 	}
+	if !succeeded {
+		c.UI.Error("Ingress config entry was changed while attempting to update, please try again.")
+		return 1
+	}
+	c.UI.Output(fmt.Sprintf("Successfully updated config entry for ingress service %q", gateway))
 
-CREATE_INTENTION:
 	// Check for an existing intention.
 	ixnFinder := finder.Finder{Client: client}
 	existing, err := ixnFinder.Find(c.ingressGateway, c.service)
