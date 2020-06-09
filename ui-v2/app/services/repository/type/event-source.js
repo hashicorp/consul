@@ -36,8 +36,8 @@ const createProxy = function(repo, find, settings, cache, serialize = JSON.strin
         // original find... with configuration now added
         return repo[find](...args)
           .then(res => {
-            if (!configuration.settings.enabled) {
-              // blocking isn't enabled, immediately close
+            if (!configuration.settings.enabled || typeof res === 'undefined') {
+              // blocking isn't enabled, or we got no data, immediately close
               this.close();
             }
             return res;
