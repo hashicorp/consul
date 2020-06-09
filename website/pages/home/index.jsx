@@ -26,8 +26,8 @@ export default function HomePage() {
           },
           {
             text: 'Try HasiCorp Consul Service on Azure',
-            url: 'https://www.hashicorp.com/products/consul/service-on-azure',
-            type: 'inbound',
+            url: 'https://learn.hashicorp.com/consul/hcs-azure/deploy',
+            type: 'outbound',
           },
         ]}
         backgroundImage
