@@ -1258,8 +1258,9 @@ type ACLTokenBootstrapRequest struct {
 
 // ACLTokenResponse returns a single Token + metadata
 type ACLTokenResponse struct {
-	Token    *ACLToken
-	Redacted bool // whether the token's secret was redacted
+	Token            *ACLToken
+	Redacted         bool // whether the token's secret was redacted
+	SourceDatacenter string
 	QueryMeta
 }
 
