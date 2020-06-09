@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -186,6 +187,20 @@ func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Requ
 		prefix = "/v1/health/connect/"
 	}
 
+	// Check for ingress request only when requesting connect services
+	if connect {
+		ingress, err := getBoolQueryParam(params, "ingress")
+		if err != nil {
+			resp.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(resp, "Invalid value for ?ingress")
+			return nil, nil
+		}
+		if ingress {
+			args.Connect = false
+			args.Ingress = true
+		}
+	}
+
 	// Pull out the service name
 	args.ServiceName = strings.TrimPrefix(req.URL.Path, prefix)
 	if args.ServiceName == "" {
@@ -224,26 +239,15 @@ func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Requ
 	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 
 	// Filter to only passing if specified
-	if _, ok := params[api.HealthPassing]; ok {
-		val := params.Get(api.HealthPassing)
-		// Backwards-compat to allow users to specify ?passing without a value. This
-		// should be removed in Consul 0.10.
-		var filter bool
-		if val == "" {
-			filter = true
-		} else {
-			var err error
-			filter, err = strconv.ParseBool(val)
-			if err != nil {
-				resp.WriteHeader(http.StatusBadRequest)
-				fmt.Fprint(resp, "Invalid value for ?passing")
-				return nil, nil
-			}
-		}
+	filter, err := getBoolQueryParam(params, api.HealthPassing)
+	if err != nil {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(resp, "Invalid value for ?passing")
+		return nil, nil
+	}
 
-		if filter {
-			out.Nodes = filterNonPassing(out.Nodes)
-		}
+	if filter {
+		out.Nodes = filterNonPassing(out.Nodes)
 	}
 
 	// Translate addresses after filtering so we don't waste effort.
@@ -271,6 +275,27 @@ func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Requ
 		}
 	}
 	return out.Nodes, nil
+}
+
+func getBoolQueryParam(params url.Values, key string) (bool, error) {
+	var param bool
+	if _, ok := params[key]; ok {
+		val := params.Get(key)
+		// Orginally a comment declared this check should be removed after Consul
+		// 0.10, to no longer support using ?passing without a value. However, I
+		// think this is a reasonable experience for a user and so am keeping it
+		// here.
+		if val == "" {
+			param = true
+		} else {
+			var err error
+			param, err = strconv.ParseBool(val)
+			if err != nil {
+				return false, err
+			}
+		}
+	}
+	return param, nil
 }
 
 // filterNonPassing is used to filter out any nodes that have check that are not passing
