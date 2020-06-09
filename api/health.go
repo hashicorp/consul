@@ -269,11 +269,11 @@ func (h *Health) Service(service, tag string, passingOnly bool, q *QueryOptions)
 	if tag != "" {
 		tags = []string{tag}
 	}
-	return h.service(service, tags, passingOnly, q, false)
+	return h.service(service, tags, passingOnly, q, false, false)
 }
 
 func (h *Health) ServiceMultipleTags(service string, tags []string, passingOnly bool, q *QueryOptions) ([]*ServiceEntry, *QueryMeta, error) {
-	return h.service(service, tags, passingOnly, q, false)
+	return h.service(service, tags, passingOnly, q, false, false)
 }
 
 // Connect is equivalent to Service except that it will only return services
@@ -286,16 +286,23 @@ func (h *Health) Connect(service, tag string, passingOnly bool, q *QueryOptions)
 	if tag != "" {
 		tags = []string{tag}
 	}
-	return h.service(service, tags, passingOnly, q, true)
+	return h.service(service, tags, passingOnly, q, true, false)
 }
 
 func (h *Health) ConnectMultipleTags(service string, tags []string, passingOnly bool, q *QueryOptions) ([]*ServiceEntry, *QueryMeta, error) {
-	return h.service(service, tags, passingOnly, q, true)
+	return h.service(service, tags, passingOnly, q, true, false)
 }
 
-func (h *Health) service(service string, tags []string, passingOnly bool, q *QueryOptions, connect bool) ([]*ServiceEntry, *QueryMeta, error) {
+// Ingress is equivalent to Connect except that it will only return associated
+// ingress gateways for the requested service.
+func (h *Health) Ingress(service string, passingOnly bool, q *QueryOptions) ([]*ServiceEntry, *QueryMeta, error) {
+	var tags []string
+	return h.service(service, tags, passingOnly, q, false, true)
+}
+
+func (h *Health) service(service string, tags []string, passingOnly bool, q *QueryOptions, connect, ingress bool) ([]*ServiceEntry, *QueryMeta, error) {
 	path := "/v1/health/service/" + service
-	if connect {
+	if connect || ingress {
 		path = "/v1/health/connect/" + service
 	}
 	r := h.c.newRequest("GET", path)
@@ -307,6 +314,9 @@ func (h *Health) service(service string, tags []string, passingOnly bool, q *Que
 	}
 	if passingOnly {
 		r.params.Set(HealthPassing, "1")
+	}
+	if ingress {
+		r.params.Set("ingress", "1")
 	}
 	rtt, resp, err := requireOK(h.c.doRequest(r))
 	if err != nil {
