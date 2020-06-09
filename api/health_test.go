@@ -211,7 +211,6 @@ func TestAPI_HealthChecks(t *testing.T) {
 	if err := agent.ServiceRegister(reg); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer agent.ServiceDeregister("foo")
 
 	retry.Run(t, func(r *retry.R) {
 		checks := HealthChecks{
@@ -264,7 +263,6 @@ func TestAPI_HealthChecks_NodeMetaFilter(t *testing.T) {
 	if err := agent.ServiceRegister(reg); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer agent.ServiceDeregister("foo")
 
 	retry.Run(t, func(r *retry.R) {
 		checks, meta, err := health.Checks("foo", &QueryOptions{NodeMeta: meta})
@@ -354,7 +352,6 @@ func TestAPI_HealthService_SingleTag(t *testing.T) {
 		},
 	}
 	require.NoError(t, agent.ServiceRegister(reg))
-	defer agent.ServiceDeregister("foo1")
 	retry.Run(t, func(r *retry.R) {
 		services, meta, err := health.Service("foo", "bar", true, nil)
 		require.NoError(r, err)
@@ -390,7 +387,6 @@ func TestAPI_HealthService_MultipleTags(t *testing.T) {
 		},
 	}
 	require.NoError(t, agent.ServiceRegister(reg))
-	defer agent.ServiceDeregister("foo1")
 
 	reg2 := &AgentServiceRegistration{
 		Name: "foo",
@@ -402,7 +398,6 @@ func TestAPI_HealthService_MultipleTags(t *testing.T) {
 		},
 	}
 	require.NoError(t, agent.ServiceRegister(reg2))
-	defer agent.ServiceDeregister("foo2")
 
 	// Test searching with one tag (two results)
 	retry.Run(t, func(r *retry.R) {
@@ -488,7 +483,6 @@ func TestAPI_HealthConnect(t *testing.T) {
 	}
 	err := agent.ServiceRegister(reg)
 	require.NoError(t, err)
-	defer agent.ServiceDeregister("foo")
 
 	// Register the proxy
 	proxyReg := &AgentServiceRegistration{
@@ -501,7 +495,6 @@ func TestAPI_HealthConnect(t *testing.T) {
 	}
 	err = agent.ServiceRegister(proxyReg)
 	require.NoError(t, err)
-	defer agent.ServiceDeregister("foo-proxy")
 
 	retry.Run(t, func(r *retry.R) {
 		services, meta, err := health.Connect("foo", "", true, nil)
@@ -544,6 +537,67 @@ func TestAPI_HealthConnect_Filter(t *testing.T) {
 	services, _, err = health.Service("web", "", false, &QueryOptions{Filter: "Node.Meta.os == linux and Service.Meta.version == 1"})
 	require.NoError(t, err)
 	require.Len(t, services, 1)
+}
+
+func TestAPI_HealthConnect_Ingress(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+	health := c.Health()
+
+	s.WaitForSerfCheck(t)
+
+	// Make a service with a proxy
+	reg := &AgentServiceRegistration{
+		Name: "foo",
+		Port: 8000,
+	}
+	err := agent.ServiceRegister(reg)
+	require.NoError(t, err)
+
+	// Register the gateway
+	gatewayReg := &AgentServiceRegistration{
+		Name: "foo-gateway",
+		Port: 8001,
+		Kind: ServiceKindIngressGateway,
+	}
+	err = agent.ServiceRegister(gatewayReg)
+	require.NoError(t, err)
+
+	// Associate service and gateway
+	gatewayConfig := &IngressGatewayConfigEntry{
+		Kind: IngressGateway,
+		Name: "foo-gateway",
+		Listeners: []IngressListener{
+			{
+				Port:     2222,
+				Protocol: "tcp",
+				Services: []IngressService{
+					{
+						Name: "foo",
+					},
+				},
+			},
+		},
+	}
+	_, wm, err := c.ConfigEntries().Set(gatewayConfig, nil)
+	require.NoError(t, err)
+	require.NotNil(t, wm)
+
+	retry.Run(t, func(r *retry.R) {
+		services, meta, err := health.Ingress("foo", true, nil)
+		require.NoError(r, err)
+
+		require.NotZero(r, meta.LastIndex)
+
+		// Should be exactly 1 service - the original shouldn't show up as a connect
+		// endpoint, only it's proxy.
+		require.Len(r, services, 1)
+		require.Equal(r, services[0].Node.Datacenter, "dc1")
+		require.Equal(r, services[0].Service.Service, gatewayReg.Name)
+	})
 }
 
 func TestAPI_HealthState(t *testing.T) {
