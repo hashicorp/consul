@@ -164,7 +164,7 @@ func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Requ
 
 func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Request, connect bool) (interface{}, error) {
 	// Set default DC
-	args := structs.ServiceSpecificRequest{Connect: connect}
+	args := structs.ServiceSpecificRequest{}
 	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
 	}
@@ -185,19 +185,19 @@ func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Requ
 	prefix := "/v1/health/service/"
 	if connect {
 		prefix = "/v1/health/connect/"
-	}
 
-	// Check for ingress request only when requesting connect services
-	if connect {
+		// Check for ingress request only when requesting connect services
 		ingress, err := getBoolQueryParam(params, "ingress")
 		if err != nil {
 			resp.WriteHeader(http.StatusBadRequest)
 			fmt.Fprint(resp, "Invalid value for ?ingress")
 			return nil, nil
 		}
+
 		if ingress {
-			args.Connect = false
 			args.Ingress = true
+		} else {
+			args.Connect = true
 		}
 	}
 
