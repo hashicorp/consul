@@ -566,16 +566,6 @@ var expectedFieldConfigIntention bexpr.FieldConfigurations = bexpr.FieldConfigur
 		CoerceFn:            bexpr.CoerceString,
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
-	"DefaultAddr": &bexpr.FieldConfiguration{
-		StructFieldName:     "DefaultAddr",
-		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
-	},
-	"DefaultPort": &bexpr.FieldConfiguration{
-		StructFieldName:     "DefaultPort",
-		CoerceFn:            bexpr.CoerceInt,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
-	},
 	"Precedence": &bexpr.FieldConfiguration{
 		StructFieldName:     "Precedence",
 		CoerceFn:            bexpr.CoerceInt,

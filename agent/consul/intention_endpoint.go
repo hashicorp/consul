@@ -86,7 +86,7 @@ func (s *Intention) prepareApplyCreate(ident structs.ACLIdentity, authz acl.Auth
 	}
 
 	// make sure we set the hash prior to raft application
-	args.Intention.SetHash(true)
+	args.Intention.SetHash()
 
 	return nil
 }
@@ -145,7 +145,7 @@ func (s *Intention) prepareApplyUpdate(ident structs.ACLIdentity, authz acl.Auth
 	}
 
 	// make sure we set the hash prior to raft application
-	args.Intention.SetHash(true)
+	args.Intention.SetHash()
 
 	return nil
 }

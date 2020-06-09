@@ -36,10 +36,12 @@ type Intention struct {
 	// Action is whether this is an allowlist or denylist intention.
 	Action IntentionAction
 
-	// DefaultAddr, DefaultPort of the local listening proxy (if any) to
-	// make this connection.
-	DefaultAddr string
-	DefaultPort int
+	// DefaultAddr is not used.
+	// Deprecated: DefaultAddr is not used and may be removed in a future version.
+	DefaultAddr string `json:",omitempty"`
+	// DefaultPort is not used.
+	// Deprecated: DefaultPort is not used and may be removed in a future version.
+	DefaultPort int `json:",omitempty"`
 
 	// Meta is arbitrary metadata associated with the intention. This is
 	// opaque to Consul but is served in API responses.
