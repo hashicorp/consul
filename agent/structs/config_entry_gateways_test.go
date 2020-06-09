@@ -392,6 +392,48 @@ func TestIngressConfigEntry_Validate(t *testing.T) {
 			},
 			expectErr: `Host "*-test.example.com" is not valid, a wildcard specifier is only allowed as the leftmost label`,
 		},
+		{
+			name: "wildcard specifier is allowed for hosts when TLS is disabled",
+			entry: IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"*"},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "wildcard specifier is not allowed for hosts when TLS is enabled",
+			entry: IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				TLS: GatewayTLSConfig{
+					Enabled: true,
+				},
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"*"},
+							},
+						},
+					},
+				},
+			},
+			expectErr: `Host '*' is not allowed when TLS is enabled, all hosts must be valid DNS records to add as a DNSSAN`,
+		},
 	}
 
 	for _, test := range cases {
