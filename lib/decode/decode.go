@@ -64,14 +64,19 @@ func translationsForType(to reflect.Type) map[string]string {
 	translations := map[string]string{}
 	for i := 0; i < to.NumField(); i++ {
 		field := to.Field(i)
+		canonKey := strings.ToLower(canonicalFieldKey(field))
+
 		tag, ok := field.Tag.Lookup("alias")
-		if !ok {
-			continue
+		if ok {
+			for _, alias := range strings.Split(tag, ",") {
+				translations[strings.ToLower(alias)] = canonKey
+			}
 		}
 
-		canonKey := strings.ToLower(canonicalFieldKey(field))
-		for _, alias := range strings.Split(tag, ",") {
-			translations[strings.ToLower(alias)] = canonKey
+		// The original key should always be valid too
+		lowerName := strings.ToLower(field.Name)
+		if canonKey != lowerName {
+			translations[lowerName] = canonKey
 		}
 	}
 	return translations
