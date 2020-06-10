@@ -1,15 +1,17 @@
-import RepositoryService from 'consul-ui/services/repository';
+import { inject as service } from '@ember/service';
 import { get, set } from '@ember/object';
+import RepositoryService from 'consul-ui/services/repository';
 
 const modelName = 'discovery-chain';
 const ERROR_MESH_DISABLED = 'Connect must be enabled in order to use this endpoint';
 export default RepositoryService.extend({
-  meshEnabled: true,
+  dcs: service('repository/dc'),
   getModelName: function() {
     return modelName;
   },
-  findBySlug: function() {
-    if (!this.meshEnabled) {
+  findBySlug: function(slug, dc, nspace, configuration = {}) {
+    const datacenter = this.dcs.peekOne(dc);
+    if (!get(datacenter, 'MeshEnabled')) {
       return Promise.resolve();
     }
     return this._super(...arguments).catch(e => {
@@ -18,7 +20,7 @@ export default RepositoryService.extend({
       switch (code) {
         case '500':
           if (body === ERROR_MESH_DISABLED) {
-            set(this, 'meshEnabled', false);
+            set(datacenter, 'MeshEnabled', false);
           }
           return;
         default:
