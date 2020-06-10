@@ -88,6 +88,21 @@ KNOWN ISSUES:
 
 * ui: service pages in the UI for services with non-alphanumeric characters will not render. They instead show a page that says `The backend responded with an error` and `Error 500`. [[GH-7896](https://github.com/hashicorp/consul/issues/7896)]
 
+## 1.7.4 (June 10, 2020)
+
+SECURITY:
+
+* Adding an option `http_config.use_cache` to disable agent caching for http endpoints, because Consul’s DNS and HTTP API expose a caching feature susceptible to DoS. [CVE-2020-13250](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-13250) [[GH-8023]](https://github.com/hashicorp/consul/pull/8023)
+* Propagate and enforce changes to legacy ACL tokens rules in secondary data centers. [CVE-2020-12797](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-12797) [[GH-8047]](https://github.com/hashicorp/consul/pull/8047)
+* Only resolve local acl token in the datacenter it belongs to. [CVE-2020-13170](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-13170) [[GH-8068]](https://github.com/hashicorp/consul/pull/8068)
+* Requiring service:write permissions, a service-router entry without a destination no longer crashes Consul servers. [CVE-2020-12758](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-12758) [[GH-7783]](https://github.com/hashicorp/consul/pull/7783)
+
+BUG FIXES:
+
+* acl: Fixed an issue where legacy management tokens could not be used in secondary datacenters. [[GH-7908](https://github.com/hashicorp/consul/pull/7908)]
+* agent: Fixed a race condition that could cause an agent to crash when first starting. [[GH-7955](https://github.com/hashicorp/consul/issues/7955)]
+* connect: setup intermediate_pki_path on secondary when using vault [[GH-8001]](https://github.com/hashicorp/consul/pull/8001)
+
 ## 1.7.3 (May 05, 2020)
 
 IMPROVEMENTS:
@@ -273,6 +288,19 @@ BUGFIXES:
 * ui: Fix positioning of active icon in the selected menu item [[GH-7148](https://github.com/hashicorp/consul/pull/7148)]
 * ui: Discovery-Chain: Improve parsing of redirects [[GH-7174](https://github.com/hashicorp/consul/pull/7174)]
 * ui: Fix styling of ‘duplicate intention’ error message [[GH6936]](https://github.com/hashicorp/consul/pull/6936)
+
+## 1.6.6 (June 10, 2020)
+
+SECURITY:
+
+* Adding an option `http_config.use_cache` to disable agent caching for http endpoints, because Consul’s DNS and HTTP API expose a caching feature susceptible to DoS. [CVE-2020-13250](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-13250) [[GH-8023]](https://github.com/hashicorp/consul/pull/8023)
+* Propagate and enforce changes to legacy ACL tokens rules in secondary data centers. [CVE-2020-12797](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-12797) [[GH-8047]](https://github.com/hashicorp/consul/pull/8047)
+* Only resolve local acl token in the datacenter it belongs to. [CVE-2020-13170](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-13170) [[GH-8068]](https://github.com/hashicorp/consul/pull/8068)
+
+BUG FIXES:
+
+* acl: Fixed an issue where legacy management tokens could not be used in secondary datacenters. [[GH-7908](https://github.com/hashicorp/consul/pull/7908)]
+* agent: Fixed a race condition that could cause an agent to crash when first starting. [[GH-7955](https://github.com/hashicorp/consul/issues/7955)]
 
 ## 1.6.5 (April 14, 2020)
 
