@@ -11,7 +11,7 @@ export default RepositoryService.extend({
   },
   findBySlug: function(slug, dc, nspace, configuration = {}) {
     const datacenter = this.dcs.peekOne(dc);
-    if (!get(datacenter, 'MeshEnabled')) {
+    if (datacenter !== null && !get(datacenter, 'MeshEnabled')) {
       return Promise.resolve();
     }
     return this._super(...arguments).catch(e => {
@@ -19,7 +19,7 @@ export default RepositoryService.extend({
       const body = get(e, 'errors.firstObject.detail').trim();
       switch (code) {
         case '500':
-          if (body === ERROR_MESH_DISABLED) {
+          if (datacenter !== null && body === ERROR_MESH_DISABLED) {
             set(datacenter, 'MeshEnabled', false);
           }
           return;

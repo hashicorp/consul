@@ -101,7 +101,7 @@ export default function(assert, library) {
     return currentPage;
   };
   const setCurrentPage = function(page) {
-    api.server.history = [];
+    api.server.clearHistory();
     currentPage = page;
     return page;
   };
