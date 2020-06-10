@@ -1,6 +1,5 @@
 %menu-panel {
   position: absolute;
-  overflow: hidden;
 }
 %menu-panel [type='checkbox'] {
   display: none;
@@ -15,8 +14,14 @@
   /* or be hardcoded */
   /* min-height: 143px; */
 }
-%menu-panel [role='menuitem']::after {
-  float: right;
+%menu-panel [role='menuitem'] {
+  display: flex;
+  justify-content: space-between;
+}
+%menu-panel [role='menuitem']:after {
+  @extend %as-pseudo;
+  display: block !important;
+  background-position: center right !important;
 }
 %menu-panel-sub-panel {
   position: absolute;
@@ -70,7 +75,7 @@
 }
 %menu-panel-header {
   padding: 10px;
-  padding-left: 36px;
+  white-space: normal;
 }
 /* here the !important is only needed for what seems to be a difference */
 /* with the CSS before and after compression */

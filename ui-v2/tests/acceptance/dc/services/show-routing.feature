@@ -17,13 +17,20 @@ Feature: dc / services / show-routing: Show Routing for Service
     And the title should be "service-0 - Consul"
     And I see routing on the tabs
   Scenario: Given connect is disabled, the Routing tab should not display or error
-    Given 1 datacenter model with the value "dc1"
+    Given 2 datacenter models from yaml
+    ---
+      - dc1
+      - dc2
+    ---
     And 1 node models
-    And 1 service model from yaml
+    And 2 service model from yaml
     ---
     - Service:
         Name: service-0
         ID: service-0-with-id
+    - Service:
+        Name: service-1
+        ID: service-1-with-id
     ---
     And the url "/v1/discovery-chain/service-0?dc=dc1&ns=@namespace" responds with from yaml
     ---
@@ -37,4 +44,17 @@ Feature: dc / services / show-routing: Show Routing for Service
     ---
     And I don't see routing on the tabs
     And I don't see the "[data-test-error]" element
-
+    And I visit the service page for yaml
+    ---
+      dc: dc2
+      service: service-1
+    ---
+    And I see routing on the tabs
+    And I visit the service page for yaml
+    ---
+      dc: dc1
+      service: service-0
+    ---
+    Then a GET request wasn't made to "/v1/discovery-chain/service-0?dc=dc1&ns=@namespace"
+    And I don't see routing on the tabs
+    And I don't see the "[data-test-error]" element

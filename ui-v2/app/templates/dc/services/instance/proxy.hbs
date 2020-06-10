@@ -1,11 +1,5 @@
 <div class="tab-section">
   <div role="tabpanel">
-  {{#if (or (gt proxy.ServiceChecks.length 0) (gt proxy.NodeChecks.length 0))}}
-    <section>
-      <h3>Proxy health checks</h3>
-      <HealthcheckList data-test-proxy-checks @items={{append proxy.ServiceChecks proxy.NodeChecks}} />
-    </section>
-  {{/if}}
   {{#if (gt proxy.Proxy.Upstreams.length 0)}}
     <section class="proxy-upstreams">
       <h3> Upstreams</h3>
@@ -101,6 +95,12 @@
         </li>
       {{/each}}
       </ul>
+    </section>
+  {{/if}}
+  {{#if (or (gt proxy.ServiceChecks.length 0) (gt proxy.NodeChecks.length 0))}}
+    <section>
+      <h3>Proxy health</h3>
+      <HealthcheckList data-test-proxy-checks @items={{append proxy.ServiceChecks proxy.NodeChecks}} />
     </section>
   {{/if}}
   </div>

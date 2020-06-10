@@ -11,21 +11,22 @@
       </YieldSlot>
     </button>
   </ToggleButton>
-  <div class={{position}}>
-    <input type="checkbox" id={{concat 'popover-menu-' guid '-'}} />
-    {{#each submenus as |sub|}}
-      <input type="checkbox" id={{concat 'popover-menu-' guid '-' sub}} />
-    {{/each}}
-    {{#yield-slot name='header'}}
-      <div>
-        {{yield}}
-      </div>
-    {{else}}
-    {{/yield-slot}}
-    <ul role="menu" id={{ariaControls}} aria-labelledby={{ariaLabelledBy}} aria-expanded={{ariaExpanded}}>
+  <MenuPanel @position={{position}} id={{ariaControls}} aria-labelledby={{ariaLabelledBy}} aria-expanded={{ariaExpanded}}>
+    <BlockSlot @name="controls">
+      <input type="checkbox" id={{concat 'popover-menu-' guid '-'}} />
+      {{#each submenus as |sub|}}
+        <input type="checkbox" id={{concat 'popover-menu-' guid '-' sub}} />
+      {{/each}}
+    </BlockSlot>
+    {{#if hasHeader}}
+      <BlockSlot @name="header">
+        {{#yield-slot name="header"}}{{yield}}{{else}}{{/yield-slot}}
+      </BlockSlot>
+    {{/if}}
+    <BlockSlot @name="menu">
       <YieldSlot @name="menu" @params={{block-params (concat "popover-menu-" guid "-") send keypressClick this.toggle.click}}>
         {{yield}}
       </YieldSlot>
-    </ul>
-  </div>
+    </BlockSlot>
+  </MenuPanel>
 </AriaMenu>

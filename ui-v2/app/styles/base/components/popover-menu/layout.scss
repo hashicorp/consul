@@ -11,7 +11,7 @@
   @extend %toggle-button;
 }
 %more-popover-menu-panel {
-  @extend %menu-panel;
+  overflow: hidden;
   width: 192px;
 }
 %more-popover-menu + label + div {

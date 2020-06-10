@@ -14,27 +14,27 @@
         {{item.Service.Service}}
       </h1>
       <ConsulExternalSource @item={{item.Service}} />
-      <ConsulKind @item={{item.Service}} />
+      <ConsulKind @item={{item.Service}} @withInfo={{true}} />
   </BlockSlot>
   <BlockSlot @name="nav">
   {{#if (not-eq item.Service.Kind 'mesh-gateway')}}
     <TabNav @items={{
       compact
           (array
-                (hash label="Instances" href=(href-to "dc.services.show.instances") selected=(is-href "dc.services.show.instances"))
-(if (eq item.Service.Kind 'terminating-gateway') 
+(if (eq item.Service.Kind 'terminating-gateway')
                 (hash label="Linked Services" href=(href-to "dc.services.show.services") selected=(is-href "dc.services.show.services"))
 '')
-(if (eq item.Service.Kind 'ingress-gateway') 
+(if (eq item.Service.Kind 'ingress-gateway')
                 (hash label="Upstreams" href=(href-to "dc.services.show.upstreams") selected=(is-href "dc.services.show.upstreams"))
 '')
-(if (not item.Service.Kind) 
+                (hash label="Instances" href=(href-to "dc.services.show.instances") selected=(is-href "dc.services.show.instances"))
+(if (not item.Service.Kind)
                 (hash label="Intentions" href=(href-to "dc.services.show.intentions") selected=(is-href "dc.services.show.intentions"))
 '')
-(if chain 
+(if chain.Chain
                 (hash label="Routing" href=(href-to "dc.services.show.routing") selected=(is-href "dc.services.show.routing"))
 '')
-(if (not item.Service.Kind) 
+(if (not item.Service.Kind)
                 (hash label="Tags" href=(href-to "dc.services.show.tags") selected=(is-href "dc.services.show.tags"))
 '')
           )
