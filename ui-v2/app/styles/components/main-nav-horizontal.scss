@@ -10,6 +10,15 @@
 %secondary-nav {
   @extend %main-nav-horizontal;
 }
+%primary-nav .nspaces .menu-panel > div {
+  background-color: $gray-050;
+  padding-left: 36px;
+}
+%primary-nav .nspaces .menu-panel > div::before {
+  @extend %with-info-circle-fill-mask, %as-pseudo;
+  color: $blue-500;
+  font-size: 1.1em;
+}
 
 %main-header-horizontal > div {
   @extend %main-nav-horizontal-panel;

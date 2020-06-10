@@ -1,9 +1,19 @@
 {{yield}}
 {{#if (gt items.length 0)}}
 <ListCollection @items={{items}} class="consul-service-list" as |item index|>
-  <a data-test-service-name href={{href-to routeName item.Name}} class={{service/health-checks item}}>
+{{#if (eq item.Kind 'terminating-gateway')}}
+  <a data-test-service-name href={{href-to "dc.services.show.services" item.Name}} class={{service/health-checks item}}>
     {{item.Name}}
   </a>
+{{else if (eq item.Kind 'ingress-gateway')}}
+  <a data-test-service-name href={{href-to "dc.services.show.upstreams" item.Name}} class={{service/health-checks item}}>
+    {{item.Name}}
+  </a>
+{{else}}
+  <a data-test-service-name href={{href-to "dc.services.show.instances" item.Name}} class={{service/health-checks item}}>
+    {{item.Name}}
+  </a>
+  {{/if}}
   <ul>
   {{#if (and nspace (env 'CONSUL_NSPACES_ENABLED'))}}
     {{#if (not-eq item.Namespace nspace)}}

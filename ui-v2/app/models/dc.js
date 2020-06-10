@@ -12,4 +12,5 @@ export default Model.extend({
   // TODO: Are these required?
   Services: hasMany('service'),
   Nodes: hasMany('node'),
+  MeshEnabled: attr('boolean', { defaultValue: true }),
 });
