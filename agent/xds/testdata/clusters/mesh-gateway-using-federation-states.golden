@@ -54,18 +54,6 @@
                 },
                 "healthStatus": "HEALTHY",
                 "loadBalancingWeight": 1
-              },
-              {
-                "endpoint": {
-                  "address": {
-                    "socketAddress": {
-                      "address": "456.us-west-2.elb.notaws.com",
-                      "portValue": 443
-                    }
-                  }
-                },
-                "healthStatus": "HEALTHY",
-                "loadBalancingWeight": 1
               }
             ]
           }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/consul/logging"
 	"time"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -582,6 +583,7 @@ type gatewayClusterOpts struct {
 	hostnameEndpoints structs.CheckServiceNodes
 }
 
+// makeGatewayCluster creates an Envoy cluster for a mesh or terminating gateway
 func (s *Server) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, opts gatewayClusterOpts) *envoy.Cluster {
 	cfg, err := ParseGatewayConfig(snap.Proxy.Config)
 	if err != nil {
@@ -631,11 +633,53 @@ func (s *Server) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, opts gatewayC
 	}
 	cluster.ClusterDiscoveryType = &discoveryType
 
-	endpoints := make([]envoyendpoint.LbEndpoint, 0, len(opts.hostnameEndpoints))
+	endpoints := make([]envoyendpoint.LbEndpoint, 0, 1)
+	uniqueHostnames := make(map[string]bool)
 
-	for _, e := range opts.hostnameEndpoints {
-		endpoints = append(endpoints, makeLbEndpoint(e, opts.isRemote, opts.onlyPassing))
+	var (
+		hostname string
+		idx      int
+	)
+	for i, e := range opts.hostnameEndpoints {
+		addr, port := e.BestAddress(opts.isRemote)
+		if !uniqueHostnames[addr] {
+			uniqueHostnames[addr] = true
+		}
+
+		health, weight := calculateEndpointHealthAndWeight(e, opts.onlyPassing)
+		if health == envoycore.HealthStatus_UNHEALTHY {
+			continue
+		}
+
+		if len(endpoints) == 0 {
+			endpoints = append(endpoints, makeLbEndpoint(addr, port, health, weight))
+
+			hostname = addr
+			idx = i
+		}
 	}
+
+	dc := opts.hostnameEndpoints[idx].Node.Datacenter
+	service := opts.hostnameEndpoints[idx].Service.CompoundServiceName()
+
+	loggerName := logging.TerminatingGateway
+	if snap.Kind == structs.ServiceKindMeshGateway {
+		loggerName = logging.MeshGateway
+	}
+
+	if len(endpoints) == 0 {
+		s.Logger.Named(loggerName).
+			Warn("service does not contain any healthy instances, skipping Envoy cluster creation",
+				"dc", dc, "service", service.String())
+
+		return nil
+	}
+	if len(uniqueHostnames) > 0 {
+		s.Logger.Named(loggerName).
+			Warn(fmt.Sprintf("service contains instances with more than one unique hostname; only %q be resolved by Envoy.", hostname),
+				"dc", dc, "service", service.String())
+	}
+
 	cluster.LoadAssignment = &envoy.ClusterLoadAssignment{
 		ClusterName: cluster.Name,
 		Endpoints: []envoyendpoint.LocalityLbEndpoints{
@@ -683,10 +727,7 @@ func makeThresholdsIfNeeded(limits UpstreamLimits) []*envoycluster.CircuitBreake
 	return []*envoycluster.CircuitBreakers_Thresholds{threshold}
 }
 
-func makeLbEndpoint(csn structs.CheckServiceNode, isRemote, onlyPassing bool) envoyendpoint.LbEndpoint {
-	health, weight := calculateEndpointHealthAndWeight(csn, onlyPassing)
-	addr, port := csn.BestAddress(isRemote)
-
+func makeLbEndpoint(addr string, port int, health envoycore.HealthStatus, weight int) envoyendpoint.LbEndpoint {
 	return envoyendpoint.LbEndpoint{
 		HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 			Endpoint: &envoyendpoint.Endpoint{
