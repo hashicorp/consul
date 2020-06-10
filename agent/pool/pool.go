@@ -466,7 +466,11 @@ func (p *ConnPool) getNewConn(dc string, nodeName string, addr net.Addr) (*Conn,
 	conf.LogOutput = p.LogOutput
 
 	// Create a multiplexed session
-	session, _ := yamux.Client(conn, conf)
+	session, err := yamux.Client(conn, conf)
+	if err != nil {
+		conn.Close()
+		return nil, fmt.Errorf("Failed to create yamux client: %w", err)
+	}
 
 	// Wrap the connection
 	c := &Conn{

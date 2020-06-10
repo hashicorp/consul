@@ -33,6 +33,7 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/local"
+	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/systemd"
@@ -313,6 +314,9 @@ type Agent struct {
 	// IP.
 	httpConnLimiter connlimit.Limiter
 
+	// Connection Pool
+	connPool *pool.ConnPool
+
 	// enterpriseAgent embeds fields that we only access in consul-enterprise builds
 	enterpriseAgent
 }
@@ -325,6 +329,11 @@ func New(c *config.RuntimeConfig, logger hclog.InterceptLogger) (*Agent, error) 
 	}
 	if c.DataDir == "" && !c.DevMode {
 		return nil, fmt.Errorf("Must configure a DataDir")
+	}
+
+	tlsConfigurator, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), logger)
+	if err != nil {
+		return nil, err
 	}
 
 	a := Agent{
@@ -347,7 +356,13 @@ func New(c *config.RuntimeConfig, logger hclog.InterceptLogger) (*Agent, error) 
 		endpoints:        make(map[string]string),
 		tokens:           new(token.Store),
 		logger:           logger,
+		tlsConfigurator:  tlsConfigurator,
 	}
+	err = a.initializeConnectionPool()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to initialize the connection pool: %w", err)
+	}
+
 	a.serviceManager = NewServiceManager(&a)
 
 	if err := a.initializeACLs(); err != nil {
@@ -361,6 +376,37 @@ func New(c *config.RuntimeConfig, logger hclog.InterceptLogger) (*Agent, error) 
 	}
 
 	return &a, nil
+}
+
+func (a *Agent) initializeConnectionPool() error {
+	var rpcSrcAddr *net.TCPAddr
+	if !ipaddr.IsAny(a.config.RPCBindAddr) {
+		rpcSrcAddr = &net.TCPAddr{IP: a.config.RPCBindAddr.IP}
+	}
+
+	// Ensure we have a log output for the connection pool.
+	logOutput := a.LogOutput
+	if logOutput == nil {
+		logOutput = os.Stderr
+	}
+
+	pool := &pool.ConnPool{
+		Server:          a.config.ServerMode,
+		SrcAddr:         rpcSrcAddr,
+		LogOutput:       logOutput,
+		TLSConfigurator: a.tlsConfigurator,
+		Datacenter:      a.config.Datacenter,
+	}
+	if a.config.ServerMode {
+		pool.MaxTime = 2 * time.Minute
+		pool.MaxStreams = 64
+	} else {
+		pool.MaxTime = 127 * time.Second
+		pool.MaxStreams = 32
+	}
+
+	a.connPool = pool
+	return nil
 }
 
 // LocalConfig takes a config.RuntimeConfig and maps the fields to a local.Config
@@ -438,21 +484,22 @@ func (a *Agent) Start() error {
 		return fmt.Errorf("failed to start Consul enterprise component: %v", err)
 	}
 
-	tlsConfigurator, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), a.logger)
-	if err != nil {
-		return err
+	options := []consul.ConsulOption{
+		consul.WithLogger(a.logger),
+		consul.WithTokenStore(a.tokens),
+		consul.WithTLSConfigurator(a.tlsConfigurator),
+		consul.WithConnectionPool(a.connPool),
 	}
-	a.tlsConfigurator = tlsConfigurator
 
 	// Setup either the client or the server.
 	if c.ServerMode {
-		server, err := consul.NewServerLogger(consulCfg, a.logger, a.tokens, a.tlsConfigurator)
+		server, err := consul.NewServerWithOptions(consulCfg, options...)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
 		a.delegate = server
 	} else {
-		client, err := consul.NewClientLogger(consulCfg, a.logger, a.tlsConfigurator)
+		client, err := consul.NewClientWithOptions(consulCfg, options...)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul client: %v", err)
 		}
