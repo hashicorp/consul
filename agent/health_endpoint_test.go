@@ -1139,7 +1139,7 @@ func TestHealthConnectServiceNodes(t *testing.T) {
 	assert.Len(nodes[0].Checks, 0)
 }
 
-func TestHealthConnectServiceNodes_Ingress(t *testing.T) {
+func TestHealthIngressServiceNodes(t *testing.T) {
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
@@ -1179,12 +1179,12 @@ func TestHealthConnectServiceNodes_Ingress(t *testing.T) {
 	require.Nil(t, a.RPC("ConfigEntry.Apply", req, &outB))
 	require.True(t, outB)
 
-	t.Run("no_query_value", func(t *testing.T) {
+	t.Run("associated service", func(t *testing.T) {
 		assert := assert.New(t)
 		req, _ := http.NewRequest("GET", fmt.Sprintf(
-			"/v1/health/connect/%s?ingress", args.Service.Service), nil)
+			"/v1/health/ingress/%s", args.Service.Service), nil)
 		resp := httptest.NewRecorder()
-		obj, err := a.srv.HealthConnectServiceNodes(resp, req)
+		obj, err := a.srv.HealthIngressServiceNodes(resp, req)
 		assert.Nil(err)
 		assertIndex(t, resp)
 
@@ -1195,46 +1195,17 @@ func TestHealthConnectServiceNodes_Ingress(t *testing.T) {
 		require.Equal(t, gatewayArgs.Service.Proxy, nodes[0].Service.Proxy)
 	})
 
-	t.Run("true_value", func(t *testing.T) {
+	t.Run("non-associated service", func(t *testing.T) {
 		assert := assert.New(t)
-		req, _ := http.NewRequest("GET", fmt.Sprintf(
-			"/v1/health/connect/%s?ingress=true", args.Service.Service), nil)
+		req, _ := http.NewRequest("GET",
+			"/v1/health/connect/notexist", nil)
 		resp := httptest.NewRecorder()
-		obj, err := a.srv.HealthConnectServiceNodes(resp, req)
-		assert.Nil(err)
-		assertIndex(t, resp)
-
-		nodes := obj.(structs.CheckServiceNodes)
-		require.Len(t, nodes, 1)
-		require.Equal(t, structs.ServiceKindIngressGateway, nodes[0].Service.Kind)
-		require.Equal(t, gatewayArgs.Service.Address, nodes[0].Service.Address)
-		require.Equal(t, gatewayArgs.Service.Proxy, nodes[0].Service.Proxy)
-	})
-
-	t.Run("false_value", func(t *testing.T) {
-		assert := assert.New(t)
-		req, _ := http.NewRequest("GET", fmt.Sprintf(
-			"/v1/health/connect/%s?ingress=false", args.Service.Service), nil)
-		resp := httptest.NewRecorder()
-		obj, err := a.srv.HealthConnectServiceNodes(resp, req)
+		obj, err := a.srv.HealthIngressServiceNodes(resp, req)
 		assert.Nil(err)
 		assertIndex(t, resp)
 
 		nodes := obj.(structs.CheckServiceNodes)
 		require.Len(t, nodes, 0)
-	})
-
-	t.Run("invalid_value", func(t *testing.T) {
-		assert := assert.New(t)
-		req, _ := http.NewRequest("GET", fmt.Sprintf(
-			"/v1/health/connect/%s?ingress=notabool", args.Service.Service), nil)
-		resp := httptest.NewRecorder()
-		_, err := a.srv.HealthConnectServiceNodes(resp, req)
-		assert.Equal(400, resp.Code)
-
-		body, err := ioutil.ReadAll(resp.Body)
-		assert.Nil(err)
-		assert.True(bytes.Contains(body, []byte("Invalid value for ?ingress")))
 	})
 }
 

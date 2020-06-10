@@ -12,6 +12,12 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
+const (
+	serviceHealth = "service"
+	connectHealth = "connect"
+	ingressHealth = "ingress"
+)
+
 func (s *HTTPServer) HealthChecksInState(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Set default DC
 	args := structs.ChecksInStateRequest{}
@@ -154,15 +160,26 @@ RETRY_ONCE:
 	return out.HealthChecks, nil
 }
 
+// HealthIngressServiceNodes should return "all the healthy ingress gateway instances
+// that I can use to access this connect-enabled service without mTLS".
+func (s *HTTPServer) HealthIngressServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	return s.healthServiceNodes(resp, req, ingressHealth)
+}
+
+// HealthConnectServiceNodes should return "all healthy connect-enabled
+// endpoints (e.g. could be side car proxies or native instances) for this
+// service so I can connect with mTLS".
 func (s *HTTPServer) HealthConnectServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	return s.healthServiceNodes(resp, req, true)
+	return s.healthServiceNodes(resp, req, connectHealth)
 }
 
+// HealthServiceNodes should return "all the healthy instances of this service
+// registered so I can connect directly to them".
 func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	return s.healthServiceNodes(resp, req, false)
+	return s.healthServiceNodes(resp, req, serviceHealth)
 }
 
-func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Request, connect bool) (interface{}, error) {
+func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Request, healthType string) (interface{}, error) {
 	// Set default DC
 	args := structs.ServiceSpecificRequest{}
 	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
@@ -182,23 +199,17 @@ func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Requ
 	}
 
 	// Determine the prefix
-	prefix := "/v1/health/service/"
-	if connect {
+	var prefix string
+	switch healthType {
+	case connectHealth:
 		prefix = "/v1/health/connect/"
-
-		// Check for ingress request only when requesting connect services
-		ingress, err := getBoolQueryParam(params, "ingress")
-		if err != nil {
-			resp.WriteHeader(http.StatusBadRequest)
-			fmt.Fprint(resp, "Invalid value for ?ingress")
-			return nil, nil
-		}
-
-		if ingress {
-			args.Ingress = true
-		} else {
-			args.Connect = true
-		}
+		args.Connect = true
+	case ingressHealth:
+		prefix = "/v1/health/ingress/"
+		args.Ingress = true
+	default:
+		// serviceHealth is the default type
+		prefix = "/v1/health/service/"
 	}
 
 	// Pull out the service name
