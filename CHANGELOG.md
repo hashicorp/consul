@@ -6,6 +6,9 @@ IMPROVEMENTS:
 * ui: Improved 'empty states'  [[GH-7940](https://github.com/hashicorp/consul/pull/7940)]
 * ui: Add ability to sort services based on health  [[GH-7989](https://github.com/hashicorp/consul/pull/7989)]
 * connect: Enable mesh and terminating gateways to resolve hostnames to IPv4 addresses using system resolver [[GH-7999]](https://github.com/hashicorp/consul/pull/7999)
+* ui: Add explanatory tooltip panels for gateway services [[GH-8048]](https://github.com/hashicorp/consul/pull/8048)
+* ui: Reduce discovery-chain log errors [[GH-8065]](https://github.com/hashicorp/consul/pull/8065)
+
 
 ## 1.8.0-beta2 (May 21, 2020)
 
