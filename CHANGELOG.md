@@ -4,6 +4,14 @@ BUG FIXES:
 
 * acl: Fixed an issue where legacy management tokens could not be used in secondary datacenters. [[GH-7908](https://github.com/hashicorp/consul/pull/7908)]
 * agent: Fixed a race condition that could cause an agent to crash when first starting. [[GH-7955](https://github.com/hashicorp/consul/issues/7955)]
+* connect: setup intermediate_pki_path on secondary when using vault [[GH-8001]](https://github.com/hashicorp/consul/pull/8001)
+
+SECURITY:
+
+* Adding an option `http_config.use_cache` to disable agent caching for http endpoints, because Consul’s DNS and HTTP API expose a caching feature susceptible to DoS. [[GH-8023]](https://github.com/hashicorp/consul/pull/8023)
+* Propagate and enforce changes to legacy ACL tokens rules in secondary data centers. [[GH-8047]](https://github.com/hashicorp/consul/pull/8047)
+* Only resolve local acl token in the datacenter it belongs to. [[GH-8068]](https://github.com/hashicorp/consul/pull/8068)
+* Requiring service:write permissions, a service-router entry without a destination no longer crashes Consul servers. [[GH-7783]](https://github.com/hashicorp/consul/pull/7783)
 
 ## 1.7.3 (May 05, 2020)
 
