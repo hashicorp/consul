@@ -355,7 +355,7 @@ func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *struc
 			r.cache.PutIdentity(token, nil)
 			return nil, acl.ErrNotFound
 		} else if resp.Token.Local && r.config.Datacenter != resp.SourceDatacenter {
-			r.cache.PutIdentity(cacheID, nil)
+			r.cache.PutIdentity(token, nil)
 			return nil, acl.PermissionDeniedError{Cause: fmt.Sprintf("This is a local token in datacenter %q", resp.SourceDatacenter)}
 		} else {
 			r.cache.PutIdentity(token, resp.Token)

@@ -6,10 +6,10 @@ sudo npm install netlify-cli -g
 
 # Deploy site to netlify
 # Assumes NETLIFY_SITE_ID and NETLIFY_AUTH_TOKEN env variables are set
-output=$(netlify deploy --dir=./website/build)
+output=$(netlify deploy --dir=./website/build --json)
 
 # Grab deploy URL
-url=$(echo "$output" | grep "Live Draft URL" | sed -E 's/.*(https:\/\/.*$)/\1/')
+url=$(echo "$output" | jq --raw-output '.deploy_url')
 
 # Checks broken links
 wget \
