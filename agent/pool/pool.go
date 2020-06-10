@@ -556,7 +556,11 @@ func (p *ConnPool) RPC(
 		return fmt.Errorf("pool: ConnPool.RPC requires a node name")
 	}
 
-	if method == "AutoEncrypt.Sign" {
+	// TODO (autoconf) probably will want to have a way to invoke the
+	// secure or insecure variant depending on whether its an ongoing
+	// or first time config request. For now though this is fine until
+	// those ongoing requests are implemented.
+	if method == "AutoEncrypt.Sign" || method == "Cluster.AutoConfig" {
 		return p.rpcInsecure(dc, nodeName, addr, method, args, reply)
 	} else {
 		return p.rpc(dc, nodeName, addr, method, args, reply)

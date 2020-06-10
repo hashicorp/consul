@@ -27,6 +27,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/ae"
+	"github.com/hashicorp/consul/agent/agentpb"
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/checks"
@@ -89,6 +90,8 @@ const (
 	// defaultQueryTime is the amount of time we block waiting for a change
 	// if no time is specified. Previously we would wait the maxQueryTime.
 	defaultQueryTime = 300 * time.Second
+
+	autoConfigFileName = "auto-config.json"
 )
 
 var (
@@ -123,6 +126,24 @@ func (s configSource) String() string {
 func ConfigSourceFromName(name string) (configSource, bool) {
 	s, ok := configSourceFromName[name]
 	return s, ok
+}
+
+func loadConfig(flags config.Flags, extraHead config.Source) (*config.RuntimeConfig, []string, error) {
+	b, err := config.NewBuilder(flags)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if extraHead.Data != "" {
+		b.Head = append(b.Head, extraHead)
+	}
+
+	cfg, err := b.BuildAndValidate()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return &cfg, b.Warnings, nil
 }
 
 // delegate defines the interface shared by both
@@ -161,6 +182,15 @@ type notifier interface {
 // mode, it runs a full Consul server. In client-only mode, it only forwards
 // requests to other Consul servers.
 type Agent struct {
+
+	// autoConfigJSON is the JSON serialized auto-config configuration to be
+	// used when reloading a configuration
+	autoConfigJSON string
+
+	// flags are needed when rebuilding our configuration after an auto-config
+	// update
+	configFlags config.Flags
+
 	// config is the agent configuration.
 	config *config.RuntimeConfig
 
@@ -321,9 +351,54 @@ type Agent struct {
 	enterpriseAgent
 }
 
+type agentOption struct {
+	logger hclog.InterceptLogger
+	flags  *config.Flags
+}
+
+func WithLogger(logger hclog.InterceptLogger) agentOption {
+	return agentOption{
+		logger: logger,
+	}
+}
+
+func WithFlags(flags *config.Flags) agentOption {
+	return agentOption{
+		flags: flags,
+	}
+}
+
+func flattenAgentOptions(options []agentOption) agentOption {
+	var flat agentOption
+	for _, opt := range options {
+		if opt.logger != nil {
+			flat.logger = opt.logger
+		}
+		if opt.flags != nil {
+			flat.flags = opt.flags
+		}
+	}
+	return flat
+}
+
 // New verifies the configuration given has a Datacenter and DataDir
 // configured, and maps the remaining config fields to fields on the Agent.
 func New(c *config.RuntimeConfig, logger hclog.InterceptLogger) (*Agent, error) {
+	return NewWithOptions(c, WithLogger(logger))
+}
+
+func NewWithOptions(c *config.RuntimeConfig, options ...agentOption) (*Agent, error) {
+	flat := flattenAgentOptions(options)
+
+	logger := flat.logger
+	var configFlags config.Flags
+	if flat.flags != nil {
+		configFlags = *flat.flags
+	}
+
+	// TODO (autoconf) figure out how to let this setting be pushed down via autoconf
+	// right now it gets defaulted if unset so this check actually doesn't do much
+	// for a normal running agent.
 	if c.Datacenter == "" {
 		return nil, fmt.Errorf("Must configure a Datacenter")
 	}
@@ -357,7 +432,9 @@ func New(c *config.RuntimeConfig, logger hclog.InterceptLogger) (*Agent, error) 
 		tokens:           new(token.Store),
 		logger:           logger,
 		tlsConfigurator:  tlsConfigurator,
+		configFlags:      flags,
 	}
+
 	err = a.initializeConnectionPool()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to initialize the connection pool: %w", err)
@@ -409,6 +486,192 @@ func (a *Agent) initializeConnectionPool() error {
 	return nil
 }
 
+func (a *Agent) ReadConfig() (*config.RuntimeConfig, []string, error) {
+	a.stateLock.Lock()
+	defer a.stateLock.Unlock()
+	return a.readConfigUnlocked()
+}
+
+func (a *Agent) readConfigUnlocked() (*config.RuntimeConfig, []string, error) {
+	src := config.Source{
+		Name:   autoConfigFileName,
+		Format: "json",
+		Data:   a.autoConfigJSON,
+	}
+
+	return loadConfig(a.configFlags, src)
+}
+
+func (a *Agent) autoConfigSource() (bool, config.Source) {
+	a.stateLock.Lock()
+	src := a.autoConfigJSON
+	a.stateLock.Unlock()
+
+	return src != "", config.Source{Name: autoConfigFileName, Format: "json", Data: src}
+}
+
+func (a *Agent) reloadConfigUnlocked() error {
+	// reload the config
+	config, warnings, err := a.readConfigUnlocked()
+	if err != nil {
+		return fmt.Errorf("Failed to parse configuration after apply auto-config configurations: %w", err)
+	}
+
+	for _, w := range warnings {
+		a.logger.Warn(w)
+	}
+
+	a.config = config
+	return nil
+}
+
+func (a *Agent) initializeAutoConfig() error {
+	ac := a.config.AutoConfig
+
+	if a.config.ServerMode || !ac.Enabled {
+		return nil
+	}
+
+	if a.config.DataDir != "" {
+		path := filepath.Join(a.config.DataDir, autoConfigFileName)
+
+		content, err := ioutil.ReadFile(path)
+		if err == nil {
+			a.autoConfigJSON = string(content)
+			a.reloadConfigUnlocked()
+			return nil
+		}
+
+		if !os.IsNotExist(err) {
+			return fmt.Errorf("Failed to load %s: %w", path, err)
+		}
+
+		// ignore non-existence errors as that means this is the
+		// first time we are auto-configuring
+	}
+
+	// we have to have an intro token
+	if ac.IntroToken == "" && ac.IntroTokenFile == "" {
+		return fmt.Errorf("Failed to initialize auto-config: intro_token and intro_token_file settings are not configured")
+	}
+
+	introToken := ac.IntroToken
+	if introToken == "" {
+		content, err := ioutil.ReadFile(ac.IntroTokenFile)
+		if err != nil {
+			return fmt.Errorf("Failed to read intro token from file: %w", err)
+		}
+
+		introToken = string(content)
+	}
+
+	request := agentpb.AutoConfigRequest{
+		Datacenter: a.config.Datacenter,
+		Node:       a.config.NodeName,
+		Segment:    a.config.SegmentName,
+		JWT:        introToken,
+	}
+
+	var reply agentpb.AutoConfigResponse
+
+	servers := ac.ServerAddresses
+	disco, err := newDiscover()
+	if err != nil && len(servers) == 0 {
+		return err
+	}
+
+	servers = append(servers, retryJoinAddrs(disco, retryJoinSerfVariant, "Auto Config", servers, a.logger)...)
+
+	for {
+		select {
+		case <-a.InterruptStartCh:
+			return fmt.Errorf("Aborting Auto Config - interrupted")
+		default:
+		}
+
+		attempts := 0
+		for _, s := range servers {
+			port := a.config.ServerPort
+			host, portStr, err := net.SplitHostPort(s)
+			if err != nil {
+				if strings.Contains(err.Error(), "missing port in address") {
+					host = s
+				} else {
+					a.logger.Warn("Error splitting auto-config server address", "address", s, "error", err)
+					continue
+				}
+			} else {
+				port, err = strconv.Atoi(portStr)
+				if err != nil {
+					a.logger.Warn("Parsed port is not an integer", "port", portStr, "error", err)
+					continue
+				}
+			}
+
+			ips, err := net.LookupIP(host)
+			if err != nil {
+				a.logger.Warn("AutoConfig IP resolution failed", "host", host, "error", err)
+				continue
+			}
+
+			for _, ip := range ips {
+				addr := net.TCPAddr{IP: ip, Port: port}
+
+				if err = a.connPool.RPC(a.config.Datacenter, a.config.NodeName, &addr, "Cluster.AutoConfig", &request, &reply); err == nil {
+					if err := a.recordAutoConfigReply(&reply); err != nil {
+						return err
+					}
+
+					return a.reloadConfigUnlocked()
+				} else {
+					a.logger.Warn("AutoConfig failed", "addr", addr.String(), "error", err)
+				}
+			}
+		}
+		attempts++
+
+		delay := lib.RandomStagger(30 * time.Second)
+		interval := (time.Duration(attempts) * delay) + delay
+		a.logger.Warn("retrying AutoConfig", "retry_interval", interval)
+		select {
+		case <-time.After(interval):
+			continue
+		case <-a.InterruptStartCh:
+			return fmt.Errorf("aborting AutoConfig because interrupted")
+		case <-a.shutdownCh:
+			return fmt.Errorf("aborting AutoConfig because shutting down")
+		}
+	}
+	return nil
+}
+
+// recordAutoConfigReply takes an AutoConfig RPC reply records it with the agent
+// This will persist the configuration to disk (unless in dev mode running without
+// a data dir) and will reload the configuration.
+//
+// NOTE: It is expected that this be called while holding the state lock as we will
+// be mutating some Agent state to store the rednered JSON configuration.
+func (a *Agent) recordAutoConfigReply(reply *agentpb.AutoConfigResponse) error {
+	conf, err := json.Marshal(reply.Config)
+	if err != nil {
+		return fmt.Errorf("Failed to encode auto-config configuration as JSON: %w", err)
+	}
+
+	// store it in the Agent so
+	a.autoConfigJSON = string(conf)
+
+	// The only way this wont be set is when running a dev mode agent.
+	if a.config.DataDir != "" {
+		path := filepath.Join(a.config.DataDir, autoConfigFileName)
+
+		err := ioutil.WriteFile(path, conf, 0660)
+		if err != nil {
+			return fmt.Errorf("Failed to write auto-config configurations: %w", err)
+		}
+	}
+	return nil
+}
+
 // LocalConfig takes a config.RuntimeConfig and maps the fields to a local.Config
 func LocalConfig(cfg *config.RuntimeConfig) local.Config {
 	lc := local.Config{
@@ -430,6 +693,10 @@ func LocalConfig(cfg *config.RuntimeConfig) local.Config {
 func (a *Agent) Start() error {
 	a.stateLock.Lock()
 	defer a.stateLock.Unlock()
+
+	if err := a.initializeAutoConfig(); err != nil {
+		return err
+	}
 
 	c := a.config
 

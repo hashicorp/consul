@@ -224,7 +224,7 @@ func (c *cmd) run(args []string) int {
 
 	// Create the agent
 	cli.output("Starting Consul agent...")
-	agent, err := agent.New(config, c.logger)
+	agent, err := agent.NewWithOptions(config, agent.WithLogger(c.logger), agent.WithFlags(&c.flagArgs))
 	if err != nil {
 		c.logger.Error("Error creating agent", "error", err)
 		logGate.Flush()
@@ -401,10 +401,20 @@ func (c *cmd) run(args []string) int {
 func (c *cmd) handleReload(agent *agent.Agent, cfg *config.RuntimeConfig) (*config.RuntimeConfig, error) {
 	c.logger.Info("Reloading configuration...")
 	var errs error
-	newCfg := c.readConfig()
+	// dont use the version of readConfig in this file as it doesn't take into account the
+	// extra auto-config.json source
+	newCfg, warnings, err := agent.ReadConfig()
+	if err != nil {
+		return cfg, fmt.Errorf("Failed to reload configs: %w", err)
+	}
+
+	for _, w := range warnings {
+		c.UI.Warn(w)
+	}
+
 	if newCfg == nil {
-		errs = multierror.Append(errs, fmt.Errorf("Failed to reload configs"))
-		return cfg, errs
+		// this shouldnt happen but we don't want to panic just in case
+		return cfg, fmt.Errorf("Failed to reload configs")
 	}
 
 	// Change the log level
