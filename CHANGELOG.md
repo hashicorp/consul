@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.6.6 (June 10, 2020)
 
 SECURITY:
 
