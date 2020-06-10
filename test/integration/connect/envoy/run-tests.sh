@@ -6,7 +6,7 @@ set -eEuo pipefail
 DEBUG=${DEBUG:-}
 
 # ENVOY_VERSION to run each test against
-ENVOY_VERSION=${ENVOY_VERSION:-"1.14.1"}
+ENVOY_VERSION=${ENVOY_VERSION:-"1.14.2"}
 export ENVOY_VERSION
 
 if [ ! -z "$DEBUG" ] ; then
