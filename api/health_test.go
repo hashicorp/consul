@@ -539,7 +539,7 @@ func TestAPI_HealthConnect_Filter(t *testing.T) {
 	require.Len(t, services, 1)
 }
 
-func TestAPI_HealthConnect_Ingress(t *testing.T) {
+func TestAPI_HealthIngress(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
