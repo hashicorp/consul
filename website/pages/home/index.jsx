@@ -15,13 +15,18 @@ export default function HomePage() {
         content="Automate network configurations, discover services, and enable secure connectivity across any cloud or runtime."
         links={[
           {
+            text: 'Get Started',
+            url: 'https://learn.hashicorp.com/consul',
+            type: 'outbound',
+          },
+          {
             text: 'Download',
             url: '/downloads',
             type: 'download',
           },
           {
-            text: 'Get Started',
-            url: 'https://learn.hashicorp.com/consul',
+            text: 'Try HasiCorp Consul Service on Azure',
+            url: 'https://learn.hashicorp.com/consul/hcs-azure/deploy',
             type: 'outbound',
           },
         ]}
