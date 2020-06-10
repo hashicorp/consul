@@ -1215,10 +1215,10 @@
   resolved "https://registry.yarnpkg.com/@hashicorp/consul-api-double/-/consul-api-double-2.15.2.tgz#e2c34a348b9959fcc95ffad797c1fed9644a41bd"
   integrity sha512-VNdwsL3ut4SubCtwWfqX4prD9R/RczKtWUID6s6K9h1TCdzTgpZQhbb+gdzaYGqzCE3Mrw416JzclxVTIFIUFw==
 
-"@hashicorp/ember-cli-api-double@^3.0.2":
-  version "3.0.2"
-  resolved "https://registry.yarnpkg.com/@hashicorp/ember-cli-api-double/-/ember-cli-api-double-3.0.2.tgz#4f66f22e4b54293c46fe16dc24568267526c8acd"
-  integrity sha512-NmcA+jBcBO8tzCfbqWzrQdHvTUeaj71Gdu9phxaULMtM9Zw7BZtHlvb2P1ivknGGw92w9Se50pDNjkB57ww22A==
+"@hashicorp/ember-cli-api-double@^3.1.0":
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/@hashicorp/ember-cli-api-double/-/ember-cli-api-double-3.1.0.tgz#ce228ac5c8a46c7a10112f5bc0fb782c47775b60"
+  integrity sha512-G8dDSewInFZOeD5sprdZPw7ZKUYlkJ9bJxPkEaMRPbC6ZN4ZHqeFWB1xXeq2ROtR07J6Xbs+BrFIE6GHTshpEg==
   dependencies:
     "@hashicorp/api-double" "^1.6.1"
     array-range "^1.0.1"

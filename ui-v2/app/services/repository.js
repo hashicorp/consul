@@ -39,6 +39,9 @@ export default Service.extend({
       });
     }
   },
+  peekOne: function(id) {
+    return this.store.peekRecord(this.getModelName(), id);
+  },
   findAllByDatacenter: function(dc, nspace, configuration = {}) {
     const query = {
       dc: dc,

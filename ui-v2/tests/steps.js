@@ -21,9 +21,11 @@ import assertForm from './steps/assertions/form';
 const pluralize = function(str) {
   return Inflector.inflector.pluralize(str);
 };
-const getLastNthRequest = function(arr) {
+const getLastNthRequest = function(getRequests) {
   return function(n, method) {
-    let requests = arr.slice(0).reverse();
+    let requests = getRequests()
+      .slice(0)
+      .reverse();
     if (method) {
       requests = requests.filter(function(item) {
         return item.method === method;
@@ -82,7 +84,7 @@ export default function(assert, library) {
       })();
     });
   };
-  const lastNthRequest = getLastNthRequest(api.server.history);
+  const lastNthRequest = getLastNthRequest(() => api.server.history);
   const create = function(number, name, value) {
     // don't return a promise here as
     // I don't need it to wait
@@ -99,6 +101,7 @@ export default function(assert, library) {
     return currentPage;
   };
   const setCurrentPage = function(page) {
+    api.server.clearHistory();
     currentPage = page;
     return page;
   };
