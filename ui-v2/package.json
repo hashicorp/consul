@@ -52,7 +52,6 @@
   "devDependencies": {
     "@babel/core": "^7.2.2",
     "@babel/plugin-proposal-object-rest-spread": "^7.5.5",
-    "@ember/jquery": "^1.1.0",
     "@ember/optional-features": "^1.3.0",
     "@glimmer/component": "^1.0.0",
     "@glimmer/tracking": "^1.0.0",
