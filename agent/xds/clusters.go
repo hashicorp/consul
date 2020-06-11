@@ -642,9 +642,7 @@ func (s *Server) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, opts gatewayC
 	)
 	for i, e := range opts.hostnameEndpoints {
 		addr, port := e.BestAddress(opts.isRemote)
-		if !uniqueHostnames[addr] {
-			uniqueHostnames[addr] = true
-		}
+		uniqueHostnames[addr] = true
 
 		health, weight := calculateEndpointHealthAndWeight(e, opts.onlyPassing)
 		if health == envoycore.HealthStatus_UNHEALTHY {
