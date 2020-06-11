@@ -102,6 +102,7 @@
             {
               "name": "envoy.http_connection_manager",
               "config": {
+                  "add_user_agent": true,
                   "http_filters": [
                         {
                               "name": "envoy.router"

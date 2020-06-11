@@ -16,6 +16,7 @@
             {
               "name": "envoy.http_connection_manager",
               "config": {
+                  "add_user_agent": true,
                   "http2_protocol_options": {
                       },
                   "http_filters": [

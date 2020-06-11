@@ -914,8 +914,9 @@ func makeHTTPFilter(
 	}
 
 	cfg := &envoyhttp.HttpConnectionManager{
-		StatPrefix: makeStatPrefix(proto, statPrefix, filterName),
-		CodecType:  envoyhttp.HttpConnectionManager_AUTO,
+		StatPrefix:   makeStatPrefix(proto, statPrefix, filterName),
+		CodecType:    envoyhttp.HttpConnectionManager_AUTO,
+		AddUserAgent: &wrappers.BoolValue{Value: true},
 		HttpFilters: []*envoyhttp.HttpFilter{
 			{
 				Name: "envoy.router",
