@@ -14,32 +14,44 @@
           {{#if (env 'CONSUL_NSPACES_ENABLED')}}
             {{#if (not-eq item.DestinationType 'prepared_query')}}
               <li class="nspace">
-                {{or item.DestinationNamespace 'default'}}
-                <Tooltip>
-                  Namespace
-                </Tooltip>
+                <span>
+                  <Tooltip>
+                      Namespace
+                  </Tooltip>
+                </span>
+                <span>
+                  {{or item.DestinationNamespace 'default'}}
+                </span>
               </li>
             {{/if}}
           {{/if}}
             {{#if (and (not-eq item.Datacenter proxyDatacenter) (not-eq item.Datacenter ""))}}
               <li class="datacenter">
-                {{item.Datacenter}}
-                <Tooltip>
-                  Datacenter
-                </Tooltip>
+                <span>
+                  <Tooltip>
+                      Datacenter
+                  </Tooltip>
+                </span>
+                <span>
+                  {{item.Datacenter}}
+                </span>
               </li>
             {{/if}}
             {{#if (gt item.LocalBindPort 0)}}
               {{#let (concat (or item.LocalBindAddress '127.0.0.1') ':' item.LocalBindPort) as |combinedAddress| }}
               <li class="port">
-                <span>{{combinedAddress}}</span>
-                <CopyButton
-                  @value={{combinedAddress}}
-                  @name="Address"
-                />
-                <Tooltip>
-                  Address
-                </Tooltip>
+                <span>
+                  <Tooltip>
+                    Address
+                  </Tooltip>
+                </span>
+                <span>
+                  <span>{{combinedAddress}}</span>
+                  <CopyButton
+                    @value={{combinedAddress}}
+                    @name="Address"
+                  />
+                </span>
               </li>
               {{/let}}
             {{/if}}
