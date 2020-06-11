@@ -672,7 +672,7 @@ func (s *Server) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, opts gatewayC
 
 		return nil
 	}
-	if len(uniqueHostnames) > 0 {
+	if len(uniqueHostnames) > 1 {
 		s.Logger.Named(loggerName).
 			Warn(fmt.Sprintf("service contains instances with more than one unique hostname; only %q be resolved by Envoy.", hostname),
 				"dc", dc, "service", service.String())
