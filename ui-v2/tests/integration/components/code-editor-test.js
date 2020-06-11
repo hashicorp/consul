@@ -15,12 +15,12 @@ module('Integration | Component | code editor', function(hooks) {
     // this test is just to prove it renders something without producing
     // an error. It renders the number 1, but seems to also render some sort of trailing space
     // so just check for presence of CodeMirror
-    assert.equal(this.$().find('.CodeMirror').length, 1);
+    assert.equal(this.element.querySelectorAll('.CodeMirror').length, 1);
 
     // Template block usage:
     await render(hbs`
       {{#code-editor}}{{/code-editor}}
     `);
-    assert.equal(this.$().find('.CodeMirror').length, 1);
+    assert.equal(this.element.querySelectorAll('.CodeMirror').length, 1);
   });
 });
