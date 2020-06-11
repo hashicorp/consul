@@ -171,7 +171,7 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 					return fmt.Errorf("Hosts must be unique within a specific listener (listener on port %d)", listener.Port)
 				}
 				declaredHosts[h] = true
-				if err := validateHost(h); err != nil {
+				if err := validateHost(e.TLS.Enabled, h); err != nil {
 					return err
 				}
 			}
@@ -181,7 +181,16 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 	return nil
 }
 
-func validateHost(host string) error {
+func validateHost(tlsEnabled bool, host string) error {
+	// Special case '*' so that non-TLS ingress gateways can use it. This allows
+	// an easy demo/testing experience.
+	if host == "*" {
+		if tlsEnabled {
+			return fmt.Errorf("Host '*' is not allowed when TLS is enabled, all hosts must be valid DNS records to add as a DNSSAN")
+		}
+		return nil
+	}
+
 	wildcardPrefix := "*."
 	if _, ok := dns.IsDomainName(host); !ok {
 		return fmt.Errorf("Host %q must be a valid DNS hostname", host)
@@ -189,10 +198,6 @@ func validateHost(host string) error {
 
 	if strings.ContainsRune(strings.TrimPrefix(host, wildcardPrefix), '*') {
 		return fmt.Errorf("Host %q is not valid, a wildcard specifier is only allowed as the leftmost label", host)
-	}
-
-	if host == "*" {
-		return fmt.Errorf("Host '*' is not allowed, wildcards can only be used as a prefix/suffix")
 	}
 
 	return nil
