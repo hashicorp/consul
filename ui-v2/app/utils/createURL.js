@@ -1,5 +1,24 @@
 export default function(encode) {
+  // TODO: This is incredibly similar to create-query-params
+  // we should be able to merge these
+  const jsonToQueryParams = function(val) {
+    return Object.entries(val)
+      .reduce(function(prev, [key, value]) {
+        if (value === null) {
+          return prev.concat(`${encode(key)}`);
+        } else if (typeof value !== 'undefined') {
+          return prev.concat(`${encode(key)}=${encode(value)}`);
+        }
+        return prev;
+      }, [])
+      .join('&');
+  };
   return function(strs, ...values) {
+    // TODO: Potentially url should check if any of the params
+    // passed to it are undefined (null is fine). We could then get rid of the
+    // multitude of checks we do throughout the adapters
+    // right now createURL converts undefined to '' so we need to check thats not needed
+    // anywhere
     return strs
       .map(function(item, i) {
         let val = typeof values[i] === 'undefined' ? '' : values[i];
@@ -15,16 +34,7 @@ export default function(encode) {
               .join('/');
             break;
           case typeof val === 'object':
-            val = Object.keys(val)
-              .reduce(function(prev, key) {
-                if (val[key] === null) {
-                  return prev.concat(`${encode(key)}`);
-                } else if (typeof val[key] !== 'undefined') {
-                  return prev.concat(`${encode(key)}=${encode(val[key])}`);
-                }
-                return prev;
-              }, [])
-              .join('&');
+            val = jsonToQueryParams(val);
             break;
         }
         return `${item}${val}`;
