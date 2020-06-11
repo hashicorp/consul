@@ -1,19 +1,34 @@
 {{yield}}
 {{#if (gt items.length 0)}}
 <ListCollection @items={{items}} class="consul-service-list" as |item index|>
-{{#if (eq item.Kind 'terminating-gateway')}}
-  <a data-test-service-name href={{href-to "dc.services.show.services" item.Name}} class={{service/health-checks item}}>
-    {{item.Name}}
-  </a>
-{{else if (eq item.Kind 'ingress-gateway')}}
-  <a data-test-service-name href={{href-to "dc.services.show.upstreams" item.Name}} class={{service/health-checks item}}>
-    {{item.Name}}
-  </a>
-{{else}}
-  <a data-test-service-name href={{href-to "dc.services.show.instances" item.Name}} class={{service/health-checks item}}>
-    {{item.Name}}
-  </a>
+  <li>
+    <span class={{service/health-checks item}}>
+      <Tooltip>
+        {{#if (eq 'critical' (service/health-checks item))}}
+          At least one health check on one instance is failing.
+        {{else if (eq 'warning' (service/health-checks item))}}
+          At least one health check on one instance has a warning.
+        {{else if (eq 'passing' (service/health-checks item))}}
+          All health checks are passing.
+        {{else}}
+          There are no health checks.
+        {{/if}}
+      </Tooltip>
+    </span>
+  {{#if (eq item.Kind 'terminating-gateway')}}
+    <a data-test-service-name href={{href-to "dc.services.show.services" item.Name}}>
+      {{item.Name}}
+    </a>
+  {{else if (eq item.Kind 'ingress-gateway')}}
+    <a data-test-service-name href={{href-to "dc.services.show.upstreams" item.Name}}>
+      {{item.Name}}
+    </a>
+  {{else}}
+    <a data-test-service-name href={{href-to "dc.services.show.instances" item.Name}}>
+      {{item.Name}}
+    </a>
   {{/if}}
+  </li>
   <ul>
   {{#if (and nspace (env 'CONSUL_NSPACES_ENABLED'))}}
     {{#if (not-eq item.Namespace nspace)}}
