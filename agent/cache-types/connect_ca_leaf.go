@@ -469,7 +469,9 @@ func activeRootHasKey(roots *structs.IndexedCARoots, currentSigningKeyID string)
 }
 
 func (c *ConnectCALeaf) rootsFromCache() (*structs.IndexedCARoots, error) {
-	rawRoots, _, err := c.Cache.Get(ConnectCARootName, &structs.DCSpecificRequest{
+	// Background is fine here because this isn't a blocking query as no index is set.
+	// Therefore this will just either be a cache hit or return once the non-blocking query returns.
+	rawRoots, _, err := c.Cache.Get(context.Background(), ConnectCARootName, &structs.DCSpecificRequest{
 		Datacenter: c.Datacenter,
 	})
 	if err != nil {

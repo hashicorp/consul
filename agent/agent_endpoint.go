@@ -1317,7 +1317,7 @@ func (s *HTTPServer) AgentConnectCARoots(resp http.ResponseWriter, req *http.Req
 		return nil, nil
 	}
 
-	raw, m, err := s.agent.cache.Get(cachetype.ConnectCARootName, &args)
+	raw, m, err := s.agent.cache.Get(req.Context(), cachetype.ConnectCARootName, &args)
 	if err != nil {
 		return nil, err
 	}
@@ -1359,7 +1359,7 @@ func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.
 	args.MaxQueryTime = qOpts.MaxQueryTime
 	args.Token = qOpts.Token
 
-	raw, m, err := s.agent.cache.Get(cachetype.ConnectCALeafName, &args)
+	raw, m, err := s.agent.cache.Get(req.Context(), cachetype.ConnectCALeafName, &args)
 	if err != nil {
 		return nil, err
 	}
