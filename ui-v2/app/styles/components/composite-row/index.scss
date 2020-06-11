@@ -6,7 +6,8 @@
   @extend %composite-row-intent;
 }
 %composite-row > a,
-%composite-row > p {
+%composite-row > p,
+%composite-row > li > * {
   @extend %composite-row-header;
 }
 %composite-row > ul {
