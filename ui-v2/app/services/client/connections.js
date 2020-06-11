@@ -35,7 +35,7 @@ export default Service.extend({
     });
   },
   whenAvailable: function(e) {
-    // if we are using a connection limited protocol and the user has hidden the tab (hidden browser/tab switch)
+    // if the user has hidden the tab (hidden browser/tab switch)
     // any aborted errors should restart
     const doc = this.dom.document();
     if (doc.hidden) {

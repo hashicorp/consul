@@ -26,7 +26,7 @@ const fetch = function(options) {
     }
   };
   xhr.open(options.method, options.url, true);
-  if (options.headers) {
+  if (typeof options.headers !== 'undefined') {
     Object.entries(options.headers).forEach(([key, value]) => xhr.setRequestHeader(key, value));
   }
   options.beforeSend(xhr);
