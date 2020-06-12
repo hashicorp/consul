@@ -5,9 +5,9 @@ import { next } from '@ember/runloop';
 import { CACHE_CONTROL, CONTENT_TYPE } from 'consul-ui/utils/http/headers';
 import { HEADERS_TOKEN as CONSUL_TOKEN } from 'consul-ui/utils/http/consul';
 
-import createURL from 'consul-ui/utils/createURL';
-import createHeaders from 'consul-ui/utils/create-headers';
-import createQueryParams from 'consul-ui/utils/create-query-params';
+import createURL from 'consul-ui/utils/http/create-url';
+import createHeaders from 'consul-ui/utils/http/create-headers';
+import createQueryParams from 'consul-ui/utils/http/create-query-params';
 
 // reopen EventSources if a user changes tab
 export const restartWhenAvailable = function(client) {
@@ -24,9 +24,9 @@ export const restartWhenAvailable = function(client) {
     throw e;
   };
 };
-const parseURL = createURL(encodeURIComponent);
-const parseHeaders = createHeaders();
 const stringifyQueryParams = createQueryParams(encodeURIComponent);
+const parseURL = createURL(encodeURIComponent, stringifyQueryParams);
+const parseHeaders = createHeaders();
 
 const parseBody = function(strs, ...values) {
   let body = {};

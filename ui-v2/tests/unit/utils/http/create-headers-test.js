@@ -1,7 +1,7 @@
-import createHeaders from 'consul-ui/utils/create-headers';
+import createHeaders from 'consul-ui/utils/http/create-headers';
 import { module, test } from 'qunit';
 
-module('Unit | Utility | create-headers', function() {
+module('Unit | Utility | http/create-headers', function() {
   const parseHeaders = createHeaders();
   test('it converts lines of header-like strings into an object', function(assert) {
     const expected = {

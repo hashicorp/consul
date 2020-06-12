@@ -1,45 +1,16 @@
 import Service from '@ember/service';
 
+import createHeaders from 'consul-ui/utils/http/create-headers';
+import createXHR from 'consul-ui/utils/http/xhr';
 import Request from 'consul-ui/utils/http/request';
-import createHeaders from 'consul-ui/utils/create-headers';
+import HTTPError from 'consul-ui/utils/http/error';
 
-const parseHeaders = createHeaders();
-
-class HTTPError extends Error {
-  constructor(statusCode, message) {
-    super(message);
-    this.statusCode = statusCode;
-  }
-}
-const xhr = function(options) {
-  const xhr = new XMLHttpRequest();
-  xhr.onreadystatechange = function() {
-    if (this.readyState === 4) {
-      const headers = parseHeaders(this.getAllResponseHeaders().split('\n'));
-      if (this.status >= 200 && this.status < 400) {
-        const response = options.converters['text json'](this.response);
-        options.success(headers, response, this.status, this.statusText);
-      } else {
-        options.error(headers, this.responseText, this.status, this.statusText, this.error);
-      }
-      options.complete(this.status);
-    }
-  };
-  xhr.open(options.method, options.url, true);
-  if (typeof options.headers === 'undefined') {
-    options.headers = {};
-  }
-  const headers = {
-    ...options.headers,
-    'X-Requested-With': 'XMLHttpRequest',
-  };
-  Object.entries(headers).forEach(([key, value]) => xhr.setRequestHeader(key, value));
-  options.beforeSend(xhr);
-  xhr.send(options.body);
-  return xhr;
-};
+const xhr = createXHR(createHeaders());
 
 export default Service.extend({
+  xhr: function(options) {
+    return xhr(options);
+  },
   request: function(params) {
     const request = new Request(params.method, params.url, { body: params.data || {} });
     const options = {
@@ -78,8 +49,8 @@ export default Service.extend({
         request.close();
       },
     };
-    request.fetch = function() {
-      xhr(options);
+    request.fetch = () => {
+      this.xhr(options);
     };
     return request;
   },

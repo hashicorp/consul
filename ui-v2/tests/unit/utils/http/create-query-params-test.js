@@ -1,7 +1,7 @@
-import createQueryParams from 'consul-ui/utils/create-query-params';
+import createQueryParams from 'consul-ui/utils/http/create-query-params';
 import { module, test } from 'qunit';
 
-module('Unit | Utility | create-query-params', function() {
+module('Unit | Utility | http/create-query-params', function() {
   const stringifyQueryParams = createQueryParams(str => str);
   test('it turns objects into query params formatted strings', function(assert) {
     const expected = 'something=here&another=variable';
