@@ -9,6 +9,6 @@ export default function(visitable, clickable, attribute, collection, filter) {
     nodes: collection('[data-test-node]', node),
     healthyNodes: collection('.healthy [data-test-node]', node),
     unHealthyNodes: collection('.unhealthy [data-test-node]', node),
-    filter: filter,
+    filter: filter('[data-test-catalog-filter]'),
   };
 }

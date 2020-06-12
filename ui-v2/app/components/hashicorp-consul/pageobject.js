@@ -34,6 +34,7 @@ export default (clickable, attribute, is, authForm) => scope => {
     authdialog: {
       form: authForm(),
     },
+    // TODO: errors aren't strictly part of this component
     error: {
       status: attribute('data-test-status', '[data-test-status]'),
     },

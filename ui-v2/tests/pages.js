@@ -6,36 +6,37 @@ import {
   collection,
   text,
   isPresent,
+  triggerable,
 } from 'ember-cli-page-object';
+
 import { alias } from 'ember-cli-page-object/macros';
 import { visitable } from 'consul-ui/tests/lib/page-object/visitable';
+
+// utils
 import createDeletable from 'consul-ui/tests/lib/page-object/createDeletable';
 import createSubmitable from 'consul-ui/tests/lib/page-object/createSubmitable';
 import createCreatable from 'consul-ui/tests/lib/page-object/createCreatable';
 import createCancelable from 'consul-ui/tests/lib/page-object/createCancelable';
 
-// TODO: All component-like page objects should be moved into the component folder
-// along with all of its other dependencies once we can mae ember-cli ignore them
-import radiogroup from 'consul-ui/tests/lib/page-object/radiogroup';
-import tabgroup from 'consul-ui/tests/lib/page-object/tabgroup';
-import freetextFilter from 'consul-ui/tests/pages/components/freetext-filter';
-import catalogFilter from 'consul-ui/tests/pages/components/catalog-filter';
-import catalogToolbar from 'consul-ui/tests/pages/components/catalog-toolbar';
-import popoverSort from 'consul-ui/tests/pages/components/popover-sort';
-import aclFilter from 'consul-ui/tests/pages/components/acl-filter';
-import intentionFilter from 'consul-ui/tests/pages/components/intention-filter';
-import tokenListFactory from 'consul-ui/tests/pages/components/token-list';
-import policyFormFactory from 'consul-ui/tests/pages/components/policy-form';
-import policySelectorFactory from 'consul-ui/tests/pages/components/policy-selector';
-import roleFormFactory from 'consul-ui/tests/pages/components/role-form';
-import roleSelectorFactory from 'consul-ui/tests/pages/components/role-selector';
-import pageFactory from 'consul-ui/tests/pages/components/page';
-import consulIntentionListFactory from 'consul-ui/tests/pages/components/consul-intention-list';
-import authFormFactory from 'consul-ui/tests/pages/components/auth-form';
+// components
+import pageFactory from 'consul-ui/components/hashicorp-consul/pageobject';
 
-// TODO: should this specifically be modal or form?
-// should all forms be forms?
+import radiogroup from 'consul-ui/components/radio-group/pageobject';
+import tabgroup from 'consul-ui/components/tab-nav/pageobject';
+import popoverSort from 'consul-ui/components/popover-sort/pageobject';
+import authFormFactory from 'consul-ui/components/auth-form/pageobject';
+import freetextFilterFactory from 'consul-ui/components/freetext-filter/pageobject';
 
+import searchBarFactory from 'consul-ui/components/search-bar/pageobject';
+
+import policyFormFactory from 'consul-ui/components/policy-form/pageobject';
+import policySelectorFactory from 'consul-ui/components/policy-selector/pageobject';
+import roleFormFactory from 'consul-ui/components/role-form/pageobject';
+import roleSelectorFactory from 'consul-ui/components/role-selector/pageobject';
+import tokenListFactory from 'consul-ui/components/token-list/pageobject';
+import consulIntentionListFactory from 'consul-ui/components/consul-intention-list/pageobject';
+
+// pages
 import index from 'consul-ui/tests/pages/index';
 import dcs from 'consul-ui/tests/pages/dc';
 import settings from 'consul-ui/tests/pages/settings';
@@ -59,23 +60,36 @@ import intention from 'consul-ui/tests/pages/dc/intentions/edit';
 import nspaces from 'consul-ui/tests/pages/dc/nspaces/index';
 import nspace from 'consul-ui/tests/pages/dc/nspaces/edit';
 
+// utils
 const deletable = createDeletable(clickable);
 const submitable = createSubmitable(clickable, is);
 const creatable = createCreatable(clickable, is);
 const cancelable = createCancelable(clickable, is);
 
+// components
 const tokenList = tokenListFactory(clickable, attribute, collection, deletable);
+const authForm = authFormFactory(submitable, clickable, attribute);
+const freetextFilter = freetextFilterFactory(triggerable);
+const catalogToolbar = searchBarFactory(freetextFilter);
+const catalogFilter = searchBarFactory(freetextFilter, () =>
+  radiogroup('status', ['', 'passing', 'warning', 'critical'])
+);
+const aclFilter = searchBarFactory(freetextFilter, () =>
+  radiogroup('type', ['', 'management', 'client'])
+);
+const intentionFilter = searchBarFactory(freetextFilter, () =>
+  radiogroup('currentFilter', ['', 'allow', 'deny'])
+);
 
 const policyForm = policyFormFactory(submitable, cancelable, radiogroup, text);
 const policySelector = policySelectorFactory(clickable, deletable, collection, alias, policyForm);
-
 const roleForm = roleFormFactory(submitable, cancelable, policySelector);
 const roleSelector = roleSelectorFactory(clickable, deletable, collection, alias, roleForm);
-
 const consulIntentionList = consulIntentionListFactory(collection, clickable, attribute, deletable);
-const authForm = authFormFactory(submitable, clickable, attribute);
+
 const page = pageFactory(clickable, attribute, is, authForm);
 
+// pages
 const create = function(appView) {
   appView = {
     ...page(),
