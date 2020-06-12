@@ -452,5 +452,7 @@ RETRY_ONCE:
 	}
 	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 
+	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_gateway_services"}, 1,
+		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
 	return out.Services, nil
 }
