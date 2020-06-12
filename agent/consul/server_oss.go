@@ -6,7 +6,7 @@ import (
 
 func init() {
 	registerEndpoint(func(s *Server) interface{} { return &ACL{s, s.loggers.Named(logging.ACL)} })
-	registerEndpoint(func(s *Server) interface{} { return &Catalog{s} })
+	registerEndpoint(func(s *Server) interface{} { return &Catalog{s, s.loggers.Named(logging.Catalog)} })
 	registerEndpoint(func(s *Server) interface{} { return NewCoordinate(s, s.logger) })
 	registerEndpoint(func(s *Server) interface{} { return &ConfigEntry{s} })
 	registerEndpoint(func(s *Server) interface{} { return &ConnectCA{srv: s, logger: s.loggers.Named(logging.Connect)} })

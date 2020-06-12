@@ -557,7 +557,7 @@ func (s *Server) makeTerminatingGatewayListener(name, addr string, port int, cfg
 	// Make a FilterChain for each linked service
 	// Match on the cluster name,
 	for svc, _ := range cfgSnap.TerminatingGateway.ServiceGroups {
-		clusterName := connect.ServiceSNI(svc.ID, "", svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+		clusterName := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 		resolver, hasResolver := cfgSnap.TerminatingGateway.ServiceResolvers[svc]
 
 		// Skip the service if we don't have a cert to present for mTLS
@@ -579,7 +579,7 @@ func (s *Server) makeTerminatingGatewayListener(name, addr string, port int, cfg
 		if hasResolver {
 			// generate 1 filter chain for each service subset
 			for subsetName := range resolver.Subsets {
-				clusterName := connect.ServiceSNI(svc.ID, subsetName, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+				clusterName := connect.ServiceSNI(svc.Name, subsetName, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 
 				clusterChain, err := s.sniFilterChainTerminatingGateway(name, clusterName, token, svc, cfgSnap)
 				if err != nil {
@@ -607,7 +607,7 @@ func (s *Server) makeTerminatingGatewayListener(name, addr string, port int, cfg
 	return l, nil
 }
 
-func (s *Server) sniFilterChainTerminatingGateway(listener, cluster, token string, service structs.ServiceID,
+func (s *Server) sniFilterChainTerminatingGateway(listener, cluster, token string, service structs.ServiceName,
 	cfgSnap *proxycfg.ConfigSnapshot) (envoylistener.FilterChain, error) {
 
 	authFilter, err := makeExtAuthFilter(token)
@@ -620,7 +620,7 @@ func (s *Server) sniFilterChainTerminatingGateway(listener, cluster, token strin
 	}
 
 	// The cluster name here doesn't matter as the sni_cluster filter will fill it in for us.
-	statPrefix := fmt.Sprintf("terminating_gateway_%s_%s_", service.NamespaceOrDefault(), service.ID)
+	statPrefix := fmt.Sprintf("terminating_gateway_%s_%s_", service.NamespaceOrDefault(), service.Name)
 	tcpProxy, err := makeTCPProxyFilter(listener, "", statPrefix)
 	if err != nil {
 		return envoylistener.FilterChain{}, err

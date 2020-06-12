@@ -1373,17 +1373,17 @@ func testConfigSnapshotMeshGateway(t testing.T, populateServices bool, useFedera
 
 	if populateServices {
 		snap.MeshGateway = configSnapshotMeshGateway{
-			WatchedServices: map[structs.ServiceID]context.CancelFunc{
-				structs.NewServiceID("foo", nil): nil,
-				structs.NewServiceID("bar", nil): nil,
+			WatchedServices: map[structs.ServiceName]context.CancelFunc{
+				structs.NewServiceName("foo", nil): nil,
+				structs.NewServiceName("bar", nil): nil,
 			},
 			WatchedServicesSet: true,
 			WatchedDatacenters: map[string]context.CancelFunc{
 				"dc2": nil,
 			},
-			ServiceGroups: map[structs.ServiceID]structs.CheckServiceNodes{
-				structs.NewServiceID("foo", nil): TestGatewayServiceGroupFooDC1(t),
-				structs.NewServiceID("bar", nil): TestGatewayServiceGroupBarDC1(t),
+			ServiceGroups: map[structs.ServiceName]structs.CheckServiceNodes{
+				structs.NewServiceName("foo", nil): TestGatewayServiceGroupFooDC1(t),
+				structs.NewServiceName("bar", nil): TestGatewayServiceGroupBarDC1(t),
 			},
 			GatewayGroups: map[string]structs.CheckServiceNodes{
 				"dc2": TestGatewayNodesDC2(t),
@@ -1607,7 +1607,7 @@ func testConfigSnapshotTerminatingGateway(t testing.T, populateServices bool) *C
 		Datacenter: "dc1",
 	}
 	if populateServices {
-		web := structs.NewServiceID("web", nil)
+		web := structs.NewServiceName("web", nil)
 		webNodes := TestUpstreamNodes(t)
 		webNodes[0].Service.Meta = map[string]string{
 			"version": "1",
@@ -1616,7 +1616,7 @@ func testConfigSnapshotTerminatingGateway(t testing.T, populateServices bool) *C
 			"version": "2",
 		}
 
-		api := structs.NewServiceID("api", nil)
+		api := structs.NewServiceName("api", nil)
 		apiNodes := structs.CheckServiceNodes{
 			structs.CheckServiceNode{
 				Node: &structs.Node{
@@ -1673,11 +1673,11 @@ func testConfigSnapshotTerminatingGateway(t testing.T, populateServices bool) *C
 		}
 
 		snap.TerminatingGateway = configSnapshotTerminatingGateway{
-			ServiceGroups: map[structs.ServiceID]structs.CheckServiceNodes{
+			ServiceGroups: map[structs.ServiceName]structs.CheckServiceNodes{
 				web: webNodes,
 				api: apiNodes,
 			},
-			GatewayServices: map[structs.ServiceID]structs.GatewayService{
+			GatewayServices: map[structs.ServiceName]structs.GatewayService{
 				web: {
 					Service: web,
 					CAFile:  "ca.cert.pem",
@@ -1689,16 +1689,16 @@ func testConfigSnapshotTerminatingGateway(t testing.T, populateServices bool) *C
 					KeyFile:  "api.key.pem",
 				},
 			},
-			HostnameServices: map[structs.ServiceID]structs.CheckServiceNodes{
+			HostnameServices: map[structs.ServiceName]structs.CheckServiceNodes{
 				api: {apiNodes[0], apiNodes[1]},
 			},
 		}
-		snap.TerminatingGateway.ServiceLeaves = map[structs.ServiceID]*structs.IssuedCert{
-			structs.NewServiceID("web", nil): {
+		snap.TerminatingGateway.ServiceLeaves = map[structs.ServiceName]*structs.IssuedCert{
+			structs.NewServiceName("web", nil): {
 				CertPEM:       golden(t, "test-leaf-cert"),
 				PrivateKeyPEM: golden(t, "test-leaf-key"),
 			},
-			structs.NewServiceID("api", nil): {
+			structs.NewServiceName("api", nil): {
 				CertPEM:       golden(t, "alt-test-leaf-cert"),
 				PrivateKeyPEM: golden(t, "alt-test-leaf-key"),
 			},

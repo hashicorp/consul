@@ -596,10 +596,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 	}
 
 	// Used in terminating-gateway cases to account for differences in OSS/ent implementations of ServiceID.String()
-	db := structs.NewServiceID("db", nil)
+	db := structs.NewServiceName("db", nil)
 	dbStr := db.String()
 
-	api := structs.NewServiceID("api", nil)
+	api := structs.NewServiceName("api", nil)
 	apiStr := api.String()
 
 	cases := map[string]testCase{
@@ -855,8 +855,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							Result: &structs.IndexedGatewayServices{
 								Services: structs.GatewayServices{
 									{
-										Gateway:  structs.NewServiceID("ingress-gateway", nil),
-										Service:  structs.NewServiceID("api", nil),
+										Gateway:  structs.NewServiceName("ingress-gateway", nil),
+										Service:  structs.NewServiceName("api", nil),
 										Port:     9999,
 										Protocol: "http",
 									},
@@ -994,8 +994,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							Result: &structs.IndexedGatewayServices{
 								Services: structs.GatewayServices{
 									{
-										Gateway: structs.NewServiceID("ingress-gateway", nil),
-										Service: structs.NewServiceID("api", nil),
+										Gateway: structs.NewServiceName("ingress-gateway", nil),
+										Service: structs.NewServiceName("api", nil),
 										Hosts:   []string{"test.example.com"},
 										Port:    9999,
 									},
@@ -1105,8 +1105,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							Result: &structs.IndexedGatewayServices{
 								Services: structs.GatewayServices{
 									{
-										Service: structs.NewServiceID("db", nil),
-										Gateway: structs.NewServiceID("terminating-gateway", nil),
+										Service: structs.NewServiceName("db", nil),
+										Gateway: structs.NewServiceName("terminating-gateway", nil),
 									},
 								},
 							},
@@ -1125,16 +1125,16 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							Result: &structs.IndexedGatewayServices{
 								Services: structs.GatewayServices{
 									{
-										Service: structs.NewServiceID("db", nil),
-										Gateway: structs.NewServiceID("terminating-gateway", nil),
+										Service: structs.NewServiceName("db", nil),
+										Gateway: structs.NewServiceName("terminating-gateway", nil),
 									},
 									{
-										Service: structs.NewServiceID("billing", nil),
-										Gateway: structs.NewServiceID("terminating-gateway", nil),
+										Service: structs.NewServiceName("billing", nil),
+										Gateway: structs.NewServiceName("terminating-gateway", nil),
 									},
 									{
-										Service: structs.NewServiceID("api", nil),
-										Gateway: structs.NewServiceID("terminating-gateway", nil),
+										Service: structs.NewServiceName("api", nil),
+										Gateway: structs.NewServiceName("terminating-gateway", nil),
 									},
 								},
 							},
@@ -1142,9 +1142,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						},
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
-						db := structs.NewServiceID("db", nil)
-						billing := structs.NewServiceID("billing", nil)
-						api := structs.NewServiceID("api", nil)
+						db := structs.NewServiceName("db", nil)
+						billing := structs.NewServiceName("billing", nil)
+						api := structs.NewServiceName("api", nil)
 
 						require.True(t, snap.Valid(), "gateway with service list is valid")
 						require.Len(t, snap.TerminatingGateway.WatchedServices, 3)
@@ -1199,7 +1199,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.Len(t, snap.TerminatingGateway.ServiceGroups, 1)
-						require.Equal(t, snap.TerminatingGateway.ServiceGroups[structs.NewServiceID("db", nil)],
+						require.Equal(t, snap.TerminatingGateway.ServiceGroups[structs.NewServiceName("db", nil)],
 							structs.CheckServiceNodes{
 								{
 									Node: &structs.Node{
@@ -1299,11 +1299,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 								},
 							},
 						}
-						sid := structs.NewServiceID("api", nil)
-						require.Equal(t, snap.TerminatingGateway.ServiceGroups[sid], expect)
+						sn := structs.NewServiceName("api", nil)
+						require.Equal(t, snap.TerminatingGateway.ServiceGroups[sn], expect)
 
 						// The instance in node3 should not be present in HostnameDatacenters because it has a valid IP
-						require.ElementsMatch(t, snap.TerminatingGateway.HostnameServices[sid], expect[:2])
+						require.ElementsMatch(t, snap.TerminatingGateway.HostnameServices[sn], expect[:2])
 					},
 				},
 				verificationStage{
@@ -1318,7 +1318,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						},
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
-						require.Equal(t, snap.TerminatingGateway.ServiceLeaves[structs.NewServiceID("db", nil)], issuedCert)
+						require.Equal(t, snap.TerminatingGateway.ServiceLeaves[structs.NewServiceName("db", nil)], issuedCert)
 					},
 				},
 				verificationStage{
@@ -1353,7 +1353,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 								Datacenter: "dc2",
 							},
 						}
-						require.Equal(t, want, snap.TerminatingGateway.ServiceResolvers[structs.NewServiceID("db", nil)])
+						require.Equal(t, want, snap.TerminatingGateway.ServiceResolvers[structs.NewServiceName("db", nil)])
 					},
 				},
 				verificationStage{
@@ -1363,8 +1363,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							Result: &structs.IndexedGatewayServices{
 								Services: structs.GatewayServices{
 									{
-										Service: structs.NewServiceID("billing", nil),
-										Gateway: structs.NewServiceID("terminating-gateway", nil),
+										Service: structs.NewServiceName("billing", nil),
+										Gateway: structs.NewServiceName("terminating-gateway", nil),
 									},
 								},
 							},
@@ -1372,7 +1372,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						},
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
-						billing := structs.NewServiceID("billing", nil)
+						billing := structs.NewServiceName("billing", nil)
 
 						require.True(t, snap.Valid(), "gateway with service list is valid")
 

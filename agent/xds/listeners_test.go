@@ -361,8 +361,8 @@ func TestListenersFromSnapshot(t *testing.T) {
 			name:   "terminating-gateway-service-subsets",
 			create: proxycfg.TestConfigSnapshotTerminatingGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceID]*structs.ServiceResolverConfigEntry{
-					structs.NewServiceID("web", nil): {
+				snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("web", nil): {
 						Kind: structs.ServiceResolver,
 						Name: "web",
 						Subsets: map[string]structs.ServiceResolverSubset{
@@ -375,7 +375,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 							},
 						},
 					},
-					structs.NewServiceID("web", nil): {
+					structs.NewServiceName("web", nil): {
 						Kind: structs.ServiceResolver,
 						Name: "web",
 						Subsets: map[string]structs.ServiceResolverSubset{
@@ -423,7 +423,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 			name:   "terminating-gateway-no-api-cert",
 			create: proxycfg.TestConfigSnapshotTerminatingGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.TerminatingGateway.ServiceLeaves[structs.NewServiceID("api", nil)] = nil
+				snap.TerminatingGateway.ServiceLeaves[structs.NewServiceName("api", nil)] = nil
 			},
 		},
 		{

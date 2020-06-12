@@ -12,13 +12,15 @@ import (
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/types"
 	bexpr "github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
 )
 
 // Catalog endpoint is used to manipulate the service catalog
 type Catalog struct {
-	srv *Server
+	srv    *Server
+	logger hclog.Logger
 }
 
 // nodePreApply does the verification of a node before it is applied to Raft.
@@ -587,6 +589,71 @@ func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *stru
 				reply.NodeServices.Services = raw.([]*structs.NodeService)
 			}
 
+			return nil
+		})
+}
+
+func (c *Catalog) GatewayServices(args *structs.ServiceSpecificRequest, reply *structs.IndexedGatewayServices) error {
+	if done, err := c.srv.forward("Catalog.GatewayServices", args, args, reply); done {
+		return err
+	}
+
+	var authzContext acl.AuthorizerContext
+	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
+	if err != nil {
+		return err
+	}
+
+	if err := c.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
+	if authz != nil && authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
+		return acl.ErrPermissionDenied
+	}
+
+	return c.srv.blockingQuery(
+		&args.QueryOptions,
+		&reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			var index uint64
+			var services structs.GatewayServices
+
+			supportedGateways := []string{structs.IngressGateway, structs.TerminatingGateway}
+			var found bool
+			for _, kind := range supportedGateways {
+				// We only use this call to validate the RPC call, don't add the watch set
+				_, entry, err := state.ConfigEntry(nil, kind, args.ServiceName, &args.EnterpriseMeta)
+				if err != nil {
+					return err
+				}
+				if entry != nil {
+					found = true
+					break
+				}
+			}
+
+			// We log a warning here to indicate that there is a potential
+			// misconfiguration. We explicitly do NOT return an error because this
+			// can occur in the course of normal operation by deleting a
+			// configuration entry or starting the proxy before registering the
+			// config entry.
+			if !found {
+				c.logger.Warn("no terminating-gateway or ingress-gateway associated with this gateway",
+					"gateway", args.ServiceName,
+				)
+			}
+
+			index, services, err = state.GatewayServices(ws, args.ServiceName, &args.EnterpriseMeta)
+			if err != nil {
+				return err
+			}
+
+			if err := c.srv.filterACL(args.Token, &services); err != nil {
+				return err
+			}
+
+			reply.Index, reply.Services = index, services
 			return nil
 		})
 }

@@ -211,8 +211,8 @@ func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 
 func (s *Server) endpointsFromServicesAndResolvers(
 	cfgSnap *proxycfg.ConfigSnapshot,
-	services map[structs.ServiceID]structs.CheckServiceNodes,
-	resolvers map[structs.ServiceID]*structs.ServiceResolverConfigEntry) ([]proto.Message, error) {
+	services map[structs.ServiceName]structs.CheckServiceNodes,
+	resolvers map[structs.ServiceName]*structs.ServiceResolverConfigEntry) ([]proto.Message, error) {
 
 	resources := make([]proto.Message, 0, len(services))
 
@@ -249,7 +249,7 @@ func (s *Server) endpointsFromServicesAndResolvers(
 
 		// now generate the load assignment for all subsets
 		for subsetName, groups := range clusterEndpoints {
-			clusterName := connect.ServiceSNI(svc.ID, subsetName, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+			clusterName := connect.ServiceSNI(svc.Name, subsetName, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 			la := makeLoadAssignment(
 				clusterName,
 				groups,

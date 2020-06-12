@@ -326,8 +326,8 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			name:   "mesh-gateway-service-subsets",
 			create: proxycfg.TestConfigSnapshotMeshGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.MeshGateway.ServiceResolvers = map[structs.ServiceID]*structs.ServiceResolverConfigEntry{
-					structs.NewServiceID("bar", nil): &structs.ServiceResolverConfigEntry{
+				snap.MeshGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("bar", nil): &structs.ServiceResolverConfigEntry{
 						Kind: structs.ServiceResolver,
 						Name: "bar",
 						Subsets: map[string]structs.ServiceResolverSubset{
@@ -340,7 +340,7 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 							},
 						},
 					},
-					structs.NewServiceID("foo", nil): &structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("foo", nil): &structs.ServiceResolverConfigEntry{
 						Kind: structs.ServiceResolver,
 						Name: "foo",
 						Subsets: map[string]structs.ServiceResolverSubset{
@@ -360,8 +360,8 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			name:   "mesh-gateway-default-service-subset",
 			create: proxycfg.TestConfigSnapshotMeshGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.MeshGateway.ServiceResolvers = map[structs.ServiceID]*structs.ServiceResolverConfigEntry{
-					structs.NewServiceID("bar", nil): &structs.ServiceResolverConfigEntry{
+				snap.MeshGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("bar", nil): &structs.ServiceResolverConfigEntry{
 						Kind:          structs.ServiceResolver,
 						Name:          "bar",
 						DefaultSubset: "v2",
@@ -375,7 +375,7 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 							},
 						},
 					},
-					structs.NewServiceID("foo", nil): &structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("foo", nil): &structs.ServiceResolverConfigEntry{
 						Kind:          structs.ServiceResolver,
 						Name:          "foo",
 						DefaultSubset: "v2",
@@ -481,8 +481,8 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			name:   "terminating-gateway-service-subsets",
 			create: proxycfg.TestConfigSnapshotTerminatingGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceID]*structs.ServiceResolverConfigEntry{
-					structs.NewServiceID("web", nil): {
+				snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("web", nil): {
 						Kind: structs.ServiceResolver,
 						Name: "web",
 						Subsets: map[string]structs.ServiceResolverSubset{
@@ -495,7 +495,7 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 							},
 						},
 					},
-					structs.NewServiceID("web", nil): {
+					structs.NewServiceName("web", nil): {
 						Kind: structs.ServiceResolver,
 						Name: "web",
 						Subsets: map[string]structs.ServiceResolverSubset{
@@ -515,8 +515,8 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			name:   "terminating-gateway-default-service-subset",
 			create: proxycfg.TestConfigSnapshotTerminatingGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceID]*structs.ServiceResolverConfigEntry{
-					structs.NewServiceID("web", nil): &structs.ServiceResolverConfigEntry{
+				snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("web", nil): &structs.ServiceResolverConfigEntry{
 						Kind:          structs.ServiceResolver,
 						Name:          "web",
 						DefaultSubset: "v2",
@@ -530,7 +530,7 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 							},
 						},
 					},
-					structs.NewServiceID("web", nil): &structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("web", nil): &structs.ServiceResolverConfigEntry{
 						Kind:          structs.ServiceResolver,
 						Name:          "web",
 						DefaultSubset: "v2",
