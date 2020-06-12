@@ -1,28 +1,38 @@
 'use strict';
-
+const Funnel = require('broccoli-funnel');
 const EmberApp = require('ember-cli/lib/broccoli/ember-app');
 module.exports = function(defaults) {
   const env = EmberApp.env();
   const prodlike = ['production', 'staging'];
   const isProd = env === 'production';
-  // if we ever need a 'prodlike' staging environment with staging settings
-  // const isProdLike = prodlike.indexOf(env) > -1;
+  const isProdLike = prodlike.indexOf(env) > -1;
   const sourcemaps = !isProd;
+  let trees = {};
+  if(isProdLike) {
+    // exclude any component/pageobject.js files from production-like environments
+    trees.app = new Funnel(
+      'app',
+      {
+        exclude: ['components/**/pageobject.js']
+      }
+    );
+  }
   let app = new EmberApp(
     Object.assign({}, defaults, {
       productionEnvironments: prodlike,
     }),
     {
+      trees: trees,
       'ember-cli-babel': {
         includePolyfill: true,
       },
       'ember-cli-string-helpers': {
         only: [
-          'capitalize', 
-          'lowercase', 
-          'truncate', 
-          'uppercase', 
-          'humanize', 
+          'capitalize',
+          'lowercase',
+          'truncate',
+          'uppercase',
+          'humanize',
           'titleize'
         ],
       },
