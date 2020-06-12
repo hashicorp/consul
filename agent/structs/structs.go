@@ -840,12 +840,10 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 	}
 }
 
-func (sn *ServiceNode) compoundID(preferName bool) ServiceID {
-	var id string
-	if sn.ServiceID == "" || (preferName && sn.ServiceName != "") {
+func (sn *ServiceNode) CompoundServiceID() ServiceID {
+	id := sn.ServiceID
+	if id == "" {
 		id = sn.ServiceName
-	} else {
-		id = sn.ServiceID
 	}
 
 	// copy the ent meta and normalize it
@@ -858,12 +856,20 @@ func (sn *ServiceNode) compoundID(preferName bool) ServiceID {
 	}
 }
 
-func (sn *ServiceNode) CompoundServiceID() ServiceID {
-	return sn.compoundID(false)
-}
+func (sn *ServiceNode) CompoundServiceName() ServiceName {
+	name := sn.ServiceName
+	if name == "" {
+		name = sn.ServiceID
+	}
 
-func (sn *ServiceNode) CompoundServiceName() ServiceID {
-	return sn.compoundID(true)
+	// copy the ent meta and normalize it
+	entMeta := sn.EnterpriseMeta
+	entMeta.Normalize()
+
+	return ServiceName{
+		Name:           name,
+		EnterpriseMeta: entMeta,
+	}
 }
 
 // Weights represent the weight used by DNS for a given status
@@ -1000,11 +1006,35 @@ func (ns *NodeService) compoundID(preferName bool) ServiceID {
 }
 
 func (ns *NodeService) CompoundServiceID() ServiceID {
-	return ns.compoundID(false)
+	id := ns.ID
+	if id == "" {
+		id = ns.Service
+	}
+
+	// copy the ent meta and normalize it
+	entMeta := ns.EnterpriseMeta
+	entMeta.Normalize()
+
+	return ServiceID{
+		ID:             id,
+		EnterpriseMeta: entMeta,
+	}
 }
 
-func (ns *NodeService) CompoundServiceName() ServiceID {
-	return ns.compoundID(true)
+func (ns *NodeService) CompoundServiceName() ServiceName {
+	name := ns.Service
+	if name == "" {
+		name = ns.ID
+	}
+
+	// copy the ent meta and normalize it
+	entMeta := ns.EnterpriseMeta
+	entMeta.Normalize()
+
+	return ServiceName{
+		Name:           name,
+		EnterpriseMeta: entMeta,
+	}
 }
 
 // ServiceConnect are the shared Connect settings between all service
@@ -1725,6 +1755,30 @@ type IndexedServices struct {
 type ServiceName struct {
 	Name string
 	EnterpriseMeta
+}
+
+func NewServiceName(name string, entMeta *EnterpriseMeta) ServiceName {
+	var ret ServiceName
+	ret.Name = name
+	if entMeta == nil {
+		entMeta = DefaultEnterpriseMeta()
+	}
+
+	ret.EnterpriseMeta = *entMeta
+	ret.EnterpriseMeta.Normalize()
+	return ret
+}
+
+func (n *ServiceName) Matches(o *ServiceName) bool {
+	if n == nil && o == nil {
+		return true
+	}
+
+	if n == nil || o == nil || n.Name != o.Name || !n.EnterpriseMeta.Matches(&o.EnterpriseMeta) {
+		return false
+	}
+
+	return true
 }
 
 func (si *ServiceName) ToServiceID() ServiceID {

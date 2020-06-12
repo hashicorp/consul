@@ -4492,8 +4492,8 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 
 	expect := structs.GatewayServices{
 		{
-			Service:     structs.NewServiceID("api", nil),
-			Gateway:     structs.NewServiceID("gateway", nil),
+			Service:     structs.NewServiceName("api", nil),
+			Gateway:     structs.NewServiceName("gateway", nil),
 			GatewayKind: structs.ServiceKindTerminatingGateway,
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 21,
@@ -4501,8 +4501,8 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 			},
 		},
 		{
-			Service:     structs.NewServiceID("db", nil),
-			Gateway:     structs.NewServiceID("gateway", nil),
+			Service:     structs.NewServiceName("db", nil),
+			Gateway:     structs.NewServiceName("gateway", nil),
 			GatewayKind: structs.ServiceKindTerminatingGateway,
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 21,
@@ -4534,8 +4534,8 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 
 	expect = structs.GatewayServices{
 		{
-			Service:     structs.NewServiceID("api", nil),
-			Gateway:     structs.NewServiceID("gateway", nil),
+			Service:     structs.NewServiceName("api", nil),
+			Gateway:     structs.NewServiceName("gateway", nil),
 			GatewayKind: structs.ServiceKindTerminatingGateway,
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 21,
@@ -4543,8 +4543,8 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 			},
 		},
 		{
-			Service:     structs.NewServiceID("db", nil),
-			Gateway:     structs.NewServiceID("gateway", nil),
+			Service:     structs.NewServiceName("db", nil),
+			Gateway:     structs.NewServiceName("gateway", nil),
 			GatewayKind: structs.ServiceKindTerminatingGateway,
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 21,
@@ -4589,8 +4589,8 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 
 	expect = structs.GatewayServices{
 		{
-			Service:     structs.NewServiceID("api", nil),
-			Gateway:     structs.NewServiceID("gateway", nil),
+			Service:     structs.NewServiceName("api", nil),
+			Gateway:     structs.NewServiceName("gateway", nil),
 			GatewayKind: structs.ServiceKindTerminatingGateway,
 			CAFile:      "api/ca.crt",
 			CertFile:    "api/client.crt",
@@ -4602,8 +4602,8 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 			},
 		},
 		{
-			Service:     structs.NewServiceID("db", nil),
-			Gateway:     structs.NewServiceID("gateway", nil),
+			Service:     structs.NewServiceName("db", nil),
+			Gateway:     structs.NewServiceName("gateway", nil),
 			GatewayKind: structs.ServiceKindTerminatingGateway,
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 22,
@@ -4625,8 +4625,8 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 
 	expect = structs.GatewayServices{
 		{
-			Service:     structs.NewServiceID("api", nil),
-			Gateway:     structs.NewServiceID("gateway", nil),
+			Service:     structs.NewServiceName("api", nil),
+			Gateway:     structs.NewServiceName("gateway", nil),
 			GatewayKind: structs.ServiceKindTerminatingGateway,
 			CAFile:      "api/ca.crt",
 			CertFile:    "api/client.crt",
@@ -4638,8 +4638,8 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 			},
 		},
 		{
-			Service:     structs.NewServiceID("db", nil),
-			Gateway:     structs.NewServiceID("gateway", nil),
+			Service:     structs.NewServiceName("db", nil),
+			Gateway:     structs.NewServiceName("gateway", nil),
 			GatewayKind: structs.ServiceKindTerminatingGateway,
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 22,
@@ -4647,8 +4647,8 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 			},
 		},
 		{
-			Service:      structs.NewServiceID("redis", nil),
-			Gateway:      structs.NewServiceID("gateway", nil),
+			Service:      structs.NewServiceName("redis", nil),
+			Gateway:      structs.NewServiceName("gateway", nil),
 			GatewayKind:  structs.ServiceKindTerminatingGateway,
 			CAFile:       "ca.crt",
 			CertFile:     "client.crt",
@@ -4675,8 +4675,8 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 
 	expect = structs.GatewayServices{
 		{
-			Service:     structs.NewServiceID("api", nil),
-			Gateway:     structs.NewServiceID("gateway", nil),
+			Service:     structs.NewServiceName("api", nil),
+			Gateway:     structs.NewServiceName("gateway", nil),
 			GatewayKind: structs.ServiceKindTerminatingGateway,
 			CAFile:      "api/ca.crt",
 			CertFile:    "api/client.crt",
@@ -4688,8 +4688,8 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 			},
 		},
 		{
-			Service:     structs.NewServiceID("db", nil),
-			Gateway:     structs.NewServiceID("gateway", nil),
+			Service:     structs.NewServiceName("db", nil),
+			Gateway:     structs.NewServiceName("gateway", nil),
 			GatewayKind: structs.ServiceKindTerminatingGateway,
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 22,
@@ -4719,8 +4719,8 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 	// previously associated services should not be present
 	expect = structs.GatewayServices{
 		{
-			Service:     structs.NewServiceID("db", nil),
-			Gateway:     structs.NewServiceID("gateway", nil),
+			Service:     structs.NewServiceName("db", nil),
+			Gateway:     structs.NewServiceName("gateway", nil),
 			GatewayKind: structs.ServiceKindTerminatingGateway,
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 25,
@@ -4749,8 +4749,8 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 
 	expect = structs.GatewayServices{
 		{
-			Service:      structs.NewServiceID("api", nil),
-			Gateway:      structs.NewServiceID("gateway2", nil),
+			Service:      structs.NewServiceName("api", nil),
+			Gateway:      structs.NewServiceName("gateway2", nil),
 			GatewayKind:  structs.ServiceKindTerminatingGateway,
 			FromWildcard: true,
 			RaftIndex: structs.RaftIndex{
@@ -4759,8 +4759,8 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 			},
 		},
 		{
-			Service:      structs.NewServiceID("db", nil),
-			Gateway:      structs.NewServiceID("gateway2", nil),
+			Service:      structs.NewServiceName("db", nil),
+			Gateway:      structs.NewServiceName("gateway2", nil),
 			GatewayKind:  structs.ServiceKindTerminatingGateway,
 			FromWildcard: true,
 			RaftIndex: structs.RaftIndex{
@@ -4845,8 +4845,8 @@ func TestStateStore_GatewayServices_ServiceDeletion(t *testing.T) {
 
 	expect := structs.GatewayServices{
 		{
-			Service:     structs.NewServiceID("db", nil),
-			Gateway:     structs.NewServiceID("gateway", nil),
+			Service:     structs.NewServiceName("db", nil),
+			Gateway:     structs.NewServiceName("gateway", nil),
 			GatewayKind: structs.ServiceKindTerminatingGateway,
 			CAFile:      "my_ca.pem",
 			RaftIndex: structs.RaftIndex{
@@ -4866,8 +4866,8 @@ func TestStateStore_GatewayServices_ServiceDeletion(t *testing.T) {
 
 	expect = structs.GatewayServices{
 		{
-			Service:      structs.NewServiceID("api", nil),
-			Gateway:      structs.NewServiceID("other-gateway", nil),
+			Service:      structs.NewServiceName("api", nil),
+			Gateway:      structs.NewServiceName("other-gateway", nil),
 			GatewayKind:  structs.ServiceKindTerminatingGateway,
 			FromWildcard: true,
 			RaftIndex: structs.RaftIndex{
@@ -4876,8 +4876,8 @@ func TestStateStore_GatewayServices_ServiceDeletion(t *testing.T) {
 			},
 		},
 		{
-			Service:      structs.NewServiceID("db", nil),
-			Gateway:      structs.NewServiceID("other-gateway", nil),
+			Service:      structs.NewServiceName("db", nil),
+			Gateway:      structs.NewServiceName("other-gateway", nil),
 			GatewayKind:  structs.ServiceKindTerminatingGateway,
 			FromWildcard: true,
 			RaftIndex: structs.RaftIndex{
@@ -4903,8 +4903,8 @@ func TestStateStore_GatewayServices_ServiceDeletion(t *testing.T) {
 
 	expect = structs.GatewayServices{
 		{
-			Service:     structs.NewServiceID("db", nil),
-			Gateway:     structs.NewServiceID("gateway", nil),
+			Service:     structs.NewServiceName("db", nil),
+			Gateway:     structs.NewServiceName("gateway", nil),
 			GatewayKind: structs.ServiceKindTerminatingGateway,
 			CAFile:      "my_ca.pem",
 			RaftIndex: structs.RaftIndex{
@@ -4923,8 +4923,8 @@ func TestStateStore_GatewayServices_ServiceDeletion(t *testing.T) {
 
 	expect = structs.GatewayServices{
 		{
-			Service:      structs.NewServiceID("api", nil),
-			Gateway:      structs.NewServiceID("other-gateway", nil),
+			Service:      structs.NewServiceName("api", nil),
+			Gateway:      structs.NewServiceName("other-gateway", nil),
 			GatewayKind:  structs.ServiceKindTerminatingGateway,
 			FromWildcard: true,
 			RaftIndex: structs.RaftIndex{
@@ -5016,8 +5016,8 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 	t.Run("ingress1 gateway services", func(t *testing.T) {
 		expected := structs.GatewayServices{
 			{
-				Gateway:     structs.NewServiceID("ingress1", nil),
-				Service:     structs.NewServiceID("service1", nil),
+				Gateway:     structs.NewServiceName("ingress1", nil),
+				Service:     structs.NewServiceName("service1", nil),
 				GatewayKind: structs.ServiceKindIngressGateway,
 				Port:        1111,
 				Protocol:    "http",
@@ -5028,8 +5028,8 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 				},
 			},
 			{
-				Gateway:     structs.NewServiceID("ingress1", nil),
-				Service:     structs.NewServiceID("service2", nil),
+				Gateway:     structs.NewServiceName("ingress1", nil),
+				Service:     structs.NewServiceName("service2", nil),
 				GatewayKind: structs.ServiceKindIngressGateway,
 				Port:        2222,
 				Protocol:    "http",
@@ -5048,8 +5048,8 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 	t.Run("ingress2 gateway services", func(t *testing.T) {
 		expected := structs.GatewayServices{
 			{
-				Gateway:     structs.NewServiceID("ingress2", nil),
-				Service:     structs.NewServiceID("service1", nil),
+				Gateway:     structs.NewServiceName("ingress2", nil),
+				Service:     structs.NewServiceName("service1", nil),
 				GatewayKind: structs.ServiceKindIngressGateway,
 				Port:        3333,
 				Protocol:    "http",
@@ -5075,8 +5075,8 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 	t.Run("wildcard gateway services", func(t *testing.T) {
 		expected := structs.GatewayServices{
 			{
-				Gateway:      structs.NewServiceID("wildcardIngress", nil),
-				Service:      structs.NewServiceID("service1", nil),
+				Gateway:      structs.NewServiceName("wildcardIngress", nil),
+				Service:      structs.NewServiceName("service1", nil),
 				GatewayKind:  structs.ServiceKindIngressGateway,
 				Port:         4444,
 				Protocol:     "http",
@@ -5087,8 +5087,8 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 				},
 			},
 			{
-				Gateway:      structs.NewServiceID("wildcardIngress", nil),
-				Service:      structs.NewServiceID("service2", nil),
+				Gateway:      structs.NewServiceName("wildcardIngress", nil),
+				Service:      structs.NewServiceName("service2", nil),
 				GatewayKind:  structs.ServiceKindIngressGateway,
 				Port:         4444,
 				Protocol:     "http",
@@ -5099,8 +5099,8 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 				},
 			},
 			{
-				Gateway:      structs.NewServiceID("wildcardIngress", nil),
-				Service:      structs.NewServiceID("service3", nil),
+				Gateway:      structs.NewServiceName("wildcardIngress", nil),
+				Service:      structs.NewServiceName("service3", nil),
 				GatewayKind:  structs.ServiceKindIngressGateway,
 				Port:         4444,
 				Protocol:     "http",
@@ -5120,8 +5120,8 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 	t.Run("gateway with duplicate service", func(t *testing.T) {
 		expected := structs.GatewayServices{
 			{
-				Gateway:      structs.NewServiceID("ingress3", nil),
-				Service:      structs.NewServiceID("service1", nil),
+				Gateway:      structs.NewServiceName("ingress3", nil),
+				Service:      structs.NewServiceName("service1", nil),
 				GatewayKind:  structs.ServiceKindIngressGateway,
 				Port:         5555,
 				Protocol:     "http",
@@ -5132,8 +5132,8 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 				},
 			},
 			{
-				Gateway:      structs.NewServiceID("ingress3", nil),
-				Service:      structs.NewServiceID("service2", nil),
+				Gateway:      structs.NewServiceName("ingress3", nil),
+				Service:      structs.NewServiceName("service2", nil),
 				GatewayKind:  structs.ServiceKindIngressGateway,
 				Port:         5555,
 				Protocol:     "http",
@@ -5144,8 +5144,8 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 				},
 			},
 			{
-				Gateway:      structs.NewServiceID("ingress3", nil),
-				Service:      structs.NewServiceID("service3", nil),
+				Gateway:      structs.NewServiceName("ingress3", nil),
+				Service:      structs.NewServiceName("service3", nil),
 				GatewayKind:  structs.ServiceKindIngressGateway,
 				Port:         5555,
 				Protocol:     "http",
@@ -5156,8 +5156,8 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 				},
 			},
 			{
-				Gateway:     structs.NewServiceID("ingress3", nil),
-				Service:     structs.NewServiceID("service1", nil),
+				Gateway:     structs.NewServiceName("ingress3", nil),
+				Service:     structs.NewServiceName("service1", nil),
 				GatewayKind: structs.ServiceKindIngressGateway,
 				Port:        6666,
 				Protocol:    "http",
@@ -5187,8 +5187,8 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 	t.Run("check ingress2 gateway services again", func(t *testing.T) {
 		expected := structs.GatewayServices{
 			{
-				Gateway:     structs.NewServiceID("ingress2", nil),
-				Service:     structs.NewServiceID("service1", nil),
+				Gateway:     structs.NewServiceName("ingress2", nil),
+				Service:     structs.NewServiceName("service1", nil),
 				GatewayKind: structs.ServiceKindIngressGateway,
 				Port:        3333,
 				Protocol:    "http",
@@ -5256,8 +5256,8 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 
 		expected := structs.GatewayServices{
 			{
-				Gateway:     structs.NewServiceID("ingress1", nil),
-				Service:     structs.NewServiceID("service1", nil),
+				Gateway:     structs.NewServiceName("ingress1", nil),
+				Service:     structs.NewServiceName("service1", nil),
 				GatewayKind: structs.ServiceKindIngressGateway,
 				Port:        1111,
 				Protocol:    "http",
@@ -5268,8 +5268,8 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 				},
 			},
 			{
-				Gateway:     structs.NewServiceID("ingress1", nil),
-				Service:     structs.NewServiceID("service2", nil),
+				Gateway:     structs.NewServiceName("ingress1", nil),
+				Service:     structs.NewServiceName("service2", nil),
 				GatewayKind: structs.ServiceKindIngressGateway,
 				Port:        2222,
 				Protocol:    "http",
@@ -5400,8 +5400,8 @@ func TestStateStore_GatewayServices_IngressProtocolFiltering(t *testing.T) {
 		require := require.New(t)
 		expected := structs.GatewayServices{
 			{
-				Gateway:      structs.NewServiceID("ingress1", nil),
-				Service:      structs.NewServiceID("service1", nil),
+				Gateway:      structs.NewServiceName("ingress1", nil),
+				Service:      structs.NewServiceName("service1", nil),
 				GatewayKind:  structs.ServiceKindIngressGateway,
 				Port:         4444,
 				Protocol:     "http",
@@ -5429,8 +5429,8 @@ func TestStateStore_GatewayServices_IngressProtocolFiltering(t *testing.T) {
 		require := require.New(t)
 		expected := structs.GatewayServices{
 			{
-				Gateway:      structs.NewServiceID("ingress1", nil),
-				Service:      structs.NewServiceID("service1", nil),
+				Gateway:      structs.NewServiceName("ingress1", nil),
+				Service:      structs.NewServiceName("service1", nil),
 				GatewayKind:  structs.ServiceKindIngressGateway,
 				Port:         4444,
 				Protocol:     "http",
@@ -5441,8 +5441,8 @@ func TestStateStore_GatewayServices_IngressProtocolFiltering(t *testing.T) {
 				},
 			},
 			{
-				Gateway:      structs.NewServiceID("ingress1", nil),
-				Service:      structs.NewServiceID("service2", nil),
+				Gateway:      structs.NewServiceName("ingress1", nil),
+				Service:      structs.NewServiceName("service2", nil),
 				GatewayKind:  structs.ServiceKindIngressGateway,
 				Port:         4444,
 				Protocol:     "http",
@@ -5473,8 +5473,8 @@ func TestStateStore_GatewayServices_IngressProtocolFiltering(t *testing.T) {
 		require := require.New(t)
 		expected := structs.GatewayServices{
 			{
-				Gateway:      structs.NewServiceID("ingress1", nil),
-				Service:      structs.NewServiceID("service2", nil),
+				Gateway:      structs.NewServiceName("ingress1", nil),
+				Service:      structs.NewServiceName("service2", nil),
 				GatewayKind:  structs.ServiceKindIngressGateway,
 				Port:         4444,
 				Protocol:     "http",
@@ -5503,8 +5503,8 @@ func TestStateStore_GatewayServices_IngressProtocolFiltering(t *testing.T) {
 		require := require.New(t)
 		expected := structs.GatewayServices{
 			{
-				Gateway:      structs.NewServiceID("ingress1", nil),
-				Service:      structs.NewServiceID("service1", nil),
+				Gateway:      structs.NewServiceName("ingress1", nil),
+				Service:      structs.NewServiceName("service1", nil),
 				GatewayKind:  structs.ServiceKindIngressGateway,
 				Port:         4444,
 				Protocol:     "grpc",

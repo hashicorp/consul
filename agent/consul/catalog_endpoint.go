@@ -629,6 +629,7 @@ func (c *Catalog) GatewayServices(args *structs.ServiceSpecificRequest, reply *s
 				}
 				if entry != nil {
 					found = true
+					break
 				}
 			}
 

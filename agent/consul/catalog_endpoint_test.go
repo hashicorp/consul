@@ -2848,8 +2848,8 @@ func TestCatalog_GatewayServices_TerminatingGateway(t *testing.T) {
 
 		expect := structs.GatewayServices{
 			{
-				Service:     structs.NewServiceID("api", nil),
-				Gateway:     structs.NewServiceID("gateway", nil),
+				Service:     structs.NewServiceName("api", nil),
+				Gateway:     structs.NewServiceName("gateway", nil),
 				GatewayKind: structs.ServiceKindTerminatingGateway,
 				CAFile:      "api/ca.crt",
 				CertFile:    "api/client.crt",
@@ -2857,16 +2857,16 @@ func TestCatalog_GatewayServices_TerminatingGateway(t *testing.T) {
 				SNI:         "my-domain",
 			},
 			{
-				Service:     structs.NewServiceID("db", nil),
-				Gateway:     structs.NewServiceID("gateway", nil),
+				Service:     structs.NewServiceName("db", nil),
+				Gateway:     structs.NewServiceName("gateway", nil),
 				GatewayKind: structs.ServiceKindTerminatingGateway,
 				CAFile:      "",
 				CertFile:    "",
 				KeyFile:     "",
 			},
 			{
-				Service:      structs.NewServiceID("redis", nil),
-				Gateway:      structs.NewServiceID("gateway", nil),
+				Service:      structs.NewServiceName("redis", nil),
+				Gateway:      structs.NewServiceName("gateway", nil),
 				GatewayKind:  structs.ServiceKindTerminatingGateway,
 				CAFile:       "ca.crt",
 				CertFile:     "client.crt",
@@ -3000,8 +3000,8 @@ func TestCatalog_GatewayServices_BothGateways(t *testing.T) {
 
 		expect := structs.GatewayServices{
 			{
-				Service:     structs.NewServiceID("api", nil),
-				Gateway:     structs.NewServiceID("gateway", nil),
+				Service:     structs.NewServiceName("api", nil),
+				Gateway:     structs.NewServiceName("gateway", nil),
 				GatewayKind: structs.ServiceKindTerminatingGateway,
 			},
 		}
@@ -3018,8 +3018,8 @@ func TestCatalog_GatewayServices_BothGateways(t *testing.T) {
 
 		expect = structs.GatewayServices{
 			{
-				Service:     structs.NewServiceID("db", nil),
-				Gateway:     structs.NewServiceID("ingress", nil),
+				Service:     structs.NewServiceName("db", nil),
+				Gateway:     structs.NewServiceName("ingress", nil),
 				GatewayKind: structs.ServiceKindIngressGateway,
 				Protocol:    "tcp",
 				Port:        8888,
@@ -3216,13 +3216,13 @@ service "gateway" {
 
 		expect := structs.GatewayServices{
 			{
-				Service:     structs.NewServiceID("db", nil),
-				Gateway:     structs.NewServiceID("gateway", nil),
+				Service:     structs.NewServiceName("db", nil),
+				Gateway:     structs.NewServiceName("gateway", nil),
 				GatewayKind: structs.ServiceKindTerminatingGateway,
 			},
 			{
-				Service:     structs.NewServiceID("db_replica", nil),
-				Gateway:     structs.NewServiceID("gateway", nil),
+				Service:     structs.NewServiceName("db_replica", nil),
+				Gateway:     structs.NewServiceName("gateway", nil),
 				GatewayKind: structs.ServiceKindTerminatingGateway,
 			},
 		}

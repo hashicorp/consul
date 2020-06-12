@@ -266,7 +266,7 @@ func (s *Store) DeleteConfigEntry(idx uint64, kind, name string, entMeta *struct
 	// If the config entry is for terminating or ingress gateways we delete entries from the memdb table
 	// that associates gateways <-> services.
 	if kind == structs.TerminatingGateway || kind == structs.IngressGateway {
-		if _, err := tx.DeleteAll(gatewayServicesTableName, "gateway", structs.NewServiceID(name, entMeta)); err != nil {
+		if _, err := tx.DeleteAll(gatewayServicesTableName, "gateway", structs.NewServiceName(name, entMeta)); err != nil {
 			return fmt.Errorf("failed to truncate gateway services table: %v", err)
 		}
 		if err := indexUpdateMaxTxn(tx, idx, gatewayServicesTableName); err != nil {
@@ -855,7 +855,7 @@ func (s *Store) validateProposedIngressProtocolsInServiceGraph(
 		return fmt.Errorf("type %T is not an ingress gateway config entry", next)
 	}
 
-	validationFn := func(svc structs.ServiceID, expectedProto string) error {
+	validationFn := func(svc structs.ServiceName, expectedProto string) error {
 		_, svcProto, err := s.protocolForService(tx, nil, svc)
 		if err != nil {
 			return err
@@ -874,7 +874,7 @@ func (s *Store) validateProposedIngressProtocolsInServiceGraph(
 			if s.Name == structs.WildcardSpecifier {
 				continue
 			}
-			err := validationFn(s.ToServiceID(), l.Protocol)
+			err := validationFn(s.ToServiceName(), l.Protocol)
 			if err != nil {
 				return err
 			}
@@ -888,7 +888,7 @@ func (s *Store) validateProposedIngressProtocolsInServiceGraph(
 func (s *Store) protocolForService(
 	tx *memdb.Txn,
 	ws memdb.WatchSet,
-	svc structs.ServiceID,
+	svc structs.ServiceName,
 ) (uint64, string, error) {
 	// Get the global proxy defaults (for default protocol)
 	maxIdx, proxyConfig, err := s.configEntryTxn(tx, ws, structs.ProxyDefaults, structs.ProxyConfigGlobal, structs.DefaultEnterpriseMeta())
@@ -896,7 +896,7 @@ func (s *Store) protocolForService(
 		return 0, "", err
 	}
 
-	idx, serviceDefaults, err := s.configEntryTxn(tx, ws, structs.ServiceDefaults, svc.ID, &svc.EnterpriseMeta)
+	idx, serviceDefaults, err := s.configEntryTxn(tx, ws, structs.ServiceDefaults, svc.Name, &svc.EnterpriseMeta)
 	if err != nil {
 		return 0, "", err
 	}
@@ -910,7 +910,7 @@ func (s *Store) protocolForService(
 		entries.AddEntries(serviceDefaults)
 	}
 	req := discoverychain.CompileRequest{
-		ServiceName:          svc.ID,
+		ServiceName:          svc.Name,
 		EvaluateInNamespace:  svc.NamespaceOrDefault(),
 		EvaluateInDatacenter: "dc1",
 		// Use a dummy trust domain since that won't affect the protocol here.

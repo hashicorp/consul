@@ -220,7 +220,7 @@ func summarizeServices(dump structs.ServiceDump) []*ServiceSummary {
 
 	for _, csn := range dump {
 		if csn.GatewayService != nil {
-			sum := getService(csn.GatewayService.Service)
+			sum := getService(csn.GatewayService.Service.ToServiceID())
 			sum.GatewayConfig.ListenerPort = csn.GatewayService.Port
 		}
 

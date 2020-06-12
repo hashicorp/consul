@@ -169,7 +169,7 @@ func (m *Internal) GatewayServiceDump(args *structs.ServiceSpecificRequest, repl
 			// Loop over the gateway <-> serviceName mappings and fetch all service instances for each
 			var result structs.ServiceDump
 			for _, gs := range gatewayServices {
-				idx, instances, err := state.CheckServiceNodes(ws, gs.Service.ID, &gs.Service.EnterpriseMeta)
+				idx, instances, err := state.CheckServiceNodes(ws, gs.Service.Name, &gs.Service.EnterpriseMeta)
 				if err != nil {
 					return err
 				}

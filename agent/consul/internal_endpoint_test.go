@@ -802,8 +802,8 @@ func TestInternal_GatewayServiceDump_Terminating(t *testing.T) {
 				},
 			},
 			GatewayService: &structs.GatewayService{
-				Gateway:     structs.NewServiceID("terminating-gateway", nil),
-				Service:     structs.NewServiceID("db", nil),
+				Gateway:     structs.NewServiceName("terminating-gateway", nil),
+				Service:     structs.NewServiceName("db", nil),
 				GatewayKind: "terminating-gateway",
 			},
 		},
@@ -834,16 +834,16 @@ func TestInternal_GatewayServiceDump_Terminating(t *testing.T) {
 				},
 			},
 			GatewayService: &structs.GatewayService{
-				Gateway:     structs.NewServiceID("terminating-gateway", nil),
-				Service:     structs.NewServiceID("db", nil),
+				Gateway:     structs.NewServiceName("terminating-gateway", nil),
+				Service:     structs.NewServiceName("db", nil),
 				GatewayKind: "terminating-gateway",
 			},
 		},
 		{
 			// Only GatewayService should be returned when linked service isn't registered
 			GatewayService: &structs.GatewayService{
-				Gateway:     structs.NewServiceID("terminating-gateway", nil),
-				Service:     structs.NewServiceID("redis", nil),
+				Gateway:     structs.NewServiceName("terminating-gateway", nil),
+				Service:     structs.NewServiceName("redis", nil),
 				GatewayKind: "terminating-gateway",
 				CAFile:      "/etc/certs/ca.pem",
 				CertFile:    "/etc/certs/cert.pem",
@@ -1134,8 +1134,8 @@ func TestInternal_GatewayServiceDump_Ingress(t *testing.T) {
 				},
 			},
 			GatewayService: &structs.GatewayService{
-				Gateway:     structs.NewServiceID("ingress-gateway", nil),
-				Service:     structs.NewServiceID("db", nil),
+				Gateway:     structs.NewServiceName("ingress-gateway", nil),
+				Service:     structs.NewServiceName("db", nil),
 				GatewayKind: "ingress-gateway",
 				Port:        8888,
 				Protocol:    "tcp",
@@ -1168,8 +1168,8 @@ func TestInternal_GatewayServiceDump_Ingress(t *testing.T) {
 				},
 			},
 			GatewayService: &structs.GatewayService{
-				Gateway:     structs.NewServiceID("ingress-gateway", nil),
-				Service:     structs.NewServiceID("db", nil),
+				Gateway:     structs.NewServiceName("ingress-gateway", nil),
+				Service:     structs.NewServiceName("db", nil),
 				GatewayKind: "ingress-gateway",
 				Port:        8888,
 				Protocol:    "tcp",
@@ -1178,8 +1178,8 @@ func TestInternal_GatewayServiceDump_Ingress(t *testing.T) {
 		{
 			// Only GatewayService should be returned when upstream isn't registered
 			GatewayService: &structs.GatewayService{
-				Gateway:     structs.NewServiceID("ingress-gateway", nil),
-				Service:     structs.NewServiceID("web", nil),
+				Gateway:     structs.NewServiceName("ingress-gateway", nil),
+				Service:     structs.NewServiceName("web", nil),
 				GatewayKind: "ingress-gateway",
 				Port:        8080,
 				Protocol:    "tcp",

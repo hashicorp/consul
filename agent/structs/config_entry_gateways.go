@@ -231,8 +231,8 @@ func (e *IngressGatewayConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
 	return &e.EnterpriseMeta
 }
 
-func (s *IngressService) ToServiceID() ServiceID {
-	return NewServiceID(s.Name, &s.EnterpriseMeta)
+func (s *IngressService) ToServiceName() ServiceName {
+	return NewServiceName(s.Name, &s.EnterpriseMeta)
 }
 
 // TerminatingGatewayConfigEntry manages the configuration for a terminating service
@@ -360,17 +360,17 @@ func (e *TerminatingGatewayConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
 
 // GatewayService is used to associate gateways with their linked services.
 type GatewayService struct {
-	Gateway      ServiceID
-	Service      ServiceID
+	Gateway      ServiceName
+	Service      ServiceName
 	GatewayKind  ServiceKind
-	Port         int
-	Protocol     string
-	Hosts        []string
-	CAFile       string
-	CertFile     string
-	KeyFile      string
-	SNI          string
-	FromWildcard bool
+	Port         int      `json:",omitempty"`
+	Protocol     string   `json:",omitempty"`
+	Hosts        []string `json:",omitempty"`
+	CAFile       string   `json:",omitempty"`
+	CertFile     string   `json:",omitempty"`
+	KeyFile      string   `json:",omitempty"`
+	SNI          string   `json:",omitempty"`
+	FromWildcard bool     `json:",omitempty"`
 	RaftIndex
 }
 

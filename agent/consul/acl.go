@@ -1199,12 +1199,12 @@ func (f *aclFilter) allowGateway(gs *structs.GatewayService) bool {
 
 	// Need read on service and gateway. Gateway may have different EnterpriseMeta so we fill authzContext twice
 	gs.Gateway.FillAuthzContext(&authzContext)
-	if !f.allowService(gs.Gateway.ID, &authzContext) {
+	if !f.allowService(gs.Gateway.Name, &authzContext) {
 		return false
 	}
 
 	gs.Service.FillAuthzContext(&authzContext)
-	if !f.allowService(gs.Service.ID, &authzContext) {
+	if !f.allowService(gs.Service.Name, &authzContext) {
 		return false
 	}
 	return true
@@ -1771,7 +1771,7 @@ func (f *aclFilter) filterGatewayServices(mappings *structs.GatewayServices) {
 		var authzContext acl.AuthorizerContext
 		s.Service.FillAuthzContext(&authzContext)
 
-		if f.authorizer.ServiceRead(s.Service.ID, &authzContext) != acl.Allow {
+		if f.authorizer.ServiceRead(s.Service.Name, &authzContext) != acl.Allow {
 			f.logger.Debug("dropping service from result due to ACLs", "service", s.Service.String())
 			continue
 		}

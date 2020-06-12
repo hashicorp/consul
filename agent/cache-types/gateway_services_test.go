@@ -27,8 +27,8 @@ func TestGatewayServices(t *testing.T) {
 
 			services := structs.GatewayServices{
 				{
-					Service:     structs.NewServiceID("api", nil),
-					Gateway:     structs.NewServiceID("gateway", nil),
+					Service:     structs.NewServiceName("api", nil),
+					Gateway:     structs.NewServiceName("gateway", nil),
 					GatewayKind: structs.ServiceKindIngressGateway,
 					Port:        1234,
 					CAFile:      "api/ca.crt",

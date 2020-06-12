@@ -59,51 +59,51 @@ func (c *configSnapshotConnectProxy) IsEmpty() bool {
 }
 
 type configSnapshotTerminatingGateway struct {
-	// WatchedServices is a map of service id to a cancel function. This cancel
+	// WatchedServices is a map of service name to a cancel function. This cancel
 	// function is tied to the watch of linked service instances for the given
 	// id. If the linked services watch would indicate the removal of
 	// a service altogether we then cancel watching that service for its endpoints.
-	WatchedServices map[structs.ServiceID]context.CancelFunc
+	WatchedServices map[structs.ServiceName]context.CancelFunc
 
-	// WatchedIntentions is a map of service id to a cancel function.
+	// WatchedIntentions is a map of service name to a cancel function.
 	// This cancel function is tied to the watch of intentions for linked services.
 	// As with WatchedServices, intention watches will be cancelled when services
 	// are no longer linked to the gateway.
-	WatchedIntentions map[structs.ServiceID]context.CancelFunc
+	WatchedIntentions map[structs.ServiceName]context.CancelFunc
 
-	// WatchedLeaves is a map of ServiceID to a cancel function.
+	// WatchedLeaves is a map of ServiceName to a cancel function.
 	// This cancel function is tied to the watch of leaf certs for linked services.
 	// As with WatchedServices, leaf watches will be cancelled when services
 	// are no longer linked to the gateway.
-	WatchedLeaves map[structs.ServiceID]context.CancelFunc
+	WatchedLeaves map[structs.ServiceName]context.CancelFunc
 
-	// ServiceLeaves is a map of ServiceID to a leaf cert.
+	// ServiceLeaves is a map of ServiceName to a leaf cert.
 	// Terminating gateways will present different certificates depending
 	// on the service that the caller is trying to reach.
-	ServiceLeaves map[structs.ServiceID]*structs.IssuedCert
+	ServiceLeaves map[structs.ServiceName]*structs.IssuedCert
 
-	// WatchedResolvers is a map of ServiceID to a cancel function.
+	// WatchedResolvers is a map of ServiceName to a cancel function.
 	// This cancel function is tied to the watch of resolvers for linked services.
 	// As with WatchedServices, resolver watches will be cancelled when services
 	// are no longer linked to the gateway.
-	WatchedResolvers map[structs.ServiceID]context.CancelFunc
+	WatchedResolvers map[structs.ServiceName]context.CancelFunc
 
-	// ServiceResolvers is a map of service id to an associated
+	// ServiceResolvers is a map of service name to an associated
 	// service-resolver config entry for that service.
-	ServiceResolvers map[structs.ServiceID]*structs.ServiceResolverConfigEntry
+	ServiceResolvers map[structs.ServiceName]*structs.ServiceResolverConfigEntry
 
-	// ServiceGroups is a map of service id to the service instances of that
+	// ServiceGroups is a map of service name to the service instances of that
 	// service in the local datacenter.
-	ServiceGroups map[structs.ServiceID]structs.CheckServiceNodes
+	ServiceGroups map[structs.ServiceName]structs.CheckServiceNodes
 
-	// GatewayServices is a map of service id to the config entry association
+	// GatewayServices is a map of service name to the config entry association
 	// between the gateway and a service. TLS configuration stored here is
 	// used for TLS origination from the gateway to the linked service.
-	GatewayServices map[structs.ServiceID]structs.GatewayService
+	GatewayServices map[structs.ServiceName]structs.GatewayService
 
-	// HostnameServices is a map of service id to service instances with a hostname as the address.
+	// HostnameServices is a map of service name to service instances with a hostname as the address.
 	// If hostnames are configured they must be provided to Envoy via CDS not EDS.
-	HostnameServices map[structs.ServiceID]structs.CheckServiceNodes
+	HostnameServices map[structs.ServiceName]structs.CheckServiceNodes
 }
 
 func (c *configSnapshotTerminatingGateway) IsEmpty() bool {
@@ -122,12 +122,12 @@ func (c *configSnapshotTerminatingGateway) IsEmpty() bool {
 }
 
 type configSnapshotMeshGateway struct {
-	// WatchedServices is a map of service id to a cancel function. This cancel
+	// WatchedServices is a map of service name to a cancel function. This cancel
 	// function is tied to the watch of connect enabled services for the given
 	// id. If the main datacenter services watch would indicate the removal of
 	// a service altogether we then cancel watching that service for its
 	// connect endpoints.
-	WatchedServices map[structs.ServiceID]context.CancelFunc
+	WatchedServices map[structs.ServiceName]context.CancelFunc
 
 	// WatchedServicesSet indicates that the watch on the datacenters services
 	// has completed. Even when there are no connect services, this being set
@@ -142,13 +142,13 @@ type configSnapshotMeshGateway struct {
 	// that datacenter.
 	WatchedDatacenters map[string]context.CancelFunc
 
-	// ServiceGroups is a map of service id to the service instances of that
+	// ServiceGroups is a map of service name to the service instances of that
 	// service in the local datacenter.
-	ServiceGroups map[structs.ServiceID]structs.CheckServiceNodes
+	ServiceGroups map[structs.ServiceName]structs.CheckServiceNodes
 
-	// ServiceResolvers is a map of service id to an associated
+	// ServiceResolvers is a map of service name to an associated
 	// service-resolver config entry for that service.
-	ServiceResolvers map[structs.ServiceID]*structs.ServiceResolverConfigEntry
+	ServiceResolvers map[structs.ServiceName]*structs.ServiceResolverConfigEntry
 
 	// GatewayGroups is a map of datacenter names to services of kind
 	// mesh-gateway in that datacenter.
