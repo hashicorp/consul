@@ -1568,7 +1568,7 @@ func (s *state) hostnameEndpoints(loggerName string, localDC string, nodes struc
 		sid := nodes[0].Service.CompoundServiceName()
 
 		s.logger.Named(loggerName).
-			Warn("service contains instances with mix of hostnames and IP addresses; only hostnames will be passed to Envoy.",
+			Warn("service contains instances with mix of hostnames and IP addresses; only hostnames will be passed to Envoy",
 				"dc", dc, "service", sid.String())
 	}
 	return resp
