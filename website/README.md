@@ -4,13 +4,41 @@
 
 This subdirectory contains the entire source for the [Consul Website](https://consul.io/). This is a [NextJS](https://nextjs.org/) project, which builds a static site from these source files.
 
+<!--
+  This readme file contains several blocks of generated text, to make it easier to share common information
+  across documentation website readmes. To generate these blocks from their source, run `npm run generate:readme`
+
+  Any edits to the readme are welcome outside the clearly noted boundaries of the blocks. Alternately, a
+  block itself can be safely "forked" from the central implementation simply by removing the "BEGIN" and
+  "END" comments from around it.
+-->
+
+## Table of Contents
+
+- [Contributions](#contributions-welcome)
+- [Running the Site Locally](#running-the-site-locally)
+- [Editing Markdown Content](#editing-markdown-content)
+- [Editing Navigation Sidebars](#editing-navigation-sidebars)
+- [Changing the Release Version](#changing-the-release-version)
+- [Redirects](#redirects)
+- [Browser Support](#browser-support)
+- [Deployment](#deployment)
+
+<!-- BEGIN: contributions -->
+<!-- Generated text, do not edit directly -->
+
 ## Contributions Welcome!
 
 If you find a typo or you feel like you can improve the HTML, CSS, or JavaScript, we welcome contributions. Feel free to open issues or pull requests like any normal GitHub project, and we'll merge it in 🚀
 
+<!-- END: contributions -->
+
+<!-- BEGIN: local-development -->
+<!-- Generated text, do not edit directly -->
+
 ## Running the Site Locally
 
-The website can be run locally through node.js or Docker. If you choose to run through Docker, everything will be a little bit slower due to the additional overhead, so for frequent contributors it may be worth it to use node.
+The website can be run locally through node.js or [Docker](https://www.docker.com/get-started). If you choose to run through Docker, everything will be a little bit slower due to the additional overhead, so for frequent contributors it may be worth it to use node.
 
 > **Note:** If you are using a text editor that uses a "safe write" save style such as **vim** or **goland**, this can cause issues with the live reload in development. If you turn off safe write, this should solve the problem. In vim, this can be done by running `:set backupcopy=yes`. In goland, search the settings for "safe write" and turn that setting off.
 
@@ -27,11 +55,16 @@ If your local development environment has a supported version (v10.0.0+) of [nod
 - `npm install`
 - `npm start`
 
-and then visit `http://localhost:3000`.
+...and then visit `http://localhost:3000`.
 
 If you pull down new code from github, you should run `npm install` again. Otherwise, there's no need to re-run `npm install` each time the site is run, you can just run `npm start` to get it going.
 
-## Editing Content
+<!-- END: local-development -->
+
+<!-- BEGIN: editing-markdown -->
+<!-- Generated text, do not edit directly -->
+
+## Editing Markdown Content
 
 Documentation content is written in [Markdown](https://www.markdownguide.org/cheat-sheet/) and you'll find all files listed under the `/pages` directory.
 
@@ -52,73 +85,18 @@ The significant keys in the YAML frontmatter are:
 - `title` `(string)` - This is the title of the page that will be set in the HTML title.
 - `description` `(string)` - This is a description of the page that will be set in the HTML description.
 
-> ⚠️Since `api` is a reserved directory within NextJS, all `/api/**` pages are listed under the `/pages/api-docs` path.
-
-### Editing Sidebars
-
-The structure of the sidebars are controlled by files in the [`/data` directory](data).
-
-- Edit [this file](data/docs-navigation.js) to change the **docs** sidebar
-- Edit [this file](data/api-navigation.js) to change the **api** sidebar
-- Edit [this file](data/guides-navigation.js) to change the **guides** sidebar
-- Edit [this file](data/intro-navigation.js) to change the **intro** sidebar
-
-To nest sidebar items, you'll want to add a new `category` key/value accompanied by the appropriate embedded `content` values.
-
-- `category` values will be **directory names** within the `pages` directory
-- `content` values will be **file names** within their appropriately nested directory.
+> ⚠️ Since `api` is a reserved directory within NextJS, all `/api/**` pages are listed under the `/pages/api-docs` path.
 
 ### Creating New Pages
 
 There is currently a small bug with new page creation - if you create a new page and link it up via subnav data while the server is running, it will report an error saying the page was not found. This can be resolved by restarting the server.
 
-### Changing the Release Version
-
-To change the version of Consul displayed for download on the website, head over to `data/version.js` and change the number there. It's important to note that the version number must match a version that has been released and is live on `releases.hashicorp.com` -- if it does not, the website will be unable to fetch links to the binaries and will not compile. So this version number should be changed _only after a release_.
-
-#### Displaying a Prerelease
-
-If there is a prerelease of any type that should be displayed on the downloads page, this can be done by editing `pages/downloads/index.jsx`. By default, the download component might look something like this:
-
-```jsx
-<ProductDownloader
-  product="Consul"
-  version={VERSION}
-  downloads={downloadData}
-  community="/resources"
-/>
-```
-
-To add a prerelease, an extra `prerelease` property can be added to the component as such:
-
-```jsx
-<ProductDownloader
-  product="Consul"
-  version={VERSION}
-  downloads={downloadData}
-  community="/resources"
-  prerelease={{
-    type: 'release candidate', // the type of prerelease: beta, release candidate, etc.
-    name: 'v1.0.0', // the name displayed in text on the website
-    version: '1.0.0-rc1', // the actual version tag that was pushed to releases.hashicorp.com
-  }}
-/>
-```
-
-This configuration would display something like the following text on the website, emphasis added to the configurable parameters:
-
-```
-A {{ release candidate }} for Consul {{ v1.0.0 }} is available! The release can be <a href='https://releases.hashicorp.com/consul/{{ 1.0.0-rc1 }}'>downloaded here</a>.
-```
-
-You may customize the parameters in any way you'd like. To remove a prerelease from the website, simply delete the `prerelease` paremeter from the above component.
-
 ### Markdown Enhancements
 
-There are several custom markdown plugins that are available by default that enhance standard markdown to fit our use cases. This set of plugins introduces a couple instances of custom syntax, and a couple specific pitfalls that are not present by default with markdown, detailed below:
+There are several custom markdown plugins that are available by default that enhance [standard markdown](https://commonmark.org/) to fit our use cases. This set of plugins introduces a couple instances of custom syntax, and a couple specific pitfalls that are not present by default with markdown, detailed below:
 
 - If you see the symbols `~>`, `->`, `=>`, or `!>`, these represent [custom alerts](https://github.com/hashicorp/remark-plugins/tree/master/plugins/paragraph-custom-alerts#paragraph-custom-alerts). These render as colored boxes to draw the user's attention to some type of aside.
-- If you see `@include '/some/path.mdx'`, this is a [markdown include](https://github.com/hashicorp/remark-plugins/tree/master/plugins/include-markdown#include-markdown-plugin). It's worth noting as well that all includes resolve from `website/pages/partials` by default.
+- If you see `@include '/some/path.mdx'`, this is a [markdown include](https://github.com/hashicorp/remark-plugins/tree/master/plugins/include-markdown#include-markdown-plugin). It's worth noting as well that all includes resolve from `website/pages/partials` by default, and that changes to partials will not live-reload the website.
 - If you see `# Headline ((#slug))`, this is an example of an [anchor link alias](https://github.com/hashicorp/remark-plugins/tree/je.anchor-link-adjustments/plugins/anchor-links#anchor-link-aliases). It adds an extra permalink to a headline for compatibility and is removed from the output.
 - Due to [automatically generated permalinks](https://github.com/hashicorp/remark-plugins/tree/je.anchor-link-adjustments/plugins/anchor-links#anchor-links), any text changes to _headlines_ or _list items that begin with inline code_ can and will break existing permalinks. Be very cautious when changing either of these two text items.
 
@@ -138,12 +116,267 @@ There are several custom markdown plugins that are available by default that enh
 
   ...while it perhaps would not be an improved user experience, no links would break because of it. The best approach is to **avoid changing headlines and inline code at the start of a list item**. If you must change one of these items, make sure to tag someone from the digital marketing development team on your pull request, they will help to ensure as much compatibility as possible.
 
-There are also a couple of custom components that can be used within markdown, see the list below for documentation and details:
+### Custom Components
 
-- [Enterprise Alert](components/enterprise-alert/README.md)
-- [Tabs](components/tabs/README.md)
+A number of custom [mdx components](https://mdxjs.com/) are available for use within any `.mdx` file. Each one is documented below:
 
-### Redirects
+#### Tabs
+
+The `Tabs` component creates tabbed content of any type, but is often used for code examples given in different languages. Here's an example of how it looks from the Vagrant documentation website:
+
+![Tabs Component](https://p176.p0.n0.cdn.getcloudapp.com/items/WnubALZ4/Screen%20Recording%202020-06-11%20at%2006.03%20PM.gif?v=1de81ea720a8cc8ade83ca64fb0b9edd)
+
+It can be used as such within a markdown file:
+
+````mdx
+Normal **markdown** content.
+
+<Tabs>
+<Tab heading="CLI command">
+            <!-- Intentionally skipped line.. -->
+```shell-session
+$ command ...
+```
+            <!-- Intentionally skipped line.. -->
+</Tab>
+<Tab heading="API call using cURL">
+
+```shell-session
+$ curl ...
+```
+
+</Tab>
+</Tabs>
+
+Contined normal markdown content
+````
+
+The intentionally skipped line is a limitation of the mdx parser which is being actively worked on. All tabs mst have a heading, and there is no limit to the number of tabs, though it is recommended to go for a maximum of three or four.
+
+#### Enterprise Alert
+
+This component provides a standard way to call out functionality as being present only in the enterprise version of the software. It can be presented in two contexts, inline or standalone. Here's an example of standalone usage from the Consul docs website:
+
+![Enterprise Alert Component - Standalone](https://p176.p0.n0.cdn.getcloudapp.com/items/WnubALp8/Screen%20Shot%202020-06-11%20at%206.06.03%20PM.png?v=d1505b90bdcbde6ed664831a885ea5fb)
+
+The standalone component can be used as such in markdown files:
+
+```mdx
+# Page Headline
+
+<EnterpriseAlert />
+
+Continued markdown content...
+```
+
+It can also receive custom text contents if you need to change the messaging but wish to retain the style. This will replace the text `This feature is available in all versions of Consul Enterprise.` with whatever you add. For example:
+
+```mdx
+# Page Headline
+
+<EnterpriseAlert>
+  My custom text here, and <a href="#">a link</a>!
+</EnterpriseAlert>
+
+Continued markdown content...
+```
+
+It's important to note that once you are adding custom content, it must be html and can not be markdown, as demonstrated above with the link.
+
+Now let's look at inline usage, here's an example:
+
+![Enterprise Alert Component - Inline](https://p176.p0.n0.cdn.getcloudapp.com/items/L1upYLEJ/Screen%20Shot%202020-06-11%20at%206.07.50%20PM.png?v=013ba439263de8292befbc851d31dd78)
+
+And here's how it could be used in your markdown document:
+
+```mdx
+### Some Enterprise Feature <EnterpriseAlert inline />
+
+Continued markdown content...
+```
+
+It's also worth noting that this component will automatically adjust to the correct product colors depending on the context.
+
+#### Other Components
+
+Other custom components can be made available on a per-site basis, the above are the standards. If you have questions about custom components that are not documented here, or have a request for a new custom component, please reach out to @hashicorp/digital-marketing.
+
+### Syntax Highlighting
+
+When using fenced code blocks, the recommendation is to tag the code block with a language so that it can be syntax highlighted. For example:
+
+````
+```
+// BAD: Code block with no language tag
+```
+
+```javascript
+// GOOD: Code block with a language tag
+```
+````
+
+Check out the [supported languages list](https://prismjs.com/#supported-languages) for the syntax highlighter we use if you want to double check the language name.
+
+It is also worth noting specifically that if you are using a code block that is an example of a terminal command, the correct language tag is `shell-session`. For example:
+
+🚫**BAD**: Using `shell`, `sh`, `bash`, or `plaintext` to represent a terminal command
+
+````
+```shell
+$ terraform apply
+```
+````
+
+✅**GOOD**: Using `shell-session` to represent a terminal command
+
+````
+```shell-session
+$ terraform apply
+```
+````
+
+<!-- END: editing-markdown -->
+
+<!-- BEGIN: editing-docs-sidebars -->
+<!-- Generated text, do not edit directly -->
+
+## Editing Navigation Sidebars
+
+The structure of the sidebars are controlled by files in the [`/data` directory](data). For example, [this file](data/docs-navigation.js) controls the **docs** sidebar. Within the `data` folder, any file with `-navigation` after it controls the navigation for the given section.
+
+The sidebar uses a simple recursive data structure to represent _files_ and _directories_. A file is represented by a string, and a directory is represented by an object. The sidebar is meant to reflect the structure of the docs within the filesystem while also allowing custom ordering. Let's look at an example. First, here's our example folder structure:
+
+```text
+.
+├── docs
+│   └── directory
+│       ├── index.mdx
+│       ├── file.mdx
+│       ├── another-file.mdx
+│       └── nested-directory
+│           ├── index.mdx
+│           └── nested-file.mdx
+```
+
+Here's how this folder structure could be represented as a sidebar navigation, in this example it would be the file `website/data/docs-navigation.js`:
+
+```js
+export default {
+  category: 'directory',
+  content: [
+    'file',
+    'another-file',
+    {
+      category: 'nested-directory',
+      content: ['nested-file'],
+    },
+  ],
+}
+```
+
+- `category` values will be **directory names** within the `pages/<section>` directory
+- `content` values will be **file names** within their appropriately nested directory
+
+A couple more important notes:
+
+- Within this data structure, ordering does not matter, but hierarchy does. So while you could put `file` and `another-file` in any order, or even leave one or both of them out, you could not decide to un-nest the `nested-directory` object without also un-nesting it in the filesystem.
+- The `sidebar_title` frontmatter property on each `mdx` page is responsible for displaying the human-readable page name in the navigation.
+- _By default_, every directory/category must have an `index.mdx` file. This file will be automatically added to the navigation as "Overview", and its `sidebar_title` property will set the human-readable name of the entire category.
+
+Below we will discuss a couple of more unusual but still helpful patterns.
+
+### Index-less Categories
+
+Sometimes you may want to include a category but not have a need for an index page for the category. This can be accomplished, but a human-readable category name needs to be set manually, since the category name is normally pulled from the `sidebar_title` property of the index page. Here's an example of how an index-less category might look:
+
+```text
+.
+├── docs
+│   └── indexless-category
+│       └── file.mdx
+```
+
+```js
+// website/data/docs-navigation.js
+export default {
+  category: 'indexless-category',
+  name: 'Indexless Category',
+  content: ['file'],
+}
+```
+
+The addition of the `name` property to a category object is all it takes to be able to skip the index file.
+
+### Custom or External Links
+
+Sometimes you may have a need to include a link that is not directly to a file within the docs hierarchy. This can also be supported using a different pattern. For example:
+
+```js
+export default {
+  category: 'directory',
+  content: [
+    'file',
+    'another-file',
+    { title: 'Tao of HashiCorp', href: 'https://www.hashicorp.com/tao-of-hashicorp' }
+    }
+  ]
+}
+```
+
+If the link provided in the `href` property is external, it will display a small icon indicating this. If it's internal, it will appear the same way as any other direct file link.
+
+<!-- END: editing-docs-sidebars -->
+
+<!-- BEGIN: releases -->
+<!-- Generated text, do not edit directly -->
+
+## Changing the Release Version
+
+To change the version displayed for download on the website, head over to `data/version.js` and change the number there. It's important to note that the version number must match a version that has been released and is live on `releases.hashicorp.com` -- if it does not, the website will be unable to fetch links to the binaries and will not compile. So this version number should be changed _only after a release_.
+
+### Displaying a Prerelease
+
+If there is a prerelease of any type that should be displayed on the downloads page, this can be done by editing `pages/downloads/index.jsx`. By default, the download component might look something like this:
+
+```jsx
+<ProductDownloader
+  product="<Product>"
+  version={VERSION}
+  downloads={downloadData}
+  community="/resources"
+/>
+```
+
+To add a prerelease, an extra `prerelease` property can be added to the component as such:
+
+```jsx
+<ProductDownloader
+  product="<Product>"
+  version={VERSION}
+  downloads={downloadData}
+  community="/resources"
+  prerelease={{
+    type: 'release candidate', // the type of prerelease: beta, release candidate, etc.
+    name: 'v1.0.0', // the name displayed in text on the website
+    version: '1.0.0-rc1', // the actual version tag that was pushed to releases.hashicorp.com
+  }}
+/>
+```
+
+This configuration would display something like the following text on the website, emphasis added to the configurable parameters:
+
+```
+A {{ release candidate }} for <Product> {{ v1.0.0 }} is available! The release can be <a href='https://releases.hashicorp.com/<product>/{{ 1.0.0-rc1 }}'>downloaded here</a>.
+```
+
+You may customize the parameters in any way you'd like. To remove a prerelease from the website, simply delete the `prerelease` paremeter from the above component.
+
+<!-- END: releases -->
+
+<!-- BEGIN: redirects -->
+<!-- Generated text, do not edit directly -->
+
+## Redirects
 
 This website structures URLs based on the filesystem layout. This means that if a file is moved, removed, or a folder is re-organized, links will break. If a path change is necessary, it can be mitigated using redirects.
 
@@ -186,7 +419,7 @@ If we no longer want the link to be in the side nav, we can simply remove it. If
 {
   category: 'docs',
   content: [
-    { title: 'Foo Title', href: 'https://learn.hashicorp.com/vault/foo' }
+    { title: 'Foo Title', href: 'https://learn.hashicorp.com/<product>/foo' }
   ]
 }
 ```
@@ -195,6 +428,26 @@ As the majority of items in the side nav are internal links, the structure makes
 
 It's also worth noting that it is possible to do glob-based redirects, for example matching `/docs/*`, and you may see this pattern in the `_redirects` file. This type of redirect is much higher risk and the behavior is a bit more nuanced, so if you need to add a glob redirect, please reach out to the website maintainers and ask about it first.
 
-### Deployment
+<!-- END: redirects -->
+
+<!-- BEGIN: browser-support -->
+<!-- Generated text, do not edit directly -->
+
+## Browser Support
+
+We support the following browsers targeting roughly the versions specified.
+
+| ![Chrome](https://raw.githubusercontent.com/alrra/browser-logos/master/src/chrome/chrome_24x24.png) | ![Firefox](https://raw.githubusercontent.com/alrra/browser-logos/master/src/firefox/firefox_24x24.png) | ![Opera](https://raw.githubusercontent.com/alrra/browser-logos/master/src/opera/opera_24x24.png) | ![Safari](https://raw.githubusercontent.com/alrra/browser-logos/master/src/safari/safari_24x24.png) | ![Internet Explorer](https://raw.githubusercontent.com/alrra/browser-logos/master/src/edge/edge_24x24.png) |
+| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Latest**                                                                                          | **Latest**                                                                                             | **Latest**                                                                                       | **Latest**                                                                                          | **11+**                                                                                                    |
+
+<!-- END: browser-support -->
+
+<!-- BEGIN: deployment -->
+<!-- Generated text, do not edit directly -->
+
+## Deployment
 
 This website is hosted on Netlify and configured to automatically deploy anytime you push code to the `stable-website` branch. Any time a pull request is submitted that changes files within the `website` folder, a deployment preview will appear in the github checks which can be used to validate the way docs changes will look live. Deployments from `stable-website` will look and behave the same way as deployment previews.
+
+<!-- END: deployment -->
