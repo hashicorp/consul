@@ -901,3 +901,144 @@ top level object. The following selectors and filter operations are supported:
 | `Tags`                                 | In, Not In, Is Empty, Is Not Empty                 |
 | `Weights.Passing`                      | Equal, Not Equal                                   |
 | `Weights.Warning`                      | Equal, Not Equal                                   |
+
+## List Services for Gateway
+
+This endpoint returns the services associated with an ingress gateway or terminating gateway.
+
+| Method | Path                           | Produces           |
+| ------ | ------------------------------ | ------------------ |
+| `GET`  | `/catalog/gateway-services/:gateway` | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
+[required ACLs](/api#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required             |
+| ---------------- | ----------------- | ------------- | ------------------------ |
+| `YES`            | `all`             | `none`        | `service:read` |
+
+### Parameters
+
+- `gateway` `(string: <required>)` - Specifies the name of the node for which
+  to list services. This is specified as part of the URL.
+
+- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+  the datacenter of the agent being queried. This is specified as part of the
+  URL as a query parameter.
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the gateway.
+  This value may be provided by either the `ns` URL query parameter or in the
+  `X-Consul-Namespace` header. If not provided at all, the namespace will be inherited
+  from the request's ACL token or will default to the `default` namespace. The `*`
+  wildcard may be used and then services from all namespaces will be returned. Added in Consul 1.7.0.
+
+### Sample Request
+
+```shell-session
+$ curl \
+    http://127.0.0.1:8500/v1/catalog/gateway-services/my-terminating-gateway
+```
+
+### Sample Responses
+
+```json
+[
+  {
+    "Gateway": {
+      "Name": "my-terminating-gateway",
+      "Namespace": "default"
+    },
+    "Service": {
+      "Name": "api",
+      "Namespace": "frontend"
+    },
+    "GatewayKind": "terminating-gateway",
+    "CAFile": "/etc/certs/ca.pem",
+    "CertFile": "/etc/certs/api/client.pem",
+    "KeyFile": "/etc/certs/api/client.key",
+    "SNI": "api.my-domain",
+    "CreateIndex": 16,
+    "ModifyIndex": 16
+},
+  {
+    "Gateway": {
+      "Name": "my-terminating-gateway",
+      "Namespace": "default"
+    },
+    "Service": {
+      "Name": "web",
+      "Namespace": "frontend"
+    },
+    "GatewayKind": "terminating-gateway",
+    "CreateIndex": 17,
+    "ModifyIndex": 17
+  }
+]
+```
+
+```json
+[
+  {
+    "Gateway": {
+      "Name": "my-ingress-gateway",
+      "Namespace": "default"
+    },
+    "Service": {
+      "Name": "api",
+      "Namespace": "frontend"
+    },
+    "GatewayKind": "ingress-gateway",
+    "Port": 8888,
+    "Protocol": "http",
+    "Hosts":  ["api.mydomain.com"],
+    "CreateIndex": 15,
+    "ModifyIndex": 15
+  },
+  {
+    "Gateway": {
+      "Name": "my-ingress-gateway",
+      "Namespace": "default"
+    },
+    "Service": {
+      "Name": "redis",
+      "Namespace": "ops"
+    },
+    "GatewayKind": "ingress-gateway",
+    "Port": 8443,
+    "Protocol": "tcp",
+    "CreateIndex": 16,
+    "ModifyIndex": 16
+  }
+]
+```
+
+- `Gateway.Name` is the name of the gateway service of the request
+
+- `Gateway.Namespace` is the Consul Enterprise namespace of the gateway
+
+- `Service.Name` is the name of a service associated with the gateway
+
+- `Service.Namespace` is the Consul Enterprise namespace of a service associated with the gateway
+
+- `ServiceKind` is the kind of service, will be one of "ingress-gateway" or "terminating-gateway". See the Agent
+  [service registration API](/api/agent/service#kind) for more information.
+
+- `CAFile` is the path to a CA file the gateway will use for TLS origination to the associated service
+
+- `CertFile` is the path to a client certificate the gateway will use for TLS origination to the associated service
+
+- `KeyFile` is the path to a key file the gateway will use for TLS origination to the associated service
+
+- `SNI` is a hostname or domain name the gateway will specify during the TLS handshake with the associated service
+
+- `Port` is the port the ingress gateway is listening on for the associated service
+
+- `Protocol` is the protocol of the ingress gateway's listener for the associated service
+
+- `Hosts` list of hosts that specify what requests will match to this associated service
+
+- `FromWildcard` determines whether the service was associated with the gateway by providing a wildcard specifier
+  in the gateway's configuration entry
