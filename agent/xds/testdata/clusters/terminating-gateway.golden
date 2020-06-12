@@ -15,18 +15,6 @@
                 "endpoint": {
                   "address": {
                     "socketAddress": {
-                      "address": "api.mydomain",
-                      "portValue": 8081
-                    }
-                  }
-                },
-                "healthStatus": "UNHEALTHY",
-                "loadBalancingWeight": 1
-              },
-              {
-                "endpoint": {
-                  "address": {
-                    "socketAddress": {
                       "address": "api.altdomain",
                       "portValue": 8081
                     }
