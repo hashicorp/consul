@@ -85,6 +85,9 @@ module.exports = function(defaults) {
   // along with the exports of each module as its value.
 
   // TextEncoder/Decoder polyfill. See assets/index.html
+  app.import('node_modules/text-encoding/lib/encoding.js', {
+    outputFile: 'assets/encoding.js',
+  });
   app.import('node_modules/text-encoding/lib/encoding-indexes.js', {
     outputFile: 'assets/encoding-indexes.js',
   });
