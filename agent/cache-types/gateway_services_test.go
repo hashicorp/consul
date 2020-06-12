@@ -17,7 +17,7 @@ func TestGatewayServices(t *testing.T) {
 	// Expect the proper RPC call. This also sets the expected value
 	// since that is return-by-pointer in the arguments.
 	var resp *structs.IndexedGatewayServices
-	rpc.On("RPC", "Internal.GatewayServices", mock.Anything, mock.Anything).Return(nil).
+	rpc.On("RPC", "Catalog.GatewayServices", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
 			req := args.Get(1).(*structs.ServiceSpecificRequest)
 			require.Equal(t, uint64(24), req.QueryOptions.MinQueryIndex)
