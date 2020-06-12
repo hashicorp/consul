@@ -11,7 +11,7 @@ class HTTPError extends Error {
     this.statusCode = statusCode;
   }
 }
-const fetch = function(options) {
+const xhr = function(options) {
   const xhr = new XMLHttpRequest();
   xhr.onreadystatechange = function() {
     if (this.readyState === 4) {
@@ -26,9 +26,14 @@ const fetch = function(options) {
     }
   };
   xhr.open(options.method, options.url, true);
-  if (typeof options.headers !== 'undefined') {
-    Object.entries(options.headers).forEach(([key, value]) => xhr.setRequestHeader(key, value));
+  if (typeof options.headers === 'undefined') {
+    options.headers = {};
   }
+  const headers = {
+    ...options.headers,
+    'X-Requested-With': 'XMLHttpRequest',
+  };
+  Object.entries(headers).forEach(([key, value]) => xhr.setRequestHeader(key, value));
   options.beforeSend(xhr);
   xhr.send(options.body);
   return xhr;
@@ -74,7 +79,7 @@ export default Service.extend({
       },
     };
     request.fetch = function() {
-      fetch(options);
+      xhr(options);
     };
     return request;
   },
