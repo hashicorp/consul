@@ -19,10 +19,20 @@
 %composite-row-detail * {
   white-space: nowrap;
 }
-%composite-row-detail > li:not(:first-child) {
-  margin-left: 12px;
+%composite-row-detail > li {
+  margin-right: 12px;
 }
 %composite-row-detail .node::before {
+  margin-top: 2px;
+}
+
+//Health Checks
+%composite-row > li > span.passing::before,
+%composite-row > li > span.warning::before,
+%composite-row > li > span.critical::before,
+%composite-row > li > span.empty::before {
+  height: 18px;
+  width: 18px;
   margin-top: 2px;
 }
 

@@ -56,23 +56,23 @@
   @extend %with-swap-horizontal-mask, %as-pseudo;
   background-color: $gray-500;
 }
-%composite-row .datacenter::before {
+%composite-row li.datacenter > span:first-child::before {
   @extend %with-user-organization-mask, %as-pseudo;
   background-color: $gray-500;
 }
-%composite-row .nspace::before {
+%composite-row-detail li.nspace > span:first-child::before {
   @extend %with-folder-outline-mask, %as-pseudo;
   background-color: $gray-500;
 }
-%composite-row-detail .path::before {
+%composite-row-detail li.path > span:first-child::before {
   @extend %with-path-mask, %as-pseudo;
   background-color: $gray-500;
 }
-%composite-row-detail .port::before {
+%composite-row-detail li.port > span:first-child::before {
   @extend %with-port-mask, %as-pseudo;
   background-color: $gray-500;
 }
-%composite-row-detail .protocol::before {
+%composite-row-detail li.protocol > span:first-child::before {
   @extend %with-protocol-mask, %as-pseudo;
   background-color: $gray-500;
 }
