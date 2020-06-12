@@ -414,3 +414,45 @@ RETRY_ONCE:
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
 	return &out.NodeServices, nil
 }
+
+func (s *HTTPServer) CatalogGatewayServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_gateway_services"}, 1,
+		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
+
+	var args structs.ServiceSpecificRequest
+
+	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	// Pull out the gateway's service name
+	args.ServiceName = strings.TrimPrefix(req.URL.Path, "/v1/catalog/gateway-services/")
+	if args.ServiceName == "" {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(resp, "Missing gateway name")
+		return nil, nil
+	}
+
+	// Make the RPC request
+	var out structs.IndexedGatewayServices
+	defer setMeta(resp, &out.QueryMeta)
+RETRY_ONCE:
+	if err := s.agent.RPC("Catalog.GatewayServices", &args, &out); err != nil {
+		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_gateway_services"}, 1,
+			[]metrics.Label{{Name: "node", Value: s.nodeName()}})
+		return nil, err
+	}
+	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
+		args.AllowStale = false
+		args.MaxStaleDuration = 0
+		goto RETRY_ONCE
+	}
+	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
+
+	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_gateway_services"}, 1,
+		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
+	return out.Services, nil
+}

@@ -2124,8 +2124,8 @@ func TestSnapshotRequestResponse_MsgpackEncodeDecode(t *testing.T) {
 }
 
 func TestGatewayService_IsSame(t *testing.T) {
-	gateway := NewServiceID("gateway", nil)
-	svc := NewServiceID("web", nil)
+	gateway := NewServiceName("gateway", nil)
+	svc := NewServiceName("web", nil)
 	kind := ServiceKindTerminatingGateway
 	ca := "ca.pem"
 	cert := "client.pem"
@@ -2169,8 +2169,8 @@ func TestGatewayService_IsSame(t *testing.T) {
 			t.Fatalf("should be the same")
 		}
 	}
-	check(func() { other.Gateway = NewServiceID("other", nil) }, func() { other.Gateway = gateway })
-	check(func() { other.Service = NewServiceID("other", nil) }, func() { other.Service = svc })
+	check(func() { other.Gateway = NewServiceName("other", nil) }, func() { other.Gateway = gateway })
+	check(func() { other.Service = NewServiceName("other", nil) }, func() { other.Service = svc })
 	check(func() { other.GatewayKind = ServiceKindIngressGateway }, func() { other.GatewayKind = kind })
 	check(func() { other.CAFile = "/certs/cert.pem" }, func() { other.CAFile = ca })
 	check(func() { other.CertFile = "/certs/cert.pem" }, func() { other.CertFile = cert })

@@ -9,6 +9,7 @@ const (
 	AWS                string = "aws"
 	Azure              string = "azure"
 	CA                 string = "ca"
+	Catalog            string = "catalog"
 	CentralConfig      string = "central_config"
 	ConfigEntry        string = "config_entry"
 	Connect            string = "connect"

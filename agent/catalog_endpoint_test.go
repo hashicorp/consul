@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/api"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -1319,4 +1320,226 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 	require.True(t, ok, "Missing service http_wan_translation_test")
 	require.Equal(t, ns2.Address, "127.0.0.1")
 	require.Equal(t, ns2.Port, 8080)
+}
+
+func TestCatalog_GatewayServices_Terminating(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	// Register a terminating gateway
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Kind:    structs.ServiceKindTerminatingGateway,
+			Service: "terminating",
+			Port:    443,
+		},
+	}
+
+	var out struct{}
+	assert.NoError(t, a.RPC("Catalog.Register", &args, &out))
+
+	// Register two services the gateway will route to
+	args = structs.TestRegisterRequest(t)
+	args.Service.Service = "redis"
+	args.Check = &structs.HealthCheck{
+		Name:      "redis",
+		Status:    api.HealthPassing,
+		ServiceID: args.Service.Service,
+	}
+	assert.NoError(t, a.RPC("Catalog.Register", &args, &out))
+
+	args = structs.TestRegisterRequest(t)
+	args.Service.Service = "api"
+	args.Check = &structs.HealthCheck{
+		Name:      "api",
+		Status:    api.HealthPassing,
+		ServiceID: args.Service.Service,
+	}
+	assert.NoError(t, a.RPC("Catalog.Register", &args, &out))
+
+	// Associate the gateway and api/redis services
+	entryArgs := &structs.ConfigEntryRequest{
+		Op:         structs.ConfigEntryUpsert,
+		Datacenter: "dc1",
+		Entry: &structs.TerminatingGatewayConfigEntry{
+			Kind: "terminating-gateway",
+			Name: "terminating",
+			Services: []structs.LinkedService{
+				{
+					Name:     "api",
+					CAFile:   "api/ca.crt",
+					CertFile: "api/client.crt",
+					KeyFile:  "api/client.key",
+					SNI:      "my-domain",
+				},
+				{
+					Name:     "*",
+					CAFile:   "ca.crt",
+					CertFile: "client.crt",
+					KeyFile:  "client.key",
+					SNI:      "my-alt-domain",
+				},
+			},
+		},
+	}
+	var entryResp bool
+	assert.NoError(t, a.RPC("ConfigEntry.Apply", &entryArgs, &entryResp))
+
+	retry.Run(t, func(r *retry.R) {
+		req, _ := http.NewRequest("GET", "/v1/catalog/gateway-services/terminating", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.CatalogGatewayServices(resp, req)
+		assert.NoError(r, err)
+
+		header := resp.Header().Get("X-Consul-Index")
+		if header == "" || header == "0" {
+			r.Fatalf("Bad: %v", header)
+		}
+
+		gatewayServices := obj.(structs.GatewayServices)
+
+		expect := structs.GatewayServices{
+			{
+				Service:     structs.NewServiceName("api", nil),
+				Gateway:     structs.NewServiceName("terminating", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+				CAFile:      "api/ca.crt",
+				CertFile:    "api/client.crt",
+				KeyFile:     "api/client.key",
+				SNI:         "my-domain",
+			},
+			{
+				Service:      structs.NewServiceName("redis", nil),
+				Gateway:      structs.NewServiceName("terminating", nil),
+				GatewayKind:  structs.ServiceKindTerminatingGateway,
+				CAFile:       "ca.crt",
+				CertFile:     "client.crt",
+				KeyFile:      "client.key",
+				SNI:          "my-alt-domain",
+				FromWildcard: true,
+			},
+		}
+
+		// Ignore raft index for equality
+		for _, s := range gatewayServices {
+			s.RaftIndex = structs.RaftIndex{}
+		}
+		assert.Equal(r, expect, gatewayServices)
+	})
+}
+
+func TestCatalog_GatewayServices_Ingress(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	// Register an ingress gateway
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Kind:    structs.ServiceKindTerminatingGateway,
+			Service: "ingress",
+			Port:    444,
+		},
+	}
+
+	var out struct{}
+	require.NoError(t, a.RPC("Catalog.Register", &args, &out))
+
+	// Register two services the gateway will route to
+	args = structs.TestRegisterRequest(t)
+	args.Service.Service = "redis"
+	args.Check = &structs.HealthCheck{
+		Name:      "redis",
+		Status:    api.HealthPassing,
+		ServiceID: args.Service.Service,
+	}
+	require.NoError(t, a.RPC("Catalog.Register", &args, &out))
+
+	args = structs.TestRegisterRequest(t)
+	args.Service.Service = "api"
+	args.Check = &structs.HealthCheck{
+		Name:      "api",
+		Status:    api.HealthPassing,
+		ServiceID: args.Service.Service,
+	}
+	require.NoError(t, a.RPC("Catalog.Register", &args, &out))
+
+	// Associate the gateway and db service
+	entryArgs := &structs.ConfigEntryRequest{
+		Op:         structs.ConfigEntryUpsert,
+		Datacenter: "dc1",
+		Entry: &structs.IngressGatewayConfigEntry{
+			Kind: "ingress-gateway",
+			Name: "ingress",
+			Listeners: []structs.IngressListener{
+				{
+					Port: 8888,
+					Services: []structs.IngressService{
+						{
+							Name: "api",
+						},
+					},
+				},
+				{
+					Port: 9999,
+					Services: []structs.IngressService{
+						{
+							Name: "redis",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	var entryResp bool
+	require.NoError(t, a.RPC("ConfigEntry.Apply", &entryArgs, &entryResp))
+
+	retry.Run(t, func(r *retry.R) {
+		req, _ := http.NewRequest("GET", "/v1/catalog/gateway-services/ingress", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.CatalogGatewayServices(resp, req)
+		require.NoError(r, err)
+
+		header := resp.Header().Get("X-Consul-Index")
+		if header == "" || header == "0" {
+			r.Fatalf("Bad: %v", header)
+		}
+
+		gatewayServices := obj.(structs.GatewayServices)
+
+		expect := structs.GatewayServices{
+			{
+				Service:     structs.NewServiceName("api", nil),
+				Gateway:     structs.NewServiceName("ingress", nil),
+				GatewayKind: structs.ServiceKindIngressGateway,
+				Protocol:    "tcp",
+				Port:        8888,
+			},
+			{
+				Service:     structs.NewServiceName("redis", nil),
+				Gateway:     structs.NewServiceName("ingress", nil),
+				GatewayKind: structs.ServiceKindIngressGateway,
+				Protocol:    "tcp",
+				Port:        9999,
+			},
+		}
+
+		// Ignore raft index for equality
+		for _, s := range gatewayServices {
+			s.RaftIndex = structs.RaftIndex{}
+		}
+		require.Equal(r, expect, gatewayServices)
+	})
 }

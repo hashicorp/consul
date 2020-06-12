@@ -268,8 +268,8 @@ func TestClustersFromSnapshot(t *testing.T) {
 			name:   "mesh-gateway-service-subsets",
 			create: proxycfg.TestConfigSnapshotMeshGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.MeshGateway.ServiceResolvers = map[structs.ServiceID]*structs.ServiceResolverConfigEntry{
-					structs.NewServiceID("bar", nil): &structs.ServiceResolverConfigEntry{
+				snap.MeshGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("bar", nil): &structs.ServiceResolverConfigEntry{
 						Kind: structs.ServiceResolver,
 						Name: "bar",
 						Subsets: map[string]structs.ServiceResolverSubset{
@@ -289,8 +289,8 @@ func TestClustersFromSnapshot(t *testing.T) {
 			name:   "mesh-gateway-ignore-extra-resolvers",
 			create: proxycfg.TestConfigSnapshotMeshGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.MeshGateway.ServiceResolvers = map[structs.ServiceID]*structs.ServiceResolverConfigEntry{
-					structs.NewServiceID("bar", nil): &structs.ServiceResolverConfigEntry{
+				snap.MeshGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("bar", nil): &structs.ServiceResolverConfigEntry{
 						Kind:          structs.ServiceResolver,
 						Name:          "bar",
 						DefaultSubset: "v2",
@@ -304,7 +304,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 							},
 						},
 					},
-					structs.NewServiceID("notfound", nil): &structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("notfound", nil): &structs.ServiceResolverConfigEntry{
 						Kind:          structs.ServiceResolver,
 						Name:          "notfound",
 						DefaultSubset: "v2",
@@ -325,8 +325,8 @@ func TestClustersFromSnapshot(t *testing.T) {
 			name:   "mesh-gateway-service-timeouts",
 			create: proxycfg.TestConfigSnapshotMeshGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.MeshGateway.ServiceResolvers = map[structs.ServiceID]*structs.ServiceResolverConfigEntry{
-					structs.NewServiceID("bar", nil): &structs.ServiceResolverConfigEntry{
+				snap.MeshGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("bar", nil): &structs.ServiceResolverConfigEntry{
 						Kind:           structs.ServiceResolver,
 						Name:           "bar",
 						ConnectTimeout: 10 * time.Second,
@@ -432,8 +432,8 @@ func TestClustersFromSnapshot(t *testing.T) {
 			name:   "terminating-gateway-service-subsets",
 			create: proxycfg.TestConfigSnapshotTerminatingGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceID]*structs.ServiceResolverConfigEntry{
-					structs.NewServiceID("web", nil): {
+				snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("web", nil): {
 						Kind: structs.ServiceResolver,
 						Name: "web",
 						Subsets: map[string]structs.ServiceResolverSubset{
@@ -453,8 +453,8 @@ func TestClustersFromSnapshot(t *testing.T) {
 			name:   "terminating-gateway-hostname-service-subsets",
 			create: proxycfg.TestConfigSnapshotTerminatingGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceID]*structs.ServiceResolverConfigEntry{
-					structs.NewServiceID("api", nil): {
+				snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("api", nil): {
 						Kind: structs.ServiceResolver,
 						Name: "api",
 						Subsets: map[string]structs.ServiceResolverSubset{
@@ -470,8 +470,8 @@ func TestClustersFromSnapshot(t *testing.T) {
 			name:   "terminating-gateway-ignore-extra-resolvers",
 			create: proxycfg.TestConfigSnapshotTerminatingGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceID]*structs.ServiceResolverConfigEntry{
-					structs.NewServiceID("web", nil): {
+				snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("web", nil): {
 						Kind:          structs.ServiceResolver,
 						Name:          "web",
 						DefaultSubset: "v2",
@@ -485,7 +485,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 							},
 						},
 					},
-					structs.NewServiceID("notfound", nil): {
+					structs.NewServiceName("notfound", nil): {
 						Kind:          structs.ServiceResolver,
 						Name:          "notfound",
 						DefaultSubset: "v2",
