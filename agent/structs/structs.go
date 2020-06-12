@@ -987,24 +987,6 @@ func (ns *NodeService) BestAddress(wan bool) (string, int) {
 	return addr, port
 }
 
-func (ns *NodeService) compoundID(preferName bool) ServiceID {
-	var id string
-	if ns.ID == "" || (preferName && ns.Service != "") {
-		id = ns.Service
-	} else {
-		id = ns.ID
-	}
-
-	// copy the ent meta and normalize it
-	entMeta := ns.EnterpriseMeta
-	entMeta.Normalize()
-
-	return ServiceID{
-		ID:             id,
-		EnterpriseMeta: entMeta,
-	}
-}
-
 func (ns *NodeService) CompoundServiceID() ServiceID {
 	id := ns.ID
 	if id == "" {
