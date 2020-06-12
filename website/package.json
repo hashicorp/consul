@@ -64,6 +64,7 @@
     "export": "node --max-old-space-size=2048 ./node_modules/.bin/next export",
     "format": "next-hashicorp format",
     "generate:component": "next-hashicorp generate component",
+    "generate:readme": "next-hashicorp markdown-blocks README.md",
     "lint": "next-hashicorp lint",
     "start": "rm -rf .next/cache/next-babel-loader/ && next dev",
     "static": "npm run build && npm run export && cp _redirects out/.",
