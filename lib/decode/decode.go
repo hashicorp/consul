@@ -7,6 +7,8 @@ package decode
 import (
 	"reflect"
 	"strings"
+
+	"github.com/mitchellh/reflectwalk"
 )
 
 // HookTranslateKeys is a mapstructure decode hook which translates keys in a
@@ -120,15 +122,39 @@ func HookWeakDecodeFromSlice(from, to reflect.Type, data interface{}) (interface
 
 	switch d := data.(type) {
 	case []map[string]interface{}:
-		switch {
-		case len(d) == 0:
-			return nil, nil
-		case len(d) == 1:
-			return d[0], nil
-		default:
-			return data, nil
+		if len(d) == 1 {
+			return unSlice(d[0])
 		}
-	default:
-		return data, nil
+	// the JSON decoder can apparently decode slices as []interface{}
+	case []interface{}:
+		if len(d) == 1 {
+			return unSlice(d[0])
+		}
 	}
+	return data, nil
+}
+
+func unSlice(data interface{}) (interface{}, error) {
+	err := reflectwalk.Walk(data, &unSliceWalker{})
+	return data, err
+}
+
+type unSliceWalker struct{}
+
+func (u *unSliceWalker) Map(_ reflect.Value) error {
+	return nil
+}
+
+func (u *unSliceWalker) MapElem(m, k, v reflect.Value) error {
+	if !v.IsValid() || v.Kind() != reflect.Interface {
+		return nil
+	}
+
+	v = v.Elem() // unpack the value from the interface{}
+	if v.Kind() != reflect.Slice || v.Len() != 1 {
+		return nil
+	}
+
+	m.SetMapIndex(k, v.Index(0))
+	return nil
 }

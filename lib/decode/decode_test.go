@@ -272,3 +272,39 @@ item {
 	}
 	require.Equal(t, target, expected)
 }
+
+func TestHookWeakDecodeFromSlice_NestedOpaqueConfig(t *testing.T) {
+	source := `
+service {
+  proxy {
+    config {
+      envoy_gateway_bind_addresses {
+        all-interfaces {
+          address = "0.0.0.0"
+          port = 8443
+        }
+      }
+    }
+  }
+}`
+
+	target := map[string]interface{}{}
+	err := decodeHCLToMapStructure(source, &target)
+	require.NoError(t, err)
+
+	expected := map[string]interface{}{
+		"service": map[string]interface{}{
+			"proxy": map[string]interface{}{
+				"config": map[string]interface{}{
+					"envoy_gateway_bind_addresses": map[string]interface{}{
+						"all-interfaces": map[string]interface{}{
+							"address": "0.0.0.0",
+							"port":    8443,
+						},
+					},
+				},
+			},
+		},
+	}
+	require.Equal(t, target, expected)
+}
