@@ -28,7 +28,7 @@ export default function(
           clone: clickable('[data-test-clone]'),
         })
       ),
-      filter: filter,
+      filter: filter(),
     })
   );
 }

@@ -15,7 +15,7 @@ export default function(visitable, attribute, collection, text, intentions, filt
       'routing',
       'tags',
     ]),
-    filter: filter,
+    filter: filter(),
 
     // TODO: These need to somehow move to subpages
     instances: collection('.consul-service-instance-list > ul > li:not(:first-child)', {

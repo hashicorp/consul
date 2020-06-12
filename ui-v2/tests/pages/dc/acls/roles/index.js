@@ -20,6 +20,6 @@ export default function(
         actions: clickable('label'),
       })
     ),
-    filter: filter,
+    filter: filter(),
   });
 }
