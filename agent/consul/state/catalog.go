@@ -879,8 +879,8 @@ func (s *Store) serviceListTxn(tx *memdb.Txn, ws memdb.WatchSet, entMeta *struct
 	}
 
 	results := make(structs.ServiceList, 0, len(unique))
-	for sid, _ := range unique {
-		results = append(results, structs.ServiceName{Name: sid.Name, EnterpriseMeta: sid.EnterpriseMeta})
+	for sn, _ := range unique {
+		results = append(results, structs.ServiceName{Name: sn.Name, EnterpriseMeta: sn.EnterpriseMeta})
 	}
 
 	return idx, results, nil
@@ -2020,8 +2020,8 @@ func (s *Store) CheckIngressServiceNodes(ws memdb.WatchSet, serviceName string, 
 	}
 
 	var results structs.CheckServiceNodes
-	for sid := range names {
-		idx, n, err := s.checkServiceNodesTxn(tx, ws, sid.Name, false, &sid.EnterpriseMeta)
+	for sn := range names {
+		idx, n, err := s.checkServiceNodesTxn(tx, ws, sn.Name, false, &sn.EnterpriseMeta)
 		if err != nil {
 			return 0, nil, err
 		}
