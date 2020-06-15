@@ -10,6 +10,7 @@ IMPROVEMENTS:
 * ui: Reduce discovery-chain log errors [[GH-8065]](https://github.com/hashicorp/consul/pull/8065)
 * connect: Always require Host headers when serving L7 traffic through ingress gateways [[GH-7990]](https://github.com/hashicorp/consul/pull/7990)
 * connect: Allow users to specify wildcard host for ingress when TLS is disabled [[GH-8083]](https://github.com/hashicorp/consul/pull/8083)
+* connect: New end point to return healthy ingress gateway instances [[GH-8081]](https://github.com/hashicorp/consul/pull/8081)
 
 
 ## 1.8.0-beta2 (May 21, 2020)
