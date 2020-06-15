@@ -94,11 +94,13 @@ func canonicalFieldKey(field reflect.StructField) string {
 	return parts[0]
 }
 
-// HookWeakDecodeFromSlice looks for []map[string]interface{} in the source
-// data. If the target is not a slice or array it attempts to unpack 1 item
-// out of the slice. If there are more items the source data is left unmodified,
-// allowing mapstructure to handle and report the decode error caused by
-// mismatched types.
+// HookWeakDecodeFromSlice looks for []map[string]interface{} and []interface{}
+// in the source data. If the target is not a slice or array it attempts to unpack
+// 1 item out of the slice. If there are more items the source data is left
+// unmodified, allowing mapstructure to handle and report the decode error caused by
+// mismatched types. The []interface{} is handled so that all slice types are
+// behave the same way, and for the rare case when a raw structure is re-encoded
+// to JSON, which will produce the []interface{}.
 //
 // If this hook is being used on a "second pass" decode to decode an opaque
 // configuration into a type, the DecodeConfig should set WeaklyTypedInput=true,
@@ -122,17 +124,30 @@ func HookWeakDecodeFromSlice(from, to reflect.Type, data interface{}) (interface
 
 	switch d := data.(type) {
 	case []map[string]interface{}:
-		if len(d) == 1 {
+		switch {
+		case len(d) != 1:
+			return data, nil
+		case to == typeOfEmptyInterface:
 			return unSlice(d[0])
+		default:
+			return d[0], nil
 		}
-	// the JSON decoder can apparently decode slices as []interface{}
+
+	// a slice map be encoded as []interface{} in some cases
 	case []interface{}:
-		if len(d) == 1 {
+		switch {
+		case len(d) != 1:
+			return data, nil
+		case to == typeOfEmptyInterface:
 			return unSlice(d[0])
+		default:
+			return d[0], nil
 		}
 	}
 	return data, nil
 }
+
+var typeOfEmptyInterface = reflect.TypeOf((*interface{})(nil)).Elem()
 
 func unSlice(data interface{}) (interface{}, error) {
 	err := reflectwalk.Walk(data, &unSliceWalker{})
@@ -155,6 +170,11 @@ func (u *unSliceWalker) MapElem(m, k, v reflect.Value) error {
 		return nil
 	}
 
-	m.SetMapIndex(k, v.Index(0))
+	first := v.Index(0)
+	// The value should always be assignable, but double check to avoid a panic.
+	if !first.Type().AssignableTo(m.Type().Elem()) {
+		return nil
+	}
+	m.SetMapIndex(k, first)
 	return nil
 }
