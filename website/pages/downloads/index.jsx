@@ -13,9 +13,9 @@ export default function DownloadsPage({ downloadData }) {
         version={VERSION}
         downloads={downloadData}
         prerelease={{
-          type: 'beta', // the type of prerelease: beta, release candidate, etc.
+          type: 'release candidate', // the type of prerelease: beta, release candidate, etc.
           name: 'v1.8.0', // the name displayed in text on the website
-          version: '1.8.0-beta2', // the actual version tag that was pushed to releases.hashicorp.com
+          version: '1.8.0-rc1', // the actual version tag that was pushed to releases.hashicorp.com
         }}
       >
 
