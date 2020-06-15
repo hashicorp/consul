@@ -33,7 +33,7 @@ import (
 // the first event in the buffer, we can cache the buffered events for future
 // watchers on the same topic. Finally, once we've delivered all the snapshot
 // events to the buffer, we can append a next-element which is the first topic
-// buffer element with a higher index and so consumers can just keep reading the
+// buffer element with a higher index and so consumers can keep reading the
 // same buffer.
 //
 // A huge benefit here is that caching snapshots becomes very simple - we don't
@@ -124,9 +124,8 @@ func (b *EventBuffer) Head() *BufferItem {
 }
 
 // BufferItem represents a set of events published by a single raft operation.
-// The first item returned by a newly constructed buffer will have nil Events
-// and should be considered a "sentinel" value just useful for waiting on the
-// next events via Next.
+// The first item returned by a newly constructed buffer will have nil Events.
+// It is a sentinel value which is used to wait on the next events via Next.
 //
 // To iterate to the next event, a Next method may be called which may block if
 // there is no next element yet.

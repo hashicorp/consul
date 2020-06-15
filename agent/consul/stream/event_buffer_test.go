@@ -26,10 +26,12 @@ func TestEventBufferFuzz(t *testing.T) {
 	// indexes and some jitter in timing (to allow clients to "catch up" and block
 	// waiting for updates).
 	go func() {
+		seed := time.Now().UnixNano()
+		t.Logf("Using seed %d", seed)
 		// z is a Zipfian distribution that gives us a number of milliseconds to
 		// sleep which are mostly low - near zero but occasionally spike up to near
 		// 100.
-		z := rand.NewZipf(rand.New(rand.NewSource(1)), 1.5, 1.5, 50)
+		z := rand.NewZipf(rand.New(rand.NewSource(seed)), 1.5, 1.5, 50)
 
 		for i := 0; i < nMessages; i++ {
 			// Event content is arbitrary and not valid for our use of buffers in
