@@ -1,7 +1,9 @@
-## UNRELEASED
+## 1.8.0 rc1 (June 15, 2020)
+
+BREAKING CHANGES:
+* acl: Remove deprecated `acl_enforce_version_8` option [[GH-7991](https://github.com/hashicorp/consul/issues/7991)]
 
 IMPROVEMENTS:
-* acl: Remove deprecated `acl_enforce_version_8` option [[GH-7991](https://github.com/hashicorp/consul/issues/7991)]
 * ui: Add live updates/blocking queries to gateway listings [[GH-7967](https://github.com/hashicorp/consul/pull/7967)]
 * ui: Improved 'empty states'  [[GH-7940](https://github.com/hashicorp/consul/pull/7940)]
 * ui: Add ability to sort services based on health  [[GH-7989](https://github.com/hashicorp/consul/pull/7989)]
