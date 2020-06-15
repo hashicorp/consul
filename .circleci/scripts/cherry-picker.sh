@@ -32,6 +32,8 @@ function cherry_pick_with_slack_notification {
     # If git cherry-pick fails, we send a failure notification
     if ! git cherry-pick --mainline 1 "$commit"; then
         status "🍒❌ Cherry pick of commit ${commit:0:7} from $pr_url onto $branch failed!"
+
+        # send slack notification
         curl -X POST -H 'Content-type: application/json' \
         --data \
         "{ \
@@ -45,11 +47,21 @@ function cherry_pick_with_slack_notification {
             } \
         ] \
         }" "${CONSUL_SLACK_WEBHOOK_URL}"
+
+        # post PR comment to GitHub
+        github_message=":cherries::x: Cherry pick of commit ${commit} onto \`$branch\` failed! [Build Log]($CIRCLE_BUILD_URL)"
+        pr_id=$(basename ${pr_url})
+        curl -f -s -H "Authorization: token ${GITHUB_TOKEN}" \
+             -X POST \
+             -d "{ \"body\": \"${github_message}\"}" \
+             "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/issues/${pr_id}/comments"
+
+        # run git status to leave error in CircleCI log
         git status
         exit 1
     # Else we send a success notification
     else
-        status "🍒✅ Cherry picking of PR commit ${commit:0:7} from $pr_url succeeded!"
+        status "🍒✅ Cherry picking of PR commit ${commit:0:7} from ${pr_url} succeeded!"
         # push changes to the specified branch
         git push origin "$branch"
         curl -X POST -H 'Content-type: application/json' \
@@ -58,18 +70,26 @@ function cherry_pick_with_slack_notification {
         \"attachments\": [ \
             { \
             \"fallback\": \"Cherry pick succeeded!\", \
-            \"text\": \"🍒✅ Cherry picking of <$pr_url|${commit:0:7}> to \`$branch\` succeeded!\n\nBuild Log: ${CIRCLE_BUILD_URL}\", \
+            \"text\": \"🍒✅ Cherry picking of <$pr_url|${commit:0:7}> to \`$branch\` succeeded!\", \
             \"footer\": \"${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}\", \
             \"ts\": \"$(date +%s)\", \
             \"color\": \"good\" \
             } \
         ] \
         }" "${CONSUL_SLACK_WEBHOOK_URL}"
+
+        # post PR comment to GitHub
+        github_message=":cherries::white_check_mark: Cherry pick of commit ${commit} onto \`$branch\` succeeded!"
+        pr_id=$(basename ${pr_url})
+        curl -f -s -H "Authorization: token ${GITHUB_TOKEN}" \
+             -X POST \
+             -d "{ \"body\": \"${github_message}\"}" \
+             "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/issues/${pr_id}/comments"
     fi
 }
 
 # search for the PR labels applicable to the specified commit
-resp=$(curl -f -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/search/issues?q=repo:$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME+sha:$CIRCLE_SHA1")
+resp=$(curl -f -s -H "Authorization: token ${GITHUB_TOKEN}" "https://api.github.com/search/issues?q=repo:${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}+sha:${CIRCLE_SHA1}")
 ret="$?"
 if [[ "$ret" -ne 0 ]]; then
     status "The GitHub API returned $ret which means it was probably rate limited."
