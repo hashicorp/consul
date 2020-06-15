@@ -16,6 +16,7 @@ package cache
 
 import (
 	"container/heap"
+	"context"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -216,7 +217,7 @@ func (c *Cache) RegisterType(n string, typ Type) {
 // index is retrieved, the last known value (maybe nil) is returned. No
 // error is returned on timeout. This matches the behavior of Consul blocking
 // queries.
-func (c *Cache) Get(t string, r Request) (interface{}, ResultMeta, error) {
+func (c *Cache) Get(ctx context.Context, t string, r Request) (interface{}, ResultMeta, error) {
 	c.typesLock.RLock()
 	tEntry, ok := c.types[t]
 	c.typesLock.RUnlock()
@@ -225,7 +226,7 @@ func (c *Cache) Get(t string, r Request) (interface{}, ResultMeta, error) {
 		// once. But be robust against panics.
 		return nil, ResultMeta{}, fmt.Errorf("unknown type in cache: %s", t)
 	}
-	return c.getWithIndex(newGetOptions(tEntry, r))
+	return c.getWithIndex(ctx, newGetOptions(tEntry, r))
 }
 
 // getOptions contains the arguments for a Get request. It is used in place of
@@ -292,7 +293,7 @@ func entryExceedsMaxAge(maxAge time.Duration, entry cacheEntry) bool {
 // getWithIndex implements the main Get functionality but allows internal
 // callers (Watch) to manipulate the blocking index separately from the actual
 // request object.
-func (c *Cache) getWithIndex(r getOptions) (interface{}, ResultMeta, error) {
+func (c *Cache) getWithIndex(ctx context.Context, r getOptions) (interface{}, ResultMeta, error) {
 	if r.Info.Key == "" {
 		metrics.IncrCounter([]string{"consul", "cache", "bypass"}, 1)
 
@@ -394,6 +395,8 @@ RETRY_GET:
 	first = false
 
 	select {
+	case <-ctx.Done():
+		return nil, ResultMeta{}, ctx.Err()
 	case <-waiterCh:
 		// Our fetch returned, retry the get from the cache.
 		r.Info.MustRevalidate = false

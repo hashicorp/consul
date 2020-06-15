@@ -60,7 +60,7 @@ func (s *HTTPServer) DiscoveryChainRead(resp http.ResponseWriter, req *http.Requ
 	defer setMeta(resp, &out.QueryMeta)
 
 	if s.agent.config.HTTPUseCache && args.QueryOptions.UseCache {
-		raw, m, err := s.agent.cache.Get(cachetype.CompiledDiscoveryChainName, &args)
+		raw, m, err := s.agent.cache.Get(req.Context(), cachetype.CompiledDiscoveryChainName, &args)
 		if err != nil {
 			return nil, err
 		}

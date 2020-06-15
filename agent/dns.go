@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"net"
@@ -876,7 +877,7 @@ func (d *DNSServer) lookupNode(cfg *dnsConfig, args *structs.NodeSpecificRequest
 	useCache := cfg.UseCache
 RPC:
 	if useCache {
-		raw, _, err := d.agent.cache.Get(cachetype.NodeServicesName, args)
+		raw, _, err := d.agent.cache.Get(context.TODO(), cachetype.NodeServicesName, args)
 		if err != nil {
 			return nil, err
 		}
@@ -1154,7 +1155,7 @@ func (d *DNSServer) lookupServiceNodes(cfg *dnsConfig, lookup serviceLookup) (st
 	var out structs.IndexedCheckServiceNodes
 
 	if cfg.UseCache {
-		raw, m, err := d.agent.cache.Get(cachetype.HealthServicesName, &args)
+		raw, m, err := d.agent.cache.Get(context.TODO(), cachetype.HealthServicesName, &args)
 		if err != nil {
 			return out, err
 		}
@@ -1360,7 +1361,7 @@ func (d *DNSServer) lookupPreparedQuery(cfg *dnsConfig, args structs.PreparedQue
 
 RPC:
 	if cfg.UseCache {
-		raw, m, err := d.agent.cache.Get(cachetype.PreparedQueryName, &args)
+		raw, m, err := d.agent.cache.Get(context.TODO(), cachetype.PreparedQueryName, &args)
 		if err != nil {
 			return nil, err
 		}

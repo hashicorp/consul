@@ -252,7 +252,7 @@ func (w *serviceConfigWatch) RegisterAndStart(
 	// operation. Either way the watcher will end up with something flagged
 	// as defaults even if they don't actually reflect actual defaults.
 	if waitForCentralConfig {
-		if err := w.fetchDefaults(); err != nil {
+		if err := w.fetchDefaults(ctx); err != nil {
 			return fmt.Errorf("could not retrieve initial service_defaults config for service %q: %v", service.ID, err)
 		}
 	} else {
@@ -290,10 +290,10 @@ func (w *serviceConfigWatch) RegisterAndStart(
 }
 
 // NOTE: this is called while holding the Agent.stateLock
-func (w *serviceConfigWatch) fetchDefaults() error {
+func (w *serviceConfigWatch) fetchDefaults(ctx context.Context) error {
 	req := makeConfigRequest(w.agent, w.registration)
 
-	raw, _, err := w.agent.cache.Get(cachetype.ResolvedServiceConfigName, req)
+	raw, _, err := w.agent.cache.Get(ctx, cachetype.ResolvedServiceConfigName, req)
 	if err != nil {
 		return err
 	}
