@@ -122,7 +122,7 @@ func (s *HTTPServer) preparedQueryExecute(id string, resp http.ResponseWriter, r
 	defer setMeta(resp, &reply.QueryMeta)
 
 	if s.agent.config.HTTPUseCache && args.QueryOptions.UseCache {
-		raw, m, err := s.agent.cache.Get(cachetype.PreparedQueryName, &args)
+		raw, m, err := s.agent.cache.Get(req.Context(), cachetype.PreparedQueryName, &args)
 		if err != nil {
 			// Don't return error if StaleIfError is set and we are within it and had
 			// a cached value.

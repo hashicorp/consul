@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/hashicorp/consul/acl"
@@ -83,7 +84,7 @@ func (a *Agent) ConnectAuthorize(token string,
 		QueryOptions: structs.QueryOptions{Token: token},
 	}
 
-	raw, meta, err := a.cache.Get(cachetype.IntentionMatchName, args)
+	raw, meta, err := a.cache.Get(context.TODO(), cachetype.IntentionMatchName, args)
 	if err != nil {
 		return returnErr(err)
 	}
