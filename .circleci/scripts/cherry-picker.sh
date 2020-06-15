@@ -23,6 +23,10 @@ function cherry_pick_with_slack_notification {
     #   $1 - branch to cherry-pick to
     #   $2 - commit to cherry-pick
     #   $3 - url to PR of commit
+    #
+    # Return:
+    #   0 for success
+    #   1 for error
 
     local branch="$1"
     local commit="$2"
@@ -58,7 +62,8 @@ function cherry_pick_with_slack_notification {
 
         # run git status to leave error in CircleCI log
         git status
-        exit 1
+        return 1
+
     # Else we send a success notification
     else
         status "🍒✅ Cherry picking of PR commit ${commit:0:7} from ${pr_url} succeeded!"
@@ -86,6 +91,8 @@ function cherry_pick_with_slack_notification {
              -d "{ \"body\": \"${github_message}\"}" \
              "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/issues/${pr_id}/comments"
     fi
+
+    return 0
 }
 
 # search for the PR labels applicable to the specified commit
@@ -105,7 +112,9 @@ fi
 
 # If the API returned a non-zero count, we have found a PR with that commit so we find
 # the labels from the PR
-labels=$(echo "$resp" | jq --raw-output '.items[].labels[] | .name')
+
+# sorts the labels from a PR via version sort
+labels=$(echo "$resp" | jq --raw-output '.items[].labels[] | .name' | sort -rV)
 ret="$?"
 pr_url=$(echo "$resp" | jq --raw-output '.items[].pull_request.html_url')
 if [[ "$ret" -ne 0 ]]; then
@@ -115,6 +124,7 @@ if [[ "$ret" -ne 0 ]]; then
     exit 0
 fi
 
+backport_failures=0
 # loop through all labels on the PR
 for label in $labels; do
     git config --local user.email "hashicorp-ci@users.noreply.github.com"
@@ -125,10 +135,17 @@ for label in $labels; do
         status "backporting to stable-website"
         branch="stable-website"
         cherry_pick_with_slack_notification "$branch" "$CIRCLE_SHA1" "$pr_url"
+        (( backport_failures += "$?" ))
     # else if the label matches backport/*, it will attempt to cherry-pick to the release branch
     elif [[ $label =~ backport/* ]]; then
         status "backporting to $label"
         branch="${label/backport/release}.x"
         cherry_pick_with_slack_notification "$branch" "$CIRCLE_SHA1" "$pr_url"
+        (( backport_failures += "$?" ))
     fi
 done
+
+if [ "$backport_failures" -ne 0 ]; then
+    echo "$backport_failures backports failed"
+    exit $backport_failures
+fi
