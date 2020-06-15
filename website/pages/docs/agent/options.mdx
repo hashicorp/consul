@@ -1927,14 +1927,15 @@ required ports and their default settings.
 Reloading configuration does not reload all configuration items. The
 items which are reloaded include:
 
-- Log level
+- ACL Tokens
 - Checks
-- Services
-- Watches
+- [Discard Check Output](#discard_check_output)
 - HTTP Client Address
+- Log level
+- [Metric Prefix Filter](#telemetry-prefix_filter)
+- [Node Metadata](#node_meta)
+- [RPC rate limiting](#limits)
+- Services
 - TLS Configuration
   - Please be aware that this is currently limited to reload a configuration that is already TLS enabled. You cannot enable or disable TLS only with reloading.
-- [Node Metadata](#node_meta)
-- [Metric Prefix Filter](#telemetry-prefix_filter)
-- [Discard Check Output](#discard_check_output)
-- [RPC rate limiting](#limits)
+- Watches
