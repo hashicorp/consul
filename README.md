@@ -4,11 +4,18 @@
 * Tutorials: [https://learn.hashicorp.com](https://learn.hashicorp.com/consul)
 * Forum: [Discuss](https://discuss.hashicorp.com/c/consul)
 
-Consul is a tool for service discovery and configuration. Consul is
-distributed, highly available, and extremely scalable.
+Consul is a distributed, highly available, and data center aware solution to connect and configure applications across dynamic, distributed infrastructure.
 
 Consul provides several key features:
 
+* **Multi-Datacenter** - Consul is built to be datacenter aware, and can
+  support any number of regions without complex configuration.
+  
+* **Service Mesh/Service Segmentation** - Consul Connect enables secure service-to-service
+  communication with automatic TLS encryption and identity-based authorization. Applications 
+  can use sidecar proxies in a service mesh configuration to establish TLS 
+  connections for inbound and outbound connections without being aware of Connect at all. 
+  
 * **Service Discovery** - Consul makes it simple for services to register
   themselves and to discover other services via a DNS or HTTP interface.
   External services such as SaaS providers can be registered as well.
@@ -18,17 +25,9 @@ Consul provides several key features:
   discovery prevents routing traffic to unhealthy hosts and enables service
   level circuit breakers.
 
-* **Service Segmentation/Service Mesh** - Consul Connect enables secure service-to-service
-  communication with automatic TLS encryption and identity-based authorization. Applications 
-  can use sidecar proxies in a service mesh configuration to establish TLS 
-  connections for inbound and outbound connections without being aware of Connect at all. 
-
 * **Key/Value Storage** - A flexible key/value store enables storing
   dynamic configuration, feature flagging, coordination, leader election and
   more. The simple HTTP API makes it easy to use anywhere.
-
-* **Multi-Datacenter** - Consul is built to be datacenter aware, and can
-  support any number of regions without complex configuration.
 
 Consul runs on Linux, Mac OS X, FreeBSD, Solaris, and Windows. A commercial
 version called [Consul Enterprise](https://www.hashicorp.com/products/consul)
