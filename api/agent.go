@@ -122,6 +122,7 @@ type AgentServiceConnectProxyConfig struct {
 }
 
 // AgentMember represents a cluster member known to the agent
+// AgentMemberStatus corresponds the Status integer to a string
 type AgentMember struct {
 	Name        string
 	Addr        string
@@ -303,6 +304,17 @@ type Agent struct {
 	// cache the node name
 	nodeName string
 }
+
+// AgentMemberStatus corresponds the member status integers to the string status
+type AgentMemberStatus int
+
+const (
+	AgentMemberNone    = 0
+	AgentMemberAlive   = 1
+	AgentMemberLeaving = 2
+	AgentMemberLeft    = 3
+	AgentMemberFailed  = 4
+)
 
 // Agent returns a handle to the agent endpoints
 func (c *Client) Agent() *Agent {
@@ -529,6 +541,7 @@ func (a *Agent) Service(serviceID string, q *QueryOptions) (*AgentService, *Quer
 
 // Members returns the known gossip members. The WAN
 // flag can be used to query a server for WAN members.
+// The member status integers can be correlated to the
 func (a *Agent) Members(wan bool) ([]*AgentMember, error) {
 	r := a.c.newRequest("GET", "/v1/agent/members")
 	if wan {
