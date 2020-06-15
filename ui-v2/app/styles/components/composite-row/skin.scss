@@ -83,12 +83,12 @@
   @extend %with-swap-horizontal-mask, %as-pseudo;
   background-color: $gray-500;
 }
-%composite-row li.datacenter > span:first-child::before {
-  @extend %with-user-organization-mask, %as-pseudo;
+%composite-row-detail dl.nspace dt::before {
+  @extend %with-folder-outline-mask, %as-pseudo;
   background-color: $gray-500;
 }
-%composite-row-detail li.nspace > span:first-child::before {
-  @extend %with-folder-outline-mask, %as-pseudo;
+%composite-row-detail dl.datacenter dt::before {
+  @extend %with-user-organization-mask, %as-pseudo;
   background-color: $gray-500;
 }
 %composite-row-detail li.path > span:first-child::before {
