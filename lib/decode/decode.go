@@ -44,21 +44,28 @@ func HookTranslateKeys(_, to reflect.Type, data interface{}) (interface{}, error
 	}
 
 	rules := translationsForType(to)
+	// Avoid making a copy if there are no translation rules
+	if len(rules) == 0 {
+		return data, nil
+	}
+	result := make(map[string]interface{}, len(source))
 	for k, v := range source {
 		lowerK := strings.ToLower(k)
 		canonKey, ok := rules[lowerK]
 		if !ok {
+			result[k] = v
 			continue
 		}
-		delete(source, k)
 
 		// if there is a value for the canonical key then keep it
-		if _, ok := source[canonKey]; ok {
+		if canonValue, ok := source[canonKey]; ok {
+			// Assign the value for the case where canonKey == k
+			result[canonKey] = canonValue
 			continue
 		}
-		source[canonKey] = v
+		result[canonKey] = v
 	}
-	return source, nil
+	return result, nil
 }
 
 // TODO: could be cached if it is too slow
