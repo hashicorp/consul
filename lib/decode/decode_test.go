@@ -198,9 +198,11 @@ func TestTranslationsForType(t *testing.T) {
 }
 
 type nested struct {
-	O     map[string]interface{}
-	Slice []Item
-	Item  Item
+	O      map[string]interface{}
+	Slice  []Item
+	Item   Item
+	OSlice []map[string]interface{}
+	Sub    *nested
 }
 
 type Item struct {
@@ -215,6 +217,14 @@ slice {
 slice {
     name = "second"
 }
+item {
+	name = "solo"
+}
+sub {
+	oslice {
+		something = "v1"
+	}
+}
 `
 	target := &nested{}
 	err := decodeHCLToMapStructure(source, target)
@@ -222,6 +232,12 @@ slice {
 
 	expected := &nested{
 		Slice: []Item{{Name: "first"}, {Name: "second"}},
+		Item:  Item{Name: "solo"},
+		Sub: &nested{
+			OSlice: []map[string]interface{}{
+				{"something": "v1"},
+			},
+		},
 	}
 	require.Equal(t, target, expected)
 }
@@ -240,6 +256,40 @@ func decodeHCLToMapStructure(source string, target interface{}) error {
 		Result:     target,
 	})
 	return decoder.Decode(&raw)
+}
+
+func TestHookWeakDecodeFromSlice_DoesNotModifySliceTargetsFromSliceInterface(t *testing.T) {
+	raw := map[string]interface{}{
+		"slice": []interface{}{map[string]interface{}{"name": "first"}},
+		"item":  []interface{}{map[string]interface{}{"name": "solo"}},
+		"sub": []interface{}{
+			map[string]interface{}{
+				"OSlice": []interface{}{
+					map[string]interface{}{"something": "v1"},
+				},
+				"item": []interface{}{map[string]interface{}{"name": "subitem"}},
+			},
+		},
+	}
+	target := &nested{}
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		DecodeHook: HookWeakDecodeFromSlice,
+		Result:     target,
+	})
+	require.NoError(t, err)
+	err = decoder.Decode(&raw)
+
+	expected := &nested{
+		Slice: []Item{{Name: "first"}},
+		Item:  Item{Name: "solo"},
+		Sub: &nested{
+			OSlice: []map[string]interface{}{
+				{"something": "v1"},
+			},
+			Item: Item{Name: "subitem"},
+		},
+	}
+	require.Equal(t, target, expected)
 }
 
 func TestHookWeakDecodeFromSlice_ErrorsWithMultipleNestedBlocks(t *testing.T) {
@@ -269,6 +319,42 @@ item {
 
 	expected := &nested{
 		Item: Item{Name: "first"},
+	}
+	require.Equal(t, target, expected)
+}
+
+func TestHookWeakDecodeFromSlice_NestedOpaqueConfig(t *testing.T) {
+	source := `
+service {
+  proxy {
+    config {
+      envoy_gateway_bind_addresses {
+        all-interfaces {
+          address = "0.0.0.0"
+          port = 8443
+        }
+      }
+    }
+  }
+}`
+
+	target := map[string]interface{}{}
+	err := decodeHCLToMapStructure(source, &target)
+	require.NoError(t, err)
+
+	expected := map[string]interface{}{
+		"service": map[string]interface{}{
+			"proxy": map[string]interface{}{
+				"config": map[string]interface{}{
+					"envoy_gateway_bind_addresses": map[string]interface{}{
+						"all-interfaces": map[string]interface{}{
+							"address": "0.0.0.0",
+							"port":    8443,
+						},
+					},
+				},
+			},
+		},
 	}
 	require.Equal(t, target, expected)
 }
