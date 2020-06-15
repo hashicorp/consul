@@ -28,15 +28,15 @@ and discovery terminates.
 Create service subsets based on a version metadata and override the defaults:
 
 ```hcl
-kind           = "service-resolver"
-name           = "web"
-default_subset = "v1"
-subsets = {
+Kind           = "service-resolver"
+Name           = "web"
+DefaultSubset = "v1"
+Subsets = {
   "v1" = {
-    filter = "Service.Meta.version == v1"
+    Filter = "Service.Meta.version == v1"
   }
   "v2" = {
-    filter = "Service.Meta.version == v2"
+    Filter = "Service.Meta.version == v2"
   }
 }
 ```
@@ -44,23 +44,23 @@ subsets = {
 Expose a set of services in another datacenter as a virtual service:
 
 ```hcl
-kind = "service-resolver"
-name = "web-dc2"
-redirect {
-  service    = "web"
-  datacenter = "dc2"
+Kind = "service-resolver"
+Name = "web-dc2"
+Redirect {
+  Service    = "web"
+  Datacenter = "dc2"
 }
 ```
 
 Enable failover for all subsets:
 
 ```hcl
-kind            = "service-resolver"
-name            = "web"
-connect_timeout = "15s"
-failover = {
+Kind            = "service-resolver"
+Name            = "web"
+ConnectTimeout = "15s"
+Failover = {
   "*" = {
-    datacenters = ["dc3", "dc4"]
+    Datacenters = ["dc3", "dc4"]
   }
 }
 ```
@@ -68,8 +68,8 @@ failover = {
 Representation of the defaults when a resolver is not configured:
 
 ```hcl
-kind = "service-resolver"
-name = "web"
+Kind = "service-resolver"
+Name = "web"
 ```
 
 ## Available Fields

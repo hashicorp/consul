@@ -41,18 +41,18 @@ service of the same name.
 Route HTTP requests with a path starting with `/admin` to a different service:
 
 ```hcl
-kind = "service-router"
-name = "web"
-routes = [
+Kind = "service-router"
+Name = "web"
+Routes = [
   {
-    match {
-      http {
-        path_prefix = "/admin"
+    Match {
+      HTTP {
+        PathPrefix = "/admin"
       }
     }
 
-    destination {
-      service = "admin"
+    Destination {
+      Service = "admin"
     }
   },
   # NOTE: a default catch-all will send unmatched traffic to "web"
@@ -62,39 +62,39 @@ routes = [
 Route HTTP requests with a special url parameter or header to a canary subset:
 
 ```hcl
-kind = "service-router"
-name = "web"
-routes = [
+Kind = "service-router"
+Name = "web"
+Routes = [
   {
-    match {
-      http {
-        header = [
+    Match {
+      HTTP {
+        Header = [
           {
-            name  = "x-debug"
-            exact = "1"
+            Name  = "x-debug"
+            Exact = "1"
           },
         ]
       }
     }
-    destination {
-      service        = "web"
-      service_subset = "canary"
+    Destination {
+      Service        = "web"
+      ServiceSubset = "canary"
     }
   },
   {
-    match {
-      http {
-        query_param = [
+    Match {
+      HTTP {
+        QueryParam = [
           {
-            name  = "x-debug"
-            exact = "1"
+            Name  = "x-debug"
+            Exact = "1"
           },
         ]
       }
     }
-    destination {
-      service        = "web"
-      service_subset = "canary"
+    Destination {
+      Service        = "web"
+      ServiceSubset = "canary"
     }
   },
   # NOTE: a default catch-all will send unmatched traffic to "web"
@@ -105,18 +105,18 @@ Re-route a gRPC method to another service. Since gRPC method calls [are
 HTTP2](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md), we can use an HTTP path match rule to re-route traffic:
 
 ```hcl
-kind = "service-router"
-name = "billing"
-routes = [
+Kind = "service-router"
+Name = "billing"
+Routes = [
   {
-    match {
-      http {
-        path_exact = "/mycompany.BillingService/GenerateInvoice"
+    Match {
+      HTTP {
+        PathExact = "/mycompany.BillingService/GenerateInvoice"
       }
     }
 
-    destination {
-      service = "invoice-generator"
+    Destination {
+      Service = "invoice-generator"
     }
   },
   # NOTE: a default catch-all will send unmatched traffic to "billing"
