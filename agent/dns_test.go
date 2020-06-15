@@ -5790,6 +5790,27 @@ func TestDNS_AddressLookupIPV6(t *testing.T) {
 	}
 }
 
+func TestDNS_NonExistingDC(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// lookup a non-existing node, we should receive a SOA
+	m := new(dns.Msg)
+	m.SetQuestion("consul.dc2.consul.", dns.TypeANY)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if in.Rcode != dns.RcodeNameError {
+		t.Fatalf("Expected RCode: %#v, had: %#v", dns.RcodeNameError, in.Rcode)
+	}
+}
+
 func TestDNS_NonExistingLookup(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, "")
