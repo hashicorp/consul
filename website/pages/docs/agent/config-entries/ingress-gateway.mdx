@@ -35,7 +35,7 @@ description: >-
     [protocol](/docs/agent/config-entries/ingress-gateway#protocol) as the
     listener will be routable.
   - The ingress gateway will route traffic based on the host/authority header,
-    expecting a value matching `<service-name>.*`, or if using namespaces,
+    expecting a value matching `<service-name>.ingress.*`, or if using namespaces,
     `<service-name>.ingress.<namespace>.*`.
 
   A wildcard specifier cannot be set on a listener of protocol `tcp`.
