@@ -122,6 +122,7 @@ type AgentServiceConnectProxyConfig struct {
 }
 
 // AgentMember represents a cluster member known to the agent
+// AgentMemberStatus corresponds the Status integer to a string
 type AgentMember struct {
 	Name        string
 	Addr        string
@@ -135,6 +136,17 @@ type AgentMember struct {
 	DelegateMax uint8
 	DelegateCur uint8
 }
+
+// AgentMemberStatus corresponds the member status integers to the string status
+type AgentMemberStatus int
+
+const (
+	AgentMemberNone    = 0
+	AgentMemberAlive   = 1
+	AgentMemberLeaving = 2
+	AgentMemberLeft    = 3
+	AgentMemberFailed  = 4
+)
 
 // AllSegments is used to select for all segments in MembersOpts.
 const AllSegments = "_all"
