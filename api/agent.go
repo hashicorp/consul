@@ -541,7 +541,6 @@ func (a *Agent) Service(serviceID string, q *QueryOptions) (*AgentService, *Quer
 
 // Members returns the known gossip members. The WAN
 // flag can be used to query a server for WAN members.
-// The member status integers can be correlated to the
 func (a *Agent) Members(wan bool) ([]*AgentMember, error) {
 	r := a.c.newRequest("GET", "/v1/agent/members")
 	if wan {
