@@ -44,16 +44,16 @@ resolution stage.
 Split traffic between two subsets of the same service:
 
 ```hcl
-kind = "service-splitter"
-name = "web"
-splits = [
+Kind = "service-splitter"
+Name = "web"
+Splits = [
   {
-    weight         = 90
-    service_subset = "v1"
+    Weight         = 90
+    ServiceSubset = "v1"
   },
   {
-    weight         = 10
-    service_subset = "v2"
+    Weight         = 10
+    ServiceSubset = "v2"
   },
 ]
 ```
@@ -61,16 +61,16 @@ splits = [
 Split traffic between two services:
 
 ```hcl
-kind = "service-splitter"
-name = "web"
-splits = [
+Kind = "service-splitter"
+Name = "web"
+Splits = [
   {
-    weight = 50
+    Weight = 50
     # will default to service with same name as config entry ("web")
   },
   {
-    weight  = 10
-    service = "web-rewrite"
+    Weight  = 10
+    Service = "web-rewrite"
   },
 ]
 ```
