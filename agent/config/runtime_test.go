@@ -2499,8 +2499,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		},
 
 		{
-			// This tests that we correct added the nested paths to arrays of objects
-			// to the exceptions in PatchSliceOfMaps in config.go (for single service)
+			// Test that slices in structured config are preserved by
+			// decode.HookWeakDecodeFromSlice.
 			desc: "service.connectsidecar_service with checks and upstreams",
 			args: []string{
 				`-data-dir=` + dataDir,
@@ -2628,8 +2628,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
-			// This tests that we correct added the nested paths to arrays of objects
-			// to the exceptions in PatchSliceOfMaps in config.go (for service*s*)
+			// Test that slices in structured config are preserved by
+			// decode.HookWeakDecodeFromSlice.
 			desc: "services.connect.sidecar_service with checks and upstreams",
 			args: []string{
 				`-data-dir=` + dataDir,
