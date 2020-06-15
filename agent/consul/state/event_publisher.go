@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-memdb"
-	"golang.org/x/crypto/blake2b"
 
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
@@ -175,83 +174,56 @@ func (e *EventPublisher) sendEvents(update commitUpdate) {
 func (e *EventPublisher) handleACLUpdate(tx *txn, event stream.Event) error {
 	switch event.Topic {
 	case stream.Topic_ACLTokens:
-		token := event.GetACLToken()
-		subs := e.subsByToken[secretHash(token.Token.SecretID)]
-		for _, sub := range subs {
+		token := event.Payload.(*structs.ACLToken)
+		for _, sub := range e.subsByToken[token.SecretID] {
 			sub.CloseReload()
 		}
+
 	case stream.Topic_ACLPolicies:
-		policy := event.GetACLPolicy()
-		// TODO(streaming) figure out how to thread method/ent meta here for
-		// namespace support in Ent. Probably need wildcard here?
-		tokens, err := e.store.aclTokenListByPolicy(tx, policy.PolicyID, nil)
+		policy := event.Payload.(*structs.ACLPolicy)
+		tokens, err := aclTokenListByPolicy(tx, policy.ID, &policy.EnterpriseMeta)
 		if err != nil {
 			return err
 		}
-
-		// Loop through the tokens used by the policy.
-		for token := tokens.Next(); token != nil; token = tokens.Next() {
-			token := token.(*structs.ACLToken)
-			if subs, ok := e.subsByToken[secretHash(token.SecretID)]; ok {
-				for _, sub := range subs {
-					sub.CloseReload()
-				}
-			}
-		}
+		e.closeSubscriptionsForTokens(tokens)
 
 		// Find any roles using this policy so tokens with those roles can be reloaded.
-		roles, err := e.store.aclRoleListByPolicy(tx, policy.PolicyID, nil)
+		roles, err := aclRoleListByPolicy(tx, policy.ID, &policy.EnterpriseMeta)
 		if err != nil {
 			return err
 		}
 		for role := roles.Next(); role != nil; role = roles.Next() {
 			role := role.(*structs.ACLRole)
 
-			// TODO(streaming) figure out how to thread method/ent meta here for
-			// namespace support in Ent.
-			tokens, err := e.store.aclTokenListByRole(tx, role.ID, nil)
+			tokens, err := aclTokenListByRole(tx, role.ID, &policy.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
-			for token := tokens.Next(); token != nil; token = tokens.Next() {
-				token := token.(*structs.ACLToken)
-				if subs, ok := e.subsByToken[secretHash(token.SecretID)]; ok {
-					for _, sub := range subs {
-						sub.CloseReload()
-					}
-				}
-			}
+			e.closeSubscriptionsForTokens(tokens)
 		}
 
 	case stream.Topic_ACLRoles:
-		role := event.GetACLRole()
-		// TODO(streaming) figure out how to thread method/ent meta here for
-		// namespace support in Ent.
-		tokens, err := e.store.aclTokenListByRole(tx, role.RoleID, nil)
+		role := event.Payload.(*structs.ACLRole)
+		tokens, err := aclTokenListByRole(tx, role.ID, &role.EnterpriseMeta)
 		if err != nil {
 			return err
 		}
-		for token := tokens.Next(); token != nil; token = tokens.Next() {
-			token := token.(*structs.ACLToken)
-			if subs, ok := e.subsByToken[secretHash(token.SecretID)]; ok {
-				for _, sub := range subs {
-					sub.CloseReload()
-				}
-			}
-		}
+		e.closeSubscriptionsForTokens(tokens)
 	}
 
 	return nil
 }
 
-// secretHash returns a 256-bit Blake2 hash of the given string.
-func secretHash(token string) string {
-	hash, err := blake2b.New256(nil)
-	if err != nil {
-		panic(err)
+// This method requires the EventPublisher.lock is held
+func (e *EventPublisher) closeSubscriptionsForTokens(tokens memdb.ResultIterator) {
+	for token := tokens.Next(); token != nil; token = tokens.Next() {
+		token := token.(*structs.ACLToken)
+		if subs, ok := e.subsByToken[token.SecretID]; ok {
+			for _, sub := range subs {
+				sub.CloseReload()
+			}
+		}
 	}
-	hash.Write([]byte(token))
-	return string(hash.Sum(nil))
 }
 
 // Subscribe returns a new stream.Subscription for the given request. A
@@ -270,7 +242,7 @@ func (e *EventPublisher) Subscribe(
 	// Ensure we know how to make a snapshot for this topic
 	_, ok := topicRegistry[req.Topic]
 	if !ok {
-		return nil, fmt.Errorf("unknown topic %s", req.Topic)
+		return nil, fmt.Errorf("unknown topic %d", req.Topic)
 	}
 
 	e.lock.Lock()
@@ -288,7 +260,7 @@ func (e *EventPublisher) Subscribe(
 	topicHead := buf.Head()
 	var sub *stream.Subscription
 	if req.Index > 0 && len(topicHead.Events) > 0 && topicHead.Events[0].Index == req.Index {
-		// No need for a snapshot just send the "end snapshot" message to signal to
+		// No need for a snapshot, send the "resume stream" message to signal to
 		// client it's cache is still good. (note that this can be distinguished
 		// from a legitimate empty snapshot due to the index matching the one the
 		// client sent), then follow along from here in the topic.
@@ -296,7 +268,7 @@ func (e *EventPublisher) Subscribe(
 			Index:   req.Index,
 			Topic:   req.Topic,
 			Key:     req.Key,
-			Payload: &stream.Event_ResumeStream{ResumeStream: true},
+			Payload: stream.ResumeStream{},
 		}
 		// Make a new buffer to send to the client containing the resume.
 		buf := stream.NewEventBuffer()
@@ -324,12 +296,10 @@ func (e *EventPublisher) Subscribe(
 		sub = stream.NewSubscription(ctx, req, snap.Snap)
 	}
 
-	// Add the subscription to the ACL token map.
-	tokenHash := secretHash(req.Token)
-	subsByToken, ok := e.subsByToken[tokenHash]
+	subsByToken, ok := e.subsByToken[req.Token]
 	if !ok {
 		subsByToken = make(map[*stream.SubscribeRequest]*stream.Subscription)
-		e.subsByToken[tokenHash] = subsByToken
+		e.subsByToken[req.Token] = subsByToken
 	}
 	subsByToken[req] = sub
 
@@ -343,14 +313,13 @@ func (e *EventPublisher) Unsubscribe(req *stream.SubscribeRequest) {
 	e.lock.Lock()
 	defer e.lock.Unlock()
 
-	tokenHash := secretHash(req.Token)
-	subsByToken, ok := e.subsByToken[tokenHash]
+	subsByToken, ok := e.subsByToken[req.Token]
 	if !ok {
 		return
 	}
 	delete(subsByToken, req)
 	if len(subsByToken) == 0 {
-		delete(e.subsByToken, tokenHash)
+		delete(e.subsByToken, req.Token)
 	}
 }
 
@@ -370,7 +339,7 @@ func (e *EventPublisher) getSnapshotLocked(req *stream.SubscribeRequest, topicHe
 	// No snap or errored snap in cache, create a new one
 	snapFn, ok := e.snapFns[req.Topic]
 	if !ok {
-		return nil, fmt.Errorf("unknown topic %s", req.Topic)
+		return nil, fmt.Errorf("unknown topic %d", req.Topic)
 	}
 
 	snap = stream.NewEventSnapshot(req, topicHead, snapFn)

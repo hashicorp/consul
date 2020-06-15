@@ -1,81 +1,54 @@
 package state
 
 import (
-	"github.com/hashicorp/consul/agent/agentpb"
+	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	memdb "github.com/hashicorp/go-memdb"
 )
 
 // ACLEventsFromChanges returns all the ACL token, policy or role events that
 // should be emitted given a set of changes to the state store.
-func (s *Store) ACLEventsFromChanges(tx *txn, changes memdb.Changes) ([]agentpb.Event, error) {
+// TODO: Add OpDelete/OpUpdate to the event or payload?
+func aclEventsFromChanges(tx *txn, changes memdb.Changes) ([]stream.Event, error) {
+	var events []stream.Event
 
-	// Don't allocate yet since in majority of update transactions no ACL token
-	// will be changed.
-	var events []agentpb.Event
-
-	getObj := func(change memdb.Change) interface{} {
-		if change.Deleted() {
-			return change.Before
-		}
-		return change.After
-	}
-
-	getOp := func(change memdb.Change) agentpb.ACLOp {
-		if change.Deleted() {
-			return agentpb.ACLOp_Delete
-		}
-		return agentpb.ACLOp_Update
-	}
-
+	// TODO: mapping of table->topic?
 	for _, change := range changes {
 		switch change.Table {
 		case "acl-tokens":
-			token := getObj(change).(*structs.ACLToken)
-			e := agentpb.Event{
-				Topic: agentpb.Topic_ACLTokens,
-				Index: tx.Index,
-				Payload: &agentpb.Event_ACLToken{
-					ACLToken: &agentpb.ACLTokenUpdate{
-						Op: getOp(change),
-						Token: &agentpb.ACLTokenIdentifier{
-							AccessorID: token.AccessorID,
-							SecretID:   token.SecretID,
-						},
-					},
-				},
+			token := changeObject(change).(*structs.ACLToken)
+			e := stream.Event{
+				Topic:   stream.Topic_ACLTokens,
+				Index:   tx.Index,
+				Payload: token,
 			}
 			events = append(events, e)
 		case "acl-policies":
-			policy := getObj(change).(*structs.ACLPolicy)
-			e := agentpb.Event{
-				Topic: agentpb.Topic_ACLPolicies,
-				Index: tx.Index,
-				Payload: &agentpb.Event_ACLPolicy{
-					ACLPolicy: &agentpb.ACLPolicyUpdate{
-						Op:       getOp(change),
-						PolicyID: policy.ID,
-					},
-				},
+			policy := changeObject(change).(*structs.ACLPolicy)
+			e := stream.Event{
+				Topic:   stream.Topic_ACLPolicies,
+				Index:   tx.Index,
+				Payload: policy,
 			}
 			events = append(events, e)
 		case "acl-roles":
-			role := getObj(change).(*structs.ACLRole)
-			e := agentpb.Event{
-				Topic: agentpb.Topic_ACLRoles,
-				Index: tx.Index,
-				Payload: &agentpb.Event_ACLRole{
-					ACLRole: &agentpb.ACLRoleUpdate{
-						Op:     getOp(change),
-						RoleID: role.ID,
-					},
-				},
+			role := changeObject(change).(*structs.ACLRole)
+			e := stream.Event{
+				Topic:   stream.Topic_ACLRoles,
+				Index:   tx.Index,
+				Payload: role,
 			}
 			events = append(events, e)
-		default:
-			continue
 		}
 	}
-
 	return events, nil
+}
+
+// changeObject returns the object before it was deleted if the change was a delete,
+// otherwise returns the object after the change.
+func changeObject(change memdb.Change) interface{} {
+	if change.Deleted() {
+		return change.Before
+	}
+	return change.After
 }

@@ -1,7 +1,6 @@
 package state
 
 import (
-	"github.com/hashicorp/consul/agent/agentpb"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	memdb "github.com/hashicorp/go-memdb"
 )
@@ -23,12 +22,12 @@ type topicHandlers struct {
 var topicRegistry map[stream.Topic]topicHandlers
 
 func init() {
-	topicRegistry = map[agentpb.Topic]topicHandlers{
-		agentpb.Topic_ServiceHealth: topicHandlers{
+	topicRegistry = map[stream.Topic]topicHandlers{
+		stream.Topic_ServiceHealth: topicHandlers{
 			Snapshot:       (*Store).ServiceHealthSnapshot,
 			ProcessChanges: (*Store).ServiceHealthEventsFromChanges,
 		},
-		agentpb.Topic_ServiceHealthConnect: topicHandlers{
+		stream.Topic_ServiceHealthConnect: topicHandlers{
 			Snapshot: (*Store).ServiceHealthConnectSnapshot,
 			// Note there is no ProcessChanges since Connect events are published by
 			// the same event publisher as regular health events to avoid duplicating
@@ -39,8 +38,8 @@ func init() {
 		// ProcessChanges func to publish the partial events on ACL changes though
 		// so that we can invalidate other subscriptions if their effective ACL
 		// permissions change.
-		agentpb.Topic_ACLTokens: topicHandlers{
-			ProcessChanges: (*Store).ACLEventsFromChanges,
+		stream.Topic_ACLTokens: topicHandlers{
+			ProcessChanges: aclEventsFromChanges,
 		},
 		// Note no ACLPolicies/ACLRoles defined yet because we publish all events
 		// from one handler to save on iterating/filtering and duplicating code and

@@ -128,6 +128,7 @@ func (s *Subscription) CloseReload() {
 }
 
 // Request returns the request object that started the subscription.
+// TODO: remove
 func (s *Subscription) Request() *SubscribeRequest {
 	return s.req
 }

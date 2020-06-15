@@ -3,6 +3,7 @@ package stream
 type Topic int32
 
 // TODO: remove underscores
+// TODO: type string instead of int?
 const (
 	Topic_ServiceHealth        Topic = 0
 	Topic_ServiceHealthConnect Topic = 1
@@ -19,8 +20,14 @@ type Event struct {
 	Payload interface{}
 }
 
-func (e Event) isEndOfSnapshot() bool {
+func (e Event) IsEndOfSnapshot() bool {
 	return e.Payload == endOfSnapshot{}
 }
 
+func (e Event) IsResumeStream() bool {
+	return e.Payload == ResumeStream{}
+}
+
 type endOfSnapshot struct{}
+
+type ResumeStream struct{}

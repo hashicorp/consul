@@ -131,7 +131,7 @@ func TestEventSnapshot(t *testing.T) {
 						// We're done!
 						break RECV
 					}
-				case e.isEndOfSnapshot():
+				case e.IsEndOfSnapshot():
 					snapDone = true
 				default:
 					payload, ok := e.Payload.(string)
