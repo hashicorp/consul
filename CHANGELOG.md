@@ -1,17 +1,26 @@
-## UNRELEASED
+## 1.8.0 rc1 (June 15, 2020)
+
+BREAKING CHANGES:
+* acl: Remove deprecated `acl_enforce_version_8` option [[GH-7991](https://github.com/hashicorp/consul/issues/7991)]
 
 IMPROVEMENTS:
-
 * ui: Add live updates/blocking queries to gateway listings [[GH-7967](https://github.com/hashicorp/consul/pull/7967)]
 * ui: Improved 'empty states'  [[GH-7940](https://github.com/hashicorp/consul/pull/7940)]
 * ui: Add ability to sort services based on health  [[GH-7989](https://github.com/hashicorp/consul/pull/7989)]
-* connect: Enable mesh and terminating gateways to resolve hostnames to IPv4 addresses using system resolver [[GH-7999]](https://github.com/hashicorp/consul/pull/7999)
 * ui: Add explanatory tooltip panels for gateway services [[GH-8048]](https://github.com/hashicorp/consul/pull/8048)
 * ui: Reduce discovery-chain log errors [[GH-8065]](https://github.com/hashicorp/consul/pull/8065)
+* connect: Enable mesh and terminating gateways to resolve hostnames to IPv4 addresses using system resolver [[GH-7999]](https://github.com/hashicorp/consul/pull/7999)
 * connect: Always require Host headers when serving L7 traffic through ingress gateways [[GH-7990]](https://github.com/hashicorp/consul/pull/7990)
 * connect: Allow users to specify wildcard host for ingress when TLS is disabled [[GH-8083]](https://github.com/hashicorp/consul/pull/8083)
 * connect: New end point to return healthy ingress gateway instances [[GH-8081]](https://github.com/hashicorp/consul/pull/8081)
+* connect: Added a new expose CLI command for ingress gateways [[GH-8099](https://github.com/hashicorp/consul/issues/8099)]
 
+BUG FIXES:
+
+* cache: Fix go routine leak in the agent cache. [[GH-8092](https://github.com/hashicorp/consul/pull/8092)]
+* connect: Internal refactoring to allow Connect proxy config to contain lists of structured configuration [[GH-7963](https://github.com/hashicorp/consul/issues/7963)][[GH-7964](https://github.com/hashicorp/consul/issues/7964)]
+* connect: Handle re-bootstrapping scenario for WAN federation over mesh gateways. [[GH-7931](https://github.com/hashicorp/consul/issues/7931)]
+* server: don't activate federation state replication or anti-entropy until all servers are running 1.8.0 [[GH-8014](https://github.com/hashicorp/consul/issues/8014)]
 
 ## 1.8.0-beta2 (May 21, 2020)
 
