@@ -11,6 +11,9 @@ FEATURES:
 * agent: handle re-bootstrapping in a secondary datacenter when WAN federation via mesh gateways is configured [[GH-7931](https://github.com/hashicorp/consul/issues/7931)]
 * cache: Fix go routine leak in the agent cache. [[GH-8092](https://github.com/hashicorp/consul/pull/8092)]
 * connect: Enable mesh and terminating gateways to resolve hostnames to IPv4 addresses using system resolver [[GH-7999]](https://github.com/hashicorp/consul/pull/7999)
+* connect: Always require Host headers when serving L7 traffic through ingress gateways [[GH-7990]](https://github.com/hashicorp/consul/pull/7990)
+* connect: Allow users to specify wildcard host for ingress when TLS is disabled [[GH-8083]](https://github.com/hashicorp/consul/pull/8083)
+* connect: New end point to return healthy ingress gateway instances [[GH-8081]](https://github.com/hashicorp/consul/pull/8081)
 
 BUGFIXES:
 
