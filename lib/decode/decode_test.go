@@ -178,6 +178,33 @@ func TestHookTranslateKeys_TargetStructHasPointerReceiver(t *testing.T) {
 	require.Equal(t, expected, target, "decode metadata: %#v", md)
 }
 
+func TestHookTranslateKeys_DoesNotModifySourceData(t *testing.T) {
+	raw := map[string]interface{}{
+		"S": map[string]interface{}{
+			"None":   "no translation",
+			"OldOne": "value1",
+			"oldtwo": "value2",
+		},
+	}
+
+	cfg := Config{}
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		DecodeHook: HookTranslateKeys,
+		Result:     &cfg,
+	})
+	require.NoError(t, err)
+	require.NoError(t, decoder.Decode(raw))
+
+	expected := map[string]interface{}{
+		"S": map[string]interface{}{
+			"None":   "no translation",
+			"OldOne": "value1",
+			"oldtwo": "value2",
+		},
+	}
+	require.Equal(t, raw, expected)
+}
+
 type translateExample struct {
 	FieldDefaultCanonical        string `alias:"first"`
 	FieldWithMapstructureTag     string `alias:"second" mapstructure:"field_with_mapstruct_tag"`
