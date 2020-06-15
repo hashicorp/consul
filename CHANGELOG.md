@@ -9,6 +9,7 @@ FEATURES:
 * acl: allow auth methods created in the primary datacenter to optionally create global tokens [[GH-7899](https://github.com/hashicorp/consul/issues/7899)]
 * agent: Allow to restrict servers that can join a given Serf Consul cluster. [[GH-7628](https://github.com/hashicorp/consul/issues/7628)]
 * agent: handle re-bootstrapping in a secondary datacenter when WAN federation via mesh gateways is configured [[GH-7931](https://github.com/hashicorp/consul/issues/7931)]
+* cache: Fix go routine leak in the agent cache. [[GH-8092](https://github.com/hashicorp/consul/pull/8092)]
 * connect: Enable mesh and terminating gateways to resolve hostnames to IPv4 addresses using system resolver [[GH-7999]](https://github.com/hashicorp/consul/pull/7999)
 
 BUGFIXES:
