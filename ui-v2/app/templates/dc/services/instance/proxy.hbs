@@ -140,7 +140,7 @@
   {{#if (or (gt proxy.ServiceChecks.length 0) (gt proxy.NodeChecks.length 0))}}
     <section>
       <h3>Proxy health</h3>
-      <HealthcheckList data-test-proxy-checks @items={{append proxy.ServiceChecks proxy.NodeChecks}} />
+      <HealthcheckList data-test-proxy-checks @items={{sort-by (comparator 'check' 'Status:asc') (append proxy.ServiceChecks proxy.NodeChecks)}} />
     </section>
   {{/if}}
   </div>
