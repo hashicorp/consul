@@ -1,13 +1,13 @@
 @setupApplicationTest
-Feature: dc / services / instances / show: Proxy Info tab
+Feature: dc / services / instances / proxyinfo: Proxy Info tab
   Background:
     Given 1 datacenter model with the value "dc1"
   Scenario: A Service instance without a Proxy does not display Proxy Info tab
     Given 1 proxy model from yaml
-    ---	
-    - ServiceProxy:	
-        DestinationServiceName: service-1	
-        DestinationServiceID: ~	
+    ---
+    - ServiceProxy:
+        DestinationServiceName: service-1
+        DestinationServiceID: ~
     ---
     When I visit the instance page for yaml
     ---
@@ -33,7 +33,6 @@ Feature: dc / services / instances / show: Proxy Info tab
 
     Then the url should be /dc1/services/service-0/instances/node-0/service-0-with-id/proxy
     And I see proxyInfoIsSelected on the tabs
-  @notNamespaceable
   Scenario: A Proxy with health checks, upstreams, and exposed paths displays all info
     Given 2 instance models from yaml
     ---
@@ -45,32 +44,32 @@ Feature: dc / services / instances / show: Proxy Info tab
     - Service:
         ID: service-0-with-id-proxy
         Kind: connect-proxy
-        Proxy:	
-          DestinationServiceName: service-0	
-          Expose:	
-            Checks: false	
+        Proxy:
+          DestinationServiceName: service-0
+          Expose:
+            Checks: false
             Paths:
-              - Path: /grpc-metrics	
-                Protocol: grpc	
-                LocalPathPort: 8081	
-                ListenerPort: 8080	
-              - Path: /http-metrics	
-                Protocol: http	
-                LocalPathPort: 8082	
+              - Path: /grpc-metrics
+                Protocol: grpc
+                LocalPathPort: 8081
+                ListenerPort: 8080
+              - Path: /http-metrics
+                Protocol: http
+                LocalPathPort: 8082
                 ListenerPort: 8083
               - Path: /http-metrics-2
-                Protocol: http	
+                Protocol: http
                 LocalPathPort: 8083
                 ListenerPort: 8084
-          Upstreams:	
-            - DestinationType: service	
+          Upstreams:
+            - DestinationType: service
               DestinationName: service-2
-              DestinationNamespace: default	
-              LocalBindAddress: 127.0.0.1	
-              LocalBindPort: 1111	
-            - DestinationType: prepared_query	
-              DestinationName: service-3	
-              LocalBindAddress: 127.0.0.1	
+              DestinationNamespace: default
+              LocalBindAddress: 127.0.0.1
+              LocalBindPort: 1111
+            - DestinationType: prepared_query
+              DestinationName: service-3
+              LocalBindAddress: 127.0.0.1
               LocalBindPort: 1112
       Node:
         Node: node-0
@@ -117,8 +116,8 @@ Feature: dc / services / instances / show: Proxy Info tab
     And I see 6 of the proxyChecks object
 
     And I see 2 of the upstreams object
-    And I see name on the upstreams like yaml	
-    ---	
+    And I see name on the upstreams like yaml
+    ---
     - service-2
     - service-3
     ---
@@ -161,7 +160,7 @@ Feature: dc / services / instances / show: Proxy Info tab
     - Service:
         ID: service-0-with-id-proxy
         Kind: connect-proxy
-        Proxy:	
+        Proxy:
           Upstreams: []
       Node:
         Node: node-0
@@ -190,9 +189,9 @@ Feature: dc / services / instances / show: Proxy Info tab
     - Service:
         ID: service-0-with-id-proxy
         Kind: connect-proxy
-        Proxy:	
-          Expose:	
-            Checks: false	
+        Proxy:
+          Expose:
+            Checks: false
             Paths: []
       Node:
         Node: node-0
@@ -210,6 +209,6 @@ Feature: dc / services / instances / show: Proxy Info tab
     When I click proxyInfo on the tabs
     Then the url should be /dc1/services/service-0/instances/node-0/service-0-with-id/proxy
     And I see 0 of the exposedPaths object
-    
 
-    
+
+
