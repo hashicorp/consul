@@ -21,9 +21,6 @@ td strong {
 %pill.policy-management::before {
   @extend %with-star-icon;
 }
-%pill.policy-service-identity::before {
-  @extend %with-service-identity-icon;
-}
 %pill.role::before {
   @extend %with-user-plain-icon;
   opacity: 0.3;
@@ -33,16 +30,16 @@ td strong {
 // All of this icon assigning stuff should probably go in the eventual
 // refactored /components/icons.scss file
 
-td.policy-service-identity a::after {
-  @extend %with-service-identity-icon, %as-pseudo;
-  margin-left: 3px;
-}
-td.policy-management a::after {
+span.policy-management a::after {
   @extend %with-star-icon, %as-pseudo;
   margin-left: 3px;
 }
 
+span.policy-service-identity,
 .consul-external-source,
 .consul-kind {
   @extend %reduced-pill;
+}
+span.policy-service-identity::before {
+  width: 0;
 }

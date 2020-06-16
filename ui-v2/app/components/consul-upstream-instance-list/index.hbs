@@ -1,0 +1,59 @@
+<ul data-test-proxy-upstreams>
+  {{#each items as |item|}}
+    <li>
+      <div>
+        <p data-test-destination-name>
+          {{item.DestinationName}}
+        </p>
+      </div>
+      <div>
+        <ul>
+{{#if (env 'CONSUL_NSPACES_ENABLED')}}
+  {{#if (not-eq item.DestinationType 'prepared_query')}}
+          <li class="nspace">
+            <span>
+              <Tooltip>
+                Namespace
+              </Tooltip>
+            </span>
+            <span>
+              {{or item.DestinationNamespace 'default'}}
+            </span>
+          </li>
+  {{/if}}
+{{/if}}
+{{#if (and (not-eq item.Datacenter dc) (not-eq item.Datacenter ""))}}
+          <li class="datacenter">
+            <span>
+              <Tooltip>
+                Datacenter
+              </Tooltip>
+            </span>
+            <span>
+              {{item.Datacenter}}
+            </span>
+          </li>
+{{/if}}
+{{#if (gt item.LocalBindPort 0)}}
+  {{#let (concat (or item.LocalBindAddress '127.0.0.1') ':' item.LocalBindPort) as |combinedAddress|}}
+          <li class="port">
+            <span>
+              <Tooltip>
+                Address
+              </Tooltip>
+            </span>
+            <span>
+              <span>{{combinedAddress}}</span>
+              <CopyButton
+                @value={{combinedAddress}}
+                @name="Address"
+              />
+            </span>
+          </li>
+  {{/let}}
+{{/if}}
+        </ul>
+      </div>
+    </li>
+  {{/each}}
+</ul>

@@ -1,0 +1,4 @@
+@import './definition-table/index';
+.definition-table {
+  @extend %definition-table;
+}

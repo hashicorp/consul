@@ -1,15 +1,18 @@
-<EmberNativeScrollable 
-  @tagName="ul" 
-  @content-size={{_contentSize}} 
-  @scroll-left={{_scrollLeft}} 
-  @scroll-top={{_scrollTop}} 
-  @scrollChange={{action "scrollChange"}} 
+{{yield}}
+<EmberNativeScrollable
+  @tagName="ul"
+  @content-size={{_contentSize}}
+  @scroll-left={{_scrollLeft}}
+  @scroll-top={{_scrollTop}}
+  @scrollChange={{action "scrollChange"}}
   @clientSizeChange={{action "clientSizeChange"}}
 >
     <li></li>
     {{~#each _cells as |cell|~}}
-      <li onclick={{action 'click'}} style={{{cell.style}}} class={{if (service/exists cell.item) 'linkable' }}>
-        {{yield cell.item cell.index }}
+      <li onclick={{action 'click'}} style={{{cell.style}}} class={{if (service/exists cell.item) 'linkable'}}>
+        <YieldSlot @name="header"><div>{{yield cell.item cell.index checked (action "change")}}</div></YieldSlot>
+        <YieldSlot @name="details"><div>{{yield cell.item cell.index checked (action "change")}}</div></YieldSlot>
+        <YieldSlot @name="actions"><div>{{yield cell.item cell.index checked (action "change")}}</div></YieldSlot>
       </li>
     {{~/each~}}
 </EmberNativeScrollable>

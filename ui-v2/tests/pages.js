@@ -34,6 +34,7 @@ import policySelectorFactory from 'consul-ui/components/policy-selector/pageobje
 import roleFormFactory from 'consul-ui/components/role-form/pageobject';
 import roleSelectorFactory from 'consul-ui/components/role-selector/pageobject';
 import tokenListFactory from 'consul-ui/components/token-list/pageobject';
+import consulTokenListFactory from 'consul-ui/components/consul-token-list/pageobject';
 import consulIntentionListFactory from 'consul-ui/components/consul-intention-list/pageobject';
 
 // pages
@@ -86,6 +87,7 @@ const policySelector = policySelectorFactory(clickable, deletable, collection, a
 const roleForm = roleFormFactory(submitable, cancelable, policySelector);
 const roleSelector = roleSelectorFactory(clickable, deletable, collection, alias, roleForm);
 const consulIntentionList = consulIntentionListFactory(collection, clickable, attribute, deletable);
+const consulTokenList = consulTokenListFactory(collection, clickable, attribute, text, deletable);
 
 const page = pageFactory(clickable, attribute, is, authForm);
 
@@ -131,19 +133,7 @@ export default {
   ),
   // TODO: This needs a policyList
   role: create(role(visitable, submitable, deletable, cancelable, policySelector, tokenList)),
-  tokens: create(
-    tokens(
-      visitable,
-      submitable,
-      deletable,
-      creatable,
-      clickable,
-      attribute,
-      collection,
-      text,
-      freetextFilter
-    )
-  ),
+  tokens: create(tokens(visitable, creatable, text, consulTokenList, freetextFilter)),
   token: create(
     token(visitable, submitable, deletable, cancelable, clickable, policySelector, roleSelector)
   ),
