@@ -19,7 +19,7 @@
         </Tooltip>
       </dd>
     </dl>
-    {{#if (and (env 'CONSUL_NSPACES_ENABLED') (not-eq item.Namespace item.Service.Namespace))}}
+    {{#if (and (env 'CONSUL_NSPACES_ENABLED') (not-eq item.Namespace nspace))}}
       <a data-test-service-name href={{href-to 'nspace.dc.services.show' (concat '~' item.Namespace) dc item.Name }}>
         {{item.Name}}
       </a>
