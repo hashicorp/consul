@@ -27,8 +27,7 @@
   @extend %with-alert-triangle-color-mask, %as-pseudo;
   background-color: $orange-500;
 }
-%composite-row .critical::before,
-%composite-row .failing::before {
+%composite-row .critical::before {
   @extend %with-cancel-square-fill-color-mask, %as-pseudo;
   background-color: $red-500;
 }
