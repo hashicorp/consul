@@ -128,7 +128,7 @@ type AgentMember struct {
 	Addr        string
 	Port        uint16
 	Tags        map[string]string
-	Status      int
+	Status      AgentMemberStatus
 	ProtocolMin uint8
 	ProtocolMax uint8
 	ProtocolCur uint8
@@ -137,7 +137,8 @@ type AgentMember struct {
 	DelegateCur uint8
 }
 
-// AgentMemberStatus corresponds the member status integers to the string status
+// AgentMemberStatus corresponds the member status integers to the string status.
+// The values correspond to those of github.com/hashicorp/serf/serf.MemberStatus.
 type AgentMemberStatus int
 
 const (
