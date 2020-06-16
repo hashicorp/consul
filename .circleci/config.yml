@@ -408,11 +408,12 @@ jobs:
             - ui-v2/node_modules
 
   # build ember so frontend tests run faster
-  ember-build:
+  ember-build-oss: &ember-build-oss
     docker:
       - image: *EMBER_IMAGE
     environment:
       JOBS: 2 # limit parallelism for broccoli-babel-transpiler
+      CONSUL_NSPACES_ENABLED: 0
     steps:
       - checkout
       - restore_cache:
@@ -424,6 +425,13 @@ jobs:
           root: ui-v2
           paths:
             - dist
+
+  # build ember so frontend tests run faster
+  ember-build-ent:
+    <<: *ember-build-oss
+    environment:
+      JOBS: 2 # limit parallelism for broccoli-babel-transpiler
+      CONSUL_NSPACES_ENABLED: 1
 
   # rebuild UI for packaging
   ember-build-prod:
@@ -467,7 +475,7 @@ jobs:
       EMBER_TEST_REPORT: test-results/report-oss.xml #outputs test report for CircleCI test summary
       EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
       CONSUL_NSPACES_ENABLED: 0
-    parallelism: 2
+    parallelism: 4
     steps:
       - checkout
       - restore_cache:
@@ -486,7 +494,7 @@ jobs:
     environment:
       EMBER_TEST_REPORT: test-results/report-ent.xml #outputs test report for CircleCI test summary
       EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
-    parallelism: 2
+    parallelism: 4
     steps:
       - checkout
       - restore_cache:
@@ -709,18 +717,21 @@ workflows:
                 - master
                 - ui-staging
                 - /^ui\/.*/
-      - ember-build:
+      - ember-build-oss:
+          requires:
+            - frontend-cache
+      - ember-build-ent:
           requires:
             - frontend-cache
       - ember-test-oss:
           requires:
-            - ember-build
+            - ember-build-oss
       - ember-test-ent:
           requires:
-            - ember-build
+            - ember-build-ent
       - ember-coverage:
           requires:
-            - ember-build
+            - ember-build-ent
   cherry-pick:
     jobs:
       - cherry-picker:
