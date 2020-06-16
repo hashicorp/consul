@@ -28,8 +28,8 @@ and discovery terminates.
 Create service subsets based on a version metadata and override the defaults:
 
 ```hcl
-Kind           = "service-resolver"
-Name           = "web"
+Kind          = "service-resolver"
+Name          = "web"
 DefaultSubset = "v1"
 Subsets = {
   "v1" = {
@@ -55,8 +55,8 @@ Redirect {
 Enable failover for all subsets:
 
 ```hcl
-Kind            = "service-resolver"
-Name            = "web"
+Kind           = "service-resolver"
+Name           = "web"
 ConnectTimeout = "15s"
 Failover = {
   "*" = {
