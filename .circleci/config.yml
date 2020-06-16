@@ -564,9 +564,12 @@ jobs:
             - ui-v2/node_modules
 
   # build ember so frontend tests run faster
-  ember-build:
+  ember-build-oss: &ember-build-oss
     docker:
       - image: *EMBER_IMAGE
+    environment:
+      JOBS: 2 # limit parallelism for broccoli-babel-transpiler
+      CONSUL_NSPACES_ENABLED: 0
     steps:
       - checkout
       - restore_cache:
@@ -579,12 +582,56 @@ jobs:
           paths:
             - dist
 
+  # build ember so frontend tests run faster
+  ember-build-ent:
+    <<: *ember-build-oss
+    environment:
+      JOBS: 2 # limit parallelism for broccoli-babel-transpiler
+      CONSUL_NSPACES_ENABLED: 1
+
+  # rebuild UI for packaging
+  ember-build-prod:
+    docker:
+      - image: *EMBER_IMAGE
+    environment:
+      JOBS: 2 # limit parallelism for broccoli-babel-transpiler
+    steps:
+      - checkout
+      - restore_cache:
+          key: *YARN_CACHE_KEY
+      - run: cd ui-v2 && make
+
+      # saves the build to a workspace to be passed to a downstream job
+      - persist_to_workspace:
+          root: ui-v2
+          paths:
+            - dist
+
+  # build static-assets file
+  build-static-assets:
+    docker:
+      - image: *GOLANG_IMAGE
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ./pkg
+      - run: mv pkg/dist pkg/web_ui # 'make static-assets' looks for the 'pkg/web_ui' path
+      - run: make tools
+      - run: make static-assets
+      - persist_to_workspace:
+          root: .
+          paths:
+            - ./agent/bindata_assetfs.go
+
   # run ember frontend tests
   ember-test-oss:
     docker:
       - image: *EMBER_IMAGE
     environment:
       EMBER_TEST_REPORT: test-results/report-oss.xml #outputs test report for CircleCI test summary
+      EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
+      CONSUL_NSPACES_ENABLED: 0
+    parallelism: 4
     steps:
       - checkout
       - restore_cache:
@@ -602,6 +649,8 @@ jobs:
       - image: *EMBER_IMAGE
     environment:
       EMBER_TEST_REPORT: test-results/report-ent.xml #outputs test report for CircleCI test summary
+      EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
+    parallelism: 4
     steps:
       - checkout
       - restore_cache:
@@ -794,15 +843,30 @@ workflows:
       - frontend-cache:
           filters:
             branches:
-              ignore:
-                - stable-website
-                - /^docs\/.*/
-      - ember-build:
+              only:
+                - master
+                - ui-staging
+                - /^ui\/.*/
+      - ember-build-oss:
+          requires:
+            - frontend-cache
+      - ember-build-ent:
           requires:
             - frontend-cache
       - ember-test-oss:
           requires:
-            - ember-build
+            - ember-build-oss
       - ember-test-ent:
           requires:
-            - ember-build
+            - ember-build-ent
+      - ember-coverage:
+          requires:
+            - ember-build-ent
+  cherry-pick:
+    jobs:
+      - cherry-picker:
+          context: team-consul
+          filters:
+            branches:
+              only:
+                - master
