@@ -50,7 +50,7 @@ Name = "ingress-service"
 
 Listeners = [
   {
-    Port = 3456
+    Port     = 3456
     Protocol = "tcp"
     Services = [
       {
@@ -75,7 +75,7 @@ TLS {
 
 Listeners = [
   {
-    Port = 8080
+    Port     = 8080
     Protocol = "http"
     Services = [
       {
@@ -84,15 +84,15 @@ Listeners = [
     ]
   },
   {
-    Port = 4567
+    Port     = 4567
     Protocol = "http"
     Services = [
       {
-        Name = "api"
+        Name  = "api"
         Hosts = ["foo.example.com"]
       },
       {
-        Name = "web"
+        Name  = "web"
         Hosts = ["website.example.com"]
       }
     ]
