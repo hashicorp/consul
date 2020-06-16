@@ -226,9 +226,9 @@ var checkTypeHeaderTestCases = []struct {
 		desc: "filled in map",
 		in:   `{"a": ["aa", "aaa"], "b": ["bb", "bbb", "bbbb"], "c": [], "d": ["dd"]}`,
 		want: map[string][]string{
-			"a": []string{"aa", "aaa"},
-			"b": []string{"bb", "bbb", "bbbb"},
-			"d": []string{"dd"},
+			"a": {"aa", "aaa"},
+			"b": {"bb", "bbb", "bbbb"},
+			"d": {"dd"},
 		},
 	},
 	{

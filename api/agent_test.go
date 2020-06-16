@@ -181,7 +181,7 @@ func TestAPI_AgentServiceAndReplaceChecks(t *testing.T) {
 		ID:   "foo",
 		Tags: []string{"bar", "baz"},
 		TaggedAddresses: map[string]ServiceAddress{
-			"lan": ServiceAddress{
+			"lan": {
 				Address: "198.18.0.1",
 				Port:    80,
 			},
@@ -197,7 +197,7 @@ func TestAPI_AgentServiceAndReplaceChecks(t *testing.T) {
 		ID:   "foo",
 		Tags: []string{"bar", "baz"},
 		TaggedAddresses: map[string]ServiceAddress{
-			"lan": ServiceAddress{
+			"lan": {
 				Address: "198.18.0.1",
 				Port:    80,
 			},
@@ -261,7 +261,7 @@ func TestAPI_AgentServices(t *testing.T) {
 		ID:   "foo",
 		Tags: []string{"bar", "baz"},
 		TaggedAddresses: map[string]ServiceAddress{
-			"lan": ServiceAddress{
+			"lan": {
 				Address: "198.18.0.1",
 				Port:    80,
 			},
@@ -555,11 +555,11 @@ func TestAPI_AgentServiceAddress(t *testing.T) {
 		Name: "foo2",
 		Port: 8000,
 		TaggedAddresses: map[string]ServiceAddress{
-			"lan": ServiceAddress{
+			"lan": {
 				Address: "192.168.0.43",
 				Port:    8000,
 			},
-			"wan": ServiceAddress{
+			"wan": {
 				Address: "198.18.0.1",
 				Port:    80,
 			},

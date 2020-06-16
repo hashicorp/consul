@@ -68,13 +68,13 @@ func (a *Agent) initializeACLs() error {
 	policy := &acl.Policy{
 		PolicyRules: acl.PolicyRules{
 			Agents: []*acl.AgentRule{
-				&acl.AgentRule{
+				{
 					Node:   a.config.NodeName,
 					Policy: acl.PolicyWrite,
 				},
 			},
 			NodePrefixes: []*acl.NodeRule{
-				&acl.NodeRule{
+				{
 					Name:   "",
 					Policy: acl.PolicyRead,
 				},

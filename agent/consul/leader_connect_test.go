@@ -1076,7 +1076,7 @@ func TestLeader_batchIntentionUpdates(t *testing.T) {
 		{
 			deletes: structs.Intentions{ixn1},
 			expected: []structs.TxnOps{
-				structs.TxnOps{
+				{
 					&structs.TxnOp{
 						Intention: &structs.TxnIntentionOp{
 							Op:        structs.IntentionOpDelete,
@@ -1090,7 +1090,7 @@ func TestLeader_batchIntentionUpdates(t *testing.T) {
 		{
 			updates: structs.Intentions{ixn1},
 			expected: []structs.TxnOps{
-				structs.TxnOps{
+				{
 					&structs.TxnOp{
 						Intention: &structs.TxnIntentionOp{
 							Op:        structs.IntentionOpUpdate,
@@ -1105,7 +1105,7 @@ func TestLeader_batchIntentionUpdates(t *testing.T) {
 			deletes: structs.Intentions{ixn1},
 			updates: structs.Intentions{ixn2},
 			expected: []structs.TxnOps{
-				structs.TxnOps{
+				{
 					&structs.TxnOp{
 						Intention: &structs.TxnIntentionOp{
 							Op:        structs.IntentionOpDelete,
@@ -1125,7 +1125,7 @@ func TestLeader_batchIntentionUpdates(t *testing.T) {
 		{
 			updates: structs.Intentions{ixnLarge},
 			expected: []structs.TxnOps{
-				structs.TxnOps{
+				{
 					&structs.TxnOp{
 						Intention: &structs.TxnIntentionOp{
 							Op:        structs.IntentionOpUpdate,
@@ -1140,7 +1140,7 @@ func TestLeader_batchIntentionUpdates(t *testing.T) {
 			deletes: structs.Intentions{ixn1, ixnLarge},
 			updates: structs.Intentions{ixn2},
 			expected: []structs.TxnOps{
-				structs.TxnOps{
+				{
 					&structs.TxnOp{
 						Intention: &structs.TxnIntentionOp{
 							Op:        structs.IntentionOpDelete,
@@ -1154,7 +1154,7 @@ func TestLeader_batchIntentionUpdates(t *testing.T) {
 						},
 					},
 				},
-				structs.TxnOps{
+				{
 					&structs.TxnOp{
 						Intention: &structs.TxnIntentionOp{
 							Op:        structs.IntentionOpUpdate,
@@ -1169,7 +1169,7 @@ func TestLeader_batchIntentionUpdates(t *testing.T) {
 			deletes: structs.Intentions{ixn1},
 			updates: structs.Intentions{ixnLarge, ixn2},
 			expected: []structs.TxnOps{
-				structs.TxnOps{
+				{
 					&structs.TxnOp{
 						Intention: &structs.TxnIntentionOp{
 							Op:        structs.IntentionOpDelete,
@@ -1183,7 +1183,7 @@ func TestLeader_batchIntentionUpdates(t *testing.T) {
 						},
 					},
 				},
-				structs.TxnOps{
+				{
 					&structs.TxnOp{
 						Intention: &structs.TxnIntentionOp{
 							Op:        structs.IntentionOpUpdate,

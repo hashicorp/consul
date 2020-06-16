@@ -59,23 +59,23 @@ func TestFormatRole(t *testing.T) {
 				CreateIndex: 5,
 				ModifyIndex: 10,
 				Policies: []*api.ACLLink{
-					&api.ACLLink{
+					{
 						ID:   "beb04680-815b-4d7c-9e33-3d707c24672c",
 						Name: "hobbiton",
 					},
-					&api.ACLLink{
+					{
 						ID:   "18788457-584c-4812-80d3-23d403148a90",
 						Name: "bywater",
 					},
 				},
 				ServiceIdentities: []*api.ACLServiceIdentity{
-					&api.ACLServiceIdentity{
+					{
 						ServiceName: "gardener",
 						Datacenters: []string{"middleearth-northwest"},
 					},
 				},
 				NodeIdentities: []*api.ACLNodeIdentity{
-					&api.ACLNodeIdentity{
+					{
 						NodeName:   "bagend",
 						Datacenter: "middleearth-northwest",
 					},
@@ -120,7 +120,7 @@ func TestFormatTokenList(t *testing.T) {
 	cases := map[string]testCase{
 		"basic": {
 			roles: []*api.ACLRole{
-				&api.ACLRole{
+				{
 					ID:          "bd6c9fb0-2d1a-4b96-acaf-669f5d7e7852",
 					Name:        "basic",
 					Description: "test role",
@@ -132,7 +132,7 @@ func TestFormatTokenList(t *testing.T) {
 		},
 		"complex": {
 			roles: []*api.ACLRole{
-				&api.ACLRole{
+				{
 					ID:          "c29c4ee4-bca6-474e-be37-7d9606f9582a",
 					Name:        "complex",
 					Namespace:   "foo",
@@ -141,23 +141,23 @@ func TestFormatTokenList(t *testing.T) {
 					CreateIndex: 5,
 					ModifyIndex: 10,
 					Policies: []*api.ACLLink{
-						&api.ACLLink{
+						{
 							ID:   "beb04680-815b-4d7c-9e33-3d707c24672c",
 							Name: "hobbiton",
 						},
-						&api.ACLLink{
+						{
 							ID:   "18788457-584c-4812-80d3-23d403148a90",
 							Name: "bywater",
 						},
 					},
 					ServiceIdentities: []*api.ACLServiceIdentity{
-						&api.ACLServiceIdentity{
+						{
 							ServiceName: "gardener",
 							Datacenters: []string{"middleearth-northwest"},
 						},
 					},
 					NodeIdentities: []*api.ACLNodeIdentity{
-						&api.ACLNodeIdentity{
+						{
 							NodeName:   "bagend",
 							Datacenter: "middleearth-northwest",
 						},

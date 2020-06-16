@@ -89,93 +89,93 @@ func TestPolicySourceParse(t *testing.T) {
 				`}                  `),
 			&Policy{PolicyRules: PolicyRules{
 				AgentPrefixes: []*AgentRule{
-					&AgentRule{
+					{
 						Node:   "foo",
 						Policy: PolicyRead,
 					},
-					&AgentRule{
+					{
 						Node:   "bar",
 						Policy: PolicyWrite,
 					},
 				},
 				EventPrefixes: []*EventRule{
-					&EventRule{
+					{
 						Event:  "",
 						Policy: PolicyRead,
 					},
-					&EventRule{
+					{
 						Event:  "foo",
 						Policy: PolicyWrite,
 					},
-					&EventRule{
+					{
 						Event:  "bar",
 						Policy: PolicyDeny,
 					},
 				},
 				Keyring: PolicyDeny,
 				KeyPrefixes: []*KeyRule{
-					&KeyRule{
+					{
 						Prefix: "",
 						Policy: PolicyRead,
 					},
-					&KeyRule{
+					{
 						Prefix: "foo/",
 						Policy: PolicyWrite,
 					},
-					&KeyRule{
+					{
 						Prefix: "foo/bar/",
 						Policy: PolicyRead,
 					},
-					&KeyRule{
+					{
 						Prefix: "foo/bar/baz",
 						Policy: PolicyDeny,
 					},
 				},
 				NodePrefixes: []*NodeRule{
-					&NodeRule{
+					{
 						Name:   "",
 						Policy: PolicyRead,
 					},
-					&NodeRule{
+					{
 						Name:   "foo",
 						Policy: PolicyWrite,
 					},
-					&NodeRule{
+					{
 						Name:   "bar",
 						Policy: PolicyDeny,
 					},
 				},
 				Operator: PolicyDeny,
 				PreparedQueryPrefixes: []*PreparedQueryRule{
-					&PreparedQueryRule{
+					{
 						Prefix: "",
 						Policy: PolicyRead,
 					},
-					&PreparedQueryRule{
+					{
 						Prefix: "foo",
 						Policy: PolicyWrite,
 					},
-					&PreparedQueryRule{
+					{
 						Prefix: "bar",
 						Policy: PolicyDeny,
 					},
 				},
 				ServicePrefixes: []*ServiceRule{
-					&ServiceRule{
+					{
 						Name:   "",
 						Policy: PolicyWrite,
 					},
-					&ServiceRule{
+					{
 						Name:   "foo",
 						Policy: PolicyRead,
 					},
 				},
 				SessionPrefixes: []*SessionRule{
-					&SessionRule{
+					{
 						Node:   "foo",
 						Policy: PolicyWrite,
 					},
-					&SessionRule{
+					{
 						Node:   "bar",
 						Policy: PolicyDeny,
 					},
@@ -264,93 +264,93 @@ func TestPolicySourceParse(t *testing.T) {
 				`}                         `),
 			&Policy{PolicyRules: PolicyRules{
 				AgentPrefixes: []*AgentRule{
-					&AgentRule{
+					{
 						Node:   "foo",
 						Policy: PolicyWrite,
 					},
-					&AgentRule{
+					{
 						Node:   "bar",
 						Policy: PolicyDeny,
 					},
 				},
 				EventPrefixes: []*EventRule{
-					&EventRule{
+					{
 						Event:  "",
 						Policy: PolicyRead,
 					},
-					&EventRule{
+					{
 						Event:  "foo",
 						Policy: PolicyWrite,
 					},
-					&EventRule{
+					{
 						Event:  "bar",
 						Policy: PolicyDeny,
 					},
 				},
 				Keyring: PolicyDeny,
 				KeyPrefixes: []*KeyRule{
-					&KeyRule{
+					{
 						Prefix: "",
 						Policy: PolicyRead,
 					},
-					&KeyRule{
+					{
 						Prefix: "foo/",
 						Policy: PolicyWrite,
 					},
-					&KeyRule{
+					{
 						Prefix: "foo/bar/",
 						Policy: PolicyRead,
 					},
-					&KeyRule{
+					{
 						Prefix: "foo/bar/baz",
 						Policy: PolicyDeny,
 					},
 				},
 				NodePrefixes: []*NodeRule{
-					&NodeRule{
+					{
 						Name:   "",
 						Policy: PolicyRead,
 					},
-					&NodeRule{
+					{
 						Name:   "foo",
 						Policy: PolicyWrite,
 					},
-					&NodeRule{
+					{
 						Name:   "bar",
 						Policy: PolicyDeny,
 					},
 				},
 				Operator: PolicyDeny,
 				PreparedQueryPrefixes: []*PreparedQueryRule{
-					&PreparedQueryRule{
+					{
 						Prefix: "",
 						Policy: PolicyRead,
 					},
-					&PreparedQueryRule{
+					{
 						Prefix: "foo",
 						Policy: PolicyWrite,
 					},
-					&PreparedQueryRule{
+					{
 						Prefix: "bar",
 						Policy: PolicyDeny,
 					},
 				},
 				ServicePrefixes: []*ServiceRule{
-					&ServiceRule{
+					{
 						Name:   "",
 						Policy: PolicyWrite,
 					},
-					&ServiceRule{
+					{
 						Name:   "foo",
 						Policy: PolicyRead,
 					},
 				},
 				SessionPrefixes: []*SessionRule{
-					&SessionRule{
+					{
 						Node:   "foo",
 						Policy: PolicyWrite,
 					},
-					&SessionRule{
+					{
 						Node:   "bar",
 						Policy: PolicyDeny,
 					},
@@ -565,53 +565,53 @@ func TestMergePolicies(t *testing.T) {
 		{
 			name: "Agents",
 			input: []*Policy{
-				&Policy{PolicyRules: PolicyRules{
+				{PolicyRules: PolicyRules{
 					Agents: []*AgentRule{
-						&AgentRule{
+						{
 							Node:   "foo",
 							Policy: PolicyWrite,
 						},
-						&AgentRule{
+						{
 							Node:   "bar",
 							Policy: PolicyRead,
 						},
-						&AgentRule{
+						{
 							Node:   "baz",
 							Policy: PolicyWrite,
 						},
 					},
 					AgentPrefixes: []*AgentRule{
-						&AgentRule{
+						{
 							Node:   "000",
 							Policy: PolicyWrite,
 						},
-						&AgentRule{
+						{
 							Node:   "111",
 							Policy: PolicyRead,
 						},
-						&AgentRule{
+						{
 							Node:   "222",
 							Policy: PolicyWrite,
 						},
 					},
 				}},
-				&Policy{PolicyRules: PolicyRules{
+				{PolicyRules: PolicyRules{
 					Agents: []*AgentRule{
-						&AgentRule{
+						{
 							Node:   "foo",
 							Policy: PolicyRead,
 						},
-						&AgentRule{
+						{
 							Node:   "baz",
 							Policy: PolicyDeny,
 						},
 					},
 					AgentPrefixes: []*AgentRule{
-						&AgentRule{
+						{
 							Node:   "000",
 							Policy: PolicyRead,
 						},
-						&AgentRule{
+						{
 							Node:   "222",
 							Policy: PolicyDeny,
 						},
@@ -620,29 +620,29 @@ func TestMergePolicies(t *testing.T) {
 				}},
 			expected: &Policy{PolicyRules: PolicyRules{
 				Agents: []*AgentRule{
-					&AgentRule{
+					{
 						Node:   "foo",
 						Policy: PolicyWrite,
 					},
-					&AgentRule{
+					{
 						Node:   "bar",
 						Policy: PolicyRead,
 					},
-					&AgentRule{
+					{
 						Node:   "baz",
 						Policy: PolicyDeny,
 					},
 				},
 				AgentPrefixes: []*AgentRule{
-					&AgentRule{
+					{
 						Node:   "000",
 						Policy: PolicyWrite,
 					},
-					&AgentRule{
+					{
 						Node:   "111",
 						Policy: PolicyRead,
 					},
-					&AgentRule{
+					{
 						Node:   "222",
 						Policy: PolicyDeny,
 					},
@@ -652,53 +652,53 @@ func TestMergePolicies(t *testing.T) {
 		{
 			name: "Events",
 			input: []*Policy{
-				&Policy{PolicyRules: PolicyRules{
+				{PolicyRules: PolicyRules{
 					Events: []*EventRule{
-						&EventRule{
+						{
 							Event:  "foo",
 							Policy: PolicyWrite,
 						},
-						&EventRule{
+						{
 							Event:  "bar",
 							Policy: PolicyRead,
 						},
-						&EventRule{
+						{
 							Event:  "baz",
 							Policy: PolicyWrite,
 						},
 					},
 					EventPrefixes: []*EventRule{
-						&EventRule{
+						{
 							Event:  "000",
 							Policy: PolicyWrite,
 						},
-						&EventRule{
+						{
 							Event:  "111",
 							Policy: PolicyRead,
 						},
-						&EventRule{
+						{
 							Event:  "222",
 							Policy: PolicyWrite,
 						},
 					},
 				}},
-				&Policy{PolicyRules: PolicyRules{
+				{PolicyRules: PolicyRules{
 					Events: []*EventRule{
-						&EventRule{
+						{
 							Event:  "foo",
 							Policy: PolicyRead,
 						},
-						&EventRule{
+						{
 							Event:  "baz",
 							Policy: PolicyDeny,
 						},
 					},
 					EventPrefixes: []*EventRule{
-						&EventRule{
+						{
 							Event:  "000",
 							Policy: PolicyRead,
 						},
-						&EventRule{
+						{
 							Event:  "222",
 							Policy: PolicyDeny,
 						},
@@ -707,29 +707,29 @@ func TestMergePolicies(t *testing.T) {
 			},
 			expected: &Policy{PolicyRules: PolicyRules{
 				Events: []*EventRule{
-					&EventRule{
+					{
 						Event:  "foo",
 						Policy: PolicyWrite,
 					},
-					&EventRule{
+					{
 						Event:  "bar",
 						Policy: PolicyRead,
 					},
-					&EventRule{
+					{
 						Event:  "baz",
 						Policy: PolicyDeny,
 					},
 				},
 				EventPrefixes: []*EventRule{
-					&EventRule{
+					{
 						Event:  "000",
 						Policy: PolicyWrite,
 					},
-					&EventRule{
+					{
 						Event:  "111",
 						Policy: PolicyRead,
 					},
-					&EventRule{
+					{
 						Event:  "222",
 						Policy: PolicyDeny,
 					},
@@ -739,53 +739,53 @@ func TestMergePolicies(t *testing.T) {
 		{
 			name: "Node",
 			input: []*Policy{
-				&Policy{PolicyRules: PolicyRules{
+				{PolicyRules: PolicyRules{
 					Nodes: []*NodeRule{
-						&NodeRule{
+						{
 							Name:   "foo",
 							Policy: PolicyWrite,
 						},
-						&NodeRule{
+						{
 							Name:   "bar",
 							Policy: PolicyRead,
 						},
-						&NodeRule{
+						{
 							Name:   "baz",
 							Policy: PolicyWrite,
 						},
 					},
 					NodePrefixes: []*NodeRule{
-						&NodeRule{
+						{
 							Name:   "000",
 							Policy: PolicyWrite,
 						},
-						&NodeRule{
+						{
 							Name:   "111",
 							Policy: PolicyRead,
 						},
-						&NodeRule{
+						{
 							Name:   "222",
 							Policy: PolicyWrite,
 						},
 					},
 				}},
-				&Policy{PolicyRules: PolicyRules{
+				{PolicyRules: PolicyRules{
 					Nodes: []*NodeRule{
-						&NodeRule{
+						{
 							Name:   "foo",
 							Policy: PolicyRead,
 						},
-						&NodeRule{
+						{
 							Name:   "baz",
 							Policy: PolicyDeny,
 						},
 					},
 					NodePrefixes: []*NodeRule{
-						&NodeRule{
+						{
 							Name:   "000",
 							Policy: PolicyRead,
 						},
-						&NodeRule{
+						{
 							Name:   "222",
 							Policy: PolicyDeny,
 						},
@@ -794,29 +794,29 @@ func TestMergePolicies(t *testing.T) {
 				}},
 			expected: &Policy{PolicyRules: PolicyRules{
 				Nodes: []*NodeRule{
-					&NodeRule{
+					{
 						Name:   "foo",
 						Policy: PolicyWrite,
 					},
-					&NodeRule{
+					{
 						Name:   "bar",
 						Policy: PolicyRead,
 					},
-					&NodeRule{
+					{
 						Name:   "baz",
 						Policy: PolicyDeny,
 					},
 				},
 				NodePrefixes: []*NodeRule{
-					&NodeRule{
+					{
 						Name:   "000",
 						Policy: PolicyWrite,
 					},
-					&NodeRule{
+					{
 						Name:   "111",
 						Policy: PolicyRead,
 					},
-					&NodeRule{
+					{
 						Name:   "222",
 						Policy: PolicyDeny,
 					},
@@ -826,69 +826,69 @@ func TestMergePolicies(t *testing.T) {
 		{
 			name: "Keys",
 			input: []*Policy{
-				&Policy{PolicyRules: PolicyRules{
+				{PolicyRules: PolicyRules{
 					Keys: []*KeyRule{
-						&KeyRule{
+						{
 							Prefix: "foo",
 							Policy: PolicyWrite,
 						},
-						&KeyRule{
+						{
 							Prefix: "bar",
 							Policy: PolicyRead,
 						},
-						&KeyRule{
+						{
 							Prefix: "baz",
 							Policy: PolicyWrite,
 						},
-						&KeyRule{
+						{
 							Prefix: "zoo",
 							Policy: PolicyList,
 						},
 					},
 					KeyPrefixes: []*KeyRule{
-						&KeyRule{
+						{
 							Prefix: "000",
 							Policy: PolicyWrite,
 						},
-						&KeyRule{
+						{
 							Prefix: "111",
 							Policy: PolicyRead,
 						},
-						&KeyRule{
+						{
 							Prefix: "222",
 							Policy: PolicyWrite,
 						},
-						&KeyRule{
+						{
 							Prefix: "333",
 							Policy: PolicyList,
 						},
 					},
 				}},
-				&Policy{PolicyRules: PolicyRules{
+				{PolicyRules: PolicyRules{
 					Keys: []*KeyRule{
-						&KeyRule{
+						{
 							Prefix: "foo",
 							Policy: PolicyRead,
 						},
-						&KeyRule{
+						{
 							Prefix: "baz",
 							Policy: PolicyDeny,
 						},
-						&KeyRule{
+						{
 							Prefix: "zoo",
 							Policy: PolicyRead,
 						},
 					},
 					KeyPrefixes: []*KeyRule{
-						&KeyRule{
+						{
 							Prefix: "000",
 							Policy: PolicyRead,
 						},
-						&KeyRule{
+						{
 							Prefix: "222",
 							Policy: PolicyDeny,
 						},
-						&KeyRule{
+						{
 							Prefix: "333",
 							Policy: PolicyRead,
 						},
@@ -897,37 +897,37 @@ func TestMergePolicies(t *testing.T) {
 			},
 			expected: &Policy{PolicyRules: PolicyRules{
 				Keys: []*KeyRule{
-					&KeyRule{
+					{
 						Prefix: "foo",
 						Policy: PolicyWrite,
 					},
-					&KeyRule{
+					{
 						Prefix: "bar",
 						Policy: PolicyRead,
 					},
-					&KeyRule{
+					{
 						Prefix: "baz",
 						Policy: PolicyDeny,
 					},
-					&KeyRule{
+					{
 						Prefix: "zoo",
 						Policy: PolicyList,
 					},
 				},
 				KeyPrefixes: []*KeyRule{
-					&KeyRule{
+					{
 						Prefix: "000",
 						Policy: PolicyWrite,
 					},
-					&KeyRule{
+					{
 						Prefix: "111",
 						Policy: PolicyRead,
 					},
-					&KeyRule{
+					{
 						Prefix: "222",
 						Policy: PolicyDeny,
 					},
-					&KeyRule{
+					{
 						Prefix: "333",
 						Policy: PolicyList,
 					},
@@ -937,62 +937,62 @@ func TestMergePolicies(t *testing.T) {
 		{
 			name: "Services",
 			input: []*Policy{
-				&Policy{PolicyRules: PolicyRules{
+				{PolicyRules: PolicyRules{
 					Services: []*ServiceRule{
-						&ServiceRule{
+						{
 							Name:       "foo",
 							Policy:     PolicyWrite,
 							Intentions: PolicyWrite,
 						},
-						&ServiceRule{
+						{
 							Name:       "bar",
 							Policy:     PolicyRead,
 							Intentions: PolicyRead,
 						},
-						&ServiceRule{
+						{
 							Name:       "baz",
 							Policy:     PolicyWrite,
 							Intentions: PolicyWrite,
 						},
 					},
 					ServicePrefixes: []*ServiceRule{
-						&ServiceRule{
+						{
 							Name:       "000",
 							Policy:     PolicyWrite,
 							Intentions: PolicyWrite,
 						},
-						&ServiceRule{
+						{
 							Name:       "111",
 							Policy:     PolicyRead,
 							Intentions: PolicyRead,
 						},
-						&ServiceRule{
+						{
 							Name:       "222",
 							Policy:     PolicyWrite,
 							Intentions: PolicyWrite,
 						},
 					},
 				}},
-				&Policy{PolicyRules: PolicyRules{
+				{PolicyRules: PolicyRules{
 					Services: []*ServiceRule{
-						&ServiceRule{
+						{
 							Name:       "foo",
 							Policy:     PolicyRead,
 							Intentions: PolicyRead,
 						},
-						&ServiceRule{
+						{
 							Name:       "baz",
 							Policy:     PolicyDeny,
 							Intentions: PolicyDeny,
 						},
 					},
 					ServicePrefixes: []*ServiceRule{
-						&ServiceRule{
+						{
 							Name:       "000",
 							Policy:     PolicyRead,
 							Intentions: PolicyRead,
 						},
-						&ServiceRule{
+						{
 							Name:       "222",
 							Policy:     PolicyDeny,
 							Intentions: PolicyDeny,
@@ -1002,34 +1002,34 @@ func TestMergePolicies(t *testing.T) {
 			},
 			expected: &Policy{PolicyRules: PolicyRules{
 				Services: []*ServiceRule{
-					&ServiceRule{
+					{
 						Name:       "foo",
 						Policy:     PolicyWrite,
 						Intentions: PolicyWrite,
 					},
-					&ServiceRule{
+					{
 						Name:       "bar",
 						Policy:     PolicyRead,
 						Intentions: PolicyRead,
 					},
-					&ServiceRule{
+					{
 						Name:       "baz",
 						Policy:     PolicyDeny,
 						Intentions: PolicyDeny,
 					},
 				},
 				ServicePrefixes: []*ServiceRule{
-					&ServiceRule{
+					{
 						Name:       "000",
 						Policy:     PolicyWrite,
 						Intentions: PolicyWrite,
 					},
-					&ServiceRule{
+					{
 						Name:       "111",
 						Policy:     PolicyRead,
 						Intentions: PolicyRead,
 					},
-					&ServiceRule{
+					{
 						Name:       "222",
 						Policy:     PolicyDeny,
 						Intentions: PolicyDeny,
@@ -1040,53 +1040,53 @@ func TestMergePolicies(t *testing.T) {
 		{
 			name: "Sessions",
 			input: []*Policy{
-				&Policy{PolicyRules: PolicyRules{
+				{PolicyRules: PolicyRules{
 					Sessions: []*SessionRule{
-						&SessionRule{
+						{
 							Node:   "foo",
 							Policy: PolicyWrite,
 						},
-						&SessionRule{
+						{
 							Node:   "bar",
 							Policy: PolicyRead,
 						},
-						&SessionRule{
+						{
 							Node:   "baz",
 							Policy: PolicyWrite,
 						},
 					},
 					SessionPrefixes: []*SessionRule{
-						&SessionRule{
+						{
 							Node:   "000",
 							Policy: PolicyWrite,
 						},
-						&SessionRule{
+						{
 							Node:   "111",
 							Policy: PolicyRead,
 						},
-						&SessionRule{
+						{
 							Node:   "222",
 							Policy: PolicyWrite,
 						},
 					},
 				}},
-				&Policy{PolicyRules: PolicyRules{
+				{PolicyRules: PolicyRules{
 					Sessions: []*SessionRule{
-						&SessionRule{
+						{
 							Node:   "foo",
 							Policy: PolicyRead,
 						},
-						&SessionRule{
+						{
 							Node:   "baz",
 							Policy: PolicyDeny,
 						},
 					},
 					SessionPrefixes: []*SessionRule{
-						&SessionRule{
+						{
 							Node:   "000",
 							Policy: PolicyRead,
 						},
-						&SessionRule{
+						{
 							Node:   "222",
 							Policy: PolicyDeny,
 						},
@@ -1095,29 +1095,29 @@ func TestMergePolicies(t *testing.T) {
 			},
 			expected: &Policy{PolicyRules: PolicyRules{
 				Sessions: []*SessionRule{
-					&SessionRule{
+					{
 						Node:   "foo",
 						Policy: PolicyWrite,
 					},
-					&SessionRule{
+					{
 						Node:   "bar",
 						Policy: PolicyRead,
 					},
-					&SessionRule{
+					{
 						Node:   "baz",
 						Policy: PolicyDeny,
 					},
 				},
 				SessionPrefixes: []*SessionRule{
-					&SessionRule{
+					{
 						Node:   "000",
 						Policy: PolicyWrite,
 					},
-					&SessionRule{
+					{
 						Node:   "111",
 						Policy: PolicyRead,
 					},
-					&SessionRule{
+					{
 						Node:   "222",
 						Policy: PolicyDeny,
 					},
@@ -1127,53 +1127,53 @@ func TestMergePolicies(t *testing.T) {
 		{
 			name: "Prepared Queries",
 			input: []*Policy{
-				&Policy{PolicyRules: PolicyRules{
+				{PolicyRules: PolicyRules{
 					PreparedQueries: []*PreparedQueryRule{
-						&PreparedQueryRule{
+						{
 							Prefix: "foo",
 							Policy: PolicyWrite,
 						},
-						&PreparedQueryRule{
+						{
 							Prefix: "bar",
 							Policy: PolicyRead,
 						},
-						&PreparedQueryRule{
+						{
 							Prefix: "baz",
 							Policy: PolicyWrite,
 						},
 					},
 					PreparedQueryPrefixes: []*PreparedQueryRule{
-						&PreparedQueryRule{
+						{
 							Prefix: "000",
 							Policy: PolicyWrite,
 						},
-						&PreparedQueryRule{
+						{
 							Prefix: "111",
 							Policy: PolicyRead,
 						},
-						&PreparedQueryRule{
+						{
 							Prefix: "222",
 							Policy: PolicyWrite,
 						},
 					},
 				}},
-				&Policy{PolicyRules: PolicyRules{
+				{PolicyRules: PolicyRules{
 					PreparedQueries: []*PreparedQueryRule{
-						&PreparedQueryRule{
+						{
 							Prefix: "foo",
 							Policy: PolicyRead,
 						},
-						&PreparedQueryRule{
+						{
 							Prefix: "baz",
 							Policy: PolicyDeny,
 						},
 					},
 					PreparedQueryPrefixes: []*PreparedQueryRule{
-						&PreparedQueryRule{
+						{
 							Prefix: "000",
 							Policy: PolicyRead,
 						},
-						&PreparedQueryRule{
+						{
 							Prefix: "222",
 							Policy: PolicyDeny,
 						},
@@ -1182,29 +1182,29 @@ func TestMergePolicies(t *testing.T) {
 			},
 			expected: &Policy{PolicyRules: PolicyRules{
 				PreparedQueries: []*PreparedQueryRule{
-					&PreparedQueryRule{
+					{
 						Prefix: "foo",
 						Policy: PolicyWrite,
 					},
-					&PreparedQueryRule{
+					{
 						Prefix: "bar",
 						Policy: PolicyRead,
 					},
-					&PreparedQueryRule{
+					{
 						Prefix: "baz",
 						Policy: PolicyDeny,
 					},
 				},
 				PreparedQueryPrefixes: []*PreparedQueryRule{
-					&PreparedQueryRule{
+					{
 						Prefix: "000",
 						Policy: PolicyWrite,
 					},
-					&PreparedQueryRule{
+					{
 						Prefix: "111",
 						Policy: PolicyRead,
 					},
-					&PreparedQueryRule{
+					{
 						Prefix: "222",
 						Policy: PolicyDeny,
 					},
@@ -1214,12 +1214,12 @@ func TestMergePolicies(t *testing.T) {
 		{
 			name: "Write Precedence",
 			input: []*Policy{
-				&Policy{PolicyRules: PolicyRules{
+				{PolicyRules: PolicyRules{
 					ACL:      PolicyRead,
 					Keyring:  PolicyRead,
 					Operator: PolicyRead,
 				}},
-				&Policy{PolicyRules: PolicyRules{
+				{PolicyRules: PolicyRules{
 					ACL:      PolicyWrite,
 					Keyring:  PolicyWrite,
 					Operator: PolicyWrite,
@@ -1234,12 +1234,12 @@ func TestMergePolicies(t *testing.T) {
 		{
 			name: "Deny Precedence",
 			input: []*Policy{
-				&Policy{PolicyRules: PolicyRules{
+				{PolicyRules: PolicyRules{
 					ACL:      PolicyWrite,
 					Keyring:  PolicyWrite,
 					Operator: PolicyWrite,
 				}},
-				&Policy{PolicyRules: PolicyRules{
+				{PolicyRules: PolicyRules{
 					ACL:      PolicyDeny,
 					Keyring:  PolicyDeny,
 					Operator: PolicyDeny,
@@ -1254,12 +1254,12 @@ func TestMergePolicies(t *testing.T) {
 		{
 			name: "Read Precedence",
 			input: []*Policy{
-				&Policy{PolicyRules: PolicyRules{
+				{PolicyRules: PolicyRules{
 					ACL:      PolicyRead,
 					Keyring:  PolicyRead,
 					Operator: PolicyRead,
 				}},
-				&Policy{},
+				{},
 			},
 			expected: &Policy{PolicyRules: PolicyRules{
 				ACL:      PolicyRead,

@@ -1414,7 +1414,7 @@ func (f *aclFilter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) {
 func (f *aclFilter) filterDatacenterCheckServiceNodes(datacenterNodes *map[string]structs.CheckServiceNodes) {
 	dn := *datacenterNodes
 	out := make(map[string]structs.CheckServiceNodes)
-	for dc, _ := range dn {
+	for dc := range dn {
 		nodes := dn[dc]
 		f.filterCheckServiceNodes(&nodes)
 		if len(nodes) > 0 {

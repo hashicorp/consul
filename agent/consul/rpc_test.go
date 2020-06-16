@@ -837,7 +837,7 @@ func TestRPC_LocalTokenStrippedOnForward(t *testing.T) {
 			ACLToken: structs.ACLToken{
 				AccessorID: structs.ACLTokenAnonymousID,
 				Policies: []structs.ACLTokenPolicyLink{
-					structs.ACLTokenPolicyLink{
+					{
 						ID: kvPolicy.ID,
 					},
 				},

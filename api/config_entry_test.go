@@ -655,24 +655,24 @@ func TestDecodeConfigEntry(t *testing.T) {
 					Enabled: true,
 				},
 				Listeners: []IngressListener{
-					IngressListener{
+					{
 						Port:     8080,
 						Protocol: "http",
 						Services: []IngressService{
-							IngressService{
+							{
 								Name:      "web",
 								Namespace: "foo",
 							},
-							IngressService{
+							{
 								Name: "db",
 							},
 						},
 					},
-					IngressListener{
+					{
 						Port:     9999,
 						Protocol: "tcp",
 						Services: []IngressService{
-							IngressService{
+							{
 								Name: "mysql",
 							},
 						},

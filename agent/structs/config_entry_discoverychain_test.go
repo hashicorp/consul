@@ -114,10 +114,10 @@ func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 					"bar": {OnlyPassing: true},
 				},
 				Failover: map[string]ServiceResolverFailover{
-					"foo": ServiceResolverFailover{
+					"foo": {
 						Service: "other1",
 					},
-					"bar": ServiceResolverFailover{
+					"bar": {
 						Service: "other2",
 					},
 				},
@@ -372,7 +372,7 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				Failover: map[string]ServiceResolverFailover{
-					"*": ServiceResolverFailover{
+					"*": {
 						Datacenters: []string{"dc2"},
 					},
 				},
@@ -384,7 +384,7 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				Failover: map[string]ServiceResolverFailover{
-					"gone": ServiceResolverFailover{
+					"gone": {
 						Datacenters: []string{"dc2"},
 					},
 				},
@@ -400,7 +400,7 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 					"v1": {Filter: "Service.Meta.version == v1"},
 				},
 				Failover: map[string]ServiceResolverFailover{
-					"v1": ServiceResolverFailover{
+					"v1": {
 						Datacenters: []string{"dc2"},
 					},
 				},
@@ -415,7 +415,7 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 					"v1": {Filter: "Service.Meta.version == v1"},
 				},
 				Failover: map[string]ServiceResolverFailover{
-					"v1": ServiceResolverFailover{},
+					"v1": {},
 				},
 			},
 			validateErr: `Bad Failover["v1"] one of Service, ServiceSubset, Namespace, or Datacenters is required`,
@@ -429,7 +429,7 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 					"v1": {Filter: "Service.Meta.version == v1"},
 				},
 				Failover: map[string]ServiceResolverFailover{
-					"v1": ServiceResolverFailover{
+					"v1": {
 						Service:       "test",
 						ServiceSubset: "gone",
 					},
@@ -447,7 +447,7 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 					"v2": {Filter: "Service.Meta.version == v2"},
 				},
 				Failover: map[string]ServiceResolverFailover{
-					"v1": ServiceResolverFailover{
+					"v1": {
 						Service:       "test",
 						ServiceSubset: "v2",
 					},
@@ -460,7 +460,7 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				Failover: map[string]ServiceResolverFailover{
-					"*": ServiceResolverFailover{
+					"*": {
 						Service:     "backup",
 						Datacenters: []string{"", "dc2", "dc3"},
 					},

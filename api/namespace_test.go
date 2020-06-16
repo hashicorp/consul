@@ -25,7 +25,7 @@ func TestAPI_Namespaces(t *testing.T) {
 	nsRole, _, err := acl.RoleCreate(&ACLRole{
 		Name: "ns-role",
 		Policies: []*ACLRolePolicyLink{
-			&ACLRolePolicyLink{
+			{
 				ID: nsPolicy.ID,
 			},
 		},
@@ -61,10 +61,10 @@ func TestAPI_Namespaces(t *testing.T) {
 			Description: "This namespace has ACL config attached",
 			ACLs: &NamespaceACLConfig{
 				PolicyDefaults: []ACLLink{
-					ACLLink{ID: nsPolicy.ID},
+					{ID: nsPolicy.ID},
 				},
 				RoleDefaults: []ACLLink{
-					ACLLink{ID: nsRole.ID},
+					{ID: nsRole.ID},
 				},
 			},
 		}, nil)

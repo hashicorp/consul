@@ -16,13 +16,13 @@ func sessionsTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: "sessions",
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
 				Indexer:      sessionIndexer(),
 			},
-			"node": &memdb.IndexSchema{
+			"node": {
 				Name:         "node",
 				AllowMissing: false,
 				Unique:       false,
@@ -38,7 +38,7 @@ func sessionChecksTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: "session_checks",
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
@@ -55,13 +55,13 @@ func sessionChecksTableSchema() *memdb.TableSchema {
 					},
 				},
 			},
-			"node_check": &memdb.IndexSchema{
+			"node_check": {
 				Name:         "node_check",
 				AllowMissing: false,
 				Unique:       false,
 				Indexer:      nodeChecksIndexer(),
 			},
-			"session": &memdb.IndexSchema{
+			"session": {
 				Name:         "session",
 				AllowMissing: false,
 				Unique:       false,

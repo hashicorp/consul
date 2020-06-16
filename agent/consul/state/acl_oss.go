@@ -17,7 +17,7 @@ func tokensTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: "acl-tokens",
 		Indexes: map[string]*memdb.IndexSchema{
-			"accessor": &memdb.IndexSchema{
+			"accessor": {
 				Name: "accessor",
 				// DEPRECATED (ACL-Legacy-Compat) - we should not AllowMissing here once legacy compat is removed
 				AllowMissing: true,
@@ -26,7 +26,7 @@ func tokensTableSchema() *memdb.TableSchema {
 					Field: "AccessorID",
 				},
 			},
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
@@ -35,20 +35,20 @@ func tokensTableSchema() *memdb.TableSchema {
 					Lowercase: false,
 				},
 			},
-			"policies": &memdb.IndexSchema{
+			"policies": {
 				Name: "policies",
 				// Need to allow missing for the anonymous token
 				AllowMissing: true,
 				Unique:       false,
 				Indexer:      &TokenPoliciesIndex{},
 			},
-			"roles": &memdb.IndexSchema{
+			"roles": {
 				Name:         "roles",
 				AllowMissing: true,
 				Unique:       false,
 				Indexer:      &TokenRolesIndex{},
 			},
-			"authmethod": &memdb.IndexSchema{
+			"authmethod": {
 				Name:         "authmethod",
 				AllowMissing: true,
 				Unique:       false,
@@ -57,7 +57,7 @@ func tokensTableSchema() *memdb.TableSchema {
 					Lowercase: false,
 				},
 			},
-			"local": &memdb.IndexSchema{
+			"local": {
 				Name:         "local",
 				AllowMissing: false,
 				Unique:       false,
@@ -85,7 +85,7 @@ func tokensTableSchema() *memdb.TableSchema {
 
 			//DEPRECATED (ACL-Legacy-Compat) - This index is only needed while we support upgrading v1 to v2 acls
 			// This table indexes all the ACL tokens that do not have an AccessorID
-			"needs-upgrade": &memdb.IndexSchema{
+			"needs-upgrade": {
 				Name:         "needs-upgrade",
 				AllowMissing: false,
 				Unique:       false,
@@ -106,7 +106,7 @@ func policiesTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: "acl-policies",
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
@@ -114,7 +114,7 @@ func policiesTableSchema() *memdb.TableSchema {
 					Field: "ID",
 				},
 			},
-			"name": &memdb.IndexSchema{
+			"name": {
 				Name:         "name",
 				AllowMissing: false,
 				Unique:       true,
@@ -132,7 +132,7 @@ func rolesTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: "acl-roles",
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
@@ -140,7 +140,7 @@ func rolesTableSchema() *memdb.TableSchema {
 					Field: "ID",
 				},
 			},
-			"name": &memdb.IndexSchema{
+			"name": {
 				Name:         "name",
 				AllowMissing: false,
 				Unique:       true,
@@ -149,7 +149,7 @@ func rolesTableSchema() *memdb.TableSchema {
 					Lowercase: true,
 				},
 			},
-			"policies": &memdb.IndexSchema{
+			"policies": {
 				Name: "policies",
 				// Need to allow missing for the anonymous token
 				AllowMissing: true,
@@ -164,7 +164,7 @@ func bindingRulesTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: "acl-binding-rules",
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
@@ -172,7 +172,7 @@ func bindingRulesTableSchema() *memdb.TableSchema {
 					Field: "ID",
 				},
 			},
-			"authmethod": &memdb.IndexSchema{
+			"authmethod": {
 				Name:         "authmethod",
 				AllowMissing: false,
 				Unique:       false,
@@ -189,7 +189,7 @@ func authMethodsTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: "acl-auth-methods",
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,

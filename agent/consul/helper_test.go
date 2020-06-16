@@ -211,7 +211,7 @@ func registerTestCatalogEntries(t *testing.T, codec rpc.ClientCodec) {
 
 	// prep the cluster with some data we can use in our filters
 	registrations := map[string]*structs.RegisterRequest{
-		"Node foo": &structs.RegisterRequest{
+		"Node foo": {
 			Datacenter: "dc1",
 			Node:       "foo",
 			ID:         types.NodeID("e0155642-135d-4739-9853-a1ee6c9f945b"),
@@ -241,7 +241,7 @@ func registerTestCatalogEntries(t *testing.T, codec rpc.ClientCodec) {
 				},
 			},
 		},
-		"Service redis v1 on foo": &structs.RegisterRequest{
+		"Service redis v1 on foo": {
 			Datacenter:     "dc1",
 			Node:           "foo",
 			SkipNodeUpdate: true,
@@ -266,7 +266,7 @@ func registerTestCatalogEntries(t *testing.T, codec rpc.ClientCodec) {
 				},
 			},
 		},
-		"Service redis v2 on foo": &structs.RegisterRequest{
+		"Service redis v2 on foo": {
 			Datacenter:     "dc1",
 			Node:           "foo",
 			SkipNodeUpdate: true,
@@ -291,7 +291,7 @@ func registerTestCatalogEntries(t *testing.T, codec rpc.ClientCodec) {
 				},
 			},
 		},
-		"Node bar": &structs.RegisterRequest{
+		"Node bar": {
 			Datacenter: "dc1",
 			Node:       "bar",
 			ID:         types.NodeID("c6e7a976-8f4f-44b5-bdd3-631be7e8ecac"),
@@ -314,7 +314,7 @@ func registerTestCatalogEntries(t *testing.T, codec rpc.ClientCodec) {
 				},
 			},
 		},
-		"Service redis v1 on bar": &structs.RegisterRequest{
+		"Service redis v1 on bar": {
 			Datacenter:     "dc1",
 			Node:           "bar",
 			SkipNodeUpdate: true,
@@ -339,7 +339,7 @@ func registerTestCatalogEntries(t *testing.T, codec rpc.ClientCodec) {
 				},
 			},
 		},
-		"Service web v1 on bar": &structs.RegisterRequest{
+		"Service web v1 on bar": {
 			Datacenter:     "dc1",
 			Node:           "bar",
 			SkipNodeUpdate: true,
@@ -365,7 +365,7 @@ func registerTestCatalogEntries(t *testing.T, codec rpc.ClientCodec) {
 				},
 			},
 		},
-		"Node baz": &structs.RegisterRequest{
+		"Node baz": {
 			Datacenter: "dc1",
 			Node:       "baz",
 			ID:         types.NodeID("12f96b27-a7b0-47bd-add7-044a2bfc7bfb"),
@@ -394,7 +394,7 @@ func registerTestCatalogEntries(t *testing.T, codec rpc.ClientCodec) {
 				},
 			},
 		},
-		"Service web v1 on baz": &structs.RegisterRequest{
+		"Service web v1 on baz": {
 			Datacenter:     "dc1",
 			Node:           "baz",
 			SkipNodeUpdate: true,
@@ -420,7 +420,7 @@ func registerTestCatalogEntries(t *testing.T, codec rpc.ClientCodec) {
 				},
 			},
 		},
-		"Service web v2 on baz": &structs.RegisterRequest{
+		"Service web v2 on baz": {
 			Datacenter:     "dc1",
 			Node:           "baz",
 			SkipNodeUpdate: true,
@@ -446,7 +446,7 @@ func registerTestCatalogEntries(t *testing.T, codec rpc.ClientCodec) {
 				},
 			},
 		},
-		"Service critical on baz": &structs.RegisterRequest{
+		"Service critical on baz": {
 			Datacenter:     "dc1",
 			Node:           "baz",
 			SkipNodeUpdate: true,
@@ -471,7 +471,7 @@ func registerTestCatalogEntries(t *testing.T, codec rpc.ClientCodec) {
 				},
 			},
 		},
-		"Service warning on baz": &structs.RegisterRequest{
+		"Service warning on baz": {
 			Datacenter:     "dc1",
 			Node:           "baz",
 			SkipNodeUpdate: true,
@@ -505,7 +505,7 @@ func registerTestCatalogProxyEntries(t *testing.T, codec rpc.ClientCodec) {
 	t.Helper()
 
 	registrations := map[string]*structs.RegisterRequest{
-		"Service tg-gw": &structs.RegisterRequest{
+		"Service tg-gw": {
 			Datacenter: "dc1",
 			Node:       "terminating-gateway",
 			ID:         types.NodeID("3a9d7530-20d4-443a-98d3-c10fe78f09f4"),
@@ -518,7 +518,7 @@ func registerTestCatalogProxyEntries(t *testing.T, codec rpc.ClientCodec) {
 				Address: "198.18.1.3",
 			},
 		},
-		"Service mg-gw": &structs.RegisterRequest{
+		"Service mg-gw": {
 			Datacenter: "dc1",
 			Node:       "gateway",
 			ID:         types.NodeID("72e18a4c-85ec-4520-978f-2fc0378b06aa"),
@@ -531,7 +531,7 @@ func registerTestCatalogProxyEntries(t *testing.T, codec rpc.ClientCodec) {
 				Address: "198.18.1.4",
 			},
 		},
-		"Service web-proxy": &structs.RegisterRequest{
+		"Service web-proxy": {
 			Datacenter: "dc1",
 			Node:       "proxy",
 			ID:         types.NodeID("2d31602c-3291-4f94-842d-446bc2f945ce"),

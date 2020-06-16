@@ -184,7 +184,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 		expectGraphErr bool
 	}
 	cases := map[string]tcase{
-		"splitter fails without default protocol": tcase{
+		"splitter fails without default protocol": {
 			entries: []structs.ConfigEntry{},
 			op: func(t *testing.T, s *Store) error {
 				entry := &structs.ServiceSplitterConfigEntry{
@@ -199,7 +199,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 			expectErr:      "does not permit advanced routing or splitting behavior",
 			expectGraphErr: true,
 		},
-		"splitter fails with tcp protocol": tcase{
+		"splitter fails with tcp protocol": {
 			entries: []structs.ConfigEntry{
 				&structs.ServiceConfigEntry{
 					Kind:     structs.ServiceDefaults,
@@ -220,7 +220,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 			expectErr:      "does not permit advanced routing or splitting behavior",
 			expectGraphErr: true,
 		},
-		"splitter works with http protocol": tcase{
+		"splitter works with http protocol": {
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
@@ -239,10 +239,10 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					Kind: structs.ServiceResolver,
 					Name: "main",
 					Subsets: map[string]structs.ServiceResolverSubset{
-						"v1": structs.ServiceResolverSubset{
+						"v1": {
 							Filter: "Service.Meta.version == v1",
 						},
-						"v2": structs.ServiceResolverSubset{
+						"v2": {
 							Filter: "Service.Meta.version == v2",
 						},
 					},
@@ -261,7 +261,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 				return s.EnsureConfigEntry(0, entry, nil)
 			},
 		},
-		"splitter works with http protocol (from proxy-defaults)": tcase{
+		"splitter works with http protocol (from proxy-defaults)": {
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
@@ -274,10 +274,10 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					Kind: structs.ServiceResolver,
 					Name: "main",
 					Subsets: map[string]structs.ServiceResolverSubset{
-						"v1": structs.ServiceResolverSubset{
+						"v1": {
 							Filter: "Service.Meta.version == v1",
 						},
-						"v2": structs.ServiceResolverSubset{
+						"v2": {
 							Filter: "Service.Meta.version == v2",
 						},
 					},
@@ -295,7 +295,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 				return s.EnsureConfigEntry(0, entry, nil)
 			},
 		},
-		"router fails with tcp protocol": tcase{
+		"router fails with tcp protocol": {
 			entries: []structs.ConfigEntry{
 				&structs.ServiceConfigEntry{
 					Kind:     structs.ServiceDefaults,
@@ -306,7 +306,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					Kind: structs.ServiceResolver,
 					Name: "main",
 					Subsets: map[string]structs.ServiceResolverSubset{
-						"other": structs.ServiceResolverSubset{
+						"other": {
 							Filter: "Service.Meta.version == other",
 						},
 					},
@@ -334,13 +334,13 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 			expectErr:      "does not permit advanced routing or splitting behavior",
 			expectGraphErr: true,
 		},
-		"router fails without default protocol": tcase{
+		"router fails without default protocol": {
 			entries: []structs.ConfigEntry{
 				&structs.ServiceResolverConfigEntry{
 					Kind: structs.ServiceResolver,
 					Name: "main",
 					Subsets: map[string]structs.ServiceResolverSubset{
-						"other": structs.ServiceResolverSubset{
+						"other": {
 							Filter: "Service.Meta.version == other",
 						},
 					},
@@ -369,7 +369,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 			expectGraphErr: true,
 		},
 		/////////////////////////////////////////////////
-		"cannot remove default protocol after splitter created": tcase{
+		"cannot remove default protocol after splitter created": {
 			entries: []structs.ConfigEntry{
 				&structs.ServiceConfigEntry{
 					Kind:     structs.ServiceDefaults,
@@ -380,10 +380,10 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					Kind: structs.ServiceResolver,
 					Name: "main",
 					Subsets: map[string]structs.ServiceResolverSubset{
-						"v1": structs.ServiceResolverSubset{
+						"v1": {
 							Filter: "Service.Meta.version == v1",
 						},
-						"v2": structs.ServiceResolverSubset{
+						"v2": {
 							Filter: "Service.Meta.version == v2",
 						},
 					},
@@ -403,7 +403,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 			expectErr:      "does not permit advanced routing or splitting behavior",
 			expectGraphErr: true,
 		},
-		"cannot remove global default protocol after splitter created": tcase{
+		"cannot remove global default protocol after splitter created": {
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
@@ -416,10 +416,10 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					Kind: structs.ServiceResolver,
 					Name: "main",
 					Subsets: map[string]structs.ServiceResolverSubset{
-						"v1": structs.ServiceResolverSubset{
+						"v1": {
 							Filter: "Service.Meta.version == v1",
 						},
-						"v2": structs.ServiceResolverSubset{
+						"v2": {
 							Filter: "Service.Meta.version == v2",
 						},
 					},
@@ -439,7 +439,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 			expectErr:      "does not permit advanced routing or splitting behavior",
 			expectGraphErr: true,
 		},
-		"can remove global default protocol after splitter created if service default overrides it": tcase{
+		"can remove global default protocol after splitter created if service default overrides it": {
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
@@ -457,10 +457,10 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					Kind: structs.ServiceResolver,
 					Name: "main",
 					Subsets: map[string]structs.ServiceResolverSubset{
-						"v1": structs.ServiceResolverSubset{
+						"v1": {
 							Filter: "Service.Meta.version == v1",
 						},
-						"v2": structs.ServiceResolverSubset{
+						"v2": {
 							Filter: "Service.Meta.version == v2",
 						},
 					},
@@ -478,7 +478,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 				return s.DeleteConfigEntry(0, structs.ProxyDefaults, structs.ProxyConfigGlobal, nil)
 			},
 		},
-		"cannot change to tcp protocol after splitter created": tcase{
+		"cannot change to tcp protocol after splitter created": {
 			entries: []structs.ConfigEntry{
 				&structs.ServiceConfigEntry{
 					Kind:     structs.ServiceDefaults,
@@ -489,10 +489,10 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					Kind: structs.ServiceResolver,
 					Name: "main",
 					Subsets: map[string]structs.ServiceResolverSubset{
-						"v1": structs.ServiceResolverSubset{
+						"v1": {
 							Filter: "Service.Meta.version == v1",
 						},
-						"v2": structs.ServiceResolverSubset{
+						"v2": {
 							Filter: "Service.Meta.version == v2",
 						},
 					},
@@ -517,7 +517,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 			expectErr:      "does not permit advanced routing or splitting behavior",
 			expectGraphErr: true,
 		},
-		"cannot remove default protocol after router created": tcase{
+		"cannot remove default protocol after router created": {
 			entries: []structs.ConfigEntry{
 				&structs.ServiceConfigEntry{
 					Kind:     structs.ServiceDefaults,
@@ -528,7 +528,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					Kind: structs.ServiceResolver,
 					Name: "main",
 					Subsets: map[string]structs.ServiceResolverSubset{
-						"other": structs.ServiceResolverSubset{
+						"other": {
 							Filter: "Service.Meta.version == other",
 						},
 					},
@@ -556,7 +556,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 			expectErr:      "does not permit advanced routing or splitting behavior",
 			expectGraphErr: true,
 		},
-		"cannot change to tcp protocol after router created": tcase{
+		"cannot change to tcp protocol after router created": {
 			entries: []structs.ConfigEntry{
 				&structs.ServiceConfigEntry{
 					Kind:     structs.ServiceDefaults,
@@ -567,7 +567,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					Kind: structs.ServiceResolver,
 					Name: "main",
 					Subsets: map[string]structs.ServiceResolverSubset{
-						"other": structs.ServiceResolverSubset{
+						"other": {
 							Filter: "Service.Meta.version == other",
 						},
 					},
@@ -601,7 +601,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 			expectGraphErr: true,
 		},
 		/////////////////////////////////////////////////
-		"cannot split to a service using tcp": tcase{
+		"cannot split to a service using tcp": {
 			entries: []structs.ConfigEntry{
 				&structs.ServiceConfigEntry{
 					Kind:     structs.ServiceDefaults,
@@ -628,7 +628,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 			expectErr:      "uses inconsistent protocols",
 			expectGraphErr: true,
 		},
-		"cannot route to a service using tcp": tcase{
+		"cannot route to a service using tcp": {
 			entries: []structs.ConfigEntry{
 				&structs.ServiceConfigEntry{
 					Kind:     structs.ServiceDefaults,
@@ -664,7 +664,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 			expectGraphErr: true,
 		},
 		/////////////////////////////////////////////////
-		"cannot failover to a service using a different protocol": tcase{
+		"cannot failover to a service using a different protocol": {
 			entries: []structs.ConfigEntry{
 				&structs.ServiceConfigEntry{
 					Kind:     structs.ServiceDefaults,
@@ -687,7 +687,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					Kind: structs.ServiceResolver,
 					Name: "main",
 					Failover: map[string]structs.ServiceResolverFailover{
-						"*": structs.ServiceResolverFailover{
+						"*": {
 							Service: "other",
 						},
 					},
@@ -697,7 +697,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 			expectErr:      "uses inconsistent protocols",
 			expectGraphErr: true,
 		},
-		"cannot redirect to a service using a different protocol": tcase{
+		"cannot redirect to a service using a different protocol": {
 			entries: []structs.ConfigEntry{
 				&structs.ServiceConfigEntry{
 					Kind:     structs.ServiceDefaults,
@@ -729,14 +729,14 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 			expectGraphErr: true,
 		},
 		/////////////////////////////////////////////////
-		"redirect to a subset that does exist is fine": tcase{
+		"redirect to a subset that does exist is fine": {
 			entries: []structs.ConfigEntry{
 				&structs.ServiceResolverConfigEntry{
 					Kind:           structs.ServiceResolver,
 					Name:           "other",
 					ConnectTimeout: 33 * time.Second,
 					Subsets: map[string]structs.ServiceResolverSubset{
-						"v1": structs.ServiceResolverSubset{
+						"v1": {
 							Filter: "Service.Meta.version == v1",
 						},
 					},
@@ -754,7 +754,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 				return s.EnsureConfigEntry(0, entry, nil)
 			},
 		},
-		"cannot redirect to a subset that does not exist": tcase{
+		"cannot redirect to a subset that does not exist": {
 			entries: []structs.ConfigEntry{
 				&structs.ServiceResolverConfigEntry{
 					Kind:           structs.ServiceResolver,
@@ -777,7 +777,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 			expectGraphErr: true,
 		},
 		/////////////////////////////////////////////////
-		"cannot introduce circular resolver redirect": tcase{
+		"cannot introduce circular resolver redirect": {
 			entries: []structs.ConfigEntry{
 				&structs.ServiceResolverConfigEntry{
 					Kind: structs.ServiceResolver,
@@ -800,7 +800,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 			expectErr:      `detected circular resolver redirect`,
 			expectGraphErr: true,
 		},
-		"cannot introduce circular split": tcase{
+		"cannot introduce circular split": {
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
@@ -1220,10 +1220,10 @@ func TestStore_ReadDiscoveryChainConfigEntries_SubsetSplit(t *testing.T) {
 			Kind: structs.ServiceResolver,
 			Name: "main",
 			Subsets: map[string]structs.ServiceResolverSubset{
-				"v1": structs.ServiceResolverSubset{
+				"v1": {
 					Filter: "Service.Meta.version == v1",
 				},
-				"v2": structs.ServiceResolverSubset{
+				"v2": {
 					Filter: "Service.Meta.version == v2",
 				},
 			},

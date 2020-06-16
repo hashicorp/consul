@@ -355,7 +355,7 @@ func TestFederationState_List(t *testing.T) {
 		var out structs.IndexedFederationStates
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "FederationState.List", &args, &out))
 
-		for i, _ := range out.States {
+		for i := range out.States {
 			zeroFedStateIndexes(t, out.States[i])
 		}
 
@@ -480,35 +480,35 @@ func TestFederationState_List_ACLDeny(t *testing.T) {
 	}
 
 	cases := map[string]tcase{
-		"no token": tcase{
+		"no token": {
 			token:       "",
 			listDenied:  true,
 			gwListEmpty: true,
 		},
-		"no perms": tcase{
+		"no perms": {
 			token:       nadaToken.SecretID,
 			listDenied:  true,
 			gwListEmpty: true,
 		},
-		"service:read": tcase{
+		"service:read": {
 			token:       svcReadToken.SecretID,
 			listDenied:  true,
 			gwListEmpty: true,
 		},
-		"node:read": tcase{
+		"node:read": {
 			token:       nodeReadToken.SecretID,
 			listDenied:  true,
 			gwListEmpty: true,
 		},
-		"service:read and node:read": tcase{
+		"service:read and node:read": {
 			token:      svcAndNodeReadToken.SecretID,
 			listDenied: true,
 		},
-		"operator:read": tcase{
+		"operator:read": {
 			token:       opReadToken.SecretID,
 			gwListEmpty: true,
 		},
-		"master token": tcase{
+		"master token": {
 			token: "root",
 		},
 	}
@@ -534,7 +534,7 @@ func TestFederationState_List_ACLDeny(t *testing.T) {
 				} else {
 					require.NoError(t, err)
 
-					for i, _ := range out.States {
+					for i := range out.States {
 						zeroFedStateIndexes(t, out.States[i])
 					}
 

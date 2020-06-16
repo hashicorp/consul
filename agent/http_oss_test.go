@@ -16,10 +16,10 @@ import (
 
 // extra endpoints that should be tested, and their allowed methods
 var extraTestEndpoints = map[string][]string{
-	"/v1/query":             []string{"GET", "POST"},
-	"/v1/query/":            []string{"GET", "PUT", "DELETE"},
-	"/v1/query/xxx/execute": []string{"GET"},
-	"/v1/query/xxx/explain": []string{"GET"},
+	"/v1/query":             {"GET", "POST"},
+	"/v1/query/":            {"GET", "PUT", "DELETE"},
+	"/v1/query/xxx/execute": {"GET"},
+	"/v1/query/xxx/explain": {"GET"},
 }
 
 // These endpoints are ignored in unit testing for response codes

@@ -17,7 +17,7 @@ var enterpriseNonVotingServerWarnings []string = []string{enterpriseConfigKeyErr
 var enterpriseConfigKeyWarnings []string
 
 func init() {
-	for k, _ := range enterpriseConfigMap {
+	for k := range enterpriseConfigMap {
 		enterpriseConfigKeyWarnings = append(enterpriseConfigKeyWarnings, enterpriseConfigKeyError{key: k}.Error())
 	}
 }

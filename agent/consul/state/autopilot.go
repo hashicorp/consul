@@ -13,7 +13,7 @@ func autopilotConfigTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: "autopilot-config",
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: true,
 				Unique:       true,

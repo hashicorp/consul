@@ -551,7 +551,7 @@ func (s *Server) makeTerminatingGatewayListener(name, addr string, port int, cfg
 
 	// Make a FilterChain for each linked service
 	// Match on the cluster name,
-	for svc, _ := range cfgSnap.TerminatingGateway.ServiceGroups {
+	for svc := range cfgSnap.TerminatingGateway.ServiceGroups {
 		clusterName := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 		resolver, hasResolver := cfgSnap.TerminatingGateway.ServiceResolvers[svc]
 
@@ -916,7 +916,7 @@ func makeHTTPFilter(
 		StatPrefix: makeStatPrefix(proto, statPrefix, filterName),
 		CodecType:  envoyhttp.AUTO,
 		HttpFilters: []*envoyhttp.HttpFilter{
-			&envoyhttp.HttpFilter{
+			{
 				Name: "envoy.router",
 			},
 		},
@@ -1011,7 +1011,7 @@ func makeExtAuthFilter(token string) (envoylistener.Filter, error) {
 			// implementation to need service:write and since we have the token that
 			// has that it's pretty reasonable to set it up here.
 			InitialMetadata: []*envoycore.HeaderValue{
-				&envoycore.HeaderValue{
+				{
 					Key:   "x-consul-token",
 					Value: token,
 				},
@@ -1055,7 +1055,7 @@ func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *struct
 	return &envoyauth.CommonTlsContext{
 		TlsParams: &envoyauth.TlsParameters{},
 		TlsCertificates: []*envoyauth.TlsCertificate{
-			&envoyauth.TlsCertificate{
+			{
 				CertificateChain: &envoycore.DataSource{
 					Specifier: &envoycore.DataSource_InlineString{
 						InlineString: leaf.CertPEM,

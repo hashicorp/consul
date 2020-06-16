@@ -113,7 +113,7 @@ func TestRoutesFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotIngress_HTTPMultipleServices,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.IngressGateway.Upstreams = map[proxycfg.IngressListenerKey]structs.Upstreams{
-					proxycfg.IngressListenerKey{Protocol: "http", Port: 8080}: structs.Upstreams{
+					{Protocol: "http", Port: 8080}: {
 						{
 							DestinationName: "foo",
 							LocalBindPort:   8080,
@@ -124,7 +124,7 @@ func TestRoutesFromSnapshot(t *testing.T) {
 							LocalBindPort:   8080,
 						},
 					},
-					proxycfg.IngressListenerKey{Protocol: "http", Port: 443}: structs.Upstreams{
+					{Protocol: "http", Port: 443}: {
 						{
 							DestinationName: "baz",
 							LocalBindPort:   443,

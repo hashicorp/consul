@@ -123,7 +123,7 @@ func Test_makeLoadAssignment(t *testing.T) {
 				ClusterName: "service:test",
 				Endpoints: []envoyendpoint.LocalityLbEndpoints{{
 					LbEndpoints: []envoyendpoint.LbEndpoint{
-						envoyendpoint.LbEndpoint{
+						{
 							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 								Endpoint: &envoyendpoint.Endpoint{
 									Address: makeAddressPtr("10.10.10.10", 1234),
@@ -131,7 +131,7 @@ func Test_makeLoadAssignment(t *testing.T) {
 							HealthStatus:        core.HealthStatus_HEALTHY,
 							LoadBalancingWeight: makeUint32Value(1),
 						},
-						envoyendpoint.LbEndpoint{
+						{
 							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 								Endpoint: &envoyendpoint.Endpoint{
 									Address: makeAddressPtr("10.10.10.20", 1234),
@@ -153,7 +153,7 @@ func Test_makeLoadAssignment(t *testing.T) {
 				ClusterName: "service:test",
 				Endpoints: []envoyendpoint.LocalityLbEndpoints{{
 					LbEndpoints: []envoyendpoint.LbEndpoint{
-						envoyendpoint.LbEndpoint{
+						{
 							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 								Endpoint: &envoyendpoint.Endpoint{
 									Address: makeAddressPtr("10.10.10.10", 1234),
@@ -161,7 +161,7 @@ func Test_makeLoadAssignment(t *testing.T) {
 							HealthStatus:        core.HealthStatus_HEALTHY,
 							LoadBalancingWeight: makeUint32Value(10),
 						},
-						envoyendpoint.LbEndpoint{
+						{
 							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 								Endpoint: &envoyendpoint.Endpoint{
 									Address: makeAddressPtr("10.10.10.20", 1234),
@@ -183,7 +183,7 @@ func Test_makeLoadAssignment(t *testing.T) {
 				ClusterName: "service:test",
 				Endpoints: []envoyendpoint.LocalityLbEndpoints{{
 					LbEndpoints: []envoyendpoint.LbEndpoint{
-						envoyendpoint.LbEndpoint{
+						{
 							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 								Endpoint: &envoyendpoint.Endpoint{
 									Address: makeAddressPtr("10.10.10.10", 1234),
@@ -191,7 +191,7 @@ func Test_makeLoadAssignment(t *testing.T) {
 							HealthStatus:        core.HealthStatus_HEALTHY,
 							LoadBalancingWeight: makeUint32Value(1),
 						},
-						envoyendpoint.LbEndpoint{
+						{
 							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 								Endpoint: &envoyendpoint.Endpoint{
 									Address: makeAddressPtr("10.10.10.20", 1234),
@@ -327,27 +327,27 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotMeshGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.MeshGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
-					structs.NewServiceName("bar", nil): &structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("bar", nil): {
 						Kind: structs.ServiceResolver,
 						Name: "bar",
 						Subsets: map[string]structs.ServiceResolverSubset{
-							"v1": structs.ServiceResolverSubset{
+							"v1": {
 								Filter: "Service.Meta.version == 1",
 							},
-							"v2": structs.ServiceResolverSubset{
+							"v2": {
 								Filter:      "Service.Meta.version == 2",
 								OnlyPassing: true,
 							},
 						},
 					},
-					structs.NewServiceName("foo", nil): &structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("foo", nil): {
 						Kind: structs.ServiceResolver,
 						Name: "foo",
 						Subsets: map[string]structs.ServiceResolverSubset{
-							"v1": structs.ServiceResolverSubset{
+							"v1": {
 								Filter: "Service.Meta.version == 1",
 							},
-							"v2": structs.ServiceResolverSubset{
+							"v2": {
 								Filter:      "Service.Meta.version == 2",
 								OnlyPassing: true,
 							},
@@ -361,29 +361,29 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotMeshGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.MeshGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
-					structs.NewServiceName("bar", nil): &structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("bar", nil): {
 						Kind:          structs.ServiceResolver,
 						Name:          "bar",
 						DefaultSubset: "v2",
 						Subsets: map[string]structs.ServiceResolverSubset{
-							"v1": structs.ServiceResolverSubset{
+							"v1": {
 								Filter: "Service.Meta.version == 1",
 							},
-							"v2": structs.ServiceResolverSubset{
+							"v2": {
 								Filter:      "Service.Meta.version == 2",
 								OnlyPassing: true,
 							},
 						},
 					},
-					structs.NewServiceName("foo", nil): &structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("foo", nil): {
 						Kind:          structs.ServiceResolver,
 						Name:          "foo",
 						DefaultSubset: "v2",
 						Subsets: map[string]structs.ServiceResolverSubset{
-							"v1": structs.ServiceResolverSubset{
+							"v1": {
 								Filter: "Service.Meta.version == 1",
 							},
-							"v2": structs.ServiceResolverSubset{
+							"v2": {
 								Filter:      "Service.Meta.version == 2",
 								OnlyPassing: true,
 							},
@@ -516,7 +516,7 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotTerminatingGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
-					structs.NewServiceName("web", nil): &structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("web", nil): {
 						Kind:          structs.ServiceResolver,
 						Name:          "web",
 						DefaultSubset: "v2",
@@ -530,7 +530,7 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 							},
 						},
 					},
-					structs.NewServiceName("web", nil): &structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("web", nil): {
 						Kind:          structs.ServiceResolver,
 						Name:          "web",
 						DefaultSubset: "v2",

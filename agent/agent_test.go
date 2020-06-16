@@ -401,7 +401,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 				}
 			},
 			[]*structs.CheckType{
-				&structs.CheckType{
+				{
 					CheckID: "check1",
 					Name:    "name1",
 					TTL:     time.Minute,
@@ -409,7 +409,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 				},
 			},
 			map[string]*structs.HealthCheck{
-				"check1": &structs.HealthCheck{
+				"check1": {
 					Node:           "node1",
 					CheckID:        "check1",
 					Name:           "name1",
@@ -438,26 +438,26 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 			},
 			nil, // No change expected
 			[]*structs.CheckType{
-				&structs.CheckType{
+				{
 					CheckID: "check1",
 					Name:    "name1",
 					TTL:     time.Minute,
 					Notes:   "note1",
 				},
-				&structs.CheckType{
+				{
 					CheckID: "check-noname",
 					TTL:     time.Minute,
 				},
-				&structs.CheckType{
+				{
 					Name: "check-noid",
 					TTL:  time.Minute,
 				},
-				&structs.CheckType{
+				{
 					TTL: time.Minute,
 				},
 			},
 			map[string]*structs.HealthCheck{
-				"check1": &structs.HealthCheck{
+				"check1": {
 					Node:           "node1",
 					CheckID:        "check1",
 					Name:           "name1",
@@ -469,7 +469,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					Type:           "ttl",
 					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				},
-				"check-noname": &structs.HealthCheck{
+				"check-noname": {
 					Node:           "node1",
 					CheckID:        "check-noname",
 					Name:           "Service 'svcname2' check",
@@ -480,7 +480,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					Type:           "ttl",
 					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				},
-				"service:svcid2:3": &structs.HealthCheck{
+				"service:svcid2:3": {
 					Node:           "node1",
 					CheckID:        "service:svcid2:3",
 					Name:           "check-noid",
@@ -491,7 +491,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					Type:           "ttl",
 					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				},
-				"service:svcid2:4": &structs.HealthCheck{
+				"service:svcid2:4": {
 					Node:           "node1",
 					CheckID:        "service:svcid2:4",
 					Name:           "Service 'svcname2' check",
@@ -598,7 +598,7 @@ func testAgent_AddServices_AliasUpdateCheckNotReverted(t *testing.T, extraHCL st
 			Name: name,
 			Port: 8080 + i,
 			Checks: []*structs.CheckType{
-				&structs.CheckType{
+				{
 					Name:         "alias-for-fake-service",
 					AliasService: "fake",
 				},
@@ -1013,7 +1013,7 @@ func testAgent_RemoveService(t *testing.T, extraHCL string) {
 			Service: "memcache",
 			Port:    8000,
 		}
-		chkTypes := []*structs.CheckType{&structs.CheckType{TTL: time.Minute}}
+		chkTypes := []*structs.CheckType{{TTL: time.Minute}}
 
 		if err := a.AddService(srv, chkTypes, false, "", ConfigSourceLocal); err != nil {
 			t.Fatalf("err: %v", err)
@@ -1047,8 +1047,8 @@ func testAgent_RemoveService(t *testing.T, extraHCL string) {
 			Port:    8000,
 		}
 		chkTypes := []*structs.CheckType{
-			&structs.CheckType{TTL: time.Minute},
-			&structs.CheckType{TTL: 30 * time.Second},
+			{TTL: time.Minute},
+			{TTL: 30 * time.Second},
 		}
 		if err := a.AddService(srv, chkTypes, false, "", ConfigSourceLocal); err != nil {
 			t.Fatalf("err: %v", err)
@@ -1061,8 +1061,8 @@ func testAgent_RemoveService(t *testing.T, extraHCL string) {
 			Port:    3306,
 		}
 		chkTypes = []*structs.CheckType{
-			&structs.CheckType{TTL: time.Minute},
-			&structs.CheckType{TTL: 30 * time.Second},
+			{TTL: time.Minute},
+			{TTL: 30 * time.Second},
 		}
 		if err := a.AddService(srv, chkTypes, false, "", ConfigSourceLocal); err != nil {
 			t.Fatalf("err: %v", err)
@@ -1579,7 +1579,7 @@ func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
 				Port:    8000,
 			},
 			[]*structs.CheckType{
-				&structs.CheckType{
+				{
 					HTTP:     testHTTPServer.URL,
 					Method:   "GET",
 					Interval: 5 * time.Second,
@@ -1598,7 +1598,7 @@ func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
 				Port:    9000,
 			},
 			[]*structs.CheckType{
-				&structs.CheckType{
+				{
 					Name:         "Connect Sidecar Aliasing ping",
 					AliasService: "ping",
 				},
@@ -2844,7 +2844,7 @@ func TestAgent_Service_Reap(t *testing.T) {
 		Port:    8000,
 	}
 	chkTypes := []*structs.CheckType{
-		&structs.CheckType{
+		{
 			Status:                         api.HealthPassing,
 			TTL:                            25 * time.Millisecond,
 			DeregisterCriticalServiceAfter: 200 * time.Millisecond,
@@ -2898,7 +2898,7 @@ func TestAgent_Service_NoReap(t *testing.T) {
 		Port:    8000,
 	}
 	chkTypes := []*structs.CheckType{
-		&structs.CheckType{
+		{
 			Status: api.HealthPassing,
 			TTL:    25 * time.Millisecond,
 		},
@@ -2962,7 +2962,7 @@ func testAgent_AddService_restoresSnapshot(t *testing.T, extraHCL string) {
 	require.NoError(t, a.AddCheck(check1, nil, false, "", ConfigSourceLocal))
 
 	// Re-registering the service preserves the state of the check
-	chkTypes := []*structs.CheckType{&structs.CheckType{TTL: 30 * time.Second}}
+	chkTypes := []*structs.CheckType{{TTL: 30 * time.Second}}
 	require.NoError(t, a.AddService(svc, chkTypes, false, "", ConfigSourceLocal))
 	check := requireCheckExists(t, a, "service:redis")
 	require.Equal(t, api.HealthPassing, check.Status)

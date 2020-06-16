@@ -80,7 +80,7 @@ func (c *cmd) Run(args []string) int {
 		}
 	}
 
-	svcs := []*api.AgentServiceRegistration{&api.AgentServiceRegistration{
+	svcs := []*api.AgentServiceRegistration{{
 		Kind:            api.ServiceKind(c.flagKind),
 		ID:              c.flagId,
 		Name:            c.flagName,

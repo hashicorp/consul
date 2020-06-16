@@ -148,11 +148,11 @@ func testServiceNode(t *testing.T) *ServiceNode {
 		ServiceTags:    []string{"prod", "v1"},
 		ServiceAddress: "127.0.0.2",
 		ServiceTaggedAddresses: map[string]ServiceAddress{
-			"lan": ServiceAddress{
+			"lan": {
 				Address: "127.0.0.2",
 				Port:    8080,
 			},
-			"wan": ServiceAddress{
+			"wan": {
 				Address: "198.18.0.1",
 				Port:    80,
 			},
@@ -367,36 +367,36 @@ func TestStructs_NodeService_ValidateMeshGateway(t *testing.T) {
 		Err    string
 	}
 	cases := map[string]testCase{
-		"valid": testCase{
+		"valid": {
 			func(x *NodeService) {},
 			"",
 		},
-		"zero-port": testCase{
+		"zero-port": {
 			func(x *NodeService) { x.Port = 0 },
 			"Port must be non-zero",
 		},
-		"sidecar-service": testCase{
+		"sidecar-service": {
 			func(x *NodeService) { x.Connect.SidecarService = &ServiceDefinition{} },
 			"cannot have a sidecar service",
 		},
-		"proxy-destination-name": testCase{
+		"proxy-destination-name": {
 			func(x *NodeService) { x.Proxy.DestinationServiceName = "foo" },
 			"Proxy.DestinationServiceName configuration is invalid",
 		},
-		"proxy-destination-id": testCase{
+		"proxy-destination-id": {
 			func(x *NodeService) { x.Proxy.DestinationServiceID = "foo" },
 			"Proxy.DestinationServiceID configuration is invalid",
 		},
-		"proxy-local-address": testCase{
+		"proxy-local-address": {
 			func(x *NodeService) { x.Proxy.LocalServiceAddress = "127.0.0.1" },
 			"Proxy.LocalServiceAddress configuration is invalid",
 		},
-		"proxy-local-port": testCase{
+		"proxy-local-port": {
 			func(x *NodeService) { x.Proxy.LocalServicePort = 36 },
 			"Proxy.LocalServicePort configuration is invalid",
 		},
-		"proxy-upstreams": testCase{
-			func(x *NodeService) { x.Proxy.Upstreams = []Upstream{Upstream{}} },
+		"proxy-upstreams": {
+			func(x *NodeService) { x.Proxy.Upstreams = []Upstream{{}} },
 			"Proxy.Upstreams configuration is invalid",
 		},
 	}
@@ -423,32 +423,32 @@ func TestStructs_NodeService_ValidateTerminatingGateway(t *testing.T) {
 	}
 
 	cases := map[string]testCase{
-		"valid": testCase{
+		"valid": {
 			func(x *NodeService) {},
 			"",
 		},
-		"sidecar-service": testCase{
+		"sidecar-service": {
 			func(x *NodeService) { x.Connect.SidecarService = &ServiceDefinition{} },
 			"cannot have a sidecar service",
 		},
-		"proxy-destination-name": testCase{
+		"proxy-destination-name": {
 			func(x *NodeService) { x.Proxy.DestinationServiceName = "foo" },
 			"Proxy.DestinationServiceName configuration is invalid",
 		},
-		"proxy-destination-id": testCase{
+		"proxy-destination-id": {
 			func(x *NodeService) { x.Proxy.DestinationServiceID = "foo" },
 			"Proxy.DestinationServiceID configuration is invalid",
 		},
-		"proxy-local-address": testCase{
+		"proxy-local-address": {
 			func(x *NodeService) { x.Proxy.LocalServiceAddress = "127.0.0.1" },
 			"Proxy.LocalServiceAddress configuration is invalid",
 		},
-		"proxy-local-port": testCase{
+		"proxy-local-port": {
 			func(x *NodeService) { x.Proxy.LocalServicePort = 36 },
 			"Proxy.LocalServicePort configuration is invalid",
 		},
-		"proxy-upstreams": testCase{
-			func(x *NodeService) { x.Proxy.Upstreams = []Upstream{Upstream{}} },
+		"proxy-upstreams": {
+			func(x *NodeService) { x.Proxy.Upstreams = []Upstream{{}} },
 			"Proxy.Upstreams configuration is invalid",
 		},
 	}
@@ -476,32 +476,32 @@ func TestStructs_NodeService_ValidateIngressGateway(t *testing.T) {
 	}
 
 	cases := map[string]testCase{
-		"valid": testCase{
+		"valid": {
 			func(x *NodeService) {},
 			"",
 		},
-		"sidecar-service": testCase{
+		"sidecar-service": {
 			func(x *NodeService) { x.Connect.SidecarService = &ServiceDefinition{} },
 			"cannot have a sidecar service",
 		},
-		"proxy-destination-name": testCase{
+		"proxy-destination-name": {
 			func(x *NodeService) { x.Proxy.DestinationServiceName = "foo" },
 			"Proxy.DestinationServiceName configuration is invalid",
 		},
-		"proxy-destination-id": testCase{
+		"proxy-destination-id": {
 			func(x *NodeService) { x.Proxy.DestinationServiceID = "foo" },
 			"Proxy.DestinationServiceID configuration is invalid",
 		},
-		"proxy-local-address": testCase{
+		"proxy-local-address": {
 			func(x *NodeService) { x.Proxy.LocalServiceAddress = "127.0.0.1" },
 			"Proxy.LocalServiceAddress configuration is invalid",
 		},
-		"proxy-local-port": testCase{
+		"proxy-local-port": {
 			func(x *NodeService) { x.Proxy.LocalServicePort = 36 },
 			"Proxy.LocalServicePort configuration is invalid",
 		},
-		"proxy-upstreams": testCase{
-			func(x *NodeService) { x.Proxy.Upstreams = []Upstream{Upstream{}} },
+		"proxy-upstreams": {
+			func(x *NodeService) { x.Proxy.Upstreams = []Upstream{{}} },
 			"Proxy.Upstreams configuration is invalid",
 		},
 	}
@@ -892,11 +892,11 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 		Tags:    []string{"foo", "bar"},
 		Address: "127.0.0.1",
 		TaggedAddresses: map[string]ServiceAddress{
-			"lan": ServiceAddress{
+			"lan": {
 				Address: "127.0.0.1",
 				Port:    3456,
 			},
-			"wan": ServiceAddress{
+			"wan": {
 				Address: "198.18.0.1",
 				Port:    1234,
 			},
@@ -927,11 +927,11 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 		Port:              1234,
 		EnableTagOverride: true,
 		TaggedAddresses: map[string]ServiceAddress{
-			"wan": ServiceAddress{
+			"wan": {
 				Address: "198.18.0.1",
 				Port:    1234,
 			},
-			"lan": ServiceAddress{
+			"lan": {
 				Address: "127.0.0.1",
 				Port:    3456,
 			},
@@ -1395,9 +1395,9 @@ func TestStructs_validateMetaPair(t *testing.T) {
 		// reserved prefix, allowed
 		{metaKeyReservedPrefix + "key", "value", "", true, nil},
 		// reserved prefix, not allowed via an allowlist
-		{metaKeyReservedPrefix + "bad", "value", "reserved for internal use", false, map[string]struct{}{metaKeyReservedPrefix + "good": struct{}{}}},
+		{metaKeyReservedPrefix + "bad", "value", "reserved for internal use", false, map[string]struct{}{metaKeyReservedPrefix + "good": {}}},
 		// reserved prefix, allowed via an allowlist
-		{metaKeyReservedPrefix + "good", "value", "", true, map[string]struct{}{metaKeyReservedPrefix + "good": struct{}{}}},
+		{metaKeyReservedPrefix + "good", "value", "", true, map[string]struct{}{metaKeyReservedPrefix + "good": {}}},
 		// value too long
 		{"key", longValue, "Value is too long", false, nil},
 	}
@@ -1628,7 +1628,7 @@ func TestNode_BestAddress(t *testing.T) {
 	nodeWANAddr := "198.18.19.20"
 
 	cases := map[string]testCase{
-		"address": testCase{
+		"address": {
 			input: Node{
 				Address: nodeAddr,
 			},
@@ -1636,7 +1636,7 @@ func TestNode_BestAddress(t *testing.T) {
 			lanAddr: nodeAddr,
 			wanAddr: nodeAddr,
 		},
-		"wan-address": testCase{
+		"wan-address": {
 			input: Node{
 				Address: nodeAddr,
 				TaggedAddresses: map[string]string{
@@ -1676,7 +1676,7 @@ func TestNodeService_BestAddress(t *testing.T) {
 	serviceWANPort := 987
 
 	cases := map[string]testCase{
-		"no-address": testCase{
+		"no-address": {
 			input: NodeService{
 				Port: servicePort,
 			},
@@ -1686,7 +1686,7 @@ func TestNodeService_BestAddress(t *testing.T) {
 			wanAddr: "",
 			wanPort: servicePort,
 		},
-		"service-address": testCase{
+		"service-address": {
 			input: NodeService{
 				Address: serviceAddr,
 				Port:    servicePort,
@@ -1697,12 +1697,12 @@ func TestNodeService_BestAddress(t *testing.T) {
 			wanAddr: serviceAddr,
 			wanPort: servicePort,
 		},
-		"service-wan-address": testCase{
+		"service-wan-address": {
 			input: NodeService{
 				Address: serviceAddr,
 				Port:    servicePort,
 				TaggedAddresses: map[string]ServiceAddress{
-					"wan": ServiceAddress{
+					"wan": {
 						Address: serviceWANAddr,
 						Port:    serviceWANPort,
 					},
@@ -1714,12 +1714,12 @@ func TestNodeService_BestAddress(t *testing.T) {
 			wanAddr: serviceWANAddr,
 			wanPort: serviceWANPort,
 		},
-		"service-wan-address-default-port": testCase{
+		"service-wan-address-default-port": {
 			input: NodeService{
 				Address: serviceAddr,
 				Port:    servicePort,
 				TaggedAddresses: map[string]ServiceAddress{
-					"wan": ServiceAddress{
+					"wan": {
 						Address: serviceWANAddr,
 						Port:    0,
 					},
@@ -1731,11 +1731,11 @@ func TestNodeService_BestAddress(t *testing.T) {
 			wanAddr: serviceWANAddr,
 			wanPort: servicePort,
 		},
-		"service-wan-address-node-lan": testCase{
+		"service-wan-address-node-lan": {
 			input: NodeService{
 				Port: servicePort,
 				TaggedAddresses: map[string]ServiceAddress{
-					"wan": ServiceAddress{
+					"wan": {
 						Address: serviceWANAddr,
 						Port:    serviceWANPort,
 					},
@@ -1783,7 +1783,7 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 	serviceWANPort := 987
 
 	cases := map[string]testCase{
-		"node-address": testCase{
+		"node-address": {
 			input: CheckServiceNode{
 				Node: &Node{
 					Address: nodeAddr,
@@ -1798,7 +1798,7 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 			wanAddr: nodeAddr,
 			wanPort: servicePort,
 		},
-		"node-wan-address": testCase{
+		"node-wan-address": {
 			input: CheckServiceNode{
 				Node: &Node{
 					Address: nodeAddr,
@@ -1816,7 +1816,7 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 			wanAddr: nodeWANAddr,
 			wanPort: servicePort,
 		},
-		"service-address": testCase{
+		"service-address": {
 			input: CheckServiceNode{
 				Node: &Node{
 					Address: nodeAddr,
@@ -1836,7 +1836,7 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 			wanAddr: serviceAddr,
 			wanPort: servicePort,
 		},
-		"service-wan-address": testCase{
+		"service-wan-address": {
 			input: CheckServiceNode{
 				Node: &Node{
 					Address: nodeAddr,
@@ -1849,7 +1849,7 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 					Address: serviceAddr,
 					Port:    servicePort,
 					TaggedAddresses: map[string]ServiceAddress{
-						"wan": ServiceAddress{
+						"wan": {
 							Address: serviceWANAddr,
 							Port:    serviceWANPort,
 						},
@@ -1862,7 +1862,7 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 			wanAddr: serviceWANAddr,
 			wanPort: serviceWANPort,
 		},
-		"service-wan-address-default-port": testCase{
+		"service-wan-address-default-port": {
 			input: CheckServiceNode{
 				Node: &Node{
 					Address: nodeAddr,
@@ -1875,7 +1875,7 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 					Address: serviceAddr,
 					Port:    servicePort,
 					TaggedAddresses: map[string]ServiceAddress{
-						"wan": ServiceAddress{
+						"wan": {
 							Address: serviceWANAddr,
 							Port:    0,
 						},
@@ -1888,7 +1888,7 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 			wanAddr: serviceWANAddr,
 			wanPort: servicePort,
 		},
-		"service-wan-address-node-lan": testCase{
+		"service-wan-address-node-lan": {
 			input: CheckServiceNode{
 				Node: &Node{
 					Address: nodeAddr,
@@ -1900,7 +1900,7 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 				Service: &NodeService{
 					Port: servicePort,
 					TaggedAddresses: map[string]ServiceAddress{
-						"wan": ServiceAddress{
+						"wan": {
 							Address: serviceWANAddr,
 							Port:    serviceWANPort,
 						},
@@ -2072,7 +2072,7 @@ func makeMonster() *monsterStruct {
 			"aaa": "bbb",
 		},
 		MapStringSlice: map[string][]string{
-			"aaa": []string{"bbb"},
+			"aaa": {"bbb"},
 		},
 
 		Dur:     5 * time.Second,

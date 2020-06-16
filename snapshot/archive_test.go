@@ -21,7 +21,7 @@ func TestArchive(t *testing.T) {
 		Term:  2011,
 		Configuration: raft.Configuration{
 			Servers: []raft.Server{
-				raft.Server{
+				{
 					Suffrage: raft.Voter,
 					ID:       raft.ServerID("hello"),
 					Address:  raft.ServerAddress("127.0.0.1:8300"),

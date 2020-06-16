@@ -78,33 +78,33 @@ func TestFormatToken(t *testing.T) {
 				CreateIndex:    5,
 				ModifyIndex:    10,
 				Policies: []*api.ACLLink{
-					&api.ACLLink{
+					{
 						ID:   "beb04680-815b-4d7c-9e33-3d707c24672c",
 						Name: "hobbiton",
 					},
-					&api.ACLLink{
+					{
 						ID:   "18788457-584c-4812-80d3-23d403148a90",
 						Name: "bywater",
 					},
 				},
 				Roles: []*api.ACLLink{
-					&api.ACLLink{
+					{
 						ID:   "3b0a78fe-b9c3-40de-b8ea-7d4d6674b366",
 						Name: "shire",
 					},
-					&api.ACLLink{
+					{
 						ID:   "6c9d1e1d-34bc-4d55-80f3-add0890ad791",
 						Name: "west-farthing",
 					},
 				},
 				ServiceIdentities: []*api.ACLServiceIdentity{
-					&api.ACLServiceIdentity{
+					{
 						ServiceName: "gardener",
 						Datacenters: []string{"middleearth-northwest"},
 					},
 				},
 				NodeIdentities: []*api.ACLNodeIdentity{
-					&api.ACLNodeIdentity{
+					{
 						NodeName:   "bagend",
 						Datacenter: "middleearth-northwest",
 					},
@@ -153,7 +153,7 @@ func TestFormatTokenList(t *testing.T) {
 	cases := map[string]testCase{
 		"basic": {
 			tokens: []*api.ACLTokenListEntry{
-				&api.ACLTokenListEntry{
+				{
 					AccessorID:  "fbd2447f-7479-4329-ad13-b021d74f86ba",
 					Description: "test token",
 					Local:       false,
@@ -166,7 +166,7 @@ func TestFormatTokenList(t *testing.T) {
 		},
 		"legacy": {
 			tokens: []*api.ACLTokenListEntry{
-				&api.ACLTokenListEntry{
+				{
 					AccessorID:  "8acc7486-ca54-4d3c-9aed-5cd85651b0ee",
 					Description: "legacy",
 					Legacy:      true,
@@ -175,7 +175,7 @@ func TestFormatTokenList(t *testing.T) {
 		},
 		"complex": {
 			tokens: []*api.ACLTokenListEntry{
-				&api.ACLTokenListEntry{
+				{
 					AccessorID:     "fbd2447f-7479-4329-ad13-b021d74f86ba",
 					Namespace:      "foo",
 					Description:    "test token",
@@ -187,33 +187,33 @@ func TestFormatTokenList(t *testing.T) {
 					CreateIndex:    5,
 					ModifyIndex:    10,
 					Policies: []*api.ACLLink{
-						&api.ACLLink{
+						{
 							ID:   "beb04680-815b-4d7c-9e33-3d707c24672c",
 							Name: "hobbiton",
 						},
-						&api.ACLLink{
+						{
 							ID:   "18788457-584c-4812-80d3-23d403148a90",
 							Name: "bywater",
 						},
 					},
 					Roles: []*api.ACLLink{
-						&api.ACLLink{
+						{
 							ID:   "3b0a78fe-b9c3-40de-b8ea-7d4d6674b366",
 							Name: "shire",
 						},
-						&api.ACLLink{
+						{
 							ID:   "6c9d1e1d-34bc-4d55-80f3-add0890ad791",
 							Name: "west-farthing",
 						},
 					},
 					ServiceIdentities: []*api.ACLServiceIdentity{
-						&api.ACLServiceIdentity{
+						{
 							ServiceName: "gardener",
 							Datacenters: []string{"middleearth-northwest"},
 						},
 					},
 					NodeIdentities: []*api.ACLNodeIdentity{
-						&api.ACLNodeIdentity{
+						{
 							NodeName:   "bagend",
 							Datacenter: "middleearth-northwest",
 						},

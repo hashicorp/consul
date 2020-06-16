@@ -437,7 +437,7 @@ func (s *Intention) Check(
 	_, matches, err := state.IntentionMatch(nil, &structs.IntentionQueryMatch{
 		Type: structs.IntentionMatchDestination,
 		Entries: []structs.IntentionMatchEntry{
-			structs.IntentionMatchEntry{
+			{
 				Namespace: query.DestinationNS,
 				Name:      query.DestinationName,
 			},

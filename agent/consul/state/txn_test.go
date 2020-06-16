@@ -324,7 +324,7 @@ func TestStateStore_Txn_Service(t *testing.T) {
 			},
 		},
 		Services: map[string]*structs.NodeService{
-			"svc1": &structs.NodeService{
+			"svc1": {
 				ID:      "svc1",
 				Service: "svc1",
 				Address: "1.1.1.1",
@@ -337,7 +337,7 @@ func TestStateStore_Txn_Service(t *testing.T) {
 				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				Meta:           map[string]string{},
 			},
-			"svc5": &structs.NodeService{
+			"svc5": {
 				ID: "svc5",
 				RaftIndex: structs.RaftIndex{
 					CreateIndex: 6,
@@ -346,7 +346,7 @@ func TestStateStore_Txn_Service(t *testing.T) {
 				Weights:        &structs.Weights{Passing: 1, Warning: 1},
 				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
-			"svc2": &structs.NodeService{
+			"svc2": {
 				ID:   "svc2",
 				Tags: []string{"modified"},
 				RaftIndex: structs.RaftIndex{

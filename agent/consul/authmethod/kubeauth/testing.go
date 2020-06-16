@@ -517,7 +517,7 @@ func createReadServiceAccountFound(namespace, name, uid, overrideAnnotation, jwt
 			CreationTimestamp: metav1.Time{Time: time.Now()},
 		},
 		Secrets: []corev1.ObjectReference{
-			corev1.ObjectReference{
+			{
 				Name: name + "-token-m9cvn",
 			},
 		},

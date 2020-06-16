@@ -18,15 +18,15 @@ func TestFilter_DirEnt(t *testing.T) {
 		out []string
 	}
 	cases := []tcase{
-		tcase{
+		{
 			in:  []string{"foo/test", "foo/priv/nope", "foo/other", "zoo"},
 			out: []string{"foo/test", "foo/other"},
 		},
-		tcase{
+		{
 			in:  []string{"abe", "lincoln"},
 			out: nil,
 		},
-		tcase{
+		{
 			in:  []string{"abe", "foo/1", "foo/2", "foo/3", "nope"},
 			out: []string{"foo/1", "foo/2", "foo/3"},
 		},
@@ -60,15 +60,15 @@ func TestFilter_TxnResults(t *testing.T) {
 		out []string
 	}
 	cases := []tcase{
-		tcase{
+		{
 			in:  []string{"foo/test", "foo/priv/nope", "foo/other", "zoo"},
 			out: []string{"foo/test", "foo/other"},
 		},
-		tcase{
+		{
 			in:  []string{"abe", "lincoln"},
 			out: nil,
 		},
-		tcase{
+		{
 			in:  []string{"abe", "foo/1", "foo/2", "foo/3", "nope"},
 			out: []string{"foo/1", "foo/2", "foo/3"},
 		},

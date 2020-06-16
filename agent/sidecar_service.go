@@ -172,14 +172,14 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 	// Setup default check if none given
 	if len(checks) < 1 {
 		checks = []*structs.CheckType{
-			&structs.CheckType{
+			{
 				Name: "Connect Sidecar Listening",
 				// Default to localhost rather than agent/service public IP. The checks
 				// can always be overridden if a non-loopback IP is needed.
 				TCP:      ipaddr.FormatAddressPort(sidecar.Proxy.LocalServiceAddress, sidecar.Port),
 				Interval: 10 * time.Second,
 			},
-			&structs.CheckType{
+			{
 				Name:         "Connect Sidecar Aliasing " + ns.ID,
 				AliasService: ns.ID,
 			},

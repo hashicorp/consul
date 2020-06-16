@@ -221,7 +221,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 	// Verify that the service got registered.
 	verifyService := func() {
 		svcmap := map[string]*structs.NodeService{
-			"redis1": &structs.NodeService{
+			"redis1": {
 				ID:             "redis1",
 				Service:        "redis",
 				Address:        "1.1.1.1",
@@ -2225,7 +2225,7 @@ func TestStateStore_Service_Snapshot(t *testing.T) {
 	// Register a node with two services.
 	testRegisterNode(t, s, 0, "node1")
 	ns := []*structs.NodeService{
-		&structs.NodeService{
+		{
 			ID:             "service1",
 			Service:        "redis",
 			Tags:           []string{"prod"},
@@ -2234,7 +2234,7 @@ func TestStateStore_Service_Snapshot(t *testing.T) {
 			Weights:        &structs.Weights{Passing: 1, Warning: 0},
 			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 		},
-		&structs.NodeService{
+		{
 			ID:             "service2",
 			Service:        "nomad",
 			Tags:           []string{"dev"},
@@ -4218,7 +4218,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 				},
 			},
 			Services: []*structs.NodeService{
-				&structs.NodeService{
+				{
 					ID:      "service1",
 					Service: "service1",
 					Address: "1.1.1.1",
@@ -4231,7 +4231,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 					},
 					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				},
-				&structs.NodeService{
+				{
 					ID:      "service2",
 					Service: "service2",
 					Address: "1.1.1.1",
@@ -4275,7 +4275,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 				},
 			},
 			Services: []*structs.NodeService{
-				&structs.NodeService{
+				{
 					ID:      "service1",
 					Service: "service1",
 					Address: "1.1.1.1",
@@ -4288,7 +4288,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 					},
 					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				},
-				&structs.NodeService{
+				{
 					ID:      "service2",
 					Service: "service2",
 					Address: "1.1.1.1",
@@ -4955,9 +4955,9 @@ func TestStateStore_CheckIngressServiceNodes(t *testing.T) {
 			ids[n.Service.ID] = struct{}{}
 		}
 		expectedIds := map[string]struct{}{
-			"ingress1":        struct{}{},
-			"ingress2":        struct{}{},
-			"wildcardIngress": struct{}{},
+			"ingress1":        {},
+			"ingress2":        {},
+			"wildcardIngress": {},
 		}
 		require.Equal(expectedIds, ids)
 	})
@@ -4973,8 +4973,8 @@ func TestStateStore_CheckIngressServiceNodes(t *testing.T) {
 			ids[n.Service.ID] = struct{}{}
 		}
 		expectedIds := map[string]struct{}{
-			"ingress1":        struct{}{},
-			"wildcardIngress": struct{}{},
+			"ingress1":        {},
+			"wildcardIngress": {},
 		}
 		require.Equal(expectedIds, ids)
 	})

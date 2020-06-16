@@ -62,7 +62,7 @@ func TestRoleUpdateCommand(t *testing.T) {
 		&api.ACLRole{
 			Name: "test-role",
 			ServiceIdentities: []*api.ACLServiceIdentity{
-				&api.ACLServiceIdentity{
+				{
 					ServiceName: "fake",
 				},
 			},
@@ -229,7 +229,7 @@ func TestRoleUpdateCommand_JSON(t *testing.T) {
 		&api.ACLRole{
 			Name: "test-role",
 			ServiceIdentities: []*api.ACLServiceIdentity{
-				&api.ACLServiceIdentity{
+				{
 					ServiceName: "fake",
 				},
 			},
@@ -327,12 +327,12 @@ func TestRoleUpdateCommand_noMerge(t *testing.T) {
 				Name:        "test-role-" + roleUnq,
 				Description: "original description",
 				ServiceIdentities: []*api.ACLServiceIdentity{
-					&api.ACLServiceIdentity{
+					{
 						ServiceName: "fake",
 					},
 				},
 				Policies: []*api.ACLRolePolicyLink{
-					&api.ACLRolePolicyLink{
+					{
 						ID: policy3.ID,
 					},
 				},

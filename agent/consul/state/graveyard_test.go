@@ -213,10 +213,10 @@ func TestGraveyard_Snapshot_Restore(t *testing.T) {
 
 	// Verify the dump, which should be ordered by key.
 	expected := []*Tombstone{
-		&Tombstone{Key: "foo/bar/baz", Index: 5},
-		&Tombstone{Key: "foo/bar/zoo", Index: 8},
-		&Tombstone{Key: "foo/in/the/house", Index: 2},
-		&Tombstone{Key: "some/other/path", Index: 9},
+		{Key: "foo/bar/baz", Index: 5},
+		{Key: "foo/bar/zoo", Index: 8},
+		{Key: "foo/in/the/house", Index: 2},
+		{Key: "some/other/path", Index: 9},
 	}
 	if len(expected) != len(dump) {
 		t.Fatalf("expected %d, got %d tombstones", len(expected), len(dump))

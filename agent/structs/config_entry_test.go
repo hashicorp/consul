@@ -622,33 +622,33 @@ func TestDecodeConfigEntry(t *testing.T) {
 					Enabled: true,
 				},
 				Listeners: []IngressListener{
-					IngressListener{
+					{
 						Port:     8080,
 						Protocol: "http",
 						Services: []IngressService{
-							IngressService{
+							{
 								Name:  "web",
 								Hosts: []string{"test.example.com", "test2.example.com"},
 							},
-							IngressService{
+							{
 								Name: "db",
 							},
 						},
 					},
-					IngressListener{
+					{
 						Port:     9999,
 						Protocol: "tcp",
 						Services: []IngressService{
-							IngressService{
+							{
 								Name: "mysql",
 							},
 						},
 					},
-					IngressListener{
+					{
 						Port:     2234,
 						Protocol: "tcp",
 						Services: []IngressService{
-							IngressService{
+							{
 								Name: "postgres",
 							},
 						},
@@ -760,13 +760,13 @@ func TestServiceConfigResponse_MsgPack(t *testing.T) {
 			// },
 		},
 		UpstreamConfigs: map[string]map[string]interface{}{
-			"a": map[string]interface{}{
+			"a": {
 				"string": "aaaa",
 				// "map": map[string]interface{}{
 				// 	"baz": "aa",
 				// },
 			},
-			"b": map[string]interface{}{
+			"b": {
 				"string": "bbbb",
 				// "map": map[string]interface{}{
 				// 	"baz": "bb",
@@ -793,8 +793,8 @@ func TestServiceConfigResponse_MsgPack(t *testing.T) {
 func TestConfigEntryResponseMarshalling(t *testing.T) {
 
 	cases := map[string]ConfigEntryResponse{
-		"nil entry": ConfigEntryResponse{},
-		"proxy-default entry": ConfigEntryResponse{
+		"nil entry": {},
+		"proxy-default entry": {
 			Entry: &ProxyConfigEntry{
 				Kind: ProxyDefaults,
 				Name: ProxyConfigGlobal,
@@ -803,7 +803,7 @@ func TestConfigEntryResponseMarshalling(t *testing.T) {
 				},
 			},
 		},
-		"service-default entry": ConfigEntryResponse{
+		"service-default entry": {
 			Entry: &ServiceConfigEntry{
 				Kind:     ServiceDefaults,
 				Name:     "foo",

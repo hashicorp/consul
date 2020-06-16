@@ -399,17 +399,17 @@ func TestACL_HTTP(t *testing.T) {
 				Name:        "test",
 				Description: "test",
 				Policies: []structs.ACLRolePolicyLink{
-					structs.ACLRolePolicyLink{
+					{
 						ID:   idMap["policy-test"],
 						Name: policyMap[idMap["policy-test"]].Name,
 					},
-					structs.ACLRolePolicyLink{
+					{
 						ID:   idMap["policy-read-all-nodes"],
 						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
 					},
 				},
 				NodeIdentities: []*structs.ACLNodeIdentity{
-					&structs.ACLNodeIdentity{
+					{
 						NodeName:   "web-node",
 						Datacenter: "foo",
 					},
@@ -443,7 +443,7 @@ func TestACL_HTTP(t *testing.T) {
 			roleInput := &structs.ACLRole{
 				Name: "service-id-web",
 				ServiceIdentities: []*structs.ACLServiceIdentity{
-					&structs.ACLServiceIdentity{
+					{
 						ServiceName: "web",
 					},
 				},
@@ -477,7 +477,7 @@ func TestACL_HTTP(t *testing.T) {
 				Name:        "test",
 				Description: "test",
 				ServiceIdentities: []*structs.ACLServiceIdentity{
-					&structs.ACLServiceIdentity{
+					{
 						ServiceName: "db",
 					},
 				},
@@ -505,12 +505,12 @@ func TestACL_HTTP(t *testing.T) {
 				Name:        "test",
 				Description: "test",
 				ServiceIdentities: []*structs.ACLServiceIdentity{
-					&structs.ACLServiceIdentity{
+					{
 						ServiceName: "web-indexer",
 					},
 				},
 				NodeIdentities: []*structs.ACLNodeIdentity{
-					&structs.ACLNodeIdentity{
+					{
 						NodeName:   "web-node",
 						Datacenter: "foo",
 					},
@@ -547,7 +547,7 @@ func TestACL_HTTP(t *testing.T) {
 				Name:        "with-id",
 				Description: "test",
 				ServiceIdentities: []*structs.ACLServiceIdentity{
-					&structs.ACLServiceIdentity{
+					{
 						ServiceName: "foobar",
 					},
 				},
@@ -628,17 +628,17 @@ func TestACL_HTTP(t *testing.T) {
 			tokenInput := &structs.ACLToken{
 				Description: "test",
 				Policies: []structs.ACLTokenPolicyLink{
-					structs.ACLTokenPolicyLink{
+					{
 						ID:   idMap["policy-test"],
 						Name: policyMap[idMap["policy-test"]].Name,
 					},
-					structs.ACLTokenPolicyLink{
+					{
 						ID:   idMap["policy-read-all-nodes"],
 						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
 					},
 				},
 				NodeIdentities: []*structs.ACLNodeIdentity{
-					&structs.ACLNodeIdentity{
+					{
 						NodeName:   "foo",
 						Datacenter: "bar",
 					},
@@ -671,11 +671,11 @@ func TestACL_HTTP(t *testing.T) {
 			tokenInput := &structs.ACLToken{
 				Description: "local",
 				Policies: []structs.ACLTokenPolicyLink{
-					structs.ACLTokenPolicyLink{
+					{
 						ID:   idMap["policy-test"],
 						Name: policyMap[idMap["policy-test"]].Name,
 					},
-					structs.ACLTokenPolicyLink{
+					{
 						ID:   idMap["policy-read-all-nodes"],
 						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
 					},
@@ -757,13 +757,13 @@ func TestACL_HTTP(t *testing.T) {
 			tokenInput := &structs.ACLToken{
 				Description: "Better description for this cloned token",
 				Policies: []structs.ACLTokenPolicyLink{
-					structs.ACLTokenPolicyLink{
+					{
 						ID:   idMap["policy-read-all-nodes"],
 						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
 					},
 				},
 				NodeIdentities: []*structs.ACLNodeIdentity{
-					&structs.ACLNodeIdentity{
+					{
 						NodeName:   "foo",
 						Datacenter: "bar",
 					},
@@ -808,7 +808,7 @@ func TestACL_HTTP(t *testing.T) {
 				AccessorID:  "e8aeb69a-0ace-42b9-b95f-d1d9eafe1561",
 				Description: "Better description for this cloned token",
 				Policies: []structs.ACLTokenPolicyLink{
-					structs.ACLTokenPolicyLink{
+					{
 						ID:   idMap["policy-read-all-nodes"],
 						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
 					},
@@ -879,11 +879,11 @@ func TestACL_HTTP(t *testing.T) {
 				AccessorID:  "56e8e6a3-708b-4a2f-8ab3-b973cce39108",
 				Description: "test",
 				Policies: []structs.ACLTokenPolicyLink{
-					structs.ACLTokenPolicyLink{
+					{
 						ID:   idMap["policy-test"],
 						Name: policyMap[idMap["policy-test"]].Name,
 					},
-					structs.ACLTokenPolicyLink{
+					{
 						ID:   idMap["policy-read-all-nodes"],
 						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
 					},
@@ -917,11 +917,11 @@ func TestACL_HTTP(t *testing.T) {
 				SecretID:    "4e3efd15-d06c-442e-a7cc-1744f55c8dea",
 				Description: "test",
 				Policies: []structs.ACLTokenPolicyLink{
-					structs.ACLTokenPolicyLink{
+					{
 						ID:   idMap["policy-test"],
 						Name: policyMap[idMap["policy-test"]].Name,
 					},
-					structs.ACLTokenPolicyLink{
+					{
 						ID:   idMap["policy-read-all-nodes"],
 						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
 					},
@@ -956,11 +956,11 @@ func TestACL_HTTP(t *testing.T) {
 				SecretID:    "10126ffa-b28f-4137-b9a9-e89ab1e97c5b",
 				Description: "test",
 				Policies: []structs.ACLTokenPolicyLink{
-					structs.ACLTokenPolicyLink{
+					{
 						ID:   idMap["policy-test"],
 						Name: policyMap[idMap["policy-test"]].Name,
 					},
-					structs.ACLTokenPolicyLink{
+					{
 						ID:   idMap["policy-read-all-nodes"],
 						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
 					},
@@ -994,11 +994,11 @@ func TestACL_HTTP(t *testing.T) {
 				AccessorID:  "dee863fa-e548-4c61-a96f-9aa07999249f",
 				Description: "test",
 				Policies: []structs.ACLTokenPolicyLink{
-					structs.ACLTokenPolicyLink{
+					{
 						ID:   idMap["policy-test"],
 						Name: policyMap[idMap["policy-test"]].Name,
 					},
-					structs.ACLTokenPolicyLink{
+					{
 						ID:   idMap["policy-read-all-nodes"],
 						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
 					},
@@ -1016,11 +1016,11 @@ func TestACL_HTTP(t *testing.T) {
 				SecretID:    "dee863fa-e548-4c61-a96f-9aa07999249f",
 				Description: "test",
 				Policies: []structs.ACLTokenPolicyLink{
-					structs.ACLTokenPolicyLink{
+					{
 						ID:   idMap["policy-test"],
 						Name: policyMap[idMap["policy-test"]].Name,
 					},
-					structs.ACLTokenPolicyLink{
+					{
 						ID:   idMap["policy-read-all-nodes"],
 						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
 					},
@@ -1038,11 +1038,11 @@ func TestACL_HTTP(t *testing.T) {
 				SecretID:    "10126ffa-b28f-4137-b9a9-e89ab1e97c5b",
 				Description: "test",
 				Policies: []structs.ACLTokenPolicyLink{
-					structs.ACLTokenPolicyLink{
+					{
 						ID:   idMap["policy-test"],
 						Name: policyMap[idMap["policy-test"]].Name,
 					},
-					structs.ACLTokenPolicyLink{
+					{
 						ID:   idMap["policy-read-all-nodes"],
 						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
 					},
@@ -1060,11 +1060,11 @@ func TestACL_HTTP(t *testing.T) {
 				AccessorID:  "10126ffa-b28f-4137-b9a9-e89ab1e97c5b",
 				Description: "test",
 				Policies: []structs.ACLTokenPolicyLink{
-					structs.ACLTokenPolicyLink{
+					{
 						ID:   idMap["policy-test"],
 						Name: policyMap[idMap["policy-test"]].Name,
 					},
-					structs.ACLTokenPolicyLink{
+					{
 						ID:   idMap["policy-read-all-nodes"],
 						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
 					},
@@ -1082,11 +1082,11 @@ func TestACL_HTTP(t *testing.T) {
 				AccessorID:  "00000000-0000-0000-0000-00000000005b",
 				Description: "test",
 				Policies: []structs.ACLTokenPolicyLink{
-					structs.ACLTokenPolicyLink{
+					{
 						ID:   idMap["policy-test"],
 						Name: policyMap[idMap["policy-test"]].Name,
 					},
-					structs.ACLTokenPolicyLink{
+					{
 						ID:   idMap["policy-read-all-nodes"],
 						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
 					},
@@ -1104,11 +1104,11 @@ func TestACL_HTTP(t *testing.T) {
 				SecretID:    "00000000-0000-0000-0000-00000000005b",
 				Description: "test",
 				Policies: []structs.ACLTokenPolicyLink{
-					structs.ACLTokenPolicyLink{
+					{
 						ID:   idMap["policy-test"],
 						Name: policyMap[idMap["policy-test"]].Name,
 					},
-					structs.ACLTokenPolicyLink{
+					{
 						ID:   idMap["policy-read-all-nodes"],
 						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
 					},
@@ -1807,7 +1807,7 @@ func TestACL_Authorize(t *testing.T) {
 	tokenReq := structs.ACLTokenSetRequest{
 		ACLToken: structs.ACLToken{
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID: policy.ID,
 				},
 			},
@@ -1839,7 +1839,7 @@ func TestACL_Authorize(t *testing.T) {
 	localTokenReq := structs.ACLTokenSetRequest{
 		ACLToken: structs.ACLToken{
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID: policy.ID,
 				},
 			},
@@ -1854,111 +1854,111 @@ func TestACL_Authorize(t *testing.T) {
 
 	t.Run("master-token", func(t *testing.T) {
 		request := []structs.ACLAuthorizationRequest{
-			structs.ACLAuthorizationRequest{
+			{
 				Resource: "acl",
 				Access:   "read",
 			},
-			structs.ACLAuthorizationRequest{
+			{
 				Resource: "acl",
 				Access:   "write",
 			},
-			structs.ACLAuthorizationRequest{
+			{
 				Resource: "agent",
 				Segment:  "foo",
 				Access:   "read",
 			},
-			structs.ACLAuthorizationRequest{
+			{
 				Resource: "agent",
 				Segment:  "foo",
 				Access:   "write",
 			},
-			structs.ACLAuthorizationRequest{
+			{
 				Resource: "event",
 				Segment:  "foo",
 				Access:   "read",
 			},
-			structs.ACLAuthorizationRequest{
+			{
 				Resource: "event",
 				Segment:  "foo",
 				Access:   "write",
 			},
-			structs.ACLAuthorizationRequest{
+			{
 				Resource: "intention",
 				Segment:  "foo",
 				Access:   "read",
 			},
-			structs.ACLAuthorizationRequest{
+			{
 				Resource: "intention",
 				Segment:  "foo",
 				Access:   "write",
 			},
-			structs.ACLAuthorizationRequest{
+			{
 				Resource: "key",
 				Segment:  "foo",
 				Access:   "read",
 			},
-			structs.ACLAuthorizationRequest{
+			{
 				Resource: "key",
 				Segment:  "foo",
 				Access:   "list",
 			},
-			structs.ACLAuthorizationRequest{
+			{
 				Resource: "key",
 				Segment:  "foo",
 				Access:   "write",
 			},
-			structs.ACLAuthorizationRequest{
+			{
 				Resource: "keyring",
 				Access:   "read",
 			},
-			structs.ACLAuthorizationRequest{
+			{
 				Resource: "keyring",
 				Access:   "write",
 			},
-			structs.ACLAuthorizationRequest{
+			{
 				Resource: "node",
 				Segment:  "foo",
 				Access:   "read",
 			},
-			structs.ACLAuthorizationRequest{
+			{
 				Resource: "node",
 				Segment:  "foo",
 				Access:   "write",
 			},
-			structs.ACLAuthorizationRequest{
+			{
 				Resource: "operator",
 				Access:   "read",
 			},
-			structs.ACLAuthorizationRequest{
+			{
 				Resource: "operator",
 				Access:   "write",
 			},
-			structs.ACLAuthorizationRequest{
+			{
 				Resource: "query",
 				Segment:  "foo",
 				Access:   "read",
 			},
-			structs.ACLAuthorizationRequest{
+			{
 				Resource: "query",
 				Segment:  "foo",
 				Access:   "write",
 			},
-			structs.ACLAuthorizationRequest{
+			{
 				Resource: "service",
 				Segment:  "foo",
 				Access:   "read",
 			},
-			structs.ACLAuthorizationRequest{
+			{
 				Resource: "service",
 				Segment:  "foo",
 				Access:   "write",
 			},
-			structs.ACLAuthorizationRequest{
+			{
 				Resource: "session",
 				Segment:  "foo",
 				Access:   "read",
 			},
-			structs.ACLAuthorizationRequest{
+			{
 				Resource: "session",
 				Segment:  "foo",
 				Access:   "write",
@@ -1988,111 +1988,111 @@ func TestACL_Authorize(t *testing.T) {
 	})
 
 	customAuthorizationRequests := []structs.ACLAuthorizationRequest{
-		structs.ACLAuthorizationRequest{
+		{
 			Resource: "acl",
 			Access:   "read",
 		},
-		structs.ACLAuthorizationRequest{
+		{
 			Resource: "acl",
 			Access:   "write",
 		},
-		structs.ACLAuthorizationRequest{
+		{
 			Resource: "agent",
 			Segment:  "foo",
 			Access:   "read",
 		},
-		structs.ACLAuthorizationRequest{
+		{
 			Resource: "agent",
 			Segment:  "foo",
 			Access:   "write",
 		},
-		structs.ACLAuthorizationRequest{
+		{
 			Resource: "event",
 			Segment:  "foo",
 			Access:   "read",
 		},
-		structs.ACLAuthorizationRequest{
+		{
 			Resource: "event",
 			Segment:  "foo",
 			Access:   "write",
 		},
-		structs.ACLAuthorizationRequest{
+		{
 			Resource: "intention",
 			Segment:  "foo",
 			Access:   "read",
 		},
-		structs.ACLAuthorizationRequest{
+		{
 			Resource: "intention",
 			Segment:  "foo",
 			Access:   "write",
 		},
-		structs.ACLAuthorizationRequest{
+		{
 			Resource: "key",
 			Segment:  "foo",
 			Access:   "read",
 		},
-		structs.ACLAuthorizationRequest{
+		{
 			Resource: "key",
 			Segment:  "foo",
 			Access:   "list",
 		},
-		structs.ACLAuthorizationRequest{
+		{
 			Resource: "key",
 			Segment:  "foo",
 			Access:   "write",
 		},
-		structs.ACLAuthorizationRequest{
+		{
 			Resource: "keyring",
 			Access:   "read",
 		},
-		structs.ACLAuthorizationRequest{
+		{
 			Resource: "keyring",
 			Access:   "write",
 		},
-		structs.ACLAuthorizationRequest{
+		{
 			Resource: "node",
 			Segment:  "foo",
 			Access:   "read",
 		},
-		structs.ACLAuthorizationRequest{
+		{
 			Resource: "node",
 			Segment:  "foo",
 			Access:   "write",
 		},
-		structs.ACLAuthorizationRequest{
+		{
 			Resource: "operator",
 			Access:   "read",
 		},
-		structs.ACLAuthorizationRequest{
+		{
 			Resource: "operator",
 			Access:   "write",
 		},
-		structs.ACLAuthorizationRequest{
+		{
 			Resource: "query",
 			Segment:  "foo",
 			Access:   "read",
 		},
-		structs.ACLAuthorizationRequest{
+		{
 			Resource: "query",
 			Segment:  "foo",
 			Access:   "write",
 		},
-		structs.ACLAuthorizationRequest{
+		{
 			Resource: "service",
 			Segment:  "foo",
 			Access:   "read",
 		},
-		structs.ACLAuthorizationRequest{
+		{
 			Resource: "service",
 			Segment:  "foo",
 			Access:   "write",
 		},
-		structs.ACLAuthorizationRequest{
+		{
 			Resource: "session",
 			Segment:  "foo",
 			Access:   "read",
 		},
-		structs.ACLAuthorizationRequest{
+		{
 			Resource: "session",
 			Segment:  "foo",
 			Access:   "write",
@@ -2176,7 +2176,7 @@ func TestACL_Authorize(t *testing.T) {
 
 	t.Run("acl-not-found", func(t *testing.T) {
 		request := []structs.ACLAuthorizationRequest{
-			structs.ACLAuthorizationRequest{
+			{
 				Resource: "acl",
 				Access:   "read",
 			},
@@ -2212,7 +2212,7 @@ func TestACL_Authorize(t *testing.T) {
 
 	t.Run("local-token-wrong-dc", func(t *testing.T) {
 		request := []structs.ACLAuthorizationRequest{
-			structs.ACLAuthorizationRequest{
+			{
 				Resource: "acl",
 				Access:   "read",
 			},

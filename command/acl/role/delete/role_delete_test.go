@@ -62,7 +62,7 @@ func TestRoleDeleteCommand(t *testing.T) {
 			&api.ACLRole{
 				Name: "test-role-for-id-delete",
 				ServiceIdentities: []*api.ACLServiceIdentity{
-					&api.ACLServiceIdentity{
+					{
 						ServiceName: "fake",
 					},
 				},
@@ -102,7 +102,7 @@ func TestRoleDeleteCommand(t *testing.T) {
 			&api.ACLRole{
 				Name: "test-role-for-id-prefix-delete",
 				ServiceIdentities: []*api.ACLServiceIdentity{
-					&api.ACLServiceIdentity{
+					{
 						ServiceName: "fake",
 					},
 				},

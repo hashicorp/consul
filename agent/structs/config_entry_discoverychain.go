@@ -221,7 +221,7 @@ func (e *ServiceRouterConfigEntry) ListRelatedServices() []ServiceID {
 	}
 
 	out := make([]ServiceID, 0, len(found))
-	for svc, _ := range found {
+	for svc := range found {
 		out = append(out, svc)
 	}
 	sort.Slice(out, func(i, j int) bool {
@@ -545,7 +545,7 @@ func (e *ServiceSplitterConfigEntry) ListRelatedServices() []ServiceID {
 	}
 
 	out := make([]ServiceID, 0, len(found))
-	for svc, _ := range found {
+	for svc := range found {
 		out = append(out, svc)
 	}
 	sort.Slice(out, func(i, j int) bool {
@@ -728,7 +728,7 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 	}
 
 	if len(e.Subsets) > 0 {
-		for name, _ := range e.Subsets {
+		for name := range e.Subsets {
 			if name == "" {
 				return fmt.Errorf("Subset defined with empty name")
 			}
@@ -859,7 +859,7 @@ func (e *ServiceResolverConfigEntry) ListRelatedServices() []ServiceID {
 	}
 
 	out := make([]ServiceID, 0, len(found))
-	for svc, _ := range found {
+	for svc := range found {
 		out = append(out, svc)
 	}
 	sort.Slice(out, func(i, j int) bool {

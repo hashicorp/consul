@@ -112,11 +112,11 @@ func TestTokenUpdateCommand(t *testing.T) {
 
 		require.Len(t, token.NodeIdentities, 2)
 		expected := []*api.ACLNodeIdentity{
-			&api.ACLNodeIdentity{
+			{
 				NodeName:   "foo",
 				Datacenter: "bar",
 			},
-			&api.ACLNodeIdentity{
+			{
 				NodeName:   "bar",
 				Datacenter: "baz",
 			},

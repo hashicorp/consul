@@ -847,7 +847,7 @@ func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 				Address: "127.0.0.1",
 				Port:    8080,
 				TaggedAddresses: map[string]structs.ServiceAddress{
-					"wan": structs.ServiceAddress{
+					"wan": {
 						Address: "1.2.3.4",
 						Port:    80,
 					},
@@ -1274,7 +1274,7 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 				Address: "127.0.0.1",
 				Port:    8080,
 				TaggedAddresses: map[string]structs.ServiceAddress{
-					"wan": structs.ServiceAddress{
+					"wan": {
 						Address: "1.2.3.4",
 						Port:    80,
 					},

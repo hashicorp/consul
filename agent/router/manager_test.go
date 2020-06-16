@@ -316,9 +316,9 @@ func TestServers_RebalanceServers_AvoidFailed(t *testing.T) {
 	// of trials with a small number of servers to try to make sure
 	// the shuffle alone won't give the right answer.
 	servers := []*metadata.Server{
-		&metadata.Server{Name: "s1", Addr: &fauxAddr{"s1"}},
-		&metadata.Server{Name: "s2", Addr: &fauxAddr{"s2"}},
-		&metadata.Server{Name: "s3", Addr: &fauxAddr{"s3"}},
+		{Name: "s1", Addr: &fauxAddr{"s1"}},
+		{Name: "s2", Addr: &fauxAddr{"s2"}},
+		{Name: "s3", Addr: &fauxAddr{"s3"}},
 	}
 	for i := 0; i < 100; i++ {
 		m := testManagerFailAddr(t, &fauxAddr{"s2"})

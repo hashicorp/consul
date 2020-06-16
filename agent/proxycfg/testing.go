@@ -102,7 +102,7 @@ func TestIntentions(t testing.T) *structs.IndexedIntentionMatches {
 	return &structs.IndexedIntentionMatches{
 		Matches: []structs.Intentions{
 			[]*structs.Intention{
-				&structs.Intention{
+				{
 					ID:              "foo",
 					SourceNS:        "default",
 					SourceName:      "billing",
@@ -654,7 +654,7 @@ func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
 					"db": dbChain,
 				},
 				WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
-					"db": map[string]structs.CheckServiceNodes{
+					"db": {
 						"db.default.dc1": TestUpstreamNodes(t),
 					},
 				},
@@ -954,10 +954,10 @@ func setupTestVariationConfigEntriesAndSnapshot(
 				Kind: structs.ServiceResolver,
 				Name: "db",
 				Subsets: map[string]structs.ServiceResolverSubset{
-					"v1": structs.ServiceResolverSubset{
+					"v1": {
 						Filter: "Service.Meta.version == v1",
 					},
-					"v2": structs.ServiceResolverSubset{
+					"v2": {
 						Filter: "Service.Meta.version == v2",
 					},
 				},
@@ -1243,7 +1243,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 			"db": dbChain,
 		},
 		WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
-			"db": map[string]structs.CheckServiceNodes{
+			"db": {
 				"db.default.dc1": TestUpstreamNodes(t),
 			},
 		},
@@ -1265,7 +1265,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		snap.WatchedUpstreamEndpoints["db"]["db.default.dc2"] =
 			TestUpstreamNodesDC2(t)
 		snap.WatchedGatewayEndpoints = map[string]map[string]structs.CheckServiceNodes{
-			"db": map[string]structs.CheckServiceNodes{
+			"db": {
 				"dc2": TestGatewayNodesDC2(t),
 			},
 		}
@@ -1278,7 +1278,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 	case "failover-through-double-remote-gateway":
 		snap.WatchedUpstreamEndpoints["db"]["db.default.dc3"] = TestUpstreamNodesDC2(t)
 		snap.WatchedGatewayEndpoints = map[string]map[string]structs.CheckServiceNodes{
-			"db": map[string]structs.CheckServiceNodes{
+			"db": {
 				"dc2": TestGatewayNodesDC2(t),
 				"dc3": TestGatewayNodesDC3(t),
 			},
@@ -1291,7 +1291,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		snap.WatchedUpstreamEndpoints["db"]["db.default.dc2"] =
 			TestUpstreamNodesDC2(t)
 		snap.WatchedGatewayEndpoints = map[string]map[string]structs.CheckServiceNodes{
-			"db": map[string]structs.CheckServiceNodes{
+			"db": {
 				"dc1": TestGatewayNodesDC1(t),
 			},
 		}
@@ -1304,7 +1304,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 	case "failover-through-double-local-gateway":
 		snap.WatchedUpstreamEndpoints["db"]["db.default.dc3"] = TestUpstreamNodesDC2(t)
 		snap.WatchedGatewayEndpoints = map[string]map[string]structs.CheckServiceNodes{
-			"db": map[string]structs.CheckServiceNodes{
+			"db": {
 				"dc1": TestGatewayNodesDC1(t),
 			},
 		}
@@ -1355,11 +1355,11 @@ func testConfigSnapshotMeshGateway(t testing.T, populateServices bool, useFedera
 			Config: map[string]interface{}{},
 		},
 		TaggedAddresses: map[string]structs.ServiceAddress{
-			structs.TaggedAddressLAN: structs.ServiceAddress{
+			structs.TaggedAddressLAN: {
 				Address: "1.2.3.4",
 				Port:    8443,
 			},
-			structs.TaggedAddressWAN: structs.ServiceAddress{
+			structs.TaggedAddressWAN: {
 				Address: "198.18.0.1",
 				Port:    443,
 			},
@@ -1535,7 +1535,7 @@ func testConfigSnapshotIngressGateway(
 				t, variation, leaf, additionalEntries...,
 			),
 			Upstreams: map[IngressListenerKey]structs.Upstreams{
-				IngressListenerKey{protocol, 9191}: structs.Upstreams{
+				{protocol, 9191}: {
 					{
 						// We rely on this one having default type in a few tests...
 						DestinationName:  "db",
@@ -1597,7 +1597,7 @@ func testConfigSnapshotTerminatingGateway(t testing.T, populateServices bool) *C
 		ProxyID: structs.NewServiceID("terminating-gateway", nil),
 		Address: "1.2.3.4",
 		TaggedAddresses: map[string]structs.ServiceAddress{
-			structs.TaggedAddressWAN: structs.ServiceAddress{
+			structs.TaggedAddressWAN: {
 				Address: "198.18.0.1",
 				Port:    443,
 			},
@@ -1741,7 +1741,7 @@ func TestConfigSnapshotIngress_MultipleListenersDuplicateService(t testing.T) *C
 	snap := TestConfigSnapshotIngress_HTTPMultipleServices(t)
 
 	snap.IngressGateway.Upstreams = map[IngressListenerKey]structs.Upstreams{
-		IngressListenerKey{Protocol: "http", Port: 8080}: structs.Upstreams{
+		{Protocol: "http", Port: 8080}: {
 			{
 				DestinationName: "foo",
 				LocalBindPort:   8080,
@@ -1751,7 +1751,7 @@ func TestConfigSnapshotIngress_MultipleListenersDuplicateService(t testing.T) *C
 				LocalBindPort:   8080,
 			},
 		},
-		IngressListenerKey{Protocol: "http", Port: 443}: structs.Upstreams{
+		{Protocol: "http", Port: 443}: {
 			{
 				DestinationName: "foo",
 				LocalBindPort:   443,

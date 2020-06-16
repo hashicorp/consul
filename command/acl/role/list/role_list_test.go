@@ -51,7 +51,7 @@ func TestRoleListCommand(t *testing.T) {
 	// Create a couple roles to list
 	client := a.Client()
 	svcids := []*api.ACLServiceIdentity{
-		&api.ACLServiceIdentity{ServiceName: "fake"},
+		{ServiceName: "fake"},
 	}
 	for i := 0; i < 5; i++ {
 		name := fmt.Sprintf("test-role-%d", i)
@@ -108,7 +108,7 @@ func TestRoleListCommand_JSON(t *testing.T) {
 	// Create a couple roles to list
 	client := a.Client()
 	svcids := []*api.ACLServiceIdentity{
-		&api.ACLServiceIdentity{ServiceName: "fake"},
+		{ServiceName: "fake"},
 	}
 	for i := 0; i < 5; i++ {
 		name := fmt.Sprintf("test-role-%d", i)

@@ -437,7 +437,7 @@ func (s *Store) validateProposedConfigEntryInServiceGraph(
 		{Kind: kind, Name: name}: next,
 	}
 
-	for chain, _ := range checkChains {
+	for chain := range checkChains {
 		if err := s.testCompileDiscoveryChain(tx, nil, chain.ID, overrides, &chain.EnterpriseMeta); err != nil {
 			return err
 		}
@@ -688,7 +688,7 @@ func anyKey(m map[structs.ServiceID]struct{}) (structs.ServiceID, bool) {
 	if len(m) == 0 {
 		return structs.ServiceID{}, false
 	}
-	for k, _ := range m {
+	for k := range m {
 		return k, true
 	}
 	return structs.ServiceID{}, false
