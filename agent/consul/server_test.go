@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net"
+	"net/rpc"
 	"os"
 	"strings"
 	"sync/atomic"
@@ -235,14 +236,19 @@ func testServerWithConfig(t *testing.T, cb func(*Config)) (string, *Server) {
 }
 
 // cb is a function that can alter the test servers configuration prior to the server starting.
-func testACLServerWithConfig(t *testing.T, cb func(*Config), initReplicationToken bool) (string, *Server) {
+func testACLServerWithConfig(t *testing.T, cb func(*Config), initReplicationToken bool) (string, *Server, rpc.ClientCodec) {
 	dir, srv := testServerWithConfig(t, testServerACLConfig(cb))
+	t.Cleanup(func() { os.RemoveAll(dir) })
+	t.Cleanup(func() { srv.Shutdown() })
 
 	if initReplicationToken {
 		// setup some tokens here so we get less warnings in the logs
 		srv.tokens.UpdateReplicationToken(TestDefaultMasterToken, token.TokenSourceConfig)
 	}
-	return dir, srv
+
+	codec := rpcClient(t, srv)
+	t.Cleanup(func() { codec.Close() })
+	return dir, srv, codec
 }
 
 func newServer(c *Config) (*Server, error) {

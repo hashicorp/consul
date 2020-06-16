@@ -408,6 +408,12 @@ func TestACL_HTTP(t *testing.T) {
 						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
 					},
 				},
+				NodeIdentities: []*structs.ACLNodeIdentity{
+					&structs.ACLNodeIdentity{
+						NodeName:   "web-node",
+						Datacenter: "foo",
+					},
+				},
 			}
 
 			req, _ := http.NewRequest("PUT", "/v1/acl/role?token=root", jsonBody(roleInput))
@@ -423,6 +429,7 @@ func TestACL_HTTP(t *testing.T) {
 			require.Equal(t, roleInput.Name, role.Name)
 			require.Equal(t, roleInput.Description, role.Description)
 			require.Equal(t, roleInput.Policies, role.Policies)
+			require.Equal(t, roleInput.NodeIdentities, role.NodeIdentities)
 			require.True(t, role.CreateIndex > 0)
 			require.Equal(t, role.CreateIndex, role.ModifyIndex)
 			require.NotNil(t, role.Hash)
@@ -502,6 +509,12 @@ func TestACL_HTTP(t *testing.T) {
 						ServiceName: "web-indexer",
 					},
 				},
+				NodeIdentities: []*structs.ACLNodeIdentity{
+					&structs.ACLNodeIdentity{
+						NodeName:   "web-node",
+						Datacenter: "foo",
+					},
+				},
 			}
 
 			req, _ := http.NewRequest("PUT", "/v1/acl/role/"+idMap["role-test"]+"?token=root", jsonBody(roleInput))
@@ -518,6 +531,7 @@ func TestACL_HTTP(t *testing.T) {
 			require.Equal(t, roleInput.Description, role.Description)
 			require.Equal(t, roleInput.Policies, role.Policies)
 			require.Equal(t, roleInput.ServiceIdentities, role.ServiceIdentities)
+			require.Equal(t, roleInput.NodeIdentities, role.NodeIdentities)
 			require.True(t, role.CreateIndex > 0)
 			require.True(t, role.CreateIndex < role.ModifyIndex)
 			require.NotNil(t, role.Hash)
@@ -623,6 +637,12 @@ func TestACL_HTTP(t *testing.T) {
 						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
 					},
 				},
+				NodeIdentities: []*structs.ACLNodeIdentity{
+					&structs.ACLNodeIdentity{
+						NodeName:   "foo",
+						Datacenter: "bar",
+					},
+				},
 			}
 
 			req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(tokenInput))
@@ -638,6 +658,7 @@ func TestACL_HTTP(t *testing.T) {
 			require.Len(t, token.SecretID, 36)
 			require.Equal(t, tokenInput.Description, token.Description)
 			require.Equal(t, tokenInput.Policies, token.Policies)
+			require.Equal(t, tokenInput.NodeIdentities, token.NodeIdentities)
 			require.True(t, token.CreateIndex > 0)
 			require.Equal(t, token.CreateIndex, token.ModifyIndex)
 			require.NotNil(t, token.Hash)
@@ -741,6 +762,12 @@ func TestACL_HTTP(t *testing.T) {
 						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
 					},
 				},
+				NodeIdentities: []*structs.ACLNodeIdentity{
+					&structs.ACLNodeIdentity{
+						NodeName:   "foo",
+						Datacenter: "bar",
+					},
+				},
 			}
 
 			req, _ := http.NewRequest("PUT", "/v1/acl/token/"+originalToken.AccessorID+"?token=root", jsonBody(tokenInput))
@@ -754,6 +781,7 @@ func TestACL_HTTP(t *testing.T) {
 			require.Equal(t, originalToken.SecretID, token.SecretID)
 			require.Equal(t, tokenInput.Description, token.Description)
 			require.Equal(t, tokenInput.Policies, token.Policies)
+			require.Equal(t, tokenInput.NodeIdentities, token.NodeIdentities)
 			require.True(t, token.CreateIndex > 0)
 			require.True(t, token.CreateIndex < token.ModifyIndex)
 			require.NotNil(t, token.Hash)

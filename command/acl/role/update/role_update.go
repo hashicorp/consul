@@ -30,6 +30,7 @@ type cmd struct {
 	policyIDs     []string
 	policyNames   []string
 	serviceIdents []string
+	nodeIdents    []string
 
 	noMerge  bool
 	showMeta bool
@@ -52,6 +53,9 @@ func (c *cmd) init() {
 	c.flags.Var((*flags.AppendSliceValue)(&c.serviceIdents), "service-identity", "Name of a "+
 		"service identity to use for this role. May be specified multiple times. Format is "+
 		"the SERVICENAME or SERVICENAME:DATACENTER1,DATACENTER2,...")
+	c.flags.Var((*flags.AppendSliceValue)(&c.nodeIdents), "node-identity", "Name of a "+
+		"node identity to use for this role. May be specified multiple times. Format is "+
+		"NODENAME:DATACENTER")
 	c.flags.BoolVar(&c.noMerge, "no-merge", false, "Do not merge the current role "+
 		"information with what is provided to the command. Instead overwrite all fields "+
 		"with the exception of the role ID which is immutable.")
@@ -97,6 +101,12 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	parsedNodeIdents, err := acl.ExtractNodeIdentities(c.nodeIdents)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+
 	// Read the current role in both cases so we can fail better if not found.
 	currentRole, _, err := client.ACL().RoleRead(roleID, nil)
 	if err != nil {
@@ -114,6 +124,7 @@ func (c *cmd) Run(args []string) int {
 			Name:              c.name,
 			Description:       c.description,
 			ServiceIdentities: parsedServiceIdents,
+			NodeIdentities:    parsedNodeIdents,
 		}
 
 		for _, policyName := range c.policyNames {
@@ -190,6 +201,20 @@ func (c *cmd) Run(args []string) int {
 				r.ServiceIdentities[found] = svcid
 			} else {
 				r.ServiceIdentities = append(r.ServiceIdentities, svcid)
+			}
+		}
+
+		for _, nodeid := range parsedNodeIdents {
+			found := false
+			for _, link := range r.NodeIdentities {
+				if link.NodeName == nodeid.NodeName && link.Datacenter != nodeid.Datacenter {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				r.NodeIdentities = append(r.NodeIdentities, nodeid)
 			}
 		}
 	}

@@ -36,6 +36,12 @@ func (s *Server) loadAuthMethodValidator(idx uint64, method *structs.ACLAuthMeth
 	return v, nil
 }
 
+type aclBindings struct {
+	roles             []structs.ACLTokenRoleLink
+	serviceIdentities []*structs.ACLServiceIdentity
+	nodeIdentities    []*structs.ACLNodeIdentity
+}
+
 // evaluateRoleBindings evaluates all current binding rules associated with the
 // given auth method against the verified data returned from the authentication
 // process.
@@ -46,13 +52,13 @@ func (s *Server) evaluateRoleBindings(
 	verifiedIdentity *authmethod.Identity,
 	methodMeta *structs.EnterpriseMeta,
 	targetMeta *structs.EnterpriseMeta,
-) ([]*structs.ACLServiceIdentity, []structs.ACLTokenRoleLink, error) {
+) (*aclBindings, error) {
 	// Only fetch rules that are relevant for this method.
 	_, rules, err := s.fsm.State().ACLBindingRuleList(nil, validator.Name(), methodMeta)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	} else if len(rules) == 0 {
-		return nil, nil, nil
+		return nil, nil
 	}
 
 	// Find all binding rules that match the provided fields.
@@ -63,36 +69,39 @@ func (s *Server) evaluateRoleBindings(
 		}
 	}
 	if len(matchingRules) == 0 {
-		return nil, nil, nil
+		return nil, nil
 	}
 
 	// For all matching rules compute the attributes of a token.
-	var (
-		roleLinks         []structs.ACLTokenRoleLink
-		serviceIdentities []*structs.ACLServiceIdentity
-	)
+	var bindings aclBindings
 	for _, rule := range matchingRules {
 		bindName, valid, err := computeBindingRuleBindName(rule.BindType, rule.BindName, verifiedIdentity.ProjectedVars)
 		if err != nil {
-			return nil, nil, fmt.Errorf("cannot compute %q bind name for bind target: %v", rule.BindType, err)
+			return nil, fmt.Errorf("cannot compute %q bind name for bind target: %v", rule.BindType, err)
 		} else if !valid {
-			return nil, nil, fmt.Errorf("computed %q bind name for bind target is invalid: %q", rule.BindType, bindName)
+			return nil, fmt.Errorf("computed %q bind name for bind target is invalid: %q", rule.BindType, bindName)
 		}
 
 		switch rule.BindType {
 		case structs.BindingRuleBindTypeService:
-			serviceIdentities = append(serviceIdentities, &structs.ACLServiceIdentity{
+			bindings.serviceIdentities = append(bindings.serviceIdentities, &structs.ACLServiceIdentity{
 				ServiceName: bindName,
+			})
+
+		case structs.BindingRuleBindTypeNode:
+			bindings.nodeIdentities = append(bindings.nodeIdentities, &structs.ACLNodeIdentity{
+				NodeName:   bindName,
+				Datacenter: s.config.Datacenter,
 			})
 
 		case structs.BindingRuleBindTypeRole:
 			_, role, err := s.fsm.State().ACLRoleGetByName(nil, bindName, targetMeta)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 
 			if role != nil {
-				roleLinks = append(roleLinks, structs.ACLTokenRoleLink{
+				bindings.roles = append(bindings.roles, structs.ACLTokenRoleLink{
 					ID: role.ID,
 				})
 			}
@@ -102,7 +111,7 @@ func (s *Server) evaluateRoleBindings(
 		}
 	}
 
-	return serviceIdentities, roleLinks, nil
+	return &bindings, nil
 }
 
 // doesSelectorMatch checks that a single selector matches the provided vars.

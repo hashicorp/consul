@@ -217,6 +217,23 @@ func ExtractServiceIdentities(serviceIdents []string) ([]*api.ACLServiceIdentity
 	return out, nil
 }
 
+func ExtractNodeIdentities(nodeIdents []string) ([]*api.ACLNodeIdentity, error) {
+	var out []*api.ACLNodeIdentity
+	for _, nodeidRaw := range nodeIdents {
+		parts := strings.Split(nodeidRaw, ":")
+		switch len(parts) {
+		case 2:
+			out = append(out, &api.ACLNodeIdentity{
+				NodeName:   parts[0],
+				Datacenter: parts[1],
+			})
+		default:
+			return nil, fmt.Errorf("Malformed -node-identity argument: %q", nodeidRaw)
+		}
+	}
+	return out, nil
+}
+
 // TestKubernetesJWT_A is a valid service account jwt extracted from a minikube setup.
 //
 // {

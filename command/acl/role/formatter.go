@@ -77,6 +77,12 @@ func (f *prettyFormatter) FormatRole(role *api.ACLRole) (string, error) {
 			}
 		}
 	}
+	if len(role.NodeIdentities) > 0 {
+		buffer.WriteString(fmt.Sprintln("Node Identities:"))
+		for _, nodeid := range role.NodeIdentities {
+			buffer.WriteString(fmt.Sprintf("   %s (Datacenter: %s)\n", nodeid.NodeName, nodeid.Datacenter))
+		}
+	}
 
 	return buffer.String(), nil
 }
@@ -119,6 +125,13 @@ func (f *prettyFormatter) formatRoleListEntry(role *api.ACLRole) string {
 			} else {
 				buffer.WriteString(fmt.Sprintf("      %s (Datacenters: all)\n", svcid.ServiceName))
 			}
+		}
+	}
+
+	if len(role.NodeIdentities) > 0 {
+		buffer.WriteString(fmt.Sprintln("   Node Identities:"))
+		for _, nodeid := range role.NodeIdentities {
+			buffer.WriteString(fmt.Sprintf("      %s (Datacenter: %s)\n", nodeid.NodeName, nodeid.Datacenter))
 		}
 	}
 

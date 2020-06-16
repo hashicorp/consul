@@ -45,6 +45,13 @@ may benefit from additional components in the ACL system:
   additional policy was attached, the contents of which are described further
   below. These are directly attached to tokens and roles and are not
   independently configured. (Added in Consul 1.5.0)
+  
+- **ACL Node Identities** - Node identities are a policy template for
+  expressing a link to a policy suitable for use as an [Consul `agent` token
+  ](/docs/agent/options#acl_tokens_agent). At authorization time this acts like an
+  additional policy was attached, the contents of which are described further
+  below. These are directly attached to tokens and roles and are not
+  independently configured. (Added in Consul 1.8.1)
 
 - **ACL Auth Methods and Binding Rules** - To learn more about these topics,
   see the [auth methods documentation page](/docs/acl/auth-methods).
@@ -122,6 +129,38 @@ examples of using a service identity.
 
 -> **Consul Enterprise Namespacing** - Service Identity rules will be scoped to the single namespace that
 the corresponding ACL Token or Role resides within.
+
+### ACL Node Identities
+
+-> Added in Consul 1.8.1
+
+An ACL node identity is an [ACL policy](/docs/acl/acl-system#acl-policies) template for expressing a link to a policy
+suitable for use as an [Consul `agent` token](/docs/agent/options#acl_tokens_agent). They are usable
+on both tokens and roles and are composed of the following elements:
+
+- **Node Name** - The name of the node to grant access to.
+- **Datacenter** - The datacenter that the node resides within.
+
+During the authorization process, the configured node identity is automatically
+applied as a policy with the following preconfigured [ACL
+rules](/docs/acl/acl-system#acl-rules-and-scope):
+
+```hcl
+# Allow the agent to register its own node in the Catalog and update its network coordinates
+node "<Node Name>" {
+  policy = "write"
+}
+
+# Allows the agent to detect and diff services registered to itself. This is used during
+# anti-entropy to reconcile difference between the agents knowledge of registered
+# services and checks in comparison with what is known in the Catalog.
+service_prefix "" {
+  policy = "read"
+}
+```
+
+-> **Consul Enterprise Namespacing** - Node Identities can only be applied to tokens and roles in the `default` namespace.
+The synthetic policy rules allow for `service:read` permissions on all services in all namespaces.
 
 ### ACL Roles
 

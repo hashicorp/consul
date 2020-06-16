@@ -33,6 +33,7 @@ type cmd struct {
 	roleIDs       []string
 	roleNames     []string
 	serviceIdents []string
+	nodeIdents    []string
 	expirationTTL time.Duration
 	local         bool
 	showMeta      bool
@@ -60,6 +61,9 @@ func (c *cmd) init() {
 	c.flags.Var((*flags.AppendSliceValue)(&c.serviceIdents), "service-identity", "Name of a "+
 		"service identity to use for this token. May be specified multiple times. Format is "+
 		"the SERVICENAME or SERVICENAME:DATACENTER1,DATACENTER2,...")
+	c.flags.Var((*flags.AppendSliceValue)(&c.nodeIdents), "node-identity", "Name of a "+
+		"node identity to use for this token. May be specified multiple times. Format is "+
+		"NODENAME:DATACENTER")
 	c.flags.DurationVar(&c.expirationTTL, "expires-ttl", 0, "Duration of time this "+
 		"token should be valid for")
 	c.flags.StringVar(
@@ -82,8 +86,8 @@ func (c *cmd) Run(args []string) int {
 
 	if len(c.policyNames) == 0 && len(c.policyIDs) == 0 &&
 		len(c.roleNames) == 0 && len(c.roleIDs) == 0 &&
-		len(c.serviceIdents) == 0 {
-		c.UI.Error(fmt.Sprintf("Cannot create a token without specifying -policy-name, -policy-id, -role-name, -role-id, or -service-identity at least once"))
+		len(c.serviceIdents) == 0 && len(c.nodeIdents) == 0 {
+		c.UI.Error(fmt.Sprintf("Cannot create a token without specifying -policy-name, -policy-id, -role-name, -role-id, -service-identity, or -node-identity at least once"))
 		return 1
 	}
 
@@ -109,6 +113,13 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 	newToken.ServiceIdentities = parsedServiceIdents
+
+	parsedNodeIdents, err := acl.ExtractNodeIdentities(c.nodeIdents)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+	newToken.NodeIdentities = parsedNodeIdents
 
 	for _, policyName := range c.policyNames {
 		// We could resolve names to IDs here but there isn't any reason why its would be better
