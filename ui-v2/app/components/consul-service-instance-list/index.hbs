@@ -10,16 +10,56 @@
           <ExternalSource />
         </li>
       </ConsulExternalSource>
-    {{#with (reject-by 'ServiceID' '' item.Checks) as |checks|}}
-      <li class={{service/instance-checks checks}}>
-        {{checks.length}} service checks
+{{#let (reject-by 'ServiceID' '' item.Checks) as |checks|}}
+  {{#let (service/instance-checks checks) as |serviceCheck| }}
+    {{#if (eq serviceCheck.status 'empty') }}
+      <li class={{serviceCheck.status}}>
+        No service checks
       </li>
-    {{/with}}
-    {{#with (filter-by 'ServiceID' '' item.Checks) as |checks|}}
-      <li class={{service/instance-checks checks}}>
-        {{checks.length}} node checks
+    {{else}}
+      {{#if (eq serviceCheck.count checks.length)}}
+        {{#if (eq serviceCheck.status 'warning') }}
+          <li class={{serviceCheck.status}}>
+            All service checks with {{serviceCheck.status}}
+          </li>
+        {{else}}
+          <li class={{serviceCheck.status}}>
+            All service checks {{serviceCheck.status}}
+          </li>
+        {{/if}}
+      {{else}}
+        <li class={{serviceCheck.status}}>
+          {{serviceCheck.count}}/{{checks.length}} service checks {{serviceCheck.status}}
+        </li>
+      {{/if}}
+    {{/if}}
+  {{/let}}
+{{/let}}
+{{#let (filter-by 'ServiceID' '' item.Checks) as |checks|}}
+  {{#let (service/instance-checks checks) as |nodeCheck| }}
+    {{#if (eq nodeCheck.status 'empty') }}
+      <li class={{nodeCheck.status}}>
+        No node checks
       </li>
-    {{/with}}
+    {{else}}
+      {{#if (eq nodeCheck.count checks.length)}}
+        {{#if (eq nodeCheck.status 'warning') }}
+          <li class={{nodeCheck.status}}>
+            All node checks with {{nodeCheck.status}}
+          </li>
+        {{else}}
+          <li class={{nodeCheck.status}}>
+            All node checks {{nodeCheck.status}}
+          </li>
+        {{/if}}
+      {{else}}
+        <li class={{nodeCheck.status}}>
+          {{nodeCheck.count}}/{{checks.length}} node checks {{nodeCheck.status}}
+        </li>
+      {{/if}}
+    {{/if}}
+  {{/let}}
+{{/let}}
     {{#if (get proxies item.Service.ID)}}
       <li class="proxy">
         connected with proxy

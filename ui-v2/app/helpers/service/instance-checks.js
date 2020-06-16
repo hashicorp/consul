@@ -23,13 +23,24 @@ export function healthChecks([items], hash) {
 
   switch (true) {
     case ChecksCritical !== 0:
-      return 'critical';
+      return {
+        status: 'failing',
+        count: ChecksCritical,
+      };
     case ChecksWarning !== 0:
-      return 'warning';
+      return {
+        status: 'warning',
+        count: ChecksWarning,
+      };
     case ChecksPassing !== 0:
-      return 'passing';
+      return {
+        status: 'passing',
+        count: ChecksPassing,
+      };
     default:
-      return 'empty';
+      return {
+        status: 'empty',
+      };
   }
 }
 
