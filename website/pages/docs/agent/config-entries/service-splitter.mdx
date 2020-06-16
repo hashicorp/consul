@@ -48,11 +48,11 @@ Kind = "service-splitter"
 Name = "web"
 Splits = [
   {
-    Weight         = 90
+    Weight        = 90
     ServiceSubset = "v1"
   },
   {
-    Weight         = 10
+    Weight        = 10
     ServiceSubset = "v2"
   },
 ]
@@ -65,7 +65,7 @@ Kind = "service-splitter"
 Name = "web"
 Splits = [
   {
-    Weight = 50
+    Weight  = 50
     # will default to service with same name as config entry ("web")
   },
   {
