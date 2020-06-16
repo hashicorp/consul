@@ -22,6 +22,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func unNilMap(in map[string]string) map[string]string {
+	if in == nil {
+		return make(map[string]string)
+	}
+	return in
+}
 func TestAgentAntiEntropy_Services(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t, "")
@@ -170,7 +176,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	delete(meta, structs.MetaSegmentKey) // Added later, not in config.
 	assert.Equal(t, a.Config.NodeID, id)
 	assert.Equal(t, a.Config.TaggedAddresses, addrs)
-	assert.Equal(t, a.Config.NodeMeta, meta)
+	assert.Equal(t, unNilMap(a.Config.NodeMeta), meta)
 
 	// We should have 6 services (consul included)
 	if len(services.NodeServices.Services) != 6 {
@@ -1045,7 +1051,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 			delete(meta, structs.MetaSegmentKey) // Added later, not in config.
 			assert.Equal(t, a.Config.NodeID, id)
 			assert.Equal(t, a.Config.TaggedAddresses, addrs)
-			assert.Equal(t, a.Config.NodeMeta, meta)
+			assert.Equal(t, unNilMap(a.Config.NodeMeta), meta)
 		}
 	})
 	retry.Run(t, func(r *retry.R) {
@@ -1686,7 +1692,7 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 	delete(meta, structs.MetaSegmentKey) // Added later, not in config.
 	require.Equal(t, a.Config.NodeID, id)
 	require.Equal(t, a.Config.TaggedAddresses, addrs)
-	require.Equal(t, a.Config.NodeMeta, meta)
+	assert.Equal(t, unNilMap(a.Config.NodeMeta), meta)
 
 	// Blow away the catalog version of the node info
 	if err := a.RPC("Catalog.Register", args, &out); err != nil {
