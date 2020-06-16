@@ -285,11 +285,11 @@ func TestStateStore_NodeSessions(t *testing.T) {
 		},
 	}
 	sessions2 := []*structs.Session{
-		&structs.Session{
+		{
 			ID:   testUUID(),
 			Node: "node2",
 		},
-		&structs.Session{
+		{
 			ID:   testUUID(),
 			Node: "node2",
 		},

@@ -258,15 +258,15 @@ func TestListenersFromSnapshot(t *testing.T) {
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Config = map[string]interface{}{
 					"envoy_mesh_gateway_bind_addresses": map[string]structs.ServiceAddress{
-						"foo": structs.ServiceAddress{
+						"foo": {
 							Address: "198.17.2.3",
 							Port:    8080,
 						},
-						"bar": structs.ServiceAddress{
+						"bar": {
 							Address: "2001:db8::ff",
 							Port:    9999,
 						},
-						"baz": structs.ServiceAddress{
+						"baz": {
 							Address: "127.0.0.1",
 							Port:    8765,
 						},
@@ -284,14 +284,14 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotIngressGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.TaggedAddresses = map[string]structs.ServiceAddress{
-					"lan": structs.ServiceAddress{Address: "10.0.0.1"},
-					"wan": structs.ServiceAddress{Address: "172.16.0.1"},
+					"lan": {Address: "10.0.0.1"},
+					"wan": {Address: "172.16.0.1"},
 				}
 				snap.Proxy.Config = map[string]interface{}{
 					"envoy_gateway_no_default_bind":       true,
 					"envoy_gateway_bind_tagged_addresses": true,
 					"envoy_gateway_bind_addresses": map[string]structs.ServiceAddress{
-						"foo": structs.ServiceAddress{Address: "8.8.8.8"},
+						"foo": {Address: "8.8.8.8"},
 					},
 				}
 			},
@@ -396,7 +396,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotIngress_HTTPMultipleServices,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.IngressGateway.Upstreams = map[proxycfg.IngressListenerKey]structs.Upstreams{
-					proxycfg.IngressListenerKey{Protocol: "http", Port: 8080}: structs.Upstreams{
+					{Protocol: "http", Port: 8080}: {
 						{
 							DestinationName: "foo",
 							LocalBindPort:   8080,
@@ -406,7 +406,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 							LocalBindPort:   8080,
 						},
 					},
-					proxycfg.IngressListenerKey{Protocol: "http", Port: 443}: structs.Upstreams{
+					{Protocol: "http", Port: 443}: {
 						{
 							DestinationName: "baz",
 							LocalBindPort:   443,

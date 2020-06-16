@@ -14,7 +14,7 @@ func coordinatesTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: "coordinates",
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
@@ -34,7 +34,7 @@ func coordinatesTableSchema() *memdb.TableSchema {
 					},
 				},
 			},
-			"node": &memdb.IndexSchema{
+			"node": {
 				Name:         "node",
 				AllowMissing: false,
 				Unique:       false,

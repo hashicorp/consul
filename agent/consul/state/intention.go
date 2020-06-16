@@ -18,7 +18,7 @@ func intentionsTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: intentionsTableName,
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
@@ -26,7 +26,7 @@ func intentionsTableSchema() *memdb.TableSchema {
 					Field: "ID",
 				},
 			},
-			"destination": &memdb.IndexSchema{
+			"destination": {
 				Name:         "destination",
 				AllowMissing: true,
 				// This index is not unique since we need uniqueness across the whole
@@ -45,7 +45,7 @@ func intentionsTableSchema() *memdb.TableSchema {
 					},
 				},
 			},
-			"source": &memdb.IndexSchema{
+			"source": {
 				Name:         "source",
 				AllowMissing: true,
 				// This index is not unique since we need uniqueness across the whole
@@ -64,7 +64,7 @@ func intentionsTableSchema() *memdb.TableSchema {
 					},
 				},
 			},
-			"source_destination": &memdb.IndexSchema{
+			"source_destination": {
 				Name:         "source_destination",
 				AllowMissing: true,
 				Unique:       true,

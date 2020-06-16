@@ -60,12 +60,12 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 				},
 			},
 			wantChecks: []*structs.CheckType{
-				&structs.CheckType{
+				{
 					Name:     "Connect Sidecar Listening",
 					TCP:      "127.0.0.1:2222",
 					Interval: 10 * time.Second,
 				},
-				&structs.CheckType{
+				{
 					Name:         "Connect Sidecar Aliasing web1",
 					AliasService: "web1",
 				},
@@ -128,7 +128,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 				},
 			},
 			wantChecks: []*structs.CheckType{
-				&structs.CheckType{
+				{
 					ScriptArgs: []string{"sleep", "1"},
 					Interval:   999 * time.Second,
 				},
@@ -200,12 +200,12 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 				},
 			},
 			wantChecks: []*structs.CheckType{
-				&structs.CheckType{
+				{
 					Name:     "Connect Sidecar Listening",
 					TCP:      "127.0.0.1:2222",
 					Interval: 10 * time.Second,
 				},
-				&structs.CheckType{
+				{
 					Name:         "Connect Sidecar Aliasing web1",
 					AliasService: "web1",
 				},
@@ -288,12 +288,12 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 				},
 			},
 			wantChecks: []*structs.CheckType{
-				&structs.CheckType{
+				{
 					Name:     "Connect Sidecar Listening",
 					TCP:      "127.0.0.1:2222",
 					Interval: 10 * time.Second,
 				},
-				&structs.CheckType{
+				{
 					Name:         "Connect Sidecar Aliasing web1",
 					AliasService: "web1",
 				},

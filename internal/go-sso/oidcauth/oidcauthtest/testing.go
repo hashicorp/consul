@@ -406,7 +406,7 @@ func newJWKS(pubKey string) (*jose.JSONWebKeySet, error) {
 	}
 	return &jose.JSONWebKeySet{
 		Keys: []jose.JSONWebKey{
-			jose.JSONWebKey{
+			{
 				Key: pub,
 			},
 		},

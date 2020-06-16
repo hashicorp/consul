@@ -62,7 +62,7 @@ func TestConfigList_InvalidArgs(t *testing.T) {
 	t.Parallel()
 
 	cases := map[string][]string{
-		"no kind": []string{},
+		"no kind": {},
 	}
 
 	for name, tcase := range cases {

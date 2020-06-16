@@ -18,7 +18,7 @@ func TestMapWalk(t *testing.T) {
 	cases := map[string]tcase{
 		// basically tests that []uint8 gets turned into
 		// a string
-		"simple": tcase{
+		"simple": {
 			input: map[string]interface{}{
 				"foo": []uint8("bar"),
 			},
@@ -29,7 +29,7 @@ func TestMapWalk(t *testing.T) {
 		// ensures that it was actually converted and not
 		// just the require.Equal masking the underlying
 		// type differences
-		"uint8 conversion": tcase{
+		"uint8 conversion": {
 			input: map[string]interface{}{
 				"foo": []uint8("bar"),
 			},
@@ -39,7 +39,7 @@ func TestMapWalk(t *testing.T) {
 			unexpected: true,
 		},
 		// ensure nested maps get processed correctly
-		"nested": tcase{
+		"nested": {
 			input: map[string]interface{}{
 				"foo": map[interface{}]interface{}{
 					"bar": []uint8("baz"),
@@ -53,7 +53,7 @@ func TestMapWalk(t *testing.T) {
 				"bar": "baz",
 			},
 		},
-		"map with slice": tcase{
+		"map with slice": {
 			input: map[string]interface{}{
 				"foo": []uint8("bar"),
 				"bar": []interface{}{

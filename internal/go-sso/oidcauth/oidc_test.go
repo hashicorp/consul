@@ -191,7 +191,7 @@ func TestOIDC_ClaimsFromAuthCode(t *testing.T) {
 				"flavor":    "umami", // from userinfo
 			},
 			Lists: map[string][]string{
-				"groups": []string{"a", "b"},
+				"groups": {"a", "b"},
 			},
 		}
 
@@ -269,7 +269,7 @@ func TestOIDC_ClaimsFromAuthCode(t *testing.T) {
 				// "flavor":    "umami", // from userinfo
 			},
 			Lists: map[string][]string{
-				"groups": []string{"a", "b"},
+				"groups": {"a", "b"},
 			},
 		}
 

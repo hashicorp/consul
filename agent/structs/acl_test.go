@@ -16,13 +16,13 @@ func TestStructs_ACLToken_PolicyIDs(t *testing.T) {
 
 		token := &ACLToken{
 			Policies: []ACLTokenPolicyLink{
-				ACLTokenPolicyLink{
+				{
 					ID: "one",
 				},
-				ACLTokenPolicyLink{
+				{
 					ID: "two",
 				},
-				ACLTokenPolicyLink{
+				{
 					ID: "three",
 				},
 			},
@@ -179,13 +179,13 @@ func TestStructs_ACLToken_SetHash(t *testing.T) {
 		SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
 		Description: "test",
 		Policies: []ACLTokenPolicyLink{
-			ACLTokenPolicyLink{
+			{
 				ID: "one",
 			},
-			ACLTokenPolicyLink{
+			{
 				ID: "two",
 			},
-			ACLTokenPolicyLink{
+			{
 				ID: "three",
 			},
 		},
@@ -224,13 +224,13 @@ func TestStructs_ACLToken_EstimateSize(t *testing.T) {
 		SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
 		Description: "test",
 		Policies: []ACLTokenPolicyLink{
-			ACLTokenPolicyLink{
+			{
 				ID: "one",
 			},
-			ACLTokenPolicyLink{
+			{
 				ID: "two",
 			},
-			ACLTokenPolicyLink{
+			{
 				ID: "three",
 			},
 		},
@@ -250,13 +250,13 @@ func TestStructs_ACLToken_Stub(t *testing.T) {
 			SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
 			Description: "test",
 			Policies: []ACLTokenPolicyLink{
-				ACLTokenPolicyLink{
+				{
 					ID: "one",
 				},
-				ACLTokenPolicyLink{
+				{
 					ID: "two",
 				},
-				ACLTokenPolicyLink{
+				{
 					ID: "three",
 				},
 			},

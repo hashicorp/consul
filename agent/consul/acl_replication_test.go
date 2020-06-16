@@ -336,7 +336,7 @@ func TestACLReplication_Tokens(t *testing.T) {
 			ACLToken: structs.ACLToken{
 				Description: fmt.Sprintf("token-%d", i),
 				Policies: []structs.ACLTokenPolicyLink{
-					structs.ACLTokenPolicyLink{
+					{
 						ID: structs.ACLPolicyGlobalManagementID,
 					},
 				},
@@ -391,7 +391,7 @@ func TestACLReplication_Tokens(t *testing.T) {
 			ACLToken: structs.ACLToken{
 				Description: fmt.Sprintf("token-%d", i),
 				Policies: []structs.ACLTokenPolicyLink{
-					structs.ACLTokenPolicyLink{
+					{
 						ID: structs.ACLPolicyGlobalManagementID,
 					},
 				},
@@ -411,7 +411,7 @@ func TestACLReplication_Tokens(t *testing.T) {
 			ACLToken: structs.ACLToken{
 				Description: fmt.Sprintf("token-%d", i),
 				Policies: []structs.ACLTokenPolicyLink{
-					structs.ACLTokenPolicyLink{
+					{
 						ID: structs.ACLPolicyGlobalManagementID,
 					},
 				},
@@ -432,7 +432,7 @@ func TestACLReplication_Tokens(t *testing.T) {
 				SecretID:    tokens[i].SecretID,
 				Description: fmt.Sprintf("token-%d-modified", i),
 				Policies: []structs.ACLTokenPolicyLink{
-					structs.ACLTokenPolicyLink{
+					{
 						ID: structs.ACLPolicyGlobalManagementID,
 					},
 				},
@@ -625,7 +625,7 @@ func TestACLReplication_TokensRedacted(t *testing.T) {
 		ACLToken: structs.ACLToken{
 			Description: "dc2-replication",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID: policy.ID,
 				},
 			},
@@ -700,7 +700,7 @@ func TestACLReplication_TokensRedacted(t *testing.T) {
 		ACLToken: structs.ACLToken{
 			Description: "management",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID: structs.ACLPolicyGlobalManagementID,
 				},
 			},

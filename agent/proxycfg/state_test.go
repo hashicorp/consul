@@ -476,12 +476,12 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			},
 			events: []cache.UpdateEvent{
 				rootWatchEvent(),
-				cache.UpdateEvent{
+				{
 					CorrelationID: leafWatchID,
 					Result:        issuedCert,
 					Err:           nil,
 				},
-				cache.UpdateEvent{
+				{
 					CorrelationID: "discovery-chain:api",
 					Result: &structs.DiscoveryChainResponse{
 						Chain: discoverychain.TestCompileConfigEntries(t, "api", "default", "dc1", "trustdomain.consul", "dc1",
@@ -491,7 +491,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					Err: nil,
 				},
-				cache.UpdateEvent{
+				{
 					CorrelationID: "discovery-chain:api-failover-remote?dc=dc2",
 					Result: &structs.DiscoveryChainResponse{
 						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-remote", "default", "dc2", "trustdomain.consul", "dc1",
@@ -501,7 +501,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					Err: nil,
 				},
-				cache.UpdateEvent{
+				{
 					CorrelationID: "discovery-chain:api-failover-local?dc=dc2",
 					Result: &structs.DiscoveryChainResponse{
 						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-local", "default", "dc2", "trustdomain.consul", "dc1",
@@ -511,7 +511,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					Err: nil,
 				},
-				cache.UpdateEvent{
+				{
 					CorrelationID: "discovery-chain:api-failover-direct?dc=dc2",
 					Result: &structs.DiscoveryChainResponse{
 						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-direct", "default", "dc2", "trustdomain.consul", "dc1",
@@ -521,7 +521,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					Err: nil,
 				},
-				cache.UpdateEvent{
+				{
 					CorrelationID: "discovery-chain:api-dc2",
 					Result: &structs.DiscoveryChainResponse{
 						Chain: discoverychain.TestCompileConfigEntries(t, "api-dc2", "default", "dc1", "trustdomain.consul", "dc1",
@@ -603,7 +603,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 	apiStr := api.String()
 
 	cases := map[string]testCase{
-		"initial-gateway": testCase{
+		"initial-gateway": {
 			ns: structs.NodeService{
 				Kind:    structs.ServiceKindMeshGateway,
 				ID:      "mesh-gateway",
@@ -613,7 +613,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			},
 			sourceDC: "dc1",
 			stages: []verificationStage{
-				verificationStage{
+				{
 					requiredWatches: map[string]verifyWatchRequest{
 						rootsWatchID:       genVerifyRootsWatch("dc1"),
 						serviceListWatchID: genVerifyListServicesWatch("dc1"),
@@ -624,7 +624,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.ConnectProxy.IsEmpty())
 					},
 				},
-				verificationStage{
+				{
 					events: []cache.UpdateEvent{
 						rootWatchEvent(),
 					},
@@ -640,9 +640,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Empty(t, snap.MeshGateway.GatewayGroups)
 					},
 				},
-				verificationStage{
+				{
 					events: []cache.UpdateEvent{
-						cache.UpdateEvent{
+						{
 							CorrelationID: serviceListWatchID,
 							Result: &structs.IndexedServiceList{
 								Services: make(structs.ServiceList, 0),
@@ -664,7 +664,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				},
 			},
 		},
-		"mesh-gateway-do-not-cancel-service-watches": testCase{
+		"mesh-gateway-do-not-cancel-service-watches": {
 			ns: structs.NodeService{
 				Kind:    structs.ServiceKindMeshGateway,
 				ID:      "mesh-gateway",
@@ -674,7 +674,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			},
 			sourceDC: "dc1",
 			stages: []verificationStage{
-				verificationStage{
+				{
 					requiredWatches: map[string]verifyWatchRequest{
 						rootsWatchID:       genVerifyRootsWatch("dc1"),
 						serviceListWatchID: genVerifyListServicesWatch("dc1"),
@@ -682,7 +682,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					events: []cache.UpdateEvent{
 						rootWatchEvent(),
-						cache.UpdateEvent{
+						{
 							CorrelationID: serviceListWatchID,
 							Result: &structs.IndexedServiceList{
 								Services: structs.ServiceList{
@@ -698,9 +698,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.MeshGateway.WatchedServicesSet)
 					},
 				},
-				verificationStage{
+				{
 					events: []cache.UpdateEvent{
-						cache.UpdateEvent{
+						{
 							CorrelationID: serviceListWatchID,
 							Result: &structs.IndexedServiceList{
 								Services: structs.ServiceList{
@@ -717,9 +717,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.MeshGateway.WatchedServicesSet)
 					},
 				},
-				verificationStage{
+				{
 					events: []cache.UpdateEvent{
-						cache.UpdateEvent{
+						{
 							CorrelationID: "mesh-gateway:dc4",
 							Result: &structs.IndexedCheckServiceNodes{
 								Nodes: TestGatewayNodesDC4Hostname(t),
@@ -761,9 +761,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Equal(t, snap.MeshGateway.HostnameDatacenters["dc4"], expect)
 					},
 				},
-				verificationStage{
+				{
 					events: []cache.UpdateEvent{
-						cache.UpdateEvent{
+						{
 							CorrelationID: federationStateListGatewaysWatchID,
 							Result: &structs.DatacenterIndexedCheckServiceNodes{
 								DatacenterNodes: map[string]structs.CheckServiceNodes{
@@ -809,7 +809,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				},
 			},
 		},
-		"ingress-gateway": testCase{
+		"ingress-gateway": {
 			ns: structs.NodeService{
 				Kind:    structs.ServiceKindIngressGateway,
 				ID:      "ingress-gateway",
@@ -818,7 +818,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			},
 			sourceDC: "dc1",
 			stages: []verificationStage{
-				verificationStage{
+				{
 					requiredWatches: map[string]verifyWatchRequest{
 						rootsWatchID:           genVerifyRootsWatch("dc1"),
 						gatewayConfigWatchID:   genVerifyConfigEntryWatch(structs.IngressGateway, "ingress-gateway", "dc1"),
@@ -829,7 +829,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.IngressGateway.IsEmpty())
 					},
 				},
-				verificationStage{
+				{
 					events: []cache.UpdateEvent{
 						rootWatchEvent(),
 					},
@@ -838,7 +838,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Equal(t, indexedRoots, snap.Roots)
 					},
 				},
-				verificationStage{
+				{
 					events: []cache.UpdateEvent{
 						ingressConfigWatchEvent(false),
 					},
@@ -848,9 +848,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.False(t, snap.IngressGateway.TLSEnabled)
 					},
 				},
-				verificationStage{
+				{
 					events: []cache.UpdateEvent{
-						cache.UpdateEvent{
+						{
 							CorrelationID: gatewayServicesWatchID,
 							Result: &structs.IndexedGatewayServices{
 								Services: structs.GatewayServices{
@@ -885,12 +885,12 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Contains(t, snap.IngressGateway.WatchedDiscoveryChains, "api")
 					},
 				},
-				verificationStage{
+				{
 					requiredWatches: map[string]verifyWatchRequest{
 						leafWatchID: genVerifyLeafWatch("ingress-gateway", "dc1"),
 					},
 					events: []cache.UpdateEvent{
-						cache.UpdateEvent{
+						{
 							CorrelationID: leafWatchID,
 							Result:        issuedCert,
 							Err:           nil,
@@ -901,7 +901,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Equal(t, issuedCert, snap.IngressGateway.Leaf)
 					},
 				},
-				verificationStage{
+				{
 					requiredWatches: map[string]verifyWatchRequest{
 						"discovery-chain:api": genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 							Name:                 "api",
@@ -911,7 +911,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						}),
 					},
 					events: []cache.UpdateEvent{
-						cache.UpdateEvent{
+						{
 							CorrelationID: "discovery-chain:api",
 							Result: &structs.DiscoveryChainResponse{
 								Chain: discoverychain.TestCompileConfigEntries(t, "api", "default", "dc1", "trustdomain.consul", "dc1", nil),
@@ -924,12 +924,12 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Len(t, snap.IngressGateway.WatchedUpstreams["api"], 1)
 					},
 				},
-				verificationStage{
+				{
 					requiredWatches: map[string]verifyWatchRequest{
 						"upstream-target:api.default.dc1:api": genVerifyServiceWatch("api", "", "dc1", true),
 					},
 					events: []cache.UpdateEvent{
-						cache.UpdateEvent{
+						{
 							CorrelationID: "upstream-target:api.default.dc1:api",
 							Result: &structs.IndexedCheckServiceNodes{
 								Nodes: structs.CheckServiceNodes{
@@ -971,7 +971,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				},
 			},
 		},
-		"ingress-gateway-with-tls-update-upstreams": testCase{
+		"ingress-gateway-with-tls-update-upstreams": {
 			ns: structs.NodeService{
 				Kind:    structs.ServiceKindIngressGateway,
 				ID:      "ingress-gateway",
@@ -980,7 +980,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			},
 			sourceDC: "dc1",
 			stages: []verificationStage{
-				verificationStage{
+				{
 					requiredWatches: map[string]verifyWatchRequest{
 						rootsWatchID:           genVerifyRootsWatch("dc1"),
 						gatewayConfigWatchID:   genVerifyConfigEntryWatch(structs.IngressGateway, "ingress-gateway", "dc1"),
@@ -989,7 +989,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					events: []cache.UpdateEvent{
 						rootWatchEvent(),
 						ingressConfigWatchEvent(true),
-						cache.UpdateEvent{
+						{
 							CorrelationID: gatewayServicesWatchID,
 							Result: &structs.IndexedGatewayServices{
 								Services: structs.GatewayServices{
@@ -1003,7 +1003,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							},
 							Err: nil,
 						},
-						cache.UpdateEvent{
+						{
 							CorrelationID: leafWatchID,
 							Result:        issuedCert,
 							Err:           nil,
@@ -1020,7 +1020,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Contains(t, snap.IngressGateway.WatchedDiscoveryChains, "api")
 					},
 				},
-				verificationStage{
+				{
 					requiredWatches: map[string]verifyWatchRequest{
 						leafWatchID: genVerifyLeafWatchWithDNSSANs("ingress-gateway", "dc1", []string{
 							"test.example.com",
@@ -1031,7 +1031,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						}),
 					},
 					events: []cache.UpdateEvent{
-						cache.UpdateEvent{
+						{
 							CorrelationID: gatewayServicesWatchID,
 							Result:        &structs.IndexedGatewayServices{},
 							Err:           nil,
@@ -1046,7 +1046,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				},
 			},
 		},
-		"terminating-gateway-initial": testCase{
+		"terminating-gateway-initial": {
 			ns: structs.NodeService{
 				Kind:    structs.ServiceKindTerminatingGateway,
 				ID:      "terminating-gateway",
@@ -1055,7 +1055,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			},
 			sourceDC: "dc1",
 			stages: []verificationStage{
-				verificationStage{
+				{
 					requiredWatches: map[string]verifyWatchRequest{
 						rootsWatchID: genVerifyRootsWatch("dc1"),
 						gatewayServicesWatchID: genVerifyServiceSpecificRequest(gatewayServicesWatchID,
@@ -1068,7 +1068,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.IngressGateway.IsEmpty())
 					},
 				},
-				verificationStage{
+				{
 					events: []cache.UpdateEvent{
 						rootWatchEvent(),
 					},
@@ -1083,7 +1083,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				},
 			},
 		},
-		"terminating-gateway-handle-update": testCase{
+		"terminating-gateway-handle-update": {
 			ns: structs.NodeService{
 				Kind:    structs.ServiceKindTerminatingGateway,
 				ID:      "terminating-gateway",
@@ -1092,7 +1092,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			},
 			sourceDC: "dc1",
 			stages: []verificationStage{
-				verificationStage{
+				{
 					requiredWatches: map[string]verifyWatchRequest{
 						rootsWatchID: genVerifyRootsWatch("dc1"),
 						gatewayServicesWatchID: genVerifyServiceSpecificRequest(gatewayServicesWatchID,
@@ -1100,7 +1100,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					events: []cache.UpdateEvent{
 						rootWatchEvent(),
-						cache.UpdateEvent{
+						{
 							CorrelationID: gatewayServicesWatchID,
 							Result: &structs.IndexedGatewayServices{
 								Services: structs.GatewayServices{
@@ -1118,9 +1118,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Len(t, snap.TerminatingGateway.WatchedServices, 1)
 					},
 				},
-				verificationStage{
+				{
 					events: []cache.UpdateEvent{
-						cache.UpdateEvent{
+						{
 							CorrelationID: gatewayServicesWatchID,
 							Result: &structs.IndexedGatewayServices{
 								Services: structs.GatewayServices{
@@ -1173,12 +1173,12 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Contains(t, snap.TerminatingGateway.GatewayServices, api)
 					},
 				},
-				verificationStage{
+				{
 					requiredWatches: map[string]verifyWatchRequest{
 						"external-service:" + dbStr: genVerifyServiceWatch("db", "", "dc1", false),
 					},
 					events: []cache.UpdateEvent{
-						cache.UpdateEvent{
+						{
 							CorrelationID: "external-service:" + dbStr,
 							Result: &structs.IndexedCheckServiceNodes{
 								Nodes: structs.CheckServiceNodes{
@@ -1215,12 +1215,12 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						)
 					},
 				},
-				verificationStage{
+				{
 					requiredWatches: map[string]verifyWatchRequest{
 						"external-service:" + apiStr: genVerifyServiceWatch("api", "", "dc1", false),
 					},
 					events: []cache.UpdateEvent{
-						cache.UpdateEvent{
+						{
 							CorrelationID: "external-service:" + apiStr,
 							Result: &structs.IndexedCheckServiceNodes{
 								Nodes: structs.CheckServiceNodes{
@@ -1306,12 +1306,12 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.ElementsMatch(t, snap.TerminatingGateway.HostnameServices[sn], expect[:2])
 					},
 				},
-				verificationStage{
+				{
 					requiredWatches: map[string]verifyWatchRequest{
 						"service-leaf:" + dbStr: genVerifyLeafWatch("db", "dc1"),
 					},
 					events: []cache.UpdateEvent{
-						cache.UpdateEvent{
+						{
 							CorrelationID: "service-leaf:" + dbStr,
 							Result:        issuedCert,
 							Err:           nil,
@@ -1321,12 +1321,12 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Equal(t, snap.TerminatingGateway.ServiceLeaves[structs.NewServiceName("db", nil)], issuedCert)
 					},
 				},
-				verificationStage{
+				{
 					requiredWatches: map[string]verifyWatchRequest{
 						"service-resolver:" + dbStr: genVerifyResolverWatch("db", "dc1", structs.ServiceResolver),
 					},
 					events: []cache.UpdateEvent{
-						cache.UpdateEvent{
+						{
 							CorrelationID: "service-resolver:" + dbStr,
 							Result: &structs.IndexedConfigEntries{
 								Kind: structs.ServiceResolver,
@@ -1356,9 +1356,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Equal(t, want, snap.TerminatingGateway.ServiceResolvers[structs.NewServiceName("db", nil)])
 					},
 				},
-				verificationStage{
+				{
 					events: []cache.UpdateEvent{
-						cache.UpdateEvent{
+						{
 							CorrelationID: gatewayServicesWatchID,
 							Result: &structs.IndexedGatewayServices{
 								Services: structs.GatewayServices{

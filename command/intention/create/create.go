@@ -181,7 +181,7 @@ func (c *cmd) ixnsFromArgs(args []string) ([]*api.Intention, error) {
 		return nil, fmt.Errorf("Invalid intention destination: %v", err)
 	}
 
-	return []*api.Intention{&api.Intention{
+	return []*api.Intention{{
 		SourceNS:        srcNamespace,
 		SourceName:      srcName,
 		DestinationNS:   dstNamespace,

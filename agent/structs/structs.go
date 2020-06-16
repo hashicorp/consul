@@ -120,7 +120,7 @@ const (
 	WildcardSpecifier = "*"
 )
 
-var allowedConsulMetaKeysForMeshGateway = map[string]struct{}{MetaWANFederationKey: struct{}{}}
+var allowedConsulMetaKeysForMeshGateway = map[string]struct{}{MetaWANFederationKey: {}}
 
 var (
 	NodeMaintCheckID = NewCheckID(NodeMaint, nil)
@@ -1147,7 +1147,7 @@ func (s *NodeService) Validate() error {
 			path.Protocol = strings.ToLower(path.Protocol)
 			if ok := allowedExposeProtocols[path.Protocol]; !ok && path.Protocol != "" {
 				protocols := make([]string, 0)
-				for p, _ := range allowedExposeProtocols {
+				for p := range allowedExposeProtocols {
 					protocols = append(protocols, p)
 				}
 

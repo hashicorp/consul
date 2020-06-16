@@ -98,7 +98,7 @@ func TestRoleReadCommand(t *testing.T) {
 			&api.ACLRole{
 				Name: "test-role-by-id",
 				ServiceIdentities: []*api.ACLServiceIdentity{
-					&api.ACLServiceIdentity{
+					{
 						ServiceName: "fake",
 					},
 				},
@@ -131,7 +131,7 @@ func TestRoleReadCommand(t *testing.T) {
 			&api.ACLRole{
 				Name: "test-role-by-id-prefix",
 				ServiceIdentities: []*api.ACLServiceIdentity{
-					&api.ACLServiceIdentity{
+					{
 						ServiceName: "fake",
 					},
 				},
@@ -164,7 +164,7 @@ func TestRoleReadCommand(t *testing.T) {
 			&api.ACLRole{
 				Name: "test-role-by-name",
 				ServiceIdentities: []*api.ACLServiceIdentity{
-					&api.ACLServiceIdentity{
+					{
 						ServiceName: "fake",
 					},
 				},
@@ -218,7 +218,7 @@ func TestRoleReadCommand_JSON(t *testing.T) {
 			&api.ACLRole{
 				Name: "test-role-by-id",
 				ServiceIdentities: []*api.ACLServiceIdentity{
-					&api.ACLServiceIdentity{
+					{
 						ServiceName: "fake",
 					},
 				},

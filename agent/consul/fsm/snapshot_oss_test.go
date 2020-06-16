@@ -91,7 +91,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		Name:        "some-role",
 		Description: "test snapshot role",
 		ServiceIdentities: []*structs.ACLServiceIdentity{
-			&structs.ACLServiceIdentity{
+			{
 				ServiceName: "example",
 			},
 		},

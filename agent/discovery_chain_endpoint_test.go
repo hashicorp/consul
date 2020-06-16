@@ -76,7 +76,7 @@ func TestDiscoveryChainRead(t *testing.T) {
 				Protocol:    "tcp",
 				StartNode:   "resolver:web.default.dc1",
 				Nodes: map[string]*structs.DiscoveryGraphNode{
-					"resolver:web.default.dc1": &structs.DiscoveryGraphNode{
+					"resolver:web.default.dc1": {
 						Type: structs.DiscoveryGraphNodeTypeResolver,
 						Name: "web.default.dc1",
 						Resolver: &structs.DiscoveryResolver{
@@ -119,7 +119,7 @@ func TestDiscoveryChainRead(t *testing.T) {
 				Protocol:    "tcp",
 				StartNode:   "resolver:web.default.dc2",
 				Nodes: map[string]*structs.DiscoveryGraphNode{
-					"resolver:web.default.dc2": &structs.DiscoveryGraphNode{
+					"resolver:web.default.dc2": {
 						Type: structs.DiscoveryGraphNodeTypeResolver,
 						Name: "web.default.dc2",
 						Resolver: &structs.DiscoveryResolver{
@@ -171,7 +171,7 @@ func TestDiscoveryChainRead(t *testing.T) {
 				Protocol:    "tcp",
 				StartNode:   "resolver:web.default.dc1",
 				Nodes: map[string]*structs.DiscoveryGraphNode{
-					"resolver:web.default.dc1": &structs.DiscoveryGraphNode{
+					"resolver:web.default.dc1": {
 						Type: structs.DiscoveryGraphNodeTypeResolver,
 						Name: "web.default.dc1",
 						Resolver: &structs.DiscoveryResolver{
@@ -233,7 +233,7 @@ func TestDiscoveryChainRead(t *testing.T) {
 				Protocol:    "tcp",
 				StartNode:   "resolver:web.default.dc1",
 				Nodes: map[string]*structs.DiscoveryGraphNode{
-					"resolver:web.default.dc1": &structs.DiscoveryGraphNode{
+					"resolver:web.default.dc1": {
 						Type: structs.DiscoveryGraphNodeTypeResolver,
 						Name: "web.default.dc1",
 						Resolver: &structs.DiscoveryResolver{
@@ -269,7 +269,7 @@ func TestDiscoveryChainRead(t *testing.T) {
 		CustomizationHash: "98809527",
 		StartNode:         "resolver:web.default.dc1",
 		Nodes: map[string]*structs.DiscoveryGraphNode{
-			"resolver:web.default.dc1": &structs.DiscoveryGraphNode{
+			"resolver:web.default.dc1": {
 				Type: structs.DiscoveryGraphNodeTypeResolver,
 				Name: "web.default.dc1",
 				Resolver: &structs.DiscoveryResolver{

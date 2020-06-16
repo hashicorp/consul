@@ -23,7 +23,7 @@ issues:
 
 linters-settings:
   gofmt:
-    simplify: false
+    simplify: true
 
 run:
   timeout: 10m

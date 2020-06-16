@@ -2496,13 +2496,13 @@ func TestDNS_ServiceLookup_WanTranslation(t *testing.T) {
 	}
 
 	cases := map[string]testCase{
-		"node-addr-from-dc1": testCase{
+		"node-addr-from-dc1": {
 			dnsAddr:         a1.config.DNSAddrs[0].String(),
 			expectedPort:    8080,
 			expectedAddress: "127.0.0.1",
 			expectedARRName: "foo.node.dc2.consul.",
 		},
-		"node-wan-from-dc1": testCase{
+		"node-wan-from-dc1": {
 			dnsAddr: a1.config.DNSAddrs[0].String(),
 			nodeTaggedAddresses: map[string]string{
 				"wan": "127.0.0.2",
@@ -2511,7 +2511,7 @@ func TestDNS_ServiceLookup_WanTranslation(t *testing.T) {
 			expectedAddress: "127.0.0.2",
 			expectedARRName: "7f000002.addr.dc2.consul.",
 		},
-		"service-addr-from-dc1": testCase{
+		"service-addr-from-dc1": {
 			dnsAddr: a1.config.DNSAddrs[0].String(),
 			nodeTaggedAddresses: map[string]string{
 				"wan": "127.0.0.2",
@@ -2521,14 +2521,14 @@ func TestDNS_ServiceLookup_WanTranslation(t *testing.T) {
 			expectedAddress: "10.0.1.1",
 			expectedARRName: "0a000101.addr.dc2.consul.",
 		},
-		"service-wan-from-dc1": testCase{
+		"service-wan-from-dc1": {
 			dnsAddr: a1.config.DNSAddrs[0].String(),
 			nodeTaggedAddresses: map[string]string{
 				"wan": "127.0.0.2",
 			},
 			serviceAddress: "10.0.1.1",
 			serviceTaggedAddresses: map[string]structs.ServiceAddress{
-				"wan": structs.ServiceAddress{
+				"wan": {
 					Address: "198.18.0.1",
 					Port:    80,
 				},
@@ -2537,13 +2537,13 @@ func TestDNS_ServiceLookup_WanTranslation(t *testing.T) {
 			expectedAddress: "198.18.0.1",
 			expectedARRName: "c6120001.addr.dc2.consul.",
 		},
-		"node-addr-from-dc2": testCase{
+		"node-addr-from-dc2": {
 			dnsAddr:         a2.config.DNSAddrs[0].String(),
 			expectedPort:    8080,
 			expectedAddress: "127.0.0.1",
 			expectedARRName: "foo.node.dc2.consul.",
 		},
-		"node-wan-from-dc2": testCase{
+		"node-wan-from-dc2": {
 			dnsAddr: a2.config.DNSAddrs[0].String(),
 			nodeTaggedAddresses: map[string]string{
 				"wan": "127.0.0.2",
@@ -2552,7 +2552,7 @@ func TestDNS_ServiceLookup_WanTranslation(t *testing.T) {
 			expectedAddress: "127.0.0.1",
 			expectedARRName: "foo.node.dc2.consul.",
 		},
-		"service-addr-from-dc2": testCase{
+		"service-addr-from-dc2": {
 			dnsAddr: a2.config.DNSAddrs[0].String(),
 			nodeTaggedAddresses: map[string]string{
 				"wan": "127.0.0.2",
@@ -2562,14 +2562,14 @@ func TestDNS_ServiceLookup_WanTranslation(t *testing.T) {
 			expectedAddress: "10.0.1.1",
 			expectedARRName: "0a000101.addr.dc2.consul.",
 		},
-		"service-wan-from-dc2": testCase{
+		"service-wan-from-dc2": {
 			dnsAddr: a2.config.DNSAddrs[0].String(),
 			nodeTaggedAddresses: map[string]string{
 				"wan": "127.0.0.2",
 			},
 			serviceAddress: "10.0.1.1",
 			serviceTaggedAddresses: map[string]structs.ServiceAddress{
-				"wan": structs.ServiceAddress{
+				"wan": {
 					Address: "198.18.0.1",
 					Port:    80,
 				},
@@ -2685,7 +2685,7 @@ func TestDNS_Lookup_TaggedIPAddresses(t *testing.T) {
 	}
 
 	cases := map[string]testCase{
-		"simple-ipv4": testCase{
+		"simple-ipv4": {
 			serviceAddress: "127.0.0.2",
 			nodeAddress:    "127.0.0.1",
 
@@ -2694,7 +2694,7 @@ func TestDNS_Lookup_TaggedIPAddresses(t *testing.T) {
 			expectedNodeIPv4Address:    "127.0.0.1",
 			expectedNodeIPv6Address:    "",
 		},
-		"simple-ipv6": testCase{
+		"simple-ipv6": {
 			serviceAddress: "::2",
 			nodeAddress:    "::1",
 
@@ -2703,7 +2703,7 @@ func TestDNS_Lookup_TaggedIPAddresses(t *testing.T) {
 			expectedNodeIPv6Address:    "::1",
 			expectedNodeIPv4Address:    "",
 		},
-		"ipv4-with-tagged-ipv6": testCase{
+		"ipv4-with-tagged-ipv6": {
 			serviceAddress: "127.0.0.2",
 			nodeAddress:    "127.0.0.1",
 
@@ -2719,7 +2719,7 @@ func TestDNS_Lookup_TaggedIPAddresses(t *testing.T) {
 			expectedNodeIPv4Address:    "127.0.0.1",
 			expectedNodeIPv6Address:    "::1",
 		},
-		"ipv6-with-tagged-ipv4": testCase{
+		"ipv6-with-tagged-ipv4": {
 			serviceAddress: "::2",
 			nodeAddress:    "::1",
 

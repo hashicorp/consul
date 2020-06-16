@@ -133,18 +133,18 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 				Namespace:     defaultNamespace,
 				DefaultSubset: "v1",
 				Subsets: map[string]ServiceResolverSubset{
-					"v1": ServiceResolverSubset{
+					"v1": {
 						Filter: "Service.Meta.version == v1",
 					},
-					"v2": ServiceResolverSubset{
+					"v2": {
 						Filter: "Service.Meta.version == v2",
 					},
 				},
 				Failover: map[string]ServiceResolverFailover{
-					"*": ServiceResolverFailover{
+					"*": {
 						Datacenters: []string{"dc2"},
 					},
-					"v1": ServiceResolverFailover{
+					"v1": {
 						Service:   "alternate",
 						Namespace: defaultNamespace,
 					},

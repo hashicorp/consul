@@ -73,7 +73,7 @@ func updateConnectCA(t *testing.T, client *api.Client) {
 	template := x509.Certificate{
 		SerialNumber:          big.NewInt(42),
 		Subject:               pkix.Name{CommonName: "CA Modified"},
-		URIs:                  []*url.URL{&url.URL{Scheme: "spiffe", Host: fmt.Sprintf("11111111-2222-3333-4444-555555555555.%s", "consul")}},
+		URIs:                  []*url.URL{{Scheme: "spiffe", Host: fmt.Sprintf("11111111-2222-3333-4444-555555555555.%s", "consul")}},
 		BasicConstraintsValid: true,
 		KeyUsage: x509.KeyUsageCertSign |
 			x509.KeyUsageCRLSign |

@@ -51,7 +51,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	svcs := []*api.AgentServiceRegistration{&api.AgentServiceRegistration{
+	svcs := []*api.AgentServiceRegistration{{
 		ID: c.flagId}}
 	if len(args) > 0 {
 		var err error

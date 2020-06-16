@@ -272,7 +272,7 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 		return nil, err
 	}
 
-	for targetID, _ := range c.loadedTargets {
+	for targetID := range c.loadedTargets {
 		if _, ok := c.retainedTargets[targetID]; !ok {
 			delete(c.loadedTargets, targetID)
 		}
@@ -443,7 +443,7 @@ func (c *compiler) removeUnusedNodes() error {
 		if len(todo) == 0 {
 			return ""
 		}
-		for k, _ := range todo {
+		for k := range todo {
 			delete(todo, k)
 			return k
 		}
@@ -485,7 +485,7 @@ func (c *compiler) removeUnusedNodes() error {
 		return nil
 	}
 
-	for name, _ := range c.nodes {
+	for name := range c.nodes {
 		if _, ok := visited[name]; !ok {
 			delete(c.nodes, name)
 		}
@@ -541,7 +541,7 @@ func (c *compiler) assembleChain() error {
 		return err
 	}
 
-	for i, _ := range router.Routes {
+	for i := range router.Routes {
 		// We don't use range variables here because we'll take the address of
 		// this route and store that in a DiscoveryGraphNode and the range
 		// variables share memory addresses between iterations which is exactly

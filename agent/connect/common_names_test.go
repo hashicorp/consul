@@ -18,35 +18,35 @@ func TestServiceAndNamespaceTruncation(t *testing.T) {
 	}
 
 	cases := map[string]tcase{
-		"short-no-truncation": tcase{
+		"short-no-truncation": {
 			service:   "foo",
 			namespace: "bar",
 		},
-		"long-service-no-truncation": tcase{
+		"long-service-no-truncation": {
 			// -3 because thats the length of the namespace
 			service:   strings.Repeat("a", maxServiceAndNamespaceLen-3),
 			namespace: "bar",
 		},
-		"long-namespace-no-truncation": tcase{
+		"long-namespace-no-truncation": {
 			service: "foo",
 			// -3 because thats the length of the service name
 			namespace: strings.Repeat("b", maxServiceAndNamespaceLen-3),
 		},
-		"truncate-service-only": tcase{
+		"truncate-service-only": {
 			// this should force the service name to be truncated
 			service:         strings.Repeat("a", maxServiceAndNamespaceLen-minNamespaceNameLen+5),
 			expectedService: strings.Repeat("a", maxServiceAndNamespaceLen-minNamespaceNameLen),
 			// this is the maximum length that will never be truncated for a namespace
 			namespace: strings.Repeat("b", minNamespaceNameLen),
 		},
-		"truncate-namespace-only": tcase{
+		"truncate-namespace-only": {
 			// this is the maximum length that will never be truncated for a service name
 			service: strings.Repeat("a", minServiceNameLen),
 			// this should force the namespace name to be truncated
 			namespace:         strings.Repeat("b", maxServiceAndNamespaceLen-minServiceNameLen+5),
 			expectedNamespace: strings.Repeat("b", maxServiceAndNamespaceLen-minServiceNameLen),
 		},
-		"truncate-both-even": tcase{
+		"truncate-both-even": {
 			// this test would need to be update if the maxServiceAndNamespaceLen variable is updated
 			// I could put some more complex logic into here to prevent that but it would be mostly
 			// duplicating the logic in the function itself and thus not really be testing anything
@@ -59,7 +59,7 @@ func TestServiceAndNamespaceTruncation(t *testing.T) {
 			namespace:         strings.Repeat("b", 51),
 			expectedNamespace: strings.Repeat("b", 22),
 		},
-		"truncate-both-odd": tcase{
+		"truncate-both-odd": {
 			// this test would need to be update if the maxServiceAndNamespaceLen variable is updated
 			// I could put some more complex logic into here to prevent that but it would be mostly
 			// duplicating the logic in the function itself and thus not really be testing anything
@@ -73,13 +73,13 @@ func TestServiceAndNamespaceTruncation(t *testing.T) {
 			namespace:         strings.Repeat("b", 50),
 			expectedNamespace: strings.Repeat("b", 22),
 		},
-		"truncate-both-min-svc": tcase{
+		"truncate-both-min-svc": {
 			service:           strings.Repeat("a", minServiceNameLen+1),
 			expectedService:   strings.Repeat("a", minServiceNameLen),
 			namespace:         strings.Repeat("b", maxServiceAndNamespaceLen),
 			expectedNamespace: strings.Repeat("b", maxServiceAndNamespaceLen-minServiceNameLen),
 		},
-		"truncate-both-min-ns": tcase{
+		"truncate-both-min-ns": {
 			service:           strings.Repeat("a", maxServiceAndNamespaceLen),
 			expectedService:   strings.Repeat("a", maxServiceAndNamespaceLen-minNamespaceNameLen),
 			namespace:         strings.Repeat("b", minNamespaceNameLen+1),

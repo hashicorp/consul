@@ -91,21 +91,21 @@ func TestCheckAlias_remoteNodeFailure(t *testing.T) {
 	rpc.AddReply("Health.NodeChecks", structs.IndexedHealthChecks{
 		HealthChecks: []*structs.HealthCheck{
 			// Should ignore non-matching node
-			&structs.HealthCheck{
+			{
 				Node:      "A",
 				ServiceID: "web",
 				Status:    api.HealthCritical,
 			},
 
 			// Node failure
-			&structs.HealthCheck{
+			{
 				Node:      "remote",
 				ServiceID: "",
 				Status:    api.HealthCritical,
 			},
 
 			// Match
-			&structs.HealthCheck{
+			{
 				Node:      "remote",
 				ServiceID: "web",
 				Status:    api.HealthPassing,
@@ -140,21 +140,21 @@ func TestCheckAlias_remotePassing(t *testing.T) {
 	rpc.AddReply("Health.NodeChecks", structs.IndexedHealthChecks{
 		HealthChecks: []*structs.HealthCheck{
 			// Should ignore non-matching node
-			&structs.HealthCheck{
+			{
 				Node:      "A",
 				ServiceID: "web",
 				Status:    api.HealthCritical,
 			},
 
 			// Should ignore non-matching service
-			&structs.HealthCheck{
+			{
 				Node:      "remote",
 				ServiceID: "db",
 				Status:    api.HealthCritical,
 			},
 
 			// Match
-			&structs.HealthCheck{
+			{
 				Node:      "remote",
 				ServiceID: "web",
 				Status:    api.HealthPassing,
@@ -189,14 +189,14 @@ func TestCheckAlias_remotePassingWithoutChecksButWithService(t *testing.T) {
 	rpc.AddReply("Health.NodeChecks", structs.IndexedHealthChecks{
 		HealthChecks: []*structs.HealthCheck{
 			// Should ignore non-matching node
-			&structs.HealthCheck{
+			{
 				Node:      "A",
 				ServiceID: "web",
 				Status:    api.HealthCritical,
 			},
 
 			// Should ignore non-matching service
-			&structs.HealthCheck{
+			{
 				Node:      "remote",
 				ServiceID: "db",
 				Status:    api.HealthCritical,
@@ -246,14 +246,14 @@ func TestCheckAlias_remotePassingWithoutChecksAndWithoutService(t *testing.T) {
 	rpc.AddReply("Health.NodeChecks", structs.IndexedHealthChecks{
 		HealthChecks: []*structs.HealthCheck{
 			// Should ignore non-matching node
-			&structs.HealthCheck{
+			{
 				Node:      "A",
 				ServiceID: "web",
 				Status:    api.HealthCritical,
 			},
 
 			// Should ignore non-matching service
-			&structs.HealthCheck{
+			{
 				Node:      "remote",
 				ServiceID: "db",
 				Status:    api.HealthCritical,
@@ -299,27 +299,27 @@ func TestCheckAlias_remoteCritical(t *testing.T) {
 	rpc.AddReply("Health.NodeChecks", structs.IndexedHealthChecks{
 		HealthChecks: []*structs.HealthCheck{
 			// Should ignore non-matching node
-			&structs.HealthCheck{
+			{
 				Node:      "A",
 				ServiceID: "web",
 				Status:    api.HealthCritical,
 			},
 
 			// Should ignore non-matching service
-			&structs.HealthCheck{
+			{
 				Node:      "remote",
 				ServiceID: "db",
 				Status:    api.HealthCritical,
 			},
 
 			// Match
-			&structs.HealthCheck{
+			{
 				Node:      "remote",
 				ServiceID: "web",
 				Status:    api.HealthPassing,
 			},
 
-			&structs.HealthCheck{
+			{
 				Node:      "remote",
 				ServiceID: "web",
 				Status:    api.HealthCritical,
@@ -354,27 +354,27 @@ func TestCheckAlias_remoteWarning(t *testing.T) {
 	rpc.AddReply("Health.NodeChecks", structs.IndexedHealthChecks{
 		HealthChecks: []*structs.HealthCheck{
 			// Should ignore non-matching node
-			&structs.HealthCheck{
+			{
 				Node:      "A",
 				ServiceID: "web",
 				Status:    api.HealthCritical,
 			},
 
 			// Should ignore non-matching service
-			&structs.HealthCheck{
+			{
 				Node:      "remote",
 				ServiceID: "db",
 				Status:    api.HealthCritical,
 			},
 
 			// Match
-			&structs.HealthCheck{
+			{
 				Node:      "remote",
 				ServiceID: "web",
 				Status:    api.HealthPassing,
 			},
 
-			&structs.HealthCheck{
+			{
 				Node:      "remote",
 				ServiceID: "web",
 				Status:    api.HealthWarning,
@@ -408,21 +408,21 @@ func TestCheckAlias_remoteNodeOnlyPassing(t *testing.T) {
 	rpc.AddReply("Health.NodeChecks", structs.IndexedHealthChecks{
 		HealthChecks: []*structs.HealthCheck{
 			// Should ignore non-matching node
-			&structs.HealthCheck{
+			{
 				Node:      "A",
 				ServiceID: "web",
 				Status:    api.HealthCritical,
 			},
 
 			// Should ignore any services
-			&structs.HealthCheck{
+			{
 				Node:      "remote",
 				ServiceID: "db",
 				Status:    api.HealthCritical,
 			},
 
 			// Match
-			&structs.HealthCheck{
+			{
 				Node:   "remote",
 				Status: api.HealthPassing,
 			},
@@ -455,21 +455,21 @@ func TestCheckAlias_remoteNodeOnlyCritical(t *testing.T) {
 	rpc.AddReply("Health.NodeChecks", structs.IndexedHealthChecks{
 		HealthChecks: []*structs.HealthCheck{
 			// Should ignore non-matching node
-			&structs.HealthCheck{
+			{
 				Node:      "A",
 				ServiceID: "web",
 				Status:    api.HealthCritical,
 			},
 
 			// Should ignore any services
-			&structs.HealthCheck{
+			{
 				Node:      "remote",
 				ServiceID: "db",
 				Status:    api.HealthCritical,
 			},
 
 			// Match
-			&structs.HealthCheck{
+			{
 				Node:   "remote",
 				Status: api.HealthCritical,
 			},

@@ -779,7 +779,7 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 			"protocol": "http",
 		},
 		UpstreamConfigs: map[string]map[string]interface{}{
-			"bar": map[string]interface{}{
+			"bar": {
 				"protocol": "grpc",
 			},
 		},
@@ -1013,16 +1013,16 @@ func TestConfigEntry_ResolveServiceConfig_UpstreamProxyDefaultsProtocol(t *testi
 			"protocol": "http",
 		},
 		UpstreamConfigs: map[string]map[string]interface{}{
-			"bar": map[string]interface{}{
+			"bar": {
 				"protocol": "http",
 			},
-			"other": map[string]interface{}{
+			"other": {
 				"protocol": "http",
 			},
-			"dne": map[string]interface{}{
+			"dne": {
 				"protocol": "http",
 			},
-			"alreadyprotocol": map[string]interface{}{
+			"alreadyprotocol": {
 				"protocol": "grpc",
 			},
 		},
@@ -1066,7 +1066,7 @@ func TestConfigEntry_ResolveServiceConfig_ProxyDefaultsProtocol_UsedForAllUpstre
 			"protocol": "http",
 		},
 		UpstreamConfigs: map[string]map[string]interface{}{
-			"bar": map[string]interface{}{
+			"bar": {
 				"protocol": "http",
 			},
 		},

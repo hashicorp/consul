@@ -14,13 +14,13 @@ func kvsTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: "kvs",
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
 				Indexer:      kvsIndexer(),
 			},
-			"session": &memdb.IndexSchema{
+			"session": {
 				Name:         "session",
 				AllowMissing: true,
 				Unique:       false,
@@ -38,7 +38,7 @@ func tombstonesTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: "tombstones",
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,

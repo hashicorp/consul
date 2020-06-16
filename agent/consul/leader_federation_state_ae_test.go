@@ -222,7 +222,7 @@ func TestLeader_FederationStateAntiEntropyPruning(t *testing.T) {
 
 		require.Len(r, remote, 2)
 		require.Len(r, local, 2)
-		for i, _ := range remote {
+		for i := range remote {
 			// zero out the raft data for future comparisons
 			remote[i].RaftIndex = structs.RaftIndex{}
 			local[i].RaftIndex = structs.RaftIndex{}
@@ -310,7 +310,7 @@ func TestLeader_FederationStateAntiEntropyPruning_ACLDeny(t *testing.T) {
 
 		require.Len(r, remote, 2)
 		require.Len(r, local, 2)
-		for i, _ := range remote {
+		for i := range remote {
 			// zero out the raft data for future comparisons
 			remote[i].RaftIndex = structs.RaftIndex{}
 			local[i].RaftIndex = structs.RaftIndex{}

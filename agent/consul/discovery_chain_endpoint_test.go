@@ -91,7 +91,7 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 			Protocol:    "tcp",
 			StartNode:   "resolver:web.default.dc1",
 			Nodes: map[string]*structs.DiscoveryGraphNode{
-				"resolver:web.default.dc1": &structs.DiscoveryGraphNode{
+				"resolver:web.default.dc1": {
 					Type: structs.DiscoveryGraphNodeTypeResolver,
 					Name: "web.default.dc1",
 					Resolver: &structs.DiscoveryResolver{
@@ -185,7 +185,7 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 				Protocol:    "tcp",
 				StartNode:   "resolver:web.default.dc1",
 				Nodes: map[string]*structs.DiscoveryGraphNode{
-					"resolver:web.default.dc1": &structs.DiscoveryGraphNode{
+					"resolver:web.default.dc1": {
 						Type: structs.DiscoveryGraphNodeTypeResolver,
 						Name: "web.default.dc1",
 						Resolver: &structs.DiscoveryResolver{

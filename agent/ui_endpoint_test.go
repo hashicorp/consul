@@ -204,7 +204,7 @@ func TestUiServices(t *testing.T) {
 
 	requests := []*structs.RegisterRequest{
 		// register foo node
-		&structs.RegisterRequest{
+		{
 			Datacenter: "dc1",
 			Node:       "foo",
 			Address:    "127.0.0.1",
@@ -217,7 +217,7 @@ func TestUiServices(t *testing.T) {
 			},
 		},
 		//register api service on node foo
-		&structs.RegisterRequest{
+		{
 			Datacenter:     "dc1",
 			Node:           "foo",
 			SkipNodeUpdate: true,
@@ -236,7 +236,7 @@ func TestUiServices(t *testing.T) {
 			},
 		},
 		// register web svc on node foo
-		&structs.RegisterRequest{
+		{
 			Datacenter:     "dc1",
 			Node:           "foo",
 			SkipNodeUpdate: true,
@@ -260,7 +260,7 @@ func TestUiServices(t *testing.T) {
 			},
 		},
 		// register bar node with service web
-		&structs.RegisterRequest{
+		{
 			Datacenter: "dc1",
 			Node:       "bar",
 			Address:    "127.0.0.2",
@@ -275,7 +275,7 @@ func TestUiServices(t *testing.T) {
 				},
 			},
 			Checks: []*structs.HealthCheck{
-				&structs.HealthCheck{
+				{
 					Node:        "bar",
 					Name:        "web svc check",
 					Status:      api.HealthCritical,
@@ -284,7 +284,7 @@ func TestUiServices(t *testing.T) {
 			},
 		},
 		// register zip node with service cache
-		&structs.RegisterRequest{
+		{
 			Datacenter: "dc1",
 			Node:       "zip",
 			Address:    "127.0.0.3",
@@ -319,7 +319,7 @@ func TestUiServices(t *testing.T) {
 		}
 
 		expected := []*ServiceSummary{
-			&ServiceSummary{
+			{
 				Kind:           structs.ServiceKindTypical,
 				Name:           "api",
 				Tags:           []string{"tag1", "tag2"},
@@ -330,7 +330,7 @@ func TestUiServices(t *testing.T) {
 				ChecksCritical: 0,
 				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
-			&ServiceSummary{
+			{
 				Kind:           structs.ServiceKindTypical,
 				Name:           "cache",
 				Tags:           nil,
@@ -341,7 +341,7 @@ func TestUiServices(t *testing.T) {
 				ChecksCritical: 0,
 				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
-			&ServiceSummary{
+			{
 				Kind:            structs.ServiceKindConnectProxy,
 				Name:            "web",
 				Tags:            nil,
@@ -354,7 +354,7 @@ func TestUiServices(t *testing.T) {
 				ExternalSources: []string{"k8s"},
 				EnterpriseMeta:  *structs.DefaultEnterpriseMeta(),
 			},
-			&ServiceSummary{
+			{
 				Kind:           structs.ServiceKindTypical,
 				Name:           "consul",
 				Tags:           nil,
@@ -388,7 +388,7 @@ func TestUiServices(t *testing.T) {
 		}
 
 		expected := []*ServiceSummary{
-			&ServiceSummary{
+			{
 				Kind:           structs.ServiceKindTypical,
 				Name:           "api",
 				Tags:           []string{"tag1", "tag2"},
@@ -399,7 +399,7 @@ func TestUiServices(t *testing.T) {
 				ChecksCritical: 0,
 				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
-			&ServiceSummary{
+			{
 				Kind:            structs.ServiceKindConnectProxy,
 				Name:            "web",
 				Tags:            nil,

@@ -154,8 +154,8 @@ func TestExtractListMetadata(t *testing.T) {
 				"data2": "val2",
 			},
 			map[string][]string{
-				"val1": []string{"foo"},
-				"val2": []string{"bar"},
+				"val1": {"foo"},
+				"val2": {"bar"},
 			},
 			false,
 		},
@@ -169,7 +169,7 @@ func TestExtractListMetadata(t *testing.T) {
 				"data3": "val2",
 			},
 			map[string][]string{
-				"val1": []string{"foo"},
+				"val1": {"foo"},
 			},
 			false,
 		},
@@ -212,14 +212,14 @@ func TestExtractListMetadata(t *testing.T) {
 				"data8":        "val8",
 			},
 			map[string][]string{
-				"val1": []string{"foo"},
-				"val2": []string{"bar"},
-				"val3": []string{"true"},
-				"val4": []string{"false"},
-				"val5": []string{"7"},
-				"val6": []string{"-12345"},
-				"val7": []string{"42"},
-				"val8": []string{
+				"val1": {"foo"},
+				"val2": {"bar"},
+				"val3": {"true"},
+				"val4": {"false"},
+				"val5": {"7"},
+				"val6": {"-12345"},
+				"val7": {"42"},
+				"val8": {
 					"foo", "true", "7", "-12345", "42",
 				},
 			},
@@ -261,7 +261,7 @@ func TestExtractListMetadata(t *testing.T) {
 				"data1": "val1",
 			},
 			map[string][]string{
-				"val1": []string{"foo"}, // singular values become lists
+				"val1": {"foo"}, // singular values become lists
 			},
 			false,
 		},
@@ -276,8 +276,8 @@ func TestExtractListMetadata(t *testing.T) {
 				"data2": "val2",
 			},
 			map[string][]string{
-				"val1": []string{"foo", "otherFoo"},
-				"val2": []string{"bar", "otherBar"},
+				"val1": {"foo", "otherFoo"},
+				"val2": {"bar", "otherBar"},
 			},
 			false,
 		},
@@ -293,8 +293,8 @@ func TestExtractListMetadata(t *testing.T) {
 				"/data2/child": "val2",
 			},
 			map[string][]string{
-				"val1": []string{"foo", "otherFoo"},
-				"val2": []string{"bar", "otherBar"},
+				"val1": {"foo", "otherFoo"},
+				"val2": {"bar", "otherBar"},
 			},
 			false,
 		},
@@ -320,8 +320,8 @@ func TestExtractListMetadata(t *testing.T) {
 				"data2": "val2",
 			},
 			map[string][]string{
-				"val1": []string{"foo", "otherFoo"},
-				"val2": []string{},
+				"val1": {"foo", "otherFoo"},
+				"val2": {},
 			},
 			false,
 		},
@@ -352,14 +352,14 @@ func TestExtractListMetadata(t *testing.T) {
 				"data8":        "val8",
 			},
 			map[string][]string{
-				"val1": []string{"foo"},
-				"val2": []string{"bar"},
-				"val3": []string{"true"},
-				"val4": []string{"false"},
-				"val5": []string{"7"},
-				"val6": []string{"-12345"},
-				"val7": []string{"42"},
-				"val8": []string{
+				"val1": {"foo"},
+				"val2": {"bar"},
+				"val3": {"true"},
+				"val4": {"false"},
+				"val5": {"7"},
+				"val6": {"-12345"},
+				"val7": {"42"},
+				"val8": {
 					"foo", "true", "7", "-12345", "42",
 				},
 			},
@@ -378,8 +378,8 @@ func TestExtractListMetadata(t *testing.T) {
 				"/bar/baz/1": "val2",
 			},
 			map[string][]string{
-				"val1": []string{"a"},
-				"val2": []string{"y"},
+				"val1": {"a"},
+				"val2": {"y"},
 			},
 			false,
 		},
@@ -395,7 +395,7 @@ func TestExtractListMetadata(t *testing.T) {
 				"/bar/XXX/1243": "val2",
 			},
 			map[string][]string{
-				"val1": []string{"a"},
+				"val1": {"a"},
 			},
 			false,
 		},

@@ -18,7 +18,7 @@ func RequireIdentityMatch(t testing.T, id *Identity, projectedVars map[string]st
 	require.Equal(t, projectedVars, id.ProjectedVars)
 
 	expectNames := make([]string, 0, len(projectedVars))
-	for k, _ := range projectedVars {
+	for k := range projectedVars {
 		expectNames = append(expectNames, k)
 	}
 	sort.Strings(expectNames)

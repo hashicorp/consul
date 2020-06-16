@@ -2287,8 +2287,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Checks = []*structs.CheckDefinition{
-					&structs.CheckDefinition{Name: "a", ScriptArgs: []string{"/bin/true"}, OutputMaxSize: checks.DefaultBufSize},
-					&structs.CheckDefinition{Name: "b", ScriptArgs: []string{"/bin/false"}, OutputMaxSize: checks.DefaultBufSize},
+					{Name: "a", ScriptArgs: []string{"/bin/true"}, OutputMaxSize: checks.DefaultBufSize},
+					{Name: "b", ScriptArgs: []string{"/bin/false"}, OutputMaxSize: checks.DefaultBufSize},
 				}
 				rt.DataDir = dataDir
 			},
@@ -2306,7 +2306,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Checks = []*structs.CheckDefinition{
-					&structs.CheckDefinition{Name: "a", GRPC: "localhost:12345/foo", GRPCUseTLS: true, OutputMaxSize: checks.DefaultBufSize},
+					{Name: "a", GRPC: "localhost:12345/foo", GRPCUseTLS: true, OutputMaxSize: checks.DefaultBufSize},
 				}
 				rt.DataDir = dataDir
 			},
@@ -2324,7 +2324,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Checks = []*structs.CheckDefinition{
-					&structs.CheckDefinition{Name: "a", AliasService: "foo", OutputMaxSize: checks.DefaultBufSize},
+					{Name: "a", AliasService: "foo", OutputMaxSize: checks.DefaultBufSize},
 				}
 				rt.DataDir = dataDir
 			},
@@ -2344,7 +2344,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Services = []*structs.ServiceDefinition{
-					&structs.ServiceDefinition{
+					{
 						Name: "a",
 						Port: 80,
 						Weights: &structs.Weights{
@@ -2352,7 +2352,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 							Warning: 1,
 						},
 					},
-					&structs.ServiceDefinition{
+					{
 						Name: "b",
 						Port: 90,
 						Meta: map[string]string{"my": "value"},
@@ -2453,18 +2453,18 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Services = []*structs.ServiceDefinition{
-					&structs.ServiceDefinition{
+					{
 						Name: "a",
 						Port: 80,
 						TaggedAddresses: map[string]structs.ServiceAddress{
-							"wan": structs.ServiceAddress{
+							"wan": {
 								Address: "198.18.3.4",
 								Port:    443,
 							},
 						},
 						EnableTagOverride: true,
 						Checks: []*structs.CheckType{
-							&structs.CheckType{
+							{
 								CheckID:                        types.CheckID("x"),
 								Name:                           "y",
 								DockerContainerID:              "z",
@@ -5250,7 +5250,7 @@ func TestFullConfig(t *testing.T) {
 		`}
 
 	tail := map[string][]Source{
-		"json": []Source{
+		"json": {
 			{
 				Name:   "tail.non-user.json",
 				Format: "json",
@@ -5293,7 +5293,7 @@ func TestFullConfig(t *testing.T) {
 				}`,
 			},
 		},
-		"hcl": []Source{
+		"hcl": {
 			{
 				Name:   "tail.non-user.hcl",
 				Format: "hcl",
@@ -5407,7 +5407,7 @@ func TestFullConfig(t *testing.T) {
 		CertFile:                         "7s4QAzDk",
 		CheckOutputMaxSize:               checks.DefaultBufSize,
 		Checks: []*structs.CheckDefinition{
-			&structs.CheckDefinition{
+			{
 				ID:         "uAjE6m9Z",
 				Name:       "QsZRGpYr",
 				Notes:      "VJ7Sk4BY",
@@ -5417,8 +5417,8 @@ func TestFullConfig(t *testing.T) {
 				ScriptArgs: []string{"4BAJttck", "4D2NPtTQ"},
 				HTTP:       "dohLcyQ2",
 				Header: map[string][]string{
-					"ZBfTin3L": []string{"1sDbEqYG", "lJGASsWK"},
-					"Ui0nU99X": []string{"LMccm3Qe", "k5H5RggQ"},
+					"ZBfTin3L": {"1sDbEqYG", "lJGASsWK"},
+					"Ui0nU99X": {"LMccm3Qe", "k5H5RggQ"},
 				},
 				Method:                         "aldrIQ4l",
 				Body:                           "wSjTy7dg",
@@ -5432,7 +5432,7 @@ func TestFullConfig(t *testing.T) {
 				TTL:                            21743 * time.Second,
 				DeregisterCriticalServiceAfter: 14232 * time.Second,
 			},
-			&structs.CheckDefinition{
+			{
 				ID:         "Cqq95BhP",
 				Name:       "3qXpkS0i",
 				Notes:      "sb5qLTex",
@@ -5442,8 +5442,8 @@ func TestFullConfig(t *testing.T) {
 				ScriptArgs: []string{"9s526ogY", "gSlOHj1w"},
 				HTTP:       "yzhgsQ7Y",
 				Header: map[string][]string{
-					"zcqwA8dO": []string{"qb1zx0DL", "sXCxPFsD"},
-					"qxvdnSE9": []string{"6wBPUYdF", "YYh8wtSZ"},
+					"zcqwA8dO": {"qb1zx0DL", "sXCxPFsD"},
+					"qxvdnSE9": {"6wBPUYdF", "YYh8wtSZ"},
 				},
 				Method:                         "gLrztrNw",
 				Body:                           "0jkKgGUC",
@@ -5457,7 +5457,7 @@ func TestFullConfig(t *testing.T) {
 				TTL:                            31006 * time.Second,
 				DeregisterCriticalServiceAfter: 2366 * time.Second,
 			},
-			&structs.CheckDefinition{
+			{
 				ID:         "fZaCAXww",
 				Name:       "OOM2eo0f",
 				Notes:      "zXzXI9Gt",
@@ -5638,7 +5638,7 @@ func TestFullConfig(t *testing.T) {
 				},
 				EnableTagOverride: true,
 				Checks: []*structs.CheckType{
-					&structs.CheckType{
+					{
 						CheckID:    "qmfeO5if",
 						Name:       "atDGP7n5",
 						Status:     "pDQKEhWL",
@@ -5804,11 +5804,11 @@ func TestFullConfig(t *testing.T) {
 				ID:   "dLOXpSCI",
 				Name: "o1ynPkp0",
 				TaggedAddresses: map[string]structs.ServiceAddress{
-					"lan": structs.ServiceAddress{
+					"lan": {
 						Address: "2d79888a",
 						Port:    2143,
 					},
-					"wan": structs.ServiceAddress{
+					"wan": {
 						Address: "d4db85e2",
 						Port:    6109,
 					},
@@ -5959,13 +5959,13 @@ func TestFullConfig(t *testing.T) {
 		VerifyOutgoing:       true,
 		VerifyServerHostname: true,
 		Watches: []map[string]interface{}{
-			map[string]interface{}{
+			{
 				"type":       "key",
 				"datacenter": "GyE6jpeW",
 				"key":        "j9lF1Tve",
 				"handler":    "90N7S4LN",
 			},
-			map[string]interface{}{
+			{
 				"type":       "keyprefix",
 				"datacenter": "fYrl3F5d",
 				"key":        "sl3Dffu7",
@@ -6262,7 +6262,7 @@ func TestSanitize(t *testing.T) {
 			"pmgw_foo=bar pmgw_key=baz pmgw_secret=boom pmgw_bang=bar",
 		},
 		Services: []*structs.ServiceDefinition{
-			&structs.ServiceDefinition{
+			{
 				Name:  "foo",
 				Token: "bar",
 				Check: structs.CheckType{
@@ -6276,7 +6276,7 @@ func TestSanitize(t *testing.T) {
 			},
 		},
 		Checks: []*structs.CheckDefinition{
-			&structs.CheckDefinition{
+			{
 				Name:          "zoo",
 				Token:         "zope",
 				OutputMaxSize: checks.DefaultBufSize,

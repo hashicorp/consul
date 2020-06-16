@@ -15,7 +15,7 @@ func preparedQueriesTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: "prepared-queries",
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
@@ -23,7 +23,7 @@ func preparedQueriesTableSchema() *memdb.TableSchema {
 					Field: "ID",
 				},
 			},
-			"name": &memdb.IndexSchema{
+			"name": {
 				Name:         "name",
 				AllowMissing: true,
 				Unique:       true,
@@ -32,13 +32,13 @@ func preparedQueriesTableSchema() *memdb.TableSchema {
 					Lowercase: true,
 				},
 			},
-			"template": &memdb.IndexSchema{
+			"template": {
 				Name:         "template",
 				AllowMissing: true,
 				Unique:       true,
 				Indexer:      &PreparedQueryIndex{},
 			},
-			"session": &memdb.IndexSchema{
+			"session": {
 				Name:         "session",
 				AllowMissing: true,
 				Unique:       false,

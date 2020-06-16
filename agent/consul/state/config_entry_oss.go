@@ -13,7 +13,7 @@ func configTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: configTableName,
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
@@ -30,7 +30,7 @@ func configTableSchema() *memdb.TableSchema {
 					},
 				},
 			},
-			"kind": &memdb.IndexSchema{
+			"kind": {
 				Name:         "kind",
 				AllowMissing: false,
 				Unique:       false,
@@ -39,7 +39,7 @@ func configTableSchema() *memdb.TableSchema {
 					Lowercase: true,
 				},
 			},
-			"link": &memdb.IndexSchema{
+			"link": {
 				Name:         "link",
 				AllowMissing: true,
 				Unique:       false,

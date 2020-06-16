@@ -29,7 +29,7 @@ func nodesTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: "nodes",
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
@@ -38,7 +38,7 @@ func nodesTableSchema() *memdb.TableSchema {
 					Lowercase: true,
 				},
 			},
-			"uuid": &memdb.IndexSchema{
+			"uuid": {
 				Name:         "uuid",
 				AllowMissing: true,
 				Unique:       true,
@@ -46,7 +46,7 @@ func nodesTableSchema() *memdb.TableSchema {
 					Field: "ID",
 				},
 			},
-			"meta": &memdb.IndexSchema{
+			"meta": {
 				Name:         "meta",
 				AllowMissing: true,
 				Unique:       false,
@@ -879,7 +879,7 @@ func (s *Store) serviceListTxn(tx *memdb.Txn, ws memdb.WatchSet, entMeta *struct
 	}
 
 	results := make(structs.ServiceList, 0, len(unique))
-	for sn, _ := range unique {
+	for sn := range unique {
 		results = append(results, structs.ServiceName{Name: sn.Name, EnterpriseMeta: sn.EnterpriseMeta})
 	}
 

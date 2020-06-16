@@ -628,7 +628,7 @@ func TestServersGetACLMode(t *testing.T) {
 	}
 
 	cases := map[string]tcase{
-		"filter-members": tcase{
+		"filter-members": {
 			servers: testServersProvider{
 				makeServer("primary", structs.ACLModeLegacy, serf.StatusAlive, net.IP([]byte{127, 0, 0, 1})),
 				makeServer("primary", structs.ACLModeLegacy, serf.StatusFailed, net.IP([]byte{127, 0, 0, 2})),
@@ -647,7 +647,7 @@ func TestServersGetACLMode(t *testing.T) {
 			minMode:      structs.ACLModeLegacy,
 			leaderMode:   structs.ACLModeLegacy,
 		},
-		"disabled": tcase{
+		"disabled": {
 			servers: testServersProvider{
 				makeServer("primary", structs.ACLModeLegacy, serf.StatusAlive, net.IP([]byte{127, 0, 0, 1})),
 				makeServer("primary", structs.ACLModeUnknown, serf.StatusAlive, net.IP([]byte{127, 0, 0, 2})),
@@ -659,7 +659,7 @@ func TestServersGetACLMode(t *testing.T) {
 			minMode:      structs.ACLModeDisabled,
 			leaderMode:   structs.ACLModeLegacy,
 		},
-		"unknown": tcase{
+		"unknown": {
 			servers: testServersProvider{
 				makeServer("primary", structs.ACLModeLegacy, serf.StatusAlive, net.IP([]byte{127, 0, 0, 1})),
 				makeServer("primary", structs.ACLModeUnknown, serf.StatusAlive, net.IP([]byte{127, 0, 0, 2})),
@@ -670,7 +670,7 @@ func TestServersGetACLMode(t *testing.T) {
 			minMode:      structs.ACLModeUnknown,
 			leaderMode:   structs.ACLModeLegacy,
 		},
-		"legacy": tcase{
+		"legacy": {
 			servers: testServersProvider{
 				makeServer("primary", structs.ACLModeEnabled, serf.StatusAlive, net.IP([]byte{127, 0, 0, 1})),
 				makeServer("primary", structs.ACLModeLegacy, serf.StatusAlive, net.IP([]byte{127, 0, 0, 2})),
@@ -681,7 +681,7 @@ func TestServersGetACLMode(t *testing.T) {
 			minMode:      structs.ACLModeLegacy,
 			leaderMode:   structs.ACLModeEnabled,
 		},
-		"enabled": tcase{
+		"enabled": {
 			servers: testServersProvider{
 				makeServer("primary", structs.ACLModeEnabled, serf.StatusAlive, net.IP([]byte{127, 0, 0, 1})),
 				makeServer("primary", structs.ACLModeEnabled, serf.StatusAlive, net.IP([]byte{127, 0, 0, 2})),
@@ -693,7 +693,7 @@ func TestServersGetACLMode(t *testing.T) {
 			minMode:      structs.ACLModeEnabled,
 			leaderMode:   structs.ACLModeEnabled,
 		},
-		"failed-members": tcase{
+		"failed-members": {
 			servers: testServersProvider{
 				makeServer("primary", structs.ACLModeLegacy, serf.StatusAlive, net.IP([]byte{127, 0, 0, 1})),
 				makeServer("primary", structs.ACLModeUnknown, serf.StatusFailed, net.IP([]byte{127, 0, 0, 2})),

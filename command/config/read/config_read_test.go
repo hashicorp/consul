@@ -54,8 +54,8 @@ func TestConfigRead_InvalidArgs(t *testing.T) {
 	t.Parallel()
 
 	cases := map[string][]string{
-		"no kind": []string{},
-		"no name": []string{"-kind", "service-defaults"},
+		"no kind": {},
+		"no name": {"-kind", "service-defaults"},
 	}
 
 	for name, tcase := range cases {

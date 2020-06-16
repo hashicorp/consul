@@ -22,7 +22,7 @@ func caBuiltinProviderTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: caBuiltinProviderTableName,
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
@@ -42,7 +42,7 @@ func caConfigTableSchema() *memdb.TableSchema {
 		Indexes: map[string]*memdb.IndexSchema{
 			// This table only stores one row, so this just ignores the ID field
 			// and always overwrites the same config object.
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: true,
 				Unique:       true,
@@ -60,7 +60,7 @@ func caRootTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: caRootTableName,
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,

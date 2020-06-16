@@ -89,7 +89,7 @@ func TestTokenCloneCommand_Pretty(t *testing.T) {
 
 	// create a token
 	token, _, err := client.ACL().TokenCreate(
-		&api.ACLToken{Description: "test", Policies: []*api.ACLTokenPolicyLink{&api.ACLTokenPolicyLink{Name: "test-policy"}}},
+		&api.ACLToken{Description: "test", Policies: []*api.ACLTokenPolicyLink{{Name: "test-policy"}}},
 		&api.WriteOptions{Token: "root"},
 	)
 	req.NoError(err)
@@ -196,7 +196,7 @@ func TestTokenCloneCommand_JSON(t *testing.T) {
 
 	// create a token
 	token, _, err := client.ACL().TokenCreate(
-		&api.ACLToken{Description: "test", Policies: []*api.ACLTokenPolicyLink{&api.ACLTokenPolicyLink{Name: "test-policy"}}},
+		&api.ACLToken{Description: "test", Policies: []*api.ACLTokenPolicyLink{{Name: "test-policy"}}},
 		&api.WriteOptions{Token: "root"},
 	)
 	req.NoError(err)

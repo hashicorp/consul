@@ -68,7 +68,7 @@ type Identity struct {
 // ProjectedVarNames returns just the keyspace of the ProjectedVars map.
 func (i *Identity) ProjectedVarNames() []string {
 	v := make([]string, 0, len(i.ProjectedVars))
-	for k, _ := range i.ProjectedVars {
+	for k := range i.ProjectedVars {
 		v = append(v, k)
 	}
 	return v

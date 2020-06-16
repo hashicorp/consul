@@ -269,14 +269,14 @@ func TestClustersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotMeshGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.MeshGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
-					structs.NewServiceName("bar", nil): &structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("bar", nil): {
 						Kind: structs.ServiceResolver,
 						Name: "bar",
 						Subsets: map[string]structs.ServiceResolverSubset{
-							"v1": structs.ServiceResolverSubset{
+							"v1": {
 								Filter: "Service.Meta.Version == 1",
 							},
-							"v2": structs.ServiceResolverSubset{
+							"v2": {
 								Filter:      "Service.Meta.Version == 2",
 								OnlyPassing: true,
 							},
@@ -290,29 +290,29 @@ func TestClustersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotMeshGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.MeshGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
-					structs.NewServiceName("bar", nil): &structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("bar", nil): {
 						Kind:          structs.ServiceResolver,
 						Name:          "bar",
 						DefaultSubset: "v2",
 						Subsets: map[string]structs.ServiceResolverSubset{
-							"v1": structs.ServiceResolverSubset{
+							"v1": {
 								Filter: "Service.Meta.Version == 1",
 							},
-							"v2": structs.ServiceResolverSubset{
+							"v2": {
 								Filter:      "Service.Meta.Version == 2",
 								OnlyPassing: true,
 							},
 						},
 					},
-					structs.NewServiceName("notfound", nil): &structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("notfound", nil): {
 						Kind:          structs.ServiceResolver,
 						Name:          "notfound",
 						DefaultSubset: "v2",
 						Subsets: map[string]structs.ServiceResolverSubset{
-							"v1": structs.ServiceResolverSubset{
+							"v1": {
 								Filter: "Service.Meta.Version == 1",
 							},
-							"v2": structs.ServiceResolverSubset{
+							"v2": {
 								Filter:      "Service.Meta.Version == 2",
 								OnlyPassing: true,
 							},
@@ -326,15 +326,15 @@ func TestClustersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotMeshGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.MeshGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
-					structs.NewServiceName("bar", nil): &structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("bar", nil): {
 						Kind:           structs.ServiceResolver,
 						Name:           "bar",
 						ConnectTimeout: 10 * time.Second,
 						Subsets: map[string]structs.ServiceResolverSubset{
-							"v1": structs.ServiceResolverSubset{
+							"v1": {
 								Filter: "Service.Meta.Version == 1",
 							},
-							"v2": structs.ServiceResolverSubset{
+							"v2": {
 								Filter:      "Service.Meta.Version == 2",
 								OnlyPassing: true,
 							},

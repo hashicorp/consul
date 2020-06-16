@@ -20,7 +20,7 @@ func TestFinder(t *testing.T) {
 	var ids []string
 	{
 		insert := [][]string{
-			[]string{"a", "b", "c", "d"},
+			{"a", "b", "c", "d"},
 		}
 
 		for _, v := range insert {

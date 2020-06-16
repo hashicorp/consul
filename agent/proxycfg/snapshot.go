@@ -175,10 +175,10 @@ func (c *configSnapshotMeshGateway) Datacenters() []string {
 	}
 
 	dcs := make([]string, 0, sz)
-	for dc, _ := range c.GatewayGroups {
+	for dc := range c.GatewayGroups {
 		dcs = append(dcs, dc)
 	}
-	for dc, _ := range c.FedStateGateways {
+	for dc := range c.FedStateGateways {
 		if _, ok := c.GatewayGroups[dc]; !ok {
 			dcs = append(dcs, dc)
 		}

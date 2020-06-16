@@ -19,7 +19,7 @@ func TestIntention_ACLs(t *testing.T) {
 	}
 
 	cases := map[string]testCase{
-		"all-denied": testCase{
+		"all-denied": {
 			intention: Intention{
 				SourceNS:        "default",
 				SourceName:      "web",
@@ -29,7 +29,7 @@ func TestIntention_ACLs(t *testing.T) {
 			read:  false,
 			write: false,
 		},
-		"deny-write-read-dest": testCase{
+		"deny-write-read-dest": {
 			rules: `service "api" { policy = "deny" intentions = "read" }`,
 			intention: Intention{
 				SourceNS:        "default",
@@ -40,7 +40,7 @@ func TestIntention_ACLs(t *testing.T) {
 			read:  true,
 			write: false,
 		},
-		"deny-write-read-source": testCase{
+		"deny-write-read-source": {
 			rules: `service "web" { policy = "deny" intentions = "read" }`,
 			intention: Intention{
 				SourceNS:        "default",
@@ -51,7 +51,7 @@ func TestIntention_ACLs(t *testing.T) {
 			read:  true,
 			write: false,
 		},
-		"allow-write-with-dest-write": testCase{
+		"allow-write-with-dest-write": {
 			rules: `service "api" { policy = "deny" intentions = "write" }`,
 			intention: Intention{
 				SourceNS:        "default",
@@ -62,7 +62,7 @@ func TestIntention_ACLs(t *testing.T) {
 			read:  true,
 			write: true,
 		},
-		"deny-write-with-source-write": testCase{
+		"deny-write-with-source-write": {
 			rules: `service "web" { policy = "deny" intentions = "write" }`,
 			intention: Intention{
 				SourceNS:        "default",
@@ -73,7 +73,7 @@ func TestIntention_ACLs(t *testing.T) {
 			read:  true,
 			write: false,
 		},
-		"deny-wildcard-write-allow-read": testCase{
+		"deny-wildcard-write-allow-read": {
 			rules: `service "*" { policy = "deny" intentions = "write" }`,
 			intention: Intention{
 				SourceNS:        "default",
@@ -86,7 +86,7 @@ func TestIntention_ACLs(t *testing.T) {
 			read:  true,
 			write: false,
 		},
-		"allow-wildcard-write": testCase{
+		"allow-wildcard-write": {
 			rules: `service_prefix "" { policy = "deny" intentions = "write" }`,
 			intention: Intention{
 				SourceNS:        "default",
@@ -97,7 +97,7 @@ func TestIntention_ACLs(t *testing.T) {
 			read:  true,
 			write: true,
 		},
-		"allow-wildcard-read": testCase{
+		"allow-wildcard-read": {
 			rules: `service "foo" { policy = "deny" intentions = "read" }`,
 			intention: Intention{
 				SourceNS:        "default",

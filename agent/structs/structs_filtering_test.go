@@ -582,37 +582,37 @@ var expectedFieldConfigIntention bexpr.FieldConfigurations = bexpr.FieldConfigur
 // Only need to generate the field configurations for the top level filtered types
 // The internal types will be checked within these.
 var fieldConfigTests map[string]fieldConfigTest = map[string]fieldConfigTest{
-	"Node": fieldConfigTest{
+	"Node": {
 		dataType: (*Node)(nil),
 		expected: expectedFieldConfigNode,
 	},
-	"NodeService": fieldConfigTest{
+	"NodeService": {
 		dataType: (*NodeService)(nil),
 		expected: expectedFieldConfigNodeService,
 	},
-	"ServiceNode": fieldConfigTest{
+	"ServiceNode": {
 		dataType: (*ServiceNode)(nil),
 		expected: expectedFieldConfigServiceNode,
 	},
-	"HealthCheck": fieldConfigTest{
+	"HealthCheck": {
 		dataType: (*HealthCheck)(nil),
 		expected: expectedFieldConfigHealthCheck,
 	},
-	"CheckServiceNode": fieldConfigTest{
+	"CheckServiceNode": {
 		dataType: (*CheckServiceNode)(nil),
 		expected: expectedFieldConfigCheckServiceNode,
 	},
-	"NodeInfo": fieldConfigTest{
+	"NodeInfo": {
 		dataType: (*NodeInfo)(nil),
 		expected: expectedFieldConfigNodeInfo,
 	},
-	"api.AgentService": fieldConfigTest{
+	"api.AgentService": {
 		dataType: (*api.AgentService)(nil),
 		// this also happens to ensure that our API representation of a service that can be
 		// registered with an agent stays in sync with our internal NodeService structure
 		expected: expectedFieldConfigNodeService,
 	},
-	"Intention": fieldConfigTest{
+	"Intention": {
 		dataType: (*Intention)(nil),
 		expected: expectedFieldConfigIntention,
 	},

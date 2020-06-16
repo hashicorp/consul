@@ -479,9 +479,9 @@ func TestACL_filterMembers(t *testing.T) {
 	require.Len(t, members, 0)
 
 	members = []serf.Member{
-		serf.Member{Name: "Node 1"},
-		serf.Member{Name: "Nope"},
-		serf.Member{Name: "Node 2"},
+		{Name: "Node 1"},
+		{Name: "Nope"},
+		{Name: "Node 2"},
 	}
 	require.NoError(t, a.filterMembers(nodeROSecret, &members))
 	require.Len(t, members, 2)

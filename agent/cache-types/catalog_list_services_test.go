@@ -26,8 +26,8 @@ func TestCatalogListServices(t *testing.T) {
 
 			reply := args.Get(2).(*structs.IndexedServices)
 			reply.Services = map[string][]string{
-				"foo": []string{"prod", "linux"},
-				"bar": []string{"qa", "windows"},
+				"foo": {"prod", "linux"},
+				"bar": {"qa", "windows"},
 			}
 			reply.QueryMeta.Index = 48
 			resp = reply

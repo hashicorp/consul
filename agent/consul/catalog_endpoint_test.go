@@ -1644,11 +1644,11 @@ func TestCatalog_ListServiceNodes_ByAddress(t *testing.T) {
 	fooAddress := "10.1.2.3"
 	fooPort := 1111
 	fooTaggedAddresses := map[string]structs.ServiceAddress{
-		"lan": structs.ServiceAddress{
+		"lan": {
 			Address: "10.1.2.3",
 			Port:    fooPort,
 		},
-		"wan": structs.ServiceAddress{
+		"wan": {
 			Address: "198.18.1.2",
 			Port:    fooPort,
 		},
@@ -1656,11 +1656,11 @@ func TestCatalog_ListServiceNodes_ByAddress(t *testing.T) {
 	barAddress := "10.1.2.3"
 	barPort := 2222
 	barTaggedAddresses := map[string]structs.ServiceAddress{
-		"lan": structs.ServiceAddress{
+		"lan": {
 			Address: "10.1.2.3",
 			Port:    barPort,
 		},
-		"wan": structs.ServiceAddress{
+		"wan": {
 			Address: "198.18.2.3",
 			Port:    barPort,
 		},
@@ -1668,11 +1668,11 @@ func TestCatalog_ListServiceNodes_ByAddress(t *testing.T) {
 	bazAddress := "192.168.1.35"
 	bazPort := 2222
 	bazTaggedAddresses := map[string]structs.ServiceAddress{
-		"lan": structs.ServiceAddress{
+		"lan": {
 			Address: "192.168.1.35",
 			Port:    barPort,
 		},
-		"wan": structs.ServiceAddress{
+		"wan": {
 			Address: "198.18.2.4",
 			Port:    barPort,
 		},

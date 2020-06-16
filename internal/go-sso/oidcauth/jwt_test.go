@@ -232,7 +232,7 @@ func testJWT_ClaimsFromJWT(t *testing.T, authType int) {
 				"is_remote":   "true",
 			},
 			Lists: map[string][]string{
-				"groups": []string{"foo", "bar"},
+				"groups": {"foo", "bar"},
 			},
 		}
 
@@ -375,7 +375,7 @@ func testJWT_ClaimsFromJWT(t *testing.T, authType int) {
 			expectedClaims := &Claims{
 				Values: map[string]string{},
 				Lists: map[string][]string{
-					"groups": []string{"foo", "bar"},
+					"groups": {"foo", "bar"},
 				},
 			}
 			require.Equal(t, expectedClaims, claims)

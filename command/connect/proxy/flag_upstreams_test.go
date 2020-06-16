@@ -44,7 +44,7 @@ func TestFlagUpstreams(t *testing.T) {
 			"single value",
 			[]string{"db:8181"},
 			map[string]proxy.UpstreamConfig{
-				"db": proxy.UpstreamConfig{
+				"db": {
 					LocalBindPort:   8181,
 					DestinationName: "db",
 					DestinationType: "service",
@@ -57,7 +57,7 @@ func TestFlagUpstreams(t *testing.T) {
 			"single value prepared query",
 			[]string{"db.query:8181"},
 			map[string]proxy.UpstreamConfig{
-				"db": proxy.UpstreamConfig{
+				"db": {
 					LocalBindPort:   8181,
 					DestinationName: "db",
 					DestinationType: "prepared_query",
@@ -77,7 +77,7 @@ func TestFlagUpstreams(t *testing.T) {
 			"address specified",
 			[]string{"db:127.0.0.55:8181"},
 			map[string]proxy.UpstreamConfig{
-				"db": proxy.UpstreamConfig{
+				"db": {
 					LocalBindAddress: "127.0.0.55",
 					LocalBindPort:    8181,
 					DestinationName:  "db",
@@ -91,7 +91,7 @@ func TestFlagUpstreams(t *testing.T) {
 			"repeat value, overwrite",
 			[]string{"db:8181", "db:8282"},
 			map[string]proxy.UpstreamConfig{
-				"db": proxy.UpstreamConfig{
+				"db": {
 					LocalBindPort:   8282,
 					DestinationName: "db",
 					DestinationType: "service",

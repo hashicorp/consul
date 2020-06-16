@@ -13,7 +13,7 @@ func federationStateTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: federationStateTableName,
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,

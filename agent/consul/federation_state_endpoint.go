@@ -181,7 +181,7 @@ func (c *FederationState) ListMeshGateways(args *structs.DCSpecificRequest, repl
 
 			dump := make(map[string]structs.CheckServiceNodes)
 
-			for i, _ := range fedStates {
+			for i := range fedStates {
 				fedState := fedStates[i]
 				csn := fedState.MeshGateways
 				if len(csn) > 0 {

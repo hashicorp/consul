@@ -519,7 +519,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 					Address: "10.0.1.1",
 					Port:    8080,
 					TaggedAddresses: map[string]structs.ServiceAddress{
-						"wan": structs.ServiceAddress{
+						"wan": {
 							Address: "198.18.0.1",
 							Port:    80,
 						},

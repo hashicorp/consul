@@ -202,391 +202,391 @@ func TestACL_Enforce(t *testing.T) {
 	}
 
 	cases := []testCase{
-		testCase{
+		{
 			method:   "ACLRead",
 			resource: ResourceACL,
 			access:   "read",
 			ret:      Deny,
 		},
-		testCase{
+		{
 			method:   "ACLRead",
 			resource: ResourceACL,
 			access:   "read",
 			ret:      Allow,
 		},
-		testCase{
+		{
 			method:   "ACLWrite",
 			resource: ResourceACL,
 			access:   "write",
 			ret:      Deny,
 		},
-		testCase{
+		{
 			method:   "ACLWrite",
 			resource: ResourceACL,
 			access:   "write",
 			ret:      Allow,
 		},
-		testCase{
+		{
 			resource: ResourceACL,
 			access:   "list",
 			ret:      Deny,
 			err:      "Invalid access level",
 		},
-		testCase{
+		{
 			method:   "OperatorRead",
 			resource: ResourceOperator,
 			access:   "read",
 			ret:      Deny,
 		},
-		testCase{
+		{
 			method:   "OperatorRead",
 			resource: ResourceOperator,
 			access:   "read",
 			ret:      Allow,
 		},
-		testCase{
+		{
 			method:   "OperatorWrite",
 			resource: ResourceOperator,
 			access:   "write",
 			ret:      Deny,
 		},
-		testCase{
+		{
 			method:   "OperatorWrite",
 			resource: ResourceOperator,
 			access:   "write",
 			ret:      Allow,
 		},
-		testCase{
+		{
 			resource: ResourceOperator,
 			access:   "list",
 			ret:      Deny,
 			err:      "Invalid access level",
 		},
-		testCase{
+		{
 			method:   "KeyringRead",
 			resource: ResourceKeyring,
 			access:   "read",
 			ret:      Deny,
 		},
-		testCase{
+		{
 			method:   "KeyringRead",
 			resource: ResourceKeyring,
 			access:   "read",
 			ret:      Allow,
 		},
-		testCase{
+		{
 			method:   "KeyringWrite",
 			resource: ResourceKeyring,
 			access:   "write",
 			ret:      Deny,
 		},
-		testCase{
+		{
 			method:   "KeyringWrite",
 			resource: ResourceKeyring,
 			access:   "write",
 			ret:      Allow,
 		},
-		testCase{
+		{
 			resource: ResourceKeyring,
 			access:   "list",
 			ret:      Deny,
 			err:      "Invalid access level",
 		},
-		testCase{
+		{
 			method:   "AgentRead",
 			resource: ResourceAgent,
 			segment:  "foo",
 			access:   "read",
 			ret:      Deny,
 		},
-		testCase{
+		{
 			method:   "AgentRead",
 			resource: ResourceAgent,
 			segment:  "foo",
 			access:   "read",
 			ret:      Allow,
 		},
-		testCase{
+		{
 			method:   "AgentWrite",
 			resource: ResourceAgent,
 			segment:  "foo",
 			access:   "write",
 			ret:      Deny,
 		},
-		testCase{
+		{
 			method:   "AgentWrite",
 			resource: ResourceAgent,
 			segment:  "foo",
 			access:   "write",
 			ret:      Allow,
 		},
-		testCase{
+		{
 			resource: ResourceAgent,
 			segment:  "foo",
 			access:   "list",
 			ret:      Deny,
 			err:      "Invalid access level",
 		},
-		testCase{
+		{
 			method:   "EventRead",
 			resource: ResourceEvent,
 			segment:  "foo",
 			access:   "read",
 			ret:      Deny,
 		},
-		testCase{
+		{
 			method:   "EventRead",
 			resource: ResourceEvent,
 			segment:  "foo",
 			access:   "read",
 			ret:      Allow,
 		},
-		testCase{
+		{
 			method:   "EventWrite",
 			resource: ResourceEvent,
 			segment:  "foo",
 			access:   "write",
 			ret:      Deny,
 		},
-		testCase{
+		{
 			method:   "EventWrite",
 			resource: ResourceEvent,
 			segment:  "foo",
 			access:   "write",
 			ret:      Allow,
 		},
-		testCase{
+		{
 			resource: ResourceEvent,
 			segment:  "foo",
 			access:   "list",
 			ret:      Deny,
 			err:      "Invalid access level",
 		},
-		testCase{
+		{
 			method:   "IntentionRead",
 			resource: ResourceIntention,
 			segment:  "foo",
 			access:   "read",
 			ret:      Deny,
 		},
-		testCase{
+		{
 			method:   "IntentionRead",
 			resource: ResourceIntention,
 			segment:  "foo",
 			access:   "read",
 			ret:      Allow,
 		},
-		testCase{
+		{
 			method:   "IntentionWrite",
 			resource: ResourceIntention,
 			segment:  "foo",
 			access:   "write",
 			ret:      Deny,
 		},
-		testCase{
+		{
 			method:   "IntentionWrite",
 			resource: ResourceIntention,
 			segment:  "foo",
 			access:   "write",
 			ret:      Allow,
 		},
-		testCase{
+		{
 			resource: ResourceIntention,
 			segment:  "foo",
 			access:   "list",
 			ret:      Deny,
 			err:      "Invalid access level",
 		},
-		testCase{
+		{
 			method:   "NodeRead",
 			resource: ResourceNode,
 			segment:  "foo",
 			access:   "read",
 			ret:      Deny,
 		},
-		testCase{
+		{
 			method:   "NodeRead",
 			resource: ResourceNode,
 			segment:  "foo",
 			access:   "read",
 			ret:      Allow,
 		},
-		testCase{
+		{
 			method:   "NodeWrite",
 			resource: ResourceNode,
 			segment:  "foo",
 			access:   "write",
 			ret:      Deny,
 		},
-		testCase{
+		{
 			method:   "NodeWrite",
 			resource: ResourceNode,
 			segment:  "foo",
 			access:   "write",
 			ret:      Allow,
 		},
-		testCase{
+		{
 			resource: ResourceNode,
 			segment:  "foo",
 			access:   "list",
 			ret:      Deny,
 			err:      "Invalid access level",
 		},
-		testCase{
+		{
 			method:   "PreparedQueryRead",
 			resource: ResourceQuery,
 			segment:  "foo",
 			access:   "read",
 			ret:      Deny,
 		},
-		testCase{
+		{
 			method:   "PreparedQueryRead",
 			resource: ResourceQuery,
 			segment:  "foo",
 			access:   "read",
 			ret:      Allow,
 		},
-		testCase{
+		{
 			method:   "PreparedQueryWrite",
 			resource: ResourceQuery,
 			segment:  "foo",
 			access:   "write",
 			ret:      Deny,
 		},
-		testCase{
+		{
 			method:   "PreparedQueryWrite",
 			resource: ResourceQuery,
 			segment:  "foo",
 			access:   "write",
 			ret:      Allow,
 		},
-		testCase{
+		{
 			resource: ResourceQuery,
 			segment:  "foo",
 			access:   "list",
 			ret:      Deny,
 			err:      "Invalid access level",
 		},
-		testCase{
+		{
 			method:   "ServiceRead",
 			resource: ResourceService,
 			segment:  "foo",
 			access:   "read",
 			ret:      Deny,
 		},
-		testCase{
+		{
 			method:   "ServiceRead",
 			resource: ResourceService,
 			segment:  "foo",
 			access:   "read",
 			ret:      Allow,
 		},
-		testCase{
+		{
 			method:   "ServiceWrite",
 			resource: ResourceService,
 			segment:  "foo",
 			access:   "write",
 			ret:      Deny,
 		},
-		testCase{
+		{
 			method:   "ServiceWrite",
 			resource: ResourceService,
 			segment:  "foo",
 			access:   "write",
 			ret:      Allow,
 		},
-		testCase{
+		{
 			resource: ResourceSession,
 			segment:  "foo",
 			access:   "list",
 			ret:      Deny,
 			err:      "Invalid access level",
 		},
-		testCase{
+		{
 			method:   "SessionRead",
 			resource: ResourceSession,
 			segment:  "foo",
 			access:   "read",
 			ret:      Deny,
 		},
-		testCase{
+		{
 			method:   "SessionRead",
 			resource: ResourceSession,
 			segment:  "foo",
 			access:   "read",
 			ret:      Allow,
 		},
-		testCase{
+		{
 			method:   "SessionWrite",
 			resource: ResourceSession,
 			segment:  "foo",
 			access:   "write",
 			ret:      Deny,
 		},
-		testCase{
+		{
 			method:   "SessionWrite",
 			resource: ResourceSession,
 			segment:  "foo",
 			access:   "write",
 			ret:      Allow,
 		},
-		testCase{
+		{
 			resource: ResourceSession,
 			segment:  "foo",
 			access:   "list",
 			ret:      Deny,
 			err:      "Invalid access level",
 		},
-		testCase{
+		{
 			method:   "KeyRead",
 			resource: ResourceKey,
 			segment:  "foo",
 			access:   "read",
 			ret:      Deny,
 		},
-		testCase{
+		{
 			method:   "KeyRead",
 			resource: ResourceKey,
 			segment:  "foo",
 			access:   "read",
 			ret:      Allow,
 		},
-		testCase{
+		{
 			method:   "KeyWrite",
 			resource: ResourceKey,
 			segment:  "foo",
 			access:   "write",
 			ret:      Deny,
 		},
-		testCase{
+		{
 			method:   "KeyWrite",
 			resource: ResourceKey,
 			segment:  "foo",
 			access:   "write",
 			ret:      Allow,
 		},
-		testCase{
+		{
 			method:   "KeyList",
 			resource: ResourceKey,
 			segment:  "foo",
 			access:   "list",
 			ret:      Deny,
 		},
-		testCase{
+		{
 			method:   "KeyList",
 			resource: ResourceKey,
 			segment:  "foo",
 			access:   "list",
 			ret:      Allow,
 		},
-		testCase{
+		{
 			resource: ResourceKey,
 			segment:  "foo",
 			access:   "deny",
 			ret:      Deny,
 			err:      "Invalid access level",
 		},
-		testCase{
+		{
 			resource: "not-a-real-resource",
 			access:   "read",
 			ret:      Deny,
