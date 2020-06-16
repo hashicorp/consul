@@ -155,7 +155,7 @@ func (s *Restore) Session(sess *structs.Session) error {
 
 // SessionCreate is used to register a new session in the state store.
 func (s *Store) SessionCreate(idx uint64, sess *structs.Session) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	// This code is technically able to (incorrectly) update an existing
@@ -170,14 +170,13 @@ func (s *Store) SessionCreate(idx uint64, sess *structs.Session) error {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // sessionCreateTxn is the inner method used for creating session entries in
 // an open transaction. Any health checks registered with the session will be
 // checked for failing status. Returns any error encountered.
-func (s *Store) sessionCreateTxn(tx *memdb.Txn, idx uint64, sess *structs.Session) error {
+func (s *Store) sessionCreateTxn(tx *txn, idx uint64, sess *structs.Session) error {
 	// Check that we have a session ID
 	if sess.ID == "" {
 		return ErrMissingSessionID
@@ -289,7 +288,7 @@ func (s *Store) NodeSessions(ws memdb.WatchSet, nodeID string, entMeta *structs.
 // implicitly invalidate the session and invoke the specified
 // session destroy behavior.
 func (s *Store) SessionDestroy(idx uint64, sessionID string, entMeta *structs.EnterpriseMeta) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	// Call the session deletion.
@@ -297,13 +296,12 @@ func (s *Store) SessionDestroy(idx uint64, sessionID string, entMeta *structs.En
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // deleteSessionTxn is the inner method, which is used to do the actual
 // session deletion and handle session invalidation, etc.
-func (s *Store) deleteSessionTxn(tx *memdb.Txn, idx uint64, sessionID string, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) deleteSessionTxn(tx *txn, idx uint64, sessionID string, entMeta *structs.EnterpriseMeta) error {
 	// Look up the session.
 	sess, err := firstWithTxn(tx, "sessions", "id", sessionID, entMeta)
 	if err != nil {

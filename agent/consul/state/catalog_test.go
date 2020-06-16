@@ -105,7 +105,7 @@ func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 	if err := s.EnsureRegistration(2, req); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxnRestore()
 	defer tx.Abort()
 	node := &structs.Node{
 		ID:      makeRandomNodeID(t),
@@ -2363,7 +2363,9 @@ func TestStateStore_EnsureCheck(t *testing.T) {
 	if err := s.EnsureCheck(4, check); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	testCheckOutput(t, 4, 3, check.Output)
+	// Since there was no change to the check it won't actually have been updated
+	// so the ModifyIndex index should still be 3
+	testCheckOutput(t, 3, 3, check.Output)
 
 	// Do modify the heathcheck
 	check = &structs.HealthCheck{
@@ -4380,10 +4382,10 @@ func TestStateStore_ensureServiceCASTxn(t *testing.T) {
 	}
 
 	// attempt to update with a 0 index
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxnRestore()
 	err := s.ensureServiceCASTxn(tx, 3, "node1", &ns)
 	require.Equal(t, err, errCASCompareFailed)
-	tx.Commit()
+	require.NoError(t, tx.Commit())
 
 	// ensure no update happened
 	tx = s.db.Txn(false)
@@ -4391,14 +4393,14 @@ func TestStateStore_ensureServiceCASTxn(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, nsRead)
 	require.Equal(t, uint64(2), nsRead.ModifyIndex)
-	tx.Commit()
+	require.NoError(t, tx.Commit())
 
 	ns.ModifyIndex = 99
 	// attempt to update with a non-matching index
-	tx = s.db.Txn(true)
+	tx = s.db.WriteTxnRestore()
 	err = s.ensureServiceCASTxn(tx, 4, "node1", &ns)
 	require.Equal(t, err, errCASCompareFailed)
-	tx.Commit()
+	require.NoError(t, tx.Commit())
 
 	// ensure no update happened
 	tx = s.db.Txn(false)
@@ -4406,14 +4408,14 @@ func TestStateStore_ensureServiceCASTxn(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, nsRead)
 	require.Equal(t, uint64(2), nsRead.ModifyIndex)
-	tx.Commit()
+	require.NoError(t, tx.Commit())
 
 	ns.ModifyIndex = 2
 	// update with the matching modify index
-	tx = s.db.Txn(true)
+	tx = s.db.WriteTxnRestore()
 	err = s.ensureServiceCASTxn(tx, 7, "node1", &ns)
 	require.NoError(t, err)
-	tx.Commit()
+	require.NoError(t, tx.Commit())
 
 	// ensure the update happened
 	tx = s.db.Txn(false)
@@ -4421,7 +4423,7 @@ func TestStateStore_ensureServiceCASTxn(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, nsRead)
 	require.Equal(t, uint64(7), nsRead.ModifyIndex)
-	tx.Commit()
+	require.NoError(t, tx.Commit())
 }
 
 func TestStateStore_GatewayServices_Terminating(t *testing.T) {

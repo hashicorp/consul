@@ -206,7 +206,7 @@ func authMethodsTableSchema() *memdb.TableSchema {
 /////                        ACL Policy Functions                         /////
 ///////////////////////////////////////////////////////////////////////////////
 
-func (s *Store) aclPolicyInsert(tx *memdb.Txn, policy *structs.ACLPolicy) error {
+func (s *Store) aclPolicyInsert(tx *txn, policy *structs.ACLPolicy) error {
 	if err := tx.Insert("acl-policies", policy); err != nil {
 		return fmt.Errorf("failed inserting acl policy: %v", err)
 	}
@@ -218,19 +218,19 @@ func (s *Store) aclPolicyInsert(tx *memdb.Txn, policy *structs.ACLPolicy) error 
 	return nil
 }
 
-func (s *Store) aclPolicyGetByID(tx *memdb.Txn, id string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
+func (s *Store) aclPolicyGetByID(tx *txn, id string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
 	return tx.FirstWatch("acl-policies", "id", id)
 }
 
-func (s *Store) aclPolicyGetByName(tx *memdb.Txn, name string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
+func (s *Store) aclPolicyGetByName(tx *txn, name string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
 	return tx.FirstWatch("acl-policies", "name", name)
 }
 
-func (s *Store) aclPolicyList(tx *memdb.Txn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func (s *Store) aclPolicyList(tx *txn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("acl-policies", "id")
 }
 
-func (s *Store) aclPolicyDeleteWithPolicy(tx *memdb.Txn, policy *structs.ACLPolicy, idx uint64) error {
+func (s *Store) aclPolicyDeleteWithPolicy(tx *txn, policy *structs.ACLPolicy, idx uint64) error {
 	// remove the policy
 	if err := tx.Delete("acl-policies", policy); err != nil {
 		return fmt.Errorf("failed deleting acl policy: %v", err)
@@ -243,11 +243,11 @@ func (s *Store) aclPolicyDeleteWithPolicy(tx *memdb.Txn, policy *structs.ACLPoli
 	return nil
 }
 
-func (s *Store) aclPolicyMaxIndex(tx *memdb.Txn, _ *structs.ACLPolicy, _ *structs.EnterpriseMeta) uint64 {
+func (s *Store) aclPolicyMaxIndex(tx *txn, _ *structs.ACLPolicy, _ *structs.EnterpriseMeta) uint64 {
 	return maxIndexTxn(tx, "acl-policies")
 }
 
-func (s *Store) aclPolicyUpsertValidateEnterprise(*memdb.Txn, *structs.ACLPolicy, *structs.ACLPolicy) error {
+func (s *Store) aclPolicyUpsertValidateEnterprise(*txn, *structs.ACLPolicy, *structs.ACLPolicy) error {
 	return nil
 }
 
@@ -259,7 +259,7 @@ func (s *Store) ACLPolicyUpsertValidateEnterprise(*structs.ACLPolicy, *structs.A
 /////                        ACL Token Functions                          /////
 ///////////////////////////////////////////////////////////////////////////////
 
-func (s *Store) aclTokenInsert(tx *memdb.Txn, token *structs.ACLToken) error {
+func (s *Store) aclTokenInsert(tx *txn, token *structs.ACLToken) error {
 	// insert the token into memdb
 	if err := tx.Insert("acl-tokens", token); err != nil {
 		return fmt.Errorf("failed inserting acl token: %v", err)
@@ -273,35 +273,35 @@ func (s *Store) aclTokenInsert(tx *memdb.Txn, token *structs.ACLToken) error {
 	return nil
 }
 
-func (s *Store) aclTokenGetFromIndex(tx *memdb.Txn, id string, index string, entMeta *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
+func (s *Store) aclTokenGetFromIndex(tx *txn, id string, index string, entMeta *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
 	return tx.FirstWatch("acl-tokens", index, id)
 }
 
-func (s *Store) aclTokenListAll(tx *memdb.Txn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func (s *Store) aclTokenListAll(tx *txn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("acl-tokens", "id")
 }
 
-func (s *Store) aclTokenListLocal(tx *memdb.Txn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func (s *Store) aclTokenListLocal(tx *txn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("acl-tokens", "local", true)
 }
 
-func (s *Store) aclTokenListGlobal(tx *memdb.Txn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func (s *Store) aclTokenListGlobal(tx *txn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("acl-tokens", "local", false)
 }
 
-func (s *Store) aclTokenListByPolicy(tx *memdb.Txn, policy string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func (s *Store) aclTokenListByPolicy(tx *txn, policy string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("acl-tokens", "policies", policy)
 }
 
-func (s *Store) aclTokenListByRole(tx *memdb.Txn, role string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func (s *Store) aclTokenListByRole(tx *txn, role string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("acl-tokens", "roles", role)
 }
 
-func (s *Store) aclTokenListByAuthMethod(tx *memdb.Txn, authMethod string, _, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func (s *Store) aclTokenListByAuthMethod(tx *txn, authMethod string, _, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("acl-tokens", "authmethod", authMethod)
 }
 
-func (s *Store) aclTokenDeleteWithToken(tx *memdb.Txn, token *structs.ACLToken, idx uint64) error {
+func (s *Store) aclTokenDeleteWithToken(tx *txn, token *structs.ACLToken, idx uint64) error {
 	// remove the token
 	if err := tx.Delete("acl-tokens", token); err != nil {
 		return fmt.Errorf("failed deleting acl token: %v", err)
@@ -314,11 +314,11 @@ func (s *Store) aclTokenDeleteWithToken(tx *memdb.Txn, token *structs.ACLToken, 
 	return nil
 }
 
-func (s *Store) aclTokenMaxIndex(tx *memdb.Txn, _ *structs.ACLToken, entMeta *structs.EnterpriseMeta) uint64 {
+func (s *Store) aclTokenMaxIndex(tx *txn, _ *structs.ACLToken, entMeta *structs.EnterpriseMeta) uint64 {
 	return maxIndexTxn(tx, "acl-tokens")
 }
 
-func (s *Store) aclTokenUpsertValidateEnterprise(tx *memdb.Txn, token *structs.ACLToken, existing *structs.ACLToken) error {
+func (s *Store) aclTokenUpsertValidateEnterprise(tx *txn, token *structs.ACLToken, existing *structs.ACLToken) error {
 	return nil
 }
 
@@ -330,7 +330,7 @@ func (s *Store) ACLTokenUpsertValidateEnterprise(token *structs.ACLToken, existi
 /////                         ACL Role Functions                          /////
 ///////////////////////////////////////////////////////////////////////////////
 
-func (s *Store) aclRoleInsert(tx *memdb.Txn, role *structs.ACLRole) error {
+func (s *Store) aclRoleInsert(tx *txn, role *structs.ACLRole) error {
 	// insert the role into memdb
 	if err := tx.Insert("acl-roles", role); err != nil {
 		return fmt.Errorf("failed inserting acl role: %v", err)
@@ -343,23 +343,23 @@ func (s *Store) aclRoleInsert(tx *memdb.Txn, role *structs.ACLRole) error {
 	return nil
 }
 
-func (s *Store) aclRoleGetByID(tx *memdb.Txn, id string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
+func (s *Store) aclRoleGetByID(tx *txn, id string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
 	return tx.FirstWatch("acl-roles", "id", id)
 }
 
-func (s *Store) aclRoleGetByName(tx *memdb.Txn, name string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
+func (s *Store) aclRoleGetByName(tx *txn, name string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
 	return tx.FirstWatch("acl-roles", "name", name)
 }
 
-func (s *Store) aclRoleList(tx *memdb.Txn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func (s *Store) aclRoleList(tx *txn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("acl-roles", "id")
 }
 
-func (s *Store) aclRoleListByPolicy(tx *memdb.Txn, policy string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func (s *Store) aclRoleListByPolicy(tx *txn, policy string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("acl-roles", "policies", policy)
 }
 
-func (s *Store) aclRoleDeleteWithRole(tx *memdb.Txn, role *structs.ACLRole, idx uint64) error {
+func (s *Store) aclRoleDeleteWithRole(tx *txn, role *structs.ACLRole, idx uint64) error {
 	// remove the role
 	if err := tx.Delete("acl-roles", role); err != nil {
 		return fmt.Errorf("failed deleting acl role: %v", err)
@@ -372,11 +372,11 @@ func (s *Store) aclRoleDeleteWithRole(tx *memdb.Txn, role *structs.ACLRole, idx 
 	return nil
 }
 
-func (s *Store) aclRoleMaxIndex(tx *memdb.Txn, _ *structs.ACLRole, _ *structs.EnterpriseMeta) uint64 {
+func (s *Store) aclRoleMaxIndex(tx *txn, _ *structs.ACLRole, _ *structs.EnterpriseMeta) uint64 {
 	return maxIndexTxn(tx, "acl-roles")
 }
 
-func (s *Store) aclRoleUpsertValidateEnterprise(tx *memdb.Txn, role *structs.ACLRole, existing *structs.ACLRole) error {
+func (s *Store) aclRoleUpsertValidateEnterprise(tx *txn, role *structs.ACLRole, existing *structs.ACLRole) error {
 	return nil
 }
 
@@ -388,7 +388,7 @@ func (s *Store) ACLRoleUpsertValidateEnterprise(role *structs.ACLRole, existing 
 /////                     ACL Binding Rule Functions                      /////
 ///////////////////////////////////////////////////////////////////////////////
 
-func (s *Store) aclBindingRuleInsert(tx *memdb.Txn, rule *structs.ACLBindingRule) error {
+func (s *Store) aclBindingRuleInsert(tx *txn, rule *structs.ACLBindingRule) error {
 	// insert the role into memdb
 	if err := tx.Insert("acl-binding-rules", rule); err != nil {
 		return fmt.Errorf("failed inserting acl role: %v", err)
@@ -402,19 +402,19 @@ func (s *Store) aclBindingRuleInsert(tx *memdb.Txn, rule *structs.ACLBindingRule
 	return nil
 }
 
-func (s *Store) aclBindingRuleGetByID(tx *memdb.Txn, id string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
+func (s *Store) aclBindingRuleGetByID(tx *txn, id string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
 	return tx.FirstWatch("acl-binding-rules", "id", id)
 }
 
-func (s *Store) aclBindingRuleList(tx *memdb.Txn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func (s *Store) aclBindingRuleList(tx *txn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("acl-binding-rules", "id")
 }
 
-func (s *Store) aclBindingRuleListByAuthMethod(tx *memdb.Txn, method string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func (s *Store) aclBindingRuleListByAuthMethod(tx *txn, method string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("acl-binding-rules", "authmethod", method)
 }
 
-func (s *Store) aclBindingRuleDeleteWithRule(tx *memdb.Txn, rule *structs.ACLBindingRule, idx uint64) error {
+func (s *Store) aclBindingRuleDeleteWithRule(tx *txn, rule *structs.ACLBindingRule, idx uint64) error {
 	// remove the rule
 	if err := tx.Delete("acl-binding-rules", rule); err != nil {
 		return fmt.Errorf("failed deleting acl binding rule: %v", err)
@@ -427,11 +427,11 @@ func (s *Store) aclBindingRuleDeleteWithRule(tx *memdb.Txn, rule *structs.ACLBin
 	return nil
 }
 
-func (s *Store) aclBindingRuleMaxIndex(tx *memdb.Txn, _ *structs.ACLBindingRule, entMeta *structs.EnterpriseMeta) uint64 {
+func (s *Store) aclBindingRuleMaxIndex(tx *txn, _ *structs.ACLBindingRule, entMeta *structs.EnterpriseMeta) uint64 {
 	return maxIndexTxn(tx, "acl-binding-rules")
 }
 
-func (s *Store) aclBindingRuleUpsertValidateEnterprise(tx *memdb.Txn, rule *structs.ACLBindingRule, existing *structs.ACLBindingRule) error {
+func (s *Store) aclBindingRuleUpsertValidateEnterprise(tx *txn, rule *structs.ACLBindingRule, existing *structs.ACLBindingRule) error {
 	return nil
 }
 
@@ -443,7 +443,7 @@ func (s *Store) ACLBindingRuleUpsertValidateEnterprise(rule *structs.ACLBindingR
 /////                     ACL Auth Method Functions                       /////
 ///////////////////////////////////////////////////////////////////////////////
 
-func (s *Store) aclAuthMethodInsert(tx *memdb.Txn, method *structs.ACLAuthMethod) error {
+func (s *Store) aclAuthMethodInsert(tx *txn, method *structs.ACLAuthMethod) error {
 	// insert the role into memdb
 	if err := tx.Insert("acl-auth-methods", method); err != nil {
 		return fmt.Errorf("failed inserting acl role: %v", err)
@@ -457,15 +457,15 @@ func (s *Store) aclAuthMethodInsert(tx *memdb.Txn, method *structs.ACLAuthMethod
 	return nil
 }
 
-func (s *Store) aclAuthMethodGetByName(tx *memdb.Txn, method string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
+func (s *Store) aclAuthMethodGetByName(tx *txn, method string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
 	return tx.FirstWatch("acl-auth-methods", "id", method)
 }
 
-func (s *Store) aclAuthMethodList(tx *memdb.Txn, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func (s *Store) aclAuthMethodList(tx *txn, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("acl-auth-methods", "id")
 }
 
-func (s *Store) aclAuthMethodDeleteWithMethod(tx *memdb.Txn, method *structs.ACLAuthMethod, idx uint64) error {
+func (s *Store) aclAuthMethodDeleteWithMethod(tx *txn, method *structs.ACLAuthMethod, idx uint64) error {
 	// remove the method
 	if err := tx.Delete("acl-auth-methods", method); err != nil {
 		return fmt.Errorf("failed deleting acl auth method: %v", err)
@@ -478,11 +478,11 @@ func (s *Store) aclAuthMethodDeleteWithMethod(tx *memdb.Txn, method *structs.ACL
 	return nil
 }
 
-func (s *Store) aclAuthMethodMaxIndex(tx *memdb.Txn, _ *structs.ACLAuthMethod, entMeta *structs.EnterpriseMeta) uint64 {
+func (s *Store) aclAuthMethodMaxIndex(tx *txn, _ *structs.ACLAuthMethod, entMeta *structs.EnterpriseMeta) uint64 {
 	return maxIndexTxn(tx, "acl-auth-methods")
 }
 
-func (s *Store) aclAuthMethodUpsertValidateEnterprise(tx *memdb.Txn, method *structs.ACLAuthMethod, existing *structs.ACLAuthMethod) error {
+func (s *Store) aclAuthMethodUpsertValidateEnterprise(tx *txn, method *structs.ACLAuthMethod, existing *structs.ACLAuthMethod) error {
 	return nil
 }
 

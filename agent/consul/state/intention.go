@@ -157,20 +157,19 @@ func (s *Store) Intentions(ws memdb.WatchSet) (uint64, structs.Intentions, error
 
 // IntentionSet creates or updates an intention.
 func (s *Store) IntentionSet(idx uint64, ixn *structs.Intention) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	if err := s.intentionSetTxn(tx, idx, ixn); err != nil {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // intentionSetTxn is the inner method used to insert an intention with
 // the proper indexes into the state store.
-func (s *Store) intentionSetTxn(tx *memdb.Txn, idx uint64, ixn *structs.Intention) error {
+func (s *Store) intentionSetTxn(tx *txn, idx uint64, ixn *structs.Intention) error {
 	// ID is required
 	if ixn.ID == "" {
 		return ErrMissingIntentionID
@@ -253,20 +252,19 @@ func (s *Store) IntentionGet(ws memdb.WatchSet, id string) (uint64, *structs.Int
 
 // IntentionDelete deletes the given intention by ID.
 func (s *Store) IntentionDelete(idx uint64, id string) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	if err := s.intentionDeleteTxn(tx, idx, id); err != nil {
 		return fmt.Errorf("failed intention delete: %s", err)
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // intentionDeleteTxn is the inner method used to delete a intention
 // with the proper indexes into the state store.
-func (s *Store) intentionDeleteTxn(tx *memdb.Txn, idx uint64, queryID string) error {
+func (s *Store) intentionDeleteTxn(tx *txn, idx uint64, queryID string) error {
 	// Pull the query.
 	wrapped, err := tx.First(intentionsTableName, "id", queryID)
 	if err != nil {

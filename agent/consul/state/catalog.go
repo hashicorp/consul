@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-memdb"
+	memdb "github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
 )
 
@@ -226,18 +226,17 @@ func (s *Restore) Registration(idx uint64, req *structs.RegisterRequest) error {
 // registration is performed within a single transaction to avoid race
 // conditions on state updates.
 func (s *Store) EnsureRegistration(idx uint64, req *structs.RegisterRequest) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	if err := s.ensureRegistrationTxn(tx, idx, req); err != nil {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
-func (s *Store) ensureCheckIfNodeMatches(tx *memdb.Txn, idx uint64, node string, check *structs.HealthCheck) error {
+func (s *Store) ensureCheckIfNodeMatches(tx *txn, idx uint64, node string, check *structs.HealthCheck) error {
 	if check.Node != node {
 		return fmt.Errorf("check node %q does not match node %q",
 			check.Node, node)
@@ -251,7 +250,7 @@ func (s *Store) ensureCheckIfNodeMatches(tx *memdb.Txn, idx uint64, node string,
 // ensureRegistrationTxn is used to make sure a node, service, and check
 // registration is performed within a single transaction to avoid race
 // conditions on state updates.
-func (s *Store) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, req *structs.RegisterRequest) error {
+func (s *Store) ensureRegistrationTxn(tx *txn, idx uint64, req *structs.RegisterRequest) error {
 	if _, err := s.validateRegisterRequestTxn(tx, req); err != nil {
 		return err
 	}
@@ -316,7 +315,7 @@ func (s *Store) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, req *structs.Re
 
 // EnsureNode is used to upsert node registration or modification.
 func (s *Store) EnsureNode(idx uint64, node *structs.Node) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	// Call the node upsert
@@ -324,13 +323,12 @@ func (s *Store) EnsureNode(idx uint64, node *structs.Node) error {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // ensureNoNodeWithSimilarNameTxn checks that no other node has conflict in its name
 // If allowClashWithoutID then, getting a conflict on another node without ID will be allowed
-func (s *Store) ensureNoNodeWithSimilarNameTxn(tx *memdb.Txn, node *structs.Node, allowClashWithoutID bool) error {
+func (s *Store) ensureNoNodeWithSimilarNameTxn(tx *txn, node *structs.Node, allowClashWithoutID bool) error {
 	// Retrieve all of the nodes
 	enodes, err := tx.Get("nodes", "id")
 	if err != nil {
@@ -366,7 +364,7 @@ func (s *Store) ensureNoNodeWithSimilarNameTxn(tx *memdb.Txn, node *structs.Node
 
 // ensureNodeCASTxn updates a node only if the existing index matches the given index.
 // Returns a bool indicating if a write happened and any error.
-func (s *Store) ensureNodeCASTxn(tx *memdb.Txn, idx uint64, node *structs.Node) (bool, error) {
+func (s *Store) ensureNodeCASTxn(tx *txn, idx uint64, node *structs.Node) (bool, error) {
 	// Retrieve the existing entry.
 	existing, err := getNodeTxn(tx, node.Node)
 	if err != nil {
@@ -396,7 +394,7 @@ func (s *Store) ensureNodeCASTxn(tx *memdb.Txn, idx uint64, node *structs.Node) 
 // ensureNodeTxn is the inner function called to actually create a node
 // registration or modify an existing one in the state store. It allows
 // passing in a memdb transaction so it may be part of a larger txn.
-func (s *Store) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) error {
+func (s *Store) ensureNodeTxn(tx *txn, idx uint64, node *structs.Node) error {
 	// See if there's an existing node with this UUID, and make sure the
 	// name is the same.
 	var n *structs.Node
@@ -494,7 +492,7 @@ func (s *Store) GetNode(id string) (uint64, *structs.Node, error) {
 	return idx, node, nil
 }
 
-func getNodeTxn(tx *memdb.Txn, nodeName string) (*structs.Node, error) {
+func getNodeTxn(tx *txn, nodeName string) (*structs.Node, error) {
 	node, err := tx.First("nodes", "id", nodeName)
 	if err != nil {
 		return nil, fmt.Errorf("node lookup failed: %s", err)
@@ -505,7 +503,7 @@ func getNodeTxn(tx *memdb.Txn, nodeName string) (*structs.Node, error) {
 	return nil, nil
 }
 
-func getNodeIDTxn(tx *memdb.Txn, id types.NodeID) (*structs.Node, error) {
+func getNodeIDTxn(tx *txn, id types.NodeID) (*structs.Node, error) {
 	strnode := string(id)
 	uuidValue, err := uuid.ParseUUID(strnode)
 	if err != nil {
@@ -591,7 +589,7 @@ func (s *Store) NodesByMeta(ws memdb.WatchSet, filters map[string]string) (uint6
 
 // DeleteNode is used to delete a given node by its ID.
 func (s *Store) DeleteNode(idx uint64, nodeName string) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	// Call the node deletion.
@@ -599,14 +597,13 @@ func (s *Store) DeleteNode(idx uint64, nodeName string) error {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // deleteNodeCASTxn is used to try doing a node delete operation with a given
 // raft index. If the CAS index specified is not equal to the last observed index for
 // the given check, then the call is a noop, otherwise a normal check delete is invoked.
-func (s *Store) deleteNodeCASTxn(tx *memdb.Txn, idx, cidx uint64, nodeName string) (bool, error) {
+func (s *Store) deleteNodeCASTxn(tx *txn, idx, cidx uint64, nodeName string) (bool, error) {
 	// Look up the node.
 	node, err := getNodeTxn(tx, nodeName)
 	if err != nil {
@@ -633,7 +630,7 @@ func (s *Store) deleteNodeCASTxn(tx *memdb.Txn, idx, cidx uint64, nodeName strin
 
 // deleteNodeTxn is the inner method used for removing a node from
 // the store within a given transaction.
-func (s *Store) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeName string) error {
+func (s *Store) deleteNodeTxn(tx *txn, idx uint64, nodeName string) error {
 	// Look up the node.
 	node, err := tx.First("nodes", "id", nodeName)
 	if err != nil {
@@ -725,7 +722,7 @@ func (s *Store) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeName string) error 
 
 // EnsureService is called to upsert creation of a given NodeService.
 func (s *Store) EnsureService(idx uint64, node string, svc *structs.NodeService) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	// Call the service registration upsert
@@ -733,15 +730,14 @@ func (s *Store) EnsureService(idx uint64, node string, svc *structs.NodeService)
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 var errCASCompareFailed = errors.New("compare-and-set: comparison failed")
 
 // ensureServiceCASTxn updates a service only if the existing index matches the given index.
 // Returns an error if the write didn't happen and nil if write was successful.
-func (s *Store) ensureServiceCASTxn(tx *memdb.Txn, idx uint64, node string, svc *structs.NodeService) error {
+func (s *Store) ensureServiceCASTxn(tx *txn, idx uint64, node string, svc *structs.NodeService) error {
 	// Retrieve the existing service.
 	_, existing, err := firstWatchCompoundWithTxn(tx, "services", "id", &svc.EnterpriseMeta, node, svc.ID)
 	if err != nil {
@@ -766,7 +762,7 @@ func (s *Store) ensureServiceCASTxn(tx *memdb.Txn, idx uint64, node string, svc 
 
 // ensureServiceTxn is used to upsert a service registration within an
 // existing memdb transaction.
-func (s *Store) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *structs.NodeService) error {
+func (s *Store) ensureServiceTxn(tx *txn, idx uint64, node string, svc *structs.NodeService) error {
 	// Check for existing service
 	_, existing, err := firstWatchCompoundWithTxn(tx, "services", "id", &svc.EnterpriseMeta, node, svc.ID)
 	if err != nil {
@@ -863,7 +859,7 @@ func (s *Store) ServiceList(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) 
 	return s.serviceListTxn(tx, ws, entMeta)
 }
 
-func (s *Store) serviceListTxn(tx *memdb.Txn, ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceList, error) {
+func (s *Store) serviceListTxn(tx *txn, ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceList, error) {
 	idx := s.catalogServicesMaxIndex(tx, entMeta)
 
 	services, err := s.catalogServiceList(tx, entMeta, true)
@@ -967,7 +963,7 @@ func (s *Store) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]string,
 //   * return when the last instance of a service is removed
 //   * block until an instance for this service is available, or another
 //     service is unregistered.
-func (s *Store) maxIndexForService(tx *memdb.Txn, serviceName string, serviceExists, checks bool, entMeta *structs.EnterpriseMeta) uint64 {
+func (s *Store) maxIndexForService(tx *txn, serviceName string, serviceExists, checks bool, entMeta *structs.EnterpriseMeta) uint64 {
 	idx, _ := s.maxIndexAndWatchChForService(tx, serviceName, serviceExists, checks, entMeta)
 	return idx
 }
@@ -986,7 +982,7 @@ func (s *Store) maxIndexForService(tx *memdb.Txn, serviceName string, serviceExi
 // returned for the chan. This allows for blocking watchers to _only_ watch this
 // one chan in the common case, falling back to watching all touched MemDB
 // indexes in more complicated cases.
-func (s *Store) maxIndexAndWatchChForService(tx *memdb.Txn, serviceName string, serviceExists, checks bool, entMeta *structs.EnterpriseMeta) (uint64, <-chan struct{}) {
+func (s *Store) maxIndexAndWatchChForService(tx *txn, serviceName string, serviceExists, checks bool, entMeta *structs.EnterpriseMeta) (uint64, <-chan struct{}) {
 	if !serviceExists {
 		res, err := s.catalogServiceLastExtinctionIndex(tx, entMeta)
 		if missingIdx, ok := res.(*IndexEntry); ok && err == nil {
@@ -1003,7 +999,7 @@ func (s *Store) maxIndexAndWatchChForService(tx *memdb.Txn, serviceName string, 
 }
 
 // Wrapper for maxIndexAndWatchChForService that operates on a list of ServiceNodes
-func (s *Store) maxIndexAndWatchChsForServiceNodes(tx *memdb.Txn,
+func (s *Store) maxIndexAndWatchChsForServiceNodes(tx *txn,
 	nodes structs.ServiceNodes, watchChecks bool) (uint64, []<-chan struct{}) {
 
 	var watchChans []<-chan struct{}
@@ -1210,7 +1206,7 @@ func (s *Store) ServiceAddressNodes(ws memdb.WatchSet, address string, entMeta *
 
 // parseServiceNodes iterates over a services query and fills in the node details,
 // returning a ServiceNodes slice.
-func (s *Store) parseServiceNodes(tx *memdb.Txn, ws memdb.WatchSet, services structs.ServiceNodes) (structs.ServiceNodes, error) {
+func (s *Store) parseServiceNodes(tx *txn, ws memdb.WatchSet, services structs.ServiceNodes) (structs.ServiceNodes, error) {
 	// We don't want to track an unlimited number of nodes, so we pull a
 	// top-level watch to use as a fallback.
 	allNodes, err := tx.Get("nodes", "id")
@@ -1267,7 +1263,7 @@ func (s *Store) NodeService(nodeName string, serviceID string, entMeta *structs.
 	return idx, service, nil
 }
 
-func (s *Store) getNodeServiceTxn(tx *memdb.Txn, nodeName, serviceID string, entMeta *structs.EnterpriseMeta) (*structs.NodeService, error) {
+func (s *Store) getNodeServiceTxn(tx *txn, nodeName, serviceID string, entMeta *structs.EnterpriseMeta) (*structs.NodeService, error) {
 	// Query the service
 	_, service, err := firstWatchCompoundWithTxn(tx, "services", "id", entMeta, nodeName, serviceID)
 	if err != nil {
@@ -1395,7 +1391,7 @@ func (s *Store) NodeServiceList(ws memdb.WatchSet, nodeNameOrID string, entMeta 
 
 // DeleteService is used to delete a given service associated with a node.
 func (s *Store) DeleteService(idx uint64, nodeName, serviceID string, entMeta *structs.EnterpriseMeta) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	// Call the service deletion
@@ -1403,14 +1399,13 @@ func (s *Store) DeleteService(idx uint64, nodeName, serviceID string, entMeta *s
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // deleteServiceCASTxn is used to try doing a service delete operation with a given
 // raft index. If the CAS index specified is not equal to the last observed index for
 // the given service, then the call is a noop, otherwise a normal delete is invoked.
-func (s *Store) deleteServiceCASTxn(tx *memdb.Txn, idx, cidx uint64, nodeName, serviceID string, entMeta *structs.EnterpriseMeta) (bool, error) {
+func (s *Store) deleteServiceCASTxn(tx *txn, idx, cidx uint64, nodeName, serviceID string, entMeta *structs.EnterpriseMeta) (bool, error) {
 	// Look up the service.
 	service, err := s.getNodeServiceTxn(tx, nodeName, serviceID, entMeta)
 	if err != nil {
@@ -1437,7 +1432,7 @@ func (s *Store) deleteServiceCASTxn(tx *memdb.Txn, idx, cidx uint64, nodeName, s
 
 // deleteServiceTxn is the inner method called to remove a service
 // registration within an existing transaction.
-func (s *Store) deleteServiceTxn(tx *memdb.Txn, idx uint64, nodeName, serviceID string, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) deleteServiceTxn(tx *txn, idx uint64, nodeName, serviceID string, entMeta *structs.EnterpriseMeta) error {
 	// Look up the service.
 	_, service, err := firstWatchCompoundWithTxn(tx, "services", "id", entMeta, nodeName, serviceID)
 	if err != nil {
@@ -1533,7 +1528,7 @@ func (s *Store) deleteServiceTxn(tx *memdb.Txn, idx uint64, nodeName, serviceID 
 
 // EnsureCheck is used to store a check registration in the db.
 func (s *Store) EnsureCheck(idx uint64, hc *structs.HealthCheck) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	// Call the check registration
@@ -1541,12 +1536,11 @@ func (s *Store) EnsureCheck(idx uint64, hc *structs.HealthCheck) error {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // updateAllServiceIndexesOfNode updates the Raft index of all the services associated with this node
-func (s *Store) updateAllServiceIndexesOfNode(tx *memdb.Txn, idx uint64, nodeID string) error {
+func (s *Store) updateAllServiceIndexesOfNode(tx *txn, idx uint64, nodeID string) error {
 	services, err := tx.Get("services", "node", nodeID)
 	if err != nil {
 		return fmt.Errorf("failed updating services for node %s: %s", nodeID, err)
@@ -1565,7 +1559,7 @@ func (s *Store) updateAllServiceIndexesOfNode(tx *memdb.Txn, idx uint64, nodeID 
 
 // ensureCheckCASTxn updates a check only if the existing index matches the given index.
 // Returns a bool indicating if a write happened and any error.
-func (s *Store) ensureCheckCASTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthCheck) (bool, error) {
+func (s *Store) ensureCheckCASTxn(tx *txn, idx uint64, hc *structs.HealthCheck) (bool, error) {
 	// Retrieve the existing entry.
 	_, existing, err := s.getNodeCheckTxn(tx, hc.Node, hc.CheckID, &hc.EnterpriseMeta)
 	if err != nil {
@@ -1592,10 +1586,10 @@ func (s *Store) ensureCheckCASTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthC
 	return true, nil
 }
 
-// ensureCheckTransaction is used as the inner method to handle inserting
+// ensureCheckTxn is used as the inner method to handle inserting
 // a health check into the state store. It ensures safety against inserting
 // checks with no matching node or service.
-func (s *Store) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthCheck) error {
+func (s *Store) ensureCheckTxn(tx *txn, idx uint64, hc *structs.HealthCheck) error {
 	// Check if we have an existing health check
 	_, existing, err := firstWatchCompoundWithTxn(tx, "checks", "id", &hc.EnterpriseMeta, hc.Node, string(hc.CheckID))
 	if err != nil {
@@ -1680,18 +1674,10 @@ func (s *Store) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthChec
 			}
 		}
 	}
-	if modified {
-		// We update the modify index, ONLY if something has changed, thus
-		// With constant output, no change is seen when watching a service
-		// With huge number of nodes where anti-entropy updates continuously
-		// the checks, but not the values within the check
-		hc.ModifyIndex = idx
+	if !modified {
+		return nil
 	}
-
-	// TODO (state store) TODO (catalog) - should we be reinserting at all. Similar
-	// code in ensureServiceTxn simply returns nil when the service being inserted
-	// already exists without modifications thereby avoiding the memdb insertions
-	// and also preventing some blocking queries from waking unnecessarily.
+	hc.ModifyIndex = idx
 	return s.catalogInsertCheck(tx, hc, idx)
 }
 
@@ -1706,7 +1692,7 @@ func (s *Store) NodeCheck(nodeName string, checkID types.CheckID, entMeta *struc
 
 // nodeCheckTxn is used as the inner method to handle reading a health check
 // from the state store.
-func (s *Store) getNodeCheckTxn(tx *memdb.Txn, nodeName string, checkID types.CheckID, entMeta *structs.EnterpriseMeta) (uint64, *structs.HealthCheck, error) {
+func (s *Store) getNodeCheckTxn(tx *txn, nodeName string, checkID types.CheckID, entMeta *structs.EnterpriseMeta) (uint64, *structs.HealthCheck, error) {
 	// Get the table index.
 	idx := s.catalogChecksMaxIndex(tx, entMeta)
 
@@ -1822,7 +1808,7 @@ func (s *Store) ChecksInStateByNodeMeta(ws memdb.WatchSet, state string, filters
 	return s.parseChecksByNodeMeta(tx, ws, idx, iter, filters)
 }
 
-func (s *Store) checksInStateTxn(tx *memdb.Txn, ws memdb.WatchSet, state string, entMeta *structs.EnterpriseMeta) (uint64, memdb.ResultIterator, error) {
+func (s *Store) checksInStateTxn(tx *txn, ws memdb.WatchSet, state string, entMeta *structs.EnterpriseMeta) (uint64, memdb.ResultIterator, error) {
 	// Get the table index.
 	idx := s.catalogChecksMaxIndex(tx, entMeta)
 
@@ -1844,7 +1830,7 @@ func (s *Store) checksInStateTxn(tx *memdb.Txn, ws memdb.WatchSet, state string,
 
 // parseChecksByNodeMeta is a helper function used to deduplicate some
 // repetitive code for returning health checks filtered by node metadata fields.
-func (s *Store) parseChecksByNodeMeta(tx *memdb.Txn, ws memdb.WatchSet,
+func (s *Store) parseChecksByNodeMeta(tx *txn, ws memdb.WatchSet,
 	idx uint64, iter memdb.ResultIterator, filters map[string]string) (uint64, structs.HealthChecks, error) {
 
 	// We don't want to track an unlimited number of nodes, so we pull a
@@ -1879,7 +1865,7 @@ func (s *Store) parseChecksByNodeMeta(tx *memdb.Txn, ws memdb.WatchSet,
 
 // DeleteCheck is used to delete a health check registration.
 func (s *Store) DeleteCheck(idx uint64, node string, checkID types.CheckID, entMeta *structs.EnterpriseMeta) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	// Call the check deletion
@@ -1887,14 +1873,13 @@ func (s *Store) DeleteCheck(idx uint64, node string, checkID types.CheckID, entM
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // deleteCheckCASTxn is used to try doing a check delete operation with a given
 // raft index. If the CAS index specified is not equal to the last observed index for
 // the given check, then the call is a noop, otherwise a normal check delete is invoked.
-func (s *Store) deleteCheckCASTxn(tx *memdb.Txn, idx, cidx uint64, node string, checkID types.CheckID, entMeta *structs.EnterpriseMeta) (bool, error) {
+func (s *Store) deleteCheckCASTxn(tx *txn, idx, cidx uint64, node string, checkID types.CheckID, entMeta *structs.EnterpriseMeta) (bool, error) {
 	// Try to retrieve the existing health check.
 	_, hc, err := s.getNodeCheckTxn(tx, node, checkID, entMeta)
 	if err != nil {
@@ -1921,7 +1906,7 @@ func (s *Store) deleteCheckCASTxn(tx *memdb.Txn, idx, cidx uint64, node string, 
 
 // deleteCheckTxn is the inner method used to call a health
 // check deletion within an existing transaction.
-func (s *Store) deleteCheckTxn(tx *memdb.Txn, idx uint64, node string, checkID types.CheckID, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) deleteCheckTxn(tx *txn, idx uint64, node string, checkID types.CheckID, entMeta *structs.EnterpriseMeta) error {
 	// Try to retrieve the existing health check.
 	_, hc, err := firstWatchCompoundWithTxn(tx, "checks", "id", entMeta, node, string(checkID))
 	if err != nil {
@@ -2038,7 +2023,7 @@ func (s *Store) checkServiceNodes(ws memdb.WatchSet, serviceName string, connect
 	return s.checkServiceNodesTxn(tx, ws, serviceName, connect, entMeta)
 }
 
-func (s *Store) checkServiceNodesTxn(tx *memdb.Txn, ws memdb.WatchSet, serviceName string, connect bool, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
+func (s *Store) checkServiceNodesTxn(tx *txn, ws memdb.WatchSet, serviceName string, connect bool, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
 	// Function for lookup
 	index := "service"
 	if connect {
@@ -2228,7 +2213,7 @@ func (s *Store) GatewayServices(ws memdb.WatchSet, gateway string, entMeta *stru
 // and query for an associated node and a set of checks. This is the inner
 // method used to return a rich set of results from a more simple query.
 func (s *Store) parseCheckServiceNodes(
-	tx *memdb.Txn, ws memdb.WatchSet, idx uint64,
+	tx *txn, ws memdb.WatchSet, idx uint64,
 	serviceName string, services structs.ServiceNodes,
 	err error) (uint64, structs.CheckServiceNodes, error) {
 	if err != nil {
@@ -2353,7 +2338,7 @@ func (s *Store) ServiceDump(ws memdb.WatchSet, kind structs.ServiceKind, useKind
 	}
 }
 
-func (s *Store) serviceDumpAllTxn(tx *memdb.Txn, ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
+func (s *Store) serviceDumpAllTxn(tx *txn, ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
 	// Get the table index
 	idx := s.catalogMaxIndexWatch(tx, ws, entMeta, true)
 
@@ -2371,7 +2356,7 @@ func (s *Store) serviceDumpAllTxn(tx *memdb.Txn, ws memdb.WatchSet, entMeta *str
 	return s.parseCheckServiceNodes(tx, nil, idx, "", results, err)
 }
 
-func (s *Store) serviceDumpKindTxn(tx *memdb.Txn, ws memdb.WatchSet, kind structs.ServiceKind, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
+func (s *Store) serviceDumpKindTxn(tx *txn, ws memdb.WatchSet, kind structs.ServiceKind, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
 	// unlike when we are dumping all services here we only need to watch the kind specific index entry for changing (or nodes, checks)
 	// updating any services, nodes or checks will bump the appropriate service kind index so there is no need to watch any of the individual
 	// entries
@@ -2395,7 +2380,7 @@ func (s *Store) serviceDumpKindTxn(tx *memdb.Txn, ws memdb.WatchSet, kind struct
 // parseNodes takes an iterator over a set of nodes and returns a struct
 // containing the nodes along with all of their associated services
 // and/or health checks.
-func (s *Store) parseNodes(tx *memdb.Txn, ws memdb.WatchSet, idx uint64,
+func (s *Store) parseNodes(tx *txn, ws memdb.WatchSet, idx uint64,
 	iter memdb.ResultIterator, entMeta *structs.EnterpriseMeta) (uint64, structs.NodeDump, error) {
 
 	// We don't want to track an unlimited number of services, so we pull a
@@ -2455,7 +2440,7 @@ func (s *Store) parseNodes(tx *memdb.Txn, ws memdb.WatchSet, idx uint64,
 }
 
 // checkSessionsTxn returns the IDs of all sessions associated with a health check
-func checkSessionsTxn(tx *memdb.Txn, hc *structs.HealthCheck) ([]*sessionCheck, error) {
+func checkSessionsTxn(tx *txn, hc *structs.HealthCheck) ([]*sessionCheck, error) {
 	mappings, err := getCompoundWithTxn(tx, "session_checks", "node_check", &hc.EnterpriseMeta, hc.Node, string(hc.CheckID))
 	if err != nil {
 		return nil, fmt.Errorf("failed session checks lookup: %s", err)
@@ -2469,7 +2454,7 @@ func checkSessionsTxn(tx *memdb.Txn, hc *structs.HealthCheck) ([]*sessionCheck, 
 }
 
 // updateGatewayServices associates services with gateways as specified in a gateway config entry
-func (s *Store) updateGatewayServices(tx *memdb.Txn, idx uint64, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) updateGatewayServices(tx *txn, idx uint64, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) error {
 	var (
 		noChange        bool
 		gatewayServices structs.GatewayServices
@@ -2526,7 +2511,7 @@ func (s *Store) updateGatewayServices(tx *memdb.Txn, idx uint64, conf structs.Co
 // insertion into the memdb table, specific to ingress gateways. The boolean
 // returned indicates that there are no changes necessary to the memdb table.
 func (s *Store) ingressConfigGatewayServices(
-	tx *memdb.Txn,
+	tx *txn,
 	gateway structs.ServiceName,
 	conf structs.ConfigEntry,
 	entMeta *structs.EnterpriseMeta,
@@ -2571,7 +2556,7 @@ func (s *Store) ingressConfigGatewayServices(
 // boolean returned indicates that there are no changes necessary to the memdb
 // table.
 func (s *Store) terminatingConfigGatewayServices(
-	tx *memdb.Txn,
+	tx *txn,
 	gateway structs.ServiceName,
 	conf structs.ConfigEntry,
 	entMeta *structs.EnterpriseMeta,
@@ -2611,7 +2596,7 @@ func (s *Store) terminatingConfigGatewayServices(
 }
 
 // updateGatewayNamespace is used to target all services within a namespace
-func (s *Store) updateGatewayNamespace(tx *memdb.Txn, idx uint64, service *structs.GatewayService, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) updateGatewayNamespace(tx *txn, idx uint64, service *structs.GatewayService, entMeta *structs.EnterpriseMeta) error {
 	services, err := s.catalogServiceListByKind(tx, structs.ServiceKindTypical, entMeta)
 	if err != nil {
 		return fmt.Errorf("failed querying services: %s", err)
@@ -2658,7 +2643,7 @@ func (s *Store) updateGatewayNamespace(tx *memdb.Txn, idx uint64, service *struc
 
 // updateGatewayService associates services with gateways after an eligible event
 // ie. Registering a service in a namespace targeted by a gateway
-func (s *Store) updateGatewayService(tx *memdb.Txn, idx uint64, mapping *structs.GatewayService) error {
+func (s *Store) updateGatewayService(tx *txn, idx uint64, mapping *structs.GatewayService) error {
 	// Check if mapping already exists in table if it's already in the table
 	// Avoid insert if nothing changed
 	existing, err := tx.First(gatewayServicesTableName, "id", mapping.Gateway, mapping.Service, mapping.Port)
@@ -2689,7 +2674,7 @@ func (s *Store) updateGatewayService(tx *memdb.Txn, idx uint64, mapping *structs
 // checkWildcardForGatewaysAndUpdate checks whether a service matches a
 // wildcard definition in gateway config entries and if so adds it the the
 // gateway-services table.
-func (s *Store) checkGatewayWildcardsAndUpdate(tx *memdb.Txn, idx uint64, svc *structs.NodeService) error {
+func (s *Store) checkGatewayWildcardsAndUpdate(tx *txn, idx uint64, svc *structs.NodeService) error {
 	// Do not associate non-typical services with gateways or consul services
 	if svc.Kind != structs.ServiceKindTypical || svc.Service == "consul" {
 		return nil
@@ -2718,18 +2703,18 @@ func (s *Store) checkGatewayWildcardsAndUpdate(tx *memdb.Txn, idx uint64, svc *s
 
 // serviceGateways returns all GatewayService entries with the given service name. This effectively looks up
 // all the gateways mapped to this service.
-func (s *Store) serviceGateways(tx *memdb.Txn, name string, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func (s *Store) serviceGateways(tx *txn, name string, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get(gatewayServicesTableName, "service", structs.NewServiceName(name, entMeta))
 }
 
-func (s *Store) gatewayServices(tx *memdb.Txn, name string, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func (s *Store) gatewayServices(tx *txn, name string, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get(gatewayServicesTableName, "gateway", structs.NewServiceName(name, entMeta))
 }
 
 // TODO(ingress): How to handle index rolling back when a config entry is
 // deleted that references a service?
 // We might need something like the service_last_extinction index?
-func (s *Store) serviceGatewayNodes(tx *memdb.Txn, ws memdb.WatchSet, service string, kind structs.ServiceKind, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceNodes, error) {
+func (s *Store) serviceGatewayNodes(tx *txn, ws memdb.WatchSet, service string, kind structs.ServiceKind, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceNodes, error) {
 	// Look up gateway name associated with the service
 	gws, err := s.serviceGateways(tx, service, entMeta)
 	if err != nil {
@@ -2781,7 +2766,7 @@ func (s *Store) serviceGatewayNodes(tx *memdb.Txn, ws memdb.WatchSet, service st
 // checkProtocolMatch filters out any GatewayService entries added from a wildcard with a protocol
 // that doesn't match the one configured in their discovery chain.
 func (s *Store) checkProtocolMatch(
-	tx *memdb.Txn,
+	tx *txn,
 	ws memdb.WatchSet,
 	svc *structs.GatewayService,
 ) (uint64, bool, error) {

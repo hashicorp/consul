@@ -88,21 +88,20 @@ func (s *Restore) Tombstone(stone *Tombstone) error {
 // ReapTombstones is used to delete all the tombstones with an index
 // less than or equal to the given index. This is used to prevent
 // unbounded storage growth of the tombstones.
-func (s *Store) ReapTombstones(index uint64) error {
-	tx := s.db.Txn(true)
+func (s *Store) ReapTombstones(idx uint64, index uint64) error {
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	if err := s.kvsGraveyard.ReapTxn(tx, index); err != nil {
 		return fmt.Errorf("failed to reap kvs tombstones: %s", err)
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // KVSSet is used to store a key/value pair.
 func (s *Store) KVSSet(idx uint64, entry *structs.DirEntry) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	// Perform the actual set.
@@ -110,8 +109,7 @@ func (s *Store) KVSSet(idx uint64, entry *structs.DirEntry) error {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // kvsSetTxn is used to insert or update a key/value pair in the state
@@ -119,7 +117,7 @@ func (s *Store) KVSSet(idx uint64, entry *structs.DirEntry) error {
 // If updateSession is true, then the incoming entry will set the new
 // session (should be validated before calling this). Otherwise, we will keep
 // whatever the existing session is.
-func (s *Store) kvsSetTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry, updateSession bool) error {
+func (s *Store) kvsSetTxn(tx *txn, idx uint64, entry *structs.DirEntry, updateSession bool) error {
 	// Retrieve an existing KV pair
 	existingNode, err := firstWithTxn(tx, "kvs", "id", entry.Key, &entry.EnterpriseMeta)
 	if err != nil {
@@ -172,7 +170,7 @@ func (s *Store) KVSGet(ws memdb.WatchSet, key string, entMeta *structs.Enterpris
 
 // kvsGetTxn is the inner method that gets a KVS entry inside an existing
 // transaction.
-func (s *Store) kvsGetTxn(tx *memdb.Txn,
+func (s *Store) kvsGetTxn(tx *txn,
 	ws memdb.WatchSet, key string, entMeta *structs.EnterpriseMeta) (uint64, *structs.DirEntry, error) {
 
 	// Get the table index.
@@ -205,7 +203,7 @@ func (s *Store) KVSList(ws memdb.WatchSet,
 
 // kvsListTxn is the inner method that gets a list of KVS entries matching a
 // prefix.
-func (s *Store) kvsListTxn(tx *memdb.Txn,
+func (s *Store) kvsListTxn(tx *txn,
 	ws memdb.WatchSet, prefix string, entMeta *structs.EnterpriseMeta) (uint64, structs.DirEntries, error) {
 
 	// Get the table indexes.
@@ -241,7 +239,7 @@ func (s *Store) kvsListTxn(tx *memdb.Txn,
 // KVSDelete is used to perform a shallow delete on a single key in the
 // the state store.
 func (s *Store) KVSDelete(idx uint64, key string, entMeta *structs.EnterpriseMeta) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	// Perform the actual delete
@@ -249,13 +247,12 @@ func (s *Store) KVSDelete(idx uint64, key string, entMeta *structs.EnterpriseMet
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // kvsDeleteTxn is the inner method used to perform the actual deletion
 // of a key/value pair within an existing transaction.
-func (s *Store) kvsDeleteTxn(tx *memdb.Txn, idx uint64, key string, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) kvsDeleteTxn(tx *txn, idx uint64, key string, entMeta *structs.EnterpriseMeta) error {
 	// Look up the entry in the state store.
 	entry, err := firstWithTxn(tx, "kvs", "id", key, entMeta)
 	if err != nil {
@@ -278,7 +275,7 @@ func (s *Store) kvsDeleteTxn(tx *memdb.Txn, idx uint64, key string, entMeta *str
 // observed index for the given key, then the call is a noop, otherwise
 // a normal KV delete is invoked.
 func (s *Store) KVSDeleteCAS(idx, cidx uint64, key string, entMeta *structs.EnterpriseMeta) (bool, error) {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	set, err := s.kvsDeleteCASTxn(tx, idx, cidx, key, entMeta)
@@ -286,13 +283,13 @@ func (s *Store) KVSDeleteCAS(idx, cidx uint64, key string, entMeta *structs.Ente
 		return false, err
 	}
 
-	tx.Commit()
-	return true, nil
+	err = tx.Commit()
+	return err == nil, err
 }
 
 // kvsDeleteCASTxn is the inner method that does a CAS delete within an existing
 // transaction.
-func (s *Store) kvsDeleteCASTxn(tx *memdb.Txn, idx, cidx uint64, key string, entMeta *structs.EnterpriseMeta) (bool, error) {
+func (s *Store) kvsDeleteCASTxn(tx *txn, idx, cidx uint64, key string, entMeta *structs.EnterpriseMeta) (bool, error) {
 	// Retrieve the existing kvs entry, if any exists.
 	entry, err := firstWithTxn(tx, "kvs", "id", key, entMeta)
 	if err != nil {
@@ -319,7 +316,7 @@ func (s *Store) kvsDeleteCASTxn(tx *memdb.Txn, idx, cidx uint64, key string, ent
 // write the entry to the state store or bail. Returns a bool indicating
 // if a write happened and any error.
 func (s *Store) KVSSetCAS(idx uint64, entry *structs.DirEntry) (bool, error) {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	set, err := s.kvsSetCASTxn(tx, idx, entry)
@@ -327,13 +324,13 @@ func (s *Store) KVSSetCAS(idx uint64, entry *structs.DirEntry) (bool, error) {
 		return false, err
 	}
 
-	tx.Commit()
-	return true, nil
+	err = tx.Commit()
+	return err == nil, err
 }
 
 // kvsSetCASTxn is the inner method used to do a CAS inside an existing
 // transaction.
-func (s *Store) kvsSetCASTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry) (bool, error) {
+func (s *Store) kvsSetCASTxn(tx *txn, idx uint64, entry *structs.DirEntry) (bool, error) {
 	// Retrieve the existing entry.
 	existing, err := firstWithTxn(tx, "kvs", "id", entry.Key, &entry.EnterpriseMeta)
 	if err != nil {
@@ -364,15 +361,14 @@ func (s *Store) kvsSetCASTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry)
 // in the state store. If any keys are modified, the last index is
 // set, otherwise this is a no-op.
 func (s *Store) KVSDeleteTree(idx uint64, prefix string, entMeta *structs.EnterpriseMeta) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	if err := s.kvsDeleteTreeTxn(tx, idx, prefix, entMeta); err != nil {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // KVSLockDelay returns the expiration time for any lock delay associated with
@@ -384,7 +380,7 @@ func (s *Store) KVSLockDelay(key string, entMeta *structs.EnterpriseMeta) time.T
 // KVSLock is similar to KVSSet but only performs the set if the lock can be
 // acquired.
 func (s *Store) KVSLock(idx uint64, entry *structs.DirEntry) (bool, error) {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	locked, err := s.kvsLockTxn(tx, idx, entry)
@@ -392,13 +388,13 @@ func (s *Store) KVSLock(idx uint64, entry *structs.DirEntry) (bool, error) {
 		return false, err
 	}
 
-	tx.Commit()
-	return true, nil
+	err = tx.Commit()
+	return err == nil, err
 }
 
 // kvsLockTxn is the inner method that does a lock inside an existing
 // transaction.
-func (s *Store) kvsLockTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry) (bool, error) {
+func (s *Store) kvsLockTxn(tx *txn, idx uint64, entry *structs.DirEntry) (bool, error) {
 	// Verify that a session is present.
 	if entry.Session == "" {
 		return false, fmt.Errorf("missing session")
@@ -450,7 +446,7 @@ func (s *Store) kvsLockTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry) (
 // KVSUnlock is similar to KVSSet but only performs the set if the lock can be
 // unlocked (the key must already exist and be locked).
 func (s *Store) KVSUnlock(idx uint64, entry *structs.DirEntry) (bool, error) {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	unlocked, err := s.kvsUnlockTxn(tx, idx, entry)
@@ -458,13 +454,13 @@ func (s *Store) KVSUnlock(idx uint64, entry *structs.DirEntry) (bool, error) {
 		return false, err
 	}
 
-	tx.Commit()
-	return true, nil
+	err = tx.Commit()
+	return err == nil, err
 }
 
 // kvsUnlockTxn is the inner method that does an unlock inside an existing
 // transaction.
-func (s *Store) kvsUnlockTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry) (bool, error) {
+func (s *Store) kvsUnlockTxn(tx *txn, idx uint64, entry *structs.DirEntry) (bool, error) {
 	// Verify that a session is present.
 	if entry.Session == "" {
 		return false, fmt.Errorf("missing session")
@@ -502,7 +498,7 @@ func (s *Store) kvsUnlockTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry)
 
 // kvsCheckSessionTxn checks to see if the given session matches the current
 // entry for a key.
-func (s *Store) kvsCheckSessionTxn(tx *memdb.Txn,
+func (s *Store) kvsCheckSessionTxn(tx *txn,
 	key string, session string, entMeta *structs.EnterpriseMeta) (*structs.DirEntry, error) {
 
 	entry, err := firstWithTxn(tx, "kvs", "id", key, entMeta)
@@ -523,7 +519,7 @@ func (s *Store) kvsCheckSessionTxn(tx *memdb.Txn,
 
 // kvsCheckIndexTxn checks to see if the given modify index matches the current
 // entry for a key.
-func (s *Store) kvsCheckIndexTxn(tx *memdb.Txn,
+func (s *Store) kvsCheckIndexTxn(tx *txn,
 	key string, cidx uint64, entMeta *structs.EnterpriseMeta) (*structs.DirEntry, error) {
 
 	entry, err := firstWithTxn(tx, "kvs", "id", key, entMeta)

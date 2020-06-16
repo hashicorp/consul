@@ -4,11 +4,9 @@ package state
 
 import (
 	"fmt"
-
-	"github.com/hashicorp/go-memdb"
 )
 
-func (g *Graveyard) insertTombstoneWithTxn(tx *memdb.Txn,
+func (g *Graveyard) insertTombstoneWithTxn(tx *txn,
 	table string, stone *Tombstone, updateMax bool) error {
 
 	if err := tx.Insert("tombstones", stone); err != nil {
