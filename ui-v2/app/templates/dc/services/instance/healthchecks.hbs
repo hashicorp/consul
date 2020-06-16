@@ -2,7 +2,7 @@
   <div role="tabpanel">
     {{#if (gt item.ServiceChecks.length 0) }}
       <section data-test-service-checks>
-        <HealthcheckList @items={{item.ServiceChecks}} @exposed={{proxy.ServiceProxy.Expose.Checks}} />
+        <HealthcheckList @items={{sort-by (comparator 'check' 'Status:asc') item.ServiceChecks}} @exposed={{proxy.ServiceProxy.Expose.Checks}} />
       </section>
     {{else}}
       <p>
@@ -11,7 +11,7 @@
     {{/if}}
     {{#if (gt item.NodeChecks.length 0) }}
       <section data-test-node-checks>
-        <HealthcheckList @items={{item.NodeChecks}} />
+        <HealthcheckList @items={{sort-by (comparator 'check' 'Status:asc') item.NodeChecks}} />
       </section>
     {{else}}
       <p>
