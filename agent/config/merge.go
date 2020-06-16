@@ -28,6 +28,14 @@ func merge(a, b interface{}) interface{} {
 func mergeValue(a, b reflect.Value) reflect.Value {
 	switch a.Kind() {
 	case reflect.Map:
+		// dont bother allocating a new map to aggregate keys in when either one
+		// or both of the maps to merge is the zero value - nil
+		if a.IsZero() {
+			return b
+		} else if b.IsZero() {
+			return a
+		}
+
 		r := reflect.MakeMap(a.Type())
 		for _, k := range a.MapKeys() {
 			v := a.MapIndex(k)

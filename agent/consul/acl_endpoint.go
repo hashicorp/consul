@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/template"
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	memdb "github.com/hashicorp/go-memdb"
@@ -706,7 +707,7 @@ func validateBindingRuleBindName(bindType, bindName string, availableFields []st
 // - If the computed name is not valid for the type ("INVALID_NAME", false, nil) is returned.
 // - If the computed name is valid for the type ("VALID_NAME", true, nil) is returned.
 func computeBindingRuleBindName(bindType, bindName string, projectedVars map[string]string) (string, bool, error) {
-	bindName, err := InterpolateHIL(bindName, projectedVars, true)
+	bindName, err := template.InterpolateHIL(bindName, projectedVars, true)
 	if err != nil {
 		return "", false, err
 	}
