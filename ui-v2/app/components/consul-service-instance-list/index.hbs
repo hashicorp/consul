@@ -12,23 +12,17 @@
       </ConsulExternalSource>
 {{#let (reject-by 'ServiceID' '' item.Checks) as |checks|}}
   {{#let (service/instance-checks checks) as |serviceCheck| }}
-    {{#if (eq serviceCheck.status 'empty') }}
-      <li class={{serviceCheck.status}}>
+    {{#if (eq serviceCheck.check 'empty') }}
+      <li class={{serviceCheck.check}}>
         No service checks
       </li>
     {{else}}
       {{#if (eq serviceCheck.count checks.length)}}
-        {{#if (eq serviceCheck.status 'warning') }}
-          <li class={{serviceCheck.status}}>
-            All service checks with {{serviceCheck.status}}
-          </li>
-        {{else}}
-          <li class={{serviceCheck.status}}>
+          <li class={{serviceCheck.check}}>
             All service checks {{serviceCheck.status}}
           </li>
-        {{/if}}
       {{else}}
-        <li class={{serviceCheck.status}}>
+        <li class={{serviceCheck.check}}>
           {{serviceCheck.count}}/{{checks.length}} service checks {{serviceCheck.status}}
         </li>
       {{/if}}
@@ -37,23 +31,17 @@
 {{/let}}
 {{#let (filter-by 'ServiceID' '' item.Checks) as |checks|}}
   {{#let (service/instance-checks checks) as |nodeCheck| }}
-    {{#if (eq nodeCheck.status 'empty') }}
-      <li class={{nodeCheck.status}}>
+    {{#if (eq nodeCheck.check 'empty') }}
+      <li class={{nodeCheck.check}}>
         No node checks
       </li>
     {{else}}
       {{#if (eq nodeCheck.count checks.length)}}
-        {{#if (eq nodeCheck.status 'warning') }}
-          <li class={{nodeCheck.status}}>
-            All node checks with {{nodeCheck.status}}
-          </li>
-        {{else}}
-          <li class={{nodeCheck.status}}>
-            All node checks {{nodeCheck.status}}
-          </li>
-        {{/if}}
+        <li class={{nodeCheck.check}}>
+          All node checks {{nodeCheck.status}}
+        </li>
       {{else}}
-        <li class={{nodeCheck.status}}>
+        <li class={{nodeCheck.check}}>
           {{nodeCheck.count}}/{{checks.length}} node checks {{nodeCheck.status}}
         </li>
       {{/if}}
