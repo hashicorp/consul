@@ -30,10 +30,12 @@ type cmd struct {
 	roleIDs            []string
 	roleNames          []string
 	serviceIdents      []string
+	nodeIdents         []string
 	description        string
 	mergePolicies      bool
 	mergeRoles         bool
 	mergeServiceIdents bool
+	mergeNodeIdents    bool
 	showMeta           bool
 	upgradeLegacy      bool
 	format             string
@@ -49,6 +51,8 @@ func (c *cmd) init() {
 		"with the existing roles")
 	c.flags.BoolVar(&c.mergeServiceIdents, "merge-service-identities", false, "Merge the new service identities "+
 		"with the existing service identities")
+	c.flags.BoolVar(&c.mergeNodeIdents, "merge-node-identities", false, "Merge the new node identities "+
+		"with the existing node identities")
 	c.flags.StringVar(&c.tokenID, "id", "", "The Accessor ID of the token to update. "+
 		"It may be specified as a unique ID prefix but will error if the prefix "+
 		"matches multiple token Accessor IDs")
@@ -64,6 +68,9 @@ func (c *cmd) init() {
 	c.flags.Var((*flags.AppendSliceValue)(&c.serviceIdents), "service-identity", "Name of a "+
 		"service identity to use for this token. May be specified multiple times. Format is "+
 		"the SERVICENAME or SERVICENAME:DATACENTER1,DATACENTER2,...")
+	c.flags.Var((*flags.AppendSliceValue)(&c.nodeIdents), "node-identity", "Name of a "+
+		"node identity to use for this token. May be specified multiple times. Format is "+
+		"NODENAME:DATACENTER")
 	c.flags.BoolVar(&c.upgradeLegacy, "upgrade-legacy", false, "Add new polices "+
 		"to a legacy token replacing all existing rules. This will cause the legacy "+
 		"token to behave exactly like a new token but keep the same Secret.\n"+
@@ -134,6 +141,12 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	parsedServiceIdents, err := acl.ExtractServiceIdentities(c.serviceIdents)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+
+	parsedNodeIdents, err := acl.ExtractNodeIdentities(c.nodeIdents)
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1
@@ -267,6 +280,24 @@ func (c *cmd) Run(args []string) int {
 		}
 	} else {
 		t.ServiceIdentities = parsedServiceIdents
+	}
+
+	if c.mergeNodeIdents {
+		for _, nodeid := range parsedNodeIdents {
+			found := false
+			for _, link := range t.NodeIdentities {
+				if link.NodeName == nodeid.NodeName && link.Datacenter == nodeid.Datacenter {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				t.NodeIdentities = append(t.NodeIdentities, nodeid)
+			}
+		}
+	} else {
+		t.NodeIdentities = parsedNodeIdents
 	}
 
 	t, _, err = client.ACL().TokenUpdate(t, nil)

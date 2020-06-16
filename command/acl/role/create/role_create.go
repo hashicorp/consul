@@ -29,6 +29,7 @@ type cmd struct {
 	policyIDs     []string
 	policyNames   []string
 	serviceIdents []string
+	nodeIdents    []string
 
 	showMeta bool
 	format   string
@@ -47,6 +48,9 @@ func (c *cmd) init() {
 	c.flags.Var((*flags.AppendSliceValue)(&c.serviceIdents), "service-identity", "Name of a "+
 		"service identity to use for this role. May be specified multiple times. Format is "+
 		"the SERVICENAME or SERVICENAME:DATACENTER1,DATACENTER2,...")
+	c.flags.Var((*flags.AppendSliceValue)(&c.nodeIdents), "node-identity", "Name of a "+
+		"node identity to use for this role. May be specified multiple times. Format is "+
+		"NODENAME:DATACENTER")
 	c.flags.StringVar(
 		&c.format,
 		"format",
@@ -71,8 +75,8 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if len(c.policyNames) == 0 && len(c.policyIDs) == 0 && len(c.serviceIdents) == 0 {
-		c.UI.Error(fmt.Sprintf("Cannot create a role without specifying -policy-name, -policy-id, or -service-identity at least once"))
+	if len(c.policyNames) == 0 && len(c.policyIDs) == 0 && len(c.serviceIdents) == 0 && len(c.nodeIdents) == 0 {
+		c.UI.Error(fmt.Sprintf("Cannot create a role without specifying -policy-name, -policy-id, -service-identity, or -node-identity at least once"))
 		return 1
 	}
 
@@ -108,6 +112,13 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 	newRole.ServiceIdentities = parsedServiceIdents
+
+	parsedNodeIdents, err := acl.ExtractNodeIdentities(c.nodeIdents)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+	newRole.NodeIdentities = parsedNodeIdents
 
 	r, _, err := client.ACL().RoleCreate(newRole, nil)
 	if err != nil {

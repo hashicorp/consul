@@ -99,6 +99,10 @@ func (id *missingIdentity) ServiceIdentityList() []*structs.ACLServiceIdentity {
 	return nil
 }
 
+func (id *missingIdentity) NodeIdentityList() []*structs.ACLNodeIdentity {
+	return nil
+}
+
 func (id *missingIdentity) IsExpired(asOf time.Time) bool {
 	return false
 }
@@ -648,8 +652,9 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 	policyIDs := identity.PolicyIDs()
 	roleIDs := identity.RoleIDs()
 	serviceIdentities := identity.ServiceIdentityList()
+	nodeIdentities := identity.NodeIdentityList()
 
-	if len(policyIDs) == 0 && len(serviceIdentities) == 0 && len(roleIDs) == 0 {
+	if len(policyIDs) == 0 && len(serviceIdentities) == 0 && len(roleIDs) == 0 && len(nodeIdentities) == 0 {
 		policy := identity.EmbeddedPolicy()
 		if policy != nil {
 			return []*structs.ACLPolicy{policy}, nil
@@ -671,14 +676,17 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 			policyIDs = append(policyIDs, link.ID)
 		}
 		serviceIdentities = append(serviceIdentities, role.ServiceIdentities...)
+		nodeIdentities = append(nodeIdentities, role.NodeIdentityList()...)
 	}
 
 	// Now deduplicate any policies or service identities that occur more than once.
 	policyIDs = dedupeStringSlice(policyIDs)
 	serviceIdentities = dedupeServiceIdentities(serviceIdentities)
+	nodeIdentities = dedupeNodeIdentities(nodeIdentities)
 
 	// Generate synthetic policies for all service identities in effect.
 	syntheticPolicies := r.synthesizePoliciesForServiceIdentities(serviceIdentities, identity.EnterpriseMetadata())
+	syntheticPolicies = append(syntheticPolicies, r.synthesizePoliciesForNodeIdentities(nodeIdentities)...)
 
 	// For the new ACLs policy replication is mandatory for correct operation on servers. Therefore
 	// we only attempt to resolve policies locally
@@ -705,6 +713,19 @@ func (r *ACLResolver) synthesizePoliciesForServiceIdentities(serviceIdentities [
 	return syntheticPolicies
 }
 
+func (r *ACLResolver) synthesizePoliciesForNodeIdentities(nodeIdentities []*structs.ACLNodeIdentity) []*structs.ACLPolicy {
+	if len(nodeIdentities) == 0 {
+		return nil
+	}
+
+	syntheticPolicies := make([]*structs.ACLPolicy, 0, len(nodeIdentities))
+	for _, n := range nodeIdentities {
+		syntheticPolicies = append(syntheticPolicies, n.SyntheticPolicy())
+	}
+
+	return syntheticPolicies
+}
+
 func dedupeServiceIdentities(in []*structs.ACLServiceIdentity) []*structs.ACLServiceIdentity {
 	// From: https://github.com/golang/go/wiki/SliceTricks#in-place-deduplicate-comparable
 
@@ -725,6 +746,38 @@ func dedupeServiceIdentities(in []*structs.ACLServiceIdentity) []*structs.ACLSer
 			} else {
 				in[j].Datacenters = mergeStringSlice(in[j].Datacenters, in[i].Datacenters)
 			}
+			continue
+		}
+		j++
+		in[j] = in[i]
+	}
+
+	// Discard the skipped items.
+	for i := j + 1; i < len(in); i++ {
+		in[i] = nil
+	}
+
+	return in[:j+1]
+}
+
+func dedupeNodeIdentities(in []*structs.ACLNodeIdentity) []*structs.ACLNodeIdentity {
+	// From: https://github.com/golang/go/wiki/SliceTricks#in-place-deduplicate-comparable
+
+	if len(in) <= 1 {
+		return in
+	}
+
+	sort.Slice(in, func(i, j int) bool {
+		if in[i].NodeName < in[j].NodeName {
+			return true
+		}
+
+		return in[i].Datacenter < in[j].Datacenter
+	})
+
+	j := 0
+	for i := 1; i < len(in); i++ {
+		if in[j].NodeName == in[i].NodeName && in[j].Datacenter == in[i].Datacenter {
 			continue
 		}
 		j++

@@ -62,6 +62,18 @@ The table below shows this endpoint's support for
     policy is valid in all datacenters including those which do not yet exist
     but may in the future.
 
+- `NodeIdentities` `(array<NodeIdentity>)` - The list of [node
+  identities](/docs/acl/acl-system#acl-node-identities) that should be
+  applied to the role. Added in Consul 1.8.1.
+
+  - `NodeName` `(string: <required>)` - The name of the node. The name
+    must be no longer than 256 characters, must start and end with a lowercase
+    alphanumeric character, and can only contain lowercase alphanumeric
+    characters as well as `-` and `_`.
+
+  - `Datacenter` `(string: <required>)` - Specifies the nodes datacenter. This
+    will result in effective policy only being valid in that datacenter.
+
 - `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to
   create the role. If not provided in the JSON body, the value of
   the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used.
@@ -89,6 +101,12 @@ The table below shows this endpoint's support for
     {
       "ServiceName": "db",
       "Datacenters": ["dc1"]
+    }
+  ],
+  "NodeIdentities": [
+    {
+      "NodeName": "node-1",
+      "Datacenter": "dc2"
     }
   ]
 }
@@ -122,6 +140,12 @@ $ curl -X PUT \
     {
       "ServiceName": "db",
       "Datacenters": ["dc1"]
+    }
+  ],
+  "NodeIdentities": [
+    {
+      "NodeName": "node-1",
+      "Datacenter": "dc2"
     }
   ],
   "Hash": "mBWMIeX9zyUTdDMq8vWB0iYod+mKBArJoAhj6oPz3BI=",
@@ -188,6 +212,12 @@ $ curl -X GET http://127.0.0.1:8500/v1/acl/role/aa770e5b-8b0b-7fcf-e5a1-8535fcc3
       "Datacenters": ["dc1"]
     }
   ],
+  "NodeIdentities": [
+    {
+      "NodeName": "node-1",
+      "Datacenter": "dc2"
+    }
+  ],
   "Hash": "mBWMIeX9zyUTdDMq8vWB0iYod+mKBArJoAhj6oPz3BI=",
   "CreateIndex": 57,
   "ModifyIndex": 57
@@ -252,6 +282,12 @@ $ curl -X GET http://127.0.0.1:8500/v1/acl/role/name/example-role
       "Datacenters": ["dc1"]
     }
   ],
+  "NodeIdentities": [
+    {
+      "NodeName": "node-1",
+      "Datacenter": "dc2"
+    }
+  ],
   "Hash": "mBWMIeX9zyUTdDMq8vWB0iYod+mKBArJoAhj6oPz3BI=",
   "CreateIndex": 57,
   "ModifyIndex": 57
@@ -299,6 +335,10 @@ The table below shows this endpoint's support for
   identities](/docs/acl/acl-system#acl-service-identities) that should be
   applied to the role. Added in Consul 1.5.0.
 
+- `NodeIdentities` `(array<NodeIdentity>)` - The list of [node
+  identities](/docs/acl/acl-system#acl-node-identities) that should be
+  applied to the role. Added in Consul 1.8.1.
+  
 - `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of
   the role to update. If not provided in the JSON body, the value of
   the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used.
@@ -319,6 +359,12 @@ The table below shows this endpoint's support for
   "ServiceIdentities": [
     {
       "ServiceName": "db"
+    }
+  ],
+  "NodeIdentities": [
+    {
+      "NodeName": "node-1",
+      "Datacenter": "dc2"
     }
   ]
 }
@@ -347,6 +393,12 @@ $ curl -X PUT \
   "ServiceIdentities": [
     {
       "ServiceName": "db"
+    }
+  ],
+  "NodeIdentities": [
+    {
+      "NodeName": "node-1",
+      "Datacenter": "dc2"
     }
   ],
   "Hash": "OtZUUKhInTLEqTPfNSSOYbRiSBKm3c4vI2p6MxZnGWc=",
@@ -473,6 +525,12 @@ $ curl -X GET http://127.0.0.1:8500/v1/acl/roles
       {
         "ServiceName": "db",
         "Datacenters": ["dc1"]
+      }
+    ],
+    "NodeIdentities": [
+      {
+        "NodeName": "node-1",
+        "Datacenter": "dc2"
       }
     ],
     "Hash": "mBWMIeX9zyUTdDMq8vWB0iYod+mKBArJoAhj6oPz3BI=",

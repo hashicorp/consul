@@ -1,0 +1,35 @@
+[
+    {
+        "ID": "c29c4ee4-bca6-474e-be37-7d9606f9582a",
+        "Name": "complex",
+        "Description": "test role complex",
+        "Policies": [
+            {
+                "ID": "beb04680-815b-4d7c-9e33-3d707c24672c",
+                "Name": "hobbiton"
+            },
+            {
+                "ID": "18788457-584c-4812-80d3-23d403148a90",
+                "Name": "bywater"
+            }
+        ],
+        "ServiceIdentities": [
+            {
+                "ServiceName": "gardener",
+                "Datacenters": [
+                    "middleearth-northwest"
+                ]
+            }
+        ],
+        "NodeIdentities": [
+            {
+                "NodeName": "bagend",
+                "Datacenter": "middleearth-northwest"
+            }
+        ],
+        "Hash": "YWJjZGVmZ2g=",
+        "CreateIndex": 5,
+        "ModifyIndex": 10,
+        "Namespace": "foo"
+    }
+]
