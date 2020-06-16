@@ -1,3 +1,10 @@
+## UNRELEASED
+
+FEATURES: 
+
+* acl: Added ACL Node Identities for easier creation of Consul Agent tokens. [[GH-7970](https://github.com/hashicorp/consul/pull/7970)]
+
+
 ## 1.8.0 rc1 (June 15, 2020)
 
 BREAKING CHANGES:
