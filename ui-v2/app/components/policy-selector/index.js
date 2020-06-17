@@ -10,7 +10,7 @@ export default ChildSelectorComponent.extend({
   repo: service('repository/policy/component'),
   name: 'policy',
   type: 'policy',
-  allowServiceIdentity: true,
+  allowIdentity: true,
   classNames: ['policy-selector'],
   init: function() {
     this._super(...arguments);
