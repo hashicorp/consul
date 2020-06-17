@@ -53,6 +53,7 @@ export default Adapter.extend({
         Policies: serialized.Policies,
         Roles: serialized.Roles,
         ServiceIdentities: serialized.ServiceIdentities,
+        NodeIdentities: serialized.NodeIdentities,
         Local: serialized.Local,
         ...Namespace(serialized.Namespace),
       }}
@@ -84,6 +85,7 @@ export default Adapter.extend({
         Policies: serialized.Policies,
         Roles: serialized.Roles,
         ServiceIdentities: serialized.ServiceIdentities,
+        NodeIdentities: serialized.NodeIdentities,
         Local: serialized.Local,
         ...Namespace(serialized.Namespace),
       }}
