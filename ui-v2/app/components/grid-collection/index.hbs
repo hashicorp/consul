@@ -1,3 +1,4 @@
+{{on-window 'resize' (action "resize") }}
 <EmberNativeScrollable @tagName="ul" @content-size={{_contentSize}} @scroll-left={{_scrollLeft}} @scroll-top={{_scrollTop}} @scrollChange={{action "scrollChange"}} @clientSizeChange={{action "clientSizeChange"}}>
     <li></li>
     {{~#each _cells as |cell|~}}

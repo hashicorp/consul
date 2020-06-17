@@ -1,3 +1,4 @@
+{{on-window 'resize' (action "resize") }}
 {{yield}}
 <input id={{name}} type="radio" name="modal" data-checked="{{checked}}" checked={{checked}} onchange={{action 'change'}} />
 <div role="dialog" aria-modal="true">

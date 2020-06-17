@@ -1,11 +1,10 @@
 import { get, set } from '@ember/object';
 import { inject as service } from '@ember/service';
 import DomBufferComponent from 'consul-ui/components/dom-buffer';
-import SlotsMixin from 'block-slots';
-import WithResizing from 'consul-ui/mixins/with-resizing';
+import Slotted from 'block-slots';
 
 import templatize from 'consul-ui/utils/templatize';
-export default DomBufferComponent.extend(SlotsMixin, WithResizing, {
+export default DomBufferComponent.extend(Slotted, {
   dom: service('dom'),
   checked: true,
   height: null,
@@ -69,6 +68,7 @@ export default DomBufferComponent.extend(SlotsMixin, WithResizing, {
   },
   didInsertElement: function() {
     this._super(...arguments);
+    this.actions.resize.apply(this, [{ target: this.dom.viewport() }]);
     if (this.checked) {
       // TODO: probably need an event here
       // possibly this.element for the target
@@ -80,26 +80,26 @@ export default DomBufferComponent.extend(SlotsMixin, WithResizing, {
     this._super(...arguments);
     this.dom.root().classList.remove(...templatize(['with-modal']));
   },
-  resize: function(e) {
-    if (this.checked) {
-      const height = this.height;
-      if (height !== null) {
-        const dialogPanel = this.dialog;
-        const overflowing = this.overflowingClass;
-        if (height > e.detail.height) {
-          if (!dialogPanel.classList.contains(overflowing)) {
-            dialogPanel.classList.add(overflowing);
-          }
-          return;
-        } else {
-          if (dialogPanel.classList.contains(overflowing)) {
-            dialogPanel.classList.remove(overflowing);
+  actions: {
+    resize: function(e) {
+      if (this.checked) {
+        const height = this.height;
+        if (height !== null) {
+          const dialogPanel = this.dialog;
+          const overflowing = this.overflowingClass;
+          if (height > e.target.innerHeight) {
+            if (!dialogPanel.classList.contains(overflowing)) {
+              dialogPanel.classList.add(overflowing);
+            }
+            return;
+          } else {
+            if (dialogPanel.classList.contains(overflowing)) {
+              dialogPanel.classList.remove(overflowing);
+            }
           }
         }
       }
-    }
-  },
-  actions: {
+    },
     change: function(e) {
       if (get(e, 'target.checked')) {
         this._open(e);

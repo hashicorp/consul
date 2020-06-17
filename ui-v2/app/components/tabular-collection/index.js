@@ -4,12 +4,11 @@ import CollectionComponent from 'ember-collection/components/ember-collection';
 import needsRevalidate from 'ember-collection/utils/needs-revalidate';
 import Grid from 'ember-collection/layouts/grid';
 import style from 'ember-computed-style';
-import SlotsMixin from 'block-slots';
-import WithResizing from 'consul-ui/mixins/with-resizing';
+import Slotted from 'block-slots';
 
 const formatItemStyle = Grid.prototype.formatItemStyle;
 
-export default CollectionComponent.extend(SlotsMixin, WithResizing, {
+export default CollectionComponent.extend(Slotted, {
   tagName: 'table',
   classNames: ['dom-recycling'],
   classNameBindings: ['hasActions'],
@@ -34,6 +33,10 @@ export default CollectionComponent.extend(SlotsMixin, WithResizing, {
       return style;
     };
   },
+  didInsertElement: function() {
+    this._super(...arguments);
+    this.actions.resize.apply(this, [{ target: this.dom.viewport() }]);
+  },
   getStyle: computed('rowHeight', '_items', 'maxRows', 'maxHeight', function() {
     const maxRows = get(this, 'rows');
     let height = get(this, 'maxHeight');
@@ -46,30 +49,6 @@ export default CollectionComponent.extend(SlotsMixin, WithResizing, {
       height: height,
     };
   }),
-  resize: function(e) {
-    const $tbody = this.element;
-    const $appContent = this.dom.element('main > div');
-    if ($appContent) {
-      const border = 1;
-      const rect = $tbody.getBoundingClientRect();
-      const $footer = this.dom.element('footer[role="contentinfo"]');
-      const space = rect.top + $footer.clientHeight + border;
-      const height = e.detail.height - space;
-      this.set('maxHeight', Math.max(0, height));
-      // TODO: The row height should auto calculate properly from the CSS
-      this['cell-layout'] = new Grid($appContent.clientWidth, get(this, 'rowHeight'));
-      const o = this;
-      this['cell-layout'].formatItemStyle = function(itemIndex) {
-        let style = formatItemStyle.apply(this, arguments);
-        if (o.checked === itemIndex) {
-          style = `${style};z-index: 1`;
-        }
-        return style;
-      };
-      this.updateItems();
-      this.updateScrollPosition();
-    }
-  },
   willRender: function() {
     this._super(...arguments);
     set(this, 'hasCaption', this._isRegistered('caption'));
@@ -88,6 +67,30 @@ export default CollectionComponent.extend(SlotsMixin, WithResizing, {
     }
   },
   actions: {
+    resize: function(e) {
+      const $tbody = this.element;
+      const $appContent = this.dom.element('main > div');
+      if ($appContent) {
+        const border = 1;
+        const rect = $tbody.getBoundingClientRect();
+        const $footer = this.dom.element('footer[role="contentinfo"]');
+        const space = rect.top + $footer.clientHeight + border;
+        const height = e.target.innerHeight - space;
+        this.set('maxHeight', Math.max(0, height));
+        // TODO: The row height should auto calculate properly from the CSS
+        this['cell-layout'] = new Grid($appContent.clientWidth, get(this, 'rowHeight'));
+        const o = this;
+        this['cell-layout'].formatItemStyle = function(itemIndex) {
+          let style = formatItemStyle.apply(this, arguments);
+          if (o.checked === itemIndex) {
+            style = `${style};z-index: 1`;
+          }
+          return style;
+        };
+        this.updateItems();
+        this.updateScrollPosition();
+      }
+    },
     click: function(e) {
       return this.dom.clickFirstAnchor(e);
     },
