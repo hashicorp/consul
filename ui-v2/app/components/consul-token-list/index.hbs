@@ -36,7 +36,7 @@
           <dt>Identities</dt>
           <dd>
               {{#each (append (get policies 'identities')) as |item|}}
-                <span data-test-policy class={{policy/typeof item}}>Service Identity: {{item.Name}}</span>
+                <span data-test-policy class={{policy/typeof item}}>{{if (eq item.template 'service-identity') 'Service' 'Node'}} Identity: {{item.Name}}</span>
               {{/each}}
           </dd>
         </dl>
