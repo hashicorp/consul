@@ -1,3 +1,4 @@
+{{on-window 'resize' (action "resize") }}
 {{yield}}
 {{#if hasCaption}}
   <caption><YieldSlot @name="caption">{{yield}}</YieldSlot></caption>

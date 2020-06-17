@@ -4,10 +4,10 @@ import Component from 'ember-collection/components/ember-collection';
 import PercentageColumns from 'ember-collection/layouts/percentage-columns';
 import style from 'ember-computed-style';
 import Slotted from 'block-slots';
-import WithResizing from 'consul-ui/mixins/with-resizing';
 
 const formatItemStyle = PercentageColumns.prototype.formatItemStyle;
-export default Component.extend(Slotted, WithResizing, {
+
+export default Component.extend(Slotted, {
   dom: service('dom'),
   tagName: 'div',
   attributeBindings: ['style'],
@@ -19,6 +19,10 @@ export default Component.extend(Slotted, WithResizing, {
   init: function() {
     this._super(...arguments);
     this.columns = [100];
+  },
+  didInsertElement: function() {
+    this._super(...arguments);
+    this.actions.resize.apply(this, [{ target: this.dom.viewport() }]);
   },
   didReceiveAttrs: function() {
     this._super(...arguments);
@@ -41,23 +45,23 @@ export default Component.extend(Slotted, WithResizing, {
       height: get(this, 'height'),
     };
   }),
-  resize: function(e) {
-    // TODO: This top part is very similar to resize in tabular-collection
-    // see if it make sense to DRY out
-    const dom = get(this, 'dom');
-    const $appContent = dom.element('main > div');
-    if ($appContent) {
-      const border = 1;
-      const rect = this.element.getBoundingClientRect();
-      const $footer = dom.element('footer[role="contentinfo"]');
-      const space = rect.top + $footer.clientHeight + border;
-      const height = e.detail.height - space;
-      this.set('height', Math.max(0, height));
-      this.updateItems();
-      this.updateScrollPosition();
-    }
-  },
   actions: {
+    resize: function(e) {
+      // TODO: This top part is very similar to resize in tabular-collection
+      // see if it make sense to DRY out
+      const dom = get(this, 'dom');
+      const $appContent = dom.element('main > div');
+      if ($appContent) {
+        const border = 1;
+        const rect = this.element.getBoundingClientRect();
+        const $footer = dom.element('footer[role="contentinfo"]');
+        const space = rect.top + $footer.clientHeight + border;
+        const height = e.target.innerHeight - space;
+        this.set('height', Math.max(0, height));
+        this.updateItems();
+        this.updateScrollPosition();
+      }
+    },
     click: function(e) {
       return this.dom.clickFirstAnchor(e, '.list-collection > ul > li');
     },
