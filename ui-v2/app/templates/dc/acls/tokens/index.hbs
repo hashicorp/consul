@@ -43,151 +43,36 @@
 {{/if}}
     <ChangeableSet @dispatcher={{searchable 'token' items}} @terms={{search}}>
       <BlockSlot @name="set" as |filtered|>
-        <TabularCollection @items={{sort-by "CreateTime:desc" filtered}} as |item index|>
-          <BlockSlot @name="header">
-              <th>Accessor ID</th>
-              <th>Scope</th>
-              <th>Description</th>
-              <th>Roles &amp; Policies</th>
-              <th>&nbsp;</th>
-          </BlockSlot>
-          <BlockSlot @name="row">
-              <td data-test-token="{{item.AccessorID}}" class={{if (eq item.AccessorID token.AccessorID) 'me' }}>
-                  <a href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>{{substr item.AccessorID -8}}</a>
-              </td>
-              <td>
-                {{if item.Local 'local' 'global' }}
-              </td>
-              <td data-test-description>
-                <p>{{default item.Description item.Name}}</p>
-              </td>
-              <td colspan={{if (not-eq item.AccessorID token.AccessorID) '2' }}>
-{{#if (token/is-legacy item) }}
-                  <p>Legacy tokens have embedded rules.</p>
-{{ else }}
-                  {{#each (append item.Policies item.Roles) as |item|}}
-                    <strong data-test-policy class={{policy/typeof item}}>{{item.Name}}</strong>
-                  {{/each}}
-{{/if}}
-              </td>
-{{#if (eq item.AccessorID token.AccessorID)}}
-              <td>Your token</td>
-{{/if}}
-          </BlockSlot>
-          <BlockSlot @name="actions" as |index change checked|>
-            <PopoverMenu @expanded={{if (eq checked index) true false}} @onchange={{action change index}} @keyboardAccess={{false}} @submenus={{array "logout" "use" "delete"}}>
-              <BlockSlot @name="trigger">
-                More
-              </BlockSlot>
-              <BlockSlot @name="menu" as |confirm send keypressClick|>
-                  <li role="none">
-                    <a data-test-edit role="menuitem" tabindex="-1" href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>Edit</a>
-                  </li>
-{{#if (not (token/is-legacy item))}}
-                  <li role="none">
-                      <button role="menuitem" tabindex="-1" type="button" data-test-clone {{action 'sendClone' item}}>Duplicate</button>
-                  </li>
-{{/if}}
-{{#if (eq item.AccessorID token.AccessorID) }}
-                  <li role="none" class="dangerous">
-                    <label for={{concat confirm 'logout'}} role="menuitem" tabindex="-1" onkeypress={{keypressClick}} data-test-logout>Log out</label>
-                    <div role="menu">
-                      <div class="confirmation-alert warning">
-                        <div>
-                          <header>
-                            Confirm logout
-                          </header>
-                          <p>
-                            Are you sure you want to stop using this ACL token? This will log you out.
-                          </p>
-                        </div>
-                        <ul>
-                          <li class="dangerous">
-                            <button tabindex="-1" type="button" onclick={{action send 'logout' item}}>Logout</button>
-                          </li>
-                          <li>
-                            <label for={{concat confirm 'logout'}}>Cancel</label>
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-                  </li>
-{{else}}
-                  <li role="none">
-                    <label for={{concat confirm 'use'}} role="menuitem" tabindex="-1" onkeypress={{keypressClick}} data-test-use>Use</label>
-                    <div role="menu">
-                      <div class="confirmation-alert warning">
-                        <div>
-                          <header>
-                            Confirm use
-                          </header>
-                          <p>
-                            Are you sure you want to use this ACL token?
-                          </p>
-                        </div>
-                        <ul>
-                          <li class="dangerous">
-                            <button data-test-confirm-use tabindex="-1" type="button" onclick={{action send 'use' item}}>Use</button>
-                          </li>
-                          <li>
-                            <label for={{concat confirm 'use'}}>Cancel</label>
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-                  </li>
-{{/if}}
-{{#unless (or (token/is-anonymous item) (eq item.AccessorID token.AccessorID)) }}
-                  <li role="none" class="dangerous">
-                    <label for={{concat confirm 'delete'}} role="menuitem" tabindex="-1" onkeypress={{keypressClick}} data-test-delete>Delete</label>
-                    <div role="menu">
-                      <div class="confirmation-alert warning">
-                        <div>
-                          <header>
-                            Confirm Delete
-                          </header>
-                          <p>
-                            Are you sure you want to delete this token?
-                          </p>
-                        </div>
-                        <ul>
-                          <li class="dangerous">
-                            <button tabindex="-1" type="button" class="type-delete" onclick={{action send 'delete' item}}>Delete</button>
-                          </li>
-                          <li>
-                            <label for={{concat confirm 'delete'}}>Cancel</label>
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-                  </li>
-{{/unless}}
-              </BlockSlot>
-            </PopoverMenu>
-          </BlockSlot>
-        </TabularCollection>
+        <ConsulTokenList
+          @items={{sort-by "CreateTime:desc" filtered}}
+          @token={{token}}
+          @onuse={{action send 'use'}}
+          @ondelete={{action send 'delete'}}
+          @onlogout={{action send 'logout'}}
+          @onclone={{action send 'clone'}}
+          />
       </BlockSlot>
       <BlockSlot @name="empty">
-            <EmptyState @allowLogin={{true}}>
-              <BlockSlot @name="header">
-                <h2>
-                  {{#if (gt items.length 0)}}
-                    No tokens found
-                  {{else}}
-                    Welcome to ACL Tokens
-                  {{/if}}
-                </h2>
-              </BlockSlot>
-              <BlockSlot @name="body">
-                <p>
-                  {{#if (gt items.length 0)}}
-                    No tokens where found matching that search, or you may not have access to view the tokens you are searching for.
-                  {{else}}
-                    There don't seem to be any tokens, or you may not have access to view tokens yet.
-                  {{/if}}
-                </p>
-              </BlockSlot>
-            </EmptyState>
+        <EmptyState @allowLogin={{true}}>
+          <BlockSlot @name="header">
+            <h2>
+              {{#if (gt items.length 0)}}
+                No tokens found
+              {{else}}
+                Welcome to ACL Tokens
+              {{/if}}
+            </h2>
+          </BlockSlot>
+          <BlockSlot @name="body">
+            <p>
+              {{#if (gt items.length 0)}}
+                No tokens where found matching that search, or you may not have access to view the tokens you are searching for.
+              {{else}}
+                There don't seem to be any tokens, or you may not have access to view tokens yet.
+              {{/if}}
+            </p>
+          </BlockSlot>
+        </EmptyState>
       </BlockSlot>
     </ChangeableSet>
   </BlockSlot>

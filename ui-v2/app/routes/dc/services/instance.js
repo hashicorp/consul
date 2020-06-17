@@ -10,6 +10,8 @@ export default Route.extend({
     const dc = this.modelFor('dc').dc.Name;
     const nspace = this.modelFor('nspace').nspace.substr(1);
     return hash({
+      dc: dc,
+      nspace: nspace || 'default',
       item: this.repo.findInstanceBySlug(params.id, params.node, params.name, dc, nspace),
     }).then(model => {
       // this will not be run in a blocking loop, but this is ok as

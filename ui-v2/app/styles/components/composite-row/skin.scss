@@ -1,5 +1,6 @@
 %composite-row {
   list-style-type: none;
+  border: 1px solid;
   border-top-color: $transparent;
   border-bottom-color: $gray-200;
   border-right-color: $transparent;
@@ -14,28 +15,54 @@
 %composite-row-header {
   color: $black;
 }
+%composite-row-header * {
+  color: inherit;
+}
 %composite-row-detail {
   color: $gray-500;
 }
 
+%composite-row-detail .policy::before {
+  @extend %with-file-fill-mask, %as-pseudo;
+  background-color: $gray-500;
+  margin-right: 3px;
+}
+%composite-row-detail .role::before {
+  @extend %with-user-plain-mask, %as-pseudo;
+  background-color: $gray-500;
+  margin-right: 3px;
+}
+%composite-row-detail .policy-management::before {
+  @extend %with-star-fill-mask, %as-pseudo;
+  background-color: var(--brand-600);
+  margin-right: 3px;
+}
 // Health Checks
-%composite-row .passing::before {
+%composite-row-detail li.passing::before,
+%composite-row-header .passing dd::before {
   @extend %with-check-circle-fill-color-mask, %as-pseudo;
   background-color: $green-500;
 }
-%composite-row .warning::before {
+%composite-row-detail li.warning::before,
+%composite-row-header .warning dd::before {
   @extend %with-alert-triangle-color-mask, %as-pseudo;
   background-color: $orange-500;
 }
-%composite-row .critical::before {
+%composite-row-detail li.critical::before,
+%composite-row-header .critical dd::before {
   @extend %with-cancel-square-fill-color-mask, %as-pseudo;
   background-color: $red-500;
 }
-%composite-row .empty::before {
+%composite-row-detail li.empty::before,
+%composite-row-header .empty dd::before {
   @extend %with-minus-square-fill-color-mask, %as-pseudo;
   background-color: $gray-500;
 }
 
+%composite-row-header [rel='me'] dd::before {
+  @extend %with-check-circle-fill-mask, %as-pseudo;
+  background-color: $blue-500;
+}
 // Metadata
 %composite-row .node a {
   color: $gray-500;

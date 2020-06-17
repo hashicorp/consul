@@ -1,0 +1,69 @@
+<ListCollection @items={{items}} class="consul-upstream-list" as |item index|>
+  <BlockSlot @name="header">
+{{#if (service/exists item)}}
+    <dl class={{service/health-checks item}}>
+      <dt>
+        Health
+      </dt>
+      <dd>
+        <Tooltip @position="top-start">
+          {{#if (eq 'critical' (service/health-checks item))}}
+            At least one health check on one instance is failing.
+          {{else if (eq 'warning' (service/health-checks item))}}
+            At least one health check on one instance has a warning.
+          {{else if (eq 'passing' (service/health-checks item))}}
+            All health checks are passing.
+          {{else}}
+            There are no health checks.
+          {{/if}}
+        </Tooltip>
+      </dd>
+    </dl>
+    {{#if (and (env 'CONSUL_NSPACES_ENABLED') (not-eq item.Namespace nspace))}}
+      <a data-test-service-name href={{href-to 'nspace.dc.services.show' (concat '~' item.Namespace) dc item.Name }}>
+        {{item.Name}}
+      </a>
+    {{else}}
+      <a data-test-service-name href={{href-to 'dc.services.show' item.Name}}>
+        {{item.Name}}
+      </a>
+    {{/if}}
+{{else}}
+    <p data-test-service-name>
+      {{item.Name}}
+    </p>
+{{/if}}
+  </BlockSlot>
+  <BlockSlot @name="details">
+    <ul>
+    {{#if (and (env 'CONSUL_NSPACES_ENABLED') (not-eq item.Namespace nspace))}}
+      <li class="nspace">
+        <span>
+          <Tooltip>
+              Namespace
+          </Tooltip>
+        </span>
+        <span>
+          {{item.Namespace}}
+        </span>
+      </li>
+    {{/if}}
+    {{#if (not-eq item.GatewayConfig.ListenerPort 0)}}
+      <li class="port">
+        <span>
+          <Tooltip>
+            Port
+          </Tooltip>
+        </span>
+        <span>
+          <span>:{{item.GatewayConfig.ListenerPort}}</span>
+          <CopyButton
+            @value={{item.GatewayConfig.ListenerPort}}
+            @name="Port"
+          />
+        </span>
+      </li>
+    {{/if}}
+    </ul>
+  </BlockSlot>
+</ListCollection>

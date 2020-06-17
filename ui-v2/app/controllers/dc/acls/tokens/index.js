@@ -6,9 +6,4 @@ export default Controller.extend({
       replace: true,
     },
   },
-  actions: {
-    sendClone: function(item) {
-      this.send('clone', item);
-    },
-  },
 });

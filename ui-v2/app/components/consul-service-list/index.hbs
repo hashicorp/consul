@@ -1,20 +1,24 @@
-{{yield}}
 {{#if (gt items.length 0)}}
 <ListCollection @items={{items}} class="consul-service-list" as |item index|>
-  <li>
-    <span class={{service/health-checks item}}>
-      <Tooltip>
-        {{#if (eq 'critical' (service/health-checks item))}}
-          At least one health check on one instance is failing.
-        {{else if (eq 'warning' (service/health-checks item))}}
-          At least one health check on one instance has a warning.
-        {{else if (eq 'passing' (service/health-checks item))}}
-          All health checks are passing.
-        {{else}}
-          There are no health checks.
-        {{/if}}
-      </Tooltip>
-    </span>
+  <BlockSlot @name="header">
+    <dl class={{service/health-checks item}}>
+      <dt>
+        Health
+      </dt>
+      <dd>
+        <Tooltip @position="top-start">
+          {{#if (eq 'critical' (service/health-checks item))}}
+            At least one health check on one instance is failing.
+          {{else if (eq 'warning' (service/health-checks item))}}
+            At least one health check on one instance has a warning.
+          {{else if (eq 'passing' (service/health-checks item))}}
+            All health checks are passing.
+          {{else}}
+            There are no health checks.
+          {{/if}}
+        </Tooltip>
+      </dd>
+    </dl>
   {{#if (eq item.Kind 'terminating-gateway')}}
     <a data-test-service-name href={{href-to "dc.services.show.services" item.Name}}>
       {{item.Name}}
@@ -28,40 +32,42 @@
       {{item.Name}}
     </a>
   {{/if}}
-  </li>
-  <ul>
-  {{#if (and nspace (env 'CONSUL_NSPACES_ENABLED'))}}
-    {{#if (not-eq item.Namespace nspace)}}
-      <li class="nspace">
-        {{item.Namespace}}
+  </BlockSlot>
+  <BlockSlot @name="details">
+    <ul>
+    {{#if (and nspace (env 'CONSUL_NSPACES_ENABLED'))}}
+      {{#if (not-eq item.Namespace nspace)}}
+        <li class="nspace">
+          {{item.Namespace}}
+        </li>
+      {{/if}}
+    {{/if}}
+      <ConsulKind @item={{item}} as |Kind|>
+        <li>
+          <Kind />
+        </li>
+      </ConsulKind>
+      <ConsulExternalSource @item={{item}} as |ExternalSource|>
+        <li>
+          <ExternalSource />
+        </li>
+      </ConsulExternalSource>
+    {{#if (not-eq item.InstanceCount 0)}}
+      <li>
+        {{format-number item.InstanceCount}} {{pluralize item.InstanceCount 'Instance' without-count=true}}
       </li>
     {{/if}}
-  {{/if}}
-    <ConsulKind @item={{item}} as |Kind|>
-      <li>
-        <Kind />
+    {{#if (get proxies item.Name)}}
+      <li data-test-proxy class="proxy">
+        connected with proxy
       </li>
-    </ConsulKind>
-    <ConsulExternalSource @item={{item}} as |ExternalSource|>
-      <li>
-        <ExternalSource />
-      </li>
-    </ConsulExternalSource>
-  {{#if (not-eq item.InstanceCount 0)}}
-    <li>
-      {{format-number item.InstanceCount}} {{pluralize item.InstanceCount 'Instance' without-count=true}}
-    </li>
-  {{/if}}
-  {{#if (get proxies item.Name)}}
-    <li data-test-proxy class="proxy">
-      connected with proxy
-    </li>
-  {{/if}}
-    <TagList @item={{item}} as |Tags|>
-      <li>
-        <Tags />
-      </li>
-    </TagList>
-  </ul>
+    {{/if}}
+      <TagList @item={{item}} as |Tags|>
+        <li>
+          <Tags />
+        </li>
+      </TagList>
+    </ul>
+  </BlockSlot>
 </ListCollection>
 {{/if}}

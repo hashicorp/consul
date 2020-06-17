@@ -13,10 +13,10 @@ export default Route.extend({
     const dc = this.modelFor('dc').dc.Name;
     const nspace = this.modelFor('nspace').nspace.substr(1);
     return hash({
-      item: this.repo.findBySlug(params.name, dc, nspace),
-      urls: this.settings.findBySlug('urls'),
       dc: dc,
       nspace: nspace || 'default',
+      item: this.repo.findBySlug(params.name, dc, nspace),
+      urls: this.settings.findBySlug('urls'),
       proxies: [],
     })
       .then(model => {

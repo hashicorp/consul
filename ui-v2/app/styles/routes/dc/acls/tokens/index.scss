@@ -4,17 +4,6 @@
   cursor: pointer;
   float: right;
 }
-%token-yours {
-  color: $blue-500;
-}
-%token-yours::before {
-  @extend %with-check-circle-fill-mask, %as-pseudo;
-  background-color: $blue-500;
-  margin-right: 5px;
-}
-.me ~ :nth-last-child(2) {
-  @extend %token-yours;
-}
 .template-token.template-edit main dd {
   display: flex;
 }

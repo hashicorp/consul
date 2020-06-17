@@ -9,8 +9,13 @@
 %composite-row.linkable,
 .consul-gateway-service-list > ul > li:not(:first-child),
 .consul-service-instance-list > ul > li:not(:first-child),
-.consul-service-list > ul > li:not(:first-child) {
+.consul-service-list > ul > li:not(:first-child),
+.consul-token-list > ul > li:not(:first-child) {
   @extend %with-composite-row-intent;
+}
+/* TODO: the service list has a 1px offset */
+.consul-service-list li > div:first-child > dl:first-child dd {
+  margin-top: 1px;
 }
 .proxy-exposed-paths tbody tr {
   cursor: default !important;

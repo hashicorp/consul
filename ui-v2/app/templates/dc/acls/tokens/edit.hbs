@@ -66,15 +66,15 @@
             <p class="notice info"><strong>Update.</strong> We have upgraded our ACL system by allowing you to create reusable policies which you can then apply to tokens. Don't worry, even though this token was written in the old style, it is still valid. However, we do recommend upgrading your old tokens to the new style. Learn how in our <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
         {{/if}}
 {{#if (not create) }}
-      <div>
+      <div class="definition-table">
           <dl>
             <dt>AccessorID</dt>
             <dd>
-              <CopyButton @value={{item.AccessorID}} @name="AccessorID" /> {{item.AccessorID}}
+              <CopyButton @value={{item.AccessorID}} @name="AccessorID" @position="top-start" /> {{item.AccessorID}}
             </dd>
             <dt>Token</dt>
             <dd>
-              <CopyButton @value={{item.SecretID}} @name="Token" /> <SecretButton>{{item.SecretID}}</SecretButton>
+              <CopyButton @value={{item.SecretID}} @name="Token" @position="top-start" /> <SecretButton>{{item.SecretID}}</SecretButton>
             </dd>
 {{#if (and (not (token/is-legacy item)) (not create))}}
             <dt>Scope</dt>
