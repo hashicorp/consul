@@ -2,7 +2,7 @@
 <ListCollection @items={{items}} class="consul-token-list" as |item index checked change|>
     <BlockSlot @name="header">
 {{#if (eq item.AccessorID token.AccessorID)}}
-        <dl class="me">
+        <dl rel="me">
           <dd>
             <Tooltip>
               Your token

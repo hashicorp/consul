@@ -3,7 +3,7 @@
   {{#if (gt proxy.Proxy.Upstreams.length 0)}}
     <section class="proxy-upstreams">
       <h3>Upstreams</h3>
-      <ConsulUpstreamInstanceList @items={{proxy.Proxy.Upstreams}} @dc={{dc}} />
+      <ConsulUpstreamInstanceList @items={{proxy.Proxy.Upstreams}} @dc={{dc}} @nspace={{nspace}} />
     </section>
   {{/if}}
   {{#if (gt proxy.Proxy.Expose.Paths.length 0)}}

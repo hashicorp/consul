@@ -59,7 +59,7 @@
   background-color: $gray-500;
 }
 
-%composite-row-header .me dd::before {
+%composite-row-header [rel='me'] dd::before {
   @extend %with-check-circle-fill-mask, %as-pseudo;
   background-color: $blue-500;
 }
