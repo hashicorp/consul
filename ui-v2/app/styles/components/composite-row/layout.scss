@@ -1,66 +1,96 @@
 %composite-row {
-  display: block;
-  box-sizing: border-box;
-  padding: 12px;
-  padding-right: 0;
-  border: 1px solid;
+  display: grid;
+  grid-template-columns: auto 50px;
+  grid-template-rows: 50% 50%;
+
+  grid-template-areas:
+    'header actions'
+    'detail actions';
+
+  padding-top: 10px;
+  padding-bottom: 10px;
+  /* whilst this isn't in the designs this makes our temporary rollover look better */
+  padding-left: 12px;
 }
 %composite-row-header {
-  margin-bottom: 0 !important;
-}
-%composite-row-intent {
-  border: 1px solid;
-  position: relative;
+  grid-area: header;
+  align-self: start;
 }
 %composite-row-detail {
-  display: flex;
+  grid-area: detail;
+  align-self: end;
+}
+%composite-row-detail:not(:last-child) {
+  overflow-x: hidden;
+}
+%composite-row-actions {
+  grid-area: actions;
+  justify-self: center;
+  align-self: center;
+}
+%composite-row-icon {
+  margin-right: 10px;
+}
+%composite-row-icon dt {
+  display: none;
+}
+%composite-row-icon dd::before {
+  font-size: 0.9em;
+}
+/* TODO Currently only here due to dl's in %form-row */
+%composite-row dl {
+  margin: 0;
+  padding: 0;
+}
+%composite-row-detail,
+%composite-row-detail ul,
+%composite-row-detail dl,
+%composite-row-header,
+%composite-row-header dl {
+  display: inline-flex;
   flex-wrap: nowrap;
 }
+%composite-row-detail dt {
+  display: none;
+}
+%composite-row-header *,
 %composite-row-detail * {
   white-space: nowrap;
+  flex-wrap: nowrap;
 }
-%composite-row-detail > li {
+%composite-row-detail > dl,
+%composite-row-detail > ul > li {
   margin-right: 12px;
 }
+%composite-row-detail .node::before,
+%composite-row-detail .tag-list::before {
+  position: relative;
+}
 %composite-row-detail .node::before {
-  margin-top: 2px;
+  top: 1px;
+}
+%composite-row-detail .tag-list::before {
+  top: 2px;
 }
 
-//Health Checks
-%composite-row > li > span.passing::before,
-%composite-row > li > span.warning::before,
-%composite-row > li > span.critical::before,
-%composite-row > li > span.empty::before {
-  height: 18px;
-  width: 18px;
-  margin-top: 2px;
-}
-
-// Copy Button with Feedback
+// Copy Button
 %composite-row .copy-button button {
   padding: 0 !important;
   margin: 0 !important;
 }
-%composite-row-detail .copy-button {
+%composite-row .copy-button {
   margin-left: 4px;
 }
-%composite-row-header .copy-button {
-  top: 3px;
-}
-%composite-row-header .copy-button,
-%composite-row-detail .copy-button {
-  display: none;
-}
-%composite-row-header:hover .copy-button,
-%composite-row-detail:hover .copy-button {
+%composite-row .copy-button {
   display: inline-flex;
 }
-
-// Tooltip
-%composite-row-detail .feedback-dialog-out {
-  left: -12px;
-  bottom: 12px;
+/* buttons need to be displayed in order for the tooltip */
+/* to track them */
+%composite-row-header .copy-button button,
+%composite-row-detail .copy-button button {
+  opacity: 0;
 }
-%composite-row-detail .feedback-dialog-out::after {
-  left: 18px;
+%composite-row-header:hover .copy-button button,
+%composite-row-detail:hover .copy-button button {
+  opacity: 1;
 }

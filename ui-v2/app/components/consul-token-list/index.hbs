@@ -1,0 +1,157 @@
+{{#if (gt items.length 0)}}
+<ListCollection @items={{items}} class="consul-token-list" as |item index checked change|>
+    <BlockSlot @name="header">
+{{#if (eq item.AccessorID token.AccessorID)}}
+        <dl rel="me">
+          <dd>
+            <Tooltip>
+              Your token
+            </Tooltip>
+          </dd>
+        </dl>
+{{/if}}
+<a href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>{{substr item.AccessorID -8}}</a>
+    </BlockSlot>
+    <BlockSlot @name="details">
+        <dl>
+          <dt>Scope</dt>
+          <dd>
+              {{if item.Local 'local' 'global' }}
+          </dd>
+        </dl>
+{{#let (policy/group item.Policies) as |policies|}}
+  {{#let (get policies 'management') as |management|}}
+    {{#if (gt management.length 0)}}
+        <dl>
+          <dt>Management</dt>
+          <dd>
+              {{#each (get policies 'management') as |item|}}
+                <span data-test-policy class={{policy/typeof item}}>{{item.Name}}</span>
+              {{/each}}
+          </dd>
+        </dl>
+    {{/if}}
+  {{/let}}
+        <dl>
+          <dt>Identities</dt>
+          <dd>
+              {{#each (append (get policies 'identities')) as |item|}}
+                <span data-test-policy class={{policy/typeof item}}>Service Identity: {{item.Name}}</span>
+              {{/each}}
+          </dd>
+        </dl>
+        <dl>
+          <dt>Rules</dt>
+          <dd>
+            {{#if (token/is-legacy item) }}
+              Legacy tokens have embedded rules.
+            {{ else }}
+              {{#each (append (get policies 'policies') item.Roles) as |item|}}
+                <span data-test-policy class={{policy/typeof item}}>{{item.Name}}</span>
+              {{/each}}
+            {{/if}}
+          </dd>
+        </dl>
+{{/let}}
+        <dl>
+          <dt>Description</dt>
+          <dd data-test-description>
+              {{or item.Description item.Name}}
+          </dd>
+        </dl>
+    </BlockSlot>
+    <BlockSlot @name="actions">
+        <div class="more-popover-menu">
+            <PopoverMenu @expanded={{if (eq checked index) true false}} @onchange={{action change index}} @keyboardAccess={{false}} @submenus={{array "logout" "use" "delete"}}>
+                <BlockSlot @name="trigger">
+                  More
+                </BlockSlot>
+                <BlockSlot @name="menu" as |confirm send keypressClick|>
+                    <li role="none">
+                      <a data-test-edit role="menuitem" tabindex="-1" href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>Edit</a>
+                    </li>
+{{#if (not (token/is-legacy item))}}
+                    <li role="none">
+                        <button role="menuitem" tabindex="-1" type="button" data-test-clone {{action onclone item}}>Duplicate</button>
+                    </li>
+{{/if}}
+{{#if (eq item.AccessorID token.AccessorID) }}
+                    <li role="none" class="dangerous">
+                      <label for={{concat confirm 'logout'}} role="menuitem" tabindex="-1" onkeypress={{keypressClick}} data-test-logout>Log out</label>
+                      <div role="menu">
+                        <div class="confirmation-alert warning">
+                          <div>
+                            <header>
+                              Confirm logout
+                            </header>
+                            <p>
+                              Are you sure you want to stop using this ACL token? This will log you out.
+                            </p>
+                          </div>
+                          <ul>
+                            <li class="dangerous">
+                              <button tabindex="-1" type="button" onclick={{action onlogout item}}>Logout</button>
+                            </li>
+                            <li>
+                              <label for={{concat confirm 'logout'}}>Cancel</label>
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    </li>
+{{else}}
+                    <li role="none">
+                      <label for={{concat confirm 'use'}} role="menuitem" tabindex="-1" onkeypress={{keypressClick}} data-test-use>Use</label>
+                      <div role="menu">
+                        <div class="confirmation-alert warning">
+                          <div>
+                            <header>
+                              Confirm use
+                            </header>
+                            <p>
+                              Are you sure you want to use this ACL token?
+                            </p>
+                          </div>
+                          <ul>
+                            <li class="dangerous">
+                              <button data-test-confirm-use tabindex="-1" type="button" onclick={{action onuse item}}>Use</button>
+                            </li>
+                            <li>
+                              <label for={{concat confirm 'use'}}>Cancel</label>
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    </li>
+{{/if}}
+{{#unless (or (token/is-anonymous item) (eq item.AccessorID token.AccessorID)) }}
+                    <li role="none" class="dangerous">
+                      <label for={{concat confirm 'delete'}} role="menuitem" tabindex="-1" onkeypress={{keypressClick}} data-test-delete>Delete</label>
+                      <div role="menu">
+                        <div class="confirmation-alert warning">
+                          <div>
+                            <header>
+                              Confirm Delete
+                            </header>
+                            <p>
+                              Are you sure you want to delete this token?
+                            </p>
+                          </div>
+                          <ul>
+                            <li class="dangerous">
+                              <button tabindex="-1" type="button" class="type-delete" onclick={{action ondelete item}}>Delete</button>
+                            </li>
+                            <li>
+                              <label for={{concat confirm 'delete'}}>Cancel</label>
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    </li>
+{{/unless}}
+                </BlockSlot>
+            </PopoverMenu>
+        </div>
+    </BlockSlot>
+</ListCollection>
+{{/if}}

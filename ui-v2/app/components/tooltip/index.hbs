@@ -1,3 +1,11 @@
-<EmberTooltip @popperContainer=".app-view" @side="top-start">
+<EmberTooltip
+  @targetId={{targetId}}
+  @onHide={{oncomplete}}
+  @isShown={{isShown}}
+  @duration={{duration}}
+  @event={{if isShown 'none' (or event 'hover')}}
+  @popperContainer=".app-view"
+  @side={{or position 'top'}}
+>
   {{yield}}
 </EmberTooltip>

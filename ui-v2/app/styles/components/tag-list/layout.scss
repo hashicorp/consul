@@ -1,3 +1,6 @@
+%tag-list {
+  white-space: nowrap;
+}
 %tag-list dt {
   display: none;
 }
@@ -11,10 +14,11 @@
 }
 %tag-list dd {
   display: inline-flex;
+  flex-wrap: wrap;
   padding-left: 0px;
 }
 %tag-list dd > *:not(:last-child)::after {
-  content: ', ';
-  white-space: pre;
+  content: ',';
+  margin-right: 0.3em;
   display: inline;
 }

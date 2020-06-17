@@ -5,11 +5,15 @@
 %with-composite-row-intent:active {
   @extend %composite-row-intent;
 }
-%composite-row > a,
-%composite-row > p,
-%composite-row > li > * {
+%composite-row > :first-child {
   @extend %composite-row-header;
 }
-%composite-row > ul {
+%composite-row-header > dl:first-child {
+  @extend %composite-row-icon;
+}
+%composite-row > :nth-child(2) {
   @extend %composite-row-detail;
+}
+%composite-row > :nth-child(3) {
+  @extend %composite-row-actions;
 }

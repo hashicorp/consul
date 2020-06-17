@@ -1,5 +1,6 @@
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
+import chart from './chart.xstate';
 
 export default Component.extend({
   clipboard: service('clipboard/os'),
@@ -7,6 +8,7 @@ export default Component.extend({
   tagName: '',
   init: function() {
     this._super(...arguments);
+    this.chart = chart;
     this.guid = this.dom.guid(this);
     this._listeners = this.dom.listeners();
   },
@@ -16,14 +18,9 @@ export default Component.extend({
   },
   didInsertElement: function() {
     this._super(...arguments);
-    const component = this;
-    this._listeners.add(this.clipboard.execute(`#${this.guid}`), {
-      success: function() {
-        component.success(...arguments);
-      },
-      error: function() {
-        component.error(...arguments);
-      },
+    this._listeners.add(this.clipboard.execute(`#${this.guid} button`), {
+      success: () => this.dispatch('SUCCESS'),
+      error: () => this.dispatch('ERROR'),
     });
   },
 });

@@ -117,6 +117,10 @@ pre code,
   font-size: $typo-size-450;
   font-weight: $typo-weight-medium;
 }
+%composite-row-header *:not(button) {
+  font-size: inherit;
+  font-weight: inherit;
+}
 /**/
 
 /* TODO: We have nothing else with a 500 */

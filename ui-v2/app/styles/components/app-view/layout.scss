@@ -56,24 +56,6 @@
   padding: 50px;
   text-align: center;
 }
-/* this should probably be its own component */
-%app-view-content div > dl {
-  position: relative;
-}
-%app-view-content div > dl > dt {
-  position: absolute;
-}
-%app-view-content div > dl > dt {
-  width: 140px;
-}
-%app-view-content div > dl > dd {
-  padding-left: 140px;
-}
-%app-view-content div > dl > * {
-  min-height: 1em;
-  margin-bottom: 0.4em;
-}
-/* */
 /* TODO: Think about an %app-form or similar */
 %app-view-content form:not(.filter-bar) fieldset {
   padding-bottom: 0.3em;

@@ -4,21 +4,6 @@
 %table-actions > [type='checkbox'] {
   @extend %more-popover-menu;
 }
-%more-popover-menu-panel [type='checkbox']:checked ~ * {
-  /* this needs to autocalculate */
-  min-height: 143px;
-  max-height: 143px;
-}
-%more-popover-menu-panel [id$='logout']:checked ~ * {
-  /* this needs to autocalculate */
-  min-height: 183px;
-  max-height: 183px;
-}
-%more-popover-menu-panel [id$='delete']:checked ~ ul label[for$='delete'] + [role='menu'],
-%more-popover-menu-panel [id$='logout']:checked ~ ul label[for$='logout'] + [role='menu'],
-%more-popover-menu-panel [id$='use']:checked ~ ul label[for$='use'] + [role='menu'] {
-  display: block;
-}
 %table-actions .confirmation-alert {
   @extend %confirmation-alert;
 }
@@ -26,6 +11,9 @@
   position: absolute;
   top: 8px;
   right: 15px;
+}
+%table-actions .menu-panel:not(.above) {
+  top: 38px !important;
 }
 
 /*TODO: Rename this to %app-view-brand-icon or similar */

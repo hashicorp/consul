@@ -1,18 +1,21 @@
 import { inject as service } from '@ember/service';
-import { computed, get } from '@ember/object';
+import { computed, get, set } from '@ember/object';
 import Component from 'ember-collection/components/ember-collection';
 import PercentageColumns from 'ember-collection/layouts/percentage-columns';
 import style from 'ember-computed-style';
+import Slotted from 'block-slots';
 import WithResizing from 'consul-ui/mixins/with-resizing';
 
-export default Component.extend(WithResizing, {
+const formatItemStyle = PercentageColumns.prototype.formatItemStyle;
+export default Component.extend(Slotted, WithResizing, {
   dom: service('dom'),
   tagName: 'div',
   attributeBindings: ['style'],
   height: 500,
-  cellHeight: 73,
+  cellHeight: 70,
   style: style('getStyle'),
   classNames: ['list-collection'],
+  checked: null,
   init: function() {
     this._super(...arguments);
     this.columns = [100];
@@ -24,6 +27,14 @@ export default Component.extend(WithResizing, {
       get(this, 'columns'),
       get(this, 'cellHeight')
     );
+    const o = this;
+    this['cell-layout'].formatItemStyle = function(itemIndex) {
+      let style = formatItemStyle.apply(this, arguments);
+      if (o.checked === itemIndex) {
+        style = `${style};z-index: 1`;
+      }
+      return style;
+    };
   },
   getStyle: computed('height', function() {
     return {
@@ -49,6 +60,32 @@ export default Component.extend(WithResizing, {
   actions: {
     click: function(e) {
       return this.dom.clickFirstAnchor(e, '.list-collection > ul > li');
+    },
+    change: function(index, e = {}) {
+      if (e.target.checked && index != get(this, 'checked')) {
+        set(this, 'checked', parseInt(index));
+        this.$row = this.dom.closest('li', e.target);
+        this.$row.style.zIndex = 1;
+
+        const $group = this.dom.sibling(e.target, 'div');
+        const groupRect = $group.getBoundingClientRect();
+        const groupBottom = groupRect.top + $group.clientHeight;
+
+        const $footer = this.dom.element('footer[role="contentinfo"]');
+        const footerRect = $footer.getBoundingClientRect();
+        const footerTop = footerRect.top;
+
+        if (groupBottom > footerTop) {
+          $group.classList.add('above');
+        } else {
+          $group.classList.remove('above');
+        }
+      } else {
+        const $group = this.dom.sibling(e.target, 'div');
+        $group.classList.remove('above');
+        set(this, 'checked', null);
+        this.$row.style.zIndex = null;
+      }
     },
   },
 });
