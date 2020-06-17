@@ -2,6 +2,7 @@ package acl
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -69,4 +70,9 @@ func (e PermissionDeniedError) Error() string {
 		return errPermissionDenied + ": " + e.Cause
 	}
 	return errPermissionDenied
+}
+
+func PermissionDenied(msg string, args ...interface{}) PermissionDeniedError {
+	cause := fmt.Sprintf(msg, args...)
+	return PermissionDeniedError{Cause: cause}
 }
