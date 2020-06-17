@@ -25,7 +25,7 @@ export default function HomePage() {
             type: 'download',
           },
           {
-            text: 'Try HasiCorp Consul Service on Azure',
+            text: 'Try HashiCorp Consul Service on Azure',
             url: 'https://learn.hashicorp.com/consul/hcs-azure/deploy',
             type: 'outbound',
           },
