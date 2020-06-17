@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
+	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -833,6 +834,27 @@ func (s *Server) setupRPC() error {
 	// means that verify incoming is turned off even though it might have
 	// been configured.
 	s.insecureRPCServer.Register(&AutoEncrypt{srv: s})
+
+	// Setup the AutoConfig JWT Authorizer
+	var authz AutoConfigAuthorizer
+	if s.config.AutoConfigAuthzEnabled {
+		// create the auto config authorizer from the JWT authmethod
+		validator, err := ssoauth.NewValidator(s.logger, &s.config.AutoConfigAuthzAuthMethod)
+		if err != nil {
+			return fmt.Errorf("Failed to initialize JWT Auto Config Authorizer: %w", err)
+		}
+
+		authz = &jwtAuthorizer{
+			validator:       validator,
+			allowReuse:      s.config.AutoConfigAuthzAllowReuse,
+			claimAssertions: s.config.AutoConfigAuthzClaimAssertions,
+		}
+	} else {
+		// This authorizer always returns that the endpoint is disabled
+		authz = &disabledAuthorizer{}
+	}
+	// now register with the insecure RPC server
+	s.insecureRPCServer.Register(&Cluster{srv: s, authorizer: authz})
 
 	ln, err := net.ListenTCP("tcp", s.config.RPCAddr)
 	if err != nil {
