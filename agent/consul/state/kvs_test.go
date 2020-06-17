@@ -429,7 +429,7 @@ func TestStateStore_KVSList(t *testing.T) {
 
 	// Delete a key and make sure the index comes from the tombstone.
 	ws = memdb.NewWatchSet()
-	idx, _, err = s.KVSList(ws, "foo/bar/baz", nil)
+	_, _, err = s.KVSList(ws, "foo/bar/baz", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

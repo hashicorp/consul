@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/serf/serf"
+	"github.com/stretchr/testify/require"
 )
 
 func TestServer_Key_params(t *testing.T) {
@@ -136,10 +137,8 @@ func TestIsConsulServer(t *testing.T) {
 	}
 
 	delete(m.Tags, "role")
-	ok, parts = metadata.IsConsulServer(m)
-	if ok {
-		t.Fatalf("unexpected ok server")
-	}
+	ok, _ = metadata.IsConsulServer(m)
+	require.False(t, ok, "expected to not be a consul server")
 }
 
 func TestIsConsulServer_Optional(t *testing.T) {
@@ -209,8 +208,6 @@ func TestIsConsulServer_Optional(t *testing.T) {
 	}
 
 	delete(m.Tags, "role")
-	ok, parts = metadata.IsConsulServer(m)
-	if ok {
-		t.Fatalf("unexpected ok server")
-	}
+	ok, _ = metadata.IsConsulServer(m)
+	require.False(t, ok, "expected to not be a consul server")
 }

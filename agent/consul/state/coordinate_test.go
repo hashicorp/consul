@@ -81,7 +81,7 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 	verify.Values(t, "", all, structs.Coordinates{})
 
 	coordinateWs = memdb.NewWatchSet()
-	idx, coords, err = s.Coordinate("node1", coordinateWs)
+	idx, _, err = s.Coordinate("node1", coordinateWs)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
