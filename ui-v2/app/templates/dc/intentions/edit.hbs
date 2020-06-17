@@ -39,7 +39,7 @@
     <BlockSlot @name="content">
       <ConsulIntentionForm
         @item={{item}}
-        @services={{services}}
+        @services={{uniq-by 'Name' services}}
         @nspaces={{nspaces}}
         @ondelete={{action "route" "delete"}}
         @onsubmit={{action "route" (if item.isNew "create" "update")}}
