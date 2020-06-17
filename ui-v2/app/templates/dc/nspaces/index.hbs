@@ -1,4 +1,5 @@
 {{title 'Namespaces'}}
+<EventSource @src={{items}} />
 <AppView @class="nspace list" @loading={{isLoading}}>
   <BlockSlot @name="notification" as |status type subject|>
     {{partial 'dc/nspaces/notifications'}}

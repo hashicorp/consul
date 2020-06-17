@@ -1,6 +1,5 @@
 import Controller from '@ember/controller';
-import WithEventSource from 'consul-ui/mixins/with-event-source';
-export default Controller.extend(WithEventSource, {
+export default Controller.extend({
   queryParams: {
     filterBy: {
       as: 'action',

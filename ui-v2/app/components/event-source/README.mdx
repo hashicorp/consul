@@ -1,0 +1,25 @@
+## EventSource
+
+```handlebars
+<EventSource
+  @src={{eventSourceObject}}
+  @onerror={{action 'error'}}
+/>
+```
+
+### Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `src` | `EventSourceProxy` | | An EventSource object |
+| `onerror` | `Function` |  | The action to fire when an error occurs. Emits ErrorEvent object with an `error` property containing the Error. |
+| `closeOnDestroy` | `Boolean` | true | Whether to close and destroy the event source when the component is destroyed |
+
+This component is used to configure event source error from within a template, but also ensures that EventSources are cleaned/up destroyed when the user leaves the page (when the component is removed from the page)
+
+### See
+
+- [Component Source Code](./index.js)
+- [Template Source Code](./index.hbs)
+
+---

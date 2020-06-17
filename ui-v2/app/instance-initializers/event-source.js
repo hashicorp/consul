@@ -19,7 +19,7 @@ export function initialize(container) {
       };
     })
     .concat(
-      ['dc', 'policy', 'role'].map(function(item) {
+      ['policy', 'role'].map(function(item) {
         // create repositories that return a promise resolving to an EventSource
         return {
           service: `repository/${item}/component`,
