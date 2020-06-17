@@ -258,6 +258,107 @@ func TestLeader_ReapMember(t *testing.T) {
 	}
 }
 
+func TestLeader_CheckServersMeta(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "allow"
+		c.ACLEnforceVersion8 = true
+		c.Bootstrap = true
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "allow"
+		c.ACLEnforceVersion8 = true
+		c.Bootstrap = false
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	dir3, s3 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "allow"
+		c.ACLEnforceVersion8 = true
+		c.Bootstrap = false
+	})
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	// Try to join
+	joinLAN(t, s1, s2)
+	joinLAN(t, s1, s3)
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s2.RPC, "dc1")
+	testrpc.WaitForLeader(t, s3.RPC, "dc1")
+	state := s1.fsm.State()
+
+	consulService := &structs.NodeService{
+		ID:      "consul",
+		Service: "consul",
+	}
+	// s3 should be registered
+	retry.Run(t, func(r *retry.R) {
+		_, service, err := state.NodeService(s3.config.NodeName, "consul", &consulService.EnterpriseMeta)
+		if err != nil {
+			r.Fatalf("err: %v", err)
+		}
+		if service == nil {
+			r.Fatal("client not registered")
+		}
+		if service.Meta["non_voter"] != "false" {
+			r.Fatalf("Expected to be non_voter == false, was: %s", service.Meta["non_voter"])
+		}
+	})
+
+	member := serf.Member{}
+	for _, m := range s1.serfLAN.Members() {
+		if m.Name == s3.config.NodeName {
+			member = m
+			member.Tags = make(map[string]string)
+			for key, value := range m.Tags {
+				member.Tags[key] = value
+			}
+		}
+	}
+	if member.Name != s3.config.NodeName {
+		t.Fatal("could not find node in serf members")
+	}
+	versionToExpect := "19.7.9"
+
+	retry.Run(t, func(r *retry.R) {
+		member.Tags["non_voter"] = "true"
+		member.Tags["build"] = versionToExpect
+		err := s1.handleAliveMember(member)
+		if err != nil {
+			r.Fatalf("Unexpected error :%v", err)
+		}
+		_, service, err := state.NodeService(s3.config.NodeName, "consul", &consulService.EnterpriseMeta)
+		if err != nil {
+			r.Fatalf("err: %v", err)
+		}
+		if service == nil {
+			r.Fatal("client not registered")
+		}
+		if service.Meta["non_voter"] != "true" {
+			r.Fatalf("Expected to be non_voter == false, was: %s", service.Meta["non_voter"])
+		}
+		newVersion := service.Meta["version"]
+		if newVersion != versionToExpect {
+			r.Fatalf("Expected version to be updated to %s, was %s", versionToExpect, newVersion)
+		}
+	})
+}
+
 func TestLeader_ReapServer(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
