@@ -13,8 +13,6 @@ import (
 )
 
 type EventPublisher struct {
-	store *Store
-
 	// topicBufferSize controls how many trailing events we keep in memory for
 	// each topic to avoid needing to snapshot again for re-connecting clients
 	// that may have missed some events. It may be zero for no buffering (the most
@@ -42,10 +40,6 @@ type EventPublisher struct {
 	// TODO: new struct for snapCache and snapFns and snapCacheTTL
 	snapCache map[stream.Topic]map[string]*stream.EventSnapshot
 
-	// snapFns is the set of snapshot functions that were registered bound to the
-	// state store.
-	snapFns map[stream.Topic]stream.SnapFn
-
 	// subsByToken stores a list of Subscription objects outstanding indexed by a
 	// hash of the ACL token they used to subscribe so we can reload them if their
 	// ACL permissions change.
@@ -55,32 +49,22 @@ type EventPublisher struct {
 	// publishes events, so that publishing can happen asynchronously from
 	// the Commit call in the FSM hot path.
 	publishCh chan commitUpdate
+
+	handlers map[stream.Topic]topicHandler
 }
 
 type commitUpdate struct {
-	tx     *txn
+	tx     ReadTxn
 	events []stream.Event
 }
 
-func NewEventPublisher(store *Store, topicBufferSize int, snapCacheTTL time.Duration) *EventPublisher {
+func NewEventPublisher(handlers map[stream.Topic]topicHandler, snapCacheTTL time.Duration) *EventPublisher {
 	e := &EventPublisher{
-		store:           store,
-		topicBufferSize: topicBufferSize,
-		snapCacheTTL:    snapCacheTTL,
-		topicBuffers:    make(map[stream.Topic]*stream.EventBuffer),
-		snapCache:       make(map[stream.Topic]map[string]*stream.EventSnapshot),
-		snapFns:         make(map[stream.Topic]stream.SnapFn),
-		subsByToken:     make(map[string]map[*stream.SubscribeRequest]*stream.Subscription),
-		publishCh:       make(chan commitUpdate, 64),
-	}
-
-	// create a local handler table
-	// TODO: document why
-	for topic, handlers := range topicRegistry {
-		fnCopy := handlers.Snapshot
-		e.snapFns[topic] = func(req *stream.SubscribeRequest, buf *stream.EventBuffer) (uint64, error) {
-			return fnCopy(e.store, req, buf)
-		}
+		snapCacheTTL: snapCacheTTL,
+		topicBuffers: make(map[stream.Topic]*stream.EventBuffer),
+		snapCache:    make(map[stream.Topic]map[string]*stream.EventSnapshot),
+		publishCh:    make(chan commitUpdate, 64),
+		handlers:     handlers,
 	}
 
 	go e.handleUpdates()
@@ -88,11 +72,11 @@ func NewEventPublisher(store *Store, topicBufferSize int, snapCacheTTL time.Dura
 	return e
 }
 
-func (e *EventPublisher) publishChanges(tx *txn, changes memdb.Changes) error {
+func (e *EventPublisher) PublishChanges(tx *txn, changes memdb.Changes) error {
 	var events []stream.Event
-	for topic, th := range topicRegistry {
-		if th.ProcessChanges != nil {
-			es, err := th.ProcessChanges(e.store, tx, changes)
+	for topic, handler := range e.handlers {
+		if handler.ProcessChanges != nil {
+			es, err := handler.ProcessChanges(tx, changes)
 			if err != nil {
 				return fmt.Errorf("failed generating events for topic %q: %s", topic, err)
 			}
@@ -106,7 +90,7 @@ func (e *EventPublisher) publishChanges(tx *txn, changes memdb.Changes) error {
 		// thread. Transactions aren't thread safe but it's OK to create it here
 		// since we won't try to use it in this thread and pass it straight to the
 		// handler which will own it exclusively.
-		tx:     e.store.db.Txn(false),
+		tx:     e.db.Txn(false),
 		events: events,
 	}
 	return nil
@@ -179,7 +163,7 @@ func (e *EventPublisher) getTopicBuffer(topic stream.Topic) *stream.EventBuffer 
 
 // handleACLUpdate handles an ACL token/policy/role update. This method assumes
 // the lock is held.
-func (e *EventPublisher) handleACLUpdate(tx *txn, event stream.Event) error {
+func (e *EventPublisher) handleACLUpdate(tx ReadTxn, event stream.Event) error {
 	switch event.Topic {
 	case stream.Topic_ACLTokens:
 		token := event.Payload.(*structs.ACLToken)
@@ -248,7 +232,7 @@ func (e *EventPublisher) Subscribe(
 	req *stream.SubscribeRequest,
 ) (*stream.Subscription, error) {
 	// Ensure we know how to make a snapshot for this topic
-	_, ok := topicRegistry[req.Topic]
+	_, ok := e.handlers[req.Topic]
 	if !ok {
 		return nil, fmt.Errorf("unknown topic %d", req.Topic)
 	}
@@ -341,12 +325,12 @@ func (e *EventPublisher) getSnapshotLocked(req *stream.SubscribeRequest, topicHe
 	}
 
 	// No snap or errored snap in cache, create a new one
-	snapFn, ok := e.snapFns[req.Topic]
+	handler, ok := e.handlers[req.Topic]
 	if !ok {
 		return nil, fmt.Errorf("unknown topic %d", req.Topic)
 	}
 
-	snap = stream.NewEventSnapshot(req, topicHead, snapFn)
+	snap = stream.NewEventSnapshot(req, topicHead, handler.Snapshot)
 	if e.snapCacheTTL > 0 {
 		topicSnaps[req.Key] = snap
 

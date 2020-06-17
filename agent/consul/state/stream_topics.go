@@ -5,40 +5,25 @@ import (
 	memdb "github.com/hashicorp/go-memdb"
 )
 
-// unboundSnapFn is a stream.SnapFn with state store as the first argument. This
-// is bound to a concrete state store instance in the EventPublisher on startup.
-type unboundSnapFn func(*Store, *stream.SubscribeRequest, *stream.EventBuffer) (uint64, error)
-type unboundProcessChangesFn func(*Store, *txn, memdb.Changes) ([]stream.Event, error)
-
-// topicHandlers describes the methods needed to process a streaming
-// subscription for a given topic.
-type topicHandlers struct {
-	Snapshot       unboundSnapFn
-	ProcessChanges unboundProcessChangesFn
+// topicHandler provides functions which create stream.Events for a topic.
+type topicHandler struct {
+	// Snapshot creates the necessary events to reproduce the current state and
+	// appends them to the EventBuffer.
+	Snapshot func(*stream.SubscribeRequest, *stream.EventBuffer) (index uint64, err error)
+	// ProcessChanges accepts a slice of Changes, and builds a slice of events for
+	// those changes.
+	ProcessChanges func(*txn, memdb.Changes) ([]stream.Event, error)
 }
 
-// topicRegistry is a map of topic handlers. It must only be written to during
-// init().
-var topicRegistry map[stream.Topic]topicHandlers
-
-func init() {
-	topicRegistry = map[stream.Topic]topicHandlers{
-		stream.Topic_ServiceHealth: topicHandlers{
-			Snapshot:       (*Store).ServiceHealthSnapshot,
-			ProcessChanges: (*Store).ServiceHealthEventsFromChanges,
-		},
-		stream.Topic_ServiceHealthConnect: topicHandlers{
-			Snapshot: (*Store).ServiceHealthConnectSnapshot,
-			// Note there is no ProcessChanges since Connect events are published by
-			// the same event publisher as regular health events to avoid duplicating
-			// lots of filtering on every commit.
-		},
+// newTopicHandlers returns the default handlers for state change events.
+func newTopicHandlers() map[stream.Topic]topicHandler {
+	return map[stream.Topic]topicHandler{
 		// For now we don't actually support subscribing to ACL* topics externally
 		// so these have no Snapshot methods yet. We do need to have a
 		// ProcessChanges func to publish the partial events on ACL changes though
 		// so that we can invalidate other subscriptions if their effective ACL
 		// permissions change.
-		stream.Topic_ACLTokens: topicHandlers{
+		stream.Topic_ACLTokens: {
 			ProcessChanges: aclEventsFromChanges,
 		},
 		// Note no ACLPolicies/ACLRoles defined yet because we publish all events

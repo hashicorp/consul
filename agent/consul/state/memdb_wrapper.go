@@ -4,12 +4,22 @@ import (
 	"github.com/hashicorp/go-memdb"
 )
 
+// ReadTxn is implemented by memdb.Txn to perform read operations.
+type ReadTxn interface {
+	Get(table, index string, args ...interface{}) (memdb.ResultIterator, error)
+	Abort()
+}
+
 // changeTrackerDB is a thin wrapper around memdb.DB which enables TrackChanges on
 // all write transactions. When the transaction is committed the changes are
 // sent to the eventPublisher which will create and emit change events.
 type changeTrackerDB struct {
-	db *memdb.MemDB
-	// TODO(streaming): add publisher
+	db        *memdb.MemDB
+	publisher changePublisher
+}
+
+type changePublisher interface {
+	PublishChanges(tx *txn, changes memdb.Changes) error
 }
 
 // Txn exists to maintain backwards compatibility with memdb.DB.Txn. Preexisting
@@ -42,8 +52,9 @@ func (db *changeTrackerDB) ReadTxn() *txn {
 // data directly into the DB. These cases may use WriteTxnRestore.
 func (db *changeTrackerDB) WriteTxn(idx uint64) *txn {
 	t := &txn{
-		Txn:   db.db.Txn(true),
-		Index: idx,
+		Txn:       db.db.Txn(true),
+		Index:     idx,
+		publisher: db.publisher,
 	}
 	t.Txn.TrackChanges()
 	return t
@@ -70,12 +81,13 @@ func (db *changeTrackerDB) WriteTxnRestore() *txn {
 // error. Any errors from the callback would be lost,  which would result in a
 // missing change event, even though the state store had changed.
 type txn struct {
+	*memdb.Txn
 	// Index in raft where the write is occurring. The value is zero for a
 	// read-only transaction, and for a WriteTxnRestore transaction.
 	// Index is stored so that it may be passed along to any subscribers as part
 	// of a change event.
-	Index uint64
-	*memdb.Txn
+	Index     uint64
+	publisher changePublisher
 }
 
 // Commit first pushes changes to EventPublisher, then calls Commit on the
@@ -85,8 +97,13 @@ type txn struct {
 // by the caller. A non-nil error indicates that a commit failed and was not
 // applied.
 func (tx *txn) Commit() error {
-	// changes may be empty if this is a read-only or WriteTxnRestore transaction.
-	// TODO(streaming): publish changes: changes := tx.Txn.Changes()
+	// publisher may be nil if this is a read-only or WriteTxnRestore transaction.
+	// In those cases changes should also be empty.
+	if tx.publisher != nil {
+		if err := tx.publisher.PublishChanges(tx, tx.Txn.Changes()); err != nil {
+			return err
+		}
+	}
 
 	tx.Txn.Commit()
 	return nil

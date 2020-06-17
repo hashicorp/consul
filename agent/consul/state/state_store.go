@@ -3,6 +3,7 @@ package state
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
 	memdb "github.com/hashicorp/go-memdb"
@@ -153,15 +154,15 @@ func NewStateStore(gc *TombstoneGC) (*Store, error) {
 		return nil, fmt.Errorf("Failed setting up state store: %s", err)
 	}
 
-	// Create and return the state store.
 	s := &Store{
 		schema:       schema,
 		abandonCh:    make(chan struct{}),
 		kvsGraveyard: NewGraveyard(gc),
 		lockDelay:    NewDelay(),
-	}
-	s.db = &changeTrackerDB{
-		db: db,
+		db: &changeTrackerDB{
+			db:        db,
+			publisher: NewEventPublisher(newTopicHandlers(), 10*time.Second),
+		},
 	}
 	return s, nil
 }
