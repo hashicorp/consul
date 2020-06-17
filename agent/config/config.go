@@ -3,7 +3,6 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/consul/lib/decode"
 	"github.com/hashicorp/hcl"
@@ -19,17 +18,6 @@ type Source struct {
 	Name   string
 	Format string
 	Data   string
-}
-
-func FormatFrom(name string) string {
-	switch {
-	case strings.HasSuffix(name, ".json"):
-		return "json"
-	case strings.HasSuffix(name, ".hcl"):
-		return "hcl"
-	default:
-		return ""
-	}
 }
 
 // Parse parses a config fragment in either JSON or HCL format.
