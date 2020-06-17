@@ -103,7 +103,7 @@ func (c *cmd) Run(args []string) int {
 
 	if len(args) > 0 {
 		var err error
-		svcs, err = services.ServicesFromFiles(args)
+		svcs, err = services.ServicesFromFiles(c.UI, args)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error: %s", err))
 			return 1

@@ -451,6 +451,9 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				writeFile(filepath.Join(dataDir, "conf", "valid.json"), []byte(`{"datacenter":"a"}`))
 				writeFile(filepath.Join(dataDir, "conf", "invalid.skip"), []byte(`NOPE`))
 			},
+			warns: []string{
+				"skipping file " + filepath.Join(dataDir, "conf", "invalid.skip") + ", extension must be .hcl or .json, or config format must be set",
+			},
 		},
 		{
 			desc: "-config-format=json",
@@ -4111,14 +4114,14 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 
 			t.Run(strings.Join(desc, ":"), func(t *testing.T) {
 				// first parse the flags
-				flags := Flags{}
+				flags := BuilderOpts{}
 				fs := flag.NewFlagSet("", flag.ContinueOnError)
 				AddFlags(fs, &flags)
 				err := fs.Parse(tt.args)
 				if err != nil {
 					t.Fatalf("ParseFlags failed: %s", err)
 				}
-				flags.Args = fs.Args()
+				require.Len(t, fs.Args(), 0)
 
 				if tt.pre != nil {
 					tt.pre()
@@ -4197,7 +4200,7 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				// build a default configuration, then patch the fields we expect to change
 				// and compare it with the generated configuration. Since the expected
 				// runtime config has been validated we do not need to validate it again.
-				x, err := NewBuilder(Flags{})
+				x, err := NewBuilder(BuilderOpts{})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -6346,23 +6349,19 @@ func TestFullConfig(t *testing.T) {
 		t.Run(format, func(t *testing.T) {
 			// parse the flags since this is the only way we can set the
 			// DevMode flag
-			var flags Flags
+			var flags BuilderOpts
 			fs := flag.NewFlagSet("", flag.ContinueOnError)
 			AddFlags(fs, &flags)
 			if err := fs.Parse(flagSrc); err != nil {
 				t.Fatalf("ParseFlags: %s", err)
 			}
-
-			// ensure that all fields are set to unique non-zero values
-			// if err := nonZero("Config", nil, c); err != nil {
-			// 	t.Fatal(err)
-			// }
+			require.Len(t, fs.Args(), 0)
 
 			b, err := NewBuilder(flags)
 			if err != nil {
 				t.Fatalf("NewBuilder: %s", err)
 			}
-			b.Sources = append(b.Sources, Source{Name: "full." + format, Data: data})
+			b.Sources = append(b.Sources, Source{Name: "full." + format, Data: data, Format: format})
 			b.Tail = append(b.Tail, tail[format]...)
 			b.Tail = append(b.Tail, VersionSource("JNtPSav3", "R909Hblt", "ZT1JOQLn"))
 

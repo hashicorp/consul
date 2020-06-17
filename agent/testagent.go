@@ -436,7 +436,7 @@ func TestConfig(logger hclog.Logger, sources ...config.Source) *config.RuntimeCo
 		`,
 	}
 
-	b, err := config.NewBuilder(config.Flags{})
+	b, err := config.NewBuilder(config.BuilderOpts{})
 	if err != nil {
 		panic("NewBuilder failed: " + err.Error())
 	}
