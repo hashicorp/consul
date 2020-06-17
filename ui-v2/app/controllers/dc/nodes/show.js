@@ -18,8 +18,11 @@ export default Controller.extend({
             type: 'warning',
             action: 'update',
           });
-          this.tomography.close();
-          this.sessions.close();
+          [e.target, this.tomography, this.sessions].forEach(function(item) {
+            if (item && typeof item.close === 'function') {
+              item.close();
+            }
+          });
         }
       }
     },

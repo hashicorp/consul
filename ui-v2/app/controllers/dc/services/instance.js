@@ -15,10 +15,11 @@ export default Controller.extend({
             type: 'warning',
             action: 'update',
           });
-          const proxy = this.proxy;
-          if (proxy) {
-            proxy.close();
-          }
+          [e.target, this.proxy].forEach(function(item) {
+            if (item && typeof item.close === 'function') {
+              item.close();
+            }
+          });
         }
       }
     },
