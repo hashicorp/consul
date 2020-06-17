@@ -117,6 +117,9 @@ Listeners = [
     - `Enabled` `(bool: false)` - Set this configuration to enable TLS for
   every listener on the gateway.
 
+    If TLS is enabled, then each host defined in the `Host` field will be added
+    as a DNSSAN to the gateway's x509 certificate.
+
 - `Listeners` `(array<IngressListener>: <optional>)` - A list of listeners that
   the ingress gateway should setup, uniquely identified by their port number.
 
@@ -157,8 +160,13 @@ Listeners = [
       records. For example, `*.example.com` is valid, while `example.*` and
       `*-suffix.example.com` are not.
 
-      If TLS is enabled, then each host will be added as a DNSSAN to the
-      gateway's x509 certificate.
+      ~> **Note:** If a well-known port is not used, i.e. a port other than 80
+      (http) or 443 (https), then the port must be appended to the host to
+      correctly match traffic. This is defined in the [HTTP/1.1
+      RFC](https://tools.ietf.org/html/rfc2616#section-14.23). If TLS is
+      enabled, then the host **without** the port must be added to the `Hosts`
+      field as well. TLS verification only matches against the hostname of the
+      incoming connection, and thus does not take into account the port.
 
 ## ACLs
 
