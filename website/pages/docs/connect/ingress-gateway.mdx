@@ -22,15 +22,18 @@ exposed and on what port. You configure an ingress gateway by defining a set of
 to a set of backing
 [services](/docs/agent/config-entries/ingress-gateway#services).
 
-Depending on the
-[protocol](/docs/agent/config-entries/ingress-gateway#protocol) defined for a
-listener, multiple services can be specified for a single listener. In this
-case, the ingress gateway relies on host/authority headers to decide the
-service that should receive the traffic.
-
 To enable easier service discovery, a new Consul [DNS
 subdomain](/docs/agent/dns#ingress-service-lookups) is provided, on
 `<service>.ingress.<domain>`.
+
+For listeners with a
+[protocol](/docs/agent/config-entries/ingress-gateway#protocol) other than
+`tcp`, multiple services can be specified for a single listener. In this
+case, the ingress gateway relies on host/authority headers to decide the
+service that should receive the traffic. The host used to match traffic
+defaults to the [Consul DNS ingress
+subdomain](/docs/agent/dns#ingress-service-lookups), but can be changed using
+the [hosts](/docs/agent/config-entries/ingress-gateway#hosts) field.
 
 ![Ingress Gateway Architecture](/img/ingress-gateways.png)
 
@@ -64,6 +67,8 @@ a set of listeners that expose the desired backing services. The config entry ca
 
 4. **Optionally** use the `<service>.ingress.<domain>` [DNS subdomain](/docs/agent/dns#ingress-service-lookups) to discover the ingress
 gateways for a service.
+
+5. **Optionally** use the [Consul L7 traffic management](/docs/connect/l7-traffic-management) for exposed services to route traffic.
 
 ## Ingress Gateway Configuration
 
