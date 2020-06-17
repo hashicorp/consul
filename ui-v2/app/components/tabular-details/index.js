@@ -1,20 +1,14 @@
 import Component from '@ember/component';
-import SlotsMixin from 'block-slots';
 import { inject as service } from '@ember/service';
-import { set } from '@ember/object';
-import { subscribe } from 'consul-ui/utils/computed/purify';
+import Slotted from 'block-slots';
 
-let uid = 0;
-export default Component.extend(SlotsMixin, {
+export default Component.extend(Slotted, {
   dom: service('dom'),
   onchange: function() {},
   init: function() {
     this._super(...arguments);
-    set(this, 'uid', uid++);
+    this.guid = this.dom.guid(this);
   },
-  inputId: subscribe('name', 'uid', function(name = 'name') {
-    return `tabular-details-${name}-toggle-${uid}_`;
-  }),
   actions: {
     click: function(e) {
       this.dom.clickFirstAnchor(e);
