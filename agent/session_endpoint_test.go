@@ -487,9 +487,8 @@ func TestSessionCustomTTL(t *testing.T) {
 			r.Fatalf("err: %v", err)
 		}
 		respObj, ok = obj.(structs.Sessions)
-		if len(respObj) != 0 {
-			r.Fatalf("session '%s' should have been destroyed", id)
-		}
+		require.True(r, ok, "unexpected type: %T", obj)
+		require.Len(r, respObj, 0)
 	})
 }
 

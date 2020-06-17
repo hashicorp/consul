@@ -5,6 +5,7 @@ linters:
     - govet
     - unconvert
     - staticcheck
+    - ineffassign
 
 issues:
   # Disable the default exclude list so that all excludes are explicitly
@@ -16,10 +17,6 @@ issues:
     # https://staticcheck.io/docs/checks#SA9004
     - linters: [staticcheck]
       text: "SA9004:"
-
-    # Temp ignore SA4006: this value of `x` is never used
-    - linters: [staticcheck]
-      text: "SA4006:"
 
 linters-settings:
   gofmt:

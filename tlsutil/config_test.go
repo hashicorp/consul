@@ -964,6 +964,7 @@ func TestConfigurator_OutgoingRPCWrapper(t *testing.T) {
 	require.NotNil(t, wrapper)
 	conn := &net.TCPConn{}
 	cWrap, err := wrapper("", conn)
+	require.NoError(t, err)
 	require.Equal(t, conn, cWrap)
 
 	c, err = NewConfigurator(Config{
@@ -975,6 +976,7 @@ func TestConfigurator_OutgoingRPCWrapper(t *testing.T) {
 	wrapper = c.OutgoingRPCWrapper()
 	require.NotNil(t, wrapper)
 	cWrap, err = wrapper("", conn)
+	require.EqualError(t, err, "invalid argument")
 	require.NotEqual(t, conn, cWrap)
 }
 
@@ -984,6 +986,7 @@ func TestConfigurator_OutgoingALPNRPCWrapper(t *testing.T) {
 	require.NotNil(t, wrapper)
 	conn := &net.TCPConn{}
 	cWrap, err := wrapper("", conn)
+	require.NoError(t, err)
 	require.Equal(t, conn, cWrap)
 
 	c, err = NewConfigurator(Config{
@@ -995,6 +998,7 @@ func TestConfigurator_OutgoingALPNRPCWrapper(t *testing.T) {
 	wrapper = c.OutgoingRPCWrapper()
 	require.NotNil(t, wrapper)
 	cWrap, err = wrapper("", conn)
+	require.EqualError(t, err, "invalid argument")
 	require.NotEqual(t, conn, cWrap)
 }
 

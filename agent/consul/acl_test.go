@@ -3041,7 +3041,7 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 	node_prefix "" { policy = "read" }
 	`, acl.SyntaxCurrent, nil, nil)
 	require.NoError(t, err)
-	perms, err = acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	_, err = acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
 	require.NoError(t, err)
 
 	// Now it should go through.

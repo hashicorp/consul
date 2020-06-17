@@ -2,11 +2,12 @@ package state
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -543,7 +544,7 @@ func TestStateStore_Session_Invalidate_DeleteNode(t *testing.T) {
 
 	// Delete the node and make sure the watch fires.
 	ws := memdb.NewWatchSet()
-	idx, s2, err := s.SessionGet(ws, session.ID, nil)
+	_, _, err := s.SessionGet(ws, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -555,7 +556,7 @@ func TestStateStore_Session_Invalidate_DeleteNode(t *testing.T) {
 	}
 
 	// Lookup by ID, should be nil.
-	idx, s2, err = s.SessionGet(nil, session.ID, nil)
+	idx, s2, err := s.SessionGet(nil, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -598,7 +599,7 @@ func TestStateStore_Session_Invalidate_DeleteService(t *testing.T) {
 
 	// Delete the service and make sure the watch fires.
 	ws := memdb.NewWatchSet()
-	idx, s2, err := s.SessionGet(ws, session.ID, nil)
+	_, _, err := s.SessionGet(ws, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -610,7 +611,7 @@ func TestStateStore_Session_Invalidate_DeleteService(t *testing.T) {
 	}
 
 	// Lookup by ID, should be nil.
-	idx, s2, err = s.SessionGet(nil, session.ID, nil)
+	idx, s2, err := s.SessionGet(nil, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -648,7 +649,7 @@ func TestStateStore_Session_Invalidate_Critical_Check(t *testing.T) {
 
 	// Invalidate the check and make sure the watches fire.
 	ws := memdb.NewWatchSet()
-	idx, s2, err := s.SessionGet(ws, session.ID, nil)
+	_, _, err := s.SessionGet(ws, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -661,7 +662,7 @@ func TestStateStore_Session_Invalidate_Critical_Check(t *testing.T) {
 	}
 
 	// Lookup by ID, should be nil.
-	idx, s2, err = s.SessionGet(nil, session.ID, nil)
+	idx, s2, err := s.SessionGet(nil, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -699,7 +700,7 @@ func TestStateStore_Session_Invalidate_DeleteCheck(t *testing.T) {
 
 	// Delete the check and make sure the watches fire.
 	ws := memdb.NewWatchSet()
-	idx, s2, err := s.SessionGet(ws, session.ID, nil)
+	_, _, err := s.SessionGet(ws, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -711,7 +712,7 @@ func TestStateStore_Session_Invalidate_DeleteCheck(t *testing.T) {
 	}
 
 	// Lookup by ID, should be nil.
-	idx, s2, err = s.SessionGet(nil, session.ID, nil)
+	idx, s2, err := s.SessionGet(nil, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -767,7 +768,7 @@ func TestStateStore_Session_Invalidate_Key_Unlock_Behavior(t *testing.T) {
 
 	// Delete the node and make sure the watches fire.
 	ws := memdb.NewWatchSet()
-	idx, s2, err := s.SessionGet(ws, session.ID, nil)
+	_, _, err = s.SessionGet(ws, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -779,7 +780,7 @@ func TestStateStore_Session_Invalidate_Key_Unlock_Behavior(t *testing.T) {
 	}
 
 	// Lookup by ID, should be nil.
-	idx, s2, err = s.SessionGet(nil, session.ID, nil)
+	idx, s2, err := s.SessionGet(nil, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -849,7 +850,7 @@ func TestStateStore_Session_Invalidate_Key_Delete_Behavior(t *testing.T) {
 
 	// Delete the node and make sure the watches fire.
 	ws := memdb.NewWatchSet()
-	idx, s2, err := s.SessionGet(ws, session.ID, nil)
+	_, _, err = s.SessionGet(ws, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -861,7 +862,7 @@ func TestStateStore_Session_Invalidate_Key_Delete_Behavior(t *testing.T) {
 	}
 
 	// Lookup by ID, should be nil.
-	idx, s2, err = s.SessionGet(nil, session.ID, nil)
+	idx, s2, err := s.SessionGet(nil, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -917,7 +918,7 @@ func TestStateStore_Session_Invalidate_PreparedQuery_Delete(t *testing.T) {
 
 	// Invalidate the session and make sure the watches fire.
 	ws := memdb.NewWatchSet()
-	idx, s2, err := s.SessionGet(ws, session.ID, nil)
+	_, _, err := s.SessionGet(ws, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -929,7 +930,7 @@ func TestStateStore_Session_Invalidate_PreparedQuery_Delete(t *testing.T) {
 	}
 
 	// Make sure the session is gone.
-	idx, s2, err = s.SessionGet(nil, session.ID, nil)
+	idx, s2, err := s.SessionGet(nil, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

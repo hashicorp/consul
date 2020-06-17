@@ -795,7 +795,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	if err := s.EnsureNode(3, in2); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	idx, out, err = s.GetNode("node1")
+	_, out, err = s.GetNode("node1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -839,7 +839,8 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	}
 
 	// Retrieve the node
-	idx, out, err = s.GetNode("node1")
+	_, out, err = s.GetNode("node1")
+	require.NoError(t, err)
 	if out != nil {
 		t.Fatalf("Node should not exist anymore: %q", out)
 	}
@@ -903,7 +904,8 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	}
 
 	// Retrieve the node
-	idx, out, err = s.GetNode("Node1bis")
+	_, out, err = s.GetNode("Node1bis")
+	require.NoError(t, err)
 	if out == nil {
 		t.Fatalf("Node should exist, but was null")
 	}
@@ -991,7 +993,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	if err := s.EnsureNode(15, in); err != nil {
 		t.Fatalf("[DEPRECATED] it should work, err:= %q", err)
 	}
-	idx, out, err = s.GetNode("Node1-Renamed2")
+	_, out, err = s.GetNode("Node1-Renamed2")
 	if err != nil {
 		t.Fatalf("[DEPRECATED] err: %s", err)
 	}
@@ -2022,6 +2024,7 @@ func TestStateStore_DeleteService(t *testing.T) {
 	// Delete the service.
 	ws := memdb.NewWatchSet()
 	_, _, err := s.NodeServices(ws, "node1", nil)
+	require.NoError(t, err)
 	if err := s.DeleteService(4, "node1", "service1", nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -3373,7 +3376,7 @@ func TestStateStore_ConnectQueryBlocking(t *testing.T) {
 
 			// Run the query
 			ws := memdb.NewWatchSet()
-			idx, res, err := s.CheckConnectServiceNodes(ws, tt.svc, nil)
+			_, res, err := s.CheckConnectServiceNodes(ws, tt.svc, nil)
 			require.NoError(err)
 			require.Len(res, tt.wantBeforeResLen)
 			require.Len(ws, tt.wantBeforeWatchSetSize)
@@ -3392,7 +3395,7 @@ func TestStateStore_ConnectQueryBlocking(t *testing.T) {
 
 			// Re-query the same result. Should return the desired index and len
 			ws = memdb.NewWatchSet()
-			idx, res, err = s.CheckConnectServiceNodes(ws, tt.svc, nil)
+			idx, res, err := s.CheckConnectServiceNodes(ws, tt.svc, nil)
 			require.NoError(err)
 			require.Len(res, tt.wantAfterResLen)
 			require.Equal(tt.wantAfterIndex, idx)
@@ -3465,7 +3468,7 @@ func TestStateStore_CheckServiceNodes(t *testing.T) {
 		t.Fatalf("bad")
 	}
 	ws = memdb.NewWatchSet()
-	idx, results, err = s.CheckServiceNodes(ws, "service1", nil)
+	idx, _, err = s.CheckServiceNodes(ws, "service1", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -3481,7 +3484,7 @@ func TestStateStore_CheckServiceNodes(t *testing.T) {
 		t.Fatalf("bad")
 	}
 	ws = memdb.NewWatchSet()
-	idx, results, err = s.CheckServiceNodes(ws, "service1", nil)
+	idx, _, err = s.CheckServiceNodes(ws, "service1", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -3495,7 +3498,7 @@ func TestStateStore_CheckServiceNodes(t *testing.T) {
 		t.Fatalf("bad")
 	}
 	ws = memdb.NewWatchSet()
-	idx, results, err = s.CheckServiceNodes(ws, "service1", nil)
+	idx, _, err = s.CheckServiceNodes(ws, "service1", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
