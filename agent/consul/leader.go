@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"reflect"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -1183,6 +1184,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 				Warning: 1,
 			},
 			Meta: map[string]string{
+				"non_voter":             strconv.FormatBool(member.Tags["non_voter"] == "true"),
 				"raft_version":          strconv.Itoa(parts.RaftVersion),
 				"serf_protocol_current": strconv.FormatUint(uint64(member.ProtocolCur), 10),
 				"serf_protocol_min":     strconv.FormatUint(uint64(member.ProtocolMin), 10),
@@ -1212,9 +1214,10 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 				return err
 			}
 			if services != nil {
-				for id := range services.Services {
+				for id, serv := range services.Services {
 					if id == service.ID {
-						match = true
+						// If metadata are different, be sure to update it
+						match = reflect.DeepEqual(serv.Meta, service.Meta)
 					}
 				}
 			}
