@@ -36,7 +36,8 @@ description: >-
     listener will be routable.
   - The ingress gateway will route traffic based on the host/authority header,
     expecting a value matching `<service-name>.ingress.*`, or if using namespaces,
-    `<service-name>.ingress.<namespace>.*`.
+    `<service-name>.ingress.<namespace>.*`. This matches the [Consul DNS
+    ingress subdomain](/docs/agent/dns#ingress-service-lookups).
 
   A wildcard specifier cannot be set on a listener of protocol `tcp`.
 
@@ -116,6 +117,9 @@ Listeners = [
     - `Enabled` `(bool: false)` - Set this configuration to enable TLS for
   every listener on the gateway.
 
+    If TLS is enabled, then each host defined in the `Host` field will be added
+    as a DNSSAN to the gateway's x509 certificate.
+
 - `Listeners` `(array<IngressListener>: <optional>)` - A list of listeners that
   the ingress gateway should setup, uniquely identified by their port number.
 
@@ -141,11 +145,28 @@ Listeners = [
       assumed.
 
     - `Hosts` `(array<string>: <optional>)` - A list of hosts that specify what
-      requests will match to this service. This cannot be used with a `tcp`
-      listener, and cannot be specified alongside a `*` service name.
+      requests will match this service. This cannot be used with a `tcp`
+      listener, and cannot be specified alongside a `*` service name. If not
+      specified, the default domain `<service-name>.ingress.*` will be used to
+      match services. Requests **must** send the correct host to be routed to
+      the defined service.
 
-      If TLS is enabled, then each host will be added as a DNSSAN to the
-      gateway's x509 certificate.
+      The wildcard specifier, `*`, can be used by itself to match all traffic
+      coming to the ingress gateway, if TLS is not enabled. This allows a user
+      to route all traffic to a single service without specifying a host,
+      allowing simpler tests and demos. Otherwise, the wildcard specifier can
+      be used as part of the host to match multiple hosts, but only in the
+      leftmost DNS label. This ensures that all defined hosts are valid DNS
+      records. For example, `*.example.com` is valid, while `example.*` and
+      `*-suffix.example.com` are not.
+
+      ~> **Note:** If a well-known port is not used, i.e. a port other than 80
+      (http) or 443 (https), then the port must be appended to the host to
+      correctly match traffic. This is defined in the [HTTP/1.1
+      RFC](https://tools.ietf.org/html/rfc2616#section-14.23). If TLS is
+      enabled, then the host **without** the port must be added to the `Hosts`
+      field as well. TLS verification only matches against the hostname of the
+      incoming connection, and thus does not take into account the port.
 
 ## ACLs
 
