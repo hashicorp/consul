@@ -265,7 +265,6 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "allow"
-		c.ACLEnforceVersion8 = true
 		c.Bootstrap = true
 	})
 	defer os.RemoveAll(dir1)
@@ -276,7 +275,6 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "allow"
-		c.ACLEnforceVersion8 = true
 		c.Bootstrap = false
 	})
 	defer os.RemoveAll(dir2)
@@ -287,7 +285,6 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "allow"
-		c.ACLEnforceVersion8 = true
 		c.Bootstrap = false
 	})
 	defer os.RemoveAll(dir3)
