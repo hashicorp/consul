@@ -91,15 +91,15 @@
   @extend %with-user-organization-mask, %as-pseudo;
   background-color: $gray-500;
 }
-%composite-row-detail li.path > span:first-child::before {
+%composite-row-detail dl.path dt::before {
   @extend %with-path-mask, %as-pseudo;
   background-color: $gray-500;
 }
-%composite-row-detail li.port > span:first-child::before {
+%composite-row-detail dl.port dt::before {
   @extend %with-port-mask, %as-pseudo;
   background-color: $gray-500;
 }
-%composite-row-detail li.protocol > span:first-child::before {
+%composite-row-detail dl.protocol dt::before {
   @extend %with-protocol-mask, %as-pseudo;
   background-color: $gray-500;
 }
