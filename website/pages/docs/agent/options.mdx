@@ -40,7 +40,9 @@ documented below in the
 [reload command](/docs/commands/reload) can also be used to trigger a
 configuration reload.
 
-You can test the following configuration options by following the [Getting Started](https://learn.hashicorp.com/consul/getting-started/install?utm_source=consul.io&utm_medium=docs) guides to install a local agent.
+You can test the following configuration options by following the
+[Getting Started](https://learn.hashicorp.com/consul/getting-started/install?utm_source=consul.io&utm_medium=docs)
+guides to install a local agent.
 
 ## Environment Variables
 
@@ -194,7 +196,7 @@ The options below are all specified on the command-line.
   the data directory. This is useful when running multiple Consul agents on the same
   host for testing. This defaults to false in Consul prior to version 0.8.5 and in
   0.8.5 and later defaults to true, so you must opt-in for host-based IDs. Host-based
-  IDs are generated using https://github.com/shirou/gopsutil/tree/master/host, which
+  IDs are generated using [gopsutil](https://github.com/shirou/gopsutil/tree/master/host), which
   is shared with HashiCorp's [Nomad](https://www.nomadproject.io/), so if you opt-in
   to host-based IDs then Consul and Nomad will use information on the host to automatically
   assign the same ID in both systems.
@@ -423,7 +425,7 @@ The options below are all specified on the command-line.
   primary datacenter if the first attempt fails. This is useful for cases where we
   know the address will become available eventually. [Cloud Auto-Joining](#cloud-auto-joining)
   is supported as well as [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
-  templates. This was added in Consul 1.8.x **TODO(wanfed)**.
+  templates. This was added in Consul 1.8.0.
 
 - `-raft-protocol` ((#\_raft_protocol)) - This controls the internal version
   of the Raft consensus protocol used for server communications. This must be set
@@ -998,7 +1000,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     in order for Connect to function properly. Defaults to false.
 
   - `enable_mesh_gateway_wan_federation` ((#connect_enable_mesh_gateway_wan_federation)) Controls whether cross-datacenter federation traffic between servers is funneled
-    through mesh gateways. Defaults to false. This was added in Consul 1.8.x **TODO(wanfed)**.
+    through mesh gateways. Defaults to false. This was added in Consul 1.8.0.
 
   - `ca_provider` ((#connect_ca_provider)) Controls which CA provider to
     use for Connect's CA. Currently only the `consul` and `vault` providers are supported.
@@ -1533,11 +1535,11 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   mesh gateways for the primary datacenter when authoritative replicated catalog
   data is not present. Discovery happens every [`primary_gateways_interval`](#primary_gateways_interval)
   until at least one primary mesh gateway is discovered. This was added in Consul
-  1.8.x **TODO(wanfed)**.
+  1.8.0.
 
 - `primary_gateways_interval` Time to wait
   between [`primary_gateways`](#primary_gateways) discovery attempts. Defaults to
-  30s. This was added in Consul 1.8.x **TODO(wanfed)**.
+  30s. This was added in Consul 1.8.0.
 
 - `protocol` ((#protocol)) Equivalent to the [`-protocol` command-line
   flag](#_protocol).
@@ -1751,9 +1753,9 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     statsite.
 
   - `prefix_filter` ((#telemetry-prefix_filter))
-    This is a list of filter rules to apply for allowing/blocking metrics by prefix
-    in the following format:
-
+    This is a list of filter rules to apply for allowing/blocking metrics by
+    prefix in the following format:
+    
     ```json
     ["+consul.raft.apply", "-consul.http", "+consul.http.GET"]
     ```
@@ -1802,9 +1804,10 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   or "tls13". This defaults to "tls12". WARNING: TLS 1.1 and lower are generally
   considered less secure; avoid using these if possible.
 
-- `tls_cipher_suites` Added in Consul 0.8.2, this
-  specifies the list of supported ciphersuites as a comma-separated-list. The list
-  of all supported ciphersuites is available in the [source code](https://github.com/hashicorp/consul/blob/master/tlsutil/config.go#L363).
+- `tls_cipher_suites` Added in Consul 0.8.2, this specifies the list of
+  supported ciphersuites as a comma-separated-list. The list of all supported
+  ciphersuites is available through 
+  [this search](https://github.com/hashicorp/consul/search?q=cipherMap+%3A%3D+map&unscoped_q=cipherMap+%3A%3D+map).
 
 - `tls_prefer_server_cipher_suites` Added in Consul 0.8.2, this
   will cause Consul to prefer the server's ciphersuite over the client ciphersuites.
@@ -1927,14 +1930,17 @@ required ports and their default settings.
 Reloading configuration does not reload all configuration items. The
 items which are reloaded include:
 
-- Log level
+- ACL Tokens
+- [Configuration Entry Bootstrap](#config_entries_bootstrap)
 - Checks
-- Services
-- Watches
+- [Discard Check Output](#discard_check_output)
 - HTTP Client Address
+- Log level
+- [Metric Prefix Filter](#telemetry-prefix_filter)
+- [Node Metadata](#node_meta)
+- [RPC rate limiting](#limits)
+- [HTTP Maximum Connections per Client](#http_max_conns_per_client)
+- Services
 - TLS Configuration
   - Please be aware that this is currently limited to reload a configuration that is already TLS enabled. You cannot enable or disable TLS only with reloading.
-- [Node Metadata](#node_meta)
-- [Metric Prefix Filter](#telemetry-prefix_filter)
-- [Discard Check Output](#discard_check_output)
-- [RPC rate limiting](#limits)
+- Watches

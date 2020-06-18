@@ -19,10 +19,10 @@ one global entry is supported.
 Set the default protocol for all sidecar proxies in the default namespace:
 
 ```hcl
-kind = "proxy-defaults"
-name = "global"
-namespace = "default"
-config {
+Kind      = "proxy-defaults"
+Name      = "global"
+Namespace = "default"
+Config {
   protocol = "http"
 }
 ```
@@ -30,11 +30,11 @@ config {
 Set proxy-specific defaults :
 
 ```hcl
-kind = "proxy-defaults"
-name = "global"
-config {
+Kind = "proxy-defaults"
+Name = "global"
+Config {
   local_connect_timeout_ms = 1000
-  handshake_timeout_ms = 10000
+  handshake_timeout_ms     = 10000
 }
 ```
 

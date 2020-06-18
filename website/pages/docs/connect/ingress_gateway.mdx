@@ -1,14 +1,14 @@
 ---
 layout: docs
 page_title: Connect - Ingress Gateways
-sidebar_title: Ingress Gateways <sup> Beta </sup>
+sidebar_title: Ingress Gateways
 description: >-
   An ingress gateway enables ingress traffic from services outside the Consul
   service mesh to services inside the Consul service mesh. This section details
   how to use Envoy and describes how you can plug in a gateway of your choice.
 ---
 
-# Ingress Gateways <sup> Beta </sup>
+# Ingress Gateways
 
 -> **1.8.0+:**  This feature is available in Consul versions 1.8.0 and newer.
 
@@ -22,15 +22,18 @@ exposed and on what port. You configure an ingress gateway by defining a set of
 to a set of backing
 [services](/docs/agent/config-entries/ingress-gateway#services).
 
-Depending on the
-[protocol](/docs/agent/config-entries/ingress-gateway#protocol) defined for a
-listener, multiple services can be specified for a single listener. In this
-case, the ingress gateway relies on host/authority headers to decide the
-service that should receive the traffic.
-
 To enable easier service discovery, a new Consul [DNS
 subdomain](/docs/agent/dns#ingress-service-lookups) is provided, on
 `<service>.ingress.<domain>`.
+
+For listeners with a
+[protocol](/docs/agent/config-entries/ingress-gateway#protocol) other than
+`tcp`, multiple services can be specified for a single listener. In this
+case, the ingress gateway relies on host/authority headers to decide the
+service that should receive the traffic. The host used to match traffic
+defaults to the [Consul DNS ingress
+subdomain](/docs/agent/dns#ingress-service-lookups), but can be changed using
+the [hosts](/docs/agent/config-entries/ingress-gateway#hosts) field.
 
 ![Ingress Gateway Architecture](/img/ingress-gateways.png)
 
@@ -38,7 +41,7 @@ subdomain](/docs/agent/dns#ingress-service-lookups) is provided, on
 
 Ingress gateways also require that your Consul datacenters are configured correctly:
 
-- You'll need to use Consul version 1.8.0.
+- You'll need to use Consul version 1.8.0 or newer.
 - Consul [Connect](/docs/agent/options#connect) must be enabled on the datacenter's Consul servers.
 - [gRPC](/docs/agent/options#grpc_port) must be enabled on all client agents.
 
@@ -46,24 +49,10 @@ Currently, [Envoy](https://www.envoyproxy.io/) is the only proxy with ingress ga
 
 ## Running and Using an Ingress Gateway
 
-You must complete the following steps to configure an ingress gateway to proxy traffic to services in the Consul service mesh:
+For a complete example of how to allow external traffic inside your Consul service mesh,
+review the [ingress gateway guide](https://learn.hashicorp.com/consul/developer-mesh/ingress-gateways).
 
-1. On a host with a Consul client agent, start an Envoy proxy using the [envoy
-subcommand](/docs/commands/connect/envoy), specifying the `ingress` gateway
-type:
-    ```shell
-    $ consul connect envoy -gateway=ingress -register -service ingress-service \
-      -address '{{ GetInterfaceIP "eth0" }}:8888'
-    ```
-
-2. Create and apply an `ingress-gateway` [configuration entry](/docs/agent/config-entries/ingress-gateway) that defines
-a set of listeners that expose the desired backing services. The config entry can be applied via the
-[CLI](/docs/commands/config/write) or [API](/api/config#apply-configuration).
-
-3. Ensure that [Consul intentions](/docs/commands/intention) are setup to allow connections from the ingress gateway to the backing services.
-
-4. **Optionally** use the `<service>.ingress.<domain>` [DNS subdomain](/docs/agent/dns#ingress-service-lookups) to discover the ingress
-gateways for a service.
+5. **Optionally** use the [Consul L7 traffic management](/docs/connect/l7-traffic-management) for exposed services to route traffic.
 
 ## Ingress Gateway Configuration
 
@@ -74,9 +63,11 @@ Connect proxy service, to define opaque configuration parameters useful for the 
 For Envoy there are some supported [gateway options](/docs/connect/proxies/envoy#gateway-options) as well as
 [escape-hatch overrides](/docs/connect/proxies/envoy#escape-hatch-overrides).
 
--> **Note:** If ACLs are enabled, a token granting `service:write` for the gateway's service name
-and `service:read` for all services in the datacenter. These permissions authorize the token to route
-communications for other Connect services.
+-> **Note:** If ACLs are enabled, ingress gateways must be registered with a token granting `service:write` for the ingress gateway's service name,
+`service:read` for all services in the ingress gateway's configuration entry, and `node:read` for all nodes of the services
+in the ingress gateway's configuration entry. These privileges authorize the token to route communications to other Connect services.
+If the Consul client agent on the gateway's node is not configured to use the default gRPC port, 8502, then the gateway's token
+must also provide `agent:read` for its node's name in order to discover the agent's gRPC port. gRPC is used to expose Envoy's xDS API to Envoy proxies.
 
 ~> [Configuration entries](/docs/agent/config-entries) are global in scope. A configuration entry for a gateway name applies
    across all federated Consul datacenters. If ingress gateways in different Consul datacenters need to route to different

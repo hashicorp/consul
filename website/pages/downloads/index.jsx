@@ -12,7 +12,13 @@ export default function DownloadsPage({ downloadData }) {
         product="Consul"
         version={VERSION}
         downloads={downloadData}
+        prerelease={{
+          type: 'release candidate', // the type of prerelease: beta, release candidate, etc.
+          name: 'v1.8.0', // the name displayed in text on the website
+          version: '1.8.0-rc1', // the actual version tag that was pushed to releases.hashicorp.com
+        }}
       >
+
         <p>
           <a href="/downloads_tools">&raquo; Download Consul Tools</a>
         </p>
