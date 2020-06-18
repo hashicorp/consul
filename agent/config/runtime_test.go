@@ -3918,7 +3918,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			hcl: []string{`
 				auto_config {
-					authorizer {
+					authorization {
 						enabled = true
 					}
 				}
@@ -3926,12 +3926,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			json: []string{`
 			{
 				"auto_config": {
-					"authorizer": {
+					"authorization": {
 						"enabled": true
 					}
 				}
 			}`},
-			err: "auto_config.authorizer.enabled cannot be set to true for client agents",
+			err: "auto_config.authorization.enabled cannot be set to true for client agents",
 		},
 
 		{
@@ -3942,7 +3942,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			hcl: []string{`
 				auto_config {
-					authorizer {
+					authorization {
 						enabled = true
 					}
 				}
@@ -3950,12 +3950,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			json: []string{`
 			{
 				"auto_config": {
-					"authorizer": {
+					"authorization": {
 						"enabled": true
 					}
 				}
 			}`},
-			err: `auto_config.authorizer has invalid configuration: exactly one of 'JWTValidationPubKeys', 'JWKSURL', or 'OIDCDiscoveryURL' must be set for type "jwt"`,
+			err: `auto_config.authorization.static has invalid configuration: exactly one of 'JWTValidationPubKeys', 'JWKSURL', or 'OIDCDiscoveryURL' must be set for type "jwt"`,
 		},
 
 		{
@@ -3966,24 +3966,28 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			hcl: []string{`
 				auto_config {
-					authorizer {
+					authorization {
 						enabled = true
-						jwks_url = "https://fake.uri.local"
-						oidc_discovery_url = "https://fake.uri.local"
+						static {
+							jwks_url = "https://fake.uri.local"
+							oidc_discovery_url = "https://fake.uri.local"
+						}
 					}
 				}
 			`},
 			json: []string{`
 			{
 				"auto_config": {
-					"authorizer": {
+					"authorization": {
 						"enabled": true,
-						"jwks_url": "https://fake.uri.local",
-						"oidc_discovery_url": "https://fake.uri.local"
+						"static": {
+							"jwks_url": "https://fake.uri.local",
+							"oidc_discovery_url": "https://fake.uri.local"
+						}
 					}
 				}
 			}`},
-			err: `auto_config.authorizer has invalid configuration: exactly one of 'JWTValidationPubKeys', 'JWKSURL', or 'OIDCDiscoveryURL' must be set for type "jwt"`,
+			err: `auto_config.authorization.static has invalid configuration: exactly one of 'JWTValidationPubKeys', 'JWKSURL', or 'OIDCDiscoveryURL' must be set for type "jwt"`,
 		},
 
 		{
@@ -3994,28 +3998,32 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			hcl: []string{`
 				auto_config {
-					authorizer {
+					authorization {
 						enabled = true
-						jwt_validation_pub_keys = ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"]
-						claim_assertions = [
-							"values.node == ${node}"
-						]
+						static {
+							jwt_validation_pub_keys = ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"]
+							claim_assertions = [
+								"values.node == ${node}"
+							]
+						}
 					}
 				}
 			`},
 			json: []string{`
 			{
 				"auto_config": {
-					"authorizer": {
+					"authorization": {
 						"enabled": true,
-						"jwt_validation_pub_keys": ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"],
-						"claim_assertions": [
-							"values.node == ${node}"
-						]
+						"static": {
+							"jwt_validation_pub_keys": ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"],
+							"claim_assertions": [
+								"values.node == ${node}"
+							]
+						}
 					}
 				}
 			}`},
-			err: `auto_config.claim_assertion "values.node == ${node}" is invalid: Selector "values" is not valid`,
+			err: `auto_config.authorization.static.claim_assertion "values.node == ${node}" is invalid: Selector "values" is not valid`,
 		},
 		{
 			desc: "auto config authorizer ok",
@@ -4025,14 +4033,16 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			hcl: []string{`
 				auto_config {
-					authorizer {
+					authorization {
 						enabled = true
-						jwt_validation_pub_keys = ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"]
-						claim_assertions = [
-							"value.node == ${node}"
-						]
-						claim_mappings = {
-							node = "node"
+						static {
+							jwt_validation_pub_keys = ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"]
+							claim_assertions = [
+								"value.node == ${node}"
+							]
+							claim_mappings = {
+								node = "node"
+							}
 						}
 					}
 				}
@@ -4040,14 +4050,16 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			json: []string{`
 			{
 				"auto_config": {
-					"authorizer": {
+					"authorization": {
 						"enabled": true,
-						"jwt_validation_pub_keys": ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"],
-						"claim_assertions": [
-							"value.node == ${node}"
-						],
-						"claim_mappings": {
-							"node": "node"
+						"static": {
+							"jwt_validation_pub_keys": ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"],
+							"claim_assertions": [
+								"value.node == ${node}"
+							],
+							"claim_mappings": {
+								"node": "node"
+							}
 						}
 					}
 				}
@@ -4304,19 +4316,21 @@ func TestFullConfig(t *testing.T) {
 				"dns_sans": ["6zdaWg9J"],
 				"ip_sans": ["198.18.99.99"],
 				"server_addresses": ["198.18.100.1"],
-				"authorizer": {
+				"authorization": {
 					"enabled": true,
-					"allow_reuse": true,
-					"claim_mappings": {
-						"node": "node"
-					},
-					"list_claim_mappings": {
-						"foo": "bar"
-					},
-					"bound_issuer": "consul",
-					"bound_audiences": ["consul-cluster-1"],
-					"claim_assertions": ["value.node == \"${node}\""],
-					"jwt_validation_pub_keys": ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"]
+					"static": {
+						"allow_reuse": true,
+						"claim_mappings": {
+							"node": "node"
+						},
+						"list_claim_mappings": {
+							"foo": "bar"
+						},
+						"bound_issuer": "consul",
+						"bound_audiences": ["consul-cluster-1"],
+						"claim_assertions": ["value.node == \"${node}\""],
+						"jwt_validation_pub_keys": ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"]
+					}
 				}
 			},
 			"autopilot": {
@@ -4962,19 +4976,21 @@ func TestFullConfig(t *testing.T) {
 				dns_sans = ["6zdaWg9J"]
 				ip_sans = ["198.18.99.99"]
 				server_addresses = ["198.18.100.1"]
-				authorizer = {
+				authorization = {
 					enabled = true
-					allow_reuse = true
-					claim_mappings = {
-						node = "node"
+					static {
+						allow_reuse = true
+						claim_mappings = {
+							node = "node"
+						}
+						list_claim_mappings = {
+							foo = "bar"
+						}
+						bound_issuer = "consul"
+						bound_audiences = ["consul-cluster-1"]
+						claim_assertions = ["value.node == \"${node}\""]
+						jwt_validation_pub_keys = ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"]
 					}
-					list_claim_mappings = {
-						foo = "bar"
-					}
-					bound_issuer = "consul"
-					bound_audiences = ["consul-cluster-1"]
-					claim_assertions = ["value.node == \"${node}\""]
-					jwt_validation_pub_keys = ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"]
 				}
 			}
 			autopilot = {
@@ -5828,7 +5844,6 @@ func TestFullConfig(t *testing.T) {
 				AuthMethod: structs.ACLAuthMethod{
 					Name:           "Auto Config Authorizer",
 					Type:           "jwt",
-					MaxTokenTTL:    72 * time.Hour,
 					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 					Config: map[string]interface{}{
 						"JWTValidationPubKeys": []string{"-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"},
@@ -5849,7 +5864,6 @@ func TestFullConfig(t *testing.T) {
 						"ClockSkewLeeway":     0 * time.Second,
 						"JWTSupportedAlgs":    []string(nil),
 					},
-					TokenLocality: "local",
 				},
 			},
 		},

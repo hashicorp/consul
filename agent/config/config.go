@@ -689,17 +689,21 @@ type AuditSink struct {
 }
 
 type AutoConfigRaw struct {
-	Enabled         *bool                   `json:"enabled,omitempty" hcl:"enabled" mapstructure:"enabled"`
-	IntroToken      *string                 `json:"intro_token,omitempty" hcl:"intro_token" mapstructure:"intro_token"`
-	IntroTokenFile  *string                 `json:"intro_token_file,omitempty" hcl:"intro_token_file" mapstructure:"intro_token_file"`
-	ServerAddresses []string                `json:"server_addresses,omitempty" hcl:"server_addresses" mapstructure:"server_addresses"`
-	DNSSANs         []string                `json:"dns_sans,omitempty" hcl:"dns_sans" mapstructure:"dns_sans"`
-	IPSANs          []string                `json:"ip_sans,omitempty" hcl:"ip_sans" mapstructure:"ip_sans"`
-	Authorizer      AutoConfigAuthorizerRaw `json:"authorizer,omitempty" hcl:"authorizer" mapstructure:"authorizer"`
+	Enabled         *bool                      `json:"enabled,omitempty" hcl:"enabled" mapstructure:"enabled"`
+	IntroToken      *string                    `json:"intro_token,omitempty" hcl:"intro_token" mapstructure:"intro_token"`
+	IntroTokenFile  *string                    `json:"intro_token_file,omitempty" hcl:"intro_token_file" mapstructure:"intro_token_file"`
+	ServerAddresses []string                   `json:"server_addresses,omitempty" hcl:"server_addresses" mapstructure:"server_addresses"`
+	DNSSANs         []string                   `json:"dns_sans,omitempty" hcl:"dns_sans" mapstructure:"dns_sans"`
+	IPSANs          []string                   `json:"ip_sans,omitempty" hcl:"ip_sans" mapstructure:"ip_sans"`
+	Authorization   AutoConfigAuthorizationRaw `json:"authorization,omitempty" hcl:"authorization" mapstructure:"authorization"`
+}
+
+type AutoConfigAuthorizationRaw struct {
+	Enabled *bool                   `json:"enabled,omitempty" hcl:"enabled" mapstructure:"enabled"`
+	Static  AutoConfigAuthorizerRaw `json:"static,omitempty" hcl:"static" mapstructure:"static"`
 }
 
 type AutoConfigAuthorizerRaw struct {
-	Enabled         *bool    `json:"enabled,omitempty" hcl:"enabled" mapstructure:"enabled"`
 	ClaimAssertions []string `json:"claim_assertions,omitempty" hcl:"claim_assertions" mapstructure:"claim_assertions"`
 	AllowReuse      *bool    `json:"allow_reuse,omitempty" hcl:"allow_reuse" mapstructure:"allow_reuse"`
 

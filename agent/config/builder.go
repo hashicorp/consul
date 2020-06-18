@@ -1937,41 +1937,41 @@ func (b *Builder) autoConfigVal(raw AutoConfigRaw) AutoConfig {
 		val.IPSANs = append(val.IPSANs, ip)
 	}
 
-	val.Authorizer = b.autoConfigAuthorizerVal(raw.Authorizer)
+	val.Authorizer = b.autoConfigAuthorizerVal(raw.Authorization)
 
 	return val
 }
 
-func (b *Builder) autoConfigAuthorizerVal(raw AutoConfigAuthorizerRaw) AutoConfigAuthorizer {
+func (b *Builder) autoConfigAuthorizerVal(raw AutoConfigAuthorizationRaw) AutoConfigAuthorizer {
+	// Our config file syntax wraps the static authorizer configuration in a "static" stanza. However
+	// internally we do not support multiple configured authorization types so the RuntimeConfig just
+	// inlines the static one. While we can and probably should extend the authorization types in the
+	// future to support dynamic authorizers (ACL Auth Methods configured via normal APIs) its not
+	// needed right now so the configuration types will remain simplistic until they need to be otherwise.
 	var val AutoConfigAuthorizer
 
 	val.Enabled = b.boolValWithDefault(raw.Enabled, false)
-	val.ClaimAssertions = raw.ClaimAssertions
-	val.AllowReuse = b.boolValWithDefault(raw.AllowReuse, false)
+	val.ClaimAssertions = raw.Static.ClaimAssertions
+	val.AllowReuse = b.boolValWithDefault(raw.Static.AllowReuse, false)
 	val.AuthMethod = structs.ACLAuthMethod{
-		Name: "Auto Config Authorizer",
-		Type: "jwt",
-		// TODO (autoconf) - Configurable token TTL
-		MaxTokenTTL:    72 * time.Hour,
+		Name:           "Auto Config Authorizer",
+		Type:           "jwt",
 		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 		Config: map[string]interface{}{
-			"JWTSupportedAlgs":     raw.JWTSupportedAlgs,
-			"BoundAudiences":       raw.BoundAudiences,
-			"ClaimMappings":        raw.ClaimMappings,
-			"ListClaimMappings":    raw.ListClaimMappings,
-			"OIDCDiscoveryURL":     b.stringVal(raw.OIDCDiscoveryURL),
-			"OIDCDiscoveryCACert":  b.stringVal(raw.OIDCDiscoveryCACert),
-			"JWKSURL":              b.stringVal(raw.JWKSURL),
-			"JWKSCACert":           b.stringVal(raw.JWKSCACert),
-			"JWTValidationPubKeys": raw.JWTValidationPubKeys,
-			"BoundIssuer":          b.stringVal(raw.BoundIssuer),
-			"ExpirationLeeway":     b.durationVal("auto_config.authorizer.expiration_leeway", raw.ExpirationLeeway),
-			"NotBeforeLeeway":      b.durationVal("auto_config.authorizer.not_before_leeway", raw.NotBeforeLeeway),
-			"ClockSkewLeeway":      b.durationVal("auto_config.authorizer.clock_skew_leeway", raw.ClockSkewLeeway),
+			"JWTSupportedAlgs":     raw.Static.JWTSupportedAlgs,
+			"BoundAudiences":       raw.Static.BoundAudiences,
+			"ClaimMappings":        raw.Static.ClaimMappings,
+			"ListClaimMappings":    raw.Static.ListClaimMappings,
+			"OIDCDiscoveryURL":     b.stringVal(raw.Static.OIDCDiscoveryURL),
+			"OIDCDiscoveryCACert":  b.stringVal(raw.Static.OIDCDiscoveryCACert),
+			"JWKSURL":              b.stringVal(raw.Static.JWKSURL),
+			"JWKSCACert":           b.stringVal(raw.Static.JWKSCACert),
+			"JWTValidationPubKeys": raw.Static.JWTValidationPubKeys,
+			"BoundIssuer":          b.stringVal(raw.Static.BoundIssuer),
+			"ExpirationLeeway":     b.durationVal("auto_config.authorization.static.expiration_leeway", raw.Static.ExpirationLeeway),
+			"NotBeforeLeeway":      b.durationVal("auto_config.authorization.static.not_before_leeway", raw.Static.NotBeforeLeeway),
+			"ClockSkewLeeway":      b.durationVal("auto_config.authorization.static.clock_skew_leeway", raw.Static.ClockSkewLeeway),
 		},
-		// should be unnecessary as we aren't using the typical login process to create tokens but this is our
-		// desired mode regardless so if it ever did matter its probably better to be explicit.
-		TokenLocality: "local",
 	}
 
 	return val
@@ -2018,7 +2018,7 @@ func (b *Builder) validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 	}
 	// Auto Config Authorization is only supported on servers
 	if !rt.ServerMode {
-		return fmt.Errorf("auto_config.authorizer.enabled cannot be set to true for client agents")
+		return fmt.Errorf("auto_config.authorization.enabled cannot be set to true for client agents")
 	}
 
 	// build out the validator to ensure that the given configuration was valid
@@ -2026,7 +2026,7 @@ func (b *Builder) validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 	validator, err := ssoauth.NewValidator(null, &authz.AuthMethod)
 
 	if err != nil {
-		return fmt.Errorf("auto_config.authorizer has invalid configuration: %v", err)
+		return fmt.Errorf("auto_config.authorization.static has invalid configuration: %v", err)
 	}
 
 	// create a blank identity for use to validate the claim assertions.
@@ -2041,14 +2041,14 @@ func (b *Builder) validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 		// validate any HIL
 		filled, err := libtempl.InterpolateHIL(raw, varMap, true)
 		if err != nil {
-			return fmt.Errorf("auto_config.claim_assertion %q is invalid: %v", raw, err)
+			return fmt.Errorf("auto_config.authorization.static.claim_assertion %q is invalid: %v", raw, err)
 		}
 
 		// validate the bexpr syntax - note that for now all the keys mapped by the claim mappings
 		// are not validateable due to them being put inside a map. Some bexpr updates to setup keys
 		// from current map keys would probably be nice here.
 		if _, err := bexpr.CreateEvaluatorForType(filled, nil, blankID.SelectableFields); err != nil {
-			return fmt.Errorf("auto_config.claim_assertion %q is invalid: %v", raw, err)
+			return fmt.Errorf("auto_config.authorization.static.claim_assertion %q is invalid: %v", raw, err)
 		}
 	}
 	return nil
