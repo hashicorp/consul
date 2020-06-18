@@ -221,7 +221,7 @@ export default [
           },
           {
             category: 'multi-cluster',
-            name: 'Multi-Cluster Federation <sup> Beta </sup>',
+            name: 'Multi-Cluster Federation',
             content: ['overview', 'kubernetes', 'vms-and-kubernetes'],
           },
         ],
