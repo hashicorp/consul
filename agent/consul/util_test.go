@@ -125,15 +125,6 @@ func TestIsConsulNode(t *testing.T) {
 	}
 }
 
-func TestByteConversion(t *testing.T) {
-	t.Parallel()
-	var val uint64 = 2 << 50
-	raw := uint64ToBytes(val)
-	if bytesToUint64(raw) != val {
-		t.Fatalf("no match")
-	}
-}
-
 func TestGenerateUUID(t *testing.T) {
 	t.Parallel()
 	prev := generateUUID()
