@@ -322,6 +322,22 @@ func NewServer(config *Config) (*Server, error) {
 // NewServerLogger is used to construct a new Consul server from the
 // configuration, potentially returning an error
 func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token.Store, tlsConfigurator *tlsutil.Configurator) (*Server, error) {
+	return NewServerWithOptions(config,
+		WithLogger(logger),
+		WithTokenStore(tokens),
+		WithTLSConfigurator(tlsConfigurator))
+}
+
+// NewServerWithOptions is used to construct a new Consul server from the configuration
+// and extra options, potentially returning an error
+func NewServerWithOptions(config *Config, options ...ConsulOption) (*Server, error) {
+	flat := flattenConsulOptions(options)
+
+	logger := flat.logger
+	tokens := flat.tokens
+	tlsConfigurator := flat.tlsConfigurator
+	connPool := flat.connPool
+
 	// Check the protocol version.
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -376,14 +392,16 @@ func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token
 	// Create the shutdown channel - this is closed but never written to.
 	shutdownCh := make(chan struct{})
 
-	connPool := &pool.ConnPool{
-		Server:          true,
-		SrcAddr:         config.RPCSrcAddr,
-		LogOutput:       config.LogOutput,
-		MaxTime:         serverRPCCache,
-		MaxStreams:      serverMaxStreams,
-		TLSConfigurator: tlsConfigurator,
-		Datacenter:      config.Datacenter,
+	if connPool == nil {
+		connPool = &pool.ConnPool{
+			Server:          true,
+			SrcAddr:         config.RPCSrcAddr,
+			LogOutput:       config.LogOutput,
+			MaxTime:         serverRPCCache,
+			MaxStreams:      serverMaxStreams,
+			TLSConfigurator: tlsConfigurator,
+			Datacenter:      config.Datacenter,
+		}
 	}
 
 	serverLogger := logger.NamedIntercept(logging.ConsulServer)

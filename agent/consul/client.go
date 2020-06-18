@@ -101,7 +101,13 @@ func NewClient(config *Config) (*Client, error) {
 	return NewClientLogger(config, nil, c)
 }
 
-func NewClientLogger(config *Config, logger hclog.InterceptLogger, tlsConfigurator *tlsutil.Configurator) (*Client, error) {
+func NewClientWithOptions(config *Config, options ...ConsulOption) (*Client, error) {
+	flat := flattenConsulOptions(options)
+
+	logger := flat.logger
+	tlsConfigurator := flat.tlsConfigurator
+	connPool := flat.connPool
+
 	// Check the protocol version
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -130,14 +136,16 @@ func NewClientLogger(config *Config, logger hclog.InterceptLogger, tlsConfigurat
 		})
 	}
 
-	connPool := &pool.ConnPool{
-		Server:          false,
-		SrcAddr:         config.RPCSrcAddr,
-		LogOutput:       config.LogOutput,
-		MaxTime:         clientRPCConnMaxIdle,
-		MaxStreams:      clientMaxStreams,
-		TLSConfigurator: tlsConfigurator,
-		Datacenter:      config.Datacenter,
+	if connPool == nil {
+		connPool = &pool.ConnPool{
+			Server:          false,
+			SrcAddr:         config.RPCSrcAddr,
+			LogOutput:       config.LogOutput,
+			MaxTime:         clientRPCConnMaxIdle,
+			MaxStreams:      clientMaxStreams,
+			TLSConfigurator: tlsConfigurator,
+			Datacenter:      config.Datacenter,
+		}
 	}
 
 	// Create client
@@ -200,6 +208,10 @@ func NewClientLogger(config *Config, logger hclog.InterceptLogger, tlsConfigurat
 	}
 
 	return c, nil
+}
+
+func NewClientLogger(config *Config, logger hclog.InterceptLogger, tlsConfigurator *tlsutil.Configurator) (*Client, error) {
+	return NewClientWithOptions(config, WithLogger(logger), WithTLSConfigurator(tlsConfigurator))
 }
 
 // Shutdown is used to shutdown the client

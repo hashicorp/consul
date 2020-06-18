@@ -40,7 +40,7 @@ func TestPolicyReadCommand(t *testing.T) {
 	}`)
 
 	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1", testrpc.WithToken("root"))
 
 	ui := cli.NewMockUi()
 	cmd := New(ui)
@@ -86,7 +86,7 @@ func TestPolicyReadCommand_JSON(t *testing.T) {
 	}`)
 
 	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1", testrpc.WithToken("root"))
 
 	ui := cli.NewMockUi()
 	cmd := New(ui)
