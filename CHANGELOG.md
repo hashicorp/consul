@@ -8,8 +8,6 @@ IMPROVEMENTS:
 
 * acl: allow auth methods created in the primary datacenter to optionally create global tokens [[GH-7899](https://github.com/hashicorp/consul/issues/7899)]
 * agent: Allow to restrict servers that can join a given Serf Consul cluster. [[GH-7628](https://github.com/hashicorp/consul/issues/7628)]
-* connect: Always require Host headers when serving L7 traffic through ingress gateways [[GH-7990]](https://github.com/hashicorp/consul/pull/7990)
-* connect: Allow users to specify wildcard host for ingress when TLS is disabled [[GH-8083]](https://github.com/hashicorp/consul/pull/8083)
 
 ## 1.8.0 (June 18, 2020)
 
