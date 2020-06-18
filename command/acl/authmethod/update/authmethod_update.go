@@ -29,11 +29,10 @@ type cmd struct {
 
 	name string
 
-	displayName   string
-	description   string
-	maxTokenTTL   time.Duration
-	tokenLocality string
-	config        string
+	displayName string
+	description string
+	maxTokenTTL time.Duration
+	config      string
 
 	k8sHost              string
 	k8sCACert            string
@@ -85,13 +84,6 @@ func (c *cmd) init() {
 		"max-token-ttl",
 		0,
 		"Duration of time all tokens created by this auth method should be valid for",
-	)
-	c.flags.StringVar(
-		&c.tokenLocality,
-		"token-locality",
-		"",
-		"Defines the kind of token that this auth method should produce. "+
-			"This can be either 'local' or 'global'. If empty the value of 'local' is assumed.",
 	)
 
 	c.flags.StringVar(
@@ -187,11 +179,10 @@ func (c *cmd) Run(args []string) int {
 	var method *api.ACLAuthMethod
 	if c.noMerge {
 		method = &api.ACLAuthMethod{
-			Name:          currentAuthMethod.Name,
-			Type:          currentAuthMethod.Type,
-			DisplayName:   c.displayName,
-			Description:   c.description,
-			TokenLocality: c.tokenLocality,
+			Name:        currentAuthMethod.Name,
+			Type:        currentAuthMethod.Type,
+			DisplayName: c.displayName,
+			Description: c.description,
 		}
 		if c.maxTokenTTL > 0 {
 			method.MaxTokenTTL = c.maxTokenTTL
@@ -247,9 +238,6 @@ func (c *cmd) Run(args []string) int {
 		}
 		if c.maxTokenTTL > 0 {
 			method.MaxTokenTTL = c.maxTokenTTL
-		}
-		if c.tokenLocality != "" {
-			method.TokenLocality = c.tokenLocality
 		}
 		if err := c.enterprisePopulateAuthMethod(method); err != nil {
 			c.UI.Error(err.Error())
