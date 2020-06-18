@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -26,6 +27,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -36,6 +38,7 @@ import (
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/square/go-jose.v2/jwt"
 )
 
 func getService(a *TestAgent, id string) *structs.NodeService {
@@ -338,7 +341,7 @@ func TestAgent_makeNodeID(t *testing.T) {
 
 	// Turn on host-based IDs and try again. We should get the same ID
 	// each time (and a different one from the random one above).
-	a.Config.DisableHostNodeID = false
+	a.GetConfig().DisableHostNodeID = false
 	id, err = a.makeNodeID()
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -2830,10 +2833,10 @@ func TestAgent_Service_MaintenanceMode(t *testing.T) {
 
 func TestAgent_Service_Reap(t *testing.T) {
 	// t.Parallel() // timing test. no parallel
-	a := NewTestAgent(t, `
+	a := StartTestAgent(t, TestAgent{Overrides: `
 		check_reap_interval = "50ms"
 		check_deregister_interval_min = "0s"
-	`)
+	`})
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -2885,10 +2888,10 @@ func TestAgent_Service_Reap(t *testing.T) {
 
 func TestAgent_Service_NoReap(t *testing.T) {
 	// t.Parallel() // timing test. no parallel
-	a := NewTestAgent(t, `
+	a := StartTestAgent(t, TestAgent{Overrides: `
 		check_reap_interval = "50ms"
 		check_deregister_interval_min = "0s"
-	`)
+	`})
 	defer a.Shutdown()
 
 	svc := &structs.NodeService{
@@ -3574,7 +3577,7 @@ func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 		verify_server_hostname = true
 	`
 	c := TestConfig(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
-	require.NoError(t, a.ReloadConfig(c))
+	require.NoError(t, a.reloadConfigInternal(c))
 	tlsConf = a.tlsConfigurator.OutgoingRPCConfig()
 	require.False(t, tlsConf.InsecureSkipVerify)
 	require.Len(t, tlsConf.RootCAs.Subjects(), 2)
@@ -3604,7 +3607,7 @@ func TestAgent_ReloadConfigAndKeepChecksStatus(t *testing.T) {
 	}
 
 	c := TestConfig(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
-	require.NoError(t, a.ReloadConfig(c))
+	require.NoError(t, a.reloadConfigInternal(c))
 	// After reload, should be passing directly (no critical state)
 	for id, check := range a.State.Checks(nil) {
 		require.Equal(t, "passing", check.Status, "check %q is wrong", id)
@@ -3643,7 +3646,7 @@ func TestAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
 		verify_server_hostname = true
 	`
 	c := TestConfig(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
-	require.NoError(t, a.ReloadConfig(c))
+	require.NoError(t, a.reloadConfigInternal(c))
 	tlsConf, err = tlsConf.GetConfigForClient(nil)
 	require.NoError(t, err)
 	require.False(t, tlsConf.InsecureSkipVerify)
@@ -3672,7 +3675,7 @@ func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
 		verify_incoming = true
 	`
 	c := TestConfig(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
-	require.Error(t, a.ReloadConfig(c))
+	require.Error(t, a.reloadConfigInternal(c))
 	tlsConf, err := tlsConf.GetConfigForClient(nil)
 	require.NoError(t, err)
 	require.Equal(t, tls.NoClientCert, tlsConf.ClientAuth)
@@ -4545,4 +4548,110 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 			})
 		}
 	}
+}
+
+func TestAutoConfig_Integration(t *testing.T) {
+	// eventually this test should really live with integration tests
+	// the goal here is to have one test server and another test client
+	// spin up both agents and allow the server to authorize the auto config
+	// request and then see the client joined
+
+	cfgDir := testutil.TempDir(t, "auto-config")
+
+	// write some test TLS certificates out to the cfg dir
+	cert, key, cacert, err := testTLSCertificates("server.dc1.consul")
+	require.NoError(t, err)
+
+	certFile := filepath.Join(cfgDir, "cert.pem")
+	caFile := filepath.Join(cfgDir, "cacert.pem")
+	keyFile := filepath.Join(cfgDir, "key.pem")
+
+	require.NoError(t, ioutil.WriteFile(certFile, []byte(cert), 0600))
+	require.NoError(t, ioutil.WriteFile(caFile, []byte(cacert), 0600))
+	require.NoError(t, ioutil.WriteFile(keyFile, []byte(key), 0600))
+
+	// generate a gossip key
+	gossipKey := make([]byte, 32)
+	n, err := rand.Read(gossipKey)
+	require.NoError(t, err)
+	require.Equal(t, 32, n)
+	gossipKeyEncoded := base64.StdEncoding.EncodeToString(gossipKey)
+
+	// generate the JWT signing keys
+	pub, priv, err := oidcauthtest.GenerateKey()
+	require.NoError(t, err)
+
+	hclConfig := TestACLConfigWithParams(nil) + `
+		encrypt = "` + gossipKeyEncoded + `"
+		encrypt_verify_incoming = true
+		encrypt_verify_outgoing = true
+		verify_incoming = true
+		verify_outgoing = true
+		verify_server_hostname = true
+		ca_file = "` + caFile + `"
+		cert_file = "` + certFile + `"
+		key_file = "` + keyFile + `"
+		connect { enabled = true }
+		auto_encrypt { allow_tls = true }
+		auto_config {
+			authorizer {
+				enabled = true
+				claim_mappings = {
+					consul_node_name = "node"
+				}
+				claim_assertions = [
+					"value.node == \"${node}\""
+				]
+				bound_issuer = "consul"
+				bound_audiences = [
+					"consul"
+				]
+				jwt_validation_pub_keys = ["` + strings.ReplaceAll(pub, "\n", "\\n") + `"]
+			}
+		}
+	`
+
+	srv := StartTestAgent(t, TestAgent{Name: "TestAgent-Server", HCL: hclConfig})
+	defer srv.Shutdown()
+
+	testrpc.WaitForTestAgent(t, srv.RPC, "dc1", testrpc.WithToken(TestDefaultMasterToken))
+
+	// sign a JWT token
+	now := time.Now()
+	token, err := oidcauthtest.SignJWT(priv, jwt.Claims{
+		Subject:   "consul",
+		Issuer:    "consul",
+		Audience:  jwt.Audience{"consul"},
+		NotBefore: jwt.NewNumericDate(now.Add(-1 * time.Second)),
+		Expiry:    jwt.NewNumericDate(now.Add(5 * time.Minute)),
+	}, map[string]interface{}{
+		"consul_node_name": "test-client",
+	})
+	require.NoError(t, err)
+
+	client := StartTestAgent(t, TestAgent{Name: "test-client", HCL: TestACLConfigWithParams(nil) + `
+	   bootstrap = false
+		server = false
+		ca_file = "` + caFile + `"
+		verify_outgoing = true
+		verify_server_hostname = true
+		node_name = "test-client"
+		ports {
+			server = ` + strconv.Itoa(srv.Config.RPCBindAddr.Port) + `
+		}
+		auto_config {
+			enabled = true
+			intro_token = "` + token + `"
+			server_addresses = ["` + srv.Config.RPCBindAddr.String() + `"]
+		}`})
+
+	defer client.Shutdown()
+
+	// when this is successful we managed to get the gossip key and serf addresses to bind to
+	// and then connect. Additionally we would have to have certificates or else the
+	// verify_incoming config on the server would not let it work.
+	testrpc.WaitForTestAgent(t, client.RPC, "dc1", testrpc.WithToken(TestDefaultMasterToken))
+
+	// spot check that we now have an ACL token
+	require.NotEmpty(t, client.tokens.AgentToken())
 }

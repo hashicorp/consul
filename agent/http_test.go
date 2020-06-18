@@ -1447,7 +1447,7 @@ func TestRPC_HTTPSMaxConnsPerClient(t *testing.T) {
 			// Reload config with higher limit
 			newCfg := *a.config
 			newCfg.HTTPMaxConnsPerClient = 10
-			require.NoError(t, a.ReloadConfig(&newCfg))
+			require.NoError(t, a.reloadConfigInternal(&newCfg))
 
 			// Now another conn should be allowed
 			conn4, err := net.DialTimeout("tcp", addr.String(), time.Second)

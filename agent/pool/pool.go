@@ -466,7 +466,11 @@ func (p *ConnPool) getNewConn(dc string, nodeName string, addr net.Addr) (*Conn,
 	conf.LogOutput = p.LogOutput
 
 	// Create a multiplexed session
-	session, _ := yamux.Client(conn, conf)
+	session, err := yamux.Client(conn, conf)
+	if err != nil {
+		conn.Close()
+		return nil, fmt.Errorf("Failed to create yamux client: %w", err)
+	}
 
 	// Wrap the connection
 	c := &Conn{
@@ -552,7 +556,11 @@ func (p *ConnPool) RPC(
 		return fmt.Errorf("pool: ConnPool.RPC requires a node name")
 	}
 
-	if method == "AutoEncrypt.Sign" {
+	// TODO (autoconf) probably will want to have a way to invoke the
+	// secure or insecure variant depending on whether its an ongoing
+	// or first time config request. For now though this is fine until
+	// those ongoing requests are implemented.
+	if method == "AutoEncrypt.Sign" || method == "Cluster.AutoConfig" {
 		return p.rpcInsecure(dc, nodeName, addr, method, args, reply)
 	} else {
 		return p.rpc(dc, nodeName, addr, method, args, reply)

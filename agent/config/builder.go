@@ -906,6 +906,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		ConnectMeshGatewayWANFederationEnabled: connectMeshGatewayWANFederationEnabled,
 		ConnectSidecarMinPort:                  sidecarMinPort,
 		ConnectSidecarMaxPort:                  sidecarMaxPort,
+		ConnectTestCALeafRootChangeSpread:      b.durationVal("connect.test_ca_leaf_root_change_spread", c.Connect.TestCALeafRootChangeSpread),
 		ExposeMinPort:                          exposeMinPort,
 		ExposeMaxPort:                          exposeMaxPort,
 		DataDir:                                b.stringVal(c.DataDir),

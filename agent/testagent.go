@@ -2,6 +2,9 @@ package agent
 
 import (
 	"bytes"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/x509"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -20,6 +23,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 	uuid "github.com/hashicorp/go-uuid"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul"
@@ -27,6 +31,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/tlsutil"
 )
 
 func init() {
@@ -81,6 +86,10 @@ type TestAgent struct {
 	// It is valid after Start().
 	srv *HTTPServer
 
+	// overrides is an hcl config source to use to override otherwise
+	// non-user settable configurations
+	Overrides string
+
 	// Agent is the embedded consul agent.
 	// It is valid after Start().
 	*Agent
@@ -100,6 +109,7 @@ func NewTestAgent(t *testing.T, hcl string) *TestAgent {
 // The caller is responsible for calling Shutdown() to stop the agent and remove
 // temporary directories.
 func StartTestAgent(t *testing.T, a TestAgent) *TestAgent {
+	t.Helper()
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
 		if err := a.Start(t); err != nil {
 			r.Fatal(err)
@@ -109,9 +119,31 @@ func StartTestAgent(t *testing.T, a TestAgent) *TestAgent {
 	return &a
 }
 
+func TestConfigHCL(nodeID string) string {
+	return fmt.Sprintf(`
+		bind_addr = "127.0.0.1"
+		advertise_addr = "127.0.0.1"
+		datacenter = "dc1"
+		bootstrap = true
+		server = true
+		node_id = "%[1]s"
+		node_name = "Node-%[1]s"
+		connect {
+			enabled = true
+			ca_config {
+				cluster_id = "%[2]s"
+			}
+		}
+		performance {
+			raft_multiplier = 1
+		}`, nodeID, connect.TestClusterID,
+	)
+}
+
 // Start starts a test agent. It returns an error if the agent could not be started.
 // If no error is returned, the caller must call Shutdown() when finished.
 func (a *TestAgent) Start(t *testing.T) (err error) {
+	t.Helper()
 	if a.Agent != nil {
 		return fmt.Errorf("TestAgent already started")
 	}
@@ -148,6 +180,7 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 		// parsing.
 		d = filepath.ToSlash(d)
 		hclDataDir = `data_dir = "` + d + `"`
+		a.DataDir = d
 	}
 
 	logOutput := a.LogOutput
@@ -164,11 +197,27 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 
 	portsConfig, returnPortsFn := randomPortsSource(a.UseTLS)
 	a.returnPortsFn = returnPortsFn
-	a.Config = TestConfig(logger,
-		portsConfig,
-		config.Source{Name: name, Format: "hcl", Data: a.HCL},
-		config.Source{Name: name + ".data_dir", Format: "hcl", Data: hclDataDir},
-	)
+
+	nodeID := NodeID()
+
+	opts := []AgentOption{
+		WithLogger(logger),
+		WithBuilderOpts(config.BuilderOpts{
+			HCL: []string{
+				TestConfigHCL(nodeID),
+				portsConfig,
+				a.HCL,
+				hclDataDir,
+			},
+		}),
+		WithOverrides(config.Source{
+			Name:   "test-overrides",
+			Format: "hcl",
+			Data:   a.Overrides},
+			config.DefaultConsulSource(),
+			config.DevConsulSource(),
+		),
+	}
 
 	defer func() {
 		if err != nil && a.returnPortsFn != nil {
@@ -180,7 +229,7 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 	// write the keyring
 	if a.Key != "" {
 		writeKey := func(key, filename string) error {
-			path := filepath.Join(a.Config.DataDir, filename)
+			path := filepath.Join(a.DataDir, filename)
 			if err := initKeyring(path, key); err != nil {
 				cleanupTmpDir()
 				return fmt.Errorf("Error creating keyring %s: %s", path, err)
@@ -197,13 +246,14 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 		}
 	}
 
-	agent, err := New(a.Config, logger)
+	agent, err := New(opts...)
 	if err != nil {
 		cleanupTmpDir()
 		return fmt.Errorf("Error creating agent: %s", err)
 	}
 
-	agent.LogOutput = logOutput
+	a.Config = agent.GetConfig()
+
 	agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
 
 	id := string(a.Config.NodeID)
@@ -224,6 +274,7 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 	if err := a.waitForUp(); err != nil {
 		cleanupTmpDir()
 		a.Shutdown()
+		t.Logf("Error while waiting for test agent to start: %v", err)
 		return errwrap.Wrapf(name+": {{err}}", err)
 	}
 
@@ -271,7 +322,11 @@ func (a *TestAgent) waitForUp() error {
 			req := httptest.NewRequest("GET", "/v1/agent/self", nil)
 			resp := httptest.NewRecorder()
 			_, err := a.httpServers[0].AgentSelf(resp, req)
-			if err != nil || resp.Code != 200 {
+			if acl.IsErrPermissionDenied(err) || resp.Code == 403 {
+				// permission denied is enough to show that the client is
+				// connected to the servers as it would get a 503 if
+				// it couldn't connect to them.
+			} else if err != nil && resp.Code != 200 {
 				retErr = fmt.Errorf("failed OK response: %v", err)
 				continue
 			}
@@ -372,7 +427,7 @@ func (a *TestAgent) consulConfig() *consul.Config {
 // chance of port conflicts for concurrently executed test binaries.
 // Instead of relying on one set of ports to be sufficient we retry
 // starting the agent with different ports on port conflict.
-func randomPortsSource(tls bool) (src config.Source, returnPortsFn func()) {
+func randomPortsSource(tls bool) (data string, returnPortsFn func()) {
 	ports := freeport.MustTake(7)
 
 	var http, https int
@@ -384,21 +439,17 @@ func randomPortsSource(tls bool) (src config.Source, returnPortsFn func()) {
 		https = -1
 	}
 
-	return config.Source{
-		Name:   "ports",
-		Format: "hcl",
-		Data: `
-			ports = {
-				dns = ` + strconv.Itoa(ports[0]) + `
-				http = ` + strconv.Itoa(http) + `
-				https = ` + strconv.Itoa(https) + `
-				serf_lan = ` + strconv.Itoa(ports[3]) + `
-				serf_wan = ` + strconv.Itoa(ports[4]) + `
-				server = ` + strconv.Itoa(ports[5]) + `
-				grpc = ` + strconv.Itoa(ports[6]) + `
-			}
-		`,
-	}, func() { freeport.Return(ports) }
+	return `
+		ports = {
+			dns = ` + strconv.Itoa(ports[0]) + `
+			http = ` + strconv.Itoa(http) + `
+			https = ` + strconv.Itoa(https) + `
+			serf_lan = ` + strconv.Itoa(ports[3]) + `
+			serf_wan = ` + strconv.Itoa(ports[4]) + `
+			server = ` + strconv.Itoa(ports[5]) + `
+			grpc = ` + strconv.Itoa(ports[6]) + `
+		}
+	`, func() { freeport.Return(ports) }
 }
 
 func NodeID() string {
@@ -518,34 +569,34 @@ func TestACLConfigNew() string {
 }
 
 var aclConfigTpl = template.Must(template.New("ACL Config").Parse(`
-   {{if ne .PrimaryDatacenter ""}}
+   {{- if ne .PrimaryDatacenter "" -}}
 	primary_datacenter = "{{ .PrimaryDatacenter }}"
-	{{end}}
+	{{end -}}
 	acl {
 		enabled = true
-		{{if ne .DefaultPolicy ""}}
+		{{- if ne .DefaultPolicy ""}}
 		default_policy = "{{ .DefaultPolicy }}"
-		{{end}}
+		{{- end}}
 		enable_token_replication = {{printf "%t" .EnableTokenReplication }}
-		{{if .HasConfiguredTokens }}
+		{{- if .HasConfiguredTokens}}
 		tokens {
-			{{if ne .MasterToken ""}}
+			{{- if ne .MasterToken ""}}
 			master = "{{ .MasterToken }}"
-			{{end}}
-			{{if ne .AgentToken ""}}
+			{{- end}}
+			{{- if ne .AgentToken ""}}
 			agent = "{{ .AgentToken }}"
-			{{end}}
-			{{if ne .AgentMasterToken "" }}
+			{{- end}}
+			{{- if ne .AgentMasterToken "" }}
 			agent_master = "{{ .AgentMasterToken }}"
-			{{end}}
-			{{if ne .DefaultToken "" }}
+			{{- end}}
+			{{- if ne .DefaultToken "" }}
 			default = "{{ .DefaultToken }}"
-			{{end}}
-			{{if ne .ReplicationToken "" }}
+			{{- end}}
+			{{- if ne .ReplicationToken ""  }}
 			replication = "{{ .ReplicationToken }}"
-			{{end}}
+			{{- end}}
 		}
-		{{end}}
+		{{- end}}
 	}
 `))
 
@@ -563,4 +614,44 @@ func TestACLConfigWithParams(params *TestACLConfigParams) string {
 	}
 
 	return buf.String()
+}
+
+// testTLSCertificates Generates a TLS CA and server key/cert and returns them
+// in PEM encoded form.
+func testTLSCertificates(serverName string) (cert string, key string, cacert string, err error) {
+	// generate CA
+	serial, err := tlsutil.GenerateSerialNumber()
+	if err != nil {
+		return "", "", "", err
+	}
+	signer, err := ecdsa.GenerateKey(elliptic.P256(), rand.New(rand.NewSource(99)))
+	if err != nil {
+		return "", "", "", err
+	}
+	ca, err := tlsutil.GenerateCA(signer, serial, 365, nil)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	// generate leaf
+	serial, err = tlsutil.GenerateSerialNumber()
+	if err != nil {
+		return "", "", "", err
+	}
+
+	cert, privateKey, err := tlsutil.GenerateCert(
+		signer,
+		ca,
+		serial,
+		"Test Cert Name",
+		365,
+		[]string{serverName},
+		nil,
+		[]x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+	)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	return cert, privateKey, ca, nil
 }

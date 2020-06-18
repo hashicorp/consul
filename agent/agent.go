@@ -21,18 +21,22 @@ import (
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
+	"github.com/mitchellh/cli"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/grpclog"
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/ae"
+	autoconf "github.com/hashicorp/consul/agent/auto-config"
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/local"
+	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/systemd"
@@ -160,6 +164,8 @@ type notifier interface {
 // mode, it runs a full Consul server. In client-only mode, it only forwards
 // requests to other Consul servers.
 type Agent struct {
+	autoConf *autoconf.AutoConfig
+
 	// config is the agent configuration.
 	config *config.RuntimeConfig
 
@@ -247,8 +253,6 @@ type Agent struct {
 	eventLock   sync.RWMutex
 	eventNotify NotifyGroup
 
-	reloadCh chan chan error
-
 	shutdown     bool
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
@@ -313,22 +317,103 @@ type Agent struct {
 	// IP.
 	httpConnLimiter connlimit.Limiter
 
+	// Connection Pool
+	connPool *pool.ConnPool
+
 	// enterpriseAgent embeds fields that we only access in consul-enterprise builds
 	enterpriseAgent
 }
 
-// New verifies the configuration given has a Datacenter and DataDir
-// configured, and maps the remaining config fields to fields on the Agent.
-func New(c *config.RuntimeConfig, logger hclog.InterceptLogger) (*Agent, error) {
-	if c.Datacenter == "" {
-		return nil, fmt.Errorf("Must configure a Datacenter")
-	}
-	if c.DataDir == "" && !c.DevMode {
-		return nil, fmt.Errorf("Must configure a DataDir")
-	}
+type agentOptions struct {
+	logger      hclog.InterceptLogger
+	builderOpts config.BuilderOpts
+	ui          cli.Ui
+	config      *config.RuntimeConfig
+	overrides   []config.Source
+	writers     []io.Writer
+}
 
+type AgentOption func(opt *agentOptions)
+
+// WithLogger is used to override any automatic logger creation
+// and provide one already built instead. This is mostly useful
+// for testing.
+func WithLogger(logger hclog.InterceptLogger) AgentOption {
+	return func(opt *agentOptions) {
+		opt.logger = logger
+	}
+}
+
+// WithBuilderOpts specifies the command line config.BuilderOpts to use that the agent
+// is being started with
+func WithBuilderOpts(builderOpts config.BuilderOpts) AgentOption {
+	return func(opt *agentOptions) {
+		opt.builderOpts = builderOpts
+	}
+}
+
+// WithCLI provides a cli.Ui instance to use when emitting configuration
+// warnings during the first configuration parsing.
+func WithCLI(ui cli.Ui) AgentOption {
+	return func(opt *agentOptions) {
+		opt.ui = ui
+	}
+}
+
+// WithLogWriter will add an additional log output to the logger that gets
+// configured after configuration parsing
+func WithLogWriter(writer io.Writer) AgentOption {
+	return func(opt *agentOptions) {
+		opt.writers = append(opt.writers, writer)
+	}
+}
+
+// WithOverrides is used to provide a config source to append to the tail sources
+// during config building. It is really only useful for testing to tune non-user
+// configurable tunables to make various tests converge more quickly than they
+// could otherwise.
+func WithOverrides(overrides ...config.Source) AgentOption {
+	return func(opt *agentOptions) {
+		opt.overrides = overrides
+	}
+}
+
+// WithConfig provides an already parsed configuration to the Agent
+// Deprecated: Should allow the agent to parse the configuration.
+func WithConfig(config *config.RuntimeConfig) AgentOption {
+	return func(opt *agentOptions) {
+		opt.config = config
+	}
+}
+
+func flattenAgentOptions(options []AgentOption) agentOptions {
+	var flat agentOptions
+	for _, opt := range options {
+		opt(&flat)
+	}
+	return flat
+}
+
+// New process the desired options and creates a new Agent.
+// This process will
+//   * parse the config given the config Flags
+//   * setup logging
+//      * using predefined logger given in an option
+//        OR
+//      * initialize a new logger from the configuration
+//        including setting up gRPC logging
+//   * initialize telemetry
+//   * create a TLS Configurator
+//   * build a shared connection pool
+//   * create the ServiceManager
+//   * setup the NodeID if one isn't provided in the configuration
+//   * create the AutoConfig object for future use in fully
+//     resolving the configuration
+func New(options ...AgentOption) (*Agent, error) {
+	flat := flattenAgentOptions(options)
+
+	// Create most of the agent
 	a := Agent{
-		config:           c,
 		checkReapAfter:   make(map[structs.CheckID]time.Duration),
 		checkMonitors:    make(map[structs.CheckID]*checks.CheckMonitor),
 		checkTTLs:        make(map[structs.CheckID]*checks.CheckTTL),
@@ -340,14 +425,84 @@ func New(c *config.RuntimeConfig, logger hclog.InterceptLogger) (*Agent, error) 
 		eventCh:          make(chan serf.UserEvent, 1024),
 		eventBuf:         make([]*UserEvent, 256),
 		joinLANNotifier:  &systemd.Notifier{},
-		reloadCh:         make(chan chan error),
 		retryJoinCh:      make(chan error),
 		shutdownCh:       make(chan struct{}),
 		InterruptStartCh: make(chan struct{}),
 		endpoints:        make(map[string]string),
 		tokens:           new(token.Store),
-		logger:           logger,
+		logger:           flat.logger,
 	}
+
+	// parse the configuration and handle the error/warnings
+	config, warnings, err := autoconf.LoadConfig(flat.builderOpts, config.Source{}, flat.overrides...)
+	if err != nil {
+		return nil, err
+	}
+	for _, w := range warnings {
+		if a.logger != nil {
+			a.logger.Warn(w)
+		} else if flat.ui != nil {
+			flat.ui.Warn(w)
+		} else {
+			fmt.Fprint(os.Stderr, w)
+		}
+	}
+
+	// set the config in the agent, this is just the preliminary configuration as we haven't
+	// loaded any auto-config sources yet.
+	a.config = config
+
+	if flat.logger == nil {
+		logConf := &logging.Config{
+			LogLevel:          config.LogLevel,
+			LogJSON:           config.LogJSON,
+			Name:              logging.Agent,
+			EnableSyslog:      config.EnableSyslog,
+			SyslogFacility:    config.SyslogFacility,
+			LogFilePath:       config.LogFile,
+			LogRotateDuration: config.LogRotateDuration,
+			LogRotateBytes:    config.LogRotateBytes,
+			LogRotateMaxFiles: config.LogRotateMaxFiles,
+		}
+
+		logger, logOutput, err := logging.Setup(logConf, flat.writers)
+		if err != nil {
+			return nil, err
+		}
+
+		a.logger = logger
+		a.LogOutput = logOutput
+
+		grpclog.SetLoggerV2(logging.NewGRPCLogger(logConf, a.logger))
+	}
+
+	memSink, err := lib.InitTelemetry(config.Telemetry)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to initialize telemetry: %w", err)
+	}
+	a.MemSink = memSink
+
+	// TODO (autoconf) figure out how to let this setting be pushed down via autoconf
+	// right now it gets defaulted if unset so this check actually doesn't do much
+	// for a normal running agent.
+	if a.config.Datacenter == "" {
+		return nil, fmt.Errorf("Must configure a Datacenter")
+	}
+	if a.config.DataDir == "" && !a.config.DevMode {
+		return nil, fmt.Errorf("Must configure a DataDir")
+	}
+
+	tlsConfigurator, err := tlsutil.NewConfigurator(a.config.ToTLSUtilConfig(), a.logger)
+	if err != nil {
+		return nil, err
+	}
+	a.tlsConfigurator = tlsConfigurator
+
+	err = a.initializeConnectionPool()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to initialize the connection pool: %w", err)
+	}
+
 	a.serviceManager = NewServiceManager(&a)
 
 	if err := a.initializeACLs(); err != nil {
@@ -356,11 +511,74 @@ func New(c *config.RuntimeConfig, logger hclog.InterceptLogger) (*Agent, error) 
 
 	// Retrieve or generate the node ID before setting up the rest of the
 	// agent, which depends on it.
-	if err := a.setupNodeID(c); err != nil {
+	if err := a.setupNodeID(a.config); err != nil {
 		return nil, fmt.Errorf("Failed to setup node ID: %v", err)
 	}
 
+	acOpts := []autoconf.Option{
+		autoconf.WithDirectRPC(a.connPool),
+		autoconf.WithTLSConfigurator(a.tlsConfigurator),
+		autoconf.WithBuilderOpts(flat.builderOpts),
+		autoconf.WithLogger(a.logger),
+		autoconf.WithOverrides(flat.overrides...),
+	}
+	ac, err := autoconf.New(acOpts...)
+	if err != nil {
+		return nil, err
+	}
+
+	a.autoConf = ac
+
 	return &a, nil
+}
+
+// GetLogger retrieves the agents logger
+// TODO make export the logger field and get rid of this method
+// This is here for now to simplify the work I am doing and make
+// reviewing the final PR easier.
+func (a *Agent) GetLogger() hclog.InterceptLogger {
+	return a.logger
+}
+
+// GetConfig retrieves the agents config
+// TODO make export the config field and get rid of this method
+// This is here for now to simplify the work I am doing and make
+// reviewing the final PR easier.
+func (a *Agent) GetConfig() *config.RuntimeConfig {
+	a.stateLock.Lock()
+	defer a.stateLock.Unlock()
+	return a.config
+}
+
+func (a *Agent) initializeConnectionPool() error {
+	var rpcSrcAddr *net.TCPAddr
+	if !ipaddr.IsAny(a.config.RPCBindAddr) {
+		rpcSrcAddr = &net.TCPAddr{IP: a.config.RPCBindAddr.IP}
+	}
+
+	// Ensure we have a log output for the connection pool.
+	logOutput := a.LogOutput
+	if logOutput == nil {
+		logOutput = os.Stderr
+	}
+
+	pool := &pool.ConnPool{
+		Server:          a.config.ServerMode,
+		SrcAddr:         rpcSrcAddr,
+		LogOutput:       logOutput,
+		TLSConfigurator: a.tlsConfigurator,
+		Datacenter:      a.config.Datacenter,
+	}
+	if a.config.ServerMode {
+		pool.MaxTime = 2 * time.Minute
+		pool.MaxStreams = 64
+	} else {
+		pool.MaxTime = 127 * time.Second
+		pool.MaxStreams = 32
+	}
+
+	a.connPool = pool
+	return nil
 }
 
 // LocalConfig takes a config.RuntimeConfig and maps the fields to a local.Config
@@ -385,7 +603,23 @@ func (a *Agent) Start() error {
 	a.stateLock.Lock()
 	defer a.stateLock.Unlock()
 
-	c := a.config
+	// This needs to be done early on as it will potentially alter the configuration
+	// and then how other bits are brought up
+	c, err := a.autoConf.InitialConfiguration(&lib.StopChannelContext{StopCh: a.shutdownCh})
+	if err != nil {
+		return err
+	}
+
+	// copy over the existing node id, this cannot be
+	// changed while running anyways but this prevents
+	// breaking some existing behavior. then overwrite
+	// the configuration
+	c.NodeID = a.config.NodeID
+	a.config = c
+
+	if err := a.tlsConfigurator.Update(a.config.ToTLSUtilConfig()); err != nil {
+		return fmt.Errorf("Failed to load TLS configurations after applying auto-config settings: %w", err)
+	}
 
 	if err := a.CheckSecurity(c); err != nil {
 		a.logger.Error("Security error while parsing configuration: %#v", err)
@@ -438,21 +672,22 @@ func (a *Agent) Start() error {
 		return fmt.Errorf("failed to start Consul enterprise component: %v", err)
 	}
 
-	tlsConfigurator, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), a.logger)
-	if err != nil {
-		return err
+	options := []consul.ConsulOption{
+		consul.WithLogger(a.logger),
+		consul.WithTokenStore(a.tokens),
+		consul.WithTLSConfigurator(a.tlsConfigurator),
+		consul.WithConnectionPool(a.connPool),
 	}
-	a.tlsConfigurator = tlsConfigurator
 
 	// Setup either the client or the server.
 	if c.ServerMode {
-		server, err := consul.NewServerLogger(consulCfg, a.logger, a.tokens, a.tlsConfigurator)
+		server, err := consul.NewServerWithOptions(consulCfg, options...)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
 		a.delegate = server
 	} else {
-		client, err := consul.NewClientLogger(consulCfg, a.logger, a.tlsConfigurator)
+		client, err := consul.NewClientWithOptions(consulCfg, options...)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul client: %v", err)
 		}
@@ -1871,12 +2106,6 @@ func (a *Agent) ShutdownEndpoints() {
 	a.logger.Info("Waiting for endpoints to shut down")
 	a.wgServers.Wait()
 	a.logger.Info("Endpoints down")
-}
-
-// ReloadCh is used to return a channel that can be
-// used for triggering reloads and returning a response.
-func (a *Agent) ReloadCh() chan chan error {
-	return a.reloadCh
 }
 
 // RetryJoinCh is a channel that transports errors
@@ -4052,14 +4281,40 @@ func (a *Agent) loadLimits(conf *config.RuntimeConfig) {
 	a.config.RPCMaxBurst = conf.RPCMaxBurst
 }
 
-// ReloadConfig will atomically reload all configs from the given newCfg,
-// including all services, checks, tokens, metadata, dnsServer configs, etc.
+// ReloadConfig will atomically reload all configuration, including
+// all services, checks, tokens, metadata, dnsServer configs, etc.
 // It will also reload all ongoing watches.
-func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
+func (a *Agent) ReloadConfig() error {
+	newCfg, err := a.autoConf.ReadConfig()
+	if err != nil {
+		return err
+	}
+
+	// copy over the existing node id, this cannot be
+	// changed while running anyways but this prevents
+	// breaking some existing behavior.
+	newCfg.NodeID = a.config.NodeID
+
+	return a.reloadConfigInternal(newCfg)
+}
+
+// reloadConfigInternal is mainly needed for some unit tests. Instead of parsing
+// the configuration using CLI flags and on disk config, this just takes a
+// runtime configuration and applies it.
+func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	if err := a.CheckSecurity(newCfg); err != nil {
 		a.logger.Error("Security error while reloading configuration: %#v", err)
 		return err
 	}
+
+	// Change the log level and update it
+	if logging.ValidateLogLevel(newCfg.LogLevel) {
+		a.logger.SetLevel(logging.LevelFromString(newCfg.LogLevel))
+	} else {
+		a.logger.Warn("Invalid log level in new configuration", "level", newCfg.LogLevel)
+		newCfg.LogLevel = a.config.LogLevel
+	}
+
 	// Bulk update the services and checks
 	a.PauseSync()
 	defer a.ResumeSync()

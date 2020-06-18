@@ -48,7 +48,7 @@ func TestAuthMethodCreateCommand(t *testing.T) {
 	}`)
 
 	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1", testrpc.WithToken("root"))
 	client := a.Client()
 
 	t.Run("type required", func(t *testing.T) {
@@ -201,7 +201,7 @@ func TestAuthMethodCreateCommand_JSON(t *testing.T) {
 	}`)
 
 	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1", testrpc.WithToken("root"))
 	client := a.Client()
 
 	t.Run("type required", func(t *testing.T) {
@@ -369,7 +369,7 @@ func TestAuthMethodCreateCommand_k8s(t *testing.T) {
 	}`)
 
 	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1", testrpc.WithToken("root"))
 	client := a.Client()
 
 	t.Run("k8s host required", func(t *testing.T) {
@@ -512,7 +512,7 @@ func TestAuthMethodCreateCommand_config(t *testing.T) {
 	}`)
 
 	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1", testrpc.WithToken("root"))
 	client := a.Client()
 
 	checkMethod := func(t *testing.T, methodName string) {

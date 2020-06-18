@@ -154,21 +154,7 @@ func (s *HTTPServer) AgentReload(resp http.ResponseWriter, req *http.Request) (i
 		return nil, acl.ErrPermissionDenied
 	}
 
-	// Trigger the reload
-	errCh := make(chan error)
-	select {
-	case <-s.agent.shutdownCh:
-		return nil, fmt.Errorf("Agent was shutdown before reload could be completed")
-	case s.agent.reloadCh <- errCh:
-	}
-
-	// Wait for the result of the reload, or for the agent to shutdown
-	select {
-	case <-s.agent.shutdownCh:
-		return nil, fmt.Errorf("Agent was shutdown before reload could be completed")
-	case err := <-errCh:
-		return nil, err
-	}
+	return nil, s.agent.ReloadConfig()
 }
 
 func buildAgentService(s *structs.NodeService) api.AgentService {

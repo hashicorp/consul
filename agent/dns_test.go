@@ -4051,7 +4051,7 @@ func TestDNS_ServiceLookup_OnlyPassing(t *testing.T) {
 
 	newCfg := *a.Config
 	newCfg.DNSOnlyPassing = false
-	err := a.ReloadConfig(&newCfg)
+	err := a.reloadConfigInternal(&newCfg)
 	require.NoError(t, err)
 
 	// only_passing is now false. we should now get two nodes
@@ -6996,7 +6996,7 @@ func TestDNS_ConfigReload(t *testing.T) {
 	newCfg.DNSSOA.Expire = 30
 	newCfg.DNSSOA.Minttl = 40
 
-	err := a.ReloadConfig(&newCfg)
+	err := a.reloadConfigInternal(&newCfg)
 	require.NoError(t, err)
 
 	for _, s := range a.dnsServers {
@@ -7077,7 +7077,7 @@ func TestDNS_ReloadConfig_DuringQuery(t *testing.T) {
 		// reload the config halfway through, that should not affect the ongoing query
 		newCfg := *a.Config
 		newCfg.DNSAllowStale = true
-		a.ReloadConfig(&newCfg)
+		a.reloadConfigInternal(&newCfg)
 
 		select {
 		case in := <-res:
