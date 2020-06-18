@@ -28,7 +28,6 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-sockaddr/template"
-	"github.com/hashicorp/memberlist"
 	"golang.org/x/time/rate"
 )
 
@@ -747,15 +746,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		}
 	}
 
-	serfAllowedCIDRSLAN, err := memberlist.ParseCIDRs(c.SerfAllowedCIDRsLAN)
-	if err != nil {
-		return RuntimeConfig{}, fmt.Errorf("serf_lan_allowed_cidrs: %s", err)
-	}
-	serfAllowedCIDRSWAN, err := memberlist.ParseCIDRs(c.SerfAllowedCIDRsWAN)
-	if err != nil {
-		return RuntimeConfig{}, fmt.Errorf("serf_wan_allowed_cidrs: %s", err)
-	}
-
 	// ----------------------------------------------------------------
 	// build runtime config
 	//
@@ -980,8 +970,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		Segments:                               segments,
 		SerfAdvertiseAddrLAN:                   serfAdvertiseAddrLAN,
 		SerfAdvertiseAddrWAN:                   serfAdvertiseAddrWAN,
-		SerfAllowedCIDRsLAN:                    serfAllowedCIDRSLAN,
-		SerfAllowedCIDRsWAN:                    serfAllowedCIDRSWAN,
 		SerfBindAddrLAN:                        serfBindAddrLAN,
 		SerfBindAddrWAN:                        serfBindAddrWAN,
 		SerfPortLAN:                            serfPortLAN,
