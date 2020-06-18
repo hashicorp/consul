@@ -43,7 +43,7 @@ If none of these are provided, Consul will **only** encrypt connections to the g
 from the gateway to the destination service.
 
 When certificates for linked services are rotated, the gateway must be restarted to pick up the new certificates from disk.
-To avoid downtime perform a rolling restart to reload the certificates. Registering multiple terminating gateway instances
+To avoid downtime, perform a rolling restart to reload the certificates. Registering multiple terminating gateway instances
 with the same [name](https://www.consul.io/docs/commands/connect/envoy#service) provides additional fault tolerance
 as well as the ability to perform rolling restarts.
 
