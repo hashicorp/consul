@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.8.0 (June 18, 2020)
 
 BREAKING CHANGES:
 * acl: Remove deprecated `acl_enforce_version_8` option [[GH-7991](https://github.com/hashicorp/consul/issues/7991)]
