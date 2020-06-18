@@ -4594,19 +4594,21 @@ func TestAutoConfig_Integration(t *testing.T) {
 		connect { enabled = true }
 		auto_encrypt { allow_tls = true }
 		auto_config {
-			authorizer {
+			authorization {
 				enabled = true
-				claim_mappings = {
-					consul_node_name = "node"
+				static {
+					claim_mappings = {
+						consul_node_name = "node"
+					}
+					claim_assertions = [
+						"value.node == \"${node}\""
+					]
+					bound_issuer = "consul"
+					bound_audiences = [
+						"consul"
+					]
+					jwt_validation_pub_keys = ["` + strings.ReplaceAll(pub, "\n", "\\n") + `"]
 				}
-				claim_assertions = [
-					"value.node == \"${node}\""
-				]
-				bound_issuer = "consul"
-				bound_audiences = [
-					"consul"
-				]
-				jwt_validation_pub_keys = ["` + strings.ReplaceAll(pub, "\n", "\\n") + `"]
 			}
 		}
 	`
