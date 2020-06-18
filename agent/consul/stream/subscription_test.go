@@ -118,11 +118,11 @@ func TestSubscriptionCloseReload(t *testing.T) {
 	require.Len(t, got, 1)
 	require.Equal(t, index, got[0].Index)
 
-	// Schedule a CloseReload simulating the server deciding this subscroption
+	// Schedule a ForceReload simulating the server deciding this subscroption
 	// needs to reset (e.g. on ACL perm change).
 	start = time.Now()
 	time.AfterFunc(200*time.Millisecond, func() {
-		sub.CloseReload()
+		sub.ForceReload()
 	})
 
 	_, err = sub.Next()

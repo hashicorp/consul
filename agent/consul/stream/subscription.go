@@ -42,6 +42,10 @@ type Subscription struct {
 	// cancelFn stores the context cancel function that will wake up the
 	// in-progress Next call on a server-initiated state change e.g. Reload.
 	cancelFn func()
+
+	// Unsubscribe is a function set by EventPublisher that is called to
+	// free resources when the subscription is no longer needed.
+	Unsubscribe func()
 }
 
 type SubscribeRequest struct {
@@ -116,19 +120,13 @@ func (s *Subscription) Next() ([]Event, error) {
 	}
 }
 
-// CloseReload closes the stream and signals that the subscriber should reload.
+// ForceReload closes the stream and signals that the subscriber should reload.
 // It is safe to call from any goroutine.
-func (s *Subscription) CloseReload() {
+func (s *Subscription) ForceReload() {
 	swapped := atomic.CompareAndSwapUint32(&s.state, SubscriptionStateOpen,
 		SubscriptionStateCloseReload)
 
 	if swapped {
 		s.cancelFn()
 	}
-}
-
-// Request returns the request object that started the subscription.
-// TODO: remove
-func (s *Subscription) Request() *SubscribeRequest {
-	return s.req
 }
