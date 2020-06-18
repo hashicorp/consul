@@ -17,8 +17,8 @@ export default ChildSelectorComponent.extend({
     const source = this.source;
     if (source) {
       const event = 'save';
-      this.listen(source, event, e => {
-        this.actions[event].bind(this)(...e.data);
+      this._listeners.add(source, {
+        save: e => this.actions[event].bind(this)(...e.data),
       });
     }
   },

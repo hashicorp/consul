@@ -3,10 +3,9 @@ import { get, set, computed } from '@ember/object';
 import { alias } from '@ember/object/computed';
 import { inject as service } from '@ember/service';
 
-import SlotsMixin from 'block-slots';
-import WithListeners from 'consul-ui/mixins/with-listeners';
+import Slotted from 'block-slots';
 
-export default Component.extend(SlotsMixin, WithListeners, {
+export default Component.extend(Slotted, {
   onchange: function() {},
   tagName: '',
 
@@ -23,9 +22,14 @@ export default Component.extend(SlotsMixin, WithListeners, {
 
   init: function() {
     this._super(...arguments);
+    this._listeners = this.dom.listeners();
     this.searchable = this.container.searchable(this.type);
     this.form = this.formContainer.form(this.type);
     this.form.clear({ Datacenter: this.dc, Namespace: this.nspace });
+  },
+  willDestroyElement: function() {
+    this._super(...arguments);
+    this._listeners.remove();
   },
   options: computed('selectedOptions.[]', 'allOptions.[]', function() {
     // It's not massively important here that we are defaulting `items` and
@@ -44,9 +48,11 @@ export default Component.extend(SlotsMixin, WithListeners, {
       // TODO: make sure we can either search before things are loaded
       // or wait until we are loaded, guess power select take care of that
       return new Promise(resolve => {
-        const remove = this.listen(this.searchable, 'change', function(e) {
-          remove();
-          resolve(e.target.data);
+        const remove = this._listeners.add(this.searchable, {
+          change: e => {
+            remove();
+            resolve(e.target.data);
+          },
         });
         this.searchable.search(term);
       });
@@ -64,7 +70,7 @@ export default Component.extend(SlotsMixin, WithListeners, {
       // need to be sure that its saved before adding/closing the modal for now
       // and we don't open the modal on prop change yet
       item = repo.persist(item);
-      this.listen(item, {
+      this._listeners.add(item, {
         message: e => {
           this.actions.change.apply(this, [
             {
