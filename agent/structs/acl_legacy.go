@@ -78,7 +78,6 @@ func (a *ACL) Convert() *ACLToken {
 		Description:       a.Name,
 		Policies:          nil,
 		ServiceIdentities: nil,
-		NodeIdentities:    nil,
 		Type:              a.Type,
 		Rules:             a.Rules,
 		Local:             false,

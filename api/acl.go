@@ -37,7 +37,6 @@ type ACLToken struct {
 	Policies          []*ACLTokenPolicyLink `json:",omitempty"`
 	Roles             []*ACLTokenRoleLink   `json:",omitempty"`
 	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
-	NodeIdentities    []*ACLNodeIdentity    `json:",omitempty"`
 	Local             bool
 	AuthMethod        string        `json:",omitempty"`
 	ExpirationTTL     time.Duration `json:",omitempty"`
@@ -62,7 +61,6 @@ type ACLTokenListEntry struct {
 	Policies          []*ACLTokenPolicyLink `json:",omitempty"`
 	Roles             []*ACLTokenRoleLink   `json:",omitempty"`
 	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
-	NodeIdentities    []*ACLNodeIdentity    `json:",omitempty"`
 	Local             bool
 	AuthMethod        string     `json:",omitempty"`
 	ExpirationTime    *time.Time `json:",omitempty"`
@@ -107,13 +105,6 @@ type ACLServiceIdentity struct {
 	Datacenters []string `json:",omitempty"`
 }
 
-// ACLNodeIdentity represents a high-level grant of all necessary privileges
-// to assume the identity of the named Node in the Catalog and within Connect.
-type ACLNodeIdentity struct {
-	NodeName   string
-	Datacenter string
-}
-
 // ACLPolicy represents an ACL Policy.
 type ACLPolicy struct {
 	ID          string
@@ -153,7 +144,6 @@ type ACLRole struct {
 	Description       string
 	Policies          []*ACLRolePolicyLink  `json:",omitempty"`
 	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
-	NodeIdentities    []*ACLNodeIdentity    `json:",omitempty"`
 	Hash              []byte
 	CreateIndex       uint64
 	ModifyIndex       uint64

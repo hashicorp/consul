@@ -1314,7 +1314,9 @@ func TestLeader_ACLLegacyReplication(t *testing.T) {
 		c.Datacenter = "dc2"
 		c.ACLTokenReplication = true
 	}
-	_, srv, _ := testACLServerWithConfig(t, cb, true)
+	dir, srv := testACLServerWithConfig(t, cb, true)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
 	waitForLeaderEstablishment(t, srv)
 
 	require.True(t, srv.leaderRoutineManager.IsRunning(legacyACLReplicationRoutineName))
