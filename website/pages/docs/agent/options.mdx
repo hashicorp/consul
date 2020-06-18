@@ -40,7 +40,9 @@ documented below in the
 [reload command](/docs/commands/reload) can also be used to trigger a
 configuration reload.
 
-You can test the following configuration options by following the [Getting Started](https://learn.hashicorp.com/consul/getting-started/install?utm_source=consul.io&utm_medium=docs) guides to install a local agent.
+You can test the following configuration options by following the
+[Getting Started](https://learn.hashicorp.com/consul/getting-started/install?utm_source=consul.io&utm_medium=docs)
+guides to install a local agent.
 
 ## Environment Variables
 
@@ -1751,9 +1753,9 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     statsite.
 
   - `prefix_filter` ((#telemetry-prefix_filter))
-    This is a list of filter rules to apply for allowing/blocking metrics by prefix
-    in the following format:
-
+    This is a list of filter rules to apply for allowing/blocking metrics by
+    prefix in the following format:
+    
     ```json
     ["+consul.raft.apply", "-consul.http", "+consul.http.GET"]
     ```
@@ -1802,9 +1804,10 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   or "tls13". This defaults to "tls12". WARNING: TLS 1.1 and lower are generally
   considered less secure; avoid using these if possible.
 
-- `tls_cipher_suites` Added in Consul 0.8.2, this
-  specifies the list of supported ciphersuites as a comma-separated-list. The list
-  of all supported ciphersuites is available in the [source code](https://github.com/hashicorp/consul/blob/master/tlsutil/config.go#L363).
+- `tls_cipher_suites` Added in Consul 0.8.2, this specifies the list of
+  supported ciphersuites as a comma-separated-list. The list of all supported
+  ciphersuites is available through 
+  [this search](https://github.com/hashicorp/consul/search?q=cipherMap+%3A%3D+map&unscoped_q=cipherMap+%3A%3D+map).
 
 - `tls_prefer_server_cipher_suites` Added in Consul 0.8.2, this
   will cause Consul to prefer the server's ciphersuite over the client ciphersuites.
@@ -1927,14 +1930,17 @@ required ports and their default settings.
 Reloading configuration does not reload all configuration items. The
 items which are reloaded include:
 
-- Log level
+- ACL Tokens
+- [Configuration Entry Bootstrap](#config_entries_bootstrap)
 - Checks
-- Services
-- Watches
+- [Discard Check Output](#discard_check_output)
 - HTTP Client Address
+- Log level
+- [Metric Prefix Filter](#telemetry-prefix_filter)
+- [Node Metadata](#node_meta)
+- [RPC rate limiting](#limits)
+- [HTTP Maximum Connections per Client](#http_max_conns_per_client)
+- Services
 - TLS Configuration
   - Please be aware that this is currently limited to reload a configuration that is already TLS enabled. You cannot enable or disable TLS only with reloading.
-- [Node Metadata](#node_meta)
-- [Metric Prefix Filter](#telemetry-prefix_filter)
-- [Discard Check Output](#discard_check_output)
-- [RPC rate limiting](#limits)
+- Watches
