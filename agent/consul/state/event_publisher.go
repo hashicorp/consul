@@ -176,7 +176,7 @@ func (s *subscriptions) handleACLUpdate(tx ReadTxn, event stream.Event) error {
 	case stream.Topic_ACLTokens:
 		token := event.Payload.(*structs.ACLToken)
 		for _, sub := range s.byToken[token.SecretID] {
-			sub.ForceReload()
+			sub.Close()
 		}
 
 	case stream.Topic_ACLPolicies:
@@ -220,7 +220,7 @@ func (s *subscriptions) closeSubscriptionsForTokens(tokens memdb.ResultIterator)
 		token := token.(*structs.ACLToken)
 		if subs, ok := s.byToken[token.SecretID]; ok {
 			for _, sub := range subs {
-				sub.ForceReload()
+				sub.Close()
 			}
 		}
 	}

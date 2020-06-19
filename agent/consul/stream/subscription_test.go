@@ -88,7 +88,7 @@ func TestSubscription(t *testing.T) {
 		"Event should have been delivered after short time, took %s", elapsed)
 }
 
-func TestSubscriptionCloseReload(t *testing.T) {
+func TestSubscription_Close(t *testing.T) {
 	eb := NewEventBuffer()
 
 	index := uint64(100)
@@ -118,11 +118,11 @@ func TestSubscriptionCloseReload(t *testing.T) {
 	require.Len(t, got, 1)
 	require.Equal(t, index, got[0].Index)
 
-	// Schedule a ForceReload simulating the server deciding this subscroption
+	// Schedule a Close simulating the server deciding this subscroption
 	// needs to reset (e.g. on ACL perm change).
 	start = time.Now()
 	time.AfterFunc(200*time.Millisecond, func() {
-		sub.ForceReload()
+		sub.Close()
 	})
 
 	_, err = sub.Next()

@@ -1,18 +1,20 @@
 package stream
 
 import (
-	context "context"
+	"context"
 	"errors"
 	"sync/atomic"
 )
 
 const (
-	// SubscriptionStateOpen is the default state of a subscription
-	SubscriptionStateOpen uint32 = 0
+	// subscriptionStateOpen is the default state of a subscription. An open
+	// subscription may receive new events.
+	subscriptionStateOpen uint32 = 0
 
-	// SubscriptionStateCloseReload signals that the subscription was closed by
-	// server and client should retry.
-	SubscriptionStateCloseReload uint32 = 1
+	// subscriptionStateClosed indicates that the subscription was closed, possibly
+	// as a result of a change to an ACL token, and will not receive new events.
+	// The subscriber must issue a new Subscribe request.
+	subscriptionStateClosed uint32 = 1
 )
 
 var (
@@ -48,6 +50,8 @@ type Subscription struct {
 	Unsubscribe func()
 }
 
+// SubscribeRequest identifies the types of events the subscriber would like to
+// receiver. Topic and Token are required.
 type SubscribeRequest struct {
 	Topic Topic
 	Key   string
@@ -55,7 +59,8 @@ type SubscribeRequest struct {
 	Index uint64
 }
 
-// NewSubscription return a new subscription.
+// NewSubscription return a new subscription. The caller is responsible for
+// calling Unsubscribe when it is done with the subscription, to free resources.
 func NewSubscription(ctx context.Context, req *SubscribeRequest, item *BufferItem) *Subscription {
 	subCtx, cancel := context.WithCancel(ctx)
 	return &Subscription{
@@ -69,8 +74,7 @@ func NewSubscription(ctx context.Context, req *SubscribeRequest, item *BufferIte
 // Next returns the next set of events to deliver. It must only be called from a
 // single goroutine concurrently as it mutates the Subscription.
 func (s *Subscription) Next() ([]Event, error) {
-	state := atomic.LoadUint32(&s.state)
-	if state == SubscriptionStateCloseReload {
+	if atomic.LoadUint32(&s.state) == subscriptionStateClosed {
 		return nil, ErrSubscriptionReload
 	}
 
@@ -78,8 +82,7 @@ func (s *Subscription) Next() ([]Event, error) {
 		next, err := s.currentItem.Next(s.ctx)
 		if err != nil {
 			// Check we didn't return because of a state change cancelling the context
-			state := atomic.LoadUint32(&s.state)
-			if state == SubscriptionStateCloseReload {
+			if atomic.LoadUint32(&s.state) == subscriptionStateClosed {
 				return nil, ErrSubscriptionReload
 			}
 			return nil, err
@@ -120,12 +123,11 @@ func (s *Subscription) Next() ([]Event, error) {
 	}
 }
 
-// ForceReload closes the stream and signals that the subscriber should reload.
+// Close the subscription. Subscribers will receive an error when they call Next,
+// and will need to perform a new Subscribe request.
 // It is safe to call from any goroutine.
-func (s *Subscription) ForceReload() {
-	swapped := atomic.CompareAndSwapUint32(&s.state, SubscriptionStateOpen,
-		SubscriptionStateCloseReload)
-
+func (s *Subscription) Close() {
+	swapped := atomic.CompareAndSwapUint32(&s.state, subscriptionStateOpen, subscriptionStateClosed)
 	if swapped {
 		s.cancelFn()
 	}
