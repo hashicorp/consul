@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"net"
 	"os"
 	"testing"
@@ -90,11 +91,14 @@ func TestAutoEncrypt_RequestAutoEncryptCerts(t *testing.T) {
 	servers := []string{"localhost"}
 	port := 8301
 	token := ""
-	interruptCh := make(chan struct{})
+
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(75*time.Millisecond))
+	defer cancel()
+
 	doneCh := make(chan struct{})
 	var err error
 	go func() {
-		_, _, err = c1.RequestAutoEncryptCerts(servers, port, token, interruptCh)
+		_, _, err = c1.RequestAutoEncryptCerts(ctx, servers, port, token)
 		close(doneCh)
 	}()
 	select {
@@ -104,9 +108,8 @@ func TestAutoEncrypt_RequestAutoEncryptCerts(t *testing.T) {
 		// in the setup phase before entering the for loop in
 		// RequestAutoEncryptCerts.
 		require.NoError(t, err)
-	case <-time.After(50 * time.Millisecond):
+	case <-ctx.Done():
 		// this is the happy case since auto encrypt is in its loop to
 		// try to request certs.
-		interruptCh <- struct{}{}
 	}
 }

@@ -213,7 +213,6 @@ func (c *cmd) run(args []string) int {
 
 	// wait for signal
 	signalCh := make(chan os.Signal, 10)
-	stopCh := make(chan struct{})
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -224,7 +223,7 @@ func (c *cmd) run(args []string) int {
 			select {
 			case s := <-signalCh:
 				sig = s
-			case <-stopCh:
+			case <-ctx.Done():
 				return
 			}
 
@@ -246,10 +245,8 @@ func (c *cmd) run(args []string) int {
 
 	err = agent.Start(ctx)
 	signal.Stop(signalCh)
-	select {
-	case stopCh <- struct{}{}:
-	default:
-	}
+	cancel()
+
 	if err != nil {
 		c.logger.Error("Error starting agent", "error", err)
 		return 1

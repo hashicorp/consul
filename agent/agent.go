@@ -829,7 +829,7 @@ func (a *Agent) setupClientAutoEncrypt(ctx context.Context) (*structs.SignedResp
 	}
 	addrs = append(addrs, retryJoinAddrs(disco, retryJoinSerfVariant, "LAN", a.config.RetryJoinLAN, a.logger)...)
 
-	reply, priv, err := client.RequestAutoEncryptCerts(addrs, a.config.ServerPort, a.tokens.AgentToken(), ctx.Done())
+	reply, priv, err := client.RequestAutoEncryptCerts(ctx, addrs, a.config.ServerPort, a.tokens.AgentToken())
 	if err != nil {
 		return nil, err
 	}
