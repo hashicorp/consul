@@ -11,7 +11,7 @@ IMPROVEMENTS:
 
 BUGFIXES:
 
-* connect: fix crash that would result if a mesh or terminating gateway's upstream has a hostname as an address and no healthy service instances available [[GH-8158](https://github.com/hashicorp/consul/pull/8158]
+* connect: fix crash that would result if a mesh or terminating gateway's upstream has a hostname as an address and no healthy service instances available. [[GH-8158](https://github.com/hashicorp/consul/issues/8158)]
 
 ## 1.8.0 (June 18, 2020)
 
