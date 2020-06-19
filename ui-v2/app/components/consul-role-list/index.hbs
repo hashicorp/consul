@@ -14,12 +14,12 @@
     </BlockSlot>
     <BlockSlot @name="actions" as |Actions|>
       <Actions as |Action|>
-        <Action data-test-edit-action @name="edit" @href={{href-to 'dc.acls.roles.edit' item.ID}}>
+        <Action data-test-edit-action @href={{href-to 'dc.acls.roles.edit' item.ID}}>
           <BlockSlot @name="label">
             Edit
           </BlockSlot>
         </Action>
-        <Action data-test-delete-action @name="delete" @onclick={{action ondelete item}} class="dangerous">
+        <Action data-test-delete-action @onclick={{action ondelete item}} class="dangerous">
           <BlockSlot @name="label">
             Delete
           </BlockSlot>
