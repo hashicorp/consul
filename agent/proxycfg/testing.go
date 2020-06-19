@@ -3,7 +3,6 @@ package proxycfg
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/consul/api"
 	"io/ioutil"
 	"path"
 	"path/filepath"
@@ -16,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 	"github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 )
