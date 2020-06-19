@@ -1997,6 +1997,12 @@ func (b *Builder) validateAutoConfig(rt RuntimeConfig) error {
 		return nil
 	}
 
+	// Right now we require TLS as everything we are going to transmit via auto-config is sensitive. Signed Certificates, Tokens
+	// and other encryption keys. This must be transmitted over a secure connection so we don't allow doing otherwise.
+	if !rt.VerifyOutgoing {
+		return fmt.Errorf("auto_config.enabled cannot be set without configuring TLS for server communications")
+	}
+
 	// Auto Config doesn't currently support configuring servers
 	if rt.ServerMode {
 		return fmt.Errorf("auto_config.enabled cannot be set to true for server agents.")
@@ -2028,6 +2034,12 @@ func (b *Builder) validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 	// Auto Config Authorization is only supported on servers
 	if !rt.ServerMode {
 		return fmt.Errorf("auto_config.authorization.enabled cannot be set to true for client agents")
+	}
+
+	// Right now we require TLS as everything we are going to transmit via auto-config is sensitive. Signed Certificates, Tokens
+	// and other encryption keys. This must be transmitted over a secure connection so we don't allow doing otherwise.
+	if rt.CertFile == "" {
+		return fmt.Errorf("auto_config.authorization.enabled cannot be set without providing a TLS certificate for the server")
 	}
 
 	// build out the validator to ensure that the given configuration was valid
