@@ -80,15 +80,17 @@ function main {
    local proto_go_path=${proto_path%%.proto}.pb.go
    local proto_go_bin_path=${proto_path%%.proto}.pb.binary.go
    
-   local go_proto_out="paths=source_relative"
+   local go_proto_out=""
+   local sep=""
    if is_set "${grpc}"
    then
-      go_proto_out="${go_proto_out},plugins=grpc"
+      go_proto_out="plugins=grpc"
+      sep=","
    fi
 
    if is_set "${imp_replace}"
    then
-      go_proto_out="${go_proto_out},${gogo_proto_imp_replace}"
+      go_proto_out="${go_proto_out}${sep}${gogo_proto_imp_replace}"
    fi
 
    if test -n "${go_proto_out}"
@@ -96,19 +98,15 @@ function main {
       go_proto_out="${go_proto_out}:"
    fi
 
-   # How we run protoc probably needs some documentation.
-   #
-   # This is the path to where 
-   #  -I="${gogo_proto_path}/protobuf" \
    local -i ret=0
    status_stage "Generating ${proto_path} into ${proto_go_path} and ${proto_go_bin_path}"
    debug_run protoc \
+      -I="$(dirname ${proto_path})" \
       -I="${gogo_proto_path}/protobuf" \
       -I="${gogo_proto_path}" \
       -I="${gogo_proto_mod_path}" \
-      -I="${SOURCE_DIR}" \
-      --gofast_out="${go_proto_out}${SOURCE_DIR}" \
-      --go-binary_out="${SOURCE_DIR}" \
+      --gofast_out="${go_proto_out}$(dirname ${proto_path})" \
+      --go-binary_out="$(dirname ${proto_path})" \
       "${proto_path}"
    if test $? -ne 0
    then

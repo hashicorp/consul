@@ -490,13 +490,13 @@ func init() {
 	// test.  These are cached between runs but do not persist between restarts
 	// of the test binary.
 	var err error
-	ecdsaPublicKey, ecdsaPrivateKey, err = GenerateKey()
+	ecdsaPublicKey, ecdsaPrivateKey, err = generateKey()
 	if err != nil {
 		panic(err)
 	}
 }
 
-func GenerateKey() (pub, priv string, err error) {
+func generateKey() (pub, priv string, err error) {
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		return "", "", fmt.Errorf("error generating private key: %v", err)
