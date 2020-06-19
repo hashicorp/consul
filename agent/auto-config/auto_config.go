@@ -479,7 +479,7 @@ func (ac *AutoConfig) getInitialConfiguration(ctx context.Context) error {
 			}
 			wait = ac.waiter.Failed()
 		case <-ctx.Done():
-			ac.logger.Info("interrupted during getting initial auto configuration", "err", ctx.Err())
+			ac.logger.Info("interrupted during initial auto configuration", "err", ctx.Err())
 			return ctx.Err()
 		}
 	}
