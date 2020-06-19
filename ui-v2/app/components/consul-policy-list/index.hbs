@@ -14,12 +14,14 @@
     </BlockSlot>
     <BlockSlot @name="details">
         <dl class="datacenter">
-          <dt>Datacenters</dt>
+          <dt>
+            <Tooltip @position="top-start">Datacenters</Tooltip>
+          </dt>
           <dd>
               {{join ', ' (policy/datacenters item)}}
           </dd>
         </dl>
-        <dl>
+        <dl class="description">
           <dt>Description</dt>
           <dd data-test-description>
             {{item.Description}}
@@ -37,6 +39,7 @@
 {{/if}}
           </BlockSlot>
         </Action>
+{{#if (not-eq (policy/typeof item) 'policy-management')}}
         <Action data-test-delete-action @name="delete" @onclick={{action ondelete item}} class="dangerous">
           <BlockSlot @name="label">
             Delete
@@ -57,6 +60,7 @@
             </Confirmation>
           </BlockSlot>
         </Action>
+{{/if}}
       </Actions>
     </BlockSlot>
 </ListCollection>
