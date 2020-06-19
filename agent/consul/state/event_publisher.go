@@ -67,7 +67,12 @@ type commitUpdate struct {
 	events []stream.Event
 }
 
-func NewEventPublisher(handlers map[stream.Topic]topicHandler, snapCacheTTL time.Duration) *EventPublisher {
+// NewEventPublisher returns an EventPublisher for publishing change events.
+// Handlers are used to convert the memDB changes into events.
+// A goroutine is run in the background to publish events to all subscribes.
+// Cancelling the context will shutdown the goroutine, to free resources,
+// and stop all publishing.
+func NewEventPublisher(ctx context.Context, handlers map[stream.Topic]topicHandler, snapCacheTTL time.Duration) *EventPublisher {
 	e := &EventPublisher{
 		snapCacheTTL: snapCacheTTL,
 		topicBuffers: make(map[stream.Topic]*stream.EventBuffer),
@@ -79,7 +84,7 @@ func NewEventPublisher(handlers map[stream.Topic]topicHandler, snapCacheTTL time
 		handlers: handlers,
 	}
 
-	go e.handleUpdates()
+	go e.handleUpdates(ctx)
 
 	return e
 }
@@ -121,10 +126,16 @@ func (e *EventPublisher) PublishChanges(tx *txn, changes memdb.Changes) error {
 	return nil
 }
 
-func (e *EventPublisher) handleUpdates() {
+func (e *EventPublisher) handleUpdates(ctx context.Context) {
 	for {
-		update := <-e.publishCh
-		e.sendEvents(update)
+		select {
+		case <-ctx.Done():
+			// TODO: also close all subscriptions so the subscribers are moved
+			// to the new publisher?
+			return
+		case update := <-e.publishCh:
+			e.sendEvents(update)
+		}
 	}
 }
 

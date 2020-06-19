@@ -1,6 +1,7 @@
 package state
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -154,6 +155,10 @@ func NewStateStore(gc *TombstoneGC) (*Store, error) {
 		return nil, fmt.Errorf("Failed setting up state store: %s", err)
 	}
 
+	// TODO: context should be cancelled when the store is Abandoned to free
+	// resources.
+	ctx := context.TODO()
+
 	s := &Store{
 		schema:       schema,
 		abandonCh:    make(chan struct{}),
@@ -161,7 +166,7 @@ func NewStateStore(gc *TombstoneGC) (*Store, error) {
 		lockDelay:    NewDelay(),
 		db: &changeTrackerDB{
 			db:        db,
-			publisher: NewEventPublisher(newTopicHandlers(), 10*time.Second),
+			publisher: NewEventPublisher(ctx, newTopicHandlers(), 10*time.Second),
 		},
 	}
 	return s, nil
