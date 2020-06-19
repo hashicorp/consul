@@ -9,6 +9,10 @@ IMPROVEMENTS:
 * acl: allow auth methods created in the primary datacenter to optionally create global tokens [[GH-7899](https://github.com/hashicorp/consul/issues/7899)]
 * agent: Allow to restrict servers that can join a given Serf Consul cluster. [[GH-7628](https://github.com/hashicorp/consul/issues/7628)]
 
+BUGFIXES:
+
+* connect: fix crash that would result if a mesh or terminating gateway's upstream has a hostname as an address and no healthy service instances available [[GH-8158](https://github.com/hashicorp/consul/pull/8158]
+
 ## 1.8.0 (June 18, 2020)
 
 BREAKING CHANGES:
