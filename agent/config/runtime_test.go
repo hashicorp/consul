@@ -3814,6 +3814,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					intro_token = "blah"
 					server_addresses = ["198.18.0.1"]
 				}
+				verify_outgoing = true
 			`},
 			json: []string{`
 			{
@@ -3822,9 +3823,58 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					"enabled": true,
 					"intro_token": "blah",
 					"server_addresses": ["198.18.0.1"]
-				}
+				},
+				"verify_outgoing": true
 			}`},
 			err: "auto_config.enabled cannot be set to true for server agents",
+		},
+
+		{
+			desc: "auto config tls not enabled",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			hcl: []string{`
+				auto_config {
+					enabled = true
+					server_addresses = ["198.18.0.1"]
+					intro_token = "foo" 
+				}
+			`},
+			json: []string{`
+			{
+				"auto_config": {
+					"enabled": true,
+					"server_addresses": ["198.18.0.1"],
+					"intro_token": "foo"
+				}
+			}`},
+			err: "auto_config.enabled cannot be set without configuring TLS for server communications",
+		},
+
+		{
+			desc: "auto config server tls not enabled",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			hcl: []string{`
+				server = true
+				auto_config {
+					authorization {
+						enabled = true
+					}
+				}
+			`},
+			json: []string{`
+			{
+				"server": true,
+				"auto_config": {
+					"authorization": {
+						"enabled": true
+					}
+				}
+			}`},
+			err: "auto_config.authorization.enabled cannot be set without providing a TLS certificate for the server",
 		},
 
 		{
@@ -3836,15 +3886,16 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				auto_config {
 					enabled = true
 				 	server_addresses = ["198.18.0.1"]
-
 				}
+				verify_outgoing = true
 			`},
 			json: []string{`
 			{
 				"auto_config": {
 					"enabled": true,
 					"server_addresses": ["198.18.0.1"]
-				}
+				},
+				"verify_outgoing": true
 			}`},
 			err: "One of auto_config.intro_token, auto_config.intro_token_file or the CONSUL_INTRO_TOKEN environment variable must be set to enable auto_config",
 		},
@@ -3859,13 +3910,15 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					enabled = true
 					intro_token = "blah"
 				}
+				verify_outgoing = true
 			`},
 			json: []string{`
 			{
 				"auto_config": {
 					"enabled": true,
 					"intro_token": "blah"
-				}
+				},
+				"verify_outgoing": true
 			}`},
 			err: "auto_config.enabled is set without providing a list of addresses",
 		},
@@ -3884,6 +3937,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					dns_sans = ["foo"]
 					ip_sans = ["invalid", "127.0.0.1"]
 				}
+				verify_outgoing = true
 			`},
 			json: []string{`
 			{
@@ -3894,7 +3948,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					"server_addresses": ["198.18.0.1"],
 					"dns_sans": ["foo"],
 					"ip_sans": ["invalid", "127.0.0.1"]
-				}
+				},
+				"verify_outgoing": true
 			}`},
 			warns: []string{
 				"Cannot parse ip \"invalid\" from auto_config.ip_sans",
@@ -3908,6 +3963,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.AutoConfig.DNSSANs = []string{"foo"}
 				rt.AutoConfig.IPSANs = []net.IP{net.IPv4(127, 0, 0, 1)}
 				rt.DataDir = dataDir
+				rt.VerifyOutgoing = true
 			},
 		},
 
@@ -3946,6 +4002,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 						enabled = true
 					}
 				}
+				cert_file = "foo"
 			`},
 			json: []string{`
 			{
@@ -3953,7 +4010,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					"authorization": {
 						"enabled": true
 					}
-				}
+				},
+				"cert_file": "foo"
 			}`},
 			err: `auto_config.authorization.static has invalid configuration: exactly one of 'JWTValidationPubKeys', 'JWKSURL', or 'OIDCDiscoveryURL' must be set for type "jwt"`,
 		},
@@ -3974,6 +4032,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 						}
 					}
 				}
+				cert_file = "foo"
 			`},
 			json: []string{`
 			{
@@ -3985,7 +4044,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 							"oidc_discovery_url": "https://fake.uri.local"
 						}
 					}
-				}
+				},
+				"cert_file": "foo"
 			}`},
 			err: `auto_config.authorization.static has invalid configuration: exactly one of 'JWTValidationPubKeys', 'JWKSURL', or 'OIDCDiscoveryURL' must be set for type "jwt"`,
 		},
@@ -4008,6 +4068,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 						}
 					}
 				}
+				cert_file = "foo"
 			`},
 			json: []string{`
 			{
@@ -4021,7 +4082,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 							]
 						}
 					}
-				}
+				},
+				"cert_file": "foo"
 			}`},
 			err: `auto_config.authorization.static.claim_assertion "values.node == ${node}" is invalid: Selector "values" is not valid`,
 		},
@@ -4046,6 +4108,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 						}
 					}
 				}
+				cert_file = "foo"
 			`},
 			json: []string{`
 			{
@@ -4062,7 +4125,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 							}
 						}
 					}
-				}
+				},
+				"cert_file": "foo"
 			}`},
 			patch: func(rt *RuntimeConfig) {
 				rt.AutoConfig.Authorizer.Enabled = true
@@ -4075,6 +4139,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.LeaveOnTerm = false
 				rt.ServerMode = true
 				rt.SkipLeaveOnInt = true
+				rt.CertFile = "foo"
 			},
 		},
 	}
