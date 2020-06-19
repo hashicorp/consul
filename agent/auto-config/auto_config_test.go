@@ -193,7 +193,8 @@ func TestInitialConfiguration_cancelled(t *testing.T) {
 	cfgFile := filepath.Join(configDir, "test.json")
 	require.NoError(t, ioutil.WriteFile(cfgFile, []byte(`{
 		"primary_datacenter": "primary", 
-		"auto_config": {"enabled": true, "intro_token": "blarg", "server_addresses": ["127.0.0.1:8300"]}
+		"auto_config": {"enabled": true, "intro_token": "blarg", "server_addresses": ["127.0.0.1:8300"]},
+		"verify_outgoing": true
 	}`), 0600))
 
 	builderOpts.ConfigFiles = append(builderOpts.ConfigFiles, cfgFile)
@@ -227,7 +228,7 @@ func TestInitialConfiguration_restored(t *testing.T) {
 
 	cfgFile := filepath.Join(configDir, "test.json")
 	require.NoError(t, ioutil.WriteFile(cfgFile, []byte(`{
-		"auto_config": {"enabled": true, "intro_token": "blarg", "server_addresses": ["127.0.0.1:8300"]}
+		"auto_config": {"enabled": true, "intro_token": "blarg", "server_addresses": ["127.0.0.1:8300"]}, "verify_outgoing": true
 	}`), 0600))
 
 	builderOpts.ConfigFiles = append(builderOpts.ConfigFiles, cfgFile)
@@ -261,7 +262,7 @@ func TestInitialConfiguration_success(t *testing.T) {
 
 	cfgFile := filepath.Join(configDir, "test.json")
 	require.NoError(t, ioutil.WriteFile(cfgFile, []byte(`{
-		"auto_config": {"enabled": true, "intro_token": "blarg", "server_addresses": ["127.0.0.1:8300"]}
+		"auto_config": {"enabled": true, "intro_token": "blarg", "server_addresses": ["127.0.0.1:8300"]}, "verify_outgoing": true
 	}`), 0600))
 
 	builderOpts.ConfigFiles = append(builderOpts.ConfigFiles, cfgFile)
@@ -313,7 +314,7 @@ func TestInitialConfiguration_retries(t *testing.T) {
 
 	cfgFile := filepath.Join(configDir, "test.json")
 	require.NoError(t, ioutil.WriteFile(cfgFile, []byte(`{
-		"auto_config": {"enabled": true, "intro_token": "blarg", "server_addresses": ["198.18.0.1", "198.18.0.2:8398", "198.18.0.3:8399", "127.0.0.1:1234"]}
+		"auto_config": {"enabled": true, "intro_token": "blarg", "server_addresses": ["198.18.0.1", "198.18.0.2:8398", "198.18.0.3:8399", "127.0.0.1:1234"]}, "verify_outgoing": true
 	}`), 0600))
 
 	builderOpts.ConfigFiles = append(builderOpts.ConfigFiles, cfgFile)
