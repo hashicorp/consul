@@ -4,7 +4,7 @@
 {{#if (eq item.AccessorID token.AccessorID)}}
         <dl rel="me">
           <dd>
-            <Tooltip>
+            <Tooltip @position="top-start">
               Your token
             </Tooltip>
           </dd>
@@ -19,51 +19,7 @@
               {{if item.Local 'local' 'global' }}
           </dd>
         </dl>
-{{#let (policy/group item.Policies) as |policies|}}
-  {{#let (get policies 'management') as |management|}}
-    {{#if (gt management.length 0)}}
-        <dl>
-          <dt>
-            Management
-          </dt>
-          <dd>
-              {{#each (get policies 'management') as |item|}}
-                <span data-test-policy class={{policy/typeof item}}>{{item.Name}}</span>
-              {{/each}}
-          </dd>
-        </dl>
-    {{/if}}
-  {{/let}}
-  {{#let (get policies 'identities') as |identities|}}
-    {{#if (gt identities.length 0)}}
-        <dl>
-          <dt>Identities</dt>
-          <dd>
-              {{#each identities as |item|}}
-                <span data-test-policy class={{policy/typeof item}}>{{if (eq item.template 'service-identity') 'Service' 'Node'}} Identity: {{item.Name}}</span>
-              {{/each}}
-          </dd>
-        </dl>
-    {{/if}}
-  {{/let}}
-  {{#let (append (get policies 'policies') item.Roles) as |policies|}}
-    {{#if (gt policies.length 0)}}
-        <dl>
-          <dt>Rules</dt>
-          <dd>
-          {{!FIXME: This needs hoisting out of here as if a token is legacy it won't have policies or roles}}
-            {{#if (token/is-legacy item) }}
-              Legacy tokens have embedded rules.
-            {{ else }}
-              {{#each policies as |item|}}
-                <span data-test-policy class={{policy/typeof item}}>{{item.Name}}</span>
-              {{/each}}
-            {{/if}}
-          </dd>
-        </dl>
-    {{/if}}
-  {{/let}}
-{{/let}}
+        <ConsulTokenRulesetList @item={{item}} />
         <dl>
           <dt>Description</dt>
           <dd data-test-description>
@@ -73,20 +29,20 @@
     </BlockSlot>
     <BlockSlot @name="actions" as |Actions|>
       <Actions as |Action|>
-        <Action data-test-edit-action @name="edit" @href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>
+        <Action data-test-edit-action @href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>
           <BlockSlot @name="label">
             Edit
           </BlockSlot>
         </Action>
   {{#if (not (token/is-legacy item))}}
-        <Action data-test-clone-action @name="clone" @onclick={{action onclone item}}>
+        <Action data-test-clone-action @onclick={{action onclone item}}>
           <BlockSlot @name="label">
             Duplicate
           </BlockSlot>
         </Action>
   {{/if}}
   {{#if (eq item.AccessorID token.AccessorID)}}
-        <Action data-test-logout-action @name="logout" class="dangerous" @onclick={{action onclone item}}>
+        <Action data-test-logout-action class="dangerous" @onclick={{action onclone item}}>
           <BlockSlot @name="label">
             Logout
           </BlockSlot>
@@ -107,7 +63,7 @@
           </BlockSlot>
         </Action>
   {{else}}
-        <Action data-test-use-action @name="use" @onclick={{action onuse item}}>
+        <Action data-test-use-action @onclick={{action onuse item}}>
           <BlockSlot @name="label">
             Use
           </BlockSlot>
@@ -129,7 +85,7 @@
         </Action>
   {{/if}}
   {{#if (not (or (token/is-anonymous item) (eq item.AccessorID token.AccessorID)))}}
-        <Action data-test-delete-action @name="delete" @onclick={{action ondelete item}} class="dangerous">
+        <Action data-test-delete-action @onclick={{action ondelete item}} class="dangerous">
           <BlockSlot @name="label">
             Delete
           </BlockSlot>
