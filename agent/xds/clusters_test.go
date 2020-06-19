@@ -446,6 +446,15 @@ func TestClustersFromSnapshot(t *testing.T) {
 							},
 						},
 					},
+					structs.NewServiceName("cache", nil): {
+						Kind: structs.ServiceResolver,
+						Name: "cache",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"prod": {
+								Filter: "Service.Meta.Env == prod",
+							},
+						},
+					},
 				}
 			},
 		},
@@ -460,6 +469,15 @@ func TestClustersFromSnapshot(t *testing.T) {
 						Subsets: map[string]structs.ServiceResolverSubset{
 							"alt": {
 								Filter: "Service.Meta.domain == alt",
+							},
+						},
+					},
+					structs.NewServiceName("cache", nil): {
+						Kind: structs.ServiceResolver,
+						Name: "cache",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"prod": {
+								Filter: "Service.Meta.Env == prod",
 							},
 						},
 					},

@@ -44,6 +44,22 @@
           ]
         },
         {
+          "filterChainMatch": {
+            "serverNames": [
+              "*.dc6.internal.11111111-2222-3333-4444-555555555555.consul"
+            ]
+          },
+          "filters": [
+            {
+              "name": "envoy.tcp_proxy",
+              "config": {
+                  "cluster": "dc6.internal.11111111-2222-3333-4444-555555555555.consul",
+                  "stat_prefix": "mesh_gateway_remote_bar_dc6_tcp"
+                }
+            }
+          ]
+        },
+        {
           "filters": [
             {
               "name": "envoy.filters.network.sni_cluster"
@@ -102,6 +118,22 @@
               "config": {
                   "cluster": "dc4.internal.11111111-2222-3333-4444-555555555555.consul",
                   "stat_prefix": "mesh_gateway_remote_baz_dc4_tcp"
+                }
+            }
+          ]
+        },
+        {
+          "filterChainMatch": {
+            "serverNames": [
+              "*.dc6.internal.11111111-2222-3333-4444-555555555555.consul"
+            ]
+          },
+          "filters": [
+            {
+              "name": "envoy.tcp_proxy",
+              "config": {
+                  "cluster": "dc6.internal.11111111-2222-3333-4444-555555555555.consul",
+                  "stat_prefix": "mesh_gateway_remote_baz_dc6_tcp"
                 }
             }
           ]
@@ -170,6 +202,22 @@
           ]
         },
         {
+          "filterChainMatch": {
+            "serverNames": [
+              "*.dc6.internal.11111111-2222-3333-4444-555555555555.consul"
+            ]
+          },
+          "filters": [
+            {
+              "name": "envoy.tcp_proxy",
+              "config": {
+                  "cluster": "dc6.internal.11111111-2222-3333-4444-555555555555.consul",
+                  "stat_prefix": "mesh_gateway_remote_default_dc6_tcp"
+                }
+            }
+          ]
+        },
+        {
           "filters": [
             {
               "name": "envoy.filters.network.sni_cluster"
@@ -228,6 +276,22 @@
               "config": {
                   "cluster": "dc4.internal.11111111-2222-3333-4444-555555555555.consul",
                   "stat_prefix": "mesh_gateway_remote_foo_dc4_tcp"
+                }
+            }
+          ]
+        },
+        {
+          "filterChainMatch": {
+            "serverNames": [
+              "*.dc6.internal.11111111-2222-3333-4444-555555555555.consul"
+            ]
+          },
+          "filters": [
+            {
+              "name": "envoy.tcp_proxy",
+              "config": {
+                  "cluster": "dc6.internal.11111111-2222-3333-4444-555555555555.consul",
+                  "stat_prefix": "mesh_gateway_remote_foo_dc6_tcp"
                 }
             }
           ]
