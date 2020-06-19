@@ -665,6 +665,9 @@ func (s *Server) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, opts gatewayC
 
 	// Fall back to last unhealthy endpoint if none were healthy
 	if len(endpoints) == 0 {
+		s.Logger.Named(loggerName).Warn("upstream service does not contain any healthy instances",
+			"dc", dc, "service", service.String())
+
 		endpoints = append(endpoints, fallback)
 	}
 	if len(uniqueHostnames) > 1 {
