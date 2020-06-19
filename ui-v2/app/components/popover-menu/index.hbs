@@ -1,7 +1,4 @@
-{{yield (concat 'popover-menu-' guid) (hash
-  addSubmenu=(action 'addSubmenu')
-  removeSubmenu=(action 'removeSubmenu')
-)}}
+{{yield}}
 <AriaMenu @keyboardAccess={{keyboardAccess}} as |change keypress ariaLabelledBy ariaControls ariaExpanded keypressClick|>
   <ToggleButton
     @checked={{if keyboardAccess ariaExpanded expanded}}
@@ -17,12 +14,12 @@
       </YieldSlot>
     </button>
   </ToggleButton>
-  <MenuPanel @position={{position}} id={{ariaControls}} aria-labelledby={{ariaLabelledBy}} aria-expanded={{ariaExpanded}}>
+  <MenuPanel @position={{position}} id={{ariaControls}} aria-labelledby={{ariaLabelledBy}} aria-expanded={{ariaExpanded}} as |api|>
     <BlockSlot @name="controls">
       <input type="checkbox" id={{concat 'popover-menu-' guid '-'}} />
-      {{#each submenus as |sub|}}
-        <input type="checkbox" id={{concat 'popover-menu-' guid '-' sub}} />
-      {{/each}}
+    {{#each submenus as |sub|}}
+      <input type="checkbox" id={{concat 'popover-menu-' guid '-' sub}} onchange={{api.change}} />
+    {{/each}}
     </BlockSlot>
     {{#if hasHeader}}
       <BlockSlot @name="header">

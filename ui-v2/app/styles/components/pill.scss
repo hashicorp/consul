@@ -2,44 +2,21 @@ td strong {
   @extend %pill;
   margin-right: 3px;
 }
-// For the moment pills with classes are iconed ones
-%pill:not([class]) {
-  @extend %frame-gray-900;
-}
-%pill[class] {
-  padding-left: 0;
-  margin-right: 16px;
-}
-%pill[class]::before {
-  @extend %as-pseudo;
-  margin-right: 3px;
-}
-%pill.policy::before {
-  @extend %with-file-fill-icon;
-  opacity: 0.3;
-}
-%pill.policy-management::before {
-  @extend %with-star-icon;
-}
-%pill.role::before {
-  @extend %with-user-plain-icon;
-  opacity: 0.3;
-}
-
-// TODO: These are related to the pill icons, but also to the tables
-// All of this icon assigning stuff should probably go in the eventual
-// refactored /components/icons.scss file
-
-span.policy-management a::after {
-  @extend %with-star-icon, %as-pseudo;
-  margin-left: 3px;
-}
 
 span.policy-service-identity,
+span.policy-node-identity,
 .consul-external-source,
 .consul-kind {
   @extend %reduced-pill;
 }
+span.policy-service-identity::before,
+span.policy-node-identity::before {
+  display: inline-block;
+  width: auto;
+}
+span.policy-node-identity::before {
+  content: 'Node Identity: ';
+}
 span.policy-service-identity::before {
-  width: 0;
+  content: 'Service Identity: ';
 }
