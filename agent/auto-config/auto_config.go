@@ -262,6 +262,7 @@ func (ac *AutoConfig) InitialConfiguration(ctx context.Context) (*config.Runtime
 	}
 
 	if !ready {
+		ac.logger.Info("retrieving initial agent auto configuration remotely")
 		if err := ac.getInitialConfiguration(ctx); err != nil {
 			return nil, err
 		}
@@ -447,7 +448,7 @@ func (ac *AutoConfig) getInitialConfigurationOnce(ctx context.Context) (bool, er
 				return false, ctx.Err()
 			}
 
-			ac.logger.Debug("Making Cluster.AutoConfig RPC", "addr", addr.String())
+			ac.logger.Debug("making Cluster.AutoConfig RPC", "addr", addr.String())
 			if err = ac.directRPC.RPC(ac.config.Datacenter, ac.config.NodeName, &addr, "Cluster.AutoConfig", &request, &reply); err != nil {
 				ac.logger.Error("AutoConfig RPC failed", "addr", addr.String(), "error", err)
 				continue
@@ -457,7 +458,7 @@ func (ac *AutoConfig) getInitialConfigurationOnce(ctx context.Context) (bool, er
 		}
 	}
 
-	return false, nil
+	return false, ctx.Err()
 }
 
 // getInitialConfiguration implements a loop to retry calls to getInitialConfigurationOnce.
@@ -469,11 +470,16 @@ func (ac *AutoConfig) getInitialConfiguration(ctx context.Context) error {
 	for {
 		select {
 		case <-wait:
-			if done, err := ac.getInitialConfigurationOnce(ctx); done {
+			done, err := ac.getInitialConfigurationOnce(ctx)
+			if done {
 				return err
+			}
+			if err != nil {
+				ac.logger.Error(err.Error())
 			}
 			wait = ac.waiter.Failed()
 		case <-ctx.Done():
+			ac.logger.Info("interrupted during initial auto configuration", "err", ctx.Err())
 			return ctx.Err()
 		}
 	}
