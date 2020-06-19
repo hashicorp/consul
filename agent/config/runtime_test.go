@@ -3846,7 +3846,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					"server_addresses": ["198.18.0.1"]
 				}
 			}`},
-			err: "one of auto_config.intro_token or auto_config.intro_token_file must be set to enable auto_config",
+			err: "One of auto_config.intro_token, auto_config.intro_token_file or the CONSUL_INTRO_TOKEN environment variable must be set to enable auto_config",
 		},
 
 		{
@@ -3898,7 +3898,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			}`},
 			warns: []string{
 				"Cannot parse ip \"invalid\" from auto_config.ip_sans",
-				"auto_config.intro_token and auto_config.intro_token_file are both set. Using the value of auto_config.intro_token",
+				"Both an intro token and intro token file are set. The intro token will be used instead of the file",
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.AutoConfig.Enabled = true

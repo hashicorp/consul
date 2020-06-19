@@ -257,8 +257,6 @@ type Agent struct {
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
 
-	InterruptStartCh chan struct{}
-
 	// joinLANNotifier is called after a successful JoinLAN.
 	joinLANNotifier notifier
 
@@ -414,23 +412,22 @@ func New(options ...AgentOption) (*Agent, error) {
 
 	// Create most of the agent
 	a := Agent{
-		checkReapAfter:   make(map[structs.CheckID]time.Duration),
-		checkMonitors:    make(map[structs.CheckID]*checks.CheckMonitor),
-		checkTTLs:        make(map[structs.CheckID]*checks.CheckTTL),
-		checkHTTPs:       make(map[structs.CheckID]*checks.CheckHTTP),
-		checkTCPs:        make(map[structs.CheckID]*checks.CheckTCP),
-		checkGRPCs:       make(map[structs.CheckID]*checks.CheckGRPC),
-		checkDockers:     make(map[structs.CheckID]*checks.CheckDocker),
-		checkAliases:     make(map[structs.CheckID]*checks.CheckAlias),
-		eventCh:          make(chan serf.UserEvent, 1024),
-		eventBuf:         make([]*UserEvent, 256),
-		joinLANNotifier:  &systemd.Notifier{},
-		retryJoinCh:      make(chan error),
-		shutdownCh:       make(chan struct{}),
-		InterruptStartCh: make(chan struct{}),
-		endpoints:        make(map[string]string),
-		tokens:           new(token.Store),
-		logger:           flat.logger,
+		checkReapAfter:  make(map[structs.CheckID]time.Duration),
+		checkMonitors:   make(map[structs.CheckID]*checks.CheckMonitor),
+		checkTTLs:       make(map[structs.CheckID]*checks.CheckTTL),
+		checkHTTPs:      make(map[structs.CheckID]*checks.CheckHTTP),
+		checkTCPs:       make(map[structs.CheckID]*checks.CheckTCP),
+		checkGRPCs:      make(map[structs.CheckID]*checks.CheckGRPC),
+		checkDockers:    make(map[structs.CheckID]*checks.CheckDocker),
+		checkAliases:    make(map[structs.CheckID]*checks.CheckAlias),
+		eventCh:         make(chan serf.UserEvent, 1024),
+		eventBuf:        make([]*UserEvent, 256),
+		joinLANNotifier: &systemd.Notifier{},
+		retryJoinCh:     make(chan error),
+		shutdownCh:      make(chan struct{}),
+		endpoints:       make(map[string]string),
+		tokens:          new(token.Store),
+		logger:          flat.logger,
 	}
 
 	// parse the configuration and handle the error/warnings
@@ -599,13 +596,13 @@ func LocalConfig(cfg *config.RuntimeConfig) local.Config {
 }
 
 // Start verifies its configuration and runs an agent's various subprocesses.
-func (a *Agent) Start() error {
+func (a *Agent) Start(ctx context.Context) error {
 	a.stateLock.Lock()
 	defer a.stateLock.Unlock()
 
 	// This needs to be done early on as it will potentially alter the configuration
 	// and then how other bits are brought up
-	c, err := a.autoConf.InitialConfiguration(&lib.StopChannelContext{StopCh: a.shutdownCh})
+	c, err := a.autoConf.InitialConfiguration(ctx)
 	if err != nil {
 		return err
 	}
@@ -709,7 +706,7 @@ func (a *Agent) Start() error {
 	a.registerCache()
 
 	if a.config.AutoEncryptTLS && !a.config.ServerMode {
-		reply, err := a.setupClientAutoEncrypt()
+		reply, err := a.setupClientAutoEncrypt(ctx)
 		if err != nil {
 			return fmt.Errorf("AutoEncrypt failed: %s", err)
 		}
@@ -822,7 +819,7 @@ func (a *Agent) Start() error {
 	return nil
 }
 
-func (a *Agent) setupClientAutoEncrypt() (*structs.SignedResponse, error) {
+func (a *Agent) setupClientAutoEncrypt(ctx context.Context) (*structs.SignedResponse, error) {
 	client := a.delegate.(*consul.Client)
 
 	addrs := a.config.StartJoinAddrsLAN
@@ -832,7 +829,7 @@ func (a *Agent) setupClientAutoEncrypt() (*structs.SignedResponse, error) {
 	}
 	addrs = append(addrs, retryJoinAddrs(disco, retryJoinSerfVariant, "LAN", a.config.RetryJoinLAN, a.logger)...)
 
-	reply, priv, err := client.RequestAutoEncryptCerts(addrs, a.config.ServerPort, a.tokens.AgentToken(), a.InterruptStartCh)
+	reply, priv, err := client.RequestAutoEncryptCerts(ctx, addrs, a.config.ServerPort, a.tokens.AgentToken())
 	if err != nil {
 		return nil, err
 	}
@@ -960,7 +957,8 @@ func (a *Agent) setupClientAutoEncryptWatching(rootsReq *structs.DCSpecificReque
 				// check auto encrypt client cert expiration
 				if a.tlsConfigurator.AutoEncryptCertExpired() {
 					autoLogger.Debug("client certificate expired.")
-					reply, err := a.setupClientAutoEncrypt()
+					// Background because the context is mainly useful when the agent is first starting up.
+					reply, err := a.setupClientAutoEncrypt(context.Background())
 					if err != nil {
 						autoLogger.Error("client certificate expired, failed to renew", "error", err)
 						// in case of an error, try again in one minute

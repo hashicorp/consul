@@ -1923,6 +1923,15 @@ func (b *Builder) autoConfigVal(raw AutoConfigRaw) AutoConfig {
 
 	val.Enabled = b.boolValWithDefault(raw.Enabled, false)
 	val.IntroToken = b.stringVal(raw.IntroToken)
+
+	// default the IntroToken to the env variable if specified.
+	if envToken := os.Getenv("CONSUL_INTRO_TOKEN"); envToken != "" {
+		if val.IntroToken != "" {
+			b.warn("Both auto_config.intro_token and the CONSUL_INTRO_TOKEN environment variable are set. Using the value from the environment variable")
+		}
+
+		val.IntroToken = envToken
+	}
 	val.IntroTokenFile = b.stringVal(raw.IntroTokenFile)
 	// These can be go-discover values and so don't have to resolve fully yet
 	val.ServerAddresses = b.expandAllOptionalAddrs("auto_config.server_addresses", raw.ServerAddresses)
@@ -1995,9 +2004,9 @@ func (b *Builder) validateAutoConfig(rt RuntimeConfig) error {
 
 	// When both are set we will prefer the given value over the file.
 	if autoconf.IntroToken != "" && autoconf.IntroTokenFile != "" {
-		b.warn("auto_config.intro_token and auto_config.intro_token_file are both set. Using the value of auto_config.intro_token")
+		b.warn("Both an intro token and intro token file are set. The intro token will be used instead of the file")
 	} else if autoconf.IntroToken == "" && autoconf.IntroTokenFile == "" {
-		return fmt.Errorf("one of auto_config.intro_token or auto_config.intro_token_file must be set to enable auto_config")
+		return fmt.Errorf("One of auto_config.intro_token, auto_config.intro_token_file or the CONSUL_INTRO_TOKEN environment variable must be set to enable auto_config")
 	}
 
 	if len(autoconf.ServerAddresses) == 0 {

@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/x509"
@@ -258,7 +259,7 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 
 	id := string(a.Config.NodeID)
 
-	if err := agent.Start(); err != nil {
+	if err := agent.Start(context.Background()); err != nil {
 		cleanupTmpDir()
 		agent.ShutdownAgent()
 		agent.ShutdownEndpoints()

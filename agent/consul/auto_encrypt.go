@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"strings"
@@ -18,7 +19,7 @@ const (
 	retryJitterWindow = 30 * time.Second
 )
 
-func (c *Client) RequestAutoEncryptCerts(servers []string, port int, token string, interruptCh chan struct{}) (*structs.SignedResponse, string, error) {
+func (c *Client) RequestAutoEncryptCerts(ctx context.Context, servers []string, port int, token string) (*structs.SignedResponse, string, error) {
 	errFn := func(err error) (*structs.SignedResponse, string, error) {
 		return nil, "", err
 	}
@@ -92,8 +93,8 @@ func (c *Client) RequestAutoEncryptCerts(servers []string, port int, token strin
 	attempts := 0
 	for {
 		select {
-		case <-interruptCh:
-			return errFn(fmt.Errorf("aborting AutoEncrypt because interrupted"))
+		case <-ctx.Done():
+			return errFn(fmt.Errorf("aborting AutoEncrypt because interrupted: %w", ctx.Err()))
 		default:
 		}
 
@@ -124,8 +125,8 @@ func (c *Client) RequestAutoEncryptCerts(servers []string, port int, token strin
 		select {
 		case <-time.After(interval):
 			continue
-		case <-interruptCh:
-			return errFn(fmt.Errorf("aborting AutoEncrypt because interrupted"))
+		case <-ctx.Done():
+			return errFn(fmt.Errorf("aborting AutoEncrypt because interrupted: %w", ctx.Err()))
 		case <-c.shutdownCh:
 			return errFn(fmt.Errorf("aborting AutoEncrypt because shutting down"))
 		}
