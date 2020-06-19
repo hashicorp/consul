@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -215,6 +216,8 @@ func (c *cmd) run(args []string) int {
 	stopCh := make(chan struct{})
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
 
+	ctx, cancel := context.WithCancel(context.Background())
+
 	go func() {
 		for {
 			var sig os.Signal
@@ -235,13 +238,13 @@ func (c *cmd) run(args []string) int {
 
 			default:
 				c.logger.Info("Caught", "signal", sig)
-				agent.InterruptStartCh <- struct{}{}
+				cancel()
 				return
 			}
 		}
 	}()
 
-	err = agent.Start()
+	err = agent.Start(ctx)
 	signal.Stop(signalCh)
 	select {
 	case stopCh <- struct{}{}:

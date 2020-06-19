@@ -18,7 +18,7 @@ const (
 	retryJitterWindow = 30 * time.Second
 )
 
-func (c *Client) RequestAutoEncryptCerts(servers []string, port int, token string, interruptCh chan struct{}) (*structs.SignedResponse, string, error) {
+func (c *Client) RequestAutoEncryptCerts(servers []string, port int, token string, interruptCh <-chan struct{}) (*structs.SignedResponse, string, error) {
 	errFn := func(err error) (*structs.SignedResponse, string, error) {
 		return nil, "", err
 	}

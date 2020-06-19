@@ -457,7 +457,7 @@ func (ac *AutoConfig) getInitialConfigurationOnce(ctx context.Context) (bool, er
 		}
 	}
 
-	return false, nil
+	return false, ctx.Err()
 }
 
 // getInitialConfiguration implements a loop to retry calls to getInitialConfigurationOnce.
@@ -474,6 +474,7 @@ func (ac *AutoConfig) getInitialConfiguration(ctx context.Context) error {
 			}
 			wait = ac.waiter.Failed()
 		case <-ctx.Done():
+			ac.logger.Info("interrupted during getting initial auto configuration", "err", ctx.Err())
 			return ctx.Err()
 		}
 	}
