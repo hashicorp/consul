@@ -30,6 +30,17 @@
   left: calc(100% + 10px);
   display: none;
 }
+/* TODO: once everything is using ListCollection */
+/* this can go */
+%menu-panel [type='checkbox']:checked ~ * {
+  /* this needs to autocalculate */
+  min-height: 143px;
+  max-height: 143px;
+}
+%menu-panel [id$='-']:first-child:checked ~ ul label[for$='-'] + [role='menu'] {
+  display: block;
+}
+/**/
 %menu-panel dl {
   padding: 0.9em 1em;
 }
