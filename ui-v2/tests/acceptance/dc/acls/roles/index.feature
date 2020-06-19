@@ -54,4 +54,4 @@ Feature: dc / acls / roles / index: ACL Roles List
     s: Si-Search
     ---
     And I see 1 role model
-    And I see 1 role model with the serviceIdentity "Service Identity: Si-Search"
+    And I see 1 role model with the serviceIdentity "Si-Search"
