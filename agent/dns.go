@@ -318,7 +318,11 @@ START:
 }
 
 func serviceNodeCanonicalDNSName(sn *structs.ServiceNode, domain string) string {
-	return serviceCanonicalDNSName(sn.ServiceName, sn.Datacenter, domain, &sn.EnterpriseMeta)
+	return serviceCanonicalDNSName(sn.ServiceName, "service", sn.Datacenter, domain, &sn.EnterpriseMeta)
+}
+
+func serviceIngressDNSName(service, datacenter, domain string, entMeta *structs.EnterpriseMeta) string {
+	return serviceCanonicalDNSName(service, "ingress", datacenter, domain, entMeta)
 }
 
 // handlePtr is used to handle "reverse" DNS queries

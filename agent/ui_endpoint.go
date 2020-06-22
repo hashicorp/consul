@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 )
@@ -16,7 +17,9 @@ import (
 const metaExternalSource = "external-source"
 
 type GatewayConfig struct {
-	ListenerPort int
+	Addresses []string `json:",omitempty"`
+	// internal to track uniqueness
+	addressesSet map[string]struct{}
 }
 
 // ServiceSummary is used to summarize a service
@@ -161,7 +164,7 @@ RPC:
 
 	// Generate the summary
 	// TODO (gateways) (freddy) Have Internal.ServiceDump return ServiceDump instead. Need to add bexpr filtering for type.
-	return summarizeServices(out.Nodes.ToServiceDump()), nil
+	return summarizeServices(out.Nodes.ToServiceDump(), s.agent.config), nil
 }
 
 // UIGatewayServices is used to query all the nodes for services associated with a gateway along with their gateway config
@@ -195,10 +198,11 @@ RPC:
 		}
 		return nil, err
 	}
-	return summarizeServices(out.Dump), nil
+
+	return summarizeServices(out.Dump, s.agent.config), nil
 }
 
-func summarizeServices(dump structs.ServiceDump) []*ServiceSummary {
+func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig) []*ServiceSummary {
 	// Collect the summary information
 	var services []structs.ServiceID
 	summary := make(map[structs.ServiceID]*ServiceSummary)
@@ -220,8 +224,9 @@ func summarizeServices(dump structs.ServiceDump) []*ServiceSummary {
 
 	for _, csn := range dump {
 		if csn.GatewayService != nil {
-			sum := getService(csn.GatewayService.Service.ToServiceID())
-			sum.GatewayConfig.ListenerPort = csn.GatewayService.Port
+			gwsvc := csn.GatewayService
+			sum := getService(gwsvc.Service.ToServiceID())
+			modifySummaryForGatewayService(cfg, sum, gwsvc)
 		}
 
 		// Will happen in cases where we only have the GatewayServices mapping
@@ -298,4 +303,39 @@ func summarizeServices(dump structs.ServiceDump) []*ServiceSummary {
 		output[idx] = sum
 	}
 	return output
+}
+
+func modifySummaryForGatewayService(
+	cfg *config.RuntimeConfig,
+	sum *ServiceSummary,
+	gwsvc *structs.GatewayService,
+) {
+	var dnsAddresses []string
+	for _, domain := range []string{cfg.DNSDomain, cfg.DNSAltDomain} {
+		// If the domain is empty, do not use it to construct a valid DNS
+		// address
+		if domain == "" {
+			continue
+		}
+		dnsAddresses = append(dnsAddresses, serviceIngressDNSName(
+			gwsvc.Service.Name,
+			cfg.Datacenter,
+			domain,
+			&gwsvc.Service.EnterpriseMeta,
+		))
+	}
+
+	for _, addr := range gwsvc.Addresses(dnsAddresses) {
+		// check for duplicates, a service will have a ServiceInfo struct for
+		// every instance that is registered.
+		if _, ok := sum.GatewayConfig.addressesSet[addr]; !ok {
+			if sum.GatewayConfig.addressesSet == nil {
+				sum.GatewayConfig.addressesSet = make(map[string]struct{})
+			}
+			sum.GatewayConfig.addressesSet[addr] = struct{}{}
+			sum.GatewayConfig.Addresses = append(
+				sum.GatewayConfig.Addresses, addr,
+			)
+		}
+	}
 }
