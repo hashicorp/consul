@@ -56,7 +56,7 @@
   flex-wrap: nowrap;
 }
 %composite-row-detail dl,
-%composite-row-detail > ul > li {
+%composite-row-detail > span {
   margin-right: 12px;
 }
 %composite-row-detail .node::before,
@@ -71,6 +71,9 @@
 }
 %composite-row-detail dl dt::before {
   margin-right: 4px;
+}
+%composite-row dl.proxy dt::before {
+  margin-top: 2px;
 }
 // Copy Button
 %composite-row .copy-button button {
