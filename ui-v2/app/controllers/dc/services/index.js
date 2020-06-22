@@ -24,7 +24,7 @@ export default Controller.extend({
         // used by more than one service
         if (item.ProxyFor) {
           item.ProxyFor.forEach(service => {
-            proxies[service] = true;
+            proxies[service] = item;
           });
         }
       });
