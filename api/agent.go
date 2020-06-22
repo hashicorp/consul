@@ -123,10 +123,18 @@ type AgentServiceConnectProxyConfig struct {
 
 // AgentMember represents a cluster member known to the agent
 type AgentMember struct {
-	Name        string
-	Addr        string
-	Port        uint16
-	Tags        map[string]string
+	Name string
+	Addr string
+	Port uint16
+	Tags map[string]string
+	// Status of the Member which corresponds to  github.com/hashicorp/serf/serf.MemberStatus
+	// Value is one of:
+	//
+	// 	  AgentMemberNone    = 0
+	//	  AgentMemberAlive   = 1
+	//	  AgentMemberLeaving = 2
+	//	  AgentMemberLeft    = 3
+	//	  AgentMemberFailed  = 4
 	Status      int
 	ProtocolMin uint8
 	ProtocolMax uint8
