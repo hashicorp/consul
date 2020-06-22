@@ -28,6 +28,7 @@ load helpers
 }
 
 @test "s1 upstream should be able to connect to s2 via grpc" {
+  # This test also covers http2 since gRPC always uses http2
   run fortio grpcping localhost:5000
 
   echo "OUTPUT: $output"
