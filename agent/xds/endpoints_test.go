@@ -126,7 +126,7 @@ func Test_makeLoadAssignment(t *testing.T) {
 						{
 							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 								Endpoint: &envoyendpoint.Endpoint{
-									Address: makeAddressPtr("10.10.10.10", 1234),
+									Address: makeAddress("10.10.10.10", 1234),
 								}},
 							HealthStatus:        envoycore.HealthStatus_HEALTHY,
 							LoadBalancingWeight: makeUint32Value(1),
@@ -134,7 +134,7 @@ func Test_makeLoadAssignment(t *testing.T) {
 						{
 							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 								Endpoint: &envoyendpoint.Endpoint{
-									Address: makeAddressPtr("10.10.10.20", 1234),
+									Address: makeAddress("10.10.10.20", 1234),
 								}},
 							HealthStatus:        envoycore.HealthStatus_HEALTHY,
 							LoadBalancingWeight: makeUint32Value(1),
@@ -156,7 +156,7 @@ func Test_makeLoadAssignment(t *testing.T) {
 						{
 							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 								Endpoint: &envoyendpoint.Endpoint{
-									Address: makeAddressPtr("10.10.10.10", 1234),
+									Address: makeAddress("10.10.10.10", 1234),
 								}},
 							HealthStatus:        envoycore.HealthStatus_HEALTHY,
 							LoadBalancingWeight: makeUint32Value(10),
@@ -164,7 +164,7 @@ func Test_makeLoadAssignment(t *testing.T) {
 						{
 							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 								Endpoint: &envoyendpoint.Endpoint{
-									Address: makeAddressPtr("10.10.10.20", 1234),
+									Address: makeAddress("10.10.10.20", 1234),
 								}},
 							HealthStatus:        envoycore.HealthStatus_HEALTHY,
 							LoadBalancingWeight: makeUint32Value(5),
@@ -186,7 +186,7 @@ func Test_makeLoadAssignment(t *testing.T) {
 						{
 							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 								Endpoint: &envoyendpoint.Endpoint{
-									Address: makeAddressPtr("10.10.10.10", 1234),
+									Address: makeAddress("10.10.10.10", 1234),
 								}},
 							HealthStatus:        envoycore.HealthStatus_HEALTHY,
 							LoadBalancingWeight: makeUint32Value(1),
@@ -194,7 +194,7 @@ func Test_makeLoadAssignment(t *testing.T) {
 						{
 							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 								Endpoint: &envoyendpoint.Endpoint{
-									Address: makeAddressPtr("10.10.10.20", 1234),
+									Address: makeAddress("10.10.10.20", 1234),
 								}},
 							HealthStatus:        envoycore.HealthStatus_UNHEALTHY,
 							LoadBalancingWeight: makeUint32Value(1),

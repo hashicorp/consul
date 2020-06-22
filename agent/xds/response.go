@@ -49,11 +49,6 @@ func makeAddress(ip string, port int) *envoycore.Address {
 	}
 }
 
-// DEPRECATED: just use makeAddress
-func makeAddressPtr(ip string, port int) *envoycore.Address {
-	return makeAddress(ip, port)
-}
-
 func makeUint32Value(n int) *wrappers.UInt32Value {
 	return &wrappers.UInt32Value{Value: uint32(n)}
 }

@@ -171,7 +171,7 @@ func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 			lbEndpoint := &envoyendpoint.LbEndpoint{
 				HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 					Endpoint: &envoyendpoint.Endpoint{
-						Address: makeAddressPtr(addr, port),
+						Address: makeAddress(addr, port),
 					},
 				},
 				HealthStatus: envoycore.HealthStatus_UNKNOWN,
@@ -292,7 +292,7 @@ func makeEndpoint(clusterName, host string, port int) *envoyendpoint.LbEndpoint 
 	return &envoyendpoint.LbEndpoint{
 		HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 			Endpoint: &envoyendpoint.Endpoint{
-				Address: makeAddressPtr(host, port),
+				Address: makeAddress(host, port),
 			},
 		},
 	}
@@ -449,7 +449,7 @@ func makeLoadAssignment(clusterName string, endpointGroups []loadAssignmentEndpo
 			es = append(es, &envoyendpoint.LbEndpoint{
 				HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 					Endpoint: &envoyendpoint.Endpoint{
-						Address: makeAddressPtr(addr, port),
+						Address: makeAddress(addr, port),
 					},
 				},
 				HealthStatus:        healthStatus,
