@@ -122,12 +122,19 @@ type AgentServiceConnectProxyConfig struct {
 }
 
 // AgentMember represents a cluster member known to the agent
-// AgentMemberStatus corresponds the Status integer to a string
 type AgentMember struct {
-	Name        string
-	Addr        string
-	Port        uint16
-	Tags        map[string]string
+	Name string
+	Addr string
+	Port uint16
+	Tags map[string]string
+	// Status of the Member which corresponds to  github.com/hashicorp/serf/serf.MemberStatus
+	// Value is one of:
+	//
+	// 	  AgentMemberNone    = 0
+	//	  AgentMemberAlive   = 1
+	//	  AgentMemberLeaving = 2
+	//	  AgentMemberLeft    = 3
+	//	  AgentMemberFailed  = 4
 	Status      int
 	ProtocolMin uint8
 	ProtocolMax uint8
@@ -136,18 +143,6 @@ type AgentMember struct {
 	DelegateMax uint8
 	DelegateCur uint8
 }
-
-// AgentMemberStatus corresponds the member status integers to the string status.
-// The values correspond to those of github.com/hashicorp/serf/serf.MemberStatus.
-type AgentMemberStatus int
-
-const (
-	AgentMemberNone    = 0
-	AgentMemberAlive   = 1
-	AgentMemberLeaving = 2
-	AgentMemberLeft    = 3
-	AgentMemberFailed  = 4
-)
 
 // AllSegments is used to select for all segments in MembersOpts.
 const AllSegments = "_all"
