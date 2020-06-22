@@ -819,6 +819,18 @@ func (d *DNSServer) trimDomain(query string) string {
 	return strings.TrimSuffix(query, shorter)
 }
 
+// computeRCode Return the DNS Error code from Consul Error
+func (d *DNSServer) computeRCode(err error) int {
+	if err == nil {
+		return dns.RcodeSuccess
+	}
+	dErr := err.Error()
+	if dErr == structs.ErrNoDCPath.Error() || dErr == consul.ErrQueryNotFound.Error() {
+		return dns.RcodeNameError
+	}
+	return dns.RcodeServerFailure
+}
+
 // nodeLookup is used to handle a node query
 func (d *DNSServer) nodeLookup(cfg *dnsConfig, network, datacenter, node string, req, resp *dns.Msg, maxRecursionLevel int) {
 	// Only handle ANY, A, AAAA, and TXT type requests
@@ -839,7 +851,11 @@ func (d *DNSServer) nodeLookup(cfg *dnsConfig, network, datacenter, node string,
 	out, err := d.lookupNode(cfg, args)
 	if err != nil {
 		d.logger.Error("rpc error", "error", err)
-		resp.SetRcode(req, dns.RcodeServerFailure)
+		rCode := d.computeRCode(err)
+		if rCode == dns.RcodeNameError {
+			d.addSOA(cfg, resp)
+		}
+		resp.SetRcode(req, rCode)
 		return
 	}
 
@@ -1203,7 +1219,11 @@ func (d *DNSServer) serviceLookup(cfg *dnsConfig, lookup serviceLookup, req, res
 	out, err := d.lookupServiceNodes(cfg, lookup)
 	if err != nil {
 		d.logger.Error("rpc error", "error", err)
-		resp.SetRcode(req, dns.RcodeServerFailure)
+		rCode := d.computeRCode(err)
+		if rCode == dns.RcodeNameError {
+			d.addSOA(cfg, resp)
+		}
+		resp.SetRcode(req, rCode)
 		return
 	}
 
@@ -1297,12 +1317,12 @@ func (d *DNSServer) preparedQueryLookup(cfg *dnsConfig, network, datacenter, que
 	// If they give a bogus query name, treat that as a name error,
 	// not a full on server error. We have to use a string compare
 	// here since the RPC layer loses the type information.
-	if err != nil && err.Error() == consul.ErrQueryNotFound.Error() {
-		d.addSOA(cfg, resp)
-		resp.SetRcode(req, dns.RcodeNameError)
-		return
-	} else if err != nil {
-		resp.SetRcode(req, dns.RcodeServerFailure)
+	if err != nil {
+		rCode := d.computeRCode(err)
+		if rCode == dns.RcodeNameError {
+			d.addSOA(cfg, resp)
+		}
+		resp.SetRcode(req, rCode)
 		return
 	}
 
