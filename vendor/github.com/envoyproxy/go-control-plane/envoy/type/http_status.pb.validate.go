@@ -15,7 +15,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/gogo/protobuf/types"
+	"github.com/golang/protobuf/ptypes"
 )
 
 // ensure the imports are used
@@ -30,14 +30,24 @@ var (
 	_ = time.Duration(0)
 	_ = (*url.URL)(nil)
 	_ = (*mail.Address)(nil)
-	_ = types.DynamicAny{}
+	_ = ptypes.DynamicAny{}
 )
+
+// define the regex for a UUID once up-front
+var _http_status_uuidPattern = regexp.MustCompile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
 // Validate checks the field values on HttpStatus with the rules defined in the
 // proto definition for this message. If any rules are violated, an error is returned.
 func (m *HttpStatus) Validate() error {
 	if m == nil {
 		return nil
+	}
+
+	if _, ok := _HttpStatus_Code_NotInLookup[m.GetCode()]; ok {
+		return HttpStatusValidationError{
+			field:  "Code",
+			reason: "value must not be in list [0]",
+		}
 	}
 
 	if _, ok := StatusCode_name[int32(m.GetCode())]; !ok {
@@ -103,3 +113,7 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = HttpStatusValidationError{}
+
+var _HttpStatus_Code_NotInLookup = map[StatusCode]struct{}{
+	0: {},
+}

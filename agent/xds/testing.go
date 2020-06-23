@@ -171,7 +171,7 @@ func makeAttributeContextPeer(t testing.T, svc string) *envoyauth.AttributeConte
 	spiffeID := connect.TestSpiffeIDService(t, svc)
 	return &envoyauth.AttributeContext_Peer{
 		// We don't care about IP for now might later though
-		Address: makeAddressPtr("10.0.0.1", 1234),
+		Address: makeAddress("10.0.0.1", 1234),
 		// Note we don't set Service since that is an advisory only mechanism in
 		// Envoy triggered by self-declared headers. We rely on the actual TLS Peer
 		// identity.

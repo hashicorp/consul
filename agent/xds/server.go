@@ -7,18 +7,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
-
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoyauthz "github.com/envoyproxy/go-control-plane/envoy/service/auth/v2"
 	envoyauthzalpha "github.com/envoyproxy/go-control-plane/envoy/service/auth/v2alpha"
 	envoydisco "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
-	"github.com/gogo/googleapis/google/rpc"
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
@@ -27,6 +20,12 @@ import (
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/go-hclog"
+	rpcstatus "google.golang.org/genproto/googleapis/rpc/status"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 // ADSStream is a shorter way of referring to this thing...
@@ -463,8 +462,8 @@ func (s *Server) DeltaAggregatedResources(_ envoydisco.AggregatedDiscoveryServic
 
 func deniedResponse(reason string) (*envoyauthz.CheckResponse, error) {
 	return &envoyauthz.CheckResponse{
-		Status: &rpc.Status{
-			Code:    int32(rpc.PERMISSION_DENIED),
+		Status: &rpcstatus.Status{
+			Code:    int32(codes.PermissionDenied),
 			Message: "Denied: " + reason,
 		},
 	}, nil
@@ -536,8 +535,8 @@ func (s *Server) Check(ctx context.Context, r *envoyauthz.CheckRequest) (*envoya
 	s.Logger.Debug("Connect AuthZ ALLOWED", "source", r.Attributes.Source.Principal,
 		"destination", r.Attributes.Destination.Principal, "reason", reason)
 	return &envoyauthz.CheckResponse{
-		Status: &rpc.Status{
-			Code:    int32(rpc.OK),
+		Status: &rpcstatus.Status{
+			Code:    int32(codes.OK),
 			Message: "ALLOWED: " + reason,
 		},
 	}, nil
