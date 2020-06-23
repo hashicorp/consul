@@ -3,7 +3,9 @@ import { get } from '@ember/object';
 
 export default Service.extend({
   datacenters: service('repository/dc'),
+  services: service('repository/service'),
   namespaces: service('repository/nspace'),
+  intentions: service('repository/intention'),
   token: service('repository/token'),
   policies: service('repository/policy'),
   policy: service('repository/policy'),
@@ -41,12 +43,24 @@ export default Service.extend({
       case 'token':
         find = configuration => repo.self(rest[1], dc);
         break;
+      case 'services':
       case 'roles':
       case 'policies':
         find = configuration => repo.findAllByDatacenter(dc, nspace, configuration);
         break;
       case 'policy':
         find = configuration => repo.findBySlug(rest[0], dc, nspace, configuration);
+        break;
+      case 'intentions':
+        [method, ...slug] = rest;
+        switch (method) {
+          case 'for-service':
+            find = configuration => repo.findByService(slug[0], dc, nspace, configuration);
+            break;
+          default:
+            find = configuration => repo.findAllByDatacenter(dc, nspace, configuration);
+            break;
+        }
         break;
       case 'oidc':
         [method, ...slug] = rest;
