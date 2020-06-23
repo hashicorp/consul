@@ -1138,7 +1138,8 @@ func trimUDPResponse(req, resp *dns.Msg, udpAnswerLimit int) (trimmed bool) {
 }
 
 // trimDNSResponse will trim the response for UDP and TCP
-func (d *DNSServer) trimDNSResponse(cfg *dnsConfig, network string, req, resp *dns.Msg) (trimmed bool) {
+func (d *DNSServer) trimDNSResponse(cfg *dnsConfig, network string, req, resp *dns.Msg) {
+	var trimmed bool
 	if network != "tcp" {
 		trimmed = trimUDPResponse(req, resp, cfg.UDPAnswerLimit)
 	} else {
@@ -1148,7 +1149,6 @@ func (d *DNSServer) trimDNSResponse(cfg *dnsConfig, network string, req, resp *d
 	if trimmed && cfg.EnableTruncate {
 		resp.Truncated = true
 	}
-	return trimmed
 }
 
 // lookupServiceNodes returns nodes with a given service.
