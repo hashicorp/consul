@@ -12,10 +12,10 @@ import (
 	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoyendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	envoytype "github.com/envoyproxy/go-control-plane/envoy/type"
-	"github.com/gogo/protobuf/jsonpb"
-	"github.com/gogo/protobuf/proto"
-	"github.com/gogo/protobuf/types"
-
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/any"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
@@ -185,13 +185,13 @@ func (s *Server) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, name, pathProt
 	}
 	c = &envoy.Cluster{
 		Name:                 name,
-		ConnectTimeout:       time.Duration(cfg.LocalConnectTimeoutMs) * time.Millisecond,
+		ConnectTimeout:       ptypes.DurationProto(time.Duration(cfg.LocalConnectTimeoutMs) * time.Millisecond),
 		ClusterDiscoveryType: &envoy.Cluster_Type{Type: envoy.Cluster_STATIC},
 		LoadAssignment: &envoy.ClusterLoadAssignment{
 			ClusterName: name,
-			Endpoints: []envoyendpoint.LocalityLbEndpoints{
+			Endpoints: []*envoyendpoint.LocalityLbEndpoints{
 				{
-					LbEndpoints: []envoyendpoint.LbEndpoint{
+					LbEndpoints: []*envoyendpoint.LbEndpoint{
 						makeEndpoint(name,
 							addr,
 							port),
@@ -234,7 +234,7 @@ func (s *Server) makeUpstreamClusterForPreparedQuery(upstream structs.Upstream, 
 	if c == nil {
 		c = &envoy.Cluster{
 			Name:                 sni,
-			ConnectTimeout:       time.Duration(cfg.ConnectTimeoutMs) * time.Millisecond,
+			ConnectTimeout:       ptypes.DurationProto(time.Duration(cfg.ConnectTimeoutMs) * time.Millisecond),
 			ClusterDiscoveryType: &envoy.Cluster_Type{Type: envoy.Cluster_EDS},
 			EdsClusterConfig: &envoy.Cluster_EdsClusterConfig{
 				EdsConfig: &envoycore.ConfigSource{
@@ -338,7 +338,7 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 		c := &envoy.Cluster{
 			Name:                 clusterName,
 			AltStatName:          clusterName,
-			ConnectTimeout:       node.Resolver.ConnectTimeout,
+			ConnectTimeout:       ptypes.DurationProto(node.Resolver.ConnectTimeout),
 			ClusterDiscoveryType: &envoy.Cluster_Type{Type: envoy.Cluster_EDS},
 			CommonLbConfig: &envoy.Cluster_CommonLbConfig{
 				HealthyPanicThreshold: &envoytype.Percent{
@@ -424,7 +424,7 @@ func makeClusterFromUserConfig(configJSON string) (*envoy.Cluster, error) {
 
 	if _, ok := jsonFields["@type"]; ok {
 		// Type field is present so decode it as a types.Any
-		var any types.Any
+		var any any.Any
 		err := jsonpb.UnmarshalString(configJSON, &any)
 		if err != nil {
 			return nil, err
@@ -464,7 +464,7 @@ func (s *Server) makeMeshGatewayClusterWithConnectTimeout(clusterName string, cf
 
 	return &envoy.Cluster{
 		Name:                 clusterName,
-		ConnectTimeout:       connectTimeout,
+		ConnectTimeout:       ptypes.DurationProto(connectTimeout),
 		ClusterDiscoveryType: &envoy.Cluster_Type{Type: envoy.Cluster_EDS},
 		EdsClusterConfig: &envoy.Cluster_EdsClusterConfig{
 			EdsConfig: &envoycore.ConfigSource{

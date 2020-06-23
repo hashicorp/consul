@@ -21,11 +21,10 @@ require (
 	github.com/digitalocean/godo v1.10.0 // indirect
 	github.com/docker/go-connections v0.3.0
 	github.com/elazarl/go-bindata-assetfs v0.0.0-20160803192304-e1a2a7ec64b0
-	github.com/envoyproxy/go-control-plane v0.8.0
+	github.com/envoyproxy/go-control-plane v0.9.5
 	github.com/go-ole/go-ole v1.2.1 // indirect
-	github.com/gogo/googleapis v1.1.0
 	github.com/gogo/protobuf v1.2.1
-	github.com/golang/protobuf v1.3.1
+	github.com/golang/protobuf v1.3.2
 	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf
 	github.com/hashicorp/consul/api v1.4.0
 	github.com/hashicorp/consul/sdk v0.4.0
@@ -78,7 +77,8 @@ require (
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
-	google.golang.org/grpc v1.23.0
+	google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
+	google.golang.org/grpc v1.25.1
 	gopkg.in/square/go-jose.v2 v2.3.1
 	k8s.io/api v0.0.0-20190325185214-7544f9db76f6
 	k8s.io/apimachinery v0.0.0-20190223001710-c182ff3b9841

@@ -7,13 +7,11 @@ import (
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoyendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
-	"github.com/gogo/protobuf/proto"
-
+	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-
 	bexpr "github.com/hashicorp/go-bexpr"
 )
 
@@ -228,11 +226,11 @@ func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 	return resources, nil
 }
 
-func makeEndpoint(clusterName, host string, port int) envoyendpoint.LbEndpoint {
-	return envoyendpoint.LbEndpoint{
+func makeEndpoint(clusterName, host string, port int) *envoyendpoint.LbEndpoint {
+	return &envoyendpoint.LbEndpoint{
 		HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 			Endpoint: &envoyendpoint.Endpoint{
-				Address: makeAddressPtr(host, port),
+				Address: makeAddress(host, port),
 			},
 		},
 	}
@@ -247,7 +245,7 @@ type loadAssignmentEndpointGroup struct {
 func makeLoadAssignment(clusterName string, endpointGroups []loadAssignmentEndpointGroup, localDatacenter string) *envoy.ClusterLoadAssignment {
 	cla := &envoy.ClusterLoadAssignment{
 		ClusterName: clusterName,
-		Endpoints:   make([]envoyendpoint.LocalityLbEndpoints, 0, len(endpointGroups)),
+		Endpoints:   make([]*envoyendpoint.LocalityLbEndpoints, 0, len(endpointGroups)),
 	}
 
 	if len(endpointGroups) > 1 {
@@ -260,7 +258,7 @@ func makeLoadAssignment(clusterName string, endpointGroups []loadAssignmentEndpo
 
 	for priority, endpointGroup := range endpointGroups {
 		endpoints := endpointGroup.Endpoints
-		es := make([]envoyendpoint.LbEndpoint, 0, len(endpoints))
+		es := make([]*envoyendpoint.LbEndpoint, 0, len(endpoints))
 
 		for _, ep := range endpoints {
 			// TODO (mesh-gateway) - should we respect the translate_wan_addrs configuration here or just always use the wan for cross-dc?
@@ -271,10 +269,10 @@ func makeLoadAssignment(clusterName string, endpointGroups []loadAssignmentEndpo
 				healthStatus = endpointGroup.OverrideHealth
 			}
 
-			es = append(es, envoyendpoint.LbEndpoint{
+			es = append(es, &envoyendpoint.LbEndpoint{
 				HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 					Endpoint: &envoyendpoint.Endpoint{
-						Address: makeAddressPtr(addr, port),
+						Address: makeAddress(addr, port),
 					},
 				},
 				HealthStatus:        healthStatus,
@@ -282,7 +280,7 @@ func makeLoadAssignment(clusterName string, endpointGroups []loadAssignmentEndpo
 			})
 		}
 
-		cla.Endpoints = append(cla.Endpoints, envoyendpoint.LocalityLbEndpoints{
+		cla.Endpoints = append(cla.Endpoints, &envoyendpoint.LocalityLbEndpoints{
 			Priority:    uint32(priority),
 			LbEndpoints: es,
 		})
