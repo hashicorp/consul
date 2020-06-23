@@ -1,73 +1,105 @@
-<TabularCollection class="consul-intention-list" @items={{items}} as |item index|>
-    <BlockSlot @name="header">
-        <th>Source</th>
-        <th>&nbsp;</th>
-        <th>Destination</th>
-        <th>Precedence</th>
-    </BlockSlot>
-    <BlockSlot @name="row">
-        <td class="source" data-test-intention={{item.ID}}>
-          <a href={{href-to 'dc.intentions.edit' item.ID}} data-test-intention-source={{item.SourceName}}>
-            {{#if (eq item.SourceName '*') }}
-              All Services (*)
-            {{else}}
-              {{item.SourceName}}
-            {{/if}}
-            {{! TODO: slugify }}
-            <em class={{concat 'nspace-' (or item.SourceNS 'default')}}>{{or item.SourceNS 'default'}}</em>
-          </a>
-        </td>
-        <td class="intent-{{item.Action}}" data-test-intention-action="{{item.Action}}">
-            <strong>{{item.Action}}</strong>
-        </td>
-        <td class="destination" data-test-intention-destination="{{item.DestinationName}}">
-          <span>
-            {{#if (eq item.DestinationName '*') }}
-              All Services (*)
-            {{else}}
-              {{item.DestinationName}}
-            {{/if}}
-            {{! TODO: slugify }}
-            <em class={{concat 'nspace-' (or item.DestinationNS 'default')}}>{{or item.DestinationNS 'default'}}</em>
-          </span>
-        </td>
-        <td class="precedence">
-            {{item.Precedence}}
-        </td>
-    </BlockSlot>
-    <BlockSlot @name="actions" as |index change checked|>
-      <PopoverMenu @expanded={{if (eq checked index) true false}} @onchange={{action change index}} @keyboardAccess={{false}}>
-        <BlockSlot @name="trigger">
-          More
-        </BlockSlot>
-        <BlockSlot @name="menu" as |confirm send keypressClick change|>
-            <li role="none">
-              <a role="menuitem" tabindex="-1" href={{href-to 'dc.intentions.edit' item.ID}}>Edit</a>
-            </li>
-            <li role="none" class="dangerous">
-              <label for={{confirm}} role="menuitem" tabindex="-1" onkeypress={{keypressClick}} data-test-delete>Delete</label>
-              <div role="menu">
-                <div class="confirmation-alert warning">
-                  <div>
-                    <header>
-                      Confirm Delete
-                    </header>
-                    <p>
-                      Are you sure you want to delete this intention?
-                    </p>
+<StateChart @src={{chart}} as |State Guard Action dispatch state|>
+
+  <State @matches="removed">
+    <Notification @after={{action dispatch "RESET"}}>
+      <p data-notification role="alert" class="success notification-update">
+        <strong>Success!</strong>
+        Your intention has been deleted.
+      </p>
+    </Notification>
+  </State>
+
+  <State @matches="error">
+    <Notification @after={{action dispatch "RESET"}}>
+      <p data-notification role="alert" class="error notification-delete">
+        <strong>Error!</strong>
+        There was an error deleting your intention.
+        <br />{{error.status}}: {{error.detail}}
+      </p>
+    </Notification>
+  </State>
+
+{{#if (gt items.length 0)}}
+  <TabularCollection class="consul-intention-list" @items={{items}} as |item index|>
+      <BlockSlot @name="header">
+          <th>Source</th>
+          <th>&nbsp;</th>
+          <th>Destination</th>
+          <th>Precedence</th>
+      </BlockSlot>
+      <BlockSlot @name="row">
+          <td class="source" data-test-intention={{item.ID}}>
+            <a href={{href-to 'dc.intentions.edit' item.ID}} data-test-intention-source={{item.SourceName}}>
+              {{#if (eq item.SourceName '*') }}
+                All Services (*)
+              {{else}}
+                {{item.SourceName}}
+              {{/if}}
+              {{! TODO: slugify }}
+              <em class={{concat 'nspace-' (or item.SourceNS 'default')}}>{{or item.SourceNS 'default'}}</em>
+            </a>
+          </td>
+          <td class="intent-{{item.Action}}" data-test-intention-action="{{item.Action}}">
+              <strong>{{item.Action}}</strong>
+          </td>
+          <td class="destination" data-test-intention-destination="{{item.DestinationName}}">
+            <span>
+              {{#if (eq item.DestinationName '*') }}
+                All Services (*)
+              {{else}}
+                {{item.DestinationName}}
+              {{/if}}
+              {{! TODO: slugify }}
+              <em class={{concat 'nspace-' (or item.DestinationNS 'default')}}>{{or item.DestinationNS 'default'}}</em>
+            </span>
+          </td>
+          <td class="precedence">
+              {{item.Precedence}}
+          </td>
+      </BlockSlot>
+      <BlockSlot @name="actions" as |index change checked|>
+        <PopoverMenu @expanded={{if (eq checked index) true false}} @onchange={{action change index}} @keyboardAccess={{false}}>
+          <BlockSlot @name="trigger">
+            More
+          </BlockSlot>
+          <BlockSlot @name="menu" as |confirm send keypressClick change|>
+              <li role="none">
+                <a role="menuitem" tabindex="-1" href={{href-to 'dc.intentions.edit' item.ID}}>Edit</a>
+              </li>
+              <li role="none" class="dangerous">
+                <label for={{confirm}} role="menuitem" tabindex="-1" onkeypress={{keypressClick}} data-test-delete>Delete</label>
+                <div role="menu">
+                  <div class="confirmation-alert warning">
+                    <div>
+                      <header>
+                        Confirm Delete
+                      </header>
+                      <p>
+                        Are you sure you want to delete this intention?
+                      </p>
+                    </div>
+                    <ul>
+                      <li class="dangerous">
+                        <DataSink
+                          @sink={{concat '/*/' item.Datacenter '/intention/' item.ID}}
+                          @onchange={{action dispatch "SUCCESS"}}
+                          @onerror={{queue (action (mut error) value="error.errors.firstObject") (action dispatch "ERROR")}}
+                        as |sink|>
+                          <button tabindex="-1" type="button" class="type-delete" onclick={{queue (action change) (action sink.open null item)}}>Delete</button>
+                        </DataSink>
+                      </li>
+                      <li>
+                        <label for={{confirm}}>Cancel</label>
+                      </li>
+                    </ul>
                   </div>
-                  <ul>
-                    <li class="dangerous">
-                      <button tabindex="-1" type="button" class="type-delete" onclick={{queue (action change) (action ondelete item)}}>Delete</button>
-                    </li>
-                    <li>
-                      <label for={{confirm}}>Cancel</label>
-                    </li>
-                  </ul>
                 </div>
-              </div>
-            </li>
-        </BlockSlot>
-      </PopoverMenu>
-    </BlockSlot>
-</TabularCollection>
+              </li>
+          </BlockSlot>
+        </PopoverMenu>
+      </BlockSlot>
+  </TabularCollection>
+{{else}}
+  {{yield}}
+{{/if}}
+</StateChart>
