@@ -19,7 +19,7 @@ export default Component.extend({
   actions: {
     createServices: function(e) {
       // Services in the menus should:
-      // 1. Be unique (they potentially
+      // 1. Be unique (they potentially could be duplicated due to services from different namespaces)
       // 2. Only include services that shold have intentions
       // 3. Include an 'All Services' option
       // 4. Include the current Source and Destination incase they are virtual services
@@ -47,11 +47,9 @@ export default Component.extend({
       });
     },
     createNspaces: function(e) {
-      // Services in the menus should:
-      // 1. Be unique
-      // 2. Only include services that shold have intentions
-      // 3. Include an 'All Services' option
-      // 4. Include the current Source and Destination incase they are virtual services
+      // Nspaces in the menus should:
+      // 1. Include an 'All Namespaces' option
+      // 2. Include the current SourceNS and DestinationNS incase they are virtual services
       let items = e.data.toArray();
       let source = items.findBy('Name', this.item.SourceNS);
       if (!source) {
