@@ -10,6 +10,7 @@ export default Service.extend({
   policies: service('repository/policy'),
   policy: service('repository/policy'),
   roles: service('repository/role'),
+
   oidc: service('repository/oidc-provider'),
   type: service('data-source/protocols/http/blocking'),
   source: function(src, configuration) {
@@ -55,7 +56,8 @@ export default Service.extend({
         [method, ...slug] = rest;
         switch (method) {
           case 'for-service':
-            find = configuration => repo.findByService(slug[0], dc, nspace, configuration);
+            // TODO: Are we going to need to encode/decode here...?
+            find = configuration => repo.findByService(slug.join('/'), dc, nspace, configuration);
             break;
           default:
             find = configuration => repo.findAllByDatacenter(dc, nspace, configuration);

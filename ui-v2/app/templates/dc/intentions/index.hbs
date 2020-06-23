@@ -1,7 +1,7 @@
 {{title 'Intentions'}}
 <DataSource
   @src={{concat '/' nspace '/' dc '/intentions'}}
-  @onchange={{queue (action (mut loaded) true) (action (mut items) value="data")}}
+  @onchange={{queue (action (mut items) value="data") (action (mut loaded) true)}}
   @onerror={{action (mut error) value="error"}}
 />
 
