@@ -1,14 +1,14 @@
 ---
 layout: docs
 page_title: Connect - Terminating Gateways
-sidebar_title: Terminating Gateways <sup> Beta </sup>
+sidebar_title: Terminating Gateways
 description: >-
   A terminating gateway enables traffic from services in the Consul
   service mesh to services outside the mesh. This section details
   how to configure and run a terminating gateway.
 ---
 
-# Terminating Gateways <sup> Beta </sup>
+# Terminating Gateways
 
 -> **1.8.0+:** This feature is available in Consul versions 1.8.0 and newer.
 
@@ -19,10 +19,10 @@ and forward requests to the appropriate destination.
 
 ![Terminating Gateway Architecture](/img/terminating-gateways.png)
 
-For a complete example of how to enable connections from services in the Consul service mesh to
-services outside the mesh, review the [terminating gateway guide](https://learn.hashicorp.com/consul/developer-mesh/terminating-gateways).
+For additional use cases and usage patterns, review the guide for
+[understanding terminating gateways](https://learn.hashicorp.com/consul/developer-mesh/understand-terminating-gateways).
 
-~> **Beta limitations:** Terminating Gateways currently do not support targeting service subsets with
+~> **Known limitations:** Terminating gateways currently do not support targeting service subsets with
 [L7 configuration](/docs/connect/l7-traffic-management). They route to all instances of a service with no capabilities
 for filtering by instance.
 
@@ -42,6 +42,11 @@ from the terminating gateway will be encrypted using mutual TLS authentication.
 If none of these are provided, Consul will **only** encrypt connections to the gateway and not
 from the gateway to the destination service.
 
+When certificates for linked services are rotated, the gateway must be restarted to pick up the new certificates from disk.
+To avoid downtime, perform a rolling restart to reload the certificates. Registering multiple terminating gateway instances
+with the same [name](https://www.consul.io/docs/commands/connect/envoy#service) provides additional fault tolerance
+as well as the ability to perform rolling restarts.
+
 -> **Note:** If certificates and keys are configured the terminating gateway will upgrade HTTP connections to TLS.
 Client applications can issue plain HTTP requests even when connecting to servers that require HTTPS.
 
@@ -54,7 +59,7 @@ Each terminating gateway needs:
 
 Terminating gateways also require that your Consul datacenters are configured correctly:
 
-- You'll need to use Consul version 1.8.0.
+- You'll need to use Consul version 1.8.0 or newer.
 - Consul [Connect](/docs/agent/options#connect) must be enabled on the datacenter's Consul servers.
 - [gRPC](/docs/agent/options#grpc_port) must be enabled on all client agents.
 
@@ -73,26 +78,8 @@ a terminating gateway as long as they discover upstreams with the
 
 ## Running and Using a Terminating Gateway
 
-You must complete the following steps to configure a terminating gateway to proxy traffic from services in the Consul service mesh:
-
-1. On a host with a Consul client agent, start an Envoy proxy using the [envoy subcommand](/docs/commands/connect/envoy#terminating-gateways) and
-   specifying the `terminating` gateway type:
-
-```shell
-$ consul connect envoy -gateway=terminating -register -service us-west-gateway \
-  -address '{{ GetInterfaceIP "eth0" }}:8443'
-```
-
-2. Create and apply a `terminating-gateway` [configuration entry](/docs/agent/config-entries/terminating-gateway) that defines
-   a set of services that the gateway will proxy traffic to. The config entry can be applied via the
-   [CLI](/docs/commands/config/write) or [API](/api/config#apply-configuration).
-
-3. Ensure that [Consul intentions](/docs/commands/intention) are set up to allow connections from the source services in the mesh
-   to the gateway's linked services. The intentions must reference the destination service's name and not the gateway itself.
-
-4. Ensure necessary [upstreams](/docs/connect/registration/service-registration#upstream-configuration-reference)
-   have been added to service definitions of the source services in the Consul service mesh. Each source service that needs
-   to connect to a service proxied by a terminating gateway will need to add the external service as an upstream destination.
+For a complete example of how to enable connections from services in the Consul service mesh to
+services outside the mesh, review the [terminating gateway guide](https://learn.hashicorp.com/consul/developer-mesh/terminating-gateways).
 
 ## Terminating Gateway Configuration
 

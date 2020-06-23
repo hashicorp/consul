@@ -634,6 +634,7 @@ func (s *Server) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, opts gatewayC
 	var (
 		hostname string
 		idx      int
+		fallback envoyendpoint.LbEndpoint
 	)
 	for i, e := range opts.hostnameEndpoints {
 		addr, port := e.BestAddress(opts.isRemote)
@@ -641,6 +642,7 @@ func (s *Server) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, opts gatewayC
 
 		health, weight := calculateEndpointHealthAndWeight(e, opts.onlyPassing)
 		if health == envoycore.HealthStatus_UNHEALTHY {
+			fallback = makeLbEndpoint(addr, port, health, weight)
 			continue
 		}
 
@@ -661,12 +663,12 @@ func (s *Server) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, opts gatewayC
 		loggerName = logging.MeshGateway
 	}
 
+	// Fall back to last unhealthy endpoint if none were healthy
 	if len(endpoints) == 0 {
-		s.Logger.Named(loggerName).
-			Warn("service does not contain any healthy instances, skipping Envoy cluster creation",
-				"dc", dc, "service", service.String())
+		s.Logger.Named(loggerName).Warn("upstream service does not contain any healthy instances",
+			"dc", dc, "service", service.String())
 
-		return nil
+		endpoints = append(endpoints, fallback)
 	}
 	if len(uniqueHostnames) > 1 {
 		s.Logger.Named(loggerName).

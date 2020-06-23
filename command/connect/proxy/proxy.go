@@ -3,6 +3,7 @@ package proxy
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -136,8 +137,12 @@ func (c *cmd) Run(args []string) int {
 		Name:     logging.Proxy,
 		LogJSON:  c.logJSON,
 	}
-	logger, logGate, _, ok := logging.Setup(logConfig, c.UI)
-	if !ok {
+
+	logGate := logging.GatedWriter{Writer: &cli.UiWriter{Ui: c.UI}}
+
+	logger, _, err := logging.Setup(logConfig, []io.Writer{&logGate})
+	if err != nil {
+		c.UI.Error(err.Error())
 		return 1
 	}
 	c.logger = logger

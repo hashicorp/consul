@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 	"github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 )
@@ -452,6 +453,28 @@ func TestGatewayNodesDC5Hostname(t testing.T) structs.CheckServiceNodes {
 				"10.30.1.3", 8443,
 				structs.ServiceAddress{Address: "10.30.1.3", Port: 8443},
 				structs.ServiceAddress{Address: "198.38.1.1", Port: 443}),
+		},
+	}
+}
+
+func TestGatewayNodesDC6Hostname(t testing.T) structs.CheckServiceNodes {
+	return structs.CheckServiceNodes{
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "mesh-gateway-1",
+				Node:       "mesh-gateway",
+				Address:    "10.30.1.1",
+				Datacenter: "dc6",
+			},
+			Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+				"10.30.1.1", 8443,
+				structs.ServiceAddress{Address: "10.0.1.1", Port: 8443},
+				structs.ServiceAddress{Address: "123.us-east-1.elb.notaws.com", Port: 443}),
+			Checks: structs.HealthChecks{
+				{
+					Status: api.HealthCritical,
+				},
+			},
 		},
 	}
 }
@@ -1388,6 +1411,7 @@ func testConfigSnapshotMeshGateway(t testing.T, populateServices bool, useFedera
 			GatewayGroups: map[string]structs.CheckServiceNodes{
 				"dc2": TestGatewayNodesDC2(t),
 				"dc4": TestGatewayNodesDC4Hostname(t),
+				"dc6": TestGatewayNodesDC6Hostname(t),
 			},
 			HostnameDatacenters: map[string]structs.CheckServiceNodes{
 				"dc4": {
@@ -1416,12 +1440,32 @@ func testConfigSnapshotMeshGateway(t testing.T, populateServices bool, useFedera
 							structs.ServiceAddress{Address: "456.us-west-2.elb.notaws.com", Port: 443}),
 					},
 				},
+				"dc6": {
+					structs.CheckServiceNode{
+						Node: &structs.Node{
+							ID:         "mesh-gateway-1",
+							Node:       "mesh-gateway",
+							Address:    "10.30.1.1",
+							Datacenter: "dc6",
+						},
+						Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+							"10.30.1.1", 8443,
+							structs.ServiceAddress{Address: "10.0.1.1", Port: 8443},
+							structs.ServiceAddress{Address: "123.us-east-1.elb.notaws.com", Port: 443}),
+						Checks: structs.HealthChecks{
+							{
+								Status: api.HealthCritical,
+							},
+						},
+					},
+				},
 			},
 		}
 		if useFederationStates {
 			snap.MeshGateway.FedStateGateways = map[string]structs.CheckServiceNodes{
 				"dc2": TestGatewayNodesDC2(t),
 				"dc4": TestGatewayNodesDC4Hostname(t),
+				"dc6": TestGatewayNodesDC6Hostname(t),
 			}
 
 			delete(snap.MeshGateway.GatewayGroups, "dc2")
@@ -1651,11 +1695,6 @@ func testConfigSnapshotTerminatingGateway(t testing.T, populateServices bool) *C
 						"domain": "alt",
 					},
 				},
-				Checks: structs.HealthChecks{
-					{
-						Status: "passing",
-					},
-				},
 			},
 			structs.CheckServiceNode{
 				Node: &structs.Node{
@@ -1670,12 +1709,89 @@ func testConfigSnapshotTerminatingGateway(t testing.T, populateServices bool) *C
 					Port:    8081,
 				},
 			},
+			structs.CheckServiceNode{
+				Node: &structs.Node{
+					ID:         "test4",
+					Node:       "test4",
+					Address:    "10.10.1.4",
+					Datacenter: "dc1",
+				},
+				Service: &structs.NodeService{
+					Service: "api",
+					Address: "api.thirddomain",
+					Port:    8081,
+				},
+			},
+		}
+
+		// Has failing instance
+		db := structs.NewServiceName("db", nil)
+		dbNodes := structs.CheckServiceNodes{
+			structs.CheckServiceNode{
+				Node: &structs.Node{
+					ID:         "db",
+					Node:       "test4",
+					Address:    "10.10.1.4",
+					Datacenter: "dc1",
+				},
+				Service: &structs.NodeService{
+					Service: "db",
+					Address: "db.mydomain",
+					Port:    8081,
+				},
+				Checks: structs.HealthChecks{
+					{
+						Status: "critical",
+					},
+				},
+			},
+		}
+
+		// Has passing instance but failing subset
+		cache := structs.NewServiceName("cache", nil)
+		cacheNodes := structs.CheckServiceNodes{
+			{
+				Node: &structs.Node{
+					ID:         "cache",
+					Node:       "test5",
+					Address:    "10.10.1.5",
+					Datacenter: "dc1",
+				},
+				Service: &structs.NodeService{
+					Service: "cache",
+					Address: "cache.mydomain",
+					Port:    8081,
+				},
+			},
+			{
+				Node: &structs.Node{
+					ID:         "cache",
+					Node:       "test5",
+					Address:    "10.10.1.5",
+					Datacenter: "dc1",
+				},
+				Service: &structs.NodeService{
+					Service: "cache",
+					Address: "cache.mydomain",
+					Port:    8081,
+					Meta: map[string]string{
+						"Env": "prod",
+					},
+				},
+				Checks: structs.HealthChecks{
+					{
+						Status: "critical",
+					},
+				},
+			},
 		}
 
 		snap.TerminatingGateway = configSnapshotTerminatingGateway{
 			ServiceGroups: map[structs.ServiceName]structs.CheckServiceNodes{
-				web: webNodes,
-				api: apiNodes,
+				web:   webNodes,
+				api:   apiNodes,
+				db:    dbNodes,
+				cache: cacheNodes,
 			},
 			GatewayServices: map[structs.ServiceName]structs.GatewayService{
 				web: {
@@ -1688,9 +1804,17 @@ func testConfigSnapshotTerminatingGateway(t testing.T, populateServices bool) *C
 					CertFile: "api.cert.pem",
 					KeyFile:  "api.key.pem",
 				},
+				db: {
+					Service: db,
+				},
+				cache: {
+					Service: cache,
+				},
 			},
 			HostnameServices: map[structs.ServiceName]structs.CheckServiceNodes{
-				api: {apiNodes[0], apiNodes[1]},
+				api:   {apiNodes[0], apiNodes[1]},
+				db:    {dbNodes[0]},
+				cache: {cacheNodes[0], cacheNodes[1]},
 			},
 		}
 		snap.TerminatingGateway.ServiceLeaves = map[structs.ServiceName]*structs.IssuedCert{
@@ -1701,6 +1825,14 @@ func testConfigSnapshotTerminatingGateway(t testing.T, populateServices bool) *C
 			structs.NewServiceName("api", nil): {
 				CertPEM:       golden(t, "alt-test-leaf-cert"),
 				PrivateKeyPEM: golden(t, "alt-test-leaf-key"),
+			},
+			structs.NewServiceName("db", nil): {
+				CertPEM:       golden(t, "db-test-leaf-cert"),
+				PrivateKeyPEM: golden(t, "db-test-leaf-key"),
+			},
+			structs.NewServiceName("cache", nil): {
+				CertPEM:       golden(t, "cache-test-leaf-cert"),
+				PrivateKeyPEM: golden(t, "cache-test-leaf-key"),
 			},
 		}
 	}

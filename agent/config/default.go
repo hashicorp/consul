@@ -190,6 +190,12 @@ func NonUserSource() Source {
 
 		# SegmentNameLimit is the maximum segment name length.
 		segment_name_limit = 64
+		
+		connect = { 
+			# 0s causes the value to be ignored and operate without capping
+			# the max time before leaf certs can be generated after a roots change.
+			test_ca_leaf_root_change_spread = "0s"
+		}
 	`,
 	}
 }

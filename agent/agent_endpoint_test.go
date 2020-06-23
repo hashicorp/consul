@@ -501,7 +501,7 @@ func TestAgent_Service(t *testing.T) {
 			updateFunc: func() {
 				time.Sleep(100 * time.Millisecond)
 				// Reload
-				require.NoError(t, a.ReloadConfig(a.Config))
+				require.NoError(t, a.reloadConfigInternal(a.Config))
 			},
 			// Should eventually timeout since there is no actual change
 			wantWait: 200 * time.Millisecond,
@@ -519,7 +519,7 @@ func TestAgent_Service(t *testing.T) {
 				// Reload
 				newConfig := *a.Config
 				newConfig.Services = append(newConfig.Services, &updatedProxy)
-				require.NoError(t, a.ReloadConfig(&newConfig))
+				require.NoError(t, a.reloadConfigInternal(&newConfig))
 			},
 			wantWait: 100 * time.Millisecond,
 			wantCode: 200,
@@ -1352,7 +1352,7 @@ func TestAgent_Reload(t *testing.T) {
 		`,
 	})
 
-	if err := a.ReloadConfig(cfg2); err != nil {
+	if err := a.reloadConfigInternal(cfg2); err != nil {
 		t.Fatalf("got error %v want nil", err)
 	}
 	if a.State.Service(structs.NewServiceID("redis-reloaded", nil)) == nil {
@@ -1505,7 +1505,7 @@ func TestAgent_ReloadDoesNotTriggerWatch(t *testing.T) {
 		// We check that reload does not go to critical
 		ensureNothingCritical(r, "red-is-dead")
 
-		if err := a.ReloadConfig(cfg2); err != nil {
+		if err := a.reloadConfigInternal(cfg2); err != nil {
 			t.Fatalf("got error %v want nil", err)
 		}
 
@@ -5194,7 +5194,11 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 
 	assert := assert.New(t)
 	require := require.New(t)
-	a := NewTestAgent(t, "")
+	a := StartTestAgent(t, TestAgent{Overrides: `
+		connect {
+			test_ca_leaf_root_change_spread = "1ns"
+		}
+	`})
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	testrpc.WaitForActiveCARoot(t, a.RPC, "dc1", nil)
@@ -5297,7 +5301,11 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 
 	assert := assert.New(t)
 	require := require.New(t)
-	a := NewTestAgent(t, "")
+	a := StartTestAgent(t, TestAgent{Overrides: `
+		connect {
+			test_ca_leaf_root_change_spread = "1ns"
+		}
+	`})
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	testrpc.WaitForActiveCARoot(t, a.RPC, "dc1", nil)
@@ -5421,6 +5429,10 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 	a1 := StartTestAgent(t, TestAgent{Name: "dc1", HCL: `
 		datacenter = "dc1"
 		primary_datacenter = "dc1"
+	`, Overrides: `
+		connect {
+			test_ca_leaf_root_change_spread = "1ns"
+		}
 	`})
 	defer a1.Shutdown()
 	testrpc.WaitForTestAgent(t, a1.RPC, "dc1")
@@ -5428,6 +5440,10 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 	a2 := StartTestAgent(t, TestAgent{Name: "dc2", HCL: `
 		datacenter = "dc2"
 		primary_datacenter = "dc1"
+	`, Overrides: `
+		connect {
+			test_ca_leaf_root_change_spread = "1ns"
+		}
 	`})
 	defer a2.Shutdown()
 	testrpc.WaitForTestAgent(t, a2.RPC, "dc2")

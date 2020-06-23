@@ -5,6 +5,7 @@ const (
 	Agent              string = "agent"
 	AntiEntropy        string = "anti_entropy"
 	AutoEncrypt        string = "auto_encrypt"
+	AutoConfig         string = "auto_config"
 	Autopilot          string = "autopilot"
 	AWS                string = "aws"
 	Azure              string = "azure"

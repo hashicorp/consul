@@ -3814,6 +3814,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					intro_token = "blah"
 					server_addresses = ["198.18.0.1"]
 				}
+				verify_outgoing = true
 			`},
 			json: []string{`
 			{
@@ -3822,9 +3823,58 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					"enabled": true,
 					"intro_token": "blah",
 					"server_addresses": ["198.18.0.1"]
-				}
+				},
+				"verify_outgoing": true
 			}`},
 			err: "auto_config.enabled cannot be set to true for server agents",
+		},
+
+		{
+			desc: "auto config tls not enabled",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			hcl: []string{`
+				auto_config {
+					enabled = true
+					server_addresses = ["198.18.0.1"]
+					intro_token = "foo" 
+				}
+			`},
+			json: []string{`
+			{
+				"auto_config": {
+					"enabled": true,
+					"server_addresses": ["198.18.0.1"],
+					"intro_token": "foo"
+				}
+			}`},
+			err: "auto_config.enabled cannot be set without configuring TLS for server communications",
+		},
+
+		{
+			desc: "auto config server tls not enabled",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			hcl: []string{`
+				server = true
+				auto_config {
+					authorization {
+						enabled = true
+					}
+				}
+			`},
+			json: []string{`
+			{
+				"server": true,
+				"auto_config": {
+					"authorization": {
+						"enabled": true
+					}
+				}
+			}`},
+			err: "auto_config.authorization.enabled cannot be set without providing a TLS certificate for the server",
 		},
 
 		{
@@ -3836,17 +3886,18 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				auto_config {
 					enabled = true
 				 	server_addresses = ["198.18.0.1"]
-
 				}
+				verify_outgoing = true
 			`},
 			json: []string{`
 			{
 				"auto_config": {
 					"enabled": true,
 					"server_addresses": ["198.18.0.1"]
-				}
+				},
+				"verify_outgoing": true
 			}`},
-			err: "one of auto_config.intro_token or auto_config.intro_token_file must be set to enable auto_config",
+			err: "One of auto_config.intro_token, auto_config.intro_token_file or the CONSUL_INTRO_TOKEN environment variable must be set to enable auto_config",
 		},
 
 		{
@@ -3859,13 +3910,15 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					enabled = true
 					intro_token = "blah"
 				}
+				verify_outgoing = true
 			`},
 			json: []string{`
 			{
 				"auto_config": {
 					"enabled": true,
 					"intro_token": "blah"
-				}
+				},
+				"verify_outgoing": true
 			}`},
 			err: "auto_config.enabled is set without providing a list of addresses",
 		},
@@ -3884,6 +3937,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					dns_sans = ["foo"]
 					ip_sans = ["invalid", "127.0.0.1"]
 				}
+				verify_outgoing = true
 			`},
 			json: []string{`
 			{
@@ -3894,11 +3948,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					"server_addresses": ["198.18.0.1"],
 					"dns_sans": ["foo"],
 					"ip_sans": ["invalid", "127.0.0.1"]
-				}
+				},
+				"verify_outgoing": true
 			}`},
 			warns: []string{
 				"Cannot parse ip \"invalid\" from auto_config.ip_sans",
-				"auto_config.intro_token and auto_config.intro_token_file are both set. Using the value of auto_config.intro_token",
+				"Both an intro token and intro token file are set. The intro token will be used instead of the file",
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.AutoConfig.Enabled = true
@@ -3908,6 +3963,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.AutoConfig.DNSSANs = []string{"foo"}
 				rt.AutoConfig.IPSANs = []net.IP{net.IPv4(127, 0, 0, 1)}
 				rt.DataDir = dataDir
+				rt.VerifyOutgoing = true
 			},
 		},
 
@@ -3918,7 +3974,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			hcl: []string{`
 				auto_config {
-					authorizer {
+					authorization {
 						enabled = true
 					}
 				}
@@ -3926,12 +3982,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			json: []string{`
 			{
 				"auto_config": {
-					"authorizer": {
+					"authorization": {
 						"enabled": true
 					}
 				}
 			}`},
-			err: "auto_config.authorizer.enabled cannot be set to true for client agents",
+			err: "auto_config.authorization.enabled cannot be set to true for client agents",
 		},
 
 		{
@@ -3942,20 +3998,22 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			hcl: []string{`
 				auto_config {
-					authorizer {
+					authorization {
 						enabled = true
 					}
 				}
+				cert_file = "foo"
 			`},
 			json: []string{`
 			{
 				"auto_config": {
-					"authorizer": {
+					"authorization": {
 						"enabled": true
 					}
-				}
+				},
+				"cert_file": "foo"
 			}`},
-			err: `auto_config.authorizer has invalid configuration: exactly one of 'JWTValidationPubKeys', 'JWKSURL', or 'OIDCDiscoveryURL' must be set for type "jwt"`,
+			err: `auto_config.authorization.static has invalid configuration: exactly one of 'JWTValidationPubKeys', 'JWKSURL', or 'OIDCDiscoveryURL' must be set for type "jwt"`,
 		},
 
 		{
@@ -3966,24 +4024,30 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			hcl: []string{`
 				auto_config {
-					authorizer {
+					authorization {
 						enabled = true
-						jwks_url = "https://fake.uri.local"
-						oidc_discovery_url = "https://fake.uri.local"
+						static {
+							jwks_url = "https://fake.uri.local"
+							oidc_discovery_url = "https://fake.uri.local"
+						}
 					}
 				}
+				cert_file = "foo"
 			`},
 			json: []string{`
 			{
 				"auto_config": {
-					"authorizer": {
+					"authorization": {
 						"enabled": true,
-						"jwks_url": "https://fake.uri.local",
-						"oidc_discovery_url": "https://fake.uri.local"
+						"static": {
+							"jwks_url": "https://fake.uri.local",
+							"oidc_discovery_url": "https://fake.uri.local"
+						}
 					}
-				}
+				},
+				"cert_file": "foo"
 			}`},
-			err: `auto_config.authorizer has invalid configuration: exactly one of 'JWTValidationPubKeys', 'JWKSURL', or 'OIDCDiscoveryURL' must be set for type "jwt"`,
+			err: `auto_config.authorization.static has invalid configuration: exactly one of 'JWTValidationPubKeys', 'JWKSURL', or 'OIDCDiscoveryURL' must be set for type "jwt"`,
 		},
 
 		{
@@ -3994,28 +4058,34 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			hcl: []string{`
 				auto_config {
-					authorizer {
+					authorization {
 						enabled = true
-						jwt_validation_pub_keys = ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"]
-						claim_assertions = [
-							"values.node == ${node}"
-						]
+						static {
+							jwt_validation_pub_keys = ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"]
+							claim_assertions = [
+								"values.node == ${node}"
+							]
+						}
 					}
 				}
+				cert_file = "foo"
 			`},
 			json: []string{`
 			{
 				"auto_config": {
-					"authorizer": {
+					"authorization": {
 						"enabled": true,
-						"jwt_validation_pub_keys": ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"],
-						"claim_assertions": [
-							"values.node == ${node}"
-						]
+						"static": {
+							"jwt_validation_pub_keys": ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"],
+							"claim_assertions": [
+								"values.node == ${node}"
+							]
+						}
 					}
-				}
+				},
+				"cert_file": "foo"
 			}`},
-			err: `auto_config.claim_assertion "values.node == ${node}" is invalid: Selector "values" is not valid`,
+			err: `auto_config.authorization.static.claim_assertion "values.node == ${node}" is invalid: Selector "values" is not valid`,
 		},
 		{
 			desc: "auto config authorizer ok",
@@ -4025,32 +4095,38 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			hcl: []string{`
 				auto_config {
-					authorizer {
+					authorization {
 						enabled = true
-						jwt_validation_pub_keys = ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"]
-						claim_assertions = [
-							"value.node == ${node}"
-						]
-						claim_mappings = {
-							node = "node"
+						static {
+							jwt_validation_pub_keys = ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"]
+							claim_assertions = [
+								"value.node == ${node}"
+							]
+							claim_mappings = {
+								node = "node"
+							}
 						}
 					}
 				}
+				cert_file = "foo"
 			`},
 			json: []string{`
 			{
 				"auto_config": {
-					"authorizer": {
+					"authorization": {
 						"enabled": true,
-						"jwt_validation_pub_keys": ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"],
-						"claim_assertions": [
-							"value.node == ${node}"
-						],
-						"claim_mappings": {
-							"node": "node"
+						"static": {
+							"jwt_validation_pub_keys": ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"],
+							"claim_assertions": [
+								"value.node == ${node}"
+							],
+							"claim_mappings": {
+								"node": "node"
+							}
 						}
 					}
-				}
+				},
+				"cert_file": "foo"
 			}`},
 			patch: func(rt *RuntimeConfig) {
 				rt.AutoConfig.Authorizer.Enabled = true
@@ -4063,6 +4139,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.LeaveOnTerm = false
 				rt.ServerMode = true
 				rt.SkipLeaveOnInt = true
+				rt.CertFile = "foo"
 			},
 		},
 	}
@@ -4304,19 +4381,21 @@ func TestFullConfig(t *testing.T) {
 				"dns_sans": ["6zdaWg9J"],
 				"ip_sans": ["198.18.99.99"],
 				"server_addresses": ["198.18.100.1"],
-				"authorizer": {
+				"authorization": {
 					"enabled": true,
-					"allow_reuse": true,
-					"claim_mappings": {
-						"node": "node"
-					},
-					"list_claim_mappings": {
-						"foo": "bar"
-					},
-					"bound_issuer": "consul",
-					"bound_audiences": ["consul-cluster-1"],
-					"claim_assertions": ["value.node == \"${node}\""],
-					"jwt_validation_pub_keys": ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"]
+					"static": {
+						"allow_reuse": true,
+						"claim_mappings": {
+							"node": "node"
+						},
+						"list_claim_mappings": {
+							"foo": "bar"
+						},
+						"bound_issuer": "consul",
+						"bound_audiences": ["consul-cluster-1"],
+						"claim_assertions": ["value.node == \"${node}\""],
+						"jwt_validation_pub_keys": ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"]
+					}
 				}
 			},
 			"autopilot": {
@@ -4962,19 +5041,21 @@ func TestFullConfig(t *testing.T) {
 				dns_sans = ["6zdaWg9J"]
 				ip_sans = ["198.18.99.99"]
 				server_addresses = ["198.18.100.1"]
-				authorizer = {
+				authorization = {
 					enabled = true
-					allow_reuse = true
-					claim_mappings = {
-						node = "node"
+					static {
+						allow_reuse = true
+						claim_mappings = {
+							node = "node"
+						}
+						list_claim_mappings = {
+							foo = "bar"
+						}
+						bound_issuer = "consul"
+						bound_audiences = ["consul-cluster-1"]
+						claim_assertions = ["value.node == \"${node}\""]
+						jwt_validation_pub_keys = ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"]
 					}
-					list_claim_mappings = {
-						foo = "bar"
-					}
-					bound_issuer = "consul"
-					bound_audiences = ["consul-cluster-1"]
-					claim_assertions = ["value.node == \"${node}\""]
-					jwt_validation_pub_keys = ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"]
 				}
 			}
 			autopilot = {
@@ -5828,7 +5909,6 @@ func TestFullConfig(t *testing.T) {
 				AuthMethod: structs.ACLAuthMethod{
 					Name:           "Auto Config Authorizer",
 					Type:           "jwt",
-					MaxTokenTTL:    72 * time.Hour,
 					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 					Config: map[string]interface{}{
 						"JWTValidationPubKeys": []string{"-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"},
@@ -5849,7 +5929,6 @@ func TestFullConfig(t *testing.T) {
 						"ClockSkewLeeway":     0 * time.Second,
 						"JWTSupportedAlgs":    []string(nil),
 					},
-					TokenLocality: "local",
 				},
 			},
 		},
