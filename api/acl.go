@@ -50,7 +50,7 @@ type ACLToken struct {
 	Rules string `json:",omitempty"`
 
 	// Namespace is the namespace the ACLToken is associated with.
-	// Namespaces is a Consul Enterprise feature.
+	// Namespaces are a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
 }
 
