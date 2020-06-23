@@ -77,10 +77,7 @@ func TestIngressConfigEntry_Normalize(t *testing.T) {
 		},
 	}
 
-	for _, test := range cases {
-		// We explicitly copy the variable for the range statement so that can run
-		// tests in parallel.
-		tc := test
+	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			err := tc.entry.Normalize()
 			require.NoError(t, err)
@@ -436,10 +433,7 @@ func TestIngressConfigEntry_Validate(t *testing.T) {
 		},
 	}
 
-	for _, test := range cases {
-		// We explicitly copy the variable for the range statement so that can run
-		// tests in parallel.
-		tc := test
+	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			err := tc.entry.Validate()
 			if tc.expectErr != "" {
@@ -546,10 +540,7 @@ func TestTerminatingConfigEntry_Validate(t *testing.T) {
 		},
 	}
 
-	for _, test := range cases {
-		// We explicitly copy the variable for the range statement so that can run
-		// tests in parallel.
-		tc := test
+	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 
 			err := tc.entry.Validate()
@@ -610,10 +601,7 @@ func TestGatewayService_Addresses(t *testing.T) {
 		},
 	}
 
-	for _, test := range cases {
-		// We explicitly copy the variable for the range statement so that can run
-		// tests in parallel.
-		tc := test
+	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			addresses := tc.input.Addresses(tc.argument)
 			require.ElementsMatch(t, tc.expected, addresses)
