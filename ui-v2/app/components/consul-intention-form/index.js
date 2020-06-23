@@ -1,7 +1,6 @@
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
 import { setProperties, set, get, computed } from '@ember/object';
-import { assert } from '@ember/debug';
 import chart from './chart.xstate';
 
 export default Component.extend({
