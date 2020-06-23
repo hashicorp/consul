@@ -1,17 +1,16 @@
 {{#if (gt items.length 0)}}
 <ListCollection @items={{items}} class="consul-service-list" as |item index|>
   <BlockSlot @name="header">
-    <dl class={{service/health-checks item}}>
-      <dt>
-        Health
-      </dt>
+{{#let (get proxies item.Name) as |proxy|}}
+  {{#let (service/health-checks item proxy) as |health|}}
+    <dl class={{health}}>
       <dd>
         <Tooltip @position="top-start">
-          {{#if (eq 'critical' (service/health-checks item))}}
+          {{#if (eq 'critical' health)}}
             At least one health check on one instance is failing.
-          {{else if (eq 'warning' (service/health-checks item))}}
+          {{else if (eq 'warning' health)}}
             At least one health check on one instance has a warning.
-          {{else if (eq 'passing' (service/health-checks item))}}
+          {{else if (eq 'passing' health)}}
             All health checks are passing.
           {{else}}
             There are no health checks.
@@ -19,6 +18,8 @@
         </Tooltip>
       </dd>
     </dl>
+  {{/let}}
+{{/let}}
   {{#if (eq item.Kind 'terminating-gateway')}}
     <a data-test-service-name href={{href-to "dc.services.show.services" item.Name}}>
       {{item.Name}}
