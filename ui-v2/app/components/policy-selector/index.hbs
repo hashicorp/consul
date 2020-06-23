@@ -21,7 +21,7 @@
           <h2>New Policy</h2>
         </BlockSlot>
         <BlockSlot @name="body">
-          <PolicyForm @form={{form}} @dc={{dc}} @allowServiceIdentity={{allowServiceIdentity}} />
+          <PolicyForm @form={{form}} @nspace={{nspace}} @dc={{dc}} @allowServiceIdentity={{allowServiceIdentity}} />
         </BlockSlot>
         <BlockSlot @name="actions" as |close|>
           <button type="submit" {{action 'save' item items (queue (action close) (action 'reset'))}} disabled={{if (or item.isSaving item.isPristine item.isInvalid) 'disabled'}}>
@@ -83,7 +83,7 @@
             <span>Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
 {{#if (eq item.template 'service-identity')}}
             <CodeEditor @syntax="hcl" @readonly={{true}}>
-              {{~component 'service-identity' name=item.Name~}}
+              {{~component 'service-identity' nspace=nspace name=item.Name~}}
             </CodeEditor>
 {{else if (eq item.template 'node-identity')}}
             <CodeEditor @syntax="hcl" @readonly={{true}}>
