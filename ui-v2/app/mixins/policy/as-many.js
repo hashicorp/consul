@@ -3,14 +3,14 @@ import { get } from '@ember/object';
 
 import minimizeModel from 'consul-ui/utils/minimizeModel';
 
-const normalizeServiceIdentities = function(items) {
+const normalizeIdentities = function(items, template, name, dc) {
   return (items || []).map(function(item) {
     const policy = {
-      template: 'service-identity',
-      Name: item.ServiceName,
+      template: template,
+      Name: item[name],
     };
-    if (typeof item.Datacenters !== 'undefined') {
-      policy.Datacenters = item.Datacenters;
+    if (typeof item[dc] !== 'undefined') {
+      policy[dc] = item[dc];
     }
     return policy;
   });
@@ -25,17 +25,17 @@ const normalizePolicies = function(items) {
     };
   });
 };
-const serializeServiceIdentities = function(items) {
+const serializeIdentities = function(items, template, name, dc) {
   return items
     .filter(function(item) {
-      return get(item, 'template') === 'service-identity';
+      return get(item, 'template') === template;
     })
     .map(function(item) {
       const identity = {
-        ServiceName: get(item, 'Name'),
+        [name]: get(item, 'Name'),
       };
-      if (get(item, 'Datacenters')) {
-        identity.Datacenters = get(item, 'Datacenters');
+      if (typeof get(item, dc) !== 'undefined') {
+        identity[dc] = get(item, dc);
       }
       return identity;
     });
@@ -51,9 +51,18 @@ export default Mixin.create({
   respondForQueryRecord: function(respond, query) {
     return this._super(function(cb) {
       return respond((headers, body) => {
-        body.Policies = normalizePolicies(body.Policies).concat(
-          normalizeServiceIdentities(body.ServiceIdentities)
-        );
+        body.Policies = normalizePolicies(body.Policies)
+          .concat(
+            normalizeIdentities(
+              body.ServiceIdentities,
+              'service-identity',
+              'ServiceName',
+              'Datacenters'
+            )
+          )
+          .concat(
+            normalizeIdentities(body.NodeIdentities, 'node-identity', 'NodeName', 'Datacenter')
+          );
         return cb(headers, body);
       });
     }, query);
@@ -64,9 +73,18 @@ export default Mixin.create({
         return cb(
           headers,
           body.map(function(item) {
-            item.Policies = normalizePolicies(item.Policies).concat(
-              normalizeServiceIdentities(item.ServiceIdentities)
-            );
+            item.Policies = normalizePolicies(item.Policies)
+              .concat(
+                normalizeIdentities(
+                  item.ServiceIdentities,
+                  'service-identity',
+                  'ServiceName',
+                  'Datacenters'
+                )
+              )
+              .concat(
+                normalizeIdentities(item.NodeIdentities, 'node-identity', 'NodeName', 'Datacenter')
+              );
             return item;
           })
         );
@@ -75,7 +93,18 @@ export default Mixin.create({
   },
   serialize: function(snapshot, options) {
     const data = this._super(...arguments);
-    data.ServiceIdentities = serializeServiceIdentities(data.Policies);
+    data.ServiceIdentities = serializeIdentities(
+      data.Policies,
+      'service-identity',
+      'ServiceName',
+      'Datacenters'
+    );
+    data.NodeIdentities = serializeIdentities(
+      data.Policies,
+      'node-identity',
+      'NodeName',
+      'Datacenter'
+    );
     data.Policies = minimizeModel(serializePolicies(data.Policies));
     return data;
   },

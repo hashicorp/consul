@@ -6,8 +6,8 @@ Feature: dc / acls / policies / as many / list: List
     ---
       ServiceIdentities:
         - ServiceName: Service-Identity
-        - ServiceName: Service-Identity 2
-        - ServiceName: Service-Identity 3
+      NodeIdentities:
+        - NodeName: Node-Identity
       Policies:
         - Name: Policy
           ID: 0000
@@ -22,8 +22,8 @@ Feature: dc / acls / policies / as many / list: List
       [Model]: key
     ---
     Then the url should be /datacenter/acls/[Model]s/key
-    # ServiceIdentities turn into policies
-    Then I see 6 policy models on the policies component
+    # Identities turn into policies
+    Then I see 5 policy models on the policies component
   Where:
     -------------
     | Model     |

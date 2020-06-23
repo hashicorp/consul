@@ -20,6 +20,7 @@ label span {
   @extend %form-row;
 }
 %radio-group label,
+%main-content .type-select,
 %main-content .type-password,
 %main-content .type-text {
   @extend %form-element;

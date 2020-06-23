@@ -10,7 +10,7 @@
           </dd>
         </dl>
 {{/if}}
-<a href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>{{substr item.AccessorID -8}}</a>
+        <a href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>{{substr item.AccessorID -8}}</a>
     </BlockSlot>
     <BlockSlot @name="details">
         <dl>
@@ -23,7 +23,9 @@
   {{#let (get policies 'management') as |management|}}
     {{#if (gt management.length 0)}}
         <dl>
-          <dt>Management</dt>
+          <dt>
+            Management
+          </dt>
           <dd>
               {{#each (get policies 'management') as |item|}}
                 <span data-test-policy class={{policy/typeof item}}>{{item.Name}}</span>
@@ -32,26 +34,34 @@
         </dl>
     {{/if}}
   {{/let}}
+  {{#let (get policies 'identities') as |identities|}}
+    {{#if (gt identities.length 0)}}
         <dl>
           <dt>Identities</dt>
           <dd>
-              {{#each (append (get policies 'identities')) as |item|}}
-                <span data-test-policy class={{policy/typeof item}}>Service Identity: {{item.Name}}</span>
+              {{#each identities as |item|}}
+                <span data-test-policy class={{policy/typeof item}}>{{if (eq item.template 'service-identity') 'Service' 'Node'}} Identity: {{item.Name}}</span>
               {{/each}}
           </dd>
         </dl>
+    {{/if}}
+  {{/let}}
+  {{#let (append (get policies 'policies') item.Roles) as |policies|}}
+    {{#if (gt policies.length 0)}}
         <dl>
           <dt>Rules</dt>
           <dd>
             {{#if (token/is-legacy item) }}
               Legacy tokens have embedded rules.
             {{ else }}
-              {{#each (append (get policies 'policies') item.Roles) as |item|}}
+              {{#each policies as |item|}}
                 <span data-test-policy class={{policy/typeof item}}>{{item.Name}}</span>
               {{/each}}
             {{/if}}
           </dd>
         </dl>
+    {{/if}}
+  {{/let}}
 {{/let}}
         <dl>
           <dt>Description</dt>

@@ -3,11 +3,11 @@
   {{#yield-slot name='template'}}
   {{else}}
     <header>
-      Policy{{if allowServiceIdentity ' or service identity?' ''}}
+      Policy{{if allowIdentity ' or identity?' ''}}
     </header>
-  {{#if allowServiceIdentity}}
+  {{#if allowIdentity}}
     <p>
-      A Service Identity is default policy with a configurable service name. This saves you some time and effort you're using Consul for Connect features.
+      Identities are default policies with configurable names. They save you some time and effort you're using Consul for Connect features.
     </p>
     {{! this should use radio-group }}
     <div role="radiogroup" class={{if item.error.Type ' has-error'}}>
@@ -34,17 +34,38 @@
     </label>
     <label class="type-text" data-test-rules>
         <span>Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
-{{#if (eq item.template '') }}
+{{#if (eq item.template 'service-identity')}}
+        <CodeEditor @readonly={{true}} @name={{concat name "[Rules]"}} @syntax="hcl" @oninput={{action "change" (concat name "[Rules]")}}>
+          {{~component 'service-identity' name=item.Name~}}
+        </CodeEditor>
+{{else if (eq item.template 'node-identity')}}
+        <CodeEditor @readonly={{true}} @name={{concat name "[Rules]"}} @syntax="hcl" @oninput={{action "change" (concat name "[Rules]")}}>
+          {{~component 'node-identity' name=item.Name~}}
+        </CodeEditor>
+{{else}}
         <CodeEditor @syntax="hcl" @class={{if item.error.Rules "error"}} @name={{concat name "[Rules]"}} @value={{item.Rules}} @onkeyup={{action "change" (concat name "[Rules]")}} />
         {{#if item.error.Rules}}
           <strong>{{item.error.Rules.validation}}</strong>
         {{/if}}
-{{else}}
-        <CodeEditor @readonly={{true}} @name={{concat name "[Rules]"}} @syntax="hcl" @oninput={{action "change" (concat name "[Rules]")}}>
-          {{~component 'service-identity' name=item.Name~}}
-        </CodeEditor>
 {{/if}}
     </label>
+{{#if (eq item.template 'node-identity')}}
+
+    <DataSource @src="/*/*/datacenters"
+      @onchange={{action (mut datacenters) value="data"}}
+    />
+    <label class="type-select" data-test-datacenter>
+      <span>Datacenter</span>
+      <PowerSelect
+          @options={{map-by 'Name' datacenters}}
+          @searchField="Name"
+          @selected={{or item.Datacenter dc}}
+          @searchPlaceholder="Type a datacenter name"
+          @onChange={{action "change" "Datacenter"}} as |Name|>
+            {{Name}}
+      </PowerSelect>
+    </label>
+{{else}}
     <div class="type-toggle">
       <span>Valid datacenters</span>
       <label>
@@ -52,10 +73,11 @@
         <span>All</span>
       </label>
     </div>
-{{#if isScoped }}
+  {{#if isScoped }}
     <DataSource @src="/*/*/datacenters"
       @onchange={{action (mut datacenters) value="data"}}
     />
+
     <div class="checkbox-group" role="group">
       {{#each datacenters as |dc| }}
         <label class="type-checkbox">
@@ -72,6 +94,9 @@
 {{/if}}
       {{/each}}
     </div>
+
+
+  {{/if}}
 {{/if}}
 {{#if (eq item.template '') }}
   <label class="type-text">
