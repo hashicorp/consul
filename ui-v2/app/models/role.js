@@ -22,6 +22,11 @@ export default Model.extend({
       return [];
     },
   }),
+  NodeIdentities: attr({
+    defaultValue: function() {
+      return [];
+    },
+  }),
   // frontend only for ordering where CreateIndex can't be used
   CreateTime: attr('date'),
   //

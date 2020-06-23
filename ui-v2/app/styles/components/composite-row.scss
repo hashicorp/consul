@@ -13,6 +13,11 @@
 .consul-token-list > ul > li:not(:first-child) {
   @extend %with-composite-row-intent;
 }
+/*TODO: This hides the icons-less dt's in the below lists as */
+/* they don't have tooltips */
+.consul-token-list > ul > li:not(:first-child) dt {
+  display: none;
+}
 /* TODO: the service list has a 1px offset */
 .consul-service-list li > div:first-child > dl:first-child dd {
   margin-top: 1px;

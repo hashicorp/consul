@@ -6,6 +6,7 @@ Feature: dc / acls / tokens / clone: Cloning an ACL token
     ---
       AccessorID: token
       SecretID: ee52203d-989f-4f7a-ab5a-2bef004164ca
+      Legacy: ~
     ---
   Scenario: Cloning an ACL token from the listing page
     When I visit the tokens page for yaml

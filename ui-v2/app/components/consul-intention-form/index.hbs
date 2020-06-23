@@ -3,7 +3,7 @@
     <div role="group">
       <fieldset>
         <h2>Source</h2>
-        <label data-test-source-element class="type-text{{if _item.error.SourceName ' has-error'}}">
+        <label data-test-source-element class="type-select{{if _item.error.SourceName ' has-error'}}">
           <span>Source Service</span>
           <PowerSelectWithCreate
               @options={{_services}}
@@ -23,7 +23,7 @@
           <em>Search for an existing service, or enter any Service name.</em>
         </label>
   {{#if (env 'CONSUL_NSPACES_ENABLED')}}
-        <label data-test-source-nspace class="type-text{{if _item.error.SourceNS ' has-error'}}">
+        <label data-test-source-nspace class="type-select{{if _item.error.SourceNS ' has-error'}}">
           <span>Source Namespace</span>
           <PowerSelectWithCreate
               @options={{_nspaces}}
@@ -46,7 +46,7 @@
       </fieldset>
       <fieldset>
         <h2>Destination</h2>
-        <label data-test-destination-element class="type-text{{if _item.error.DestinationName ' has-error'}}">
+        <label data-test-destination-element class="type-select{{if _item.error.DestinationName ' has-error'}}">
           <span>Destination Service</span>
           <PowerSelectWithCreate
               @options={{_services}}
@@ -66,7 +66,7 @@
           <em>Search for an existing service, or enter any Service name.</em>
         </label>
   {{#if (env 'CONSUL_NSPACES_ENABLED')}}
-        <label data-test-destination-nspace class="type-text{{if _item.error.DestinationNS ' has-error'}}">
+        <label data-test-destination-nspace class="type-select{{if _item.error.DestinationNS ' has-error'}}">
           <span>Destination Namespace</span>
           <PowerSelectWithCreate
               @options={{_nspaces}}

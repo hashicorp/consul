@@ -39,6 +39,11 @@ export default Model.extend({
       return [];
     },
   }),
+  NodeIdentities: attr({
+    defaultValue: function() {
+      return [];
+    },
+  }),
   CreateTime: attr('date'),
   Hash: attr('string'),
   CreateIndex: attr('number'),

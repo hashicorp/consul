@@ -4,7 +4,7 @@ import { get, set } from '@ember/object';
 export default FormComponent.extend({
   type: 'policy',
   name: 'policy',
-  allowServiceIdentity: true,
+  allowIdentity: true,
   classNames: ['policy-form'],
 
   isScoped: false,
@@ -19,6 +19,10 @@ export default FormComponent.extend({
       {
         name: 'Service Identity',
         template: 'service-identity',
+      },
+      {
+        name: 'Node Identity',
+        template: 'node-identity',
       },
     ];
   },
