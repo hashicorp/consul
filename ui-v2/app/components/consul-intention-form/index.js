@@ -1,7 +1,8 @@
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
-import { setProperties, set, get } from '@ember/object';
+import { setProperties, set, get, computed } from '@ember/object';
 import { assert } from '@ember/debug';
+import chart from './chart.xstate';
 
 export default Component.extend({
   tagName: '',
@@ -9,54 +10,71 @@ export default Component.extend({
   builder: service('form'),
   init: function() {
     this._super(...arguments);
+    this.chart = chart;
     this.form = this.builder.form('intention');
   },
-  didReceiveAttrs: function() {
-    this._super(...arguments);
-    if (this.item && this.services && this.nspaces) {
-      let services = this.services || [];
-      let nspaces = this.nspaces || [];
-      let source = services.findBy('Name', this.item.SourceName);
+  _item: computed('item', function() {
+    return this.form.setData(this.item).getData();
+  }),
+  actions: {
+    createServices: function(e) {
+      // Services in the menus should:
+      // 1. Be unique (they potentially
+      // 2. Only include services that shold have intentions
+      // 3. Include an 'All Services' option
+      // 4. Include the current Source and Destination incase they are virtual services
+      let items = e.data
+        .uniqBy('Name')
+        .toArray()
+        .filter(
+          item => !['connect-proxy', 'mesh-gateway', 'terminating-gateway'].includes(item.Kind)
+        );
+      let source = items.findBy('Name', this.item.SourceName);
       if (!source) {
         source = { Name: this.item.SourceName };
-        services = [source].concat(services);
+        items = [source].concat(items);
       }
-      let destination = services.findBy('Name', this.item.DestinationName);
+      let destination = items.findBy('Name', this.item.DestinationName);
       if (!destination) {
         destination = { Name: this.item.DestinationName };
-        services = [destination].concat(services);
+        items = [destination].concat(items);
       }
-
-      let sourceNS = nspaces.findBy('Name', this.item.SourceNS);
-      if (!sourceNS) {
-        sourceNS = { Name: this.item.SourceNS };
-        nspaces = [sourceNS].concat(nspaces);
-      }
-      let destinationNS = this.nspaces.findBy('Name', this.item.DestinationNS);
-      if (!destinationNS) {
-        destinationNS = { Name: this.item.DestinationNS };
-        nspaces = [destinationNS].concat(nspaces);
-      }
-      // TODO: Use this.{item,services} when we have this.args
+      items = [{ Name: '*' }].concat(items);
       setProperties(this, {
-        _item: this.form.setData(this.item).getData(),
-        _services: services,
-        _nspaces: nspaces,
+        services: items,
         SourceName: source,
         DestinationName: destination,
-        SourceNS: sourceNS,
-        DestinationNS: destinationNS,
       });
-    } else {
-      assert('@item, @services and @nspaces are required arguments', false);
-    }
-  },
-  actions: {
+    },
+    createNspaces: function(e) {
+      // Services in the menus should:
+      // 1. Be unique
+      // 2. Only include services that shold have intentions
+      // 3. Include an 'All Services' option
+      // 4. Include the current Source and Destination incase they are virtual services
+      let items = e.data.toArray();
+      let source = items.findBy('Name', this.item.SourceNS);
+      if (!source) {
+        source = { Name: this.item.SourceNS };
+        items = [source].concat(items);
+      }
+      let destination = items.findBy('Name', this.item.DestinationNS);
+      if (!destination) {
+        destination = { Name: this.item.DestinationNS };
+        items = [destination].concat(items);
+      }
+      items = [{ Name: '*' }].concat(items);
+      setProperties(this, {
+        nspaces: items,
+        SourceNS: source,
+        DestinationNS: destination,
+      });
+    },
     createNewLabel: function(template, term) {
       return template.replace(/{{term}}/g, term);
     },
-    isUnique: function(term) {
-      return !this._services.findBy('Name', term);
+    isUnique: function(items, term) {
+      return !items.findBy('Name', term);
     },
     submit: function(item, e) {
       e.preventDefault();
@@ -88,7 +106,7 @@ export default Component.extend({
           // basically the difference between
           // `item.DestinationName` and just `DestinationName`
           // see if the name is already in the list
-          match = this._services.filterBy('Name', name);
+          match = this.services.filterBy('Name', name);
           if (match.length === 0) {
             // if its not make a new 'fake' Service that doesn't exist yet
             // and add it to the possible services to make an intention between
@@ -96,11 +114,11 @@ export default Component.extend({
             switch (target.name) {
               case 'SourceName':
               case 'DestinationName':
-                set(this, '_services', [selected].concat(this._services.toArray()));
+                set(this, 'services', [selected].concat(this.services.toArray()));
                 break;
               case 'SourceNS':
               case 'DestinationNS':
-                set(this, '_nspaces', [selected].concat(this._nspaces.toArray()));
+                set(this, 'nspaces', [selected].concat(this.nspaces.toArray()));
                 break;
             }
           }

@@ -41,5 +41,5 @@ Feature: dc / intentions / create: Intention Create
     ---
     Then the url should be /datacenter/intentions
     And the title should be "Intentions - Consul"
-    And "[data-notification]" has the "notification-create" class
+    And "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "success" class

@@ -3,16 +3,9 @@ import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
 
-import WithIntentionActions from 'consul-ui/mixins/intention/with-actions';
-
 // TODO: This route and the create Route need merging somehow
-export default Route.extend(WithIntentionActions, {
+export default Route.extend({
   repo: service('repository/intention'),
-  servicesRepo: service('repository/service'),
-  nspacesRepo: service('repository/nspace/disabled'),
-  buildRouteInfoMetadata: function() {
-    return { history: this.history };
-  },
   model: function(params, transition) {
     const from = get(transition, 'from');
     this.history = [];
@@ -30,20 +23,11 @@ export default Route.extend(WithIntentionActions, {
     const nspace = '*';
     return hash({
       isLoading: false,
+      dc: dc,
+      nspace: nspace,
+      slug: params.id,
       item: this.repo.findBySlug(params.id, dc, nspace),
-      services: this.servicesRepo.findAllByDatacenter(dc, nspace),
-      nspaces: this.nspacesRepo.findAll(),
       history: this.history,
-    }).then(function(model) {
-      return {
-        ...model,
-        ...{
-          services: [{ Name: '*' }].concat(
-            model.services.toArray().filter(item => get(item, 'Kind') !== 'connect-proxy')
-          ),
-          nspaces: [{ Name: '*' }].concat(model.nspaces.toArray()),
-        },
-      };
     });
   },
   setupController: function(controller, model) {

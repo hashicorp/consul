@@ -5,9 +5,6 @@
 {{/if}}
 
 <AppView @class="intention edit" @loading={{isLoading}}>
-    <BlockSlot @name="notification" as |status type item error|>
-      {{partial 'dc/intentions/notifications'}}
-    </BlockSlot>
     <BlockSlot @name="breadcrumbs">
         <ol>
       {{#if (gt history.length 0)}}
@@ -37,13 +34,15 @@
 {{/if}}
     </BlockSlot>
     <BlockSlot @name="content">
+  {{#let (if (gt history.length 0) (transition-to history.firstObject.key history.firstObject.value) (transition-to 'dc.intentions.index')) as |back|}}
       <ConsulIntentionForm
         @item={{item}}
-        @services={{uniq-by 'Name' services}}
-        @nspaces={{nspaces}}
-        @ondelete={{action "route" "delete"}}
-        @onsubmit={{action "route" (if item.isNew "create" "update")}}
-        @oncancel={{action "route" "cancel"}}
+        @dc={{dc}}
+        @nspace={{nspace}}
+        @ondelete={{back}}
+        @onchange={{back}}
+        @oncancel={{back}}
       />
+  {{/let}}
     </BlockSlot>
 </AppView>
