@@ -873,7 +873,7 @@ func TestDecodeAgentRegisterCheck(t *testing.T) {
 			if err != nil && !tc.wantErr {
 				t.Fatalf("expected nil error, got %v", err)
 			}
-			if err := checkTypeHeaderTest(out, tc.want, ""); err != nil {
+			if err := checkTypeHeaderTest(out, tc.want); err != nil {
 				t.Fatal(err)
 			}
 		})
@@ -1747,7 +1747,7 @@ func TestDecodeAgentRegisterService(t *testing.T) {
 			if err != nil && !tc.wantErr {
 				t.Fatalf("expected nil error, got %v", err)
 			}
-			if err := checkTypeHeaderTest(out.Check, tc.want, "Check"); err != nil {
+			if err := checkTypeHeaderTest(out.Check, tc.want); err != nil {
 				t.Fatal(err)
 			}
 			if out.Checks == nil {
@@ -1756,7 +1756,7 @@ func TestDecodeAgentRegisterService(t *testing.T) {
 				}
 				return
 			}
-			if err := checkTypeHeaderTest(out.Checks[0], tc.want, "Checks[0]"); err != nil {
+			if err := checkTypeHeaderTest(out.Checks[0], tc.want); err != nil {
 				t.Fatal(err)
 			}
 		})
@@ -2523,7 +2523,7 @@ func checkTypeDurationTest(check interface{}, want time.Duration, prefix string)
 
 // checkTypeDurationTest is a helper func to test the Header map in a CheckType or CheckDefiniton
 // (to reduce repetetive typing).
-func checkTypeHeaderTest(check interface{}, want map[string][]string, prefix string) error {
+func checkTypeHeaderTest(check interface{}, want map[string][]string) error {
 
 	var header map[string][]string
 	switch v := check.(type) {

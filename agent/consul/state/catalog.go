@@ -2145,7 +2145,7 @@ func (s *Store) checkServiceNodesTxn(tx *txn, ws memdb.WatchSet, serviceName str
 		ws.Add(iter.WatchCh())
 	}
 
-	return s.parseCheckServiceNodes(tx, fallbackWS, idx, serviceName, results, err)
+	return s.parseCheckServiceNodes(tx, fallbackWS, idx, results, err)
 }
 
 // CheckServiceTagNodes is used to query all nodes and checks for a given
@@ -2174,7 +2174,7 @@ func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName string, tags
 
 	// Get the table index.
 	idx := s.maxIndexForService(tx, serviceName, serviceExists, true, entMeta)
-	return s.parseCheckServiceNodes(tx, ws, idx, serviceName, results, err)
+	return s.parseCheckServiceNodes(tx, ws, idx, results, err)
 }
 
 // GatewayServices is used to query all services associated with a gateway
@@ -2214,7 +2214,7 @@ func (s *Store) GatewayServices(ws memdb.WatchSet, gateway string, entMeta *stru
 // method used to return a rich set of results from a more simple query.
 func (s *Store) parseCheckServiceNodes(
 	tx *txn, ws memdb.WatchSet, idx uint64,
-	serviceName string, services structs.ServiceNodes,
+	services structs.ServiceNodes,
 	err error) (uint64, structs.CheckServiceNodes, error) {
 	if err != nil {
 		return 0, nil, err
@@ -2353,7 +2353,7 @@ func (s *Store) serviceDumpAllTxn(tx *txn, ws memdb.WatchSet, entMeta *structs.E
 		results = append(results, sn)
 	}
 
-	return s.parseCheckServiceNodes(tx, nil, idx, "", results, err)
+	return s.parseCheckServiceNodes(tx, nil, idx, results, err)
 }
 
 func (s *Store) serviceDumpKindTxn(tx *txn, ws memdb.WatchSet, kind structs.ServiceKind, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
@@ -2374,7 +2374,7 @@ func (s *Store) serviceDumpKindTxn(tx *txn, ws memdb.WatchSet, kind structs.Serv
 		results = append(results, sn)
 	}
 
-	return s.parseCheckServiceNodes(tx, nil, idx, "", results, err)
+	return s.parseCheckServiceNodes(tx, nil, idx, results, err)
 }
 
 // parseNodes takes an iterator over a set of nodes and returns a struct

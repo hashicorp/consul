@@ -3278,10 +3278,11 @@ func TestAgent_purgeCheckState(t *testing.T) {
 
 func TestAgent_GetCoordinate(t *testing.T) {
 	t.Parallel()
-	check := func(server bool) {
-		a := NewTestAgent(t, `
-			server = true
-		`)
+	check := func(t *testing.T, server bool) {
+		a := NewTestAgent(t, fmt.Sprintf(`
+			server = %v
+			bootstrap = %v
+		`, server, server))
 		defer a.Shutdown()
 
 		// This doesn't verify the returned coordinate, but it makes
@@ -3293,8 +3294,13 @@ func TestAgent_GetCoordinate(t *testing.T) {
 		}
 	}
 
-	check(true)
-	check(false)
+	t.Run("server", func(t *testing.T) {
+		check(t, true)
+	})
+	t.Run("client", func(t *testing.T) {
+		check(t, false)
+	})
+
 }
 
 func TestAgent_reloadWatches(t *testing.T) {

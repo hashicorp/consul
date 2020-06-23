@@ -294,9 +294,9 @@ func TestManager_BasicLifecycle(t *testing.T) {
 			webProxyCopy, err := copystructure.Copy(webProxy)
 			require.NoError(t, err)
 
-			testManager_BasicLifecycle(t, tt, types,
+			testManager_BasicLifecycle(t, types,
 				rootsCacheKey, leafCacheKey,
-				roots, leaf,
+				roots,
 				webProxyCopy.(*structs.NodeService),
 				expectSnapCopy.(*ConfigSnapshot),
 			)
@@ -313,11 +313,9 @@ type testcase_BasicLifecycle struct {
 
 func testManager_BasicLifecycle(
 	t *testing.T,
-	tt *testcase_BasicLifecycle,
 	types *TestCacheTypes,
 	rootsCacheKey, leafCacheKey string,
 	roots *structs.IndexedCARoots,
-	leaf *structs.IssuedCert,
 	webProxy *structs.NodeService,
 	expectSnap *ConfigSnapshot,
 ) {

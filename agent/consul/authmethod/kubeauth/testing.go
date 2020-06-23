@@ -94,7 +94,7 @@ func (s *TestAPIServer) SetAllowedServiceAccount(
 	}
 
 	s.allowedServiceAccountJWT = jwt
-	s.replyRead = createReadServiceAccountFound(namespace, name, uid, overrideAnnotation, jwt)
+	s.replyRead = createReadServiceAccountFound(namespace, name, uid, overrideAnnotation)
 	s.replyStatus = createTokenReviewFound(namespace, name, uid, jwt)
 }
 
@@ -223,10 +223,10 @@ func (s *TestAPIServer) handleReadServiceAccount(
 		}
 		w.WriteHeader(http.StatusForbidden)
 	} else if s.replyRead == nil {
-		out = createReadServiceAccountNotFound(namespace, name)
+		out = createReadServiceAccountNotFound(name)
 		w.WriteHeader(http.StatusNotFound)
 	} else if s.replyRead.Namespace != namespace || s.replyRead.Name != name {
-		out = createReadServiceAccountNotFound(namespace, name)
+		out = createReadServiceAccountNotFound(name)
 		w.WriteHeader(http.StatusNotFound)
 	} else {
 		out = s.replyRead
@@ -449,7 +449,7 @@ func createReadServiceAccountForbidden_NoAuthz() *metav1.Status {
 	)
 }
 
-func createReadServiceAccountNotFound(namespace, name string) *metav1.Status {
+func createReadServiceAccountNotFound(name string) *metav1.Status {
 	/*
 	   STATUS: 404
 	   {
@@ -478,7 +478,7 @@ func createReadServiceAccountNotFound(namespace, name string) *metav1.Status {
 	)
 }
 
-func createReadServiceAccountFound(namespace, name, uid, overrideAnnotation, jwt string) *corev1.ServiceAccount {
+func createReadServiceAccountFound(namespace, name, uid, overrideAnnotation string) *corev1.ServiceAccount {
 	/*
 	   STATUS: 200
 	   {

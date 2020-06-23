@@ -288,7 +288,7 @@ func (s *Server) endpointsFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSna
 	return resources, nil
 }
 
-func makeEndpoint(clusterName, host string, port int) *envoyendpoint.LbEndpoint {
+func makeEndpoint(host string, port int) *envoyendpoint.LbEndpoint {
 	return &envoyendpoint.LbEndpoint{
 		HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 			Endpoint: &envoyendpoint.Endpoint{

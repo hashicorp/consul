@@ -489,7 +489,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 	}
 }
 
-func expectListenerJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, token string, v, n uint64) map[string]string {
+func expectListenerJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, token string) map[string]string {
 	tokenVal := ""
 	if token != "" {
 		tokenVal = fmt.Sprintf(",\n"+`"value": "%s"`, token)
@@ -585,7 +585,7 @@ func expectListenerJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, to
 	}
 }
 
-func expectListenerJSONFromResources(t *testing.T, snap *proxycfg.ConfigSnapshot, token string, v, n uint64, resourcesJSON map[string]string) string {
+func expectListenerJSONFromResources(snap *proxycfg.ConfigSnapshot, v, n uint64, resourcesJSON map[string]string) string {
 	resJSON := ""
 	// Sort resources into specific order because that matters in JSONEq
 	// comparison later.
@@ -612,8 +612,7 @@ func expectListenerJSONFromResources(t *testing.T, snap *proxycfg.ConfigSnapshot
 }
 
 func expectListenerJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token string, v, n uint64) string {
-	return expectListenerJSONFromResources(t, snap, token, v, n,
-		expectListenerJSONResources(t, snap, token, v, n))
+	return expectListenerJSONFromResources(snap, v, n, expectListenerJSONResources(t, snap, token))
 }
 
 type customListenerJSONOptions struct {

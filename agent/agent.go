@@ -2781,7 +2781,7 @@ func (a *Agent) addServiceInternal(req *addServiceRequest, snap map[structs.Chec
 	}
 
 	for i := range checks {
-		if err := a.addCheck(checks[i], chkTypes[i], service, persist, token, source); err != nil {
+		if err := a.addCheck(checks[i], chkTypes[i], service, token, source); err != nil {
 			a.cleanupRegistration(cleanupServices, cleanupChecks)
 			return err
 		}
@@ -3101,7 +3101,7 @@ func (a *Agent) addCheckLocked(check *structs.HealthCheck, chkType *structs.Chec
 		}
 	}()
 
-	err := a.addCheck(check, chkType, service, persist, token, source)
+	err := a.addCheck(check, chkType, service, token, source)
 	if err != nil {
 		a.State.RemoveCheck(cid)
 		return err
@@ -3121,7 +3121,7 @@ func (a *Agent) addCheckLocked(check *structs.HealthCheck, chkType *structs.Chec
 	return nil
 }
 
-func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType, service *structs.NodeService, persist bool, token string, source configSource) error {
+func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType, service *structs.NodeService, token string, source configSource) error {
 	if check.CheckID == "" {
 		return fmt.Errorf("CheckID missing")
 	}
