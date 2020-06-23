@@ -11,9 +11,17 @@
     <li></li>
     {{~#each _cells as |cell|~}}
       <li onclick={{action 'click'}} style={{{cell.style}}} class={{if (service/exists cell.item) 'linkable'}}>
-        <YieldSlot @name="header"><div>{{yield cell.item cell.index checked (action "change")}}</div></YieldSlot>
-        <YieldSlot @name="details"><div>{{yield cell.item cell.index checked (action "change")}}</div></YieldSlot>
-        <YieldSlot @name="actions"><div>{{yield cell.item cell.index checked (action "change")}}</div></YieldSlot>
+        <YieldSlot @name="header"><div>{{yield cell.item cell.index}}</div></YieldSlot>
+        <YieldSlot @name="details"><div>{{yield cell.item cell.index}}</div></YieldSlot>
+        <YieldSlot @name="actions"
+          @params={{
+            block-params (component 'more-popover-menu' expanded=(if (eq checked cell.index) true false) onchange=(action "change" cell.index))
+          }}
+        >
+          <div>
+            {{yield cell.item cell.index}}
+          </div>
+        </YieldSlot>
       </li>
     {{~/each~}}
 </EmberNativeScrollable>

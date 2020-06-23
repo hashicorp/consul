@@ -1,56 +1,12 @@
 %with-popover-menu {
   position: relative;
 }
-%with-popover-menu > [type='checkbox'] {
-  @extend %popover-menu;
-}
-%more-popover-menu {
-  @extend %display-toggle-siblings;
-}
-%more-popover-menu + label > * {
-  @extend %toggle-button;
-}
-%more-popover-menu-panel {
-  overflow: hidden;
-  width: 192px;
-}
-%more-popover-menu + label + div {
-  @extend %more-popover-menu-panel;
-}
-%more-popover-menu-panel:not(.above) {
-  top: 48px;
-}
-%more-popover-menu-panel:not(.left) {
-  right: 10px;
-}
-%more-popover-menu-panel li [role='menu'] {
-  display: none;
-}
-%more-popover-menu-panel [id$='-']:first-child:checked ~ ul label[for$='-'] + [role='menu'] {
-  display: block;
-}
-%popover-menu {
-  @extend %display-toggle-siblings;
-}
-%popover-menu + label > * {
-  @extend %toggle-button;
-}
 %popover-menu-panel {
-  @extend %menu-panel;
   width: 192px;
-}
-%popover-menu + label + div {
-  @extend %popover-menu-panel;
 }
 %popover-menu-panel:not(.above) {
   top: 38px;
 }
 %popover-menu-panel:not(.left) {
-  right: 10px;
-}
-%popover-menu-panel li [role='menu'] {
-  display: none;
-}
-%popover-menu-panel [id$='-']:first-child:checked ~ ul label[for$='-'] + [role='menu'] {
-  display: block;
+  right: 5px;
 }

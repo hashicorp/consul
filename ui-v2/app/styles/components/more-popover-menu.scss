@@ -1,18 +1,24 @@
-.more-popover-menu > [type='checkbox'] {
+.more-popover-menu {
   @extend %more-popover-menu;
 }
-%more-popover-menu-panel [type='checkbox']:checked ~ * {
-  /* this needs to autocalculate */
-  min-height: 143px;
-  max-height: 143px;
+%more-popover-menu {
+  @extend %with-popover-menu;
 }
-%more-popover-menu-panel [id$='logout']:checked ~ * {
-  /* this needs to autocalculate */
-  min-height: 183px;
-  max-height: 183px;
+%more-popover-menu > [type='checkbox'] + label {
+  @extend %more-popover-menu-trigger;
 }
-%more-popover-menu-panel [id$='delete']:checked ~ ul label[for$='delete'] + [role='menu'],
-%more-popover-menu-panel [id$='logout']:checked ~ ul label[for$='logout'] + [role='menu'],
-%more-popover-menu-panel [id$='use']:checked ~ ul label[for$='use'] + [role='menu'] {
+/* This gives the trigger a slightly larger invisible hit area */
+%more-popover-menu-trigger {
+  padding: 7px;
   display: block;
+}
+%more-popover-menu-trigger > * {
+  font-size: 0;
+  background-color: $transparent;
+  padding: 0;
+}
+%more-popover-menu-trigger > *::after {
+  @extend %with-more-horizontal-mask, %as-pseudo;
+  background-color: $gray-900;
+  margin: 0;
 }

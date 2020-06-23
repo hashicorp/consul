@@ -1,11 +1,9 @@
 export default (collection, clickable, attribute, text, actions) => () => {
-  return collection('.consul-token-list li:not(:first-child)', {
-    id: attribute('data-test-token', '[data-test-token]'),
+  return collection('.consul-role-list li:not(:first-child)', {
+    name: attribute('data-test-role', '[data-test-role]'),
     description: text('[data-test-description]'),
     policy: text('[data-test-policy].policy', { multiple: true }),
-    role: text('[data-test-policy].role', { multiple: true }),
     serviceIdentity: text('[data-test-policy].policy-service-identity', { multiple: true }),
-    token: clickable('a'),
-    ...actions(['edit', 'delete', 'use', 'logout', 'clone']),
+    ...actions(['edit', 'delete']),
   });
 };

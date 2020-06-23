@@ -33,9 +33,12 @@
   margin-right: 3px;
 }
 %composite-row-detail .policy-management::before {
+  margin-right: 3px;
+}
+%composite-row-detail .policy-management::before,
+%composite-row-header .policy-management dd::before {
   @extend %with-star-fill-mask, %as-pseudo;
   background-color: var(--brand-600);
-  margin-right: 3px;
 }
 // Health Checks
 %composite-row-detail li.passing::before,

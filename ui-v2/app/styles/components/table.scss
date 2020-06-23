@@ -1,19 +1,13 @@
 %main-content table {
   @extend %table;
 }
-%table-actions > [type='checkbox'] {
+%table-actions {
   @extend %more-popover-menu;
-}
-%table-actions .confirmation-alert {
-  @extend %confirmation-alert;
+  overflow: visible;
 }
 %table-actions > [type='checkbox'] + label {
   position: absolute;
-  top: 8px;
-  right: 15px;
-}
-%table-actions .menu-panel:not(.above) {
-  top: 38px !important;
+  right: 5px;
 }
 
 /*TODO: Rename this to %app-view-brand-icon or similar */
