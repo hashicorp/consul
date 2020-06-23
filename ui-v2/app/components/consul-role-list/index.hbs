@@ -1,0 +1,45 @@
+{{#if (gt items.length 0)}}
+<ListCollection @items={{items}} class="consul-role-list" as |item|>
+    <BlockSlot @name="header">
+      <a data-test-role={{item.Name}} href={{href-to 'dc.acls.roles.edit' item.ID}}>{{item.Name}}</a>
+    </BlockSlot>
+    <BlockSlot @name="details">
+      <ConsulTokenRulesetList @item={{item}} />
+      <dl>
+        <dt>Description</dt>
+        <dd data-test-description>
+            {{item.Description}}
+        </dd>
+      </dl>
+    </BlockSlot>
+    <BlockSlot @name="actions" as |Actions|>
+      <Actions as |Action|>
+        <Action data-test-edit-action @href={{href-to 'dc.acls.roles.edit' item.ID}}>
+          <BlockSlot @name="label">
+            Edit
+          </BlockSlot>
+        </Action>
+        <Action data-test-delete-action @onclick={{action ondelete item}} class="dangerous">
+          <BlockSlot @name="label">
+            Delete
+          </BlockSlot>
+          <BlockSlot @name="confirmation" as |Confirmation|>
+            <Confirmation class="warning">
+              <BlockSlot @name="header">
+                Confirm delete
+              </BlockSlot>
+              <BlockSlot @name="body">
+                <p>
+                  Are you sure you want to delete this role?
+                </p>
+              </BlockSlot>
+              <BlockSlot @name="confirm" as |Confirm|>
+                <Confirm>Delete</Confirm>
+              </BlockSlot>
+            </Confirmation>
+          </BlockSlot>
+        </Action>
+      </Actions>
+    </BlockSlot>
+</ListCollection>
+{{/if}}

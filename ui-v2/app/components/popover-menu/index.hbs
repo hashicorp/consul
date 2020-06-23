@@ -1,4 +1,4 @@
-{{yield (concat 'popover-menu-' guid)}}
+{{yield}}
 <AriaMenu @keyboardAccess={{keyboardAccess}} as |change keypress ariaLabelledBy ariaControls ariaExpanded keypressClick|>
   <ToggleButton
     @checked={{if keyboardAccess ariaExpanded expanded}}
@@ -7,25 +7,35 @@
     <Ref @target={{this}} @name="toggle" @value={{api}} />
     <button type="button" aria-haspopup="menu" onkeydown={{keypress}} onclick={{this.toggle.click}} id={{ariaLabelledBy}} aria-controls={{ariaControls}}>
       <YieldSlot @name="trigger">
-        {{yield}}
+        {{yield (hash
+          addSubmenu=(action 'addSubmenu')
+          removeSubmenu=(action 'removeSubmenu')
+        )}}
       </YieldSlot>
     </button>
   </ToggleButton>
-  <MenuPanel @position={{position}} id={{ariaControls}} aria-labelledby={{ariaLabelledBy}} aria-expanded={{ariaExpanded}}>
+  <MenuPanel @position={{position}} id={{ariaControls}} aria-labelledby={{ariaLabelledBy}} aria-expanded={{ariaExpanded}} as |api|>
     <BlockSlot @name="controls">
       <input type="checkbox" id={{concat 'popover-menu-' guid '-'}} />
-      {{#each submenus as |sub|}}
-        <input type="checkbox" id={{concat 'popover-menu-' guid '-' sub}} />
-      {{/each}}
+    {{#each submenus as |sub|}}
+      <input type="checkbox" id={{concat 'popover-menu-' guid '-' sub}} onchange={{api.change}} />
+    {{/each}}
     </BlockSlot>
     {{#if hasHeader}}
       <BlockSlot @name="header">
-        {{#yield-slot name="header"}}{{yield}}{{else}}{{/yield-slot}}
+        {{yield (hash
+          addSubmenu=(action 'addSubmenu')
+          removeSubmenu=(action 'removeSubmenu')
+        )}}
+        {{#yield-slot name="header"}}{{else}}{{/yield-slot}}
       </BlockSlot>
     {{/if}}
     <BlockSlot @name="menu">
       <YieldSlot @name="menu" @params={{block-params (concat "popover-menu-" guid "-") send keypressClick this.toggle.click}}>
-        {{yield}}
+        {{yield (hash
+          addSubmenu=(action 'addSubmenu')
+          removeSubmenu=(action 'removeSubmenu')
+        )}}
       </YieldSlot>
     </BlockSlot>
   </MenuPanel>

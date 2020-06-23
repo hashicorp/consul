@@ -77,7 +77,7 @@ Feature: dc / acls / tokens / index: ACL Token List
     s: Si-Search
     ---
     And I see 1 token model
-    And I see 1 token model with the serviceIdentity "Service Identity: Si-Search"
+    And I see 1 token model with the serviceIdentity "Si-Search"
   Scenario: I see the legacy message if I have one legacy token
     Given 1 datacenter model with the value "dc-1"
     And 3 token models from yaml
