@@ -36,7 +36,7 @@
         <span>Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
 {{#if (eq item.template 'service-identity')}}
         <CodeEditor @readonly={{true}} @name={{concat name "[Rules]"}} @syntax="hcl" @oninput={{action "change" (concat name "[Rules]")}}>
-          {{~component 'service-identity' name=item.Name~}}
+          {{~component 'service-identity' nspace=nspace name=item.Name~}}
         </CodeEditor>
 {{else if (eq item.template 'node-identity')}}
         <CodeEditor @readonly={{true}} @name={{concat name "[Rules]"}} @syntax="hcl" @oninput={{action "change" (concat name "[Rules]")}}>
