@@ -7,7 +7,7 @@
 
 # Requires $CIRCLE_PROJECT_USERNAME, $CIRCLE_PROJECT_REPONAME, and $CIRCLE_SHA1 from CircleCI
 
-set -e -o pipefail
+set -o pipefail
 
 # colorized status prompt
 function status {
@@ -135,17 +135,17 @@ for label in $labels; do
         status "backporting to stable-website"
         branch="stable-website"
         cherry_pick_with_slack_notification "$branch" "$CIRCLE_SHA1" "$pr_url"
-        (( backport_failures += "$?" ))
+        backport_failures=$((backport_failures + "$?"))
     # else if the label matches backport/*, it will attempt to cherry-pick to the release branch
     elif [[ $label =~ backport/* ]]; then
         status "backporting to $label"
         branch="${label/backport/release}.x"
         cherry_pick_with_slack_notification "$branch" "$CIRCLE_SHA1" "$pr_url"
-        (( backport_failures += "$?" ))
+        backport_failures=$((backport_failures + "$?"))
     fi
 done
 
 if [ "$backport_failures" -ne 0 ]; then
     echo "$backport_failures backports failed"
-    exit $backport_failures
+    exit 1
 fi
