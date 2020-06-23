@@ -87,6 +87,59 @@ func TestDecodeConfigEntry(t *testing.T) {
 			},
 		},
 		{
+			name: "namespaces invalid top level",
+			snake: `
+				kind = "terminating-gateway"
+				name = "terminating-gateway"
+				namespace = "foo"
+			`,
+			camel: `
+				Kind = "terminating-gateway"
+				Name = "terminating-gateway"
+				Namespace = "foo"
+			`,
+			expectErr: `invalid config key "namespace", namespaces are a consul enterprise feature`,
+		},
+		{
+			name: "namespaces invalid deep",
+			snake: `
+				kind = "ingress-gateway"
+				name = "ingress-web"
+				listeners = [
+					{
+						port = 8080
+						protocol = "http"
+						services = [
+							{
+								name = "web"
+								hosts = ["test.example.com", "test2.example.com"]
+								namespace = "frontend"
+							},
+						]
+					}
+				]
+			`,
+			camel: `
+				Kind = "ingress-gateway"
+				Name = "ingress-web"
+				Namespace = "blah"
+				Listeners = [
+					{
+						Port = 8080
+						Protocol = "http"
+						Services = [
+							{
+								Name = "web"
+								Hosts = ["test.example.com", "test2.example.com"]
+								Namespace = "frontend"
+							},
+						]
+					},
+				]
+			`,
+			expectErr: `invalid config key "listeners[0].services[0].namespace", namespaces are a consul enterprise feature`,
+		},
+		{
 			name: "service-defaults",
 			snake: `
 				kind = "service-defaults"
