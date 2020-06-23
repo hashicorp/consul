@@ -5,7 +5,8 @@ import (
 	"time"
 
 	envoycluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
-	"github.com/gogo/protobuf/types"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/decode"
 	"github.com/mitchellh/mapstructure"
@@ -211,10 +212,10 @@ type PassiveHealthCheck struct {
 func (p PassiveHealthCheck) AsOutlierDetection() *envoycluster.OutlierDetection {
 	od := &envoycluster.OutlierDetection{}
 	if p.Interval != 0 {
-		od.Interval = types.DurationProto(p.Interval)
+		od.Interval = ptypes.DurationProto(p.Interval)
 	}
 	if p.MaxFailures != 0 {
-		od.Consecutive_5Xx = &types.UInt32Value{Value: p.MaxFailures}
+		od.Consecutive_5Xx = &wrappers.UInt32Value{Value: p.MaxFailures}
 	}
 	return od
 }

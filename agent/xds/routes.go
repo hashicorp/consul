@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gogo/protobuf/proto"
-
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoyroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -56,7 +56,7 @@ func routesFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.M
 
 			route := &envoy.RouteConfiguration{
 				Name:         upstreamID,
-				VirtualHosts: []envoyroute.VirtualHost{virtualHost},
+				VirtualHosts: []*envoyroute.VirtualHost{virtualHost},
 				// ValidateClusters defaults to true when defined statically and false
 				// when done via RDS. Re-set the sane value of true to prevent
 				// null-routing traffic.
@@ -128,8 +128,8 @@ func makeUpstreamRouteForDiscoveryChain(
 	routeName string,
 	chain *structs.CompiledDiscoveryChain,
 	serviceDomains []string,
-) (envoyroute.VirtualHost, error) {
-	var routes []envoyroute.Route
+) (*envoyroute.VirtualHost, error) {
+	var routes []*envoyroute.Route
 
 	startNode := chain.Nodes[chain.StartNode]
 	if startNode == nil {
@@ -138,7 +138,7 @@ func makeUpstreamRouteForDiscoveryChain(
 
 	switch startNode.Type {
 	case structs.DiscoveryGraphNodeTypeRouter:
-		routes = make([]envoyroute.Route, 0, len(startNode.Routes))
+		routes = make([]*envoyroute.Route, 0, len(startNode.Routes))
 
 		for _, discoveryRoute := range startNode.Routes {
 			routeMatch := makeRouteMatchForDiscoveryRoute(discoveryRoute, chain.Protocol)
@@ -153,14 +153,14 @@ func makeUpstreamRouteForDiscoveryChain(
 			case structs.DiscoveryGraphNodeTypeSplitter:
 				routeAction, err = makeRouteActionForSplitter(nextNode.Splits, chain)
 				if err != nil {
-					return envoyroute.VirtualHost{}, err
+					return nil, err
 				}
 
 			case structs.DiscoveryGraphNodeTypeResolver:
 				routeAction = makeRouteActionForSingleCluster(nextNode.Resolver.Target, chain)
 
 			default:
-				return envoyroute.VirtualHost{}, fmt.Errorf("unexpected graph node after route %q", nextNode.Type)
+				return nil, fmt.Errorf("unexpected graph node after route %q", nextNode.Type)
 			}
 
 			// TODO(rb): Better help handle the envoy case where you need (prefix=/foo/,rewrite=/) and (exact=/foo,rewrite=/) to do a full rewrite
@@ -172,7 +172,7 @@ func makeUpstreamRouteForDiscoveryChain(
 				}
 
 				if destination.RequestTimeout > 0 {
-					routeAction.Route.Timeout = &destination.RequestTimeout
+					routeAction.Route.Timeout = ptypes.DurationProto(destination.RequestTimeout)
 				}
 
 				if destination.HasRetryFeatures() {
@@ -198,7 +198,7 @@ func makeUpstreamRouteForDiscoveryChain(
 				}
 			}
 
-			routes = append(routes, envoyroute.Route{
+			routes = append(routes, &envoyroute.Route{
 				Match:  routeMatch,
 				Action: routeAction,
 			})
@@ -207,31 +207,31 @@ func makeUpstreamRouteForDiscoveryChain(
 	case structs.DiscoveryGraphNodeTypeSplitter:
 		routeAction, err := makeRouteActionForSplitter(startNode.Splits, chain)
 		if err != nil {
-			return envoyroute.VirtualHost{}, err
+			return nil, err
 		}
 
-		defaultRoute := envoyroute.Route{
+		defaultRoute := &envoyroute.Route{
 			Match:  makeDefaultRouteMatch(),
 			Action: routeAction,
 		}
 
-		routes = []envoyroute.Route{defaultRoute}
+		routes = []*envoyroute.Route{defaultRoute}
 
 	case structs.DiscoveryGraphNodeTypeResolver:
 		routeAction := makeRouteActionForSingleCluster(startNode.Resolver.Target, chain)
 
-		defaultRoute := envoyroute.Route{
+		defaultRoute := &envoyroute.Route{
 			Match:  makeDefaultRouteMatch(),
 			Action: routeAction,
 		}
 
-		routes = []envoyroute.Route{defaultRoute}
+		routes = []*envoyroute.Route{defaultRoute}
 
 	default:
 		panic("unknown first node in discovery chain of type: " + startNode.Type)
 	}
 
-	host := envoyroute.VirtualHost{
+	host := &envoyroute.VirtualHost{
 		Name:    routeName,
 		Domains: serviceDomains,
 		Routes:  routes,
@@ -240,13 +240,13 @@ func makeUpstreamRouteForDiscoveryChain(
 	return host, nil
 }
 
-func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute, protocol string) envoyroute.RouteMatch {
+func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute, protocol string) *envoyroute.RouteMatch {
 	match := discoveryRoute.Definition.Match
 	if match == nil || match.IsEmpty() {
 		return makeDefaultRouteMatch()
 	}
 
-	em := envoyroute.RouteMatch{}
+	em := &envoyroute.RouteMatch{}
 
 	switch {
 	case match.HTTP.PathExact != "":
@@ -345,8 +345,8 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute, pro
 	return em
 }
 
-func makeDefaultRouteMatch() envoyroute.RouteMatch {
-	return envoyroute.RouteMatch{
+func makeDefaultRouteMatch() *envoyroute.RouteMatch {
+	return &envoyroute.RouteMatch{
 		PathSpecifier: &envoyroute.RouteMatch_Prefix{
 			Prefix: "/",
 		},

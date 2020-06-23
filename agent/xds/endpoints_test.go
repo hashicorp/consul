@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoyendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
@@ -108,8 +108,8 @@ func Test_makeLoadAssignment(t *testing.T) {
 			},
 			want: &envoy.ClusterLoadAssignment{
 				ClusterName: "service:test",
-				Endpoints: []envoyendpoint.LocalityLbEndpoints{{
-					LbEndpoints: []envoyendpoint.LbEndpoint{},
+				Endpoints: []*envoyendpoint.LocalityLbEndpoints{{
+					LbEndpoints: []*envoyendpoint.LbEndpoint{},
 				}},
 			},
 		},
@@ -121,22 +121,22 @@ func Test_makeLoadAssignment(t *testing.T) {
 			},
 			want: &envoy.ClusterLoadAssignment{
 				ClusterName: "service:test",
-				Endpoints: []envoyendpoint.LocalityLbEndpoints{{
-					LbEndpoints: []envoyendpoint.LbEndpoint{
+				Endpoints: []*envoyendpoint.LocalityLbEndpoints{{
+					LbEndpoints: []*envoyendpoint.LbEndpoint{
 						{
 							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 								Endpoint: &envoyendpoint.Endpoint{
-									Address: makeAddressPtr("10.10.10.10", 1234),
+									Address: makeAddress("10.10.10.10", 1234),
 								}},
-							HealthStatus:        core.HealthStatus_HEALTHY,
+							HealthStatus:        envoycore.HealthStatus_HEALTHY,
 							LoadBalancingWeight: makeUint32Value(1),
 						},
 						{
 							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 								Endpoint: &envoyendpoint.Endpoint{
-									Address: makeAddressPtr("10.10.10.20", 1234),
+									Address: makeAddress("10.10.10.20", 1234),
 								}},
-							HealthStatus:        core.HealthStatus_HEALTHY,
+							HealthStatus:        envoycore.HealthStatus_HEALTHY,
 							LoadBalancingWeight: makeUint32Value(1),
 						},
 					},
@@ -151,22 +151,22 @@ func Test_makeLoadAssignment(t *testing.T) {
 			},
 			want: &envoy.ClusterLoadAssignment{
 				ClusterName: "service:test",
-				Endpoints: []envoyendpoint.LocalityLbEndpoints{{
-					LbEndpoints: []envoyendpoint.LbEndpoint{
+				Endpoints: []*envoyendpoint.LocalityLbEndpoints{{
+					LbEndpoints: []*envoyendpoint.LbEndpoint{
 						{
 							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 								Endpoint: &envoyendpoint.Endpoint{
-									Address: makeAddressPtr("10.10.10.10", 1234),
+									Address: makeAddress("10.10.10.10", 1234),
 								}},
-							HealthStatus:        core.HealthStatus_HEALTHY,
+							HealthStatus:        envoycore.HealthStatus_HEALTHY,
 							LoadBalancingWeight: makeUint32Value(10),
 						},
 						{
 							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 								Endpoint: &envoyendpoint.Endpoint{
-									Address: makeAddressPtr("10.10.10.20", 1234),
+									Address: makeAddress("10.10.10.20", 1234),
 								}},
-							HealthStatus:        core.HealthStatus_HEALTHY,
+							HealthStatus:        envoycore.HealthStatus_HEALTHY,
 							LoadBalancingWeight: makeUint32Value(5),
 						},
 					},
@@ -181,22 +181,22 @@ func Test_makeLoadAssignment(t *testing.T) {
 			},
 			want: &envoy.ClusterLoadAssignment{
 				ClusterName: "service:test",
-				Endpoints: []envoyendpoint.LocalityLbEndpoints{{
-					LbEndpoints: []envoyendpoint.LbEndpoint{
+				Endpoints: []*envoyendpoint.LocalityLbEndpoints{{
+					LbEndpoints: []*envoyendpoint.LbEndpoint{
 						{
 							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 								Endpoint: &envoyendpoint.Endpoint{
-									Address: makeAddressPtr("10.10.10.10", 1234),
+									Address: makeAddress("10.10.10.10", 1234),
 								}},
-							HealthStatus:        core.HealthStatus_HEALTHY,
+							HealthStatus:        envoycore.HealthStatus_HEALTHY,
 							LoadBalancingWeight: makeUint32Value(1),
 						},
 						{
 							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 								Endpoint: &envoyendpoint.Endpoint{
-									Address: makeAddressPtr("10.10.10.20", 1234),
+									Address: makeAddress("10.10.10.20", 1234),
 								}},
-							HealthStatus:        core.HealthStatus_UNHEALTHY,
+							HealthStatus:        envoycore.HealthStatus_UNHEALTHY,
 							LoadBalancingWeight: makeUint32Value(1),
 						},
 					},
