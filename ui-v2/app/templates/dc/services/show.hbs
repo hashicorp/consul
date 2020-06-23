@@ -5,7 +5,6 @@
 <AppView @class="service show">
   <BlockSlot @name="notification" as |status type|>
     {{partial 'dc/services/notifications'}}
-    {{partial 'dc/intentions/notifications'}}
   </BlockSlot>
   <BlockSlot @name="breadcrumbs">
     <ol>
@@ -31,7 +30,7 @@
                 (hash label="Upstreams" href=(href-to "dc.services.show.upstreams") selected=(is-href "dc.services.show.upstreams"))
 '')
                 (hash label="Instances" href=(href-to "dc.services.show.instances") selected=(is-href "dc.services.show.instances"))
-(if (not item.Service.Kind)
+(if (not-eq item.Service.Kind 'terminating-gateway')
                 (hash label="Intentions" href=(href-to "dc.services.show.intentions") selected=(is-href "dc.services.show.intentions"))
 '')
 (if chain.Chain
