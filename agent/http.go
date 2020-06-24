@@ -599,7 +599,7 @@ func (s *HTTPServer) marshalJSON(req *http.Request, obj interface{}) ([]byte, er
 	if err != nil {
 		return nil, err
 	}
-	return buf, err
+	return buf, nil
 }
 
 // Returns true if the UI is enabled.
