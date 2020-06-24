@@ -15,9 +15,7 @@
   background-color: $gray-100;
   padding: 0 8px;
   border-radius: $decor-radius-100;
-  height: 18px;
   display: inline-block;
-  line-height: 0.7rem;
 }
 %reduced-pill > span {
   font-size: 14px;
@@ -30,5 +28,4 @@
   height: 14px;
   margin-right: 2px;
   position: relative;
-  top: 2px;
 }
