@@ -13,6 +13,7 @@ span.policy-service-identity::before,
 span.policy-node-identity::before {
   display: inline-block;
   width: auto;
+  vertical-align: baseline;
 }
 span.policy-node-identity::before {
   content: 'Node Identity: ';
