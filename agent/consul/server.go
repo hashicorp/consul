@@ -525,7 +525,7 @@ func NewServerWithOptions(config *Config, options ...ConsulOption) (*Server, err
 	}
 
 	if s.gatewayLocator != nil {
-		go s.gatewayLocator.Run(s.shutdownCh)
+		go s.gatewayLocator.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 	}
 
 	// Serf and dynamic bind ports
