@@ -171,6 +171,7 @@ func (c *cmd) run(args []string) int {
 		agent.WithBuilderOpts(c.flagArgs),
 		agent.WithCLI(c.UI),
 		agent.WithLogWriter(&logGate),
+		agent.WithTelemetry(true),
 	}
 
 	agent, err := agent.New(agentOptions...)

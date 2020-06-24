@@ -323,15 +323,24 @@ type Agent struct {
 }
 
 type agentOptions struct {
-	logger      hclog.InterceptLogger
-	builderOpts config.BuilderOpts
-	ui          cli.Ui
-	config      *config.RuntimeConfig
-	overrides   []config.Source
-	writers     []io.Writer
+	logger        hclog.InterceptLogger
+	builderOpts   config.BuilderOpts
+	ui            cli.Ui
+	config        *config.RuntimeConfig
+	overrides     []config.Source
+	writers       []io.Writer
+	initTelemetry bool
 }
 
 type AgentOption func(opt *agentOptions)
+
+// WithTelemetry is used to control whether the agent will
+// set up metrics.
+func WithTelemetry(initTelemetry bool) AgentOption {
+	return func(opt *agentOptions) {
+		opt.initTelemetry = initTelemetry
+	}
+}
 
 // WithLogger is used to override any automatic logger creation
 // and provide one already built instead. This is mostly useful
@@ -473,11 +482,13 @@ func New(options ...AgentOption) (*Agent, error) {
 		grpclog.SetLoggerV2(logging.NewGRPCLogger(logConf, a.logger))
 	}
 
-	memSink, err := lib.InitTelemetry(config.Telemetry)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to initialize telemetry: %w", err)
+	if flat.initTelemetry {
+		memSink, err := lib.InitTelemetry(config.Telemetry)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to initialize telemetry: %w", err)
+		}
+		a.MemSink = memSink
 	}
-	a.MemSink = memSink
 
 	// TODO (autoconf) figure out how to let this setting be pushed down via autoconf
 	// right now it gets defaulted if unset so this check actually doesn't do much
