@@ -26,6 +26,45 @@ const register = function(container, route, path) {
 };
 
 export function initialize(container) {
+  // patch Route routeName-like methods for navigation to support nspace relative routes
+  Route.reopen(
+    ['transitionTo', 'replaceWith'].reduce(function(prev, item) {
+      prev[item] = function(requestedRouteName, ...rest) {
+        return this._super(...withNspace(this.routeName, requestedRouteName, ...rest));
+      };
+      return prev;
+    }, {})
+  );
+
+  // patch Route routeName-like methods for data to support nspace relative routes
+  Route.reopen(
+    ['modelFor', 'paramsFor'].reduce(function(prev, item) {
+      prev[item] = function(requestedRouteName, ...rest) {
+        const isNspaced = this.routeName.startsWith('nspace');
+        if (!isNspaced && requestedRouteName === 'nspace') {
+          return {
+            nspace: '~',
+          };
+        }
+        return this._super(...withNspace(this.routeName, requestedRouteName, ...rest));
+      };
+      return prev;
+    }, {})
+  );
+
+  // extend router service with a nspace aware router to support nspace relative routes
+  const nspacedRouter = container.resolveRegistration('service:router').extend({
+    transitionTo: function(requestedRouteName, ...rest) {
+      return this._super(...withNspace(this.currentRoute.name, requestedRouteName, ...rest));
+    },
+    replaceWith: function(requestedRouteName, ...rest) {
+      return this._super(...withNspace(this.currentRoute.name, requestedRouteName, ...rest));
+    },
+    urlFor: function(requestedRouteName, ...rest) {
+      return this._super(...withNspace(this.currentRoute.name, requestedRouteName, ...rest));
+    },
+  });
+  container.register('service:router', nspacedRouter);
   if (env('CONSUL_NSPACES_ENABLED')) {
     // enable the nspace repo
     ['dc', 'settings', 'dc.intentions.edit', 'dc.intentions.create'].forEach(function(item) {
@@ -33,46 +72,6 @@ export function initialize(container) {
       container.inject(`route:nspace.${item}`, 'nspacesRepo', 'service:repository/nspace/enabled');
     });
     container.inject('route:application', 'nspacesRepo', 'service:repository/nspace/enabled');
-
-    // patch Route routeName-like methods for navigation to support nspace relative routes
-    Route.reopen(
-      ['transitionTo', 'replaceWith'].reduce(function(prev, item) {
-        prev[item] = function(requestedRouteName, ...rest) {
-          return this._super(...withNspace(this.routeName, requestedRouteName, ...rest));
-        };
-        return prev;
-      }, {})
-    );
-
-    // patch Route routeName-like methods for data to support nspace relative routes
-    Route.reopen(
-      ['modelFor', 'paramsFor'].reduce(function(prev, item) {
-        prev[item] = function(requestedRouteName, ...rest) {
-          const isNspaced = this.routeName.startsWith('nspace');
-          if (!isNspaced && requestedRouteName === 'nspace') {
-            return {
-              nspace: '~',
-            };
-          }
-          return this._super(...withNspace(this.routeName, requestedRouteName, ...rest));
-        };
-        return prev;
-      }, {})
-    );
-
-    // extend router service with a nspace aware router to support nspace relative routes
-    const nspacedRouter = container.resolveRegistration('service:router').extend({
-      transitionTo: function(requestedRouteName, ...rest) {
-        return this._super(...withNspace(this.currentRoute.name, requestedRouteName, ...rest));
-      },
-      replaceWith: function(requestedRouteName, ...rest) {
-        return this._super(...withNspace(this.currentRoute.name, requestedRouteName, ...rest));
-      },
-      urlFor: function(requestedRouteName, ...rest) {
-        return this._super(...withNspace(this.currentRoute.name, requestedRouteName, ...rest));
-      },
-    });
-    container.register('service:router', nspacedRouter);
 
     const dotRe = /\./g;
     // register automatic 'index' routes and controllers that start with 'dc'
