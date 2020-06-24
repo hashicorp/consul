@@ -34,7 +34,7 @@
 {{/if}}
     </BlockSlot>
     <BlockSlot @name="content">
-  {{#let (if (gt history.length 0) (transition-to history.firstObject.key history.firstObject.value) (transition-to 'dc.intentions.index')) as |back|}}
+  {{#let (if (gt history.length 0) (transition-to history.firstObject.key history.firstObject.value) (transition-to 'dc.intentions.index' dc)) as |back|}}
       <ConsulIntentionForm
         @item={{item}}
         @dc={{dc}}
