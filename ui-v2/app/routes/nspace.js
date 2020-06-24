@@ -15,7 +15,7 @@ export default Route.extend({
   // even though we define namespace routes after kv routes (kv routes are
   // wildcard routes)
   // Therefore here whenever we detect that ember has recognized a nspace route
-  // when it shouldn't (we know this as the nspace param is the single `~` char)
+  // when it shouldn't (we know this as there is no ~ in the nspace param)
   // we recalculate the route it should have caught by generating the nspace
   // equivalent route for the url (/dc-1/kv/services > /~default/dc-1/kv/services)
   // and getting the information for that route. We then remove the nspace specific
@@ -23,7 +23,7 @@ export default Route.extend({
   // we actually want. Using this final route information we redirect the user
   // to where they wanted to go.
   beforeModel: function(transition) {
-    if (this.paramsFor('nspace').nspace === '~') {
+    if (!this.paramsFor('nspace').nspace.startsWith('~')) {
       const url = `${env('rootURL')}${DEFAULT_NSPACE_PARAM}${transition.intent.url}`;
       const route = this.router.recognize(url);
       const [name, ...params] = transitionable(route, {}, getOwner(this));

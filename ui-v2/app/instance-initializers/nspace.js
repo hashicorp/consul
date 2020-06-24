@@ -4,7 +4,7 @@ import { env } from 'consul-ui/env';
 import flat from 'flat';
 
 const withNspace = function(currentRouteName, requestedRouteName, ...rest) {
-  const isNspaced = currentRouteName.startsWith('nspace');
+  const isNspaced = currentRouteName.startsWith('nspace.');
   if (isNspaced && requestedRouteName.startsWith('dc')) {
     return [`nspace.${requestedRouteName}`, ...rest];
   }
@@ -40,8 +40,8 @@ export function initialize(container) {
   Route.reopen(
     ['modelFor', 'paramsFor'].reduce(function(prev, item) {
       prev[item] = function(requestedRouteName, ...rest) {
-        const isNspaced = this.routeName.startsWith('nspace');
-        if (!isNspaced && requestedRouteName === 'nspace') {
+        const isNspaced = this.routeName.startsWith('nspace.');
+        if (requestedRouteName === 'nspace' && !isNspaced && this.routeName !== 'nspace') {
           return {
             nspace: '~',
           };
@@ -65,6 +65,7 @@ export function initialize(container) {
     },
   });
   container.register('service:router', nspacedRouter);
+
   if (env('CONSUL_NSPACES_ENABLED')) {
     // enable the nspace repo
     ['dc', 'settings', 'dc.intentions.edit', 'dc.intentions.create'].forEach(function(item) {
