@@ -17,8 +17,8 @@ description: >-
   and will apply to all instances of the gateway with that name.
 
 ~> [Configuration entries](/docs/agent/config-entries) are global in scope. A configuration entry for a gateway name applies
- across all federated Consul datacenters. If ingress gateways in different Consul datacenters need to route to different
- sets of services within their datacenter then the ingress gateways **must** be registered with different names.
+ across all federated Consul datacenters. If terminating gateways in different Consul datacenters need to route to different
+ sets of services within their datacenter then the terminating gateways **must** be registered with different names.
 
   See [Terminating Gateway](/docs/connect/terminating-gateway) for more information.
 
@@ -43,11 +43,15 @@ description: >-
 
 ## Sample Config Entries
 
-Link gateway "us-west-gateway" with the billing service:
+<Tabs>
+<Tab heading="HCL">
+
+Link gateway named "us-west-gateway" with the billing service:
 
 ```hcl
 Kind = "terminating-gateway"
 Name = "us-west-gateway"
+
 Services = [
   {
     Name = "billing"
@@ -55,27 +59,176 @@ Services = [
 ]
 ```
 
-Link gateway "us-west-gateway" with the api service and specify a CA file for one-way TLS authentication:
+</Tab>
+<Tab heading="HCL (Consul Enterprise)">
+
+Link gateway named "us-west-gateway" in the default namespace with the billing service in the finance namespace:
 
 ```hcl
 Kind = "terminating-gateway"
 Name = "us-west-gateway"
+Namespace = "default"
+
 Services = [
   {
-    Name      = "api"
+    Namespace = "finance"
+    Name      = "billing"
+  }
+]
+```
+
+</Tab>
+<Tab heading="JSON">
+
+Link gateway named "us-west-gateway" with the billing service:
+
+```json
+{
+  "Kind": "terminating-gateway",
+  "Name": "us-west-gateway",
+  "Services": [
+    {
+      "Name": "billing"
+    }
+  ]
+}
+```
+
+</Tab>
+<Tab heading="JSON (Consul Enterprise)">
+
+Link gateway named "us-west-gateway" in the default namespace with the billing service in the finance namespace:
+
+```json
+{
+  "Kind": "terminating-gateway",
+  "Name": "us-west-gateway",
+  "Namespace": "default",
+  "Services": [
+    {
+      "Namespace": "finance",
+      "Name": "billing"
+    }
+  ]
+}
+```
+
+</Tab>
+</Tabs>
+
+<Tabs>
+<Tab heading="HCL">
+
+Link gateway named "us-west-gateway" with the billing service and specify a CA file for one-way TLS authentication:
+
+```hcl
+Kind = "terminating-gateway"
+Name = "us-west-gateway"
+
+Services = [
+  {
+    Name   = "billing"
+    CAFile = "/etc/certs/ca-chain.cert.pem"
+  }
+]
+```
+
+</Tab>
+<Tab heading="HCL (Consul Enterprise)">
+
+Link gateway named "us-west-gateway" in the default namespace with the billing service in the finance namespace,
+and specify a CA file for one-way TLS authentication:
+
+```hcl
+Kind = "terminating-gateway"
+Name = "us-west-gateway"
+Namespace = "default"
+
+Services = [
+  {
+    Namespace = "finance"
+    Name      = "billing"
     CAFile    = "/etc/certs/ca-chain.cert.pem"
   }
 ]
 ```
 
-Link gateway "us-west-gateway" with the payments service and specify a CA file, key file, and cert file for mutual TLS authentication:
+</Tab>
+<Tab heading="JSON">
+
+Link gateway named "us-west-gateway" with the billing service and specify a CA file for one-way TLS authentication:
+
+```json
+{
+  "Kind": "terminating-gateway",
+  "Name": "us-west-gateway",
+  "Services": [
+    {
+      "Name": "billing",
+      "CAFile": "/etc/certs/ca-chain.cert.pem"
+    }
+  ]
+}
+```
+
+</Tab>
+<Tab heading="JSON (Consul Enterprise)">
+
+Link gateway named "us-west-gateway" in the default namespace with the billing service in the finance namespace,
+and specify a CA file for one-way TLS authentication:
+
+```json
+{
+  "Kind": "terminating-gateway",
+  "Name": "us-west-gateway",
+  "Namespace": "default",
+  "Services": [
+    {
+      "Namespace": "finance",
+      "Name": "billing",
+      "CAFile": "/etc/certs/ca-chain.cert.pem"
+    }
+  ]
+}
+```
+
+</Tab>
+</Tabs>
+
+<Tabs>
+<Tab heading="HCL">
+
+Link gateway named "us-west-gateway" with the payments service and specify a CA file, key file, and cert file for mutual TLS authentication:
 
 ```hcl
 Kind = "terminating-gateway"
 Name = "us-west-gateway"
+
 Services = [
   {
-    Name      = "payments"
+    Name     = "billing"
+    CAFile   = "/etc/certs/ca-chain.cert.pem"
+    KeyFile  = "/etc/certs/gateway.key.pem"
+    CertFile = "/etc/certs/gateway.cert.pem"
+  }
+]
+```
+
+</Tab>
+<Tab heading="HCL (Consul Enterprise)">
+
+Link gateway named "us-west-gateway" in the default namespace with the payments service in the finance namespace.
+Also specify a CA file, key file, and cert file for mutual TLS authentication:
+
+```hcl
+Kind = "terminating-gateway"
+Name = "us-west-gateway"
+Namespace = "default"
+
+Services = [
+  {
+    Namespace = "finance"
+    Name      = "billing"
     CAFile    = "/etc/certs/ca-chain.cert.pem"
     KeyFile   = "/etc/certs/gateway.key.pem"
     CertFile  = "/etc/certs/gateway.cert.pem"
@@ -83,13 +236,88 @@ Services = [
 ]
 ```
 
-Link gateway "us-west-gateway" with all services in the finance namespace, and configure default certificates for mutual TLS.
+</Tab>
+<Tab heading="JSON">
+
+Link gateway named "us-west-gateway" with the payments service and specify a CA file, key file, and cert file for mutual TLS authentication:
+
+```json
+{
+  "Kind": "terminating-gateway",
+  "Name": "us-west-gateway",
+  "Services": [
+    {
+      "Name": "billing",
+      "CAFile": "/etc/certs/ca-chain.cert.pem",
+      "KeyFile": "/etc/certs/gateway.key.pem",
+      "CertFile": "/etc/certs/gateway.cert.pem"
+    }
+  ]
+}
+```
+
+</Tab>
+<Tab heading="JSON (Consul Enterprise)">
+
+Link gateway named "us-west-gateway" in the default namespace with the payments service in the finance namespace.
+Also specify a CA file, key file, and cert file for mutual TLS authentication:
+
+```json
+{
+  "Kind": "terminating-gateway",
+  "Name": "us-west-gateway",
+  "Namespace": "default",
+  "Services": [
+    {
+      "Namespace": "finance",
+      "Name": "billing",
+      "CAFile": "/etc/certs/ca-chain.cert.pem",
+      "KeyFile": "/etc/certs/gateway.key.pem",
+      "CertFile": "/etc/certs/gateway.cert.pem"
+    }
+  ]
+}
+```
+
+</Tab>
+</Tabs>
+
+<Tabs>
+<Tab heading="HCL">
+
+Link gateway named "us-west-gateway" with all services in the datacenter, and configure default certificates for mutual TLS.
 Also override the SNI and CA file used for connections to the billing service:
 
 ```hcl
 Kind = "terminating-gateway"
 Name = "us-west-gateway"
+
+Services = [
+  {
+    Name      = "*"
+    CAFile    = "/etc/common-certs/ca-chain.cert.pem"
+    KeyFile   = "/etc/common-certs/gateway.key.pem"
+    CertFile  = "/etc/common-certs/gateway.cert.pem"
+  },
+  {
+    Name      = "billing"
+    CAFile    = "/etc/billing-ca/ca-chain.cert.pem",
+    SNI       =  "billing.service.com"
+  }
+]
+```
+
+</Tab>
+<Tab heading="HCL (Consul Enterprise)">
+
+Link gateway named "us-west-gateway" in the default namespace with all services in the finance namespace, 
+and configure default certificates for mutual TLS. Also override the SNI and CA file used for connections to the billing service:
+
+```hcl
+Kind = "terminating-gateway"
+Name = "us-west-gateway"
 Namespace = "default"
+
 Services = [
   {
     Namespace = "finance"
@@ -101,11 +329,71 @@ Services = [
   {
     Namespace = "finance"
     Name      = "billing"
-    CAFile    = "/etc/billing-ca/ca-chain.cert.pem"
-    SNI       = "billing.service.com"
+    CAFile    = "/etc/billing-ca/ca-chain.cert.pem",
+    SNI       =  "billing.service.com"
   }
 ]
 ```
+
+</Tab>
+<Tab heading="JSON"> 
+
+Link gateway named "us-west-gateway" with all services in the datacenter, and configure default certificates for mutual TLS.
+Also override the SNI and CA file used for connections to the billing service:
+
+```json
+{
+  "Kind": "terminating-gateway",
+  "Name": "us-west-gateway",
+  "Services": [
+    {
+      "Name": "*",
+      "CAFile": "/etc/billing-ca/ca-chain.cert.pem",
+      "KeyFile": "/etc/certs/gateway.key.pem",
+      "CertFile": "/etc/certs/gateway.cert.pem",
+      "SNI":  "billing.service.com"
+    },
+    {
+      "Name": "billing",
+      "CAFile": "/etc/billing-ca/ca-chain.cert.pem",
+      "SNI":  "billing.service.com"
+    }
+  ]
+}
+```
+
+</Tab>
+<Tab heading="JSON (Consul Enterprise)"> 
+
+Link gateway named "us-west-gateway" in the default namespace with all services in the finance namespace, 
+and configure default certificates for mutual TLS. Also override the SNI and CA file used for connections to the billing service:
+
+```json
+{
+  "Kind": "terminating-gateway",
+  "Name": "us-west-gateway",
+  "Namespace": "default",
+  "Services": [
+    {  
+      "Namespace": "finance",
+      "Name": "*",
+      "CAFile": "/etc/billing-ca/ca-chain.cert.pem",
+      "KeyFile": "/etc/certs/gateway.key.pem",
+      "CertFile": "/etc/certs/gateway.cert.pem",
+      "SNI":  "billing.service.com"
+    },
+    {  
+      "Namespace": "finance",
+      "Name": "billing",
+      "CAFile": "/etc/billing-ca/ca-chain.cert.pem",
+      "SNI":  "billing.service.com"
+    }
+  ]
+}
+```
+
+</Tab>
+</Tabs>
 
 ## Available Fields
 

@@ -43,11 +43,14 @@ description: >-
 
 ## Sample Config Entries
 
-Set up a TCP listener for a single service:
+<Tabs>
+<Tab heading="HCL">
+
+Set up a TCP listener on an ingress gateway named "us-east-ingress" to proxy traffic to the "db" service:
 
 ```hcl
 Kind = "ingress-gateway"
-Name = "ingress-service"
+Name = "us-east-ingress"
 
 Listeners = [
   {
@@ -62,13 +65,92 @@ Listeners = [
 ]
 ```
 
-Set up a wildcard HTTP listener to proxy traffic to all available services,
-make two services available over a custom port with user-provided hosts, and
-enable TLS on every listener:
+</Tab>
+<Tab heading="HCL (Consul Enterprise)">
+
+Set up a TCP listener on an ingress gateway named "us-east-ingress" in the default namespace
+to proxy traffic to the "db" service in the ops namespace:
 
 ```hcl
 Kind = "ingress-gateway"
-Name = "ingress-service"
+Name = "us-east-ingress"
+Namespace = "default"
+
+Listeners = [
+  {
+    Port     = 3456
+    Protocol = "tcp"
+    Services = [
+      {
+        Namespace = "ops"
+        Name = "db"
+      }
+    ]
+  }
+]
+```
+
+</Tab>
+<Tab heading="JSON">
+
+Set up a TCP listener on an ingress gateway named "us-east-ingress" to proxy traffic to the "db" service:
+
+```json
+{
+  "Kind": "ingress-gateway",
+  "Name": "us-east-ingress",
+  "Listeners": [
+    {
+      "Port": 3456,
+      "Protocol": "tcp",
+      "Services": [
+        {
+          "Name": "db"
+        }
+      ]
+    }
+  ]
+}
+```
+
+</Tab>
+<Tab heading="JSON (Consul Enterprise)">
+
+Set up a TCP listener on an ingress gateway named "us-east-ingress" in the default namespace
+to proxy traffic to the "db" service in the ops namespace:
+
+```json
+{
+  "Kind": "ingress-gateway",
+  "Name": "us-east-ingress",
+  "Namespace": "default",
+  "Listeners": [
+    {
+      "Port": 3456,
+      "Protocol": "tcp",
+      "Services": [
+        {
+          "Namespace": "ops",
+          "Name": "db"
+        }
+      ]
+    }
+  ]
+}
+```
+
+</Tab>
+</Tabs>
+
+<Tabs>
+<Tab heading="HCL">
+
+Set up a wildcard HTTP listener on an ingress gateway named "us-east-ingress" to proxy traffic to all services in the datacenter.
+Also make two services available over a custom port with user-provided hosts, and enable TLS on every listener:
+
+```hcl
+Kind = "ingress-gateway"
+Name = "us-east-ingress"
 
 TLS {
   Enabled = true
@@ -100,6 +182,140 @@ Listeners = [
   }
 ]
 ```
+
+</Tab>
+<Tab heading="HCL (Consul Enterprise)">
+
+Set up a wildcard HTTP listener on an ingress gateway named "us-east-ingress" to proxy traffic to all services in the frontend namespace.
+Also make two services in the frontend namespace available over a custom port with user-provided hosts, and enable TLS on every listener:
+
+```hcl
+Kind = "ingress-gateway"
+Name = "us-east-ingress"
+Namespace = "default"
+
+TLS {
+  Enabled = true
+}
+
+Listeners = [
+  {
+    Port     = 8080
+    Protocol = "http"
+    Services = [
+      {
+        Namespace = "frontend"
+        Name = "*"
+      }
+    ]
+  },
+  {
+    Port     = 4567
+    Protocol = "http"
+    Services = [
+      {
+        Namespace = "frontend"
+        Name  = "api"
+        Hosts = ["foo.example.com", "foo.example.com:4567"]
+      },
+      {
+        Namespace = "frontend"
+        Name  = "web"
+        Hosts = ["website.example.com", "website.example.com:4567"]
+      }
+    ]
+  }
+]
+```
+
+</Tab>
+<Tab heading="JSON">
+
+Set up a wildcard HTTP listener on an ingress gateway named "us-east-ingress" to proxy traffic to all services in the datacenter.
+Also make two services available over a custom port with user-provided hosts, and enable TLS on every listener:
+
+```json
+{
+  "Kind": "ingress-gateway",
+  "Name": "us-east-ingress",
+  "TLS": {
+    "Enabled": true
+  },
+  "Listeners": [
+    {
+      "Port": 8080,
+      "Protocol": "http",
+      "Services": [
+        {
+          "Name": "*"
+        }
+      ]
+    },
+    {
+      "Port": 4567,
+      "Protocol": "http",
+      "Services": [
+        {
+          "Name": "api",
+          "Hosts": ["foo.example.com", "foo.example.com:4567"]
+        },
+        {
+          "Name": "web",
+          "Hosts": ["website.example.com", "website.example.com:4567"]
+        }
+      ]
+    }
+  ]
+}
+```
+
+</Tab>
+<Tab heading="JSON (Consul Enterprise)">
+
+Set up a wildcard HTTP listener on an ingress gateway named "us-east-ingress" to proxy traffic to all services in the frontend namespace.
+Also make two services in the frontend namespace available over a custom port with user-provided hosts, and enable TLS on every listener:
+
+```json
+{
+  "Kind": "ingress-gateway",
+  "Name": "us-east-ingress",
+  "Namespace": "default",
+  "TLS": {
+    "Enabled": true
+  },
+  "Listeners": [
+    {
+      "Port": 8080,
+      "Protocol": "http",
+      "Services": [
+        {
+          "Namespace": "frontend",
+          "Name": "*"
+        }
+      ]
+    },
+    {
+      "Port": 4567,
+      "Protocol": "http",
+      "Services": [
+        {
+          "Namespace": "frontend",
+          "Name": "api",
+          "Hosts": ["foo.example.com", "foo.example.com:4567"]
+        },
+        {
+          "Namespace": "frontend",
+          "Name": "web",
+          "Hosts": ["website.example.com", "website.example.com:4567"]
+        }
+      ]
+    }
+  ]
+}
+```
+
+</Tab>
+</Tabs>
 
 ## Available Fields
 
