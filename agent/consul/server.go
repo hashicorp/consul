@@ -640,6 +640,7 @@ func (s *Server) trackAutoEncryptCARoots() {
 		ws := memdb.NewWatchSet()
 		state := s.fsm.State()
 		ws.Add(state.AbandonCh())
+		ws.Add(s.shutdownCh)
 		_, cas, err := state.CARoots(ws)
 		if err != nil {
 			s.logger.Error("Failed to watch AutoEncrypt CARoot", "error", err)
