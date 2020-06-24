@@ -56,21 +56,15 @@
   flex-wrap: nowrap;
 }
 %composite-row-detail dl,
-%composite-row-detail > ul > li {
+%composite-row-detail > span {
   margin-right: 12px;
 }
-%composite-row-detail .node::before,
-%composite-row-detail .tag-list::before {
-  position: relative;
-}
-%composite-row-detail .node::before {
-  top: 1px;
-}
-%composite-row-detail .tag-list::before {
-  top: 2px;
+%composite-row-detail dl.node dt::before {
+  margin-top: 3px;
 }
 %composite-row-detail dl dt::before {
   margin-right: 4px;
+  margin-top: 2px;
 }
 // Copy Button
 %composite-row .copy-button button {

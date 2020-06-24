@@ -41,22 +41,22 @@
   background-color: var(--brand-600);
 }
 // Health Checks
-%composite-row-detail li.passing::before,
+%composite-row-detail dl.passing dt::before,
 %composite-row-header .passing dd::before {
   @extend %with-check-circle-fill-color-mask, %as-pseudo;
   background-color: $green-500;
 }
-%composite-row-detail li.warning::before,
+%composite-row-detail dl.warning dt::before,
 %composite-row-header .warning dd::before {
   @extend %with-alert-triangle-color-mask, %as-pseudo;
   background-color: $orange-500;
 }
-%composite-row-detail li.critical::before,
+%composite-row-detail dl.critical dt::before,
 %composite-row-header .critical dd::before {
   @extend %with-cancel-square-fill-color-mask, %as-pseudo;
   background-color: $red-500;
 }
-%composite-row-detail li.empty::before,
+%composite-row-detail dl.empty dt::before,
 %composite-row-header .empty dd::before {
   @extend %with-minus-square-fill-color-mask, %as-pseudo;
   background-color: $gray-500;
@@ -74,15 +74,15 @@
   color: $color-action;
   text-decoration: underline;
 }
-%composite-row .node::before {
+%composite-row dl.node dt::before {
   @extend %with-git-commit-mask, %as-pseudo;
   background-color: $gray-500;
 }
-%composite-row .address::before {
+%composite-row dl.address dt::before {
   @extend %with-public-default-mask, %as-pseudo;
   background-color: $gray-500;
 }
-%composite-row .proxy::before {
+%composite-row dl.proxy dt::before {
   @extend %with-swap-horizontal-mask, %as-pseudo;
   background-color: $gray-500;
 }

@@ -1,14 +1,11 @@
 %tag-list {
   white-space: nowrap;
 }
-%tag-list dt {
-  display: none;
-}
 // TODO: Currently this is here to overwrite
 // the default definition list layout used in edit pages
 // ideally we'd be more specific with those to say
 // only add padding to dl's in edit pages
-%tag-list::before {
+%tag-list dt::before {
   @extend %with-tag-mask, %as-pseudo;
   margin-right: 4px;
 }

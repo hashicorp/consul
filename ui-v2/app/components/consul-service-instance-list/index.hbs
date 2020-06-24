@@ -6,27 +6,37 @@
       </a>
     </BlockSlot>
     <BlockSlot @name="details">
-      <ul>
-        <ConsulExternalSource @item={{item.Service}} as |ExternalSource|>
-          <li>
-            <ExternalSource />
-          </li>
-        </ConsulExternalSource>
+      <ConsulExternalSource @item={{item.Service}} />
 {{#let (reject-by 'ServiceID' '' item.Checks) as |checks|}}
   {{#let (service/instance-checks checks) as |serviceCheck| }}
     {{#if (eq serviceCheck.check 'empty') }}
-          <li class={{serviceCheck.check}}>
-            No service checks
-          </li>
+      <dl class={{serviceCheck.check}}>
+        <dt>
+           <Tooltip>
+            Service Checks
+          </Tooltip>
+        </dt>
+        <dd>No service checks</dd>
+      </dl>
     {{else}}
       {{#if (eq serviceCheck.count checks.length)}}
-          <li class={{serviceCheck.check}}>
-            All service checks {{serviceCheck.status}}
-          </li>
+      <dl class={{serviceCheck.check}}>
+        <dt>
+          <Tooltip>
+            Service Checks
+          </Tooltip>
+        </dt>
+        <dd>All service checks {{serviceCheck.status}}</dd>
+      </dl>
       {{else}}
-          <li class={{serviceCheck.check}}>
-            {{serviceCheck.count}}/{{checks.length}} service checks {{serviceCheck.status}}
-          </li>
+      <dl class={{serviceCheck.check}}>
+        <dt>
+          <Tooltip>
+            Service Checks
+          </Tooltip>
+        </dt>
+        <dd>{{serviceCheck.count}}/{{checks.length}} service checks {{serviceCheck.status}}</dd>
+      </dl>
       {{/if}}
     {{/if}}
   {{/let}}
@@ -34,45 +44,76 @@
 {{#let (filter-by 'ServiceID' '' item.Checks) as |checks|}}
   {{#let (service/instance-checks checks) as |nodeCheck| }}
     {{#if (eq nodeCheck.check 'empty') }}
-        <li class={{nodeCheck.check}}>
-          No node checks
-        </li>
+      <dl class={{nodeCheck.check}}>
+        <dt>
+          <Tooltip>
+            Node Checks
+          </Tooltip>
+        </dt>
+        <dd>No node checks</dd>
+      </dl>
     {{else}}
       {{#if (eq nodeCheck.count checks.length)}}
-        <li class={{nodeCheck.check}}>
-          All node checks {{nodeCheck.status}}
-        </li>
+      <dl class={{nodeCheck.check}}>
+        <dt>
+          <Tooltip>
+            Node Checks
+          </Tooltip>
+        </dt>
+        <dd>All node checks {{nodeCheck.status}}</dd>
+      </dl>
       {{else}}
-        <li class={{nodeCheck.check}}>
-          {{nodeCheck.count}}/{{checks.length}} node checks {{nodeCheck.status}}
-        </li>
+      <dl class={{nodeCheck.check}}>
+        <dt>
+          <Tooltip>
+            Node Checks
+          </Tooltip>
+        </dt>
+        <dd>{{nodeCheck.count}}/{{checks.length}} node checks {{nodeCheck.status}}</dd>
+      </dl>
       {{/if}}
     {{/if}}
   {{/let}}
 {{/let}}
-    {{#if (get proxies item.Service.ID)}}
-        <li class="proxy">
+{{#if (get proxies item.Service.ID)}}
+      <dl class="proxy">
+        <dt>
+          <Tooltip>
+            Proxy
+          </Tooltip>
+        </dt>
+        <dd data-test-proxy>
           connected with proxy
-        </li>
-    {{/if}}
-    {{#if (gt item.Node.Node.length 0)}}
-        <li class="node">
+        </dd>
+      </dl>
+{{/if}}
+{{#if (gt item.Node.Node.length 0)}}
+      <dl class="node">
+        <dt>
+          <Tooltip>
+            Node
+          </Tooltip>
+        </dt>
+        <dd>
           <a href={{href-to 'dc.nodes.show' item.Node.Node}}>{{item.Node.Node}}</a>
-        </li>
-    {{/if}}
-        <li class="address" data-test-address>
+        </dd>
+      </dl>
+{{/if}}
+      <dl class="address" data-test-address>
+        <dt>
+          <Tooltip>
+            IP Address and Port
+          </Tooltip>
+        </dt>
+        <dd>
           {{#if (not-eq item.Service.Address '')}}
             {{item.Service.Address}}:{{item.Service.Port}}
           {{else}}
             {{item.Node.Address}}:{{item.Service.Port}}
           {{/if}}
-        </li>
-        <TagList @item={{item.Service}} as |Tags|>
-          <li>
-            <Tags />
-          </li>
-        </TagList>
-      </ul>
+        </dd>
+      </dl>
+      <TagList @item={{item.Service}} />
     </BlockSlot>
   </ListCollection>
 {{/if}}
