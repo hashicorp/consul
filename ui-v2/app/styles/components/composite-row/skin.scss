@@ -108,6 +108,6 @@
 }
 // In this case we do not need a background on the icon
 %composite-row .combined-address .copy-button button:hover,
-%composite-row-detail .port .copy-button button:hover {
+%composite-row-detail dt .copy-button button:hover {
   background-color: transparent !important;
 }
