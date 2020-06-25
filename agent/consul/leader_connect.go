@@ -651,7 +651,7 @@ func (s *Server) secondaryIntermediateCertRenewalWatch(ctx context.Context) erro
 		case <-ctx.Done():
 			return nil
 		case <-time.After(structs.IntermediateCertRenewInterval):
-			retryLoopBackoff(ctx.Done(), func() error {
+			retryLoopBackoff(ctx, func() error {
 				s.caProviderReconfigurationLock.Lock()
 				defer s.caProviderReconfigurationLock.Unlock()
 
@@ -724,7 +724,7 @@ func (s *Server) secondaryCARootWatch(ctx context.Context) error {
 
 	connectLogger.Debug("starting Connect CA root replication from primary datacenter", "primary", s.config.PrimaryDatacenter)
 
-	retryLoopBackoff(ctx.Done(), func() error {
+	retryLoopBackoff(ctx, func() error {
 		var roots structs.IndexedCARoots
 		if err := s.forwardDC("ConnectCA.Roots", s.config.PrimaryDatacenter, &args, &roots); err != nil {
 			return fmt.Errorf("Error retrieving the primary datacenter's roots: %v", err)
@@ -780,7 +780,7 @@ func (s *Server) replicateIntentions(ctx context.Context) error {
 
 	connectLogger.Debug("starting Connect intention replication from primary datacenter", "primary", s.config.PrimaryDatacenter)
 
-	retryLoopBackoff(ctx.Done(), func() error {
+	retryLoopBackoff(ctx, func() error {
 		// Always use the latest replication token value in case it changed while looping.
 		args.QueryOptions.Token = s.tokens.ReplicationToken()
 
@@ -832,14 +832,14 @@ func (s *Server) replicateIntentions(ctx context.Context) error {
 
 // retryLoopBackoff loops a given function indefinitely, backing off exponentially
 // upon errors up to a maximum of maxRetryBackoff seconds.
-func retryLoopBackoff(stopCh <-chan struct{}, loopFn func() error, errFn func(error)) {
+func retryLoopBackoff(ctx context.Context, loopFn func() error, errFn func(error)) {
 	var failedAttempts uint
 	limiter := rate.NewLimiter(loopRateLimit, retryBucketSize)
 	for {
 		// Rate limit how often we run the loop
-		limiter.Wait(context.Background())
+		limiter.Wait(ctx)
 		select {
-		case <-stopCh:
+		case <-ctx.Done():
 			return
 		default:
 		}
@@ -850,8 +850,15 @@ func retryLoopBackoff(stopCh <-chan struct{}, loopFn func() error, errFn func(er
 
 		if err := loopFn(); err != nil {
 			errFn(err)
-			time.Sleep(retryTime)
-			continue
+
+			timer := time.NewTimer(retryTime)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return
+			case <-timer.C:
+				continue
+			}
 		}
 
 		// Reset the failed attempts after a successful run.

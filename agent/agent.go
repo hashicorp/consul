@@ -4424,7 +4424,8 @@ func (a *Agent) LocalBlockingQuery(alwaysBlock bool, hash string, wait time.Dura
 	// If we are not blocking we can skip tracking and allocating - nil WatchSet
 	// is still valid to call Add on and will just be a no op.
 	var ws memdb.WatchSet
-	var timeout *time.Timer
+	var ctx context.Context = &lib.StopChannelContext{StopCh: a.shutdownCh}
+	shouldBlock := false
 
 	if alwaysBlock || hash != "" {
 		if wait == 0 {
@@ -4435,7 +4436,11 @@ func (a *Agent) LocalBlockingQuery(alwaysBlock bool, hash string, wait time.Dura
 		}
 		// Apply a small amount of jitter to the request.
 		wait += lib.RandomStagger(wait / 16)
-		timeout = time.NewTimer(wait)
+		var cancel func()
+		ctx, cancel = context.WithDeadline(ctx, time.Now().Add(wait))
+		defer cancel()
+
+		shouldBlock = true
 	}
 
 	for {
@@ -4453,7 +4458,7 @@ func (a *Agent) LocalBlockingQuery(alwaysBlock bool, hash string, wait time.Dura
 		// WatchSet immediately returns false which would incorrectly cause this to
 		// loop and repeat again, however we rely on the invariant that ws == nil
 		// IFF timeout == nil in which case the Watch call is never invoked.
-		if timeout == nil || hash != curHash || ws.Watch(timeout.C) {
+		if !shouldBlock || hash != curHash || ws.WatchCtx(ctx) != nil {
 			return curHash, curResp, err
 		}
 		// Watch returned false indicating a change was detected, loop and repeat
@@ -4465,7 +4470,7 @@ func (a *Agent) LocalBlockingQuery(alwaysBlock bool, hash string, wait time.Dura
 		if syncPauseCh := a.SyncPausedCh(); syncPauseCh != nil {
 			select {
 			case <-syncPauseCh:
-			case <-timeout.C:
+			case <-ctx.Done():
 			}
 		}
 	}

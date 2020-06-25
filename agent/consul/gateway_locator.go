@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"errors"
 	"math/rand"
 	"sort"
@@ -261,9 +262,9 @@ func NewGatewayLocator(
 
 var errGatewayLocalStateNotInitialized = errors.New("local state not initialized")
 
-func (g *GatewayLocator) Run(stopCh <-chan struct{}) {
+func (g *GatewayLocator) Run(ctx context.Context) {
 	var lastFetchIndex uint64
-	retryLoopBackoff(stopCh, func() error {
+	retryLoopBackoff(ctx, func() error {
 		idx, err := g.runOnce(lastFetchIndex)
 		if err != nil {
 			return err
