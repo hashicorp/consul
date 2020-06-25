@@ -431,6 +431,9 @@ go.opencensus.io/trace
 go.opencensus.io/trace/internal
 go.opencensus.io/trace/propagation
 go.opencensus.io/trace/tracestate
+# go.uber.org/goleak v1.0.0
+go.uber.org/goleak
+go.uber.org/goleak/internal/stack
 # golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975
 golang.org/x/crypto/blake2b
 golang.org/x/crypto/blowfish
@@ -447,6 +450,9 @@ golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/crypto/ssh/terminal
+# golang.org/x/lint v0.0.0-20190930215403-16217165b5de
+golang.org/x/lint
+golang.org/x/lint/golint
 # golang.org/x/net v0.0.0-20191004110552-13f9640d40b9
 golang.org/x/net/bpf
 golang.org/x/net/context
@@ -489,6 +495,10 @@ golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 # golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 golang.org/x/time/rate
+# golang.org/x/tools v0.0.0-20191108193012-7d206e10da11
+golang.org/x/tools/go/ast/astutil
+golang.org/x/tools/go/gcexportdata
+golang.org/x/tools/go/internal/gcimporter
 # google.golang.org/api v0.7.0
 google.golang.org/api/compute/v1
 google.golang.org/api/gensupport

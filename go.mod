@@ -80,6 +80,7 @@ require (
 	github.com/sirupsen/logrus v1.4.2 // indirect
 	github.com/stretchr/testify v1.5.1
 	go.opencensus.io v0.22.0 // indirect
+	go.uber.org/goleak v1.0.0
 	golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975
 	golang.org/x/net v0.0.0-20191004110552-13f9640d40b9
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
