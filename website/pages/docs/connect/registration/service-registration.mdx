@@ -171,6 +171,8 @@ followed by documentation for each attribute.
 - `destination_name` `(string: <required>)` - Specifies the name of the service
   or prepared query to route connect to. The prepared query should be the name
   or the ID of the prepared query.
+- `destination_namespace` `(string: "")` - <EnterpriseAlert inline />
+  Specifies the namespace of the upstream service.
 - `local_bind_port` `(int: <required>)` - Specifies the port to bind a local
   listener to for the application to make outbound connections to this upstream.
 - `local_bind_address` `(string: "")` - Specifies the address to bind a
