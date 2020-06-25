@@ -338,7 +338,7 @@ func InitTelemetry(cfg TelemetryConfig) (*metrics.InmemSink, error) {
 	metricsConf.BlockedPrefixes = cfg.BlockedPrefixes
 
 	var sinks metrics.FanoutSink
-	addSink := func(name string, fn func(TelemetryConfig, string) (metrics.MetricSink, error)) error {
+	addSink := func(fn func(TelemetryConfig, string) (metrics.MetricSink, error)) error {
 		s, err := fn(cfg, metricsConf.HostName)
 		if err != nil {
 			return err
@@ -349,19 +349,19 @@ func InitTelemetry(cfg TelemetryConfig) (*metrics.InmemSink, error) {
 		return nil
 	}
 
-	if err := addSink("statsite", statsiteSink); err != nil {
+	if err := addSink(statsiteSink); err != nil {
 		return nil, err
 	}
-	if err := addSink("statsd", statsdSink); err != nil {
+	if err := addSink(statsdSink); err != nil {
 		return nil, err
 	}
-	if err := addSink("dogstatd", dogstatdSink); err != nil {
+	if err := addSink(dogstatdSink); err != nil {
 		return nil, err
 	}
-	if err := addSink("circonus", circonusSink); err != nil {
+	if err := addSink(circonusSink); err != nil {
 		return nil, err
 	}
-	if err := addSink("prometheus", prometheusSink); err != nil {
+	if err := addSink(prometheusSink); err != nil {
 		return nil, err
 	}
 

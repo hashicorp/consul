@@ -29,12 +29,14 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
 	"github.com/hashicorp/consul/ipaddr"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -3277,24 +3279,19 @@ func TestAgent_purgeCheckState(t *testing.T) {
 }
 
 func TestAgent_GetCoordinate(t *testing.T) {
-	t.Parallel()
-	check := func(server bool) {
-		a := NewTestAgent(t, `
-			server = true
-		`)
-		defer a.Shutdown()
+	a := NewTestAgent(t, ``)
+	defer a.Shutdown()
 
-		// This doesn't verify the returned coordinate, but it makes
-		// sure that the agent chooses the correct Serf instance,
-		// depending on how it's configured as a client or a server.
-		// If it chooses the wrong one, this will crash.
-		if _, err := a.GetLANCoordinate(); err != nil {
-			t.Fatalf("err: %s", err)
-		}
+	coords, err := a.GetLANCoordinate()
+	require.NoError(t, err)
+	expected := lib.CoordinateSet{
+		"": &coordinate.Coordinate{
+			Error:  1.5,
+			Height: 1e-05,
+			Vec:    []float64{0, 0, 0, 0, 0, 0, 0, 0},
+		},
 	}
-
-	check(true)
-	check(false)
+	require.Equal(t, expected, coords)
 }
 
 func TestAgent_reloadWatches(t *testing.T) {

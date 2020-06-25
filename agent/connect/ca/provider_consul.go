@@ -139,7 +139,7 @@ func (c *ConsulProvider) State() (map[string]string, error) {
 
 // ActiveRoot returns the active root CA certificate.
 func (c *ConsulProvider) ActiveRoot() (string, error) {
-	_, providerState, err := c.getState()
+	providerState, err := c.getState()
 	if err != nil {
 		return "", err
 	}
@@ -150,7 +150,7 @@ func (c *ConsulProvider) ActiveRoot() (string, error) {
 // GenerateRoot initializes a new root certificate and private key
 // if needed.
 func (c *ConsulProvider) GenerateRoot() error {
-	_, providerState, err := c.getState()
+	providerState, err := c.getState()
 	if err != nil {
 		return err
 	}
@@ -205,7 +205,7 @@ func (c *ConsulProvider) GenerateRoot() error {
 // GenerateIntermediateCSR creates a private key and generates a CSR
 // for another datacenter's root to sign.
 func (c *ConsulProvider) GenerateIntermediateCSR() (string, error) {
-	_, providerState, err := c.getState()
+	providerState, err := c.getState()
 	if err != nil {
 		return "", err
 	}
@@ -249,7 +249,7 @@ func (c *ConsulProvider) GenerateIntermediateCSR() (string, error) {
 // SetIntermediate validates that the given intermediate is for the right private key
 // and writes the given intermediate and root certificates to the state.
 func (c *ConsulProvider) SetIntermediate(intermediatePEM, rootPEM string) error {
-	_, providerState, err := c.getState()
+	providerState, err := c.getState()
 	if err != nil {
 		return err
 	}
@@ -289,7 +289,7 @@ func (c *ConsulProvider) ActiveIntermediate() (string, error) {
 		return c.ActiveRoot()
 	}
 
-	_, providerState, err := c.getState()
+	providerState, err := c.getState()
 	if err != nil {
 		return "", err
 	}
@@ -325,7 +325,7 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	defer c.Unlock()
 
 	// Get the provider state
-	_, providerState, err := c.getState()
+	providerState, err := c.getState()
 	if err != nil {
 		return "", err
 	}
@@ -437,7 +437,7 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 // are met. It should return a signed CA certificate with a path length constraint
 // of 0 to ensure that the certificate cannot be used to generate further CA certs.
 func (c *ConsulProvider) SignIntermediate(csr *x509.CertificateRequest) (string, error) {
-	_, providerState, err := c.getState()
+	providerState, err := c.getState()
 	if err != nil {
 		return "", err
 	}
@@ -520,7 +520,7 @@ func (c *ConsulProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 	}
 
 	// Get the provider state
-	_, providerState, err := c.getState()
+	providerState, err := c.getState()
 	if err != nil {
 		return "", err
 	}
@@ -586,18 +586,18 @@ func (c *ConsulProvider) SupportsCrossSigning() (bool, error) {
 
 // getState returns the current provider state from the state delegate, and returns
 // ErrNotInitialized if no entry is found.
-func (c *ConsulProvider) getState() (uint64, *structs.CAConsulProviderState, error) {
+func (c *ConsulProvider) getState() (*structs.CAConsulProviderState, error) {
 	stateStore := c.Delegate.State()
-	idx, providerState, err := stateStore.CAProviderState(c.id)
+	_, providerState, err := stateStore.CAProviderState(c.id)
 	if err != nil {
-		return 0, nil, err
+		return nil, err
 	}
 
 	if providerState == nil {
-		return 0, nil, ErrNotInitialized
+		return nil, ErrNotInitialized
 	}
 
-	return idx, providerState, nil
+	return providerState, nil
 }
 
 func (c *ConsulProvider) incrementAndGetNextSerialNumber() (uint64, error) {

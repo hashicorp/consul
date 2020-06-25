@@ -321,9 +321,7 @@ func (s *Server) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, name, pathProt
 			Endpoints: []*envoyendpoint.LocalityLbEndpoints{
 				{
 					LbEndpoints: []*envoyendpoint.LbEndpoint{
-						makeEndpoint(name,
-							addr,
-							port),
+						makeEndpoint(addr, port),
 					},
 				},
 			},

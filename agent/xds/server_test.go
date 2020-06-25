@@ -145,7 +145,7 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	snap := proxycfg.TestConfigSnapshot(t)
 	mgr.DeliverConfig(t, sid, snap)
 
-	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(t, snap, "", 1, 1))
+	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(snap, 1, 1))
 
 	// Envoy then tries to discover endpoints for those clusters. Technically it
 	// includes the cluster names in the ResourceNames field but we ignore that
@@ -160,7 +160,7 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	// the server for endpoints. Note that this should not be racy if the server
 	// is behaving well since the Cluster send above should be blocked until we
 	// deliver a new config version.
-	assertResponseSent(t, envoy.stream.sendCh, expectEndpointsJSON(t, snap, "", 1, 2))
+	assertResponseSent(t, envoy.stream.sendCh, expectEndpointsJSON(1, 2))
 
 	// And no other response yet
 	assertChanBlocked(t, envoy.stream.sendCh)
@@ -195,8 +195,8 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	// don't know the order the nonces will be assigned. For now we rely and
 	// require our implementation to always deliver updates in a specific order
 	// which is reasonable anyway to ensure consistency of the config Envoy sees.
-	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(t, snap, "", 2, 4))
-	assertResponseSent(t, envoy.stream.sendCh, expectEndpointsJSON(t, snap, "", 2, 5))
+	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(snap, 2, 4))
+	assertResponseSent(t, envoy.stream.sendCh, expectEndpointsJSON(2, 5))
 	assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(t, snap, "", 2, 6))
 
 	// Let's pretend that Envoy doesn't like that new listener config. It will ACK
@@ -232,12 +232,12 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	snap.ConnectProxy.Leaf = proxycfg.TestLeafForCA(t, snap.Roots.Roots[0])
 	mgr.DeliverConfig(t, sid, snap)
 
-	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(t, snap, "", 3, 7))
-	assertResponseSent(t, envoy.stream.sendCh, expectEndpointsJSON(t, snap, "", 3, 8))
+	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(snap, 3, 7))
+	assertResponseSent(t, envoy.stream.sendCh, expectEndpointsJSON(3, 8))
 	assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(t, snap, "", 3, 9))
 }
 
-func expectEndpointsJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token string, v, n uint64) string {
+func expectEndpointsJSON(v, n uint64) string {
 	return `{
 		"versionInfo": "` + hexString(v) + `",
 		"resources": [
@@ -315,15 +315,15 @@ func expectEndpointsJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token stri
 	}`
 }
 
-func expectedUpstreamTLSContextJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, sni string) string {
-	return expectedTLSContextJSON(t, snap, false, sni)
+func expectedUpstreamTLSContextJSON(snap *proxycfg.ConfigSnapshot, sni string) string {
+	return expectedTLSContextJSON(snap, false, sni)
 }
 
 func expectedPublicTLSContextJSON(t *testing.T, snap *proxycfg.ConfigSnapshot) string {
-	return expectedTLSContextJSON(t, snap, true, "")
+	return expectedTLSContextJSON(snap, true, "")
 }
 
-func expectedTLSContextJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, requireClientCert bool, sni string) string {
+func expectedTLSContextJSON(snap *proxycfg.ConfigSnapshot, requireClientCert bool, sni string) string {
 	// Assume just one root for now, can get fancier later if needed.
 	caPEM := snap.Roots.Roots[0].RootCert
 	reqClient := ""
@@ -593,7 +593,7 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedDuring
 	snap := proxycfg.TestConfigSnapshot(t)
 	mgr.DeliverConfig(t, sid, snap)
 
-	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(t, snap, token, 1, 1))
+	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(snap, 1, 1))
 
 	// Now nuke the ACL token.
 	validToken.Store("")
@@ -685,7 +685,7 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedInBack
 	snap := proxycfg.TestConfigSnapshot(t)
 	mgr.DeliverConfig(t, sid, snap)
 
-	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(t, snap, token, 1, 1))
+	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(snap, 1, 1))
 
 	// It also (in parallel) issues the next cluster request (which acts as an ACK
 	// of the version we sent)

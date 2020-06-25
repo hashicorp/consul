@@ -141,7 +141,7 @@ func makeUpstreamRouteForDiscoveryChain(
 		routes = make([]*envoyroute.Route, 0, len(startNode.Routes))
 
 		for _, discoveryRoute := range startNode.Routes {
-			routeMatch := makeRouteMatchForDiscoveryRoute(discoveryRoute, chain.Protocol)
+			routeMatch := makeRouteMatchForDiscoveryRoute(discoveryRoute)
 
 			var (
 				routeAction *envoyroute.Route_Route
@@ -240,7 +240,7 @@ func makeUpstreamRouteForDiscoveryChain(
 	return host, nil
 }
 
-func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute, protocol string) *envoyroute.RouteMatch {
+func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute) *envoyroute.RouteMatch {
 	match := discoveryRoute.Definition.Match
 	if match == nil || match.IsEmpty() {
 		return makeDefaultRouteMatch()

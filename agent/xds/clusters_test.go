@@ -569,7 +569,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 	}
 }
 
-func expectClustersJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, token string, v, n uint64) map[string]string {
+func expectClustersJSONResources(snap *proxycfg.ConfigSnapshot) map[string]string {
 	return map[string]string{
 		"local_app": `
 			{
@@ -620,7 +620,7 @@ func expectClustersJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, to
 					"healthyPanicThreshold": {}
 				},
 				"connectTimeout": "5s",
-				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap, "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul") + `
+				"tlsContext": ` + expectedUpstreamTLSContextJSON(snap, "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul") + `
 			}`,
 		"prepared_query:geo-cache": `
 			{
@@ -641,12 +641,12 @@ func expectClustersJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, to
 
 				},
 				"connectTimeout": "5s",
-				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap, "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul") + `
+				"tlsContext": ` + expectedUpstreamTLSContextJSON(snap, "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul") + `
 			}`,
 	}
 }
 
-func expectClustersJSONFromResources(t *testing.T, snap *proxycfg.ConfigSnapshot, token string, v, n uint64, resourcesJSON map[string]string) string {
+func expectClustersJSONFromResources(snap *proxycfg.ConfigSnapshot, v, n uint64, resourcesJSON map[string]string) string {
 	resJSON := ""
 
 	// Sort resources into specific order because that matters in JSONEq
@@ -674,9 +674,8 @@ func expectClustersJSONFromResources(t *testing.T, snap *proxycfg.ConfigSnapshot
 		}`
 }
 
-func expectClustersJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token string, v, n uint64) string {
-	return expectClustersJSONFromResources(t, snap, token, v, n,
-		expectClustersJSONResources(t, snap, token, v, n))
+func expectClustersJSON(snap *proxycfg.ConfigSnapshot, v, n uint64) string {
+	return expectClustersJSONFromResources(snap, v, n, expectClustersJSONResources(snap))
 }
 
 type customClusterJSONOptions struct {

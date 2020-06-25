@@ -308,18 +308,11 @@ func (p *ConnPool) DialTimeout(
 		)
 	}
 
-	return p.dial(
-		dc,
-		nodeName,
-		addr,
-		actualRPCType,
-		RPCTLS,
-	)
+	return p.dial(dc, addr, actualRPCType, RPCTLS)
 }
 
 func (p *ConnPool) dial(
 	dc string,
-	nodeName string,
 	addr net.Addr,
 	actualRPCType RPCType,
 	tlsRPCType RPCType,
@@ -561,7 +554,7 @@ func (p *ConnPool) RPC(
 	// or first time config request. For now though this is fine until
 	// those ongoing requests are implemented.
 	if method == "AutoEncrypt.Sign" || method == "Cluster.AutoConfig" {
-		return p.rpcInsecure(dc, nodeName, addr, method, args, reply)
+		return p.rpcInsecure(dc, addr, method, args, reply)
 	} else {
 		return p.rpc(dc, nodeName, addr, method, args, reply)
 	}
@@ -572,13 +565,13 @@ func (p *ConnPool) RPC(
 // transparent for the consumer. The pool cannot be used because
 // AutoEncrypt.Sign is a one-off call and it doesn't make sense to pool that
 // connection if it is not being reused.
-func (p *ConnPool) rpcInsecure(dc string, nodeName string, addr net.Addr, method string, args interface{}, reply interface{}) error {
+func (p *ConnPool) rpcInsecure(dc string, addr net.Addr, method string, args interface{}, reply interface{}) error {
 	if dc != p.Datacenter {
 		return fmt.Errorf("insecure dialing prohibited between datacenters")
 	}
 
 	var codec rpc.ClientCodec
-	conn, _, err := p.dial(dc, nodeName, addr, 0, RPCTLSInsecure)
+	conn, _, err := p.dial(dc, addr, 0, RPCTLSInsecure)
 	if err != nil {
 		return fmt.Errorf("rpcinsecure error establishing connection: %v", err)
 	}

@@ -152,7 +152,7 @@ func (s *Intention) prepareApplyUpdate(ident structs.ACLIdentity, authz acl.Auth
 
 // prepareApplyDelete ensures that the intention specified by the ID in the request exists
 // and that the requester is authorized to delete it
-func (s *Intention) prepareApplyDelete(ident structs.ACLIdentity, authz acl.Authorizer, entMeta *structs.EnterpriseMeta, args *structs.IntentionRequest) error {
+func (s *Intention) prepareApplyDelete(ident structs.ACLIdentity, authz acl.Authorizer, args *structs.IntentionRequest) error {
 	// If this is not a create, then we have to verify the ID.
 	state := s.srv.fsm.State()
 	_, ixn, err := state.IntentionGet(nil, args.Intention.ID)
@@ -217,7 +217,7 @@ func (s *Intention) Apply(
 			return err
 		}
 	case structs.IntentionOpDelete:
-		if err := s.prepareApplyDelete(ident, authz, &entMeta, args); err != nil {
+		if err := s.prepareApplyDelete(ident, authz, args); err != nil {
 			return err
 		}
 	default:

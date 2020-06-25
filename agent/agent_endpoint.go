@@ -660,7 +660,7 @@ func (s *HTTPServer) AgentCheckUpdate(resp http.ResponseWriter, req *http.Reques
 	return s.agentCheckUpdate(resp, req, checkID, update.Status, update.Output)
 }
 
-func (s *HTTPServer) agentCheckUpdate(resp http.ResponseWriter, req *http.Request, checkID types.CheckID, status string, output string) (interface{}, error) {
+func (s *HTTPServer) agentCheckUpdate(_resp http.ResponseWriter, req *http.Request, checkID types.CheckID, status string, output string) (interface{}, error) {
 	cid := structs.NewCheckID(checkID, nil)
 
 	// Get the provided token, if any, and vet against any ACL policies.
