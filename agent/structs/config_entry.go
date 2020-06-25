@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/decode"
 	"github.com/hashicorp/go-msgpack/codec"
-	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/hashstructure"
 	"github.com/mitchellh/mapstructure"
 )
@@ -305,16 +304,7 @@ func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 		return nil, err
 	}
 
-	for _, k := range md.Unused {
-		switch {
-		case k == "CreateIndex" || k == "ModifyIndex":
-		case strings.HasSuffix(strings.ToLower(k), "namespace"):
-			err = multierror.Append(err, fmt.Errorf("invalid config key %q, namespaces are a consul enterprise feature", k))
-		default:
-			err = multierror.Append(err, fmt.Errorf("invalid config key %q", k))
-		}
-	}
-	if err != nil {
+	if err := validateUnusedKeys(md.Unused); err != nil {
 		return nil, err
 	}
 	return entry, nil
