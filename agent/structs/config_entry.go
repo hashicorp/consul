@@ -305,15 +305,11 @@ func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 		return nil, err
 	}
 
-	for _, k := range md.Unused {
-		switch {
-		case k == "CreateIndex" || k == "ModifyIndex":
-		case strings.HasSuffix(strings.ToLower(k), "namespace"):
-			err = multierror.Append(err, fmt.Errorf("invalid config key %q, namespaces are a consul enterprise feature", k))
-		default:
-			err = multierror.Append(err, fmt.Errorf("invalid config key %q", k))
-		}
+	multiErr := validateUnusedKeys(md.Unused)
+	if multiErr != nil {
+		err = multierror.Append(err, multiErr)
 	}
+
 	if err != nil {
 		return nil, err
 	}
