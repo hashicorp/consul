@@ -3,6 +3,7 @@ package xds
 import (
 	"errors"
 	"fmt"
+	"net"
 	"strings"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -98,19 +99,7 @@ func routesFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto
 				continue
 			}
 
-			namespace := u.GetEnterpriseMeta().NamespaceOrDefault()
-			var domains []string
-			switch {
-			case len(u.IngressHosts) > 0:
-				// If a user has specified hosts, do not add the default
-				// "<service-name>.ingress.*" prefixes
-				domains = u.IngressHosts
-			case namespace != structs.IntentionDefaultNamespace:
-				domains = []string{fmt.Sprintf("%s.ingress.%s.*", chain.ServiceName, namespace)}
-			default:
-				domains = []string{fmt.Sprintf("%s.ingress.*", chain.ServiceName)}
-			}
-
+			domains := generateUpstreamIngressDomains(listenerKey, u)
 			virtualHost, err := makeUpstreamRouteForDiscoveryChain(upstreamID, chain, domains)
 			if err != nil {
 				return nil, err
@@ -122,6 +111,52 @@ func routesFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto
 	}
 
 	return result, nil
+}
+
+func generateUpstreamIngressDomains(listenerKey proxycfg.IngressListenerKey, u structs.Upstream) []string {
+	var domains []string
+	domainsSet := make(map[string]bool)
+
+	namespace := u.GetEnterpriseMeta().NamespaceOrDefault()
+	switch {
+	case len(u.IngressHosts) > 0:
+		// If a user has specified hosts, do not add the default
+		// "<service-name>.ingress.*" prefixes
+		domains = u.IngressHosts
+	case namespace != structs.IntentionDefaultNamespace:
+		domains = []string{fmt.Sprintf("%s.ingress.%s.*", u.DestinationName, namespace)}
+	default:
+		domains = []string{fmt.Sprintf("%s.ingress.*", u.DestinationName)}
+	}
+
+	for _, h := range domains {
+		domainsSet[h] = true
+	}
+
+	// Host headers may contain port numbers in them, so we need to make sure
+	// we match on the host with and without the port number. Well-known
+	// ports like HTTP/HTTPS are stripped from Host headers, but other ports
+	// will be in the header.
+	for _, h := range domains {
+		_, _, err := net.SplitHostPort(h)
+		// Error message from Go's net/ipsock.go
+		// We check to see if a port is not missing, and ignore the
+		// error from SplitHostPort otherwise, since we have previously
+		// validated the Host values and should trust the user's input.
+		if err == nil || !strings.Contains(err.Error(), "missing port in address") {
+			continue
+		}
+
+		domainWithPort := fmt.Sprintf("%s:%d", h, listenerKey.Port)
+
+		// Do not add a duplicate domain if a hostname with port is already in the
+		// set
+		if !domainsSet[domainWithPort] {
+			domains = append(domains, domainWithPort)
+		}
+	}
+
+	return domains
 }
 
 func makeUpstreamRouteForDiscoveryChain(
