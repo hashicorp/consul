@@ -47,14 +47,18 @@
       </dd>
     </dl>
   {{/if}}
-  {{#if (not-eq item.GatewayConfig.ListenerPort 0)}}
-    <dl class="port">
-      <CopyButton
-        @value={{item.GatewayConfig.ListenerPort}}
-        @name="Port"
-      />
-      <dd>:{{item.GatewayConfig.ListenerPort}}</dd>
+{{#if (gt item.GatewayConfig.Addresses.length 0)}}
+  {{#each item.GatewayConfig.Addresses as |address|}}
+    <dl>
+      <dt>
+        <CopyButton
+          @value={{address}}
+          @name="Address"
+        />
+      </dt>
+      <dd>{{address}}</dd>
     </dl>
-  {{/if}}
+  {{/each}}
+{{/if}}
   </BlockSlot>
 </ListCollection>
