@@ -74,8 +74,6 @@ func TestDecodeConfigEntry_OSS(t *testing.T) {
 		tc := tc
 
 		testbody := func(t *testing.T, body string) {
-			t.Helper()
-
 			var raw map[string]interface{}
 			err := hcl.Decode(&raw, body)
 			require.NoError(t, err)

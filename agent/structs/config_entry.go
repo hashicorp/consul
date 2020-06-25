@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/decode"
 	"github.com/hashicorp/go-msgpack/codec"
-	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/hashstructure"
 	"github.com/mitchellh/mapstructure"
 )
@@ -305,12 +304,7 @@ func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 		return nil, err
 	}
 
-	multiErr := validateUnusedKeys(md.Unused)
-	if multiErr != nil {
-		err = multierror.Append(err, multiErr)
-	}
-
-	if err != nil {
+	if err := validateUnusedKeys(md.Unused); err != nil {
 		return nil, err
 	}
 	return entry, nil
