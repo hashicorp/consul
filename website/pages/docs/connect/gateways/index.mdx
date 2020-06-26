@@ -1,17 +1,14 @@
 ---
 layout: docs
-page_title: Tasks
-sidebar_title: Tasks
+page_title: Gateways
+sidebar_title: Gateways
 description: >-
-  Tasks related to connectivity into, out of, and between Consul service meshes.
+  Gateways enable connectivity into, out of, and between Consul service meshes.
 ---
 
-# Tasks
+# Gateways
 
-~> **Note**: The features shown below are extensions of Consul’s service mesh capabilities. If you are not utilizing
-Consul service mesh then these features will not be relevant to your task.
-
-## Service-to-service traffic between service datacenters
+## Mesh Gateways
 -> **1.6.0+:** This feature is available in Consul versions 1.6.0 and newer.
 
 Mesh gateways enable routing of service mesh traffic between different Consul datacenters. Those datacenters can reside
@@ -30,7 +27,7 @@ and the [mesh gateway guide](https://learn.hashicorp.com/consul/developer-mesh/c
 
 ![Mesh Gateway Architecture](/img/mesh-gateways.png)
 
-## Traffic from outside the Consul service mesh to services in the mesh
+## Ingress Gateways
 -> **1.8.0+:** This feature is available in Consul versions 1.8.0 and newer.
 
 Ingress gateways are an entrypoint for outside traffic. They enable potentially unauthenticated ingress traffic from
@@ -47,7 +44,7 @@ and the [ingress gateway guide](https://learn.hashicorp.com/consul/developer-mes
 
 ![Ingress Gateway Architecture](/img/ingress-gateways.png)
 
-## Traffic from services in the Consul service mesh to external services
+## Terminating Gateways
 -> **1.8.0+:** This feature is available in Consul versions 1.8.0 and newer.
 
 Terminating gateways enable connections from services in the Consul service mesh to services that do not have

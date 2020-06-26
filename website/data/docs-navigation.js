@@ -157,10 +157,10 @@ export default [
         category: 'proxies',
         content: ['envoy', 'built-in', 'integrate'],
       },
-      'mesh-gateway',
-      'wan-federation-via-mesh-gateways',
-      'ingress-gateway',
-      'terminating-gateway',
+      {
+        category: 'gateways',
+        content: [ 'mesh-gateway', 'wan-federation-via-mesh-gateways', 'ingress-gateway', 'terminating-gateway'],
+      },
       {
         category: 'registration',
         content: ['service-registration', 'sidecar-service'],
