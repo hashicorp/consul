@@ -20,6 +20,18 @@ func (s *HTTPServer) parseEntMeta(req *http.Request, entMeta *structs.Enterprise
 	return nil
 }
 
+func (s *HTTPServer) validateEnterpriseIntentionNamespace(logName, ns string, _ bool) error {
+	if ns == "" {
+		return nil
+	} else if strings.ToLower(ns) == structs.IntentionDefaultNamespace {
+		return nil
+	}
+
+	// No special handling for wildcard namespaces as they are pointless in OSS.
+
+	return BadRequestError{Reason: "Invalid " + logName + "(" + ns + ")" + ": Namespaces is a Consul Enterprise feature"}
+}
+
 func (s *HTTPServer) parseEntMetaNoWildcard(req *http.Request, _ *structs.EnterpriseMeta) error {
 	return s.parseEntMeta(req, nil)
 }

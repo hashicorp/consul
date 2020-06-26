@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-// /v1/connection/intentions
+// /v1/connect/intentions
 func (s *HTTPServer) IntentionEndpoint(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	switch req.Method {
 	case "GET":
@@ -32,6 +32,10 @@ func (s *HTTPServer) IntentionList(resp http.ResponseWriter, req *http.Request) 
 		return nil, nil
 	}
 
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
+
 	var reply structs.IndexedIntentions
 	defer setMeta(resp, &reply.QueryMeta)
 	if err := s.agent.RPC("Intention.List", &args, &reply); err != nil {
@@ -45,6 +49,11 @@ func (s *HTTPServer) IntentionList(resp http.ResponseWriter, req *http.Request) 
 func (s *HTTPServer) IntentionCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Method is tested in IntentionEndpoint
 
+	var entMeta structs.EnterpriseMeta
+	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
+		return nil, err
+	}
+
 	args := structs.IntentionRequest{
 		Op: structs.IntentionOpCreate,
 	}
@@ -52,6 +61,12 @@ func (s *HTTPServer) IntentionCreate(resp http.ResponseWriter, req *http.Request
 	s.parseToken(req, &args.Token)
 	if err := decodeBody(req.Body, &args.Intention); err != nil {
 		return nil, fmt.Errorf("Failed to decode request body: %s", err)
+	}
+
+	args.Intention.FillNonDefaultNamespaces(&entMeta)
+
+	if err := s.validateEnterpriseIntention(args.Intention); err != nil {
+		return nil, err
 	}
 
 	var reply string
@@ -62,12 +77,27 @@ func (s *HTTPServer) IntentionCreate(resp http.ResponseWriter, req *http.Request
 	return intentionCreateResponse{reply}, nil
 }
 
+func (s *HTTPServer) validateEnterpriseIntention(ixn *structs.Intention) error {
+	if err := s.validateEnterpriseIntentionNamespace("SourceNS", ixn.SourceNS, true); err != nil {
+		return err
+	}
+	if err := s.validateEnterpriseIntentionNamespace("DestinationNS", ixn.DestinationNS, true); err != nil {
+		return err
+	}
+	return nil
+}
+
 // GET /v1/connect/intentions/match
 func (s *HTTPServer) IntentionMatch(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Prepare args
 	args := &structs.IntentionQueryRequest{Match: &structs.IntentionQueryMatch{}}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
+	}
+
+	var entMeta structs.EnterpriseMeta
+	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
+		return nil, err
 	}
 
 	q := req.URL.Query()
@@ -94,7 +124,7 @@ func (s *HTTPServer) IntentionMatch(resp http.ResponseWriter, req *http.Request)
 	// order of the returned responses.
 	args.Match.Entries = make([]structs.IntentionMatchEntry, len(names))
 	for i, n := range names {
-		entry, err := parseIntentionMatchEntry(n)
+		entry, err := parseIntentionMatchEntry(n, &entMeta)
 		if err != nil {
 			return nil, fmt.Errorf("name %q is invalid: %s", n, err)
 		}
@@ -129,6 +159,11 @@ func (s *HTTPServer) IntentionCheck(resp http.ResponseWriter, req *http.Request)
 		return nil, nil
 	}
 
+	var entMeta structs.EnterpriseMeta
+	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
+		return nil, err
+	}
+
 	q := req.URL.Query()
 
 	// Set the source type if set
@@ -150,7 +185,7 @@ func (s *HTTPServer) IntentionCheck(resp http.ResponseWriter, req *http.Request)
 	// We parse them the same way as matches to extract namespace/name
 	args.Check.SourceName = source[0]
 	if args.Check.SourceType == structs.IntentionSourceConsul {
-		entry, err := parseIntentionMatchEntry(source[0])
+		entry, err := parseIntentionMatchEntry(source[0], &entMeta)
 		if err != nil {
 			return nil, fmt.Errorf("source %q is invalid: %s", source[0], err)
 		}
@@ -159,7 +194,7 @@ func (s *HTTPServer) IntentionCheck(resp http.ResponseWriter, req *http.Request)
 	}
 
 	// The destination is always in the Consul format
-	entry, err := parseIntentionMatchEntry(destination[0])
+	entry, err := parseIntentionMatchEntry(destination[0], &entMeta)
 	if err != nil {
 		return nil, fmt.Errorf("destination %q is invalid: %s", destination[0], err)
 	}
@@ -174,7 +209,81 @@ func (s *HTTPServer) IntentionCheck(resp http.ResponseWriter, req *http.Request)
 	return &reply, nil
 }
 
-// IntentionSpecific handles the endpoint for /v1/connection/intentions/:id
+// GET /v1/connect/intentions/exact
+func (s *HTTPServer) IntentionGetExact(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	var entMeta structs.EnterpriseMeta
+	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
+		return nil, err
+	}
+
+	args := structs.IntentionQueryRequest{
+		Exact: &structs.IntentionQueryExact{},
+	}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	q := req.URL.Query()
+
+	// Extract the source/destination
+	source, ok := q["source"]
+	if !ok || len(source) != 1 {
+		return nil, fmt.Errorf("required query parameter 'source' not set")
+	}
+	destination, ok := q["destination"]
+	if !ok || len(destination) != 1 {
+		return nil, fmt.Errorf("required query parameter 'destination' not set")
+	}
+
+	{
+		entry, err := parseIntentionMatchEntry(source[0], &entMeta)
+		if err != nil {
+			return nil, fmt.Errorf("source %q is invalid: %s", source[0], err)
+		}
+		args.Exact.SourceNS = entry.Namespace
+		args.Exact.SourceName = entry.Name
+	}
+
+	{
+		entry, err := parseIntentionMatchEntry(destination[0], &entMeta)
+		if err != nil {
+			return nil, fmt.Errorf("destination %q is invalid: %s", destination[0], err)
+		}
+		args.Exact.DestinationNS = entry.Namespace
+		args.Exact.DestinationName = entry.Name
+	}
+
+	var reply structs.IndexedIntentions
+	if err := s.agent.RPC("Intention.Get", &args, &reply); err != nil {
+		// We have to check the string since the RPC sheds the error type
+		if err.Error() == consul.ErrIntentionNotFound.Error() {
+			resp.WriteHeader(http.StatusNotFound)
+			fmt.Fprint(resp, err.Error())
+			return nil, nil
+		}
+
+		// Not ideal, but there are a number of error scenarios that are not
+		// user error (400). We look for a specific case of invalid UUID
+		// to detect a parameter error and return a 400 response. The error
+		// is not a constant type or message, so we have to use strings.Contains
+		if strings.Contains(err.Error(), "UUID") {
+			return nil, BadRequestError{Reason: err.Error()}
+		}
+
+		return nil, err
+	}
+
+	// This shouldn't happen since the called API documents it shouldn't,
+	// but we check since the alternative if it happens is a panic.
+	if len(reply.Intentions) == 0 {
+		resp.WriteHeader(http.StatusNotFound)
+		return nil, nil
+	}
+
+	return reply.Intentions[0], nil
+}
+
+// IntentionSpecific handles the endpoint for /v1/connect/intentions/:id
 func (s *HTTPServer) IntentionSpecific(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	id := strings.TrimPrefix(req.URL.Path, "/v1/connect/intentions/")
 
@@ -238,6 +347,11 @@ func (s *HTTPServer) IntentionSpecificGet(id string, resp http.ResponseWriter, r
 func (s *HTTPServer) IntentionSpecificUpdate(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Method is tested in IntentionEndpoint
 
+	var entMeta structs.EnterpriseMeta
+	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
+		return nil, err
+	}
+
 	args := structs.IntentionRequest{
 		Op: structs.IntentionOpUpdate,
 	}
@@ -246,6 +360,8 @@ func (s *HTTPServer) IntentionSpecificUpdate(id string, resp http.ResponseWriter
 	if err := decodeBody(req.Body, &args.Intention); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
+
+	args.Intention.FillNonDefaultNamespaces(&entMeta)
 
 	// Use the ID from the URL
 	args.Intention.ID = id
@@ -284,9 +400,9 @@ type intentionCreateResponse struct{ ID string }
 
 // parseIntentionMatchEntry parses the query parameter for an intention
 // match query entry.
-func parseIntentionMatchEntry(input string) (structs.IntentionMatchEntry, error) {
+func parseIntentionMatchEntry(input string, entMeta *structs.EnterpriseMeta) (structs.IntentionMatchEntry, error) {
 	var result structs.IntentionMatchEntry
-	result.Namespace = structs.IntentionDefaultNamespace
+	result.Namespace = entMeta.NamespaceOrEmpty()
 
 	// Get the index to the '/'. If it doesn't exist, we have just a name
 	// so just set that and return.
