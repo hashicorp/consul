@@ -7,9 +7,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/testrpc"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,14 +15,14 @@ import (
 func TestIntentionApply_new(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
+	require := require.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	waitForLeaderEstablishment(t, s1)
 
 	// Setup a basic record to create
 	ixn := structs.IntentionRequest{
@@ -46,8 +44,8 @@ func TestIntentionApply_new(t *testing.T) {
 	now := time.Now()
 
 	// Create
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
-	assert.NotEmpty(reply)
+	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
+	require.NotEmpty(reply)
 
 	// Read
 	ixn.Intention.ID = reply
@@ -57,19 +55,19 @@ func TestIntentionApply_new(t *testing.T) {
 			IntentionID: ixn.Intention.ID,
 		}
 		var resp structs.IndexedIntentions
-		assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp))
-		assert.Len(resp.Intentions, 1)
+		require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp))
+		require.Len(resp.Intentions, 1)
 		actual := resp.Intentions[0]
-		assert.Equal(resp.Index, actual.ModifyIndex)
-		assert.WithinDuration(now, actual.CreatedAt, 5*time.Second)
-		assert.WithinDuration(now, actual.UpdatedAt, 5*time.Second)
+		require.Equal(resp.Index, actual.ModifyIndex)
+		require.WithinDuration(now, actual.CreatedAt, 5*time.Second)
+		require.WithinDuration(now, actual.UpdatedAt, 5*time.Second)
 
 		actual.CreateIndex, actual.ModifyIndex = 0, 0
 		actual.CreatedAt = ixn.Intention.CreatedAt
 		actual.UpdatedAt = ixn.Intention.UpdatedAt
 		actual.Hash = ixn.Intention.Hash
 		ixn.Intention.UpdatePrecedence()
-		assert.Equal(ixn.Intention, actual)
+		require.Equal(ixn.Intention, actual)
 	}
 }
 
@@ -77,14 +75,14 @@ func TestIntentionApply_new(t *testing.T) {
 func TestIntentionApply_defaultSourceType(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
+	require := require.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	waitForLeaderEstablishment(t, s1)
 
 	// Setup a basic record to create
 	ixn := structs.IntentionRequest{
@@ -101,8 +99,8 @@ func TestIntentionApply_defaultSourceType(t *testing.T) {
 	var reply string
 
 	// Create
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
-	assert.NotEmpty(reply)
+	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
+	require.NotEmpty(reply)
 
 	// Read
 	ixn.Intention.ID = reply
@@ -112,10 +110,10 @@ func TestIntentionApply_defaultSourceType(t *testing.T) {
 			IntentionID: ixn.Intention.ID,
 		}
 		var resp structs.IndexedIntentions
-		assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp))
-		assert.Len(resp.Intentions, 1)
+		require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp))
+		require.Len(resp.Intentions, 1)
 		actual := resp.Intentions[0]
-		assert.Equal(structs.IntentionSourceConsul, actual.SourceType)
+		require.Equal(structs.IntentionSourceConsul, actual.SourceType)
 	}
 }
 
@@ -123,14 +121,14 @@ func TestIntentionApply_defaultSourceType(t *testing.T) {
 func TestIntentionApply_createWithID(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
+	require := require.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	waitForLeaderEstablishment(t, s1)
 
 	// Setup a basic record to create
 	ixn := structs.IntentionRequest{
@@ -145,22 +143,22 @@ func TestIntentionApply_createWithID(t *testing.T) {
 
 	// Create
 	err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply)
-	assert.NotNil(err)
-	assert.Contains(err, "ID must be empty")
+	require.NotNil(err)
+	require.Contains(err, "ID must be empty")
 }
 
 // Test basic updating
 func TestIntentionApply_updateGood(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
+	require := require.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	waitForLeaderEstablishment(t, s1)
 
 	// Setup a basic record to create
 	ixn := structs.IntentionRequest{
@@ -179,8 +177,8 @@ func TestIntentionApply_updateGood(t *testing.T) {
 	var reply string
 
 	// Create
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
-	assert.NotEmpty(reply)
+	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
+	require.NotEmpty(reply)
 
 	// Read CreatedAt
 	var createdAt time.Time
@@ -191,8 +189,8 @@ func TestIntentionApply_updateGood(t *testing.T) {
 			IntentionID: ixn.Intention.ID,
 		}
 		var resp structs.IndexedIntentions
-		assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp))
-		assert.Len(resp.Intentions, 1)
+		require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp))
+		require.Len(resp.Intentions, 1)
 		actual := resp.Intentions[0]
 		createdAt = actual.CreatedAt
 	}
@@ -204,7 +202,7 @@ func TestIntentionApply_updateGood(t *testing.T) {
 	ixn.Op = structs.IntentionOpUpdate
 	ixn.Intention.ID = reply
 	ixn.Intention.SourceName = "*"
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
+	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 
 	// Read
 	ixn.Intention.ID = reply
@@ -214,18 +212,18 @@ func TestIntentionApply_updateGood(t *testing.T) {
 			IntentionID: ixn.Intention.ID,
 		}
 		var resp structs.IndexedIntentions
-		assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp))
-		assert.Len(resp.Intentions, 1)
+		require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp))
+		require.Len(resp.Intentions, 1)
 		actual := resp.Intentions[0]
-		assert.Equal(createdAt, actual.CreatedAt)
-		assert.WithinDuration(time.Now(), actual.UpdatedAt, 5*time.Second)
+		require.Equal(createdAt, actual.CreatedAt)
+		require.WithinDuration(time.Now(), actual.UpdatedAt, 5*time.Second)
 
 		actual.CreateIndex, actual.ModifyIndex = 0, 0
 		actual.CreatedAt = ixn.Intention.CreatedAt
 		actual.UpdatedAt = ixn.Intention.UpdatedAt
 		actual.Hash = ixn.Intention.Hash
 		ixn.Intention.UpdatePrecedence()
-		assert.Equal(ixn.Intention, actual)
+		require.Equal(ixn.Intention, actual)
 	}
 }
 
@@ -233,14 +231,14 @@ func TestIntentionApply_updateGood(t *testing.T) {
 func TestIntentionApply_updateNonExist(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
+	require := require.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	waitForLeaderEstablishment(t, s1)
 
 	// Setup a basic record to create
 	ixn := structs.IntentionRequest{
@@ -255,31 +253,29 @@ func TestIntentionApply_updateNonExist(t *testing.T) {
 
 	// Create
 	err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply)
-	assert.NotNil(err)
-	assert.Contains(err, "Cannot modify non-existent intention")
+	require.NotNil(err)
+	require.Contains(err, "Cannot modify non-existent intention")
 }
 
 // Test basic deleting
 func TestIntentionApply_deleteGood(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
+	require := require.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	waitForLeaderEstablishment(t, s1)
 
 	// Setup a basic record to create
 	ixn := structs.IntentionRequest{
 		Datacenter: "dc1",
 		Op:         structs.IntentionOpCreate,
 		Intention: &structs.Intention{
-			SourceNS:        "test",
 			SourceName:      "test",
-			DestinationNS:   "test",
 			DestinationName: "test",
 			Action:          structs.IntentionActionAllow,
 		},
@@ -287,13 +283,13 @@ func TestIntentionApply_deleteGood(t *testing.T) {
 	var reply string
 
 	// Create
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
-	assert.NotEmpty(reply)
+	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
+	require.NotEmpty(reply)
 
 	// Delete
 	ixn.Op = structs.IntentionOpDelete
 	ixn.Intention.ID = reply
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
+	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 
 	// Read
 	ixn.Intention.ID = reply
@@ -304,8 +300,8 @@ func TestIntentionApply_deleteGood(t *testing.T) {
 		}
 		var resp structs.IndexedIntentions
 		err := msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp)
-		assert.NotNil(err)
-		assert.Contains(err, ErrIntentionNotFound.Error())
+		require.NotNil(err)
+		require.Contains(err, ErrIntentionNotFound.Error())
 	}
 }
 
@@ -313,7 +309,7 @@ func TestIntentionApply_deleteGood(t *testing.T) {
 func TestIntentionApply_aclDeny(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
+	require := require.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -325,7 +321,7 @@ func TestIntentionApply_aclDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	waitForLeaderEstablishment(t, s1)
 
 	// Create an ACL with write permissions
 	var token string
@@ -346,7 +342,7 @@ service "foo" {
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
-		assert.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
+		require.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
 	}
 
 	// Setup a basic record to create
@@ -360,11 +356,11 @@ service "foo" {
 	// Create without a token should error since default deny
 	var reply string
 	err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply)
-	assert.True(acl.IsErrPermissionDenied(err))
+	require.True(acl.IsErrPermissionDenied(err))
 
 	// Now add the token and try again.
 	ixn.WriteRequest.Token = token
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
+	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 
 	// Read
 	ixn.Intention.ID = reply
@@ -375,17 +371,17 @@ service "foo" {
 			QueryOptions: structs.QueryOptions{Token: "root"},
 		}
 		var resp structs.IndexedIntentions
-		assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp))
-		assert.Len(resp.Intentions, 1)
+		require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp))
+		require.Len(resp.Intentions, 1)
 		actual := resp.Intentions[0]
-		assert.Equal(resp.Index, actual.ModifyIndex)
+		require.Equal(resp.Index, actual.ModifyIndex)
 
 		actual.CreateIndex, actual.ModifyIndex = 0, 0
 		actual.CreatedAt = ixn.Intention.CreatedAt
 		actual.UpdatedAt = ixn.Intention.UpdatedAt
 		actual.Hash = ixn.Intention.Hash
 		ixn.Intention.UpdatePrecedence()
-		assert.Equal(ixn.Intention, actual)
+		require.Equal(ixn.Intention, actual)
 	}
 }
 
@@ -707,7 +703,7 @@ func TestIntention_WildcardACLEnforcement(t *testing.T) {
 func TestIntentionApply_aclDelete(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
+	require := require.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -719,7 +715,7 @@ func TestIntentionApply_aclDelete(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	waitForLeaderEstablishment(t, s1)
 
 	// Create an ACL with write permissions
 	var token string
@@ -740,7 +736,7 @@ service "foo" {
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
-		assert.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
+		require.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
 	}
 
 	// Setup a basic record to create
@@ -754,18 +750,18 @@ service "foo" {
 
 	// Create
 	var reply string
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
+	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 
 	// Try to do a delete with no token; this should get rejected.
 	ixn.Op = structs.IntentionOpDelete
 	ixn.Intention.ID = reply
 	ixn.WriteRequest.Token = ""
 	err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply)
-	assert.True(acl.IsErrPermissionDenied(err))
+	require.True(acl.IsErrPermissionDenied(err))
 
 	// Try again with the original token. This should go through.
 	ixn.WriteRequest.Token = token
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
+	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 
 	// Verify it is gone
 	{
@@ -775,8 +771,8 @@ service "foo" {
 		}
 		var resp structs.IndexedIntentions
 		err := msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp)
-		assert.NotNil(err)
-		assert.Contains(err.Error(), ErrIntentionNotFound.Error())
+		require.NotNil(err)
+		require.Contains(err.Error(), ErrIntentionNotFound.Error())
 	}
 }
 
@@ -784,7 +780,7 @@ service "foo" {
 func TestIntentionApply_aclUpdate(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
+	require := require.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -796,7 +792,7 @@ func TestIntentionApply_aclUpdate(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	waitForLeaderEstablishment(t, s1)
 
 	// Create an ACL with write permissions
 	var token string
@@ -817,7 +813,7 @@ service "foo" {
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
-		assert.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
+		require.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
 	}
 
 	// Setup a basic record to create
@@ -831,25 +827,25 @@ service "foo" {
 
 	// Create
 	var reply string
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
+	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 
 	// Try to do an update without a token; this should get rejected.
 	ixn.Op = structs.IntentionOpUpdate
 	ixn.Intention.ID = reply
 	ixn.WriteRequest.Token = ""
 	err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply)
-	assert.True(acl.IsErrPermissionDenied(err))
+	require.True(acl.IsErrPermissionDenied(err))
 
 	// Try again with the original token; this should go through.
 	ixn.WriteRequest.Token = token
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
+	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 }
 
 // Test apply with a management token
 func TestIntentionApply_aclManagement(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
+	require := require.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -861,7 +857,7 @@ func TestIntentionApply_aclManagement(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	waitForLeaderEstablishment(t, s1)
 
 	// Setup a basic record to create
 	ixn := structs.IntentionRequest{
@@ -874,23 +870,23 @@ func TestIntentionApply_aclManagement(t *testing.T) {
 
 	// Create
 	var reply string
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
+	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 	ixn.Intention.ID = reply
 
 	// Update
 	ixn.Op = structs.IntentionOpUpdate
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
+	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 
 	// Delete
 	ixn.Op = structs.IntentionOpDelete
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
+	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 }
 
 // Test update changing the name where an ACL won't allow it
 func TestIntentionApply_aclUpdateChange(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
+	require := require.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -902,7 +898,7 @@ func TestIntentionApply_aclUpdateChange(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	waitForLeaderEstablishment(t, s1)
 
 	// Create an ACL with write permissions
 	var token string
@@ -923,7 +919,7 @@ service "foo" {
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
-		assert.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
+		require.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
 	}
 
 	// Setup a basic record to create
@@ -937,7 +933,7 @@ service "foo" {
 
 	// Create
 	var reply string
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
+	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 
 	// Try to do an update without a token; this should get rejected.
 	ixn.Op = structs.IntentionOpUpdate
@@ -945,14 +941,13 @@ service "foo" {
 	ixn.Intention.DestinationName = "foo"
 	ixn.WriteRequest.Token = token
 	err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply)
-	assert.True(acl.IsErrPermissionDenied(err))
+	require.True(acl.IsErrPermissionDenied(err))
 }
 
 // Test reading with ACLs
 func TestIntentionGet_acl(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -964,29 +959,15 @@ func TestIntentionGet_acl(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	waitForLeaderEstablishment(t, s1)
 
 	// Create an ACL with service write permissions. This will grant
-	// intentions read.
-	var token string
-	{
-		var rules = `
-service "foo" {
-	policy = "write"
-}`
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		assert.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
-	}
+	// intentions read on either end of an intention.
+	token, err := upsertTestTokenWithPolicyRules(codec, "root", "dc1", `
+	service "foobar" {
+		policy = "write"
+	}`)
+	require.NoError(t, err)
 
 	// Setup a basic record to create
 	ixn := structs.IntentionRequest{
@@ -999,11 +980,10 @@ service "foo" {
 
 	// Create
 	var reply string
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 	ixn.Intention.ID = reply
 
-	// Read without token should be error
-	{
+	t.Run("Read by ID without token should be error", func(t *testing.T) {
 		req := &structs.IntentionQueryRequest{
 			Datacenter:  "dc1",
 			IntentionID: ixn.Intention.ID,
@@ -1011,35 +991,68 @@ service "foo" {
 
 		var resp structs.IndexedIntentions
 		err := msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp)
-		assert.True(acl.IsErrPermissionDenied(err))
-		assert.Len(resp.Intentions, 0)
-	}
+		require.True(t, acl.IsErrPermissionDenied(err))
+		require.Len(t, resp.Intentions, 0)
+	})
 
-	// Read with token should work
-	{
+	t.Run("Read by ID with token should work", func(t *testing.T) {
 		req := &structs.IntentionQueryRequest{
 			Datacenter:   "dc1",
 			IntentionID:  ixn.Intention.ID,
-			QueryOptions: structs.QueryOptions{Token: token},
+			QueryOptions: structs.QueryOptions{Token: token.SecretID},
 		}
 
 		var resp structs.IndexedIntentions
-		assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp))
-		assert.Len(resp.Intentions, 1)
-	}
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp))
+		require.Len(t, resp.Intentions, 1)
+	})
+
+	t.Run("Read by Exact without token should be error", func(t *testing.T) {
+		req := &structs.IntentionQueryRequest{
+			Datacenter: "dc1",
+			Exact: &structs.IntentionQueryExact{
+				SourceNS:        structs.IntentionDefaultNamespace,
+				SourceName:      "api",
+				DestinationNS:   structs.IntentionDefaultNamespace,
+				DestinationName: "foobar",
+			},
+		}
+
+		var resp structs.IndexedIntentions
+		err := msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp)
+		require.True(t, acl.IsErrPermissionDenied(err))
+		require.Len(t, resp.Intentions, 0)
+	})
+
+	t.Run("Read by Exact with token should work", func(t *testing.T) {
+		req := &structs.IntentionQueryRequest{
+			Datacenter: "dc1",
+			Exact: &structs.IntentionQueryExact{
+				SourceNS:        structs.IntentionDefaultNamespace,
+				SourceName:      "api",
+				DestinationNS:   structs.IntentionDefaultNamespace,
+				DestinationName: "foobar",
+			},
+			QueryOptions: structs.QueryOptions{Token: token.SecretID},
+		}
+
+		var resp structs.IndexedIntentions
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp))
+		require.Len(t, resp.Intentions, 1)
+	})
 }
 
 func TestIntentionList(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
+	require := require.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
 	codec := rpcClient(t, s1)
 	defer codec.Close()
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	waitForLeaderEstablishment(t, s1)
 
 	// Test with no intentions inserted yet
 	{
@@ -1047,9 +1060,9 @@ func TestIntentionList(t *testing.T) {
 			Datacenter: "dc1",
 		}
 		var resp structs.IndexedIntentions
-		assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
-		assert.NotNil(resp.Intentions)
-		assert.Len(resp.Intentions, 0)
+		require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
+		require.NotNil(resp.Intentions)
+		require.Len(resp.Intentions, 0)
 	}
 }
 
@@ -1063,7 +1076,7 @@ func TestIntentionList_acl(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	waitForLeaderEstablishment(t, s1)
 	waitForNewACLs(t, s1)
 
 	token, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `service_prefix "foo" { policy = "write" }`)
@@ -1138,25 +1151,20 @@ func TestIntentionList_acl(t *testing.T) {
 func TestIntentionMatch_good(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	waitForLeaderEstablishment(t, s1)
 
 	// Create some records
 	{
 		insert := [][]string{
-			{"foo", "*", "foo", "*"},
-			{"foo", "*", "foo", "bar"},
-			{"foo", "*", "foo", "baz"}, // shouldn't match
-			{"foo", "*", "bar", "bar"}, // shouldn't match
-			{"foo", "*", "bar", "*"},   // shouldn't match
-			{"foo", "*", "*", "*"},
-			{"bar", "*", "foo", "bar"}, // duplicate destination different source
+			{"default", "*", "default", "*"},
+			{"default", "*", "default", "bar"},
+			{"default", "*", "default", "baz"}, // shouldn't match
 		}
 
 		for _, v := range insert {
@@ -1174,7 +1182,7 @@ func TestIntentionMatch_good(t *testing.T) {
 
 			// Create
 			var reply string
-			assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
+			require.Nil(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 		}
 	}
 
@@ -1184,22 +1192,17 @@ func TestIntentionMatch_good(t *testing.T) {
 		Match: &structs.IntentionQueryMatch{
 			Type: structs.IntentionMatchDestination,
 			Entries: []structs.IntentionMatchEntry{
-				{
-					Namespace: "foo",
-					Name:      "bar",
-				},
+				{Name: "bar"},
 			},
 		},
 	}
 	var resp structs.IndexedIntentionMatches
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Match", req, &resp))
-	assert.Len(resp.Matches, 1)
+	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Intention.Match", req, &resp))
+	require.Len(t, resp.Matches, 1)
 
 	expected := [][]string{
-		{"bar", "*", "foo", "bar"},
-		{"foo", "*", "foo", "bar"},
-		{"foo", "*", "foo", "*"},
-		{"foo", "*", "*", "*"},
+		{"default", "*", "default", "bar"},
+		{"default", "*", "default", "*"},
 	}
 	var actual [][]string
 	for _, ixn := range resp.Matches[0] {
@@ -1210,7 +1213,7 @@ func TestIntentionMatch_good(t *testing.T) {
 			ixn.DestinationName,
 		})
 	}
-	assert.Equal(expected, actual)
+	require.Equal(t, expected, actual)
 }
 
 // Test matching with ACLs
@@ -1299,36 +1302,32 @@ func TestIntentionMatch_acl(t *testing.T) {
 func TestIntentionCheck_defaultNoACL(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	waitForLeaderEstablishment(t, s1)
 
 	// Test
 	req := &structs.IntentionQueryRequest{
 		Datacenter: "dc1",
 		Check: &structs.IntentionQueryCheck{
-			SourceNS:        "foo",
 			SourceName:      "bar",
-			DestinationNS:   "foo",
 			DestinationName: "qux",
 			SourceType:      structs.IntentionSourceConsul,
 		},
 	}
 	var resp structs.IntentionQueryCheckResponse
-	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Check", req, &resp))
-	require.True(resp.Allowed)
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Check", req, &resp))
+	require.True(t, resp.Allowed)
 }
 
 // Test the Check method defaults to deny with allowlist ACLs.
 func TestIntentionCheck_defaultACLDeny(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -1340,30 +1339,27 @@ func TestIntentionCheck_defaultACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	waitForLeaderEstablishment(t, s1)
 
 	// Check
 	req := &structs.IntentionQueryRequest{
 		Datacenter: "dc1",
 		Check: &structs.IntentionQueryCheck{
-			SourceNS:        "foo",
 			SourceName:      "bar",
-			DestinationNS:   "foo",
 			DestinationName: "qux",
 			SourceType:      structs.IntentionSourceConsul,
 		},
 	}
 	req.Token = "root"
 	var resp structs.IntentionQueryCheckResponse
-	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Check", req, &resp))
-	require.False(resp.Allowed)
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Check", req, &resp))
+	require.False(t, resp.Allowed)
 }
 
 // Test the Check method defaults to deny with denylist ACLs.
 func TestIntentionCheck_defaultACLAllow(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -1375,30 +1371,27 @@ func TestIntentionCheck_defaultACLAllow(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	waitForLeaderEstablishment(t, s1)
 
 	// Check
 	req := &structs.IntentionQueryRequest{
 		Datacenter: "dc1",
 		Check: &structs.IntentionQueryCheck{
-			SourceNS:        "foo",
 			SourceName:      "bar",
-			DestinationNS:   "foo",
 			DestinationName: "qux",
 			SourceType:      structs.IntentionSourceConsul,
 		},
 	}
 	req.Token = "root"
 	var resp structs.IntentionQueryCheckResponse
-	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Check", req, &resp))
-	require.True(resp.Allowed)
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Check", req, &resp))
+	require.True(t, resp.Allowed)
 }
 
 // Test the Check method requires service:read permission.
 func TestIntentionCheck_aclDeny(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -1410,7 +1403,7 @@ func TestIntentionCheck_aclDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	waitForLeaderEstablishment(t, s1)
 
 	// Create an ACL with service read permissions. This will grant permission.
 	var token string
@@ -1430,16 +1423,14 @@ service "bar" {
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
-		require.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
 	}
 
 	// Check
 	req := &structs.IntentionQueryRequest{
 		Datacenter: "dc1",
 		Check: &structs.IntentionQueryCheck{
-			SourceNS:        "foo",
 			SourceName:      "qux",
-			DestinationNS:   "foo",
 			DestinationName: "baz",
 			SourceType:      structs.IntentionSourceConsul,
 		},
@@ -1447,7 +1438,7 @@ service "bar" {
 	req.Token = token
 	var resp structs.IntentionQueryCheckResponse
 	err := msgpackrpc.CallWithCodec(codec, "Intention.Check", req, &resp)
-	require.True(acl.IsErrPermissionDenied(err))
+	require.True(t, acl.IsErrPermissionDenied(err))
 }
 
 // Test the Check method returns allow/deny properly.

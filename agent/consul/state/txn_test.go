@@ -77,7 +77,7 @@ func TestStateStore_Txn_Intention(t *testing.T) {
 	require.Equal(t, expected, results)
 
 	// Pull the resulting state store contents.
-	idx, actual, err := s.Intentions(nil)
+	idx, actual, err := s.Intentions(nil, nil)
 	require.NoError(t, err)
 	require.Equal(t, uint64(3), idx, "wrong index")
 
