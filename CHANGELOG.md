@@ -8,6 +8,7 @@ IMPROVEMENTS:
 
 * acl: allow auth methods created in the primary datacenter to optionally create global tokens [[GH-7899](https://github.com/hashicorp/consul/issues/7899)]
 * agent: Allow to restrict servers that can join a given Serf Consul cluster. [[GH-7628](https://github.com/hashicorp/consul/issues/7628)]
+* connect: various changes to make namespaces for intentions work more like for other subsystems [[GH-8194](https://github.com/hashicorp/consul/issues/8194)]
 * dns: Improve RCODE of response when query targets a non-existent datacenter. [[GH-8102](https://github.com/hashicorp/consul/issues/8102)]
 
 BUGFIXES:
