@@ -148,10 +148,11 @@ export default [
     category: 'connect',
     content: [
       'configuration',
+      'tasks',
+      'connect-internals',
       'observability',
       'l7-traffic-management',
       'intentions',
-      'connect-internals',
       {
         category: 'proxies',
         content: ['envoy', 'built-in', 'integrate'],
