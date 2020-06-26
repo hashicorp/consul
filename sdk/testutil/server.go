@@ -380,7 +380,7 @@ func (s *TestServer) waitForAPI() error {
 	for !time.Now().After(deadline) {
 		time.Sleep(timer.Wait)
 
-		url := s.url("/v1/agent/self")
+		url := s.url("/v1/status/leader")
 		resp, err := s.masterGet(url)
 		if err != nil {
 			failed = true
