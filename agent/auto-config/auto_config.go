@@ -392,6 +392,20 @@ func (ac *AutoConfig) resolveHost(hostPort string) []net.TCPAddr {
 // This will persist the configuration to disk (unless in dev mode running without
 // a data dir) and will reload the configuration.
 func (ac *AutoConfig) recordAutoConfigReply(reply *agentpb.AutoConfigResponse) error {
+	// overwrite the auto encrypt DNS SANs with the ones specified in the auto_config stanza
+	if len(ac.config.AutoConfig.DNSSANs) > 0 && reply.Config.AutoEncrypt != nil {
+		reply.Config.AutoEncrypt.DNSSAN = ac.config.AutoConfig.DNSSANs
+	}
+
+	// overwrite the auto encrypt IP SANs with the ones specified in the auto_config stanza
+	if len(ac.config.AutoConfig.IPSANs) > 0 && reply.Config.AutoEncrypt != nil {
+		var ips []string
+		for _, ip := range ac.config.AutoConfig.IPSANs {
+			ips = append(ips, ip.String())
+		}
+		reply.Config.AutoEncrypt.IPSAN = ips
+	}
+
 	conf, err := json.Marshal(translateConfig(reply.Config))
 	if err != nil {
 		return fmt.Errorf("failed to encode auto-config configuration as JSON: %w", err)
