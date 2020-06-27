@@ -150,6 +150,27 @@ func TestStructsToAgentService(t *testing.T) {
 				},
 			},
 		},
+		{
+			"Service with scriptcheck",
+			&structs.ServiceDefinition{
+				Name: "web",
+				Checks: structs.CheckTypes{
+					&structs.CheckType{
+						Name:       "scriptcheck",
+						ScriptArgs: []string{"sh", "-c", "/bin/true"},
+					},
+				},
+			},
+			&api.AgentServiceRegistration{
+				Name: "web",
+				Checks: api.AgentServiceChecks{
+					&api.AgentServiceCheck{
+						Name:       "scriptcheck",
+						ScriptArgs: []string{"sh", "-c", "/bin/true"},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tt := range cases {

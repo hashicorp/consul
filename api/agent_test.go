@@ -905,8 +905,8 @@ func TestAPI_AgentScriptCheck(t *testing.T) {
 		reg := &AgentCheckRegistration{
 			Name: "foo",
 			AgentServiceCheck: AgentServiceCheck{
-				Interval: "10s",
-				Args:     []string{"sh", "-c", "false"},
+				Interval:   "10s",
+				ScriptArgs: []string{"sh", "-c", "false"},
 			},
 		}
 		if err := agent.CheckRegister(reg); err != nil {
@@ -928,8 +928,8 @@ func TestAPI_AgentScriptCheck(t *testing.T) {
 			Port: 1234,
 			Checks: AgentServiceChecks{
 				&AgentServiceCheck{
-					Interval: "10s",
-					Args:     []string{"sh", "-c", "false"},
+					Interval:   "10s",
+					ScriptArgs: []string{"sh", "-c", "false"},
 				},
 			},
 		}
@@ -1063,7 +1063,7 @@ func TestAPI_AgentChecks_Docker(t *testing.T) {
 		ServiceID: "redis",
 		AgentServiceCheck: AgentServiceCheck{
 			DockerContainerID: "f972c95ebf0e",
-			Args:              []string{"/bin/true"},
+			ScriptArgs:        []string{"/bin/true"},
 			Shell:             "/bin/bash",
 			Interval:          "10s",
 		},
