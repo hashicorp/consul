@@ -1,8 +1,30 @@
 export default {
   id: 'form',
-  initial: 'idle',
+  initial: 'load',
   states: {
-    loading: {},
+    load: {
+      on: {
+        LOAD: [
+          {
+            target: 'idle',
+            cond: 'loaded',
+          },
+          {
+            target: 'loading',
+          },
+        ],
+      },
+    },
+    loading: {
+      on: {
+        SUCCESS: {
+          target: 'idle',
+        },
+        ERROR: {
+          target: 'loadError',
+        },
+      },
+    },
     idle: {
       on: {
         PERSIST: {
@@ -36,6 +58,13 @@ export default {
     removed: {},
     persisted: {},
     error: {
+      on: {
+        RESET: {
+          target: 'idle',
+        },
+      },
+    },
+    loadError: {
       on: {
         RESET: {
           target: 'idle',

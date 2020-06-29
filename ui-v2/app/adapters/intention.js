@@ -22,6 +22,7 @@ export default Adapter.extend({
     }
     return request`
       GET /v1/connect/intentions/${id}?${{ dc }}
+      Cache-Control: no-store
 
       ${{ index }}
     `;

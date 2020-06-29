@@ -1,0 +1,95 @@
+<StateChart @src={{chart}} as |State Guard Action dispatch state|>
+  <Ref @target={{this}} @name="dispatch" @value={{dispatch}} />
+  <Guard @name="loaded" @cond={{action "isLoaded"}} />
+
+{{#let (hash
+  item=data
+  error=error
+  change=(action "change")
+  submit=(action dispatch "PERSIST")
+  delete=(action dispatch "REMOVE")
+  disabled=(state-matches state (array "persisting" "removing"))
+  isCreate=create
+) as |api|}}
+
+  {{yield api}}
+
+  <State @matches="loading">
+    <DataSource
+      @src={{concat '/' nspace '/' dc '/' type '/' src}}
+      @onchange={{queue (action "setData" value="data") (action dispatch "SUCCESS")}}
+      @onerror={{queue (action (mut error) value="error.errors.firstObject") (action dispatch "ERROR")}}
+    />
+  </State>
+
+  <State @matches="removing">
+    <DataSink
+      @sink={{concat '/' nspace '/' (or data.Datacenter dc) '/' type '/'}}
+      @item={{data}}
+      @data={{null}}
+      @onchange={{action dispatch "SUCCESS"}}
+      @onerror={{queue (action (mut error) value="error.errors.firstObject") (action dispatch "ERROR")}}
+    />
+  </State>
+
+  <State @matches="persisting">
+    <DataSink
+      @sink={{concat '/' nspace '/' (or data.Datacenter dc) '/' type '/'}}
+      @item={{data}}
+      @onchange={{action dispatch "SUCCESS"}}
+      @onerror={{queue (action (mut error) value="error.errors.firstObject") (action dispatch "ERROR")}}
+    />
+  </State>
+
+  <State @matches="loadError">
+    <ErrorState @error={{error}} />
+  </State>
+
+  <State @matches="removed">
+    <Notification @after={{action ondelete}}>
+      {{#yield-slot name="removed" params=(block-params data error)}}
+        {{yield api}}
+      {{else}}
+        <p data-notification role="alert" class="success notification-update">
+          <strong>Success!</strong>
+          Your {{type}} has been deleted.
+        </p>
+      {{/yield-slot}}
+    </Notification>
+  </State>
+
+  <State @matches="persisted">
+    <Notification @after={{action onsubmit}}>
+      {{#yield-slot name="persisted"}}
+        {{yield api}}
+      {{else}}
+        <p data-notification role="alert" class="success notification-update">
+          <strong>Success!</strong>
+          Your {{type}} has been saved.
+        </p>
+      {{/yield-slot}}
+    </Notification>
+  </State>
+
+  <State @matches="error">
+    {{#yield-slot name="error" params=(block-params (component 'notification' after=(action dispatch "RESET")))}}
+      {{yield api}}
+    {{else}}
+      <Notification @after={{action dispatch "RESET"}}>
+          <p data-notification role="alert" class="error notification-update">
+            <strong>Error!</strong>
+            There was an error saving your {{type}}.
+            <br />{{error.status}}: {{error.detail}}
+          </p>
+      </Notification>
+    {{/yield-slot}}
+  </State>
+
+  <State @notMatches={{array 'load' 'loading' 'loadError'}}>
+    <YieldSlot @name="form">
+        {{yield api}}
+    </YieldSlot>
+  </State>
+
+{{/let}}
+</StateChart>

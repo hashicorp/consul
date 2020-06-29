@@ -1,66 +1,62 @@
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
-import { setProperties, set, get, computed } from '@ember/object';
-import chart from './chart.xstate';
+import { setProperties, set, get } from '@ember/object';
 
 export default Component.extend({
   tagName: '',
-  dom: service('dom'),
-  builder: service('form'),
-  init: function() {
-    this._super(...arguments);
-    this.chart = chart;
-    this.form = this.builder.form('intention');
+  ondelete: function() {
+    this.onsubmit(...arguments);
   },
-  _item: computed('item', function() {
-    return this.form.setData(this.item).getData();
-  }),
+  oncancel: function() {
+    this.onsubmit(...arguments);
+  },
+  onsubmit: function() {},
   actions: {
-    createServices: function(e) {
+    createServices: function(item, e) {
       // Services in the menus should:
       // 1. Be unique (they potentially could be duplicated due to services from different namespaces)
       // 2. Only include services that shold have intentions
       // 3. Include an 'All Services' option
-      // 4. Include the current Source and Destination incase they are virtual services
+      // 4. Include the current Source and Destination incase they are virtual services/don't exist yet
       let items = e.data
         .uniqBy('Name')
         .toArray()
         .filter(
           item => !['connect-proxy', 'mesh-gateway', 'terminating-gateway'].includes(item.Kind)
         );
-      let source = items.findBy('Name', this.item.SourceName);
+      items = [{ Name: '*' }].concat(items);
+      let source = items.findBy('Name', item.SourceName);
       if (!source) {
-        source = { Name: this.item.SourceName };
+        source = { Name: item.SourceName };
         items = [source].concat(items);
       }
-      let destination = items.findBy('Name', this.item.DestinationName);
+      let destination = items.findBy('Name', item.DestinationName);
       if (!destination) {
-        destination = { Name: this.item.DestinationName };
+        destination = { Name: item.DestinationName };
         items = [destination].concat(items);
       }
-      items = [{ Name: '*' }].concat(items);
       setProperties(this, {
         services: items,
         SourceName: source,
         DestinationName: destination,
       });
     },
-    createNspaces: function(e) {
+    createNspaces: function(item, e) {
       // Nspaces in the menus should:
       // 1. Include an 'All Namespaces' option
-      // 2. Include the current SourceNS and DestinationNS incase they are virtual services
+      // 2. Include the current SourceNS and DestinationNS incase they don't exist yet
       let items = e.data.toArray();
-      let source = items.findBy('Name', this.item.SourceNS);
+      items = [{ Name: '*' }].concat(items);
+      let source = items.findBy('Name', item.SourceNS);
       if (!source) {
         source = { Name: this.item.SourceNS };
         items = [source].concat(items);
       }
-      let destination = items.findBy('Name', this.item.DestinationNS);
+      let destination = items.findBy('Name', item.DestinationNS);
       if (!destination) {
-        destination = { Name: this.item.DestinationNS };
+        destination = { Name: item.DestinationNS };
         items = [destination].concat(items);
       }
-      items = [{ Name: '*' }].concat(items);
       setProperties(this, {
         nspaces: items,
         SourceNS: source,
@@ -73,14 +69,8 @@ export default Component.extend({
     isUnique: function(items, term) {
       return !items.findBy('Name', term);
     },
-    submit: function(item, e) {
-      e.preventDefault();
-      this.onsubmit(...arguments);
-    },
-    change: function(e, value, item) {
-      const event = this.dom.normalizeEvent(e, value);
-      const form = this.form;
-      const target = event.target;
+    change: function(e, form, item) {
+      const target = e.target;
 
       let name, selected, match;
       switch (target.name) {
@@ -122,7 +112,7 @@ export default Component.extend({
           set(this, target.name, selected);
           break;
       }
-      form.handleEvent(event);
+      form.handleEvent(e);
     },
   },
 });
