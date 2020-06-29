@@ -1,6 +1,6 @@
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
-import { setProperties, set, get, computed } from '@ember/object';
+import { set, get } from '@ember/object';
 import Slotted from 'block-slots';
 import chart from './chart.xstate';
 
@@ -24,6 +24,7 @@ export default Component.extend(Slotted, {
     this.chart = chart;
   },
   didReceiveAttrs: function() {
+    this._super(...arguments);
     try {
       this.form = this.builder.form(this.type);
     } catch (e) {}
@@ -32,6 +33,7 @@ export default Component.extend(Slotted, {
     }
   },
   didInsertElement: function() {
+    this._super(...arguments);
     this.dispatch('LOAD');
   },
   willDestroyElement: function() {

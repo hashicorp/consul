@@ -142,10 +142,8 @@
           </label>
         </fieldset>
         <div>
-      {{#if api.isCreate}}
           <button type="submit" disabled={{or api.item.isInvalid api.disabled}}>Save</button>
-      {{else}}
-          <button type="submit" disabled={{or api.item.isInvalid api.disabled}}>Save</button>
+      {{#if (not api.isCreate)}}
           <button type="reset" onclick={{action oncancel api.item}} disabled={{disabled}}>Cancel</button>
         {{#if (not-eq form.item.ID 'anonymous') }}
           <ConfirmationDialog @message="Are you sure you want to delete this Intention?">
