@@ -48,6 +48,8 @@ func TestConfigWrite(t *testing.T) {
 
 		code := c.Run(args)
 		require.Empty(t, ui.ErrorWriter.String())
+		require.Contains(t, ui.OutputWriter.String(),
+			`Config entry written: service-defaults/web`)
 		require.Equal(t, 0, code)
 
 		entry, _, err := client.ConfigEntries().Get("service-defaults", "web", nil)
@@ -85,6 +87,8 @@ func TestConfigWrite(t *testing.T) {
 
 		code := c.Run(args)
 		require.Empty(t, ui.ErrorWriter.String())
+		require.Contains(t, ui.OutputWriter.String(),
+			`Config entry written: proxy-defaults/global`)
 		require.Equal(t, 0, code)
 
 		entry, _, err := client.ConfigEntries().Get(api.ProxyDefaults, api.ProxyConfigGlobal, nil)
