@@ -1,0 +1,54 @@
+{
+  "versionInfo": "00000001",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.api.v2.Listener",
+      "name": "default:1.2.3.4:8443",
+      "address": {
+        "socketAddress": {
+          "address": "1.2.3.4",
+          "portValue": 8443
+        }
+      },
+      "filterChains": [
+        {
+          "filterChainMatch": {
+            "serverNames": [
+              "*.dc2.internal.11111111-2222-3333-4444-555555555555.consul"
+            ]
+          },
+          "filters": [
+            {
+              "name": "envoy.tcp_proxy",
+              "config": {
+                  "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555.consul",
+                  "stat_prefix": "mesh_gateway_remote_default_dc2_tcp"
+                }
+            }
+          ]
+        },
+        {
+          "filters": [
+            {
+              "name": "envoy.filters.network.sni_cluster"
+            },
+            {
+              "name": "envoy.tcp_proxy",
+              "config": {
+                  "cluster": "",
+                  "stat_prefix": "mesh_gateway_local_default_tcp"
+                }
+            }
+          ]
+        }
+      ],
+      "listenerFilters": [
+        {
+          "name": "envoy.listener.tls_inspector"
+        }
+      ]
+    }
+  ],
+  "typeUrl": "type.googleapis.com/envoy.api.v2.Listener",
+  "nonce": "00000001"
+}

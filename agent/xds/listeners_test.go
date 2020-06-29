@@ -3,7 +3,7 @@ package xds
 import (
 	"bytes"
 	"fmt"
-	"path"
+	"path/filepath"
 	"sort"
 	"testing"
 	"text/template"
@@ -261,51 +261,60 @@ func TestListenersFromSnapshot(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			require := require.New(t)
+	for _, envoyVersion := range supportedEnvoyVersions {
+		sf := determineSupportedProxyFeaturesFromString(envoyVersion)
+		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
+			for _, tt := range tests {
+				t.Run(tt.name, func(t *testing.T) {
+					require := require.New(t)
 
-			// Sanity check default with no overrides first
-			snap := tt.create(t)
+					// Sanity check default with no overrides first
+					snap := tt.create(t)
 
-			// We need to replace the TLS certs with deterministic ones to make golden
-			// files workable. Note we don't update these otherwise they'd change
-			// golder files for every test case and so not be any use!
-			if snap.ConnectProxy.Leaf != nil {
-				snap.ConnectProxy.Leaf.CertPEM = golden(t, "test-leaf-cert", "")
-				snap.ConnectProxy.Leaf.PrivateKeyPEM = golden(t, "test-leaf-key", "")
+					// We need to replace the TLS certs with deterministic ones to make golden
+					// files workable. Note we don't update these otherwise they'd change
+					// golder files for every test case and so not be any use!
+					if snap.ConnectProxy.Leaf != nil {
+						snap.ConnectProxy.Leaf.CertPEM = golden(t, "test-leaf-cert", "", "")
+						snap.ConnectProxy.Leaf.PrivateKeyPEM = golden(t, "test-leaf-key", "", "")
+					}
+					if snap.Roots != nil {
+						snap.Roots.Roots[0].RootCert = golden(t, "test-root-cert", "", "")
+					}
+
+					if tt.setup != nil {
+						tt.setup(snap)
+					}
+
+					// Need server just for logger dependency
+					logger := testutil.Logger(t)
+					s := Server{
+						Logger: logger,
+					}
+
+					cinfo := connectionInfo{
+						Token:         "my-token",
+						ProxyFeatures: sf,
+					}
+					listeners, err := s.listenersFromSnapshot(cinfo, snap)
+					sort.Slice(listeners, func(i, j int) bool {
+						return listeners[i].(*envoy.Listener).Name < listeners[j].(*envoy.Listener).Name
+					})
+
+					require.NoError(err)
+					r, err := createResponse(ListenerType, "00000001", "00000001", listeners)
+					require.NoError(err)
+
+					gotJSON := responseToJSON(t, r)
+
+					gName := tt.name
+					if tt.overrideGoldenName != "" {
+						gName = tt.overrideGoldenName
+					}
+
+					require.JSONEq(goldenEnvoy(t, filepath.Join("listeners", gName), envoyVersion, gotJSON), gotJSON)
+				})
 			}
-			if snap.Roots != nil {
-				snap.Roots.Roots[0].RootCert = golden(t, "test-root-cert", "")
-			}
-
-			if tt.setup != nil {
-				tt.setup(snap)
-			}
-
-			// Need server just for logger dependency
-			logger := testutil.Logger(t)
-			s := Server{
-				Logger: logger,
-			}
-
-			listeners, err := s.listenersFromSnapshot(snap, "my-token")
-			sort.Slice(listeners, func(i, j int) bool {
-				return listeners[i].(*envoy.Listener).Name < listeners[j].(*envoy.Listener).Name
-			})
-
-			require.NoError(err)
-			r, err := createResponse(ListenerType, "00000001", "00000001", listeners)
-			require.NoError(err)
-
-			gotJSON := responseToJSON(t, r)
-
-			gName := tt.name
-			if tt.overrideGoldenName != "" {
-				gName = tt.overrideGoldenName
-			}
-
-			require.JSONEq(golden(t, path.Join("listeners", gName), gotJSON), gotJSON)
 		})
 	}
 }

@@ -20,16 +20,16 @@ const (
 )
 
 // endpointsFromSnapshot returns the xDS API representation of the "endpoints"
-func (s *Server) endpointsFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
+func (s *Server) endpointsFromSnapshot(cinfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
 	}
 
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
-		return s.endpointsFromSnapshotConnectProxy(cfgSnap, token)
+		return s.endpointsFromSnapshotConnectProxy(cfgSnap)
 	case structs.ServiceKindMeshGateway:
-		return s.endpointsFromSnapshotMeshGateway(cfgSnap, token)
+		return s.endpointsFromSnapshotMeshGateway(cfgSnap)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
@@ -37,7 +37,7 @@ func (s *Server) endpointsFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token s
 
 // endpointsFromSnapshotConnectProxy returns the xDS API representation of the "endpoints"
 // (upstream instances) in the snapshot.
-func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
+func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	resources := make([]proto.Message, 0,
 		len(cfgSnap.ConnectProxy.PreparedQueryEndpoints)+len(cfgSnap.ConnectProxy.WatchedUpstreamEndpoints))
 
@@ -168,7 +168,7 @@ func (s *Server) filterSubsetEndpoints(subset *structs.ServiceResolverSubset, en
 	return endpoints, nil
 }
 
-func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
+func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	resources := make([]proto.Message, 0, len(cfgSnap.MeshGateway.GatewayGroups)+len(cfgSnap.MeshGateway.ServiceGroups))
 
 	// generate the endpoints for the gateways in the remote datacenters

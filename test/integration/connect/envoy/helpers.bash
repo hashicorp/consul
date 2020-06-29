@@ -140,6 +140,13 @@ function assert_envoy_version {
   echo $VERSION | grep "/$ENVOY_VERSION/"
 }
 
+function get_envoy_node_version {
+  local HOSTPORT=$1
+  run retry_default curl -s -f $HOSTPORT/config_dump
+  [ "$status" -eq 0 ]
+  echo $output | jq --raw-output '.configs[0].bootstrap.node | { "uabv": .user_agent_build_version, "bv": .build_version, "uav": .user_agent_version }'
+}
+
 function get_envoy_listener_filters {
   local HOSTPORT=$1
   run retry_default curl -s -f $HOSTPORT/config_dump
@@ -622,18 +629,49 @@ function set_ttl_check_state {
 }
 
 function get_upstream_fortio_name {
-  run retry_default curl -v -s -f localhost:5000/debug?env=dump
+  local HOST=$1
+  local PORT=$2
+  local PREFIX=$3
+  local DEBUG_HEADER_VALUE="${4:-""}"
+  local extra_args
+  if [[ -n "${DEBUG_HEADER_VALUE}" ]]; then
+      extra_args="-H x-test-debug:${DEBUG_HEADER_VALUE}"
+  fi
+  run retry_default curl -v -s -f -H"Host: ${HOST}" $extra_args \
+      "localhost:${PORT}${PREFIX}/debug?env=dump"
   [ "$status" == 0 ]
+  # echo "$output" >&3
   echo "$output" | grep -E "^FORTIO_NAME="
 }
 
 function assert_expected_fortio_name {
   local EXPECT_NAME=$1
+  local HOST=${2:-"localhost"}
+  local PORT=${3:-5000}
+  local URL_PREFIX=${4:-""}
+  local DEBUG_HEADER_VALUE="${5:-""}"
 
-  GOT=$(get_upstream_fortio_name)
+  GOT=$(get_upstream_fortio_name ${HOST} ${PORT} "${URL_PREFIX}" "${DEBUG_HEADER_VALUE}")
 
   if [ "$GOT" != "FORTIO_NAME=${EXPECT_NAME}" ]; then
     echo "expected name: $EXPECT_NAME, actual name: $GOT" 1>&2
+    return 1
+  fi
+}
+
+function assert_expected_fortio_name_pattern {
+  local EXPECT_NAME_PATTERN=$1
+  local HOST=${2:-"localhost"}
+  local PORT=${3:-5000}
+  local URL_PREFIX=${4:-""}
+  local DEBUG_HEADER_VALUE="${5:-""}"
+
+  GOT=$(get_upstream_fortio_name ${HOST} ${PORT} "${URL_PREFIX}" "${DEBUG_HEADER_VALUE}")
+
+  if [[ "$GOT" =~ $EXPECT_NAME_PATTERN ]]; then
+      :
+  else
+    echo "expected name pattern: $EXPECT_NAME_PATTERN, actual name: $GOT" 1>&2
     return 1
   fi
 }

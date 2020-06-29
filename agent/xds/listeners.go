@@ -32,29 +32,29 @@ import (
 )
 
 // listenersFromSnapshot returns the xDS API representation of the "listeners" in the snapshot.
-func (s *Server) listenersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
+func (s *Server) listenersFromSnapshot(cinfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
 	}
 
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
-		return s.listenersFromSnapshotConnectProxy(cfgSnap, token)
+		return s.listenersFromSnapshotConnectProxy(cinfo, cfgSnap)
 	case structs.ServiceKindMeshGateway:
-		return s.listenersFromSnapshotMeshGateway(cfgSnap, token)
+		return s.listenersFromSnapshotMeshGateway(cinfo, cfgSnap)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
 }
 
 // listenersFromSnapshotConnectProxy returns the "listeners" for a connect proxy service
-func (s *Server) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
+func (s *Server) listenersFromSnapshotConnectProxy(cinfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	// One listener for each upstream plus the public one
 	resources := make([]proto.Message, len(cfgSnap.Proxy.Upstreams)+1)
 
 	// Configure public listener
 	var err error
-	resources[0], err = s.makePublicListener(cfgSnap, token)
+	resources[0], err = s.makePublicListener(cinfo, cfgSnap)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +182,7 @@ func parseCheckPath(check structs.CheckType) (structs.ExposePath, error) {
 }
 
 // listenersFromSnapshotMeshGateway returns the "listener" for a mesh-gateway service
-func (s *Server) listenersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
+func (s *Server) listenersFromSnapshotMeshGateway(cinfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	cfg, err := ParseMeshGatewayConfig(cfgSnap.Proxy.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
@@ -301,8 +301,8 @@ func makeListenerFromUserConfig(configJSON string) (*envoy.Listener, error) {
 // specify custom listener params in config but still get our certs delivered
 // dynamically and intentions enforced without coming up with some complicated
 // templating/merging solution.
-func injectConnectFilters(cfgSnap *proxycfg.ConfigSnapshot, token string, listener *envoy.Listener) error {
-	authFilter, err := makeExtAuthFilter(token)
+func injectConnectFilters(cinfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot, listener *envoy.Listener) error {
+	authFilter, err := makeExtAuthFilter(cinfo.Token)
 	if err != nil {
 		return err
 	}
@@ -320,7 +320,7 @@ func injectConnectFilters(cfgSnap *proxycfg.ConfigSnapshot, token string, listen
 	return nil
 }
 
-func (s *Server) makePublicListener(cfgSnap *proxycfg.ConfigSnapshot, token string) (proto.Message, error) {
+func (s *Server) makePublicListener(cinfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) (proto.Message, error) {
 	var l *envoy.Listener
 	var err error
 
@@ -374,7 +374,7 @@ func (s *Server) makePublicListener(cfgSnap *proxycfg.ConfigSnapshot, token stri
 		}
 	}
 
-	err = injectConnectFilters(cfgSnap, token, l)
+	err = injectConnectFilters(cinfo, cfgSnap, l)
 	return l, err
 }
 
