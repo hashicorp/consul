@@ -153,6 +153,9 @@ type Server struct {
 	caProviderRoot *structs.CARoot
 	caProviderLock sync.RWMutex
 
+	// rate limiter to use when signing leaf certificates
+	caLeafLimiter connectSignRateLimiter
+
 	// Consul configuration
 	config *Config
 
