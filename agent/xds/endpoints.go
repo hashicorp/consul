@@ -20,7 +20,7 @@ const (
 )
 
 // endpointsFromSnapshot returns the xDS API representation of the "endpoints"
-func (s *Server) endpointsFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, _ string) ([]proto.Message, error) {
+func (s *Server) endpointsFromSnapshot(_ connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
 	}
