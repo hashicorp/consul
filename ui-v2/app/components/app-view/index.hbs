@@ -61,7 +61,10 @@
               </YieldSlot>
               <div class="actions">
         {{#if authorized}}
-                  <YieldSlot @name="actions">{{yield}}</YieldSlot>
+                  <YieldSlot @name="actions">
+                    <PortalTarget @name="app-view-actions" />
+                    {{yield}}
+                  </YieldSlot>
         {{/if}}
               </div>
             </div>

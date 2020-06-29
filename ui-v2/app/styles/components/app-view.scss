@@ -29,6 +29,7 @@ main {
   @extend %form-row;
 }
 [role='tabpanel'] > p:only-child,
+%filter-bar + p,
 %app-view-content > p:only-child {
   @extend %app-view-content-empty;
 }
