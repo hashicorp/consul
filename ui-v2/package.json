@@ -109,6 +109,7 @@
     "ember-router-helpers": "^0.4.0",
     "ember-sinon-qunit": "4.0.1",
     "ember-source": "~3.16.0",
+    "ember-stargate": "^0.2.0",
     "ember-test-selectors": "^4.0.0",
     "ember-tooltips": "^3.4.3",
     "ember-truth-helpers": "^2.0.0",
