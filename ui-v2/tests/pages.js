@@ -138,7 +138,7 @@ export default {
   ),
   instance: create(instance(visitable, attribute, collection, text, tabgroup)),
   nodes: create(nodes(visitable, clickable, attribute, collection, catalogFilter)),
-  node: create(node(visitable, deletable, clickable, attribute, collection, tabgroup)),
+  node: create(node(visitable, deletable, clickable, attribute, collection, tabgroup, text)),
   kvs: create(kvs(visitable, deletable, creatable, clickable, attribute, collection)),
   kv: create(kv(visitable, attribute, submitable, deletable, cancelable, clickable)),
   acls: create(acls(visitable, deletable, creatable, clickable, attribute, collection, aclFilter)),
