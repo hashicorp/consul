@@ -381,17 +381,12 @@ func (s *TestServer) waitForAPI() error {
 		time.Sleep(timer.Wait)
 
 		url := s.url("/v1/status/leader")
-		resp, err := s.masterGet(url)
+		_, err := s.masterGet(url)
 		if err != nil {
 			failed = true
 			continue
 		}
-		resp.Body.Close()
 
-		if err = s.requireOK(resp); err != nil {
-			failed = true
-			continue
-		}
 		failed = false
 	}
 	if failed {
