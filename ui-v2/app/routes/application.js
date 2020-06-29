@@ -38,31 +38,9 @@ export default Route.extend(WithBlockingActions, {
   },
   actions: {
     loading: function(transition, originRoute) {
-      const $root = this.dom.root();
-      let dc = null;
-      if (originRoute.routeName !== 'dc' && originRoute.routeName !== 'application') {
-        const app = this.modelFor('application');
-        const model = this.modelFor('dc') || { dc: { Name: null } };
-        dc = this.repo.getActive(model.dc.Name, app.dcs);
-      }
-      hash({
-        loading: !$root.classList.contains('ember-loading'),
-        dc: dc,
-        nspace: this.nspacesRepo.getActive(),
-      }).then(model => {
-        next(() => {
-          const controller = this.controllerFor('application');
-          controller.setProperties(model);
-          transition.promise.finally(function() {
-            removeLoading($root);
-            controller.setProperties({
-              loading: false,
-              dc: model.dc,
-            });
-          });
-        });
+      transition.promise.finally(() => {
+        removeLoading(this.dom.root());
       });
-      return true;
     },
     error: function(e, transition) {
       // TODO: Normalize all this better

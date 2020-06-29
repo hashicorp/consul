@@ -12,18 +12,19 @@ export default Component.extend({
     this.guid = this.dom.guid(this);
   },
   didInsertElement: function() {
+    const $el = this.dom.element(`#${this.guid}`);
     const options = {
       timeout: 6000,
       extendedTimeout: 300,
-      dom: this.dom.element(`#${this.guid}`).innerHTML,
+      dom: $el.innerHTML,
     };
+    $el.innerHTML = '';
+    this.notify.clearMessages();
     if (typeof this.after === 'function') {
-      Promise.resolve(this.after()).then(() => {
-        this.notify.clearMessages();
+      Promise.resolve(this.after()).then(res => {
         this.notify.add(options);
       });
     } else {
-      this.notify.clearMessages();
       this.notify.add(options);
     }
   },

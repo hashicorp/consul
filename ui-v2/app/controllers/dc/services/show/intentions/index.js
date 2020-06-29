@@ -1,5 +1,4 @@
 import Controller from '@ember/controller';
-
 export default Controller.extend({
   queryParams: {
     filterBy: {
@@ -8,11 +7,6 @@ export default Controller.extend({
     search: {
       as: 'filter',
       replace: true,
-    },
-  },
-  actions: {
-    route: function() {
-      this.send(...arguments);
     },
   },
 });

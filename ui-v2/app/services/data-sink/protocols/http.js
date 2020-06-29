@@ -7,16 +7,6 @@ export default Service.extend({
   prepare: function(sink, data, instance) {
     const [, nspace, dc, model, slug] = sink.split('/');
     const repo = this[model];
-    if (slug === '') {
-      instance = repo.create({
-        Datacenter: dc,
-        Namespace: nspace,
-      });
-    } else {
-      if (typeof instance === 'undefined') {
-        instance = repo.peek(slug);
-      }
-    }
     return setProperties(instance, data);
   },
   persist: function(sink, instance) {

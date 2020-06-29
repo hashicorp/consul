@@ -6,6 +6,8 @@ export default Service.extend({
   services: service('repository/service'),
   namespaces: service('repository/nspace'),
   intentions: service('repository/intention'),
+  intention: service('repository/intention'),
+  kv: service('repository/kv'),
   token: service('repository/token'),
   policies: service('repository/policy'),
   policy: service('repository/policy'),
@@ -36,8 +38,6 @@ export default Service.extend({
     let method, slug;
     switch (model) {
       case 'datacenters':
-        find = configuration => repo.findAll(configuration);
-        break;
       case 'namespaces':
         find = configuration => repo.findAll(configuration);
         break;
@@ -62,6 +62,16 @@ export default Service.extend({
           default:
             find = configuration => repo.findAllByDatacenter(dc, nspace, configuration);
             break;
+        }
+        break;
+      case 'intention':
+        // TODO: Are we going to need to encode/decode here...?
+        slug = rest.join('/');
+        if (slug) {
+          find = configuration => repo.findBySlug(slug, dc, nspace, configuration);
+        } else {
+          find = configuration =>
+            Promise.resolve(repo.create({ Datacenter: dc, Namespace: nspace }));
         }
         break;
       case 'oidc':

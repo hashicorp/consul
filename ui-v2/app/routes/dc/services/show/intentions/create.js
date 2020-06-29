@@ -1,5 +1,5 @@
 import Route from './edit';
 
 export default Route.extend({
-  templateName: 'dc/intentions/edit',
+  templateName: 'dc/services/show/intentions/edit',
 });

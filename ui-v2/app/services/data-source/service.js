@@ -61,8 +61,8 @@ export default Service.extend({
           // only cache data if we have any
           if (typeof event !== 'undefined' && typeof cursor !== 'undefined') {
             cache.set(uri, {
-              currentEvent: source.getCurrentEvent(),
-              cursor: source.configuration.cursor,
+              currentEvent: event,
+              cursor: cursor,
             });
           }
           // the data is cached delete the EventSource

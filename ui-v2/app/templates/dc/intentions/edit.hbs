@@ -1,4 +1,4 @@
-{{#if item.ID }}
+{{#if item.ID}}
     {{title 'Edit Intention'}}
 {{else}}
     {{title 'New Intention'}}
@@ -27,22 +27,18 @@
         </h1>
     </BlockSlot>
     <BlockSlot @name="actions">
-{{#if (not create) }}
+{{#if item.ID}}
         <CopyButton @value={{item.ID}} @name="UUID">
             Copy UUID
         </CopyButton>
 {{/if}}
     </BlockSlot>
     <BlockSlot @name="content">
-  {{#let (if (gt history.length 0) (transition-to history.firstObject.key history.firstObject.value) (transition-to 'dc.intentions.index' dc)) as |back|}}
       <ConsulIntentionForm
         @item={{item}}
         @dc={{dc}}
         @nspace={{nspace}}
-        @ondelete={{back}}
-        @onchange={{back}}
-        @oncancel={{back}}
+        @onsubmit={{transition-to 'dc.intentions.index' dc}}
       />
-  {{/let}}
     </BlockSlot>
 </AppView>
