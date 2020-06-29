@@ -58,11 +58,11 @@ func (c *cmd) Run(args []string) int {
 
 	_, err = client.ConfigEntries().Delete(c.kind, c.name, nil)
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error deleting config entry %q / %q: %v", c.kind, c.name, err))
+		c.UI.Error(fmt.Sprintf("Error deleting config entry %s/%s: %v", c.kind, c.name, err))
 		return 1
 	}
 
-	// TODO (mkeeler) should we output anything when successful
+	c.UI.Info(fmt.Sprintf("Config entry deleted: %s/%s", c.kind, c.name))
 	return 0
 }
 
