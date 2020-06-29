@@ -207,6 +207,14 @@ The table below shows this endpoint's support for
 
 - `Status` `(string: "")` - Specifies the initial status of the health check.
 
+- `SuccessBeforePassing` `(int: 0)` - Specifies the number of consecutive successful
+  results required before check status transitions to passing. Available for HTTP,
+  TCP, gRPC, Docker & Monitor checks.
+
+- `FailuresBeforeCritical` `(int: 0)` - Specifies the number of consecutive unsuccessful
+  results required before check status transitions to critical. Available for HTTP,
+  TCP, gRPC, Docker & Monitor checks.
+
 ### Sample Payload
 
 ```json
