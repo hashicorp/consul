@@ -877,7 +877,17 @@ func (a *Agent) setupClientAutoEncryptCache(reply *structs.SignedResponse) (*str
 	}
 
 	// prepolutate leaf cache
-	certRes := cache.FetchResult{Value: &reply.IssuedCert, Index: reply.ConnectCARoots.QueryMeta.Index}
+	certRes := cache.FetchResult{
+		Value: &reply.IssuedCert,
+		Index: reply.ConnectCARoots.QueryMeta.Index,
+	}
+
+	for _, ca := range reply.ConnectCARoots.Roots {
+		if ca.ID == reply.ConnectCARoots.ActiveRootID {
+			certRes.State = cachetype.ConnectCALeafSuccess(ca.SigningKeyID)
+			break
+		}
+	}
 	if err := a.cache.Prepopulate(cachetype.ConnectCALeafName, certRes, a.config.Datacenter, a.tokens.AgentToken(), leafReq.Key()); err != nil {
 		return nil, nil, err
 	}

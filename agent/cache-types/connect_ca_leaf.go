@@ -121,6 +121,15 @@ type fetchState struct {
 	consecutiveRateLimitErrs int
 }
 
+func ConnectCALeafSuccess(authorityKeyID string) interface{} {
+	return fetchState{
+		authorityKeyID:           authorityKeyID,
+		forceExpireAfter:         time.Time{},
+		consecutiveRateLimitErrs: 0,
+		activeRootRotationStart:  time.Time{},
+	}
+}
+
 // fetchStart is called on each fetch that is about to block and wait for
 // changes to the leaf. It subscribes a chan to receive updates from the shared
 // root watcher and triggers root watcher if it's not already running.
