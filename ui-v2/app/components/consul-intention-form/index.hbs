@@ -5,6 +5,7 @@
   @onsubmit={{action onsubmit}}
   @autofill={{autofill}}
   @item={{item}}
+  @src={{src}}
   @type="intention"
   as |api|
 >
@@ -141,7 +142,7 @@
           </label>
         </fieldset>
         <div>
-      {{#if api.item.isNew}}
+      {{#if api.isCreate}}
           <button type="submit" disabled={{or api.item.isInvalid api.disabled}}>Save</button>
       {{else}}
           <button type="submit" disabled={{or api.item.isInvalid api.disabled}}>Save</button>
