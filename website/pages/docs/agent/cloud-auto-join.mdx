@@ -242,13 +242,13 @@ This returns the first private IP address of all servers for the given
 `region` with the given `tag_key` and `tag_value`.
 
 ```shell-session
-$ consul agent -retry-join "provider=os tag_key=consul tag_value=server username=... password=... auth_url=..."
+$ consul agent -retry-join "provider=os tag_key=consul tag_value=server user_name=... password=... auth_url=..."
 ```
 
 ```json
 {
   "retry_join": [
-    "provider=os tag_key=consul tag_value=server username=... password=... auth_url=..."
+    "provider=os tag_key=consul tag_value=server user_name=... password=... auth_url=..."
   ]
 }
 ```
