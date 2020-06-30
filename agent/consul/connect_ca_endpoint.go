@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"reflect"
 	"strings"
 	"time"
@@ -426,6 +427,30 @@ func (s *ConnectCA) Sign(
 		if !signingID.CanSign(spiffeID) {
 			return fmt.Errorf("SPIFFE ID in CSR from a different trust domain: %s, "+
 				"we are %s", serviceID.Host, signingID.Host())
+		}
+	} else {
+		// isAgent - if we support more ID types then this would need to be an else if
+		// here we are just automatically fixing the trust domain. For auto-encrypt and
+		// auto-config they make certificate requests before learning about the roots
+		// so they will have a dummy trust domain in the CSR.
+		trustDomain := signingID.Host()
+		if agentID.Host != trustDomain {
+			originalURI := agentID.URI()
+
+			agentID.Host = trustDomain
+			csr.Subject.CommonName = connect.AgentCN(agentID.Agent, trustDomain)
+
+			// recreate the URIs list
+			uris := make([]*url.URL, len(csr.URIs))
+			for i, uri := range csr.URIs {
+				if originalURI.String() == uri.String() {
+					uris[i] = agentID.URI()
+				} else {
+					uris[i] = uri
+				}
+			}
+
+			csr.URIs = uris
 		}
 	}
 
