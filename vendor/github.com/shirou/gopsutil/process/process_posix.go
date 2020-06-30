@@ -4,6 +4,7 @@ package process
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -11,6 +12,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/shirou/gopsutil/internal/common"
 	"golang.org/x/sys/unix"
 )
 
@@ -67,6 +69,49 @@ func getTerminalMap() (map[uint64]string, error) {
 		ret[rdev] = strings.Replace(name, "/dev", "", -1)
 	}
 	return ret, nil
+}
+
+func PidExistsWithContext(ctx context.Context, pid int32) (bool, error) {
+	if pid <= 0 {
+		return false, fmt.Errorf("invalid pid %v", pid)
+	}
+	proc, err := os.FindProcess(int(pid))
+	if err != nil {
+		return false, err
+	}
+
+	if _, err := os.Stat(common.HostProc()); err == nil { //Means that proc filesystem exist
+		// Checking PID existence based on existence of /<HOST_PROC>/proc/<PID> folder
+		// This covers the case when running inside container with a different process namespace (by default)
+
+		_, err := os.Stat(common.HostProc(strconv.Itoa(int(pid))))
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return err == nil, err
+	}
+
+	//'/proc' filesystem is not exist, checking of PID existence is done via signalling the process
+	//Make sense only if we run in the same process namespace
+	err = proc.Signal(syscall.Signal(0))
+	if err == nil {
+		return true, nil
+	}
+	if err.Error() == "os: process already finished" {
+		return false, nil
+	}
+	errno, ok := err.(syscall.Errno)
+	if !ok {
+		return false, err
+	}
+	switch errno {
+	case syscall.ESRCH:
+		return false, nil
+	case syscall.EPERM:
+		return true, nil
+	}
+
+	return false, err
 }
 
 // SendSignal sends a unix.Signal to the process.

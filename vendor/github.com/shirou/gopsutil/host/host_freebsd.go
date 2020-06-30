@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/binary"
 	"io/ioutil"
+	"math"
 	"os"
 	"runtime"
 	"strings"
@@ -47,6 +48,11 @@ func InfoWithContext(ctx context.Context) (*InfoStat, error) {
 		ret.PlatformFamily = family
 		ret.PlatformVersion = version
 		ret.KernelVersion = version
+	}
+
+	kernelArch, err := kernelArch()
+	if err == nil {
+		ret.KernelArch = kernelArch
 	}
 
 	system, role, err := Virtualization()
@@ -143,11 +149,11 @@ func UsersWithContext(ctx context.Context) ([]UserStat, error) {
 		b := buf[i*sizeOfUtmpx : (i+1)*sizeOfUtmpx]
 		var u Utmpx
 		br := bytes.NewReader(b)
-		err := binary.Read(br, binary.LittleEndian, &u)
+		err := binary.Read(br, binary.BigEndian, &u)
 		if err != nil || u.Type != 4 {
 			continue
 		}
-		sec := (binary.LittleEndian.Uint32(u.Tv.Sec[:])) / 2 // TODO:
+		sec := math.Floor(float64(u.Tv) / 1000000)
 		user := UserStat{
 			User:     common.IntToString(u.User[:]),
 			Terminal: common.IntToString(u.Line[:]),

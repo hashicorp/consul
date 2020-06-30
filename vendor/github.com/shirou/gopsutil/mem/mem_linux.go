@@ -4,6 +4,9 @@ package mem
 
 import (
 	"context"
+	"encoding/json"
+	"math"
+	"os"
 	"strconv"
 	"strings"
 
@@ -11,17 +14,56 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+type VirtualMemoryExStat struct {
+	ActiveFile   uint64 `json:"activefile"`
+	InactiveFile uint64 `json:"inactivefile"`
+	ActiveAnon   uint64 `json:"activeanon"`
+	InactiveAnon uint64 `json:"inactiveanon"`
+	Unevictable  uint64 `json:"unevictable"`
+}
+
+func (v VirtualMemoryExStat) String() string {
+	s, _ := json.Marshal(v)
+	return string(s)
+}
+
 func VirtualMemory() (*VirtualMemoryStat, error) {
 	return VirtualMemoryWithContext(context.Background())
 }
 
 func VirtualMemoryWithContext(ctx context.Context) (*VirtualMemoryStat, error) {
+	vm, _, err := fillFromMeminfoWithContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return vm, nil
+}
+
+func VirtualMemoryEx() (*VirtualMemoryExStat, error) {
+	return VirtualMemoryExWithContext(context.Background())
+}
+
+func VirtualMemoryExWithContext(ctx context.Context) (*VirtualMemoryExStat, error) {
+	_, vmEx, err := fillFromMeminfoWithContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return vmEx, nil
+}
+
+func fillFromMeminfoWithContext(ctx context.Context) (*VirtualMemoryStat, *VirtualMemoryExStat, error) {
 	filename := common.HostProc("meminfo")
 	lines, _ := common.ReadLines(filename)
+
 	// flag if MemAvailable is in /proc/meminfo (kernel 3.14+)
 	memavail := false
+	activeFile := false   // "Active(file)" not available: 2.6.28 / Dec 2008
+	inactiveFile := false // "Inactive(file)" not available: 2.6.28 / Dec 2008
+	sReclaimable := false // "SReclaimable:" not available: 2.6.19 / Nov 2006
 
 	ret := &VirtualMemoryStat{}
+	retEx := &VirtualMemoryExStat{}
+
 	for _, line := range lines {
 		fields := strings.Split(line, ":")
 		if len(fields) != 2 {
@@ -33,7 +75,7 @@ func VirtualMemoryWithContext(ctx context.Context) (*VirtualMemoryStat, error) {
 
 		t, err := strconv.ParseUint(value, 10, 64)
 		if err != nil {
-			return ret, err
+			return ret, retEx,err
 		}
 		switch key {
 		case "MemTotal":
@@ -51,6 +93,18 @@ func VirtualMemoryWithContext(ctx context.Context) (*VirtualMemoryStat, error) {
 			ret.Active = t * 1024
 		case "Inactive":
 			ret.Inactive = t * 1024
+		case "Active(anon)":
+			retEx.ActiveAnon = t * 1024
+		case "Inactive(anon)":
+			retEx.InactiveAnon = t * 1024
+		case "Active(file)":
+			activeFile = true
+			retEx.ActiveFile = t * 1024
+		case "Inactive(file)":
+			inactiveFile = true
+			retEx.InactiveFile = t * 1024
+		case "Unevictable":
+			retEx.Unevictable = t * 1024
 		case "Writeback":
 			ret.Writeback = t * 1024
 		case "WritebackTmp":
@@ -61,6 +115,11 @@ func VirtualMemoryWithContext(ctx context.Context) (*VirtualMemoryStat, error) {
 			ret.Shared = t * 1024
 		case "Slab":
 			ret.Slab = t * 1024
+		case "SReclaimable":
+			sReclaimable = true
+			ret.SReclaimable = t * 1024
+		case "SUnreclaim":
+			ret.SUnreclaim = t * 1024
 		case "PageTables":
 			ret.PageTables = t * 1024
 		case "SwapCached":
@@ -97,13 +156,21 @@ func VirtualMemoryWithContext(ctx context.Context) (*VirtualMemoryStat, error) {
 			ret.HugePageSize = t * 1024
 		}
 	}
+
+	ret.Cached += ret.SReclaimable
+
 	if !memavail {
-		ret.Available = ret.Free + ret.Buffers + ret.Cached
+		if activeFile && inactiveFile && sReclaimable {
+			ret.Available = calcuateAvailVmem(ret, retEx)
+		} else {
+			ret.Available = ret.Cached + ret.Free
+		}
 	}
+
 	ret.Used = ret.Total - ret.Free - ret.Buffers - ret.Cached
 	ret.UsedPercent = float64(ret.Used) / float64(ret.Total) * 100.0
 
-	return ret, nil
+	return ret, retEx, nil
 }
 
 func SwapMemory() (*SwapMemoryStat, error) {
@@ -147,7 +214,69 @@ func SwapMemoryWithContext(ctx context.Context) (*SwapMemoryStat, error) {
 				continue
 			}
 			ret.Sout = value * 4 * 1024
+		case "pgpgin":
+			value, err := strconv.ParseUint(fields[1], 10, 64)
+			if err != nil {
+				continue
+			}
+			ret.PgIn = value * 4 * 1024
+		case "pgpgout":
+			value, err := strconv.ParseUint(fields[1], 10, 64)
+			if err != nil {
+				continue
+			}
+			ret.PgOut = value * 4 * 1024
+		case "pgfault":
+			value, err := strconv.ParseUint(fields[1], 10, 64)
+			if err != nil {
+				continue
+			}
+			ret.PgFault = value * 4 * 1024
 		}
 	}
 	return ret, nil
+}
+
+// calcuateAvailVmem is a fallback under kernel 3.14 where /proc/meminfo does not provide
+// "MemAvailable:" column. It reimplements an algorithm from the link below
+// https://github.com/giampaolo/psutil/pull/890
+func calcuateAvailVmem(ret *VirtualMemoryStat, retEx *VirtualMemoryExStat) uint64 {
+	var watermarkLow uint64
+
+	fn := common.HostProc("zoneinfo")
+	lines, err := common.ReadLines(fn)
+
+	if err != nil {
+		return ret.Free + ret.Cached // fallback under kernel 2.6.13
+	}
+
+	pagesize := uint64(os.Getpagesize())
+	watermarkLow = 0
+
+	for _, line := range lines {
+		fields := strings.Fields(line)
+
+		if strings.HasPrefix(fields[0], "low") {
+			lowValue, err := strconv.ParseUint(fields[1], 10, 64)
+
+			if err != nil {
+				lowValue = 0
+			}
+			watermarkLow += lowValue
+		}
+	}
+
+	watermarkLow *= pagesize
+
+	availMemory := ret.Free - watermarkLow
+	pageCache := retEx.ActiveFile + retEx.InactiveFile
+	pageCache -= uint64(math.Min(float64(pageCache/2), float64(watermarkLow)))
+	availMemory += pageCache
+	availMemory += ret.SReclaimable - uint64(math.Min(float64(ret.SReclaimable/2.0), float64(watermarkLow)))
+
+	if availMemory < 0 {
+		availMemory = 0
+	}
+
+	return availMemory
 }
