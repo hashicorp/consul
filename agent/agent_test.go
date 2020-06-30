@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -4628,7 +4629,7 @@ func TestAutoConfig_Integration(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	client := StartTestAgent(t, TestAgent{Name: "test-client", HCL: TestACLConfigWithParams(nil) + `
+	client := StartTestAgent(t, TestAgent{Name: "test-client", HCL: `
 	   bootstrap = false
 		server = false
 		ca_file = "` + caFile + `"
@@ -4653,4 +4654,79 @@ func TestAutoConfig_Integration(t *testing.T) {
 
 	// spot check that we now have an ACL token
 	require.NotEmpty(t, client.tokens.AgentToken())
+}
+
+func TestAgent_AutoEncrypt(t *testing.T) {
+	// eventually this test should really live with integration tests
+	// the goal here is to have one test server and another test client
+	// spin up both agents and allow the server to authorize the auto encrypt
+	// request and then see the client get a TLS certificate
+	cfgDir := testutil.TempDir(t, "auto-encrypt")
+
+	// write some test TLS certificates out to the cfg dir
+	cert, key, cacert, err := testTLSCertificates("server.dc1.consul")
+	require.NoError(t, err)
+
+	certFile := filepath.Join(cfgDir, "cert.pem")
+	caFile := filepath.Join(cfgDir, "cacert.pem")
+	keyFile := filepath.Join(cfgDir, "key.pem")
+
+	require.NoError(t, ioutil.WriteFile(certFile, []byte(cert), 0600))
+	require.NoError(t, ioutil.WriteFile(caFile, []byte(cacert), 0600))
+	require.NoError(t, ioutil.WriteFile(keyFile, []byte(key), 0600))
+
+	hclConfig := TestACLConfigWithParams(nil) + `
+		verify_incoming = true
+		verify_outgoing = true
+		verify_server_hostname = true
+		ca_file = "` + caFile + `"
+		cert_file = "` + certFile + `"
+		key_file = "` + keyFile + `"
+		connect { enabled = true }
+		auto_encrypt { allow_tls = true }
+	`
+
+	srv := StartTestAgent(t, TestAgent{Name: "test-server", HCL: hclConfig})
+	defer srv.Shutdown()
+
+	testrpc.WaitForTestAgent(t, srv.RPC, "dc1", testrpc.WithToken(TestDefaultMasterToken))
+
+	client := StartTestAgent(t, TestAgent{Name: "test-client", HCL: TestACLConfigWithParams(nil) + `
+	   bootstrap = false
+		server = false
+		ca_file = "` + caFile + `"
+		verify_outgoing = true
+		verify_server_hostname = true
+		node_name = "test-client"
+		auto_encrypt {
+			tls = true
+		}
+		ports {
+			server = ` + strconv.Itoa(srv.Config.RPCBindAddr.Port) + `
+		}
+		retry_join = ["` + srv.Config.SerfBindAddrLAN.String() + `"]`,
+		UseTLS: true,
+	})
+
+	defer client.Shutdown()
+
+	// when this is successful we managed to get a TLS certificate and are using it for
+	// encrypted RPC connections.
+	testrpc.WaitForTestAgent(t, client.RPC, "dc1", testrpc.WithToken(TestDefaultMasterToken))
+
+	// now we need to validate that our certificate has the correct CN
+	aeCert := client.tlsConfigurator.Cert()
+	require.NotNil(t, aeCert)
+
+	id := connect.SpiffeIDAgent{
+		Host:       connect.TestClusterID + ".consul",
+		Datacenter: "dc1",
+		Agent:      "test-client",
+	}
+	expectedCN := connect.AgentCN("test-client", connect.TestClusterID)
+	x509Cert, err := x509.ParseCertificate(aeCert.Certificate[0])
+	require.NoError(t, err)
+	require.Equal(t, expectedCN, x509Cert.Subject.CommonName)
+	require.Len(t, x509Cert.URIs, 1)
+	require.Equal(t, id.URI(), x509Cert.URIs[0])
 }
