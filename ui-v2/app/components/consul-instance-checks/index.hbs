@@ -1,7 +1,6 @@
 {{#if (gt items.length 0)}}
-{{#let (service/instance-checks items) as |itemCheck| }}
-  {{#if (eq itemCheck.check 'empty') }}
-    <dl class={{itemCheck.check}}>
+  {{#if (eq healthCheck.check 'empty') }}
+    <dl class={{healthCheck.check}}>
       <dt>
         <Tooltip>
           {{capitalize type}} Checks
@@ -10,25 +9,24 @@
       <dd>No {{type}} checks</dd>
     </dl>
   {{else}}
-    {{#if (eq itemCheck.count items.length)}}
-    <dl class={{itemCheck.check}}>
+    {{#if (eq healthCheck.count items.length)}}
+    <dl class={{healthCheck.check}}>
       <dt>
         <Tooltip>
           {{capitalize type}} Checks
         </Tooltip>
       </dt>
-      <dd>All {{type}} checks {{itemCheck.status}}</dd>
+      <dd>All {{type}} checks {{healthCheck.status}}</dd>
     </dl>
     {{else}}
-    <dl class={{itemCheck.check}}>
+    <dl class={{healthCheck.check}}>
       <dt>
         <Tooltip>
           {{capitalize type}} Checks
         </Tooltip>
       </dt>
-      <dd>{{itemCheck.count}}/{{items.length}} {{type}} checks {{itemCheck.status}}</dd>
+      <dd>{{healthCheck.count}}/{{items.length}} {{type}} checks {{healthCheck.status}}</dd>
     </dl>
     {{/if}}
   {{/if}}
-{{/let}}
 {{/if}}
