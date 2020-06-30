@@ -581,25 +581,25 @@ jobs:
       - store_artifacts:
           path: *TEST_RESULTS_DIR
 
-  envoy-integration-test-1.12.4:
+  envoy-integration-test-1.12.6:
     docker:
       - image: *GOLANG_IMAGE
     environment:
-      ENVOY_VERSION: "1.12.4"
+      ENVOY_VERSION: "1.12.6"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
-  envoy-integration-test-1.13.2:
+  envoy-integration-test-1.13.4:
     docker:
       - image: *GOLANG_IMAGE
     environment:
-      ENVOY_VERSION: "1.13.2"
+      ENVOY_VERSION: "1.13.4"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
-  envoy-integration-test-1.14.2:
+  envoy-integration-test-1.14.4:
     docker:
       - image: *GOLANG_IMAGE
     environment:
-      ENVOY_VERSION: "1.14.2"
+      ENVOY_VERSION: "1.14.4"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
   # run integration tests for the connect ca providers
@@ -713,13 +713,13 @@ workflows:
       - envoy-integration-test-1.11.2:
           requires:
             - dev-build
-      - envoy-integration-test-1.12.4:
+      - envoy-integration-test-1.12.6:
           requires:
             - dev-build
-      - envoy-integration-test-1.13.2:
+      - envoy-integration-test-1.13.4:
           requires:
             - dev-build
-      - envoy-integration-test-1.14.2:
+      - envoy-integration-test-1.14.4:
           requires:
             - dev-build
 
