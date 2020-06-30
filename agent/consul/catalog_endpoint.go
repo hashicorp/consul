@@ -257,19 +257,21 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			var index uint64
-			var nodes structs.Nodes
 			var err error
 			if len(args.NodeMetaFilters) > 0 {
-				index, nodes, err = state.NodesByMeta(ws, args.NodeMetaFilters)
+				reply.Index, reply.Nodes, err = state.NodesByMeta(ws, args.NodeMetaFilters)
 			} else {
-				index, nodes, err = state.Nodes(ws)
+				reply.Index, reply.Nodes, err = state.Nodes(ws)
 			}
 			if err != nil {
 				return err
 			}
+			if isUnmodified(args.QueryOptions, reply.Index) {
+				reply.QueryMeta.NotModified = true
+				reply.Nodes = nil
+				return nil
+			}
 
-			reply.Index, reply.Nodes = index, nodes
 			if err := c.srv.filterACL(args.Token, reply); err != nil {
 				return err
 			}
@@ -284,13 +286,17 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 		})
 }
 
+func isUnmodified(opts structs.QueryOptions, index uint64) bool {
+	return opts.AllowNotModifiedResponse && opts.MinQueryIndex > 0 && opts.MinQueryIndex == index
+}
+
 // ListServices is used to query the services in a DC
 func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.IndexedServices) error {
 	if done, err := c.srv.forward("Catalog.ListServices", args, args, reply); done {
 		return err
 	}
 
-	(*reply).EnterpriseMeta = args.EnterpriseMeta
+	reply.EnterpriseMeta = args.EnterpriseMeta
 
 	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
 	if err != nil {
@@ -305,19 +311,21 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			var index uint64
-			var services structs.Services
 			var err error
 			if len(args.NodeMetaFilters) > 0 {
-				index, services, err = state.ServicesByNodeMeta(ws, args.NodeMetaFilters, &args.EnterpriseMeta)
+				reply.Index, reply.Services, err = state.ServicesByNodeMeta(ws, args.NodeMetaFilters, &args.EnterpriseMeta)
 			} else {
-				index, services, err = state.Services(ws, &args.EnterpriseMeta)
+				reply.Index, reply.Services, err = state.Services(ws, &args.EnterpriseMeta)
 			}
 			if err != nil {
 				return err
 			}
+			if isUnmodified(args.QueryOptions, reply.Index) {
+				reply.Services = nil
+				reply.QueryMeta.NotModified = true
+				return nil
+			}
 
-			reply.Index, reply.Services, reply.EnterpriseMeta = index, services, args.EnterpriseMeta
 			return c.srv.filterACLWithAuthorizer(authz, reply)
 		})
 }
