@@ -829,7 +829,7 @@ func (d *DNSServer) computeRCode(err error) int {
 		return dns.RcodeSuccess
 	}
 	dErr := err.Error()
-	if dErr == structs.ErrNoDCPath.Error() || dErr == consul.ErrQueryNotFound.Error() {
+	if structs.IsErrNoDCPath(err) || dErr == consul.ErrQueryNotFound.Error() {
 		return dns.RcodeNameError
 	}
 	return dns.RcodeServerFailure

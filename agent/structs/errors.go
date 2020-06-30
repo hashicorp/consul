@@ -26,6 +26,10 @@ var (
 	ErrDCNotAvailable             = errors.New(errDCNotAvailable)
 )
 
+func IsErrNoDCPath(err error) bool {
+	return err != nil && strings.Contains(err.Error(), errNoDCPath)
+}
+
 func IsErrNoLeader(err error) bool {
 	return err != nil && strings.Contains(err.Error(), errNoLeader)
 }
