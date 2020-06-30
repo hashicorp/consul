@@ -212,6 +212,11 @@ type QueryOptions struct {
 	// Filter specifies the go-bexpr filter expression to be used for
 	// filtering the data prior to returning a response
 	Filter string
+
+	// AllowNotModifiedResponse indicates that if the MinIndex matches the
+	// QueryMeta.Index, the response can be left empty and QueryMeta.NotModified
+	// will be set to true to indicate the result of the query has not changed.
+	AllowNotModifiedResponse bool
 }
 
 // IsRead is always true for QueryOption.
@@ -268,7 +273,7 @@ func (w *WriteRequest) SetTokenSecret(s string) {
 // QueryMeta allows a query response to include potentially
 // useful metadata about a query
 type QueryMeta struct {
-	// This is the index associated with the read
+	// Index in the raft log of the latest item returned by the query.
 	Index uint64
 
 	// If AllowStale is used, this is time elapsed since
@@ -283,6 +288,12 @@ type QueryMeta struct {
 	// Having `discovery_max_stale` on the agent can affect whether
 	// the request was served by a leader.
 	ConsistencyLevel string
+
+	// NotModified is true when the Index of the query is the same value as the
+	// requested MinIndex. It indicates that the entity has not been modified.
+	// When NotModified is true, the response will not contain the result of
+	// the query.
+	NotModified bool
 }
 
 // RegisterRequest is used for the Catalog.Register endpoint
