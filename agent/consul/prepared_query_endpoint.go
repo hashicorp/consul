@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -14,11 +13,6 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
-)
-
-var (
-	// ErrQueryNotFound is returned if the query lookup failed.
-	ErrQueryNotFound = errors.New("Query not found")
 )
 
 // PreparedQuery manages the prepared query endpoint.
@@ -228,7 +222,7 @@ func (p *PreparedQuery) Get(args *structs.PreparedQuerySpecificRequest,
 				return err
 			}
 			if query == nil {
-				return ErrQueryNotFound
+				return structs.ErrQueryNotFound
 			}
 
 			// If no prefix ACL applies to this query, then they are
@@ -303,7 +297,7 @@ func (p *PreparedQuery) Explain(args *structs.PreparedQueryExecuteRequest,
 		return err
 	}
 	if query == nil {
-		return ErrQueryNotFound
+		return structs.ErrQueryNotFound
 	}
 
 	// Place the query into a list so we can run the standard ACL filter on
@@ -350,7 +344,7 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 		return err
 	}
 	if query == nil {
-		return ErrQueryNotFound
+		return structs.ErrQueryNotFound
 	}
 
 	// Execute the query for the local DC.
