@@ -196,7 +196,7 @@ export default function HomePage() {
             category: 'Step-by-Step Guides',
             time: '48 mins',
             link:
-              'https://learn.hashicorp.com/consul?track=getting-started#getting-started',
+              'https://learn.hashicorp.com/consul/getting-started/install',
             image: require('./img/learn/getting-started.svg?url'),
           },
           {
@@ -204,7 +204,7 @@ export default function HomePage() {
             category: 'Step-by-Step Guides',
             time: '142 mins',
             link:
-              'https://learn.hashicorp.com/consul?track=kubernetes#kubernetes',
+              'https://learn.hashicorp.com/consul/kubernetes/minikube',
             image: require('./img/learn/kubernetes.svg?url'),
           },
         ]}
