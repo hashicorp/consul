@@ -48,7 +48,7 @@ export default Component.extend({
       items = [{ Name: '*' }].concat(items);
       let source = items.findBy('Name', item.SourceNS);
       if (!source) {
-        source = { Name: this.item.SourceNS };
+        source = { Name: item.SourceNS };
         items = [source].concat(items);
       }
       let destination = items.findBy('Name', item.DestinationNS);
