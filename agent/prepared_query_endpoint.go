@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
-	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -144,7 +143,7 @@ func (s *HTTPServer) preparedQueryExecute(id string, resp http.ResponseWriter, r
 		if err := s.agent.RPC("PreparedQuery.Execute", &args, &reply); err != nil {
 			// We have to check the string since the RPC sheds
 			// the specific error type.
-			if err.Error() == consul.ErrQueryNotFound.Error() {
+			if structs.IsErrQueryNotFound(err) {
 				resp.WriteHeader(http.StatusNotFound)
 				fmt.Fprint(resp, err.Error())
 				return nil, nil
@@ -198,7 +197,7 @@ RETRY_ONCE:
 	if err := s.agent.RPC("PreparedQuery.Explain", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds
 		// the specific error type.
-		if err.Error() == consul.ErrQueryNotFound.Error() {
+		if structs.IsErrQueryNotFound(err) {
 			resp.WriteHeader(http.StatusNotFound)
 			fmt.Fprint(resp, err.Error())
 			return nil, nil
@@ -229,7 +228,7 @@ RETRY_ONCE:
 	if err := s.agent.RPC("PreparedQuery.Get", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds
 		// the specific error type.
-		if err.Error() == consul.ErrQueryNotFound.Error() {
+		if structs.IsErrQueryNotFound(err) {
 			resp.WriteHeader(http.StatusNotFound)
 			fmt.Fprint(resp, err.Error())
 			return nil, nil

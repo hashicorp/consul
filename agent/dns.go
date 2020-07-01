@@ -16,7 +16,6 @@ import (
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/config"
-	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
@@ -828,8 +827,7 @@ func (d *DNSServer) computeRCode(err error) int {
 	if err == nil {
 		return dns.RcodeSuccess
 	}
-	dErr := err.Error()
-	if dErr == structs.ErrNoDCPath.Error() || dErr == consul.ErrQueryNotFound.Error() {
+	if structs.IsErrNoDCPath(err) || structs.IsErrQueryNotFound(err) {
 		return dns.RcodeNameError
 	}
 	return dns.RcodeServerFailure
