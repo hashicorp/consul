@@ -24,7 +24,7 @@ export default RepositoryService.extend({
           }
           return;
         default:
-          return;
+          throw e;
       }
     });
   },
