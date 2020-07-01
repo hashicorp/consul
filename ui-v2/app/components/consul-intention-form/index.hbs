@@ -1,12 +1,12 @@
-<Form
+<DataForm
   @dc={{dc}}
   @nspace={{nspace}}
-  @onchange={{action "change"}}
-  @onsubmit={{action onsubmit}}
+  @type="intention"
   @autofill={{autofill}}
   @item={{item}}
   @src={{src}}
-  @type="intention"
+  @onchange={{action "change"}}
+  @onsubmit={{action onsubmit}}
   as |api|
 >
     <BlockSlot @name="error" as |Notification|>
@@ -18,7 +18,9 @@
   {{else}}
           <strong>Error!</strong>
           There was an error saving your intention.
+        {{#if (and api.error.status api.error.detail)}}
           <br />{{api.error.status}}: {{api.error.detail}}
+        {{/if}}
   {{/if}}
         </p>
       </Notification>
@@ -28,13 +30,13 @@
 
       <DataSource
         @src={{concat '/' nspace '/' dc '/services'}}
-        @onchange={{action "createServices" api.item}}
+        @onchange={{action "createServices" api.data}}
       />
 
       {{#if (env 'CONSUL_NSPACES_ENABLED')}}
         <DataSource
           @src="/*/*/namespaces"
-          @onchange={{action "createNspaces" api.item}}
+          @onchange={{action "createNspaces" api.data}}
         />
       {{/if}}
 
@@ -43,7 +45,7 @@
           <div role="group">
             <fieldset>
               <h2>Source</h2>
-              <label data-test-source-element class="type-select{{if api.item.error.SourceName ' has-error'}}">
+              <label data-test-source-element class="type-select{{if api.data.error.SourceName ' has-error'}}">
                 <span>Source Service</span>
                 <PowerSelectWithCreate
                     @options={{services}}
@@ -63,7 +65,7 @@
                 <em>Search for an existing service, or enter any Service name.</em>
               </label>
         {{#if (env 'CONSUL_NSPACES_ENABLED')}}
-              <label data-test-source-nspace class="type-select{{if api.item.error.SourceNS ' has-error'}}">
+              <label data-test-source-nspace class="type-select{{if api.data.error.SourceNS ' has-error'}}">
                 <span>Source Namespace</span>
                 <PowerSelectWithCreate
                     @options={{nspaces}}
@@ -86,7 +88,7 @@
             </fieldset>
             <fieldset>
               <h2>Destination</h2>
-              <label data-test-destination-element class="type-select{{if api.item.error.DestinationName ' has-error'}}">
+              <label data-test-destination-element class="type-select{{if api.data.error.DestinationName ' has-error'}}">
                 <span>Destination Service</span>
                 <PowerSelectWithCreate
                     @options={{services}}
@@ -106,7 +108,7 @@
                 <em>Search for an existing service, or enter any Service name.</em>
               </label>
         {{#if (env 'CONSUL_NSPACES_ENABLED')}}
-              <label data-test-destination-nspace class="type-select{{if api.item.error.DestinationNS ' has-error'}}">
+              <label data-test-destination-nspace class="type-select{{if api.data.error.DestinationNS ' has-error'}}">
                 <span>Destination Namespace</span>
                 <PowerSelectWithCreate
                     @options={{nspaces}}
@@ -128,23 +130,23 @@
       {{/if}}
             </fieldset>
           </div>
-          <div role="radiogroup" class={{if api.item.error.Action ' has-error'}}>
+          <div role="radiogroup" class={{if api.data.error.Action ' has-error'}}>
             {{#each (array 'allow' 'deny') as |intent|}}
               <label>
                 <span>{{capitalize intent}}</span>
-                <input type="radio" name="Action" value={{intent}} checked={{if (eq api.item.Action intent) 'checked'}} onchange={{action api.change}}/>
+                <input type="radio" name="Action" value={{intent}} checked={{if (eq api.data.Action intent) 'checked'}} onchange={{action api.change}}/>
               </label>
             {{/each}}
           </div>
-          <label class="type-text{{if api.item.error.Description ' has-error'}}">
+          <label class="type-text{{if api.data.error.Description ' has-error'}}">
             <span>Description (Optional)</span>
-            <input type="text" name="Description" value={{form.item.Description}} placeholder="Description (Optional)" onchange={{action api.change}} />
+            <input type="text" name="Description" value={{form.data.Description}} placeholder="Description (Optional)" onchange={{action api.change}} />
           </label>
         </fieldset>
         <div>
-          <button type="submit" disabled={{or api.item.isInvalid api.disabled}}>Save</button>
+          <button type="submit" disabled={{or api.data.isInvalid api.disabled}}>Save</button>
       {{#if (not api.isCreate)}}
-          <button type="reset" onclick={{action oncancel api.item}} disabled={{disabled}}>Cancel</button>
+          <button type="reset" onclick={{action oncancel api.data}} disabled={{disabled}}>Cancel</button>
         {{#if (not-eq form.item.ID 'anonymous') }}
           <ConfirmationDialog @message="Are you sure you want to delete this Intention?">
             <BlockSlot @name="action" as |confirm|>
@@ -160,4 +162,4 @@
     </form>
 
   </BlockSlot>
-</Form>
+</DataForm>

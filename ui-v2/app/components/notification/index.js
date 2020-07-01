@@ -18,7 +18,10 @@ export default Component.extend({
       extendedTimeout: 300,
       dom: $el.innerHTML,
     };
-    $el.innerHTML = '';
+    if (this.sticky) {
+      options.sticky = true;
+    }
+    $el.remove();
     this.notify.clearMessages();
     if (typeof this.after === 'function') {
       Promise.resolve(this.after()).then(res => {
