@@ -90,8 +90,8 @@ Feature: components / catalog-filter
       node: node-0
     ---
     # And I see 3 healthcheck model with the name "Disk Util"
-    When I click services on the tabs
-    And I see servicesIsSelected on the tabs
+    When I click serviceInstances on the tabs
+    And I see serviceInstancesIsSelected on the tabs
 
     Then I fill in with yaml
     ---
@@ -99,12 +99,6 @@ Feature: components / catalog-filter
     ---
     And I see 1 [Model] model
     And I see 1 [Model] model with the port "65535"
-    Then I fill in with yaml
-    ---
-    s: service-0-with-id
-    ---
-    And I see 1 [Model] model
-    And I see 1 [Model] model with the id "service-0-with-id"
     Then I fill in with yaml
     ---
     s: hard drive

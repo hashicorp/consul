@@ -11,8 +11,8 @@ Feature: dc / nodes / show: Show node
     ---
     And I see healthChecksIsSelected on the tabs
 
-    When I click services on the tabs
-    And I see servicesIsSelected on the tabs
+    When I click serviceInstances on the tabs
+    And I see serviceInstancesIsSelected on the tabs
 
     When I click roundTripTime on the tabs
     And I see roundTripTimeIsSelected on the tabs
@@ -34,14 +34,14 @@ Feature: dc / nodes / show: Show node
     ---
     And I see healthChecksIsSelected on the tabs
 
-    When I click services on the tabs
-    And I see servicesIsSelected on the tabs
+    When I click serviceInstances on the tabs
+    And I see serviceInstancesIsSelected on the tabs
 
     And I don't see roundTripTime on the tabs
 
     When I click lockSessions on the tabs
     And I see lockSessionsIsSelected on the tabs
-  Scenario: Given 1 node with no checks all the tabs are visible but the Services tab is selected
+  Scenario: Given 1 node with no checks all the tabs are visible but the serviceInstances tab is selected
     Given 1 node models from yaml
     ---
     ID: node-0
@@ -53,10 +53,10 @@ Feature: dc / nodes / show: Show node
       node: node-0
     ---
     And I see healthChecks on the tabs
-    And I see services on the tabs
+    And I see serviceInstances on the tabs
     And I don't see roundTripTime on the tabs
     And I see lockSessions on the tabs
-    And I see servicesIsSelected on the tabs
+    And I see serviceInstancesIsSelected on the tabs
   Scenario: A node warns when deregistered whilst blocking
     Given 1 node model from yaml
     ---
