@@ -5,7 +5,6 @@ export default Service.extend({
   settings: service('settings'),
   intention: service('repository/intention'),
   prepare: function(sink, data, instance) {
-    const [, , , model] = sink.split('/');
     return setProperties(instance, data);
   },
   persist: function(sink, instance) {

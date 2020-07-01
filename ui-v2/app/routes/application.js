@@ -39,7 +39,6 @@ export default Route.extend(WithBlockingActions, {
   actions: {
     loading: function(transition, originRoute) {
       const from = get(transition, 'from.name') || 'application';
-      const to = get(transition, 'to.name');
       const controller = this.controllerFor(from);
 
       set(controller, 'loading', true);
