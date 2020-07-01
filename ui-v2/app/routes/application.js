@@ -1,11 +1,12 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
+import { get, set } from '@ember/object';
 
 import WithBlockingActions from 'consul-ui/mixins/with-blocking-actions';
 
 const removeLoading = function($from) {
-  return $from.classList.remove('ember-loading');
+  return $from.classList.remove('ember-loading', 'loading');
 };
 export default Route.extend(WithBlockingActions, {
   dom: service('dom'),
@@ -37,8 +38,16 @@ export default Route.extend(WithBlockingActions, {
   },
   actions: {
     loading: function(transition, originRoute) {
+      const from = get(transition, 'from.name') || 'application';
+      const to = get(transition, 'to.name');
+      const controller = this.controllerFor(from);
+
+      set(controller, 'loading', true);
+      const $root = this.dom.root();
+      $root.classList.add('loading');
       transition.promise.finally(() => {
-        removeLoading(this.dom.root());
+        set(controller, 'loading', false);
+        removeLoading($root);
       });
     },
     error: function(e, transition) {

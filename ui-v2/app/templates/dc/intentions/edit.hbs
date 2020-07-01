@@ -3,18 +3,10 @@
 {{else}}
     {{title 'New Intention'}}
 {{/if}}
-
-<AppView @class="intention edit" @loading={{isLoading}}>
+<AppView @class="intention edit">
     <BlockSlot @name="breadcrumbs">
         <ol>
-      {{#if (gt history.length 0)}}
-          <li><a href={{href-to 'dc.services'}}>All Services</a></li>
-        {{#let history.firstObject as |back|}}
-          <li><a data-test-back href={{href-to back.key back.value}}>{{concat 'Service (' back.value ')'}}</a></li>
-        {{/let}}
-      {{else}}
           <li><a data-test-back href={{href-to 'dc.intentions'}}>All Intentions</a></li>
-      {{/if}}
         </ol>
     </BlockSlot>
     <BlockSlot @name="header">

@@ -1,5 +1,4 @@
 {{yield}}
-{{#if (not loading)}}
 <header>
 {{#each flashMessages.queue as |flash|}}
     <FlashMessage @flash={{flash}} as |component flash|>
@@ -80,11 +79,7 @@
     </YieldSlot>
   {{/if}}
 </header>
-{{/if}}
 <div>
-{{#if loading}}
-    <ConsulLoader />
-{{else}}
     {{#if (not enabled) }}
       <YieldSlot @name="disabled">{{yield}}</YieldSlot>
     {{else if (not authorized)}}
@@ -92,5 +87,4 @@
     {{else}}
       <YieldSlot @name="content">{{yield}}</YieldSlot>
     {{/if}}
-{{/if}}
 </div>

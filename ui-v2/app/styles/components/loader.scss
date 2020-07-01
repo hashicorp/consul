@@ -1,7 +1,13 @@
 @import './loader/index';
-html.template-loading main > div {
+.consul-loader {
   @extend %loader;
 }
 %loader circle {
   fill: $magenta-100;
+}
+html:not(.loading) .view-loader {
+  display: none;
+}
+html.loading .app-view {
+  display: none;
 }
