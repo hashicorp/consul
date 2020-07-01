@@ -205,8 +205,8 @@ github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de/go.mod h1:
 github.com/hashicorp/go-cleanhttp v0.5.0/go.mod h1:JpRdi6/HCYpAwUzNwuwqhbovhLtngrth3wmdIIUrZ80=
 github.com/hashicorp/go-cleanhttp v0.5.1 h1:dH3aiDG9Jvb5r5+bYHsikaOUIpcM0xvgMXVoDkXMzJM=
 github.com/hashicorp/go-cleanhttp v0.5.1/go.mod h1:JpRdi6/HCYpAwUzNwuwqhbovhLtngrth3wmdIIUrZ80=
-github.com/hashicorp/go-connlimit v0.2.0 h1:OZjcfNxH/hPh/bT2Iw5yOJcLzz+zuIWpsp3I1S4Pjw4=
-github.com/hashicorp/go-connlimit v0.2.0/go.mod h1:OUj9FGL1tPIhl/2RCfzYHrIiWj+VVPGNyVPnUX8AqS0=
+github.com/hashicorp/go-connlimit v0.3.0 h1:oAojHGjFxUTTTA8c5XXnDqWJ2HLuWbDiBPTpWvNzvqM=
+github.com/hashicorp/go-connlimit v0.3.0/go.mod h1:OUj9FGL1tPIhl/2RCfzYHrIiWj+VVPGNyVPnUX8AqS0=
 github.com/hashicorp/go-discover v0.0.0-20200501174627-ad1e96bde088 h1:jBvElOilnIl6mm8S6gva/dfeTJCcMs9TGO6/2C6k52E=
 github.com/hashicorp/go-discover v0.0.0-20200501174627-ad1e96bde088/go.mod h1:vZu6Opqf49xX5lsFAu7iFNewkcVF1sn/wyapZh5ytlg=
 github.com/hashicorp/go-hclog v0.0.0-20180709165350-ff2cf002a8dd/go.mod h1:9bjs9uLqI8l75knNv3lV1kA55veR+WUPSiKIWcQHudI=
