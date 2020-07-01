@@ -1,0 +1,32 @@
+{{#if (gt items.length 0)}}
+  {{#if (eq healthCheck.check 'empty') }}
+    <dl class={{healthCheck.check}}>
+      <dt>
+        <Tooltip>
+          {{capitalize type}} Checks
+        </Tooltip>
+      </dt>
+      <dd>No {{type}} checks</dd>
+    </dl>
+  {{else}}
+    {{#if (eq healthCheck.count items.length)}}
+    <dl class={{healthCheck.check}}>
+      <dt>
+        <Tooltip>
+          {{capitalize type}} Checks
+        </Tooltip>
+      </dt>
+      <dd>All {{type}} checks {{healthCheck.status}}</dd>
+    </dl>
+    {{else}}
+    <dl class={{healthCheck.check}}>
+      <dt>
+        <Tooltip>
+          {{capitalize type}} Checks
+        </Tooltip>
+      </dt>
+      <dd>{{healthCheck.count}}/{{items.length}} {{type}} checks {{healthCheck.status}}</dd>
+    </dl>
+    {{/if}}
+  {{/if}}
+{{/if}}
