@@ -1,30 +1,7 @@
 export default {
-  id: 'form',
-  initial: 'load',
+  id: 'data-writer',
+  initial: 'idle',
   states: {
-    load: {
-      on: {
-        LOAD: [
-          {
-            target: 'idle',
-            cond: 'loaded',
-          },
-          {
-            target: 'loading',
-          },
-        ],
-      },
-    },
-    loading: {
-      on: {
-        SUCCESS: {
-          target: 'idle',
-        },
-        ERROR: {
-          target: 'loadError',
-        },
-      },
-    },
     idle: {
       on: {
         PERSIST: {
@@ -55,16 +32,21 @@ export default {
         },
       },
     },
-    removed: {},
-    persisted: {},
-    error: {
+    removed: {
       on: {
         RESET: {
           target: 'idle',
         },
       },
     },
-    loadError: {
+    persisted: {
+      on: {
+        RESET: {
+          target: 'idle',
+        },
+      },
+    },
+    error: {
       on: {
         RESET: {
           target: 'idle',
