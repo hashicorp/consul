@@ -3,6 +3,7 @@ package agent
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -129,7 +130,7 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 	}
 }
 
-func TestHTTPServer_HTTP2(t *testing.T) {
+func TestSetupHTTPServer_HTTP2(t *testing.T) {
 	t.Parallel()
 
 	// Fire up an agent with TLS enabled.
@@ -169,14 +170,28 @@ func TestHTTPServer_HTTP2(t *testing.T) {
 		fmt.Fprint(resp, req.Proto)
 	}
 
-	w, ok := a.srv.Server.Handler.(*wrappedMux)
-	if !ok {
-		t.Fatalf("handler is not expected type")
-	}
-	w.mux.HandleFunc("/echo", handler)
+	// Create an httpServer to be configured with setupHTTPS, and add our
+	// custom handler.
+	httpServer := &http.Server{}
+	noopConnState := func(net.Conn, http.ConnState) {}
+	err = setupHTTPS(httpServer, noopConnState, time.Second)
+	require.NoError(t, err)
+
+	srvHandler := a.srv.handler(true)
+	mux, ok := srvHandler.(*wrappedMux)
+	require.True(t, ok, "expected a *wrappedMux, got %T", handler)
+	mux.mux.HandleFunc("/echo", handler)
+	httpServer.Handler = mux
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	tlsListener := tls.NewListener(listener, a.tlsConfigurator.IncomingHTTPSConfig())
+
+	go httpServer.Serve(tlsListener)
+	defer httpServer.Shutdown(context.Background())
 
 	// Call it and make sure we see HTTP/2.
-	url := fmt.Sprintf("https://%s/echo", a.srv.ln.Addr().String())
+	url := fmt.Sprintf("https://%s/echo", listener.Addr().String())
 	resp, err := httpClient.Get(url)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -194,7 +209,7 @@ func TestHTTPServer_HTTP2(t *testing.T) {
 	// some other endpoint, but configure an API client and make a call
 	// just as a sanity check.
 	cfg := &api.Config{
-		Address:    a.srv.ln.Addr().String(),
+		Address:    listener.Addr().String(),
 		Scheme:     "https",
 		HttpClient: httpClient,
 	}
