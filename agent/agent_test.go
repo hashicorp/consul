@@ -1917,7 +1917,7 @@ func TestAgent_HTTPCheck_EnableAgentTLSForChecks(t *testing.T) {
 			Status:  api.HealthCritical,
 		}
 
-		url := fmt.Sprintf("https://%s/v1/agent/self", a.srv.ln.Addr().String())
+		url := fmt.Sprintf("https://%s/v1/agent/self", a.HTTPAddr())
 		chk := &structs.CheckType{
 			HTTP:     url,
 			Interval: 20 * time.Millisecond,
