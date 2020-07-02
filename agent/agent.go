@@ -1151,24 +1151,25 @@ func (a *Agent) listenHTTP() ([]*HTTPServer, error) {
 				l = tls.NewListener(l, tlscfg)
 			}
 
+			httpServer := &http.Server{
+				Addr:      l.Addr().String(),
+				TLSConfig: tlscfg,
+			}
 			srv := &HTTPServer{
-				Server: &http.Server{
-					Addr:      l.Addr().String(),
-					TLSConfig: tlscfg,
-				},
+				Server:   httpServer,
 				ln:       l,
 				agent:    a,
 				denylist: NewDenylist(a.config.HTTPBlockEndpoints),
 				proto:    proto,
 			}
-			srv.Server.Handler = srv.handler(a.config.EnableDebug)
+			httpServer.Handler = srv.handler(a.config.EnableDebug)
 
 			// Load the connlimit helper into the server
 			connLimitFn := a.httpConnLimiter.HTTPConnStateFunc()
 
 			if proto == "https" {
 				// Enforce TLS handshake timeout
-				srv.Server.ConnState = func(conn net.Conn, state http.ConnState) {
+				httpServer.ConnState = func(conn net.Conn, state http.ConnState) {
 					switch state {
 					case http.StateNew:
 						// Set deadline to prevent slow send before TLS handshake or first
@@ -1188,12 +1189,12 @@ func (a *Agent) listenHTTP() ([]*HTTPServer, error) {
 
 				// This will enable upgrading connections to HTTP/2 as
 				// part of TLS negotiation.
-				err = http2.ConfigureServer(srv.Server, nil)
+				err = http2.ConfigureServer(httpServer, nil)
 				if err != nil {
 					return err
 				}
 			} else {
-				srv.Server.ConnState = connLimitFn
+				httpServer.ConnState = connLimitFn
 			}
 
 			ln = append(ln, l)
@@ -1263,7 +1264,7 @@ func (a *Agent) serveHTTP(srv *HTTPServer) error {
 	go func() {
 		defer a.wgServers.Done()
 		notif <- srv.ln.Addr()
-		err := srv.Serve(srv.ln)
+		err := srv.Server.Serve(srv.ln)
 		if err != nil && err != http.ErrServerClosed {
 			a.logger.Error("error closing server", "error", err)
 		}
@@ -2111,7 +2112,7 @@ func (a *Agent) ShutdownEndpoints() {
 		)
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-		srv.Shutdown(ctx)
+		srv.Server.Shutdown(ctx)
 		if ctx.Err() == context.DeadlineExceeded {
 			a.logger.Warn("Timeout stopping server",
 				"protocol", strings.ToUpper(srv.proto),

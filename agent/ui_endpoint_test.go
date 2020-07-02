@@ -43,7 +43,7 @@ func TestUiIndex(t *testing.T) {
 	// Register node
 	req, _ := http.NewRequest("GET", "/ui/my-file", nil)
 	req.URL.Scheme = "http"
-	req.URL.Host = a.srv.Addr
+	req.URL.Host = a.srv.Server.Addr
 
 	// Make the request
 	client := cleanhttp.DefaultClient()

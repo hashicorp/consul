@@ -81,7 +81,8 @@ func (e ForbiddenError) Error() string {
 
 // HTTPServer provides an HTTP api for an agent.
 type HTTPServer struct {
-	*http.Server
+	// TODO(dnephin): remove Server field, it is not used by any of the HTTPServer methods
+	Server   *http.Server
 	ln       net.Listener
 	agent    *Agent
 	denylist *Denylist
