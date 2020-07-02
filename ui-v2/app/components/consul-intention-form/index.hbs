@@ -41,6 +41,7 @@
       {{/if}}
 
       <form onsubmit={{action api.submit}}>
+
         <fieldset disabled={{api.disabled}}>
           <div role="group">
             <fieldset>
@@ -140,13 +141,14 @@
           </div>
           <label class="type-text{{if api.data.error.Description ' has-error'}}">
             <span>Description (Optional)</span>
-            <input type="text" name="Description" value={{form.data.Description}} placeholder="Description (Optional)" onchange={{action api.change}} />
+            <input type="text" name="Description" value={{api.data.Description}} placeholder="Description (Optional)" onchange={{action api.change}} />
           </label>
         </fieldset>
+
         <div>
           <button type="submit" disabled={{or api.data.isInvalid api.disabled}}>Save</button>
       {{#if (not api.isCreate)}}
-          <button type="reset" onclick={{action oncancel api.data}} disabled={{disabled}}>Cancel</button>
+          <button type="reset" onclick={{action oncancel api.data}} disabled={{api.disabled}}>Cancel</button>
         {{#if (not-eq form.item.ID 'anonymous') }}
           <ConfirmationDialog @message="Are you sure you want to delete this Intention?">
             <BlockSlot @name="action" as |confirm|>
@@ -158,7 +160,8 @@
           </ConfirmationDialog>
         {{/if}}
       {{/if}}
-      </div>
+        </div>
+
     </form>
 
   </BlockSlot>
