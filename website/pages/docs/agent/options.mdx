@@ -447,7 +447,7 @@ The options below are all specified on the command-line.
   more details. By default, this is an empty string, which is the default network
   segment.
 
-- `-serf-lan-allowed-cidrs` - The Serf LAN allowed CIDRs allow to accept incoming
+- `-serf-lan-allowed-cidrs` ((#\_serf_lan_allowed_cidrs)) - The Serf LAN allowed CIDRs allow to accept incoming
   connections for Serf only from several networks (mutiple values are supported).
   Those networks are specified with CIDR notation (eg: 192.168.1.0/24).
   This is available in Consul 1.8 and later.
@@ -456,7 +456,7 @@ The options below are all specified on the command-line.
   This overrides the default Serf LAN port 8301. This is available in Consul 1.2.2
   and later.
 
-- `-serf-lan-allowed-cidrs` - he Serf LAN allowed CIDRs allow to accept incoming
+- `-serf-wan-allowed-cidrs` ((#\_serf_wan_allowed_cidrs)) - The Serf WAN allowed CIDRs allow to accept incoming
   connections for Serf only from several networks (mutiple values are supported).
   Those networks are specified with CIDR notation (eg: 192.168.1.0/24).
   This is available in Consul 1.8 and later.
@@ -814,11 +814,15 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
 - `advertise_addr` Equivalent to the [`-advertise` command-line flag](#_advertise).
 
-- `serf_wan` ((#serf_wan_bind)) Equivalent to the [`-serf-wan-bind` command-line flag](#_serf_wan_bind).
+- `advertise_addr_wan` Equivalent to the [`-advertise-wan` command-line flag](#_advertise-wan).
 
 - `serf_lan` ((#serf_lan_bind)) Equivalent to the [`-serf-lan-bind` command-line flag](#_serf_lan_bind).
 
-- `advertise_addr_wan` Equivalent to the [`-advertise-wan` command-line flag](#_advertise-wan).
+- `serf_lan_allowed_cidrs` ((#serf_lan_allowed_cidrs)) Equivalent to the [`-serf-lan-allowed-cidrs` command-line flag](#_serf_lan_allowed_cidrs).
+
+- `serf_wan` ((#serf_wan_bind)) Equivalent to the [`-serf-wan-bind` command-line flag](#_serf_wan_bind).
+
+- `serf_wan_allowed_cidrs` ((#serf_wan_allowed_cidrs)) Equivalent to the [`-serf-wan-allowed-cidrs` command-line flag](#_serf_wan_allowed_cidrs).
 
 - `audit` <EnterpriseAlert inline /> - Added in Consul 1.8, the audit object allow users to enable auditing
     and configure a sink and filters for their audit logs.
