@@ -5,7 +5,7 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { createMdxProvider } from '@hashicorp/nextjs-scripts/lib/providers/docs'
 
-const MDXProvider = createMdxProvider({ product: 'consul', preset: 'oss' })
+const MDXProvider = createMdxProvider({ product: 'consul' })
 
 function DocsLayoutWrapper(pageMeta) {
   function DocsLayout(props) {
