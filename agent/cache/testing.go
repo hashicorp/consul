@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/hashicorp/consul/lib"
 	"github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -13,7 +14,7 @@ import (
 // TestCache returns a Cache instance configuring for testing.
 func TestCache(t testing.T) *Cache {
 	// Simple but lets us do some fine-tuning later if we want to.
-	return New(nil)
+	return New(NewOptions(lib.NewRateLimitSpec(1 * time.Microsecond)))
 }
 
 // TestCacheGetCh returns a channel that returns the result of the Get call.

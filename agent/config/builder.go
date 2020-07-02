@@ -756,6 +756,22 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		return RuntimeConfig{}, fmt.Errorf("serf_wan_allowed_cidrs: %s", err)
 	}
 
+	rateLimitPtr := c.CacheConfig.DefaultRateLimitPerEntry
+	rateLimit := "10/s"
+	if rateLimitPtr != nil {
+		rateLimit = *rateLimitPtr
+	}
+	cacheRateLimitPerEntry, err := lib.ParseRateLimit(rateLimit)
+	if err != nil {
+		return RuntimeConfig{}, fmt.Errorf("rate_limit_per_entry: %s", err)
+	}
+	CacheConfiguration := CacheConfiguration{
+		CacheRateLimitPerEntry: CacheRateLimitPerEntry{
+			Value:           rateLimit,
+			RateLimitConfig: cacheRateLimitPerEntry,
+		},
+	}
+
 	// ----------------------------------------------------------------
 	// build runtime config
 	//
@@ -887,6 +903,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		BindAddr:                               bindAddr,
 		Bootstrap:                              b.boolVal(c.Bootstrap),
 		BootstrapExpect:                        b.intVal(c.BootstrapExpect),
+		CacheConfiguration:                     CacheConfiguration,
 		CAFile:                                 b.stringVal(c.CAFile),
 		CAPath:                                 b.stringVal(c.CAPath),
 		CertFile:                               b.stringVal(c.CertFile),

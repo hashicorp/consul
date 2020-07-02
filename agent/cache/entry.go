@@ -41,6 +41,8 @@ type cacheEntry struct {
 	// background request has be blocking for at least 5 seconds, which ever
 	// happens first.
 	RefreshLostContact time.Time
+	// Ratelimit avoid entries to fetch too often too many results
+	RateLimiter RateLimiter
 }
 
 // cacheEntryExpiry contains the expiration information for a cache

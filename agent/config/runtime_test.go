@@ -4411,6 +4411,9 @@ func TestFullConfig(t *testing.T) {
 			"bind_addr": "16.99.34.17",
 			"bootstrap": true,
 			"bootstrap_expect": 53,
+			"cache": {
+				"rate_limit_per_entry": "10/s"
+			},
 			"ca_file": "erA7T0PM",
 			"ca_path": "mQEN1Mfp",
 			"cert_file": "7s4QAzDk",
@@ -5071,6 +5074,9 @@ func TestFullConfig(t *testing.T) {
 			bind_addr = "16.99.34.17"
 			bootstrap = true
 			bootstrap_expect = 53
+			cache = {
+				rate_limit_per_entry = "10/s"
+			},
 			ca_file = "erA7T0PM"
 			ca_path = "mQEN1Mfp"
 			cert_file = "7s4QAzDk"
@@ -5797,10 +5803,16 @@ func TestFullConfig(t *testing.T) {
 		BindAddr:                         ipAddr("16.99.34.17"),
 		Bootstrap:                        true,
 		BootstrapExpect:                  53,
-		CAFile:                           "erA7T0PM",
-		CAPath:                           "mQEN1Mfp",
-		CertFile:                         "7s4QAzDk",
-		CheckOutputMaxSize:               checks.DefaultBufSize,
+		CacheConfiguration: CacheConfiguration{
+			CacheRateLimitPerEntry: CacheRateLimitPerEntry{
+				Value:           "10/s",
+				RateLimitConfig: lib.NewRateLimitSpec(100 * time.Millisecond),
+			},
+		},
+		CAFile:             "erA7T0PM",
+		CAPath:             "mQEN1Mfp",
+		CertFile:           "7s4QAzDk",
+		CheckOutputMaxSize: checks.DefaultBufSize,
 		Checks: []*structs.CheckDefinition{
 			{
 				ID:         "uAjE6m9Z",
@@ -6679,6 +6691,12 @@ func TestSanitize(t *testing.T) {
 			&net.TCPAddr{IP: net.ParseIP("1.2.3.4"), Port: 5678},
 			&net.UnixAddr{Name: "/var/run/foo"},
 		},
+		CacheConfiguration: CacheConfiguration{
+			CacheRateLimitPerEntry: CacheRateLimitPerEntry{
+				Value:           "10/s",
+				RateLimitConfig: lib.NewRateLimitSpec(100 * time.Millisecond),
+			},
+		},
 		ConsulCoordinateUpdatePeriod: 15 * time.Second,
 		RetryJoinLAN: []string{
 			"foo=bar key=baz secret=boom bang=bar",
@@ -6749,6 +6767,15 @@ func TestSanitize(t *testing.T) {
 		"BindAddr": "127.0.0.1",
 		"Bootstrap": false,
 		"BootstrapExpect": 0,
+		"CacheConfiguration": {
+            "CacheRateLimitPerEntry": {
+                "RateLimitConfig": {
+                    "BurstSize": 2,
+                    "Period": "100ms"
+                },
+                "Value": "10/s"
+            }
+        },
 		"CAFile": "",
 		"CAPath": "",
 		"CertFile": "",

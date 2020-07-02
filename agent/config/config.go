@@ -58,6 +58,11 @@ func Parse(data string, format string) (c Config, md mapstructure.Metadata, err 
 	return c, md, nil
 }
 
+// CacheConfig Cache tunning configuration
+type CacheConfig struct {
+	DefaultRateLimitPerEntry *string `json:"rate_limit_per_entry,omitempty" hcl:"rate_limit_per_entry" mapstructure:"rate_limit_per_entry"`
+}
+
 // Config defines the format of a configuration file in either JSON or
 // HCL format.
 //
@@ -101,6 +106,7 @@ type Config struct {
 	BindAddr                         *string                  `json:"bind_addr,omitempty" hcl:"bind_addr" mapstructure:"bind_addr"`
 	Bootstrap                        *bool                    `json:"bootstrap,omitempty" hcl:"bootstrap" mapstructure:"bootstrap"`
 	BootstrapExpect                  *int                     `json:"bootstrap_expect,omitempty" hcl:"bootstrap_expect" mapstructure:"bootstrap_expect"`
+	CacheConfig                      CacheConfig              `json:"cache,omitempty" hcl:"cache" mapstructure:"cache"`
 	CAFile                           *string                  `json:"ca_file,omitempty" hcl:"ca_file" mapstructure:"ca_file"`
 	CAPath                           *string                  `json:"ca_path,omitempty" hcl:"ca_path" mapstructure:"ca_path"`
 	CertFile                         *string                  `json:"cert_file,omitempty" hcl:"cert_file" mapstructure:"cert_file"`

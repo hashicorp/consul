@@ -22,6 +22,17 @@ type RuntimeSOAConfig struct {
 	Minttl  uint32 // 0,
 }
 
+// CacheRateLimitPerEntry is a representation with human-readable value
+type CacheRateLimitPerEntry struct {
+	Value           string
+	RateLimitConfig *lib.RateLimitSpec
+}
+
+// CacheConfiguration represent the cache configuration of agent
+type CacheConfiguration struct {
+	CacheRateLimitPerEntry CacheRateLimitPerEntry
+}
+
 // RuntimeConfig specifies the configuration the consul agent actually
 // uses. Is is derived from one or more Config structures which can come
 // from files, flags and/or environment variables.
@@ -442,6 +453,9 @@ type RuntimeConfig struct {
 	// hcl: bootstrap_expect = int
 	// flag: -bootstrap-expect=int
 	BootstrapExpect int
+
+	// CacheConfiguration represent cache configuration of agent
+	CacheConfiguration CacheConfiguration
 
 	// CAFile is a path to a certificate authority file. This is used with
 	// VerifyIncoming or VerifyOutgoing to verify the TLS connection.

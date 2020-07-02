@@ -80,6 +80,8 @@ type Cache struct {
 	stopped uint32
 	// stopCh is closed when Close is called
 	stopCh chan struct{}
+	// rateLimiterSpec is a per Cache Rate limiter specification to avoid performing too many queries
+	rateLimitSpec *lib.RateLimitSpec
 }
 
 // typeEntry is a single type that is registered with a Cache.
@@ -121,23 +123,29 @@ type ResultMeta struct {
 
 // Options are options for the Cache.
 type Options struct {
-	// Nothing currently, reserved.
+	// RateLimitSpec currently, reserved.
+	RateLimitSpec *lib.RateLimitSpec
+}
+
+// NewOptions build options from a RateLimitSpec
+func NewOptions(rateLimitSpec *lib.RateLimitSpec) *Options {
+	return &Options{rateLimitSpec}
 }
 
 // New creates a new cache with the given RPC client and reasonable defaults.
 // Further settings can be tweaked on the returned value.
-func New(*Options) *Cache {
+func New(options *Options) *Cache {
 	// Initialize the heap. The buffer of 1 is really important because
 	// its possible for the expiry loop to trigger the heap to update
 	// itself and it'd block forever otherwise.
 	h := &expiryHeap{NotifyCh: make(chan struct{}, 1)}
 	heap.Init(h)
-
 	c := &Cache{
 		types:             make(map[string]typeEntry),
 		entries:           make(map[string]cacheEntry),
 		entriesExpiryHeap: h,
 		stopCh:            make(chan struct{}),
+		rateLimitSpec:     options.RateLimitSpec,
 	}
 
 	// Start the expiry watcher
@@ -452,7 +460,7 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 	// If we don't have an entry, then create it. The entry must be marked
 	// as invalid so that it isn't returned as a valid value for a zero index.
 	if !ok {
-		entry = cacheEntry{Valid: false, Waiter: make(chan struct{})}
+		entry = cacheEntry{Valid: false, Waiter: make(chan struct{}), RateLimiter: NewRateLimiter(c.rateLimitSpec)}
 	}
 
 	// Set that we're fetching to true, which makes it so that future
@@ -499,7 +507,10 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 				Index: entry.Index,
 			}
 		}
-
+		if err := entry.RateLimiter.Take(); err != nil {
+			// This should might happen while cache is being shutdowned
+			panic(err)
+		}
 		// Start building the new entry by blocking on the fetch.
 		result, err := r.Fetch(fOpts)
 		if connectedTimer != nil {
@@ -692,6 +703,7 @@ func (c *Cache) runExpiryLoop() {
 			c.entriesLock.Lock()
 
 			// Entry expired! Remove it.
+			c.entries[entry.Key].RateLimiter.Stop()
 			delete(c.entries, entry.Key)
 			heap.Remove(c.entriesExpiryHeap, entry.HeapIndex)
 
@@ -721,6 +733,7 @@ func (c *Cache) Close() error {
 		// First time only, close stop chan
 		close(c.stopCh)
 	}
+
 	return nil
 }
 
@@ -732,13 +745,14 @@ func (c *Cache) Close() error {
 func (c *Cache) Prepopulate(t string, res FetchResult, dc, token, k string) error {
 	key := makeEntryKey(t, dc, token, k)
 	newEntry := cacheEntry{
-		Valid:     true,
-		Value:     res.Value,
-		State:     res.State,
-		Index:     res.Index,
-		FetchedAt: time.Now(),
-		Waiter:    make(chan struct{}),
-		Expiry:    &cacheEntryExpiry{Key: key},
+		Valid:       true,
+		Value:       res.Value,
+		State:       res.State,
+		Index:       res.Index,
+		FetchedAt:   time.Now(),
+		Waiter:      make(chan struct{}),
+		Expiry:      &cacheEntryExpiry{Key: key},
+		RateLimiter: NewRateLimiter(c.rateLimitSpec),
 	}
 	c.entriesLock.Lock()
 	c.entries[key] = newEntry
