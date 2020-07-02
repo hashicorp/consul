@@ -121,6 +121,15 @@ type fetchState struct {
 	consecutiveRateLimitErrs int
 }
 
+func ConnectCALeafSuccess(authorityKeyID string) interface{} {
+	return fetchState{
+		authorityKeyID:           authorityKeyID,
+		forceExpireAfter:         time.Time{},
+		consecutiveRateLimitErrs: 0,
+		activeRootRotationStart:  time.Time{},
+	}
+}
+
 // fetchStart is called on each fetch that is about to block and wait for
 // changes to the leaf. It subscribes a chan to receive updates from the shared
 // root watcher and triggers root watcher if it's not already running.
@@ -532,7 +541,7 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 		}
 		commonName = connect.AgentCN(req.Agent, roots.TrustDomain)
 		dnsNames = append([]string{"localhost"}, req.DNSSAN...)
-		ipAddresses = append([]net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::")}, req.IPSAN...)
+		ipAddresses = append([]net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::1")}, req.IPSAN...)
 	} else {
 		return result, errors.New("URI must be either service or agent")
 	}

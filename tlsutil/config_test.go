@@ -649,7 +649,8 @@ func TestConfigurator_CommonTLSConfigGetClientCertificate(t *testing.T) {
 
 	cert, err := c.commonTLSConfig(false).GetClientCertificate(nil)
 	require.NoError(t, err)
-	require.Nil(t, cert)
+	require.NotNil(t, cert)
+	require.Empty(t, cert.Certificate)
 
 	c1, err := loadKeyPair("../test/key/something_expired.cer", "../test/key/something_expired.key")
 	require.NoError(t, err)

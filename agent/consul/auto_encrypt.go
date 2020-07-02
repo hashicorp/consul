@@ -19,7 +19,53 @@ const (
 	retryJitterWindow = 30 * time.Second
 )
 
-func (c *Client) RequestAutoEncryptCerts(ctx context.Context, servers []string, port int, token string) (*structs.SignedResponse, string, error) {
+func (c *Client) autoEncryptCSR(extraDNSSANs []string, extraIPSANs []net.IP) (string, string, error) {
+	// We don't provide the correct host here, because we don't know any
+	// better at this point. Apart from the domain, we would need the
+	// ClusterID, which we don't have. This is why we go with
+	// dummyTrustDomain the first time. Subsequent CSRs will have the
+	// correct TrustDomain.
+	id := &connect.SpiffeIDAgent{
+		Host:       dummyTrustDomain,
+		Datacenter: c.config.Datacenter,
+		Agent:      c.config.NodeName,
+	}
+
+	conf, err := c.config.CAConfig.GetCommonConfig()
+	if err != nil {
+		return "", "", err
+	}
+
+	if conf.PrivateKeyType == "" {
+		conf.PrivateKeyType = connect.DefaultPrivateKeyType
+	}
+	if conf.PrivateKeyBits == 0 {
+		conf.PrivateKeyBits = connect.DefaultPrivateKeyBits
+	}
+
+	// Create a new private key
+	pk, pkPEM, err := connect.GeneratePrivateKeyWithConfig(conf.PrivateKeyType, conf.PrivateKeyBits)
+	if err != nil {
+		return "", "", err
+	}
+
+	dnsNames := append([]string{"localhost"}, extraDNSSANs...)
+	ipAddresses := append([]net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::1")}, extraIPSANs...)
+
+	// Create a CSR.
+	//
+	// The Common Name includes the dummy trust domain for now but Server will
+	// override this when it is signed anyway so it's OK.
+	cn := connect.AgentCN(c.config.NodeName, dummyTrustDomain)
+	csr, err := connect.CreateCSR(id, cn, pk, dnsNames, ipAddresses)
+	if err != nil {
+		return "", "", err
+	}
+
+	return pkPEM, csr, nil
+}
+
+func (c *Client) RequestAutoEncryptCerts(ctx context.Context, servers []string, port int, token string, extraDNSSANs []string, extraIPSANs []net.IP) (*structs.SignedResponse, string, error) {
 	errFn := func(err error) (*structs.SignedResponse, string, error) {
 		return nil, "", err
 	}
@@ -36,44 +82,7 @@ func (c *Client) RequestAutoEncryptCerts(ctx context.Context, servers []string, 
 		return errFn(fmt.Errorf("No servers to request AutoEncrypt.Sign"))
 	}
 
-	// We don't provide the correct host here, because we don't know any
-	// better at this point. Apart from the domain, we would need the
-	// ClusterID, which we don't have. This is why we go with
-	// dummyTrustDomain the first time. Subsequent CSRs will have the
-	// correct TrustDomain.
-	id := &connect.SpiffeIDAgent{
-		Host:       dummyTrustDomain,
-		Datacenter: c.config.Datacenter,
-		Agent:      c.config.NodeName,
-	}
-
-	conf, err := c.config.CAConfig.GetCommonConfig()
-	if err != nil {
-		return errFn(err)
-	}
-
-	if conf.PrivateKeyType == "" {
-		conf.PrivateKeyType = connect.DefaultPrivateKeyType
-	}
-	if conf.PrivateKeyBits == 0 {
-		conf.PrivateKeyBits = connect.DefaultPrivateKeyBits
-	}
-
-	// Create a new private key
-	pk, pkPEM, err := connect.GeneratePrivateKeyWithConfig(conf.PrivateKeyType, conf.PrivateKeyBits)
-	if err != nil {
-		return errFn(err)
-	}
-
-	dnsNames := []string{"localhost"}
-	ipAddresses := []net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::")}
-
-	// Create a CSR.
-	//
-	// The Common Name includes the dummy trust domain for now but Server will
-	// override this when it is signed anyway so it's OK.
-	cn := connect.AgentCN(c.config.NodeName, dummyTrustDomain)
-	csr, err := connect.CreateCSR(id, cn, pk, dnsNames, ipAddresses)
+	pkPEM, csr, err := c.autoEncryptCSR(extraDNSSANs, extraIPSANs)
 	if err != nil {
 		return errFn(err)
 	}

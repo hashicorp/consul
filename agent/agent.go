@@ -840,7 +840,7 @@ func (a *Agent) setupClientAutoEncrypt(ctx context.Context) (*structs.SignedResp
 	}
 	addrs = append(addrs, retryJoinAddrs(disco, retryJoinSerfVariant, "LAN", a.config.RetryJoinLAN, a.logger)...)
 
-	reply, priv, err := client.RequestAutoEncryptCerts(ctx, addrs, a.config.ServerPort, a.tokens.AgentToken())
+	reply, priv, err := client.RequestAutoEncryptCerts(ctx, addrs, a.config.ServerPort, a.tokens.AgentToken(), a.config.AutoEncryptDNSSAN, a.config.AutoEncryptIPSAN)
 	if err != nil {
 		return nil, err
 	}
@@ -877,7 +877,17 @@ func (a *Agent) setupClientAutoEncryptCache(reply *structs.SignedResponse) (*str
 	}
 
 	// prepolutate leaf cache
-	certRes := cache.FetchResult{Value: &reply.IssuedCert, Index: reply.ConnectCARoots.QueryMeta.Index}
+	certRes := cache.FetchResult{
+		Value: &reply.IssuedCert,
+		Index: reply.ConnectCARoots.QueryMeta.Index,
+	}
+
+	for _, ca := range reply.ConnectCARoots.Roots {
+		if ca.ID == reply.ConnectCARoots.ActiveRootID {
+			certRes.State = cachetype.ConnectCALeafSuccess(ca.SigningKeyID)
+			break
+		}
+	}
 	if err := a.cache.Prepopulate(cachetype.ConnectCALeafName, certRes, a.config.Datacenter, a.tokens.AgentToken(), leafReq.Key()); err != nil {
 		return nil, nil, err
 	}
