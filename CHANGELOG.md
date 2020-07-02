@@ -33,6 +33,7 @@ FEATURES:
 * acl: add MaxTokenTTL field to auth methods [[GH-7779](https://github.com/hashicorp/consul/issues/7779)]
 * agent/xds: add support for configuring passive health checks [[GH-7713](https://github.com/hashicorp/consul/pull/7713)]
 * cli: Add -config flag to "acl authmethod update/create" [[GH-7776](https://github.com/hashicorp/consul/pull/7776)]
+* serf: allow to restrict servers that can join a given Serf Consul cluster. [[GH-7628](https://github.com/hashicorp/consul/pull/7628)]
 * ui: Help menu to provide further documentation/learn links [[GH-7310](https://github.com/hashicorp/consul/pull/7310)]
 * ui: **(Consul Enterprise only)** SSO support [[GH-7742](https://github.com/hashicorp/consul/pull/7742)] [[GH-7771](https://github.com/hashicorp/consul/pull/7771)] [[GH-7790](https://github.com/hashicorp/consul/pull/7790)]
 * ui: Support for termininating and ingress gateways [[GH-7858](https://github.com/hashicorp/consul/pull/7858)] [[GH-7865](https://github.com/hashicorp/consul/pull/7865)]
