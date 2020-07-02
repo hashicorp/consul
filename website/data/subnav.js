@@ -25,7 +25,7 @@ export default [
   },
   'divider',
   {
-    text: 'Learn',
+    text: 'Tutorials',
     url: 'https://learn.hashicorp.com/consul',
     type: 'outbound',
   },
