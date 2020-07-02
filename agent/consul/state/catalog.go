@@ -2177,18 +2177,33 @@ func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName string, tags
 	return s.parseCheckServiceNodes(tx, ws, idx, results, err)
 }
 
-// GatewayServices is used to query all services associated with a gateway
-func (s *Store) GatewayServices(ws memdb.WatchSet, gateway string, entMeta *structs.EnterpriseMeta) (uint64, structs.GatewayServices, error) {
+// GatewayServicesForGateway is used to query all services associated with a gateway
+func (s *Store) GatewayServicesForGateway(ws memdb.WatchSet, gateway string, entMeta *structs.EnterpriseMeta) (uint64, structs.GatewayServices, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	var maxIdx uint64
 
 	iter, err := s.gatewayServices(tx, gateway, entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed gateway services lookup: %s", err)
 	}
 	ws.Add(iter.WatchCh())
+	return s.filterGatewayServices(tx, ws, iter)
+}
 
+func (s *Store) GatewayServicesForService(ws memdb.WatchSet, service string, entMeta *structs.EnterpriseMeta) (uint64, structs.GatewayServices, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	iter, err := s.serviceGateways(tx, service, entMeta)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed gateway services lookup: %s", err)
+	}
+	ws.Add(iter.WatchCh())
+	return s.filterGatewayServices(tx, ws, iter)
+}
+
+func (s *Store) filterGatewayServices(tx *txn, ws memdb.WatchSet, iter memdb.ResultIterator) (uint64, structs.GatewayServices, error) {
+	var maxIdx uint64
 	var results structs.GatewayServices
 	for service := iter.Next(); service != nil; service = iter.Next() {
 		svc := service.(*structs.GatewayService)

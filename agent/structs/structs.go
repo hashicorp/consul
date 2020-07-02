@@ -1541,6 +1541,9 @@ type CheckServiceNode struct {
 	Node    *Node
 	Service *NodeService
 	Checks  HealthChecks
+
+	// GatewayServices ...
+	GatewayServices GatewayServices `json:"-" bexpr:"-"`
 }
 
 func (csn *CheckServiceNode) BestAddress(wan bool) (string, int) {
@@ -1578,10 +1581,10 @@ func (nodes CheckServiceNodes) ToServiceDump() ServiceDump {
 	var ret ServiceDump
 	for i := range nodes {
 		svc := ServiceInfo{
-			Node:           nodes[i].Node,
-			Service:        nodes[i].Service,
-			Checks:         nodes[i].Checks,
-			GatewayService: nil,
+			Node:            nodes[i].Node,
+			Service:         nodes[i].Service,
+			Checks:          nodes[i].Checks,
+			GatewayServices: nodes[i].GatewayServices,
 		}
 		ret = append(ret, &svc)
 	}
@@ -1652,10 +1655,10 @@ type NodeInfo struct {
 type NodeDump []*NodeInfo
 
 type ServiceInfo struct {
-	Node           *Node
-	Service        *NodeService
-	Checks         HealthChecks
-	GatewayService *GatewayService
+	Node            *Node
+	Service         *NodeService
+	Checks          HealthChecks
+	GatewayServices GatewayServices
 }
 
 type ServiceDump []*ServiceInfo

@@ -293,12 +293,66 @@ func TestUiServices(t *testing.T) {
 				Tags:    []string{},
 			},
 		},
+		{
+			Datacenter: "dc1",
+			Node:       "zap",
+			Address:    "127.0.0.4",
+			Service: &structs.NodeService{
+				Service: "cache",
+				Tags:    []string{},
+			},
+		},
+		// Register terminating gateway
+		{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.5",
+			Service: &structs.NodeService{
+				ID:      "terminating-gateway",
+				Service: "terminating-gateway",
+				Kind:    structs.ServiceKindTerminatingGateway,
+				Port:    443,
+			},
+			Check: &structs.HealthCheck{
+				Name:      "terminating connect",
+				Status:    api.HealthPassing,
+				ServiceID: "terminating-gateway",
+			},
+		},
 	}
 
 	for _, args := range requests {
 		var out struct{}
 		require.NoError(t, a.RPC("Catalog.Register", args, &out))
 	}
+
+	// Register terminating-gateway config entry, linking it to db and redis (does not exist)
+	args := &structs.TerminatingGatewayConfigEntry{
+		Name: "terminating-gateway",
+		Kind: structs.TerminatingGateway,
+		Services: []structs.LinkedService{
+			// "db" service is not registered in the catalog and thus does not show
+			// up here. If we add support for so-called "virtual" services, it would.
+			{
+				Name: "db",
+			},
+			{
+				Name:     "cache",
+				CAFile:   "/etc/certs/ca.pem",
+				CertFile: "/etc/certs/cert.pem",
+				KeyFile:  "/etc/certs/key.pem",
+			},
+		},
+	}
+
+	req := structs.ConfigEntryRequest{
+		Op:         structs.ConfigEntryUpsert,
+		Datacenter: "dc1",
+		Entry:      args,
+	}
+	var configOutput bool
+	require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &configOutput))
+	require.True(t, configOutput)
 
 	t.Run("No Filter", func(t *testing.T) {
 		t.Parallel()
@@ -310,12 +364,13 @@ func TestUiServices(t *testing.T) {
 
 		// Should be 2 nodes, and all the empty lists should be non-nil
 		summary := obj.([]*ServiceSummary)
-		require.Len(t, summary, 4)
+		require.Len(t, summary, 5)
 
 		// internal accounting that users don't see can be blown away
 		for _, sum := range summary {
 			sum.externalSourceSet = nil
 			sum.proxyForSet = nil
+			sum.GatewayConfig.serviceSet = nil
 		}
 
 		expected := []*ServiceSummary{
@@ -334,8 +389,8 @@ func TestUiServices(t *testing.T) {
 				Kind:           structs.ServiceKindTypical,
 				Name:           "cache",
 				Tags:           nil,
-				Nodes:          []string{"zip"},
-				InstanceCount:  1,
+				Nodes:          []string{"zap", "zip"},
+				InstanceCount:  2,
 				ChecksPassing:  0,
 				ChecksWarning:  0,
 				ChecksCritical: 0,
@@ -364,6 +419,20 @@ func TestUiServices(t *testing.T) {
 				ChecksWarning:  0,
 				ChecksCritical: 0,
 				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			},
+			{
+				Kind:           structs.ServiceKindTerminatingGateway,
+				Name:           "terminating-gateway",
+				Tags:           nil,
+				Nodes:          []string{"foo"},
+				InstanceCount:  1,
+				ChecksPassing:  3,
+				ChecksWarning:  1,
+				ChecksCritical: 0,
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				GatewayConfig: GatewayConfig{
+					AssociatedServicesCount: 1,
+				},
 			},
 		}
 		require.ElementsMatch(t, expected, summary)

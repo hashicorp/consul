@@ -245,7 +245,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		},
 	}
 	require.NoError(t, fsm.state.EnsureConfigEntry(20, ingress, structs.DefaultEnterpriseMeta()))
-	_, gatewayServices, err := fsm.state.GatewayServices(nil, "ingress", structs.DefaultEnterpriseMeta())
+	_, gatewayServices, err := fsm.state.GatewayServicesForGateway(nil, "ingress", structs.DefaultEnterpriseMeta())
 	require.NoError(t, err)
 
 	// Raft Chunking
@@ -610,7 +610,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, ingress, ingressRestored)
 
-	_, restoredGatewayServices, err := fsm2.state.GatewayServices(nil, "ingress", structs.DefaultEnterpriseMeta())
+	_, restoredGatewayServices, err := fsm2.state.GatewayServicesForGateway(nil, "ingress", structs.DefaultEnterpriseMeta())
 	require.NoError(t, err)
 	require.Equal(t, gatewayServices, restoredGatewayServices)
 

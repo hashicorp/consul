@@ -3054,6 +3054,120 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 	}
 }
 
+func TestACL_filterServiceDump(t *testing.T) {
+	t.Parallel()
+	// Create some nodes.
+	fill := func() structs.ServiceDump {
+		return structs.ServiceDump{
+			&structs.ServiceInfo{
+				Node: &structs.Node{
+					Node: "node1",
+				},
+				Service: &structs.NodeService{
+					ID:      "foo",
+					Service: "foo",
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "node1",
+						CheckID:     "check1",
+						ServiceName: "foo",
+					},
+				},
+			},
+			&structs.ServiceInfo{
+				GatewayServices: structs.GatewayServices{
+					{
+						Gateway: structs.NewServiceName("gateway", nil),
+						Service: structs.NewServiceName("bar", nil),
+					},
+					{
+						Gateway: structs.NewServiceName("another", nil),
+						Service: structs.NewServiceName("bar", nil),
+					},
+				},
+			},
+		}
+	}
+
+	// Try permissive filtering.
+	{
+		nodes := fill()
+		filt := newACLFilter(acl.AllowAll(), nil)
+		filt.filterServiceDump(&nodes)
+		require.Len(t, nodes, 2)
+		require.Len(t, nodes[0].Checks, 1)
+		require.Len(t, nodes[1].GatewayServices, 2)
+	}
+
+	// Try restrictive filtering.
+	{
+		nodes := fill()
+		filt := newACLFilter(acl.DenyAll(), nil)
+		filt.filterServiceDump(&nodes)
+		require.Len(t, nodes, 0)
+	}
+
+	// Allowed to see the service "foo" but not the node.
+	policy, err := acl.NewPolicyFromSource("", 0, `
+service "foo" {
+  policy = "read"
+}
+`, acl.SyntaxLegacy, nil, nil)
+	require.NoError(t, err)
+	perms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	require.NoError(t, err)
+
+	{
+		nodes := fill()
+		filt := newACLFilter(perms, nil)
+		filt.filterServiceDump(&nodes)
+		require.Len(t, nodes, 0)
+	}
+
+	// Chain on access to the node.
+	policy, err = acl.NewPolicyFromSource("", 0, `
+node "node1" {
+  policy = "read"
+}
+`, acl.SyntaxLegacy, nil, nil)
+	require.NoError(t, err)
+	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
+	require.NoError(t, err)
+
+	// Now it should go through.
+	{
+		nodes := fill()
+		filt := newACLFilter(perms, nil)
+		filt.filterServiceDump(&nodes)
+		require.Len(t, nodes, 1)
+		require.Len(t, nodes[0].Checks, 1)
+	}
+
+	// Chain access to bar and gateway services
+	policy, err = acl.NewPolicyFromSource("", 0, `
+service "bar" {
+  policy = "read"
+}
+service "gateway" {
+  policy = "read"
+}
+`, acl.SyntaxLegacy, nil, nil)
+	require.NoError(t, err)
+	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
+	require.NoError(t, err)
+
+	// Now we should see 1 GatewayService, but not 2
+	{
+		nodes := fill()
+		filt := newACLFilter(perms, nil)
+		filt.filterServiceDump(&nodes)
+		require.Len(t, nodes, 2)
+		require.Len(t, nodes[0].Checks, 1)
+		require.Len(t, nodes[1].GatewayServices, 1)
+	}
+}
+
 func TestACL_redactPreparedQueryTokens(t *testing.T) {
 	t.Parallel()
 	query := &structs.PreparedQuery{

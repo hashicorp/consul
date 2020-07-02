@@ -123,6 +123,21 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 			}
 
 			reply.Nodes = raw.(structs.CheckServiceNodes)
+			for i, n := range reply.Nodes {
+				if n.Service.Kind == structs.ServiceKindTypical {
+					svcName := n.Service.CompoundServiceName()
+					idx, gatewayServices, err := state.GatewayServicesForService(ws, svcName.Name, &svcName.EnterpriseMeta)
+					if err != nil {
+						return err
+					}
+
+					if idx > reply.Index {
+						reply.Index = idx
+					}
+					reply.Nodes[i].GatewayServices = gatewayServices
+				}
+			}
+
 			return nil
 		})
 }
@@ -158,7 +173,7 @@ func (m *Internal) GatewayServiceDump(args *structs.ServiceSpecificRequest, repl
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
 			var maxIdx uint64
-			idx, gatewayServices, err := state.GatewayServices(ws, args.ServiceName, &args.EnterpriseMeta)
+			idx, gatewayServices, err := state.GatewayServicesForGateway(ws, args.ServiceName, &args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
@@ -178,10 +193,10 @@ func (m *Internal) GatewayServiceDump(args *structs.ServiceSpecificRequest, repl
 				}
 				for _, n := range instances {
 					svc := structs.ServiceInfo{
-						Node:           n.Node,
-						Service:        n.Service,
-						Checks:         n.Checks,
-						GatewayService: gs,
+						Node:            n.Node,
+						Service:         n.Service,
+						Checks:          n.Checks,
+						GatewayServices: structs.GatewayServices{gs},
 					}
 					result = append(result, &svc)
 				}
@@ -189,7 +204,7 @@ func (m *Internal) GatewayServiceDump(args *structs.ServiceSpecificRequest, repl
 				// Ensure we store the gateway <-> service mapping even if there are no instances of the service
 				if len(instances) == 0 {
 					svc := structs.ServiceInfo{
-						GatewayService: gs,
+						GatewayServices: structs.GatewayServices{gs},
 					}
 					result = append(result, &svc)
 				}

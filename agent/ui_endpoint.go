@@ -17,6 +17,10 @@ import (
 const metaExternalSource = "external-source"
 
 type GatewayConfig struct {
+	AssociatedServicesCount int `json:",omitempty"`
+	// internal to track uniqueness
+	serviceSet map[structs.ServiceName]struct{}
+
 	Addresses []string `json:",omitempty"`
 	// internal to track uniqueness
 	addressesSet map[string]struct{}
@@ -199,7 +203,25 @@ RPC:
 		return nil, err
 	}
 
-	return summarizeServices(out.Dump, s.agent.config), nil
+	summary := summarizeServices(out.Dump, s.agent.config)
+
+	// TODO(cpiraino): Make this better!
+	// We explicitly remove the gateway service from the summary b/c
+	// summarizeServices will add a element representing the gateway into the
+	// list. This is useful when dumping out all of the services available to
+	// consul, where we construct information about how many services are
+	// associated to each gateway.
+
+	// However, since we are the UIGatewayServicesNodes endpoint does not want
+	// the same semantics, we do this here.
+	for i, s := range summary {
+		if s.Name == args.ServiceName {
+			summary = append(summary[:i], summary[i+1:]...)
+			break
+		}
+	}
+
+	return summary, nil
 }
 
 func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig) []*ServiceSummary {
@@ -223,10 +245,10 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig) []*S
 	}
 
 	for _, csn := range dump {
-		if csn.GatewayService != nil {
-			gwsvc := csn.GatewayService
-			sum := getService(gwsvc.Service.ToServiceID())
-			modifySummaryForGatewayService(cfg, sum, gwsvc)
+		for _, gwsvc := range csn.GatewayServices {
+			service := getService(gwsvc.Service.ToServiceID())
+			gateway := getService(gwsvc.Gateway.ToServiceID())
+			modifySummaryForGatewayService(cfg, gwsvc, service, gateway)
 		}
 
 		// Will happen in cases where we only have the GatewayServices mapping
@@ -249,6 +271,7 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig) []*S
 				sum.ProxyFor = append(sum.ProxyFor, svc.Proxy.DestinationServiceName)
 			}
 		}
+
 		for _, tag := range svc.Tags {
 			found := false
 			for _, existing := range sum.Tags {
@@ -307,9 +330,18 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig) []*S
 
 func modifySummaryForGatewayService(
 	cfg *config.RuntimeConfig,
-	sum *ServiceSummary,
 	gwsvc *structs.GatewayService,
+	serviceSum *ServiceSummary,
+	gatewaySum *ServiceSummary,
 ) {
+	if _, ok := gatewaySum.GatewayConfig.serviceSet[gwsvc.Service]; !ok {
+		if gatewaySum.GatewayConfig.serviceSet == nil {
+			gatewaySum.GatewayConfig.serviceSet = make(map[structs.ServiceName]struct{})
+		}
+		gatewaySum.GatewayConfig.serviceSet[gwsvc.Service] = struct{}{}
+		gatewaySum.GatewayConfig.AssociatedServicesCount += 1
+	}
+
 	var dnsAddresses []string
 	for _, domain := range []string{cfg.DNSDomain, cfg.DNSAltDomain} {
 		// If the domain is empty, do not use it to construct a valid DNS
@@ -328,13 +360,13 @@ func modifySummaryForGatewayService(
 	for _, addr := range gwsvc.Addresses(dnsAddresses) {
 		// check for duplicates, a service will have a ServiceInfo struct for
 		// every instance that is registered.
-		if _, ok := sum.GatewayConfig.addressesSet[addr]; !ok {
-			if sum.GatewayConfig.addressesSet == nil {
-				sum.GatewayConfig.addressesSet = make(map[string]struct{})
+		if _, ok := serviceSum.GatewayConfig.addressesSet[addr]; !ok {
+			if serviceSum.GatewayConfig.addressesSet == nil {
+				serviceSum.GatewayConfig.addressesSet = make(map[string]struct{})
 			}
-			sum.GatewayConfig.addressesSet[addr] = struct{}{}
-			sum.GatewayConfig.Addresses = append(
-				sum.GatewayConfig.Addresses, addr,
+			serviceSum.GatewayConfig.addressesSet[addr] = struct{}{}
+			serviceSum.GatewayConfig.Addresses = append(
+				serviceSum.GatewayConfig.Addresses, addr,
 			)
 		}
 	}

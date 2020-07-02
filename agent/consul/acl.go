@@ -1532,19 +1532,35 @@ func (f *aclFilter) filterServiceDump(services *structs.ServiceDump) {
 	for i := 0; i < len(svcs); i++ {
 		service := svcs[i]
 
-		if f.allowGateway(service.GatewayService) {
-			// ServiceDump might only have gateway config and no node information
-			if service.Node == nil {
+		for j := 0; j < len(service.GatewayServices); j++ {
+			if f.allowGateway(service.GatewayServices[j]) {
 				continue
 			}
-
-			service.Service.FillAuthzContext(&authzContext)
-			if f.allowNode(service.Node.Node, &authzContext) {
-				continue
-			}
+			f.logger.Debug("dropping gateway service mapping from result due to ACLs",
+				"service", service.GatewayServices[j].Service.String(),
+				"gateway", service.GatewayServices[j].Gateway.String(),
+			)
+			service.GatewayServices = append(service.GatewayServices[:j], service.GatewayServices[j+1:]...)
+			j--
 		}
 
-		f.logger.Debug("dropping service from result due to ACLs", "service", service.GatewayService.Service)
+		// ServiceDump might only have gateway config and no node information
+		if service.Node == nil {
+			// If we removed all gateway services, remove the top-level element from
+			// the list
+			if len(service.GatewayServices) == 0 {
+				svcs = append(svcs[:i], svcs[i+1:]...)
+				i--
+			}
+			continue
+		}
+
+		service.Service.FillAuthzContext(&authzContext)
+		if f.allowNode(service.Node.Node, &authzContext) {
+			continue
+		}
+
+		f.logger.Debug("dropping node from result due to ACLs", "node", service.Node.Node)
 		svcs = append(svcs[:i], svcs[i+1:]...)
 		i--
 	}

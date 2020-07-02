@@ -652,7 +652,7 @@ func (c *Catalog) GatewayServices(args *structs.ServiceSpecificRequest, reply *s
 				)
 			}
 
-			index, services, err = state.GatewayServices(ws, args.ServiceName, &args.EnterpriseMeta)
+			index, services, err = state.GatewayServicesForGateway(ws, args.ServiceName, &args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
