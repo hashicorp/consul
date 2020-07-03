@@ -54,7 +54,7 @@ func (s *Server) reapExpiredLocalACLTokens() (int, error) {
 	return s.reapExpiredACLTokens(true, false)
 }
 func (s *Server) reapExpiredACLTokens(local, global bool) (int, error) {
-	if !s.ACLsEnabled() {
+	if !s.config.ACLsEnabled {
 		return 0, nil
 	}
 	if s.UseLegacyACLs() {

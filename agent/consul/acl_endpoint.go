@@ -98,7 +98,7 @@ func (a *ACL) removeBootstrapResetFile() {
 }
 
 func (a *ACL) aclPreCheck() error {
-	if !a.srv.ACLsEnabled() {
+	if !a.srv.config.ACLsEnabled {
 		return acl.ErrDisabled
 	}
 

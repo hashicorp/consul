@@ -92,11 +92,6 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzRe
 	return a
 }
 
-func (a *TestACLAgent) ACLsEnabled() bool {
-	// the TestACLAgent always has ACLs enabled
-	return true
-}
-
 func (a *TestACLAgent) UseLegacyACLs() bool {
 	return false
 }

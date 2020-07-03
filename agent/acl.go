@@ -21,7 +21,7 @@ func (a *Agent) resolveToken(id string) (acl.Authorizer, error) {
 // The defaulted metadata is then used to fill in an acl.AuthorizationContext.
 func (a *Agent) resolveTokenAndDefaultMeta(id string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
 	// ACLs are disabled
-	if !a.delegate.ACLsEnabled() {
+	if !a.config.ACLsEnabled {
 		return nil, nil
 	}
 

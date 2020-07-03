@@ -58,7 +58,7 @@ func (s *Server) monitorLeadership() {
 
 	aclModeCheckWait := aclModeCheckMinInterval
 	var aclUpgradeCh <-chan time.Time
-	if s.ACLsEnabled() {
+	if s.config.ACLsEnabled {
 		aclUpgradeCh = time.After(aclModeCheckWait)
 	}
 	var weAreLeaderCh chan struct{}
@@ -384,7 +384,7 @@ func (s *Server) revokeLeadership() {
 
 // DEPRECATED (ACL-Legacy-Compat) - Remove once old ACL compatibility is removed
 func (s *Server) initializeLegacyACL() error {
-	if !s.ACLsEnabled() {
+	if !s.config.ACLsEnabled {
 		return nil
 	}
 
@@ -484,7 +484,7 @@ func (s *Server) initializeLegacyACL() error {
 // initializeACLs is used to setup the ACLs if we are the leader
 // and need to do this.
 func (s *Server) initializeACLs(upgrade bool) error {
-	if !s.ACLsEnabled() {
+	if !s.config.ACLsEnabled {
 		return nil
 	}
 

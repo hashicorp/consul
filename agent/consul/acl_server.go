@@ -167,10 +167,6 @@ func (s *Server) ACLDatacenter(legacy bool) string {
 	return s.config.Datacenter
 }
 
-func (s *Server) ACLsEnabled() bool {
-	return s.config.ACLsEnabled
-}
-
 // ResolveIdentityFromToken retrieves a token's full identity given its secretID.
 func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdentity, error) {
 	// only allow remote RPC resolution when token replication is off and
