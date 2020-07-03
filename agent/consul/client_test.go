@@ -445,7 +445,7 @@ func TestClient_RPC_TLS(t *testing.T) {
 	conf1.VerifyIncoming = true
 	conf1.VerifyOutgoing = true
 	configureTLS(conf1)
-	s1, err := NewServer(conf1)
+	s1, err := newServer(conf1)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -498,7 +498,7 @@ func newClient(config *Config) (*Client, error) {
 func TestClient_RPC_RateLimit(t *testing.T) {
 	t.Parallel()
 	dir1, conf1 := testServerConfig(t)
-	s1, err := NewServer(conf1)
+	s1, err := newServer(conf1)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -610,7 +610,7 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 	conf1.VerifyIncoming = true
 	conf1.VerifyOutgoing = true
 	configureTLS(conf1)
-	s1, err := NewServer(conf1)
+	s1, err := newServer(conf1)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

@@ -320,7 +320,11 @@ func newServer(c *Config) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	srv, err := NewServerLogger(c, logger, new(token.Store), tlsConf)
+
+	srv, err := NewServerWithOptions(c,
+		WithLogger(logger),
+		WithTokenStore(new(token.Store)),
+		WithTLSConfigurator(tlsConf))
 	if err != nil {
 		return nil, err
 	}
@@ -1486,7 +1490,7 @@ func TestServer_RPC_RateLimit(t *testing.T) {
 	dir1, conf1 := testServerConfig(t)
 	conf1.RPCRate = 2
 	conf1.RPCMaxBurst = 2
-	s1, err := NewServer(conf1)
+	s1, err := newServer(conf1)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1512,7 +1516,11 @@ func TestServer_CALogging(t *testing.T) {
 
 	c, err := tlsutil.NewConfigurator(conf1.ToTLSUtilConfig(), logger)
 	require.NoError(t, err)
-	s1, err := NewServerLogger(conf1, logger, new(token.Store), c)
+
+	s1, err := NewServerWithOptions(conf1,
+		WithLogger(logger),
+		WithTokenStore(new(token.Store)),
+		WithTLSConfigurator(c))
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
