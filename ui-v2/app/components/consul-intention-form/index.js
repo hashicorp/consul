@@ -22,7 +22,8 @@ export default Component.extend({
         .toArray()
         .filter(
           item => !['connect-proxy', 'mesh-gateway', 'terminating-gateway'].includes(item.Kind)
-        );
+        )
+        .sort((a, b) => a.Name.localeCompare(b.Name));
       items = [{ Name: '*' }].concat(items);
       let source = items.findBy('Name', item.SourceName);
       if (!source) {
@@ -44,7 +45,7 @@ export default Component.extend({
       // Nspaces in the menus should:
       // 1. Include an 'All Namespaces' option
       // 2. Include the current SourceNS and DestinationNS incase they don't exist yet
-      let items = e.data.toArray();
+      let items = e.data.toArray().sort((a, b) => a.Name.localeCompare(b.Name));
       items = [{ Name: '*' }].concat(items);
       let source = items.findBy('Name', item.SourceNS);
       if (!source) {
