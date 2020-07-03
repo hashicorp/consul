@@ -314,13 +314,8 @@ type Server struct {
 
 // NewServerWithOptions is used to construct a new Consul server from the configuration
 // and extra options, potentially returning an error
-func NewServerWithOptions(config *Config, options ...ConsulOption) (*Server, error) {
-	flat := flattenConsulOptions(options)
-
-	logger := flat.logger
-	tokens := flat.tokens
-	tlsConfigurator := flat.tlsConfigurator
-	connPool := flat.connPool
+func NewServerWithOptions(config *Config, options ...Op) (*Server, error) {
+	flat := applyOps(options)
 
 	// Check the protocol version.
 	if err := config.CheckProtocolVersion(); err != nil {
@@ -337,16 +332,8 @@ func NewServerWithOptions(config *Config, options ...ConsulOption) (*Server, err
 		return nil, err
 	}
 
-	// Ensure we have a log output and create a logger.
 	if config.LogOutput == nil {
 		config.LogOutput = os.Stderr
-	}
-
-	if logger == nil {
-		logger = hclog.NewInterceptLogger(&hclog.LoggerOptions{
-			Level:  hclog.Debug,
-			Output: config.LogOutput,
-		})
 	}
 
 	// Check if TLS is enabled
@@ -376,6 +363,7 @@ func NewServerWithOptions(config *Config, options ...ConsulOption) (*Server, err
 	// Create the shutdown channel - this is closed but never written to.
 	shutdownCh := make(chan struct{})
 
+	connPool := flat.connPool
 	if connPool == nil {
 		connPool = &pool.ConnPool{
 			Server:          true,
@@ -383,17 +371,18 @@ func NewServerWithOptions(config *Config, options ...ConsulOption) (*Server, err
 			LogOutput:       config.LogOutput,
 			MaxTime:         serverRPCCache,
 			MaxStreams:      serverMaxStreams,
-			TLSConfigurator: tlsConfigurator,
+			TLSConfigurator: flat.tlsConfigurator,
 			Datacenter:      config.Datacenter,
 		}
 	}
 
+	logger := flat.logger
 	serverLogger := logger.NamedIntercept(logging.ConsulServer)
 	loggers := newLoggerStore(serverLogger)
 	// Create server.
 	s := &Server{
 		config:                  config,
-		tokens:                  tokens,
+		tokens:                  flat.tokens,
 		connPool:                connPool,
 		eventChLAN:              make(chan serf.Event, serfEventChSize),
 		eventChWAN:              make(chan serf.Event, serfEventChSize),
@@ -404,7 +393,7 @@ func NewServerWithOptions(config *Config, options ...ConsulOption) (*Server, err
 		router:                  router.NewRouter(serverLogger, config.Datacenter, fmt.Sprintf("%s.%s", config.NodeName, config.Datacenter)),
 		rpcServer:               rpc.NewServer(),
 		insecureRPCServer:       rpc.NewServer(),
-		tlsConfigurator:         tlsConfigurator,
+		tlsConfigurator:         flat.tlsConfigurator,
 		reassertLeaderCh:        make(chan chan error),
 		segmentLAN:              make(map[string]*serf.Serf, len(config.Segments)),
 		sessionTimers:           NewSessionTimers(),

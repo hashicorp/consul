@@ -680,7 +680,7 @@ func (a *Agent) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to start Consul enterprise component: %v", err)
 	}
 
-	options := []consul.ConsulOption{
+	options := []consul.Op{
 		consul.WithLogger(a.logger),
 		consul.WithTokenStore(a.tokens),
 		consul.WithTLSConfigurator(a.tlsConfigurator),

@@ -321,10 +321,7 @@ func newServer(c *Config) (*Server, error) {
 		return nil, err
 	}
 
-	srv, err := NewServerWithOptions(c,
-		WithLogger(logger),
-		WithTokenStore(new(token.Store)),
-		WithTLSConfigurator(tlsConf))
+	srv, err := NewServerWithOptions(c, WithLogger(logger), WithTLSConfigurator(tlsConf))
 	if err != nil {
 		return nil, err
 	}
@@ -1517,10 +1514,7 @@ func TestServer_CALogging(t *testing.T) {
 	c, err := tlsutil.NewConfigurator(conf1.ToTLSUtilConfig(), logger)
 	require.NoError(t, err)
 
-	s1, err := NewServerWithOptions(conf1,
-		WithLogger(logger),
-		WithTokenStore(new(token.Store)),
-		WithTLSConfigurator(c))
+	s1, err := NewServerWithOptions(conf1, WithLogger(logger), WithTLSConfigurator(c))
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

@@ -90,12 +90,8 @@ type Client struct {
 }
 
 // NewClientWithOptions creates a new Client from the list of options.
-func NewClientWithOptions(config *Config, options ...ConsulOption) (*Client, error) {
-	flat := flattenConsulOptions(options)
-
-	logger := flat.logger
-	tlsConfigurator := flat.tlsConfigurator
-	connPool := flat.connPool
+func NewClientWithOptions(config *Config, options ...Op) (*Client, error) {
+	flat := applyOps(options)
 
 	// Check the protocol version
 	if err := config.CheckProtocolVersion(); err != nil {
@@ -112,19 +108,11 @@ func NewClientWithOptions(config *Config, options ...ConsulOption) (*Client, err
 		return nil, err
 	}
 
-	// Ensure we have a log output
 	if config.LogOutput == nil {
 		config.LogOutput = os.Stderr
 	}
 
-	// Create a logger
-	if logger == nil {
-		logger = hclog.NewInterceptLogger(&hclog.LoggerOptions{
-			Level:  hclog.Debug,
-			Output: config.LogOutput,
-		})
-	}
-
+	connPool := flat.connPool
 	if connPool == nil {
 		connPool = &pool.ConnPool{
 			Server:          false,
@@ -132,7 +120,7 @@ func NewClientWithOptions(config *Config, options ...ConsulOption) (*Client, err
 			LogOutput:       config.LogOutput,
 			MaxTime:         clientRPCConnMaxIdle,
 			MaxStreams:      clientMaxStreams,
-			TLSConfigurator: tlsConfigurator,
+			TLSConfigurator: flat.tlsConfigurator,
 			Datacenter:      config.Datacenter,
 		}
 	}
@@ -142,9 +130,9 @@ func NewClientWithOptions(config *Config, options ...ConsulOption) (*Client, err
 		config:          config,
 		connPool:        connPool,
 		eventCh:         make(chan serf.Event, serfEventBacklog),
-		logger:          logger.NamedIntercept(logging.ConsulClient),
+		logger:          flat.logger.NamedIntercept(logging.ConsulClient),
 		shutdownCh:      make(chan struct{}),
-		tlsConfigurator: tlsConfigurator,
+		tlsConfigurator: flat.tlsConfigurator,
 	}
 
 	c.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
