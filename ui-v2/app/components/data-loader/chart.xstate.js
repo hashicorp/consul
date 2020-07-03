@@ -5,21 +5,18 @@ export default {
     ERROR: {
       target: 'changeError',
     },
+    LOAD: [
+      {
+        target: 'idle',
+        cond: 'loaded',
+      },
+      {
+        target: 'loading',
+      },
+    ],
   },
   states: {
-    load: {
-      on: {
-        LOAD: [
-          {
-            target: 'idle',
-            cond: 'loaded',
-          },
-          {
-            target: 'loading',
-          },
-        ],
-      },
-    },
+    load: {},
     loading: {
       on: {
         SUCCESS: {

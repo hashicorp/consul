@@ -6141,6 +6141,26 @@ ember-cli-typescript@^2.0.2:
     stagehand "^1.0.0"
     walk-sync "^1.0.0"
 
+ember-cli-typescript@^3.1.1:
+  version "3.1.4"
+  resolved "https://registry.yarnpkg.com/ember-cli-typescript/-/ember-cli-typescript-3.1.4.tgz#21d6ccd670d1f2e34c9cce68c6e32c442f46806b"
+  integrity sha512-HJ73kL45OGRmIkPhBNFt31I1SGUvdZND+LCH21+qpq3pPlFpJG8GORyXpP+2ze8PbnITNLzwe5AwUrpyuRswdQ==
+  dependencies:
+    "@babel/plugin-proposal-nullish-coalescing-operator" "^7.4.4"
+    "@babel/plugin-proposal-optional-chaining" "^7.6.0"
+    "@babel/plugin-transform-typescript" "~7.8.0"
+    ansi-to-html "^0.6.6"
+    broccoli-stew "^3.0.0"
+    debug "^4.0.0"
+    ember-cli-babel-plugin-helpers "^1.0.0"
+    execa "^3.0.0"
+    fs-extra "^8.0.0"
+    resolve "^1.5.0"
+    rsvp "^4.8.1"
+    semver "^6.3.0"
+    stagehand "^1.0.0"
+    walk-sync "^2.0.0"
+
 ember-cli-typescript@^3.1.3:
   version "3.1.3"
   resolved "https://registry.yarnpkg.com/ember-cli-typescript/-/ember-cli-typescript-3.1.3.tgz#a2c7ec6a8a5e57c38eb52d83e36d8e18c7071e60"
@@ -6588,6 +6608,14 @@ ember-ref-modifier@^1.0.0:
   integrity sha512-JPCwlKerzZCbc5GO01xcgRJv5JcK1O61FF5PE6UxMNRwgDxT33mjTPO2JFhn4HGoG0NvpnkpLLxw+qf1KuX8kw==
   dependencies:
     ember-cli-babel "^7.13.2"
+
+ember-render-helpers@^0.1.1:
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/ember-render-helpers/-/ember-render-helpers-0.1.1.tgz#616a04d317b4a8a6958432f6af37674ebaecfa3f"
+  integrity sha512-i+6gcWa1hCxI9qGHdacrXjfTUJdR8VCPbOXG8SFNjpqfMFlkh6SNeCMjXgSzRG2Xt7YNSSXEzr0ZvK+C7RUuJw==
+  dependencies:
+    ember-cli-babel "^7.12.0"
+    ember-cli-typescript "^3.1.1"
 
 ember-require-module@^0.3.0:
   version "0.3.0"

@@ -105,6 +105,7 @@
     "ember-power-select-with-create": "^0.7.0",
     "ember-qunit": "^4.6.0",
     "ember-ref-modifier": "^1.0.0",
+    "ember-render-helpers": "^0.1.1",
     "ember-resolver": "^7.0.0",
     "ember-router-helpers": "^0.4.0",
     "ember-sinon-qunit": "4.0.1",
