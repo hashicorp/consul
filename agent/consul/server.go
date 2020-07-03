@@ -1201,11 +1201,6 @@ func (s *Server) LeaderLastContact() time.Time {
 	return s.raft.LastContact()
 }
 
-// KeyManagerLAN returns the LAN Serf keyring manager
-func (s *Server) KeyManagerLAN() *serf.KeyManager {
-	return s.serfLAN.KeyManager()
-}
-
 // KeyManagerWAN returns the WAN Serf keyring manager
 func (s *Server) KeyManagerWAN() *serf.KeyManager {
 	return s.serfWAN.KeyManager()
