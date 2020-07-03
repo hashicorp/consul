@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
@@ -85,8 +84,6 @@ type Client struct {
 
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseClient
-
-	tlsConfigurator *tlsutil.Configurator
 }
 
 // NewClientWithOptions creates a new Client from the list of options.
@@ -127,12 +124,11 @@ func NewClientWithOptions(config *Config, options ...Op) (*Client, error) {
 
 	// Create client
 	c := &Client{
-		config:          config,
-		connPool:        connPool,
-		eventCh:         make(chan serf.Event, serfEventBacklog),
-		logger:          flat.logger.NamedIntercept(logging.ConsulClient),
-		shutdownCh:      make(chan struct{}),
-		tlsConfigurator: flat.tlsConfigurator,
+		config:     config,
+		connPool:   connPool,
+		eventCh:    make(chan serf.Event, serfEventBacklog),
+		logger:     flat.logger.NamedIntercept(logging.ConsulClient),
+		shutdownCh: make(chan struct{}),
 	}
 
 	c.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
