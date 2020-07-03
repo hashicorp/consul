@@ -955,6 +955,23 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
 - `bind_addr` Equivalent to the [`-bind` command-line flag](#_bind).
 
+- `cache` Cache configuration of agent. The configurable values are the following:
+
+  - `rate_limit_per_entry`: configures the rate-limit at which the cache may refresh a single
+    entry. On a cluster with many changes/s, watching changes in the cache might put high
+    pressure on the servers. This ensures the number of requests for a single cache entry
+    will never go beyond this limit, even when a given service changes every 1/100s.
+    Since this is a per cache entry limit, having a highly unstable service will only rate
+    limit the watched on this service, but not the other services/entries.
+    The value is expressed with following syntax: `<dividend> / [divisor]<unit>`. Both dividend
+    and divisor must be positive integers and if the divisor is omitted, its value is considered
+    to be 1, so `25/m` and `25/1m` are considered equivalent and mean up to 25 updates on the
+    entry per minute. The unit supported are: "ns", "us" (or "µs"), "ms", "s", "m", "h", spaces
+    are ignored. The rate limit supports a burst of 2 quick updates.
+    Thus, it is possible to get 2 updates quickly (if nothing did change for a while), but if
+    service is unstable and changes all the time, the rate will be applied.
+    Example: `10/3s` will rate limit the number of calls to 10 calls every 3 seconds.
+
 - `ca_file` This provides a file path to a PEM-encoded certificate
   authority. The certificate authority is used to check the authenticity of client
   and server connections with the appropriate [`verify_incoming`](#verify_incoming)
