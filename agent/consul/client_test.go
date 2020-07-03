@@ -88,7 +88,7 @@ func testClientWithConfigWithErr(t *testing.T, cb func(c *Config)) (string, *Cli
 		t.Fatalf("err: %v", err)
 	}
 
-	client, err := NewClientLogger(config, logger, tlsConf)
+	client, err := NewClientWithOptions(config, WithLogger(logger), WithTLSConfigurator(tlsConf))
 	if err != nil {
 		config.NotifyShutdown()
 	}
@@ -456,7 +456,7 @@ func TestClient_RPC_TLS(t *testing.T) {
 	defer conf2.NotifyShutdown()
 	conf2.VerifyOutgoing = true
 	configureTLS(conf2)
-	c1, err := NewClient(conf2)
+	c1, err := newClient(conf2)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -486,6 +486,15 @@ func TestClient_RPC_TLS(t *testing.T) {
 	})
 }
 
+// Deprecated: use NewClientWithOptions
+func newClient(config *Config) (*Client, error) {
+	c, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), nil)
+	if err != nil {
+		return nil, err
+	}
+	return NewClientWithOptions(config, WithTLSConfigurator(c))
+}
+
 func TestClient_RPC_RateLimit(t *testing.T) {
 	t.Parallel()
 	dir1, conf1 := testServerConfig(t)
@@ -501,7 +510,7 @@ func TestClient_RPC_RateLimit(t *testing.T) {
 	defer conf2.NotifyShutdown()
 	conf2.RPCRate = 2
 	conf2.RPCMaxBurst = 2
-	c1, err := NewClient(conf2)
+	c1, err := newClient(conf2)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -569,7 +578,7 @@ func TestClient_SnapshotRPC_RateLimit(t *testing.T) {
 	defer conf1.NotifyShutdown()
 	conf1.RPCRate = 2
 	conf1.RPCMaxBurst = 2
-	c1, err := NewClient(conf1)
+	c1, err := newClient(conf1)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -612,7 +621,7 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 	defer conf2.NotifyShutdown()
 	conf2.VerifyOutgoing = true
 	configureTLS(conf2)
-	c1, err := NewClient(conf2)
+	c1, err := newClient(conf2)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

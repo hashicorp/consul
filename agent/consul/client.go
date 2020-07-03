@@ -89,18 +89,7 @@ type Client struct {
 	tlsConfigurator *tlsutil.Configurator
 }
 
-// NewClient is used to construct a new Consul client from the configuration,
-// potentially returning an error.
-// NewClient only used to help setting up a client for testing. Normal code
-// exercises NewClientLogger.
-func NewClient(config *Config) (*Client, error) {
-	c, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), nil)
-	if err != nil {
-		return nil, err
-	}
-	return NewClientLogger(config, nil, c)
-}
-
+// NewClientWithOptions creates a new Client from the list of options.
 func NewClientWithOptions(config *Config, options ...ConsulOption) (*Client, error) {
 	flat := flattenConsulOptions(options)
 
@@ -208,10 +197,6 @@ func NewClientWithOptions(config *Config, options ...ConsulOption) (*Client, err
 	}
 
 	return c, nil
-}
-
-func NewClientLogger(config *Config, logger hclog.InterceptLogger, tlsConfigurator *tlsutil.Configurator) (*Client, error) {
-	return NewClientWithOptions(config, WithLogger(logger), WithTLSConfigurator(tlsConfigurator))
 }
 
 // Shutdown is used to shutdown the client
