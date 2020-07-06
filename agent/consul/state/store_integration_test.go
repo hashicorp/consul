@@ -12,225 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type nextResult struct {
-	Events []stream.Event
-	Err    error
-}
-
-func testRunSub(sub *stream.Subscription) <-chan nextResult {
-	eventCh := make(chan nextResult, 1)
-	go func() {
-		for {
-			es, err := sub.Next()
-			eventCh <- nextResult{
-				Events: es,
-				Err:    err,
-			}
-			if err != nil {
-				return
-			}
-		}
-	}()
-	return eventCh
-}
-
-func assertNoEvent(t *testing.T, eventCh <-chan nextResult) {
-	t.Helper()
-	select {
-	case next := <-eventCh:
-		require.NoError(t, next.Err)
-		require.Len(t, next.Events, 1)
-		t.Fatalf("got unwanted event: %#v", next.Events[0].Payload)
-	case <-time.After(100 * time.Millisecond):
-	}
-}
-
-func assertEvent(t *testing.T, eventCh <-chan nextResult) *stream.Event {
-	t.Helper()
-	select {
-	case next := <-eventCh:
-		require.NoError(t, next.Err)
-		require.Len(t, next.Events, 1)
-		return &next.Events[0]
-	case <-time.After(100 * time.Millisecond):
-		t.Fatalf("no event after 100ms")
-	}
-	return nil
-}
-
-func assertErr(t *testing.T, eventCh <-chan nextResult) error {
-	t.Helper()
-	select {
-	case next := <-eventCh:
-		require.Error(t, next.Err)
-		return next.Err
-	case <-time.After(100 * time.Millisecond):
-		t.Fatalf("no err after 100ms")
-	}
-	return nil
-}
-
-// assertReset checks that a ResetStream event is send to the subscription
-// within 100ms. If allowEOS is true it will ignore any intermediate events that
-// come before the reset provided they are EndOfSnapshot events because in many
-// cases it's non-deterministic whether the snapshot will complete before the
-// acl reset is handled.
-func assertReset(t *testing.T, eventCh <-chan nextResult, allowEOS bool) {
-	t.Helper()
-	timeoutCh := time.After(100 * time.Millisecond)
-	for {
-		select {
-		case next := <-eventCh:
-			if allowEOS {
-				if next.Err == nil && len(next.Events) == 1 && next.Events[0].IsEndOfSnapshot() {
-					continue
-				}
-			}
-			require.Error(t, next.Err)
-			require.Equal(t, stream.ErrSubscriptionReload, next.Err)
-			return
-		case <-timeoutCh:
-			t.Fatalf("no err after 100ms")
-		}
-	}
-}
-
-var topicService stream.Topic = 901
-
-func newTestTopicHandlers(s *Store) map[stream.Topic]TopicHandler {
-	return map[stream.Topic]TopicHandler{
-		topicService: {
-			ProcessChanges: func(tx db.ReadTxn, changes db.Changes) ([]stream.Event, error) {
-				var events []stream.Event
-				for _, change := range changes.Changes {
-					if change.Table == "services" {
-						service := change.After.(*structs.ServiceNode)
-						events = append(events, stream.Event{
-							Topic:   topicService,
-							Key:     service.ServiceName,
-							Index:   changes.Index,
-							Payload: service,
-						})
-					}
-				}
-				return events, nil
-			},
-			Snapshot: func(req *stream.SubscribeRequest, buffer *stream.EventBuffer) (uint64, error) {
-				idx, nodes, err := s.ServiceNodes(nil, req.Key, nil)
-				if err != nil {
-					return idx, err
-				}
-
-				for _, node := range nodes {
-					event := stream.Event{
-						Topic:   req.Topic,
-						Key:     req.Key,
-						Index:   node.ModifyIndex,
-						Payload: node,
-					}
-					buffer.Append([]stream.Event{event})
-				}
-				return idx, nil
-			},
-		},
-		stream.TopicInternal: {
-			ProcessChanges: aclChangeUnsubscribeEvent,
-		},
-	}
-}
-
-func createTokenAndWaitForACLEventPublish(t *testing.T, s *Store) *structs.ACLToken {
-	token := &structs.ACLToken{
-		AccessorID:  "3af117a9-2233-4cf4-8ff8-3c749c9906b4",
-		SecretID:    "4268ce0d-d7ae-4718-8613-42eba9036020",
-		Description: "something",
-		Policies: []structs.ACLTokenPolicyLink{
-			{ID: testPolicyID_A},
-		},
-		Roles: []structs.ACLTokenRoleLink{
-			{ID: testRoleID_B},
-		},
-	}
-	token.SetHash(false)
-
-	// If we subscribe immediately after we create a token we race with the
-	// publisher that is publishing the ACL token event for the token we just
-	// created. That means that the subscription we create right after will often
-	// be immediately reset. The most reliable way to avoid that without just
-	// sleeping for some arbitrary time is to pre-subscribe using the token before
-	// it actually exists (which works because the publisher doesn't check tokens
-	// it assumes something lower down did that) and then wait for it to be reset
-	// so we know the initial token write event has been sent out before
-	// continuing...
-	subscription := &stream.SubscribeRequest{
-		Topic: topicService,
-		Key:   "nope",
-		Token: token.SecretID,
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-
-	publisher := NewEventPublisher(ctx, newTestTopicHandlers(s), 0)
-	s.db.publisher = publisher
-	sub, err := publisher.Subscribe(ctx, subscription)
-	require.NoError(t, err)
-
-	eventCh := testRunSub(sub)
-
-	// Create the ACL token to be used in the subscription.
-	require.NoError(t, s.ACLTokenSet(2, token.Clone(), false))
-
-	// Wait for the pre-subscription to be reset
-	assertReset(t, eventCh, true)
-
-	return token
-}
-
-func TestEventPublisher_PublishChangesAndSubscribe_WithSnapshot(t *testing.T) {
-	t.Parallel()
-	require := require.New(t)
-	store, err := NewStateStore(nil)
-	require.NoError(err)
-
-	reg := structs.TestRegisterRequest(t)
-	reg.Service.ID = "web1"
-	require.NoError(store.EnsureRegistration(1, reg))
-
-	// Register the subscription.
-	subscription := &stream.SubscribeRequest{
-		Topic: topicService,
-		Key:   reg.Service.Service,
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	publisher := NewEventPublisher(ctx, newTestTopicHandlers(store), 0)
-	store.db.publisher = publisher
-	sub, err := publisher.Subscribe(ctx, subscription)
-	require.NoError(err)
-
-	eventCh := testRunSub(sub)
-
-	// Stream should get the instance and then EndOfSnapshot
-	e := assertEvent(t, eventCh)
-	srv := e.Payload.(*structs.ServiceNode)
-	require.Equal(srv.ServiceID, "web1")
-	e = assertEvent(t, eventCh)
-	require.True(e.IsEndOfSnapshot())
-
-	// Now subscriber should block waiting for updates
-	assertNoEvent(t, eventCh)
-
-	// Add a new instance of service on a different node
-	reg.Node = "node2"
-	require.NoError(store.EnsureRegistration(1, reg))
-
-	// Subscriber should see registration
-	e = assertEvent(t, eventCh)
-	srv = e.Payload.(*structs.ServiceNode)
-	require.Equal(srv.Node, "node2")
-}
-
-func TestEventPublisher_Publish_ACLTokenUpdate(t *testing.T) {
+func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
 	s := testACLTokensStateStore(t)
@@ -247,7 +29,7 @@ func TestEventPublisher_Publish_ACLTokenUpdate(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := NewEventPublisher(ctx, newTestTopicHandlers(s), 0)
+	publisher := stream.NewEventPublisher(ctx, newTestTopicHandlers(s), 0)
 	s.db.publisher = publisher
 	sub, err := publisher.Subscribe(ctx, subscription)
 	require.NoError(err)
@@ -311,7 +93,7 @@ func TestEventPublisher_Publish_ACLTokenUpdate(t *testing.T) {
 	require.Equal(stream.ErrSubscriptionReload, err)
 }
 
-func TestEventPublisher_Publish_ACLPolicyUpdate(t *testing.T) {
+func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
 	s := testACLTokensStateStore(t)
@@ -328,7 +110,7 @@ func TestEventPublisher_Publish_ACLPolicyUpdate(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := NewEventPublisher(ctx, newTestTopicHandlers(s), 0)
+	publisher := stream.NewEventPublisher(ctx, newTestTopicHandlers(s), 0)
 	s.db.publisher = publisher
 	sub, err := publisher.Subscribe(ctx, subscription)
 	require.NoError(err)
@@ -425,7 +207,7 @@ func TestEventPublisher_Publish_ACLPolicyUpdate(t *testing.T) {
 	assertReset(t, eventCh, true)
 }
 
-func TestEventPublisher_Publish_ACLRoleUpdate(t *testing.T) {
+func TestStore_IntegrationWithEventPublisher_ACLRoleUpdate(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
 	s := testACLTokensStateStore(t)
@@ -442,7 +224,7 @@ func TestEventPublisher_Publish_ACLRoleUpdate(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := NewEventPublisher(ctx, newTestTopicHandlers(s), 0)
+	publisher := stream.NewEventPublisher(ctx, newTestTopicHandlers(s), 0)
 	s.db.publisher = publisher
 	sub, err := publisher.Subscribe(ctx, subscription)
 	require.NoError(err)
@@ -503,4 +285,178 @@ func TestEventPublisher_Publish_ACLRoleUpdate(t *testing.T) {
 
 	// Ensure the reload event was sent.
 	assertReset(t, eventCh, false)
+}
+
+type nextResult struct {
+	Events []stream.Event
+	Err    error
+}
+
+func testRunSub(sub *stream.Subscription) <-chan nextResult {
+	eventCh := make(chan nextResult, 1)
+	go func() {
+		for {
+			es, err := sub.Next()
+			eventCh <- nextResult{
+				Events: es,
+				Err:    err,
+			}
+			if err != nil {
+				return
+			}
+		}
+	}()
+	return eventCh
+}
+
+func assertNoEvent(t *testing.T, eventCh <-chan nextResult) {
+	t.Helper()
+	select {
+	case next := <-eventCh:
+		require.NoError(t, next.Err)
+		require.Len(t, next.Events, 1)
+		t.Fatalf("got unwanted event: %#v", next.Events[0].Payload)
+	case <-time.After(100 * time.Millisecond):
+	}
+}
+
+func assertEvent(t *testing.T, eventCh <-chan nextResult) *stream.Event {
+	t.Helper()
+	select {
+	case next := <-eventCh:
+		require.NoError(t, next.Err)
+		require.Len(t, next.Events, 1)
+		return &next.Events[0]
+	case <-time.After(100 * time.Millisecond):
+		t.Fatalf("no event after 100ms")
+	}
+	return nil
+}
+
+func assertErr(t *testing.T, eventCh <-chan nextResult) error {
+	t.Helper()
+	select {
+	case next := <-eventCh:
+		require.Error(t, next.Err)
+		return next.Err
+	case <-time.After(100 * time.Millisecond):
+		t.Fatalf("no err after 100ms")
+	}
+	return nil
+}
+
+// assertReset checks that a ResetStream event is send to the subscription
+// within 100ms. If allowEOS is true it will ignore any intermediate events that
+// come before the reset provided they are EndOfSnapshot events because in many
+// cases it's non-deterministic whether the snapshot will complete before the
+// acl reset is handled.
+func assertReset(t *testing.T, eventCh <-chan nextResult, allowEOS bool) {
+	t.Helper()
+	timeoutCh := time.After(100 * time.Millisecond)
+	for {
+		select {
+		case next := <-eventCh:
+			if allowEOS {
+				if next.Err == nil && len(next.Events) == 1 && next.Events[0].IsEndOfSnapshot() {
+					continue
+				}
+			}
+			require.Error(t, next.Err)
+			require.Equal(t, stream.ErrSubscriptionReload, next.Err)
+			return
+		case <-timeoutCh:
+			t.Fatalf("no err after 100ms")
+		}
+	}
+}
+
+var topicService stream.Topic = 901
+
+func newTestTopicHandlers(s *Store) map[stream.Topic]stream.TopicHandler {
+	return map[stream.Topic]stream.TopicHandler{
+		topicService: {
+			ProcessChanges: func(tx db.ReadTxn, changes db.Changes) ([]stream.Event, error) {
+				var events []stream.Event
+				for _, change := range changes.Changes {
+					if change.Table == "services" {
+						service := change.After.(*structs.ServiceNode)
+						events = append(events, stream.Event{
+							Topic:   topicService,
+							Key:     service.ServiceName,
+							Index:   changes.Index,
+							Payload: service,
+						})
+					}
+				}
+				return events, nil
+			},
+			Snapshot: func(req *stream.SubscribeRequest, buffer *stream.EventBuffer) (uint64, error) {
+				idx, nodes, err := s.ServiceNodes(nil, req.Key, nil)
+				if err != nil {
+					return idx, err
+				}
+
+				for _, node := range nodes {
+					event := stream.Event{
+						Topic:   req.Topic,
+						Key:     req.Key,
+						Index:   node.ModifyIndex,
+						Payload: node,
+					}
+					buffer.Append([]stream.Event{event})
+				}
+				return idx, nil
+			},
+		},
+		stream.TopicInternal: {
+			ProcessChanges: aclChangeUnsubscribeEvent,
+		},
+	}
+}
+
+func createTokenAndWaitForACLEventPublish(t *testing.T, s *Store) *structs.ACLToken {
+	token := &structs.ACLToken{
+		AccessorID:  "3af117a9-2233-4cf4-8ff8-3c749c9906b4",
+		SecretID:    "4268ce0d-d7ae-4718-8613-42eba9036020",
+		Description: "something",
+		Policies: []structs.ACLTokenPolicyLink{
+			{ID: testPolicyID_A},
+		},
+		Roles: []structs.ACLTokenRoleLink{
+			{ID: testRoleID_B},
+		},
+	}
+	token.SetHash(false)
+
+	// If we subscribe immediately after we create a token we race with the
+	// publisher that is publishing the ACL token event for the token we just
+	// created. That means that the subscription we create right after will often
+	// be immediately reset. The most reliable way to avoid that without just
+	// sleeping for some arbitrary time is to pre-subscribe using the token before
+	// it actually exists (which works because the publisher doesn't check tokens
+	// it assumes something lower down did that) and then wait for it to be reset
+	// so we know the initial token write event has been sent out before
+	// continuing...
+	subscription := &stream.SubscribeRequest{
+		Topic: topicService,
+		Key:   "nope",
+		Token: token.SecretID,
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	publisher := stream.NewEventPublisher(ctx, newTestTopicHandlers(s), 0)
+	s.db.publisher = publisher
+	sub, err := publisher.Subscribe(ctx, subscription)
+	require.NoError(t, err)
+
+	eventCh := testRunSub(sub)
+
+	// Create the ACL token to be used in the subscription.
+	require.NoError(t, s.ACLTokenSet(2, token.Clone(), false))
+
+	// Wait for the pre-subscription to be reset
+	assertReset(t, eventCh, true)
+
+	return token
 }

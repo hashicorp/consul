@@ -55,8 +55,7 @@ func (c *changeTrackerDB) WriteTxn(idx uint64) *txn {
 		publish: func(changes db.Changes) error {
 			// publish provides a new read-only Txn to PublishChanges so that
 			// events can be constructed from the current state at the time of
-			// Commit, and so that operations can be performed in a goroutine
-			// after this WriteTxn is committed.
+			// Commit.
 			return c.publisher.PublishChanges(c.db.Txn(false), changes)
 		},
 	}

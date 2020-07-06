@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	memdb "github.com/hashicorp/go-memdb"
 )
@@ -166,7 +167,7 @@ func NewStateStore(gc *TombstoneGC) (*Store, error) {
 		lockDelay:    NewDelay(),
 		db: &changeTrackerDB{
 			db:        db,
-			publisher: NewEventPublisher(ctx, newTopicHandlers(), 10*time.Second),
+			publisher: stream.NewEventPublisher(ctx, newTopicHandlers(), 10*time.Second),
 		},
 	}
 	return s, nil

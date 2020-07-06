@@ -1,4 +1,4 @@
-package state
+package stream
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/consul/state/db"
-	"github.com/hashicorp/consul/agent/consul/stream"
 )
 
 // EventPublisher receives changes events from Publish, and sends them to all
@@ -34,11 +33,11 @@ type EventPublisher struct {
 
 	// topicBuffers stores the head of the linked-list buffer to publish events to
 	// for a topic.
-	topicBuffers map[stream.Topic]*stream.EventBuffer
+	topicBuffers map[Topic]*EventBuffer
 
 	// snapCache if a cache of EventSnapshots indexed by topic and key.
 	// TODO: new struct for snapCache and snapFns and snapCacheTTL
-	snapCache map[stream.Topic]map[string]*stream.EventSnapshot
+	snapCache map[Topic]map[string]*EventSnapshot
 
 	subscriptions *subscriptions
 
@@ -47,7 +46,7 @@ type EventPublisher struct {
 	// the Commit call in the FSM hot path.
 	publishCh chan changeEvents
 
-	handlers map[stream.Topic]TopicHandler
+	handlers map[Topic]TopicHandler
 }
 
 type subscriptions struct {
@@ -60,21 +59,21 @@ type subscriptions struct {
 	// When the token is modified all subscriptions under that token will be
 	// reloaded.
 	// A subscription may be unsubscribed by using the pointer to the request.
-	byToken map[string]map[*stream.SubscribeRequest]*stream.Subscription
+	byToken map[string]map[*SubscribeRequest]*Subscription
 }
 
 type changeEvents struct {
-	events []stream.Event
+	events []Event
 }
 
 // TopicHandler provides functions which create stream.Events for a topic.
 type TopicHandler struct {
 	// Snapshot creates the necessary events to reproduce the current state and
 	// appends them to the EventBuffer.
-	Snapshot func(*stream.SubscribeRequest, *stream.EventBuffer) (index uint64, err error)
+	Snapshot func(*SubscribeRequest, *EventBuffer) (index uint64, err error)
 	// ProcessChanges accepts a slice of Changes, and builds a slice of events for
 	// those changes.
-	ProcessChanges func(db.ReadTxn, db.Changes) ([]stream.Event, error)
+	ProcessChanges func(db.ReadTxn, db.Changes) ([]Event, error)
 }
 
 // NewEventPublisher returns an EventPublisher for publishing change events.
@@ -82,14 +81,14 @@ type TopicHandler struct {
 // A goroutine is run in the background to publish events to all subscribes.
 // Cancelling the context will shutdown the goroutine, to free resources,
 // and stop all publishing.
-func NewEventPublisher(ctx context.Context, handlers map[stream.Topic]TopicHandler, snapCacheTTL time.Duration) *EventPublisher {
+func NewEventPublisher(ctx context.Context, handlers map[Topic]TopicHandler, snapCacheTTL time.Duration) *EventPublisher {
 	e := &EventPublisher{
 		snapCacheTTL: snapCacheTTL,
-		topicBuffers: make(map[stream.Topic]*stream.EventBuffer),
-		snapCache:    make(map[stream.Topic]map[string]*stream.EventSnapshot),
+		topicBuffers: make(map[Topic]*EventBuffer),
+		snapCache:    make(map[Topic]map[string]*EventSnapshot),
 		publishCh:    make(chan changeEvents, 64),
 		subscriptions: &subscriptions{
-			byToken: make(map[string]map[*stream.SubscribeRequest]*stream.Subscription),
+			byToken: make(map[string]map[*SubscribeRequest]*Subscription),
 		},
 		handlers: handlers,
 	}
@@ -99,13 +98,13 @@ func NewEventPublisher(ctx context.Context, handlers map[stream.Topic]TopicHandl
 	return e
 }
 
-// PublishChanges to all subscribers. tx is a read-only transaction that may be
-// used from a goroutine. The caller should never use the tx once it has been
-// passed to PublishChanged.
+// PublishChanges to all subscribers. tx is a read-only transaction that captures
+// the state at the time the change happened. The caller must never use the tx once
+// it has been passed to PublishChanged.
 func (e *EventPublisher) PublishChanges(tx db.ReadTxn, changes db.Changes) error {
 	defer tx.Abort()
 
-	var events []stream.Event
+	var events []Event
 	for topic, handler := range e.handlers {
 		if handler.ProcessChanges != nil {
 			es, err := handler.ProcessChanges(tx, changes)
@@ -137,14 +136,14 @@ func (e *EventPublisher) handleUpdates(ctx context.Context) {
 // as any ACL update events to cause affected listeners to reset their stream.
 func (e *EventPublisher) sendEvents(update changeEvents) {
 	for _, event := range update.events {
-		if unsubEvent, ok := event.Payload.(stream.UnsubscribePayload); ok {
+		if unsubEvent, ok := event.Payload.(UnsubscribePayload); ok {
 			e.subscriptions.closeSubscriptionsForTokens(unsubEvent.TokensSecretIDs)
 		}
 	}
 
-	eventsByTopic := make(map[stream.Topic][]stream.Event)
+	eventsByTopic := make(map[Topic][]Event)
 	for _, event := range update.events {
-		if event.Topic == stream.TopicInternal {
+		if event.Topic == TopicInternal {
 			continue
 		}
 		eventsByTopic[event.Topic] = append(eventsByTopic[event.Topic], event)
@@ -161,10 +160,10 @@ func (e *EventPublisher) sendEvents(update changeEvents) {
 // already exist.
 //
 // EventPublisher.lock must be held to call this method.
-func (e *EventPublisher) getTopicBuffer(topic stream.Topic) *stream.EventBuffer {
+func (e *EventPublisher) getTopicBuffer(topic Topic) *EventBuffer {
 	buf, ok := e.topicBuffers[topic]
 	if !ok {
-		buf = stream.NewEventBuffer()
+		buf = NewEventBuffer()
 		e.topicBuffers[topic] = buf
 	}
 	return buf
@@ -181,11 +180,11 @@ func (e *EventPublisher) getTopicBuffer(topic stream.Topic) *stream.EventBuffer 
 // call Subscription.Unsubscribe to free ACL tracking resources.
 func (e *EventPublisher) Subscribe(
 	ctx context.Context,
-	req *stream.SubscribeRequest,
-) (*stream.Subscription, error) {
+	req *SubscribeRequest,
+) (*Subscription, error) {
 	// Ensure we know how to make a snapshot for this topic
 	_, ok := e.handlers[req.Topic]
-	if !ok || req.Topic == stream.TopicInternal {
+	if !ok || req.Topic == TopicInternal {
 		return nil, fmt.Errorf("unknown topic %d", req.Topic)
 	}
 
@@ -198,26 +197,26 @@ func (e *EventPublisher) Subscribe(
 
 	// See if we need a snapshot
 	topicHead := buf.Head()
-	var sub *stream.Subscription
+	var sub *Subscription
 	if req.Index > 0 && len(topicHead.Events) > 0 && topicHead.Events[0].Index == req.Index {
 		// No need for a snapshot, send the "resume stream" message to signal to
 		// client it's cache is still good. (note that this can be distinguished
 		// from a legitimate empty snapshot due to the index matching the one the
 		// client sent), then follow along from here in the topic.
-		e := stream.Event{
+		e := Event{
 			Index:   req.Index,
 			Topic:   req.Topic,
 			Key:     req.Key,
-			Payload: stream.ResumeStream{},
+			Payload: ResumeStream{},
 		}
 		// Make a new buffer to send to the client containing the resume.
-		buf := stream.NewEventBuffer()
+		buf := NewEventBuffer()
 
 		// Store the head of that buffer before we append to it to give as the
 		// starting point for the subscription.
 		subHead := buf.Head()
 
-		buf.Append([]stream.Event{e})
+		buf.Append([]Event{e})
 
 		// Now splice the rest of the topic buffer on so the subscription will
 		// continue to see future updates in the topic buffer.
@@ -227,13 +226,13 @@ func (e *EventPublisher) Subscribe(
 		}
 		buf.AppendBuffer(follow)
 
-		sub = stream.NewSubscription(ctx, req, subHead)
+		sub = NewSubscription(ctx, req, subHead)
 	} else {
 		snap, err := e.getSnapshotLocked(req, topicHead)
 		if err != nil {
 			return nil, err
 		}
-		sub = stream.NewSubscription(ctx, req, snap.Snap)
+		sub = NewSubscription(ctx, req, snap.Snap)
 	}
 
 	e.subscriptions.add(req, sub)
@@ -246,13 +245,13 @@ func (e *EventPublisher) Subscribe(
 	return sub, nil
 }
 
-func (s *subscriptions) add(req *stream.SubscribeRequest, sub *stream.Subscription) {
+func (s *subscriptions) add(req *SubscribeRequest, sub *Subscription) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
 	subsByToken, ok := s.byToken[req.Token]
 	if !ok {
-		subsByToken = make(map[*stream.SubscribeRequest]*stream.Subscription)
+		subsByToken = make(map[*SubscribeRequest]*Subscription)
 		s.byToken[req.Token] = subsByToken
 	}
 	subsByToken[req] = sub
@@ -275,7 +274,7 @@ func (s *subscriptions) closeSubscriptionsForTokens(tokenSecretIDs []string) {
 // subscription to free resources monitoring changes in it's ACL token.
 //
 // req MUST be the same pointer that was used to register the subscription.
-func (s *subscriptions) unsubscribe(req *stream.SubscribeRequest) {
+func (s *subscriptions) unsubscribe(req *SubscribeRequest) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -289,11 +288,11 @@ func (s *subscriptions) unsubscribe(req *stream.SubscribeRequest) {
 	}
 }
 
-func (e *EventPublisher) getSnapshotLocked(req *stream.SubscribeRequest, topicHead *stream.BufferItem) (*stream.EventSnapshot, error) {
+func (e *EventPublisher) getSnapshotLocked(req *SubscribeRequest, topicHead *BufferItem) (*EventSnapshot, error) {
 	// See if there is a cached snapshot
 	topicSnaps, ok := e.snapCache[req.Topic]
 	if !ok {
-		topicSnaps = make(map[string]*stream.EventSnapshot)
+		topicSnaps = make(map[string]*EventSnapshot)
 		e.snapCache[req.Topic] = topicSnaps
 	}
 
@@ -308,7 +307,7 @@ func (e *EventPublisher) getSnapshotLocked(req *stream.SubscribeRequest, topicHe
 		return nil, fmt.Errorf("unknown topic %d", req.Topic)
 	}
 
-	snap = stream.NewEventSnapshot(req, topicHead, handler.Snapshot)
+	snap = NewEventSnapshot(req, topicHead, handler.Snapshot)
 	if e.snapCacheTTL > 0 {
 		topicSnaps[req.Key] = snap
 
