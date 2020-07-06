@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/state/db"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-memdb"
 	"github.com/stretchr/testify/require"
 )
 
@@ -97,18 +97,18 @@ func assertReset(t *testing.T, eventCh <-chan nextResult, allowEOS bool) {
 
 var topicService stream.Topic = 901
 
-func newTestTopicHandlers(s *Store) map[stream.Topic]topicHandler {
-	return map[stream.Topic]topicHandler{
+func newTestTopicHandlers(s *Store) map[stream.Topic]TopicHandler {
+	return map[stream.Topic]TopicHandler{
 		topicService: {
-			ProcessChanges: func(t *txn, changes memdb.Changes) ([]stream.Event, error) {
+			ProcessChanges: func(tx db.ReadTxn, changes db.Changes) ([]stream.Event, error) {
 				var events []stream.Event
-				for _, change := range changes {
+				for _, change := range changes.Changes {
 					if change.Table == "services" {
 						service := change.After.(*structs.ServiceNode)
 						events = append(events, stream.Event{
 							Topic:   topicService,
 							Key:     service.ServiceName,
-							Index:   t.Index,
+							Index:   changes.Index,
 							Payload: service,
 						})
 					}

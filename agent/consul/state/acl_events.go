@@ -1,6 +1,7 @@
 package state
 
 import (
+	"github.com/hashicorp/consul/agent/consul/state/db"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	memdb "github.com/hashicorp/go-memdb"
@@ -9,17 +10,17 @@ import (
 // ACLEventsFromChanges returns all the ACL token, policy or role events that
 // should be emitted given a set of changes to the state store.
 // TODO: Add OpDelete/OpUpdate to the event or payload?
-func aclEventsFromChanges(tx *txn, changes memdb.Changes) ([]stream.Event, error) {
+func aclEventsFromChanges(_ db.ReadTxn, changes db.Changes) ([]stream.Event, error) {
 	var events []stream.Event
 
 	// TODO: mapping of table->topic?
-	for _, change := range changes {
+	for _, change := range changes.Changes {
 		switch change.Table {
 		case "acl-tokens":
 			token := changeObject(change).(*structs.ACLToken)
 			e := stream.Event{
 				Topic:   stream.Topic_ACLTokens,
-				Index:   tx.Index,
+				Index:   changes.Index,
 				Payload: token,
 			}
 			events = append(events, e)
@@ -27,7 +28,7 @@ func aclEventsFromChanges(tx *txn, changes memdb.Changes) ([]stream.Event, error
 			policy := changeObject(change).(*structs.ACLPolicy)
 			e := stream.Event{
 				Topic:   stream.Topic_ACLPolicies,
-				Index:   tx.Index,
+				Index:   changes.Index,
 				Payload: policy,
 			}
 			events = append(events, e)
@@ -35,7 +36,7 @@ func aclEventsFromChanges(tx *txn, changes memdb.Changes) ([]stream.Event, error
 			role := changeObject(change).(*structs.ACLRole)
 			e := stream.Event{
 				Topic:   stream.Topic_ACLRoles,
-				Index:   tx.Index,
+				Index:   changes.Index,
 				Payload: role,
 			}
 			events = append(events, e)

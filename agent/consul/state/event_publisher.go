@@ -6,12 +6,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/go-memdb"
-
+	"github.com/hashicorp/consul/agent/consul/state/db"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-memdb"
 )
 
+// EventPublisher receives changes events from Publish, and sends them to all
+// registered subscribers.
 type EventPublisher struct {
 	// topicBufferSize controls how many trailing events we keep in memory for
 	// each topic to avoid needing to snapshot again for re-connecting clients
@@ -47,7 +49,7 @@ type EventPublisher struct {
 	// the Commit call in the FSM hot path.
 	publishCh chan commitUpdate
 
-	handlers map[stream.Topic]topicHandler
+	handlers map[stream.Topic]TopicHandler
 }
 
 type subscriptions struct {
@@ -63,8 +65,19 @@ type subscriptions struct {
 	byToken map[string]map[*stream.SubscribeRequest]*stream.Subscription
 }
 
+// TODO: rename
 type commitUpdate struct {
 	events []stream.Event
+}
+
+// TopicHandler provides functions which create stream.Events for a topic.
+type TopicHandler struct {
+	// Snapshot creates the necessary events to reproduce the current state and
+	// appends them to the EventBuffer.
+	Snapshot func(*stream.SubscribeRequest, *stream.EventBuffer) (index uint64, err error)
+	// ProcessChanges accepts a slice of Changes, and builds a slice of events for
+	// those changes.
+	ProcessChanges func(db.ReadTxn, db.Changes) ([]stream.Event, error)
 }
 
 // NewEventPublisher returns an EventPublisher for publishing change events.
@@ -72,7 +85,7 @@ type commitUpdate struct {
 // A goroutine is run in the background to publish events to all subscribes.
 // Cancelling the context will shutdown the goroutine, to free resources,
 // and stop all publishing.
-func NewEventPublisher(ctx context.Context, handlers map[stream.Topic]topicHandler, snapCacheTTL time.Duration) *EventPublisher {
+func NewEventPublisher(ctx context.Context, handlers map[stream.Topic]TopicHandler, snapCacheTTL time.Duration) *EventPublisher {
 	e := &EventPublisher{
 		snapCacheTTL: snapCacheTTL,
 		topicBuffers: make(map[stream.Topic]*stream.EventBuffer),
@@ -89,7 +102,10 @@ func NewEventPublisher(ctx context.Context, handlers map[stream.Topic]topicHandl
 	return e
 }
 
-func (e *EventPublisher) PublishChanges(tx *txn, changes memdb.Changes) error {
+// PublishChanges to all subscribers. tx is a read-only transaction that may be
+// used from a goroutine. The caller should never use the tx once it has been
+// passed to PublishChanged.
+func (e *EventPublisher) PublishChanges(tx db.ReadTxn, changes db.Changes) error {
 	var events []stream.Event
 	for topic, handler := range e.handlers {
 		if handler.ProcessChanges != nil {
@@ -101,6 +117,7 @@ func (e *EventPublisher) PublishChanges(tx *txn, changes memdb.Changes) error {
 		}
 	}
 
+	// TODO: call tx.Abort when this is done with tx.
 	for _, event := range events {
 		// If the event is an ACL update, treat it as a special case. Currently
 		// ACL update events are only used internally to recognize when a subscriber
@@ -168,7 +185,7 @@ func (e *EventPublisher) getTopicBuffer(topic stream.Topic) *stream.EventBuffer 
 }
 
 // handleACLUpdate handles an ACL token/policy/role update.
-func (s *subscriptions) handleACLUpdate(tx ReadTxn, event stream.Event) error {
+func (s *subscriptions) handleACLUpdate(tx db.ReadTxn, event stream.Event) error {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 

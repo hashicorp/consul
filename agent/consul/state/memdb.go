@@ -1,14 +1,9 @@
 package state
 
 import (
+	"github.com/hashicorp/consul/agent/consul/state/db"
 	"github.com/hashicorp/go-memdb"
 )
-
-// ReadTxn is implemented by memdb.Txn to perform read operations.
-type ReadTxn interface {
-	Get(table, index string, args ...interface{}) (memdb.ResultIterator, error)
-	Abort()
-}
 
 // changeTrackerDB is a thin wrapper around memdb.DB which enables TrackChanges on
 // all write transactions. When the transaction is committed the changes are
@@ -19,7 +14,7 @@ type changeTrackerDB struct {
 }
 
 type changePublisher interface {
-	PublishChanges(tx *txn, changes memdb.Changes) error
+	PublishChanges(tx db.ReadTxn, changes db.Changes) error
 }
 
 // Txn exists to maintain backwards compatibility with memdb.DB.Txn. Preexisting
@@ -27,17 +22,20 @@ type changePublisher interface {
 // with write=true.
 //
 // Deprecated: use either ReadTxn, or WriteTxn.
-func (db *changeTrackerDB) Txn(write bool) *txn {
+func (c *changeTrackerDB) Txn(write bool) *txn {
 	if write {
 		panic("don't use db.Txn(true), use db.WriteTxn(idx uin64)")
 	}
-	return db.ReadTxn()
+	return c.ReadTxn()
 }
 
 // ReadTxn returns a read-only transaction which behaves exactly the same as
 // memdb.Txn
-func (db *changeTrackerDB) ReadTxn() *txn {
-	return &txn{Txn: db.db.Txn(false)}
+//
+// TODO: this could return a regular memdb.Txn if all the state functions accepted
+// and interface
+func (c *changeTrackerDB) ReadTxn() *txn {
+	return &txn{Txn: c.db.Txn(false)}
 }
 
 // WriteTxn returns a wrapped memdb.Txn suitable for writes to the state store.
@@ -50,11 +48,17 @@ func (db *changeTrackerDB) ReadTxn() *txn {
 // The exceptional cases are transactions that are executed on an empty
 // memdb.DB as part of Restore, and those executed by tests where we insert
 // data directly into the DB. These cases may use WriteTxnRestore.
-func (db *changeTrackerDB) WriteTxn(idx uint64) *txn {
+func (c *changeTrackerDB) WriteTxn(idx uint64) *txn {
 	t := &txn{
-		Txn:       db.db.Txn(true),
-		Index:     idx,
-		publisher: db.publisher,
+		Txn:   c.db.Txn(true),
+		Index: idx,
+		publish: func(changes db.Changes) error {
+			// publish provides a new read-only Txn to PublishChanges so that
+			// events can be constructed from the current state at the time of
+			// Commit, and so that operations can be performed in a goroutine
+			// after this WriteTxn is committed.
+			return c.publisher.PublishChanges(c.db.Txn(false), changes)
+		},
 	}
 	t.Txn.TrackChanges()
 	return t
@@ -66,12 +70,11 @@ func (db *changeTrackerDB) WriteTxn(idx uint64) *txn {
 // WriteTxnRestore uses a zero index since the whole restore doesn't really occur
 // at one index - the effect is to write many values that were previously
 // written across many indexes.
-func (db *changeTrackerDB) WriteTxnRestore() *txn {
-	t := &txn{
-		Txn:   db.db.Txn(true),
+func (c *changeTrackerDB) WriteTxnRestore() *txn {
+	return &txn{
+		Txn:   c.db.Txn(true),
 		Index: 0,
 	}
-	return t
 }
 
 // txn wraps a memdb.Txn to capture changes and send them to the EventPublisher.
@@ -83,11 +86,11 @@ func (db *changeTrackerDB) WriteTxnRestore() *txn {
 type txn struct {
 	*memdb.Txn
 	// Index in raft where the write is occurring. The value is zero for a
-	// read-only transaction, and for a WriteTxnRestore transaction.
+	// read-only, and WriteTxnRestore transaction.
 	// Index is stored so that it may be passed along to any subscribers as part
 	// of a change event.
-	Index     uint64
-	publisher changePublisher
+	Index   uint64
+	publish func(changes db.Changes) error
 }
 
 // Commit first pushes changes to EventPublisher, then calls Commit on the
@@ -97,10 +100,15 @@ type txn struct {
 // by the caller. A non-nil error indicates that a commit failed and was not
 // applied.
 func (tx *txn) Commit() error {
-	// publisher may be nil if this is a read-only or WriteTxnRestore transaction.
-	// In those cases changes should also be empty.
-	if tx.publisher != nil {
-		if err := tx.publisher.PublishChanges(tx, tx.Txn.Changes()); err != nil {
+	// publish may be nil if this is a read-only or WriteTxnRestore transaction.
+	// In those cases changes should also be empty, and there will be nothing
+	// to publish.
+	if tx.publish != nil {
+		changes := db.Changes{
+			Index:   tx.Index,
+			Changes: tx.Txn.Changes(),
+		}
+		if err := tx.publish(changes); err != nil {
 			return err
 		}
 	}
