@@ -78,4 +78,8 @@ type FetchResult struct {
 
 	// Index is the corresponding index value for this data.
 	Index uint64
+
+	// NotModified indicates that the Value has not changed since LastResult, and
+	// the LastResult value should be used instead of Value.
+	NotModified bool
 }
