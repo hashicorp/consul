@@ -18,6 +18,7 @@ import (
 	"container/heap"
 	"context"
 	"fmt"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -520,7 +521,9 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 
 		if result.Value != nil {
 			// A new value was given, so we create a brand new entry.
-			newEntry.Value = result.Value
+			if !result.NotModified {
+				newEntry.Value = result.Value
+			}
 			newEntry.State = result.State
 			newEntry.Index = result.Index
 			newEntry.FetchedAt = time.Now()
@@ -551,8 +554,9 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 
 		// Error handling
 		if err == nil {
-			metrics.IncrCounter([]string{"consul", "cache", "fetch_success"}, 1)
-			metrics.IncrCounter([]string{"consul", "cache", tEntry.Name, "fetch_success"}, 1)
+			labels := []metrics.Label{{Name: "result_not_modified", Value: strconv.FormatBool(result.NotModified)}}
+			metrics.IncrCounterWithLabels([]string{"consul", "cache", "fetch_success"}, 1, labels)
+			metrics.IncrCounterWithLabels([]string{"consul", "cache", tEntry.Name, "fetch_success"}, 1, labels)
 
 			if result.Index > 0 {
 				// Reset the attempts counter so we don't have any backoff
