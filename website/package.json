@@ -43,7 +43,9 @@
     "nuka-carousel": "^4.7.0",
     "react": "^16.13.1",
     "react-device-detect": "^1.12.1",
-    "react-dom": "^16.13.1"
+    "react-dom": "^16.13.1",
+    "remark": "^12.0.0",
+    "unist-util-visit": "^2.0.2"
   },
   "devDependencies": {
     "dart-linkcheck": "^2.0.15",

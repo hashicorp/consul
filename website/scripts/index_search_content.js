@@ -4,6 +4,8 @@ const algoliasearch = require('algoliasearch')
 const glob = require('glob')
 const matter = require('gray-matter')
 const path = require('path')
+const remark = require('remark')
+const visit = require('unist-util-visit')
 
 // In addition to the content of the page,
 // define additional front matter attributes that will be search-indexable
@@ -15,10 +17,18 @@ async function main() {
   const pagesFolder = path.join(__dirname, '../pages')
 
   // Grab all search-indexable content and format for Algolia
-  const searchObjects = glob
-    .sync(path.join(pagesFolder, '**/*.mdx'))
-    .map((fullPath) => {
+  const searchObjects = await Promise.all(
+    glob.sync(path.join(pagesFolder, '**/*.mdx')).map(async (fullPath) => {
       const { content, data } = matter.read(fullPath)
+
+      const searchableDimensions = SEARCH_DIMENSIONS.reduce(
+        (acc, dimension) => {
+          return { ...acc, [dimension]: data[dimension] }
+        },
+        {}
+      )
+
+      const headings = await collectHeadings(content)
 
       // Get path relative to `pages`
       const __resourcePath = fullPath.replace(`${pagesFolder}/`, '')
@@ -26,19 +36,13 @@ async function main() {
       // Use clean URL for Algolia id
       const objectID = __resourcePath.replace('.mdx', '')
 
-      const searchableDimensions = Object.keys(data)
-        .filter((key) => SEARCH_DIMENSIONS.includes(key))
-        .map((dimension) => ({
-          [dimension]: data[dimension],
-        }))
-
       return {
         ...searchableDimensions,
-        content,
-        __resourcePath,
+        headings,
         objectID,
       }
     })
+  )
 
   try {
     await indexSearchContent(searchObjects)
@@ -67,24 +71,22 @@ async function indexSearchContent(objects) {
     const searchClient = algoliasearch(appId, apiKey)
     const searchIndex = searchClient.initIndex(index)
 
-    await searchIndex.partialUpdateObjects(objects, {
+    const { objectIDs } = await searchIndex.partialUpdateObjects(objects, {
       createIfNotExists: true,
     })
 
-    // Remove indices for items that aren't included in the new batch
-    const newObjectIds = objects.map(({ objectID }) => objectID)
-    let staleObjects = []
+    let staleIds = []
 
     await searchIndex.browseObjects({
       query: '',
       batch: (batch) => {
-        staleObjects = staleObjects.concat(
-          batch.filter(({ objectID }) => !newObjectIds.includes(objectID))
+        staleIds = staleIds.concat(
+          batch
+            .filter(({ objectID }) => !objectIDs.includes(objectID))
+            .map(({ objectID }) => objectID)
         )
       },
     })
-
-    const staleIds = staleObjects.map(({ objectID }) => objectID)
 
     if (staleIds.length > 0) {
       console.log(`deleting ${staleIds.length} stale indices:`)
@@ -98,4 +100,26 @@ async function indexSearchContent(objects) {
   } catch (error) {
     throw new Error(error)
   }
+}
+
+async function collectHeadings(mdxContent) {
+  const headings = []
+
+  const headingMapper = () => (tree) => {
+    visit(tree, 'heading', (node) => {
+      const title = node.children.reduce((m, n) => {
+        if (n.value) m += n.value
+        return m
+      }, '')
+      // Only include level 1 or level 2 headings
+      if (node.depth < 3) {
+        headings.push(title)
+      }
+    })
+  }
+
+  return remark()
+    .use(headingMapper)
+    .process(mdxContent)
+    .then(() => headings)
 }
