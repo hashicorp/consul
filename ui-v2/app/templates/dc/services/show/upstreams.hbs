@@ -3,7 +3,7 @@
   {{#if (gt gatewayServices.length 0)}}
     <section>
       <p>
-        Upstreams are services that may receive traffic from this gateway. Learn more about configuring gateways in our <a href="{{env 'CONSUL_DOCS_URL'}}/connect/ingress_gateway.html" target="_blank" rel="noopener noreferrer">documentation</a>.
+        Upstreams are services that may receive traffic from this gateway. Learn more about configuring gateways in our <a href="{{env 'CONSUL_DOCS_URL'}}/connect/ingress-gateway" target="_blank" rel="noopener noreferrer">documentation</a>.
       </p>
       <ConsulUpstreamList @items={{gatewayServices}} @dc={{dc}} @nspace={{nspace}} />
     </section>
