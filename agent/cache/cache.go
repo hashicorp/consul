@@ -167,15 +167,12 @@ type RegisterOptions struct {
 	// client requests them with MinIndex.
 	SupportsBlocking bool
 
-	// RefreshTimer is the time between attempting to refresh data.
+	// RefreshTimer is the time to sleep between attempts to refresh data.
 	// If this is zero, then data is refreshed immediately when a fetch
 	// is returned.
 	//
-	// RefreshTimeout determines the maximum query time for a refresh
-	// operation. This is specified as part of the query options and is
-	// expected to be implemented by the Type itself.
-	//
-	// Using these values, various "refresh" mechanisms can be implemented:
+	// Using different values for RefreshTimer and RefreshTimeout, various
+	// "refresh" mechanisms can be implemented:
 	//
 	//   * With a high timer duration and a low timeout, a timer-based
 	//     refresh can be set that minimizes load on the Consul servers.
@@ -184,7 +181,11 @@ type RegisterOptions struct {
 	//     refresh can be set so that changes in server data are recognized
 	//     within the cache very quickly.
 	//
-	RefreshTimer   time.Duration
+	RefreshTimer time.Duration
+
+	// RefreshTimeout is the default value for the maximum query time for a fetch
+	// operation. It is set as FetchOptions.Timeout so that cache.Type
+	// implementations can use it as the MaxQueryTime.
 	RefreshTimeout time.Duration
 }
 
@@ -473,8 +474,7 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 		// keepalives are every 30 seconds so the RPC should fail if the packets are
 		// being blackholed for more than 30 seconds.
 		var connectedTimer *time.Timer
-		if tEntry.Opts.Refresh && entry.Index > 0 &&
-			tEntry.Opts.RefreshTimeout > (31*time.Second) {
+		if tEntry.Opts.Refresh && entry.Index > 0 && tEntry.Opts.RefreshTimeout > 31*time.Second {
 			connectedTimer = time.AfterFunc(31*time.Second, func() {
 				c.entriesLock.Lock()
 				defer c.entriesLock.Unlock()
