@@ -1,7 +1,6 @@
 package state
 
 import (
-	"github.com/hashicorp/consul/agent/consul/state/db"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	memdb "github.com/hashicorp/go-memdb"
@@ -11,7 +10,7 @@ import (
 // are used to unsubscribe any subscriptions which match the tokens from the events.
 //
 // These are special events that will never be returned to a subscriber.
-func aclChangeUnsubscribeEvent(tx db.ReadTxn, changes db.Changes) ([]stream.Event, error) {
+func aclChangeUnsubscribeEvent(tx ReadTxn, changes Changes) ([]stream.Event, error) {
 	var secretIDs []string
 
 	for _, change := range changes.Changes {

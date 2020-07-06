@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"sync"
 	"time"
-
-	"github.com/hashicorp/consul/agent/consul/state/db"
 )
 
 // EventPublisher receives changes events from Publish, and sends them to all
@@ -46,7 +44,7 @@ type EventPublisher struct {
 	// the Commit call in the FSM hot path.
 	publishCh chan changeEvents
 
-	handlers map[Topic]TopicHandler
+	snapshotHandlers SnapshotHandlers
 }
 
 type subscriptions struct {
@@ -66,15 +64,9 @@ type changeEvents struct {
 	events []Event
 }
 
-// TopicHandler provides functions which create stream.Events for a topic.
-type TopicHandler struct {
-	// Snapshot creates the necessary events to reproduce the current state and
-	// appends them to the eventBuffer.
-	Snapshot func(*SubscribeRequest, SnapshotAppender) (index uint64, err error)
-	// ProcessChanges accepts a slice of Changes, and builds a slice of events for
-	// those changes.
-	ProcessChanges func(db.ReadTxn, db.Changes) ([]Event, error)
-}
+// SnapshotHandlers is a mapping of Topic to a function which produces a snapshot
+// of events for the SubscribeRequest. Events are appended to the snapshot using SnapshotAppender.
+type SnapshotHandlers map[Topic]func(*SubscribeRequest, SnapshotAppender) (index uint64, err error)
 
 // SnapshotAppender appends groups of events to create a Snapshot of state.
 type SnapshotAppender interface {
@@ -88,7 +80,7 @@ type SnapshotAppender interface {
 // A goroutine is run in the background to publish events to all subscribes.
 // Cancelling the context will shutdown the goroutine, to free resources,
 // and stop all publishing.
-func NewEventPublisher(ctx context.Context, handlers map[Topic]TopicHandler, snapCacheTTL time.Duration) *EventPublisher {
+func NewEventPublisher(ctx context.Context, handlers SnapshotHandlers, snapCacheTTL time.Duration) *EventPublisher {
 	e := &EventPublisher{
 		snapCacheTTL: snapCacheTTL,
 		topicBuffers: make(map[Topic]*eventBuffer),
@@ -97,7 +89,7 @@ func NewEventPublisher(ctx context.Context, handlers map[Topic]TopicHandler, sna
 		subscriptions: &subscriptions{
 			byToken: make(map[string]map[*SubscribeRequest]*Subscription),
 		},
-		handlers: handlers,
+		snapshotHandlers: handlers,
 	}
 
 	go e.handleUpdates(ctx)
@@ -105,25 +97,13 @@ func NewEventPublisher(ctx context.Context, handlers map[Topic]TopicHandler, sna
 	return e
 }
 
-// PublishChanges to all subscribers. tx is a read-only transaction that captures
+// PublishEvents to all subscribers. tx is a read-only transaction that captures
 // the state at the time the change happened. The caller must never use the tx once
 // it has been passed to PublishChanged.
-func (e *EventPublisher) PublishChanges(tx db.ReadTxn, changes db.Changes) error {
-	defer tx.Abort()
-
-	var events []Event
-	for topic, handler := range e.handlers {
-		if handler.ProcessChanges != nil {
-			es, err := handler.ProcessChanges(tx, changes)
-			if err != nil {
-				return fmt.Errorf("failed generating events for topic %q: %s", topic, err)
-			}
-			events = append(events, es...)
-		}
+func (e *EventPublisher) PublishEvents(events []Event) {
+	if len(events) > 0 {
+		e.publishCh <- changeEvents{events: events}
 	}
-
-	e.publishCh <- changeEvents{events: events}
-	return nil
 }
 
 func (e *EventPublisher) handleUpdates(ctx context.Context) {
@@ -150,9 +130,6 @@ func (e *EventPublisher) sendEvents(update changeEvents) {
 
 	eventsByTopic := make(map[Topic][]Event)
 	for _, event := range update.events {
-		if event.Topic == TopicInternal {
-			continue
-		}
 		eventsByTopic[event.Topic] = append(eventsByTopic[event.Topic], event)
 	}
 
@@ -190,8 +167,8 @@ func (e *EventPublisher) Subscribe(
 	req *SubscribeRequest,
 ) (*Subscription, error) {
 	// Ensure we know how to make a snapshot for this topic
-	_, ok := e.handlers[req.Topic]
-	if !ok || req.Topic == TopicInternal {
+	_, ok := e.snapshotHandlers[req.Topic]
+	if !ok {
 		return nil, fmt.Errorf("unknown topic %d", req.Topic)
 	}
 
@@ -296,7 +273,6 @@ func (s *subscriptions) unsubscribe(req *SubscribeRequest) {
 }
 
 func (e *EventPublisher) getSnapshotLocked(req *SubscribeRequest, topicHead *bufferItem) (*eventSnapshot, error) {
-	// See if there is a cached snapshot
 	topicSnaps, ok := e.snapCache[req.Topic]
 	if !ok {
 		topicSnaps = make(map[string]*eventSnapshot)
@@ -308,13 +284,12 @@ func (e *EventPublisher) getSnapshotLocked(req *SubscribeRequest, topicHead *buf
 		return snap, nil
 	}
 
-	// No snap or errored snap in cache, create a new one
-	handler, ok := e.handlers[req.Topic]
+	handler, ok := e.snapshotHandlers[req.Topic]
 	if !ok {
 		return nil, fmt.Errorf("unknown topic %d", req.Topic)
 	}
 
-	snap = newEventSnapshot(req, topicHead, handler.Snapshot)
+	snap = newEventSnapshot(req, topicHead, handler)
 	if e.snapCacheTTL > 0 {
 		topicSnaps[req.Key] = snap
 

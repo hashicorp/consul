@@ -167,8 +167,9 @@ func NewStateStore(gc *TombstoneGC) (*Store, error) {
 		kvsGraveyard: NewGraveyard(gc),
 		lockDelay:    NewDelay(),
 		db: &changeTrackerDB{
-			db:        db,
-			publisher: stream.NewEventPublisher(ctx, newTopicHandlers(), 10*time.Second),
+			db:             db,
+			publisher:      stream.NewEventPublisher(ctx, newSnapshotHandlers(), 10*time.Second),
+			processChanges: processDBChanges,
 		},
 		stopEventPublisher: cancel,
 	}

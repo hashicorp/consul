@@ -8,9 +8,8 @@ type Topic int32
 
 // TODO: remove underscores
 // TODO: type string instead of int?
-// TODO: define non-internal topics in state package?
+// TODO: move topics to state package?
 const (
-	TopicInternal              Topic = 0
 	Topic_ServiceHealth        Topic = 1
 	Topic_ServiceHealthConnect Topic = 2
 )

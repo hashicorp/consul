@@ -1,20 +1,37 @@
 package state
 
 import (
-	"github.com/hashicorp/consul/agent/consul/state/db"
+	"fmt"
+
+	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/go-memdb"
 )
+
+// ReadTxn is implemented by memdb.Txn to perform read operations.
+type ReadTxn interface {
+	Get(table, index string, args ...interface{}) (memdb.ResultIterator, error)
+	Abort()
+}
+
+// Changes wraps a memdb.Changes to include the index at which these changes
+// were made.
+type Changes struct {
+	// Index is the latest index at the time these changes were committed.
+	Index   uint64
+	Changes memdb.Changes
+}
 
 // changeTrackerDB is a thin wrapper around memdb.DB which enables TrackChanges on
 // all write transactions. When the transaction is committed the changes are
 // sent to the eventPublisher which will create and emit change events.
 type changeTrackerDB struct {
-	db        *memdb.MemDB
-	publisher changePublisher
+	db             *memdb.MemDB
+	publisher      eventPublisher
+	processChanges func(ReadTxn, Changes) ([]stream.Event, error)
 }
 
-type changePublisher interface {
-	PublishChanges(tx db.ReadTxn, changes db.Changes) error
+type eventPublisher interface {
+	PublishEvents(events []stream.Event)
 }
 
 // Txn exists to maintain backwards compatibility with memdb.DB.Txn. Preexisting
@@ -50,17 +67,24 @@ func (c *changeTrackerDB) ReadTxn() *txn {
 // data directly into the DB. These cases may use WriteTxnRestore.
 func (c *changeTrackerDB) WriteTxn(idx uint64) *txn {
 	t := &txn{
-		Txn:   c.db.Txn(true),
-		Index: idx,
-		publish: func(changes db.Changes) error {
-			// publish provides a new read-only Txn to PublishChanges so that
-			// events can be constructed from the current state at the time of
-			// Commit.
-			return c.publisher.PublishChanges(c.db.Txn(false), changes)
-		},
+		Txn:     c.db.Txn(true),
+		Index:   idx,
+		publish: c.publish,
 	}
 	t.Txn.TrackChanges()
 	return t
+}
+
+func (c *changeTrackerDB) publish(changes Changes) error {
+	readOnlyTx := c.db.Txn(false)
+	defer readOnlyTx.Abort()
+
+	events, err := c.processChanges(readOnlyTx, changes)
+	if err != nil {
+		return fmt.Errorf("failed generating events from changes: %v", err)
+	}
+	c.publisher.PublishEvents(events)
+	return nil
 }
 
 // WriteTxnRestore returns a wrapped RW transaction that does NOT have change
@@ -89,7 +113,7 @@ type txn struct {
 	// Index is stored so that it may be passed along to any subscribers as part
 	// of a change event.
 	Index   uint64
-	publish func(changes db.Changes) error
+	publish func(changes Changes) error
 }
 
 // Commit first pushes changes to EventPublisher, then calls Commit on the
@@ -103,7 +127,7 @@ func (tx *txn) Commit() error {
 	// In those cases changes should also be empty, and there will be nothing
 	// to publish.
 	if tx.publish != nil {
-		changes := db.Changes{
+		changes := Changes{
 			Index:   tx.Index,
 			Changes: tx.Txn.Changes(),
 		}
@@ -114,4 +138,13 @@ func (tx *txn) Commit() error {
 
 	tx.Txn.Commit()
 	return nil
+}
+
+func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {
+	// TODO: add other table handlers here.
+	return aclChangeUnsubscribeEvent(tx, changes)
+}
+
+func newSnapshotHandlers() stream.SnapshotHandlers {
+	return stream.SnapshotHandlers{}
 }

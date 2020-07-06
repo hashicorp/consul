@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/agent/consul/state/db"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/require"
@@ -128,7 +127,7 @@ func TestACLChangeUnsubscribeEvent(t *testing.T) {
 
 			// Note we call the func under test directly rather than publishChanges so
 			// we can test this in isolation.
-			events, err := aclChangeUnsubscribeEvent(tx, db.Changes{Index: 100, Changes: tx.Changes()})
+			events, err := aclChangeUnsubscribeEvent(tx, Changes{Index: 100, Changes: tx.Changes()})
 			require.NoError(t, err)
 
 			require.Len(t, events, 1)

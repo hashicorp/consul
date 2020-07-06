@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/consul/state/db"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/require"
@@ -29,7 +28,7 @@ func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := stream.NewEventPublisher(ctx, newTestTopicHandlers(s), 0)
+	publisher := stream.NewEventPublisher(ctx, newTestSnapshotHandlers(s), 0)
 	s.db.publisher = publisher
 	sub, err := publisher.Subscribe(ctx, subscription)
 	require.NoError(err)
@@ -110,7 +109,7 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := stream.NewEventPublisher(ctx, newTestTopicHandlers(s), 0)
+	publisher := stream.NewEventPublisher(ctx, newTestSnapshotHandlers(s), 0)
 	s.db.publisher = publisher
 	sub, err := publisher.Subscribe(ctx, subscription)
 	require.NoError(err)
@@ -224,7 +223,7 @@ func TestStore_IntegrationWithEventPublisher_ACLRoleUpdate(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := stream.NewEventPublisher(ctx, newTestTopicHandlers(s), 0)
+	publisher := stream.NewEventPublisher(ctx, newTestSnapshotHandlers(s), 0)
 	s.db.publisher = publisher
 	sub, err := publisher.Subscribe(ctx, subscription)
 	require.NoError(err)
@@ -372,44 +371,24 @@ func assertReset(t *testing.T, eventCh <-chan nextResult, allowEOS bool) {
 
 var topicService stream.Topic = 901
 
-func newTestTopicHandlers(s *Store) map[stream.Topic]stream.TopicHandler {
-	return map[stream.Topic]stream.TopicHandler{
-		topicService: {
-			ProcessChanges: func(tx db.ReadTxn, changes db.Changes) ([]stream.Event, error) {
-				var events []stream.Event
-				for _, change := range changes.Changes {
-					if change.Table == "services" {
-						service := change.After.(*structs.ServiceNode)
-						events = append(events, stream.Event{
-							Topic:   topicService,
-							Key:     service.ServiceName,
-							Index:   changes.Index,
-							Payload: service,
-						})
-					}
-				}
-				return events, nil
-			},
-			Snapshot: func(req *stream.SubscribeRequest, snap stream.SnapshotAppender) (uint64, error) {
-				idx, nodes, err := s.ServiceNodes(nil, req.Key, nil)
-				if err != nil {
-					return idx, err
-				}
+func newTestSnapshotHandlers(s *Store) stream.SnapshotHandlers {
+	return stream.SnapshotHandlers{
+		topicService: func(req *stream.SubscribeRequest, snap stream.SnapshotAppender) (uint64, error) {
+			idx, nodes, err := s.ServiceNodes(nil, req.Key, nil)
+			if err != nil {
+				return idx, err
+			}
 
-				for _, node := range nodes {
-					event := stream.Event{
-						Topic:   req.Topic,
-						Key:     req.Key,
-						Index:   node.ModifyIndex,
-						Payload: node,
-					}
-					snap.Append([]stream.Event{event})
+			for _, node := range nodes {
+				event := stream.Event{
+					Topic:   req.Topic,
+					Key:     req.Key,
+					Index:   node.ModifyIndex,
+					Payload: node,
 				}
-				return idx, nil
-			},
-		},
-		stream.TopicInternal: {
-			ProcessChanges: aclChangeUnsubscribeEvent,
+				snap.Append([]stream.Event{event})
+			}
+			return idx, nil
 		},
 	}
 }
@@ -445,7 +424,7 @@ func createTokenAndWaitForACLEventPublish(t *testing.T, s *Store) *structs.ACLTo
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := stream.NewEventPublisher(ctx, newTestTopicHandlers(s), 0)
+	publisher := stream.NewEventPublisher(ctx, newTestSnapshotHandlers(s), 0)
 	s.db.publisher = publisher
 	sub, err := publisher.Subscribe(ctx, subscription)
 	require.NoError(t, err)
