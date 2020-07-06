@@ -133,8 +133,8 @@ func newTestTopicHandlers(s *Store) map[stream.Topic]TopicHandler {
 				return idx, nil
 			},
 		},
-		stream.Topic_ACLTokens: {
-			ProcessChanges: aclEventsFromChanges,
+		stream.TopicInternal: {
+			ProcessChanges: aclChangeUnsubscribeEvent,
 		},
 	}
 }

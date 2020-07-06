@@ -5,11 +5,9 @@ type Topic int32
 // TODO: remove underscores
 // TODO: type string instead of int?
 const (
-	Topic_ServiceHealth        Topic = 0
-	Topic_ServiceHealthConnect Topic = 1
-	Topic_ACLTokens            Topic = 2
-	Topic_ACLPolicies          Topic = 3
-	Topic_ACLRoles             Topic = 4
+	TopicInternal              Topic = 0
+	Topic_ServiceHealth        Topic = 1
+	Topic_ServiceHealthConnect Topic = 2
 )
 
 // TODO:
@@ -31,3 +29,15 @@ func (e Event) IsResumeStream() bool {
 type endOfSnapshot struct{}
 
 type ResumeStream struct{}
+
+// TODO: unexport once EventPublisher is in stream package
+type UnsubscribePayload struct {
+	TokensSecretIDs []string
+}
+
+// NewUnsubscribeEvent returns a special Event that is handled by the
+// stream package, and is never sent to subscribers. It results in any subscriptions
+// which match any of the TokenSecretIDs to be unsubscribed.
+func NewUnsubscribeEvent(tokenSecretIDs []string) Event {
+	return Event{Payload: UnsubscribePayload{TokensSecretIDs: tokenSecretIDs}}
+}

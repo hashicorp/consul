@@ -7,42 +7,52 @@ import (
 	memdb "github.com/hashicorp/go-memdb"
 )
 
-// ACLEventsFromChanges returns all the ACL token, policy or role events that
-// should be emitted given a set of changes to the state store.
-// TODO: Add OpDelete/OpUpdate to the event or payload?
-func aclEventsFromChanges(_ db.ReadTxn, changes db.Changes) ([]stream.Event, error) {
-	var events []stream.Event
+// aclChangeUnsubscribeEvent creates and returns stream.UnsubscribeEvents that
+// are used to unsubscribe any subscriptions which match the tokens from the events.
+//
+// These are special events that will never be returned to a subscriber.
+func aclChangeUnsubscribeEvent(tx db.ReadTxn, changes db.Changes) ([]stream.Event, error) {
+	var secretIDs []string
 
-	// TODO: mapping of table->topic?
 	for _, change := range changes.Changes {
 		switch change.Table {
 		case "acl-tokens":
 			token := changeObject(change).(*structs.ACLToken)
-			e := stream.Event{
-				Topic:   stream.Topic_ACLTokens,
-				Index:   changes.Index,
-				Payload: token,
-			}
-			events = append(events, e)
-		case "acl-policies":
-			policy := changeObject(change).(*structs.ACLPolicy)
-			e := stream.Event{
-				Topic:   stream.Topic_ACLPolicies,
-				Index:   changes.Index,
-				Payload: policy,
-			}
-			events = append(events, e)
+			secretIDs = append(secretIDs, token.SecretID)
+
 		case "acl-roles":
 			role := changeObject(change).(*structs.ACLRole)
-			e := stream.Event{
-				Topic:   stream.Topic_ACLRoles,
-				Index:   changes.Index,
-				Payload: role,
+			tokens, err := aclTokenListByRole(tx, role.ID, &role.EnterpriseMeta)
+			if err != nil {
+				return nil, err
 			}
-			events = append(events, e)
+			secretIDs = appendSecretIDsFromTokenIterator(secretIDs, tokens)
+
+		case "acl-policies":
+			policy := changeObject(change).(*structs.ACLPolicy)
+			tokens, err := aclTokenListByPolicy(tx, policy.ID, &policy.EnterpriseMeta)
+			if err != nil {
+				return nil, err
+			}
+			secretIDs = appendSecretIDsFromTokenIterator(secretIDs, tokens)
+
+			roles, err := aclRoleListByPolicy(tx, policy.ID, &policy.EnterpriseMeta)
+			if err != nil {
+				return nil, err
+			}
+			for role := roles.Next(); role != nil; role = roles.Next() {
+				role := role.(*structs.ACLRole)
+
+				tokens, err := aclTokenListByRole(tx, role.ID, &policy.EnterpriseMeta)
+				if err != nil {
+					return nil, err
+				}
+				secretIDs = appendSecretIDsFromTokenIterator(secretIDs, tokens)
+			}
 		}
 	}
-	return events, nil
+	// TODO: should we remove duplicate IDs here, or rely on sub.Close() being idempotent
+	return []stream.Event{stream.NewUnsubscribeEvent(secretIDs)}, nil
 }
 
 // changeObject returns the object before it was deleted if the change was a delete,
@@ -52,4 +62,12 @@ func changeObject(change memdb.Change) interface{} {
 		return change.Before
 	}
 	return change.After
+}
+
+func appendSecretIDsFromTokenIterator(seq []string, tokens memdb.ResultIterator) []string {
+	for token := tokens.Next(); token != nil; token = tokens.Next() {
+		token := token.(*structs.ACLToken)
+		seq = append(seq, token.SecretID)
+	}
+	return seq
 }

@@ -8,8 +8,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/state/db"
 	"github.com/hashicorp/consul/agent/consul/stream"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-memdb"
 )
 
 // EventPublisher receives changes events from Publish, and sends them to all
@@ -47,7 +45,7 @@ type EventPublisher struct {
 	// publishCh is used to send messages from an active txn to a goroutine which
 	// publishes events, so that publishing can happen asynchronously from
 	// the Commit call in the FSM hot path.
-	publishCh chan commitUpdate
+	publishCh chan changeEvents
 
 	handlers map[stream.Topic]TopicHandler
 }
@@ -65,8 +63,7 @@ type subscriptions struct {
 	byToken map[string]map[*stream.SubscribeRequest]*stream.Subscription
 }
 
-// TODO: rename
-type commitUpdate struct {
+type changeEvents struct {
 	events []stream.Event
 }
 
@@ -90,7 +87,7 @@ func NewEventPublisher(ctx context.Context, handlers map[stream.Topic]TopicHandl
 		snapCacheTTL: snapCacheTTL,
 		topicBuffers: make(map[stream.Topic]*stream.EventBuffer),
 		snapCache:    make(map[stream.Topic]map[string]*stream.EventSnapshot),
-		publishCh:    make(chan commitUpdate, 64),
+		publishCh:    make(chan changeEvents, 64),
 		subscriptions: &subscriptions{
 			byToken: make(map[string]map[*stream.SubscribeRequest]*stream.Subscription),
 		},
@@ -106,6 +103,8 @@ func NewEventPublisher(ctx context.Context, handlers map[stream.Topic]TopicHandl
 // used from a goroutine. The caller should never use the tx once it has been
 // passed to PublishChanged.
 func (e *EventPublisher) PublishChanges(tx db.ReadTxn, changes db.Changes) error {
+	defer tx.Abort()
+
 	var events []stream.Event
 	for topic, handler := range e.handlers {
 		if handler.ProcessChanges != nil {
@@ -117,29 +116,7 @@ func (e *EventPublisher) PublishChanges(tx db.ReadTxn, changes db.Changes) error
 		}
 	}
 
-	// TODO: call tx.Abort when this is done with tx.
-	for _, event := range events {
-		// If the event is an ACL update, treat it as a special case. Currently
-		// ACL update events are only used internally to recognize when a subscriber
-		// should reload its subscription.
-		if event.Topic == stream.Topic_ACLTokens ||
-			event.Topic == stream.Topic_ACLPolicies ||
-			event.Topic == stream.Topic_ACLRoles {
-
-			if err := e.subscriptions.handleACLUpdate(tx, event); err != nil {
-				// This seems pretty drastic? What would be better. It's not super safe
-				// to continue since we might have missed some ACL update and so leak
-				// data to unauthorized clients but crashing whole server also seems
-				// bad. I wonder if we could send a "reset" to all subscribers instead
-				// and effectively re-start all subscriptions to be on the safe side
-				// without just crashing?
-				// TODO(banks): reset all instead of panic?
-				panic(err)
-			}
-		}
-	}
-
-	e.publishCh <- commitUpdate{events: events}
+	e.publishCh <- changeEvents{events: events}
 	return nil
 }
 
@@ -158,9 +135,18 @@ func (e *EventPublisher) handleUpdates(ctx context.Context) {
 
 // sendEvents sends the given events to any applicable topic listeners, as well
 // as any ACL update events to cause affected listeners to reset their stream.
-func (e *EventPublisher) sendEvents(update commitUpdate) {
+func (e *EventPublisher) sendEvents(update changeEvents) {
+	for _, event := range update.events {
+		if unsubEvent, ok := event.Payload.(stream.UnsubscribePayload); ok {
+			e.subscriptions.closeSubscriptionsForTokens(unsubEvent.TokensSecretIDs)
+		}
+	}
+
 	eventsByTopic := make(map[stream.Topic][]stream.Event)
 	for _, event := range update.events {
+		if event.Topic == stream.TopicInternal {
+			continue
+		}
 		eventsByTopic[event.Topic] = append(eventsByTopic[event.Topic], event)
 	}
 
@@ -184,65 +170,6 @@ func (e *EventPublisher) getTopicBuffer(topic stream.Topic) *stream.EventBuffer 
 	return buf
 }
 
-// handleACLUpdate handles an ACL token/policy/role update.
-func (s *subscriptions) handleACLUpdate(tx db.ReadTxn, event stream.Event) error {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-
-	switch event.Topic {
-	case stream.Topic_ACLTokens:
-		token := event.Payload.(*structs.ACLToken)
-		for _, sub := range s.byToken[token.SecretID] {
-			sub.Close()
-		}
-
-	case stream.Topic_ACLPolicies:
-		policy := event.Payload.(*structs.ACLPolicy)
-		tokens, err := aclTokenListByPolicy(tx, policy.ID, &policy.EnterpriseMeta)
-		if err != nil {
-			return err
-		}
-		s.closeSubscriptionsForTokens(tokens)
-
-		// Find any roles using this policy so tokens with those roles can be reloaded.
-		roles, err := aclRoleListByPolicy(tx, policy.ID, &policy.EnterpriseMeta)
-		if err != nil {
-			return err
-		}
-		for role := roles.Next(); role != nil; role = roles.Next() {
-			role := role.(*structs.ACLRole)
-
-			tokens, err := aclTokenListByRole(tx, role.ID, &policy.EnterpriseMeta)
-			if err != nil {
-				return err
-			}
-			s.closeSubscriptionsForTokens(tokens)
-		}
-
-	case stream.Topic_ACLRoles:
-		role := event.Payload.(*structs.ACLRole)
-		tokens, err := aclTokenListByRole(tx, role.ID, &role.EnterpriseMeta)
-		if err != nil {
-			return err
-		}
-		s.closeSubscriptionsForTokens(tokens)
-	}
-
-	return nil
-}
-
-// This method requires the subscriptions.lock.RLock is held (the read-only lock)
-func (s *subscriptions) closeSubscriptionsForTokens(tokens memdb.ResultIterator) {
-	for token := tokens.Next(); token != nil; token = tokens.Next() {
-		token := token.(*structs.ACLToken)
-		if subs, ok := s.byToken[token.SecretID]; ok {
-			for _, sub := range subs {
-				sub.Close()
-			}
-		}
-	}
-}
-
 // Subscribe returns a new stream.Subscription for the given request. A
 // subscription will stream an initial snapshot of events matching the request
 // if required and then block until new events that modify the request occur, or
@@ -258,7 +185,7 @@ func (e *EventPublisher) Subscribe(
 ) (*stream.Subscription, error) {
 	// Ensure we know how to make a snapshot for this topic
 	_, ok := e.handlers[req.Topic]
-	if !ok {
+	if !ok || req.Topic == stream.TopicInternal {
 		return nil, fmt.Errorf("unknown topic %d", req.Topic)
 	}
 
@@ -329,6 +256,19 @@ func (s *subscriptions) add(req *stream.SubscribeRequest, sub *stream.Subscripti
 		s.byToken[req.Token] = subsByToken
 	}
 	subsByToken[req] = sub
+}
+
+func (s *subscriptions) closeSubscriptionsForTokens(tokenSecretIDs []string) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	for _, secretID := range tokenSecretIDs {
+		if subs, ok := s.byToken[secretID]; ok {
+			for _, sub := range subs {
+				sub.Close()
+			}
+		}
+	}
 }
 
 // unsubscribe must be called when a client is no longer interested in a

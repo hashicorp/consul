@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestACLEventsFromChanges(t *testing.T) {
+func TestACLChangeUnsubscribeEvent(t *testing.T) {
 	cases := []struct {
 		Name     string
 		Setup    func(s *Store, tx *txn) error
@@ -23,7 +23,7 @@ func TestACLEventsFromChanges(t *testing.T) {
 			Mutate: func(s *Store, tx *txn) error {
 				return s.aclTokenSetTxn(tx, tx.Index, newACLToken(1), false, false, false, false)
 			},
-			expected: newACLTokenEvent(100, 1),
+			expected: stream.NewUnsubscribeEvent(newSecretIDs(1)),
 		},
 		{
 			Name: "token update",
@@ -37,7 +37,7 @@ func TestACLEventsFromChanges(t *testing.T) {
 				token.Policies = []structs.ACLTokenPolicyLink{{ID: "33333333-1111-1111-1111-111111111111"}}
 				return s.aclTokenSetTxn(tx, tx.Index, token, false, true, false, false)
 			},
-			expected: newACLTokenEvent(100, 1, structs.ACLTokenPolicyLink{ID: "33333333-1111-1111-1111-111111111111"}),
+			expected: stream.NewUnsubscribeEvent(newSecretIDs(1)),
 		},
 		{
 			Name: "token delete",
@@ -48,58 +48,42 @@ func TestACLEventsFromChanges(t *testing.T) {
 				token := newACLToken(1)
 				return s.aclTokenDeleteTxn(tx, tx.Index, token.AccessorID, "id", nil)
 			},
-			expected: newACLTokenEvent(100, 1),
+			expected: stream.NewUnsubscribeEvent(newSecretIDs(1)),
 		},
 		{
-			Name: "policy create",
-			Mutate: func(s *Store, tx *txn) error {
-				return s.aclPolicySetTxn(tx, tx.Index, newACLPolicy(1))
-			},
-			expected: newACLPolicyEvent(100, 1),
+			Name:   "policy create",
+			Mutate: newACLPolicyWithSingleToken,
+			// two identical tokens, because Mutate has two changes
+			expected: stream.NewUnsubscribeEvent(newSecretIDs(1, 1)),
 		},
 		{
-			Name: "policy update",
-			Setup: func(s *Store, tx *txn) error {
-				return s.aclPolicySetTxn(tx, tx.Index, newACLPolicy(1))
-			},
+			Name:  "policy update",
+			Setup: newACLPolicyWithSingleToken,
 			Mutate: func(s *Store, tx *txn) error {
 				policy := newACLPolicy(1)
 				policy.Rules = `operator = "write"`
 				return s.aclPolicySetTxn(tx, tx.Index, policy)
 			},
-			expected: stream.Event{
-				Topic: stream.Topic_ACLPolicies,
-				Index: 100,
-				Payload: &structs.ACLPolicy{
-					ID:    "22222222-1111-1111-1111-111111111111",
-					Name:  "test_policy_1",
-					Rules: `operator = "write"`,
-				},
-			},
+			expected: stream.NewUnsubscribeEvent(newSecretIDs(1)),
 		},
 		{
-			Name: "policy delete",
-			Setup: func(s *Store, tx *txn) error {
-				return s.aclPolicySetTxn(tx, tx.Index, newACLPolicy(1))
-			},
+			Name:  "policy delete",
+			Setup: newACLPolicyWithSingleToken,
 			Mutate: func(s *Store, tx *txn) error {
 				policy := newACLPolicy(1)
 				return s.aclPolicyDeleteTxn(tx, tx.Index, policy.ID, s.aclPolicyGetByID, nil)
 			},
-			expected: newACLPolicyEvent(100, 1),
+			expected: stream.NewUnsubscribeEvent(newSecretIDs(1)),
 		},
 		{
-			Name: "role create",
-			Mutate: func(s *Store, tx *txn) error {
-				return s.aclRoleSetTxn(tx, tx.Index, newACLRole(1, newACLRolePolicyLink(1)), true)
-			},
-			expected: newACLRoleEvent(100, 1, newACLRolePolicyLink(1)),
+			Name:   "role create",
+			Mutate: newACLRoleWithSingleToken,
+			// Two tokens with the same ID, because there are two changes in Mutate
+			expected: stream.NewUnsubscribeEvent(newSecretIDs(1, 1)),
 		},
 		{
-			Name: "role update",
-			Setup: func(s *Store, tx *txn) error {
-				return s.aclRoleSetTxn(tx, tx.Index, newACLRole(1, newACLRolePolicyLink(1)), true)
-			},
+			Name:  "role update",
+			Setup: newACLRoleWithSingleToken,
 			Mutate: func(s *Store, tx *txn) error {
 				role := newACLRole(1, newACLRolePolicyLink(1))
 				policy2 := newACLPolicy(2)
@@ -109,18 +93,16 @@ func TestACLEventsFromChanges(t *testing.T) {
 				})
 				return s.aclRoleSetTxn(tx, tx.Index, role, true)
 			},
-			expected: newACLRoleEvent(100, 1, newACLRolePolicyLink(1), newACLRolePolicyLink(2)),
+			expected: stream.NewUnsubscribeEvent(newSecretIDs(1)),
 		},
 		{
-			Name: "role delete",
-			Setup: func(s *Store, tx *txn) error {
-				return s.aclRoleSetTxn(tx, tx.Index, newACLRole(1, newACLRolePolicyLink(1)), true)
-			},
+			Name:  "role delete",
+			Setup: newACLRoleWithSingleToken,
 			Mutate: func(s *Store, tx *txn) error {
 				role := newACLRole(1, newACLRolePolicyLink(1))
 				return s.aclRoleDeleteTxn(tx, tx.Index, role.ID, s.aclRoleGetByID, nil)
 			},
-			expected: newACLRoleEvent(100, 1, newACLRolePolicyLink(1)),
+			expected: stream.NewUnsubscribeEvent(newSecretIDs(1)),
 		},
 	}
 
@@ -146,61 +128,43 @@ func TestACLEventsFromChanges(t *testing.T) {
 
 			// Note we call the func under test directly rather than publishChanges so
 			// we can test this in isolation.
-			events, err := aclEventsFromChanges(tx, db.Changes{Index: 100, Changes: tx.Changes()})
+			events, err := aclChangeUnsubscribeEvent(tx, db.Changes{Index: 100, Changes: tx.Changes()})
 			require.NoError(t, err)
 
 			require.Len(t, events, 1)
 			actual := events[0]
-			// ignore modified and created index because we don't set them in our expected values
-			// TODO: gotest.tools/assert would make this easier
-			normalizePayload(&actual)
 			require.Equal(t, tc.expected, actual)
 		})
 	}
 }
 
-func normalizePayload(s *stream.Event) {
-	switch s := s.Payload.(type) {
-	case *structs.ACLToken:
-		s.ModifyIndex = 0
-		s.CreateIndex = 0
-		s.Hash = nil
-	case *structs.ACLPolicy:
-		s.ModifyIndex = 0
-		s.CreateIndex = 0
-	case *structs.ACLRole:
-		s.ModifyIndex = 0
-		s.CreateIndex = 0
+func newACLRoleWithSingleToken(s *Store, tx *txn) error {
+	role := newACLRole(1, newACLRolePolicyLink(1))
+	if err := s.aclRoleSetTxn(tx, tx.Index, role, true); err != nil {
+		return err
 	}
+	token := newACLToken(1)
+	token.Roles = append(token.Roles, structs.ACLTokenRoleLink{ID: role.ID})
+	return s.aclTokenSetTxn(tx, tx.Index, token, false, false, false, false)
 }
 
-func newACLTokenEvent(idx uint64, n int, policies ...structs.ACLTokenPolicyLink) stream.Event {
-	uuid := strings.ReplaceAll("11111111-????-????-????-????????????", "?", strconv.Itoa(n))
-	return stream.Event{
-		Topic: stream.Topic_ACLTokens,
-		Index: idx,
-		Payload: &structs.ACLToken{
-			AccessorID: uuid,
-			SecretID:   uuid,
-			Policies:   policies,
-		},
+func newACLPolicyWithSingleToken(s *Store, tx *txn) error {
+	policy := newACLPolicy(1)
+	if err := s.aclPolicySetTxn(tx, tx.Index, policy); err != nil {
+		return err
 	}
+	token := newACLToken(1)
+	token.Policies = append(token.Policies, structs.ACLTokenPolicyLink{ID: policy.ID})
+	return s.aclTokenSetTxn(tx, tx.Index, token, false, false, false, false)
 }
 
-func newACLPolicyEvent(idx uint64, n int) stream.Event {
-	return stream.Event{
-		Topic:   stream.Topic_ACLPolicies,
-		Index:   idx,
-		Payload: newACLPolicy(n),
+func newSecretIDs(ids ...int) []string {
+	result := make([]string, 0, len(ids))
+	for _, id := range ids {
+		uuid := strings.ReplaceAll("11111111-????-????-????-????????????", "?", strconv.Itoa(id))
+		result = append(result, uuid)
 	}
-}
-
-func newACLRoleEvent(idx uint64, n int, policies ...structs.ACLRolePolicyLink) stream.Event {
-	return stream.Event{
-		Topic:   stream.Topic_ACLRoles,
-		Index:   idx,
-		Payload: newACLRole(n, policies...),
-	}
+	return result
 }
 
 func newACLToken(n int) *structs.ACLToken {
