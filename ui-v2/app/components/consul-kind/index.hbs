@@ -45,9 +45,9 @@
                 </li>
           {{/let}}
           {{#let (from-entries
-            (array 'ingress-gateway' '/connect/ingress_gateway.html')
-            (array 'terminating-gateway' '/connect/terminating_gateway.html')
-            (array 'mesh-gateway' '/connect/mesh_gateway.html')
+            (array 'ingress-gateway' '/connect/ingress-gateway')
+            (array 'terminating-gateway' '/connect/terminating-gateway')
+            (array 'mesh-gateway' '/connect/mesh-gateway')
           ) as |link|}}
                 <li role="none" class="docs-link">
                   <a tabindex="-1" role="menuitem" href={{concat (env 'CONSUL_DOCS_URL') (get link item.Kind)}} rel="noopener noreferrer" target="_blank">
