@@ -107,6 +107,10 @@ type Store struct {
 	// abandoned (usually during a restore). This is only ever closed.
 	abandonCh chan struct{}
 
+	// TODO: refactor abondonCh to use a context so that both can use the same
+	// cancel mechanism.
+	stopEventPublisher func()
+
 	// kvsGraveyard manages tombstones for the key value store.
 	kvsGraveyard *Graveyard
 
@@ -156,10 +160,7 @@ func NewStateStore(gc *TombstoneGC) (*Store, error) {
 		return nil, fmt.Errorf("Failed setting up state store: %s", err)
 	}
 
-	// TODO: context should be cancelled when the store is Abandoned to free
-	// resources.
-	ctx := context.TODO()
-
+	ctx, cancel := context.WithCancel(context.TODO())
 	s := &Store{
 		schema:       schema,
 		abandonCh:    make(chan struct{}),
@@ -169,6 +170,7 @@ func NewStateStore(gc *TombstoneGC) (*Store, error) {
 			db:        db,
 			publisher: stream.NewEventPublisher(ctx, newTopicHandlers(), 10*time.Second),
 		},
+		stopEventPublisher: cancel,
 	}
 	return s, nil
 }
@@ -241,6 +243,7 @@ func (s *Store) AbandonCh() <-chan struct{} {
 // Abandon is used to signal that the given state store has been abandoned.
 // Calling this more than one time will panic.
 func (s *Store) Abandon() {
+	s.stopEventPublisher()
 	close(s.abandonCh)
 }
 
