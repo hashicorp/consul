@@ -33,6 +33,9 @@
 /docs/connect/mesh_gateway                           /docs/connect/mesh-gateway                        301!
 /docs/connect/ingress_gateway                        /docs/connect/ingress-gateway                     301!
 /docs/connect/terminating_gateway                    /docs/connect/terminating-gateway                 301!
+/docs/connect/mesh_gateway.html                      /docs/connect/mesh-gateway                        301!
+/docs/connect/ingress_gateway.html                   /docs/connect/ingress-gateway                     301!
+/docs/connect/terminating_gateway.html               /docs/connect/terminating-gateway                 301!
 
 # CLI renames
 
