@@ -23,7 +23,7 @@ func TestACLChangeUnsubscribeEvent(t *testing.T) {
 			Mutate: func(s *Store, tx *txn) error {
 				return s.aclTokenSetTxn(tx, tx.Index, newACLToken(1), false, false, false, false)
 			},
-			expected: stream.NewUnsubscribeEvent(newSecretIDs(1)),
+			expected: stream.NewCloseSubscriptionEvent(newSecretIDs(1)),
 		},
 		{
 			Name: "token update",
@@ -37,7 +37,7 @@ func TestACLChangeUnsubscribeEvent(t *testing.T) {
 				token.Policies = []structs.ACLTokenPolicyLink{{ID: "33333333-1111-1111-1111-111111111111"}}
 				return s.aclTokenSetTxn(tx, tx.Index, token, false, true, false, false)
 			},
-			expected: stream.NewUnsubscribeEvent(newSecretIDs(1)),
+			expected: stream.NewCloseSubscriptionEvent(newSecretIDs(1)),
 		},
 		{
 			Name: "token delete",
@@ -48,13 +48,13 @@ func TestACLChangeUnsubscribeEvent(t *testing.T) {
 				token := newACLToken(1)
 				return s.aclTokenDeleteTxn(tx, tx.Index, token.AccessorID, "id", nil)
 			},
-			expected: stream.NewUnsubscribeEvent(newSecretIDs(1)),
+			expected: stream.NewCloseSubscriptionEvent(newSecretIDs(1)),
 		},
 		{
 			Name:   "policy create",
 			Mutate: newACLPolicyWithSingleToken,
 			// two identical tokens, because Mutate has two changes
-			expected: stream.NewUnsubscribeEvent(newSecretIDs(1, 1)),
+			expected: stream.NewCloseSubscriptionEvent(newSecretIDs(1, 1)),
 		},
 		{
 			Name:  "policy update",
@@ -64,7 +64,7 @@ func TestACLChangeUnsubscribeEvent(t *testing.T) {
 				policy.Rules = `operator = "write"`
 				return s.aclPolicySetTxn(tx, tx.Index, policy)
 			},
-			expected: stream.NewUnsubscribeEvent(newSecretIDs(1)),
+			expected: stream.NewCloseSubscriptionEvent(newSecretIDs(1)),
 		},
 		{
 			Name:  "policy delete",
@@ -73,13 +73,13 @@ func TestACLChangeUnsubscribeEvent(t *testing.T) {
 				policy := newACLPolicy(1)
 				return s.aclPolicyDeleteTxn(tx, tx.Index, policy.ID, s.aclPolicyGetByID, nil)
 			},
-			expected: stream.NewUnsubscribeEvent(newSecretIDs(1)),
+			expected: stream.NewCloseSubscriptionEvent(newSecretIDs(1)),
 		},
 		{
 			Name:   "role create",
 			Mutate: newACLRoleWithSingleToken,
 			// Two tokens with the same ID, because there are two changes in Mutate
-			expected: stream.NewUnsubscribeEvent(newSecretIDs(1, 1)),
+			expected: stream.NewCloseSubscriptionEvent(newSecretIDs(1, 1)),
 		},
 		{
 			Name:  "role update",
@@ -93,7 +93,7 @@ func TestACLChangeUnsubscribeEvent(t *testing.T) {
 				})
 				return s.aclRoleSetTxn(tx, tx.Index, role, true)
 			},
-			expected: stream.NewUnsubscribeEvent(newSecretIDs(1)),
+			expected: stream.NewCloseSubscriptionEvent(newSecretIDs(1)),
 		},
 		{
 			Name:  "role delete",
@@ -102,7 +102,7 @@ func TestACLChangeUnsubscribeEvent(t *testing.T) {
 				role := newACLRole(1, newACLRolePolicyLink(1))
 				return s.aclRoleDeleteTxn(tx, tx.Index, role.ID, s.aclRoleGetByID, nil)
 			},
-			expected: stream.NewUnsubscribeEvent(newSecretIDs(1)),
+			expected: stream.NewCloseSubscriptionEvent(newSecretIDs(1)),
 		},
 	}
 

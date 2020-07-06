@@ -62,7 +62,7 @@ func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
 
 	// Ensure the reset event was sent.
 	err = assertErr(t, eventCh)
-	require.Equal(stream.ErrSubscriptionReload, err)
+	require.Equal(stream.ErrSubscriptionClosed, err)
 
 	// Register another subscription.
 	subscription2 := &stream.SubscribeRequest{
@@ -90,7 +90,7 @@ func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
 
 	// Ensure the reset event was sent.
 	err = assertErr(t, eventCh2)
-	require.Equal(stream.ErrSubscriptionReload, err)
+	require.Equal(stream.ErrSubscriptionClosed, err)
 }
 
 func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
@@ -175,7 +175,7 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 
 	// Ensure the reload event was sent.
 	err = assertErr(t, eventCh)
-	require.Equal(stream.ErrSubscriptionReload, err)
+	require.Equal(stream.ErrSubscriptionClosed, err)
 
 	// Register another subscription.
 	subscription3 := &stream.SubscribeRequest{
@@ -362,7 +362,7 @@ func assertReset(t *testing.T, eventCh <-chan nextResult, allowEOS bool) {
 				}
 			}
 			require.Error(t, next.Err)
-			require.Equal(t, stream.ErrSubscriptionReload, next.Err)
+			require.Equal(t, stream.ErrSubscriptionClosed, next.Err)
 			return
 		case <-timeoutCh:
 			t.Fatalf("no err after 100ms")
@@ -390,7 +390,7 @@ func newTestTopicHandlers(s *Store) map[stream.Topic]stream.TopicHandler {
 				}
 				return events, nil
 			},
-			Snapshot: func(req *stream.SubscribeRequest, buffer *stream.EventBuffer) (uint64, error) {
+			Snapshot: func(req *stream.SubscribeRequest, snap stream.SnapshotAppender) (uint64, error) {
 				idx, nodes, err := s.ServiceNodes(nil, req.Key, nil)
 				if err != nil {
 					return idx, err
@@ -403,7 +403,7 @@ func newTestTopicHandlers(s *Store) map[stream.Topic]stream.TopicHandler {
 						Index:   node.ModifyIndex,
 						Payload: node,
 					}
-					buffer.Append([]stream.Event{event})
+					snap.Append([]stream.Event{event})
 				}
 				return idx, nil
 			},

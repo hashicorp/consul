@@ -9,7 +9,7 @@ import (
 )
 
 func TestSubscription(t *testing.T) {
-	eb := NewEventBuffer()
+	eb := newEventBuffer()
 
 	index := uint64(100)
 
@@ -26,7 +26,7 @@ func TestSubscription(t *testing.T) {
 		Topic: Topic_ServiceHealth,
 		Key:   "test",
 	}
-	sub := NewSubscription(ctx, req, startHead)
+	sub := newSubscription(ctx, req, startHead)
 
 	// First call to sub.Next should return our published event immediately
 	start := time.Now()
@@ -89,7 +89,7 @@ func TestSubscription(t *testing.T) {
 }
 
 func TestSubscription_Close(t *testing.T) {
-	eb := NewEventBuffer()
+	eb := newEventBuffer()
 
 	index := uint64(100)
 
@@ -106,7 +106,7 @@ func TestSubscription_Close(t *testing.T) {
 		Topic: Topic_ServiceHealth,
 		Key:   "test",
 	}
-	sub := NewSubscription(ctx, req, startHead)
+	sub := newSubscription(ctx, req, startHead)
 
 	// First call to sub.Next should return our published event immediately
 	start := time.Now()
@@ -128,14 +128,14 @@ func TestSubscription_Close(t *testing.T) {
 	_, err = sub.Next()
 	elapsed = time.Since(start)
 	require.Error(t, err)
-	require.Equal(t, ErrSubscriptionReload, err)
+	require.Equal(t, ErrSubscriptionClosed, err)
 	require.True(t, elapsed > 200*time.Millisecond,
 		"Reload should have happened after blocking 200ms, took %s", elapsed)
 	require.True(t, elapsed < 2*time.Second,
 		"Reload should have been delivered after short time, took %s", elapsed)
 }
 
-func publishTestEvent(index uint64, b *EventBuffer, key string) {
+func publishTestEvent(index uint64, b *eventBuffer, key string) {
 	// Don't care about the event payload for now just the semantics of publishing
 	// something. This is not a valid stream in the end-to-end streaming protocol
 	// but enough to test subscription mechanics.

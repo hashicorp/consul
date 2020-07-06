@@ -1,3 +1,7 @@
+/*
+Package stream provides a publish/subscribe system for events produced by changes
+to the state store.
+*/
 package stream
 
 type Topic int32
@@ -24,21 +28,21 @@ func (e Event) IsEndOfSnapshot() bool {
 }
 
 func (e Event) IsResumeStream() bool {
-	return e.Payload == ResumeStream{}
+	return e.Payload == resumeStream{}
 }
 
 type endOfSnapshot struct{}
 
-type ResumeStream struct{}
+type resumeStream struct{}
 
-// TODO: unexport once EventPublisher is in stream package
-type UnsubscribePayload struct {
-	TokensSecretIDs []string
+type closeSubscriptionPayload struct {
+	tokensSecretIDs []string
 }
 
-// NewUnsubscribeEvent returns a special Event that is handled by the
-// stream package, and is never sent to subscribers. It results in any subscriptions
-// which match any of the TokenSecretIDs to be unsubscribed.
-func NewUnsubscribeEvent(tokenSecretIDs []string) Event {
-	return Event{Payload: UnsubscribePayload{TokensSecretIDs: tokenSecretIDs}}
+// NewCloseSubscriptionEvent returns a special Event that is handled by the
+// stream package, and is never sent to subscribers. EventProcessor handles
+// these events, and closes any subscriptions which were created using a token
+// which matches any of the tokenSecretIDs.
+func NewCloseSubscriptionEvent(tokenSecretIDs []string) Event {
+	return Event{Payload: closeSubscriptionPayload{tokensSecretIDs: tokenSecretIDs}}
 }

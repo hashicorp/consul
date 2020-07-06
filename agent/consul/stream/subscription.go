@@ -17,11 +17,9 @@ const (
 	subscriptionStateClosed uint32 = 1
 )
 
-var (
-	// ErrSubscriptionReload is a error signalling reload event should be sent to
-	// the client and the server should close.
-	ErrSubscriptionReload = errors.New("subscription closed by server, client should retry")
-)
+// ErrSubscriptionClosed is a error signalling the subscription has been
+// closed. The client should Unsubscribe, then re-Subscribe.
+var ErrSubscriptionClosed = errors.New("subscription closed by server, client should unsub and retry")
 
 // Subscription holds state about a single Subscribe call. Subscribe clients
 // access their next event by calling Next(). This may initially include the
@@ -35,7 +33,7 @@ type Subscription struct {
 
 	// currentItem stores the current snapshot or topic buffer item we are on. It
 	// is mutated by calls to Next.
-	currentItem *BufferItem
+	currentItem *bufferItem
 
 	// ctx is the Subscription context that wraps the context of the streaming RPC
 	// handler call.
@@ -59,9 +57,9 @@ type SubscribeRequest struct {
 	Index uint64
 }
 
-// NewSubscription return a new subscription. The caller is responsible for
+// newSubscription return a new subscription. The caller is responsible for
 // calling Unsubscribe when it is done with the subscription, to free resources.
-func NewSubscription(ctx context.Context, req *SubscribeRequest, item *BufferItem) *Subscription {
+func newSubscription(ctx context.Context, req *SubscribeRequest, item *bufferItem) *Subscription {
 	subCtx, cancel := context.WithCancel(ctx)
 	return &Subscription{
 		ctx:         subCtx,
@@ -75,7 +73,7 @@ func NewSubscription(ctx context.Context, req *SubscribeRequest, item *BufferIte
 // single goroutine concurrently as it mutates the Subscription.
 func (s *Subscription) Next() ([]Event, error) {
 	if atomic.LoadUint32(&s.state) == subscriptionStateClosed {
-		return nil, ErrSubscriptionReload
+		return nil, ErrSubscriptionClosed
 	}
 
 	for {
@@ -83,7 +81,7 @@ func (s *Subscription) Next() ([]Event, error) {
 		if err != nil {
 			// Check we didn't return because of a state change cancelling the context
 			if atomic.LoadUint32(&s.state) == subscriptionStateClosed {
-				return nil, ErrSubscriptionReload
+				return nil, ErrSubscriptionClosed
 			}
 			return nil, err
 		}

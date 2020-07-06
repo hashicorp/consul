@@ -51,7 +51,7 @@ func TestEventPublisher_PublishChangesAndSubscribe_WithSnapshot(t *testing.T) {
 func newTestTopicHandlers() map[Topic]TopicHandler {
 	return map[Topic]TopicHandler{
 		testTopic: {
-			Snapshot: func(req *SubscribeRequest, buf *EventBuffer) (uint64, error) {
+			Snapshot: func(req *SubscribeRequest, buf SnapshotAppender) (uint64, error) {
 				if req.Topic != testTopic {
 					return 0, fmt.Errorf("unexpected topic: %v", req.Topic)
 				}

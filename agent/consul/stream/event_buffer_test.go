@@ -20,7 +20,7 @@ func TestEventBufferFuzz(t *testing.T) {
 	nReaders := 1000
 	nMessages := 1000
 
-	b := NewEventBuffer()
+	b := newEventBuffer()
 
 	// Start a write goroutine that will publish 10000 messages with sequential
 	// indexes and some jitter in timing (to allow clients to "catch up" and block

@@ -70,10 +70,10 @@ func TestEventSnapshot(t *testing.T) {
 			snFn := testHealthConsecutiveSnapshotFn(tc.snapshotSize, snapIndex)
 
 			// Create a topic buffer for updates
-			tb := NewEventBuffer()
+			tb := newEventBuffer()
 
 			// Capture the topic buffer head now so updatesBeforeSnap are "concurrent"
-			// and are seen by the EventSnapshot once it completes the snap.
+			// and are seen by the eventSnapshot once it completes the snap.
 			tbHead := tb.Head()
 
 			// Deliver any pre-snapshot events simulating updates that occur after the
@@ -87,9 +87,9 @@ func TestEventSnapshot(t *testing.T) {
 				tb.Append([]Event{newDefaultHealthEvent(index, 10000+i)})
 			}
 
-			// Create EventSnapshot, (will call snFn in another goroutine). The
-			// Request is ignored by the SnapFn so doesn't matter for now.
-			es := NewEventSnapshot(&SubscribeRequest{}, tbHead, snFn)
+			// Create eventSnapshot, (will call snFn in another goroutine). The
+			// Request is ignored by the snapFunc so doesn't matter for now.
+			es := newEventSnapshot(&SubscribeRequest{}, tbHead, snFn)
 
 			// Deliver any post-snapshot events simulating updates that occur
 			// logically after snapshot. It doesn't matter that these might actually
@@ -155,8 +155,8 @@ func genSequentialIDs(start, end int) []string {
 	return ids
 }
 
-func testHealthConsecutiveSnapshotFn(size int, index uint64) SnapFn {
-	return func(req *SubscribeRequest, buf *EventBuffer) (uint64, error) {
+func testHealthConsecutiveSnapshotFn(size int, index uint64) snapFunc {
+	return func(req *SubscribeRequest, buf SnapshotAppender) (uint64, error) {
 		for i := 0; i < size; i++ {
 			// Event content is arbitrary we are just using Health because it's the
 			// first type defined. We just want a set of things with consecutive

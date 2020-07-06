@@ -33,11 +33,11 @@ type EventPublisher struct {
 
 	// topicBuffers stores the head of the linked-list buffer to publish events to
 	// for a topic.
-	topicBuffers map[Topic]*EventBuffer
+	topicBuffers map[Topic]*eventBuffer
 
 	// snapCache if a cache of EventSnapshots indexed by topic and key.
 	// TODO: new struct for snapCache and snapFns and snapCacheTTL
-	snapCache map[Topic]map[string]*EventSnapshot
+	snapCache map[Topic]map[string]*eventSnapshot
 
 	subscriptions *subscriptions
 
@@ -69,11 +69,18 @@ type changeEvents struct {
 // TopicHandler provides functions which create stream.Events for a topic.
 type TopicHandler struct {
 	// Snapshot creates the necessary events to reproduce the current state and
-	// appends them to the EventBuffer.
-	Snapshot func(*SubscribeRequest, *EventBuffer) (index uint64, err error)
+	// appends them to the eventBuffer.
+	Snapshot func(*SubscribeRequest, SnapshotAppender) (index uint64, err error)
 	// ProcessChanges accepts a slice of Changes, and builds a slice of events for
 	// those changes.
 	ProcessChanges func(db.ReadTxn, db.Changes) ([]Event, error)
+}
+
+// SnapshotAppender appends groups of events to create a Snapshot of state.
+type SnapshotAppender interface {
+	// Append events to the snapshot.
+	// TODO: document why parameter is a slice instead of a single Event
+	Append(events []Event)
 }
 
 // NewEventPublisher returns an EventPublisher for publishing change events.
@@ -84,8 +91,8 @@ type TopicHandler struct {
 func NewEventPublisher(ctx context.Context, handlers map[Topic]TopicHandler, snapCacheTTL time.Duration) *EventPublisher {
 	e := &EventPublisher{
 		snapCacheTTL: snapCacheTTL,
-		topicBuffers: make(map[Topic]*EventBuffer),
-		snapCache:    make(map[Topic]map[string]*EventSnapshot),
+		topicBuffers: make(map[Topic]*eventBuffer),
+		snapCache:    make(map[Topic]map[string]*eventSnapshot),
 		publishCh:    make(chan changeEvents, 64),
 		subscriptions: &subscriptions{
 			byToken: make(map[string]map[*SubscribeRequest]*Subscription),
@@ -136,8 +143,8 @@ func (e *EventPublisher) handleUpdates(ctx context.Context) {
 // as any ACL update events to cause affected listeners to reset their stream.
 func (e *EventPublisher) sendEvents(update changeEvents) {
 	for _, event := range update.events {
-		if unsubEvent, ok := event.Payload.(UnsubscribePayload); ok {
-			e.subscriptions.closeSubscriptionsForTokens(unsubEvent.TokensSecretIDs)
+		if unsubEvent, ok := event.Payload.(closeSubscriptionPayload); ok {
+			e.subscriptions.closeSubscriptionsForTokens(unsubEvent.tokensSecretIDs)
 		}
 	}
 
@@ -160,10 +167,10 @@ func (e *EventPublisher) sendEvents(update changeEvents) {
 // already exist.
 //
 // EventPublisher.lock must be held to call this method.
-func (e *EventPublisher) getTopicBuffer(topic Topic) *EventBuffer {
+func (e *EventPublisher) getTopicBuffer(topic Topic) *eventBuffer {
 	buf, ok := e.topicBuffers[topic]
 	if !ok {
-		buf = NewEventBuffer()
+		buf = newEventBuffer()
 		e.topicBuffers[topic] = buf
 	}
 	return buf
@@ -207,10 +214,10 @@ func (e *EventPublisher) Subscribe(
 			Index:   req.Index,
 			Topic:   req.Topic,
 			Key:     req.Key,
-			Payload: ResumeStream{},
+			Payload: resumeStream{},
 		}
 		// Make a new buffer to send to the client containing the resume.
-		buf := NewEventBuffer()
+		buf := newEventBuffer()
 
 		// Store the head of that buffer before we append to it to give as the
 		// starting point for the subscription.
@@ -226,13 +233,13 @@ func (e *EventPublisher) Subscribe(
 		}
 		buf.AppendBuffer(follow)
 
-		sub = NewSubscription(ctx, req, subHead)
+		sub = newSubscription(ctx, req, subHead)
 	} else {
 		snap, err := e.getSnapshotLocked(req, topicHead)
 		if err != nil {
 			return nil, err
 		}
-		sub = NewSubscription(ctx, req, snap.Snap)
+		sub = newSubscription(ctx, req, snap.Snap)
 	}
 
 	e.subscriptions.add(req, sub)
@@ -288,16 +295,16 @@ func (s *subscriptions) unsubscribe(req *SubscribeRequest) {
 	}
 }
 
-func (e *EventPublisher) getSnapshotLocked(req *SubscribeRequest, topicHead *BufferItem) (*EventSnapshot, error) {
+func (e *EventPublisher) getSnapshotLocked(req *SubscribeRequest, topicHead *bufferItem) (*eventSnapshot, error) {
 	// See if there is a cached snapshot
 	topicSnaps, ok := e.snapCache[req.Topic]
 	if !ok {
-		topicSnaps = make(map[string]*EventSnapshot)
+		topicSnaps = make(map[string]*eventSnapshot)
 		e.snapCache[req.Topic] = topicSnaps
 	}
 
 	snap, ok := topicSnaps[req.Key]
-	if ok && snap.Err() == nil {
+	if ok && snap.err() == nil {
 		return snap, nil
 	}
 
@@ -307,7 +314,7 @@ func (e *EventPublisher) getSnapshotLocked(req *SubscribeRequest, topicHead *Buf
 		return nil, fmt.Errorf("unknown topic %d", req.Topic)
 	}
 
-	snap = NewEventSnapshot(req, topicHead, handler.Snapshot)
+	snap = newEventSnapshot(req, topicHead, handler.Snapshot)
 	if e.snapCacheTTL > 0 {
 		topicSnaps[req.Key] = snap
 

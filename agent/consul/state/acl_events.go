@@ -52,7 +52,7 @@ func aclChangeUnsubscribeEvent(tx db.ReadTxn, changes db.Changes) ([]stream.Even
 		}
 	}
 	// TODO: should we remove duplicate IDs here, or rely on sub.Close() being idempotent
-	return []stream.Event{stream.NewUnsubscribeEvent(secretIDs)}, nil
+	return []stream.Event{stream.NewCloseSubscriptionEvent(secretIDs)}, nil
 }
 
 // changeObject returns the object before it was deleted if the change was a delete,

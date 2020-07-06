@@ -1,37 +1,35 @@
 package stream
 
-// EventSnapshot represents the state of memdb for a given topic and key at some
+// eventSnapshot represents the state of memdb for a given topic and key at some
 // point in time. It is modelled as a buffer of events so that snapshots can be
 // streamed to possibly multiple subscribers concurrently, and can be trivially
-// cached by retaining a reference to a Snapshot. Once the reference to EventSnapshot
+// cached by retaining a reference to a Snapshot. Once the reference to eventSnapshot
 // is dropped from memory, any subscribers still reading from it may do so by following
 // their pointers. When the last subscribe unsubscribes the snapshot is garbage
 // collected automatically by Go's runtime. This simplifies snapshot and buffer
 // management dramatically.
-type EventSnapshot struct {
+type eventSnapshot struct {
 	// Snap is the first item in the buffer containing the snapshot. Once the
 	// snapshot is complete, subsequent BufferItems are appended to snapBuffer,
 	// so that subscribers receive all the events from the same buffer.
-	Snap *BufferItem
+	Snap *bufferItem
 
 	// snapBuffer is the Head of the snapshot buffer the fn should write to.
-	snapBuffer *EventBuffer
+	snapBuffer *eventBuffer
 }
 
-// SnapFn is the type of function needed to generate a snapshot for a topic and
-// key.
-type SnapFn func(req *SubscribeRequest, buf *EventBuffer) (uint64, error)
+type snapFunc func(req *SubscribeRequest, buf SnapshotAppender) (uint64, error)
 
-// NewEventSnapshot creates a snapshot buffer based on the subscription request.
+// newEventSnapshot creates a snapshot buffer based on the subscription request.
 // The current buffer head for the topic in question is passed so that once the
 // snapshot is complete and has been delivered into the buffer, any events
 // published during snapshotting can be immediately appended and won't be
 // missed. Once the snapshot is delivered the topic buffer is spliced onto the
 // snapshot buffer so that subscribers will naturally follow from the snapshot
 // to wait for any subsequent updates.
-func NewEventSnapshot(req *SubscribeRequest, topicBufferHead *BufferItem, fn SnapFn) *EventSnapshot {
-	buf := NewEventBuffer()
-	s := &EventSnapshot{
+func newEventSnapshot(req *SubscribeRequest, topicBufferHead *bufferItem, fn snapFunc) *eventSnapshot {
+	buf := newEventBuffer()
+	s := &eventSnapshot{
 		Snap:       buf.Head(),
 		snapBuffer: buf,
 	}
@@ -54,7 +52,7 @@ func NewEventSnapshot(req *SubscribeRequest, topicBufferHead *BufferItem, fn Sna
 	return s
 }
 
-func (s *EventSnapshot) spliceFromTopicBuffer(topicBufferHead *BufferItem, idx uint64) {
+func (s *eventSnapshot) spliceFromTopicBuffer(topicBufferHead *bufferItem, idx uint64) {
 	// Now splice on the topic buffer. We need to iterate through the buffer to
 	// find the first event after the current snapshot.
 	item := topicBufferHead
@@ -102,10 +100,10 @@ func (s *EventSnapshot) spliceFromTopicBuffer(topicBufferHead *BufferItem, idx u
 	}
 }
 
-// Err returns an error if the snapshot func has failed with an error or nil
+// err returns an error if the snapshot func has failed with an error or nil
 // otherwise. Nil doesn't necessarily mean there won't be an error but there
 // hasn't been one yet.
-func (s *EventSnapshot) Err() error {
+func (s *eventSnapshot) err() error {
 	// Fetch the head of the buffer, this is atomic. If the snapshot func errored
 	// then the last event will be an error.
 	head := s.snapBuffer.Head()
