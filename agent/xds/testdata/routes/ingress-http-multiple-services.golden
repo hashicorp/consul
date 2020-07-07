@@ -8,7 +8,8 @@
         {
           "name": "baz",
           "domains": [
-            "baz.ingress.*"
+            "baz.ingress.*",
+            "baz.ingress.*:443"
           ],
           "routes": [
             {
@@ -24,7 +25,8 @@
         {
           "name": "qux",
           "domains": [
-            "qux.ingress.*"
+            "qux.ingress.*",
+            "qux.ingress.*:443"
           ],
           "routes": [
             {
@@ -48,7 +50,9 @@
           "name": "foo",
           "domains": [
             "test1.example.com",
-            "test2.example.com"
+            "test2.example.com",
+            "test2.example.com:8080",
+            "test1.example.com:8080"
           ],
           "routes": [
             {
@@ -64,7 +68,8 @@
         {
           "name": "bar",
           "domains": [
-            "bar.ingress.*"
+            "bar.ingress.*",
+            "bar.ingress.*:8080"
           ],
           "routes": [
             {
