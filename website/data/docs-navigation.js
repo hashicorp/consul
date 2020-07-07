@@ -246,6 +246,7 @@ export default [
   {
     category: 'enterprise',
     content: [
+      'audit-logging',
       'backups',
       'upgrades',
       'read-scale',
