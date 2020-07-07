@@ -366,9 +366,12 @@ func (s *TestServer) Stop() error {
 	return s.cmd.Wait()
 }
 
-// waitForAPI waits for only the agent HTTP endpoint to start
+// waitForAPI waits for the /status/leader HTTP endpoint to start
 // responding. This is an indication that the agent has started,
 // but will likely return before a leader is elected.
+// Note: We do not check for a successful response status because
+// we want this function to return without error even when
+// there's no leader elected.
 func (s *TestServer) waitForAPI() error {
 	var failed bool
 
