@@ -12,16 +12,12 @@ const apiDoubleHeaders = require('@hashicorp/api-double/lib/headers');
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 
-const express = require('express');
 //
 module.exports = {
   name: 'startup',
   serverMiddleware: function(server) {
     // TODO: see if we can move these into the project specific `/server` directory
     // instead of inside an addon
-
-    // Serve the coverage folder for easy viewing during development
-    server.app.use('/coverage', express.static('coverage'));
 
     // TODO: This should all be moved out into ember-cli-api-double
     // and we should figure out a way to get to the settings here for
