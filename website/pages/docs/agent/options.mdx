@@ -1249,6 +1249,10 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     is enabled, the agent will attempt to re-fetch the result from the servers if
     the cached value is older than this duration. See: [agent caching](/api/features/caching).
 
+    **Note** that unlike the `max-age` HTTP header, a value of 0 for this field is
+    equivalent to "no max age". To get a fresh value from the cache use a very small value
+    of `1ns` instead of 0.
+
   - `prefer_namespace` ((#dns_prefer_namespace)) <EnterpriseAlert inline /> -
     When set to true, in a DNS query for a service, the label between the domain
     and the `service` label will be treated as a namespace name instead of a datacenter.
