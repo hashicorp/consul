@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/agentpb"
-	pbconfig "github.com/hashicorp/consul/agent/agentpb/config"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/proto/pbautoconf"
+	"github.com/hashicorp/consul/proto/pbconfig"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/stretchr/testify/mock"
@@ -201,7 +201,7 @@ func TestInitialConfiguration_cancelled(t *testing.T) {
 
 	directRPC := mockDirectRPC{}
 
-	expectedRequest := agentpb.AutoConfigRequest{
+	expectedRequest := pbautoconf.AutoConfigRequest{
 		Datacenter: "dc1",
 		Node:       "autoconf",
 		JWT:        "blarg",
@@ -271,14 +271,14 @@ func TestInitialConfiguration_success(t *testing.T) {
 	directRPC := mockDirectRPC{}
 
 	populateResponse := func(val interface{}) {
-		resp, ok := val.(*agentpb.AutoConfigResponse)
+		resp, ok := val.(*pbautoconf.AutoConfigResponse)
 		require.True(t, ok)
 		resp.Config = &pbconfig.Config{
 			PrimaryDatacenter: "primary",
 		}
 	}
 
-	expectedRequest := agentpb.AutoConfigRequest{
+	expectedRequest := pbautoconf.AutoConfigRequest{
 		Datacenter: "dc1",
 		Node:       "autoconf",
 		JWT:        "blarg",
@@ -291,7 +291,7 @@ func TestInitialConfiguration_success(t *testing.T) {
 		&net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 8300},
 		"AutoConfig.InitialConfiguration",
 		&expectedRequest,
-		&agentpb.AutoConfigResponse{}).Return(populateResponse)
+		&pbautoconf.AutoConfigResponse{}).Return(populateResponse)
 
 	ac, err := New(WithBuilderOpts(builderOpts), WithTLSConfigurator(&tlsutil.Configurator{}), WithDirectRPC(&directRPC))
 	require.NoError(t, err)
@@ -323,14 +323,14 @@ func TestInitialConfiguration_retries(t *testing.T) {
 	directRPC := mockDirectRPC{}
 
 	populateResponse := func(val interface{}) {
-		resp, ok := val.(*agentpb.AutoConfigResponse)
+		resp, ok := val.(*pbautoconf.AutoConfigResponse)
 		require.True(t, ok)
 		resp.Config = &pbconfig.Config{
 			PrimaryDatacenter: "primary",
 		}
 	}
 
-	expectedRequest := agentpb.AutoConfigRequest{
+	expectedRequest := pbautoconf.AutoConfigRequest{
 		Datacenter: "dc1",
 		Node:       "autoconf",
 		JWT:        "blarg",
@@ -346,7 +346,7 @@ func TestInitialConfiguration_retries(t *testing.T) {
 		&net.TCPAddr{IP: net.IPv4(198, 18, 0, 1), Port: 8300},
 		"AutoConfig.InitialConfiguration",
 		&expectedRequest,
-		&agentpb.AutoConfigResponse{}).Return(fmt.Errorf("injected failure")).Times(0)
+		&pbautoconf.AutoConfigResponse{}).Return(fmt.Errorf("injected failure")).Times(0)
 	directRPC.On(
 		"RPC",
 		"dc1",
@@ -354,7 +354,7 @@ func TestInitialConfiguration_retries(t *testing.T) {
 		&net.TCPAddr{IP: net.IPv4(198, 18, 0, 2), Port: 8398},
 		"AutoConfig.InitialConfiguration",
 		&expectedRequest,
-		&agentpb.AutoConfigResponse{}).Return(fmt.Errorf("injected failure")).Times(0)
+		&pbautoconf.AutoConfigResponse{}).Return(fmt.Errorf("injected failure")).Times(0)
 	directRPC.On(
 		"RPC",
 		"dc1",
@@ -362,7 +362,7 @@ func TestInitialConfiguration_retries(t *testing.T) {
 		&net.TCPAddr{IP: net.IPv4(198, 18, 0, 3), Port: 8399},
 		"AutoConfig.InitialConfiguration",
 		&expectedRequest,
-		&agentpb.AutoConfigResponse{}).Return(fmt.Errorf("injected failure")).Times(0)
+		&pbautoconf.AutoConfigResponse{}).Return(fmt.Errorf("injected failure")).Times(0)
 	directRPC.On(
 		"RPC",
 		"dc1",
@@ -370,7 +370,7 @@ func TestInitialConfiguration_retries(t *testing.T) {
 		&net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 1234},
 		"AutoConfig.InitialConfiguration",
 		&expectedRequest,
-		&agentpb.AutoConfigResponse{}).Return(fmt.Errorf("injected failure")).Once()
+		&pbautoconf.AutoConfigResponse{}).Return(fmt.Errorf("injected failure")).Once()
 	directRPC.On(
 		"RPC",
 		"dc1",
@@ -378,7 +378,7 @@ func TestInitialConfiguration_retries(t *testing.T) {
 		&net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 1234},
 		"AutoConfig.InitialConfiguration",
 		&expectedRequest,
-		&agentpb.AutoConfigResponse{}).Return(populateResponse)
+		&pbautoconf.AutoConfigResponse{}).Return(populateResponse)
 
 	waiter := lib.NewRetryWaiter(2, 0, 1*time.Millisecond, nil)
 	ac, err := New(WithBuilderOpts(builderOpts), WithTLSConfigurator(&tlsutil.Configurator{}), WithDirectRPC(&directRPC), WithRetryWaiter(waiter))

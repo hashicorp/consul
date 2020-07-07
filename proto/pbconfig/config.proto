@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package config;
 
-option go_package = "github.com/hashicorp/consul/agent/agentpb/config";
+option go_package = "github.com/hashicorp/consul/proto/pbconfig";
 
 message Config {
    string      Datacenter = 1;
