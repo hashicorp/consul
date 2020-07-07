@@ -8,7 +8,6 @@ export default class extends EventTarget {
     this._headers = {
       ...headers,
       'content-type': 'application/json',
-      'x-request-id': `${this._method} ${this._url}?${JSON.stringify(headers.body)}`,
     };
     if (typeof this._headers.body.index !== 'undefined') {
       // this should probably be in a response
@@ -18,12 +17,6 @@ export default class extends EventTarget {
   headers() {
     return this._headers;
   }
-  getId() {
-    return this._headers['x-request-id'];
-  }
-  abort() {
-    this._xhr.abort();
-  }
   open(xhr) {
     this._xhr = xhr;
     this.dispatchEvent({ type: 'open' });
@@ -32,6 +25,12 @@ export default class extends EventTarget {
     this.dispatchEvent({ type: 'message', data: data });
   }
   error(error) {
+    // if the xhr was aborted (status = 0)
+    // and this requests was aborted with a different status
+    // switch the status
+    if (error.statusCode === 0 && typeof this.statusCode !== 'undefined') {
+      error.statusCode = this.statusCode;
+    }
     this.dispatchEvent({ type: 'error', error: error });
   }
   close() {
@@ -40,8 +39,9 @@ export default class extends EventTarget {
   connection() {
     return this._xhr;
   }
-  dispose() {
+  abort(statusCode = 0) {
     if (this.headers()['content-type'] === 'text/event-stream') {
+      this.statusCode = statusCode;
       const xhr = this.connection();
       // unsent and opened get aborted
       // headers and loading means wait for it

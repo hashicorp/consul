@@ -1,6 +1,6 @@
-export default function(parseHeaders, XHR = XMLHttpRequest) {
+export default function(parseHeaders, XHR) {
   return function(options) {
-    const xhr = new XHR();
+    const xhr = new (XHR || XMLHttpRequest)();
     xhr.onreadystatechange = function() {
       if (this.readyState === 4) {
         const headers = parseHeaders(this.getAllResponseHeaders().split('\n'));

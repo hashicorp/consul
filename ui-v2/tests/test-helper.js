@@ -17,16 +17,16 @@ ClientConnections.reopen({
     // TODO: make this controllable from testing so we can fake a tab hide
   },
   purge: function() {
-    const res = this.connections.purge(...arguments);
+    const res = this._super(...arguments);
     activeRequests = 0;
     return res;
   },
-  acquire: function(request) {
+  acquire: function() {
     activeRequests++;
-    return this.connections.acquire(...arguments);
+    return this._super(...arguments);
   },
-  release: function(request) {
-    const res = this.connections.release(...arguments);
+  release: function() {
+    const res = this._super(...arguments);
     activeRequests--;
     return res;
   },

@@ -1,14 +1,4 @@
 import Service, { inject as service } from '@ember/service';
-import { set } from '@ember/object';
-
-import getObjectPool from 'consul-ui/utils/get-object-pool';
-
-const dispose = function(obj) {
-  if (typeof obj.dispose === 'function') {
-    obj.dispose();
-  }
-  return obj;
-};
 
 export default Service.extend({
   dom: service('dom'),
@@ -16,12 +6,12 @@ export default Service.extend({
   init: function() {
     this._super(...arguments);
     this._listeners = this.dom.listeners();
-    set(this, 'connections', getObjectPool(dispose, this.env.var('CONSUL_HTTP_MAX_CONNECTIONS')));
+    this.connections = new Set();
     this.addVisibilityChange();
   },
   willDestroy: function() {
     this._listeners.remove();
-    this.connections.purge();
+    this.purge();
     this._super(...arguments);
   },
   addVisibilityChange: function() {
@@ -52,16 +42,23 @@ export default Service.extend({
     }
     return Promise.resolve(e);
   },
-  // We overwrite this for testing purposes in /tests/test-helper.js
-  // therefore until we reorganize the client into sub-services
-  // any changes here will need to also be made in /tests/test-helper.js
   purge: function() {
-    return this.connections.purge(...arguments);
+    [...this.connections].forEach(function(connection) {
+      // Cancelled
+      connection.abort(0);
+    });
+    this.connections = new Set();
   },
-  acquire: function() {
-    return this.connections.acquire(...arguments);
+  acquire: function(request) {
+    this.connections.add(request);
+    if (this.connections.size > this.env.var('CONSUL_HTTP_MAX_CONNECTIONS')) {
+      const connection = this.connections.values().next().value;
+      this.connections.delete(connection);
+      // Too Many Requests
+      connection.abort(429);
+    }
   },
-  release: function() {
-    return this.connections.release(...arguments);
+  release: function(request) {
+    this.connections.delete(request);
   },
 });

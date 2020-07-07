@@ -109,9 +109,10 @@ export default Service.extend({
     // Remove and save things that shouldn't be sent in the request
     params.clientHeaders = CLIENT_HEADERS.reduce(function(prev, item) {
       if (typeof params.headers[item] !== 'undefined') {
-        prev = params.headers[item];
+        prev[item.toLowerCase()] = params.headers[item];
         delete params.headers[item];
       }
+      return prev;
     }, {});
     if (typeof body !== 'undefined') {
       // Only read add HTTP body if we aren't GET
@@ -152,8 +153,8 @@ export default Service.extend({
   request: function(cb) {
     const client = this;
     return cb(function(strs, ...values) {
+      const params = client.requestParams(...arguments);
       return client.settings.findBySlug('token').then(token => {
-        const params = client.requestParams(...arguments);
         const options = {
           ...params,
           headers: {
@@ -169,7 +170,12 @@ export default Service.extend({
             },
             message: e => {
               const headers = {
-                ...e.data.headers,
+                ...Object.entries(e.data.headers).reduce(function(prev, [key, value], i) {
+                  if (!CLIENT_HEADERS.includes(key)) {
+                    prev[key] = value;
+                  }
+                  return prev;
+                }, {}),
                 ...params.clientHeaders,
               };
               const respond = function(cb) {
@@ -196,10 +202,10 @@ export default Service.extend({
   abort: function() {
     return this.connections.purge(...arguments);
   },
-  acquire: function(request) {
-    return this.connections.acquire(request, request.getId());
+  acquire: function() {
+    return this.connections.acquire(...arguments);
   },
-  release: function(request) {
-    return this.connections.release(request.getId());
+  release: function() {
+    return this.connections.release(...arguments);
   },
 });
