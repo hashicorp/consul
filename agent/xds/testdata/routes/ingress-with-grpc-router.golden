@@ -8,7 +8,8 @@
         {
           "name": "db",
           "domains": [
-            "db.ingress.*"
+            "db.ingress.*",
+            "db.ingress.*:9191"
           ],
           "routes": [
             {
