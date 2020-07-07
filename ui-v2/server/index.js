@@ -2,6 +2,7 @@
 const fs = require('fs');
 const promisify = require('util').promisify;
 const read = promisify(fs.readFile);
+const express = require('express');
 
 module.exports = function(app, options) {
   // During development the proxy server has no way of
@@ -23,4 +24,6 @@ module.exports = function(app, options) {
     }
     next();
   });
+  // Serve the coverage folder for easy viewing during development
+  app.use('/coverage', express.static('coverage'));
 };
