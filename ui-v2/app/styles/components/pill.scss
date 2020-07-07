@@ -1,5 +1,5 @@
 td strong {
-  @extend %pill;
+  @extend %pill, %frame-gray-900;
   margin-right: 3px;
 }
 
