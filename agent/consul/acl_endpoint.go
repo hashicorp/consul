@@ -115,7 +115,7 @@ func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.AC
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
-	if done, err := a.srv.forward("ACL.BootstrapTokens", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.BootstrapTokens", args, args, reply); done {
 		return err
 	}
 
@@ -214,7 +214,7 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
 
-	if done, err := a.srv.forward("ACL.TokenRead", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.TokenRead", args, args, reply); done {
 		return err
 	}
 
@@ -283,7 +283,7 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
 
-	if done, err := a.srv.forward("ACL.TokenClone", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.TokenClone", args, args, reply); done {
 		return err
 	}
 
@@ -354,7 +354,7 @@ func (a *ACL) TokenSet(args *structs.ACLTokenSetRequest, reply *structs.ACLToken
 		return fmt.Errorf("Local tokens are disabled")
 	}
 
-	if done, err := a.srv.forward("ACL.TokenSet", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.TokenSet", args, args, reply); done {
 		return err
 	}
 
@@ -764,7 +764,7 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
 
-	if done, err := a.srv.forward("ACL.TokenDelete", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.TokenDelete", args, args, reply); done {
 		return err
 	}
 
@@ -854,7 +854,7 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
 
-	if done, err := a.srv.forward("ACL.TokenList", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.TokenList", args, args, reply); done {
 		return err
 	}
 
@@ -917,7 +917,7 @@ func (a *ACL) TokenBatchRead(args *structs.ACLTokenBatchGetRequest, reply *struc
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
 
-	if done, err := a.srv.forward("ACL.TokenBatchRead", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.TokenBatchRead", args, args, reply); done {
 		return err
 	}
 
@@ -971,7 +971,7 @@ func (a *ACL) PolicyRead(args *structs.ACLPolicyGetRequest, reply *structs.ACLPo
 		return err
 	}
 
-	if done, err := a.srv.forward("ACL.PolicyRead", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.PolicyRead", args, args, reply); done {
 		return err
 	}
 
@@ -1009,7 +1009,7 @@ func (a *ACL) PolicyBatchRead(args *structs.ACLPolicyBatchGetRequest, reply *str
 		return err
 	}
 
-	if done, err := a.srv.forward("ACL.PolicyBatchRead", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.PolicyBatchRead", args, args, reply); done {
 		return err
 	}
 
@@ -1047,7 +1047,7 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
 
-	if done, err := a.srv.forward("ACL.PolicySet", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.PolicySet", args, args, reply); done {
 		return err
 	}
 
@@ -1182,7 +1182,7 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
 
-	if done, err := a.srv.forward("ACL.PolicyDelete", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.PolicyDelete", args, args, reply); done {
 		return err
 	}
 
@@ -1241,7 +1241,7 @@ func (a *ACL) PolicyList(args *structs.ACLPolicyListRequest, reply *structs.ACLP
 		return err
 	}
 
-	if done, err := a.srv.forward("ACL.PolicyList", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.PolicyList", args, args, reply); done {
 		return err
 	}
 
@@ -1281,7 +1281,7 @@ func (a *ACL) PolicyResolve(args *structs.ACLPolicyBatchGetRequest, reply *struc
 		return err
 	}
 
-	if done, err := a.srv.forward("ACL.PolicyResolve", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.PolicyResolve", args, args, reply); done {
 		return err
 	}
 
@@ -1339,7 +1339,7 @@ func makeACLETag(parent string, policy *acl.Policy) string {
 // GetPolicy is used to retrieve a compiled policy object with a TTL. Does not
 // support a blocking query.
 func (a *ACL) GetPolicy(args *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
-	if done, err := a.srv.forward("ACL.GetPolicy", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.GetPolicy", args, args, reply); done {
 		return err
 	}
 
@@ -1386,7 +1386,7 @@ func (a *ACL) ReplicationStatus(args *structs.DCSpecificRequest,
 	// re-using a structure where we don't support all the options.
 	args.RequireConsistent = true
 	args.AllowStale = false
-	if done, err := a.srv.forward("ACL.ReplicationStatus", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.ReplicationStatus", args, args, reply); done {
 		return err
 	}
 
@@ -1414,7 +1414,7 @@ func (a *ACL) RoleRead(args *structs.ACLRoleGetRequest, reply *structs.ACLRoleRe
 		return err
 	}
 
-	if done, err := a.srv.forward("ACL.RoleRead", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.RoleRead", args, args, reply); done {
 		return err
 	}
 
@@ -1453,7 +1453,7 @@ func (a *ACL) RoleBatchRead(args *structs.ACLRoleBatchGetRequest, reply *structs
 		return err
 	}
 
-	if done, err := a.srv.forward("ACL.RoleBatchRead", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.RoleBatchRead", args, args, reply); done {
 		return err
 	}
 
@@ -1491,7 +1491,7 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
 
-	if done, err := a.srv.forward("ACL.RoleSet", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.RoleSet", args, args, reply); done {
 		return err
 	}
 
@@ -1653,7 +1653,7 @@ func (a *ACL) RoleDelete(args *structs.ACLRoleDeleteRequest, reply *string) erro
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
 
-	if done, err := a.srv.forward("ACL.RoleDelete", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.RoleDelete", args, args, reply); done {
 		return err
 	}
 
@@ -1708,7 +1708,7 @@ func (a *ACL) RoleList(args *structs.ACLRoleListRequest, reply *structs.ACLRoleL
 		return err
 	}
 
-	if done, err := a.srv.forward("ACL.RoleList", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.RoleList", args, args, reply); done {
 		return err
 	}
 
@@ -1742,7 +1742,7 @@ func (a *ACL) RoleResolve(args *structs.ACLRoleBatchGetRequest, reply *structs.A
 		return err
 	}
 
-	if done, err := a.srv.forward("ACL.RoleResolve", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.RoleResolve", args, args, reply); done {
 		return err
 	}
 
@@ -1807,7 +1807,7 @@ func (a *ACL) BindingRuleRead(args *structs.ACLBindingRuleGetRequest, reply *str
 		return errAuthMethodsRequireTokenReplication
 	}
 
-	if done, err := a.srv.forward("ACL.BindingRuleRead", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.BindingRuleRead", args, args, reply); done {
 		return err
 	}
 
@@ -1846,7 +1846,7 @@ func (a *ACL) BindingRuleSet(args *structs.ACLBindingRuleSetRequest, reply *stru
 		return errAuthMethodsRequireTokenReplication
 	}
 
-	if done, err := a.srv.forward("ACL.BindingRuleSet", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.BindingRuleSet", args, args, reply); done {
 		return err
 	}
 
@@ -1978,7 +1978,7 @@ func (a *ACL) BindingRuleDelete(args *structs.ACLBindingRuleDeleteRequest, reply
 		return errAuthMethodsRequireTokenReplication
 	}
 
-	if done, err := a.srv.forward("ACL.BindingRuleDelete", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.BindingRuleDelete", args, args, reply); done {
 		return err
 	}
 
@@ -2033,7 +2033,7 @@ func (a *ACL) BindingRuleList(args *structs.ACLBindingRuleListRequest, reply *st
 		return errAuthMethodsRequireTokenReplication
 	}
 
-	if done, err := a.srv.forward("ACL.BindingRuleList", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.BindingRuleList", args, args, reply); done {
 		return err
 	}
 
@@ -2073,7 +2073,7 @@ func (a *ACL) AuthMethodRead(args *structs.ACLAuthMethodGetRequest, reply *struc
 		return errAuthMethodsRequireTokenReplication
 	}
 
-	if done, err := a.srv.forward("ACL.AuthMethodRead", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.AuthMethodRead", args, args, reply); done {
 		return err
 	}
 
@@ -2115,7 +2115,7 @@ func (a *ACL) AuthMethodSet(args *structs.ACLAuthMethodSetRequest, reply *struct
 		return errAuthMethodsRequireTokenReplication
 	}
 
-	if done, err := a.srv.forward("ACL.AuthMethodSet", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.AuthMethodSet", args, args, reply); done {
 		return err
 	}
 
@@ -2231,7 +2231,7 @@ func (a *ACL) AuthMethodDelete(args *structs.ACLAuthMethodDeleteRequest, reply *
 		return errAuthMethodsRequireTokenReplication
 	}
 
-	if done, err := a.srv.forward("ACL.AuthMethodDelete", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.AuthMethodDelete", args, args, reply); done {
 		return err
 	}
 
@@ -2291,7 +2291,7 @@ func (a *ACL) AuthMethodList(args *structs.ACLAuthMethodListRequest, reply *stru
 		return errAuthMethodsRequireTokenReplication
 	}
 
-	if done, err := a.srv.forward("ACL.AuthMethodList", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.AuthMethodList", args, args, reply); done {
 		return err
 	}
 
@@ -2345,7 +2345,7 @@ func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) erro
 		return errors.New("do not provide a token when logging in")
 	}
 
-	if done, err := a.srv.forward("ACL.Login", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.Login", args, args, reply); done {
 		return err
 	}
 
@@ -2490,7 +2490,7 @@ func (a *ACL) Logout(args *structs.ACLLogoutRequest, reply *bool) error {
 		return acl.ErrNotFound
 	}
 
-	if done, err := a.srv.forward("ACL.Logout", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.Logout", args, args, reply); done {
 		return err
 	}
 
@@ -2543,7 +2543,7 @@ func (a *ACL) Authorize(args *structs.RemoteACLAuthorizationRequest, reply *[]st
 		return err
 	}
 
-	if done, err := a.srv.forward("ACL.Authorize", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.Authorize", args, args, reply); done {
 		return err
 	}
 

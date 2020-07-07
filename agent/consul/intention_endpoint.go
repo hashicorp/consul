@@ -189,7 +189,7 @@ func (s *Intention) Apply(
 		args.Datacenter = s.srv.config.PrimaryDatacenter
 	}
 
-	if done, err := s.srv.forward("Intention.Apply", args, args, reply); done {
+	if done, err := s.srv.ForwardRPC("Intention.Apply", args, args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"consul", "intention", "apply"}, time.Now())
@@ -245,7 +245,7 @@ func (s *Intention) Get(
 	args *structs.IntentionQueryRequest,
 	reply *structs.IndexedIntentions) error {
 	// Forward if necessary
-	if done, err := s.srv.forward("Intention.Get", args, args, reply); done {
+	if done, err := s.srv.ForwardRPC("Intention.Get", args, args, reply); done {
 		return err
 	}
 
@@ -287,7 +287,7 @@ func (s *Intention) List(
 	args *structs.DCSpecificRequest,
 	reply *structs.IndexedIntentions) error {
 	// Forward if necessary
-	if done, err := s.srv.forward("Intention.List", args, args, reply); done {
+	if done, err := s.srv.ForwardRPC("Intention.List", args, args, reply); done {
 		return err
 	}
 
@@ -329,7 +329,7 @@ func (s *Intention) Match(
 	args *structs.IntentionQueryRequest,
 	reply *structs.IndexedIntentionMatches) error {
 	// Forward if necessary
-	if done, err := s.srv.forward("Intention.Match", args, args, reply); done {
+	if done, err := s.srv.ForwardRPC("Intention.Match", args, args, reply); done {
 		return err
 	}
 
@@ -386,7 +386,7 @@ func (s *Intention) Check(
 	args *structs.IntentionQueryRequest,
 	reply *structs.IntentionQueryCheckResponse) error {
 	// Forward maybe
-	if done, err := s.srv.forward("Intention.Check", args, args, reply); done {
+	if done, err := s.srv.ForwardRPC("Intention.Check", args, args, reply); done {
 		return err
 	}
 

@@ -1502,11 +1502,6 @@ func (s *Server) DatacenterJoinAddresses(segment string) ([]string, error) {
 	return joinAddrs, nil
 }
 
-// ForwardRPC is basically just renaming forward, in a future commit I am going to actually do the rename.
-func (s *Server) ForwardRPC(method string, info structs.RPCInfo, args, reply interface{}) (bool, error) {
-	return s.forward(method, info, args, reply)
-}
-
 // GetConfig will return the servers configuration - this is needed to satisfy
 // interfaces: AutoConfigDelegate
 func (s *Server) GetConfig() *Config {
