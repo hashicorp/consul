@@ -553,7 +553,7 @@ func (p *ConnPool) RPC(
 	// secure or insecure variant depending on whether its an ongoing
 	// or first time config request. For now though this is fine until
 	// those ongoing requests are implemented.
-	if method == "AutoEncrypt.Sign" || method == "Cluster.AutoConfig" {
+	if method == "AutoEncrypt.Sign" || method == "AutoConfig.InitialConfiguration" {
 		return p.rpcInsecure(dc, addr, method, args, reply)
 	} else {
 		return p.rpc(dc, nodeName, addr, method, args, reply)

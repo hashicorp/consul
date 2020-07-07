@@ -19,10 +19,48 @@ import (
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/memberlist"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"gopkg.in/square/go-jose.v2/jwt"
 )
+
+type mockAutoConfigBackend struct {
+	mock.Mock
+}
+
+func (m *mockAutoConfigBackend) GetConfig() *Config {
+	ret := m.Called()
+	// this handles converting an untyped nil to a typed nil
+	cfg, _ := ret.Get(0).(*Config)
+	return cfg
+}
+
+func (m *mockAutoConfigBackend) CreateACLToken(template *structs.ACLToken) (*structs.ACLToken, error) {
+	ret := m.Called(template)
+	// this handles converting an untyped nil to a typed nil
+	token, _ := ret.Get(0).(*structs.ACLToken)
+	return token, ret.Error(1)
+}
+
+func (m *mockAutoConfigBackend) DatacenterJoinAddresses(segment string) ([]string, error) {
+	ret := m.Called(segment)
+	// this handles converting an untyped nil to a typed nil
+	addrs, _ := ret.Get(0).([]string)
+	return addrs, ret.Error(1)
+}
+
+func (m *mockAutoConfigBackend) TLSConfigurator() *tlsutil.Configurator {
+	ret := m.Called()
+	// this handles converting an untyped nil to a typed nil
+	cfg, _ := ret.Get(0).(*tlsutil.Configurator)
+	return cfg
+}
+
+func (m *mockAutoConfigBackend) ForwardRPC(method string, info structs.RPCInfo, args, reply interface{}) (bool, error) {
+	ret := m.Called(method, info, args, reply)
+	return ret.Bool(0), ret.Error(1)
+}
 
 func testJWTStandardClaims() jwt.Claims {
 	now := time.Now()
@@ -48,13 +86,13 @@ func signJWTWithStandardClaims(t *testing.T, privKey string, claims interface{})
 	return signJWT(t, privKey, testJWTStandardClaims(), claims)
 }
 
-// TestClusterAutoConfig is really an integration test of all the moving parts of the Cluster.AutoConfig RPC.
+// TestAutoConfigInitialConfiguration is really an integration test of all the moving parts of the AutoConfig.InitialConfiguration RPC.
 // Full testing of the individual parts will not be done in this test:
 //
 //  * Any implementations of the AutoConfigAuthorizer interface (although these test do use the jwtAuthorizer)
-//  * Each of the individual config generation functions. These can be unit tested separately and many wont
-//    require a running test server.
-func TestClusterAutoConfig(t *testing.T) {
+//  * Each of the individual config generation functions. These can be unit tested separately and should NOT
+//    require running test servers
+func TestAutoConfigInitialConfiguration(t *testing.T) {
 	type testCase struct {
 		request       agentpb.AutoConfigRequest
 		expected      agentpb.AutoConfigResponse
@@ -227,7 +265,7 @@ func TestClusterAutoConfig(t *testing.T) {
 	for testName, tcase := range cases {
 		t.Run(testName, func(t *testing.T) {
 			var reply agentpb.AutoConfigResponse
-			err := msgpackrpc.CallWithCodec(codec, "Cluster.AutoConfig", &tcase.request, &reply)
+			err := msgpackrpc.CallWithCodec(codec, "AutoConfig.InitialConfiguration", &tcase.request, &reply)
 			if tcase.err != "" {
 				testutil.RequireErrorContains(t, err, tcase.err)
 			} else {
@@ -241,7 +279,7 @@ func TestClusterAutoConfig(t *testing.T) {
 	}
 }
 
-func TestClusterAutoConfig_baseConfig(t *testing.T) {
+func TestAutoConfig_baseConfig(t *testing.T) {
 	type testCase struct {
 		serverConfig Config
 		opts         AutoConfigOptions
@@ -277,25 +315,28 @@ func TestClusterAutoConfig_baseConfig(t *testing.T) {
 
 	for name, tcase := range cases {
 		t.Run(name, func(t *testing.T) {
-			cluster := Cluster{
-				srv: &Server{
-					config: &tcase.serverConfig,
-				},
+			backend := &mockAutoConfigBackend{}
+			backend.On("GetConfig").Return(&tcase.serverConfig).Once()
+
+			ac := AutoConfig{
+				backend: backend,
 			}
 
 			var actual config.Config
-			err := cluster.baseConfig(tcase.opts, &actual)
+			err := ac.baseConfig(tcase.opts, &actual)
 			if tcase.err == "" {
 				require.NoError(t, err)
 				require.Equal(t, tcase.expected, actual)
 			} else {
 				testutil.RequireErrorContains(t, err, tcase.err)
 			}
+
+			backend.AssertExpectations(t)
 		})
 	}
 }
 
-func TestClusterAutoConfig_updateTLSSettingsInConfig(t *testing.T) {
+func TestAutoConfig_updateTLSSettingsInConfig(t *testing.T) {
 	_, _, cacert, err := testTLSCertificates("server.dc1.consul")
 	require.NoError(t, err)
 
@@ -365,16 +406,19 @@ func TestClusterAutoConfig_updateTLSSettingsInConfig(t *testing.T) {
 			configurator, err := tlsutil.NewConfigurator(tcase.tlsConfig, logger)
 			require.NoError(t, err)
 
-			cluster := &Cluster{
-				srv: &Server{
-					tlsConfigurator: configurator,
-				},
+			backend := &mockAutoConfigBackend{}
+			backend.On("TLSConfigurator").Return(configurator).Once()
+
+			ac := &AutoConfig{
+				backend: backend,
 			}
 
 			var actual config.Config
-			err = cluster.updateTLSSettingsInConfig(AutoConfigOptions{}, &actual)
+			err = ac.updateTLSSettingsInConfig(AutoConfigOptions{}, &actual)
 			require.NoError(t, err)
 			require.Equal(t, tcase.expected, actual)
+
+			backend.AssertExpectations(t)
 		})
 	}
 }
@@ -436,18 +480,22 @@ func TestAutoConfig_updateGossipEncryptionInConfig(t *testing.T) {
 
 	for name, tcase := range cases {
 		t.Run(name, func(t *testing.T) {
-			cluster := Cluster{
-				srv: &Server{
-					config: DefaultConfig(),
-				},
+			cfg := DefaultConfig()
+			cfg.SerfLANConfig.MemberlistConfig = &tcase.conf
+
+			backend := &mockAutoConfigBackend{}
+			backend.On("GetConfig").Return(cfg).Once()
+
+			ac := AutoConfig{
+				backend: backend,
 			}
 
-			cluster.srv.config.SerfLANConfig.MemberlistConfig = &tcase.conf
-
 			var actual config.Config
-			err := cluster.updateGossipEncryptionInConfig(AutoConfigOptions{}, &actual)
+			err := ac.updateGossipEncryptionInConfig(AutoConfigOptions{}, &actual)
 			require.NoError(t, err)
 			require.Equal(t, tcase.expected, actual)
+
+			backend.AssertExpectations(t)
 		})
 	}
 }
@@ -481,40 +529,53 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 
 	for name, tcase := range cases {
 		t.Run(name, func(t *testing.T) {
-			cluster := Cluster{
-				srv: &Server{
-					config: &tcase.serverConfig,
-				},
+			backend := &mockAutoConfigBackend{}
+			backend.On("GetConfig").Return(&tcase.serverConfig).Once()
+
+			ac := AutoConfig{
+				backend: backend,
 			}
 
 			var actual config.Config
-			err := cluster.updateTLSCertificatesInConfig(AutoConfigOptions{}, &actual)
+			err := ac.updateTLSCertificatesInConfig(AutoConfigOptions{}, &actual)
 			require.NoError(t, err)
 			require.Equal(t, tcase.expected, actual)
+
+			backend.AssertExpectations(t)
 		})
 	}
 }
 
 func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 	type testCase struct {
-		patch    func(c *Config)
-		expected config.Config
-		verify   func(t *testing.T, c *config.Config)
-		err      string
+		config         Config
+		expected       config.Config
+		expectACLToken bool
+		err            error
 	}
+
+	const (
+		tokenAccessor = "b98761aa-c0ee-445b-9b0c-f54b56b47778"
+		tokenSecret   = "1c96448a-ab04-4caa-982a-e8b095a111e2"
+	)
+
+	testDC := "dc1"
 
 	cases := map[string]testCase{
 		"enabled": {
-			patch: func(c *Config) {
-				c.ACLsEnabled = true
-				c.ACLPolicyTTL = 7 * time.Second
-				c.ACLRoleTTL = 10 * time.Second
-				c.ACLTokenTTL = 12 * time.Second
-				c.ACLDisabledTTL = 31 * time.Second
-				c.ACLDefaultPolicy = "allow"
-				c.ACLDownPolicy = "deny"
-				c.ACLEnableKeyListPolicy = true
+			config: Config{
+				Datacenter:             testDC,
+				PrimaryDatacenter:      testDC,
+				ACLsEnabled:            true,
+				ACLPolicyTTL:           7 * time.Second,
+				ACLRoleTTL:             10 * time.Second,
+				ACLTokenTTL:            12 * time.Second,
+				ACLDisabledTTL:         31 * time.Second,
+				ACLDefaultPolicy:       "allow",
+				ACLDownPolicy:          "deny",
+				ACLEnableKeyListPolicy: true,
 			},
+			expectACLToken: true,
 			expected: config.Config{
 				ACL: &config.ACL{
 					Enabled:             true,
@@ -525,32 +586,26 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 					DownPolicy:          "deny",
 					DefaultPolicy:       "allow",
 					EnableKeyListPolicy: true,
-					Tokens:              &config.ACLTokens{Agent: "verified"},
+					Tokens: &config.ACLTokens{
+						Agent: tokenSecret,
+					},
 				},
-			},
-			verify: func(t *testing.T, c *config.Config) {
-				t.Helper()
-				// the agent token secret is non-deterministically generated
-				// So we want to validate that one was set and overwrite with
-				// a value that the expected configurate wants.
-				require.NotNil(t, c)
-				require.NotNil(t, c.ACL)
-				require.NotNil(t, c.ACL.Tokens)
-				require.NotEmpty(t, c.ACL.Tokens.Agent)
-				c.ACL.Tokens.Agent = "verified"
 			},
 		},
 		"disabled": {
-			patch: func(c *Config) {
-				c.ACLsEnabled = false
-				c.ACLPolicyTTL = 7 * time.Second
-				c.ACLRoleTTL = 10 * time.Second
-				c.ACLTokenTTL = 12 * time.Second
-				c.ACLDisabledTTL = 31 * time.Second
-				c.ACLDefaultPolicy = "allow"
-				c.ACLDownPolicy = "deny"
-				c.ACLEnableKeyListPolicy = true
+			config: Config{
+				Datacenter:             testDC,
+				PrimaryDatacenter:      testDC,
+				ACLsEnabled:            false,
+				ACLPolicyTTL:           7 * time.Second,
+				ACLRoleTTL:             10 * time.Second,
+				ACLTokenTTL:            12 * time.Second,
+				ACLDisabledTTL:         31 * time.Second,
+				ACLDefaultPolicy:       "allow",
+				ACLDownPolicy:          "deny",
+				ACLEnableKeyListPolicy: true,
 			},
+			expectACLToken: false,
 			expected: config.Config{
 				ACL: &config.ACL{
 					Enabled:             false,
@@ -565,53 +620,79 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 			},
 		},
 		"local-tokens-disabled": {
-			patch: func(c *Config) {
-				c.PrimaryDatacenter = "somewhere else"
+			config: Config{
+				Datacenter:        testDC,
+				PrimaryDatacenter: "somewhere-else",
+				ACLsEnabled:       true,
 			},
-			err: "Agent Auto Configuration requires local token usage to be enabled in this datacenter",
+			expectACLToken: true,
+			err:            fmt.Errorf("Agent Auto Configuration requires local token usage to be enabled in this datacenter"),
 		},
 	}
 	for name, tcase := range cases {
 		t.Run(name, func(t *testing.T) {
-			_, s, _ := testACLServerWithConfig(t, tcase.patch, false)
+			backend := &mockAutoConfigBackend{}
+			backend.On("GetConfig").Return(&tcase.config).Once()
 
-			waitForLeaderEstablishment(t, s)
+			expectedTemplate := &structs.ACLToken{
+				Description: `Auto Config Token for Node "something"`,
+				Local:       true,
+				NodeIdentities: []*structs.ACLNodeIdentity{
+					{
+						NodeName:   "something",
+						Datacenter: testDC,
+					},
+				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			}
 
-			cluster := Cluster{srv: s}
+			testToken := &structs.ACLToken{
+				AccessorID:  tokenAccessor,
+				SecretID:    tokenSecret,
+				Description: `Auto Config Token for Node "something"`,
+				Local:       true,
+				NodeIdentities: []*structs.ACLNodeIdentity{
+					{
+						NodeName:   "something",
+						Datacenter: testDC,
+					},
+				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			}
+
+			if tcase.expectACLToken {
+				backend.On("CreateACLToken", expectedTemplate).Return(testToken, tcase.err).Once()
+			}
+
+			ac := AutoConfig{backend: backend}
 
 			var actual config.Config
-			err := cluster.updateACLsInConfig(AutoConfigOptions{NodeName: "something"}, &actual)
-			if tcase.err != "" {
-				testutil.RequireErrorContains(t, err, tcase.err)
+			err := ac.updateACLsInConfig(AutoConfigOptions{NodeName: "something"}, &actual)
+			if tcase.err != nil {
+				testutil.RequireErrorContains(t, err, tcase.err.Error())
 			} else {
 				require.NoError(t, err)
-				if tcase.verify != nil {
-					tcase.verify(t, &actual)
-				}
 				require.Equal(t, tcase.expected, actual)
 			}
+
+			backend.AssertExpectations(t)
 		})
 	}
 }
 
 func TestAutoConfig_updateJoinAddressesInConfig(t *testing.T) {
-	conf := testClusterConfig{
-		Datacenter: "primary",
-		Servers:    3,
-	}
+	addrs := []string{"198.18.0.7:8300", "198.18.0.1:8300"}
+	backend := &mockAutoConfigBackend{}
+	backend.On("DatacenterJoinAddresses", "").Return(addrs, nil).Once()
 
-	nodes := newTestCluster(t, &conf)
-
-	cluster := Cluster{srv: nodes.Servers[0]}
+	ac := AutoConfig{backend: backend}
 
 	var actual config.Config
-	err := cluster.updateJoinAddressesInConfig(AutoConfigOptions{}, &actual)
+	err := ac.updateJoinAddressesInConfig(AutoConfigOptions{}, &actual)
 	require.NoError(t, err)
 
-	var expected []string
-	for _, srv := range nodes.Servers {
-		expected = append(expected, fmt.Sprintf("127.0.0.1:%d", srv.config.SerfLANConfig.MemberlistConfig.BindPort))
-	}
 	require.NotNil(t, actual.Gossip)
-	require.ElementsMatch(t, expected, actual.Gossip.RetryJoinLAN)
+	require.ElementsMatch(t, addrs, actual.Gossip.RetryJoinLAN)
+
+	backend.AssertExpectations(t)
 }

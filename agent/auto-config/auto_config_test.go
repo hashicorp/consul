@@ -207,7 +207,7 @@ func TestInitialConfiguration_cancelled(t *testing.T) {
 		JWT:        "blarg",
 	}
 
-	directRPC.On("RPC", "dc1", "autoconf", &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 8300}, "Cluster.AutoConfig", &expectedRequest, mock.Anything).Return(fmt.Errorf("injected error")).Times(0)
+	directRPC.On("RPC", "dc1", "autoconf", &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 8300}, "AutoConfig.InitialConfiguration", &expectedRequest, mock.Anything).Return(fmt.Errorf("injected error")).Times(0)
 	ac, err := New(WithBuilderOpts(builderOpts), WithTLSConfigurator(&tlsutil.Configurator{}), WithDirectRPC(&directRPC))
 	require.NoError(t, err)
 	require.NotNil(t, ac)
@@ -289,7 +289,7 @@ func TestInitialConfiguration_success(t *testing.T) {
 		"dc1",
 		"autoconf",
 		&net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 8300},
-		"Cluster.AutoConfig",
+		"AutoConfig.InitialConfiguration",
 		&expectedRequest,
 		&agentpb.AutoConfigResponse{}).Return(populateResponse)
 
@@ -344,7 +344,7 @@ func TestInitialConfiguration_retries(t *testing.T) {
 		"dc1",
 		"autoconf",
 		&net.TCPAddr{IP: net.IPv4(198, 18, 0, 1), Port: 8300},
-		"Cluster.AutoConfig",
+		"AutoConfig.InitialConfiguration",
 		&expectedRequest,
 		&agentpb.AutoConfigResponse{}).Return(fmt.Errorf("injected failure")).Times(0)
 	directRPC.On(
@@ -352,7 +352,7 @@ func TestInitialConfiguration_retries(t *testing.T) {
 		"dc1",
 		"autoconf",
 		&net.TCPAddr{IP: net.IPv4(198, 18, 0, 2), Port: 8398},
-		"Cluster.AutoConfig",
+		"AutoConfig.InitialConfiguration",
 		&expectedRequest,
 		&agentpb.AutoConfigResponse{}).Return(fmt.Errorf("injected failure")).Times(0)
 	directRPC.On(
@@ -360,7 +360,7 @@ func TestInitialConfiguration_retries(t *testing.T) {
 		"dc1",
 		"autoconf",
 		&net.TCPAddr{IP: net.IPv4(198, 18, 0, 3), Port: 8399},
-		"Cluster.AutoConfig",
+		"AutoConfig.InitialConfiguration",
 		&expectedRequest,
 		&agentpb.AutoConfigResponse{}).Return(fmt.Errorf("injected failure")).Times(0)
 	directRPC.On(
@@ -368,7 +368,7 @@ func TestInitialConfiguration_retries(t *testing.T) {
 		"dc1",
 		"autoconf",
 		&net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 1234},
-		"Cluster.AutoConfig",
+		"AutoConfig.InitialConfiguration",
 		&expectedRequest,
 		&agentpb.AutoConfigResponse{}).Return(fmt.Errorf("injected failure")).Once()
 	directRPC.On(
@@ -376,7 +376,7 @@ func TestInitialConfiguration_retries(t *testing.T) {
 		"dc1",
 		"autoconf",
 		&net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 1234},
-		"Cluster.AutoConfig",
+		"AutoConfig.InitialConfiguration",
 		&expectedRequest,
 		&agentpb.AutoConfigResponse{}).Return(populateResponse)
 
