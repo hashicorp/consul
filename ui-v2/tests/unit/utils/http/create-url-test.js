@@ -31,4 +31,13 @@ module('Unit | Utils | http/create-url', function() {
     const expected = '/v1/url?';
     assert.equal(actual, expected);
   });
+  test("it doesn't encode headers", function(assert) {
+    const actual = url`
+      /v1/url/${'raw values to encode'}
+      Header: %value
+    `;
+    const expected = `/v1/url/raw%20values%20to%20encode
+      Header: %value`;
+    assert.equal(actual, expected);
+  });
 });
