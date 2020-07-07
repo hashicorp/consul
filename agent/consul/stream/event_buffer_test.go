@@ -38,7 +38,7 @@ func TestEventBufferFuzz(t *testing.T) {
 			// streaming - here we only care about the semantics of the buffer.
 			e := Event{
 				Index: uint64(i), // Indexes should be contiguous
-				Topic: Topic_ServiceHealth,
+				Topic: testTopic,
 			}
 			b.Append([]Event{e})
 			// Sleep sometimes for a while to let some subscribers catch up

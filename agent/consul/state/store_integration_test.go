@@ -369,7 +369,7 @@ func assertReset(t *testing.T, eventCh <-chan nextResult, allowEOS bool) {
 	}
 }
 
-var topicService stream.Topic = 901
+var topicService stream.Topic = topic("test-topic-service")
 
 func newTestSnapshotHandlers(s *Store) stream.SnapshotHandlers {
 	return stream.SnapshotHandlers{

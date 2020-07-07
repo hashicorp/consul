@@ -23,7 +23,7 @@ func TestSubscription(t *testing.T) {
 
 	// Create a subscription
 	req := &SubscribeRequest{
-		Topic: Topic_ServiceHealth,
+		Topic: testTopic,
 		Key:   "test",
 	}
 	sub := newSubscription(ctx, req, startHead)
@@ -103,7 +103,7 @@ func TestSubscription_Close(t *testing.T) {
 
 	// Create a subscription
 	req := &SubscribeRequest{
-		Topic: Topic_ServiceHealth,
+		Topic: testTopic,
 		Key:   "test",
 	}
 	sub := newSubscription(ctx, req, startHead)
@@ -141,7 +141,7 @@ func publishTestEvent(index uint64, b *eventBuffer, key string) {
 	// but enough to test subscription mechanics.
 	e := Event{
 		Index: index,
-		Topic: Topic_ServiceHealth,
+		Topic: testTopic,
 		Key:   key,
 	}
 	b.Append([]Event{e})

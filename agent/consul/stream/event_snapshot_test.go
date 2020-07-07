@@ -170,7 +170,7 @@ func testHealthConsecutiveSnapshotFn(size int, index uint64) snapFunc {
 func newDefaultHealthEvent(index uint64, n int) Event {
 	return Event{
 		Index:   index,
-		Topic:   Topic_ServiceHealth,
+		Topic:   testTopic,
 		Payload: fmt.Sprintf("test-event-%03d", n),
 	}
 }

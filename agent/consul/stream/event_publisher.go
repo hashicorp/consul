@@ -169,7 +169,7 @@ func (e *EventPublisher) Subscribe(
 	// Ensure we know how to make a snapshot for this topic
 	_, ok := e.snapshotHandlers[req.Topic]
 	if !ok {
-		return nil, fmt.Errorf("unknown topic %d", req.Topic)
+		return nil, fmt.Errorf("unknown topic %v", req.Topic)
 	}
 
 	e.lock.Lock()
@@ -286,7 +286,7 @@ func (e *EventPublisher) getSnapshotLocked(req *SubscribeRequest, topicHead *buf
 
 	handler, ok := e.snapshotHandlers[req.Topic]
 	if !ok {
-		return nil, fmt.Errorf("unknown topic %d", req.Topic)
+		return nil, fmt.Errorf("unknown topic %v", req.Topic)
 	}
 
 	snap = newEventSnapshot(req, topicHead, handler)

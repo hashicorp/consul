@@ -4,17 +4,14 @@ to the state store.
 */
 package stream
 
-type Topic int32
+import "fmt"
 
-// TODO: remove underscores
-// TODO: type string instead of int?
-// TODO: move topics to state package?
-const (
-	Topic_ServiceHealth        Topic = 1
-	Topic_ServiceHealthConnect Topic = 2
-)
+// Topic is an identifier that partitions events. A subscription will only receive
+// events which match the Topic.
+type Topic fmt.Stringer
 
-// TODO:
+// Event is a structure with identifiers and a payload. Events are Published to
+// EventPublisher and returned to Subscribers.
 type Event struct {
 	Topic   Topic
 	Key     string

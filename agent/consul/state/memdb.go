@@ -140,6 +140,13 @@ func (tx *txn) Commit() error {
 	return nil
 }
 
+// TODO: may be replaced by a gRPC type.
+type topic string
+
+func (t topic) String() string {
+	return string(t)
+}
+
 func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {
 	// TODO: add other table handlers here.
 	return aclChangeUnsubscribeEvent(tx, changes)

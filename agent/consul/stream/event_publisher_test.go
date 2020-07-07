@@ -9,7 +9,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var testTopic Topic = 999
+type intTopic int
+
+func (i intTopic) String() string {
+	return fmt.Sprintf("%d", i)
+}
+
+var testTopic Topic = intTopic(999)
 
 func TestEventPublisher_PublishChangesAndSubscribe_WithSnapshot(t *testing.T) {
 	subscription := &SubscribeRequest{
