@@ -117,7 +117,7 @@ func (c *Coordinate) batchApplyUpdates() error {
 
 // Update inserts or updates the LAN coordinate of a node.
 func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct{}) (err error) {
-	if done, err := c.srv.forward("Coordinate.Update", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("Coordinate.Update", args, args, reply); done {
 		return err
 	}
 
@@ -184,7 +184,7 @@ func (c *Coordinate) ListDatacenters(args *struct{}, reply *[]structs.Datacenter
 // ListNodes returns the list of nodes with their raw network coordinates (if no
 // coordinates are available for a node it won't appear in this list).
 func (c *Coordinate) ListNodes(args *structs.DCSpecificRequest, reply *structs.IndexedCoordinates) error {
-	if done, err := c.srv.forward("Coordinate.ListNodes", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("Coordinate.ListNodes", args, args, reply); done {
 		return err
 	}
 
@@ -207,7 +207,7 @@ func (c *Coordinate) ListNodes(args *structs.DCSpecificRequest, reply *structs.I
 
 // Node returns the raw coordinates for a single node.
 func (c *Coordinate) Node(args *structs.NodeSpecificRequest, reply *structs.IndexedCoordinates) error {
-	if done, err := c.srv.forward("Coordinate.Node", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("Coordinate.Node", args, args, reply); done {
 		return err
 	}
 

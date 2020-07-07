@@ -15,7 +15,7 @@ import (
 // Bootstrap is used to perform a one-time ACL bootstrap operation on
 // a cluster to get the first management token.
 func (a *ACL) Bootstrap(args *structs.DCSpecificRequest, reply *structs.ACL) error {
-	if done, err := a.srv.forward("ACL.Bootstrap", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.Bootstrap", args, args, reply); done {
 		return err
 	}
 
@@ -153,7 +153,7 @@ func aclApplyInternal(srv *Server, args *structs.ACLRequest, reply *string) erro
 // Apply is used to apply a modifying request to the data store. This should
 // only be used for operations that modify the data
 func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
-	if done, err := a.srv.forward("ACL.Apply", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.Apply", args, args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"acl", "apply"}, time.Now())
@@ -199,7 +199,7 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 // Get is used to retrieve a single ACL
 func (a *ACL) Get(args *structs.ACLSpecificRequest,
 	reply *structs.IndexedACLs) error {
-	if done, err := a.srv.forward("ACL.Get", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.Get", args, args, reply); done {
 		return err
 	}
 
@@ -245,7 +245,7 @@ func (a *ACL) Get(args *structs.ACLSpecificRequest,
 // List is used to list all the ACLs
 func (a *ACL) List(args *structs.DCSpecificRequest,
 	reply *structs.IndexedACLs) error {
-	if done, err := a.srv.forward("ACL.List", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.List", args, args, reply); done {
 		return err
 	}
 

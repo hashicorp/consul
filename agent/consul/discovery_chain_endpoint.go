@@ -24,7 +24,7 @@ func (c *DiscoveryChain) Get(args *structs.DiscoveryChainRequest, reply *structs
 		return ErrConnectNotEnabled
 	}
 
-	if done, err := c.srv.forward("DiscoveryChain.Get", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("DiscoveryChain.Get", args, args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"discovery_chain", "get"}, time.Now())
