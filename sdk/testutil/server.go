@@ -366,9 +366,12 @@ func (s *TestServer) Stop() error {
 	return s.cmd.Wait()
 }
 
-// waitForAPI waits for only the agent HTTP endpoint to start
+// waitForAPI waits for the /status/leader HTTP endpoint to start
 // responding. This is an indication that the agent has started,
 // but will likely return before a leader is elected.
+// Note: We do not check for a successful response status because
+// we want this function to return without error even when
+// there's no leader elected.
 func (s *TestServer) waitForAPI() error {
 	var failed bool
 
@@ -380,18 +383,13 @@ func (s *TestServer) waitForAPI() error {
 	for !time.Now().After(deadline) {
 		time.Sleep(timer.Wait)
 
-		url := s.url("/v1/agent/self")
-		resp, err := s.masterGet(url)
+		url := s.url("/v1/status/leader")
+		_, err := s.masterGet(url)
 		if err != nil {
 			failed = true
 			continue
 		}
-		resp.Body.Close()
 
-		if err = s.requireOK(resp); err != nil {
-			failed = true
-			continue
-		}
 		failed = false
 	}
 	if failed {
