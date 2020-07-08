@@ -91,6 +91,11 @@ Consul-on-Kubernetes deployment.
 In a couple minutes, a Consul cluster will be formed and a leader
 elected and every node will have a running Consul agent.
 
+-> **Note:** Due to an anti-affinity rules of server agents,
+Consul may not be working correctly with default configuration in local Kubernetes cluster.
+If what you want is just testing the installation in local Kubernetes cluster,
+configure the [`server.affinity` chart value.](/docs/k8s/helm#v-server-affinity).
+
 ### Customizing Your Installation
 
 If you want to customize your installation,
