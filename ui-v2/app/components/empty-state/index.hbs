@@ -1,5 +1,6 @@
 {{yield}}
 <div class="empty-state" ...attributes>
+{{#if hasHeader}}
   <header>
     {{#yield-slot name="header"}}
       {{yield}}
@@ -8,6 +9,7 @@
       {{yield}}
     {{/yield-slot}}
   </header>
+{{/if}}
   {{#yield-slot name="body"}}
     <div>
       {{yield}}

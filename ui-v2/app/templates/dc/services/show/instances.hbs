@@ -12,9 +12,13 @@
         <ConsulServiceInstanceList @routeName="dc.services.instance" @items={{filtered}} @proxies={{keyedProxies}}/>
       </BlockSlot>
       <BlockSlot @name="empty">
-        <p>
-          There are no services.
-        </p>
+        <EmptyState>
+          <BlockSlot @name="body">
+            <p>
+              There are no services.
+            </p>
+          </BlockSlot>
+        </EmptyState>
       </BlockSlot>
     </ChangeableSet>
   </div>
