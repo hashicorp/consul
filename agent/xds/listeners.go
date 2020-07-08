@@ -19,11 +19,13 @@ import (
 	envoyhttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	envoytcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
 	envoytype "github.com/envoyproxy/go-control-plane/envoy/type"
-	"github.com/envoyproxy/go-control-plane/pkg/util"
-	"github.com/gogo/protobuf/jsonpb"
-	"github.com/gogo/protobuf/proto"
-	"github.com/gogo/protobuf/types"
-
+	"github.com/envoyproxy/go-control-plane/pkg/conversion"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes/any"
+	pbstruct "github.com/golang/protobuf/ptypes/struct"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
@@ -263,7 +265,7 @@ func makeListener(name, addr string, port int) *envoy.Listener {
 // from rather than our slight variant in JSON/hcl.
 func makeListenerFromUserConfig(configJSON string) (*envoy.Listener, error) {
 	// Figure out if there is an @type field. We don't require is since we know
-	// this will be a listener but unmarshalling into types.Any fails if it's not
+	// this will be a listener but unmarshalling into any.Any fails if it's not
 	// there and unmarshalling into listener directly fails if it is...
 	var jsonFields map[string]*json.RawMessage
 	if err := json.Unmarshal([]byte(configJSON), &jsonFields); err != nil {
@@ -273,8 +275,8 @@ func makeListenerFromUserConfig(configJSON string) (*envoy.Listener, error) {
 	var l envoy.Listener
 
 	if _, ok := jsonFields["@type"]; ok {
-		// Type field is present so decode it as a types.Any
-		var any types.Any
+		// Type field is present so decode it as a any.Any
+		var any any.Any
 		err := jsonpb.UnmarshalString(configJSON, &any)
 		if err != nil {
 			return nil, err
@@ -307,12 +309,12 @@ func injectConnectFilters(cfgSnap *proxycfg.ConfigSnapshot, token string, listen
 	for idx := range listener.FilterChains {
 		// Insert our authz filter before any others
 		listener.FilterChains[idx].Filters =
-			append([]envoylistener.Filter{authFilter}, listener.FilterChains[idx].Filters...)
+			append([]*envoylistener.Filter{authFilter}, listener.FilterChains[idx].Filters...)
 
 		// Force our TLS for all filter chains on a public listener
 		listener.FilterChains[idx].TlsContext = &envoyauth.DownstreamTlsContext{
 			CommonTlsContext:         makeCommonTLSContext(cfgSnap),
-			RequireClientCertificate: &types.BoolValue{Value: true},
+			RequireClientCertificate: &wrappers.BoolValue{Value: true},
 		}
 	}
 	return nil
@@ -363,9 +365,9 @@ func (s *Server) makePublicListener(cfgSnap *proxycfg.ConfigSnapshot, token stri
 		if err != nil {
 			return nil, err
 		}
-		l.FilterChains = []envoylistener.FilterChain{
+		l.FilterChains = []*envoylistener.FilterChain{
 			{
-				Filters: []envoylistener.Filter{
+				Filters: []*envoylistener.Filter{
 					filter,
 				},
 			},
@@ -408,8 +410,8 @@ func (s *Server) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, clus
 		return nil, err
 	}
 
-	chain := envoylistener.FilterChain{
-		Filters: []envoylistener.Filter{f},
+	chain := &envoylistener.FilterChain{
+		Filters: []*envoylistener.Filter{f},
 	}
 
 	// For registered checks restrict traffic sources to localhost and Consul's advertise addr
@@ -427,14 +429,14 @@ func (s *Server) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, clus
 
 		chain.FilterChainMatch = &envoylistener.FilterChainMatch{
 			SourcePrefixRanges: []*envoycore.CidrRange{
-				{AddressPrefix: "127.0.0.1", PrefixLen: &types.UInt32Value{Value: 8}},
-				{AddressPrefix: "::1", PrefixLen: &types.UInt32Value{Value: 128}},
-				{AddressPrefix: advertise, PrefixLen: &types.UInt32Value{Value: uint32(advertiseLen)}},
+				{AddressPrefix: "127.0.0.1", PrefixLen: &wrappers.UInt32Value{Value: 8}},
+				{AddressPrefix: "::1", PrefixLen: &wrappers.UInt32Value{Value: 128}},
+				{AddressPrefix: advertise, PrefixLen: &wrappers.UInt32Value{Value: uint32(advertiseLen)}},
 			},
 		}
 	}
 
-	l.FilterChains = []envoylistener.FilterChain{chain}
+	l.FilterChains = []*envoylistener.FilterChain{chain}
 
 	return l, err
 }
@@ -477,9 +479,9 @@ func (s *Server) makeUpstreamListenerIgnoreDiscoveryChain(
 		return nil, err
 	}
 
-	l.FilterChains = []envoylistener.FilterChain{
+	l.FilterChains = []*envoylistener.FilterChain{
 		{
-			Filters: []envoylistener.Filter{
+			Filters: []*envoylistener.Filter{
 				filter,
 			},
 		},
@@ -505,15 +507,15 @@ func (s *Server) makeGatewayListener(name, addr string, port int, cfgSnap *proxy
 		return nil, err
 	}
 
-	sniClusterChain := envoylistener.FilterChain{
-		Filters: []envoylistener.Filter{
+	sniClusterChain := &envoylistener.FilterChain{
+		Filters: []*envoylistener.Filter{
 			sniCluster,
 			tcpProxy,
 		},
 	}
 
 	l := makeListener(name, addr, port)
-	l.ListenerFilters = []envoylistener.ListenerFilter{tlsInspector}
+	l.ListenerFilters = []*envoylistener.ListenerFilter{tlsInspector}
 
 	// TODO (mesh-gateway) - Do we need to create clusters for all the old trust domains as well?
 	// We need 1 Filter Chain per datacenter
@@ -525,11 +527,11 @@ func (s *Server) makeGatewayListener(name, addr string, port int, cfgSnap *proxy
 			return nil, err
 		}
 
-		l.FilterChains = append(l.FilterChains, envoylistener.FilterChain{
+		l.FilterChains = append(l.FilterChains, &envoylistener.FilterChain{
 			FilterChainMatch: &envoylistener.FilterChainMatch{
 				ServerNames: []string{fmt.Sprintf("*.%s", clusterName)},
 			},
-			Filters: []envoylistener.Filter{
+			Filters: []*envoylistener.Filter{
 				dcTCPProxy,
 			},
 		})
@@ -597,9 +599,9 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 		return nil, err
 	}
 
-	l.FilterChains = []envoylistener.FilterChain{
+	l.FilterChains = []*envoylistener.FilterChain{
 		{
-			Filters: []envoylistener.Filter{
+			Filters: []*envoylistener.Filter{
 				filter,
 			},
 		},
@@ -609,7 +611,7 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 
 func makeListenerFilter(
 	useRDS bool,
-	protocol, filterName, cluster, statPrefix, routePath string, ingress bool) (envoylistener.Filter, error) {
+	protocol, filterName, cluster, statPrefix, routePath string, ingress bool) (*envoylistener.Filter, error) {
 
 	switch protocol {
 	case "grpc":
@@ -622,16 +624,16 @@ func makeListenerFilter(
 		fallthrough
 	default:
 		if useRDS {
-			return envoylistener.Filter{}, fmt.Errorf("RDS is not compatible with the tcp proxy filter")
+			return nil, fmt.Errorf("RDS is not compatible with the tcp proxy filter")
 		} else if cluster == "" {
-			return envoylistener.Filter{}, fmt.Errorf("cluster name is required for a tcp proxy filter")
+			return nil, fmt.Errorf("cluster name is required for a tcp proxy filter")
 		}
 		return makeTCPProxyFilter(filterName, cluster, statPrefix)
 	}
 }
 
-func makeTLSInspectorListenerFilter() (envoylistener.ListenerFilter, error) {
-	return envoylistener.ListenerFilter{Name: util.TlsInspector}, nil
+func makeTLSInspectorListenerFilter() (*envoylistener.ListenerFilter, error) {
+	return &envoylistener.ListenerFilter{Name: wellknown.TlsInspector}, nil
 }
 
 // TODO(rb): should this be dead code?
@@ -641,12 +643,12 @@ func makeSNIFilterChainMatch(sniMatch string) (*envoylistener.FilterChainMatch, 
 	}, nil
 }
 
-func makeSNIClusterFilter() (envoylistener.Filter, error) {
+func makeSNIClusterFilter() (*envoylistener.Filter, error) {
 	// This filter has no config which is why we are not calling make
-	return envoylistener.Filter{Name: "envoy.filters.network.sni_cluster"}, nil
+	return &envoylistener.Filter{Name: "envoy.filters.network.sni_cluster"}, nil
 }
 
-func makeTCPProxyFilter(filterName, cluster, statPrefix string) (envoylistener.Filter, error) {
+func makeTCPProxyFilter(filterName, cluster, statPrefix string) (*envoylistener.Filter, error) {
 	cfg := &envoytcp.TcpProxy{
 		StatPrefix:       makeStatPrefix("tcp", statPrefix, filterName),
 		ClusterSpecifier: &envoytcp.TcpProxy_Cluster{Cluster: cluster},
@@ -665,10 +667,10 @@ func makeHTTPFilter(
 	useRDS bool,
 	filterName, cluster, statPrefix, routePath string,
 	ingress, grpc, http2 bool,
-) (envoylistener.Filter, error) {
-	op := envoyhttp.INGRESS
+) (*envoylistener.Filter, error) {
+	op := envoyhttp.HttpConnectionManager_Tracing_INGRESS
 	if !ingress {
-		op = envoyhttp.EGRESS
+		op = envoyhttp.HttpConnectionManager_Tracing_EGRESS
 	}
 	proto := "http"
 	if grpc {
@@ -677,7 +679,7 @@ func makeHTTPFilter(
 
 	cfg := &envoyhttp.HttpConnectionManager{
 		StatPrefix: makeStatPrefix(proto, statPrefix, filterName),
-		CodecType:  envoyhttp.AUTO,
+		CodecType:  envoyhttp.HttpConnectionManager_AUTO,
 		HttpFilters: []*envoyhttp.HttpFilter{
 			&envoyhttp.HttpFilter{
 				Name: "envoy.router",
@@ -694,12 +696,12 @@ func makeHTTPFilter(
 
 	if useRDS {
 		if cluster != "" {
-			return envoylistener.Filter{}, fmt.Errorf("cannot specify cluster name when using RDS")
+			return nil, fmt.Errorf("cannot specify cluster name when using RDS")
 		}
 		cfg.RouteSpecifier = &envoyhttp.HttpConnectionManager_Rds{
 			Rds: &envoyhttp.Rds{
 				RouteConfigName: filterName,
-				ConfigSource: envoycore.ConfigSource{
+				ConfigSource: &envoycore.ConfigSource{
 					ConfigSourceSpecifier: &envoycore.ConfigSource_Ads{
 						Ads: &envoycore.AggregatedConfigSource{},
 					},
@@ -708,10 +710,10 @@ func makeHTTPFilter(
 		}
 	} else {
 		if cluster == "" {
-			return envoylistener.Filter{}, fmt.Errorf("must specify cluster name when not using RDS")
+			return nil, fmt.Errorf("must specify cluster name when not using RDS")
 		}
-		route := envoyroute.Route{
-			Match: envoyroute.RouteMatch{
+		route := &envoyroute.Route{
+			Match: &envoyroute.RouteMatch{
 				PathSpecifier: &envoyroute.RouteMatch_Prefix{
 					Prefix: "/",
 				},
@@ -737,11 +739,11 @@ func makeHTTPFilter(
 		cfg.RouteSpecifier = &envoyhttp.HttpConnectionManager_RouteConfig{
 			RouteConfig: &envoy.RouteConfiguration{
 				Name: filterName,
-				VirtualHosts: []envoyroute.VirtualHost{
+				VirtualHosts: []*envoyroute.VirtualHost{
 					{
 						Name:    filterName,
 						Domains: []string{"*"},
-						Routes: []envoyroute.Route{
+						Routes: []*envoyroute.Route{
 							route,
 						},
 					},
@@ -758,14 +760,14 @@ func makeHTTPFilter(
 		// Add grpc bridge before router
 		cfg.HttpFilters = append([]*envoyhttp.HttpFilter{{
 			Name:       "envoy.grpc_http1_bridge",
-			ConfigType: &envoyhttp.HttpFilter_Config{Config: &types.Struct{}},
+			ConfigType: &envoyhttp.HttpFilter_Config{Config: &pbstruct.Struct{}},
 		}}, cfg.HttpFilters...)
 	}
 
 	return makeFilter("envoy.http_connection_manager", cfg)
 }
 
-func makeExtAuthFilter(token string) (envoylistener.Filter, error) {
+func makeExtAuthFilter(token string) (*envoylistener.Filter, error) {
 	cfg := &extauthz.ExtAuthz{
 		StatPrefix: "connect_authz",
 		GrpcService: &envoycore.GrpcService{
@@ -790,15 +792,15 @@ func makeExtAuthFilter(token string) (envoylistener.Filter, error) {
 	return makeFilter("envoy.ext_authz", cfg)
 }
 
-func makeFilter(name string, cfg proto.Message) (envoylistener.Filter, error) {
+func makeFilter(name string, cfg proto.Message) (*envoylistener.Filter, error) {
 	// Ridiculous dance to make that pbstruct into types.Struct by... encoding it
 	// as JSON and decoding again!!
-	cfgStruct, err := util.MessageToStruct(cfg)
+	cfgStruct, err := conversion.MessageToStruct(cfg)
 	if err != nil {
-		return envoylistener.Filter{}, err
+		return nil, err
 	}
 
-	return envoylistener.Filter{
+	return &envoylistener.Filter{
 		Name:       name,
 		ConfigType: &envoylistener.Filter_Config{Config: cfgStruct},
 	}, nil
