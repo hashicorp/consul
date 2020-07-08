@@ -1,5 +1,6 @@
 %tag-list {
   white-space: nowrap;
+  display: inline-flex;
 }
 // TODO: Currently this is here to overwrite
 // the default definition list layout used in edit pages
@@ -8,6 +9,8 @@
 %tag-list dt::before {
   @extend %with-tag-mask, %as-pseudo;
   margin-right: 4px;
+  margin-top: 3px;
+  background-color: $gray-500;
 }
 %tag-list dd {
   display: inline-flex;
