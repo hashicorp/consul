@@ -3,9 +3,13 @@
     {{#if (gt item.Tags.length 0) }}
       <TagList @item={{item}} />
     {{else}}
-      <p>
-        There are no tags.
-      </p>
+      <EmptyState>
+        <BlockSlot @name="body">
+          <p>
+            There are no tags.
+          </p>
+        </BlockSlot>
+      </EmptyState>
     {{/if}}
   </div>
 </div>

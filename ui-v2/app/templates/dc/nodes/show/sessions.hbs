@@ -53,9 +53,13 @@
         </BlockSlot>
     </TabularCollection>
 {{else}}
-    <p>
-        There are no Lock Sessions for this Node. For more information, view <a href="{{ env 'CONSUL_DOCS_URL'}}/internals/sessions.html" rel="help noopener noreferrer" target="_blank">our documentation</a>
-    </p>
+      <EmptyState>
+        <BlockSlot @name="body">
+          <p>
+            There are no Lock Sessions for this Node. For more information, view <a href="{{ env 'CONSUL_DOCS_URL'}}/internals/sessions.html" rel="noopener noreferrer" target="_blank">our documentation</a>
+          </p>
+        </BlockSlot>
+      </EmptyState>
 {{/if}}
   </div>
 </div>

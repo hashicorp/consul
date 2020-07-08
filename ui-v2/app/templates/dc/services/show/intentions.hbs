@@ -34,9 +34,13 @@
       />
     </BlockSlot>
     <BlockSlot @name="empty">
-      <p>
-        There are no intentions for this service.
-      </p>
+      <EmptyState>
+        <BlockSlot @name="body">
+          <p>
+            There are no intentions for this service.
+          </p>
+        </BlockSlot>
+      </EmptyState>
     </BlockSlot>
   </ChangeableSet>
   </div>
