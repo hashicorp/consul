@@ -13,14 +13,16 @@ module('Integration | Adapter | intention', function(hooks) {
     });
     assert.equal(actual, expected);
   });
-  test('urlForQueryRecord returns the correct url', function(assert) {
+  test('requestForQueryRecord returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:intention');
     const client = this.owner.lookup('service:client/http');
     const expected = `GET /v1/connect/intentions/${id}?dc=${dc}`;
-    const actual = adapter.requestForQueryRecord(client.url, {
-      dc: dc,
-      id: id,
-    });
+    const actual = adapter
+      .requestForQueryRecord(client.url, {
+        dc: dc,
+        id: id,
+      })
+      .split('\n')[0];
     assert.equal(actual, expected);
   });
   test("requestForQueryRecord throws if you don't specify an id", function(assert) {

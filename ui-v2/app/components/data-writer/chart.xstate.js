@@ -1,8 +1,7 @@
 export default {
-  id: 'form',
+  id: 'data-writer',
   initial: 'idle',
   states: {
-    loading: {},
     idle: {
       on: {
         PERSIST: {
@@ -33,8 +32,20 @@ export default {
         },
       },
     },
-    removed: {},
-    persisted: {},
+    removed: {
+      on: {
+        RESET: {
+          target: 'idle',
+        },
+      },
+    },
+    persisted: {
+      on: {
+        RESET: {
+          target: 'idle',
+        },
+      },
+    },
     error: {
       on: {
         RESET: {

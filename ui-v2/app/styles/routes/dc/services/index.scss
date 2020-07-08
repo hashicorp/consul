@@ -1,0 +1,7 @@
+@media #{$--horizontal-tabs} {
+  .template-service.template-show main header .actions {
+    position: relative;
+    top: 48px;
+    margin-top: 0;
+  }
+}

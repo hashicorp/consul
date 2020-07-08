@@ -2,7 +2,7 @@
 Feature: dc / intentions / deleting: Deleting items with confirmations, success and error notifications
   Background:
     Given 1 datacenter model with the value "datacenter"
-  Scenario: Deleting a intention model from the [Listing] listing page
+  Scenario: Deleting a intention model from the intention listing page
     Given 1 intention model from yaml
     ---
     SourceName: name
@@ -27,7 +27,7 @@ Feature: dc / intentions / deleting: Deleting items with confirmations, success 
     And I click delete
     And I click confirmDelete
     Then a DELETE request was made to "/v1/connect/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=datacenter"
-    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "notification-delete" class
     And "[data-notification]" has the "success" class
   Scenario: Deleting an intention from the intention detail page and getting an error
     When I visit the intention page for yaml

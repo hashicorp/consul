@@ -25,11 +25,6 @@ export default Route.extend({
         )
           ? model
           : hash({
-              intentions: this.intentionRepo
-                .findByService(params.name, dc, nspace)
-                .catch(function() {
-                  return null;
-                }),
               chain: this.chainRepo.findBySlug(params.name, dc, nspace),
               proxies: this.proxyRepo.findAllBySlug(params.name, dc, nspace),
               ...model,
