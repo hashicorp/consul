@@ -183,7 +183,9 @@ const bootstrapTemplate = `{
     "cds_config": { "ads": {} },
     "ads_config": {
       "api_type": "GRPC",
+      {{- if ne .EnvoyVersion "1.10.0"}}
       "set_node_on_first_message_only": true,
+      {{- end }}
       "grpc_services": {
         "initial_metadata": [
           {
