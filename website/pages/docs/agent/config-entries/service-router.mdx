@@ -157,7 +157,7 @@ Routes = [
 - `PathRegex` `(string: "")` - Regular expression to match on the HTTP
   request path.
 
-  The syntax when using the Envoy proxy is [documented here](https://en.cppreference.com/w/cpp/regex/ecmascript).
+  The syntax is [described below](#regular-expression-syntax).
 
   At most only one of `PathExact`, `PathPrefix`, or `PathRegex` may be configured.
 
@@ -194,7 +194,7 @@ Routes = [
   - `Regex` `(string: "")` - Match if the header with the given name matches
     this pattern.
 
-    The syntax when using the Envoy proxy is [documented here](https://en.cppreference.com/w/cpp/regex/ecmascript).
+    The syntax is [described below](#regular-expression-syntax).
 
     At most only one of `Exact`, `Prefix`, `Suffix`, `Regex`, or `Present`
     may be configured.
@@ -220,7 +220,7 @@ Routes = [
   - `Regex` `(string: "")` - Match if the query parameter with the given name
     matches this pattern.
 
-    The syntax when using the Envoy proxy is [documented here](https://en.cppreference.com/w/cpp/regex/ecmascript).
+    The syntax is [described below](#regular-expression-syntax).
 
     At most only one of `Exact`, `Regex`, or `Present` may be configured.
 
@@ -269,3 +269,16 @@ Creating, updating, or deleting a `service-router` config entry requires
 name in these fields:
 
 - [`Routes[].Destination.Service`](#service)
+
+## Regular Expression Syntax
+
+The actual syntax of the regular expression fields described here is entirely
+proxy-specific.
+
+When using [Envoy](/docs/connect/proxies/envoy) as a proxy, the syntax for
+these fields is version specific:
+
+| Envoy Version   | Syntax |
+| --------------- | -------------------- |
+| 1.11.2 or newer | [documentation](https://github.com/google/re2/wiki/Syntax) |
+| 1.11.1 or older | [documentation](https://en.cppreference.com/w/cpp/regex/ecmascript) |
