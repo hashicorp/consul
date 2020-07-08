@@ -42,7 +42,7 @@ pre code,
 %flash-message p,
 %filter-bar input,
 %phrase-editor input,
-%tab-section section p {
+%tab-section p {
   @extend %p1;
 }
 %menu-panel dl,
@@ -60,6 +60,7 @@ pre code,
 }
 .template-error > div,
 %empty-state-subheader,
+%empty-state p,
 %button,
 %main-content p,
 %form-element-note,
