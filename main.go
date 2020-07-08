@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/consul/command/version"
 	"github.com/hashicorp/consul/lib"
 	_ "github.com/hashicorp/consul/service_os"
-	consulversion "github.com/hashicorp/consul/version"
 	"github.com/mitchellh/cli"
 )
 
@@ -43,7 +42,7 @@ func realMain() int {
 	}
 
 	if cli.IsVersion() {
-		cmd := version.New(ui, consulversion.GetHumanVersion())
+		cmd := version.New(ui)
 		return cmd.Run(nil)
 	}
 
