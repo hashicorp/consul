@@ -80,27 +80,34 @@ func (a *jwtAuthorizer) Authorize(req *agentpb.AutoConfigRequest) (AutoConfigOpt
 }
 
 type AutoConfigBackend interface {
-	GetConfig() *Config
 	CreateACLToken(template *structs.ACLToken) (*structs.ACLToken, error)
 	DatacenterJoinAddresses(segment string) ([]string, error)
-	TLSConfigurator() *tlsutil.Configurator
 	ForwardRPC(method string, info structs.RPCInfo, args, reply interface{}) (bool, error)
 }
 
 // AutoConfig endpoint is used for cluster auto configuration operations
 type AutoConfig struct {
+	// currently AutoConfig does not support pushing down any configuration that would be reloadable on the servers
+	// (outside of some TLS settings such as the configured CA certs which are retrieved via the TLS configurator)
+	// If that changes then we will need to change this to use an atomic.Value and provide means of reloading it.
+	config          *Config
+	tlsConfigurator *tlsutil.Configurator
+
 	backend    AutoConfigBackend
 	authorizer AutoConfigAuthorizer
 }
 
-// getBackendConfig is a small wrapper around the backend's GetConfig to ensure
-// that all helper functions have a non-nil configuration to operate on.
-func (ac *AutoConfig) getBackendConfig() *Config {
-	if conf := ac.backend.GetConfig(); conf != nil {
-		return conf
+func NewAutoConfig(conf *Config, tlsConfigurator *tlsutil.Configurator, backend AutoConfigBackend, authz AutoConfigAuthorizer) *AutoConfig {
+	if conf == nil {
+		conf = DefaultConfig()
 	}
 
-	return DefaultConfig()
+	return &AutoConfig{
+		config:          conf,
+		tlsConfigurator: tlsConfigurator,
+		backend:         backend,
+		authorizer:      authz,
+	}
 }
 
 // updateTLSCertificatesInConfig will ensure that the TLS settings regarding how an agent is
@@ -108,28 +115,26 @@ func (ac *AutoConfig) getBackendConfig() *Config {
 // in some cases only if auto_encrypt is enabled on the servers. This endpoint has the option
 // to configure auto_encrypt or potentially in the future to generate the certificates inline.
 func (ac *AutoConfig) updateTLSCertificatesInConfig(opts AutoConfigOptions, conf *config.Config) error {
-	conf.AutoEncrypt = &config.AutoEncrypt{TLS: ac.getBackendConfig().AutoEncryptAllowTLS}
+	conf.AutoEncrypt = &config.AutoEncrypt{TLS: ac.config.AutoEncryptAllowTLS}
 	return nil
 }
 
 // updateACLtokensInConfig will configure all of the agents ACL settings and will populate
 // the configuration with an agent token usable for all default agent operations.
 func (ac *AutoConfig) updateACLsInConfig(opts AutoConfigOptions, conf *config.Config) error {
-	backendConf := ac.getBackendConfig()
-
 	acl := &config.ACL{
-		Enabled:             backendConf.ACLsEnabled,
-		PolicyTTL:           backendConf.ACLPolicyTTL.String(),
-		RoleTTL:             backendConf.ACLRoleTTL.String(),
-		TokenTTL:            backendConf.ACLTokenTTL.String(),
-		DisabledTTL:         backendConf.ACLDisabledTTL.String(),
-		DownPolicy:          backendConf.ACLDownPolicy,
-		DefaultPolicy:       backendConf.ACLDefaultPolicy,
-		EnableKeyListPolicy: backendConf.ACLEnableKeyListPolicy,
+		Enabled:             ac.config.ACLsEnabled,
+		PolicyTTL:           ac.config.ACLPolicyTTL.String(),
+		RoleTTL:             ac.config.ACLRoleTTL.String(),
+		TokenTTL:            ac.config.ACLTokenTTL.String(),
+		DisabledTTL:         ac.config.ACLDisabledTTL.String(),
+		DownPolicy:          ac.config.ACLDownPolicy,
+		DefaultPolicy:       ac.config.ACLDefaultPolicy,
+		EnableKeyListPolicy: ac.config.ACLEnableKeyListPolicy,
 	}
 
 	// when ACLs are enabled we want to create a local token with a node identity
-	if backendConf.ACLsEnabled {
+	if ac.config.ACLsEnabled {
 		// set up the token template - the ids and create
 		template := structs.ACLToken{
 			Description: fmt.Sprintf("Auto Config Token for Node %q", opts.NodeName),
@@ -137,7 +142,7 @@ func (ac *AutoConfig) updateACLsInConfig(opts AutoConfigOptions, conf *config.Co
 			NodeIdentities: []*structs.ACLNodeIdentity{
 				{
 					NodeName:   opts.NodeName,
-					Datacenter: backendConf.Datacenter,
+					Datacenter: ac.config.Datacenter,
 				},
 			},
 			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
@@ -147,16 +152,6 @@ func (ac *AutoConfig) updateACLsInConfig(opts AutoConfigOptions, conf *config.Co
 		if err != nil {
 			return fmt.Errorf("Failed to generate an ACL token for node %q - %w", opts.NodeName, err)
 		}
-
-		// req := structs.ACLTokenBatchSetRequest{
-		// 	Tokens: structs.ACLTokens{&token},
-		// 	CAS:    false,
-		// }
-
-		// // perform the request to mint the new token
-		// if _, err := c.srv.raftApplyMsgpack(structs.ACLTokenSetRequestType, &req); err != nil {
-		// 	return err
-		// }
 
 		acl.Tokens = &config.ACLTokens{Agent: token.SecretID}
 	}
@@ -173,14 +168,6 @@ func (ac *AutoConfig) updateJoinAddressesInConfig(opts AutoConfigOptions, conf *
 		return err
 	}
 
-	// var joinAddrs []string
-	// for _, m := range members {
-	// 	if ok, _ := metadata.IsConsulServer(m); ok {
-	// 		serfAddr := net.TCPAddr{IP: m.Addr, Port: int(m.Port)}
-	// 		joinAddrs = append(joinAddrs, serfAddr.String())
-	// 	}
-	// }
-
 	if conf.Gossip == nil {
 		conf.Gossip = &config.Gossip{}
 	}
@@ -192,7 +179,7 @@ func (ac *AutoConfig) updateJoinAddressesInConfig(opts AutoConfigOptions, conf *
 // updateGossipEncryptionInConfig will populate the gossip encryption configuration settings
 func (ac *AutoConfig) updateGossipEncryptionInConfig(_ AutoConfigOptions, conf *config.Config) error {
 	// Add gossip encryption settings if there is any key loaded
-	memberlistConfig := ac.getBackendConfig().SerfLANConfig.MemberlistConfig
+	memberlistConfig := ac.config.SerfLANConfig.MemberlistConfig
 	if lanKeyring := memberlistConfig.Keyring; lanKeyring != nil {
 		if conf.Gossip == nil {
 			conf.Gossip = &config.Gossip{}
@@ -216,8 +203,7 @@ func (ac *AutoConfig) updateGossipEncryptionInConfig(_ AutoConfigOptions, conf *
 // updateTLSSettingsInConfig will populate the TLS configuration settings but will not
 // populate leaf or ca certficiates.
 func (ac *AutoConfig) updateTLSSettingsInConfig(_ AutoConfigOptions, conf *config.Config) error {
-	tlsConfigurator := ac.backend.TLSConfigurator()
-	if tlsConfigurator == nil {
+	if ac.tlsConfigurator == nil {
 		// TLS is not enabled?
 		return nil
 	}
@@ -227,8 +213,8 @@ func (ac *AutoConfig) updateTLSSettingsInConfig(_ AutoConfigOptions, conf *confi
 		conf.TLS = &config.TLS{}
 	}
 
-	conf.TLS.VerifyServerHostname = tlsConfigurator.VerifyServerHostname()
-	base := tlsConfigurator.Base()
+	conf.TLS.VerifyServerHostname = ac.tlsConfigurator.VerifyServerHostname()
+	base := ac.tlsConfigurator.Base()
 	conf.TLS.VerifyOutgoing = base.VerifyOutgoing
 	conf.TLS.MinVersion = base.TLSMinVersion
 	conf.TLS.PreferServerCipherSuites = base.PreferServerCipherSuites
@@ -241,14 +227,12 @@ func (ac *AutoConfig) updateTLSSettingsInConfig(_ AutoConfigOptions, conf *confi
 // baseConfig will populate the configuration with some base settings such as the
 // datacenter names, node name etc.
 func (ac *AutoConfig) baseConfig(opts AutoConfigOptions, conf *config.Config) error {
-	backendConf := ac.getBackendConfig()
-
 	if opts.NodeName == "" {
 		return fmt.Errorf("Cannot generate auto config response without a node name")
 	}
 
-	conf.Datacenter = backendConf.Datacenter
-	conf.PrimaryDatacenter = backendConf.PrimaryDatacenter
+	conf.Datacenter = ac.config.Datacenter
+	conf.PrimaryDatacenter = ac.config.PrimaryDatacenter
 	conf.NodeName = opts.NodeName
 	conf.SegmentName = opts.SegmentName
 
@@ -274,17 +258,20 @@ var (
 // AgentAutoConfig will authorize the incoming request and then generate the configuration
 // to push down to the client
 func (ac *AutoConfig) InitialConfiguration(req *agentpb.AutoConfigRequest, resp *agentpb.AutoConfigResponse) error {
-	backendConf := ac.getBackendConfig()
-
 	// default the datacenter to our datacenter - agents do not have to specify this as they may not
 	// yet know the datacenter name they are going to be in.
 	if req.Datacenter == "" {
-		req.Datacenter = backendConf.Datacenter
+		req.Datacenter = ac.config.Datacenter
 	}
 
 	// TODO (autoconf) Is performing auto configuration over the WAN really a bad idea?
-	if req.Datacenter != backendConf.Datacenter {
+	if req.Datacenter != ac.config.Datacenter {
 		return fmt.Errorf("invalid datacenter %q - agent auto configuration cannot target a remote datacenter", req.Datacenter)
+	}
+
+	// TODO (autoconf) maybe panic instead?
+	if ac.backend == nil {
+		return fmt.Errorf("No Auto Config backend is configured")
 	}
 
 	// forward to the leader

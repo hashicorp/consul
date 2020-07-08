@@ -876,7 +876,7 @@ func (s *Server) setupRPC() error {
 		authz = &disabledAuthorizer{}
 	}
 	// now register with the insecure RPC server
-	s.insecureRPCServer.Register(&AutoConfig{backend: s, authorizer: authz})
+	s.insecureRPCServer.Register(NewAutoConfig(s.config, s.tlsConfigurator, s, authz))
 
 	ln, err := net.ListenTCP("tcp", s.config.RPCAddr)
 	if err != nil {
@@ -1500,18 +1500,6 @@ func (s *Server) DatacenterJoinAddresses(segment string) ([]string, error) {
 	}
 
 	return joinAddrs, nil
-}
-
-// GetConfig will return the servers configuration - this is needed to satisfy
-// interfaces: AutoConfigDelegate
-func (s *Server) GetConfig() *Config {
-	return s.config
-}
-
-// TLSConfigurator just returns the servers TLS Configurator - this is needed to satisfy
-// interfaces: AutoConfigDelegate
-func (s *Server) TLSConfigurator() *tlsutil.Configurator {
-	return s.tlsConfigurator
 }
 
 // peersInfoContent is used to help operators understand what happened to the
