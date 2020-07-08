@@ -11,35 +11,36 @@ description: >-
 
 -> **1.8.0+:** This config entry is available in Consul versions 1.8.0 and newer.
 
-  The `ingress-gateway` config entry kind allows you to configure ingress gateways
-  with listeners that expose a set of services outside the Consul service mesh.
-  See [Ingress Gateway](/docs/connect/ingress-gateway) for more information.
+The `ingress-gateway` config entry kind allows you to configure ingress gateways
+with listeners that expose a set of services outside the Consul service mesh.
+See [Ingress Gateway](/docs/connect/ingress-gateway) for more information.
 
 ~> [Configuration entries](/docs/agent/config-entries) are global in scope. A configuration entry for a gateway name applies
- across all federated Consul datacenters. If ingress gateways in different Consul datacenters need to route to different
- sets of services within their datacenter then the ingress gateways **must** be registered with different names.
+across all federated Consul datacenters. If ingress gateways in different Consul datacenters need to route to different
+sets of services within their datacenter then the ingress gateways **must** be registered with different names.
 
-  See [Ingress Gateway](/docs/connect/ingress-gateway) for more information.
+See [Ingress Gateway](/docs/connect/ingress-gateway) for more information.
 
 ## Wildcard service specification
 
-  Ingress gateways can optionally target all services within a Consul namespace by
-  specifying a wildcard `*` as the service name. A wildcard specifier allows
-  for a single listener to route traffic to all available services on the
-  Consul service mesh, differentiating between the services by their host/authority
-  header.
+Ingress gateways can optionally target all services within a Consul namespace by
+specifying a wildcard `*` as the service name. A wildcard specifier allows
+for a single listener to route traffic to all available services on the
+Consul service mesh, differentiating between the services by their host/authority
+header.
 
-  A wildcard specifier provides the following properties for an ingress
-  gateway:
-  - All services with the same
-    [protocol](/docs/agent/config-entries/ingress-gateway#protocol) as the
-    listener will be routable.
-  - The ingress gateway will route traffic based on the host/authority header,
-    expecting a value matching `<service-name>.ingress.*`, or if using namespaces,
-    `<service-name>.ingress.<namespace>.*`. This matches the [Consul DNS
-    ingress subdomain](/docs/agent/dns#ingress-service-lookups).
+A wildcard specifier provides the following properties for an ingress
+gateway:
 
-  A wildcard specifier cannot be set on a listener of protocol `tcp`.
+- All services with the same
+  [protocol](/docs/agent/config-entries/ingress-gateway#protocol) as the
+  listener will be routable.
+- The ingress gateway will route traffic based on the host/authority header,
+  expecting a value matching `<service-name>.ingress.*`, or if using namespaces,
+  `<service-name>.ingress.<namespace>.*`. This matches the [Consul DNS
+  ingress subdomain](/docs/agent/dns#ingress-service-lookups).
+
+A wildcard specifier cannot be set on a listener of protocol `tcp`.
 
 ## Sample Config Entries
 
@@ -325,16 +326,16 @@ Also make two services in the frontend namespace available over a custom port wi
 
 - `Namespace` `(string: "default")` - <EnterpriseAlert inline /> Specifies
   the namespace the config entry will apply to. This must be the namespace
-  the gateway is registered in. If omitted, the  namespace will be inherited
+  the gateway is registered in. If omitted, the namespace will be inherited
   from [the request](/api/config#ns) or will default to the `default` namespace.
 
 - `TLS` `(TLSConfig: <optional>)` - TLS configuration for this gateway.
 
-    - `Enabled` `(bool: false)` - Set this configuration to enable TLS for
-  every listener on the gateway.
+  - `Enabled` `(bool: false)` - Set this configuration to enable TLS for
+    every listener on the gateway.
 
-    If TLS is enabled, then each host defined in the `Host` field will be added
-    as a DNSSAN to the gateway's x509 certificate.
+  If TLS is enabled, then each host defined in the `Host` field will be added
+  as a DNSSAN to the gateway's x509 certificate.
 
 - `Listeners` `(array<IngressListener>: <optional>)` - A list of listeners that
   the ingress gateway should setup, uniquely identified by their port number.

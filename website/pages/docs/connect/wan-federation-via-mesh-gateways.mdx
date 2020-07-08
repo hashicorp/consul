@@ -8,7 +8,7 @@ description: |-
 
 # WAN Federation via Mesh Gateways
 
--> **1.8.0+:**  This feature is available in Consul versions 1.8.0 and higher
+-> **1.8.0+:** This feature is available in Consul versions 1.8.0 and higher
 
 ~> This topic requires familiarity with [mesh gateways](/docs/connect/mesh-gateway).
 
@@ -28,11 +28,11 @@ the WAN.
 
 Sometimes this prerequisite is difficult or undesirable to meet:
 
-* **Difficult:** The datacenters may exist in multiple Kubernetes clusters that
+- **Difficult:** The datacenters may exist in multiple Kubernetes clusters that
   unfortunately have overlapping pod IP subnets, or may exist in different
   cloud provider VPCs that have overlapping subnets.
 
-* **Undesirable:** Network security teams may not approve of granting so many
+- **Undesirable:** Network security teams may not approve of granting so many
   firewall rules. When using platform autoscaling, keeping rules up to date becomes untenable.
 
 Operators looking to simplify their WAN deployment and minimize the exposed
@@ -44,16 +44,15 @@ gateways](/docs/connect/mesh-gateways.html) to do so.
 There are two main kinds of communication that occur over the WAN link spanning
 the gulf between disparate Consul datacenters:
 
-* **WAN gossip:** We leverage the serf and memberlist libraries to gossip
+- **WAN gossip:** We leverage the serf and memberlist libraries to gossip
   around failure detector knowledge about Consul servers in each datacenter.
   By default this operates point to point between servers over `8302/udp` with
   a fallback to `8302/tcp` (which logs a warning indicating the network is
   misconfigured).
 
-* **Cross-datacenter RPCs:** Consul servers expose a special multiplexed port
+- **Cross-datacenter RPCs:** Consul servers expose a special multiplexed port
   over `8300/tcp`. Several distinct kinds of messages can be received on this
   port, such as RPC requests forwarded from servers in other datacenters.
-
 
 In this network topology individual Consul client agents on a LAN in one
 datacenter never need to directly dial servers in other datacenters. This
@@ -80,8 +79,7 @@ these SAN fields:
     server.<this_datacenter>.<domain>              (normal)
     <node_name>.server.<this_datacenter>.<domain>  (needed for wan federation)
 
-This can be achieved using any number of tools, including `consul tls cert
-create` with the `-node` flag.
+This can be achieved using any number of tools, including `consul tls cert create` with the `-node` flag.
 
 ### Mesh Gateways
 
@@ -157,7 +155,6 @@ follow this general procedure:
    resolve ACL tokens from the secondary, at which time it should be possible
    to launch the mesh gateways in the secondary datacenter.
 
-
 ### Existing secondary
 
 1. Upgrade to the desired version of the consul binary for all servers,
@@ -175,9 +172,9 @@ follow this general procedure:
 From any two datacenters joined together double check the following give you an
 expected result:
 
-* Check that `consul members -wan` lists all servers in all datacenters with
+- Check that `consul members -wan` lists all servers in all datacenters with
   their _local_ ip addresses and are listed as `alive`.
 
-* Ensure any API request that activates datacenter request forwarding.  such as
+- Ensure any API request that activates datacenter request forwarding. such as
   [`/v1/catalog/services?dc=<OTHER_DATACENTER_NAME>`](/api/catalog.html#dc-1)
   succeeds.
