@@ -3,7 +3,7 @@ export default {
   initial: 'load',
   on: {
     ERROR: {
-      target: 'changeError',
+      target: 'disconnected',
     },
     LOAD: [
       {
@@ -35,7 +35,7 @@ export default {
         },
       },
     },
-    changeError: {
+    disconnected: {
       on: {
         RETRY: {
           target: 'load',
