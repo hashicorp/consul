@@ -29,13 +29,6 @@ type mockAutoConfigBackend struct {
 	mock.Mock
 }
 
-func (m *mockAutoConfigBackend) GetConfig() *Config {
-	ret := m.Called()
-	// this handles converting an untyped nil to a typed nil
-	cfg, _ := ret.Get(0).(*Config)
-	return cfg
-}
-
 func (m *mockAutoConfigBackend) CreateACLToken(template *structs.ACLToken) (*structs.ACLToken, error) {
 	ret := m.Called(template)
 	// this handles converting an untyped nil to a typed nil
@@ -48,13 +41,6 @@ func (m *mockAutoConfigBackend) DatacenterJoinAddresses(segment string) ([]strin
 	// this handles converting an untyped nil to a typed nil
 	addrs, _ := ret.Get(0).([]string)
 	return addrs, ret.Error(1)
-}
-
-func (m *mockAutoConfigBackend) TLSConfigurator() *tlsutil.Configurator {
-	ret := m.Called()
-	// this handles converting an untyped nil to a typed nil
-	cfg, _ := ret.Get(0).(*tlsutil.Configurator)
-	return cfg
 }
 
 func (m *mockAutoConfigBackend) ForwardRPC(method string, info structs.RPCInfo, args, reply interface{}) (bool, error) {
@@ -315,11 +301,8 @@ func TestAutoConfig_baseConfig(t *testing.T) {
 
 	for name, tcase := range cases {
 		t.Run(name, func(t *testing.T) {
-			backend := &mockAutoConfigBackend{}
-			backend.On("GetConfig").Return(&tcase.serverConfig).Once()
-
 			ac := AutoConfig{
-				backend: backend,
+				config: &tcase.serverConfig,
 			}
 
 			var actual config.Config
@@ -330,8 +313,6 @@ func TestAutoConfig_baseConfig(t *testing.T) {
 			} else {
 				testutil.RequireErrorContains(t, err, tcase.err)
 			}
-
-			backend.AssertExpectations(t)
 		})
 	}
 }
@@ -406,19 +387,14 @@ func TestAutoConfig_updateTLSSettingsInConfig(t *testing.T) {
 			configurator, err := tlsutil.NewConfigurator(tcase.tlsConfig, logger)
 			require.NoError(t, err)
 
-			backend := &mockAutoConfigBackend{}
-			backend.On("TLSConfigurator").Return(configurator).Once()
-
 			ac := &AutoConfig{
-				backend: backend,
+				tlsConfigurator: configurator,
 			}
 
 			var actual config.Config
 			err = ac.updateTLSSettingsInConfig(AutoConfigOptions{}, &actual)
 			require.NoError(t, err)
 			require.Equal(t, tcase.expected, actual)
-
-			backend.AssertExpectations(t)
 		})
 	}
 }
@@ -483,19 +459,14 @@ func TestAutoConfig_updateGossipEncryptionInConfig(t *testing.T) {
 			cfg := DefaultConfig()
 			cfg.SerfLANConfig.MemberlistConfig = &tcase.conf
 
-			backend := &mockAutoConfigBackend{}
-			backend.On("GetConfig").Return(cfg).Once()
-
 			ac := AutoConfig{
-				backend: backend,
+				config: cfg,
 			}
 
 			var actual config.Config
 			err := ac.updateGossipEncryptionInConfig(AutoConfigOptions{}, &actual)
 			require.NoError(t, err)
 			require.Equal(t, tcase.expected, actual)
-
-			backend.AssertExpectations(t)
 		})
 	}
 }
@@ -529,19 +500,14 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 
 	for name, tcase := range cases {
 		t.Run(name, func(t *testing.T) {
-			backend := &mockAutoConfigBackend{}
-			backend.On("GetConfig").Return(&tcase.serverConfig).Once()
-
 			ac := AutoConfig{
-				backend: backend,
+				config: &tcase.serverConfig,
 			}
 
 			var actual config.Config
 			err := ac.updateTLSCertificatesInConfig(AutoConfigOptions{}, &actual)
 			require.NoError(t, err)
 			require.Equal(t, tcase.expected, actual)
-
-			backend.AssertExpectations(t)
 		})
 	}
 }
@@ -632,8 +598,6 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 	for name, tcase := range cases {
 		t.Run(name, func(t *testing.T) {
 			backend := &mockAutoConfigBackend{}
-			backend.On("GetConfig").Return(&tcase.config).Once()
-
 			expectedTemplate := &structs.ACLToken{
 				Description: `Auto Config Token for Node "something"`,
 				Local:       true,
@@ -664,7 +628,7 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 				backend.On("CreateACLToken", expectedTemplate).Return(testToken, tcase.err).Once()
 			}
 
-			ac := AutoConfig{backend: backend}
+			ac := AutoConfig{config: &tcase.config, backend: backend}
 
 			var actual config.Config
 			err := ac.updateACLsInConfig(AutoConfigOptions{NodeName: "something"}, &actual)
