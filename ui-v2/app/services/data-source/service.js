@@ -36,7 +36,7 @@ export default Service.extend({
     usage = null;
   },
 
-  open: function(uri, ref) {
+  open: function(uri, ref, open = false) {
     let source;
     // Check the cache for an EventSource that is already being used
     // for this uri. If we don't have one, set one up.
@@ -66,16 +66,25 @@ export default Service.extend({
             });
           }
           // the data is cached delete the EventSource
-          sources.delete(uri);
+          if (!usage.has(source)) {
+            sources.delete(uri);
+          }
         },
       });
       sources.set(uri, source);
     } else {
       source = sources.get(uri);
     }
+    // only open if its not already being used
+    // in the case of blocking queries being disabled
+    // you may want to specifically force an open
+    // if blocking queries are enabled then opening an already
+    // open blocking query does nothing
+    if (!usage.has(source) || open) {
+      source.open();
+    }
     // set/increase the usage counter
     usage.set(source, ref);
-    source.open();
     return source;
   },
   close: function(source, ref) {
