@@ -50,7 +50,7 @@ func (c *changeTrackerDB) Txn(write bool) *txn {
 // memdb.Txn
 //
 // TODO: this could return a regular memdb.Txn if all the state functions accepted
-// and interface
+// the ReadTxn interface
 func (c *changeTrackerDB) ReadTxn() *txn {
 	return &txn{Txn: c.db.Txn(false)}
 }
@@ -109,7 +109,7 @@ func (c *changeTrackerDB) WriteTxnRestore() *txn {
 type txn struct {
 	*memdb.Txn
 	// Index in raft where the write is occurring. The value is zero for a
-	// read-only, and WriteTxnRestore transaction.
+	// read-only, or WriteTxnRestore transaction.
 	// Index is stored so that it may be passed along to any subscribers as part
 	// of a change event.
 	Index   uint64

@@ -19,17 +19,23 @@ type Event struct {
 	Payload interface{}
 }
 
+// IsEndOfSnapshot returns true if this is a framing event that indicates the
+// snapshot has completed. Future events from Subscription.Next will be
+// change events.
 func (e Event) IsEndOfSnapshot() bool {
 	return e.Payload == endOfSnapshot{}
 }
 
-func (e Event) IsResumeStream() bool {
-	return e.Payload == resumeStream{}
+// IsEndOfEmptySnapshot returns true if this is a framing event that indicates
+// there is no snapshot. Future events from Subscription.Next will be
+// change events.
+func (e Event) IsEndOfEmptySnapshot() bool {
+	return e.Payload == endOfEmptySnapshot{}
 }
 
 type endOfSnapshot struct{}
 
-type resumeStream struct{}
+type endOfEmptySnapshot struct{}
 
 type closeSubscriptionPayload struct {
 	tokensSecretIDs []string
@@ -39,6 +45,8 @@ type closeSubscriptionPayload struct {
 // stream package, and is never sent to subscribers. EventProcessor handles
 // these events, and closes any subscriptions which were created using a token
 // which matches any of the tokenSecretIDs.
+//
+// tokenSecretIDs may contain duplicate IDs.
 func NewCloseSubscriptionEvent(tokenSecretIDs []string) Event {
 	return Event{Payload: closeSubscriptionPayload{tokensSecretIDs: tokenSecretIDs}}
 }

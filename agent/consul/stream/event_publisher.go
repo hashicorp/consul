@@ -10,12 +10,6 @@ import (
 // EventPublisher receives changes events from Publish, and sends them to all
 // registered subscribers.
 type EventPublisher struct {
-	// topicBufferSize controls how many trailing events we keep in memory for
-	// each topic to avoid needing to snapshot again for re-connecting clients
-	// that may have missed some events. It may be zero for no buffering (the most
-	// recent event is always kept though). TODO
-	topicBufferSize int
-
 	// snapCacheTTL controls how long we keep snapshots in our cache before
 	// allowing them to be garbage collected and a new one made for subsequent
 	// requests for that topic and key. In general this should be pretty short to
@@ -34,7 +28,7 @@ type EventPublisher struct {
 	topicBuffers map[Topic]*eventBuffer
 
 	// snapCache if a cache of EventSnapshots indexed by topic and key.
-	// TODO: new struct for snapCache and snapFns and snapCacheTTL
+	// TODO(streaming): new snapshotCache struct for snapCache and snapCacheTTL
 	snapCache map[Topic]map[string]*eventSnapshot
 
 	subscriptions *subscriptions
@@ -70,8 +64,8 @@ type SnapshotHandlers map[Topic]func(*SubscribeRequest, SnapshotAppender) (index
 
 // SnapshotAppender appends groups of events to create a Snapshot of state.
 type SnapshotAppender interface {
-	// Append events to the snapshot.
-	// TODO: document why parameter is a slice instead of a single Event
+	// Append events to the snapshot. Every event in the slice must have the same
+	// Index, indicating that it is part of the same raft transaction.
 	Append(events []Event)
 }
 
@@ -122,14 +116,13 @@ func (e *EventPublisher) handleUpdates(ctx context.Context) {
 // sendEvents sends the given events to any applicable topic listeners, as well
 // as any ACL update events to cause affected listeners to reset their stream.
 func (e *EventPublisher) sendEvents(update changeEvents) {
+	eventsByTopic := make(map[Topic][]Event)
 	for _, event := range update.events {
 		if unsubEvent, ok := event.Payload.(closeSubscriptionPayload); ok {
 			e.subscriptions.closeSubscriptionsForTokens(unsubEvent.tokensSecretIDs)
+			continue
 		}
-	}
 
-	eventsByTopic := make(map[Topic][]Event)
-	for _, event := range update.events {
 		eventsByTopic[event.Topic] = append(eventsByTopic[event.Topic], event)
 	}
 
@@ -184,14 +177,12 @@ func (e *EventPublisher) Subscribe(
 	var sub *Subscription
 	if req.Index > 0 && len(topicHead.Events) > 0 && topicHead.Events[0].Index == req.Index {
 		// No need for a snapshot, send the "resume stream" message to signal to
-		// client it's cache is still good. (note that this can be distinguished
-		// from a legitimate empty snapshot due to the index matching the one the
-		// client sent), then follow along from here in the topic.
+		// client its cache is still good, then follow along from here in the topic.
 		e := Event{
 			Index:   req.Index,
 			Topic:   req.Topic,
 			Key:     req.Key,
-			Payload: resumeStream{},
+			Payload: endOfEmptySnapshot{},
 		}
 		// Make a new buffer to send to the client containing the resume.
 		buf := newEventBuffer()

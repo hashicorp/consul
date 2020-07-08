@@ -5,7 +5,7 @@ package stream
 // streamed to possibly multiple subscribers concurrently, and can be trivially
 // cached by retaining a reference to a Snapshot. Once the reference to eventSnapshot
 // is dropped from memory, any subscribers still reading from it may do so by following
-// their pointers. When the last subscribe unsubscribes the snapshot is garbage
+// their pointers. When the last subscriber unsubscribes, the snapshot is garbage
 // collected automatically by Go's runtime. This simplifies snapshot and buffer
 // management dramatically.
 type eventSnapshot struct {
@@ -21,7 +21,7 @@ type eventSnapshot struct {
 type snapFunc func(req *SubscribeRequest, buf SnapshotAppender) (uint64, error)
 
 // newEventSnapshot creates a snapshot buffer based on the subscription request.
-// The current buffer head for the topic in question is passed so that once the
+// The current buffer head for the topic requested is passed so that once the
 // snapshot is complete and has been delivered into the buffer, any events
 // published during snapshotting can be immediately appended and won't be
 // missed. Once the snapshot is delivered the topic buffer is spliced onto the

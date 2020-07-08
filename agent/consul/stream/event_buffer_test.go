@@ -51,7 +51,7 @@ func TestEventBufferFuzz(t *testing.T) {
 	errCh := make(chan error, nReaders)
 
 	// Load head here so all subscribers start from the same point or they might
-	// no run until several appends have already happened.
+	// not run until several appends have already happened.
 	head := b.Head()
 
 	for i := 0; i < nReaders; i++ {

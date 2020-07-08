@@ -20,24 +20,24 @@ import (
 // goroutines or deliver to O(N) separate channels.
 //
 // Because it's a linked list with atomically updated pointers, readers don't
-// have to take a lock and can consume at their own pace. but we also don't have
-// to have a fixed limit on the number of items which either means we don't have
-// to trade off buffer length config to balance using lots of memory wastefully
-// vs handling occasional slow readers.
+// have to take a lock and can consume at their own pace. We also don't need a
+// fixed limit on the number of items which avoids needing to configure
+// buffer length to balance wasting lots of memory all the time against being able to
+// tolerate occasional slow readers.
 //
-// The buffer is used to deliver all messages broadcast toa topic for active
+// The buffer is used to deliver all messages broadcast to a topic for active
 // subscribers to consume, but it is also an effective way to both deliver and
-// optionally cache snapshots per topic and key. byt using an eventBuffer,
+// optionally cache snapshots per topic and key. By using an eventBuffer,
 // snapshot functions don't have to read the whole snapshot into memory before
 // delivery - they can stream from memdb. However simply by storing a pointer to
 // the first event in the buffer, we can cache the buffered events for future
 // watchers on the same topic. Finally, once we've delivered all the snapshot
 // events to the buffer, we can append a next-element which is the first topic
 // buffer element with a higher index and so consumers can keep reading the
-// same buffer.
+// same buffer to have subsequent updates streamed after the snapshot is read.
 //
 // A huge benefit here is that caching snapshots becomes very simple - we don't
-// have to do any additional book keeping to figure out when to truncate the
+// have to do any additional book-keeping to figure out when to truncate the
 // topic buffer to make sure the snapshot is still usable or run into issues
 // where the cached snapshot is no longer useful since the buffer will keep
 // elements around only as long as either the cache or a subscriber need them.

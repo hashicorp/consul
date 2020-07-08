@@ -50,7 +50,8 @@ func aclChangeUnsubscribeEvent(tx ReadTxn, changes Changes) ([]stream.Event, err
 			}
 		}
 	}
-	// TODO: should we remove duplicate IDs here, or rely on sub.Close() being idempotent
+	// There may be duplicate secretIDs here. We rely on this event allowing
+	// for duplicate IDs.
 	return []stream.Event{stream.NewCloseSubscriptionEvent(secretIDs)}, nil
 }
 
