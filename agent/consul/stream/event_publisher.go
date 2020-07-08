@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-// EventPublisher receives changes events from Publish, and sends them to all
-// registered subscribers.
+// EventPublisher receives change events from Publish, and sends the events to
+// all subscribers of the event Topic.
 type EventPublisher struct {
 	// snapCacheTTL controls how long we keep snapshots in our cache before
 	// allowing them to be garbage collected and a new one made for subsequent
@@ -60,6 +60,7 @@ type changeEvents struct {
 
 // SnapshotHandlers is a mapping of Topic to a function which produces a snapshot
 // of events for the SubscribeRequest. Events are appended to the snapshot using SnapshotAppender.
+// The nil Topic is reserved and should not be used.
 type SnapshotHandlers map[Topic]func(*SubscribeRequest, SnapshotAppender) (index uint64, err error)
 
 // SnapshotAppender appends groups of events to create a Snapshot of state.
@@ -91,10 +92,8 @@ func NewEventPublisher(ctx context.Context, handlers SnapshotHandlers, snapCache
 	return e
 }
 
-// PublishEvents to all subscribers. tx is a read-only transaction that captures
-// the state at the time the change happened. The caller must never use the tx once
-// it has been passed to PublishChanged.
-func (e *EventPublisher) PublishEvents(events []Event) {
+// Publish events to all subscribers of the event Topic.
+func (e *EventPublisher) Publish(events []Event) {
 	if len(events) > 0 {
 		e.publishCh <- changeEvents{events: events}
 	}
@@ -146,22 +145,18 @@ func (e *EventPublisher) getTopicBuffer(topic Topic) *eventBuffer {
 	return buf
 }
 
-// Subscribe returns a new stream.Subscription for the given request. A
-// subscription will stream an initial snapshot of events matching the request
-// if required and then block until new events that modify the request occur, or
-// the context is cancelled. Subscriptions may be forced to reset if the server
-// decides it can no longer maintain correct operation for example if ACL
-// policies changed or the state store was restored.
+// Subscribe returns a new Subscription for the given request. A subscription
+// will receive an initial snapshot of events matching the request if req.Index > 0.
+// After the snapshot, events will be streamed as they are created.
+// Subscriptions may be closed, forcing the client to resubscribe (for example if
+// ACL policies changed or the state store is abandoned).
 //
 // When the caller is finished with the subscription for any reason, it must
 // call Subscription.Unsubscribe to free ACL tracking resources.
-func (e *EventPublisher) Subscribe(
-	ctx context.Context,
-	req *SubscribeRequest,
-) (*Subscription, error) {
+func (e *EventPublisher) Subscribe(req *SubscribeRequest) (*Subscription, error) {
 	// Ensure we know how to make a snapshot for this topic
 	_, ok := e.snapshotHandlers[req.Topic]
-	if !ok {
+	if !ok || req.Topic == nil {
 		return nil, fmt.Errorf("unknown topic %v", req.Topic)
 	}
 
@@ -176,47 +171,35 @@ func (e *EventPublisher) Subscribe(
 	topicHead := buf.Head()
 	var sub *Subscription
 	if req.Index > 0 && len(topicHead.Events) > 0 && topicHead.Events[0].Index == req.Index {
-		// No need for a snapshot, send the "resume stream" message to signal to
+		// No need for a snapshot, send the "end of empty snapshot" message to signal to
 		// client its cache is still good, then follow along from here in the topic.
-		e := Event{
-			Index:   req.Index,
-			Topic:   req.Topic,
-			Key:     req.Key,
-			Payload: endOfEmptySnapshot{},
-		}
-		// Make a new buffer to send to the client containing the resume.
 		buf := newEventBuffer()
 
 		// Store the head of that buffer before we append to it to give as the
 		// starting point for the subscription.
 		subHead := buf.Head()
 
-		buf.Append([]Event{e})
+		buf.Append([]Event{{
+			Index:   req.Index,
+			Topic:   req.Topic,
+			Key:     req.Key,
+			Payload: endOfEmptySnapshot{},
+		}})
 
 		// Now splice the rest of the topic buffer on so the subscription will
 		// continue to see future updates in the topic buffer.
-		follow, err := topicHead.FollowAfter()
-		if err != nil {
-			return nil, err
-		}
-		buf.AppendBuffer(follow)
+		buf.AppendItem(topicHead.NextLink())
 
-		sub = newSubscription(ctx, req, subHead)
+		sub = newSubscription(req, subHead, e.subscriptions.unsubscribe(req))
 	} else {
 		snap, err := e.getSnapshotLocked(req, topicHead)
 		if err != nil {
 			return nil, err
 		}
-		sub = newSubscription(ctx, req, snap.Snap)
+		sub = newSubscription(req, snap.Head, e.subscriptions.unsubscribe(req))
 	}
 
 	e.subscriptions.add(req, sub)
-	// Set unsubscribe so that the caller doesn't need to keep track of the
-	// SubscriptionRequest, and can not accidentally call unsubscribe with the
-	// wrong value.
-	sub.Unsubscribe = func() {
-		e.subscriptions.unsubscribe(req)
-	}
 	return sub, nil
 }
 
@@ -239,27 +222,30 @@ func (s *subscriptions) closeSubscriptionsForTokens(tokenSecretIDs []string) {
 	for _, secretID := range tokenSecretIDs {
 		if subs, ok := s.byToken[secretID]; ok {
 			for _, sub := range subs {
-				sub.Close()
+				sub.forceClose()
 			}
 		}
 	}
 }
 
-// unsubscribe must be called when a client is no longer interested in a
-// subscription to free resources monitoring changes in it's ACL token.
-//
-// req MUST be the same pointer that was used to register the subscription.
-func (s *subscriptions) unsubscribe(req *SubscribeRequest) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+// unsubscribe returns a function that the subscription will call to remove
+// itself from the subsByToken.
+// This function is returned as a closure so that the caller doesn't need to keep
+// track of the SubscriptionRequest, and can not accidentally call unsubscribe with the
+// wrong pointer.
+func (s *subscriptions) unsubscribe(req *SubscribeRequest) func() {
+	return func() {
+		s.lock.Lock()
+		defer s.lock.Unlock()
 
-	subsByToken, ok := s.byToken[req.Token]
-	if !ok {
-		return
-	}
-	delete(subsByToken, req)
-	if len(subsByToken) == 0 {
-		delete(s.byToken, req.Token)
+		subsByToken, ok := s.byToken[req.Token]
+		if !ok {
+			return
+		}
+		delete(subsByToken, req)
+		if len(subsByToken) == 0 {
+			delete(s.byToken, req.Token)
+		}
 	}
 }
 

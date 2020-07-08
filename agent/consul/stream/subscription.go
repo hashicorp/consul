@@ -19,11 +19,10 @@ const (
 
 // ErrSubscriptionClosed is a error signalling the subscription has been
 // closed. The client should Unsubscribe, then re-Subscribe.
-var ErrSubscriptionClosed = errors.New("subscription closed by server, client should unsub and retry")
+var ErrSubscriptionClosed = errors.New("subscription closed by server, client should resubscribe")
 
-// Subscription holds state about a single Subscribe call. Subscribe clients
-// access their next event by calling Next(). This may initially include the
-// snapshot events to catch them up if they are new or behind.
+// Subscription provides events on a Topic. Events may be filtered by Key.
+// Events are returned by Next(), and may start with a Snapshot of events.
 type Subscription struct {
 	// state is accessed atomically 0 means open, 1 means closed with reload
 	state uint32
@@ -35,17 +34,15 @@ type Subscription struct {
 	// is mutated by calls to Next.
 	currentItem *bufferItem
 
-	// ctx is the Subscription context that wraps the context of the streaming RPC
-	// handler call.
-	ctx context.Context
+	// forceClosed is closed when forceClose is called. It is used by
+	// EventPublisher to cancel Next().
+	forceClosed chan struct{}
 
-	// cancelFn stores the context cancel function that will wake up the
-	// in-progress Next call on a server-initiated state change e.g. Reload.
-	cancelFn func()
-
-	// Unsubscribe is a function set by EventPublisher that is called to
-	// free resources when the subscription is no longer needed.
-	Unsubscribe func()
+	// unsub is a function set by EventPublisher that is called to free resources
+	// when the subscription is no longer needed.
+	// It must be safe to call the function from multiple goroutines and the function
+	// must be idempotent.
+	unsub func()
 }
 
 // SubscribeRequest identifies the types of events the subscriber would like to
@@ -59,74 +56,81 @@ type SubscribeRequest struct {
 
 // newSubscription return a new subscription. The caller is responsible for
 // calling Unsubscribe when it is done with the subscription, to free resources.
-func newSubscription(ctx context.Context, req *SubscribeRequest, item *bufferItem) *Subscription {
-	subCtx, cancel := context.WithCancel(ctx)
+func newSubscription(req *SubscribeRequest, item *bufferItem, unsub func()) *Subscription {
 	return &Subscription{
-		ctx:         subCtx,
-		cancelFn:    cancel,
+		forceClosed: make(chan struct{}),
 		req:         req,
 		currentItem: item,
+		unsub:       unsub,
 	}
 }
 
 // Next returns the next set of events to deliver. It must only be called from a
 // single goroutine concurrently as it mutates the Subscription.
-func (s *Subscription) Next() ([]Event, error) {
+func (s *Subscription) Next(ctx context.Context) ([]Event, error) {
 	if atomic.LoadUint32(&s.state) == subscriptionStateClosed {
 		return nil, ErrSubscriptionClosed
 	}
 
 	for {
-		next, err := s.currentItem.Next(s.ctx)
-		if err != nil {
-			// Check we didn't return because of a state change cancelling the context
-			if atomic.LoadUint32(&s.state) == subscriptionStateClosed {
-				return nil, ErrSubscriptionClosed
-			}
+		next, err := s.currentItem.Next(ctx, s.forceClosed)
+		switch {
+		case err != nil && atomic.LoadUint32(&s.state) == subscriptionStateClosed:
+			return nil, ErrSubscriptionClosed
+		case err != nil:
 			return nil, err
 		}
-		// Advance our cursor for next loop or next call
 		s.currentItem = next
 
-		// Assume happy path where all events (or none) are relevant.
-		allMatch := true
-
-		// If there is a specific key, see if we need to filter any events
-		if s.req.Key != "" {
-			for _, e := range next.Events {
-				if s.req.Key != e.Key {
-					allMatch = false
-					break
-				}
-			}
+		events := s.filter(next.Events)
+		if len(events) == 0 {
+			continue
 		}
-
-		// Only if we need to filter events should we bother allocating a new slice
-		// as this is a hot loop.
-		events := next.Events
-		if !allMatch {
-			events = make([]Event, 0, len(next.Events))
-			for _, e := range next.Events {
-				// Only return it if the key matches.
-				if s.req.Key == "" || s.req.Key == e.Key {
-					events = append(events, e)
-				}
-			}
-		}
-
-		if len(events) > 0 {
-			return events, nil
-		}
-		// Keep looping until we find some events we are interested in.
+		return events, nil
 	}
+}
+
+// TODO: test cases for this method
+func (s *Subscription) filter(events []Event) []Event {
+	if s.req.Key == "" || len(events) == 0 {
+		return events
+	}
+
+	allMatch := true
+	for _, e := range events {
+		if s.req.Key != e.Key {
+			allMatch = false
+			break
+		}
+	}
+
+	// Only allocate a new slice if some events need to be filtered out
+	if allMatch {
+		return events
+	}
+
+	// FIXME: this will over-allocate. We could get a count from the previous range
+	// over events.
+	events = make([]Event, 0, len(events))
+	for _, e := range events {
+		if s.req.Key == e.Key {
+			events = append(events, e)
+		}
+	}
+	return events
 }
 
 // Close the subscription. Subscribers will receive an error when they call Next,
 // and will need to perform a new Subscribe request.
 // It is safe to call from any goroutine.
-func (s *Subscription) Close() {
+func (s *Subscription) forceClose() {
 	swapped := atomic.CompareAndSwapUint32(&s.state, subscriptionStateOpen, subscriptionStateClosed)
 	if swapped {
-		s.cancelFn()
+		close(s.forceClosed)
 	}
+}
+
+// Unsubscribe the subscription, freeing resources.
+func (s *Subscription) Unsubscribe() {
+	s.unsub()
 }

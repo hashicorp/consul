@@ -30,8 +30,9 @@ func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
 
 	publisher := stream.NewEventPublisher(ctx, newTestSnapshotHandlers(s), 0)
 	s.db.publisher = publisher
-	sub, err := publisher.Subscribe(ctx, subscription)
+	sub, err := publisher.Subscribe(subscription)
 	require.NoError(err)
+	defer sub.Unsubscribe()
 
 	eventCh := testRunSub(sub)
 
@@ -69,8 +70,9 @@ func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
 		Key:   "nope",
 		Token: token.SecretID,
 	}
-	sub2, err := publisher.Subscribe(ctx, subscription2)
+	sub2, err := publisher.Subscribe(subscription2)
 	require.NoError(err)
+	defer sub2.Unsubscribe()
 
 	eventCh2 := testRunSub(sub2)
 
@@ -111,8 +113,9 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 
 	publisher := stream.NewEventPublisher(ctx, newTestSnapshotHandlers(s), 0)
 	s.db.publisher = publisher
-	sub, err := publisher.Subscribe(ctx, subscription)
+	sub, err := publisher.Subscribe(subscription)
 	require.NoError(err)
+	defer sub.Unsubscribe()
 
 	eventCh := testRunSub(sub)
 
@@ -154,7 +157,7 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 		Key:   "nope",
 		Token: token.SecretID,
 	}
-	sub, err = publisher.Subscribe(ctx, subscription2)
+	sub, err = publisher.Subscribe(subscription2)
 	require.NoError(err)
 
 	eventCh = testRunSub(sub)
@@ -182,8 +185,9 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 		Key:   "nope",
 		Token: token.SecretID,
 	}
-	sub, err = publisher.Subscribe(ctx, subscription3)
+	sub, err = publisher.Subscribe(subscription3)
 	require.NoError(err)
+	defer sub.Unsubscribe()
 
 	eventCh = testRunSub(sub)
 
@@ -225,7 +229,7 @@ func TestStore_IntegrationWithEventPublisher_ACLRoleUpdate(t *testing.T) {
 
 	publisher := stream.NewEventPublisher(ctx, newTestSnapshotHandlers(s), 0)
 	s.db.publisher = publisher
-	sub, err := publisher.Subscribe(ctx, subscription)
+	sub, err := publisher.Subscribe(subscription)
 	require.NoError(err)
 
 	eventCh := testRunSub(sub)
@@ -264,7 +268,7 @@ func TestStore_IntegrationWithEventPublisher_ACLRoleUpdate(t *testing.T) {
 		Key:   "nope",
 		Token: token.SecretID,
 	}
-	sub, err = publisher.Subscribe(ctx, subscription2)
+	sub, err = publisher.Subscribe(subscription2)
 	require.NoError(err)
 
 	eventCh = testRunSub(sub)
@@ -295,7 +299,7 @@ func testRunSub(sub *stream.Subscription) <-chan nextResult {
 	eventCh := make(chan nextResult, 1)
 	go func() {
 		for {
-			es, err := sub.Next()
+			es, err := sub.Next(context.TODO())
 			eventCh <- nextResult{
 				Events: es,
 				Err:    err,
@@ -351,7 +355,6 @@ func assertErr(t *testing.T, eventCh <-chan nextResult) error {
 // acl reset is handled.
 func assertReset(t *testing.T, eventCh <-chan nextResult, allowEOS bool) {
 	t.Helper()
-	timeoutCh := time.After(100 * time.Millisecond)
 	for {
 		select {
 		case next := <-eventCh:
@@ -363,7 +366,7 @@ func assertReset(t *testing.T, eventCh <-chan nextResult, allowEOS bool) {
 			require.Error(t, next.Err)
 			require.Equal(t, stream.ErrSubscriptionClosed, next.Err)
 			return
-		case <-timeoutCh:
+		case <-time.After(100 * time.Millisecond):
 			t.Fatalf("no err after 100ms")
 		}
 	}
@@ -416,7 +419,7 @@ func createTokenAndWaitForACLEventPublish(t *testing.T, s *Store) *structs.ACLTo
 	// it assumes something lower down did that) and then wait for it to be reset
 	// so we know the initial token write event has been sent out before
 	// continuing...
-	subscription := &stream.SubscribeRequest{
+	req := &stream.SubscribeRequest{
 		Topic: topicService,
 		Key:   "nope",
 		Token: token.SecretID,
@@ -426,8 +429,9 @@ func createTokenAndWaitForACLEventPublish(t *testing.T, s *Store) *structs.ACLTo
 
 	publisher := stream.NewEventPublisher(ctx, newTestSnapshotHandlers(s), 0)
 	s.db.publisher = publisher
-	sub, err := publisher.Subscribe(ctx, subscription)
+	sub, err := publisher.Subscribe(req)
 	require.NoError(t, err)
+	defer sub.Unsubscribe()
 
 	eventCh := testRunSub(sub)
 

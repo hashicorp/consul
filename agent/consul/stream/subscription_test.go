@@ -8,6 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func noopUnSub() {}
+
 func TestSubscription(t *testing.T) {
 	eb := newEventBuffer()
 
@@ -26,11 +28,11 @@ func TestSubscription(t *testing.T) {
 		Topic: testTopic,
 		Key:   "test",
 	}
-	sub := newSubscription(ctx, req, startHead)
+	sub := newSubscription(req, startHead, noopUnSub)
 
 	// First call to sub.Next should return our published event immediately
 	start := time.Now()
-	got, err := sub.Next()
+	got, err := sub.Next(ctx)
 	elapsed := time.Since(start)
 	require.NoError(t, err)
 	require.True(t, elapsed < 200*time.Millisecond,
@@ -46,7 +48,7 @@ func TestSubscription(t *testing.T) {
 	})
 
 	// Next call should block until event is delivered
-	got, err = sub.Next()
+	got, err = sub.Next(ctx)
 	elapsed = time.Since(start)
 	require.NoError(t, err)
 	require.True(t, elapsed > 200*time.Millisecond,
@@ -64,7 +66,7 @@ func TestSubscription(t *testing.T) {
 	publishTestEvent(index, eb, "test")
 
 	start = time.Now()
-	got, err = sub.Next()
+	got, err = sub.Next(ctx)
 	elapsed = time.Since(start)
 	require.NoError(t, err)
 	require.True(t, elapsed < 200*time.Millisecond,
@@ -79,7 +81,7 @@ func TestSubscription(t *testing.T) {
 		cancel()
 	})
 
-	_, err = sub.Next()
+	_, err = sub.Next(ctx)
 	elapsed = time.Since(start)
 	require.Error(t, err)
 	require.True(t, elapsed > 200*time.Millisecond,
@@ -106,11 +108,11 @@ func TestSubscription_Close(t *testing.T) {
 		Topic: testTopic,
 		Key:   "test",
 	}
-	sub := newSubscription(ctx, req, startHead)
+	sub := newSubscription(req, startHead, noopUnSub)
 
 	// First call to sub.Next should return our published event immediately
 	start := time.Now()
-	got, err := sub.Next()
+	got, err := sub.Next(ctx)
 	elapsed := time.Since(start)
 	require.NoError(t, err)
 	require.True(t, elapsed < 200*time.Millisecond,
@@ -122,10 +124,10 @@ func TestSubscription_Close(t *testing.T) {
 	// needs to reset (e.g. on ACL perm change).
 	start = time.Now()
 	time.AfterFunc(200*time.Millisecond, func() {
-		sub.Close()
+		sub.forceClose()
 	})
 
-	_, err = sub.Next()
+	_, err = sub.Next(ctx)
 	elapsed = time.Since(start)
 	require.Error(t, err)
 	require.Equal(t, ErrSubscriptionClosed, err)

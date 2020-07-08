@@ -26,9 +26,9 @@ func TestEventPublisher_PublishChangesAndSubscribe_WithSnapshot(t *testing.T) {
 	defer cancel()
 
 	publisher := NewEventPublisher(ctx, newTestSnapshotHandlers(), 0)
-	sub, err := publisher.Subscribe(ctx, subscription)
+	sub, err := publisher.Subscribe(subscription)
 	require.NoError(t, err)
-	eventCh := consumeSubscription(sub)
+	eventCh := consumeSubscription(ctx, sub)
 
 	result := nextResult(t, eventCh)
 	require.NoError(t, result.Err)
@@ -47,7 +47,7 @@ func TestEventPublisher_PublishChangesAndSubscribe_WithSnapshot(t *testing.T) {
 		Key:     "sub-key",
 		Payload: "the-published-event-payload",
 	}}
-	publisher.PublishEvents(events)
+	publisher.Publish(events)
 
 	// Subscriber should see the published event
 	result = nextResult(t, eventCh)
@@ -68,11 +68,11 @@ func newTestSnapshotHandlers() SnapshotHandlers {
 	}
 }
 
-func consumeSubscription(sub *Subscription) <-chan subNextResult {
+func consumeSubscription(ctx context.Context, sub *Subscription) <-chan subNextResult {
 	eventCh := make(chan subNextResult, 1)
 	go func() {
 		for {
-			es, err := sub.Next()
+			es, err := sub.Next(ctx)
 			eventCh <- subNextResult{
 				Events: es,
 				Err:    err,

@@ -9,10 +9,10 @@ package stream
 // collected automatically by Go's runtime. This simplifies snapshot and buffer
 // management dramatically.
 type eventSnapshot struct {
-	// Snap is the first item in the buffer containing the snapshot. Once the
+	// Head is the first item in the buffer containing the snapshot. Once the
 	// snapshot is complete, subsequent BufferItems are appended to snapBuffer,
 	// so that subscribers receive all the events from the same buffer.
-	Snap *bufferItem
+	Head *bufferItem
 
 	// snapBuffer is the Head of the snapshot buffer the fn should write to.
 	snapBuffer *eventBuffer
@@ -30,14 +30,14 @@ type snapFunc func(req *SubscribeRequest, buf SnapshotAppender) (uint64, error)
 func newEventSnapshot(req *SubscribeRequest, topicBufferHead *bufferItem, fn snapFunc) *eventSnapshot {
 	buf := newEventBuffer()
 	s := &eventSnapshot{
-		Snap:       buf.Head(),
+		Head:       buf.Head(),
 		snapBuffer: buf,
 	}
 
 	go func() {
 		idx, err := fn(req, s.snapBuffer)
 		if err != nil {
-			s.snapBuffer.AppendErr(err)
+			s.snapBuffer.AppendItem(&bufferItem{Err: err})
 			return
 		}
 		// We wrote the snapshot events to the buffer, send the "end of snapshot" event
@@ -57,44 +57,33 @@ func (s *eventSnapshot) spliceFromTopicBuffer(topicBufferHead *bufferItem, idx u
 	// find the first event after the current snapshot.
 	item := topicBufferHead
 	for {
-		// Find the next item that we should include.
-		next, err := item.NextNoBlock()
-		if err != nil {
-			// Append an error result to signal to subscribers that this snapshot is
-			// no good.
-			s.snapBuffer.AppendErr(err)
-			return
-		}
-
-		if next == nil {
+		next := item.NextNoBlock()
+		switch {
+		case next == nil:
 			// This is the head of the topic buffer (or was just now which is after
 			// the snapshot completed). We don't want any of the events (if any) in
 			// the snapshot buffer as they came before the snapshot but we do need to
 			// wait for the next update.
-			follow, err := item.FollowAfter()
-			if err != nil {
-				s.snapBuffer.AppendErr(err)
-				return
-			}
-
-			s.snapBuffer.AppendBuffer(follow)
-			// We are done, subscribers will now follow future updates to the topic
-			// after reading the snapshot events.
+			s.snapBuffer.AppendItem(item.NextLink())
 			return
-		}
 
-		if next.Err != nil {
-			s.snapBuffer.AppendErr(next.Err)
+		case next.Err != nil:
+			// This case is not currently possible because errors can only come
+			// from a snapshot func, and this is consuming events from a topic
+			// buffer which does not contain a snapshot.
+			// Handle this case anyway in case errors can come from other places
+			// in the future.
+			s.snapBuffer.AppendItem(next)
 			return
-		}
 
-		if len(next.Events) > 0 && next.Events[0].Index > idx {
+		case len(next.Events) > 0 && next.Events[0].Index > idx:
 			// We've found an update in the topic buffer that happened after our
 			// snapshot was taken, splice it into the snapshot buffer so subscribers
 			// can continue to read this and others after it.
-			s.snapBuffer.AppendBuffer(next)
+			s.snapBuffer.AppendItem(next)
 			return
 		}
+
 		// We don't need this item, continue to next
 		item = next
 	}

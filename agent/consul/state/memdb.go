@@ -31,7 +31,7 @@ type changeTrackerDB struct {
 }
 
 type eventPublisher interface {
-	PublishEvents(events []stream.Event)
+	Publish(events []stream.Event)
 }
 
 // Txn exists to maintain backwards compatibility with memdb.DB.Txn. Preexisting
@@ -83,7 +83,7 @@ func (c *changeTrackerDB) publish(changes Changes) error {
 	if err != nil {
 		return fmt.Errorf("failed generating events from changes: %v", err)
 	}
-	c.publisher.PublishEvents(events)
+	c.publisher.Publish(events)
 	return nil
 }
 

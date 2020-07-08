@@ -112,11 +112,11 @@ func TestEventSnapshot(t *testing.T) {
 			snapIDs := make([]string, 0, tc.snapshotSize)
 			updateIDs := make([]string, 0, tc.updatesAfterSnap)
 			snapDone := false
-			curItem := es.Snap
+			curItem := es.Head
 			var err error
 		RECV:
 			for {
-				curItem, err = curItem.Next(ctx)
+				curItem, err = curItem.Next(ctx, nil)
 				// This error is typically timeout so dump the state to aid debugging.
 				require.NoError(t, err,
 					"current state: snapDone=%v snapIDs=%s updateIDs=%s", snapDone,

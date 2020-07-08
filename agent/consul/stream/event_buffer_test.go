@@ -60,7 +60,7 @@ func TestEventBufferFuzz(t *testing.T) {
 			item := head
 			var err error
 			for {
-				item, err = item.Next(context.Background())
+				item, err = item.Next(context.Background(), nil)
 				if err != nil {
 					errCh <- fmt.Errorf("subscriber %05d failed getting next %d: %s", i,
 						expect, err)

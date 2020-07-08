@@ -3,6 +3,7 @@ package stream
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync/atomic"
 )
 
@@ -13,17 +14,17 @@ import (
 // specific design has several important features that significantly simplify a
 // lot of our PubSub machinery.
 //
-// The Buffer itself only ever tracks the most recent set of events published so
-// if there are no consumers older events are automatically garbage collected.
-// Notification of new events is done by closing a channel on the previous head
+// The eventBuffer only tracks the most recent set of published events, so
+// if there are no consumers, older events are automatically garbage collected.
+// Consumers are notified of new events by closing a channel on the previous head
 // allowing efficient broadcast to many watchers without having to run multiple
 // goroutines or deliver to O(N) separate channels.
 //
-// Because it's a linked list with atomically updated pointers, readers don't
+// Because eventBuffer is a linked list with atomically updated pointers, readers don't
 // have to take a lock and can consume at their own pace. We also don't need a
-// fixed limit on the number of items which avoids needing to configure
-// buffer length to balance wasting lots of memory all the time against being able to
-// tolerate occasional slow readers.
+// fixed limit on the number of items, which avoids needing to configure
+// buffer length to balance wasting memory, against being able to tolerate
+// occasionally slow readers.
 //
 // The buffer is used to deliver all messages broadcast to a topic for active
 // subscribers to consume, but it is also an effective way to both deliver and
@@ -50,8 +51,8 @@ import (
 // Events array. This enables subscribers to start watching for the next update
 // immediately.
 //
-// The zero value eventBuffer is _not_ a usable type since it has not been
-// initialized with an empty bufferItem so can't be used to wait for the first
+// The zero value eventBuffer is _not_ usable, as it has not been
+// initialized with an empty bufferItem so can not be used to wait for the first
 // published event. Call newEventBuffer to construct a new buffer.
 //
 // Calls to Append or AppendBuffer that mutate the head must be externally
@@ -65,7 +66,7 @@ type eventBuffer struct {
 // newEventBuffer creates an eventBuffer ready for use.
 func newEventBuffer() *eventBuffer {
 	b := &eventBuffer{}
-	b.head.Store(newBufferItem())
+	b.head.Store(newBufferItem(nil))
 	return b
 }
 
@@ -77,10 +78,7 @@ func newEventBuffer() *eventBuffer {
 // goroutines. Append only supports a single concurrent caller and must be
 // externally synchronized with other Append, AppendBuffer or AppendErr calls.
 func (b *eventBuffer) Append(events []Event) {
-	// Push events to the head
-	it := newBufferItem()
-	it.Events = events
-	b.AppendBuffer(it)
+	b.AppendItem(newBufferItem(events))
 }
 
 // AppendBuffer joins another buffer which may be the tail of a separate buffer
@@ -92,7 +90,7 @@ func (b *eventBuffer) Append(events []Event) {
 //
 // AppendBuffer only supports a single concurrent caller and must be externally
 // synchronized with other Append, AppendBuffer or AppendErr calls.
-func (b *eventBuffer) AppendBuffer(item *bufferItem) {
+func (b *eventBuffer) AppendItem(item *bufferItem) {
 	// First store it as the next node for the old head this ensures once it's
 	// visible to new searchers the linked list is already valid. Not sure it
 	// matters but this seems nicer.
@@ -103,15 +101,6 @@ func (b *eventBuffer) AppendBuffer(item *bufferItem) {
 	// Now it's added invalidate the oldHead to notify waiters
 	close(oldHead.link.ch)
 	// don't set chan to nil since that will race with readers accessing it.
-}
-
-// AppendErr publishes an error result to the end of the buffer. This is
-// considered terminal and will cause all subscribers to end their current
-// streaming subscription and return the error.  AppendErr only supports a
-// single concurrent caller and must be externally synchronized with other
-// Append, AppendBuffer or AppendErr calls.
-func (b *eventBuffer) AppendErr(err error) {
-	b.AppendBuffer(&bufferItem{Err: err})
 }
 
 // Head returns the current head of the buffer. It will always exist but it may
@@ -172,22 +161,23 @@ type bufferLink struct {
 
 // newBufferItem returns a blank buffer item with a link and chan ready to have
 // the fields set and be appended to a buffer.
-func newBufferItem() *bufferItem {
+func newBufferItem(events []Event) *bufferItem {
 	return &bufferItem{
-		link: &bufferLink{
-			ch: make(chan struct{}),
-		},
+		link:   &bufferLink{ch: make(chan struct{})},
+		Events: events,
 	}
 }
 
 // Next return the next buffer item in the buffer. It may block until ctx is
 // cancelled or until the next item is published.
-func (i *bufferItem) Next(ctx context.Context) (*bufferItem, error) {
+func (i *bufferItem) Next(ctx context.Context, forceClose <-chan struct{}) (*bufferItem, error) {
 	// See if there is already a next value, block if so. Note we don't rely on
 	// state change (chan nil) as that's not threadsafe but detecting close is.
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
+	case <-forceClose:
+		return nil, fmt.Errorf("subscription closed")
 	case <-i.link.ch:
 	}
 
@@ -201,45 +191,28 @@ func (i *bufferItem) Next(ctx context.Context) (*bufferItem, error) {
 	if next.Err != nil {
 		return nil, next.Err
 	}
-	if len(next.Events) == 0 {
-		// Skip this event
-		return next.Next(ctx)
-	}
 	return next, nil
 }
 
 // NextNoBlock returns the next item in the buffer without blocking. If it
-// reaches the most recent item it will return nil and no error.
-func (i *bufferItem) NextNoBlock() (*bufferItem, error) {
+// reaches the most recent item it will return nil.
+func (i *bufferItem) NextNoBlock() *bufferItem {
 	nextRaw := i.link.next.Load()
 	if nextRaw == nil {
-		return nil, nil
+		return nil
 	}
-	next := nextRaw.(*bufferItem)
-	if next.Err != nil {
-		return nil, next.Err
-	}
-	if len(next.Events) == 0 {
-		// Skip this event
-		return next.NextNoBlock()
-	}
-	return next, nil
+	return nextRaw.(*bufferItem)
 }
 
-// FollowAfter returns either the next item in the buffer if there is already
-// one, or if not it returns an empty item (that will be ignored by subscribers)
-// that has the same link as the current buffer so that it will be notified of
-// future updates in the buffer without including the current item.
-func (i *bufferItem) FollowAfter() (*bufferItem, error) {
-	next, err := i.NextNoBlock()
-	if err != nil {
-		return nil, err
-	}
+// NextLink returns either the next item in the buffer if there is one, or
+// an empty item (that will be ignored by subscribers) that has a pointer to
+// the same link as this bufferItem (but none of the bufferItem content).
+// When the link.ch is closed, subscriptions will be notified of the next item.
+func (i *bufferItem) NextLink() *bufferItem {
+	next := i.NextNoBlock()
 	if next == nil {
 		// Return an empty item that can be followed to the next item published.
-		item := &bufferItem{}
-		item.link = i.link
-		return item, nil
+		return &bufferItem{link: i.link}
 	}
-	return next, nil
+	return next
 }
