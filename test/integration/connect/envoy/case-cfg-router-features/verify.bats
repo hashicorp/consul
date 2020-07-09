@@ -48,10 +48,12 @@ load helpers
 
 @test "test exact path" {
   assert_expected_fortio_name s2-v2 localhost 5000 /exact
+  assert_expected_fortio_name s2-v1 localhost 5000 /exact-alt
 }
 
 @test "test prefix path" {
   assert_expected_fortio_name s2-v2 localhost 5000 /prefix
+  assert_expected_fortio_name s2-v1 localhost 5000 /prefix-alt
 }
 
 @test "test regex path" {
@@ -60,22 +62,27 @@ load helpers
 
 @test "test present header" {
   assert_expected_fortio_name s2-v2 localhost 5000 /hdr-present anything
+  assert_expected_fortio_name s2-v1 localhost 5000 /hdr-present ""
 }
 
 @test "test exact header" {
   assert_expected_fortio_name s2-v2 localhost 5000 /hdr-exact exact
+  assert_expected_fortio_name s2-v1 localhost 5000 /hdr-exact exact-alt
 }
 
 @test "test prefix header" {
   assert_expected_fortio_name s2-v2 localhost 5000 /hdr-prefix prefix
+  assert_expected_fortio_name s2-v1 localhost 5000 /hdr-prefix alt-prefix
 }
 
 @test "test suffix header" {
   assert_expected_fortio_name s2-v2 localhost 5000 /hdr-suffix suffix
+  assert_expected_fortio_name s2-v1 localhost 5000 /hdr-suffix suffix-alt
 }
 
 @test "test regex header" {
   assert_expected_fortio_name s2-v2 localhost 5000 /hdr-regex regex
+  assert_expected_fortio_name s2-v1 localhost 5000 /hdr-regex regexx
 }
 
 @test "test inverted header" {
