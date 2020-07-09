@@ -7440,3 +7440,103 @@ func metaPairs(n int, format string) string {
 		panic("invalid format: " + format)
 	}
 }
+
+func TestConnectCAConfiguration(t *testing.T) {
+	type testCase struct {
+		config   RuntimeConfig
+		expected *structs.CAConfiguration
+		err      string
+	}
+
+	cases := map[string]testCase{
+		"connect-disabled": {
+			config: RuntimeConfig{
+				ConnectEnabled: false,
+			},
+			expected: nil,
+		},
+		"defaults": {
+			config: RuntimeConfig{
+				ConnectEnabled: true,
+			},
+			expected: &structs.CAConfiguration{
+				Provider: "consul",
+				Config: map[string]interface{}{
+					"RotationPeriod":      "2160h",
+					"LeafCertTTL":         "72h",
+					"IntermediateCertTTL": "8760h", // 365 * 24h
+				},
+			},
+		},
+		"cluster-id-override": {
+			config: RuntimeConfig{
+				ConnectEnabled: true,
+				ConnectCAConfig: map[string]interface{}{
+					"cluster_id": "adfe7697-09b4-413a-ac0a-fa81ed3a3001",
+				},
+			},
+			expected: &structs.CAConfiguration{
+				Provider:  "consul",
+				ClusterID: "adfe7697-09b4-413a-ac0a-fa81ed3a3001",
+				Config: map[string]interface{}{
+					"RotationPeriod":      "2160h",
+					"LeafCertTTL":         "72h",
+					"IntermediateCertTTL": "8760h", // 365 * 24h
+					"cluster_id":          "adfe7697-09b4-413a-ac0a-fa81ed3a3001",
+				},
+			},
+		},
+		"cluster-id-non-uuid": {
+			config: RuntimeConfig{
+				ConnectEnabled: true,
+				ConnectCAConfig: map[string]interface{}{
+					"cluster_id": "foo",
+				},
+			},
+			err: "cluster_id was supplied but was not a valid UUID",
+		},
+		"provider-override": {
+			config: RuntimeConfig{
+				ConnectEnabled:    true,
+				ConnectCAProvider: "vault",
+			},
+			expected: &structs.CAConfiguration{
+				Provider: "vault",
+				Config: map[string]interface{}{
+					"RotationPeriod":      "2160h",
+					"LeafCertTTL":         "72h",
+					"IntermediateCertTTL": "8760h", // 365 * 24h
+				},
+			},
+		},
+		"other-config": {
+			config: RuntimeConfig{
+				ConnectEnabled: true,
+				ConnectCAConfig: map[string]interface{}{
+					"foo": "bar",
+				},
+			},
+			expected: &structs.CAConfiguration{
+				Provider: "consul",
+				Config: map[string]interface{}{
+					"RotationPeriod":      "2160h",
+					"LeafCertTTL":         "72h",
+					"IntermediateCertTTL": "8760h", // 365 * 24h
+					"foo":                 "bar",
+				},
+			},
+		},
+	}
+
+	for name, tcase := range cases {
+		t.Run(name, func(t *testing.T) {
+			actual, err := tcase.config.ConnectCAConfiguration()
+			if tcase.err != "" {
+				testutil.RequireErrorContains(t, err, tcase.err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tcase.expected, actual)
+			}
+		})
+	}
+}
