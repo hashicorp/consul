@@ -46,50 +46,52 @@ load helpers
 
 # these all use the same context: "s1 upstream should be able to connect to s2-v2 via upstream s2"
 
-@test "test exact path with prefix rewrite" {
+@test "test exact path" {
   assert_expected_fortio_name s2-v2 localhost 5000 /exact
 }
 
-@test "test prefix path with prefix rewrite" {
+@test "test prefix path" {
   assert_expected_fortio_name s2-v2 localhost 5000 /prefix
 }
 
-@test "test regex path with present header" {
-  assert_expected_fortio_name s2-v2 localhost 5000 "" anything
+@test "test regex path" {
+  assert_expected_fortio_name s2-v2 localhost 5000 "" regex-path
 }
 
+# todo: present header
+
 @test "test exact header" {
-  assert_expected_fortio_name s2-v2 localhost 5000 "" exact
+  assert_expected_fortio_name s2-v2 localhost 5000 /hdr-exact exact
 }
 
 @test "test prefix header" {
-  assert_expected_fortio_name s2-v2 localhost 5000 "" prefix
+  assert_expected_fortio_name s2-v2 localhost 5000 /hdr-prefix prefix
 }
 
 @test "test suffix header" {
-  assert_expected_fortio_name s2-v2 localhost 5000 "" suffix
+  assert_expected_fortio_name s2-v2 localhost 5000 /hdr-suffix suffix
 }
 
 @test "test regex header" {
-  assert_expected_fortio_name s2-v2 localhost 5000 "" regex
+  assert_expected_fortio_name s2-v2 localhost 5000 /hdr-regex regex
 }
 
-@test "test exact path with prefix rewrite with inverted header" {
+@test "test inverted header" {
   assert_expected_fortio_name s2-v2 localhost 5000 /hdr-invert something-else
 }
 
-@test "test exact path with prefix rewrite with present query param" {
+@test "test present query param" {
   assert_expected_fortio_name s2-v2 localhost 5000 /qp-present
 }
 
-@test "test exact path with prefix rewrite with exact query param" {
+@test "test exact query param" {
   assert_expected_fortio_name s2-v2 localhost 5000 /qp-exact
 }
 
-@test "test exact path with prefix rewrite with regex query param" {
+@test "test regex query param" {
   assert_expected_fortio_name s2-v2 localhost 5000 /qp-regex
 }
 
-@test "test exact path with prefix rewrite with method match" {
+@test "test method match" {
   assert_expected_fortio_name s2-v2 localhost 5000 /method-match
 }
