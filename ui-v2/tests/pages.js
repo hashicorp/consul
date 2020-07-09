@@ -23,7 +23,6 @@ import pageFactory from 'consul-ui/components/hashicorp-consul/pageobject';
 
 import radiogroup from 'consul-ui/components/radio-group/pageobject';
 import tabgroup from 'consul-ui/components/tab-nav/pageobject';
-import popoverSort from 'consul-ui/components/popover-sort/pageobject';
 import authFormFactory from 'consul-ui/components/auth-form/pageobject';
 import freetextFilterFactory from 'consul-ui/components/freetext-filter/pageobject';
 
@@ -34,6 +33,7 @@ import policySelectorFactory from 'consul-ui/components/policy-selector/pageobje
 import roleFormFactory from 'consul-ui/components/role-form/pageobject';
 import roleSelectorFactory from 'consul-ui/components/role-selector/pageobject';
 
+import popoverSelectFactory from 'consul-ui/components/popover-select/pageobject';
 import morePopoverMenuFactory from 'consul-ui/components/more-popover-menu/pageobject';
 
 import tokenListFactory from 'consul-ui/components/token-list/pageobject';
@@ -93,6 +93,7 @@ const roleForm = roleFormFactory(submitable, cancelable, policySelector);
 const roleSelector = roleSelectorFactory(clickable, deletable, collection, alias, roleForm);
 
 const morePopoverMenu = morePopoverMenuFactory(clickable);
+const popoverSelect = popoverSelectFactory(clickable, collection);
 
 const consulIntentionList = consulIntentionListFactory(collection, clickable, attribute, deletable);
 const consulTokenList = consulTokenListFactory(
@@ -131,7 +132,16 @@ export default {
   index: create(index(visitable, collection)),
   dcs: create(dcs(visitable, clickable, attribute, collection)),
   services: create(
-    services(visitable, clickable, text, attribute, isPresent, collection, popoverSort, radiogroup)
+    services(
+      visitable,
+      clickable,
+      text,
+      attribute,
+      isPresent,
+      collection,
+      popoverSelect,
+      radiogroup
+    )
   ),
   service: create(
     service(visitable, attribute, collection, text, consulIntentionList, catalogToolbar, tabgroup)

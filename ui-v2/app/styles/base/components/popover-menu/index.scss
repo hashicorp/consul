@@ -1,15 +1,18 @@
 @import './skin';
 @import './layout';
-%with-popover-menu > [type='checkbox'] {
+.popover-menu {
   @extend %popover-menu;
 }
-%popover-menu {
+%popover-menu > [type='checkbox'] {
+  @extend %popover-menu-toggle;
+}
+%popover-menu-toggle {
   @extend %display-toggle-siblings;
 }
-%popover-menu + label > * {
-  @extend %toggle-button;
+%popover-menu-toggle + label {
+  @extend %popover-menu-trigger;
 }
-%popover-menu + label + div {
+%popover-menu-trigger + div {
   @extend %popover-menu-panel;
 }
 %popover-menu-panel {
