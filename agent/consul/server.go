@@ -1355,7 +1355,7 @@ func (s *Server) Stats() map[string]map[string]string {
 		"runtime":  runtimeStats(),
 	}
 
-	if s.ACLsEnabled() {
+	if s.config.ACLsEnabled {
 		if s.UseLegacyACLs() {
 			stats["consul"]["acl"] = "legacy"
 		} else {

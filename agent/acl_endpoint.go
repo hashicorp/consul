@@ -21,7 +21,7 @@ type aclBootstrapResponse struct {
 // checkACLDisabled will return a standard response if ACLs are disabled. This
 // returns true if they are disabled and we should not continue.
 func (s *HTTPServer) checkACLDisabled(resp http.ResponseWriter, _req *http.Request) bool {
-	if s.agent.delegate.ACLsEnabled() {
+	if s.agent.config.ACLsEnabled {
 		return false
 	}
 

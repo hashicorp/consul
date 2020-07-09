@@ -370,7 +370,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 func (s *HTTPServer) GenerateHTMLTemplateVars() map[string]interface{} {
 	vars := map[string]interface{}{
 		"ContentPath": s.agent.config.UIContentPath,
-		"ACLsEnabled": s.agent.delegate.ACLsEnabled(),
+		"ACLsEnabled": s.agent.config.ACLsEnabled,
 	}
 
 	s.addEnterpriseHTMLTemplateVars(vars)
