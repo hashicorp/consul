@@ -58,7 +58,9 @@ load helpers
   assert_expected_fortio_name s2-v2 localhost 5000 "" regex-path
 }
 
-# todo: present header
+@test "test present header" {
+  assert_expected_fortio_name s2-v2 localhost 5000 /hdr-present anything
+}
 
 @test "test exact header" {
   assert_expected_fortio_name s2-v2 localhost 5000 /hdr-exact exact

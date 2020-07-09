@@ -61,6 +61,21 @@ config_entries {
       },
       {
         match { http {
+          path_exact = "/hdr-present/debug"
+          header = [
+            {
+              name    = "x-test-debug"
+              present = true
+            },
+          ]
+        } },
+        destination {
+          service_subset = "v2"
+          prefix_rewrite = "/debug"
+        }
+      },
+      {
+        match { http {
           path_exact = "/hdr-exact/debug"
           header = [
             {
