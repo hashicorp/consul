@@ -499,9 +499,9 @@ func canRetry(args interface{}, err error) bool {
 	return false
 }
 
-// forward is used to forward to a remote DC or to forward to the local leader
+// ForwardRPC is used to forward an RPC request to a remote DC or to the local leader
 // Returns a bool of if forwarding was performed, as well as any error
-func (s *Server) forward(method string, info structs.RPCInfo, args interface{}, reply interface{}) (bool, error) {
+func (s *Server) ForwardRPC(method string, info structs.RPCInfo, args interface{}, reply interface{}) (bool, error) {
 	var firstCheck time.Time
 
 	// Handle DC forwarding

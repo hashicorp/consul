@@ -279,7 +279,7 @@ func (ac *AutoConfig) InitialConfiguration(ctx context.Context) (*config.Runtime
 }
 
 // introToken is responsible for determining the correct intro token to use
-// when making the initial Cluster.AutoConfig RPC request.
+// when making the initial AutoConfig.InitialConfiguration RPC request.
 func (ac *AutoConfig) introToken() (string, error) {
 	conf := ac.config.AutoConfig
 	// without an intro token or intro token file we cannot do anything
@@ -431,7 +431,7 @@ func (ac *AutoConfig) recordAutoConfigReply(reply *agentpb.AutoConfigResponse) e
 }
 
 // getInitialConfigurationOnce will perform full server to TCPAddr resolution and
-// loop through each host trying to make the Cluster.AutoConfig RPC call. When
+// loop through each host trying to make the AutoConfig.InitialConfiguration RPC call. When
 // successful the bool return will be true and the err value will indicate whether we
 // successfully recorded the auto config settings (persisted to disk and stored internally
 // on the AutoConfig object)
@@ -462,9 +462,9 @@ func (ac *AutoConfig) getInitialConfigurationOnce(ctx context.Context) (bool, er
 				return false, ctx.Err()
 			}
 
-			ac.logger.Debug("making Cluster.AutoConfig RPC", "addr", addr.String())
-			if err = ac.directRPC.RPC(ac.config.Datacenter, ac.config.NodeName, &addr, "Cluster.AutoConfig", &request, &reply); err != nil {
-				ac.logger.Error("AutoConfig RPC failed", "addr", addr.String(), "error", err)
+			ac.logger.Debug("making AutoConfig.InitialConfiguration RPC", "addr", addr.String())
+			if err = ac.directRPC.RPC(ac.config.Datacenter, ac.config.NodeName, &addr, "AutoConfig.InitialConfiguration", &request, &reply); err != nil {
+				ac.logger.Error("AutoConfig.InitialConfiguration RPC failed", "addr", addr.String(), "error", err)
 				continue
 			}
 
