@@ -1,7 +1,7 @@
 package xds
 
 import (
-	"path"
+	"path/filepath"
 	"sort"
 	"testing"
 
@@ -554,44 +554,53 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			require := require.New(t)
+	for _, envoyVersion := range supportedEnvoyVersions {
+		sf := determineSupportedProxyFeaturesFromString(envoyVersion)
+		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
+			for _, tt := range tests {
+				t.Run(tt.name, func(t *testing.T) {
+					require := require.New(t)
 
-			// Sanity check default with no overrides first
-			snap := tt.create(t)
+					// Sanity check default with no overrides first
+					snap := tt.create(t)
 
-			// We need to replace the TLS certs with deterministic ones to make golden
-			// files workable. Note we don't update these otherwise they'd change
-			// golden files for every test case and so not be any use!
-			setupTLSRootsAndLeaf(t, snap)
+					// We need to replace the TLS certs with deterministic ones to make golden
+					// files workable. Note we don't update these otherwise they'd change
+					// golden files for every test case and so not be any use!
+					setupTLSRootsAndLeaf(t, snap)
 
-			if tt.setup != nil {
-				tt.setup(snap)
+					if tt.setup != nil {
+						tt.setup(snap)
+					}
+
+					// Need server just for logger dependency
+					logger := testutil.Logger(t)
+					s := Server{
+						Logger: logger,
+					}
+
+					cInfo := connectionInfo{
+						Token:         "my-token",
+						ProxyFeatures: sf,
+					}
+					endpoints, err := s.endpointsFromSnapshot(cInfo, snap)
+					sort.Slice(endpoints, func(i, j int) bool {
+						return endpoints[i].(*envoy.ClusterLoadAssignment).ClusterName < endpoints[j].(*envoy.ClusterLoadAssignment).ClusterName
+					})
+					require.NoError(err)
+					r, err := createResponse(EndpointType, "00000001", "00000001", endpoints)
+					require.NoError(err)
+
+					gotJSON := responseToJSON(t, r)
+
+					gName := tt.name
+					if tt.overrideGoldenName != "" {
+						gName = tt.overrideGoldenName
+					}
+
+					require.JSONEq(goldenEnvoy(t, filepath.Join("endpoints", gName), envoyVersion, gotJSON), gotJSON)
+				})
 			}
-
-			// Need server just for logger dependency
-			logger := testutil.Logger(t)
-			s := Server{
-				Logger: logger,
-			}
-
-			endpoints, err := s.endpointsFromSnapshot(snap, "my-token")
-			sort.Slice(endpoints, func(i, j int) bool {
-				return endpoints[i].(*envoy.ClusterLoadAssignment).ClusterName < endpoints[j].(*envoy.ClusterLoadAssignment).ClusterName
-			})
-			require.NoError(err)
-			r, err := createResponse(EndpointType, "00000001", "00000001", endpoints)
-			require.NoError(err)
-
-			gotJSON := responseToJSON(t, r)
-
-			gName := tt.name
-			if tt.overrideGoldenName != "" {
-				gName = tt.overrideGoldenName
-			}
-
-			require.JSONEq(golden(t, path.Join("endpoints", gName), gotJSON), gotJSON)
 		})
 	}
 }
