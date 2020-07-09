@@ -3,6 +3,7 @@ package agent
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -129,7 +130,7 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 	}
 }
 
-func TestHTTPServer_H2(t *testing.T) {
+func TestSetupHTTPServer_HTTP2(t *testing.T) {
 	t.Parallel()
 
 	// Fire up an agent with TLS enabled.
@@ -161,24 +162,37 @@ func TestHTTPServer_H2(t *testing.T) {
 	if err := http2.ConfigureTransport(transport); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	hc := &http.Client{
-		Transport: transport,
-	}
+	httpClient := &http.Client{Transport: transport}
 
 	// Hook a handler that echoes back the protocol.
 	handler := func(resp http.ResponseWriter, req *http.Request) {
 		resp.WriteHeader(http.StatusOK)
 		fmt.Fprint(resp, req.Proto)
 	}
-	w, ok := a.srv.Handler.(*wrappedMux)
-	if !ok {
-		t.Fatalf("handler is not expected type")
-	}
-	w.mux.HandleFunc("/echo", handler)
+
+	// Create an httpServer to be configured with setupHTTPS, and add our
+	// custom handler.
+	httpServer := &http.Server{}
+	noopConnState := func(net.Conn, http.ConnState) {}
+	err = setupHTTPS(httpServer, noopConnState, time.Second)
+	require.NoError(t, err)
+
+	srvHandler := a.srv.handler(true)
+	mux, ok := srvHandler.(*wrappedMux)
+	require.True(t, ok, "expected a *wrappedMux, got %T", handler)
+	mux.mux.HandleFunc("/echo", handler)
+	httpServer.Handler = mux
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	tlsListener := tls.NewListener(listener, a.tlsConfigurator.IncomingHTTPSConfig())
+
+	go httpServer.Serve(tlsListener)
+	defer httpServer.Shutdown(context.Background())
 
 	// Call it and make sure we see HTTP/2.
-	url := fmt.Sprintf("https://%s/echo", a.srv.ln.Addr().String())
-	resp, err := hc.Get(url)
+	url := fmt.Sprintf("https://%s/echo", listener.Addr().String())
+	resp, err := httpClient.Get(url)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -195,9 +209,9 @@ func TestHTTPServer_H2(t *testing.T) {
 	// some other endpoint, but configure an API client and make a call
 	// just as a sanity check.
 	cfg := &api.Config{
-		Address:    a.srv.ln.Addr().String(),
+		Address:    listener.Addr().String(),
 		Scheme:     "https",
-		HttpClient: hc,
+		HttpClient: httpClient,
 	}
 	client, err := api.NewClient(cfg)
 	if err != nil {
@@ -333,7 +347,7 @@ func TestHTTPAPI_Ban_Nonprintable_Characters(t *testing.T) {
 		t.Fatal(err)
 	}
 	resp := httptest.NewRecorder()
-	a.srv.Handler.ServeHTTP(resp, req)
+	a.srv.handler(true).ServeHTTP(resp, req)
 	if got, want := resp.Code, http.StatusBadRequest; got != want {
 		t.Fatalf("bad response code got %d want %d", got, want)
 	}
@@ -352,7 +366,7 @@ func TestHTTPAPI_Allow_Nonprintable_Characters_With_Flag(t *testing.T) {
 		t.Fatal(err)
 	}
 	resp := httptest.NewRecorder()
-	a.srv.Handler.ServeHTTP(resp, req)
+	a.srv.handler(true).ServeHTTP(resp, req)
 	// Key doesn't actually exist so we should get 404
 	if got, want := resp.Code, http.StatusNotFound; got != want {
 		t.Fatalf("bad response code got %d want %d", got, want)
@@ -490,14 +504,14 @@ func TestAcceptEncodingGzip(t *testing.T) {
 	// negotiation, but since this call doesn't go through a real
 	// transport, the header has to be set manually
 	req.Header["Accept-Encoding"] = []string{"gzip"}
-	a.srv.Handler.ServeHTTP(resp, req)
+	a.srv.handler(true).ServeHTTP(resp, req)
 	require.Equal(t, 200, resp.Code)
 	require.Equal(t, "", resp.Header().Get("Content-Encoding"))
 
 	resp = httptest.NewRecorder()
 	req, _ = http.NewRequest("GET", "/v1/kv/long", nil)
 	req.Header["Accept-Encoding"] = []string{"gzip"}
-	a.srv.Handler.ServeHTTP(resp, req)
+	a.srv.handler(true).ServeHTTP(resp, req)
 	require.Equal(t, 200, resp.Code)
 	require.Equal(t, "gzip", resp.Header().Get("Content-Encoding"))
 }
@@ -811,35 +825,35 @@ func TestParseWait(t *testing.T) {
 	}
 }
 
-func TestPProfHandlers_EnableDebug(t *testing.T) {
+func TestHTTPServer_PProfHandlers_EnableDebug(t *testing.T) {
 	t.Parallel()
-	require := require.New(t)
-	a := NewTestAgent(t, "enable_debug = true")
+	a := NewTestAgent(t, ``)
 	defer a.Shutdown()
 
 	resp := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/debug/pprof/profile?seconds=1", nil)
 
-	a.srv.Handler.ServeHTTP(resp, req)
+	httpServer := &HTTPServer{agent: a.Agent}
+	httpServer.handler(true).ServeHTTP(resp, req)
 
-	require.Equal(http.StatusOK, resp.Code)
+	require.Equal(t, http.StatusOK, resp.Code)
 }
 
-func TestPProfHandlers_DisableDebugNoACLs(t *testing.T) {
+func TestHTTPServer_PProfHandlers_DisableDebugNoACLs(t *testing.T) {
 	t.Parallel()
-	require := require.New(t)
-	a := NewTestAgent(t, "enable_debug = false")
+	a := NewTestAgent(t, ``)
 	defer a.Shutdown()
 
 	resp := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/debug/pprof/profile", nil)
 
-	a.srv.Handler.ServeHTTP(resp, req)
+	httpServer := &HTTPServer{agent: a.Agent}
+	httpServer.handler(false).ServeHTTP(resp, req)
 
-	require.Equal(http.StatusUnauthorized, resp.Code)
+	require.Equal(t, http.StatusUnauthorized, resp.Code)
 }
 
-func TestPProfHandlers_ACLs(t *testing.T) {
+func TestHTTPServer_PProfHandlers_ACLs(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 	dc1 := "dc1"
@@ -904,7 +918,7 @@ func TestPProfHandlers_ACLs(t *testing.T) {
 		t.Run(fmt.Sprintf("case %d (%#v)", i, c), func(t *testing.T) {
 			req, _ := http.NewRequest("GET", fmt.Sprintf("%s?token=%s", c.endpoint, c.token), nil)
 			resp := httptest.NewRecorder()
-			a.srv.Handler.ServeHTTP(resp, req)
+			a.srv.handler(true).ServeHTTP(resp, req)
 			assert.Equal(c.code, resp.Code)
 		})
 	}
@@ -1192,7 +1206,7 @@ func TestEnableWebUI(t *testing.T) {
 
 	req, _ := http.NewRequest("GET", "/ui/", nil)
 	resp := httptest.NewRecorder()
-	a.srv.Handler.ServeHTTP(resp, req)
+	a.srv.handler(true).ServeHTTP(resp, req)
 	if resp.Code != 200 {
 		t.Fatalf("should handle ui")
 	}

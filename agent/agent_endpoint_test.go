@@ -4465,7 +4465,8 @@ func TestAgent_Monitor(t *testing.T) {
 			req = req.WithContext(cancelCtx)
 
 			resp := httptest.NewRecorder()
-			go a.srv.Handler.ServeHTTP(resp, req)
+			handler := a.srv.handler(true)
+			go handler.ServeHTTP(resp, req)
 
 			args := &structs.ServiceDefinition{
 				Name: "monitor",

@@ -1150,49 +1150,28 @@ func (a *Agent) listenHTTP() ([]*HTTPServer, error) {
 				l = tls.NewListener(l, tlscfg)
 			}
 
+			httpServer := &http.Server{
+				Addr:      l.Addr().String(),
+				TLSConfig: tlscfg,
+			}
 			srv := &HTTPServer{
-				Server: &http.Server{
-					Addr:      l.Addr().String(),
-					TLSConfig: tlscfg,
-				},
+				Server:   httpServer,
 				ln:       l,
 				agent:    a,
 				denylist: NewDenylist(a.config.HTTPBlockEndpoints),
 				proto:    proto,
 			}
-			srv.Server.Handler = srv.handler(a.config.EnableDebug)
+			httpServer.Handler = srv.handler(a.config.EnableDebug)
 
 			// Load the connlimit helper into the server
 			connLimitFn := a.httpConnLimiter.HTTPConnStateFuncWithDefault429Handler(10 * time.Millisecond)
 
 			if proto == "https" {
-				// Enforce TLS handshake timeout
-				srv.Server.ConnState = func(conn net.Conn, state http.ConnState) {
-					switch state {
-					case http.StateNew:
-						// Set deadline to prevent slow send before TLS handshake or first
-						// byte of request.
-						conn.SetReadDeadline(time.Now().Add(a.config.HTTPSHandshakeTimeout))
-					case http.StateActive:
-						// Clear read deadline. We should maybe set read timeouts more
-						// generally but that's a bigger task as some HTTP endpoints may
-						// stream large requests and responses (e.g. snapshot) so we can't
-						// set sensible blanket timeouts here.
-						conn.SetReadDeadline(time.Time{})
-					}
-					// Pass through to conn limit. This is OK because we didn't change
-					// state (i.e. Close conn).
-					connLimitFn(conn, state)
-				}
-
-				// This will enable upgrading connections to HTTP/2 as
-				// part of TLS negotiation.
-				err = http2.ConfigureServer(srv.Server, nil)
-				if err != nil {
+				if err := setupHTTPS(httpServer, connLimitFn, a.config.HTTPSHandshakeTimeout); err != nil {
 					return err
 				}
 			} else {
-				srv.Server.ConnState = connLimitFn
+				httpServer.ConnState = connLimitFn
 			}
 
 			ln = append(ln, l)
@@ -1214,6 +1193,33 @@ func (a *Agent) listenHTTP() ([]*HTTPServer, error) {
 		return nil, err
 	}
 	return servers, nil
+}
+
+// setupHTTPS adds HTTP/2 support, ConnState, and a connection handshake timeout
+// to the http.Server.
+func setupHTTPS(server *http.Server, connState func(net.Conn, http.ConnState), timeout time.Duration) error {
+	// Enforce TLS handshake timeout
+	server.ConnState = func(conn net.Conn, state http.ConnState) {
+		switch state {
+		case http.StateNew:
+			// Set deadline to prevent slow send before TLS handshake or first
+			// byte of request.
+			conn.SetReadDeadline(time.Now().Add(timeout))
+		case http.StateActive:
+			// Clear read deadline. We should maybe set read timeouts more
+			// generally but that's a bigger task as some HTTP endpoints may
+			// stream large requests and responses (e.g. snapshot) so we can't
+			// set sensible blanket timeouts here.
+			conn.SetReadDeadline(time.Time{})
+		}
+		// Pass through to conn limit. This is OK because we didn't change
+		// state (i.e. Close conn).
+		connState(conn, state)
+	}
+
+	// This will enable upgrading connections to HTTP/2 as
+	// part of TLS negotiation.
+	return http2.ConfigureServer(server, nil)
 }
 
 // tcpKeepAliveListener sets TCP keep-alive timeouts on accepted
@@ -1262,7 +1268,7 @@ func (a *Agent) serveHTTP(srv *HTTPServer) error {
 	go func() {
 		defer a.wgServers.Done()
 		notif <- srv.ln.Addr()
-		err := srv.Serve(srv.ln)
+		err := srv.Server.Serve(srv.ln)
 		if err != nil && err != http.ErrServerClosed {
 			a.logger.Error("error closing server", "error", err)
 		}
@@ -2110,7 +2116,7 @@ func (a *Agent) ShutdownEndpoints() {
 		)
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-		srv.Shutdown(ctx)
+		srv.Server.Shutdown(ctx)
 		if ctx.Err() == context.DeadlineExceeded {
 			a.logger.Warn("Timeout stopping server",
 				"protocol", strings.ToUpper(srv.proto),
