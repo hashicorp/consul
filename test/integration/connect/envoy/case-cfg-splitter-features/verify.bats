@@ -42,6 +42,10 @@ load helpers
   assert_upstream_has_endpoints_in_status 127.0.0.1:19000 v2.s2.default.primary HEALTHY 1
 }
 
+@test "s1 upstream should have healthy endpoints for v1.s2" {
+  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 v1.s2.default.primary HEALTHY 1
+}
+
 ### the splitter sends you to v1 or v2 but never the default
 @test "s1 upstream should be able to connect to s2-v1 or s2-v2 via upstream s2" {
   assert_expected_fortio_name_pattern ^FORTIO_NAME=s2-v[12]$
