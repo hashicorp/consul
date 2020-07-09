@@ -409,11 +409,11 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 						Logger: logger,
 					}
 
-					cinfo := connectionInfo{
+					cInfo := connectionInfo{
 						Token:         "my-token",
 						ProxyFeatures: sf,
 					}
-					endpoints, err := s.endpointsFromSnapshot(cinfo, snap)
+					endpoints, err := s.endpointsFromSnapshot(cInfo, snap)
 					sort.Slice(endpoints, func(i, j int) bool {
 						return endpoints[i].(*envoy.ClusterLoadAssignment).ClusterName < endpoints[j].(*envoy.ClusterLoadAssignment).ClusterName
 					})

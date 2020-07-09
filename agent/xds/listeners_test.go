@@ -292,11 +292,11 @@ func TestListenersFromSnapshot(t *testing.T) {
 						Logger: logger,
 					}
 
-					cinfo := connectionInfo{
+					cInfo := connectionInfo{
 						Token:         "my-token",
 						ProxyFeatures: sf,
 					}
-					listeners, err := s.listenersFromSnapshot(cinfo, snap)
+					listeners, err := s.listenersFromSnapshot(cInfo, snap)
 					sort.Slice(listeners, func(i, j int) bool {
 						return listeners[i].(*envoy.Listener).Name < listeners[j].(*envoy.Listener).Name
 					})
