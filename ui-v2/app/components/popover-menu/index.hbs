@@ -1,5 +1,5 @@
 {{yield}}
-<div class="popover-menu">
+<div class="popover-menu" ...attributes>
 <AriaMenu @keyboardAccess={{keyboardAccess}} as |change keypress ariaLabelledBy ariaControls ariaExpanded keypressClick|>
   <ToggleButton
     @checked={{if keyboardAccess ariaExpanded expanded}}

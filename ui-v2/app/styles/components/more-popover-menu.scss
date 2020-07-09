@@ -4,6 +4,8 @@
 %more-popover-menu {
   @extend %popover-menu;
 }
+/* using the inut in the selector here means it won't */
+/* take on the default :checked chevron icon */
 %more-popover-menu .popover-menu > [type='checkbox'] + label {
   @extend %more-popover-menu-trigger;
 }
