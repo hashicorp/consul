@@ -24,7 +24,7 @@ type Internal struct {
 // NodeInfo is used to retrieve information about a specific node.
 func (m *Internal) NodeInfo(args *structs.NodeSpecificRequest,
 	reply *structs.IndexedNodeDump) error {
-	if done, err := m.srv.forward("Internal.NodeInfo", args, args, reply); done {
+	if done, err := m.srv.ForwardRPC("Internal.NodeInfo", args, args, reply); done {
 		return err
 	}
 
@@ -50,7 +50,7 @@ func (m *Internal) NodeInfo(args *structs.NodeSpecificRequest,
 // NodeDump is used to generate information about all of the nodes.
 func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 	reply *structs.IndexedNodeDump) error {
-	if done, err := m.srv.forward("Internal.NodeDump", args, args, reply); done {
+	if done, err := m.srv.ForwardRPC("Internal.NodeDump", args, args, reply); done {
 		return err
 	}
 
@@ -89,7 +89,7 @@ func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 }
 
 func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.IndexedCheckServiceNodes) error {
-	if done, err := m.srv.forward("Internal.ServiceDump", args, args, reply); done {
+	if done, err := m.srv.ForwardRPC("Internal.ServiceDump", args, args, reply); done {
 		return err
 	}
 
@@ -129,7 +129,7 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 
 // GatewayServiceNodes returns all the nodes for services associated with a gateway along with their gateway config
 func (m *Internal) GatewayServiceDump(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceDump) error {
-	if done, err := m.srv.forward("Internal.GatewayServiceDump", args, args, reply); done {
+	if done, err := m.srv.ForwardRPC("Internal.GatewayServiceDump", args, args, reply); done {
 		return err
 	}
 
@@ -210,7 +210,7 @@ func (m *Internal) GatewayServiceDump(args *structs.ServiceSpecificRequest, repl
 // triggered in a remote DC.
 func (m *Internal) EventFire(args *structs.EventFireRequest,
 	reply *structs.EventFireResponse) error {
-	if done, err := m.srv.forward("Internal.EventFire", args, args, reply); done {
+	if done, err := m.srv.ForwardRPC("Internal.EventFire", args, args, reply); done {
 		return err
 	}
 

@@ -325,7 +325,7 @@ func (g *GatewayLocator) runOnce(lastFetchIndex uint64) (uint64, error) {
 	return queryMeta.Index, nil
 }
 
-// checkLocalStateIsReady is inlined a bit from (*Server).forward(). We need to
+// checkLocalStateIsReady is inlined a bit from (*Server).ForwardRPC(). We need to
 // wait until our own state machine is safe to read from.
 func (g *GatewayLocator) checkLocalStateIsReady() error {
 	// Check if we can allow a stale read, ensure our local DB is initialized
