@@ -1,10 +1,12 @@
+import Component from '@ember/component';
 import { get, set } from '@ember/object';
 import { inject as service } from '@ember/service';
-import DomBufferComponent from 'consul-ui/components/dom-buffer';
 import Slotted from 'block-slots';
 
 import templatize from 'consul-ui/utils/templatize';
-export default DomBufferComponent.extend(Slotted, {
+
+export default Component.extend(Slotted, {
+  tagName: '',
   dom: service('dom'),
   checked: true,
   height: null,
@@ -17,7 +19,7 @@ export default DomBufferComponent.extend(Slotted, {
     set(this, 'checked', true);
     if (this.height === null) {
       if (this.element) {
-        const dialogPanel = this.dom.element('[role="dialog"] > div > div', this.element);
+        const dialogPanel = this.dom.element('[role="dialog"] > div > div', this.modal);
         const rect = dialogPanel.getBoundingClientRect();
         set(this, 'dialog', dialogPanel);
         set(this, 'height', rect.height);
@@ -110,7 +112,7 @@ export default DomBufferComponent.extend(Slotted, {
     close: function() {
       const $close = this.dom.element('#modal_close');
       $close.checked = true;
-      const $input = this.dom.element('input[name="modal"]', this.element);
+      const $input = this.dom.element('input[name="modal"]', this.modal);
       $input.onchange({ target: $input });
     },
   },

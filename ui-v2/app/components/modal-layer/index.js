@@ -1,8 +1,9 @@
-import DomBufferFlushComponent from 'consul-ui/components/dom-buffer-flush';
+import Component from '@ember/component';
 import { inject as service } from '@ember/service';
 
-export default DomBufferFlushComponent.extend({
+export default Component.extend({
   dom: service('dom'),
+  tagName: '',
   actions: {
     change: function(e) {
       [...this.dom.elements('[name="modal"]')]
