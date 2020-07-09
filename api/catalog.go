@@ -81,6 +81,27 @@ type CatalogDeregistration struct {
 	Namespace  string `json:",omitempty"`
 }
 
+type CompoundServiceName struct {
+	Name string
+	Namespace string
+}
+
+// GatewayService associates a gateway with a linked service.
+// It also contains service-specific gateway configuration like ingress listener port and protocol.
+type CatalogGatewayService struct {
+	Gateway      CompoundServiceName
+	Service      CompoundServiceName
+	GatewayKind  ServiceKind
+	Port         int      `json:",omitempty"`
+	Protocol     string   `json:",omitempty"`
+	Hosts        []string `json:",omitempty"`
+	CAFile       string   `json:",omitempty"`
+	CertFile     string   `json:",omitempty"`
+	KeyFile      string   `json:",omitempty"`
+	SNI          string   `json:",omitempty"`
+	FromWildcard bool     `json:",omitempty"`
+}
+
 // Catalog can be used to query the Catalog endpoints
 type Catalog struct {
 	c *Client
@@ -277,6 +298,27 @@ func (c *Catalog) NodeServiceList(node string, q *QueryOptions) (*CatalogNodeSer
 	qm.RequestTime = rtt
 
 	var out *CatalogNodeServiceList
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+	return out, qm, nil
+}
+
+// GatewayServices is used to query the services associated with an ingress gateway or terminating gateway.
+func (c *Catalog) GatewayServices(gateway string, q *QueryOptions) ([]*CatalogGatewayService, *QueryMeta, error) {
+	r := c.c.newRequest("GET", "/v1/catalog/gateway-services/"+gateway)
+	r.setQueryOptions(q)
+	rtt, resp, err := requireOK(c.c.doRequest(r))
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	var out []*CatalogGatewayService
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, nil, err
 	}
