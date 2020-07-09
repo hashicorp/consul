@@ -1100,7 +1100,7 @@ func TestAPI_CatalogGatewayServices_Terminating(t *testing.T) {
 
 	// Register the gateway
 	svc := &AgentService{
-		Kind: ServiceKindTerminatingGateway,
+		Kind:    ServiceKindTerminatingGateway,
 		ID:      "terminating",
 		Service: "terminating",
 		Port:    443,
@@ -1156,9 +1156,9 @@ func TestAPI_CatalogGatewayServices_Terminating(t *testing.T) {
 
 	// Associate the gateway and api/redis services
 	gwEntry := TerminatingGatewayConfigEntry{
-		Kind:        TerminatingGateway,
-		Name:        "terminating",
-		Services:    []LinkedService{
+		Kind: TerminatingGateway,
+		Name: "terminating",
+		Services: []LinkedService{
 			{
 				Name:     "api",
 				CAFile:   "api/ca.crt",
@@ -1181,7 +1181,7 @@ func TestAPI_CatalogGatewayServices_Terminating(t *testing.T) {
 		}
 	})
 
-	expect := []*CatalogGatewayService{
+	expect := []*GatewayService{
 		{
 			Service:     CompoundServiceName{"api", defaultNamespace},
 			Gateway:     CompoundServiceName{"terminating", defaultNamespace},
@@ -1192,8 +1192,8 @@ func TestAPI_CatalogGatewayServices_Terminating(t *testing.T) {
 			SNI:         "my-domain",
 		},
 		{
-			Service:     CompoundServiceName{"redis", defaultNamespace},
-			Gateway:     CompoundServiceName{"terminating", defaultNamespace},
+			Service:      CompoundServiceName{"redis", defaultNamespace},
+			Gateway:      CompoundServiceName{"terminating", defaultNamespace},
 			GatewayKind:  ServiceKindTerminatingGateway,
 			CAFile:       "ca.crt",
 			CertFile:     "client.crt",
@@ -1220,7 +1220,7 @@ func TestAPI_CatalogGatewayServices_Ingress(t *testing.T) {
 
 	// Register the gateway
 	svc := &AgentService{
-		Kind: ServiceKindTerminatingGateway,
+		Kind:    ServiceKindTerminatingGateway,
 		ID:      "ingress",
 		Service: "ingress",
 		Port:    443,
@@ -1303,7 +1303,7 @@ func TestAPI_CatalogGatewayServices_Ingress(t *testing.T) {
 		}
 	})
 
-	expect := []*CatalogGatewayService{
+	expect := []*GatewayService{
 		{
 			Service:     CompoundServiceName{"api", defaultNamespace},
 			Gateway:     CompoundServiceName{"ingress", defaultNamespace},

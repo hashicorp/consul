@@ -82,13 +82,13 @@ type CatalogDeregistration struct {
 }
 
 type CompoundServiceName struct {
-	Name string
+	Name      string
 	Namespace string
 }
 
 // GatewayService associates a gateway with a linked service.
 // It also contains service-specific gateway configuration like ingress listener port and protocol.
-type CatalogGatewayService struct {
+type GatewayService struct {
 	Gateway      CompoundServiceName
 	Service      CompoundServiceName
 	GatewayKind  ServiceKind
@@ -305,7 +305,7 @@ func (c *Catalog) NodeServiceList(node string, q *QueryOptions) (*CatalogNodeSer
 }
 
 // GatewayServices is used to query the services associated with an ingress gateway or terminating gateway.
-func (c *Catalog) GatewayServices(gateway string, q *QueryOptions) ([]*CatalogGatewayService, *QueryMeta, error) {
+func (c *Catalog) GatewayServices(gateway string, q *QueryOptions) ([]*GatewayService, *QueryMeta, error) {
 	r := c.c.newRequest("GET", "/v1/catalog/gateway-services/"+gateway)
 	r.setQueryOptions(q)
 	rtt, resp, err := requireOK(c.c.doRequest(r))
@@ -318,7 +318,7 @@ func (c *Catalog) GatewayServices(gateway string, q *QueryOptions) ([]*CatalogGa
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
 
-	var out []*CatalogGatewayService
+	var out []*GatewayService
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, nil, err
 	}
