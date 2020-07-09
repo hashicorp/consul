@@ -10,7 +10,7 @@ IMPROVEMENTS:
 * agent: Allow to restrict servers that can join a given Serf Consul cluster. [[GH-7628](https://github.com/hashicorp/consul/issues/7628)]
 * connect: various changes to make namespaces for intentions work more like for other subsystems [[GH-8194](https://github.com/hashicorp/consul/issues/8194)]
 * connect: Append port number to expected ingress hosts [[GH-8190](https://github.com/hashicorp/consul/pull/8190)]
-* dns: Improve RCODE of response when query targets a non-existent datacenter. [[GH-8102](https://github.com/hashicorp/consul/issues/8102),[GH-8218](https://github.com/hashicorp/consul/pull/8218)]
+* dns: Improve RCODE of response when query targets a non-existent datacenter. [[GH-8102](https://github.com/hashicorp/consul/issues/8102)],[[GH-8218](https://github.com/hashicorp/consul/issues/8218)]
 
 BUGFIXES:
 
@@ -18,6 +18,7 @@ BUGFIXES:
 * auto_encrypt: Fixed an issue where auto encrypt certificate signing wasn't using the connect signing rate limiter. [[GH-8211](https://github.com/hashicorp/consul/pull/8211)]
 * auto_encrypt: Fixed several issues around retrieving the first TLS certificate where it would have the wrong CN and SANs. This was being masked by a second bug (also fixed) causing that certificate to immediately be discarded with a second certificate request being made afterwards. [[GH-8211](https://github.com/hashicorp/consul/pull/8211)]
 * connect: fix crash that would result if a mesh or terminating gateway's upstream has a hostname as an address and no healthy service instances available. [[GH-8158](https://github.com/hashicorp/consul/issues/8158)]
+* xds: version sniff envoy and switch regular expressions from 'regex' to 'safe_regex' on newer envoy versions [[GH-8222](https://github.com/hashicorp/consul/issues/8222)]
 
 ## 1.8.0 (June 18, 2020)
 
