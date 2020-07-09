@@ -552,11 +552,11 @@ func TestClustersFromSnapshot(t *testing.T) {
 						Logger: logger,
 					}
 
-					cinfo := connectionInfo{
+					cInfo := connectionInfo{
 						Token:         "my-token",
 						ProxyFeatures: sf,
 					}
-					clusters, err := s.clustersFromSnapshot(cinfo, snap)
+					clusters, err := s.clustersFromSnapshot(cInfo, snap)
 					require.NoError(err)
 					sort.Slice(clusters, func(i, j int) bool {
 						return clusters[i].(*envoy.Cluster).Name < clusters[j].(*envoy.Cluster).Name

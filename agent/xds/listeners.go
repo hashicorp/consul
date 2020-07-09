@@ -34,33 +34,33 @@ import (
 )
 
 // listenersFromSnapshot returns the xDS API representation of the "listeners" in the snapshot.
-func (s *Server) listenersFromSnapshot(cinfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+func (s *Server) listenersFromSnapshot(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
 	}
 
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
-		return s.listenersFromSnapshotConnectProxy(cinfo, cfgSnap)
+		return s.listenersFromSnapshotConnectProxy(cInfo, cfgSnap)
 	case structs.ServiceKindTerminatingGateway:
-		return s.listenersFromSnapshotGateway(cinfo, cfgSnap)
+		return s.listenersFromSnapshotGateway(cInfo, cfgSnap)
 	case structs.ServiceKindMeshGateway:
-		return s.listenersFromSnapshotGateway(cinfo, cfgSnap)
+		return s.listenersFromSnapshotGateway(cInfo, cfgSnap)
 	case structs.ServiceKindIngressGateway:
-		return s.listenersFromSnapshotGateway(cinfo, cfgSnap)
+		return s.listenersFromSnapshotGateway(cInfo, cfgSnap)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
 }
 
 // listenersFromSnapshotConnectProxy returns the "listeners" for a connect proxy service
-func (s *Server) listenersFromSnapshotConnectProxy(cinfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+func (s *Server) listenersFromSnapshotConnectProxy(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	// One listener for each upstream plus the public one
 	resources := make([]proto.Message, len(cfgSnap.Proxy.Upstreams)+1)
 
 	// Configure public listener
 	var err error
-	resources[0], err = s.makePublicListener(cinfo, cfgSnap)
+	resources[0], err = s.makePublicListener(cInfo, cfgSnap)
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +190,7 @@ func parseCheckPath(check structs.CheckType) (structs.ExposePath, error) {
 }
 
 // listenersFromSnapshotGateway returns the "listener" for a terminating-gateway or mesh-gateway service
-func (s *Server) listenersFromSnapshotGateway(cinfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+func (s *Server) listenersFromSnapshotGateway(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	cfg, err := ParseGatewayConfig(cfgSnap.Proxy.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
@@ -254,7 +254,7 @@ func (s *Server) listenersFromSnapshotGateway(cinfo connectionInfo, cfgSnap *pro
 
 		switch cfgSnap.Kind {
 		case structs.ServiceKindTerminatingGateway:
-			l, err = s.makeTerminatingGatewayListener(cinfo, cfgSnap, a.name, a.Address, a.Port)
+			l, err = s.makeTerminatingGatewayListener(cInfo, cfgSnap, a.name, a.Address, a.Port)
 			if err != nil {
 				return nil, err
 			}
@@ -402,8 +402,8 @@ func makeListenerFromUserConfig(configJSON string) (*envoy.Listener, error) {
 // specify custom listener params in config but still get our certs delivered
 // dynamically and intentions enforced without coming up with some complicated
 // templating/merging solution.
-func injectConnectFilters(cinfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot, listener *envoy.Listener) error {
-	authFilter, err := makeExtAuthFilter(cinfo.Token)
+func injectConnectFilters(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot, listener *envoy.Listener) error {
+	authFilter, err := makeExtAuthFilter(cInfo.Token)
 	if err != nil {
 		return err
 	}
@@ -420,7 +420,7 @@ func injectConnectFilters(cinfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot
 	return nil
 }
 
-func (s *Server) makePublicListener(cinfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) (proto.Message, error) {
+func (s *Server) makePublicListener(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) (proto.Message, error) {
 	var l *envoy.Listener
 	var err error
 
@@ -474,7 +474,7 @@ func (s *Server) makePublicListener(cinfo connectionInfo, cfgSnap *proxycfg.Conf
 		}
 	}
 
-	err = injectConnectFilters(cinfo, cfgSnap, l)
+	err = injectConnectFilters(cInfo, cfgSnap, l)
 	return l, err
 }
 
@@ -542,7 +542,7 @@ func (s *Server) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, clus
 }
 
 func (s *Server) makeTerminatingGatewayListener(
-	cinfo connectionInfo,
+	cInfo connectionInfo,
 	cfgSnap *proxycfg.ConfigSnapshot,
 	name, addr string,
 	port int,
@@ -570,7 +570,7 @@ func (s *Server) makeTerminatingGatewayListener(
 			continue
 		}
 
-		clusterChain, err := s.sniFilterChainTerminatingGateway(cinfo, cfgSnap, name, clusterName, svc)
+		clusterChain, err := s.sniFilterChainTerminatingGateway(cInfo, cfgSnap, name, clusterName, svc)
 		if err != nil {
 			return nil, fmt.Errorf("failed to make filter chain for cluster %q: %v", clusterName, err)
 		}
@@ -582,7 +582,7 @@ func (s *Server) makeTerminatingGatewayListener(
 			for subsetName := range resolver.Subsets {
 				clusterName := connect.ServiceSNI(svc.Name, subsetName, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 
-				clusterChain, err := s.sniFilterChainTerminatingGateway(cinfo, cfgSnap, name, clusterName, svc)
+				clusterChain, err := s.sniFilterChainTerminatingGateway(cInfo, cfgSnap, name, clusterName, svc)
 				if err != nil {
 					return nil, fmt.Errorf("failed to make filter chain for cluster %q: %v", clusterName, err)
 				}
@@ -609,13 +609,13 @@ func (s *Server) makeTerminatingGatewayListener(
 }
 
 func (s *Server) sniFilterChainTerminatingGateway(
-	cinfo connectionInfo,
+	cInfo connectionInfo,
 	cfgSnap *proxycfg.ConfigSnapshot,
 	listener, cluster string,
 	service structs.ServiceName,
 ) (*envoylistener.FilterChain, error) {
 
-	authFilter, err := makeExtAuthFilter(cinfo.Token)
+	authFilter, err := makeExtAuthFilter(cInfo.Token)
 	if err != nil {
 		return nil, err
 	}
