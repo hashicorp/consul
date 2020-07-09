@@ -14,6 +14,7 @@ BUG FIXES:
 * acl: Fixed an issue where legacy management tokens could not be used in secondary datacenters. [[GH-7908](https://github.com/hashicorp/consul/pull/7908)]
 * agent: Fixed a race condition that could cause an agent to crash when first starting. [[GH-7955](https://github.com/hashicorp/consul/issues/7955)]
 * connect: setup intermediate_pki_path on secondary when using vault [[GH-8001]](https://github.com/hashicorp/consul/pull/8001)
+* xds: version sniff envoy and switch regular expressions from 'regex' to 'safe_regex' on newer envoy versions [[GH-8266](https://github.com/hashicorp/consul/issues/8266)]
 
 ## 1.7.3 (May 05, 2020)
 
