@@ -47,8 +47,9 @@ and the [ingress gateway guide](https://learn.hashicorp.com/consul/developer-mes
 ## Terminating Gateways
 -> **1.8.0+:** This feature is available in Consul versions 1.8.0 and newer.
 
-Terminating gateways enable connections from services in the Consul service mesh to services that do not have
-sidecar proxies. These may be services running on legacy infrastructure or managed cloud services running on
+Terminating gateways enable connections from services in the Consul service mesh to services outside the mesh.
+Services outside the mesh do not have sidecar proxies or are not [integrated natively](/docs/connect/native).
+These may be services running on legacy infrastructure or managed cloud services running on
 infrastructure you do not control.
 
 Terminating gateways effectively act as egress proxies that can represent one or more services. They terminate Connect
