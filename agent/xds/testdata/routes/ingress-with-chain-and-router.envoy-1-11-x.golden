@@ -30,7 +30,12 @@
             },
             {
               "match": {
-                "regex": "/regex"
+                "safeRegex": {
+                  "googleRe2": {
+
+                  },
+                  "regex": "/regex"
+                }
               },
               "route": {
                 "cluster": "regex.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
@@ -113,7 +118,12 @@
                 "headers": [
                   {
                     "name": "x-debug",
-                    "regexMatch": "regex"
+                    "safeRegexMatch": {
+                      "googleRe2": {
+
+                      },
+                      "regex": "regex"
+                    }
                   }
                 ]
               },
@@ -127,7 +137,12 @@
                 "headers": [
                   {
                     "name": ":method",
-                    "regexMatch": "GET|PUT"
+                    "safeRegexMatch": {
+                      "googleRe2": {
+
+                      },
+                      "regex": "GET|PUT"
+                    }
                   }
                 ]
               },
@@ -145,7 +160,12 @@
                   },
                   {
                     "name": ":method",
-                    "regexMatch": "GET|PUT"
+                    "safeRegexMatch": {
+                      "googleRe2": {
+
+                      },
+                      "regex": "GET|PUT"
+                    }
                   }
                 ]
               },
@@ -159,7 +179,9 @@
                 "queryParameters": [
                   {
                     "name": "secretparam1",
-                    "value": "exact"
+                    "stringMatch": {
+                      "exact": "exact"
+                    }
                   }
                 ]
               },
@@ -173,8 +195,14 @@
                 "queryParameters": [
                   {
                     "name": "secretparam2",
-                    "value": "regex",
-                    "regex": true
+                    "stringMatch": {
+                      "safeRegex": {
+                        "googleRe2": {
+
+                        },
+                        "regex": "regex"
+                      }
+                    }
                   }
                 ]
               },
@@ -187,7 +215,8 @@
                 "prefix": "/",
                 "queryParameters": [
                   {
-                    "name": "secretparam3"
+                    "name": "secretparam3",
+                    "presentMatch": true
                   }
                 ]
               },

@@ -8,6 +8,7 @@ import (
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoyroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	envoymatcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hashicorp/consul/agent/proxycfg"
@@ -16,16 +17,16 @@ import (
 
 // routesFromSnapshot returns the xDS API representation of the "routes" in the
 // snapshot.
-func routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, _ string) ([]proto.Message, error) {
+func routesFromSnapshot(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
 	}
 
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
-		return routesFromSnapshotConnectProxy(cfgSnap)
+		return routesFromSnapshotConnectProxy(cInfo, cfgSnap)
 	case structs.ServiceKindIngressGateway:
-		return routesFromSnapshotIngressGateway(cfgSnap)
+		return routesFromSnapshotIngressGateway(cInfo, cfgSnap)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
@@ -33,7 +34,7 @@ func routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, _ string) ([]proto.Mes
 
 // routesFromSnapshotConnectProxy returns the xDS API representation of the
 // "routes" in the snapshot.
-func routesFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+func routesFromSnapshotConnectProxy(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
 	}
@@ -50,7 +51,7 @@ func routesFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.M
 		if chain == nil || chain.IsDefault() {
 			// TODO(rb): make this do the old school stuff too
 		} else {
-			virtualHost, err := makeUpstreamRouteForDiscoveryChain(upstreamID, chain, []string{"*"})
+			virtualHost, err := makeUpstreamRouteForDiscoveryChain(cInfo, upstreamID, chain, []string{"*"})
 			if err != nil {
 				return nil, err
 			}
@@ -73,7 +74,7 @@ func routesFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.M
 
 // routesFromSnapshotIngressGateway returns the xDS API representation of the
 // "routes" in the snapshot.
-func routesFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+func routesFromSnapshotIngressGateway(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
 	}
@@ -100,7 +101,7 @@ func routesFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto
 			}
 
 			domains := generateUpstreamIngressDomains(listenerKey, u)
-			virtualHost, err := makeUpstreamRouteForDiscoveryChain(upstreamID, chain, domains)
+			virtualHost, err := makeUpstreamRouteForDiscoveryChain(cInfo, upstreamID, chain, domains)
 			if err != nil {
 				return nil, err
 			}
@@ -160,6 +161,7 @@ func generateUpstreamIngressDomains(listenerKey proxycfg.IngressListenerKey, u s
 }
 
 func makeUpstreamRouteForDiscoveryChain(
+	cInfo connectionInfo,
 	routeName string,
 	chain *structs.CompiledDiscoveryChain,
 	serviceDomains []string,
@@ -176,7 +178,7 @@ func makeUpstreamRouteForDiscoveryChain(
 		routes = make([]*envoyroute.Route, 0, len(startNode.Routes))
 
 		for _, discoveryRoute := range startNode.Routes {
-			routeMatch := makeRouteMatchForDiscoveryRoute(discoveryRoute)
+			routeMatch := makeRouteMatchForDiscoveryRoute(cInfo, discoveryRoute)
 
 			var (
 				routeAction *envoyroute.Route_Route
@@ -275,7 +277,7 @@ func makeUpstreamRouteForDiscoveryChain(
 	return host, nil
 }
 
-func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute) *envoyroute.RouteMatch {
+func makeRouteMatchForDiscoveryRoute(cInfo connectionInfo, discoveryRoute *structs.DiscoveryRoute) *envoyroute.RouteMatch {
 	match := discoveryRoute.Definition.Match
 	if match == nil || match.IsEmpty() {
 		return makeDefaultRouteMatch()
@@ -293,8 +295,14 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute) *en
 			Prefix: match.HTTP.PathPrefix,
 		}
 	case match.HTTP.PathRegex != "":
-		em.PathSpecifier = &envoyroute.RouteMatch_Regex{
-			Regex: match.HTTP.PathRegex,
+		if cInfo.ProxyFeatures.RouterMatchSafeRegex {
+			em.PathSpecifier = &envoyroute.RouteMatch_SafeRegex{
+				SafeRegex: makeEnvoyRegexMatch(match.HTTP.PathRegex),
+			}
+		} else {
+			em.PathSpecifier = &envoyroute.RouteMatch_Regex{
+				Regex: match.HTTP.PathRegex,
+			}
 		}
 	default:
 		em.PathSpecifier = &envoyroute.RouteMatch_Prefix{
@@ -315,8 +323,14 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute) *en
 					ExactMatch: hdr.Exact,
 				}
 			case hdr.Regex != "":
-				eh.HeaderMatchSpecifier = &envoyroute.HeaderMatcher_RegexMatch{
-					RegexMatch: hdr.Regex,
+				if cInfo.ProxyFeatures.RouterMatchSafeRegex {
+					eh.HeaderMatchSpecifier = &envoyroute.HeaderMatcher_SafeRegexMatch{
+						SafeRegexMatch: makeEnvoyRegexMatch(hdr.Regex),
+					}
+				} else {
+					eh.HeaderMatchSpecifier = &envoyroute.HeaderMatcher_RegexMatch{
+						RegexMatch: hdr.Regex,
+					}
 				}
 			case hdr.Prefix != "":
 				eh.HeaderMatchSpecifier = &envoyroute.HeaderMatcher_PrefixMatch{
@@ -347,10 +361,17 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute) *en
 
 		eh := &envoyroute.HeaderMatcher{
 			Name: ":method",
-			HeaderMatchSpecifier: &envoyroute.HeaderMatcher_RegexMatch{
-				RegexMatch: methodHeaderRegex,
-			},
 		}
+		if cInfo.ProxyFeatures.RouterMatchSafeRegex {
+			eh.HeaderMatchSpecifier = &envoyroute.HeaderMatcher_SafeRegexMatch{
+				SafeRegexMatch: makeEnvoyRegexMatch(methodHeaderRegex),
+			}
+		} else {
+			eh.HeaderMatchSpecifier = &envoyroute.HeaderMatcher_RegexMatch{
+				RegexMatch: methodHeaderRegex,
+			}
+		}
+
 		em.Headers = append(em.Headers, eh)
 	}
 
@@ -363,12 +384,38 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute) *en
 
 			switch {
 			case qm.Exact != "":
-				eq.Value = qm.Exact
+				if cInfo.ProxyFeatures.RouterMatchSafeRegex {
+					eq.QueryParameterMatchSpecifier = &envoyroute.QueryParameterMatcher_StringMatch{
+						StringMatch: &envoymatcher.StringMatcher{
+							MatchPattern: &envoymatcher.StringMatcher_Exact{
+								Exact: qm.Exact,
+							},
+						},
+					}
+				} else {
+					eq.Value = qm.Exact
+				}
 			case qm.Regex != "":
-				eq.Value = qm.Regex
-				eq.Regex = makeBoolValue(true)
+				if cInfo.ProxyFeatures.RouterMatchSafeRegex {
+					eq.QueryParameterMatchSpecifier = &envoyroute.QueryParameterMatcher_StringMatch{
+						StringMatch: &envoymatcher.StringMatcher{
+							MatchPattern: &envoymatcher.StringMatcher_SafeRegex{
+								SafeRegex: makeEnvoyRegexMatch(qm.Regex),
+							},
+						},
+					}
+				} else {
+					eq.Value = qm.Regex
+					eq.Regex = makeBoolValue(true)
+				}
 			case qm.Present:
-				eq.Value = ""
+				if cInfo.ProxyFeatures.RouterMatchSafeRegex {
+					eq.QueryParameterMatchSpecifier = &envoyroute.QueryParameterMatcher_PresentMatch{
+						PresentMatch: true,
+					}
+				} else {
+					eq.Value = ""
+				}
 			default:
 				continue // skip this impossible situation
 			}
@@ -441,4 +488,13 @@ func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, chain *structs
 			},
 		},
 	}, nil
+}
+
+func makeEnvoyRegexMatch(patt string) *envoymatcher.RegexMatcher {
+	return &envoymatcher.RegexMatcher{
+		EngineType: &envoymatcher.RegexMatcher_GoogleRe2{
+			GoogleRe2: &envoymatcher.RegexMatcher_GoogleRE2{},
+		},
+		Regex: patt,
+	}
 }
