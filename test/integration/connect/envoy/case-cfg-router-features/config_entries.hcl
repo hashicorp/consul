@@ -49,8 +49,8 @@ config_entries {
         match { http {
           path_regex = "/deb[ug]{2}"
           header = [{
-            name    = "x-test-debug"
-            present = true
+            name  = "x-test-debug"
+            exact = "regex-path"
           }]
         } }
         destination {
@@ -60,47 +60,62 @@ config_entries {
         }
       },
       {
-        match { http { header = [
-          {
-            name  = "x-test-debug"
-            exact = "exact"
-          },
-        ] } },
+        match { http {
+          path_exact = "/hdr-exact/debug"
+          header = [
+            {
+              name  = "x-test-debug"
+              exact = "exact"
+            },
+          ]
+        } },
         destination {
           service_subset = "v2"
+          prefix_rewrite = "/debug"
         }
       },
       {
-        match { http { header = [
-          {
-            name   = "x-test-debug"
-            prefix = "prefi"
-          },
+        match { http {
+          path_exact = "/hdr-prefix/debug"
+          header = [
+            {
+              name   = "x-test-debug"
+              prefix = "prefi"
+            },
         ] } },
         destination {
           service_subset = "v2"
+          prefix_rewrite = "/debug"
         }
       },
       {
-        match { http { header = [
-          {
-            name   = "x-test-debug"
-            prefix = "uffix"
-          },
-        ] } },
+        match { http {
+          path_exact = "/hdr-suffix/debug"
+          header = [
+            {
+              name   = "x-test-debug"
+              suffix = "uffix"
+            },
+          ]
+        } },
         destination {
           service_subset = "v2"
+          prefix_rewrite = "/debug"
         }
       },
       {
-        match { http { header = [
-          {
-            name  = "x-test-debug"
-            regex = "reg[ex]{2}"
-          },
-        ] } },
+        match { http {
+          path_exact = "/hdr-regex/debug"
+          header = [
+            {
+              name  = "x-test-debug"
+              regex = "reg[ex]{2}"
+            },
+          ]
+        } },
         destination {
           service_subset = "v2"
+          prefix_rewrite = "/debug"
         }
       },
       {
