@@ -1,5 +1,8 @@
-%with-popover-menu {
+%popover-menu {
   position: relative;
+}
+%popover-menu-trigger {
+  display: block;
 }
 %popover-menu-panel {
   width: 192px;

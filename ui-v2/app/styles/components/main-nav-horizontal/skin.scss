@@ -1,23 +1,6 @@
-%main-nav-horizontal-toggle-button {
-  text-indent: -9000px;
-}
-%main-nav-horizontal-toggle-button::before {
-  @extend %with-more-vertical-mask, %as-pseudo;
-  background-color: $white;
-
-  font-size: 1.2em;
-}
-
-%main-nav-horizontal label > button {
-  font-size: inherit;
-  font-weight: inherit;
-  color: inherit;
-  background-color: transparent;
-}
+/* nav buttons */
 %main-nav-horizontal-action {
   border-radius: $decor-radius-200;
-}
-%main-nav-horizontal-action {
   cursor: pointer;
 }
 %main-nav-horizontal-action,
@@ -28,19 +11,18 @@
 %main-nav-horizontal-action > a {
   color: inherit;
 }
-%main-nav-horizontal-toggle,
-%main-nav-horizontal input[type='checkbox'] {
+/**/
+/* reduced size hamburger menu */
+%main-nav-horizontal-toggle {
   display: none;
 }
-%main-nav-horizontal [type='checkbox'] + label > *::after {
-  @extend %as-pseudo;
-  @extend %with-chevron-down-mask;
-  position: relative;
-  top: 2px;
-  background-color: $white;
+%main-nav-horizontal-toggle-button {
+  text-indent: -9000px;
 }
-%main-nav-horizontal [type='checkbox']:checked + label > *::after {
-  @extend %with-chevron-up-mask;
+%main-nav-horizontal-toggle-button::before {
+  @extend %with-more-vertical-mask, %as-pseudo;
+  background-color: $white;
+  font-size: 1.2em;
 }
 %main-nav-horizontal-toggle-button span {
   visibility: hidden;

@@ -1,4 +1,4 @@
-export default function(visitable, clickable, text, attribute, present, collection, popoverSort) {
+export default function(visitable, clickable, text, attribute, present, collection, popoverSelect) {
   const service = {
     name: text('[data-test-service-name]'),
     service: clickable('a'),
@@ -13,6 +13,6 @@ export default function(visitable, clickable, text, attribute, present, collecti
       name: clickable('a'),
     }),
     home: clickable('[data-test-home]'),
-    sort: popoverSort,
+    sort: popoverSelect(),
   };
 }
