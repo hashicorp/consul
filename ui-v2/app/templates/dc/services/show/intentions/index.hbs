@@ -1,0 +1,59 @@
+<DataLoader @src={{concat '/' nspace '/' dc '/intentions/for-service/' slug}} as |api|>
+  <BlockSlot @name="error">
+    <ErrorState @error={{api.error}} />
+  </BlockSlot>
+  <BlockSlot @name="loaded">
+    {{#let (filter-by "Action" "deny" api.data) as |denied|}}
+      {{#let (selectable-key-values
+          (array "" (concat "All (" api.data.length ")"))
+          (array "allow" (concat "Allow (" (sub api.data.length denied.length) ")"))
+          (array "deny" (concat "Deny (" denied.length ")"))
+            selected=filterBy
+        )
+        as |filter|
+      }}
+        <div id="intentions" class="tab-section">
+          <div role="tabpanel">
+            <Portal @target="app-view-actions">
+              <a data-test-create href={{href-to 'dc.services.show.intentions.create'}} class="type-create">Create</a>
+            </Portal>
+      {{#if (gt api.data.length 0) }}
+            <input type="checkbox" id="toolbar-toggle" />
+            <SearchBar
+              @value={{search}}
+              @onsearch={{action (mut search) value="target.value"}}
+              @selected={{filter.selected}}
+              @options={{filter.items}}
+              @onchange={{action (mut filterBy) value='target.value'}}
+            />
+      {{/if}}
+            <ChangeableSet
+              @dispatcher={{
+                searchable
+                  'intention'
+                  (if (eq filter.selected.key "") api.data (filter-by "Action" filter.selected.key api.data))
+                }}
+                @terms={{search}}
+            >
+              <BlockSlot @name="content" as |filtered|>
+                <ConsulIntentionList
+                  @items={{filtered}}
+                  @ondelete={{refresh-route}}
+                  @routeName="dc.services.show.intentions.edit"
+                  >
+                  <EmptyState>
+                    <BlockSlot @name="body">
+                      <p>
+                          There are no intentions {{if (gt intentions.length 0) 'found '}} for this service.
+                      </p>
+                    </BlockSlot>
+                  </EmptyState>
+                </ConsulIntentionList>
+              </BlockSlot>
+            </ChangeableSet>
+          </div>
+        </div>
+      {{/let}}
+    {{/let}}
+  </BlockSlot>
+</DataLoader>

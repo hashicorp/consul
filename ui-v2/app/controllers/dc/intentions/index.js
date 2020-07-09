@@ -9,9 +9,4 @@ export default Controller.extend({
       replace: true,
     },
   },
-  actions: {
-    route: function() {
-      this.send(...arguments);
-    },
-  },
 });

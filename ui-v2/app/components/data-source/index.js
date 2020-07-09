@@ -1,6 +1,6 @@
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
-import { set } from '@ember/object';
+import { set, get } from '@ember/object';
 import { schedule } from '@ember/runloop';
 
 /**
@@ -72,17 +72,22 @@ export default Component.extend({
       this._lazyListeners.remove();
     }
     if (this.loading === 'eager' || this.isIntersecting) {
-      this.actions.open.bind(this)();
+      this.actions.open.apply(this, []);
     }
   },
   actions: {
     // keep this argumentless
     open: function() {
       // get a new source and replace the old one, cleaning up as we go
-      const source = replace(this, 'source', this.data.open(this.src, this), (prev, source) => {
-        // Makes sure any previous source (if different) is ALWAYS closed
-        this.data.close(prev, this);
-      });
+      const source = replace(
+        this,
+        'source',
+        this.data.open(this.src, this, this.open),
+        (prev, source) => {
+          // Makes sure any previous source (if different) is ALWAYS closed
+          this.data.close(prev, this);
+        }
+      );
       const error = err => {
         try {
           this.onerror(err);
@@ -100,7 +105,11 @@ export default Component.extend({
             error(err);
           }
         },
-        error: e => error(e),
+        error: e => {
+          if (get(e, 'error.errors.firstObject.status') !== '429') {
+            error(e);
+          }
+        },
       });
       replace(this, '_remove', remove);
       // dispatch the current data of the source if we have any

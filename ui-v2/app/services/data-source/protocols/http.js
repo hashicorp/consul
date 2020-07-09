@@ -3,11 +3,16 @@ import { get } from '@ember/object';
 
 export default Service.extend({
   datacenters: service('repository/dc'),
+  services: service('repository/service'),
   namespaces: service('repository/nspace'),
+  intentions: service('repository/intention'),
+  intention: service('repository/intention'),
+  kv: service('repository/kv'),
   token: service('repository/token'),
   policies: service('repository/policy'),
   policy: service('repository/policy'),
   roles: service('repository/role'),
+
   oidc: service('repository/oidc-provider'),
   type: service('data-source/protocols/http/blocking'),
   source: function(src, configuration) {
@@ -33,20 +38,41 @@ export default Service.extend({
     let method, slug;
     switch (model) {
       case 'datacenters':
-        find = configuration => repo.findAll(configuration);
-        break;
       case 'namespaces':
         find = configuration => repo.findAll(configuration);
         break;
       case 'token':
         find = configuration => repo.self(rest[1], dc);
         break;
+      case 'services':
       case 'roles':
       case 'policies':
         find = configuration => repo.findAllByDatacenter(dc, nspace, configuration);
         break;
       case 'policy':
         find = configuration => repo.findBySlug(rest[0], dc, nspace, configuration);
+        break;
+      case 'intentions':
+        [method, ...slug] = rest;
+        switch (method) {
+          case 'for-service':
+            // TODO: Are we going to need to encode/decode here...?
+            find = configuration => repo.findByService(slug.join('/'), dc, nspace, configuration);
+            break;
+          default:
+            find = configuration => repo.findAllByDatacenter(dc, nspace, configuration);
+            break;
+        }
+        break;
+      case 'intention':
+        // TODO: Are we going to need to encode/decode here...?
+        slug = rest.join('/');
+        if (slug) {
+          find = configuration => repo.findBySlug(slug, dc, nspace, configuration);
+        } else {
+          find = configuration =>
+            Promise.resolve(repo.create({ Datacenter: dc, Namespace: nspace }));
+        }
         break;
       case 'oidc':
         [method, ...slug] = rest;
