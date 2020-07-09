@@ -399,7 +399,7 @@ type xDSType struct {
 	// last version we sent with a Nack then req.VersionInfo will be the older
 	// version it's hanging on to.
 	lastVersion  uint64
-	resources    func(cinfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error)
+	resources    func(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error)
 	allowEmptyFn func(cfgSnap *proxycfg.ConfigSnapshot) bool
 }
 
@@ -426,11 +426,11 @@ func (t *xDSType) SendIfNew(cfgSnap *proxycfg.ConfigSnapshot, version uint64, no
 		return nil
 	}
 
-	cinfo := connectionInfo{
+	cInfo := connectionInfo{
 		Token:         tokenFromContext(t.stream.Context()),
 		ProxyFeatures: t.proxyFeatures,
 	}
-	resources, err := t.resources(cinfo, cfgSnap)
+	resources, err := t.resources(cInfo, cfgSnap)
 	if err != nil {
 		return err
 	}
