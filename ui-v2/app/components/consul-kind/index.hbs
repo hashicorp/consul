@@ -33,10 +33,11 @@
                       About Mesh gateways
                   {{/if}}
                 </li>
-          {{#let (from-entries
-            (array 'ingress-gateway' '/consul/developer-mesh/ingress-gateways')
-            (array 'terminating-gateway' '/consul/developer-mesh/understand-terminating-gateways')
-            (array 'mesh-gateway' '/consul/developer-mesh/connect-gateways')
+          {{#let (from-entries (array
+              (array 'ingress-gateway' '/consul/developer-mesh/ingress-gateways')
+              (array 'terminating-gateway' '/consul/developer-mesh/understand-terminating-gateways')
+              (array 'mesh-gateway' '/consul/developer-mesh/connect-gateways')
+            )
           ) as |link|}}
                 <li role="none" class="learn-link">
                   <a tabindex="-1" role="menuitem" href={{concat (env 'CONSUL_DOCS_LEARN_URL') (get link item.Kind)}} rel="noopener noreferrer" target="_blank">
@@ -44,10 +45,11 @@
                   </a>
                 </li>
           {{/let}}
-          {{#let (from-entries
-            (array 'ingress-gateway' '/connect/ingress-gateway')
-            (array 'terminating-gateway' '/connect/terminating-gateway')
-            (array 'mesh-gateway' '/connect/mesh-gateway')
+          {{#let (from-entries (array
+              (array 'ingress-gateway' '/connect/ingress-gateway')
+              (array 'terminating-gateway' '/connect/terminating-gateway')
+              (array 'mesh-gateway' '/connect/mesh-gateway')
+            )
           ) as |link|}}
                 <li role="none" class="docs-link">
                   <a tabindex="-1" role="menuitem" href={{concat (env 'CONSUL_DOCS_URL') (get link item.Kind)}} rel="noopener noreferrer" target="_blank">
