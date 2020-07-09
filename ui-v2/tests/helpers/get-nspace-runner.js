@@ -8,6 +8,9 @@ export default function(type) {
         env: function() {
           return CONSUL_NSPACES_ENABLED;
         },
+        var: function() {
+          return CONSUL_NSPACES_ENABLED;
+        },
       })
     );
     const adapter = container.owner.lookup(`adapter:${type}`);

@@ -5,7 +5,6 @@ import { get } from '@ember/object';
 
 export default Route.extend({
   repo: service('repository/service'),
-  intentionRepo: service('repository/intention'),
   chainRepo: service('repository/discovery-chain'),
   proxyRepo: service('repository/proxy'),
   settings: service('settings'),
@@ -13,6 +12,7 @@ export default Route.extend({
     const dc = this.modelFor('dc').dc.Name;
     const nspace = this.modelFor('nspace').nspace.substr(1);
     return hash({
+      slug: params.name,
       dc: dc,
       nspace: nspace || 'default',
       item: this.repo.findBySlug(params.name, dc, nspace),
@@ -25,11 +25,6 @@ export default Route.extend({
         )
           ? model
           : hash({
-              intentions: this.intentionRepo
-                .findByService(params.name, dc, nspace)
-                .catch(function() {
-                  return null;
-                }),
               chain: this.chainRepo.findBySlug(params.name, dc, nspace),
               proxies: this.proxyRepo.findAllBySlug(params.name, dc, nspace),
               ...model,

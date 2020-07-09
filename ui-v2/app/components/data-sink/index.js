@@ -74,31 +74,35 @@ export default Component.extend({
   },
   didInsertElement: function() {
     this._super(...arguments);
-    if (typeof this.data !== 'undefined') {
-      this.actions.open.apply(this, [this.data]);
+    if (typeof this.data !== 'undefined' || typeof this.item !== 'undefined') {
+      this.actions.open.apply(this, [this.data, this.item]);
     }
   },
   persist: function(data, instance) {
-    set(this, 'instance', this.service.prepare(this.sink, data, instance));
+    if (typeof data !== 'undefined') {
+      set(this, 'instance', this.service.prepare(this.sink, data, instance));
+    } else {
+      set(this, 'instance', instance);
+    }
     this.source(() => this.service.persist(this.sink, this.instance));
   },
   remove: function(instance) {
-    set(this, 'instance', this.service.prepare(this.sink, null, instance));
-    this.source(() => this.service.remove(this.sink, this.instance));
+    set(this, 'instance', instance);
+    this.source(() => this.service.remove(this.sink, instance));
   },
   actions: {
-    open: function(data, instance) {
-      if (instance instanceof Event) {
-        instance = undefined;
+    open: function(data, item) {
+      if (item instanceof Event) {
+        item = undefined;
       }
-      if (typeof data === 'undefined') {
+      if (typeof data === 'undefined' && typeof item === 'undefined') {
         throw new Error('You must specify data to save, or null to remove');
       }
       // potentially allow {} and "" as 'remove' flags
       if (data === null || data === '') {
-        this.remove(instance);
+        this.remove(item);
       } else {
-        this.persist(data, instance);
+        this.persist(data, item);
       }
     },
   },

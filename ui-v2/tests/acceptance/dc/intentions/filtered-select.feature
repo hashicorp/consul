@@ -16,6 +16,11 @@ Feature: dc / intentions / filtered-select: Intention Service Select Dropdowns
     - Name: service-3
       Kind: connect-proxy
     ---
+    And 1 intention model from yaml
+    ---
+    SourceName: 'service-0'
+    DestinationName: 'service-1'
+    ---
     When I visit the intention page for yaml
     ---
       dc: datacenter
@@ -41,6 +46,11 @@ Feature: dc / intentions / filtered-select: Intention Service Select Dropdowns
     - Name: service-0
       Namespace: nspace
       Kind: ~
+    ---
+    And 1 intention model from yaml
+    ---
+    SourceName: 'service-0'
+    DestinationName: 'service-0'
     ---
     When I visit the intention page for yaml
     ---

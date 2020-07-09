@@ -32,7 +32,7 @@ export default Service.extend({
             }
           }
           const date = get(item, 'SyncTime');
-          if (typeof date !== 'undefined' && date != meta.date) {
+          if (!item.isDeleted && typeof date !== 'undefined' && date != meta.date) {
             this.store.unloadRecord(item);
           }
         }
