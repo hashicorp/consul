@@ -230,7 +230,7 @@ func (s *Snapshot) ACLTokens() (memdb.ResultIterator, error) {
 
 // ACLToken is used when restoring from a snapshot. For general inserts, use ACL.
 func (s *Restore) ACLToken(token *structs.ACLToken) error {
-	return s.store.aclTokenInsert(s.tx, token)
+	return aclTokenInsert(s.tx, token)
 }
 
 // ACLPolicies is used when saving a snapshot
@@ -243,7 +243,7 @@ func (s *Snapshot) ACLPolicies() (memdb.ResultIterator, error) {
 }
 
 func (s *Restore) ACLPolicy(policy *structs.ACLPolicy) error {
-	return s.store.aclPolicyInsert(s.tx, policy)
+	return aclPolicyInsert(s.tx, policy)
 }
 
 // ACLRoles is used when saving a snapshot
@@ -256,7 +256,7 @@ func (s *Snapshot) ACLRoles() (memdb.ResultIterator, error) {
 }
 
 func (s *Restore) ACLRole(role *structs.ACLRole) error {
-	return s.store.aclRoleInsert(s.tx, role)
+	return aclRoleInsert(s.tx, role)
 }
 
 // ACLBindingRules is used when saving a snapshot
@@ -339,7 +339,7 @@ func (s *Store) CanBootstrapACLToken() (bool, uint64, error) {
 // to update the name. Unlike the older functions to operate specifically on role or policy links
 // this function does not itself handle the case where the id cannot be found. Instead the
 // getName function should handle that and return an error if necessary
-func (s *Store) resolveACLLinks(tx *txn, links []agentpb.ACLLink, getName func(*txn, string) (string, error)) (int, error) {
+func resolveACLLinks(tx *txn, links []agentpb.ACLLink, getName func(*txn, string) (string, error)) (int, error) {
 	var numValid int
 	for linkIndex, link := range links {
 		if link.ID != "" {
@@ -365,7 +365,7 @@ func (s *Store) resolveACLLinks(tx *txn, links []agentpb.ACLLink, getName func(*
 // associated with the ID of the link. Ideally this will be a no-op if the names are already correct
 // however if a linked resource was renamed it might be stale. This function will treat the incoming
 // links with copy-on-write semantics and its output will indicate whether any modifications were made.
-func (s *Store) fixupACLLinks(tx *txn, original []agentpb.ACLLink, getName func(*txn, string) (string, error)) ([]agentpb.ACLLink, bool, error) {
+func fixupACLLinks(tx *txn, original []agentpb.ACLLink, getName func(*txn, string) (string, error)) ([]agentpb.ACLLink, bool, error) {
 	owned := false
 	links := original
 
@@ -405,11 +405,11 @@ func (s *Store) fixupACLLinks(tx *txn, original []agentpb.ACLLink, getName func(
 	return links, owned, nil
 }
 
-func (s *Store) resolveTokenPolicyLinks(tx *txn, token *structs.ACLToken, allowMissing bool) (int, error) {
+func resolveTokenPolicyLinks(tx *txn, token *structs.ACLToken, allowMissing bool) (int, error) {
 	var numValid int
 	for linkIndex, link := range token.Policies {
 		if link.ID != "" {
-			policy, err := s.getPolicyWithTxn(tx, nil, link.ID, s.aclPolicyGetByID, &token.EnterpriseMeta)
+			policy, err := getPolicyWithTxn(tx, nil, link.ID, aclPolicyGetByID, &token.EnterpriseMeta)
 
 			if err != nil {
 				return 0, err
@@ -433,7 +433,7 @@ func (s *Store) resolveTokenPolicyLinks(tx *txn, token *structs.ACLToken, allowM
 // stale when a linked policy was deleted or renamed. This will correct them and generate a newly allocated
 // token only when fixes are needed. If the policy links are still accurate then we just return the original
 // token.
-func (s *Store) fixupTokenPolicyLinks(tx *txn, original *structs.ACLToken) (*structs.ACLToken, error) {
+func fixupTokenPolicyLinks(tx *txn, original *structs.ACLToken) (*structs.ACLToken, error) {
 	owned := false
 	token := original
 
@@ -449,7 +449,7 @@ func (s *Store) fixupTokenPolicyLinks(tx *txn, original *structs.ACLToken) (*str
 			return nil, fmt.Errorf("Detected corrupted token within the state store - missing policy link ID")
 		}
 
-		policy, err := s.getPolicyWithTxn(tx, nil, link.ID, s.aclPolicyGetByID, &token.EnterpriseMeta)
+		policy, err := getPolicyWithTxn(tx, nil, link.ID, aclPolicyGetByID, &token.EnterpriseMeta)
 
 		if err != nil {
 			return nil, err
@@ -483,7 +483,7 @@ func (s *Store) resolveTokenRoleLinks(tx *txn, token *structs.ACLToken, allowMis
 	var numValid int
 	for linkIndex, link := range token.Roles {
 		if link.ID != "" {
-			role, err := s.getRoleWithTxn(tx, nil, link.ID, s.aclRoleGetByID, &token.EnterpriseMeta)
+			role, err := getRoleWithTxn(tx, nil, link.ID, aclRoleGetByID, &token.EnterpriseMeta)
 
 			if err != nil {
 				return 0, err
@@ -507,7 +507,7 @@ func (s *Store) resolveTokenRoleLinks(tx *txn, token *structs.ACLToken, allowMis
 // stale when a linked role was deleted or renamed. This will correct them and generate a newly allocated
 // token only when fixes are needed. If the role links are still accurate then we just return the original
 // token.
-func (s *Store) fixupTokenRoleLinks(tx *txn, original *structs.ACLToken) (*structs.ACLToken, error) {
+func fixupTokenRoleLinks(tx *txn, original *structs.ACLToken) (*structs.ACLToken, error) {
 	owned := false
 	token := original
 
@@ -523,7 +523,7 @@ func (s *Store) fixupTokenRoleLinks(tx *txn, original *structs.ACLToken) (*struc
 			return nil, fmt.Errorf("Detected corrupted token within the state store - missing role link ID")
 		}
 
-		role, err := s.getRoleWithTxn(tx, nil, link.ID, s.aclRoleGetByID, &original.EnterpriseMeta)
+		role, err := getRoleWithTxn(tx, nil, link.ID, aclRoleGetByID, &original.EnterpriseMeta)
 
 		if err != nil {
 			return nil, err
@@ -553,10 +553,10 @@ func (s *Store) fixupTokenRoleLinks(tx *txn, original *structs.ACLToken) (*struc
 	return token, nil
 }
 
-func (s *Store) resolveRolePolicyLinks(tx *txn, role *structs.ACLRole, allowMissing bool) error {
+func resolveRolePolicyLinks(tx *txn, role *structs.ACLRole, allowMissing bool) error {
 	for linkIndex, link := range role.Policies {
 		if link.ID != "" {
-			policy, err := s.getPolicyWithTxn(tx, nil, link.ID, s.aclPolicyGetByID, &role.EnterpriseMeta)
+			policy, err := getPolicyWithTxn(tx, nil, link.ID, aclPolicyGetByID, &role.EnterpriseMeta)
 
 			if err != nil {
 				return err
@@ -579,7 +579,7 @@ func (s *Store) resolveRolePolicyLinks(tx *txn, role *structs.ACLRole, allowMiss
 // stale when a linked policy was deleted or renamed. This will correct them and generate a newly allocated
 // role only when fixes are needed. If the policy links are still accurate then we just return the original
 // role.
-func (s *Store) fixupRolePolicyLinks(tx *txn, original *structs.ACLRole) (*structs.ACLRole, error) {
+func fixupRolePolicyLinks(tx *txn, original *structs.ACLRole) (*structs.ACLRole, error) {
 	owned := false
 	role := original
 
@@ -595,7 +595,7 @@ func (s *Store) fixupRolePolicyLinks(tx *txn, original *structs.ACLRole) (*struc
 			return nil, fmt.Errorf("Detected corrupted role within the state store - missing policy link ID")
 		}
 
-		policy, err := s.getPolicyWithTxn(tx, nil, link.ID, s.aclPolicyGetByID, &original.EnterpriseMeta)
+		policy, err := getPolicyWithTxn(tx, nil, link.ID, aclPolicyGetByID, &original.EnterpriseMeta)
 
 		if err != nil {
 			return nil, err
@@ -676,7 +676,7 @@ func (s *Store) aclTokenSetTxn(tx *txn, idx uint64, token *structs.ACLToken, cas
 
 	// Check for an existing ACL
 	// DEPRECATED (ACL-Legacy-Compat) - transition to using accessor index instead of secret once v1 compat is removed
-	_, existing, err := s.aclTokenGetFromIndex(tx, token.SecretID, "id", nil)
+	_, existing, err := aclTokenGetFromIndex(tx, token.SecretID, "id", nil)
 	if err != nil {
 		return fmt.Errorf("failed token lookup: %s", err)
 	}
@@ -710,12 +710,12 @@ func (s *Store) aclTokenSetTxn(tx *txn, idx uint64, token *structs.ACLToken, cas
 		token.AccessorID = original.AccessorID
 	}
 
-	if err := s.aclTokenUpsertValidateEnterprise(tx, token, original); err != nil {
+	if err := aclTokenUpsertValidateEnterprise(tx, token, original); err != nil {
 		return err
 	}
 
 	var numValidPolicies int
-	if numValidPolicies, err = s.resolveTokenPolicyLinks(tx, token, allowMissingPolicyAndRoleIDs); err != nil {
+	if numValidPolicies, err = resolveTokenPolicyLinks(tx, token, allowMissingPolicyAndRoleIDs); err != nil {
 		return err
 	}
 
@@ -774,7 +774,7 @@ func (s *Store) aclTokenSetTxn(tx *txn, idx uint64, token *structs.ACLToken, cas
 	// ensure that a hash is set
 	token.SetHash(false)
 
-	return s.aclTokenInsert(tx, token)
+	return aclTokenInsert(tx, token)
 }
 
 // ACLTokenGetBySecret is used to look up an existing ACL token by its SecretID.
@@ -797,7 +797,7 @@ func (s *Store) aclTokenGet(ws memdb.WatchSet, value, index string, entMeta *str
 		return 0, nil, err
 	}
 
-	idx := s.aclTokenMaxIndex(tx, token, entMeta)
+	idx := aclTokenMaxIndex(tx, token, entMeta)
 	return idx, token, nil
 }
 
@@ -824,7 +824,7 @@ func (s *Store) ACLTokenBatchGet(ws memdb.WatchSet, accessors []string) (uint64,
 }
 
 func (s *Store) aclTokenGetTxn(tx *txn, ws memdb.WatchSet, value, index string, entMeta *structs.EnterpriseMeta) (*structs.ACLToken, error) {
-	watchCh, rawToken, err := s.aclTokenGetFromIndex(tx, value, index, entMeta)
+	watchCh, rawToken, err := aclTokenGetFromIndex(tx, value, index, entMeta)
 	if err != nil {
 		return nil, fmt.Errorf("failed acl token lookup: %v", err)
 	}
@@ -832,11 +832,11 @@ func (s *Store) aclTokenGetTxn(tx *txn, ws memdb.WatchSet, value, index string, 
 
 	if rawToken != nil {
 		token := rawToken.(*structs.ACLToken)
-		token, err := s.fixupTokenPolicyLinks(tx, token)
+		token, err := fixupTokenPolicyLinks(tx, token)
 		if err != nil {
 			return nil, err
 		}
-		token, err = s.fixupTokenRoleLinks(tx, token)
+		token, err = fixupTokenRoleLinks(tx, token)
 		if err != nil {
 			return nil, err
 		}
@@ -861,11 +861,11 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role
 	needLocalityFilter := false
 	if policy == "" && role == "" && methodName == "" {
 		if global == local {
-			iter, err = s.aclTokenListAll(tx, entMeta)
+			iter, err = aclTokenListAll(tx, entMeta)
 		} else if global {
-			iter, err = s.aclTokenListGlobal(tx, entMeta)
+			iter, err = aclTokenListGlobal(tx, entMeta)
 		} else {
-			iter, err = s.aclTokenListLocal(tx, entMeta)
+			iter, err = aclTokenListLocal(tx, entMeta)
 		}
 
 	} else if policy != "" && role == "" && methodName == "" {
@@ -877,7 +877,7 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role
 		needLocalityFilter = true
 
 	} else if policy == "" && role == "" && methodName != "" {
-		iter, err = s.aclTokenListByAuthMethod(tx, methodName, methodMeta, entMeta)
+		iter, err = aclTokenListByAuthMethod(tx, methodName, methodMeta, entMeta)
 		needLocalityFilter = true
 
 	} else {
@@ -910,11 +910,11 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role
 	var result structs.ACLTokens
 	for raw := iter.Next(); raw != nil; raw = iter.Next() {
 		token := raw.(*structs.ACLToken)
-		token, err := s.fixupTokenPolicyLinks(tx, token)
+		token, err := fixupTokenPolicyLinks(tx, token)
 		if err != nil {
 			return 0, nil, err
 		}
-		token, err = s.fixupTokenRoleLinks(tx, token)
+		token, err = fixupTokenRoleLinks(tx, token)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -922,8 +922,7 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role
 	}
 
 	// Get the table index.
-	idx := s.aclTokenMaxIndex(tx, nil, entMeta)
-
+	idx := aclTokenMaxIndex(tx, nil, entMeta)
 	return idx, result, nil
 }
 
@@ -1043,7 +1042,7 @@ func (s *Store) aclTokenDelete(idx uint64, value, index string, entMeta *structs
 
 func (s *Store) aclTokenDeleteTxn(tx *txn, idx uint64, value, index string, entMeta *structs.EnterpriseMeta) error {
 	// Look up the existing token
-	_, token, err := s.aclTokenGetFromIndex(tx, value, index, entMeta)
+	_, token, err := aclTokenGetFromIndex(tx, value, index, entMeta)
 	if err != nil {
 		return fmt.Errorf("failed acl token lookup: %v", err)
 	}
@@ -1056,12 +1055,12 @@ func (s *Store) aclTokenDeleteTxn(tx *txn, idx uint64, value, index string, entM
 		return fmt.Errorf("Deletion of the builtin anonymous token is not permitted")
 	}
 
-	return s.aclTokenDeleteWithToken(tx, token.(*structs.ACLToken), idx)
+	return aclTokenDeleteWithToken(tx, token.(*structs.ACLToken), idx)
 }
 
 func (s *Store) aclTokenDeleteAllForAuthMethodTxn(tx *txn, idx uint64, methodName string, methodMeta *structs.EnterpriseMeta) error {
 	// collect all the tokens linked with the given auth method.
-	iter, err := s.aclTokenListByAuthMethod(tx, methodName, methodMeta, structs.WildcardEnterpriseMeta())
+	iter, err := aclTokenListByAuthMethod(tx, methodName, methodMeta, structs.WildcardEnterpriseMeta())
 	if err != nil {
 		return fmt.Errorf("failed acl token lookup: %v", err)
 	}
@@ -1075,7 +1074,7 @@ func (s *Store) aclTokenDeleteAllForAuthMethodTxn(tx *txn, idx uint64, methodNam
 	if len(tokens) > 0 {
 		// delete them all
 		for _, token := range tokens {
-			if err := s.aclTokenDeleteWithToken(tx, token, idx); err != nil {
+			if err := aclTokenDeleteWithToken(tx, token, idx); err != nil {
 				return err
 			}
 		}
@@ -1119,7 +1118,7 @@ func (s *Store) aclPolicySetTxn(tx *txn, idx uint64, policy *structs.ACLPolicy) 
 	}
 
 	var existing *structs.ACLPolicy
-	_, existingRaw, err := s.aclPolicyGetByID(tx, policy.ID, nil)
+	_, existingRaw, err := aclPolicyGetByID(tx, policy.ID, nil)
 	if err != nil {
 		return err
 	}
@@ -1146,7 +1145,7 @@ func (s *Store) aclPolicySetTxn(tx *txn, idx uint64, policy *structs.ACLPolicy) 
 	}
 
 	// ensure the name is unique (cannot conflict with another policy with a different ID)
-	_, nameMatch, err := s.aclPolicyGetByName(tx, policy.Name, &policy.EnterpriseMeta)
+	_, nameMatch, err := aclPolicyGetByName(tx, policy.Name, &policy.EnterpriseMeta)
 	if err != nil {
 		return err
 	}
@@ -1154,7 +1153,7 @@ func (s *Store) aclPolicySetTxn(tx *txn, idx uint64, policy *structs.ACLPolicy) 
 		return fmt.Errorf("A policy with name %q already exists", policy.Name)
 	}
 
-	if err := s.aclPolicyUpsertValidateEnterprise(tx, policy, existing); err != nil {
+	if err := aclPolicyUpsertValidateEnterprise(tx, policy, existing); err != nil {
 		return err
 	}
 
@@ -1168,15 +1167,15 @@ func (s *Store) aclPolicySetTxn(tx *txn, idx uint64, policy *structs.ACLPolicy) 
 	}
 
 	// Insert the ACL
-	return s.aclPolicyInsert(tx, policy)
+	return aclPolicyInsert(tx, policy)
 }
 
 func (s *Store) ACLPolicyGetByID(ws memdb.WatchSet, id string, entMeta *structs.EnterpriseMeta) (uint64, *structs.ACLPolicy, error) {
-	return s.aclPolicyGet(ws, id, s.aclPolicyGetByID, entMeta)
+	return s.aclPolicyGet(ws, id, aclPolicyGetByID, entMeta)
 }
 
 func (s *Store) ACLPolicyGetByName(ws memdb.WatchSet, name string, entMeta *structs.EnterpriseMeta) (uint64, *structs.ACLPolicy, error) {
-	return s.aclPolicyGet(ws, name, s.aclPolicyGetByName, entMeta)
+	return s.aclPolicyGet(ws, name, aclPolicyGetByName, entMeta)
 }
 
 func (s *Store) ACLPolicyBatchGet(ws memdb.WatchSet, ids []string) (uint64, structs.ACLPolicies, error) {
@@ -1185,7 +1184,7 @@ func (s *Store) ACLPolicyBatchGet(ws memdb.WatchSet, ids []string) (uint64, stru
 
 	policies := make(structs.ACLPolicies, 0)
 	for _, pid := range ids {
-		policy, err := s.getPolicyWithTxn(tx, ws, pid, s.aclPolicyGetByID, nil)
+		policy, err := getPolicyWithTxn(tx, ws, pid, aclPolicyGetByID, nil)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -1204,7 +1203,7 @@ func (s *Store) ACLPolicyBatchGet(ws memdb.WatchSet, ids []string) (uint64, stru
 
 type aclPolicyGetFn func(*txn, string, *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error)
 
-func (s *Store) getPolicyWithTxn(tx *txn, ws memdb.WatchSet, value string, fn aclPolicyGetFn, entMeta *structs.EnterpriseMeta) (*structs.ACLPolicy, error) {
+func getPolicyWithTxn(tx *txn, ws memdb.WatchSet, value string, fn aclPolicyGetFn, entMeta *structs.EnterpriseMeta) (*structs.ACLPolicy, error) {
 	watchCh, policy, err := fn(tx, value, entMeta)
 	if err != nil {
 		return nil, fmt.Errorf("failed acl policy lookup: %v", err)
@@ -1222,12 +1221,12 @@ func (s *Store) aclPolicyGet(ws memdb.WatchSet, value string, fn aclPolicyGetFn,
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	policy, err := s.getPolicyWithTxn(tx, ws, value, fn, entMeta)
+	policy, err := getPolicyWithTxn(tx, ws, value, fn, entMeta)
 	if err != nil {
 		return 0, nil, err
 	}
 
-	idx := s.aclPolicyMaxIndex(tx, policy, entMeta)
+	idx := aclPolicyMaxIndex(tx, policy, entMeta)
 
 	return idx, policy, nil
 }
@@ -1236,7 +1235,7 @@ func (s *Store) ACLPolicyList(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	iter, err := s.aclPolicyList(tx, entMeta)
+	iter, err := aclPolicyList(tx, entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed acl policy lookup: %v", err)
 	}
@@ -1248,17 +1247,17 @@ func (s *Store) ACLPolicyList(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta
 	}
 
 	// Get the table index.
-	idx := s.aclPolicyMaxIndex(tx, nil, entMeta)
+	idx := aclPolicyMaxIndex(tx, nil, entMeta)
 
 	return idx, result, nil
 }
 
 func (s *Store) ACLPolicyDeleteByID(idx uint64, id string, entMeta *structs.EnterpriseMeta) error {
-	return s.aclPolicyDelete(idx, id, s.aclPolicyGetByID, entMeta)
+	return s.aclPolicyDelete(idx, id, aclPolicyGetByID, entMeta)
 }
 
 func (s *Store) ACLPolicyDeleteByName(idx uint64, name string, entMeta *structs.EnterpriseMeta) error {
-	return s.aclPolicyDelete(idx, name, s.aclPolicyGetByName, entMeta)
+	return s.aclPolicyDelete(idx, name, aclPolicyGetByName, entMeta)
 }
 
 func (s *Store) ACLPolicyBatchDelete(idx uint64, policyIDs []string) error {
@@ -1266,7 +1265,7 @@ func (s *Store) ACLPolicyBatchDelete(idx uint64, policyIDs []string) error {
 	defer tx.Abort()
 
 	for _, policyID := range policyIDs {
-		if err := s.aclPolicyDeleteTxn(tx, idx, policyID, s.aclPolicyGetByID, nil); err != nil {
+		if err := s.aclPolicyDeleteTxn(tx, idx, policyID, aclPolicyGetByID, nil); err != nil {
 			return err
 		}
 	}
@@ -1301,7 +1300,7 @@ func (s *Store) aclPolicyDeleteTxn(tx *txn, idx uint64, value string, fn aclPoli
 		return fmt.Errorf("Deletion of the builtin global-management policy is not permitted")
 	}
 
-	return s.aclPolicyDeleteWithPolicy(tx, policy, idx)
+	return aclPolicyDeleteWithPolicy(tx, policy, idx)
 }
 
 func (s *Store) ACLRoleBatchSet(idx uint64, roles structs.ACLRoles, allowMissingPolicyIDs bool) error {
@@ -1338,7 +1337,7 @@ func (s *Store) aclRoleSetTxn(tx *txn, idx uint64, role *structs.ACLRole, allowM
 		return ErrMissingACLRoleName
 	}
 
-	_, existingRaw, err := s.aclRoleGetByID(tx, role.ID, nil)
+	_, existingRaw, err := aclRoleGetByID(tx, role.ID, nil)
 	if err != nil {
 		return fmt.Errorf("failed acl role lookup: %v", err)
 	}
@@ -1349,7 +1348,7 @@ func (s *Store) aclRoleSetTxn(tx *txn, idx uint64, role *structs.ACLRole, allowM
 	}
 
 	// ensure the name is unique (cannot conflict with another role with a different ID)
-	_, nameMatch, err := s.aclRoleGetByName(tx, role.Name, &role.EnterpriseMeta)
+	_, nameMatch, err := aclRoleGetByName(tx, role.Name, &role.EnterpriseMeta)
 	if err != nil {
 		return fmt.Errorf("failed acl role lookup: %v", err)
 	}
@@ -1357,7 +1356,7 @@ func (s *Store) aclRoleSetTxn(tx *txn, idx uint64, role *structs.ACLRole, allowM
 		return fmt.Errorf("A role with name %q already exists", role.Name)
 	}
 
-	if err := s.resolveRolePolicyLinks(tx, role, allowMissing); err != nil {
+	if err := resolveRolePolicyLinks(tx, role, allowMissing); err != nil {
 		return err
 	}
 
@@ -1389,17 +1388,17 @@ func (s *Store) aclRoleSetTxn(tx *txn, idx uint64, role *structs.ACLRole, allowM
 		role.ModifyIndex = idx
 	}
 
-	return s.aclRoleInsert(tx, role)
+	return aclRoleInsert(tx, role)
 }
 
 type aclRoleGetFn func(*txn, string, *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error)
 
 func (s *Store) ACLRoleGetByID(ws memdb.WatchSet, id string, entMeta *structs.EnterpriseMeta) (uint64, *structs.ACLRole, error) {
-	return s.aclRoleGet(ws, id, s.aclRoleGetByID, entMeta)
+	return s.aclRoleGet(ws, id, aclRoleGetByID, entMeta)
 }
 
 func (s *Store) ACLRoleGetByName(ws memdb.WatchSet, name string, entMeta *structs.EnterpriseMeta) (uint64, *structs.ACLRole, error) {
-	return s.aclRoleGet(ws, name, s.aclRoleGetByName, entMeta)
+	return s.aclRoleGet(ws, name, aclRoleGetByName, entMeta)
 }
 
 func (s *Store) ACLRoleBatchGet(ws memdb.WatchSet, ids []string) (uint64, structs.ACLRoles, error) {
@@ -1408,7 +1407,7 @@ func (s *Store) ACLRoleBatchGet(ws memdb.WatchSet, ids []string) (uint64, struct
 
 	roles := make(structs.ACLRoles, 0, len(ids))
 	for _, rid := range ids {
-		role, err := s.getRoleWithTxn(tx, ws, rid, s.aclRoleGetByID, nil)
+		role, err := getRoleWithTxn(tx, ws, rid, aclRoleGetByID, nil)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -1423,7 +1422,7 @@ func (s *Store) ACLRoleBatchGet(ws memdb.WatchSet, ids []string) (uint64, struct
 	return idx, roles, nil
 }
 
-func (s *Store) getRoleWithTxn(tx *txn, ws memdb.WatchSet, value string, fn aclRoleGetFn, entMeta *structs.EnterpriseMeta) (*structs.ACLRole, error) {
+func getRoleWithTxn(tx *txn, ws memdb.WatchSet, value string, fn aclRoleGetFn, entMeta *structs.EnterpriseMeta) (*structs.ACLRole, error) {
 	watchCh, rawRole, err := fn(tx, value, entMeta)
 	if err != nil {
 		return nil, fmt.Errorf("failed acl role lookup: %v", err)
@@ -1432,7 +1431,7 @@ func (s *Store) getRoleWithTxn(tx *txn, ws memdb.WatchSet, value string, fn aclR
 
 	if rawRole != nil {
 		role := rawRole.(*structs.ACLRole)
-		role, err := s.fixupRolePolicyLinks(tx, role)
+		role, err := fixupRolePolicyLinks(tx, role)
 		if err != nil {
 			return nil, err
 		}
@@ -1446,7 +1445,7 @@ func (s *Store) aclRoleGet(ws memdb.WatchSet, value string, fn aclRoleGetFn, ent
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	role, err := s.getRoleWithTxn(tx, ws, value, fn, entMeta)
+	role, err := getRoleWithTxn(tx, ws, value, fn, entMeta)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -1477,7 +1476,7 @@ func (s *Store) ACLRoleList(ws memdb.WatchSet, policy string, entMeta *structs.E
 	var result structs.ACLRoles
 	for raw := iter.Next(); raw != nil; raw = iter.Next() {
 		role := raw.(*structs.ACLRole)
-		role, err := s.fixupRolePolicyLinks(tx, role)
+		role, err := fixupRolePolicyLinks(tx, role)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -1491,11 +1490,11 @@ func (s *Store) ACLRoleList(ws memdb.WatchSet, policy string, entMeta *structs.E
 }
 
 func (s *Store) ACLRoleDeleteByID(idx uint64, id string, entMeta *structs.EnterpriseMeta) error {
-	return s.aclRoleDelete(idx, id, s.aclRoleGetByID, entMeta)
+	return s.aclRoleDelete(idx, id, aclRoleGetByID, entMeta)
 }
 
 func (s *Store) ACLRoleDeleteByName(idx uint64, name string, entMeta *structs.EnterpriseMeta) error {
-	return s.aclRoleDelete(idx, name, s.aclRoleGetByName, entMeta)
+	return s.aclRoleDelete(idx, name, aclRoleGetByName, entMeta)
 }
 
 func (s *Store) ACLRoleBatchDelete(idx uint64, roleIDs []string) error {
@@ -1503,7 +1502,7 @@ func (s *Store) ACLRoleBatchDelete(idx uint64, roleIDs []string) error {
 	defer tx.Abort()
 
 	for _, roleID := range roleIDs {
-		if err := s.aclRoleDeleteTxn(tx, idx, roleID, s.aclRoleGetByID, nil); err != nil {
+		if err := s.aclRoleDeleteTxn(tx, idx, roleID, aclRoleGetByID, nil); err != nil {
 			return err
 		}
 	}
