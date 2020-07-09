@@ -2,23 +2,39 @@
   @extend %more-popover-menu;
 }
 %more-popover-menu {
-  @extend %with-popover-menu;
+  @extend %popover-menu;
 }
-%more-popover-menu > [type='checkbox'] + label {
+/* using the inut in the selector here means it won't */
+/* take on the default :checked chevron icon */
+%more-popover-menu .popover-menu > [type='checkbox'] + label {
   @extend %more-popover-menu-trigger;
 }
 /* This gives the trigger a slightly larger invisible hit area */
 %more-popover-menu-trigger {
   padding: 7px;
-  display: block;
 }
 %more-popover-menu-trigger > * {
-  font-size: 0;
   background-color: $transparent;
-  padding: 0;
+  border-radius: $decor-radius-100;
+  width: 30px;
+  height: 30px;
+  font-size: 0;
 }
 %more-popover-menu-trigger > *::after {
   @extend %with-more-horizontal-mask, %as-pseudo;
   background-color: $gray-900;
-  margin: 0;
+  width: 16px;
+  height: 16px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin-top: -8px;
+  margin-left: -8px;
+}
+%more-popover-menu-trigger > *:active {
+  background-color: $gray-100;
+}
+%more-popover-menu-trigger > *:hover,
+%more-popover-menu-trigger > *:focus {
+  background-color: $gray-050;
 }

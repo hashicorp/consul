@@ -2,10 +2,15 @@
   @extend %popover-select;
 }
 %popover-select {
-  @extend %with-popover-menu;
+  @extend %popover-menu;
 }
 %popover-select label > * {
   @extend %split-button, %sort-button;
+  height: 35px;
+}
+%popover-select label > *::after {
+  top: 0 !important;
+  margin-left: 16px;
 }
 %popover-select {
   z-index: 3;
