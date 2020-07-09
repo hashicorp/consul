@@ -42,8 +42,8 @@ func determineEnvoyVersionFromNode(node *envoycore.Node) *version.Version {
 		if node.BuildVersion == "" {
 			return nil
 		}
-		// Must be an older pre-1.13 envoy
 
+		// Must be an older pre-1.13 envoy
 		m := buildVersionPattern.FindStringSubmatch(node.BuildVersion)
 		if m == nil {
 			return nil
