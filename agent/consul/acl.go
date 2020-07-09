@@ -1556,7 +1556,7 @@ func (f *aclFilter) filterServiceDump(services *structs.ServiceDump) {
 		}
 
 		service.Service.FillAuthzContext(&authzContext)
-		if f.allowNode(service.Node.Node, &authzContext) {
+		if f.allowNode(service.Node.Node, &authzContext) && f.allowService(service.Service.Service, &authzContext) {
 			continue
 		}
 

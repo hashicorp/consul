@@ -3074,6 +3074,12 @@ func TestACL_filterServiceDump(t *testing.T) {
 						ServiceName: "foo",
 					},
 				},
+				GatewayServices: structs.GatewayServices{
+					{
+						Gateway: structs.NewServiceName("gateway", nil),
+						Service: structs.NewServiceName("foo", nil),
+					},
+				},
 			},
 			&structs.ServiceInfo{
 				GatewayServices: structs.GatewayServices{
@@ -3108,9 +3114,9 @@ func TestACL_filterServiceDump(t *testing.T) {
 		require.Len(t, nodes, 0)
 	}
 
-	// Allowed to see the service "foo" but not the node.
+	// Allowed to see the node but not the service
 	policy, err := acl.NewPolicyFromSource("", 0, `
-service "foo" {
+node "node1" {
   policy = "read"
 }
 `, acl.SyntaxLegacy, nil, nil)
@@ -3125,9 +3131,9 @@ service "foo" {
 		require.Len(t, nodes, 0)
 	}
 
-	// Chain on access to the node.
+	// Chain on access to the service.
 	policy, err = acl.NewPolicyFromSource("", 0, `
-node "node1" {
+service "foo" {
   policy = "read"
 }
 `, acl.SyntaxLegacy, nil, nil)
