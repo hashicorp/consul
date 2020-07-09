@@ -39,9 +39,23 @@ config_entries {
         }
       },
       {
+        match { http { path_exact = "/exact-alt/debug" } }
+        destination {
+          service_subset = "v1"
+          prefix_rewrite = "/debug"
+        }
+      },
+      {
         match { http { path_prefix = "/prefix/" } }
         destination {
           service_subset = "v2"
+          prefix_rewrite = "/"
+        }
+      },
+      {
+        match { http { path_prefix = "/prefix-alt/" } }
+        destination {
+          service_subset = "v1"
           prefix_rewrite = "/"
         }
       },
@@ -76,6 +90,22 @@ config_entries {
       },
       {
         match { http {
+          path_exact = "/hdr-present/debug"
+          header = [
+            {
+              name    = "x-test-debug"
+              present = true
+              invert  = true
+            },
+          ]
+        } },
+        destination {
+          service_subset = "v1"
+          prefix_rewrite = "/debug"
+        }
+      },
+      {
+        match { http {
           path_exact = "/hdr-exact/debug"
           header = [
             {
@@ -91,6 +121,21 @@ config_entries {
       },
       {
         match { http {
+          path_exact = "/hdr-exact/debug"
+          header = [
+            {
+              name  = "x-test-debug"
+              exact = "exact-alt"
+            },
+          ]
+        } },
+        destination {
+          service_subset = "v1"
+          prefix_rewrite = "/debug"
+        }
+      },
+      {
+        match { http {
           path_exact = "/hdr-prefix/debug"
           header = [
             {
@@ -100,6 +145,20 @@ config_entries {
         ] } },
         destination {
           service_subset = "v2"
+          prefix_rewrite = "/debug"
+        }
+      },
+      {
+        match { http {
+          path_exact = "/hdr-prefix/debug"
+          header = [
+            {
+              name   = "x-test-debug"
+              prefix = "alt-prefi"
+            },
+        ] } },
+        destination {
+          service_subset = "v1"
           prefix_rewrite = "/debug"
         }
       },
@@ -120,6 +179,21 @@ config_entries {
       },
       {
         match { http {
+          path_exact = "/hdr-suffix/debug"
+          header = [
+            {
+              name   = "x-test-debug"
+              suffix = "uffix-alt"
+            },
+          ]
+        } },
+        destination {
+          service_subset = "v1"
+          prefix_rewrite = "/debug"
+        }
+      },
+      {
+        match { http {
           path_exact = "/hdr-regex/debug"
           header = [
             {
@@ -130,6 +204,21 @@ config_entries {
         } },
         destination {
           service_subset = "v2"
+          prefix_rewrite = "/debug"
+        }
+      },
+      {
+        match { http {
+          path_exact = "/hdr-regex/debug"
+          header = [
+            {
+              name  = "x-test-debug"
+              regex = "reg[ex]{3}"
+            },
+          ]
+        } },
+        destination {
+          service_subset = "v1"
           prefix_rewrite = "/debug"
         }
       },
