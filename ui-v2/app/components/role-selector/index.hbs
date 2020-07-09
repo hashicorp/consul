@@ -28,7 +28,7 @@
     </RoleForm>
 
     <input id="{{name}}_state_policy" type="radio" name="{{name}}[state]" value="policy" checked={{if (eq state 'policy') 'checked'}} onchange={{action 'change'}} />
-    {{policy-form data-test-policy-form name="role[policy]" form=policyForm dc=dc}}
+    <PolicyForm data-test-policy-form @name="role[policy]" @form={{policyForm}} @dc={{dc}} />
 
   </BlockSlot>
   <BlockSlot @name="actions" as |close|>
