@@ -15,4 +15,16 @@ module('Unit | Utility | http/create-headers', function() {
     const actual = parseHeaders(lines);
     assert.deepEqual(actual, expected);
   });
+  test('it parses header values with colons correctly', function(assert) {
+    const expected = {
+      'Content-Type': 'application/json',
+      'X-Consul-Index': '1:2:3',
+    };
+    const lines = `
+      Content-Type: application/json
+      X-Consul-Index: 1:2:3
+    `.split('\n');
+    const actual = parseHeaders(lines);
+    assert.deepEqual(actual, expected);
+  });
 });
