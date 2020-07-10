@@ -185,7 +185,7 @@ func makeHTTPWatchHandler(logger hclog.Logger, config *watch.HttpHandlerConfig) 
 	return fn
 }
 
-// TODO: return a fully constructed watch.Plan with a Plan.Handler, so that Except
+// TODO: return a fully constructed watch.Plan with a Plan.Handler, so that Exempt
 // can be ignored by the caller.
 func makeWatchPlan(logger hclog.Logger, params map[string]interface{}) (*watch.Plan, error) {
 	wp, err := watch.ParseExempt(params, []string{"handler", "args"})
@@ -193,9 +193,7 @@ func makeWatchPlan(logger hclog.Logger, params map[string]interface{}) (*watch.P
 		return nil, fmt.Errorf("Failed to parse watch (%#v): %v", params, err)
 	}
 
-	// Get the handler and subprocess arguments
 	handler, hasHandler := wp.Exempt["handler"]
-	args, hasArgs := wp.Exempt["args"]
 	if hasHandler {
 		logger.Warn("The 'handler' field in watches has been deprecated " +
 			"and replaced with the 'args' field. See https://www.consul.io/docs/agent/watches.html")
@@ -203,20 +201,15 @@ func makeWatchPlan(logger hclog.Logger, params map[string]interface{}) (*watch.P
 	if _, ok := handler.(string); hasHandler && !ok {
 		return nil, fmt.Errorf("Watch handler must be a string")
 	}
-	if raw, ok := args.([]interface{}); hasArgs && ok {
-		var parsed []string
-		for _, arg := range raw {
-			v, ok := arg.(string)
-			if !ok {
-				return nil, fmt.Errorf("Watch args must be a list of strings")
-			}
 
-			parsed = append(parsed, v)
+	args, hasArgs := wp.Exempt["args"]
+	if hasArgs {
+		wp.Exempt["args"], err = parseWatchArgs(args)
+		if err != nil {
+			return nil, err
 		}
-		wp.Exempt["args"] = parsed
-	} else if hasArgs && !ok {
-		return nil, fmt.Errorf("Watch args must be a list of strings")
 	}
+
 	if hasHandler && hasArgs || hasHandler && wp.HandlerType == "http" || hasArgs && wp.HandlerType == "http" {
 		return nil, fmt.Errorf("Only one watch handler allowed")
 	}
@@ -224,4 +217,26 @@ func makeWatchPlan(logger hclog.Logger, params map[string]interface{}) (*watch.P
 		return nil, fmt.Errorf("Must define a watch handler")
 	}
 	return wp, nil
+}
+
+func parseWatchArgs(args interface{}) ([]string, error) {
+	switch args := args.(type) {
+	case string:
+		return []string{args}, nil
+	case []string:
+		return args, nil
+	case []interface{}:
+		result := make([]string, 0, len(args))
+		for _, arg := range args {
+			v, ok := arg.(string)
+			if !ok {
+				return nil, fmt.Errorf("Watch args must be a list of strings")
+			}
+
+			result = append(result, v)
+		}
+		return result, nil
+	default:
+		return nil, fmt.Errorf("Watch args must be a list of strings")
+	}
 }
