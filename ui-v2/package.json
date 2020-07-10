@@ -41,12 +41,10 @@
   },
   "lint-staged": {
     "{app,config,lib,server,tests}/**/*.js": [
-      "prettier --write",
-      "git add"
+      "prettier --write"
     ],
     "app/styles/**/*.*": [
-      "prettier --write",
-      "git add"
+      "prettier --write"
     ]
   },
   "devDependencies": {
