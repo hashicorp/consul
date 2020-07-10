@@ -1098,52 +1098,16 @@ func TestAPI_CatalogGatewayServices_Terminating(t *testing.T) {
 
 	catalog := c.Catalog()
 
-	// Register the gateway
+	// Register a service to be covered by a wildcard in the config entry
 	svc := &AgentService{
-		Kind:    ServiceKindTerminatingGateway,
-		ID:      "terminating",
-		Service: "terminating",
-		Port:    443,
-	}
-	reg := &CatalogRegistration{
-		Datacenter: "dc1",
-		Node:       "foo",
-		Address:    "192.168.10.10",
-		Service:    svc,
-	}
-	retry.Run(t, func(r *retry.R) {
-		if _, err := catalog.Register(reg, nil); err != nil {
-			r.Fatal(err)
-		}
-	})
-
-	// Register services the gateway will route to
-	svc = &AgentService{
 		ID:      "redis",
 		Service: "redis",
 		Port:    6379,
 	}
-	reg = &CatalogRegistration{
+	reg := &CatalogRegistration{
 		Datacenter: "dc1",
 		Node:       "bar",
 		Address:    "192.168.10.11",
-		Service:    svc,
-	}
-	retry.Run(t, func(r *retry.R) {
-		if _, err := catalog.Register(reg, nil); err != nil {
-			r.Fatal(err)
-		}
-	})
-
-	svc = &AgentService{
-		ID:      "api",
-		Service: "api",
-		Port:    8080,
-	}
-	reg = &CatalogRegistration{
-		Datacenter: "dc1",
-		Node:       "baz",
-		Address:    "192.168.10.12",
 		Service:    svc,
 	}
 	retry.Run(t, func(r *retry.R) {
@@ -1204,7 +1168,7 @@ func TestAPI_CatalogGatewayServices_Terminating(t *testing.T) {
 	}
 	retry.Run(t, func(r *retry.R) {
 		resp, _, err := catalog.GatewayServices("terminating", nil)
-		assert.NoError(t, err)
+		assert.NoError(r, err)
 		assert.Equal(r, expect, resp)
 	})
 }
@@ -1215,62 +1179,6 @@ func TestAPI_CatalogGatewayServices_Ingress(t *testing.T) {
 	defer s.Stop()
 
 	s.WaitForSerfCheck(t)
-
-	catalog := c.Catalog()
-
-	// Register the gateway
-	svc := &AgentService{
-		Kind:    ServiceKindTerminatingGateway,
-		ID:      "ingress",
-		Service: "ingress",
-		Port:    443,
-	}
-	reg := &CatalogRegistration{
-		Datacenter: "dc1",
-		Node:       "foo",
-		Address:    "192.168.10.10",
-		Service:    svc,
-	}
-	retry.Run(t, func(r *retry.R) {
-		if _, err := catalog.Register(reg, nil); err != nil {
-			r.Fatal(err)
-		}
-	})
-
-	// Register services the gateway will route to
-	svc = &AgentService{
-		ID:      "redis",
-		Service: "redis",
-		Port:    6379,
-	}
-	reg = &CatalogRegistration{
-		Datacenter: "dc1",
-		Node:       "bar",
-		Address:    "192.168.10.11",
-		Service:    svc,
-	}
-	retry.Run(t, func(r *retry.R) {
-		if _, err := catalog.Register(reg, nil); err != nil {
-			r.Fatal(err)
-		}
-	})
-
-	svc = &AgentService{
-		ID:      "api",
-		Service: "api",
-		Port:    8080,
-	}
-	reg = &CatalogRegistration{
-		Datacenter: "dc1",
-		Node:       "baz",
-		Address:    "192.168.10.12",
-		Service:    svc,
-	}
-	retry.Run(t, func(r *retry.R) {
-		if _, err := catalog.Register(reg, nil); err != nil {
-			r.Fatal(err)
-		}
-	})
 
 	entries := c.ConfigEntries()
 
@@ -1303,6 +1211,8 @@ func TestAPI_CatalogGatewayServices_Ingress(t *testing.T) {
 		}
 	})
 
+	catalog := c.Catalog()
+
 	expect := []*GatewayService{
 		{
 			Service:     CompoundServiceName{"api", defaultNamespace},
@@ -1321,7 +1231,7 @@ func TestAPI_CatalogGatewayServices_Ingress(t *testing.T) {
 	}
 	retry.Run(t, func(r *retry.R) {
 		resp, _, err := catalog.GatewayServices("ingress", nil)
-		assert.NoError(t, err)
+		assert.NoError(r, err)
 		assert.Equal(r, expect, resp)
 	})
 }

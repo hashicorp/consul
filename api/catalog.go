@@ -82,8 +82,10 @@ type CatalogDeregistration struct {
 }
 
 type CompoundServiceName struct {
-	Name      string
-	Namespace string
+	Name string
+
+	// Namespacing is a Consul Enterprise feature.
+	Namespace string `json:",omitempty"`
 }
 
 // GatewayService associates a gateway with a linked service.
