@@ -233,6 +233,21 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 	// handleFuncMetrics takes the given pattern and handler and wraps to produce
 	// metrics based on the pattern and request.
 	handleFuncMetrics := func(pattern string, handler http.HandlerFunc) {
+		// Get the parts of the pattern. We omit any initial empty for the
+		// leading slash, and put an underscore as a "thing" placeholder if we
+		// see a trailing slash, which means the part after is parsed. This lets
+		// us distinguish from things like /v1/query and /v1/query/<query id>.
+		var parts []string
+		for i, part := range strings.Split(pattern, "/") {
+			if part == "" {
+				if i == 0 {
+					continue
+				}
+				part = "_"
+			}
+			parts = append(parts, part)
+		}
+
 		// Tranform the pattern to a valid label by replacing the '/' by '_'.
 		// Omit the leading slash.
 		// Distinguish thing like /v1/query from /v1/query/<query_id> by having
@@ -243,8 +258,13 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 		wrapper := func(resp http.ResponseWriter, req *http.Request) {
 			start := time.Now()
 			handler(resp, req)
+
 			labels := []metrics.Label{{Name: "method", Value: req.Method}, {Name: "path", Value: path_label}}
-			metrics.MeasureSinceWithLabels([]string{"http"}, start, labels)
+			metrics.MeasureSinceWithLabels([]string{"api", "http"}, start, labels)
+
+			// Duplicated information. Kept for backward compatibility.
+			key := append([]string{"http", req.Method}, parts...)
+			metrics.MeasureSince(key, start)
 		}
 
 		var gzipHandler http.Handler
