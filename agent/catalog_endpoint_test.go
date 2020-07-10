@@ -1329,38 +1329,15 @@ func TestCatalog_GatewayServices_Terminating(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	// Register a terminating gateway
-	args := &structs.RegisterRequest{
-		Datacenter: "dc1",
-		Node:       "foo",
-		Address:    "127.0.0.1",
-		Service: &structs.NodeService{
-			Kind:    structs.ServiceKindTerminatingGateway,
-			Service: "terminating",
-			Port:    443,
-		},
-	}
-
-	var out struct{}
-	assert.NoError(t, a.RPC("Catalog.Register", &args, &out))
-
-	// Register two services the gateway will route to
-	args = structs.TestRegisterRequest(t)
+	// Register a service to be covered by the wildcard  in the config entry
+	args := structs.TestRegisterRequest(t)
 	args.Service.Service = "redis"
 	args.Check = &structs.HealthCheck{
 		Name:      "redis",
 		Status:    api.HealthPassing,
 		ServiceID: args.Service.Service,
 	}
-	assert.NoError(t, a.RPC("Catalog.Register", &args, &out))
-
-	args = structs.TestRegisterRequest(t)
-	args.Service.Service = "api"
-	args.Check = &structs.HealthCheck{
-		Name:      "api",
-		Status:    api.HealthPassing,
-		ServiceID: args.Service.Service,
-	}
+	var out struct{}
 	assert.NoError(t, a.RPC("Catalog.Register", &args, &out))
 
 	// Associate the gateway and api/redis services
@@ -1441,41 +1418,7 @@ func TestCatalog_GatewayServices_Ingress(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	// Register an ingress gateway
-	args := &structs.RegisterRequest{
-		Datacenter: "dc1",
-		Node:       "foo",
-		Address:    "127.0.0.1",
-		Service: &structs.NodeService{
-			Kind:    structs.ServiceKindTerminatingGateway,
-			Service: "ingress",
-			Port:    444,
-		},
-	}
-
-	var out struct{}
-	require.NoError(t, a.RPC("Catalog.Register", &args, &out))
-
-	// Register two services the gateway will route to
-	args = structs.TestRegisterRequest(t)
-	args.Service.Service = "redis"
-	args.Check = &structs.HealthCheck{
-		Name:      "redis",
-		Status:    api.HealthPassing,
-		ServiceID: args.Service.Service,
-	}
-	require.NoError(t, a.RPC("Catalog.Register", &args, &out))
-
-	args = structs.TestRegisterRequest(t)
-	args.Service.Service = "api"
-	args.Check = &structs.HealthCheck{
-		Name:      "api",
-		Status:    api.HealthPassing,
-		ServiceID: args.Service.Service,
-	}
-	require.NoError(t, a.RPC("Catalog.Register", &args, &out))
-
-	// Associate the gateway and db service
+	// Associate an ingress gateway with api/redis
 	entryArgs := &structs.ConfigEntryRequest{
 		Op:         structs.ConfigEntryUpsert,
 		Datacenter: "dc1",
