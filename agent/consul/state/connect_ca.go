@@ -113,10 +113,10 @@ func (s *Store) CAConfig(ws memdb.WatchSet) (uint64, *structs.CAConfiguration, e
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	return s.caConfigTxn(tx, ws)
+	return caConfigTxn(tx, ws)
 }
 
-func (s *Store) caConfigTxn(tx *txn, ws memdb.WatchSet) (uint64, *structs.CAConfiguration, error) {
+func caConfigTxn(tx *txn, ws memdb.WatchSet) (uint64, *structs.CAConfiguration, error) {
 	// Get the CA config
 	ch, c, err := tx.FirstWatch(caConfigTableName, "id")
 	if err != nil {
@@ -233,10 +233,10 @@ func (s *Store) CARoots(ws memdb.WatchSet) (uint64, structs.CARoots, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	return s.caRootsTxn(tx, ws)
+	return caRootsTxn(tx, ws)
 }
 
-func (s *Store) caRootsTxn(tx *txn, ws memdb.WatchSet) (uint64, structs.CARoots, error) {
+func caRootsTxn(tx *txn, ws memdb.WatchSet) (uint64, structs.CARoots, error) {
 	// Get the index
 	idx := maxIndexTxn(tx, caRootTableName)
 
@@ -459,12 +459,12 @@ func (s *Store) CARootsAndConfig(ws memdb.WatchSet) (uint64, structs.CARoots, *s
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	confIdx, config, err := s.caConfigTxn(tx, ws)
+	confIdx, config, err := caConfigTxn(tx, ws)
 	if err != nil {
 		return 0, nil, nil, fmt.Errorf("failed CA config lookup: %v", err)
 	}
 
-	rootsIdx, roots, err := s.caRootsTxn(tx, ws)
+	rootsIdx, roots, err := caRootsTxn(tx, ws)
 	if err != nil {
 		return 0, nil, nil, fmt.Errorf("failed CA roots lookup: %v", err)
 	}
