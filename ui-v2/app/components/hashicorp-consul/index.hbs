@@ -70,7 +70,7 @@
                                 @loading="lazy"
                               />
                             </li>
-                            {{#each dcs as |item|}}
+                            {{#each (sort-by 'Name' dcs) as |item|}}
                               <li role="none" data-test-datacenter-picker class={{if (eq dc.Name item.Name) 'is-active'}}>
                                 <a tabindex="-1" role="menuitem" href={{href-mut (hash dc=item.Name)}}>{{item.Name}}</a>
                               </li>
