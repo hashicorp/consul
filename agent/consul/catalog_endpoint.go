@@ -296,8 +296,6 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 		return err
 	}
 
-	reply.EnterpriseMeta = args.EnterpriseMeta
-
 	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
 	if err != nil {
 		return err
@@ -306,6 +304,10 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 	if err := c.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
 	}
+
+	// Set reply enterprise metadata after resolving and validating the token so
+	// that we can properly infer metadata from the token.
+	reply.EnterpriseMeta = args.EnterpriseMeta
 
 	return c.srv.blockingQuery(
 		&args.QueryOptions,
