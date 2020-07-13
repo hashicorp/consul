@@ -65,7 +65,7 @@ export default Adapter.extend({
     `;
   },
   authorize: function(store, type, id, snapshot) {
-    return this.request(
+    return this.rpc(
       function(adapter, request, serialized, unserialized) {
         return adapter.requestForAuthorize(request, serialized, unserialized);
       },

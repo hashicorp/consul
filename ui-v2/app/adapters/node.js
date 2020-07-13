@@ -24,7 +24,7 @@ export default Adapter.extend({
     `;
   },
   queryLeader: function(store, type, id, snapshot) {
-    return this.request(
+    return this.rpc(
       function(adapter, request, serialized, unserialized) {
         return adapter.requestForQueryLeader(request, serialized, unserialized);
       },
