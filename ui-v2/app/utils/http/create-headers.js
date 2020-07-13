@@ -1,9 +1,9 @@
 export default function() {
   return function(lines) {
     return lines.reduce(function(prev, item) {
-      const temp = item.split(':');
-      if (temp.length > 1) {
-        prev[temp[0].trim()] = temp[1].trim();
+      const [key, ...value] = item.split(':');
+      if (value.length > 0) {
+        prev[key.trim()] = value.join(':').trim();
       }
       return prev;
     }, {});
