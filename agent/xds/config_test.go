@@ -5,6 +5,8 @@ import (
 	"time"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoyroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/require"
 )
@@ -294,6 +296,35 @@ func TestParseUpstreamConfigNoDefaults_LoadBalancer(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "ring hash",
+			input: raw{
+				"load_balancer": raw{
+					"policy": "ring_hash",
+					"ring_hash": raw{
+						"minimum_ring_size": 3,
+						"maximum_ring_size": 7,
+					},
+					"hash_policy": []raw{
+						{"field": "header", "match_value": "x-route-key", "terminal": "true"},
+						{"field": "connection_property_source_ip", "terminal": "true"},
+					},
+				},
+			},
+			want: UpstreamConfig{
+				LoadBalancer: LoadBalancer{
+					Policy: "ring_hash",
+					RingHashConfig: RingHashConfig{
+						MinimumRingSize: 3,
+						MaximumRingSize: 7,
+					},
+					HashPolicy: []HashPolicy{
+						{Field: "header", MatchValue: "x-route-key", Terminal: true},
+						{Field: "connection_property_source_ip", Terminal: true},
+					},
+				},
+			},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -399,7 +430,6 @@ func TestParseGatewayConfig(t *testing.T) {
 func intPointer(i int) *int {
 	return &i
 }
-
 func TestLoadBalancer_ApplyToCluster(t *testing.T) {
 	var tests = []struct {
 		name     string
@@ -414,12 +444,22 @@ func TestLoadBalancer_ApplyToCluster(t *testing.T) {
 			expected: envoy.Cluster{LbPolicy: envoy.Cluster_RANDOM},
 		},
 		{
-			name: "least_request",
+			name: "ring_hash",
 			lb: LoadBalancer{
-				Policy: "least_request",
+				Policy: "ring_hash",
+				RingHashConfig: RingHashConfig{
+					MinimumRingSize: 3,
+					MaximumRingSize: 7,
+				},
 			},
 			expected: envoy.Cluster{
-				LbPolicy: envoy.Cluster_LEAST_REQUEST,
+				LbPolicy: envoy.Cluster_RING_HASH,
+				LbConfig: &envoy.Cluster_RingHashLbConfig_{
+					RingHashLbConfig: &envoy.Cluster_RingHashLbConfig{
+						MinimumRingSize: &wrappers.UInt64Value{Value: 3},
+						MaximumRingSize: &wrappers.UInt64Value{Value: 7},
+					},
+				},
 			},
 		},
 	}
@@ -431,6 +471,65 @@ func TestLoadBalancer_ApplyToCluster(t *testing.T) {
 			require.NoError(t, err)
 
 			require.Equal(t, &tc.expected, c)
+		})
+	}
+}
+
+func TestLoadBalancer_ApplyHashPolicyToRouteAction(t *testing.T) {
+	var tests = []struct {
+		name     string
+		lb       LoadBalancer
+		expected envoyroute.RouteAction
+	}{
+		{
+			name: "random",
+			lb: LoadBalancer{
+				Policy: "random",
+			},
+			expected: envoyroute.RouteAction{},
+		},
+		{
+			name: "ring_hash",
+			lb: LoadBalancer{
+				Policy: "ring_hash",
+				RingHashConfig: RingHashConfig{
+					MinimumRingSize: 3,
+					MaximumRingSize: 7,
+				},
+				HashPolicy: []HashPolicy{
+					{Field: "header", MatchValue: "x-route-key", Terminal: true},
+					{Field: "connection_property_source_ip", MatchValue: "true"},
+				},
+			},
+			expected: envoyroute.RouteAction{
+				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
+					{
+						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Header_{
+							Header: &envoyroute.RouteAction_HashPolicy_Header{
+								HeaderName: "x-route-key",
+							},
+						},
+						Terminal: true,
+					},
+					{
+						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_ConnectionProperties_{
+							ConnectionProperties: &envoyroute.RouteAction_HashPolicy_ConnectionProperties{
+								SourceIp: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ra := &envoyroute.RouteAction{}
+			err := tc.lb.ApplyHashPolicyToRouteAction(ra)
+			require.NoError(t, err)
+
+			require.Equal(t, &tc.expected, ra)
 		})
 	}
 }
