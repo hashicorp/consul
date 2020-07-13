@@ -742,8 +742,8 @@ func setupTLSRootsAndLeaf(t *testing.T, snap *proxycfg.ConfigSnapshot) {
 //
 // see: https://www.consul.io/docs/connect/proxies/envoy#supported-versions
 var supportedEnvoyVersions = []string{
-	"1.14.2",
-	"1.13.2",
-	"1.12.4",
+	"1.14.4",
+	"1.13.4",
+	"1.12.6",
 	"1.11.2",
 }
