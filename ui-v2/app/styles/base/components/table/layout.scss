@@ -30,7 +30,7 @@
   display: none;
 }
 %table td:not(.actions) > *:only-child {
-  overflow-x: hidden;
+  overflow: hidden;
 }
 %table td:not(.actions) > * {
   white-space: nowrap;
