@@ -113,6 +113,7 @@ export default Service.extend({
           repo.findInstanceBySlug(rest[0], rest[1], rest[2], dc, nspace, configuration);
         break;
       case 'policy':
+      case 'kv':
       case 'intention':
         slug = rest[0];
         if (slug) {
