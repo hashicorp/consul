@@ -8,8 +8,7 @@ import (
 var (
 	// The git commit that was compiled. These will be filled in by the
 	// compiler.
-	GitCommit   string
-	GitDescribe string
+	GitCommit string
 
 	// The main version number that is being run at the moment.
 	//
@@ -27,22 +26,12 @@ var (
 // for displaying to humans.
 func GetHumanVersion() string {
 	version := Version
-	if GitDescribe != "" {
-		version = GitDescribe
-	}
-
 	release := VersionPrerelease
-	if GitDescribe == "" && release == "" {
-		release = "dev"
-	}
 
 	if release != "" {
 		if !strings.HasSuffix(version, "-"+release) {
 			// if we tagged a prerelease version then the release is in the version already
 			version += fmt.Sprintf("-%s", release)
-		}
-		if GitCommit != "" {
-			version += fmt.Sprintf(" (%s)", GitCommit)
 		}
 	}
 

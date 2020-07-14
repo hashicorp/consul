@@ -110,7 +110,7 @@ function parse_version {
    # Arguments:
    #   $1 - Path to the top level Consul source
    #   $2 - boolean value for whether the release version should be parsed from the source
-   #   $3 - boolean whether to use GIT_DESCRIBE and GIT_COMMIT environment variables
+   #   $3 - boolean whether to use GIT_COMMIT environment variable
    #   $4 - boolean whether to omit the version part of the version string. (optional)
    #
    # Return:
@@ -134,7 +134,6 @@ function parse_version {
    local use_git_env="$3"
    local omit_version="$4"
 
-   local git_version=""
    local git_commit=""
 
    if test -z "${include_release}"
@@ -149,7 +148,6 @@ function parse_version {
 
    if is_set "${use_git_env}"
    then
-      git_version="${GIT_DESCRIBE}"
       git_commit="${GIT_COMMIT}"
    fi
 
@@ -172,11 +170,6 @@ function parse_version {
    done
 
    local version="${version_main}"
-   # override the version from source with the value of the GIT_DESCRIBE env var if present
-   if test -n "${git_version}"
-   then
-      version="${git_version}"
-   fi
 
    local rel_ver=""
    if is_set "${include_release}"
@@ -184,9 +177,8 @@ function parse_version {
       # Default to pre-release from the source
       rel_ver="${release_main}"
 
-      # When no GIT_DESCRIBE env var is present and no release is in the source then we
-      # are definitely in dev mode
-      if test -z "${git_version}" -a -z "${rel_ver}" && is_set "${use_git_env}"
+      # When no release is in the source then we are definitely in dev mode
+      if test -z "${rel_ver}" && is_set "${use_git_env}"
       then
          rel_ver="dev"
       fi
@@ -220,7 +212,7 @@ function get_version {
    # Arguments:
    #   $1 - Path to the top level Consul source
    #   $2 - Whether the release version should be parsed from source (optional)
-   #   $3 - Whether to use GIT_DESCRIBE and GIT_COMMIT environment variables
+   #   $3 - Whether to use GIT_COMMIT environment variable
    #
    # Returns:
    #   0 - success (the version is also echoed to stdout)
@@ -519,9 +511,8 @@ function update_git_env {
 
    export GIT_COMMIT=$(git rev-parse --short HEAD)
    export GIT_DIRTY=$(test -n "$(git status --porcelain)" && echo "+CHANGES")
-   export GIT_DESCRIBE=$(git describe --tags --always --match "v*")
    export GIT_IMPORT=github.com/hashicorp/consul/version
-   export GOLDFLAGS="-X ${GIT_IMPORT}.GitCommit=${GIT_COMMIT}${GIT_DIRTY} -X ${GIT_IMPORT}.GitDescribe=${GIT_DESCRIBE}"
+   export GOLDFLAGS="-X ${GIT_IMPORT}.GitCommit=${GIT_COMMIT}${GIT_DIRTY}"
    return 0
 }
 
