@@ -148,7 +148,7 @@ export default [
     category: 'connect',
     content: [
       'configuration',
-      'tasks',
+      'connectivity-tasks',
       'connect-internals',
       'observability',
       'l7-traffic-management',

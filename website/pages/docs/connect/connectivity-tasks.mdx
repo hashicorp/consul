@@ -1,12 +1,12 @@
 ---
 layout: docs
-page_title: Tasks
-sidebar_title: Tasks
+page_title: Connectivity Tasks
+sidebar_title: Connectivity Tasks
 description: >-
   Tasks related to connectivity into, out of, and between Consul service meshes.
 ---
 
-# Tasks
+# Connectivity Tasks
 
 ~> **Note**: The features shown below are extensions of Consul’s service mesh capabilities. If you are not utilizing
 Consul service mesh then these features will not be relevant to your task.
@@ -19,10 +19,10 @@ in different clouds or runtime environments where general interconnectivity betw
 isn't feasible. One scenario where this is useful is when connecting networks with overlapping IP address space.
 
 These gateways operate by sniffing the SNI header out of the mTLS connection and then routing the connection to the
-appropriate destination based on the server name requested. The data within the Connect session is not decrypted by
+appropriate destination based on the server name requested. The data within the mTLS session is not decrypted by
 the Gateway.
 
-As of Consul 1.8.0, mesh gateways can send all forms of traffic, including gossip and RPC communication between Consul servers. 
+As of Consul 1.8.0, mesh gateways can also forward gossip and RPC traffic between Consul servers. 
 This is enabled by [WAN federation via mesh gateways](/docs/connect/gateways/wan-federation-via-mesh-gateways).
 
 For more information mesh gateways see the [complete documentation](/docs/connect/gateways/mesh-gateway)
@@ -50,7 +50,7 @@ and the [ingress gateway guide](https://learn.hashicorp.com/consul/developer-mes
 ## Traffic from services in the Consul service mesh to external services
 -> **1.8.0+:** This feature is available in Consul versions 1.8.0 and newer.
 
-Terminating gateways enable connections from services in the Consul service mesh to services outside the mesh.
+Terminating gateways enable connectivity from services in the Consul service mesh to services outside the mesh.
 Services outside the mesh do not have sidecar proxies or are not [integrated natively](/docs/connect/native).
 These may be services running on legacy infrastructure or managed cloud services running on
 infrastructure you do not control.
