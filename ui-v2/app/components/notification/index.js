@@ -24,9 +24,15 @@ export default Component.extend({
     $el.remove();
     this.notify.clearMessages();
     if (typeof this.after === 'function') {
-      Promise.resolve(this.after()).then(res => {
-        this.notify.add(options);
-      });
+      Promise.resolve(this.after())
+        .catch(e => {
+          if (e.name !== 'TransitionAborted') {
+            throw e;
+          }
+        })
+        .then(res => {
+          this.notify.add(options);
+        });
     } else {
       this.notify.add(options);
     }
