@@ -3,10 +3,16 @@ layout: docs
 page_title: Gateways
 sidebar_title: Gateways
 description: >-
-  Gateways enable connectivity into, out of, and between Consul service meshes.
+  Gateways provide connectivity into, out of, and between Consul service meshes.
 ---
 
 # Gateways
+
+Gateways provide connectivity into, out of, and between Consul service meshes.
+
+* Enable service-to-service traffic between Consul datacenters with [mesh gateways](#mesh-gateways).
+* Accept traffic from outside the Consul service mesh to services in the mesh with [ingress gateways](#ingress-gateways).
+* Route traffic from services in the Consul service mesh to external services with [terminating gateways](#terminating-gateways).
 
 ## Mesh Gateways
 -> **1.6.0+:** This feature is available in Consul versions 1.6.0 and newer.
