@@ -65,9 +65,9 @@ func (c *Client) autoEncryptCSR(extraDNSSANs []string, extraIPSANs []net.IP) (st
 	return pkPEM, csr, nil
 }
 
-func (c *Client) RequestAutoEncryptCerts(ctx context.Context, servers []string, port int, token string, extraDNSSANs []string, extraIPSANs []net.IP) (*structs.SignedResponse, string, error) {
-	errFn := func(err error) (*structs.SignedResponse, string, error) {
-		return nil, "", err
+func (c *Client) RequestAutoEncryptCerts(ctx context.Context, servers []string, port int, token string, extraDNSSANs []string, extraIPSANs []net.IP) (*structs.SignedResponse, error) {
+	errFn := func(err error) (*structs.SignedResponse, error) {
+		return nil, err
 	}
 
 	// Check if we know about a server already through gossip. Depending on
@@ -120,7 +120,8 @@ func (c *Client) RequestAutoEncryptCerts(ctx context.Context, servers []string, 
 				addr := net.TCPAddr{IP: ip, Port: port}
 
 				if err = c.connPool.RPC(c.config.Datacenter, c.config.NodeName, &addr, "AutoEncrypt.Sign", &args, &reply); err == nil {
-					return &reply, pkPEM, nil
+					reply.IssuedCert.PrivateKeyPEM = pkPEM
+					return &reply, nil
 				} else {
 					c.logger.Warn("AutoEncrypt failed", "error", err)
 				}
