@@ -28,7 +28,7 @@ type watcher struct {
 }
 
 // Notifier holds the channel used to notify a watcher
-// of token udpates as well as some internal tracking
+// of token updates as well as some internal tracking
 // information to allow for deregistering the notifier.
 type Notifier struct {
 	id int
