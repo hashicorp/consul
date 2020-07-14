@@ -27,3 +27,7 @@ func (id *SpiffeIDAgent) URI() *url.URL {
 func (id *SpiffeIDAgent) Authorize(_ *structs.Intention) (bool, bool) {
 	return false, false
 }
+
+func (id *SpiffeIDAgent) CommonName() string {
+	return AgentCN(id.Agent, id.Host)
+}
