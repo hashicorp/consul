@@ -12,8 +12,12 @@ export default Route.extend({
     const name = params.name;
     return hash({
       item: this.repo.findBySlug(name, dc, nspace),
-      sessions: this.sessionRepo.findByNode(name, dc, nspace),
-      tomography: this.coordinateRepo.findAllByNode(name, dc),
+    }).then(model => {
+      return hash({
+        ...model,
+        sessions: this.sessionRepo.findByNode(name, dc, nspace),
+        tomography: this.coordinateRepo.findAllByNode(name, dc),
+      });
     });
   },
   setupController: function(controller, model) {

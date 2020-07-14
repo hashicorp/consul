@@ -1,5 +1,7 @@
 {{title item.Node}}
 <EventSource @src={{item}} @onerror={{action "error"}} />
+<EventSource @src={{sessions}} />
+<EventSource @src={{tomography}} />
 <AppView @class="node show">
     <BlockSlot @name="notification" as |status type|>
       {{!TODO: Move sessions to its own folder within nodes }}
