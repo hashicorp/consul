@@ -1,3 +1,4 @@
+/*eslint ember/closure-actions: "warn"*/
 import Component from '@ember/component';
 
 import Slotted from 'block-slots';
