@@ -6,7 +6,7 @@
     as |writer|>
     <BlockSlot @name="content">
 {{#if (gt items.length 0)}}
-      <TabularCollection @items={{items}} as |item index|>
+      <TabularCollection class="consul-kv-list" @items={{items}} as |item index|>
         <BlockSlot @name="header">
           <th>Name</th>
         </BlockSlot>
