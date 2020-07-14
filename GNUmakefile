@@ -21,9 +21,8 @@ ASSETFS_PATH?=agent/bindata_assetfs.go
 GIT_COMMIT?=$(shell git rev-parse --short HEAD)
 GIT_COMMIT_YEAR?=$(shell git show -s --format=%cd --date=format:%Y HEAD)
 GIT_DIRTY?=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true)
-GIT_DESCRIBE?=$(shell git describe --tags --always --match "v*")
 GIT_IMPORT=github.com/hashicorp/consul/version
-GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY) -X $(GIT_IMPORT).GitDescribe=$(GIT_DESCRIBE)
+GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)
 
 PROTOFILES?=$(shell find . -name '*.proto' | grep -v 'vendor/')
 PROTOGOFILES=$(PROTOFILES:.proto=.pb.go)
@@ -124,7 +123,6 @@ export BUILD_CONTAINER_NAME
 export GIT_COMMIT
 export GIT_COMMIT_YEAR
 export GIT_DIRTY
-export GIT_DESCRIBE
 export GOTAGS
 export GOLDFLAGS
 
@@ -282,7 +280,6 @@ test-docker: linux go-build-image
 		-e 'GIT_COMMIT=$(GIT_COMMIT)' \
 		-e 'GIT_COMMIT_YEAR=$(GIT_COMMIT_YEAR)' \
 		-e 'GIT_DIRTY=$(GIT_DIRTY)' \
-		-e 'GIT_DESCRIBE=$(GIT_DESCRIBE)' \
 		$(TEST_PARALLELIZATION) \
 		$(TEST_DOCKER_RESOURCE_CONSTRAINTS) \
 		$(TEST_MODCACHE_VOL) \
