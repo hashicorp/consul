@@ -109,7 +109,7 @@ The bootstrap token requires the following minimal permissions:
 - `agent:read` if using WAN federation over mesh gateways
 
 Next, configure external servers. The Helm chart will use this configuration to talk to the Consul server's API
-to create policies, tokens, and an auth method. If you are [enabling Consul Connect](/docs/k8s/connect.html),
+to create policies, tokens, and an auth method. If you are [enabling Consul Connect](/docs/k8s/connect/overview),
 `k8sAuthMethodHost` should be set to the address of your Kubernetes API server
 so that the Consul servers can validate a Kubernetes service account token when using the [Kubernetes auth method](https://www.consul.io/docs/acl/auth-methods/kubernetes.html)
 with `consul login`.

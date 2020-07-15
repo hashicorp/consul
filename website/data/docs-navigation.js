@@ -231,7 +231,14 @@ export default [
         name: 'Operations',
         content: ['upgrading', 'tls-on-existing-cluster', 'uninstalling'],
       },
-      'connect',
+      {
+        category: 'connect',
+        name: 'Connect Service Mesh',
+        content: [
+          'overview',
+          'ingress-gateways',
+        ],
+      },
       'service-sync',
       'dns',
       'ambassador',
