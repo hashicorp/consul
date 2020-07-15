@@ -968,6 +968,8 @@ func (s *Server) Shutdown() error {
 		s.config.NotifyShutdown()
 	}
 
+	s.fsm.State().Abandon()
+
 	return nil
 }
 

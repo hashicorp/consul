@@ -1,9 +1,12 @@
 package state
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"time"
 
+	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	memdb "github.com/hashicorp/go-memdb"
 )
@@ -104,6 +107,10 @@ type Store struct {
 	// abandoned (usually during a restore). This is only ever closed.
 	abandonCh chan struct{}
 
+	// TODO: refactor abondonCh to use a context so that both can use the same
+	// cancel mechanism.
+	stopEventPublisher func()
+
 	// kvsGraveyard manages tombstones for the key value store.
 	kvsGraveyard *Graveyard
 
@@ -153,15 +160,18 @@ func NewStateStore(gc *TombstoneGC) (*Store, error) {
 		return nil, fmt.Errorf("Failed setting up state store: %s", err)
 	}
 
-	// Create and return the state store.
+	ctx, cancel := context.WithCancel(context.TODO())
 	s := &Store{
 		schema:       schema,
 		abandonCh:    make(chan struct{}),
 		kvsGraveyard: NewGraveyard(gc),
 		lockDelay:    NewDelay(),
-	}
-	s.db = &changeTrackerDB{
-		db: db,
+		db: &changeTrackerDB{
+			db:             db,
+			publisher:      stream.NewEventPublisher(ctx, newSnapshotHandlers(), 10*time.Second),
+			processChanges: processDBChanges,
+		},
+		stopEventPublisher: cancel,
 	}
 	return s, nil
 }
@@ -234,6 +244,7 @@ func (s *Store) AbandonCh() <-chan struct{} {
 // Abandon is used to signal that the given state store has been abandoned.
 // Calling this more than one time will panic.
 func (s *Store) Abandon() {
+	s.stopEventPublisher()
 	close(s.abandonCh)
 }
 
