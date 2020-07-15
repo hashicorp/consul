@@ -45,7 +45,7 @@ may benefit from additional components in the ACL system:
   additional policy was attached, the contents of which are described further
   below. These are directly attached to tokens and roles and are not
   independently configured. (Added in Consul 1.5.0)
-  
+
 - **ACL Node Identities** - Node identities are a policy template for
   expressing a link to a policy suitable for use as an [Consul `agent` token
   ](/docs/agent/options#acl_tokens_agent). At authorization time this acts like an
@@ -279,7 +279,7 @@ as to whether they are set on servers, clients, or both.
 | Configuration Option                                           | Servers    | Clients    | Purpose                                                                |
 | -------------------------------------------------------------- | ---------- | ---------- | ---------------------------------------------------------------------- |
 | [`acl.enabled`](/docs/agent/options#acl_enabled)               | `REQUIRED` | `REQUIRED` | Controls whether ACLs are enabled                                      |
-| [`acl.default_policy`](/docs/agent/options#acl_default_policy) | `OPTIONAL` | `N/A`      | Determines allowlist or denylist mode                                 |
+| [`acl.default_policy`](/docs/agent/options#acl_default_policy) | `OPTIONAL` | `N/A`      | Determines allowlist or denylist mode                                  |
 | [`acl.down_policy`](/docs/agent/options#acl_down_policy)       | `OPTIONAL` | `OPTIONAL` | Determines what to do when the remote token or policy resolution fails |
 | [`acl.role_ttl`](/docs/agent/options#acl_role_ttl)             | `OPTIONAL` | `OPTIONAL` | Determines time-to-live for cached ACL Roles                           |
 | [`acl.policy_ttl`](/docs/agent/options#acl_policy_ttl)         | `OPTIONAL` | `OPTIONAL` | Determines time-to-live for cached ACL Policies                        |

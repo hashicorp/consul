@@ -10,7 +10,7 @@ description: >-
 
 # Ingress Gateways
 
--> **1.8.0+:**  This feature is available in Consul versions 1.8.0 and newer.
+-> **1.8.0+:** This feature is available in Consul versions 1.8.0 and newer.
 
 Ingress gateways enable ingress traffic from services outside the Consul
 service mesh to services inside the Consul service mesh. An ingress gateway is
@@ -68,5 +68,5 @@ If the Consul client agent on the gateway's node is not configured to use the de
 must also provide `agent:read` for its node's name in order to discover the agent's gRPC port. gRPC is used to expose Envoy's xDS API to Envoy proxies.
 
 ~> [Configuration entries](/docs/agent/config-entries) are global in scope. A configuration entry for a gateway name applies
-   across all federated Consul datacenters. If ingress gateways in different Consul datacenters need to route to different
-   sets of services within their datacenter then the ingress gateways **must** be registered with different names.
+across all federated Consul datacenters. If ingress gateways in different Consul datacenters need to route to different
+sets of services within their datacenter then the ingress gateways **must** be registered with different names.

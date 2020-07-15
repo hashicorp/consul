@@ -195,16 +195,14 @@ export default function HomePage() {
             title: 'Getting Started',
             category: 'Step-by-Step Guides',
             time: '48 mins',
-            link:
-              'https://learn.hashicorp.com/consul/getting-started/install',
+            link: 'https://learn.hashicorp.com/consul/getting-started/install',
             image: require('./img/learn/getting-started.svg?url'),
           },
           {
             title: 'Run Consul on Kubernetes',
             category: 'Step-by-Step Guides',
             time: '142 mins',
-            link:
-              'https://learn.hashicorp.com/consul/kubernetes/minikube',
+            link: 'https://learn.hashicorp.com/consul/kubernetes/minikube',
             image: require('./img/learn/kubernetes.svg?url'),
           },
         ]}

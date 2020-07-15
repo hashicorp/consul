@@ -51,14 +51,14 @@ The table below shows this endpoint's support for
   service doesn't need to be registered.
 
 - `SourceNS` `(string: "")` <EnterpriseAlert inline /> - The namespace for the
-  `SourceName` parameter. 
+  `SourceName` parameter.
 
 - `DestinationName` `(string: <required>)` - The destination of the intention.
   The intention destination is always a Consul service, unlike the source.
   The service doesn't need to be registered.
 
 - `DestinationNS` `(string: "")` <EnterpriseAlert inline /> - The namespace for the
-  `DestinationName` parameter. 
+  `DestinationName` parameter.
 
 - `SourceType` `(string: <required>)` - The type for the `SourceName` value.
   This can be only "consul" today to represent a Consul service.
@@ -75,9 +75,9 @@ The table below shows this endpoint's support for
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the default
   namespace to use when `SourceNS` or `DestinationNS` are omitted or empty.
   If not provided at all, the default namespace will be inherited from the
-  request's ACL token or will default to the `default` namespace. 
+  request's ACL token or will default to the `default` namespace.
   This value may be provided by either the `ns` URL query parameter or in the
-  `X-Consul-Namespace` header. 
+  `X-Consul-Namespace` header.
   Added in Consul 1.9.0.
 
 ### Sample Payload
@@ -208,9 +208,9 @@ The table below shows this endpoint's support for
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the default
   namespace to use when `source` or `destination` parameters lack namespaces.
   If not provided at all, the default namespace will be inherited from the
-  request's ACL token or will default to the `default` namespace. 
+  request's ACL token or will default to the `default` namespace.
   This value may be provided by either the `ns` URL query parameter or in the
-  `X-Consul-Namespace` header. 
+  `X-Consul-Namespace` header.
   Added in Consul 1.9.0.
 
 ### Sample Request
@@ -273,13 +273,13 @@ The table below shows this endpoint's support for
 - `filter` `(string: "")` - Specifies the expression used to filter the
   queries results prior to returning the data.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the 
-  namespace to list intentions from. 
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the
+  namespace to list intentions from.
   The `*` wildcard may be used to list intentions from all namespaces.
   If not provided at all, the default namespace will be inherited from the
-  request's ACL token or will default to the `default` namespace. 
+  request's ACL token or will default to the `default` namespace.
   This value may be provided by either the `ns` URL query parameter or in the
-  `X-Consul-Namespace` header. 
+  `X-Consul-Namespace` header.
   Added in Consul 1.9.0.
 
 ### Sample Request
@@ -471,9 +471,9 @@ The table below shows this endpoint's support for
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the default
   namespace to use when `source` or `destination` parameters lack namespaces.
   If not provided at all, the default namespace will be inherited from the
-  request's ACL token or will default to the `default` namespace. 
+  request's ACL token or will default to the `default` namespace.
   This value may be provided by either the `ns` URL query parameter or in the
-  `X-Consul-Namespace` header. 
+  `X-Consul-Namespace` header.
   Added in Consul 1.9.0.
 
 ### Sample Request
@@ -533,9 +533,9 @@ The table below shows this endpoint's support for
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the default
   namespace to use when `name` parameter lacks namespaces.
   If not provided at all, the default namespace will be inherited from the
-  request's ACL token or will default to the `default` namespace. 
+  request's ACL token or will default to the `default` namespace.
   This value may be provided by either the `ns` URL query parameter or in the
-  `X-Consul-Namespace` header. 
+  `X-Consul-Namespace` header.
   Added in Consul 1.9.0.
 
 ### Sample Request
