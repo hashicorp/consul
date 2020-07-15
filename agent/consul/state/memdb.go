@@ -165,11 +165,34 @@ func (t topic) String() string {
 	return string(t)
 }
 
+var (
+	// TopicServiceHealth contains events for all registered service instances.
+	TopicServiceHealth topic = "topic-service-health"
+	// TopicServiceHealthConnect contains events for connect-enabled service instances.
+	TopicServiceHealthConnect topic = "topic-service-health-connect"
+)
+
 func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {
-	// TODO: add other table handlers here.
-	return aclChangeUnsubscribeEvent(tx, changes)
+	var events []stream.Event
+	fns := []func(tx ReadTxn, changes Changes) ([]stream.Event, error){
+		aclChangeUnsubscribeEvent,
+		ServiceHealthEventsFromChanges,
+		// TODO: add other table handlers here.
+	}
+	for _, fn := range fns {
+		e, err := fn(tx, changes)
+		if err != nil {
+			return nil, err
+		}
+		events = append(events, e...)
+	}
+	return events, nil
 }
 
-func newSnapshotHandlers() stream.SnapshotHandlers {
-	return stream.SnapshotHandlers{}
+// TODO: could accept a ReadTxner instead of a Store
+func newSnapshotHandlers(s *Store) stream.SnapshotHandlers {
+	return stream.SnapshotHandlers{
+		TopicServiceHealth:        s.ServiceHealthSnapshot,
+		TopicServiceHealthConnect: s.ServiceHealthConnectSnapshot,
+	}
 }

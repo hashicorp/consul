@@ -162,16 +162,16 @@ func NewStateStore(gc *TombstoneGC) (*Store, error) {
 
 	ctx, cancel := context.WithCancel(context.TODO())
 	s := &Store{
-		schema:       schema,
-		abandonCh:    make(chan struct{}),
-		kvsGraveyard: NewGraveyard(gc),
-		lockDelay:    NewDelay(),
-		db: &changeTrackerDB{
-			db:             db,
-			publisher:      stream.NewEventPublisher(ctx, newSnapshotHandlers(), 10*time.Second),
-			processChanges: processDBChanges,
-		},
+		schema:             schema,
+		abandonCh:          make(chan struct{}),
+		kvsGraveyard:       NewGraveyard(gc),
+		lockDelay:          NewDelay(),
 		stopEventPublisher: cancel,
+	}
+	s.db = &changeTrackerDB{
+		db:             db,
+		publisher:      stream.NewEventPublisher(ctx, newSnapshotHandlers(s), 10*time.Second),
+		processChanges: processDBChanges,
 	}
 	return s, nil
 }
