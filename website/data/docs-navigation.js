@@ -237,7 +237,6 @@ export default [
         content: [
           'overview',
           'ingress-gateways',
-          'terminating-gateways',
         ],
       },
       'service-sync',
