@@ -45,10 +45,11 @@ export default Component.extend({
     this._lazyListeners = this.dom.listeners();
     this.guid = this.dom.guid(this);
   },
-  willDestroy: function() {
+  willDestroyElement: function() {
     this.actions.close.apply(this);
     this._listeners.remove();
     this._lazyListeners.remove();
+    this._super(...arguments);
   },
 
   didInsertElement: function() {
