@@ -148,3 +148,49 @@ func publishTestEvent(index uint64, b *eventBuffer, key string) {
 	}
 	b.Append([]Event{e})
 }
+
+func TestFilter_NoKey(t *testing.T) {
+	events := make([]Event, 0, 5)
+	events = append(events, Event{Key: "One"}, Event{Key: "Two"})
+
+	actual := filter("", events)
+	require.Equal(t, events, actual)
+
+	// test that a new array was not allocated
+	require.Equal(t, cap(actual), 5)
+}
+
+func TestFilter_WithKey_AllEventsMatch(t *testing.T) {
+	events := make([]Event, 0, 5)
+	events = append(events, Event{Key: "Same"}, Event{Key: "Same"})
+
+	actual := filter("Same", events)
+	require.Equal(t, events, actual)
+
+	// test that a new array was not allocated
+	require.Equal(t, cap(actual), 5)
+}
+
+func TestFilter_WithKey_SomeEventsMatch(t *testing.T) {
+	events := make([]Event, 0, 5)
+	events = append(events, Event{Key: "Same"}, Event{Key: "Other"}, Event{Key: "Same"})
+
+	actual := filter("Same", events)
+	expected := []Event{{Key: "Same"}, {Key: "Same"}}
+	require.Equal(t, expected, actual)
+
+	// test that a new array was allocated with the correct size
+	require.Equal(t, cap(actual), 2)
+}
+
+func TestFilter_WithKey_NoEventsMatch(t *testing.T) {
+	events := make([]Event, 0, 5)
+	events = append(events, Event{Key: "Same"}, Event{Key: "Same"})
+
+	actual := filter("Other", events)
+	var expected []Event
+	require.Equal(t, expected, actual)
+
+	// test that no array was allocated
+	require.Equal(t, cap(actual), 0)
+}

@@ -82,7 +82,7 @@ func (s *Subscription) Next(ctx context.Context) ([]Event, error) {
 		}
 		s.currentItem = next
 
-		events := s.filter(next.Events)
+		events := filter(s.req.Key, next.Events)
 		if len(events) == 0 {
 			continue
 		}
@@ -90,34 +90,34 @@ func (s *Subscription) Next(ctx context.Context) ([]Event, error) {
 	}
 }
 
-// TODO: test cases for this method
-func (s *Subscription) filter(events []Event) []Event {
-	if s.req.Key == "" || len(events) == 0 {
+// filter events to only those that match the key exactly.
+func filter(key string, events []Event) []Event {
+	if key == "" || len(events) == 0 {
 		return events
 	}
 
-	allMatch := true
+	var count int
 	for _, e := range events {
-		if s.req.Key != e.Key {
-			allMatch = false
-			break
+		if key == e.Key {
+			count++
 		}
 	}
 
 	// Only allocate a new slice if some events need to be filtered out
-	if allMatch {
+	switch count {
+	case 0:
+		return nil
+	case len(events):
 		return events
 	}
 
-	// FIXME: this will over-allocate. We could get a count from the previous range
-	// over events.
-	events = make([]Event, 0, len(events))
+	result := make([]Event, 0, count)
 	for _, e := range events {
-		if s.req.Key == e.Key {
-			events = append(events, e)
+		if key == e.Key {
+			result = append(result, e)
 		}
 	}
-	return events
+	return result
 }
 
 // Close the subscription. Subscribers will receive an error when they call Next,
