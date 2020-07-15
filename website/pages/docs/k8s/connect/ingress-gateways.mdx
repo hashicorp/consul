@@ -36,9 +36,9 @@ ingressGateways:
   gateways:
     - name: ingress-gateway
       service:
-       type: LoadBalancer
+        type: LoadBalancer
 ```
-~> *Note:* this will create a public unathenticated LoadBalancer in your cluster, please take appropriate security considerations.
+~> *Note:* this will create a public unauthenticated LoadBalancer in your cluster, please take appropriate security considerations.
 
 The yaml snippet is the launching point for a valid configuration that must be supplied when installing using the [official consul-helm chart](https://hub.helm.sh/charts/hashicorp/consul).
 Information on additional options can be found in the [Helm reference](/docs/k8s/helm). Configuration options for ingress gateways reside under the [ingressGateways](/docs/k8s/helm#v-ingressgateways) entry.
@@ -74,17 +74,17 @@ You can access the Consul server directly from your host via `kubectl port-forwa
 ```shell-session
 $ kubectl port-forward consul-server-0 8500 &
 ```
--> If TLS is enabled use port 8501
+If TLS is enabled use port 8501.
 
 -> Download the latest Consul binary from [Downloads](/downloads.html).
 [https://releases.hashicorp.com/consul/](https://releases.hashicorp.com/consul/)
 
--> If TLS is enabled set:
+If TLS is enabled set:
 ```shell-session
 $ export CONSUL_HTTP_ADDR=https://localhost:8501
 ```
 
--> If ACLs are enabled set :
+If ACLs are enabled set :
 ```shell-session
 $ export CONSUL_HTTP_TOKEN=$(kubectl get secret consul-bootstrap-acl-token -o jsonpath={.data.token} | base64 -D)
 $ export CONSUL_HTTP_SSL_VERIFY=false
@@ -121,7 +121,8 @@ $ consul config write ingress-gateway.hcl
 You can confirm the ingress gateways have been configured as expected by viewing the ingress-gateway service instances
 in the Consul UI: [http://localhost:8500/ui/dc1/services/ingress-gateway/](http://localhost:8500/ui/dc1/services/ingress-gateway/).
 
-If TLS is enabled, use [https://localhost:8501/ui/dc1/services/ingress-gateway/](https://localhost:8501/ui/dc1/services/ingress-gateway/).
+If TLS is enabled, use :
+[https://localhost:8501/ui/dc1/services/ingress-gateway/](https://localhost:8501/ui/dc1/services/ingress-gateway/).
 
 ## Defining an Intention
 
@@ -173,7 +174,7 @@ $ kubectl apply -f static-server.yaml
 You can validate the service is running and registered in the Consul UI by navigating to
 [http://localhost:8500/ui/dc1/services/static-server/instances](http://localhost:8500/ui/dc1/services/static-server/instances)
 
--> If TLS is enabled, use [https://localhost:8501/ui/dc1/services/static-server/instances](https://localhost:8501/ui/dc1/services/static-server/instances)
+If TLS is enabled, use: [https://localhost:8501/ui/dc1/services/static-server/instances](https://localhost:8501/ui/dc1/services/static-server/instances)
 
 You can also validate the connectivity of the application from the ingress gateway using `curl`:
 
