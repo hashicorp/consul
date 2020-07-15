@@ -825,51 +825,51 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 - `serf_wan_allowed_cidrs` ((#serf_wan_allowed_cidrs)) Equivalent to the [`-serf-wan-allowed-cidrs` command-line flag](#_serf_wan_allowed_cidrs).
 
 - `audit` <EnterpriseAlert inline /> - Added in Consul 1.8, the audit object allow users to enable auditing
-    and configure a sink and filters for their audit logs.
+  and configure a sink and filters for their audit logs.
 
-    ```hcl
-      audit {
-        enabled = true
-        sink "My sink" {
-          type   = "file"
-          format = "json"
-          path   = "data/audit/audit.json"
-          delivery_guarantee = "best-effort"
-          rotate_duration = "24h"
-          rotate_max_files = 15
-          rotate_bytes = 25165824
-        }
-    }
-    ```
+  ```hcl
+    audit {
+      enabled = true
+      sink "My sink" {
+        type   = "file"
+        format = "json"
+        path   = "data/audit/audit.json"
+        delivery_guarantee = "best-effort"
+        rotate_duration = "24h"
+        rotate_max_files = 15
+        rotate_bytes = 25165824
+      }
+  }
+  ```
 
-    The following sub-keys are available:
+  The following sub-keys are available:
 
-    - `enabled` - Controls whether Consul logs out each time a user
+  - `enabled` - Controls whether Consul logs out each time a user
     performs an operation. ACLs must be enabled to use this feature. Defaults to `false`.
 
-    - `sink` - This object provides configuration for the destination to which 
-    Consul will log auditing events. Sink is an object containing keys to sink objects, where the key is the name of the sink. 
+  - `sink` - This object provides configuration for the destination to which
+    Consul will log auditing events. Sink is an object containing keys to sink objects, where the key is the name of the sink.
 
-      - `type` - Type specifies what kind of sink this is.
-        The following keys are valid:
-        - `file` - Currently only file sinks are available, they take the following keys.
-      - `format` - Format specifies what format the events will
-        be emitted with.
-        The following keys are valid:
-        - `json` - Currently only json events are offered.
-      - `path` - The directory and filename to write audit events to.
-      - `delivery_guarantee` - Specifies
-        the rules governing how audit events are written.
-        The following keys are valid:
-        - `best-effort` - Consul only supports `best-effort` event delivery.
-      - `rotate_duration` - Specifies the
-        interval by which the system rotates to a new log file. At least one of `rotate_duration` or `rotate_bytes`
-        must be configured to enable audit logging.
-      - `rotate_max_files` - Defines the
-        limit that Consul should follow before it deletes old log files.
-      - `rotate_bytes` - Specifies how large an
-        individual log file can grow before Consul rotates to a new file. At least one of `rotate_bytes` or
-        `rotate_duration` must be configured to enable audit logging.
+    - `type` - Type specifies what kind of sink this is.
+      The following keys are valid:
+      - `file` - Currently only file sinks are available, they take the following keys.
+    - `format` - Format specifies what format the events will
+      be emitted with.
+      The following keys are valid:
+      - `json` - Currently only json events are offered.
+    - `path` - The directory and filename to write audit events to.
+    - `delivery_guarantee` - Specifies
+      the rules governing how audit events are written.
+      The following keys are valid:
+      - `best-effort` - Consul only supports `best-effort` event delivery.
+    - `rotate_duration` - Specifies the
+      interval by which the system rotates to a new log file. At least one of `rotate_duration` or `rotate_bytes`
+      must be configured to enable audit logging.
+    - `rotate_max_files` - Defines the
+      limit that Consul should follow before it deletes old log files.
+    - `rotate_bytes` - Specifies how large an
+      individual log file can grow before Consul rotates to a new file. At least one of `rotate_bytes` or
+      `rotate_duration` must be configured to enable audit logging.
 
 - `autopilot` Added in Consul 0.8, this object allows a
   number of sub-keys to be set which can configure operator-friendly settings for
@@ -1763,7 +1763,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   - `prefix_filter` ((#telemetry-prefix_filter))
     This is a list of filter rules to apply for allowing/blocking metrics by
     prefix in the following format:
-    
+
     ```json
     ["+consul.raft.apply", "-consul.http", "+consul.http.GET"]
     ```
@@ -1814,7 +1814,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
 - `tls_cipher_suites` Added in Consul 0.8.2, this specifies the list of
   supported ciphersuites as a comma-separated-list. The list of all supported
-  ciphersuites is available through 
+  ciphersuites is available through
   [this search](https://github.com/hashicorp/consul/search?q=cipherMap+%3A%3D+map&unscoped_q=cipherMap+%3A%3D+map).
 
 - `tls_prefer_server_cipher_suites` Added in Consul 0.8.2, this

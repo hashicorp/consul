@@ -789,36 +789,36 @@ and consider if they're appropriate for your deployment.
   - `wanAddress` ((#v-meshgateway-wanaddress)) - What gets registered as WAN (wide area network) address for the gateway.
 
     - `source` ((#v-meshgateway-wanaddress-source)) (`string: "Service"`) - source configures where to retrieve the WAN address (and possibly port)
-        for the mesh gateway from.
-        Can be set to either: `Service`, `NodeIP`, `NodeName` or `Static`. See the behavior of each below:
+      for the mesh gateway from.
+      Can be set to either: `Service`, `NodeIP`, `NodeName` or `Static`. See the behavior of each below:
 
-        * `Service` - Determine the address based on the service type.
+      - `Service` - Determine the address based on the service type.
 
-          If `service.type=LoadBalancer` use the external IP or hostname of
-          the service. Use the port set by `service.port`.
+        If `service.type=LoadBalancer` use the external IP or hostname of
+        the service. Use the port set by `service.port`.
 
-          If `service.type=NodePort` use the Node IP. The port will be set to
-          `service.nodePort` so `service.nodePort` cannot be null.
+        If `service.type=NodePort` use the Node IP. The port will be set to
+        `service.nodePort` so `service.nodePort` cannot be null.
 
-          If `service.type=ClusterIP` use the ClusterIP. The port will be set to
-          `service.port`.
+        If `service.type=ClusterIP` use the ClusterIP. The port will be set to
+        `service.port`.
 
-          `service.type=ExternalName` is not supported.
+        `service.type=ExternalName` is not supported.
 
-        * `NodeIP` - The node IP as provided by the Kubernetes downward API.
+      - `NodeIP` - The node IP as provided by the Kubernetes downward API.
 
-        * `NodeName` - The name of the node as provided by the Kubernetes downward
-          API. This is useful if the node names are DNS entries that
-          are routable from other datacenters.
+      - `NodeName` - The name of the node as provided by the Kubernetes downward
+        API. This is useful if the node names are DNS entries that
+        are routable from other datacenters.
 
-        * `Static` - Use the address hardcoded in `meshGateway.wanAddress.static`.
+      - `Static` - Use the address hardcoded in `meshGateway.wanAddress.static`.
 
     - `port` ((#v-meshgateway-wanaddress-port)) (`integer: 443`) - Port that gets registered for WAN traffic.
       If source is set to "Service" then this setting will have no effect.
       See the documentation for `source` as to which port will be used in that
       case.
 
-    - `static` ((#v-meshgateway-wanaddress-static)) (`string: ""`) -  If source is set to "Static" then this value will be used as the WAN
+    - `static` ((#v-meshgateway-wanaddress-static)) (`string: ""`) - If source is set to "Static" then this value will be used as the WAN
       address of the mesh gateways. This is useful if you've configured a
       DNS entry to point to your mesh gateways.
 
@@ -851,8 +851,8 @@ and consider if they're appropriate for your deployment.
   - `dnsPolicy` ((#v-meshgateway-dnspolicy)) (`string: null`) - `dnsPolicy` to use.
 
   - `consulServiceName` ((#v-meshgateway-consulservicename)) (`string: "mesh-gateway"`) - Consul service name for the mesh gateways.
-     Cannot be set to anything other than `"mesh-gateway"` if `global.acls.manageSystemACLs` is true since the ACL token
-     generated is only for the name "mesh-gateway".
+    Cannot be set to anything other than `"mesh-gateway"` if `global.acls.manageSystemACLs` is true since the ACL token
+    generated is only for the name "mesh-gateway".
 
   - `containerPort` ((#v-meshgateway-containerPort)) (`integer: 8443`) - Port that the gateway will run on inside the container.
 
@@ -920,8 +920,8 @@ and consider if they're appropriate for your deployment.
         "annotation-key": "annotation-value"
       ```
 
-    - `consulNamespace` ((#v-ingressgateways-defaults-consulnamespace)) (`string: "default"`) <EnterpriseAlert inline /> - Defines the Consul namespace to register the gateway into.  Requires `global.enableConsulNamespaces` to be true and
-    Consul Enterprise v1.7+ with a valid Consul Enterprise license. Note: The Consul namespace MUST exist before the gateway is deployed.
+    - `consulNamespace` ((#v-ingressgateways-defaults-consulnamespace)) (`string: "default"`) <EnterpriseAlert inline /> - Defines the Consul namespace to register the gateway into. Requires `global.enableConsulNamespaces` to be true and
+      Consul Enterprise v1.7+ with a valid Consul Enterprise license. Note: The Consul namespace MUST exist before the gateway is deployed.
 
   - `gateways` ((#v-ingressgateways-gateways)) - Gateways is a list of gateway objects. The only required field for each is `name`, though they can also contain any of the fields in `ingressGateways.defaults`. Values defined here override the defaults except in the case of annotations where both will be applied.
 
@@ -941,9 +941,9 @@ and consider if they're appropriate for your deployment.
       extraVolumes:
         - type: 'secret'
           name: 'my-secret'
-          items:  # optional items array
+          items: # optional items array
             - key: key
-              path: path  # secret will now mount to /consul/userconfig/my-secret/path
+              path: path # secret will now mount to /consul/userconfig/my-secret/path
       ```
 
     - `resources` ((#v-terminatinggateways-defaults-resources)) (`string`) - Resources for gateway pods. See values file for default.
@@ -963,7 +963,7 @@ and consider if they're appropriate for your deployment.
         "annotation-key": "annotation-value"
       ```
 
-    - `consulNamespace` ((#v-terminatinggateways-defaults-consulnamespace)) (`string: "default"`) <EnterpriseAlert inline /> - Defines the Consul namespace to register the gateway into.  Requires `global.enableConsulNamespaces` to be true and Consul Enterprise v1.7+ with a valid Consul Enterprise license. Note: The Consul namespace MUST exist before the gateway is deployed.
+    - `consulNamespace` ((#v-terminatinggateways-defaults-consulnamespace)) (`string: "default"`) <EnterpriseAlert inline /> - Defines the Consul namespace to register the gateway into. Requires `global.enableConsulNamespaces` to be true and Consul Enterprise v1.7+ with a valid Consul Enterprise license. Note: The Consul namespace MUST exist before the gateway is deployed.
 
   - `gateways` ((#v-terminatinggateways-gateways)) - Gateways is a list of gateway objects. The only required field for each is `name`, though they can also contain any of the fields in `terminatingGateways.defaults`. Values defined here override the defaults except in the case of annotations where both will be applied.
 
