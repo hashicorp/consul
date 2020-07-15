@@ -17,7 +17,7 @@ export default Model.extend({
     defaultValue: '',
   }),
   // frontend only for ordering where CreateIndex can't be used
-  CreateTime: attr('date'),
+  CreateTime: attr('date', { defaultValue: 0 }),
   //
   Datacenter: attr('string'),
   Namespace: attr('string'),

@@ -223,64 +223,65 @@ func TestStore_IntentionDelete(t *testing.T) {
 }
 
 func TestStore_IntentionsList(t *testing.T) {
-	assert := assert.New(t)
 	s := testStateStore(t)
+
+	entMeta := structs.WildcardEnterpriseMeta()
 
 	// Querying with no results returns nil.
 	ws := memdb.NewWatchSet()
-	idx, res, err := s.Intentions(ws)
-	assert.NoError(err)
-	assert.Nil(res)
-	assert.Equal(uint64(1), idx)
+	idx, res, err := s.Intentions(ws, entMeta)
+	require.NoError(t, err)
+	require.Nil(t, res)
+	require.Equal(t, uint64(1), idx)
+
+	testIntention := func(srcNS, src, dstNS, dst string) *structs.Intention {
+		id := testUUID()
+		return &structs.Intention{
+			ID:              id,
+			SourceNS:        srcNS,
+			SourceName:      src,
+			DestinationNS:   dstNS,
+			DestinationName: dst,
+			Meta:            map[string]string{},
+		}
+	}
+
+	cmpIntention := func(ixn *structs.Intention, id string, index uint64) *structs.Intention {
+		ixn.ID = id
+		ixn.CreateIndex = index
+		ixn.ModifyIndex = index
+		ixn.UpdatePrecedence() // to match what is returned...
+		return ixn
+	}
 
 	// Create some intentions
 	ixns := structs.Intentions{
-		&structs.Intention{
-			ID:   testUUID(),
-			Meta: map[string]string{},
-		},
-		&structs.Intention{
-			ID:   testUUID(),
-			Meta: map[string]string{},
-		},
+		testIntention("default", "foo", "default", "bar"),
+		testIntention("default", "foo", "default", "*"),
+		testIntention("*", "*", "default", "*"),
+		testIntention("default", "*", "*", "*"),
+		testIntention("*", "*", "*", "*"),
 	}
-
-	// Force deterministic sort order
-	ixns[0].ID = "a" + ixns[0].ID[1:]
-	ixns[1].ID = "b" + ixns[1].ID[1:]
 
 	// Create
 	for i, ixn := range ixns {
-		assert.NoError(s.IntentionSet(uint64(1+i), ixn))
+		require.NoError(t, s.IntentionSet(uint64(1+i), ixn))
 	}
-	assert.True(watchFired(ws), "watch fired")
+	require.True(t, watchFired(ws), "watch fired")
 
 	// Read it back and verify.
 	expected := structs.Intentions{
-		&structs.Intention{
-			ID:   ixns[0].ID,
-			Meta: map[string]string{},
-			RaftIndex: structs.RaftIndex{
-				CreateIndex: 1,
-				ModifyIndex: 1,
-			},
-		},
-		&structs.Intention{
-			ID:   ixns[1].ID,
-			Meta: map[string]string{},
-			RaftIndex: structs.RaftIndex{
-				CreateIndex: 2,
-				ModifyIndex: 2,
-			},
-		},
+		cmpIntention(testIntention("default", "foo", "default", "bar"), ixns[0].ID, 1),
+		cmpIntention(testIntention("default", "foo", "default", "*"), ixns[1].ID, 2),
+		cmpIntention(testIntention("*", "*", "default", "*"), ixns[2].ID, 3),
+		cmpIntention(testIntention("default", "*", "*", "*"), ixns[3].ID, 4),
+		cmpIntention(testIntention("*", "*", "*", "*"), ixns[4].ID, 5),
 	}
-	for i := range expected {
-		expected[i].UpdatePrecedence() // to match what is returned...
-	}
-	idx, actual, err := s.Intentions(nil)
-	assert.NoError(err)
-	assert.Equal(idx, uint64(2))
-	assert.Equal(expected, actual)
+
+	idx, actual, err := s.Intentions(nil, entMeta)
+	require.NoError(t, err)
+	require.Equal(t, idx, uint64(5))
+	require.ElementsMatch(t, expected, actual)
 }
 
 // Test the matrix of match logic.
@@ -551,7 +552,8 @@ func TestStore_Intention_Snapshot_Restore(t *testing.T) {
 		// Intentions are returned precedence sorted unlike the snapshot so we need
 		// to rearrange the expected slice some.
 		expected[0], expected[1], expected[2] = expected[1], expected[2], expected[0]
-		idx, actual, err := s.Intentions(nil)
+		entMeta := structs.WildcardEnterpriseMeta()
+		idx, actual, err := s.Intentions(nil, entMeta)
 		assert.NoError(err)
 		assert.Equal(idx, uint64(6))
 		assert.Equal(expected, actual)

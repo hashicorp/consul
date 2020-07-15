@@ -23,7 +23,7 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 // AutoConfigRequest is the data structure to be sent along with the
-// Cluster.AutoConfig RPC
+// AutoConfig.InitialConfiguration RPC
 type AutoConfigRequest struct {
 	// Datacenter is the local datacenter name. This wont actually be set by clients
 	// but rather will be set by the servers to allow for forwarding to
@@ -113,7 +113,7 @@ func (m *AutoConfigRequest) GetConsulToken() string {
 	return ""
 }
 
-// AutoConfigResponse is the data structure sent in response to a Cluster.AutoConfig request
+// AutoConfigResponse is the data structure sent in response to a AutoConfig.InitialConfiguration request
 type AutoConfigResponse struct {
 	Config               *config.Config `protobuf:"bytes,1,opt,name=Config,proto3" json:"Config,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`

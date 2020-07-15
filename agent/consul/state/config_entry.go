@@ -195,14 +195,7 @@ func (s *Store) ensureConfigEntryTxn(tx *txn, idx uint64, conf structs.ConfigEnt
 	}
 	raftIndex.ModifyIndex = idx
 
-	err = s.validateProposedConfigEntryInGraph(
-		tx,
-		idx,
-		conf.GetKind(),
-		conf.GetName(),
-		conf,
-		entMeta,
-	)
+	err = s.validateProposedConfigEntryInGraph(tx, conf.GetKind(), conf.GetName(), conf, entMeta)
 	if err != nil {
 		return err // Err is already sufficiently decorated.
 	}
@@ -273,14 +266,7 @@ func (s *Store) DeleteConfigEntry(idx uint64, kind, name string, entMeta *struct
 		}
 	}
 
-	err = s.validateProposedConfigEntryInGraph(
-		tx,
-		idx,
-		kind,
-		name,
-		nil,
-		entMeta,
-	)
+	err = s.validateProposedConfigEntryInGraph(tx, kind, name, nil, entMeta)
 	if err != nil {
 		return err // Err is already sufficiently decorated.
 	}
@@ -329,7 +315,6 @@ func (s *Store) insertConfigEntryWithTxn(tx *txn, idx uint64, conf structs.Confi
 // to the caller that they can correct.
 func (s *Store) validateProposedConfigEntryInGraph(
 	tx *txn,
-	idx uint64,
 	kind, name string,
 	next structs.ConfigEntry,
 	entMeta *structs.EnterpriseMeta,
@@ -365,7 +350,7 @@ func (s *Store) validateProposedConfigEntryInGraph(
 		return fmt.Errorf("unhandled kind %q during validation of %q", kind, name)
 	}
 
-	return s.validateProposedConfigEntryInServiceGraph(tx, idx, kind, name, next, validateAllChains, entMeta)
+	return s.validateProposedConfigEntryInServiceGraph(tx, kind, name, next, validateAllChains, entMeta)
 }
 
 func (s *Store) checkGatewayClash(
@@ -392,7 +377,6 @@ var serviceGraphKinds = []string{
 
 func (s *Store) validateProposedConfigEntryInServiceGraph(
 	tx *txn,
-	idx uint64,
 	kind, name string,
 	next structs.ConfigEntry,
 	validateAllChains bool,
@@ -424,12 +408,12 @@ func (s *Store) validateProposedConfigEntryInServiceGraph(
 		checkChains[sid] = struct{}{}
 
 		iter, err := tx.Get(configTableName, "link", sid)
+		if err != nil {
+			return err
+		}
 		for raw := iter.Next(); raw != nil; raw = iter.Next() {
 			entry := raw.(structs.ConfigEntry)
 			checkChains[structs.NewServiceID(entry.GetName(), entry.GetEnterpriseMeta())] = struct{}{}
-		}
-		if err != nil {
-			return err
 		}
 	}
 
@@ -438,7 +422,7 @@ func (s *Store) validateProposedConfigEntryInServiceGraph(
 	}
 
 	for chain := range checkChains {
-		if err := s.testCompileDiscoveryChain(tx, nil, chain.ID, overrides, &chain.EnterpriseMeta); err != nil {
+		if err := s.testCompileDiscoveryChain(tx, chain.ID, overrides, &chain.EnterpriseMeta); err != nil {
 			return err
 		}
 	}
@@ -448,7 +432,6 @@ func (s *Store) validateProposedConfigEntryInServiceGraph(
 
 func (s *Store) testCompileDiscoveryChain(
 	tx *txn,
-	ws memdb.WatchSet,
 	chainName string,
 	overrides map[structs.ConfigEntryKindName]structs.ConfigEntry,
 	entMeta *structs.EnterpriseMeta,

@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/binary"
 	"errors"
@@ -498,9 +499,9 @@ func canRetry(args interface{}, err error) bool {
 	return false
 }
 
-// forward is used to forward to a remote DC or to forward to the local leader
+// ForwardRPC is used to forward an RPC request to a remote DC or to the local leader
 // Returns a bool of if forwarding was performed, as well as any error
-func (s *Server) forward(method string, info structs.RPCInfo, args interface{}, reply interface{}) (bool, error) {
+func (s *Server) ForwardRPC(method string, info structs.RPCInfo, args interface{}, reply interface{}) (bool, error) {
 	var firstCheck time.Time
 
 	// Handle DC forwarding
@@ -752,7 +753,9 @@ type queryFn func(memdb.WatchSet, *state.Store) error
 
 // blockingQuery is used to process a potentially blocking query operation.
 func (s *Server) blockingQuery(queryOpts structs.QueryOptionsCompat, queryMeta structs.QueryMetaCompat, fn queryFn) error {
-	var timeout *time.Timer
+	var cancel func()
+	var ctx context.Context = &lib.StopChannelContext{StopCh: s.shutdownCh}
+
 	var queriesBlocking uint64
 	var queryTimeout time.Duration
 
@@ -776,9 +779,9 @@ func (s *Server) blockingQuery(queryOpts structs.QueryOptionsCompat, queryMeta s
 	// Apply a small amount of jitter to the request.
 	queryTimeout += lib.RandomStagger(queryTimeout / jitterFraction)
 
-	// Setup a query timeout.
-	timeout = time.NewTimer(queryTimeout)
-	defer timeout.Stop()
+	// wrap the base context with a deadline
+	ctx, cancel = context.WithDeadline(ctx, time.Now().Add(queryTimeout))
+	defer cancel()
 
 	// instrument blockingQueries
 	// atomic inc our server's count of in-flight blockingQueries and store the new value
@@ -833,7 +836,9 @@ RUN_QUERY:
 	}
 	// block up to the timeout if we don't see anything fresh.
 	if err == nil && minQueryIndex > 0 && queryMeta.GetIndex() <= minQueryIndex {
-		if expired := ws.Watch(timeout.C); !expired {
+		if err := ws.WatchCtx(ctx); err == nil {
+			// a non-nil error only occurs when the context is cancelled
+
 			// If a restore may have woken us up then bail out from
 			// the query immediately. This is slightly race-ey since
 			// this might have been interrupted for other reasons,

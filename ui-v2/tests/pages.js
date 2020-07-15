@@ -23,7 +23,6 @@ import pageFactory from 'consul-ui/components/hashicorp-consul/pageobject';
 
 import radiogroup from 'consul-ui/components/radio-group/pageobject';
 import tabgroup from 'consul-ui/components/tab-nav/pageobject';
-import popoverSort from 'consul-ui/components/popover-sort/pageobject';
 import authFormFactory from 'consul-ui/components/auth-form/pageobject';
 import freetextFilterFactory from 'consul-ui/components/freetext-filter/pageobject';
 
@@ -33,8 +32,14 @@ import policyFormFactory from 'consul-ui/components/policy-form/pageobject';
 import policySelectorFactory from 'consul-ui/components/policy-selector/pageobject';
 import roleFormFactory from 'consul-ui/components/role-form/pageobject';
 import roleSelectorFactory from 'consul-ui/components/role-selector/pageobject';
+
+import popoverSelectFactory from 'consul-ui/components/popover-select/pageobject';
+import morePopoverMenuFactory from 'consul-ui/components/more-popover-menu/pageobject';
+
 import tokenListFactory from 'consul-ui/components/token-list/pageobject';
 import consulTokenListFactory from 'consul-ui/components/consul-token-list/pageobject';
+import consulRoleListFactory from 'consul-ui/components/consul-role-list/pageobject';
+import consulPolicyListFactory from 'consul-ui/components/consul-policy-list/pageobject';
 import consulIntentionListFactory from 'consul-ui/components/consul-intention-list/pageobject';
 
 // pages
@@ -86,8 +91,32 @@ const policyForm = policyFormFactory(submitable, cancelable, radiogroup, text);
 const policySelector = policySelectorFactory(clickable, deletable, collection, alias, policyForm);
 const roleForm = roleFormFactory(submitable, cancelable, policySelector);
 const roleSelector = roleSelectorFactory(clickable, deletable, collection, alias, roleForm);
+
+const morePopoverMenu = morePopoverMenuFactory(clickable);
+const popoverSelect = popoverSelectFactory(clickable, collection);
+
 const consulIntentionList = consulIntentionListFactory(collection, clickable, attribute, deletable);
-const consulTokenList = consulTokenListFactory(collection, clickable, attribute, text, deletable);
+const consulTokenList = consulTokenListFactory(
+  collection,
+  clickable,
+  attribute,
+  text,
+  morePopoverMenu
+);
+const consulRoleList = consulRoleListFactory(
+  collection,
+  clickable,
+  attribute,
+  text,
+  morePopoverMenu
+);
+const consulPolicyList = consulPolicyListFactory(
+  collection,
+  clickable,
+  attribute,
+  text,
+  morePopoverMenu
+);
 
 const page = pageFactory(clickable, attribute, is, authForm);
 
@@ -103,34 +132,30 @@ export default {
   index: create(index(visitable, collection)),
   dcs: create(dcs(visitable, clickable, attribute, collection)),
   services: create(
-    services(visitable, clickable, text, attribute, isPresent, collection, popoverSort, radiogroup)
+    services(
+      visitable,
+      clickable,
+      text,
+      attribute,
+      isPresent,
+      collection,
+      popoverSelect,
+      radiogroup
+    )
   ),
   service: create(
     service(visitable, attribute, collection, text, consulIntentionList, catalogToolbar, tabgroup)
   ),
   instance: create(instance(visitable, attribute, collection, text, tabgroup)),
   nodes: create(nodes(visitable, clickable, attribute, collection, catalogFilter)),
-  node: create(node(visitable, deletable, clickable, attribute, collection, tabgroup)),
+  node: create(node(visitable, deletable, clickable, attribute, collection, tabgroup, text)),
   kvs: create(kvs(visitable, deletable, creatable, clickable, attribute, collection)),
   kv: create(kv(visitable, attribute, submitable, deletable, cancelable, clickable)),
   acls: create(acls(visitable, deletable, creatable, clickable, attribute, collection, aclFilter)),
   acl: create(acl(visitable, submitable, deletable, cancelable, clickable)),
-  policies: create(
-    policies(
-      visitable,
-      deletable,
-      creatable,
-      clickable,
-      attribute,
-      collection,
-      text,
-      freetextFilter
-    )
-  ),
+  policies: create(policies(visitable, creatable, consulPolicyList, freetextFilter)),
   policy: create(policy(visitable, submitable, deletable, cancelable, clickable, tokenList)),
-  roles: create(
-    roles(visitable, deletable, creatable, clickable, attribute, collection, text, freetextFilter)
-  ),
+  roles: create(roles(visitable, creatable, consulRoleList, freetextFilter)),
   // TODO: This needs a policyList
   role: create(role(visitable, submitable, deletable, cancelable, policySelector, tokenList)),
   tokens: create(tokens(visitable, creatable, text, consulTokenList, freetextFilter)),

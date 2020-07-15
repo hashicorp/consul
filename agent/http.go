@@ -81,7 +81,8 @@ func (e ForbiddenError) Error() string {
 
 // HTTPServer provides an HTTP api for an agent.
 type HTTPServer struct {
-	*http.Server
+	// TODO(dnephin): remove Server field, it is not used by any of the HTTPServer methods
+	Server   *http.Server
 	ln       net.Listener
 	agent    *Agent
 	denylist *Denylist
@@ -370,7 +371,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 func (s *HTTPServer) GenerateHTMLTemplateVars() map[string]interface{} {
 	vars := map[string]interface{}{
 		"ContentPath": s.agent.config.UIContentPath,
-		"ACLsEnabled": s.agent.delegate.ACLsEnabled(),
+		"ACLsEnabled": s.agent.config.ACLsEnabled,
 	}
 
 	s.addEnterpriseHTMLTemplateVars(vars)
@@ -608,7 +609,7 @@ func (s *HTTPServer) marshalJSON(req *http.Request, obj interface{}) ([]byte, er
 	if err != nil {
 		return nil, err
 	}
-	return buf, err
+	return buf, nil
 }
 
 // Returns true if the UI is enabled.

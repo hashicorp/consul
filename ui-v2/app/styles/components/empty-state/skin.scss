@@ -23,7 +23,7 @@
 %empty-state[class*='status-'] header::before {
   @extend %as-pseudo;
 }
-%empty-state.status- header::before {
+%empty-state header::before {
   @extend %with-alert-circle-outline-mask;
 }
 %empty-state.status-404 header::before {
@@ -31,9 +31,6 @@
 }
 %empty-state.status-403 header::before {
   @extend %with-disabled-mask;
-}
-%empty-state[class*='status-5'] header::before {
-  @extend %with-alert-circle-outline-mask;
 }
 %empty-state li[class*='-link'] > *::after {
   @extend %as-pseudo;

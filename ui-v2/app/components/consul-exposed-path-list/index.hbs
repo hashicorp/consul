@@ -2,7 +2,7 @@
 {{#each items as |path|}}
   <li>
     <div>
-{{#let (concat address ':' path.Path) as |combinedAddress|}}
+    {{#let (concat address ':' path.Path) as |combinedAddress|}}
       <p class="combined-address">
         <span>
           {{combinedAddress}}
@@ -12,59 +12,57 @@
           @name="Address"
         />
       </p>
-{{/let}}
+    {{/let}}
     </div>
     <div>
-      <ul>
-      {{#if path.Protocol}}
-        <li class="protocol">
-          <span>
-            <Tooltip>
-                Protocol
-            </Tooltip>
-          </span>
-          <span>
-            {{path.Protocol}}
-          </span>
-        </li>
-      {{/if}}
-      {{#if path.ListenerPort}}
-        <li class="port">
-          <span>
-            <Tooltip>
-                Port
-            </Tooltip>
-          </span>
-          <span>
-            listening on :{{path.ListenerPort}}
-          </span>
-        </li>
-      {{/if}}
-      {{#if path.LocalPathPort}}
-        <li class="port">
-          <span>
-            <Tooltip>
-                Port
-            </Tooltip>
-          </span>
-          <span>
-            local port :{{path.LocalPathPort}}
-          </span>
-        </li>
-      {{/if}}
-      {{#if path.Path}}
-        <li class="path">
-          <span>
-            <Tooltip>
-                Path
-            </Tooltip>
-          </span>
-          <span>
-            {{path.Path}}
-          </span>
-        </li>
-      {{/if}}
-      </ul>
+    {{#if path.Protocol}}
+      <dl class="protocol">
+        <dt>
+          <Tooltip>
+              Protocol
+          </Tooltip>
+        </dt>
+        <dd>
+          {{path.Protocol}}
+        </dd>
+      </dl>
+    {{/if}}
+    {{#if path.ListenerPort}}
+      <dl class="port">
+        <dt>
+          <Tooltip>
+              Port
+          </Tooltip>
+        </dt>
+        <dd>
+          listening on :{{path.ListenerPort}}
+        </dd>
+      </dl>
+    {{/if}}
+    {{#if path.LocalPathPort}}
+      <dl class="port">
+        <dt>
+          <Tooltip>
+              Port
+          </Tooltip>
+        </dt>
+        <dd>
+          local port :{{path.LocalPathPort}}
+        </dd>
+      </dl>
+    {{/if}}
+    {{#if path.Path}}
+      <dl class="path">
+        <dt>
+          <Tooltip>
+              Path
+          </Tooltip>
+        </dt>
+        <dd>
+          {{path.Path}}
+        </dd>
+      </dl>
+    {{/if}}
     </div>
   </li>
 {{/each}}

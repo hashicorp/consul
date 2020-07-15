@@ -35,7 +35,7 @@ compatible Envoy versions.
 
 | Consul Version      | Compatible Envoy Versions        |
 | ------------------- | -------------------------------- |
-| 1.8.x               | 1.14.2, 1.13.2, 1.12.4, 1.11.2   |
+| 1.8.x               | 1.14.4, 1.13.4, 1.12.6, 1.11.2   |
 | 1.7.x               | 1.13.1, 1.12.3, 1.11.2, 1.10.0\* |
 | 1.5.2, 1.5.3, 1.6.x | 1.11.1, 1.10.0, 1.9.1, 1.8.0†    |
 | 1.5.0, 1.5.1        | 1.9.1, 1.8.0†                    |
@@ -287,7 +287,6 @@ definition](/docs/connect/registration/service-registration) or
   - `max_failures` - The number of consecutive failures which cause a host to be
     removed from the load balancer.
 
-
 ### Gateway Options
 
 These fields may also be overridden explicitly in the [proxy service
@@ -319,7 +318,7 @@ will continue to be supported.
 - `envoy_gateway_no_default_bind` - Prevents binding to the default address
   of the gateway service. This should be used with one of the other options
   to configure the gateway's bind addresses.
-  
+
 - `envoy_dns_discovery_type` - Determines how Envoy will resolve hostnames. Defaults to `LOGICAL_DNS`.
   Must be one of `STRICT_DNS` or `LOGICAL_DNS`. Details for each type are available in
   the [Envoy documentation](https://www.envoyproxy.io/docs/envoy/v1.14.1/intro/arch_overview/upstream/service_discovery).

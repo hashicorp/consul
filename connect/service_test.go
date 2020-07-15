@@ -127,7 +127,11 @@ func TestService_Dial(t *testing.T) {
 func TestService_ServerTLSConfig(t *testing.T) {
 	require := require.New(t)
 
-	a := agent.StartTestAgent(t, agent.TestAgent{Name: "007"})
+	a := agent.StartTestAgent(t, agent.TestAgent{Name: "007", Overrides: `
+		connect {
+			test_ca_leaf_root_change_spread = "1ns"
+		}
+	`})
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	client := a.Client()

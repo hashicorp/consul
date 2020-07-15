@@ -3,28 +3,30 @@ package xds
 import (
 	"errors"
 	"fmt"
+	"net"
 	"strings"
-
-	"github.com/gogo/protobuf/proto"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoyroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	envoymatcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
 // routesFromSnapshot returns the xDS API representation of the "routes" in the
 // snapshot.
-func routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, _ string) ([]proto.Message, error) {
+func routesFromSnapshot(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
 	}
 
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
-		return routesFromSnapshotConnectProxy(cfgSnap)
+		return routesFromSnapshotConnectProxy(cInfo, cfgSnap)
 	case structs.ServiceKindIngressGateway:
-		return routesFromSnapshotIngressGateway(cfgSnap)
+		return routesFromSnapshotIngressGateway(cInfo, cfgSnap)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
@@ -32,7 +34,7 @@ func routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, _ string) ([]proto.Mes
 
 // routesFromSnapshotConnectProxy returns the xDS API representation of the
 // "routes" in the snapshot.
-func routesFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+func routesFromSnapshotConnectProxy(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
 	}
@@ -49,14 +51,14 @@ func routesFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.M
 		if chain == nil || chain.IsDefault() {
 			// TODO(rb): make this do the old school stuff too
 		} else {
-			virtualHost, err := makeUpstreamRouteForDiscoveryChain(upstreamID, chain, []string{"*"})
+			virtualHost, err := makeUpstreamRouteForDiscoveryChain(cInfo, upstreamID, chain, []string{"*"})
 			if err != nil {
 				return nil, err
 			}
 
 			route := &envoy.RouteConfiguration{
 				Name:         upstreamID,
-				VirtualHosts: []envoyroute.VirtualHost{virtualHost},
+				VirtualHosts: []*envoyroute.VirtualHost{virtualHost},
 				// ValidateClusters defaults to true when defined statically and false
 				// when done via RDS. Re-set the sane value of true to prevent
 				// null-routing traffic.
@@ -72,7 +74,7 @@ func routesFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.M
 
 // routesFromSnapshotIngressGateway returns the xDS API representation of the
 // "routes" in the snapshot.
-func routesFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+func routesFromSnapshotIngressGateway(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
 	}
@@ -98,20 +100,8 @@ func routesFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto
 				continue
 			}
 
-			namespace := u.GetEnterpriseMeta().NamespaceOrDefault()
-			var domains []string
-			switch {
-			case len(u.IngressHosts) > 0:
-				// If a user has specified hosts, do not add the default
-				// "<service-name>.ingress.*" prefixes
-				domains = u.IngressHosts
-			case namespace != structs.IntentionDefaultNamespace:
-				domains = []string{fmt.Sprintf("%s.ingress.%s.*", chain.ServiceName, namespace)}
-			default:
-				domains = []string{fmt.Sprintf("%s.ingress.*", chain.ServiceName)}
-			}
-
-			virtualHost, err := makeUpstreamRouteForDiscoveryChain(upstreamID, chain, domains)
+			domains := generateUpstreamIngressDomains(listenerKey, u)
+			virtualHost, err := makeUpstreamRouteForDiscoveryChain(cInfo, upstreamID, chain, domains)
 			if err != nil {
 				return nil, err
 			}
@@ -124,12 +114,59 @@ func routesFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto
 	return result, nil
 }
 
+func generateUpstreamIngressDomains(listenerKey proxycfg.IngressListenerKey, u structs.Upstream) []string {
+	var domains []string
+	domainsSet := make(map[string]bool)
+
+	namespace := u.GetEnterpriseMeta().NamespaceOrDefault()
+	switch {
+	case len(u.IngressHosts) > 0:
+		// If a user has specified hosts, do not add the default
+		// "<service-name>.ingress.*" prefixes
+		domains = u.IngressHosts
+	case namespace != structs.IntentionDefaultNamespace:
+		domains = []string{fmt.Sprintf("%s.ingress.%s.*", u.DestinationName, namespace)}
+	default:
+		domains = []string{fmt.Sprintf("%s.ingress.*", u.DestinationName)}
+	}
+
+	for _, h := range domains {
+		domainsSet[h] = true
+	}
+
+	// Host headers may contain port numbers in them, so we need to make sure
+	// we match on the host with and without the port number. Well-known
+	// ports like HTTP/HTTPS are stripped from Host headers, but other ports
+	// will be in the header.
+	for _, h := range domains {
+		_, _, err := net.SplitHostPort(h)
+		// Error message from Go's net/ipsock.go
+		// We check to see if a port is not missing, and ignore the
+		// error from SplitHostPort otherwise, since we have previously
+		// validated the Host values and should trust the user's input.
+		if err == nil || !strings.Contains(err.Error(), "missing port in address") {
+			continue
+		}
+
+		domainWithPort := fmt.Sprintf("%s:%d", h, listenerKey.Port)
+
+		// Do not add a duplicate domain if a hostname with port is already in the
+		// set
+		if !domainsSet[domainWithPort] {
+			domains = append(domains, domainWithPort)
+		}
+	}
+
+	return domains
+}
+
 func makeUpstreamRouteForDiscoveryChain(
+	cInfo connectionInfo,
 	routeName string,
 	chain *structs.CompiledDiscoveryChain,
 	serviceDomains []string,
-) (envoyroute.VirtualHost, error) {
-	var routes []envoyroute.Route
+) (*envoyroute.VirtualHost, error) {
+	var routes []*envoyroute.Route
 
 	startNode := chain.Nodes[chain.StartNode]
 	if startNode == nil {
@@ -138,10 +175,10 @@ func makeUpstreamRouteForDiscoveryChain(
 
 	switch startNode.Type {
 	case structs.DiscoveryGraphNodeTypeRouter:
-		routes = make([]envoyroute.Route, 0, len(startNode.Routes))
+		routes = make([]*envoyroute.Route, 0, len(startNode.Routes))
 
 		for _, discoveryRoute := range startNode.Routes {
-			routeMatch := makeRouteMatchForDiscoveryRoute(discoveryRoute, chain.Protocol)
+			routeMatch := makeRouteMatchForDiscoveryRoute(cInfo, discoveryRoute)
 
 			var (
 				routeAction *envoyroute.Route_Route
@@ -153,14 +190,14 @@ func makeUpstreamRouteForDiscoveryChain(
 			case structs.DiscoveryGraphNodeTypeSplitter:
 				routeAction, err = makeRouteActionForSplitter(nextNode.Splits, chain)
 				if err != nil {
-					return envoyroute.VirtualHost{}, err
+					return nil, err
 				}
 
 			case structs.DiscoveryGraphNodeTypeResolver:
 				routeAction = makeRouteActionForSingleCluster(nextNode.Resolver.Target, chain)
 
 			default:
-				return envoyroute.VirtualHost{}, fmt.Errorf("unexpected graph node after route %q", nextNode.Type)
+				return nil, fmt.Errorf("unexpected graph node after route %q", nextNode.Type)
 			}
 
 			// TODO(rb): Better help handle the envoy case where you need (prefix=/foo/,rewrite=/) and (exact=/foo,rewrite=/) to do a full rewrite
@@ -172,7 +209,7 @@ func makeUpstreamRouteForDiscoveryChain(
 				}
 
 				if destination.RequestTimeout > 0 {
-					routeAction.Route.Timeout = &destination.RequestTimeout
+					routeAction.Route.Timeout = ptypes.DurationProto(destination.RequestTimeout)
 				}
 
 				if destination.HasRetryFeatures() {
@@ -198,7 +235,7 @@ func makeUpstreamRouteForDiscoveryChain(
 				}
 			}
 
-			routes = append(routes, envoyroute.Route{
+			routes = append(routes, &envoyroute.Route{
 				Match:  routeMatch,
 				Action: routeAction,
 			})
@@ -207,31 +244,31 @@ func makeUpstreamRouteForDiscoveryChain(
 	case structs.DiscoveryGraphNodeTypeSplitter:
 		routeAction, err := makeRouteActionForSplitter(startNode.Splits, chain)
 		if err != nil {
-			return envoyroute.VirtualHost{}, err
+			return nil, err
 		}
 
-		defaultRoute := envoyroute.Route{
+		defaultRoute := &envoyroute.Route{
 			Match:  makeDefaultRouteMatch(),
 			Action: routeAction,
 		}
 
-		routes = []envoyroute.Route{defaultRoute}
+		routes = []*envoyroute.Route{defaultRoute}
 
 	case structs.DiscoveryGraphNodeTypeResolver:
 		routeAction := makeRouteActionForSingleCluster(startNode.Resolver.Target, chain)
 
-		defaultRoute := envoyroute.Route{
+		defaultRoute := &envoyroute.Route{
 			Match:  makeDefaultRouteMatch(),
 			Action: routeAction,
 		}
 
-		routes = []envoyroute.Route{defaultRoute}
+		routes = []*envoyroute.Route{defaultRoute}
 
 	default:
 		panic("unknown first node in discovery chain of type: " + startNode.Type)
 	}
 
-	host := envoyroute.VirtualHost{
+	host := &envoyroute.VirtualHost{
 		Name:    routeName,
 		Domains: serviceDomains,
 		Routes:  routes,
@@ -240,13 +277,13 @@ func makeUpstreamRouteForDiscoveryChain(
 	return host, nil
 }
 
-func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute, protocol string) envoyroute.RouteMatch {
+func makeRouteMatchForDiscoveryRoute(cInfo connectionInfo, discoveryRoute *structs.DiscoveryRoute) *envoyroute.RouteMatch {
 	match := discoveryRoute.Definition.Match
 	if match == nil || match.IsEmpty() {
 		return makeDefaultRouteMatch()
 	}
 
-	em := envoyroute.RouteMatch{}
+	em := &envoyroute.RouteMatch{}
 
 	switch {
 	case match.HTTP.PathExact != "":
@@ -258,8 +295,14 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute, pro
 			Prefix: match.HTTP.PathPrefix,
 		}
 	case match.HTTP.PathRegex != "":
-		em.PathSpecifier = &envoyroute.RouteMatch_Regex{
-			Regex: match.HTTP.PathRegex,
+		if cInfo.ProxyFeatures.RouterMatchSafeRegex {
+			em.PathSpecifier = &envoyroute.RouteMatch_SafeRegex{
+				SafeRegex: makeEnvoyRegexMatch(match.HTTP.PathRegex),
+			}
+		} else {
+			em.PathSpecifier = &envoyroute.RouteMatch_Regex{
+				Regex: match.HTTP.PathRegex,
+			}
 		}
 	default:
 		em.PathSpecifier = &envoyroute.RouteMatch_Prefix{
@@ -280,8 +323,14 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute, pro
 					ExactMatch: hdr.Exact,
 				}
 			case hdr.Regex != "":
-				eh.HeaderMatchSpecifier = &envoyroute.HeaderMatcher_RegexMatch{
-					RegexMatch: hdr.Regex,
+				if cInfo.ProxyFeatures.RouterMatchSafeRegex {
+					eh.HeaderMatchSpecifier = &envoyroute.HeaderMatcher_SafeRegexMatch{
+						SafeRegexMatch: makeEnvoyRegexMatch(hdr.Regex),
+					}
+				} else {
+					eh.HeaderMatchSpecifier = &envoyroute.HeaderMatcher_RegexMatch{
+						RegexMatch: hdr.Regex,
+					}
 				}
 			case hdr.Prefix != "":
 				eh.HeaderMatchSpecifier = &envoyroute.HeaderMatcher_PrefixMatch{
@@ -312,10 +361,17 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute, pro
 
 		eh := &envoyroute.HeaderMatcher{
 			Name: ":method",
-			HeaderMatchSpecifier: &envoyroute.HeaderMatcher_RegexMatch{
-				RegexMatch: methodHeaderRegex,
-			},
 		}
+		if cInfo.ProxyFeatures.RouterMatchSafeRegex {
+			eh.HeaderMatchSpecifier = &envoyroute.HeaderMatcher_SafeRegexMatch{
+				SafeRegexMatch: makeEnvoyRegexMatch(methodHeaderRegex),
+			}
+		} else {
+			eh.HeaderMatchSpecifier = &envoyroute.HeaderMatcher_RegexMatch{
+				RegexMatch: methodHeaderRegex,
+			}
+		}
+
 		em.Headers = append(em.Headers, eh)
 	}
 
@@ -328,12 +384,38 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute, pro
 
 			switch {
 			case qm.Exact != "":
-				eq.Value = qm.Exact
+				if cInfo.ProxyFeatures.RouterMatchSafeRegex {
+					eq.QueryParameterMatchSpecifier = &envoyroute.QueryParameterMatcher_StringMatch{
+						StringMatch: &envoymatcher.StringMatcher{
+							MatchPattern: &envoymatcher.StringMatcher_Exact{
+								Exact: qm.Exact,
+							},
+						},
+					}
+				} else {
+					eq.Value = qm.Exact
+				}
 			case qm.Regex != "":
-				eq.Value = qm.Regex
-				eq.Regex = makeBoolValue(true)
+				if cInfo.ProxyFeatures.RouterMatchSafeRegex {
+					eq.QueryParameterMatchSpecifier = &envoyroute.QueryParameterMatcher_StringMatch{
+						StringMatch: &envoymatcher.StringMatcher{
+							MatchPattern: &envoymatcher.StringMatcher_SafeRegex{
+								SafeRegex: makeEnvoyRegexMatch(qm.Regex),
+							},
+						},
+					}
+				} else {
+					eq.Value = qm.Regex
+					eq.Regex = makeBoolValue(true)
+				}
 			case qm.Present:
-				eq.Value = ""
+				if cInfo.ProxyFeatures.RouterMatchSafeRegex {
+					eq.QueryParameterMatchSpecifier = &envoyroute.QueryParameterMatcher_PresentMatch{
+						PresentMatch: true,
+					}
+				} else {
+					eq.Value = ""
+				}
 			default:
 				continue // skip this impossible situation
 			}
@@ -345,8 +427,8 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute, pro
 	return em
 }
 
-func makeDefaultRouteMatch() envoyroute.RouteMatch {
-	return envoyroute.RouteMatch{
+func makeDefaultRouteMatch() *envoyroute.RouteMatch {
+	return &envoyroute.RouteMatch{
 		PathSpecifier: &envoyroute.RouteMatch_Prefix{
 			Prefix: "/",
 		},
@@ -406,4 +488,13 @@ func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, chain *structs
 			},
 		},
 	}, nil
+}
+
+func makeEnvoyRegexMatch(patt string) *envoymatcher.RegexMatcher {
+	return &envoymatcher.RegexMatcher{
+		EngineType: &envoymatcher.RegexMatcher_GoogleRe2{
+			GoogleRe2: &envoymatcher.RegexMatcher_GoogleRE2{},
+		},
+		Regex: patt,
+	}
 }

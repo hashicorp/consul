@@ -175,7 +175,7 @@ func TestPreparedQuery_Apply(t *testing.T) {
 		}
 		var resp structs.IndexedPreparedQueries
 		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp); err != nil {
-			if err.Error() != ErrQueryNotFound.Error() {
+			if !structs.IsErrQueryNotFound(err) {
 				t.Fatalf("err: %v", err)
 			}
 		}
@@ -317,7 +317,7 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 		}
 		var resp structs.IndexedPreparedQueries
 		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp); err != nil {
-			if err.Error() != ErrQueryNotFound.Error() {
+			if !structs.IsErrQueryNotFound(err) {
 				t.Fatalf("err: %v", err)
 			}
 		}
@@ -412,7 +412,7 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 		}
 		var resp structs.IndexedPreparedQueries
 		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp); err != nil {
-			if err.Error() != ErrQueryNotFound.Error() {
+			if !structs.IsErrQueryNotFound(err) {
 				t.Fatalf("err: %v", err)
 			}
 		}
@@ -1082,7 +1082,7 @@ func TestPreparedQuery_Get(t *testing.T) {
 		}
 		var resp structs.IndexedPreparedQueries
 		if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp); err != nil {
-			if err.Error() != ErrQueryNotFound.Error() {
+			if !structs.IsErrQueryNotFound(err) {
 				t.Fatalf("err: %v", err)
 			}
 		}
@@ -1429,7 +1429,7 @@ func TestPreparedQuery_Explain(t *testing.T) {
 		}
 		var resp structs.IndexedPreparedQueries
 		if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Explain", req, &resp); err != nil {
-			if err.Error() != ErrQueryNotFound.Error() {
+			if !structs.IsErrQueryNotFound(err) {
 				t.Fatalf("err: %v", err)
 			}
 		}
@@ -1617,7 +1617,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 		var reply structs.PreparedQueryExecuteResponse
 		err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply)
-		assert.EqualError(t, err, ErrQueryNotFound.Error())
+		assert.EqualError(t, err, structs.ErrQueryNotFound.Error())
 		assert.Len(t, reply.Nodes, 0)
 	})
 

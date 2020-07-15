@@ -3,6 +3,7 @@
 }
 %tooltip-panel dd > div {
   top: auto !important;
+  overflow: visible;
 }
 %tooltip-panel dt {
   cursor: pointer;

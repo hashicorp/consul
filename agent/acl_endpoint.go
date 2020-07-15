@@ -20,8 +20,8 @@ type aclBootstrapResponse struct {
 
 // checkACLDisabled will return a standard response if ACLs are disabled. This
 // returns true if they are disabled and we should not continue.
-func (s *HTTPServer) checkACLDisabled(resp http.ResponseWriter, req *http.Request) bool {
-	if s.agent.delegate.ACLsEnabled() {
+func (s *HTTPServer) checkACLDisabled(resp http.ResponseWriter, _req *http.Request) bool {
+	if s.agent.config.ACLsEnabled {
 		return false
 	}
 
@@ -298,7 +298,7 @@ func (s *HTTPServer) ACLPolicyWrite(resp http.ResponseWriter, req *http.Request,
 	return s.aclPolicyWriteInternal(resp, req, policyID, false)
 }
 
-func (s *HTTPServer) aclPolicyWriteInternal(resp http.ResponseWriter, req *http.Request, policyID string, create bool) (interface{}, error) {
+func (s *HTTPServer) aclPolicyWriteInternal(_resp http.ResponseWriter, req *http.Request, policyID string, create bool) (interface{}, error) {
 	args := structs.ACLPolicySetRequest{
 		Datacenter: s.agent.config.Datacenter,
 	}
@@ -498,7 +498,7 @@ func (s *HTTPServer) ACLTokenSet(resp http.ResponseWriter, req *http.Request, to
 	return s.aclTokenSetInternal(resp, req, tokenID, false)
 }
 
-func (s *HTTPServer) aclTokenSetInternal(resp http.ResponseWriter, req *http.Request, tokenID string, create bool) (interface{}, error) {
+func (s *HTTPServer) aclTokenSetInternal(_resp http.ResponseWriter, req *http.Request, tokenID string, create bool) (interface{}, error) {
 	args := structs.ACLTokenSetRequest{
 		Datacenter: s.agent.config.Datacenter,
 		Create:     create,

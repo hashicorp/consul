@@ -376,6 +376,23 @@ type GatewayService struct {
 
 type GatewayServices []*GatewayService
 
+func (g *GatewayService) Addresses(defaultHosts []string) []string {
+	if g.Port == 0 {
+		return nil
+	}
+
+	hosts := g.Hosts
+	if len(hosts) == 0 {
+		hosts = defaultHosts
+	}
+
+	var addresses []string
+	for _, h := range hosts {
+		addresses = append(addresses, fmt.Sprintf("%s:%d", h, g.Port))
+	}
+	return addresses
+}
+
 func (g *GatewayService) IsSame(o *GatewayService) bool {
 	return g.Gateway.Matches(&o.Gateway) &&
 		g.Service.Matches(&o.Service) &&

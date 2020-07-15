@@ -8,9 +8,15 @@ export default RepositoryService.extend({
   getPrimaryKey: function() {
     return PRIMARY_KEY;
   },
+  create: function(obj) {
+    delete obj.Namespace;
+    return this._super(obj);
+  },
   shouldReconcile: function(method) {
-    switch (method) {
-      case 'findByService':
+    // TODO: This is to be switched out for something at an adapter level
+    // so it works for both methods of interacting with data-sources
+    switch (true) {
+      case method === 'findByService' || method.indexOf('for-service') !== -1:
         return false;
     }
     return this._super(...arguments);

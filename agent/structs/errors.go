@@ -14,6 +14,7 @@ const (
 	errSegmentsNotSupported       = "Network segments are not supported in this version of Consul"
 	errRPCRateExceeded            = "RPC rate limit exceeded"
 	errServiceNotFound            = "Service not found: "
+	errQueryNotFound              = "Query not found"
 )
 
 var (
@@ -24,7 +25,16 @@ var (
 	ErrSegmentsNotSupported       = errors.New(errSegmentsNotSupported)
 	ErrRPCRateExceeded            = errors.New(errRPCRateExceeded)
 	ErrDCNotAvailable             = errors.New(errDCNotAvailable)
+	ErrQueryNotFound              = errors.New(errQueryNotFound)
 )
+
+func IsErrNoDCPath(err error) bool {
+	return err != nil && strings.Contains(err.Error(), errNoDCPath)
+}
+
+func IsErrQueryNotFound(err error) bool {
+	return err != nil && strings.Contains(err.Error(), errQueryNotFound)
+}
 
 func IsErrNoLeader(err error) bool {
 	return err != nil && strings.Contains(err.Error(), errNoLeader)

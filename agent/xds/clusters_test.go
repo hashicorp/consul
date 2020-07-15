@@ -2,7 +2,7 @@ package xds
 
 import (
 	"bytes"
-	"path"
+	"path/filepath"
 	"sort"
 	"testing"
 	"text/template"
@@ -446,6 +446,15 @@ func TestClustersFromSnapshot(t *testing.T) {
 							},
 						},
 					},
+					structs.NewServiceName("cache", nil): {
+						Kind: structs.ServiceResolver,
+						Name: "cache",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"prod": {
+								Filter: "Service.Meta.Env == prod",
+							},
+						},
+					},
 				}
 			},
 		},
@@ -460,6 +469,15 @@ func TestClustersFromSnapshot(t *testing.T) {
 						Subsets: map[string]structs.ServiceResolverSubset{
 							"alt": {
 								Filter: "Service.Meta.domain == alt",
+							},
+						},
+					},
+					structs.NewServiceName("cache", nil): {
+						Kind: structs.ServiceResolver,
+						Name: "cache",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"prod": {
+								Filter: "Service.Meta.Env == prod",
 							},
 						},
 					},
@@ -509,49 +527,58 @@ func TestClustersFromSnapshot(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			require := require.New(t)
+	for _, envoyVersion := range supportedEnvoyVersions {
+		sf := determineSupportedProxyFeaturesFromString(envoyVersion)
+		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
+			for _, tt := range tests {
+				t.Run(tt.name, func(t *testing.T) {
+					require := require.New(t)
 
-			// Sanity check default with no overrides first
-			snap := tt.create(t)
+					// Sanity check default with no overrides first
+					snap := tt.create(t)
 
-			// We need to replace the TLS certs with deterministic ones to make golden
-			// files workable. Note we don't update these otherwise they'd change
-			// golder files for every test case and so not be any use!
-			setupTLSRootsAndLeaf(t, snap)
+					// We need to replace the TLS certs with deterministic ones to make golden
+					// files workable. Note we don't update these otherwise they'd change
+					// golder files for every test case and so not be any use!
+					setupTLSRootsAndLeaf(t, snap)
 
-			if tt.setup != nil {
-				tt.setup(snap)
+					if tt.setup != nil {
+						tt.setup(snap)
+					}
+
+					// Need server just for logger dependency
+					logger := testutil.Logger(t)
+					s := Server{
+						Logger: logger,
+					}
+
+					cInfo := connectionInfo{
+						Token:         "my-token",
+						ProxyFeatures: sf,
+					}
+					clusters, err := s.clustersFromSnapshot(cInfo, snap)
+					require.NoError(err)
+					sort.Slice(clusters, func(i, j int) bool {
+						return clusters[i].(*envoy.Cluster).Name < clusters[j].(*envoy.Cluster).Name
+					})
+					r, err := createResponse(ClusterType, "00000001", "00000001", clusters)
+					require.NoError(err)
+
+					gotJSON := responseToJSON(t, r)
+
+					gName := tt.name
+					if tt.overrideGoldenName != "" {
+						gName = tt.overrideGoldenName
+					}
+
+					require.JSONEq(goldenEnvoy(t, filepath.Join("clusters", gName), envoyVersion, gotJSON), gotJSON)
+				})
 			}
-
-			// Need server just for logger dependency
-			logger := testutil.Logger(t)
-			s := Server{
-				Logger: logger,
-			}
-
-			clusters, err := s.clustersFromSnapshot(snap, "my-token")
-			require.NoError(err)
-			sort.Slice(clusters, func(i, j int) bool {
-				return clusters[i].(*envoy.Cluster).Name < clusters[j].(*envoy.Cluster).Name
-			})
-			r, err := createResponse(ClusterType, "00000001", "00000001", clusters)
-			require.NoError(err)
-
-			gotJSON := responseToJSON(t, r)
-
-			gName := tt.name
-			if tt.overrideGoldenName != "" {
-				gName = tt.overrideGoldenName
-			}
-
-			require.JSONEq(golden(t, path.Join("clusters", gName), gotJSON), gotJSON)
 		})
 	}
 }
 
-func expectClustersJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, token string, v, n uint64) map[string]string {
+func expectClustersJSONResources(snap *proxycfg.ConfigSnapshot) map[string]string {
 	return map[string]string{
 		"local_app": `
 			{
@@ -602,7 +629,7 @@ func expectClustersJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, to
 					"healthyPanicThreshold": {}
 				},
 				"connectTimeout": "5s",
-				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap, "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul") + `
+				"tlsContext": ` + expectedUpstreamTLSContextJSON(snap, "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul") + `
 			}`,
 		"prepared_query:geo-cache": `
 			{
@@ -623,12 +650,12 @@ func expectClustersJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, to
 
 				},
 				"connectTimeout": "5s",
-				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap, "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul") + `
+				"tlsContext": ` + expectedUpstreamTLSContextJSON(snap, "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul") + `
 			}`,
 	}
 }
 
-func expectClustersJSONFromResources(t *testing.T, snap *proxycfg.ConfigSnapshot, token string, v, n uint64, resourcesJSON map[string]string) string {
+func expectClustersJSONFromResources(snap *proxycfg.ConfigSnapshot, v, n uint64, resourcesJSON map[string]string) string {
 	resJSON := ""
 
 	// Sort resources into specific order because that matters in JSONEq
@@ -656,9 +683,8 @@ func expectClustersJSONFromResources(t *testing.T, snap *proxycfg.ConfigSnapshot
 		}`
 }
 
-func expectClustersJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token string, v, n uint64) string {
-	return expectClustersJSONFromResources(t, snap, token, v, n,
-		expectClustersJSONResources(t, snap, token, v, n))
+func expectClustersJSON(snap *proxycfg.ConfigSnapshot, v, n uint64) string {
+	return expectClustersJSONFromResources(snap, v, n, expectClustersJSONResources(snap))
 }
 
 type customClusterJSONOptions struct {
@@ -700,14 +726,24 @@ func setupTLSRootsAndLeaf(t *testing.T, snap *proxycfg.ConfigSnapshot) {
 	if snap.Leaf() != nil {
 		switch snap.Kind {
 		case structs.ServiceKindConnectProxy:
-			snap.ConnectProxy.Leaf.CertPEM = golden(t, "test-leaf-cert", "")
-			snap.ConnectProxy.Leaf.PrivateKeyPEM = golden(t, "test-leaf-key", "")
+			snap.ConnectProxy.Leaf.CertPEM = golden(t, "test-leaf-cert", "", "")
+			snap.ConnectProxy.Leaf.PrivateKeyPEM = golden(t, "test-leaf-key", "", "")
 		case structs.ServiceKindIngressGateway:
-			snap.IngressGateway.Leaf.CertPEM = golden(t, "test-leaf-cert", "")
-			snap.IngressGateway.Leaf.PrivateKeyPEM = golden(t, "test-leaf-key", "")
+			snap.IngressGateway.Leaf.CertPEM = golden(t, "test-leaf-cert", "", "")
+			snap.IngressGateway.Leaf.PrivateKeyPEM = golden(t, "test-leaf-key", "", "")
 		}
 	}
 	if snap.Roots != nil {
-		snap.Roots.Roots[0].RootCert = golden(t, "test-root-cert", "")
+		snap.Roots.Roots[0].RootCert = golden(t, "test-root-cert", "", "")
 	}
+}
+
+// supportedEnvoyVersions lists the versions that we generated golden tests for
+//
+// see: https://www.consul.io/docs/connect/proxies/envoy#supported-versions
+var supportedEnvoyVersions = []string{
+	"1.14.4",
+	"1.13.4",
+	"1.12.6",
+	"1.11.2",
 }

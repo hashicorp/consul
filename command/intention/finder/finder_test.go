@@ -8,10 +8,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestFinder(t *testing.T) {
+func TestIDFromArgs(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
@@ -20,30 +19,26 @@ func TestFinder(t *testing.T) {
 	var ids []string
 	{
 		insert := [][]string{
-			{"a", "b", "c", "d"},
+			{"a", "b"},
 		}
 
 		for _, v := range insert {
 			ixn := &api.Intention{
-				SourceNS:        v[0],
-				SourceName:      v[1],
-				DestinationNS:   v[2],
-				DestinationName: v[3],
+				SourceName:      v[0],
+				DestinationName: v[1],
 				Action:          api.IntentionActionAllow,
 			}
 
 			id, _, err := client.Connect().IntentionCreate(ixn, nil)
-			require.NoError(err)
+			require.NoError(t, err)
 			ids = append(ids, id)
 		}
 	}
 
-	finder := &Finder{Client: client}
-	ixn, err := finder.Find("a/b", "c/d")
-	require.NoError(err)
-	require.Equal(ids[0], ixn.ID)
+	id, err := IDFromArgs(client, []string{"a", "b"})
+	require.NoError(t, err)
+	require.Equal(t, ids[0], id)
 
-	ixn, err = finder.Find("a/c", "c/d")
-	require.NoError(err)
-	require.Nil(ixn)
+	_, err = IDFromArgs(client, []string{"c", "d"})
+	require.Error(t, err)
 }

@@ -13,7 +13,7 @@ import (
 
 // RaftGetConfiguration is used to retrieve the current Raft configuration.
 func (op *Operator) RaftGetConfiguration(args *structs.DCSpecificRequest, reply *structs.RaftConfigurationResponse) error {
-	if done, err := op.srv.forward("Operator.RaftGetConfiguration", args, args, reply); done {
+	if done, err := op.srv.ForwardRPC("Operator.RaftGetConfiguration", args, args, reply); done {
 		return err
 	}
 
@@ -74,7 +74,7 @@ func (op *Operator) RaftGetConfiguration(args *structs.DCSpecificRequest, reply 
 // "IP:port". The reply argument is not used, but it required to fulfill the RPC
 // interface.
 func (op *Operator) RaftRemovePeerByAddress(args *structs.RaftRemovePeerRequest, reply *struct{}) error {
-	if done, err := op.srv.forward("Operator.RaftRemovePeerByAddress", args, args, reply); done {
+	if done, err := op.srv.ForwardRPC("Operator.RaftRemovePeerByAddress", args, args, reply); done {
 		return err
 	}
 
@@ -146,7 +146,7 @@ REMOVE:
 // "IP:port". The reply argument is not used, but is required to fulfill the RPC
 // interface.
 func (op *Operator) RaftRemovePeerByID(args *structs.RaftRemovePeerRequest, reply *struct{}) error {
-	if done, err := op.srv.forward("Operator.RaftRemovePeerByID", args, args, reply); done {
+	if done, err := op.srv.ForwardRPC("Operator.RaftRemovePeerByID", args, args, reply); done {
 		return err
 	}
 

@@ -81,6 +81,9 @@ export default Adapter.extend({
     // });
   },
   error: function(err) {
+    if (err instanceof TypeError) {
+      throw err;
+    }
     const errors = [
       {
         status: `${err.statusCode}`,

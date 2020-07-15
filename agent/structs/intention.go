@@ -2,6 +2,7 @@ package structs
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -83,6 +84,18 @@ type Intention struct {
 	Hash []byte `bexpr:"-"`
 
 	RaftIndex `bexpr:"-"`
+}
+
+func (t *Intention) Clone() *Intention {
+	t2 := *t
+	if t.Meta != nil {
+		t2.Meta = make(map[string]string)
+		for k, v := range t.Meta {
+			t2.Meta[k] = v
+		}
+	}
+	t2.Hash = nil
+	return &t2
 }
 
 func (t *Intention) UnmarshalJSON(data []byte) (err error) {
@@ -245,6 +258,10 @@ func (ixn *Intention) CanRead(authz acl.Authorizer) bool {
 		return true
 	}
 	var authzContext acl.AuthorizerContext
+
+	// Read access on either end of the intention allows you to read the
+	// complete intention. This is so that both ends can be aware of why
+	// something does or does not work.
 
 	if ixn.SourceName != "" {
 		ixn.FillAuthzContext(&authzContext, false)
@@ -431,6 +448,10 @@ type IntentionQueryRequest struct {
 	// return allowed/deny based on an exact match.
 	Check *IntentionQueryCheck
 
+	// Exact is non-nil if we're performing a lookup of an intention by its
+	// unique name instead of its ID.
+	Exact *IntentionQueryExact
+
 	// Options for queries
 	QueryOptions
 }
@@ -505,6 +526,31 @@ func (q *IntentionQueryCheck) GetACLPrefix() (string, bool) {
 // IntentionQueryCheckResponse is the response for a test request.
 type IntentionQueryCheckResponse struct {
 	Allowed bool
+}
+
+// IntentionQueryExact holds the parameters for performing a lookup of an
+// intention by its unique name instead of its ID.
+type IntentionQueryExact struct {
+	SourceNS, SourceName           string
+	DestinationNS, DestinationName string
+}
+
+// Validate is used to ensure all 4 parameters are specified.
+func (q *IntentionQueryExact) Validate() error {
+	var err error
+	if q.SourceNS == "" {
+		err = multierror.Append(err, errors.New("SourceNS is missing"))
+	}
+	if q.SourceName == "" {
+		err = multierror.Append(err, errors.New("SourceName is missing"))
+	}
+	if q.DestinationNS == "" {
+		err = multierror.Append(err, errors.New("DestinationNS is missing"))
+	}
+	if q.DestinationName == "" {
+		err = multierror.Append(err, errors.New("DestinationName is missing"))
+	}
+	return err
 }
 
 // IntentionPrecedenceSorter takes a list of intentions and sorts them

@@ -54,7 +54,7 @@ export default Adapter.extend({
     `;
   },
   clone: function(store, type, id, snapshot) {
-    return this.request(
+    return this.rpc(
       function(adapter, request, serialized, unserialized) {
         return adapter.requestForCloneRecord(request, serialized, unserialized);
       },

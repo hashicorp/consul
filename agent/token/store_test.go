@@ -150,3 +150,94 @@ func TestStore_AgentMasterToken(t *testing.T) {
 	s.UpdateAgentMasterToken("", TokenSourceConfig)
 	verify(false, "", "nope", "master", "another")
 }
+
+func TestStore_Notify(t *testing.T) {
+	t.Parallel()
+	s := new(Store)
+
+	newNotification := func(t *testing.T, s *Store, kind TokenKind) Notifier {
+		n := s.Notify(kind)
+		require.NotNil(t, n.Ch)
+		return n
+	}
+
+	requireNotNotified := func(t *testing.T, ch <-chan struct{}) {
+		require.Empty(t, ch)
+	}
+
+	requireNotifiedOnce := func(t *testing.T, ch <-chan struct{}) {
+		require.Len(t, ch, 1)
+		// drain the channel
+		<-ch
+		// just to be safe
+		require.Empty(t, ch)
+	}
+
+	agentNotifier := newNotification(t, s, TokenKindAgent)
+	userNotifier := newNotification(t, s, TokenKindUser)
+	agentMasterNotifier := newNotification(t, s, TokenKindAgentMaster)
+	replicationNotifier := newNotification(t, s, TokenKindReplication)
+	replicationNotifier2 := newNotification(t, s, TokenKindReplication)
+
+	// perform an update of the user token
+	require.True(t, s.UpdateUserToken("edcae2a2-3b51-4864-b412-c7a568f49cb1", TokenSourceConfig))
+	// do it again to ensure it doesn't block even though nothing has read from the 1 buffered chan yet
+	require.True(t, s.UpdateUserToken("47788919-f944-476a-bda5-446d64be1df8", TokenSourceAPI))
+
+	// ensure notifications were sent to the user and all notifiers
+	requireNotNotified(t, agentNotifier.Ch)
+	requireNotifiedOnce(t, userNotifier.Ch)
+	requireNotNotified(t, replicationNotifier.Ch)
+	requireNotNotified(t, agentMasterNotifier.Ch)
+	requireNotNotified(t, replicationNotifier2.Ch)
+
+	// now update the agent token which should send notificaitons to the agent and all notifier
+	require.True(t, s.UpdateAgentToken("5d748ec2-d536-461f-8e2a-1f7eae98d559", TokenSourceAPI))
+
+	requireNotifiedOnce(t, agentNotifier.Ch)
+	requireNotNotified(t, userNotifier.Ch)
+	requireNotNotified(t, replicationNotifier.Ch)
+	requireNotNotified(t, agentMasterNotifier.Ch)
+	requireNotNotified(t, replicationNotifier2.Ch)
+
+	// now update the agent master token which should send notificaitons to the agent master and all notifier
+	require.True(t, s.UpdateAgentMasterToken("789badc8-f850-43e1-8742-9b9f484957cc", TokenSourceAPI))
+
+	requireNotNotified(t, agentNotifier.Ch)
+	requireNotNotified(t, userNotifier.Ch)
+	requireNotNotified(t, replicationNotifier.Ch)
+	requireNotifiedOnce(t, agentMasterNotifier.Ch)
+	requireNotNotified(t, replicationNotifier2.Ch)
+
+	// now update the replication token which should send notificaitons to the replication and all notifier
+	require.True(t, s.UpdateReplicationToken("789badc8-f850-43e1-8742-9b9f484957cc", TokenSourceAPI))
+
+	requireNotNotified(t, agentNotifier.Ch)
+	requireNotNotified(t, userNotifier.Ch)
+	requireNotifiedOnce(t, replicationNotifier.Ch)
+	requireNotNotified(t, agentMasterNotifier.Ch)
+	requireNotifiedOnce(t, replicationNotifier2.Ch)
+
+	s.StopNotify(replicationNotifier2)
+
+	// now update the replication token which should send notificaitons to the replication and all notifier
+	require.True(t, s.UpdateReplicationToken("eb0b56b9-fa65-4ae1-902a-c64457c62ac6", TokenSourceAPI))
+
+	requireNotNotified(t, agentNotifier.Ch)
+	requireNotNotified(t, userNotifier.Ch)
+	requireNotifiedOnce(t, replicationNotifier.Ch)
+	requireNotNotified(t, agentMasterNotifier.Ch)
+	requireNotNotified(t, replicationNotifier2.Ch)
+
+	// request updates but that are not changes
+	require.False(t, s.UpdateAgentToken("5d748ec2-d536-461f-8e2a-1f7eae98d559", TokenSourceAPI))
+	require.False(t, s.UpdateAgentMasterToken("789badc8-f850-43e1-8742-9b9f484957cc", TokenSourceAPI))
+	require.False(t, s.UpdateUserToken("47788919-f944-476a-bda5-446d64be1df8", TokenSourceAPI))
+	require.False(t, s.UpdateReplicationToken("eb0b56b9-fa65-4ae1-902a-c64457c62ac6", TokenSourceAPI))
+
+	// ensure that notifications were not sent
+	requireNotNotified(t, agentNotifier.Ch)
+	requireNotNotified(t, userNotifier.Ch)
+	requireNotNotified(t, replicationNotifier.Ch)
+	requireNotNotified(t, agentMasterNotifier.Ch)
+}

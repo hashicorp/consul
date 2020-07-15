@@ -3,7 +3,9 @@
 package consul
 
 import (
+	"errors"
 	"net"
+	"strings"
 
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/structs"
@@ -57,6 +59,18 @@ func (s *Server) revokeEnterpriseLeadership() error {
 
 func (s *Server) validateEnterpriseRequest(entMeta *structs.EnterpriseMeta, write bool) error {
 	return nil
+}
+
+func (s *Server) validateEnterpriseIntentionNamespace(ns string, _ bool) error {
+	if ns == "" {
+		return nil
+	} else if strings.ToLower(ns) == structs.IntentionDefaultNamespace {
+		return nil
+	}
+
+	// No special handling for wildcard namespaces as they are pointless in OSS.
+
+	return errors.New("Namespaces is a Consul Enterprise feature")
 }
 
 func (_ *Server) addEnterpriseSerfTags(_ map[string]string) {

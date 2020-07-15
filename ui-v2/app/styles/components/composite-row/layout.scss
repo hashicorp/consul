@@ -29,7 +29,7 @@
   align-self: center;
 }
 %composite-row-icon {
-  margin-right: 10px;
+  margin-right: 6px;
 }
 %composite-row-icon dt {
   display: none;
@@ -50,35 +50,32 @@
   display: inline-flex;
   flex-wrap: nowrap;
 }
-%composite-row-detail dt {
-  display: none;
-}
 %composite-row-header *,
 %composite-row-detail * {
   white-space: nowrap;
   flex-wrap: nowrap;
 }
-%composite-row-detail > dl,
-%composite-row-detail > ul > li {
+%composite-row-detail dl,
+%composite-row-detail > span {
   margin-right: 12px;
 }
-%composite-row-detail .node::before,
-%composite-row-detail .tag-list::before {
-  position: relative;
+%composite-row-detail dl.node dt::before {
+  margin-top: 3px;
 }
-%composite-row-detail .node::before {
-  top: 1px;
+%composite-row-detail dl dt::before {
+  margin-right: 4px;
+  margin-top: 2px;
 }
-%composite-row-detail .tag-list::before {
-  top: 2px;
-}
-
 // Copy Button
 %composite-row .copy-button button {
   padding: 0 !important;
   margin: 0 !important;
 }
-%composite-row .copy-button {
+%composite-row-detail .copy-button {
+  margin-right: 4px;
+  margin-top: 2px;
+}
+%composite-row-header .copy-button {
   margin-left: 4px;
 }
 %composite-row .copy-button {
@@ -86,11 +83,9 @@
 }
 /* buttons need to be displayed in order for the tooltip */
 /* to track them */
-%composite-row-header .copy-button button,
-%composite-row-detail .copy-button button {
+%composite-row-header .copy-button button {
   opacity: 0;
 }
-%composite-row-header:hover .copy-button button,
-%composite-row-detail:hover .copy-button button {
+%composite-row-header:hover .copy-button button {
   opacity: 1;
 }

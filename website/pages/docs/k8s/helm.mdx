@@ -43,6 +43,8 @@ and consider if they're appropriate for your deployment.
 
     Note: support for the catalog sync's liveness and readiness probes was added to consul-k8s 0.6.0. If using an older consul-k8s version, you may need to remove these checks to make sync work. If using mesh gateways and global.acls.manageSystemACLs then must be >= 0.9.0.
 
+  - `imageEnvoy` ((#v-global-imageenvoy)) (`string: "envoyproxy/envoy-alpine:<latest supported version>"`) - The default envoy image to use for ingress and terminating gateways.
+
   - `datacenter` ((#v-global-datacenter)) (`string: "dc1"`) - The name of the datacenter that the agents should
     register as. This can't be changed once the Consul cluster is up and running since Consul
     doesn't support an automatic way to change this value currently: [https://github.com/hashicorp/consul/issues/1858](https://github.com/hashicorp/consul/issues/1858).
@@ -567,7 +569,7 @@ and consider if they're appropriate for your deployment.
       services into. If the Consul namespace does not already exist, it will be created.
       This will be ignored if `mirroringK8S` is true.
 
-    - `mirroringK8S` ((#v-synccatalog-consulnamespaces-mirroringk8s)) (`bool: false`) - causes k8s
+    - `mirroringK8S` ((#v-synccatalog-consulnamespaces-mirroringk8s)) (`boolean: false`) - causes k8s
       services to be registered into a Consul namespace of the same name as their k8s namespace, optionally prefixed if `mirroringK8SPrefix` is set below. If the Consul namespace does not already exist, it will be created. Turning this on overrides the `consulDestinationNamespace` setting. `addK8SNamespaceSuffix` may no longer be needed if enabling this option.
 
     - `mirroringK8SPrefix` ((#v-synccatalog-consulnamespaces-mirroringk8sprefix)) (`string: ""`) - If
@@ -692,7 +694,7 @@ and consider if they're appropriate for your deployment.
       (`string: "default"`) - Name of the Consul namespace to register all k8s services into. If the Consul namespace does not already exist, it will be created.
       This will be ignored if `mirroringK8S` is true.
 
-    - `mirroringK8S` ((#v-connectinject-consulnamespaces-mirroringk8s)) (`bool: false`) - causes k8s
+    - `mirroringK8S` ((#v-connectinject-consulnamespaces-mirroringk8s)) (`boolean: false`) - causes k8s
       services to be registered into a Consul namespace of the same name as their k8s namespace, optionally prefixed if `mirroringK8SPrefix` is set below. If the Consul namespace does not already exist, it will be created. Turning this on overrides the `consulDestinationNamespace` setting.
 
     - `mirroringK8SPrefix` ((#v-connectinject-consulnamespaces-mirroringk8sprefix)) (`string: ""`) - If
@@ -782,54 +784,54 @@ and consider if they're appropriate for your deployment.
     If set to the empty string, no global default will be set and the gateway mode
     will need to be set individually for each service.
 
-  - `replicas` ((#v-meshgateway-replicas)) (`int: 2`) - Number of replicas for the Deployment.
+  - `replicas` ((#v-meshgateway-replicas)) (`integer: 2`) - Number of replicas for the Deployment.
 
   - `wanAddress` ((#v-meshgateway-wanaddress)) - What gets registered as WAN (wide area network) address for the gateway.
 
     - `source` ((#v-meshgateway-wanaddress-source)) (`string: "Service"`) - source configures where to retrieve the WAN address (and possibly port)
-        for the mesh gateway from.
-        Can be set to either: `Service`, `NodeIP`, `NodeName` or `Static`. See the behavior of each below:
+      for the mesh gateway from.
+      Can be set to either: `Service`, `NodeIP`, `NodeName` or `Static`. See the behavior of each below:
 
-        * `Service` - Determine the address based on the service type.
+      - `Service` - Determine the address based on the service type.
 
-          If `service.type=LoadBalancer` use the external IP or hostname of
-          the service. Use the port set by `service.port`.
+        If `service.type=LoadBalancer` use the external IP or hostname of
+        the service. Use the port set by `service.port`.
 
-          If `service.type=NodePort` use the Node IP. The port will be set to
-          `service.nodePort` so `service.nodePort` cannot be null.
+        If `service.type=NodePort` use the Node IP. The port will be set to
+        `service.nodePort` so `service.nodePort` cannot be null.
 
-          If `service.type=ClusterIP` use the ClusterIP. The port will be set to
-          `service.port`.
+        If `service.type=ClusterIP` use the ClusterIP. The port will be set to
+        `service.port`.
 
-          `service.type=ExternalName` is not supported.
+        `service.type=ExternalName` is not supported.
 
-        * `NodeIP` - The node IP as provided by the Kubernetes downward API.
+      - `NodeIP` - The node IP as provided by the Kubernetes downward API.
 
-        * `NodeName` - The name of the node as provided by the Kubernetes downward
-          API. This is useful if the node names are DNS entries that
-          are routable from other datacenters.
+      - `NodeName` - The name of the node as provided by the Kubernetes downward
+        API. This is useful if the node names are DNS entries that
+        are routable from other datacenters.
 
-        * `Static` - Use the address hardcoded in `meshGateway.wanAddress.static`.
+      - `Static` - Use the address hardcoded in `meshGateway.wanAddress.static`.
 
-    - `port` ((#v-meshgateway-wanaddress-port)) (`int: 443`) - Port that gets registered for WAN traffic.
+    - `port` ((#v-meshgateway-wanaddress-port)) (`integer: 443`) - Port that gets registered for WAN traffic.
       If source is set to "Service" then this setting will have no effect.
       See the documentation for `source` as to which port will be used in that
       case.
 
-    - `static` ((#v-meshgateway-wanaddress-static)) (`string: ""`) -  If source is set to "Static" then this value will be used as the WAN
+    - `static` ((#v-meshgateway-wanaddress-static)) (`string: ""`) - If source is set to "Static" then this value will be used as the WAN
       address of the mesh gateways. This is useful if you've configured a
       DNS entry to point to your mesh gateways.
 
   - `service` ((#v-meshgateway-service)) - The service option configures the Service that fronts the Gateway Deployment.
 
-    - `enabled` ((#v-meshgateway-service-enabled)) (`bool: true`) - Whether to create a Service or not.
+    - `enabled` ((#v-meshgateway-service-enabled)) (`boolean: true`) - Whether to create a Service or not.
 
     - `type` ((#v-meshgateway-service-type)) (`string: "LoadBalancer"`) - Type of service, ex. LoadBalancer, ClusterIP.
 
-    - `port` ((#v-meshgateway-service-port)) (`int: 443`) - Port that the service will be exposed on.
+    - `port` ((#v-meshgateway-service-port)) (`integer: 443`) - Port that the service will be exposed on.
       The `targetPort` will be set to `meshGateway.containerPort`.
 
-    - `nodePort` ((#v-meshgateway-service-nodeport)) (`int: null`) - Optionally hardcode the `nodePort` of the service if using a NodePort service.
+    - `nodePort` ((#v-meshgateway-service-nodeport)) (`integer: null`) - Optionally hardcode the `nodePort` of the service if using a NodePort service.
       If not set and using a NodePort service, Kubernetes will automatically assign a port.
 
     - `annotations` ((#v-meshgateway-service-annotations)) (`string: null`) - Annotations to apply to the mesh gateway service.
@@ -844,17 +846,17 @@ and consider if they're appropriate for your deployment.
 
   - `imageEnvoy` ((#v-meshgateway-imageenvoy)) (`string: "envoyproxy/envoy:v1.13.0"`) - Envoy image to use. For Consul v1.7+, Envoy version 1.13+ is required.
 
-  - `hostNetwork` ((#v-meshgateway-hostnetwork)) (`bool: false`) - If set to true, gateway Pods will run on the host network.
+  - `hostNetwork` ((#v-meshgateway-hostnetwork)) (`boolean: false`) - If set to true, gateway Pods will run on the host network.
 
   - `dnsPolicy` ((#v-meshgateway-dnspolicy)) (`string: null`) - `dnsPolicy` to use.
 
   - `consulServiceName` ((#v-meshgateway-consulservicename)) (`string: "mesh-gateway"`) - Consul service name for the mesh gateways.
-     Cannot be set to anything other than `"mesh-gateway"` if `global.acls.manageSystemACLs` is true since the ACL token
-     generated is only for the name "mesh-gateway".
+    Cannot be set to anything other than `"mesh-gateway"` if `global.acls.manageSystemACLs` is true since the ACL token
+    generated is only for the name "mesh-gateway".
 
-  - `containerPort` ((#v-meshgateway-containerPort)) (`int: 8443`) - Port that the gateway will run on inside the container.
+  - `containerPort` ((#v-meshgateway-containerPort)) (`integer: 8443`) - Port that the gateway will run on inside the container.
 
-  - `hostPort` ((#v-meshgateway-hostport)) (`int: null`) - Optional `hostPort` for the gateway to be exposed on.
+  - `hostPort` ((#v-meshgateway-hostport)) (`integer: null`) - Optional `hostPort` for the gateway to be exposed on.
     This can be used with `wanAddress.port` and `wanAddress.useNodeIP`
     to expose the gateways directly from the node.
     If `hostNetwork=true`, this must be `null` or set to the same port as
@@ -870,9 +872,102 @@ and consider if they're appropriate for your deployment.
 
   - `nodeSelector` ((#v-meshgateway-nodeselector)) (`string: null`) - Optional YAML string to specify nodeSelector config.
 
-  - `priorityClassName` ((#v-meshgateway-priorityclassname)) (`string: """`) - Optional priorityClassName.
+  - `priorityClassName` ((#v-meshgateway-priorityclassname)) (`string: ""`) - Optional priorityClassName.
 
   - `annotations` ((#v-meshgateway-annotations)) (`string: null`) - Annotations for the mesh gateway deployment.
+
+- `ingressGateways` ((#v-ingressgateways)) - Configuration options for ingress gateways. Default values for all ingress gateways are defined in `ingressGateways.defaults`. Any of these values may be overridden in `ingressGateways.gateways` for a specific gateway with the exception of annotations. Annotations will include both the default annotations and any additional ones defined for a specific gateway. Requirements: consul >= 1.8.0. If using `global.acls.manageSystemACLs`, consul-k8s >= 0.16.0 is needed.
+
+  - `enabled` ((#v-ingressgateways-enabled)) (`boolean: false`) - Enable ingress gateway deployment. Requires `connectInject.enabled=true`.
+
+  - `defaults` ((#v-ingressgateways-defaults)) - Defaults sets default values for all gateway fields. With the exception of annotations, defining any of these values in the `gateways` list will override the default values provided here.
+
+    - `replicas` ((#v-ingressgateways-defaults-replicas)) (`integer: 2`) - Number of replicas for each ingress gateway defined.
+
+    - `service` ((#v-ingressgateways-defaults-service)) - The service options configure the service that fronts the gateway deployment.
+
+      - `type` ((#v-ingressgateways-defaults-service-type)) (`string: "ClusterIP"`) - Type of service: LoadBalancer, ClusterIP or NodePort. If using NodePort service type, you must set the desired nodePorts in the `ports` setting below.
+
+      - `ports` ((#v-ingressgateways-defaults-service-ports)) - Ports that will be exposed on the service and gateway container. Any ports defined as ingress listeners on the gateway's Consul configuration entry should be included here. The first port will be used as part of the Consul service registration for the gateway and be listed in its SRV record. If using a NodePort service type, you must specify the desired nodePort for each exposed port.
+
+        - `port` ((#v-ingressgateways-defaults-service-ports-port)) (`integer: 8080`) - Port to open in both ingress gateway container and the service fronting the deployment. These should correspond to the listeners defined in the gateways' Consul configuration entry. The first defined port to be used in the Consul service registration for the ingress gateway and be listed in its SRV record. Note: GKE does not allow exposing port 80.
+
+        - `nodePort` ((#v-ingressgateways-defaults-service-ports-nodeport)) (`integer: null`) - The nodePort to open if using a NodePort type service. The first defined nodePort will be used with the Kubernetes node's host ip in the Consul service registration.
+
+      - `annotations` ((#v-ingressgateways-defaults-service-annotations)) (`string: null`) - Annotations to apply to the ingress gateway service.
+
+        ```yaml
+        annotations: |
+          "annotation-key": "annotation-value"
+        ```
+
+      - `additionalSpec` ((#v-ingressgateways-defaults-service-additionalspec)) (`string: null`) - Optional YAML string that will be appended to the Service spec.
+
+    - `resources` ((#v-ingressgateways-defaults-resources)) (`string`) - Resources for gateway pods. See values file for default.
+
+    - `affinity` ((#v-ingressgateways-defaults-affinity)) (`string`) - Affinity setting for gateway pods. See values file for default.
+
+    - `tolerations` ((#v-ingressgateways-defaults-tolerations)) (`string: null`) - Optional YAML string to specify tolerations.
+
+    - `nodeSelector` ((#v-ingressgateways-defaults-nodeselector)) (`string: null`) - Optional YAML string to specify nodeSelector config.
+
+    - `priorityClassName` ((#v-ingressgateways-defaults-priorityclassname)) (`string: ""`) - Optional priorityClassName.
+
+    - `annotations` ((#v-ingressgateways-defaults-annotations)) (`string: null`) - Annotations for the ingress gateway deployment. Annotations defined here will be applied to all ingress gateway deployments in addition to any annotations defined for a specific gateway in `ingressGateways.gateways`.
+
+      ```yaml
+      annotations: |
+        "annotation-key": "annotation-value"
+      ```
+
+    - `consulNamespace` ((#v-ingressgateways-defaults-consulnamespace)) (`string: "default"`) <EnterpriseAlert inline /> - Defines the Consul namespace to register the gateway into. Requires `global.enableConsulNamespaces` to be true and
+      Consul Enterprise v1.7+ with a valid Consul Enterprise license. Note: The Consul namespace MUST exist before the gateway is deployed.
+
+  - `gateways` ((#v-ingressgateways-gateways)) - Gateways is a list of gateway objects. The only required field for each is `name`, though they can also contain any of the fields in `ingressGateways.defaults`. Values defined here override the defaults except in the case of annotations where both will be applied.
+
+    - `name` ((#v-ingressgateways-gateways-name)) (`string: "ingress-gateway"`) - The name of the ingress gateway.
+
+- `terminatingGateways` ((#v-terminatinggateways)) - Configuration options for terminating gateways. Default values for all terminating gateways are defined in `terminatingGateways.defaults`. Any of these values may be overridden in `terminatingGateways.gateways` for a specific gateway with the exception of annotations. Annotations will include both the default annotations and any additional ones defined for a specific gateway. Requirements: consul >= 1.8.0. If using `global.acls.manageSystemACLs`, consul-k8s >= 0.16.0 is needed.
+
+  - `enabled` ((#v-terminatinggateways-enabled)) (`boolean: false`) - Enable terminating gateway deployment. Requires `connectInject.enabled=true`.
+
+  - `defaults` ((#v-terminatinggateways-defaults)) - Defaults sets default values for all gateway fields. With the exception of annotations, defining any of these values in the `terminatingGateways.gateways` list will override the default values provided here.
+
+    - `replicas` ((#v-terminatinggateways-defaults-replicas)) (`integer: 2`) - Number of replicas for each terminating gateway defined.
+
+    - `extraVolumes` ((#v-terminatinggateways-defaults-extraVolumes)) (`array: []`) - A list of extra volumes to mount. These will be exposed to Consul in the path `/consul/userconfig/<name>/`.
+
+      ```yaml
+      extraVolumes:
+        - type: 'secret'
+          name: 'my-secret'
+          items: # optional items array
+            - key: key
+              path: path # secret will now mount to /consul/userconfig/my-secret/path
+      ```
+
+    - `resources` ((#v-terminatinggateways-defaults-resources)) (`string`) - Resources for gateway pods. See values file for default.
+
+    - `affinity` ((#v-terminatinggateways-defaults-affinity)) (`string`) - Affinity setting for gateway pods. See values file for default.
+
+    - `tolerations` ((#v-terminatinggateways-defaults-tolerations)) (`string: null`) - Optional YAML string to specify tolerations.
+
+    - `nodeSelector` ((#v-terminatinggateways-defaults-nodeselector)) (`string: null`) - Optional YAML string to specify nodeSelector config.
+
+    - `priorityClassName` ((#v-terminatinggateways-defaults-priorityclassname)) (`string: ""`) - Optional priorityClassName.
+
+    - `annotations` ((#v-terminatinggateways-defaults-annotations)) (`string: null`) - Annotations for the terminating gateway deployment. Annotations defined here will be applied to all terminating gateway deployments in addition to any annotations defined for a specific gateway in `terminatingGateways.gateways`.
+
+      ```yaml
+      annotations: |
+        "annotation-key": "annotation-value"
+      ```
+
+    - `consulNamespace` ((#v-terminatinggateways-defaults-consulnamespace)) (`string: "default"`) <EnterpriseAlert inline /> - Defines the Consul namespace to register the gateway into. Requires `global.enableConsulNamespaces` to be true and Consul Enterprise v1.7+ with a valid Consul Enterprise license. Note: The Consul namespace MUST exist before the gateway is deployed.
+
+  - `gateways` ((#v-terminatinggateways-gateways)) - Gateways is a list of gateway objects. The only required field for each is `name`, though they can also contain any of the fields in `terminatingGateways.defaults`. Values defined here override the defaults except in the case of annotations where both will be applied.
+
+    - `name` ((#v-terminatinggateways-gateways-name)) (`string: "terminating-gateway"`) - The name of the terminating gateway.
 
 - `tests` ((#v-tests)) - Control whether to enable a test for this Helm chart.
 

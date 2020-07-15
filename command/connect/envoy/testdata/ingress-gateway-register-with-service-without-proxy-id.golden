@@ -13,7 +13,7 @@
     "id": "my-gateway",
     "metadata": {
       "namespace": "default",
-      "envoy_version": "1.14.2"
+      "envoy_version": "1.14.4"
     }
   },
   "static_resources": {
@@ -161,6 +161,7 @@
     },
     "ads_config": {
       "api_type": "GRPC",
+      "set_node_on_first_message_only": true,
       "grpc_services": {
         "initial_metadata": [
           {

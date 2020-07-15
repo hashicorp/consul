@@ -1,8 +1,10 @@
 {{yield}}
-{{#if (not loading)}}
 <header>
 {{#each flashMessages.queue as |flash|}}
     <FlashMessage @flash={{flash}} as |component flash|>
+  {{#if flash.dom}}
+        {{{flash.dom}}}
+  {{else}}
         {{#let (lowercase component.flashType) (lowercase flash.action) as |status type|}}
           {{! flashes automatically ucfirst the type }}
 
@@ -42,6 +44,7 @@
             {{/yield-slot}}
           </p>
         {{/let}}
+  {{/if}}
     </FlashMessage>
 {{/each}}
     <div>
@@ -57,7 +60,10 @@
               </YieldSlot>
               <div class="actions">
         {{#if authorized}}
-                  <YieldSlot @name="actions">{{yield}}</YieldSlot>
+                  <YieldSlot @name="actions">
+                    <PortalTarget @name="app-view-actions" />
+                    {{yield}}
+                  </YieldSlot>
         {{/if}}
               </div>
             </div>
@@ -73,11 +79,7 @@
     </YieldSlot>
   {{/if}}
 </header>
-{{/if}}
 <div>
-{{#if loading}}
-    <ConsulLoader />
-{{else}}
     {{#if (not enabled) }}
       <YieldSlot @name="disabled">{{yield}}</YieldSlot>
     {{else if (not authorized)}}
@@ -85,5 +87,4 @@
     {{else}}
       <YieldSlot @name="content">{{yield}}</YieldSlot>
     {{/if}}
-{{/if}}
 </div>

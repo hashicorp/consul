@@ -24,7 +24,6 @@ Feature: deleting: Deleting items with confirmations, success and error notifica
     --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     | Edit     | Listing     | Method | URL                                                                             | Data                                                                 |
     | kv        | kvs        | DELETE | /v1/kv/key-name?dc=datacenter&ns=@!namespace                                    | ["key-name"]                                                         |
-    | intention | intentions | DELETE | /v1/connect/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=datacenter       | {"SourceName": "name", "ID": "ee52203d-989f-4f7a-ab5a-2bef004164ca"} |
     | token     | tokens     | DELETE | /v1/acl/token/001fda31-194e-4ff1-a5ec-589abf2cafd0?dc=datacenter&ns=@!namespace | {"AccessorID": "001fda31-194e-4ff1-a5ec-589abf2cafd0"}               |
     # | acl      | acls       | PUT    | /v1/acl/destroy/something?dc=datacenter                                        | {"Name": "something", "ID": "something"}                             |
     --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -53,10 +52,6 @@ Feature: deleting: Deleting items with confirmations, success and error notifica
     -----------------------------------------------------------------------------------------------------------------------------------------------------------
     | Model     | Method | URL                                                                              | Slug                                            |
     | kv        | DELETE | /v1/kv/key-name?dc=datacenter&ns=@!namespace                                     | kv: key-name                                    |
-    | intention | DELETE | /v1/connect/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=datacenter        | intention: ee52203d-989f-4f7a-ab5a-2bef004164ca |
     | token     | DELETE | /v1/acl/token/001fda31-194e-4ff1-a5ec-589abf2cafd0?dc=datacenter&ns=@!namespace  | token: 001fda31-194e-4ff1-a5ec-589abf2cafd0     |
     # | acl       | PUT    | /v1/acl/destroy/something?dc=datacenter                                      | acl: something                                  |
     -----------------------------------------------------------------------------------------------------------------------------------------------------------
-@ignore
-  Scenario: Sort out the wide tables ^
-    Then ok

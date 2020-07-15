@@ -1,10 +1,13 @@
 import Service, { inject as service } from '@ember/service';
 
 const parts = function(uri) {
+  if (uri.indexOf('://') === -1) {
+    uri = `consul://${uri}`;
+  }
   return uri.split('://');
 };
 export default Service.extend({
-  data: service('data-sink/protocols/http'),
+  consul: service('data-sink/protocols/http'),
   settings: service('data-sink/protocols/local-storage'),
 
   prepare: function(uri, data, assign) {

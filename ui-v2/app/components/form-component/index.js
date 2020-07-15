@@ -1,11 +1,10 @@
 import Component from '@ember/component';
-import SlotsMixin from 'block-slots';
+import Slotted from 'block-slots';
 import { inject as service } from '@ember/service';
 import { alias } from '@ember/object/computed';
-import WithListeners from 'consul-ui/mixins/with-listeners';
 // match anything that isn't a [ or ] into multiple groups
 const propRe = /([^[\]])+/g;
-export default Component.extend(WithListeners, SlotsMixin, {
+export default Component.extend(Slotted, {
   tagName: '',
   onreset: function() {},
   onchange: function() {},

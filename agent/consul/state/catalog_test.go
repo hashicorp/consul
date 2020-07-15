@@ -2908,7 +2908,7 @@ func ensureServiceVersion(t *testing.T, s *Store, ws memdb.WatchSet, serviceID s
 }
 
 // Ensure index exist, if expectedIndex = -1, ensure the index does not exists
-func ensureIndexForService(t *testing.T, s *Store, ws memdb.WatchSet, serviceName string, expectedIndex uint64) {
+func ensureIndexForService(t *testing.T, s *Store, serviceName string, expectedIndex uint64) {
 	t.Helper()
 	tx := s.db.Txn(false)
 	defer tx.Abort()
@@ -2993,10 +2993,10 @@ func TestStateStore_IndexIndependence(t *testing.T) {
 
 	s.DeleteCheck(15, "node2", types.CheckID("check_service_shared"), nil)
 	ensureServiceVersion(t, s, ws, "service_shared", 15, 2)
-	ensureIndexForService(t, s, ws, "service_shared", 15)
+	ensureIndexForService(t, s, "service_shared", 15)
 	s.DeleteService(16, "node2", "service_shared", nil)
 	ensureServiceVersion(t, s, ws, "service_shared", 16, 1)
-	ensureIndexForService(t, s, ws, "service_shared", 16)
+	ensureIndexForService(t, s, "service_shared", 16)
 	s.DeleteService(17, "node1", "service_shared", nil)
 	ensureServiceVersion(t, s, ws, "service_shared", 17, 0)
 
@@ -3007,7 +3007,7 @@ func TestStateStore_IndexIndependence(t *testing.T) {
 	ensureServiceVersion(t, s, ws, "service_shared", 17, 0)
 
 	// No index should exist anymore, it must have been garbage collected
-	ensureIndexForService(t, s, ws, "service_shared", 0)
+	ensureIndexForService(t, s, "service_shared", 0)
 	if !watchFired(ws) {
 		t.Fatalf("bad")
 	}

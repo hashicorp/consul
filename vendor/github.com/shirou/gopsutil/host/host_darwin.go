@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -18,6 +17,7 @@ import (
 
 	"github.com/shirou/gopsutil/internal/common"
 	"github.com/shirou/gopsutil/process"
+	"golang.org/x/sys/unix"
 )
 
 // from utmpx.h
@@ -41,6 +41,11 @@ func InfoWithContext(ctx context.Context) (*InfoStat, error) {
 	kernelVersion, err := KernelVersionWithContext(ctx)
 	if err == nil {
 		ret.KernelVersion = kernelVersion
+	}
+
+	kernelArch, err := kernelArch()
+	if err == nil {
+		ret.KernelArch = kernelArch
 	}
 
 	platform, family, pver, err := PlatformInformation()
@@ -67,9 +72,9 @@ func InfoWithContext(ctx context.Context) (*InfoStat, error) {
 		ret.Procs = uint64(len(procs))
 	}
 
-	values, err := common.DoSysctrlWithContext(ctx, "kern.uuid")
-	if err == nil && len(values) == 1 && values[0] != "" {
-		ret.HostID = strings.ToLower(values[0])
+	uuid, err := unix.Sysctl("kern.uuid")
+	if err == nil && uuid != "" {
+		ret.HostID = strings.ToLower(uuid)
 	}
 
 	return ret, nil
@@ -83,24 +88,22 @@ func BootTime() (uint64, error) {
 }
 
 func BootTimeWithContext(ctx context.Context) (uint64, error) {
+	// https://github.com/AaronO/dashd/blob/222e32ef9f7a1f9bea4a8da2c3627c4cb992f860/probe/probe_darwin.go
 	t := atomic.LoadUint64(&cachedBootTime)
 	if t != 0 {
 		return t, nil
 	}
-	values, err := common.DoSysctrlWithContext(ctx, "kern.boottime")
+	value, err := unix.Sysctl("kern.boottime")
 	if err != nil {
 		return 0, err
 	}
-	// ex: { sec = 1392261637, usec = 627534 } Thu Feb 13 12:20:37 2014
-	v := strings.Replace(values[2], ",", "", 1)
-	boottime, err := strconv.ParseInt(v, 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	t = uint64(boottime)
-	atomic.StoreUint64(&cachedBootTime, t)
+	bytes := []byte(value[:])
+	var boottime uint64
+	boottime = uint64(bytes[0]) + uint64(bytes[1])*256 + uint64(bytes[2])*256*256 + uint64(bytes[3])*256*256*256
 
-	return t, nil
+	atomic.StoreUint64(&cachedBootTime, boottime)
+
+	return boottime, nil
 }
 
 func uptime(boot uint64) uint64 {
@@ -112,7 +115,7 @@ func Uptime() (uint64, error) {
 }
 
 func UptimeWithContext(ctx context.Context) (uint64, error) {
-	boot, err := BootTime()
+	boot, err := BootTimeWithContext(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -180,19 +183,25 @@ func PlatformInformationWithContext(ctx context.Context) (string, string, string
 	if err != nil {
 		return "", "", "", err
 	}
-	uname, err := exec.LookPath("uname")
-	if err != nil {
-		return "", "", "", err
-	}
 
-	out, err := invoke.CommandWithContext(ctx, uname, "-s")
+	p, err := unix.Sysctl("kern.ostype")
 	if err == nil {
-		platform = strings.ToLower(strings.TrimSpace(string(out)))
+		platform = strings.ToLower(p)
 	}
 
-	out, err = invoke.CommandWithContext(ctx, sw_vers, "-productVersion")
+	out, err := invoke.CommandWithContext(ctx, sw_vers, "-productVersion")
 	if err == nil {
 		pver = strings.ToLower(strings.TrimSpace(string(out)))
+	}
+
+	// check if the macos server version file exists
+	_, err = os.Stat("/System/Library/CoreServices/ServerVersion.plist")
+
+	// server file doesn't exist
+	if os.IsNotExist(err) {
+		family = "Standalone Workstation"
+	} else {
+		family = "Server"
 	}
 
 	return platform, family, pver, nil
@@ -211,22 +220,6 @@ func KernelVersion() (string, error) {
 }
 
 func KernelVersionWithContext(ctx context.Context) (string, error) {
-	uname, err := exec.LookPath("uname")
-	if err != nil {
-		return "", err
-	}
-	out, err := invoke.CommandWithContext(ctx, uname, "-r")
-	if err != nil {
-		return "", err
-	}
-	version := strings.ToLower(strings.TrimSpace(string(out)))
-	return version, err
-}
-
-func SensorsTemperatures() ([]TemperatureStat, error) {
-	return SensorsTemperaturesWithContext(context.Background())
-}
-
-func SensorsTemperaturesWithContext(ctx context.Context) ([]TemperatureStat, error) {
-	return []TemperatureStat{}, common.ErrNotImplementedError
+	version, err := unix.Sysctl("kern.osrelease")
+	return strings.ToLower(version), err
 }

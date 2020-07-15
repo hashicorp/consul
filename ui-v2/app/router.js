@@ -18,6 +18,12 @@ export const routes = {
         },
         intentions: {
           _options: { path: '/intentions' },
+          edit: {
+            _options: { path: '/:intention' },
+          },
+          create: {
+            _options: { path: '/create' },
+          },
         },
         services: {
           _options: { path: '/services' },
@@ -67,7 +73,7 @@ export const routes = {
           _options: { path: '/health-checks' },
         },
         services: {
-          _options: { path: '/services' },
+          _options: { path: '/service-instances' },
         },
         rtt: {
           _options: { path: '/round-trip-time' },

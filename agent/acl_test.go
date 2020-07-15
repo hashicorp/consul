@@ -57,7 +57,7 @@ type TestACLAgent struct {
 // The key is that we are the delegate so we can control the ResolveToken responses
 func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzResolver, resolveIdent identResolver) *TestACLAgent {
 	a := &TestACLAgent{Name: name, HCL: hcl, resolveAuthzFn: resolveAuthz, resolveIdentFn: resolveIdent}
-	hclDataDir := `data_dir = "acl-agent"`
+	dataDir := `data_dir = "acl-agent"`
 
 	logOutput := testutil.TestWriter(t)
 	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
@@ -66,13 +66,20 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzRe
 		Output: logOutput,
 	})
 
-	a.Config = TestConfig(logger,
-		config.Source{Name: a.Name, Format: "hcl", Data: a.HCL},
-		config.Source{Name: a.Name + ".data_dir", Format: "hcl", Data: hclDataDir},
-	)
+	opts := []AgentOption{
+		WithLogger(logger),
+		WithBuilderOpts(config.BuilderOpts{
+			HCL: []string{
+				TestConfigHCL(NodeID()),
+				a.HCL,
+				dataDir,
+			},
+		}),
+	}
 
-	agent, err := New(a.Config, logger)
+	agent, err := New(opts...)
 	require.NoError(t, err)
+	a.Config = agent.GetConfig()
 	a.Agent = agent
 
 	agent.LogOutput = logOutput
@@ -83,11 +90,6 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzRe
 	a.Agent.State = local.NewState(LocalConfig(a.Config), a.Agent.logger, a.Agent.tokens)
 	a.Agent.State.TriggerSyncChanges = func() {}
 	return a
-}
-
-func (a *TestACLAgent) ACLsEnabled() bool {
-	// the TestACLAgent always has ACLs enabled
-	return true
 }
 
 func (a *TestACLAgent) UseLegacyACLs() bool {
@@ -258,7 +260,7 @@ var (
 		nodeRWSecret: {
 			token: structs.ACLToken{
 				AccessorID: "efb6b7d5-d343-47c1-b4cb-aa6b94d2f490",
-				SecretID:   nodeROSecret,
+				SecretID:   nodeRWSecret,
 			},
 			rules: `node_prefix "Node" { policy = "write" }`,
 		},

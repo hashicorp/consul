@@ -1,12 +1,12 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
-import { next } from '@ember/runloop';
+import { get, set } from '@ember/object';
 
 import WithBlockingActions from 'consul-ui/mixins/with-blocking-actions';
 
 const removeLoading = function($from) {
-  return $from.classList.remove('ember-loading');
+  return $from.classList.remove('ember-loading', 'loading');
 };
 export default Route.extend(WithBlockingActions, {
   dom: service('dom'),
@@ -38,31 +38,16 @@ export default Route.extend(WithBlockingActions, {
   },
   actions: {
     loading: function(transition, originRoute) {
+      const from = get(transition, 'from.name') || 'application';
+      const controller = this.controllerFor(from);
+
+      set(controller, 'loading', true);
       const $root = this.dom.root();
-      let dc = null;
-      if (originRoute.routeName !== 'dc' && originRoute.routeName !== 'application') {
-        const app = this.modelFor('application');
-        const model = this.modelFor('dc') || { dc: { Name: null } };
-        dc = this.repo.getActive(model.dc.Name, app.dcs);
-      }
-      hash({
-        loading: !$root.classList.contains('ember-loading'),
-        dc: dc,
-        nspace: this.nspacesRepo.getActive(),
-      }).then(model => {
-        next(() => {
-          const controller = this.controllerFor('application');
-          controller.setProperties(model);
-          transition.promise.finally(function() {
-            removeLoading($root);
-            controller.setProperties({
-              loading: false,
-              dc: model.dc,
-            });
-          });
-        });
+      $root.classList.add('loading');
+      transition.promise.finally(() => {
+        set(controller, 'loading', false);
+        removeLoading($root);
       });
-      return true;
     },
     error: function(e, transition) {
       // TODO: Normalize all this better

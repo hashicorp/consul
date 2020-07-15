@@ -10,7 +10,7 @@ module('Integration | Component | modal dialog', function(hooks) {
     // Set any properties with this.set('myProperty', 'value');
     // Handle any actions with this.on('myAction', function(val) { ... });
 
-    await render(hbs`{{modal-dialog}}`);
+    await render(hbs`<ModalLayer /><ModalDialog />`);
 
     assert.ok(
       find('*')
@@ -20,8 +20,7 @@ module('Integration | Component | modal dialog', function(hooks) {
 
     // Template block usage:
     await render(hbs`
-      {{#modal-dialog}}
-      {{/modal-dialog}}
+      <ModalLayer /><ModalDialog></ModalDialog>
     `);
 
     assert.ok(

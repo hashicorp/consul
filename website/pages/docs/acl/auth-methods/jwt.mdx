@@ -1,7 +1,7 @@
 ---
 layout: docs
 page_title: JWT Auth Method
-sidebar_title: JWT <sup>Beta</sup>
+sidebar_title: JWT
 description: >-
   The JWT auth method can be used to authenticate with Consul by providing a
   JWT directly. The JWT is cryptographically verified using locally-provided
@@ -9,12 +9,12 @@ description: >-
   appropriate keys.
 ---
 
-# JWT Auth Method <sup>Beta</sup>
+# JWT Auth Method
 
 -> **1.8.0+:** This feature is available in Consul versions 1.8.0 and newer.
 
 The `jwt` auth method can be used to authenticate with Consul by providing a
-[JWT](https://en.wikipedia.org/wiki/JSON_Web_Token) directly.  The JWT is
+[JWT](https://en.wikipedia.org/wiki/JSON_Web_Token) directly. The JWT is
 cryptographically verified using locally-provided keys, or, if configured, an
 OIDC Discovery service can be used to fetch the appropriate keys.
 
@@ -55,7 +55,7 @@ parameters are required to properly configure an auth method of type
   used to talk with the JWKS URL. NOTE: Every line must end with a newline
   (`\n`). If not set, system certificates are used.
 
-- `ClaimMappings` `(map[string]string)` - Mappings of claims (key) that 
+- `ClaimMappings` `(map[string]string)` - Mappings of claims (key) that
   [will be copied to a metadata field](#trusted-identity-attributes-via-claim-mappings)
   (value). Use this if the claim you are capturing is singular (such as an attribute).
 
@@ -79,15 +79,15 @@ parameters are required to properly configure an auth method of type
   claim in a JWT.
 
 - `ExpirationLeeway` `(duration: 0s)` - Duration in seconds of leeway when
-  validating expiration of a token to account for clock skew.  Defaults to 150
+  validating expiration of a token to account for clock skew. Defaults to 150
   (2.5 minutes) if set to 0 and can be disabled if set to -1.
 
 - `NotBeforeLeeway` `(duration: 0s)` - Duration in seconds of leeway when
-  validating not before values of a token to account for clock skew.  Defaults
+  validating not before values of a token to account for clock skew. Defaults
   to 150 (2.5 minutes) if set to 0 and can be disabled if set to -1.
 
 - `ClockSkewLeeway` `(duration: 0s)` - Duration in seconds of leeway when
-  validating all claims to account for clock skew.  Defaults to 60 (1 minute)
+  validating all claims to account for clock skew. Defaults to 60 (1 minute)
   if set to 0 and can be disabled if set to -1.
 
 ### Sample Configs

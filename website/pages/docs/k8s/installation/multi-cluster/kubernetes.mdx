@@ -38,7 +38,6 @@ with the possible modifications listed below.
 ```yaml
 global:
   name: consul
-  image: consul:beta
   datacenter: dc1
 
   # TLS configures whether Consul components use TLS.
@@ -78,12 +77,6 @@ meshGateway:
 
 Modifications:
 
-1. Note the Docker image:
-   ```yaml
-   global:
-     image: consul:beta
-   ```
-   Kubernetes support for federation is currently only available in Consul 1.8.0 beta.
 1. The Consul datacenter name is `dc1`. The datacenter name in each federated
    cluster **must be unique**.
 1. ACLs are enabled in the above config file. They can be disabled by setting:
@@ -133,7 +126,6 @@ the following config:
 
 ```yaml
 global:
-  image: consul:beta
   tls:
     enabled: true
   federation:
@@ -146,8 +138,6 @@ meshGateway:
   enabled: true
 ```
 
-1. `global.image` must be set to `consul:beta` because Kubernetes support
-   for federation is currently only available in Consul 1.8.0 beta.
 1. `global.tls.enabled` must be `true`. See [Configuring TLS on an Existing Cluster](/docs/k8s/operations/tls-on-existing-cluster)
    for more information on safely upgrading a cluster to use TLS.
 
@@ -267,7 +257,6 @@ settings are different.
 ```yaml
 global:
   name: consul
-  image: consul:beta
   datacenter: dc2
   tls:
     enabled: true
@@ -314,8 +303,6 @@ server:
 
 Modifications:
 
-1. Note `global.image: consul:beta`. Kubernetes support for federation is currently only available
-   in Consul 1.8.0 beta.
 1. The Consul datacenter name is `dc2`. The primary datacenter's name was `dc1`.
    The datacenter name in **each** federated cluster **must be unique**.
 1. ACLs are enabled in the above config file. They can be disabled by removing

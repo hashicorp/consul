@@ -1,23 +1,12 @@
-{{#if item.ID }}
+{{#if item.ID}}
     {{title 'Edit Intention'}}
 {{else}}
     {{title 'New Intention'}}
 {{/if}}
-
-<AppView @class="intention edit" @loading={{isLoading}}>
-    <BlockSlot @name="notification" as |status type item error|>
-      {{partial 'dc/intentions/notifications'}}
-    </BlockSlot>
+<AppView @class="intention edit">
     <BlockSlot @name="breadcrumbs">
         <ol>
-      {{#if (gt history.length 0)}}
-          <li><a href={{href-to 'dc.services'}}>All Services</a></li>
-        {{#let history.firstObject as |back|}}
-          <li><a data-test-back href={{href-to back.key back.value}}>{{concat 'Service (' back.value ')'}}</a></li>
-        {{/let}}
-      {{else}}
           <li><a data-test-back href={{href-to 'dc.intentions'}}>All Intentions</a></li>
-      {{/if}}
         </ol>
     </BlockSlot>
     <BlockSlot @name="header">
@@ -30,7 +19,7 @@
         </h1>
     </BlockSlot>
     <BlockSlot @name="actions">
-{{#if (not create) }}
+{{#if item.ID}}
         <CopyButton @value={{item.ID}} @name="UUID">
             Copy UUID
         </CopyButton>
@@ -39,11 +28,9 @@
     <BlockSlot @name="content">
       <ConsulIntentionForm
         @item={{item}}
-        @services={{uniq-by 'Name' services}}
-        @nspaces={{nspaces}}
-        @ondelete={{action "route" "delete"}}
-        @onsubmit={{action "route" (if item.isNew "create" "update")}}
-        @oncancel={{action "route" "cancel"}}
+        @dc={{dc}}
+        @nspace={{nspace}}
+        @onsubmit={{transition-to 'dc.intentions.index' dc}}
       />
     </BlockSlot>
 </AppView>

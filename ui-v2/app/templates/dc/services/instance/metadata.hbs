@@ -5,9 +5,13 @@
     {{#if (gt item.Tags.length 0) }}
       <TagList @item={{item}} />
     {{else}}
-      <p>
-        There are no tags.
-      </p>
+      <EmptyState>
+        <BlockSlot @name="body">
+          <p>
+            There are no tags.
+          </p>
+        </BlockSlot>
+      </EmptyState>
     {{/if}}
     </section>
     <section class="metadata">
@@ -15,9 +19,13 @@
     {{#if item.Meta}}
       <ConsulMetadataList @items={{object-entries item.Meta}} />
     {{else}}
-      <p>
-        This instance has no metadata.
-      </p>
+      <EmptyState>
+        <BlockSlot @name="body">
+          <p>
+            This instance has no metadata.
+          </p>
+        </BlockSlot>
+      </EmptyState>
     {{/if}}
     </section>
   </div>

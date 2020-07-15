@@ -13,6 +13,28 @@ const (
 	TokenSourceAPI    TokenSource = true
 )
 
+type TokenKind int
+
+const (
+	TokenKindAgent TokenKind = iota
+	TokenKindAgentMaster
+	TokenKindUser
+	TokenKindReplication
+)
+
+type watcher struct {
+	kind TokenKind
+	ch   chan<- struct{}
+}
+
+// Notifier holds the channel used to notify a watcher
+// of token updates as well as some internal tracking
+// information to allow for deregistering the notifier.
+type Notifier struct {
+	id int
+	Ch <-chan struct{}
+}
+
 // Store is used to hold the special ACL tokens used by Consul agents. It is
 // designed to update the tokens on the fly, so the token store itself should be
 // plumbed around and used to get tokens at runtime, don't save the resulting
@@ -52,8 +74,84 @@ type Store struct {
 	// replicationTokenSource indicates where this token originated from
 	replicationTokenSource TokenSource
 
+	watchers     map[int]watcher
+	watcherIndex int
+
 	// enterpriseTokens contains tokens only used in consul-enterprise
 	enterpriseTokens
+}
+
+// Notify will set up a watch for when tokens of the desired kind is changed
+func (t *Store) Notify(kind TokenKind) Notifier {
+	// buffering ensures that notifications aren't missed if the watcher
+	// isn't already in a select and that our notifications don't
+	// block returning from the Update* methods.
+	ch := make(chan struct{}, 1)
+
+	w := watcher{
+		kind: kind,
+		ch:   ch,
+	}
+
+	t.l.Lock()
+	defer t.l.Unlock()
+	if t.watchers == nil {
+		t.watchers = make(map[int]watcher)
+	}
+	// we specifically want to avoid the zero-value to prevent accidental stop-notification requests
+	t.watcherIndex += 1
+	t.watchers[t.watcherIndex] = w
+
+	return Notifier{id: t.watcherIndex, Ch: ch}
+}
+
+// StopNotify stops the token store from sending notifications to the specified notifiers chan
+func (t *Store) StopNotify(n Notifier) {
+	t.l.Lock()
+	defer t.l.Unlock()
+	delete(t.watchers, n.id)
+}
+
+// anyKindAllowed returns true if any of the kinds in the `check` list are
+// set to be allowed in the `allowed` map.
+//
+// Note: this is mostly just a convenience to simplify the code in
+// sendNotificationLocked and prevent more nested looping with breaks/continues
+// and other state tracking.
+func anyKindAllowed(allowed TokenKind, check []TokenKind) bool {
+	for _, kind := range check {
+		if allowed == kind {
+			return true
+		}
+	}
+	return false
+}
+
+// sendNotificationLocked will iterate through all watchers and notify them that a
+// token they are watching has been updated.
+//
+// NOTE: this function explicitly does not attempt to send the kind or new token value
+// along through the channel. With that approach watchers could potentially miss updates
+// if the buffered chan fills up. Instead with this approach we just notify that any
+// token they care about has been udpated and its up to the caller to retrieve the
+// new value (after receiving from the chan). With this approach its entirely possible
+// for the watcher to be notified twice before actually retrieving the token after the first
+// read from the chan. This is better behavior than missing events. It can cause some
+// churn temporarily but in common cases its not expected that these tokens would be updated
+// frequently enough to cause this to happen.
+func (t *Store) sendNotificationLocked(kinds ...TokenKind) {
+	for _, watcher := range t.watchers {
+		if !anyKindAllowed(watcher.kind, kinds) {
+			// ignore this watcher as it doesn't want events for these kinds of token
+			continue
+		}
+
+		select {
+		case watcher.ch <- struct{}{}:
+		default:
+			// its already pending a notification
+		}
+	}
 }
 
 // UpdateUserToken replaces the current user token in the store.
@@ -63,6 +161,9 @@ func (t *Store) UpdateUserToken(token string, source TokenSource) bool {
 	changed := (t.userToken != token || t.userTokenSource != source)
 	t.userToken = token
 	t.userTokenSource = source
+	if changed {
+		t.sendNotificationLocked(TokenKindUser)
+	}
 	t.l.Unlock()
 	return changed
 }
@@ -74,6 +175,9 @@ func (t *Store) UpdateAgentToken(token string, source TokenSource) bool {
 	changed := (t.agentToken != token || t.agentTokenSource != source)
 	t.agentToken = token
 	t.agentTokenSource = source
+	if changed {
+		t.sendNotificationLocked(TokenKindAgent)
+	}
 	t.l.Unlock()
 	return changed
 }
@@ -85,6 +189,9 @@ func (t *Store) UpdateAgentMasterToken(token string, source TokenSource) bool {
 	changed := (t.agentMasterToken != token || t.agentMasterTokenSource != source)
 	t.agentMasterToken = token
 	t.agentMasterTokenSource = source
+	if changed {
+		t.sendNotificationLocked(TokenKindAgentMaster)
+	}
 	t.l.Unlock()
 	return changed
 }
@@ -96,6 +203,9 @@ func (t *Store) UpdateReplicationToken(token string, source TokenSource) bool {
 	changed := (t.replicationToken != token || t.replicationTokenSource != source)
 	t.replicationToken = token
 	t.replicationTokenSource = source
+	if changed {
+		t.sendNotificationLocked(TokenKindReplication)
+	}
 	t.l.Unlock()
 	return changed
 }

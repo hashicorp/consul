@@ -1914,7 +1914,7 @@ func TestAgent_AliasCheck(t *testing.T) {
 
 func TestAgent_sendCoordinate(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, `
+	a := agent.StartTestAgent(t, agent.TestAgent{Overrides: `
 		sync_coordinate_interval_min = "1ms"
 		sync_coordinate_rate_target = 10.0
 		consul = {
@@ -1924,7 +1924,7 @@ func TestAgent_sendCoordinate(t *testing.T) {
 				update_max_batches = 1
 			}
 		}
-	`)
+	`})
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 

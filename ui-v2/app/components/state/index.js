@@ -12,6 +12,8 @@ export default Component.extend({
     let match = true;
     if (typeof this.matches !== 'undefined') {
       match = this.service.matches(this.state, this.matches);
+    } else if (typeof this.notMatches !== 'undefined') {
+      match = !this.service.matches(this.state, this.notMatches);
     }
     set(this, 'rendering', match);
   },

@@ -33,13 +33,14 @@ Feature: dc / intentions / create: Intention Create
     # Specifically set deny
     And I click "[value=deny]"
     And I submit
-    Then a POST request was made to "/v1/connect/intentions?dc=datacenter" with the body from yaml
+    Then a POST request was made to "/v1/connect/intentions?dc=datacenter" from yaml
     ---
-      SourceName: web
-      DestinationName: db
-      Action: deny
+      body:
+        SourceName: web
+        DestinationName: db
+        Action: deny
     ---
     Then the url should be /datacenter/intentions
     And the title should be "Intentions - Consul"
-    And "[data-notification]" has the "notification-create" class
+    And "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "success" class

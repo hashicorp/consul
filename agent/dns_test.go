@@ -1041,7 +1041,7 @@ func TestDNS_ServiceReverseLookup(t *testing.T) {
 	if !ok {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
-	if ptrRec.Ptr != serviceCanonicalDNSName("db", "dc1", "consul", nil)+"." {
+	if ptrRec.Ptr != serviceCanonicalDNSName("db", "service", "dc1", "consul", nil)+"." {
 		t.Fatalf("Bad: %#v", ptrRec)
 	}
 }
@@ -1089,7 +1089,7 @@ func TestDNS_ServiceReverseLookup_IPV6(t *testing.T) {
 	if !ok {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
-	if ptrRec.Ptr != serviceCanonicalDNSName("db", "dc1", "consul", nil)+"." {
+	if ptrRec.Ptr != serviceCanonicalDNSName("db", "service", "dc1", "consul", nil)+"." {
 		t.Fatalf("Bad: %#v", ptrRec)
 	}
 }
@@ -1139,7 +1139,7 @@ func TestDNS_ServiceReverseLookup_CustomDomain(t *testing.T) {
 	if !ok {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
-	if ptrRec.Ptr != serviceCanonicalDNSName("db", "dc1", "custom", nil)+"." {
+	if ptrRec.Ptr != serviceCanonicalDNSName("db", "service", "dc1", "custom", nil)+"." {
 		t.Fatalf("Bad: %#v", ptrRec)
 	}
 }
@@ -4051,7 +4051,7 @@ func TestDNS_ServiceLookup_OnlyPassing(t *testing.T) {
 
 	newCfg := *a.Config
 	newCfg.DNSOnlyPassing = false
-	err := a.ReloadConfig(&newCfg)
+	err := a.reloadConfigInternal(&newCfg)
 	require.NoError(t, err)
 
 	// only_passing is now false. we should now get two nodes
@@ -4569,7 +4569,7 @@ func testDNSServiceLookupResponseLimits(t *testing.T, answerLimit int, qType uin
 }
 
 func checkDNSService(t *testing.T, generateNumNodes int, aRecordLimit int, qType uint16,
-	expectedResultsCount int, udpSize uint16, udpAnswerLimit int) error {
+	expectedResultsCount int, udpSize uint16) error {
 	a := NewTestAgent(t, `
 		node_name = "test-node"
 		dns_config {
@@ -4710,7 +4710,7 @@ func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
 		for idx, qType := range queriesLimited {
 			t.Run(fmt.Sprintf("ARecordLimit %d qType: %d", idx, qType), func(t *testing.T) {
 				t.Parallel()
-				err := checkDNSService(t, test.numNodesTotal, test.aRecordLimit, qType, test.expectedAResults, test.udpSize, test.udpAnswerLimit)
+				err := checkDNSService(t, test.numNodesTotal, test.aRecordLimit, qType, test.expectedAResults, test.udpSize)
 				if err != nil {
 					t.Fatalf("Expected lookup %s to pass: %v", test.name, err)
 				}
@@ -4719,7 +4719,7 @@ func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
 		// No limits but the size of records for SRV records, since not subject to randomization issues
 		t.Run("SRV lookup limitARecord", func(t *testing.T) {
 			t.Parallel()
-			err := checkDNSService(t, test.expectedSRVResults, test.aRecordLimit, dns.TypeSRV, test.numNodesTotal, test.udpSize, test.udpAnswerLimit)
+			err := checkDNSService(t, test.expectedSRVResults, test.aRecordLimit, dns.TypeSRV, test.numNodesTotal, test.udpSize)
 			if err != nil {
 				t.Fatalf("Expected service SRV lookup %s to pass: %v", test.name, err)
 			}
@@ -5787,6 +5787,70 @@ func TestDNS_AddressLookupIPV6(t *testing.T) {
 		if aaaaRec.Hdr.Ttl != 0 {
 			t.Fatalf("Bad: %#v", in.Answer[0])
 		}
+	}
+}
+
+// TestDNS_NonExistentDC_Server verifies NXDOMAIN is returned when
+// Consul server agent is queried for a service in a non-existent
+// domain.
+func TestDNS_NonExistentDC_Server(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	m := new(dns.Msg)
+	m.SetQuestion("consul.service.dc2.consul.", dns.TypeANY)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if in.Rcode != dns.RcodeNameError {
+		t.Fatalf("Expected RCode: %#v, had: %#v", dns.RcodeNameError, in.Rcode)
+	}
+}
+
+// TestDNS_NonExistentDC_RPC verifies NXDOMAIN is returned when
+// Consul server agent is queried over RPC by a non-server agent
+// for a service in a non-existent domain
+func TestDNS_NonExistentDC_RPC(t *testing.T) {
+	t.Parallel()
+	s := NewTestAgent(t, `
+		node_name = "test-server"
+	`)
+
+	defer s.Shutdown()
+	c := NewTestAgent(t, `
+		node_name = "test-client"
+		bootstrap = false
+		server = false
+	`)
+	defer c.Shutdown()
+	testrpc.WaitForLeader(t, s.RPC, "dc1")
+
+	// Join LAN cluster
+	addr := fmt.Sprintf("127.0.0.1:%d", s.Config.SerfPortLAN)
+	_, err := c.JoinLAN([]string{addr})
+	require.NoError(t, err)
+	retry.Run(t, func(r *retry.R) {
+		require.Len(r, s.LANMembers(), 2)
+		require.Len(r, c.LANMembers(), 2)
+	})
+
+	m := new(dns.Msg)
+	m.SetQuestion("consul.service.dc2.consul.", dns.TypeANY)
+
+	d := new(dns.Client)
+	in, _, err := d.Exchange(m, c.DNSAddr())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if in.Rcode != dns.RcodeNameError {
+		t.Fatalf("Expected RCode: %#v, had: %#v", dns.RcodeNameError, in.Rcode)
 	}
 }
 
@@ -6996,7 +7060,7 @@ func TestDNS_ConfigReload(t *testing.T) {
 	newCfg.DNSSOA.Expire = 30
 	newCfg.DNSSOA.Minttl = 40
 
-	err := a.ReloadConfig(&newCfg)
+	err := a.reloadConfigInternal(&newCfg)
 	require.NoError(t, err)
 
 	for _, s := range a.dnsServers {
@@ -7077,7 +7141,7 @@ func TestDNS_ReloadConfig_DuringQuery(t *testing.T) {
 		// reload the config halfway through, that should not affect the ongoing query
 		newCfg := *a.Config
 		newCfg.DNSAllowStale = true
-		a.ReloadConfig(&newCfg)
+		a.reloadConfigInternal(&newCfg)
 
 		select {
 		case in := <-res:

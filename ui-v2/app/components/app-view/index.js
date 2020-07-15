@@ -3,7 +3,6 @@ import SlotsMixin from 'block-slots';
 import { inject as service } from '@ember/service';
 import templatize from 'consul-ui/utils/templatize';
 export default Component.extend(SlotsMixin, {
-  loading: false,
   authorized: true,
   enabled: true,
   classNames: ['app-view'],
@@ -13,12 +12,12 @@ export default Component.extend(SlotsMixin, {
     this._super(...arguments);
     // right now only manually added classes are hoisted to <html>
     const $root = this.dom.root();
-    let cls = this['class'] || '';
     if (this.loading) {
-      cls += ' loading';
+      $root.classList.add('loading');
     } else {
-      $root.classList.remove(...templatize(['loading']));
+      $root.classList.remove('loading');
     }
+    let cls = this['class'] || '';
     if (cls) {
       // its possible for 'layout' templates to change after insert
       // check for these specific layouts and clear them out

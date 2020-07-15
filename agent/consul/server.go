@@ -153,6 +153,9 @@ type Server struct {
 	caProviderRoot *structs.CARoot
 	caProviderLock sync.RWMutex
 
+	// rate limiter to use when signing leaf certificates
+	caLeafLimiter connectSignRateLimiter
+
 	// Consul configuration
 	config *Config
 
@@ -322,6 +325,22 @@ func NewServer(config *Config) (*Server, error) {
 // NewServerLogger is used to construct a new Consul server from the
 // configuration, potentially returning an error
 func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token.Store, tlsConfigurator *tlsutil.Configurator) (*Server, error) {
+	return NewServerWithOptions(config,
+		WithLogger(logger),
+		WithTokenStore(tokens),
+		WithTLSConfigurator(tlsConfigurator))
+}
+
+// NewServerWithOptions is used to construct a new Consul server from the configuration
+// and extra options, potentially returning an error
+func NewServerWithOptions(config *Config, options ...ConsulOption) (*Server, error) {
+	flat := flattenConsulOptions(options)
+
+	logger := flat.logger
+	tokens := flat.tokens
+	tlsConfigurator := flat.tlsConfigurator
+	connPool := flat.connPool
+
 	// Check the protocol version.
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -376,14 +395,16 @@ func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token
 	// Create the shutdown channel - this is closed but never written to.
 	shutdownCh := make(chan struct{})
 
-	connPool := &pool.ConnPool{
-		Server:          true,
-		SrcAddr:         config.RPCSrcAddr,
-		LogOutput:       config.LogOutput,
-		MaxTime:         serverRPCCache,
-		MaxStreams:      serverMaxStreams,
-		TLSConfigurator: tlsConfigurator,
-		Datacenter:      config.Datacenter,
+	if connPool == nil {
+		connPool = &pool.ConnPool{
+			Server:          true,
+			SrcAddr:         config.RPCSrcAddr,
+			LogOutput:       config.LogOutput,
+			MaxTime:         serverRPCCache,
+			MaxStreams:      serverMaxStreams,
+			TLSConfigurator: tlsConfigurator,
+			Datacenter:      config.Datacenter,
+		}
 	}
 
 	serverLogger := logger.NamedIntercept(logging.ConsulServer)
@@ -507,7 +528,7 @@ func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token
 	}
 
 	if s.gatewayLocator != nil {
-		go s.gatewayLocator.Run(s.shutdownCh)
+		go s.gatewayLocator.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 	}
 
 	// Serf and dynamic bind ports
@@ -622,6 +643,7 @@ func (s *Server) trackAutoEncryptCARoots() {
 		ws := memdb.NewWatchSet()
 		state := s.fsm.State()
 		ws.Add(state.AbandonCh())
+		ws.Add(s.shutdownCh)
 		_, cas, err := state.CARoots(ws)
 		if err != nil {
 			s.logger.Error("Failed to watch AutoEncrypt CARoot", "error", err)
@@ -854,7 +876,7 @@ func (s *Server) setupRPC() error {
 		authz = &disabledAuthorizer{}
 	}
 	// now register with the insecure RPC server
-	s.insecureRPCServer.Register(&Cluster{srv: s, authorizer: authz})
+	s.insecureRPCServer.Register(NewAutoConfig(s.config, s.tlsConfigurator, s, authz))
 
 	ln, err := net.ListenTCP("tcp", s.config.RPCAddr)
 	if err != nil {
@@ -945,6 +967,8 @@ func (s *Server) Shutdown() error {
 	if s.config.NotifyShutdown != nil {
 		s.config.NotifyShutdown()
 	}
+
+	s.fsm.State().Abandon()
 
 	return nil
 }
@@ -1333,7 +1357,7 @@ func (s *Server) Stats() map[string]map[string]string {
 		"runtime":  runtimeStats(),
 	}
 
-	if s.ACLsEnabled() {
+	if s.config.ACLsEnabled {
 		if s.UseLegacyACLs() {
 			stats["consul"]["acl"] = "legacy"
 		} else {
@@ -1412,6 +1436,72 @@ func (s *Server) isReadyForConsistentReads() bool {
 
 func (s *Server) intentionReplicationEnabled() bool {
 	return s.config.ConnectEnabled && s.config.Datacenter != s.config.PrimaryDatacenter
+}
+
+// CreateACLToken will create an ACL token from the given template
+func (s *Server) CreateACLToken(template *structs.ACLToken) (*structs.ACLToken, error) {
+	// we have to require local tokens or else it would require having these servers use a token with acl:write to make a
+	// token create RPC to the servers in the primary DC.
+	if !s.LocalTokensEnabled() {
+		return nil, fmt.Errorf("Agent Auto Configuration requires local token usage to be enabled in this datacenter: %s", s.config.Datacenter)
+	}
+
+	newToken := *template
+
+	// generate the accessor id
+	if newToken.AccessorID == "" {
+		accessor, err := lib.GenerateUUID(s.checkTokenUUID)
+		if err != nil {
+			return nil, err
+		}
+
+		newToken.AccessorID = accessor
+	}
+
+	// generate the secret id
+	if newToken.SecretID == "" {
+		secret, err := lib.GenerateUUID(s.checkTokenUUID)
+		if err != nil {
+			return nil, err
+		}
+
+		newToken.SecretID = secret
+	}
+
+	newToken.CreateTime = time.Now()
+
+	req := structs.ACLTokenBatchSetRequest{
+		Tokens: structs.ACLTokens{&newToken},
+		CAS:    false,
+	}
+
+	// perform the request to mint the new token
+	if _, err := s.raftApplyMsgpack(structs.ACLTokenSetRequestType, &req); err != nil {
+		return nil, err
+	}
+
+	// return the full token definition from the FSM
+	_, token, err := s.fsm.State().ACLTokenGetByAccessor(nil, newToken.AccessorID, &newToken.EnterpriseMeta)
+	return token, err
+}
+
+// DatacenterJoinAddresses will return all the strings suitable for usage in
+// retry join operations to connect to the the LAN or LAN segment gossip pool.
+func (s *Server) DatacenterJoinAddresses(segment string) ([]string, error) {
+	members, err := s.LANSegmentMembers(segment)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to retrieve members for segment %s - %w", segment, err)
+	}
+
+	var joinAddrs []string
+	for _, m := range members {
+		if ok, _ := metadata.IsConsulServer(m); ok {
+			serfAddr := net.TCPAddr{IP: m.Addr, Port: int(m.Port)}
+			joinAddrs = append(joinAddrs, serfAddr.String())
+		}
+	}
+
+	return joinAddrs, nil
 }
 
 // peersInfoContent is used to help operators understand what happened to the

@@ -154,21 +154,7 @@ func (s *HTTPServer) AgentReload(resp http.ResponseWriter, req *http.Request) (i
 		return nil, acl.ErrPermissionDenied
 	}
 
-	// Trigger the reload
-	errCh := make(chan error)
-	select {
-	case <-s.agent.shutdownCh:
-		return nil, fmt.Errorf("Agent was shutdown before reload could be completed")
-	case s.agent.reloadCh <- errCh:
-	}
-
-	// Wait for the result of the reload, or for the agent to shutdown
-	select {
-	case <-s.agent.shutdownCh:
-		return nil, fmt.Errorf("Agent was shutdown before reload could be completed")
-	case err := <-errCh:
-		return nil, err
-	}
+	return nil, s.agent.ReloadConfig()
 }
 
 func buildAgentService(s *structs.NodeService) api.AgentService {
@@ -674,7 +660,7 @@ func (s *HTTPServer) AgentCheckUpdate(resp http.ResponseWriter, req *http.Reques
 	return s.agentCheckUpdate(resp, req, checkID, update.Status, update.Output)
 }
 
-func (s *HTTPServer) agentCheckUpdate(resp http.ResponseWriter, req *http.Request, checkID types.CheckID, status string, output string) (interface{}, error) {
+func (s *HTTPServer) agentCheckUpdate(_resp http.ResponseWriter, req *http.Request, checkID types.CheckID, status string, output string) (interface{}, error) {
 	cid := structs.NewCheckID(checkID, nil)
 
 	// Get the provided token, if any, and vet against any ACL policies.

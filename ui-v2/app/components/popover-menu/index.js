@@ -16,11 +16,22 @@ export default Component.extend(Slotted, {
   init: function() {
     this._super(...arguments);
     this.guid = this.dom.guid(this);
+    this.submenus = [];
   },
   willRender: function() {
     set(this, 'hasHeader', this._isRegistered('header'));
   },
   actions: {
+    addSubmenu: function(name) {
+      set(this, 'submenus', this.submenus.concat(name));
+    },
+    removeSubmenu: function(name) {
+      const pos = this.submenus.indexOf(name);
+      if (pos !== -1) {
+        this.submenus.splice(pos, 1);
+        set(this, 'submenus', this.submenus);
+      }
+    },
     change: function(e) {
       if (!e.target.checked) {
         [...this.dom.elements(`[id^=popover-menu-${this.guid}]`)].forEach(function($item) {

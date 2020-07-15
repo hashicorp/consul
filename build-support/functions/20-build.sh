@@ -64,13 +64,13 @@ function build_ui {
    then
       commit_hash=$(git rev-parse --short HEAD)
    fi
-   
+
    local commit_year="${GIT_COMMIT_YEAR}"
    if test -z "${commit_year}"
    then
       commit_year=$(git show -s --format=%cd --date=format:%Y HEAD)
    fi
-   
+
    local logo_type="${CONSUL_BINARY_TYPE}"
    if test "$logo_type" != "oss"
    then
@@ -140,7 +140,7 @@ function build_assetfs {
    #   * - error
    #
    # Note:
-   #   The GIT_COMMIT, GIT_DIRTY and GIT_DESCRIBE environment variables will be used if present
+   #   The GIT_COMMIT and GIT_DIRTY environment variables will be used if present
 
    if ! test -d "$1"
    then
@@ -157,7 +157,7 @@ function build_assetfs {
 
    pushd ${sdir} > /dev/null
    status "Creating the Go Build Container with image: ${image_name}"
-   local container_id=$(docker create -it -e GIT_COMMIT=${GIT_COMMIT} -e GIT_DIRTY=${GIT_DIRTY} -e GIT_DESCRIBE=${GIT_DESCRIBE} ${image_name} make static-assets ASSETFS_PATH=bindata_assetfs.go)
+   local container_id=$(docker create -it -e GIT_COMMIT=${GIT_COMMIT} -e GIT_DIRTY=${GIT_DIRTY} ${image_name} make static-assets ASSETFS_PATH=bindata_assetfs.go)
    local ret=$?
    if test $ret -eq 0
    then
@@ -436,7 +436,7 @@ function build_consul_local {
                if test "${arch}" != "amd64"
                then
                   continue
-               fi            
+               fi
                ;;
             "linux" )
                # build all the binaries for Linux
@@ -444,7 +444,7 @@ function build_consul_local {
             *)
                continue
             ;;
-         esac         
+         esac
 
          echo "--->   ${osarch}"
 

@@ -869,11 +869,11 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role
 		}
 
 	} else if policy != "" && role == "" && methodName == "" {
-		iter, err = s.aclTokenListByPolicy(tx, policy, entMeta)
+		iter, err = aclTokenListByPolicy(tx, policy, entMeta)
 		needLocalityFilter = true
 
 	} else if policy == "" && role != "" && methodName == "" {
-		iter, err = s.aclTokenListByRole(tx, role, entMeta)
+		iter, err = aclTokenListByRole(tx, role, entMeta)
 		needLocalityFilter = true
 
 	} else if policy == "" && role == "" && methodName != "" {
@@ -1464,7 +1464,7 @@ func (s *Store) ACLRoleList(ws memdb.WatchSet, policy string, entMeta *structs.E
 	var err error
 
 	if policy != "" {
-		iter, err = s.aclRoleListByPolicy(tx, policy, entMeta)
+		iter, err = aclRoleListByPolicy(tx, policy, entMeta)
 	} else {
 		iter, err = s.aclRoleList(tx, entMeta)
 	}

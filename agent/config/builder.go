@@ -906,6 +906,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		ConnectMeshGatewayWANFederationEnabled: connectMeshGatewayWANFederationEnabled,
 		ConnectSidecarMinPort:                  sidecarMinPort,
 		ConnectSidecarMaxPort:                  sidecarMaxPort,
+		ConnectTestCALeafRootChangeSpread:      b.durationVal("connect.test_ca_leaf_root_change_spread", c.Connect.TestCALeafRootChangeSpread),
 		ExposeMinPort:                          exposeMinPort,
 		ExposeMaxPort:                          exposeMaxPort,
 		DataDir:                                b.stringVal(c.DataDir),
@@ -1922,6 +1923,15 @@ func (b *Builder) autoConfigVal(raw AutoConfigRaw) AutoConfig {
 
 	val.Enabled = b.boolValWithDefault(raw.Enabled, false)
 	val.IntroToken = b.stringVal(raw.IntroToken)
+
+	// default the IntroToken to the env variable if specified.
+	if envToken := os.Getenv("CONSUL_INTRO_TOKEN"); envToken != "" {
+		if val.IntroToken != "" {
+			b.warn("Both auto_config.intro_token and the CONSUL_INTRO_TOKEN environment variable are set. Using the value from the environment variable")
+		}
+
+		val.IntroToken = envToken
+	}
 	val.IntroTokenFile = b.stringVal(raw.IntroTokenFile)
 	// These can be go-discover values and so don't have to resolve fully yet
 	val.ServerAddresses = b.expandAllOptionalAddrs("auto_config.server_addresses", raw.ServerAddresses)
@@ -1936,41 +1946,41 @@ func (b *Builder) autoConfigVal(raw AutoConfigRaw) AutoConfig {
 		val.IPSANs = append(val.IPSANs, ip)
 	}
 
-	val.Authorizer = b.autoConfigAuthorizerVal(raw.Authorizer)
+	val.Authorizer = b.autoConfigAuthorizerVal(raw.Authorization)
 
 	return val
 }
 
-func (b *Builder) autoConfigAuthorizerVal(raw AutoConfigAuthorizerRaw) AutoConfigAuthorizer {
+func (b *Builder) autoConfigAuthorizerVal(raw AutoConfigAuthorizationRaw) AutoConfigAuthorizer {
+	// Our config file syntax wraps the static authorizer configuration in a "static" stanza. However
+	// internally we do not support multiple configured authorization types so the RuntimeConfig just
+	// inlines the static one. While we can and probably should extend the authorization types in the
+	// future to support dynamic authorizers (ACL Auth Methods configured via normal APIs) its not
+	// needed right now so the configuration types will remain simplistic until they need to be otherwise.
 	var val AutoConfigAuthorizer
 
 	val.Enabled = b.boolValWithDefault(raw.Enabled, false)
-	val.ClaimAssertions = raw.ClaimAssertions
-	val.AllowReuse = b.boolValWithDefault(raw.AllowReuse, false)
+	val.ClaimAssertions = raw.Static.ClaimAssertions
+	val.AllowReuse = b.boolValWithDefault(raw.Static.AllowReuse, false)
 	val.AuthMethod = structs.ACLAuthMethod{
-		Name: "Auto Config Authorizer",
-		Type: "jwt",
-		// TODO (autoconf) - Configurable token TTL
-		MaxTokenTTL:    72 * time.Hour,
+		Name:           "Auto Config Authorizer",
+		Type:           "jwt",
 		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 		Config: map[string]interface{}{
-			"JWTSupportedAlgs":     raw.JWTSupportedAlgs,
-			"BoundAudiences":       raw.BoundAudiences,
-			"ClaimMappings":        raw.ClaimMappings,
-			"ListClaimMappings":    raw.ListClaimMappings,
-			"OIDCDiscoveryURL":     b.stringVal(raw.OIDCDiscoveryURL),
-			"OIDCDiscoveryCACert":  b.stringVal(raw.OIDCDiscoveryCACert),
-			"JWKSURL":              b.stringVal(raw.JWKSURL),
-			"JWKSCACert":           b.stringVal(raw.JWKSCACert),
-			"JWTValidationPubKeys": raw.JWTValidationPubKeys,
-			"BoundIssuer":          b.stringVal(raw.BoundIssuer),
-			"ExpirationLeeway":     b.durationVal("auto_config.authorizer.expiration_leeway", raw.ExpirationLeeway),
-			"NotBeforeLeeway":      b.durationVal("auto_config.authorizer.not_before_leeway", raw.NotBeforeLeeway),
-			"ClockSkewLeeway":      b.durationVal("auto_config.authorizer.clock_skew_leeway", raw.ClockSkewLeeway),
+			"JWTSupportedAlgs":     raw.Static.JWTSupportedAlgs,
+			"BoundAudiences":       raw.Static.BoundAudiences,
+			"ClaimMappings":        raw.Static.ClaimMappings,
+			"ListClaimMappings":    raw.Static.ListClaimMappings,
+			"OIDCDiscoveryURL":     b.stringVal(raw.Static.OIDCDiscoveryURL),
+			"OIDCDiscoveryCACert":  b.stringVal(raw.Static.OIDCDiscoveryCACert),
+			"JWKSURL":              b.stringVal(raw.Static.JWKSURL),
+			"JWKSCACert":           b.stringVal(raw.Static.JWKSCACert),
+			"JWTValidationPubKeys": raw.Static.JWTValidationPubKeys,
+			"BoundIssuer":          b.stringVal(raw.Static.BoundIssuer),
+			"ExpirationLeeway":     b.durationVal("auto_config.authorization.static.expiration_leeway", raw.Static.ExpirationLeeway),
+			"NotBeforeLeeway":      b.durationVal("auto_config.authorization.static.not_before_leeway", raw.Static.NotBeforeLeeway),
+			"ClockSkewLeeway":      b.durationVal("auto_config.authorization.static.clock_skew_leeway", raw.Static.ClockSkewLeeway),
 		},
-		// should be unnecessary as we aren't using the typical login process to create tokens but this is our
-		// desired mode regardless so if it ever did matter its probably better to be explicit.
-		TokenLocality: "local",
 	}
 
 	return val
@@ -1987,6 +1997,12 @@ func (b *Builder) validateAutoConfig(rt RuntimeConfig) error {
 		return nil
 	}
 
+	// Right now we require TLS as everything we are going to transmit via auto-config is sensitive. Signed Certificates, Tokens
+	// and other encryption keys. This must be transmitted over a secure connection so we don't allow doing otherwise.
+	if !rt.VerifyOutgoing {
+		return fmt.Errorf("auto_config.enabled cannot be set without configuring TLS for server communications")
+	}
+
 	// Auto Config doesn't currently support configuring servers
 	if rt.ServerMode {
 		return fmt.Errorf("auto_config.enabled cannot be set to true for server agents.")
@@ -1994,9 +2010,9 @@ func (b *Builder) validateAutoConfig(rt RuntimeConfig) error {
 
 	// When both are set we will prefer the given value over the file.
 	if autoconf.IntroToken != "" && autoconf.IntroTokenFile != "" {
-		b.warn("auto_config.intro_token and auto_config.intro_token_file are both set. Using the value of auto_config.intro_token")
+		b.warn("Both an intro token and intro token file are set. The intro token will be used instead of the file")
 	} else if autoconf.IntroToken == "" && autoconf.IntroTokenFile == "" {
-		return fmt.Errorf("one of auto_config.intro_token or auto_config.intro_token_file must be set to enable auto_config")
+		return fmt.Errorf("One of auto_config.intro_token, auto_config.intro_token_file or the CONSUL_INTRO_TOKEN environment variable must be set to enable auto_config")
 	}
 
 	if len(autoconf.ServerAddresses) == 0 {
@@ -2017,7 +2033,13 @@ func (b *Builder) validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 	}
 	// Auto Config Authorization is only supported on servers
 	if !rt.ServerMode {
-		return fmt.Errorf("auto_config.authorizer.enabled cannot be set to true for client agents")
+		return fmt.Errorf("auto_config.authorization.enabled cannot be set to true for client agents")
+	}
+
+	// Right now we require TLS as everything we are going to transmit via auto-config is sensitive. Signed Certificates, Tokens
+	// and other encryption keys. This must be transmitted over a secure connection so we don't allow doing otherwise.
+	if rt.CertFile == "" {
+		return fmt.Errorf("auto_config.authorization.enabled cannot be set without providing a TLS certificate for the server")
 	}
 
 	// build out the validator to ensure that the given configuration was valid
@@ -2025,7 +2047,7 @@ func (b *Builder) validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 	validator, err := ssoauth.NewValidator(null, &authz.AuthMethod)
 
 	if err != nil {
-		return fmt.Errorf("auto_config.authorizer has invalid configuration: %v", err)
+		return fmt.Errorf("auto_config.authorization.static has invalid configuration: %v", err)
 	}
 
 	// create a blank identity for use to validate the claim assertions.
@@ -2040,14 +2062,14 @@ func (b *Builder) validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 		// validate any HIL
 		filled, err := libtempl.InterpolateHIL(raw, varMap, true)
 		if err != nil {
-			return fmt.Errorf("auto_config.claim_assertion %q is invalid: %v", raw, err)
+			return fmt.Errorf("auto_config.authorization.static.claim_assertion %q is invalid: %v", raw, err)
 		}
 
 		// validate the bexpr syntax - note that for now all the keys mapped by the claim mappings
 		// are not validateable due to them being put inside a map. Some bexpr updates to setup keys
 		// from current map keys would probably be nice here.
 		if _, err := bexpr.CreateEvaluatorForType(filled, nil, blankID.SelectableFields); err != nil {
-			return fmt.Errorf("auto_config.claim_assertion %q is invalid: %v", raw, err)
+			return fmt.Errorf("auto_config.authorization.static.claim_assertion %q is invalid: %v", raw, err)
 		}
 	}
 	return nil

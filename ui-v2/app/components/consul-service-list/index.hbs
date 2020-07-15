@@ -1,17 +1,19 @@
 {{#if (gt items.length 0)}}
 <ListCollection @items={{items}} class="consul-service-list" as |item index|>
   <BlockSlot @name="header">
-    <dl class={{service/health-checks item}}>
+{{#let (get proxies item.Name) as |proxy|}}
+  {{#let (service/health-checks item proxy) as |health|}}
+    <dl class={{health}}>
       <dt>
         Health
       </dt>
       <dd>
         <Tooltip @position="top-start">
-          {{#if (eq 'critical' (service/health-checks item))}}
+          {{#if (eq 'critical' health)}}
             At least one health check on one instance is failing.
-          {{else if (eq 'warning' (service/health-checks item))}}
+          {{else if (eq 'warning' health)}}
             At least one health check on one instance has a warning.
-          {{else if (eq 'passing' (service/health-checks item))}}
+          {{else if (eq 'passing' health)}}
             All health checks are passing.
           {{else}}
             There are no health checks.
@@ -19,6 +21,8 @@
         </Tooltip>
       </dd>
     </dl>
+  {{/let}}
+{{/let}}
   {{#if (eq item.Kind 'terminating-gateway')}}
     <a data-test-service-name href={{href-to "dc.services.show.services" item.Name}}>
       {{item.Name}}
@@ -34,40 +38,40 @@
   {{/if}}
   </BlockSlot>
   <BlockSlot @name="details">
-    <ul>
-    {{#if (and nspace (env 'CONSUL_NSPACES_ENABLED'))}}
-      {{#if (not-eq item.Namespace nspace)}}
-        <li class="nspace">
-          {{item.Namespace}}
-        </li>
-      {{/if}}
-    {{/if}}
-      <ConsulKind @item={{item}} as |Kind|>
-        <li>
-          <Kind />
-        </li>
-      </ConsulKind>
-      <ConsulExternalSource @item={{item}} as |ExternalSource|>
-        <li>
-          <ExternalSource />
-        </li>
-      </ConsulExternalSource>
-    {{#if (not-eq item.InstanceCount 0)}}
-      <li>
-        {{format-number item.InstanceCount}} {{pluralize item.InstanceCount 'Instance' without-count=true}}
-      </li>
-    {{/if}}
-    {{#if (get proxies item.Name)}}
-      <li data-test-proxy class="proxy">
+{{#if (and nspace (env 'CONSUL_NSPACES_ENABLED'))}}
+  {{#if (not-eq item.Namespace nspace)}}
+    <dl class="nspace">
+      <dt>
+        <Tooltip>
+            Namespace
+        </Tooltip>
+      </dt>
+      <dd>
+        {{item.Namespace}}
+      </dd>
+    </dl>
+  {{/if}}
+{{/if}}
+    <ConsulKind @item={{item}} />
+    <ConsulExternalSource @item={{item}} />
+  {{#if (not-eq item.InstanceCount 0)}}
+    <span>
+      {{format-number item.InstanceCount}} {{pluralize item.InstanceCount 'Instance' without-count=true}}
+    </span>
+  {{/if}}
+  {{#if (get proxies item.Name)}}
+    <dl class="proxy">
+      <dt>
+        <Tooltip>
+          This service uses a proxy for the Consul service mesh
+        </Tooltip>
+      </dt>
+      <dd data-test-proxy>
         connected with proxy
-      </li>
-    {{/if}}
-      <TagList @item={{item}} as |Tags|>
-        <li>
-          <Tags />
-        </li>
-      </TagList>
-    </ul>
+      </dd>
+    </dl>
+  {{/if}}
+    <TagList @item={{item}} />
   </BlockSlot>
 </ListCollection>
 {{/if}}

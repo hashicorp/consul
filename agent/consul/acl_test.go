@@ -509,6 +509,9 @@ func testRoleForID(roleID string) (bool, *structs.ACLRole, error) {
 // ACLResolverTestDelegate is used to test
 // the ACLResolver without running Agents
 type ACLResolverTestDelegate struct {
+	// enabled is no longer part of the delegate. It is still here as a field on
+	// the fake delegate because many tests use this field to enable ACLs. This field
+	// is now used to set ACLResolverConfig.Config.ACLsEnabled.
 	enabled         bool
 	datacenter      string
 	legacy          bool
@@ -619,10 +622,6 @@ func (d *ACLResolverTestDelegate) plainRoleResolveFn(args *structs.ACLRoleBatchG
 	return nil
 }
 
-func (d *ACLResolverTestDelegate) ACLsEnabled() bool {
-	return d.enabled
-}
-
 func (d *ACLResolverTestDelegate) ACLDatacenter(legacy bool) string {
 	return d.datacenter
 }
@@ -691,10 +690,11 @@ func (d *ACLResolverTestDelegate) RPC(method string, args interface{}, reply int
 	panic("Bad Test Implementation: Was the ACLResolver updated to use new RPC methods")
 }
 
-func newTestACLResolver(t *testing.T, delegate ACLResolverDelegate, cb func(*ACLResolverConfig)) *ACLResolver {
+func newTestACLResolver(t *testing.T, delegate *ACLResolverTestDelegate, cb func(*ACLResolverConfig)) *ACLResolver {
 	config := DefaultConfig()
 	config.ACLDefaultPolicy = "deny"
 	config.ACLDownPolicy = "extend-cache"
+	config.ACLsEnabled = delegate.enabled
 	rconf := &ACLResolverConfig{
 		Config: config,
 		Logger: testutil.LoggerWithName(t, t.Name()),

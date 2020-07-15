@@ -126,7 +126,7 @@ func (s *Restore) Intention(ixn *structs.Intention) error {
 }
 
 // Intentions returns the list of all intentions.
-func (s *Store) Intentions(ws memdb.WatchSet) (uint64, structs.Intentions, error) {
+func (s *Store) Intentions(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -136,11 +136,11 @@ func (s *Store) Intentions(ws memdb.WatchSet) (uint64, structs.Intentions, error
 		idx = 1
 	}
 
-	// Get all intentions
-	iter, err := tx.Get(intentionsTableName, "id")
+	iter, err := s.intentionListTxn(tx, entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed intention lookup: %s", err)
 	}
+
 	ws.Add(iter.WatchCh())
 
 	var results structs.Intentions
@@ -236,6 +236,38 @@ func (s *Store) IntentionGet(ws memdb.WatchSet, id string) (uint64, *structs.Int
 
 	// Look up by its ID.
 	watchCh, intention, err := tx.FirstWatch(intentionsTableName, "id", id)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed intention lookup: %s", err)
+	}
+	ws.Add(watchCh)
+
+	// Convert the interface{} if it is non-nil
+	var result *structs.Intention
+	if intention != nil {
+		result = intention.(*structs.Intention)
+	}
+
+	return idx, result, nil
+}
+
+// IntentionGetExact returns the given intention by it's full unique name.
+func (s *Store) IntentionGetExact(ws memdb.WatchSet, args *structs.IntentionQueryExact) (uint64, *structs.Intention, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	if err := args.Validate(); err != nil {
+		return 0, nil, err
+	}
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, intentionsTableName)
+	if idx < 1 {
+		idx = 1
+	}
+
+	// Look up by its full name.
+	watchCh, intention, err := tx.FirstWatch(intentionsTableName, "source_destination",
+		args.SourceNS, args.SourceName, args.DestinationNS, args.DestinationName)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed intention lookup: %s", err)
 	}

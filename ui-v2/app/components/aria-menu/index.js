@@ -82,9 +82,10 @@ export default Component.extend({
       // TODO: We need to use > somehow here so we don't select submenus
       const $items = [...this.dom.elements(MENU_ITEMS, this.$menu)];
       if (!this.expanded) {
-        this.$trigger.dispatchEvent(new MouseEvent('click'));
         if (e.keyCode === ENTER || e.keyCode === SPACE) {
-          $items[0].focus();
+          next(() => {
+            $items[0].focus();
+          });
           return;
         }
       }

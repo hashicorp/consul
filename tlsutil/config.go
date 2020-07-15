@@ -505,6 +505,12 @@ func (c *Configurator) commonTLSConfig(verifyIncoming bool) *tls.Config {
 			cert = c.manual.cert
 		}
 
+		if cert == nil {
+			// the return value MUST not be nil but an empty certificate will be
+			// treated the same as having no client certificate
+			cert = &tls.Certificate{}
+		}
+
 		return cert, nil
 	}
 

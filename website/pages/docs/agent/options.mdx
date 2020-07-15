@@ -40,7 +40,9 @@ documented below in the
 [reload command](/docs/commands/reload) can also be used to trigger a
 configuration reload.
 
-You can test the following configuration options by following the [Getting Started](https://learn.hashicorp.com/consul/getting-started/install?utm_source=consul.io&utm_medium=docs) guides to install a local agent.
+You can test the following configuration options by following the
+[Getting Started](https://learn.hashicorp.com/consul/getting-started/install?utm_source=consul.io&utm_medium=docs)
+guides to install a local agent.
 
 ## Environment Variables
 
@@ -445,7 +447,7 @@ The options below are all specified on the command-line.
   more details. By default, this is an empty string, which is the default network
   segment.
 
-- `-serf-lan-allowed-cidrs` - The Serf LAN allowed CIDRs allow to accept incoming
+- `-serf-lan-allowed-cidrs` ((#\_serf_lan_allowed_cidrs)) - The Serf LAN allowed CIDRs allow to accept incoming
   connections for Serf only from several networks (mutiple values are supported).
   Those networks are specified with CIDR notation (eg: 192.168.1.0/24).
   This is available in Consul 1.8 and later.
@@ -454,7 +456,7 @@ The options below are all specified on the command-line.
   This overrides the default Serf LAN port 8301. This is available in Consul 1.2.2
   and later.
 
-- `-serf-lan-allowed-cidrs` - he Serf LAN allowed CIDRs allow to accept incoming
+- `-serf-wan-allowed-cidrs` ((#\_serf_wan_allowed_cidrs)) - The Serf WAN allowed CIDRs allow to accept incoming
   connections for Serf only from several networks (mutiple values are supported).
   Those networks are specified with CIDR notation (eg: 192.168.1.0/24).
   This is available in Consul 1.8 and later.
@@ -624,7 +626,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     policy controls the behavior of a token when there is no matching rule. In "allow"
     mode, ACLs are a denylist: any operation not specifically prohibited is allowed.
     In "deny" mode, ACLs are an allowlist: any operation not specifically
-    allowed is blocked. **Note**: this will not take effect until you'veenabled ACLs.
+    allowed is blocked. **Note**: this will not take effect until you've enabled ACLs.
 
   - `enable_key_list_policy` ((#acl_enable_key_list_policy)) - Either "enabled"
     or "disabled", defaults to "disabled". When enabled, the `list` permission will
@@ -812,58 +814,62 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
 - `advertise_addr` Equivalent to the [`-advertise` command-line flag](#_advertise).
 
-- `serf_wan` ((#serf_wan_bind)) Equivalent to the [`-serf-wan-bind` command-line flag](#_serf_wan_bind).
+- `advertise_addr_wan` Equivalent to the [`-advertise-wan` command-line flag](#_advertise-wan).
 
 - `serf_lan` ((#serf_lan_bind)) Equivalent to the [`-serf-lan-bind` command-line flag](#_serf_lan_bind).
 
-- `advertise_addr_wan` Equivalent to the [`-advertise-wan` command-line flag](#_advertise-wan).
+- `serf_lan_allowed_cidrs` ((#serf_lan_allowed_cidrs)) Equivalent to the [`-serf-lan-allowed-cidrs` command-line flag](#_serf_lan_allowed_cidrs).
+
+- `serf_wan` ((#serf_wan_bind)) Equivalent to the [`-serf-wan-bind` command-line flag](#_serf_wan_bind).
+
+- `serf_wan_allowed_cidrs` ((#serf_wan_allowed_cidrs)) Equivalent to the [`-serf-wan-allowed-cidrs` command-line flag](#_serf_wan_allowed_cidrs).
 
 - `audit` <EnterpriseAlert inline /> - Added in Consul 1.8, the audit object allow users to enable auditing
-    and configure a sink and filters for their audit logs.
+  and configure a sink and filters for their audit logs.
 
-    ```hcl
-      audit {
-        enabled = true
-        sink "My sink" {
-          type   = "file"
-          format = "json"
-          path   = "data/audit/audit.json"
-          delivery_guarantee = "best-effort"
-          rotate_duration = "24h"
-          rotate_max_files = 15
-          rotate_bytes = 25165824
-        }
-    }
-    ```
+  ```hcl
+    audit {
+      enabled = true
+      sink "My sink" {
+        type   = "file"
+        format = "json"
+        path   = "data/audit/audit.json"
+        delivery_guarantee = "best-effort"
+        rotate_duration = "24h"
+        rotate_max_files = 15
+        rotate_bytes = 25165824
+      }
+  }
+  ```
 
-    The following sub-keys are available:
+  The following sub-keys are available:
 
-    - `enabled` - Controls whether Consul logs out each time a user
+  - `enabled` - Controls whether Consul logs out each time a user
     performs an operation. ACLs must be enabled to use this feature. Defaults to `false`.
 
-    - `sink` - This object provides configuration for the destination to which 
-    Consul will log auditing events. Sink is an object containing keys to sink objects, where the key is the name of the sink. 
+  - `sink` - This object provides configuration for the destination to which
+    Consul will log auditing events. Sink is an object containing keys to sink objects, where the key is the name of the sink.
 
-      - `type` - Type specifies what kind of sink this is.
-        The following keys are valid:
-        - `file` - Currently only file sinks are available, they take the following keys.
-      - `format` - Format specifies what format the events will
-        be emitted with.
-        The following keys are valid:
-        - `json` - Currently only json events are offered.
-      - `path` - The directory and filename to write audit events to.
-      - `delivery_guarantee` - Specifies
-        the rules governing how audit events are written.
-        The following keys are valid:
-        - `best-effort` - Consul only supports `best-effort` event delivery.
-      - `rotate_duration` - Specifies the
-        interval by which the system rotates to a new log file. At least one of `rotate_duration` or `rotate_bytes`
-        must be configured to enable audit logging.
-      - `rotate_max_files` - Defines the
-        limit that Consul should follow before it deletes old log files.
-      - `rotate_bytes` - Specifies how large an
-        individual log file can grow before Consul rotates to a new file. At least one of `rotate_bytes` or
-        `rotate_duration` must be configured to enable audit logging.
+    - `type` - Type specifies what kind of sink this is.
+      The following keys are valid:
+      - `file` - Currently only file sinks are available, they take the following keys.
+    - `format` - Format specifies what format the events will
+      be emitted with.
+      The following keys are valid:
+      - `json` - Currently only json events are offered.
+    - `path` - The directory and filename to write audit events to.
+    - `delivery_guarantee` - Specifies
+      the rules governing how audit events are written.
+      The following keys are valid:
+      - `best-effort` - Consul only supports `best-effort` event delivery.
+    - `rotate_duration` - Specifies the
+      interval by which the system rotates to a new log file. At least one of `rotate_duration` or `rotate_bytes`
+      must be configured to enable audit logging.
+    - `rotate_max_files` - Defines the
+      limit that Consul should follow before it deletes old log files.
+    - `rotate_bytes` - Specifies how large an
+      individual log file can grow before Consul rotates to a new file. At least one of `rotate_bytes` or
+      `rotate_duration` must be configured to enable audit logging.
 
 - `autopilot` Added in Consul 0.8, this object allows a
   number of sub-keys to be set which can configure operator-friendly settings for
@@ -1242,6 +1248,10 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   - `cache_max_age` ((#dns_cache_max_age)) - When [use_cache](#dns_use_cache)
     is enabled, the agent will attempt to re-fetch the result from the servers if
     the cached value is older than this duration. See: [agent caching](/api/features/caching).
+
+    **Note** that unlike the `max-age` HTTP header, a value of 0 for this field is
+    equivalent to "no max age". To get a fresh value from the cache use a very small value
+    of `1ns` instead of 0.
 
   - `prefer_namespace` ((#dns_prefer_namespace)) <EnterpriseAlert inline /> -
     When set to true, in a DNS query for a service, the label between the domain
@@ -1751,8 +1761,8 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     statsite.
 
   - `prefix_filter` ((#telemetry-prefix_filter))
-    This is a list of filter rules to apply for allowing/blocking metrics by prefix
-    in the following format:
+    This is a list of filter rules to apply for allowing/blocking metrics by
+    prefix in the following format:
 
     ```json
     ["+consul.raft.apply", "-consul.http", "+consul.http.GET"]
@@ -1802,9 +1812,10 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   or "tls13". This defaults to "tls12". WARNING: TLS 1.1 and lower are generally
   considered less secure; avoid using these if possible.
 
-- `tls_cipher_suites` Added in Consul 0.8.2, this
-  specifies the list of supported ciphersuites as a comma-separated-list. The list
-  of all supported ciphersuites is available in the [source code](https://github.com/hashicorp/consul/blob/master/tlsutil/config.go#L363).
+- `tls_cipher_suites` Added in Consul 0.8.2, this specifies the list of
+  supported ciphersuites as a comma-separated-list. The list of all supported
+  ciphersuites is available through
+  [this search](https://github.com/hashicorp/consul/search?q=cipherMap+%3A%3D+map&unscoped_q=cipherMap+%3A%3D+map).
 
 - `tls_prefer_server_cipher_suites` Added in Consul 0.8.2, this
   will cause Consul to prefer the server's ciphersuite over the client ciphersuites.
@@ -1927,14 +1938,17 @@ required ports and their default settings.
 Reloading configuration does not reload all configuration items. The
 items which are reloaded include:
 
-- Log level
+- ACL Tokens
+- [Configuration Entry Bootstrap](#config_entries_bootstrap)
 - Checks
-- Services
-- Watches
+- [Discard Check Output](#discard_check_output)
 - HTTP Client Address
+- Log level
+- [Metric Prefix Filter](#telemetry-prefix_filter)
+- [Node Metadata](#node_meta)
+- [RPC rate limiting](#limits)
+- [HTTP Maximum Connections per Client](#http_max_conns_per_client)
+- Services
 - TLS Configuration
   - Please be aware that this is currently limited to reload a configuration that is already TLS enabled. You cannot enable or disable TLS only with reloading.
-- [Node Metadata](#node_meta)
-- [Metric Prefix Filter](#telemetry-prefix_filter)
-- [Discard Check Output](#discard_check_output)
-- [RPC rate limiting](#limits)
+- Watches
