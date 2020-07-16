@@ -4,6 +4,7 @@ import { hash } from 'rsvp';
 
 export default Route.extend({
   repo: service('repository/node'),
+  data: service('data-source/service'),
   queryParams: {
     search: {
       as: 'filter',
@@ -12,8 +13,9 @@ export default Route.extend({
   },
   model: function(params) {
     const dc = this.modelFor('dc').dc.Name;
+    const nspace = '*';
     return hash({
-      items: this.repo.findAllByDatacenter(dc, this.modelFor('nspace').nspace.substr(1)),
+      items: this.data.source(uri => uri`/${nspace}/${dc}/nodes`),
       leader: this.repo.findByLeader(dc),
     });
   },

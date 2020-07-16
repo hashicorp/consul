@@ -4,38 +4,46 @@ import { hash } from 'rsvp';
 import { get } from '@ember/object';
 
 export default Route.extend({
-  repo: service('repository/service'),
-  proxyRepo: service('repository/proxy'),
+  data: service('data-source/service'),
   model: function(params) {
     const dc = this.modelFor('dc').dc.Name;
-    const nspace = this.modelFor('nspace').nspace.substr(1);
+    const nspace = this.modelFor('nspace').nspace.substr(1) || 'default';
     return hash({
       dc: dc,
-      nspace: nspace || 'default',
-      item: this.repo.findInstanceBySlug(params.id, params.node, params.name, dc, nspace),
+      nspace: nspace,
+      item: this.data.source(
+        uri => uri`/${nspace}/${dc}/service-instance/${params.id}/${params.node}/${params.name}`
+      ),
     }).then(model => {
       // this will not be run in a blocking loop, but this is ok as
       // its highly unlikely that a service will suddenly change to being a
       // connect-proxy or vice versa so leave as is for now
       return hash({
+        ...model,
         proxyMeta:
           // proxies and mesh-gateways can't have proxies themselves so don't even look
           ['connect-proxy', 'mesh-gateway'].includes(get(model.item, 'Kind'))
             ? null
-            : this.proxyRepo.findInstanceBySlug(params.id, params.node, params.name, dc, nspace),
-        ...model,
+            : this.data.source(
+                uri =>
+                  uri`/${nspace}/${dc}/proxy-instance/${params.id}/${params.node}/${params.name}`
+              ),
       }).then(model => {
         if (typeof get(model, 'proxyMeta.ServiceID') === 'undefined') {
           return model;
         }
-        const proxyName = get(model, 'proxyMeta.ServiceName');
-        const proxyID = get(model, 'proxyMeta.ServiceID');
-        const proxyNode = get(model, 'proxyMeta.Node');
+        const proxy = {
+          id: get(model, 'proxyMeta.ServiceID'),
+          node: get(model, 'proxyMeta.Node'),
+          name: get(model, 'proxyMeta.ServiceName'),
+        };
         return hash({
+          ...model,
           // Proxies have identical dc/nspace as their parent instance
           // No need to use Proxy's dc/nspace response
-          proxy: this.repo.findInstanceBySlug(proxyID, proxyNode, proxyName, dc, nspace),
-          ...model,
+          proxy: this.data.source(
+            uri => uri`/${nspace}/${dc}/service-instance/${proxy.id}/${proxy.node}/${proxy.name}`
+          ),
         });
       });
     });

@@ -4,7 +4,7 @@ import { hash } from 'rsvp';
 
 import WithNspaceActions from 'consul-ui/mixins/nspace/with-actions';
 export default Route.extend(WithNspaceActions, {
-  repo: service('repository/nspace'),
+  data: service('data-source/service'),
   queryParams: {
     search: {
       as: 'filter',
@@ -13,7 +13,7 @@ export default Route.extend(WithNspaceActions, {
   },
   model: function(params) {
     return hash({
-      items: this.repo.findAll(),
+      items: this.data.source(uri => uri`/*/*/namespaces`),
       isLoading: false,
     });
   },
