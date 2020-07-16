@@ -9,23 +9,28 @@
 {{#let (hash
   data=data
   error=error
+  dispatchError=(queue (action (mut error) value="error.errors.firstObject") (action dispatch "ERROR"))
 ) as |api|}}
 
-{{! if we didn't specify any data}}
-{{#if (not items)}}
-  {{! try and load the data if we aren't in an error state}}
-  <State @notMatches={{array "error" "disconnected"}}>
-    {{! but only if we only asked for a single load and we are in loading state}}
-    {{#if (or (not once) (state-matches state "loading"))}}
-      <DataSource
-        @open={{open}}
-        @src={{src}}
-        @onchange={{queue (action "change" value="data") (action dispatch "SUCCESS")}}
-        @onerror={{queue (action (mut error) value="error.errors.firstObject") (action dispatch "ERROR")}}
-      />
-    {{/if}}
-  </State>
-{{/if}}
+    {{#yield-slot name="data"}}
+      {{yield api}}
+    {{else}}
+      {{! if we didn't specify any data}}
+      {{#if (not items)}}
+        {{! try and load the data if we aren't in an error state}}
+        <State @notMatches={{array "error" "disconnected"}}>
+          {{! but only if we only asked for a single load and we are in loading state}}
+          {{#if (and src (or (not once) (state-matches state "loading")))}}
+            <DataSource
+              @open={{open}}
+              @src={{src}}
+              @onchange={{queue (action "change" value="data") (action dispatch "SUCCESS")}}
+              @onerror={{api.dispatchError}}
+            />
+          {{/if}}
+        </State>
+      {{/if}}
+    {{/yield-slot}}
 
   <State @matches="loading">
     {{#yield-slot name="loading"}}
