@@ -49,6 +49,7 @@ export default Service.extend({
     };
     if (typeof configuration.cursor !== 'undefined') {
       query.index = configuration.cursor;
+      query.uri = configuration.uri;
     }
     return this.store.query(this.getModelName(), query);
   },
@@ -60,6 +61,7 @@ export default Service.extend({
     };
     if (typeof configuration.cursor !== 'undefined') {
       query.index = configuration.cursor;
+      query.uri = configuration.uri;
     }
     return this.store.queryRecord(this.getModelName(), query);
   },

@@ -12,9 +12,10 @@ if (env('CONSUL_NSPACES_ENABLED')) {
 }
 export default Adapter.extend({
   env: service('env'),
-  requestForQuery: function(request, { dc, ns, index }) {
+  requestForQuery: function(request, { dc, ns, index, uri }) {
     return request`
       GET /v1/internal/ui/oidc-auth-methods?${{ dc }}
+      X-Request-ID: ${uri}
 
       ${{
         index,
