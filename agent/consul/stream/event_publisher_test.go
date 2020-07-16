@@ -111,3 +111,45 @@ func assertNoResult(t *testing.T, eventCh <-chan subNextResult) {
 	case <-time.After(100 * time.Millisecond):
 	}
 }
+
+func TestEventPublisher_ShutdownClosesSubscriptions(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	handlers := newTestSnapshotHandlers()
+	fn := func(req *SubscribeRequest, buf SnapshotAppender) (uint64, error) {
+		return 0, nil
+	}
+	handlers[intTopic(22)] = fn
+	handlers[intTopic(33)] = fn
+
+	publisher := NewEventPublisher(ctx, handlers, time.Second)
+
+	sub1, err := publisher.Subscribe(&SubscribeRequest{Topic: intTopic(22)})
+	require.NoError(t, err)
+	defer sub1.Unsubscribe()
+
+	sub2, err := publisher.Subscribe(&SubscribeRequest{Topic: intTopic(33)})
+	require.NoError(t, err)
+	defer sub2.Unsubscribe()
+
+	cancel() // Shutdown
+
+	err = consumeSub(context.Background(), sub1)
+	require.Equal(t, err, ErrSubscriptionClosed)
+
+	_, err = sub2.Next(context.Background())
+	require.Equal(t, err, ErrSubscriptionClosed)
+}
+
+func consumeSub(ctx context.Context, sub *Subscription) error {
+	for {
+		events, err := sub.Next(ctx)
+		switch {
+		case err != nil:
+			return err
+		case len(events) == 1 && events[0].IsEndOfSnapshot():
+			continue
+		}
+	}
+}
