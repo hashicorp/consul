@@ -45,7 +45,7 @@ export default Component.extend({
     this._lazyListeners = this.dom.listeners();
     this.guid = this.dom.guid(this);
   },
-  willDestroy: function() {
+  willDestroyElement: function() {
     this.actions.close.apply(this);
     this._listeners.remove();
     this._lazyListeners.remove();
@@ -90,7 +90,10 @@ export default Component.extend({
       );
       const error = err => {
         try {
-          this.onerror(err);
+          const error = get(err, 'error.errors.firstObject');
+          if (get(error || {}, 'status') !== '429') {
+            this.onerror(err);
+          }
           this.logger.execute(err);
         } catch (err) {
           this.logger.execute(err);
@@ -106,9 +109,7 @@ export default Component.extend({
           }
         },
         error: e => {
-          if (get(e, 'error.errors.firstObject.status') !== '429') {
-            error(e);
-          }
+          error(e);
         },
       });
       replace(this, '_remove', remove);
