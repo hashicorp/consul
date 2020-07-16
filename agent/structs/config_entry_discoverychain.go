@@ -885,6 +885,11 @@ type ServiceResolverSubset struct {
 	// returned. (behaves identically to the similarly named field on prepared
 	// queries).
 	OnlyPassing bool `json:",omitempty" alias:"only_passing"`
+
+	// NeverExclude - Specifies the behavior of the resolver's health check
+	// filtering. If this is set to false, the behavior of `OnlyPassing` is used
+	// otherwise we return even failing hosts.
+	NeverExclude bool `json:",omitempty" alias:"never_exclude"`
 }
 
 type ServiceResolverRedirect struct {

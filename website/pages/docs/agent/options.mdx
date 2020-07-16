@@ -1191,6 +1191,10 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     then all services on that node will be excluded because they are also considered
     critical.
 
+  - `never_exclude` - If set to true, any nodes whose
+    health checks are failing aren't excluded from DNS results. If false,
+    the default, the behavior of `only_passing` is used.
+
   - `recursor_timeout` - Timeout used by Consul when
     recursively querying an upstream DNS server. See [`recursors`](#recursors) for more details. Default is 2s. This is available in Consul 0.7 and later.
 

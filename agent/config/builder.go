@@ -834,6 +834,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		DNSMaxStale:           b.durationVal("dns_config.max_stale", c.DNS.MaxStale),
 		DNSNodeTTL:            b.durationVal("dns_config.node_ttl", c.DNS.NodeTTL),
 		DNSOnlyPassing:        b.boolVal(c.DNS.OnlyPassing),
+		DNSNeverExclude:       b.boolVal(c.DNS.NeverExclude),
 		DNSPort:               dnsPort,
 		DNSRecursorTimeout:    b.durationVal("recursor_timeout", c.DNS.RecursorTimeout),
 		DNSRecursors:          dnsRecursors,

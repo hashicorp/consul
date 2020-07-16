@@ -520,8 +520,10 @@ func (p *PreparedQuery) execute(query *structs.PreparedQuery,
 	}
 
 	// Filter out any unhealthy nodes.
-	nodes = nodes.FilterIgnore(query.Service.OnlyPassing,
-		query.Service.IgnoreCheckIDs)
+	if !query.Service.NeverExclude {
+		nodes = nodes.FilterIgnore(query.Service.OnlyPassing,
+			query.Service.IgnoreCheckIDs)
+	}
 
 	// Apply the node metadata filters, if any.
 	if len(query.Service.NodeMeta) > 0 {

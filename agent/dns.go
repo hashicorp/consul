@@ -61,6 +61,7 @@ type dnsConfig struct {
 	NodeName        string
 	NodeTTL         time.Duration
 	OnlyPassing     bool
+	NeverExclude    bool
 	RecursorTimeout time.Duration
 	Recursors       []string
 	SegmentName     string
@@ -137,6 +138,7 @@ func GetDNSConfig(conf *config.RuntimeConfig) (*dnsConfig, error) {
 		NodeName:           conf.NodeName,
 		NodeTTL:            conf.DNSNodeTTL,
 		OnlyPassing:        conf.DNSOnlyPassing,
+		NeverExclude:       conf.DNSNeverExclude,
 		RecursorTimeout:    conf.DNSRecursorTimeout,
 		SegmentName:        conf.SegmentName,
 		UDPAnswerLimit:     conf.DNSUDPAnswerLimit,
@@ -1208,11 +1210,14 @@ func (d *DNSServer) lookupServiceNodes(cfg *dnsConfig, lookup serviceLookup) (st
 		}
 	}
 
-	// Filter out any service nodes due to health checks
-	// We copy the slice to avoid modifying the result if it comes from the cache
-	nodes := make(structs.CheckServiceNodes, len(out.Nodes))
-	copy(nodes, out.Nodes)
-	out.Nodes = nodes.Filter(cfg.OnlyPassing)
+	// NeverExclude never excludes nodes from DNS regardless of their health checks.
+	if !cfg.NeverExclude {
+		// Filter out any service nodes due to health checks
+		// We copy the slice to avoid modifying the result if it comes from the cache
+		nodes := make(structs.CheckServiceNodes, len(out.Nodes))
+		copy(nodes, out.Nodes)
+		out.Nodes = nodes.Filter(cfg.OnlyPassing)
+	}
 	return out, nil
 }
 

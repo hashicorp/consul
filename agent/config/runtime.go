@@ -296,6 +296,13 @@ type RuntimeConfig struct {
 	// hcl: dns_config { only_passing = "duration" }
 	DNSOnlyPassing bool
 
+	// DNSNeverExclude is used to determine whether to never exclude nodes
+	// whose health checks are failing. By
+	// default, the behavior of DNSOnlyPassing is used.
+	//
+	// hcl: dns_config { never_exclude = (true|false) }
+	DNSNeverExclude bool
+
 	// DNSRecursorTimeout specifies the timeout in seconds
 	// for Consul's internal dns client used for recursion.
 	// This value is used for the connection, read and write timeout.

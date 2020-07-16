@@ -4068,6 +4068,153 @@ func TestDNS_ServiceLookup_OnlyPassing(t *testing.T) {
 	require.Equal(t, []string{"127.0.0.1", "127.0.0.2"}, ips)
 }
 
+func TestDNS_ServiceLookup_NeverExclude(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, `
+		dns_config {
+			only_passing = true
+			never_exclude = false
+		}
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Register nodes with health checks in various states.
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				Service: "db",
+				Tags:    []string{"master"},
+				Port:    12345,
+			},
+			Check: &structs.HealthCheck{
+				CheckID:   "db",
+				Name:      "db",
+				ServiceID: "db",
+				Status:    api.HealthPassing,
+			},
+		}
+
+		var out struct{}
+		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		args2 := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "127.0.0.2",
+			Service: &structs.NodeService{
+				Service: "db",
+				Tags:    []string{"master"},
+				Port:    12345,
+			},
+			Check: &structs.HealthCheck{
+				CheckID:   "db",
+				Name:      "db",
+				ServiceID: "db",
+				Status:    api.HealthWarning,
+			},
+		}
+
+		if err := a.RPC("Catalog.Register", args2, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		args3 := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "baz",
+			Address:    "127.0.0.3",
+			Service: &structs.NodeService{
+				Service: "db",
+				Tags:    []string{"master"},
+				Port:    12345,
+			},
+			Check: &structs.HealthCheck{
+				CheckID:   "db",
+				Name:      "db",
+				ServiceID: "db",
+				Status:    api.HealthCritical,
+			},
+		}
+
+		if err := a.RPC("Catalog.Register", args3, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Register an equivalent prepared query.
+	var id string
+	{
+		args := &structs.PreparedQueryRequest{
+			Datacenter: "dc1",
+			Op:         structs.PreparedQueryCreate,
+			Query: &structs.PreparedQuery{
+				Name: "test",
+				Service: structs.ServiceQuery{
+					Service:      "db",
+					OnlyPassing:  true,
+					NeverExclude: false,
+				},
+			},
+		}
+		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Look up the service directly and via prepared query.
+	questions := []string{
+		"db.service.consul.",
+		id + ".query.consul.",
+	}
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeANY)
+
+		c := new(dns.Client)
+		in, _, err := c.Exchange(m, a.DNSAddr())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		// Only 1 is passing, so we should only get 1 answer
+		// Since we didn't change NeverExclude default we don't
+		// expect any different in behavior.
+		if len(in.Answer) != 1 {
+			t.Fatalf("Bad: %#v", in)
+		}
+
+		resp := in.Answer[0]
+		aRec := resp.(*dns.A)
+
+		if aRec.A.String() != "127.0.0.1" {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+	}
+
+	newCfg := *a.Config
+	newCfg.DNSNeverExclude = true
+	err := a.reloadConfigInternal(&newCfg)
+	require.NoError(t, err)
+
+	// never_exclude is now true. we should now get three nodes
+	m := new(dns.Msg)
+	m.SetQuestion("db.service.consul.", dns.TypeANY)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	require.NoError(t, err)
+
+	require.Equal(t, 3, len(in.Answer))
+	ips := []string{in.Answer[0].(*dns.A).A.String(), in.Answer[1].(*dns.A).A.String(), in.Answer[2].(*dns.A).A.String()}
+	sort.Strings(ips)
+	require.Equal(t, []string{"127.0.0.1", "127.0.0.2", "127.0.0.3"}, ips)
+}
+
 func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, "")

@@ -536,6 +536,7 @@ type DNS struct {
 	MaxStale           *string           `json:"max_stale,omitempty" hcl:"max_stale" mapstructure:"max_stale"`
 	NodeTTL            *string           `json:"node_ttl,omitempty" hcl:"node_ttl" mapstructure:"node_ttl"`
 	OnlyPassing        *bool             `json:"only_passing,omitempty" hcl:"only_passing" mapstructure:"only_passing"`
+	NeverExclude       *bool             `json:"never_exclude,omitempty" hcl:"never_exclude" mapstructure:"never_exclude"`
 	RecursorTimeout    *string           `json:"recursor_timeout,omitempty" hcl:"recursor_timeout" mapstructure:"recursor_timeout"`
 	ServiceTTL         map[string]string `json:"service_ttl,omitempty" hcl:"service_ttl" mapstructure:"service_ttl"`
 	UDPAnswerLimit     *int              `json:"udp_answer_limit,omitempty" hcl:"udp_answer_limit" mapstructure:"udp_answer_limit"`
