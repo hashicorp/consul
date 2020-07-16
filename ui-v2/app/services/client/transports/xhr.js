@@ -12,7 +12,10 @@ export default Service.extend({
     return xhr(options);
   },
   request: function(params) {
-    const request = new Request(params.method, params.url, { body: params.data || {} });
+    const request = new Request(params.method, params.url, {
+      ['x-request-id']: params.clientHeaders['x-request-id'],
+      body: params.data || {},
+    });
     const options = {
       ...params,
       beforeSend: function(xhr) {
@@ -51,6 +54,7 @@ export default Service.extend({
     };
     request.fetch = () => {
       this.xhr(options);
+      return request;
     };
     return request;
   },
