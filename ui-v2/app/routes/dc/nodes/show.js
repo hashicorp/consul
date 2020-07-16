@@ -6,7 +6,7 @@ export default Route.extend({
   data: service('data-source/service'),
   model: function(params) {
     const dc = this.modelFor('dc').dc.Name;
-    const nspace = this.modelFor('nspace').nspace.substr(1) || 'default';
+    const nspace = this.modelFor('nspace').nspace.substr(1);
     const name = params.name;
     return hash({
       dc: dc,
@@ -16,7 +16,6 @@ export default Route.extend({
       return hash({
         ...model,
         tomography: this.data.source(uri => uri`/${nspace}/${dc}/coordinates/for-node/${name}`),
-        // TODO:
         sessions: this.data.source(uri => uri`/${nspace}/${dc}/sessions/for-node/${name}`),
       });
     });

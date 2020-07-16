@@ -29,7 +29,7 @@ export default Route.extend({
           .trim();
       }
     }
-    const nspace = this.modelFor('nspace').nspace.substr(1) || 'default';
+    const nspace = this.modelFor('nspace').nspace.substr(1);
     const dc = this.modelFor('dc').dc.Name;
     return hash({
       nspace: nspace,
