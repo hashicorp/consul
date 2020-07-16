@@ -293,7 +293,7 @@ type RuntimeConfig struct {
 	// whose health checks are in any non-passing state. By
 	// default, only nodes in a critical state are excluded.
 	//
-	// hcl: dns_config { only_passing = "duration" }
+	// hcl: dns_config { only_passing = (true|false) }
 	DNSOnlyPassing bool
 
 	// DNSRecursorTimeout specifies the timeout in seconds
