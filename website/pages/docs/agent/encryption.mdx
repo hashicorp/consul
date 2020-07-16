@@ -59,7 +59,7 @@ $ consul agent -data-dir=/tmp/consul -config-file=encrypt.json
 All nodes within a Consul cluster must share the same encryption key in
 order to send and receive cluster information.
 
-~> Certificates need to be created with x509v3 extended Usage attributes for both clientAuth and serverAuth since Consul uses a single cert/key pair for both server and client communications.
+~> Certificates need to be created with x509v3 extendedKeyUsage attributes for both clientAuth and serverAuth since Consul uses a single cert/key pair for both server and client communications.
 
 ## Configuring Gossip Encryption on an existing cluster
 
