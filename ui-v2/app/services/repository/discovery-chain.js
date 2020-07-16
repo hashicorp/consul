@@ -19,7 +19,7 @@ export default RepositoryService.extend({
       const body = get(e, 'errors.firstObject.detail').trim();
       switch (code) {
         case '500':
-          if (datacenter !== null && body === ERROR_MESH_DISABLED) {
+          if (datacenter !== null && body.endsWith(ERROR_MESH_DISABLED)) {
             set(datacenter, 'MeshEnabled', false);
           }
           return;
