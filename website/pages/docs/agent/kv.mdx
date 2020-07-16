@@ -49,7 +49,8 @@ Objects are opaque to Consul, meaning there are no restrictions on the type of
 object stored in a key/value entry. The main restriction on an object is size -
 the maximum is 512 KB. Due to the maximum object size and main use cases, you
 should not need extra storage; the general [sizing
-recommendations](/docs/commands/snapshot/restore) are usually sufficient.
+recommendations](/docs/agent/options#kv_max_value_size)
+are usually sufficient.
 
 Keys, like objects are not restricted by type and can include any character.
 However, we recommend using URL-safe chars - `[a-zA-Z0-9-_]` with the
