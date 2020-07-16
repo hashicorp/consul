@@ -133,7 +133,7 @@ func (s *Store) PreparedQuerySet(idx uint64, query *structs.PreparedQuery) error
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	if err := s.preparedQuerySetTxn(tx, idx, query); err != nil {
+	if err := preparedQuerySetTxn(tx, idx, query); err != nil {
 		return err
 	}
 
@@ -142,7 +142,7 @@ func (s *Store) PreparedQuerySet(idx uint64, query *structs.PreparedQuery) error
 
 // preparedQuerySetTxn is the inner method used to insert a prepared query with
 // the proper indexes into the state store.
-func (s *Store) preparedQuerySetTxn(tx *txn, idx uint64, query *structs.PreparedQuery) error {
+func preparedQuerySetTxn(tx *txn, idx uint64, query *structs.PreparedQuery) error {
 	// Check that the ID is set.
 	if query.ID == "" {
 		return ErrMissingQueryID
@@ -249,7 +249,7 @@ func (s *Store) PreparedQueryDelete(idx uint64, queryID string) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	if err := s.preparedQueryDeleteTxn(tx, idx, queryID); err != nil {
+	if err := preparedQueryDeleteTxn(tx, idx, queryID); err != nil {
 		return fmt.Errorf("failed prepared query delete: %s", err)
 	}
 
@@ -258,7 +258,7 @@ func (s *Store) PreparedQueryDelete(idx uint64, queryID string) error {
 
 // preparedQueryDeleteTxn is the inner method used to delete a prepared query
 // with the proper indexes into the state store.
-func (s *Store) preparedQueryDeleteTxn(tx *txn, idx uint64, queryID string) error {
+func preparedQueryDeleteTxn(tx *txn, idx uint64, queryID string) error {
 	// Pull the query.
 	wrapped, err := tx.First("prepared-queries", "id", queryID)
 	if err != nil {

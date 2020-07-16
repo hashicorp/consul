@@ -49,17 +49,17 @@ func configTableSchema() *memdb.TableSchema {
 	}
 }
 
-func (s *Store) firstConfigEntryWithTxn(tx *txn,
+func firstConfigEntryWithTxn(tx *txn,
 	kind, name string, entMeta *structs.EnterpriseMeta) (interface{}, error) {
 	return tx.First(configTableName, "id", kind, name)
 }
 
-func (s *Store) firstWatchConfigEntryWithTxn(tx *txn,
+func firstWatchConfigEntryWithTxn(tx *txn,
 	kind, name string, entMeta *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
 	return tx.FirstWatch(configTableName, "id", kind, name)
 }
 
-func (s *Store) validateConfigEntryEnterprise(tx *txn, conf structs.ConfigEntry) error {
+func validateConfigEntryEnterprise(tx *txn, conf structs.ConfigEntry) error {
 	return nil
 }
 

@@ -146,7 +146,7 @@ func (s *Snapshot) Sessions() (memdb.ResultIterator, error) {
 // Session is used when restoring from a snapshot. For general inserts, use
 // SessionCreate.
 func (s *Restore) Session(sess *structs.Session) error {
-	if err := s.store.insertSessionTxn(s.tx, sess, sess.ModifyIndex, true); err != nil {
+	if err := insertSessionTxn(s.tx, sess, sess.ModifyIndex, true); err != nil {
 		return fmt.Errorf("failed inserting session: %s", err)
 	}
 
@@ -166,7 +166,7 @@ func (s *Store) SessionCreate(idx uint64, sess *structs.Session) error {
 	// future.
 
 	// Call the session creation
-	if err := s.sessionCreateTxn(tx, idx, sess); err != nil {
+	if err := sessionCreateTxn(tx, idx, sess); err != nil {
 		return err
 	}
 
@@ -176,7 +176,7 @@ func (s *Store) SessionCreate(idx uint64, sess *structs.Session) error {
 // sessionCreateTxn is the inner method used for creating session entries in
 // an open transaction. Any health checks registered with the session will be
 // checked for failing status. Returns any error encountered.
-func (s *Store) sessionCreateTxn(tx *txn, idx uint64, sess *structs.Session) error {
+func sessionCreateTxn(tx *txn, idx uint64, sess *structs.Session) error {
 	// Check that we have a session ID
 	if sess.ID == "" {
 		return ErrMissingSessionID
@@ -208,12 +208,12 @@ func (s *Store) sessionCreateTxn(tx *txn, idx uint64, sess *structs.Session) err
 	}
 
 	// Verify that all session checks exist
-	if err := s.validateSessionChecksTxn(tx, sess); err != nil {
+	if err := validateSessionChecksTxn(tx, sess); err != nil {
 		return err
 	}
 
 	// Insert the session
-	if err := s.insertSessionTxn(tx, sess, idx, false); err != nil {
+	if err := insertSessionTxn(tx, sess, idx, false); err != nil {
 		return fmt.Errorf("failed inserting session: %s", err)
 	}
 
@@ -228,7 +228,7 @@ func (s *Store) SessionGet(ws memdb.WatchSet,
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := s.sessionMaxIndex(tx, entMeta)
+	idx := sessionMaxIndex(tx, entMeta)
 
 	// Look up the session by its ID
 	watchCh, session, err := firstWatchWithTxn(tx, "sessions", "id", sessionID, entMeta)
@@ -249,7 +249,7 @@ func (s *Store) SessionList(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) 
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := s.sessionMaxIndex(tx, entMeta)
+	idx := sessionMaxIndex(tx, entMeta)
 
 	// Query all of the active sessions.
 	sessions, err := getWithTxn(tx, "sessions", "id_prefix", "", entMeta)
@@ -274,10 +274,10 @@ func (s *Store) NodeSessions(ws memdb.WatchSet, nodeID string, entMeta *structs.
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := s.sessionMaxIndex(tx, entMeta)
+	idx := sessionMaxIndex(tx, entMeta)
 
 	// Get all of the sessions which belong to the node
-	result, err := s.nodeSessionsTxn(tx, ws, nodeID, entMeta)
+	result, err := nodeSessionsTxn(tx, ws, nodeID, entMeta)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -313,7 +313,7 @@ func (s *Store) deleteSessionTxn(tx *txn, idx uint64, sessionID string, entMeta 
 
 	// Delete the session and write the new index.
 	session := sess.(*structs.Session)
-	if err := s.sessionDeleteWithSession(tx, session, idx); err != nil {
+	if err := sessionDeleteWithSession(tx, session, idx); err != nil {
 		return fmt.Errorf("failed deleting session: %v", err)
 	}
 
@@ -346,7 +346,7 @@ func (s *Store) deleteSessionTxn(tx *txn, idx uint64, sessionID string, entMeta 
 			// respects the transaction we are in.
 			e := obj.(*structs.DirEntry).Clone()
 			e.Session = ""
-			if err := s.kvsSetTxn(tx, idx, e, true); err != nil {
+			if err := kvsSetTxn(tx, idx, e, true); err != nil {
 				return fmt.Errorf("failed kvs update: %s", err)
 			}
 
@@ -403,7 +403,7 @@ func (s *Store) deleteSessionTxn(tx *txn, idx uint64, sessionID string, entMeta 
 
 		// Do the delete in a separate loop so we don't trash the iterator.
 		for _, id := range ids {
-			if err := s.preparedQueryDeleteTxn(tx, idx, id); err != nil {
+			if err := preparedQueryDeleteTxn(tx, idx, id); err != nil {
 				return fmt.Errorf("failed prepared query delete: %s", err)
 			}
 		}

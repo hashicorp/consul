@@ -7,7 +7,7 @@ import (
 	memdb "github.com/hashicorp/go-memdb"
 )
 
-func (s *Store) intentionListTxn(tx *txn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func intentionListTxn(tx *txn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	// Get all intentions
 	return tx.Get(intentionsTableName, "id")
 }

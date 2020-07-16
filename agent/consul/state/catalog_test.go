@@ -113,18 +113,18 @@ func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 		Address: "2.3.4.5",
 	}
 	// Lets conflict with node1 (has an ID)
-	if err := s.ensureNoNodeWithSimilarNameTxn(tx, node, false); err == nil {
+	if err := ensureNoNodeWithSimilarNameTxn(tx, node, false); err == nil {
 		t.Fatalf("Should return an error since another name with similar name exists")
 	}
-	if err := s.ensureNoNodeWithSimilarNameTxn(tx, node, true); err == nil {
+	if err := ensureNoNodeWithSimilarNameTxn(tx, node, true); err == nil {
 		t.Fatalf("Should return an error since another name with similar name exists")
 	}
 	// Lets conflict with node without ID
 	node.Node = "NoDe2"
-	if err := s.ensureNoNodeWithSimilarNameTxn(tx, node, false); err == nil {
+	if err := ensureNoNodeWithSimilarNameTxn(tx, node, false); err == nil {
 		t.Fatalf("Should return an error since another name with similar name exists")
 	}
-	if err := s.ensureNoNodeWithSimilarNameTxn(tx, node, true); err != nil {
+	if err := ensureNoNodeWithSimilarNameTxn(tx, node, true); err != nil {
 		t.Fatalf("Should not clash with another similar node name without ID, err:=%q", err)
 	}
 
@@ -134,7 +134,7 @@ func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 		Node:    "node1",
 		Address: "2.3.4.5",
 	}
-	if err := s.ensureNoNodeWithSimilarNameTxn(tx, newNode, false); err == nil {
+	if err := ensureNoNodeWithSimilarNameTxn(tx, newNode, false); err == nil {
 		t.Fatalf("Should return an error since the previous node is still healthy")
 	}
 	s.ensureCheckTxn(tx, 5, &structs.HealthCheck{
@@ -142,7 +142,7 @@ func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 		CheckID: structs.SerfCheckID,
 		Status:  api.HealthCritical,
 	})
-	if err := s.ensureNoNodeWithSimilarNameTxn(tx, newNode, false); err != nil {
+	if err := ensureNoNodeWithSimilarNameTxn(tx, newNode, false); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -4386,7 +4386,7 @@ func TestStateStore_ensureServiceCASTxn(t *testing.T) {
 
 	// attempt to update with a 0 index
 	tx := s.db.WriteTxnRestore()
-	err := s.ensureServiceCASTxn(tx, 3, "node1", &ns)
+	err := ensureServiceCASTxn(tx, 3, "node1", &ns)
 	require.Equal(t, err, errCASCompareFailed)
 	require.NoError(t, tx.Commit())
 
@@ -4401,7 +4401,7 @@ func TestStateStore_ensureServiceCASTxn(t *testing.T) {
 	ns.ModifyIndex = 99
 	// attempt to update with a non-matching index
 	tx = s.db.WriteTxnRestore()
-	err = s.ensureServiceCASTxn(tx, 4, "node1", &ns)
+	err = ensureServiceCASTxn(tx, 4, "node1", &ns)
 	require.Equal(t, err, errCASCompareFailed)
 	require.NoError(t, tx.Commit())
 
@@ -4416,7 +4416,7 @@ func TestStateStore_ensureServiceCASTxn(t *testing.T) {
 	ns.ModifyIndex = 2
 	// update with the matching modify index
 	tx = s.db.WriteTxnRestore()
-	err = s.ensureServiceCASTxn(tx, 7, "node1", &ns)
+	err = ensureServiceCASTxn(tx, 7, "node1", &ns)
 	require.NoError(t, err)
 	require.NoError(t, tx.Commit())
 
