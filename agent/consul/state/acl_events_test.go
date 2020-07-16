@@ -13,39 +13,39 @@ import (
 func TestACLChangeUnsubscribeEvent(t *testing.T) {
 	cases := []struct {
 		Name     string
-		Setup    func(s *Store, tx *txn) error
-		Mutate   func(s *Store, tx *txn) error
+		Setup    func(tx *txn) error
+		Mutate   func(tx *txn) error
 		expected stream.Event
 	}{
 		{
 			Name: "token create",
-			Mutate: func(s *Store, tx *txn) error {
-				return s.aclTokenSetTxn(tx, tx.Index, newACLToken(1), false, false, false, false)
+			Mutate: func(tx *txn) error {
+				return aclTokenSetTxn(tx, tx.Index, newACLToken(1), false, false, false, false)
 			},
 			expected: stream.NewCloseSubscriptionEvent(newSecretIDs(1)),
 		},
 		{
 			Name: "token update",
-			Setup: func(s *Store, tx *txn) error {
-				return s.aclTokenSetTxn(tx, tx.Index, newACLToken(1), false, false, false, false)
+			Setup: func(tx *txn) error {
+				return aclTokenSetTxn(tx, tx.Index, newACLToken(1), false, false, false, false)
 			},
-			Mutate: func(s *Store, tx *txn) error {
+			Mutate: func(tx *txn) error {
 				// Add a policy to the token (never mind it doesn't exist for now) we
 				// allow it in the set command below.
 				token := newACLToken(1)
 				token.Policies = []structs.ACLTokenPolicyLink{{ID: "33333333-1111-1111-1111-111111111111"}}
-				return s.aclTokenSetTxn(tx, tx.Index, token, false, true, false, false)
+				return aclTokenSetTxn(tx, tx.Index, token, false, true, false, false)
 			},
 			expected: stream.NewCloseSubscriptionEvent(newSecretIDs(1)),
 		},
 		{
 			Name: "token delete",
-			Setup: func(s *Store, tx *txn) error {
-				return s.aclTokenSetTxn(tx, tx.Index, newACLToken(1), false, false, false, false)
+			Setup: func(tx *txn) error {
+				return aclTokenSetTxn(tx, tx.Index, newACLToken(1), false, false, false, false)
 			},
-			Mutate: func(s *Store, tx *txn) error {
+			Mutate: func(tx *txn) error {
 				token := newACLToken(1)
-				return s.aclTokenDeleteTxn(tx, tx.Index, token.AccessorID, "id", nil)
+				return aclTokenDeleteTxn(tx, tx.Index, token.AccessorID, "id", nil)
 			},
 			expected: stream.NewCloseSubscriptionEvent(newSecretIDs(1)),
 		},
@@ -58,19 +58,19 @@ func TestACLChangeUnsubscribeEvent(t *testing.T) {
 		{
 			Name:  "policy update",
 			Setup: newACLPolicyWithSingleToken,
-			Mutate: func(s *Store, tx *txn) error {
+			Mutate: func(tx *txn) error {
 				policy := newACLPolicy(1)
 				policy.Rules = `operator = "write"`
-				return s.aclPolicySetTxn(tx, tx.Index, policy)
+				return aclPolicySetTxn(tx, tx.Index, policy)
 			},
 			expected: stream.NewCloseSubscriptionEvent(newSecretIDs(1)),
 		},
 		{
 			Name:  "policy delete",
 			Setup: newACLPolicyWithSingleToken,
-			Mutate: func(s *Store, tx *txn) error {
+			Mutate: func(tx *txn) error {
 				policy := newACLPolicy(1)
-				return s.aclPolicyDeleteTxn(tx, tx.Index, policy.ID, s.aclPolicyGetByID, nil)
+				return aclPolicyDeleteTxn(tx, tx.Index, policy.ID, aclPolicyGetByID, nil)
 			},
 			expected: stream.NewCloseSubscriptionEvent(newSecretIDs(1)),
 		},
@@ -83,23 +83,23 @@ func TestACLChangeUnsubscribeEvent(t *testing.T) {
 		{
 			Name:  "role update",
 			Setup: newACLRoleWithSingleToken,
-			Mutate: func(s *Store, tx *txn) error {
+			Mutate: func(tx *txn) error {
 				role := newACLRole(1, newACLRolePolicyLink(1))
 				policy2 := newACLPolicy(2)
 				role.Policies = append(role.Policies, structs.ACLRolePolicyLink{
 					ID:   policy2.ID,
 					Name: policy2.Name,
 				})
-				return s.aclRoleSetTxn(tx, tx.Index, role, true)
+				return aclRoleSetTxn(tx, tx.Index, role, true)
 			},
 			expected: stream.NewCloseSubscriptionEvent(newSecretIDs(1)),
 		},
 		{
 			Name:  "role delete",
 			Setup: newACLRoleWithSingleToken,
-			Mutate: func(s *Store, tx *txn) error {
+			Mutate: func(tx *txn) error {
 				role := newACLRole(1, newACLRolePolicyLink(1))
-				return s.aclRoleDeleteTxn(tx, tx.Index, role.ID, s.aclRoleGetByID, nil)
+				return aclRoleDeleteTxn(tx, tx.Index, role.ID, aclRoleGetByID, nil)
 			},
 			expected: stream.NewCloseSubscriptionEvent(newSecretIDs(1)),
 		},
@@ -114,7 +114,7 @@ func TestACLChangeUnsubscribeEvent(t *testing.T) {
 				// Bypass the publish mechanism for this test or we get into odd
 				// recursive stuff...
 				setupTx := s.db.WriteTxn(10)
-				require.NoError(t, tc.Setup(s, setupTx))
+				require.NoError(t, tc.Setup(setupTx))
 				// Commit the underlying transaction without using wrapped Commit so we
 				// avoid the whole event publishing system for setup here. It _should_
 				// work but it makes debugging test hard as it will call the function
@@ -123,7 +123,7 @@ func TestACLChangeUnsubscribeEvent(t *testing.T) {
 			}
 
 			tx := s.db.WriteTxn(100)
-			require.NoError(t, tc.Mutate(s, tx))
+			require.NoError(t, tc.Mutate(tx))
 
 			// Note we call the func under test directly rather than publishChanges so
 			// we can test this in isolation.
@@ -137,24 +137,24 @@ func TestACLChangeUnsubscribeEvent(t *testing.T) {
 	}
 }
 
-func newACLRoleWithSingleToken(s *Store, tx *txn) error {
+func newACLRoleWithSingleToken(tx *txn) error {
 	role := newACLRole(1, newACLRolePolicyLink(1))
-	if err := s.aclRoleSetTxn(tx, tx.Index, role, true); err != nil {
+	if err := aclRoleSetTxn(tx, tx.Index, role, true); err != nil {
 		return err
 	}
 	token := newACLToken(1)
 	token.Roles = append(token.Roles, structs.ACLTokenRoleLink{ID: role.ID})
-	return s.aclTokenSetTxn(tx, tx.Index, token, false, false, false, false)
+	return aclTokenSetTxn(tx, tx.Index, token, false, false, false, false)
 }
 
-func newACLPolicyWithSingleToken(s *Store, tx *txn) error {
+func newACLPolicyWithSingleToken(tx *txn) error {
 	policy := newACLPolicy(1)
-	if err := s.aclPolicySetTxn(tx, tx.Index, policy); err != nil {
+	if err := aclPolicySetTxn(tx, tx.Index, policy); err != nil {
 		return err
 	}
 	token := newACLToken(1)
 	token.Policies = append(token.Policies, structs.ACLTokenPolicyLink{ID: policy.ID})
-	return s.aclTokenSetTxn(tx, tx.Index, token, false, false, false, false)
+	return aclTokenSetTxn(tx, tx.Index, token, false, false, false, false)
 }
 
 func newSecretIDs(ids ...int) []string {
