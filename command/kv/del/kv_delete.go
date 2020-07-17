@@ -78,7 +78,7 @@ func (c *cmd) Run(args []string) int {
 
 	// ModifyIndex is required for CAS
 	if c.cas && c.modifyIndex == 0 {
-		c.UI.Error("Must specify -modify-index with -cas!")
+		c.UI.Error("Cannot delete a key that does not exist. Provide a -modify-index greater than than 0.")
 		return 1
 	}
 
