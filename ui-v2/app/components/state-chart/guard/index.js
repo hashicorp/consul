@@ -13,7 +13,7 @@ export default Component.extend({
       }
     });
   },
-  willDestroy: function() {
+  willDestroyElement: function() {
     this._super(...arguments);
     this.chart.removeGuard(this.name);
   },
