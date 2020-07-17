@@ -3,12 +3,13 @@
     <BlockSlot @name="trigger">
       More
     </BlockSlot>
-    <BlockSlot @name="menu" as |confirm send keypressClick|>
+    <BlockSlot @name="menu" as |confirm send keypressClick clickTrigger|>
       {{yield (component 'more-popover-menu/action' menu=(hash
         addSubmenu=api.addSubmenu
         removeSubmenu=api.removeSubmenu
         confirm=confirm
         keypressClick=keypressClick
+        clickTrigger=clickTrigger
       ))}}
     </BlockSlot>
   </PopoverMenu>
