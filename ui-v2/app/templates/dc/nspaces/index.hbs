@@ -58,7 +58,7 @@
               <BlockSlot @name="trigger">
                 More
               </BlockSlot>
-              <BlockSlot @name="menu" as |confirm send keypressClick|>
+              <BlockSlot @name="menu" as |confirm send keypressClick clickTrigger|>
                   <li role="none">
                     <a data-test-edit role="menuitem" tabindex="-1" href={{href-to 'dc.nspaces.edit' item.Name}}>Edit</a>
                   </li>
@@ -77,7 +77,7 @@
                         </div>
                         <ul>
                           <li class="dangerous">
-                            <button tabindex="-1" type="button" class="type-delete" onclick={{action send 'delete' item}}>Delete</button>
+                            <button tabindex="-1" type="button" class="type-delete" onclick={{queue (action send 'delete' item) (queue clickTrigger)}}>Delete</button>
                           </li>
                           <li>
                             <label for={{confirm}}>Cancel</label>
