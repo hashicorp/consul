@@ -4,9 +4,7 @@ import { hash } from 'rsvp';
 import { get } from '@ember/object';
 
 export default Route.extend({
-  repo: service('repository/service'),
-  chainRepo: service('repository/discovery-chain'),
-  proxyRepo: service('repository/proxy'),
+  data: service('data-source/service'),
   settings: service('settings'),
   model: function(params, transition = {}) {
     const dc = this.modelFor('dc').dc.Name;
@@ -14,8 +12,8 @@ export default Route.extend({
     return hash({
       slug: params.name,
       dc: dc,
-      nspace: nspace || 'default',
-      item: this.repo.findBySlug(params.name, dc, nspace),
+      nspace: nspace,
+      item: this.data.source(uri => uri`/${nspace}/${dc}/service/${params.name}`),
       urls: this.settings.findBySlug('urls'),
       proxies: [],
     })
@@ -25,16 +23,20 @@ export default Route.extend({
         )
           ? model
           : hash({
-              chain: this.chainRepo.findBySlug(params.name, dc, nspace),
-              proxies: this.proxyRepo.findAllBySlug(params.name, dc, nspace),
               ...model,
+              chain: this.data.source(uri => uri`/${nspace}/${dc}/discovery-chain/${params.name}`),
+              proxies: this.data.source(
+                uri => uri`/${nspace}/${dc}/proxies/for-service/${params.name}`
+              ),
             });
       })
       .then(model => {
         return ['ingress-gateway', 'terminating-gateway'].includes(get(model, 'item.Service.Kind'))
           ? hash({
-              gatewayServices: this.repo.findGatewayBySlug(params.name, dc, nspace),
               ...model,
+              gatewayServices: this.data.source(
+                uri => uri`/${nspace}/${dc}/gateways/for-service/${params.name}`
+              ),
             })
           : model;
       });

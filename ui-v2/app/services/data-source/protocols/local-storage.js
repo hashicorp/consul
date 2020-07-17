@@ -11,6 +11,7 @@ export default Service.extend({
       },
       {
         key: src,
+        uri: configuration.uri,
       }
     );
   },

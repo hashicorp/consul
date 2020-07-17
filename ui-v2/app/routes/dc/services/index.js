@@ -3,7 +3,7 @@ import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 
 export default Route.extend({
-  repo: service('repository/service'),
+  data: service('data-source/service'),
   queryParams: {
     search: {
       as: 'filter',
@@ -29,12 +29,13 @@ export default Route.extend({
           .trim();
       }
     }
+    const nspace = this.modelFor('nspace').nspace.substr(1);
+    const dc = this.modelFor('dc').dc.Name;
     return hash({
+      nspace: nspace,
+      dc: dc,
       terms: terms !== '' ? terms.split('\n') : [],
-      items: this.repo.findAllByDatacenter(
-        this.modelFor('dc').dc.Name,
-        this.modelFor('nspace').nspace.substr(1)
-      ),
+      items: this.data.source(uri => uri`/${nspace}/${dc}/services`),
     });
   },
   setupController: function(controller, model) {

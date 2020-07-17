@@ -6,9 +6,10 @@ import { SLUG_KEY } from 'consul-ui/models/intention';
 
 // TODO: Update to use this.formatDatacenter()
 export default Adapter.extend({
-  requestForQuery: function(request, { dc, filter, index }) {
+  requestForQuery: function(request, { dc, filter, index, uri }) {
     return request`
       GET /v1/connect/intentions?${{ dc }}
+      X-Request-ID: ${uri}
 
       ${{
         index,

@@ -8,10 +8,10 @@ module('Integration | Adapter | intention', function(hooks) {
     const adapter = this.owner.lookup('adapter:intention');
     const client = this.owner.lookup('service:client/http');
     const expected = `GET /v1/connect/intentions?dc=${dc}`;
-    const actual = adapter.requestForQuery(client.url, {
+    const actual = adapter.requestForQuery(client.requestParams.bind(client), {
       dc: dc,
     });
-    assert.equal(actual, expected);
+    assert.equal(`${actual.method} ${actual.url}`, expected);
   });
   test('requestForQueryRecord returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:intention');

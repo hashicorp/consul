@@ -3,20 +3,20 @@ import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 
 export default Route.extend({
-  repo: service('repository/node'),
-  sessionRepo: service('repository/session'),
-  coordinateRepo: service('repository/coordinate'),
+  data: service('data-source/service'),
   model: function(params) {
     const dc = this.modelFor('dc').dc.Name;
     const nspace = this.modelFor('nspace').nspace.substr(1);
     const name = params.name;
     return hash({
-      item: this.repo.findBySlug(name, dc, nspace),
+      dc: dc,
+      nspace: nspace,
+      item: this.data.source(uri => uri`/${nspace}/${dc}/node/${name}`),
     }).then(model => {
       return hash({
         ...model,
-        sessions: this.sessionRepo.findByNode(name, dc, nspace),
-        tomography: this.coordinateRepo.findAllByNode(name, dc),
+        tomography: this.data.source(uri => uri`/${nspace}/${dc}/coordinates/for-node/${name}`),
+        sessions: this.data.source(uri => uri`/${nspace}/${dc}/sessions/for-node/${name}`),
       });
     });
   },
