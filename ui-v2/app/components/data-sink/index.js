@@ -44,7 +44,7 @@ export default Component.extend({
     this._super(...arguments);
     this._listeners = this.dom.listeners();
   },
-  willDestroy: function() {
+  willDestroyElement: function() {
     this._super(...arguments);
     this._listeners.remove();
   },
