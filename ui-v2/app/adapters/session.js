@@ -6,12 +6,13 @@ import { NSPACE_KEY } from 'consul-ui/models/nspace';
 
 // TODO: Update to use this.formatDatacenter()
 export default Adapter.extend({
-  requestForQuery: function(request, { dc, ns, index, id }) {
+  requestForQuery: function(request, { dc, ns, index, id, uri }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
     return request`
       GET /v1/session/node/${id}?${{ dc }}
+      X-Request-ID: ${uri}
 
       ${{
         ...this.formatNspace(ns),

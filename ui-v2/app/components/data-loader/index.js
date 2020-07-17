@@ -22,7 +22,7 @@ export default Component.extend(Slotted, {
   },
   actions: {
     isLoaded: function() {
-      return typeof this.items !== 'undefined';
+      return typeof this.items !== 'undefined' || typeof this.src === 'undefined';
     },
     change: function(data) {
       set(this, 'data', this.onchange(data));

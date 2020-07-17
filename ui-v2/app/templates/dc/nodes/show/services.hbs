@@ -1,3 +1,4 @@
+{{#let item.Services as |items|}}
 <div id="services" class="tab-section">
   <div role="tabpanel">
   {{#if (gt items.length 0) }}
@@ -24,3 +25,4 @@
     </ChangeableSet>
   </div>
 </div>
+{{/let}}

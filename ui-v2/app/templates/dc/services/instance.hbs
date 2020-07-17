@@ -1,6 +1,7 @@
 {{title item.ID}}
 <EventSource @src={{item}} @onerror={{action "error"}} />
 <EventSource @src={{proxy}} />
+<EventSource @src={{proxyMeta}} />
 <AppView @class="instance show">
     <BlockSlot @name="notification" as |status type|>
       {{partial 'dc/services/notifications'}}

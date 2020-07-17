@@ -18,7 +18,7 @@ export default Service.extend({
         return find(configuration)
           .then(maybeCall(close, ifNotBlocking(this.settings)))
           .then(function(res) {
-            if (typeof get(res, 'meta.cursor') === 'undefined') {
+            if (typeof get(res || {}, 'meta.cursor') === 'undefined') {
               close();
             }
             return res;
