@@ -761,14 +761,14 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	if rateLimitPtr != nil {
 		rateLimit = *rateLimitPtr
 	}
-	cacheRateLimitPerEntry, err := lib.ParseRateLimit(rateLimit)
+	entryFetchRateLimit, err := lib.ParseRateLimit(rateLimit)
 	if err != nil {
 		return RuntimeConfig{}, fmt.Errorf("rate_limit_per_entry: %s", err)
 	}
-	CacheConfiguration := CacheConfiguration{
-		CacheRateLimitPerEntry: CacheRateLimitPerEntry{
+	Cache := Cache{
+		EntryFetchRateLimit: EntryFetchRateLimit{
 			Value:           rateLimit,
-			RateLimitConfig: cacheRateLimitPerEntry,
+			RateLimitConfig: entryFetchRateLimit,
 		},
 	}
 
@@ -903,7 +903,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		BindAddr:                               bindAddr,
 		Bootstrap:                              b.boolVal(c.Bootstrap),
 		BootstrapExpect:                        b.intVal(c.BootstrapExpect),
-		CacheConfiguration:                     CacheConfiguration,
+		Cache:                                  Cache,
 		CAFile:                                 b.stringVal(c.CAFile),
 		CAPath:                                 b.stringVal(c.CAPath),
 		CertFile:                               b.stringVal(c.CertFile),
