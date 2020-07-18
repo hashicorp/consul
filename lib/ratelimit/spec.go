@@ -1,4 +1,4 @@
-package lib
+package ratelimit
 
 import (
 	"fmt"
@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-// RateLimitSpec defines how rate limit is expressed
-type RateLimitSpec struct {
+// Spec defines how rate limit is expressed
+type Spec struct {
 	// burstSize defines the size of bursts for the period
 	BurstSize int
 	// Period of ticker
@@ -33,8 +33,8 @@ func parseTimeUnit(unitStr string) (time.Duration, error) {
 // For now, there is not burst, so all calls will have the same duration
 // between calls, but it might be possible to parse more cleverly, aka:
 // 16/3s => Add 16 units every 3s
-func ParseRateLimit(rateLimitStr string) (*RateLimitSpec, error) {
-	msgErr := "RateLimitSpec must be calls / [unit], eg: 10/m, was %s: %s"
+func ParseRateLimit(rateLimitStr string) (*Spec, error) {
+	msgErr := "Spec must be calls / [unit], eg: 10/m, was %s: %s"
 	spec := strings.Split(rateLimitStr, "/")
 	if len(spec) != 2 {
 		return nil, fmt.Errorf(msgErr, rateLimitStr, "Must have 1 slash")
@@ -54,12 +54,12 @@ func ParseRateLimit(rateLimitStr string) (*RateLimitSpec, error) {
 		return nil, fmt.Errorf(msgErr, rateLimitStr, "value before slash must be positive")
 	}
 	period := unit / time.Duration(val)
-	return NewRateLimitSpec(period), nil
+	return NewSpec(period), nil
 }
 
-// NewRateLimitSpec builds a new RateLimitSpec with default burst of 2.
-func NewRateLimitSpec(period time.Duration) *RateLimitSpec {
-	return &RateLimitSpec{
+// NewSpec builds a new Spec with default burst of 2.
+func NewSpec(period time.Duration) *Spec {
+	return &Spec{
 		2,
 		period,
 	}

@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/ratelimit"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -462,7 +462,7 @@ func TestManager_deliverLatest(t *testing.T) {
 	// None of these need to do anything to test this method just be valid
 	logger := testutil.Logger(t)
 	cfg := ManagerConfig{
-		Cache: cache.New(cache.NewOptions(lib.NewRateLimitSpec(1))),
+		Cache: cache.New(cache.NewOptions(ratelimit.NewSpec(1))),
 		State: local.NewState(local.Config{}, logger, &token.Store{}),
 		Source: &structs.QuerySource{
 			Node:       "node1",

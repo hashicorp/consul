@@ -1,4 +1,4 @@
-package lib
+package ratelimit
 
 import (
 	"testing"

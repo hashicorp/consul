@@ -1,11 +1,10 @@
-package cache
+package ratelimit
 
 import (
 	"fmt"
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/lib"
 	"github.com/stretchr/testify/require"
 )
 
@@ -33,13 +32,13 @@ func TestRateLimiter(t *testing.T) {
 	for _, tc := range cases {
 		testCaseName := fmt.Sprintf("frequency: %s for %s", tc.frequency, tc.duration)
 		t.Run(testCaseName, func(t *testing.T) {
-			rateLimitSpec, err := lib.ParseRateLimit(tc.frequency)
-			require.NoError(t, err, "RateLimitSpec should be correct")
+			Spec, err := ParseRateLimit(tc.frequency)
+			require.NoError(t, err, "Spec should be correct")
 			duration, err := time.ParseDuration(tc.duration)
 			require.NoError(t, err, "Duration should be correct")
 			// maxTargetCount is rate + 1 because we allow first request to start directly
-			maxTargetCount := int64(duration/rateLimitSpec.Period) + 1
-			rateLimiter := NewRateLimiter(rateLimitSpec)
+			maxTargetCount := int64(duration/Spec.Period) + 1
+			rateLimiter := NewRateLimiter(Spec)
 			defer rateLimiter.Stop()
 			go func() {
 				time.Sleep(duration)

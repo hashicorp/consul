@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/ratelimit"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/stretchr/testify/require"
@@ -5806,7 +5807,7 @@ func TestFullConfig(t *testing.T) {
 		Cache: Cache{
 			EntryFetchRateLimit: EntryFetchRateLimit{
 				Value:           "10/s",
-				RateLimitConfig: lib.NewRateLimitSpec(100 * time.Millisecond),
+				RateLimitConfig: ratelimit.NewSpec(100 * time.Millisecond),
 			},
 		},
 		CAFile:             "erA7T0PM",
@@ -6694,7 +6695,7 @@ func TestSanitize(t *testing.T) {
 		Cache: Cache{
 			EntryFetchRateLimit: EntryFetchRateLimit{
 				Value:           "10/s",
-				RateLimitConfig: lib.NewRateLimitSpec(100 * time.Millisecond),
+				RateLimitConfig: ratelimit.NewSpec(100 * time.Millisecond),
 			},
 		},
 		ConsulCoordinateUpdatePeriod: 15 * time.Second,

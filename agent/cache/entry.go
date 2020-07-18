@@ -3,6 +3,8 @@ package cache
 import (
 	"container/heap"
 	"time"
+
+	"github.com/hashicorp/consul/lib/ratelimit"
 )
 
 // cacheEntry stores a single cache entry.
@@ -42,7 +44,7 @@ type cacheEntry struct {
 	// happens first.
 	RefreshLostContact time.Time
 	// Ratelimit avoid entries to fetch too often too many results
-	RateLimiter RateLimiter
+	RateLimiter ratelimit.RateLimiter
 }
 
 // cacheEntryExpiry contains the expiration information for a cache

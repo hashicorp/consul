@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/ratelimit"
 	libtempl "github.com/hashicorp/consul/lib/template"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -761,7 +762,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	if rateLimitPtr != nil {
 		rateLimit = *rateLimitPtr
 	}
-	entryFetchRateLimit, err := lib.ParseRateLimit(rateLimit)
+	entryFetchRateLimit, err := ratelimit.ParseRateLimit(rateLimit)
 	if err != nil {
 		return RuntimeConfig{}, fmt.Errorf("rate_limit_per_entry: %s", err)
 	}

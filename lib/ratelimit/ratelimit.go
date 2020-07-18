@@ -1,10 +1,9 @@
-package cache
+// Package ratelimit provides rate-limiting features
+package ratelimit
 
 import (
 	"errors"
 	"time"
-
-	"github.com/hashicorp/consul/lib"
 )
 
 const (
@@ -33,7 +32,7 @@ type rateLimiterTicker struct {
 }
 
 // NewRateLimiter builds a new Rate Limiter
-func NewRateLimiter(spec *lib.RateLimitSpec) RateLimiter {
+func NewRateLimiter(spec *Spec) RateLimiter {
 	if spec == nil || spec.Period < 1 {
 		return &rateLimiterFake{}
 	}

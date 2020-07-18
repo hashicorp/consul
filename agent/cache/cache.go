@@ -24,6 +24,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/ratelimit"
 )
 
 //go:generate mockery -all -inpkg
@@ -80,8 +81,8 @@ type Cache struct {
 	stopped uint32
 	// stopCh is closed when Close is called
 	stopCh chan struct{}
-	// rateLimiterSpec is a per Cache Rate limiter specification to avoid performing too many queries
-	rateLimitSpec *lib.RateLimitSpec
+	// options includes a per Cache Rate limiter specification to avoid performing too many queries
+	options *Options
 }
 
 // typeEntry is a single type that is registered with a Cache.
@@ -123,12 +124,12 @@ type ResultMeta struct {
 
 // Options are options for the Cache.
 type Options struct {
-	// RateLimitSpec currently, reserved.
-	RateLimitSpec *lib.RateLimitSpec
+	// Spec currently, reserved.
+	RateLimitSpec *ratelimit.Spec
 }
 
-// NewOptions build options from a RateLimitSpec
-func NewOptions(rateLimitSpec *lib.RateLimitSpec) *Options {
+// NewOptions build options from a ratelimit Spec
+func NewOptions(rateLimitSpec *ratelimit.Spec) *Options {
 	return &Options{rateLimitSpec}
 }
 
@@ -145,7 +146,7 @@ func New(options *Options) *Cache {
 		entries:           make(map[string]cacheEntry),
 		entriesExpiryHeap: h,
 		stopCh:            make(chan struct{}),
-		rateLimitSpec:     options.RateLimitSpec,
+		options:           options,
 	}
 
 	// Start the expiry watcher
@@ -460,7 +461,7 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 	// If we don't have an entry, then create it. The entry must be marked
 	// as invalid so that it isn't returned as a valid value for a zero index.
 	if !ok {
-		entry = cacheEntry{Valid: false, Waiter: make(chan struct{}), RateLimiter: NewRateLimiter(c.rateLimitSpec)}
+		entry = cacheEntry{Valid: false, Waiter: make(chan struct{}), RateLimiter: ratelimit.NewRateLimiter(c.options.RateLimitSpec)}
 	}
 
 	// Set that we're fetching to true, which makes it so that future
@@ -752,7 +753,7 @@ func (c *Cache) Prepopulate(t string, res FetchResult, dc, token, k string) erro
 		FetchedAt:   time.Now(),
 		Waiter:      make(chan struct{}),
 		Expiry:      &cacheEntryExpiry{Key: key},
-		RateLimiter: NewRateLimiter(c.rateLimitSpec),
+		RateLimiter: ratelimit.NewRateLimiter(c.options.RateLimitSpec),
 	}
 	c.entriesLock.Lock()
 	c.entries[key] = newEntry
