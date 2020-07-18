@@ -11,10 +11,11 @@ import (
 func TestRateLimitParsing(t *testing.T) {
 	t.Parallel()
 	reqVal := func(toParse string, expected time.Duration) {
-		t.Helper()
-		val, err := ParseRateLimit(toParse)
-		require.NoErrorf(t, err, "Should not create a parsing error for: \"%s\"", toParse)
-		require.Equal(t, val.Period, expected)
+		t.Run(toParse, func(t *testing.T) {
+			val, err := ParseRateLimit(toParse)
+			require.NoErrorf(t, err, "Should not create a parsing error for: \"%s\"", toParse)
+			require.Equal(t, val.Period, expected)
+		})
 	}
 	reqVal("1/1s", time.Second)
 	reqVal("1/s", time.Second)
@@ -33,9 +34,10 @@ func TestRateLimitParsing(t *testing.T) {
 
 	// All remaining values should be errors in parsing
 	reqError := func(toParse string) {
-		t.Helper()
-		_, err := ParseRateLimit(toParse)
-		require.Error(t, err, "Value \"%s\" should trigger an error", toParse)
+		t.Run(toParse, func(t *testing.T) {
+			_, err := ParseRateLimit(toParse)
+			require.Error(t, err, "Value \"%s\" should trigger an error", toParse)
+		})
 	}
 	reqError("")
 	reqError("h")
