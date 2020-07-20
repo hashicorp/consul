@@ -154,9 +154,10 @@ jobs:
       - run:
           name: go test -race
           command: |
-            mkdir -p $TEST_RESULTS_DIR
+            mkdir -p $TEST_RESULTS_DIR /tmp/jsonfile
             gotestsum \
               --format=short-verbose \
+              --jsonfile /tmp/jsonfile/go-test-race.log \
               --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- \
               -tags="$GOTAGS" -p 2 \
               -race -gcflags=all=-d=checkptr=0 \
@@ -168,6 +169,8 @@ jobs:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
           path: *TEST_RESULTS_DIR
+      - store_artifacts:
+          path: /tmp/jsonfile
 
   # split off a job for the API package since it is separate
   go-test-api:
