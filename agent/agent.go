@@ -662,7 +662,7 @@ func (a *Agent) Start(ctx context.Context) error {
 	a.sync = ae.NewStateSyncer(a.State, c.AEInterval, a.shutdownCh, a.logger)
 
 	// create the cache
-	a.cache = cache.New(cache.NewOptions(a.config.Cache.EntryFetchRateLimit.RateLimitConfig))
+	a.cache = cache.New(&cache.Options{EntryFetchRateLimit: c.Cache.EntryFetchRateLimit, EntryFetchMaxBurst: c.Cache.EntryFetchMaxBurst})
 
 	// create the config for the rpc server/client
 	consulCfg, err := a.consulConfig()

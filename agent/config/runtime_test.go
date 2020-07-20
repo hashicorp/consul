@@ -21,7 +21,6 @@ import (
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/lib/ratelimit"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/stretchr/testify/require"
@@ -4413,7 +4412,7 @@ func TestFullConfig(t *testing.T) {
 			"bootstrap": true,
 			"bootstrap_expect": 53,
 			"cache": {
-				"rate_limit_per_entry": "10/s"
+				"rate_limit_per_entry": 1
 			},
 			"ca_file": "erA7T0PM",
 			"ca_path": "mQEN1Mfp",
@@ -5076,7 +5075,7 @@ func TestFullConfig(t *testing.T) {
 			bootstrap = true
 			bootstrap_expect = 53
 			cache = {
-				rate_limit_per_entry = "10/s"
+				rate_limit_per_entry = 1
 			},
 			ca_file = "erA7T0PM"
 			ca_path = "mQEN1Mfp"
@@ -5805,10 +5804,8 @@ func TestFullConfig(t *testing.T) {
 		Bootstrap:                        true,
 		BootstrapExpect:                  53,
 		Cache: Cache{
-			EntryFetchRateLimit: EntryFetchRateLimit{
-				Value:           "10/s",
-				RateLimitConfig: ratelimit.NewSpec(100 * time.Millisecond),
-			},
+			EntryFetchMaxBurst:  2,
+			EntryFetchRateLimit: 1,
 		},
 		CAFile:             "erA7T0PM",
 		CAPath:             "mQEN1Mfp",
@@ -6693,10 +6690,8 @@ func TestSanitize(t *testing.T) {
 			&net.UnixAddr{Name: "/var/run/foo"},
 		},
 		Cache: Cache{
-			EntryFetchRateLimit: EntryFetchRateLimit{
-				Value:           "10/s",
-				RateLimitConfig: ratelimit.NewSpec(100 * time.Millisecond),
-			},
+			EntryFetchMaxBurst:  2,
+			EntryFetchRateLimit: 1,
 		},
 		ConsulCoordinateUpdatePeriod: 15 * time.Second,
 		RetryJoinLAN: []string{
@@ -6769,13 +6764,8 @@ func TestSanitize(t *testing.T) {
 		"Bootstrap": false,
 		"BootstrapExpect": 0,
 		"Cache": {
-			"EntryFetchRateLimit": {
-				"RateLimitConfig": {
-					"BurstSize": 2,
-					"Period": "100ms"
-				},
-				"Value": "10/s"
-			}
+			"EntryFetchMaxBurst": 2,
+			"EntryFetchRateLimit": 1
         },
 		"CAFile": "",
 		"CAPath": "",

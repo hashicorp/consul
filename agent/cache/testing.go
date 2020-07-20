@@ -5,16 +5,16 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/hashicorp/consul/lib/ratelimit"
 	"github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/time/rate"
 )
 
 // TestCache returns a Cache instance configuring for testing.
 func TestCache(t testing.T) *Cache {
 	// Simple but lets us do some fine-tuning later if we want to.
-	return New(NewOptions(ratelimit.NewSpec(1 * time.Microsecond)))
+	return New(&Options{EntryFetchRateLimit: rate.Inf, EntryFetchMaxBurst: 2})
 }
 
 // TestCacheGetCh returns a channel that returns the result of the Get call.

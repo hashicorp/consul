@@ -18,7 +18,7 @@ import (
 func TestAgent_ServiceHTTPChecksNotification(t *testing.T) {
 	t.Parallel()
 	// This test needs fast updates, tune it
-	a := NewTestAgent(t, `cache = { rate_limit_per_entry = "10000/s" }`)
+	a := NewTestAgent(t, `cache = { rate_limit_per_entry = 10000 }`)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 

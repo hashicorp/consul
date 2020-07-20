@@ -4,7 +4,7 @@ import (
 	"container/heap"
 	"time"
 
-	"github.com/hashicorp/consul/lib/ratelimit"
+	"golang.org/x/time/rate"
 )
 
 // cacheEntry stores a single cache entry.
@@ -44,7 +44,7 @@ type cacheEntry struct {
 	// happens first.
 	RefreshLostContact time.Time
 	// Ratelimit avoid entries to fetch too often too many results
-	RateLimiter ratelimit.RateLimiter
+	RateLimiter *rate.Limiter
 }
 
 // cacheEntryExpiry contains the expiration information for a cache

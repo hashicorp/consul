@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/lib/ratelimit"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"golang.org/x/time/rate"
@@ -23,15 +22,12 @@ type RuntimeSOAConfig struct {
 	Minttl  uint32 // 0,
 }
 
-// EntryFetchRateLimit is a representation with human-readable value
-type EntryFetchRateLimit struct {
-	Value           string
-	RateLimitConfig *ratelimit.Spec
-}
-
 // Cache represent the cache configuration of agent
 type Cache struct {
-	EntryFetchRateLimit EntryFetchRateLimit
+	// EntryFetchMaxBurst max burst size of RateLimit for a single cache entry
+	EntryFetchMaxBurst int
+	// EntryFetchRateLimit represents the max calls/sec for a single cache entry
+	EntryFetchRateLimit rate.Limit
 }
 
 // RuntimeConfig specifies the configuration the consul agent actually

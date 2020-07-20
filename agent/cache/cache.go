@@ -24,7 +24,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/lib/ratelimit"
+	"golang.org/x/time/rate"
 )
 
 //go:generate mockery -all -inpkg
@@ -124,13 +124,10 @@ type ResultMeta struct {
 
 // Options are options for the Cache.
 type Options struct {
-	// Spec currently, reserved.
-	RateLimitSpec *ratelimit.Spec
-}
-
-// NewOptions build options from a ratelimit Spec
-func NewOptions(rateLimitSpec *ratelimit.Spec) *Options {
-	return &Options{rateLimitSpec}
+	// EntryFetchMaxBurst max burst size of RateLimit for a single cache entry
+	EntryFetchMaxBurst int
+	// EntryFetchRateLimit represents the max calls/sec for a single cache entry
+	EntryFetchRateLimit rate.Limit
 }
 
 // New creates a new cache with the given RPC client and reasonable defaults.
@@ -461,7 +458,7 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 	// If we don't have an entry, then create it. The entry must be marked
 	// as invalid so that it isn't returned as a valid value for a zero index.
 	if !ok {
-		entry = cacheEntry{Valid: false, Waiter: make(chan struct{}), RateLimiter: ratelimit.NewRateLimiter(c.options.RateLimitSpec)}
+		entry = cacheEntry{Valid: false, Waiter: make(chan struct{}), RateLimiter: rate.NewLimiter(c.options.EntryFetchRateLimit, c.options.EntryFetchMaxBurst)}
 	}
 
 	// Set that we're fetching to true, which makes it so that future
@@ -508,7 +505,7 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 				Index: entry.Index,
 			}
 		}
-		if err := entry.RateLimiter.Take(); err != nil {
+		if err := entry.RateLimiter.Wait(context.Background()); err != nil {
 			// This should might happen while cache is being shutdowned
 			panic(err)
 		}
@@ -704,7 +701,6 @@ func (c *Cache) runExpiryLoop() {
 			c.entriesLock.Lock()
 
 			// Entry expired! Remove it.
-			c.entries[entry.Key].RateLimiter.Stop()
 			delete(c.entries, entry.Key)
 			heap.Remove(c.entriesExpiryHeap, entry.HeapIndex)
 
@@ -753,7 +749,7 @@ func (c *Cache) Prepopulate(t string, res FetchResult, dc, token, k string) erro
 		FetchedAt:   time.Now(),
 		Waiter:      make(chan struct{}),
 		Expiry:      &cacheEntryExpiry{Key: key},
-		RateLimiter: ratelimit.NewRateLimiter(c.options.RateLimitSpec),
+		RateLimiter: rate.NewLimiter(c.options.EntryFetchRateLimit, c.options.EntryFetchMaxBurst),
 	}
 	c.entriesLock.Lock()
 	c.entries[key] = newEntry

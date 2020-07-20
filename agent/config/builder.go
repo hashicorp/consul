@@ -21,7 +21,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/lib/ratelimit"
 	libtempl "github.com/hashicorp/consul/lib/template"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -757,22 +756,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		return RuntimeConfig{}, fmt.Errorf("serf_wan_allowed_cidrs: %s", err)
 	}
 
-	rateLimitPtr := c.CacheConfig.DefaultRateLimitPerEntry
-	rateLimit := "10/s"
-	if rateLimitPtr != nil {
-		rateLimit = *rateLimitPtr
-	}
-	entryFetchRateLimit, err := ratelimit.ParseRateLimit(rateLimit)
-	if err != nil {
-		return RuntimeConfig{}, fmt.Errorf("rate_limit_per_entry: %s", err)
-	}
-	Cache := Cache{
-		EntryFetchRateLimit: EntryFetchRateLimit{
-			Value:           rateLimit,
-			RateLimitConfig: entryFetchRateLimit,
-		},
-	}
-
 	// ----------------------------------------------------------------
 	// build runtime config
 	//
@@ -899,12 +882,15 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		},
 
 		// Agent
-		AdvertiseAddrLAN:                       advertiseAddrLAN,
-		AdvertiseAddrWAN:                       advertiseAddrWAN,
-		BindAddr:                               bindAddr,
-		Bootstrap:                              b.boolVal(c.Bootstrap),
-		BootstrapExpect:                        b.intVal(c.BootstrapExpect),
-		Cache:                                  Cache,
+		AdvertiseAddrLAN: advertiseAddrLAN,
+		AdvertiseAddrWAN: advertiseAddrWAN,
+		BindAddr:         bindAddr,
+		Bootstrap:        b.boolVal(c.Bootstrap),
+		BootstrapExpect:  b.intVal(c.BootstrapExpect),
+		Cache: Cache{
+			EntryFetchRateLimit: rate.Limit(b.float64ValWithDefault(c.CacheConfig.EntryFetchRateLimit, 1)),
+			EntryFetchMaxBurst:  b.intValWithDefault(c.CacheConfig.EntryFetchMaxBurst, 2),
+		},
 		CAFile:                                 b.stringVal(c.CAFile),
 		CAPath:                                 b.stringVal(c.CAPath),
 		CertFile:                               b.stringVal(c.CertFile),
@@ -1030,6 +1016,13 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		VerifyOutgoing:                         verifyOutgoing,
 		VerifyServerHostname:                   verifyServerName,
 		Watches:                                c.Watches,
+	}
+
+	if rt.Cache.EntryFetchMaxBurst <= 0 {
+		return RuntimeConfig{}, fmt.Errorf("cache.rate_limit_burst must be strictly positive, was: %v", rt.Cache.EntryFetchMaxBurst)
+	}
+	if rt.Cache.EntryFetchRateLimit <= 0 {
+		return RuntimeConfig{}, fmt.Errorf("cache.rate_limit_per_entry must be strictly positive, was: %v", rt.Cache.EntryFetchRateLimit)
 	}
 
 	if entCfg, err := b.BuildEnterpriseRuntimeConfig(&c); err != nil {
@@ -1663,12 +1656,16 @@ func (b *Builder) stringVal(v *string) string {
 	return b.stringValWithDefault(v, "")
 }
 
-func (b *Builder) float64Val(v *float64) float64 {
+func (b *Builder) float64ValWithDefault(v *float64, defaultVal float64) float64 {
 	if v == nil {
-		return 0
+		return defaultVal
 	}
 
 	return *v
+}
+
+func (b *Builder) float64Val(v *float64) float64 {
+	return b.float64ValWithDefault(v, 0)
 }
 
 func (b *Builder) cidrsVal(name string, v []string) (nets []*net.IPNet) {
