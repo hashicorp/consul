@@ -73,7 +73,7 @@ The value of `raft_multiplier` is a scaling factor and directly affects the foll
 | ElectionTimeout    | 1000ms | default |
 | LeaderLeaseTimeout |  500ms | default |
 
-So a scaling factor of `5` (i.e. `raft_multiplier: 5`) updates the following values:
+By default, Consul uses a scaling factor of `5` (i.e. `raft_multiplier: 5`), which results in the following values:
 
 | Param              |  Value | Calculation |
 | ------------------ | -----: | ----------: |
