@@ -171,7 +171,7 @@ type RegisterOptions struct {
 	// If this is zero, then data is refreshed immediately when a fetch
 	// is returned.
 	//
-	// RefreshTimeout determines the maximum query time for a refresh
+	// QueryTimeout determines the maximum query time for a blocking query
 	// operation. This is specified as part of the query options and is
 	// expected to be implemented by the Type itself.
 	//
@@ -184,8 +184,8 @@ type RegisterOptions struct {
 	//     refresh can be set so that changes in server data are recognized
 	//     within the cache very quickly.
 	//
-	RefreshTimer   time.Duration
-	RefreshTimeout time.Duration
+	RefreshTimer time.Duration
+	QueryTimeout time.Duration
 }
 
 // RegisterType registers a cacheable type.
@@ -473,8 +473,7 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 		// keepalives are every 30 seconds so the RPC should fail if the packets are
 		// being blackholed for more than 30 seconds.
 		var connectedTimer *time.Timer
-		if tEntry.Opts.Refresh && entry.Index > 0 &&
-			tEntry.Opts.RefreshTimeout > (31*time.Second) {
+		if tEntry.Opts.Refresh && entry.Index > 0 && tEntry.Opts.QueryTimeout > 31*time.Second {
 			connectedTimer = time.AfterFunc(31*time.Second, func() {
 				c.entriesLock.Lock()
 				defer c.entriesLock.Unlock()
@@ -490,7 +489,11 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 		fOpts := FetchOptions{}
 		if tEntry.Opts.SupportsBlocking {
 			fOpts.MinIndex = entry.Index
-			fOpts.Timeout = tEntry.Opts.RefreshTimeout
+			fOpts.Timeout = tEntry.Opts.QueryTimeout
+
+			if fOpts.Timeout == 0 {
+				fOpts.Timeout = 10 * time.Minute
+			}
 		}
 		if entry.Valid {
 			fOpts.LastResult = &FetchResult{
