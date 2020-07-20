@@ -33,7 +33,7 @@ func golden(t *testing.T, name, got string) string {
 func TestFormat(t *testing.T) {
 	info := VersionInfo{
 		HumanVersion: "1.99.3-beta1",
-		Version:      "1.99.3",
+		Version:      "v1.99.3",
 		Prerelease:   "beta1",
 		Revision:     "5e5dbedd47a5f875b60e241c5555a9caab595246",
 		RPC: RPCVersionInfo{

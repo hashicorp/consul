@@ -38,7 +38,7 @@ func newPrettyFormatter() Formatter {
 
 func (_ *prettyFormatter) Format(info *VersionInfo) (string, error) {
 	var buffer bytes.Buffer
-	buffer.WriteString(fmt.Sprintf("Consul %s\n", info.HumanVersion))
+	buffer.WriteString(fmt.Sprintf("Consul v%s\n", info.HumanVersion))
 	if info.Revision != "" {
 		buffer.WriteString(fmt.Sprintf("Revision %s\n", info.Revision))
 	}
