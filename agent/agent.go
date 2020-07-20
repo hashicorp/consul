@@ -1336,44 +1336,10 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 			}
 		}
 
-		// Parse the watches, excluding 'handler' and 'args'
-		wp, err := watch.ParseExempt(params, []string{"handler", "args"})
+		wp, err := makeWatchPlan(a.logger, params)
 		if err != nil {
-			return fmt.Errorf("Failed to parse watch (%#v): %v", params, err)
+			return err
 		}
-
-		// Get the handler and subprocess arguments
-		handler, hasHandler := wp.Exempt["handler"]
-		args, hasArgs := wp.Exempt["args"]
-		if hasHandler {
-			a.logger.Warn("The 'handler' field in watches has been deprecated " +
-				"and replaced with the 'args' field. See https://www.consul.io/docs/agent/watches.html")
-		}
-		if _, ok := handler.(string); hasHandler && !ok {
-			return fmt.Errorf("Watch handler must be a string")
-		}
-		if raw, ok := args.([]interface{}); hasArgs && ok {
-			var parsed []string
-			for _, arg := range raw {
-				v, ok := arg.(string)
-				if !ok {
-					return fmt.Errorf("Watch args must be a list of strings")
-				}
-
-				parsed = append(parsed, v)
-			}
-			wp.Exempt["args"] = parsed
-		} else if hasArgs && !ok {
-			return fmt.Errorf("Watch args must be a list of strings")
-		}
-		if hasHandler && hasArgs || hasHandler && wp.HandlerType == "http" || hasArgs && wp.HandlerType == "http" {
-			return fmt.Errorf("Only one watch handler allowed")
-		}
-		if !hasHandler && !hasArgs && wp.HandlerType != "http" {
-			return fmt.Errorf("Must define a watch handler")
-		}
-
-		// Store the watch plan
 		watchPlans = append(watchPlans, wp)
 	}
 
