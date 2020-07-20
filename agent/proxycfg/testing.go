@@ -1995,7 +1995,7 @@ func (ct *ControllableCacheType) RegisterOptions() cache.RegisterOptions {
 	return cache.RegisterOptions{
 		Refresh:          ct.blocking,
 		SupportsBlocking: ct.blocking,
-		RefreshTimeout:   10 * time.Minute,
+		QueryTimeout:     10 * time.Minute,
 	}
 }
 

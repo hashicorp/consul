@@ -5247,6 +5247,8 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 	assert.Equal(fmt.Sprintf("%d", issued.ModifyIndex),
 		resp.Header().Get("X-Consul-Index"))
 
+	index := resp.Header().Get("X-Consul-Index")
+
 	// Test caching
 	{
 		// Fetch it again
@@ -5259,39 +5261,25 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 		require.Equal("HIT", resp.Header().Get("X-Cache"))
 	}
 
-	// Test that caching is updated in the background
+	// Issue a blocking query to ensure that the cert gets updated appropriately
 	{
 		// Set a new CA
 		ca := connect.TestCAConfigSet(t, a, nil)
 
-		retry.Run(t, func(r *retry.R) {
-			resp := httptest.NewRecorder()
-			// Try and sign again (note no index/wait arg since cache should update in
-			// background even if we aren't actively blocking)
-			obj, err := a.srv.AgentConnectCALeafCert(resp, req)
-			r.Check(err)
+		resp := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test?index="+index, nil)
+		obj, err := a.srv.AgentConnectCALeafCert(resp, req)
+		require.NoError(err)
+		issued2 := obj.(*structs.IssuedCert)
+		require.NotEqual(issued.CertPEM, issued2.CertPEM)
+		require.NotEqual(issued.PrivateKeyPEM, issued2.PrivateKeyPEM)
 
-			issued2 := obj.(*structs.IssuedCert)
-			if issued.CertPEM == issued2.CertPEM {
-				r.Fatalf("leaf has not updated")
-			}
+		// Verify that the cert is signed by the new CA
+		requireLeafValidUnderCA(t, issued2, ca)
 
-			// Got a new leaf. Sanity check it's a whole new key as well as different
-			// cert.
-			if issued.PrivateKeyPEM == issued2.PrivateKeyPEM {
-				r.Fatalf("new leaf has same private key as before")
-			}
-
-			// Verify that the cert is signed by the new CA
-			requireLeafValidUnderCA(t, issued2, ca)
-
-			// Should be a cache hit! The data should've updated in the cache
-			// in the background so this should've been fetched directly from
-			// the cache.
-			if resp.Header().Get("X-Cache") != "HIT" {
-				r.Fatalf("should be a cache hit")
-			}
-		})
+		// Should not be a cache hit! The data was updated in response to the blocking
+		// query being made.
+		require.Equal("MISS", resp.Header().Get("X-Cache"))
 	}
 }
 
