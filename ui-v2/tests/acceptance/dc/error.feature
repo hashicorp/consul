@@ -30,5 +30,5 @@ Feature: dc / error: Recovering from a dc 500 error
   Scenario: Choosing a different dc from the dc menu
     Given the url "/v1/internal/ui/services" responds with a 200 status
     When I click dc on the navigation
-    And I click dcs.0.name
+    And I click dcs.0.name on the navigation
     Then I see 3 service models
