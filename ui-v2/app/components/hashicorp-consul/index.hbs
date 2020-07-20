@@ -17,7 +17,7 @@
     {{#if (and (eq nspaces.length 1) (not canManageNspaces)) }}
                         <span data-test-nspace-selected={{nspace.Name}}>{{nspace.Name}}</span>
     {{ else }}
-                        <PopoverMenu @position="left" as |components|>
+                        <PopoverMenu @position="left" as |components api|>
                           <BlockSlot @name="trigger">
                             {{nspace.Name}}
                           </BlockSlot>
@@ -40,7 +40,6 @@
                                   />
                                 </BlockSlot>
                               </MenuSeparator>
-                            {{/let}}
                             {{#each (reject-by 'DeletedAt' nspaces) as |item|}}
                               <MenuItem
                                 class={{if (eq nspace.Name item.Name) 'is-active'}}
@@ -62,6 +61,7 @@
                                 </BlockSlot>
                               </MenuItem>
                     {{/if}}
+                            {{/let}}
                           </BlockSlot>
                         </PopoverMenu>
     {{/if}}
