@@ -123,6 +123,7 @@ func DefaultSource() Source {
 		telemetry = {
 			metrics_prefix = "consul"
 			filter_default = true
+			prefix_filter = [ "-consul.api.http" ]
 		}
 
 	`,
