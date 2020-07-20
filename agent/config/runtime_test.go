@@ -6766,7 +6766,7 @@ func TestSanitize(t *testing.T) {
 		"Cache": {
 			"EntryFetchMaxBurst": 2,
 			"EntryFetchRateLimit": 1
-        },
+		},
 		"CAFile": "",
 		"CAPath": "",
 		"CertFile": "",

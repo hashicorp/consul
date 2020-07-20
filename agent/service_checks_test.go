@@ -17,8 +17,7 @@ import (
 // Placed in agent pkg rather than cache-types to avoid circular dependency when importing agent.TestAgent
 func TestAgent_ServiceHTTPChecksNotification(t *testing.T) {
 	t.Parallel()
-	// This test needs fast updates, tune it
-	a := NewTestAgent(t, `cache = { rate_limit_per_entry = 10000 }`)
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 

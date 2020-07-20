@@ -506,7 +506,10 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 			}
 		}
 		if err := entry.RateLimiter.Wait(context.Background()); err != nil {
-			// This should might happen while cache is being shutdowned
+			// This should might happen only if:
+			// burstSize is 0, Context is canceled, or the expected wait time exceeds the Context's Deadline.
+			// so, it should not happen, fix this if you plan using something different than:
+			// context.Background()
 			panic(err)
 		}
 		// Start building the new entry by blocking on the fetch.
@@ -730,7 +733,6 @@ func (c *Cache) Close() error {
 		// First time only, close stop chan
 		close(c.stopCh)
 	}
-
 	return nil
 }
 
