@@ -1,6 +1,6 @@
 @setupApplicationTest
 Feature: components / kv-filter
-  Scenario: Filtering using the freetext filter
+  Scenario: Filtering using the freetext filter with [Text]
     Given 1 datacenter model with the value "dc-1"
     And 2 [Model] models from yaml
     ---

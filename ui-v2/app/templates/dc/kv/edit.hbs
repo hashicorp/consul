@@ -1,12 +1,9 @@
-{{#if create }}
-  {{title 'New Key/Value'}}
-{{else}}
+{{#if item.Key }}
   {{title 'Edit Key/Value'}}
+{{else}}
+  {{title 'New Key/Value'}}
 {{/if}}
-<AppView @class="kv edit" @loading={{isLoading}}>
-  <BlockSlot @name="notification" as |status type item error|>
-    {{partial 'dc/kv/notifications'}}
-  </BlockSlot>
+<AppView @class="kv edit">
   <BlockSlot @name="breadcrumbs">
     <ol>
         <li><a data-test-back href={{href-to 'dc.kv.index'}}>Key / Values</a></li>
@@ -27,56 +24,25 @@
       </h1>
   </BlockSlot>
   <BlockSlot @name="content">
-    {{#if session}}
-      <p class="notice warning">
-        <strong>Warning.</strong> This KV has a lock session. You can edit KV's with lock sessions, but we recommend doing so with care, or not doing so at all. It may negatively impact the active node it's associated with. See below for more details on the Lock Session and see <a href="{{env 'CONSUL_DOCS_URL'}}/internals/sessions.html" target="_blank" rel="noopener noreferrer">our documentation</a> for more information.
-      </p>
-    {{/if}}
-    {{partial 'dc/kv/form'}}
-    {{#if session}}
-      <div class="definition-table" data-test-session={{session.ID}}>
-        <h2>
-          <a href="{{env 'CONSUL_DOCS_URL'}}/internals/sessions.html#session-design" rel="help noopener noreferrer" target="_blank">Lock Session</a>
-        </h2>
-        <dl>
-          <dt>Name</dt>
-          <dd>{{session.Name}}</dd>
-          <dt>Agent</dt>
-          <dd>
-              <a href={{href-to 'dc.nodes.show' session.Node}}>{{session.Node}}</a>
-          </dd>
-          <dt>ID</dt>
-          <dd>{{session.ID}}</dd>
-          <dt>Behavior</dt>
-          <dd>{{session.Behavior}}</dd>
-{{#if session.Delay }}
-          <dt>Delay</dt>
-          <dd>{{session.LockDelay}}</dd>
-{{/if}}
-{{#if session.TTL }}
-          <dt>TTL</dt>
-          <dd>{{session.TTL}}</dd>
-{{/if}}
-{{#if (gt session.Checks.length 0)}}
-          <dt>Health Checks</dt>
-          <dd>
-              {{ join ', ' session.Checks}}
-          </dd>
-{{/if}}
-        </dl>
-        <ConfirmationDialog @message="Are you sure you want to invalidate this session?">
-          <BlockSlot @name="action" as |confirm|>
-            <button type="button" data-test-delete class="type-delete" {{action confirm "invalidateSession" session}}>Invalidate Session</button>
-          </BlockSlot>
-          <BlockSlot @name="dialog" as |execute cancel message|>
-            <p>
-              {{message}}
-            </p>
-            <button type="button" class="type-delete" {{action execute}}>Confirm Invalidation</button>
-            <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
-          </BlockSlot>
-        </ConfirmationDialog>
-      </div>
-    {{/if}}
+  {{#if session}}
+    <p class="notice warning">
+      <strong>Warning.</strong> This KV has a lock session. You can edit KV's with lock sessions, but we recommend doing so with care, or not doing so at all. It may negatively impact the active node it's associated with. See below for more details on the Lock Session and see <a href="{{env 'CONSUL_DOCS_URL'}}/internals/sessions.html" target="_blank" rel="noopener noreferrer">our documentation</a> for more information.
+    </p>
+  {{/if}}
+    <ConsulKvForm
+      @item={{item}}
+      @dc={{dc}}
+      @nspace={{nspace}}
+      @onsubmit={{if (eq parent.Key '/') (transition-to 'dc.kv.index') (transition-to 'dc.kv.folder' parent.Key)}}
+      @parent={{parent}}
+    />
+  {{#if session}}
+    <ConsulSessionForm
+      @item={{session}}
+      @dc={{dc}}
+      @nspace={{nspace}}
+      @onsubmit={{action (mut session) undefined}}
+    />
+  {{/if}}
   </BlockSlot>
 </AppView>

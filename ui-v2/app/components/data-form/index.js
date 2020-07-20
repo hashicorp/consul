@@ -27,6 +27,10 @@ export default Component.extend(Slotted, {
       // this lets us load view only data that doesn't have a form
     }
   },
+  willRender: function() {
+    this._super(...arguments);
+    set(this, 'hasError', this._isRegistered('error'));
+  },
   willDestroyElement: function() {
     this._super(...arguments);
     if (get(this, 'data.isNew')) {

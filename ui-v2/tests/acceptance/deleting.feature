@@ -23,7 +23,6 @@ Feature: deleting: Deleting items with confirmations, success and error notifica
   Where:
     --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     | Edit     | Listing     | Method | URL                                                                             | Data                                                                 |
-    | kv        | kvs        | DELETE | /v1/kv/key-name?dc=datacenter&ns=@!namespace                                    | ["key-name"]                                                         |
     | token     | tokens     | DELETE | /v1/acl/token/001fda31-194e-4ff1-a5ec-589abf2cafd0?dc=datacenter&ns=@!namespace | {"AccessorID": "001fda31-194e-4ff1-a5ec-589abf2cafd0"}               |
     # | acl      | acls       | PUT    | /v1/acl/destroy/something?dc=datacenter                                        | {"Name": "something", "ID": "something"}                             |
     --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -51,7 +50,6 @@ Feature: deleting: Deleting items with confirmations, success and error notifica
   Where:
     -----------------------------------------------------------------------------------------------------------------------------------------------------------
     | Model     | Method | URL                                                                              | Slug                                            |
-    | kv        | DELETE | /v1/kv/key-name?dc=datacenter&ns=@!namespace                                     | kv: key-name                                    |
     | token     | DELETE | /v1/acl/token/001fda31-194e-4ff1-a5ec-589abf2cafd0?dc=datacenter&ns=@!namespace  | token: 001fda31-194e-4ff1-a5ec-589abf2cafd0     |
     # | acl       | PUT    | /v1/acl/destroy/something?dc=datacenter                                      | acl: something                                  |
     -----------------------------------------------------------------------------------------------------------------------------------------------------------

@@ -38,7 +38,7 @@
       <Notification @after={{queue (action dispatch "RESET") (action ondelete)}}>
         <p data-notification role="alert" class="success notification-delete">
           <strong>Success!</strong>
-          Your {{type}} has been deleted.
+          Your {{or label type}} has been deleted.
         </p>
       </Notification>
     {{/yield-slot}}
@@ -51,7 +51,7 @@
       {{else}}
         <p data-notification role="alert" class="success notification-update">
           <strong>Success!</strong>
-          Your {{type}} has been saved.
+          Your {{or label type}} has been saved.
         </p>
       {{/yield-slot}}
     </Notification>
@@ -64,7 +64,7 @@
       <Notification @after={{action dispatch "RESET"}}>
           <p data-notification role="alert" class="error notification-update">
             <strong>Error!</strong>
-            There was an error saving your {{type}}.
+            There was an error saving your {{or label type}}.
           {{#if (and api.error.status api.error.detail)}}
             <br />{{api.error.status}}: {{api.error.detail}}
           {{/if}}
