@@ -41,6 +41,7 @@ import consulTokenListFactory from 'consul-ui/components/consul-token-list/pageo
 import consulRoleListFactory from 'consul-ui/components/consul-role-list/pageobject';
 import consulPolicyListFactory from 'consul-ui/components/consul-policy-list/pageobject';
 import consulIntentionListFactory from 'consul-ui/components/consul-intention-list/pageobject';
+import consulNspaceListFactory from 'consul-ui/components/consul-nspace-list/pageobject';
 import consulKvListFactory from 'consul-ui/components/consul-kv-list/pageobject';
 
 // pages
@@ -97,6 +98,13 @@ const morePopoverMenu = morePopoverMenuFactory(clickable);
 const popoverSelect = popoverSelectFactory(clickable, collection);
 
 const consulIntentionList = consulIntentionListFactory(collection, clickable, attribute, deletable);
+const consulNspaceList = consulNspaceListFactory(
+  collection,
+  clickable,
+  attribute,
+  text,
+  morePopoverMenu
+);
 const consulKvList = consulKvListFactory(collection, clickable, attribute, deletable);
 const consulTokenList = consulTokenListFactory(
   collection,
@@ -166,9 +174,7 @@ export default {
   ),
   intentions: create(intentions(visitable, creatable, consulIntentionList, intentionFilter)),
   intention: create(intention(visitable, submitable, deletable, cancelable)),
-  nspaces: create(
-    nspaces(visitable, deletable, creatable, clickable, attribute, collection, text, freetextFilter)
-  ),
+  nspaces: create(nspaces(visitable, creatable, consulNspaceList, freetextFilter)),
   nspace: create(
     nspace(visitable, submitable, deletable, cancelable, policySelector, roleSelector)
   ),

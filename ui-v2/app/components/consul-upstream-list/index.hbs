@@ -1,6 +1,6 @@
-<ListCollection @items={{items}} class="consul-upstream-list" as |item index|>
+<ListCollection @items={{items}} @linkable={{action "isLinkable"}} class="consul-upstream-list" as |item index|>
   <BlockSlot @name="header">
-  {{#if (service/exists item)}}
+  {{#if (gt item.InstanceCount 0)}}
     <dl class={{service/health-checks item}}>
       <dt>
         Health
