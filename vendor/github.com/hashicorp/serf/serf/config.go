@@ -246,12 +246,24 @@ type Config struct {
 	// UserEventSizeLimit is maximum byte size limit of user event `name` + `payload` in bytes.
 	// It's optimal to be relatively small, since it's going to be gossiped through the cluster.
 	UserEventSizeLimit int
+
+	// messageDropper is a callback used for selectively ignoring inbound
+	// gossip messages. This should only be used in unit tests needing careful
+	// control over sequencing of gossip arrival
+	//
+	// WARNING: this should ONLY be used in tests
+	messageDropper func(typ messageType) bool
 }
 
 // Init allocates the subdata structures
 func (c *Config) Init() {
 	if c.Tags == nil {
 		c.Tags = make(map[string]string)
+	}
+	if c.messageDropper == nil {
+		c.messageDropper = func(typ messageType) bool {
+			return false
+		}
 	}
 }
 
