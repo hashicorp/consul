@@ -258,6 +258,11 @@ RETRY_ONCE:
 	}
 	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 
+	if allowsNotModifiedResponse(req) && args.QueryOptions.MinQueryIndex == out.Index {
+		resp.WriteHeader(http.StatusNotModified)
+		return nil, nil
+	}
+
 	s.agent.TranslateAddresses(args.Datacenter, out.Nodes, TranslateAddressAcceptAny)
 
 	// Use empty list instead of nil

@@ -756,6 +756,14 @@ func setCacheMeta(resp http.ResponseWriter, m *cache.ResultMeta) {
 	}
 }
 
+const httpHeaderAllowNotModified = "X-Allow-NotModified"
+
+// allowsNotModifiedResponse returns true if the request has the X-Allow-NotModified
+// header set to "true".
+func allowsNotModifiedResponse(req *http.Request) bool {
+	return req.Header.Get(httpHeaderAllowNotModified) == "true"
+}
+
 // setHeaders is used to set canonical response header fields
 func setHeaders(resp http.ResponseWriter, headers map[string]string) {
 	for field, value := range headers {

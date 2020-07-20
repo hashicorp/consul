@@ -729,6 +729,59 @@ func testPrettyPrint(pretty string, t *testing.T) {
 	}
 }
 
+func TestHttp_AllowNotModified(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// List of all endpoints implementing HTTP 304
+	tests := []struct {
+		path string
+	}{
+		{
+			path: "/v1/catalog/nodes",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			url := fmt.Sprintf("%s?wait=1ns", tt.path)
+			req, _ := http.NewRequest("GET", url, nil)
+			req.Header.Add(httpHeaderAllowNotModified, "true")
+
+			resp := httptest.NewRecorder()
+			a.srv.h.ServeHTTP(resp, req)
+
+			require.Equal(t, http.StatusOK, resp.Code)
+			origIdx, err := strconv.Atoi(resp.Result().Header.Get("X-Consul-Index"))
+			require.NoError(t, err)
+			require.Greater(t, origIdx, 1)
+
+			t.Run("stale index should return 200", func(t *testing.T) {
+				url := fmt.Sprintf("%s?wait=1ns&index=%d", tt.path, origIdx-1)
+				req, _ := http.NewRequest("GET", url, nil)
+				req.Header.Add(httpHeaderAllowNotModified, "true")
+				resp := httptest.NewRecorder()
+				a.srv.h.ServeHTTP(resp, req)
+				require.Equal(t, http.StatusOK, resp.Code)
+				idx, err := strconv.Atoi(resp.Result().Header.Get("X-Consul-Index"))
+				require.NoError(t, err)
+				require.Equal(t, idx, origIdx)
+			})
+
+			t.Run("current index should return 304", func(t *testing.T) {
+				url := fmt.Sprintf("%s?wait=1ns&index=%d", tt.path, origIdx)
+				req, _ = http.NewRequest("GET", url, nil)
+				req.Header.Add(httpHeaderAllowNotModified, "true")
+				resp = httptest.NewRecorder()
+				a.srv.h.ServeHTTP(resp, req)
+				require.Equal(t, http.StatusNotModified, resp.Code)
+			})
+		})
+	}
+
+}
+
 func TestParseSource(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
