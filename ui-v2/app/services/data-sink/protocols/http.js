@@ -4,6 +4,7 @@ import { setProperties } from '@ember/object';
 export default Service.extend({
   settings: service('settings'),
   intention: service('repository/intention'),
+  kv: service('repository/kv'),
   session: service('repository/session'),
   prepare: function(sink, data, instance) {
     return setProperties(instance, data);

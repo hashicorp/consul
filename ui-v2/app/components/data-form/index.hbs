@@ -4,6 +4,7 @@
     <DataWriter
       @sink={{concat '/' nspace '/' (or data.Datacenter dc) '/' type '/'}}
       @type={{type}}
+      @label={{label}}
       @ondelete={{action ondelete}}
       @onchange={{action onsubmit}}
       as |writer|>
@@ -19,12 +20,13 @@
 ) as |api|}}
 
       {{yield api}}
-
+    {{#if hasError}}
       <BlockSlot @name="error">
         <YieldSlot @name="error">
           {{yield api}}
         </YieldSlot>
       </BlockSlot>
+    {{/if}}
 
       <BlockSlot @name="content">
         <YieldSlot @name="form">

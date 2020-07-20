@@ -1,45 +1,33 @@
-import Controller from '@ember/controller';
+import Component from '@ember/component';
 import { get, set } from '@ember/object';
 import { inject as service } from '@ember/service';
 
-export default Controller.extend({
-  dom: service('dom'),
-  builder: service('form'),
+export default Component.extend({
+  tagName: '',
   encoder: service('btoa'),
   json: true,
-  init: function() {
-    this._super(...arguments);
-    this.form = this.builder.form('kv');
+  ondelete: function() {
+    this.onsubmit(...arguments);
   },
-  setProperties: function(model) {
-    // essentially this replaces the data with changesets
-    this._super(
-      Object.keys(model).reduce((prev, key, i) => {
-        switch (key) {
-          case 'item':
-            prev[key] = this.form.setData(prev[key]).getData();
-            break;
-        }
-        return prev;
-      }, model)
-    );
+  oncancel: function() {
+    this.onsubmit(...arguments);
   },
+  onsubmit: function() {},
   actions: {
-    change: function(e, value, item) {
-      const event = this.dom.normalizeEvent(e, value);
-      const form = this.form;
+    change: function(e, form) {
+      const item = form.getData();
       try {
-        form.handleEvent(event);
+        form.handleEvent(e);
       } catch (err) {
-        const target = event.target;
+        const target = e.target;
         let parent;
         switch (target.name) {
           case 'value':
-            set(this.item, 'Value', this.encoder.execute(target.value));
+            set(item, 'Value', this.encoder.execute(target.value));
             break;
           case 'additional':
             parent = get(this, 'parent.Key');
-            set(this.item, 'Key', `${parent !== '/' ? parent : ''}${target.value}`);
+            set(item, 'Key', `${parent !== '/' ? parent : ''}${target.value}`);
             break;
           case 'json':
             // TODO: Potentially save whether json has been clicked to the model,
