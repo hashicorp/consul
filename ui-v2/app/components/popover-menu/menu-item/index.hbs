@@ -13,11 +13,19 @@
     }}>{{yield}}</YieldSlot>
   </div>
 {{else if href}}
-  <a role="menuitem" tabindex="-1" href={{href}}>
+{{#let (string-includes href '://') as |external|}}
+  <a
+    role="menuitem" tabindex="-1"
+    onclick={{action menu.clickTrigger}}
+    href={{href}}
+    target={{if external '_blank'}}
+    rel={{if external 'noopener noreferrer'}}
+  >
     <YieldSlot @name="label">
-      {{yield}}
+    {{yield}}
     </YieldSlot>
   </a>
+{{/let}}
 {{else}}
   <button role="menuitem" tabindex="-1" type="button" onclick={{action this.onclick}}>
     <YieldSlot @name="label">
@@ -26,3 +34,4 @@
   </button>
 {{/if}}
 </li>
+
