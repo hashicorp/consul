@@ -121,6 +121,12 @@ func TestEventSnapshot(t *testing.T) {
 				require.NoError(t, err,
 					"current state: snapDone=%v snapIDs=%s updateIDs=%s", snapDone,
 					snapIDs, updateIDs)
+				if len(curItem.Events) == 0 {
+					// An item without an error or events is a bufferItem.NextLink event.
+					// A subscription handles this by proceeding to the next item,
+					// so we do the same here.
+					continue
+				}
 				e := curItem.Events[0]
 				switch {
 				case snapDone:
