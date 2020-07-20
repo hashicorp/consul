@@ -3,9 +3,8 @@ import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
 import isFolder from 'consul-ui/utils/isFolder';
-import WithKvActions from 'consul-ui/mixins/kv/with-actions';
 
-export default Route.extend(WithKvActions, {
+export default Route.extend({
   queryParams: {
     search: {
       as: 'filter',

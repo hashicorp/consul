@@ -1,8 +1,5 @@
 {{title 'Key/Value'}}
-<AppView @class="kv list" @loading={{isLoading}}>
-  <BlockSlot @name="notification" as |status type|>
-    {{partial 'dc/kv/notifications'}}
-  </BlockSlot>
+<AppView @class="kv list">
   <BlockSlot @name="breadcrumbs">
     <ol>
 {{#if (not-eq parent.Key '/') }}
@@ -41,82 +38,41 @@
   </BlockSlot>
   <BlockSlot @name="content">
     <ChangeableSet @dispatcher={{searchable 'kv' items}} @terms={{search}}>
-      <BlockSlot @name="set" as |filtered|>
-        <TabularCollection @items={{sort-by "isFolder:desc" "Key:asc" filtered}} as |item index|>
-          <BlockSlot @name="header">
-            <th>Name</th>
-          </BlockSlot>
-          <BlockSlot @name="row">
-            <td data-test-kv={{item.Key}} class={{if item.isFolder 'folder' 'file' }}>
-                <a href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}>{{right-trim (left-trim item.Key parent.Key) '/'}}</a>
-            </td>
-          </BlockSlot>
-          <BlockSlot @name="actions" as |index change checked|>
-            <PopoverMenu @expanded={{if (eq checked index) true false}} @onchange={{action change index}} @keyboardAccess={{false}}>
-              <BlockSlot @name="trigger">
-                More
-              </BlockSlot>
-              <BlockSlot @name="menu" as |confirm send keypressClick clickTrigger|>
-                  <li role="none">
-                    <a data-test-edit role="menuitem" tabindex="-1" href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}>{{if item.isFolder 'View' 'Edit'}}</a>
-                  </li>
-                  <li role="none" class="dangerous">
-                    <label for={{confirm}} role="menuitem" tabindex="-1" onkeypress={{keypressClick}} data-test-delete>Delete</label>
-                    <div role="menu">
-                      <div class="confirmation-alert warning">
-                        <div>
-                          <header>
-                            Confirm Delete
-                          </header>
-                          <p>
-                            Are you sure you want to delete this key?
-                          </p>
-                        </div>
-                        <ul>
-                          <li class="dangerous">
-                            <button tabindex="-1" type="button" class="type-delete" onclick={{queue (action send 'delete' item) (action clickTrigger)}}>Delete</button>
-                          </li>
-                          <li>
-                            <label for={{confirm}}>Cancel</label>
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-                  </li>
-              </BlockSlot>
-            </PopoverMenu>
-          </BlockSlot>
-        </TabularCollection>
-      </BlockSlot>
-      <BlockSlot @name="empty">
-        <EmptyState @allowLogin={{true}}>
-          <BlockSlot @name="header">
-            <h2>
-              {{#if (gt items.length 0)}}
-                No K/V pairs found
-              {{else}}
-                Welcome to Key/Value
-              {{/if}}
-            </h2>
-          </BlockSlot>
-          <BlockSlot @name="body">
-            <p>
-              {{#if (gt items.length 0)}}
-                No K/V pairs where found matching that search, or you may not have access to view the K/V pairs you are searching for.
-              {{else}}
-                You don't have any K/V pairs, or you may not have access to view K/V pairs yet.
-              {{/if}}
-            </p>
-          </BlockSlot>
-          <BlockSlot @name="actions">
-            <li class="docs-link">
-              <a href="{{env 'CONSUL_DOCS_URL'}}/agent/kv" rel="noopener noreferrer" target="_blank">Documentation on K/V</a>
-            </li>
-            <li class="learn-link">
-              <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/kv" rel="noopener noreferrer" target="_blank">Read the guide</a>
-            </li>
-          </BlockSlot>
-        </EmptyState>
+      <BlockSlot @name="content" as |filtered|>
+        <ConsulKvList
+          @items={{sort-by "isFolder:desc" "Key:asc" filtered}}
+          @parent={{parent}}
+          @ondelete={{refresh-route}}
+        >
+          <EmptyState @allowLogin={{true}}>
+            <BlockSlot @name="header">
+              <h2>
+                {{#if (gt items.length 0)}}
+                  No K/V pairs found
+                {{else}}
+                  Welcome to Key/Value
+                {{/if}}
+              </h2>
+            </BlockSlot>
+            <BlockSlot @name="body">
+              <p>
+                {{#if (gt items.length 0)}}
+                  No K/V pairs where found matching that search, or you may not have access to view the K/V pairs you are searching for.
+                {{else}}
+                  You don't have any K/V pairs, or you may not have access to view K/V pairs yet.
+                {{/if}}
+              </p>
+            </BlockSlot>
+            <BlockSlot @name="actions">
+              <li class="docs-link">
+                <a href="{{env 'CONSUL_DOCS_URL'}}/agent/kv" rel="noopener noreferrer" target="_blank">Documentation on K/V</a>
+              </li>
+              <li class="learn-link">
+                <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/kv" rel="noopener noreferrer" target="_blank">Read the guide</a>
+              </li>
+            </BlockSlot>
+          </EmptyState>
+        </ConsulKvList>
       </BlockSlot>
     </ChangeableSet>
   </BlockSlot>
