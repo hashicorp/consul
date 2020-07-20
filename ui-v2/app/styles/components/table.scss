@@ -23,16 +23,6 @@
   --consul-icon: #{$consul-logo-color-svg};
   --aws-icon: #{$aws-logo-color-svg};
 }
-html.template-node.template-show #services td:first-child a span {
-  @extend %with-external-source-icon;
-  float: left;
-  margin-right: 10px;
-  margin-top: 2px;
-}
-/* This nudges the th in for the external source icons */
-html.template-node.template-show #services th:first-child {
-  text-indent: 28px;
-}
 
 td.folder::before {
   @extend %with-folder-outline-mask, %as-pseudo;
@@ -88,20 +78,9 @@ th span em {
 }
 /**/
 
-/* ideally these would be in route css files, but left here as they */
-/* accomplish the same thing (hide non-essential columns for tables) */
-@media #{$--lt-medium-table} {
-  /* Policy > Datacenters */
-  html.template-policy.template-list tr > :nth-child(2) {
-    display: none;
-  }
-}
 @media #{$--lt-wide-table} {
   /* hide actions on narrow screens, you can always click in do everything from there */
   tr > .actions {
-    display: none;
-  }
-  html.template-node.template-show #services tr > :last-child {
     display: none;
   }
   html.template-node.template-show #lock-sessions tr > :not(:first-child):not(:last-child) {
