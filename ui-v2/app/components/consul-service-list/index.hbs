@@ -1,5 +1,5 @@
 {{#if (gt items.length 0)}}
-<ListCollection @items={{items}} class="consul-service-list" as |item index|>
+<ListCollection @items={{items}} @linkable={{action "isLinkable"}} class="consul-service-list" as |item index|>
   <BlockSlot @name="header">
 {{#let (get proxies item.Name) as |proxy|}}
   {{#let (service/health-checks item proxy) as |health|}}
@@ -23,6 +23,7 @@
     </dl>
   {{/let}}
 {{/let}}
+{{#if (gt item.InstanceCount 0)}}
   {{#if (eq item.Kind 'terminating-gateway')}}
     <a data-test-service-name href={{href-to "dc.services.show.services" item.Name}}>
       {{item.Name}}
@@ -36,6 +37,11 @@
       {{item.Name}}
     </a>
   {{/if}}
+{{else}}
+  <p data-test-service-name>
+      {{item.Name}}
+  </p>
+{{/if}}
   </BlockSlot>
   <BlockSlot @name="details">
 {{#if (and nspace (env 'CONSUL_NSPACES_ENABLED'))}}

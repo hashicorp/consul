@@ -10,7 +10,13 @@
 >
     <li></li>
     {{~#each _cells as |cell|~}}
-      <li onclick={{action 'click'}} style={{{cell.style}}} class={{if (service/exists cell.item) 'linkable'}}>
+      <li
+        onclick={{action 'click'}} style={{{cell.style}}}
+        class={{if
+              (compute (action (or linkable (noop)) cell.item))
+              'linkable'
+        }}
+      >
         <YieldSlot @name="header"><div>{{yield cell.item cell.index}}</div></YieldSlot>
         <YieldSlot @name="details"><div>{{yield cell.item cell.index}}</div></YieldSlot>
         <YieldSlot @name="actions"
