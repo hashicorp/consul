@@ -39,10 +39,6 @@ func TestKVPutCommand_Validation(t *testing.T) {
 			[]string{"-release", "foo"},
 			"Missing -session",
 		},
-		"-cas no -modify-index": {
-			[]string{"-cas", "foo"},
-			"Must specify -modify-index",
-		},
 		"no key": {
 			[]string{},
 			"Missing KEY argument",
