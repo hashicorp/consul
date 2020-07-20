@@ -21,106 +21,40 @@
     />
 {{/if}}
     <ChangeableSet @dispatcher={{searchable 'nspace' items}} @terms={{search}}>
-      <BlockSlot @name="set" as |filtered|>
-        <TabularCollection @items={{filtered}} as |item index|>
-          <BlockSlot @name="header">
-              <th>Name</th>
-              <th>Description</th>
-{{#if (env 'CONSUL_ACLS_ENABLED')}}
-              <th>Roles &amp; Policies</th>
-{{/if}}
-          </BlockSlot>
-          <BlockSlot @name="row">
-{{#if item.DeletedAt}}
-              <td class="no-actions" colspan="3">
-                <p>
-                  Deleting {{item.Name}}...
-                </p>
-              </td>
-{{else}}
-              <td data-test-namespace={{item.Name}}>
-                <a href={{href-to 'dc.nspaces.edit' item.Name}}>{{item.Name}}</a>
-              </td>
-              <td data-test-description>
-                <p>{{item.Description}}</p>
-              </td>
-  {{#if (env 'CONSUL_ACLS_ENABLED')}}
-              <td>
-                {{#each (compact (append item.ACLs.PolicyDefaults item.ACLs.RoleDefaults)) as |item|}}
-                  <strong data-test-policy class={{policy/typeof item}}>{{item.Name}}</strong>
-                {{/each}}
-              </td>
-  {{/if}}
-{{/if}}
-          </BlockSlot>
-          <BlockSlot @name="actions" as |index change checked|>
-            <PopoverMenu @expanded={{if (eq checked index) true false}} @onchange={{action change index}} @keyboardAccess={{false}}>
-              <BlockSlot @name="trigger">
-                More
-              </BlockSlot>
-              <BlockSlot @name="menu" as |confirm send keypressClick clickTrigger|>
-                  <li role="none">
-                    <a data-test-edit role="menuitem" tabindex="-1" href={{href-to 'dc.nspaces.edit' item.Name}}>Edit</a>
-                  </li>
-{{#if (not-eq item.Name 'default') }}
-                  <li role="none" class="dangerous">
-                    <label for={{confirm}} role="menuitem" tabindex="-1" onkeypress={{keypressClick}} data-test-delete>Delete</label>
-                    <div role="menu">
-                      <div class="confirmation-alert warning">
-                        <div>
-                          <header>
-                            Confirm Delete
-                          </header>
-                          <p>
-                            Are you sure you want to delete this key?
-                          </p>
-                        </div>
-                        <ul>
-                          <li class="dangerous">
-                            <button tabindex="-1" type="button" class="type-delete" onclick={{queue (action send 'delete' item) (queue clickTrigger)}}>Delete</button>
-                          </li>
-                          <li>
-                            <label for={{confirm}}>Cancel</label>
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-                  </li>
-{{/if}}
-              </BlockSlot>
-            </PopoverMenu>
-          </BlockSlot>
-        </TabularCollection>
-      </BlockSlot>
-      <BlockSlot @name="empty">
-        <EmptyState @allowLogin={{true}}>
-          <BlockSlot @name="header">
-            <h2>
-              {{#if (gt items.length 0)}}
-                No namespaces found
-              {{else}}
-                Welcome to Namespaces
-              {{/if}}
-            </h2>
-          </BlockSlot>
-          <BlockSlot @name="body">
-            <p>
-              {{#if (gt items.length 0)}}
-                No namespaces where found matching that search, or you may not have access to view the namespaces you are searching for.
-              {{else}}
-                There don't seem to be any namespaces, or you may not have access to view namespaces yet.
-              {{/if}}
-            </p>
-          </BlockSlot>
-          <BlockSlot @name="actions">
-            <li class="docs-link">
-              <a href="{{env 'CONSUL_DOCS_URL'}}/commands/namespace" rel="noopener noreferrer" target="_blank">Documentation on namespaces</a>
-            </li>
-            <li class="learn-link">
-              <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/namespaces/secure-namespaces" rel="noopener noreferrer" target="_blank">Read the guide</a>
-            </li>
-          </BlockSlot>
-        </EmptyState>
+      <BlockSlot @name="content" as |filtered|>
+        <ConsulNspaceList
+          @items={{filtered}}
+          @ondelete={{queue (action send 'delete')}}
+        >
+          <EmptyState @allowLogin={{true}}>
+            <BlockSlot @name="header">
+              <h2>
+                {{#if (gt items.length 0)}}
+                  No namespaces found
+                {{else}}
+                  Welcome to Namespaces
+                {{/if}}
+              </h2>
+            </BlockSlot>
+            <BlockSlot @name="body">
+              <p>
+                {{#if (gt items.length 0)}}
+                  No namespaces where found matching that search, or you may not have access to view the namespaces you are searching for.
+                {{else}}
+                  There don't seem to be any namespaces, or you may not have access to view namespaces yet.
+                {{/if}}
+              </p>
+            </BlockSlot>
+            <BlockSlot @name="actions">
+              <li class="docs-link">
+                <a href="{{env 'CONSUL_DOCS_URL'}}/commands/namespace" rel="noopener noreferrer" target="_blank">Documentation on namespaces</a>
+              </li>
+              <li class="learn-link">
+                <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/namespaces/secure-namespaces" rel="noopener noreferrer" target="_blank">Read the guide</a>
+              </li>
+            </BlockSlot>
+          </EmptyState>
+        </ConsulNspaceList>
       </BlockSlot>
     </ChangeableSet>
   </BlockSlot>

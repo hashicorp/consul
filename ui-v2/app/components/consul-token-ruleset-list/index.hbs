@@ -1,4 +1,4 @@
-{{#let (policy/group item.Policies) as |policies|}}
+{{#let (policy/group (or item.Policies item.ACLs.PolicyDefaults (array))) as |policies|}}
   {{#let (get policies 'management') as |management|}}
     {{#if (gt management.length 0)}}
         <dl>
@@ -33,7 +33,7 @@
           </dd>
         </dl>
   {{else}}
-    {{#let (append (get policies 'policies') (or item.Roles (array))) as |policies|}}
+    {{#let (append (get policies 'policies') (or item.Roles item.ACLs.RoleDefaults (array))) as |policies|}}
       {{#if (gt policies.length 0)}}
         <dl>
           <dt>Rules</dt>
