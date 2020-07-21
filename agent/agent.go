@@ -32,6 +32,7 @@ import (
 	autoconf "github.com/hashicorp/consul/agent/auto-config"
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	certmon "github.com/hashicorp/consul/agent/cert-monitor"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
@@ -164,6 +165,8 @@ type notifier interface {
 // requests to other Consul servers.
 type Agent struct {
 	autoConf *autoconf.AutoConfig
+
+	certMonitor *certmon.CertMonitor
 
 	// config is the agent configuration.
 	config *config.RuntimeConfig
@@ -716,17 +719,39 @@ func (a *Agent) Start(ctx context.Context) error {
 	a.registerCache()
 
 	if a.config.AutoEncryptTLS && !a.config.ServerMode {
-		reply, err := a.setupClientAutoEncrypt(ctx)
+		reply, err := a.autoEncryptInitialCertificate(ctx)
 		if err != nil {
 			return fmt.Errorf("AutoEncrypt failed: %s", err)
 		}
-		rootsReq, leafReq, err := a.setupClientAutoEncryptCache(reply)
+
+		cmConfig := new(certmon.Config).
+			WithCache(a.cache).
+			WithLogger(a.logger.Named(logging.AutoEncrypt)).
+			WithTLSConfigurator(a.tlsConfigurator).
+			WithTokens(a.tokens).
+			WithFallback(a.autoEncryptInitialCertificate).
+			WithDNSSANs(a.config.AutoEncryptDNSSAN).
+			WithIPSANs(a.config.AutoEncryptIPSAN).
+			WithDatacenter(a.config.Datacenter).
+			WithNodeName(a.config.NodeName)
+
+		monitor, err := certmon.New(cmConfig)
 		if err != nil {
-			return fmt.Errorf("AutoEncrypt failed: %s", err)
+			return fmt.Errorf("AutoEncrypt failed to setup certificate monitor: %w", err)
 		}
-		if err = a.setupClientAutoEncryptWatching(rootsReq, leafReq); err != nil {
-			return fmt.Errorf("AutoEncrypt failed: %s", err)
+		if err := monitor.Update(reply); err != nil {
+			return fmt.Errorf("AutoEncrypt failed to setup certificate monitor: %w", err)
 		}
+		a.certMonitor = monitor
+
+		// we don't need to worry about ever calling Stop as we have tied the go routines
+		// to the agents lifetime by using the StopCh. Also the agent itself doesn't have
+		// a need of ensuring that the go routine was stopped before performing any action
+		// so we can ignore the chan in the return.
+		if _, err := a.certMonitor.Start(&lib.StopChannelContext{StopCh: a.shutdownCh}); err != nil {
+			return fmt.Errorf("AutoEncrypt failed to start certificate monitor: %w", err)
+		}
+
 		a.logger.Info("automatically upgraded to TLS")
 	}
 
@@ -829,7 +854,7 @@ func (a *Agent) Start(ctx context.Context) error {
 	return nil
 }
 
-func (a *Agent) setupClientAutoEncrypt(ctx context.Context) (*structs.SignedResponse, error) {
+func (a *Agent) autoEncryptInitialCertificate(ctx context.Context) (*structs.SignedResponse, error) {
 	client := a.delegate.(*consul.Client)
 
 	addrs := a.config.StartJoinAddrsLAN
@@ -839,165 +864,7 @@ func (a *Agent) setupClientAutoEncrypt(ctx context.Context) (*structs.SignedResp
 	}
 	addrs = append(addrs, retryJoinAddrs(disco, retryJoinSerfVariant, "LAN", a.config.RetryJoinLAN, a.logger)...)
 
-	reply, priv, err := client.RequestAutoEncryptCerts(ctx, addrs, a.config.ServerPort, a.tokens.AgentToken(), a.config.AutoEncryptDNSSAN, a.config.AutoEncryptIPSAN)
-	if err != nil {
-		return nil, err
-	}
-
-	connectCAPems := []string{}
-	for _, ca := range reply.ConnectCARoots.Roots {
-		connectCAPems = append(connectCAPems, ca.RootCert)
-	}
-	if err := a.tlsConfigurator.UpdateAutoEncrypt(reply.ManualCARoots, connectCAPems, reply.IssuedCert.CertPEM, priv, reply.VerifyServerHostname); err != nil {
-		return nil, err
-	}
-	return reply, nil
-
-}
-
-func (a *Agent) setupClientAutoEncryptCache(reply *structs.SignedResponse) (*structs.DCSpecificRequest, *cachetype.ConnectCALeafRequest, error) {
-	rootsReq := &structs.DCSpecificRequest{
-		Datacenter:   a.config.Datacenter,
-		QueryOptions: structs.QueryOptions{Token: a.tokens.AgentToken()},
-	}
-
-	// prepolutate roots cache
-	rootRes := cache.FetchResult{Value: &reply.ConnectCARoots, Index: reply.ConnectCARoots.QueryMeta.Index}
-	if err := a.cache.Prepopulate(cachetype.ConnectCARootName, rootRes, a.config.Datacenter, a.tokens.AgentToken(), rootsReq.CacheInfo().Key); err != nil {
-		return nil, nil, err
-	}
-
-	leafReq := &cachetype.ConnectCALeafRequest{
-		Datacenter: a.config.Datacenter,
-		Token:      a.tokens.AgentToken(),
-		Agent:      a.config.NodeName,
-		DNSSAN:     a.config.AutoEncryptDNSSAN,
-		IPSAN:      a.config.AutoEncryptIPSAN,
-	}
-
-	// prepolutate leaf cache
-	certRes := cache.FetchResult{
-		Value: &reply.IssuedCert,
-		Index: reply.ConnectCARoots.QueryMeta.Index,
-	}
-
-	for _, ca := range reply.ConnectCARoots.Roots {
-		if ca.ID == reply.ConnectCARoots.ActiveRootID {
-			certRes.State = cachetype.ConnectCALeafSuccess(ca.SigningKeyID)
-			break
-		}
-	}
-	if err := a.cache.Prepopulate(cachetype.ConnectCALeafName, certRes, a.config.Datacenter, a.tokens.AgentToken(), leafReq.Key()); err != nil {
-		return nil, nil, err
-	}
-	return rootsReq, leafReq, nil
-}
-
-func (a *Agent) setupClientAutoEncryptWatching(rootsReq *structs.DCSpecificRequest, leafReq *cachetype.ConnectCALeafRequest) error {
-	// setup watches
-	ch := make(chan cache.UpdateEvent, 10)
-	ctx, cancel := context.WithCancel(context.Background())
-
-	// Watch for root changes
-	err := a.cache.Notify(ctx, cachetype.ConnectCARootName, rootsReq, rootsWatchID, ch)
-	if err != nil {
-		cancel()
-		return err
-	}
-
-	// Watch the leaf cert
-	err = a.cache.Notify(ctx, cachetype.ConnectCALeafName, leafReq, leafWatchID, ch)
-	if err != nil {
-		cancel()
-		return err
-	}
-
-	// Setup actions in case the watches are firing.
-	go func() {
-		for {
-			select {
-			case <-a.shutdownCh:
-				cancel()
-				return
-			case <-ctx.Done():
-				return
-			case u := <-ch:
-				switch u.CorrelationID {
-				case rootsWatchID:
-					roots, ok := u.Result.(*structs.IndexedCARoots)
-					if !ok {
-						err := fmt.Errorf("invalid type for roots response: %T", u.Result)
-						a.logger.Error("watch error for correlation id",
-							"correlation_id", u.CorrelationID,
-							"error", err,
-						)
-						continue
-					}
-					pems := []string{}
-					for _, root := range roots.Roots {
-						pems = append(pems, root.RootCert)
-					}
-					a.tlsConfigurator.UpdateAutoEncryptCA(pems)
-				case leafWatchID:
-					leaf, ok := u.Result.(*structs.IssuedCert)
-					if !ok {
-						err := fmt.Errorf("invalid type for leaf response: %T", u.Result)
-						a.logger.Error("watch error for correlation id",
-							"correlation_id", u.CorrelationID,
-							"error", err,
-						)
-						continue
-					}
-					a.tlsConfigurator.UpdateAutoEncryptCert(leaf.CertPEM, leaf.PrivateKeyPEM)
-				}
-			}
-		}
-	}()
-
-	// Setup safety net in case the auto_encrypt cert doesn't get renewed
-	// in time. The agent would be stuck in that case because the watches
-	// never use the AutoEncrypt.Sign endpoint.
-	go func() {
-		// Check 10sec after cert expires. The agent cache
-		// should be handling the expiration and renew before
-		// it.
-		// If there is no cert, AutoEncryptCertNotAfter returns
-		// a value in the past which immediately triggers the
-		// renew, but this case shouldn't happen because at
-		// this point, auto_encrypt was just being setup
-		// successfully.
-		interval := a.tlsConfigurator.AutoEncryptCertNotAfter().Sub(time.Now().Add(10 * time.Second))
-		autoLogger := a.logger.Named(logging.AutoEncrypt)
-		for {
-			a.logger.Debug("setting up client certificate expiration check on interval", "interval", interval)
-			select {
-			case <-a.shutdownCh:
-				return
-			case <-time.After(interval):
-				// check auto encrypt client cert expiration
-				if a.tlsConfigurator.AutoEncryptCertExpired() {
-					autoLogger.Debug("client certificate expired.")
-					// Background because the context is mainly useful when the agent is first starting up.
-					reply, err := a.setupClientAutoEncrypt(context.Background())
-					if err != nil {
-						autoLogger.Error("client certificate expired, failed to renew", "error", err)
-						// in case of an error, try again in one minute
-						interval = time.Minute
-						continue
-					}
-					_, _, err = a.setupClientAutoEncryptCache(reply)
-					if err != nil {
-						autoLogger.Error("client certificate expired, failed to populate cache", "error", err)
-						// in case of an error, try again in one minute
-						interval = time.Minute
-						continue
-					}
-				}
-			}
-		}
-	}()
-
-	return nil
+	return client.RequestAutoEncryptCerts(ctx, addrs, a.config.ServerPort, a.tokens.AgentToken(), a.config.AutoEncryptDNSSAN, a.config.AutoEncryptIPSAN)
 }
 
 func (a *Agent) listenAndServeGRPC() error {
