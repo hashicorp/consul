@@ -2,22 +2,31 @@ package consul
 
 import (
 	"context"
+	"crypto/x509"
 	"encoding/base64"
 	"fmt"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/proto"
+
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/template"
 	"github.com/hashicorp/consul/proto/pbautoconf"
-	config "github.com/hashicorp/consul/proto/pbconfig"
+	"github.com/hashicorp/consul/proto/pbconfig"
+	"github.com/hashicorp/consul/proto/pbconnect"
 	"github.com/hashicorp/consul/tlsutil"
 	bexpr "github.com/hashicorp/go-bexpr"
+	"github.com/mitchellh/mapstructure"
 )
 
 type AutoConfigOptions struct {
 	NodeName    string
 	SegmentName string
+
+	CSR      *x509.CertificateRequest
+	SpiffeID *connect.SpiffeIDAgent
 }
 
 type AutoConfigAuthorizer interface {
@@ -73,16 +82,35 @@ func (a *jwtAuthorizer) Authorize(req *pbautoconf.AutoConfigRequest) (AutoConfig
 		}
 	}
 
-	return AutoConfigOptions{
+	opts := AutoConfigOptions{
 		NodeName:    req.Node,
 		SegmentName: req.Segment,
-	}, nil
+	}
+
+	if req.CSR != "" {
+		csr, id, err := parseAutoConfigCSR(req.CSR)
+		if err != nil {
+			return AutoConfigOptions{}, err
+		}
+
+		if id.Agent != req.Node {
+			return AutoConfigOptions{}, fmt.Errorf("Spiffe ID agent name (%s) of the certificate signing request is not for the correct node (%s)", id.Agent, req.Node)
+		}
+
+		opts.CSR = csr
+		opts.SpiffeID = id
+	}
+
+	return opts, nil
 }
 
 type AutoConfigBackend interface {
 	CreateACLToken(template *structs.ACLToken) (*structs.ACLToken, error)
 	DatacenterJoinAddresses(segment string) ([]string, error)
 	ForwardRPC(method string, info structs.RPCInfo, args, reply interface{}) (bool, error)
+
+	GetCARoots() (*structs.IndexedCARoots, error)
+	SignCertificate(csr *x509.CertificateRequest, id connect.CertURI) (*structs.IssuedCert, error)
 }
 
 // AutoConfig endpoint is used for cluster auto configuration operations
@@ -114,15 +142,51 @@ func NewAutoConfig(conf *Config, tlsConfigurator *tlsutil.Configurator, backend 
 // made aware of its certificates are populated. This will only work if connect is enabled and
 // in some cases only if auto_encrypt is enabled on the servers. This endpoint has the option
 // to configure auto_encrypt or potentially in the future to generate the certificates inline.
-func (ac *AutoConfig) updateTLSCertificatesInConfig(opts AutoConfigOptions, conf *config.Config) error {
-	conf.AutoEncrypt = &config.AutoEncrypt{TLS: ac.config.AutoEncryptAllowTLS}
+func (ac *AutoConfig) updateTLSCertificatesInConfig(opts AutoConfigOptions, resp *pbautoconf.AutoConfigResponse) error {
+	// nothing to be done as we cannot generate certificates
+	if !ac.config.ConnectEnabled {
+		return nil
+	}
+
+	if opts.CSR != nil {
+		cert, err := ac.backend.SignCertificate(opts.CSR, opts.SpiffeID)
+		if err != nil {
+			return fmt.Errorf("Failed to sign CSR: %w", err)
+		}
+
+		// convert to the protobuf form of the issued certificate
+		pbcert, err := translateIssuedCertToProtobuf(cert)
+		if err != nil {
+			return err
+		}
+		resp.Certificate = pbcert
+	}
+
+	connectRoots, err := ac.backend.GetCARoots()
+	if err != nil {
+		return fmt.Errorf("Failed to lookup the CA roots: %w", err)
+	}
+
+	// convert to the protobuf form of the issued certificate
+	pbroots, err := translateCARootsToProtobuf(connectRoots)
+	if err != nil {
+		return err
+	}
+
+	resp.CARoots = pbroots
+
+	// get the non-connect CA certs from the TLS Configurator
+	if ac.tlsConfigurator != nil {
+		resp.ExtraCACertificates = ac.tlsConfigurator.ManualCAPems()
+	}
+
 	return nil
 }
 
 // updateACLtokensInConfig will configure all of the agents ACL settings and will populate
 // the configuration with an agent token usable for all default agent operations.
-func (ac *AutoConfig) updateACLsInConfig(opts AutoConfigOptions, conf *config.Config) error {
-	acl := &config.ACL{
+func (ac *AutoConfig) updateACLsInConfig(opts AutoConfigOptions, resp *pbautoconf.AutoConfigResponse) error {
+	acl := &pbconfig.ACL{
 		Enabled:             ac.config.ACLsEnabled,
 		PolicyTTL:           ac.config.ACLPolicyTTL.String(),
 		RoleTTL:             ac.config.ACLRoleTTL.String(),
@@ -153,48 +217,48 @@ func (ac *AutoConfig) updateACLsInConfig(opts AutoConfigOptions, conf *config.Co
 			return fmt.Errorf("Failed to generate an ACL token for node %q - %w", opts.NodeName, err)
 		}
 
-		acl.Tokens = &config.ACLTokens{Agent: token.SecretID}
+		acl.Tokens = &pbconfig.ACLTokens{Agent: token.SecretID}
 	}
 
-	conf.ACL = acl
+	resp.Config.ACL = acl
 	return nil
 }
 
 // updateJoinAddressesInConfig determines the correct gossip endpoints that clients should
 // be connecting to for joining the cluster based on the segment given in the opts parameter.
-func (ac *AutoConfig) updateJoinAddressesInConfig(opts AutoConfigOptions, conf *config.Config) error {
+func (ac *AutoConfig) updateJoinAddressesInConfig(opts AutoConfigOptions, resp *pbautoconf.AutoConfigResponse) error {
 	joinAddrs, err := ac.backend.DatacenterJoinAddresses(opts.SegmentName)
 	if err != nil {
 		return err
 	}
 
-	if conf.Gossip == nil {
-		conf.Gossip = &config.Gossip{}
+	if resp.Config.Gossip == nil {
+		resp.Config.Gossip = &pbconfig.Gossip{}
 	}
 
-	conf.Gossip.RetryJoinLAN = joinAddrs
+	resp.Config.Gossip.RetryJoinLAN = joinAddrs
 	return nil
 }
 
 // updateGossipEncryptionInConfig will populate the gossip encryption configuration settings
-func (ac *AutoConfig) updateGossipEncryptionInConfig(_ AutoConfigOptions, conf *config.Config) error {
+func (ac *AutoConfig) updateGossipEncryptionInConfig(_ AutoConfigOptions, resp *pbautoconf.AutoConfigResponse) error {
 	// Add gossip encryption settings if there is any key loaded
 	memberlistConfig := ac.config.SerfLANConfig.MemberlistConfig
 	if lanKeyring := memberlistConfig.Keyring; lanKeyring != nil {
-		if conf.Gossip == nil {
-			conf.Gossip = &config.Gossip{}
+		if resp.Config.Gossip == nil {
+			resp.Config.Gossip = &pbconfig.Gossip{}
 		}
-		if conf.Gossip.Encryption == nil {
-			conf.Gossip.Encryption = &config.GossipEncryption{}
+		if resp.Config.Gossip.Encryption == nil {
+			resp.Config.Gossip.Encryption = &pbconfig.GossipEncryption{}
 		}
 
 		pk := lanKeyring.GetPrimaryKey()
 		if len(pk) > 0 {
-			conf.Gossip.Encryption.Key = base64.StdEncoding.EncodeToString(pk)
+			resp.Config.Gossip.Encryption.Key = base64.StdEncoding.EncodeToString(pk)
 		}
 
-		conf.Gossip.Encryption.VerifyIncoming = memberlistConfig.GossipVerifyIncoming
-		conf.Gossip.Encryption.VerifyOutgoing = memberlistConfig.GossipVerifyOutgoing
+		resp.Config.Gossip.Encryption.VerifyIncoming = memberlistConfig.GossipVerifyIncoming
+		resp.Config.Gossip.Encryption.VerifyOutgoing = memberlistConfig.GossipVerifyOutgoing
 	}
 
 	return nil
@@ -202,44 +266,44 @@ func (ac *AutoConfig) updateGossipEncryptionInConfig(_ AutoConfigOptions, conf *
 
 // updateTLSSettingsInConfig will populate the TLS configuration settings but will not
 // populate leaf or ca certficiates.
-func (ac *AutoConfig) updateTLSSettingsInConfig(_ AutoConfigOptions, conf *config.Config) error {
+func (ac *AutoConfig) updateTLSSettingsInConfig(_ AutoConfigOptions, resp *pbautoconf.AutoConfigResponse) error {
 	if ac.tlsConfigurator == nil {
 		// TLS is not enabled?
 		return nil
 	}
 
 	// add in TLS configuration
-	if conf.TLS == nil {
-		conf.TLS = &config.TLS{}
+	if resp.Config.TLS == nil {
+		resp.Config.TLS = &pbconfig.TLS{}
 	}
 
-	conf.TLS.VerifyServerHostname = ac.tlsConfigurator.VerifyServerHostname()
+	resp.Config.TLS.VerifyServerHostname = ac.tlsConfigurator.VerifyServerHostname()
 	base := ac.tlsConfigurator.Base()
-	conf.TLS.VerifyOutgoing = base.VerifyOutgoing
-	conf.TLS.MinVersion = base.TLSMinVersion
-	conf.TLS.PreferServerCipherSuites = base.PreferServerCipherSuites
+	resp.Config.TLS.VerifyOutgoing = base.VerifyOutgoing
+	resp.Config.TLS.MinVersion = base.TLSMinVersion
+	resp.Config.TLS.PreferServerCipherSuites = base.PreferServerCipherSuites
 
 	var err error
-	conf.TLS.CipherSuites, err = tlsutil.CipherString(base.CipherSuites)
+	resp.Config.TLS.CipherSuites, err = tlsutil.CipherString(base.CipherSuites)
 	return err
 }
 
 // baseConfig will populate the configuration with some base settings such as the
 // datacenter names, node name etc.
-func (ac *AutoConfig) baseConfig(opts AutoConfigOptions, conf *config.Config) error {
+func (ac *AutoConfig) baseConfig(opts AutoConfigOptions, resp *pbautoconf.AutoConfigResponse) error {
 	if opts.NodeName == "" {
 		return fmt.Errorf("Cannot generate auto config response without a node name")
 	}
 
-	conf.Datacenter = ac.config.Datacenter
-	conf.PrimaryDatacenter = ac.config.PrimaryDatacenter
-	conf.NodeName = opts.NodeName
-	conf.SegmentName = opts.SegmentName
+	resp.Config.Datacenter = ac.config.Datacenter
+	resp.Config.PrimaryDatacenter = ac.config.PrimaryDatacenter
+	resp.Config.NodeName = opts.NodeName
+	resp.Config.SegmentName = opts.SegmentName
 
 	return nil
 }
 
-type autoConfigUpdater func(c *AutoConfig, opts AutoConfigOptions, conf *config.Config) error
+type autoConfigUpdater func(c *AutoConfig, opts AutoConfigOptions, resp *pbautoconf.AutoConfigResponse) error
 
 var (
 	// variable holding the list of config updating functions to execute when generating
@@ -290,15 +354,71 @@ func (ac *AutoConfig) InitialConfiguration(req *pbautoconf.AutoConfigRequest, re
 		return err
 	}
 
-	conf := &config.Config{}
+	resp.Config = &pbconfig.Config{}
 
 	// update all the configurations
 	for _, configFn := range autoConfigUpdaters {
-		if err := configFn(ac, opts, conf); err != nil {
+		if err := configFn(ac, opts, resp); err != nil {
 			return err
 		}
 	}
 
-	resp.Config = conf
 	return nil
+}
+
+func parseAutoConfigCSR(csr string) (*x509.CertificateRequest, *connect.SpiffeIDAgent, error) {
+	// Parse the CSR string into the x509 CertificateRequest struct
+	x509CSR, err := connect.ParseCSR(csr)
+	if err != nil {
+		return nil, nil, fmt.Errorf("Failed to parse CSR: %w", err)
+	}
+
+	// ensure that a URI SAN is present
+	if len(x509CSR.URIs) < 1 {
+		return nil, nil, fmt.Errorf("CSR didn't include any URI SANs")
+	}
+
+	// Parse the SPIFFE ID
+	spiffeID, err := connect.ParseCertURI(x509CSR.URIs[0])
+	if err != nil {
+		return nil, nil, fmt.Errorf("Failed to parse the SPIFFE URI: %w", err)
+	}
+
+	agentID, isAgent := spiffeID.(*connect.SpiffeIDAgent)
+	if !isAgent {
+		return nil, nil, fmt.Errorf("SPIFFE ID is not an Agent ID")
+	}
+
+	return x509CSR, agentID, nil
+}
+
+func translateCARootsToProtobuf(in *structs.IndexedCARoots) (*pbconnect.CARoots, error) {
+	var out pbconnect.CARoots
+	if err := mapstructureTranslateToProtobuf(in, &out); err != nil {
+		return nil, fmt.Errorf("Failed to re-encode CA Roots: %w", err)
+	}
+
+	return &out, nil
+}
+
+func translateIssuedCertToProtobuf(in *structs.IssuedCert) (*pbconnect.IssuedCert, error) {
+	var out pbconnect.IssuedCert
+	if err := mapstructureTranslateToProtobuf(in, &out); err != nil {
+		return nil, fmt.Errorf("Failed to re-encode CA Roots: %w", err)
+	}
+
+	return &out, nil
+}
+
+func mapstructureTranslateToProtobuf(in interface{}, out interface{}) error {
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		DecodeHook: proto.HookTimeToPBTimestamp,
+		Result:     out,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return decoder.Decode(in)
 }

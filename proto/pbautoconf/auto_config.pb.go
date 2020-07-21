@@ -7,6 +7,7 @@ import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	pbconfig "github.com/hashicorp/consul/proto/pbconfig"
+	pbconnect "github.com/hashicorp/consul/proto/pbconnect"
 	io "io"
 	math "math"
 )
@@ -39,7 +40,10 @@ type AutoConfigRequest struct {
 	JWT string `protobuf:"bytes,5,opt,name=JWT,proto3" json:"JWT,omitempty"`
 	// ConsulToken is a Consul ACL token that the agent requesting the
 	// configuration already has.
-	ConsulToken          string   `protobuf:"bytes,6,opt,name=ConsulToken,proto3" json:"ConsulToken,omitempty"`
+	ConsulToken string `protobuf:"bytes,6,opt,name=ConsulToken,proto3" json:"ConsulToken,omitempty"`
+	// CSR is a certificate signing request to be used when generating the
+	// agents TLS certificate
+	CSR                  string   `protobuf:"bytes,7,opt,name=CSR,proto3" json:"CSR,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -113,12 +117,27 @@ func (m *AutoConfigRequest) GetConsulToken() string {
 	return ""
 }
 
+func (m *AutoConfigRequest) GetCSR() string {
+	if m != nil {
+		return m.CSR
+	}
+	return ""
+}
+
 // AutoConfigResponse is the data structure sent in response to a AutoConfig.InitialConfiguration request
 type AutoConfigResponse struct {
-	Config               *pbconfig.Config `protobuf:"bytes,1,opt,name=Config,proto3" json:"Config,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
-	XXX_unrecognized     []byte           `json:"-"`
-	XXX_sizecache        int32            `json:"-"`
+	// Config is the partial Consul configuration to inject into the agents own configuration
+	Config *pbconfig.Config `protobuf:"bytes,1,opt,name=Config,proto3" json:"Config,omitempty"`
+	// CARoots is the current list of Connect CA Roots
+	CARoots *pbconnect.CARoots `protobuf:"bytes,2,opt,name=CARoots,proto3" json:"CARoots,omitempty"`
+	// Certificate is the TLS certificate issued for the agent
+	Certificate *pbconnect.IssuedCert `protobuf:"bytes,3,opt,name=Certificate,proto3" json:"Certificate,omitempty"`
+	// ExtraCACertificates holds non-Connect certificates that may be necessary
+	// to verify TLS connections with the Consul servers
+	ExtraCACertificates  []string `protobuf:"bytes,4,rep,name=ExtraCACertificates,proto3" json:"ExtraCACertificates,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
 func (m *AutoConfigResponse) Reset()         { *m = AutoConfigResponse{} }
@@ -161,31 +180,60 @@ func (m *AutoConfigResponse) GetConfig() *pbconfig.Config {
 	return nil
 }
 
+func (m *AutoConfigResponse) GetCARoots() *pbconnect.CARoots {
+	if m != nil {
+		return m.CARoots
+	}
+	return nil
+}
+
+func (m *AutoConfigResponse) GetCertificate() *pbconnect.IssuedCert {
+	if m != nil {
+		return m.Certificate
+	}
+	return nil
+}
+
+func (m *AutoConfigResponse) GetExtraCACertificates() []string {
+	if m != nil {
+		return m.ExtraCACertificates
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterType((*AutoConfigRequest)(nil), "autoconf.AutoConfigRequest")
 	proto.RegisterType((*AutoConfigResponse)(nil), "autoconf.AutoConfigResponse")
 }
 
-func init() { proto.RegisterFile("proto/pbautoconf/auto_config.proto", fileDescriptor_ccc5af992e5daf69) }
+func init() {
+	proto.RegisterFile("proto/pbautoconf/auto_config.proto", fileDescriptor_ccc5af992e5daf69)
+}
 
 var fileDescriptor_ccc5af992e5daf69 = []byte{
-	// 256 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x52, 0x2a, 0x28, 0xca, 0x2f,
-	0xc9, 0xd7, 0x2f, 0x48, 0x4a, 0x2c, 0x2d, 0xc9, 0x4f, 0xce, 0xcf, 0x4b, 0xd3, 0x07, 0x31, 0xe2,
-	0x41, 0xac, 0xcc, 0x74, 0x3d, 0xb0, 0xa4, 0x10, 0x07, 0x4c, 0x4e, 0x4a, 0x1a, 0xa6, 0x1a, 0x22,
-	0xaf, 0x8f, 0xac, 0x4c, 0x69, 0x2a, 0x23, 0x97, 0xa0, 0x63, 0x69, 0x49, 0xbe, 0x33, 0x58, 0x30,
-	0x28, 0xb5, 0xb0, 0x34, 0xb5, 0xb8, 0x44, 0x48, 0x8e, 0x8b, 0xcb, 0x25, 0xb1, 0x24, 0x31, 0x39,
-	0x35, 0xaf, 0x24, 0xb5, 0x48, 0x82, 0x51, 0x81, 0x51, 0x83, 0x33, 0x08, 0x49, 0x44, 0x48, 0x88,
-	0x8b, 0xc5, 0x2f, 0x3f, 0x25, 0x55, 0x82, 0x09, 0x2c, 0x03, 0x66, 0x0b, 0x49, 0x70, 0xb1, 0x07,
-	0xa7, 0xa6, 0xe7, 0xa6, 0xe6, 0x95, 0x48, 0xb0, 0x80, 0x85, 0x61, 0x5c, 0x21, 0x01, 0x2e, 0x66,
-	0xaf, 0xf0, 0x10, 0x09, 0x56, 0xb0, 0x28, 0x88, 0x29, 0xa4, 0xc0, 0xc5, 0xed, 0x9c, 0x9f, 0x57,
-	0x5c, 0x9a, 0x13, 0x92, 0x9f, 0x9d, 0x9a, 0x27, 0xc1, 0x06, 0x96, 0x41, 0x16, 0x52, 0xb2, 0xe1,
-	0x12, 0x42, 0x76, 0x56, 0x71, 0x41, 0x7e, 0x5e, 0x71, 0xaa, 0x90, 0x1a, 0x17, 0x1b, 0x44, 0x04,
-	0xec, 0x26, 0x6e, 0x23, 0x3e, 0x3d, 0xa8, 0x67, 0xa0, 0xea, 0xa0, 0xb2, 0x4e, 0x76, 0x27, 0x1e,
-	0xc9, 0x31, 0x5e, 0x78, 0x24, 0xc7, 0xf8, 0xe0, 0x91, 0x1c, 0xe3, 0x8c, 0xc7, 0x72, 0x0c, 0x51,
-	0x3a, 0xe9, 0x99, 0x25, 0x19, 0xa5, 0x49, 0x7a, 0xc9, 0xf9, 0xb9, 0xfa, 0x19, 0x89, 0xc5, 0x19,
-	0x99, 0xc9, 0xf9, 0x45, 0x05, 0xa0, 0xa0, 0x28, 0x2e, 0xcd, 0xd1, 0x47, 0x0f, 0xce, 0x24, 0x36,
-	0xb0, 0x88, 0x31, 0x20, 0x00, 0x00, 0xff, 0xff, 0x46, 0x7e, 0xde, 0xed, 0x69, 0x01, 0x00, 0x00,
+	// 347 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x92, 0xc1, 0x4a, 0xc3, 0x30,
+	0x18, 0xc7, 0x8d, 0x9b, 0x9b, 0x4b, 0x41, 0x66, 0x76, 0x09, 0x13, 0xcb, 0xd8, 0x41, 0x86, 0x48,
+	0x2b, 0x13, 0xaf, 0xc2, 0x8c, 0x1e, 0xf4, 0xe0, 0x21, 0x1b, 0x08, 0x5e, 0xa4, 0xeb, 0xb2, 0xad,
+	0xb8, 0x25, 0xb5, 0xf9, 0x02, 0x3e, 0x8a, 0x6f, 0xe0, 0xab, 0x78, 0xd4, 0x37, 0x90, 0xf9, 0x22,
+	0xd2, 0xb4, 0x95, 0x20, 0x9e, 0xfa, 0xef, 0xff, 0xf7, 0xfb, 0xe0, 0x6b, 0x13, 0xdc, 0x4f, 0x33,
+	0x05, 0x2a, 0x4c, 0xa7, 0x91, 0x01, 0x15, 0x2b, 0x39, 0x0f, 0xf3, 0xf0, 0x98, 0xa7, 0x64, 0x11,
+	0x58, 0x48, 0x76, 0x2b, 0xd6, 0x3d, 0xa8, 0xec, 0x82, 0x87, 0xae, 0xd6, 0x3d, 0x74, 0xa0, 0x14,
+	0x31, 0x84, 0xe5, 0xb3, 0xc0, 0xfd, 0x37, 0x84, 0xf7, 0x47, 0x06, 0x14, 0xb3, 0x33, 0x5c, 0x3c,
+	0x1b, 0xa1, 0x81, 0xf8, 0x18, 0x5f, 0x45, 0x10, 0xc5, 0x42, 0x82, 0xc8, 0x28, 0xea, 0xa1, 0x41,
+	0x8b, 0x3b, 0x0d, 0x21, 0xb8, 0x7e, 0xa7, 0x66, 0x82, 0x6e, 0x5b, 0x62, 0x33, 0xa1, 0xb8, 0x39,
+	0x16, 0x8b, 0xb5, 0x90, 0x40, 0xeb, 0xb6, 0xae, 0x5e, 0x49, 0x1b, 0xd7, 0x6e, 0xef, 0x27, 0x74,
+	0xc7, 0xb6, 0x79, 0x24, 0x3d, 0xec, 0x31, 0x25, 0xb5, 0x59, 0x4d, 0xd4, 0x93, 0x90, 0xb4, 0x61,
+	0x89, 0x5b, 0xe5, 0x33, 0x6c, 0xcc, 0x69, 0xb3, 0x98, 0x61, 0x63, 0xde, 0xff, 0x44, 0x98, 0xb8,
+	0x9b, 0xea, 0x54, 0x49, 0x2d, 0xc8, 0x11, 0x6e, 0x14, 0x8d, 0x5d, 0xd3, 0x1b, 0xee, 0x05, 0xe5,
+	0xe7, 0x97, 0x5e, 0x49, 0xc9, 0x31, 0x6e, 0xb2, 0x11, 0x57, 0x0a, 0xb4, 0xdd, 0xda, 0x1b, 0xb6,
+	0x83, 0xea, 0x4f, 0x94, 0x3d, 0xaf, 0x04, 0x72, 0x8e, 0x3d, 0x26, 0x32, 0x48, 0xe6, 0x49, 0x1c,
+	0x81, 0xa0, 0x35, 0xeb, 0x77, 0x7e, 0xfd, 0x1b, 0xad, 0x8d, 0x98, 0xe5, 0x06, 0x77, 0x3d, 0x72,
+	0x8a, 0x3b, 0xd7, 0x2f, 0x90, 0x45, 0x6c, 0xe4, 0xb4, 0x9a, 0xd6, 0x7b, 0xb5, 0x41, 0x8b, 0xff,
+	0x87, 0x2e, 0x2f, 0xde, 0x37, 0x3e, 0xfa, 0xd8, 0xf8, 0xe8, 0x6b, 0xe3, 0xa3, 0xd7, 0x6f, 0x7f,
+	0xeb, 0xe1, 0x64, 0x91, 0xc0, 0xd2, 0x4c, 0x83, 0x58, 0xad, 0xc3, 0x65, 0xa4, 0x97, 0x49, 0xac,
+	0xb2, 0x34, 0x3f, 0x33, 0x6d, 0x56, 0xe1, 0xdf, 0x5b, 0x31, 0x6d, 0xd8, 0xe6, 0xec, 0x27, 0x00,
+	0x00, 0xff, 0xff, 0xe2, 0x1d, 0x6e, 0x48, 0x30, 0x02, 0x00, 0x00,
 }
 
 func (m *AutoConfigRequest) Marshal() (dAtA []byte, err error) {
@@ -233,6 +281,12 @@ func (m *AutoConfigRequest) MarshalTo(dAtA []byte) (int, error) {
 		i = encodeVarintAutoConfig(dAtA, i, uint64(len(m.ConsulToken)))
 		i += copy(dAtA[i:], m.ConsulToken)
 	}
+	if len(m.CSR) > 0 {
+		dAtA[i] = 0x3a
+		i++
+		i = encodeVarintAutoConfig(dAtA, i, uint64(len(m.CSR)))
+		i += copy(dAtA[i:], m.CSR)
+	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
 	}
@@ -263,6 +317,41 @@ func (m *AutoConfigResponse) MarshalTo(dAtA []byte) (int, error) {
 			return 0, err
 		}
 		i += n1
+	}
+	if m.CARoots != nil {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintAutoConfig(dAtA, i, uint64(m.CARoots.Size()))
+		n2, err := m.CARoots.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n2
+	}
+	if m.Certificate != nil {
+		dAtA[i] = 0x1a
+		i++
+		i = encodeVarintAutoConfig(dAtA, i, uint64(m.Certificate.Size()))
+		n3, err := m.Certificate.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n3
+	}
+	if len(m.ExtraCACertificates) > 0 {
+		for _, s := range m.ExtraCACertificates {
+			dAtA[i] = 0x22
+			i++
+			l = len(s)
+			for l >= 1<<7 {
+				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
+				l >>= 7
+				i++
+			}
+			dAtA[i] = uint8(l)
+			i++
+			i += copy(dAtA[i:], s)
+		}
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -305,6 +394,10 @@ func (m *AutoConfigRequest) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovAutoConfig(uint64(l))
 	}
+	l = len(m.CSR)
+	if l > 0 {
+		n += 1 + l + sovAutoConfig(uint64(l))
+	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
 	}
@@ -320,6 +413,20 @@ func (m *AutoConfigResponse) Size() (n int) {
 	if m.Config != nil {
 		l = m.Config.Size()
 		n += 1 + l + sovAutoConfig(uint64(l))
+	}
+	if m.CARoots != nil {
+		l = m.CARoots.Size()
+		n += 1 + l + sovAutoConfig(uint64(l))
+	}
+	if m.Certificate != nil {
+		l = m.Certificate.Size()
+		n += 1 + l + sovAutoConfig(uint64(l))
+	}
+	if len(m.ExtraCACertificates) > 0 {
+		for _, s := range m.ExtraCACertificates {
+			l = len(s)
+			n += 1 + l + sovAutoConfig(uint64(l))
+		}
 	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -529,6 +636,38 @@ func (m *AutoConfigRequest) Unmarshal(dAtA []byte) error {
 			}
 			m.ConsulToken = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CSR", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAutoConfig
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthAutoConfig
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthAutoConfig
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CSR = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipAutoConfig(dAtA[iNdEx:])
@@ -618,6 +757,110 @@ func (m *AutoConfigResponse) Unmarshal(dAtA []byte) error {
 			if err := m.Config.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CARoots", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAutoConfig
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthAutoConfig
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthAutoConfig
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.CARoots == nil {
+				m.CARoots = &pbconnect.CARoots{}
+			}
+			if err := m.CARoots.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Certificate", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAutoConfig
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthAutoConfig
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthAutoConfig
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Certificate == nil {
+				m.Certificate = &pbconnect.IssuedCert{}
+			}
+			if err := m.Certificate.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExtraCACertificates", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAutoConfig
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthAutoConfig
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthAutoConfig
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ExtraCACertificates = append(m.ExtraCACertificates, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

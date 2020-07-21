@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -523,8 +524,8 @@ func NewServerWithOptions(config *Config, options ...ConsulOption) (*Server, err
 		return nil, fmt.Errorf("Failed to start Raft: %v", err)
 	}
 
-	if s.config.ConnectEnabled && s.config.AutoEncryptAllowTLS {
-		go s.trackAutoEncryptCARoots()
+	if s.config.ConnectEnabled && (s.config.AutoEncryptAllowTLS || s.config.AutoConfigAuthzEnabled) {
+		go s.connectCARootsMonitor(&lib.StopChannelContext{StopCh: s.shutdownCh})
 	}
 
 	if s.gatewayLocator != nil {
@@ -632,18 +633,11 @@ func NewServerWithOptions(config *Config, options ...ConsulOption) (*Server, err
 	return s, nil
 }
 
-func (s *Server) trackAutoEncryptCARoots() {
+func (s *Server) connectCARootsMonitor(ctx context.Context) {
 	for {
-		select {
-		case <-s.shutdownCh:
-			s.logger.Debug("shutting down trackAutoEncryptCARoots because shutdown")
-			return
-		default:
-		}
 		ws := memdb.NewWatchSet()
 		state := s.fsm.State()
 		ws.Add(state.AbandonCh())
-		ws.Add(s.shutdownCh)
 		_, cas, err := state.CARoots(ws)
 		if err != nil {
 			s.logger.Error("Failed to watch AutoEncrypt CARoot", "error", err)
@@ -656,7 +650,11 @@ func (s *Server) trackAutoEncryptCARoots() {
 		if err := s.tlsConfigurator.UpdateAutoEncryptCA(caPems); err != nil {
 			s.logger.Error("Failed to update AutoEncrypt CAPems", "error", err)
 		}
-		ws.Watch(nil)
+
+		if err := ws.WatchCtx(ctx); err == context.Canceled {
+			s.logger.Info("shutting down Connect CA roots monitor")
+			return
+		}
 	}
 }
 
