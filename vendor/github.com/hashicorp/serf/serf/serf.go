@@ -907,6 +907,10 @@ func (s *Serf) handleNodeJoin(n *memberlist.Node) {
 	s.memberLock.Lock()
 	defer s.memberLock.Unlock()
 
+	if s.config.messageDropper(messageJoinType) {
+		return
+	}
+
 	var oldStatus MemberStatus
 	member, ok := s.members[n.Name]
 	if !ok {
@@ -1098,11 +1102,14 @@ func (s *Serf) handleNodeLeaveIntent(leaveMsg *messageLeave) bool {
 		return false
 	}
 
+	// Always set the lamport time so that if we retransmit below it won't echo
+	// around forever!
+	member.statusLTime = leaveMsg.LTime
+
 	// State transition depends on current state
 	switch member.Status {
 	case StatusAlive:
 		member.Status = StatusLeaving
-		member.statusLTime = leaveMsg.LTime
 
 		if leaveMsg.Prune {
 			s.handlePrune(member)
@@ -1110,7 +1117,6 @@ func (s *Serf) handleNodeLeaveIntent(leaveMsg *messageLeave) bool {
 		return true
 	case StatusFailed:
 		member.Status = StatusLeft
-		member.statusLTime = leaveMsg.LTime
 
 		// Remove from the failed list and add to the left list. We add
 		// to the left list so that when we do a sync, other nodes will

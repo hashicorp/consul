@@ -35,6 +35,11 @@ func (d *delegate) NotifyMsg(buf []byte) {
 	rebroadcast := false
 	rebroadcastQueue := d.serf.broadcasts
 	t := messageType(buf[0])
+
+	if d.serf.config.messageDropper(t) {
+		return
+	}
+
 	switch t {
 	case messageLeaveType:
 		var leave messageLeave
@@ -210,6 +215,10 @@ func (d *delegate) MergeRemoteState(buf []byte, isJoin bool) {
 	// Check the message type
 	if messageType(buf[0]) != messagePushPullType {
 		d.serf.logger.Printf("[ERR] serf: Remote state has bad type prefix: %v", buf[0])
+		return
+	}
+
+	if d.serf.config.messageDropper(messagePushPullType) {
 		return
 	}
 
