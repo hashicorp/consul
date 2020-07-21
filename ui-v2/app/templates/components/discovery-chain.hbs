@@ -95,7 +95,7 @@
       <path
         id={{concat 'splitter:' splitter.Name '>' item.NextNode}}
         class="split"
-        data-percentage={{item.Weight}}
+        data-percentage={{or item.Weight 0}}
         d={{
           svg-curve (hash
             x=dest.x
