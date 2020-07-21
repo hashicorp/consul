@@ -244,7 +244,7 @@ github.com/hashicorp/net-rpc-msgpackrpc
 github.com/hashicorp/raft
 # github.com/hashicorp/raft-boltdb v0.0.0-20171010151810-6e5ba93211ea
 github.com/hashicorp/raft-boltdb
-# github.com/hashicorp/serf v0.8.5
+# github.com/hashicorp/serf v0.8.6
 github.com/hashicorp/serf/coordinate
 github.com/hashicorp/serf/serf
 # github.com/hashicorp/vault/api v1.0.4
