@@ -19,6 +19,7 @@ BUGFIXES:
 * agent: Fixed a bug where Consul could crash when `verify_outgoing` was set to true but no client certificate was used. [[GH-8211](https://github.com/hashicorp/consul/pull/8211)]
 * auto_encrypt: Fixed an issue where auto encrypt certificate signing wasn't using the connect signing rate limiter. [[GH-8211](https://github.com/hashicorp/consul/pull/8211)]
 * auto_encrypt: Fixed several issues around retrieving the first TLS certificate where it would have the wrong CN and SANs. This was being masked by a second bug (also fixed) causing that certificate to immediately be discarded with a second certificate request being made afterwards. [[GH-8211](https://github.com/hashicorp/consul/pull/8211)]
+* auto_encrypt: Fixed an issue that caused auto encrypt certificates to not be updated properly if the agents token was changed and the old token was deleted. [[GH-8311](https://github.com/hashicorp/consul/pull/8311)]
 * connect: fix crash that would result if a mesh or terminating gateway's upstream has a hostname as an address and no healthy service instances available. [[GH-8158](https://github.com/hashicorp/consul/issues/8158)]
 * xds: version sniff envoy and switch regular expressions from 'regex' to 'safe_regex' on newer envoy versions [[GH-8222](https://github.com/hashicorp/consul/issues/8222)]
 
