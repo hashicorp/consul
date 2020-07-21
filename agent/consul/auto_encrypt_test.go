@@ -104,7 +104,7 @@ func TestAutoEncrypt_RequestAutoEncryptCerts(t *testing.T) {
 	doneCh := make(chan struct{})
 	var err error
 	go func() {
-		_, _, err = c1.RequestAutoEncryptCerts(ctx, servers, port, token, nil, nil)
+		_, err = c1.RequestAutoEncryptCerts(ctx, servers, port, token, nil, nil)
 		close(doneCh)
 	}()
 	select {

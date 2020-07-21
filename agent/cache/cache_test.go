@@ -464,9 +464,9 @@ func TestCacheGet_periodicRefresh(t *testing.T) {
 
 	typ := &MockType{}
 	typ.On("RegisterOptions").Return(RegisterOptions{
-		Refresh:        true,
-		RefreshTimer:   100 * time.Millisecond,
-		RefreshTimeout: 5 * time.Minute,
+		Refresh:      true,
+		RefreshTimer: 100 * time.Millisecond,
+		QueryTimeout: 5 * time.Minute,
 	})
 	defer typ.AssertExpectations(t)
 	c := TestCache(t)
@@ -504,9 +504,9 @@ func TestCacheGet_periodicRefreshMultiple(t *testing.T) {
 
 	typ := &MockType{}
 	typ.On("RegisterOptions").Return(RegisterOptions{
-		Refresh:        true,
-		RefreshTimer:   0 * time.Millisecond,
-		RefreshTimeout: 5 * time.Minute,
+		Refresh:      true,
+		RefreshTimer: 0 * time.Millisecond,
+		QueryTimeout: 5 * time.Minute,
 	})
 	defer typ.AssertExpectations(t)
 	c := TestCache(t)
@@ -553,9 +553,9 @@ func TestCacheGet_periodicRefreshErrorBackoff(t *testing.T) {
 
 	typ := &MockType{}
 	typ.On("RegisterOptions").Return(RegisterOptions{
-		Refresh:        true,
-		RefreshTimer:   0,
-		RefreshTimeout: 5 * time.Minute,
+		Refresh:      true,
+		RefreshTimer: 0,
+		QueryTimeout: 5 * time.Minute,
 	})
 	defer typ.AssertExpectations(t)
 	c := TestCache(t)
@@ -595,9 +595,9 @@ func TestCacheGet_periodicRefreshBadRPCZeroIndexErrorBackoff(t *testing.T) {
 
 	typ := &MockType{}
 	typ.On("RegisterOptions").Return(RegisterOptions{
-		Refresh:        true,
-		RefreshTimer:   0,
-		RefreshTimeout: 5 * time.Minute,
+		Refresh:      true,
+		RefreshTimer: 0,
+		QueryTimeout: 5 * time.Minute,
 	})
 	defer typ.AssertExpectations(t)
 	c := TestCache(t)
@@ -642,7 +642,7 @@ func TestCacheGet_noIndexSetsOne(t *testing.T) {
 		SupportsBlocking: true,
 		Refresh:          true,
 		RefreshTimer:     0,
-		RefreshTimeout:   5 * time.Minute,
+		QueryTimeout:     5 * time.Minute,
 	})
 	defer typ.AssertExpectations(t)
 	c := TestCache(t)
@@ -702,7 +702,7 @@ func TestCacheGet_fetchTimeout(t *testing.T) {
 	typ := &MockType{}
 	timeout := 10 * time.Minute
 	typ.On("RegisterOptions").Return(RegisterOptions{
-		RefreshTimeout:   timeout,
+		QueryTimeout:     timeout,
 		SupportsBlocking: true,
 	})
 	defer typ.AssertExpectations(t)
@@ -954,9 +954,9 @@ func TestCacheGet_refreshAge(t *testing.T) {
 
 	typ := &MockType{}
 	typ.On("RegisterOptions").Return(RegisterOptions{
-		Refresh:        true,
-		RefreshTimer:   0,
-		RefreshTimeout: 5 * time.Minute,
+		Refresh:      true,
+		RefreshTimer: 0,
+		QueryTimeout: 5 * time.Minute,
 	})
 	defer typ.AssertExpectations(t)
 	c := TestCache(t)
