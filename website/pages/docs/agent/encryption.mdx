@@ -73,6 +73,8 @@ Certificate Authority. This can be a private CA, used only internally. The
 CA then signs keys for each of the agents, as in
 [this tutorial on generating both a CA and signing keys](https://learn.hashicorp.com/consul/security-networking/certificates).
 
+~> Certificates need to be created with x509v3 extendedKeyUsage attributes for both clientAuth and serverAuth since Consul uses a single cert/key pair for both server and client communications.
+
 TLS can be used to verify the authenticity of the servers or verify the authenticity of clients.
 These modes are controlled by the [`verify_outgoing`](/docs/agent/options#verify_outgoing),
 [`verify_server_hostname`](/docs/agent/options#verify_server_hostname),
