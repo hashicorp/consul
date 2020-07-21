@@ -348,6 +348,7 @@ type CheckHTTP struct {
 	stop       bool
 	stopCh     chan struct{}
 	stopLock   sync.Mutex
+	stopWg     sync.WaitGroup
 
 	// Set if checks are exposed through Connect proxies
 	// If set, this is the target of check()
@@ -399,6 +400,7 @@ func (c *CheckHTTP) Start() {
 
 	c.stop = false
 	c.stopCh = make(chan struct{})
+	c.stopWg.Add(1)
 	go c.run()
 }
 
@@ -410,10 +412,14 @@ func (c *CheckHTTP) Stop() {
 		c.stop = true
 		close(c.stopCh)
 	}
+
+	// Wait for the c.run() goroutine to complete before returning.
+	c.stopWg.Wait()
 }
 
 // run is invoked by a goroutine to run until Stop() is called
 func (c *CheckHTTP) run() {
+	defer c.stopWg.Done()
 	// Get the randomized initial pause time
 	initialPauseTime := lib.RandomStagger(c.Interval)
 	next := time.After(initialPauseTime)
