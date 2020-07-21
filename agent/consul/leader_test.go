@@ -1284,7 +1284,7 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 	}()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.LogOutput = io.MultiWriter(pw, testutil.TestWriter(t))
+		c.LogOutput = io.MultiWriter(pw, testutil.NewLogBuffer(t))
 		c.Build = "1.6.0"
 		c.ConfigEntryBootstrap = []structs.ConfigEntry{
 			&structs.ServiceSplitterConfigEntry{

@@ -59,7 +59,7 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzRe
 	a := &TestACLAgent{Name: name, HCL: hcl, resolveAuthzFn: resolveAuthz, resolveIdentFn: resolveIdent}
 	dataDir := `data_dir = "acl-agent"`
 
-	logOutput := testutil.TestWriter(t)
+	logOutput := testutil.NewLogBuffer(t)
 	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
 		Name:   a.Name,
 		Level:  hclog.Debug,

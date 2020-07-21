@@ -27,7 +27,7 @@ import (
 
 func TestFoo_bar(t *testing.T) {
 	// Create a test Consul server
-	srv1, err := testutil.NewTestServerT(t)
+	srv1, err := testutil.NewTestServerConfigT(t, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
