@@ -146,7 +146,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	config.Bootstrap = true
 	config.Datacenter = "dc1"
 	config.DataDir = dir
-	config.LogOutput = testutil.TestWriter(t)
+	config.LogOutput = testutil.NewLogBuffer(t)
 
 	// bind the rpc server to a random port. config.RPCAdvertise will be
 	// set to the listen address unless it was set in the configuration.

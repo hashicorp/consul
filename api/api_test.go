@@ -62,7 +62,7 @@ func makeClientWithConfig(
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
 		server, err = testutil.NewTestServerConfigT(t, cb2)
 		if err != nil {
-			r.Fatal(err)
+			r.Fatalf("Failed to start server: %v", err.Error())
 		}
 	})
 	if server.Config.Bootstrap {
