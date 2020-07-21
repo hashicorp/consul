@@ -1,5 +1,9 @@
 ## UNRELEASED
 
+BUG FIXES:
+
+* gossip: Avoid issue where two unique leave events for the same node could lead to infinite rebroadcast storms [[GH-8345](https://github.com/hashicorp/consul/issues/8345)]
+
 ## 1.6.6 (June 10, 2020)
 
 SECURITY:
