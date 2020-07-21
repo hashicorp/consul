@@ -1,5 +1,5 @@
 export default (collection, clickable, attribute, text, actions) => () => {
-  return collection('.consul-token-list li:not(:first-child)', {
+  return collection('.consul-token-list [data-test-list-row]', {
     id: attribute('data-test-token', '[data-test-token]'),
     description: text('[data-test-description]'),
     policy: text('[data-test-policy].policy', { multiple: true }),

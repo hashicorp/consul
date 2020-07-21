@@ -3,6 +3,14 @@
 {{else}}
   {{title 'Access Controls'}}
 {{/if}}
+
+{{#let (selectable-key-values
+    (array "CreateTime:desc" "Newest to oldest")
+    (array "CreateTime:asc" "Oldest to newest")
+      selected=sortBy
+  )
+  as |sort|
+}}
 <AppView
   @class="token list"
   @loading={{isLoading}}
@@ -31,20 +39,28 @@
   <BlockSlot @name="actions">
       <a data-test-create href="{{href-to 'dc.acls.tokens.create'}}" class="type-create">Create</a>
   </BlockSlot>
-  <BlockSlot @name="content">
-{{#if (gt items.length 0) }}
+  <BlockSlot @name="toolbar">
+  {{#if (gt items.length 0)}}
     <SearchBar
+      data-test-intention-filter="true"
       @value={{search}}
       @onsearch={{action (mut search) value="target.value"}}
+      @secondary="sort"
+      @selected={{sort.selected}}
+      @options={{sort.items}}
+      @onchange={{action (mut sortBy) value='target.value'}}
     />
-{{/if}}
+  {{/if}}
+  </BlockSlot>
+  <BlockSlot @name="content">
 {{#if (token/is-legacy items)}}
     <p data-test-notification-update class="notice info"><strong>Update.</strong> We have upgraded our ACL System to allow the creation of reusable policies that can be applied to tokens. Read more about the changes and how to upgrade legacy tokens in our <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
 {{/if}}
-    <ChangeableSet @dispatcher={{searchable 'token' items}} @terms={{search}}>
+  {{#let (sort-by (comparator 'service' sort.selected.key) items) as |sorted|}}
+    <ChangeableSet @dispatcher={{searchable 'token' sorted}} @terms={{search}}>
       <BlockSlot @name="set" as |filtered|>
         <ConsulTokenList
-          @items={{sort-by "CreateTime:desc" filtered}}
+          @items={{filtered}}
           @token={{token}}
           @onuse={{action send 'use'}}
           @ondelete={{action send 'delete'}}
@@ -75,5 +91,7 @@
         </EmptyState>
       </BlockSlot>
     </ChangeableSet>
+  {{/let}}
   </BlockSlot>
 </AppView>
+{{/let}}

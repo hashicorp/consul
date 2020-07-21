@@ -164,7 +164,7 @@ export default {
   roles: create(roles(visitable, creatable, consulRoleList, freetextFilter)),
   // TODO: This needs a policyList
   role: create(role(visitable, submitable, deletable, cancelable, policySelector, tokenList)),
-  tokens: create(tokens(visitable, creatable, text, consulTokenList, freetextFilter)),
+  tokens: create(tokens(visitable, creatable, text, consulTokenList, popoverSelect)),
   token: create(
     token(visitable, submitable, deletable, cancelable, clickable, policySelector, roleSelector)
   ),
