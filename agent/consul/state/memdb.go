@@ -85,11 +85,8 @@ func (c *changeTrackerDB) WriteTxn(idx uint64) *txn {
 	return t
 }
 
-func (c *changeTrackerDB) publish(changes Changes) error {
-	readOnlyTx := c.db.Txn(false)
-	defer readOnlyTx.Abort()
-
-	events, err := c.processChanges(readOnlyTx, changes)
+func (c *changeTrackerDB) publish(tx ReadTxn, changes Changes) error {
+	events, err := c.processChanges(tx, changes)
 	if err != nil {
 		return fmt.Errorf("failed generating events from changes: %v", err)
 	}
@@ -127,7 +124,7 @@ type txn struct {
 	// Index is stored so that it may be passed along to any subscribers as part
 	// of a change event.
 	Index   uint64
-	publish func(changes Changes) error
+	publish func(tx ReadTxn, changes Changes) error
 }
 
 // Commit first pushes changes to EventPublisher, then calls Commit on the
@@ -152,7 +149,7 @@ func (tx *txn) Commit() error {
 	// In those cases changes should also be empty, and there will be nothing
 	// to publish.
 	if tx.publish != nil {
-		if err := tx.publish(changes); err != nil {
+		if err := tx.publish(tx.Txn, changes); err != nil {
 			return err
 		}
 	}
