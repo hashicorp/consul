@@ -1,5 +1,5 @@
 export default [
-  { text: 'Overview', url: '/', type: 'inbound' },
+  { text: 'Overview', url: '/intro' },
   {
     text: 'Use Cases',
     submenu: [
