@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * gossip: Avoid issue where two unique leave events for the same node could lead to infinite rebroadcast storms [[GH-8353](https://github.com/hashicorp/consul/issues/8353)]
+* Return a service splitter's weight or a zero [[GH-8355](https://github.com/hashicorp/consul/issues/8355)]
 
 ## 1.7.4 (June 10, 2020)
 
