@@ -123,7 +123,7 @@ Feature: page-navigation
     | Item      | Model      | URL                                                      | Back             |
     | kv        | kvs        | /dc-1/kv/0-key-value/edit                           | /dc-1/kv         |
     # | acl       | acls       | /dc-1/acls/anonymous                                     | /dc-1/acls       |
-    | intention | intentions | /dc-1/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca    | /dc-1/intentions |
+    # | intention | intentions | /dc-1/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca    | /dc-1/intentions |
     --------------------------------------------------------------------------------------------------------
 @ignore
   Scenario: Clicking items in the listings, without depending on the salt ^
