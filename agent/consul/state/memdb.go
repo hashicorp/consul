@@ -192,7 +192,7 @@ func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {
 // TODO: could accept a ReadTxner instead of a Store
 func newSnapshotHandlers(s *Store) stream.SnapshotHandlers {
 	return stream.SnapshotHandlers{
-		TopicServiceHealth:        s.ServiceHealthSnapshot,
-		TopicServiceHealthConnect: s.ServiceHealthConnectSnapshot,
+		TopicServiceHealth:        serviceHealthSnapshot(s, TopicServiceHealth),
+		TopicServiceHealthConnect: serviceHealthSnapshot(s, TopicServiceHealthConnect),
 	}
 }
