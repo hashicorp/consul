@@ -262,7 +262,7 @@ func changeTypeFromChange(change memdb.Change) changeType {
 // switching connection details to be the proxy instead of the actual instance
 // in case of a sidecar.
 func serviceHealthToConnectEvents(events ...stream.Event) []stream.Event {
-	serviceHealthConnectEvents := make([]stream.Event, 0, len(events))
+	var serviceHealthConnectEvents []stream.Event
 	for _, event := range events {
 		if event.Topic != TopicServiceHealth {
 			// Skip non-health or any events already emitted to Connect topic
