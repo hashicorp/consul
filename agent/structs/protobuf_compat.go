@@ -14,6 +14,8 @@ type QueryOptionsCompat interface {
 	SetMinQueryIndex(uint64)
 	GetMaxQueryTime() time.Duration
 	SetMaxQueryTime(time.Duration)
+	GetAllowNotModifiedResponse() bool
+	SetAllowNotModifiedResponse(bool)
 	GetAllowStale() bool
 	SetAllowStale(bool)
 	GetRequireConsistent() bool
@@ -44,6 +46,7 @@ type QueryMetaCompat interface {
 	SetIndex(uint64)
 	GetConsistencyLevel() string
 	SetConsistencyLevel(string)
+	GetNotModified() bool
 }
 
 // GetToken helps implement the QueryOptionsCompat interface
@@ -71,6 +74,15 @@ func (m *QueryOptions) GetMaxQueryTime() time.Duration {
 		return m.MaxQueryTime
 	}
 	return 0
+}
+
+// GetAllowNotModifiedReponse implements the QueryOptionsCompat interface
+// Copied from agent/agentpb/common.pb.go
+func (m *QueryOptions) GetAllowNotModifiedResponse() bool {
+	if m != nil {
+		return m.AllowNotModifiedResponse
+	}
+	return false
 }
 
 // GetAllowStale helps implement the QueryOptionsCompat interface
@@ -161,6 +173,12 @@ func (q *QueryOptions) SetMinQueryIndex(minQueryIndex uint64) {
 // Copied from agent/agentpb/common.go
 func (q *QueryOptions) SetMaxQueryTime(maxQueryTime time.Duration) {
 	q.MaxQueryTime = maxQueryTime
+}
+
+// SetAllowNotModifiedReponse is needed to implement the structs.QueryOptionsCompat interface
+// Copied from agent/agentpb/common.go
+func (q *QueryOptions) SetAllowNotModifiedResponse(allowNotModifiedResponse bool) {
+	q.AllowNotModifiedResponse = allowNotModifiedResponse
 }
 
 // SetAllowStale is needed to implement the structs.QueryOptionsCompat interface
@@ -268,4 +286,13 @@ func (q *QueryMeta) SetIndex(index uint64) {
 // Copied from agent/agentpb/common.go
 func (q *QueryMeta) SetConsistencyLevel(consistencyLevel string) {
 	q.ConsistencyLevel = consistencyLevel
+}
+
+// GetNotModified is needed to implement the structs.QueryMetaCompat interface
+// Copied from agent/agentpb/common.go
+func (m *QueryMeta) GetNotModified() bool {
+	if m != nil {
+		return m.NotModified
+	}
+	return false
 }

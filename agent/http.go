@@ -32,6 +32,12 @@ import (
 	"github.com/pkg/errors"
 )
 
+// UnmodifiedCachedDataResponseHeader is a header of Consul to specify data does not need any refresh
+const (
+	UnmodifiedCachedDataResponseHeader = "X-Consul-NotModified"
+	AllowNotModifiedHeader             = "X-Allow-NotModified"
+)
+
 // MethodNotAllowedError should be returned by a handler when the HTTP method is not allowed.
 type MethodNotAllowedError struct {
 	Method string
@@ -570,6 +576,10 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 				return
 			}
 		}
+		if resp.Header().Get(UnmodifiedCachedDataResponseHeader) == "true" {
+			resp.WriteHeader(http.StatusNotModified)
+			return
+		}
 		if obj == nil {
 			return
 		}
@@ -756,10 +766,13 @@ func setMeta(resp http.ResponseWriter, m structs.QueryMetaCompat) {
 	setLastContact(resp, m.GetLastContact())
 	setKnownLeader(resp, m.GetKnownLeader())
 	setConsistency(resp, m.GetConsistencyLevel())
+	if m.GetNotModified() {
+		resp.Header().Set(UnmodifiedCachedDataResponseHeader, "true")
+	}
 }
 
 // setCacheMeta sets http response headers to indicate cache status.
-func setCacheMeta(resp http.ResponseWriter, m *cache.ResultMeta) {
+func setCacheMeta(resp http.ResponseWriter, m *cache.ResultMeta, qOpts *structs.QueryOptions) {
 	if m == nil {
 		return
 	}
@@ -770,6 +783,9 @@ func setCacheMeta(resp http.ResponseWriter, m *cache.ResultMeta) {
 	resp.Header().Set("X-Cache", str)
 	if m.Hit {
 		resp.Header().Set("Age", fmt.Sprintf("%.0f", m.Age.Seconds()))
+	}
+	if qOpts != nil && qOpts.AllowNotModifiedResponse && m.Index == qOpts.MinQueryIndex {
+		resp.Header().Set(UnmodifiedCachedDataResponseHeader, "true")
 	}
 }
 
@@ -876,6 +892,9 @@ func parseCacheControl(resp http.ResponseWriter, req *http.Request, b structs.Qu
 func (s *HTTPServer) parseConsistency(resp http.ResponseWriter, req *http.Request, b structs.QueryOptionsCompat) bool {
 	query := req.URL.Query()
 	defaults := true
+	if req.Header.Get(AllowNotModifiedHeader) == "true" {
+		b.SetAllowNotModifiedResponse(true)
+	}
 	if _, ok := query["stale"]; ok {
 		b.SetAllowStale(true)
 		defaults = false

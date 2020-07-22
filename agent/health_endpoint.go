@@ -229,7 +229,7 @@ func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Requ
 		if err != nil {
 			return nil, err
 		}
-		defer setCacheMeta(resp, &m)
+		defer setCacheMeta(resp, &m, &args.QueryOptions)
 		reply, ok := raw.(*structs.IndexedCheckServiceNodes)
 		if !ok {
 			// This should never happen, but we want to protect against panics

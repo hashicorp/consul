@@ -131,7 +131,7 @@ func (s *HTTPServer) preparedQueryExecute(id string, resp http.ResponseWriter, r
 				return nil, err
 			}
 		}
-		defer setCacheMeta(resp, &m)
+		defer setCacheMeta(resp, &m, &args.QueryOptions)
 		r, ok := raw.(*structs.PreparedQueryExecuteResponse)
 		if !ok {
 			// This should never happen, but we want to protect against panics

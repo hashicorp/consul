@@ -1307,7 +1307,7 @@ func (s *HTTPServer) AgentConnectCARoots(resp http.ResponseWriter, req *http.Req
 	if err != nil {
 		return nil, err
 	}
-	defer setCacheMeta(resp, &m)
+	defer setCacheMeta(resp, &m, nil)
 
 	// Add cache hit
 
@@ -1349,7 +1349,7 @@ func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.
 	if err != nil {
 		return nil, err
 	}
-	defer setCacheMeta(resp, &m)
+	defer setCacheMeta(resp, &m, nil)
 
 	reply, ok := raw.(*structs.IssuedCert)
 	if !ok {
@@ -1386,7 +1386,7 @@ func (s *HTTPServer) AgentConnectAuthorize(resp http.ResponseWriter, req *http.R
 	if err != nil {
 		return nil, err
 	}
-	setCacheMeta(resp, cacheMeta)
+	setCacheMeta(resp, cacheMeta, nil)
 
 	return &connectAuthorizeResp{
 		Authorized: authz,

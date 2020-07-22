@@ -627,6 +627,59 @@ func testPrettyPrint(pretty string, t *testing.T) {
 	}
 }
 
+func TestHttp304NotModifiedWithIndex(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// List of all endpoints implementing HTTP 304
+	tests := []struct {
+		path string
+	}{
+		{
+			path: "/v1/catalog/nodes",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			require := require.New(t)
+
+			url := fmt.Sprintf("%s?wait=1ns", tt.path)
+			req, _ := http.NewRequest("GET", url, nil)
+			req.Header.Add(AllowNotModifiedHeader, "true")
+
+			resp := httptest.NewRecorder()
+			a.srv.handler(true).ServeHTTP(resp, req)
+
+			require.Equal(http.StatusOK, resp.Code)
+			idx, err := strconv.Atoi(resp.Result().Header.Get("X-Consul-Index"))
+			require.NoError(err)
+			require.Greater(idx, 1)
+
+			// Old index, should return 200
+			url = fmt.Sprintf("%s?wait=1ns&index=%d", tt.path, idx-1)
+			req, _ = http.NewRequest("GET", url, nil)
+			req.Header.Add(AllowNotModifiedHeader, "true")
+			resp = httptest.NewRecorder()
+			a.srv.handler(true).ServeHTTP(resp, req)
+			require.Equal(http.StatusOK, resp.Code)
+			idx2, err := strconv.Atoi(resp.Result().Header.Get("X-Consul-Index"))
+			require.NoError(err)
+			require.Equal(idx2, idx)
+
+			// Current Index, should be http 304
+			url = fmt.Sprintf("%s?wait=1ns&index=%d", tt.path, idx)
+			req, _ = http.NewRequest("GET", url, nil)
+			req.Header.Add(AllowNotModifiedHeader, "true")
+			resp = httptest.NewRecorder()
+			a.srv.handler(true).ServeHTTP(resp, req)
+			require.Equal(http.StatusNotModified, resp.Code)
+		})
+	}
+
+}
+
 func TestParseSource(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, "")

@@ -96,7 +96,7 @@ func (s *HTTPServer) CatalogDatacenters(resp http.ResponseWriter, req *http.Requ
 			// This should never happen, but we want to protect against panics
 			return nil, fmt.Errorf("internal error: response type not correct")
 		}
-		defer setCacheMeta(resp, &m)
+		defer setCacheMeta(resp, &m, &args.QueryOptions)
 		out = *reply
 	} else {
 		if err := s.agent.RPC("Catalog.ListDatacenters", &args, &out); err != nil {
@@ -178,7 +178,7 @@ func (s *HTTPServer) CatalogServices(resp http.ResponseWriter, req *http.Request
 			// This should never happen, but we want to protect against panics
 			return nil, fmt.Errorf("internal error: response type not correct")
 		}
-		defer setCacheMeta(resp, &m)
+		defer setCacheMeta(resp, &m, &args.QueryOptions)
 		out = *reply
 	} else {
 	RETRY_ONCE:
@@ -262,7 +262,7 @@ func (s *HTTPServer) catalogServiceNodes(resp http.ResponseWriter, req *http.Req
 				[]metrics.Label{{Name: "node", Value: s.nodeName()}})
 			return nil, err
 		}
-		defer setCacheMeta(resp, &m)
+		defer setCacheMeta(resp, &m, &args.QueryOptions)
 		reply, ok := raw.(*structs.IndexedServiceNodes)
 		if !ok {
 			// This should never happen, but we want to protect against panics

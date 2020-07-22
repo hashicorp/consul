@@ -105,6 +105,10 @@ message QueryOptions {
    // Filter specifies the go-bexpr filter expression to be used for
    // filtering the data prior to returning a response
    string Filter = 11;
+
+   // AllowNotModifiedResponse is set by the client to accept receiving empty
+   // data if data is unchanged
+   bool AllowNotModifiedResponse = 12;
 }
 
 // QueryMeta allows a query response to include potentially
@@ -130,4 +134,8 @@ message QueryMeta  {
    // Having `discovery_max_stale` on the agent can affect whether
    // the request was served by a leader.
    string ConsistencyLevel = 4;
+
+   // NotModified tells the result is empty and should be discarded
+   // because unchanged since last request
+   bool NotModified = 5;
 }

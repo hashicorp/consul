@@ -6,11 +6,12 @@ package agentpb
 import (
 	fmt "fmt"
 	_ "github.com/gogo/protobuf/gogoproto"
-	_ "github.com/gogo/protobuf/types"
 	github_com_gogo_protobuf_types "github.com/gogo/protobuf/types"
 	proto "github.com/golang/protobuf/proto"
+	_ "github.com/golang/protobuf/ptypes/duration"
 	io "io"
 	math "math"
+	math_bits "math/bits"
 	time "time"
 )
 
@@ -24,7 +25,7 @@ var _ = time.Kitchen
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // RaftIndex is used to track the index used while creating
 // or modifying a given struct type.
@@ -47,7 +48,7 @@ func (m *RaftIndex) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_RaftIndex.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -86,7 +87,7 @@ func (m *TargetDatacenter) XXX_Marshal(b []byte, deterministic bool) ([]byte, er
 		return xxx_messageInfo_TargetDatacenter.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -125,7 +126,7 @@ func (m *WriteRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error)
 		return xxx_messageInfo_WriteRequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -202,6 +203,9 @@ type QueryOptions struct {
 	// Filter specifies the go-bexpr filter expression to be used for
 	// filtering the data prior to returning a response
 	Filter string `protobuf:"bytes,11,opt,name=Filter,proto3" json:"Filter,omitempty"`
+	// AllowNotModifiedResponse is set by the client to accept receiving empty
+	// data if data is unchanged
+	AllowNotModifiedResponse bool `protobuf:"varint,12,opt,name=AllowNotModifiedResponse,proto3" json:"AllowNotModifiedResponse,omitempty"`
 }
 
 func (m *QueryOptions) Reset()         { *m = QueryOptions{} }
@@ -218,7 +222,7 @@ func (m *QueryOptions) XXX_Marshal(b []byte, deterministic bool) ([]byte, error)
 		return xxx_messageInfo_QueryOptions.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -314,6 +318,13 @@ func (m *QueryOptions) GetFilter() string {
 	return ""
 }
 
+func (m *QueryOptions) GetAllowNotModifiedResponse() bool {
+	if m != nil {
+		return m.AllowNotModifiedResponse
+	}
+	return false
+}
+
 // QueryMeta allows a query response to include potentially
 // useful metadata about a query
 type QueryMeta struct {
@@ -329,6 +340,9 @@ type QueryMeta struct {
 	// Having `discovery_max_stale` on the agent can affect whether
 	// the request was served by a leader.
 	ConsistencyLevel string `protobuf:"bytes,4,opt,name=ConsistencyLevel,proto3" json:"ConsistencyLevel,omitempty"`
+	// NotModified tells the result is empty and should be discarded
+	// because unchanged since last request
+	NotModified bool `protobuf:"varint,5,opt,name=NotModified,proto3" json:"NotModified,omitempty"`
 }
 
 func (m *QueryMeta) Reset()         { *m = QueryMeta{} }
@@ -345,7 +359,7 @@ func (m *QueryMeta) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_QueryMeta.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -392,6 +406,13 @@ func (m *QueryMeta) GetConsistencyLevel() string {
 	return ""
 }
 
+func (m *QueryMeta) GetNotModified() bool {
+	if m != nil {
+		return m.NotModified
+	}
+	return false
+}
+
 func init() {
 	proto.RegisterType((*RaftIndex)(nil), "agentpb.RaftIndex")
 	proto.RegisterType((*TargetDatacenter)(nil), "agentpb.TargetDatacenter")
@@ -403,47 +424,49 @@ func init() {
 func init() { proto.RegisterFile("common.proto", fileDescriptor_555bd8c177793206) }
 
 var fileDescriptor_555bd8c177793206 = []byte{
-	// 538 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x52, 0xc1, 0x6e, 0xd3, 0x40,
-	0x14, 0xb4, 0x21, 0x4d, 0xe3, 0x97, 0x14, 0x85, 0x55, 0x85, 0x4c, 0x0e, 0x4e, 0x64, 0x21, 0x14,
-	0x55, 0x90, 0x48, 0xe5, 0x56, 0x4e, 0x4d, 0x5a, 0x50, 0x45, 0xac, 0x8a, 0x25, 0x88, 0xf3, 0x26,
-	0x79, 0x31, 0x16, 0xce, 0x6e, 0x58, 0x6f, 0xda, 0xe4, 0x0f, 0x38, 0x72, 0xac, 0x38, 0xf1, 0x21,
-	0x7c, 0x40, 0x8e, 0x3d, 0x72, 0x2a, 0x90, 0xfc, 0x01, 0x5f, 0x80, 0xbc, 0x76, 0x8a, 0x4b, 0x7a,
-	0x08, 0x37, 0xcf, 0x78, 0x66, 0x77, 0xf6, 0xbd, 0x81, 0x52, 0x5f, 0x8c, 0x46, 0x82, 0x37, 0xc6,
-	0x52, 0x28, 0x41, 0xb6, 0x99, 0x8f, 0x5c, 0x8d, 0x7b, 0x15, 0xc7, 0x17, 0xc2, 0x0f, 0xb1, 0xa9,
-	0xe9, 0xde, 0x64, 0xd8, 0x1c, 0x4c, 0x24, 0x53, 0xc1, 0x4a, 0x58, 0xd9, 0xf5, 0x85, 0x2f, 0xf4,
-	0x67, 0x33, 0xfe, 0x4a, 0x58, 0x77, 0x04, 0x16, 0x65, 0x43, 0x75, 0xc2, 0x07, 0x38, 0x25, 0x4d,
-	0x28, 0xb6, 0x25, 0x32, 0x85, 0x1a, 0xda, 0x66, 0xcd, 0xac, 0xe7, 0x5a, 0x3b, 0xbf, 0xaf, 0xaa,
-	0x56, 0x0f, 0xa7, 0x63, 0x79, 0xe0, 0x3e, 0x75, 0x69, 0x56, 0x11, 0x1b, 0x3c, 0x31, 0x08, 0x86,
-	0xb3, 0xc4, 0x70, 0xe7, 0x56, 0x43, 0x46, 0xe1, 0xee, 0x43, 0xb9, 0xcb, 0xa4, 0x8f, 0xea, 0x88,
-	0x29, 0xd6, 0x47, 0xae, 0x50, 0x12, 0x07, 0xe0, 0x2f, 0xd2, 0x97, 0x5a, 0x34, 0xc3, 0xb8, 0x7b,
-	0x50, 0x7a, 0x27, 0x03, 0x85, 0x14, 0x3f, 0x4e, 0x30, 0x52, 0x64, 0x17, 0xb6, 0xba, 0xe2, 0x03,
-	0xf2, 0x54, 0x9a, 0x80, 0x83, 0xdc, 0xa7, 0xaf, 0x55, 0xd3, 0xfd, 0x92, 0x83, 0xd2, 0xeb, 0x09,
-	0xca, 0xd9, 0xe9, 0x38, 0x7e, 0x7a, 0x74, 0xbb, 0x98, 0x3c, 0x82, 0x1d, 0x2f, 0xe0, 0x5a, 0x98,
-	0x49, 0x4e, 0x6f, 0x92, 0xe4, 0x25, 0x94, 0x3c, 0x36, 0xd5, 0x44, 0x37, 0x18, 0xa1, 0x7d, 0xb7,
-	0x66, 0xd6, 0x8b, 0xfb, 0x0f, 0x1b, 0xc9, 0xa0, 0x1b, 0xab, 0x41, 0x37, 0x8e, 0xd2, 0x41, 0xb7,
-	0x0a, 0xf3, 0xab, 0xaa, 0x71, 0xf1, 0xa3, 0x6a, 0xd2, 0x1b, 0xc6, 0xf8, 0x85, 0x87, 0x61, 0x28,
-	0xce, 0xdf, 0x28, 0x16, 0xa2, 0x9d, 0xab, 0x99, 0xf5, 0x02, 0xcd, 0x30, 0xe4, 0x09, 0xdc, 0x8f,
-	0x1f, 0x17, 0x48, 0x6c, 0x0b, 0x1e, 0x05, 0x91, 0x42, 0xae, 0xec, 0x2d, 0x2d, 0x5b, 0xff, 0x41,
-	0x2a, 0x50, 0x78, 0x1b, 0x61, 0x9b, 0xf5, 0xdf, 0xa3, 0x9d, 0xd7, 0xa2, 0x6b, 0x4c, 0x4e, 0xa1,
-	0xec, 0xb1, 0xa9, 0x3e, 0x75, 0x95, 0xca, 0xde, 0xde, 0x3c, 0xf6, 0x9a, 0x99, 0x3c, 0x87, 0xbc,
-	0xc7, 0xa6, 0x87, 0x3e, 0xda, 0x85, 0xcd, 0x8f, 0x49, 0x2d, 0xe4, 0x31, 0xdc, 0xf3, 0x26, 0x91,
-	0xa2, 0x78, 0xc6, 0xc2, 0x60, 0xc0, 0x14, 0xda, 0x96, 0xce, 0xfb, 0x0f, 0x1b, 0x0f, 0x5a, 0xdf,
-	0x7a, 0x32, 0x3c, 0x96, 0x52, 0x48, 0x1b, 0xfe, 0x63, 0xd0, 0x59, 0x23, 0x79, 0x00, 0xf9, 0x17,
-	0x41, 0x18, 0xd7, 0xa8, 0xa8, 0xd7, 0x9d, 0xa2, 0xb4, 0x1c, 0xdf, 0x4c, 0xb0, 0xf4, 0x52, 0x3c,
-	0x54, 0x2c, 0x6e, 0x46, 0xa6, 0xe6, 0x34, 0x01, 0xe4, 0x18, 0x8a, 0x1d, 0x16, 0xa9, 0xb6, 0xe0,
-	0x8a, 0xf5, 0x95, 0xee, 0xc5, 0x86, 0x49, 0xb2, 0x3e, 0x52, 0x83, 0xe2, 0x2b, 0x2e, 0xce, 0x79,
-	0x07, 0xd9, 0x00, 0xa5, 0x6e, 0x4e, 0x81, 0x66, 0x29, 0xb2, 0x07, 0xe5, 0xeb, 0x9d, 0xf6, 0x67,
-	0x1d, 0x3c, 0xc3, 0x50, 0x37, 0xc3, 0xa2, 0x6b, 0x7c, 0x12, 0xbf, 0x55, 0x9b, 0xff, 0x72, 0x8c,
-	0xf9, 0xc2, 0x31, 0x2f, 0x17, 0x8e, 0xf9, 0x73, 0xe1, 0x98, 0x9f, 0x97, 0x8e, 0x71, 0xb1, 0x74,
-	0x8c, 0xcb, 0xa5, 0x63, 0x7c, 0x5f, 0x3a, 0x46, 0x2f, 0xaf, 0xf3, 0x3d, 0xfb, 0x13, 0x00, 0x00,
-	0xff, 0xff, 0x1c, 0x85, 0xfc, 0x3b, 0x22, 0x04, 0x00, 0x00,
+	// 570 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x53, 0x41, 0x6f, 0xd3, 0x4c,
+	0x10, 0xb5, 0xbf, 0x2f, 0x4d, 0xe3, 0x49, 0x8a, 0xca, 0xaa, 0x42, 0xa6, 0x07, 0x27, 0xb2, 0x10,
+	0xaa, 0x2a, 0x48, 0xa4, 0x72, 0x2b, 0xa7, 0x26, 0x2d, 0xa8, 0x22, 0xa6, 0x62, 0x09, 0xe2, 0xbc,
+	0x89, 0x27, 0xc6, 0xc2, 0xd9, 0x0d, 0xeb, 0x4d, 0x9b, 0xfc, 0x03, 0x8e, 0x1c, 0x7b, 0xe4, 0xe7,
+	0xe4, 0xd8, 0x13, 0xe2, 0x14, 0x20, 0xf9, 0x07, 0xfc, 0x02, 0xe4, 0xb5, 0x53, 0x5c, 0x52, 0xa4,
+	0x70, 0xf3, 0xbc, 0x7d, 0x6f, 0x76, 0xde, 0xec, 0x33, 0x54, 0x7a, 0x62, 0x30, 0x10, 0xbc, 0x3e,
+	0x94, 0x42, 0x09, 0xb2, 0xc9, 0x02, 0xe4, 0x6a, 0xd8, 0xdd, 0x75, 0x02, 0x21, 0x82, 0x08, 0x1b,
+	0x1a, 0xee, 0x8e, 0xfa, 0x0d, 0x7f, 0x24, 0x99, 0x0a, 0x97, 0xc4, 0xdd, 0x9d, 0x40, 0x04, 0x42,
+	0x7f, 0x36, 0x92, 0xaf, 0x14, 0x75, 0x07, 0x60, 0x51, 0xd6, 0x57, 0xa7, 0xdc, 0xc7, 0x31, 0x69,
+	0x40, 0xb9, 0x25, 0x91, 0x29, 0xd4, 0xa5, 0x6d, 0xd6, 0xcc, 0xbd, 0x42, 0x73, 0xeb, 0xe7, 0xac,
+	0x6a, 0x75, 0x71, 0x3c, 0x94, 0x87, 0xee, 0x63, 0x97, 0xe6, 0x19, 0x89, 0xc0, 0x13, 0x7e, 0xd8,
+	0x9f, 0xa4, 0x82, 0xff, 0x6e, 0x15, 0xe4, 0x18, 0xee, 0x01, 0x6c, 0x77, 0x98, 0x0c, 0x50, 0x1d,
+	0x33, 0xc5, 0x7a, 0xc8, 0x15, 0x4a, 0xe2, 0x00, 0xfc, 0xae, 0xf4, 0xa5, 0x16, 0xcd, 0x21, 0xee,
+	0x3e, 0x54, 0xde, 0xca, 0x50, 0x21, 0xc5, 0x0f, 0x23, 0x8c, 0x15, 0xd9, 0x81, 0x8d, 0x8e, 0x78,
+	0x8f, 0x3c, 0xa3, 0xa6, 0xc5, 0x61, 0xe1, 0xe3, 0xe7, 0xaa, 0xe9, 0x7e, 0x29, 0x40, 0xe5, 0xd5,
+	0x08, 0xe5, 0xe4, 0x6c, 0x98, 0x58, 0x8f, 0x6f, 0x27, 0x93, 0x07, 0xb0, 0xe5, 0x85, 0x5c, 0x13,
+	0x73, 0x93, 0xd3, 0x9b, 0x20, 0x79, 0x0e, 0x15, 0x8f, 0x8d, 0x35, 0xd0, 0x09, 0x07, 0x68, 0xff,
+	0x5f, 0x33, 0xf7, 0xca, 0x07, 0xf7, 0xeb, 0xe9, 0xa2, 0xeb, 0xcb, 0x45, 0xd7, 0x8f, 0xb3, 0x45,
+	0x37, 0x4b, 0xd3, 0x59, 0xd5, 0xb8, 0xfc, 0x56, 0x35, 0xe9, 0x0d, 0x61, 0xe2, 0xf0, 0x28, 0x8a,
+	0xc4, 0xc5, 0x6b, 0xc5, 0x22, 0xb4, 0x0b, 0x35, 0x73, 0xaf, 0x44, 0x73, 0x08, 0x79, 0x04, 0x77,
+	0x13, 0x73, 0xa1, 0xc4, 0x96, 0xe0, 0x71, 0x18, 0x2b, 0xe4, 0xca, 0xde, 0xd0, 0xb4, 0xd5, 0x03,
+	0xb2, 0x0b, 0xa5, 0x37, 0x31, 0xb6, 0x58, 0xef, 0x1d, 0xda, 0x45, 0x4d, 0xba, 0xae, 0xc9, 0x19,
+	0x6c, 0x7b, 0x6c, 0xac, 0xbb, 0x2e, 0xa7, 0xb2, 0x37, 0xd7, 0x1f, 0x7b, 0x45, 0x4c, 0x9e, 0x42,
+	0xd1, 0x63, 0xe3, 0xa3, 0x00, 0xed, 0xd2, 0xfa, 0x6d, 0x32, 0x09, 0x79, 0x08, 0x77, 0xbc, 0x51,
+	0xac, 0x28, 0x9e, 0xb3, 0x28, 0xf4, 0x99, 0x42, 0xdb, 0xd2, 0xf3, 0xfe, 0x81, 0x26, 0x8b, 0xd6,
+	0xb7, 0x9e, 0xf6, 0x4f, 0xa4, 0x14, 0xd2, 0x86, 0x7f, 0x58, 0x74, 0x5e, 0x48, 0xee, 0x41, 0xf1,
+	0x59, 0x18, 0x25, 0x31, 0x2a, 0xeb, 0xe7, 0xce, 0x2a, 0x72, 0x08, 0xb6, 0x5e, 0xf7, 0x4b, 0xa1,
+	0x74, 0x1a, 0x43, 0xf4, 0x29, 0xc6, 0x43, 0xc1, 0x63, 0xb4, 0x2b, 0x7a, 0xa4, 0xbf, 0x9e, 0x67,
+	0xc1, 0x9a, 0x99, 0x60, 0xe9, 0x07, 0xf5, 0x50, 0xb1, 0x24, 0x55, 0xb9, 0x5f, 0x84, 0xa6, 0x05,
+	0x39, 0x81, 0x72, 0x9b, 0xc5, 0xaa, 0x25, 0xb8, 0x62, 0x3d, 0xa5, 0x33, 0xb5, 0xa6, 0x8b, 0xbc,
+	0x8e, 0xd4, 0xa0, 0xfc, 0x82, 0x8b, 0x0b, 0xde, 0x46, 0xe6, 0xa3, 0xd4, 0xa9, 0x2b, 0xd1, 0x3c,
+	0x44, 0xf6, 0x61, 0xfb, 0x3a, 0x0f, 0xbd, 0x49, 0x1b, 0xcf, 0x31, 0xd2, 0xa9, 0xb2, 0xe8, 0x0a,
+	0x9e, 0x74, 0xcb, 0xb9, 0xca, 0x52, 0x95, 0x87, 0x52, 0x83, 0xcd, 0xda, 0xf4, 0x87, 0x63, 0x4c,
+	0xe7, 0x8e, 0x79, 0x35, 0x77, 0xcc, 0xef, 0x73, 0xc7, 0xfc, 0xb4, 0x70, 0x8c, 0xcb, 0x85, 0x63,
+	0x5c, 0x2d, 0x1c, 0xe3, 0xeb, 0xc2, 0x31, 0xba, 0x45, 0xed, 0xe0, 0xc9, 0xaf, 0x00, 0x00, 0x00,
+	0xff, 0xff, 0x04, 0x9b, 0x03, 0x93, 0x80, 0x04, 0x00, 0x00,
 }
 
 func (m *RaftIndex) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -451,27 +474,32 @@ func (m *RaftIndex) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *RaftIndex) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *RaftIndex) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.CreateIndex != 0 {
-		dAtA[i] = 0x8
-		i++
-		i = encodeVarintCommon(dAtA, i, uint64(m.CreateIndex))
-	}
 	if m.ModifyIndex != 0 {
-		dAtA[i] = 0x10
-		i++
 		i = encodeVarintCommon(dAtA, i, uint64(m.ModifyIndex))
+		i--
+		dAtA[i] = 0x10
 	}
-	return i, nil
+	if m.CreateIndex != 0 {
+		i = encodeVarintCommon(dAtA, i, uint64(m.CreateIndex))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *TargetDatacenter) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -479,23 +507,29 @@ func (m *TargetDatacenter) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *TargetDatacenter) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *TargetDatacenter) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
 	if len(m.Datacenter) > 0 {
-		dAtA[i] = 0xa
-		i++
+		i -= len(m.Datacenter)
+		copy(dAtA[i:], m.Datacenter)
 		i = encodeVarintCommon(dAtA, i, uint64(len(m.Datacenter)))
-		i += copy(dAtA[i:], m.Datacenter)
+		i--
+		dAtA[i] = 0xa
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *WriteRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -503,23 +537,29 @@ func (m *WriteRequest) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *WriteRequest) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *WriteRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
 	if len(m.Token) > 0 {
-		dAtA[i] = 0xa
-		i++
+		i -= len(m.Token)
+		copy(dAtA[i:], m.Token)
 		i = encodeVarintCommon(dAtA, i, uint64(len(m.Token)))
-		i += copy(dAtA[i:], m.Token)
+		i--
+		dAtA[i] = 0xa
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *QueryOptions) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -527,106 +567,123 @@ func (m *QueryOptions) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *QueryOptions) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryOptions) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.Token) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintCommon(dAtA, i, uint64(len(m.Token)))
-		i += copy(dAtA[i:], m.Token)
-	}
-	if m.MinQueryIndex != 0 {
-		dAtA[i] = 0x10
-		i++
-		i = encodeVarintCommon(dAtA, i, uint64(m.MinQueryIndex))
-	}
-	dAtA[i] = 0x1a
-	i++
-	i = encodeVarintCommon(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdDuration(m.MaxQueryTime)))
-	n1, err := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.MaxQueryTime, dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n1
-	if m.AllowStale {
-		dAtA[i] = 0x20
-		i++
-		if m.AllowStale {
+	if m.AllowNotModifiedResponse {
+		i--
+		if m.AllowNotModifiedResponse {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i++
+		i--
+		dAtA[i] = 0x60
 	}
-	if m.RequireConsistent {
-		dAtA[i] = 0x28
-		i++
-		if m.RequireConsistent {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i++
+	if len(m.Filter) > 0 {
+		i -= len(m.Filter)
+		copy(dAtA[i:], m.Filter)
+		i = encodeVarintCommon(dAtA, i, uint64(len(m.Filter)))
+		i--
+		dAtA[i] = 0x5a
 	}
-	if m.UseCache {
-		dAtA[i] = 0x30
-		i++
-		if m.UseCache {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i++
+	n1, err1 := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.StaleIfError, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdDuration(m.StaleIfError):])
+	if err1 != nil {
+		return 0, err1
 	}
-	dAtA[i] = 0x3a
-	i++
-	i = encodeVarintCommon(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdDuration(m.MaxStaleDuration)))
-	n2, err := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.MaxStaleDuration, dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n2
-	dAtA[i] = 0x42
-	i++
-	i = encodeVarintCommon(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdDuration(m.MaxAge)))
-	n3, err := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.MaxAge, dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n3
+	i -= n1
+	i = encodeVarintCommon(dAtA, i, uint64(n1))
+	i--
+	dAtA[i] = 0x52
 	if m.MustRevalidate {
-		dAtA[i] = 0x48
-		i++
+		i--
 		if m.MustRevalidate {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i++
+		i--
+		dAtA[i] = 0x48
 	}
-	dAtA[i] = 0x52
-	i++
-	i = encodeVarintCommon(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdDuration(m.StaleIfError)))
-	n4, err := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.StaleIfError, dAtA[i:])
-	if err != nil {
-		return 0, err
+	n2, err2 := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.MaxAge, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdDuration(m.MaxAge):])
+	if err2 != nil {
+		return 0, err2
 	}
-	i += n4
-	if len(m.Filter) > 0 {
-		dAtA[i] = 0x5a
-		i++
-		i = encodeVarintCommon(dAtA, i, uint64(len(m.Filter)))
-		i += copy(dAtA[i:], m.Filter)
+	i -= n2
+	i = encodeVarintCommon(dAtA, i, uint64(n2))
+	i--
+	dAtA[i] = 0x42
+	n3, err3 := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.MaxStaleDuration, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdDuration(m.MaxStaleDuration):])
+	if err3 != nil {
+		return 0, err3
 	}
-	return i, nil
+	i -= n3
+	i = encodeVarintCommon(dAtA, i, uint64(n3))
+	i--
+	dAtA[i] = 0x3a
+	if m.UseCache {
+		i--
+		if m.UseCache {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x30
+	}
+	if m.RequireConsistent {
+		i--
+		if m.RequireConsistent {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.AllowStale {
+		i--
+		if m.AllowStale {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
+	}
+	n4, err4 := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.MaxQueryTime, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdDuration(m.MaxQueryTime):])
+	if err4 != nil {
+		return 0, err4
+	}
+	i -= n4
+	i = encodeVarintCommon(dAtA, i, uint64(n4))
+	i--
+	dAtA[i] = 0x1a
+	if m.MinQueryIndex != 0 {
+		i = encodeVarintCommon(dAtA, i, uint64(m.MinQueryIndex))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Token) > 0 {
+		i -= len(m.Token)
+		copy(dAtA[i:], m.Token)
+		i = encodeVarintCommon(dAtA, i, uint64(len(m.Token)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *QueryMeta) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -634,50 +691,68 @@ func (m *QueryMeta) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *QueryMeta) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryMeta) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Index != 0 {
-		dAtA[i] = 0x8
-		i++
-		i = encodeVarintCommon(dAtA, i, uint64(m.Index))
+	if m.NotModified {
+		i--
+		if m.NotModified {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x28
 	}
-	dAtA[i] = 0x12
-	i++
-	i = encodeVarintCommon(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdDuration(m.LastContact)))
-	n5, err := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.LastContact, dAtA[i:])
-	if err != nil {
-		return 0, err
+	if len(m.ConsistencyLevel) > 0 {
+		i -= len(m.ConsistencyLevel)
+		copy(dAtA[i:], m.ConsistencyLevel)
+		i = encodeVarintCommon(dAtA, i, uint64(len(m.ConsistencyLevel)))
+		i--
+		dAtA[i] = 0x22
 	}
-	i += n5
 	if m.KnownLeader {
-		dAtA[i] = 0x18
-		i++
+		i--
 		if m.KnownLeader {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i++
+		i--
+		dAtA[i] = 0x18
 	}
-	if len(m.ConsistencyLevel) > 0 {
-		dAtA[i] = 0x22
-		i++
-		i = encodeVarintCommon(dAtA, i, uint64(len(m.ConsistencyLevel)))
-		i += copy(dAtA[i:], m.ConsistencyLevel)
+	n5, err5 := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.LastContact, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdDuration(m.LastContact):])
+	if err5 != nil {
+		return 0, err5
 	}
-	return i, nil
+	i -= n5
+	i = encodeVarintCommon(dAtA, i, uint64(n5))
+	i--
+	dAtA[i] = 0x12
+	if m.Index != 0 {
+		i = encodeVarintCommon(dAtA, i, uint64(m.Index))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
 }
 
 func encodeVarintCommon(dAtA []byte, offset int, v uint64) int {
+	offset -= sovCommon(v)
+	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
 	dAtA[offset] = uint8(v)
-	return offset + 1
+	return base
 }
 func (m *RaftIndex) Size() (n int) {
 	if m == nil {
@@ -757,6 +832,9 @@ func (m *QueryOptions) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovCommon(uint64(l))
 	}
+	if m.AllowNotModifiedResponse {
+		n += 2
+	}
 	return n
 }
 
@@ -778,18 +856,14 @@ func (m *QueryMeta) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovCommon(uint64(l))
 	}
+	if m.NotModified {
+		n += 2
+	}
 	return n
 }
 
 func sovCommon(x uint64) (n int) {
-	for {
-		n++
-		x >>= 7
-		if x == 0 {
-			break
-		}
-	}
-	return n
+	return (math_bits.Len64(x|1) + 6) / 7
 }
 func sozCommon(x uint64) (n int) {
 	return sovCommon(uint64((x << 1) ^ uint64((int64(x) >> 63))))
@@ -1379,6 +1453,26 @@ func (m *QueryOptions) Unmarshal(dAtA []byte) error {
 			}
 			m.Filter = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AllowNotModifiedResponse", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCommon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.AllowNotModifiedResponse = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skipCommon(dAtA[iNdEx:])
@@ -1536,6 +1630,26 @@ func (m *QueryMeta) Unmarshal(dAtA []byte) error {
 			}
 			m.ConsistencyLevel = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NotModified", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCommon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.NotModified = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skipCommon(dAtA[iNdEx:])
@@ -1563,6 +1677,7 @@ func (m *QueryMeta) Unmarshal(dAtA []byte) error {
 func skipCommon(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
+	depth := 0
 	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
@@ -1594,10 +1709,8 @@ func skipCommon(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			return iNdEx, nil
 		case 1:
 			iNdEx += 8
-			return iNdEx, nil
 		case 2:
 			var length int
 			for shift := uint(0); ; shift += 7 {
@@ -1618,55 +1731,30 @@ func skipCommon(dAtA []byte) (n int, err error) {
 				return 0, ErrInvalidLengthCommon
 			}
 			iNdEx += length
-			if iNdEx < 0 {
-				return 0, ErrInvalidLengthCommon
-			}
-			return iNdEx, nil
 		case 3:
-			for {
-				var innerWire uint64
-				var start int = iNdEx
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return 0, ErrIntOverflowCommon
-					}
-					if iNdEx >= l {
-						return 0, io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					innerWire |= (uint64(b) & 0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				innerWireType := int(innerWire & 0x7)
-				if innerWireType == 4 {
-					break
-				}
-				next, err := skipCommon(dAtA[start:])
-				if err != nil {
-					return 0, err
-				}
-				iNdEx = start + next
-				if iNdEx < 0 {
-					return 0, ErrInvalidLengthCommon
-				}
-			}
-			return iNdEx, nil
+			depth++
 		case 4:
-			return iNdEx, nil
+			if depth == 0 {
+				return 0, ErrUnexpectedEndOfGroupCommon
+			}
+			depth--
 		case 5:
 			iNdEx += 4
-			return iNdEx, nil
 		default:
 			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
 		}
+		if iNdEx < 0 {
+			return 0, ErrInvalidLengthCommon
+		}
+		if depth == 0 {
+			return iNdEx, nil
+		}
 	}
-	panic("unreachable")
+	return 0, io.ErrUnexpectedEOF
 }
 
 var (
-	ErrInvalidLengthCommon = fmt.Errorf("proto: negative length found during unmarshaling")
-	ErrIntOverflowCommon   = fmt.Errorf("proto: integer overflow")
+	ErrInvalidLengthCommon        = fmt.Errorf("proto: negative length found during unmarshaling")
+	ErrIntOverflowCommon          = fmt.Errorf("proto: integer overflow")
+	ErrUnexpectedEndOfGroupCommon = fmt.Errorf("proto: unexpected end of group")
 )
