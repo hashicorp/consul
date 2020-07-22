@@ -234,10 +234,7 @@ export default [
       {
         category: 'connect',
         name: 'Connect Service Mesh',
-        content: [
-          'overview',
-          'ingress-gateways',
-        ],
+        content: ['overview', 'ingress-gateways', 'terminating-gateways'],
       },
       'service-sync',
       'dns',
