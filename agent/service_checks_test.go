@@ -17,6 +17,7 @@ import (
 // Placed in agent pkg rather than cache-types to avoid circular dependency when importing agent.TestAgent
 func TestAgent_ServiceHTTPChecksNotification(t *testing.T) {
 	t.Parallel()
+
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
