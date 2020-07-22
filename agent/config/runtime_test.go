@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
@@ -5803,7 +5804,7 @@ func TestFullConfig(t *testing.T) {
 		BindAddr:                         ipAddr("16.99.34.17"),
 		Bootstrap:                        true,
 		BootstrapExpect:                  53,
-		Cache: Cache{
+		Cache: cache.Options{
 			EntryFetchMaxBurst:  2,
 			EntryFetchRateLimit: 1,
 		},
@@ -6689,7 +6690,7 @@ func TestSanitize(t *testing.T) {
 			&net.TCPAddr{IP: net.ParseIP("1.2.3.4"), Port: 5678},
 			&net.UnixAddr{Name: "/var/run/foo"},
 		},
-		Cache: Cache{
+		Cache: cache.Options{
 			EntryFetchMaxBurst:  2,
 			EntryFetchRateLimit: 1,
 		},

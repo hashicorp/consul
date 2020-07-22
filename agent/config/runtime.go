@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
@@ -20,14 +21,6 @@ type RuntimeSOAConfig struct {
 	Retry   uint32 // 600
 	Expire  uint32 // 86400
 	Minttl  uint32 // 0,
-}
-
-// Cache represent the cache configuration of agent
-type Cache struct {
-	// EntryFetchMaxBurst max burst size of RateLimit for a single cache entry
-	EntryFetchMaxBurst int
-	// EntryFetchRateLimit represents the max calls/sec for a single cache entry
-	EntryFetchRateLimit rate.Limit
 }
 
 // RuntimeConfig specifies the configuration the consul agent actually
@@ -452,7 +445,7 @@ type RuntimeConfig struct {
 	BootstrapExpect int
 
 	// Cache represent cache configuration of agent
-	Cache Cache
+	Cache cache.Options
 
 	// CAFile is a path to a certificate authority file. This is used with
 	// VerifyIncoming or VerifyOutgoing to verify the TLS connection.

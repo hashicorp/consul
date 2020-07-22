@@ -58,8 +58,8 @@ func Parse(data string, format string) (c Config, md mapstructure.Metadata, err 
 	return c, md, nil
 }
 
-// CacheConfig is the Cache tunning configuration, values are optional
-type CacheConfig struct {
+// Cache is the tunning configuration for cache, values are optional
+type Cache struct {
 	// EntryFetchMaxBurst max burst size of RateLimit for a single cache entry
 	EntryFetchMaxBurst *int `json:"entry_fetch_max_burst,omitempty" hcl:"entry_fetch_max_burst" mapstructure:"entry_fetch_max_burst"`
 	// EntryFetchRateLimit represents the max calls/sec for a single cache entry
@@ -109,7 +109,7 @@ type Config struct {
 	BindAddr                         *string                  `json:"bind_addr,omitempty" hcl:"bind_addr" mapstructure:"bind_addr"`
 	Bootstrap                        *bool                    `json:"bootstrap,omitempty" hcl:"bootstrap" mapstructure:"bootstrap"`
 	BootstrapExpect                  *int                     `json:"bootstrap_expect,omitempty" hcl:"bootstrap_expect" mapstructure:"bootstrap_expect"`
-	Cache                            CacheConfig              `json:"cache,omitempty" hcl:"cache" mapstructure:"cache"`
+	Cache                            Cache                    `json:"cache,omitempty" hcl:"cache" mapstructure:"cache"`
 	CAFile                           *string                  `json:"ca_file,omitempty" hcl:"ca_file" mapstructure:"ca_file"`
 	CAPath                           *string                  `json:"ca_path,omitempty" hcl:"ca_path" mapstructure:"ca_path"`
 	CertFile                         *string                  `json:"cert_file,omitempty" hcl:"cert_file" mapstructure:"cert_file"`

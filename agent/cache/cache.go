@@ -82,7 +82,7 @@ type Cache struct {
 	// stopCh is closed when Close is called
 	stopCh chan struct{}
 	// options includes a per Cache Rate limiter specification to avoid performing too many queries
-	options *Options
+	options Options
 }
 
 // typeEntry is a single type that is registered with a Cache.
@@ -132,7 +132,7 @@ type Options struct {
 
 // New creates a new cache with the given RPC client and reasonable defaults.
 // Further settings can be tweaked on the returned value.
-func New(options *Options) *Cache {
+func New(options Options) *Cache {
 	// Initialize the heap. The buffer of 1 is really important because
 	// its possible for the expiry loop to trigger the heap to update
 	// itself and it'd block forever otherwise.

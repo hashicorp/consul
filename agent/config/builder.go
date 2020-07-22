@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul"
@@ -887,7 +888,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		BindAddr:         bindAddr,
 		Bootstrap:        b.boolVal(c.Bootstrap),
 		BootstrapExpect:  b.intVal(c.BootstrapExpect),
-		Cache: Cache{
+		Cache: cache.Options{
 			EntryFetchRateLimit: rate.Limit(b.float64ValWithDefault(c.Cache.EntryFetchRateLimit, 1)),
 			EntryFetchMaxBurst:  b.intValWithDefault(c.Cache.EntryFetchMaxBurst, 2),
 		},
