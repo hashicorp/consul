@@ -314,7 +314,7 @@ func newServiceHealthEventsForNode(tx ReadTxn, idx uint64, node string) ([]strea
 		return nil, err
 	}
 
-	n, nodeChecks, svcChecks, err := getNodeAndChecks(tx, node)
+	n, checksFunc, err := getNodeAndChecks(tx, node)
 	if err != nil {
 		return nil, err
 	}
@@ -323,33 +323,30 @@ func newServiceHealthEventsForNode(tx ReadTxn, idx uint64, node string) ([]strea
 	for service := services.Next(); service != nil; service = services.Next() {
 		sn := service.(*structs.ServiceNode)
 
-		event := newServiceHealthEventRegister(idx, n, sn, nodeChecks, svcChecks)
+		event := newServiceHealthEventRegister(idx, n, sn, checksFunc(sn.ServiceID))
 		events = append(events, event)
 	}
 
 	return events, nil
 }
 
-// getNodeAndNodeChecks returns a specific node and ALL checks on that node
-// (both node specific and service-specific). node-level Checks are returned as
-// a slice, service-specific checks as a map of slices with the service id as
-// the map key.
-func getNodeAndChecks(tx ReadTxn, node string) (*structs.Node,
-	structs.HealthChecks, map[string]structs.HealthChecks, error) {
+// getNodeAndNodeChecks returns a the node structure and a function that returns
+// the full list of checks for a specific service on that node.
+func getNodeAndChecks(tx ReadTxn, node string) (*structs.Node, serviceChecksFunc, error) {
 	// Fetch the node
 	nodeRaw, err := tx.First("nodes", "id", node)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 	if nodeRaw == nil {
-		return nil, nil, nil, ErrMissingNode
+		return nil, nil, ErrMissingNode
 	}
 	n := nodeRaw.(*structs.Node)
 
 	// TODO(namespace-streaming): work out what EntMeta is needed here, wildcard?
 	iter, err := catalogListChecksByNode(tx, node, nil)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
 	var nodeChecks structs.HealthChecks
@@ -366,11 +363,22 @@ func getNodeAndChecks(tx ReadTxn, node string) (*structs.Node,
 			svcChecks[check.ServiceID] = append(svcChecks[check.ServiceID], check)
 		}
 	}
-	return n, nodeChecks, svcChecks, nil
+	serviceChecks := func(serviceID string) structs.HealthChecks {
+		// Create a new slice so that append does not modify the array backing nodeChecks.
+		result := make(structs.HealthChecks, 0, len(nodeChecks))
+		result = append(result, nodeChecks...)
+		for _, check := range svcChecks[serviceID] {
+			result = append(result, check)
+		}
+		return result
+	}
+	return n, serviceChecks, nil
 }
 
+type serviceChecksFunc func(serviceID string) structs.HealthChecks
+
 func newServiceHealthEventForService(tx ReadTxn, idx uint64, tuple nodeServiceTuple) (stream.Event, error) {
-	n, nodeChecks, svcChecks, err := getNodeAndChecks(tx, tuple.Node)
+	n, checksFunc, err := getNodeAndChecks(tx, tuple.Node)
 	if err != nil {
 		return stream.Event{}, err
 	}
@@ -380,26 +388,21 @@ func newServiceHealthEventForService(tx ReadTxn, idx uint64, tuple nodeServiceTu
 		return stream.Event{}, err
 	}
 
-	sn := svc.Next()
-	if sn == nil {
+	raw := svc.Next()
+	if raw == nil {
 		return stream.Event{}, ErrMissingService
 	}
 
-	return newServiceHealthEventRegister(idx, n, sn.(*structs.ServiceNode), nodeChecks, svcChecks), nil
+	sn := raw.(*structs.ServiceNode)
+	return newServiceHealthEventRegister(idx, n, sn, checksFunc(sn.ServiceID)), nil
 }
 
-func newServiceHealthEventRegister(idx uint64,
+func newServiceHealthEventRegister(
+	idx uint64,
 	node *structs.Node,
 	sn *structs.ServiceNode,
-	nodeChecks structs.HealthChecks,
-	svcChecks map[string]structs.HealthChecks,
+	checks structs.HealthChecks,
 ) stream.Event {
-	// Start with a copy of the node checks.
-	checks := nodeChecks
-	for _, check := range svcChecks[sn.ServiceID] {
-		checks = append(checks, check)
-	}
-
 	csn := &structs.CheckServiceNode{
 		Node:    node,
 		Service: sn.ToNodeService(),
