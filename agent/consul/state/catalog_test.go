@@ -1709,8 +1709,10 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 	})
 
 	t.Run("Uses watchLimit to limit the number of watches", func(t *testing.T) {
+		patchWatchLimit(t, 10)
+
 		var idx uint64 = 6
-		for i := 0; i < 2*watchLimit; i++ {
+		for i := 0; i < watchLimit+2; i++ {
 			node := fmt.Sprintf("many%d", i)
 			testRegisterNodeWithMeta(t, s, idx, node, map[string]string{"common": "1"})
 			idx++
@@ -1728,6 +1730,16 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 		if !watchFired(ws) {
 			t.Fatalf("expected the watch to timeout and not be triggered")
 		}
+	})
+}
+
+// patchWatchLimit package variable. Not safe for concurrent use. Do not use
+// with t.Parallel.
+func patchWatchLimit(t *testing.T, limit int) {
+	oldLimit := watchLimit
+	watchLimit = limit
+	t.Cleanup(func() {
+		watchLimit = oldLimit
 	})
 }
 
@@ -1847,7 +1859,8 @@ func TestStateStore_ServiceNodes(t *testing.T) {
 
 	// Overwhelm the node tracking.
 	idx = 19
-	for i := 0; i < 2*watchLimit; i++ {
+	patchWatchLimit(t, 10)
+	for i := 0; i < watchLimit+2; i++ {
 		node := fmt.Sprintf("many%d", i)
 		if err := s.EnsureNode(idx, &structs.Node{Node: node, Address: "127.0.0.1"}); err != nil {
 			t.Fatalf("err: %v", err)
@@ -2616,7 +2629,8 @@ func TestStateStore_ServiceChecksByNodeMeta(t *testing.T) {
 	}
 
 	// Overwhelm the node tracking.
-	for i := 0; i < 2*watchLimit; i++ {
+	patchWatchLimit(t, 10)
+	for i := 0; i < watchLimit+2; i++ {
 		node := fmt.Sprintf("many%d", idx)
 		testRegisterNodeWithMeta(t, s, idx, node, map[string]string{"common": "1"})
 		idx++
@@ -2796,7 +2810,8 @@ func TestStateStore_ChecksInStateByNodeMeta(t *testing.T) {
 	}
 
 	// Overwhelm the node tracking.
-	for i := 0; i < 2*watchLimit; i++ {
+	patchWatchLimit(t, 10)
+	for i := 0; i < watchLimit+2; i++ {
 		node := fmt.Sprintf("many%d", idx)
 		testRegisterNodeWithMeta(t, s, idx, node, map[string]string{"common": "1"})
 		idx++
