@@ -461,7 +461,7 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 		entry = cacheEntry{
 			Valid:  false,
 			Waiter: make(chan struct{}),
-			RateLimiter: rate.NewLimiter(
+			FetchRateLimiter: rate.NewLimiter(
 				c.options.EntryFetchRateLimit,
 				c.options.EntryFetchMaxBurst,
 			),
@@ -512,11 +512,10 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 				Index: entry.Index,
 			}
 		}
-		if err := entry.RateLimiter.Wait(context.Background()); err != nil {
-			// This should might happen only if:
-			// burstSize is 0, Context is canceled, or the expected wait time exceeds the Context's Deadline.
-			// so, it should not happen, fix this if you plan using something different than:
-			// context.Background()
+		// TODO(context): handle the error without a panic when context is changed to one that is cancellable
+		if err := entry.FetchRateLimiter.Wait(context.Background()); err != nil {
+			// an error here is a programming error (bursSize is 0) so it is ok to panic, until the context
+			// is changed to one that can be cancelled
 			panic(err)
 		}
 		// Start building the new entry by blocking on the fetch.
@@ -758,7 +757,7 @@ func (c *Cache) Prepopulate(t string, res FetchResult, dc, token, k string) erro
 		FetchedAt: time.Now(),
 		Waiter:    make(chan struct{}),
 		Expiry:    &cacheEntryExpiry{Key: key},
-		RateLimiter: rate.NewLimiter(
+		FetchRateLimiter: rate.NewLimiter(
 			c.options.EntryFetchRateLimit,
 			c.options.EntryFetchMaxBurst,
 		),

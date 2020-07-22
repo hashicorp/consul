@@ -462,7 +462,7 @@ func TestManager_deliverLatest(t *testing.T) {
 	// None of these need to do anything to test this method just be valid
 	logger := testutil.Logger(t)
 	cfg := ManagerConfig{
-		Cache: cache.New(&cache.Options{EntryFetchRateLimit: rate.Inf, EntryFetchMaxBurst: 2}),
+		Cache: cache.New(cache.Options{EntryFetchRateLimit: rate.Inf, EntryFetchMaxBurst: 2}),
 		State: local.NewState(local.Config{}, logger, &token.Store{}),
 		Source: &structs.QuerySource{
 			Node:       "node1",
