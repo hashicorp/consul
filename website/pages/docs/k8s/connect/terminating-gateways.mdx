@@ -111,7 +111,7 @@ If ACLs and TLS are enabled :
 $ curl --request PUT --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" --data @external.json -k $CONSUL_HTTP_ADDR/v1/catalog/register
 ```
 
-### Update terminating ACL token if ACLs are enabled
+### Update terminating gateway ACL token if ACLs are enabled
 If ACLs are enabled, update the terminating acl token to have `service: write` permissions on all of the services
 being represented by the gateway:
 * Create a new policy that includes these permissions
