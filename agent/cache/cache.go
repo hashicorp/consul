@@ -458,7 +458,14 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 	// If we don't have an entry, then create it. The entry must be marked
 	// as invalid so that it isn't returned as a valid value for a zero index.
 	if !ok {
-		entry = cacheEntry{Valid: false, Waiter: make(chan struct{}), RateLimiter: rate.NewLimiter(c.options.EntryFetchRateLimit, c.options.EntryFetchMaxBurst)}
+		entry = cacheEntry{
+			Valid:  false,
+			Waiter: make(chan struct{}),
+			RateLimiter: rate.NewLimiter(
+				c.options.EntryFetchRateLimit,
+				c.options.EntryFetchMaxBurst,
+			),
+		}
 	}
 
 	// Set that we're fetching to true, which makes it so that future
@@ -744,14 +751,17 @@ func (c *Cache) Close() error {
 func (c *Cache) Prepopulate(t string, res FetchResult, dc, token, k string) error {
 	key := makeEntryKey(t, dc, token, k)
 	newEntry := cacheEntry{
-		Valid:       true,
-		Value:       res.Value,
-		State:       res.State,
-		Index:       res.Index,
-		FetchedAt:   time.Now(),
-		Waiter:      make(chan struct{}),
-		Expiry:      &cacheEntryExpiry{Key: key},
-		RateLimiter: rate.NewLimiter(c.options.EntryFetchRateLimit, c.options.EntryFetchMaxBurst),
+		Valid:     true,
+		Value:     res.Value,
+		State:     res.State,
+		Index:     res.Index,
+		FetchedAt: time.Now(),
+		Waiter:    make(chan struct{}),
+		Expiry:    &cacheEntryExpiry{Key: key},
+		RateLimiter: rate.NewLimiter(
+			c.options.EntryFetchRateLimit,
+			c.options.EntryFetchMaxBurst,
+		),
 	}
 	c.entriesLock.Lock()
 	c.entries[key] = newEntry

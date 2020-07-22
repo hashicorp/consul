@@ -58,12 +58,12 @@ func Parse(data string, format string) (c Config, md mapstructure.Metadata, err 
 	return c, md, nil
 }
 
-// CacheConfig Cache tunning configuration
+// CacheConfig is the Cache tunning configuration, values are optional
 type CacheConfig struct {
 	// EntryFetchMaxBurst max burst size of RateLimit for a single cache entry
-	EntryFetchMaxBurst *int `json:"rate_limit_burst,omitempty" hcl:"rate_limit_burst" mapstructure:"rate_limit_burst"`
+	EntryFetchMaxBurst *int `json:"entry_fetch_max_burst,omitempty" hcl:"entry_fetch_max_burst" mapstructure:"entry_fetch_max_burst"`
 	// EntryFetchRateLimit represents the max calls/sec for a single cache entry
-	EntryFetchRateLimit *float64 `json:"rate_limit_per_entry,omitempty" hcl:"rate_limit_per_entry" mapstructure:"rate_limit_per_entry"`
+	EntryFetchRateLimit *float64 `json:"entry_fetch_rate_limit,omitempty" hcl:"entry_fetch_rate_limit" mapstructure:"entry_fetch_rate_limit"`
 }
 
 // Config defines the format of a configuration file in either JSON or
@@ -109,7 +109,7 @@ type Config struct {
 	BindAddr                         *string                  `json:"bind_addr,omitempty" hcl:"bind_addr" mapstructure:"bind_addr"`
 	Bootstrap                        *bool                    `json:"bootstrap,omitempty" hcl:"bootstrap" mapstructure:"bootstrap"`
 	BootstrapExpect                  *int                     `json:"bootstrap_expect,omitempty" hcl:"bootstrap_expect" mapstructure:"bootstrap_expect"`
-	CacheConfig                      CacheConfig              `json:"cache,omitempty" hcl:"cache" mapstructure:"cache"`
+	Cache                            CacheConfig              `json:"cache,omitempty" hcl:"cache" mapstructure:"cache"`
 	CAFile                           *string                  `json:"ca_file,omitempty" hcl:"ca_file" mapstructure:"ca_file"`
 	CAPath                           *string                  `json:"ca_path,omitempty" hcl:"ca_path" mapstructure:"ca_path"`
 	CertFile                         *string                  `json:"cert_file,omitempty" hcl:"cert_file" mapstructure:"cert_file"`

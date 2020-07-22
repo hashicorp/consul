@@ -4412,7 +4412,7 @@ func TestFullConfig(t *testing.T) {
 			"bootstrap": true,
 			"bootstrap_expect": 53,
 			"cache": {
-				"rate_limit_per_entry": 1
+				"entry_fetch_rate_limit": 1
 			},
 			"ca_file": "erA7T0PM",
 			"ca_path": "mQEN1Mfp",
@@ -5075,7 +5075,7 @@ func TestFullConfig(t *testing.T) {
 			bootstrap = true
 			bootstrap_expect = 53
 			cache = {
-				rate_limit_per_entry = 1
+				entry_fetch_rate_limit = 1
 			},
 			ca_file = "erA7T0PM"
 			ca_path = "mQEN1Mfp"

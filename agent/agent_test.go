@@ -877,7 +877,7 @@ func TestCacheRateLimit(test *testing.T) {
 		test.Run(fmt.Sprintf("rate_limit_at_%v", currentTest.rateLimit), func(t *testing.T) {
 			tt := currentTest
 			t.Parallel()
-			a := NewTestAgent(t, fmt.Sprintf("cache = { rate_limit_per_entry = %v, rate_limit_burst = 1 }", tt.rateLimit))
+			a := NewTestAgent(t, fmt.Sprintf("cache = { entry_fetch_rate_limit = %v, entry_fetch_max_burst = 1 }", tt.rateLimit))
 			defer a.Shutdown()
 			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -4295,7 +4295,7 @@ func TestAgentCache_serviceInConfigFile_initialFetchErrors_Issue6521(t *testing.
 		server = false
 		bootstrap = false
 		// This test assumes there is not ratelimit in cache
-		cache = { rate_limit_per_entry = 10000 }
+		cache = { entry_fetch_rate_limit = 10000 }
 services {
   name = "echo-client"
   port = 8080
