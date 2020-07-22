@@ -470,6 +470,9 @@ type Config struct {
 	// AutoEncrypt.Sign requests.
 	AutoEncryptAllowTLS bool
 
+	// TODO: godoc, set this value from Agent
+	EnableGRPCServer bool
+
 	// Embedded Consul Enterprise specific configuration
 	*EnterpriseConfig
 }
