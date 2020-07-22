@@ -64,7 +64,7 @@ require (
 	github.com/mitchellh/copystructure v1.0.0
 	github.com/mitchellh/go-testing-interface v1.14.0
 	github.com/mitchellh/hashstructure v0.0.0-20170609045927-2bca23e0e452
-	github.com/mitchellh/mapstructure v1.2.3
+	github.com/mitchellh/mapstructure v1.3.3
 	github.com/mitchellh/pointerstructure v1.0.0
 	github.com/mitchellh/reflectwalk v1.0.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
