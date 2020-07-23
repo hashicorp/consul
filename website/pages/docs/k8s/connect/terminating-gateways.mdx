@@ -116,6 +116,7 @@ If ACLs are enabled, update the terminating gateway acl token to have `service: 
 being represented by the gateway:
 * Create a new policy that includes these permissions
 * Update the existing token to include the new policy
+
 ~> The CLI command should be run with the `-merge-policies`, `-merge-roles` and `-merge-service-identities` so
 nothing is removed from the terminating gateway token
 
@@ -207,5 +208,5 @@ $ kubectl apply -f static-client.yaml
 
 You can verify connectivity of the static-client and terminating gateway via a curl command:
 ```shell-session
-$ kubectl exec static-client-7cc6df495-qdtkp -- curl -vvvs -H "Host: example-https.com" http://localhost:1234/
+$ kubectl exec deploy/static-client -- curl -vvvs -H "Host: example-https.com" http://localhost:1234/
 ```
