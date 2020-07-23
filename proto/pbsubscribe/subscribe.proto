@@ -1,0 +1,126 @@
+/*
+Package event provides a service for subscribing to state change events.
+*/
+syntax = "proto3";
+
+package subscribe;
+
+option go_package = "github.com/hashicorp/consul/proto/pbsubscribe";
+
+import "proto/pbservice/structs.proto";
+
+// StateChangeSubscription service allows consumers to subscribe to topics of
+// state change events. Events are streamed as they happen.
+service StateChangeSubscription {
+    // Subscribe to a topic to receive events when there are changes to the topic.
+    // TODO: document how to handle framing events
+    //
+    //
+    // Subscribe may return an ABORTED status error to indicate the client must
+    // re-start the Subscribe call.
+    // This error is used when the server can no longer correctly maintain the
+    // stream, for example because the ACL permissions for the token changed
+    // and the server doesn't know which previously delivered events should
+    // now not be visible. Clients when receiving this must reset their
+    // local copy of the state to empty and start over from index 0 to get a
+    // valid snapshot again. Servers may also send this if their state store
+    // is restored from a snapshot.
+    rpc Subscribe(SubscribeRequest) returns (stream Event) {}
+}
+
+// Topic enumerates the supported event topics.
+enum Topic {
+    Unknown = 0;
+    // ServiceHealth topic contains events for any changes to service health.
+    ServiceHealth = 1;
+    // ServiceHealthConnect topic contains events for any changes to service
+    // health for connect-enabled services.
+    ServiceHealthConnect = 2;
+}
+
+// SubscribeRequest used to subscribe to a topic.
+message SubscribeRequest {
+    // Topic identifies the set of events the subscriber is interested in.
+    Topic Topic = 1;
+
+    // Key is a topic-specific identifier that restricts the scope of the
+    // subscription to only events pertaining to that identifier. For example,
+    // to receive events for a single service, the service's name is
+    // specified as the key. An empty key indicates that all events in the topic
+    // are of interest.
+    string Key = 2;
+
+    // Token is the ACL token to authenticate the request. The token must have
+    // sufficient privileges to read the requested information otherwise events
+    // will be filtered, possibly resulting in an empty snapshot and no further
+    // updates sent.
+    string Token = 3;
+
+    // Index is the raft index the subscriber has already observed up to. This
+    // is zero on an initial streaming call, but then can be provided by a
+    // client on subsequent re-connections such that the full snapshot doesn't
+    // need to be resent if the client is up to date.
+    uint64 Index = 4;
+
+    // Datacenter specifies the Consul datacenter the request is targeted at.
+    // If it's not the local DC the server will forward the request to
+    // the remote DC and proxy the results back  to the subscriber. An empty
+    // string defaults to the local datacenter.
+    string Datacenter = 5;
+}
+
+// Event describes a streaming update on a subscription. Events are used both to
+// describe the current "snapshot" of the result as well as ongoing mutations to
+// that snapshot.
+message Event {
+    // Topic the event was published to
+    Topic Topic = 1;
+
+    // Key is the logical identifier for the entity that was mutated.
+    string Key = 2;
+
+    // Index is the raft index at which the mutation took place. At the top
+    // level of a subscription there will always be at most one Event per index.
+    // If multiple events are published to the same topic in a single raft
+    // transaction then the batch of events will be encoded inside a single
+    // top-level event to ensure they are delivered atomically to clients.
+    uint64 Index = 3;
+
+    // Payload is the actual event content.
+    oneof Payload {
+        // EndOfSnapshot indicates the event stream for the initial snapshot has
+        // ended. Subsequent Events delivered will be mutations to that result.
+        bool EndOfSnapshot = 5;
+
+        // EndOfEmptySnapshot indicates that the client is still up-to-date.
+        // The snapshot has ended, and was empty. The rest of the stream will be
+        // individual update events. It distinguishes between "up to date, no snapshot"
+        // and "snapshot contains zero events but you should reset any old state to be blank".
+        bool EndOfEmptySnapshot = 6;
+
+        // EventBatch is a set of events. This is typically used as the payload
+        // type where multiple events are emitted in a single topic and raft
+        // index (e.g. transactional updates). In this case the Topic and Index
+        // values of all events will match and the whole set should be delivered
+        // and consumed atomically.
+        EventBatch EventBatch = 7;
+
+        // ServiceHealth is used for ServiceHealth and ServiceHealthConnect
+        // topics.
+        ServiceHealthUpdate ServiceHealth = 10;
+    }
+}
+
+message EventBatch {
+    repeated Event Events = 1;
+}
+
+enum CatalogOp {
+    Register = 0;
+    Deregister = 1;
+}
+
+message ServiceHealthUpdate {
+    CatalogOp Op = 1;
+    pbservice.CheckServiceNode CheckServiceNode = 2;
+}

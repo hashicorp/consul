@@ -1,0 +1,403 @@
+syntax = "proto3";
+
+package pbservice;
+
+option go_package = "github.com/hashicorp/consul/proto/pbservice";
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/struct.proto";
+import "proto/pbcommon/common.proto";
+import "proto/pbcommon/common_oss.proto";
+
+// Go Modules now includes the version in the filepath for packages within GOPATH/pkg/mode
+// Therefore unless we want to hardcode a version here like
+// github.com/gogo/protobuf@v1.3.0/gogoproto/gogo.proto then the only other choice is to
+// have a more relative import and pass the right import path to protoc. I don't like it
+// but its necessary.
+import "gogoproto/gogo.proto";
+
+option (gogoproto.goproto_unkeyed_all) = false;
+option (gogoproto.goproto_unrecognized_all) = false;
+option (gogoproto.goproto_getters_all) = false;
+option (gogoproto.goproto_sizecache_all) = false;
+
+// Used to return information about a node
+message Node {
+  string ID = 1
+      [(gogoproto.casttype) = "github.com/hashicorp/consul/types.NodeID"];
+
+  string Node = 2;
+  string Address = 3;
+  string Datacenter = 4;
+  map<string, string> TaggedAddresses = 5;
+  map<string, string> Meta = 6;
+
+  common.RaftIndex RaftIndex = 7
+      [(gogoproto.embed) = true, (gogoproto.nullable) = false, (gogoproto.moretags) = "bexpr:\"-\""];
+}
+
+// ServiceDefinition is used to JSON decode the Service definitions. For
+// documentation on specific fields see NodeService which is better documented.
+message ServiceDefinition {
+  string Kind = 1 [(gogoproto.casttype) =
+                       "github.com/hashicorp/consul/agent/structs.ServiceKind"];
+  string ID = 2;
+  string Name = 3;
+  repeated string Tags = 4;
+  string Address = 5;
+  map<string, ServiceAddress> TaggedAddresses = 16;
+  map<string, string> Meta = 6;
+  int32 Port = 7 [(gogoproto.casttype) = "int"];
+  CheckType Check = 8 [(gogoproto.nullable) = false];
+  repeated CheckType Checks = 9;
+  Weights Weights = 10;
+  string Token = 11;
+  bool EnableTagOverride = 12;
+
+  // Proxy is the configuration set for Kind = connect-proxy. It is mandatory in
+  // that case and an error to be set for any other kind. This config is part of
+  // a proxy service definition and is distinct from but shares some fields with
+  // the Connect.Proxy which configures a managed proxy as part of the actual
+  // service's definition. This duplication is ugly but seemed better than the
+  // alternative which was to re-use the same struct fields for both cases even
+  // though the semantics are different and the non-shared fields make no sense
+  // in the other case. ProxyConfig may be a more natural name here, but it's
+  // confusing for the UX because one of the fields in ConnectProxyConfig is
+  // also called just "Config"
+  ConnectProxyConfig Proxy = 14;
+
+  common.EnterpriseMeta EnterpriseMeta = 17;
+
+  ServiceConnect Connect = 15;
+}
+
+// Type to hold an address and port of a service
+message ServiceAddress {
+	string Address = 1;
+	int32 Port = 2 [(gogoproto.casttype) = "int"];
+}
+
+// HealthCheck represents a single check on a given node
+message HealthCheck {
+  string Node = 1;
+  string CheckID = 2
+      [(gogoproto.casttype) =
+           "github.com/hashicorp/consul/types.CheckID"];  // Unique per-node ID
+  string Name = 3;                                        // Check name
+  string Status = 4;                // The current check status
+  string Notes = 5;                 // Additional notes with the status
+  string Output = 6;                // Holds output of script runs
+  string ServiceID = 7;             // optional associated service
+  string ServiceName = 8;           // optional service name
+  repeated string ServiceTags = 9;  // optional service tags
+  string Type = 12;                 // Check type: http/ttl/tcp/etc
+
+  HealthCheckDefinition Definition = 10
+      [(gogoproto.nullable) = false, (gogoproto.moretags) = "bexpr:\"-\""];
+
+  common.EnterpriseMeta EnterpriseMeta = 13;
+
+  common.RaftIndex RaftIndex = 11
+      [(gogoproto.embed) = true, (gogoproto.nullable) = false, (gogoproto.moretags) = "bexpr:\"-\""];
+}
+
+message HeaderValue {
+  repeated string Value = 1;
+}
+
+message HealthCheckDefinition {
+  string HTTP = 1 [(gogoproto.jsontag) = ",omitempty"];
+  bool TLSSkipVerify = 2 [(gogoproto.jsontag) = ",omitempty"];
+  map<string, HeaderValue> Header = 3 [(gogoproto.nullable) = false];
+  string Method = 4 [(gogoproto.jsontag) = ",omitempty"];
+  string Body = 18 [(gogoproto.jsontag) = ",omitempty"];
+  string TCP = 5 [(gogoproto.jsontag) = ",omitempty"];
+  google.protobuf.Duration Interval = 6
+      [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
+  uint32 OutputMaxSize = 9;
+  google.protobuf.Duration Timeout = 7
+      [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
+  google.protobuf.Duration DeregisterCriticalServiceAfter = 8
+      [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
+  repeated string ScriptArgs = 10;
+  string DockerContainerID = 11;
+  string Shell = 12;
+  string GRPC = 13;
+  bool GRPCUseTLS = 14;
+  string AliasNode = 15;
+  string AliasService = 16;
+  google.protobuf.Duration TTL = 17
+      [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
+}
+
+// CheckServiceNode is used to provide the node, its service
+// definition, as well as a HealthCheck that is associated.
+message CheckServiceNode {
+  Node Node = 1;
+  NodeService Service = 2;
+  repeated HealthCheck Checks = 3;
+}
+
+// NodeService is a service provided by a node
+message NodeService {
+  // Kind is the kind of service this is. Different kinds of services may
+  // have differing validation, DNS behavior, etc. An empty kind will default
+  // to the Default kind. See ServiceKind for the full list of kinds.
+  string Kind = 1 [
+    (gogoproto.casttype) =
+        "github.com/hashicorp/consul/agent/structs.ServiceKind",
+    (gogoproto.jsontag) = ",omitempty"
+  ];
+
+  string ID = 2;
+  string Service = 3;
+  repeated string Tags = 4;
+  string Address = 5;
+  map<string, ServiceAddress> TaggedAddresses = 15;
+  map<string, string> Meta = 6;
+  int32 Port = 7 [(gogoproto.casttype) = "int"];
+  Weights Weights = 8;
+  bool EnableTagOverride = 9;
+
+  // Proxy is the configuration set for Kind = connect-proxy. It is mandatory in
+  // that case and an error to be set for any other kind. This config is part of
+  // a proxy service definition and is distinct from but shares some fields with
+  // the Connect.Proxy which configures a managed proxy as part of the actual
+  // service's definition. This duplication is ugly but seemed better than the
+  // alternative which was to re-use the same struct fields for both cases even
+  // though the semantics are different and the non-shred fields make no sense
+  // in the other case. ProxyConfig may be a more natural name here, but it's
+  // confusing for the UX because one of the fields in ConnectProxyConfig is
+  // also called just "Config"
+  ConnectProxyConfig Proxy = 11 [(gogoproto.nullable) = false];
+
+  // Connect are the Connect settings for a service. This is purposely NOT
+  // a pointer so that we never have to nil-check this.
+  ServiceConnect Connect = 12 [(gogoproto.nullable) = false];
+
+  // LocallyRegisteredAsSidecar is private as it is only used by a local agent
+  // state to track if the service was registered from a nested sidecar_service
+  // block. We need to track that so we can know whether we need to deregister
+  // it automatically too if it's removed from the service definition or if the
+  // parent service is deregistered. Relying only on ID would cause us to
+  // deregister regular services if they happen to be registered using the same
+  // ID scheme as our sidecars do by default. We could use meta but that gets
+  // unpleasant because we can't use the consul- prefix from an agent (reserved
+  // for use internally but in practice that means within the state store or in
+  // responses only), and it leaks the detail publicly which people might rely
+  // on which is a bit unpleasant for something that is meant to be config-file
+  // syntax sugar. Note this is not translated to ServiceNode and friends and
+  // may not be set on a NodeService that isn't the one the agent registered and
+  // keeps in it's local state. We never want this rendered in JSON as it's
+  // internal only. Right now our agent endpoints return api structs which don't
+  // include it but this is a safety net incase we change that or there is
+  // somewhere this is used in API output.
+  bool LocallyRegisteredAsSidecar = 13 [(gogoproto.moretags) = "bexpr:\"-\""];
+
+  common.EnterpriseMeta EnterpriseMeta = 16;
+
+  common.RaftIndex RaftIndex = 14
+      [(gogoproto.embed) = true, (gogoproto.nullable) = false, (gogoproto.moretags) = "bexpr:\"-\""];
+}
+
+// ConnectProxyConfig describes the configuration needed for any proxy managed
+// or unmanaged. It describes a single logical service's listener and optionally
+// upstreams and sidecar-related config for a single instance. To describe a
+// centralized proxy that routed traffic for multiple services, a different one
+// of these would be needed for each, sharing the same LogicalProxyID.
+message ConnectProxyConfig {
+  // DestinationServiceName is required and is the name of the service to accept
+  // traffic for.
+  string DestinationServiceName = 1;
+
+  // DestinationServiceID is optional and should only be specified for
+  // "side-car" style proxies where the proxy is in front of just a single
+  // instance of the service. It should be set to the service ID of the instance
+  // being represented which must be registered to the same agent. It's valid to
+  // provide a service ID that does not yet exist to avoid timing issues when
+  // bootstrapping a service with a proxy.
+  string DestinationServiceID = 2;
+
+  // LocalServiceAddress is the address of the local service instance. It is
+  // optional and should only be specified for "side-car" style proxies. It will
+  // default to 127.0.0.1 if the proxy is a "side-car" (DestinationServiceID is
+  // set) but otherwise will be ignored.
+  string LocalServiceAddress = 3;
+
+  // LocalServicePort is the port of the local service instance. It is optional
+  // and should only be specified for "side-car" style proxies. It will default
+  // to the registered port for the instance if the proxy is a "side-car"
+  // (DestinationServiceID is set) but otherwise will be ignored.
+  int32 LocalServicePort = 4 [(gogoproto.casttype) = "int"];
+
+  // Config is the arbitrary configuration data provided with the proxy
+  // registration.
+  google.protobuf.Struct Config = 5
+      [(gogoproto.nullable) = true, (gogoproto.moretags) = "bexpr:\"-\""];
+
+  // Upstreams describes any upstream dependencies the proxy instance should
+  // setup.
+  repeated Upstream Upstreams = 6 [(gogoproto.nullable) = false];
+
+  // MeshGateway defines the mesh gateway configuration for this upstream
+  MeshGatewayConfig MeshGateway = 7;
+
+	// Expose defines whether checks or paths are exposed through the proxy
+  ExposeConfig Expose = 8;
+}
+
+// Upstream represents a single upstream dependency for a service or proxy. It
+// describes the mechanism used to discover instances to communicate with (the
+// Target) as well as any potential client configuration that may be useful such
+// as load balancer options, timeouts etc.
+message Upstream {
+  // Destination fields are the required ones for determining what this upstream
+  // points to. Depending on DestinationType some other fields below might
+  // further restrict the set of instances allowable.
+  //
+  // DestinationType would be better as an int constant but even with custom
+  // JSON marshallers it causes havoc with all the mapstructure mangling we do
+  // on service definitions in various places.
+  string DestinationType = 1;
+  string DestinationNamespace = 2;
+  string DestinationName = 3;
+
+  // Datacenter that the service discovery request should be run against. Note
+  // for prepared queries, the actual results might be from a different
+  // datacenter.
+  string Datacenter = 4;
+
+  // LocalBindAddress is the ip address a side-car proxy should listen on for
+  // traffic destined for this upstream service. Default if empty is 127.0.0.1.
+  string LocalBindAddress = 5;
+
+  // LocalBindPort is the ip address a side-car proxy should listen on for
+  // traffic
+  // destined for this upstream service. Required.
+  int32 LocalBindPort = 6 [(gogoproto.casttype) = "int"];
+
+  // Config is an opaque config that is specific to the proxy process being run.
+  // It can be used to pass arbitrary configuration for this specific upstream
+  // to the proxy.
+  google.protobuf.Struct Config = 7
+      [(gogoproto.nullable) = true, (gogoproto.moretags) = "bexpr:\"-\""];
+
+  // MeshGateway is the configuration for mesh gateway usage of this upstream
+  MeshGatewayConfig MeshGateway = 8;
+}
+
+// ServiceConnect are the shared Connect settings between all service
+// definitions from the agent to the state store.
+message ServiceConnect {
+  // Native is true when this service can natively understand Connect.
+  bool Native = 1;
+
+  // SidecarService is a nested Service Definition to register at the same time.
+  // It's purely a convenience mechanism to allow specifying a sidecar service
+  // along with the application service definition. It's nested nature allows
+  // all of the fields to be defaulted which can reduce the amount of
+  // boilerplate needed to register a sidecar service separately, but the end
+  // result is identical to just making a second service registration via any
+  // other means.
+  ServiceDefinition SidecarService = 3 [(gogoproto.moretags) = "bexpr:\"-\""];
+}
+
+// Weights represent the weight used by DNS for a given status
+message Weights {
+  int32 Passing = 1 [(gogoproto.casttype) = "int"];
+  int32 Warning = 2 [(gogoproto.casttype) = "int"];
+}
+
+// ExposeConfig describes HTTP paths to expose through Envoy outside of Connect.
+// Users can expose individual paths and/or all HTTP/GRPC paths for checks.
+message ExposeConfig {
+  // Checks defines whether paths associated with Consul checks will be exposed.
+	// This flag triggers exposing all HTTP and GRPC check paths registered for the service.
+	bool Checks = 1;
+
+	// Paths is the list of paths exposed through the proxy.
+	repeated ExposePath Paths = 2;
+}
+
+message ExposePath {
+  // ListenerPort defines the port of the proxy's listener for exposed paths.
+	int32 ListenerPort = 1;
+
+	// ExposePath is the path to expose through the proxy, ie. "/metrics."
+	string Path = 2;
+
+	// LocalPathPort is the port that the service is listening on for the given path.
+	int32 LocalPathPort = 3;
+
+	// Protocol describes the upstream's service protocol.
+	// Valid values are "http" and "http2", defaults to "http"
+	string Protocol = 4;
+
+	// ParsedFromCheck is set if this path was parsed from a registered check
+	bool ParsedFromCheck = 5;
+}
+
+// CheckType is used to create either the CheckMonitor or the CheckTTL.
+// The following types are supported: Script, HTTP, TCP, Docker, TTL, GRPC,
+// Alias. Script,
+// HTTP, Docker, TCP and GRPC all require Interval. Only one of the types may
+// to be provided: TTL or Script/Interval or HTTP/Interval or TCP/Interval or
+// Docker/Interval or GRPC/Interval or AliasService.
+message CheckType {
+  // fields already embedded in CheckDefinition
+  // Note: CheckType.CheckID == CheckDefinition.ID
+
+  string CheckID = 1 [
+    (gogoproto.casttype) = "github.com/hashicorp/consul/types.CheckID",
+    (gogoproto.jsontag) = ""
+  ];
+  string Name = 2;
+  string Status = 3;
+  string Notes = 4;
+
+  // fields copied to CheckDefinition
+  // Update CheckDefinition when adding fields here
+
+  repeated string ScriptArgs = 5;
+  string HTTP = 6;
+  map<string, HeaderValue> Header = 20
+      [(gogoproto.nullable) = false];
+  string Method = 7;
+  string Body = 26;
+  string TCP = 8;
+  google.protobuf.Duration Interval = 9
+      [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
+
+  string AliasNode = 10;
+  string AliasService = 11;
+  string DockerContainerID = 12;
+  string Shell = 13;
+  string GRPC = 14;
+  bool GRPCUseTLS = 15;
+  bool TLSSkipVerify = 16;
+  google.protobuf.Duration Timeout = 17
+      [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
+  google.protobuf.Duration TTL = 18
+      [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
+
+  int32 SuccessBeforePassing = 21;
+	int32 FailuresBeforeCritical = 22;
+
+	// Definition fields used when exposing checks through a proxy
+	string ProxyHTTP = 23;
+	string ProxyGRPC = 24;
+
+  // DeregisterCriticalServiceAfter, if >0, will cause the associated
+  // service, if any, to be deregistered if this check is critical for
+  // longer than this duration.
+  google.protobuf.Duration DeregisterCriticalServiceAfter = 19
+      [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
+
+  int32 OutputMaxSize = 25;
+}
+
+message MeshGatewayConfig {
+    string Mode = 1 [
+        (gogoproto.casttype) =
+            "github.com/hashicorp/consul/agent/structs.MeshGatewayMode" ];
+}
