@@ -378,6 +378,12 @@ proto: $(PROTOGOFILES) $(PROTOGOBINFILES)
 %.pb.go %.pb.binary.go: %.proto
 	@$(SHELL) $(CURDIR)/build-support/scripts/proto-gen.sh --grpc --import-replace "$<"
 
+.PHONY: module-versions
+# Print a list of modules which can be updated.
+# Columns are: module current_version date_of_current_version latest_version
+module-versions:
+	@go list -m -u -f '{{if .Update}} {{printf "%-50v %-40s" .Path .Version}} {{with .Time}} {{ .Format "2006-01-02" -}} {{else}} {{printf "%9s" ""}} {{end}}   {{ .Update.Version}} {{end}}' all
+
 
 .PHONY: all ci bin dev dist cov test test-flake test-internal cover lint ui static-assets tools
 .PHONY: docker-images go-build-image ui-build-image static-assets-docker consul-docker ui-docker
