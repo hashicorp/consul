@@ -39,7 +39,7 @@ const (
 	// DefaultEntryFetchMaxBurst is the default value for cache.entry_fetch_max_burst
 	DefaultEntryFetchMaxBurst = 2
 	// DefaultEntryFetchRateLimit is the default value for cache.entry_fetch_rate_limit
-	DefaultEntryFetchRateLimit = 2.0
+	DefaultEntryFetchRateLimit = float64(rate.Inf)
 )
 
 // Builder constructs a valid runtime configuration from multiple

@@ -969,8 +969,8 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     Since this is a per cache entry limit, having a highly unstable service will only rate
     limit the watched on this service, but not the other services/entries.
     The value is strictly positive, expressed in queries per second as a float,
-    1 means 1 query per second (the default), 0.1 mean 1 request every 10s maximum.
-    The default value is 2 requests/s at maximum and should be decreased on large
+    1 means 1 query per second, 0.1 mean 1 request every 10s maximum.
+    The default value is "No limit" and should be tuned on large
     clusters to avoid performing too many RPCs on entries changing a lot.
 
 - `ca_file` This provides a file path to a PEM-encoded certificate

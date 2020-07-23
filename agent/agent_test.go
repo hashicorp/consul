@@ -4294,8 +4294,6 @@ func TestAgentCache_serviceInConfigFile_initialFetchErrors_Issue6521(t *testing.
 	a2 := StartTestAgent(t, TestAgent{Name: "Agent2", HCL: `
 		server = false
 		bootstrap = false
-		// This test assumes there is not ratelimit in cache
-		cache = { entry_fetch_rate_limit = 10000 }
 services {
   name = "echo-client"
   port = 8080
