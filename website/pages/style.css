@@ -42,6 +42,7 @@
 @import '../components/footer/style.css';
 @import '../components/learn-callout/style.css';
 @import '../components/case-study-carousel/style.css';
+@import '../components/cloud-offerings-list/style.css';
 
 /* Layouts */
 @import '../layouts/use-cases/style.css';

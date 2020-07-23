@@ -41,8 +41,6 @@ export default function BasicHero({
               <div className="third-link">
                 <a
                   href={links[2].url}
-                  rel="noopener noreferrer"
-                  target="_blank"
                 >
                   <span className="g-type-buttons-and-standalone-links">
                     {links[2].text}
