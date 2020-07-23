@@ -1,8 +1,8 @@
-export default function(visitable, creatable, roles, filter) {
+export default function(visitable, creatable, roles, popoverSelect) {
   return {
     visit: visitable('/:dc/acls/roles'),
     roles: roles(),
-    filter: filter(),
+    sort: popoverSelect(),
     ...creatable(),
   };
 }
