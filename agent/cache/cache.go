@@ -82,7 +82,9 @@ type Cache struct {
 	// stopCh is closed when Close is called
 	stopCh chan struct{}
 	// options includes a per Cache Rate limiter specification to avoid performing too many queries
-	options Options
+	options          Options
+	rateLimitContext context.Context
+	rateLimitCancel  context.CancelFunc
 }
 
 // typeEntry is a single type that is registered with a Cache.
@@ -138,12 +140,15 @@ func New(options Options) *Cache {
 	// itself and it'd block forever otherwise.
 	h := &expiryHeap{NotifyCh: make(chan struct{}, 1)}
 	heap.Init(h)
+	ctx, cancel := context.WithCancel(context.Background())
 	c := &Cache{
 		types:             make(map[string]typeEntry),
 		entries:           make(map[string]cacheEntry),
 		entriesExpiryHeap: h,
 		stopCh:            make(chan struct{}),
 		options:           options,
+		rateLimitContext:  ctx,
+		rateLimitCancel:   cancel,
 	}
 
 	// Start the expiry watcher
@@ -512,11 +517,12 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 				Index: entry.Index,
 			}
 		}
-		// TODO(context): handle the error without a panic when context is changed to one that is cancellable
-		if err := entry.FetchRateLimiter.Wait(context.Background()); err != nil {
-			// an error here is a programming error (bursSize is 0) so it is ok to panic, until the context
-			// is changed to one that can be cancelled
-			panic(err)
+		if err := entry.FetchRateLimiter.Wait(c.rateLimitContext); err != nil {
+			if connectedTimer != nil {
+				connectedTimer.Stop()
+			}
+			entry.Error = fmt.Errorf("rateLimitContext canceled: %s", err.Error())
+			return
 		}
 		// Start building the new entry by blocking on the fetch.
 		result, err := r.Fetch(fOpts)
@@ -738,6 +744,7 @@ func (c *Cache) Close() error {
 	if wasStopped == 0 {
 		// First time only, close stop chan
 		close(c.stopCh)
+		c.rateLimitCancel()
 	}
 	return nil
 }
