@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/agentpb"
-	"github.com/hashicorp/consul/agent/agentpb/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
+	"github.com/hashicorp/consul/proto/pbautoconf"
+	"github.com/hashicorp/consul/proto/pbconfig"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/memberlist"
@@ -80,9 +80,9 @@ func signJWTWithStandardClaims(t *testing.T, privKey string, claims interface{})
 //    require running test servers
 func TestAutoConfigInitialConfiguration(t *testing.T) {
 	type testCase struct {
-		request       agentpb.AutoConfigRequest
-		expected      agentpb.AutoConfigResponse
-		patchResponse func(t *testing.T, srv *Server, resp *agentpb.AutoConfigResponse)
+		request       pbautoconf.AutoConfigRequest
+		expected      pbautoconf.AutoConfigResponse
+		patchResponse func(t *testing.T, srv *Server, resp *pbautoconf.AutoConfigResponse)
 		err           string
 	}
 
@@ -107,13 +107,13 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 
 	cases := map[string]testCase{
 		"wrong-datacenter": {
-			request: agentpb.AutoConfigRequest{
+			request: pbautoconf.AutoConfigRequest{
 				Datacenter: "no-such-dc",
 			},
 			err: `invalid datacenter "no-such-dc" - agent auto configuration cannot target a remote datacenter`,
 		},
 		"unverifiable": {
-			request: agentpb.AutoConfigRequest{
+			request: pbautoconf.AutoConfigRequest{
 				Node: "test-node",
 				// this is signed using an incorrect private key
 				JWT: signJWTWithStandardClaims(t, altpriv, map[string]interface{}{"consul_node_name": "test-node"}),
@@ -121,26 +121,26 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 			err: "Permission denied: Failed JWT authorization: no known key successfully validated the token signature",
 		},
 		"claim-assertion-failed": {
-			request: agentpb.AutoConfigRequest{
+			request: pbautoconf.AutoConfigRequest{
 				Node: "test-node",
 				JWT:  signJWTWithStandardClaims(t, priv, map[string]interface{}{"wrong_claim": "test-node"}),
 			},
 			err: "Permission denied: Failed JWT claim assertion",
 		},
 		"good": {
-			request: agentpb.AutoConfigRequest{
+			request: pbautoconf.AutoConfigRequest{
 				Node: "test-node",
 				JWT:  signJWTWithStandardClaims(t, priv, map[string]interface{}{"consul_node_name": "test-node"}),
 			},
-			expected: agentpb.AutoConfigResponse{
-				Config: &config.Config{
+			expected: pbautoconf.AutoConfigResponse{
+				Config: &pbconfig.Config{
 					Datacenter:        "dc1",
 					PrimaryDatacenter: "dc1",
 					NodeName:          "test-node",
-					AutoEncrypt: &config.AutoEncrypt{
+					AutoEncrypt: &pbconfig.AutoEncrypt{
 						TLS: true,
 					},
-					ACL: &config.ACL{
+					ACL: &pbconfig.ACL{
 						Enabled:       true,
 						PolicyTTL:     "30s",
 						TokenTTL:      "30s",
@@ -148,18 +148,18 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 						DisabledTTL:   "0s",
 						DownPolicy:    "extend-cache",
 						DefaultPolicy: "deny",
-						Tokens: &config.ACLTokens{
+						Tokens: &pbconfig.ACLTokens{
 							Agent: "patched-secret",
 						},
 					},
-					Gossip: &config.Gossip{
-						Encryption: &config.GossipEncryption{
+					Gossip: &pbconfig.Gossip{
+						Encryption: &pbconfig.GossipEncryption{
 							Key:            gossipKeyEncoded,
 							VerifyIncoming: true,
 							VerifyOutgoing: true,
 						},
 					},
-					TLS: &config.TLS{
+					TLS: &pbconfig.TLS{
 						VerifyOutgoing:           true,
 						VerifyServerHostname:     true,
 						MinVersion:               "tls12",
@@ -167,7 +167,7 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 					},
 				},
 			},
-			patchResponse: func(t *testing.T, srv *Server, resp *agentpb.AutoConfigResponse) {
+			patchResponse: func(t *testing.T, srv *Server, resp *pbautoconf.AutoConfigResponse) {
 				// we are expecting an ACL token but cannot check anything for equality
 				// so here we check that it was set and overwrite it
 				require.NotNil(t, resp.Config)
@@ -250,7 +250,7 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 
 	for testName, tcase := range cases {
 		t.Run(testName, func(t *testing.T) {
-			var reply agentpb.AutoConfigResponse
+			var reply pbautoconf.AutoConfigResponse
 			err := msgpackrpc.CallWithCodec(codec, "AutoConfig.InitialConfiguration", &tcase.request, &reply)
 			if tcase.err != "" {
 				testutil.RequireErrorContains(t, err, tcase.err)
@@ -269,7 +269,7 @@ func TestAutoConfig_baseConfig(t *testing.T) {
 	type testCase struct {
 		serverConfig Config
 		opts         AutoConfigOptions
-		expected     config.Config
+		expected     pbconfig.Config
 		err          string
 	}
 
@@ -283,7 +283,7 @@ func TestAutoConfig_baseConfig(t *testing.T) {
 				NodeName:    "lBdc0lsH",
 				SegmentName: "HZiwlWpi",
 			},
-			expected: config.Config{
+			expected: pbconfig.Config{
 				Datacenter:        "oSWzfhnU",
 				PrimaryDatacenter: "53XO9mx4",
 				NodeName:          "lBdc0lsH",
@@ -305,7 +305,7 @@ func TestAutoConfig_baseConfig(t *testing.T) {
 				config: &tcase.serverConfig,
 			}
 
-			var actual config.Config
+			var actual pbconfig.Config
 			err := ac.baseConfig(tcase.opts, &actual)
 			if tcase.err == "" {
 				require.NoError(t, err)
@@ -337,7 +337,7 @@ func TestAutoConfig_updateTLSSettingsInConfig(t *testing.T) {
 
 	type testCase struct {
 		tlsConfig tlsutil.Config
-		expected  config.Config
+		expected  pbconfig.Config
 	}
 
 	cases := map[string]testCase{
@@ -350,8 +350,8 @@ func TestAutoConfig_updateTLSSettingsInConfig(t *testing.T) {
 				CAFile:                   cafile,
 				CipherSuites:             parseCiphers(t, "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"),
 			},
-			expected: config.Config{
-				TLS: &config.TLS{
+			expected: pbconfig.Config{
+				TLS: &pbconfig.TLS{
 					VerifyOutgoing:           true,
 					VerifyServerHostname:     true,
 					MinVersion:               "tls12",
@@ -369,8 +369,8 @@ func TestAutoConfig_updateTLSSettingsInConfig(t *testing.T) {
 				CAFile:                   cafile,
 				CipherSuites:             parseCiphers(t, "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"),
 			},
-			expected: config.Config{
-				TLS: &config.TLS{
+			expected: pbconfig.Config{
+				TLS: &pbconfig.TLS{
 					VerifyOutgoing:           true,
 					VerifyServerHostname:     false,
 					MinVersion:               "tls10",
@@ -391,7 +391,7 @@ func TestAutoConfig_updateTLSSettingsInConfig(t *testing.T) {
 				tlsConfigurator: configurator,
 			}
 
-			var actual config.Config
+			var actual pbconfig.Config
 			err = ac.updateTLSSettingsInConfig(AutoConfigOptions{}, &actual)
 			require.NoError(t, err)
 			require.Equal(t, tcase.expected, actual)
@@ -402,7 +402,7 @@ func TestAutoConfig_updateTLSSettingsInConfig(t *testing.T) {
 func TestAutoConfig_updateGossipEncryptionInConfig(t *testing.T) {
 	type testCase struct {
 		conf     memberlist.Config
-		expected config.Config
+		expected pbconfig.Config
 	}
 
 	gossipKey := make([]byte, 32)
@@ -422,9 +422,9 @@ func TestAutoConfig_updateGossipEncryptionInConfig(t *testing.T) {
 				GossipVerifyIncoming: true,
 				GossipVerifyOutgoing: true,
 			},
-			expected: config.Config{
-				Gossip: &config.Gossip{
-					Encryption: &config.GossipEncryption{
+			expected: pbconfig.Config{
+				Gossip: &pbconfig.Gossip{
+					Encryption: &pbconfig.GossipEncryption{
 						Key:            gossipKeyEncoded,
 						VerifyIncoming: true,
 						VerifyOutgoing: true,
@@ -438,9 +438,9 @@ func TestAutoConfig_updateGossipEncryptionInConfig(t *testing.T) {
 				GossipVerifyIncoming: false,
 				GossipVerifyOutgoing: false,
 			},
-			expected: config.Config{
-				Gossip: &config.Gossip{
-					Encryption: &config.GossipEncryption{
+			expected: pbconfig.Config{
+				Gossip: &pbconfig.Gossip{
+					Encryption: &pbconfig.GossipEncryption{
 						Key:            gossipKeyEncoded,
 						VerifyIncoming: false,
 						VerifyOutgoing: false,
@@ -463,7 +463,7 @@ func TestAutoConfig_updateGossipEncryptionInConfig(t *testing.T) {
 				config: cfg,
 			}
 
-			var actual config.Config
+			var actual pbconfig.Config
 			err := ac.updateGossipEncryptionInConfig(AutoConfigOptions{}, &actual)
 			require.NoError(t, err)
 			require.Equal(t, tcase.expected, actual)
@@ -474,7 +474,7 @@ func TestAutoConfig_updateGossipEncryptionInConfig(t *testing.T) {
 func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 	type testCase struct {
 		serverConfig Config
-		expected     config.Config
+		expected     pbconfig.Config
 	}
 
 	cases := map[string]testCase{
@@ -483,8 +483,8 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 				ConnectEnabled:      true,
 				AutoEncryptAllowTLS: true,
 			},
-			expected: config.Config{
-				AutoEncrypt: &config.AutoEncrypt{TLS: true},
+			expected: pbconfig.Config{
+				AutoEncrypt: &pbconfig.AutoEncrypt{TLS: true},
 			},
 		},
 		"auto_encrypt-disabled": {
@@ -492,8 +492,8 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 				ConnectEnabled:      true,
 				AutoEncryptAllowTLS: false,
 			},
-			expected: config.Config{
-				AutoEncrypt: &config.AutoEncrypt{TLS: false},
+			expected: pbconfig.Config{
+				AutoEncrypt: &pbconfig.AutoEncrypt{TLS: false},
 			},
 		},
 	}
@@ -504,7 +504,7 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 				config: &tcase.serverConfig,
 			}
 
-			var actual config.Config
+			var actual pbconfig.Config
 			err := ac.updateTLSCertificatesInConfig(AutoConfigOptions{}, &actual)
 			require.NoError(t, err)
 			require.Equal(t, tcase.expected, actual)
@@ -515,7 +515,7 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 	type testCase struct {
 		config         Config
-		expected       config.Config
+		expected       pbconfig.Config
 		expectACLToken bool
 		err            error
 	}
@@ -542,8 +542,8 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 				ACLEnableKeyListPolicy: true,
 			},
 			expectACLToken: true,
-			expected: config.Config{
-				ACL: &config.ACL{
+			expected: pbconfig.Config{
+				ACL: &pbconfig.ACL{
 					Enabled:             true,
 					PolicyTTL:           "7s",
 					RoleTTL:             "10s",
@@ -552,7 +552,7 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 					DownPolicy:          "deny",
 					DefaultPolicy:       "allow",
 					EnableKeyListPolicy: true,
-					Tokens: &config.ACLTokens{
+					Tokens: &pbconfig.ACLTokens{
 						Agent: tokenSecret,
 					},
 				},
@@ -572,8 +572,8 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 				ACLEnableKeyListPolicy: true,
 			},
 			expectACLToken: false,
-			expected: config.Config{
-				ACL: &config.ACL{
+			expected: pbconfig.Config{
+				ACL: &pbconfig.ACL{
 					Enabled:             false,
 					PolicyTTL:           "7s",
 					RoleTTL:             "10s",
@@ -630,7 +630,7 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 
 			ac := AutoConfig{config: &tcase.config, backend: backend}
 
-			var actual config.Config
+			var actual pbconfig.Config
 			err := ac.updateACLsInConfig(AutoConfigOptions{NodeName: "something"}, &actual)
 			if tcase.err != nil {
 				testutil.RequireErrorContains(t, err, tcase.err.Error())
@@ -651,7 +651,7 @@ func TestAutoConfig_updateJoinAddressesInConfig(t *testing.T) {
 
 	ac := AutoConfig{backend: backend}
 
-	var actual config.Config
+	var actual pbconfig.Config
 	err := ac.updateJoinAddressesInConfig(AutoConfigOptions{}, &actual)
 	require.NoError(t, err)
 

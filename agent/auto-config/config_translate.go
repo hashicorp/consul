@@ -1,16 +1,16 @@
 package autoconf
 
 import (
-	pbconfig "github.com/hashicorp/consul/agent/agentpb/config"
+	"github.com/hashicorp/consul/proto/pbconfig"
 )
 
-// translateAgentConfig is meant to take in a agent/agentpb/config.Config type
+// translateAgentConfig is meant to take in a proto/pbconfig.Config type
 // and craft the corresponding agent/config.Config type. The need for this function
 // should eventually be removed with the protobuf and normal version converging.
 // In the meantime, its not desirable to have the flatter Config struct in protobufs
 // as in the long term we want a configuration with more nested groupings.
 //
-// Why is this function not in the agent/agentpb/config package? The answer, that
+// Why is this function not in the proto/pbconfig package? The answer, that
 // package cannot import the agent/config package without running into import cycles.
 //
 // If this function is meant to output an agent/config.Config then why does it output
