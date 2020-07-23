@@ -4413,7 +4413,8 @@ func TestFullConfig(t *testing.T) {
 			"bootstrap": true,
 			"bootstrap_expect": 53,
 			"cache": {
-				"entry_fetch_rate_limit": 1
+				"entry_fetch_max_burst": 42,
+				"entry_fetch_rate_limit": 0.334
 			},
 			"ca_file": "erA7T0PM",
 			"ca_path": "mQEN1Mfp",
@@ -5076,7 +5077,8 @@ func TestFullConfig(t *testing.T) {
 			bootstrap = true
 			bootstrap_expect = 53
 			cache = {
-				entry_fetch_rate_limit = 1
+				entry_fetch_max_burst = 42
+				entry_fetch_rate_limit = 0.334
 			},
 			ca_file = "erA7T0PM"
 			ca_path = "mQEN1Mfp"
@@ -5805,8 +5807,8 @@ func TestFullConfig(t *testing.T) {
 		Bootstrap:                        true,
 		BootstrapExpect:                  53,
 		Cache: cache.Options{
-			EntryFetchMaxBurst:  2,
-			EntryFetchRateLimit: 1,
+			EntryFetchMaxBurst:  42,
+			EntryFetchRateLimit: 0.334,
 		},
 		CAFile:             "erA7T0PM",
 		CAPath:             "mQEN1Mfp",
@@ -6691,8 +6693,8 @@ func TestSanitize(t *testing.T) {
 			&net.UnixAddr{Name: "/var/run/foo"},
 		},
 		Cache: cache.Options{
-			EntryFetchMaxBurst:  2,
-			EntryFetchRateLimit: 1,
+			EntryFetchMaxBurst:  42,
+			EntryFetchRateLimit: 0.334,
 		},
 		ConsulCoordinateUpdatePeriod: 15 * time.Second,
 		RetryJoinLAN: []string{
@@ -6765,8 +6767,8 @@ func TestSanitize(t *testing.T) {
 		"Bootstrap": false,
 		"BootstrapExpect": 0,
 		"Cache": {
-			"EntryFetchMaxBurst": 2,
-			"EntryFetchRateLimit": 1
+			"EntryFetchMaxBurst": 42,
+			"EntryFetchRateLimit": 0.334
 		},
 		"CAFile": "",
 		"CAPath": "",

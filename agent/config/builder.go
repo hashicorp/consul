@@ -33,6 +33,15 @@ import (
 	"golang.org/x/time/rate"
 )
 
+// The following constants are default values for some settings
+// Ensure to update documentation if you modify those values
+const (
+	// DefaultEntryFetchMaxBurst is the default value for cache.entry_fetch_max_burst
+	DefaultEntryFetchMaxBurst = 2
+	// DefaultEntryFetchRateLimit is the default value for cache.entry_fetch_rate_limit
+	DefaultEntryFetchRateLimit = 2.0
+)
+
 // Builder constructs a valid runtime configuration from multiple
 // configuration sources.
 //
@@ -889,8 +898,10 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		Bootstrap:        b.boolVal(c.Bootstrap),
 		BootstrapExpect:  b.intVal(c.BootstrapExpect),
 		Cache: cache.Options{
-			EntryFetchRateLimit: rate.Limit(b.float64ValWithDefault(c.Cache.EntryFetchRateLimit, 1)),
-			EntryFetchMaxBurst:  b.intValWithDefault(c.Cache.EntryFetchMaxBurst, 2),
+			EntryFetchRateLimit: rate.Limit(
+				b.float64ValWithDefault(c.Cache.EntryFetchRateLimit, DefaultEntryFetchRateLimit)),
+			EntryFetchMaxBurst: b.intValWithDefault(
+				c.Cache.EntryFetchMaxBurst, DefaultEntryFetchMaxBurst),
 		},
 		CAFile:                                 b.stringVal(c.CAFile),
 		CAPath:                                 b.stringVal(c.CAPath),
