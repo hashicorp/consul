@@ -14,8 +14,8 @@
           (array "SourceName:desc" "Source: Z to A")
           (array "DestinationName:asc" "Destination: A to Z")
           (array "DestinationName:desc" "Destination: Z to A")
-          (array "Precedence:asc" "Precedence: Ascending")
-          (array "Precedence:desc" "Precedence: Descending")
+          (array "Precedence:asc" "Precedence: Asc")
+          (array "Precedence:desc" "Precedence: Desc")
             selected=sortBy
         )
         as |sort|
@@ -45,7 +45,7 @@
     {{/if}}
         </BlockSlot>
         <BlockSlot @name="content">
-          {{#let (sort-by (comparator 'service' sort.selected.key) api.data) as |sorted|}}
+          {{#let (sort-by (comparator 'intention' sort.selected.key) api.data) as |sorted|}}
             <ChangeableSet @dispatcher={{searchable 'intention' sorted}} @terms={{search}}>
               <BlockSlot @name="content" as |filtered|>
                 <ConsulIntentionList
