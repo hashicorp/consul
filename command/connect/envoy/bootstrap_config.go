@@ -11,6 +11,10 @@ import (
 	"text/template"
 )
 
+const (
+	selfAdminName = "self_admin"
+)
+
 // BootstrapConfig is the set of keys we care about in a Connect.Proxy.Config
 // map. Note that this only includes config keys that affects Envoy bootstrap
 // generation. For Envoy config keys that affect runtime xDS behavior see
@@ -70,7 +74,7 @@ type BootstrapConfig struct {
 	// liveness of an Envoy instance when no other listeners are garaunteed to be
 	// configured, as is the case with ingress gateways.
 	//
-	// Not that we do not allow this to be configured via the service
+	// Note that we do not allow this to be configured via the service
 	// definition config map currently.
 	ReadyBindAddr string `mapstructure:"-"`
 
@@ -405,7 +409,7 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 	}
 
 	clusterJSON := `{
-		"name": "self_admin",
+		"name": "` + selfAdminName + `",
 		"connect_timeout": "5s",
 		"type": "STATIC",
 		"http_protocol_options": {},
@@ -476,14 +480,43 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 		]
 	}`
 
-	if args.StaticClustersJSON != "" {
-		clusterJSON = ",\n" + clusterJSON
+	// Make sure we do not append the same cluster multiple times, as that will
+	// cause envoy startup to fail.
+	selfAdminClusterExists, err := containsSelfAdminCluster(args.StaticClustersJSON)
+	if err != nil {
+		return err
 	}
-	args.StaticClustersJSON += clusterJSON
+
+	if args.StaticClustersJSON == "" {
+		args.StaticClustersJSON = clusterJSON
+	} else if !selfAdminClusterExists {
+		args.StaticClustersJSON += ",\n" + clusterJSON
+	}
 
 	if args.StaticListenersJSON != "" {
 		listenerJSON = ",\n" + listenerJSON
 	}
 	args.StaticListenersJSON += listenerJSON
 	return nil
+}
+
+func containsSelfAdminCluster(clustersJSON string) (bool, error) {
+	clusterNames := []struct {
+		Name string
+	}{}
+
+	// StaticClustersJSON is defined as a comma-separated list of clusters, so we
+	// need to wrap it in JSON array brackets
+	err := json.Unmarshal([]byte("["+clustersJSON+"]"), &clusterNames)
+	if err != nil {
+		return false, fmt.Errorf("failed to parse static clusters: %s", err)
+	}
+
+	for _, cluster := range clusterNames {
+		if cluster.Name == selfAdminName {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
