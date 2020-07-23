@@ -9,6 +9,12 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+const (
+	DefaultCARotationPeriod    = "2160h"
+	DefaultLeafCertTTL         = "72h"
+	DefaultIntermediateCertTTL = "8760h" // 365 * 24h
+)
+
 // IndexedCARoots is the list of currently trusted CA Roots.
 type IndexedCARoots struct {
 	// ActiveRootID is the ID of a root in Roots that is the active CA root.
