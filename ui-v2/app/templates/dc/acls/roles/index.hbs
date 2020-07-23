@@ -3,6 +3,17 @@
 {{else}}
   {{title 'Access Controls'}}
 {{/if}}
+
+{{#let (selectable-key-values
+    (array "Name:asc" "A to Z")
+    (array "Name:desc" "Z to A")
+    (array "CreateIndex:asc" "Newest to oldest")
+    (array "CreateIndex:desc" "Oldest to newest")
+      selected=sortBy
+  )
+  as |sort|
+}}
+
 <AppView
   @class="role list"
   @loading={{isLoading}}
@@ -31,17 +42,24 @@
   <BlockSlot @name="actions">
     <a data-test-create href="{{href-to 'dc.acls.roles.create'}}" class="type-create">Create</a>
   </BlockSlot>
-  <BlockSlot @name="content">
-{{#if (gt items.length 0) }}
+  <BlockSlot @name="toolbar">
+  {{#if (gt items.length 0) }}
     <SearchBar
       @value={{search}}
       @onsearch={{action (mut search) value="target.value"}}
+      @secondary="sort"
+      @selected={{sort.selected}}
+      @options={{sort.items}}
+      @onchange={{action (mut sortBy) value='target.value'}}
     />
-{{/if}}
-    <ChangeableSet @dispatcher={{searchable 'role' items}} @terms={{search}}>
+  {{/if}}
+  </BlockSlot>
+  <BlockSlot @name="content">
+  {{#let (sort-by (comparator 'role' sort.selected.key) items) as |sorted|}}
+    <ChangeableSet @dispatcher={{searchable 'role' sorted}} @terms={{search}}>
       <BlockSlot @name="set" as |filtered|>
         <ConsulRoleList
-          @items={{sort-by "CreateTime:desc" "Name:asc" filtered}}
+          @items={{filtered}}
           @ondelete={{action send 'delete'}}
         />
       </BlockSlot>
@@ -76,5 +94,7 @@
         </EmptyState>
       </BlockSlot>
     </ChangeableSet>
+  {{/let}}
   </BlockSlot>
 </AppView>
+{{/let}}
