@@ -103,8 +103,7 @@ func (e *EventPublisher) handleUpdates(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			// TODO: also close all subscriptions so the subscribers are moved
-			// to the new publisher?
+			e.subscriptions.closeAll()
 			return
 		case update := <-e.publishCh:
 			e.sendEvents(update)
@@ -245,6 +244,17 @@ func (s *subscriptions) unsubscribe(req *SubscribeRequest) func() {
 		delete(subsByToken, req)
 		if len(subsByToken) == 0 {
 			delete(s.byToken, req.Token)
+		}
+	}
+}
+
+func (s *subscriptions) closeAll() {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	for _, byRequest := range s.byToken {
+		for _, sub := range byRequest {
+			sub.forceClose()
 		}
 	}
 }
