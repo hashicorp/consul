@@ -1460,38 +1460,12 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 		base.ConnectEnabled = true
 		base.ConnectMeshGatewayWANFederationEnabled = a.config.ConnectMeshGatewayWANFederationEnabled
 
-		// Allow config to specify cluster_id provided it's a valid UUID. This is
-		// meant only for tests where a deterministic ID makes fixtures much simpler
-		// to work with but since it's only read on initial cluster bootstrap it's not
-		// that much of a liability in production. The worst a user could do is
-		// configure logically separate clusters with same ID by mistake but we can
-		// avoid documenting this is even an option.
-		if clusterID, ok := a.config.ConnectCAConfig["cluster_id"]; ok {
-			if cIDStr, ok := clusterID.(string); ok {
-				if _, err := uuid.ParseUUID(cIDStr); err == nil {
-					// Valid UUID configured, use that
-					base.CAConfig.ClusterID = cIDStr
-				}
-			}
-			if base.CAConfig.ClusterID == "" {
-				// If the tried to specify an ID but typoed it don't ignore as they will
-				// then bootstrap with a new ID and have to throw away the whole cluster
-				// and start again.
-				a.logger.Error("connect CA config cluster_id specified but " +
-					"is not a valid UUID, aborting startup")
-				return nil, fmt.Errorf("cluster_id was supplied but was not a valid UUID")
-			}
+		ca, err := a.config.ConnectCAConfiguration()
+		if err != nil {
+			return nil, err
 		}
 
-		if a.config.ConnectCAProvider != "" {
-			base.CAConfig.Provider = a.config.ConnectCAProvider
-		}
-
-		// Merge connect CA Config regardless of provider (since there are some
-		// common config options valid to all like leaf TTL).
-		for k, v := range a.config.ConnectCAConfig {
-			base.CAConfig.Config[k] = v
-		}
+		base.CAConfig = ca
 	}
 
 	// copy over auto config settings
