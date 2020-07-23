@@ -28,4 +28,19 @@
       }
     }
   }
+
+  & section.cloud-offerings {
+    padding-top: 88px;
+    padding-bottom: 88px;
+
+    & h2 {
+      margin: 0 auto;
+      text-align: center;
+      max-width: 475px;
+      margin-bottom: 64px;
+      @media (max-width: 800px) {
+        margin-bottom: 48px;
+      }
+    }
+  }
 }
