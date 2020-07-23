@@ -6,11 +6,11 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/agentpb"
-	"github.com/hashicorp/consul/agent/agentpb/config"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/template"
+	"github.com/hashicorp/consul/proto/pbautoconf"
+	config "github.com/hashicorp/consul/proto/pbconfig"
 	"github.com/hashicorp/consul/tlsutil"
 	bexpr "github.com/hashicorp/go-bexpr"
 )
@@ -23,12 +23,12 @@ type AutoConfigOptions struct {
 type AutoConfigAuthorizer interface {
 	// Authorizes the request and returns a struct containing the various
 	// options for how to generate the configuration.
-	Authorize(*agentpb.AutoConfigRequest) (AutoConfigOptions, error)
+	Authorize(*pbautoconf.AutoConfigRequest) (AutoConfigOptions, error)
 }
 
 type disabledAuthorizer struct{}
 
-func (_ *disabledAuthorizer) Authorize(_ *agentpb.AutoConfigRequest) (AutoConfigOptions, error) {
+func (_ *disabledAuthorizer) Authorize(_ *pbautoconf.AutoConfigRequest) (AutoConfigOptions, error) {
 	return AutoConfigOptions{}, fmt.Errorf("Auto Config is disabled")
 }
 
@@ -38,7 +38,7 @@ type jwtAuthorizer struct {
 	claimAssertions []string
 }
 
-func (a *jwtAuthorizer) Authorize(req *agentpb.AutoConfigRequest) (AutoConfigOptions, error) {
+func (a *jwtAuthorizer) Authorize(req *pbautoconf.AutoConfigRequest) (AutoConfigOptions, error) {
 	// perform basic JWT Authorization
 	identity, err := a.validator.ValidateLogin(context.Background(), req.JWT)
 	if err != nil {
@@ -257,7 +257,7 @@ var (
 
 // AgentAutoConfig will authorize the incoming request and then generate the configuration
 // to push down to the client
-func (ac *AutoConfig) InitialConfiguration(req *agentpb.AutoConfigRequest, resp *agentpb.AutoConfigResponse) error {
+func (ac *AutoConfig) InitialConfiguration(req *pbautoconf.AutoConfigRequest, resp *pbautoconf.AutoConfigResponse) error {
 	// default the datacenter to our datacenter - agents do not have to specify this as they may not
 	// yet know the datacenter name they are going to be in.
 	if req.Datacenter == "" {

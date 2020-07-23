@@ -1,6 +1,8 @@
 syntax = "proto3";
 
-package agentpb;
+package common;
+
+option go_package = "github.com/hashicorp/consul/proto/pbcommon";
 
 import "google/protobuf/duration.proto";
 // Go Modules now includes the version in the filepath for packages within GOPATH/pkg/mode

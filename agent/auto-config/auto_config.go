@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/agent/agentpb"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto/pbautoconf"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/go-discover"
 	discoverk8s "github.com/hashicorp/go-discover/provider/k8s"
@@ -234,7 +234,7 @@ func (ac *AutoConfig) restorePersistedAutoConfig() (bool, error) {
 }
 
 // InitialConfiguration will perform a one-time RPC request to the configured servers
-// to retrieve various cluster wide configurations. See the agent/agentpb/auto_config.proto
+// to retrieve various cluster wide configurations. See the proto/pbautoconf/auto_config.proto
 // file for a complete reference of what configurations can be applied in this manner.
 // The returned configuration will be the new configuration with any auto-config settings
 // already applied. If AutoConfig is not enabled this method will just parse any
@@ -391,7 +391,7 @@ func (ac *AutoConfig) resolveHost(hostPort string) []net.TCPAddr {
 // recordAutoConfigReply takes an AutoConfig RPC reply records it with the agent
 // This will persist the configuration to disk (unless in dev mode running without
 // a data dir) and will reload the configuration.
-func (ac *AutoConfig) recordAutoConfigReply(reply *agentpb.AutoConfigResponse) error {
+func (ac *AutoConfig) recordAutoConfigReply(reply *pbautoconf.AutoConfigResponse) error {
 	// overwrite the auto encrypt DNS SANs with the ones specified in the auto_config stanza
 	if len(ac.config.AutoConfig.DNSSANs) > 0 && reply.Config.AutoEncrypt != nil {
 		reply.Config.AutoEncrypt.DNSSAN = ac.config.AutoConfig.DNSSANs
@@ -441,14 +441,14 @@ func (ac *AutoConfig) getInitialConfigurationOnce(ctx context.Context) (bool, er
 		return false, err
 	}
 
-	request := agentpb.AutoConfigRequest{
+	request := pbautoconf.AutoConfigRequest{
 		Datacenter: ac.config.Datacenter,
 		Node:       ac.config.NodeName,
 		Segment:    ac.config.SegmentName,
 		JWT:        token,
 	}
 
-	var reply agentpb.AutoConfigResponse
+	var reply pbautoconf.AutoConfigResponse
 
 	servers, err := ac.autoConfigHosts()
 	if err != nil {

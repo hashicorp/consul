@@ -1,6 +1,9 @@
 syntax = "proto3";
 
-package agentpb;
+package acl;
+
+option go_package = "github.com/hashicorp/consul/proto/pbacl";
+
 
 // Go Modules now includes the version in the filepath for packages within GOPATH/pkg/mode
 // Therefore unless we want to hardcode a version here like

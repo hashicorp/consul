@@ -1,4 +1,4 @@
-package agentpb
+package pbautoconf
 
 func (req *AutoConfigRequest) RequestDatacenter() string {
 	return req.Datacenter
