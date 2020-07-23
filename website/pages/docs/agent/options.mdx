@@ -962,7 +962,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     for a long time, 2 successive queries can be made as long as the rate-limit is not
     reached.
 
-  - `entry_fetch_rate_limit`: configures the rate-limit at which the cache may refresh a single
+  - `entry_fetch_rate`: configures the rate-limit at which the cache may refresh a single
     entry. On a cluster with many changes/s, watching changes in the cache might put high
     pressure on the servers. This ensures the number of requests for a single cache entry
     will never go beyond this limit, even when a given service changes every 1/100s.

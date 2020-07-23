@@ -38,8 +38,8 @@ import (
 const (
 	// DefaultEntryFetchMaxBurst is the default value for cache.entry_fetch_max_burst
 	DefaultEntryFetchMaxBurst = 2
-	// DefaultEntryFetchRateLimit is the default value for cache.entry_fetch_rate_limit
-	DefaultEntryFetchRateLimit = float64(rate.Inf)
+	// DefaultEntryFetchRate is the default value for cache.entry_fetch_rate
+	DefaultEntryFetchRate = float64(rate.Inf)
 )
 
 // Builder constructs a valid runtime configuration from multiple
@@ -898,8 +898,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		Bootstrap:        b.boolVal(c.Bootstrap),
 		BootstrapExpect:  b.intVal(c.BootstrapExpect),
 		Cache: cache.Options{
-			EntryFetchRateLimit: rate.Limit(
-				b.float64ValWithDefault(c.Cache.EntryFetchRateLimit, DefaultEntryFetchRateLimit)),
+			EntryFetchRate: rate.Limit(
+				b.float64ValWithDefault(c.Cache.EntryFetchRate, DefaultEntryFetchRate)),
 			EntryFetchMaxBurst: b.intValWithDefault(
 				c.Cache.EntryFetchMaxBurst, DefaultEntryFetchMaxBurst),
 		},
@@ -1033,8 +1033,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	if rt.Cache.EntryFetchMaxBurst <= 0 {
 		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_max_burst must be strictly positive, was: %v", rt.Cache.EntryFetchMaxBurst)
 	}
-	if rt.Cache.EntryFetchRateLimit <= 0 {
-		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_rate_limit must be strictly positive, was: %v", rt.Cache.EntryFetchRateLimit)
+	if rt.Cache.EntryFetchRate <= 0 {
+		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_rate must be strictly positive, was: %v", rt.Cache.EntryFetchRate)
 	}
 
 	if entCfg, err := b.BuildEnterpriseRuntimeConfig(&c); err != nil {

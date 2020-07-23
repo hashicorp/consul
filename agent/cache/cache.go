@@ -126,8 +126,8 @@ type ResultMeta struct {
 type Options struct {
 	// EntryFetchMaxBurst max burst size of RateLimit for a single cache entry
 	EntryFetchMaxBurst int
-	// EntryFetchRateLimit represents the max calls/sec for a single cache entry
-	EntryFetchRateLimit rate.Limit
+	// EntryFetchRate represents the max calls/sec for a single cache entry
+	EntryFetchRate rate.Limit
 }
 
 // New creates a new cache with the given RPC client and reasonable defaults.
@@ -462,7 +462,7 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 			Valid:  false,
 			Waiter: make(chan struct{}),
 			FetchRateLimiter: rate.NewLimiter(
-				c.options.EntryFetchRateLimit,
+				c.options.EntryFetchRate,
 				c.options.EntryFetchMaxBurst,
 			),
 		}
@@ -758,7 +758,7 @@ func (c *Cache) Prepopulate(t string, res FetchResult, dc, token, k string) erro
 		Waiter:    make(chan struct{}),
 		Expiry:    &cacheEntryExpiry{Key: key},
 		FetchRateLimiter: rate.NewLimiter(
-			c.options.EntryFetchRateLimit,
+			c.options.EntryFetchRate,
 			c.options.EntryFetchMaxBurst,
 		),
 	}

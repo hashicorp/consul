@@ -877,7 +877,7 @@ func TestCacheRateLimit(test *testing.T) {
 		test.Run(fmt.Sprintf("rate_limit_at_%v", currentTest.rateLimit), func(t *testing.T) {
 			tt := currentTest
 			t.Parallel()
-			a := NewTestAgent(t, fmt.Sprintf("cache = { entry_fetch_rate_limit = %v, entry_fetch_max_burst = 1 }", tt.rateLimit))
+			a := NewTestAgent(t, fmt.Sprintf("cache = { entry_fetch_rate = %v, entry_fetch_max_burst = 1 }", tt.rateLimit))
 			defer a.Shutdown()
 			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 

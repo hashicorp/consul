@@ -62,8 +62,8 @@ func Parse(data string, format string) (c Config, md mapstructure.Metadata, err 
 type Cache struct {
 	// EntryFetchMaxBurst max burst size of RateLimit for a single cache entry
 	EntryFetchMaxBurst *int `json:"entry_fetch_max_burst,omitempty" hcl:"entry_fetch_max_burst" mapstructure:"entry_fetch_max_burst"`
-	// EntryFetchRateLimit represents the max calls/sec for a single cache entry
-	EntryFetchRateLimit *float64 `json:"entry_fetch_rate_limit,omitempty" hcl:"entry_fetch_rate_limit" mapstructure:"entry_fetch_rate_limit"`
+	// EntryFetchRate represents the max calls/sec for a single cache entry
+	EntryFetchRate *float64 `json:"entry_fetch_rate,omitempty" hcl:"entry_fetch_rate" mapstructure:"entry_fetch_rate"`
 }
 
 // Config defines the format of a configuration file in either JSON or
