@@ -17,15 +17,14 @@ cat <<-EOF
 Usage: ${SCRIPT_NAME} [<options ...>] <proto filepath>
 
 Description:
-   This script will build generate the Go files from protobuf files. In addition to
-   just running the correct protoc generator it will also fixup build tags in the
+   Generate the Go files from protobuf definitions. In addition to
+   running the protoc generator it will also fixup build tags in the
    generated code.
 
 Options:
    --import-replace         Replace imports of google types with those from the gogo/protobuf repo.
    --grpc                   Enable the gRPC plugin
-
-   -h | --help                   Print this help text.
+   -h | --help              Print this help text.
 EOF
 }
 
@@ -74,6 +73,7 @@ function main {
    local gogo_proto_imp_replace="Mgoogle/protobuf/timestamp.proto=github.com/gogo/protobuf/types"
    gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/protobuf/duration.proto=github.com/gogo/protobuf/types"
    gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/protobuf/empty.proto=github.com/gogo/protobuf/types"
+   gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/protobuf/struct.proto=github.com/gogo/protobuf/types"
    gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/api/annotations.proto=github.com/gogo/googleapis/google/api"
    gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/protobuf/field_mask.proto=github.com/gogo/protobuf/types"
 
