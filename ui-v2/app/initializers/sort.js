@@ -3,6 +3,7 @@ import check from 'consul-ui/sort/comparators/check';
 import intention from 'consul-ui/sort/comparators/intention';
 import token from 'consul-ui/sort/comparators/token';
 import role from 'consul-ui/sort/comparators/role';
+import policy from 'consul-ui/sort/comparators/policy';
 
 export function initialize(container) {
   // Service-less injection using private properties at a per-project level
@@ -13,6 +14,7 @@ export function initialize(container) {
     intention: intention(),
     token: token(),
     role: role(),
+    policy: policy(),
   };
   Sort.reopen({
     comparator: function(type) {

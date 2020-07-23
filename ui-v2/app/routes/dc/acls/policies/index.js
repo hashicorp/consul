@@ -7,6 +7,7 @@ import WithPolicyActions from 'consul-ui/mixins/policy/with-actions';
 export default Route.extend(WithPolicyActions, {
   repo: service('repository/policy'),
   queryParams: {
+    sortBy: 'sort',
     search: {
       as: 'filter',
       replace: true,
