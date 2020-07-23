@@ -1,0 +1,11 @@
+// +build !consulent
+
+syntax = "proto3";
+
+package common;
+
+option go_package = "github.com/hashicorp/consul/proto/pbcommon";
+
+message EnterpriseMeta {
+	// no fields in oss
+}

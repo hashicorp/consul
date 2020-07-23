@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-package agentpb;
+package autoconf;
 
-option go_package = "github.com/hashicorp/consul/agent/agentpb";
+option go_package = "github.com/hashicorp/consul/proto/pbautoconf";
 
-import "agent/agentpb/config/config.proto";
+import "proto/pbconfig/config.proto";
 
 // AutoConfigRequest is the data structure to be sent along with the 
 // AutoConfig.InitialConfiguration RPC
