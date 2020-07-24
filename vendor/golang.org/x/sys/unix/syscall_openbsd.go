@@ -55,23 +55,6 @@ func direntNamlen(buf []byte) (uint64, bool) {
 	return readInt(buf, unsafe.Offsetof(Dirent{}.Namlen), unsafe.Sizeof(Dirent{}.Namlen))
 }
 
-func SysctlClockinfo(name string) (*Clockinfo, error) {
-	mib, err := sysctlmib(name)
-	if err != nil {
-		return nil, err
-	}
-
-	n := uintptr(SizeofClockinfo)
-	var ci Clockinfo
-	if err := sysctl(mib, (*byte)(unsafe.Pointer(&ci)), &n, nil, 0); err != nil {
-		return nil, err
-	}
-	if n != SizeofClockinfo {
-		return nil, EIO
-	}
-	return &ci, nil
-}
-
 func SysctlUvmexp(name string) (*Uvmexp, error) {
 	mib, err := sysctlmib(name)
 	if err != nil {
@@ -248,6 +231,7 @@ func Uname(uname *Utsname) error {
 //sys	Close(fd int) (err error)
 //sys	Dup(fd int) (nfd int, err error)
 //sys	Dup2(from int, to int) (err error)
+//sys	Dup3(from int, to int, flags int) (err error)
 //sys	Exit(code int)
 //sys	Faccessat(dirfd int, path string, mode uint32, flags int) (err error)
 //sys	Fchdir(fd int) (err error)
@@ -352,7 +336,6 @@ func Uname(uname *Utsname) error {
 // clock_settime
 // closefrom
 // execve
-// fcntl
 // fhopen
 // fhstat
 // fhstatfs
