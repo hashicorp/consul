@@ -148,18 +148,19 @@ export default [
     category: 'connect',
     content: [
       'configuration',
+      'connectivity-tasks',
+      'connect-internals',
       'observability',
       'l7-traffic-management',
       'intentions',
-      'connect-internals',
       {
         category: 'proxies',
         content: ['envoy', 'built-in', 'integrate'],
       },
-      'mesh-gateway',
-      'wan-federation-via-mesh-gateways',
-      'ingress-gateway',
-      'terminating-gateway',
+      {
+        category: 'gateways',
+        content: [ 'mesh-gateway', 'wan-federation-via-mesh-gateways', 'ingress-gateway', 'terminating-gateway'],
+      },
       {
         category: 'registration',
         content: ['service-registration', 'sidecar-service'],

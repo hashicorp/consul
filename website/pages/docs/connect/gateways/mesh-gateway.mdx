@@ -16,7 +16,7 @@ Mesh gateways enable routing of Connect traffic between different Consul datacen
 can reside in different clouds or runtime environments where general interconnectivity between all services
 in all datacenters isn't feasible. These gateways operate by sniffing the SNI header out of the Connect session
 and then route the connection to the appropriate destination based on the server name requested. The data
-within the Connect session is not decrypted by the Gateway.
+within the mTLS session is not decrypted by the Gateway.
 
 ![Mesh Gateway Architecture](/img/mesh-gateways.png)
 
