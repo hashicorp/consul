@@ -37,6 +37,7 @@
 /docs/connect/ingress_gateway.html                   /docs/connect/ingress-gateway                     301!
 /docs/connect/terminating_gateway.html               /docs/connect/terminating-gateway                 301!
 /docs/k8s/connect                                    /docs/k8s/connect/overview                        301!
+/docs/k8s/connect.html                               /docs/k8s/connect/overview                        301!
 
 # CLI renames
 
