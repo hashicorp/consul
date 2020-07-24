@@ -1,17 +1,12 @@
 package consul
 
 import (
-	"context"
 	"errors"
 	"fmt"
-	"net/url"
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
-
-	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
@@ -324,55 +319,12 @@ func (s *ConnectCA) Roots(
 	return s.srv.blockingQuery(
 		&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, roots, config, err := state.CARootsAndConfig(ws)
+			roots, err := s.srv.getCARoots(ws, state)
 			if err != nil {
 				return err
 			}
 
-			if config != nil {
-				// Build TrustDomain based on the ClusterID stored.
-				signingID := connect.SpiffeIDSigningForCluster(config)
-				if signingID == nil {
-					// If CA is bootstrapped at all then this should never happen but be
-					// defensive.
-					return errors.New("no cluster trust domain setup")
-				}
-				reply.TrustDomain = signingID.Host()
-			}
-
-			reply.Index, reply.Roots = index, roots
-			if reply.Roots == nil {
-				reply.Roots = make(structs.CARoots, 0)
-			}
-
-			// The API response must NEVER contain the secret information
-			// such as keys and so on. We use an allowlist below to copy the
-			// specific fields we want to expose.
-			for i, r := range reply.Roots {
-				// IMPORTANT: r must NEVER be modified, since it is a pointer
-				// directly to the structure in the memdb store.
-
-				reply.Roots[i] = &structs.CARoot{
-					ID:                  r.ID,
-					Name:                r.Name,
-					SerialNumber:        r.SerialNumber,
-					SigningKeyID:        r.SigningKeyID,
-					ExternalTrustDomain: r.ExternalTrustDomain,
-					NotBefore:           r.NotBefore,
-					NotAfter:            r.NotAfter,
-					RootCert:            r.RootCert,
-					IntermediateCerts:   r.IntermediateCerts,
-					RaftIndex:           r.RaftIndex,
-					Active:              r.Active,
-					PrivateKeyType:      r.PrivateKeyType,
-					PrivateKeyBits:      r.PrivateKeyBits,
-				}
-
-				if r.Active {
-					reply.ActiveRootID = r.ID
-				}
-			}
-
+			*reply = *roots
 			return nil
 		},
 	)
@@ -403,64 +355,21 @@ func (s *ConnectCA) Sign(
 		return err
 	}
 
-	provider, caRoot := s.srv.getCAProvider()
-	if provider == nil {
-		return fmt.Errorf("internal error: CA provider is nil")
-	} else if caRoot == nil {
-		return fmt.Errorf("internal error: CA root is nil")
-	}
-
-	// Verify that the CSR entity is in the cluster's trust domain
-	state := s.srv.fsm.State()
-	_, config, err := state.CAConfig(nil)
+	// Verify that the ACL token provided has permission to act as this service
+	rule, err := s.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	signingID := connect.SpiffeIDSigningForCluster(config)
+
+	var authzContext acl.AuthorizerContext
+	var entMeta structs.EnterpriseMeta
+
 	serviceID, isService := spiffeID.(*connect.SpiffeIDService)
 	agentID, isAgent := spiffeID.(*connect.SpiffeIDAgent)
 	if !isService && !isAgent {
 		return fmt.Errorf("SPIFFE ID in CSR must be a service or agent ID")
 	}
 
-	if isService {
-		if !signingID.CanSign(spiffeID) {
-			return fmt.Errorf("SPIFFE ID in CSR from a different trust domain: %s, "+
-				"we are %s", serviceID.Host, signingID.Host())
-		}
-	} else {
-		// isAgent - if we support more ID types then this would need to be an else if
-		// here we are just automatically fixing the trust domain. For auto-encrypt and
-		// auto-config they make certificate requests before learning about the roots
-		// so they will have a dummy trust domain in the CSR.
-		trustDomain := signingID.Host()
-		if agentID.Host != trustDomain {
-			originalURI := agentID.URI()
-
-			agentID.Host = trustDomain
-			csr.Subject.CommonName = connect.AgentCN(agentID.Agent, trustDomain)
-
-			// recreate the URIs list
-			uris := make([]*url.URL, len(csr.URIs))
-			for i, uri := range csr.URIs {
-				if originalURI.String() == uri.String() {
-					uris[i] = agentID.URI()
-				} else {
-					uris[i] = uri
-				}
-			}
-
-			csr.URIs = uris
-		}
-	}
-
-	// Verify that the ACL token provided has permission to act as this service
-	rule, err := s.srv.ResolveToken(args.Token)
-	if err != nil {
-		return err
-	}
-	var authzContext acl.AuthorizerContext
-	var entMeta structs.EnterpriseMeta
 	if isService {
 		entMeta.Merge(serviceID.GetEnterpriseMeta())
 		entMeta.FillAuthzContext(&authzContext)
@@ -481,106 +390,11 @@ func (s *ConnectCA) Sign(
 		}
 	}
 
-	commonCfg, err := config.GetCommonConfig()
+	cert, err := s.srv.SignCertificate(csr, spiffeID)
 	if err != nil {
 		return err
 	}
-	if commonCfg.CSRMaxPerSecond > 0 {
-		lim := s.srv.caLeafLimiter.getCSRRateLimiterWithLimit(rate.Limit(commonCfg.CSRMaxPerSecond))
-		// Wait up to the small threshold we allow for a token.
-		ctx, cancel := context.WithTimeout(context.Background(), csrLimitWait)
-		defer cancel()
-		if lim.Wait(ctx) != nil {
-			return ErrRateLimited
-		}
-	} else if commonCfg.CSRMaxConcurrent > 0 {
-		s.srv.caLeafLimiter.csrConcurrencyLimiter.SetSize(int64(commonCfg.CSRMaxConcurrent))
-		ctx, cancel := context.WithTimeout(context.Background(), csrLimitWait)
-		defer cancel()
-		if err := s.srv.caLeafLimiter.csrConcurrencyLimiter.Acquire(ctx); err != nil {
-			return ErrRateLimited
-		}
-		defer s.srv.caLeafLimiter.csrConcurrencyLimiter.Release()
-	}
-
-	// All seems to be in order, actually sign it.
-	pem, err := provider.Sign(csr)
-	if err == ca.ErrRateLimited {
-		return ErrRateLimited
-	}
-	if err != nil {
-		return err
-	}
-
-	// Append any intermediates needed by this root.
-	for _, p := range caRoot.IntermediateCerts {
-		pem = strings.TrimSpace(pem) + "\n" + p
-	}
-
-	// Append our local CA's intermediate if there is one.
-	inter, err := provider.ActiveIntermediate()
-	if err != nil {
-		return err
-	}
-	root, err := provider.ActiveRoot()
-	if err != nil {
-		return err
-	}
-
-	if inter != root {
-		pem = strings.TrimSpace(pem) + "\n" + inter
-	}
-
-	// TODO(banks): when we implement IssuedCerts table we can use the insert to
-	// that as the raft index to return in response.
-	//
-	// UPDATE(mkeeler): The original implementation relied on updating the CAConfig
-	// and using its index as the ModifyIndex for certs. This was buggy. The long
-	// term goal is still to insert some metadata into raft about the certificates
-	// and use that raft index for the ModifyIndex. This is a partial step in that
-	// direction except that we only are setting an index and not storing the
-	// metadata.
-	req := structs.CALeafRequest{
-		Op:           structs.CALeafOpIncrementIndex,
-		Datacenter:   s.srv.config.Datacenter,
-		WriteRequest: structs.WriteRequest{Token: args.Token},
-	}
-
-	resp, err := s.srv.raftApply(structs.ConnectCALeafRequestType|structs.IgnoreUnknownTypeFlag, &req)
-	if err != nil {
-		return err
-	}
-
-	modIdx, ok := resp.(uint64)
-	if !ok {
-		return fmt.Errorf("Invalid response from updating the leaf cert index")
-	}
-
-	cert, err := connect.ParseCert(pem)
-	if err != nil {
-		return err
-	}
-
-	// Set the response
-	*reply = structs.IssuedCert{
-		SerialNumber:   connect.EncodeSerialNumber(cert.SerialNumber),
-		CertPEM:        pem,
-		ValidAfter:     cert.NotBefore,
-		ValidBefore:    cert.NotAfter,
-		EnterpriseMeta: entMeta,
-		RaftIndex: structs.RaftIndex{
-			ModifyIndex: modIdx,
-			CreateIndex: modIdx,
-		},
-	}
-	if isService {
-		reply.Service = serviceID.Service
-		reply.ServiceURI = cert.URIs[0].String()
-	} else if isAgent {
-		reply.Agent = agentID.Agent
-		reply.AgentURI = cert.URIs[0].String()
-	}
-
+	*reply = *cert
 	return nil
 }
 
