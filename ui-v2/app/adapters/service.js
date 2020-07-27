@@ -5,7 +5,6 @@ export default Adapter.extend({
     if (typeof gateway !== 'undefined') {
       return request`
         GET /v1/internal/ui/gateway-services-nodes/${gateway}?${{ dc }}
-        X-Range: ${gateway}
         X-Request-ID: ${uri}
 
         ${{

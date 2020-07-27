@@ -9,12 +9,7 @@ export default Adapter.extend({
   requestForQuery: function(request, { dc, filter, index, uri }) {
     return request`
       GET /v1/connect/intentions?${{ dc }}
-      X-Request-ID: ${uri}${
-      typeof filter !== 'undefined'
-        ? `
-      X-Range: ${filter}`
-        : ``
-    }
+      X-Request-ID: ${uri}
 
       ${{
         index,
