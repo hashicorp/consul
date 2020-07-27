@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
@@ -4411,6 +4412,10 @@ func TestFullConfig(t *testing.T) {
 			"bind_addr": "16.99.34.17",
 			"bootstrap": true,
 			"bootstrap_expect": 53,
+			"cache": {
+				"entry_fetch_max_burst": 42,
+				"entry_fetch_rate": 0.334
+			},
 			"ca_file": "erA7T0PM",
 			"ca_path": "mQEN1Mfp",
 			"cert_file": "7s4QAzDk",
@@ -5071,6 +5076,10 @@ func TestFullConfig(t *testing.T) {
 			bind_addr = "16.99.34.17"
 			bootstrap = true
 			bootstrap_expect = 53
+			cache = {
+				entry_fetch_max_burst = 42
+				entry_fetch_rate = 0.334
+			},
 			ca_file = "erA7T0PM"
 			ca_path = "mQEN1Mfp"
 			cert_file = "7s4QAzDk"
@@ -5797,10 +5806,14 @@ func TestFullConfig(t *testing.T) {
 		BindAddr:                         ipAddr("16.99.34.17"),
 		Bootstrap:                        true,
 		BootstrapExpect:                  53,
-		CAFile:                           "erA7T0PM",
-		CAPath:                           "mQEN1Mfp",
-		CertFile:                         "7s4QAzDk",
-		CheckOutputMaxSize:               checks.DefaultBufSize,
+		Cache: cache.Options{
+			EntryFetchMaxBurst: 42,
+			EntryFetchRate:     0.334,
+		},
+		CAFile:             "erA7T0PM",
+		CAPath:             "mQEN1Mfp",
+		CertFile:           "7s4QAzDk",
+		CheckOutputMaxSize: checks.DefaultBufSize,
 		Checks: []*structs.CheckDefinition{
 			{
 				ID:         "uAjE6m9Z",
@@ -6679,6 +6692,10 @@ func TestSanitize(t *testing.T) {
 			&net.TCPAddr{IP: net.ParseIP("1.2.3.4"), Port: 5678},
 			&net.UnixAddr{Name: "/var/run/foo"},
 		},
+		Cache: cache.Options{
+			EntryFetchMaxBurst: 42,
+			EntryFetchRate:     0.334,
+		},
 		ConsulCoordinateUpdatePeriod: 15 * time.Second,
 		RetryJoinLAN: []string{
 			"foo=bar key=baz secret=boom bang=bar",
@@ -6749,6 +6766,10 @@ func TestSanitize(t *testing.T) {
 		"BindAddr": "127.0.0.1",
 		"Bootstrap": false,
 		"BootstrapExpect": 0,
+		"Cache": {
+			"EntryFetchMaxBurst": 42,
+			"EntryFetchRate": 0.334
+		},
 		"CAFile": "",
 		"CAPath": "",
 		"CertFile": "",

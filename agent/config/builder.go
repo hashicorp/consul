@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul"
@@ -30,6 +31,15 @@ import (
 	"github.com/hashicorp/go-sockaddr/template"
 	"github.com/hashicorp/memberlist"
 	"golang.org/x/time/rate"
+)
+
+// The following constants are default values for some settings
+// Ensure to update documentation if you modify those values
+const (
+	// DefaultEntryFetchMaxBurst is the default value for cache.entry_fetch_max_burst
+	DefaultEntryFetchMaxBurst = 2
+	// DefaultEntryFetchRate is the default value for cache.entry_fetch_rate
+	DefaultEntryFetchRate = float64(rate.Inf)
 )
 
 // Builder constructs a valid runtime configuration from multiple
@@ -882,11 +892,17 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		},
 
 		// Agent
-		AdvertiseAddrLAN:                       advertiseAddrLAN,
-		AdvertiseAddrWAN:                       advertiseAddrWAN,
-		BindAddr:                               bindAddr,
-		Bootstrap:                              b.boolVal(c.Bootstrap),
-		BootstrapExpect:                        b.intVal(c.BootstrapExpect),
+		AdvertiseAddrLAN: advertiseAddrLAN,
+		AdvertiseAddrWAN: advertiseAddrWAN,
+		BindAddr:         bindAddr,
+		Bootstrap:        b.boolVal(c.Bootstrap),
+		BootstrapExpect:  b.intVal(c.BootstrapExpect),
+		Cache: cache.Options{
+			EntryFetchRate: rate.Limit(
+				b.float64ValWithDefault(c.Cache.EntryFetchRate, DefaultEntryFetchRate)),
+			EntryFetchMaxBurst: b.intValWithDefault(
+				c.Cache.EntryFetchMaxBurst, DefaultEntryFetchMaxBurst),
+		},
 		CAFile:                                 b.stringVal(c.CAFile),
 		CAPath:                                 b.stringVal(c.CAPath),
 		CertFile:                               b.stringVal(c.CertFile),
@@ -1012,6 +1028,13 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		VerifyOutgoing:                         verifyOutgoing,
 		VerifyServerHostname:                   verifyServerName,
 		Watches:                                c.Watches,
+	}
+
+	if rt.Cache.EntryFetchMaxBurst <= 0 {
+		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_max_burst must be strictly positive, was: %v", rt.Cache.EntryFetchMaxBurst)
+	}
+	if rt.Cache.EntryFetchRate <= 0 {
+		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_rate must be strictly positive, was: %v", rt.Cache.EntryFetchRate)
 	}
 
 	if entCfg, err := b.BuildEnterpriseRuntimeConfig(&c); err != nil {
@@ -1645,12 +1668,16 @@ func (b *Builder) stringVal(v *string) string {
 	return b.stringValWithDefault(v, "")
 }
 
-func (b *Builder) float64Val(v *float64) float64 {
+func (b *Builder) float64ValWithDefault(v *float64, defaultVal float64) float64 {
 	if v == nil {
-		return 0
+		return defaultVal
 	}
 
 	return *v
+}
+
+func (b *Builder) float64Val(v *float64) float64 {
+	return b.float64ValWithDefault(v, 0)
 }
 
 func (b *Builder) cidrsVal(name string, v []string) (nets []*net.IPNet) {

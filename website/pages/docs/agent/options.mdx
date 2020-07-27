@@ -959,6 +959,24 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
 - `bind_addr` Equivalent to the [`-bind` command-line flag](#_bind).
 
+- `cache` Cache configuration of agent. The configurable values are the following:
+
+  - `entry_fetch_max_burst`: The size of the token bucket used to recharge the rate-limit per
+    cache entry. The default value is 2 and means that when cache has not been updated
+    for a long time, 2 successive queries can be made as long as the rate-limit is not
+    reached.
+
+  - `entry_fetch_rate`: configures the rate-limit at which the cache may refresh a single
+    entry. On a cluster with many changes/s, watching changes in the cache might put high
+    pressure on the servers. This ensures the number of requests for a single cache entry
+    will never go beyond this limit, even when a given service changes every 1/100s.
+    Since this is a per cache entry limit, having a highly unstable service will only rate
+    limit the watched on this service, but not the other services/entries.
+    The value is strictly positive, expressed in queries per second as a float,
+    1 means 1 query per second, 0.1 mean 1 request every 10s maximum.
+    The default value is "No limit" and should be tuned on large
+    clusters to avoid performing too many RPCs on entries changing a lot.
+
 - `ca_file` This provides a file path to a PEM-encoded certificate
   authority. The certificate authority is used to check the authenticity of client
   and server connections with the appropriate [`verify_incoming`](#verify_incoming)

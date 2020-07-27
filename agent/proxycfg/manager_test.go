@@ -7,6 +7,7 @@ import (
 
 	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
@@ -461,7 +462,7 @@ func TestManager_deliverLatest(t *testing.T) {
 	// None of these need to do anything to test this method just be valid
 	logger := testutil.Logger(t)
 	cfg := ManagerConfig{
-		Cache: cache.New(nil),
+		Cache: cache.New(cache.Options{EntryFetchRate: rate.Inf, EntryFetchMaxBurst: 2}),
 		State: local.NewState(local.Config{}, logger, &token.Store{}),
 		Source: &structs.QuerySource{
 			Node:       "node1",
