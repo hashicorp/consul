@@ -168,7 +168,9 @@ export default {
   token: create(
     token(visitable, submitable, deletable, cancelable, clickable, policySelector, roleSelector)
   ),
-  intentions: create(intentions(visitable, creatable, consulIntentionList, popoverSelect)),
+  intentions: create(
+    intentions(visitable, creatable, clickable, consulIntentionList, popoverSelect)
+  ),
   intention: create(intention(visitable, submitable, deletable, cancelable)),
   nspaces: create(nspaces(visitable, creatable, consulNspaceList, freetextFilter)),
   nspace: create(
