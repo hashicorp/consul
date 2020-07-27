@@ -9,17 +9,17 @@ import { cache as createCache, BlockingEventSource } from 'consul-ui/utils/dom/e
 const createProxy = function(repo, find, settings, cache, serialize = JSON.stringify) {
   const client = this.client;
   // custom createEvent, here used to reconcile the ember-data store for each tick
-  const createEvent = function(result = {}, configuration) {
-    const event = {
-      type: 'message',
-      data: result,
+  let createEvent;
+  if (repo.shouldReconcile(find)) {
+    createEvent = function(result = {}, configuration) {
+      const event = {
+        type: 'message',
+        data: result,
+      };
+      repo.reconcile(get(event, 'data.meta'));
+      return event;
     };
-    const meta = get(event, 'data.meta') || {};
-    if (typeof meta.range === 'undefined') {
-      repo.reconcile(meta);
-    }
-    return event;
-  };
+  }
   // proxied find*..(id, dc)
   return function() {
     const key = `${repo.getModelName()}.${find}.${serialize([...arguments])}`;

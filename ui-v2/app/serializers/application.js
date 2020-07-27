@@ -92,11 +92,7 @@ export default Serializer.extend({
       // and they need the slug key AND potential namespace in order to
       // create the correct uid/fingerprint
       return {
-        [primaryKey]: this.fingerprint(
-          primaryKey,
-          slugKey,
-          data[DATACENTER_KEY]
-        )({
+        [primaryKey]: this.fingerprint(primaryKey, slugKey, data[DATACENTER_KEY])({
           [slugKey]: data[slugKey],
           [NSPACE_KEY]: data[NSPACE_KEY],
         })[primaryKey],
@@ -155,9 +151,6 @@ export default Serializer.extend({
       dc: headers[HTTP_HEADERS_DATACENTER.toLowerCase()],
       nspace: headers[HTTP_HEADERS_NAMESPACE.toLowerCase()],
     };
-    if (typeof headers['x-range'] !== 'undefined') {
-      meta.range = headers['x-range'];
-    }
     if (requestType === 'query') {
       meta.date = this.timestamp();
       payload.forEach(function(item) {
