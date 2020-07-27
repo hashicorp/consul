@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
@@ -443,6 +444,9 @@ type RuntimeConfig struct {
 	// hcl: bootstrap_expect = int
 	// flag: -bootstrap-expect=int
 	BootstrapExpect int
+
+	// Cache represent cache configuration of agent
+	Cache cache.Options
 
 	// CAFile is a path to a certificate authority file. This is used with
 	// VerifyIncoming or VerifyOutgoing to verify the TLS connection.
