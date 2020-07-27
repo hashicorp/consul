@@ -6,9 +6,8 @@ export default RepositoryService.extend({
     return modelName;
   },
   shouldReconcile: function(method) {
-    switch (true) {
-      case method === 'findGatewayBySlug' || method.indexOf('for-service') !== -1:
-        return false;
+    if (method === 'findGatewayBySlug' || method.indexOf('for-service') !== -1) {
+      return false;
     }
     return this._super(...arguments);
   },
