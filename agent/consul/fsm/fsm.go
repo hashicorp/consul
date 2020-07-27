@@ -160,6 +160,53 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 	restore := stateNew.Restore()
 	defer restore.Abort()
 
+	handler := func(header *snapshotHeader, msg structs.MessageType, dec *codec.Decoder) error {
+		switch {
+		case msg == structs.ChunkingStateType:
+			chunkState := &raftchunking.State{
+				ChunkMap: make(raftchunking.ChunkMap),
+			}
+			if err := dec.Decode(chunkState); err != nil {
+				return err
+			}
+			if err := c.chunker.RestoreState(chunkState); err != nil {
+				return err
+			}
+		case restorers[msg] != nil:
+			fn := restorers[msg]
+			if err := fn(header, restore, dec); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("Unrecognized msg type %d", msg)
+		}
+		return nil
+	}
+
+	if err := c.ReadSnapshot(old, handler); err != nil {
+		return err
+	}
+
+	if err := restore.Commit(); err != nil {
+		return err
+	}
+
+	// External code might be calling State(), so we need to synchronize
+	// here to make sure we swap in the new state store atomically.
+	c.stateLock.Lock()
+	stateOld := c.state
+	c.state = stateNew
+	c.stateLock.Unlock()
+
+	// Signal that the old state store has been abandoned. This is required
+	// because we don't operate on it any more, we just throw it away, so
+	// blocking queries won't see any changes and need to be woken up.
+	stateOld.Abandon()
+	return nil
+}
+
+//TODO(schristoff): add comment but better
+func (c *FSM) ReadSnapshot(old io.ReadCloser, handler func(header *snapshotHeader, msg structs.MessageType, dec *codec.Decoder) error) error {
 	// Create a decoder
 	dec := codec.NewDecoder(old, structs.MsgpackHandle)
 
@@ -182,40 +229,10 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 
 		// Decode
 		msg := structs.MessageType(msgType[0])
-		switch {
-		case msg == structs.ChunkingStateType:
-			chunkState := &raftchunking.State{
-				ChunkMap: make(raftchunking.ChunkMap),
-			}
-			if err := dec.Decode(chunkState); err != nil {
-				return err
-			}
-			if err := c.chunker.RestoreState(chunkState); err != nil {
-				return err
-			}
-		case restorers[msg] != nil:
-			fn := restorers[msg]
-			if err := fn(&header, restore, dec); err != nil {
-				return err
-			}
-		default:
-			return fmt.Errorf("Unrecognized msg type %d", msg)
+
+		if err := handler(&header, msg, dec); err != nil {
+			return err
 		}
 	}
-	if err := restore.Commit(); err != nil {
-		return err
-	}
-
-	// External code might be calling State(), so we need to synchronize
-	// here to make sure we swap in the new state store atomically.
-	c.stateLock.Lock()
-	stateOld := c.state
-	c.state = stateNew
-	c.stateLock.Unlock()
-
-	// Signal that the old state store has been abandoned. This is required
-	// because we don't operate on it any more, we just throw it away, so
-	// blocking queries won't see any changes and need to be woken up.
-	stateOld.Abandon()
 	return nil
 }

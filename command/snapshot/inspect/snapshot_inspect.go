@@ -22,32 +22,39 @@ type cmd struct {
 	UI    cli.Ui
 	flags *flag.FlagSet
 	help  string
+
+	//flags
+	enhance bool
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	//TODO(schristoff): better flag info would be good
+	c.flags.BoolVar(&c.enhance, "verbose", false,
+		"Adds more info")
 	c.help = flags.Usage(help, c.flags)
 }
 
 func (c *cmd) Run(args []string) int {
 	if err := c.flags.Parse(args); err != nil {
+		c.UI.Error(err.Error())
 		return 1
 	}
 
 	var file string
-
+	//TODO (schristoff): How do other flags handle this? Find other flags that take in
+	//a file without a file flag and then have other flags.
 	args = c.flags.Args()
-	switch len(args) {
-	case 0:
-		c.UI.Error("Missing FILE argument")
-		return 1
-	case 1:
-		file = args[0]
-	default:
-		c.UI.Error(fmt.Sprintf("Too many arguments (expected 1, got %d)", len(args)))
+	numArgs := len(args)
+
+	//Check to make sure we have at least one argument
+	if numArgs != 1 || numArgs != 2 {
+		c.UI.Error(fmt.Sprint("Expected at least one argument, got %d", numArgs))
 		return 1
 	}
 
+	//Set the first argument to the file name
+	file = args[0]
 	// Open the file.
 	f, err := os.Open(file)
 	if err != nil {
@@ -60,6 +67,9 @@ func (c *cmd) Run(args []string) int {
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error verifying snapshot: %s", err))
 		return 1
+	}
+
+	if c.enhance {
 	}
 
 	var b bytes.Buffer
