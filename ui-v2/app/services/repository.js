@@ -15,9 +15,6 @@ export default Service.extend({
   },
   //
   store: service('store'),
-  shouldReconcile: function(method) {
-    return true;
-  },
   reconcile: function(meta = {}) {
     // unload anything older than our current sync date/time
     if (typeof meta.date !== 'undefined') {
