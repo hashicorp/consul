@@ -52,7 +52,7 @@ func NewTestCacheTypes(t testing.T) *TestCacheTypes {
 // TestCacheWithTypes registers ControllableCacheTypes for all types that
 // proxycfg will watch suitable for testing a proxycfg.State or Manager.
 func TestCacheWithTypes(t testing.T, types *TestCacheTypes) *cache.Cache {
-	c := cache.TestCache(t)
+	c := cache.New(cache.Options{})
 	c.RegisterType(cachetype.ConnectCARootName, types.roots)
 	c.RegisterType(cachetype.ConnectCALeafName, types.leaf)
 	c.RegisterType(cachetype.IntentionMatchName, types.intentions)
