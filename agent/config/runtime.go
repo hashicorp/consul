@@ -1799,7 +1799,7 @@ func (c *RuntimeConfig) ToTLSUtilConfig() tlsutil.Config {
 		CipherSuites:             c.TLSCipherSuites,
 		PreferServerCipherSuites: c.TLSPreferServerCipherSuites,
 		EnableAgentTLSForChecks:  c.EnableAgentTLSForChecks,
-		AutoEncryptTLS:           c.AutoEncryptTLS,
+		AutoTLS:                  c.AutoEncryptTLS || c.AutoConfig.Enabled,
 	}
 }
 

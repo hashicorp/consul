@@ -647,7 +647,7 @@ func (s *Server) connectCARootsMonitor(ctx context.Context) {
 		for _, ca := range cas {
 			caPems = append(caPems, ca.RootCert)
 		}
-		if err := s.tlsConfigurator.UpdateAutoEncryptCA(caPems); err != nil {
+		if err := s.tlsConfigurator.UpdateAutoTLSCA(caPems); err != nil {
 			s.logger.Error("Failed to update AutoEncrypt CAPems", "error", err)
 		}
 
