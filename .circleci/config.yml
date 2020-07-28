@@ -33,6 +33,33 @@ steps:
       curl -sSL "${url}/v${GOTESTSUM_RELEASE}/gotestsum_${GOTESTSUM_RELEASE}_linux_amd64.tar.gz" | \
       sudo tar -xz --overwrite -C /usr/local/bin gotestsum
 
+  # This step MUST be at the end of any set of steps due to the 'when' condition
+  notify-slack-failure: &notify-slack-failure
+    name: notify-slack-failure
+    when: on_fail
+    command: |
+      if [[ $CIRCLE_BRANCH == "master" ]]; then
+        CIRCLE_ENDPOINT="https://app.circleci.com/pipelines/github/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}?branch=${CIRCLE_BRANCH}"
+        GITHUB_ENDPOINT="https://github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/commit/${CIRCLE_SHA1}"
+        COMMIT_MESSAGE=$(git log -1 --pretty=%B | head -n1)
+        SHORT_REF=$(git rev-parse --short "${CIRCLE_SHA1}")
+        curl -X POST -H 'Content-type: application/json' \
+        --data \
+        "{ \
+        \"attachments\": [ \
+            { \
+            \"fallback\": \"CircleCI job failed!\", \
+            \"text\": \"❌ Failed: \`${CIRCLE_USERNAME}\`'s <${CIRCLE_BUILD_URL}|${CIRCLE_STAGE}> job failed for commit <${GITHUB_ENDPOINT}|${SHORT_REF}> on \`${CIRCLE_BRANCH}\`!\n\n- <${COMMIT_MESSAGE}\", \
+            \"footer\": \"${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}\", \
+            \"ts\": \"$(date +%s)\", \
+            \"color\": \"danger\" \
+            } \
+        ] \
+        }" "${FEED_CONSUL_GH_URL}"
+      else
+        echo "Not posting slack failure notifications for non-master branch"
+      fi
+
 jobs:
   # lint consul tests
   lint-consul-retry:
@@ -41,6 +68,7 @@ jobs:
     steps:
       - checkout
       - run: go get -u github.com/hashicorp/lint-consul-retry && lint-consul-retry
+      - run: *notify-slack-failure
 
   # Runs Go linters
   lint:
@@ -68,6 +96,7 @@ jobs:
           name: lint sdk
           working_directory: sdk
           command: *lintcmd
+      - run: *notify-slack-failure
 
   # checks vendor directory is correct
   check-vendor:
@@ -84,6 +113,7 @@ jobs:
             echo "Git directory has vendor changes"
             exit 1
           fi
+      - run: *notify-slack-failure
 
   go-test:
     docker:
@@ -134,6 +164,7 @@ jobs:
           # The -C flag shouldn't be necessary, but it fails to find the commit
           # without it.
           command: bash <(curl -s https://codecov.io/bash) -C "$CIRCLE_SHA1"
+      - run: *notify-slack-failure
 
   go-test-race:
     docker:
@@ -171,6 +202,7 @@ jobs:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
           path: /tmp/jsonfile
+      - run: *notify-slack-failure
 
   # split off a job for the API package since it is separate
   go-test-api:
@@ -206,6 +238,7 @@ jobs:
       - store_artifacts:
           path: /tmp/jsonfile
       - run: *codecov_upload
+      - run: *notify-slack-failure
 
   # split off a job for the SDK package since it is separate
   go-test-sdk:
@@ -238,6 +271,7 @@ jobs:
       - store_artifacts:
           path: *TEST_RESULTS_DIR
       - run: *codecov_upload
+      - run: *notify-slack-failure
 
   # build all distros
   build-distros: &build-distros
@@ -252,6 +286,7 @@ jobs:
       # save dev build to CircleCI
       - store_artifacts:
           path: ./pkg/bin
+      - run: *notify-slack-failure
 
   # build all 386 architecture supported OS binaries
   build-386:
@@ -299,6 +334,7 @@ jobs:
           command: go build -o ./pkg/bin/linux_aarch64/consul  -ldflags="-linkmode=external ${GOLDFLAGS}"
       - store_artifacts:
           path: ./pkg/bin
+      - run: *notify-slack-failure
 
   # create a development build
   dev-build:
@@ -318,6 +354,7 @@ jobs:
           root: /go/bin
           paths:
             - consul
+      - run: *notify-slack-failure
 
   # upload development build to s3
   dev-upload-s3:
@@ -346,6 +383,7 @@ jobs:
               echo "CircleCI - S3_ARTIFACT_PATH was not set"
               exit 1
             fi
+      - run: *notify-slack-failure
 
   # upload dev docker image
   dev-upload-docker:
@@ -360,6 +398,7 @@ jobs:
           at: bin/
       - setup_remote_docker
       - run: make ci.dev-docker
+      - run: *notify-slack-failure
 
   # Nomad 0.8 builds on go0.10
   # Run integration tests on nomad/v0.8.7
@@ -400,6 +439,7 @@ jobs:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
           path: *TEST_RESULTS_DIR
+      - run: *notify-slack-failure
 
   # run integration tests on nomad/master
   nomad-integration-master:
@@ -435,6 +475,7 @@ jobs:
                 docker login -u $WEBSITE_DOCKER_USER -p $WEBSITE_DOCKER_PASS
                 docker push hashicorp/consul-website
             fi
+      - run: *notify-slack-failure
 
   algolia-index:
     docker:
@@ -451,6 +492,7 @@ jobs:
             cd website/
             npm install
             node scripts/index_search_content.js
+      - run: *notify-slack-failure
 
   # build frontend yarn cache
   frontend-cache:
@@ -471,6 +513,7 @@ jobs:
           key: *YARN_CACHE_KEY
           paths:
             - ui-v2/node_modules
+      - run: *notify-slack-failure
 
   # build ember so frontend tests run faster
   ember-build-oss: &ember-build-oss
@@ -490,6 +533,7 @@ jobs:
           root: ui-v2
           paths:
             - dist
+      - run: *notify-slack-failure
 
   # build ember so frontend tests run faster
   ember-build-ent:
@@ -515,6 +559,7 @@ jobs:
           root: ui-v2
           paths:
             - dist
+      - run: *notify-slack-failure
 
   # build static-assets file
   build-static-assets:
@@ -531,6 +576,7 @@ jobs:
           root: .
           paths:
             - ./agent/bindata_assetfs.go
+      - run: *notify-slack-failure
 
   # run ember frontend tests
   ember-test-oss:
@@ -552,6 +598,8 @@ jobs:
           command: node_modules/.bin/ember exam --split=$CIRCLE_NODE_TOTAL --partition=`expr $CIRCLE_NODE_INDEX + 1` --path dist --silent -r xunit
       - store_test_results:
           path: ui-v2/test-results
+      - run: *notify-slack-failure
+
   # run ember frontend tests
   ember-test-ent:
     docker:
@@ -571,6 +619,8 @@ jobs:
           command: node_modules/.bin/ember exam --split=$CIRCLE_NODE_TOTAL --partition=`expr $CIRCLE_NODE_INDEX + 1` --path dist --silent -r xunit
       - store_test_results:
           path: ui-v2/test-results
+      - run: *notify-slack-failure
+
   # run ember frontend unit tests to produce coverage report
   ember-coverage:
     docker:
@@ -588,6 +638,7 @@ jobs:
           name: codecov ui upload
           working_directory: ui-v2
           command: bash <(curl -s https://codecov.io/bash) -v -c -C $CIRCLE_SHA1 -F ui
+      - run: *notify-slack-failure
 
   envoy-integration-test-1.11.2:
     docker:
@@ -622,6 +673,7 @@ jobs:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
           path: *TEST_RESULTS_DIR
+      - run: *notify-slack-failure
 
   envoy-integration-test-1.12.6:
     docker:
@@ -666,6 +718,7 @@ jobs:
             make test-connect-ca-providers
       - store_test_results:
           path: *TEST_RESULTS_DIR
+      - run: *notify-slack-failure
 
   # only runs on master: checks latest commit to see if the PR associated has a backport/* or docs* label to cherry-pick
   cherry-picker:
@@ -678,6 +731,7 @@ jobs:
           fingerprints:
             - "c9:04:b7:85:bf:0e:ce:93:5f:b8:0e:68:8e:16:f3:71"
       - run: .circleci/scripts/cherry-picker.sh
+      - run: *notify-slack-failure
 
 workflows:
   version: 2
