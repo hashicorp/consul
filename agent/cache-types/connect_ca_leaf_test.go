@@ -1040,7 +1040,7 @@ func testCALeafType(t *testing.T, rpc RPC) (*ConnectCALeaf, chan structs.Indexed
 	rootsRPC := &testGatedRootsRPC{ValueCh: rootsCh}
 
 	// Create a cache
-	c := cache.TestCache(t)
+	c := cache.New(cache.Options{})
 	c.RegisterType(ConnectCARootName, &testConnectCaRoot{
 		ConnectCARoot: ConnectCARoot{RPC: rootsRPC},
 	})
