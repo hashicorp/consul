@@ -1297,6 +1297,10 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		return err
 	}
 
+	if rt.AutoConfig.Enabled && rt.AutoEncryptTLS {
+		return fmt.Errorf("both auto_encrypt.tls and auto_config.enabled cannot be set to true.")
+	}
+
 	if err := b.validateAutoConfig(rt); err != nil {
 		return err
 	}
