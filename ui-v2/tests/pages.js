@@ -85,10 +85,6 @@ const catalogFilter = searchBarFactory(freetextFilter, () =>
 const aclFilter = searchBarFactory(freetextFilter, () =>
   radiogroup('type', ['', 'management', 'client'])
 );
-const intentionFilter = searchBarFactory(freetextFilter, () =>
-  radiogroup('currentFilter', ['', 'allow', 'deny'])
-);
-
 const policyForm = policyFormFactory(submitable, cancelable, radiogroup, text);
 const policySelector = policySelectorFactory(clickable, deletable, collection, alias, policyForm);
 const roleForm = roleFormFactory(submitable, cancelable, policySelector);
@@ -172,7 +168,9 @@ export default {
   token: create(
     token(visitable, submitable, deletable, cancelable, clickable, policySelector, roleSelector)
   ),
-  intentions: create(intentions(visitable, creatable, consulIntentionList, intentionFilter)),
+  intentions: create(
+    intentions(visitable, creatable, clickable, consulIntentionList, popoverSelect)
+  ),
   intention: create(intention(visitable, submitable, deletable, cancelable)),
   nspaces: create(nspaces(visitable, creatable, consulNspaceList, freetextFilter)),
   nspace: create(

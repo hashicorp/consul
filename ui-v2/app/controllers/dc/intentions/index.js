@@ -1,9 +1,7 @@
 import Controller from '@ember/controller';
 export default Controller.extend({
   queryParams: {
-    filterBy: {
-      as: 'action',
-    },
+    sortBy: 'sort',
     search: {
       as: 'filter',
       replace: true,
