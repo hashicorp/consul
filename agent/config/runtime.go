@@ -1692,10 +1692,6 @@ func (c *RuntimeConfig) ClientAddress() (unixAddr, httpAddr, httpsAddr string) {
 }
 
 func (c *RuntimeConfig) ConnectCAConfiguration() (*structs.CAConfiguration, error) {
-	if !c.ConnectEnabled {
-		return nil, nil
-	}
-
 	ca := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{

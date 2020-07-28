@@ -4645,7 +4645,8 @@ func TestAutoConfig_Integration(t *testing.T) {
 	// eventually this test should really live with integration tests
 	// the goal here is to have one test server and another test client
 	// spin up both agents and allow the server to authorize the auto config
-	// request and then see the client joined
+	// request and then see the client joined. Finally we force a CA roots
+	// update and wait to see that the agents TLS certificate gets updated.
 
 	cfgDir := testutil.TempDir(t, "auto-config")
 
@@ -4683,7 +4684,6 @@ func TestAutoConfig_Integration(t *testing.T) {
 		cert_file = "` + certFile + `"
 		key_file = "` + keyFile + `"
 		connect { enabled = true }
-		auto_encrypt { allow_tls = true }
 		auto_config {
 			authorization {
 				enabled = true
@@ -4740,10 +4740,43 @@ func TestAutoConfig_Integration(t *testing.T) {
 
 	defer client.Shutdown()
 
+	retry.Run(t, func(r *retry.R) {
+		require.NotNil(r, client.Agent.tlsConfigurator.Cert())
+	})
+
 	// when this is successful we managed to get the gossip key and serf addresses to bind to
 	// and then connect. Additionally we would have to have certificates or else the
 	// verify_incoming config on the server would not let it work.
 	testrpc.WaitForTestAgent(t, client.RPC, "dc1", testrpc.WithToken(TestDefaultMasterToken))
+
+	// grab the existing cert
+	cert1 := client.Agent.tlsConfigurator.Cert()
+	require.NotNil(t, cert1)
+
+	// force a roots rotation by updating the CA config
+	t.Logf("Forcing roots rotation on the server")
+	ca := connect.TestCA(t, nil)
+	req := &structs.CARequest{
+		Datacenter:   "dc1",
+		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+		Config: &structs.CAConfiguration{
+			Provider: "consul",
+			Config: map[string]interface{}{
+				"LeafCertTTL":         "1h",
+				"PrivateKey":          ca.SigningKey,
+				"RootCert":            ca.RootCert,
+				"RotationPeriod":      "6h",
+				"IntermediateCertTTL": "3h",
+			},
+		},
+	}
+	var reply interface{}
+	require.NoError(t, srv.RPC("ConnectCA.ConfigurationSet", &req, &reply))
+
+	// ensure that a new cert gets generated and pushed into the TLS configurator
+	retry.Run(t, func(r *retry.R) {
+		require.NotEqual(r, cert1, client.Agent.tlsConfigurator.Cert())
+	})
 
 	// spot check that we now have an ACL token
 	require.NotEmpty(t, client.tokens.AgentToken())

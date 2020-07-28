@@ -230,6 +230,7 @@ func (m *CertMonitor) Start(ctx context.Context) (<-chan struct{}, error) {
 	exit := make(chan struct{})
 	go m.run(ctx, exit)
 
+	m.logger.Info("certificate monitor started")
 	return exit, nil
 }
 

@@ -5,6 +5,7 @@ package autoconf;
 option go_package = "github.com/hashicorp/consul/proto/pbautoconf";
 
 import "proto/pbconfig/config.proto";
+import "proto/pbconnect/connect.proto";
 
 // AutoConfigRequest is the data structure to be sent along with the 
 // AutoConfig.InitialConfiguration RPC
@@ -28,9 +29,23 @@ message AutoConfigRequest {
    // ConsulToken is a Consul ACL token that the agent requesting the
    // configuration already has.
    string ConsulToken = 6;
+   
+   // CSR is a certificate signing request to be used when generating the
+   // agents TLS certificate
+   string CSR = 7;
 }
 
 // AutoConfigResponse is the data structure sent in response to a AutoConfig.InitialConfiguration request
 message AutoConfigResponse {
+   // Config is the partial Consul configuration to inject into the agents own configuration
    config.Config Config = 1;
+   
+   // CARoots is the current list of Connect CA Roots
+   connect.CARoots CARoots = 2;
+   // Certificate is the TLS certificate issued for the agent
+   connect.IssuedCert Certificate = 3;
+   
+   // ExtraCACertificates holds non-Connect certificates that may be necessary
+   // to verify TLS connections with the Consul servers
+   repeated string ExtraCACertificates = 4;
 }

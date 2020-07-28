@@ -3804,6 +3804,35 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		///////////////////////////////////
 		// Auto Config related tests
 		{
+			desc: "auto config and auto encrypt error",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			hcl: []string{`
+				auto_config {
+					enabled = true
+					intro_token = "blah"
+					server_addresses = ["198.18.0.1"]
+				}
+				auto_encrypt {
+					tls = true
+				}
+				verify_outgoing = true
+			`},
+			json: []string{`{
+				"auto_config": {
+					"enabled": true,
+					"intro_token": "blah",
+					"server_addresses": ["198.18.0.1"]
+				},
+				"auto_encrypt": {
+					"tls": true
+				},
+				"verify_outgoing": true
+			}`},
+			err: "both auto_encrypt.tls and auto_config.enabled cannot be set to true.",
+		},
+		{
 			desc: "auto config not allowed for servers",
 			args: []string{
 				`-data-dir=` + dataDir,
@@ -7470,12 +7499,6 @@ func TestConnectCAConfiguration(t *testing.T) {
 	}
 
 	cases := map[string]testCase{
-		"connect-disabled": {
-			config: RuntimeConfig{
-				ConnectEnabled: false,
-			},
-			expected: nil,
-		},
 		"defaults": {
 			config: RuntimeConfig{
 				ConnectEnabled: true,
