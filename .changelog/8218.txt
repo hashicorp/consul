@@ -1,0 +1,3 @@
+```release-note:improvement
+dns: Improve RCODE of response when query targets a non-existent datacenter. [[GH-8102](https://github.com/hashicorp/consul/issues/8102)]
+```

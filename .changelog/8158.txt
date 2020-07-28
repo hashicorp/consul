@@ -1,0 +1,3 @@
+```release-note:bug
+connect: fix crash that would result if a mesh or terminating gateway's upstream has a hostname as an address and no healthy service instances available.
+```
