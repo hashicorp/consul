@@ -82,7 +82,7 @@ func TestCatalogListServices_IntegrationWithCache_NotModifiedResponse(t *testing
 			reply.NotModified = true
 		})
 
-	c := cache.New(nil)
+	c := cache.New(cache.Options{})
 	c.RegisterType(CatalogListServicesName, typ)
 	last := cache.FetchResult{
 		Value: &structs.IndexedServices{

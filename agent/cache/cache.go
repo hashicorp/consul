@@ -35,6 +35,17 @@ import (
 const (
 	CacheRefreshBackoffMin = 3               // 3 attempts before backing off
 	CacheRefreshMaxWait    = 1 * time.Minute // maximum backoff wait time
+
+	// The following constants are default values for the cache entry
+	// rate limiter settings.
+
+	// DefaultEntryFetchRate is the default rate at which cache entries can
+	// be fetch. This defaults to not being unlimited
+	DefaultEntryFetchRate = rate.Inf
+
+	// DefaultEntryFetchMaxBurst is the number of cache entry fetches that can
+	// occur in a burst.
+	DefaultEntryFetchMaxBurst = 2
 )
 
 // Cache is a agent-local cache of Consul data. Create a Cache using the
@@ -136,6 +147,13 @@ type Options struct {
 // New creates a new cache with the given RPC client and reasonable defaults.
 // Further settings can be tweaked on the returned value.
 func New(options Options) *Cache {
+	if options.EntryFetchRate == 0.0 {
+		options.EntryFetchRate = DefaultEntryFetchRate
+	}
+	if options.EntryFetchMaxBurst == 0 {
+		options.EntryFetchMaxBurst = DefaultEntryFetchMaxBurst
+	}
+
 	// Initialize the heap. The buffer of 1 is really important because
 	// its possible for the expiry loop to trigger the heap to update
 	// itself and it'd block forever otherwise.

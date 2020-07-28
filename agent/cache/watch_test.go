@@ -19,7 +19,7 @@ func TestCacheNotify(t *testing.T) {
 	typ := TestType(t)
 	typ.On("RegisterOptions").Return(RegisterOptions{})
 	defer typ.AssertExpectations(t)
-	c := TestCache(t)
+	c := New(Options{})
 	c.RegisterType("t", typ)
 
 	// Setup triggers to control when "updates" should be delivered
@@ -165,7 +165,7 @@ func TestCacheNotifyPolling(t *testing.T) {
 
 	typ := TestTypeNonBlocking(t)
 	defer typ.AssertExpectations(t)
-	c := TestCache(t)
+	c := New(Options{})
 	c.RegisterType("t", typ)
 
 	// Configure the type
@@ -279,7 +279,7 @@ func TestCacheWatch_ErrorBackoff(t *testing.T) {
 	typ := TestType(t)
 	typ.On("RegisterOptions").Return(RegisterOptions{})
 	defer typ.AssertExpectations(t)
-	c := TestCache(t)
+	c := New(Options{})
 	c.RegisterType("t", typ)
 
 	// Configure the type
@@ -340,7 +340,7 @@ func TestCacheWatch_ErrorBackoffNonBlocking(t *testing.T) {
 
 	typ := TestTypeNonBlocking(t)
 	defer typ.AssertExpectations(t)
-	c := TestCache(t)
+	c := New(Options{})
 	c.RegisterType("t", typ)
 
 	// Configure the type
