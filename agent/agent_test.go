@@ -912,7 +912,7 @@ func TestCacheRateLimit(test *testing.T) {
 				require.NoError(t, err)
 
 				resp := httptest.NewRecorder()
-				a.srv.Handler.ServeHTTP(resp, req)
+				a.srv.handler(false).ServeHTTP(resp, req)
 				// Key doesn't actually exist so we should get 404
 				if got, want := resp.Code, http.StatusOK; got != want {
 					t.Fatalf("bad response code got %d want %d", got, want)

@@ -633,7 +633,7 @@ func TestCertMonitor_New_Errors(t *testing.T) {
 		},
 		"no-tls-configurator": {
 			cfg: Config{
-				Cache:      cache.New(nil),
+				Cache:      cache.New(cache.Options{}),
 				Fallback:   fallback,
 				Tokens:     tokens,
 				Datacenter: "foo",
@@ -643,7 +643,7 @@ func TestCertMonitor_New_Errors(t *testing.T) {
 		},
 		"no-fallback": {
 			cfg: Config{
-				Cache:           cache.New(nil),
+				Cache:           cache.New(cache.Options{}),
 				TLSConfigurator: testTLSConfigurator(t),
 				Tokens:          tokens,
 				Datacenter:      "foo",
@@ -653,7 +653,7 @@ func TestCertMonitor_New_Errors(t *testing.T) {
 		},
 		"no-tokens": {
 			cfg: Config{
-				Cache:           cache.New(nil),
+				Cache:           cache.New(cache.Options{}),
 				TLSConfigurator: testTLSConfigurator(t),
 				Fallback:        fallback,
 				Datacenter:      "foo",
@@ -663,7 +663,7 @@ func TestCertMonitor_New_Errors(t *testing.T) {
 		},
 		"no-datacenter": {
 			cfg: Config{
-				Cache:           cache.New(nil),
+				Cache:           cache.New(cache.Options{}),
 				TLSConfigurator: testTLSConfigurator(t),
 				Fallback:        fallback,
 				Tokens:          tokens,
@@ -673,7 +673,7 @@ func TestCertMonitor_New_Errors(t *testing.T) {
 		},
 		"no-node-name": {
 			cfg: Config{
-				Cache:           cache.New(nil),
+				Cache:           cache.New(cache.Options{}),
 				TLSConfigurator: testTLSConfigurator(t),
 				Fallback:        fallback,
 				Tokens:          tokens,
