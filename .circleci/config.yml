@@ -55,7 +55,7 @@ steps:
             \"color\": \"danger\" \
             } \
         ] \
-        }" "${CONSUL_FEED_GH_URL}"
+        }" "${FEED_CONSUL_GH_URL}"
       else
         echo "Not posting slack failure notifications for non-master branch"
       fi
