@@ -46,7 +46,6 @@ Feature: page-navigation
     | node      | nodes      | /dc-1/nodes/node-0/health-checks                         | /v1/session/node/node-0?dc=dc-1&ns=@namespace                               | /dc-1/nodes         |
     | kv        | kvs        | /dc-1/kv/0-key-value/edit                                | /v1/session/info/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=dc-1&ns=@namespace | /dc-1/kv            |
     # | acl       | acls       | /dc-1/acls/anonymous                                     | /v1/acl/info/anonymous?dc=dc-1                                             | /dc-1/acls         |
-    | intention | intentions | /dc-1/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca    | /v1/internal/ui/services?dc=dc-1&ns=*                                       | /dc-1/intentions    |
 # These Endpoints will be datacenters due to the datacenters checkbox selectors
     | token     | tokens     | /dc-1/acls/tokens/ee52203d-989f-4f7a-ab5a-2bef004164ca   | /v1/catalog/datacenters                                                     | /dc-1/acls/tokens   |
     | policy    | policies   | /dc-1/acls/policies/ee52203d-989f-4f7a-ab5a-2bef004164ca | /v1/catalog/datacenters                                                     | /dc-1/acls/policies |
@@ -123,7 +122,7 @@ Feature: page-navigation
     | Item      | Model      | URL                                                      | Back             |
     | kv        | kvs        | /dc-1/kv/0-key-value/edit                           | /dc-1/kv         |
     # | acl       | acls       | /dc-1/acls/anonymous                                     | /dc-1/acls       |
-    | intention | intentions | /dc-1/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca    | /dc-1/intentions |
+    # | intention | intentions | /dc-1/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca    | /dc-1/intentions |
     --------------------------------------------------------------------------------------------------------
 @ignore
   Scenario: Clicking items in the listings, without depending on the salt ^
