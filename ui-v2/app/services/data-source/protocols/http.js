@@ -33,16 +33,17 @@ export default Service.extend({
     // so we might get urls like //dc/services
     let find;
     const repo = this[model];
-    if (repo.shouldReconcile(src)) {
-      configuration.createEvent = function(result = {}, configuration) {
-        const event = {
-          type: 'message',
-          data: result,
-        };
-        repo.reconcile(get(event, 'data.meta'));
-        return event;
+    configuration.createEvent = function(result = {}, configuration) {
+      const event = {
+        type: 'message',
+        data: result,
       };
-    }
+      const meta = get(event, 'data.meta') || {};
+      if (typeof meta.range === 'undefined') {
+        repo.reconcile(meta);
+      }
+      return event;
+    };
     let method, slug;
     switch (model) {
       case 'datacenters':

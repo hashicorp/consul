@@ -5,13 +5,6 @@ export default RepositoryService.extend({
   getModelName: function() {
     return modelName;
   },
-  shouldReconcile: function(method) {
-    switch (method) {
-      case 'findGatewayBySlug':
-        return false;
-    }
-    return this._super(...arguments);
-  },
   findBySlug: function(slug, dc) {
     return this._super(...arguments).then(function(item) {
       // TODO: Move this to the Serializer
