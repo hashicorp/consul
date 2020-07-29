@@ -170,7 +170,7 @@ export default {
   acl: create(acl(visitable, submitable, deletable, cancelable, clickable)),
   policies: create(policies(visitable, creatable, consulPolicyList, freetextFilter)),
   policy: create(policy(visitable, submitable, deletable, cancelable, clickable, tokenList)),
-  roles: create(roles(visitable, creatable, consulRoleList, freetextFilter)),
+  roles: create(roles(visitable, creatable, consulRoleList, popoverSelect)),
   // TODO: This needs a policyList
   role: create(role(visitable, submitable, deletable, cancelable, policySelector, tokenList)),
   tokens: create(tokens(visitable, creatable, text, consulTokenList, popoverSelect)),
