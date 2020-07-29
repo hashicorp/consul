@@ -1263,7 +1263,7 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 				httpConfig := wp.Exempt["http_handler_config"].(*watch.HttpHandlerConfig)
 				wp.Handler = makeHTTPWatchHandler(a.logger, httpConfig)
 			}
-			wp.LogOutput = a.LogOutput
+			wp.Logger = a.logger.Named("watch")
 
 			addr := config.Address
 			if config.Scheme == "https" {

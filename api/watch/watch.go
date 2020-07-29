@@ -8,6 +8,7 @@ import (
 	"time"
 
 	consulapi "github.com/hashicorp/consul/api"
+	"github.com/hashicorp/go-hclog"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -29,7 +30,10 @@ type Plan struct {
 	// on index param. To support hash based watches, set HybridHandler instead.
 	Handler       HandlerFunc
 	HybridHandler HybridHandlerFunc
-	LogOutput     io.Writer
+
+	Logger hclog.Logger
+	// Deprecated: use Logger
+	LogOutput io.Writer
 
 	address      string
 	client       *consulapi.Client
