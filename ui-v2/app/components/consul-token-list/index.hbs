@@ -10,7 +10,7 @@
           </dd>
         </dl>
 {{/if}}
-        <a href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>{{substr item.AccessorID -8}}</a>
+        <a data-test-token={{item.AccessorID}} href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>{{substr item.AccessorID -8}}</a>
     </BlockSlot>
     <BlockSlot @name="details">
         <dl>

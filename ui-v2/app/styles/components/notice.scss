@@ -1,5 +1,5 @@
 %notice {
-  margin-bottom: 1em;
+  margin: 1em 0;
 }
 %notice-success::before {
   @extend %with-check-circle-fill-color-icon;

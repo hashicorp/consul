@@ -7,6 +7,7 @@ export default Route.extend(WithTokenActions, {
   repo: service('repository/token'),
   settings: service('settings'),
   queryParams: {
+    sortBy: 'sort',
     search: {
       as: 'filter',
       replace: true,
