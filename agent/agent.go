@@ -591,16 +591,10 @@ func (a *Agent) initializeConnectionPool() error {
 		rpcSrcAddr = &net.TCPAddr{IP: a.config.RPCBindAddr.IP}
 	}
 
-	// Ensure we have a log output for the connection pool.
-	logOutput := a.LogOutput
-	if logOutput == nil {
-		logOutput = os.Stderr
-	}
-
 	pool := &pool.ConnPool{
 		Server:          a.config.ServerMode,
 		SrcAddr:         rpcSrcAddr,
-		LogOutput:       logOutput,
+		Logger:          a.logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true}),
 		TLSConfigurator: a.tlsConfigurator,
 		Datacenter:      a.config.Datacenter,
 	}

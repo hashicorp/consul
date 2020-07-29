@@ -140,7 +140,7 @@ func NewClientWithOptions(config *Config, options ...ConsulOption) (*Client, err
 		connPool = &pool.ConnPool{
 			Server:          false,
 			SrcAddr:         config.RPCSrcAddr,
-			LogOutput:       config.LogOutput,
+			Logger:          logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true}),
 			MaxTime:         clientRPCConnMaxIdle,
 			MaxStreams:      clientMaxStreams,
 			TLSConfigurator: tlsConfigurator,

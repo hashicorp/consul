@@ -400,7 +400,7 @@ func NewServerWithOptions(config *Config, options ...ConsulOption) (*Server, err
 		connPool = &pool.ConnPool{
 			Server:          true,
 			SrcAddr:         config.RPCSrcAddr,
-			LogOutput:       config.LogOutput,
+			Logger:          logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true}),
 			MaxTime:         serverRPCCache,
 			MaxStreams:      serverMaxStreams,
 			TLSConfigurator: tlsConfigurator,
