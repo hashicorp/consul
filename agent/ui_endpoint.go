@@ -24,19 +24,19 @@ type GatewayConfig struct {
 
 // ServiceSummary is used to summarize a service
 type ServiceSummary struct {
-	Kind              structs.ServiceKind `json:",omitempty"`
-	Name              string
-	Tags              []string
-	Nodes             []string
-	InstanceCount     int
-	ProxyFor          []string            `json:",omitempty"`
-	proxyForSet       map[string]struct{} // internal to track uniqueness
-	ChecksPassing     int
-	ChecksWarning     int
-	ChecksCritical    int
-	ExternalSources   []string
-	externalSourceSet map[string]struct{} // internal to track uniqueness
-	GatewayConfig     GatewayConfig       `json:",omitempty"`
+	Kind                 structs.ServiceKind `json:",omitempty"`
+	Name                 string
+	Tags                 []string
+	Nodes                []string
+	InstanceCount        int
+	ChecksPassing        int
+	ChecksWarning        int
+	ChecksCritical       int
+	ExternalSources      []string
+	externalSourceSet    map[string]struct{} // internal to track uniqueness
+	GatewayConfig        GatewayConfig       `json:",omitempty"`
+	ConnectedWithProxy   bool
+	ConnectedWithGateway bool
 
 	structs.EnterpriseMeta
 }
@@ -206,6 +206,10 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig) []*S
 	// Collect the summary information
 	var services []structs.ServiceID
 	summary := make(map[structs.ServiceID]*ServiceSummary)
+
+	hasGateway := make(map[structs.ServiceID]bool)
+	hasProxy := make(map[structs.ServiceID]bool)
+
 	getService := func(service structs.ServiceID) *ServiceSummary {
 		serv, ok := summary[service]
 		if !ok {
@@ -241,13 +245,7 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig) []*S
 		sum.Kind = svc.Kind
 		sum.InstanceCount += 1
 		if svc.Kind == structs.ServiceKindConnectProxy {
-			if _, ok := sum.proxyForSet[svc.Proxy.DestinationServiceName]; !ok {
-				if sum.proxyForSet == nil {
-					sum.proxyForSet = make(map[string]struct{})
-				}
-				sum.proxyForSet[svc.Proxy.DestinationServiceName] = struct{}{}
-				sum.ProxyFor = append(sum.ProxyFor, svc.Proxy.DestinationServiceName)
-			}
+			hasProxy[structs.NewServiceID(svc.Proxy.DestinationServiceName, &svc.EnterpriseMeta)] = true
 		}
 		for _, tag := range svc.Tags {
 			found := false
@@ -298,6 +296,12 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig) []*S
 	for idx, service := range services {
 		// Sort the nodes and tags
 		sum := summary[service]
+		if hasProxy[service] {
+			sum.ConnectedWithProxy = true
+		}
+		if hasGateway[service] {
+			sum.ConnectedWithGateway = true
+		}
 		sort.Strings(sum.Nodes)
 		sort.Strings(sum.Tags)
 		output[idx] = sum
