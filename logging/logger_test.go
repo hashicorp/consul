@@ -19,9 +19,8 @@ func TestLogger_SetupBasic(t *testing.T) {
 		LogLevel: "INFO",
 	}
 
-	logger, writer, err := Setup(cfg, nil)
+	logger, err := Setup(cfg, nil)
 	require.NoError(err)
-	require.NotNil(writer)
 	require.NotNil(logger)
 }
 
@@ -29,7 +28,7 @@ func TestLogger_SetupInvalidLogLevel(t *testing.T) {
 	t.Parallel()
 	cfg := &Config{}
 
-	_, _, err := Setup(cfg, nil)
+	_, err := Setup(cfg, nil)
 	testutil.RequireErrorContains(t, err, "Invalid log level")
 }
 
@@ -62,7 +61,7 @@ func TestLogger_SetupLoggerErrorLevel(t *testing.T) {
 			require := require.New(t)
 			var buf bytes.Buffer
 
-			logger, _, err := Setup(&cfg, []io.Writer{&buf})
+			logger, err := Setup(&cfg, []io.Writer{&buf})
 			require.NoError(err)
 			require.NotNil(logger)
 
@@ -85,7 +84,7 @@ func TestLogger_SetupLoggerDebugLevel(t *testing.T) {
 	}
 	var buf bytes.Buffer
 
-	logger, _, err := Setup(cfg, []io.Writer{&buf})
+	logger, err := Setup(cfg, []io.Writer{&buf})
 	require.NoError(err)
 	require.NotNil(logger)
 
@@ -107,7 +106,7 @@ func TestLogger_SetupLoggerWithName(t *testing.T) {
 	}
 	var buf bytes.Buffer
 
-	logger, _, err := Setup(cfg, []io.Writer{&buf})
+	logger, err := Setup(cfg, []io.Writer{&buf})
 	require.NoError(err)
 	require.NotNil(logger)
 
@@ -126,7 +125,7 @@ func TestLogger_SetupLoggerWithJSON(t *testing.T) {
 	}
 	var buf bytes.Buffer
 
-	logger, _, err := Setup(cfg, []io.Writer{&buf})
+	logger, err := Setup(cfg, []io.Writer{&buf})
 	require.NoError(err)
 	require.NotNil(logger)
 
@@ -154,7 +153,7 @@ func TestLogger_SetupLoggerWithValidLogPath(t *testing.T) {
 	}
 	var buf bytes.Buffer
 
-	logger, _, err := Setup(cfg, []io.Writer{&buf})
+	logger, err := Setup(cfg, []io.Writer{&buf})
 	require.NoError(err)
 	require.NotNil(logger)
 }
@@ -169,7 +168,7 @@ func TestLogger_SetupLoggerWithInValidLogPath(t *testing.T) {
 	}
 	var buf bytes.Buffer
 
-	logger, _, err := Setup(cfg, []io.Writer{&buf})
+	logger, err := Setup(cfg, []io.Writer{&buf})
 	require.Error(err)
 	require.True(errors.Is(err, os.ErrNotExist))
 	require.Nil(logger)
@@ -190,7 +189,7 @@ func TestLogger_SetupLoggerWithInValidLogPathPermission(t *testing.T) {
 	}
 	var buf bytes.Buffer
 
-	logger, _, err := Setup(cfg, []io.Writer{&buf})
+	logger, err := Setup(cfg, []io.Writer{&buf})
 	require.Error(err)
 	require.True(errors.Is(err, os.ErrPermission))
 	require.Nil(logger)

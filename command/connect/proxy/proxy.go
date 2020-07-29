@@ -140,7 +140,7 @@ func (c *cmd) Run(args []string) int {
 
 	logGate := logging.GatedWriter{Writer: &cli.UiWriter{Ui: c.UI}}
 
-	logger, _, err := logging.Setup(logConfig, []io.Writer{&logGate})
+	logger, err := logging.Setup(logConfig, []io.Writer{&logGate})
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1
