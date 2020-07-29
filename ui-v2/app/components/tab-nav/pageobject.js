@@ -1,4 +1,4 @@
-import { is, clickable } from 'ember-cli-page-object';
+import { is, clickable, attribute } from 'ember-cli-page-object';
 import ucfirst from 'consul-ui/utils/ucfirst';
 export default function(name, items, blankKey = 'all') {
   return items.reduce(function(prev, item, i, arr) {
@@ -17,6 +17,7 @@ export default function(name, items, blankKey = 'all') {
       ...prev,
       ...{
         [`${key}IsSelected`]: is('.selected', `[data-test-tab="${name}_${item}"]`),
+        [`${key}Url`]: attribute('href', `[data-test-tab="${name}_${item}"] a`),
         [key]: clickable(`[data-test-tab="${name}_${item}"] a`),
       },
     };

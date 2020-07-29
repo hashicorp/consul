@@ -159,10 +159,10 @@ export default function(scenario, assert, find, currentPage) {
     })
     .then(
       [
-        'I see $property on the $component like "$value"',
-        "I see $property on the $component like '$value'",
+        `I see $property on the $component (contains|like) "$value"`,
+        `I see $property on the $component (contains|like) '$value'`,
       ],
-      function(property, component, value) {
+      function(property, component, containsLike, value) {
         let target;
         try {
           if (typeof component === 'string') {
@@ -172,11 +172,18 @@ export default function(scenario, assert, find, currentPage) {
         } catch (e) {
           throw e;
         }
-        assert.equal(
-          target,
-          value,
-          `Expected to see ${property} on ${component} as ${value}, was ${target}`
-        );
+        if (containsLike === 'like') {
+          assert.equal(
+            target,
+            value,
+            `Expected to see ${property} on ${component} as ${value}, was ${target}`
+          );
+        } else {
+          assert.ok(
+            target.indexOf(value) !== -1,
+            `Expected to see ${property} on ${component} within ${value}, was ${target}`
+          );
+        }
       }
     )
     .then(['I see $property like "$value"'], function(property, value) {
