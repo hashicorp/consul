@@ -168,7 +168,7 @@ export default {
   kv: create(kv(visitable, attribute, submitable, deletable, cancelable, clickable)),
   acls: create(acls(visitable, deletable, creatable, clickable, attribute, collection, aclFilter)),
   acl: create(acl(visitable, submitable, deletable, cancelable, clickable)),
-  policies: create(policies(visitable, creatable, consulPolicyList, freetextFilter)),
+  policies: create(policies(visitable, creatable, consulPolicyList, popoverSelect)),
   policy: create(policy(visitable, submitable, deletable, cancelable, clickable, tokenList)),
   roles: create(roles(visitable, creatable, consulRoleList, popoverSelect)),
   // TODO: This needs a policyList
