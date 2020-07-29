@@ -1,7 +1,7 @@
-export default function(visitable, creatable, policies, filter) {
+export default function(visitable, creatable, policies, popoverSelect) {
   return creatable({
     visit: visitable('/:dc/acls/policies'),
     policies: policies(),
-    filter: filter(),
+    sort: popoverSelect(),
   });
 }
