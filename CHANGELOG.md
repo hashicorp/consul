@@ -3,6 +3,7 @@
 FEATURES:
 
 * acl: Added ACL Node Identities for easier creation of Consul Agent tokens. [[GH-7970](https://github.com/hashicorp/consul/pull/7970)]
+* agent: Added Consul client agent automatic configuration utilizing JWTs for authorizing the request to generate ACL tokens, TLS certificates and retrieval of the gossip encryption key. [[GH-8003](https://github.com/hashicorp/consul/pull/8003)], [[GH-8035](https://github.com/hashicorp/consul/pull/8035)], [[GH-8086](https://github.com/hashicorp/consul/pull/8086)], [[GH-8148](https://github.com/hashicorp/consul/pull/8148)], [[GH-8157](https://github.com/hashicorp/consul/pull/8157)], [[GH-8159](https://github.com/hashicorp/consul/pull/8159)], [[GH-8193](https://github.com/hashicorp/consul/pull/8193)], [[GH-8253](https://github.com/hashicorp/consul/pull/8253)], [[GH-8301](https://github.com/hashicorp/consul/pull/8301)], [[GH-8360](https://github.com/hashicorp/consul/pull/8360)], [[GH-8362](https://github.com/hashicorp/consul/pull/8362)], [[GH-8363](https://github.com/hashicorp/consul/pull/8363)], [[GH-8364](https://github.com/hashicorp/consul/pull/8364)]
 
 IMPROVEMENTS:
 
