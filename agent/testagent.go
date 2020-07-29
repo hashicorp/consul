@@ -413,8 +413,11 @@ func (a *TestAgent) DNSDisableCompression(b bool) {
 	}
 }
 
+// FIXME: this should t.Fatal on error, not panic.
+// TODO: rename to newConsulConfig
+// TODO: remove TestAgent receiver, accept a.Agent.config as an arg
 func (a *TestAgent) consulConfig() *consul.Config {
-	c, err := a.Agent.consulConfig()
+	c, err := newConsulConfig(a.Agent.config, a.Agent.logger)
 	if err != nil {
 		panic(err)
 	}

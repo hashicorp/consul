@@ -671,9 +671,17 @@ func (a *Agent) Start(ctx context.Context) error {
 	a.sync = ae.NewStateSyncer(a.State, c.AEInterval, a.shutdownCh, a.logger)
 
 	// create the config for the rpc server/client
-	consulCfg, err := a.consulConfig()
+	consulCfg, err := newConsulConfig(a.config, a.logger)
 	if err != nil {
 		return err
+	}
+
+	// Setup the user event callback
+	consulCfg.UserEventHandler = func(e serf.UserEvent) {
+		select {
+		case a.eventCh <- e:
+		case <-a.shutdownCh:
+		}
 	}
 
 	// ServerUp is used to inform that a new consul server is now
@@ -1260,154 +1268,155 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 	return nil
 }
 
-// consulConfig is used to return a consul configuration
-func (a *Agent) consulConfig() (*consul.Config, error) {
+// newConsulConfig translates a RuntimeConfig into a consul.Config.
+// FIXME: move this function to a different file, maybe config.go
+func newConsulConfig(config *config.RuntimeConfig, logger hclog.Logger) (*consul.Config, error) {
 	// Start with the provided config or default config
 	base := consul.DefaultConfig()
 
 	// This is set when the agent starts up
-	base.NodeID = a.config.NodeID
+	base.NodeID = config.NodeID
 
 	// Apply dev mode
-	base.DevMode = a.config.DevMode
+	base.DevMode = config.DevMode
 
 	// Override with our config
 	// todo(fs): these are now always set in the runtime config so we can simplify this
 	// todo(fs): or is there a reason to keep it like that?
-	base.Datacenter = a.config.Datacenter
-	base.PrimaryDatacenter = a.config.PrimaryDatacenter
-	base.DataDir = a.config.DataDir
-	base.NodeName = a.config.NodeName
+	base.Datacenter = config.Datacenter
+	base.PrimaryDatacenter = config.PrimaryDatacenter
+	base.DataDir = config.DataDir
+	base.NodeName = config.NodeName
 
-	base.CoordinateUpdateBatchSize = a.config.ConsulCoordinateUpdateBatchSize
-	base.CoordinateUpdateMaxBatches = a.config.ConsulCoordinateUpdateMaxBatches
-	base.CoordinateUpdatePeriod = a.config.ConsulCoordinateUpdatePeriod
-	base.CheckOutputMaxSize = a.config.CheckOutputMaxSize
+	base.CoordinateUpdateBatchSize = config.ConsulCoordinateUpdateBatchSize
+	base.CoordinateUpdateMaxBatches = config.ConsulCoordinateUpdateMaxBatches
+	base.CoordinateUpdatePeriod = config.ConsulCoordinateUpdatePeriod
+	base.CheckOutputMaxSize = config.CheckOutputMaxSize
 
-	base.RaftConfig.HeartbeatTimeout = a.config.ConsulRaftHeartbeatTimeout
-	base.RaftConfig.LeaderLeaseTimeout = a.config.ConsulRaftLeaderLeaseTimeout
-	base.RaftConfig.ElectionTimeout = a.config.ConsulRaftElectionTimeout
+	base.RaftConfig.HeartbeatTimeout = config.ConsulRaftHeartbeatTimeout
+	base.RaftConfig.LeaderLeaseTimeout = config.ConsulRaftLeaderLeaseTimeout
+	base.RaftConfig.ElectionTimeout = config.ConsulRaftElectionTimeout
 
-	base.SerfLANConfig.MemberlistConfig.BindAddr = a.config.SerfBindAddrLAN.IP.String()
-	base.SerfLANConfig.MemberlistConfig.BindPort = a.config.SerfBindAddrLAN.Port
-	base.SerfLANConfig.MemberlistConfig.CIDRsAllowed = a.config.SerfAllowedCIDRsLAN
-	base.SerfWANConfig.MemberlistConfig.CIDRsAllowed = a.config.SerfAllowedCIDRsWAN
-	base.SerfLANConfig.MemberlistConfig.AdvertiseAddr = a.config.SerfAdvertiseAddrLAN.IP.String()
-	base.SerfLANConfig.MemberlistConfig.AdvertisePort = a.config.SerfAdvertiseAddrLAN.Port
-	base.SerfLANConfig.MemberlistConfig.GossipVerifyIncoming = a.config.EncryptVerifyIncoming
-	base.SerfLANConfig.MemberlistConfig.GossipVerifyOutgoing = a.config.EncryptVerifyOutgoing
-	base.SerfLANConfig.MemberlistConfig.GossipInterval = a.config.GossipLANGossipInterval
-	base.SerfLANConfig.MemberlistConfig.GossipNodes = a.config.GossipLANGossipNodes
-	base.SerfLANConfig.MemberlistConfig.ProbeInterval = a.config.GossipLANProbeInterval
-	base.SerfLANConfig.MemberlistConfig.ProbeTimeout = a.config.GossipLANProbeTimeout
-	base.SerfLANConfig.MemberlistConfig.SuspicionMult = a.config.GossipLANSuspicionMult
-	base.SerfLANConfig.MemberlistConfig.RetransmitMult = a.config.GossipLANRetransmitMult
-	if a.config.ReconnectTimeoutLAN != 0 {
-		base.SerfLANConfig.ReconnectTimeout = a.config.ReconnectTimeoutLAN
+	base.SerfLANConfig.MemberlistConfig.BindAddr = config.SerfBindAddrLAN.IP.String()
+	base.SerfLANConfig.MemberlistConfig.BindPort = config.SerfBindAddrLAN.Port
+	base.SerfLANConfig.MemberlistConfig.CIDRsAllowed = config.SerfAllowedCIDRsLAN
+	base.SerfWANConfig.MemberlistConfig.CIDRsAllowed = config.SerfAllowedCIDRsWAN
+	base.SerfLANConfig.MemberlistConfig.AdvertiseAddr = config.SerfAdvertiseAddrLAN.IP.String()
+	base.SerfLANConfig.MemberlistConfig.AdvertisePort = config.SerfAdvertiseAddrLAN.Port
+	base.SerfLANConfig.MemberlistConfig.GossipVerifyIncoming = config.EncryptVerifyIncoming
+	base.SerfLANConfig.MemberlistConfig.GossipVerifyOutgoing = config.EncryptVerifyOutgoing
+	base.SerfLANConfig.MemberlistConfig.GossipInterval = config.GossipLANGossipInterval
+	base.SerfLANConfig.MemberlistConfig.GossipNodes = config.GossipLANGossipNodes
+	base.SerfLANConfig.MemberlistConfig.ProbeInterval = config.GossipLANProbeInterval
+	base.SerfLANConfig.MemberlistConfig.ProbeTimeout = config.GossipLANProbeTimeout
+	base.SerfLANConfig.MemberlistConfig.SuspicionMult = config.GossipLANSuspicionMult
+	base.SerfLANConfig.MemberlistConfig.RetransmitMult = config.GossipLANRetransmitMult
+	if config.ReconnectTimeoutLAN != 0 {
+		base.SerfLANConfig.ReconnectTimeout = config.ReconnectTimeoutLAN
 	}
 
-	if a.config.SerfBindAddrWAN != nil {
-		base.SerfWANConfig.MemberlistConfig.BindAddr = a.config.SerfBindAddrWAN.IP.String()
-		base.SerfWANConfig.MemberlistConfig.BindPort = a.config.SerfBindAddrWAN.Port
-		base.SerfWANConfig.MemberlistConfig.AdvertiseAddr = a.config.SerfAdvertiseAddrWAN.IP.String()
-		base.SerfWANConfig.MemberlistConfig.AdvertisePort = a.config.SerfAdvertiseAddrWAN.Port
-		base.SerfWANConfig.MemberlistConfig.GossipVerifyIncoming = a.config.EncryptVerifyIncoming
-		base.SerfWANConfig.MemberlistConfig.GossipVerifyOutgoing = a.config.EncryptVerifyOutgoing
-		base.SerfWANConfig.MemberlistConfig.GossipInterval = a.config.GossipWANGossipInterval
-		base.SerfWANConfig.MemberlistConfig.GossipNodes = a.config.GossipWANGossipNodes
-		base.SerfWANConfig.MemberlistConfig.ProbeInterval = a.config.GossipWANProbeInterval
-		base.SerfWANConfig.MemberlistConfig.ProbeTimeout = a.config.GossipWANProbeTimeout
-		base.SerfWANConfig.MemberlistConfig.SuspicionMult = a.config.GossipWANSuspicionMult
-		base.SerfWANConfig.MemberlistConfig.RetransmitMult = a.config.GossipWANRetransmitMult
-		if a.config.ReconnectTimeoutWAN != 0 {
-			base.SerfWANConfig.ReconnectTimeout = a.config.ReconnectTimeoutWAN
+	if config.SerfBindAddrWAN != nil {
+		base.SerfWANConfig.MemberlistConfig.BindAddr = config.SerfBindAddrWAN.IP.String()
+		base.SerfWANConfig.MemberlistConfig.BindPort = config.SerfBindAddrWAN.Port
+		base.SerfWANConfig.MemberlistConfig.AdvertiseAddr = config.SerfAdvertiseAddrWAN.IP.String()
+		base.SerfWANConfig.MemberlistConfig.AdvertisePort = config.SerfAdvertiseAddrWAN.Port
+		base.SerfWANConfig.MemberlistConfig.GossipVerifyIncoming = config.EncryptVerifyIncoming
+		base.SerfWANConfig.MemberlistConfig.GossipVerifyOutgoing = config.EncryptVerifyOutgoing
+		base.SerfWANConfig.MemberlistConfig.GossipInterval = config.GossipWANGossipInterval
+		base.SerfWANConfig.MemberlistConfig.GossipNodes = config.GossipWANGossipNodes
+		base.SerfWANConfig.MemberlistConfig.ProbeInterval = config.GossipWANProbeInterval
+		base.SerfWANConfig.MemberlistConfig.ProbeTimeout = config.GossipWANProbeTimeout
+		base.SerfWANConfig.MemberlistConfig.SuspicionMult = config.GossipWANSuspicionMult
+		base.SerfWANConfig.MemberlistConfig.RetransmitMult = config.GossipWANRetransmitMult
+		if config.ReconnectTimeoutWAN != 0 {
+			base.SerfWANConfig.ReconnectTimeout = config.ReconnectTimeoutWAN
 		}
 	} else {
 		// Disable serf WAN federation
 		base.SerfWANConfig = nil
 	}
 
-	base.RPCAddr = a.config.RPCBindAddr
-	base.RPCAdvertise = a.config.RPCAdvertiseAddr
+	base.RPCAddr = config.RPCBindAddr
+	base.RPCAdvertise = config.RPCAdvertiseAddr
 
-	base.Segment = a.config.SegmentName
-	if len(a.config.Segments) > 0 {
-		segments, err := a.segmentConfig()
+	base.Segment = config.SegmentName
+	if len(config.Segments) > 0 {
+		segments, err := segmentConfig(config)
 		if err != nil {
 			return nil, err
 		}
 		base.Segments = segments
 	}
-	if a.config.Bootstrap {
+	if config.Bootstrap {
 		base.Bootstrap = true
 	}
-	if a.config.CheckOutputMaxSize > 0 {
-		base.CheckOutputMaxSize = a.config.CheckOutputMaxSize
+	if config.CheckOutputMaxSize > 0 {
+		base.CheckOutputMaxSize = config.CheckOutputMaxSize
 	}
-	if a.config.RejoinAfterLeave {
+	if config.RejoinAfterLeave {
 		base.RejoinAfterLeave = true
 	}
-	if a.config.BootstrapExpect != 0 {
-		base.BootstrapExpect = a.config.BootstrapExpect
+	if config.BootstrapExpect != 0 {
+		base.BootstrapExpect = config.BootstrapExpect
 	}
-	if a.config.RPCProtocol > 0 {
-		base.ProtocolVersion = uint8(a.config.RPCProtocol)
+	if config.RPCProtocol > 0 {
+		base.ProtocolVersion = uint8(config.RPCProtocol)
 	}
-	if a.config.RaftProtocol != 0 {
-		base.RaftConfig.ProtocolVersion = raft.ProtocolVersion(a.config.RaftProtocol)
+	if config.RaftProtocol != 0 {
+		base.RaftConfig.ProtocolVersion = raft.ProtocolVersion(config.RaftProtocol)
 	}
-	if a.config.RaftSnapshotThreshold != 0 {
-		base.RaftConfig.SnapshotThreshold = uint64(a.config.RaftSnapshotThreshold)
+	if config.RaftSnapshotThreshold != 0 {
+		base.RaftConfig.SnapshotThreshold = uint64(config.RaftSnapshotThreshold)
 	}
-	if a.config.RaftSnapshotInterval != 0 {
-		base.RaftConfig.SnapshotInterval = a.config.RaftSnapshotInterval
+	if config.RaftSnapshotInterval != 0 {
+		base.RaftConfig.SnapshotInterval = config.RaftSnapshotInterval
 	}
-	if a.config.RaftTrailingLogs != 0 {
-		base.RaftConfig.TrailingLogs = uint64(a.config.RaftTrailingLogs)
+	if config.RaftTrailingLogs != 0 {
+		base.RaftConfig.TrailingLogs = uint64(config.RaftTrailingLogs)
 	}
-	if a.config.ACLMasterToken != "" {
-		base.ACLMasterToken = a.config.ACLMasterToken
+	if config.ACLMasterToken != "" {
+		base.ACLMasterToken = config.ACLMasterToken
 	}
-	if a.config.ACLDatacenter != "" {
-		base.ACLDatacenter = a.config.ACLDatacenter
+	if config.ACLDatacenter != "" {
+		base.ACLDatacenter = config.ACLDatacenter
 	}
-	if a.config.ACLTokenTTL != 0 {
-		base.ACLTokenTTL = a.config.ACLTokenTTL
+	if config.ACLTokenTTL != 0 {
+		base.ACLTokenTTL = config.ACLTokenTTL
 	}
-	if a.config.ACLPolicyTTL != 0 {
-		base.ACLPolicyTTL = a.config.ACLPolicyTTL
+	if config.ACLPolicyTTL != 0 {
+		base.ACLPolicyTTL = config.ACLPolicyTTL
 	}
-	if a.config.ACLRoleTTL != 0 {
-		base.ACLRoleTTL = a.config.ACLRoleTTL
+	if config.ACLRoleTTL != 0 {
+		base.ACLRoleTTL = config.ACLRoleTTL
 	}
-	if a.config.ACLDefaultPolicy != "" {
-		base.ACLDefaultPolicy = a.config.ACLDefaultPolicy
+	if config.ACLDefaultPolicy != "" {
+		base.ACLDefaultPolicy = config.ACLDefaultPolicy
 	}
-	if a.config.ACLDownPolicy != "" {
-		base.ACLDownPolicy = a.config.ACLDownPolicy
+	if config.ACLDownPolicy != "" {
+		base.ACLDownPolicy = config.ACLDownPolicy
 	}
-	base.ACLTokenReplication = a.config.ACLTokenReplication
-	base.ACLsEnabled = a.config.ACLsEnabled
-	if a.config.ACLEnableKeyListPolicy {
-		base.ACLEnableKeyListPolicy = a.config.ACLEnableKeyListPolicy
+	base.ACLTokenReplication = config.ACLTokenReplication
+	base.ACLsEnabled = config.ACLsEnabled
+	if config.ACLEnableKeyListPolicy {
+		base.ACLEnableKeyListPolicy = config.ACLEnableKeyListPolicy
 	}
-	if a.config.SessionTTLMin != 0 {
-		base.SessionTTLMin = a.config.SessionTTLMin
+	if config.SessionTTLMin != 0 {
+		base.SessionTTLMin = config.SessionTTLMin
 	}
-	if a.config.NonVotingServer {
-		base.NonVoter = a.config.NonVotingServer
+	if config.NonVotingServer {
+		base.NonVoter = config.NonVotingServer
 	}
 
 	// These are fully specified in the agent defaults, so we can simply
 	// copy them over.
-	base.AutopilotConfig.CleanupDeadServers = a.config.AutopilotCleanupDeadServers
-	base.AutopilotConfig.LastContactThreshold = a.config.AutopilotLastContactThreshold
-	base.AutopilotConfig.MaxTrailingLogs = uint64(a.config.AutopilotMaxTrailingLogs)
-	base.AutopilotConfig.MinQuorum = a.config.AutopilotMinQuorum
-	base.AutopilotConfig.ServerStabilizationTime = a.config.AutopilotServerStabilizationTime
-	base.AutopilotConfig.RedundancyZoneTag = a.config.AutopilotRedundancyZoneTag
-	base.AutopilotConfig.DisableUpgradeMigration = a.config.AutopilotDisableUpgradeMigration
-	base.AutopilotConfig.UpgradeVersionTag = a.config.AutopilotUpgradeVersionTag
+	base.AutopilotConfig.CleanupDeadServers = config.AutopilotCleanupDeadServers
+	base.AutopilotConfig.LastContactThreshold = config.AutopilotLastContactThreshold
+	base.AutopilotConfig.MaxTrailingLogs = uint64(config.AutopilotMaxTrailingLogs)
+	base.AutopilotConfig.MinQuorum = config.AutopilotMinQuorum
+	base.AutopilotConfig.ServerStabilizationTime = config.AutopilotServerStabilizationTime
+	base.AutopilotConfig.RedundancyZoneTag = config.AutopilotRedundancyZoneTag
+	base.AutopilotConfig.DisableUpgradeMigration = config.AutopilotDisableUpgradeMigration
+	base.AutopilotConfig.UpgradeVersionTag = config.AutopilotUpgradeVersionTag
 
 	// make sure the advertise address is always set
 	if base.RPCAdvertise == nil {
@@ -1415,27 +1424,27 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	}
 
 	// Rate limiting for RPC calls.
-	if a.config.RPCRateLimit > 0 {
-		base.RPCRate = a.config.RPCRateLimit
+	if config.RPCRateLimit > 0 {
+		base.RPCRate = config.RPCRateLimit
 	}
-	if a.config.RPCMaxBurst > 0 {
-		base.RPCMaxBurst = a.config.RPCMaxBurst
+	if config.RPCMaxBurst > 0 {
+		base.RPCMaxBurst = config.RPCMaxBurst
 	}
 
 	// RPC timeouts/limits.
-	if a.config.RPCHandshakeTimeout > 0 {
-		base.RPCHandshakeTimeout = a.config.RPCHandshakeTimeout
+	if config.RPCHandshakeTimeout > 0 {
+		base.RPCHandshakeTimeout = config.RPCHandshakeTimeout
 	}
-	if a.config.RPCMaxConnsPerClient > 0 {
-		base.RPCMaxConnsPerClient = a.config.RPCMaxConnsPerClient
+	if config.RPCMaxConnsPerClient > 0 {
+		base.RPCMaxConnsPerClient = config.RPCMaxConnsPerClient
 	}
 
 	// RPC-related performance configs. We allow explicit zero value to disable so
 	// copy it whatever the value.
-	base.RPCHoldTimeout = a.config.RPCHoldTimeout
+	base.RPCHoldTimeout = config.RPCHoldTimeout
 
-	if a.config.LeaveDrainTime > 0 {
-		base.LeaveDrainTime = a.config.LeaveDrainTime
+	if config.LeaveDrainTime > 0 {
+		base.LeaveDrainTime = config.LeaveDrainTime
 	}
 
 	// set the src address for outgoing rpc connections
@@ -1445,39 +1454,39 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	}
 
 	// Format the build string
-	revision := a.config.Revision
+	revision := config.Revision
 	if len(revision) > 8 {
 		revision = revision[:8]
 	}
-	base.Build = fmt.Sprintf("%s%s:%s", a.config.Version, a.config.VersionPrerelease, revision)
+	base.Build = fmt.Sprintf("%s%s:%s", config.Version, config.VersionPrerelease, revision)
 
 	// Copy the TLS configuration
-	base.VerifyIncoming = a.config.VerifyIncoming || a.config.VerifyIncomingRPC
-	if a.config.CAPath != "" || a.config.CAFile != "" {
+	base.VerifyIncoming = config.VerifyIncoming || config.VerifyIncomingRPC
+	if config.CAPath != "" || config.CAFile != "" {
 		base.UseTLS = true
 	}
-	base.VerifyOutgoing = a.config.VerifyOutgoing
-	base.VerifyServerHostname = a.config.VerifyServerHostname
-	base.CAFile = a.config.CAFile
-	base.CAPath = a.config.CAPath
-	base.CertFile = a.config.CertFile
-	base.KeyFile = a.config.KeyFile
-	base.ServerName = a.config.ServerName
-	base.Domain = a.config.DNSDomain
-	base.TLSMinVersion = a.config.TLSMinVersion
-	base.TLSCipherSuites = a.config.TLSCipherSuites
-	base.TLSPreferServerCipherSuites = a.config.TLSPreferServerCipherSuites
-	base.DefaultQueryTime = a.config.DefaultQueryTime
-	base.MaxQueryTime = a.config.MaxQueryTime
+	base.VerifyOutgoing = config.VerifyOutgoing
+	base.VerifyServerHostname = config.VerifyServerHostname
+	base.CAFile = config.CAFile
+	base.CAPath = config.CAPath
+	base.CertFile = config.CertFile
+	base.KeyFile = config.KeyFile
+	base.ServerName = config.ServerName
+	base.Domain = config.DNSDomain
+	base.TLSMinVersion = config.TLSMinVersion
+	base.TLSCipherSuites = config.TLSCipherSuites
+	base.TLSPreferServerCipherSuites = config.TLSPreferServerCipherSuites
+	base.DefaultQueryTime = config.DefaultQueryTime
+	base.MaxQueryTime = config.MaxQueryTime
 
-	base.AutoEncryptAllowTLS = a.config.AutoEncryptAllowTLS
+	base.AutoEncryptAllowTLS = config.AutoEncryptAllowTLS
 
 	// Copy the Connect CA bootstrap config
-	if a.config.ConnectEnabled {
+	if config.ConnectEnabled {
 		base.ConnectEnabled = true
-		base.ConnectMeshGatewayWANFederationEnabled = a.config.ConnectMeshGatewayWANFederationEnabled
+		base.ConnectMeshGatewayWANFederationEnabled = config.ConnectMeshGatewayWANFederationEnabled
 
-		ca, err := a.config.ConnectCAConfiguration()
+		ca, err := config.ConnectCAConfiguration()
 		if err != nil {
 			return nil, err
 		}
@@ -1486,40 +1495,33 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	}
 
 	// copy over auto config settings
-	base.AutoConfigEnabled = a.config.AutoConfig.Enabled
-	base.AutoConfigIntroToken = a.config.AutoConfig.IntroToken
-	base.AutoConfigIntroTokenFile = a.config.AutoConfig.IntroTokenFile
-	base.AutoConfigServerAddresses = a.config.AutoConfig.ServerAddresses
-	base.AutoConfigDNSSANs = a.config.AutoConfig.DNSSANs
-	base.AutoConfigIPSANs = a.config.AutoConfig.IPSANs
-	base.AutoConfigAuthzEnabled = a.config.AutoConfig.Authorizer.Enabled
-	base.AutoConfigAuthzAuthMethod = a.config.AutoConfig.Authorizer.AuthMethod
-	base.AutoConfigAuthzClaimAssertions = a.config.AutoConfig.Authorizer.ClaimAssertions
-	base.AutoConfigAuthzAllowReuse = a.config.AutoConfig.Authorizer.AllowReuse
-
-	// Setup the user event callback
-	base.UserEventHandler = func(e serf.UserEvent) {
-		select {
-		case a.eventCh <- e:
-		case <-a.shutdownCh:
-		}
-	}
+	base.AutoConfigEnabled = config.AutoConfig.Enabled
+	base.AutoConfigIntroToken = config.AutoConfig.IntroToken
+	base.AutoConfigIntroTokenFile = config.AutoConfig.IntroTokenFile
+	base.AutoConfigServerAddresses = config.AutoConfig.ServerAddresses
+	base.AutoConfigDNSSANs = config.AutoConfig.DNSSANs
+	base.AutoConfigIPSANs = config.AutoConfig.IPSANs
+	base.AutoConfigAuthzEnabled = config.AutoConfig.Authorizer.Enabled
+	base.AutoConfigAuthzAuthMethod = config.AutoConfig.Authorizer.AuthMethod
+	base.AutoConfigAuthzClaimAssertions = config.AutoConfig.Authorizer.ClaimAssertions
+	base.AutoConfigAuthzAllowReuse = config.AutoConfig.Authorizer.AllowReuse
 
 	// This will set up the LAN keyring, as well as the WAN and any segments
 	// for servers.
-	if err := a.setupKeyrings(base); err != nil {
+	// FIXME: move this to remove the need to pass in logger.
+	if err := setupKeyrings(base, config, logger); err != nil {
 		return nil, fmt.Errorf("Failed to configure keyring: %v", err)
 	}
 
-	base.ConfigEntryBootstrap = a.config.ConfigEntryBootstrap
+	base.ConfigEntryBootstrap = config.ConfigEntryBootstrap
 
-	return a.enterpriseConsulConfig(base)
+	enterpriseConsulConfig(base, config)
+	return base, nil
 }
 
 // Setup the serf and memberlist config for any defined network segments.
-func (a *Agent) segmentConfig() ([]consul.NetworkSegment, error) {
+func segmentConfig(config *config.RuntimeConfig) ([]consul.NetworkSegment, error) {
 	var segments []consul.NetworkSegment
-	config := a.config
 
 	for _, s := range config.Segments {
 		serfConf := consul.DefaultConfig().SerfLANConfig
@@ -1543,7 +1545,7 @@ func (a *Agent) segmentConfig() ([]consul.NetworkSegment, error) {
 		if s.RPCListener {
 			rpcAddr = &net.TCPAddr{
 				IP:   s.Bind.IP,
-				Port: a.config.ServerPort,
+				Port: config.ServerPort,
 			}
 		}
 
@@ -1561,20 +1563,21 @@ func (a *Agent) segmentConfig() ([]consul.NetworkSegment, error) {
 }
 
 // setupBaseKeyrings configures the LAN and WAN keyrings.
-func (a *Agent) setupBaseKeyrings(config *consul.Config) error {
+// FIXME: move this function to a different file. maybe keyring.go, or config.go
+func setupBaseKeyrings(config *consul.Config, rtConfig *config.RuntimeConfig, logger hclog.Logger) error {
 	// If the keyring file is disabled then just poke the provided key
 	// into the in-memory keyring.
 	federationEnabled := config.SerfWANConfig != nil
-	if a.config.DisableKeyringFile {
-		if a.config.EncryptKey == "" {
+	if rtConfig.DisableKeyringFile {
+		if rtConfig.EncryptKey == "" {
 			return nil
 		}
 
-		keys := []string{a.config.EncryptKey}
+		keys := []string{rtConfig.EncryptKey}
 		if err := loadKeyring(config.SerfLANConfig, keys); err != nil {
 			return err
 		}
-		if a.config.ServerMode && federationEnabled {
+		if rtConfig.ServerMode && federationEnabled {
 			if err := loadKeyring(config.SerfWANConfig, keys); err != nil {
 				return err
 			}
@@ -1583,23 +1586,23 @@ func (a *Agent) setupBaseKeyrings(config *consul.Config) error {
 	}
 
 	// Otherwise, we need to deal with the keyring files.
-	fileLAN := filepath.Join(a.config.DataDir, SerfLANKeyring)
-	fileWAN := filepath.Join(a.config.DataDir, SerfWANKeyring)
+	fileLAN := filepath.Join(rtConfig.DataDir, SerfLANKeyring)
+	fileWAN := filepath.Join(rtConfig.DataDir, SerfWANKeyring)
 
 	var existingLANKeyring, existingWANKeyring bool
-	if a.config.EncryptKey == "" {
+	if rtConfig.EncryptKey == "" {
 		goto LOAD
 	}
 	if _, err := os.Stat(fileLAN); err != nil {
-		if err := initKeyring(fileLAN, a.config.EncryptKey); err != nil {
+		if err := initKeyring(fileLAN, rtConfig.EncryptKey); err != nil {
 			return err
 		}
 	} else {
 		existingLANKeyring = true
 	}
-	if a.config.ServerMode && federationEnabled {
+	if rtConfig.ServerMode && federationEnabled {
 		if _, err := os.Stat(fileWAN); err != nil {
-			if err := initKeyring(fileWAN, a.config.EncryptKey); err != nil {
+			if err := initKeyring(fileWAN, rtConfig.EncryptKey); err != nil {
 				return err
 			}
 		} else {
@@ -1614,7 +1617,7 @@ LOAD:
 	if err := loadKeyringFile(config.SerfLANConfig); err != nil {
 		return err
 	}
-	if a.config.ServerMode && federationEnabled {
+	if rtConfig.ServerMode && federationEnabled {
 		if _, err := os.Stat(fileWAN); err == nil {
 			config.SerfWANConfig.KeyringFile = fileWAN
 		}
@@ -1625,21 +1628,21 @@ LOAD:
 
 	// Only perform the following checks if there was an encrypt_key
 	// provided in the configuration.
-	if a.config.EncryptKey != "" {
+	if rtConfig.EncryptKey != "" {
 		msg := " keyring doesn't include key provided with -encrypt, using keyring"
 		if existingLANKeyring &&
 			keyringIsMissingKey(
 				config.SerfLANConfig.MemberlistConfig.Keyring,
-				a.config.EncryptKey,
+				rtConfig.EncryptKey,
 			) {
-			a.logger.Warn(msg, "keyring", "LAN")
+			logger.Warn(msg, "keyring", "LAN")
 		}
 		if existingWANKeyring &&
 			keyringIsMissingKey(
 				config.SerfWANConfig.MemberlistConfig.Keyring,
-				a.config.EncryptKey,
+				rtConfig.EncryptKey,
 			) {
-			a.logger.Warn(msg, "keyring", "WAN")
+			logger.Warn(msg, "keyring", "WAN")
 		}
 	}
 
@@ -1647,9 +1650,10 @@ LOAD:
 }
 
 // setupKeyrings is used to initialize and load keyrings during agent startup.
-func (a *Agent) setupKeyrings(config *consul.Config) error {
+// FIXME: move this function to a different file. maybe keyring.go, or config.go
+func setupKeyrings(config *consul.Config, rtConfig *config.RuntimeConfig, logger hclog.Logger) error {
 	// First set up the LAN and WAN keyrings.
-	if err := a.setupBaseKeyrings(config); err != nil {
+	if err := setupBaseKeyrings(config, rtConfig, logger); err != nil {
 		return err
 	}
 
@@ -4123,7 +4127,7 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	}
 
 	// create the config for the rpc server/client
-	consulCfg, err := a.consulConfig()
+	consulCfg, err := newConsulConfig(a.config, a.logger)
 	if err != nil {
 		return err
 	}
