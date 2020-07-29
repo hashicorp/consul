@@ -40,7 +40,7 @@
             @secondary="sort"
             @selected={{sort.selected}}
             @options={{sort.items}}
-            @onchange={{action (mut sortBy) value='target.value'}}
+            @onchange={{action (mut sortBy) value='target.selected.key'}}
           />
     {{/if}}
         </BlockSlot>
