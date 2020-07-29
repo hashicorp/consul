@@ -48,8 +48,6 @@ func testClientConfig(t *testing.T) (string, *Config) {
 	config.SerfLANConfig.MemberlistConfig.ProbeTimeout = 200 * time.Millisecond
 	config.SerfLANConfig.MemberlistConfig.ProbeInterval = time.Second
 	config.SerfLANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
-	config.LogOutput = testutil.NewLogBuffer(t)
-
 	return dir, config
 }
 
@@ -72,15 +70,10 @@ func testClientWithConfigWithErr(t *testing.T, cb func(c *Config)) (string, *Cli
 	if cb != nil {
 		cb(config)
 	}
-	w := config.LogOutput
-	if w == nil {
-		w = os.Stderr
-	}
-
 	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
 		Name:   config.NodeName,
 		Level:  hclog.Debug,
-		Output: w,
+		Output: testutil.NewLogBuffer(t),
 	})
 
 	tlsConf, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), logger)
@@ -88,7 +81,7 @@ func testClientWithConfigWithErr(t *testing.T, cb func(c *Config)) (string, *Cli
 		t.Fatalf("err: %v", err)
 	}
 
-	client, err := NewClientLogger(config, logger, tlsConf)
+	client, err := NewClient(config, WithLogger(logger), WithTLSConfigurator(tlsConf))
 	if err != nil {
 		config.NotifyShutdown()
 	}
@@ -456,7 +449,7 @@ func TestClient_RPC_TLS(t *testing.T) {
 	defer conf2.NotifyShutdown()
 	conf2.VerifyOutgoing = true
 	configureTLS(conf2)
-	c1, err := NewClient(conf2)
+	c1, err := newClient(t, conf2)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -486,6 +479,18 @@ func TestClient_RPC_TLS(t *testing.T) {
 	})
 }
 
+func newClient(t *testing.T, config *Config) (*Client, error) {
+	c, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), nil)
+	if err != nil {
+		return nil, err
+	}
+	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
+		Level:  hclog.Debug,
+		Output: testutil.NewLogBuffer(t),
+	})
+	return NewClient(config, WithLogger(logger), WithTLSConfigurator(c))
+}
+
 func TestClient_RPC_RateLimit(t *testing.T) {
 	t.Parallel()
 	dir1, conf1 := testServerConfig(t)
@@ -501,7 +506,7 @@ func TestClient_RPC_RateLimit(t *testing.T) {
 	defer conf2.NotifyShutdown()
 	conf2.RPCRate = 2
 	conf2.RPCMaxBurst = 2
-	c1, err := NewClient(conf2)
+	c1, err := newClient(t, conf2)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -569,7 +574,7 @@ func TestClient_SnapshotRPC_RateLimit(t *testing.T) {
 	defer conf1.NotifyShutdown()
 	conf1.RPCRate = 2
 	conf1.RPCMaxBurst = 2
-	c1, err := NewClient(conf1)
+	c1, err := newClient(t, conf1)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -612,7 +617,7 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 	defer conf2.NotifyShutdown()
 	conf2.VerifyOutgoing = true
 	configureTLS(conf2)
-	c1, err := NewClient(conf2)
+	c1, err := newClient(t, conf2)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
