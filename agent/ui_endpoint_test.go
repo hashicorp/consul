@@ -700,3 +700,101 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 	}
 	assert.ElementsMatch(t, expect, dump)
 }
+
+func TestUIGatewayIntentions(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	// Register terminating gateway and config entry linking it to postgres + redis
+	{
+		arg := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				ID:      "terminating-gateway",
+				Service: "terminating-gateway",
+				Kind:    structs.ServiceKindTerminatingGateway,
+				Port:    443,
+			},
+			Check: &structs.HealthCheck{
+				Name:      "terminating connect",
+				Status:    api.HealthPassing,
+				ServiceID: "terminating-gateway",
+			},
+		}
+		var regOutput struct{}
+		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
+
+		args := &structs.TerminatingGatewayConfigEntry{
+			Name: "terminating-gateway",
+			Kind: structs.TerminatingGateway,
+			Services: []structs.LinkedService{
+				{
+					Name: "postgres",
+				},
+				{
+					Name:     "redis",
+					CAFile:   "/etc/certs/ca.pem",
+					CertFile: "/etc/certs/cert.pem",
+					KeyFile:  "/etc/certs/key.pem",
+				},
+			},
+		}
+
+		req := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry:      args,
+		}
+		var configOutput bool
+		require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &configOutput))
+		require.True(t, configOutput)
+	}
+
+	// create some symmetric intentions to ensure we are only matching on destination
+	{
+		for _, v := range []string{"*", "mysql", "redis", "postgres"} {
+			req := structs.IntentionRequest{
+				Datacenter: "dc1",
+				Op:         structs.IntentionOpCreate,
+				Intention:  structs.TestIntention(t),
+			}
+			req.Intention.SourceName = "api"
+			req.Intention.DestinationName = v
+
+			var reply string
+			assert.NoError(t, a.RPC("Intention.Apply", &req, &reply))
+
+			req = structs.IntentionRequest{
+				Datacenter: "dc1",
+				Op:         structs.IntentionOpCreate,
+				Intention:  structs.TestIntention(t),
+			}
+			req.Intention.SourceName = v
+			req.Intention.DestinationName = "api"
+			assert.NoError(t, a.RPC("Intention.Apply", &req, &reply))
+		}
+	}
+
+	// Request intentions matching the gateway named "terminating-gateway"
+	req, _ := http.NewRequest("GET", "/v1/internal/ui/gateway-intentions/terminating-gateway", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.UIGatewayIntentions(resp, req)
+	assert.Nil(t, err)
+	assertIndex(t, resp)
+
+	intentions := obj.(structs.Intentions)
+	assert.Len(t, intentions, 3)
+
+	// Only intentions with linked services as a destination should be returned, and wildcard matches should be deduped
+	expected := []string{"postgres", "*", "redis"}
+	actual := []string{
+		intentions[0].DestinationName,
+		intentions[1].DestinationName,
+		intentions[2].DestinationName,
+	}
+	assert.ElementsMatch(t, expected, actual)
+}
