@@ -7,6 +7,7 @@ import WithRoleActions from 'consul-ui/mixins/role/with-actions';
 export default Route.extend(WithRoleActions, {
   repo: service('repository/role'),
   queryParams: {
+    sortBy: 'sort',
     search: {
       as: 'filter',
       replace: true,
