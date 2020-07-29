@@ -1517,9 +1517,6 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 		}
 	}
 
-	// Setup the loggers
-	base.LogOutput = a.LogOutput
-
 	// This will set up the LAN keyring, as well as the WAN and any segments
 	// for servers.
 	if err := a.setupKeyrings(base); err != nil {

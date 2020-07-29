@@ -146,7 +146,6 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	config.Bootstrap = true
 	config.Datacenter = "dc1"
 	config.DataDir = dir
-	config.LogOutput = testutil.NewLogBuffer(t)
 
 	// bind the rpc server to a random port. config.RPCAdvertise will be
 	// set to the listen address unless it was set in the configuration.
@@ -258,18 +257,18 @@ func testServerDCExpectNonVoter(t *testing.T, dc string, expect int) (string, *S
 
 func testServerWithConfig(t *testing.T, cb func(*Config)) (string, *Server) {
 	var dir string
-	var config *Config
 	var srv *Server
-	var err error
 
 	// Retry added to avoid cases where bind addr is already in use
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
+		var config *Config
 		dir, config = testServerConfig(t)
 		if cb != nil {
 			cb(config)
 		}
 
-		srv, err = newServer(config)
+		var err error
+		srv, err = newServer(t, config)
 		if err != nil {
 			config.NotifyShutdown()
 			os.RemoveAll(dir)
@@ -295,7 +294,7 @@ func testACLServerWithConfig(t *testing.T, cb func(*Config), initReplicationToke
 	return dir, srv, codec
 }
 
-func newServer(c *Config) (*Server, error) {
+func newServer(t *testing.T, c *Config) (*Server, error) {
 	// chain server up notification
 	oldNotify := c.NotifyListen
 	up := make(chan struct{})
@@ -306,21 +305,19 @@ func newServer(c *Config) (*Server, error) {
 		}
 	}
 
-	// start server
-	w := c.LogOutput
-	if w == nil {
-		w = os.Stderr
-	}
 	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
 		Name:   c.NodeName,
 		Level:  hclog.Debug,
-		Output: w,
+		Output: testutil.NewLogBuffer(t),
 	})
 	tlsConf, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), logger)
 	if err != nil {
 		return nil, err
 	}
-	srv, err := NewServerLogger(c, logger, new(token.Store), tlsConf)
+	srv, err := NewServer(c,
+		WithLogger(logger),
+		WithTokenStore(new(token.Store)),
+		WithTLSConfigurator(tlsConf))
 	if err != nil {
 		return nil, err
 	}
@@ -1088,7 +1085,7 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 	conf1.VerifyIncoming = true
 	conf1.VerifyOutgoing = true
 	configureTLS(conf1)
-	s1, err := newServer(conf1)
+	s1, err := newServer(t, conf1)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1101,7 +1098,7 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 	conf2.VerifyIncoming = true
 	conf2.VerifyOutgoing = true
 	configureTLS(conf2)
-	s2, err := newServer(conf2)
+	s2, err := newServer(t, conf2)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1486,7 +1483,7 @@ func TestServer_RPC_RateLimit(t *testing.T) {
 	dir1, conf1 := testServerConfig(t)
 	conf1.RPCRate = 2
 	conf1.RPCMaxBurst = 2
-	s1, err := NewServer(conf1)
+	s1, err := newServer(t, conf1)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1512,7 +1509,11 @@ func TestServer_CALogging(t *testing.T) {
 
 	c, err := tlsutil.NewConfigurator(conf1.ToTLSUtilConfig(), logger)
 	require.NoError(t, err)
-	s1, err := NewServerLogger(conf1, logger, new(token.Store), c)
+
+	s1, err := NewServer(conf1,
+		WithLogger(logger),
+		WithTokenStore(new(token.Store)),
+		WithTLSConfigurator(c))
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

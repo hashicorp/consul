@@ -313,25 +313,6 @@ type Server struct {
 	EnterpriseServer
 }
 
-// NewServer is only used to help setting up a server for testing. Normal code
-// exercises NewServerLogger.
-func NewServer(config *Config) (*Server, error) {
-	c, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), nil)
-	if err != nil {
-		return nil, err
-	}
-	return NewServerLogger(config, nil, new(token.Store), c)
-}
-
-// NewServerLogger is used to construct a new Consul server from the
-// configuration, potentially returning an error
-func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token.Store, tlsConfigurator *tlsutil.Configurator) (*Server, error) {
-	return NewServerWithOptions(config,
-		WithLogger(logger),
-		WithTokenStore(tokens),
-		WithTLSConfigurator(tlsConfigurator))
-}
-
 // NewServerWithOptions is used to construct a new Consul server from the configuration
 // and extra options, potentially returning an error
 func NewServerWithOptions(config *Config, options ...ConsulOption) (*Server, error) {
@@ -342,31 +323,17 @@ func NewServerWithOptions(config *Config, options ...ConsulOption) (*Server, err
 	tlsConfigurator := flat.tlsConfigurator
 	connPool := flat.connPool
 
-	// Check the protocol version.
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
 	}
-
-	// Check for a data directory.
 	if config.DataDir == "" && !config.DevMode {
 		return nil, fmt.Errorf("Config must provide a DataDir")
 	}
-
-	// Sanity check the ACLs.
 	if err := config.CheckACL(); err != nil {
 		return nil, err
 	}
-
-	// Ensure we have a log output and create a logger.
-	if config.LogOutput == nil {
-		config.LogOutput = os.Stderr
-	}
-
 	if logger == nil {
-		logger = hclog.NewInterceptLogger(&hclog.LoggerOptions{
-			Level:  hclog.Debug,
-			Output: config.LogOutput,
-		})
+		return nil, fmt.Errorf("logger is required")
 	}
 
 	// Check if TLS is enabled
@@ -735,7 +702,7 @@ func (s *Server) setupRaft() error {
 		log = cacheStore
 
 		// Create the snapshot store.
-		snapshots, err := raft.NewFileSnapshotStore(path, snapshotsRetained, s.config.LogOutput)
+		snapshots, err := raft.NewFileSnapshotStoreWithLogger(path, snapshotsRetained, s.logger.Named("snapshot"))
 		if err != nil {
 			return err
 		}
