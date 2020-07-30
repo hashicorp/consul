@@ -958,15 +958,21 @@ func (s *Server) Shutdown() error {
 	}
 
 	// Close the connection pool
-	s.connPool.Shutdown()
+	if s.connPool != nil {
+		s.connPool.Shutdown()
+	}
 
-	s.acls.Close()
+	if s.acls != nil {
+		s.acls.Close()
+	}
 
 	if s.config.NotifyShutdown != nil {
 		s.config.NotifyShutdown()
 	}
 
-	s.fsm.State().Abandon()
+	if s.fsm != nil {
+		s.fsm.State().Abandon()
+	}
 
 	return nil
 }
