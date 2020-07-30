@@ -916,6 +916,133 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   - `upgrade_version_tag` <EnterpriseAlert inline /> -
     The node_meta tag to use for version info when performing upgrade migrations.
     If this is not set, the Consul version will be used.
+    
+- `auto_config` This object allows setting options for the `auto_config` feature.
+
+  The following sub-keys are available:
+  
+  - `enabled` (Defaults to `false`) This option enables `auto_config` on a client
+    agent. When starting up but before joining the cluster, the client agent will
+    make an RPC to the configured server addresses to request configuration settings,
+    such as its `agent` ACL token, TLS certificates, Gossip encryption key as well
+    as other configuration settings. These configurations get merged in as defaults
+    with any user-supplied configuration on the client agent able to override them.
+    The initial RPC uses a JWT specified with either `intro_token`,
+    `intro_token_file` or the `CONSUL_INTRO_TOKEN` environment variable to authorize
+    the request. How the JWT token is verified is controlled by the `auto_config.authorizer`
+    object available for use on Consul servers.
+    
+  - `intro_token` (Defaults to `""`) This specifies the JWT to use for the initial 
+    `auto_config` RPC to the Consul servers. This can be overridden with the 
+    `CONSUL_INTRO_TOKEN` environment variable
+    
+  - `intro_token_file` (Defaults to `""`) This specifies a file containing the JWT
+    to use for the initial `auto_config` RPC to the Consul servers. This token
+    from this file is only loaded if the `intro_token` configuration is unset as
+    well as the `CONSUL_INTRO_TOKEN` environment variable
+    
+  - `server_addresses` (Defaults to `[]`) This specifies the addresses of servers in
+    the local datacenter to use for the initial RPC. These addresses support
+    [Cloud Auto-Joining](#cloud-auto-joining) and can optionally include a port to
+    use when making the outbound connection. If not port is provided the `server_port`
+    will be used.
+    
+  - `dns_sans` (Defaults to `[]`) This is a list of extra DNS SANs to request in the
+    client agent's TLS certificate. The `localhost` DNS SAN is always requested.
+    
+  - `ip_sans` (Defaults to `[]`) This is a list of extra IP SANs to request in the
+    client agent's TLS certficate. The `::1` and `127.0.0.1` IP SANs are always requested.
+    
+  - `authorization` This object controls how a Consul server will authorize `auto_config`
+    requests and in particular how to verify the JWT intro token.
+    
+    - `enabled` (Defaults to `false`) This option enables `auto_config` authorization 
+      capabilities on the server.
+      
+    - `static` This object controls configuring the static authorizer setup in the Consul
+      configuration file. Almost all sub-keys are identical to those provided by the [JWT
+      Auth Method](/docs/acl/auth-methods/jwt).
+      
+      - `jwt_validation_pub_keys` (Defaults to `[]`) A list of PEM-encoded public keys
+        to use to authenticate signatures locally.
+
+        Exactly one of `jwks_url` `jwt_validation_pub_keys`, or `oidc_discovery_url` is required.
+
+      - `oidc_discovery_url` (Defaults to `""`)  The OIDC Discovery URL, without any
+        .well-known component (base path).
+
+        Exactly one of `jwks_url` `jwt_validation_pub_keys`, or `oidc_discovery_url` is required.
+
+      - `oidc_discovery_ca_cert` (Defaults to `""`) PEM encoded CA cert for use by the TLS
+        client used to talk with the OIDC Discovery URL. NOTE: Every line must end
+        with a newline (`\n`). If not set, system certificates are used.
+
+      - `jwks_url` (Defaults to `""`) The JWKS URL to use to authenticate signatures.
+
+        Exactly one of `jwks_url` `jwt_validation_pub_keys`, or `oidc_discovery_url` is required.
+
+      - `jwks_ca_cert` (Defaults to `""`) PEM encoded CA cert for use by the TLS client
+        used to talk with the JWKS URL. NOTE: Every line must end with a newline
+        (`\n`). If not set, system certificates are used.
+
+      - `claim_mappings` (Defaults to `(map[string]string)` Mappings of claims (key) that
+        will be copied to a metadata field (value). Use this if the claim you are capturing 
+        is singular (such as an attribute).
+
+        When mapped, the values can be any of a number, string, or boolean and will
+        all be stringified when returned.
+
+      - `list_claim_mappings` (Defaults to `(map[string]string)`) Mappings of claims (key)
+        will be copied to a metadata field (value). Use this if the claim you are capturing
+        is list-like (such as groups).
+
+        When mapped, the values in each list can be any of a number, string, or
+        boolean and will all be stringified when returned.
+
+      - `jwt_supported_algs` (Defaults to `["RS256"]`) JWTSupportedAlgs is a list of
+        supported signing algorithms.
+
+      - `bound_audiences` (Defaults to `[]`) List of `aud` claims that are valid for
+        login; any match is sufficient.
+
+      - `bound_issuer` (Defaults to `""`) The value against which to match the `iss`
+        claim in a JWT.
+
+      - `expiration_leeway` (Defaults to `"0s"`) Duration of leeway when
+        validating expiration of a token to account for clock skew. Defaults to 150s
+        (2.5 minutes) if set to 0s and can be disabled if set to -1ns.
+
+      - `not_before_leeway` (Defaults to `"0s"`) Duration of leeway when
+        validating not before values of a token to account for clock skew. Defaults
+        to 150s (2.5 minutes) if set to 0s and can be disabled if set to -1.
+
+      - `clock_skew_leeway` (Defaults to `"0s"`) Duration of leeway when
+        validating all claims to account for clock skew. Defaults to 60s (1 minute)
+        if set to 0s and can be disabled if set to -1ns.
+        
+      - `claim_assertions` (Defaults to []) List of assertions about the mapped
+        claims required to authorize the incoming RPC request. The syntax uses
+        github.com/hashicorp/go-bexpr which is shared with the 
+        [API filtering feature](/api/features/filtering). For example, the following
+        configurations when combined will ensure that the JWT `sub` matches the node
+        name requested by the client.
+        ```
+        claim_mappings {
+          sub = "node_name"
+        }
+        claim_assertions = [
+          "value.node_name == \"${node}\""
+        ]
+        ```
+        
+        The assertions are lightly templated using [HIL syntax](https://github.com/hashicorp/hil)
+        to interpolate some values from the RPC request. The list of variables that can be interpolated
+        are:
+        
+          - `node` - The node name the client agent is requesting.
+          
+          - `segment`  <EnterpriseAlert inline /> - The network segment name the client is requesting. 
+        
 
 - `auto_encrypt` This object allows setting options for the `auto_encrypt` feature.
 
