@@ -40,6 +40,7 @@ type CertMonitor struct {
 	tokens          *token.Store
 	leafReq         cachetype.ConnectCALeafRequest
 	rootsReq        structs.DCSpecificRequest
+	persist         PersistFunc
 	fallback        FallbackFunc
 	fallbackLeeway  time.Duration
 	fallbackRetry   time.Duration
@@ -66,6 +67,11 @@ type CertMonitor struct {
 	// events from the token store when the Agent
 	// token is updated.
 	tokenUpdates token.Notifier
+
+	// this is used to keep a local copy of the certs
+	// keys and ca certs. It will be used to persist
+	// all of the local state at once.
+	certs structs.SignedResponse
 }
 
 // New creates a new CertMonitor for automatically rotating
@@ -115,6 +121,7 @@ func New(config *Config) (*CertMonitor, error) {
 		cache:           config.Cache,
 		tokens:          config.Tokens,
 		tlsConfigurator: config.TLSConfigurator,
+		persist:         config.Persist,
 		fallback:        config.Fallback,
 		fallbackLeeway:  config.FallbackLeeway,
 		fallbackRetry:   config.FallbackRetry,
@@ -134,6 +141,8 @@ func (m *CertMonitor) Update(certs *structs.SignedResponse) error {
 	if certs == nil {
 		return nil
 	}
+
+	m.certs = *certs
 
 	if err := m.populateCache(certs); err != nil {
 		return fmt.Errorf("error populating cache with certificates: %w", err)
@@ -306,6 +315,8 @@ func (m *CertMonitor) handleCacheEvent(u cache.UpdateEvent) error {
 			return fmt.Errorf("invalid type for roots watch response: %T", u.Result)
 		}
 
+		m.certs.ConnectCARoots = *roots
+
 		var pems []string
 		for _, root := range roots.Roots {
 			pems = append(pems, root.RootCert)
@@ -313,6 +324,13 @@ func (m *CertMonitor) handleCacheEvent(u cache.UpdateEvent) error {
 
 		if err := m.tlsConfigurator.UpdateAutoTLSCA(pems); err != nil {
 			return fmt.Errorf("failed to update Connect CA certificates: %w", err)
+		}
+
+		if m.persist != nil {
+			copy := m.certs
+			if err := m.persist(&copy); err != nil {
+				return fmt.Errorf("failed to persist certificate package: %w", err)
+			}
 		}
 	case leafWatchID:
 		m.logger.Debug("leaf certificate watch fired - updating TLS certificate")
@@ -324,8 +342,18 @@ func (m *CertMonitor) handleCacheEvent(u cache.UpdateEvent) error {
 		if !ok {
 			return fmt.Errorf("invalid type for agent leaf cert watch response: %T", u.Result)
 		}
+
+		m.certs.IssuedCert = *leaf
+
 		if err := m.tlsConfigurator.UpdateAutoTLSCert(leaf.CertPEM, leaf.PrivateKeyPEM); err != nil {
 			return fmt.Errorf("failed to update the agent leaf cert: %w", err)
+		}
+
+		if m.persist != nil {
+			copy := m.certs
+			if err := m.persist(&copy); err != nil {
+				return fmt.Errorf("failed to persist certificate package: %w", err)
+			}
 		}
 	}
 
@@ -380,6 +408,11 @@ func (m *CertMonitor) handleFallback(ctx context.Context) error {
 		return fmt.Errorf("error when getting new agent certificate: %w", err)
 	}
 
+	if m.persist != nil {
+		if err := m.persist(reply); err != nil {
+			return fmt.Errorf("failed to persist certificate package: %w", err)
+		}
+	}
 	return m.Update(reply)
 }
 
