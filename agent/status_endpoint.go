@@ -16,6 +16,12 @@ func (s *HTTPHandlers) StatusLeader(resp http.ResponseWriter, req *http.Request)
 	if err := s.agent.RPC("Status.Leader", &args, &out); err != nil {
 		return nil, err
 	}
+
+	// check there is a leader, if not return a status no content
+	if out == "" {
+		return nil, structs.ErrNoLeader
+	}
+
 	return out, nil
 }
 

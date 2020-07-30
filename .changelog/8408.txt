@@ -1,0 +1,4 @@
+```release-note:bug
+api: when the cluster has no leader return an error from `/v1/status/leader` to be consistent with all other endpoints.
+```
+
