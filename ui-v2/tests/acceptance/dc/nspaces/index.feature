@@ -29,5 +29,9 @@ Feature: dc / nspaces / index: Nspaces List
     And I see 1 nspace model with the description "The default namespace"
   Scenario: The default namespace can't be deleted
     Then I see 3 nspace models
+    Then I fill in with yaml
+    ---
+    s: default
+    ---
     And I click actions on the nspaces
     Then I don't see delete on the nspaces
