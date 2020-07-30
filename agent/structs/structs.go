@@ -1774,8 +1774,16 @@ func (n *ServiceName) Matches(o *ServiceName) bool {
 	return true
 }
 
-func (si *ServiceName) ToServiceID() ServiceID {
-	return ServiceID{ID: si.Name, EnterpriseMeta: si.EnterpriseMeta}
+func (n *ServiceName) ToServiceID() ServiceID {
+	return ServiceID{ID: n.Name, EnterpriseMeta: n.EnterpriseMeta}
+}
+
+func (n *ServiceName) LessThan(other *ServiceName) bool {
+	if n.EnterpriseMeta.LessThan(&other.EnterpriseMeta) {
+		return true
+	}
+
+	return n.Name < other.Name
 }
 
 type ServiceList []ServiceName
@@ -1809,6 +1817,12 @@ type IndexedHealthChecks struct {
 
 type IndexedCheckServiceNodes struct {
 	Nodes CheckServiceNodes
+	QueryMeta
+}
+
+type IndexedNodesWithGateways struct {
+	Nodes    CheckServiceNodes
+	Gateways GatewayServices
 	QueryMeta
 }
 

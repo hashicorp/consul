@@ -575,7 +575,7 @@ func TestInternal_ServiceDump(t *testing.T) {
 			QueryOptions: structs.QueryOptions{Filter: filter},
 		}
 
-		var out structs.IndexedCheckServiceNodes
+		var out structs.IndexedNodesWithGateways
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceDump", &args, &out))
 		return out.Nodes
 	}
@@ -622,7 +622,7 @@ func TestInternal_ServiceDump_Kind(t *testing.T) {
 			UseServiceKind: true,
 		}
 
-		var out structs.IndexedCheckServiceNodes
+		var out structs.IndexedNodesWithGateways
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceDump", &args, &out))
 		return out.Nodes
 	}

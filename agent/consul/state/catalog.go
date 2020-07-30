@@ -2711,6 +2711,37 @@ func gatewayServices(tx *txn, name string, entMeta *structs.EnterpriseMeta) (mem
 	return tx.Get(gatewayServicesTableName, "gateway", structs.NewServiceName(name, entMeta))
 }
 
+func (s *Store) DumpGatewayServices(ws memdb.WatchSet) (uint64, structs.GatewayServices, error) {
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
+
+	gatewayServices, err := tx.Get(gatewayServicesTableName, "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to dump gateway-services: %s", err)
+	}
+	ws.Add(gatewayServices.WatchCh())
+
+	var maxIdx uint64
+	var results structs.GatewayServices
+
+	for obj := gatewayServices.Next(); obj != nil; obj = gatewayServices.Next() {
+		gs := obj.(*structs.GatewayService)
+
+		if gs.Service.Name != structs.WildcardSpecifier {
+			idx, matches, err := s.checkProtocolMatch(tx, ws, gs)
+			if err != nil {
+				return 0, nil, fmt.Errorf("failed checking protocol: %s", err)
+			}
+
+			maxIdx = lib.MaxUint64(maxIdx, idx)
+			if matches {
+				results = append(results, gs)
+			}
+		}
+	}
+	return maxIdx, results, nil
+}
+
 // TODO(ingress): How to handle index rolling back when a config entry is
 // deleted that references a service?
 // We might need something like the service_last_extinction index?
