@@ -127,9 +127,9 @@ type Config struct {
 	// and key).
 	EnableAgentTLSForChecks bool
 
-	// AutoEncryptTLS opts the agent into provisioning agent
+	// AutoTLS opts the agent into provisioning agent
 	// TLS certificates.
-	AutoEncryptTLS bool
+	AutoTLS bool
 }
 
 func tlsVersions() []string {
@@ -159,14 +159,14 @@ func SpecificDC(dc string, tlsWrap DCWrapper) Wrapper {
 	}
 }
 
-type autoEncrypt struct {
+type autoTLS struct {
 	manualCAPems         []string
 	connectCAPems        []string
 	cert                 *tls.Certificate
 	verifyServerHostname bool
 }
 
-func (a *autoEncrypt) caPems() []string {
+func (a *autoTLS) caPems() []string {
 	return append(a.manualCAPems, a.connectCAPems...)
 }
 
@@ -180,7 +180,7 @@ type manual struct {
 type Configurator struct {
 	sync.RWMutex
 	base                 *Config
-	autoEncrypt          *autoEncrypt
+	autoTLS              *autoTLS
 	manual               *manual
 	peerDatacenterUseTLS map[string]bool
 
@@ -201,7 +201,7 @@ func NewConfigurator(config Config, logger hclog.Logger) (*Configurator, error) 
 	c := &Configurator{
 		logger:               logger.Named(logging.TLSUtil),
 		manual:               &manual{},
-		autoEncrypt:          &autoEncrypt{},
+		autoTLS:              &autoTLS{},
 		peerDatacenterUseTLS: map[string]bool{},
 	}
 	err := c.Update(config)
@@ -215,7 +215,7 @@ func NewConfigurator(config Config, logger hclog.Logger) (*Configurator, error) 
 func (c *Configurator) CAPems() []string {
 	c.RLock()
 	defer c.RUnlock()
-	return append(c.manual.caPems, c.autoEncrypt.caPems()...)
+	return append(c.manual.caPems, c.autoTLS.caPems()...)
 }
 
 // ManualCAPems returns the currently loaded CAs in PEM format.
@@ -242,7 +242,7 @@ func (c *Configurator) Update(config Config) error {
 	if err != nil {
 		return err
 	}
-	pool, err := pool(append(pems, c.autoEncrypt.caPems()...))
+	pool, err := pool(append(pems, c.autoTLS.caPems()...))
 	if err != nil {
 		return err
 	}
@@ -257,17 +257,17 @@ func (c *Configurator) Update(config Config) error {
 	return nil
 }
 
-// UpdateAutoEncryptCA updates the autoEncrypt.caPems. This is supposed to be called
+// UpdateAutoTLSCA updates the autoEncrypt.caPems. This is supposed to be called
 // from the server in order to be able to accept TLS connections with TLS
 // certificates.
 // Or it is being called on the client side when CA changes are detected.
-func (c *Configurator) UpdateAutoEncryptCA(connectCAPems []string) error {
+func (c *Configurator) UpdateAutoTLSCA(connectCAPems []string) error {
 	c.Lock()
 	// order of defers matters because log acquires a RLock()
 	defer c.log("UpdateAutoEncryptCA")
 	defer c.Unlock()
 
-	pool, err := pool(append(c.manual.caPems, append(c.autoEncrypt.manualCAPems, connectCAPems...)...))
+	pool, err := pool(append(c.manual.caPems, append(c.autoTLS.manualCAPems, connectCAPems...)...))
 	if err != nil {
 		c.RUnlock()
 		return err
@@ -276,14 +276,14 @@ func (c *Configurator) UpdateAutoEncryptCA(connectCAPems []string) error {
 		c.RUnlock()
 		return err
 	}
-	c.autoEncrypt.connectCAPems = connectCAPems
+	c.autoTLS.connectCAPems = connectCAPems
 	c.caPool = pool
 	c.version++
 	return nil
 }
 
-// UpdateAutoEncryptCert
-func (c *Configurator) UpdateAutoEncryptCert(pub, priv string) error {
+// UpdateAutoTLSCert
+func (c *Configurator) UpdateAutoTLSCert(pub, priv string) error {
 	// order of defers matters because log acquires a RLock()
 	defer c.log("UpdateAutoEncryptCert")
 	cert, err := tls.X509KeyPair([]byte(pub), []byte(priv))
@@ -294,14 +294,14 @@ func (c *Configurator) UpdateAutoEncryptCert(pub, priv string) error {
 	c.Lock()
 	defer c.Unlock()
 
-	c.autoEncrypt.cert = &cert
+	c.autoTLS.cert = &cert
 	c.version++
 	return nil
 }
 
-// UpdateAutoEncrypt sets everything under autoEncrypt. This is being called on the
-// client when it received its cert from AutoEncrypt endpoint.
-func (c *Configurator) UpdateAutoEncrypt(manualCAPems, connectCAPems []string, pub, priv string, verifyServerHostname bool) error {
+// UpdateAutoTLS sets everything under autoEncrypt. This is being called on the
+// client when it received its cert from AutoEncrypt/AutoConfig endpoints.
+func (c *Configurator) UpdateAutoTLS(manualCAPems, connectCAPems []string, pub, priv string, verifyServerHostname bool) error {
 	// order of defers matters because log acquires a RLock()
 	defer c.log("UpdateAutoEncrypt")
 	cert, err := tls.X509KeyPair([]byte(pub), []byte(priv))
@@ -316,11 +316,11 @@ func (c *Configurator) UpdateAutoEncrypt(manualCAPems, connectCAPems []string, p
 	if err != nil {
 		return err
 	}
-	c.autoEncrypt.manualCAPems = manualCAPems
-	c.autoEncrypt.connectCAPems = connectCAPems
-	c.autoEncrypt.cert = &cert
+	c.autoTLS.manualCAPems = manualCAPems
+	c.autoTLS.connectCAPems = connectCAPems
+	c.autoTLS.cert = &cert
 	c.caPool = pool
-	c.autoEncrypt.verifyServerHostname = verifyServerHostname
+	c.autoTLS.verifyServerHostname = verifyServerHostname
 	c.version++
 	return nil
 }
@@ -375,20 +375,19 @@ func (c *Configurator) check(config Config, pool *x509.CertPool, cert *tls.Certi
 
 	// Ensure we have a CA and cert if VerifyIncoming is set
 	if config.anyVerifyIncoming() {
-		autoEncryptMsg := " AutoEncrypt only secures the connection between client and server and doesn't affect incoming connections on the client."
 		if pool == nil {
-			errMsg := "VerifyIncoming set, and no CA certificate provided!"
-			if config.AutoEncryptTLS {
-				errMsg += autoEncryptMsg
-			}
-			return fmt.Errorf(errMsg)
+			// both auto-config and auto-encrypt require verifying the connection from the client to the server for secure
+			// operation. In order to be able to verify the servers certificate we must have some CA certs already provided.
+			// Therefore, even though both of those features can push down extra CA certificates which could be used to
+			// verify incoming connections, we still must consider it an error if none are provided in the initial configuration
+			// as those features cannot be successfully enabled without providing CA certificates to use those features.
+			return fmt.Errorf("VerifyIncoming set but no CA certificates were provided")
 		}
-		if cert == nil {
-			errMsg := "VerifyIncoming set, and no Cert/Key pair provided!"
-			if config.AutoEncryptTLS {
-				errMsg += autoEncryptMsg
-			}
-			return fmt.Errorf(errMsg)
+
+		// We will use the auto_encrypt/auto_config cert for TLS in the incoming APIs when available. Therefore the check
+		// here will ensure that either we enabled one of those two features or a certificate and key were provided manually
+		if cert == nil && !config.AutoTLS {
+			return fmt.Errorf("VerifyIncoming requires either a Cert and Key pair in the configuration file, or auto_encrypt/auto_config be enabled")
 		}
 	}
 	return nil
@@ -500,7 +499,7 @@ func (c *Configurator) commonTLSConfig(verifyIncoming bool) *tls.Config {
 	// to a server requesting a certificate. Return the autoEncrypt certificate
 	// if possible, otherwise default to the manually provisioned one.
 	tlsConfig.GetClientCertificate = func(*tls.CertificateRequestInfo) (*tls.Certificate, error) {
-		cert := c.autoEncrypt.cert
+		cert := c.autoTLS.cert
 		if cert == nil {
 			cert = c.manual.cert
 		}
@@ -536,7 +535,7 @@ func (c *Configurator) Cert() *tls.Certificate {
 	defer c.RUnlock()
 	cert := c.manual.cert
 	if cert == nil {
-		cert = c.autoEncrypt.cert
+		cert = c.autoTLS.cert
 	}
 	return cert
 }
@@ -554,7 +553,7 @@ func (c *Configurator) outgoingRPCTLSDisabled() bool {
 	defer c.RUnlock()
 
 	// if AutoEncrypt enabled, always use TLS
-	if c.base.AutoEncryptTLS {
+	if c.base.AutoTLS {
 		return false
 	}
 
@@ -574,7 +573,7 @@ func (c *Configurator) MutualTLSCapable() bool {
 func (c *Configurator) mutualTLSCapable() bool {
 	c.RLock()
 	defer c.RUnlock()
-	return c.caPool != nil && (c.autoEncrypt.cert != nil || c.manual.cert != nil)
+	return c.caPool != nil && (c.autoTLS.cert != nil || c.manual.cert != nil)
 }
 
 // This function acquires a read lock because it reads from the config.
@@ -584,7 +583,7 @@ func (c *Configurator) verifyOutgoing() bool {
 
 	// If AutoEncryptTLS is enabled and there is a CA, then verify
 	// outgoing.
-	if c.base.AutoEncryptTLS && c.caPool != nil {
+	if c.base.AutoTLS && c.caPool != nil {
 		return true
 	}
 
@@ -644,7 +643,7 @@ func (c *Configurator) serverNameOrNodeName() string {
 func (c *Configurator) VerifyServerHostname() bool {
 	c.RLock()
 	defer c.RUnlock()
-	return c.base.VerifyServerHostname || c.autoEncrypt.verifyServerHostname
+	return c.base.VerifyServerHostname || c.autoTLS.verifyServerHostname
 }
 
 // IncomingGRPCConfig generates a *tls.Config for incoming GRPC connections.
@@ -798,7 +797,7 @@ func (c *Configurator) OutgoingALPNRPCWrapper() ALPNWrapper {
 func (c *Configurator) AutoEncryptCertNotAfter() time.Time {
 	c.RLock()
 	defer c.RUnlock()
-	tlsCert := c.autoEncrypt.cert
+	tlsCert := c.autoTLS.cert
 	if tlsCert == nil || tlsCert.Certificate == nil {
 		return time.Now().AddDate(0, 0, -1)
 	}

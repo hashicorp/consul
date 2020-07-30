@@ -149,7 +149,7 @@ func (m *CertMonitor) Update(certs *structs.SignedResponse) error {
 	// that the recipient of the response who also has access to the private key will
 	// have filled it in. The Cache definitely does this but auto-encrypt/auto-config
 	// will need to ensure the original response is setup this way too.
-	err := m.tlsConfigurator.UpdateAutoEncrypt(
+	err := m.tlsConfigurator.UpdateAutoTLS(
 		certs.ManualCARoots,
 		connectCAPems,
 		certs.IssuedCert.CertPEM,
@@ -311,7 +311,7 @@ func (m *CertMonitor) handleCacheEvent(u cache.UpdateEvent) error {
 			pems = append(pems, root.RootCert)
 		}
 
-		if err := m.tlsConfigurator.UpdateAutoEncryptCA(pems); err != nil {
+		if err := m.tlsConfigurator.UpdateAutoTLSCA(pems); err != nil {
 			return fmt.Errorf("failed to update Connect CA certificates: %w", err)
 		}
 	case leafWatchID:
@@ -324,7 +324,7 @@ func (m *CertMonitor) handleCacheEvent(u cache.UpdateEvent) error {
 		if !ok {
 			return fmt.Errorf("invalid type for agent leaf cert watch response: %T", u.Result)
 		}
-		if err := m.tlsConfigurator.UpdateAutoEncryptCert(leaf.CertPEM, leaf.PrivateKeyPEM); err != nil {
+		if err := m.tlsConfigurator.UpdateAutoTLSCert(leaf.CertPEM, leaf.PrivateKeyPEM); err != nil {
 			return fmt.Errorf("failed to update the agent leaf cert: %w", err)
 		}
 	}

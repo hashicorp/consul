@@ -7357,7 +7357,47 @@ func TestRuntime_ToTLSUtilConfig(t *testing.T) {
 	require.True(t, r.VerifyIncomingHTTPS)
 	require.True(t, r.VerifyOutgoing)
 	require.True(t, r.EnableAgentTLSForChecks)
-	require.True(t, r.AutoEncryptTLS)
+	require.True(t, r.AutoTLS)
+	require.True(t, r.VerifyServerHostname)
+	require.True(t, r.PreferServerCipherSuites)
+	require.Equal(t, "a", r.CAFile)
+	require.Equal(t, "b", r.CAPath)
+	require.Equal(t, "c", r.CertFile)
+	require.Equal(t, "d", r.KeyFile)
+	require.Equal(t, "e", r.NodeName)
+	require.Equal(t, "f", r.ServerName)
+	require.Equal(t, "g", r.Domain)
+	require.Equal(t, "tls12", r.TLSMinVersion)
+	require.Equal(t, []uint16{tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA}, r.CipherSuites)
+}
+
+func TestRuntime_ToTLSUtilConfig_AutoConfig(t *testing.T) {
+	c := &RuntimeConfig{
+		VerifyIncoming:              true,
+		VerifyIncomingRPC:           true,
+		VerifyIncomingHTTPS:         true,
+		VerifyOutgoing:              true,
+		VerifyServerHostname:        true,
+		CAFile:                      "a",
+		CAPath:                      "b",
+		CertFile:                    "c",
+		KeyFile:                     "d",
+		NodeName:                    "e",
+		ServerName:                  "f",
+		DNSDomain:                   "g",
+		TLSMinVersion:               "tls12",
+		TLSCipherSuites:             []uint16{tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA},
+		TLSPreferServerCipherSuites: true,
+		EnableAgentTLSForChecks:     true,
+		AutoConfig:                  AutoConfig{Enabled: true},
+	}
+	r := c.ToTLSUtilConfig()
+	require.True(t, r.VerifyIncoming)
+	require.True(t, r.VerifyIncomingRPC)
+	require.True(t, r.VerifyIncomingHTTPS)
+	require.True(t, r.VerifyOutgoing)
+	require.True(t, r.EnableAgentTLSForChecks)
+	require.True(t, r.AutoTLS)
 	require.True(t, r.VerifyServerHostname)
 	require.True(t, r.PreferServerCipherSuites)
 	require.Equal(t, "a", r.CAFile)

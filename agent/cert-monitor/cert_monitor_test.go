@@ -118,7 +118,7 @@ func waitForChans(timeout time.Duration, chans ...<-chan struct{}) bool {
 func testTLSConfigurator(t *testing.T) *tlsutil.Configurator {
 	t.Helper()
 	logger := testutil.Logger(t)
-	cfg, err := tlsutil.NewConfigurator(tlsutil.Config{AutoEncryptTLS: true}, logger)
+	cfg, err := tlsutil.NewConfigurator(tlsutil.Config{AutoTLS: true}, logger)
 	require.NoError(t, err)
 	return cfg
 }
