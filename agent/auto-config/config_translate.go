@@ -226,3 +226,34 @@ func mapstructureTranslateToStructs(in interface{}, out interface{}) error {
 
 	return decoder.Decode(in)
 }
+
+func translateCARootsToProtobuf(in *structs.IndexedCARoots) (*pbconnect.CARoots, error) {
+	var out pbconnect.CARoots
+	if err := mapstructureTranslateToProtobuf(in, &out); err != nil {
+		return nil, fmt.Errorf("Failed to re-encode CA Roots: %w", err)
+	}
+
+	return &out, nil
+}
+
+func translateIssuedCertToProtobuf(in *structs.IssuedCert) (*pbconnect.IssuedCert, error) {
+	var out pbconnect.IssuedCert
+	if err := mapstructureTranslateToProtobuf(in, &out); err != nil {
+		return nil, fmt.Errorf("Failed to re-encode CA Roots: %w", err)
+	}
+
+	return &out, nil
+}
+
+func mapstructureTranslateToProtobuf(in interface{}, out interface{}) error {
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		DecodeHook: proto.HookTimeToPBTimestamp,
+		Result:     out,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return decoder.Decode(in)
+}

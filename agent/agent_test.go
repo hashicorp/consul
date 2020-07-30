@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/google/tcpproxy"
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
@@ -32,6 +33,7 @@ import (
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/proto/pbautoconf"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -4722,21 +4724,28 @@ func TestAutoConfig_Integration(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	client := StartTestAgent(t, TestAgent{Name: "test-client", HCL: `
-	   bootstrap = false
-		server = false
-		ca_file = "` + caFile + `"
-		verify_outgoing = true
-		verify_server_hostname = true
-		node_name = "test-client"
-		ports {
-			server = ` + strconv.Itoa(srv.Config.RPCBindAddr.Port) + `
-		}
-		auto_config {
-			enabled = true
-			intro_token = "` + token + `"
-			server_addresses = ["` + srv.Config.RPCBindAddr.String() + `"]
-		}`})
+	client := StartTestAgent(t, TestAgent{Name: "test-client",
+		Overrides: `
+			connect {
+				test_ca_leaf_root_change_spread = "1ns"
+			}
+		`,
+		HCL: `
+			bootstrap = false
+			server = false
+			ca_file = "` + caFile + `"
+			verify_outgoing = true
+			verify_server_hostname = true
+			node_name = "test-client"
+			ports {
+				server = ` + strconv.Itoa(srv.Config.RPCBindAddr.Port) + `
+			}
+			auto_config {
+				enabled = true
+				intro_token = "` + token + `"
+				server_addresses = ["` + srv.Config.RPCBindAddr.String() + `"]
+			}`,
+	})
 
 	defer client.Shutdown()
 
@@ -4776,6 +4785,21 @@ func TestAutoConfig_Integration(t *testing.T) {
 	// ensure that a new cert gets generated and pushed into the TLS configurator
 	retry.Run(t, func(r *retry.R) {
 		require.NotEqual(r, cert1, client.Agent.tlsConfigurator.Cert())
+
+		// check that the on disk certs match expectations
+		data, err := ioutil.ReadFile(filepath.Join(client.DataDir, "auto-config.json"))
+		require.NoError(r, err)
+		rdr := strings.NewReader(string(data))
+
+		var resp pbautoconf.AutoConfigResponse
+		pbUnmarshaler := &jsonpb.Unmarshaler{
+			AllowUnknownFields: false,
+		}
+		require.NoError(r, pbUnmarshaler.Unmarshal(rdr, &resp), "data: %s", data)
+
+		actual, err := tls.X509KeyPair([]byte(resp.Certificate.CertPEM), []byte(resp.Certificate.PrivateKeyPEM))
+		require.NoError(r, err)
+		require.Equal(r, client.Agent.tlsConfigurator.Cert(), &actual)
 	})
 
 	// spot check that we now have an ACL token

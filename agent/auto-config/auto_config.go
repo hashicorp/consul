@@ -55,15 +55,16 @@ var (
 // then we will need to add some locking here. I am deferring that for now
 // to help ease the review of this already large PR.
 type AutoConfig struct {
-	builderOpts    config.BuilderOpts
-	logger         hclog.Logger
-	directRPC      DirectRPC
-	waiter         *lib.RetryWaiter
-	overrides      []config.Source
-	certMonitor    CertMonitor
-	config         *config.RuntimeConfig
-	autoConfigData string
-	cancel         context.CancelFunc
+	builderOpts        config.BuilderOpts
+	logger             hclog.Logger
+	directRPC          DirectRPC
+	waiter             *lib.RetryWaiter
+	overrides          []config.Source
+	certMonitor        CertMonitor
+	config             *config.RuntimeConfig
+	autoConfigResponse *pbautoconf.AutoConfigResponse
+	autoConfigData     string
+	cancel             context.CancelFunc
 }
 
 // New creates a new AutoConfig object for providing automatic
@@ -493,6 +494,8 @@ func (ac *AutoConfig) generateCSR() (csr string, key string, err error) {
 // config data to be used during a call to ReadConfig, updating the
 // tls Configurator and prepopulating the cache.
 func (ac *AutoConfig) update(resp *pbautoconf.AutoConfigResponse) error {
+	ac.autoConfigResponse = resp
+
 	if err := ac.updateConfigFromResponse(resp); err != nil {
 		return err
 	}
@@ -590,4 +593,19 @@ func (ac *AutoConfig) FallbackTLS(ctx context.Context) (*structs.SignedResponse,
 	}
 
 	return extractSignedResponse(resp)
+}
+
+func (ac *AutoConfig) RecordUpdatedCerts(resp *structs.SignedResponse) error {
+	var err error
+	ac.autoConfigResponse.ExtraCACertificates = resp.ManualCARoots
+	ac.autoConfigResponse.CARoots, err = translateCARootsToProtobuf(&resp.ConnectCARoots)
+	if err != nil {
+		return err
+	}
+	ac.autoConfigResponse.Certificate, err = translateIssuedCertToProtobuf(&resp.IssuedCert)
+	if err != nil {
+		return err
+	}
+
+	return ac.recordResponse(ac.autoConfigResponse)
 }
