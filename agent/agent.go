@@ -544,7 +544,8 @@ func New(options ...AgentOption) (*Agent, error) {
 		WithNodeName(a.config.NodeName).
 		WithFallback(a.autoConfigFallbackTLS).
 		WithLogger(a.logger.Named(logging.AutoConfig)).
-		WithTokens(a.tokens)
+		WithTokens(a.tokens).
+		WithPersistence(a.autoConfigPersist)
 	acCertMon, err := certmon.New(cmConf)
 	if err != nil {
 		return nil, err
@@ -888,7 +889,17 @@ func (a *Agent) autoEncryptInitialCertificate(ctx context.Context) (*structs.Sig
 }
 
 func (a *Agent) autoConfigFallbackTLS(ctx context.Context) (*structs.SignedResponse, error) {
+	if a.autoConf == nil {
+		return nil, fmt.Errorf("AutoConfig manager has not been created yet")
+	}
 	return a.autoConf.FallbackTLS(ctx)
+}
+
+func (a *Agent) autoConfigPersist(resp *structs.SignedResponse) error {
+	if a.autoConf == nil {
+		return fmt.Errorf("AutoConfig manager has not been created yet")
+	}
+	return a.autoConf.RecordUpdatedCerts(resp)
 }
 
 func (a *Agent) listenAndServeGRPC() error {

@@ -33,6 +33,14 @@ func (m *mockFallback) fallback(ctx context.Context) (*structs.SignedResponse, e
 	return resp, ret.Error(1)
 }
 
+type mockPersist struct {
+	mock.Mock
+}
+
+func (m *mockPersist) persist(resp *structs.SignedResponse) error {
+	return m.Called(resp).Error(0)
+}
+
 type mockWatcher struct {
 	ch   chan<- cache.UpdateEvent
 	done <-chan struct{}
@@ -159,6 +167,7 @@ type testCertMonitor struct {
 	tls      *tlsutil.Configurator
 	tokens   *token.Store
 	fallback *mockFallback
+	persist  *mockPersist
 
 	extraCACerts []string
 	initialCert  *structs.IssuedCert
@@ -210,8 +219,10 @@ func newTestCertMonitor(t *testing.T) testCertMonitor {
 	dnsSANs := []string{"test.dev"}
 	ipSANs := []net.IP{net.IPv4(198, 18, 0, 1)}
 
-	// this chan should be unbuffered so we can detect when the fallback func has been called.
 	fallback := &mockFallback{}
+	fallback.Test(t)
+	persist := &mockPersist{}
+	persist.Test(t)
 
 	mcache := newMockCache(t)
 	rootRes := cache.FetchResult{Value: &indexedRoots, Index: 1}
@@ -246,7 +257,8 @@ func newTestCertMonitor(t *testing.T) testCertMonitor {
 		WithDatacenter("foo").
 		WithNodeName("node").
 		WithFallbackLeeway(time.Nanosecond).
-		WithFallbackRetry(time.Millisecond)
+		WithFallbackRetry(time.Millisecond).
+		WithPersistence(persist.persist)
 
 	monitor, err := New(cfg)
 	require.NoError(t, err)
@@ -259,6 +271,7 @@ func newTestCertMonitor(t *testing.T) testCertMonitor {
 		tls:                  tlsConfigurator,
 		tokens:               tokens,
 		mcache:               mcache,
+		persist:              persist,
 		fallback:             fallback,
 		extraCACerts:         []string{manualCA.RootCert},
 		initialCert:          issued,
@@ -298,6 +311,7 @@ func (cm *testCertMonitor) initialCACerts() []string {
 func (cm *testCertMonitor) assertExpectations(t *testing.T) {
 	cm.mcache.AssertExpectations(t)
 	cm.fallback.AssertExpectations(t)
+	cm.persist.AssertExpectations(t)
 }
 
 func TestCertMonitor_InitialCerts(t *testing.T) {
@@ -473,6 +487,13 @@ func TestCertMonitor_RootsUpdate(t *testing.T) {
 		},
 	}
 
+	cm.persist.On("persist", &structs.SignedResponse{
+		IssuedCert:           *cm.initialCert,
+		ManualCARoots:        cm.extraCACerts,
+		ConnectCARoots:       secondRoots,
+		VerifyServerHostname: cm.verifyServerHostname,
+	}).Return(nil).Once()
+
 	// assert value of the CA certs prior to updating
 	require.ElementsMatch(t, cm.initialCACerts(), cm.tls.CAPems())
 
@@ -499,6 +520,13 @@ func TestCertMonitor_CertUpdate(t *testing.T) {
 	ctx, cm := startedCertMonitor(t)
 
 	secondCert := newLeaf(t, cm.initialRoots.Roots[0], 100, 10*time.Minute)
+
+	cm.persist.On("persist", &structs.SignedResponse{
+		IssuedCert:           *secondCert,
+		ManualCARoots:        cm.extraCACerts,
+		ConnectCARoots:       *cm.initialRoots,
+		VerifyServerHostname: cm.verifyServerHostname,
+	}).Return(nil).Once()
 
 	// assert value of cert prior to updating the leaf
 	require.Equal(t, cm.initialTLSCertificate(t), cm.tls.Cert())
@@ -549,13 +577,23 @@ func TestCertMonitor_Fallback(t *testing.T) {
 	// inject a fallback routine error to check that we rerun it quickly
 	cm.fallback.On("fallback").Return(nil, fmt.Errorf("induced error")).Once()
 
-	// expect the fallback routine to be executed and setup the return
-	cm.fallback.On("fallback").Return(&structs.SignedResponse{
+	fallbackResp := &structs.SignedResponse{
 		ConnectCARoots:       secondRoots,
 		IssuedCert:           *thirdCert,
 		ManualCARoots:        cm.extraCACerts,
 		VerifyServerHostname: true,
-	}, nil).Once()
+	}
+	// expect the fallback routine to be executed and setup the return
+	cm.fallback.On("fallback").Return(fallbackResp, nil).Once()
+
+	cm.persist.On("persist", &structs.SignedResponse{
+		IssuedCert:           *secondCert,
+		ConnectCARoots:       *cm.initialRoots,
+		ManualCARoots:        cm.extraCACerts,
+		VerifyServerHostname: cm.verifyServerHostname,
+	}).Return(nil).Once()
+
+	cm.persist.On("persist", fallbackResp).Return(nil).Once()
 
 	// Add another roots cache prepopulation expectation which should happen
 	// in response to executing the fallback mechanism
