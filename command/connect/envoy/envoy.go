@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds"
+	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/api"
 	proxyCmd "github.com/hashicorp/consul/command/connect/proxy"
 	"github.com/hashicorp/consul/command/flags"
@@ -68,10 +69,9 @@ type cmd struct {
 	gatewayKind    api.ServiceKind
 }
 
-const (
-	defaultEnvoyVersion = "1.14.4"
-	meshGatewayVal      = "mesh"
-)
+const meshGatewayVal = "mesh"
+
+var defaultEnvoyVersion = proxysupport.EnvoyVersions[0]
 
 var supportedGateways = map[string]api.ServiceKind{
 	"mesh":        api.ServiceKindMeshGateway,

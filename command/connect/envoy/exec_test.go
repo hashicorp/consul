@@ -29,8 +29,6 @@ func TestExecEnvoy(t *testing.T) {
 				"--config-path",
 				"{{ got.ConfigPath }}",
 				"--disable-hot-restart",
-				"--max-obj-name-len",
-				"256",
 				"--fake-envoy-arg",
 			},
 		},
@@ -44,8 +42,6 @@ func TestExecEnvoy(t *testing.T) {
 				// that value further below.
 				"{{ got.ConfigPath }}",
 				// No --disable-hot-restart
-				"--max-obj-name-len",
-				"256",
 				"--fake-envoy-arg",
 				"--restart-epoch",
 				"1",
@@ -61,8 +57,6 @@ func TestExecEnvoy(t *testing.T) {
 				// that value further below.
 				"{{ got.ConfigPath }}",
 				// No --disable-hot-restart
-				"--max-obj-name-len",
-				"256",
 				"--fake-envoy-arg",
 				// Restart epoch defaults to 0 if not given and not disabled.
 				"--drain-time-s",
@@ -79,8 +73,6 @@ func TestExecEnvoy(t *testing.T) {
 				// that value further below.
 				"{{ got.ConfigPath }}",
 				// No --disable-hot-restart
-				"--max-obj-name-len",
-				"256",
 				"--fake-envoy-arg",
 				// Restart epoch defaults to 0 if not given and not disabled.
 				"--parent-shutdown-time-s",
@@ -97,8 +89,6 @@ func TestExecEnvoy(t *testing.T) {
 				// that value further below.
 				"{{ got.ConfigPath }}",
 				// No --disable-hot-restart
-				"--max-obj-name-len",
-				"256",
 				"--fake-envoy-arg",
 				// Restart epoch defaults to 0 if not given and not disabled.
 				"--hot-restart-version",

@@ -11,6 +11,7 @@ import (
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
@@ -527,8 +528,9 @@ func TestClustersFromSnapshot(t *testing.T) {
 		},
 	}
 
-	for _, envoyVersion := range supportedEnvoyVersions {
-		sf := determineSupportedProxyFeaturesFromString(envoyVersion)
+	for _, envoyVersion := range proxysupport.EnvoyVersions {
+		sf, err := determineSupportedProxyFeaturesFromString(envoyVersion)
+		require.NoError(t, err)
 		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
 			for _, tt := range tests {
 				t.Run(tt.name, func(t *testing.T) {
@@ -736,14 +738,4 @@ func setupTLSRootsAndLeaf(t *testing.T, snap *proxycfg.ConfigSnapshot) {
 	if snap.Roots != nil {
 		snap.Roots.Roots[0].RootCert = golden(t, "test-root-cert", "", "")
 	}
-}
-
-// supportedEnvoyVersions lists the versions that we generated golden tests for
-//
-// see: https://www.consul.io/docs/connect/proxies/envoy#supported-versions
-var supportedEnvoyVersions = []string{
-	"1.14.4",
-	"1.13.4",
-	"1.12.6",
-	"1.11.2",
 }
