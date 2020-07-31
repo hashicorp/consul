@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 )
@@ -175,7 +176,7 @@ func TestRoutesFromSnapshot(t *testing.T) {
 		},
 	}
 
-	for _, envoyVersion := range supportedEnvoyVersions {
+	for _, envoyVersion := range proxysupport.EnvoyVersions {
 		sf := determineSupportedProxyFeaturesFromString(envoyVersion)
 		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
 			for _, tt := range tests {
