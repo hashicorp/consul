@@ -556,7 +556,8 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 	}
 
 	for _, envoyVersion := range proxysupport.EnvoyVersions {
-		sf := determineSupportedProxyFeaturesFromString(envoyVersion)
+		sf, err := determineSupportedProxyFeaturesFromString(envoyVersion)
+		require.NoError(t, err)
 		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
 			for _, tt := range tests {
 				t.Run(tt.name, func(t *testing.T) {

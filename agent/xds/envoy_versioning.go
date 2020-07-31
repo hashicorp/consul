@@ -13,21 +13,47 @@ var (
 	//
 	// NOTE: the first version that no longer supported the old style was 1.13.0
 	minSafeRegexVersion = version.Must(version.NewVersion("1.11.2"))
+
+	// minSupportedVersion is the oldest mainline version we support. This should always be
+	// the zero'th point release of the last element of proxysupport.EnvoyVersions.
+	minSupportedVersion = version.Must(version.NewVersion("1.12.0"))
 )
+
+func init() {
+	// Quick sanity check that the feature flags are necessary.
+	if minSafeRegexVersion.LessThanOrEqual(minSupportedVersion) {
+		panic("the RouterMatchSafeRegex feature flag is no longer necessary")
+	}
+}
 
 type supportedProxyFeatures struct {
 	RouterMatchSafeRegex bool // use safe_regex instead of regex in http.router rules
 }
 
-func determineSupportedProxyFeatures(node *envoycore.Node) supportedProxyFeatures {
+func determineSupportedProxyFeatures(node *envoycore.Node) (supportedProxyFeatures, error) {
 	version := determineEnvoyVersionFromNode(node)
+	return determineSupportedProxyFeaturesFromVersion(version)
+}
+
+func determineSupportedProxyFeaturesFromString(vs string) (supportedProxyFeatures, error) {
+	version := version.Must(version.NewVersion(vs))
+	return determineSupportedProxyFeaturesFromVersion(version)
+}
+
+func determineSupportedProxyFeaturesFromVersion(version *version.Version) (supportedProxyFeatures, error) {
 	if version == nil {
-		return supportedProxyFeatures{}
+		// This would happen on either extremely old builds OR perhaps on
+		// custom builds. Should we error?
+		return supportedProxyFeatures{}, nil
+	}
+
+	if version.LessThan(minSupportedVersion) {
+		return supportedProxyFeatures{}, fmt.Errorf("Envoy %s is too old and is not supported by Consul", version)
 	}
 
 	return supportedProxyFeatures{
 		RouterMatchSafeRegex: !version.LessThan(minSafeRegexVersion),
-	}
+	}, nil
 }
 
 // example: 1580db37e9a97c37e410bad0e1507ae1a0fd9e77/1.12.4/Clean/RELEASE/BoringSSL
@@ -73,11 +99,4 @@ func determineEnvoyVersionFromNode(node *envoycore.Node) *version.Version {
 			v.GetPatch(),
 		),
 	))
-}
-
-func determineSupportedProxyFeaturesFromString(vs string) supportedProxyFeatures {
-	version := version.Must(version.NewVersion(vs))
-	return supportedProxyFeatures{
-		RouterMatchSafeRegex: !version.LessThan(minSafeRegexVersion),
-	}
 }
