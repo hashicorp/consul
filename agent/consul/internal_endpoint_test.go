@@ -1525,7 +1525,10 @@ func TestInternal_GatewayIntentions_aclDeny(t *testing.T) {
 		}
 	}
 
-	userToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `service_prefix "redis" { policy = "read" }`)
+	userToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `
+service_prefix "redis" { policy = "read" }
+service_prefix "terminating-gateway" { policy = "read" }
+`)
 	require.NoError(t, err)
 
 	// Request intentions matching the gateway named "terminating-gateway"
