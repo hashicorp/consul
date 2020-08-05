@@ -204,6 +204,9 @@ type Agent struct {
 	// checkHTTPs maps the check ID to an associated HTTP check
 	checkHTTPs map[structs.CheckID]*checks.CheckHTTP
 
+	// checkH2PINGs maps the check ID to an associated HTTP2 PING check
+	checkH2PINGs map[structs.CheckID]*checks.CheckH2PING
+
 	// checkTCPs maps the check ID to an associated TCP check
 	checkTCPs map[structs.CheckID]*checks.CheckTCP
 
@@ -349,6 +352,7 @@ func New(bd BaseDeps) (*Agent, error) {
 		checkMonitors:   make(map[structs.CheckID]*checks.CheckMonitor),
 		checkTTLs:       make(map[structs.CheckID]*checks.CheckTTL),
 		checkHTTPs:      make(map[structs.CheckID]*checks.CheckHTTP),
+		checkH2PINGs:    make(map[structs.CheckID]*checks.CheckH2PING),
 		checkTCPs:       make(map[structs.CheckID]*checks.CheckTCP),
 		checkGRPCs:      make(map[structs.CheckID]*checks.CheckGRPC),
 		checkDockers:    make(map[structs.CheckID]*checks.CheckDocker),
@@ -1364,6 +1368,9 @@ func (a *Agent) ShutdownAgent() error {
 		chk.Stop()
 	}
 	for _, chk := range a.checkAliases {
+		chk.Stop()
+	}
+	for _, chk := range a.checkH2PINGs {
 		chk.Stop()
 	}
 
@@ -2684,6 +2691,36 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			monitor.Start()
 			a.checkMonitors[cid] = monitor
 
+		case chkType.IsH2PING():
+			if existing, ok := a.checkH2PINGs[cid]; ok {
+				existing.Stop()
+				delete(a.checkH2PINGs, cid)
+			}
+			if chkType.Interval < checks.MinInterval {
+				a.logger.Warn("check has interval below minimum",
+					"check", cid.String(),
+					"minimum_interval", checks.MinInterval,
+				)
+				chkType.Interval = checks.MinInterval
+			}
+
+			tlsClientConfig := a.tlsConfigurator.OutgoingTLSConfigForCheck(chkType.TLSSkipVerify)
+			tlsClientConfig.NextProtos = []string{http2.NextProtoTLS}
+
+			h2ping := &checks.CheckH2PING{
+				CheckID:         cid,
+				ServiceID:       sid,
+				H2PING:          chkType.H2PING,
+				Interval:        chkType.Interval,
+				Timeout:         chkType.Timeout,
+				Logger:          a.logger,
+				TLSClientConfig: tlsClientConfig,
+				StatusHandler:   statusHandler,
+			}
+
+			h2ping.Start()
+			a.checkH2PINGs[cid] = h2ping
+
 		case chkType.IsAlias():
 			if existing, ok := a.checkAliases[cid]; ok {
 				existing.Stop()
@@ -2889,6 +2926,11 @@ func (a *Agent) cancelCheckMonitors(checkID structs.CheckID) {
 		check.Stop()
 		delete(a.checkDockers, checkID)
 	}
+	if check, ok := a.checkH2PINGs[checkID]; ok {
+		check.Stop()
+		delete(a.checkH2PINGs, checkID)
+	}
+
 }
 
 // updateTTLCheck is used to update the status of a TTL check via the Agent API.
