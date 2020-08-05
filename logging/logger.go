@@ -63,9 +63,9 @@ type LogSetupErrorFn func(string)
 // The provided ui object will get any log messages related to setting up
 // logging itself, and will also be hooked up to the gated logger. The final bool
 // parameter indicates if logging was set up successfully.
-func Setup(config *Config, writers []io.Writer) (hclog.InterceptLogger, io.Writer, error) {
+func Setup(config *Config, writers []io.Writer) (hclog.InterceptLogger, error) {
 	if !ValidateLogLevel(config.LogLevel) {
-		return nil, nil, fmt.Errorf("Invalid log level: %s. Valid log levels are: %v",
+		return nil, fmt.Errorf("Invalid log level: %s. Valid log levels are: %v",
 			config.LogLevel,
 			allowedLogLevels)
 	}
@@ -84,7 +84,7 @@ func Setup(config *Config, writers []io.Writer) (hclog.InterceptLogger, io.Write
 
 			if i == retries {
 				timeout := time.Duration(retries) * delay
-				return nil, nil, fmt.Errorf("Syslog setup did not succeed within timeout (%s).", timeout.String())
+				return nil, fmt.Errorf("Syslog setup did not succeed within timeout (%s).", timeout.String())
 			}
 
 			time.Sleep(delay)
@@ -121,19 +121,16 @@ func Setup(config *Config, writers []io.Writer) (hclog.InterceptLogger, io.Write
 			MaxFiles: config.LogRotateMaxFiles,
 		}
 		if err := logFile.openNew(); err != nil {
-			return nil, nil, fmt.Errorf("Failed to setup logging: %w", err)
+			return nil, fmt.Errorf("Failed to setup logging: %w", err)
 		}
 		writers = append(writers, logFile)
 	}
 
-	logOutput := io.MultiWriter(writers...)
-
 	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
 		Level:      LevelFromString(config.LogLevel),
 		Name:       config.Name,
-		Output:     logOutput,
+		Output:     io.MultiWriter(writers...),
 		JSONFormat: config.LogJSON,
 	})
-
-	return logger, logOutput, nil
+	return logger, nil
 }
