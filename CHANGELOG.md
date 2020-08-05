@@ -1,5 +1,11 @@
 ## UNRELEASED
 
+BUGFIXES:
+
+* xds: revert setting set_node_on_first_message_only to true when generating envoy bootstrap config [[GH-8440](https://github.com/hashicorp/consul/issues/8440)]
+
+## 1.8.1 (July 30, 2020)
+
 FEATURES: 
 
 * acl: Added ACL Node Identities for easier creation of Consul Agent tokens. [[GH-7970](https://github.com/hashicorp/consul/pull/7970)]
