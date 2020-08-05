@@ -380,7 +380,7 @@ func (s *Store) IntentionMatchOne(ws memdb.WatchSet,
 	return idx, results, nil
 }
 
-func (s *Store) intentionMatchOneTxn(tx *txn, ws memdb.WatchSet,
+func (s *Store) intentionMatchOneTxn(tx ReadTxn, ws memdb.WatchSet,
 	entry structs.IntentionMatchEntry, matchType structs.IntentionMatchType) (structs.Intentions, error) {
 
 	// Each search entry may require multiple queries to memdb, so this
@@ -388,7 +388,7 @@ func (s *Store) intentionMatchOneTxn(tx *txn, ws memdb.WatchSet,
 	// this is not the most optimal set of queries since we repeat some
 	// many times (such as */*). We can work on improving that in the
 	// future, the test cases shouldn't have to change for that.
-	getParams, err := s.intentionMatchGetParams(entry)
+	getParams, err := intentionMatchGetParams(entry)
 	if err != nil {
 		return nil, err
 	}
@@ -412,7 +412,7 @@ func (s *Store) intentionMatchOneTxn(tx *txn, ws memdb.WatchSet,
 
 // intentionMatchGetParams returns the tx.Get parameters to find all the
 // intentions for a certain entry.
-func (s *Store) intentionMatchGetParams(entry structs.IntentionMatchEntry) ([][]interface{}, error) {
+func intentionMatchGetParams(entry structs.IntentionMatchEntry) ([][]interface{}, error) {
 	// We always query for "*/*" so include that. If the namespace is a
 	// wildcard, then we're actually done.
 	result := make([][]interface{}, 0, 3)
