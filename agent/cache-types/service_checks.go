@@ -60,7 +60,7 @@ func (c *ServiceHTTPChecks) Fetch(opts cache.FetchOptions, req cache.Request) (c
 			sid := structs.NewServiceID(reqReal.ServiceID, &reqReal.EnterpriseMeta)
 			svcState := c.Agent.LocalState().ServiceState(sid)
 			if svcState == nil {
-				return "", result, fmt.Errorf("Internal cache failure: service '%s' not in agent state", reqReal.ServiceID)
+				return "", nil, fmt.Errorf("Internal cache failure: service '%s' not in agent state", reqReal.ServiceID)
 			}
 
 			// WatchCh will receive updates on service (de)registrations and check (de)registrations
@@ -70,7 +70,7 @@ func (c *ServiceHTTPChecks) Fetch(opts cache.FetchOptions, req cache.Request) (c
 
 			hash, err := hashChecks(reply)
 			if err != nil {
-				return "", result, fmt.Errorf("Internal cache failure: %v", err)
+				return "", nil, fmt.Errorf("Internal cache failure: %v", err)
 			}
 
 			return hash, reply, nil
