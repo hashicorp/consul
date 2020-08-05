@@ -2,7 +2,6 @@ package consul
 
 import (
 	"fmt"
-	"io"
 	"net"
 	"os"
 	"time"
@@ -160,13 +159,6 @@ type Config struct {
 	// that are force removed, as well as intermittent unavailability during
 	// leader election.
 	ReconcileInterval time.Duration
-
-	// LogLevel is the level of the logs to write. Defaults to "INFO".
-	LogLevel string
-
-	// LogOutput is the location to write logs to. If this is not set,
-	// logs will go to stderr.
-	LogOutput io.Writer
 
 	// ProtocolVersion is the protocol version to speak. This must be between
 	// ProtocolVersionMin and ProtocolVersionMax.

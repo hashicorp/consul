@@ -295,7 +295,10 @@ func (s *Server) handleNativeTLS(conn net.Conn) {
 func (s *Server) handleMultiplexV2(conn net.Conn) {
 	defer conn.Close()
 	conf := yamux.DefaultConfig()
-	conf.LogOutput = s.config.LogOutput
+	// override the default because LogOutput conflicts with Logger
+	conf.LogOutput = nil
+	// TODO: should this be created once and cached?
+	conf.Logger = s.logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true})
 	server, _ := yamux.Server(conn, conf)
 	for {
 		sub, err := server.Accept()

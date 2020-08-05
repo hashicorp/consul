@@ -4,7 +4,7 @@ import (
 	"container/list"
 	"crypto/tls"
 	"fmt"
-	"io"
+	"log"
 	"net"
 	"net/rpc"
 	"sync"
@@ -126,8 +126,9 @@ type ConnPool struct {
 	// SrcAddr is the source address for outgoing connections.
 	SrcAddr *net.TCPAddr
 
-	// LogOutput is used to control logging
-	LogOutput io.Writer
+	// Logger passed to yamux
+	// TODO: consider refactoring to accept a full yamux.Config instead of a logger
+	Logger *log.Logger
 
 	// The maximum time to keep a connection open
 	MaxTime time.Duration
@@ -454,9 +455,10 @@ func (p *ConnPool) getNewConn(dc string, nodeName string, addr net.Addr) (*Conn,
 		return nil, err
 	}
 
-	// Setup the logger
 	conf := yamux.DefaultConfig()
-	conf.LogOutput = p.LogOutput
+	// override the default because LogOutput conflicts with Logger.
+	conf.LogOutput = nil
+	conf.Logger = p.Logger
 
 	// Create a multiplexed session
 	session, err := yamux.Client(conn, conf)

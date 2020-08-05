@@ -174,15 +174,6 @@ type Agent struct {
 	// Used for writing our logs
 	logger hclog.InterceptLogger
 
-	// LogOutput is a Writer which is used when creating dependencies that
-	// require logging. Note that this LogOutput is not used by the agent logger,
-	// so setting this field does not result in the agent logs being written to
-	// LogOutput.
-	// FIXME: refactor so that: dependencies accept an hclog.Logger,
-	// or LogOutput is part of RuntimeConfig, or change Agent.logger to be
-	// a new type with an Out() io.Writer method which returns this value.
-	LogOutput io.Writer
-
 	// In-memory sink used for collecting metrics
 	MemSink *metrics.InmemSink
 
@@ -477,13 +468,10 @@ func New(options ...AgentOption) (*Agent, error) {
 			LogRotateMaxFiles: config.LogRotateMaxFiles,
 		}
 
-		logger, logOutput, err := logging.Setup(logConf, flat.writers)
+		a.logger, err = logging.Setup(logConf, flat.writers)
 		if err != nil {
 			return nil, err
 		}
-
-		a.logger = logger
-		a.LogOutput = logOutput
 
 		grpclog.SetLoggerV2(logging.NewGRPCLogger(logConf, a.logger))
 	}
@@ -591,16 +579,10 @@ func (a *Agent) initializeConnectionPool() error {
 		rpcSrcAddr = &net.TCPAddr{IP: a.config.RPCBindAddr.IP}
 	}
 
-	// Ensure we have a log output for the connection pool.
-	logOutput := a.LogOutput
-	if logOutput == nil {
-		logOutput = os.Stderr
-	}
-
 	pool := &pool.ConnPool{
 		Server:          a.config.ServerMode,
 		SrcAddr:         rpcSrcAddr,
-		LogOutput:       logOutput,
+		Logger:          a.logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true}),
 		TLSConfigurator: a.tlsConfigurator,
 		Datacenter:      a.config.Datacenter,
 	}
@@ -713,13 +695,13 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// Setup either the client or the server.
 	if c.ServerMode {
-		server, err := consul.NewServerWithOptions(consulCfg, options...)
+		server, err := consul.NewServer(consulCfg, options...)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
 		a.delegate = server
 	} else {
-		client, err := consul.NewClientWithOptions(consulCfg, options...)
+		client, err := consul.NewClient(consulCfg, options...)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul client: %v", err)
 		}
@@ -1263,7 +1245,7 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 				httpConfig := wp.Exempt["http_handler_config"].(*watch.HttpHandlerConfig)
 				wp.Handler = makeHTTPWatchHandler(a.logger, httpConfig)
 			}
-			wp.LogOutput = a.LogOutput
+			wp.Logger = a.logger.Named("watch")
 
 			addr := config.Address
 			if config.Scheme == "https" {
@@ -1522,10 +1504,6 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 		case <-a.shutdownCh:
 		}
 	}
-
-	// Setup the loggers
-	base.LogLevel = a.config.LogLevel
-	base.LogOutput = a.LogOutput
 
 	// This will set up the LAN keyring, as well as the WAN and any segments
 	// for servers.
