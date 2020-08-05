@@ -1306,7 +1306,7 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 	})
 	tlsConf, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), logger)
 	require.NoError(t, err)
-	srv, err := NewServerWithOptions(config,
+	srv, err := NewServer(config,
 		WithLogger(logger),
 		WithTokenStore(new(token.Store)),
 		WithTLSConfigurator(tlsConf))

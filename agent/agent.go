@@ -695,13 +695,13 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// Setup either the client or the server.
 	if c.ServerMode {
-		server, err := consul.NewServerWithOptions(consulCfg, options...)
+		server, err := consul.NewServer(consulCfg, options...)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
 		a.delegate = server
 	} else {
-		client, err := consul.NewClientWithOptions(consulCfg, options...)
+		client, err := consul.NewClient(consulCfg, options...)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul client: %v", err)
 		}

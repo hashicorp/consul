@@ -313,9 +313,9 @@ type Server struct {
 	EnterpriseServer
 }
 
-// NewServerWithOptions is used to construct a new Consul server from the configuration
-// and extra options, potentially returning an error
-func NewServerWithOptions(config *Config, options ...ConsulOption) (*Server, error) {
+// NewServer is used to construct a new Consul server from the configuration
+// and extra options, potentially returning an error.
+func NewServer(config *Config, options ...ConsulOption) (*Server, error) {
 	flat := flattenConsulOptions(options)
 
 	logger := flat.logger

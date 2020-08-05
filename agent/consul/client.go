@@ -88,7 +88,8 @@ type Client struct {
 	tlsConfigurator *tlsutil.Configurator
 }
 
-func NewClientWithOptions(config *Config, options ...ConsulOption) (*Client, error) {
+// NewClient creates and returns a Client
+func NewClient(config *Config, options ...ConsulOption) (*Client, error) {
 	flat := flattenConsulOptions(options)
 
 	tlsConfigurator := flat.tlsConfigurator
