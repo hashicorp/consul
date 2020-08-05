@@ -1064,11 +1064,11 @@ func TestCheckH2PINGInvalidListener(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		if got, want := notif.State(cid), api.HealthCritical; got != want {
-			t.Fatalf("got state %q want %q", got, want)
+			r.Fatalf("got state %q want %q", got, want)
 		}
 		expectedOutput := "Failed to dial to"
 		if !strings.Contains(notif.Output(cid), expectedOutput) {
-			t.Fatalf("should have included output %s: %v", expectedOutput, notif.OutputMap())
+			r.Fatalf("should have included output %s: %v", expectedOutput, notif.OutputMap())
 		}
 
 	})
