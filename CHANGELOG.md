@@ -30,6 +30,7 @@ BUGFIXES:
 * gossip: Avoid issue where two unique leave events for the same node could lead to infinite rebroadcast storms [[GH-8343](https://github.com/hashicorp/consul/issues/8343)]
 * snapshot: **(Consul Enterprise only)** Fixed a regression when using Azure blob storage.
 * xds: version sniff envoy and switch regular expressions from 'regex' to 'safe_regex' on newer envoy versions [[GH-8222](https://github.com/hashicorp/consul/issues/8222)]
+* xds: revert setting set_node_on_first_message_only to true when generating envoy bootstrap config [[GH-8440](https://github.com/hashicorp/consul/issues/8440)]
 
 ## 1.8.0 (June 18, 2020)
 
