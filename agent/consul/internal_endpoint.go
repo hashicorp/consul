@@ -114,7 +114,7 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 			}
 			reply.Nodes = nodes
 
-			if err := m.srv.filterACL(args.Token, reply.Nodes); err != nil {
+			if err := m.srv.filterACL(args.Token, &reply.Nodes); err != nil {
 				return err
 			}
 
@@ -130,7 +130,7 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 			}
 			reply.Index = maxIdx
 
-			if err := m.srv.filterACL(args.Token, reply.Gateways); err != nil {
+			if err := m.srv.filterACL(args.Token, &reply.Gateways); err != nil {
 				return err
 			}
 

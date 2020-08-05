@@ -2700,13 +2700,16 @@ func (s *Store) DumpGatewayServices(ws memdb.WatchSet) (uint64, structs.GatewayS
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
-	gatewayServices, err := tx.Get(gatewayServicesTableName, "id")
+	iter, err := tx.Get(gatewayServicesTableName, "id")
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to dump gateway-services: %s", err)
 	}
-	ws.Add(gatewayServices.WatchCh())
+	ws.Add(iter.WatchCh())
 
-	return s.collectGatewayServices(tx, ws, gatewayServices)
+	maxIdx, results, err := s.collectGatewayServices(tx, ws, iter)
+	idx := maxIndexTxn(tx, gatewayServicesTableName)
+
+	return lib.MaxUint64(maxIdx, idx), results, nil
 }
 
 func (s *Store) collectGatewayServices(tx *txn, ws memdb.WatchSet, iter memdb.ResultIterator) (uint64, structs.GatewayServices, error) {
@@ -2715,14 +2718,15 @@ func (s *Store) collectGatewayServices(tx *txn, ws memdb.WatchSet, iter memdb.Re
 
 	for obj := iter.Next(); obj != nil; obj = iter.Next() {
 		gs := obj.(*structs.GatewayService)
+		maxIdx = lib.MaxUint64(maxIdx, gs.ModifyIndex)
 
 		if gs.Service.Name != structs.WildcardSpecifier {
 			idx, matches, err := s.checkProtocolMatch(tx, ws, gs)
 			if err != nil {
 				return 0, nil, fmt.Errorf("failed checking protocol: %s", err)
 			}
-
 			maxIdx = lib.MaxUint64(maxIdx, idx)
+
 			if matches {
 				results = append(results, gs)
 			}
