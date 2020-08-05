@@ -10,6 +10,7 @@ import (
 	pbcommon "github.com/hashicorp/consul/proto/pbcommon"
 	io "io"
 	math "math"
+	math_bits "math/bits"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -76,7 +77,7 @@ func (m *CARoots) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_CARoots.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -194,7 +195,7 @@ func (m *CARoot) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_CARoot.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -368,7 +369,7 @@ func (m *IssuedCert) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_IssuedCert.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -521,7 +522,7 @@ var fileDescriptor_80627e709958eb04 = []byte{
 func (m *CARoots) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -529,54 +530,66 @@ func (m *CARoots) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *CARoots) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *CARoots) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.ActiveRootID) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintConnect(dAtA, i, uint64(len(m.ActiveRootID)))
-		i += copy(dAtA[i:], m.ActiveRootID)
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	if len(m.TrustDomain) > 0 {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintConnect(dAtA, i, uint64(len(m.TrustDomain)))
-		i += copy(dAtA[i:], m.TrustDomain)
-	}
-	if len(m.Roots) > 0 {
-		for _, msg := range m.Roots {
-			dAtA[i] = 0x1a
-			i++
-			i = encodeVarintConnect(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
+	if m.QueryMeta != nil {
+		{
+			size, err := m.QueryMeta.MarshalToSizedBuffer(dAtA[:i])
 			if err != nil {
 				return 0, err
 			}
-			i += n
+			i -= size
+			i = encodeVarintConnect(dAtA, i, uint64(size))
 		}
-	}
-	if m.QueryMeta != nil {
+		i--
 		dAtA[i] = 0x22
-		i++
-		i = encodeVarintConnect(dAtA, i, uint64(m.QueryMeta.Size()))
-		n1, err := m.QueryMeta.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
+	}
+	if len(m.Roots) > 0 {
+		for iNdEx := len(m.Roots) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Roots[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintConnect(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x1a
 		}
-		i += n1
 	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+	if len(m.TrustDomain) > 0 {
+		i -= len(m.TrustDomain)
+		copy(dAtA[i:], m.TrustDomain)
+		i = encodeVarintConnect(dAtA, i, uint64(len(m.TrustDomain)))
+		i--
+		dAtA[i] = 0x12
 	}
-	return i, nil
+	if len(m.ActiveRootID) > 0 {
+		i -= len(m.ActiveRootID)
+		copy(dAtA[i:], m.ActiveRootID)
+		i = encodeVarintConnect(dAtA, i, uint64(len(m.ActiveRootID)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *CARoot) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -584,145 +597,161 @@ func (m *CARoot) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *CARoot) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *CARoot) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.ID) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintConnect(dAtA, i, uint64(len(m.ID)))
-		i += copy(dAtA[i:], m.ID)
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	if len(m.Name) > 0 {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintConnect(dAtA, i, uint64(len(m.Name)))
-		i += copy(dAtA[i:], m.Name)
-	}
-	if m.SerialNumber != 0 {
-		dAtA[i] = 0x18
-		i++
-		i = encodeVarintConnect(dAtA, i, uint64(m.SerialNumber))
-	}
-	if len(m.SigningKeyID) > 0 {
-		dAtA[i] = 0x22
-		i++
-		i = encodeVarintConnect(dAtA, i, uint64(len(m.SigningKeyID)))
-		i += copy(dAtA[i:], m.SigningKeyID)
-	}
-	if len(m.ExternalTrustDomain) > 0 {
-		dAtA[i] = 0x2a
-		i++
-		i = encodeVarintConnect(dAtA, i, uint64(len(m.ExternalTrustDomain)))
-		i += copy(dAtA[i:], m.ExternalTrustDomain)
-	}
-	if m.NotBefore != nil {
-		dAtA[i] = 0x32
-		i++
-		i = encodeVarintConnect(dAtA, i, uint64(m.NotBefore.Size()))
-		n2, err := m.NotBefore.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n2
-	}
-	if m.NotAfter != nil {
-		dAtA[i] = 0x3a
-		i++
-		i = encodeVarintConnect(dAtA, i, uint64(m.NotAfter.Size()))
-		n3, err := m.NotAfter.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n3
-	}
-	if len(m.RootCert) > 0 {
-		dAtA[i] = 0x42
-		i++
-		i = encodeVarintConnect(dAtA, i, uint64(len(m.RootCert)))
-		i += copy(dAtA[i:], m.RootCert)
-	}
-	if len(m.IntermediateCerts) > 0 {
-		for _, s := range m.IntermediateCerts {
-			dAtA[i] = 0x4a
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
+	if m.RaftIndex != nil {
+		{
+			size, err := m.RaftIndex.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
 			}
-			dAtA[i] = uint8(l)
-			i++
-			i += copy(dAtA[i:], s)
+			i -= size
+			i = encodeVarintConnect(dAtA, i, uint64(size))
 		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x82
 	}
-	if len(m.SigningCert) > 0 {
-		dAtA[i] = 0x52
-		i++
-		i = encodeVarintConnect(dAtA, i, uint64(len(m.SigningCert)))
-		i += copy(dAtA[i:], m.SigningCert)
+	if m.PrivateKeyBits != 0 {
+		i = encodeVarintConnect(dAtA, i, uint64(m.PrivateKeyBits))
+		i--
+		dAtA[i] = 0x78
 	}
-	if len(m.SigningKey) > 0 {
-		dAtA[i] = 0x5a
-		i++
-		i = encodeVarintConnect(dAtA, i, uint64(len(m.SigningKey)))
-		i += copy(dAtA[i:], m.SigningKey)
+	if len(m.PrivateKeyType) > 0 {
+		i -= len(m.PrivateKeyType)
+		copy(dAtA[i:], m.PrivateKeyType)
+		i = encodeVarintConnect(dAtA, i, uint64(len(m.PrivateKeyType)))
+		i--
+		dAtA[i] = 0x72
+	}
+	if m.RotatedOutAt != nil {
+		{
+			size, err := m.RotatedOutAt.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintConnect(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x6a
 	}
 	if m.Active {
-		dAtA[i] = 0x60
-		i++
+		i--
 		if m.Active {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i++
+		i--
+		dAtA[i] = 0x60
 	}
-	if m.RotatedOutAt != nil {
-		dAtA[i] = 0x6a
-		i++
-		i = encodeVarintConnect(dAtA, i, uint64(m.RotatedOutAt.Size()))
-		n4, err := m.RotatedOutAt.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
+	if len(m.SigningKey) > 0 {
+		i -= len(m.SigningKey)
+		copy(dAtA[i:], m.SigningKey)
+		i = encodeVarintConnect(dAtA, i, uint64(len(m.SigningKey)))
+		i--
+		dAtA[i] = 0x5a
+	}
+	if len(m.SigningCert) > 0 {
+		i -= len(m.SigningCert)
+		copy(dAtA[i:], m.SigningCert)
+		i = encodeVarintConnect(dAtA, i, uint64(len(m.SigningCert)))
+		i--
+		dAtA[i] = 0x52
+	}
+	if len(m.IntermediateCerts) > 0 {
+		for iNdEx := len(m.IntermediateCerts) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.IntermediateCerts[iNdEx])
+			copy(dAtA[i:], m.IntermediateCerts[iNdEx])
+			i = encodeVarintConnect(dAtA, i, uint64(len(m.IntermediateCerts[iNdEx])))
+			i--
+			dAtA[i] = 0x4a
 		}
-		i += n4
 	}
-	if len(m.PrivateKeyType) > 0 {
-		dAtA[i] = 0x72
-		i++
-		i = encodeVarintConnect(dAtA, i, uint64(len(m.PrivateKeyType)))
-		i += copy(dAtA[i:], m.PrivateKeyType)
+	if len(m.RootCert) > 0 {
+		i -= len(m.RootCert)
+		copy(dAtA[i:], m.RootCert)
+		i = encodeVarintConnect(dAtA, i, uint64(len(m.RootCert)))
+		i--
+		dAtA[i] = 0x42
 	}
-	if m.PrivateKeyBits != 0 {
-		dAtA[i] = 0x78
-		i++
-		i = encodeVarintConnect(dAtA, i, uint64(m.PrivateKeyBits))
-	}
-	if m.RaftIndex != nil {
-		dAtA[i] = 0x82
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintConnect(dAtA, i, uint64(m.RaftIndex.Size()))
-		n5, err := m.RaftIndex.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
+	if m.NotAfter != nil {
+		{
+			size, err := m.NotAfter.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintConnect(dAtA, i, uint64(size))
 		}
-		i += n5
+		i--
+		dAtA[i] = 0x3a
 	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+	if m.NotBefore != nil {
+		{
+			size, err := m.NotBefore.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintConnect(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x32
 	}
-	return i, nil
+	if len(m.ExternalTrustDomain) > 0 {
+		i -= len(m.ExternalTrustDomain)
+		copy(dAtA[i:], m.ExternalTrustDomain)
+		i = encodeVarintConnect(dAtA, i, uint64(len(m.ExternalTrustDomain)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.SigningKeyID) > 0 {
+		i -= len(m.SigningKeyID)
+		copy(dAtA[i:], m.SigningKeyID)
+		i = encodeVarintConnect(dAtA, i, uint64(len(m.SigningKeyID)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.SerialNumber != 0 {
+		i = encodeVarintConnect(dAtA, i, uint64(m.SerialNumber))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.Name) > 0 {
+		i -= len(m.Name)
+		copy(dAtA[i:], m.Name)
+		i = encodeVarintConnect(dAtA, i, uint64(len(m.Name)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ID) > 0 {
+		i -= len(m.ID)
+		copy(dAtA[i:], m.ID)
+		i = encodeVarintConnect(dAtA, i, uint64(len(m.ID)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *IssuedCert) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -730,106 +759,129 @@ func (m *IssuedCert) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *IssuedCert) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *IssuedCert) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.SerialNumber) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintConnect(dAtA, i, uint64(len(m.SerialNumber)))
-		i += copy(dAtA[i:], m.SerialNumber)
-	}
-	if len(m.CertPEM) > 0 {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintConnect(dAtA, i, uint64(len(m.CertPEM)))
-		i += copy(dAtA[i:], m.CertPEM)
-	}
-	if len(m.PrivateKeyPEM) > 0 {
-		dAtA[i] = 0x1a
-		i++
-		i = encodeVarintConnect(dAtA, i, uint64(len(m.PrivateKeyPEM)))
-		i += copy(dAtA[i:], m.PrivateKeyPEM)
-	}
-	if len(m.Service) > 0 {
-		dAtA[i] = 0x22
-		i++
-		i = encodeVarintConnect(dAtA, i, uint64(len(m.Service)))
-		i += copy(dAtA[i:], m.Service)
-	}
-	if len(m.ServiceURI) > 0 {
-		dAtA[i] = 0x2a
-		i++
-		i = encodeVarintConnect(dAtA, i, uint64(len(m.ServiceURI)))
-		i += copy(dAtA[i:], m.ServiceURI)
-	}
-	if len(m.Agent) > 0 {
-		dAtA[i] = 0x32
-		i++
-		i = encodeVarintConnect(dAtA, i, uint64(len(m.Agent)))
-		i += copy(dAtA[i:], m.Agent)
-	}
-	if len(m.AgentURI) > 0 {
-		dAtA[i] = 0x3a
-		i++
-		i = encodeVarintConnect(dAtA, i, uint64(len(m.AgentURI)))
-		i += copy(dAtA[i:], m.AgentURI)
-	}
-	if m.ValidAfter != nil {
-		dAtA[i] = 0x42
-		i++
-		i = encodeVarintConnect(dAtA, i, uint64(m.ValidAfter.Size()))
-		n6, err := m.ValidAfter.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n6
-	}
-	if m.ValidBefore != nil {
-		dAtA[i] = 0x4a
-		i++
-		i = encodeVarintConnect(dAtA, i, uint64(m.ValidBefore.Size()))
-		n7, err := m.ValidBefore.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n7
-	}
-	if m.EnterpriseMeta != nil {
-		dAtA[i] = 0x52
-		i++
-		i = encodeVarintConnect(dAtA, i, uint64(m.EnterpriseMeta.Size()))
-		n8, err := m.EnterpriseMeta.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n8
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
 	if m.RaftIndex != nil {
-		dAtA[i] = 0x5a
-		i++
-		i = encodeVarintConnect(dAtA, i, uint64(m.RaftIndex.Size()))
-		n9, err := m.RaftIndex.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
+		{
+			size, err := m.RaftIndex.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintConnect(dAtA, i, uint64(size))
 		}
-		i += n9
+		i--
+		dAtA[i] = 0x5a
 	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+	if m.EnterpriseMeta != nil {
+		{
+			size, err := m.EnterpriseMeta.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintConnect(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x52
 	}
-	return i, nil
+	if m.ValidBefore != nil {
+		{
+			size, err := m.ValidBefore.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintConnect(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x4a
+	}
+	if m.ValidAfter != nil {
+		{
+			size, err := m.ValidAfter.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintConnect(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x42
+	}
+	if len(m.AgentURI) > 0 {
+		i -= len(m.AgentURI)
+		copy(dAtA[i:], m.AgentURI)
+		i = encodeVarintConnect(dAtA, i, uint64(len(m.AgentURI)))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if len(m.Agent) > 0 {
+		i -= len(m.Agent)
+		copy(dAtA[i:], m.Agent)
+		i = encodeVarintConnect(dAtA, i, uint64(len(m.Agent)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.ServiceURI) > 0 {
+		i -= len(m.ServiceURI)
+		copy(dAtA[i:], m.ServiceURI)
+		i = encodeVarintConnect(dAtA, i, uint64(len(m.ServiceURI)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.Service) > 0 {
+		i -= len(m.Service)
+		copy(dAtA[i:], m.Service)
+		i = encodeVarintConnect(dAtA, i, uint64(len(m.Service)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.PrivateKeyPEM) > 0 {
+		i -= len(m.PrivateKeyPEM)
+		copy(dAtA[i:], m.PrivateKeyPEM)
+		i = encodeVarintConnect(dAtA, i, uint64(len(m.PrivateKeyPEM)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.CertPEM) > 0 {
+		i -= len(m.CertPEM)
+		copy(dAtA[i:], m.CertPEM)
+		i = encodeVarintConnect(dAtA, i, uint64(len(m.CertPEM)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.SerialNumber) > 0 {
+		i -= len(m.SerialNumber)
+		copy(dAtA[i:], m.SerialNumber)
+		i = encodeVarintConnect(dAtA, i, uint64(len(m.SerialNumber)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func encodeVarintConnect(dAtA []byte, offset int, v uint64) int {
+	offset -= sovConnect(v)
+	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
 	dAtA[offset] = uint8(v)
-	return offset + 1
+	return base
 }
 func (m *CARoots) Size() (n int) {
 	if m == nil {
@@ -993,14 +1045,7 @@ func (m *IssuedCert) Size() (n int) {
 }
 
 func sovConnect(x uint64) (n int) {
-	for {
-		n++
-		x >>= 7
-		if x == 0 {
-			break
-		}
-	}
-	return n
+	return (math_bits.Len64(x|1) + 6) / 7
 }
 func sozConnect(x uint64) (n int) {
 	return sovConnect(uint64((x << 1) ^ uint64((int64(x) >> 63))))

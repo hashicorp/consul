@@ -10,6 +10,7 @@ import (
 	pbconnect "github.com/hashicorp/consul/proto/pbconnect"
 	io "io"
 	math "math"
+	math_bits "math/bits"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -63,7 +64,7 @@ func (m *AutoConfigRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, e
 		return xxx_messageInfo_AutoConfigRequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -154,7 +155,7 @@ func (m *AutoConfigResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, 
 		return xxx_messageInfo_AutoConfigResponse.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -239,7 +240,7 @@ var fileDescriptor_ccc5af992e5daf69 = []byte{
 func (m *AutoConfigRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -247,56 +248,68 @@ func (m *AutoConfigRequest) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *AutoConfigRequest) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *AutoConfigRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.Datacenter) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintAutoConfig(dAtA, i, uint64(len(m.Datacenter)))
-		i += copy(dAtA[i:], m.Datacenter)
-	}
-	if len(m.Node) > 0 {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintAutoConfig(dAtA, i, uint64(len(m.Node)))
-		i += copy(dAtA[i:], m.Node)
-	}
-	if len(m.Segment) > 0 {
-		dAtA[i] = 0x22
-		i++
-		i = encodeVarintAutoConfig(dAtA, i, uint64(len(m.Segment)))
-		i += copy(dAtA[i:], m.Segment)
-	}
-	if len(m.JWT) > 0 {
-		dAtA[i] = 0x2a
-		i++
-		i = encodeVarintAutoConfig(dAtA, i, uint64(len(m.JWT)))
-		i += copy(dAtA[i:], m.JWT)
-	}
-	if len(m.ConsulToken) > 0 {
-		dAtA[i] = 0x32
-		i++
-		i = encodeVarintAutoConfig(dAtA, i, uint64(len(m.ConsulToken)))
-		i += copy(dAtA[i:], m.ConsulToken)
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
 	if len(m.CSR) > 0 {
-		dAtA[i] = 0x3a
-		i++
+		i -= len(m.CSR)
+		copy(dAtA[i:], m.CSR)
 		i = encodeVarintAutoConfig(dAtA, i, uint64(len(m.CSR)))
-		i += copy(dAtA[i:], m.CSR)
+		i--
+		dAtA[i] = 0x3a
 	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+	if len(m.ConsulToken) > 0 {
+		i -= len(m.ConsulToken)
+		copy(dAtA[i:], m.ConsulToken)
+		i = encodeVarintAutoConfig(dAtA, i, uint64(len(m.ConsulToken)))
+		i--
+		dAtA[i] = 0x32
 	}
-	return i, nil
+	if len(m.JWT) > 0 {
+		i -= len(m.JWT)
+		copy(dAtA[i:], m.JWT)
+		i = encodeVarintAutoConfig(dAtA, i, uint64(len(m.JWT)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.Segment) > 0 {
+		i -= len(m.Segment)
+		copy(dAtA[i:], m.Segment)
+		i = encodeVarintAutoConfig(dAtA, i, uint64(len(m.Segment)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.Node) > 0 {
+		i -= len(m.Node)
+		copy(dAtA[i:], m.Node)
+		i = encodeVarintAutoConfig(dAtA, i, uint64(len(m.Node)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Datacenter) > 0 {
+		i -= len(m.Datacenter)
+		copy(dAtA[i:], m.Datacenter)
+		i = encodeVarintAutoConfig(dAtA, i, uint64(len(m.Datacenter)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *AutoConfigResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -304,69 +317,77 @@ func (m *AutoConfigResponse) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *AutoConfigResponse) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *AutoConfigResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Config != nil {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintAutoConfig(dAtA, i, uint64(m.Config.Size()))
-		n1, err := m.Config.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n1
-	}
-	if m.CARoots != nil {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintAutoConfig(dAtA, i, uint64(m.CARoots.Size()))
-		n2, err := m.CARoots.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n2
-	}
-	if m.Certificate != nil {
-		dAtA[i] = 0x1a
-		i++
-		i = encodeVarintAutoConfig(dAtA, i, uint64(m.Certificate.Size()))
-		n3, err := m.Certificate.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n3
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
 	if len(m.ExtraCACertificates) > 0 {
-		for _, s := range m.ExtraCACertificates {
+		for iNdEx := len(m.ExtraCACertificates) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.ExtraCACertificates[iNdEx])
+			copy(dAtA[i:], m.ExtraCACertificates[iNdEx])
+			i = encodeVarintAutoConfig(dAtA, i, uint64(len(m.ExtraCACertificates[iNdEx])))
+			i--
 			dAtA[i] = 0x22
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			dAtA[i] = uint8(l)
-			i++
-			i += copy(dAtA[i:], s)
 		}
 	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+	if m.Certificate != nil {
+		{
+			size, err := m.Certificate.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintAutoConfig(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x1a
 	}
-	return i, nil
+	if m.CARoots != nil {
+		{
+			size, err := m.CARoots.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintAutoConfig(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Config != nil {
+		{
+			size, err := m.Config.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintAutoConfig(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func encodeVarintAutoConfig(dAtA []byte, offset int, v uint64) int {
+	offset -= sovAutoConfig(v)
+	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
 	dAtA[offset] = uint8(v)
-	return offset + 1
+	return base
 }
 func (m *AutoConfigRequest) Size() (n int) {
 	if m == nil {
@@ -435,14 +456,7 @@ func (m *AutoConfigResponse) Size() (n int) {
 }
 
 func sovAutoConfig(x uint64) (n int) {
-	for {
-		n++
-		x >>= 7
-		if x == 0 {
-			break
-		}
-	}
-	return n
+	return (math_bits.Len64(x|1) + 6) / 7
 }
 func sozAutoConfig(x uint64) (n int) {
 	return sovAutoConfig(uint64((x << 1) ^ uint64((int64(x) >> 63))))
