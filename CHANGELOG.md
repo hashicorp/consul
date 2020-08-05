@@ -2,6 +2,12 @@
 
 BUG FIXES:
 
+* [backport/1.7.x] xds: revert setting set_node_on_first_message_only to true when generating envoy bootstrap config [[GH-8441](https://github.com/hashicorp/consul/issues/8441)]
+
+## 1.7.5 (July 30, 2020)
+
+BUG FIXES:
+
 * agent: Fixed an issue with lock contention during RPCs when under load while using the Prometheus metrics sink. [[GH-8372](https://github.com/hashicorp/consul/pull/8372)]
 * gossip: Avoid issue where two unique leave events for the same node could lead to infinite rebroadcast storms [[GH-8353](https://github.com/hashicorp/consul/issues/8353)]
 * snapshot: **(Consul Enterprise only)** Fixed a regression when using Azure blob storage.
