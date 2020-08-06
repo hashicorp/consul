@@ -4119,7 +4119,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				},
 				"cert_file": "foo"
 			}`},
-			err: `Enabling auto-onfig authorization (auto_config.authorization.enabled) in non primary datacenters with ACLs enabled (acl.enabled) requires also enabling ACL token replication (acl.enable_token_replication)`,
+			err: `Enabling auto-config authorization (auto_config.authorization.enabled) in non primary datacenters with ACLs enabled (acl.enabled) requires also enabling ACL token replication (acl.enable_token_replication)`,
 		},
 
 		{
