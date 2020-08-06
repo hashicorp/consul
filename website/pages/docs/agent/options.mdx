@@ -930,7 +930,9 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     The initial RPC uses a JWT specified with either `intro_token`,
     `intro_token_file` or the `CONSUL_INTRO_TOKEN` environment variable to authorize
     the request. How the JWT token is verified is controlled by the `auto_config.authorizer`
-    object available for use on Consul servers.
+    object available for use on Consul servers. Enabling this option also turns
+    on Connect because it is vital for `auto_config`, more specifically the CA
+    and certificates infrastructure.
     
   - `intro_token` (Defaults to `""`) This specifies the JWT to use for the initial 
     `auto_config` RPC to the Consul servers. This can be overridden with the 

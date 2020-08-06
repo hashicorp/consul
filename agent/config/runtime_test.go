@@ -3986,6 +3986,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				"Both an intro token and intro token file are set. The intro token will be used instead of the file",
 			},
 			patch: func(rt *RuntimeConfig) {
+				rt.ConnectEnabled = true
 				rt.AutoConfig.Enabled = true
 				rt.AutoConfig.IntroToken = "blah"
 				rt.AutoConfig.IntroTokenFile = "blah"
