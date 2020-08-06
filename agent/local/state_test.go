@@ -1955,6 +1955,14 @@ func TestAgent_AliasCheck_ServiceNotification(t *testing.T) {
 	default:
 		t.Fatal("notify not received")
 	}
+
+	// Delete different service and verify we do not get notified
+	require.NoError(l.RemoveService(structs.NewServiceID("s2", nil)))
+	select {
+	case <-notifyCh:
+		t.Fatal("notify received")
+	default:
+	}
 }
 
 func TestAgent_sendCoordinate(t *testing.T) {
