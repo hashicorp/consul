@@ -108,6 +108,11 @@ non-Kubernetes nodes. This also causes all discoverable services to be part of
 a central service catalog in Consul for further syncing into alternate
 Kubernetes clusters or other platforms.
 
+Each synced service will be registered onto a Consul node called `k8s-sync`. This
+is not a real node because there is no Consul client registering and monitoring
+the services. Instead the catalog sync process is monitoring Kubernetes
+and syncing the services to Consul.
+
 ### Kubernetes Service Types
 
 Not all Kubernetes services are externally accessible. The sync program by
@@ -124,8 +129,6 @@ For NodePort services, a Consul service instance will be created for each
 node that has the representative pod running. While Kubernetes configures
 a static port on all nodes in the cluster, this limits the number of service
 instances to be equal to the nodes running the target pods.
-
-The service instance's IP will be set to the node IP that each pod is running on.
 By default it will use the external IP of the node but this can be configured via
 the [`nodePortSyncType` helm option](/docs/k8s/helm#v-synccatalog-nodeportsynctype).
 
