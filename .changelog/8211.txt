@@ -1,0 +1,11 @@
+```release-note:bug
+agent: Fixed a bug where Consul could crash when `verify_outgoing` was set to true but no client certificate was used.
+```
+
+```release-note:bug
+auto_encrypt: Fixed an issue where auto encrypt certificate signing wasn't using the connect signing rate limiter.
+```
+
+```release-note:bug
+auto_encrypt: Fixed several issues around retrieving the first TLS certificate where it would have the wrong CN and SANs. This was being masked by a second bug (also fixed) causing that certificate to immediately be discarded with a second certificate request being made afterwards.
+```
