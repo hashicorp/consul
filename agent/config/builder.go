@@ -2060,7 +2060,7 @@ func (b *Builder) validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 	// we would have to have a token with the ability to create ACL tokens in the primary and make
 	// RPCs in response to auto config requests.
 	if rt.ACLsEnabled && rt.PrimaryDatacenter != rt.Datacenter && !rt.ACLTokenReplication {
-		return fmt.Errorf("Enabling auto-onfig authorization (auto_config.authorization.enabled) in non primary datacenters with ACLs enabled (acl.enabled) requires also enabling ACL token replication (acl.enable_token_replication)")
+		return fmt.Errorf("Enabling auto-config authorization (auto_config.authorization.enabled) in non primary datacenters with ACLs enabled (acl.enabled) requires also enabling ACL token replication (acl.enable_token_replication)")
 	}
 
 	// Auto Config Authorization is only supported on servers
