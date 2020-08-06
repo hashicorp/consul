@@ -24,7 +24,7 @@ func TestInternalServiceDump(t *testing.T) {
 			require.Equal(t, 1*time.Second, req.QueryOptions.MaxQueryTime)
 			require.True(t, req.AllowStale)
 
-			reply := args.Get(2).(*structs.IndexedCheckServiceNodes)
+			reply := args.Get(2).(*structs.IndexedNodesWithGateways)
 			reply.Nodes = []structs.CheckServiceNode{
 				{Service: &structs.NodeService{Kind: req.ServiceKind, Service: "foo"}},
 			}
