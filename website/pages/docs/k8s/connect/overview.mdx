@@ -275,6 +275,15 @@ Annotations can be used to configure the injection behavior.
     consul.hashicorp.com/service-meta-bar: baz
   ```
 
+- `consul.hashicorp.com/sidecar-proxy-` - override default resource settings for
+  the sidecar proxy container.
+  The defaults are set in Helm config via the [`connectInject.sidecarProxy.resources`](/docs/k8s/helm#v-connectinject-sidecarproxy-resources) key.
+
+  - `consul.hashicorp.com/sidecar-proxy-cpu-limit` - Override the default CPU limit.
+  - `consul.hashicorp.com/sidecar-proxy-cpu-request` - Override the default CPU request.
+  - `consul.hashicorp.com/sidecar-proxy-memory-limit` - Override the default memory limit.
+  - `consul.hashicorp.com/sidecar-proxy-memory-request` - Override the default memory request.
+
 ### Deployments, StatefulSets, etc.
 
 The annotations for configuring Connect must be on the pod specification.
