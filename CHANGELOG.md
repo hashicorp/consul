@@ -11,6 +11,7 @@ IMPROVEMENTS:
 * agent: Allow to restrict servers that can join a given Serf Consul cluster. [[GH-7628](https://github.com/hashicorp/consul/issues/7628)]
 * agent: new configuration options allow ratelimiting of the agent-cache: `cache.entry_fetch_rate` and `cache.entry_fetch_max_burst`. [[GH-8226](https://github.com/hashicorp/consul/pull/8226)]
 * api: Added methods to allow passing query options to leader and peers endpoints to mirror HTTP API [[GH-8395](https://github.com/hashicorp/consul/pull/8395)]
+* auto_config: when configuring auto_config, connect is turned on automatically [[GH-8433](https://github.com/hashicorp/consul/pull/8433)]
 * connect: various changes to make namespaces for intentions work more like for other subsystems [[GH-8194](https://github.com/hashicorp/consul/issues/8194)]
 * connect: Append port number to expected ingress hosts [[GH-8190](https://github.com/hashicorp/consul/pull/8190)]
 * connect: add support for envoy 1.15.0 and drop support for 1.11.x [[GH-8424](https://github.com/hashicorp/consul/issues/8424)]
