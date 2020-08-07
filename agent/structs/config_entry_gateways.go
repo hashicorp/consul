@@ -124,6 +124,7 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 	validProtocols := map[string]bool{
 		"http": true,
 		"tcp":  true,
+		"grpc": true,
 	}
 	declaredPorts := make(map[int]bool)
 
@@ -134,7 +135,7 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 		declaredPorts[listener.Port] = true
 
 		if _, ok := validProtocols[listener.Protocol]; !ok {
-			return fmt.Errorf("Protocol must be either 'http' or 'tcp', '%s' is an unsupported protocol.", listener.Protocol)
+			return fmt.Errorf("Protocol must be 'http', 'tcp', or 'grpc'. '%s' is an unsupported protocol.", listener.Protocol)
 		}
 
 		if len(listener.Services) == 0 {
