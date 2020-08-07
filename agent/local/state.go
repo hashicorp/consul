@@ -380,7 +380,8 @@ func (l *State) setServiceStateLocked(s *ServiceState) {
 
 	if hasOld && old.WatchCh != nil {
 		close(old.WatchCh)
-	} else {
+	}
+	if !hasOld {
 		// The status of an alias check is updated if the alias service is added/removed
 		// Only try notify alias checks if service didn't already exist (!hasOld)
 		l.notifyIfAliased(key)
