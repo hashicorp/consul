@@ -1,3 +1,5 @@
+## UNRELEASED
+
 ## 1.8.2 (August 07, 2020)
 
 * auto_config: Fixed an issue where auto-config could be enabled in secondary DCs without enabling token replication when ACLs were enabled. [[GH-8451](https://github.com/hashicorp/consul/pull/8451)]
