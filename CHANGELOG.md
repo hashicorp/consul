@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.7.6 (August 07, 2020)
 
 BUG FIXES:
 
