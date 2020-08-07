@@ -1,5 +1,7 @@
 ## UNRELEASED
 
+## 1.8.2 (August 07, 2020)
+
 * auto_config: Fixed an issue where auto-config could be enabled in secondary DCs without enabling token replication when ACLs were enabled. [[GH-8451](https://github.com/hashicorp/consul/pull/8451)]
 * xds: revert setting set_node_on_first_message_only to true when generating envoy bootstrap config [[GH-8440](https://github.com/hashicorp/consul/issues/8440)]
 
@@ -105,6 +107,21 @@ BUGFIXES:
 * ui: Quote service names when filtering intentions to prevent 500 errors when accessing a service [[GH-7896](https://github.com/hashicorp/consul/issues/7896)] [[GH-7888](https://github.com/hashicorp/consul/pull/7888)]
 * ui: Miscellaneous amends for Safari and Firefox [[GH-7904](https://github.com/hashicorp/consul/issues/7904)] [[GH-7907](https://github.com/hashicorp/consul/pull/7907)]
 * ui: Ensure a value is always passed to CONSUL_SSO_ENABLED [[GH-7913](https://github.com/hashicorp/consul/pull/7913)]
+
+## 1.7.6 (August 07, 2020)
+
+BUG FIXES:
+
+* [backport/1.7.x] xds: revert setting set_node_on_first_message_only to true when generating envoy bootstrap config [[GH-8441](https://github.com/hashicorp/consul/issues/8441)]
+
+## 1.7.5 (July 30, 2020)
+
+BUG FIXES:
+
+* agent: Fixed an issue with lock contention during RPCs when under load while using the Prometheus metrics sink. [[GH-8372](https://github.com/hashicorp/consul/pull/8372)]
+* gossip: Avoid issue where two unique leave events for the same node could lead to infinite rebroadcast storms [[GH-8353](https://github.com/hashicorp/consul/issues/8353)]
+* snapshot: **(Consul Enterprise only)** Fixed a regression when using Azure blob storage.
+* Return a service splitter's weight or a zero [[GH-8355](https://github.com/hashicorp/consul/issues/8355)]
 
 ## 1.7.4 (June 10, 2020)
 
@@ -307,6 +324,13 @@ BUGFIXES:
 * ui: Fix positioning of active icon in the selected menu item [[GH-7148](https://github.com/hashicorp/consul/pull/7148)]
 * ui: Discovery-Chain: Improve parsing of redirects [[GH-7174](https://github.com/hashicorp/consul/pull/7174)]
 * ui: Fix styling of ‘duplicate intention’ error message [[GH6936]](https://github.com/hashicorp/consul/pull/6936)
+
+## 1.6.7 (July 30, 2020)
+
+BUG FIXES:
+
+* agent: Fixed an issue with lock contention during RPCs when under load while using the Prometheus metrics sink. [[GH-8372](https://github.com/hashicorp/consul/pull/8372)]
+* gossip: Avoid issue where two unique leave events for the same node could lead to infinite rebroadcast storms [[GH-8345](https://github.com/hashicorp/consul/issues/8345)]
 
 ## 1.6.6 (June 10, 2020)
 
