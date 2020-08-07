@@ -147,10 +147,10 @@ func (s *Server) LocalTokensEnabled() bool {
 	}
 
 	if !s.config.ACLTokenReplication || s.tokens.ReplicationToken() == "" {
+		// token replication is off so local tokens are disabled
 		return false
 	}
 
-	// token replication is off so local tokens are disabled
 	return true
 }
 

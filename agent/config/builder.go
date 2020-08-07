@@ -626,10 +626,40 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	consulRaftHeartbeatTimeout := b.durationVal("consul.raft.heartbeat_timeout", c.Consul.Raft.HeartbeatTimeout) * time.Duration(performanceRaftMultiplier)
 	consulRaftLeaderLeaseTimeout := b.durationVal("consul.raft.leader_lease_timeout", c.Consul.Raft.LeaderLeaseTimeout) * time.Duration(performanceRaftMultiplier)
 
-	// Connect proxy defaults.
+	// Connect
 	connectEnabled := b.boolVal(c.Connect.Enabled)
 	connectCAProvider := b.stringVal(c.Connect.CAProvider)
 	connectCAConfig := c.Connect.CAConfig
+
+	// autoEncrypt and autoConfig implicitly turns on connect which is why
+	// they need to be above other settings that rely on connect.
+	autoEncryptTLS := b.boolVal(c.AutoEncrypt.TLS)
+	autoEncryptDNSSAN := []string{}
+	for _, d := range c.AutoEncrypt.DNSSAN {
+		autoEncryptDNSSAN = append(autoEncryptDNSSAN, d)
+	}
+	autoEncryptIPSAN := []net.IP{}
+	for _, i := range c.AutoEncrypt.IPSAN {
+		ip := net.ParseIP(i)
+		if ip == nil {
+			b.warn(fmt.Sprintf("Cannot parse ip %q from AutoEncrypt.IPSAN", i))
+			continue
+		}
+		autoEncryptIPSAN = append(autoEncryptIPSAN, ip)
+
+	}
+	autoEncryptAllowTLS := b.boolVal(c.AutoEncrypt.AllowTLS)
+
+	if autoEncryptAllowTLS {
+		connectEnabled = true
+	}
+
+	autoConfig := b.autoConfigVal(c.AutoConfig)
+	if autoConfig.Enabled {
+		connectEnabled = true
+	}
+
+	// Connect proxy defaults
 	connectMeshGatewayWANFederationEnabled := b.boolVal(c.Connect.MeshGatewayWANFederationEnabled)
 	if connectMeshGatewayWANFederationEnabled && !connectEnabled {
 		return RuntimeConfig{}, fmt.Errorf("'connect.enable_mesh_gateway_wan_federation=true' requires 'connect.enabled=true'")
@@ -666,27 +696,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			"private_key_type":   "PrivateKeyType",
 			"private_key_bits":   "PrivateKeyBits",
 		})
-	}
-
-	autoEncryptTLS := b.boolVal(c.AutoEncrypt.TLS)
-	autoEncryptDNSSAN := []string{}
-	for _, d := range c.AutoEncrypt.DNSSAN {
-		autoEncryptDNSSAN = append(autoEncryptDNSSAN, d)
-	}
-	autoEncryptIPSAN := []net.IP{}
-	for _, i := range c.AutoEncrypt.IPSAN {
-		ip := net.ParseIP(i)
-		if ip == nil {
-			b.warn(fmt.Sprintf("Cannot parse ip %q from AutoEncrypt.IPSAN", i))
-			continue
-		}
-		autoEncryptIPSAN = append(autoEncryptIPSAN, ip)
-
-	}
-	autoEncryptAllowTLS := b.boolVal(c.AutoEncrypt.AllowTLS)
-
-	if autoEncryptAllowTLS {
-		connectEnabled = true
 	}
 
 	aclsEnabled := false
@@ -908,7 +917,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		AutoEncryptDNSSAN:                      autoEncryptDNSSAN,
 		AutoEncryptIPSAN:                       autoEncryptIPSAN,
 		AutoEncryptAllowTLS:                    autoEncryptAllowTLS,
-		AutoConfig:                             b.autoConfigVal(c.AutoConfig),
+		AutoConfig:                             autoConfig,
 		ConnectEnabled:                         connectEnabled,
 		ConnectCAProvider:                      connectCAProvider,
 		ConnectCAConfig:                        connectCAConfig,
