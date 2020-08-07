@@ -326,7 +326,7 @@ func TestIngressConfigEntry_Validate(t *testing.T) {
 					},
 				},
 			},
-			expectErr: "Protocol must be either 'http' or 'tcp', 'asdf' is an unsupported protocol.",
+			expectErr: "Protocol must be 'http', 'tcp', or 'grpc'. 'asdf' is an unsupported protocol.",
 		},
 		{
 			name: "hosts cannot be set on a tcp listener",
