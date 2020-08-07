@@ -23,6 +23,7 @@ BUGFIXES:
 
 * agent: Fixed a bug where Consul could crash when `verify_outgoing` was set to true but no client certificate was used. [[GH-8211](https://github.com/hashicorp/consul/pull/8211)]
 * agent: Fixed an issue with lock contention during RPCs when under load while using the Prometheus metrics sink. [[GH-8372](https://github.com/hashicorp/consul/pull/8372)]
+* auto_config: Fixed an issue where auto-config could be enabled in secondary DCs without enabling token replication when ACLs were enabled. [[GH-8451](https://github.com/hashicorp/consul/pull/8451)]
 * auto_encrypt: Fixed an issue where auto encrypt certificate signing wasn't using the connect signing rate limiter. [[GH-8211](https://github.com/hashicorp/consul/pull/8211)]
 * auto_encrypt: Fixed several issues around retrieving the first TLS certificate where it would have the wrong CN and SANs. This was being masked by a second bug (also fixed) causing that certificate to immediately be discarded with a second certificate request being made afterwards. [[GH-8211](https://github.com/hashicorp/consul/pull/8211)]
 * auto_encrypt: Fixed an issue that caused auto encrypt certificates to not be updated properly if the agents token was changed and the old token was deleted. [[GH-8311](https://github.com/hashicorp/consul/pull/8311)]
