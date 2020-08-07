@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/consul/proto/pbreplication"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/mock"
@@ -15,7 +16,9 @@ func TestReplicationRestart(t *testing.T) {
 	mgr := NewLeaderRoutineManager(testutil.Logger(t))
 
 	config := ReplicatorConfig{
-		Name: "mock",
+		Name:          "mock",
+		Type:          pbreplication.Type_ACLTokens,
+		StatusManager: NewReplicationStatusManager(),
 		Delegate: &FunctionReplicator{
 			ReplicateFn: func(ctx context.Context, lastRemoteIndex uint64, logger hclog.Logger) (uint64, bool, error) {
 				return 1, false, nil

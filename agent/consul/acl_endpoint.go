@@ -1390,14 +1390,7 @@ func (a *ACL) ReplicationStatus(args *structs.DCSpecificRequest,
 		return err
 	}
 
-	// There's no ACL token required here since this doesn't leak any
-	// sensitive information, and we don't want people to have to use
-	// management tokens if they are querying this via a health check.
-
-	// Poll the latest status.
-	a.srv.aclReplicationStatusLock.RLock()
-	*reply = a.srv.aclReplicationStatus
-	a.srv.aclReplicationStatusLock.RUnlock()
+	*reply = a.srv.getACLReplicationStatus()
 	return nil
 }
 

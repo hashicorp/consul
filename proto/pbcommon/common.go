@@ -1,7 +1,11 @@
 package pbcommon
 
 import (
+	"strconv"
 	"time"
+
+	"github.com/hashicorp/consul/agent/cache"
+	"github.com/mitchellh/hashstructure"
 )
 
 // IsRead is always true for QueryOption
@@ -11,10 +15,18 @@ func (q *QueryOptions) IsRead() bool {
 
 // AllowStaleRead returns whether a stale read should be allowed
 func (q *QueryOptions) AllowStaleRead() bool {
+	if q == nil {
+		return false
+	}
+
 	return q.AllowStale
 }
 
 func (q *QueryOptions) TokenSecret() string {
+	if q == nil {
+		return ""
+	}
+
 	return q.Token
 }
 
@@ -117,4 +129,36 @@ func (w WriteRequest) AllowStaleRead() bool {
 
 func (td TargetDatacenter) RequestDatacenter() string {
 	return td.Datacenter
+}
+
+func (r *DCSpecificRequest) CacheInfo() cache.RequestInfo {
+	info := cache.RequestInfo{
+		Token:          r.QueryOptions.GetToken(),
+		Datacenter:     r.Datacenter,
+		MinIndex:       r.QueryOptions.GetMinQueryIndex(),
+		Timeout:        r.QueryOptions.GetMaxQueryTime(),
+		MaxAge:         r.QueryOptions.GetMaxAge(),
+		MustRevalidate: r.QueryOptions.GetMustRevalidate(),
+	}
+
+	// To calculate the cache key we only hash the node meta filters and the bexpr filter.
+	// The datacenter is handled by the cache framework. The other fields are
+	// not, but should not be used in any cache types.
+	v, err := hashstructure.Hash([]interface{}{
+		r.NodeMetaFilters,
+		r.QueryOptions.GetFilter(),
+		r.EnterpriseMeta,
+	}, nil)
+	if err == nil {
+		// If there is an error, we don't set the key. A blank key forces
+		// no cache for this request so the request is forwarded directly
+		// to the server.
+		info.Key = strconv.FormatUint(v, 10)
+	}
+
+	return info
+}
+
+func (r *DCSpecificRequest) RequestDatacenter() string {
+	return r.Datacenter
 }

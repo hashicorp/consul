@@ -18,8 +18,8 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto/pbreplication"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/go-version"
@@ -772,39 +772,6 @@ func (s *Server) stopACLUpgrade() {
 	s.leaderRoutineManager.Stop(aclUpgradeRoutineName)
 }
 
-// This function is only intended to be run as a managed go routine, it will block until
-// the context passed in indicates that it should exit.
-func (s *Server) runLegacyACLReplication(ctx context.Context) error {
-	var lastRemoteIndex uint64
-	legacyACLLogger := s.aclReplicationLogger(logging.Legacy)
-	limiter := rate.NewLimiter(rate.Limit(s.config.ACLReplicationRate), s.config.ACLReplicationBurst)
-
-	for {
-		if err := limiter.Wait(ctx); err != nil {
-			return err
-		}
-
-		if s.tokens.ReplicationToken() == "" {
-			continue
-		}
-
-		index, exit, err := s.replicateLegacyACLs(ctx, legacyACLLogger, lastRemoteIndex)
-		if exit {
-			return nil
-		}
-
-		if err != nil {
-			lastRemoteIndex = 0
-			s.updateACLReplicationStatusError()
-			legacyACLLogger.Warn("Legacy ACL replication error (will retry if still leader)", "error", err)
-		} else {
-			lastRemoteIndex = index
-			s.updateACLReplicationStatusIndex(structs.ACLReplicateLegacy, index)
-			legacyACLLogger.Debug("Legacy ACL replication completed through remote index", "index", index)
-		}
-	}
-}
-
 func (s *Server) startLegacyACLReplication() {
 	if s.InACLDatacenter() {
 		return
@@ -817,11 +784,11 @@ func (s *Server) startLegacyACLReplication() {
 		return
 	}
 
-	s.initReplicationStatus()
-
-	s.leaderRoutineManager.Start(legacyACLReplicationRoutineName, s.runLegacyACLReplication)
-	s.logger.Info("started legacy ACL replication")
-	s.updateACLReplicationStatusRunning(structs.ACLReplicateLegacy)
+	s.replicationStatusManager.SetEnabled(pbreplication.Type_LegacyACLs, true)
+	s.replicationStatusManager.SetEnabled(pbreplication.Type_ACLTokens, false)
+	s.replicationStatusManager.SetEnabled(pbreplication.Type_ACLPolicies, false)
+	s.replicationStatusManager.SetEnabled(pbreplication.Type_ACLRoles, false)
+	s.leaderRoutineManager.Start(legacyACLReplicationRoutineName, s.legacyACLReplicator.Run)
 }
 
 func (s *Server) startACLReplication() {
@@ -836,102 +803,18 @@ func (s *Server) startACLReplication() {
 		return
 	}
 
-	s.initReplicationStatus()
-	s.leaderRoutineManager.Start(aclPolicyReplicationRoutineName, s.runACLPolicyReplicator)
-	s.leaderRoutineManager.Start(aclRoleReplicationRoutineName, s.runACLRoleReplicator)
+	s.replicationStatusManager.SetEnabled(pbreplication.Type_LegacyACLs, false)
+	s.replicationStatusManager.SetEnabled(pbreplication.Type_ACLPolicies, true)
+	s.replicationStatusManager.SetEnabled(pbreplication.Type_ACLRoles, true)
+	s.leaderRoutineManager.Start(aclPolicyReplicationRoutineName, s.aclPolicyReplicator.Run)
+	s.leaderRoutineManager.Start(aclRoleReplicationRoutineName, s.aclRoleReplicator.Run)
 
 	if s.config.ACLTokenReplication {
-		s.leaderRoutineManager.Start(aclTokenReplicationRoutineName, s.runACLTokenReplicator)
-		s.updateACLReplicationStatusRunning(structs.ACLReplicateTokens)
+		s.leaderRoutineManager.Start(aclTokenReplicationRoutineName, s.aclTokenReplicator.Run)
+		s.replicationStatusManager.SetEnabled(pbreplication.Type_ACLTokens, true)
 	} else {
-		s.updateACLReplicationStatusRunning(structs.ACLReplicatePolicies)
+		s.replicationStatusManager.SetEnabled(pbreplication.Type_ACLTokens, false)
 	}
-}
-
-type replicateFunc func(ctx context.Context, logger hclog.Logger, lastRemoteIndex uint64) (uint64, bool, error)
-
-// This function is only intended to be run as a managed go routine, it will block until
-// the context passed in indicates that it should exit.
-func (s *Server) runACLPolicyReplicator(ctx context.Context) error {
-	policyLogger := s.aclReplicationLogger(structs.ACLReplicatePolicies.SingularNoun())
-	policyLogger.Info("started ACL Policy replication")
-	return s.runACLReplicator(ctx, policyLogger, structs.ACLReplicatePolicies, s.replicateACLPolicies)
-}
-
-// This function is only intended to be run as a managed go routine, it will block until
-// the context passed in indicates that it should exit.
-func (s *Server) runACLRoleReplicator(ctx context.Context) error {
-	roleLogger := s.aclReplicationLogger(structs.ACLReplicateRoles.SingularNoun())
-	roleLogger.Info("started ACL Role replication")
-	return s.runACLReplicator(ctx, roleLogger, structs.ACLReplicateRoles, s.replicateACLRoles)
-}
-
-// This function is only intended to be run as a managed go routine, it will block until
-// the context passed in indicates that it should exit.
-func (s *Server) runACLTokenReplicator(ctx context.Context) error {
-	tokenLogger := s.aclReplicationLogger(structs.ACLReplicateTokens.SingularNoun())
-	tokenLogger.Info("started ACL Token replication")
-	return s.runACLReplicator(ctx, tokenLogger, structs.ACLReplicateTokens, s.replicateACLTokens)
-}
-
-// This function is only intended to be run as a managed go routine, it will block until
-// the context passed in indicates that it should exit.
-func (s *Server) runACLReplicator(
-	ctx context.Context,
-	logger hclog.Logger,
-	replicationType structs.ACLReplicationType,
-	replicateFunc replicateFunc,
-) error {
-	var failedAttempts uint
-	limiter := rate.NewLimiter(rate.Limit(s.config.ACLReplicationRate), s.config.ACLReplicationBurst)
-
-	var lastRemoteIndex uint64
-	for {
-		if err := limiter.Wait(ctx); err != nil {
-			return err
-		}
-
-		if s.tokens.ReplicationToken() == "" {
-			continue
-		}
-
-		index, exit, err := replicateFunc(ctx, logger, lastRemoteIndex)
-		if exit {
-			return nil
-		}
-
-		if err != nil {
-			lastRemoteIndex = 0
-			s.updateACLReplicationStatusError()
-			logger.Warn("ACL replication error (will retry if still leader)",
-				"error", err,
-			)
-			if (1 << failedAttempts) < aclReplicationMaxRetryBackoff {
-				failedAttempts++
-			}
-
-			select {
-			case <-ctx.Done():
-				return nil
-			case <-time.After((1 << failedAttempts) * time.Second):
-				// do nothing
-			}
-		} else {
-			lastRemoteIndex = index
-			s.updateACLReplicationStatusIndex(replicationType, index)
-			logger.Debug("ACL replication completed through remote index",
-				"index", index,
-			)
-			failedAttempts = 0
-		}
-	}
-}
-
-func (s *Server) aclReplicationLogger(singularNoun string) hclog.Logger {
-	return s.loggers.
-		Named(logging.Replication).
-		Named(logging.ACL).
-		Named(singularNoun)
 }
 
 func (s *Server) stopACLReplication() {

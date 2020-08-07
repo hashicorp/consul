@@ -393,54 +393,154 @@ func (m *QueryMeta) GetConsistencyLevel() string {
 	return ""
 }
 
+// QuerySource is used to pass along information about the source node
+// in queries so that we can adjust the response based on its network
+// coordinates.
+type QuerySource struct {
+	Datacenter string `protobuf:"bytes,1,opt,name=Datacenter,proto3" json:"Datacenter,omitempty"`
+	Segment    string `protobuf:"bytes,2,opt,name=Segment,proto3" json:"Segment,omitempty"`
+	Node       string `protobuf:"bytes,3,opt,name=Node,proto3" json:"Node,omitempty"`
+	Ip         string `protobuf:"bytes,4,opt,name=Ip,proto3" json:"Ip,omitempty"`
+}
+
+func (m *QuerySource) Reset()         { *m = QuerySource{} }
+func (m *QuerySource) String() string { return proto.CompactTextString(m) }
+func (*QuerySource) ProtoMessage()    {}
+func (*QuerySource) Descriptor() ([]byte, []int) {
+	return fileDescriptor_a6f5ac44994d718c, []int{5}
+}
+func (m *QuerySource) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QuerySource) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QuerySource.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QuerySource) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QuerySource.Merge(m, src)
+}
+func (m *QuerySource) XXX_Size() int {
+	return m.Size()
+}
+func (m *QuerySource) XXX_DiscardUnknown() {
+	xxx_messageInfo_QuerySource.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QuerySource proto.InternalMessageInfo
+
+// DCSpecificRequest is used to query about a specific DC
+type DCSpecificRequest struct {
+	Datacenter      string            `protobuf:"bytes,1,opt,name=Datacenter,proto3" json:"Datacenter,omitempty"`
+	NodeMetaFilters map[string]string `protobuf:"bytes,2,rep,name=NodeMetaFilters,proto3" json:"NodeMetaFilters,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	Source          *QuerySource      `protobuf:"bytes,3,opt,name=Source,proto3" json:"Source,omitempty"`
+	EnterpriseMeta  `protobuf:"bytes,4,opt,name=EnterpriseMeta,proto3,embedded=EnterpriseMeta" json:"EnterpriseMeta"`
+	QueryOptions    `protobuf:"bytes,5,opt,name=QueryOptions,proto3,embedded=QueryOptions" json:"QueryOptions"`
+}
+
+func (m *DCSpecificRequest) Reset()         { *m = DCSpecificRequest{} }
+func (m *DCSpecificRequest) String() string { return proto.CompactTextString(m) }
+func (*DCSpecificRequest) ProtoMessage()    {}
+func (*DCSpecificRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_a6f5ac44994d718c, []int{6}
+}
+func (m *DCSpecificRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *DCSpecificRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_DCSpecificRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *DCSpecificRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DCSpecificRequest.Merge(m, src)
+}
+func (m *DCSpecificRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *DCSpecificRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_DCSpecificRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DCSpecificRequest proto.InternalMessageInfo
+
 func init() {
 	proto.RegisterType((*RaftIndex)(nil), "common.RaftIndex")
 	proto.RegisterType((*TargetDatacenter)(nil), "common.TargetDatacenter")
 	proto.RegisterType((*WriteRequest)(nil), "common.WriteRequest")
 	proto.RegisterType((*QueryOptions)(nil), "common.QueryOptions")
 	proto.RegisterType((*QueryMeta)(nil), "common.QueryMeta")
+	proto.RegisterType((*QuerySource)(nil), "common.QuerySource")
+	proto.RegisterType((*DCSpecificRequest)(nil), "common.DCSpecificRequest")
+	proto.RegisterMapType((map[string]string)(nil), "common.DCSpecificRequest.NodeMetaFiltersEntry")
 }
 
 func init() { proto.RegisterFile("proto/pbcommon/common.proto", fileDescriptor_a6f5ac44994d718c) }
 
 var fileDescriptor_a6f5ac44994d718c = []byte{
-	// 569 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x54, 0x41, 0x8f, 0xd2, 0x40,
-	0x18, 0x6d, 0x95, 0x45, 0xfa, 0xc1, 0x1a, 0x9c, 0x6c, 0x4c, 0xc5, 0xa4, 0x90, 0xc6, 0x18, 0x42,
-	0x94, 0x26, 0xeb, 0x6d, 0x3d, 0x2d, 0xec, 0x6a, 0x36, 0xd2, 0x6c, 0xac, 0x18, 0x13, 0x6f, 0x43,
-	0xf9, 0x28, 0x8d, 0xa5, 0x83, 0xd3, 0xe9, 0x2e, 0xfc, 0x03, 0x8f, 0x1e, 0x37, 0x9e, 0xfc, 0x21,
-	0xfe, 0x00, 0x8e, 0x7b, 0xf4, 0xb4, 0x2a, 0xfc, 0x03, 0x7f, 0x81, 0xe9, 0x14, 0xd6, 0x22, 0x7b,
-	0xc0, 0x53, 0xfb, 0x5e, 0xdf, 0x9b, 0x79, 0xf3, 0xcd, 0x4b, 0xe1, 0xe1, 0x98, 0x33, 0xc1, 0xac,
-	0x71, 0xcf, 0x65, 0xa3, 0x11, 0x0b, 0xad, 0xf4, 0xd1, 0x94, 0x2c, 0xc9, 0xa7, 0xa8, 0x62, 0x78,
-	0x8c, 0x79, 0x01, 0x5a, 0x92, 0xed, 0xc5, 0x03, 0xab, 0x1f, 0x73, 0x2a, 0xfc, 0x95, 0xae, 0xb2,
-	0xe7, 0x31, 0x8f, 0xa5, 0x0b, 0x25, 0x6f, 0x29, 0x6b, 0x8e, 0x40, 0x73, 0xe8, 0x40, 0x9c, 0x84,
-	0x7d, 0x9c, 0x10, 0x0b, 0x8a, 0x6d, 0x8e, 0x54, 0xa0, 0x84, 0xba, 0x5a, 0x53, 0xeb, 0xb9, 0xd6,
-	0xee, 0xef, 0xab, 0xaa, 0xd6, 0xc3, 0xc9, 0x98, 0x1f, 0x98, 0x4f, 0x4d, 0x27, 0xab, 0x48, 0x0c,
-	0x36, 0xeb, 0xfb, 0x83, 0x69, 0x6a, 0xb8, 0x75, 0xa3, 0x21, 0xa3, 0x30, 0xf7, 0xa1, 0xdc, 0xa5,
-	0xdc, 0x43, 0x71, 0x44, 0x05, 0x75, 0x31, 0x14, 0xc8, 0x89, 0x01, 0xf0, 0x17, 0xc9, 0x4d, 0x35,
-	0x27, 0xc3, 0x98, 0x0d, 0x28, 0xbd, 0xe3, 0xbe, 0x40, 0x07, 0x3f, 0xc6, 0x18, 0x09, 0xb2, 0x07,
-	0x3b, 0x5d, 0xf6, 0x01, 0xc3, 0xa5, 0x34, 0x05, 0x07, 0xb9, 0x4f, 0x5f, 0xab, 0xaa, 0xf9, 0x25,
-	0x07, 0xa5, 0xd7, 0x31, 0xf2, 0xe9, 0xe9, 0x38, 0x39, 0x7a, 0x74, 0xb3, 0x98, 0x3c, 0x82, 0x5d,
-	0xdb, 0x0f, 0xa5, 0x30, 0x93, 0xdc, 0x59, 0x27, 0xc9, 0x4b, 0x28, 0xd9, 0x74, 0x22, 0x89, 0xae,
-	0x3f, 0x42, 0xfd, 0x76, 0x4d, 0xad, 0x17, 0xf7, 0x1f, 0x34, 0xd3, 0x41, 0x37, 0x57, 0x83, 0x6e,
-	0x1e, 0x2d, 0x07, 0xdd, 0x2a, 0xcc, 0xae, 0xaa, 0xca, 0xc5, 0x8f, 0xaa, 0xea, 0xac, 0x19, 0x93,
-	0x13, 0x1e, 0x06, 0x01, 0x3b, 0x7f, 0x23, 0x68, 0x80, 0x7a, 0xae, 0xa6, 0xd6, 0x0b, 0x4e, 0x86,
-	0x21, 0x4f, 0xe0, 0x5e, 0x72, 0x38, 0x9f, 0x63, 0x9b, 0x85, 0x91, 0x1f, 0x09, 0x0c, 0x85, 0xbe,
-	0x23, 0x65, 0x9b, 0x1f, 0x48, 0x05, 0x0a, 0x6f, 0x23, 0x6c, 0x53, 0x77, 0x88, 0x7a, 0x5e, 0x8a,
-	0xae, 0x31, 0x39, 0x85, 0xb2, 0x4d, 0x27, 0x72, 0xd5, 0x55, 0x2a, 0xfd, 0xce, 0xf6, 0xb1, 0x37,
-	0xcc, 0xe4, 0x39, 0xe4, 0x6d, 0x3a, 0x39, 0xf4, 0x50, 0x2f, 0x6c, 0xbf, 0xcc, 0xd2, 0x42, 0x1e,
-	0xc3, 0x5d, 0x3b, 0x8e, 0x84, 0x83, 0x67, 0x34, 0xf0, 0xfb, 0x54, 0xa0, 0xae, 0xc9, 0xbc, 0xff,
-	0xb0, 0xc9, 0xa0, 0xe5, 0xae, 0x27, 0x83, 0x63, 0xce, 0x19, 0xd7, 0xe1, 0x3f, 0x06, 0x9d, 0x35,
-	0x92, 0xfb, 0x90, 0x7f, 0xe1, 0x07, 0x49, 0x8d, 0x8a, 0xf2, 0xba, 0x97, 0x68, 0x59, 0x8e, 0x6f,
-	0x2a, 0x68, 0xf2, 0x52, 0x6c, 0x14, 0x34, 0x69, 0x46, 0xa6, 0xe6, 0x4e, 0x0a, 0xc8, 0x31, 0x14,
-	0x3b, 0x34, 0x12, 0x6d, 0x16, 0x0a, 0xea, 0x0a, 0xd9, 0x8b, 0x2d, 0x93, 0x64, 0x7d, 0xa4, 0x06,
-	0xc5, 0x57, 0x21, 0x3b, 0x0f, 0x3b, 0x48, 0xfb, 0xc8, 0x65, 0x73, 0x0a, 0x4e, 0x96, 0x22, 0x0d,
-	0x28, 0x5f, 0xdf, 0xa9, 0x3b, 0xed, 0xe0, 0x19, 0x06, 0xb2, 0x19, 0x9a, 0xb3, 0xc1, 0xa7, 0xf1,
-	0x5b, 0x9d, 0xd9, 0x2f, 0x43, 0x99, 0xcd, 0x0d, 0xf5, 0x72, 0x6e, 0xa8, 0x3f, 0xe7, 0x86, 0xfa,
-	0x79, 0x61, 0x28, 0x17, 0x0b, 0x43, 0xb9, 0x5c, 0x18, 0xca, 0xf7, 0x85, 0xa1, 0xbc, 0x6f, 0x78,
-	0xbe, 0x18, 0xc6, 0xbd, 0xa6, 0xcb, 0x46, 0xd6, 0x90, 0x46, 0x43, 0xdf, 0x65, 0x7c, 0x6c, 0xb9,
-	0x2c, 0x8c, 0xe2, 0xc0, 0x5a, 0xff, 0x87, 0xf4, 0xf2, 0x12, 0x3f, 0xfb, 0x13, 0x00, 0x00, 0xff,
-	0xff, 0x33, 0x18, 0xfc, 0x09, 0x5c, 0x04, 0x00, 0x00,
+	// 768 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x55, 0xcd, 0x6e, 0xf3, 0x44,
+	0x14, 0x8d, 0x93, 0x7c, 0xf9, 0x92, 0xeb, 0x7e, 0x25, 0x1d, 0xa2, 0xca, 0x04, 0xc9, 0x89, 0x22,
+	0x84, 0xa2, 0x02, 0xb1, 0x14, 0x36, 0xa8, 0xac, 0x9a, 0x34, 0x40, 0x44, 0x42, 0x85, 0x53, 0x04,
+	0x62, 0x83, 0x26, 0xce, 0x8d, 0x63, 0xd5, 0xf1, 0x98, 0xf1, 0xb8, 0x4d, 0xde, 0x80, 0x05, 0x0b,
+	0x96, 0x15, 0x2b, 0x1e, 0x84, 0x07, 0xe8, 0xb2, 0x4b, 0x56, 0x05, 0x9a, 0x37, 0xe0, 0x09, 0x90,
+	0xc7, 0x4e, 0x71, 0x7e, 0xa4, 0x96, 0x55, 0xe6, 0xde, 0xb9, 0xe7, 0xcc, 0x99, 0x7b, 0xcf, 0x38,
+	0xf0, 0xae, 0xcf, 0x99, 0x60, 0x86, 0x3f, 0xb6, 0xd8, 0x7c, 0xce, 0x3c, 0x23, 0xfe, 0x69, 0xc9,
+	0x2c, 0x29, 0xc4, 0x51, 0x55, 0xb7, 0x19, 0xb3, 0x5d, 0x34, 0x64, 0x76, 0x1c, 0x4e, 0x8d, 0x49,
+	0xc8, 0xa9, 0x70, 0xd6, 0x75, 0xd5, 0x8a, 0xcd, 0x6c, 0x16, 0x13, 0x45, 0xab, 0x24, 0x5b, 0xdb,
+	0x4b, 0xfd, 0x03, 0x0b, 0x82, 0xb8, 0xa0, 0x31, 0x87, 0x92, 0x49, 0xa7, 0xa2, 0xef, 0x4d, 0x70,
+	0x41, 0x0c, 0x50, 0xbb, 0x1c, 0xa9, 0x40, 0x19, 0x6a, 0x4a, 0x5d, 0x69, 0xe6, 0x3b, 0x6f, 0xfe,
+	0x79, 0xa8, 0x95, 0xc6, 0xb8, 0xf0, 0xf9, 0x69, 0xe3, 0xa3, 0x86, 0x99, 0xae, 0x88, 0x00, 0x43,
+	0x36, 0x71, 0xa6, 0xcb, 0x18, 0x90, 0xdd, 0x0b, 0x48, 0x55, 0x34, 0xda, 0x50, 0xbe, 0xa4, 0xdc,
+	0x46, 0x71, 0x4e, 0x05, 0xb5, 0xd0, 0x13, 0xc8, 0x89, 0x0e, 0xf0, 0x5f, 0x24, 0x0f, 0x2d, 0x99,
+	0xa9, 0x4c, 0xe3, 0x04, 0x0e, 0xbe, 0xe5, 0x8e, 0x40, 0x13, 0x7f, 0x0c, 0x31, 0x10, 0xa4, 0x02,
+	0xaf, 0x2e, 0xd9, 0x15, 0x7a, 0x49, 0x69, 0x1c, 0x9c, 0xe6, 0x7f, 0xfa, 0xad, 0xa6, 0x34, 0x7e,
+	0xcd, 0xc3, 0xc1, 0xd7, 0x21, 0xf2, 0xe5, 0x85, 0x1f, 0xf5, 0x26, 0xd8, 0x5f, 0x4c, 0xde, 0x83,
+	0x37, 0x43, 0xc7, 0x93, 0x85, 0x29, 0xe5, 0xe6, 0x66, 0x92, 0x7c, 0x0e, 0x07, 0x43, 0xba, 0x90,
+	0x89, 0x4b, 0x67, 0x8e, 0x5a, 0xae, 0xae, 0x34, 0xd5, 0xf6, 0x3b, 0xad, 0x78, 0x12, 0xad, 0xf5,
+	0x24, 0x5a, 0xe7, 0xc9, 0x24, 0x3a, 0xc5, 0xbb, 0x87, 0x5a, 0xe6, 0xf6, 0xcf, 0x9a, 0x62, 0x6e,
+	0x00, 0xa3, 0x1b, 0x9e, 0xb9, 0x2e, 0xbb, 0x19, 0x09, 0xea, 0xa2, 0x96, 0xaf, 0x2b, 0xcd, 0xa2,
+	0x99, 0xca, 0x90, 0x0f, 0xe1, 0x28, 0xba, 0x9c, 0xc3, 0xb1, 0xcb, 0xbc, 0xc0, 0x09, 0x04, 0x7a,
+	0x42, 0x7b, 0x25, 0xcb, 0x76, 0x37, 0x48, 0x15, 0x8a, 0xdf, 0x04, 0xd8, 0xa5, 0xd6, 0x0c, 0xb5,
+	0x82, 0x2c, 0x7a, 0x8a, 0xc9, 0x05, 0x94, 0x87, 0x74, 0x21, 0x59, 0xd7, 0xaa, 0xb4, 0xd7, 0x2f,
+	0x97, 0xbd, 0x03, 0x26, 0x9f, 0x42, 0x61, 0x48, 0x17, 0x67, 0x36, 0x6a, 0xc5, 0x97, 0xd3, 0x24,
+	0x10, 0xf2, 0x3e, 0x1c, 0x0e, 0xc3, 0x40, 0x98, 0x78, 0x4d, 0x5d, 0x67, 0x42, 0x05, 0x6a, 0x25,
+	0xa9, 0x77, 0x2b, 0x1b, 0x35, 0x5a, 0x9e, 0xda, 0x9f, 0xf6, 0x38, 0x67, 0x5c, 0x83, 0xff, 0xd1,
+	0xe8, 0x34, 0x90, 0x1c, 0x43, 0xe1, 0x33, 0xc7, 0x8d, 0x6c, 0xa4, 0xca, 0x71, 0x27, 0x51, 0x62,
+	0x8e, 0xdf, 0x15, 0x28, 0xc9, 0xa1, 0x0c, 0x51, 0xd0, 0xc8, 0x19, 0x29, 0x9b, 0x9b, 0x71, 0x40,
+	0x7a, 0xa0, 0x0e, 0x68, 0x20, 0xba, 0xcc, 0x13, 0xd4, 0x12, 0xd2, 0x17, 0x2f, 0x54, 0x92, 0xc6,
+	0x91, 0x3a, 0xa8, 0x5f, 0x7a, 0xec, 0xc6, 0x1b, 0x20, 0x9d, 0x20, 0x97, 0xce, 0x29, 0x9a, 0xe9,
+	0x14, 0x39, 0x81, 0xf2, 0xd3, 0x4c, 0xad, 0xe5, 0x00, 0xaf, 0xd1, 0x95, 0xce, 0x28, 0x99, 0x3b,
+	0xf9, 0x44, 0xfe, 0x15, 0xa8, 0x52, 0xfd, 0x88, 0x85, 0xdc, 0xc2, 0xe7, 0x9e, 0x0d, 0xd1, 0xe0,
+	0xf5, 0x08, 0xed, 0x79, 0x64, 0xa5, 0xac, 0xdc, 0x5c, 0x87, 0x84, 0x40, 0xfe, 0x2b, 0x36, 0x89,
+	0xfd, 0x5c, 0x32, 0xe5, 0x9a, 0x1c, 0x42, 0xb6, 0xef, 0x27, 0x02, 0xb2, 0x7d, 0xbf, 0xf1, 0x73,
+	0x0e, 0x8e, 0xce, 0xbb, 0x23, 0x1f, 0x2d, 0x67, 0xea, 0x58, 0xeb, 0xa7, 0xf7, 0xdc, 0x99, 0xdf,
+	0xc1, 0x5b, 0x11, 0x5b, 0xd4, 0xdf, 0xb8, 0xf3, 0x81, 0x96, 0xad, 0xe7, 0x9a, 0x6a, 0xbb, 0xd5,
+	0x4a, 0x3e, 0x6a, 0x3b, 0x9c, 0xad, 0x2d, 0x40, 0xcf, 0x13, 0x7c, 0x69, 0x6e, 0xd3, 0x90, 0x0f,
+	0xa0, 0x10, 0xdf, 0x3b, 0x79, 0x85, 0x6f, 0xaf, 0x09, 0x53, 0x2d, 0x31, 0x93, 0x12, 0xf2, 0x05,
+	0x1c, 0xf6, 0x22, 0x3d, 0x3e, 0x77, 0x02, 0xc9, 0x22, 0x2f, 0xa6, 0xb6, 0x8f, 0xd7, 0xa0, 0xcd,
+	0xdd, 0x78, 0x88, 0xf7, 0x0f, 0x35, 0xc5, 0xdc, 0xc2, 0x91, 0xce, 0xe6, 0xe7, 0x44, 0x3e, 0x4a,
+	0xb5, 0x5d, 0xd9, 0x38, 0x3c, 0xd9, 0x4b, 0xb1, 0x6c, 0x60, 0xaa, 0x1d, 0xa8, 0xec, 0xbb, 0x23,
+	0x29, 0x43, 0xee, 0x0a, 0x97, 0x49, 0x17, 0xa3, 0x65, 0x64, 0xc9, 0x6b, 0xea, 0x86, 0x98, 0x0c,
+	0x2c, 0x0e, 0x4e, 0xb3, 0x9f, 0x28, 0x9d, 0xc1, 0xdd, 0xdf, 0x7a, 0xe6, 0xee, 0x51, 0x57, 0xee,
+	0x1f, 0x75, 0xe5, 0xaf, 0x47, 0x5d, 0xf9, 0x65, 0xa5, 0x67, 0x6e, 0x57, 0x7a, 0xe6, 0x7e, 0xa5,
+	0x67, 0xfe, 0x58, 0xe9, 0x99, 0xef, 0x4f, 0x6c, 0x47, 0xcc, 0xc2, 0x71, 0xa4, 0xcc, 0x98, 0xd1,
+	0x60, 0xe6, 0x58, 0x8c, 0xfb, 0x86, 0xc5, 0xbc, 0x20, 0x74, 0x8d, 0xcd, 0x7f, 0x81, 0x71, 0x41,
+	0xc6, 0x1f, 0xff, 0x1b, 0x00, 0x00, 0xff, 0xff, 0x12, 0x9d, 0x3d, 0xf6, 0x79, 0x06, 0x00, 0x00,
 }
 
 func (m *RaftIndex) Marshal() (dAtA []byte, err error) {
@@ -703,6 +803,138 @@ func (m *QueryMeta) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *QuerySource) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QuerySource) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QuerySource) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Ip) > 0 {
+		i -= len(m.Ip)
+		copy(dAtA[i:], m.Ip)
+		i = encodeVarintCommon(dAtA, i, uint64(len(m.Ip)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.Node) > 0 {
+		i -= len(m.Node)
+		copy(dAtA[i:], m.Node)
+		i = encodeVarintCommon(dAtA, i, uint64(len(m.Node)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Segment) > 0 {
+		i -= len(m.Segment)
+		copy(dAtA[i:], m.Segment)
+		i = encodeVarintCommon(dAtA, i, uint64(len(m.Segment)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Datacenter) > 0 {
+		i -= len(m.Datacenter)
+		copy(dAtA[i:], m.Datacenter)
+		i = encodeVarintCommon(dAtA, i, uint64(len(m.Datacenter)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DCSpecificRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DCSpecificRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *DCSpecificRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	{
+		size, err := m.QueryOptions.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarintCommon(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x2a
+	{
+		size, err := m.EnterpriseMeta.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarintCommon(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x22
+	if m.Source != nil {
+		{
+			size, err := m.Source.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintCommon(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.NodeMetaFilters) > 0 {
+		for k := range m.NodeMetaFilters {
+			v := m.NodeMetaFilters[k]
+			baseI := i
+			i -= len(v)
+			copy(dAtA[i:], v)
+			i = encodeVarintCommon(dAtA, i, uint64(len(v)))
+			i--
+			dAtA[i] = 0x12
+			i -= len(k)
+			copy(dAtA[i:], k)
+			i = encodeVarintCommon(dAtA, i, uint64(len(k)))
+			i--
+			dAtA[i] = 0xa
+			i = encodeVarintCommon(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.Datacenter) > 0 {
+		i -= len(m.Datacenter)
+		copy(dAtA[i:], m.Datacenter)
+		i = encodeVarintCommon(dAtA, i, uint64(len(m.Datacenter)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func encodeVarintCommon(dAtA []byte, offset int, v uint64) int {
 	offset -= sovCommon(v)
 	base := offset
@@ -813,6 +1045,60 @@ func (m *QueryMeta) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovCommon(uint64(l))
 	}
+	return n
+}
+
+func (m *QuerySource) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Datacenter)
+	if l > 0 {
+		n += 1 + l + sovCommon(uint64(l))
+	}
+	l = len(m.Segment)
+	if l > 0 {
+		n += 1 + l + sovCommon(uint64(l))
+	}
+	l = len(m.Node)
+	if l > 0 {
+		n += 1 + l + sovCommon(uint64(l))
+	}
+	l = len(m.Ip)
+	if l > 0 {
+		n += 1 + l + sovCommon(uint64(l))
+	}
+	return n
+}
+
+func (m *DCSpecificRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Datacenter)
+	if l > 0 {
+		n += 1 + l + sovCommon(uint64(l))
+	}
+	if len(m.NodeMetaFilters) > 0 {
+		for k, v := range m.NodeMetaFilters {
+			_ = k
+			_ = v
+			mapEntrySize := 1 + len(k) + sovCommon(uint64(len(k))) + 1 + len(v) + sovCommon(uint64(len(v)))
+			n += mapEntrySize + 1 + sovCommon(uint64(mapEntrySize))
+		}
+	}
+	if m.Source != nil {
+		l = m.Source.Size()
+		n += 1 + l + sovCommon(uint64(l))
+	}
+	l = m.EnterpriseMeta.Size()
+	n += 1 + l + sovCommon(uint64(l))
+	l = m.QueryOptions.Size()
+	n += 1 + l + sovCommon(uint64(l))
 	return n
 }
 
@@ -1563,6 +1849,501 @@ func (m *QueryMeta) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.ConsistencyLevel = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipCommon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthCommon
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthCommon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QuerySource) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowCommon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QuerySource: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QuerySource: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Datacenter", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCommon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthCommon
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthCommon
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Datacenter = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Segment", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCommon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthCommon
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthCommon
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Segment = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Node", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCommon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthCommon
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthCommon
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Node = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ip", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCommon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthCommon
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthCommon
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Ip = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipCommon(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthCommon
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthCommon
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DCSpecificRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowCommon
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DCSpecificRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DCSpecificRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Datacenter", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCommon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthCommon
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthCommon
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Datacenter = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NodeMetaFilters", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCommon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthCommon
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCommon
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.NodeMetaFilters == nil {
+				m.NodeMetaFilters = make(map[string]string)
+			}
+			var mapkey string
+			var mapvalue string
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowCommon
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					wire |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					var stringLenmapkey uint64
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflowCommon
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						stringLenmapkey |= uint64(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					intStringLenmapkey := int(stringLenmapkey)
+					if intStringLenmapkey < 0 {
+						return ErrInvalidLengthCommon
+					}
+					postStringIndexmapkey := iNdEx + intStringLenmapkey
+					if postStringIndexmapkey < 0 {
+						return ErrInvalidLengthCommon
+					}
+					if postStringIndexmapkey > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
+					iNdEx = postStringIndexmapkey
+				} else if fieldNum == 2 {
+					var stringLenmapvalue uint64
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflowCommon
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						stringLenmapvalue |= uint64(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					intStringLenmapvalue := int(stringLenmapvalue)
+					if intStringLenmapvalue < 0 {
+						return ErrInvalidLengthCommon
+					}
+					postStringIndexmapvalue := iNdEx + intStringLenmapvalue
+					if postStringIndexmapvalue < 0 {
+						return ErrInvalidLengthCommon
+					}
+					if postStringIndexmapvalue > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapvalue = string(dAtA[iNdEx:postStringIndexmapvalue])
+					iNdEx = postStringIndexmapvalue
+				} else {
+					iNdEx = entryPreIndex
+					skippy, err := skipCommon(dAtA[iNdEx:])
+					if err != nil {
+						return err
+					}
+					if skippy < 0 {
+						return ErrInvalidLengthCommon
+					}
+					if (iNdEx + skippy) > postIndex {
+						return io.ErrUnexpectedEOF
+					}
+					iNdEx += skippy
+				}
+			}
+			m.NodeMetaFilters[mapkey] = mapvalue
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Source", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCommon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthCommon
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCommon
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Source == nil {
+				m.Source = &QuerySource{}
+			}
+			if err := m.Source.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EnterpriseMeta", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCommon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthCommon
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCommon
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.EnterpriseMeta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field QueryOptions", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCommon
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthCommon
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCommon
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.QueryOptions.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

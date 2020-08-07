@@ -12,6 +12,8 @@ import "google/protobuf/duration.proto";
 // but its necessary.
 import "gogoproto/gogo.proto";
 
+import "proto/pbcommon/common_oss.proto";
+
 option (gogoproto.goproto_unkeyed_all) = false;
 option (gogoproto.goproto_unrecognized_all) = false;
 option (gogoproto.goproto_getters_all) = false;
@@ -132,4 +134,23 @@ message QueryMeta  {
    // Having `discovery_max_stale` on the agent can affect whether
    // the request was served by a leader.
    string ConsistencyLevel = 4;
+}
+
+// QuerySource is used to pass along information about the source node
+// in queries so that we can adjust the response based on its network
+// coordinates.
+message QuerySource {
+   string Datacenter = 1;
+   string Segment = 2;
+   string Node = 3;
+   string Ip = 4;
+}
+
+// DCSpecificRequest is used to query about a specific DC
+message DCSpecificRequest {
+   string Datacenter = 1;
+   map<string, string> NodeMetaFilters = 2;
+   QuerySource Source = 3;
+   EnterpriseMeta EnterpriseMeta = 4 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+   QueryOptions QueryOptions = 5 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
 }

@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package replication;
+
+option go_package = "github.com/hashicorp/consul/proto/pbreplication";
+
+import "google/protobuf/timestamp.proto";
+
+// Go Modules now includes the version in the filepath for packages within GOPATH/pkg/mode
+// Therefore unless we want to hardcode a version here like
+// github.com/gogo/protobuf@v1.3.0/gogoproto/gogo.proto then the only other choice is to
+// have a more relative import and pass the right import path to protoc. I don't like it
+// but its necessary.
+import "gogoproto/gogo.proto";
+option (gogoproto.goproto_enum_stringer_all) = false;
+
+// ReplicationStatus indicates the current status of a replication routine
+enum Status {
+   Ok = 0;
+   Error = 1;
+}
+
+// ReplicationType indicates which type of resource the replication routine is running
+enum Type {
+   ACLTokens = 0;
+   ACLRoles = 1;
+   ACLPolicies = 2;
+   LegacyACLs = 3;
+   ConfigEntries = 4;
+   Intentions = 5;
+   FederationState = 6; 
+}
+
+// ReplicationStatus holds all the status information about 
+// pertaining to replicating a singular type of resource
+message Info {  
+   // Type is the type of resource this information pertains to
+   Type Type = 1;
+   
+   // Enabled indicates whether replication for this type should
+	// be running on the leader server in the local datacenter
+   bool Enabled = 2;
+   
+   // Running indicates whether the replication routines are currently
+	// running on this server. This should only ever be true on the
+	// leader server.
+   bool Running = 3;
+   
+   // Status is the current status of replication routines
+   Status Status = 4;
+   
+   // Index is the Raft index of the primary datacenter that replication
+	// has finished for. Any Raft logs appended after this index in the 
+	// primary dc have not yet been replicated.
+   uint64 Index = 5;
+   
+   // LastStatusAt is the last time when the status was updated
+   google.protobuf.Timestamp LastStatusAt = 6;
+   
+   // LastError is the error message causing a failure in the most 
+	// recent replication round that encountered an error.
+   string LastError = 7;
+}
+
+message InfoList {
+   string PrimaryDatacenter = 1;
+   repeated Info Info = 2;
+}

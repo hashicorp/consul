@@ -129,6 +129,7 @@ func (r *aclTokenReplicator) UpdateLocalBatch(ctx context.Context, srv *Server, 
 ///////////////////////
 
 type aclPolicyReplicator struct {
+	srv     *Server
 	local   structs.ACLPolicies
 	remote  structs.ACLPolicyListStubs
 	updated []*structs.ACLPolicy

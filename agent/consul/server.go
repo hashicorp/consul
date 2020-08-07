@@ -32,6 +32,7 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto/pbreplication"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	connlimit "github.com/hashicorp/go-connlimit"
@@ -160,6 +161,10 @@ type Server struct {
 	// Consul configuration
 	config *Config
 
+	// intentionsReplicator is used to manage the leaders replication routines
+	// for intentions
+	intentionReplicator *Replicator
+
 	// configReplicator is used to manage the leaders replication routines for
 	// centralized config
 	configReplicator *Replicator
@@ -167,6 +172,22 @@ type Server struct {
 	// federationStateReplicator is used to manage the leaders replication routines for
 	// federation states
 	federationStateReplicator *Replicator
+
+	// aclPolicyReplicator is used to managed the leaders replication routines
+	// for ACL policies
+	aclPolicyReplicator *Replicator
+
+	// aclRoleReplicator is used to managed the leaders replication routines
+	// for ACL roles
+	aclRoleReplicator *Replicator
+
+	// aclTokenReplicator is used to managed the leaders replication routines
+	// for ACL tokens
+	aclTokenReplicator *Replicator
+
+	// legacyACLReplicator is used to managed the leaders replication routines
+	// for legacy ACLs
+	legacyACLReplicator *Replicator
 
 	// dcSupportsFederationStates is used to determine whether we can
 	// replicate federation states or not. All servers in the local
@@ -295,6 +316,8 @@ type Server struct {
 	aclReplicationStatus     structs.ACLReplicationStatus
 	aclReplicationStatusLock sync.RWMutex
 
+	replicationStatusManager *ReplicationStatusManager
+
 	// shutdown and the associated members here are used in orchestrating
 	// a clean shutdown. The shutdownCh is never written to, only closed to
 	// indicate a shutdown has been initiated.
@@ -379,27 +402,28 @@ func NewServer(config *Config, options ...ConsulOption) (*Server, error) {
 	loggers := newLoggerStore(serverLogger)
 	// Create server.
 	s := &Server{
-		config:                  config,
-		tokens:                  tokens,
-		connPool:                connPool,
-		eventChLAN:              make(chan serf.Event, serfEventChSize),
-		eventChWAN:              make(chan serf.Event, serfEventChSize),
-		logger:                  serverLogger,
-		loggers:                 loggers,
-		leaveCh:                 make(chan struct{}),
-		reconcileCh:             make(chan serf.Member, reconcileChSize),
-		router:                  router.NewRouter(serverLogger, config.Datacenter, fmt.Sprintf("%s.%s", config.NodeName, config.Datacenter)),
-		rpcServer:               rpc.NewServer(),
-		insecureRPCServer:       rpc.NewServer(),
-		tlsConfigurator:         tlsConfigurator,
-		reassertLeaderCh:        make(chan chan error),
-		segmentLAN:              make(map[string]*serf.Serf, len(config.Segments)),
-		sessionTimers:           NewSessionTimers(),
-		tombstoneGC:             gc,
-		serverLookup:            NewServerLookup(),
-		shutdownCh:              shutdownCh,
-		leaderRoutineManager:    NewLeaderRoutineManager(logger),
-		aclAuthMethodValidators: authmethod.NewCache(),
+		config:                   config,
+		tokens:                   tokens,
+		connPool:                 connPool,
+		eventChLAN:               make(chan serf.Event, serfEventChSize),
+		eventChWAN:               make(chan serf.Event, serfEventChSize),
+		logger:                   serverLogger,
+		loggers:                  loggers,
+		leaveCh:                  make(chan struct{}),
+		reconcileCh:              make(chan serf.Member, reconcileChSize),
+		router:                   router.NewRouter(serverLogger, config.Datacenter, fmt.Sprintf("%s.%s", config.NodeName, config.Datacenter)),
+		rpcServer:                rpc.NewServer(),
+		insecureRPCServer:        rpc.NewServer(),
+		tlsConfigurator:          tlsConfigurator,
+		reassertLeaderCh:         make(chan chan error),
+		segmentLAN:               make(map[string]*serf.Serf, len(config.Segments)),
+		sessionTimers:            NewSessionTimers(),
+		tombstoneGC:              gc,
+		serverLookup:             NewServerLookup(),
+		shutdownCh:               shutdownCh,
+		leaderRoutineManager:     NewLeaderRoutineManager(logger),
+		aclAuthMethodValidators:  authmethod.NewCache(),
+		replicationStatusManager: NewReplicationStatusManager(),
 	}
 
 	if s.config.ConnectMeshGatewayWANFederationEnabled {
@@ -420,35 +444,7 @@ func NewServer(config *Config, options ...ConsulOption) (*Server, error) {
 
 	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
 
-	configReplicatorConfig := ReplicatorConfig{
-		Name:     logging.ConfigEntry,
-		Delegate: &FunctionReplicator{ReplicateFn: s.replicateConfig},
-		Rate:     s.config.ConfigReplicationRate,
-		Burst:    s.config.ConfigReplicationBurst,
-		Logger:   s.logger,
-	}
-	s.configReplicator, err = NewReplicator(&configReplicatorConfig)
-	if err != nil {
-		s.Shutdown()
-		return nil, err
-	}
-
-	federationStateReplicatorConfig := ReplicatorConfig{
-		Name: logging.FederationState,
-		Delegate: &IndexReplicator{
-			Delegate: &FederationStateReplicator{
-				srv:            s,
-				gatewayLocator: s.gatewayLocator,
-			},
-			Logger: s.logger,
-		},
-		Rate:             s.config.FederationStateReplicationRate,
-		Burst:            s.config.FederationStateReplicationBurst,
-		Logger:           logger,
-		SuppressErrorLog: isErrFederationStatesNotSupported,
-	}
-	s.federationStateReplicator, err = NewReplicator(&federationStateReplicatorConfig)
-	if err != nil {
+	if err = s.setupReplicators(); err != nil {
 		s.Shutdown()
 		return nil, err
 	}
@@ -1473,6 +1469,130 @@ func (s *Server) DatacenterJoinAddresses(segment string) ([]string, error) {
 	}
 
 	return joinAddrs, nil
+}
+
+func (s *Server) ReplicationInfo() pbreplication.InfoList {
+	return pbreplication.InfoList{
+		PrimaryDatacenter: s.config.PrimaryDatacenter,
+		Info:              s.replicationStatusManager.InfoList(),
+	}
+}
+
+func (s *Server) setupReplicators() error {
+	var err error
+	// Setup config entry replication
+	configReplicatorConfig := ReplicatorConfig{
+		Name:          logging.ConfigEntry,
+		Type:          pbreplication.Type_ConfigEntries,
+		StatusManager: s.replicationStatusManager,
+		Delegate:      &FunctionReplicator{ReplicateFn: s.replicateConfig},
+		Rate:          s.config.ConfigReplicationRate,
+		Burst:         s.config.ConfigReplicationBurst,
+		Logger:        s.logger,
+	}
+	s.configReplicator, err = NewReplicator(&configReplicatorConfig)
+	if err != nil {
+		return err
+	}
+
+	// Setup intentions replication
+	intentionsReplicatorConfig := ReplicatorConfig{
+		Name:          "intentions",
+		Type:          pbreplication.Type_Intentions,
+		StatusManager: s.replicationStatusManager,
+		Delegate:      &FunctionReplicator{ReplicateFn: s.replicateIntentions},
+		Rate:          1,
+		Burst:         retryBucketSize,
+		Logger:        s.logger,
+	}
+	s.intentionReplicator, err = NewReplicator(&intentionsReplicatorConfig)
+	if err != nil {
+		return err
+	}
+
+	// setup federation state replication
+	federationStateReplicatorConfig := ReplicatorConfig{
+		Name:          logging.FederationState,
+		Type:          pbreplication.Type_FederationState,
+		StatusManager: s.replicationStatusManager,
+		Delegate: &IndexReplicator{
+			Delegate: &FederationStateReplicator{
+				srv:            s,
+				gatewayLocator: s.gatewayLocator,
+			},
+			Logger: s.logger,
+		},
+		Rate:             s.config.FederationStateReplicationRate,
+		Burst:            s.config.FederationStateReplicationBurst,
+		Logger:           s.logger,
+		SuppressErrorLog: isErrFederationStatesNotSupported,
+	}
+	s.federationStateReplicator, err = NewReplicator(&federationStateReplicatorConfig)
+	if err != nil {
+		return err
+	}
+
+	// Setup legacy ACL replication
+	legacyACLReplicatorConfig := ReplicatorConfig{
+		Name:          "legacy-acls",
+		Type:          pbreplication.Type_LegacyACLs,
+		StatusManager: s.replicationStatusManager,
+		Delegate:      &FunctionReplicator{ReplicateFn: s.replicateLegacyACLs},
+		Rate:          1,
+		Burst:         retryBucketSize,
+		Logger:        s.logger,
+	}
+	s.legacyACLReplicator, err = NewReplicator(&legacyACLReplicatorConfig)
+	if err != nil {
+		return err
+	}
+
+	// setup acl policy replication
+	aclPolicyReplicatorConfig := ReplicatorConfig{
+		Name:          "acl-policies",
+		Type:          pbreplication.Type_ACLPolicies,
+		StatusManager: s.replicationStatusManager,
+		Delegate:      &FunctionReplicator{ReplicateFn: s.replicateACLPolicies},
+		Rate:          s.config.ACLReplicationRate,
+		Burst:         s.config.ACLReplicationBurst,
+		Logger:        s.logger,
+	}
+	s.aclPolicyReplicator, err = NewReplicator(&aclPolicyReplicatorConfig)
+	if err != nil {
+		return err
+	}
+
+	// setup acl role replication
+	aclRoleReplicatorConfig := ReplicatorConfig{
+		Name:          "acl-roles",
+		Type:          pbreplication.Type_ACLRoles,
+		StatusManager: s.replicationStatusManager,
+		Delegate:      &FunctionReplicator{ReplicateFn: s.replicateACLRoles},
+		Rate:          s.config.ACLReplicationRate,
+		Burst:         s.config.ACLReplicationBurst,
+		Logger:        s.logger,
+	}
+	s.aclRoleReplicator, err = NewReplicator(&aclRoleReplicatorConfig)
+	if err != nil {
+		return err
+	}
+
+	// setup acl token replication
+	aclTokenReplicatorConfig := ReplicatorConfig{
+		Name:          "acl-tokens",
+		Type:          pbreplication.Type_ACLTokens,
+		StatusManager: s.replicationStatusManager,
+		Delegate:      &FunctionReplicator{ReplicateFn: s.replicateACLTokens},
+		Rate:          s.config.ACLReplicationRate,
+		Burst:         s.config.ACLReplicationBurst,
+		Logger:        s.logger,
+	}
+	s.aclTokenReplicator, err = NewReplicator(&aclTokenReplicatorConfig)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // peersInfoContent is used to help operators understand what happened to the
