@@ -11,70 +11,55 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"github.com/shirou/gopsutil/host"
 )
 
-// setupNodeID will pull the persisted node ID, if any, or create a random one
+// newNodeIDFromConfig will pull the persisted node ID, if any, or create a random one
 // and persist it.
-// FIXME: move to a different file.
-func (a *Agent) setupNodeID(config *config.RuntimeConfig) error {
-	// If they've configured a node ID manually then just use that, as
-	// long as it's valid.
+func newNodeIDFromConfig(config *config.RuntimeConfig, logger hclog.Logger) (types.NodeID, error) {
 	if config.NodeID != "" {
-		config.NodeID = types.NodeID(strings.ToLower(string(config.NodeID)))
-		if _, err := uuid.ParseUUID(string(config.NodeID)); err != nil {
-			return err
+		nodeID := strings.ToLower(string(config.NodeID))
+		if _, err := uuid.ParseUUID(nodeID); err != nil {
+			return "", fmt.Errorf("specified NodeID is invalid: %w", err)
 		}
-
-		return nil
+		return types.NodeID(nodeID), nil
 	}
 
 	// For dev mode we have no filesystem access so just make one.
-	if a.config.DataDir == "" {
-		id, err := a.makeNodeID()
-		if err != nil {
-			return err
-		}
-
-		config.NodeID = types.NodeID(id)
-		return nil
+	if config.DataDir == "" {
+		id, err := makeNodeID(logger, config.DisableHostNodeID)
+		return types.NodeID(id), err
 	}
 
-	// Load saved state, if any. Since a user could edit this, we also
-	// validate it.
-	fileID := filepath.Join(config.DataDir, "node-id")
-	if _, err := os.Stat(fileID); err == nil {
-		rawID, err := ioutil.ReadFile(fileID)
+	// Load saved state, if any. Since a user could edit this, we also validate it.
+	filename := filepath.Join(config.DataDir, "node-id")
+	if _, err := os.Stat(filename); err == nil {
+		rawID, err := ioutil.ReadFile(filename)
 		if err != nil {
-			return err
+			return "", err
 		}
 
 		nodeID := strings.TrimSpace(string(rawID))
 		nodeID = strings.ToLower(nodeID)
-		if _, err := uuid.ParseUUID(nodeID); err != nil {
-			return err
+		if _, err = uuid.ParseUUID(nodeID); err != nil {
+			return "", fmt.Errorf("NodeID in %s is invalid: %w", filename, err)
 		}
-
-		config.NodeID = types.NodeID(nodeID)
+		return types.NodeID(nodeID), nil
 	}
 
-	// If we still don't have a valid node ID, make one.
-	if config.NodeID == "" {
-		id, err := a.makeNodeID()
-		if err != nil {
-			return err
-		}
-		if err := lib.EnsurePath(fileID, false); err != nil {
-			return err
-		}
-		if err := ioutil.WriteFile(fileID, []byte(id), 0600); err != nil {
-			return err
-		}
-
-		config.NodeID = types.NodeID(id)
+	id, err := makeNodeID(logger, config.DisableHostNodeID)
+	if err != nil {
+		return "", fmt.Errorf("failed to create a NodeID: %w", err)
 	}
-	return nil
+	if err := lib.EnsurePath(filename, false); err != nil {
+		return "", err
+	}
+	if err := ioutil.WriteFile(filename, []byte(id), 0600); err != nil {
+		return "", fmt.Errorf("failed to write NodeID to disk: %w", err)
+	}
+	return types.NodeID(id), nil
 }
 
 // makeNodeID will try to find a host-specific ID, or else will generate a
@@ -82,28 +67,28 @@ func (a *Agent) setupNodeID(config *config.RuntimeConfig) error {
 // the caller whether this ID is random or stable since the consequences are
 // high for us if this changes, so we will persist it either way. This will let
 // gopsutil change implementations without affecting in-place upgrades of nodes.
-func (a *Agent) makeNodeID() (string, error) {
-	// If they've disabled host-based IDs then just make a random one.
-	if a.config.DisableHostNodeID {
-		return a.makeRandomID()
+func makeNodeID(logger hclog.Logger, disableHostNodeID bool) (string, error) {
+	if disableHostNodeID {
+		return uuid.GenerateUUID()
 	}
 
 	// Try to get a stable ID associated with the host itself.
 	info, err := host.Info()
 	if err != nil {
-		a.logger.Debug("Couldn't get a unique ID from the host", "error", err)
-		return a.makeRandomID()
+		logger.Debug("Couldn't get a unique ID from the host", "error", err)
+		return uuid.GenerateUUID()
 	}
 
 	// Make sure the host ID parses as a UUID, since we don't have complete
 	// control over this process.
 	id := strings.ToLower(info.HostID)
+	// TODO: why do we care if HostID is a uuid, if we are about to hash it?
 	if _, err := uuid.ParseUUID(id); err != nil {
-		a.logger.Debug("Unique ID from host isn't formatted as a UUID",
+		logger.Debug("Unique ID from host isn't formatted as a UUID",
 			"id", id,
 			"error", err,
 		)
-		return a.makeRandomID()
+		return uuid.GenerateUUID()
 	}
 
 	// Hash the input to make it well distributed. The reported Host UUID may be
@@ -117,17 +102,6 @@ func (a *Agent) makeNodeID() (string, error) {
 		buf[8:10],
 		buf[10:16])
 
-	a.logger.Debug("Using unique ID from host as node ID", "id", id)
-	return id, nil
-}
-
-// makeRandomID will generate a random UUID for a node.
-func (a *Agent) makeRandomID() (string, error) {
-	id, err := uuid.GenerateUUID()
-	if err != nil {
-		return "", err
-	}
-
-	a.logger.Debug("Using random ID as node ID", "id", id)
+	logger.Debug("Using unique ID from host as node ID", "id", id)
 	return id, nil
 }

@@ -1,125 +1,112 @@
 package agent
 
 import (
+	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
+	"github.com/stretchr/testify/require"
 )
 
-func TestSetupNodeID(t *testing.T) {
-	t.Parallel()
-	a := NewTestAgent(t, `
-		node_id = ""
-	`)
-	defer a.Shutdown()
-
-	cfg := a.config
-
-	// The auto-assigned ID should be valid.
-	id := a.consulConfig().NodeID
-	if _, err := uuid.ParseUUID(string(id)); err != nil {
-		t.Fatalf("err: %v", err)
+func TestNewNodeIDFromConfig(t *testing.T) {
+	logger := hclog.New(nil)
+	tmpDir := testutil.TempDir(t, "")
+	t.Cleanup(func() {
+		os.RemoveAll(tmpDir)
+	})
+	cfg := &config.RuntimeConfig{
+		DataDir: tmpDir,
 	}
 
-	// Running again should get the same ID (persisted in the file).
-	cfg.NodeID = ""
-	if err := a.setupNodeID(cfg); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if newID := a.consulConfig().NodeID; id != newID {
-		t.Fatalf("bad: %q vs %q", id, newID)
-	}
+	var randomNodeID types.NodeID
+	t.Run("a new ID is generated when none is specified", func(t *testing.T) {
+		var err error
+		randomNodeID, err = newNodeIDFromConfig(cfg, logger)
+		require.NoError(t, err)
 
-	// Set an invalid ID via.Config.
-	cfg.NodeID = types.NodeID("nope")
-	err := a.setupNodeID(cfg)
-	if err == nil || !strings.Contains(err.Error(), "uuid string is wrong length") {
-		t.Fatalf("err: %v", err)
-	}
+		_, err = uuid.ParseUUID(string(randomNodeID))
+		require.NoError(t, err)
+	})
 
-	// Set a valid ID via.Config.
-	newID, err := uuid.GenerateUUID()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	cfg.NodeID = types.NodeID(strings.ToUpper(newID))
-	if err := a.setupNodeID(cfg); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if id := a.consulConfig().NodeID; string(id) != newID {
-		t.Fatalf("bad: %q vs. %q", id, newID)
-	}
+	t.Run("running again should get the NodeID that was persisted to disk", func(t *testing.T) {
+		nodeID, err := newNodeIDFromConfig(cfg, logger)
+		require.NoError(t, err)
+		require.NotEqual(t, nodeID, "")
+		require.Equal(t, nodeID, randomNodeID)
+	})
 
-	// Set an invalid ID via the file.
-	fileID := filepath.Join(cfg.DataDir, "node-id")
-	if err := ioutil.WriteFile(fileID, []byte("adf4238a!882b!9ddc!4a9d!5b6758e4159e"), 0600); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	cfg.NodeID = ""
-	err = a.setupNodeID(cfg)
-	if err == nil || !strings.Contains(err.Error(), "uuid is improperly formatted") {
-		t.Fatalf("err: %v", err)
-	}
+	t.Run("invalid NodeID in config", func(t *testing.T) {
+		cfg.NodeID = "nope"
+		_, err := newNodeIDFromConfig(cfg, logger)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "specified NodeID is invalid")
+	})
 
-	// Set a valid ID via the file.
-	if err := ioutil.WriteFile(fileID, []byte("ADF4238a-882b-9ddc-4a9d-5b6758e4159e"), 0600); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	cfg.NodeID = ""
-	if err := a.setupNodeID(cfg); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if id := a.consulConfig().NodeID; string(id) != "adf4238a-882b-9ddc-4a9d-5b6758e4159e" {
-		t.Fatalf("bad: %q vs. %q", id, newID)
-	}
+	t.Run("valid NodeID in config", func(t *testing.T) {
+		newID, err := uuid.GenerateUUID()
+		require.NoError(t, err)
+
+		cfg.NodeID = types.NodeID(strings.ToUpper(newID))
+		nodeID, err := newNodeIDFromConfig(cfg, logger)
+		require.NoError(t, err)
+		require.Equal(t, string(nodeID), newID)
+	})
+
+	t.Run("invalid NodeID in file", func(t *testing.T) {
+		cfg.NodeID = ""
+		filename := filepath.Join(cfg.DataDir, "node-id")
+		err := ioutil.WriteFile(filename, []byte("adf4238a!882b!9ddc!4a9d!5b6758e4159e"), 0600)
+		require.NoError(t, err)
+
+		_, err = newNodeIDFromConfig(cfg, logger)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), fmt.Sprintf("NodeID in %s is invalid", filename))
+	})
+
+	t.Run("valid NodeID in file", func(t *testing.T) {
+		cfg.NodeID = ""
+		filename := filepath.Join(cfg.DataDir, "node-id")
+		err := ioutil.WriteFile(filename, []byte("ADF4238a-882b-9ddc-4a9d-5b6758e4159e"), 0600)
+		require.NoError(t, err)
+
+		nodeID, err := newNodeIDFromConfig(cfg, logger)
+		require.NoError(t, err)
+		require.Equal(t, string(nodeID), "adf4238a-882b-9ddc-4a9d-5b6758e4159e")
+	})
 }
 
 func TestMakeNodeID(t *testing.T) {
-	t.Parallel()
-	a := NewTestAgent(t, `
-		node_id = ""
-	`)
-	defer a.Shutdown()
+	logger := hclog.New(nil)
 
-	// We should get a valid host-based ID initially.
-	id, err := a.makeNodeID()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if _, err := uuid.ParseUUID(id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	var randomID string
+	t.Run("Random ID when HostNodeID is disabled", func(t *testing.T) {
+		var err error
+		randomID, err = makeNodeID(logger, true)
+		require.NoError(t, err)
 
-	// Calling again should yield a random ID by default.
-	another, err := a.makeNodeID()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if id == another {
-		t.Fatalf("bad: %s vs %s", id, another)
-	}
+		_, err = uuid.ParseUUID(randomID)
+		require.NoError(t, err)
 
-	// Turn on host-based IDs and try again. We should get the same ID
-	// each time (and a different one from the random one above).
-	a.GetConfig().DisableHostNodeID = false
-	id, err = a.makeNodeID()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if id == another {
-		t.Fatalf("bad: %s vs %s", id, another)
-	}
+		another, err := makeNodeID(logger, true)
+		require.NoError(t, err)
+		require.NotEqual(t, randomID, another)
+	})
 
-	// Calling again should yield the host-based ID.
-	another, err = a.makeNodeID()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if id != another {
-		t.Fatalf("bad: %s vs %s", id, another)
-	}
+	t.Run("host-based ID when HostNodeID is enabled", func(t *testing.T) {
+		id, err := makeNodeID(logger, false)
+		require.NoError(t, err)
+		require.NotEqual(t, randomID, id)
+
+		another, err := makeNodeID(logger, false)
+		require.NoError(t, err)
+		require.Equal(t, id, another)
+	})
 }
