@@ -343,8 +343,7 @@ Also make two services in the frontend namespace available over a custom port wi
   - `Port` `(int: 0)` - The port that the listener should receive traffic on.
 
   - `Protocol` `(string: "tcp")` - The protocol associated with the listener.
-    This can be any protocol supported by
-    [service-defaults](/docs/agent/config-entries/service-defaults#protocol).
+    Either `tcp` or `http`.
 
   - `Services` `(array<IngressService>: <optional>)` - A list of services to be
     exposed via this listener. For "tcp" listeners, only a single service is
