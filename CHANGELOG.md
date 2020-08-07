@@ -16,6 +16,7 @@ IMPROVEMENTS:
 * acl: allow auth methods created in the primary datacenter to optionally create global tokens [[GH-7899](https://github.com/hashicorp/consul/issues/7899)]
 * agent: Allow to restrict servers that can join a given Serf Consul cluster. [[GH-7628](https://github.com/hashicorp/consul/issues/7628)]
 * agent: new configuration options allow ratelimiting of the agent-cache: `cache.entry_fetch_rate` and `cache.entry_fetch_max_burst`. [[GH-8226](https://github.com/hashicorp/consul/pull/8226)]
+* auto_config: when configuring auto_config, connect is turned on automatically [[GH-8433](https://github.com/hashicorp/consul/pull/8433)]
 * cli: Output message on success when writing/deleting config entries. [[GH-7806](https://github.com/hashicorp/consul/pull/7806)]
 * connect: Append port number to expected ingress hosts [[GH-8190](https://github.com/hashicorp/consul/pull/8190)]
 * dns: Improve RCODE of response when query targets a non-existent datacenter. [[GH-8102](https://github.com/hashicorp/consul/issues/8102)],[[GH-8218](https://github.com/hashicorp/consul/pull/8218)]
