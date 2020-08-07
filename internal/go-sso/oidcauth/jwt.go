@@ -180,7 +180,7 @@ func (a *Authenticator) verifyVanillaJWT(ctx context.Context, loginToken string)
 //
 // go-sso added support for ed25519 (EdDSA)
 func parsePublicKeyPEM(data []byte) (interface{}, error) {
-	block, data := pem.Decode(data)
+	block, _ := pem.Decode(data)
 	if block != nil {
 		var rawKey interface{}
 		var err error

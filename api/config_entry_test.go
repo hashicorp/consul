@@ -83,7 +83,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		require.NotNil(t, wm)
 		require.NotEqual(t, 0, wm.RequestTime)
 
-		entry, qm, err = config_entries.Get(ProxyDefaults, ProxyConfigGlobal, nil)
+		_, _, err = config_entries.Get(ProxyDefaults, ProxyConfigGlobal, nil)
 		require.Error(t, err)
 	})
 
@@ -181,7 +181,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		require.NotEqual(t, 0, wm.RequestTime)
 
 		// verify deletion
-		entry, qm, err = config_entries.Get(ServiceDefaults, "foo", nil)
+		_, _, err = config_entries.Get(ServiceDefaults, "foo", nil)
 		require.Error(t, err)
 	})
 }

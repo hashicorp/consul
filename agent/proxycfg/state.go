@@ -750,10 +750,8 @@ func (s *state) handleUpdateUpstreams(u cache.UpdateEvent, snap *ConfigSnapshotU
 			return fmt.Errorf("invalid correlation id %q", u.CorrelationID)
 		}
 
-		m, ok := snap.WatchedUpstreamEndpoints[svc]
-		if !ok {
-			m = make(map[string]structs.CheckServiceNodes)
-			snap.WatchedUpstreamEndpoints[svc] = m
+		if _, ok := snap.WatchedUpstreamEndpoints[svc]; !ok {
+			snap.WatchedUpstreamEndpoints[svc] = make(map[string]structs.CheckServiceNodes)
 		}
 		snap.WatchedUpstreamEndpoints[svc][targetID] = resp.Nodes
 
@@ -767,10 +765,8 @@ func (s *state) handleUpdateUpstreams(u cache.UpdateEvent, snap *ConfigSnapshotU
 		if !ok {
 			return fmt.Errorf("invalid correlation id %q", u.CorrelationID)
 		}
-		m, ok := snap.WatchedGatewayEndpoints[svc]
-		if !ok {
-			m = make(map[string]structs.CheckServiceNodes)
-			snap.WatchedGatewayEndpoints[svc] = m
+		if _, ok = snap.WatchedGatewayEndpoints[svc]; !ok {
+			snap.WatchedGatewayEndpoints[svc] = make(map[string]structs.CheckServiceNodes)
 		}
 		snap.WatchedGatewayEndpoints[svc][dc] = resp.Nodes
 	default:

@@ -165,7 +165,7 @@ func TestHelperProcess(t *testing.T) {
 
 	defer os.Exit(0)
 	args = args[1:] // strip sentinel value
-	cmd, args := args[0], args[1:]
+	cmd := args[0]
 
 	switch cmd {
 	case "parent-signal":
