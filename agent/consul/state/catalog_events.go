@@ -49,7 +49,8 @@ func serviceHealthSnapshot(s *Store, topic topic) stream.SnapshotFunc {
 				event.Key = n.Service.Service
 			}
 
-			// TODO: could all the events be appended as a single item?
+			// append each event as a separate item so that they can be serialized
+			// separately, to prevent the encoding of one massive message.
 			buf.Append([]stream.Event{event})
 		}
 
@@ -100,7 +101,7 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 		}
 		// If the caller has an actual node mutation ensure we store it even if the
 		// node is already marked. If the caller is just marking the node dirty
-		// without an node change, don't overwrite any existing node change we know
+		// without a node change, don't overwrite any existing node change we know
 		// about.
 		if nodeChanges[node] == changeIndirect {
 			nodeChanges[node] = typ
@@ -112,7 +113,7 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 		}
 		// If the caller has an actual service mutation ensure we store it even if
 		// the service is already marked. If the caller is just marking the service
-		// dirty without an node change, don't overwrite any existing node change we
+		// dirty without a service change, don't overwrite any existing service change we
 		// know about.
 		if serviceChanges[key].changeType == changeIndirect {
 			serviceChanges[key] = svcChange
@@ -146,7 +147,7 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 				before := change.Before.(*structs.HealthCheck)
 				after := change.After.(*structs.HealthCheck)
 				if after.ServiceID == "" || before.ServiceID == "" {
-					// Either changed from or to being node-scoped
+					// check before and/or after is node-scoped
 					markNode(after.Node, changeIndirect)
 				} else {
 					// Check changed which means we just need to emit for the linked
