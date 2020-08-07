@@ -2054,7 +2054,6 @@ func (b *Builder) validateAutoConfig(rt RuntimeConfig) error {
 		return fmt.Errorf("auto_config.enabled is set without providing a list of addresses")
 	}
 
-	// TODO (autoconf) should we validate the DNS and IP SANs? The IP SANs have already been parsed into IPs
 	return nil
 }
 
@@ -2064,6 +2063,15 @@ func (b *Builder) validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 	if !authz.Enabled {
 		return nil
 	}
+
+	// When in a secondary datacenter with ACLs enabled, we require token replication to be enabled
+	// as that is what allows us to create the local tokens to distribute to the clients. Otherwise
+	// we would have to have a token with the ability to create ACL tokens in the primary and make
+	// RPCs in response to auto config requests.
+	if rt.ACLsEnabled && rt.PrimaryDatacenter != rt.Datacenter && !rt.ACLTokenReplication {
+		return fmt.Errorf("Enabling auto-config authorization (auto_config.authorization.enabled) in non primary datacenters with ACLs enabled (acl.enabled) requires also enabling ACL token replication (acl.enable_token_replication)")
+	}
+
 	// Auto Config Authorization is only supported on servers
 	if !rt.ServerMode {
 		return fmt.Errorf("auto_config.authorization.enabled cannot be set to true for client agents")

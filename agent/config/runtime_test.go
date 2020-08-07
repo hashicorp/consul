@@ -4082,6 +4082,48 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		},
 
 		{
+			desc: "auto config authorizer require token replication in secondary",
+			args: []string{
+				`-data-dir=` + dataDir,
+				`-server`,
+			},
+			hcl: []string{`
+				primary_datacenter = "otherdc"
+				acl {
+					enabled = true
+				}
+				auto_config {
+					authorization {
+						enabled = true
+						static {
+							jwks_url = "https://fake.uri.local"
+							oidc_discovery_url = "https://fake.uri.local"
+						}
+					}
+				}
+				cert_file = "foo"
+			`},
+			json: []string{`
+			{
+				"primary_datacenter": "otherdc",
+				"acl": {
+					"enabled": true
+				},
+				"auto_config": {
+					"authorization": {
+						"enabled": true,
+						"static": {
+							"jwks_url": "https://fake.uri.local",
+							"oidc_discovery_url": "https://fake.uri.local"
+						}
+					}
+				},
+				"cert_file": "foo"
+			}`},
+			err: `Enabling auto-config authorization (auto_config.authorization.enabled) in non primary datacenters with ACLs enabled (acl.enabled) requires also enabling ACL token replication (acl.enable_token_replication)`,
+		},
+
+		{
 			desc: "auto config authorizer invalid claim assertion",
 			args: []string{
 				`-data-dir=` + dataDir,
