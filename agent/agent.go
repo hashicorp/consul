@@ -21,7 +21,6 @@ import (
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
-	"github.com/mitchellh/cli"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
@@ -312,85 +311,6 @@ type Agent struct {
 	enterpriseAgent
 }
 
-type agentOptions struct {
-	logger        hclog.InterceptLogger
-	builderOpts   config.BuilderOpts
-	ui            cli.Ui
-	config        *config.RuntimeConfig
-	overrides     []config.Source
-	writers       []io.Writer
-	initTelemetry bool
-}
-
-type AgentOption func(opt *agentOptions)
-
-// WithTelemetry is used to control whether the agent will
-// set up metrics.
-func WithTelemetry(initTelemetry bool) AgentOption {
-	return func(opt *agentOptions) {
-		opt.initTelemetry = initTelemetry
-	}
-}
-
-// WithLogger is used to override any automatic logger creation
-// and provide one already built instead. This is mostly useful
-// for testing.
-func WithLogger(logger hclog.InterceptLogger) AgentOption {
-	return func(opt *agentOptions) {
-		opt.logger = logger
-	}
-}
-
-// WithBuilderOpts specifies the command line config.BuilderOpts to use that the agent
-// is being started with
-func WithBuilderOpts(builderOpts config.BuilderOpts) AgentOption {
-	return func(opt *agentOptions) {
-		opt.builderOpts = builderOpts
-	}
-}
-
-// WithCLI provides a cli.Ui instance to use when emitting configuration
-// warnings during the first configuration parsing.
-func WithCLI(ui cli.Ui) AgentOption {
-	return func(opt *agentOptions) {
-		opt.ui = ui
-	}
-}
-
-// WithLogWriter will add an additional log output to the logger that gets
-// configured after configuration parsing
-func WithLogWriter(writer io.Writer) AgentOption {
-	return func(opt *agentOptions) {
-		opt.writers = append(opt.writers, writer)
-	}
-}
-
-// WithOverrides is used to provide a config source to append to the tail sources
-// during config building. It is really only useful for testing to tune non-user
-// configurable tunables to make various tests converge more quickly than they
-// could otherwise.
-func WithOverrides(overrides ...config.Source) AgentOption {
-	return func(opt *agentOptions) {
-		opt.overrides = overrides
-	}
-}
-
-// WithConfig provides an already parsed configuration to the Agent
-// Deprecated: Should allow the agent to parse the configuration.
-func WithConfig(config *config.RuntimeConfig) AgentOption {
-	return func(opt *agentOptions) {
-		opt.config = config
-	}
-}
-
-func flattenAgentOptions(options []AgentOption) agentOptions {
-	var flat agentOptions
-	for _, opt := range options {
-		opt(&flat)
-	}
-	return flat
-}
-
 // New process the desired options and creates a new Agent.
 // This process will
 //   * parse the config given the config Flags
@@ -406,10 +326,7 @@ func flattenAgentOptions(options []AgentOption) agentOptions {
 //   * setup the NodeID if one isn't provided in the configuration
 //   * create the AutoConfig object for future use in fully
 //     resolving the configuration
-func New(options ...AgentOption) (*Agent, error) {
-	flat := flattenAgentOptions(options)
-
-	// Create most of the agent
+func New(bd BaseDeps) (*Agent, error) {
 	a := Agent{
 		checkReapAfter:  make(map[structs.CheckID]time.Duration),
 		checkMonitors:   make(map[structs.CheckID]*checks.CheckMonitor),
@@ -425,94 +342,28 @@ func New(options ...AgentOption) (*Agent, error) {
 		retryJoinCh:     make(chan error),
 		shutdownCh:      make(chan struct{}),
 		endpoints:       make(map[string]string),
-		tokens:          new(token.Store),
-		logger:          flat.logger,
+
+		// TODO: store the BaseDeps instead of copying them over to Agent
+		tokens:          bd.Tokens,
+		logger:          bd.Logger,
+		tlsConfigurator: bd.TLSConfigurator,
+		config:          bd.RuntimeConfig,
+		cache:           bd.Cache,
+		MemSink:         bd.TelemetrySink,
+		connPool:        bd.ConnPool,
+		autoConf:        bd.AutoConfig,
 	}
 
-	// parse the configuration and handle the error/warnings
-	cfg, warnings, err := config.Load(flat.builderOpts, nil, flat.overrides...)
-	if err != nil {
-		return nil, err
-	}
-	for _, w := range warnings {
-		if a.logger != nil {
-			a.logger.Warn(w)
-		} else if flat.ui != nil {
-			flat.ui.Warn(w)
-		} else {
-			fmt.Fprint(os.Stderr, w)
-		}
-	}
-
-	// set the config in the agent, this is just the preliminary configuration as we haven't
-	// loaded any auto-config sources yet.
-	a.config = cfg
-
-	// create the cache using the rate limiting settings from the config. Note that this means
-	// that these limits are not reloadable.
-	a.cache = cache.New(a.config.Cache)
-
-	if flat.logger == nil {
-		logConf := &logging.Config{
-			LogLevel:          cfg.LogLevel,
-			LogJSON:           cfg.LogJSON,
-			Name:              logging.Agent,
-			EnableSyslog:      cfg.EnableSyslog,
-			SyslogFacility:    cfg.SyslogFacility,
-			LogFilePath:       cfg.LogFile,
-			LogRotateDuration: cfg.LogRotateDuration,
-			LogRotateBytes:    cfg.LogRotateBytes,
-			LogRotateMaxFiles: cfg.LogRotateMaxFiles,
-		}
-
-		a.logger, err = logging.Setup(logConf, flat.writers)
-		if err != nil {
-			return nil, err
-		}
-
-		grpclog.SetLoggerV2(logging.NewGRPCLogger(logConf, a.logger))
-	}
-
-	if flat.initTelemetry {
-		memSink, err := lib.InitTelemetry(cfg.Telemetry)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to initialize telemetry: %w", err)
-		}
-		a.MemSink = memSink
-	}
-
-	// TODO (autoconf) figure out how to let this setting be pushed down via autoconf
-	// right now it gets defaulted if unset so this check actually doesn't do much
-	// for a normal running agent.
-	if a.config.Datacenter == "" {
-		return nil, fmt.Errorf("Must configure a Datacenter")
-	}
-	if a.config.DataDir == "" && !a.config.DevMode {
-		return nil, fmt.Errorf("Must configure a DataDir")
-	}
-
-	tlsConfigurator, err := tlsutil.NewConfigurator(a.config.ToTLSUtilConfig(), a.logger)
-	if err != nil {
-		return nil, err
-	}
-	a.tlsConfigurator = tlsConfigurator
-
-	err = a.initializeConnectionPool()
-	if err != nil {
-		return nil, fmt.Errorf("Failed to initialize the connection pool: %w", err)
-	}
+	// TODO: set globals somewhere else, not Agent.New
+	grpclog.SetLoggerV2(logging.NewGRPCLogger(bd.RuntimeConfig.LogLevel, bd.Logger))
 
 	a.serviceManager = NewServiceManager(&a)
 
-	if err := a.initializeACLs(); err != nil {
-		return nil, err
-	}
-
-	// Retrieve or generate the node ID before setting up the rest of the
-	// agent, which depends on it.
-	cfg.NodeID, err = newNodeIDFromConfig(a.config, a.logger)
+	// TODO: do this somewhere else, maybe move to newBaseDeps
+	var err error
+	a.aclMasterAuthorizer, err = initializeACLs(bd.RuntimeConfig.NodeName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to setup node ID: %w", err)
+		return nil, err
 	}
 
 	// We used to do this in the Start method. However it doesn't need to go
@@ -521,46 +372,7 @@ func New(options ...AgentOption) (*Agent, error) {
 	// pass the agent itself so its safe to move here.
 	a.registerCache()
 
-	cmConf := new(certmon.Config).
-		WithCache(a.cache).
-		WithTLSConfigurator(a.tlsConfigurator).
-		WithDNSSANs(a.config.AutoConfig.DNSSANs).
-		WithIPSANs(a.config.AutoConfig.IPSANs).
-		WithDatacenter(a.config.Datacenter).
-		WithNodeName(a.config.NodeName).
-		WithFallback(a.autoConfigFallbackTLS).
-		WithLogger(a.logger.Named(logging.AutoConfig)).
-		WithTokens(a.tokens).
-		WithPersistence(a.autoConfigPersist)
-	acCertMon, err := certmon.New(cmConf)
-	if err != nil {
-		return nil, err
-	}
-
-	acConf := autoconf.Config{
-		DirectRPC:   a.connPool,
-		Logger:      a.logger,
-		CertMonitor: acCertMon,
-		Loader: func(source config.Source) (*config.RuntimeConfig, []string, error) {
-			return config.Load(flat.builderOpts, source, flat.overrides...)
-		},
-	}
-	ac, err := autoconf.New(acConf)
-	if err != nil {
-		return nil, err
-	}
-
-	a.autoConf = ac
-
 	return &a, nil
-}
-
-// GetLogger retrieves the agents logger
-// TODO make export the logger field and get rid of this method
-// This is here for now to simplify the work I am doing and make
-// reviewing the final PR easier.
-func (a *Agent) GetLogger() hclog.InterceptLogger {
-	return a.logger
 }
 
 // GetConfig retrieves the agents config
@@ -571,31 +383,6 @@ func (a *Agent) GetConfig() *config.RuntimeConfig {
 	a.stateLock.Lock()
 	defer a.stateLock.Unlock()
 	return a.config
-}
-
-func (a *Agent) initializeConnectionPool() error {
-	var rpcSrcAddr *net.TCPAddr
-	if !ipaddr.IsAny(a.config.RPCBindAddr) {
-		rpcSrcAddr = &net.TCPAddr{IP: a.config.RPCBindAddr.IP}
-	}
-
-	pool := &pool.ConnPool{
-		Server:          a.config.ServerMode,
-		SrcAddr:         rpcSrcAddr,
-		Logger:          a.logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true}),
-		TLSConfigurator: a.tlsConfigurator,
-		Datacenter:      a.config.Datacenter,
-	}
-	if a.config.ServerMode {
-		pool.MaxTime = 2 * time.Minute
-		pool.MaxStreams = 64
-	} else {
-		pool.MaxTime = 127 * time.Second
-		pool.MaxStreams = 32
-	}
-
-	a.connPool = pool
-	return nil
 }
 
 // LocalConfig takes a config.RuntimeConfig and maps the fields to a local.Config
@@ -638,8 +425,8 @@ func (a *Agent) Start(ctx context.Context) error {
 		return fmt.Errorf("Failed to load TLS configurations after applying auto-config settings: %w", err)
 	}
 
-	// load the tokens - this requires the logger to be setup
-	// which is why we can't do this in New
+	// TODO: move to newBaseDeps
+	// TODO: handle error
 	a.loadTokens(a.config)
 	a.loadEnterpriseTokens(a.config)
 
@@ -856,20 +643,6 @@ func (a *Agent) autoEncryptInitialCertificate(ctx context.Context) (*structs.Sig
 	addrs = append(addrs, retryJoinAddrs(disco, retryJoinSerfVariant, "LAN", a.config.RetryJoinLAN, a.logger)...)
 
 	return client.RequestAutoEncryptCerts(ctx, addrs, a.config.ServerPort, a.tokens.AgentToken(), a.config.AutoEncryptDNSSAN, a.config.AutoEncryptIPSAN)
-}
-
-func (a *Agent) autoConfigFallbackTLS(ctx context.Context) (*structs.SignedResponse, error) {
-	if a.autoConf == nil {
-		return nil, fmt.Errorf("AutoConfig manager has not been created yet")
-	}
-	return a.autoConf.FallbackTLS(ctx)
-}
-
-func (a *Agent) autoConfigPersist(resp *structs.SignedResponse) error {
-	if a.autoConf == nil {
-		return fmt.Errorf("AutoConfig manager has not been created yet")
-	}
-	return a.autoConf.RecordUpdatedCerts(resp)
 }
 
 func (a *Agent) listenAndServeGRPC() error {
