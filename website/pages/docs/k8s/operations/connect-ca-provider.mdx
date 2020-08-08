@@ -1,0 +1,109 @@
+---
+layout: docs
+page_title: Configuring a Connect CA Provider
+sidebar_title: Configuring a Connect CA Provider
+description: Configuring a Connect CA Provider
+---
+
+# Configuring a Connect CA Provider
+
+Consul has support for different CA providers to be used with the Consul Service Mesh.
+Please see [Connect Certificate Management](/docs/connect/ca) for the information on the providers
+we currently support.
+Generally, to configure a provider via the Consul Helm chart, you need to follow three steps:
+
+1. Create a configuration file containing your provider information.
+1. Create a Kubernetes secret containing the configuration file.
+1. Reference the Kubernetes secret in the `server.extraVolumes` value in the Helm chart.
+
+Below we will go over this process for configuring Vault as the Connect CA.
+However, other providers can be configured similarly, aside from providing the appropriate `ca_config`
+and `ca_provider` values for the provider you're using.
+
+## Configuring Vault as a Connect CA
+
+To configure a Vault as a CA provider for Consul Connect,
+first, create provider a configuration JSON file.
+Please refer to [Vault as a Connect CA](/docs/connect/ca/vault) for the configuration options.
+
+```shell-session
+$ cat vault-config.json
+{
+  "connect": [
+    {
+      "ca_config": [
+        {
+          "address": "https://vault:8200",
+          "intermediate_pki_path": "connect-intermediate",
+          "root_pki_path": "connect-root",
+          "token": "<vault token>",
+          "ca_file": "/consul/userconfig/<vault CA secret name>/<vault CA secret key>"
+        }
+      ],
+      "ca_provider": "vault"
+    }
+  ]
+}
+```
+
+This example configuration file is pointing to a Vault instance running in the same Kubernetes cluster,
+which has been deployed with TLS enabled. Note that the `ca_file` is pointing to the file location
+based on the Kubernetes secret for the Vault CA.
+We will provide that secret later in the Helm values for our Consul cluster.
+
+Next, create a Kubernetes secret with this configuration file.
+
+```shell-session
+$ kubectl create secret generic vault-config --from-file=config=vault-config.json
+```
+
+We will provide this secret and the Vault CA secret, to the Consul server via the
+`server.extraVolumes` Helm value.
+
+```yaml
+# config.yaml
+global:
+  name: consul
+server:
+  extraVolumes:
+     - type: secret
+       name: vault-config
+       load: true
+       items:
+       - key: config
+         path: vault-config.json
+     - type: secret
+       name: <vault CA secret name>
+       load: false
+connectInject:
+  enabled: true
+```
+
+Finally, install the Helm chart with these values:
+
+```shell-session
+$ helm install consul -f config.yaml hashicorp/consul
+```
+
+Verify that the CA provider is set correctly:
+
+```shell-session
+$ kubectl exec consul-server-0 -- curl -s http://localhost:8500/v1/connect/ca/configuration | jq .
+{
+  "Provider": "vault",
+  "Config": {
+    "Address": "https://vault:8200",
+    "CAFile": "/consul/userconfig/vault-server-tls/vault.ca",
+    "IntermediateCertTTL": "8760h",
+    "IntermediatePKIPath": "connect-intermediate",
+    "LeafCertTTL": "72h",
+    "RootPKIPath": "connect-root",
+    "RotationPeriod": "2160h",
+    "Token": "s.VgQvaXl8xGFO1RUxAPbPbsfN"
+  },
+  "State": null,
+  "ForceWithoutCrossSigning": false,
+  "CreateIndex": 5,
+  "ModifyIndex": 5
+}
+```

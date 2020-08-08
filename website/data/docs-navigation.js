@@ -230,7 +230,7 @@ export default [
       {
         category: 'operations',
         name: 'Operations',
-        content: ['upgrading', 'tls-on-existing-cluster', 'uninstalling'],
+        content: ['upgrading', 'tls-on-existing-cluster', 'connect-ca-provider', 'uninstalling'],
       },
       {
         category: 'connect',
