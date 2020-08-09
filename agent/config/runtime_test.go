@@ -5357,6 +5357,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						Body:                           "WeikigLh",
 						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "ICbxkpSF",
+						H2PING:                         "7s7BbMyb",
 						Interval:                       24392 * time.Second,
 						DockerContainerID:              "ZKXr68Yb",
 						Shell:                          "CEfzx0Fo",

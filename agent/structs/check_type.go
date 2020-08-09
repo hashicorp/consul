@@ -168,7 +168,7 @@ func (c *CheckType) Validate() error {
 		return fmt.Errorf("Interval and TTL cannot both be specified")
 	}
 	if intervalCheck && c.Interval <= 0 {
-		return fmt.Errorf("Interval must be > 0 for Script, HTTP, or TCP checks")
+		return fmt.Errorf("Interval must be > 0 for Script, HTTP, H2PING, or TCP checks")
 	}
 	if intervalCheck && c.IsAlias() {
 		return fmt.Errorf("Interval cannot be set for Alias checks")
