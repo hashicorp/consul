@@ -1413,6 +1413,4 @@ func TestStore_ValidateIngressGatewayErrorOnMismatchedProtocols(t *testing.T) {
 		require.NoError(t, s.EnsureConfigEntry(1, newIngress("tcp", "web"), nil))
 		require.NoError(t, s.DeleteConfigEntry(5, structs.IngressGateway, "gateway", nil))
 	})
-
-	// ---- ingress mutated first ----
 }
