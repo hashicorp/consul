@@ -26,6 +26,8 @@ and `ca_provider` values for the provider you're using.
 
 ## Configuring Vault as a Connect CA
 
+### Primary Datacenter
+
 To configure a Vault as a CA provider for Consul Connect,
 first, create provider a configuration JSON file.
 Please refer to [Vault as a Connect CA](/docs/connect/ca/vault) for the configuration options.
@@ -38,7 +40,7 @@ $ cat vault-config.json
       "ca_config": [
         {
           "address": "https://vault:8200",
-          "intermediate_pki_path": "connect-intermediate",
+          "intermediate_pki_path": "dc1/connect-intermediate",
           "root_pki_path": "connect-root",
           "token": "<vault token>",
           "ca_file": "/consul/userconfig/<vault CA secret name>/<vault CA secret key>"
@@ -111,3 +113,31 @@ $ kubectl exec consul-server-0 -- curl -s http://localhost:8500/v1/connect/ca/co
   "ModifyIndex": 5
 }
 ```
+
+### Secondary Datacenters
+
+To configure Vault as the Connect CA in secondary datacenters, you need to make sure that the Root CA is the same,
+but the intermediate is different for each datacenter. In the `connect` configuration for a secondary datacenter,
+you can specify a `intermediate_pki_path` that is, for example, prefixed with the datacenter
+for which this configuration is intended.
+
+```json
+{
+  "connect": [
+    {
+      "ca_config": [
+        {
+          "address": "https://vault:8200",
+          "intermediate_pki_path": "dc2/connect-intermediate",
+          "root_pki_path": "connect-root",
+          "token": "<vault token>",
+          "ca_file": "/consul/userconfig/<vault CA secret name>/<vault CA secret key>"
+        }
+      ],
+      "ca_provider": "vault"
+    }
+  ]
+}
+```
+
+Note that all secondary datacenters need to have access to the same Vault instance as the primary.
