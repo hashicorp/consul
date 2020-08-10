@@ -363,7 +363,7 @@ func (s *HTTPServer) UIGatewayIntentions(resp http.ResponseWriter, req *http.Req
 		Type: structs.IntentionMatchDestination,
 		Entries: []structs.IntentionMatchEntry{
 			{
-				Namespace: entMeta.NamespaceOrDefault(),
+				Namespace: entMeta.NamespaceOrEmpty(),
 				Name:      name,
 			},
 		},

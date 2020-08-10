@@ -215,20 +215,23 @@ func (m *Internal) GatewayIntentions(args *structs.IntentionQueryRequest, reply 
 	if len(args.Match.Entries) > 1 {
 		return fmt.Errorf("Expected 1 gateway name, got %d", len(args.Match.Entries))
 	}
-	if args.Match.Entries[0].Namespace == "" {
-		args.Match.Entries[0].Namespace = structs.IntentionDefaultNamespace
-	}
-	if err := m.srv.validateEnterpriseIntentionNamespace(args.Match.Entries[0].Namespace, true); err != nil {
-		return fmt.Errorf("Invalid match entry namespace %q: %v", args.Match.Entries[0].Namespace, err)
-	}
-	entMeta := structs.EnterpriseMetaInitializer(args.Match.Entries[0].Namespace)
 
 	// Get the ACL token for the request for the checks below.
+	var entMeta structs.EnterpriseMeta
 	var authzContext acl.AuthorizerContext
+
 	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &entMeta, &authzContext)
 	if err != nil {
 		return err
 	}
+
+	if args.Match.Entries[0].Namespace == "" {
+		args.Match.Entries[0].Namespace = entMeta.NamespaceOrDefault()
+	}
+	if err := m.srv.validateEnterpriseIntentionNamespace(args.Match.Entries[0].Namespace, true); err != nil {
+		return fmt.Errorf("Invalid match entry namespace %q: %v", args.Match.Entries[0].Namespace, err)
+	}
+
 	// We need read access to the gateway we're trying to find intentions for, so check that first.
 	if authz != nil && authz.ServiceRead(args.Match.Entries[0].Name, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
