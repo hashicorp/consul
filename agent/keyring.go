@@ -146,8 +146,8 @@ func ValidateLocalOnly(local bool, list bool) error {
 
 // ListKeys lists out all keys installed on the collective Consul cluster. This
 // includes both servers and clients in all DC's.
-func (a *Agent) ListKeys(token string, relayFactor uint8) (*structs.KeyringResponses, error) {
-	args := structs.KeyringRequest{Operation: structs.KeyringList}
+func (a *Agent) ListKeys(token string, localOnly bool, relayFactor uint8) (*structs.KeyringResponses, error) {
+	args := structs.KeyringRequest{Operation: structs.KeyringList, LocalOnly: localOnly}
 	parseKeyringRequest(&args, token, relayFactor)
 	return a.keyringProcess(&args)
 }
