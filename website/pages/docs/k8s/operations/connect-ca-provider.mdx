@@ -8,8 +8,8 @@ description: Configuring a Connect CA Provider
 # Configuring a Connect CA Provider
 
 ~> NOTE: Instructions below should only be used for initially bootstrapping a cluster.
-To update Connect CA provider on an existing cluster, please use the
-[Update CA Configuration Endpoint](/api/connect/ca#update-ca-configuration).
+To update Connect CA provider on an existing cluster or to update any properties, such as tokens, of the CA provider,
+please use the [Update CA Configuration Endpoint](/api/connect/ca#update-ca-configuration).
 
 Consul has support for different CA providers to be used with the Consul Service Mesh.
 Please see [Connect Certificate Management](/docs/connect/ca) for the information on the providers
@@ -141,3 +141,8 @@ for which this configuration is intended.
 ```
 
 Note that all secondary datacenters need to have access to the same Vault instance as the primary.
+
+### Rotating Vault Tokens
+
+To rotate the Vault token in your CA provider configuration, you need to update the configuration file
+and call the [Update CA Configuration Endpoint](/api/connect/ca#update-ca-configuration).
