@@ -2189,6 +2189,9 @@ func (s *Store) GatewayServices(ws memdb.WatchSet, gateway string, entMeta *stru
 	ws.Add(iter.WatchCh())
 
 	maxIdx, results, err := s.collectGatewayServices(tx, ws, iter)
+	if err != nil {
+		return 0, nil, err
+	}
 	idx := maxIndexTxn(tx, gatewayServicesTableName)
 
 	return lib.MaxUint64(maxIdx, idx), results, nil
@@ -2707,6 +2710,9 @@ func (s *Store) DumpGatewayServices(ws memdb.WatchSet) (uint64, structs.GatewayS
 	ws.Add(iter.WatchCh())
 
 	maxIdx, results, err := s.collectGatewayServices(tx, ws, iter)
+	if err != nil {
+		return 0, nil, err
+	}
 	idx := maxIndexTxn(tx, gatewayServicesTableName)
 
 	return lib.MaxUint64(maxIdx, idx), results, nil
