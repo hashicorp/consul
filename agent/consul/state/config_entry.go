@@ -496,7 +496,7 @@ func (s *Store) validateProposedConfigEntryInServiceGraph(
 				svcProto := svcProtocols[svcID]
 
 				if svcProto != expectedProto {
-					// The only time an ingress gateway and it's upstreams can
+					// The only time an ingress gateway and its upstreams can
 					// have differing protocols is when:
 					//
 					// 1. ingress is tcp and the target is not-tcp
