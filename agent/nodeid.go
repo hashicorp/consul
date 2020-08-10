@@ -79,23 +79,11 @@ func makeNodeID(logger hclog.Logger, disableHostNodeID bool) (string, error) {
 		return uuid.GenerateUUID()
 	}
 
-	// Make sure the host ID parses as a UUID, since we don't have complete
-	// control over this process.
-	id := strings.ToLower(info.HostID)
-	// TODO: why do we care if HostID is a uuid, if we are about to hash it?
-	if _, err := uuid.ParseUUID(id); err != nil {
-		logger.Debug("Unique ID from host isn't formatted as a UUID",
-			"id", id,
-			"error", err,
-		)
-		return uuid.GenerateUUID()
-	}
-
 	// Hash the input to make it well distributed. The reported Host UUID may be
 	// similar across nodes if they are on a cloud provider or on motherboards
 	// created from the same batch.
-	buf := sha512.Sum512([]byte(id))
-	id = fmt.Sprintf("%08x-%04x-%04x-%04x-%12x",
+	buf := sha512.Sum512([]byte(strings.ToLower(info.HostID)))
+	id := fmt.Sprintf("%08x-%04x-%04x-%04x-%12x",
 		buf[0:4],
 		buf[4:6],
 		buf[6:8],
