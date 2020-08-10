@@ -780,9 +780,9 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 	} else if cfg.Protocol == "tcp" {
 		startNode := chain.Nodes[chain.StartNode]
 		if startNode == nil {
-			panic("missing first node in compiled discovery chain for: " + chain.ServiceName)
+			return nil, fmt.Errorf("missing first node in compiled discovery chain for: %s", chain.ServiceName)
 		} else if startNode.Type != structs.DiscoveryGraphNodeTypeResolver {
-			panic(fmt.Sprintf("unexpected first node in discovery chain using protocol=%q: %s", cfg.Protocol, startNode.Type))
+			return nil, fmt.Errorf("unexpected first node in discovery chain using protocol=%q: %s", cfg.Protocol, startNode.Type)
 		}
 		targetID := startNode.Resolver.Target
 		target := chain.Targets[targetID]
