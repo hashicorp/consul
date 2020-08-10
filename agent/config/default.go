@@ -12,7 +12,7 @@ import (
 
 // DefaultSource is the default agent configuration.
 // This needs to be merged first in the head.
-// TODO: return a rawSource (no decoding) instead of a FileSource
+// TODO: return a LiteralSource (no decoding) instead of a FileSource
 func DefaultSource() Source {
 	cfg := consul.DefaultConfig()
 	serfLAN := cfg.SerfLANConfig.MemberlistConfig
@@ -129,7 +129,7 @@ func DefaultSource() Source {
 
 // DevSource is the additional default configuration for dev mode.
 // This should be merged in the head after the default configuration.
-// TODO: return a rawSource (no decoding) instead of a FileSource
+// TODO: return a LiteralSource (no decoding) instead of a FileSource
 func DevSource() Source {
 	return FileSource{
 		Name:   "dev",
@@ -170,7 +170,7 @@ func DevSource() Source {
 
 // NonUserSource contains the values the user cannot configure.
 // This needs to be merged in the tail.
-// TODO: return a rawSource (no decoding) instead of a FileSource
+// TODO: return a LiteralSource (no decoding) instead of a FileSource
 func NonUserSource() Source {
 	return FileSource{
 		Name:   "non-user",
@@ -203,7 +203,7 @@ func NonUserSource() Source {
 // VersionSource creates a config source for the version parameters.
 // This should be merged in the tail since these values are not
 // user configurable.
-// TODO: return a rawSource (no decoding) instead of a FileSource
+// TODO: return a LiteralSource (no decoding) instead of a FileSource
 func VersionSource(rev, ver, verPre string) Source {
 	return FileSource{
 		Name:   "version",
@@ -220,7 +220,7 @@ func DefaultVersionSource() Source {
 
 // DefaultConsulSource returns the default configuration for the consul agent.
 // This should be merged in the tail since these values are not user configurable.
-// TODO: return a rawSource (no decoding) instead of a FileSource
+// TODO: return a LiteralSource (no decoding) instead of a FileSource
 func DefaultConsulSource() Source {
 	cfg := consul.DefaultConfig()
 	raft := cfg.RaftConfig
@@ -249,7 +249,7 @@ func DefaultConsulSource() Source {
 
 // DevConsulSource returns the consul agent configuration for the dev mode.
 // This should be merged in the tail after the DefaultConsulSource.
-// TODO: return a rawSource (no decoding) instead of a FileSource
+// TODO: return a LiteralSource (no decoding) instead of a FileSource
 func DevConsulSource() Source {
 	return FileSource{
 		Name:   "consul-dev",

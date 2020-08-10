@@ -148,7 +148,10 @@ func TestReadConfig(t *testing.T) {
 	// just testing that some auto config source gets injected
 	devMode := true
 	ac := AutoConfig{
-		autoConfigData: `{"node_name": "hobbiton"}`,
+		autoConfigSource: config.LiteralSource{
+			Name:   autoConfigFileName,
+			Config: config.Config{NodeName: stringPointer("hobbiton")},
+		},
 		builderOpts: config.BuilderOpts{
 			// putting this in dev mode so that the config validates
 			// without having to specify a data directory

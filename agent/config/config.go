@@ -39,7 +39,6 @@ func (f FileSource) Source() string {
 
 // Parse a config file in either JSON or HCL format.
 func (f FileSource) Parse() (Config, mapstructure.Metadata, error) {
-	// TODO: remove once rawSource is used instead of a FileSource with no data.
 	if f.Name == "" || f.Data == "" {
 		return Config{}, mapstructure.Metadata{}, ErrNoData
 	}
@@ -81,6 +80,20 @@ func (f FileSource) Parse() (Config, mapstructure.Metadata, error) {
 	}
 
 	return c, md, nil
+}
+
+// LiteralSource implements Source and returns an existing Config struct.
+type LiteralSource struct {
+	Name   string
+	Config Config
+}
+
+func (l LiteralSource) Source() string {
+	return l.Name
+}
+
+func (l LiteralSource) Parse() (Config, mapstructure.Metadata, error) {
+	return l.Config, mapstructure.Metadata{}, nil
 }
 
 // Cache is the tunning configuration for cache, values are optional

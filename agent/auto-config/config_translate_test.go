@@ -1,7 +1,6 @@
 package autoconf
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/hashicorp/consul/agent/config"
@@ -17,7 +16,7 @@ func boolPointer(b bool) *bool {
 	return &b
 }
 
-func TestConfig_translateConfig(t *testing.T) {
+func TestTranslateConfig(t *testing.T) {
 	original := pbconfig.Config{
 		Datacenter:        "abc",
 		PrimaryDatacenter: "def",
@@ -71,7 +70,7 @@ func TestConfig_translateConfig(t *testing.T) {
 		},
 	}
 
-	expected := &config.Config{
+	expected := config.Config{
 		Datacenter:                  stringPointer("abc"),
 		PrimaryDatacenter:           stringPointer("def"),
 		NodeName:                    stringPointer("ghi"),
@@ -118,15 +117,5 @@ func TestConfig_translateConfig(t *testing.T) {
 	}
 
 	translated := translateConfig(&original)
-	data, err := json.Marshal(translated)
-	require.NoError(t, err)
-
-	src := config.FileSource{
-		Name:   "test",
-		Format: "json",
-		Data:   string(data),
-	}
-	actual, _, err := src.Parse()
-	require.NoError(t, err)
-	require.Equal(t, expected, &actual)
+	require.Equal(t, expected, translated)
 }
