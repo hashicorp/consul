@@ -9,9 +9,6 @@ export default function(visitable, clickable, text, attribute, present, collecti
   return {
     visit: visitable('/:dc/services'),
     services: collection('.consul-service-list > ul > li:not(:first-child)', service),
-    dcs: collection('[data-test-datacenter-picker]', {
-      name: clickable('a'),
-    }),
     home: clickable('[data-test-home]'),
     sort: popoverSelect(),
   };

@@ -124,7 +124,7 @@ const consulPolicyList = consulPolicyListFactory(
   morePopoverMenu
 );
 
-const page = pageFactory(clickable, attribute, is, authForm);
+const page = pageFactory(collection, clickable, attribute, is, authForm);
 
 // pages
 const create = function(appView) {
@@ -150,16 +150,7 @@ export default {
     )
   ),
   service: create(
-    service(
-      visitable,
-      clickable,
-      attribute,
-      collection,
-      text,
-      consulIntentionList,
-      catalogToolbar,
-      tabgroup
-    )
+    service(visitable, attribute, collection, text, consulIntentionList, catalogToolbar, tabgroup)
   ),
   instance: create(instance(visitable, attribute, collection, text, tabgroup)),
   nodes: create(nodes(visitable, clickable, attribute, collection, catalogFilter)),

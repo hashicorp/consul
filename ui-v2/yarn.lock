@@ -5921,6 +5921,13 @@ ember-stargate@^0.2.0:
     ember-in-element-polyfill "^1.0.0"
     tracked-maps-and-sets "^2.1.0"
 
+ember-string-fns@^1.4.0:
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/ember-string-fns/-/ember-string-fns-1.4.0.tgz#bde188643d54b58c501d332e15ba5c04733a6233"
+  integrity sha512-1pcdUA40PdzzsUAUQ7U4eMRDtxOeUpKwyyInCkj3f/Qdt/QbXZkA/Ix9vWWly9N4QcO7akK0xHWIJiu4XzP8Rw==
+  dependencies:
+    ember-cli-babel "^7.7.3"
+
 ember-template-lint@^2.0.1:
   version "2.9.0"
   resolved "https://registry.yarnpkg.com/ember-template-lint/-/ember-template-lint-2.9.0.tgz#0580468e052c53451c1e983578beb7ee59885141"

@@ -39,7 +39,6 @@ const MENU_ITEMS = '[role^="menuitem"]';
 export default Component.extend({
   tagName: '',
   dom: service('dom'),
-  router: service('router'),
   guid: '',
   expanded: false,
   orientation: 'vertical',
@@ -56,9 +55,6 @@ export default Component.extend({
     this.$menu = this.dom.element(`#${COMPONENT_ID}menu-${this.guid}`);
     const labelledBy = this.$menu.getAttribute('aria-labelledby');
     this.$trigger = this.dom.element(`#${labelledBy}`);
-    this._routelisteners.add(this.router, {
-      routeWillChange: () => this.actions.close.apply(this, [{}]),
-    });
   },
   willDestroyElement: function() {
     this._super(...arguments);

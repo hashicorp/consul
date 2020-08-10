@@ -22,6 +22,6 @@ Feature: dc / services / show / dc-switch : Switching Datacenters
     Then the url should be /dc-1/services/consul/instances
     And I see instancesUrl on the tabs contains "/dc-1/services/consul/instances"
     When I click dc on the navigation
-    And I click dcs.1.name
+    And I click dcs.1.name on the navigation
     Then the url should be /dc-2/services/consul/instances
     And I see instancesUrl on the tabs contains "/dc-2/services/consul/instances"
