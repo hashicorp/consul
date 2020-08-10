@@ -170,7 +170,7 @@ func makeUpstreamRouteForDiscoveryChain(
 
 	startNode := chain.Nodes[chain.StartNode]
 	if startNode == nil {
-		return nil, fmt.Errorf("missing first node in compiled discovery chain for: ", chain.ServiceName)
+		return nil, fmt.Errorf("missing first node in compiled discovery chain for: %s", chain.ServiceName)
 	}
 
 	switch startNode.Type {
@@ -265,7 +265,7 @@ func makeUpstreamRouteForDiscoveryChain(
 		routes = []*envoyroute.Route{defaultRoute}
 
 	default:
-		return nil, fmt.Errorf("unknown first node in discovery chain of type: ", startNode.Type)
+		return nil, fmt.Errorf("unknown first node in discovery chain of type: %s", startNode.Type)
 	}
 
 	host := &envoyroute.VirtualHost{
