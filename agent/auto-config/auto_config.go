@@ -105,7 +105,7 @@ func New(config *Config) (*AutoConfig, error) {
 // ReadConfig will parse the current configuration and inject any
 // auto-config sources if present into the correct place in the parsing chain.
 func (ac *AutoConfig) ReadConfig() (*config.RuntimeConfig, error) {
-	src := config.Source{
+	src := config.FileSource{
 		Name:   autoConfigFileName,
 		Format: "json",
 		Data:   ac.autoConfigData,

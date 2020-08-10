@@ -13,7 +13,7 @@ func LoadConfig(builderOpts config.BuilderOpts, extraHead config.Source, overrid
 		return nil, nil, err
 	}
 
-	if extraHead.Data != "" {
+	if extraHead != nil {
 		b.Head = append(b.Head, extraHead)
 	}
 

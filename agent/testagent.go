@@ -212,7 +212,7 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 				hclDataDir,
 			},
 		}),
-		WithOverrides(config.Source{
+		WithOverrides(config.FileSource{
 			Name:   "test-overrides",
 			Format: "hcl",
 			Data:   a.Overrides},
@@ -466,7 +466,7 @@ func NodeID() string {
 // agent.
 func TestConfig(logger hclog.Logger, sources ...config.Source) *config.RuntimeConfig {
 	nodeID := NodeID()
-	testsrc := config.Source{
+	testsrc := config.FileSource{
 		Name:   "test",
 		Format: "hcl",
 		Data: `

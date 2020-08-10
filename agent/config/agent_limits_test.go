@@ -16,7 +16,7 @@ func TestBuildAndValidate_HTTPMaxConnsPerClientExceedsRLimit(t *testing.T) {
 		}`
 	b, err := NewBuilder(BuilderOpts{})
 	assert.NoError(t, err)
-	testsrc := Source{
+	testsrc := FileSource{
 		Name:   "test",
 		Format: "hcl",
 		Data: `
@@ -33,7 +33,7 @@ func TestBuildAndValidate_HTTPMaxConnsPerClientExceedsRLimit(t *testing.T) {
 	}
 	b.Head = append(b.Head, testsrc)
 	b.Tail = append(b.Tail, DefaultConsulSource(), DevConsulSource())
-	b.Tail = append(b.Head, Source{Name: "hcl", Format: "hcl", Data: hcl})
+	b.Tail = append(b.Head, FileSource{Name: "hcl", Format: "hcl", Data: hcl})
 
 	_, validationError := b.BuildAndValidate()
 	if validationError == nil {

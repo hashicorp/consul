@@ -126,12 +126,12 @@ func TestLoadConfig(t *testing.T) {
 		DevMode: &devMode,
 	}
 
-	cfg, warnings, err := LoadConfig(builderOpts, config.Source{
+	cfg, warnings, err := LoadConfig(builderOpts, config.FileSource{
 		Name:   "test",
 		Format: "hcl",
 		Data:   `node_name = "hobbiton"`,
 	},
-		config.Source{
+		config.FileSource{
 			Name:   "overrides",
 			Format: "json",
 			Data:   `{"check_reap_interval": "1ms"}`,

@@ -121,7 +121,12 @@ func TestConfig_translateConfig(t *testing.T) {
 	data, err := json.Marshal(translated)
 	require.NoError(t, err)
 
-	actual, _, err := config.Parse(string(data), "json")
+	src := config.FileSource{
+		Name:   "test",
+		Format: "json",
+		Data:   string(data),
+	}
+	actual, _, err := src.Parse()
 	require.NoError(t, err)
 	require.Equal(t, expected, &actual)
 }

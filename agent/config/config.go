@@ -14,27 +14,52 @@ const (
 	SerfWANKeyring = "serf/remote.keyring"
 )
 
-type Source struct {
+// Source parses configuration from some source.
+type Source interface {
+	// Source returns an identifier for the Source that can be used in error message
+	Source() string
+	// Parse a configuration and return the result.
+	Parse() (Config, mapstructure.Metadata, error)
+}
+
+// ErrNoData indicates to Builder.Build that the source contained no data, and
+// it can be skipped.
+var ErrNoData = fmt.Errorf("config source contained no data")
+
+// FileSource implements Source and parses a config from a file.
+type FileSource struct {
 	Name   string
 	Format string
 	Data   string
 }
 
-// Parse parses a config fragment in either JSON or HCL format.
-func Parse(data string, format string) (c Config, md mapstructure.Metadata, err error) {
-	var raw map[string]interface{}
-	switch format {
-	case "json":
-		err = json.Unmarshal([]byte(data), &raw)
-	case "hcl":
-		err = hcl.Decode(&raw, data)
-	default:
-		err = fmt.Errorf("invalid format: %s", format)
-	}
-	if err != nil {
-		return Config{}, mapstructure.Metadata{}, err
+func (f FileSource) Source() string {
+	return f.Name
+}
+
+// Parse a config file in either JSON or HCL format.
+func (f FileSource) Parse() (Config, mapstructure.Metadata, error) {
+	// TODO: remove once rawSource is used instead of a FileSource with no data.
+	if f.Name == "" || f.Data == "" {
+		return Config{}, mapstructure.Metadata{}, ErrNoData
 	}
 
+	var raw map[string]interface{}
+	var err error
+	var md mapstructure.Metadata
+	switch f.Format {
+	case "json":
+		err = json.Unmarshal([]byte(f.Data), &raw)
+	case "hcl":
+		err = hcl.Decode(&raw, f.Data)
+	default:
+		err = fmt.Errorf("invalid format: %s", f.Format)
+	}
+	if err != nil {
+		return Config{}, md, err
+	}
+
+	var c Config
 	d, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(
 			// decode.HookWeakDecodeFromSlice is only necessary when reading from
@@ -49,10 +74,10 @@ func Parse(data string, format string) (c Config, md mapstructure.Metadata, err 
 		Result:   &c,
 	})
 	if err != nil {
-		return Config{}, mapstructure.Metadata{}, err
+		return Config{}, md, err
 	}
 	if err := d.Decode(raw); err != nil {
-		return Config{}, mapstructure.Metadata{}, err
+		return Config{}, md, err
 	}
 
 	return c, md, nil

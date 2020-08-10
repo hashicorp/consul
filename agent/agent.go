@@ -433,7 +433,7 @@ func New(options ...AgentOption) (*Agent, error) {
 	}
 
 	// parse the configuration and handle the error/warnings
-	config, warnings, err := autoconf.LoadConfig(flat.builderOpts, config.Source{}, flat.overrides...)
+	config, warnings, err := autoconf.LoadConfig(flat.builderOpts, nil, flat.overrides...)
 	if err != nil {
 		return nil, err
 	}
