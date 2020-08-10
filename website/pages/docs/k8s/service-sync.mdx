@@ -168,8 +168,8 @@ instance with its IP set to the pod IP and its port set to the `targetPort`.
 
 The service instance's port can be overridden via the `consul.hashicorp.com/service-port` annotation (see [Service Ports](/docs/k8s/service-sync#service-ports)).
 
--> In many Kubernetes clusters, pod IPs may not be accessible outside of the cluster,
-so you may end up with services registered in Consul that are not routable. To
+-> In Kubernetes clusters where pod IPs are not accessible outside the cluster,
+the services registered in Consul may not be routable. To
 skip syncing ClusterIP services, set [`syncClusterIPServices`](/docs/k8s/helm#v-synccatalog-syncclusteripservices)
 to `false` in the Helm chart values file.
 
