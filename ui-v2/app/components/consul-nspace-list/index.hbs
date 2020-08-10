@@ -6,7 +6,7 @@
       Deleting {{item.Name}}...
     </p>
 {{else}}
-      <a href={{href-to 'dc.nspaces.edit' item.Name}}>{{item.Name}}</a>
+      <a data-test-nspace={{item.Name}} href={{href-to 'dc.nspaces.edit' item.Name}}>{{item.Name}}</a>
 {{/if}}
     </BlockSlot>
     <BlockSlot @name="details">
@@ -48,7 +48,7 @@
             </Confirmation>
           </BlockSlot>
         </Action>
-  {{/if}}
+      {{/if}}
       </Actions>
     </BlockSlot>
 </ListCollection>
