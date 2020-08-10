@@ -3,6 +3,10 @@
 .filter-bar {
   @extend %filter-bar;
 }
+%filter-bar {
+  position: relative;
+  z-index: 3;
+}
 %filter-bar:not(.with-sort) {
   @extend %filter-bar-reversed;
 }
