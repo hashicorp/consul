@@ -172,7 +172,7 @@ export default {
     intentions(visitable, creatable, clickable, consulIntentionList, popoverSelect)
   ),
   intention: create(intention(visitable, submitable, deletable, cancelable)),
-  nspaces: create(nspaces(visitable, creatable, consulNspaceList, freetextFilter)),
+  nspaces: create(nspaces(visitable, creatable, consulNspaceList, popoverSelect)),
   nspace: create(
     nspace(visitable, submitable, deletable, cancelable, policySelector, roleSelector)
   ),
