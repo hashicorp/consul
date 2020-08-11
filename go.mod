@@ -12,7 +12,7 @@ require (
 	github.com/NYTimes/gziphandler v1.0.1
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
-	github.com/armon/go-metrics v0.3.3
+	github.com/armon/go-metrics v0.3.4
 	github.com/armon/go-radix v1.0.0
 	github.com/coredns/coredns v1.1.2
 	github.com/digitalocean/godo v1.10.0 // indirect
