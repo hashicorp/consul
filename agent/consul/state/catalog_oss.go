@@ -223,46 +223,46 @@ func catalogInsertService(tx *txn, svc *structs.ServiceNode) error {
 	return nil
 }
 
-func catalogServicesMaxIndex(tx *txn, _ *structs.EnterpriseMeta) uint64 {
+func catalogServicesMaxIndex(tx ReadTxn, _ *structs.EnterpriseMeta) uint64 {
 	return maxIndexTxn(tx, "services")
 }
 
-func catalogServiceMaxIndex(tx *txn, serviceName string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
+func catalogServiceMaxIndex(tx ReadTxn, serviceName string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
 	return tx.FirstWatch("index", "id", serviceIndexName(serviceName, nil))
 }
 
-func catalogServiceKindMaxIndex(tx *txn, ws memdb.WatchSet, kind structs.ServiceKind, entMeta *structs.EnterpriseMeta) uint64 {
+func catalogServiceKindMaxIndex(tx ReadTxn, ws memdb.WatchSet, kind structs.ServiceKind, entMeta *structs.EnterpriseMeta) uint64 {
 	return maxIndexWatchTxn(tx, ws, serviceKindIndexName(kind, nil))
 }
 
-func catalogServiceList(tx *txn, _ *structs.EnterpriseMeta, _ bool) (memdb.ResultIterator, error) {
+func catalogServiceList(tx ReadTxn, _ *structs.EnterpriseMeta, _ bool) (memdb.ResultIterator, error) {
 	return tx.Get("services", "id")
 }
 
-func catalogServiceListByKind(tx *txn, kind structs.ServiceKind, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func catalogServiceListByKind(tx ReadTxn, kind structs.ServiceKind, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("services", "kind", string(kind))
 }
 
-func catalogServiceListByNode(tx *txn, node string, _ *structs.EnterpriseMeta, _ bool) (memdb.ResultIterator, error) {
+func catalogServiceListByNode(tx ReadTxn, node string, _ *structs.EnterpriseMeta, _ bool) (memdb.ResultIterator, error) {
 	return tx.Get("services", "node", node)
 }
 
-func catalogServiceNodeList(tx *txn, name string, index string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func catalogServiceNodeList(tx ReadTxn, name string, index string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("services", index, name)
 }
 
-func catalogServiceLastExtinctionIndex(tx *txn, _ *structs.EnterpriseMeta) (interface{}, error) {
+func catalogServiceLastExtinctionIndex(tx ReadTxn, _ *structs.EnterpriseMeta) (interface{}, error) {
 	return tx.First("index", "id", serviceLastExtinctionIndexName)
 }
 
-func catalogMaxIndex(tx *txn, _ *structs.EnterpriseMeta, checks bool) uint64 {
+func catalogMaxIndex(tx ReadTxn, _ *structs.EnterpriseMeta, checks bool) uint64 {
 	if checks {
 		return maxIndexTxn(tx, "nodes", "services", "checks")
 	}
 	return maxIndexTxn(tx, "nodes", "services")
 }
 
-func catalogMaxIndexWatch(tx *txn, ws memdb.WatchSet, _ *structs.EnterpriseMeta, checks bool) uint64 {
+func catalogMaxIndexWatch(tx ReadTxn, ws memdb.WatchSet, _ *structs.EnterpriseMeta, checks bool) uint64 {
 	if checks {
 		return maxIndexWatchTxn(tx, ws, "nodes", "services", "checks")
 	}
@@ -277,32 +277,32 @@ func catalogUpdateCheckIndexes(tx *txn, idx uint64, _ *structs.EnterpriseMeta) e
 	return nil
 }
 
-func catalogChecksMaxIndex(tx *txn, _ *structs.EnterpriseMeta) uint64 {
+func catalogChecksMaxIndex(tx ReadTxn, _ *structs.EnterpriseMeta) uint64 {
 	return maxIndexTxn(tx, "checks")
 }
 
-func catalogListChecksByNode(tx *txn, node string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func catalogListChecksByNode(tx ReadTxn, node string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("checks", "node", node)
 }
 
-func catalogListChecksByService(tx *txn, service string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func catalogListChecksByService(tx ReadTxn, service string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("checks", "service", service)
 }
 
-func catalogListChecksInState(tx *txn, state string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func catalogListChecksInState(tx ReadTxn, state string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	// simpler than normal due to the use of the CompoundMultiIndex
 	return tx.Get("checks", "status", state)
 }
 
-func catalogListChecks(tx *txn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func catalogListChecks(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("checks", "id")
 }
 
-func catalogListNodeChecks(tx *txn, node string) (memdb.ResultIterator, error) {
+func catalogListNodeChecks(tx ReadTxn, node string) (memdb.ResultIterator, error) {
 	return tx.Get("checks", "node_service_check", node, false)
 }
 
-func catalogListServiceChecks(tx *txn, node string, service string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func catalogListServiceChecks(tx ReadTxn, node string, service string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("checks", "node_service", node, service)
 }
 
@@ -319,14 +319,14 @@ func catalogInsertCheck(tx *txn, chk *structs.HealthCheck, idx uint64) error {
 	return nil
 }
 
-func catalogChecksForNodeService(tx *txn, node string, service string, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func catalogChecksForNodeService(tx ReadTxn, node string, service string, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("checks", "node_service", node, service)
 }
 
-func validateRegisterRequestTxn(tx *txn, args *structs.RegisterRequest) (*structs.EnterpriseMeta, error) {
+func validateRegisterRequestTxn(_ *txn, _ *structs.RegisterRequest) (*structs.EnterpriseMeta, error) {
 	return nil, nil
 }
 
-func (s *Store) ValidateRegisterRequest(args *structs.RegisterRequest) (*structs.EnterpriseMeta, error) {
+func (s *Store) ValidateRegisterRequest(_ *structs.RegisterRequest) (*structs.EnterpriseMeta, error) {
 	return nil, nil
 }

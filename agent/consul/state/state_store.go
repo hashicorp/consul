@@ -258,11 +258,11 @@ func (s *Store) maxIndex(tables ...string) uint64 {
 
 // maxIndexTxn is a helper used to retrieve the highest known index
 // amongst a set of tables in the db.
-func maxIndexTxn(tx *txn, tables ...string) uint64 {
+func maxIndexTxn(tx ReadTxn, tables ...string) uint64 {
 	return maxIndexWatchTxn(tx, nil, tables...)
 }
 
-func maxIndexWatchTxn(tx *txn, ws memdb.WatchSet, tables ...string) uint64 {
+func maxIndexWatchTxn(tx ReadTxn, ws memdb.WatchSet, tables ...string) uint64 {
 	var lindex uint64
 	for _, table := range tables {
 		ch, ti, err := tx.FirstWatch("index", "id", table)

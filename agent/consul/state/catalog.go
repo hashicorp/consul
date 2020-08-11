@@ -2194,20 +2194,19 @@ func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName string, tags
 func (s *Store) GatewayServices(ws memdb.WatchSet, gateway string, entMeta *structs.EnterpriseMeta) (uint64, structs.GatewayServices, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	var maxIdx uint64
-
 	iter, err := gatewayServices(tx, gateway, entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed gateway services lookup: %s", err)
 	}
 	ws.Add(iter.WatchCh())
 
+	var maxIdx uint64
 	var results structs.GatewayServices
 	for service := iter.Next(); service != nil; service = iter.Next() {
 		svc := service.(*structs.GatewayService)
 
 		if svc.Service.Name != structs.WildcardSpecifier {
-			idx, matches, err := s.checkProtocolMatch(tx, ws, svc)
+			idx, matches, err := checkProtocolMatch(tx, ws, svc)
 			if err != nil {
 				return 0, nil, fmt.Errorf("failed checking protocol: %s", err)
 			}
@@ -2778,11 +2777,7 @@ func serviceGatewayNodes(tx *txn, ws memdb.WatchSet, service string, kind struct
 
 // checkProtocolMatch filters out any GatewayService entries added from a wildcard with a protocol
 // that doesn't match the one configured in their discovery chain.
-func (s *Store) checkProtocolMatch(
-	tx *txn,
-	ws memdb.WatchSet,
-	svc *structs.GatewayService,
-) (uint64, bool, error) {
+func checkProtocolMatch(tx ReadTxn, ws memdb.WatchSet, svc *structs.GatewayService) (uint64, bool, error) {
 	if svc.GatewayKind != structs.ServiceKindIngressGateway || !svc.FromWildcard {
 		return 0, true, nil
 	}

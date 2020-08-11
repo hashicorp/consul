@@ -218,15 +218,15 @@ func aclPolicyInsert(tx *txn, policy *structs.ACLPolicy) error {
 	return nil
 }
 
-func aclPolicyGetByID(tx *txn, id string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
+func aclPolicyGetByID(tx ReadTxn, id string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
 	return tx.FirstWatch("acl-policies", "id", id)
 }
 
-func aclPolicyGetByName(tx *txn, name string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
+func aclPolicyGetByName(tx ReadTxn, name string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
 	return tx.FirstWatch("acl-policies", "name", name)
 }
 
-func aclPolicyList(tx *txn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func aclPolicyList(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("acl-policies", "id")
 }
 
@@ -343,15 +343,15 @@ func aclRoleInsert(tx *txn, role *structs.ACLRole) error {
 	return nil
 }
 
-func aclRoleGetByID(tx *txn, id string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
+func aclRoleGetByID(tx ReadTxn, id string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
 	return tx.FirstWatch("acl-roles", "id", id)
 }
 
-func aclRoleGetByName(tx *txn, name string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
+func aclRoleGetByName(tx ReadTxn, name string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
 	return tx.FirstWatch("acl-roles", "name", name)
 }
 
-func aclRoleList(tx *txn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func aclRoleList(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("acl-roles", "id")
 }
 
