@@ -138,7 +138,7 @@ func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 	if err := s.ensureNoNodeWithSimilarNameTxn(tx, newNode, false); err == nil {
 		t.Fatalf("Should return an error since the previous node is still healthy")
 	}
-	s.ensureCheckTxn(tx, 5, &structs.HealthCheck{
+	s.ensureCheckTxn(tx, 5, false, &structs.HealthCheck{
 		Node:    "node1",
 		CheckID: structs.SerfCheckID,
 		Status:  api.HealthCritical,
@@ -391,6 +391,10 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 		ID:      makeRandomNodeID(t),
 		Node:    "node1",
 		Address: "1.2.3.4",
+		RaftIndex: structs.RaftIndex{
+			CreateIndex: 1,
+			ModifyIndex: 1,
+		},
 	}
 	nodeID := string(req.ID)
 	nodeName := string(req.Node)
@@ -429,6 +433,10 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 		Address: "1.1.1.1",
 		Port:    8080,
 		Weights: &structs.Weights{Passing: 1, Warning: 1},
+		RaftIndex: structs.RaftIndex{
+			CreateIndex: 2,
+			ModifyIndex: 2,
+		},
 	}
 	restore = s.Restore()
 	if err := restore.Registration(2, req); err != nil {
@@ -461,6 +469,10 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 		Node:    nodeName,
 		CheckID: "check1",
 		Name:    "check",
+		RaftIndex: structs.RaftIndex{
+			CreateIndex: 3,
+			ModifyIndex: 3,
+		},
 	}
 	restore = s.Restore()
 	if err := restore.Registration(3, req); err != nil {
@@ -498,6 +510,10 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 			Node:    nodeName,
 			CheckID: "check2",
 			Name:    "check",
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 4,
+				ModifyIndex: 4,
+			},
 		},
 	}
 	restore = s.Restore()

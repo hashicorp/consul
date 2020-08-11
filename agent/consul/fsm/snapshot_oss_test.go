@@ -274,6 +274,22 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	err = fsm.chunker.RestoreState(chunkState)
 	require.NoError(err)
 
+	// Update a node, service and health check to make sure the ModifyIndexes are preserved correctly after restore.
+	require.NoError(fsm.state.EnsureNode(23, &structs.Node{
+		ID:         "610918a6-464f-fa9b-1a95-03bd6e88ed92",
+		Node:       "foo",
+		Datacenter: "dc1",
+		Address:    "127.0.0.3",
+	}))
+	require.NoError(fsm.state.EnsureService(24, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary"}, Address: "127.0.0.1", Port: 5001}))
+	require.NoError(fsm.state.EnsureCheck(25, &structs.HealthCheck{
+		Node:      "foo",
+		CheckID:   "web",
+		Name:      "web connectivity",
+		Status:    api.HealthCritical,
+		ServiceID: "web",
+	}))
+
 	// Snapshot
 	snap, err := fsm.Snapshot()
 	if err != nil {
@@ -314,14 +330,18 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		len(nodes[0].Meta) != 1 ||
 		nodes[0].Meta["testMeta"] != "testing123" ||
 		len(nodes[0].TaggedAddresses) != 1 ||
-		nodes[0].TaggedAddresses["hello"] != "1.2.3.4" {
+		nodes[0].TaggedAddresses["hello"] != "1.2.3.4" ||
+		nodes[0].CreateIndex != uint64(2) ||
+		nodes[0].ModifyIndex != uint64(2) {
 		t.Fatalf("bad: %v", nodes[0])
 	}
 	if nodes[1].ID != node1.ID ||
 		nodes[1].Node != "foo" ||
 		nodes[1].Datacenter != "dc1" ||
-		nodes[1].Address != "127.0.0.1" ||
-		len(nodes[1].TaggedAddresses) != 0 {
+		nodes[1].Address != "127.0.0.3" ||
+		len(nodes[1].TaggedAddresses) != 0 ||
+		nodes[1].CreateIndex != uint64(1) ||
+		nodes[1].ModifyIndex != uint64(23) {
 		t.Fatalf("bad: %v", nodes[1])
 	}
 
@@ -335,12 +355,18 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	if !lib.StrContains(fooSrv.Services["db"].Tags, "primary") {
 		t.Fatalf("Bad: %v", fooSrv)
 	}
-	if fooSrv.Services["db"].Port != 5000 {
-		t.Fatalf("Bad: %v", fooSrv)
+	if fooSrv.Services["db"].Port != 5001 {
+		t.Fatalf("Bad: %v", fooSrv.Services["db"].Port)
+	}
+	if fooSrv.Services["db"].CreateIndex != uint64(4) || fooSrv.Services["db"].ModifyIndex != uint64(24) {
+		t.Fatalf("Bad: %v", fooSrv.Services["db"].RaftIndex)
 	}
 	connectSrv := fooSrv.Services["web"]
 	if !reflect.DeepEqual(connectSrv.Connect, connectConf) {
 		t.Fatalf("got: %v, want: %v", connectSrv.Connect, connectConf)
+	}
+	if connectSrv.CreateIndex != uint64(3) || connectSrv.ModifyIndex != uint64(3) {
+		t.Fatalf("Bad: %v", connectSrv.RaftIndex)
 	}
 
 	_, checks, err := fsm2.state.NodeChecks(nil, "foo", nil)
@@ -349,6 +375,9 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}
 	if len(checks) != 1 {
 		t.Fatalf("Bad: %v", checks)
+	}
+	if checks[0].CreateIndex != uint64(7) || checks[0].ModifyIndex != uint64(25) {
+		t.Fatalf("Bad: %v", checks[0].RaftIndex)
 	}
 
 	// Verify key is set
