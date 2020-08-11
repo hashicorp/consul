@@ -205,6 +205,90 @@ func (m *Internal) GatewayServiceDump(args *structs.ServiceSpecificRequest, repl
 	return err
 }
 
+// Match returns the set of intentions that match the given source/destination.
+func (m *Internal) GatewayIntentions(args *structs.IntentionQueryRequest, reply *structs.IndexedIntentions) error {
+	// Forward if necessary
+	if done, err := m.srv.ForwardRPC("Internal.GatewayIntentions", args, args, reply); done {
+		return err
+	}
+
+	if len(args.Match.Entries) > 1 {
+		return fmt.Errorf("Expected 1 gateway name, got %d", len(args.Match.Entries))
+	}
+
+	// Get the ACL token for the request for the checks below.
+	var entMeta structs.EnterpriseMeta
+	var authzContext acl.AuthorizerContext
+
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &entMeta, &authzContext)
+	if err != nil {
+		return err
+	}
+
+	if args.Match.Entries[0].Namespace == "" {
+		args.Match.Entries[0].Namespace = entMeta.NamespaceOrDefault()
+	}
+	if err := m.srv.validateEnterpriseIntentionNamespace(args.Match.Entries[0].Namespace, true); err != nil {
+		return fmt.Errorf("Invalid match entry namespace %q: %v", args.Match.Entries[0].Namespace, err)
+	}
+
+	// We need read access to the gateway we're trying to find intentions for, so check that first.
+	if authz != nil && authz.ServiceRead(args.Match.Entries[0].Name, &authzContext) != acl.Allow {
+		return acl.ErrPermissionDenied
+	}
+
+	return m.srv.blockingQuery(
+		&args.QueryOptions,
+		&reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			var maxIdx uint64
+			idx, gatewayServices, err := state.GatewayServices(ws, args.Match.Entries[0].Name, &entMeta)
+			if err != nil {
+				return err
+			}
+			if idx > maxIdx {
+				maxIdx = idx
+			}
+
+			// Loop over the gateway <-> serviceName mappings and fetch all intentions for each
+			seen := make(map[string]bool)
+			result := make(structs.Intentions, 0)
+
+			for _, gs := range gatewayServices {
+				entry := structs.IntentionMatchEntry{
+					Namespace: gs.Service.NamespaceOrDefault(),
+					Name:      gs.Service.Name,
+				}
+				idx, intentions, err := state.IntentionMatchOne(ws, entry, structs.IntentionMatchDestination)
+				if err != nil {
+					return err
+				}
+				if idx > maxIdx {
+					maxIdx = idx
+				}
+
+				// Deduplicate wildcard intentions
+				for _, ixn := range intentions {
+					if !seen[ixn.ID] {
+						result = append(result, ixn)
+						seen[ixn.ID] = true
+					}
+				}
+			}
+
+			reply.Index, reply.Intentions = maxIdx, result
+			if reply.Intentions == nil {
+				reply.Intentions = make(structs.Intentions, 0)
+			}
+
+			if err := m.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+			return nil
+		},
+	)
+}
+
 // EventFire is a bit of an odd endpoint, but it allows for a cross-DC RPC
 // call to fire an event. The primary use case is to enable user events being
 // triggered in a remote DC.
