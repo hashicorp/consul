@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: dc / services / intentions: Intentions per service
+Feature: dc / services / show / intentions: Intentions per service
   Background:
     Given 1 datacenter model with the value "dc1"
     And 1 node models
@@ -26,6 +26,6 @@ Feature: dc / services / intentions: Intentions per service
     And I click actions on the intentions
     And I click delete on the intentions
     And I click confirmDelete on the intentions
-    Then a DELETE request was made to "/v1/connect/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=dc1"
+    Then a DELETE request was made to "/v1/connect/intentions/755b72bd-f5ab-4c92-90cc-bed0e7d8e9f0?dc=dc1"
     And "[data-notification]" has the "notification-delete" class
     And "[data-notification]" has the "success" class
