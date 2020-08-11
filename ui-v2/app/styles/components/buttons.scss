@@ -5,7 +5,6 @@ a.type-create {
 // TODO: Once we move action-groups to use aria menu we can get rid of
 // some of this and just use not(aria-haspopup)
 button[type='reset'],
-%app-view-content form button[type='button']:not([aria-haspopup='menu']),
 header .actions button[type='button']:not(.copy-btn),
 button.type-cancel,
 html.template-error div > a {

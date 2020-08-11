@@ -4,13 +4,7 @@
   {{title 'Access Controls'}}
 {{/if}}
 
-{{#let (selectable-key-values
-    (array "CreateTime:desc" "Newest to oldest")
-    (array "CreateTime:asc" "Oldest to newest")
-      selected=sortBy
-  )
-  as |sort|
-}}
+{{#let (or sortBy "CreateTime:desc") as |sort|}}
 <AppView
   @class="token list"
   @loading={{isLoading}}
@@ -41,22 +35,47 @@
   </BlockSlot>
   <BlockSlot @name="toolbar">
   {{#if (gt items.length 0)}}
-    <SearchBar
-      data-test-intention-filter="true"
-      @value={{search}}
-      @onsearch={{action (mut search) value="target.value"}}
-      @secondary="sort"
-      @selected={{sort.selected}}
-      @options={{sort.items}}
-      @onchange={{action (mut sortBy) value='target.selected.key'}}
-    />
+          <SearchBar
+            @value={{search}}
+            @onsearch={{action (mut search) value="target.value"}}
+            class="with-sort"
+          >
+            <BlockSlot @name="secondary">
+              <PopoverSelect
+                @position="right"
+                @onchange={{action (mut sortBy) value='target.selected'}}
+                @multiple={{false}}
+              as |components|>
+                <BlockSlot @name="selected">
+                  <span>
+                    {{#let (from-entries (array
+                          (array "CreateTime:desc" "Newest to oldest")
+                          (array "CreateTime:asc" "Oldest to newest")
+                        ))
+                      as |selectable|
+                    }}
+                      {{get selectable sort}}
+                    {{/let}}
+                  </span>
+                </BlockSlot>
+                <BlockSlot @name="options">
+    {{#let components.Optgroup components.Option as |Optgroup Option|}}
+                  <Optgroup @label="Creation">
+                    <Option @value="CreateTime:desc" @selected={{eq "CreateTime:desc" sort}}>Newest to oldest</Option>
+                    <Option @value="CreateTime:asc" @selected={{eq "CreateTime:asc" sort}}>Oldest to newest</Option>
+                  </Optgroup>
+    {{/let}}
+                </BlockSlot>
+              </PopoverSelect>
+            </BlockSlot>
+          </SearchBar>
   {{/if}}
   </BlockSlot>
   <BlockSlot @name="content">
 {{#if (token/is-legacy items)}}
     <p data-test-notification-update class="notice info"><strong>Update.</strong> We have upgraded our ACL System to allow the creation of reusable policies that can be applied to tokens. Read more about the changes and how to upgrade legacy tokens in our <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
 {{/if}}
-  {{#let (sort-by (comparator 'token' sort.selected.key) items) as |sorted|}}
+  {{#let (sort-by (comparator 'token' sort) items) as |sorted|}}
     <ChangeableSet @dispatcher={{searchable 'token' sorted}} @terms={{search}}>
       <BlockSlot @name="set" as |filtered|>
         <ConsulTokenList
