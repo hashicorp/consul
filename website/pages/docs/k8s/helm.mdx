@@ -86,7 +86,7 @@ and consider if they're appropriate for your deployment.
   - `acls` ((#v-global-acls)) - Configure ACLs.
 
     - `manageSystemACLs` ((#v-global-acls-managesystemacls)) (`boolean: false`) - If true, the Helm chart will automatically manage ACL tokens and policies for all Consul and consul-k8s components.
-      This requires servers to be running inside Kubernetes. Additionally requires Consul >= 1.4 and consul-k8s >= 0.14.0.
+      This requires Consul >= 1.4 and consul-k8s >= 0.14.0.
 
     - `bootstrapToken` ((#v-global-acls-bootstraptoken)) - A Kubernetes secret containing the bootstrap token to use for
       creating policies and tokens for all Consul and consul-k8s components.
