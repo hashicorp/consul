@@ -1,5 +1,9 @@
 ## UNRELEASED
 
+BUGFIXES:
+
+* connect: **(Consul Enterprise only)** Fixed a regression that prevented mesh gateways from routing to services in their local datacenter that reside outside of the default namespace.
+
 ## 1.8.2 (August 07, 2020)
 
 BUGFIXES:
