@@ -383,6 +383,22 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.NoError(t, fsm.state.FederationStateSet(21, fedState1))
 	require.NoError(t, fsm.state.FederationStateSet(22, fedState2))
 
+	// Update a node, service and health check to make sure the ModifyIndexes are preserved correctly after restore.
+	require.NoError(t, fsm.state.EnsureNode(23, &structs.Node{
+		ID:         "610918a6-464f-fa9b-1a95-03bd6e88ed92",
+		Node:       "foo",
+		Datacenter: "dc1",
+		Address:    "127.0.0.3",
+	}))
+	require.NoError(t, fsm.state.EnsureService(24, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary"}, Address: "127.0.0.1", Port: 5001}))
+	require.NoError(t, fsm.state.EnsureCheck(25, &structs.HealthCheck{
+		Node:      "foo",
+		CheckID:   "web",
+		Name:      "web connectivity",
+		Status:    api.HealthCritical,
+		ServiceID: "web",
+	}))
+
 	// Snapshot
 	snap, err := fsm.Snapshot()
 	require.NoError(t, err)
@@ -455,25 +471,37 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.Equal(t, "testing123", nodes[0].Meta["testMeta"])
 	require.Len(t, nodes[0].TaggedAddresses, 1)
 	require.Equal(t, "1.2.3.4", nodes[0].TaggedAddresses["hello"])
+	require.Equal(t, uint64(2), nodes[0].CreateIndex)
+	require.Equal(t, uint64(2), nodes[0].ModifyIndex)
 
 	require.Equal(t, node1.ID, nodes[1].ID)
 	require.Equal(t, "foo", nodes[1].Node)
 	require.Equal(t, "dc1", nodes[1].Datacenter)
-	require.Equal(t, "127.0.0.1", nodes[1].Address)
+	require.Equal(t, "127.0.0.3", nodes[1].Address)
 	require.Empty(t, nodes[1].TaggedAddresses)
+	require.Equal(t, uint64(1), nodes[1].CreateIndex)
+	require.Equal(t, uint64(23), nodes[1].ModifyIndex)
 
 	_, fooSrv, err := fsm2.state.NodeServices(nil, "foo", nil)
 	require.NoError(t, err)
 	require.Len(t, fooSrv.Services, 2)
 	require.Contains(t, fooSrv.Services["db"].Tags, "primary")
 	require.True(t, stringslice.Contains(fooSrv.Services["db"].Tags, "primary"))
-	require.Equal(t, 5000, fooSrv.Services["db"].Port)
+	require.Equal(t, 5001, fooSrv.Services["db"].Port)
+	require.Equal(t, uint64(4), fooSrv.Services["db"].CreateIndex)
+	require.Equal(t, uint64(24), fooSrv.Services["db"].ModifyIndex)
 	connectSrv := fooSrv.Services["web"]
 	require.Equal(t, connectConf, connectSrv.Connect)
+	require.Equal(t, uint64(3), fooSrv.Services["web"].CreateIndex)
+	require.Equal(t, uint64(3), fooSrv.Services["web"].ModifyIndex)
 
 	_, checks, err := fsm2.state.NodeChecks(nil, "foo", nil)
 	require.NoError(t, err)
 	require.Len(t, checks, 1)
+	require.Equal(t, "foo", checks[0].Node)
+	require.Equal(t, "web", checks[0].ServiceName)
+	require.Equal(t, uint64(7), checks[0].CreateIndex)
+	require.Equal(t, uint64(25), checks[0].ModifyIndex)
 
 	// Verify key is set
 	_, d, err := fsm2.state.KVSGet(nil, "/test", nil)
