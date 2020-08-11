@@ -21,7 +21,7 @@ export default Service.extend({
     this._listeners.add(this.dom.document(), {
       visibilitychange: e => {
         if (e.target.hidden) {
-          this.purge();
+          this.purge(-1);
         }
       },
     });

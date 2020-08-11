@@ -2,7 +2,9 @@ import { get } from '@ember/object';
 
 const pause = 2000;
 // native EventSource retry is ~3s wait
-export const create5xxBackoff = function(ms = 3000, P = Promise, wait = setTimeout) {
+// any specified errors here will mean that the blocking query will attempt
+// a reconnection every 3s until it reconnects to Consul
+export const createErrorBackoff = function(ms = 3000, P = Promise, wait = setTimeout) {
   // This expects an ember-data like error
   return function(err) {
     const status = get(err, 'errors.firstObject.status');
@@ -10,6 +12,11 @@ export const create5xxBackoff = function(ms = 3000, P = Promise, wait = setTimeo
       switch (true) {
         // Any '5xx' (not 500) errors should back off and try again
         case status.indexOf('5') === 0 && status.length === 3 && status !== '500':
+        // fallsthrough
+        case status === '0':
+          // TODO: Move this to the view layer so we can show a connection error
+          // and reconnection success to the user
+          // Any 0 aborted connections should back off and try again
           return new P(function(resolve) {
             wait(function() {
               resolve(err);
@@ -51,9 +58,9 @@ const defaultCreateEvent = function(result, configuration) {
  * Wraps an EventSource with functionality to add native EventSource-like functionality
  *
  * @param {Class} [CallableEventSource] - CallableEventSource Class
- * @param {Function} [backoff] - Default backoff function for all instances, defaults to create5xxBackoff
+ * @param {Function} [backoff] - Default backoff function for all instances, defaults to createErrorBackoff
  */
-export default function(EventSource, backoff = create5xxBackoff()) {
+export default function(EventSource, backoff = createErrorBackoff()) {
   /**
    * An EventSource implementation to add native EventSource-like functionality with just callbacks (`cursor` and 5xx backoff)
    *
