@@ -1,0 +1,11 @@
+{{#let components.MenuItem as |MenuItem|}}
+  <MenuItem
+    class={{if selected 'is-active'}}
+    @onclick={{action 'click'}}
+    @selected={{selected}}
+  >
+    <BlockSlot @name="label">
+      {{yield}}
+    </BlockSlot>
+  </MenuItem>
+{{/let}}

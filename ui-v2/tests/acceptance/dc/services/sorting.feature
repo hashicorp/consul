@@ -40,7 +40,7 @@ Feature: dc / services / sorting
       dc: dc-1
     ---
     When I click selected on the sort
-    When I click options.1.button on the sort
+    When I click options.3.button on the sort
     Then I see name on the services vertically like yaml
     ---
     - Service-F
@@ -49,22 +49,22 @@ Feature: dc / services / sorting
     - Service-C
     - Service-B
     - Service-A
-    ---
-    When I click selected on the sort
-    When I click options.0.button on the sort
-    Then I see name on the services vertically like yaml
-    ---
-    - Service-A
-    - Service-B
-    - Service-C
-    - Service-D
-    - Service-E
-    - Service-F
     ---
     When I click selected on the sort
     When I click options.2.button on the sort
     Then I see name on the services vertically like yaml
     ---
+    - Service-A
+    - Service-B
+    - Service-C
+    - Service-D
+    - Service-E
+    - Service-F
+    ---
+    When I click selected on the sort
+    When I click options.0.button on the sort
+    Then I see name on the services vertically like yaml
+    ---
     - Service-B
     - Service-C
     - Service-A
@@ -73,7 +73,7 @@ Feature: dc / services / sorting
     - Service-E
     ---
     When I click selected on the sort
-    When I click options.3.button on the sort
+    When I click options.1.button on the sort
     Then I see name on the services vertically like yaml
     ---
     - Service-E

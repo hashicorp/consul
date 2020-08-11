@@ -6,21 +6,7 @@
   </BlockSlot>
 
   <BlockSlot @name="loaded">
-
-      {{#let (selectable-key-values
-          (array "Action:asc" "Allow to Deny")
-          (array "Action:desc" "Deny to Allow")
-          (array "SourceName:asc" "Source: A to Z")
-          (array "SourceName:desc" "Source: Z to A")
-          (array "DestinationName:asc" "Destination: A to Z")
-          (array "DestinationName:desc" "Destination: Z to A")
-          (array "Precedence:asc" "Precedence: Asc")
-          (array "Precedence:desc" "Precedence: Desc")
-            selected=sortBy
-        )
-        as |sort|
-      }}
-
+    {{#let (or sortBy "Action:asc") as |sort|}}
       <AppView @class="intention list">
         <BlockSlot @name="header">
             <h1>
@@ -34,18 +20,61 @@
         <BlockSlot @name="toolbar">
     {{#if (gt api.data.length 0) }}
           <SearchBar
-            data-test-intention-filter="true"
             @value={{search}}
             @onsearch={{action (mut search) value="target.value"}}
-            @secondary="sort"
-            @selected={{sort.selected}}
-            @options={{sort.items}}
-            @onchange={{action (mut sortBy) value='target.selected.key'}}
-          />
+            class="with-sort"
+          >
+            <BlockSlot @name="secondary">
+              <PopoverSelect
+                @position="right"
+                @onchange={{action (mut sortBy) value='target.selected'}}
+                @multiple={{false}}
+              as |components|>
+                <BlockSlot @name="selected">
+                  <span>
+                    {{#let (from-entries (array
+                        (array "Action:asc" "Allow to Deny")
+                        (array "Action:desc" "Deny to Allow")
+                        (array "SourceName:asc" "Source: A to Z")
+                        (array "SourceName:desc" "Source: Z to A")
+                        (array "DestinationName:asc" "Destination: A to Z")
+                        (array "DestinationName:desc" "Destination: Z to A")
+                        (array "Precedence:asc" "Precedence: Ascending")
+                        (array "Precedence:desc" "Precedence: Descending")
+                        ))
+                      as |selectable|
+                    }}
+                      {{get selectable sort}}
+                    {{/let}}
+                  </span>
+                </BlockSlot>
+                <BlockSlot @name="options">
+    {{#let components.Optgroup components.Option as |Optgroup Option|}}
+                  <Optgroup @label="Permission">
+                    <Option @value="Action:asc" @selected={{eq "Action:asc" sort}}>Allow to Deny</Option>
+                    <Option @value="Action:desc" @selected={{eq "Action:desc" sort}}>Deny to Allow</Option>
+                  </Optgroup>
+                  <Optgroup @label="Source">
+                    <Option @value="SourceName:asc" @selected={{eq "SourceName:asc" sort}}>A to Z</Option>
+                    <Option @value="SourceName:desc" @selected={{eq "SourceName:desc" sort}}>Z to A</Option>
+                  </Optgroup>
+                  <Optgroup @label="Destination">
+                    <Option @value="DestinationName:asc" @selected={{eq "DestinationName:asc" sort}}>A to Z</Option>
+                    <Option @value="DestinationName:desc" @selected={{eq "DestinationName:desc" sort}}>Z to A</Option>
+                  </Optgroup>
+                  <Optgroup @label="Precedence">
+                    <Option @value="Precedence:asc" @selected={{eq "Precedence:asc" sort}}>Ascending</Option>
+                    <Option @value="Precedence:desc" @selected={{eq "Precedence:desc" sort}}>Descending</Option>
+                  </Optgroup>
+    {{/let}}
+                </BlockSlot>
+              </PopoverSelect>
+            </BlockSlot>
+          </SearchBar>
     {{/if}}
         </BlockSlot>
         <BlockSlot @name="content">
-          {{#let (sort-by (comparator 'intention' sort.selected.key) api.data) as |sorted|}}
+          {{#let (sort-by (comparator 'intention' sort) api.data) as |sorted|}}
             <ChangeableSet @dispatcher={{searchable 'intention' sorted}} @terms={{search}}>
               <BlockSlot @name="content" as |filtered|>
                 <ConsulIntentionList

@@ -1,24 +1,23 @@
 {{yield}}
 <form class={{concat 'filter-bar' (if (eq secondary 'sort') ' with-sort')}} ...attributes>
-  <FreetextFilter
-    @onsearch={{action onsearch}}
-    @value={{value}}
-    @placeholder={{or placeholder 'Search'}}
-  />
+    {{#yield-slot name="primary"}}
+      <fieldset>
+        {{yield}}
+      </fieldset>
+    {{else}}
+      <FreetextFilter
+        @onsearch={{action onsearch}}
+        @value={{value}}
+        @placeholder={{or placeholder 'Search'}}
+      />
+    {{/yield-slot}}
     {{#yield-slot name="secondary"}}
-      {{yield}}
+      <fieldset>
+        {{yield}}
+      </fieldset>
     {{else}}
       {{#if options}}
         {{#if (eq secondary 'sort')}}
-          <fieldset>
-            <PopoverSelect
-              data-popover-select
-              @selected={{selected}}
-              @options={{options}}
-              @onchange={{action onchange}}
-              @title="Sort By"
-            />
-          </fieldset>
         {{else}}
           <RadioGroup
             @keyboardAccess={{true}}

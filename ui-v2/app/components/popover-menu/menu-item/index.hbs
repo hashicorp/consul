@@ -27,7 +27,12 @@
   </a>
 {{/let}}
 {{else}}
-  <button role="menuitem" tabindex="-1" type="button" onclick={{action this.onclick}}>
+<button
+  type="button"
+  role="menuitem"
+  aria-selected={{if selected 'true'}}
+  tabindex="-1"
+  onclick={{action (or this.onclick (noop))}}>
     <YieldSlot @name="label">
       {{yield}}
     </YieldSlot>
