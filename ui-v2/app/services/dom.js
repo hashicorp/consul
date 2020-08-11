@@ -69,6 +69,24 @@ export default Service.extend({
       },
     });
   },
+  setEventTargetProperties: function(e, propObj) {
+    const target = e.target;
+    return new Proxy(e, {
+      get: function(obj, prop, receiver) {
+        if (prop === 'target') {
+          return new Proxy(target, {
+            get: function(obj, prop, receiver) {
+              if (typeof propObj[prop] !== 'undefined') {
+                return propObj[prop](e.target);
+              }
+              return target[prop];
+            },
+          });
+        }
+        return Reflect.get(...arguments);
+      },
+    });
+  },
   listeners: createListeners,
   root: function() {
     return this.doc.documentElement;
