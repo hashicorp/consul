@@ -51,7 +51,6 @@ import (
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/net/http2"
@@ -1269,7 +1268,7 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 }
 
 // newConsulConfig translates a RuntimeConfig into a consul.Config.
-// FIXME: move this function to a different file, maybe config.go
+// TODO: move this function to a different file, maybe config.go
 func newConsulConfig(config *config.RuntimeConfig, logger hclog.Logger) (*consul.Config, error) {
 	// Start with the provided config or default config
 	base := consul.DefaultConfig()
@@ -1508,7 +1507,7 @@ func newConsulConfig(config *config.RuntimeConfig, logger hclog.Logger) (*consul
 
 	// This will set up the LAN keyring, as well as the WAN and any segments
 	// for servers.
-	// FIXME: move this to remove the need to pass in logger.
+	// TODO: move this closer to where the keyrings will be used.
 	if err := setupKeyrings(base, config, logger); err != nil {
 		return nil, fmt.Errorf("Failed to configure keyring: %v", err)
 	}
@@ -1560,122 +1559,6 @@ func segmentConfig(config *config.RuntimeConfig) ([]consul.NetworkSegment, error
 	}
 
 	return segments, nil
-}
-
-// setupBaseKeyrings configures the LAN and WAN keyrings.
-// FIXME: move this function to a different file. maybe keyring.go, or config.go
-func setupBaseKeyrings(config *consul.Config, rtConfig *config.RuntimeConfig, logger hclog.Logger) error {
-	// If the keyring file is disabled then just poke the provided key
-	// into the in-memory keyring.
-	federationEnabled := config.SerfWANConfig != nil
-	if rtConfig.DisableKeyringFile {
-		if rtConfig.EncryptKey == "" {
-			return nil
-		}
-
-		keys := []string{rtConfig.EncryptKey}
-		if err := loadKeyring(config.SerfLANConfig, keys); err != nil {
-			return err
-		}
-		if rtConfig.ServerMode && federationEnabled {
-			if err := loadKeyring(config.SerfWANConfig, keys); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-
-	// Otherwise, we need to deal with the keyring files.
-	fileLAN := filepath.Join(rtConfig.DataDir, SerfLANKeyring)
-	fileWAN := filepath.Join(rtConfig.DataDir, SerfWANKeyring)
-
-	var existingLANKeyring, existingWANKeyring bool
-	if rtConfig.EncryptKey == "" {
-		goto LOAD
-	}
-	if _, err := os.Stat(fileLAN); err != nil {
-		if err := initKeyring(fileLAN, rtConfig.EncryptKey); err != nil {
-			return err
-		}
-	} else {
-		existingLANKeyring = true
-	}
-	if rtConfig.ServerMode && federationEnabled {
-		if _, err := os.Stat(fileWAN); err != nil {
-			if err := initKeyring(fileWAN, rtConfig.EncryptKey); err != nil {
-				return err
-			}
-		} else {
-			existingWANKeyring = true
-		}
-	}
-
-LOAD:
-	if _, err := os.Stat(fileLAN); err == nil {
-		config.SerfLANConfig.KeyringFile = fileLAN
-	}
-	if err := loadKeyringFile(config.SerfLANConfig); err != nil {
-		return err
-	}
-	if rtConfig.ServerMode && federationEnabled {
-		if _, err := os.Stat(fileWAN); err == nil {
-			config.SerfWANConfig.KeyringFile = fileWAN
-		}
-		if err := loadKeyringFile(config.SerfWANConfig); err != nil {
-			return err
-		}
-	}
-
-	// Only perform the following checks if there was an encrypt_key
-	// provided in the configuration.
-	if rtConfig.EncryptKey != "" {
-		msg := " keyring doesn't include key provided with -encrypt, using keyring"
-		if existingLANKeyring &&
-			keyringIsMissingKey(
-				config.SerfLANConfig.MemberlistConfig.Keyring,
-				rtConfig.EncryptKey,
-			) {
-			logger.Warn(msg, "keyring", "LAN")
-		}
-		if existingWANKeyring &&
-			keyringIsMissingKey(
-				config.SerfWANConfig.MemberlistConfig.Keyring,
-				rtConfig.EncryptKey,
-			) {
-			logger.Warn(msg, "keyring", "WAN")
-		}
-	}
-
-	return nil
-}
-
-// setupKeyrings is used to initialize and load keyrings during agent startup.
-// FIXME: move this function to a different file. maybe keyring.go, or config.go
-func setupKeyrings(config *consul.Config, rtConfig *config.RuntimeConfig, logger hclog.Logger) error {
-	// First set up the LAN and WAN keyrings.
-	if err := setupBaseKeyrings(config, rtConfig, logger); err != nil {
-		return err
-	}
-
-	// If there's no LAN keyring then there's nothing else to set up for
-	// any segments.
-	lanKeyring := config.SerfLANConfig.MemberlistConfig.Keyring
-	if lanKeyring == nil {
-		return nil
-	}
-
-	// Copy the initial state of the LAN keyring into each segment config.
-	// Segments don't have their own keyring file, they rely on the LAN
-	// holding the state so things can't get out of sync.
-	k, pk := lanKeyring.GetKeys(), lanKeyring.GetPrimaryKey()
-	for _, segment := range config.Segments {
-		keyring, err := memberlist.NewKeyring(k, pk)
-		if err != nil {
-			return err
-		}
-		segment.SerfConfig.MemberlistConfig.Keyring = keyring
-	}
-	return nil
 }
 
 // registerEndpoint registers a handler for the consul RPC server
