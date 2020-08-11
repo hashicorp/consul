@@ -159,7 +159,7 @@ func (s *Store) txnNode(tx *txn, idx uint64, op *structs.TxnNodeOp) (structs.Txn
 		}
 
 	case api.NodeSet:
-		err = s.ensureNodeTxn(tx, idx, &op.Node)
+		err = s.ensureNodeTxn(tx, idx, false, &op.Node)
 		if err == nil {
 			entry, err = getNode()
 		}
@@ -222,7 +222,7 @@ func (s *Store) txnService(tx *txn, idx uint64, op *structs.TxnServiceOp) (struc
 		}
 
 	case api.ServiceSet:
-		if err := ensureServiceTxn(tx, idx, op.Node, &op.Service); err != nil {
+		if err := ensureServiceTxn(tx, idx, op.Node, false, &op.Service); err != nil {
 			return nil, err
 		}
 		entry, err := getNodeServiceTxn(tx, op.Node, op.Service.ID, &op.Service.EnterpriseMeta)
@@ -282,7 +282,7 @@ func (s *Store) txnCheck(tx *txn, idx uint64, op *structs.TxnCheckOp) (structs.T
 		}
 
 	case api.CheckSet:
-		err = s.ensureCheckTxn(tx, idx, &op.Check)
+		err = s.ensureCheckTxn(tx, idx, false, &op.Check)
 		if err == nil {
 			_, entry, err = getNodeCheckTxn(tx, op.Check.Node, op.Check.CheckID, &op.Check.EnterpriseMeta)
 		}
