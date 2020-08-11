@@ -25,6 +25,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -328,9 +329,22 @@ func (s *TestServer) Stop() error {
 		}
 	}
 
+	waitDone := make(chan error)
+	go func() {
+		waitDone <- s.cmd.Wait()
+		close(waitDone)
+	}()
+
 	// wait for the process to exit to be sure that the data dir can be
 	// deleted on all platforms.
-	return s.cmd.Wait()
+	select {
+	case err := <-waitDone:
+		return err
+	case <-time.After(10 * time.Second):
+		s.cmd.Process.Signal(syscall.SIGABRT)
+		s.cmd.Wait()
+		return fmt.Errorf("timeout waiting for server to stop gracefully")
+	}
 }
 
 // waitForAPI waits for the /status/leader HTTP endpoint to start
@@ -351,11 +365,12 @@ func (s *TestServer) waitForAPI() error {
 		time.Sleep(timer.Wait)
 
 		url := s.url("/v1/status/leader")
-		_, err := s.masterGet(url)
+		resp, err := s.masterGet(url)
 		if err != nil {
 			failed = true
 			continue
 		}
+		resp.Body.Close()
 
 		failed = false
 	}
