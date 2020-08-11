@@ -132,7 +132,7 @@ and consider if they're appropriate for your deployment.
       `<global.name>-federation` (if setting `global.name`), otherwise
       `<helm-release-name>-consul-federation`. Requires consul-k8s 0.15.0+.
 
-  - `tls` ((#v-global-tls)) - Enables TLS [encryption](https://learn.hashicorp.com/consul/security-networking/agent-encryption) across the cluster to verify authenticity of the Consul servers and clients. Requires Consul v1.4.1+ and consul-k8s v0.16.2+
+  - `tls` ((#v-global-tls)) - Enables TLS [encryption](https://learn.hashicorp.com/tutorials/consul/gossip-encryption-secure) across the cluster to verify authenticity of the Consul servers and clients. Requires Consul v1.4.1+ and consul-k8s v0.16.2+
 
     - `enabled` ((#v-global-tls-enabled)) (`boolean: false`) - If true, the Helm chart will enable TLS for Consul
       servers and clients and all consul-k8s components, as well as generate certificate
