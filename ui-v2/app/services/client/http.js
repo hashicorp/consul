@@ -15,7 +15,9 @@ export const restartWhenAvailable = function(client) {
     // setup the aborted connection restarting
     // this should happen here to avoid cache deletion
     const status = get(e, 'errors.firstObject.status');
-    if (status === '0') {
+    // TODO: Reconsider a proper custom HTTP code
+    // -1 is a UI only error code for 'user switched tab'
+    if (status === '-1') {
       // Any '0' errors (abort) should possibly try again, depending upon the circumstances
       // whenAvailable returns a Promise that resolves when the client is available
       // again
