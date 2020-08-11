@@ -1301,6 +1301,40 @@ func TestStore_ValidateIngressGatewayErrorOnMismatchedProtocols(t *testing.T) {
 		}
 	}
 
+	t.Run("http ingress fails with http upstream later changed to tcp", func(t *testing.T) {
+		s := testStateStore(t)
+
+		// First set the target service as http
+		expected := &structs.ServiceConfigEntry{
+			Kind:     structs.ServiceDefaults,
+			Name:     "web",
+			Protocol: "http",
+		}
+		require.NoError(t, s.EnsureConfigEntry(0, expected, nil))
+
+		// Next configure http ingress to route to the http service
+		require.NoError(t, s.EnsureConfigEntry(1, newIngress("http", "web"), nil))
+
+		t.Run("via modification", func(t *testing.T) {
+			// Now redefine the target service as tcp
+			expected = &structs.ServiceConfigEntry{
+				Kind:     structs.ServiceDefaults,
+				Name:     "web",
+				Protocol: "tcp",
+			}
+
+			err := s.EnsureConfigEntry(2, expected, nil)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), `has protocol "tcp"`)
+		})
+		t.Run("via deletion", func(t *testing.T) {
+			// This will fall back to the default tcp.
+			err := s.DeleteConfigEntry(2, structs.ServiceDefaults, "web", nil)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), `has protocol "tcp"`)
+		})
+	})
+
 	t.Run("tcp ingress ok with tcp upstream (defaulted) later changed to http", func(t *testing.T) {
 		s := testStateStore(t)
 

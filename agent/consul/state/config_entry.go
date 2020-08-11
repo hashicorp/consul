@@ -503,7 +503,9 @@ func (s *Store) validateProposedConfigEntryInServiceGraph(
 					//    AND
 					// 2. the disco chain has a resolver as the top node
 					topNodeType := svcTopNodeType[svcID]
-					if enforceIngressProtocolsMatch || topNodeType != structs.DiscoveryGraphNodeTypeResolver {
+					if enforceIngressProtocolsMatch ||
+						(expectedProto != "tcp") ||
+						(expectedProto == "tcp" && topNodeType != structs.DiscoveryGraphNodeTypeResolver) {
 						return fmt.Errorf(
 							"service %q has protocol %q, which does not match defined listener protocol %q",
 							svcID.String(),
