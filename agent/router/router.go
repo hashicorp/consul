@@ -406,6 +406,24 @@ func (r *Router) GetDatacenters() []string {
 	return dcs
 }
 
+// GetRemoteDatacenters returns a list of remote datacenters known to the router, sorted by
+// name.
+func (r *Router) GetRemoteDatacenters(local string) []string {
+	r.RLock()
+	defer r.RUnlock()
+
+	dcs := make([]string, 0, len(r.managers))
+	for dc := range r.managers {
+		if dc == local {
+			continue
+		}
+		dcs = append(dcs, dc)
+	}
+
+	sort.Strings(dcs)
+	return dcs
+}
+
 // HasDatacenter checks whether dc is defined in WAN
 func (r *Router) HasDatacenter(dc string) bool {
 	r.RLock()
