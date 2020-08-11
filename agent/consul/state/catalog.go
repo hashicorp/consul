@@ -462,7 +462,7 @@ func (s *Store) ensureNodeTxn(tx *memdb.Txn, idx uint64, preserveIndexes bool, n
 		node.ModifyIndex = idx
 	} else if !preserveIndexes || node.CreateIndex == 0 {
 		// If this isn't a snapshot or there were no saved indexes, set CreateIndex
-		// and ModifyIndex from the given index. Prior to 1.9.0/1.8.3/1.7.7/1.6.8 nodes
+		// and ModifyIndex from the given index. Prior to 1.9.0/1.8.3/1.7.7, nodes
 		// were not saved with an index, so this is to avoid ending up with a 0 index
 		// when loading a snapshot from an older version.
 		node.CreateIndex = idx
