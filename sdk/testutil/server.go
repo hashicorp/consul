@@ -25,6 +25,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -340,7 +341,7 @@ func (s *TestServer) Stop() error {
 	case err := <-waitDone:
 		return err
 	case <-time.After(10 * time.Second):
-		s.cmd.Process.Kill()
+		s.cmd.Process.Signal(syscall.SIGABRT)
 		s.cmd.Wait()
 		return fmt.Errorf("timeout waiting for server to stop gracefully")
 	}
