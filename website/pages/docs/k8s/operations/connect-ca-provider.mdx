@@ -14,6 +14,7 @@ please use the [Update CA Configuration Endpoint](/api/connect/ca#update-ca-conf
 Consul has support for different CA providers to be used with the Consul Service Mesh.
 Please see [Connect Certificate Management](/docs/connect/ca) for the information on the providers
 we currently support.
+
 Generally, to configure a provider via the Consul Helm chart, you need to follow three steps:
 
 1. Create a configuration file containing your provider information.
@@ -21,15 +22,15 @@ Generally, to configure a provider via the Consul Helm chart, you need to follow
 1. Reference the Kubernetes secret in the `server.extraVolumes` value in the Helm chart.
 
 Below we will go over this process for configuring Vault as the Connect CA.
-However, other providers can be configured similarly, aside from providing the appropriate `ca_config`
+However, other providers can be configured similarly by providing the appropriate `ca_config`
 and `ca_provider` values for the provider you're using.
 
 ## Configuring Vault as a Connect CA
 
 ### Primary Datacenter
 
-To configure a Vault as a CA provider for Consul Connect,
-first, create provider a configuration JSON file.
+To configure Vault as a CA provider for Consul Connect,
+first, create a provider configuration JSON file.
 Please refer to [Vault as a Connect CA](/docs/connect/ca/vault) for the configuration options.
 
 ```shell-session
