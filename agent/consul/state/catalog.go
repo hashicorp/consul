@@ -1690,14 +1690,11 @@ func (s *Store) ensureCheckTxn(tx *memdb.Txn, idx uint64, preserveIndexes bool, 
 			}
 		}
 	}
-	if modified {
+	if modified && !preserveIndexes {
 		// We update the modify index, ONLY if something has changed, thus
 		// With constant output, no change is seen when watching a service
 		// With huge number of nodes where anti-entropy updates continuously
 		// the checks, but not the values within the check
-		hc.ModifyIndex = idx
-	}
-	if !preserveIndexes {
 		hc.ModifyIndex = idx
 	}
 
