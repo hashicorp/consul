@@ -12,10 +12,11 @@ export const createErrorBackoff = function(ms = 3000, P = Promise, wait = setTim
       switch (true) {
         // Any '5xx' (not 500) errors should back off and try again
         case status.indexOf('5') === 0 && status.length === 3 && status !== '500':
-        // TODO: Move this to the view layer so we can show a connection error
-        // and reconnection success to the user
-        // Any 0 aborted connections should back off and try again
+        // fallsthrough
         case status === '0':
+          // TODO: Move this to the view layer so we can show a connection error
+          // and reconnection success to the user
+          // Any 0 aborted connections should back off and try again
           return new P(function(resolve) {
             wait(function() {
               resolve(err);
