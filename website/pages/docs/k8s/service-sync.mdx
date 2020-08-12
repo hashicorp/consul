@@ -108,6 +108,11 @@ non-Kubernetes nodes. This also causes all discoverable services to be part of
 a central service catalog in Consul for further syncing into alternate
 Kubernetes clusters or other platforms.
 
+Each synced service will be registered onto a Consul node called `k8s-sync`. This
+is not a real node because there is no Consul client registering and monitoring
+the services. Instead, the catalog sync process is monitoring Kubernetes
+and syncing the services to Consul.
+
 ### Kubernetes Service Types
 
 Not all Kubernetes services are externally accessible. The sync program by
@@ -124,13 +129,11 @@ For NodePort services, a Consul service instance will be created for each
 node that has the representative pod running. While Kubernetes configures
 a static port on all nodes in the cluster, this limits the number of service
 instances to be equal to the nodes running the target pods.
+By default it will use the external IP of the node but this can be configured via
+the [`nodePortSyncType` helm option](/docs/k8s/helm#v-synccatalog-nodeportsynctype).
 
-The service instances will be registered to the Kubernetes node name
-that each instance lives on. This is guaranteed unique by Kubernetes. An
-existing node entry will be used if it is already part of the Consul
-cluster (for example if you're running a client agent on all Kubernetes
-nodes). This allows the normal agent health checks for that node to continue
-working.
+The service instance's port will be set to the *first* defined node port of the service unless
+set specifically via the `consul.hashicorp.com/service-port` annotation (see [Service Ports](/docs/k8s/service-sync#service-ports)).
 
 #### LoadBalancer
 
@@ -138,6 +141,9 @@ For LoadBalancer services, a single service instance will be registered with
 the external IP of the created load balancer. Because this is already a load
 balancer, only one service instance will be registered with Consul rather
 than registering each individual pod endpoint.
+
+The service instance's port will be set to the *first* defined port of the
+service unless set specifically via the `consul.hashicorp.com/service-port` annotation (see [Service Ports](/docs/k8s/service-sync#service-ports)).
 
 #### External IPs
 
@@ -151,11 +157,19 @@ If an external IP list is present, a service instance in Consul will be created
 for each external IP. It is assumed that if an external IP is present that it
 is routable and configured by some other system.
 
+The service instance's port will be set to the *first* defined port of the
+service unless set specifically via the `consul.hashicorp.com/service-port` annotation (see [Service Ports](/docs/k8s/service-sync#service-ports)).
+
 #### ClusterIP
 
-ClusterIP services are synced by default as of `consul-k8s` version 0.3.0. In
-many Kubernetes clusters, ClusterIPs may not be accessible outside of the cluster,
-so you may end up with services registered in Consul that are not routable. To
+ClusterIP services are synced by default as of `consul-k8s` version 0.3.0.
+Each pod that is an endpoint for the service will be synced as a Consul service
+instance with its IP set to the pod IP and its port set to the `targetPort`.
+
+The service instance's port can be overridden via the `consul.hashicorp.com/service-port` annotation (see [Service Ports](/docs/k8s/service-sync#service-ports)).
+
+-> In Kubernetes clusters where pod IPs are not accessible outside the cluster,
+the services registered in Consul may not be routable. To
 skip syncing ClusterIP services, set [`syncClusterIPServices`](/docs/k8s/helm#v-synccatalog-syncclusteripservices)
 to `false` in the Helm chart values file.
 
