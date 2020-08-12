@@ -804,6 +804,26 @@ and consider if they're appropriate for your deployment.
           cpu: "20m"
       ```
 
+  - `sidecarProxy` ((#v-connectinject-sidecarproxy)) - Configure the sidecar proxy that is injected into each Connect pod.
+
+    - `resources` ((#v-connectinject-sidecarproxy-resources)) - The default resource requests and limits (CPU, memory)
+      for the Envoy sidecar proxy that is injected into each Connect pod. This should be a YAML map of a Kubernetes
+      [ResourceRequirements](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) object.
+      By default, each key is set to `null`, which results in no resource limits.
+
+      These defaults can be overridden on a per-pod basis via [annotation](/docs/k8s/connect/overview#consul-hashicorp-com-sidecar-proxy).
+
+      ```yaml
+      # Recommended defaults
+      resources:
+        requests:
+          memory: "100Mi"
+          cpu: "100m"
+        limits:
+          memory: "100Mi"
+          cpu: "100m"
+      ```
+
 - `meshGateway` ((#v-meshgateway)) - Configure mesh gateways.
 
   - `enabled` ((#v-meshgateway-enabled)) (`boolean: true`) - If mesh gateways are enabled, a Deployment will be created that runs
