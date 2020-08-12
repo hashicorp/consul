@@ -2,6 +2,8 @@
 
 BUGFIXES:
 
+* [backport/1.8.x] catalog: fixed a bug where nodes, services, and checks would not be restored with the correct Create/ModifyIndex when restoring from a snapshot [GH-8485](https://github.com/hashicorp/consul/pull/8474)
+* [backport/1.8.x] vendor: update github.com/armon/go-metrics to v0.3.4 [GH-8478](https://github.com/hashicorp/consul/pull/8478)
 * connect: **(Consul Enterprise only)** Fixed a regression that prevented mesh gateways from routing to services in their local datacenter that reside outside of the default namespace.
 
 ## 1.8.2 (August 07, 2020)
