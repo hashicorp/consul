@@ -329,6 +329,12 @@ BUGFIXES:
 * ui: Discovery-Chain: Improve parsing of redirects [[GH-7174](https://github.com/hashicorp/consul/pull/7174)]
 * ui: Fix styling of ‘duplicate intention’ error message [[GH6936]](https://github.com/hashicorp/consul/pull/6936)
 
+## 1.6.8 (August 12, 2020)
+
+BUG FIXES:
+
+* vendor: update github.com/armon/go-metrics to v0.3.4 [[GH-8478](https://github.com/hashicorp/consul/pull/8478)]
+
 ## 1.6.7 (July 30, 2020)
 
 BUG FIXES:
