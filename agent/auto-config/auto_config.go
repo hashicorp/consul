@@ -54,26 +54,20 @@ var (
 // then we will need to add some locking here. I am deferring that for now
 // to help ease the review of this already large PR.
 type AutoConfig struct {
-	builderOpts        config.BuilderOpts
+	acConfig           Config
 	logger             hclog.Logger
-	directRPC          DirectRPC
-	waiter             *lib.RetryWaiter
-	overrides          []config.Source
 	certMonitor        CertMonitor
 	config             *config.RuntimeConfig
 	autoConfigResponse *pbautoconf.AutoConfigResponse
 	autoConfigSource   config.Source
-	cancel             context.CancelFunc
 }
 
-// New creates a new AutoConfig object for providing automatic
-// Consul configuration.
-func New(config *Config) (*AutoConfig, error) {
-	if config == nil {
-		return nil, fmt.Errorf("must provide a config struct")
-	}
-
-	if config.DirectRPC == nil {
+// New creates a new AutoConfig object for providing automatic Consul configuration.
+func New(config Config) (*AutoConfig, error) {
+	switch {
+	case config.Loader == nil:
+		return nil, fmt.Errorf("must provide a config loader")
+	case config.DirectRPC == nil:
 		return nil, fmt.Errorf("must provide a direct RPC delegate")
 	}
 
@@ -84,27 +78,21 @@ func New(config *Config) (*AutoConfig, error) {
 		logger = logger.Named(logging.AutoConfig)
 	}
 
-	waiter := config.Waiter
-	if waiter == nil {
-		waiter = lib.NewRetryWaiter(1, 0, 10*time.Minute, lib.NewJitterRandomStagger(25))
+	if config.Waiter == nil {
+		config.Waiter = lib.NewRetryWaiter(1, 0, 10*time.Minute, lib.NewJitterRandomStagger(25))
 	}
 
-	ac := &AutoConfig{
-		builderOpts: config.BuilderOpts,
+	return &AutoConfig{
+		acConfig:    config,
 		logger:      logger,
-		directRPC:   config.DirectRPC,
-		waiter:      waiter,
-		overrides:   config.Overrides,
 		certMonitor: config.CertMonitor,
-	}
-
-	return ac, nil
+	}, nil
 }
 
 // ReadConfig will parse the current configuration and inject any
 // auto-config sources if present into the correct place in the parsing chain.
 func (ac *AutoConfig) ReadConfig() (*config.RuntimeConfig, error) {
-	cfg, warnings, err := LoadConfig(ac.builderOpts, ac.autoConfigSource, ac.overrides...)
+	cfg, warnings, err := ac.acConfig.Loader(ac.autoConfigSource)
 	if err != nil {
 		return cfg, err
 	}
@@ -377,7 +365,7 @@ func (ac *AutoConfig) getInitialConfigurationOnce(ctx context.Context, csr strin
 			}
 
 			ac.logger.Debug("making AutoConfig.InitialConfiguration RPC", "addr", addr.String())
-			if err = ac.directRPC.RPC(ac.config.Datacenter, ac.config.NodeName, &addr, "AutoConfig.InitialConfiguration", &request, &resp); err != nil {
+			if err = ac.acConfig.DirectRPC.RPC(ac.config.Datacenter, ac.config.NodeName, &addr, "AutoConfig.InitialConfiguration", &request, &resp); err != nil {
 				ac.logger.Error("AutoConfig.InitialConfiguration RPC failed", "addr", addr.String(), "error", err)
 				continue
 			}
@@ -405,7 +393,7 @@ func (ac *AutoConfig) getInitialConfiguration(ctx context.Context) error {
 	}
 
 	// this resets the failures so that we will perform immediate request
-	wait := ac.waiter.Success()
+	wait := ac.acConfig.Waiter.Success()
 	for {
 		select {
 		case <-wait:
@@ -417,7 +405,7 @@ func (ac *AutoConfig) getInitialConfiguration(ctx context.Context) error {
 			} else {
 				ac.logger.Error("No error returned when fetching the initial auto-configuration but no response was either")
 			}
-			wait = ac.waiter.Failed()
+			wait = ac.acConfig.Waiter.Failed()
 		case <-ctx.Done():
 			ac.logger.Info("interrupted during initial auto configuration", "err", ctx.Err())
 			return ctx.Err()

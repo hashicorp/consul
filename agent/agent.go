@@ -433,7 +433,7 @@ func New(options ...AgentOption) (*Agent, error) {
 	}
 
 	// parse the configuration and handle the error/warnings
-	config, warnings, err := autoconf.LoadConfig(flat.builderOpts, nil, flat.overrides...)
+	cfg, warnings, err := config.Load(flat.builderOpts, nil, flat.overrides...)
 	if err != nil {
 		return nil, err
 	}
@@ -449,7 +449,7 @@ func New(options ...AgentOption) (*Agent, error) {
 
 	// set the config in the agent, this is just the preliminary configuration as we haven't
 	// loaded any auto-config sources yet.
-	a.config = config
+	a.config = cfg
 
 	// create the cache using the rate limiting settings from the config. Note that this means
 	// that these limits are not reloadable.
@@ -457,15 +457,15 @@ func New(options ...AgentOption) (*Agent, error) {
 
 	if flat.logger == nil {
 		logConf := &logging.Config{
-			LogLevel:          config.LogLevel,
-			LogJSON:           config.LogJSON,
+			LogLevel:          cfg.LogLevel,
+			LogJSON:           cfg.LogJSON,
 			Name:              logging.Agent,
-			EnableSyslog:      config.EnableSyslog,
-			SyslogFacility:    config.SyslogFacility,
-			LogFilePath:       config.LogFile,
-			LogRotateDuration: config.LogRotateDuration,
-			LogRotateBytes:    config.LogRotateBytes,
-			LogRotateMaxFiles: config.LogRotateMaxFiles,
+			EnableSyslog:      cfg.EnableSyslog,
+			SyslogFacility:    cfg.SyslogFacility,
+			LogFilePath:       cfg.LogFile,
+			LogRotateDuration: cfg.LogRotateDuration,
+			LogRotateBytes:    cfg.LogRotateBytes,
+			LogRotateMaxFiles: cfg.LogRotateMaxFiles,
 		}
 
 		a.logger, err = logging.Setup(logConf, flat.writers)
@@ -477,7 +477,7 @@ func New(options ...AgentOption) (*Agent, error) {
 	}
 
 	if flat.initTelemetry {
-		memSink, err := lib.InitTelemetry(config.Telemetry)
+		memSink, err := lib.InitTelemetry(cfg.Telemetry)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to initialize telemetry: %w", err)
 		}
@@ -539,12 +539,14 @@ func New(options ...AgentOption) (*Agent, error) {
 		return nil, err
 	}
 
-	acConf := new(autoconf.Config).
-		WithDirectRPC(a.connPool).
-		WithBuilderOpts(flat.builderOpts).
-		WithLogger(a.logger).
-		WithOverrides(flat.overrides...).
-		WithCertMonitor(acCertMon)
+	acConf := autoconf.Config{
+		DirectRPC:   a.connPool,
+		Logger:      a.logger,
+		CertMonitor: acCertMon,
+		Loader: func(source config.Source) (*config.RuntimeConfig, []string, error) {
+			return config.Load(flat.builderOpts, source, flat.overrides...)
+		},
+	}
 	ac, err := autoconf.New(acConf)
 	if err != nil {
 		return nil, err
