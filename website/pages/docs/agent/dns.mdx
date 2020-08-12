@@ -36,7 +36,7 @@ as the DNS server for a node and provide a
 [`recursors`](/docs/agent/options#recursors) configuration so that non-Consul queries
 can also be resolved. The last method is to forward all queries for the "consul."
 domain to a Consul agent from the existing DNS server. Review the
-[DNS Forwarding guide](https://learn.hashicorp.com/consul/security-networking/forwarding?utm_source=consul.io&utm_medium=docs) for examples.
+[DNS Forwarding tutorial](https://learn.hashicorp.com/tutorials/consul/dns-forwarding?utm_source=consul.io&utm_medium=docs) for examples.
 
 You can experiment with Consul's DNS server on the command line using tools such as `dig`:
 
@@ -283,8 +283,8 @@ are not truncated.
 
 By default, all DNS results served by Consul set a 0 TTL value. This disables
 caching of DNS results. However, there are many situations in which caching is
-desirable for performance and scalability. This is discussed more in the guide
-for [DNS caching](https://learn.hashicorp.com/consul/security-networking/dns-caching).
+desirable for performance and scalability. This is discussed more in the tutorial
+for [DNS caching](https://learn.hashicorp.com/tutorials/consul/dns-caching).
 
 ## WAN Address Translation
 
