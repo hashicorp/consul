@@ -2,7 +2,7 @@
 
 BUG FIXES:
 
-* updated go-metrics to 0.3.4
+* [backport/1.6.x]  vendor: update github.com/armon/go-metrics to v0.3.4 [[GH-8478](https://github.com/hashicorp/consul/pull/8478)]
 * agent: Fixed an issue with lock contention during RPCs when under load while using the Prometheus metrics sink. [[GH-8372](https://github.com/hashicorp/consul/pull/8372)]
 * gossip: Avoid issue where two unique leave events for the same node could lead to infinite rebroadcast storms [[GH-8345](https://github.com/hashicorp/consul/issues/8345)]
 
