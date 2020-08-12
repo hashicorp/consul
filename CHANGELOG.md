@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.7.7 (August 12, 2020)
 
 BUG FIXES:
 * [backport/1.7.x] catalog: fixed a bug where nodes, services, and checks would not be restored with the correct Create/ModifyIndex when restoring from a snapshot [[GH-8485](https://github.com/hashicorp/consul/pull/8485)]
