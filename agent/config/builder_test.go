@@ -6,9 +6,38 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
+
+func TestLoad(t *testing.T) {
+	// Basically just testing that injection of the extra
+	// source works.
+	devMode := true
+	builderOpts := BuilderOpts{
+		// putting this in dev mode so that the config validates
+		// without having to specify a data directory
+		DevMode: &devMode,
+	}
+
+	cfg, warnings, err := Load(builderOpts, FileSource{
+		Name:   "test",
+		Format: "hcl",
+		Data:   `node_name = "hobbiton"`,
+	},
+		FileSource{
+			Name:   "overrides",
+			Format: "json",
+			Data:   `{"check_reap_interval": "1ms"}`,
+		})
+
+	require.NoError(t, err)
+	require.Empty(t, warnings)
+	require.NotNil(t, cfg)
+	require.Equal(t, "hobbiton", cfg.NodeName)
+	require.Equal(t, 1*time.Millisecond, cfg.CheckReapInterval)
+}
 
 func TestShouldParseFile(t *testing.T) {
 	var testcases = []struct {
