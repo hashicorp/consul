@@ -310,6 +310,7 @@ type RegisterRequest struct {
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 
 	WriteRequest
+	RaftIndex `bexpr:"-"`
 }
 
 func (r *RegisterRequest) RequestDatacenter() string {
