@@ -1,0 +1,3 @@
+```release-note:bug
+connect: use stronger validation that ingress gateways have compatible protocols defined for their upstreams
+```
