@@ -87,11 +87,23 @@ func TestNew(t *testing.T) {
 
 	cases := map[string]testCase{
 		"no-direct-rpc": {
+			config: Config{
+				Loader: func(source config.Source) (cfg *config.RuntimeConfig, warnings []string, err error) {
+					return nil, nil, nil
+				},
+			},
 			err: "must provide a direct RPC delegate",
+		},
+
+		"no-config-loader": {
+			err: "must provide a config loader",
 		},
 		"ok": {
 			config: Config{
 				DirectRPC: &mockDirectRPC{},
+				Loader: func(source config.Source) (cfg *config.RuntimeConfig, warnings []string, err error) {
+					return nil, nil, nil
+				},
 			},
 			validate: func(t *testing.T, ac *AutoConfig) {
 				t.Helper()
@@ -102,7 +114,7 @@ func TestNew(t *testing.T) {
 
 	for name, tcase := range cases {
 		t.Run(name, func(t *testing.T) {
-			ac, err := New(&tcase.config)
+			ac, err := New(tcase.config)
 			if tcase.err != "" {
 				testutil.RequireErrorContains(t, err, tcase.err)
 			} else {
@@ -116,99 +128,64 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestLoadConfig(t *testing.T) {
-	// Basically just testing that injection of the extra
-	// source works.
-	devMode := true
-	builderOpts := config.BuilderOpts{
-		// putting this in dev mode so that the config validates
-		// without having to specify a data directory
-		DevMode: &devMode,
-	}
-
-	cfg, warnings, err := LoadConfig(builderOpts, config.FileSource{
-		Name:   "test",
-		Format: "hcl",
-		Data:   `node_name = "hobbiton"`,
-	},
-		config.FileSource{
-			Name:   "overrides",
-			Format: "json",
-			Data:   `{"check_reap_interval": "1ms"}`,
-		})
-
-	require.NoError(t, err)
-	require.Empty(t, warnings)
-	require.NotNil(t, cfg)
-	require.Equal(t, "hobbiton", cfg.NodeName)
-	require.Equal(t, 1*time.Millisecond, cfg.CheckReapInterval)
-}
-
 func TestReadConfig(t *testing.T) {
 	// just testing that some auto config source gets injected
-	devMode := true
 	ac := AutoConfig{
 		autoConfigSource: config.LiteralSource{
 			Name:   autoConfigFileName,
 			Config: config.Config{NodeName: stringPointer("hobbiton")},
 		},
-		builderOpts: config.BuilderOpts{
-			// putting this in dev mode so that the config validates
-			// without having to specify a data directory
-			DevMode: &devMode,
-		},
 		logger: testutil.Logger(t),
+		acConfig: Config{
+			Loader: func(source config.Source) (*config.RuntimeConfig, []string, error) {
+				cfg, _, err := source.Parse()
+				if err != nil {
+					return nil, nil, err
+				}
+				return &config.RuntimeConfig{
+					DevMode:  true,
+					NodeName: *cfg.NodeName,
+				}, nil, nil
+			},
+		},
 	}
 
 	cfg, err := ac.ReadConfig()
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 	require.Equal(t, "hobbiton", cfg.NodeName)
+	require.True(t, cfg.DevMode)
 	require.Same(t, ac.config, cfg)
 }
 
-func testSetupAutoConf(t *testing.T) (string, string, config.BuilderOpts) {
+func setupRuntimeConfig(t *testing.T) *config.RuntimeConfig {
 	t.Helper()
 
-	// create top level directory to hold both config and data
-	tld := testutil.TempDir(t, "auto-config")
-	t.Cleanup(func() { os.RemoveAll(tld) })
+	dataDir := testutil.TempDir(t, "auto-config")
+	t.Cleanup(func() { os.RemoveAll(dataDir) })
 
-	// create the data directory
-	dataDir := filepath.Join(tld, "data")
-	require.NoError(t, os.Mkdir(dataDir, 0700))
-
-	// create the config directory
-	configDir := filepath.Join(tld, "config")
-	require.NoError(t, os.Mkdir(configDir, 0700))
-
-	builderOpts := config.BuilderOpts{
-		HCL: []string{
-			`data_dir = "` + dataDir + `"`,
-			`datacenter = "dc1"`,
-			`node_name = "autoconf"`,
-			`bind_addr = "127.0.0.1"`,
-		},
+	rtConfig := &config.RuntimeConfig{
+		DataDir:    dataDir,
+		Datacenter: "dc1",
+		NodeName:   "autoconf",
+		BindAddr:   &net.IPAddr{IP: net.ParseIP("127.0.0.1")},
 	}
-
-	return dataDir, configDir, builderOpts
+	return rtConfig
 }
 
 func TestInitialConfiguration_disabled(t *testing.T) {
-	dataDir, configDir, builderOpts := testSetupAutoConf(t)
+	rtConfig := setupRuntimeConfig(t)
 
-	cfgFile := filepath.Join(configDir, "test.json")
-	require.NoError(t, ioutil.WriteFile(cfgFile, []byte(`{
-		"primary_datacenter": "primary", 
-		"auto_config": {"enabled": false}
-	}`), 0600))
-
-	builderOpts.ConfigFiles = append(builderOpts.ConfigFiles, cfgFile)
-
-	directRPC := mockDirectRPC{}
-	conf := new(Config).
-		WithBuilderOpts(builderOpts).
-		WithDirectRPC(&directRPC)
+	directRPC := new(mockDirectRPC)
+	directRPC.Test(t)
+	conf := Config{
+		DirectRPC: directRPC,
+		Loader: func(source config.Source) (*config.RuntimeConfig, []string, error) {
+			rtConfig.PrimaryDatacenter = "primary"
+			rtConfig.AutoConfig.Enabled = false
+			return rtConfig, nil, nil
+		},
+	}
 	ac, err := New(conf)
 	require.NoError(t, err)
 	require.NotNil(t, ac)
@@ -217,26 +194,17 @@ func TestInitialConfiguration_disabled(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 	require.Equal(t, "primary", cfg.PrimaryDatacenter)
-	require.NoFileExists(t, filepath.Join(dataDir, autoConfigFileName))
+	require.NoFileExists(t, filepath.Join(rtConfig.DataDir, autoConfigFileName))
 
 	// ensure no RPC was made
 	directRPC.AssertExpectations(t)
 }
 
 func TestInitialConfiguration_cancelled(t *testing.T) {
-	_, configDir, builderOpts := testSetupAutoConf(t)
+	rtConfig := setupRuntimeConfig(t)
 
-	cfgFile := filepath.Join(configDir, "test.json")
-	require.NoError(t, ioutil.WriteFile(cfgFile, []byte(`{
-		"primary_datacenter": "primary", 
-		"auto_config": {"enabled": true, "intro_token": "blarg", "server_addresses": ["127.0.0.1:8300"]},
-		"verify_outgoing": true
-	}`), 0600))
-
-	builderOpts.ConfigFiles = append(builderOpts.ConfigFiles, cfgFile)
-
-	directRPC := mockDirectRPC{}
-
+	directRPC := new(mockDirectRPC)
+	directRPC.Test(t)
 	expectedRequest := pbautoconf.AutoConfigRequest{
 		Datacenter: "dc1",
 		Node:       "autoconf",
@@ -244,9 +212,19 @@ func TestInitialConfiguration_cancelled(t *testing.T) {
 	}
 
 	directRPC.On("RPC", "dc1", "autoconf", &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 8300}, "AutoConfig.InitialConfiguration", &expectedRequest, mock.Anything).Return(fmt.Errorf("injected error")).Times(0)
-	conf := new(Config).
-		WithBuilderOpts(builderOpts).
-		WithDirectRPC(&directRPC)
+	conf := Config{
+		DirectRPC: directRPC,
+		Loader: func(source config.Source) (*config.RuntimeConfig, []string, error) {
+			rtConfig.PrimaryDatacenter = "primary"
+			rtConfig.AutoConfig = config.AutoConfig{
+				Enabled:         true,
+				IntroToken:      "blarg",
+				ServerAddresses: []string{"127.0.0.1:8300"},
+			}
+			rtConfig.VerifyOutgoing = true
+			return rtConfig, nil, nil
+		},
+	}
 	ac, err := New(conf)
 	require.NoError(t, err)
 	require.NotNil(t, ac)
@@ -263,17 +241,10 @@ func TestInitialConfiguration_cancelled(t *testing.T) {
 }
 
 func TestInitialConfiguration_restored(t *testing.T) {
-	dataDir, configDir, builderOpts := testSetupAutoConf(t)
-
-	cfgFile := filepath.Join(configDir, "test.json")
-	require.NoError(t, ioutil.WriteFile(cfgFile, []byte(`{
-		"auto_config": {"enabled": true, "intro_token": "blarg", "server_addresses": ["127.0.0.1:8300"]}, "verify_outgoing": true
-	}`), 0600))
-
-	builderOpts.ConfigFiles = append(builderOpts.ConfigFiles, cfgFile)
+	rtConfig := setupRuntimeConfig(t)
 
 	// persist an auto config response to the data dir where it is expected
-	persistedFile := filepath.Join(dataDir, autoConfigFileName)
+	persistedFile := filepath.Join(rtConfig.DataDir, autoConfigFileName)
 	response := &pbautoconf.AutoConfigResponse{
 		Config: &pbconfig.Config{
 			PrimaryDatacenter: "primary",
@@ -312,11 +283,13 @@ func TestInitialConfiguration_restored(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, ioutil.WriteFile(persistedFile, []byte(data), 0600))
 
-	directRPC := mockDirectRPC{}
+	directRPC := new(mockDirectRPC)
+	directRPC.Test(t)
 
 	// setup the mock certificate monitor to ensure that the initial state gets
 	// updated appropriately during config restoration.
-	certMon := mockCertMonitor{}
+	certMon := new(mockCertMonitor)
+	certMon.Test(t)
 	certMon.On("Update", &structs.SignedResponse{
 		IssuedCert: structs.IssuedCert{
 			SerialNumber:  "1234",
@@ -349,10 +322,22 @@ func TestInitialConfiguration_restored(t *testing.T) {
 		VerifyServerHostname: true,
 	}).Return(nil).Once()
 
-	conf := new(Config).
-		WithBuilderOpts(builderOpts).
-		WithDirectRPC(&directRPC).
-		WithCertMonitor(&certMon)
+	conf := Config{
+		DirectRPC: directRPC,
+		Loader: func(source config.Source) (*config.RuntimeConfig, []string, error) {
+			if err := setPrimaryDatacenterFromSource(rtConfig, source); err != nil {
+				return nil, nil, err
+			}
+			rtConfig.AutoConfig = config.AutoConfig{
+				Enabled:         true,
+				IntroToken:      "blarg",
+				ServerAddresses: []string{"127.0.0.1:8300"},
+			}
+			rtConfig.VerifyOutgoing = true
+			return rtConfig, nil, nil
+		},
+		CertMonitor: certMon,
+	}
 	ac, err := New(conf)
 	require.NoError(t, err)
 	require.NotNil(t, ac)
@@ -367,18 +352,22 @@ func TestInitialConfiguration_restored(t *testing.T) {
 	certMon.AssertExpectations(t)
 }
 
+func setPrimaryDatacenterFromSource(rtConfig *config.RuntimeConfig, source config.Source) error {
+	if source != nil {
+		cfg, _, err := source.Parse()
+		if err != nil {
+			return err
+		}
+		rtConfig.PrimaryDatacenter = *cfg.PrimaryDatacenter
+	}
+	return nil
+}
+
 func TestInitialConfiguration_success(t *testing.T) {
-	dataDir, configDir, builderOpts := testSetupAutoConf(t)
+	rtConfig := setupRuntimeConfig(t)
 
-	cfgFile := filepath.Join(configDir, "test.json")
-	require.NoError(t, ioutil.WriteFile(cfgFile, []byte(`{
-		"auto_config": {"enabled": true, "intro_token": "blarg", "server_addresses": ["127.0.0.1:8300"]}, "verify_outgoing": true
-	}`), 0600))
-
-	builderOpts.ConfigFiles = append(builderOpts.ConfigFiles, cfgFile)
-
-	persistedFile := filepath.Join(dataDir, autoConfigFileName)
-	directRPC := mockDirectRPC{}
+	directRPC := new(mockDirectRPC)
+	directRPC.Test(t)
 
 	populateResponse := func(val interface{}) {
 		resp, ok := val.(*pbautoconf.AutoConfigResponse)
@@ -434,7 +423,8 @@ func TestInitialConfiguration_success(t *testing.T) {
 
 	// setup the mock certificate monitor to ensure that the initial state gets
 	// updated appropriately during config restoration.
-	certMon := mockCertMonitor{}
+	certMon := new(mockCertMonitor)
+	certMon.Test(t)
 	certMon.On("Update", &structs.SignedResponse{
 		IssuedCert: structs.IssuedCert{
 			SerialNumber:  "1234",
@@ -465,10 +455,22 @@ func TestInitialConfiguration_success(t *testing.T) {
 		VerifyServerHostname: true,
 	}).Return(nil).Once()
 
-	conf := new(Config).
-		WithBuilderOpts(builderOpts).
-		WithDirectRPC(&directRPC).
-		WithCertMonitor(&certMon)
+	conf := Config{
+		DirectRPC: directRPC,
+		Loader: func(source config.Source) (*config.RuntimeConfig, []string, error) {
+			if err := setPrimaryDatacenterFromSource(rtConfig, source); err != nil {
+				return nil, nil, err
+			}
+			rtConfig.AutoConfig = config.AutoConfig{
+				Enabled:         true,
+				IntroToken:      "blarg",
+				ServerAddresses: []string{"127.0.0.1:8300"},
+			}
+			rtConfig.VerifyOutgoing = true
+			return rtConfig, nil, nil
+		},
+		CertMonitor: certMon,
+	}
 	ac, err := New(conf)
 	require.NoError(t, err)
 	require.NotNil(t, ac)
@@ -479,6 +481,7 @@ func TestInitialConfiguration_success(t *testing.T) {
 	require.Equal(t, "primary", cfg.PrimaryDatacenter)
 
 	// the file was written to.
+	persistedFile := filepath.Join(rtConfig.DataDir, autoConfigFileName)
 	require.FileExists(t, persistedFile)
 
 	// ensure no RPC was made
@@ -487,17 +490,10 @@ func TestInitialConfiguration_success(t *testing.T) {
 }
 
 func TestInitialConfiguration_retries(t *testing.T) {
-	dataDir, configDir, builderOpts := testSetupAutoConf(t)
+	rtConfig := setupRuntimeConfig(t)
 
-	cfgFile := filepath.Join(configDir, "test.json")
-	require.NoError(t, ioutil.WriteFile(cfgFile, []byte(`{
-		"auto_config": {"enabled": true, "intro_token": "blarg", "server_addresses": ["198.18.0.1", "198.18.0.2:8398", "198.18.0.3:8399", "127.0.0.1:1234"]}, "verify_outgoing": true
-	}`), 0600))
-
-	builderOpts.ConfigFiles = append(builderOpts.ConfigFiles, cfgFile)
-
-	persistedFile := filepath.Join(dataDir, autoConfigFileName)
-	directRPC := mockDirectRPC{}
+	directRPC := new(mockDirectRPC)
+	directRPC.Test(t)
 
 	populateResponse := func(val interface{}) {
 		resp, ok := val.(*pbautoconf.AutoConfigResponse)
@@ -557,11 +553,27 @@ func TestInitialConfiguration_retries(t *testing.T) {
 		&expectedRequest,
 		&pbautoconf.AutoConfigResponse{}).Return(populateResponse)
 
-	waiter := lib.NewRetryWaiter(2, 0, 1*time.Millisecond, nil)
-	conf := new(Config).
-		WithBuilderOpts(builderOpts).
-		WithDirectRPC(&directRPC).
-		WithRetryWaiter(waiter)
+	conf := Config{
+		DirectRPC: directRPC,
+		Loader: func(source config.Source) (*config.RuntimeConfig, []string, error) {
+			if err := setPrimaryDatacenterFromSource(rtConfig, source); err != nil {
+				return nil, nil, err
+			}
+			rtConfig.AutoConfig = config.AutoConfig{
+				Enabled:    true,
+				IntroToken: "blarg",
+				ServerAddresses: []string{
+					"198.18.0.1:8300",
+					"198.18.0.2:8398",
+					"198.18.0.3:8399",
+					"127.0.0.1:1234",
+				},
+			}
+			rtConfig.VerifyOutgoing = true
+			return rtConfig, nil, nil
+		},
+		Waiter: lib.NewRetryWaiter(2, 0, 1*time.Millisecond, nil),
+	}
 	ac, err := New(conf)
 	require.NoError(t, err)
 	require.NotNil(t, ac)
@@ -572,6 +584,7 @@ func TestInitialConfiguration_retries(t *testing.T) {
 	require.Equal(t, "primary", cfg.PrimaryDatacenter)
 
 	// the file was written to.
+	persistedFile := filepath.Join(rtConfig.DataDir, autoConfigFileName)
 	require.FileExists(t, persistedFile)
 
 	// ensure no RPC was made
@@ -584,25 +597,34 @@ func TestAutoConfig_StartStop(t *testing.T) {
 	// stopped and not that anything with regards to running the cert monitor
 	// actually work. Those are tested in the cert-monitor package.
 
-	_, configDir, builderOpts := testSetupAutoConf(t)
+	rtConfig := setupRuntimeConfig(t)
 
-	cfgFile := filepath.Join(configDir, "test.json")
-	require.NoError(t, ioutil.WriteFile(cfgFile, []byte(`{
-		"auto_config": {"enabled": true, "intro_token": "blarg", "server_addresses": ["198.18.0.1", "198.18.0.2:8398", "198.18.0.3:8399", "127.0.0.1:1234"]}, "verify_outgoing": true
-	}`), 0600))
-
-	builderOpts.ConfigFiles = append(builderOpts.ConfigFiles, cfgFile)
 	directRPC := &mockDirectRPC{}
+	directRPC.Test(t)
 	certMon := &mockCertMonitor{}
+	certMon.Test(t)
 
 	certMon.On("Start").Return((<-chan struct{})(nil), nil).Once()
 	certMon.On("Stop").Return(true).Once()
 
-	conf := new(Config).
-		WithBuilderOpts(builderOpts).
-		WithDirectRPC(directRPC).
-		WithCertMonitor(certMon)
-
+	conf := Config{
+		DirectRPC: directRPC,
+		Loader: func(source config.Source) (*config.RuntimeConfig, []string, error) {
+			rtConfig.AutoConfig = config.AutoConfig{
+				Enabled:    true,
+				IntroToken: "blarg",
+				ServerAddresses: []string{
+					"198.18.0.1",
+					"198.18.0.2:8398",
+					"198.18.0.3:8399",
+					"127.0.0.1:1234",
+				},
+			}
+			rtConfig.VerifyOutgoing = true
+			return rtConfig, nil, nil
+		},
+		CertMonitor: certMon,
+	}
 	ac, err := New(conf)
 	require.NoError(t, err)
 	require.NotNil(t, ac)
@@ -618,16 +640,10 @@ func TestAutoConfig_StartStop(t *testing.T) {
 }
 
 func TestFallBackTLS(t *testing.T) {
-	_, configDir, builderOpts := testSetupAutoConf(t)
+	rtConfig := setupRuntimeConfig(t)
 
-	cfgFile := filepath.Join(configDir, "test.json")
-	require.NoError(t, ioutil.WriteFile(cfgFile, []byte(`{
-		"auto_config": {"enabled": true, "intro_token": "blarg", "server_addresses": ["127.0.0.1:8300"]}, "verify_outgoing": true
-	}`), 0600))
-
-	builderOpts.ConfigFiles = append(builderOpts.ConfigFiles, cfgFile)
-
-	directRPC := mockDirectRPC{}
+	directRPC := new(mockDirectRPC)
+	directRPC.Test(t)
 
 	populateResponse := func(val interface{}) {
 		resp, ok := val.(*pbautoconf.AutoConfigResponse)
@@ -684,12 +700,21 @@ func TestFallBackTLS(t *testing.T) {
 	// setup the mock certificate monitor we don't expect it to be used
 	// as the FallbackTLS method is mainly used by the certificate monitor
 	// if for some reason it fails to renew the TLS certificate in time.
-	certMon := mockCertMonitor{}
+	certMon := new(mockCertMonitor)
 
-	conf := new(Config).
-		WithBuilderOpts(builderOpts).
-		WithDirectRPC(&directRPC).
-		WithCertMonitor(&certMon)
+	conf := Config{
+		DirectRPC: directRPC,
+		Loader: func(source config.Source) (*config.RuntimeConfig, []string, error) {
+			rtConfig.AutoConfig = config.AutoConfig{
+				Enabled:         true,
+				IntroToken:      "blarg",
+				ServerAddresses: []string{"127.0.0.1:8300"},
+			}
+			rtConfig.VerifyOutgoing = true
+			return rtConfig, nil, nil
+		},
+		CertMonitor: certMon,
+	}
 	ac, err := New(conf)
 	require.NoError(t, err)
 	require.NotNil(t, ac)

@@ -33,6 +33,31 @@ import (
 	"golang.org/x/time/rate"
 )
 
+// LoadConfig will build the configuration including the extraHead source injected
+// after all other defaults but before any user supplied configuration and the overrides
+// source injected as the final source in the configuration parsing chain.
+func Load(builderOpts BuilderOpts, extraHead Source, overrides ...Source) (*RuntimeConfig, []string, error) {
+	b, err := NewBuilder(builderOpts)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if extraHead != nil {
+		b.Head = append(b.Head, extraHead)
+	}
+
+	if len(overrides) != 0 {
+		b.Tail = append(b.Tail, overrides...)
+	}
+
+	cfg, err := b.BuildAndValidate()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return &cfg, b.Warnings, nil
+}
+
 // Builder constructs a valid runtime configuration from multiple
 // configuration sources.
 //
