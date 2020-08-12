@@ -93,7 +93,7 @@ func NewBuilder(opts BuilderOpts) (*Builder, error) {
 		if err != nil {
 			panic(err)
 		}
-		return Source{Name: name, Format: "json", Data: string(b)}
+		return FileSource{Name: name, Format: "json", Data: string(b)}
 	}
 
 	b := &Builder{
@@ -121,7 +121,7 @@ func NewBuilder(opts BuilderOpts) (*Builder, error) {
 	}
 	b.Tail = append(b.Tail, newSource("flags.values", values))
 	for i, s := range opts.HCL {
-		b.Tail = append(b.Tail, Source{
+		b.Tail = append(b.Tail, FileSource{
 			Name:   fmt.Sprintf("flags-%d.hcl", i),
 			Format: "hcl",
 			Data:   s,
@@ -207,12 +207,12 @@ func (b *Builder) sourcesFromPath(path string, format string) ([]Source, error) 
 func newSourceFromFile(path string, format string) (Source, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
-		return Source{}, fmt.Errorf("config: failed to read %s: %s", path, err)
+		return nil, fmt.Errorf("config: failed to read %s: %s", path, err)
 	}
 	if format == "" {
 		format = formatFromFileExtension(path)
 	}
-	return Source{Name: path, Data: string(data), Format: format}, nil
+	return FileSource{Name: path, Data: string(data), Format: format}, nil
 }
 
 // shouldParse file determines whether the file to be read is of a supported extension
@@ -271,12 +271,13 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	// parse the config sources into a configuration
 	var c Config
 	for _, s := range srcs {
-		if s.Name == "" || s.Data == "" {
+
+		c2, md, err := s.Parse()
+		switch {
+		case err == ErrNoData:
 			continue
-		}
-		c2, md, err := Parse(s.Data, s.Format)
-		if err != nil {
-			return RuntimeConfig{}, fmt.Errorf("Error parsing %s: %s", s.Name, err)
+		case err != nil:
+			return RuntimeConfig{}, fmt.Errorf("failed to parse %v: %w", s.Source(), err)
 		}
 
 		var unusedErr error
@@ -289,7 +290,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			}
 		}
 		if unusedErr != nil {
-			return RuntimeConfig{}, fmt.Errorf("Error parsing %s: %s", s.Name, unusedErr)
+			return RuntimeConfig{}, fmt.Errorf("failed to parse %v: %s", s.Source(), unusedErr)
 		}
 
 		// for now this is a soft failure that will cause warnings but not actual problems

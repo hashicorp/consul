@@ -2,7 +2,6 @@ package autoconf
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -63,7 +62,7 @@ type AutoConfig struct {
 	certMonitor        CertMonitor
 	config             *config.RuntimeConfig
 	autoConfigResponse *pbautoconf.AutoConfigResponse
-	autoConfigData     string
+	autoConfigSource   config.Source
 	cancel             context.CancelFunc
 }
 
@@ -105,13 +104,7 @@ func New(config *Config) (*AutoConfig, error) {
 // ReadConfig will parse the current configuration and inject any
 // auto-config sources if present into the correct place in the parsing chain.
 func (ac *AutoConfig) ReadConfig() (*config.RuntimeConfig, error) {
-	src := config.Source{
-		Name:   autoConfigFileName,
-		Format: "json",
-		Data:   ac.autoConfigData,
-	}
-
-	cfg, warnings, err := LoadConfig(ac.builderOpts, src, ac.overrides...)
+	cfg, warnings, err := LoadConfig(ac.builderOpts, ac.autoConfigSource, ac.overrides...)
 	if err != nil {
 		return cfg, err
 	}
@@ -496,28 +489,15 @@ func (ac *AutoConfig) generateCSR() (csr string, key string, err error) {
 func (ac *AutoConfig) update(resp *pbautoconf.AutoConfigResponse) error {
 	ac.autoConfigResponse = resp
 
-	if err := ac.updateConfigFromResponse(resp); err != nil {
-		return err
+	ac.autoConfigSource = config.LiteralSource{
+		Name:   autoConfigFileName,
+		Config: translateConfig(resp.Config),
 	}
 
 	if err := ac.updateTLSFromResponse(resp); err != nil {
 		return err
 	}
 
-	return nil
-}
-
-// updateConfigFromResponse is responsible for generating the JSON compatible with the
-// agent/config.Config struct
-func (ac *AutoConfig) updateConfigFromResponse(resp *pbautoconf.AutoConfigResponse) error {
-	// here we want to serialize the translated configuration for use in injecting into the normal
-	// configuration parsing chain.
-	conf, err := json.Marshal(translateConfig(resp.Config))
-	if err != nil {
-		return fmt.Errorf("failed to encode auto-config configuration as JSON: %w", err)
-	}
-
-	ac.autoConfigData = string(conf)
 	return nil
 }
 

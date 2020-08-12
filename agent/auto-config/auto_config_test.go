@@ -126,12 +126,12 @@ func TestLoadConfig(t *testing.T) {
 		DevMode: &devMode,
 	}
 
-	cfg, warnings, err := LoadConfig(builderOpts, config.Source{
+	cfg, warnings, err := LoadConfig(builderOpts, config.FileSource{
 		Name:   "test",
 		Format: "hcl",
 		Data:   `node_name = "hobbiton"`,
 	},
-		config.Source{
+		config.FileSource{
 			Name:   "overrides",
 			Format: "json",
 			Data:   `{"check_reap_interval": "1ms"}`,
@@ -148,7 +148,10 @@ func TestReadConfig(t *testing.T) {
 	// just testing that some auto config source gets injected
 	devMode := true
 	ac := AutoConfig{
-		autoConfigData: `{"node_name": "hobbiton"}`,
+		autoConfigSource: config.LiteralSource{
+			Name:   autoConfigFileName,
+			Config: config.Config{NodeName: stringPointer("hobbiton")},
+		},
 		builderOpts: config.BuilderOpts{
 			// putting this in dev mode so that the config validates
 			// without having to specify a data directory

@@ -1584,7 +1584,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`this is not JSON`},
 			hcl:  []string{`*** 0123 this is not HCL`},
-			err:  "Error parsing",
+			err:  "failed to parse",
 		},
 		{
 			desc: "datacenter is lower-cased",
@@ -4312,14 +4312,14 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 
 				// read the source fragements
 				for i, data := range srcs {
-					b.Sources = append(b.Sources, Source{
+					b.Sources = append(b.Sources, FileSource{
 						Name:   fmt.Sprintf("src-%d.%s", i, format),
 						Format: format,
 						Data:   data,
 					})
 				}
 				for i, data := range tails {
-					b.Tail = append(b.Tail, Source{
+					b.Tail = append(b.Tail, FileSource{
 						Name:   fmt.Sprintf("tail-%d.%s", i, format),
 						Format: format,
 						Data:   data,
@@ -5727,7 +5727,7 @@ func TestFullConfig(t *testing.T) {
 
 	tail := map[string][]Source{
 		"json": {
-			{
+			FileSource{
 				Name:   "tail.non-user.json",
 				Format: "json",
 				Data: `
@@ -5746,7 +5746,7 @@ func TestFullConfig(t *testing.T) {
 					"sync_coordinate_rate_target": 137.81
 				}`,
 			},
-			{
+			FileSource{
 				Name:   "tail.consul.json",
 				Format: "json",
 				Data: `
@@ -5770,7 +5770,7 @@ func TestFullConfig(t *testing.T) {
 			},
 		},
 		"hcl": {
-			{
+			FileSource{
 				Name:   "tail.non-user.hcl",
 				Format: "hcl",
 				Data: `
@@ -5788,7 +5788,7 @@ func TestFullConfig(t *testing.T) {
 					sync_coordinate_rate_target = 137.81
 				`,
 			},
-			{
+			FileSource{
 				Name:   "tail.consul.hcl",
 				Format: "hcl",
 				Data: `
@@ -6525,7 +6525,7 @@ func TestFullConfig(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NewBuilder: %s", err)
 			}
-			b.Sources = append(b.Sources, Source{Name: "full." + format, Data: data, Format: format})
+			b.Sources = append(b.Sources, FileSource{Name: "full." + format, Data: data, Format: format})
 			b.Tail = append(b.Tail, tail[format]...)
 			b.Tail = append(b.Tail, VersionSource("JNtPSav3", "R909Hblt", "ZT1JOQLn"))
 
