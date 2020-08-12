@@ -1912,6 +1912,59 @@ func TestAgent_AliasCheck(t *testing.T) {
 	}
 }
 
+func TestAgent_AliasCheck_ServiceNotification(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	cfg := config.DefaultRuntimeConfig(`bind_addr = "127.0.0.1" data_dir = "dummy"`)
+	l := local.NewState(agent.LocalConfig(cfg), nil, new(token.Store))
+	l.TriggerSyncChanges = func() {}
+
+	// Add an alias check for service s1
+	notifyCh := make(chan struct{}, 1)
+	require.NoError(l.AddAliasCheck(structs.NewCheckID(types.CheckID("a1"), nil), structs.NewServiceID("s1", nil), notifyCh))
+
+	// Add aliased service, s1, and verify we get notified
+	require.NoError(l.AddService(&structs.NodeService{Service: "s1"}, ""))
+	select {
+	case <-notifyCh:
+	default:
+		t.Fatal("notify not received")
+	}
+
+	// Re-adding same service should not lead to a notification
+	require.NoError(l.AddService(&structs.NodeService{Service: "s1"}, ""))
+	select {
+	case <-notifyCh:
+		t.Fatal("notify received")
+	default:
+	}
+
+	// Add different service and verify we do not get notified
+	require.NoError(l.AddService(&structs.NodeService{Service: "s2"}, ""))
+	select {
+	case <-notifyCh:
+		t.Fatal("notify received")
+	default:
+	}
+
+	// Delete service and verify we get notified
+	require.NoError(l.RemoveService(structs.NewServiceID("s1", nil)))
+	select {
+	case <-notifyCh:
+	default:
+		t.Fatal("notify not received")
+	}
+
+	// Delete different service and verify we do not get notified
+	require.NoError(l.RemoveService(structs.NewServiceID("s2", nil)))
+	select {
+	case <-notifyCh:
+		t.Fatal("notify received")
+	default:
+	}
+}
+
 func TestAgent_sendCoordinate(t *testing.T) {
 	t.Parallel()
 	a := agent.StartTestAgent(t, agent.TestAgent{Overrides: `
