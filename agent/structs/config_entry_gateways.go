@@ -2,6 +2,7 @@ package structs
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/consul/acl"
@@ -201,6 +202,44 @@ func validateHost(tlsEnabled bool, host string) error {
 	}
 
 	return nil
+}
+
+// ListRelatedServices implements discoveryChainConfigEntry
+//
+// For ingress-gateway config entries this only finds services that are
+// explicitly linked in the ingress-gateway config entry. Wildcards will not
+// expand to all services.
+//
+// This function is used during discovery chain graph validation to prevent
+// erroneous sets of config entries from being created. Wildcard ingress
+// filters out sets with protocol mismatch elsewhere so it isn't an issue here
+// that needs fixing.
+func (e *IngressGatewayConfigEntry) ListRelatedServices() []ServiceID {
+	found := make(map[ServiceID]struct{})
+
+	for _, listener := range e.Listeners {
+		for _, service := range listener.Services {
+			if service.Name == WildcardSpecifier {
+				continue
+			}
+			svcID := NewServiceID(service.Name, &service.EnterpriseMeta)
+			found[svcID] = struct{}{}
+		}
+	}
+
+	if len(found) == 0 {
+		return nil
+	}
+
+	out := make([]ServiceID, 0, len(found))
+	for svc := range found {
+		out = append(out, svc)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		return out[i].EnterpriseMeta.LessThan(&out[j].EnterpriseMeta) ||
+			out[i].ID < out[j].ID
+	})
+	return out
 }
 
 func (e *IngressGatewayConfigEntry) CanRead(authz acl.Authorizer) bool {
