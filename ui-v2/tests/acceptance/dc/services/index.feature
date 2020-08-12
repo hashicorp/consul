@@ -75,17 +75,20 @@ Feature: dc / services / index: List Services
     - ingress-gateway
     - terminating-gateway
     ---
-  Scenario: View a Service with a proxy
+  Scenario: View a Service in mesh
     Given 1 datacenter model with the value "dc-1"
     And 3 service models from yaml
     ---
       - Name: Service-0
         Kind: ~
+        ConnectedWithProxy: true
+        ConnectedWithGateway: true
       - Name: Service-0-proxy
         Kind: connect-proxy
-        ProxyFor: ['Service-0']
       - Name: Service-1
         Kind: ~
+        ConnectedWithProxy: false
+        ConnectedWithGateway: false
     ---
 
     When I visit the services page for yaml
@@ -95,5 +98,5 @@ Feature: dc / services / index: List Services
     Then the url should be /dc-1/services
     And the title should be "Services - Consul"
     Then I see 2 service models
-    And I see proxy on the services.0
-    And I don't see proxy on the services.1
+    And I see mesh on the services.0
+    And I don't see mesh on the services.1
