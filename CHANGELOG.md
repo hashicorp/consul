@@ -1,7 +1,8 @@
 ## UNRELEASED
 
 BUG FIXES:
-
+* [backport/1.7.x] catalog: fixed a bug where nodes, services, and checks would not be restored with the correct Create/ModifyIndex when restoring from a snapshot [[GH-8485](https://github.com/hashicorp/consul/pull/8485)]
+* [backport/1.7.x] vendor: update github.com/armon/go-metrics to v0.3.4 [[GH-8478](https://github.com/hashicorp/consul/pull/8478)]
 * [backport/1.7.x] xds: revert setting set_node_on_first_message_only to true when generating envoy bootstrap config [[GH-8441](https://github.com/hashicorp/consul/issues/8441)]
 
 ## 1.7.5 (July 30, 2020)
