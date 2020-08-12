@@ -337,10 +337,6 @@ func (s *Store) validateProposedConfigEntryInGraph(
 		if err != nil {
 			return err
 		}
-		err = validateProposedIngressProtocolsInServiceGraph(tx, next, entMeta)
-		if err != nil {
-			return err
-		}
 	case structs.TerminatingGateway:
 		err := checkGatewayClash(tx, name, structs.TerminatingGateway, structs.IngressGateway, entMeta)
 		if err != nil {
@@ -384,7 +380,11 @@ func (s *Store) validateProposedConfigEntryInServiceGraph(
 ) error {
 	// Collect all of the chains that could be affected by this change
 	// including our own.
-	checkChains := make(map[structs.ServiceID]struct{})
+	var (
+		checkChains                  = make(map[structs.ServiceID]struct{})
+		checkIngress                 []*structs.IngressGatewayConfigEntry
+		enforceIngressProtocolsMatch bool
+	)
 
 	if validateAllChains {
 		// Must be proxy-defaults/global.
@@ -401,6 +401,37 @@ func (s *Store) validateProposedConfigEntryInServiceGraph(
 				checkChains[structs.NewServiceID(entry.GetName(), entry.GetEnterpriseMeta())] = struct{}{}
 			}
 		}
+
+		_, entries, err := configEntriesByKindTxn(tx, nil, structs.IngressGateway, structs.WildcardEnterpriseMeta())
+		if err != nil {
+			return err
+		}
+		for _, entry := range entries {
+			ingress, ok := entry.(*structs.IngressGatewayConfigEntry)
+			if !ok {
+				return fmt.Errorf("type %T is not an ingress gateway config entry", entry)
+			}
+			checkIngress = append(checkIngress, ingress)
+		}
+
+	} else if kind == structs.IngressGateway {
+		// Checking an ingress pointing to multiple chains.
+
+		// This is the case for deleting a config entry
+		if next == nil {
+			return nil
+		}
+
+		ingress, ok := next.(*structs.IngressGatewayConfigEntry)
+		if !ok {
+			return fmt.Errorf("type %T is not an ingress gateway config entry", next)
+		}
+		checkIngress = append(checkIngress, ingress)
+
+		// When editing an ingress-gateway directly we are stricter about
+		// validating the protocol equivalence.
+		enforceIngressProtocolsMatch = true
+
 	} else {
 		// Must be a single chain.
 
@@ -413,7 +444,25 @@ func (s *Store) validateProposedConfigEntryInServiceGraph(
 		}
 		for raw := iter.Next(); raw != nil; raw = iter.Next() {
 			entry := raw.(structs.ConfigEntry)
-			checkChains[structs.NewServiceID(entry.GetName(), entry.GetEnterpriseMeta())] = struct{}{}
+			switch entry.GetKind() {
+			case structs.ServiceRouter, structs.ServiceSplitter, structs.ServiceResolver:
+				svcID := structs.NewServiceID(entry.GetName(), entry.GetEnterpriseMeta())
+				checkChains[svcID] = struct{}{}
+			case structs.IngressGateway:
+				ingress, ok := entry.(*structs.IngressGatewayConfigEntry)
+				if !ok {
+					return fmt.Errorf("type %T is not an ingress gateway config entry", entry)
+				}
+				checkIngress = append(checkIngress, ingress)
+			}
+		}
+	}
+
+	// Ensure if any ingress is affected that we fetch all of the chains needed
+	// to fully validate that ingress.
+	for _, ingress := range checkIngress {
+		for _, svcID := range ingress.ListRelatedServices() {
+			checkChains[svcID] = struct{}{}
 		}
 	}
 
@@ -421,24 +470,69 @@ func (s *Store) validateProposedConfigEntryInServiceGraph(
 		{Kind: kind, Name: name}: next,
 	}
 
+	var (
+		svcProtocols   = make(map[structs.ServiceID]string)
+		svcTopNodeType = make(map[structs.ServiceID]string)
+	)
 	for chain := range checkChains {
-		if err := s.testCompileDiscoveryChain(tx, chain.ID, overrides, &chain.EnterpriseMeta); err != nil {
+		protocol, topNode, err := s.testCompileDiscoveryChain(tx, chain.ID, overrides, &chain.EnterpriseMeta)
+		if err != nil {
 			return err
+		}
+		svcProtocols[chain] = protocol
+		svcTopNodeType[chain] = topNode.Type
+	}
+
+	// Now validate all of our ingress gateways.
+	for _, e := range checkIngress {
+		for _, listener := range e.Listeners {
+			expectedProto := listener.Protocol
+			for _, service := range listener.Services {
+				if service.Name == structs.WildcardSpecifier {
+					continue
+				}
+				svcID := structs.NewServiceID(service.Name, &service.EnterpriseMeta)
+
+				svcProto := svcProtocols[svcID]
+
+				if svcProto != expectedProto {
+					// The only time an ingress gateway and its upstreams can
+					// have differing protocols is when:
+					//
+					// 1. ingress is tcp and the target is not-tcp
+					//    AND
+					// 2. the disco chain has a resolver as the top node
+					topNodeType := svcTopNodeType[svcID]
+					if enforceIngressProtocolsMatch ||
+						(expectedProto != "tcp") ||
+						(expectedProto == "tcp" && topNodeType != structs.DiscoveryGraphNodeTypeResolver) {
+						return fmt.Errorf(
+							"service %q has protocol %q, which does not match defined listener protocol %q",
+							svcID.String(),
+							svcProto,
+							expectedProto,
+						)
+					}
+				}
+			}
 		}
 	}
 
 	return nil
 }
 
+// testCompileDiscoveryChain speculatively compiles a discovery chain with
+// pending modifications to see if it would be valid. Also returns the computed
+// protocol and topmost discovery chain node.
 func (s *Store) testCompileDiscoveryChain(
 	tx *txn,
 	chainName string,
 	overrides map[structs.ConfigEntryKindName]structs.ConfigEntry,
 	entMeta *structs.EnterpriseMeta,
-) error {
+) (string, *structs.DiscoveryGraphNode, error) {
 	_, speculativeEntries, err := s.readDiscoveryChainConfigEntriesTxn(tx, nil, chainName, overrides, entMeta)
 	if err != nil {
-		return err
+		return "", nil, err
 	}
 
 	// Note we use an arbitrary namespace and datacenter as those would not
@@ -453,8 +547,12 @@ func (s *Store) testCompileDiscoveryChain(
 		UseInDatacenter:       "dc1",
 		Entries:               speculativeEntries,
 	}
-	_, err = discoverychain.Compile(req)
-	return err
+	chain, err := discoverychain.Compile(req)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return chain.Protocol, chain.Nodes[chain.StartNode], nil
 }
 
 // ReadDiscoveryChainConfigEntries will query for the full discovery chain for
@@ -820,48 +918,6 @@ func configEntryWithOverridesTxn(
 	}
 
 	return configEntryTxn(tx, ws, kind, name, entMeta)
-}
-
-func validateProposedIngressProtocolsInServiceGraph(
-	tx *txn,
-	next structs.ConfigEntry,
-	entMeta *structs.EnterpriseMeta,
-) error {
-	// This is the case for deleting a config entry
-	if next == nil {
-		return nil
-	}
-	ingress, ok := next.(*structs.IngressGatewayConfigEntry)
-	if !ok {
-		return fmt.Errorf("type %T is not an ingress gateway config entry", next)
-	}
-
-	validationFn := func(svc structs.ServiceName, expectedProto string) error {
-		_, svcProto, err := protocolForService(tx, nil, svc)
-		if err != nil {
-			return err
-		}
-
-		if svcProto != expectedProto {
-			return fmt.Errorf("service %q has protocol %q, which does not match defined listener protocol %q",
-				svc.String(), svcProto, expectedProto)
-		}
-
-		return nil
-	}
-
-	for _, l := range ingress.Listeners {
-		for _, s := range l.Services {
-			if s.Name == structs.WildcardSpecifier {
-				continue
-			}
-			err := validationFn(s.ToServiceName(), l.Protocol)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
 }
 
 // protocolForService returns the service graph protocol associated to the
