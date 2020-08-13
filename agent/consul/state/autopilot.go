@@ -77,7 +77,7 @@ func (s *Store) AutopilotSetConfig(idx uint64, config *autopilot.Config) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	if err := s.autopilotSetConfigTxn(idx, tx, config); err != nil {
+	if err := autopilotSetConfigTxn(tx, idx, config); err != nil {
 		return err
 	}
 
@@ -105,7 +105,7 @@ func (s *Store) AutopilotCASConfig(idx, cidx uint64, config *autopilot.Config) (
 		return false, nil
 	}
 
-	if err := s.autopilotSetConfigTxn(idx, tx, config); err != nil {
+	if err := autopilotSetConfigTxn(tx, idx, config); err != nil {
 		return false, err
 	}
 
@@ -113,7 +113,7 @@ func (s *Store) AutopilotCASConfig(idx, cidx uint64, config *autopilot.Config) (
 	return err == nil, err
 }
 
-func (s *Store) autopilotSetConfigTxn(idx uint64, tx *txn, config *autopilot.Config) error {
+func autopilotSetConfigTxn(tx *txn, idx uint64, config *autopilot.Config) error {
 	// Check for an existing config
 	existing, err := tx.First("autopilot-config", "id")
 	if err != nil {

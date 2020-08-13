@@ -106,7 +106,7 @@ func (s *Store) ConfigEntry(ws memdb.WatchSet, kind, name string, entMeta *struc
 	return configEntryTxn(tx, ws, kind, name, entMeta)
 }
 
-func configEntryTxn(tx *txn, ws memdb.WatchSet, kind, name string, entMeta *structs.EnterpriseMeta) (uint64, structs.ConfigEntry, error) {
+func configEntryTxn(tx ReadTxn, ws memdb.WatchSet, kind, name string, entMeta *structs.EnterpriseMeta) (uint64, structs.ConfigEntry, error) {
 	// Get the index
 	idx := maxIndexTxn(tx, configTableName)
 
@@ -141,7 +141,7 @@ func (s *Store) ConfigEntriesByKind(ws memdb.WatchSet, kind string, entMeta *str
 	return configEntriesByKindTxn(tx, ws, kind, entMeta)
 }
 
-func configEntriesByKindTxn(tx *txn, ws memdb.WatchSet, kind string, entMeta *structs.EnterpriseMeta) (uint64, []structs.ConfigEntry, error) {
+func configEntriesByKindTxn(tx ReadTxn, ws memdb.WatchSet, kind string, entMeta *structs.EnterpriseMeta) (uint64, []structs.ConfigEntry, error) {
 	// Get the index
 	idx := maxIndexTxn(tx, configTableName)
 
@@ -170,7 +170,7 @@ func (s *Store) EnsureConfigEntry(idx uint64, conf structs.ConfigEntry, entMeta 
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	if err := s.ensureConfigEntryTxn(tx, idx, conf, entMeta); err != nil {
+	if err := ensureConfigEntryTxn(tx, idx, conf, entMeta); err != nil {
 		return err
 	}
 
@@ -178,7 +178,7 @@ func (s *Store) EnsureConfigEntry(idx uint64, conf structs.ConfigEntry, entMeta 
 }
 
 // ensureConfigEntryTxn upserts a config entry inside of a transaction.
-func (s *Store) ensureConfigEntryTxn(tx *txn, idx uint64, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) error {
+func ensureConfigEntryTxn(tx *txn, idx uint64, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) error {
 	// Check for existing configuration.
 	existing, err := firstConfigEntryWithTxn(tx, conf.GetKind(), conf.GetName(), entMeta)
 	if err != nil {
@@ -195,7 +195,7 @@ func (s *Store) ensureConfigEntryTxn(tx *txn, idx uint64, conf structs.ConfigEnt
 	}
 	raftIndex.ModifyIndex = idx
 
-	err = s.validateProposedConfigEntryInGraph(tx, conf.GetKind(), conf.GetName(), conf, entMeta)
+	err = validateProposedConfigEntryInGraph(tx, conf.GetKind(), conf.GetName(), conf, entMeta)
 	if err != nil {
 		return err // Err is already sufficiently decorated.
 	}
@@ -234,7 +234,7 @@ func (s *Store) EnsureConfigEntryCAS(idx, cidx uint64, conf structs.ConfigEntry,
 		return false, nil
 	}
 
-	if err := s.ensureConfigEntryTxn(tx, idx, conf, entMeta); err != nil {
+	if err := ensureConfigEntryTxn(tx, idx, conf, entMeta); err != nil {
 		return false, err
 	}
 
@@ -266,7 +266,7 @@ func (s *Store) DeleteConfigEntry(idx uint64, kind, name string, entMeta *struct
 		}
 	}
 
-	err = s.validateProposedConfigEntryInGraph(tx, kind, name, nil, entMeta)
+	err = validateProposedConfigEntryInGraph(tx, kind, name, nil, entMeta)
 	if err != nil {
 		return err // Err is already sufficiently decorated.
 	}
@@ -313,8 +313,8 @@ func insertConfigEntryWithTxn(tx *txn, idx uint64, conf structs.ConfigEntry) err
 //
 // May return *ConfigEntryGraphValidationError if there is a concern to surface
 // to the caller that they can correct.
-func (s *Store) validateProposedConfigEntryInGraph(
-	tx *txn,
+func validateProposedConfigEntryInGraph(
+	tx ReadTxn,
 	kind, name string,
 	next structs.ConfigEntry,
 	entMeta *structs.EnterpriseMeta,
@@ -346,11 +346,11 @@ func (s *Store) validateProposedConfigEntryInGraph(
 		return fmt.Errorf("unhandled kind %q during validation of %q", kind, name)
 	}
 
-	return s.validateProposedConfigEntryInServiceGraph(tx, kind, name, next, validateAllChains, entMeta)
+	return validateProposedConfigEntryInServiceGraph(tx, kind, name, next, validateAllChains, entMeta)
 }
 
 func checkGatewayClash(
-	tx *txn,
+	tx ReadTxn,
 	name, selfKind, otherKind string,
 	entMeta *structs.EnterpriseMeta,
 ) error {
@@ -371,8 +371,8 @@ var serviceGraphKinds = []string{
 	structs.ServiceResolver,
 }
 
-func (s *Store) validateProposedConfigEntryInServiceGraph(
-	tx *txn,
+func validateProposedConfigEntryInServiceGraph(
+	tx ReadTxn,
 	kind, name string,
 	next structs.ConfigEntry,
 	validateAllChains bool,
@@ -475,7 +475,7 @@ func (s *Store) validateProposedConfigEntryInServiceGraph(
 		svcTopNodeType = make(map[structs.ServiceID]string)
 	)
 	for chain := range checkChains {
-		protocol, topNode, err := s.testCompileDiscoveryChain(tx, chain.ID, overrides, &chain.EnterpriseMeta)
+		protocol, topNode, err := testCompileDiscoveryChain(tx, chain.ID, overrides, &chain.EnterpriseMeta)
 		if err != nil {
 			return err
 		}
@@ -524,13 +524,13 @@ func (s *Store) validateProposedConfigEntryInServiceGraph(
 // testCompileDiscoveryChain speculatively compiles a discovery chain with
 // pending modifications to see if it would be valid. Also returns the computed
 // protocol and topmost discovery chain node.
-func (s *Store) testCompileDiscoveryChain(
-	tx *txn,
+func testCompileDiscoveryChain(
+	tx ReadTxn,
 	chainName string,
 	overrides map[structs.ConfigEntryKindName]structs.ConfigEntry,
 	entMeta *structs.EnterpriseMeta,
 ) (string, *structs.DiscoveryGraphNode, error) {
-	_, speculativeEntries, err := s.readDiscoveryChainConfigEntriesTxn(tx, nil, chainName, overrides, entMeta)
+	_, speculativeEntries, err := readDiscoveryChainConfigEntriesTxn(tx, nil, chainName, overrides, entMeta)
 	if err != nil {
 		return "", nil, err
 	}
@@ -587,11 +587,11 @@ func (s *Store) readDiscoveryChainConfigEntries(
 ) (uint64, *structs.DiscoveryChainConfigEntries, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	return s.readDiscoveryChainConfigEntriesTxn(tx, ws, serviceName, overrides, entMeta)
+	return readDiscoveryChainConfigEntriesTxn(tx, ws, serviceName, overrides, entMeta)
 }
 
-func (s *Store) readDiscoveryChainConfigEntriesTxn(
-	tx *txn,
+func readDiscoveryChainConfigEntriesTxn(
+	tx ReadTxn,
 	ws memdb.WatchSet,
 	serviceName string,
 	overrides map[structs.ConfigEntryKindName]structs.ConfigEntry,
@@ -619,7 +619,7 @@ func (s *Store) readDiscoveryChainConfigEntriesTxn(
 	sid := structs.NewServiceID(serviceName, entMeta)
 
 	// Grab the proxy defaults if they exist.
-	idx, proxy, err := s.getProxyConfigEntryTxn(tx, ws, structs.ProxyConfigGlobal, overrides, structs.DefaultEnterpriseMeta())
+	idx, proxy, err := getProxyConfigEntryTxn(tx, ws, structs.ProxyConfigGlobal, overrides, structs.DefaultEnterpriseMeta())
 	if err != nil {
 		return 0, nil, err
 	} else if proxy != nil {
@@ -630,7 +630,7 @@ func (s *Store) readDiscoveryChainConfigEntriesTxn(
 	todoDefaults[sid] = struct{}{}
 
 	// first fetch the router, of which we only collect 1 per chain eval
-	_, router, err := s.getRouterConfigEntryTxn(tx, ws, serviceName, overrides, entMeta)
+	_, router, err := getRouterConfigEntryTxn(tx, ws, serviceName, overrides, entMeta)
 	if err != nil {
 		return 0, nil, err
 	} else if router != nil {
@@ -660,7 +660,7 @@ func (s *Store) readDiscoveryChainConfigEntriesTxn(
 		// Yes, even for splitters.
 		todoDefaults[splitID] = struct{}{}
 
-		_, splitter, err := s.getSplitterConfigEntryTxn(tx, ws, splitID.ID, overrides, &splitID.EnterpriseMeta)
+		_, splitter, err := getSplitterConfigEntryTxn(tx, ws, splitID.ID, overrides, &splitID.EnterpriseMeta)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -697,7 +697,7 @@ func (s *Store) readDiscoveryChainConfigEntriesTxn(
 		// And resolvers, too.
 		todoDefaults[resolverID] = struct{}{}
 
-		_, resolver, err := s.getResolverConfigEntryTxn(tx, ws, resolverID.ID, overrides, &resolverID.EnterpriseMeta)
+		_, resolver, err := getResolverConfigEntryTxn(tx, ws, resolverID.ID, overrides, &resolverID.EnterpriseMeta)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -725,7 +725,7 @@ func (s *Store) readDiscoveryChainConfigEntriesTxn(
 			continue // already fetched
 		}
 
-		_, entry, err := s.getServiceConfigEntryTxn(tx, ws, svcID.ID, overrides, &svcID.EnterpriseMeta)
+		_, entry, err := getServiceConfigEntryTxn(tx, ws, svcID.ID, overrides, &svcID.EnterpriseMeta)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -779,8 +779,8 @@ func anyKey(m map[structs.ServiceID]struct{}) (structs.ServiceID, bool) {
 // proxy-defaults kind of config entry.
 //
 // If an override is returned the index returned will be 0.
-func (s *Store) getProxyConfigEntryTxn(
-	tx *txn,
+func getProxyConfigEntryTxn(
+	tx ReadTxn,
 	ws memdb.WatchSet,
 	name string,
 	overrides map[structs.ConfigEntryKindName]structs.ConfigEntry,
@@ -804,8 +804,8 @@ func (s *Store) getProxyConfigEntryTxn(
 // service-defaults kind of config entry.
 //
 // If an override is returned the index returned will be 0.
-func (s *Store) getServiceConfigEntryTxn(
-	tx *txn,
+func getServiceConfigEntryTxn(
+	tx ReadTxn,
 	ws memdb.WatchSet,
 	serviceName string,
 	overrides map[structs.ConfigEntryKindName]structs.ConfigEntry,
@@ -829,8 +829,8 @@ func (s *Store) getServiceConfigEntryTxn(
 // service-router kind of config entry.
 //
 // If an override is returned the index returned will be 0.
-func (s *Store) getRouterConfigEntryTxn(
-	tx *txn,
+func getRouterConfigEntryTxn(
+	tx ReadTxn,
 	ws memdb.WatchSet,
 	serviceName string,
 	overrides map[structs.ConfigEntryKindName]structs.ConfigEntry,
@@ -854,8 +854,8 @@ func (s *Store) getRouterConfigEntryTxn(
 // service-splitter kind of config entry.
 //
 // If an override is returned the index returned will be 0.
-func (s *Store) getSplitterConfigEntryTxn(
-	tx *txn,
+func getSplitterConfigEntryTxn(
+	tx ReadTxn,
 	ws memdb.WatchSet,
 	serviceName string,
 	overrides map[structs.ConfigEntryKindName]structs.ConfigEntry,
@@ -879,8 +879,8 @@ func (s *Store) getSplitterConfigEntryTxn(
 // service-resolver kind of config entry.
 //
 // If an override is returned the index returned will be 0.
-func (s *Store) getResolverConfigEntryTxn(
-	tx *txn,
+func getResolverConfigEntryTxn(
+	tx ReadTxn,
 	ws memdb.WatchSet,
 	serviceName string,
 	overrides map[structs.ConfigEntryKindName]structs.ConfigEntry,
@@ -901,7 +901,7 @@ func (s *Store) getResolverConfigEntryTxn(
 }
 
 func configEntryWithOverridesTxn(
-	tx *txn,
+	tx ReadTxn,
 	ws memdb.WatchSet,
 	kind string,
 	name string,
@@ -923,7 +923,7 @@ func configEntryWithOverridesTxn(
 // protocolForService returns the service graph protocol associated to the
 // provided service, checking all relevant config entries.
 func protocolForService(
-	tx *txn,
+	tx ReadTxn,
 	ws memdb.WatchSet,
 	svc structs.ServiceName,
 ) (uint64, string, error) {

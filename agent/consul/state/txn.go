@@ -110,7 +110,7 @@ func (s *Store) txnKVS(tx *txn, idx uint64, op *structs.TxnKVOp) (structs.TxnRes
 }
 
 // txnSession handles all Session-related operations.
-func (s *Store) txnSession(tx *txn, idx uint64, op *structs.TxnSessionOp) error {
+func txnSession(tx *txn, idx uint64, op *structs.TxnSessionOp) error {
 	var err error
 
 	switch op.Verb {
@@ -127,7 +127,7 @@ func (s *Store) txnSession(tx *txn, idx uint64, op *structs.TxnSessionOp) error 
 }
 
 // txnIntention handles all Intention-related operations.
-func (s *Store) txnIntention(tx *txn, idx uint64, op *structs.TxnIntentionOp) error {
+func txnIntention(tx *txn, idx uint64, op *structs.TxnIntentionOp) error {
 	switch op.Op {
 	case structs.IntentionOpCreate, structs.IntentionOpUpdate:
 		return intentionSetTxn(tx, idx, op.Intention)
@@ -344,7 +344,7 @@ func (s *Store) txnDispatch(tx *txn, idx uint64, ops structs.TxnOps) (structs.Tx
 		case op.KV != nil:
 			ret, err = s.txnKVS(tx, idx, op.KV)
 		case op.Intention != nil:
-			err = s.txnIntention(tx, idx, op.Intention)
+			err = txnIntention(tx, idx, op.Intention)
 		case op.Node != nil:
 			ret, err = s.txnNode(tx, idx, op.Node)
 		case op.Service != nil:
@@ -352,7 +352,7 @@ func (s *Store) txnDispatch(tx *txn, idx uint64, ops structs.TxnOps) (structs.Tx
 		case op.Check != nil:
 			ret, err = s.txnCheck(tx, idx, op.Check)
 		case op.Session != nil:
-			err = s.txnSession(tx, idx, op.Session)
+			err = txnSession(tx, idx, op.Session)
 		default:
 			err = fmt.Errorf("no operation specified")
 		}
