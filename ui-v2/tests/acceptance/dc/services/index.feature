@@ -100,3 +100,26 @@ Feature: dc / services / index: List Services
     Then I see 2 service models
     And I see mesh on the services.0
     And I don't see mesh on the services.1
+  Scenario: View a Service's Associated Service count
+    Given 1 datacenter model with the value "dc-1"
+    And 3 service models from yaml
+    ---
+      - Name: Service-0
+        Kind: ~
+      - Name: Service-0-proxy
+        Kind: connect-proxy
+      - Name: Service-1
+        Kind: 'ingress-gateway'
+        GatewayConfig:
+        - AssociatedServiceCount: 345
+    ---
+
+    When I visit the services page for yaml
+    ---
+      dc: dc-1
+    ---
+    Then the url should be /dc-1/services
+    And the title should be "Services - Consul"
+    Then I see 2 service models
+    And I don't see associatedServiceCount on the services.0
+    And I see associatedServiceCount on the services.1

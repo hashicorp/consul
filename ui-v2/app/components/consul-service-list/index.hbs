@@ -61,6 +61,15 @@
       {{format-number item.InstanceCount}} {{pluralize item.InstanceCount 'Instance' without-count=true}}
     </span>
   {{/if}}
+  {{#if (eq item.Kind 'terminating-gateway')}}
+    <span data-test-associated-service-count>
+      {{format-number item.GatewayConfig.AssociatedServiceCount}} linked services
+    </span>
+  {{else if (eq item.Kind 'ingress-gateway')}}
+    <span data-test-associated-service-count>
+      {{format-number item.GatewayConfig.AssociatedServiceCount}} upstreams
+    </span>
+  {{/if}}
   {{#if (or item.ConnectedWithGateway item.ConnectedWithProxy)}}
     <dl class="mesh">
       <dt>
