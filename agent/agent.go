@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"crypto/sha512"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -52,11 +51,9 @@ import (
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
-	"github.com/shirou/gopsutil/host"
 	"golang.org/x/net/http2"
 )
 
@@ -513,8 +510,9 @@ func New(options ...AgentOption) (*Agent, error) {
 
 	// Retrieve or generate the node ID before setting up the rest of the
 	// agent, which depends on it.
-	if err := a.setupNodeID(a.config); err != nil {
-		return nil, fmt.Errorf("Failed to setup node ID: %v", err)
+	config.NodeID, err = newNodeIDFromConfig(a.config, a.logger)
+	if err != nil {
+		return nil, fmt.Errorf("failed to setup node ID: %w", err)
 	}
 
 	// We used to do this in the Start method. However it doesn't need to go
@@ -1560,122 +1558,6 @@ func (a *Agent) segmentConfig() ([]consul.NetworkSegment, error) {
 	}
 
 	return segments, nil
-}
-
-// makeRandomID will generate a random UUID for a node.
-func (a *Agent) makeRandomID() (string, error) {
-	id, err := uuid.GenerateUUID()
-	if err != nil {
-		return "", err
-	}
-
-	a.logger.Debug("Using random ID as node ID", "id", id)
-	return id, nil
-}
-
-// makeNodeID will try to find a host-specific ID, or else will generate a
-// random ID. The returned ID will always be formatted as a GUID. We don't tell
-// the caller whether this ID is random or stable since the consequences are
-// high for us if this changes, so we will persist it either way. This will let
-// gopsutil change implementations without affecting in-place upgrades of nodes.
-func (a *Agent) makeNodeID() (string, error) {
-	// If they've disabled host-based IDs then just make a random one.
-	if a.config.DisableHostNodeID {
-		return a.makeRandomID()
-	}
-
-	// Try to get a stable ID associated with the host itself.
-	info, err := host.Info()
-	if err != nil {
-		a.logger.Debug("Couldn't get a unique ID from the host", "error", err)
-		return a.makeRandomID()
-	}
-
-	// Make sure the host ID parses as a UUID, since we don't have complete
-	// control over this process.
-	id := strings.ToLower(info.HostID)
-	if _, err := uuid.ParseUUID(id); err != nil {
-		a.logger.Debug("Unique ID from host isn't formatted as a UUID",
-			"id", id,
-			"error", err,
-		)
-		return a.makeRandomID()
-	}
-
-	// Hash the input to make it well distributed. The reported Host UUID may be
-	// similar across nodes if they are on a cloud provider or on motherboards
-	// created from the same batch.
-	buf := sha512.Sum512([]byte(id))
-	id = fmt.Sprintf("%08x-%04x-%04x-%04x-%12x",
-		buf[0:4],
-		buf[4:6],
-		buf[6:8],
-		buf[8:10],
-		buf[10:16])
-
-	a.logger.Debug("Using unique ID from host as node ID", "id", id)
-	return id, nil
-}
-
-// setupNodeID will pull the persisted node ID, if any, or create a random one
-// and persist it.
-func (a *Agent) setupNodeID(config *config.RuntimeConfig) error {
-	// If they've configured a node ID manually then just use that, as
-	// long as it's valid.
-	if config.NodeID != "" {
-		config.NodeID = types.NodeID(strings.ToLower(string(config.NodeID)))
-		if _, err := uuid.ParseUUID(string(config.NodeID)); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	// For dev mode we have no filesystem access so just make one.
-	if a.config.DataDir == "" {
-		id, err := a.makeNodeID()
-		if err != nil {
-			return err
-		}
-
-		config.NodeID = types.NodeID(id)
-		return nil
-	}
-
-	// Load saved state, if any. Since a user could edit this, we also
-	// validate it.
-	fileID := filepath.Join(config.DataDir, "node-id")
-	if _, err := os.Stat(fileID); err == nil {
-		rawID, err := ioutil.ReadFile(fileID)
-		if err != nil {
-			return err
-		}
-
-		nodeID := strings.TrimSpace(string(rawID))
-		nodeID = strings.ToLower(nodeID)
-		if _, err := uuid.ParseUUID(nodeID); err != nil {
-			return err
-		}
-
-		config.NodeID = types.NodeID(nodeID)
-	}
-
-	// If we still don't have a valid node ID, make one.
-	if config.NodeID == "" {
-		id, err := a.makeNodeID()
-		if err != nil {
-			return err
-		}
-		if err := lib.EnsurePath(fileID, false); err != nil {
-			return err
-		}
-		if err := ioutil.WriteFile(fileID, []byte(id), 0600); err != nil {
-			return err
-		}
-
-		config.NodeID = types.NodeID(id)
-	}
-	return nil
 }
 
 // setupBaseKeyrings configures the LAN and WAN keyrings.
