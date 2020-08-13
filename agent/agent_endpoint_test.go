@@ -4542,12 +4542,15 @@ func TestAgent_Monitor(t *testing.T) {
 		req = req.WithContext(cancelCtx)
 
 		resp := httptest.NewRecorder()
-		errCh := make(chan error)
+		chErr := make(chan error)
+		chStarted := make(chan struct{})
 		go func() {
+			close(chStarted)
 			_, err := a.srv.AgentMonitor(resp, req)
-			errCh <- err
+			chErr <- err
 		}()
 
+		<-chStarted
 		require.NoError(t, a.Shutdown())
 
 		// Wait until we have received some type of logging output
@@ -4556,7 +4559,7 @@ func TestAgent_Monitor(t *testing.T) {
 		}, 3*time.Second, 100*time.Millisecond)
 
 		cancelFunc()
-		err := <-errCh
+		err := <-chErr
 		require.NoError(t, err)
 
 		got := resp.Body.String()
