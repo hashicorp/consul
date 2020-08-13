@@ -58,11 +58,8 @@ type TestAgent struct {
 	// the callers responsibility to clean up the data directory.
 	// Otherwise, a temporary data directory is created and removed
 	// when Shutdown() is called.
+	// TODO:
 	Config *config.RuntimeConfig
-
-	// returnPortsFn will put the ports claimed for the test back into the
-	// general freeport pool
-	returnPortsFn func()
 
 	// LogOutput is the sink for the logs. If nil, logs are written
 	// to os.Stderr.
@@ -71,9 +68,11 @@ type TestAgent struct {
 	// DataDir is the data directory which is used when Config.DataDir
 	// is not set. It is created automatically and removed when
 	// Shutdown() is called.
+	// TODO:
 	DataDir string
 
 	// Key is the optional encryption key for the LAN and WAN keyring.
+	// TODO:
 	Key string
 
 	// UseTLS, if true, will disable the HTTP port and enable the HTTPS
@@ -198,7 +197,7 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 	})
 
 	portsConfig, returnPortsFn := randomPortsSource(a.UseTLS)
-	a.returnPortsFn = returnPortsFn
+	t.Cleanup(returnPortsFn)
 
 	nodeID := NodeID()
 
@@ -220,13 +219,6 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 			config.DevConsulSource(),
 		),
 	}
-
-	defer func() {
-		if err != nil && a.returnPortsFn != nil {
-			a.returnPortsFn()
-			a.returnPortsFn = nil
-		}
-	}()
 
 	// write the keyring
 	if a.Key != "" {
@@ -356,14 +348,6 @@ func (a *TestAgent) Shutdown() error {
 	if a.Agent == nil {
 		return nil
 	}
-
-	// Return ports last of all
-	defer func() {
-		if a.returnPortsFn != nil {
-			a.returnPortsFn()
-			a.returnPortsFn = nil
-		}
-	}()
 
 	// shutdown agent before endpoints
 	defer a.Agent.ShutdownEndpoints()
