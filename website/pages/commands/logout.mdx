@@ -1,0 +1,35 @@
+---
+layout: commands
+page_title: 'Commands: Logout'
+sidebar_title: logout
+description: >
+  The `logout` command will destroy the provided token if it was created from
+  `consul login`.
+---
+
+# Consul Logout
+
+Command: `consul logout`
+
+The `logout` command will destroy the provided token if it was created from
+`consul login`.
+
+## Usage
+
+Usage: `consul logout [options]`
+
+-> The token to delete should be specified with the `-token` argument, the
+`CONSUL_HTTP_TOKEN` environment variable, the `-token-file` argument, or the
+`CONSUL_HTTP_TOKEN_FILE` environment variable.
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+### Examples
+
+Logout and delete a login token.
+
+```shell-session
+$ consul logout -token-file 'consul.token'
+```

@@ -1,0 +1,43 @@
+---
+layout: commands
+page_title: 'Commands: Intention Check'
+sidebar_title: check
+---
+
+# Consul Intention Check
+
+Command: `consul intention check`
+
+The `intention check` command checks whether a connection attempt between
+two services would be authorized given the current set of intentions and
+Consul configuration.
+
+This command requires less ACL permissions than other intention-related
+tasks because no information about the intention is revealed. Therefore,
+callers only need to have `service:read` access for the destination. Richer
+commands like [match](/docs/commands/intention/match) require full
+intention read permissions and don't evaluate the result.
+
+## Usage
+
+Usage: `consul intention check [options] SRC DST`
+
+`SRC` and `DST` can both take [several forms](/docs/commands/intention#source-and-destination-naming).
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+#### Enterprise Options
+
+@include 'http_api_namespace_options.mdx'
+
+## Examples
+
+```shell-session
+$ consul intention check web db
+Denied
+
+$ consul intention check web billing
+Allowed
+```

@@ -39,6 +39,11 @@ export default [
     url: '/api-docs',
     type: 'inbound',
   },
+  { 
+    text: 'CLI',
+    url: '/commands',
+    type: 'inbound,'
+  },
   {
     text: 'Community',
     url: '/community',

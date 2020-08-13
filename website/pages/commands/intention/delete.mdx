@@ -1,0 +1,42 @@
+---
+layout: commands
+page_title: 'Commands: Intention Delete'
+sidebar_title: delete
+---
+
+# Consul Intention Delete
+
+Command: `consul intention delete`
+
+The `intention delete` command deletes a matching intention.
+
+## Usage
+
+Usage:
+
+- `consul intention delete [options] SRC DST`
+- `consul intention delete [options] ID`
+
+`SRC` and `DST` can both take [several forms](/docs/commands/intention#source-and-destination-naming).
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+#### Enterprise Options
+
+@include 'http_api_namespace_options.mdx'
+
+## Examples
+
+Delete an intention from "web" to "db" with any action:
+
+```shell-session
+$ consul intention delete web db
+```
+
+Delete an intention by unique ID:
+
+```shell-session
+$ consul intention delete 4ffed935-439c-695d-4f51-f4fc0b12a7a7
+```
