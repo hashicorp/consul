@@ -510,7 +510,7 @@ func New(options ...AgentOption) (*Agent, error) {
 
 	// Retrieve or generate the node ID before setting up the rest of the
 	// agent, which depends on it.
-	config.NodeID, err = newNodeIDFromConfig(a.config, a.logger)
+	cfg.NodeID, err = newNodeIDFromConfig(a.config, a.logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to setup node ID: %w", err)
 	}
