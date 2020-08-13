@@ -230,12 +230,12 @@ export default [
       {
         category: 'operations',
         name: 'Operations',
-        content: ['upgrading', 'tls-on-existing-cluster', 'connect-ca-provider', 'uninstalling'],
+        content: ['upgrading', 'tls-on-existing-cluster', 'uninstalling'],
       },
       {
         category: 'connect',
         name: 'Connect Service Mesh',
-        content: ['overview', 'ingress-gateways', 'terminating-gateways'],
+        content: ['overview', 'ingress-gateways', 'terminating-gateways', 'connect-ca-provider'],
       },
       'service-sync',
       'dns',
