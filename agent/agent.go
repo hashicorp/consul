@@ -51,7 +51,6 @@ import (
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/net/http2"
@@ -671,9 +670,17 @@ func (a *Agent) Start(ctx context.Context) error {
 	a.sync = ae.NewStateSyncer(a.State, c.AEInterval, a.shutdownCh, a.logger)
 
 	// create the config for the rpc server/client
-	consulCfg, err := a.consulConfig()
+	consulCfg, err := newConsulConfig(a.config, a.logger)
 	if err != nil {
 		return err
+	}
+
+	// Setup the user event callback
+	consulCfg.UserEventHandler = func(e serf.UserEvent) {
+		select {
+		case a.eventCh <- e:
+		case <-a.shutdownCh:
+		}
 	}
 
 	// ServerUp is used to inform that a new consul server is now
@@ -1260,266 +1267,259 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 	return nil
 }
 
-// consulConfig is used to return a consul configuration
-func (a *Agent) consulConfig() (*consul.Config, error) {
-	// Start with the provided config or default config
-	base := consul.DefaultConfig()
+// newConsulConfig translates a RuntimeConfig into a consul.Config.
+// TODO: move this function to a different file, maybe config.go
+func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*consul.Config, error) {
+	cfg := consul.DefaultConfig()
 
 	// This is set when the agent starts up
-	base.NodeID = a.config.NodeID
+	cfg.NodeID = runtimeCfg.NodeID
 
 	// Apply dev mode
-	base.DevMode = a.config.DevMode
+	cfg.DevMode = runtimeCfg.DevMode
 
-	// Override with our config
-	// todo(fs): these are now always set in the runtime config so we can simplify this
+	// Override with our runtimeCfg
+	// todo(fs): these are now always set in the runtime runtimeCfg so we can simplify this
 	// todo(fs): or is there a reason to keep it like that?
-	base.Datacenter = a.config.Datacenter
-	base.PrimaryDatacenter = a.config.PrimaryDatacenter
-	base.DataDir = a.config.DataDir
-	base.NodeName = a.config.NodeName
+	cfg.Datacenter = runtimeCfg.Datacenter
+	cfg.PrimaryDatacenter = runtimeCfg.PrimaryDatacenter
+	cfg.DataDir = runtimeCfg.DataDir
+	cfg.NodeName = runtimeCfg.NodeName
 
-	base.CoordinateUpdateBatchSize = a.config.ConsulCoordinateUpdateBatchSize
-	base.CoordinateUpdateMaxBatches = a.config.ConsulCoordinateUpdateMaxBatches
-	base.CoordinateUpdatePeriod = a.config.ConsulCoordinateUpdatePeriod
-	base.CheckOutputMaxSize = a.config.CheckOutputMaxSize
+	cfg.CoordinateUpdateBatchSize = runtimeCfg.ConsulCoordinateUpdateBatchSize
+	cfg.CoordinateUpdateMaxBatches = runtimeCfg.ConsulCoordinateUpdateMaxBatches
+	cfg.CoordinateUpdatePeriod = runtimeCfg.ConsulCoordinateUpdatePeriod
+	cfg.CheckOutputMaxSize = runtimeCfg.CheckOutputMaxSize
 
-	base.RaftConfig.HeartbeatTimeout = a.config.ConsulRaftHeartbeatTimeout
-	base.RaftConfig.LeaderLeaseTimeout = a.config.ConsulRaftLeaderLeaseTimeout
-	base.RaftConfig.ElectionTimeout = a.config.ConsulRaftElectionTimeout
+	cfg.RaftConfig.HeartbeatTimeout = runtimeCfg.ConsulRaftHeartbeatTimeout
+	cfg.RaftConfig.LeaderLeaseTimeout = runtimeCfg.ConsulRaftLeaderLeaseTimeout
+	cfg.RaftConfig.ElectionTimeout = runtimeCfg.ConsulRaftElectionTimeout
 
-	base.SerfLANConfig.MemberlistConfig.BindAddr = a.config.SerfBindAddrLAN.IP.String()
-	base.SerfLANConfig.MemberlistConfig.BindPort = a.config.SerfBindAddrLAN.Port
-	base.SerfLANConfig.MemberlistConfig.CIDRsAllowed = a.config.SerfAllowedCIDRsLAN
-	base.SerfWANConfig.MemberlistConfig.CIDRsAllowed = a.config.SerfAllowedCIDRsWAN
-	base.SerfLANConfig.MemberlistConfig.AdvertiseAddr = a.config.SerfAdvertiseAddrLAN.IP.String()
-	base.SerfLANConfig.MemberlistConfig.AdvertisePort = a.config.SerfAdvertiseAddrLAN.Port
-	base.SerfLANConfig.MemberlistConfig.GossipVerifyIncoming = a.config.EncryptVerifyIncoming
-	base.SerfLANConfig.MemberlistConfig.GossipVerifyOutgoing = a.config.EncryptVerifyOutgoing
-	base.SerfLANConfig.MemberlistConfig.GossipInterval = a.config.GossipLANGossipInterval
-	base.SerfLANConfig.MemberlistConfig.GossipNodes = a.config.GossipLANGossipNodes
-	base.SerfLANConfig.MemberlistConfig.ProbeInterval = a.config.GossipLANProbeInterval
-	base.SerfLANConfig.MemberlistConfig.ProbeTimeout = a.config.GossipLANProbeTimeout
-	base.SerfLANConfig.MemberlistConfig.SuspicionMult = a.config.GossipLANSuspicionMult
-	base.SerfLANConfig.MemberlistConfig.RetransmitMult = a.config.GossipLANRetransmitMult
-	if a.config.ReconnectTimeoutLAN != 0 {
-		base.SerfLANConfig.ReconnectTimeout = a.config.ReconnectTimeoutLAN
+	cfg.SerfLANConfig.MemberlistConfig.BindAddr = runtimeCfg.SerfBindAddrLAN.IP.String()
+	cfg.SerfLANConfig.MemberlistConfig.BindPort = runtimeCfg.SerfBindAddrLAN.Port
+	cfg.SerfLANConfig.MemberlistConfig.CIDRsAllowed = runtimeCfg.SerfAllowedCIDRsLAN
+	cfg.SerfWANConfig.MemberlistConfig.CIDRsAllowed = runtimeCfg.SerfAllowedCIDRsWAN
+	cfg.SerfLANConfig.MemberlistConfig.AdvertiseAddr = runtimeCfg.SerfAdvertiseAddrLAN.IP.String()
+	cfg.SerfLANConfig.MemberlistConfig.AdvertisePort = runtimeCfg.SerfAdvertiseAddrLAN.Port
+	cfg.SerfLANConfig.MemberlistConfig.GossipVerifyIncoming = runtimeCfg.EncryptVerifyIncoming
+	cfg.SerfLANConfig.MemberlistConfig.GossipVerifyOutgoing = runtimeCfg.EncryptVerifyOutgoing
+	cfg.SerfLANConfig.MemberlistConfig.GossipInterval = runtimeCfg.GossipLANGossipInterval
+	cfg.SerfLANConfig.MemberlistConfig.GossipNodes = runtimeCfg.GossipLANGossipNodes
+	cfg.SerfLANConfig.MemberlistConfig.ProbeInterval = runtimeCfg.GossipLANProbeInterval
+	cfg.SerfLANConfig.MemberlistConfig.ProbeTimeout = runtimeCfg.GossipLANProbeTimeout
+	cfg.SerfLANConfig.MemberlistConfig.SuspicionMult = runtimeCfg.GossipLANSuspicionMult
+	cfg.SerfLANConfig.MemberlistConfig.RetransmitMult = runtimeCfg.GossipLANRetransmitMult
+	if runtimeCfg.ReconnectTimeoutLAN != 0 {
+		cfg.SerfLANConfig.ReconnectTimeout = runtimeCfg.ReconnectTimeoutLAN
 	}
 
-	if a.config.SerfBindAddrWAN != nil {
-		base.SerfWANConfig.MemberlistConfig.BindAddr = a.config.SerfBindAddrWAN.IP.String()
-		base.SerfWANConfig.MemberlistConfig.BindPort = a.config.SerfBindAddrWAN.Port
-		base.SerfWANConfig.MemberlistConfig.AdvertiseAddr = a.config.SerfAdvertiseAddrWAN.IP.String()
-		base.SerfWANConfig.MemberlistConfig.AdvertisePort = a.config.SerfAdvertiseAddrWAN.Port
-		base.SerfWANConfig.MemberlistConfig.GossipVerifyIncoming = a.config.EncryptVerifyIncoming
-		base.SerfWANConfig.MemberlistConfig.GossipVerifyOutgoing = a.config.EncryptVerifyOutgoing
-		base.SerfWANConfig.MemberlistConfig.GossipInterval = a.config.GossipWANGossipInterval
-		base.SerfWANConfig.MemberlistConfig.GossipNodes = a.config.GossipWANGossipNodes
-		base.SerfWANConfig.MemberlistConfig.ProbeInterval = a.config.GossipWANProbeInterval
-		base.SerfWANConfig.MemberlistConfig.ProbeTimeout = a.config.GossipWANProbeTimeout
-		base.SerfWANConfig.MemberlistConfig.SuspicionMult = a.config.GossipWANSuspicionMult
-		base.SerfWANConfig.MemberlistConfig.RetransmitMult = a.config.GossipWANRetransmitMult
-		if a.config.ReconnectTimeoutWAN != 0 {
-			base.SerfWANConfig.ReconnectTimeout = a.config.ReconnectTimeoutWAN
+	if runtimeCfg.SerfBindAddrWAN != nil {
+		cfg.SerfWANConfig.MemberlistConfig.BindAddr = runtimeCfg.SerfBindAddrWAN.IP.String()
+		cfg.SerfWANConfig.MemberlistConfig.BindPort = runtimeCfg.SerfBindAddrWAN.Port
+		cfg.SerfWANConfig.MemberlistConfig.AdvertiseAddr = runtimeCfg.SerfAdvertiseAddrWAN.IP.String()
+		cfg.SerfWANConfig.MemberlistConfig.AdvertisePort = runtimeCfg.SerfAdvertiseAddrWAN.Port
+		cfg.SerfWANConfig.MemberlistConfig.GossipVerifyIncoming = runtimeCfg.EncryptVerifyIncoming
+		cfg.SerfWANConfig.MemberlistConfig.GossipVerifyOutgoing = runtimeCfg.EncryptVerifyOutgoing
+		cfg.SerfWANConfig.MemberlistConfig.GossipInterval = runtimeCfg.GossipWANGossipInterval
+		cfg.SerfWANConfig.MemberlistConfig.GossipNodes = runtimeCfg.GossipWANGossipNodes
+		cfg.SerfWANConfig.MemberlistConfig.ProbeInterval = runtimeCfg.GossipWANProbeInterval
+		cfg.SerfWANConfig.MemberlistConfig.ProbeTimeout = runtimeCfg.GossipWANProbeTimeout
+		cfg.SerfWANConfig.MemberlistConfig.SuspicionMult = runtimeCfg.GossipWANSuspicionMult
+		cfg.SerfWANConfig.MemberlistConfig.RetransmitMult = runtimeCfg.GossipWANRetransmitMult
+		if runtimeCfg.ReconnectTimeoutWAN != 0 {
+			cfg.SerfWANConfig.ReconnectTimeout = runtimeCfg.ReconnectTimeoutWAN
 		}
 	} else {
 		// Disable serf WAN federation
-		base.SerfWANConfig = nil
+		cfg.SerfWANConfig = nil
 	}
 
-	base.RPCAddr = a.config.RPCBindAddr
-	base.RPCAdvertise = a.config.RPCAdvertiseAddr
+	cfg.RPCAddr = runtimeCfg.RPCBindAddr
+	cfg.RPCAdvertise = runtimeCfg.RPCAdvertiseAddr
 
-	base.Segment = a.config.SegmentName
-	if len(a.config.Segments) > 0 {
-		segments, err := a.segmentConfig()
+	cfg.Segment = runtimeCfg.SegmentName
+	if len(runtimeCfg.Segments) > 0 {
+		segments, err := segmentConfig(runtimeCfg)
 		if err != nil {
 			return nil, err
 		}
-		base.Segments = segments
+		cfg.Segments = segments
 	}
-	if a.config.Bootstrap {
-		base.Bootstrap = true
+	if runtimeCfg.Bootstrap {
+		cfg.Bootstrap = true
 	}
-	if a.config.CheckOutputMaxSize > 0 {
-		base.CheckOutputMaxSize = a.config.CheckOutputMaxSize
+	if runtimeCfg.CheckOutputMaxSize > 0 {
+		cfg.CheckOutputMaxSize = runtimeCfg.CheckOutputMaxSize
 	}
-	if a.config.RejoinAfterLeave {
-		base.RejoinAfterLeave = true
+	if runtimeCfg.RejoinAfterLeave {
+		cfg.RejoinAfterLeave = true
 	}
-	if a.config.BootstrapExpect != 0 {
-		base.BootstrapExpect = a.config.BootstrapExpect
+	if runtimeCfg.BootstrapExpect != 0 {
+		cfg.BootstrapExpect = runtimeCfg.BootstrapExpect
 	}
-	if a.config.RPCProtocol > 0 {
-		base.ProtocolVersion = uint8(a.config.RPCProtocol)
+	if runtimeCfg.RPCProtocol > 0 {
+		cfg.ProtocolVersion = uint8(runtimeCfg.RPCProtocol)
 	}
-	if a.config.RaftProtocol != 0 {
-		base.RaftConfig.ProtocolVersion = raft.ProtocolVersion(a.config.RaftProtocol)
+	if runtimeCfg.RaftProtocol != 0 {
+		cfg.RaftConfig.ProtocolVersion = raft.ProtocolVersion(runtimeCfg.RaftProtocol)
 	}
-	if a.config.RaftSnapshotThreshold != 0 {
-		base.RaftConfig.SnapshotThreshold = uint64(a.config.RaftSnapshotThreshold)
+	if runtimeCfg.RaftSnapshotThreshold != 0 {
+		cfg.RaftConfig.SnapshotThreshold = uint64(runtimeCfg.RaftSnapshotThreshold)
 	}
-	if a.config.RaftSnapshotInterval != 0 {
-		base.RaftConfig.SnapshotInterval = a.config.RaftSnapshotInterval
+	if runtimeCfg.RaftSnapshotInterval != 0 {
+		cfg.RaftConfig.SnapshotInterval = runtimeCfg.RaftSnapshotInterval
 	}
-	if a.config.RaftTrailingLogs != 0 {
-		base.RaftConfig.TrailingLogs = uint64(a.config.RaftTrailingLogs)
+	if runtimeCfg.RaftTrailingLogs != 0 {
+		cfg.RaftConfig.TrailingLogs = uint64(runtimeCfg.RaftTrailingLogs)
 	}
-	if a.config.ACLMasterToken != "" {
-		base.ACLMasterToken = a.config.ACLMasterToken
+	if runtimeCfg.ACLMasterToken != "" {
+		cfg.ACLMasterToken = runtimeCfg.ACLMasterToken
 	}
-	if a.config.ACLDatacenter != "" {
-		base.ACLDatacenter = a.config.ACLDatacenter
+	if runtimeCfg.ACLDatacenter != "" {
+		cfg.ACLDatacenter = runtimeCfg.ACLDatacenter
 	}
-	if a.config.ACLTokenTTL != 0 {
-		base.ACLTokenTTL = a.config.ACLTokenTTL
+	if runtimeCfg.ACLTokenTTL != 0 {
+		cfg.ACLTokenTTL = runtimeCfg.ACLTokenTTL
 	}
-	if a.config.ACLPolicyTTL != 0 {
-		base.ACLPolicyTTL = a.config.ACLPolicyTTL
+	if runtimeCfg.ACLPolicyTTL != 0 {
+		cfg.ACLPolicyTTL = runtimeCfg.ACLPolicyTTL
 	}
-	if a.config.ACLRoleTTL != 0 {
-		base.ACLRoleTTL = a.config.ACLRoleTTL
+	if runtimeCfg.ACLRoleTTL != 0 {
+		cfg.ACLRoleTTL = runtimeCfg.ACLRoleTTL
 	}
-	if a.config.ACLDefaultPolicy != "" {
-		base.ACLDefaultPolicy = a.config.ACLDefaultPolicy
+	if runtimeCfg.ACLDefaultPolicy != "" {
+		cfg.ACLDefaultPolicy = runtimeCfg.ACLDefaultPolicy
 	}
-	if a.config.ACLDownPolicy != "" {
-		base.ACLDownPolicy = a.config.ACLDownPolicy
+	if runtimeCfg.ACLDownPolicy != "" {
+		cfg.ACLDownPolicy = runtimeCfg.ACLDownPolicy
 	}
-	base.ACLTokenReplication = a.config.ACLTokenReplication
-	base.ACLsEnabled = a.config.ACLsEnabled
-	if a.config.ACLEnableKeyListPolicy {
-		base.ACLEnableKeyListPolicy = a.config.ACLEnableKeyListPolicy
+	cfg.ACLTokenReplication = runtimeCfg.ACLTokenReplication
+	cfg.ACLsEnabled = runtimeCfg.ACLsEnabled
+	if runtimeCfg.ACLEnableKeyListPolicy {
+		cfg.ACLEnableKeyListPolicy = runtimeCfg.ACLEnableKeyListPolicy
 	}
-	if a.config.SessionTTLMin != 0 {
-		base.SessionTTLMin = a.config.SessionTTLMin
+	if runtimeCfg.SessionTTLMin != 0 {
+		cfg.SessionTTLMin = runtimeCfg.SessionTTLMin
 	}
-	if a.config.NonVotingServer {
-		base.NonVoter = a.config.NonVotingServer
+	if runtimeCfg.NonVotingServer {
+		cfg.NonVoter = runtimeCfg.NonVotingServer
 	}
 
 	// These are fully specified in the agent defaults, so we can simply
 	// copy them over.
-	base.AutopilotConfig.CleanupDeadServers = a.config.AutopilotCleanupDeadServers
-	base.AutopilotConfig.LastContactThreshold = a.config.AutopilotLastContactThreshold
-	base.AutopilotConfig.MaxTrailingLogs = uint64(a.config.AutopilotMaxTrailingLogs)
-	base.AutopilotConfig.MinQuorum = a.config.AutopilotMinQuorum
-	base.AutopilotConfig.ServerStabilizationTime = a.config.AutopilotServerStabilizationTime
-	base.AutopilotConfig.RedundancyZoneTag = a.config.AutopilotRedundancyZoneTag
-	base.AutopilotConfig.DisableUpgradeMigration = a.config.AutopilotDisableUpgradeMigration
-	base.AutopilotConfig.UpgradeVersionTag = a.config.AutopilotUpgradeVersionTag
+	cfg.AutopilotConfig.CleanupDeadServers = runtimeCfg.AutopilotCleanupDeadServers
+	cfg.AutopilotConfig.LastContactThreshold = runtimeCfg.AutopilotLastContactThreshold
+	cfg.AutopilotConfig.MaxTrailingLogs = uint64(runtimeCfg.AutopilotMaxTrailingLogs)
+	cfg.AutopilotConfig.MinQuorum = runtimeCfg.AutopilotMinQuorum
+	cfg.AutopilotConfig.ServerStabilizationTime = runtimeCfg.AutopilotServerStabilizationTime
+	cfg.AutopilotConfig.RedundancyZoneTag = runtimeCfg.AutopilotRedundancyZoneTag
+	cfg.AutopilotConfig.DisableUpgradeMigration = runtimeCfg.AutopilotDisableUpgradeMigration
+	cfg.AutopilotConfig.UpgradeVersionTag = runtimeCfg.AutopilotUpgradeVersionTag
 
 	// make sure the advertise address is always set
-	if base.RPCAdvertise == nil {
-		base.RPCAdvertise = base.RPCAddr
+	if cfg.RPCAdvertise == nil {
+		cfg.RPCAdvertise = cfg.RPCAddr
 	}
 
 	// Rate limiting for RPC calls.
-	if a.config.RPCRateLimit > 0 {
-		base.RPCRate = a.config.RPCRateLimit
+	if runtimeCfg.RPCRateLimit > 0 {
+		cfg.RPCRate = runtimeCfg.RPCRateLimit
 	}
-	if a.config.RPCMaxBurst > 0 {
-		base.RPCMaxBurst = a.config.RPCMaxBurst
+	if runtimeCfg.RPCMaxBurst > 0 {
+		cfg.RPCMaxBurst = runtimeCfg.RPCMaxBurst
 	}
 
 	// RPC timeouts/limits.
-	if a.config.RPCHandshakeTimeout > 0 {
-		base.RPCHandshakeTimeout = a.config.RPCHandshakeTimeout
+	if runtimeCfg.RPCHandshakeTimeout > 0 {
+		cfg.RPCHandshakeTimeout = runtimeCfg.RPCHandshakeTimeout
 	}
-	if a.config.RPCMaxConnsPerClient > 0 {
-		base.RPCMaxConnsPerClient = a.config.RPCMaxConnsPerClient
+	if runtimeCfg.RPCMaxConnsPerClient > 0 {
+		cfg.RPCMaxConnsPerClient = runtimeCfg.RPCMaxConnsPerClient
 	}
 
 	// RPC-related performance configs. We allow explicit zero value to disable so
 	// copy it whatever the value.
-	base.RPCHoldTimeout = a.config.RPCHoldTimeout
+	cfg.RPCHoldTimeout = runtimeCfg.RPCHoldTimeout
 
-	if a.config.LeaveDrainTime > 0 {
-		base.LeaveDrainTime = a.config.LeaveDrainTime
+	if runtimeCfg.LeaveDrainTime > 0 {
+		cfg.LeaveDrainTime = runtimeCfg.LeaveDrainTime
 	}
 
 	// set the src address for outgoing rpc connections
 	// Use port 0 so that outgoing connections use a random port.
-	if !ipaddr.IsAny(base.RPCAddr.IP) {
-		base.RPCSrcAddr = &net.TCPAddr{IP: base.RPCAddr.IP}
+	if !ipaddr.IsAny(cfg.RPCAddr.IP) {
+		cfg.RPCSrcAddr = &net.TCPAddr{IP: cfg.RPCAddr.IP}
 	}
 
 	// Format the build string
-	revision := a.config.Revision
+	revision := runtimeCfg.Revision
 	if len(revision) > 8 {
 		revision = revision[:8]
 	}
-	base.Build = fmt.Sprintf("%s%s:%s", a.config.Version, a.config.VersionPrerelease, revision)
+	cfg.Build = fmt.Sprintf("%s%s:%s", runtimeCfg.Version, runtimeCfg.VersionPrerelease, revision)
 
 	// Copy the TLS configuration
-	base.VerifyIncoming = a.config.VerifyIncoming || a.config.VerifyIncomingRPC
-	if a.config.CAPath != "" || a.config.CAFile != "" {
-		base.UseTLS = true
+	cfg.VerifyIncoming = runtimeCfg.VerifyIncoming || runtimeCfg.VerifyIncomingRPC
+	if runtimeCfg.CAPath != "" || runtimeCfg.CAFile != "" {
+		cfg.UseTLS = true
 	}
-	base.VerifyOutgoing = a.config.VerifyOutgoing
-	base.VerifyServerHostname = a.config.VerifyServerHostname
-	base.CAFile = a.config.CAFile
-	base.CAPath = a.config.CAPath
-	base.CertFile = a.config.CertFile
-	base.KeyFile = a.config.KeyFile
-	base.ServerName = a.config.ServerName
-	base.Domain = a.config.DNSDomain
-	base.TLSMinVersion = a.config.TLSMinVersion
-	base.TLSCipherSuites = a.config.TLSCipherSuites
-	base.TLSPreferServerCipherSuites = a.config.TLSPreferServerCipherSuites
-	base.DefaultQueryTime = a.config.DefaultQueryTime
-	base.MaxQueryTime = a.config.MaxQueryTime
+	cfg.VerifyOutgoing = runtimeCfg.VerifyOutgoing
+	cfg.VerifyServerHostname = runtimeCfg.VerifyServerHostname
+	cfg.CAFile = runtimeCfg.CAFile
+	cfg.CAPath = runtimeCfg.CAPath
+	cfg.CertFile = runtimeCfg.CertFile
+	cfg.KeyFile = runtimeCfg.KeyFile
+	cfg.ServerName = runtimeCfg.ServerName
+	cfg.Domain = runtimeCfg.DNSDomain
+	cfg.TLSMinVersion = runtimeCfg.TLSMinVersion
+	cfg.TLSCipherSuites = runtimeCfg.TLSCipherSuites
+	cfg.TLSPreferServerCipherSuites = runtimeCfg.TLSPreferServerCipherSuites
+	cfg.DefaultQueryTime = runtimeCfg.DefaultQueryTime
+	cfg.MaxQueryTime = runtimeCfg.MaxQueryTime
 
-	base.AutoEncryptAllowTLS = a.config.AutoEncryptAllowTLS
+	cfg.AutoEncryptAllowTLS = runtimeCfg.AutoEncryptAllowTLS
 
-	// Copy the Connect CA bootstrap config
-	if a.config.ConnectEnabled {
-		base.ConnectEnabled = true
-		base.ConnectMeshGatewayWANFederationEnabled = a.config.ConnectMeshGatewayWANFederationEnabled
+	// Copy the Connect CA bootstrap runtimeCfg
+	if runtimeCfg.ConnectEnabled {
+		cfg.ConnectEnabled = true
+		cfg.ConnectMeshGatewayWANFederationEnabled = runtimeCfg.ConnectMeshGatewayWANFederationEnabled
 
-		ca, err := a.config.ConnectCAConfiguration()
+		ca, err := runtimeCfg.ConnectCAConfiguration()
 		if err != nil {
 			return nil, err
 		}
 
-		base.CAConfig = ca
+		cfg.CAConfig = ca
 	}
 
-	// copy over auto config settings
-	base.AutoConfigEnabled = a.config.AutoConfig.Enabled
-	base.AutoConfigIntroToken = a.config.AutoConfig.IntroToken
-	base.AutoConfigIntroTokenFile = a.config.AutoConfig.IntroTokenFile
-	base.AutoConfigServerAddresses = a.config.AutoConfig.ServerAddresses
-	base.AutoConfigDNSSANs = a.config.AutoConfig.DNSSANs
-	base.AutoConfigIPSANs = a.config.AutoConfig.IPSANs
-	base.AutoConfigAuthzEnabled = a.config.AutoConfig.Authorizer.Enabled
-	base.AutoConfigAuthzAuthMethod = a.config.AutoConfig.Authorizer.AuthMethod
-	base.AutoConfigAuthzClaimAssertions = a.config.AutoConfig.Authorizer.ClaimAssertions
-	base.AutoConfigAuthzAllowReuse = a.config.AutoConfig.Authorizer.AllowReuse
-
-	// Setup the user event callback
-	base.UserEventHandler = func(e serf.UserEvent) {
-		select {
-		case a.eventCh <- e:
-		case <-a.shutdownCh:
-		}
-	}
+	// copy over auto runtimeCfg settings
+	cfg.AutoConfigEnabled = runtimeCfg.AutoConfig.Enabled
+	cfg.AutoConfigIntroToken = runtimeCfg.AutoConfig.IntroToken
+	cfg.AutoConfigIntroTokenFile = runtimeCfg.AutoConfig.IntroTokenFile
+	cfg.AutoConfigServerAddresses = runtimeCfg.AutoConfig.ServerAddresses
+	cfg.AutoConfigDNSSANs = runtimeCfg.AutoConfig.DNSSANs
+	cfg.AutoConfigIPSANs = runtimeCfg.AutoConfig.IPSANs
+	cfg.AutoConfigAuthzEnabled = runtimeCfg.AutoConfig.Authorizer.Enabled
+	cfg.AutoConfigAuthzAuthMethod = runtimeCfg.AutoConfig.Authorizer.AuthMethod
+	cfg.AutoConfigAuthzClaimAssertions = runtimeCfg.AutoConfig.Authorizer.ClaimAssertions
+	cfg.AutoConfigAuthzAllowReuse = runtimeCfg.AutoConfig.Authorizer.AllowReuse
 
 	// This will set up the LAN keyring, as well as the WAN and any segments
 	// for servers.
-	if err := a.setupKeyrings(base); err != nil {
+	// TODO: move this closer to where the keyrings will be used.
+	if err := setupKeyrings(cfg, runtimeCfg, logger); err != nil {
 		return nil, fmt.Errorf("Failed to configure keyring: %v", err)
 	}
 
-	base.ConfigEntryBootstrap = a.config.ConfigEntryBootstrap
+	cfg.ConfigEntryBootstrap = runtimeCfg.ConfigEntryBootstrap
 
-	return a.enterpriseConsulConfig(base)
+	enterpriseConsulConfig(cfg, runtimeCfg)
+	return cfg, nil
 }
 
 // Setup the serf and memberlist config for any defined network segments.
-func (a *Agent) segmentConfig() ([]consul.NetworkSegment, error) {
+func segmentConfig(config *config.RuntimeConfig) ([]consul.NetworkSegment, error) {
 	var segments []consul.NetworkSegment
-	config := a.config
 
 	for _, s := range config.Segments {
 		serfConf := consul.DefaultConfig().SerfLANConfig
@@ -1543,7 +1543,7 @@ func (a *Agent) segmentConfig() ([]consul.NetworkSegment, error) {
 		if s.RPCListener {
 			rpcAddr = &net.TCPAddr{
 				IP:   s.Bind.IP,
-				Port: a.config.ServerPort,
+				Port: config.ServerPort,
 			}
 		}
 
@@ -1558,120 +1558,6 @@ func (a *Agent) segmentConfig() ([]consul.NetworkSegment, error) {
 	}
 
 	return segments, nil
-}
-
-// setupBaseKeyrings configures the LAN and WAN keyrings.
-func (a *Agent) setupBaseKeyrings(config *consul.Config) error {
-	// If the keyring file is disabled then just poke the provided key
-	// into the in-memory keyring.
-	federationEnabled := config.SerfWANConfig != nil
-	if a.config.DisableKeyringFile {
-		if a.config.EncryptKey == "" {
-			return nil
-		}
-
-		keys := []string{a.config.EncryptKey}
-		if err := loadKeyring(config.SerfLANConfig, keys); err != nil {
-			return err
-		}
-		if a.config.ServerMode && federationEnabled {
-			if err := loadKeyring(config.SerfWANConfig, keys); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-
-	// Otherwise, we need to deal with the keyring files.
-	fileLAN := filepath.Join(a.config.DataDir, SerfLANKeyring)
-	fileWAN := filepath.Join(a.config.DataDir, SerfWANKeyring)
-
-	var existingLANKeyring, existingWANKeyring bool
-	if a.config.EncryptKey == "" {
-		goto LOAD
-	}
-	if _, err := os.Stat(fileLAN); err != nil {
-		if err := initKeyring(fileLAN, a.config.EncryptKey); err != nil {
-			return err
-		}
-	} else {
-		existingLANKeyring = true
-	}
-	if a.config.ServerMode && federationEnabled {
-		if _, err := os.Stat(fileWAN); err != nil {
-			if err := initKeyring(fileWAN, a.config.EncryptKey); err != nil {
-				return err
-			}
-		} else {
-			existingWANKeyring = true
-		}
-	}
-
-LOAD:
-	if _, err := os.Stat(fileLAN); err == nil {
-		config.SerfLANConfig.KeyringFile = fileLAN
-	}
-	if err := loadKeyringFile(config.SerfLANConfig); err != nil {
-		return err
-	}
-	if a.config.ServerMode && federationEnabled {
-		if _, err := os.Stat(fileWAN); err == nil {
-			config.SerfWANConfig.KeyringFile = fileWAN
-		}
-		if err := loadKeyringFile(config.SerfWANConfig); err != nil {
-			return err
-		}
-	}
-
-	// Only perform the following checks if there was an encrypt_key
-	// provided in the configuration.
-	if a.config.EncryptKey != "" {
-		msg := " keyring doesn't include key provided with -encrypt, using keyring"
-		if existingLANKeyring &&
-			keyringIsMissingKey(
-				config.SerfLANConfig.MemberlistConfig.Keyring,
-				a.config.EncryptKey,
-			) {
-			a.logger.Warn(msg, "keyring", "LAN")
-		}
-		if existingWANKeyring &&
-			keyringIsMissingKey(
-				config.SerfWANConfig.MemberlistConfig.Keyring,
-				a.config.EncryptKey,
-			) {
-			a.logger.Warn(msg, "keyring", "WAN")
-		}
-	}
-
-	return nil
-}
-
-// setupKeyrings is used to initialize and load keyrings during agent startup.
-func (a *Agent) setupKeyrings(config *consul.Config) error {
-	// First set up the LAN and WAN keyrings.
-	if err := a.setupBaseKeyrings(config); err != nil {
-		return err
-	}
-
-	// If there's no LAN keyring then there's nothing else to set up for
-	// any segments.
-	lanKeyring := config.SerfLANConfig.MemberlistConfig.Keyring
-	if lanKeyring == nil {
-		return nil
-	}
-
-	// Copy the initial state of the LAN keyring into each segment config.
-	// Segments don't have their own keyring file, they rely on the LAN
-	// holding the state so things can't get out of sync.
-	k, pk := lanKeyring.GetKeys(), lanKeyring.GetPrimaryKey()
-	for _, segment := range config.Segments {
-		keyring, err := memberlist.NewKeyring(k, pk)
-		if err != nil {
-			return err
-		}
-		segment.SerfConfig.MemberlistConfig.Keyring = keyring
-	}
-	return nil
 }
 
 // registerEndpoint registers a handler for the consul RPC server
@@ -4123,7 +4009,7 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	}
 
 	// create the config for the rpc server/client
-	consulCfg, err := a.consulConfig()
+	consulCfg, err := newConsulConfig(a.config, a.logger)
 	if err != nil {
 		return err
 	}
