@@ -52,6 +52,13 @@ You may also consider adopting Consul Enterprise for
 
 ## Configuring TLS with Auto-encrypt
 
+-> **Note:** Consul on Kubernetes currently does not support external servers that require mutual authentication
+for the HTTPS clients of the Consul servers, that is when servers have either
+`verify_incoming` or `verify_incoming_https` set to `true`.
+As noted in the [Security Model](docs/internals/security#secure-configuration),
+that setting isn't strictly necessary to support Consul's threat model as it is recommended that
+all requests contain a valid ACL token.
+
 Consul's auto-encrypt feature allows clients to automatically provision their certificates by making a request to the servers at startup.
 If you would like to use this feature with external Consul servers, you need to configure the Helm chart with information about the servers
 so that it can retrieve the clients' CA to use for securing the rest of the cluster.
