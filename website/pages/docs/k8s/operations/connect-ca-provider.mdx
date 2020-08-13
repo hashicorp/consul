@@ -8,10 +8,10 @@ description: Configuring a Connect CA Provider
 # Configuring a Connect CA Provider
 
 ~> NOTE: Instructions below should only be used for initially bootstrapping a cluster.
-To update Connect CA provider on an existing cluster or to update any properties, such as tokens, of the CA provider,
+To update the Connect CA provider on an existing cluster or to update any properties, such as tokens, of the CA provider,
 please use the [Update CA Configuration Endpoint](/api/connect/ca#update-ca-configuration).
 
-Consul has support for different CA providers to be used with the Consul Service Mesh.
+Consul has support for different certificate authority (CA) providers to be used with the Consul Service Mesh.
 Please see [Connect Certificate Management](/docs/connect/ca) for the information on the providers
 we currently support.
 
@@ -19,7 +19,7 @@ Generally, to configure a provider via the Consul Helm chart, you need to follow
 
 1. Create a configuration file containing your provider information.
 1. Create a Kubernetes secret containing the configuration file.
-1. Reference the Kubernetes secret in the `server.extraVolumes` value in the Helm chart.
+1. Reference the Kubernetes secret in the [`server.extraVolumes`](/docs/k8s/helm#v-server-extravolumes) value in the Helm chart.
 
 Below we will go over this process for configuring Vault as the Connect CA.
 However, other providers can be configured similarly by providing the appropriate `ca_config`
@@ -31,7 +31,7 @@ and `ca_provider` values for the provider you're using.
 
 To configure Vault as a CA provider for Consul Connect,
 first, create a provider configuration JSON file.
-Please refer to [Vault as a Connect CA](/docs/connect/ca/vault) for the configuration options.
+Please refer to [Vault as a Connect CA](/docs/connect/ca/vault) for the configuration options. You will need to replace `<vault token>` with your token.
 
 ```shell-session
 $ cat vault-config.json
@@ -86,7 +86,7 @@ connectInject:
   enabled: true
 ```
 
-Finally, [install](/docs/k8s/installation/overview#installing-consul) the Helm chart with these values:
+Finally, [install](/docs/k8s/installation/overview#installing-consul) the Helm chart using the above config file:
 
 ```shell-session
 $ helm install consul -f config.yaml hashicorp/consul
@@ -145,5 +145,6 @@ Note that all secondary datacenters need to have access to the same Vault instan
 
 ### Rotating Vault Tokens
 
-To rotate the Vault token in your CA provider configuration, you need to update the configuration file
-and call the [Update CA Configuration Endpoint](/api/connect/ca#update-ca-configuration).
+Once the cluster is running, subsequent changes to the `ca_provider` config are **ignored**–even if `consul reload` is run or the servers are restarted.
+
+To update any settings under this key, you must use Consul's [Update CA Configuration](/api/connect/ca#update-ca-configuration) API or the [`consul connect ca set-config`](https://www.consul.io/docs/commands/connect/ca#set-config) command.
