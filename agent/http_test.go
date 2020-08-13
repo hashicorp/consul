@@ -1298,10 +1298,8 @@ func TestAllowedNets(t *testing.T) {
 
 // assertIndex tests that X-Consul-Index is set and non-zero
 func assertIndex(t *testing.T, resp *httptest.ResponseRecorder) {
-	header := resp.Header().Get("X-Consul-Index")
-	if header == "" || header == "0" {
-		t.Fatalf("Bad: %v", header)
-	}
+	t.Helper()
+	require.NoError(t, checkIndex(resp))
 }
 
 // checkIndex is like assertIndex but returns an error
