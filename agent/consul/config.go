@@ -119,9 +119,6 @@ type Config struct {
 	// configured at this point.
 	NotifyListen func()
 
-	// NotifyShutdown is called after Server is completely Shutdown.
-	NotifyShutdown func()
-
 	// RPCAddr is the RPC address used by Consul. This should be reachable
 	// by the WAN and LAN
 	RPCAddr *net.TCPAddr

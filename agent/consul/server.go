@@ -933,10 +933,6 @@ func (s *Server) Shutdown() error {
 		s.acls.Close()
 	}
 
-	if s.config.NotifyShutdown != nil {
-		s.config.NotifyShutdown()
-	}
-
 	if s.fsm != nil {
 		s.fsm.State().Abandon()
 	}
