@@ -1286,8 +1286,7 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 		}
 	}()
 
-	dir, config := testServerConfig(t)
-	defer os.RemoveAll(dir)
+	_, config := testServerConfig(t)
 	config.Build = "1.6.0"
 	config.ConfigEntryBootstrap = []structs.ConfigEntry{
 		&structs.ServiceSplitterConfigEntry{

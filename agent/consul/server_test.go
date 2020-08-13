@@ -129,18 +129,15 @@ func waitForLeaderEstablishment(t *testing.T, servers ...*Server) {
 
 func testServerConfig(t *testing.T) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
+	t.Cleanup(func() {
+		os.RemoveAll(dir)
+	})
 	config := DefaultConfig()
 
 	ports := freeport.MustTake(3)
-
-	returnPortsFn := func() {
-		// The method of plumbing this into the server shutdown hook doesn't
-		// cover all exit points, so we insulate this against multiple
-		// invocations and then it's safe to call it a bunch of times.
+	t.Cleanup(func() {
 		freeport.Return(ports)
-		config.NotifyShutdown = nil // self-erasing
-	}
-	config.NotifyShutdown = returnPortsFn
+	})
 
 	config.NodeName = uniqueNodeName(t.Name())
 	config.Bootstrap = true
@@ -154,7 +151,6 @@ func testServerConfig(t *testing.T) (string, *Config) {
 
 	nodeID, err := uuid.GenerateUUID()
 	if err != nil {
-		returnPortsFn()
 		t.Fatal(err)
 	}
 	config.NodeID = types.NodeID(nodeID)
@@ -211,9 +207,6 @@ func testServerConfig(t *testing.T) (string, *Config) {
 			"IntermediateCertTTL": "288h",
 		},
 	}
-
-	config.NotifyShutdown = returnPortsFn
-
 	return dir, config
 }
 
@@ -270,8 +263,6 @@ func testServerWithConfig(t *testing.T, cb func(*Config)) (string, *Server) {
 		var err error
 		srv, err = newServer(t, config)
 		if err != nil {
-			config.NotifyShutdown()
-			os.RemoveAll(dir)
 			r.Fatalf("err: %v", err)
 		}
 	})
@@ -281,7 +272,6 @@ func testServerWithConfig(t *testing.T, cb func(*Config)) (string, *Server) {
 // cb is a function that can alter the test servers configuration prior to the server starting.
 func testACLServerWithConfig(t *testing.T, cb func(*Config), initReplicationToken bool) (string, *Server, rpc.ClientCodec) {
 	dir, srv := testServerWithConfig(t, testServerACLConfig(cb))
-	t.Cleanup(func() { os.RemoveAll(dir) })
 	t.Cleanup(func() { srv.Shutdown() })
 
 	if initReplicationToken {
@@ -342,8 +332,7 @@ func newServer(t *testing.T, c *Config) (*Server, error) {
 func TestServer_StartStop(t *testing.T) {
 	t.Parallel()
 	// Start up a server and then stop it.
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
+	_, s1 := testServer(t)
 	if err := s1.Shutdown(); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -357,20 +346,18 @@ func TestServer_StartStop(t *testing.T) {
 func TestServer_fixupACLDatacenter(t *testing.T) {
 	t.Parallel()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "aye"
 		c.PrimaryDatacenter = "aye"
 		c.ACLsEnabled = true
 	})
-	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+	_, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "bee"
 		c.PrimaryDatacenter = "aye"
 		c.ACLsEnabled = true
 	})
-	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 
 	// Try to join
@@ -1081,7 +1068,7 @@ func TestServer_RPC(t *testing.T) {
 
 func TestServer_JoinLAN_TLS(t *testing.T) {
 	t.Parallel()
-	dir1, conf1 := testServerConfig(t)
+	_, conf1 := testServerConfig(t)
 	conf1.VerifyIncoming = true
 	conf1.VerifyOutgoing = true
 	configureTLS(conf1)
@@ -1089,11 +1076,10 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
-	dir2, conf2 := testServerConfig(t)
+	_, conf2 := testServerConfig(t)
 	conf2.Bootstrap = false
 	conf2.VerifyIncoming = true
 	conf2.VerifyOutgoing = true
@@ -1102,7 +1088,6 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 
 	// Try to join
@@ -1480,14 +1465,13 @@ func TestServer_Reload(t *testing.T) {
 
 func TestServer_RPC_RateLimit(t *testing.T) {
 	t.Parallel()
-	dir1, conf1 := testServerConfig(t)
+	_, conf1 := testServerConfig(t)
 	conf1.RPCRate = 2
 	conf1.RPCMaxBurst = 2
 	s1, err := newServer(t, conf1)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -1501,7 +1485,7 @@ func TestServer_RPC_RateLimit(t *testing.T) {
 
 func TestServer_CALogging(t *testing.T) {
 	t.Parallel()
-	dir1, conf1 := testServerConfig(t)
+	_, conf1 := testServerConfig(t)
 
 	// Setup dummy logger to catch output
 	var buf bytes.Buffer
@@ -1517,7 +1501,6 @@ func TestServer_CALogging(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 

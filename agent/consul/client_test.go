@@ -23,18 +23,15 @@ import (
 
 func testClientConfig(t *testing.T) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
+	t.Cleanup(func() {
+		os.RemoveAll(dir)
+	})
 	config := DefaultConfig()
 
 	ports := freeport.MustTake(2)
-
-	returnPortsFn := func() {
-		// The method of plumbing this into the client shutdown hook doesn't
-		// cover all exit points, so we insulate this against multiple
-		// invocations and then it's safe to call it a bunch of times.
+	t.Cleanup(func() {
 		freeport.Return(ports)
-		config.NotifyShutdown = nil // self-erasing
-	}
-	config.NotifyShutdown = returnPortsFn
+	})
 
 	config.Datacenter = "dc1"
 	config.DataDir = dir
@@ -82,9 +79,6 @@ func testClientWithConfigWithErr(t *testing.T, cb func(c *Config)) (string, *Cli
 	}
 
 	client, err := NewClient(config, WithLogger(logger), WithTLSConfigurator(tlsConf))
-	if err != nil {
-		config.NotifyShutdown()
-	}
 	return dir, client, err
 }
 
@@ -434,7 +428,7 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 
 func TestClient_RPC_TLS(t *testing.T) {
 	t.Parallel()
-	dir1, conf1 := testServerConfig(t)
+	_, conf1 := testServerConfig(t)
 	conf1.VerifyIncoming = true
 	conf1.VerifyOutgoing = true
 	configureTLS(conf1)
@@ -442,19 +436,12 @@ func TestClient_RPC_TLS(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	dir2, conf2 := testClientConfig(t)
-	defer conf2.NotifyShutdown()
+	_, conf2 := testClientConfig(t)
 	conf2.VerifyOutgoing = true
 	configureTLS(conf2)
-	c1, err := newClient(t, conf2)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer os.RemoveAll(dir2)
-	defer c1.Shutdown()
+	c1 := newClient(t, conf2)
 
 	// Try an RPC
 	var out struct{}
@@ -479,39 +466,38 @@ func TestClient_RPC_TLS(t *testing.T) {
 	})
 }
 
-func newClient(t *testing.T, config *Config) (*Client, error) {
+func newClient(t *testing.T, config *Config) *Client {
+	t.Helper()
+
 	c, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), nil)
-	if err != nil {
-		return nil, err
-	}
+	require.NoError(t, err, "failed to create tls configuration")
+
 	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
 		Level:  hclog.Debug,
 		Output: testutil.NewLogBuffer(t),
 	})
-	return NewClient(config, WithLogger(logger), WithTLSConfigurator(c))
+	client, err := NewClient(config, WithLogger(logger), WithTLSConfigurator(c))
+	require.NoError(t, err, "failed to create client")
+	t.Cleanup(func() {
+		client.Shutdown()
+	})
+	return client
 }
 
 func TestClient_RPC_RateLimit(t *testing.T) {
 	t.Parallel()
-	dir1, conf1 := testServerConfig(t)
+	_, conf1 := testServerConfig(t)
 	s1, err := newServer(t, conf1)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	dir2, conf2 := testClientConfig(t)
-	defer conf2.NotifyShutdown()
+	_, conf2 := testClientConfig(t)
 	conf2.RPCRate = 2
 	conf2.RPCMaxBurst = 2
-	c1, err := newClient(t, conf2)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer os.RemoveAll(dir2)
-	defer c1.Shutdown()
+	c1 := newClient(t, conf2)
 
 	joinLAN(t, c1, s1)
 	retry.Run(t, func(r *retry.R) {
@@ -565,21 +551,14 @@ func TestClient_SnapshotRPC(t *testing.T) {
 
 func TestClient_SnapshotRPC_RateLimit(t *testing.T) {
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
+	_, s1 := testServer(t)
 	defer s1.Shutdown()
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	dir2, conf1 := testClientConfig(t)
-	defer conf1.NotifyShutdown()
+	_, conf1 := testClientConfig(t)
 	conf1.RPCRate = 2
 	conf1.RPCMaxBurst = 2
-	c1, err := newClient(t, conf1)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer os.RemoveAll(dir2)
-	defer c1.Shutdown()
+	c1 := newClient(t, conf1)
 
 	joinLAN(t, c1, s1)
 	retry.Run(t, func(r *retry.R) {
@@ -602,7 +581,7 @@ func TestClient_SnapshotRPC_RateLimit(t *testing.T) {
 
 func TestClient_SnapshotRPC_TLS(t *testing.T) {
 	t.Parallel()
-	dir1, conf1 := testServerConfig(t)
+	_, conf1 := testServerConfig(t)
 	conf1.VerifyIncoming = true
 	conf1.VerifyOutgoing = true
 	configureTLS(conf1)
@@ -610,19 +589,12 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	dir2, conf2 := testClientConfig(t)
-	defer conf2.NotifyShutdown()
+	_, conf2 := testClientConfig(t)
 	conf2.VerifyOutgoing = true
 	configureTLS(conf2)
-	c1, err := newClient(t, conf2)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer os.RemoveAll(dir2)
-	defer c1.Shutdown()
+	c1 := newClient(t, conf2)
 
 	// Wait for the leader
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
