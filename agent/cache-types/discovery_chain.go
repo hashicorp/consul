@@ -36,12 +36,15 @@ func (c *CompiledDiscoveryChain) Fetch(opts cache.FetchOptions, req cache.Reques
 	reqReal.QueryOptions.MaxQueryTime = opts.Timeout
 
 	// Always allow stale - there's no point in hitting leader if the request is
-	// going to be served from cache and endup arbitrarily stale anyway. This
-	// allows cached compiled-discovery-chain to automatically read scale across all
+	// going to be served from cache and end up arbitrarily stale anyway. This
+	// allows cached service-discover to automatically read scale across all
 	// servers too.
-	reqReal.AllowStale = true
+	reqReal.QueryOptions.AllowStale = true
 
-	// Fetch
+	if opts.LastResult != nil {
+		reqReal.QueryOptions.AllowNotModifiedResponse = true
+	}
+
 	var reply structs.DiscoveryChainResponse
 	if err := c.RPC.RPC("DiscoveryChain.Get", reqReal, &reply); err != nil {
 		return result, err
@@ -49,5 +52,6 @@ func (c *CompiledDiscoveryChain) Fetch(opts cache.FetchOptions, req cache.Reques
 
 	result.Value = &reply
 	result.Index = reply.QueryMeta.Index
+	result.NotModified = reply.QueryMeta.NotModified
 	return result, nil
 }

@@ -1,6 +1,7 @@
 package cachetype
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -60,5 +61,57 @@ func TestCompiledDiscoveryChain_badReqType(t *testing.T) {
 		t, cache.RequestInfo{Key: "foo", MinIndex: 64}))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "wrong type")
+	rpc.AssertExpectations(t)
+}
+
+func TestCompiledDiscoveryChain_IntegrationWithCache_NotModifiedResponse(t *testing.T) {
+	rpc := &MockRPC{}
+	typ := &CompiledDiscoveryChain{RPC: rpc}
+
+	chain := &structs.CompiledDiscoveryChain{ServiceName: "name"}
+	rpc.On("RPC", "DiscoveryChain.Get", mock.Anything, mock.Anything).
+		Return(nil).
+		Run(func(args mock.Arguments) {
+			req := args.Get(1).(*structs.DiscoveryChainRequest)
+			require.True(t, req.AllowStale)
+			require.True(t, req.AllowNotModifiedResponse)
+
+			reply := args.Get(2).(*structs.DiscoveryChainResponse)
+			reply.QueryMeta.Index = 44
+			reply.NotModified = true
+		})
+
+	c := cache.New(cache.Options{})
+	c.RegisterType(CompiledDiscoveryChainName, typ)
+	last := cache.FetchResult{
+		Value: &structs.DiscoveryChainResponse{
+			Chain:     chain,
+			QueryMeta: structs.QueryMeta{Index: 42},
+		},
+		Index: 42,
+	}
+	req := &structs.DiscoveryChainRequest{
+		Datacenter: "dc1",
+		QueryOptions: structs.QueryOptions{
+			Token:         "token",
+			MinQueryIndex: 44,
+			MaxQueryTime:  time.Second,
+		},
+	}
+
+	err := c.Prepopulate(CompiledDiscoveryChainName, last, "dc1", "token", req.CacheInfo().Key)
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	actual, _, err := c.Get(ctx, CompiledDiscoveryChainName, req)
+	require.NoError(t, err)
+
+	expected := &structs.DiscoveryChainResponse{
+		Chain:     chain,
+		QueryMeta: structs.QueryMeta{Index: 42},
+	}
+	require.Equal(t, expected, actual)
+
 	rpc.AssertExpectations(t)
 }
