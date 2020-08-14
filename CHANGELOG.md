@@ -1,7 +1,11 @@
 ## UNRELEASED
 
+## 1.8.3 (August 12, 2020)
+
 BUGFIXES:
 
+* catalog: fixed a bug where nodes, services, and checks would not be restored with the correct Create/ModifyIndex when restoring from a snapshot [[GH-8485](https://github.com/hashicorp/consul/pull/8474)]
+* vendor: update github.com/armon/go-metrics to v0.3.4 to mitigate a potential panic when emitting Prometheus metrics at an interval longer than the metric expiry time [[GH-8478](https://github.com/hashicorp/consul/pull/8478)]
 * connect: **(Consul Enterprise only)** Fixed a regression that prevented mesh gateways from routing to services in their local datacenter that reside outside of the default namespace.
 
 ## 1.8.2 (August 07, 2020)
@@ -111,6 +115,13 @@ BUGFIXES:
 * ui: Quote service names when filtering intentions to prevent 500 errors when accessing a service [[GH-7896](https://github.com/hashicorp/consul/issues/7896)] [[GH-7888](https://github.com/hashicorp/consul/pull/7888)]
 * ui: Miscellaneous amends for Safari and Firefox [[GH-7904](https://github.com/hashicorp/consul/issues/7904)] [[GH-7907](https://github.com/hashicorp/consul/pull/7907)]
 * ui: Ensure a value is always passed to CONSUL_SSO_ENABLED [[GH-7913](https://github.com/hashicorp/consul/pull/7913)]
+
+## 1.7.7 (August 12, 2020)
+
+BUGFIXES:
+
+* catalog: fixed a bug where nodes, services, and checks would not be restored with the correct Create/ModifyIndex when restoring from a snapshot [[GH-8486](https://github.com/hashicorp/consul/pull/8486)]
+* vendor: update github.com/armon/go-metrics to v0.3.4 to mitigate a potential panic when emitting Prometheus metrics at an interval longer than the metric expiry time [[GH-8478](https://github.com/hashicorp/consul/pull/8478)]
 
 ## 1.7.6 (August 07, 2020)
 
@@ -333,7 +344,7 @@ BUGFIXES:
 
 BUG FIXES:
 
-* vendor: update github.com/armon/go-metrics to v0.3.4 [[GH-8478](https://github.com/hashicorp/consul/pull/8478)]
+* vendor: update github.com/armon/go-metrics to v0.3.4 to mitigate a potential panic when emitting Prometheus metrics at an interval longer than the metric expiry time [[GH-8478](https://github.com/hashicorp/consul/pull/8478)]
 
 ## 1.6.7 (July 30, 2020)
 
