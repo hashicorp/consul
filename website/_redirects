@@ -190,7 +190,7 @@
 /docs/commands/acl/acl-token.html           /commands/acl/token             301!
 /docs/commands/acl/acl-token                /commands/acl/token             301!
 /docs/commands/acl/acl-translate-rules.html /commands/acl/translate-rules   301!
-/docs/commands/acl/acl-translate-rules      commands/acl/translate-rules   301!
+/docs/commands/acl/acl-translate-rules      /commands/acl/translate-rules   301!
 
 # Consul Learn Redirects
 /docs/guides/acl.html                          https://learn.hashicorp.com/consul/security-networking/production-acls         301!
