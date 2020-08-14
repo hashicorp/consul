@@ -106,6 +106,22 @@
   @extend %with-protocol-mask, %as-pseudo;
   background-color: $gray-500;
 }
+%composite-row-detail dl.lock-delay dt::before {
+  @extend %with-delay-mask, %as-pseudo;
+  background-color: $gray-500;
+}
+%composite-row-detail dl.ttl dt::before {
+  @extend %with-history-mask, %as-pseudo;
+  background-color: $gray-500;
+}
+%composite-row-detail dl.behavior dt::before {
+  @extend %with-info-circle-outline-mask, %as-pseudo;
+  background-color: $gray-500;
+}
+%composite-row-detail dl.checks dt::before {
+  @extend %with-health-mask, %as-pseudo;
+  background-color: $gray-500;
+}
 // In this case we do not need a background on the icon
 %composite-row .combined-address .copy-button button:hover,
 %composite-row-detail dt .copy-button button:hover {

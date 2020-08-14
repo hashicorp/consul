@@ -1,65 +1,15 @@
 <div id="lock-sessions" class="tab-section">
   <div role="tabpanel">
 {{#if (gt sessions.length 0)}}
-    <TabularCollection
-      data-test-sessions
-      class="sessions"
-      @items={{sessions}} as |item index|
-    >
-        <BlockSlot @name="header">
-            <th>Name</th>
-            <th>ID</th>
-            <th>Delay</th>
-            <th>TTL</th>
-            <th>Behavior</th>
-            <th>Checks</th>
-            <th>&nbsp;</th>
-        </BlockSlot>
-        <BlockSlot @name="row">
-                <td>
-                    {{item.Name}}
-                </td>
-                <td>
-                    {{item.ID}}
-                </td>
-                <td>
-                    {{item.LockDelay}}
-                </td>
-                <td data-test-session-ttl="{{item.TTL}}">
-                    {{item.TTL}}
-                </td>
-                <td>
-                    {{item.Behavior}}
-                </td>
-                <td>
-{{#if (gt item.Checks.length 0)}}
-                    {{ join ', ' item.Checks}}
-{{/if}}
-                </td>
-                <td>
-                    <ConfirmationDialog @message="Are you sure you want to invalidate this session?">
-                        <BlockSlot @name="action" as |confirm|>
-                            <button data-test-delete type="button" class="type-delete" onclick={{queue (action confirm 'invalidateSession' item) (refresh-route)}}>Invalidate</button>
-                        </BlockSlot>
-                        <BlockSlot @name="dialog" as |execute cancel message|>
-                            <p>
-                                {{message}}
-                            </p>
-                            <button type="button" class="type-delete" {{action execute}}>Confirm Invalidate</button>
-                            <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
-                        </BlockSlot>
-                    </ConfirmationDialog>
-                </td>
-        </BlockSlot>
-    </TabularCollection>
+    <ConsulLockSessionList @items={{sessions}}/>
 {{else}}
-      <EmptyState>
-        <BlockSlot @name="body">
-          <p>
-            There are no Lock Sessions for this Node. For more information, view <a href="{{ env 'CONSUL_DOCS_URL'}}/internals/sessions.html" rel="noopener noreferrer" target="_blank">our documentation</a>
-          </p>
-        </BlockSlot>
-      </EmptyState>
+    <EmptyState>
+      <BlockSlot @name="body">
+        <p>
+          There are no Lock Sessions for this Node. For more information, view <a href="{{ env 'CONSUL_DOCS_URL'}}/internals/sessions.html" rel="noopener noreferrer" target="_blank">our documentation</a>
+        </p>
+      </BlockSlot>
+    </EmptyState>
 {{/if}}
   </div>
 </div>
