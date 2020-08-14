@@ -34,13 +34,23 @@ func (c *IntentionMatch) Fetch(opts cache.FetchOptions, req cache.Request) (cach
 	reqReal.MinQueryIndex = opts.MinIndex
 	reqReal.MaxQueryTime = opts.Timeout
 
-	// Fetch
+	// Always allow stale - there's no point in hitting leader if the request is
+	// going to be served from cache and end up arbitrarily stale anyway. This
+	// allows cached service-discover to automatically read scale across all
+	// servers too.
+	reqReal.QueryOptions.AllowStale = true
+
+	if opts.LastResult != nil {
+		reqReal.QueryOptions.AllowNotModifiedResponse = true
+	}
+
 	var reply structs.IndexedIntentionMatches
 	if err := c.RPC.RPC("Intention.Match", reqReal, &reply); err != nil {
 		return result, err
 	}
 
 	result.Value = &reply
-	result.Index = reply.Index
+	result.Index = reply.QueryMeta.Index
+	result.NotModified = reply.QueryMeta.NotModified
 	return result, nil
 }
