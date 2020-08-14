@@ -47,7 +47,7 @@
 /docs/internals/security                             /docs/security                                    301!
 /docs/acl/                                           /docs/security/acl/                               301!
 /docs/acl/acl-system                                 /docs/security/acl/acl-system                     301!
-/docs/acl/acl-rules                                  /docs/seucity/acl/acl-rules                       301!
+/docs/acl/acl-rules                                  /docs/security/acl/acl-rules                       301!
 /docs/acl/acl-legacy                                 /docs/security/acl/acl-legacy                     301!
 /docs/acl/acl-migrate-tokens                         /docs/security/acl/acl-migrate-tokens             301!
 /docs/acl/auth-methods                               /docs/security/acl/auth-methods                   301!
