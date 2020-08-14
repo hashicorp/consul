@@ -1,0 +1,54 @@
+{{#if (gt items.length 0)}}
+<ListCollection @items={{items}} class="consul-lock-session-list" as |item index|>
+  <BlockSlot @name="header">
+    <span>{{item.Name}}</span>
+  </BlockSlot>
+  <BlockSlot @name="details">
+    <dl>
+      <dt>
+        <CopyButton
+          @value={{item.ID}}
+          @name="ID"
+        />
+      </dt>
+      <dd>{{item.ID}}</dd>
+    </dl>
+    <dl class="lock-delay">
+      <dt>
+        <Tooltip>
+          Delay
+        </Tooltip>
+      </dt>
+      <dd>{{format-time item.LockDelay}}</dd>
+    </dl>
+    <dl class="ttl">
+      <dt>
+        <Tooltip>
+          TTL
+        </Tooltip>
+      </dt>
+      <dd>{{item.TTL}}</dd>
+    </dl>
+    <dl class="behavior">
+      <dt>
+        <Tooltip>
+          Behavior
+        </Tooltip>
+      </dt>
+      <dd>{{item.Behavior}}</dd>
+    </dl>
+    <dl class="checks">
+      <dt>
+        <Tooltip>
+          Checks
+        </Tooltip>
+      </dt>
+      <dd>
+      {{#each item.Checks as |item|}}
+        <span>{{item}}</span>
+      {{/each}}
+      </dd>
+    </dl>
+  </BlockSlot>
+</ListCollection>
+{{/if}}
