@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/structs"
-	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-hclog"
 	"gopkg.in/square/go-jose.v2/jwt"
 	authv1 "k8s.io/api/authentication/v1"
@@ -17,7 +17,7 @@ import (
 	client_authv1 "k8s.io/client-go/kubernetes/typed/authentication/v1"
 	client_corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	client_rest "k8s.io/client-go/rest"
-	cert "k8s.io/client-go/util/cert"
+	"k8s.io/client-go/util/cert"
 )
 
 func init() {
@@ -132,11 +132,15 @@ func (v *Validator) ValidateLogin(ctx context.Context, loginToken string) (*auth
 	}
 
 	// Check TokenReview for the bulk of the work.
-	trResp, err := v.trGetter.TokenReviews().Create(&authv1.TokenReview{
-		Spec: authv1.TokenReviewSpec{
-			Token: loginToken,
+	trResp, err := v.trGetter.TokenReviews().Create(
+		context.Background(),
+		&authv1.TokenReview{
+			Spec: authv1.TokenReviewSpec{
+				Token: loginToken,
+			},
 		},
-	})
+		client_metav1.CreateOptions{},
+	)
 
 	if err != nil {
 		return nil, err
@@ -166,7 +170,7 @@ func (v *Validator) ValidateLogin(ctx context.Context, loginToken string) (*auth
 	)
 
 	// Check to see  if there is an override name on the ServiceAccount object.
-	sa, err := v.saGetter.ServiceAccounts(saNamespace).Get(saName, client_metav1.GetOptions{})
+	sa, err := v.saGetter.ServiceAccounts(saNamespace).Get(context.Background(), saName, client_metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("annotation lookup failed: %v", err)
 	}

@@ -59,12 +59,12 @@ func (p *Provider) Addrs(args map[string]string, l *log.Logger) ([]string, error
 		addrType = "private_v4"
 	}
 
-	log.Printf("[DEBUG] discover-aws: Using region=%s tag_key=%s tag_value=%s addr_type=%s", region, tagKey, tagValue, addrType)
+	l.Printf("[DEBUG] discover-aws: Using region=%s tag_key=%s tag_value=%s addr_type=%s", region, tagKey, tagValue, addrType)
 	if accessKey == "" && secretKey == "" {
-		log.Printf("[DEBUG] discover-aws: No static credentials")
-		log.Printf("[DEBUG] discover-aws: Using environment variables, shared credentials or instance role")
+		l.Printf("[DEBUG] discover-aws: No static credentials")
+		l.Printf("[DEBUG] discover-aws: Using environment variables, shared credentials or instance role")
 	} else {
-		log.Printf("[DEBUG] discover-aws: Static credentials provided")
+		l.Printf("[DEBUG] discover-aws: Static credentials provided")
 	}
 
 	if region == "" {

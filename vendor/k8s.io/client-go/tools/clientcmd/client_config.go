@@ -35,22 +35,13 @@ import (
 var (
 	// ClusterDefaults has the same behavior as the old EnvVar and DefaultCluster fields
 	// DEPRECATED will be replaced
-	ClusterDefaults = clientcmdapi.Cluster{Server: getDefaultServer()}
+	ClusterDefaults = clientcmdapi.Cluster{Server: os.Getenv("KUBERNETES_MASTER")}
 	// DefaultClientConfig represents the legacy behavior of this package for defaulting
 	// DEPRECATED will be replace
 	DefaultClientConfig = DirectClientConfig{*clientcmdapi.NewConfig(), "", &ConfigOverrides{
 		ClusterDefaults: ClusterDefaults,
 	}, nil, NewDefaultClientConfigLoadingRules(), promptedCredentials{}}
 )
-
-// getDefaultServer returns a default setting for DefaultClientConfig
-// DEPRECATED
-func getDefaultServer() string {
-	if server := os.Getenv("KUBERNETES_MASTER"); len(server) > 0 {
-		return server
-	}
-	return "http://localhost:8080"
-}
 
 // ClientConfig is used to make it easy to get an api server client
 type ClientConfig interface {
@@ -210,6 +201,7 @@ func getServerIdentificationPartialConfig(configAuthInfo clientcmdapi.AuthInfo, 
 	configClientConfig.CAFile = configClusterInfo.CertificateAuthority
 	configClientConfig.CAData = configClusterInfo.CertificateAuthorityData
 	configClientConfig.Insecure = configClusterInfo.InsecureSkipTLSVerify
+	configClientConfig.ServerName = configClusterInfo.TLSServerName
 	mergo.MergeWithOverwrite(mergedConfig, configClientConfig)
 
 	return mergedConfig, nil
@@ -449,13 +441,23 @@ func (config *DirectClientConfig) getCluster() (clientcmdapi.Cluster, error) {
 		return clientcmdapi.Cluster{}, fmt.Errorf("cluster %q does not exist", clusterInfoName)
 	}
 	mergo.MergeWithOverwrite(mergedClusterInfo, config.overrides.ClusterInfo)
-	// An override of --insecure-skip-tls-verify=true and no accompanying CA/CA data should clear already-set CA/CA data
-	// otherwise, a kubeconfig containing a CA reference would return an error that "CA and insecure-skip-tls-verify couldn't both be set"
+	// * An override of --insecure-skip-tls-verify=true and no accompanying CA/CA data should clear already-set CA/CA data
+	// otherwise, a kubeconfig containing a CA reference would return an error that "CA and insecure-skip-tls-verify couldn't both be set".
+	// * An override of --certificate-authority should also override TLS skip settings and CA data, otherwise existing CA data will take precedence.
 	caLen := len(config.overrides.ClusterInfo.CertificateAuthority)
 	caDataLen := len(config.overrides.ClusterInfo.CertificateAuthorityData)
-	if config.overrides.ClusterInfo.InsecureSkipTLSVerify && caLen == 0 && caDataLen == 0 {
-		mergedClusterInfo.CertificateAuthority = ""
-		mergedClusterInfo.CertificateAuthorityData = nil
+	if config.overrides.ClusterInfo.InsecureSkipTLSVerify || caLen > 0 || caDataLen > 0 {
+		mergedClusterInfo.InsecureSkipTLSVerify = config.overrides.ClusterInfo.InsecureSkipTLSVerify
+		mergedClusterInfo.CertificateAuthority = config.overrides.ClusterInfo.CertificateAuthority
+		mergedClusterInfo.CertificateAuthorityData = config.overrides.ClusterInfo.CertificateAuthorityData
+	}
+
+	// if the --tls-server-name has been set in overrides, use that value.
+	// if the --server has been set in overrides, then use the value of --tls-server-name specified on the CLI too.  This gives the property
+	// that setting a --server will effectively clear the KUBECONFIG value of tls-server-name if it is specified on the command line which is
+	// usually correct.
+	if config.overrides.ClusterInfo.TLSServerName != "" || config.overrides.ClusterInfo.Server != "" {
+		mergedClusterInfo.TLSServerName = config.overrides.ClusterInfo.TLSServerName
 	}
 
 	return *mergedClusterInfo, nil
