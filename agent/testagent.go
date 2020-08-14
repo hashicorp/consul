@@ -8,13 +8,10 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"testing"
 	"text/template"
 	"time"
@@ -40,9 +37,6 @@ func init() {
 	rand.Seed(time.Now().UnixNano()) // seed random number generator
 }
 
-// TempDir defines the base dir for temporary directories.
-var TempDir = os.TempDir()
-
 // TestAgent encapsulates an Agent with a default configuration and
 // startup procedure suitable for testing. It panics if there are errors
 // during creation or startup instead of returning errors. It manages a
@@ -60,21 +54,15 @@ type TestAgent struct {
 	// when Shutdown() is called.
 	Config *config.RuntimeConfig
 
-	// returnPortsFn will put the ports claimed for the test back into the
-	// general freeport pool
-	returnPortsFn func()
-
 	// LogOutput is the sink for the logs. If nil, logs are written
 	// to os.Stderr.
 	LogOutput io.Writer
 
-	// DataDir is the data directory which is used when Config.DataDir
-	// is not set. It is created automatically and removed when
-	// Shutdown() is called.
+	// DataDir may be set to a directory which exists. If is it not set,
+	// TestAgent.Start will create one and set DataDir to the directory path.
+	// In all cases the agent will be configured to use this path as the data directory,
+	// and the directory will be removed once the test ends.
 	DataDir string
-
-	// Key is the optional encryption key for the LAN and WAN keyring.
-	Key string
 
 	// UseTLS, if true, will disable the HTTP port and enable the HTTPS
 	// one.
@@ -155,35 +143,14 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 		name = "TestAgent"
 	}
 
-	var cleanupTmpDir = func() {
-		// Clean out the data dir if we are responsible for it before we
-		// try again, since the old ports may have gotten written to
-		// the data dir, such as in the Raft configuration.
-		if a.DataDir != "" {
-			if err := os.RemoveAll(a.DataDir); err != nil {
-				fmt.Printf("%s Error resetting data dir: %s", name, err)
-			}
-		}
-	}
-
-	var hclDataDir string
 	if a.DataDir == "" {
-		dirname := "agent"
-		if name != "" {
-			dirname = name + "-agent"
-		}
-		dirname = strings.Replace(dirname, "/", "_", -1)
-		d, err := ioutil.TempDir(TempDir, dirname)
-		if err != nil {
-			return fmt.Errorf("Error creating data dir %s: %s", filepath.Join(TempDir, dirname), err)
-		}
-		// Convert windows style path to posix style path
-		// to avoid illegal char escape error when hcl
-		// parsing.
-		d = filepath.ToSlash(d)
-		hclDataDir = `data_dir = "` + d + `"`
-		a.DataDir = d
+		dirname := name + "-agent"
+		a.DataDir = testutil.TempDir(t, dirname)
 	}
+	// Convert windows style path to posix style path to avoid illegal char escape
+	// error when hcl parsing.
+	d := filepath.ToSlash(a.DataDir)
+	hclDataDir := fmt.Sprintf(`data_dir = "%s"`, d)
 
 	logOutput := a.LogOutput
 	if logOutput == nil {
@@ -198,7 +165,7 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 	})
 
 	portsConfig, returnPortsFn := randomPortsSource(a.UseTLS)
-	a.returnPortsFn = returnPortsFn
+	t.Cleanup(returnPortsFn)
 
 	nodeID := NodeID()
 
@@ -221,36 +188,8 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 		),
 	}
 
-	defer func() {
-		if err != nil && a.returnPortsFn != nil {
-			a.returnPortsFn()
-			a.returnPortsFn = nil
-		}
-	}()
-
-	// write the keyring
-	if a.Key != "" {
-		writeKey := func(key, filename string) error {
-			path := filepath.Join(a.DataDir, filename)
-			if err := initKeyring(path, key); err != nil {
-				cleanupTmpDir()
-				return fmt.Errorf("Error creating keyring %s: %s", path, err)
-			}
-			return nil
-		}
-		if err = writeKey(a.Key, SerfLANKeyring); err != nil {
-			cleanupTmpDir()
-			return err
-		}
-		if err = writeKey(a.Key, SerfWANKeyring); err != nil {
-			cleanupTmpDir()
-			return err
-		}
-	}
-
 	agent, err := New(opts...)
 	if err != nil {
-		cleanupTmpDir()
 		return fmt.Errorf("Error creating agent: %s", err)
 	}
 
@@ -261,7 +200,6 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 	id := string(a.Config.NodeID)
 
 	if err := agent.Start(context.Background()); err != nil {
-		cleanupTmpDir()
 		agent.ShutdownAgent()
 		agent.ShutdownEndpoints()
 
@@ -274,7 +212,6 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 	a.Agent.StartSync()
 
 	if err := a.waitForUp(); err != nil {
-		cleanupTmpDir()
 		a.Shutdown()
 		t.Logf("Error while waiting for test agent to start: %v", err)
 		return errwrap.Wrapf(name+": {{err}}", err)
@@ -356,14 +293,6 @@ func (a *TestAgent) Shutdown() error {
 	if a.Agent == nil {
 		return nil
 	}
-
-	// Return ports last of all
-	defer func() {
-		if a.returnPortsFn != nil {
-			a.returnPortsFn()
-			a.returnPortsFn = nil
-		}
-	}()
 
 	// shutdown agent before endpoints
 	defer a.Agent.ShutdownEndpoints()

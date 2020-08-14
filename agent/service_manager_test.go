@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/stretchr/testify/require"
@@ -293,16 +292,12 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 	)
 
 	// Now launch a single client agent
-	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
-	defer os.RemoveAll(dataDir)
-
 	cfg := `
 	    enable_central_service_config = true
 		server = false
 		bootstrap = false
-		data_dir = "` + dataDir + `"
 	`
-	a := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: dataDir})
+	a := StartTestAgent(t, TestAgent{HCL: cfg})
 	defer a.Shutdown()
 
 	// Join first
@@ -465,7 +460,7 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 	serverAgent.Shutdown()
 
 	// Should load it back during later start.
-	a2 := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: dataDir})
+	a2 := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: a.DataDir})
 	defer a2.Shutdown()
 
 	{
@@ -510,9 +505,6 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 	)
 
 	// Now launch a single client agent
-	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
-	defer os.RemoveAll(dataDir)
-
 	serviceSnippet := `
 		service = {
 		  kind  = "connect-proxy"
@@ -535,12 +527,11 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 
 	cfg := `
 	    enable_central_service_config = true
-		data_dir = "` + dataDir + `"
 		server = false
 		bootstrap = false
 	` + serviceSnippet
 
-	a := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: dataDir})
+	a := StartTestAgent(t, TestAgent{HCL: cfg})
 	defer a.Shutdown()
 
 	// Join first
@@ -639,7 +630,7 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 	serverAgent.Shutdown()
 
 	// Should load it back during later start.
-	a2 := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: dataDir})
+	a2 := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: a.DataDir})
 	defer a2.Shutdown()
 
 	{

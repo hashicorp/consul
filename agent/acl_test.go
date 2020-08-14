@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"io"
+	"os"
 	"testing"
 	"time"
 
@@ -25,23 +26,6 @@ type authzResolver func(string) (structs.ACLIdentity, acl.Authorizer, error)
 type identResolver func(string) (structs.ACLIdentity, error)
 
 type TestACLAgent struct {
-	// Name is an optional name of the agent.
-	Name string
-
-	HCL string
-
-	// Config is the agent configuration. If Config is nil then
-	// TestConfig() is used. If Config.DataDir is set then it is
-	// the callers responsibility to clean up the data directory.
-	// Otherwise, a temporary data directory is created and removed
-	// when Shutdown() is called.
-	Config *config.RuntimeConfig
-
-	// DataDir is the data directory which is used when Config.DataDir
-	// is not set. It is created automatically and removed when
-	// Shutdown() is called.
-	DataDir string
-
 	resolveAuthzFn authzResolver
 	resolveIdentFn identResolver
 
@@ -52,11 +36,15 @@ type TestACLAgent struct {
 // Basically it needs a local state for some of the vet* functions, a logger and a delegate.
 // The key is that we are the delegate so we can control the ResolveToken responses
 func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzResolver, resolveIdent identResolver) *TestACLAgent {
-	a := &TestACLAgent{Name: name, HCL: hcl, resolveAuthzFn: resolveAuthz, resolveIdentFn: resolveIdent}
-	dataDir := `data_dir = "acl-agent"`
+	a := &TestACLAgent{resolveAuthzFn: resolveAuthz, resolveIdentFn: resolveIdent}
+
+	dataDir := testutil.TempDir(t, "acl-agent")
+	t.Cleanup(func() {
+		os.RemoveAll(dataDir)
+	})
 
 	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
-		Name:   a.Name,
+		Name:   name,
 		Level:  hclog.Debug,
 		Output: testutil.NewLogBuffer(t),
 	})
@@ -66,22 +54,22 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzRe
 		WithBuilderOpts(config.BuilderOpts{
 			HCL: []string{
 				TestConfigHCL(NodeID()),
-				a.HCL,
-				dataDir,
+				hcl,
+				fmt.Sprintf(`data_dir = "%s"`, dataDir),
 			},
 		}),
 	}
 
 	agent, err := New(opts...)
 	require.NoError(t, err)
-	a.Config = agent.GetConfig()
+	cfg := agent.GetConfig()
 	a.Agent = agent
 
 	agent.logger = logger
 	agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
 
 	a.Agent.delegate = a
-	a.Agent.State = local.NewState(LocalConfig(a.Config), a.Agent.logger, a.Agent.tokens)
+	a.Agent.State = local.NewState(LocalConfig(cfg), logger, a.Agent.tokens)
 	a.Agent.State.TriggerSyncChanges = func() {}
 	return a
 }

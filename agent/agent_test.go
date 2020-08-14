@@ -1652,15 +1652,12 @@ func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
 		a.logger.Info("testharness: " + fmt.Sprintf(format, args...))
 	}
 
-	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
 	cfg := `
 		server = false
 		bootstrap = false
 	    enable_central_service_config = false
-		data_dir = "` + dataDir + `"
 	`
-	a := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: dataDir})
-	defer os.RemoveAll(dataDir)
+	a := StartTestAgent(t, TestAgent{HCL: cfg})
 	defer a.Shutdown()
 
 	testCtx, testCancel := context.WithCancel(context.Background())
@@ -1743,7 +1740,7 @@ node_name = "` + a.Config.NodeName + `"
 		t.Helper()
 
 		// Reload and retain former NodeID and data directory.
-		a2 := StartTestAgent(t, TestAgent{HCL: futureHCL, DataDir: dataDir})
+		a2 := StartTestAgent(t, TestAgent{HCL: futureHCL, DataDir: a.DataDir})
 		defer a2.Shutdown()
 		a = nil
 
@@ -2128,15 +2125,11 @@ func TestAgent_PersistService(t *testing.T) {
 func testAgent_PersistService(t *testing.T, extraHCL string) {
 	t.Helper()
 
-	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
-	defer os.RemoveAll(dataDir)
-
 	cfg := `
 		server = false
 		bootstrap = false
-		data_dir = "` + dataDir + `"
 	` + extraHCL
-	a := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: dataDir})
+	a := StartTestAgent(t, TestAgent{HCL: cfg})
 	defer a.Shutdown()
 
 	svc := &structs.NodeService{
@@ -2202,7 +2195,7 @@ func testAgent_PersistService(t *testing.T, extraHCL string) {
 	a.Shutdown()
 
 	// Should load it back during later start
-	a2 := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: dataDir})
+	a2 := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: a.DataDir})
 	defer a2.Shutdown()
 
 	restored := a2.State.ServiceState(structs.NewServiceID(svc.ID, nil))
@@ -2340,15 +2333,11 @@ func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
 func testAgent_PurgeServiceOnDuplicate(t *testing.T, extraHCL string) {
 	t.Helper()
 
-	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
-	defer os.RemoveAll(dataDir)
-
 	cfg := `
-		data_dir = "` + dataDir + `"
 		server = false
 		bootstrap = false
 	` + extraHCL
-	a := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: dataDir})
+	a := StartTestAgent(t, TestAgent{HCL: cfg})
 	defer a.Shutdown()
 
 	svc1 := &structs.NodeService{
@@ -2371,7 +2360,7 @@ func testAgent_PurgeServiceOnDuplicate(t *testing.T, extraHCL string) {
 			tags = ["bar"]
 			port = 9000
 		}
-	`, DataDir: dataDir})
+	`, DataDir: a.DataDir})
 	defer a2.Shutdown()
 
 	sid := svc1.CompoundServiceID()
@@ -2385,15 +2374,12 @@ func testAgent_PurgeServiceOnDuplicate(t *testing.T, extraHCL string) {
 
 func TestAgent_PersistCheck(t *testing.T) {
 	t.Parallel()
-	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
 	cfg := `
-		data_dir = "` + dataDir + `"
 		server = false
 		bootstrap = false
 		enable_script_checks = true
 	`
-	a := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: dataDir})
-	defer os.RemoveAll(dataDir)
+	a := StartTestAgent(t, TestAgent{HCL: cfg})
 	defer a.Shutdown()
 
 	check := &structs.HealthCheck{
@@ -2449,7 +2435,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 	a.Shutdown()
 
 	// Should load it back during later start
-	a2 := StartTestAgent(t, TestAgent{Name: "Agent2", HCL: cfg, DataDir: dataDir})
+	a2 := StartTestAgent(t, TestAgent{Name: "Agent2", HCL: cfg, DataDir: a.DataDir})
 	defer a2.Shutdown()
 
 	result := requireCheckExists(t, a2, check.CheckID)
@@ -2500,18 +2486,14 @@ func TestAgent_PurgeCheck(t *testing.T) {
 func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	t.Parallel()
 	nodeID := NodeID()
-	dataDir := testutil.TempDir(t, "agent")
 	a := StartTestAgent(t, TestAgent{
-		DataDir: dataDir,
 		HCL: `
 	    node_id = "` + nodeID + `"
 	    node_name = "Node ` + nodeID + `"
-		data_dir = "` + dataDir + `"
 		server = false
 		bootstrap = false
 		enable_script_checks = true
 	`})
-	defer os.RemoveAll(dataDir)
 	defer a.Shutdown()
 
 	check1 := &structs.HealthCheck{
@@ -2531,11 +2513,10 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	// Start again with the check registered in config
 	a2 := StartTestAgent(t, TestAgent{
 		Name:    "Agent2",
-		DataDir: dataDir,
+		DataDir: a.DataDir,
 		HCL: `
 	    node_id = "` + nodeID + `"
 	    node_name = "Node ` + nodeID + `"
-		data_dir = "` + dataDir + `"
 		server = false
 		bootstrap = false
 		enable_script_checks = true
@@ -2550,7 +2531,7 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	defer a2.Shutdown()
 
 	cid := check1.CompoundCheckID()
-	file := filepath.Join(dataDir, checksDir, cid.StringHash())
+	file := filepath.Join(a.DataDir, checksDir, cid.StringHash())
 	if _, err := os.Stat(file); err == nil {
 		t.Fatalf("should have removed persisted check")
 	}
