@@ -500,15 +500,16 @@ func TestConfigurator_ErrorPropagation(t *testing.T) {
 		{Config{VerifyIncoming: true, CAFile: "", CAPath: capath}, true, false}, // 18
 		{Config{VerifyIncoming: true, CAFile: "", CAPath: capath,
 			CertFile: certfile, KeyFile: keyfile}, false, false}, // 19
-		{Config{CertFile: "bogus", KeyFile: "bogus"}, true, true}, // 20
-		{Config{CAFile: "bogus"}, true, true},                     // 21
-		{Config{CAPath: "bogus"}, true, true},                     // 22
+		{Config{CertFile: "bogus", KeyFile: "bogus"}, true, true},                   // 20
+		{Config{CAFile: "bogus"}, true, true},                                       // 21
+		{Config{CAPath: "bogus"}, true, true},                                       // 22
+		{Config{VerifyIncoming: true, CAFile: cafile, AutoTLS: true}, false, false}, // 22
 	}
 	for _, v := range tlsVersions() {
 		variants = append(variants, variant{Config{TLSMinVersion: v}, false, false})
 	}
 
-	c := Configurator{autoEncrypt: &autoEncrypt{}, manual: &manual{}}
+	c := Configurator{autoTLS: &autoTLS{}, manual: &manual{}}
 	for i, v := range variants {
 		info := fmt.Sprintf("case %d, config: %+v", i, v.config)
 		_, err1 := NewConfigurator(v.config, nil)
@@ -661,10 +662,10 @@ func TestConfigurator_CommonTLSConfigGetClientCertificate(t *testing.T) {
 
 	c2, err := loadKeyPair("../test/key/ourdomain.cer", "../test/key/ourdomain.key")
 	require.NoError(t, err)
-	c.autoEncrypt.cert = c2
+	c.autoTLS.cert = c2
 	cert, err = c.commonTLSConfig(false).GetClientCertificate(nil)
 	require.NoError(t, err)
-	require.Equal(t, c.autoEncrypt.cert, cert)
+	require.Equal(t, c.autoTLS.cert, cert)
 }
 
 func TestConfigurator_CommonTLSConfigGetCertificate(t *testing.T) {
@@ -678,10 +679,10 @@ func TestConfigurator_CommonTLSConfigGetCertificate(t *testing.T) {
 	// Setting a certificate as the auto-encrypt cert will return it as the regular server certificate
 	c1, err := loadKeyPair("../test/key/something_expired.cer", "../test/key/something_expired.key")
 	require.NoError(t, err)
-	c.autoEncrypt.cert = c1
+	c.autoTLS.cert = c1
 	cert, err = c.commonTLSConfig(false).GetCertificate(nil)
 	require.NoError(t, err)
-	require.Equal(t, c.autoEncrypt.cert, cert)
+	require.Equal(t, c.autoTLS.cert, cert)
 
 	// Setting a different certificate as a manual cert will override the auto-encrypt cert and instead return the manual cert
 	c2, err := loadKeyPair("../test/key/ourdomain.cer", "../test/key/ourdomain.key")
@@ -718,7 +719,7 @@ func TestConfigurator_CommonTLSConfigTLSMinVersion(t *testing.T) {
 }
 
 func TestConfigurator_CommonTLSConfigVerifyIncoming(t *testing.T) {
-	c := Configurator{base: &Config{}, autoEncrypt: &autoEncrypt{}}
+	c := Configurator{base: &Config{}, autoTLS: &autoTLS{}}
 	type variant struct {
 		verify   bool
 		expected tls.ClientAuthType
@@ -733,7 +734,7 @@ func TestConfigurator_CommonTLSConfigVerifyIncoming(t *testing.T) {
 }
 
 func TestConfigurator_OutgoingRPCTLSDisabled(t *testing.T) {
-	c := Configurator{base: &Config{}, autoEncrypt: &autoEncrypt{}}
+	c := Configurator{base: &Config{}, autoTLS: &autoTLS{}}
 	type variant struct {
 		verify         bool
 		autoEncryptTLS bool
@@ -755,7 +756,7 @@ func TestConfigurator_OutgoingRPCTLSDisabled(t *testing.T) {
 		info := fmt.Sprintf("case %d", i)
 		c.caPool = v.pool
 		c.base.VerifyOutgoing = v.verify
-		c.base.AutoEncryptTLS = v.autoEncryptTLS
+		c.base.AutoTLS = v.autoEncryptTLS
 		require.Equal(t, v.expected, c.outgoingRPCTLSDisabled(), info)
 	}
 }
@@ -809,7 +810,7 @@ func TestConfigurator_MutualTLSCapable(t *testing.T) {
 		require.NoError(t, err)
 
 		caPEM := loadFile(t, "../test/hostname/CertAuth.crt")
-		require.NoError(t, c.UpdateAutoEncryptCA([]string{caPEM}))
+		require.NoError(t, c.UpdateAutoTLSCA([]string{caPEM}))
 
 		require.False(t, c.mutualTLSCapable())
 	})
@@ -824,8 +825,8 @@ func TestConfigurator_MutualTLSCapable(t *testing.T) {
 		caPEM := loadFile(t, "../test/hostname/CertAuth.crt")
 		certPEM := loadFile(t, "../test/hostname/Bob.crt")
 		keyPEM := loadFile(t, "../test/hostname/Bob.key")
-		require.NoError(t, c.UpdateAutoEncryptCA([]string{caPEM}))
-		require.NoError(t, c.UpdateAutoEncryptCert(certPEM, keyPEM))
+		require.NoError(t, c.UpdateAutoTLSCA([]string{caPEM}))
+		require.NoError(t, c.UpdateAutoTLSCert(certPEM, keyPEM))
 
 		require.True(t, c.mutualTLSCapable())
 	})
@@ -900,7 +901,7 @@ func TestConfigurator_IncomingALPNRPCConfig(t *testing.T) {
 }
 
 func TestConfigurator_IncomingHTTPSConfig(t *testing.T) {
-	c := Configurator{base: &Config{}, autoEncrypt: &autoEncrypt{}}
+	c := Configurator{base: &Config{}, autoTLS: &autoTLS{}}
 	require.Equal(t, []string{"h2", "http/1.1"}, c.IncomingHTTPSConfig().NextProtos)
 }
 
@@ -908,7 +909,7 @@ func TestConfigurator_OutgoingTLSConfigForChecks(t *testing.T) {
 	c := Configurator{base: &Config{
 		TLSMinVersion:           "tls12",
 		EnableAgentTLSForChecks: false,
-	}, autoEncrypt: &autoEncrypt{}}
+	}, autoTLS: &autoTLS{}}
 	tlsConf := c.OutgoingTLSConfigForCheck(true)
 	require.Equal(t, true, tlsConf.InsecureSkipVerify)
 	require.Equal(t, uint16(0), tlsConf.MinVersion)
@@ -922,7 +923,7 @@ func TestConfigurator_OutgoingTLSConfigForChecks(t *testing.T) {
 }
 
 func TestConfigurator_OutgoingRPCConfig(t *testing.T) {
-	c := &Configurator{base: &Config{}, autoEncrypt: &autoEncrypt{}}
+	c := &Configurator{base: &Config{}, autoTLS: &autoTLS{}}
 	require.Nil(t, c.OutgoingRPCConfig())
 
 	c, err := NewConfigurator(Config{
@@ -940,7 +941,7 @@ func TestConfigurator_OutgoingRPCConfig(t *testing.T) {
 }
 
 func TestConfigurator_OutgoingALPNRPCConfig(t *testing.T) {
-	c := &Configurator{base: &Config{}, autoEncrypt: &autoEncrypt{}}
+	c := &Configurator{base: &Config{}, autoTLS: &autoTLS{}}
 	require.Nil(t, c.OutgoingALPNRPCConfig())
 
 	c, err := NewConfigurator(Config{
@@ -960,7 +961,7 @@ func TestConfigurator_OutgoingALPNRPCConfig(t *testing.T) {
 }
 
 func TestConfigurator_OutgoingRPCWrapper(t *testing.T) {
-	c := &Configurator{base: &Config{}, autoEncrypt: &autoEncrypt{}}
+	c := &Configurator{base: &Config{}, autoTLS: &autoTLS{}}
 	wrapper := c.OutgoingRPCWrapper()
 	require.NotNil(t, wrapper)
 	conn := &net.TCPConn{}
@@ -982,7 +983,7 @@ func TestConfigurator_OutgoingRPCWrapper(t *testing.T) {
 }
 
 func TestConfigurator_OutgoingALPNRPCWrapper(t *testing.T) {
-	c := &Configurator{base: &Config{}, autoEncrypt: &autoEncrypt{}}
+	c := &Configurator{base: &Config{}, autoTLS: &autoTLS{}}
 	wrapper := c.OutgoingRPCWrapper()
 	require.NotNil(t, wrapper)
 	conn := &net.TCPConn{}
@@ -1058,7 +1059,7 @@ func TestConfigurator_ServerNameOrNodeName(t *testing.T) {
 }
 
 func TestConfigurator_VerifyOutgoing(t *testing.T) {
-	c := Configurator{base: &Config{}, autoEncrypt: &autoEncrypt{}}
+	c := Configurator{base: &Config{}, autoTLS: &autoTLS{}}
 	type variant struct {
 		verify         bool
 		autoEncryptTLS bool
@@ -1080,7 +1081,7 @@ func TestConfigurator_VerifyOutgoing(t *testing.T) {
 		info := fmt.Sprintf("case %d", i)
 		c.caPool = v.pool
 		c.base.VerifyOutgoing = v.verify
-		c.base.AutoEncryptTLS = v.autoEncryptTLS
+		c.base.AutoTLS = v.autoEncryptTLS
 		require.Equal(t, v.expected, c.verifyOutgoing(), info)
 	}
 }
@@ -1091,34 +1092,34 @@ func TestConfigurator_Domain(t *testing.T) {
 }
 
 func TestConfigurator_VerifyServerHostname(t *testing.T) {
-	c := Configurator{base: &Config{}, autoEncrypt: &autoEncrypt{}}
+	c := Configurator{base: &Config{}, autoTLS: &autoTLS{}}
 	require.False(t, c.VerifyServerHostname())
 
 	c.base.VerifyServerHostname = true
-	c.autoEncrypt.verifyServerHostname = false
+	c.autoTLS.verifyServerHostname = false
 	require.True(t, c.VerifyServerHostname())
 
 	c.base.VerifyServerHostname = false
-	c.autoEncrypt.verifyServerHostname = true
+	c.autoTLS.verifyServerHostname = true
 	require.True(t, c.VerifyServerHostname())
 
 	c.base.VerifyServerHostname = true
-	c.autoEncrypt.verifyServerHostname = true
+	c.autoTLS.verifyServerHostname = true
 	require.True(t, c.VerifyServerHostname())
 }
 
 func TestConfigurator_AutoEncrytCertExpired(t *testing.T) {
-	c := Configurator{base: &Config{}, autoEncrypt: &autoEncrypt{}}
+	c := Configurator{base: &Config{}, autoTLS: &autoTLS{}}
 	require.True(t, c.AutoEncryptCertExpired())
 
 	cert, err := loadKeyPair("../test/key/something_expired.cer", "../test/key/something_expired.key")
 	require.NoError(t, err)
-	c.autoEncrypt.cert = cert
+	c.autoTLS.cert = cert
 	require.True(t, c.AutoEncryptCertExpired())
 
 	cert, err = loadKeyPair("../test/key/ourdomain.cer", "../test/key/ourdomain.key")
 	require.NoError(t, err)
-	c.autoEncrypt.cert = cert
+	c.autoTLS.cert = cert
 	require.False(t, c.AutoEncryptCertExpired())
 }
 

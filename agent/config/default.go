@@ -12,9 +12,7 @@ import (
 
 // DefaultSource is the default agent configuration.
 // This needs to be merged first in the head.
-// todo(fs): The values are sourced from multiple sources.
-// todo(fs): IMO, this should be the definitive default for all configurable values
-// todo(fs): and whatever is in here should clobber every default value. Hence, no sourcing.
+// TODO: return a LiteralSource (no decoding) instead of a FileSource
 func DefaultSource() Source {
 	cfg := consul.DefaultConfig()
 	serfLAN := cfg.SerfLANConfig.MemberlistConfig
@@ -25,7 +23,7 @@ func DefaultSource() Source {
 	//   acl stanza for now we need to be able to detect the new entries not being set (not
 	//   just set to the defaults here) so that we can use the old entries. So the true
 	//   default still needs to reside in the original config values
-	return Source{
+	return FileSource{
 		Name:   "default",
 		Format: "hcl",
 		Data: `
@@ -131,8 +129,9 @@ func DefaultSource() Source {
 
 // DevSource is the additional default configuration for dev mode.
 // This should be merged in the head after the default configuration.
+// TODO: return a LiteralSource (no decoding) instead of a FileSource
 func DevSource() Source {
-	return Source{
+	return FileSource{
 		Name:   "dev",
 		Format: "hcl",
 		Data: `
@@ -171,8 +170,9 @@ func DevSource() Source {
 
 // NonUserSource contains the values the user cannot configure.
 // This needs to be merged in the tail.
+// TODO: return a LiteralSource (no decoding) instead of a FileSource
 func NonUserSource() Source {
-	return Source{
+	return FileSource{
 		Name:   "non-user",
 		Format: "hcl",
 		Data: `
@@ -203,8 +203,9 @@ func NonUserSource() Source {
 // VersionSource creates a config source for the version parameters.
 // This should be merged in the tail since these values are not
 // user configurable.
+// TODO: return a LiteralSource (no decoding) instead of a FileSource
 func VersionSource(rev, ver, verPre string) Source {
-	return Source{
+	return FileSource{
 		Name:   "version",
 		Format: "hcl",
 		Data:   fmt.Sprintf(`revision = %q version = %q version_prerelease = %q`, rev, ver, verPre),
@@ -219,10 +220,11 @@ func DefaultVersionSource() Source {
 
 // DefaultConsulSource returns the default configuration for the consul agent.
 // This should be merged in the tail since these values are not user configurable.
+// TODO: return a LiteralSource (no decoding) instead of a FileSource
 func DefaultConsulSource() Source {
 	cfg := consul.DefaultConfig()
 	raft := cfg.RaftConfig
-	return Source{
+	return FileSource{
 		Name:   "consul",
 		Format: "hcl",
 		Data: `
@@ -247,8 +249,9 @@ func DefaultConsulSource() Source {
 
 // DevConsulSource returns the consul agent configuration for the dev mode.
 // This should be merged in the tail after the DefaultConsulSource.
+// TODO: return a LiteralSource (no decoding) instead of a FileSource
 func DevConsulSource() Source {
-	return Source{
+	return FileSource{
 		Name:   "consul-dev",
 		Format: "hcl",
 		Data: `

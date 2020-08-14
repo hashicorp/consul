@@ -37,10 +37,6 @@ type TestACLAgent struct {
 	// when Shutdown() is called.
 	Config *config.RuntimeConfig
 
-	// LogOutput is the sink for the logs. If nil, logs are written
-	// to os.Stderr.
-	LogOutput io.Writer
-
 	// DataDir is the data directory which is used when Config.DataDir
 	// is not set. It is created automatically and removed when
 	// Shutdown() is called.
@@ -59,11 +55,10 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzRe
 	a := &TestACLAgent{Name: name, HCL: hcl, resolveAuthzFn: resolveAuthz, resolveIdentFn: resolveIdent}
 	dataDir := `data_dir = "acl-agent"`
 
-	logOutput := testutil.NewLogBuffer(t)
 	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
 		Name:   a.Name,
 		Level:  hclog.Debug,
-		Output: logOutput,
+		Output: testutil.NewLogBuffer(t),
 	})
 
 	opts := []AgentOption{
@@ -82,7 +77,6 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzRe
 	a.Config = agent.GetConfig()
 	a.Agent = agent
 
-	agent.LogOutput = logOutput
 	agent.logger = logger
 	agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
 

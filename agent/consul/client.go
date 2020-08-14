@@ -3,7 +3,6 @@ package consul
 import (
 	"fmt"
 	"io"
-	"os"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -89,58 +88,31 @@ type Client struct {
 	tlsConfigurator *tlsutil.Configurator
 }
 
-// NewClient is used to construct a new Consul client from the configuration,
-// potentially returning an error.
-// NewClient only used to help setting up a client for testing. Normal code
-// exercises NewClientLogger.
-func NewClient(config *Config) (*Client, error) {
-	c, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), nil)
-	if err != nil {
-		return nil, err
-	}
-	return NewClientLogger(config, nil, c)
-}
-
-func NewClientWithOptions(config *Config, options ...ConsulOption) (*Client, error) {
+// NewClient creates and returns a Client
+func NewClient(config *Config, options ...ConsulOption) (*Client, error) {
 	flat := flattenConsulOptions(options)
 
-	logger := flat.logger
 	tlsConfigurator := flat.tlsConfigurator
 	connPool := flat.connPool
 
-	// Check the protocol version
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
 	}
-
-	// Check for a data directory!
 	if config.DataDir == "" {
 		return nil, fmt.Errorf("Config must provide a DataDir")
 	}
-
-	// Sanity check the ACLs
 	if err := config.CheckACL(); err != nil {
 		return nil, err
 	}
-
-	// Ensure we have a log output
-	if config.LogOutput == nil {
-		config.LogOutput = os.Stderr
-	}
-
-	// Create a logger
-	if logger == nil {
-		logger = hclog.NewInterceptLogger(&hclog.LoggerOptions{
-			Level:  hclog.Debug,
-			Output: config.LogOutput,
-		})
+	if flat.logger == nil {
+		return nil, fmt.Errorf("logger is required")
 	}
 
 	if connPool == nil {
 		connPool = &pool.ConnPool{
 			Server:          false,
 			SrcAddr:         config.RPCSrcAddr,
-			LogOutput:       config.LogOutput,
+			Logger:          flat.logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true}),
 			MaxTime:         clientRPCConnMaxIdle,
 			MaxStreams:      clientMaxStreams,
 			TLSConfigurator: tlsConfigurator,
@@ -153,7 +125,7 @@ func NewClientWithOptions(config *Config, options ...ConsulOption) (*Client, err
 		config:          config,
 		connPool:        connPool,
 		eventCh:         make(chan serf.Event, serfEventBacklog),
-		logger:          logger.NamedIntercept(logging.ConsulClient),
+		logger:          flat.logger.NamedIntercept(logging.ConsulClient),
 		shutdownCh:      make(chan struct{}),
 		tlsConfigurator: tlsConfigurator,
 	}
@@ -208,10 +180,6 @@ func NewClientWithOptions(config *Config, options ...ConsulOption) (*Client, err
 	}
 
 	return c, nil
-}
-
-func NewClientLogger(config *Config, logger hclog.InterceptLogger, tlsConfigurator *tlsutil.Configurator) (*Client, error) {
-	return NewClientWithOptions(config, WithLogger(logger), WithTLSConfigurator(tlsConfigurator))
 }
 
 // Shutdown is used to shutdown the client

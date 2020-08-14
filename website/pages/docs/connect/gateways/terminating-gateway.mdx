@@ -19,8 +19,8 @@ and forward requests to the appropriate destination.
 
 ![Terminating Gateway Architecture](/img/terminating-gateways.png)
 
-For additional use cases and usage patterns, review the guide for
-[understanding terminating gateways](https://learn.hashicorp.com/consul/developer-mesh/understand-terminating-gateways).
+For additional use cases and usage patterns, review the tutorial for
+[understanding terminating gateways](https://learn.hashicorp.com/tutorials/consul/service-mesh-terminating-gateways).
 
 ~> **Known limitations:** Terminating gateways currently do not support targeting service subsets with
 [L7 configuration](/docs/connect/l7-traffic-management). They route to all instances of a service with no capabilities
@@ -79,7 +79,7 @@ a terminating gateway as long as they discover upstreams with the
 ## Running and Using a Terminating Gateway
 
 For a complete example of how to enable connections from services in the Consul service mesh to
-services outside the mesh, review the [terminating gateway guide](https://learn.hashicorp.com/consul/developer-mesh/terminating-gateways).
+services outside the mesh, review the [terminating gateway tutorial](https://learn.hashicorp.com/tutorials/consul/teminating-gateways-connect-external-services).
 
 ## Terminating Gateway Configuration
 
@@ -124,4 +124,4 @@ does not match the node name of any Consul client agent node. If the node name o
 Consul's [anti-entropy sync](/docs/internals/anti-entropy) will delete the services registered via the `/catalog/register` HTTP API endpoint.
 
 For a complete example of how to register external services review the
-[external services guide](https://learn.hashicorp.com/consul/developer-discovery/external).
+[external services tutorial](https://learn.hashicorp.com/tutorials/consul/service-registration-external-services).

@@ -280,13 +280,13 @@ func TestAgentKeyring_ACL(t *testing.T) {
 	defer a.Shutdown()
 
 	// List keys without access fails
-	_, err := a.ListKeys("", 0)
+	_, err := a.ListKeys("", false, 0)
 	if err == nil || !strings.Contains(err.Error(), "denied") {
 		t.Fatalf("expected denied error, got: %#v", err)
 	}
 
 	// List keys with access works
-	_, err = a.ListKeys("root", 0)
+	_, err = a.ListKeys("root", false, 0)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

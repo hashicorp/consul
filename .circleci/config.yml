@@ -3,7 +3,7 @@ version: 2
 
 references:
   images:
-    go: &GOLANG_IMAGE circleci/golang:1.14.6
+    go: &GOLANG_IMAGE circleci/golang:1.14.7
     middleman: &MIDDLEMAN_IMAGE hashicorp/middleman-hashicorp:0.3.40
     ember: &EMBER_IMAGE circleci/node:12-browsers
 
@@ -114,6 +114,36 @@ jobs:
             exit 1
           fi
       - run: *notify-slack-failure
+
+  check-generated-protobuf:
+    docker:
+      - image: *GOLANG_IMAGE
+    environment:
+      <<: *ENVIRONMENT
+    steps:
+      - checkout
+      - run:
+          name: Install protobuf
+          command: |
+            wget https://github.com/protocolbuffers/protobuf/releases/download/v3.12.3/protoc-3.12.3-linux-x86_64.zip
+            sudo unzip -d /usr/local protoc-*.zip
+            sudo chmod +x /usr/local/bin/protoc
+            rm protoc-*.zip
+      - run:
+          name: Install gogo/protobuf
+          command: |
+            gogo_version=$(go list -m github.com/gogo/protobuf | awk '{print $2}')
+            mkdir -p .gotools; cd .gotools; go mod init consul-tools
+            go get -v github.com/hashicorp/protoc-gen-go-binary
+            go get -v github.com/gogo/protobuf/protoc-gen-gofast@${gogo_version}
+
+      - run:
+          command: make --always-make proto
+      - run: |
+          if ! git diff --exit-code; then
+            echo "Generated code was not updated correctly"
+            exit 1
+          fi
 
   go-test:
     docker:
@@ -640,13 +670,13 @@ jobs:
           command: bash <(curl -s https://codecov.io/bash) -v -c -C $CIRCLE_SHA1 -F ui
       - run: *notify-slack-failure
 
-  envoy-integration-test-1.11.2:
+  envoy-integration-test-1.12.6:
     docker:
       # We only really need bash and docker-compose which is installed on all
       # Circle images but pick Go since we have to pick one of them.
       - image: *GOLANG_IMAGE
     environment:
-      ENVOY_VERSION: "1.11.2"
+      ENVOY_VERSION: "1.12.6"
     steps: &ENVOY_INTEGRATION_TEST_STEPS
       - checkout
       # Get go binary from workspace
@@ -675,13 +705,6 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  envoy-integration-test-1.12.6:
-    docker:
-      - image: *GOLANG_IMAGE
-    environment:
-      ENVOY_VERSION: "1.12.6"
-    steps: *ENVOY_INTEGRATION_TEST_STEPS
-
   envoy-integration-test-1.13.4:
     docker:
       - image: *GOLANG_IMAGE
@@ -694,6 +717,13 @@ jobs:
       - image: *GOLANG_IMAGE
     environment:
       ENVOY_VERSION: "1.14.4"
+    steps: *ENVOY_INTEGRATION_TEST_STEPS
+
+  envoy-integration-test-1.15.0:
+    docker:
+      - image: *GOLANG_IMAGE
+    environment:
+      ENVOY_VERSION: "1.15.0"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
   # run integration tests for the connect ca providers
@@ -744,6 +774,7 @@ workflows:
                 - stable-website
                 - /^docs\/.*/
                 - /^ui\/.*/
+      - check-generated-protobuf: *filter-ignore-non-go-branches
       - lint-consul-retry: *filter-ignore-non-go-branches
       - lint: *filter-ignore-non-go-branches
       - test-connect-ca-providers: *filter-ignore-non-go-branches
@@ -807,9 +838,6 @@ workflows:
       - nomad-integration-0_8:
           requires:
             - dev-build
-      - envoy-integration-test-1.11.2:
-          requires:
-            - dev-build
       - envoy-integration-test-1.12.6:
           requires:
             - dev-build
@@ -817,6 +845,9 @@ workflows:
           requires:
             - dev-build
       - envoy-integration-test-1.14.4:
+          requires:
+            - dev-build
+      - envoy-integration-test-1.15.0:
           requires:
             - dev-build
 

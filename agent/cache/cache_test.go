@@ -1219,3 +1219,76 @@ func TestCacheGet_nonBlockingType(t *testing.T) {
 	time.Sleep(20 * time.Millisecond)
 	typ.AssertExpectations(t)
 }
+
+// TestCacheThrottle checks the assumptions for the cache throttling. It sets
+// up a cache with Options{EntryFetchRate: 10.0, EntryFetchMaxBurst: 1}, which
+// allows for 10req/s, or one request every 100ms.
+// It configures two different cache types with each 3 updates. Each type has
+// its own rate limiter which starts initially full, and we expect the
+// following requests when creating blocking queries against both waiting for
+// the third update:
+// at ~0ms: typ1 and typ2 receive first value and are blocked until
+// ~100ms: typ1 and typ2 receive second value and are blocked until
+// ~200ms: typ1 and typ2 receive third value which we check
+//
+// This test will verify waiting with a blocking query for the last update will
+// block for 190ms and only afterwards have the expected result.
+// It demonstrates the ratelimiting waits for the expected amount of time and
+// also that each type has its own ratelimiter, because results for both types
+// are arriving at similar times, which wouldn't be the case if they use a
+// shared limiter.
+func TestCacheThrottle(t *testing.T) {
+	t.Parallel()
+
+	typ1 := TestType(t)
+	typ2 := TestType(t)
+	defer typ1.AssertExpectations(t)
+	defer typ2.AssertExpectations(t)
+
+	c := New(Options{EntryFetchRate: 10.0, EntryFetchMaxBurst: 1})
+	c.RegisterType("t1", typ1)
+	c.RegisterType("t2", typ2)
+
+	// Configure the type
+	typ1.Static(FetchResult{Value: 1, Index: 4}, nil).Once()
+	typ1.Static(FetchResult{Value: 12, Index: 5}, nil).Once()
+	typ1.Static(FetchResult{Value: 42, Index: 6}, nil).Once()
+
+	typ2.Static(FetchResult{Value: 1, Index: 4}, nil).Once()
+	typ2.Static(FetchResult{Value: 12, Index: 5}, nil).Once()
+	typ2.Static(FetchResult{Value: 43, Index: 6}, nil).Once()
+
+	result1Ch := TestCacheGetCh(t, c, "t1", TestRequest(t, RequestInfo{
+		Key: "hello1", MinIndex: 5}))
+
+	result2Ch := TestCacheGetCh(t, c, "t2", TestRequest(t, RequestInfo{
+		Key: "hello2", MinIndex: 5}))
+
+	select {
+	case <-result1Ch:
+		t.Fatal("result1Ch should block")
+	case <-result2Ch:
+		t.Fatal("result2Ch should block")
+	case <-time.After(190 * time.Millisecond):
+	}
+
+	after := time.After(30 * time.Millisecond)
+	var res1, res2 bool
+OUT:
+	for {
+		select {
+		case result := <-result1Ch:
+			require.Equal(t, 42, result)
+
+			res1 = true
+		case result := <-result2Ch:
+			require.Equal(t, 43, result)
+			res2 = true
+		case <-after:
+			t.Fatal("shouldn't block that long")
+		}
+		if res1 && res2 {
+			break OUT
+		}
+	}
+}

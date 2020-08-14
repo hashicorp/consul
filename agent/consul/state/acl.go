@@ -339,7 +339,7 @@ func (s *Store) CanBootstrapACLToken() (bool, uint64, error) {
 // to update the name. Unlike the older functions to operate specifically on role or policy links
 // this function does not itself handle the case where the id cannot be found. Instead the
 // getName function should handle that and return an error if necessary
-func resolveACLLinks(tx *txn, links []pbacl.ACLLink, getName func(*txn, string) (string, error)) (int, error) {
+func resolveACLLinks(tx ReadTxn, links []pbacl.ACLLink, getName func(ReadTxn, string) (string, error)) (int, error) {
 	var numValid int
 	for linkIndex, link := range links {
 		if link.ID != "" {
@@ -365,7 +365,7 @@ func resolveACLLinks(tx *txn, links []pbacl.ACLLink, getName func(*txn, string) 
 // associated with the ID of the link. Ideally this will be a no-op if the names are already correct
 // however if a linked resource was renamed it might be stale. This function will treat the incoming
 // links with copy-on-write semantics and its output will indicate whether any modifications were made.
-func fixupACLLinks(tx *txn, original []pbacl.ACLLink, getName func(*txn, string) (string, error)) ([]pbacl.ACLLink, bool, error) {
+func fixupACLLinks(tx ReadTxn, original []pbacl.ACLLink, getName func(ReadTxn, string) (string, error)) ([]pbacl.ACLLink, bool, error) {
 	owned := false
 	links := original
 
@@ -579,7 +579,7 @@ func resolveRolePolicyLinks(tx *txn, role *structs.ACLRole, allowMissing bool) e
 // stale when a linked policy was deleted or renamed. This will correct them and generate a newly allocated
 // role only when fixes are needed. If the policy links are still accurate then we just return the original
 // role.
-func fixupRolePolicyLinks(tx *txn, original *structs.ACLRole) (*structs.ACLRole, error) {
+func fixupRolePolicyLinks(tx ReadTxn, original *structs.ACLRole) (*structs.ACLRole, error) {
 	owned := false
 	role := original
 
@@ -1201,9 +1201,9 @@ func (s *Store) ACLPolicyBatchGet(ws memdb.WatchSet, ids []string) (uint64, stru
 	return idx, policies, nil
 }
 
-type aclPolicyGetFn func(*txn, string, *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error)
+type aclPolicyGetFn func(ReadTxn, string, *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error)
 
-func getPolicyWithTxn(tx *txn, ws memdb.WatchSet, value string, fn aclPolicyGetFn, entMeta *structs.EnterpriseMeta) (*structs.ACLPolicy, error) {
+func getPolicyWithTxn(tx ReadTxn, ws memdb.WatchSet, value string, fn aclPolicyGetFn, entMeta *structs.EnterpriseMeta) (*structs.ACLPolicy, error) {
 	watchCh, policy, err := fn(tx, value, entMeta)
 	if err != nil {
 		return nil, fmt.Errorf("failed acl policy lookup: %v", err)
@@ -1391,7 +1391,7 @@ func aclRoleSetTxn(tx *txn, idx uint64, role *structs.ACLRole, allowMissing bool
 	return aclRoleInsert(tx, role)
 }
 
-type aclRoleGetFn func(*txn, string, *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error)
+type aclRoleGetFn func(ReadTxn, string, *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error)
 
 func (s *Store) ACLRoleGetByID(ws memdb.WatchSet, id string, entMeta *structs.EnterpriseMeta) (uint64, *structs.ACLRole, error) {
 	return s.aclRoleGet(ws, id, aclRoleGetByID, entMeta)
@@ -1422,7 +1422,7 @@ func (s *Store) ACLRoleBatchGet(ws memdb.WatchSet, ids []string) (uint64, struct
 	return idx, roles, nil
 }
 
-func getRoleWithTxn(tx *txn, ws memdb.WatchSet, value string, fn aclRoleGetFn, entMeta *structs.EnterpriseMeta) (*structs.ACLRole, error) {
+func getRoleWithTxn(tx ReadTxn, ws memdb.WatchSet, value string, fn aclRoleGetFn, entMeta *structs.EnterpriseMeta) (*structs.ACLRole, error) {
 	watchCh, rawRole, err := fn(tx, value, entMeta)
 	if err != nil {
 		return nil, fmt.Errorf("failed acl role lookup: %v", err)

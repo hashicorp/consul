@@ -16,6 +16,9 @@ import (
 // method of updating the certificate is required.
 type FallbackFunc func(context.Context) (*structs.SignedResponse, error)
 
+// PersistFunc is used to persist the data from a signed response
+type PersistFunc func(*structs.SignedResponse) error
+
 type Config struct {
 	// Logger is the logger to be used while running. If not set
 	// then no logging will be performed.
@@ -33,6 +36,9 @@ type Config struct {
 	// agent token as well as getting notifications when that token is updated.
 	// This field is required.
 	Tokens *token.Store
+
+	// Persist is a function to run when there are new certs or keys
+	Persist PersistFunc
 
 	// Fallback is a function to run when the normal cache updating of the
 	// agent's certificates has failed to work for one reason or another.
@@ -133,5 +139,12 @@ func (cfg *Config) WithFallbackLeeway(leeway time.Duration) *Config {
 // the fallback func in the case of it erroring out.
 func (cfg *Config) WithFallbackRetry(after time.Duration) *Config {
 	cfg.FallbackRetry = after
+	return cfg
+}
+
+// WithPersistence will configure the CertMonitor to use this callback for persisting
+// a new TLS configuration.
+func (cfg *Config) WithPersistence(persist PersistFunc) *Config {
+	cfg.Persist = persist
 	return cfg
 }

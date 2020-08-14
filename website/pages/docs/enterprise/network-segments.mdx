@@ -21,10 +21,10 @@ with other agents in it's network segment. This functionality is useful for
 clusters that have multiple tenants that should not be able to communicate
 with each other.
 
-To get started with network segments you can review the guide on HashiCorp Learn for
-[Network Segments](https://learn.hashicorp.com/consul/day-2-operations/network-segments).
+To get started with network segments you can review the tutorial on HashiCorp Learn for
+[Network Segments](https://learn.hashicorp.com/tutorials/consul/network-partition-datacenters).
 
-~> **Note:** Prior to Consul 1.7.3, a Consul agent configured with too many network segments may not be able to start due to [limitations](https://learn.hashicorp.com/consul/day-2-operations/network-segments#network-segments-limitations) in Serf.
+~> **Note:** Prior to Consul 1.7.3, a Consul agent configured with too many network segments may not be able to start due to [limitations](https://learn.hashicorp.com/tutorials/consul/network-partition-datacenters#network-segments-limitations) in Serf.
 
 # Consul Networking Models
 
@@ -45,8 +45,8 @@ over the WAN. Consul clients make use of resources in federated clusters by
 forwarding RPCs through the Consul servers in their local cluster, but they
 never interact with remote Consul servers directly. There are currently two
 inter-cluster network models which can be viewed on HashiCorp Learn:
-[WAN gossip (OSS)](https://learn.hashicorp.com/consul/security-networking/datacenters)
-and [Network Areas (Enterprise)](https://learn.hashicorp.com/consul/day-2-operations/advanced-federation).
+[WAN gossip (OSS)](https://learn.hashicorp.com/tutorials/consul/federarion-gossip-wan)
+and [Network Areas (Enterprise)](https://learn.hashicorp.com/tutorials/consul/federation-network-areas).
 
 **LAN Gossip Pool**: A set of Consul agents that have full mesh connectivity
 among themselves, and use Serf to maintain a shared view of the members of the

@@ -5,6 +5,7 @@ import { alias } from '@ember/object/computed';
 export default Controller.extend({
   items: alias('item.Nodes'),
   queryParams: {
+    sortBy: 'sort',
     search: {
       as: 'filter',
       replace: true,

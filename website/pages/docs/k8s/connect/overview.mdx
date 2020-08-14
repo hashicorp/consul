@@ -275,6 +275,15 @@ Annotations can be used to configure the injection behavior.
     consul.hashicorp.com/service-meta-bar: baz
   ```
 
+- `consul.hashicorp.com/sidecar-proxy-` - override default resource settings for
+  the sidecar proxy container.
+  The defaults are set in Helm config via the [`connectInject.sidecarProxy.resources`](/docs/k8s/helm#v-connectinject-sidecarproxy-resources) key.
+
+  - `consul.hashicorp.com/sidecar-proxy-cpu-limit` - Override the default CPU limit.
+  - `consul.hashicorp.com/sidecar-proxy-cpu-request` - Override the default CPU request.
+  - `consul.hashicorp.com/sidecar-proxy-memory-limit` - Override the default memory limit.
+  - `consul.hashicorp.com/sidecar-proxy-memory-request` - Override the default memory request.
+
 ### Deployments, StatefulSets, etc.
 
 The annotations for configuring Connect must be on the pod specification.
@@ -412,23 +421,16 @@ If you wish to enable injection in every namespace _except_ specific namespaces,
 use `*` in the allow list to allow all namespaces and then specify the namespaces to exclude in the deny list:
 
 ```yaml
-syncCatalog:
+connectInject:
   enabled: true
   k8sAllowNamespaces: ['*']
-  k8sDenyNamespaces: ['no-sync-ns-1', 'no-sync-ns-2']
+  k8sDenyNamespaces: ['no-inject-ns-1', 'no-inject-ns-2']
 ```
 
 -> **NOTE:** The deny list takes precedence over the allow list. If a namespace
 is listed in both lists, it will **not** be synced.
 
 ~> **NOTE:** The `kube-system` and `kube-public` namespaces will never be injected.
-
-### Consul Clients Required
-
-Connect injection requires that local client agents
-are running on each Kubernetes node. These client agents must be joined to a Consul
-server cluster.
-The Consul server cluster can run either in or out of a Kubernetes cluster.
 
 ### Consul Enterprise Namespaces
 

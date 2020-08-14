@@ -463,6 +463,141 @@ func TestStore_IntentionMatch_table(t *testing.T) {
 	}
 }
 
+// Equivalent to TestStore_IntentionMatch_table but for IntentionMatchOne which matches a single service
+func TestStore_IntentionMatchOne_table(t *testing.T) {
+	type testCase struct {
+		Name     string
+		Insert   [][]string // List of intentions to insert
+		Query    []string   // List of intentions to match
+		Expected [][]string // List of matches, where each match is a list of intentions
+	}
+
+	cases := []testCase{
+		{
+			"single exact namespace/name",
+			[][]string{
+				{"foo", "*"},
+				{"foo", "bar"},
+				{"foo", "baz"}, // shouldn't match
+				{"bar", "bar"}, // shouldn't match
+				{"bar", "*"},   // shouldn't match
+				{"*", "*"},
+			},
+			[]string{
+				"foo", "bar",
+			},
+			[][]string{
+				{"foo", "bar"},
+				{"foo", "*"},
+				{"*", "*"},
+			},
+		},
+		{
+			"single exact namespace/name with duplicate destinations",
+			[][]string{
+				// 4-tuple specifies src and destination to test duplicate destinations
+				// with different sources. We flip them around to test in both
+				// directions. The first pair are the ones searched on in both cases so
+				// the duplicates need to be there.
+				{"foo", "bar", "foo", "*"},
+				{"foo", "bar", "bar", "*"},
+				{"*", "*", "*", "*"},
+			},
+			[]string{
+				"foo", "bar",
+			},
+			[][]string{
+				// Note the first two have the same precedence so we rely on arbitrary
+				// lexicographical tie-break behavior.
+				{"foo", "bar", "bar", "*"},
+				{"foo", "bar", "foo", "*"},
+				{"*", "*", "*", "*"},
+			},
+		},
+	}
+
+	testRunner := func(t *testing.T, tc testCase, typ structs.IntentionMatchType) {
+		// Insert the set
+		assert := assert.New(t)
+		s := testStateStore(t)
+		var idx uint64 = 1
+		for _, v := range tc.Insert {
+			ixn := &structs.Intention{ID: testUUID()}
+			switch typ {
+			case structs.IntentionMatchDestination:
+				ixn.DestinationNS = v[0]
+				ixn.DestinationName = v[1]
+				if len(v) == 4 {
+					ixn.SourceNS = v[2]
+					ixn.SourceName = v[3]
+				}
+			case structs.IntentionMatchSource:
+				ixn.SourceNS = v[0]
+				ixn.SourceName = v[1]
+				if len(v) == 4 {
+					ixn.DestinationNS = v[2]
+					ixn.DestinationName = v[3]
+				}
+			}
+
+			assert.NoError(s.IntentionSet(idx, ixn))
+
+			idx++
+		}
+
+		// Build the arguments and match
+		entry := structs.IntentionMatchEntry{
+			Namespace: tc.Query[0],
+			Name:      tc.Query[1],
+		}
+		_, matches, err := s.IntentionMatchOne(nil, entry, typ)
+		assert.NoError(err)
+
+		// Should have equal lengths
+		require.Len(t, matches, len(tc.Expected))
+
+		// Verify matches
+		var actual [][]string
+		for _, ixn := range matches {
+			switch typ {
+			case structs.IntentionMatchDestination:
+				if len(tc.Expected) > 1 && len(tc.Expected[0]) == 4 {
+					actual = append(actual, []string{
+						ixn.DestinationNS,
+						ixn.DestinationName,
+						ixn.SourceNS,
+						ixn.SourceName,
+					})
+				} else {
+					actual = append(actual, []string{ixn.DestinationNS, ixn.DestinationName})
+				}
+			case structs.IntentionMatchSource:
+				if len(tc.Expected) > 1 && len(tc.Expected[0]) == 4 {
+					actual = append(actual, []string{
+						ixn.SourceNS,
+						ixn.SourceName,
+						ixn.DestinationNS,
+						ixn.DestinationName,
+					})
+				} else {
+					actual = append(actual, []string{ixn.SourceNS, ixn.SourceName})
+				}
+			}
+		}
+		assert.Equal(tc.Expected, actual)
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name+" (destination)", func(t *testing.T) {
+			testRunner(t, tc, structs.IntentionMatchDestination)
+		})
+
+		t.Run(tc.Name+" (source)", func(t *testing.T) {
+			testRunner(t, tc, structs.IntentionMatchSource)
+		})
+	}
+}
+
 func TestStore_Intention_Snapshot_Restore(t *testing.T) {
 	assert := assert.New(t)
 	s := testStateStore(t)

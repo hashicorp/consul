@@ -1584,7 +1584,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`this is not JSON`},
 			hcl:  []string{`*** 0123 this is not HCL`},
-			err:  "Error parsing",
+			err:  "failed to parse",
 		},
 		{
 			desc: "datacenter is lower-cased",
@@ -3986,6 +3986,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				"Both an intro token and intro token file are set. The intro token will be used instead of the file",
 			},
 			patch: func(rt *RuntimeConfig) {
+				rt.ConnectEnabled = true
 				rt.AutoConfig.Enabled = true
 				rt.AutoConfig.IntroToken = "blah"
 				rt.AutoConfig.IntroTokenFile = "blah"
@@ -4078,6 +4079,48 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				"cert_file": "foo"
 			}`},
 			err: `auto_config.authorization.static has invalid configuration: exactly one of 'JWTValidationPubKeys', 'JWKSURL', or 'OIDCDiscoveryURL' must be set for type "jwt"`,
+		},
+
+		{
+			desc: "auto config authorizer require token replication in secondary",
+			args: []string{
+				`-data-dir=` + dataDir,
+				`-server`,
+			},
+			hcl: []string{`
+				primary_datacenter = "otherdc"
+				acl {
+					enabled = true
+				}
+				auto_config {
+					authorization {
+						enabled = true
+						static {
+							jwks_url = "https://fake.uri.local"
+							oidc_discovery_url = "https://fake.uri.local"
+						}
+					}
+				}
+				cert_file = "foo"
+			`},
+			json: []string{`
+			{
+				"primary_datacenter": "otherdc",
+				"acl": {
+					"enabled": true
+				},
+				"auto_config": {
+					"authorization": {
+						"enabled": true,
+						"static": {
+							"jwks_url": "https://fake.uri.local",
+							"oidc_discovery_url": "https://fake.uri.local"
+						}
+					}
+				},
+				"cert_file": "foo"
+			}`},
+			err: `Enabling auto-config authorization (auto_config.authorization.enabled) in non primary datacenters with ACLs enabled (acl.enabled) requires also enabling ACL token replication (acl.enable_token_replication)`,
 		},
 
 		{
@@ -4269,14 +4312,14 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 
 				// read the source fragements
 				for i, data := range srcs {
-					b.Sources = append(b.Sources, Source{
+					b.Sources = append(b.Sources, FileSource{
 						Name:   fmt.Sprintf("src-%d.%s", i, format),
 						Format: format,
 						Data:   data,
 					})
 				}
 				for i, data := range tails {
-					b.Tail = append(b.Tail, Source{
+					b.Tail = append(b.Tail, FileSource{
 						Name:   fmt.Sprintf("tail-%d.%s", i, format),
 						Format: format,
 						Data:   data,
@@ -5684,7 +5727,7 @@ func TestFullConfig(t *testing.T) {
 
 	tail := map[string][]Source{
 		"json": {
-			{
+			FileSource{
 				Name:   "tail.non-user.json",
 				Format: "json",
 				Data: `
@@ -5703,7 +5746,7 @@ func TestFullConfig(t *testing.T) {
 					"sync_coordinate_rate_target": 137.81
 				}`,
 			},
-			{
+			FileSource{
 				Name:   "tail.consul.json",
 				Format: "json",
 				Data: `
@@ -5727,7 +5770,7 @@ func TestFullConfig(t *testing.T) {
 			},
 		},
 		"hcl": {
-			{
+			FileSource{
 				Name:   "tail.non-user.hcl",
 				Format: "hcl",
 				Data: `
@@ -5745,7 +5788,7 @@ func TestFullConfig(t *testing.T) {
 					sync_coordinate_rate_target = 137.81
 				`,
 			},
-			{
+			FileSource{
 				Name:   "tail.consul.hcl",
 				Format: "hcl",
 				Data: `
@@ -6482,7 +6525,7 @@ func TestFullConfig(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NewBuilder: %s", err)
 			}
-			b.Sources = append(b.Sources, Source{Name: "full." + format, Data: data, Format: format})
+			b.Sources = append(b.Sources, FileSource{Name: "full." + format, Data: data, Format: format})
 			b.Tail = append(b.Tail, tail[format]...)
 			b.Tail = append(b.Tail, VersionSource("JNtPSav3", "R909Hblt", "ZT1JOQLn"))
 
@@ -7357,7 +7400,47 @@ func TestRuntime_ToTLSUtilConfig(t *testing.T) {
 	require.True(t, r.VerifyIncomingHTTPS)
 	require.True(t, r.VerifyOutgoing)
 	require.True(t, r.EnableAgentTLSForChecks)
-	require.True(t, r.AutoEncryptTLS)
+	require.True(t, r.AutoTLS)
+	require.True(t, r.VerifyServerHostname)
+	require.True(t, r.PreferServerCipherSuites)
+	require.Equal(t, "a", r.CAFile)
+	require.Equal(t, "b", r.CAPath)
+	require.Equal(t, "c", r.CertFile)
+	require.Equal(t, "d", r.KeyFile)
+	require.Equal(t, "e", r.NodeName)
+	require.Equal(t, "f", r.ServerName)
+	require.Equal(t, "g", r.Domain)
+	require.Equal(t, "tls12", r.TLSMinVersion)
+	require.Equal(t, []uint16{tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA}, r.CipherSuites)
+}
+
+func TestRuntime_ToTLSUtilConfig_AutoConfig(t *testing.T) {
+	c := &RuntimeConfig{
+		VerifyIncoming:              true,
+		VerifyIncomingRPC:           true,
+		VerifyIncomingHTTPS:         true,
+		VerifyOutgoing:              true,
+		VerifyServerHostname:        true,
+		CAFile:                      "a",
+		CAPath:                      "b",
+		CertFile:                    "c",
+		KeyFile:                     "d",
+		NodeName:                    "e",
+		ServerName:                  "f",
+		DNSDomain:                   "g",
+		TLSMinVersion:               "tls12",
+		TLSCipherSuites:             []uint16{tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA},
+		TLSPreferServerCipherSuites: true,
+		EnableAgentTLSForChecks:     true,
+		AutoConfig:                  AutoConfig{Enabled: true},
+	}
+	r := c.ToTLSUtilConfig()
+	require.True(t, r.VerifyIncoming)
+	require.True(t, r.VerifyIncomingRPC)
+	require.True(t, r.VerifyIncomingHTTPS)
+	require.True(t, r.VerifyOutgoing)
+	require.True(t, r.EnableAgentTLSForChecks)
+	require.True(t, r.AutoTLS)
 	require.True(t, r.VerifyServerHostname)
 	require.True(t, r.PreferServerCipherSuites)
 	require.Equal(t, "a", r.CAFile)

@@ -212,7 +212,7 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 				hclDataDir,
 			},
 		}),
-		WithOverrides(config.Source{
+		WithOverrides(config.FileSource{
 			Name:   "test-overrides",
 			Format: "hcl",
 			Data:   a.Overrides},
@@ -413,8 +413,11 @@ func (a *TestAgent) DNSDisableCompression(b bool) {
 	}
 }
 
+// FIXME: this should t.Fatal on error, not panic.
+// TODO: rename to newConsulConfig
+// TODO: remove TestAgent receiver, accept a.Agent.config as an arg
 func (a *TestAgent) consulConfig() *consul.Config {
-	c, err := a.Agent.consulConfig()
+	c, err := newConsulConfig(a.Agent.config, a.Agent.logger)
 	if err != nil {
 		panic(err)
 	}
@@ -466,7 +469,7 @@ func NodeID() string {
 // agent.
 func TestConfig(logger hclog.Logger, sources ...config.Source) *config.RuntimeConfig {
 	nodeID := NodeID()
-	testsrc := config.Source{
+	testsrc := config.FileSource{
 		Name:   "test",
 		Format: "hcl",
 		Data: `

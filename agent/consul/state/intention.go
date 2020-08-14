@@ -338,29 +338,9 @@ func (s *Store) IntentionMatch(ws memdb.WatchSet, args *structs.IntentionQueryMa
 	// Make all the calls and accumulate the results
 	results := make([]structs.Intentions, len(args.Entries))
 	for i, entry := range args.Entries {
-		// Each search entry may require multiple queries to memdb, so this
-		// returns the arguments for each necessary Get. Note on performance:
-		// this is not the most optimal set of queries since we repeat some
-		// many times (such as */*). We can work on improving that in the
-		// future, the test cases shouldn't have to change for that.
-		getParams, err := s.intentionMatchGetParams(entry)
+		ixns, err := s.intentionMatchOneTxn(tx, ws, entry, args.Type)
 		if err != nil {
 			return 0, nil, err
-		}
-
-		// Perform each call and accumulate the result.
-		var ixns structs.Intentions
-		for _, params := range getParams {
-			iter, err := tx.Get(intentionsTableName, string(args.Type), params...)
-			if err != nil {
-				return 0, nil, fmt.Errorf("failed intention lookup: %s", err)
-			}
-
-			ws.Add(iter.WatchCh())
-
-			for ixn := iter.Next(); ixn != nil; ixn = iter.Next() {
-				ixns = append(ixns, ixn.(*structs.Intention))
-			}
 		}
 
 		// Sort the results by precedence
@@ -373,9 +353,66 @@ func (s *Store) IntentionMatch(ws memdb.WatchSet, args *structs.IntentionQueryMa
 	return idx, results, nil
 }
 
+// IntentionMatchOne returns the list of intentions that match the namespace and
+// name for a single source or destination. This applies the resolution rules
+// so wildcards will match any value.
+//
+// The returned intentions are sorted based on the intention precedence rules.
+// i.e. result[0] is the highest precedent rule to match
+func (s *Store) IntentionMatchOne(ws memdb.WatchSet,
+	entry structs.IntentionMatchEntry, matchType structs.IntentionMatchType) (uint64, structs.Intentions, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, intentionsTableName)
+	if idx < 1 {
+		idx = 1
+	}
+
+	results, err := s.intentionMatchOneTxn(tx, ws, entry, matchType)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	sort.Sort(structs.IntentionPrecedenceSorter(results))
+
+	return idx, results, nil
+}
+
+func (s *Store) intentionMatchOneTxn(tx ReadTxn, ws memdb.WatchSet,
+	entry structs.IntentionMatchEntry, matchType structs.IntentionMatchType) (structs.Intentions, error) {
+
+	// Each search entry may require multiple queries to memdb, so this
+	// returns the arguments for each necessary Get. Note on performance:
+	// this is not the most optimal set of queries since we repeat some
+	// many times (such as */*). We can work on improving that in the
+	// future, the test cases shouldn't have to change for that.
+	getParams, err := intentionMatchGetParams(entry)
+	if err != nil {
+		return nil, err
+	}
+
+	// Perform each call and accumulate the result.
+	var result structs.Intentions
+	for _, params := range getParams {
+		iter, err := tx.Get(intentionsTableName, string(matchType), params...)
+		if err != nil {
+			return nil, fmt.Errorf("failed intention lookup: %s", err)
+		}
+
+		ws.Add(iter.WatchCh())
+
+		for ixn := iter.Next(); ixn != nil; ixn = iter.Next() {
+			result = append(result, ixn.(*structs.Intention))
+		}
+	}
+	return result, nil
+}
+
 // intentionMatchGetParams returns the tx.Get parameters to find all the
 // intentions for a certain entry.
-func (s *Store) intentionMatchGetParams(entry structs.IntentionMatchEntry) ([][]interface{}, error) {
+func intentionMatchGetParams(entry structs.IntentionMatchEntry) ([][]interface{}, error) {
 	// We always query for "*/*" so include that. If the namespace is a
 	// wildcard, then we're actually done.
 	result := make([][]interface{}, 0, 3)

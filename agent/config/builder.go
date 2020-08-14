@@ -33,6 +33,31 @@ import (
 	"golang.org/x/time/rate"
 )
 
+// LoadConfig will build the configuration including the extraHead source injected
+// after all other defaults but before any user supplied configuration and the overrides
+// source injected as the final source in the configuration parsing chain.
+func Load(builderOpts BuilderOpts, extraHead Source, overrides ...Source) (*RuntimeConfig, []string, error) {
+	b, err := NewBuilder(builderOpts)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if extraHead != nil {
+		b.Head = append(b.Head, extraHead)
+	}
+
+	if len(overrides) != 0 {
+		b.Tail = append(b.Tail, overrides...)
+	}
+
+	cfg, err := b.BuildAndValidate()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return &cfg, b.Warnings, nil
+}
+
 // Builder constructs a valid runtime configuration from multiple
 // configuration sources.
 //
@@ -93,7 +118,7 @@ func NewBuilder(opts BuilderOpts) (*Builder, error) {
 		if err != nil {
 			panic(err)
 		}
-		return Source{Name: name, Format: "json", Data: string(b)}
+		return FileSource{Name: name, Format: "json", Data: string(b)}
 	}
 
 	b := &Builder{
@@ -121,7 +146,7 @@ func NewBuilder(opts BuilderOpts) (*Builder, error) {
 	}
 	b.Tail = append(b.Tail, newSource("flags.values", values))
 	for i, s := range opts.HCL {
-		b.Tail = append(b.Tail, Source{
+		b.Tail = append(b.Tail, FileSource{
 			Name:   fmt.Sprintf("flags-%d.hcl", i),
 			Format: "hcl",
 			Data:   s,
@@ -207,12 +232,12 @@ func (b *Builder) sourcesFromPath(path string, format string) ([]Source, error) 
 func newSourceFromFile(path string, format string) (Source, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
-		return Source{}, fmt.Errorf("config: failed to read %s: %s", path, err)
+		return nil, fmt.Errorf("config: failed to read %s: %s", path, err)
 	}
 	if format == "" {
 		format = formatFromFileExtension(path)
 	}
-	return Source{Name: path, Data: string(data), Format: format}, nil
+	return FileSource{Name: path, Data: string(data), Format: format}, nil
 }
 
 // shouldParse file determines whether the file to be read is of a supported extension
@@ -271,12 +296,13 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	// parse the config sources into a configuration
 	var c Config
 	for _, s := range srcs {
-		if s.Name == "" || s.Data == "" {
+
+		c2, md, err := s.Parse()
+		switch {
+		case err == ErrNoData:
 			continue
-		}
-		c2, md, err := Parse(s.Data, s.Format)
-		if err != nil {
-			return RuntimeConfig{}, fmt.Errorf("Error parsing %s: %s", s.Name, err)
+		case err != nil:
+			return RuntimeConfig{}, fmt.Errorf("failed to parse %v: %w", s.Source(), err)
 		}
 
 		var unusedErr error
@@ -289,7 +315,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			}
 		}
 		if unusedErr != nil {
-			return RuntimeConfig{}, fmt.Errorf("Error parsing %s: %s", s.Name, unusedErr)
+			return RuntimeConfig{}, fmt.Errorf("failed to parse %v: %s", s.Source(), unusedErr)
 		}
 
 		// for now this is a soft failure that will cause warnings but not actual problems
@@ -626,10 +652,40 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	consulRaftHeartbeatTimeout := b.durationVal("consul.raft.heartbeat_timeout", c.Consul.Raft.HeartbeatTimeout) * time.Duration(performanceRaftMultiplier)
 	consulRaftLeaderLeaseTimeout := b.durationVal("consul.raft.leader_lease_timeout", c.Consul.Raft.LeaderLeaseTimeout) * time.Duration(performanceRaftMultiplier)
 
-	// Connect proxy defaults.
+	// Connect
 	connectEnabled := b.boolVal(c.Connect.Enabled)
 	connectCAProvider := b.stringVal(c.Connect.CAProvider)
 	connectCAConfig := c.Connect.CAConfig
+
+	// autoEncrypt and autoConfig implicitly turns on connect which is why
+	// they need to be above other settings that rely on connect.
+	autoEncryptTLS := b.boolVal(c.AutoEncrypt.TLS)
+	autoEncryptDNSSAN := []string{}
+	for _, d := range c.AutoEncrypt.DNSSAN {
+		autoEncryptDNSSAN = append(autoEncryptDNSSAN, d)
+	}
+	autoEncryptIPSAN := []net.IP{}
+	for _, i := range c.AutoEncrypt.IPSAN {
+		ip := net.ParseIP(i)
+		if ip == nil {
+			b.warn(fmt.Sprintf("Cannot parse ip %q from AutoEncrypt.IPSAN", i))
+			continue
+		}
+		autoEncryptIPSAN = append(autoEncryptIPSAN, ip)
+
+	}
+	autoEncryptAllowTLS := b.boolVal(c.AutoEncrypt.AllowTLS)
+
+	if autoEncryptAllowTLS {
+		connectEnabled = true
+	}
+
+	autoConfig := b.autoConfigVal(c.AutoConfig)
+	if autoConfig.Enabled {
+		connectEnabled = true
+	}
+
+	// Connect proxy defaults
 	connectMeshGatewayWANFederationEnabled := b.boolVal(c.Connect.MeshGatewayWANFederationEnabled)
 	if connectMeshGatewayWANFederationEnabled && !connectEnabled {
 		return RuntimeConfig{}, fmt.Errorf("'connect.enable_mesh_gateway_wan_federation=true' requires 'connect.enabled=true'")
@@ -666,27 +722,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			"private_key_type":   "PrivateKeyType",
 			"private_key_bits":   "PrivateKeyBits",
 		})
-	}
-
-	autoEncryptTLS := b.boolVal(c.AutoEncrypt.TLS)
-	autoEncryptDNSSAN := []string{}
-	for _, d := range c.AutoEncrypt.DNSSAN {
-		autoEncryptDNSSAN = append(autoEncryptDNSSAN, d)
-	}
-	autoEncryptIPSAN := []net.IP{}
-	for _, i := range c.AutoEncrypt.IPSAN {
-		ip := net.ParseIP(i)
-		if ip == nil {
-			b.warn(fmt.Sprintf("Cannot parse ip %q from AutoEncrypt.IPSAN", i))
-			continue
-		}
-		autoEncryptIPSAN = append(autoEncryptIPSAN, ip)
-
-	}
-	autoEncryptAllowTLS := b.boolVal(c.AutoEncrypt.AllowTLS)
-
-	if autoEncryptAllowTLS {
-		connectEnabled = true
 	}
 
 	aclsEnabled := false
@@ -908,7 +943,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		AutoEncryptDNSSAN:                      autoEncryptDNSSAN,
 		AutoEncryptIPSAN:                       autoEncryptIPSAN,
 		AutoEncryptAllowTLS:                    autoEncryptAllowTLS,
-		AutoConfig:                             b.autoConfigVal(c.AutoConfig),
+		AutoConfig:                             autoConfig,
 		ConnectEnabled:                         connectEnabled,
 		ConnectCAProvider:                      connectCAProvider,
 		ConnectCAConfig:                        connectCAConfig,
@@ -2045,7 +2080,6 @@ func (b *Builder) validateAutoConfig(rt RuntimeConfig) error {
 		return fmt.Errorf("auto_config.enabled is set without providing a list of addresses")
 	}
 
-	// TODO (autoconf) should we validate the DNS and IP SANs? The IP SANs have already been parsed into IPs
 	return nil
 }
 
@@ -2055,6 +2089,15 @@ func (b *Builder) validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 	if !authz.Enabled {
 		return nil
 	}
+
+	// When in a secondary datacenter with ACLs enabled, we require token replication to be enabled
+	// as that is what allows us to create the local tokens to distribute to the clients. Otherwise
+	// we would have to have a token with the ability to create ACL tokens in the primary and make
+	// RPCs in response to auto config requests.
+	if rt.ACLsEnabled && rt.PrimaryDatacenter != rt.Datacenter && !rt.ACLTokenReplication {
+		return fmt.Errorf("Enabling auto-config authorization (auto_config.authorization.enabled) in non primary datacenters with ACLs enabled (acl.enabled) requires also enabling ACL token replication (acl.enable_token_replication)")
+	}
+
 	// Auto Config Authorization is only supported on servers
 	if !rt.ServerMode {
 		return fmt.Errorf("auto_config.authorization.enabled cannot be set to true for client agents")

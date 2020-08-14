@@ -5,7 +5,7 @@
   border-bottom: $decor-border-200;
 }
 %app-view-content h2,
-%app-view-content fieldset {
+%app-view-content form:not(.filter-bar) fieldset {
   border-bottom: $decor-border-200;
 }
 %app-view-content fieldset h2 {
@@ -22,7 +22,7 @@
 }
 %app-view-title,
 %app-view-content h2,
-%app-view-content fieldset {
+%app-view-content form:not(.filter-bar) fieldset {
   border-color: $gray-200;
 }
 // We know that any sibling navs might have a top border

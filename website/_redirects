@@ -7,6 +7,9 @@
 
 /discovery.html                                      /use-cases/service-discovery-and-health-checking  301!
 /mesh.html                                           /use-cases/multi-platform-service-mesh            301!
+/mesh                                                /use-cases/multi-platform-service-mesh            301!
+/segmentation                                        /use-cases/multi-platform-service-mesh            301!
+/segmentation.html                                   /use-cases/multi-platform-service-mesh            301!
 /api.html                                            /api-docs                                         301!
 /docs/agent/acl-rules.html                           /docs/acl/acl-rules                               301!
 /docs/agent/acl-rules                                /docs/acl/acl-rules                               301!
@@ -26,8 +29,6 @@
 /docs/connect/proxies/sidecar-service                /docs/connect/registration/sidecar-service        301!
 /docs/enterprise/connect-multi-datacenter/index.html /docs/enterprise                                  301!
 /docs/enterprise/connect-multi-datacenter            /docs/enterprise                                  301!
-/segmentation.html                                   /mesh                                             301!
-/segmentation                                        /mesh                                             301!
 /configuration.html                                  /                                                 301!
 /configuration                                       /                                                 301!
 /docs/connect/mesh_gateway                           /docs/connect/gateways/mesh-gateway               301!

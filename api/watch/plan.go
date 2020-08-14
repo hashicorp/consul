@@ -31,8 +31,10 @@ func (p *Plan) Run(address string) error {
 
 // Run is used to run a watch plan
 func (p *Plan) RunWithConfig(address string, conf *consulapi.Config) error {
-	// Create the logger
-	logger := newWatchLogger(p.LogOutput)
+	logger := p.Logger
+	if logger == nil {
+		logger = newWatchLogger(p.LogOutput)
+	}
 
 	// Setup the client
 	p.address = address

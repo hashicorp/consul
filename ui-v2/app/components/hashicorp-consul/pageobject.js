@@ -1,4 +1,4 @@
-export default (clickable, attribute, is, authForm) => scope => {
+export default (collection, clickable, attribute, is, authForm) => scope => {
   const page = {
     navigation: [
       'services',
@@ -47,5 +47,8 @@ export default (clickable, attribute, is, authForm) => scope => {
     ':checked',
     '[data-test-nspace-menu] > input[type="checkbox"]'
   );
+  page.navigation.dcs = collection('[data-test-datacenter-picker]', {
+    name: clickable('a'),
+  });
   return page;
 };
