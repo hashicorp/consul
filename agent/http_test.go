@@ -39,7 +39,6 @@ func TestHTTPServer_UnixSocket(t *testing.T) {
 	}
 
 	tempDir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(tempDir)
 	socket := filepath.Join(tempDir, "test.sock")
 
 	// Only testing mode, since uid/gid might not be settable
@@ -98,7 +97,6 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 	}
 
 	tempDir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(tempDir)
 	socket := filepath.Join(tempDir, "test.sock")
 
 	// Create a regular file at the socket path

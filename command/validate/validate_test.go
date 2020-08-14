@@ -34,7 +34,6 @@ func TestValidateCommand_FailOnEmptyFile(t *testing.T) {
 func TestValidateCommand_SucceedOnMinimalConfigFile(t *testing.T) {
 	t.Parallel()
 	td := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(td)
 
 	fp := filepath.Join(td, "config.json")
 	err := ioutil.WriteFile(fp, []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)
@@ -50,7 +49,6 @@ func TestValidateCommand_SucceedOnMinimalConfigFile(t *testing.T) {
 func TestValidateCommand_SucceedWithMinimalJSONConfigFormat(t *testing.T) {
 	t.Parallel()
 	td := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(td)
 
 	fp := filepath.Join(td, "json.conf")
 	err := ioutil.WriteFile(fp, []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)
@@ -66,7 +64,6 @@ func TestValidateCommand_SucceedWithMinimalJSONConfigFormat(t *testing.T) {
 func TestValidateCommand_SucceedWithMinimalHCLConfigFormat(t *testing.T) {
 	t.Parallel()
 	td := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(td)
 
 	fp := filepath.Join(td, "hcl.conf")
 	err := ioutil.WriteFile(fp, []byte("bind_addr = \"10.0.0.1\"\ndata_dir = \""+td+"\""), 0644)
@@ -82,7 +79,6 @@ func TestValidateCommand_SucceedWithMinimalHCLConfigFormat(t *testing.T) {
 func TestValidateCommand_SucceedWithJSONAsHCL(t *testing.T) {
 	t.Parallel()
 	td := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(td)
 
 	fp := filepath.Join(td, "json.conf")
 	err := ioutil.WriteFile(fp, []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)
@@ -98,7 +94,6 @@ func TestValidateCommand_SucceedWithJSONAsHCL(t *testing.T) {
 func TestValidateCommand_SucceedOnMinimalConfigDir(t *testing.T) {
 	t.Parallel()
 	td := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(td)
 
 	err := ioutil.WriteFile(filepath.Join(td, "config.json"), []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)
 	require.Nilf(t, err, "err: %s", err)
@@ -113,7 +108,6 @@ func TestValidateCommand_SucceedOnMinimalConfigDir(t *testing.T) {
 func TestValidateCommand_FailForInvalidJSONConfigFormat(t *testing.T) {
 	t.Parallel()
 	td := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(td)
 
 	fp := filepath.Join(td, "hcl.conf")
 	err := ioutil.WriteFile(fp, []byte(`bind_addr = "10.0.0.1"\ndata_dir = "`+td+`"`), 0644)
@@ -129,7 +123,6 @@ func TestValidateCommand_FailForInvalidJSONConfigFormat(t *testing.T) {
 func TestValidateCommand_Quiet(t *testing.T) {
 	t.Parallel()
 	td := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(td)
 
 	fp := filepath.Join(td, "config.json")
 	err := ioutil.WriteFile(fp, []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)

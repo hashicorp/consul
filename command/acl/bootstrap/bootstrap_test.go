@@ -2,13 +2,11 @@ package bootstrap
 
 import (
 	"encoding/json"
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/assert"
@@ -26,9 +24,6 @@ func TestBootstrapCommand_noTabs(t *testing.T) {
 func TestBootstrapCommand_Pretty(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
-
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -57,9 +52,6 @@ func TestBootstrapCommand_Pretty(t *testing.T) {
 func TestBootstrapCommand_JSON(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
-
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"

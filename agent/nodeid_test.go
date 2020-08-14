@@ -3,7 +3,6 @@ package agent
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -19,9 +18,6 @@ import (
 func TestNewNodeIDFromConfig(t *testing.T) {
 	logger := hclog.New(nil)
 	tmpDir := testutil.TempDir(t, "")
-	t.Cleanup(func() {
-		os.RemoveAll(tmpDir)
-	})
 	cfg := &config.RuntimeConfig{
 		DataDir: tmpDir,
 	}

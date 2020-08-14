@@ -85,7 +85,6 @@ func TestAPI_AgentReload(t *testing.T) {
 
 	// Create our initial empty config file, to be overwritten later
 	cfgDir := testutil.TempDir(t, "consul-config")
-	defer os.RemoveAll(cfgDir)
 
 	cfgFilePath := filepath.Join(cfgDir, "reload.json")
 	configFile, err := os.Create(cfgFilePath)

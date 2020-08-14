@@ -129,9 +129,6 @@ func waitForLeaderEstablishment(t *testing.T, servers ...*Server) {
 
 func testServerConfig(t *testing.T) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
-	t.Cleanup(func() {
-		os.RemoveAll(dir)
-	})
 	config := DefaultConfig()
 
 	ports := freeport.MustTake(3)

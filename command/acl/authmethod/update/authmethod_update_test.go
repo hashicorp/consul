@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"io"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -33,9 +32,6 @@ func TestAuthMethodUpdateCommand_noTabs(t *testing.T) {
 
 func TestAuthMethodUpdateCommand(t *testing.T) {
 	t.Parallel()
-
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -170,9 +166,6 @@ func TestAuthMethodUpdateCommand(t *testing.T) {
 func TestAuthMethodUpdateCommand_JSON(t *testing.T) {
 	t.Parallel()
 
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
-
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
 	acl {
@@ -259,9 +252,6 @@ func TestAuthMethodUpdateCommand_JSON(t *testing.T) {
 
 func TestAuthMethodUpdateCommand_noMerge(t *testing.T) {
 	t.Parallel()
-
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -362,7 +352,6 @@ func TestAuthMethodUpdateCommand_k8s(t *testing.T) {
 	t.Parallel()
 
 	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -597,7 +586,6 @@ func TestAuthMethodUpdateCommand_k8s_noMerge(t *testing.T) {
 	t.Parallel()
 
 	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -784,7 +772,6 @@ func TestAuthMethodUpdateCommand_k8s_noMerge(t *testing.T) {
 func TestAuthMethodUpdateCommand_config(t *testing.T) {
 	t.Parallel()
 	testDir := testutil.TempDir(t, "auth-method")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"

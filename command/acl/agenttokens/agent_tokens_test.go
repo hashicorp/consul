@@ -1,13 +1,11 @@
 package agenttokens
 
 import (
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/assert"
@@ -24,9 +22,6 @@ func TestAgentTokensCommand_noTabs(t *testing.T) {
 func TestAgentTokensCommand(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
-
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"

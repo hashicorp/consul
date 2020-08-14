@@ -3,7 +3,6 @@
 package config
 
 import (
-	"os"
 	"testing"
 
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -11,7 +10,6 @@ import (
 
 func TestSegments(t *testing.T) {
 	dataDir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(dataDir)
 
 	tests := []configTest{
 		{

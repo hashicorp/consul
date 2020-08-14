@@ -48,7 +48,6 @@ func TestWatchCommand_loadToken(t *testing.T) {
 
 	const testToken = "4a0db5a1-869f-4602-ae8a-b0306a82f1ef"
 	testDir := testutil.TempDir(t, "watchtest")
-	defer os.RemoveAll(testDir)
 
 	fullname := filepath.Join(testDir, "token.txt")
 	require.NoError(t, ioutil.WriteFile(fullname, []byte(testToken), 0600))

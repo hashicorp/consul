@@ -2,13 +2,11 @@ package bindingruleread
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/go-uuid"
 	"github.com/mitchellh/cli"
@@ -28,9 +26,6 @@ func TestBindingRuleReadCommand_noTabs(t *testing.T) {
 
 func TestBindingRuleReadCommand(t *testing.T) {
 	t.Parallel()
-
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
