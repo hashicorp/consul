@@ -1,6 +1,7 @@
 package cachetype
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -106,5 +107,54 @@ func TestConfigEntries_badReqType(t *testing.T) {
 		t, cache.RequestInfo{Key: "foo", MinIndex: 64}))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "wrong type")
+	rpc.AssertExpectations(t)
+}
+
+func TestConfigEntries_IntegrationWithCache_NotModifiedResponse(t *testing.T) {
+	rpc := &MockRPC{}
+	typ := &ConfigEntry{RPC: rpc}
+
+	entry := structs.ConfigEntryQuery{
+		Datacenter: "dc1",
+		Kind:       "kind",
+		Name:       "name",
+	}
+	rpc.On("RPC", "ConfigEntry.Get", mock.Anything, mock.Anything).
+		Return(nil).
+		Run(func(args mock.Arguments) {
+			req := args.Get(1).(*structs.ConfigEntryQuery)
+			require.True(t, req.AllowStale)
+			require.True(t, req.AllowNotModifiedResponse)
+
+			reply := args.Get(2).(*structs.ConfigEntryResponse)
+			reply.QueryMeta.Index = 44
+			reply.NotModified = true
+		})
+
+	c := cache.New(cache.Options{})
+	c.RegisterType(ConfigEntryName, typ)
+	last := cache.FetchResult{
+		Value: &entry,
+		Index: 42,
+	}
+	req := &structs.ConfigEntryQuery{
+		Datacenter: "dc1",
+		QueryOptions: structs.QueryOptions{
+			Token:         "token",
+			MinQueryIndex: 44,
+			MaxQueryTime:  time.Second,
+		},
+	}
+
+	err := c.Prepopulate(ConfigEntryName, last, "dc1", "token", req.CacheInfo().Key)
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	actual, _, err := c.Get(ctx, ConfigEntryName, req)
+	require.NoError(t, err)
+
+	require.Equal(t, &entry, actual)
+
 	rpc.AssertExpectations(t)
 }
