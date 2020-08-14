@@ -29,21 +29,28 @@ func init() {
 	}
 }
 
+var noCleanup = strings.ToLower(os.Getenv("TEST_NOCLEANUP")) == "true"
+
 // TempDir creates a temporary directory within tmpdir
 // with the name 'testname-name'. If the directory cannot
 // be created t.Fatal is called.
 func TempDir(t *testing.T, name string) string {
-	if t != nil && t.Name() != "" {
-		name = t.Name() + "-" + name
+	if t == nil {
+		panic("argument t must be non-nil")
 	}
+	name = t.Name() + "-" + name
 	name = strings.Replace(name, "/", "_", -1)
 	d, err := ioutil.TempDir(tmpdir, name)
 	if err != nil {
-		if t == nil {
-			panic(err)
-		}
 		t.Fatalf("err: %s", err)
 	}
+	t.Cleanup(func() {
+		if noCleanup {
+			t.Logf("skipping cleanup because TEST_NOCLEANUP was enabled")
+			return
+		}
+		os.RemoveAll(d)
+	})
 	return d
 }
 

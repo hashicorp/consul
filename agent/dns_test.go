@@ -5829,16 +5829,12 @@ func TestDNS_NonExistentDC_RPC(t *testing.T) {
 		server = false
 	`)
 	defer c.Shutdown()
-	testrpc.WaitForLeader(t, s.RPC, "dc1")
 
 	// Join LAN cluster
 	addr := fmt.Sprintf("127.0.0.1:%d", s.Config.SerfPortLAN)
 	_, err := c.JoinLAN([]string{addr})
 	require.NoError(t, err)
-	retry.Run(t, func(r *retry.R) {
-		require.Len(r, s.LANMembers(), 2)
-		require.Len(r, c.LANMembers(), 2)
-	})
+	testrpc.WaitForTestAgent(t, c.RPC, "dc1")
 
 	m := new(dns.Msg)
 	m.SetQuestion("consul.service.dc2.consul.", dns.TypeANY)

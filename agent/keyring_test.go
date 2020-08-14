@@ -54,7 +54,10 @@ func TestAgent_LoadKeyrings(t *testing.T) {
 
 	// Server should auto-load LAN and WAN keyring files
 	t.Run("server with keys", func(t *testing.T) {
-		a2 := StartTestAgent(t, TestAgent{Key: key})
+		dataDir := testutil.TempDir(t, "keyfile")
+		writeKeyRings(t, key, dataDir)
+
+		a2 := StartTestAgent(t, TestAgent{DataDir: dataDir})
 		defer a2.Shutdown()
 
 		c2 := a2.consulConfig()
@@ -80,10 +83,16 @@ func TestAgent_LoadKeyrings(t *testing.T) {
 
 	// Client should auto-load only the LAN keyring file
 	t.Run("client with keys", func(t *testing.T) {
-		a3 := StartTestAgent(t, TestAgent{HCL: `
+		dataDir := testutil.TempDir(t, "keyfile")
+		writeKeyRings(t, key, dataDir)
+
+		a3 := StartTestAgent(t, TestAgent{
+			HCL: `
 			server = false
 			bootstrap = false
-		`, Key: key})
+			`,
+			DataDir: dataDir,
+		})
 		defer a3.Shutdown()
 
 		c3 := a3.consulConfig()
@@ -103,6 +112,16 @@ func TestAgent_LoadKeyrings(t *testing.T) {
 			t.Fatalf("keyring should not be loaded")
 		}
 	})
+}
+
+func writeKeyRings(t *testing.T, key string, dataDir string) {
+	t.Helper()
+	writeKey := func(key, filename string) {
+		path := filepath.Join(dataDir, filename)
+		require.NoError(t, initKeyring(path, key), "Error creating keyring %s", path)
+	}
+	writeKey(key, SerfLANKeyring)
+	writeKey(key, SerfWANKeyring)
 }
 
 func TestAgent_InmemKeyrings(t *testing.T) {
@@ -272,11 +291,14 @@ func TestAgentKeyring_ACL(t *testing.T) {
 	key1 := "tbLJg26ZJyJ9pK3qhc9jig=="
 	key2 := "4leC33rgtXKIVUr9Nr0snQ=="
 
+	dataDir := testutil.TempDir(t, "keyfile")
+	writeKeyRings(t, key1, dataDir)
+
 	a := StartTestAgent(t, TestAgent{HCL: TestACLConfig() + `
 		acl_datacenter = "dc1"
 		acl_master_token = "root"
 		acl_default_policy = "deny"
-	`, Key: key1})
+	`, DataDir: dataDir})
 	defer a.Shutdown()
 
 	// List keys without access fails
