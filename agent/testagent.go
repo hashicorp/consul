@@ -10,7 +10,6 @@ import (
 	"io"
 	"math/rand"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"strconv"
 	"testing"
@@ -37,9 +36,6 @@ import (
 func init() {
 	rand.Seed(time.Now().UnixNano()) // seed random number generator
 }
-
-// TempDir defines the base dir for temporary directories.
-var TempDir = os.TempDir()
 
 // TestAgent encapsulates an Agent with a default configuration and
 // startup procedure suitable for testing. It panics if there are errors
