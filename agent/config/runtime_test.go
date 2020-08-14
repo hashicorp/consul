@@ -48,7 +48,7 @@ type configTest struct {
 // should check one option at a time if possible and should use generic
 // values, e.g. 'a' or 1 instead of 'servicex' or 3306.
 
-func TestConfigFlagsAndEdgecases(t *testing.T) {
+func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 	dataDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(dataDir)
 
@@ -489,13 +489,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			pre: func() {
 				writeFile(filepath.Join(dataDir, "conf"), []byte(`datacenter = "a"`))
 			},
-		},
-		{
-			desc: "-config-format invalid",
-			args: []string{
-				`-config-format=foobar`,
-			},
-			err: "-config-format must be either 'hcl' or 'json'",
 		},
 		{
 			desc: "-http-port",
@@ -4289,9 +4282,9 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				}
 
 				// mock the hostname function unless a mock is provided
-				b.Hostname = tt.hostname
-				if b.Hostname == nil {
-					b.Hostname = func() (string, error) { return "nodex", nil }
+				b.hostname = tt.hostname
+				if b.hostname == nil {
+					b.hostname = func() (string, error) { return "nodex", nil }
 				}
 
 				// mock the ip address detection
@@ -4307,8 +4300,8 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 						return []*net.IPAddr{ipAddr("dead:beef::1")}, nil
 					}
 				}
-				b.GetPrivateIPv4 = privatev4
-				b.GetPublicIPv6 = publicv6
+				b.getPrivateIPv4 = privatev4
+				b.getPublicIPv6 = publicv6
 
 				// read the source fragements
 				for i, data := range srcs {
@@ -4354,9 +4347,9 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				x.Hostname = b.Hostname
-				x.GetPrivateIPv4 = func() ([]*net.IPAddr, error) { return []*net.IPAddr{ipAddr("10.0.0.1")}, nil }
-				x.GetPublicIPv6 = func() ([]*net.IPAddr, error) { return []*net.IPAddr{ipAddr("dead:beef::1")}, nil }
+				x.hostname = b.hostname
+				x.getPrivateIPv4 = func() ([]*net.IPAddr, error) { return []*net.IPAddr{ipAddr("10.0.0.1")}, nil }
+				x.getPublicIPv6 = func() ([]*net.IPAddr, error) { return []*net.IPAddr{ipAddr("dead:beef::1")}, nil }
 				expected, err := x.Build()
 				if err != nil {
 					t.Fatalf("build default failed: %s", err)
@@ -4368,6 +4361,12 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 			})
 		}
 	}
+}
+
+func TestNewBuilder_InvalidConfigFormat(t *testing.T) {
+	_, err := NewBuilder(BuilderOpts{ConfigFormat: "yaml"})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "-config-format must be either 'hcl' or 'json'")
 }
 
 // TestFullConfig tests the conversion from a fully populated JSON or
