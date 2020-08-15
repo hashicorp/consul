@@ -161,7 +161,7 @@ func (s *HTTPServer) ACLRulesTranslateLegacyToken(resp http.ResponseWriter, req 
 	}
 
 	if out.Token == nil {
-		return nil, acl.ErrNotFound
+		return nil, NotFoundError{Reason: "No such token exists"}
 	}
 
 	if out.Token.Rules == "" {
