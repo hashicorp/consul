@@ -31,7 +31,6 @@ func TestSetFilePermissions(t *testing.T) {
 	}
 	tempFile := testutil.TempFile(t, "consul")
 	path := tempFile.Name()
-	defer os.Remove(path)
 
 	// Bad UID fails
 	if err := setFilePermissions(path, "%", "", ""); err == nil {

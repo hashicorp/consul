@@ -2,7 +2,6 @@ package write
 
 import (
 	"io"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -32,7 +31,6 @@ func TestConfigWrite(t *testing.T) {
 		c := New(ui)
 
 		f := testutil.TempFile(t, "config-write-svc-web.hcl")
-		defer os.Remove(f.Name())
 		_, err := f.WriteString(`
       Kind = "service-defaults"
       Name = "web"

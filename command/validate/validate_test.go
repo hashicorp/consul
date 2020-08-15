@@ -2,7 +2,6 @@ package validate
 
 import (
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -22,7 +21,6 @@ func TestValidateCommand_noTabs(t *testing.T) {
 func TestValidateCommand_FailOnEmptyFile(t *testing.T) {
 	t.Parallel()
 	tmpFile := testutil.TempFile(t, "consul")
-	defer os.RemoveAll(tmpFile.Name())
 
 	cmd := New(cli.NewMockUi())
 	args := []string{tmpFile.Name()}
