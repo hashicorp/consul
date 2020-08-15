@@ -831,6 +831,12 @@ func TestACL_HTTP(t *testing.T) {
 			delete(tokenMap, idMap["token-cloned"])
 			delete(idMap, "token-cloned")
 		})
+		t.Run("Non existent Token", func(t *testing.T) {
+			req, _ := http.NewRequest("GET", "/v1/acl/token/"+idMap["token-cloned"], nil)
+			resp := httptest.NewRecorder()
+			_, err := a.srv.ACLRulesTranslateLegacyToken(resp, req)
+			require.Equal(t, NotFoundError{Reason: "No such token exists"}, err)
+		})
 		t.Run("List", func(t *testing.T) {
 			req, _ := http.NewRequest("GET", "/v1/acl/tokens?token=root", nil)
 			resp := httptest.NewRecorder()
