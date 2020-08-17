@@ -32,7 +32,7 @@ func (c *CatalogDatacenters) Fetch(opts cache.FetchOptions, req cache.Request) (
 
 	// Always allow stale - there's no point in hitting leader if the request is
 	// going to be served from cache and endup arbitrarily stale anyway. This
-	// allows cached service-discover to automatically read scale across all
+	// allows cached entries to automatically read scale across all
 	// servers too.
 	reqReal.AllowStale = true
 

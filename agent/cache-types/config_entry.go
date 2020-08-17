@@ -39,7 +39,7 @@ func (c *ConfigEntries) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 
 	// Always allow stale - there's no point in hitting leader if the request is
 	// going to be served from cache and endup arbitrarily stale anyway. This
-	// allows cached service-discover to automatically read scale across all
+	// allows cached entries to automatically read scale across all
 	// servers too.
 	reqReal.AllowStale = true
 
@@ -80,7 +80,7 @@ func (c *ConfigEntry) Fetch(opts cache.FetchOptions, req cache.Request) (cache.F
 
 	// Always allow stale - there's no point in hitting leader if the request is
 	// going to be served from cache and end up arbitrarily stale anyway. This
-	// allows cached service-discover to automatically read scale across all
+	// allows cached entries to automatically read scale across all
 	// servers too.
 	reqReal.QueryOptions.AllowStale = true
 
