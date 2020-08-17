@@ -1,6 +1,7 @@
 package cachetype
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -68,4 +69,59 @@ func TestResolvedServiceConfig_badReqType(t *testing.T) {
 	require.Error(err)
 	require.Contains(err.Error(), "wrong type")
 
+}
+
+func TestResolvedServiceConfig_IntegrationWithCache_NotModifiedResponse(t *testing.T) {
+	rpc := &MockRPC{}
+	typ := &ResolvedServiceConfig{RPC: rpc}
+
+	config := map[string]interface{}{
+		"protocol": "http",
+	}
+
+	rpc.On("RPC", "ConfigEntry.ResolveServiceConfig", mock.Anything, mock.Anything).
+		Return(nil).
+		Run(func(args mock.Arguments) {
+			req := args.Get(1).(*structs.ServiceConfigRequest)
+			require.True(t, req.AllowStale)
+			require.True(t, req.AllowNotModifiedResponse)
+
+			reply := args.Get(2).(*structs.ServiceConfigResponse)
+			reply.QueryMeta.Index = 44
+			reply.NotModified = true
+		})
+
+	c := cache.New(cache.Options{})
+	c.RegisterType(ResolvedServiceConfigName, typ)
+	last := cache.FetchResult{
+		Value: &structs.ServiceConfigResponse{
+			ProxyConfig: config,
+			QueryMeta:   structs.QueryMeta{Index: 42},
+		},
+		Index: 42,
+	}
+	req := &structs.ServiceConfigRequest{
+		Datacenter: "dc1",
+		QueryOptions: structs.QueryOptions{
+			Token:         "token",
+			MinQueryIndex: 44,
+			MaxQueryTime:  time.Second,
+		},
+	}
+
+	err := c.Prepopulate(ResolvedServiceConfigName, last, "dc1", "token", req.CacheInfo().Key)
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	actual, _, err := c.Get(ctx, ResolvedServiceConfigName, req)
+	require.NoError(t, err)
+
+	expected := &structs.ServiceConfigResponse{
+		ProxyConfig: config,
+		QueryMeta:   structs.QueryMeta{Index: 42},
+	}
+	require.Equal(t, expected, actual)
+
+	rpc.AssertExpectations(t)
 }
