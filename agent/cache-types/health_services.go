@@ -36,12 +36,15 @@ func (c *HealthServices) Fetch(opts cache.FetchOptions, req cache.Request) (cach
 	reqReal.QueryOptions.MaxQueryTime = opts.Timeout
 
 	// Always allow stale - there's no point in hitting leader if the request is
-	// going to be served from cache and endup arbitrarily stale anyway. This
+	// going to be served from cache and end up arbitrarily stale anyway. This
 	// allows cached service-discover to automatically read scale across all
 	// servers too.
-	reqReal.AllowStale = true
+	reqReal.QueryOptions.AllowStale = true
 
-	// Fetch
+	if opts.LastResult != nil {
+		reqReal.QueryOptions.AllowNotModifiedResponse = true
+	}
+
 	var reply structs.IndexedCheckServiceNodes
 	if err := c.RPC.RPC("Health.ServiceNodes", reqReal, &reply); err != nil {
 		return result, err
@@ -49,5 +52,6 @@ func (c *HealthServices) Fetch(opts cache.FetchOptions, req cache.Request) (cach
 
 	result.Value = &reply
 	result.Index = reply.QueryMeta.Index
+	result.NotModified = reply.QueryMeta.NotModified
 	return result, nil
 }
