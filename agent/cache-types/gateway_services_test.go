@@ -1,6 +1,7 @@
 package cachetype
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -56,6 +57,60 @@ func TestGatewayServices(t *testing.T) {
 		Value: resp,
 		Index: 48,
 	}, resultA)
+
+	rpc.AssertExpectations(t)
+}
+
+func TestGatewayServices_IntegrationWithCache_NotModifiedResponse(t *testing.T) {
+	rpc := &MockRPC{}
+	typ := &GatewayServices{RPC: rpc}
+
+	services := structs.GatewayServices{
+		&structs.GatewayService{Gateway: structs.NewServiceName("gateway", nil)},
+	}
+	rpc.On("RPC", "Catalog.GatewayServices", mock.Anything, mock.Anything).
+		Return(nil).
+		Run(func(args mock.Arguments) {
+			req := args.Get(1).(*structs.ServiceSpecificRequest)
+			require.True(t, req.AllowStale)
+			require.True(t, req.AllowNotModifiedResponse)
+
+			reply := args.Get(2).(*structs.IndexedGatewayServices)
+			reply.QueryMeta.Index = 44
+			reply.NotModified = true
+		})
+
+	c := cache.New(cache.Options{})
+	c.RegisterType(GatewayServicesName, typ)
+	last := cache.FetchResult{
+		Value: &structs.IndexedGatewayServices{
+			Services:  services,
+			QueryMeta: structs.QueryMeta{Index: 42},
+		},
+		Index: 42,
+	}
+	req := &structs.ServiceSpecificRequest{
+		Datacenter: "dc1",
+		QueryOptions: structs.QueryOptions{
+			Token:         "token",
+			MinQueryIndex: 44,
+			MaxQueryTime:  time.Second,
+		},
+	}
+
+	err := c.Prepopulate(GatewayServicesName, last, "dc1", "token", req.CacheInfo().Key)
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	actual, _, err := c.Get(ctx, GatewayServicesName, req)
+	require.NoError(t, err)
+
+	expected := &structs.IndexedGatewayServices{
+		Services:  services,
+		QueryMeta: structs.QueryMeta{Index: 42},
+	}
+	require.Equal(t, expected, actual)
 
 	rpc.AssertExpectations(t)
 }
