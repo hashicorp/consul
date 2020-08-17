@@ -638,11 +638,6 @@ func (a *Agent) Start(ctx context.Context) error {
 		return fmt.Errorf("Failed to load TLS configurations after applying auto-config settings: %w", err)
 	}
 
-	if err := a.CheckSecurity(c); err != nil {
-		a.logger.Error("Security error while parsing configuration: %#v", err)
-		return err
-	}
-
 	// load the tokens - this requires the logger to be setup
 	// which is why we can't do this in New
 	a.loadTokens(a.config)
@@ -3700,21 +3695,6 @@ func (a *Agent) getPersistedTokens() (*persistedTokens, error) {
 	return persistedTokens, nil
 }
 
-// CheckSecurity Performs security checks in Consul Configuration
-// It might return an error if configuration is considered too dangerous
-func (a *Agent) CheckSecurity(conf *config.RuntimeConfig) error {
-	if conf.EnableRemoteScriptChecks {
-		if !conf.ACLsEnabled {
-			if len(conf.AllowWriteHTTPFrom) == 0 {
-				err := fmt.Errorf("using enable-script-checks without ACLs and without allow_write_http_from is DANGEROUS, use enable-local-script-checks instead, see https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations/")
-				a.logger.Error("[SECURITY] issue", "error", err)
-				// TODO: return the error in future Consul versions
-			}
-		}
-	}
-	return nil
-}
-
 func (a *Agent) loadTokens(conf *config.RuntimeConfig) error {
 	persistedTokens, persistenceErr := a.getPersistedTokens()
 
@@ -3912,11 +3892,6 @@ func (a *Agent) ReloadConfig() error {
 // the configuration using CLI flags and on disk config, this just takes a
 // runtime configuration and applies it.
 func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
-	if err := a.CheckSecurity(newCfg); err != nil {
-		a.logger.Error("Security error while reloading configuration: %#v", err)
-		return err
-	}
-
 	// Change the log level and update it
 	if logging.ValidateLogLevel(newCfg.LogLevel) {
 		a.logger.SetLevel(logging.LevelFromString(newCfg.LogLevel))

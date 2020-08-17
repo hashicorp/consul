@@ -423,6 +423,7 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 				rt.EnableRemoteScriptChecks = true
 				rt.DataDir = dataDir
 			},
+			warns: []string{remoteScriptCheckSecurityWarning},
 		},
 		{
 			desc: "-encrypt",

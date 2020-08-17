@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -1350,6 +1351,11 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		return err
 	}
 
+	if err := validateRemoteScriptsChecks(rt); err != nil {
+		// TODO: make this an error in a future version
+		b.warn(err.Error())
+	}
+
 	return nil
 }
 
@@ -2190,4 +2196,16 @@ func UIPathBuilder(UIContentString string) string {
 
 	}
 	return "/ui/"
+}
+
+const remoteScriptCheckSecurityWarning = "using enable-script-checks without ACLs and without allow_write_http_from is DANGEROUS, use enable-local-script-checks instead, see https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations/"
+
+// validateRemoteScriptsChecks returns an error if EnableRemoteScriptChecks is
+// enabled without other security features, which mitigate the risk of executing
+// remote scripts.
+func validateRemoteScriptsChecks(conf RuntimeConfig) error {
+	if conf.EnableRemoteScriptChecks && !conf.ACLsEnabled && len(conf.AllowWriteHTTPFrom) == 0 {
+		return errors.New(remoteScriptCheckSecurityWarning)
+	}
+	return nil
 }
