@@ -42,12 +42,16 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzRe
 	dataDir := testutil.TempDir(t, "acl-agent")
 
 	logBuffer := testutil.NewLogBuffer(t)
-	loader := func(source config.Source) (cfg *config.RuntimeConfig, warnings []string, err error) {
+	loader := func(source config.Source) (*config.RuntimeConfig, []string, error) {
 		dataDir := fmt.Sprintf(`data_dir = "%s"`, dataDir)
 		opts := config.BuilderOpts{
 			HCL: []string{TestConfigHCL(NodeID()), hcl, dataDir},
 		}
-		return config.Load(opts, source)
+		cfg, warnings, err := config.Load(opts, source)
+		if cfg != nil {
+			cfg.Telemetry.Disable = true
+		}
+		return cfg, warnings, err
 	}
 	bd, err := NewBaseDeps(loader, logBuffer)
 	require.NoError(t, err)
@@ -58,7 +62,7 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzRe
 		Output:     logBuffer,
 		TimeFormat: "04:05.000",
 	})
-	bd.TelemetrySink = metrics.NewInmemSink(1*time.Second, time.Minute)
+	bd.MetricsHandler = metrics.NewInmemSink(1*time.Second, time.Minute)
 
 	agent, err := New(bd)
 	require.NoError(t, err)

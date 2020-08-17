@@ -7100,6 +7100,7 @@ func TestSanitize(t *testing.T) {
 			"CirconusCheckTags": "",
 			"CirconusSubmissionInterval": "",
 			"CirconusSubmissionURL": "",
+			"Disable": false,
 			"DisableHostname": false,
 			"DogstatsdAddr": "",
 			"DogstatsdTags": [],

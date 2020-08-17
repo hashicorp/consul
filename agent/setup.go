@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/http"
 	"time"
 
-	"github.com/armon/go-metrics"
 	autoconf "github.com/hashicorp/consul/agent/auto-config"
 	"github.com/hashicorp/consul/agent/cache"
 	certmon "github.com/hashicorp/consul/agent/cert-monitor"
@@ -28,12 +28,17 @@ import (
 type BaseDeps struct {
 	Logger          hclog.InterceptLogger
 	TLSConfigurator *tlsutil.Configurator // TODO: use an interface
-	TelemetrySink   *metrics.InmemSink    // TODO: use an interface
+	MetricsHandler  MetricsHandler
 	RuntimeConfig   *config.RuntimeConfig
 	Tokens          *token.Store
 	Cache           *cache.Cache
 	AutoConfig      *autoconf.AutoConfig // TODO: use an interface
 	ConnPool        *pool.ConnPool       // TODO: use an interface
+}
+
+// MetricsHandler provides an http.Handler for displaying metrics.
+type MetricsHandler interface {
+	DisplayMetrics(resp http.ResponseWriter, req *http.Request) (interface{}, error)
 }
 
 type ConfigLoader func(source config.Source) (cfg *config.RuntimeConfig, warnings []string, err error)
@@ -71,7 +76,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 		return d, fmt.Errorf("failed to setup node ID: %w", err)
 	}
 
-	d.TelemetrySink, err = lib.InitTelemetry(cfg.Telemetry)
+	d.MetricsHandler, err = lib.InitTelemetry(cfg.Telemetry)
 	if err != nil {
 		return d, fmt.Errorf("failed to initialize telemetry: %w", err)
 	}

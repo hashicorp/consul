@@ -170,7 +170,7 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 
 	// Create NodeID outside the closure, so that it does not change
 	testHCLConfig := TestConfigHCL(NodeID())
-	loader := func(source config.Source) (cfg *config.RuntimeConfig, warnings []string, err error) {
+	loader := func(source config.Source) (*config.RuntimeConfig, []string, error) {
 		opts := config.BuilderOpts{
 			HCL: []string{testHCLConfig, portsConfig, a.HCL, hclDataDir},
 		}
@@ -182,13 +182,17 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 			config.DefaultConsulSource(),
 			config.DevConsulSource(),
 		}
-		return config.Load(opts, source, overrides...)
+		cfg, warnings, err := config.Load(opts, source, overrides...)
+		if cfg != nil {
+			cfg.Telemetry.Disable = true
+		}
+		return cfg, warnings, err
 	}
 	bd, err := NewBaseDeps(loader, logOutput)
 	require.NoError(t, err)
 
 	bd.Logger = logger
-	bd.TelemetrySink = metrics.NewInmemSink(1*time.Second, time.Minute)
+	bd.MetricsHandler = metrics.NewInmemSink(1*time.Second, time.Minute)
 	a.Config = bd.RuntimeConfig
 
 	agent, err := New(bd)

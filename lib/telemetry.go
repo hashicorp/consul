@@ -19,6 +19,10 @@ import (
 // the shared InitTelemetry functions below, but we can't import agent/config
 // due to a dependency cycle.
 type TelemetryConfig struct {
+	// Disable may be set to true to have InitTelemetry to skip initialization
+	// and return a nil MetricsSink.
+	Disable bool
+
 	// Circonus*: see https://github.com/circonus-labs/circonus-gometrics
 	// for more details on the various configuration options.
 	// Valid configuration combinations:
@@ -326,6 +330,9 @@ func circonusSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, err
 // InitTelemetry configures go-metrics based on map of telemetry config
 // values as returned by Runtimecfg.Config().
 func InitTelemetry(cfg TelemetryConfig) (*metrics.InmemSink, error) {
+	if cfg.Disable {
+		return nil, nil
+	}
 	// Setup telemetry
 	// Aggregate on 10 second intervals for 1 minute. Expose the
 	// metrics over stderr when there is a SIGUSR1 received.
