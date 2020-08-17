@@ -4774,13 +4774,14 @@ func TestAgent_Token(t *testing.T) {
 		init        tokens
 		raw         tokens
 		effective   tokens
+		expectedErr error
 	}{
 		{
-			name:   "bad token name",
-			method: "PUT",
-			url:    "nope?token=root",
-			body:   body("X"),
-			code:   http.StatusNotFound,
+			name:        "bad token name",
+			method:      "PUT",
+			url:         "nope?token=root",
+			body:        body("X"),
+			expectedErr: NotFoundError{Reason: `Token "nope" is unknown`},
 		},
 		{
 			name:   "bad JSON",
@@ -4942,7 +4943,12 @@ func TestAgent_Token(t *testing.T) {
 			url := fmt.Sprintf("/v1/agent/token/%s", tt.url)
 			resp := httptest.NewRecorder()
 			req, _ := http.NewRequest(tt.method, url, tt.body)
+
 			_, err := a.srv.AgentToken(resp, req)
+			if tt.expectedErr != nil {
+				require.Equal(t, tt.expectedErr, err)
+				return
+			}
 			require.NoError(t, err)
 			require.Equal(t, tt.code, resp.Code)
 			require.Equal(t, tt.effective.user, a.tokens.UserToken())

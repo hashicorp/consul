@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
@@ -62,6 +63,10 @@ type RuntimeConfig struct {
 	//
 	// hcl: acl.enabled = boolean
 	ACLsEnabled bool
+
+	// TODO: remove old fields
+	// TODO: set DataDir as well
+	ACLTokens token.Config
 
 	// ACLAgentMasterToken is a special token that has full read and write
 	// privileges for this agent, and can be used to call agent endpoints
