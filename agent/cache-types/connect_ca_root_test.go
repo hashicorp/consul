@@ -1,6 +1,7 @@
 package cachetype
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -54,4 +55,56 @@ func TestConnectCARoot_badReqType(t *testing.T) {
 	require.NotNil(err)
 	require.Contains(err.Error(), "wrong type")
 
+}
+
+func TestConnectCARoot_IntegrationWithCache_NotModifiedResponse(t *testing.T) {
+	rpc := &MockRPC{}
+	typ := &ConnectCARoot{RPC: rpc}
+
+	id := "active-root-id"
+	rpc.On("RPC", "ConnectCA.Roots", mock.Anything, mock.Anything).
+		Return(nil).
+		Run(func(args mock.Arguments) {
+			req := args.Get(1).(*structs.DCSpecificRequest)
+			require.True(t, req.AllowStale)
+			require.True(t, req.AllowNotModifiedResponse)
+
+			reply := args.Get(2).(*structs.IndexedCARoots)
+			reply.QueryMeta.Index = 44
+			reply.NotModified = true
+		})
+
+	c := cache.New(cache.Options{})
+	c.RegisterType(ConnectCARootName, typ)
+	last := cache.FetchResult{
+		Value: &structs.IndexedCARoots{
+			ActiveRootID: id,
+			QueryMeta:    structs.QueryMeta{Index: 42},
+		},
+		Index: 42,
+	}
+	req := &structs.DCSpecificRequest{
+		Datacenter: "dc1",
+		QueryOptions: structs.QueryOptions{
+			Token:         "token",
+			MinQueryIndex: 44,
+			MaxQueryTime:  time.Second,
+		},
+	}
+
+	err := c.Prepopulate(ConnectCARootName, last, "dc1", "token", req.CacheInfo().Key)
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	actual, _, err := c.Get(ctx, ConnectCARootName, req)
+	require.NoError(t, err)
+
+	expected := &structs.IndexedCARoots{
+		ActiveRootID: id,
+		QueryMeta:    structs.QueryMeta{Index: 42},
+	}
+	require.Equal(t, expected, actual)
+
+	rpc.AssertExpectations(t)
 }
