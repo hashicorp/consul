@@ -84,8 +84,8 @@ func Load(builderOpts BuilderOpts, extraHead Source, overrides ...Source) (*Runt
 // since not all pre-conditions have to be satisfied when performing
 // syntactical tests.
 type Builder struct {
-	// options contains the input values used to construct a RuntimeConfig
-	options BuilderOpts
+	// devMode stores the value of the -dev flag, and enables development mode.
+	devMode *bool
 
 	// Head, Sources, and Tail are used to manage the order of the
 	// config sources, as described in the comments above.
@@ -97,14 +97,14 @@ type Builder struct {
 	// parsing the configuration.
 	Warnings []string
 
-	// Hostname returns the hostname of the machine. If nil, os.Hostname
-	// is called.
-	Hostname func() (string, error)
+	// hostname is a shim for testing, allowing tests to specify a replacement
+	// for os.Hostname.
+	hostname func() (string, error)
 
-	// GetPrivateIPv4 and GetPublicIPv6 return suitable default addresses
-	// for cases when the user doesn't supply them.
-	GetPrivateIPv4 func() ([]*net.IPAddr, error)
-	GetPublicIPv6  func() ([]*net.IPAddr, error)
+	// getPrivateIPv4 and getPublicIPv6 are shims for testing, allowing tests to
+	// specify a replacement for ipaddr.GetPrivateIPv4 and ipaddr.GetPublicIPv6.
+	getPrivateIPv4 func() ([]*net.IPAddr, error)
+	getPublicIPv6  func() ([]*net.IPAddr, error)
 
 	// err contains the first error that occurred during
 	// building the runtime configuration.
@@ -113,6 +113,11 @@ type Builder struct {
 
 // NewBuilder returns a new configuration Builder from the BuilderOpts.
 func NewBuilder(opts BuilderOpts) (*Builder, error) {
+	configFormat := opts.ConfigFormat
+	if configFormat != "" && configFormat != "json" && configFormat != "hcl" {
+		return nil, fmt.Errorf("config: -config-format must be either 'hcl' or 'json'")
+	}
+
 	newSource := func(name string, v interface{}) Source {
 		b, err := json.MarshalIndent(v, "", "    ")
 		if err != nil {
@@ -122,7 +127,7 @@ func NewBuilder(opts BuilderOpts) (*Builder, error) {
 	}
 
 	b := &Builder{
-		options: opts,
+		devMode: opts.DevMode,
 		Head:    []Source{DefaultSource(), DefaultEnterpriseSource()},
 	}
 
@@ -281,14 +286,7 @@ func (b *Builder) BuildAndValidate() (RuntimeConfig, error) {
 // warnings can still contain deprecation or format warnings that should
 // be presented to the user.
 func (b *Builder) Build() (rt RuntimeConfig, err error) {
-	// TODO: move to NewBuilder to remove Builder.options field
-	configFormat := b.options.ConfigFormat
-	if configFormat != "" && configFormat != "json" && configFormat != "hcl" {
-		return RuntimeConfig{}, fmt.Errorf("config: -config-format must be either 'hcl' or 'json'")
-	}
-
-	// build the list of config sources
-	var srcs []Source
+	srcs := make([]Source, 0, len(b.Head)+len(b.Sources)+len(b.Tail))
 	srcs = append(srcs, b.Head...)
 	srcs = append(srcs, b.Sources...)
 	srcs = append(srcs, b.Tail...)
@@ -461,14 +459,14 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		switch {
 		case ipaddr.IsAnyV4(advertiseAddr):
 			addrtyp = "private IPv4"
-			detect = b.GetPrivateIPv4
+			detect = b.getPrivateIPv4
 			if detect == nil {
 				detect = ipaddr.GetPrivateIPv4
 			}
 
 		case ipaddr.IsAnyV6(advertiseAddr):
 			addrtyp = "public IPv6"
-			detect = b.GetPublicIPv6
+			detect = b.getPublicIPv6
 			if detect == nil {
 				detect = ipaddr.GetPublicIPv6
 			}
@@ -956,7 +954,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		DataDir:                                b.stringVal(c.DataDir),
 		Datacenter:                             datacenter,
 		DefaultQueryTime:                       b.durationVal("default_query_time", c.DefaultQueryTime),
-		DevMode:                                b.boolVal(b.options.DevMode),
+		DevMode:                                b.boolVal(b.devMode),
 		DisableAnonymousSignature:              b.boolVal(c.DisableAnonymousSignature),
 		DisableCoordinates:                     b.boolVal(c.DisableCoordinates),
 		DisableHostNodeID:                      b.boolVal(c.DisableHostNodeID),
@@ -1744,7 +1742,7 @@ func (b *Builder) tlsCipherSuites(name string, v *string) []uint16 {
 func (b *Builder) nodeName(v *string) string {
 	nodeName := b.stringVal(v)
 	if nodeName == "" {
-		fn := b.Hostname
+		fn := b.hostname
 		if fn == nil {
 			fn = os.Hostname
 		}
