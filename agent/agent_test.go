@@ -3511,7 +3511,6 @@ func TestAgent_SecurityChecks(t *testing.T) {
 func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 	t.Parallel()
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
-	defer os.RemoveAll(dataDir)
 	hcl := `
 		data_dir = "` + dataDir + `"
 		verify_outgoing = true
@@ -3546,7 +3545,6 @@ func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 func TestAgent_ReloadConfigAndKeepChecksStatus(t *testing.T) {
 	t.Parallel()
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
-	defer os.RemoveAll(dataDir)
 	hcl := `data_dir = "` + dataDir + `"
 		enable_local_script_checks=true
 		services=[{
@@ -3576,7 +3574,6 @@ func TestAgent_ReloadConfigAndKeepChecksStatus(t *testing.T) {
 func TestAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
 	t.Parallel()
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
-	defer os.RemoveAll(dataDir)
 	hcl := `
 		data_dir = "` + dataDir + `"
 		verify_outgoing = true
@@ -3616,7 +3613,6 @@ func TestAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
 func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
 	t.Parallel()
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
-	defer os.RemoveAll(dataDir)
 	hcl := `
 		data_dir = "` + dataDir + `"
 		verify_outgoing = true
@@ -3645,7 +3641,6 @@ func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
 func TestAgent_consulConfig_AutoEncryptAllowTLS(t *testing.T) {
 	t.Parallel()
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
-	defer os.RemoveAll(dataDir)
 	hcl := `
 		data_dir = "` + dataDir + `"
 		verify_incoming = true

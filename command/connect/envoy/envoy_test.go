@@ -3,7 +3,6 @@ package envoy
 import (
 	"encoding/json"
 	"flag"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -12,6 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/xds"
@@ -685,7 +686,6 @@ func TestGenerateConfig(t *testing.T) {
 			require := require.New(t)
 
 			testDir := testutil.TempDir(t, "envoytest")
-			defer os.RemoveAll(testDir)
 
 			if len(tc.Files) > 0 {
 				for fn, fv := range tc.Files {

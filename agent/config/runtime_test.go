@@ -50,7 +50,6 @@ type configTest struct {
 
 func TestConfigFlagsAndEdgecases(t *testing.T) {
 	dataDir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(dataDir)
 
 	tests := []configTest{
 		// ------------------------------------------------------------
@@ -4387,7 +4386,6 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 //
 func TestFullConfig(t *testing.T) {
 	dataDir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(dataDir)
 
 	cidr := func(s string) *net.IPNet {
 		_, n, _ := net.ParseCIDR(s)

@@ -145,7 +145,6 @@ func TestLogger_SetupLoggerWithValidLogPath(t *testing.T) {
 	require := require.New(t)
 
 	tmpDir := testutil.TempDir(t, t.Name())
-	defer os.RemoveAll(tmpDir)
 
 	cfg := &Config{
 		LogLevel:    "INFO",

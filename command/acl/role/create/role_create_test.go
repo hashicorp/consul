@@ -2,13 +2,11 @@ package rolecreate
 
 import (
 	"encoding/json"
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/assert"
@@ -25,9 +23,6 @@ func TestRoleCreateCommand_noTabs(t *testing.T) {
 
 func TestRoleCreateCommand_Pretty(t *testing.T) {
 	t.Parallel()
-
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -117,9 +112,6 @@ func TestRoleCreateCommand_Pretty(t *testing.T) {
 
 func TestRoleCreateCommand_JSON(t *testing.T) {
 	t.Parallel()
-
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"

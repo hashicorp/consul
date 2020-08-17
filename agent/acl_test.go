@@ -3,7 +3,6 @@ package agent
 import (
 	"fmt"
 	"io"
-	"os"
 	"testing"
 	"time"
 
@@ -39,10 +38,6 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzRe
 	a := &TestACLAgent{resolveAuthzFn: resolveAuthz, resolveIdentFn: resolveIdent}
 
 	dataDir := testutil.TempDir(t, "acl-agent")
-	t.Cleanup(func() {
-		os.RemoveAll(dataDir)
-	})
-
 	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
 		Name:   name,
 		Level:  hclog.Debug,

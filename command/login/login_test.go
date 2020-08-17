@@ -34,7 +34,6 @@ func TestLoginCommand(t *testing.T) {
 	t.Parallel()
 
 	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -228,7 +227,6 @@ func TestLoginCommand_k8s(t *testing.T) {
 	t.Parallel()
 
 	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -323,7 +321,6 @@ func TestLoginCommand_jwt(t *testing.T) {
 	t.Parallel()
 
 	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"

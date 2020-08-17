@@ -3,7 +3,6 @@ package policycreate
 import (
 	"encoding/json"
 	"io/ioutil"
-	"os"
 	"strings"
 	"testing"
 
@@ -28,7 +27,6 @@ func TestPolicyCreateCommand(t *testing.T) {
 	require := require.New(t)
 
 	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -66,7 +64,6 @@ func TestPolicyCreateCommand_JSON(t *testing.T) {
 	require := require.New(t)
 
 	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"

@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -208,7 +207,6 @@ func TestAgent_InmemKeyrings(t *testing.T) {
 	// Any keyring files should be ignored
 	t.Run("ignore files", func(t *testing.T) {
 		dir := testutil.TempDir(t, "consul")
-		defer os.RemoveAll(dir)
 
 		badKey := "unUzC2X3JgMKVJlZna5KVg=="
 		if err := initKeyring(filepath.Join(dir, SerfLANKeyring), badKey); err != nil {
@@ -254,8 +252,6 @@ func TestAgent_InitKeyring(t *testing.T) {
 	expected := fmt.Sprintf(`["%s"]`, key1)
 
 	dir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(dir)
-
 	file := filepath.Join(dir, "keyring")
 
 	// First initialize the keyring

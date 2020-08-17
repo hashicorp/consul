@@ -28,7 +28,6 @@ func TestDebugCommand(t *testing.T) {
 	t.Parallel()
 
 	testDir := testutil.TempDir(t, "debug")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	enable_debug = true
@@ -65,7 +64,6 @@ func TestDebugCommand_Archive(t *testing.T) {
 	t.Parallel()
 
 	testDir := testutil.TempDir(t, "debug")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	enable_debug = true
@@ -125,9 +123,6 @@ func TestDebugCommand_Archive(t *testing.T) {
 func TestDebugCommand_ArgsBad(t *testing.T) {
 	t.Parallel()
 
-	testDir := testutil.TempDir(t, "debug")
-	defer os.RemoveAll(testDir)
-
 	ui := cli.NewMockUi()
 	cmd := New(ui, nil)
 
@@ -148,9 +143,6 @@ func TestDebugCommand_ArgsBad(t *testing.T) {
 
 func TestDebugCommand_OutputPathBad(t *testing.T) {
 	t.Parallel()
-
-	testDir := testutil.TempDir(t, "debug")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -182,7 +174,6 @@ func TestDebugCommand_OutputPathExists(t *testing.T) {
 	t.Parallel()
 
 	testDir := testutil.TempDir(t, "debug")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -263,7 +254,6 @@ func TestDebugCommand_CaptureTargets(t *testing.T) {
 
 	for name, tc := range cases {
 		testDir := testutil.TempDir(t, "debug")
-		defer os.RemoveAll(testDir)
 
 		a := agent.NewTestAgent(t, `
 		enable_debug = true
@@ -329,7 +319,6 @@ func TestDebugCommand_ProfilesExist(t *testing.T) {
 	t.Parallel()
 
 	testDir := testutil.TempDir(t, "debug")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	enable_debug = true
@@ -406,9 +395,6 @@ func TestDebugCommand_ValidateTiming(t *testing.T) {
 		// the valid duration test to avoid hanging
 		shutdownCh := make(chan struct{})
 
-		testDir := testutil.TempDir(t, "debug")
-		defer os.RemoveAll(testDir)
-
 		a := agent.NewTestAgent(t, "")
 		defer a.Shutdown()
 		testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -439,7 +425,6 @@ func TestDebugCommand_DebugDisabled(t *testing.T) {
 	t.Parallel()
 
 	testDir := testutil.TempDir(t, "debug")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	enable_debug = false

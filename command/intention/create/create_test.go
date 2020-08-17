@@ -1,7 +1,6 @@
 package create
 
 import (
-	"os"
 	"strings"
 	"testing"
 
@@ -146,7 +145,6 @@ func TestCommand_File(t *testing.T) {
 
 	contents := `{ "SourceName": "foo", "DestinationName": "bar", "Action": "allow" }`
 	f := testutil.TempFile(t, "intention-create-command-file")
-	defer os.Remove(f.Name())
 	if _, err := f.WriteString(contents); err != nil {
 		t.Fatalf("err: %#v", err)
 	}

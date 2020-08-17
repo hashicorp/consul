@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -25,7 +24,6 @@ func TestUiIndex(t *testing.T) {
 	t.Parallel()
 	// Make a test dir to serve UI files
 	uiDir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(uiDir)
 
 	// Make the server
 	a := NewTestAgent(t, `

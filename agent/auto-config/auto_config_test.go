@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -162,8 +161,6 @@ func setupRuntimeConfig(t *testing.T) *config.RuntimeConfig {
 	t.Helper()
 
 	dataDir := testutil.TempDir(t, "auto-config")
-	t.Cleanup(func() { os.RemoveAll(dataDir) })
-
 	rtConfig := &config.RuntimeConfig{
 		DataDir:    dataDir,
 		Datacenter: "dc1",

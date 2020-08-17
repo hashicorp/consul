@@ -78,8 +78,6 @@ func TestSnapshotSaveCommand(t *testing.T) {
 	c := New(ui)
 
 	dir := testutil.TempDir(t, "snapshot")
-	defer os.RemoveAll(dir)
-
 	file := filepath.Join(dir, "backup.tgz")
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
@@ -160,7 +158,6 @@ func TestSnapshotSaveCommand_TruncatedStream(t *testing.T) {
 	})
 
 	dir := testutil.TempDir(t, "snapshot")
-	defer os.RemoveAll(dir)
 
 	for _, removeBytes := range []int{200, 16, 8, 4, 2, 1} {
 		t.Run(fmt.Sprintf("truncate %d bytes from end", removeBytes), func(t *testing.T) {

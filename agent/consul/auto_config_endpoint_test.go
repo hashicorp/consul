@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net"
-	"os"
 	"path"
 	"testing"
 	"time"
@@ -394,8 +393,6 @@ func TestAutoConfig_updateTLSSettingsInConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	dir := testutil.TempDir(t, "auto-config-tls-settings")
-	t.Cleanup(func() { os.RemoveAll(dir) })
-
 	cafile := path.Join(dir, "cacert.pem")
 	err = ioutil.WriteFile(cafile, []byte(cacert), 0600)
 	require.NoError(t, err)
@@ -602,8 +599,6 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 	// this is necessary but creation of the tlsutil.Configurator
 	// will error if it cannot load the CA certificate from disk
 	dir := testutil.TempDir(t, "auto-config-tls-certificate")
-	t.Cleanup(func() { os.RemoveAll(dir) })
-
 	cafile := path.Join(dir, "cacert.pem")
 	err = ioutil.WriteFile(cafile, []byte(cacert), 0600)
 	require.NoError(t, err)
