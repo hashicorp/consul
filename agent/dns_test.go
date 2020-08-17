@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/config"
+	agentdns "github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
@@ -6976,7 +6977,7 @@ func TestDNSInvalidRegex(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.desc, func(t *testing.T) {
-			if got, want := InvalidDnsRe.MatchString(test.in), test.invalid; got != want {
+			if got, want := agentdns.InvalidNameRe.MatchString(test.in), test.invalid; got != want {
 				t.Fatalf("Expected %v to return %v", test.in, want)
 			}
 		})

@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
+	"github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
@@ -1117,9 +1118,20 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 			return fmt.Errorf("data_dir %q is not a directory", rt.DataDir)
 		}
 	}
-	if rt.NodeName == "" {
+
+	switch {
+	case rt.NodeName == "":
 		return fmt.Errorf("node_name cannot be empty")
+	case dns.InvalidNameRe.MatchString(rt.NodeName):
+		b.warn("Node name %q will not be discoverable "+
+			"via DNS due to invalid characters. Valid characters include "+
+			"all alpha-numerics and dashes.", rt.NodeName)
+	case len(rt.NodeName) > dns.MaxLabelLength:
+		b.warn("Node name %q will not be discoverable "+
+			"via DNS due to it being too long. Valid lengths are between "+
+			"1 and 63 bytes.", rt.NodeName)
 	}
+
 	if ipaddr.IsAny(rt.AdvertiseAddrLAN.IP) {
 		return fmt.Errorf("Advertise address cannot be 0.0.0.0, :: or [::]")
 	}
