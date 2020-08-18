@@ -12,7 +12,6 @@ export default [
     content: [
       {
         category: 'vs',
-        name: 'Consul vs. Other Software',
         content: [
           'zookeeper',
           'chef-puppet',

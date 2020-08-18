@@ -77,6 +77,18 @@
 /docs/connect/gateways/wan-federation-via-mesh-gateways             /docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways            301!
 /docs/faq                                            /docs/troubleshoot/faq                            301!
 /docs/common-errors                                  /docs/troubleshoot/common-errors                  301!
+/intro                                               /docs/intro                                       301!
+/intro/vs                                            /docs/intro/vs                                    301!
+/intro/vs/zookeeper                                  /docs/intro/vs/zookeeper                          301!
+/intro/vs/chef-puppet                                /docs/intro/vs/chef-puppet                        301!
+/intro/vs/nagios-sensu                               /docs/intro/vs/nagios-sensu                       301!
+/intro/vs/skydns                                     /docs/intro/vs/skydns                             301!
+/intro/vs/smartstack                                 /docs/intro/vs/smartstack                         301!
+/intro/vs/serf                                       /docs/intro/vs/serf                               301!
+/intro/vs/eureka                                     /docs/intro/vs/eureka                             301!
+/intro/vs/istio                                      /docs/intro/vs/istio                              301!
+/intro/vs/proxies                                    /docs/intro/vs/proxies                            301!
+/intro/vs/custom                                     /docs/intro/vs/custom                             301!
 
 # CLI redirects
 /docs/commands                                       /commands                                         301!
