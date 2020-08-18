@@ -171,6 +171,46 @@ func testServiceNode(t *testing.T) *ServiceNode {
 	}
 }
 
+func TestRegisterRequest_UnmarshalJSON_WithConnectNilDoesNotPanic(t *testing.T) {
+	in := `
+{
+    "ID": "",
+    "Node": "k8s-sync",
+    "Address": "127.0.0.1",
+    "TaggedAddresses": null,
+    "NodeMeta": {
+        "external-source": "kubernetes"
+    },
+    "Datacenter": "",
+    "Service": {
+        "Kind": "",
+        "ID": "test-service-f8fd5f0f4e6c",
+        "Service": "test-service",
+        "Tags": [
+            "k8s"
+        ],
+        "Meta": {
+            "external-k8s-ns": "",
+            "external-source": "kubernetes",
+            "port-stats": "18080"
+        },
+        "Port": 8080,
+        "Address": "192.0.2.10",
+        "EnableTagOverride": false,
+        "CreateIndex": 0,
+        "ModifyIndex": 0,
+        "Connect": null
+    },
+    "Check": null,
+    "SkipNodeUpdate": true
+}
+`
+
+	var req RegisterRequest
+	err := json.NewDecoder(strings.NewReader(in)).Decode(&req)
+	require.NoError(t, err)
+}
+
 func TestNode_IsSame(t *testing.T) {
 	id := types.NodeID("e62f3b31-9284-4e26-ab14-2a59dea85b55")
 	node := "mynode1"
