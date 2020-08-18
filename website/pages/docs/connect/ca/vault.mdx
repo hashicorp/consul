@@ -110,3 +110,73 @@ automatic rotation. Therefore, Consul requires write access to this path.
 If either path does not exist, then Consul will attempt to mount and
 initialize it. This requires additional privileges by the Vault token in use.
 If the paths already exist, Consul will use them as configured.
+
+## Vault ACL Policies
+
+### Vault Managed PKI Paths
+
+The following Vault policy allows Consul to use pre-existing PKI paths in Vault.
+Consul is granted read-only access to the PKI mount points and the Root CA, but is
+granted full control of the Intermediate or Leaf CA for Connect clients.
+
+In this example the `RootPKIPath` is `connect_root` and the `IntermediatePKIPath`
+is `connect_inter`. These values should be updated for your environment.
+
+```hcl
+# Existing PKI Mounts
+path "/sys/mounts" {
+  capabilities = [ "read" ]
+}
+
+path "/sys/mounts/connect_root" {
+  capabilities = [ "read" ]
+}
+
+path "/sys/mounts/connect_inter" {
+  capabilities = [ "read" ]
+}
+
+path "/connect_root/" {
+  capabilities = [ "read" ]
+}
+
+path "/connect_root/root/sign-intermediate" {
+  capabilities = [ "update" ]
+}
+
+path "/connect_inter/*" {
+  capabilities = [ "create", "read", "update", "delete", "list" ]
+}
+```
+
+### Consul Managed PKI Paths
+
+The following Vault policy allows Consul to create and manage the PKI paths in Vault.
+Consul is granted the ability to create the PKI mount points and given full
+control of the Root and Intermediate or Leaf CA for Connect clients.
+
+In this example the `RootPKIPath` is `connect_root` and the `IntermediatePKIPath`
+is `connect_inter`. These values should be updated for your environment.
+
+```hcl
+# Consul Managed PKI Mounts
+path "/sys/mounts" {
+  capabilities = [ "read" ]
+}
+
+path "/sys/mounts/connect_root" {
+  capabilities = [ "create", "read", "update", "delete", "list" ]
+}
+
+path "/sys/mounts/connect_inter" {
+  capabilities = [ "create", "read", "update", "delete", "list" ]
+}
+
+path "/connect_root/*" {
+  capabilities = [ "create", "read", "update", "delete", "list" ]
+}
+
+path "/connect_inter/*" {
+  capabilities = [ "create", "read", "update", "delete", "list" ]
+}
+```
