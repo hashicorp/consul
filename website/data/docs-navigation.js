@@ -159,7 +159,12 @@ export default [
       },
       {
         category: 'gateways',
-        content: [ 'mesh-gateway', 'wan-federation-via-mesh-gateways', 'ingress-gateway', 'terminating-gateway'],
+        content: [
+          'mesh-gateway',
+          'wan-federation-via-mesh-gateways',
+          'ingress-gateway',
+          'terminating-gateway',
+        ],
       },
       {
         category: 'registration',
@@ -180,10 +185,8 @@ export default [
     category: 'k8s',
     content: [
       {
-        name: 'Installation',
         category: 'installation',
         content: [
-          'overview',
           {
             category: 'platforms',
             name: 'Platform Guides',
@@ -222,8 +225,7 @@ export default [
           },
           {
             category: 'multi-cluster',
-            name: 'Multi-Cluster Federation',
-            content: ['overview', 'kubernetes', 'vms-and-kubernetes'],
+            content: ['kubernetes', 'vms-and-kubernetes'],
           },
         ],
       },
@@ -234,8 +236,11 @@ export default [
       },
       {
         category: 'connect',
-        name: 'Connect Service Mesh',
-        content: ['overview', 'ingress-gateways', 'terminating-gateways', 'connect-ca-provider'],
+        content: [
+          'ingress-gateways',
+          'terminating-gateways',
+          'connect-ca-provider',
+        ],
       },
       'service-sync',
       'dns',
