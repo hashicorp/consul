@@ -8,10 +8,10 @@ module('Integration | Helper | format-time', function(hooks) {
 
   // Replace this with your real tests.
   test('it renders', async function(assert) {
-    this.set('inputValue', '1234');
+    this.set('inputValue', '7200000');
 
     await render(hbs`{{format-time inputValue}}`);
 
-    assert.equal(this.element.textContent.trim(), '1234');
+    assert.equal(this.element.textContent.trim(), '2h');
   });
 });

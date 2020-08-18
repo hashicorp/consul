@@ -19,7 +19,7 @@
           Delay
         </Tooltip>
       </dt>
-      <dd>{{format-time item.LockDelay}}</dd>
+      <dd data-test-session-delay>{{format-time item.LockDelay}}</dd>
     </dl>
     <dl class="ttl">
       <dt>
@@ -27,7 +27,7 @@
           TTL
         </Tooltip>
       </dt>
-      <dd>{{item.TTL}}</dd>
+      <dd data-test-session-ttl={{item.TTL}}>{{item.TTL}}</dd>
     </dl>
     <dl class="behavior">
       <dt>
@@ -53,7 +53,13 @@
   <BlockSlot @name="actions">
     <ConfirmationDialog @message="Are you sure you want to invalidate this session?">
       <BlockSlot @name="action" as |confirm|>
-          <button data-test-delete type="button" class="type-delete" onclick={{queue (action confirm 'invalidateSession' item) (refresh-route)}}>Invalidate</button>
+          <button data-test-delete
+            type="button"
+            class="type-delete"
+            onclick={{queue (action confirm onInvalidate item) (refresh-route)}}
+          >
+            Invalidate
+          </button>
       </BlockSlot>
       <BlockSlot @name="dialog" as |execute cancel message|>
           <p>
