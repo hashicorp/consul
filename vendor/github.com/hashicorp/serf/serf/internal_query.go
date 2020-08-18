@@ -64,6 +64,9 @@ type nodeKeyResponse struct {
 
 	// Keys is used in listing queries to relay a list of installed keys
 	Keys []string
+
+	// PrimaryKey is used in listing queries to relay the primary key
+	PrimaryKey string
 }
 
 // newSerfQueries is used to create a new serfQueries. We return an event
@@ -346,7 +349,7 @@ SEND:
 func (s *serfQueries) handleListKeys(q *Query) {
 	response := nodeKeyResponse{Result: false}
 	keyring := s.serf.config.MemberlistConfig.Keyring
-
+	var primaryKeyBytes []byte
 	if !s.serf.EncryptionEnabled() {
 		response.Message = "Keyring is empty (encryption not enabled)"
 		s.logger.Printf("[ERR] serf: Keyring is empty (encryption not enabled)")
@@ -360,6 +363,9 @@ func (s *serfQueries) handleListKeys(q *Query) {
 		key := base64.StdEncoding.EncodeToString(keyBytes)
 		response.Keys = append(response.Keys, key)
 	}
+	primaryKeyBytes = keyring.GetPrimaryKey()
+	response.PrimaryKey = base64.StdEncoding.EncodeToString(primaryKeyBytes)
+
 	response.Result = true
 
 SEND:

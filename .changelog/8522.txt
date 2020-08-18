@@ -1,0 +1,7 @@
+```release-note:improvement
+serf: update to `v0.9.4` which supports primary keys in the ListKeys operation.
+```
+
+```release-note:improvement
+api: `GET v1/operator/keyring` also lists primary keys.
+```
