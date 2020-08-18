@@ -45,6 +45,7 @@ func (e *Event) Fire(params *UserEvent, q *WriteOptions) (string, *WriteMeta, er
 	if params.Payload != nil {
 		r.body = bytes.NewReader(params.Payload)
 	}
+	r.header.Set("Content-Type", "application/octet-stream")
 
 	rtt, resp, err := requireOK(e.c.doRequest(r))
 	if err != nil {

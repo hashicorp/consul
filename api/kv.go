@@ -205,6 +205,7 @@ func (k *KV) put(key string, params map[string]string, body []byte, q *WriteOpti
 		r.params.Set(param, val)
 	}
 	r.body = bytes.NewReader(body)
+	r.header.Set("Content-Type", "application/octet-stream")
 	rtt, resp, err := requireOK(k.c.doRequest(r))
 	if err != nil {
 		return false, nil, err
