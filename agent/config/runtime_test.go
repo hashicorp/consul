@@ -423,6 +423,7 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 				rt.EnableRemoteScriptChecks = true
 				rt.DataDir = dataDir
 			},
+			warns: []string{remoteScriptCheckSecurityWarning},
 		},
 		{
 			desc: "-encrypt",
@@ -4280,27 +4281,16 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 					t.Fatal("NewBuilder", err)
 				}
 
-				// mock the hostname function unless a mock is provided
-				b.hostname = tt.hostname
-				if b.hostname == nil {
-					b.hostname = func() (string, error) { return "nodex", nil }
+				patchBuilderShims(b)
+				if tt.hostname != nil {
+					b.hostname = tt.hostname
 				}
-
-				// mock the ip address detection
-				privatev4 := tt.privatev4
-				if privatev4 == nil {
-					privatev4 = func() ([]*net.IPAddr, error) {
-						return []*net.IPAddr{ipAddr("10.0.0.1")}, nil
-					}
+				if tt.privatev4 != nil {
+					b.getPrivateIPv4 = tt.privatev4
 				}
-				publicv6 := tt.publicv6
-				if publicv6 == nil {
-					publicv6 = func() ([]*net.IPAddr, error) {
-						return []*net.IPAddr{ipAddr("dead:beef::1")}, nil
-					}
+				if tt.publicv6 != nil {
+					b.getPublicIPv6 = tt.publicv6
 				}
-				b.getPrivateIPv4 = privatev4
-				b.getPublicIPv6 = publicv6
 
 				// read the source fragements
 				for i, data := range srcs {
@@ -4332,12 +4322,10 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				if err != nil && tt.err != "" && !strings.Contains(err.Error(), tt.err) {
 					t.Fatalf("error %q does not contain %q", err.Error(), tt.err)
 				}
-				require.Equal(t, tt.warns, b.Warnings, "warnings")
-
-				// stop if we expected an error
 				if tt.err != "" {
 					return
 				}
+				require.Equal(t, tt.warns, b.Warnings, "warnings")
 
 				// build a default configuration, then patch the fields we expect to change
 				// and compare it with the generated configuration. Since the expected

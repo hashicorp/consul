@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -635,26 +636,6 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	if err := a.tlsConfigurator.Update(a.config.ToTLSUtilConfig()); err != nil {
 		return fmt.Errorf("Failed to load TLS configurations after applying auto-config settings: %w", err)
-	}
-
-	if err := a.CheckSecurity(c); err != nil {
-		a.logger.Error("Security error while parsing configuration: %#v", err)
-		return err
-	}
-
-	// Warn if the node name is incompatible with DNS
-	if InvalidDnsRe.MatchString(a.config.NodeName) {
-		a.logger.Warn("Node name will not be discoverable "+
-			"via DNS due to invalid characters. Valid characters include "+
-			"all alpha-numerics and dashes.",
-			"node_name", a.config.NodeName,
-		)
-	} else if len(a.config.NodeName) > MaxDNSLabelLength {
-		a.logger.Warn("Node name will not be discoverable "+
-			"via DNS due to it being too long. Valid lengths are between "+
-			"1 and 63 bytes.",
-			"node_name", a.config.NodeName,
-		)
 	}
 
 	// load the tokens - this requires the logger to be setup
@@ -2484,13 +2465,13 @@ func (a *Agent) validateService(service *structs.NodeService, chkTypes []*struct
 	}
 
 	// Warn if the service name is incompatible with DNS
-	if InvalidDnsRe.MatchString(service.Service) {
+	if dns.InvalidNameRe.MatchString(service.Service) {
 		a.logger.Warn("Service name will not be discoverable "+
 			"via DNS due to invalid characters. Valid characters include "+
 			"all alpha-numerics and dashes.",
 			"service", service.Service,
 		)
-	} else if len(service.Service) > MaxDNSLabelLength {
+	} else if len(service.Service) > dns.MaxLabelLength {
 		a.logger.Warn("Service name will not be discoverable "+
 			"via DNS due to it being too long. Valid lengths are between "+
 			"1 and 63 bytes.",
@@ -2500,13 +2481,13 @@ func (a *Agent) validateService(service *structs.NodeService, chkTypes []*struct
 
 	// Warn if any tags are incompatible with DNS
 	for _, tag := range service.Tags {
-		if InvalidDnsRe.MatchString(tag) {
+		if dns.InvalidNameRe.MatchString(tag) {
 			a.logger.Debug("Service tag will not be discoverable "+
 				"via DNS due to invalid characters. Valid characters include "+
 				"all alpha-numerics and dashes.",
 				"tag", tag,
 			)
-		} else if len(tag) > MaxDNSLabelLength {
+		} else if len(tag) > dns.MaxLabelLength {
 			a.logger.Debug("Service tag will not be discoverable "+
 				"via DNS due to it being too long. Valid lengths are between "+
 				"1 and 63 bytes.",
@@ -3714,21 +3695,6 @@ func (a *Agent) getPersistedTokens() (*persistedTokens, error) {
 	return persistedTokens, nil
 }
 
-// CheckSecurity Performs security checks in Consul Configuration
-// It might return an error if configuration is considered too dangerous
-func (a *Agent) CheckSecurity(conf *config.RuntimeConfig) error {
-	if conf.EnableRemoteScriptChecks {
-		if !conf.ACLsEnabled {
-			if len(conf.AllowWriteHTTPFrom) == 0 {
-				err := fmt.Errorf("using enable-script-checks without ACLs and without allow_write_http_from is DANGEROUS, use enable-local-script-checks instead, see https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations/")
-				a.logger.Error("[SECURITY] issue", "error", err)
-				// TODO: return the error in future Consul versions
-			}
-		}
-	}
-	return nil
-}
-
 func (a *Agent) loadTokens(conf *config.RuntimeConfig) error {
 	persistedTokens, persistenceErr := a.getPersistedTokens()
 
@@ -3926,11 +3892,6 @@ func (a *Agent) ReloadConfig() error {
 // the configuration using CLI flags and on disk config, this just takes a
 // runtime configuration and applies it.
 func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
-	if err := a.CheckSecurity(newCfg); err != nil {
-		a.logger.Error("Security error while reloading configuration: %#v", err)
-		return err
-	}
-
 	// Change the log level and update it
 	if logging.ValidateLogLevel(newCfg.LogLevel) {
 		a.logger.SetLevel(logging.LevelFromString(newCfg.LogLevel))

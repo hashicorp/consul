@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -19,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
+	"github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
@@ -1117,9 +1119,20 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 			return fmt.Errorf("data_dir %q is not a directory", rt.DataDir)
 		}
 	}
-	if rt.NodeName == "" {
+
+	switch {
+	case rt.NodeName == "":
 		return fmt.Errorf("node_name cannot be empty")
+	case dns.InvalidNameRe.MatchString(rt.NodeName):
+		b.warn("Node name %q will not be discoverable "+
+			"via DNS due to invalid characters. Valid characters include "+
+			"all alpha-numerics and dashes.", rt.NodeName)
+	case len(rt.NodeName) > dns.MaxLabelLength:
+		b.warn("Node name %q will not be discoverable "+
+			"via DNS due to it being too long. Valid lengths are between "+
+			"1 and 63 bytes.", rt.NodeName)
 	}
+
 	if ipaddr.IsAny(rt.AdvertiseAddrLAN.IP) {
 		return fmt.Errorf("Advertise address cannot be 0.0.0.0, :: or [::]")
 	}
@@ -1336,6 +1349,11 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 
 	if err := b.validateAutoConfig(rt); err != nil {
 		return err
+	}
+
+	if err := validateRemoteScriptsChecks(rt); err != nil {
+		// TODO: make this an error in a future version
+		b.warn(err.Error())
 	}
 
 	return nil
@@ -2178,4 +2196,16 @@ func UIPathBuilder(UIContentString string) string {
 
 	}
 	return "/ui/"
+}
+
+const remoteScriptCheckSecurityWarning = "using enable-script-checks without ACLs and without allow_write_http_from is DANGEROUS, use enable-local-script-checks instead, see https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations/"
+
+// validateRemoteScriptsChecks returns an error if EnableRemoteScriptChecks is
+// enabled without other security features, which mitigate the risk of executing
+// remote scripts.
+func validateRemoteScriptsChecks(conf RuntimeConfig) error {
+	if conf.EnableRemoteScriptChecks && !conf.ACLsEnabled && len(conf.AllowWriteHTTPFrom) == 0 {
+		return errors.New(remoteScriptCheckSecurityWarning)
+	}
+	return nil
 }
