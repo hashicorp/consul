@@ -153,10 +153,8 @@ func TestUiNodeInfo(t *testing.T) {
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/internal/ui/node/%s", a.Config.NodeName), nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.UINodeInfo(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	require.NoError(t, err)
+	require.Equal(t, resp.Code, http.StatusOK)
 	assertIndex(t, resp)
 
 	// Should be 1 node for the server
