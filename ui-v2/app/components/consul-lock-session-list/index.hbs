@@ -50,5 +50,19 @@
       </dd>
     </dl>
   </BlockSlot>
+  <BlockSlot @name="actions">
+    <ConfirmationDialog @message="Are you sure you want to invalidate this session?">
+      <BlockSlot @name="action" as |confirm|>
+          <button data-test-delete type="button" class="type-delete" onclick={{queue (action confirm 'invalidateSession' item) (refresh-route)}}>Invalidate</button>
+      </BlockSlot>
+      <BlockSlot @name="dialog" as |execute cancel message|>
+          <p>
+              {{message}}
+          </p>
+          <button type="button" class="type-delete" {{action execute}}>Confirm Invalidate</button>
+          <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
+      </BlockSlot>
+    </ConfirmationDialog>
+  </BlockSlot>
 </ListCollection>
 {{/if}}
