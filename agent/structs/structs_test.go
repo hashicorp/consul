@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/stretchr/testify/assert"
@@ -171,6 +172,46 @@ func testServiceNode(t *testing.T) *ServiceNode {
 			Native: true,
 		},
 	}
+}
+
+func TestRegisterRequest_UnmarshalJSON_WithConnectNilDoesNotPanic(t *testing.T) {
+	in := `
+{
+    "ID": "",
+    "Node": "k8s-sync",
+    "Address": "127.0.0.1",
+    "TaggedAddresses": null,
+    "NodeMeta": {
+        "external-source": "kubernetes"
+    },
+    "Datacenter": "",
+    "Service": {
+        "Kind": "",
+        "ID": "test-service-f8fd5f0f4e6c",
+        "Service": "test-service",
+        "Tags": [
+            "k8s"
+        ],
+        "Meta": {
+            "external-k8s-ns": "",
+            "external-source": "kubernetes",
+            "port-stats": "18080"
+        },
+        "Port": 8080,
+        "Address": "192.0.2.10",
+        "EnableTagOverride": false,
+        "CreateIndex": 0,
+        "ModifyIndex": 0,
+        "Connect": null
+    },
+    "Check": null,
+    "SkipNodeUpdate": true
+}
+`
+
+	var req RegisterRequest
+	err := lib.DecodeJSON(strings.NewReader(in), &req)
+	require.NoError(t, err)
 }
 
 func TestNode_IsSame(t *testing.T) {
