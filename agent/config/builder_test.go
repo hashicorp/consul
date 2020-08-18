@@ -3,8 +3,10 @@ package config
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -119,5 +121,64 @@ func setupConfigFiles(t *testing.T) []string {
 		filepath.Join(path, "b.json"),
 		filepath.Join(path, "c.yaml"),
 		subpath,
+	}
+}
+
+func TestBuilder_BuildAndValidate_NodeName(t *testing.T) {
+	type testCase struct {
+		name         string
+		nodeName     string
+		expectedWarn string
+	}
+
+	fn := func(t *testing.T, tc testCase) {
+		b, err := NewBuilder(BuilderOpts{
+			Config: Config{
+				NodeName: pString(tc.nodeName),
+				DataDir:  pString("dir"),
+			},
+		})
+		patchBuilderShims(b)
+		require.NoError(t, err)
+		_, err = b.BuildAndValidate()
+		require.NoError(t, err)
+		require.Len(t, b.Warnings, 1)
+		require.Contains(t, b.Warnings[0], tc.expectedWarn)
+	}
+
+	var testCases = []testCase{
+		{
+			name:         "invalid character - unicode",
+			nodeName:     "🐼",
+			expectedWarn: `Node name "🐼" will not be discoverable via DNS due to invalid characters`,
+		},
+		{
+			name:         "invalid character - slash",
+			nodeName:     "thing/other/ok",
+			expectedWarn: `Node name "thing/other/ok" will not be discoverable via DNS due to invalid characters`,
+		},
+		{
+			name:         "too long",
+			nodeName:     strings.Repeat("a", 66),
+			expectedWarn: "due to it being too long.",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			fn(t, tc)
+		})
+	}
+}
+
+func patchBuilderShims(b *Builder) {
+	b.hostname = func() (string, error) {
+		return "thehostname", nil
+	}
+	b.getPrivateIPv4 = func() ([]*net.IPAddr, error) {
+		return []*net.IPAddr{ipAddr("10.0.0.1")}, nil
+	}
+	b.getPublicIPv6 = func() ([]*net.IPAddr, error) {
+		return []*net.IPAddr{ipAddr("dead:beef::1")}, nil
 	}
 }
