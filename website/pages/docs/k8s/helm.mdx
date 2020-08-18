@@ -194,11 +194,11 @@ and consider if they're appropriate for your deployment.
       # Resources are defined as a YAML map:
       resources:
         requests:
-          memory: "25Mi"
-          cpu: "20m"
+          memory: '25Mi'
+          cpu: '20m'
         limits:
-          memory: "50Mi"
-          cpu: "20m"
+          memory: '50Mi'
+          cpu: '20m'
       ```
 
 - `server` ((#v-server)) - Values that configure running a Consul server within Kubernetes.
@@ -419,7 +419,7 @@ and consider if they're appropriate for your deployment.
 
   - `grpc` ((#v-client-grpc)) (`boolean: true`) - If true, agents will enable their GRPC listener on
     port 8502 and expose it to the host. This will use slightly more resources, but is
-    required for [Connect](/docs/k8s/connect/overview).
+    required for [Connect](/docs/k8s/connect).
 
   - `exposeGossipPorts` ((#v-client-exposegossipports)) (`boolean: false`) - If true, the Helm chart
     will expose the clients' gossip ports as hostPorts. This is only necessary if pod IPs in the k8s cluster are not directly routable and the Consul servers are outside of the k8s cluster.
@@ -662,7 +662,7 @@ and consider if they're appropriate for your deployment.
     - `additionalSpec` ((#v-ui-service-additionalspec)) (`string: null`) - Additional Service spec
       values. This should be a multi-line string mapping directly to a Kubernetes `Service` object.
 
-- `connectInject` ((#v-connectinject)) - Values that configure running the [Connect injector](/docs/k8s/connect/overview).
+- `connectInject` ((#v-connectinject)) - Values that configure running the [Connect injector](/docs/k8s/connect).
 
   - `enabled` ((#v-connectinject-enabled)) (`boolean: false`) - If true, the chart will install all the
     resources necessary for the Connect injector process to run. This will enable the injector but will
@@ -672,7 +672,7 @@ and consider if they're appropriate for your deployment.
     (including any tag) for the [consul-k8s](https://github.com/hashicorp/consul-k8s) binary.
 
   - `default` ((#v-connectinject-default)) (`boolean: false`) - If true, the injector will inject the
-    Connect sidecar into all pods by default. Otherwise, pods must specify the. [injection annotation](/docs/k8s/connect/overview#consul-hashicorp-com-connect-inject)
+    Connect sidecar into all pods by default. Otherwise, pods must specify the. [injection annotation](/docs/k8s/connect#consul-hashicorp-com-connect-inject)
     to opt-in to Connect injection. If this is true, pods can use the same annotation
     to explicitly opt-out of injection.
 
@@ -773,7 +773,7 @@ and consider if they're appropriate for your deployment.
       configuration feature. Pods that have a Connect proxy injected will have their service automatically registered in this central configuration.
 
     - `defaultProtocol` ((#v-connectinject-centralconfig-defaultprotocol)) (`string: null`) - If
-      defined, this value will be used as the default protocol type for all services registered with the central configuration. This can be overridden by using the [protocol annotation](/docs/k8s/connect/overview#consul-hashicorp-com-connect-service-protocol) directly on any pod spec.
+      defined, this value will be used as the default protocol type for all services registered with the central configuration. This can be overridden by using the [protocol annotation](/docs/k8s/connect#consul-hashicorp-com-connect-service-protocol) directly on any pod spec.
 
     - `proxyDefaults` ((#v-connectinject-centralconfig-proxydefaults)) (`string: "{}"`) - This value is
       a raw json string that will be applied to all Connect proxy sidecar pods. It can include any valid configuration for the configured proxy.
@@ -797,11 +797,11 @@ and consider if they're appropriate for your deployment.
       # Resources are defined as a YAML map:
       resources:
         requests:
-          memory: "25Mi"
-          cpu: "20m"
+          memory: '25Mi'
+          cpu: '20m'
         limits:
-          memory: "50Mi"
-          cpu: "20m"
+          memory: '50Mi'
+          cpu: '20m'
       ```
 
   - `sidecarProxy` ((#v-connectinject-sidecarproxy)) - Configure the sidecar proxy that is injected into each Connect pod.
@@ -811,17 +811,17 @@ and consider if they're appropriate for your deployment.
       [ResourceRequirements](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) object.
       By default, each key is set to `null`, which results in no resource limits.
 
-      These defaults can be overridden on a per-pod basis via [annotation](/docs/k8s/connect/overview#consul-hashicorp-com-sidecar-proxy).
+      These defaults can be overridden on a per-pod basis via [annotation](/docs/k8s/connect#consul-hashicorp-com-sidecar-proxy).
 
       ```yaml
       # Recommended defaults
       resources:
         requests:
-          memory: "100Mi"
-          cpu: "100m"
+          memory: '100Mi'
+          cpu: '100m'
         limits:
-          memory: "100Mi"
-          cpu: "100m"
+          memory: '100Mi'
+          cpu: '100m'
       ```
 
 - `meshGateway` ((#v-meshgateway)) - Configure mesh gateways.
@@ -933,11 +933,11 @@ and consider if they're appropriate for your deployment.
       # Resources are defined as a YAML map:
       resources:
         requests:
-          memory: "25Mi"
-          cpu: "50m"
+          memory: '25Mi'
+          cpu: '50m'
         limits:
-          memory: "150Mi"
-          cpu: "50m"
+          memory: '150Mi'
+          cpu: '50m'
       ```
 
   - `affinity` ((#v-meshgateway-affinity)) (`string`) - Affinity setting for gateway pods. See values file for default.
@@ -989,11 +989,11 @@ and consider if they're appropriate for your deployment.
         # Resources are defined as a YAML map:
         resources:
           requests:
-            memory: "25Mi"
-            cpu: "50m"
+            memory: '25Mi'
+            cpu: '50m'
           limits:
-            memory: "150Mi"
-            cpu: "50m"
+            memory: '150Mi'
+            cpu: '50m'
         ```
 
     - `affinity` ((#v-ingressgateways-defaults-affinity)) (`string`) - Affinity setting for gateway pods. See values file for default.
@@ -1049,11 +1049,11 @@ and consider if they're appropriate for your deployment.
         # Resources are defined as a YAML map:
         resources:
           requests:
-            memory: "25Mi"
-            cpu: "50m"
+            memory: '25Mi'
+            cpu: '50m'
           limits:
-            memory: "150Mi"
-            cpu: "50m"
+            memory: '150Mi'
+            cpu: '50m'
         ```
 
     - `affinity` ((#v-terminatinggateways-defaults-affinity)) (`string`) - Affinity setting for gateway pods. See values file for default.

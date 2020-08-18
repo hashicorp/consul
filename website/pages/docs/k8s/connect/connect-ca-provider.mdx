@@ -88,20 +88,20 @@ global:
   name: consul
 server:
   extraVolumes:
-     - type: secret
-       name: vault-config
-       load: true
-       items:
-       - key: config
-         path: vault-config.json
-     - type: secret
-       name: vault-ca
-       load: false
+    - type: secret
+      name: vault-config
+      load: true
+      items:
+        - key: config
+          path: vault-config.json
+    - type: secret
+      name: vault-ca
+      load: false
 connectInject:
   enabled: true
 ```
 
-Finally, [install](/docs/k8s/installation/overview#installing-consul) the Helm chart using the above config file:
+Finally, [install](/docs/k8s/installation#installing-consul) the Helm chart using the above config file:
 
 ```shell-session
 $ helm install consul -f config.yaml hashicorp/consul
