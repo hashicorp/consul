@@ -640,6 +640,11 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     roles. Setting this configuration will will enable ACL token replication and
     allow for the creation of both [local tokens](/api/acl/tokens#local) and
     [auth methods](/docs/acl/auth-methods) in connected secondary datacenters.
+    
+    ~> **Warning:** When enabling ACL token replication on the secondary datacenter, 
+    global tokens already present in the secondary datacenter will be lost. For
+    production environments, consider configuring ACL replication in your initial
+    datacenter bootstrapping process.
 
   - `enable_token_persistence` ((#acl_enable_token_persistence)) - Either
     `true` or `false`. When `true` tokens set using the API will be persisted to
@@ -682,6 +687,11 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     - `replication` ((#acl_tokens_replication)) - The ACL token used to
       authorize secondary datacenters with the primary datacenter for replication
       operations. This token is required for servers outside the [`primary_datacenter`](#primary_datacenter) when ACLs are enabled. This token may be provided later using the [agent token API](/api/agent#update-acl-tokens) on each server. This token must have at least "read" permissions on ACL data but if ACL token replication is enabled then it must have "write" permissions. This also enables Connect replication, for which the token will require both operator "write" and intention "read" permissions for replicating CA and Intention data.
+      
+      ~> **Warning:** When enabling ACL token replication on the secondary datacenter, 
+      policies and roles already present in the secondary datacenter will be lost. For
+      production environments, consider configuring ACL replication in your initial
+      datacenter bootstrapping process.
 
     - `managed_service_provider` ((#acl_tokens_managed_service_provider)) <EnterpriseAlert inline /> - An
       array of ACL tokens used by Consul managed service providers for cluster operations.
@@ -1413,6 +1423,11 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   the replication token via [`acl_replication_token`](#acl_replication_token). Instead, enable ACL replication
   and then introduce the token using the [agent token API](/api/agent#update-acl-tokens) on each server.
   See [`acl_replication_token`](#acl_replication_token) for more details.
+  
+  ~> **Warning:** When enabling ACL token replication on the secondary datacenter, 
+  policies and roles already present in the secondary datacenter will be lost. For
+  production environments, consider configuring ACL replication in your initial
+  datacenter bootstrapping process.
 
 - `enable_agent_tls_for_checks` When set, uses a subset of the agent's TLS configuration (`key_file`,
   `cert_file`, `ca_file`, `ca_path`, and `server_name`) to set up the client for HTTP or gRPC health checks. This allows services requiring 2-way TLS to be checked using the agent's credentials. This was added in Consul 1.0.1 and defaults to false.
