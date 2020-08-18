@@ -851,7 +851,7 @@ func TestAPI_Headers(t *testing.T) {
 	kv := c.KV()
 	_, err := kv.Put(&KVPair{Key: "test-headers", Value: []byte("foo")}, nil)
 	require.NoError(t, err)
-	require.Equal(t, "application/json", request.Header.Get("Content-Type"))
+	require.Equal(t, "application/octet-stream", request.Header.Get("Content-Type"))
 
 	_, _, err = kv.Get("test-headers", nil)
 	require.NoError(t, err)
@@ -863,6 +863,22 @@ func TestAPI_Headers(t *testing.T) {
 
 	err = c.Snapshot().Restore(nil, strings.NewReader("foo"))
 	require.Error(t, err)
+	require.Equal(t, "application/octet-stream", request.Header.Get("Content-Type"))
+
+	_, err = c.ACL().RulesTranslate(strings.NewReader(`
+	agent "" {
+	  policy = "read"
+	}
+	`))
+	// ACL support is disabled
+	require.Error(t, err)
+	require.Equal(t, "text/plain", request.Header.Get("Content-Type"))
+
+	_, _, err = c.Event().Fire(&UserEvent{
+		Name:    "test",
+		Payload: []byte("foo"),
+	}, nil)
+	require.NoError(t, err)
 	require.Equal(t, "application/octet-stream", request.Header.Get("Content-Type"))
 }
 
