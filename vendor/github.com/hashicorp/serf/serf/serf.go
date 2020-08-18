@@ -1102,8 +1102,21 @@ func (s *Serf) handleNodeLeaveIntent(leaveMsg *messageLeave) bool {
 		return false
 	}
 
-	// Always set the lamport time so that if we retransmit below it won't echo
-	// around forever!
+	// Always update the lamport time even when the status does not change
+	// (despite the variable naming implying otherwise).
+	//
+	// By updating this statusLTime here we ensure that the earlier conditional
+	// on "leaveMsg.LTime <= member.statusLTime" will prevent an infinite
+	// rebroadcast when seeing two successive leave message for the same
+	// member. Without this fix a leave message that arrives after a member is
+	// already marked as leaving/left will cause it to be rebroadcast without
+	// marking it locally as witnessed. If more than one serf instance in the
+	// cluster experiences this series of events then they will rebroadcast
+	// each other's messages about the affected node indefinitely.
+	//
+	// This eventually leads to overflowing serf intent queues
+	// - https://github.com/hashicorp/consul/issues/8179
+	// - https://github.com/hashicorp/consul/issues/7960
 	member.statusLTime = leaveMsg.LTime
 
 	// State transition depends on current state

@@ -2349,13 +2349,14 @@ func (r *KeyringRequest) RequestDatacenter() string {
 // KeyringResponse is a unified key response and can be used for install,
 // remove, use, as well as listing key queries.
 type KeyringResponse struct {
-	WAN        bool
-	Datacenter string
-	Segment    string
-	Messages   map[string]string `json:",omitempty"`
-	Keys       map[string]int
-	NumNodes   int
-	Error      string `json:",omitempty"`
+	WAN         bool
+	Datacenter  string
+	Segment     string
+	Messages    map[string]string `json:",omitempty"`
+	Keys        map[string]int
+	PrimaryKeys map[string]int
+	NumNodes    int
+	Error       string `json:",omitempty"`
 }
 
 // KeyringResponses holds multiple responses to keyring queries. Each

@@ -414,10 +414,11 @@ func (m *Internal) executeKeyringOpWAN(args *structs.KeyringRequest) *structs.Ke
 
 func translateKeyResponseToKeyringResponse(keyresponse *serf.KeyResponse, datacenter string, err error) structs.KeyringResponse {
 	resp := structs.KeyringResponse{
-		Datacenter: datacenter,
-		Messages:   keyresponse.Messages,
-		Keys:       keyresponse.Keys,
-		NumNodes:   keyresponse.NumNodes,
+		Datacenter:  datacenter,
+		Messages:    keyresponse.Messages,
+		Keys:        keyresponse.Keys,
+		PrimaryKeys: keyresponse.PrimaryKeys,
+		NumNodes:    keyresponse.NumNodes,
 	}
 	if err != nil {
 		resp.Error = err.Error()
