@@ -3662,11 +3662,11 @@ func (a *Agent) ReloadConfig() error {
 // runtime configuration and applies it.
 func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	// Change the log level and update it
-	if logging.ValidateLogLevel(newCfg.LogLevel) {
-		a.logger.SetLevel(logging.LevelFromString(newCfg.LogLevel))
+	if logging.ValidateLogLevel(newCfg.Logging.LogLevel) {
+		a.logger.SetLevel(logging.LevelFromString(newCfg.Logging.LogLevel))
 	} else {
-		a.logger.Warn("Invalid log level in new configuration", "level", newCfg.LogLevel)
-		newCfg.LogLevel = a.config.LogLevel
+		a.logger.Warn("Invalid log level in new configuration", "level", newCfg.Logging.LogLevel)
+		newCfg.Logging.LogLevel = a.config.Logging.LogLevel
 	}
 
 	// Bulk update the services and checks

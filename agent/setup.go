@@ -51,23 +51,13 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 		return d, err
 	}
 
-	// TODO: use logging.Config in RuntimeConfig instead of separate fields
-	logConf := logging.Config{
-		LogLevel:          cfg.LogLevel,
-		LogJSON:           cfg.LogJSON,
-		Name:              logging.Agent,
-		EnableSyslog:      cfg.EnableSyslog,
-		SyslogFacility:    cfg.SyslogFacility,
-		LogFilePath:       cfg.LogFile,
-		LogRotateDuration: cfg.LogRotateDuration,
-		LogRotateBytes:    cfg.LogRotateBytes,
-		LogRotateMaxFiles: cfg.LogRotateMaxFiles,
-	}
+	logConf := cfg.Logging
+	logConf.Name = logging.Agent
 	d.Logger, err = logging.Setup(logConf, logOut)
 	if err != nil {
 		return d, err
 	}
-	grpclog.SetLoggerV2(logging.NewGRPCLogger(cfg.LogLevel, d.Logger))
+	grpclog.SetLoggerV2(logging.NewGRPCLogger(cfg.Logging.LogLevel, d.Logger))
 
 	for _, w := range warnings {
 		d.Logger.Warn(w)

@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-uuid"
@@ -724,13 +725,6 @@ type RuntimeConfig struct {
 	// flag: -enable-script-checks
 	EnableRemoteScriptChecks bool
 
-	// EnableSyslog is used to also tee all the logs over to syslog. Only supported
-	// on linux and OSX. Other platforms will generate an error.
-	//
-	// hcl: enable_syslog = (true|false)
-	// flag: -syslog
-	EnableSyslog bool
-
 	// EnableUI enables the statically-compiled assets for the Consul web UI and
 	// serves them at the default /ui/ endpoint automatically.
 	//
@@ -858,40 +852,8 @@ type RuntimeConfig struct {
 	// hcl: leave_on_terminate = (true|false)
 	LeaveOnTerm bool
 
-	// LogLevel is the level of the logs to write. Defaults to "INFO".
-	//
-	// hcl: log_level = string
-	LogLevel string
-
-	// LogJSON controls whether to output logs as structured JSON. Defaults to false.
-	//
-	// hcl: log_json = (true|false)
-	// flag: -log-json
-	LogJSON bool
-
-	// LogFile is the path to the file where the logs get written to. Defaults to empty string.
-	//
-	// hcl: log_file = string
-	// flags: -log-file string
-	LogFile string
-
-	// LogRotateDuration is the time configured to rotate logs based on time
-	//
-	// hcl: log_rotate_duration = string
-	// flags: -log-rotate-duration string
-	LogRotateDuration time.Duration
-
-	// LogRotateBytes is the time configured to rotate logs based on bytes written
-	//
-	// hcl: log_rotate_bytes = int
-	// flags: -log-rotate-bytes int
-	LogRotateBytes int
-
-	// LogRotateMaxFiles is the maximum number of log file archives to keep
-	//
-	// hcl: log_rotate_max_files = int
-	// flags: -log-rotate-max-files int
-	LogRotateMaxFiles int
+	// Logging configuration used to initialize agent logging.
+	Logging logging.Config
 
 	// MaxQueryTime is the maximum amount of time a blocking query can wait
 	// before Consul will force a response. Consul applies jitter to the wait
@@ -1421,12 +1383,6 @@ type RuntimeConfig struct {
 	// hcl: start_join_wan = []string
 	// flag: -join-wan string -join-wan string
 	StartJoinAddrsWAN []string
-
-	// SyslogFacility is used to control where the syslog messages go
-	// By default, goes to LOCAL0
-	//
-	// hcl: syslog_facility = string
-	SyslogFacility string
 
 	// TLSCipherSuites is used to specify the list of supported ciphersuites.
 	//
