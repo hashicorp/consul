@@ -51,7 +51,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	}
 
 	// TODO: use logging.Config in RuntimeConfig instead of separate fields
-	logConf := &logging.Config{
+	logConf := logging.Config{
 		LogLevel:          cfg.LogLevel,
 		LogJSON:           cfg.LogJSON,
 		Name:              logging.Agent,
@@ -62,7 +62,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 		LogRotateBytes:    cfg.LogRotateBytes,
 		LogRotateMaxFiles: cfg.LogRotateMaxFiles,
 	}
-	d.Logger, err = logging.Setup(logConf, []io.Writer{logOut})
+	d.Logger, err = logging.Setup(logConf, logOut)
 	if err != nil {
 		return d, err
 	}
