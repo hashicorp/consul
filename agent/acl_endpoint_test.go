@@ -828,12 +828,6 @@ func TestACL_HTTP(t *testing.T) {
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLTokenCRUD(resp, req)
 			require.NoError(t, err)
-		})
-		t.Run("Non existent Token", func(t *testing.T) {
-			req, _ := http.NewRequest("GET", "/v1/acl/rules/translate/"+idMap["token-cloned"]+"?token=root", nil)
-			resp := httptest.NewRecorder()
-			_, err := a.srv.ACLRulesTranslateLegacyToken(resp, req)
-			require.Equal(t, NotFoundError{Reason: "No such token exists"}, err)
 			delete(tokenMap, idMap["token-cloned"])
 			delete(idMap, "token-cloned")
 		})
@@ -1129,6 +1123,69 @@ func TestACL_HTTP(t *testing.T) {
 	})
 }
 
+func TestACL_NotFound_HTTP(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, TestACLConfig())
+	defer a.Shutdown()
+
+	type testCase struct {
+		name string
+		fn   func(http.ResponseWriter, *http.Request) (interface{}, error)
+		path string
+		id   string
+	}
+	tests := []testCase{
+		{"ACLPolicyReadName", a.srv.ACLPolicyReadByName, "v1/acl/policy/name/", "1de2bf1-0379-43bd-b26a-3f09483b7972?token=root"},
+		{"ACLRoleReadName", a.srv.ACLRoleReadByName, "v1/acl/role/name/", "1de2bf1-0379-43bd-b26a-3f09483b7972?token=root"},
+		{"ACLRulesTranslateLegacyToken", a.srv.ACLRulesTranslateLegacyToken, "/v1/acl/rules/translate/", "31de2bf1-0379-43bd-b26a-3f09483b7972?token=root"},
+		// {"ACLTokenGet", a.srv.ACLTokenGet, "v1/acl/token/", "1de2bf1-0379-43bd-b26a-3f09483b7972"},
+		{"ACLTokenSelf", a.srv.ACLTokenSelf, "v1/acl/token/self/", "?token=31de2bf1-0379-43bd-b26a-3f09483b7972"},
+	}
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req, _ := http.NewRequest("GET", tt.path+tt.id, nil)
+			resp := httptest.NewRecorder()
+			obj, err := tt.fn(resp, req)
+			require.Error(t, err)
+			require.Nil(t, obj)
+			require.IsType(t, NotFoundError{}, err)
+
+		})
+	}
+	t.Run("ACLPolicyReadID", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/acl/policy/?token=root", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.ACLPolicyReadByID(resp, req, "31de2bf1-0379-43bd-b26a-3f09483b7972")
+		require.Error(t, err)
+		require.Nil(t, obj)
+		require.IsType(t, NotFoundError{}, err)
+	})
+	t.Run("ACLRoleReadID", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "v1/acl/role/1de2bf1-0379-43bd-b26a-3f09483b7972?token=root", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.ACLRoleReadByID(resp, req, "31de2bf1-0379-43bd-b26a-3f09483b7972")
+		require.Error(t, err)
+		require.Nil(t, obj)
+		require.IsType(t, NotFoundError{}, err)
+	})
+	t.Run("ACLTokenGet", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "v1/acl/token/1de2bf1-0379-43bd-b26a-3f09483b7972?token=root", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.ACLTokenGet(resp, req, "31de2bf1-0379-43bd-b26a-3f09483b7972")
+		require.Error(t, err)
+		require.Nil(t, obj)
+		require.IsType(t, NotFoundError{}, err)
+	})
+	t.Run("ACLLogout", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "v1/acl/logout", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.ACLLogout(resp, req)
+		require.Error(t, err)
+		require.Nil(t, obj)
+		require.IsType(t, BadRequestError{}, err)
+	})
+}
 func TestACL_LoginProcedure_HTTP(t *testing.T) {
 	// This tests AuthMethods, BindingRules, Login, and Logout.
 	t.Parallel()
@@ -1625,7 +1682,7 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLTokenCRUD(resp, req)
 			require.Error(t, err)
-			require.True(t, acl.IsErrNotFound(err), err.Error())
+			require.Equal(t, NotFoundError{Reason: "No such token exists"}, err)
 		})
 	})
 }
@@ -1786,7 +1843,7 @@ func TestACLEndpoint_LoginLogout_jwt(t *testing.T) {
 				// make the request
 				_, err = a.srv.ACLTokenCRUD(resp, req)
 				require.Error(t, err)
-				require.Equal(t, acl.ErrNotFound, err)
+				require.Equal(t, NotFoundError{Reason: "No such token exists"}, err)
 			})
 		})
 	}
