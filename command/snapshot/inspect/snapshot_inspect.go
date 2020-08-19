@@ -116,17 +116,23 @@ func Enhance(file io.Reader) error {
 	//First step: make a map of typeStats, get typeStat will hold the stuff for
 	//each  message we get, stats will hold *all* of it
 	stats := make(map[structs.MessageType]typeStats)
+	var offset uint8
+	offset = 0
 	handler := func(header *snapshotHeader, msg structs.MessageType, dec *codec.Decoder) error {
-		//Lookup msg type and see what the string name is
 		name := structs.MessageType.String(msg)
-
-		//Do we already know about this type of msg?
-		if _, ok := stats[msg]; ok {
-			//increment sum
-			stats[msg(name[1])]++
+		var val interface{}
+		err := dec.Decode(&val)
+		if err != nil {
+			panic(err)
 		}
-		//Now we know it's not real so let's make it
-		s := stats[msg(string[1])]
+
+		uintmsg := uint8(msg)
+		size := uintmsg - offset
+		s := stats[msg(name[0])]
+		s.Count++
+		s.Sum += size
+		offset += size
+		stats[msg(string[0])] = s
 
 	}
 	fsm.ReadSnapshot(file, handler)
