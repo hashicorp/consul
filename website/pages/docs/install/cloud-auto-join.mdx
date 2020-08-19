@@ -126,7 +126,7 @@ When using tags the only permission needed is `Microsoft.Network/networkInterfac
 
 When using Virtual Machine Scale Sets the only role action needed is `Microsoft.Compute/virtualMachineScaleSets/*/read`.
 
-~> **Note:** If the Consul datacenter is hosted on Azure, Consul can use Managed Service Identities (MSI) to access Azure instead of an environment variable, shared client id and secret. MSI must be enabled on the VMs or Virtual Machine Scale Sets hosting Consul, It is the preferred configuration since MSI prevents your Azure credentials from being stored in Consul configuration. This feature is supported in Consul 1.7 and above. When using MSI, the `tag_key`, `tag_value` and `subscription_id` need to be supplied for Virtual machines.
+~> **Note:** If the Consul datacenter is hosted on Azure, Consul can use Managed Service Identities (MSI) to access Azure instead of an environment variable, shared client id and secret. MSI must be enabled on the VMs or Virtual Machine Scale Sets hosting Consul. It is the preferred configuration since MSI prevents your Azure credentials from being stored in Consul configuration. This feature is supported in Consul 1.7 and above. When using MSI, the `tag_key`, `tag_value` and `subscription_id` need to be supplied for Virtual machines.
 
 ### Google Compute Engine
 
