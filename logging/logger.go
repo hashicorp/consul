@@ -63,6 +63,7 @@ type LogSetupErrorFn func(string)
 // The provided ui object will get any log messages related to setting up
 // logging itself, and will also be hooked up to the gated logger. The final bool
 // parameter indicates if logging was set up successfully.
+// TODO: accept a single io.Writer
 func Setup(config *Config, writers []io.Writer) (hclog.InterceptLogger, error) {
 	if !ValidateLogLevel(config.LogLevel) {
 		return nil, fmt.Errorf("Invalid log level: %s. Valid log levels are: %v",

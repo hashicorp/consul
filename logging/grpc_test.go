@@ -20,7 +20,7 @@ func TestGRPCLogger(t *testing.T) {
 		Output:     &out,
 		TimeFormat: "timeformat",
 	})
-	grpclog.SetLoggerV2(NewGRPCLogger(&Config{LogLevel: "TRACE"}, logger))
+	grpclog.SetLoggerV2(NewGRPCLogger("TRACE", logger))
 
 	// All of these should output something
 	grpclog.Info("Info,")
@@ -92,7 +92,7 @@ func TestGRPCLogger_V(t *testing.T) {
 				Level:  hclog.Trace,
 				Output: &out,
 			})
-			grpclog.SetLoggerV2(NewGRPCLogger(&Config{LogLevel: tt.level}, logger))
+			grpclog.SetLoggerV2(NewGRPCLogger(tt.level, logger))
 
 			assert.Equal(t, tt.want, grpclog.V(tt.v))
 		})

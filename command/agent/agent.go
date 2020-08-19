@@ -60,11 +60,6 @@ type cmd struct {
 	logger            hclog.InterceptLogger
 }
 
-type GatedUi struct {
-	JSONoutput bool
-	ui         cli.Ui
-}
-
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	config.AddFlags(c.flags, &c.flagArgs)
@@ -165,25 +160,26 @@ func (c *cmd) run(args []string) int {
 		return 1
 	}
 
-	logGate := logging.GatedWriter{Writer: &cli.UiWriter{Ui: c.UI}}
-
-	agentOptions := []agent.AgentOption{
-		agent.WithBuilderOpts(c.flagArgs),
-		agent.WithCLI(c.UI),
-		agent.WithLogWriter(&logGate),
-		agent.WithTelemetry(true),
+	logGate := &logging.GatedWriter{Writer: &cli.UiWriter{Ui: c.UI}}
+	loader := func(source config.Source) (cfg *config.RuntimeConfig, warnings []string, err error) {
+		return config.Load(c.flagArgs, source)
 	}
-
-	agent, err := agent.New(agentOptions...)
+	bd, err := agent.NewBaseDeps(loader, logGate)
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1
 	}
 
-	config := agent.GetConfig()
-	c.logger = agent.GetLogger()
+	c.logger = bd.Logger
+	agent, err := agent.New(bd)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
 
-	//Setup gate to check if we should output CLI information
+	config := bd.RuntimeConfig
+
+	// Setup gate to check if we should output CLI information
 	cli := GatedUi{
 		JSONoutput: config.LogJSON,
 		ui:         c.UI,
@@ -342,6 +338,11 @@ func (c *cmd) run(args []string) int {
 			}
 		}
 	}
+}
+
+type GatedUi struct {
+	JSONoutput bool
+	ui         cli.Ui
 }
 
 func (g *GatedUi) output(s string) {

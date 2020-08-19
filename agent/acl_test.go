@@ -35,37 +35,42 @@ type TestACLAgent struct {
 // Basically it needs a local state for some of the vet* functions, a logger and a delegate.
 // The key is that we are the delegate so we can control the ResolveToken responses
 func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzResolver, resolveIdent identResolver) *TestACLAgent {
+	t.Helper()
+
 	a := &TestACLAgent{resolveAuthzFn: resolveAuthz, resolveIdentFn: resolveIdent}
 
 	dataDir := testutil.TempDir(t, "acl-agent")
-	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
-		Name:   name,
-		Level:  hclog.Debug,
-		Output: testutil.NewLogBuffer(t),
-	})
 
-	opts := []AgentOption{
-		WithLogger(logger),
-		WithBuilderOpts(config.BuilderOpts{
-			HCL: []string{
-				TestConfigHCL(NodeID()),
-				hcl,
-				fmt.Sprintf(`data_dir = "%s"`, dataDir),
-			},
-		}),
+	logBuffer := testutil.NewLogBuffer(t)
+	loader := func(source config.Source) (*config.RuntimeConfig, []string, error) {
+		dataDir := fmt.Sprintf(`data_dir = "%s"`, dataDir)
+		opts := config.BuilderOpts{
+			HCL: []string{TestConfigHCL(NodeID()), hcl, dataDir},
+		}
+		cfg, warnings, err := config.Load(opts, source)
+		if cfg != nil {
+			cfg.Telemetry.Disable = true
+		}
+		return cfg, warnings, err
 	}
-
-	agent, err := New(opts...)
+	bd, err := NewBaseDeps(loader, logBuffer)
 	require.NoError(t, err)
-	cfg := agent.GetConfig()
+
+	bd.Logger = hclog.NewInterceptLogger(&hclog.LoggerOptions{
+		Name:       name,
+		Level:      hclog.Debug,
+		Output:     logBuffer,
+		TimeFormat: "04:05.000",
+	})
+	bd.MetricsHandler = metrics.NewInmemSink(1*time.Second, time.Minute)
+
+	agent, err := New(bd)
+	require.NoError(t, err)
+
+	agent.delegate = a
+	agent.State = local.NewState(LocalConfig(bd.RuntimeConfig), bd.Logger, bd.Tokens)
+	agent.State.TriggerSyncChanges = func() {}
 	a.Agent = agent
-
-	agent.logger = logger
-	agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
-
-	a.Agent.delegate = a
-	a.Agent.State = local.NewState(LocalConfig(cfg), logger, a.Agent.tokens)
-	a.Agent.State.TriggerSyncChanges = func() {}
 	return a
 }
 
