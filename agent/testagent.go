@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-hclog"
 	uuid "github.com/hashicorp/go-uuid"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
@@ -167,38 +168,39 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 	portsConfig, returnPortsFn := randomPortsSource(a.UseTLS)
 	t.Cleanup(returnPortsFn)
 
-	nodeID := NodeID()
-
-	opts := []AgentOption{
-		WithLogger(logger),
-		WithBuilderOpts(config.BuilderOpts{
-			HCL: []string{
-				TestConfigHCL(nodeID),
-				portsConfig,
-				a.HCL,
-				hclDataDir,
-			},
-		}),
-		WithOverrides(config.FileSource{
-			Name:   "test-overrides",
-			Format: "hcl",
-			Data:   a.Overrides},
+	// Create NodeID outside the closure, so that it does not change
+	testHCLConfig := TestConfigHCL(NodeID())
+	loader := func(source config.Source) (*config.RuntimeConfig, []string, error) {
+		opts := config.BuilderOpts{
+			HCL: []string{testHCLConfig, portsConfig, a.HCL, hclDataDir},
+		}
+		overrides := []config.Source{
+			config.FileSource{
+				Name:   "test-overrides",
+				Format: "hcl",
+				Data:   a.Overrides},
 			config.DefaultConsulSource(),
 			config.DevConsulSource(),
-		),
+		}
+		cfg, warnings, err := config.Load(opts, source, overrides...)
+		if cfg != nil {
+			cfg.Telemetry.Disable = true
+		}
+		return cfg, warnings, err
 	}
+	bd, err := NewBaseDeps(loader, logOutput)
+	require.NoError(t, err)
 
-	agent, err := New(opts...)
+	bd.Logger = logger
+	bd.MetricsHandler = metrics.NewInmemSink(1*time.Second, time.Minute)
+	a.Config = bd.RuntimeConfig
+
+	agent, err := New(bd)
 	if err != nil {
 		return fmt.Errorf("Error creating agent: %s", err)
 	}
 
-	a.Config = agent.GetConfig()
-
-	agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
-
 	id := string(a.Config.NodeID)
-
 	if err := agent.Start(context.Background()); err != nil {
 		agent.ShutdownAgent()
 		agent.ShutdownEndpoints()

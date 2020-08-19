@@ -59,7 +59,7 @@ func (a *Agent) aclAccessorID(secretID string) string {
 	return ident.ID()
 }
 
-func (a *Agent) initializeACLs() error {
+func initializeACLs(nodeName string) (acl.Authorizer, error) {
 	// Build a policy for the agent master token.
 	// The builtin agent master policy allows reading any node information
 	// and allows writes to the agent with the node name of the running agent
@@ -68,25 +68,20 @@ func (a *Agent) initializeACLs() error {
 	policy := &acl.Policy{
 		PolicyRules: acl.PolicyRules{
 			Agents: []*acl.AgentRule{
-				&acl.AgentRule{
-					Node:   a.config.NodeName,
+				{
+					Node:   nodeName,
 					Policy: acl.PolicyWrite,
 				},
 			},
 			NodePrefixes: []*acl.NodeRule{
-				&acl.NodeRule{
+				{
 					Name:   "",
 					Policy: acl.PolicyRead,
 				},
 			},
 		},
 	}
-	master, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
-	if err != nil {
-		return err
-	}
-	a.aclMasterAuthorizer = master
-	return nil
+	return acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
 }
 
 // vetServiceRegister makes sure the service registration action is allowed by
