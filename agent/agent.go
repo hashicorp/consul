@@ -23,7 +23,6 @@ import (
 	"github.com/hashicorp/go-memdb"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/grpclog"
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
@@ -353,9 +352,6 @@ func New(bd BaseDeps) (*Agent, error) {
 		connPool:        bd.ConnPool,
 		autoConf:        bd.AutoConfig,
 	}
-
-	// TODO: set globals somewhere else, not Agent.New
-	grpclog.SetLoggerV2(logging.NewGRPCLogger(bd.RuntimeConfig.LogLevel, bd.Logger))
 
 	a.serviceManager = NewServiceManager(&a)
 

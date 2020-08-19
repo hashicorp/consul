@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/go-hclog"
+	"google.golang.org/grpc/grpclog"
 )
 
 // TODO: BaseDeps should be renamed in the future once more of Agent.Start
@@ -66,6 +67,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	if err != nil {
 		return d, err
 	}
+	grpclog.SetLoggerV2(logging.NewGRPCLogger(cfg.LogLevel, d.Logger))
 
 	for _, w := range warnings {
 		d.Logger.Warn(w)
