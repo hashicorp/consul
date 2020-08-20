@@ -9,7 +9,7 @@
   {{/if}}
     <ChangeableSet @dispatcher={{searchable 'serviceInstance' items}} @terms={{search}}>
       <BlockSlot @name="set" as |filtered|>
-        <ConsulServiceInstanceList @routeName="dc.services.instance" @items={{filtered}} @proxies={{keyedProxies}}/>
+        <ConsulServiceInstanceList @routeName="dc.services.instance" @items={{filtered}}/>
       </BlockSlot>
       <BlockSlot @name="empty">
         <EmptyState>

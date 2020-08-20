@@ -10,7 +10,7 @@ export default Route.extend({
     return this.modelFor(parent);
   },
   afterModel: function(model, transition) {
-    if (get(model, 'item.Kind') !== 'connect-proxy') {
+    if (get(model, 'item.Service.Kind') !== 'connect-proxy') {
       const parent = this.routeName
         .split('.')
         .slice(0, -1)

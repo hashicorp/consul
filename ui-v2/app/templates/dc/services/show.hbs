@@ -1,9 +1,9 @@
-{{title item.Service.Service}}
-<EventSource @src={{item}} @onerror={{action "error"}} />
+<EventSource @src={{items}} @onerror={{action "error"}} />
 <EventSource @src={{chain}} />
 <EventSource @src={{intentions}} />
 <EventSource @src={{proxies}} />
 <EventSource @src={{gatewayServices}} />
+{{title item.Service.Service}}
 <AppView @class="service show">
   <BlockSlot @name="notification" as |status type|>
     {{partial 'dc/services/notifications'}}

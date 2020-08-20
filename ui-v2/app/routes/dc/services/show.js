@@ -13,13 +13,15 @@ export default Route.extend({
       slug: params.name,
       dc: dc,
       nspace: nspace,
-      item: this.data.source(uri => uri`/${nspace}/${dc}/service/${params.name}`),
+      items: this.data.source(
+        uri => uri`/${nspace}/${dc}/service-instances/for-service/${params.name}`
+      ),
       urls: this.settings.findBySlug('urls'),
       proxies: [],
     })
       .then(model => {
         return ['connect-proxy', 'mesh-gateway', 'ingress-gateway', 'terminating-gateway'].includes(
-          get(model, 'item.Service.Kind')
+          get(model, 'items.firstObject.Service.Kind')
         )
           ? model
           : hash({
@@ -31,7 +33,9 @@ export default Route.extend({
             });
       })
       .then(model => {
-        return ['ingress-gateway', 'terminating-gateway'].includes(get(model, 'item.Service.Kind'))
+        return ['ingress-gateway', 'terminating-gateway'].includes(
+          get(model, 'items.firstObject.Service.Kind')
+        )
           ? hash({
               ...model,
               gatewayServices: this.data.source(
