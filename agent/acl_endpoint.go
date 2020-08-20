@@ -262,7 +262,6 @@ func (s *HTTPServer) ACLPolicyRead(resp http.ResponseWriter, req *http.Request, 
 	}
 
 	if out.Policy == nil {
-		// TODO(rb): should this return a normal 404?
 		return nil, NotFoundError{Reason: "No such Policy exists"}
 	}
 

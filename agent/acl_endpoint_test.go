@@ -1138,7 +1138,6 @@ func TestACL_NotFound_HTTP(t *testing.T) {
 		{"ACLPolicyReadName", a.srv.ACLPolicyReadByName, "v1/acl/policy/name/", "1de2bf1-0379-43bd-b26a-3f09483b7972?token=root"},
 		{"ACLRoleReadName", a.srv.ACLRoleReadByName, "v1/acl/role/name/", "1de2bf1-0379-43bd-b26a-3f09483b7972?token=root"},
 		{"ACLRulesTranslateLegacyToken", a.srv.ACLRulesTranslateLegacyToken, "/v1/acl/rules/translate/", "31de2bf1-0379-43bd-b26a-3f09483b7972?token=root"},
-		// {"ACLTokenGet", a.srv.ACLTokenGet, "v1/acl/token/", "1de2bf1-0379-43bd-b26a-3f09483b7972"},
 		{"ACLTokenSelf", a.srv.ACLTokenSelf, "v1/acl/token/self/", "?token=31de2bf1-0379-43bd-b26a-3f09483b7972"},
 	}
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
