@@ -398,6 +398,16 @@
   mask-image: $database-svg;
 }
 
+%with-delay-icon {
+  @extend %with-icon;
+  background-image: $delay-svg;
+}
+%with-delay-mask {
+  @extend %with-mask;
+  -webkit-mask-image: $delay-svg;
+  mask-image: $delay-svg;
+}
+
 %with-deny-alt-icon {
   @extend %with-icon;
   background-image: $deny-alt-svg;

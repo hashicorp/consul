@@ -16,12 +16,12 @@ export default function(visitable, deletable, clickable, attribute, collection, 
       port: attribute('data-test-service-port', '[data-test-service-port]'),
       externalSource: attribute('data-test-external-source', '[data-test-external-source]'),
     }),
-    sessions: collection(
-      '#lock-sessions [data-test-tabular-row]',
-      deletable({
-        TTL: attribute('data-test-session-ttl', '[data-test-session-ttl]'),
-      })
-    ),
+    sessions: collection('.consul-lock-session-list [data-test-list-row]', {
+      TTL: attribute('data-test-session-ttl', '[data-test-session-ttl]'),
+      delay: text('[data-test-session-delay]'),
+      actions: clickable('label'),
+      ...deletable(),
+    }),
     metadata: collection('#metadata [data-test-tabular-row]', {}),
   };
 }

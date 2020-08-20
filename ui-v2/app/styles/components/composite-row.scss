@@ -13,6 +13,9 @@
 .consul-role-list > ul > li:not(:first-child) {
   @extend %with-composite-row-intent;
 }
+.consul-lock-session-list ul > li:not(:first-child) {
+  @extend %with-one-action-row;
+}
 /*TODO: This hides the icons-less dt's in the below lists as */
 /* they don't have tooltips */
 .consul-nspace-list > ul > li:not(:first-child) dt,

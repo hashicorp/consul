@@ -12,6 +12,20 @@
   /* whilst this isn't in the designs this makes our temporary rollover look better */
   padding-left: 12px;
 }
+%with-one-action-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: 50% 50%;
+
+  // only one action applies to these rows
+  grid-template-areas:
+    'header actions'
+    'detail actions';
+
+  padding-top: 10px;
+  padding-bottom: 10px;
+  padding-right: 12px;
+}
 %composite-row-header {
   grid-area: header;
   align-self: start;
