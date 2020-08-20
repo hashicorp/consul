@@ -181,7 +181,7 @@ func (c *cmd) run(args []string) int {
 
 	// Setup gate to check if we should output CLI information
 	cli := GatedUi{
-		JSONoutput: config.LogJSON,
+		JSONoutput: config.Logging.LogJSON,
 		ui:         c.UI,
 	}
 

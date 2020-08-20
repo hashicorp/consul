@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/go-hclog"
+	"google.golang.org/grpc/grpclog"
 )
 
 // TODO: BaseDeps should be renamed in the future once more of Agent.Start
@@ -50,22 +51,13 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 		return d, err
 	}
 
-	// TODO: use logging.Config in RuntimeConfig instead of separate fields
-	logConf := &logging.Config{
-		LogLevel:          cfg.LogLevel,
-		LogJSON:           cfg.LogJSON,
-		Name:              logging.Agent,
-		EnableSyslog:      cfg.EnableSyslog,
-		SyslogFacility:    cfg.SyslogFacility,
-		LogFilePath:       cfg.LogFile,
-		LogRotateDuration: cfg.LogRotateDuration,
-		LogRotateBytes:    cfg.LogRotateBytes,
-		LogRotateMaxFiles: cfg.LogRotateMaxFiles,
-	}
-	d.Logger, err = logging.Setup(logConf, []io.Writer{logOut})
+	logConf := cfg.Logging
+	logConf.Name = logging.Agent
+	d.Logger, err = logging.Setup(logConf, logOut)
 	if err != nil {
 		return d, err
 	}
+	grpclog.SetLoggerV2(logging.NewGRPCLogger(cfg.Logging.LogLevel, d.Logger))
 
 	for _, w := range warnings {
 		d.Logger.Warn(w)
