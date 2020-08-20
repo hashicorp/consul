@@ -487,34 +487,39 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 	// We acquire a write lock because we may have to set Fetching to true.
 	c.entriesLock.Lock()
 	defer c.entriesLock.Unlock()
-	ok, entryValid, entry := c.getEntryLocked(r.TypeEntry, key, r.Info)
 
-	// This handles the case where a fetch succeeded after checking for its existence in
-	// getWithIndex. This ensures that we don't miss updates.
-	if ok && entryValid && !ignoreExisting {
-		ch := make(chan struct{})
-		close(ch)
-		return ch
-	}
+	tEntry := r.TypeEntry
+	ok, entryValid, entry := c.getEntryLocked(tEntry, key, r.Info)
 
-	// If we aren't allowing new values and we don't have an existing value,
-	// return immediately. We return an immediately-closed channel so nothing
-	// blocks.
-	if !ok && !allowNew {
-		ch := make(chan struct{})
-		close(ch)
-		return ch
-	}
+	if ok { // When entry is in the cache
 
-	// If we already have an entry and it is actively fetching, then return
-	// the currently active waiter.
-	if ok && entry.Fetching {
-		return entry.Waiter
-	}
+		// This handles the case where a fetch succeeded after checking for its existence in
+		// getWithIndex. This ensures that we don't miss updates.
+		if entryValid && !ignoreExisting {
+			ch := make(chan struct{})
+			close(ch)
+			return ch
+		}
 
-	// If we don't have an entry, then create it. The entry must be marked
-	// as invalid so that it isn't returned as a valid value for a zero index.
-	if !ok {
+		// If we already have an entry and it is actively fetching, then return
+		// the currently active waiter.
+		if entry.Fetching {
+			return entry.Waiter
+		}
+	} else { // When no entry present in the cache
+
+		// If we aren't allowing new values and we don't have an existing value,
+		// return immediately. We return an immediately-closed channel so nothing
+		// blocks.
+		if !allowNew {
+			ch := make(chan struct{})
+			close(ch)
+			return ch
+
+		}
+
+		// When we don't have an entry, we create it. The entry must be marked
+		// as invalid so that it isn't returned as a valid value for a zero index.
 		entry = cacheEntry{
 			Valid:  false,
 			Waiter: make(chan struct{}),
@@ -532,7 +537,6 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 	c.entries[key] = entry
 	metrics.SetGauge([]string{"consul", "cache", "entries_count"}, float32(len(c.entries)))
 
-	tEntry := r.TypeEntry
 	// The actual Fetch must be performed in a goroutine.
 	go func() {
 		// If we have background refresh and currently are in "disconnected" state,
@@ -619,22 +623,39 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 
 			// This is a valid entry with a result
 			newEntry.Valid = true
-		} else if result.State != nil && err == nil {
-			// Also set state if it's non-nil but Value is nil. This is important in the
-			// case we are returning nil due to a timeout or a transient error like rate
-			// limiting that we want to mask from the user - there is no result yet but
-			// we want to manage retrying internally before we return an error to user.
-			// The retrying state is in State so we need to still update that in the
-			// entry even if we don't have an actual result yet (e.g. hit a rate limit
-			// on first request for a leaf certificate).
-			newEntry.State = result.State
 		}
 
 		// Error handling
-		if err == nil {
+		if err != nil {
+			metrics.IncrCounter([]string{"consul", "cache", "fetch_error"}, 1)
+			metrics.IncrCounter([]string{"consul", "cache", tEntry.Name, "fetch_error"}, 1)
+
+			// Increment attempt counter
+			attempt++
+
+			if tEntry.Opts.Refresh && newEntry.RefreshLostContact.IsZero() {
+				// If we are refreshing and just failed, updated the lost contact time as
+				// our cache will be stale until we get successfully reconnected. We only
+				// set this on the first failure (if it's zero) so we can track how long
+				// it's been since we had a valid connection/up-to-date view of the state.
+				newEntry.RefreshLostContact = time.Now()
+			}
+
+		} else {
 			labels := []metrics.Label{{Name: "result_not_modified", Value: strconv.FormatBool(result.NotModified)}}
 			metrics.IncrCounterWithLabels([]string{"consul", "cache", "fetch_success"}, 1, labels)
 			metrics.IncrCounterWithLabels([]string{"consul", "cache", tEntry.Name, "fetch_success"}, 1, labels)
+
+			if result.Value == nil && result.State != nil {
+				// Also set state if it's non-nil but Value is nil. This is important in the
+				// case we are returning nil due to a timeout or a transient error like rate
+				// limiting that we want to mask from the user - there is no result yet but
+				// we want to manage retrying internally before we return an error to user.
+				// The retrying state is in State so we need to still update that in the
+				// entry even if we don't have an actual result yet (e.g. hit a rate limit
+				// on first request for a leaf certificate).
+				newEntry.State = result.State
+			}
 
 			if result.Index > 0 {
 				// Reset the attempts counter so we don't have any backoff
@@ -660,20 +681,6 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 			// "connected" and should not be stale. Reset the lost contact timer.
 			if tEntry.Opts.Refresh {
 				newEntry.RefreshLostContact = time.Time{}
-			}
-		} else {
-			metrics.IncrCounter([]string{"consul", "cache", "fetch_error"}, 1)
-			metrics.IncrCounter([]string{"consul", "cache", tEntry.Name, "fetch_error"}, 1)
-
-			// Increment attempt counter
-			attempt++
-
-			// If we are refreshing and just failed, updated the lost contact time as
-			// our cache will be stale until we get successfully reconnected. We only
-			// set this on the first failure (if it's zero) so we can track how long
-			// it's been since we had a valid connection/up-to-date view of the state.
-			if tEntry.Opts.Refresh && newEntry.RefreshLostContact.IsZero() {
-				newEntry.RefreshLostContact = time.Now()
 			}
 		}
 
