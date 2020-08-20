@@ -3,7 +3,6 @@ package proxy
 import (
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"net/http"
@@ -132,7 +131,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	// Setup the log outputs
-	logConfig := &logging.Config{
+	logConfig := logging.Config{
 		LogLevel: c.logLevel,
 		Name:     logging.Proxy,
 		LogJSON:  c.logJSON,
@@ -140,7 +139,7 @@ func (c *cmd) Run(args []string) int {
 
 	logGate := logging.GatedWriter{Writer: &cli.UiWriter{Ui: c.UI}}
 
-	logger, err := logging.Setup(logConfig, []io.Writer{&logGate})
+	logger, err := logging.Setup(logConfig, &logGate)
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1

@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/pascaldekloe/goe/verify"
@@ -290,7 +291,7 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 				rt.EnableDebug = true
 				rt.EnableUI = true
 				rt.LeaveOnTerm = false
-				rt.LogLevel = "DEBUG"
+				rt.Logging.LogLevel = "DEBUG"
 				rt.RPCAdvertiseAddr = tcpAddr("127.0.0.1:8300")
 				rt.RPCBindAddr = tcpAddr("127.0.0.1:8300")
 				rt.SerfAdvertiseAddrLAN = tcpAddr("127.0.0.1:8301")
@@ -535,7 +536,7 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
-				rt.LogLevel = "a"
+				rt.Logging.LogLevel = "a"
 				rt.DataDir = dataDir
 			},
 		},
@@ -546,7 +547,7 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
-				rt.LogJSON = true
+				rt.Logging.LogJSON = true
 				rt.DataDir = dataDir
 			},
 		},
@@ -559,7 +560,7 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 			json: []string{`{ "log_rotate_max_files": 2 }`},
 			hcl:  []string{`log_rotate_max_files = 2`},
 			patch: func(rt *RuntimeConfig) {
-				rt.LogRotateMaxFiles = 2
+				rt.Logging.LogRotateMaxFiles = 2
 				rt.DataDir = dataDir
 			},
 		},
@@ -837,7 +838,7 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
-				rt.EnableSyslog = true
+				rt.Logging.EnableSyslog = true
 				rt.DataDir = dataDir
 			},
 		},
@@ -6063,7 +6064,6 @@ func TestFullConfig(t *testing.T) {
 		EnableDebug:                            true,
 		EnableRemoteScriptChecks:               true,
 		EnableLocalScriptChecks:                true,
-		EnableSyslog:                           true,
 		EnableUI:                               true,
 		EncryptKey:                             "A4wELWqH",
 		EncryptVerifyIncoming:                  true,
@@ -6084,39 +6084,43 @@ func TestFullConfig(t *testing.T) {
 		KVMaxValueSize:                         1234567800000000,
 		LeaveDrainTime:                         8265 * time.Second,
 		LeaveOnTerm:                            true,
-		LogLevel:                               "k1zo9Spt",
-		LogJSON:                                true,
-		MaxQueryTime:                           18237 * time.Second,
-		NodeID:                                 types.NodeID("AsUIlw99"),
-		NodeMeta:                               map[string]string{"5mgGQMBk": "mJLtVMSG", "A7ynFMJB": "0Nx6RGab"},
-		NodeName:                               "otlLxGaI",
-		NonVotingServer:                        true,
-		PidFile:                                "43xN80Km",
-		PrimaryDatacenter:                      "ejtmd43d",
-		PrimaryGateways:                        []string{"aej8eeZo", "roh2KahS"},
-		PrimaryGatewaysInterval:                18866 * time.Second,
-		RPCAdvertiseAddr:                       tcpAddr("17.99.29.16:3757"),
-		RPCBindAddr:                            tcpAddr("16.99.34.17:3757"),
-		RPCHandshakeTimeout:                    1932 * time.Millisecond,
-		RPCHoldTimeout:                         15707 * time.Second,
-		RPCProtocol:                            30793,
-		RPCRateLimit:                           12029.43,
-		RPCMaxBurst:                            44848,
-		RPCMaxConnsPerClient:                   2954,
-		RaftProtocol:                           19016,
-		RaftSnapshotThreshold:                  16384,
-		RaftSnapshotInterval:                   30 * time.Second,
-		RaftTrailingLogs:                       83749,
-		ReconnectTimeoutLAN:                    23739 * time.Second,
-		ReconnectTimeoutWAN:                    26694 * time.Second,
-		RejoinAfterLeave:                       true,
-		RetryJoinIntervalLAN:                   8067 * time.Second,
-		RetryJoinIntervalWAN:                   28866 * time.Second,
-		RetryJoinLAN:                           []string{"pbsSFY7U", "l0qLtWij"},
-		RetryJoinMaxAttemptsLAN:                913,
-		RetryJoinMaxAttemptsWAN:                23160,
-		RetryJoinWAN:                           []string{"PFsR02Ye", "rJdQIhER"},
-		SegmentName:                            "BC2NhTDi",
+		Logging: logging.Config{
+			LogLevel:       "k1zo9Spt",
+			LogJSON:        true,
+			EnableSyslog:   true,
+			SyslogFacility: "hHv79Uia",
+		},
+		MaxQueryTime:            18237 * time.Second,
+		NodeID:                  types.NodeID("AsUIlw99"),
+		NodeMeta:                map[string]string{"5mgGQMBk": "mJLtVMSG", "A7ynFMJB": "0Nx6RGab"},
+		NodeName:                "otlLxGaI",
+		NonVotingServer:         true,
+		PidFile:                 "43xN80Km",
+		PrimaryDatacenter:       "ejtmd43d",
+		PrimaryGateways:         []string{"aej8eeZo", "roh2KahS"},
+		PrimaryGatewaysInterval: 18866 * time.Second,
+		RPCAdvertiseAddr:        tcpAddr("17.99.29.16:3757"),
+		RPCBindAddr:             tcpAddr("16.99.34.17:3757"),
+		RPCHandshakeTimeout:     1932 * time.Millisecond,
+		RPCHoldTimeout:          15707 * time.Second,
+		RPCProtocol:             30793,
+		RPCRateLimit:            12029.43,
+		RPCMaxBurst:             44848,
+		RPCMaxConnsPerClient:    2954,
+		RaftProtocol:            19016,
+		RaftSnapshotThreshold:   16384,
+		RaftSnapshotInterval:    30 * time.Second,
+		RaftTrailingLogs:        83749,
+		ReconnectTimeoutLAN:     23739 * time.Second,
+		ReconnectTimeoutWAN:     26694 * time.Second,
+		RejoinAfterLeave:        true,
+		RetryJoinIntervalLAN:    8067 * time.Second,
+		RetryJoinIntervalWAN:    28866 * time.Second,
+		RetryJoinLAN:            []string{"pbsSFY7U", "l0qLtWij"},
+		RetryJoinMaxAttemptsLAN: 913,
+		RetryJoinMaxAttemptsWAN: 23160,
+		RetryJoinWAN:            []string{"PFsR02Ye", "rJdQIhER"},
+		SegmentName:             "BC2NhTDi",
 		Segments: []structs.NetworkSegment{
 			{
 				Name:        "PExYMe2E",
@@ -6418,7 +6422,6 @@ func TestFullConfig(t *testing.T) {
 		SkipLeaveOnInt:       true,
 		StartJoinAddrsLAN:    []string{"LR3hGDoG", "MwVpZ4Up"},
 		StartJoinAddrsWAN:    []string{"EbFSc3nA", "kwXTh623"},
-		SyslogFacility:       "hHv79Uia",
 		Telemetry: lib.TelemetryConfig{
 			CirconusAPIApp:                     "p4QOTe9j",
 			CirconusAPIToken:                   "E3j35V23",
@@ -6951,7 +6954,6 @@ func TestSanitize(t *testing.T) {
 		"EnableCentralServiceConfig": false,
 		"EnableLocalScriptChecks": false,
 		"EnableRemoteScriptChecks": false,
-		"EnableSyslog": false,
 		"EnableUI": false,
 		"EncryptKey": "hidden",
 		"EncryptVerifyIncoming": false,
@@ -6977,12 +6979,17 @@ func TestSanitize(t *testing.T) {
 		"KVMaxValueSize": 1234567800000000,
 		"LeaveDrainTime": "0s",
 		"LeaveOnTerm": false,
-		"LogLevel": "",
-		"LogJSON": false,
-		"LogFile": "",
-		"LogRotateBytes": 0,
-		"LogRotateDuration": "0s",
-		"LogRotateMaxFiles": 0,
+		"Logging": {
+			"EnableSyslog": false,
+			"LogLevel": "",
+			"LogJSON": false,
+			"LogFilePath": "",
+			"LogRotateBytes": 0,
+			"LogRotateDuration": "0s",
+			"LogRotateMaxFiles": 0,
+			"Name": "",
+			"SyslogFacility": ""
+		},
 		"MaxQueryTime": "0s",
 		"NodeID": "",
 		"NodeMeta": {},
@@ -7089,7 +7096,6 @@ func TestSanitize(t *testing.T) {
 		"StartJoinAddrsWAN": [],
 		"SyncCoordinateIntervalMin": "0s",
 		"SyncCoordinateRateTarget": 0,
-		"SyslogFacility": "",
 		"TLSCipherSuites": [],
 		"TLSMinVersion": "",
 		"TLSPreferServerCipherSuites": false,
