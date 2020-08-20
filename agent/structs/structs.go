@@ -1056,10 +1056,12 @@ func (t *ServiceConnect) UnmarshalJSON(data []byte) (err error) {
 	}{
 		Alias: (*Alias)(t),
 	}
+
 	if err = json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
-	if t.SidecarService == nil {
+
+	if t.SidecarService == nil && aux != nil {
 		t.SidecarService = aux.SidecarServiceSnake
 	}
 	return nil
