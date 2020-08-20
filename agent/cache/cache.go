@@ -316,14 +316,23 @@ func newGetOptions(tEntry typeEntry, r Request) getOptions {
 // getEntryLocked retrieves a cache entry and checks if it is ready to be
 // returned given the other parameters. It reads from entries and the caller
 // has to issue a read lock if necessary.
-func (c *Cache) getEntryLocked(
-	tEntry typeEntry,
-	key string,
-	info RequestInfo,
-) (entryExists bool, entryValid bool, entry cacheEntry) {
+func (c *Cache) getEntryLocked(tEntry typeEntry, key string, info RequestInfo) (entryValid bool, entry cacheEntry) {
 	entry, ok := c.entries[key]
+
+	// When we don't have an entry, we create it. The entry must be marked
+	// as invalid so that it isn't returned as a valid value for a zero index.
+	if !ok {
+		entry = cacheEntry{
+			Valid:  false,
+			Waiter: make(chan struct{}),
+			FetchRateLimiter: rate.NewLimiter(
+				c.options.EntryFetchRate,
+				c.options.EntryFetchMaxBurst,
+			),
+		}
+	}
 	if !entry.Valid {
-		return ok, false, entry
+		return entry.Valid, entry
 	}
 
 	// Check index is not specified or lower than value, or the type doesn't
@@ -331,22 +340,22 @@ func (c *Cache) getEntryLocked(
 	if tEntry.Opts.SupportsBlocking && info.MinIndex > 0 && info.MinIndex >= entry.Index {
 		// MinIndex was given and matches or is higher than current value so we
 		// ignore the cache and fallthrough to blocking on a new value below.
-		return true, false, entry
+		return false, entry
 	}
 
 	// Check MaxAge is not exceeded if this is not a background refreshing type
 	// and MaxAge was specified.
 	if !tEntry.Opts.Refresh && info.MaxAge > 0 && entryExceedsMaxAge(info.MaxAge, entry) {
-		return true, false, entry
+		return false, entry
 	}
 
 	// Check if re-validate is requested. If so the first time round the
 	// loop is not a hit but subsequent ones should be treated normally.
 	if !tEntry.Opts.Refresh && info.MustRevalidate {
-		return true, false, entry
+		return false, entry
 	}
 
-	return true, true, entry
+	return true, entry
 }
 
 func entryExceedsMaxAge(maxAge time.Duration, entry cacheEntry) bool {
@@ -377,7 +386,7 @@ func (c *Cache) getWithIndex(ctx context.Context, r getOptions) (interface{}, Re
 RETRY_GET:
 	// Get the current value
 	c.entriesLock.RLock()
-	_, entryValid, entry := c.getEntryLocked(r.TypeEntry, key, r.Info)
+	entryValid, entry := c.getEntryLocked(r.TypeEntry, key, r.Info)
 	c.entriesLock.RUnlock()
 
 	if entryValid {
@@ -489,45 +498,30 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 	defer c.entriesLock.Unlock()
 
 	tEntry := r.TypeEntry
-	ok, entryValid, entry := c.getEntryLocked(tEntry, key, r.Info)
+	entryValid, entry := c.getEntryLocked(tEntry, key, r.Info)
 
-	if ok { // When entry is in the cache
+	// This handles the case where a fetch succeeded after checking for its existence in
+	// getWithIndex. This ensures that we don't miss updates.
+	if entryValid && !ignoreExisting {
+		ch := make(chan struct{})
+		close(ch)
+		return ch
+	}
 
-		// This handles the case where a fetch succeeded after checking for its existence in
-		// getWithIndex. This ensures that we don't miss updates.
-		if entryValid && !ignoreExisting {
-			ch := make(chan struct{})
-			close(ch)
-			return ch
-		}
+	// If we already have an entry and it is actively fetching, then return
+	// the currently active waiter.
+	if entry.Fetching {
+		return entry.Waiter
+	}
 
-		// If we already have an entry and it is actively fetching, then return
-		// the currently active waiter.
-		if entry.Fetching {
-			return entry.Waiter
-		}
-	} else { // When no entry present in the cache
+	// If we aren't allowing new values and we don't have a valid value,
+	// return immediately. We return an immediately-closed channel so nothing
+	// blocks.
+	if !entryValid && !allowNew {
+		ch := make(chan struct{})
+		close(ch)
+		return ch
 
-		// If we aren't allowing new values and we don't have an existing value,
-		// return immediately. We return an immediately-closed channel so nothing
-		// blocks.
-		if !allowNew {
-			ch := make(chan struct{})
-			close(ch)
-			return ch
-
-		}
-
-		// When we don't have an entry, we create it. The entry must be marked
-		// as invalid so that it isn't returned as a valid value for a zero index.
-		entry = cacheEntry{
-			Valid:  false,
-			Waiter: make(chan struct{}),
-			FetchRateLimiter: rate.NewLimiter(
-				c.options.EntryFetchRate,
-				c.options.EntryFetchMaxBurst,
-			),
-		}
 	}
 
 	// Set that we're fetching to true, which makes it so that future
