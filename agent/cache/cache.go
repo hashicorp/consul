@@ -316,11 +316,10 @@ func newGetOptions(tEntry typeEntry, r Request) getOptions {
 // getEntryLocked retrieves a cache entry and checks if it is ready to be
 // returned given the other parameters. It reads from entries and the caller
 // has to issue a read lock if necessary.
-func (c *Cache) getEntryLocked(tEntry typeEntry, key string, info RequestInfo) (entryValid bool, entry cacheEntry) {
+func (c *Cache) getEntryLocked(tEntry typeEntry, key string, info RequestInfo) (entry cacheEntry) {
 	entry, ok := c.entries[key]
 
-	// When we don't have an entry, we create it. The entry must be marked
-	// as invalid so that it isn't returned as a valid value for a zero index.
+	// When we don't have an entry, we create it.
 	if !ok {
 		entry = cacheEntry{
 			Valid:  false,
@@ -331,8 +330,9 @@ func (c *Cache) getEntryLocked(tEntry typeEntry, key string, info RequestInfo) (
 			),
 		}
 	}
+	// Return quicky on invalid or missing value
 	if !entry.Valid {
-		return entry.Valid, entry
+		return entry
 	}
 
 	// Check index is not specified or lower than value, or the type doesn't
@@ -340,22 +340,25 @@ func (c *Cache) getEntryLocked(tEntry typeEntry, key string, info RequestInfo) (
 	if tEntry.Opts.SupportsBlocking && info.MinIndex > 0 && info.MinIndex >= entry.Index {
 		// MinIndex was given and matches or is higher than current value so we
 		// ignore the cache and fallthrough to blocking on a new value below.
-		return false, entry
+		entry.Valid = false
+		return entry
 	}
 
 	// Check MaxAge is not exceeded if this is not a background refreshing type
 	// and MaxAge was specified.
 	if !tEntry.Opts.Refresh && info.MaxAge > 0 && entryExceedsMaxAge(info.MaxAge, entry) {
-		return false, entry
+		entry.Valid = false
+		return entry
 	}
 
 	// Check if re-validate is requested. If so the first time round the
 	// loop is not a hit but subsequent ones should be treated normally.
 	if !tEntry.Opts.Refresh && info.MustRevalidate {
-		return false, entry
+		entry.Valid = false
+		return entry
 	}
 
-	return true, entry
+	return entry
 }
 
 func entryExceedsMaxAge(maxAge time.Duration, entry cacheEntry) bool {
@@ -386,10 +389,10 @@ func (c *Cache) getWithIndex(ctx context.Context, r getOptions) (interface{}, Re
 RETRY_GET:
 	// Get the current value
 	c.entriesLock.RLock()
-	entryValid, entry := c.getEntryLocked(r.TypeEntry, key, r.Info)
+	entry := c.getEntryLocked(r.TypeEntry, key, r.Info)
 	c.entriesLock.RUnlock()
 
-	if entryValid {
+	if entry.Valid {
 		meta := ResultMeta{Index: entry.Index}
 		if first {
 			metrics.IncrCounter([]string{"consul", "cache", r.TypeEntry.Name, "hit"}, 1)
@@ -498,11 +501,20 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 	defer c.entriesLock.Unlock()
 
 	tEntry := r.TypeEntry
-	entryValid, entry := c.getEntryLocked(tEntry, key, r.Info)
+	entry := c.getEntryLocked(tEntry, key, r.Info)
 
 	// This handles the case where a fetch succeeded after checking for its existence in
 	// getWithIndex. This ensures that we don't miss updates.
-	if entryValid && !ignoreExisting {
+	if entry.Valid && !ignoreExisting {
+		ch := make(chan struct{})
+		close(ch)
+		return ch
+	}
+
+	// If we aren't allowing new values and we don't have a valid value,
+	// return immediately. We return an immediately-closed channel so nothing
+	// blocks.
+	if !entry.Valid && !allowNew {
 		ch := make(chan struct{})
 		close(ch)
 		return ch
@@ -510,18 +522,8 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 
 	// If we already have an entry and it is actively fetching, then return
 	// the currently active waiter.
-	if entry.Fetching {
+	if !entry.Valid && entry.Fetching {
 		return entry.Waiter
-	}
-
-	// If we aren't allowing new values and we don't have a valid value,
-	// return immediately. We return an immediately-closed channel so nothing
-	// blocks.
-	if !entryValid && !allowNew {
-		ch := make(chan struct{})
-		close(ch)
-		return ch
-
 	}
 
 	// Set that we're fetching to true, which makes it so that future
@@ -620,7 +622,7 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 		}
 
 		// Error handling
-		if err != nil {
+		if err != nil { // r.Fetch() returned an error
 			metrics.IncrCounter([]string{"consul", "cache", "fetch_error"}, 1)
 			metrics.IncrCounter([]string{"consul", "cache", tEntry.Name, "fetch_error"}, 1)
 
