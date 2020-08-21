@@ -52,6 +52,8 @@ type configTest struct {
 func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 	dataDir := testutil.TempDir(t, "consul")
 
+	defaultEntMeta := structs.DefaultEnterpriseMeta()
+
 	tests := []configTest{
 		// ------------------------------------------------------------
 		// cmd line flags
@@ -3286,17 +3288,15 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 			err: "config_entries.bootstrap[0]: invalid config entry kind: foo",
 		},
 		{
-			desc: "ConfigEntry bootstrap invalid",
+			desc: "ConfigEntry bootstrap invalid service-defaults",
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{
 				"config_entries": {
 					"bootstrap": [
 						{
-							"kind": "proxy-defaults",
-							"name": "invalid-name",
-							"config": {
-								"foo": "bar"
-							}
+							"kind": "service-defaults",
+							"name": "web",
+							"made_up_key": "blah"
 						}
 					]
 				}
@@ -3304,14 +3304,12 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 			hcl: []string{`
 			config_entries {
 				bootstrap {
-					kind = "proxy-defaults"
-					name = "invalid-name"
-					config {
-						foo = "bar"
-					}
+					kind = "service-defaults"
+					name = "web"
+					made_up_key = "blah"
 				}
 			}`},
-			err: "config_entries.bootstrap[0]: invalid name (\"invalid-name\"), only \"global\" is supported",
+			err: "config_entries.bootstrap[0]: 1 error occurred:\n\t* invalid config key \"made_up_key\"\n\n",
 		},
 		{
 			desc: "ConfigEntry bootstrap proxy-defaults (snake-case)",
@@ -3355,8 +3353,9 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DataDir = dataDir
 				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
 					&structs.ProxyConfigEntry{
-						Kind: structs.ProxyDefaults,
-						Name: structs.ProxyConfigGlobal,
+						Kind:           structs.ProxyDefaults,
+						Name:           structs.ProxyConfigGlobal,
+						EnterpriseMeta: *defaultEntMeta,
 						Config: map[string]interface{}{
 							"bar": "abc",
 							"moreconfig": map[string]interface{}{
@@ -3412,8 +3411,9 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DataDir = dataDir
 				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
 					&structs.ProxyConfigEntry{
-						Kind: structs.ProxyDefaults,
-						Name: structs.ProxyConfigGlobal,
+						Kind:           structs.ProxyDefaults,
+						Name:           structs.ProxyConfigGlobal,
+						EnterpriseMeta: *defaultEntMeta,
 						Config: map[string]interface{}{
 							"bar": "abc",
 							"moreconfig": map[string]interface{}{
@@ -3461,10 +3461,11 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DataDir = dataDir
 				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
 					&structs.ServiceConfigEntry{
-						Kind:        structs.ServiceDefaults,
-						Name:        "web",
-						Protocol:    "http",
-						ExternalSNI: "abc-123",
+						Kind:           structs.ServiceDefaults,
+						Name:           "web",
+						EnterpriseMeta: *defaultEntMeta,
+						Protocol:       "http",
+						ExternalSNI:    "abc-123",
 						MeshGateway: structs.MeshGatewayConfig{
 							Mode: structs.MeshGatewayModeRemote,
 						},
@@ -3506,10 +3507,11 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DataDir = dataDir
 				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
 					&structs.ServiceConfigEntry{
-						Kind:        structs.ServiceDefaults,
-						Name:        "web",
-						Protocol:    "http",
-						ExternalSNI: "abc-123",
+						Kind:           structs.ServiceDefaults,
+						Name:           "web",
+						EnterpriseMeta: *defaultEntMeta,
+						Protocol:       "http",
+						ExternalSNI:    "abc-123",
 						MeshGateway: structs.MeshGatewayConfig{
 							Mode: structs.MeshGatewayModeRemote,
 						},
@@ -3691,8 +3693,9 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DataDir = dataDir
 				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
 					&structs.ServiceRouterConfigEntry{
-						Kind: structs.ServiceRouter,
-						Name: "main",
+						Kind:           structs.ServiceRouter,
+						Name:           "main",
+						EnterpriseMeta: *defaultEntMeta,
 						Routes: []structs.ServiceRoute{
 							{
 								Match: &structs.ServiceRouteMatch{
@@ -3772,6 +3775,8 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 				}
 			},
 		},
+		// TODO(rb): add in missing tests for ingress-gateway (snake + camel)
+		// TODO(rb): add in missing tests for terminating-gateway (snake + camel)
 
 		///////////////////////////////////
 		// Defaults sanity checks
@@ -4379,6 +4384,8 @@ func TestFullConfig(t *testing.T) {
 		_, n, _ := net.ParseCIDR(s)
 		return n
 	}
+
+	defaultEntMeta := structs.DefaultEnterpriseMeta()
 
 	flagSrc := []string{`-dev`}
 	src := map[string]string{
@@ -5953,8 +5960,9 @@ func TestFullConfig(t *testing.T) {
 		ClientAddrs:         []*net.IPAddr{ipAddr("93.83.18.19")},
 		ConfigEntryBootstrap: []structs.ConfigEntry{
 			&structs.ProxyConfigEntry{
-				Kind: structs.ProxyDefaults,
-				Name: structs.ProxyConfigGlobal,
+				Kind:           structs.ProxyDefaults,
+				Name:           structs.ProxyConfigGlobal,
+				EnterpriseMeta: *defaultEntMeta,
 				Config: map[string]interface{}{
 					"foo": "bar",
 					// has to be a float due to being a map[string]interface
