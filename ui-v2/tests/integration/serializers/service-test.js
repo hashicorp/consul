@@ -37,7 +37,9 @@ module('Integration | Serializer | service', function(hooks) {
             ns: nspace,
           }
         );
-        assert.deepEqual(actual, expected);
+        assert.equal(actual[0].Namespace, expected[0].Namespace);
+        assert.equal(actual[0].Datacenter, expected[0].Datacenter);
+        assert.equal(actual[0].uid, expected[0].uid);
       });
     });
     test(`respondForQuery returns the correct data for list endpoint when gateway is set when nspace is ${nspace}`, function(assert) {

@@ -1,17 +1,17 @@
 <ListCollection @items={{items}} @linkable={{action "isLinkable"}} class="consul-upstream-list" as |item index|>
   <BlockSlot @name="header">
   {{#if (gt item.InstanceCount 0)}}
-    <dl class={{service/health-checks item}}>
+    <dl class={{item.MeshStatus}}>
       <dt>
         Health
       </dt>
       <dd>
         <Tooltip @position="top-start">
-          {{#if (eq 'critical' (service/health-checks item))}}
+          {{#if (eq 'critical' item.MeshStatus)}}
             At least one health check on one instance is failing.
-          {{else if (eq 'warning' (service/health-checks item))}}
+          {{else if (eq 'warning' item.MeshStatus)}}
             At least one health check on one instance has a warning.
-          {{else if (eq 'passing' (service/health-checks item))}}
+          {{else if (eq 'passing' item.MeshStatus)}}
             All health checks are passing.
           {{else}}
             There are no health checks.

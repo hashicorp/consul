@@ -1,5 +1,4 @@
 import { moduleFor, test } from 'ember-qunit';
-import { skip } from 'qunit';
 import repo from 'consul-ui/tests/helpers/repo';
 import { get } from '@ember/object';
 const NAME = 'service';
@@ -7,7 +6,6 @@ moduleFor(`service:repository/${NAME}`, `Integration | Service | ${NAME}`, {
   // Specify the other units that are required for this test.
   integration: true,
 });
-skip('findBySlug returns a sane tree');
 const dc = 'dc-1';
 const id = 'token-name';
 const now = new Date().getTime();
@@ -41,44 +39,6 @@ const undefinedNspace = 'default';
     });
   });
 
-  test(`findByDatacenter returns the correct data for list endpoint when nspace is ${nspace}`, function(assert) {
-    get(this.subject(), 'store').serializerFor(NAME).timestamp = function() {
-      return now;
-    };
-    return repo(
-      'Service',
-      'findAllByDatacenter',
-      this.subject(),
-      function retrieveStub(stub) {
-        return stub(
-          `/v1/internal/ui/services?dc=${dc}${
-            typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``
-          }`,
-          {
-            CONSUL_SERVICE_COUNT: '100',
-          }
-        );
-      },
-      function performTest(service) {
-        return service.findAllByDatacenter(dc, nspace || undefinedNspace);
-      },
-      function performAssertion(actual, expected) {
-        assert.deepEqual(
-          actual,
-          expected(function(payload) {
-            return payload.map(item =>
-              Object.assign({}, item, {
-                SyncTime: now,
-                Datacenter: dc,
-                Namespace: item.Namespace || undefinedNspace,
-                uid: `["${item.Namespace || undefinedNspace}","${dc}","${item.Name}"]`,
-              })
-            );
-          })
-        );
-      }
-    );
-  });
   test(`findBySlug returns the correct data for item endpoint when the nspace is ${nspace}`, function(assert) {
     return repo(
       'Service',
