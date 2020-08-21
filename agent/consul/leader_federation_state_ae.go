@@ -219,7 +219,7 @@ func (s *Server) pruneStaleFederationStates() error {
 		if err != nil {
 			return fmt.Errorf("Failed to delete federation state %s: %v", dc, err)
 		}
-		if respErr, ok := resp.(error); ok && err != nil {
+		if respErr, ok := resp.(error); ok {
 			return fmt.Errorf("Failed to delete federation state %s: %v", dc, respErr)
 		}
 	}
