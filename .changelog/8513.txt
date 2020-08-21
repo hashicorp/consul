@@ -1,0 +1,3 @@
+```release-note:improvement
+agent caching: add support for NotModified to internal agent caching requests for every endpoint that supports blocking requests.
+```
