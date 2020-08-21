@@ -1639,8 +1639,8 @@ func TestACLResolver_Client(t *testing.T) {
 			// effectively disable caching - so the only way we end up with 1 token read is if they were
 			// being resolved concurrently
 			config.Config.ACLTokenTTL = 0 * time.Second
-			config.Config.ACLPolicyTTL = 30 * time.Millisecond
-			config.Config.ACLRoleTTL = 30 * time.Millisecond
+			config.Config.ACLPolicyTTL = 30 * time.Second
+			config.Config.ACLRoleTTL = 30 * time.Second
 			config.Config.ACLDownPolicy = "extend-cache"
 		})
 
