@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 	uuid "github.com/hashicorp/go-uuid"
 )
 
@@ -557,7 +558,7 @@ func (s *Server) startConnectLeader() {
 	// Start the Connect secondary DC actions if enabled.
 	if s.config.ConnectEnabled && s.config.Datacenter != s.config.PrimaryDatacenter {
 		s.leaderRoutineManager.Start(secondaryCARootWatchRoutineName, s.secondaryCARootWatch)
-		s.leaderRoutineManager.Start(intentionReplicationRoutineName, s.replicateIntentions)
+		s.leaderRoutineManager.Start(intentionReplicationRoutineName, s.intentionReplicator.Run)
 		s.leaderRoutineManager.Start(secondaryCertRenewWatchRoutineName, s.secondaryIntermediateCertRenewalWatch)
 		s.startConnectLeaderEnterprise()
 	}
@@ -774,62 +775,62 @@ func (s *Server) secondaryCARootWatch(ctx context.Context) error {
 
 // replicateIntentions executes a blocking query to the primary datacenter to replicate
 // the intentions there to the local state.
-func (s *Server) replicateIntentions(ctx context.Context) error {
-	connectLogger := s.loggers.Named(logging.Connect)
+// func (s *Server) replicateIntentions(ctx context.Context) error {
+func (s *Server) replicateIntentions(ctx context.Context, lastRemoteIndex uint64, logger hclog.Logger) (index uint64, exit bool, err error) {
 	args := structs.DCSpecificRequest{
-		Datacenter: s.config.PrimaryDatacenter,
+		Datacenter:   s.config.PrimaryDatacenter,
+		QueryOptions: structs.QueryOptions{Token: s.tokens.ReplicationToken()},
 	}
 
-	connectLogger.Debug("starting Connect intention replication from primary datacenter", "primary", s.config.PrimaryDatacenter)
+	var remote structs.IndexedIntentions
+	if err := s.forwardDC("Intention.List", s.config.PrimaryDatacenter, &args, &remote); err != nil {
+		return 0, false, err
+	}
 
-	retryLoopBackoff(ctx, func() error {
-		// Always use the latest replication token value in case it changed while looping.
-		args.QueryOptions.Token = s.tokens.ReplicationToken()
+	logger.Debug("finished fetching intentions", "amount", len(remote.Intentions))
 
-		var remote structs.IndexedIntentions
-		if err := s.forwardDC("Intention.List", s.config.PrimaryDatacenter, &args, &remote); err != nil {
-			return err
-		}
+	// Need to check if we should be stopping. This will be common as the fetching process is a blocking
+	// RPC which could have been hanging around for a long time and during that time leadership could
+	// have been lost.
+	select {
+	case <-ctx.Done():
+		return 0, true, nil
+	default:
+		// do nothing
+	}
 
-		_, local, err := s.fsm.State().Intentions(nil, s.replicationEnterpriseMeta())
+	_, local, err := s.fsm.State().Intentions(nil, s.replicationEnterpriseMeta())
+	if err != nil {
+		return 0, false, fmt.Errorf("failed to retrieve local intentions: %w", err)
+	}
+
+	// Compute the diff between the remote and local intentions.
+	deletes, updates := diffIntentions(local, remote.Intentions)
+	txnOpSets := batchIntentionUpdates(deletes, updates)
+
+	// Apply batched updates to the state store.
+	for _, ops := range txnOpSets {
+		txnReq := structs.TxnRequest{Ops: ops}
+
+		resp, err := s.raftApply(structs.TxnRequestType, &txnReq)
 		if err != nil {
-			return err
+			return 0, false, fmt.Errorf("failed to apply intentions update: %w", err)
+		}
+		if respErr, ok := resp.(error); ok {
+			return 0, false, fmt.Errorf("failed to apply intentions update: %w", respErr)
 		}
 
-		// Compute the diff between the remote and local intentions.
-		deletes, updates := diffIntentions(local, remote.Intentions)
-		txnOpSets := batchIntentionUpdates(deletes, updates)
-
-		// Apply batched updates to the state store.
-		for _, ops := range txnOpSets {
-			txnReq := structs.TxnRequest{Ops: ops}
-
-			resp, err := s.raftApply(structs.TxnRequestType, &txnReq)
-			if err != nil {
-				return err
+		if txnResp, ok := resp.(structs.TxnResponse); ok {
+			if len(txnResp.Errors) > 0 {
+				return 0, false, fmt.Errorf("failed to apply intentions update: %w", txnResp.Error())
 			}
-			if respErr, ok := resp.(error); ok {
-				return respErr
-			}
-
-			if txnResp, ok := resp.(structs.TxnResponse); ok {
-				if len(txnResp.Errors) > 0 {
-					return txnResp.Error()
-				}
-			} else {
-				return fmt.Errorf("unexpected return type %T", resp)
-			}
+		} else {
+			return 0, false, fmt.Errorf("failed to apply intentions update: unexpected return type %T", resp)
 		}
+	}
 
-		args.QueryOptions.MinQueryIndex = nextIndexVal(args.QueryOptions.MinQueryIndex, remote.QueryMeta.Index)
-		return nil
-	}, func(err error) {
-		connectLogger.Error("error replicating intentions",
-			"routine", intentionReplicationRoutineName,
-			"error", err,
-		)
-	})
-	return nil
+	args.QueryOptions.MinQueryIndex = nextIndexVal(args.QueryOptions.MinQueryIndex, remote.QueryMeta.Index)
+	return remote.Index, false, nil
 }
 
 // retryLoopBackoff loops a given function indefinitely, backing off exponentially

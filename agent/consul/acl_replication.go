@@ -5,10 +5,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbreplication"
 	"github.com/hashicorp/go-hclog"
 )
 
@@ -352,17 +354,17 @@ func (s *Server) fetchACLTokens(lastRemoteIndex uint64) (*structs.ACLTokenListRe
 	return &response, nil
 }
 
-func (s *Server) replicateACLTokens(ctx context.Context, logger hclog.Logger, lastRemoteIndex uint64) (uint64, bool, error) {
+func (s *Server) replicateACLTokens(ctx context.Context, lastRemoteIndex uint64, logger hclog.Logger) (uint64, bool, error) {
 	tr := &aclTokenReplicator{}
 	return s.replicateACLType(ctx, logger, tr, lastRemoteIndex)
 }
 
-func (s *Server) replicateACLPolicies(ctx context.Context, logger hclog.Logger, lastRemoteIndex uint64) (uint64, bool, error) {
+func (s *Server) replicateACLPolicies(ctx context.Context, lastRemoteIndex uint64, logger hclog.Logger) (uint64, bool, error) {
 	tr := &aclPolicyReplicator{}
 	return s.replicateACLType(ctx, logger, tr, lastRemoteIndex)
 }
 
-func (s *Server) replicateACLRoles(ctx context.Context, logger hclog.Logger, lastRemoteIndex uint64) (uint64, bool, error) {
+func (s *Server) replicateACLRoles(ctx context.Context, lastRemoteIndex uint64, logger hclog.Logger) (uint64, bool, error) {
 	tr := &aclRoleReplicator{}
 	return s.replicateACLType(ctx, logger, tr, lastRemoteIndex)
 }
@@ -484,73 +486,68 @@ func (s *Server) IsACLReplicationEnabled() bool {
 		s.config.ACLTokenReplication
 }
 
-func (s *Server) updateACLReplicationStatusError() {
-	s.aclReplicationStatusLock.Lock()
-	defer s.aclReplicationStatusLock.Unlock()
-
-	s.aclReplicationStatus.LastError = time.Now().Round(time.Second).UTC()
-}
-
-func (s *Server) updateACLReplicationStatusIndex(replicationType structs.ACLReplicationType, index uint64) {
-	s.aclReplicationStatusLock.Lock()
-	defer s.aclReplicationStatusLock.Unlock()
-
-	s.aclReplicationStatus.LastSuccess = time.Now().Round(time.Second).UTC()
-	switch replicationType {
-	case structs.ACLReplicateLegacy:
-		s.aclReplicationStatus.ReplicatedIndex = index
-	case structs.ACLReplicateTokens:
-		s.aclReplicationStatus.ReplicatedTokenIndex = index
-	case structs.ACLReplicatePolicies:
-		s.aclReplicationStatus.ReplicatedIndex = index
-	case structs.ACLReplicateRoles:
-		s.aclReplicationStatus.ReplicatedRoleIndex = index
-	default:
-		panic("unknown replication type: " + replicationType.SingularNoun())
-	}
-}
-
-func (s *Server) initReplicationStatus() {
-	s.aclReplicationStatusLock.Lock()
-	defer s.aclReplicationStatusLock.Unlock()
-
-	s.aclReplicationStatus.Enabled = true
-	s.aclReplicationStatus.Running = true
-	s.aclReplicationStatus.SourceDatacenter = s.config.ACLDatacenter
-}
-
-func (s *Server) updateACLReplicationStatusStopped() {
-	s.aclReplicationStatusLock.Lock()
-	defer s.aclReplicationStatusLock.Unlock()
-
-	s.aclReplicationStatus.Running = false
-}
-
-func (s *Server) updateACLReplicationStatusRunning(replicationType structs.ACLReplicationType) {
-	s.aclReplicationStatusLock.Lock()
-	defer s.aclReplicationStatusLock.Unlock()
-
-	// The running state represents which type of overall replication has been
-	// configured. Though there are various types of internal plumbing for acl
-	// replication, to the end user there are only 3 distinctly configurable
-	// variants: legacy, policy, token. Roles replicate with policies so we
-	// round that up here.
-	if replicationType == structs.ACLReplicateRoles {
-		replicationType = structs.ACLReplicatePolicies
-	}
-
-	s.aclReplicationStatus.Running = true
-	s.aclReplicationStatus.ReplicationType = replicationType
-}
-
-func (s *Server) getACLReplicationStatusRunningType() (structs.ACLReplicationType, bool) {
-	s.aclReplicationStatusLock.RLock()
-	defer s.aclReplicationStatusLock.RUnlock()
-	return s.aclReplicationStatus.ReplicationType, s.aclReplicationStatus.Running
-}
-
+// getACLReplicationStatus will find all replication status related to ACLs and convert
+// it into the older struct representation for compatibility purposes
 func (s *Server) getACLReplicationStatus() structs.ACLReplicationStatus {
-	s.aclReplicationStatusLock.RLock()
-	defer s.aclReplicationStatusLock.RUnlock()
-	return s.aclReplicationStatus
+	var status structs.ACLReplicationStatus
+	status.SourceDatacenter = s.config.PrimaryDatacenter
+
+	tokenInfo := s.replicationStatusManager.Info(pbreplication.Type_ACLTokens)
+	policyInfo := s.replicationStatusManager.Info(pbreplication.Type_ACLPolicies)
+	roleInfo := s.replicationStatusManager.Info(pbreplication.Type_ACLRoles)
+	legacyInfo := s.replicationStatusManager.Info(pbreplication.Type_LegacyACLs)
+
+	if policyInfo.Enabled || roleInfo.Enabled || tokenInfo.Enabled || legacyInfo.Enabled {
+		status.Enabled = true
+
+		if tokenInfo.Enabled {
+			status.ReplicationType = structs.ACLReplicateTokens
+		} else if legacyInfo.Enabled {
+			status.ReplicationType = structs.ACLReplicateLegacy
+		} else {
+			status.ReplicationType = structs.ACLReplicatePolicies
+		}
+	}
+
+	if policyInfo.Running || roleInfo.Running || tokenInfo.Running || legacyInfo.Running {
+		status.Running = true
+	}
+
+	if legacyInfo.Running {
+		status.ReplicatedIndex = legacyInfo.Index
+	} else {
+		status.ReplicatedIndex = policyInfo.Index
+	}
+
+	status.ReplicatedRoleIndex = roleInfo.Index
+	status.ReplicatedTokenIndex = tokenInfo.Index
+
+	var successTimes []time.Time
+	var errorTimes []time.Time
+
+	for _, info := range []*pbreplication.Info{policyInfo, roleInfo, tokenInfo, legacyInfo} {
+		if info.Status == pbreplication.Status_Ok {
+			successTimes = append(successTimes, time.Unix(info.LastStatusAt.GetSeconds(), int64(info.LastStatusAt.GetNanos())))
+		} else {
+			errorTimes = append(errorTimes, time.Unix(info.LastStatusAt.GetSeconds(), int64(info.LastStatusAt.GetNanos())))
+		}
+	}
+
+	sort.Slice(successTimes, func(i, j int) bool {
+		// using After to get the slice in reverse order
+		return successTimes[i].After(successTimes[j])
+	})
+
+	sort.Slice(errorTimes, func(i, j int) bool {
+		// using After to get the slice in reverse order
+		return errorTimes[i].After(errorTimes[j])
+	})
+
+	if len(successTimes) > 0 {
+		status.LastSuccess = successTimes[0]
+	}
+	if len(errorTimes) > 0 {
+		status.LastError = errorTimes[0]
+	}
+	return status
 }

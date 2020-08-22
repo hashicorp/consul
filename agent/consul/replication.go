@@ -3,12 +3,16 @@ package consul
 import (
 	"context"
 	"fmt"
+	"sort"
+	"sync"
 	"sync/atomic"
 	"time"
 
 	metrics "github.com/armon/go-metrics"
+	"github.com/gogo/protobuf/types"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto/pbreplication"
 	"github.com/hashicorp/go-hclog"
 	"golang.org/x/time/rate"
 )
@@ -28,6 +32,8 @@ type ReplicatorDelegate interface {
 type ReplicatorConfig struct {
 	// Name to be used in various logging
 	Name string
+	// Type to be used when publishing replication status
+	Type pbreplication.Type
 	// Delegate to perform each round of replication
 	Delegate ReplicatorDelegate
 	// The number of replication rounds per second that are allowed
@@ -42,6 +48,8 @@ type ReplicatorConfig struct {
 	Logger hclog.Logger
 	// Function to use for determining if an error should be suppressed
 	SuppressErrorLog func(err error) bool
+	// StatusManager is where results of replication get published
+	StatusManager *ReplicationStatusManager
 }
 
 type Replicator struct {
@@ -51,6 +59,8 @@ type Replicator struct {
 	logger           hclog.Logger
 	lastRemoteIndex  uint64
 	suppressErrorLog func(err error) bool
+	replicationType  pbreplication.Type
+	statusManager    *ReplicationStatusManager
 }
 
 func NewReplicator(config *ReplicatorConfig) (*Replicator, error) {
@@ -59,6 +69,12 @@ func NewReplicator(config *ReplicatorConfig) (*Replicator, error) {
 	}
 	if config.Delegate == nil {
 		return nil, fmt.Errorf("Cannot create the Replicator without a Delegate set in the config")
+	}
+	if config.StatusManager == nil {
+		return nil, fmt.Errorf("Must provide a status manager for publishing replication status")
+	}
+	if _, ok := pbreplication.Type_name[int32(config.Type)]; !ok {
+		return nil, fmt.Errorf("Cannot create replicator for unknown type: %d", config.Type)
 	}
 	if config.Logger == nil {
 		logger := hclog.New(&hclog.LoggerOptions{})
@@ -82,11 +98,15 @@ func NewReplicator(config *ReplicatorConfig) (*Replicator, error) {
 		delegate:         config.Delegate,
 		logger:           config.Logger.Named(logging.Replication).Named(config.Name),
 		suppressErrorLog: config.SuppressErrorLog,
+		replicationType:  config.Type,
+		statusManager:    config.StatusManager,
 	}, nil
 }
 
 func (r *Replicator) Run(ctx context.Context) error {
+	r.statusManager.SetRunning(r.replicationType, true)
 	defer r.logger.Info("stopped replication")
+	defer r.statusManager.SetRunning(r.replicationType, false)
 
 	for {
 		// This ensures we aren't doing too many successful replication rounds - mostly useful when
@@ -111,9 +131,12 @@ func (r *Replicator) Run(ctx context.Context) error {
 			if r.suppressErrorLog != nil && !r.suppressErrorLog(err) {
 				r.logger.Warn("replication error (will retry if still leader)", "error", err)
 			}
+
+			r.statusManager.Error(r.replicationType, err)
 		} else {
 			atomic.StoreUint64(&r.lastRemoteIndex, index)
 			r.logger.Debug("replication completed through remote index", "index", index)
+			r.statusManager.Success(r.replicationType, index)
 		}
 
 		select {
@@ -283,4 +306,102 @@ func (r *IndexReplicator) Replicate(ctx context.Context, lastRemoteIndex uint64,
 	// Return the index we got back from the remote side, since we've synced
 	// up with the remote state as of that index.
 	return remoteIndex, false, nil
+}
+
+type ReplicationStatusManager struct {
+	types map[pbreplication.Type]*pbreplication.Info
+
+	sync.RWMutex
+}
+
+func NewReplicationStatusManager() *ReplicationStatusManager {
+	m := &ReplicationStatusManager{
+		types: make(map[pbreplication.Type]*pbreplication.Info),
+	}
+
+	// Initialize all the known replication types
+	for typRaw := range pbreplication.Type_name {
+		// for some reason the protobuf generated code
+		typ := pbreplication.Type(typRaw)
+		m.types[typ] = &pbreplication.Info{
+			Type:    typ,
+			Enabled: false,
+		}
+	}
+
+	return m
+}
+
+func (m *ReplicationStatusManager) Info(typ pbreplication.Type) *pbreplication.Info {
+	m.RLock()
+	defer m.RUnlock()
+
+	return m.types[typ]
+}
+
+func (m *ReplicationStatusManager) InfoList() []*pbreplication.Info {
+	m.RLock()
+	defer m.RUnlock()
+
+	replInfo := make([]*pbreplication.Info, 0, len(m.types))
+	for _, info := range m.types {
+		replInfo = append(replInfo, info)
+	}
+
+	sort.Slice(replInfo, func(i, j int) bool {
+		return replInfo[i].Type < replInfo[j].Type
+	})
+
+	return replInfo
+}
+
+func (m *ReplicationStatusManager) SetEnabled(typ pbreplication.Type, enabled bool) {
+	m.Lock()
+	defer m.Unlock()
+
+	if info, ok := m.types[typ]; ok {
+		info.Enabled = enabled
+	}
+}
+
+func (m *ReplicationStatusManager) SetRunning(typ pbreplication.Type, running bool) {
+	m.Lock()
+	defer m.Unlock()
+
+	if info, ok := m.types[typ]; ok {
+		info.Enabled = true
+		info.Running = true
+	}
+}
+
+func (m *ReplicationStatusManager) SetStatus(typ pbreplication.Type, status pbreplication.Status) {
+	m.Lock()
+	defer m.Unlock()
+
+	if info, ok := m.types[typ]; ok {
+		info.Status = status
+	}
+}
+
+func (m *ReplicationStatusManager) Success(typ pbreplication.Type, index uint64) {
+	m.Lock()
+	defer m.Unlock()
+
+	if info, ok := m.types[typ]; ok {
+		info.Status = pbreplication.Status_Ok
+		info.Index = index
+		info.LastStatusAt = types.TimestampNow()
+		info.LastError = ""
+	}
+}
+
+func (m *ReplicationStatusManager) Error(typ pbreplication.Type, err error) {
+	m.Lock()
+	defer m.Unlock()
+
+	if info, ok := m.types[typ]; ok {
+		info.Status = pbreplication.Status_Error
+		info.LastError = err.Error()
+		info.LastStatusAt = types.TimestampNow()
+	}
 }

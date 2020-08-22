@@ -18,6 +18,10 @@ func init() {
 	registerEndpoint(func(s *Server) interface{} { return &KVS{s, s.loggers.Named(logging.KV)} })
 	registerEndpoint(func(s *Server) interface{} { return &Operator{s, s.loggers.Named(logging.Operator)} })
 	registerEndpoint(func(s *Server) interface{} { return &PreparedQuery{s, s.loggers.Named(logging.PreparedQuery)} })
+	registerEndpoint(func(s *Server) interface{} {
+		r, _ := NewReplication(s)
+		return r
+	})
 	registerEndpoint(func(s *Server) interface{} { return &Session{s, s.loggers.Named(logging.Session)} })
 	registerEndpoint(func(s *Server) interface{} { return &Status{s} })
 	registerEndpoint(func(s *Server) interface{} { return &Txn{s, s.loggers.Named(logging.Transaction)} })

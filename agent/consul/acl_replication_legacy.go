@@ -219,7 +219,7 @@ func (s *Server) updateLocalLegacyACLs(changes structs.ACLRequests, ctx context.
 // a remote ACL datacenter to local state. If there's any error, this will return
 // 0 for the lastRemoteIndex, which will cause us to immediately do a full sync
 // next time.
-func (s *Server) replicateLegacyACLs(ctx context.Context, logger hclog.Logger, lastRemoteIndex uint64) (uint64, bool, error) {
+func (s *Server) replicateLegacyACLs(ctx context.Context, lastRemoteIndex uint64, logger hclog.Logger) (uint64, bool, error) {
 	remote, err := s.fetchRemoteLegacyACLs(lastRemoteIndex)
 	if err != nil {
 		return 0, false, fmt.Errorf("failed to retrieve remote ACLs: %v", err)
