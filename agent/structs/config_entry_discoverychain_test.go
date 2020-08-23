@@ -536,6 +536,278 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 	}
 }
 
+func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
+
+	type testcase struct {
+		name         string
+		entry        *ServiceResolverConfigEntry
+		normalizeErr string
+		validateErr  string
+
+		// check is called between normalize and validate
+		check func(t *testing.T, entry *ServiceResolverConfigEntry)
+	}
+
+	cases := []testcase{
+		{
+			name: "empty policy is valid",
+			entry: &ServiceResolverConfigEntry{
+				Kind:         ServiceResolver,
+				Name:         "test",
+				LoadBalancer: LoadBalancer{Policy: ""},
+			},
+		},
+		{
+			name: "supported policy",
+			entry: &ServiceResolverConfigEntry{
+				Kind:         ServiceResolver,
+				Name:         "test",
+				LoadBalancer: LoadBalancer{Policy: "random"},
+			},
+		},
+		{
+			name: "unsupported policy",
+			entry: &ServiceResolverConfigEntry{
+				Kind:         ServiceResolver,
+				Name:         "test",
+				LoadBalancer: LoadBalancer{Policy: "fake-policy"},
+			},
+			validateErr: `"fake-policy" is not supported`,
+		},
+		{
+			name: "bad policy for least request config",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: LoadBalancer{
+					Policy:             "ring_hash",
+					LeastRequestConfig: LeastRequestConfig{ChoiceCount: 2},
+				},
+			},
+			validateErr: `LeastRequestConfig specified for incompatible load balancing policy`,
+		},
+		{
+			name: "bad policy for ring hash config",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: LoadBalancer{
+					Policy:         "least_request",
+					RingHashConfig: RingHashConfig{MinimumRingSize: 1024},
+				},
+			},
+			validateErr: `RingHashConfig specified for incompatible load balancing policy`,
+		},
+		{
+			name: "good policy for ring hash config",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: LoadBalancer{
+					Policy:         "ring_hash",
+					RingHashConfig: RingHashConfig{MinimumRingSize: 1024},
+				},
+			},
+		},
+		{
+			name: "good policy for least request config",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: LoadBalancer{
+					Policy:             "least_request",
+					LeastRequestConfig: LeastRequestConfig{ChoiceCount: 2},
+				},
+			},
+		},
+		{
+			name: "empty policy is not defaulted",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: LoadBalancer{
+					Policy: "",
+				},
+			},
+			check: func(t *testing.T, entry *ServiceResolverConfigEntry) {
+				require.Equal(t, "", entry.LoadBalancer.Policy)
+			},
+		},
+		{
+			name: "empty policy with hash policy",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: LoadBalancer{
+					Policy: "",
+					HashPolicies: []HashPolicy{
+						{
+							SourceAddress: true,
+						},
+					},
+				},
+			},
+			validateErr: `HashPolicies specified for non-hash-based Policy`,
+		},
+		{
+			name: "supported match field",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: LoadBalancer{
+					Policy: "maglev",
+					HashPolicies: []HashPolicy{
+						{
+							Field:           "header",
+							FieldMatchValue: "X-Consul-Token",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "unsupported match field",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: LoadBalancer{
+					Policy: "maglev",
+					HashPolicies: []HashPolicy{
+						{
+							Field: "not-header",
+						},
+					},
+				},
+			},
+			validateErr: `"not-header" is not a supported field`,
+		},
+		{
+			name: "cannot match on source address and custom field",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: LoadBalancer{
+					Policy: "maglev",
+					HashPolicies: []HashPolicy{
+						{
+							Field:         "header",
+							SourceAddress: true,
+						},
+					},
+				},
+			},
+			validateErr: `A single hash policy cannot hash both a source address and a "header"`,
+		},
+		{
+			name: "matchvalue not compatible with source address",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: LoadBalancer{
+					Policy: "maglev",
+					HashPolicies: []HashPolicy{
+						{
+							FieldMatchValue: "X-Consul-Token",
+							SourceAddress:   true,
+						},
+					},
+				},
+			},
+			validateErr: `A FieldMatchValue cannot be specified when hashing SourceAddress`,
+		},
+		{
+			name: "field without match value",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: LoadBalancer{
+					Policy: "maglev",
+					HashPolicies: []HashPolicy{
+						{
+							Field: "header",
+						},
+					},
+				},
+			},
+			validateErr: `Field "header" was specified without a FieldMatchValue`,
+		},
+		{
+			name: "field without match value",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: LoadBalancer{
+					Policy: "maglev",
+					HashPolicies: []HashPolicy{
+						{
+							FieldMatchValue: "my-cookie",
+						},
+					},
+				},
+			},
+			validateErr: `FieldMatchValue requires a Field to apply to`,
+		},
+		{
+			name: "ring hash kitchen sink",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: LoadBalancer{
+					Policy:         "ring_hash",
+					RingHashConfig: RingHashConfig{MaximumRingSize: 10, MinimumRingSize: 2},
+					HashPolicies: []HashPolicy{
+						{
+							Field:           "cookie",
+							FieldMatchValue: "my-cookie",
+						},
+						{
+							Field:           "header",
+							FieldMatchValue: "alt-header",
+							Terminal:        true,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "least request kitchen sink",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: LoadBalancer{
+					Policy:             "least_request",
+					LeastRequestConfig: LeastRequestConfig{ChoiceCount: 20},
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.entry.Normalize()
+			if tc.normalizeErr != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.normalizeErr)
+				return
+			}
+			require.NoError(t, err)
+
+			if tc.check != nil {
+				tc.check(t, tc.entry)
+			}
+
+			err = tc.entry.Validate()
+			if tc.validateErr != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.validateErr)
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
+}
+
 func TestServiceSplitterConfigEntry(t *testing.T) {
 
 	makesplitter := func(splits ...ServiceSplit) *ServiceSplitterConfigEntry {
