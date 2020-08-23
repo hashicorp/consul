@@ -23,8 +23,9 @@ entries](/docs/agent/config_entries). By configuring different phases of
 the discovery chain a user can control how proxy upstreams are ultimately
 resolved to specific instances for load balancing.
 
--> **Note:** The discovery chain is currently only used to discover
-[Connect](/docs/connect) proxy upstreams.
+-> **Note:** In versions earlier to Consul 1.8, the discovery chain is only used to discover
+[Connect](/docs/connect) proxy upstreams. 
+From Consul 1.8 onwards, also Envoy sidecar proxies use the discovery chain. 
 
 ## Configuration
 
