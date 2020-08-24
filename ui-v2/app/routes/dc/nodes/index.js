@@ -6,6 +6,7 @@ export default Route.extend({
   repo: service('repository/node'),
   data: service('data-source/service'),
   queryParams: {
+    sortBy: 'sort',
     search: {
       as: 'filter',
       replace: true,
