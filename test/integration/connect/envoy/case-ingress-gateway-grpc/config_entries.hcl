@@ -17,6 +17,7 @@ config_entries {
         services = [
           {
             name = "s1"
+            hosts = ["localhost:9999"]
           }
         ]
       }

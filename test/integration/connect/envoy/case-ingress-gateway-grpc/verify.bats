@@ -22,7 +22,7 @@ load helpers
    assert_upstream_has_endpoints_in_status 127.0.0.1:20000 s1 HEALTHY 1
 }
 
-@test "ingress should be able to connect to s2 via grpc" {
+@test "ingress should be able to connect to s1 via grpc" {
   # This test also covers http2 since gRPC always uses http2
   run fortio grpcping localhost:9999
 
