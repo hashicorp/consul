@@ -1,7 +1,7 @@
 ---
 layout: docs
 page_title: Installing Consul on Kubernetes - Kubernetes
-sidebar_title: Overview
+sidebar_title: Installation
 description: >-
   Consul can run directly on Kubernetes, both in server or client mode. For
   pure-Kubernetes workloads, this enables Consul to also exist purely within
@@ -18,7 +18,7 @@ a server running inside or outside of Kubernetes.
 
 This page starts with a large how-to section for various specific tasks.
 To learn more about the general architecture of Consul on Kubernetes, scroll
-down to the [architecture](/docs/k8s/installation/overview.html#architecture) section.
+down to the [architecture](/docs/k8s/installation#architecture) section.
 If you would like to get hands-on experience testing Consul as a service mesh
 for Kubernetes, check the guides in the [Getting Started with Consul service
 mesh](https://learn.hashicorp.com/consul/gs-consul-service-mesh/understand-consul-service-mesh?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) track.
@@ -98,7 +98,7 @@ create a `config.yaml` file to override the default settings.
 You can learn what settings are available by running `helm inspect values hashicorp/consul`
 or by reading the [Helm Chart Reference](/docs/k8s/helm).
 
-For example, if you want to enable the [Consul Connect](/docs/k8s/connect/overview) feature,
+For example, if you want to enable the [Consul Connect](/docs/k8s/connect) feature,
 use the following config file:
 
 ```yaml
@@ -185,7 +185,7 @@ has important caching behavior, and allows you to use the simpler
 [`/agent` endpoints for services and checks](/api/agent).
 
 For Consul installed via the Helm chart, a client agent is installed on
-each Kubernetes node. This is explained in the [architecture](/docs/k8s/installation/overview#client-agents)
+each Kubernetes node. This is explained in the [architecture](/docs/k8s/installation#client-agents)
 section. To access the agent, you may use the
 [downward API](https://kubernetes.io/docs/tasks/inject-data-application/downward-api-volume-expose-pod-information/).
 
@@ -297,7 +297,7 @@ The clients expose the Consul HTTP API via a static port (default 8500)
 bound to the host port. This enables all other pods on the node to connect
 to the node-local agent using the host IP that can be retrieved via the
 Kubernetes downward API. See
-[accessing the Consul HTTP API](/docs/k8s/installation/overview#accessing-the-consul-http-api)
+[accessing the Consul HTTP API](/docs/k8s/installation#accessing-the-consul-http-api)
 for an example.
 
 There is a major limitation to this: there is no way to bind to a local-only

@@ -55,7 +55,7 @@ You may also consider adopting Consul Enterprise for
 -> **Note:** Consul on Kubernetes currently does not support external servers that require mutual authentication
 for the HTTPS clients of the Consul servers, that is when servers have either
 `verify_incoming` or `verify_incoming_https` set to `true`.
-As noted in the [Security Model](docs/internals/security#secure-configuration),
+As noted in the [Security Model](/docs/internals/security#secure-configuration),
 that setting isn't strictly necessary to support Consul's threat model as it is recommended that
 all requests contain a valid ACL token.
 
@@ -116,7 +116,7 @@ The bootstrap token requires the following minimal permissions:
 - `agent:read` if using WAN federation over mesh gateways
 
 Next, configure external servers. The Helm chart will use this configuration to talk to the Consul server's API
-to create policies, tokens, and an auth method. If you are [enabling Consul Connect](/docs/k8s/connect/overview),
+to create policies, tokens, and an auth method. If you are [enabling Consul Connect](/docs/k8s/connect),
 `k8sAuthMethodHost` should be set to the address of your Kubernetes API server
 so that the Consul servers can validate a Kubernetes service account token when using the [Kubernetes auth method](https://www.consul.io/docs/acl/auth-methods/kubernetes.html)
 with `consul login`.

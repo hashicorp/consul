@@ -15,7 +15,7 @@ services are available to Consul agents and services in Consul can be available
 as first-class Kubernetes services. This functionality is provided by the
 [consul-k8s project](https://github.com/hashicorp/consul-k8s) and can be
 automatically installed and configured using the
-[Consul Helm chart](/docs/k8s/installation/overview).
+[Consul Helm chart](/docs/k8s/installation).
 
 **Why sync Kubernetes services to Consul?** Kubernetes services synced to the
 Consul catalog enable Kubernetes services to be accessed by any node that
@@ -132,7 +132,7 @@ instances to be equal to the nodes running the target pods.
 By default it will use the external IP of the node but this can be configured via
 the [`nodePortSyncType` helm option](/docs/k8s/helm#v-synccatalog-nodeportsynctype).
 
-The service instance's port will be set to the *first* defined node port of the service unless
+The service instance's port will be set to the _first_ defined node port of the service unless
 set specifically via the `consul.hashicorp.com/service-port` annotation (see [Service Ports](/docs/k8s/service-sync#service-ports)).
 
 #### LoadBalancer
@@ -142,7 +142,7 @@ the external IP of the created load balancer. Because this is already a load
 balancer, only one service instance will be registered with Consul rather
 than registering each individual pod endpoint.
 
-The service instance's port will be set to the *first* defined port of the
+The service instance's port will be set to the _first_ defined port of the
 service unless set specifically via the `consul.hashicorp.com/service-port` annotation (see [Service Ports](/docs/k8s/service-sync#service-ports)).
 
 #### External IPs
@@ -157,7 +157,7 @@ If an external IP list is present, a service instance in Consul will be created
 for each external IP. It is assumed that if an external IP is present that it
 is routable and configured by some other system.
 
-The service instance's port will be set to the *first* defined port of the
+The service instance's port will be set to the _first_ defined port of the
 service unless set specifically via the `consul.hashicorp.com/service-port` annotation (see [Service Ports](/docs/k8s/service-sync#service-ports)).
 
 #### ClusterIP

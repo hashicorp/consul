@@ -10,11 +10,11 @@ description: >-
 
 -> **1.8.0+:** This feature is available in Consul versions 1.8.0 and higher
 
-~> This topic requires familiarity with [Mesh Gateways](/docs/connect/mesh-gateway) and [WAN Federation Via Mesh Gateways](/docs/connect/wan-federation-via-mesh-gateways).
+~> This topic requires familiarity with [Mesh Gateways](/docs/connect/mesh-gateway) and [WAN Federation Via Mesh Gateways](/docs/connect/gateways/wan-federation-via-mesh-gateways).
 
 Consul datacenters running on non-kubernetes platforms like VMs or bare metal can
 be federated with Kubernetes datacenters. Just like with Kubernetes, one datacenter
-must be the [primary](/docs/k8s/installation/multi-cluster/installation#primary-datacenter).
+must be the [primary](/docs/k8s/installation/multi-cluster#primary-datacenter).
 
 ## Kubernetes as the Primary
 
@@ -179,7 +179,7 @@ construct the [Federation Secret](#federation-secret) in order to federate
 Kubernetes clusters as secondaries.
 
 -> Your VM cluster must be running mesh gateways, and have mesh gateway WAN
-federation enabled. See [WAN Federation via Mesh Gateways](/docs/connect/wan-federation-via-mesh-gateways).
+federation enabled. See [WAN Federation via Mesh Gateways](/docs/connect/gateways/wan-federation-via-mesh-gateways).
 
 You'll need:
 
@@ -285,7 +285,7 @@ server:
 name of your primary datacenter running on VMs and with the IPs of your mesh
 gateways running on VMs.
 
-With your config file ready to go, follow our [Installation Guide](/docs/k8s/installation/overview
+With your config file ready to go, follow our [Installation Guide](/docs/k8s/installation)
 to install Consul on your secondary cluster(s).
 
 ## Next Steps
