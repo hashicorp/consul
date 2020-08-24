@@ -105,37 +105,40 @@ type typeStats struct {
 	Sum, Count int
 }
 
-// This should return the summary of KBs
-func Enhance(file io.Reader) error {
-	//We need to pass in an io.ReaderCloser and a handler to the
-	// ReadSnapshot func
+// countingReader helps keep track of the bytes we have read
+// when reading snapshots
+type countingReader struct {
+	r    io.Reader
+	read int
+}
 
-	//The handler reads each message and then has to do x thing with each
-	// message
-
-	//First step: make a map of typeStats, get typeStat will hold the stuff for
-	//each  message we get, stats will hold *all* of it
+// enhance utilizes ReadSnapshot to create a summary
+// of each messageType in a snapshot
+func enhance(file io.Reader) error {
 	stats := make(map[structs.MessageType]typeStats)
 	var offset uint8
 	offset = 0
+	cr := countingReader{r: file}
 	handler := func(header *snapshotHeader, msg structs.MessageType, dec *codec.Decoder) error {
-		name := structs.MessageType.String(msg)
+		msgType := structs.MessageType.String(msg)
+		s := stats[string(Name[0])]
+		if s.Name == "" {
+			s.Name = msgType
+		}
 		var val interface{}
 		err := dec.Decode(&val)
 		if err != nil {
 			panic(err)
 		}
 
-		uintmsg := uint8(msg)
-		size := uintmsg - offset
-		s := stats[msg(name[0])]
-		s.Count++
+		size := cr.read - offset
 		s.Sum += size
+		s.Count++
 		offset += size
 		stats[msg(string[0])] = s
 
 	}
-	fsm.ReadSnapshot(file, handler)
+	fsm.ReadSnapshot(cr, handler)
 	return err
 }
 

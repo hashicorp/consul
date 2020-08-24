@@ -70,6 +70,42 @@ const (
 	FederationStateRequestType                  = 30
 )
 
+// requestTypeStrings is used for snapshot enhance
+// any new request types added must be placed here
+var requestTypeStrings = map[MessageType]string{
+	0:  "Register",
+	1:  "Deregister",
+	2:  "KVS",
+	3:  "Session",
+	4:  "ACL", // DEPRECATED (ACL-Legacy-Compat)
+	5:  "Tombstone",
+	6:  "CoordinateBatchUpdate",
+	7:  "PreparedQueryRequest",
+	8:  "TxnRequest",
+	9:  "AutopilotRequest",
+	10: "Area",
+	11: "ACLBootstrap",
+	12: "Intention",
+	13: "ConnectCA",
+	14: "ConnectCAProviderState",
+	15: "ConnectCAConfig", // FSM snapshots only.
+	16: "Index",           // FSM snapshots only.
+	17: "ACLTokenSet",
+	18: "ACLTokenDelete",
+	19: "ACLPolicySet",
+	20: "ACLPolicyDelete",
+	21: "ConnectCALeaf",
+	22: "ConfigEntry",
+	23: "ACLRoleSet",
+	24: "ACLRoleDelete",
+	25: "ACLBindingRuleSet",
+	26: "ACLBindingRuleDelete",
+	27: "ACLAuthMethodSet",
+	28: "ACLAuthMethodDelete",
+	29: "ChunkingState",
+	30: "FederationState",
+}
+
 const (
 	// IgnoreUnknownTypeFlag is set along with a MessageType
 	// to indicate that the message type can be safely ignored
@@ -2361,41 +2397,6 @@ func (r *KeyringResponses) Add(v interface{}) {
 
 func (r *KeyringResponses) New() interface{} {
 	return new(KeyringResponses)
-}
-
-//sorry
-var requestTypeStrings = map[MessageType]string{
-	0:  "Register",
-	1:  "Deregister",
-	2:  "KVS",
-	3:  "Session",
-	4:  "ACL", // DEPRECATED (ACL-Legacy-Compat)
-	5:  "Tombstone",
-	6:  "CoordinateBatchUpdate",
-	7:  "PreparedQueryRequest",
-	8:  "TxnRequest",
-	9:  "AutopilotRequest",
-	10: "Area",
-	11: "ACLBootstrap",
-	12: "Intention",
-	13: "ConnectCA",
-	14: "ConnectCAProviderState",
-	15: "ConnectCAConfig", // FSM snapshots only.
-	16: "Index",           // FSM snapshots only.
-	17: "ACLTokenSet",
-	18: "ACLTokenDelete",
-	19: "ACLPolicySet",
-	20: "ACLPolicyDelete",
-	21: "ConnectCALeaf",
-	22: "ConfigEntry",
-	23: "ACLRoleSet",
-	24: "ACLRoleDelete",
-	25: "ACLBindingRuleSet",
-	26: "ACLBindingRuleDelete",
-	27: "ACLAuthMethodSet",
-	28: "ACLAuthMethodDelete",
-	29: "ChunkingState",
-	30: "FederationState",
 }
 
 //TODO(schristoff): add a comment
