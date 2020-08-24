@@ -7,8 +7,6 @@ import (
 )
 
 func TestStore_RegularTokens(t *testing.T) {
-	t.Parallel()
-
 	type tokens struct {
 		userSource   TokenSource
 		user         string
@@ -89,13 +87,22 @@ func TestStore_RegularTokens(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
 			s := new(Store)
-			require.True(t, s.UpdateUserToken(tt.set.user, tt.set.userSource))
-			require.True(t, s.UpdateAgentToken(tt.set.agent, tt.set.agentSource))
-			require.True(t, s.UpdateReplicationToken(tt.set.repl, tt.set.replSource))
-			require.True(t, s.UpdateAgentMasterToken(tt.set.master, tt.set.masterSource))
+			if tt.set.user != "" {
+				require.True(t, s.UpdateUserToken(tt.set.user, tt.set.userSource))
+			}
+
+			if tt.set.agent != "" {
+				require.True(t, s.UpdateAgentToken(tt.set.agent, tt.set.agentSource))
+			}
+
+			if tt.set.repl != "" {
+				require.True(t, s.UpdateReplicationToken(tt.set.repl, tt.set.replSource))
+			}
+
+			if tt.set.master != "" {
+				require.True(t, s.UpdateAgentMasterToken(tt.set.master, tt.set.masterSource))
+			}
 
 			// If they don't change then they return false.
 			require.False(t, s.UpdateUserToken(tt.set.user, tt.set.userSource))
@@ -128,7 +135,6 @@ func TestStore_RegularTokens(t *testing.T) {
 }
 
 func TestStore_AgentMasterToken(t *testing.T) {
-	t.Parallel()
 	s := new(Store)
 
 	verify := func(want bool, toks ...string) {
@@ -152,7 +158,6 @@ func TestStore_AgentMasterToken(t *testing.T) {
 }
 
 func TestStore_Notify(t *testing.T) {
-	t.Parallel()
 	s := new(Store)
 
 	newNotification := func(t *testing.T, s *Store, kind TokenKind) Notifier {
