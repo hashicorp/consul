@@ -1225,9 +1225,7 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 		return respErr
 	}
 
-	if policy != nil {
-		*reply = policy.Name
-	}
+	*reply = policy.Name
 
 	return nil
 }
@@ -1692,9 +1690,7 @@ func (a *ACL) RoleDelete(args *structs.ACLRoleDeleteRequest, reply *string) erro
 		return respErr
 	}
 
-	if role != nil {
-		*reply = role.Name
-	}
+	*reply = role.Name
 
 	return nil
 }
@@ -2525,9 +2521,7 @@ func (a *ACL) Logout(args *structs.ACLLogoutRequest, reply *bool) error {
 	}
 
 	// Purge the identity from the cache to prevent using the previous definition of the identity
-	if token != nil {
-		a.srv.acls.cache.RemoveIdentity(tokenSecretCacheID(token.SecretID))
-	}
+	a.srv.acls.cache.RemoveIdentity(tokenSecretCacheID(token.SecretID))
 
 	if respErr, ok := resp.(error); ok {
 		return respErr

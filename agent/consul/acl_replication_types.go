@@ -229,7 +229,8 @@ func (r *aclPolicyReplicator) UpdateLocalBatch(ctx context.Context, srv *Server,
 	if err != nil {
 		return err
 	}
-	if respErr, ok := resp.(error); ok && err != nil {
+
+	if respErr, ok := resp.(error); ok {
 		return respErr
 	}
 
@@ -336,9 +337,11 @@ func (r *aclRoleReplicator) DeleteLocalBatch(srv *Server, batch []string) error 
 	if err != nil {
 		return err
 	}
-	if respErr, ok := resp.(error); ok && err != nil {
+
+	if respErr, ok := resp.(error); ok {
 		return respErr
 	}
+
 	return nil
 }
 
@@ -364,7 +367,8 @@ func (r *aclRoleReplicator) UpdateLocalBatch(ctx context.Context, srv *Server, s
 	if err != nil {
 		return err
 	}
-	if respErr, ok := resp.(error); ok && err != nil {
+
+	if respErr, ok := resp.(error); ok {
 		return respErr
 	}
 

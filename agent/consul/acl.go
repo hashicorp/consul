@@ -2144,7 +2144,7 @@ func vetNodeTxnOp(op *structs.TxnNodeOp, rule acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	op.FillAuthzContext(&authzContext)
 
-	if rule != nil && rule.NodeWrite(op.Node.Node, &authzContext) != acl.Allow {
+	if rule.NodeWrite(op.Node.Node, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
