@@ -158,7 +158,8 @@ func (r *FederationStateReplicator) PerformDeletions(ctx context.Context, deleti
 		if err != nil {
 			return false, err
 		}
-		if respErr, ok := resp.(error); ok && err != nil {
+
+		if respErr, ok := resp.(error); ok {
 			return false, respErr
 		}
 
@@ -202,7 +203,8 @@ func (r *FederationStateReplicator) PerformUpdates(ctx context.Context, updatesR
 		if err != nil {
 			return false, err
 		}
-		if respErr, ok := resp.(error); ok && err != nil {
+
+		if respErr, ok := resp.(error); ok {
 			return false, respErr
 		}
 
