@@ -32,7 +32,7 @@ export default [
     category: 'install',
     content: [
       { title: 'Consul Agent', href: '/docs/agent' },
-      'concepts',
+      'glossary',
       'ports',
       'bootstrapping',
       'cloud-auto-join',
