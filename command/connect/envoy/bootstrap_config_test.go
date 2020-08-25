@@ -486,6 +486,40 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "simple-statsd-sink-inline-env-allowed",
+			input: BootstrapConfig{
+				StatsdURL: "udp://$HOST_IP:9125",
+			},
+			env: []string{"HOST_IP=127.0.0.1"},
+			wantArgs: BootstrapTplArgs{
+				StatsConfigJSON: defaultStatsConfigJSON,
+				StatsSinksJSON: `[{
+					"name": "envoy.stat_sinks.statsd",
+					"typedConfig": {
+						"@type": "type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
+						"address": {
+							"socket_address": {
+								"address": "127.0.0.1",
+								"port_value": 9125
+							}
+						}
+					}
+				}]`,
+			},
+			wantErr: false,
+		},
+		{
+			name: "simple-statsd-sink-inline-env-disallowed",
+			input: BootstrapConfig{
+				StatsdURL: "udp://$HOST_ADDRESS:9125",
+			},
+			env: []string{"HOST_ADDRESS=127.0.0.1"},
+			wantArgs: BootstrapTplArgs{
+				StatsConfigJSON: defaultStatsConfigJSON,
+			},
+			wantErr: true,
+		},
+		{
 			name: "simple-dogstatsd-sink",
 			input: BootstrapConfig{
 				DogstatsdURL: "udp://127.0.0.1:9125",
