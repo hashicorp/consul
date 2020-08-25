@@ -125,7 +125,7 @@ SETUP_NOTIFY:
 
 RUN_QUERY:
 	// Get the recent events
-	events := s.agent.UserEvents()
+	events := s.agent.userEventHandler.UserEvents()
 
 	// Filter the events using the ACL, if present
 	if authz != nil {

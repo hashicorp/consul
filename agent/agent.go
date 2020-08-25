@@ -232,17 +232,9 @@ type Agent struct {
 	// dockerClient is the client for performing docker health checks.
 	dockerClient *checks.DockerClient
 
-	// eventCh is used to receive user events
-	eventCh chan serf.UserEvent
-
-	// eventBuf stores the most recent events in a ring buffer
-	// using eventIndex as the next index to insert into. This
-	// is guarded by eventLock. When an insert happens, the
-	// eventNotify group is notified.
-	eventBuf    []*UserEvent
-	eventIndex  int
-	eventLock   sync.RWMutex
-	eventNotify NotifyGroup
+	// TODO: use an interface
+	userEventHandler *userEventHandler
+	eventNotify      *NotifyGroup
 
 	shutdown     bool
 	shutdownCh   chan struct{}
@@ -362,8 +354,6 @@ func New(bd BaseDeps) (*Agent, error) {
 		checkGRPCs:      make(map[structs.CheckID]*checks.CheckGRPC),
 		checkDockers:    make(map[structs.CheckID]*checks.CheckDocker),
 		checkAliases:    make(map[structs.CheckID]*checks.CheckAlias),
-		eventCh:         make(chan serf.UserEvent, 1024),
-		eventBuf:        make([]*UserEvent, 256),
 		joinLANNotifier: &systemd.Notifier{},
 		retryJoinCh:     make(chan error),
 		shutdownCh:      make(chan struct{}),
@@ -480,13 +470,7 @@ func (a *Agent) Start(ctx context.Context) error {
 		return err
 	}
 
-	// Setup the user event callback
-	consulCfg.UserEventHandler = func(e serf.UserEvent) {
-		select {
-		case a.eventCh <- e:
-		case <-a.shutdownCh:
-		}
-	}
+	// TODO: consulCfg.UserEventHandler = userEventHandler.Submit
 
 	// ServerUp is used to inform that a new consul server is now
 	// up. This can be used to speed up the sync process if we are blocking
@@ -582,7 +566,7 @@ func (a *Agent) Start(ctx context.Context) error {
 	go a.reapServices()
 
 	// Start handling events.
-	go a.handleEvents()
+	go a.userEventHandler.Start()
 
 	// Start sending network coordinate to the server.
 	if !c.DisableCoordinates {
