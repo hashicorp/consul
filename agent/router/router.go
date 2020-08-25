@@ -144,6 +144,12 @@ func (r *Router) AddArea(areaID types.AreaID, cluster RouterSerfCluster, pinger 
 	}
 	r.areas[areaID] = area
 
+	// always ensure we have a started manager for the LAN area
+	if areaID == types.AreaLAN {
+		r.logger.Info("Initializing LAN area manager")
+		r.maybeInitializeManager(area, r.localDatacenter)
+	}
+
 	// Do an initial populate of the manager so that we don't have to wait
 	// for events to fire. This lets us attempt to use all the known servers
 	// initially, and then will quickly detect that they are failed if we
@@ -151,10 +157,12 @@ func (r *Router) AddArea(areaID types.AreaID, cluster RouterSerfCluster, pinger 
 	for _, m := range cluster.Members() {
 		ok, parts := metadata.IsConsulServer(m)
 		if !ok {
-			r.logger.Warn("Non-server in server-only area",
-				"non_server", m.Name,
-				"area", areaID,
-			)
+			if areaID != types.AreaLAN {
+				r.logger.Warn("Non-server in server-only area",
+					"non_server", m.Name,
+					"area", areaID,
+				)
+			}
 			continue
 		}
 
@@ -233,24 +241,35 @@ func (r *Router) RemoveArea(areaID types.AreaID) error {
 	return nil
 }
 
+// maybeInitializeManager will initialize a new manager for the given area/dc
+// if its not already created. Calling this function should only be done if
+// holding a write lock on the Router.
+func (r *Router) maybeInitializeManager(area *areaInfo, dc string) *Manager {
+	info, ok := area.managers[dc]
+	if ok {
+		return info.manager
+	}
+
+	shutdownCh := make(chan struct{})
+	manager := New(r.logger, shutdownCh, area.cluster, area.pinger, r.serverName)
+	info = &managerInfo{
+		manager:    manager,
+		shutdownCh: shutdownCh,
+	}
+	area.managers[dc] = info
+
+	managers := r.managers[dc]
+	r.managers[dc] = append(managers, manager)
+	go manager.Start()
+
+	return manager
+}
+
 // addServer does the work of AddServer once the write lock is held.
 func (r *Router) addServer(area *areaInfo, s *metadata.Server) error {
 	// Make the manager on the fly if this is the first we've seen of it,
 	// and add it to the index.
-	info, ok := area.managers[s.Datacenter]
-	if !ok {
-		shutdownCh := make(chan struct{})
-		manager := New(r.logger, shutdownCh, area.cluster, area.pinger, r.serverName)
-		info = &managerInfo{
-			manager:    manager,
-			shutdownCh: shutdownCh,
-		}
-		area.managers[s.Datacenter] = info
-
-		managers := r.managers[s.Datacenter]
-		r.managers[s.Datacenter] = append(managers, manager)
-		go manager.Start()
-	}
+	manager := r.maybeInitializeManager(area, s.Datacenter)
 
 	// If TLS is enabled for the area, set it on the server so the manager
 	// knows to use TLS when pinging it.
@@ -258,7 +277,7 @@ func (r *Router) addServer(area *areaInfo, s *metadata.Server) error {
 		s.UseTLS = true
 	}
 
-	info.manager.AddServer(s)
+	manager.AddServer(s)
 	return nil
 }
 
@@ -339,6 +358,28 @@ func (r *Router) FailServer(areaID types.AreaID, s *metadata.Server) error {
 // also returned, by calling NotifyFailedServer().
 func (r *Router) FindRoute(datacenter string) (*Manager, *metadata.Server, bool) {
 	return r.routeFn(datacenter)
+}
+
+// FindLANRoute returns a healthy server within the local datacenter. In some
+// cases this may return a best-effort unhealthy server that can be used for a
+// connection attempt. If any problem occurs with the given server, the caller
+// should feed that back to the manager associated with the server, which is
+// also returned, by calling NotifyFailedServer().
+func (r *Router) FindLANRoute() (*Manager, *metadata.Server) {
+	mgr := r.GetLANManager()
+
+	if mgr == nil {
+		return nil, nil
+	}
+
+	return mgr, mgr.FindServer()
+}
+
+// FindLANServer will look for a server in the local datacenter.
+// This function may return a nil value if no server is available.
+func (r *Router) FindLANServer() *metadata.Server {
+	_, srv := r.FindLANRoute()
+	return srv
 }
 
 // findDirectRoute looks for a route to the given datacenter if it's directly
@@ -430,6 +471,24 @@ func (r *Router) HasDatacenter(dc string) bool {
 	defer r.RUnlock()
 	_, ok := r.managers[dc]
 	return ok
+}
+
+// GetLANManager returns the Manager for the LAN area and the local datacenter
+func (r *Router) GetLANManager() *Manager {
+	r.RLock()
+	defer r.RUnlock()
+
+	area, ok := r.areas[types.AreaLAN]
+	if !ok {
+		return nil
+	}
+
+	managerInfo, ok := area.managers[r.localDatacenter]
+	if !ok {
+		return nil
+	}
+
+	return managerInfo.manager
 }
 
 // datacenterSorter takes a list of DC names and a parallel vector of distances

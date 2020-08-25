@@ -4741,3 +4741,33 @@ func TestAgent_AutoEncrypt(t *testing.T) {
 	require.Len(t, x509Cert.URIs, 1)
 	require.Equal(t, id.URI(), x509Cert.URIs[0])
 }
+
+func TestSharedRPCRouter(t *testing.T) {
+	// this test runs both a server and client and ensures that the shared
+	// router is being used. It would be possible for the Client and Server
+	// types to create and use their own routers and for RPCs such as the
+	// ones used in WaitForTestAgent to succeed. However accessing the
+	// router stored on the agent ensures that Serf information from the
+	// Client/Server types are being set in the same shared rpc router.
+
+	srv := NewTestAgent(t, "")
+	defer srv.Shutdown()
+
+	testrpc.WaitForTestAgent(t, srv.RPC, "dc1")
+
+	mgr, server := srv.Agent.router.FindLANRoute()
+	require.NotNil(t, mgr)
+	require.NotNil(t, server)
+
+	client := NewTestAgent(t, `
+		server = false
+		bootstrap = false
+		retry_join = ["`+srv.Config.SerfBindAddrLAN.String()+`"]
+	`)
+
+	testrpc.WaitForTestAgent(t, client.RPC, "dc1")
+
+	mgr, server = client.Agent.router.FindLANRoute()
+	require.NotNil(t, mgr)
+	require.NotNil(t, server)
+}

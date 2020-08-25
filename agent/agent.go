@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/dns"
+	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -306,6 +307,9 @@ type Agent struct {
 	// Connection Pool
 	connPool *pool.ConnPool
 
+	// Shared RPC Router
+	router *router.Router
+
 	// enterpriseAgent embeds fields that we only access in consul-enterprise builds
 	enterpriseAgent
 }
@@ -351,6 +355,7 @@ func New(bd BaseDeps) (*Agent, error) {
 		MemSink:         bd.MetricsHandler,
 		connPool:        bd.ConnPool,
 		autoConf:        bd.AutoConfig,
+		router:          bd.Router,
 	}
 
 	a.serviceManager = NewServiceManager(&a)
@@ -462,6 +467,7 @@ func (a *Agent) Start(ctx context.Context) error {
 		consul.WithTokenStore(a.tokens),
 		consul.WithTLSConfigurator(a.tlsConfigurator),
 		consul.WithConnectionPool(a.connPool),
+		consul.WithRouter(a.router),
 	}
 
 	// Setup either the client or the server.
