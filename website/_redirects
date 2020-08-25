@@ -71,7 +71,7 @@
 /docs/internals/gossip                               /docs/architecture/gossip                         301!
 /docs/internals/jepsen                               /docs/internals/jepsen                            301!
 /docs/internals/coordinates                          /docs/architecture/coordinates                    301!
-/docs/glossary                                       /docs/install/concepts                            301!
+/docs/glossary                                       /docs/install/glossary                            301!
 /docs/connect/gateways/mesh-gateways                 /docs/connect/gateways/mesh-gateway               301!
 /docs/connect/gateways/wan-federation-via-mesh-gateways             /docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways            301!
 /docs/faq                                            /docs/troubleshoot/faq                            301!
@@ -156,6 +156,7 @@
 /docs/commands/kv/import                             /commands/kv/import                               301!
 /docs/commands/kv/put                                /commands/kv/put                                  301!
 /docs/commands/leave                                 /commands/leave                                   301!
+/docs/commands/license                               /commands/license                                 301!
 /docs/commands/lock                                  /commands/lock                                    301!
 /docs/commands/login                                 /commands/login                                   301!
 /docs/commands/logout                                /commands/logout                                  301!
