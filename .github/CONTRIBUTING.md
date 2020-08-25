@@ -124,8 +124,8 @@ The underlying script dumps the full Consul log output to `test.log` in
 the directory of the target package. In the example above it would be 
 located at `consul/connect/proxy/test.log`. 
 
-Historically, the defaults for `FLAKE_CPUS` (30) and `FLAKE_N` (0.15) have been 
 sufficient to surface a flaky test. If a test is run in this environment and 
+Historically, the defaults for `FLAKE_CPUS` (0.15) and `FLAKE_N` (30) have been
 it does not fail after 30 iterations, it should be sufficiently stable.
 
 ## Vendoring
