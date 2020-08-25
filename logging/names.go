@@ -53,4 +53,5 @@ const (
 	Transaction        string = "txn"
 	WAN                string = "wan"
 	Watch              string = "watch"
+	Vault              string = "vault"
 )
