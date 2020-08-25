@@ -3,6 +3,7 @@ package ca
 import (
 	"bytes"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
@@ -11,6 +12,8 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/mitchellh/mapstructure"
 )
@@ -21,12 +24,15 @@ var ErrBackendNotMounted = fmt.Errorf("backend not mounted")
 var ErrBackendNotInitialized = fmt.Errorf("backend not initialized")
 
 type VaultProvider struct {
-	config                       *structs.VaultCAProviderConfig
-	client                       *vaultapi.Client
+	config *structs.VaultCAProviderConfig
+	client *vaultapi.Client
+	doneCh chan struct{}
+
 	isPrimary                    bool
 	clusterID                    string
 	spiffeID                     *connect.SpiffeIDSigning
 	setupIntermediatePKIPathDone bool
+	logger                       hclog.Logger
 }
 
 func vaultTLSConfig(config *structs.VaultCAProviderConfig) *vaultapi.TLSConfig {
@@ -65,8 +71,71 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 	v.isPrimary = cfg.IsPrimary
 	v.clusterID = cfg.ClusterID
 	v.spiffeID = connect.SpiffeIDSigningForCluster(&structs.CAConfiguration{ClusterID: v.clusterID})
+	v.doneCh = make(chan struct{}, 0)
+
+	// Look up the token to see if we can auto-renew its lease.
+	secret, err := client.Auth().Token().Lookup(config.Token)
+	if err != nil {
+		return err
+	}
+	var renewable bool
+	if v, ok := secret.Data["renewable"]; ok {
+		renewable, _ = v.(bool)
+	}
+	var increment int64
+	if v, ok := secret.Data["ttl"]; ok {
+		if n, ok := v.(json.Number); ok {
+			increment, _ = n.Int64()
+		}
+	}
+
+	// Set up a renewer to renew the token automatically, if supported.
+	if renewable {
+		renewer, err := client.NewRenewer(&vaultapi.RenewerInput{
+			Secret: &vaultapi.Secret{
+				Auth: &vaultapi.SecretAuth{
+					ClientToken: config.Token,
+					Renewable:   renewable,
+				},
+			},
+			Increment: int(increment),
+		})
+		if err != nil {
+			return fmt.Errorf("Error beginning Vault provider token renewal: %v", err)
+		}
+		go v.renewToken(renewer)
+	}
 
 	return nil
+}
+
+// renewToken uses a vaultapi.Renewer to repeatedly renew our token's lease.
+func (v *VaultProvider) renewToken(renewer *vaultapi.Renewer) {
+	go renewer.Renew()
+
+	for {
+		select {
+		case <-v.doneCh:
+			renewer.Stop()
+			return
+
+		case err := <-renewer.DoneCh():
+			if err != nil {
+				v.logger.Error(fmt.Sprint("Error renewing token for Vault provider: %v", err))
+			}
+
+		case <-renewer.RenewCh():
+			v.logger.Error("Successfully renewed token for Vault provider")
+		}
+	}
+}
+
+// SetLogger implements the NeedsLogger interface so the provider can log important messages.
+func (v *VaultProvider) SetLogger(logger hclog.Logger) {
+	v.logger = logger.
+		ResetNamed(logging.Connect).
+		Named(logging.CA).
+		Named(logging.Vault)
 }
 
 // State implements Provider. Vault provider needs no state other than the
@@ -431,6 +500,10 @@ func (c *VaultProvider) SupportsCrossSigning() (bool, error) {
 // this down and recreate it on small config changes because the intermediate
 // certs get bundled with the leaf certs, so there's no cost to the CA changing.
 func (v *VaultProvider) Cleanup() error {
+	if v.doneCh != nil {
+		close(v.doneCh)
+	}
+
 	return v.client.Sys().Unmount(v.config.IntermediatePKIPath)
 }
 
