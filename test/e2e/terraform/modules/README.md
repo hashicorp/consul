@@ -1,0 +1,5 @@
+## NOTE: About [/modules](https://github.com/hashicorp/terraform-aws-consul/tree/master/modules) and [/examples](https://github.com/hashicorp/terraform-aws-consul/tree/master/examples)
+
+HashiCorp's Terraform Registry requires every repo to have a `main.tf` in its root dir. The Consul code is broken down into multiple sub-modules, so they can't all be in the root dir [/](https://github.com/hashicorp/terraform-aws-consul/tree/master). Therefore, Consul's sub-modules are in the [/modules](https://github.com/hashicorp/terraform-aws-consul/tree/master/modules) subdirectory, the example code is in the [/examples](https://github.com/hashicorp/terraform-aws-consul/tree/master/examples) subdirectory, and the root dir [/](https://github.com/hashicorp/terraform-aws-consul/tree/master) _also_ has an example in it, as described in [root-example](https://github.com/awesome/terraform-aws-consul/tree/master/examples/root-example).
+
+More info: https://github.com/hashicorp/terraform-aws-consul/pull/79/files/079e75015a5d89e7ffc89997aa0904e9de4cdb97#r212763365
