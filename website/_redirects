@@ -176,6 +176,7 @@
 /docs/commands/operator/raft                         /commands/operator/raft                           301!
 /docs/commands/reload                                /commands/reload                                  301!
 /docs/commands/rft                                   /commands/rft                                     301!
+/docs/commands/rtt                                   /commands/rtt                                     301!
 /docs/commands/services                              /commands/services                                301!
 /docs/commands/services/register                     /commands/services/register                       301!
 /docs/commands/services/deregister                   /commands/services/deregister                     301!
