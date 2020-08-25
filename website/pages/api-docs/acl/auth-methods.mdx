@@ -53,7 +53,7 @@ The table below shows this endpoint's support for
 
 - `MaxTokenTTL` `(duration: 0s)` - This specifies the maximum life of any token
   created by this auth method. When set it will initialize the
-  [`ExpirationTime`](/api/acl/tokens.html#expirationtime) field on all tokens
+  [`ExpirationTime`](/api/acl/tokens#expirationtime) field on all tokens
   to a value of `Token.CreateTime + AuthMethod.MaxTokenTTL`. This field is not
   persisted beyond its initial use. Can be specified in the form of `"60s"` or
   `"5m"` (i.e., 60 seconds or 5 minutes, respectively). This value must be no
@@ -232,7 +232,7 @@ The table below shows this endpoint's support for
 
 - `MaxTokenTTL` `(duration: 0s)` - This specifies the maximum life of any token
   created by this auth method. When set it will initialize the
-  [`ExpirationTime`](/api/acl/tokens.html#expirationtime) field on all tokens
+  [`ExpirationTime`](/api/acl/tokens#expirationtime) field on all tokens
   to a value of `Token.CreateTime + AuthMethod.MaxTokenTTL`. This field is not
   persisted beyond its initial use. Can be specified in the form of `"60s"` or
   `"5m"` (i.e., 60 seconds or 5 minutes, respectively). This value must be no

@@ -58,8 +58,7 @@ export default function MultiPlatformServiceMeshPage() {
           links: [
             {
               text: 'Learn More',
-              url:
-                'https://www.consul.io/docs/connect/l7-traffic-management.html',
+              url: '/docs/connect/l7-traffic-management',
               type: 'outbound',
             },
           ],
@@ -91,7 +90,7 @@ Splits = [
           links: [
             {
               text: 'Learn More',
-              url: 'https://www.consul.io/docs/platform/k8s/run.html',
+              url: '/docs/platform/k8s/run',
               type: 'inbound',
             },
           ],
@@ -147,7 +146,7 @@ Splits = [
             links: [
               {
                 text: 'Learn More',
-                url: 'https://www.consul.io/docs/enterprise/index.html',
+                url: '/docs/enterprise',
                 type: 'inbound',
               },
             ],

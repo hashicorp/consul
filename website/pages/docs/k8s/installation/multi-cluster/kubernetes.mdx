@@ -220,8 +220,8 @@ The automatically generated federation secret contains:
 - **Consul server config** - This is a JSON snippet that must be used as part of the server config for secondary datacenters.
   It sets:
 
-  - [`primary_datacenter`](/docs/agent/options.html#primary_datacenter) to the name of the primary datacenter.
-  - [`primary_gateways`](/docs/agent/options.html#primary_gateways) to an array of IPs or hostnames
+  - [`primary_datacenter`](/docs/agent/options#primary_datacenter) to the name of the primary datacenter.
+  - [`primary_gateways`](/docs/agent/options#primary_gateways) to an array of IPs or hostnames
     for the mesh gateways in the primary datacenter. These are the addresses that
     Consul servers in secondary clusters will use to communicate with the primary
     datacenter.
@@ -244,7 +244,7 @@ The automatically generated federation secret contains:
 
 ## Secondary Cluster(s)
 
-With the primary cluster up and running, and the [federation secret](/docs/k8s/installation/multi-cluster#federation-secret) imported
+With the primary cluster up and running, and the [federation secret](#federation-secret) imported
 into the secondary cluster, we can now install Consul into the secondary
 cluster.
 

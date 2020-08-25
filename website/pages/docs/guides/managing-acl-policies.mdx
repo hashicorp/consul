@@ -19,7 +19,7 @@ We expect operators to automate the policy and token generation process in produ
 
 We provide high-level recommendations in this guide, however, we will not describe the command by command token generation process. To learn how to create tokens, read the [ACL bootstrapping guide](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production).
 
-This guide assumes the `default_policy` of `deny` is set on all agents, in accordance to the [security model documentation](https://www.consul.io/docs/internals/security.html#secure-configuration).
+This guide assumes the `default_policy` of `deny` is set on all agents, in accordance to the [security model documentation](/docs/internals/security#secure-configuration).
 
 ## Security and Usability
 
@@ -37,7 +37,7 @@ To discover the minimum privileges required for a specific operation, we have th
 
 First, focus on the data in your environment that needs to be secured. Ensure your sensitive data has policies that are specific and limited. Since policies can be combined to create tokens, you will usually write more policies for sensitive data. Sensitive data could be a specific application or a set of values in the key-value store.
 
-Second, reference the Consul docs, both the [rules page](https://www.consul.io/docs/acl/acl-rules.html) and [API pages](https://www.consul.io/api), often to understand the required privileges for any given operation.
+Second, reference the Consul docs, both the [rules page](/docs/acl/acl-rules) and [API pages](/api), often to understand the required privileges for any given operation.
 
 The rules documentation explains the 11 rule resources. The following four resource types are critical for any operating datacenter with ACLs enabled.
 
@@ -148,4 +148,4 @@ The Operator example above illustrates creating policies on the security spectru
 
 ## Next Steps
 
-After setting up access control processes, you will need to implement a token rotation policy. If you are using third-party tool to generate tokens, such as Vault, Consul ACL tokens will adhere to the TTLs set in that third party tool. If you are manually rotating tokens or need to revoke access, you can delete a token at any time with the [API](https://www.consul.io/api/acl/tokens.html#delete-a-token).
+After setting up access control processes, you will need to implement a token rotation policy. If you are using third-party tool to generate tokens, such as Vault, Consul ACL tokens will adhere to the TTLs set in that third party tool. If you are manually rotating tokens or need to revoke access, you can delete a token at any time with the [API](/api/acl/tokens#delete-a-token).

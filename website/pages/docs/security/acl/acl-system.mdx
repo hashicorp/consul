@@ -75,7 +75,7 @@ An ACL policy is a named set of rules and is composed of the following elements:
 - **Datacenters** - A list of datacenters the policy is valid within.
 - **Namespace** - <EnterpriseAlert inline /> - The namespace this policy resides within. (Added in Consul Enterprise 1.7.0)
 
--> **Consul Enterprise Namespacing** - Rules defined in a policy in any namespace other than `default` will be [restricted](/docs/acl/acl-rules#namespace-rules-enterprise) to being able to grant a subset of the overall privileges and only affecting that single namespace.
+-> **Consul Enterprise Namespacing** - Rules defined in a policy in any namespace other than `default` will be [restricted](/docs/acl/acl-rules#namespace-rules) to being able to grant a subset of the overall privileges and only affecting that single namespace.
 
 #### Builtin Policies
 
@@ -292,7 +292,7 @@ system, or accessing Consul in special situations:
 | ------------------------------------------------------------------------ | ---------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [`acl.tokens.agent_master`](/docs/agent/options#acl_tokens_agent_master) | `OPTIONAL` | `OPTIONAL` | Special token that can be used to access [Agent API](/api/agent) when remote bearer token resolution fails; used for setting up the cluster such as doing initial join operations, see the [ACL Agent Master Token](#acl-agent-master-token) section for more details |
 | [`acl.tokens.agent`](/docs/agent/options#acl_tokens_agent)               | `OPTIONAL` | `OPTIONAL` | Special token that is used for an agent's internal operations, see the [ACL Agent Token](#acl-agent-token) section for more details                                                                                                                                   |
-| [`acl.tokens.master`](/docs/agent/options#acl_tokens_master)             | `OPTIONAL` | `N/A`      | Special token used to bootstrap the ACL system, check the [Bootstrapping ACLs](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production) tutorial for more details                                                                                           |
+| [`acl.tokens.master`](/docs/agent/options#acl_tokens_master)             | `OPTIONAL` | `N/A`      | Special token used to bootstrap the ACL system, check the [Bootstrapping ACLs](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production) tutorial for more details                                                                                |
 | [`acl.tokens.default`](/docs/agent/options#acl_tokens_default)           | `OPTIONAL` | `OPTIONAL` | Default token to use for client requests where no token is supplied; this is often configured with read-only access to services to enable DNS service discovery on agents                                                                                             |
 
 All of these tokens except the `master` token can all be introduced or updated via the [/v1/agent/token API](/api/agent#update-acl-tokens).

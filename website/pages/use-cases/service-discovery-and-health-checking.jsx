@@ -145,7 +145,7 @@ Judiths-MBP.lan.node.dc1.consul. 0 IN   TXT "consul-network-segment="
             links: [
               {
                 text: 'Read More',
-                url: 'https://www.consul.io/docs/enterprise/index.html',
+                url: '/docs/enterprise',
                 type: 'inbound',
               },
             ],

@@ -165,7 +165,7 @@ $ curl \
 
 - `ReplicatedTokenIndex` - The last token index that was successfully replicated.
   This index can be compared with the value of the `X-Consul-Index` header returned
-  by the [`/v1/acl/tokens`](/api/acl/tokens#list-acls) endpoint to determine
+  by the [`/v1/acl/tokens`](/api/acl/tokens#list-tokens) endpoint to determine
   if the replication process has gotten all available ACL tokens. Note that ACL
   replication is rate limited so the indexes may lag behind the primary
   datacenter.
