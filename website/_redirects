@@ -40,9 +40,7 @@
 /docs/connect/terminating_gateway                    /docs/connect/gateways/terminating-gateway        301!
 /docs/connect/terminating_gateway.html               /docs/connect/gateways/terminating-gateway        301!
 /docs/connect/terminating-gateway                    /docs/connect/gateways/terminating-gateway        301!
-/docs/k8s/connect                                    /docs/k8s/connect/overview                        301!
-/docs/k8s/connect.html                               /docs/k8s/connect/overview                        301!
-/docs/agent                                          /docs/install/agent                               301!
+/docs/k8s/connect.html                               /docs/k8s/connect                        301!
 /docs/agent/cloud-auto-join                          /docs/install/cloud-auto-join                     301!
 /docs/internals/security                             /docs/security                                    301!
 /docs/acl/                                           /docs/security/acl/                               301!
@@ -191,6 +189,7 @@
 /docs/commands/validate                              /commands/validate                                301!
 /docs/commands/version                               /commands/version                                 301!
 /docs/commands/watch                                 /commands/watch                                   301!
+/commands/index                                      /commands                                         301!
 
 # CLI renames
 
