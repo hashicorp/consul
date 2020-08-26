@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/agent/debug"
 	"github.com/hashicorp/consul/agent/structs"
 	token_store "github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
@@ -38,6 +39,11 @@ type Self struct {
 	Member      serf.Member
 	Stats       map[string]map[string]string
 	Meta        map[string]string
+	XDS         *xdsSelf `json:"xDS,omitempty"`
+}
+
+type xdsSelf struct {
+	SupportedProxies map[string][]string
 }
 
 func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -57,6 +63,15 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 		var err error
 		if cs, err = s.agent.GetLANCoordinate(); err != nil {
 			return nil, err
+		}
+	}
+
+	var xds *xdsSelf
+	if s.agent.grpcServer != nil {
+		xds = &xdsSelf{
+			SupportedProxies: map[string][]string{
+				"envoy": proxysupport.EnvoyVersions,
+			},
 		}
 	}
 
@@ -82,6 +97,7 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 		Member:      s.agent.LocalMember(),
 		Stats:       s.agent.Stats(),
 		Meta:        s.agent.State.Metadata(),
+		XDS:         xds,
 	}, nil
 }
 
