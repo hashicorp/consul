@@ -86,3 +86,7 @@ variable "testserverami" {
 variable "testsize" {
   type = string
 }
+
+variable "asg_public_ip" {
+  type = bool
+}

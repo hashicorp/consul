@@ -130,7 +130,7 @@ module "consul_servers" {
 # ---------------------------------------------------------------------------------------------------------------------
 
 data "template_file" "user_data_server" {
-  template = file("${path.module}/examples/root-example/user-data-server.sh")
+  template = file("${path.module}/user-data-server.sh")
 
   vars = {
     cluster_tag_key   = var.cluster_tag_key
@@ -179,7 +179,7 @@ module "consul_clients" {
 # ---------------------------------------------------------------------------------------------------------------------
 
 data "template_file" "user_data_client" {
-  template = file("${path.module}/examples/root-example/user-data-client.sh")
+  template = file("${path.module}/user-data-client.sh")
 
   vars = {
     cluster_tag_key   = var.cluster_tag_key
@@ -192,8 +192,8 @@ data "template_file" "user_data_client" {
 
 # creates testing-servers autoscaling group for testing
 resource "aws_autoscaling_group" "test-servers" {
-  name                      = "testing-servers"
-  availability_zones        = data.aws_availability_zones.available.zone_ids
+  name                      = aws_launch_configuration.test-servers.name
+  launch_configuration      = aws_launch_configuration.test-servers.name
   min_size                  = 0
   max_size                  = 5
   desired_capacity          = 2
@@ -209,13 +209,13 @@ resource "aws_autoscaling_group" "test-servers" {
 
 # provides a resource for a new autoscaling group launch configuration
 resource "aws_launch_configuration" "test-servers" {
-  name            = "${random_id.environment_name.hex}-test-servers"
+  name            = "test-servers-"
   image_id        = var.testserverami
   instance_type   = var.testsize
   key_name        = module.keys.key_name
   security_groups = ["${module.consul_servers.security_group_id}"]
 
-  # associate_public_ip_address = var.public_ip
+  associate_public_ip_address = var.asg_public_ip
 
   lifecycle {
     create_before_destroy = true
