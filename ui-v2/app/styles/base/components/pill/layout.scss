@@ -27,5 +27,9 @@
   width: 14px;
   height: 14px;
   margin-right: 2px;
+  margin-top: 1px;
   position: relative;
+}
+%reduced-pill.leader::before {
+  margin-right: 4px;
 }

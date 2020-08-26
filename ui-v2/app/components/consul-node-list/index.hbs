@@ -24,6 +24,9 @@
     </a>
   </BlockSlot>
   <BlockSlot @name="details">
+  {{#if (eq item.Address leader.Address)}}
+    <span class="leader" data-test-leader={{leader.Address}}>Leader</span>
+  {{/if}}
     <dl>
       <dt>
         <CopyButton
