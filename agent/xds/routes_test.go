@@ -9,6 +9,7 @@ import (
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 )
@@ -325,7 +326,7 @@ func TestRoutesFromSnapshot(t *testing.T) {
 		// TODO(rb): test match stanza skipped for grpc
 	}
 
-	for _, envoyVersion := range supportedEnvoyVersions {
+	for _, envoyVersion := range proxysupport.EnvoyVersions {
 		sf := determineSupportedProxyFeaturesFromString(envoyVersion)
 		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
 			for _, tt := range tests {

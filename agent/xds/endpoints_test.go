@@ -14,6 +14,7 @@ import (
 	envoyendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	testinf "github.com/mitchellh/go-testing-interface"
 )
@@ -378,7 +379,7 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 		},
 	}
 
-	for _, envoyVersion := range supportedEnvoyVersions {
+	for _, envoyVersion := range proxysupport.EnvoyVersions {
 		sf := determineSupportedProxyFeaturesFromString(envoyVersion)
 		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
 			for _, tt := range tests {

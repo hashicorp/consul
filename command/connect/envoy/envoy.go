@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds"
+	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/api"
 	proxyCmd "github.com/hashicorp/consul/command/connect/proxy"
 	"github.com/hashicorp/consul/command/flags"
@@ -68,6 +69,8 @@ type cmd struct {
 	meshGatewaySvcName string
 }
 
+var defaultEnvoyVersion = proxysupport.EnvoyVersions[0]
+
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 
@@ -111,7 +114,7 @@ func (c *cmd) init() {
 		"Set the agent's gRPC address and port (in http(s)://host:port format). "+
 			"Alternatively, you can specify CONSUL_GRPC_ADDR in ENV.")
 
-	c.flags.StringVar(&c.envoyVersion, "envoy-version", "1.13.0",
+	c.flags.StringVar(&c.envoyVersion, "envoy-version", defaultEnvoyVersion,
 		"Sets the envoy-version that the envoy binary has.")
 
 	c.flags.BoolVar(&c.register, "register", false,
