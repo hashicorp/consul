@@ -88,6 +88,7 @@
 /intro/vs/istio                                      /docs/intro/vs/istio                              301!
 /intro/vs/proxies                                    /docs/intro/vs/proxies                            301!
 /intro/vs/custom                                     /docs/intro/vs/custom                             301!
+/download-tools                                      /docs/download-tools                              301!
 
 # CLI redirects
 /docs/commands                                       /commands                                         301!
