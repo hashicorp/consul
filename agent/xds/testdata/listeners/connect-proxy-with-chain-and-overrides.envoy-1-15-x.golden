@@ -106,18 +106,9 @@
           },
           "filters": [
             {
-              "name": "envoy.ext_authz",
+              "name": "envoy.filters.network.rbac",
               "config": {
-                  "grpc_service": {
-                        "envoy_grpc": {
-                              "cluster_name": "local_agent"
-                            },
-                        "initial_metadata": [
-                              {
-                                    "key": "x-consul-token",
-                                    "value": "my-token"
-                                  }
-                            ]
+                  "rules": {
                       },
                   "stat_prefix": "connect_authz"
                 }

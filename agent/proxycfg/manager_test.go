@@ -221,6 +221,8 @@ func TestManager_BasicLifecycle(t *testing.T) {
 					},
 					PreparedQueryEndpoints: map[string]structs.CheckServiceNodes{},
 					WatchedServiceChecks:   map[structs.ServiceID][]structs.CheckType{},
+					Intentions:             TestIntentions().Matches[0],
+					IntentionsSet:          true,
 				},
 				Datacenter: "dc1",
 			},
@@ -269,6 +271,8 @@ func TestManager_BasicLifecycle(t *testing.T) {
 					},
 					PreparedQueryEndpoints: map[string]structs.CheckServiceNodes{},
 					WatchedServiceChecks:   map[structs.ServiceID][]structs.CheckType{},
+					Intentions:             TestIntentions().Matches[0],
+					IntentionsSet:          true,
 				},
 				Datacenter: "dc1",
 			},
@@ -286,7 +290,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 			// Setup initial values
 			types.roots.Set(rootsCacheKey, roots)
 			types.leaf.Set(leafCacheKey, leaf)
-			types.intentions.Set(intentionCacheKey, TestIntentions(t))
+			types.intentions.Set(intentionCacheKey, TestIntentions())
 			tt.setup(t, types)
 
 			expectSnapCopy, err := copystructure.Copy(tt.expectSnap)
@@ -334,7 +338,7 @@ func testManager_BasicLifecycle(
 	state.TriggerSyncChanges = func() {}
 
 	// Create manager
-	m, err := NewManager(ManagerConfig{c, state, source, DNSConfig{}, logger, nil})
+	m, err := NewManager(ManagerConfig{c, state, source, DNSConfig{}, logger, nil, false})
 	require.NoError(err)
 
 	// And run it

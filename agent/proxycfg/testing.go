@@ -99,7 +99,7 @@ func TestLeafForCA(t testing.T, ca *structs.CARoot) *structs.IssuedCert {
 
 // TestIntentions returns a sample intentions match result useful to
 // mocking service discovery cache results.
-func TestIntentions(t testing.T) *structs.IndexedIntentionMatches {
+func TestIntentions() *structs.IndexedIntentionMatches {
 	return &structs.IndexedIntentionMatches{
 		Matches: []structs.Intentions{
 			[]*structs.Intention{
@@ -685,6 +685,8 @@ func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
 			PreparedQueryEndpoints: map[string]structs.CheckServiceNodes{
 				"prepared_query:geo-cache": TestUpstreamNodes(t),
 			},
+			Intentions:    nil, // no intentions defined
+			IntentionsSet: true,
 		},
 		Datacenter: "dc1",
 	}
@@ -1793,6 +1795,12 @@ func testConfigSnapshotTerminatingGateway(t testing.T, populateServices bool) *C
 				db:    dbNodes,
 				cache: cacheNodes,
 			},
+			ServiceResolversSet: map[structs.ServiceName]bool{
+				web:   true,
+				api:   true,
+				db:    true,
+				cache: true,
+			},
 			GatewayServices: map[structs.ServiceName]structs.GatewayService{
 				web: {
 					Service: web,
@@ -1817,20 +1825,43 @@ func testConfigSnapshotTerminatingGateway(t testing.T, populateServices bool) *C
 				cache: {cacheNodes[0], cacheNodes[1]},
 			},
 		}
+
+		snap.TerminatingGateway.ServiceConfigs = map[structs.ServiceName]*structs.ServiceConfigResponse{
+			web: {
+				ProxyConfig: map[string]interface{}{"protocol": "tcp"},
+			},
+			api: {
+				ProxyConfig: map[string]interface{}{"protocol": "tcp"},
+			},
+			db: {
+				ProxyConfig: map[string]interface{}{"protocol": "tcp"},
+			},
+			cache: {
+				ProxyConfig: map[string]interface{}{"protocol": "tcp"},
+			},
+		}
+		snap.TerminatingGateway.Intentions = map[structs.ServiceName]structs.Intentions{
+			// no intentions defined for thse services
+			web:   nil,
+			api:   nil,
+			db:    nil,
+			cache: nil,
+		}
+
 		snap.TerminatingGateway.ServiceLeaves = map[structs.ServiceName]*structs.IssuedCert{
-			structs.NewServiceName("web", nil): {
+			web: {
 				CertPEM:       golden(t, "test-leaf-cert"),
 				PrivateKeyPEM: golden(t, "test-leaf-key"),
 			},
-			structs.NewServiceName("api", nil): {
+			api: {
 				CertPEM:       golden(t, "alt-test-leaf-cert"),
 				PrivateKeyPEM: golden(t, "alt-test-leaf-key"),
 			},
-			structs.NewServiceName("db", nil): {
+			db: {
 				CertPEM:       golden(t, "db-test-leaf-cert"),
 				PrivateKeyPEM: golden(t, "db-test-leaf-key"),
 			},
-			structs.NewServiceName("cache", nil): {
+			cache: {
 				CertPEM:       golden(t, "cache-test-leaf-cert"),
 				PrivateKeyPEM: golden(t, "cache-test-leaf-key"),
 			},

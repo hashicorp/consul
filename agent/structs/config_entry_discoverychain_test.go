@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -1161,4 +1162,13 @@ func TestValidateServiceSubset(t *testing.T) {
 			require.Error(t, validateServiceSubset(name))
 		})
 	}
+}
+
+func TestIsProtocolHTTPLike(t *testing.T) {
+	assert.False(t, IsProtocolHTTPLike(""))
+	assert.False(t, IsProtocolHTTPLike("tcp"))
+
+	assert.True(t, IsProtocolHTTPLike("http"))
+	assert.True(t, IsProtocolHTTPLike("http2"))
+	assert.True(t, IsProtocolHTTPLike("grpc"))
 }

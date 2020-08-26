@@ -223,6 +223,17 @@ func genVerifyResolverWatch(expectedService, expectedDatacenter, expectedKind st
 	}
 }
 
+func genVerifyResolvedConfigWatch(expectedService string, expectedDatacenter string) verifyWatchRequest {
+	return func(t testing.TB, cacheType string, request cache.Request) {
+		require.Equal(t, cachetype.ResolvedServiceConfigName, cacheType)
+
+		reqReal, ok := request.(*structs.ServiceConfigRequest)
+		require.True(t, ok)
+		require.Equal(t, expectedDatacenter, reqReal.Datacenter)
+		require.Equal(t, expectedService, reqReal.Name)
+	}
+}
+
 func genVerifyIntentionWatch(expectedService string, expectedDatacenter string) verifyWatchRequest {
 	return func(t testing.TB, cacheType string, request cache.Request) {
 		require.Equal(t, cachetype.IntentionMatchName, cacheType)
@@ -422,6 +433,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			ns.Proxy.MeshGateway.Mode = meshGatewayProxyConfigValue
 		}
 
+		ixnMatch := TestIntentions()
+
 		stage0 := verificationStage{
 			requiredWatches: map[string]verifyWatchRequest{
 				rootsWatchID:                    genVerifyRootsWatch("dc1"),
@@ -479,6 +492,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				{
 					CorrelationID: leafWatchID,
 					Result:        issuedCert,
+					Err:           nil,
+				},
+				{
+					CorrelationID: intentionsWatchID,
+					Result:        ixnMatch,
 					Err:           nil,
 				},
 				{
@@ -555,6 +573,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 
 				require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
 				require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
+
+				require.True(t, snap.ConnectProxy.IntentionsSet)
+				require.Equal(t, ixnMatch.Matches[0], snap.ConnectProxy.Intentions)
 			},
 		}
 
@@ -581,6 +602,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 
 				require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
 				require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
+
+				require.True(t, snap.ConnectProxy.IntentionsSet)
+				require.Equal(t, ixnMatch.Matches[0], snap.ConnectProxy.Intentions)
 			},
 		}
 
@@ -599,8 +623,45 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 	db := structs.NewServiceName("db", nil)
 	dbStr := db.String()
 
+	billing := structs.NewServiceName("billing", nil)
+
 	api := structs.NewServiceName("api", nil)
 	apiStr := api.String()
+
+	dbIxnMatch := &structs.IndexedIntentionMatches{
+		Matches: []structs.Intentions{
+			[]*structs.Intention{
+				{
+					ID:              "abc-123",
+					SourceNS:        "default",
+					SourceName:      "api",
+					DestinationNS:   "default",
+					DestinationName: "db",
+					Action:          structs.IntentionActionAllow,
+				},
+			},
+		},
+	}
+
+	dbConfig := &structs.ServiceConfigResponse{
+		ProxyConfig: map[string]interface{}{
+			"protocol": "grpc",
+		},
+	}
+
+	dbResolver := &structs.IndexedConfigEntries{
+		Kind: structs.ServiceResolver,
+		Entries: []structs.ConfigEntry{
+			&structs.ServiceResolverConfigEntry{
+				Name: "db",
+				Kind: structs.ServiceResolver,
+				Redirect: &structs.ServiceResolverRedirect{
+					Service:    "db",
+					Datacenter: "dc2",
+				},
+			},
+		},
+	}
 
 	cases := map[string]testCase{
 		"initial-gateway": {
@@ -1105,7 +1166,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							Result: &structs.IndexedGatewayServices{
 								Services: structs.GatewayServices{
 									{
-										Service: structs.NewServiceName("db", nil),
+										Service: db,
 										Gateway: structs.NewServiceName("terminating-gateway", nil),
 									},
 								},
@@ -1115,7 +1176,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid(), "gateway with service list is valid")
+						require.Len(t, snap.TerminatingGateway.ValidServices(), 0)
+
 						require.Len(t, snap.TerminatingGateway.WatchedServices, 1)
+						require.Contains(t, snap.TerminatingGateway.WatchedServices, db)
 					},
 				},
 				{
@@ -1125,15 +1189,15 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							Result: &structs.IndexedGatewayServices{
 								Services: structs.GatewayServices{
 									{
-										Service: structs.NewServiceName("db", nil),
+										Service: db,
 										Gateway: structs.NewServiceName("terminating-gateway", nil),
 									},
 									{
-										Service: structs.NewServiceName("billing", nil),
+										Service: billing,
 										Gateway: structs.NewServiceName("terminating-gateway", nil),
 									},
 									{
-										Service: structs.NewServiceName("api", nil),
+										Service: api,
 										Gateway: structs.NewServiceName("terminating-gateway", nil),
 									},
 								},
@@ -1142,11 +1206,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						},
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
-						db := structs.NewServiceName("db", nil)
-						billing := structs.NewServiceName("billing", nil)
-						api := structs.NewServiceName("api", nil)
-
 						require.True(t, snap.Valid(), "gateway with service list is valid")
+						require.Len(t, snap.TerminatingGateway.ValidServices(), 0)
+
 						require.Len(t, snap.TerminatingGateway.WatchedServices, 3)
 						require.Contains(t, snap.TerminatingGateway.WatchedServices, db)
 						require.Contains(t, snap.TerminatingGateway.WatchedServices, billing)
@@ -1161,6 +1223,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Contains(t, snap.TerminatingGateway.WatchedLeaves, db)
 						require.Contains(t, snap.TerminatingGateway.WatchedLeaves, billing)
 						require.Contains(t, snap.TerminatingGateway.WatchedLeaves, api)
+
+						require.Len(t, snap.TerminatingGateway.WatchedConfigs, 3)
+						require.Contains(t, snap.TerminatingGateway.WatchedConfigs, db)
+						require.Contains(t, snap.TerminatingGateway.WatchedConfigs, billing)
+						require.Contains(t, snap.TerminatingGateway.WatchedConfigs, api)
 
 						require.Len(t, snap.TerminatingGateway.WatchedResolvers, 3)
 						require.Contains(t, snap.TerminatingGateway.WatchedResolvers, db)
@@ -1198,8 +1265,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						},
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid(), "gateway with service list is valid")
+						require.Len(t, snap.TerminatingGateway.ValidServices(), 0)
+
 						require.Len(t, snap.TerminatingGateway.ServiceGroups, 1)
-						require.Equal(t, snap.TerminatingGateway.ServiceGroups[structs.NewServiceName("db", nil)],
+						require.Equal(t, snap.TerminatingGateway.ServiceGroups[db],
 							structs.CheckServiceNodes{
 								{
 									Node: &structs.Node{
@@ -1263,6 +1333,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						},
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid(), "gateway with service list is valid")
+						require.Len(t, snap.TerminatingGateway.ValidServices(), 0)
+
 						require.Len(t, snap.TerminatingGateway.ServiceGroups, 2)
 						expect := structs.CheckServiceNodes{
 							{
@@ -1299,11 +1372,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 								},
 							},
 						}
-						sn := structs.NewServiceName("api", nil)
-						require.Equal(t, snap.TerminatingGateway.ServiceGroups[sn], expect)
+						require.Equal(t, snap.TerminatingGateway.ServiceGroups[api], expect)
 
 						// The instance in node3 should not be present in HostnameDatacenters because it has a valid IP
-						require.ElementsMatch(t, snap.TerminatingGateway.HostnameServices[sn], expect[:2])
+						require.ElementsMatch(t, snap.TerminatingGateway.HostnameServices[api], expect[:2])
 					},
 				},
 				{
@@ -1318,7 +1390,50 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						},
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
-						require.Equal(t, snap.TerminatingGateway.ServiceLeaves[structs.NewServiceName("db", nil)], issuedCert)
+						require.True(t, snap.Valid(), "gateway with service list is valid")
+						require.Len(t, snap.TerminatingGateway.ValidServices(), 0)
+
+						require.Equal(t, snap.TerminatingGateway.ServiceLeaves[db], issuedCert)
+					},
+				},
+				{
+					requiredWatches: map[string]verifyWatchRequest{
+						serviceIntentionsIDPrefix + dbStr: genVerifyIntentionWatch("db", "dc1"),
+					},
+					events: []cache.UpdateEvent{
+						{
+							CorrelationID: serviceIntentionsIDPrefix + dbStr,
+							Result:        dbIxnMatch,
+							Err:           nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid(), "gateway with service list is valid")
+						require.Len(t, snap.TerminatingGateway.ValidServices(), 0)
+
+						require.Len(t, snap.TerminatingGateway.Intentions, 1)
+						dbIxn, ok := snap.TerminatingGateway.Intentions[db]
+						require.True(t, ok)
+						require.Equal(t, dbIxnMatch.Matches[0], dbIxn)
+					},
+				},
+				{
+					requiredWatches: map[string]verifyWatchRequest{
+						serviceConfigIDPrefix + dbStr: genVerifyResolvedConfigWatch("db", "dc1"),
+					},
+					events: []cache.UpdateEvent{
+						{
+							CorrelationID: serviceConfigIDPrefix + dbStr,
+							Result:        dbConfig,
+							Err:           nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid(), "gateway with service list is valid")
+						require.Len(t, snap.TerminatingGateway.ValidServices(), 0)
+
+						require.Len(t, snap.TerminatingGateway.ServiceConfigs, 1)
+						require.Equal(t, snap.TerminatingGateway.ServiceConfigs[db], dbConfig)
 					},
 				},
 				{
@@ -1328,32 +1443,20 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					events: []cache.UpdateEvent{
 						{
 							CorrelationID: "service-resolver:" + dbStr,
-							Result: &structs.IndexedConfigEntries{
-								Kind: structs.ServiceResolver,
-								Entries: []structs.ConfigEntry{
-									&structs.ServiceResolverConfigEntry{
-										Name: "db",
-										Kind: structs.ServiceResolver,
-										Redirect: &structs.ServiceResolverRedirect{
-											Service:    "db",
-											Datacenter: "dc2",
-										},
-									},
-								},
-							},
-							Err: nil,
+							Result:        dbResolver,
+							Err:           nil,
 						},
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
-						want := &structs.ServiceResolverConfigEntry{
-							Kind: structs.ServiceResolver,
-							Name: "db",
-							Redirect: &structs.ServiceResolverRedirect{
-								Service:    "db",
-								Datacenter: "dc2",
-							},
-						}
-						require.Equal(t, want, snap.TerminatingGateway.ServiceResolvers[structs.NewServiceName("db", nil)])
+						require.True(t, snap.Valid(), "gateway with service list is valid")
+						// Finally we have everything we need
+						require.Equal(t, []structs.ServiceName{db}, snap.TerminatingGateway.ValidServices())
+
+						require.Len(t, snap.TerminatingGateway.ServiceResolversSet, 1)
+						require.True(t, snap.TerminatingGateway.ServiceResolversSet[db])
+
+						require.Len(t, snap.TerminatingGateway.ServiceResolvers, 1)
+						require.Equal(t, dbResolver.Entries[0], snap.TerminatingGateway.ServiceResolvers[db])
 					},
 				},
 				{
@@ -1363,7 +1466,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							Result: &structs.IndexedGatewayServices{
 								Services: structs.GatewayServices{
 									{
-										Service: structs.NewServiceName("billing", nil),
+										Service: billing,
 										Gateway: structs.NewServiceName("terminating-gateway", nil),
 									},
 								},
@@ -1372,9 +1475,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						},
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
-						billing := structs.NewServiceName("billing", nil)
-
 						require.True(t, snap.Valid(), "gateway with service list is valid")
+						require.Len(t, snap.TerminatingGateway.ValidServices(), 0)
 
 						// All the watches should have been cancelled for db
 						require.Len(t, snap.TerminatingGateway.WatchedServices, 1)
