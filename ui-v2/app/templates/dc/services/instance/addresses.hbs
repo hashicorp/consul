@@ -1,9 +1,9 @@
 <div id="addresses" class="tab-section">
   <div role="tabpanel">
-    {{#if item.TaggedAddresses }}
+    {{#if item.Service.TaggedAddresses }}
       <TabularCollection
         data-test-addresses
-        @items={{object-entries item.TaggedAddresses}} as |taggedAddress index|
+        @items={{object-entries item.Service.TaggedAddresses}} as |taggedAddress index|
       >
           <BlockSlot @name="header">
             <th>Tag</th>

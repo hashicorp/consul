@@ -20,7 +20,7 @@
       <ConsulInstanceChecks @type="service" @items={{filter-by 'ServiceID' '' item.Checks}} />
       <ConsulInstanceChecks @type="node" @items={{reject-by 'ServiceID' '' item.Checks}} />
     {{/if}}
-{{#if (get proxies item.Service.ID)}}
+{{#if item.ProxyInstance}}
       <dl class="proxy">
         <dt>
           <Tooltip>

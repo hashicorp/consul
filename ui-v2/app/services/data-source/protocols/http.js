@@ -8,7 +8,8 @@ export default Service.extend({
   gateways: service('repository/service'),
   services: service('repository/service'),
   service: service('repository/service'),
-  ['service-instance']: service('repository/service'),
+  ['service-instance']: service('repository/service-instance'),
+  ['service-instances']: service('repository/service-instance'),
   proxies: service('repository/proxy'),
   ['proxy-instance']: service('repository/proxy'),
   ['discovery-chain']: service('repository/discovery-chain'),
@@ -67,6 +68,14 @@ export default Service.extend({
             break;
         }
         break;
+      case 'service-instances':
+        [method, ...slug] = rest;
+        switch (method) {
+          case 'for-service':
+            find = configuration => repo.findByService(slug, dc, nspace, configuration);
+            break;
+        }
+        break;
       case 'coordinates':
         [method, ...slug] = rest;
         switch (method) {
@@ -102,12 +111,15 @@ export default Service.extend({
       case 'token':
         find = configuration => repo.self(rest[1], dc);
         break;
-      case 'service':
       case 'discovery-chain':
       case 'node':
         find = configuration => repo.findBySlug(rest[0], dc, nspace, configuration);
         break;
       case 'service-instance':
+        // id, node, service
+        find = configuration =>
+          repo.findBySlug(rest[0], rest[1], rest[2], dc, nspace, configuration);
+        break;
       case 'proxy-instance':
         // id, node, service
         find = configuration =>
