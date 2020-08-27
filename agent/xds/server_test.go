@@ -1,8 +1,6 @@
 package xds
 
 import (
-	"context"
-	"errors"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -12,7 +10,6 @@ import (
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
@@ -91,22 +88,6 @@ func (m *testManager) AssertWatchCancelled(t *testing.T, proxyID structs.Service
 	}
 }
 
-// ConnectAuthorize implements ConnectAuthz
-func (m *testManager) ConnectAuthorize(token string, req *structs.ConnectAuthorizeRequest) (authz bool, reason string, meta *cache.ResultMeta, err error) {
-	m.Lock()
-	defer m.Unlock()
-	if res, ok := m.authz[token]; ok {
-		if res.validate != nil {
-			if err := res.validate(req); err != nil {
-				return false, "", nil, err
-			}
-		}
-		return res.authz, res.reason, res.m, res.err
-	}
-	// Default allow but with reason that won't match by accident in a test case
-	return true, "OK: allowed by default test implementation", nil, nil
-}
-
 func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	logger := testutil.Logger(t)
 	mgr := newTestManager(t)
@@ -120,7 +101,6 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	s := Server{
 		Logger:       logger,
 		CfgMgr:       mgr,
-		Authz:        mgr,
 		ResolveToken: aclResolve,
 	}
 	s.Initialize()
@@ -170,7 +150,7 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	envoy.SendReq(t, EndpointType, 1, 2)
 
 	// And should get a response immediately.
-	assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(t, snap, "", 1, 3))
+	assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(t, snap, 1, 3))
 
 	// Now send Route request along with next listener one
 	envoy.SendReq(t, RouteType, 0, 0)
@@ -197,7 +177,7 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	// which is reasonable anyway to ensure consistency of the config Envoy sees.
 	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(snap, 2, 4))
 	assertResponseSent(t, envoy.stream.sendCh, expectEndpointsJSON(2, 5))
-	assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(t, snap, "", 2, 6))
+	assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(t, snap, 2, 6))
 
 	// Let's pretend that Envoy doesn't like that new listener config. It will ACK
 	// all the others (same version) but NACK the listener. This is the most
@@ -234,7 +214,7 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 
 	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(snap, 3, 7))
 	assertResponseSent(t, envoy.stream.sendCh, expectEndpointsJSON(3, 8))
-	assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(t, snap, "", 3, 9))
+	assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(t, snap, 3, 9))
 }
 
 func expectEndpointsJSON(v, n uint64) string {
@@ -474,7 +454,6 @@ func TestServer_StreamAggregatedResources_ACLEnforcement(t *testing.T) {
 			s := Server{
 				Logger:       logger,
 				CfgMgr:       mgr,
-				Authz:        mgr,
 				ResolveToken: aclResolve,
 			}
 			s.Initialize()
@@ -501,7 +480,7 @@ func TestServer_StreamAggregatedResources_ACLEnforcement(t *testing.T) {
 			envoy.SendReq(t, ListenerType, 0, 0)
 
 			if !tt.wantDenied {
-				assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(t, snap, tt.token, 1, 1))
+				assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(t, snap, 1, 1))
 				// Close the client stream since all is well. We _don't_ do this in the
 				// expected error case because we want to verify the error closes the
 				// stream from server side.
@@ -549,7 +528,6 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedDuring
 	s := Server{
 		Logger:             logger,
 		CfgMgr:             mgr,
-		Authz:              mgr,
 		ResolveToken:       aclResolve,
 		AuthCheckFrequency: 1 * time.Hour, // make sure this doesn't kick in
 	}
@@ -641,7 +619,6 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedInBack
 	s := Server{
 		Logger:             logger,
 		CfgMgr:             mgr,
-		Authz:              mgr,
 		ResolveToken:       aclResolve,
 		AuthCheckFrequency: 100 * time.Millisecond, // Make this short.
 	}
@@ -716,144 +693,6 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedInBack
 	}
 }
 
-// This tests the ext_authz service method that implements connect authz.
-func TestServer_Check(t *testing.T) {
-
-	tests := []struct {
-		name            string
-		source          string
-		dest            string
-		sourcePrincipal string
-		destPrincipal   string
-		authzResult     connectAuthzResult
-		wantErr         bool
-		wantErrCode     codes.Code
-		wantDenied      bool
-		wantReason      string
-	}{
-		{
-			name:        "auth allowed",
-			source:      "web",
-			dest:        "db",
-			authzResult: connectAuthzResult{true, "default allow", nil, nil, nil},
-			wantDenied:  false,
-			wantReason:  "default allow",
-		},
-		{
-			name:        "auth denied",
-			source:      "web",
-			dest:        "db",
-			authzResult: connectAuthzResult{false, "default deny", nil, nil, nil},
-			wantDenied:  true,
-			wantReason:  "default deny",
-		},
-		{
-			name:            "no source",
-			sourcePrincipal: "",
-			dest:            "db",
-			// Should never make it to authz call.
-			wantErr:     true,
-			wantErrCode: codes.InvalidArgument,
-		},
-		{
-			name:   "no dest",
-			source: "web",
-			dest:   "",
-			// Should never make it to authz call.
-			wantErr:     true,
-			wantErrCode: codes.InvalidArgument,
-		},
-		{
-			name:          "dest invalid format",
-			source:        "web",
-			destPrincipal: "not-a-spiffe-id",
-			// Should never make it to authz call.
-			wantDenied: true,
-			wantReason: "Destination Principal is not a valid Connect identity",
-		},
-		{
-			name:          "dest not a service URI",
-			source:        "web",
-			destPrincipal: "spiffe://trust-domain.consul",
-			// Should never make it to authz call.
-			wantDenied: true,
-			wantReason: "Destination Principal is not a valid Service identity",
-		},
-		{
-			name:        "ACL not got permission for authz call",
-			source:      "web",
-			dest:        "db",
-			authzResult: connectAuthzResult{false, "", nil, acl.ErrPermissionDenied, nil},
-			wantErr:     true,
-			wantErrCode: codes.PermissionDenied,
-		},
-		{
-			name:        "Random error running authz",
-			source:      "web",
-			dest:        "db",
-			authzResult: connectAuthzResult{false, "", nil, errors.New("gremlin attack"), nil},
-			wantErr:     true,
-			wantErrCode: codes.Internal,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			token := "my-real-acl-token"
-			logger := testutil.Logger(t)
-			mgr := newTestManager(t)
-
-			// Setup expected auth result against that token no lock as no other
-			// goroutine is touching this yet.
-			mgr.authz[token] = tt.authzResult
-
-			aclResolve := func(id string) (acl.Authorizer, error) {
-				return nil, nil
-			}
-			envoy := NewTestEnvoy(t, "web-sidecar-proxy", token)
-			defer envoy.Close()
-
-			s := Server{
-				Logger:       logger,
-				CfgMgr:       mgr,
-				Authz:        mgr,
-				ResolveToken: aclResolve,
-			}
-			s.Initialize()
-
-			// Create a context with the correct token
-			ctx := metadata.NewIncomingContext(context.Background(),
-				metadata.Pairs("x-consul-token", token))
-
-			r := TestCheckRequest(t, tt.source, tt.dest)
-			// If sourcePrincipal is set override, or if source is also not set
-			// explicitly override to empty.
-			if tt.sourcePrincipal != "" || tt.source == "" {
-				r.Attributes.Source.Principal = tt.sourcePrincipal
-			}
-			if tt.destPrincipal != "" || tt.dest == "" {
-				r.Attributes.Destination.Principal = tt.destPrincipal
-			}
-			resp, err := s.Check(ctx, r)
-			// Denied is not an error
-			if tt.wantErr {
-				require.Error(t, err)
-				grpcStatus := status.Convert(err)
-				require.Equal(t, tt.wantErrCode, grpcStatus.Code())
-				require.Nil(t, resp)
-				return
-			}
-			require.NoError(t, err)
-			if tt.wantDenied {
-				require.Equal(t, int32(codes.PermissionDenied), resp.Status.Code)
-			} else {
-				require.Equal(t, int32(codes.OK), resp.Status.Code)
-			}
-			require.Contains(t, resp.Status.Message, tt.wantReason)
-		})
-	}
-}
-
 func TestServer_StreamAggregatedResources_IngressEmptyResponse(t *testing.T) {
 	logger := testutil.Logger(t)
 	mgr := newTestManager(t)
@@ -867,7 +706,6 @@ func TestServer_StreamAggregatedResources_IngressEmptyResponse(t *testing.T) {
 	s := Server{
 		Logger:       logger,
 		CfgMgr:       mgr,
-		Authz:        mgr,
 		ResolveToken: aclResolve,
 	}
 	s.Initialize()

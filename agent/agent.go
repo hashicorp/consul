@@ -548,6 +548,16 @@ func (a *Agent) Start(ctx context.Context) error {
 		return err
 	}
 
+	var intentionDefaultAllow bool
+	switch a.config.ACLDefaultPolicy {
+	case "allow":
+		intentionDefaultAllow = true
+	case "deny":
+		intentionDefaultAllow = false
+	default:
+		return fmt.Errorf("unexpected ACL default policy value of %q", a.config.ACLDefaultPolicy)
+	}
+
 	// Start the proxy config manager.
 	a.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{
 		Cache:  a.cache,
@@ -562,7 +572,8 @@ func (a *Agent) Start(ctx context.Context) error {
 			Domain:    a.config.DNSDomain,
 			AltDomain: a.config.DNSAltDomain,
 		},
-		TLSConfigurator: a.tlsConfigurator,
+		TLSConfigurator:       a.tlsConfigurator,
+		IntentionDefaultAllow: intentionDefaultAllow,
 	})
 	if err != nil {
 		return err
@@ -655,7 +666,6 @@ func (a *Agent) listenAndServeGRPC() error {
 	xdsServer := &xds.Server{
 		Logger:       a.logger,
 		CfgMgr:       a.proxyConfig,
-		Authz:        a,
 		ResolveToken: a.resolveToken,
 		CheckFetcher: a,
 		CfgFetcher:   a,

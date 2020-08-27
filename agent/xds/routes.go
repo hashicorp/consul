@@ -458,12 +458,3 @@ func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, chain *structs
 		},
 	}, nil
 }
-
-func makeEnvoyRegexMatch(patt string) *envoymatcher.RegexMatcher {
-	return &envoymatcher.RegexMatcher{
-		EngineType: &envoymatcher.RegexMatcher_GoogleRe2{
-			GoogleRe2: &envoymatcher.RegexMatcher_GoogleRE2{},
-		},
-		Regex: patt,
-	}
-}

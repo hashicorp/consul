@@ -1009,10 +1009,5 @@ func defaultIfEmpty(val, defaultVal string) string {
 }
 
 func enableAdvancedRoutingForProtocol(protocol string) bool {
-	switch protocol {
-	case "http", "http2", "grpc":
-		return true
-	default:
-		return false
-	}
+	return structs.IsProtocolHTTPLike(protocol)
 }

@@ -1212,3 +1212,12 @@ func defaultIfEmpty(val, defaultVal string) string {
 	}
 	return defaultVal
 }
+
+func IsProtocolHTTPLike(protocol string) bool {
+	switch protocol {
+	case "http", "http2", "grpc":
+		return true
+	default:
+		return false
+	}
+}

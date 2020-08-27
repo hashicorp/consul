@@ -83,26 +83,16 @@
           },
           "filters": [
             {
-              "name": "envoy.ext_authz",
-              "config": {
-                  "grpc_service": {
-                        "envoy_grpc": {
-                              "cluster_name": "local_agent"
-                            },
-                        "initial_metadata": [
-                              {
-                                    "key": "x-consul-token",
-                                    "value": "my-token"
-                                  }
-                            ]
-                      },
-                  "stat_prefix": "connect_authz"
-                }
-            },
-            {
               "name": "envoy.http_connection_manager",
               "config": {
                   "http_filters": [
+                        {
+                              "config": {
+                                    "rules": {
+                                        }
+                                  },
+                              "name": "envoy.filters.http.rbac"
+                            },
                         {
                               "name": "envoy.router"
                             }

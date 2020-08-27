@@ -35,3 +35,16 @@ load helpers
   [ "$status" -eq 0 ]
   [ "$output" = "hello" ]
 }
+
+@test "s1 proxy should have been configured with one rbac listener filter at L4" {
+  LISTEN_FILTERS=$(get_envoy_listener_filters localhost:19000)
+  PUB=$(echo "$LISTEN_FILTERS" | grep -E "^public_listener:" | cut -f 2 -d ' ' )
+  UPS=$(echo "$LISTEN_FILTERS" | grep -E "^s2:" | cut -f 2 -d ' ' )
+
+  echo "LISTEN_FILTERS = $LISTEN_FILTERS"
+  echo "PUB = $PUB"
+  echo "UPS = $UPS"
+
+  [ "$PUB" = "envoy.filters.network.rbac,envoy.tcp_proxy" ]
+  [ "$UPS" = "envoy.tcp_proxy" ]
+}

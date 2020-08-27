@@ -9,19 +9,14 @@ import (
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	envoyauthz "github.com/envoyproxy/go-control-plane/envoy/service/auth/v2"
-	envoyauthzalpha "github.com/envoyproxy/go-control-plane/envoy/service/auth/v2alpha"
 	envoydisco "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/cache"
-	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/go-hclog"
-	rpcstatus "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -92,13 +87,6 @@ const (
 // coupling this to the agent.
 type ACLResolverFunc func(id string) (acl.Authorizer, error)
 
-// ConnectAuthz is the interface the agent needs to expose to be able to re-use
-// the authorization logic between both APIs.
-type ConnectAuthz interface {
-	// ConnectAuthorize is implemented by Agent.ConnectAuthorize
-	ConnectAuthorize(token string, req *structs.ConnectAuthorizeRequest) (authz bool, reason string, m *cache.ResultMeta, err error)
-}
-
 // ServiceChecks is the interface the agent needs to expose
 // for the xDS server to fetch a service's HTTP check definitions
 type HTTPCheckFetcher interface {
@@ -119,16 +107,14 @@ type ConfigManager interface {
 	Watch(proxyID structs.ServiceID) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc)
 }
 
-// Server represents a gRPC server that can handle both XDS and ext_authz
-// requests from Envoy. All of it's public members must be set before the gRPC
-// server is started.
+// Server represents a gRPC server that can handle xDS requests from Envoy. All
+// of it's public members must be set before the gRPC server is started.
 //
 // A full description of the XDS protocol can be found at
 // https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol
 type Server struct {
 	Logger       hclog.Logger
 	CfgMgr       ConfigManager
-	Authz        ConnectAuthz
 	ResolveToken ACLResolverFunc
 	// AuthCheckFrequency is how often we should re-check the credentials used
 	// during a long-lived gRPC Stream after it has been initially established.
@@ -490,90 +476,7 @@ func (s *Server) DeltaAggregatedResources(_ envoydisco.AggregatedDiscoveryServic
 	return errors.New("not implemented")
 }
 
-func deniedResponse(reason string) (*envoyauthz.CheckResponse, error) {
-	return &envoyauthz.CheckResponse{
-		Status: &rpcstatus.Status{
-			Code:    int32(codes.PermissionDenied),
-			Message: "Denied: " + reason,
-		},
-	}, nil
-}
-
-// Check implements envoyauthz.AuthorizationServer.
-func (s *Server) Check(ctx context.Context, r *envoyauthz.CheckRequest) (*envoyauthz.CheckResponse, error) {
-	// Sanity checks
-	if r.Attributes == nil || r.Attributes.Source == nil || r.Attributes.Destination == nil {
-		return nil, status.Error(codes.InvalidArgument, "source and destination attributes are required")
-	}
-	if r.Attributes.Source.Principal == "" || r.Attributes.Destination.Principal == "" {
-		return nil, status.Error(codes.InvalidArgument, "source and destination Principal are required")
-	}
-
-	// Parse destination to know the target service
-	dest, err := connect.ParseCertURIFromString(r.Attributes.Destination.Principal)
-	if err != nil {
-		s.Logger.Debug("Connect AuthZ DENIED: bad destination URI", "source", r.Attributes.Source.Principal, "destination",
-			r.Attributes.Destination.Principal)
-		// Treat this as an auth error since Envoy has sent something it considers
-		// valid, it's just not an identity we trust.
-		return deniedResponse("Destination Principal is not a valid Connect identity")
-	}
-
-	destID, ok := dest.(*connect.SpiffeIDService)
-	if !ok {
-		s.Logger.Debug("Connect AuthZ DENIED: bad destination service ID", "source", r.Attributes.Source.Principal, "destination",
-			r.Attributes.Destination.Principal)
-		return deniedResponse("Destination Principal is not a valid Service identity")
-	}
-
-	// For now we don't validate the trust domain of the _destination_ at all -
-	// the HTTP Authorize endpoint just accepts a target _service_ and it's
-	// implicit that the request is for the correct cluster. We might want to
-	// reconsider this later but plumbing in additional machinery to check the
-	// clusterID here is not really necessary for now unless Envoys are badly
-	// configured. Our threat model _requires_ correctly configured and well
-	// behaved proxies given that they have ACLs to fetch certs and so can do
-	// whatever they want including not authorizing traffic at all or routing it
-	// do a different service than they auth'd against.
-
-	// Create an authz request
-	req := &structs.ConnectAuthorizeRequest{
-		Target:         destID.Service,
-		EnterpriseMeta: *destID.GetEnterpriseMeta(),
-		ClientCertURI:  r.Attributes.Source.Principal,
-		// TODO(banks): need Envoy to support sending cert serial/hash to enforce
-		// revocation later.
-	}
-	token := tokenFromContext(ctx)
-	authed, reason, _, err := s.Authz.ConnectAuthorize(token, req)
-	if err != nil {
-		if err == acl.ErrPermissionDenied {
-			s.Logger.Debug("Connect AuthZ failed ACL check", "error", err, "source", r.Attributes.Source.Principal,
-				"dest", r.Attributes.Destination.Principal)
-			return nil, status.Error(codes.PermissionDenied, err.Error())
-		}
-		s.Logger.Debug("Connect AuthZ failed", "error", err, "source", r.Attributes.Source.Principal,
-			"destination", r.Attributes.Destination.Principal)
-		return nil, status.Error(codes.Internal, err.Error())
-	}
-	if !authed {
-		s.Logger.Debug("Connect AuthZ DENIED", "source", r.Attributes.Source.Principal,
-			"destination", r.Attributes.Destination.Principal, "reason", reason)
-		return deniedResponse(reason)
-	}
-
-	s.Logger.Debug("Connect AuthZ ALLOWED", "source", r.Attributes.Source.Principal,
-		"destination", r.Attributes.Destination.Principal, "reason", reason)
-	return &envoyauthz.CheckResponse{
-		Status: &rpcstatus.Status{
-			Code:    int32(codes.OK),
-			Message: "ALLOWED: " + reason,
-		},
-	}, nil
-}
-
-// GRPCServer returns a server instance that can handle XDS and ext_authz
-// requests.
+// GRPCServer returns a server instance that can handle xDS requests.
 func (s *Server) GRPCServer(tlsConfigurator *tlsutil.Configurator) (*grpc.Server, error) {
 	opts := []grpc.ServerOption{
 		grpc.MaxConcurrentStreams(2048),
@@ -586,16 +489,6 @@ func (s *Server) GRPCServer(tlsConfigurator *tlsutil.Configurator) (*grpc.Server
 	}
 	srv := grpc.NewServer(opts...)
 	envoydisco.RegisterAggregatedDiscoveryServiceServer(srv, s)
-
-	// Envoy 1.10 changed the package for ext_authz from v2alpha to v2. We still
-	// need to be compatible with 1.9.1 and earlier which only uses v2alpha. While
-	// there is a deprecated compatibility shim option in 1.10, we want to support
-	// first class. Fortunately they are wire-compatible so we can just register a
-	// single service implementation (using the new v2 package definitions) but
-	// using the old v2alpha regiatration function which just exports it on the
-	// old path as well.
-	envoyauthz.RegisterAuthorizationServer(srv, s)
-	envoyauthzalpha.RegisterAuthorizationServer(srv, s)
 
 	return srv, nil
 }
