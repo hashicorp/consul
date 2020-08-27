@@ -38,7 +38,6 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/serf"
 	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/assert"
@@ -249,120 +248,6 @@ func TestAgent_ReconnectConfigWanDisabled(t *testing.T) {
 
 	// This is also testing that we dont panic like before #4515
 	require.Nil(t, a.consulConfig().SerfWANConfig)
-}
-
-func TestAgent_setupNodeID(t *testing.T) {
-	t.Parallel()
-	a := NewTestAgent(t, `
-		node_id = ""
-	`)
-	defer a.Shutdown()
-
-	cfg := a.config
-
-	// The auto-assigned ID should be valid.
-	id := a.consulConfig().NodeID
-	if _, err := uuid.ParseUUID(string(id)); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Running again should get the same ID (persisted in the file).
-	cfg.NodeID = ""
-	if err := a.setupNodeID(cfg); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if newID := a.consulConfig().NodeID; id != newID {
-		t.Fatalf("bad: %q vs %q", id, newID)
-	}
-
-	// Set an invalid ID via.Config.
-	cfg.NodeID = types.NodeID("nope")
-	err := a.setupNodeID(cfg)
-	if err == nil || !strings.Contains(err.Error(), "uuid string is wrong length") {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Set a valid ID via.Config.
-	newID, err := uuid.GenerateUUID()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	cfg.NodeID = types.NodeID(strings.ToUpper(newID))
-	if err := a.setupNodeID(cfg); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if id := a.consulConfig().NodeID; string(id) != newID {
-		t.Fatalf("bad: %q vs. %q", id, newID)
-	}
-
-	// Set an invalid ID via the file.
-	fileID := filepath.Join(cfg.DataDir, "node-id")
-	if err := ioutil.WriteFile(fileID, []byte("adf4238a!882b!9ddc!4a9d!5b6758e4159e"), 0600); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	cfg.NodeID = ""
-	err = a.setupNodeID(cfg)
-	if err == nil || !strings.Contains(err.Error(), "uuid is improperly formatted") {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Set a valid ID via the file.
-	if err := ioutil.WriteFile(fileID, []byte("ADF4238a-882b-9ddc-4a9d-5b6758e4159e"), 0600); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	cfg.NodeID = ""
-	if err := a.setupNodeID(cfg); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if id := a.consulConfig().NodeID; string(id) != "adf4238a-882b-9ddc-4a9d-5b6758e4159e" {
-		t.Fatalf("bad: %q vs. %q", id, newID)
-	}
-}
-
-func TestAgent_makeNodeID(t *testing.T) {
-	t.Parallel()
-	a := NewTestAgent(t, `
-		node_id = ""
-	`)
-	defer a.Shutdown()
-
-	// We should get a valid host-based ID initially.
-	id, err := a.makeNodeID()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if _, err := uuid.ParseUUID(id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Calling again should yield a random ID by default.
-	another, err := a.makeNodeID()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if id == another {
-		t.Fatalf("bad: %s vs %s", id, another)
-	}
-
-	// Turn on host-based IDs and try again. We should get the same ID
-	// each time (and a different one from the random one above).
-	a.GetConfig().DisableHostNodeID = false
-	id, err = a.makeNodeID()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if id == another {
-		t.Fatalf("bad: %s vs %s", id, another)
-	}
-
-	// Calling again should yield the host-based ID.
-	another, err = a.makeNodeID()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if id != another {
-		t.Fatalf("bad: %s vs %s", id, another)
-	}
 }
 
 func TestAgent_AddService(t *testing.T) {
@@ -3656,7 +3541,7 @@ func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 		key_file = "../test/key/ourdomain.key"
 		verify_server_hostname = true
 	`
-	c := TestConfig(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	c := TestConfig(testutil.Logger(t), config.FileSource{Name: t.Name(), Format: "hcl", Data: hcl})
 	require.NoError(t, a.reloadConfigInternal(c))
 	tlsConf = a.tlsConfigurator.OutgoingRPCConfig()
 	require.False(t, tlsConf.InsecureSkipVerify)
@@ -3686,7 +3571,7 @@ func TestAgent_ReloadConfigAndKeepChecksStatus(t *testing.T) {
 		require.Equal(t, "passing", check.Status, "check %q is wrong", id)
 	}
 
-	c := TestConfig(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	c := TestConfig(testutil.Logger(t), config.FileSource{Name: t.Name(), Format: "hcl", Data: hcl})
 	require.NoError(t, a.reloadConfigInternal(c))
 	// After reload, should be passing directly (no critical state)
 	for id, check := range a.State.Checks(nil) {
@@ -3725,7 +3610,7 @@ func TestAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
 		key_file = "../test/key/ourdomain.key"
 		verify_server_hostname = true
 	`
-	c := TestConfig(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	c := TestConfig(testutil.Logger(t), config.FileSource{Name: t.Name(), Format: "hcl", Data: hcl})
 	require.NoError(t, a.reloadConfigInternal(c))
 	tlsConf, err = tlsConf.GetConfigForClient(nil)
 	require.NoError(t, err)
@@ -3754,7 +3639,7 @@ func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
 		data_dir = "` + dataDir + `"
 		verify_incoming = true
 	`
-	c := TestConfig(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	c := TestConfig(testutil.Logger(t), config.FileSource{Name: t.Name(), Format: "hcl", Data: hcl})
 	require.Error(t, a.reloadConfigInternal(c))
 	tlsConf, err := tlsConf.GetConfigForClient(nil)
 	require.NoError(t, err)

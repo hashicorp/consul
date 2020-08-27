@@ -2,7 +2,6 @@ package autoconf
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -55,26 +54,20 @@ var (
 // then we will need to add some locking here. I am deferring that for now
 // to help ease the review of this already large PR.
 type AutoConfig struct {
-	builderOpts        config.BuilderOpts
+	acConfig           Config
 	logger             hclog.Logger
-	directRPC          DirectRPC
-	waiter             *lib.RetryWaiter
-	overrides          []config.Source
 	certMonitor        CertMonitor
 	config             *config.RuntimeConfig
 	autoConfigResponse *pbautoconf.AutoConfigResponse
-	autoConfigData     string
-	cancel             context.CancelFunc
+	autoConfigSource   config.Source
 }
 
-// New creates a new AutoConfig object for providing automatic
-// Consul configuration.
-func New(config *Config) (*AutoConfig, error) {
-	if config == nil {
-		return nil, fmt.Errorf("must provide a config struct")
-	}
-
-	if config.DirectRPC == nil {
+// New creates a new AutoConfig object for providing automatic Consul configuration.
+func New(config Config) (*AutoConfig, error) {
+	switch {
+	case config.Loader == nil:
+		return nil, fmt.Errorf("must provide a config loader")
+	case config.DirectRPC == nil:
 		return nil, fmt.Errorf("must provide a direct RPC delegate")
 	}
 
@@ -85,33 +78,21 @@ func New(config *Config) (*AutoConfig, error) {
 		logger = logger.Named(logging.AutoConfig)
 	}
 
-	waiter := config.Waiter
-	if waiter == nil {
-		waiter = lib.NewRetryWaiter(1, 0, 10*time.Minute, lib.NewJitterRandomStagger(25))
+	if config.Waiter == nil {
+		config.Waiter = lib.NewRetryWaiter(1, 0, 10*time.Minute, lib.NewJitterRandomStagger(25))
 	}
 
-	ac := &AutoConfig{
-		builderOpts: config.BuilderOpts,
+	return &AutoConfig{
+		acConfig:    config,
 		logger:      logger,
-		directRPC:   config.DirectRPC,
-		waiter:      waiter,
-		overrides:   config.Overrides,
 		certMonitor: config.CertMonitor,
-	}
-
-	return ac, nil
+	}, nil
 }
 
 // ReadConfig will parse the current configuration and inject any
 // auto-config sources if present into the correct place in the parsing chain.
 func (ac *AutoConfig) ReadConfig() (*config.RuntimeConfig, error) {
-	src := config.Source{
-		Name:   autoConfigFileName,
-		Format: "json",
-		Data:   ac.autoConfigData,
-	}
-
-	cfg, warnings, err := LoadConfig(ac.builderOpts, src, ac.overrides...)
+	cfg, warnings, err := ac.acConfig.Loader(ac.autoConfigSource)
 	if err != nil {
 		return cfg, err
 	}
@@ -384,7 +365,7 @@ func (ac *AutoConfig) getInitialConfigurationOnce(ctx context.Context, csr strin
 			}
 
 			ac.logger.Debug("making AutoConfig.InitialConfiguration RPC", "addr", addr.String())
-			if err = ac.directRPC.RPC(ac.config.Datacenter, ac.config.NodeName, &addr, "AutoConfig.InitialConfiguration", &request, &resp); err != nil {
+			if err = ac.acConfig.DirectRPC.RPC(ac.config.Datacenter, ac.config.NodeName, &addr, "AutoConfig.InitialConfiguration", &request, &resp); err != nil {
 				ac.logger.Error("AutoConfig.InitialConfiguration RPC failed", "addr", addr.String(), "error", err)
 				continue
 			}
@@ -412,7 +393,7 @@ func (ac *AutoConfig) getInitialConfiguration(ctx context.Context) error {
 	}
 
 	// this resets the failures so that we will perform immediate request
-	wait := ac.waiter.Success()
+	wait := ac.acConfig.Waiter.Success()
 	for {
 		select {
 		case <-wait:
@@ -424,7 +405,7 @@ func (ac *AutoConfig) getInitialConfiguration(ctx context.Context) error {
 			} else {
 				ac.logger.Error("No error returned when fetching the initial auto-configuration but no response was either")
 			}
-			wait = ac.waiter.Failed()
+			wait = ac.acConfig.Waiter.Failed()
 		case <-ctx.Done():
 			ac.logger.Info("interrupted during initial auto configuration", "err", ctx.Err())
 			return ctx.Err()
@@ -496,28 +477,15 @@ func (ac *AutoConfig) generateCSR() (csr string, key string, err error) {
 func (ac *AutoConfig) update(resp *pbautoconf.AutoConfigResponse) error {
 	ac.autoConfigResponse = resp
 
-	if err := ac.updateConfigFromResponse(resp); err != nil {
-		return err
+	ac.autoConfigSource = config.LiteralSource{
+		Name:   autoConfigFileName,
+		Config: translateConfig(resp.Config),
 	}
 
 	if err := ac.updateTLSFromResponse(resp); err != nil {
 		return err
 	}
 
-	return nil
-}
-
-// updateConfigFromResponse is responsible for generating the JSON compatible with the
-// agent/config.Config struct
-func (ac *AutoConfig) updateConfigFromResponse(resp *pbautoconf.AutoConfigResponse) error {
-	// here we want to serialize the translated configuration for use in injecting into the normal
-	// configuration parsing chain.
-	conf, err := json.Marshal(translateConfig(resp.Config))
-	if err != nil {
-		return fmt.Errorf("failed to encode auto-config configuration as JSON: %w", err)
-	}
-
-	ac.autoConfigData = string(conf)
 	return nil
 }
 

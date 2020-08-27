@@ -1332,7 +1332,7 @@ func TestAgent_Reload(t *testing.T) {
 		t.Fatal("missing redis service")
 	}
 
-	cfg2 := TestConfig(testutil.Logger(t), config.Source{
+	cfg2 := TestConfig(testutil.Logger(t), config.FileSource{
 		Name:   "reload",
 		Format: "hcl",
 		Data: `
@@ -1466,7 +1466,7 @@ func TestAgent_ReloadDoesNotTriggerWatch(t *testing.T) {
 	})
 
 	// Let's take almost the same config
-	cfg2 := TestConfig(testutil.Logger(t), config.Source{
+	cfg2 := TestConfig(testutil.Logger(t), config.FileSource{
 		Name:   "reload",
 		Format: "hcl",
 		Data: `

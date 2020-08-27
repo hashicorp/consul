@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-hclog"
 	uuid "github.com/hashicorp/go-uuid"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
@@ -167,38 +168,39 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 	portsConfig, returnPortsFn := randomPortsSource(a.UseTLS)
 	t.Cleanup(returnPortsFn)
 
-	nodeID := NodeID()
-
-	opts := []AgentOption{
-		WithLogger(logger),
-		WithBuilderOpts(config.BuilderOpts{
-			HCL: []string{
-				TestConfigHCL(nodeID),
-				portsConfig,
-				a.HCL,
-				hclDataDir,
-			},
-		}),
-		WithOverrides(config.Source{
-			Name:   "test-overrides",
-			Format: "hcl",
-			Data:   a.Overrides},
+	// Create NodeID outside the closure, so that it does not change
+	testHCLConfig := TestConfigHCL(NodeID())
+	loader := func(source config.Source) (*config.RuntimeConfig, []string, error) {
+		opts := config.BuilderOpts{
+			HCL: []string{testHCLConfig, portsConfig, a.HCL, hclDataDir},
+		}
+		overrides := []config.Source{
+			config.FileSource{
+				Name:   "test-overrides",
+				Format: "hcl",
+				Data:   a.Overrides},
 			config.DefaultConsulSource(),
 			config.DevConsulSource(),
-		),
+		}
+		cfg, warnings, err := config.Load(opts, source, overrides...)
+		if cfg != nil {
+			cfg.Telemetry.Disable = true
+		}
+		return cfg, warnings, err
 	}
+	bd, err := NewBaseDeps(loader, logOutput)
+	require.NoError(t, err)
 
-	agent, err := New(opts...)
+	bd.Logger = logger
+	bd.MetricsHandler = metrics.NewInmemSink(1*time.Second, time.Minute)
+	a.Config = bd.RuntimeConfig
+
+	agent, err := New(bd)
 	if err != nil {
 		return fmt.Errorf("Error creating agent: %s", err)
 	}
 
-	a.Config = agent.GetConfig()
-
-	agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
-
 	id := string(a.Config.NodeID)
-
 	if err := agent.Start(context.Background()); err != nil {
 		agent.ShutdownAgent()
 		agent.ShutdownEndpoints()
@@ -342,8 +344,11 @@ func (a *TestAgent) DNSDisableCompression(b bool) {
 	}
 }
 
+// FIXME: this should t.Fatal on error, not panic.
+// TODO: rename to newConsulConfig
+// TODO: remove TestAgent receiver, accept a.Agent.config as an arg
 func (a *TestAgent) consulConfig() *consul.Config {
-	c, err := a.Agent.consulConfig()
+	c, err := newConsulConfig(a.Agent.config, a.Agent.logger)
 	if err != nil {
 		panic(err)
 	}
@@ -395,7 +400,7 @@ func NodeID() string {
 // agent.
 func TestConfig(logger hclog.Logger, sources ...config.Source) *config.RuntimeConfig {
 	nodeID := NodeID()
-	testsrc := config.Source{
+	testsrc := config.FileSource{
 		Name:   "test",
 		Format: "hcl",
 		Data: `

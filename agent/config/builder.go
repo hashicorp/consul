@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -19,10 +20,12 @@ import (
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
+	"github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	libtempl "github.com/hashicorp/consul/lib/template"
+	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-bexpr"
@@ -32,6 +35,31 @@ import (
 	"github.com/hashicorp/memberlist"
 	"golang.org/x/time/rate"
 )
+
+// Load will build the configuration including the extraHead source injected
+// after all other defaults but before any user supplied configuration and the overrides
+// source injected as the final source in the configuration parsing chain.
+func Load(opts BuilderOpts, extraHead Source, overrides ...Source) (*RuntimeConfig, []string, error) {
+	b, err := NewBuilder(opts)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if extraHead != nil {
+		b.Head = append(b.Head, extraHead)
+	}
+
+	if len(overrides) != 0 {
+		b.Tail = append(b.Tail, overrides...)
+	}
+
+	cfg, err := b.BuildAndValidate()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return &cfg, b.Warnings, nil
+}
 
 // Builder constructs a valid runtime configuration from multiple
 // configuration sources.
@@ -59,8 +87,8 @@ import (
 // since not all pre-conditions have to be satisfied when performing
 // syntactical tests.
 type Builder struct {
-	// options contains the input values used to construct a RuntimeConfig
-	options BuilderOpts
+	// devMode stores the value of the -dev flag, and enables development mode.
+	devMode *bool
 
 	// Head, Sources, and Tail are used to manage the order of the
 	// config sources, as described in the comments above.
@@ -72,14 +100,14 @@ type Builder struct {
 	// parsing the configuration.
 	Warnings []string
 
-	// Hostname returns the hostname of the machine. If nil, os.Hostname
-	// is called.
-	Hostname func() (string, error)
+	// hostname is a shim for testing, allowing tests to specify a replacement
+	// for os.Hostname.
+	hostname func() (string, error)
 
-	// GetPrivateIPv4 and GetPublicIPv6 return suitable default addresses
-	// for cases when the user doesn't supply them.
-	GetPrivateIPv4 func() ([]*net.IPAddr, error)
-	GetPublicIPv6  func() ([]*net.IPAddr, error)
+	// getPrivateIPv4 and getPublicIPv6 are shims for testing, allowing tests to
+	// specify a replacement for ipaddr.GetPrivateIPv4 and ipaddr.GetPublicIPv6.
+	getPrivateIPv4 func() ([]*net.IPAddr, error)
+	getPublicIPv6  func() ([]*net.IPAddr, error)
 
 	// err contains the first error that occurred during
 	// building the runtime configuration.
@@ -88,16 +116,21 @@ type Builder struct {
 
 // NewBuilder returns a new configuration Builder from the BuilderOpts.
 func NewBuilder(opts BuilderOpts) (*Builder, error) {
+	configFormat := opts.ConfigFormat
+	if configFormat != "" && configFormat != "json" && configFormat != "hcl" {
+		return nil, fmt.Errorf("config: -config-format must be either 'hcl' or 'json'")
+	}
+
 	newSource := func(name string, v interface{}) Source {
 		b, err := json.MarshalIndent(v, "", "    ")
 		if err != nil {
 			panic(err)
 		}
-		return Source{Name: name, Format: "json", Data: string(b)}
+		return FileSource{Name: name, Format: "json", Data: string(b)}
 	}
 
 	b := &Builder{
-		options: opts,
+		devMode: opts.DevMode,
 		Head:    []Source{DefaultSource(), DefaultEnterpriseSource()},
 	}
 
@@ -121,7 +154,7 @@ func NewBuilder(opts BuilderOpts) (*Builder, error) {
 	}
 	b.Tail = append(b.Tail, newSource("flags.values", values))
 	for i, s := range opts.HCL {
-		b.Tail = append(b.Tail, Source{
+		b.Tail = append(b.Tail, FileSource{
 			Name:   fmt.Sprintf("flags-%d.hcl", i),
 			Format: "hcl",
 			Data:   s,
@@ -207,12 +240,12 @@ func (b *Builder) sourcesFromPath(path string, format string) ([]Source, error) 
 func newSourceFromFile(path string, format string) (Source, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
-		return Source{}, fmt.Errorf("config: failed to read %s: %s", path, err)
+		return nil, fmt.Errorf("config: failed to read %s: %s", path, err)
 	}
 	if format == "" {
 		format = formatFromFileExtension(path)
 	}
-	return Source{Name: path, Data: string(data), Format: format}, nil
+	return FileSource{Name: path, Data: string(data), Format: format}, nil
 }
 
 // shouldParse file determines whether the file to be read is of a supported extension
@@ -256,14 +289,7 @@ func (b *Builder) BuildAndValidate() (RuntimeConfig, error) {
 // warnings can still contain deprecation or format warnings that should
 // be presented to the user.
 func (b *Builder) Build() (rt RuntimeConfig, err error) {
-	// TODO: move to NewBuilder to remove Builder.options field
-	configFormat := b.options.ConfigFormat
-	if configFormat != "" && configFormat != "json" && configFormat != "hcl" {
-		return RuntimeConfig{}, fmt.Errorf("config: -config-format must be either 'hcl' or 'json'")
-	}
-
-	// build the list of config sources
-	var srcs []Source
+	srcs := make([]Source, 0, len(b.Head)+len(b.Sources)+len(b.Tail))
 	srcs = append(srcs, b.Head...)
 	srcs = append(srcs, b.Sources...)
 	srcs = append(srcs, b.Tail...)
@@ -271,12 +297,13 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	// parse the config sources into a configuration
 	var c Config
 	for _, s := range srcs {
-		if s.Name == "" || s.Data == "" {
+
+		c2, md, err := s.Parse()
+		switch {
+		case err == ErrNoData:
 			continue
-		}
-		c2, md, err := Parse(s.Data, s.Format)
-		if err != nil {
-			return RuntimeConfig{}, fmt.Errorf("Error parsing %s: %s", s.Name, err)
+		case err != nil:
+			return RuntimeConfig{}, fmt.Errorf("failed to parse %v: %w", s.Source(), err)
 		}
 
 		var unusedErr error
@@ -289,7 +316,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			}
 		}
 		if unusedErr != nil {
-			return RuntimeConfig{}, fmt.Errorf("Error parsing %s: %s", s.Name, unusedErr)
+			return RuntimeConfig{}, fmt.Errorf("failed to parse %v: %s", s.Source(), unusedErr)
 		}
 
 		// for now this is a soft failure that will cause warnings but not actual problems
@@ -435,14 +462,14 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		switch {
 		case ipaddr.IsAnyV4(advertiseAddr):
 			addrtyp = "private IPv4"
-			detect = b.GetPrivateIPv4
+			detect = b.getPrivateIPv4
 			if detect == nil {
 				detect = ipaddr.GetPrivateIPv4
 			}
 
 		case ipaddr.IsAnyV6(advertiseAddr):
 			addrtyp = "public IPv6"
-			detect = b.GetPublicIPv6
+			detect = b.getPublicIPv6
 			if detect == nil {
 				detect = ipaddr.GetPublicIPv6
 			}
@@ -930,7 +957,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		DataDir:                                b.stringVal(c.DataDir),
 		Datacenter:                             datacenter,
 		DefaultQueryTime:                       b.durationVal("default_query_time", c.DefaultQueryTime),
-		DevMode:                                b.boolVal(b.options.DevMode),
+		DevMode:                                b.boolVal(b.devMode),
 		DisableAnonymousSignature:              b.boolVal(c.DisableAnonymousSignature),
 		DisableCoordinates:                     b.boolVal(c.DisableCoordinates),
 		DisableHostNodeID:                      b.boolVal(c.DisableHostNodeID),
@@ -945,91 +972,94 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		EnableDebug:                            b.boolVal(c.EnableDebug),
 		EnableRemoteScriptChecks:               enableRemoteScriptChecks,
 		EnableLocalScriptChecks:                enableLocalScriptChecks,
-		EnableSyslog:                           b.boolVal(c.EnableSyslog),
-		EnableUI:                               b.boolVal(c.UI),
-		EncryptKey:                             b.stringVal(c.EncryptKey),
-		EncryptVerifyIncoming:                  b.boolVal(c.EncryptVerifyIncoming),
-		EncryptVerifyOutgoing:                  b.boolVal(c.EncryptVerifyOutgoing),
-		GRPCPort:                               grpcPort,
-		GRPCAddrs:                              grpcAddrs,
-		HTTPMaxConnsPerClient:                  b.intVal(c.Limits.HTTPMaxConnsPerClient),
-		HTTPSHandshakeTimeout:                  b.durationVal("limits.https_handshake_timeout", c.Limits.HTTPSHandshakeTimeout),
-		KeyFile:                                b.stringVal(c.KeyFile),
-		KVMaxValueSize:                         b.uint64Val(c.Limits.KVMaxValueSize),
-		LeaveDrainTime:                         b.durationVal("performance.leave_drain_time", c.Performance.LeaveDrainTime),
-		LeaveOnTerm:                            leaveOnTerm,
-		LogLevel:                               b.stringVal(c.LogLevel),
-		LogJSON:                                b.boolVal(c.LogJSON),
-		LogFile:                                b.stringVal(c.LogFile),
-		LogRotateBytes:                         b.intVal(c.LogRotateBytes),
-		LogRotateDuration:                      b.durationVal("log_rotate_duration", c.LogRotateDuration),
-		LogRotateMaxFiles:                      b.intVal(c.LogRotateMaxFiles),
-		MaxQueryTime:                           b.durationVal("max_query_time", c.MaxQueryTime),
-		NodeID:                                 types.NodeID(b.stringVal(c.NodeID)),
-		NodeMeta:                               c.NodeMeta,
-		NodeName:                               b.nodeName(c.NodeName),
-		NonVotingServer:                        b.boolVal(c.NonVotingServer),
-		PidFile:                                b.stringVal(c.PidFile),
-		PrimaryDatacenter:                      primaryDatacenter,
-		PrimaryGateways:                        b.expandAllOptionalAddrs("primary_gateways", c.PrimaryGateways),
-		PrimaryGatewaysInterval:                b.durationVal("primary_gateways_interval", c.PrimaryGatewaysInterval),
-		RPCAdvertiseAddr:                       rpcAdvertiseAddr,
-		RPCBindAddr:                            rpcBindAddr,
-		RPCHandshakeTimeout:                    b.durationVal("limits.rpc_handshake_timeout", c.Limits.RPCHandshakeTimeout),
-		RPCHoldTimeout:                         b.durationVal("performance.rpc_hold_timeout", c.Performance.RPCHoldTimeout),
-		RPCMaxBurst:                            b.intVal(c.Limits.RPCMaxBurst),
-		RPCMaxConnsPerClient:                   b.intVal(c.Limits.RPCMaxConnsPerClient),
-		RPCProtocol:                            b.intVal(c.RPCProtocol),
-		RPCRateLimit:                           rate.Limit(b.float64Val(c.Limits.RPCRate)),
-		RaftProtocol:                           b.intVal(c.RaftProtocol),
-		RaftSnapshotThreshold:                  b.intVal(c.RaftSnapshotThreshold),
-		RaftSnapshotInterval:                   b.durationVal("raft_snapshot_interval", c.RaftSnapshotInterval),
-		RaftTrailingLogs:                       b.intVal(c.RaftTrailingLogs),
-		ReconnectTimeoutLAN:                    b.durationVal("reconnect_timeout", c.ReconnectTimeoutLAN),
-		ReconnectTimeoutWAN:                    b.durationVal("reconnect_timeout_wan", c.ReconnectTimeoutWAN),
-		RejoinAfterLeave:                       b.boolVal(c.RejoinAfterLeave),
-		RetryJoinIntervalLAN:                   b.durationVal("retry_interval", c.RetryJoinIntervalLAN),
-		RetryJoinIntervalWAN:                   b.durationVal("retry_interval_wan", c.RetryJoinIntervalWAN),
-		RetryJoinLAN:                           b.expandAllOptionalAddrs("retry_join", c.RetryJoinLAN),
-		RetryJoinMaxAttemptsLAN:                b.intVal(c.RetryJoinMaxAttemptsLAN),
-		RetryJoinMaxAttemptsWAN:                b.intVal(c.RetryJoinMaxAttemptsWAN),
-		RetryJoinWAN:                           b.expandAllOptionalAddrs("retry_join_wan", c.RetryJoinWAN),
-		SegmentName:                            b.stringVal(c.SegmentName),
-		Segments:                               segments,
-		SerfAdvertiseAddrLAN:                   serfAdvertiseAddrLAN,
-		SerfAdvertiseAddrWAN:                   serfAdvertiseAddrWAN,
-		SerfAllowedCIDRsLAN:                    serfAllowedCIDRSLAN,
-		SerfAllowedCIDRsWAN:                    serfAllowedCIDRSWAN,
-		SerfBindAddrLAN:                        serfBindAddrLAN,
-		SerfBindAddrWAN:                        serfBindAddrWAN,
-		SerfPortLAN:                            serfPortLAN,
-		SerfPortWAN:                            serfPortWAN,
-		ServerMode:                             b.boolVal(c.ServerMode),
-		ServerName:                             b.stringVal(c.ServerName),
-		ServerPort:                             serverPort,
-		Services:                               services,
-		SessionTTLMin:                          b.durationVal("session_ttl_min", c.SessionTTLMin),
-		SkipLeaveOnInt:                         skipLeaveOnInt,
-		StartJoinAddrsLAN:                      b.expandAllOptionalAddrs("start_join", c.StartJoinAddrsLAN),
-		StartJoinAddrsWAN:                      b.expandAllOptionalAddrs("start_join_wan", c.StartJoinAddrsWAN),
-		SyslogFacility:                         b.stringVal(c.SyslogFacility),
-		TLSCipherSuites:                        b.tlsCipherSuites("tls_cipher_suites", c.TLSCipherSuites),
-		TLSMinVersion:                          b.stringVal(c.TLSMinVersion),
-		TLSPreferServerCipherSuites:            b.boolVal(c.TLSPreferServerCipherSuites),
-		TaggedAddresses:                        c.TaggedAddresses,
-		TranslateWANAddrs:                      b.boolVal(c.TranslateWANAddrs),
-		TxnMaxReqLen:                           b.uint64Val(c.Limits.TxnMaxReqLen),
-		UIDir:                                  b.stringVal(c.UIDir),
-		UIContentPath:                          UIPathBuilder(b.stringVal(c.UIContentPath)),
-		UnixSocketGroup:                        b.stringVal(c.UnixSocket.Group),
-		UnixSocketMode:                         b.stringVal(c.UnixSocket.Mode),
-		UnixSocketUser:                         b.stringVal(c.UnixSocket.User),
-		VerifyIncoming:                         b.boolVal(c.VerifyIncoming),
-		VerifyIncomingHTTPS:                    b.boolVal(c.VerifyIncomingHTTPS),
-		VerifyIncomingRPC:                      b.boolVal(c.VerifyIncomingRPC),
-		VerifyOutgoing:                         verifyOutgoing,
-		VerifyServerHostname:                   verifyServerName,
-		Watches:                                c.Watches,
+
+		EnableUI:              b.boolVal(c.UI),
+		EncryptKey:            b.stringVal(c.EncryptKey),
+		EncryptVerifyIncoming: b.boolVal(c.EncryptVerifyIncoming),
+		EncryptVerifyOutgoing: b.boolVal(c.EncryptVerifyOutgoing),
+		GRPCPort:              grpcPort,
+		GRPCAddrs:             grpcAddrs,
+		HTTPMaxConnsPerClient: b.intVal(c.Limits.HTTPMaxConnsPerClient),
+		HTTPSHandshakeTimeout: b.durationVal("limits.https_handshake_timeout", c.Limits.HTTPSHandshakeTimeout),
+		KeyFile:               b.stringVal(c.KeyFile),
+		KVMaxValueSize:        b.uint64Val(c.Limits.KVMaxValueSize),
+		LeaveDrainTime:        b.durationVal("performance.leave_drain_time", c.Performance.LeaveDrainTime),
+		LeaveOnTerm:           leaveOnTerm,
+		Logging: logging.Config{
+			LogLevel:          b.stringVal(c.LogLevel),
+			LogJSON:           b.boolVal(c.LogJSON),
+			LogFilePath:       b.stringVal(c.LogFile),
+			EnableSyslog:      b.boolVal(c.EnableSyslog),
+			SyslogFacility:    b.stringVal(c.SyslogFacility),
+			LogRotateDuration: b.durationVal("log_rotate_duration", c.LogRotateDuration),
+			LogRotateBytes:    b.intVal(c.LogRotateBytes),
+			LogRotateMaxFiles: b.intVal(c.LogRotateMaxFiles),
+		},
+		MaxQueryTime:                b.durationVal("max_query_time", c.MaxQueryTime),
+		NodeID:                      types.NodeID(b.stringVal(c.NodeID)),
+		NodeMeta:                    c.NodeMeta,
+		NodeName:                    b.nodeName(c.NodeName),
+		NonVotingServer:             b.boolVal(c.NonVotingServer),
+		PidFile:                     b.stringVal(c.PidFile),
+		PrimaryDatacenter:           primaryDatacenter,
+		PrimaryGateways:             b.expandAllOptionalAddrs("primary_gateways", c.PrimaryGateways),
+		PrimaryGatewaysInterval:     b.durationVal("primary_gateways_interval", c.PrimaryGatewaysInterval),
+		RPCAdvertiseAddr:            rpcAdvertiseAddr,
+		RPCBindAddr:                 rpcBindAddr,
+		RPCHandshakeTimeout:         b.durationVal("limits.rpc_handshake_timeout", c.Limits.RPCHandshakeTimeout),
+		RPCHoldTimeout:              b.durationVal("performance.rpc_hold_timeout", c.Performance.RPCHoldTimeout),
+		RPCMaxBurst:                 b.intVal(c.Limits.RPCMaxBurst),
+		RPCMaxConnsPerClient:        b.intVal(c.Limits.RPCMaxConnsPerClient),
+		RPCProtocol:                 b.intVal(c.RPCProtocol),
+		RPCRateLimit:                rate.Limit(b.float64Val(c.Limits.RPCRate)),
+		RaftProtocol:                b.intVal(c.RaftProtocol),
+		RaftSnapshotThreshold:       b.intVal(c.RaftSnapshotThreshold),
+		RaftSnapshotInterval:        b.durationVal("raft_snapshot_interval", c.RaftSnapshotInterval),
+		RaftTrailingLogs:            b.intVal(c.RaftTrailingLogs),
+		ReconnectTimeoutLAN:         b.durationVal("reconnect_timeout", c.ReconnectTimeoutLAN),
+		ReconnectTimeoutWAN:         b.durationVal("reconnect_timeout_wan", c.ReconnectTimeoutWAN),
+		RejoinAfterLeave:            b.boolVal(c.RejoinAfterLeave),
+		RetryJoinIntervalLAN:        b.durationVal("retry_interval", c.RetryJoinIntervalLAN),
+		RetryJoinIntervalWAN:        b.durationVal("retry_interval_wan", c.RetryJoinIntervalWAN),
+		RetryJoinLAN:                b.expandAllOptionalAddrs("retry_join", c.RetryJoinLAN),
+		RetryJoinMaxAttemptsLAN:     b.intVal(c.RetryJoinMaxAttemptsLAN),
+		RetryJoinMaxAttemptsWAN:     b.intVal(c.RetryJoinMaxAttemptsWAN),
+		RetryJoinWAN:                b.expandAllOptionalAddrs("retry_join_wan", c.RetryJoinWAN),
+		SegmentName:                 b.stringVal(c.SegmentName),
+		Segments:                    segments,
+		SerfAdvertiseAddrLAN:        serfAdvertiseAddrLAN,
+		SerfAdvertiseAddrWAN:        serfAdvertiseAddrWAN,
+		SerfAllowedCIDRsLAN:         serfAllowedCIDRSLAN,
+		SerfAllowedCIDRsWAN:         serfAllowedCIDRSWAN,
+		SerfBindAddrLAN:             serfBindAddrLAN,
+		SerfBindAddrWAN:             serfBindAddrWAN,
+		SerfPortLAN:                 serfPortLAN,
+		SerfPortWAN:                 serfPortWAN,
+		ServerMode:                  b.boolVal(c.ServerMode),
+		ServerName:                  b.stringVal(c.ServerName),
+		ServerPort:                  serverPort,
+		Services:                    services,
+		SessionTTLMin:               b.durationVal("session_ttl_min", c.SessionTTLMin),
+		SkipLeaveOnInt:              skipLeaveOnInt,
+		StartJoinAddrsLAN:           b.expandAllOptionalAddrs("start_join", c.StartJoinAddrsLAN),
+		StartJoinAddrsWAN:           b.expandAllOptionalAddrs("start_join_wan", c.StartJoinAddrsWAN),
+		TLSCipherSuites:             b.tlsCipherSuites("tls_cipher_suites", c.TLSCipherSuites),
+		TLSMinVersion:               b.stringVal(c.TLSMinVersion),
+		TLSPreferServerCipherSuites: b.boolVal(c.TLSPreferServerCipherSuites),
+		TaggedAddresses:             c.TaggedAddresses,
+		TranslateWANAddrs:           b.boolVal(c.TranslateWANAddrs),
+		TxnMaxReqLen:                b.uint64Val(c.Limits.TxnMaxReqLen),
+		UIDir:                       b.stringVal(c.UIDir),
+		UIContentPath:               UIPathBuilder(b.stringVal(c.UIContentPath)),
+		UnixSocketGroup:             b.stringVal(c.UnixSocket.Group),
+		UnixSocketMode:              b.stringVal(c.UnixSocket.Mode),
+		UnixSocketUser:              b.stringVal(c.UnixSocket.User),
+		VerifyIncoming:              b.boolVal(c.VerifyIncoming),
+		VerifyIncomingHTTPS:         b.boolVal(c.VerifyIncomingHTTPS),
+		VerifyIncomingRPC:           b.boolVal(c.VerifyIncomingRPC),
+		VerifyOutgoing:              verifyOutgoing,
+		VerifyServerHostname:        verifyServerName,
+		Watches:                     c.Watches,
 	}
 
 	if rt.Cache.EntryFetchMaxBurst <= 0 {
@@ -1093,9 +1123,20 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 			return fmt.Errorf("data_dir %q is not a directory", rt.DataDir)
 		}
 	}
-	if rt.NodeName == "" {
+
+	switch {
+	case rt.NodeName == "":
 		return fmt.Errorf("node_name cannot be empty")
+	case dns.InvalidNameRe.MatchString(rt.NodeName):
+		b.warn("Node name %q will not be discoverable "+
+			"via DNS due to invalid characters. Valid characters include "+
+			"all alpha-numerics and dashes.", rt.NodeName)
+	case len(rt.NodeName) > dns.MaxLabelLength:
+		b.warn("Node name %q will not be discoverable "+
+			"via DNS due to it being too long. Valid lengths are between "+
+			"1 and 63 bytes.", rt.NodeName)
 	}
+
 	if ipaddr.IsAny(rt.AdvertiseAddrLAN.IP) {
 		return fmt.Errorf("Advertise address cannot be 0.0.0.0, :: or [::]")
 	}
@@ -1312,6 +1353,11 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 
 	if err := b.validateAutoConfig(rt); err != nil {
 		return err
+	}
+
+	if err := validateRemoteScriptsChecks(rt); err != nil {
+		// TODO: make this an error in a future version
+		b.warn(err.Error())
 	}
 
 	return nil
@@ -1718,7 +1764,7 @@ func (b *Builder) tlsCipherSuites(name string, v *string) []uint16 {
 func (b *Builder) nodeName(v *string) string {
 	nodeName := b.stringVal(v)
 	if nodeName == "" {
-		fn := b.Hostname
+		fn := b.hostname
 		if fn == nil {
 			fn = os.Hostname
 		}
@@ -2154,4 +2200,16 @@ func UIPathBuilder(UIContentString string) string {
 
 	}
 	return "/ui/"
+}
+
+const remoteScriptCheckSecurityWarning = "using enable-script-checks without ACLs and without allow_write_http_from is DANGEROUS, use enable-local-script-checks instead, see https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations/"
+
+// validateRemoteScriptsChecks returns an error if EnableRemoteScriptChecks is
+// enabled without other security features, which mitigate the risk of executing
+// remote scripts.
+func validateRemoteScriptsChecks(conf RuntimeConfig) error {
+	if conf.EnableRemoteScriptChecks && !conf.ACLsEnabled && len(conf.AllowWriteHTTPFrom) == 0 {
+		return errors.New(remoteScriptCheckSecurityWarning)
+	}
+	return nil
 }
