@@ -44,7 +44,7 @@ type IngressListener struct {
 	// Protocol declares what type of traffic this listener is expected to
 	// receive. Depending on the protocol, a listener might support multiplexing
 	// services over a single port, or additional discovery chain features. The
-	// current supported values are: (tcp | http).
+	// current supported values are: (tcp | http | http2 | grpc).
 	Protocol string
 
 	// Services declares the set of services to which the listener forwards

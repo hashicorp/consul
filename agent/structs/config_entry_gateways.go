@@ -38,7 +38,7 @@ type IngressListener struct {
 	// Protocol declares what type of traffic this listener is expected to
 	// receive. Depending on the protocol, a listener might support multiplexing
 	// services over a single port, or additional discovery chain features. The
-	// current supported values are: (tcp | http).
+	// current supported values are: (tcp | http | http2 | grpc).
 	Protocol string
 
 	// Services declares the set of services to which the listener forwards
@@ -122,8 +122,10 @@ func (e *IngressGatewayConfigEntry) Normalize() error {
 
 func (e *IngressGatewayConfigEntry) Validate() error {
 	validProtocols := map[string]bool{
-		"http": true,
-		"tcp":  true,
+		"tcp":   true,
+		"http":  true,
+		"http2": true,
+		"grpc":  true,
 	}
 	declaredPorts := make(map[int]bool)
 
@@ -134,7 +136,7 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 		declaredPorts[listener.Port] = true
 
 		if _, ok := validProtocols[listener.Protocol]; !ok {
-			return fmt.Errorf("Protocol must be either 'http' or 'tcp', '%s' is an unsupported protocol.", listener.Protocol)
+			return fmt.Errorf("protocol must be 'tcp', 'http', 'http2', or 'grpc'. '%s' is an unsupported protocol", listener.Protocol)
 		}
 
 		if len(listener.Services) == 0 {

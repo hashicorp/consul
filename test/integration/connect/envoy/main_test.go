@@ -33,6 +33,7 @@ func TestEnvoy(t *testing.T) {
 		"case-http",
 		"case-http-badauthz",
 		"case-ingress-gateway-http",
+		"case-ingress-gateway-grpc",
 		"case-ingress-gateway-multiple-services",
 		"case-ingress-gateway-simple",
 		"case-ingress-gateway-tls",
