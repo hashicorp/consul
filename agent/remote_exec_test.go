@@ -2,25 +2,26 @@ package agent
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
-	"fmt"
-	"reflect"
 	"testing"
-
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-uuid"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/go-uuid"
 )
 
-func generateUUID() (ret string) {
-	var err error
-	if ret, err = uuid.GenerateUUID(); err != nil {
-		panic(fmt.Sprintf("Unable to generate a UUID, %v", err))
-	}
+func generateUUID(t *testing.T) (ret string) {
+	t.Helper()
+	ret, err := uuid.GenerateUUID()
+	require.NoError(t, err, "Unable to generate a UUID")
 	return ret
 }
 
@@ -100,72 +101,11 @@ func TestRexecWriter(t *testing.T) {
 	}
 }
 
-func TestRemoteExecGetSpec(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	testRemoteExecGetSpec(t, "", "", true, "")
-}
-
-func TestRemoteExecGetSpec_ACLToken(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	dc := "dc1"
-	testRemoteExecGetSpec(t, `
-		acl_datacenter = "`+dc+`"
-		acl_master_token = "root"
-		acl_token = "root"
-		acl_default_policy = "deny"
-	`, "root", true, dc)
-}
-
-func TestRemoteExecGetSpec_ACLAgentToken(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	dc := "dc1"
-	testRemoteExecGetSpec(t, `
-		acl_datacenter = "`+dc+`"
-		acl_master_token = "root"
-		acl_agent_token = "root"
-		acl_default_policy = "deny"
-	`, "root", true, dc)
-}
-
-func TestRemoteExecGetSpec_ACLDeny(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	dc := "dc1"
-	testRemoteExecGetSpec(t, `
-		acl_datacenter = "`+dc+`"
-		acl_master_token = "root"
-		acl_default_policy = "deny"
-	`, "root", false, dc)
-}
-
-func testRemoteExecGetSpec(t *testing.T, hcl string, token string, shouldSucceed bool, dc string) {
-	a := NewTestAgent(t, hcl)
-	defer a.Shutdown()
-	if dc != "" {
-		testrpc.WaitForLeader(t, a.RPC, dc)
-	} else {
-		testrpc.WaitForTestAgent(t, a.RPC, "dc1")
-	}
+func TestRemoteExecHandler_GetExecSpec_Retries(t *testing.T) {
 	event := &remoteExecEvent{
 		Prefix:  "_rexec",
-		Session: makeRexecSession(t, a.Agent, token),
+		Session: "the-session",
 	}
-	defer destroySession(t, a.Agent, event.Session, token)
 
 	spec := &remoteExecSpec{
 		Command: "uptime",
@@ -173,142 +113,155 @@ func testRemoteExecGetSpec(t *testing.T, hcl string, token string, shouldSucceed
 		Wait:    time.Second,
 	}
 	buf, err := json.Marshal(spec)
-	if err != nil {
-		t.Fatalf("err: %v", err)
+	require.NoError(t, err)
+
+	fake := &fakeKV{
+		getReturns: []structs.DirEntries{
+			{},
+			{{Value: buf}},
+		},
 	}
-	key := "_rexec/" + event.Session + "/job"
-	if err := setKV(a.Agent, key, buf, token); err != nil {
-		t.Fatalf("err: %v", err)
+	e := &remoteExecHandler{
+		logger: hclog.New(nil),
+		config: RemoteExecConfig{
+			Datacenter:   "the-dc",
+			KV:           fake,
+			AgentTokener: new(token.Store),
+		},
 	}
 
-	var out remoteExecSpec
-	if shouldSucceed != a.remoteExecGetSpec(event, &out) {
-		t.Fatalf("bad")
+	var actual remoteExecSpec
+	require.True(t, e.getExecSpec(event, &actual))
+	require.Equal(t, spec, &actual)
+
+	expectedReq := []structs.KeyRequest{
+		{
+			Datacenter: "the-dc",
+			Key:        "_rexec/the-session/job",
+			QueryOptions: structs.QueryOptions{
+				AllowStale: true,
+			},
+		},
+		{
+			Datacenter: "the-dc",
+			Key:        "_rexec/the-session/job",
+			QueryOptions: structs.QueryOptions{
+				AllowStale: false,
+			},
+		},
 	}
-	if shouldSucceed && !reflect.DeepEqual(spec, &out) {
-		t.Fatalf("bad spec")
-	}
+	require.Equal(t, expectedReq, fake.getCalls)
 }
 
-func TestRemoteExecWrites(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	testRemoteExecWrites(t, "", "", true, "")
+type fakeKV struct {
+	getReturns []structs.DirEntries
+	getCalls   []structs.KeyRequest
+	applyCalls []structs.KVSRequest
 }
 
-func TestRemoteExecWrites_ACLToken(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
+func (f *fakeKV) Get(_ context.Context, req structs.KeyRequest) (structs.IndexedDirEntries, error) {
+	f.getCalls = append(f.getCalls, req)
+	result := f.getReturns[0]
+	if len(f.getReturns) > 1 {
+		f.getReturns = f.getReturns[1:]
 	}
-
-	t.Parallel()
-	dc := "dc1"
-	testRemoteExecWrites(t, `
-		acl_datacenter = "`+dc+`"
-		acl_master_token = "root"
-		acl_token = "root"
-		acl_default_policy = "deny"
-	`, "root", true, dc)
+	return structs.IndexedDirEntries{Entries: result}, nil
 }
 
-func TestRemoteExecWrites_ACLAgentToken(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	dc := "dc1"
-	testRemoteExecWrites(t, `
-		acl_datacenter = "`+dc+`"
-		acl_master_token = "root"
-		acl_agent_token = "root"
-		acl_default_policy = "deny"
-	`, "root", true, dc)
+func (f *fakeKV) Apply(_ context.Context, req structs.KVSRequest) (bool, error) {
+	f.applyCalls = append(f.applyCalls, req)
+	return true, nil
 }
 
-func TestRemoteExecWrites_ACLDeny(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	dc := "dc1"
-	testRemoteExecWrites(t, `
-		acl_datacenter = "`+dc+`"
-		acl_master_token = "root"
-		acl_default_policy = "deny"
-	`, "root", false, dc)
-}
-
-func testRemoteExecWrites(t *testing.T, hcl string, token string, shouldSucceed bool, dc string) {
-	a := NewTestAgent(t, hcl)
-	defer a.Shutdown()
-	if dc != "" {
-		testrpc.WaitForLeader(t, a.RPC, dc)
-	} else {
-		// For slow machines, ensure we wait a bit
-		testrpc.WaitForLeader(t, a.RPC, "dc1")
-	}
+func TestRemoteExecHandler_Writes(t *testing.T) {
 	event := &remoteExecEvent{
 		Prefix:  "_rexec",
-		Session: makeRexecSession(t, a.Agent, token),
+		Session: "the-session",
 	}
-	defer destroySession(t, a.Agent, event.Session, token)
 
-	if shouldSucceed != a.remoteExecWriteAck(event) {
-		t.Fatalf("bad")
+	fake := &fakeKV{}
+	e := &remoteExecHandler{
+		logger: hclog.New(nil),
+		config: RemoteExecConfig{
+			NodeName:     "node-name",
+			Datacenter:   "dc1",
+			KV:           fake,
+			AgentTokener: new(token.Store),
+		},
 	}
+
+	require.True(t, e.writeAck(event))
 
 	output := []byte("testing")
-	if shouldSucceed != a.remoteExecWriteOutput(event, 0, output) {
-		t.Fatalf("bad")
-	}
-	if shouldSucceed != a.remoteExecWriteOutput(event, 10, output) {
-		t.Fatalf("bad")
-	}
-
-	// Bypass the remaining checks if the write was expected to fail.
-	if !shouldSucceed {
-		return
-	}
+	require.True(t, e.writeOutput(event, 0, output))
+	require.True(t, e.writeOutput(event, 10, output))
 
 	exitCode := 1
-	if !a.remoteExecWriteExitCode(event, &exitCode) {
-		t.Fatalf("bad")
-	}
+	require.True(t, e.writeExitCode(event, &exitCode))
 
-	key := "_rexec/" + event.Session + "/" + a.Config.NodeName + "/ack"
-	d, err := getKV(a.Agent, key, token)
-	if d == nil || d.Session != event.Session || err != nil {
-		t.Fatalf("bad ack: %#v", d)
+	expected := []structs.KVSRequest{
+		{
+			Datacenter: "dc1",
+			Op:         api.KVLock,
+			DirEnt: structs.DirEntry{
+				Key:     "_rexec/the-session/node-name/" + remoteExecAckSuffix,
+				Session: "the-session",
+			},
+		},
+		{
+			Datacenter: "dc1",
+			Op:         api.KVLock,
+			DirEnt: structs.DirEntry{
+				Key:     "_rexec/the-session/node-name/" + remoteExecOutputDivider + "/00000",
+				Value:   output,
+				Session: "the-session",
+			},
+		},
+		{
+			Datacenter: "dc1",
+			Op:         api.KVLock,
+			DirEnt: structs.DirEntry{
+				Key:     "_rexec/the-session/node-name/" + remoteExecOutputDivider + "/0000a",
+				Value:   output,
+				Session: "the-session",
+			},
+		},
+		{
+			Datacenter: "dc1",
+			Op:         api.KVLock,
+			DirEnt: structs.DirEntry{
+				Key:     "_rexec/the-session/node-name/" + remoteExecExitSuffix,
+				Value:   []byte{'1'},
+				Session: "the-session",
+			},
+		},
 	}
+	require.Equal(t, expected, fake.applyCalls)
+}
 
-	key = "_rexec/" + event.Session + "/" + a.Config.NodeName + "/out/00000"
-	d, err = getKV(a.Agent, key, token)
-	if d == nil || d.Session != event.Session || !bytes.Equal(d.Value, output) || err != nil {
-		t.Fatalf("bad output: %#v", d)
+func TestRemoteExecHandler_Handle_IntegrationWithAgent(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
 	}
+	t.Parallel()
+	testHandleRemoteExec(t, "uptime", "load", "0")
+}
 
-	key = "_rexec/" + event.Session + "/" + a.Config.NodeName + "/out/0000a"
-	d, err = getKV(a.Agent, key, token)
-	if d == nil || d.Session != event.Session || !bytes.Equal(d.Value, output) || err != nil {
-		t.Fatalf("bad output: %#v", d)
+func TestRemoteExecHandler_Handle_IntegrationWithAgent_ExecFailed(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
 	}
-
-	key = "_rexec/" + event.Session + "/" + a.Config.NodeName + "/exit"
-	d, err = getKV(a.Agent, key, token)
-	if d == nil || d.Session != event.Session || string(d.Value) != "1" || err != nil {
-		t.Fatalf("bad output: %#v", d)
-	}
+	t.Parallel()
+	testHandleRemoteExec(t, "echo failing;exit 2", "failing", "2")
 }
 
 func testHandleRemoteExec(t *testing.T, command string, expectedSubstring string, expectedReturnCode string) {
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	handler := a.userEventHandler.config.HandleRemoteExec
+
 	retry.Run(t, func(r *retry.R) {
 		event := &remoteExecEvent{
 			Prefix:  "_rexec",
@@ -334,12 +287,11 @@ func testHandleRemoteExec(t *testing.T, command string, expectedSubstring string
 			r.Fatalf("err: %v", err)
 		}
 		msg := &UserEvent{
-			ID:      generateUUID(),
+			ID:      generateUUID(t),
 			Payload: buf,
 		}
 
-		// Handle the event...
-		a.handleRemoteExec(msg)
+		handler(msg)
 
 		// Verify we have an ack
 		key = "_rexec/" + event.Session + "/" + a.Config.NodeName + "/ack"
@@ -363,24 +315,6 @@ func testHandleRemoteExec(t *testing.T, command string, expectedSubstring string
 			r.Fatalf("bad output: %#v", d)
 		}
 	})
-}
-
-func TestHandleRemoteExec(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	testHandleRemoteExec(t, "uptime", "load", "0")
-}
-
-func TestHandleRemoteExecFailed(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	testHandleRemoteExec(t, "echo failing;exit 2", "failing", "2")
 }
 
 func makeRexecSession(t *testing.T, a *Agent, token string) string {

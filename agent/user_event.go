@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"regexp"
 	"sync"
@@ -112,34 +113,30 @@ func (a *Agent) UserEvent(dc, token string, params *UserEvent) error {
 	return a.RPC("Internal.EventFire", &args, &out)
 }
 
-// TODO: rename
 type userEventHandler struct {
 	// TODO: does this need to be reloadable?
-	config  UserEventHandlerConfig
-	eventCh chan serf.UserEvent
-
-	// TODO: use context or Done() chan instead?
-	shutdownCh chan struct{}
+	config UserEventHandlerConfig
 	// TODO: move to config
 	logger hclog.Logger
 
-	// TODO: document what this locks
+	notifier *NotifyGroup
+
+	// eventLock synchronizes access to eventBuf and eventIndex
 	eventLock sync.RWMutex
 
-	// eventBuf stores the most recent events in a ring buffer
-	// using eventIndex as the next index to insert into. This
-	// is guarded by eventLock. When an insert happens, the
-	// eventNotify group is notified.
+	// eventBuf stores the most recent events in a ring buffer using eventIndex
+	// as the next index to insert into. This is guarded by eventLock. When an
+	// insert happens, the eventNotify group is notified.
 	eventBuf   []*UserEvent
 	eventIndex int
+	eventCh    chan serf.UserEvent
 }
 
 type UserEventHandlerConfig struct {
 	NodeName          string
-	State             ServiceLister // TODO: rename field
 	DisableRemoteExec bool
+	Services          ServiceLister
 	HandleRemoteExec  func(*UserEvent)
-	Notifier          *NotifyGroup // TODO: more descriptive name for field?
 }
 
 type ServiceLister interface {
@@ -148,23 +145,25 @@ type ServiceLister interface {
 
 func newUserEventHandler(cfg UserEventHandlerConfig, logger hclog.Logger) *userEventHandler {
 	return &userEventHandler{
-		config: cfg,
-		logger: logger,
-		// TODO: set shutdownCh
+		config:   cfg,
+		logger:   logger,
+		notifier: new(NotifyGroup),
 		eventCh:  make(chan serf.UserEvent, 1024),
 		eventBuf: make([]*UserEvent, 256),
 	}
 }
 
-func (u *userEventHandler) Submit(e serf.UserEvent) {
-	select {
-	case u.eventCh <- e:
-	case <-u.shutdownCh:
+func (u *userEventHandler) SubmitFunc(ctx context.Context) func(e serf.UserEvent) {
+	return func(e serf.UserEvent) {
+		select {
+		case u.eventCh <- e:
+		case <-ctx.Done():
+		}
 	}
 }
 
 // Start is used to process incoming user events
-func (u *userEventHandler) Start() {
+func (u *userEventHandler) Start(ctx context.Context) {
 	for {
 		select {
 		case e := <-u.eventCh:
@@ -184,7 +183,7 @@ func (u *userEventHandler) Start() {
 			// Ingest the event
 			u.ingestUserEvent(msg)
 
-		case <-u.shutdownCh:
+		case <-ctx.Done():
 			return
 		}
 	}
@@ -242,7 +241,7 @@ func (u *userEventHandler) shouldProcessUserEvent(msg *UserEvent) bool {
 		}
 
 		// Scan for a match
-		services := u.config.State.Services(structs.DefaultEnterpriseMeta())
+		services := u.config.Services.Services(structs.DefaultEnterpriseMeta())
 		found := false
 	OUTER:
 		for name, info := range services {
@@ -297,7 +296,7 @@ func (u *userEventHandler) ingestUserEvent(msg *UserEvent) {
 	u.eventLock.Lock()
 	defer func() {
 		u.eventLock.Unlock()
-		u.config.Notifier.Notify()
+		u.notifier.Notify()
 	}()
 
 	idx := u.eventIndex
@@ -338,6 +337,13 @@ func (u *userEventHandler) lastUserEvent() *UserEvent {
 	n := len(u.eventBuf)
 	idx := (((u.eventIndex - 1) % n) + n) % n
 	return u.eventBuf[idx]
+}
+
+// NotifyGroup returns the NotifyGroup that is used by callers to wait
+// for new events.
+// TODO: this could probably be exposed as part of the call to UserEvents().
+func (u *userEventHandler) NotifyGroup() *NotifyGroup {
+	return u.notifier
 }
 
 // msgpackHandleUserEvent is a shared handle for encoding/decoding of

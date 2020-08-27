@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -15,6 +16,7 @@ import (
 	"github.com/hashicorp/consul/agent/exec"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/go-hclog"
 )
 
 const (
@@ -117,8 +119,31 @@ func (r *rexecWriter) Flush() {
 	}
 }
 
-// handleRemoteExec is invoked when a new remote exec request is received
-func (a *Agent) handleRemoteExec(msg *UserEvent) {
+// TODO: rename
+// TODO: rename receiver
+type remoteExecHandler struct {
+	logger hclog.Logger
+	config RemoteExecConfig
+}
+
+type RemoteExecConfig struct {
+	NodeName     string
+	Datacenter   string
+	AgentTokener AgentTokener
+	KV           KV
+}
+
+type AgentTokener interface {
+	AgentToken() string
+}
+
+type KV interface {
+	Get(ctx context.Context, req structs.KeyRequest) (structs.IndexedDirEntries, error)
+	Apply(ctx context.Context, req structs.KVSRequest) (bool, error)
+}
+
+// handle is invoked when a new remote exec request is received
+func (a *remoteExecHandler) handle(msg *UserEvent) {
 	a.logger.Debug("received remote exec event", "id", msg.ID)
 	// Decode the event payload
 	var event remoteExecEvent
@@ -129,18 +154,18 @@ func (a *Agent) handleRemoteExec(msg *UserEvent) {
 
 	// Read the job specification
 	var spec remoteExecSpec
-	if !a.remoteExecGetSpec(&event, &spec) {
+	if !a.getExecSpec(&event, &spec) {
 		return
 	}
 
 	// Write the acknowledgement
-	if !a.remoteExecWriteAck(&event) {
+	if !a.writeAck(&event) {
 		return
 	}
 
 	// Ensure we write out an exit code
 	exitCode := 0
-	defer a.remoteExecWriteExitCode(&event, &exitCode)
+	defer a.writeExitCode(&event, &exitCode)
 
 	// Check if this is a script, we may need to spill to disk
 	var script string
@@ -221,14 +246,14 @@ WAIT:
 			if out == nil {
 				break WAIT
 			}
-			if !a.remoteExecWriteOutput(&event, num, out) {
+			if !a.writeOutput(&event, num, out) {
 				close(writer.CancelCh)
 				exitCode = 255
 				return
 			}
 		case <-time.After(spec.Wait):
 			// Acts like a heartbeat, since there is no output
-			if !a.remoteExecWriteOutput(&event, num, nil) {
+			if !a.writeOutput(&event, num, nil) {
 				close(writer.CancelCh)
 				exitCode = 255
 				return
@@ -240,9 +265,10 @@ WAIT:
 	exitCode = <-exitCh
 }
 
-// remoteExecGetSpec is used to get the exec specification.
+// getExecSpec is used to get the exec specification.
 // Returns if execution should continue
-func (a *Agent) remoteExecGetSpec(event *remoteExecEvent, spec *remoteExecSpec) bool {
+// TODO: return error instead of bool and log in the caller.
+func (a *remoteExecHandler) getExecSpec(event *remoteExecEvent, spec *remoteExecSpec) bool {
 	get := structs.KeyRequest{
 		Datacenter: a.config.Datacenter,
 		Key:        path.Join(event.Prefix, event.Session, remoteExecFileName),
@@ -250,10 +276,10 @@ func (a *Agent) remoteExecGetSpec(event *remoteExecEvent, spec *remoteExecSpec) 
 			AllowStale: true, // Stale read for scale! Retry on failure.
 		},
 	}
-	get.Token = a.tokens.AgentToken()
-	var out structs.IndexedDirEntries
+	get.Token = a.config.AgentTokener.AgentToken()
 QUERY:
-	if err := a.RPC("KVS.Get", &get, &out); err != nil {
+	out, err := a.config.KV.Get(context.TODO(), get)
+	if err != nil {
 		a.logger.Error("failed to get remote exec job", "error", err)
 		return false
 	}
@@ -275,38 +301,38 @@ QUERY:
 	return true
 }
 
-// remoteExecWriteAck is used to write an ack. Returns if execution should
+// writeAck is used to write an ack. Returns if execution should
 // continue.
-func (a *Agent) remoteExecWriteAck(event *remoteExecEvent) bool {
-	if err := a.remoteExecWriteKey(event, remoteExecAckSuffix, nil); err != nil {
+func (a *remoteExecHandler) writeAck(event *remoteExecEvent) bool {
+	if err := a.writeKey(event, remoteExecAckSuffix, nil); err != nil {
 		a.logger.Error("failed to ack remote exec job", "error", err)
 		return false
 	}
 	return true
 }
 
-// remoteExecWriteOutput is used to write output
-func (a *Agent) remoteExecWriteOutput(event *remoteExecEvent, num int, output []byte) bool {
+// writeOutput is used to write output
+func (a *remoteExecHandler) writeOutput(event *remoteExecEvent, num int, output []byte) bool {
 	suffix := path.Join(remoteExecOutputDivider, fmt.Sprintf("%05x", num))
-	if err := a.remoteExecWriteKey(event, suffix, output); err != nil {
+	if err := a.writeKey(event, suffix, output); err != nil {
 		a.logger.Error("failed to write output for remote exec job", "error", err)
 		return false
 	}
 	return true
 }
 
-// remoteExecWriteExitCode is used to write an exit code
-func (a *Agent) remoteExecWriteExitCode(event *remoteExecEvent, exitCode *int) bool {
+// writeExitCode is used to write an exit code
+func (a *remoteExecHandler) writeExitCode(event *remoteExecEvent, exitCode *int) bool {
 	val := []byte(strconv.FormatInt(int64(*exitCode), 10))
-	if err := a.remoteExecWriteKey(event, remoteExecExitSuffix, val); err != nil {
+	if err := a.writeKey(event, remoteExecExitSuffix, val); err != nil {
 		a.logger.Error("failed to write exit code for remote exec job", "error", err)
 		return false
 	}
 	return true
 }
 
-// remoteExecWriteKey is used to write an output key for a remote exec job
-func (a *Agent) remoteExecWriteKey(event *remoteExecEvent, suffix string, val []byte) error {
+// writeKey is used to write an output key for a remote exec job
+func (a *remoteExecHandler) writeKey(event *remoteExecEvent, suffix string, val []byte) error {
 	key := path.Join(event.Prefix, event.Session, a.config.NodeName, suffix)
 	write := structs.KVSRequest{
 		Datacenter: a.config.Datacenter,
@@ -317,9 +343,9 @@ func (a *Agent) remoteExecWriteKey(event *remoteExecEvent, suffix string, val []
 			Session: event.Session,
 		},
 	}
-	write.Token = a.tokens.AgentToken()
-	var success bool
-	if err := a.RPC("KVS.Apply", &write, &success); err != nil {
+	write.WriteRequest.Token = a.config.AgentTokener.AgentToken()
+	success, err := a.config.KV.Apply(context.TODO(), write)
+	if err != nil {
 		return err
 	}
 	if !success {
