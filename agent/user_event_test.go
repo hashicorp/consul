@@ -55,14 +55,17 @@ func TestUserEventHandler_ShouldProcessUserEvent(t *testing.T) {
 		expected bool
 	}
 
-	cfg := UserEventHandlerConfig{
-		NodeName: "the-node",
+	deps := UserEventHandlerDeps{
 		Services: &fakeServiceLister{
 			serviceID:   "the-service-id",
 			serviceTags: []string{"tag1", "tag2"},
 		},
+		Logger: hclog.New(nil),
 	}
-	u := newUserEventHandler(cfg, hclog.New(nil))
+	cfg := UserEventHandlerConfig{
+		NodeName: "the-node",
+	}
+	u := newUserEventHandler(deps, cfg)
 
 	fn := func(t *testing.T, tc testCase) {
 		require.Equal(t, tc.expected, u.shouldProcessUserEvent(tc.event))
@@ -131,8 +134,8 @@ func (f *fakeServiceLister) Services(_ *structs.EnterpriseMeta) map[structs.Serv
 }
 
 func TestUserEventHandler_IngestUserEvent(t *testing.T) {
-	cfg := UserEventHandlerConfig{}
-	u := newUserEventHandler(cfg, hclog.New(nil))
+	deps := UserEventHandlerDeps{Logger: hclog.New(nil)}
+	u := newUserEventHandler(deps, UserEventHandlerConfig{})
 
 	for i := 0; i < 512; i++ {
 		msg := &UserEvent{LTime: uint64(i), Name: "test"}

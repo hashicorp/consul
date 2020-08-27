@@ -6,11 +6,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/hashicorp/go-uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestIntentionList(t *testing.T) {
@@ -696,6 +698,14 @@ func TestIntentionSpecificDelete(t *testing.T) {
 		err := a.RPC("Intention.Get", req, &resp)
 		testutil.RequireErrorContains(t, err, "not found")
 	}
+}
+
+func generateUUID() (ret string) {
+	var err error
+	if ret, err = uuid.GenerateUUID(); err != nil {
+		panic(fmt.Sprintf("Unable to generate a UUID, %v", err))
+	}
+	return ret
 }
 
 func TestParseIntentionStringComponent(t *testing.T) {

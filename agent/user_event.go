@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"regexp"
 	"sync"
+	"sync/atomic"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-msgpack/codec"
@@ -114,11 +115,8 @@ func (a *Agent) UserEvent(dc, token string, params *UserEvent) error {
 }
 
 type userEventHandler struct {
-	// TODO: does this need to be reloadable?
-	config UserEventHandlerConfig
-	// TODO: move to config
-	logger hclog.Logger
-
+	deps     UserEventHandlerDeps
+	cfg      atomic.Value
 	notifier *NotifyGroup
 
 	// eventLock synchronizes access to eventBuf and eventIndex
@@ -132,25 +130,43 @@ type userEventHandler struct {
 	eventCh    chan serf.UserEvent
 }
 
+// UserEventHandlerDeps are dependencies required by a userEventHandler
+type UserEventHandlerDeps struct {
+	Services         ServiceLister
+	HandleRemoteExec func(event remoteExecEvent)
+	Logger           hclog.Logger
+}
+
 type UserEventHandlerConfig struct {
 	NodeName          string
+	Datacenter        string
 	DisableRemoteExec bool
-	Services          ServiceLister
-	HandleRemoteExec  func(*UserEvent)
 }
 
 type ServiceLister interface {
 	Services(entMeta *structs.EnterpriseMeta) map[structs.ServiceID]*structs.NodeService
 }
 
-func newUserEventHandler(cfg UserEventHandlerConfig, logger hclog.Logger) *userEventHandler {
+func newUserEventHandler(deps UserEventHandlerDeps, cfg UserEventHandlerConfig) *userEventHandler {
+	config := atomic.Value{}
+	config.Store(cfg)
+
 	return &userEventHandler{
-		config:   cfg,
-		logger:   logger,
+		deps:     deps,
+		cfg:      config,
 		notifier: new(NotifyGroup),
 		eventCh:  make(chan serf.UserEvent, 1024),
 		eventBuf: make([]*UserEvent, 256),
 	}
+}
+
+func (u *userEventHandler) config() UserEventHandlerConfig {
+	return u.cfg.Load().(UserEventHandlerConfig)
+}
+
+// SetConfig to the value of cfg.
+func (u *userEventHandler) SetConfig(cfg UserEventHandlerConfig) {
+	u.cfg.Store(cfg)
 }
 
 func (u *userEventHandler) SubmitFunc(ctx context.Context) func(e serf.UserEvent) {
@@ -170,7 +186,7 @@ func (u *userEventHandler) Start(ctx context.Context) {
 			// Decode the event
 			msg := new(UserEvent)
 			if err := decodeMsgPackUserEvent(e.Payload, msg); err != nil {
-				u.logger.Error("Failed to decode event", "error", err)
+				u.deps.Logger.Error("Failed to decode event", "error", err)
 				continue
 			}
 			msg.LTime = uint64(e.LTime)
@@ -193,7 +209,7 @@ func (u *userEventHandler) Start(ctx context.Context) {
 func (u *userEventHandler) shouldProcessUserEvent(msg *UserEvent) bool {
 	// Check the version
 	if msg.Version > userEventMaxVersion {
-		u.logger.Warn("Event version may have unsupported features",
+		u.deps.Logger.Warn("Event version may have unsupported features",
 			"version", msg.Version,
 			"event", msg.Name,
 		)
@@ -203,14 +219,14 @@ func (u *userEventHandler) shouldProcessUserEvent(msg *UserEvent) bool {
 	if msg.NodeFilter != "" {
 		re, err := regexp.Compile(msg.NodeFilter)
 		if err != nil {
-			u.logger.Error("Failed to parse node filter for event",
+			u.deps.Logger.Error("Failed to parse node filter for event",
 				"filter", msg.NodeFilter,
 				"event", msg.Name,
 				"error", err,
 			)
 			return false
 		}
-		if !re.MatchString(u.config.NodeName) {
+		if !re.MatchString(u.config().NodeName) {
 			return false
 		}
 	}
@@ -218,7 +234,7 @@ func (u *userEventHandler) shouldProcessUserEvent(msg *UserEvent) bool {
 	if msg.ServiceFilter != "" {
 		re, err := regexp.Compile(msg.ServiceFilter)
 		if err != nil {
-			u.logger.Error("Failed to parse service filter for event",
+			u.deps.Logger.Error("Failed to parse service filter for event",
 				"filter", msg.ServiceFilter,
 				"event", msg.Name,
 				"error", err,
@@ -230,7 +246,7 @@ func (u *userEventHandler) shouldProcessUserEvent(msg *UserEvent) bool {
 		if msg.TagFilter != "" {
 			re, err := regexp.Compile(msg.TagFilter)
 			if err != nil {
-				u.logger.Error("Failed to parse tag filter for event",
+				u.deps.Logger.Error("Failed to parse tag filter for event",
 					"filter", msg.TagFilter,
 					"event", msg.Name,
 					"error", err,
@@ -241,7 +257,7 @@ func (u *userEventHandler) shouldProcessUserEvent(msg *UserEvent) bool {
 		}
 
 		// Scan for a match
-		services := u.config.Services.Services(structs.DefaultEnterpriseMeta())
+		services := u.deps.Services.Services(structs.DefaultEnterpriseMeta())
 		found := false
 	OUTER:
 		for name, info := range services {
@@ -275,24 +291,23 @@ func (u *userEventHandler) shouldProcessUserEvent(msg *UserEvent) bool {
 // ingestUserEvent is used to process an event that passes filtering
 func (u *userEventHandler) ingestUserEvent(msg *UserEvent) {
 	// Special handling for internal events
-	switch msg.Name {
-	case remoteExecName:
-		if u.config.DisableRemoteExec {
-			u.logger.Info("ignoring remote exec event, disabled.",
+	if msg.Name == remoteExecName {
+		if u.config().DisableRemoteExec {
+			u.deps.Logger.Info("ignoring remote exec event, disabled.",
 				"event_name", msg.Name,
-				"event_id", msg.ID,
-			)
-		} else {
-			go u.config.HandleRemoteExec(msg)
+				"event_id", msg.ID)
+			return
 		}
+
+		event, err := newRemoteExecEventFromUserEvent(*msg, u.config().NodeName, u.config().Datacenter)
+		if err != nil {
+			u.deps.Logger.Error(err.Error())
+		}
+		go u.deps.HandleRemoteExec(event)
 		return
-	default:
-		u.logger.Debug("new event",
-			"event_name", msg.Name,
-			"event_id", msg.ID,
-		)
 	}
 
+	u.deps.Logger.Debug("new event", "event_name", msg.Name, "event_id", msg.ID)
 	u.eventLock.Lock()
 	defer func() {
 		u.eventLock.Unlock()
