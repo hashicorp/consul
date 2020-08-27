@@ -777,6 +777,9 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			if err != nil {
 				return RuntimeConfig{}, fmt.Errorf("config_entries.bootstrap[%d]: %s", i, err)
 			}
+			if err := entry.Normalize(); err != nil {
+				return RuntimeConfig{}, fmt.Errorf("config_entries.bootstrap[%d]: %s", i, err)
+			}
 			if err := entry.Validate(); err != nil {
 				return RuntimeConfig{}, fmt.Errorf("config_entries.bootstrap[%d]: %s", i, err)
 			}
