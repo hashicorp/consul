@@ -30,6 +30,7 @@
 (if (eq item.Service.Kind 'ingress-gateway')
                 (hash label="Upstreams" href=(href-to "dc.services.show.upstreams") selected=(is-href "dc.services.show.upstreams"))
 '')
+                (hash label="Topology" href=(href-to "dc.services.show.topology") selected=(is-href "dc.services.show.topology"))
                 (hash label="Instances" href=(href-to "dc.services.show.instances") selected=(is-href "dc.services.show.instances"))
 (if (not-eq item.Service.Kind 'terminating-gateway')
                 (hash label="Intentions" href=(href-to "dc.services.show.intentions") selected=(is-href "dc.services.show.intentions"))

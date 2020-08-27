@@ -1,0 +1,92 @@
+<div id="tags" class="tab-section">
+  <div role="tabpanel">
+  {{#if true}}
+    <div class="topology-container">
+    {{#if true}}
+      <div class="downstream-container">
+        <p>Downstreams</p>
+        <div class="downstream-card">
+          <p>
+            redis
+          </p>
+          <div class="details">
+            <span class="datacenter">us-east-1</span>
+            <span class="passing">80%</span>
+            <span class="critical">20%</span>
+          </div>
+        </div>
+        <div class="downstream-card">
+          <p>
+            service-a
+          </p>
+          <div class="details">
+            <span class="datacenter">us-east-1</span>
+            <span class="passing">100%</span>
+          </div>
+        </div>
+      </div>
+    {{/if}}
+      <div class="grafana-container">
+        <div class="grafana-header">
+          web
+        </div>
+        <div class="grafana-link">
+          <a href="#">Open Grafana Dashboard</a>
+        </div>
+      </div>
+    {{#if true}}
+      <div class="upstream-container">
+        <p>Upstreams</p>
+        <div class="upstream-card">
+          <p>
+            consul
+          </p>
+          <div class="details">
+            <span class="port">:80</span>
+            <span class="passing">100%</span>
+          </div>
+        </div>
+        <div class="upstream-card">
+          <p>
+            consul
+          </p>
+          <div class="details">
+            <span class="port">:80</span>
+            <span class="passing">33%</span>
+            <span class="critical">66%</span>
+          </div>
+        </div>
+        <div class="upstream-card">
+          <p>
+            consul
+          </p>
+          <div class="details">
+            <span class="datacenter">us-east-1</span>
+            <span class="port">:8080</span>
+            <span class="passing">100%</span>
+          </div>
+        </div>
+      </div>
+    {{/if}}
+    </div>
+  {{else}}
+    <EmptyState>
+      <BlockSlot @name="header">
+        <h2>
+          No dependencies
+        </h2>
+      </BlockSlot>
+      <BlockSlot @name="body">
+        <p>
+          This service has neither downstreams nor upstreams, which means that no services are configured to connect with it. Add upstreams and intentions to ensure this service is connected with the rest of your service mesh.
+        </p>
+      </BlockSlot>
+      <BlockSlot @name="actions">
+        <li class="docs-link">
+          <a href="{{env 'CONSUL_DOCS_URL'}}/connect/registration/service-registration#upstream-configuration-reference" rel="noopener noreferrer" target="_blank">Documentation on upstreams</a>
+        </li>
+      </BlockSlot>
+    </EmptyState>
+  {{/if}}
+  </div>
+</div>

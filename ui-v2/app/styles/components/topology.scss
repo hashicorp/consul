@@ -1,0 +1,102 @@
+.topology-container {
+  display: grid;
+  grid-gap: 70px;
+  color: $gray-700;
+  align-items: start;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: auto;
+  grid-template-areas:
+    'downstream . upstream'
+    'downstream grafana upstream'
+    'downstream . upstream';
+}
+
+// Upstream & Downstream Containers
+.upstream-container {
+  grid-area: upstream;
+}
+.downstream-container {
+  grid-area: downstream;
+}
+.upstream-container,
+.downstream-container {
+  background-color: $gray-100;
+  border-radius: $decor-radius-100;
+  border: 1px solid $gray-200;
+  padding: 12px;
+}
+.upstream-card,
+.downstream-card {
+  padding: 12px;
+  height: fit-content;
+  background-color: $white;
+  border-radius: $decor-radius-100;
+  border: 1px solid $gray-200;
+}
+.upstream-container .upstream-card:not(:last-child),
+.downstream-container .downstream-card:not(:last-child) {
+  margin-bottom: 8px;
+}
+.upstream-card p,
+.downstream-card p {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 0 !important;
+}
+.upstream-card .details span,
+.downstream-card .details span {
+  margin-right: 8px;
+}
+.upstream-card .details span::before,
+.downstream-card .details span::before {
+  margin-right: 4px;
+}
+.upstream-card .datacenter::before,
+.downstream-card .datacenter::before {
+  @extend %with-user-organization-mask, %as-pseudo;
+  background-color: $gray-500;
+}
+.upstream-card .port::before,
+.downstream-card .port::before {
+  @extend %with-copy-action-mask, %as-pseudo;
+  background-color: $gray-500;
+}
+.upstream-card .passing::before,
+.downstream-card .passing::before {
+  @extend %with-check-circle-fill-color-mask, %as-pseudo;
+  background-color: $green-500;
+}
+.upstream-card .critical::before,
+.downstream-card .critical::before {
+  @extend %with-cancel-square-fill-color-mask, %as-pseudo;
+  background-color: $red-500;
+}
+
+// Grafana Container
+.grafana-container {
+  grid-area: grafana;
+  border: 1px solid $gray-200;
+  border-radius: $decor-radius-100;
+}
+.grafana-header {
+  padding: 12px;
+  background-color: $white;
+  border: none;
+  font-size: 16px;
+  font-weight: bold;
+}
+.grafana-link {
+  padding: 18px;
+  background-color: $gray-100;
+}
+.grafana-link a {
+  color: $gray-700;
+}
+.grafana-link a:hover {
+  color: $color-action;
+}
+.grafana-link a::before {
+  @extend %with-exit-mask, %as-pseudo;
+  background-color: $gray-500;
+  margin-right: 4px;
+}
