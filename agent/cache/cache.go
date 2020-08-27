@@ -144,6 +144,11 @@ type Options struct {
 	EntryFetchRate rate.Limit
 }
 
+// Equal return true if both options are equivalent
+func (o Options) Equal(other Options) bool {
+	return o.EntryFetchMaxBurst == other.EntryFetchMaxBurst && o.EntryFetchRate == other.EntryFetchRate
+}
+
 // applyDefaultValuesOnOptions set default values on options and returned updated value
 func applyDefaultValuesOnOptions(options Options) Options {
 	if options.EntryFetchRate == 0.0 {
@@ -243,7 +248,8 @@ func (c *Cache) RegisterType(n string, typ Type) {
 // return true if Cache is updated, false if already up to date
 func (c *Cache) ReloadOptions(options Options) bool {
 	options = applyDefaultValuesOnOptions(options)
-	if c.options.EntryFetchRate != options.EntryFetchRate || c.options.EntryFetchMaxBurst != options.EntryFetchMaxBurst {
+	modified := !options.Equal(c.options)
+	if modified {
 		c.entriesLock.RLock()
 		defer c.entriesLock.RUnlock()
 		for _, entry := range c.entries {
@@ -256,9 +262,8 @@ func (c *Cache) ReloadOptions(options Options) bool {
 		}
 		c.options.EntryFetchRate = options.EntryFetchRate
 		c.options.EntryFetchMaxBurst = options.EntryFetchMaxBurst
-		return true
 	}
-	return false
+	return modified
 }
 
 // Get loads the data for the given type and request. If data satisfying the
