@@ -11,6 +11,7 @@ import (
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
@@ -336,7 +337,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 		},
 	}
 
-	for _, envoyVersion := range supportedEnvoyVersions {
+	for _, envoyVersion := range proxysupport.EnvoyVersions {
 		sf := determineSupportedProxyFeaturesFromString(envoyVersion)
 		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
 			for _, tt := range tests {
@@ -565,14 +566,4 @@ func customAppClusterJSON(t *testing.T, opts customClusterJSONOptions) string {
 	err := customAppClusterJSONTemplate.Execute(&buf, opts)
 	require.NoError(t, err)
 	return buf.String()
-}
-
-// supportedEnvoyVersions lists the versions that we generated golden tests for
-//
-// see: https://www.consul.io/docs/connect/proxies/envoy#supported-versions
-var supportedEnvoyVersions = []string{
-	"1.13.1",
-	"1.12.3",
-	"1.11.2",
-	"1.10.0",
 }
