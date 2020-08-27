@@ -23,6 +23,8 @@ type Config struct {
 	ACLAgentToken       string
 	ACLAgentMasterToken string
 	ACLReplicationToken string
+
+	EnterpriseConfig
 }
 
 const tokensPath = "acl-tokens.json"

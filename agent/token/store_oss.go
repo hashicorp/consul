@@ -2,6 +2,9 @@
 
 package token
 
+type EnterpriseConfig struct {
+}
+
 // Stub for enterpriseTokens
 type enterpriseTokens struct {
 }

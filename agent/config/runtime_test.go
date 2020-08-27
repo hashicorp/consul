@@ -6497,8 +6497,9 @@ func TestFullConfig(t *testing.T) {
 				"args":       []interface{}{"dltjDJ2a", "flEa7C2d"},
 			},
 		},
-		EnterpriseRuntimeConfig: entFullRuntimeConfig,
 	}
+
+	entFullRuntimeConfig(&want)
 
 	warns := []string{
 		`The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.`,
@@ -6817,6 +6818,7 @@ func TestSanitize(t *testing.T) {
 
 	rtJSON := `{
 		"ACLTokens": {
+			` + entTokenConfigSanitize + `
 			"ACLAgentMasterToken": "hidden",
 			"ACLAgentToken": "hidden",
 			"ACLDefaultToken": "hidden",

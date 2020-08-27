@@ -1078,10 +1078,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_rate must be strictly positive, was: %v", rt.Cache.EntryFetchRate)
 	}
 
-	if entCfg, err := b.BuildEnterpriseRuntimeConfig(&c); err != nil {
-		return RuntimeConfig{}, err
-	} else {
-		rt.EnterpriseRuntimeConfig = entCfg
+	if err := b.BuildEnterpriseRuntimeConfig(&rt, &c); err != nil {
+		return rt, err
 	}
 
 	if rt.BootstrapExpect == 1 {
@@ -1369,7 +1367,8 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		b.warn(err.Error())
 	}
 
-	return nil
+	err := b.validateEnterpriseConfig(rt)
+	return err
 }
 
 // addrUnique checks if the given address is already in use for another
