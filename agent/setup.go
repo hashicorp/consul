@@ -13,6 +13,7 @@ import (
 	certmon "github.com/hashicorp/consul/agent/cert-monitor"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/ipaddr"
@@ -35,6 +36,7 @@ type BaseDeps struct {
 	Cache           *cache.Cache
 	AutoConfig      *autoconf.AutoConfig // TODO: use an interface
 	ConnPool        *pool.ConnPool       // TODO: use an interface
+	Router          *router.Router
 }
 
 // MetricsHandler provides an http.Handler for displaying metrics.
@@ -85,6 +87,8 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	d.ConnPool = newConnPool(cfg, d.Logger, d.TLSConfigurator)
 
 	deferredAC := &deferredAutoConfig{}
+
+	d.Router = router.NewRouter(d.Logger, cfg.Datacenter, fmt.Sprintf("%s.%s", cfg.NodeName, cfg.Datacenter))
 
 	cmConf := new(certmon.Config).
 		WithCache(d.Cache).

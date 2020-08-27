@@ -254,6 +254,9 @@ func (m *Manager) CheckServers(fn func(srv *metadata.Server) bool) {
 // getServerList is a convenience method which hides the locking semantics
 // of atomic.Value from the caller.
 func (m *Manager) getServerList() serverList {
+	if m == nil {
+		return serverList{}
+	}
 	return m.listValue.Load().(serverList)
 }
 
