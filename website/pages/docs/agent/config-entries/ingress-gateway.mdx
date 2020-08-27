@@ -343,7 +343,7 @@ Also make two services in the frontend namespace available over a custom port wi
   - `Port` `(int: 0)` - The port that the listener should receive traffic on.
 
   - `Protocol` `(string: "tcp")` - The protocol associated with the listener.
-    Either `tcp` or `http`.
+    One of `tcp`, `http`, `http2`, or `grpc`.
 
   - `Services` `(array<IngressService>: <optional>)` - A list of services to be
     exposed via this listener. For "tcp" listeners, only a single service is
