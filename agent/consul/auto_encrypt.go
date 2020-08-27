@@ -73,7 +73,7 @@ func (c *Client) RequestAutoEncryptCerts(ctx context.Context, servers []string, 
 	// Check if we know about a server already through gossip. Depending on
 	// how the agent joined, there might already be one. Also in case this
 	// gets called because the cert expired.
-	server := c.routers.FindServer()
+	server := c.router.FindLANServer()
 	if server != nil {
 		servers = []string{server.Addr.String()}
 	}

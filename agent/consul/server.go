@@ -322,6 +322,7 @@ func NewServer(config *Config, options ...ConsulOption) (*Server, error) {
 	tokens := flat.tokens
 	tlsConfigurator := flat.tlsConfigurator
 	connPool := flat.connPool
+	rpcRouter := flat.router
 
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -377,6 +378,11 @@ func NewServer(config *Config, options ...ConsulOption) (*Server, error) {
 
 	serverLogger := logger.NamedIntercept(logging.ConsulServer)
 	loggers := newLoggerStore(serverLogger)
+
+	if rpcRouter == nil {
+		rpcRouter = router.NewRouter(serverLogger, config.Datacenter, fmt.Sprintf("%s.%s", config.NodeName, config.Datacenter))
+	}
+
 	// Create server.
 	s := &Server{
 		config:                  config,
@@ -388,7 +394,7 @@ func NewServer(config *Config, options ...ConsulOption) (*Server, error) {
 		loggers:                 loggers,
 		leaveCh:                 make(chan struct{}),
 		reconcileCh:             make(chan serf.Member, reconcileChSize),
-		router:                  router.NewRouter(serverLogger, config.Datacenter, fmt.Sprintf("%s.%s", config.NodeName, config.Datacenter)),
+		router:                  rpcRouter,
 		rpcServer:               rpc.NewServer(),
 		insecureRPCServer:       rpc.NewServer(),
 		tlsConfigurator:         tlsConfigurator,
@@ -544,6 +550,11 @@ func NewServer(config *Config, options ...ConsulOption) (*Server, error) {
 	if err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start LAN Serf: %v", err)
+	}
+
+	if err := s.router.AddArea(types.AreaLAN, s.serfLAN, s.connPool); err != nil {
+		s.Shutdown()
+		return nil, fmt.Errorf("Failed to add LAN serf route: %w", err)
 	}
 	go s.lanEventHandler()
 
