@@ -70,7 +70,6 @@ func (i *activeStreamCounter) Intercept(
 	_ *grpc.StreamServerInfo,
 	handler grpc.StreamHandler,
 ) error {
-
 	count := atomic.AddUint64(&i.count, 1)
 	metrics.SetGauge([]string{"grpc", "server", "active_streams"}, float32(count))
 	defer func() {

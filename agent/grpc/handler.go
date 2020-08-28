@@ -10,10 +10,8 @@ import (
 	"google.golang.org/grpc"
 )
 
-// NewHandler returns a Handler for addr.
+// NewHandler returns a gRPC server that accepts connections from Handle(conn).
 func NewHandler(addr net.Addr) *Handler {
-	conns := make(chan net.Conn)
-
 	// We don't need to pass tls.Config to the server since it's multiplexed
 	// behind the RPC listener, which already has TLS configured.
 	srv := grpc.NewServer(
@@ -24,23 +22,21 @@ func NewHandler(addr net.Addr) *Handler {
 	// TODO(streaming): add gRPC services to srv here
 
 	return &Handler{
-		conns:    conns,
 		srv:      srv,
-		listener: &chanListener{addr: addr, conns: conns},
+		listener: &chanListener{addr: addr, conns: make(chan net.Conn)},
 	}
 }
 
 // Handler implements a handler for the rpc server listener, and the
 // agent.Component interface for managing the lifecycle of the grpc.Server.
 type Handler struct {
-	conns    chan net.Conn
 	srv      *grpc.Server
 	listener *chanListener
 }
 
 // Handle the connection by sending it to a channel for the grpc.Server to receive.
 func (h *Handler) Handle(conn net.Conn) {
-	h.conns <- conn
+	h.listener.conns <- conn
 }
 
 func (h *Handler) Run() error {
