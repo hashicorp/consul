@@ -820,7 +820,6 @@ func (s *Server) makeFilterChainTerminatingGateway(
 	// HTTP filter to do intention checks here instead.
 	statPrefix := fmt.Sprintf("terminating_gateway_%s_%s_", service.NamespaceOrDefault(), service.Name)
 	opts := listenerFilterOpts{
-		useRDS:     false,
 		protocol:   protocol,
 		filterName: listener,
 		cluster:    cluster,
@@ -838,6 +837,9 @@ func (s *Server) makeFilterChainTerminatingGateway(
 		if err != nil {
 			return nil, err
 		}
+
+		opts.cluster = ""
+		opts.useRDS = true
 	}
 
 	filter, err := makeListenerFilter(opts)
@@ -1283,11 +1285,12 @@ func makeEnvoyHTTPFilter(name string, cfg proto.Message) (*envoyhttp.HttpFilter,
 
 func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *structs.IssuedCert) *envoyauth.CommonTlsContext {
 	// Concatenate all the root PEMs into one.
-	// TODO(banks): verify this actually works with Envoy (docs are not clear).
-	rootPEMS := ""
 	if cfgSnap.Roots == nil {
 		return nil
 	}
+
+	// TODO(banks): verify this actually works with Envoy (docs are not clear).
+	rootPEMS := ""
 	for _, root := range cfgSnap.Roots.Roots {
 		rootPEMS += root.RootCert
 	}

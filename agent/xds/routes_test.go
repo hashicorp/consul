@@ -7,6 +7,7 @@ import (
 	"time"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoyroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/proxycfg"
@@ -67,6 +68,11 @@ func TestRoutesFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotDiscoveryChainWithRouter,
 			setup:  nil,
 		},
+		{
+			name:   "connect-proxy-lb-in-resolver",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithLB,
+			setup:  nil,
+		},
 		// TODO(rb): test match stanza skipped for grpc
 		// Start ingress gateway test cases
 		{
@@ -107,6 +113,11 @@ func TestRoutesFromSnapshot(t *testing.T) {
 		{
 			name:   "ingress-with-chain-and-router",
 			create: proxycfg.TestConfigSnapshotIngressWithRouter,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-lb-in-resolver",
+			create: proxycfg.TestConfigSnapshotIngressWithLB,
 			setup:  nil,
 		},
 		{
@@ -174,6 +185,50 @@ func TestRoutesFromSnapshot(t *testing.T) {
 				}
 			},
 		},
+		{
+			name:   "terminating-gateway-lb-config",
+			create: proxycfg.TestConfigSnapshotTerminatingGateway,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("web", nil): {
+						Kind:          structs.ServiceResolver,
+						Name:          "web",
+						DefaultSubset: "v2",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"v1": {
+								Filter: "Service.Meta.Version == 1",
+							},
+							"v2": {
+								Filter:      "Service.Meta.Version == 2",
+								OnlyPassing: true,
+							},
+						},
+						LoadBalancer: structs.LoadBalancer{
+							Policy: "ring_hash",
+							RingHashConfig: structs.RingHashConfig{
+								MinimumRingSize: 20,
+								MaximumRingSize: 50,
+							},
+							HashPolicies: []structs.HashPolicy{
+								{
+									Field:           "cookie",
+									FieldMatchValue: "chocolate-chip",
+									Terminal:        true,
+								},
+								{
+									Field:           "header",
+									FieldMatchValue: "x-user-id",
+								},
+								{
+									SourceAddress: true,
+									Terminal:      true,
+								},
+							},
+						},
+					},
+				}
+			},
+		},
 	}
 
 	for _, envoyVersion := range proxysupport.EnvoyVersions {
@@ -218,6 +273,181 @@ func TestRoutesFromSnapshot(t *testing.T) {
 					require.JSONEq(goldenEnvoy(t, filepath.Join("routes", gName), envoyVersion, gotJSON), gotJSON)
 				})
 			}
+		})
+	}
+}
+
+func TestLoadBalancer_injectLBToRouteAction(t *testing.T) {
+	var tests = []struct {
+		name     string
+		lb       structs.LoadBalancer
+		expected envoyroute.RouteAction
+	}{
+		{
+			name: "empty",
+			lb: structs.LoadBalancer{
+				Policy: "",
+			},
+			// we only modify route actions for hash-based LB policies
+			expected: envoyroute.RouteAction{},
+		},
+		{
+			name: "least_request",
+			lb: structs.LoadBalancer{
+				Policy: "least_request",
+				LeastRequestConfig: structs.LeastRequestConfig{
+					ChoiceCount: 3,
+				},
+			},
+			// we only modify route actions for hash-based LB policies
+			expected: envoyroute.RouteAction{},
+		},
+		{
+			name: "header",
+			lb: structs.LoadBalancer{
+				Policy: "ring_hash",
+				RingHashConfig: structs.RingHashConfig{
+					MinimumRingSize: 3,
+					MaximumRingSize: 7,
+				},
+				HashPolicies: []structs.HashPolicy{
+					{
+						Field:           "header",
+						FieldMatchValue: "x-route-key",
+						Terminal:        true,
+					},
+				},
+			},
+			expected: envoyroute.RouteAction{
+				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
+					{
+						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Header_{
+							Header: &envoyroute.RouteAction_HashPolicy_Header{
+								HeaderName: "x-route-key",
+							},
+						},
+						Terminal: true,
+					},
+				},
+			},
+		},
+		{
+			name: "cookies",
+			lb: structs.LoadBalancer{
+				Policy: "maglev",
+				HashPolicies: []structs.HashPolicy{
+					{
+						Field:           "cookie",
+						FieldMatchValue: "red-velvet",
+						Terminal:        true,
+					},
+					{
+						Field:           "cookie",
+						FieldMatchValue: "oatmeal",
+					},
+				},
+			},
+			expected: envoyroute.RouteAction{
+				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
+					{
+						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{
+							Cookie: &envoyroute.RouteAction_HashPolicy_Cookie{
+								Name: "red-velvet",
+							},
+						},
+						Terminal: true,
+					},
+					{
+						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{
+							Cookie: &envoyroute.RouteAction_HashPolicy_Cookie{
+								Name: "oatmeal",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "source addr",
+			lb: structs.LoadBalancer{
+				Policy: "maglev",
+				HashPolicies: []structs.HashPolicy{
+					{
+						SourceAddress: true,
+						Terminal:      true,
+					},
+				},
+			},
+			expected: envoyroute.RouteAction{
+				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
+					{
+						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_ConnectionProperties_{
+							ConnectionProperties: &envoyroute.RouteAction_HashPolicy_ConnectionProperties{
+								SourceIp: true,
+							},
+						},
+						Terminal: true,
+					},
+				},
+			},
+		},
+		{
+			name: "kitchen sink",
+			lb: structs.LoadBalancer{
+				Policy: "maglev",
+				HashPolicies: []structs.HashPolicy{
+					{
+						SourceAddress: true,
+						Terminal:      true,
+					},
+					{
+						Field:           "cookie",
+						FieldMatchValue: "oatmeal",
+					},
+					{
+						Field:           "header",
+						FieldMatchValue: "special-header",
+						Terminal:        true,
+					},
+				},
+			},
+			expected: envoyroute.RouteAction{
+				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
+					{
+						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_ConnectionProperties_{
+							ConnectionProperties: &envoyroute.RouteAction_HashPolicy_ConnectionProperties{
+								SourceIp: true,
+							},
+						},
+						Terminal: true,
+					},
+					{
+						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{
+							Cookie: &envoyroute.RouteAction_HashPolicy_Cookie{
+								Name: "oatmeal",
+							},
+						},
+					},
+					{
+						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Header_{
+							Header: &envoyroute.RouteAction_HashPolicy_Header{
+								HeaderName: "special-header",
+							},
+						},
+						Terminal: true,
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ra := &envoyroute.RouteAction{}
+			err := injectLBToRouteAction(tc.lb, ra)
+			require.NoError(t, err)
+
+			require.Equal(t, &tc.expected, ra)
 		})
 	}
 }

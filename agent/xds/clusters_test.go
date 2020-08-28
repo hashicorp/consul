@@ -2,6 +2,7 @@ package xds
 
 import (
 	"bytes"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"path/filepath"
 	"sort"
 	"testing"
@@ -231,6 +232,11 @@ func TestClustersFromSnapshot(t *testing.T) {
 			setup:  nil,
 		},
 		{
+			name:   "connect-proxy-lb-in-resolver",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithLB,
+			setup:  nil,
+		},
+		{
 			name:   "expose-paths-local-app-paths",
 			create: proxycfg.TestConfigSnapshotExposeConfig,
 		},
@@ -345,6 +351,61 @@ func TestClustersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name:   "mesh-gateway-non-hash-lb-injected",
+			create: proxycfg.TestConfigSnapshotMeshGateway,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.MeshGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("bar", nil): {
+						Kind: structs.ServiceResolver,
+						Name: "bar",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"v1": {
+								Filter: "Service.Meta.Version == 1",
+							},
+							"v2": {
+								Filter:      "Service.Meta.Version == 2",
+								OnlyPassing: true,
+							},
+						},
+						LoadBalancer: structs.LoadBalancer{
+							Policy: "least_request",
+							LeastRequestConfig: structs.LeastRequestConfig{
+								ChoiceCount: 5,
+							},
+						},
+					},
+				}
+			},
+		},
+		{
+			name:   "mesh-gateway-hash-lb-ignored",
+			create: proxycfg.TestConfigSnapshotMeshGateway,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.MeshGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("bar", nil): {
+						Kind: structs.ServiceResolver,
+						Name: "bar",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"v1": {
+								Filter: "Service.Meta.Version == 1",
+							},
+							"v2": {
+								Filter:      "Service.Meta.Version == 2",
+								OnlyPassing: true,
+							},
+						},
+						LoadBalancer: structs.LoadBalancer{
+							Policy: "ring_hash",
+							RingHashConfig: structs.RingHashConfig{
+								MinimumRingSize: 20,
+								MaximumRingSize: 50,
+							},
+						},
+					},
+				}
+			},
+		},
+		{
 			name:   "ingress-gateway",
 			create: proxycfg.TestConfigSnapshotIngressGateway,
 			setup:  nil,
@@ -417,6 +478,11 @@ func TestClustersFromSnapshot(t *testing.T) {
 		{
 			name:   "ingress-splitter-with-resolver-redirect",
 			create: proxycfg.TestConfigSnapshotIngress_SplitterWithResolverRedirectMultiDC,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-lb-in-resolver",
+			create: proxycfg.TestConfigSnapshotIngressWithLB,
 			setup:  nil,
 		},
 		{
@@ -515,6 +581,35 @@ func TestClustersFromSnapshot(t *testing.T) {
 							"v2": {
 								Filter:      "Service.Meta.Version == 2",
 								OnlyPassing: true,
+							},
+						},
+					},
+				}
+			},
+		},
+		{
+			name:   "terminating-gateway-lb-config",
+			create: proxycfg.TestConfigSnapshotTerminatingGateway,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("web", nil): {
+						Kind:          structs.ServiceResolver,
+						Name:          "web",
+						DefaultSubset: "v2",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"v1": {
+								Filter: "Service.Meta.Version == 1",
+							},
+							"v2": {
+								Filter:      "Service.Meta.Version == 2",
+								OnlyPassing: true,
+							},
+						},
+						LoadBalancer: structs.LoadBalancer{
+							Policy: "ring_hash",
+							RingHashConfig: structs.RingHashConfig{
+								MinimumRingSize: 20,
+								MaximumRingSize: 50,
 							},
 						},
 					},
@@ -707,7 +802,7 @@ var customAppClusterJSONTpl = `{
 	"hosts": [
 		{
 			"socketAddress": {
-				"address": "127.0.0.1",
+				"address": "127.0.0.1", 
 				"portValue": 8080
 			}
 		}
@@ -737,5 +832,88 @@ func setupTLSRootsAndLeaf(t *testing.T, snap *proxycfg.ConfigSnapshot) {
 	}
 	if snap.Roots != nil {
 		snap.Roots.Roots[0].RootCert = golden(t, "test-root-cert", "", "")
+	}
+}
+
+func TestLoadBalancer_injectLBToCluster(t *testing.T) {
+	var tests = []struct {
+		name     string
+		lb       structs.LoadBalancer
+		expected envoy.Cluster
+	}{
+		{
+			name: "skip empty",
+			lb: structs.LoadBalancer{
+				Policy: "",
+			},
+			expected: envoy.Cluster{},
+		},
+		{
+			name: "round_robin",
+			lb: structs.LoadBalancer{
+				Policy: "round_robin",
+			},
+			expected: envoy.Cluster{LbPolicy: envoy.Cluster_ROUND_ROBIN},
+		},
+		{
+			name: "random",
+			lb: structs.LoadBalancer{
+				Policy: "random",
+			},
+			expected: envoy.Cluster{LbPolicy: envoy.Cluster_RANDOM},
+		},
+		{
+			name: "maglev",
+			lb: structs.LoadBalancer{
+				Policy: "maglev",
+			},
+			expected: envoy.Cluster{LbPolicy: envoy.Cluster_MAGLEV},
+		},
+		{
+			name: "ring_hash",
+			lb: structs.LoadBalancer{
+				Policy: "ring_hash",
+				RingHashConfig: structs.RingHashConfig{
+					MinimumRingSize: 3,
+					MaximumRingSize: 7,
+				},
+			},
+			expected: envoy.Cluster{
+				LbPolicy: envoy.Cluster_RING_HASH,
+				LbConfig: &envoy.Cluster_RingHashLbConfig_{
+					RingHashLbConfig: &envoy.Cluster_RingHashLbConfig{
+						MinimumRingSize: &wrappers.UInt64Value{Value: 3},
+						MaximumRingSize: &wrappers.UInt64Value{Value: 7},
+					},
+				},
+			},
+		},
+		{
+			name: "least_request",
+			lb: structs.LoadBalancer{
+				Policy: "least_request",
+				LeastRequestConfig: structs.LeastRequestConfig{
+					ChoiceCount: 3,
+				},
+			},
+			expected: envoy.Cluster{
+				LbPolicy: envoy.Cluster_LEAST_REQUEST,
+				LbConfig: &envoy.Cluster_LeastRequestLbConfig_{
+					LeastRequestLbConfig: &envoy.Cluster_LeastRequestLbConfig{
+						ChoiceCount: &wrappers.UInt32Value{Value: 3},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var c envoy.Cluster
+			err := injectLBToCluster(tc.lb, &c)
+			require.NoError(t, err)
+
+			require.Equal(t, tc.expected, c)
+		})
 	}
 }
