@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/time/rate"
 )
 
 // Test a basic Get with no indexes (and therefore no blocking queries).
@@ -1218,6 +1219,64 @@ func TestCacheGet_nonBlockingType(t *testing.T) {
 	// then verify that we still only got the one call
 	time.Sleep(20 * time.Millisecond)
 	typ.AssertExpectations(t)
+}
+
+// Test a get with an index set will wait until an index that is higher
+// is set in the cache.
+func TestCacheReload(t *testing.T) {
+	t.Parallel()
+
+	typ1 := TestType(t)
+	defer typ1.AssertExpectations(t)
+
+	c := New(Options{EntryFetchRate: rate.Limit(1), EntryFetchMaxBurst: 1})
+	c.RegisterType("t1", typ1)
+	typ1.Mock.On("Fetch", mock.Anything, mock.Anything).Return(FetchResult{Value: 42, Index: 42}, nil).Maybe()
+
+	require.False(t, c.ReloadOptions(Options{EntryFetchRate: rate.Limit(1), EntryFetchMaxBurst: 1}), "Value should not be reloaded")
+
+	_, meta, err := c.Get(context.Background(), "t1", TestRequest(t, RequestInfo{Key: "hello1", MinIndex: uint64(1)}))
+	require.NoError(t, err)
+	require.Equal(t, meta.Index, uint64(42))
+
+	testEntry := func(t *testing.T, doTest func(t *testing.T, entry cacheEntry)) {
+		c.entriesLock.Lock()
+		tEntry, ok := c.types["t1"]
+		require.True(t, ok)
+		keyName := makeEntryKey("t1", "", "", "hello1")
+		ok, entryValid, entry := c.getEntryLocked(tEntry, keyName, RequestInfo{})
+		require.True(t, ok)
+		require.True(t, entryValid)
+		doTest(t, entry)
+		c.entriesLock.Unlock()
+
+	}
+	testEntry(t, func(t *testing.T, entry cacheEntry) {
+		require.Equal(t, entry.FetchRateLimiter.Limit(), rate.Limit(1))
+		require.Equal(t, entry.FetchRateLimiter.Burst(), 1)
+	})
+
+	// Modify only rateLimit
+	require.True(t, c.ReloadOptions(Options{EntryFetchRate: rate.Limit(100), EntryFetchMaxBurst: 1}))
+	testEntry(t, func(t *testing.T, entry cacheEntry) {
+		require.Equal(t, entry.FetchRateLimiter.Limit(), rate.Limit(100))
+		require.Equal(t, entry.FetchRateLimiter.Burst(), 1)
+	})
+
+	// Modify only Burst
+	require.True(t, c.ReloadOptions(Options{EntryFetchRate: rate.Limit(100), EntryFetchMaxBurst: 5}))
+	testEntry(t, func(t *testing.T, entry cacheEntry) {
+		require.Equal(t, entry.FetchRateLimiter.Limit(), rate.Limit(100))
+		require.Equal(t, entry.FetchRateLimiter.Burst(), 5)
+	})
+
+	// Modify only Burst and Limit at the same time
+	require.True(t, c.ReloadOptions(Options{EntryFetchRate: rate.Limit(1000), EntryFetchMaxBurst: 42}))
+
+	testEntry(t, func(t *testing.T, entry cacheEntry) {
+		require.Equal(t, entry.FetchRateLimiter.Limit(), rate.Limit(1000))
+		require.Equal(t, entry.FetchRateLimiter.Burst(), 42)
+	})
 }
 
 // TestCacheThrottle checks the assumptions for the cache throttling. It sets
