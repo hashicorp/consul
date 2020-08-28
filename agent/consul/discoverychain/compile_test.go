@@ -51,6 +51,7 @@ func TestCompile(t *testing.T) {
 		"default resolver with external sni":               testcase_DefaultResolver_ExternalSNI(),
 		"resolver with no entries and inferring defaults":  testcase_DefaultResolver(),
 		"default resolver with proxy defaults":             testcase_DefaultResolver_WithProxyDefaults(),
+		"loadbalancer config":                              testcase_LBConfig(),
 		"service redirect to service with default resolver is not a default chain": testcase_RedirectToDefaultResolverIsNotDefaultChain(),
 
 		"all the bells and whistles": testcase_AllBellsAndWhistles(),
@@ -1760,6 +1761,17 @@ func testcase_AllBellsAndWhistles() compileTestCase {
 				"prod": {Filter: "ServiceMeta.env == prod"},
 				"qa":   {Filter: "ServiceMeta.env == qa"},
 			},
+			LoadBalancer: structs.LoadBalancer{
+				Policy: "ring_hash",
+				RingHashConfig: structs.RingHashConfig{
+					MaximumRingSize: 100,
+				},
+				HashPolicies: []structs.HashPolicy{
+					{
+						SourceAddress: true,
+					},
+				},
+			},
 		},
 		&structs.ServiceResolverConfigEntry{
 			Kind:          "service-resolver",
@@ -1821,6 +1833,17 @@ func testcase_AllBellsAndWhistles() compileTestCase {
 						NextNode: "resolver:v3.main.default.dc1",
 					},
 				},
+				LoadBalancer: structs.LoadBalancer{
+					Policy: "ring_hash",
+					RingHashConfig: structs.RingHashConfig{
+						MaximumRingSize: 100,
+					},
+					HashPolicies: []structs.HashPolicy{
+						{
+							SourceAddress: true,
+						},
+					},
+				},
 			},
 			"resolver:prod.redirected.default.dc1": {
 				Type: structs.DiscoveryGraphNodeTypeResolver,
@@ -1828,6 +1851,17 @@ func testcase_AllBellsAndWhistles() compileTestCase {
 				Resolver: &structs.DiscoveryResolver{
 					ConnectTimeout: 5 * time.Second,
 					Target:         "prod.redirected.default.dc1",
+				},
+				LoadBalancer: structs.LoadBalancer{
+					Policy: "ring_hash",
+					RingHashConfig: structs.RingHashConfig{
+						MaximumRingSize: 100,
+					},
+					HashPolicies: []structs.HashPolicy{
+						{
+							SourceAddress: true,
+						},
+					},
 				},
 			},
 			"resolver:v1.main.default.dc1": {
@@ -2217,6 +2251,167 @@ func testcase_CircularSplit() compileTestCase {
 		expectErr:      "detected circular reference",
 		expectGraphErr: true,
 	}
+}
+
+func testcase_LBConfig() compileTestCase {
+	entries := newEntries()
+	setServiceProtocol(entries, "foo", "http")
+	setServiceProtocol(entries, "bar", "http")
+	setServiceProtocol(entries, "baz", "http")
+
+	entries.AddSplitters(
+		&structs.ServiceSplitterConfigEntry{
+			Kind: "service-splitter",
+			Name: "main",
+			Splits: []structs.ServiceSplit{
+				{Weight: 60, Service: "foo"},
+				{Weight: 20, Service: "bar"},
+				{Weight: 20, Service: "baz"},
+			},
+		},
+	)
+
+	entries.AddResolvers(
+		&structs.ServiceResolverConfigEntry{
+			Kind: "service-resolver",
+			Name: "foo",
+			LoadBalancer: structs.LoadBalancer{
+				Policy: "least_request",
+				LeastRequestConfig: structs.LeastRequestConfig{
+					ChoiceCount: 3,
+				},
+			},
+		},
+		&structs.ServiceResolverConfigEntry{
+			Kind: "service-resolver",
+			Name: "bar",
+			LoadBalancer: structs.LoadBalancer{
+				Policy: "ring_hash",
+				RingHashConfig: structs.RingHashConfig{
+					MaximumRingSize: 101,
+				},
+				HashPolicies: []structs.HashPolicy{
+					{
+						SourceAddress: true,
+					},
+				},
+			},
+		},
+		&structs.ServiceResolverConfigEntry{
+			Kind: "service-resolver",
+			Name: "baz",
+			LoadBalancer: structs.LoadBalancer{
+				Policy: "maglev",
+				HashPolicies: []structs.HashPolicy{
+					{
+						Field:           "cookie",
+						FieldMatchValue: "chocolate-chip",
+						Terminal:        true,
+					},
+				},
+			},
+		},
+	)
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol:  "http",
+		StartNode: "splitter:main.default",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"splitter:main.default": {
+				Type: structs.DiscoveryGraphNodeTypeSplitter,
+				Name: "main.default",
+				Splits: []*structs.DiscoverySplit{
+					{
+						Weight:   60,
+						NextNode: "resolver:foo.default.dc1",
+					},
+					{
+						Weight:   20,
+						NextNode: "resolver:bar.default.dc1",
+					},
+					{
+						Weight:   20,
+						NextNode: "resolver:baz.default.dc1",
+					},
+				},
+				// The LB config from bar is attached because splitters only care about hash-based policies,
+				// and it's the config from bar not baz because we pick the first one we encounter in the Splits.
+				LoadBalancer: structs.LoadBalancer{
+					Policy: "ring_hash",
+					RingHashConfig: structs.RingHashConfig{
+						MaximumRingSize: 101,
+					},
+					HashPolicies: []structs.HashPolicy{
+						{
+							SourceAddress: true,
+						},
+					},
+				},
+			},
+			// Each service's LB config is passed down from the service-resolver to the resolver node
+			"resolver:foo.default.dc1": {
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "foo.default.dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         "foo.default.dc1",
+				},
+				LoadBalancer: structs.LoadBalancer{
+					Policy: "least_request",
+					LeastRequestConfig: structs.LeastRequestConfig{
+						ChoiceCount: 3,
+					},
+				},
+			},
+			"resolver:bar.default.dc1": {
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "bar.default.dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         "bar.default.dc1",
+				},
+				LoadBalancer: structs.LoadBalancer{
+					Policy: "ring_hash",
+					RingHashConfig: structs.RingHashConfig{
+						MaximumRingSize: 101,
+					},
+					HashPolicies: []structs.HashPolicy{
+						{
+							SourceAddress: true,
+						},
+					},
+				},
+			},
+			"resolver:baz.default.dc1": {
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "baz.default.dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         "baz.default.dc1",
+				},
+				LoadBalancer: structs.LoadBalancer{
+					Policy: "maglev",
+					HashPolicies: []structs.HashPolicy{
+						{
+							Field:           "cookie",
+							FieldMatchValue: "chocolate-chip",
+							Terminal:        true,
+						},
+					},
+				},
+			},
+		},
+		Targets: map[string]*structs.DiscoveryTarget{
+			"foo.default.dc1": newTarget("foo", "", "default", "dc1", nil),
+			"bar.default.dc1": newTarget("bar", "", "default", "dc1", nil),
+			"baz.default.dc1": newTarget("baz", "", "default", "dc1", nil),
+		},
+	}
+
+	return compileTestCase{entries: entries, expect: expect}
 }
 
 func newSimpleRoute(name string, muts ...func(*structs.ServiceRoute)) structs.ServiceRoute {
