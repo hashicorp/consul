@@ -34,3 +34,7 @@
   @extend %with-gateway-mask;
   background-color: $gray-500;
 }
+%reduced-pill.leader::before {
+  @extend %with-star-outline-mask;
+  background-color: $gray-500;
+}

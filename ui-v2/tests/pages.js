@@ -79,9 +79,6 @@ const tokenList = tokenListFactory(clickable, attribute, collection, deletable);
 const authForm = authFormFactory(submitable, clickable, attribute);
 const freetextFilter = freetextFilterFactory(triggerable);
 const catalogToolbar = searchBarFactory(freetextFilter);
-const catalogFilter = searchBarFactory(freetextFilter, () =>
-  radiogroup('status', ['', 'passing', 'warning', 'critical'])
-);
 const aclFilter = searchBarFactory(freetextFilter, () =>
   radiogroup('type', ['', 'management', 'client'])
 );
@@ -153,7 +150,7 @@ export default {
     service(visitable, attribute, collection, text, consulIntentionList, catalogToolbar, tabgroup)
   ),
   instance: create(instance(visitable, attribute, collection, text, tabgroup)),
-  nodes: create(nodes(visitable, clickable, attribute, collection, catalogFilter)),
+  nodes: create(nodes(visitable, text, clickable, attribute, collection, popoverSelect)),
   node: create(node(visitable, deletable, clickable, attribute, collection, tabgroup, text)),
   kvs: create(kvs(visitable, creatable, consulKvList)),
   kv: create(kv(visitable, attribute, submitable, deletable, cancelable, clickable)),

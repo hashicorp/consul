@@ -1,137 +1,74 @@
 {{title 'Nodes'}}
 <EventSource @src={{items}} />
-{{#let (selectable-key-values
-    (array "" "All (Any Status)")
-    (array "critical" "Critical Checks")
-    (array "warning" "Warning Checks")
-    (array "passing" "Passing Checks")
-      selected=filterBy
-  )
-  as |filter|
-}}
-<AppView @class="node list">
-  <BlockSlot @name="header">
-    <h1>
-      Nodes <em>{{format-number items.length}} total</em>
-    </h1>
-    <label for="toolbar-toggle"></label>
-  </BlockSlot>
-  <BlockSlot @name="toolbar">
-{{#if (gt items.length 0) }}
+{{#let (or sortBy "Node:asc") as |sort|}}
+  <AppView @class="node list">
+    <BlockSlot @name="header">
+      <h1>
+        Nodes <em>{{format-number items.length}} total</em>
+      </h1>
+      <label for="toolbar-toggle"></label>
+    </BlockSlot>
+    <BlockSlot @name="toolbar">
+    {{#if (gt items.length 0) }}
       <SearchBar
-        data-test-catalog-filter
         @value={{search}}
         @onsearch={{action (mut search) value="target.value"}}
-        @selected={{filter.selected}}
-        @options={{filter.items}}
-        @onchange={{action (mut filterBy) value='target.value'}}
-      />
-{{/if}}
-  </BlockSlot>
-  <BlockSlot @name="content">
-{{#let (filter-by "Checks" (action "isUnhealthy") items) as |unhealthy|}}
-  {{#if (gt unhealthy.length 0) }}
-      <div class="unhealthy">
-        <h2>Unhealthy Nodes</h2>
-        <div>
-          {{! think about 2 differing views here }}
-          <ul>
-            <ChangeableSet
-              @dispatcher={{
-                searchable
-                  'unhealthyNode'
-                  (if (eq filter.selected.key "")
-                    unhealthy
-                    (filter-by "Checks" (action "hasStatus" filter.selected.key) unhealthy filter.selected.key)
-                  )
-              }}
-              @terms={{search}}
-            >
-              <BlockSlot @name="set" as |unhealthy|>
-                {{#each unhealthy as |item|}}
-                  <HealthcheckedResource @tagName="li" @data-test-node={{item.Node}} @href={{href-to "dc.nodes.show" item.Node}} @name={{item.Node}} @address={{item.Address}} @checks={{item.Checks}}>
-                    <BlockSlot @name="icon">
-                      {{#if (eq item.Address leader.Address)}}
-                        <span data-test-leader={{leader.Address}} data-tooltip="Leader">Leader</span>
-                      {{/if}}
-                    </BlockSlot>
-                  </HealthcheckedResource>
-                {{/each}}
-              </BlockSlot>
-              <BlockSlot @name="empty">
-                <li class="empty">
-                  <EmptyState>
-                    <BlockSlot @name="header">
-                      <h2>No nodes found</h2>
-                    </BlockSlot>
-                    <BlockSlot @name="body">
-                      <p>
-                        There don't seem to be any nodes matching that search.
-                      </p>
-                    </BlockSlot>
-                  </EmptyState>
-                </li>
-              </BlockSlot>
-            </ChangeableSet>
-          </ul>
-        </div>
-      </div>
-  {{/if}}
-{{/let}}
-{{#let (filter-by "Checks" (action "isHealthy") items) as |healthy|}}
-  {{#if (gt healthy.length 0) }}
-      <div class="healthy">
-        <h2>Healthy Nodes</h2>
-        <ChangeableSet
-          @dispatcher={{
-            searchable
-              'healthyNode'
-              (if (eq filter.selected.key "")
-                healthy
-                (filter-by "Checks" (action "hasStatus" filter.selected.key) healthy filter.selected.key)
-              )
-          }}
-          @terms={{search}}
-        >
-          <BlockSlot @name="set" as |healthy|>
-            <GridCollection @cellHeight={{92}} @items={{healthy}} as |item index|>
-              <HealthcheckedResource @data-test-node={{item.Node}} @href={{href-to "dc.nodes.show" item.Node}} @name={{item.Node}} @address={{item.Address}} @checks={{item.Checks}}>
-                <BlockSlot @name="icon">
-                  {{#if (eq item.Address leader.Address)}}
-                    <span data-test-leader={{leader.Address}} data-tooltip="Leader">Leader</span>
-                  {{/if}}
-                </BlockSlot>
-              </HealthcheckedResource>
-            </GridCollection>
-          </BlockSlot>
-          <BlockSlot @name="empty">
-            <EmptyState>
-              <BlockSlot @name="header">
-                <h2>No nodes found</h2>
-              </BlockSlot>
-              <BlockSlot @name="body">
-                <p>
-                  There don't seem to be any nodes matching that search.
-                </p>
-              </BlockSlot>
-            </EmptyState>
-          </BlockSlot>
-        </ChangeableSet>
-      </div>
-  {{/if}}
-{{/let}}
-{{#if (eq items.length 0) }}
-      <EmptyState @allowLogin={{true}}>
-        <BlockSlot @name="header">
-          <h2>Welcome to Nodes</h2>
+        class="with-sort"
+      >
+        <BlockSlot @name="secondary">
+          <PopoverSelect
+            @position="right"
+            @onchange={{action (mut sortBy) value='target.selected'}}
+            @multiple={{false}}
+          as |components|>
+            <BlockSlot @name="selected">
+              <span>
+                {{#let (from-entries (array
+                      (array "Node:asc" "A to Z")
+                      (array "Node:desc" "Z to A")
+                      (array "Status:asc" "Unhealthy to Healthy")
+                      (array "Status:desc" "Healthy to Unhealthy")
+                    ))
+                  as |selectable|
+                }}
+                  {{get selectable sort}}
+                {{/let}}
+              </span>
+            </BlockSlot>
+            <BlockSlot @name="options">
+  {{#let components.Optgroup components.Option as |Optgroup Option|}}
+              <Optgroup @label="Name">
+                <Option @value="Node:asc" @selected={{eq "Node:asc" sort}}>A to Z</Option>
+                <Option @value="Node:desc" @selected={{eq "Node:desc" sort}}>Z to A</Option>
+              </Optgroup>
+              <Optgroup @label="Health Status">
+                <Option @value="Status:asc" @selected={{eq "Status:asc" sort}}>Unhealthy to Healthy</Option>
+                <Option @value="Status:desc" @selected={{eq "Status:desc" sort}}>Healthy to Unhealthy</Option>
+              </Optgroup>
+  {{/let}}
+            </BlockSlot>
+          </PopoverSelect>
         </BlockSlot>
-        <BlockSlot @name="body">
-          <p>
-            There don't seem to be any nodes, or you may not have access to view nodes yet.
-          </p>
+      </SearchBar>
+    {{/if}}
+    </BlockSlot>
+    <BlockSlot @name="content">
+    {{#let (sort-by (comparator 'node' sort) items) as |sorted|}}
+      <ChangeableSet @dispatcher={{searchable 'node' sorted}} @terms={{search}}>
+        <BlockSlot @name="set" as |filtered|>
+          <ConsulNodeList @items={{filtered}} @leader={{leader}} />
         </BlockSlot>
-      </EmptyState>
-{{/if}}
-  </BlockSlot>
-</AppView>
+        <BlockSlot @name="empty">
+          <EmptyState>
+            <BlockSlot @name="body">
+              <p>
+                There don't seem to be any registered nodes, or you may not have access to view nodes yet.
+              </p>
+            </BlockSlot>
+          </EmptyState>
+        </BlockSlot>
+      </ChangeableSet>
+    {{/let}}
+    </BlockSlot>
+  </AppView>
 {{/let}}

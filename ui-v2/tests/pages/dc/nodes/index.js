@@ -1,14 +1,13 @@
-export default function(visitable, clickable, attribute, collection, filter) {
+export default function(visitable, text, clickable, attribute, collection, popoverSelect) {
   const node = {
-    name: attribute('data-test-node'),
+    name: text('[data-test-node]'),
     leader: attribute('data-test-leader', '[data-test-leader]'),
-    node: clickable('header a'),
+    node: clickable('a'),
   };
   return {
     visit: visitable('/:dc/nodes'),
-    nodes: collection('[data-test-node]', node),
-    healthyNodes: collection('.healthy [data-test-node]', node),
-    unHealthyNodes: collection('.unhealthy [data-test-node]', node),
-    filter: filter('[data-test-catalog-filter]'),
+    nodes: collection('.consul-node-list [data-test-list-row]', node),
+    home: clickable('[data-test-home]'),
+    sort: popoverSelect(),
   };
 }

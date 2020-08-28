@@ -16,7 +16,7 @@ Feature: dc / nodes / index
     Then the url should be /dc-1/nodes
     And the title should be "Nodes - Consul"
     Then I see 3 node models
-  Scenario: Seeing the leader in unhealthy listing
+  Scenario: Seeing the leader in node listing
     Given 3 node models from yaml
     ---
       - Address: 211.245.86.75
@@ -32,24 +32,7 @@ Feature: dc / nodes / index
     ---
     Then the url should be /dc-1/nodes
     Then I see 3 node models
-    And I see leader on the unHealthyNodes
-  Scenario: Seeing the leader in healthy listing
-    Given 3 node models from yaml
-    ---
-      - Address: 211.245.86.75
-        Checks:
-          - Status: passing
-            Name: Passing check
-      - Address: 10.0.0.1
-      - Address: 10.0.0.3
-    ---
-    When I visit the nodes page for yaml
-    ---
-      dc: dc-1
-    ---
-    Then the url should be /dc-1/nodes
-    Then I see 3 node models
-    And I see leader on the healthyNodes
+    And I see leader on the nodes.0
   Scenario: Searching the nodes with name and IP address
     Given 3 node models from yaml
     ---
