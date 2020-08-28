@@ -1028,10 +1028,10 @@ func (l LoadBalancer) IsHashBased() bool {
 
 // RingHashConfig contains configuration for the "ring_hash" policy type
 type RingHashConfig struct {
-	// MinimumRingSize determines the minimum number of hashes per destination host
+	// MinimumRingSize determines the minimum number of entries in the hash ring
 	MinimumRingSize uint64 `json:",omitempty" alias:"minimum_ring_size"`
 
-	// MaximumRingSize determines the maximum number of hashes per destination host
+	// MaximumRingSize determines the maximum number of entries in the hash ring
 	MaximumRingSize uint64 `json:",omitempty" alias:"maximum_ring_size"`
 }
 
@@ -1058,7 +1058,7 @@ type HashPolicy struct {
 	FieldMatchValue string `json:",omitempty" alias:"field_value"`
 
 	// SourceAddress determines whether the hash should be of the source IP rather than of a field and field value.
-	// Cannot be specified along with Field and FieldMatchValue.
+	// Cannot be specified along with Field or FieldMatchValue.
 	SourceAddress bool `json:",omitempty" alias:"source_address"`
 
 	// Terminal will short circuit the computation of the hash when multiple hash policies are present.

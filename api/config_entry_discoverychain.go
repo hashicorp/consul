@@ -228,10 +228,10 @@ type LoadBalancer struct {
 
 // RingHashConfig contains configuration for the "ring_hash" policy type
 type RingHashConfig struct {
-	// MinimumRingSize determines the minimum number of hashes per destination host
+	// MinimumRingSize determines the minimum number of entries in the hash ring
 	MinimumRingSize uint64 `json:",omitempty" alias:"minimum_ring_size"`
 
-	// MaximumRingSize determines the maximum number of hashes per destination host
+	// MaximumRingSize determines the maximum number of entries in the hash ring
 	MaximumRingSize uint64 `json:",omitempty" alias:"maximum_ring_size"`
 }
 
