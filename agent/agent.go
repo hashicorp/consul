@@ -3764,6 +3764,12 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 		return err
 	}
 
+	if a.cache.ReloadOptions(newCfg.Cache) {
+		a.logger.Info("Cache options have been updated")
+	} else {
+		a.logger.Debug("Cache options have not been modified")
+	}
+
 	// Update filtered metrics
 	metrics.UpdateFilter(newCfg.Telemetry.AllowedPrefixes,
 		newCfg.Telemetry.BlockedPrefixes)

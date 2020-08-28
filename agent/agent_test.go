@@ -43,6 +43,7 @@ import (
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/time/rate"
 	"gopkg.in/square/go-jose.v2/jwt"
 )
 
@@ -765,10 +766,18 @@ func TestCacheRateLimit(test *testing.T) {
 		test.Run(fmt.Sprintf("rate_limit_at_%v", currentTest.rateLimit), func(t *testing.T) {
 			tt := currentTest
 			t.Parallel()
-			a := NewTestAgent(t, fmt.Sprintf("cache = { entry_fetch_rate = %v, entry_fetch_max_burst = 1 }", tt.rateLimit))
+			a := NewTestAgent(t, "cache = { entry_fetch_rate = 1, entry_fetch_max_burst = 100 }")
 			defer a.Shutdown()
 			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
+			cfg := a.config
+			require.Equal(t, rate.Limit(1), a.config.Cache.EntryFetchRate)
+			require.Equal(t, 100, a.config.Cache.EntryFetchMaxBurst)
+			cfg.Cache.EntryFetchRate = rate.Limit(tt.rateLimit)
+			cfg.Cache.EntryFetchMaxBurst = 1
+			a.reloadConfigInternal(cfg)
+			require.Equal(t, rate.Limit(tt.rateLimit), a.config.Cache.EntryFetchRate)
+			require.Equal(t, 1, a.config.Cache.EntryFetchMaxBurst)
 			var wg sync.WaitGroup
 			stillProcessing := true
 
