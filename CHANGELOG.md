@@ -1,5 +1,9 @@
 ## UNRELEASED
 
+BUG FIXES:
+
+* api: fixed a panic caused by an api request with Connect=null [[GH-8537](https://github.com/hashicorp/consul/pull/8537)]
+
 ## 1.6.8 (August 12, 2020)
 
 BUG FIXES:
