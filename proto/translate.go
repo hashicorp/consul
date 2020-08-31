@@ -12,6 +12,8 @@ var (
 	timePtrType = reflect.TypeOf((*time.Time)(nil))
 	timeType    = timePtrType.Elem()
 	mapStrInf   = reflect.TypeOf((map[string]interface{})(nil))
+
+	epoch1970 = time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
 )
 
 // HookPBTimestampToTime is a mapstructure decode hook to translate a protobuf timestamp
@@ -19,7 +21,10 @@ var (
 func HookPBTimestampToTime(from, to reflect.Type, data interface{}) (interface{}, error) {
 	if to == timeType && from == tsType {
 		ts := data.(*types.Timestamp)
-		return time.Unix(ts.Seconds, int64(ts.Nanos)), nil
+		if ts.Seconds == 0 && ts.Nanos == 0 {
+			return time.Time{}, nil
+		}
+		return time.Unix(ts.Seconds, int64(ts.Nanos)).UTC(), nil
 	}
 
 	return data, nil
@@ -39,6 +44,13 @@ func HookTimeToPBTimestamp(from, to reflect.Type, data interface{}) (interface{}
 	// seeing a *time.Time instead of a time.Time.
 	if from == timePtrType && to == mapStrInf {
 		ts := data.(*time.Time)
+
+		// protobuf only supports times from Jan 1 1970 onward but the time.Time type
+		// can represent values back to year 1. Basically
+		if ts.Before(epoch1970) {
+			return map[string]interface{}{}, nil
+		}
+
 		nanos := ts.UnixNano()
 		if nanos < 0 {
 			return map[string]interface{}{}, nil

@@ -27,7 +27,7 @@ func TestHookPBTimestampToTime(t *testing.T) {
 	}
 
 	expected := timeTSWrapper{
-		Timestamp: time.Unix(1000, 42),
+		Timestamp: time.Unix(1000, 42).UTC(),
 	}
 
 	var actual timeTSWrapper
@@ -43,13 +43,34 @@ func TestHookPBTimestampToTime(t *testing.T) {
 
 func TestHookTimeToPBTimestamp(t *testing.T) {
 	in := timeTSWrapper{
-		Timestamp: time.Unix(999999, 123456),
+		Timestamp: time.Unix(999999, 123456).UTC(),
 	}
 
 	expected := pbTSWrapper{
 		Timestamp: &types.Timestamp{
 			Seconds: 999999,
 			Nanos:   123456,
+		},
+	}
+
+	var actual pbTSWrapper
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		DecodeHook: HookTimeToPBTimestamp,
+		Result:     &actual,
+	})
+	require.NoError(t, err)
+	require.NoError(t, decoder.Decode(in))
+
+	require.Equal(t, expected, actual)
+}
+
+func TestHookTimeToPBTimestamp_ZeroTime(t *testing.T) {
+	in := timeTSWrapper{}
+
+	expected := pbTSWrapper{
+		Timestamp: &types.Timestamp{
+			Seconds: 0,
+			Nanos:   0,
 		},
 	}
 
