@@ -10,7 +10,6 @@ import (
 )
 
 func TestMonitor_Start(t *testing.T) {
-	t.Parallel()
 	require := require.New(t)
 
 	logger := log.NewInterceptLogger(&log.LoggerOptions{
@@ -41,7 +40,6 @@ func TestMonitor_Start(t *testing.T) {
 }
 
 func TestMonitor_Stop(t *testing.T) {
-	t.Parallel()
 	require := require.New(t)
 
 	logger := log.NewInterceptLogger(&log.LoggerOptions{
@@ -82,7 +80,6 @@ func TestMonitor_Stop(t *testing.T) {
 }
 
 func TestMonitor_DroppedMessages(t *testing.T) {
-	t.Parallel()
 	require := require.New(t)
 
 	logger := log.NewInterceptLogger(&log.LoggerOptions{
@@ -125,7 +122,6 @@ func TestMonitor_DroppedMessages(t *testing.T) {
 }
 
 func TestMonitor_ZeroBufSizeDefault(t *testing.T) {
-	t.Parallel()
 	require := require.New(t)
 
 	logger := log.NewInterceptLogger(&log.LoggerOptions{
@@ -162,7 +158,6 @@ func TestMonitor_ZeroBufSizeDefault(t *testing.T) {
 }
 
 func TestMonitor_WriteStopped(t *testing.T) {
-	t.Parallel()
 	require := require.New(t)
 
 	logger := log.NewInterceptLogger(&log.LoggerOptions{
