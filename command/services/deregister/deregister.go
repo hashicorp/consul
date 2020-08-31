@@ -32,6 +32,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
+	flags.Merge(c.flags, c.http.NamespaceFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -50,11 +51,11 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	svcs := []*api.AgentServiceRegistration{&api.AgentServiceRegistration{
+	svcs := []*api.AgentServiceRegistration{{
 		ID: c.flagId}}
 	if len(args) > 0 {
 		var err error
-		svcs, err = services.ServicesFromFiles(args)
+		svcs, err = services.ServicesFromFiles(c.UI, args)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error: %s", err))
 			return 1

@@ -1,13 +1,14 @@
 package api
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"time"
 
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/vault/helper/jsonutil"
-	"github.com/hashicorp/vault/helper/parseutil"
+	"github.com/hashicorp/vault/sdk/helper/jsonutil"
+	"github.com/hashicorp/vault/sdk/helper/parseutil"
 )
 
 // Secret is the structure returned for every secret within Vault.
@@ -291,6 +292,8 @@ type SecretAuth struct {
 	TokenPolicies    []string          `json:"token_policies"`
 	IdentityPolicies []string          `json:"identity_policies"`
 	Metadata         map[string]string `json:"metadata"`
+	Orphan           bool              `json:"orphan"`
+	EntityID         string            `json:"entity_id"`
 
 	LeaseDuration int  `json:"lease_duration"`
 	Renewable     bool `json:"renewable"`
@@ -298,9 +301,20 @@ type SecretAuth struct {
 
 // ParseSecret is used to parse a secret value from JSON from an io.Reader.
 func ParseSecret(r io.Reader) (*Secret, error) {
+	// First read the data into a buffer. Not super efficient but we want to
+	// know if we actually have a body or not.
+	var buf bytes.Buffer
+	_, err := buf.ReadFrom(r)
+	if err != nil {
+		return nil, err
+	}
+	if buf.Len() == 0 {
+		return nil, nil
+	}
+
 	// First decode the JSON into a map[string]interface{}
 	var secret Secret
-	if err := jsonutil.DecodeJSONFromReader(r, &secret); err != nil {
+	if err := jsonutil.DecodeJSONFromReader(&buf, &secret); err != nil {
 		return nil, err
 	}
 

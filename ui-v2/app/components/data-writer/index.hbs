@@ -1,0 +1,80 @@
+<StateChart @src={{chart}} as |State Guard Action dispatch state|>
+
+  <Ref @target={{this}} @name="dispatch" @value={{dispatch}} />
+
+{{#let (hash
+  data=data
+  error=error
+  persist=(action "persist")
+  delete=(queue (action (mut data)) (action dispatch "REMOVE"))
+  inflight=(state-matches state (array "persisting" "removing"))
+) as |api|}}
+
+  {{yield api}}
+
+  <State @matches="removing">
+    <DataSink
+      @sink={{sink}}
+      @item={{data}}
+      @data={{null}}
+      @onchange={{action dispatch "SUCCESS"}}
+      @onerror={{queue (action (mut error) value="error.errors.firstObject") (action dispatch "ERROR")}}
+    />
+  </State>
+
+  <State @matches="persisting">
+    <DataSink
+      @sink={{sink}}
+      @item={{data}}
+      @onchange={{action dispatch "SUCCESS"}}
+      @onerror={{queue (action (mut error) value="error.errors.firstObject") (action dispatch "ERROR")}}
+    />
+  </State>
+
+  <State @matches="removed">
+    {{#yield-slot name="removed" params=(block-params (component 'notification' after=(queue (action dispatch "RESET") (action ondelete))))}}
+      {{yield api}}
+    {{else}}
+      <Notification @after={{queue (action dispatch "RESET") (action ondelete)}}>
+        <p data-notification role="alert" class="success notification-delete">
+          <strong>Success!</strong>
+          Your {{or label type}} has been deleted.
+        </p>
+      </Notification>
+    {{/yield-slot}}
+  </State>
+
+  <State @matches="persisted">
+    <Notification @after={{action onchange}}>
+      {{#yield-slot name="persisted"}}
+        {{yield api}}
+      {{else}}
+        <p data-notification role="alert" class="success notification-update">
+          <strong>Success!</strong>
+          Your {{or label type}} has been saved.
+        </p>
+      {{/yield-slot}}
+    </Notification>
+  </State>
+
+  <State @matches="error">
+    {{#yield-slot name="error" params=(block-params (component 'notification' after=(action dispatch "RESET")))}}
+      {{yield api}}
+    {{else}}
+      <Notification @after={{action dispatch "RESET"}}>
+          <p data-notification role="alert" class="error notification-update">
+            <strong>Error!</strong>
+            There was an error saving your {{or label type}}.
+          {{#if (and api.error.status api.error.detail)}}
+            <br />{{api.error.status}}: {{api.error.detail}}
+          {{/if}}
+          </p>
+      </Notification>
+    {{/yield-slot}}
+  </State>
+  <YieldSlot @name="content">
+    {{yield api}}
+  </YieldSlot>
+
+{{/let}}
+</StateChart>

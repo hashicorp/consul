@@ -1,0 +1,22 @@
+{{yield}}
+<div class="confirmation-alert" ...attributes>
+  <div>
+    <header>
+      <YieldSlot @name="header">{{yield}}</YieldSlot>
+    </header>
+    <YieldSlot @name="body">{{yield}}</YieldSlot>
+  </div>
+  <ul>
+    <YieldSlot @name="confirm" @params={{
+        block-params (component 'confirmation-alert/action'
+          onclick=(action onclick)
+        )
+      }}
+    >
+      {{yield}}
+    </YieldSlot>
+    <li>
+      <label for={{name}}>Cancel</label>
+    </li>
+  </ul>
+</div>

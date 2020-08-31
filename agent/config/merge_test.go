@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMerge(t *testing.T) {
@@ -47,9 +47,7 @@ func TestMerge(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
 			got, want := Merge(tt.cfgs...), tt.want
-			if !verify.Values(t, "", got, want) {
-				t.FailNow()
-			}
+			require.Equal(t, want, got)
 		})
 	}
 }

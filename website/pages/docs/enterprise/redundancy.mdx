@@ -1,0 +1,34 @@
+---
+layout: docs
+page_title: Consul Enterprise Redundancy Zones
+sidebar_title: Redundancy Zones
+description: >-
+  Consul Enterprise redundancy zones enable hot standby servers on a per
+  availability zone basis.
+---
+
+# Redundancy Zones
+
+<EnterpriseAlert>
+  This feature requires{' '}
+  <a href="https://www.hashicorp.com/products/consul/">Consul Enterprise</a>{' '}
+  with the Global Visibility, Routing, and Scale module.
+</EnterpriseAlert>
+
+Consul Enterprise redundancy zones provide
+both scaling and resiliency benefits by enabling the deployment of non-voting
+servers alongside voting servers on a per availability zone basis.
+
+When using redundancy zones, if an operator chooses to deploy Consul across 3 availability zones, they
+could have 2 (or more) servers (1 voting/1 non-voting) in each zone. In the event that a voting
+member in an availability zone fails, the redundancy zone configuration would automatically
+promote the non-voting member to a voting member. In the event that an entire availability
+zone was lost, a non-voting member in one of the existing availability zones would promote
+to a voting member, keeping server quorum. This capability functions as a "hot standby"
+for server nodes while also providing (and expanding) the capabilities of
+[enhanced read scalability](/docs/enterprise/read-scale) by also including recovery
+capabilities.
+
+For more information, review the HashiCorp Learn tutorial on
+[Redundancy Zones](https://learn.hashicorp.com/tutorials/consul/autopilot-datacenter-operations#redundancy-zones),
+as well as the documentation for [Consul Autopilot](/docs/commands/operator/autopilot).

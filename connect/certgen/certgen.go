@@ -7,7 +7,7 @@
 //
 // You can verify a given leaf with a given root using:
 //
-//   $ openssl verify -verbose -CAfile ca2-ca.cert.pem ca1-svc-db.cert.pem
+//   $ openssl verify -verbose -CAfile ca1-ca.cert.pem ca1-svc-db.cert.pem
 //
 // Note that to verify via the cross-signed intermediate, openssl requires it to
 // be bundled with the _root_ CA bundle and will ignore the cert if it's passed
@@ -44,9 +44,15 @@ func main() {
 	var numCAs = 2
 	var services = []string{"web", "db", "cache"}
 	var outDir string
+	var keyType string = "ec"
+	var keyBits int = 256
 
 	flag.StringVar(&outDir, "out-dir", "",
 		"REQUIRED: the dir to write certificates to")
+	flag.StringVar(&keyType, "key-type", "ec",
+		"Type of private key to create (ec, rsa)")
+	flag.IntVar(&keyBits, "key-bits", 256,
+		"Size of private key to create, in bits")
 	flag.Parse()
 
 	if outDir == "" {
@@ -57,7 +63,7 @@ func main() {
 	// Create CA certs
 	var prevCA *structs.CARoot
 	for i := 1; i <= numCAs; i++ {
-		ca := connect.TestCA(&testing.RuntimeT{}, prevCA)
+		ca := connect.TestCAWithKeyType(&testing.RuntimeT{}, prevCA, keyType, keyBits)
 		prefix := fmt.Sprintf("%s/ca%d-ca", outDir, i)
 		writeFile(prefix+".cert.pem", ca.RootCert)
 		writeFile(prefix+".key.pem", ca.SigningKey)

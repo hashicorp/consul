@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/serf/coordinate"
-	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPI_CoordinateDatacenters(t *testing.T) {
@@ -71,6 +71,7 @@ func TestAPI_CoordinateUpdate(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
+	s.WaitForSerfCheck(t)
 	node := "foo"
 	_, err := c.Catalog().Register(&CatalogRegistration{
 		Node:    node,
@@ -101,6 +102,6 @@ func TestAPI_CoordinateUpdate(t *testing.T) {
 		if len(coords) != 1 {
 			r.Fatalf("bad: %v", coords)
 		}
-		verify.Values(r, "", coords[0], entry)
+		require.Equal(r, entry, coords[0])
 	})
 }

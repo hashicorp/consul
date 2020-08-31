@@ -7,21 +7,27 @@ span,
 strong {
   color: inherit;
 }
+/* %typo-body */
 body {
-  color: $ui-gray-900;
+  color: $gray-900;
 }
+/* TODO: Consider changing this to 'p a, dd a, td a' etc etc*/
 a {
-  color: $ui-color-action;
+  color: $color-action;
 }
 html {
-  background-color: $ui-white;
+  background-color: $white;
 }
 hr {
-  background-color: $ui-gray-500;
+  background-color: $gray-500;
+}
+button {
+  background-color: $transparent;
 }
 html {
   font-size: $typo-size-000;
 }
+/* %typo-body */
 body {
   line-height: 1.5;
 }

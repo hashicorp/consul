@@ -1,0 +1,168 @@
+<DataForm
+  @dc={{dc}}
+  @nspace={{nspace}}
+  @type="intention"
+  @autofill={{autofill}}
+  @item={{item}}
+  @src={{src}}
+  @onchange={{action "change"}}
+  @onsubmit={{action onsubmit}}
+  as |api|
+>
+    <BlockSlot @name="error" as |Notification|>
+      <Notification>
+        <p data-notification role="alert" class="error notification-update">
+  {{#if (starts-with 'duplicate intention found:' api.error.detail)}}
+          <strong>Intention exists</strong>
+          An intention already exists for this Source-Destination pair. Please enter a different combination of Services, or search the intentions to edit an existing intention.
+  {{else}}
+          <strong>Error!</strong>
+          There was an error saving your intention.
+        {{#if (and api.error.status api.error.detail)}}
+          <br />{{api.error.status}}: {{api.error.detail}}
+        {{/if}}
+  {{/if}}
+        </p>
+      </Notification>
+    </BlockSlot>
+
+    <BlockSlot @name="form">
+
+      <DataSource
+        @src={{concat '/' nspace '/' dc '/services'}}
+        @onchange={{action "createServices" api.data}}
+      />
+
+      {{#if (env 'CONSUL_NSPACES_ENABLED')}}
+        <DataSource
+          @src="/*/*/namespaces"
+          @onchange={{action "createNspaces" api.data}}
+        />
+      {{/if}}
+
+      <form onsubmit={{action api.submit}}>
+
+        <fieldset disabled={{api.disabled}}>
+          <div role="group">
+            <fieldset>
+              <h2>Source</h2>
+              <label data-test-source-element class="type-select{{if api.data.error.SourceName ' has-error'}}">
+                <span>Source Service</span>
+                <PowerSelectWithCreate
+                    @options={{services}}
+                    @searchField="Name"
+                    @selected={{SourceName}}
+                    @searchPlaceholder="Type service name"
+                    @buildSuggestion={{action "createNewLabel" "Use a Consul Service called '{{term}}'"}}
+                    @showCreateWhen={{action "isUnique" services}}
+                    @onCreate={{action api.change "SourceName"}}
+                    @onChange={{action api.change "SourceName"}} as |service|>
+                        {{#if (eq service.Name '*') }}
+                          * (All Services)
+                        {{else}}
+                          {{service.Name}}
+                        {{/if}}
+                </PowerSelectWithCreate>
+                <em>Search for an existing service, or enter any Service name.</em>
+              </label>
+        {{#if (env 'CONSUL_NSPACES_ENABLED')}}
+              <label data-test-source-nspace class="type-select{{if api.data.error.SourceNS ' has-error'}}">
+                <span>Source Namespace</span>
+                <PowerSelectWithCreate
+                    @options={{nspaces}}
+                    @searchField="Name"
+                    @selected={{SourceNS}}
+                    @searchPlaceholder="Type namespace name"
+                    @buildSuggestion={{action "createNewLabel" "Use a Consul Namespace called '{{term}}'"}}
+                    @showCreateWhen={{action "isUnique" nspaces}}
+                    @onCreate={{action api.change "SourceNS"}}
+                    @onChange={{action api.change "SourceNS"}} as |nspace|>
+                      {{#if (eq nspace.Name '*') }}
+                        * (All Namespaces)
+                      {{else}}
+                        {{nspace.Name}}
+                      {{/if}}
+                </PowerSelectWithCreate>
+                <em>Search for an existing namespace, or enter any Namespace name.</em>
+              </label>
+      {{/if}}
+            </fieldset>
+            <fieldset>
+              <h2>Destination</h2>
+              <label data-test-destination-element class="type-select{{if api.data.error.DestinationName ' has-error'}}">
+                <span>Destination Service</span>
+                <PowerSelectWithCreate
+                    @options={{services}}
+                    @searchField="Name"
+                    @selected={{DestinationName}}
+                    @searchPlaceholder="Type service name"
+                    @buildSuggestion={{action "createNewLabel" "Use a Consul Service called '{{term}}'"}}
+                    @showCreateWhen={{action "isUnique" services}}
+                    @onCreate={{action api.change "DestinationName"}}
+                    @onChange={{action api.change "DestinationName"}} as |service|>
+                        {{#if (eq service.Name '*') }}
+                          * (All Services)
+                        {{else}}
+                          {{service.Name}}
+                        {{/if}}
+                </PowerSelectWithCreate>
+                <em>Search for an existing service, or enter any Service name.</em>
+              </label>
+        {{#if (env 'CONSUL_NSPACES_ENABLED')}}
+              <label data-test-destination-nspace class="type-select{{if api.data.error.DestinationNS ' has-error'}}">
+                <span>Destination Namespace</span>
+                <PowerSelectWithCreate
+                    @options={{nspaces}}
+                    @searchField="Name"
+                    @selected={{DestinationNS}}
+                    @searchPlaceholder="Type namespace name"
+                    @buildSuggestion={{action "createNewLabel" "Use a future Consul Namespace called '{{term}}'"}}
+                    @showCreateWhen={{action "isUnique" nspaces}}
+                    @onCreate={{action api.change "DestinationNS"}}
+                    @onChange={{action api.change "DestinationNS"}} as |nspace|>
+                        {{#if (eq nspace.Name '*') }}
+                          * (All Namespaces)
+                        {{else}}
+                          {{nspace.Name}}
+                        {{/if}}
+                </PowerSelectWithCreate>
+                <em>For the destination, you may choose any namespace for which you have access.</em>
+              </label>
+      {{/if}}
+            </fieldset>
+          </div>
+          <div role="radiogroup" class={{if api.data.error.Action ' has-error'}}>
+            {{#each (array 'allow' 'deny') as |intent|}}
+              <label>
+                <span>{{capitalize intent}}</span>
+                <input type="radio" name="Action" value={{intent}} checked={{if (eq api.data.Action intent) 'checked'}} onchange={{action api.change}}/>
+              </label>
+            {{/each}}
+          </div>
+          <label class="type-text{{if api.data.error.Description ' has-error'}}">
+            <span>Description (Optional)</span>
+            <input type="text" name="Description" value={{api.data.Description}} placeholder="Description (Optional)" onchange={{action api.change}} />
+          </label>
+        </fieldset>
+
+        <div>
+          <button type="submit" disabled={{or api.data.isInvalid api.disabled}}>Save</button>
+          <button type="reset" onclick={{action oncancel api.data}} disabled={{api.disabled}}>Cancel</button>
+      {{#if (not api.isCreate)}}
+        {{#if (not-eq form.item.ID 'anonymous') }}
+          <ConfirmationDialog @message="Are you sure you want to delete this Intention?">
+            <BlockSlot @name="action" as |confirm|>
+              <button data-test-delete type="button" class="type-delete" {{action confirm api.delete}} disabled={{api.disabled}}>Delete</button>
+            </BlockSlot>
+            <BlockSlot @name="dialog" as |execute cancel message|>
+              <DeleteConfirmation @message={{message}} @execute={{execute}} @cancel={{cancel}} />
+            </BlockSlot>
+          </ConfirmationDialog>
+        {{/if}}
+      {{/if}}
+        </div>
+
+    </form>
+
+  </BlockSlot>
+</DataForm>

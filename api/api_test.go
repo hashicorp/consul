@@ -4,6 +4,7 @@ import (
 	crand "crypto/rand"
 	"crypto/tls"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -14,7 +15,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -36,9 +38,10 @@ func makeACLClient(t *testing.T) (*Client, *testutil.TestServer) {
 		clientConfig.Token = "root"
 	}, func(serverConfig *testutil.TestServerConfig) {
 		serverConfig.PrimaryDatacenter = "dc1"
-		serverConfig.ACLMasterToken = "root"
+		serverConfig.ACL.Tokens.Master = "root"
+		serverConfig.ACL.Tokens.Agent = "root"
 		serverConfig.ACL.Enabled = true
-		serverConfig.ACLDefaultPolicy = "deny"
+		serverConfig.ACL.DefaultPolicy = "deny"
 	})
 }
 
@@ -52,11 +55,20 @@ func makeClientWithConfig(
 	if cb1 != nil {
 		cb1(conf)
 	}
+
 	// Create server
-	server, err := testutil.NewTestServerConfigT(t, cb2)
-	if err != nil {
-		t.Fatal(err)
+	var server *testutil.TestServer
+	var err error
+	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
+		server, err = testutil.NewTestServerConfigT(t, cb2)
+		if err != nil {
+			r.Fatalf("Failed to start server: %v", err.Error())
+		}
+	})
+	if server.Config.Bootstrap {
+		server.WaitForLeader(t)
 	}
+
 	conf.Address = server.HTTPAddr
 
 	// Create client
@@ -81,6 +93,304 @@ func testKey() string {
 		buf[6:8],
 		buf[8:10],
 		buf[10:16])
+}
+
+func testNodeServiceCheckRegistrations(t *testing.T, client *Client, datacenter string) {
+	t.Helper()
+
+	registrations := map[string]*CatalogRegistration{
+		"Node foo": {
+			Datacenter: datacenter,
+			Node:       "foo",
+			ID:         "e0155642-135d-4739-9853-a1ee6c9f945b",
+			Address:    "127.0.0.2",
+			TaggedAddresses: map[string]string{
+				"lan": "127.0.0.2",
+				"wan": "198.18.0.2",
+			},
+			NodeMeta: map[string]string{
+				"env": "production",
+				"os":  "linux",
+			},
+			Checks: HealthChecks{
+				&HealthCheck{
+					Node:    "foo",
+					CheckID: "foo:alive",
+					Name:    "foo-liveness",
+					Status:  HealthPassing,
+					Notes:   "foo is alive and well",
+				},
+				&HealthCheck{
+					Node:    "foo",
+					CheckID: "foo:ssh",
+					Name:    "foo-remote-ssh",
+					Status:  HealthPassing,
+					Notes:   "foo has ssh access",
+				},
+			},
+		},
+		"Service redis v1 on foo": {
+			Datacenter:     datacenter,
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &AgentService{
+				Kind:    ServiceKindTypical,
+				ID:      "redisV1",
+				Service: "redis",
+				Tags:    []string{"v1"},
+				Meta:    map[string]string{"version": "1"},
+				Port:    1234,
+				Address: "198.18.1.2",
+			},
+			Checks: HealthChecks{
+				&HealthCheck{
+					Node:        "foo",
+					CheckID:     "foo:redisV1",
+					Name:        "redis-liveness",
+					Status:      HealthPassing,
+					Notes:       "redis v1 is alive and well",
+					ServiceID:   "redisV1",
+					ServiceName: "redis",
+				},
+			},
+		},
+		"Service redis v2 on foo": {
+			Datacenter:     datacenter,
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &AgentService{
+				Kind:    ServiceKindTypical,
+				ID:      "redisV2",
+				Service: "redis",
+				Tags:    []string{"v2"},
+				Meta:    map[string]string{"version": "2"},
+				Port:    1235,
+				Address: "198.18.1.2",
+			},
+			Checks: HealthChecks{
+				&HealthCheck{
+					Node:        "foo",
+					CheckID:     "foo:redisV2",
+					Name:        "redis-v2-liveness",
+					Status:      HealthPassing,
+					Notes:       "redis v2 is alive and well",
+					ServiceID:   "redisV2",
+					ServiceName: "redis",
+				},
+			},
+		},
+		"Node bar": {
+			Datacenter: datacenter,
+			Node:       "bar",
+			ID:         "c6e7a976-8f4f-44b5-bdd3-631be7e8ecac",
+			Address:    "127.0.0.3",
+			TaggedAddresses: map[string]string{
+				"lan": "127.0.0.3",
+				"wan": "198.18.0.3",
+			},
+			NodeMeta: map[string]string{
+				"env": "production",
+				"os":  "windows",
+			},
+			Checks: HealthChecks{
+				&HealthCheck{
+					Node:    "bar",
+					CheckID: "bar:alive",
+					Name:    "bar-liveness",
+					Status:  HealthPassing,
+					Notes:   "bar is alive and well",
+				},
+			},
+		},
+		"Service redis v1 on bar": {
+			Datacenter:     datacenter,
+			Node:           "bar",
+			SkipNodeUpdate: true,
+			Service: &AgentService{
+				Kind:    ServiceKindTypical,
+				ID:      "redisV1",
+				Service: "redis",
+				Tags:    []string{"v1"},
+				Meta:    map[string]string{"version": "1"},
+				Port:    1234,
+				Address: "198.18.1.3",
+			},
+			Checks: HealthChecks{
+				&HealthCheck{
+					Node:        "bar",
+					CheckID:     "bar:redisV1",
+					Name:        "redis-liveness",
+					Status:      HealthPassing,
+					Notes:       "redis v1 is alive and well",
+					ServiceID:   "redisV1",
+					ServiceName: "redis",
+				},
+			},
+		},
+		"Service web v1 on bar": {
+			Datacenter:     datacenter,
+			Node:           "bar",
+			SkipNodeUpdate: true,
+			Service: &AgentService{
+				Kind:    ServiceKindTypical,
+				ID:      "webV1",
+				Service: "web",
+				Tags:    []string{"v1", "connect"},
+				Meta:    map[string]string{"version": "1", "connect": "enabled"},
+				Port:    443,
+				Address: "198.18.1.4",
+				Connect: &AgentServiceConnect{Native: true},
+			},
+			Checks: HealthChecks{
+				&HealthCheck{
+					Node:        "bar",
+					CheckID:     "bar:web:v1",
+					Name:        "web-v1-liveness",
+					Status:      HealthPassing,
+					Notes:       "web connect v1 is alive and well",
+					ServiceID:   "webV1",
+					ServiceName: "web",
+				},
+			},
+		},
+		"Node baz": {
+			Datacenter: datacenter,
+			Node:       "baz",
+			ID:         "12f96b27-a7b0-47bd-add7-044a2bfc7bfb",
+			Address:    "127.0.0.4",
+			TaggedAddresses: map[string]string{
+				"lan": "127.0.0.4",
+			},
+			NodeMeta: map[string]string{
+				"env": "qa",
+				"os":  "linux",
+			},
+			Checks: HealthChecks{
+				&HealthCheck{
+					Node:    "baz",
+					CheckID: "baz:alive",
+					Name:    "baz-liveness",
+					Status:  HealthPassing,
+					Notes:   "baz is alive and well",
+				},
+				&HealthCheck{
+					Node:    "baz",
+					CheckID: "baz:ssh",
+					Name:    "baz-remote-ssh",
+					Status:  HealthPassing,
+					Notes:   "baz has ssh access",
+				},
+			},
+		},
+		"Service web v1 on baz": {
+			Datacenter:     datacenter,
+			Node:           "baz",
+			SkipNodeUpdate: true,
+			Service: &AgentService{
+				Kind:    ServiceKindTypical,
+				ID:      "webV1",
+				Service: "web",
+				Tags:    []string{"v1", "connect"},
+				Meta:    map[string]string{"version": "1", "connect": "enabled"},
+				Port:    443,
+				Address: "198.18.1.4",
+				Connect: &AgentServiceConnect{Native: true},
+			},
+			Checks: HealthChecks{
+				&HealthCheck{
+					Node:        "baz",
+					CheckID:     "baz:web:v1",
+					Name:        "web-v1-liveness",
+					Status:      HealthPassing,
+					Notes:       "web connect v1 is alive and well",
+					ServiceID:   "webV1",
+					ServiceName: "web",
+				},
+			},
+		},
+		"Service web v2 on baz": {
+			Datacenter:     datacenter,
+			Node:           "baz",
+			SkipNodeUpdate: true,
+			Service: &AgentService{
+				Kind:    ServiceKindTypical,
+				ID:      "webV2",
+				Service: "web",
+				Tags:    []string{"v2", "connect"},
+				Meta:    map[string]string{"version": "2", "connect": "enabled"},
+				Port:    8443,
+				Address: "198.18.1.4",
+				Connect: &AgentServiceConnect{Native: true},
+			},
+			Checks: HealthChecks{
+				&HealthCheck{
+					Node:        "baz",
+					CheckID:     "baz:web:v2",
+					Name:        "web-v2-liveness",
+					Status:      HealthPassing,
+					Notes:       "web connect v2 is alive and well",
+					ServiceID:   "webV2",
+					ServiceName: "web",
+				},
+			},
+		},
+		"Service critical on baz": {
+			Datacenter:     datacenter,
+			Node:           "baz",
+			SkipNodeUpdate: true,
+			Service: &AgentService{
+				Kind:    ServiceKindTypical,
+				ID:      "criticalV2",
+				Service: "critical",
+				Tags:    []string{"v2"},
+				Meta:    map[string]string{"version": "2"},
+				Port:    8080,
+				Address: "198.18.1.4",
+			},
+			Checks: HealthChecks{
+				&HealthCheck{
+					Node:        "baz",
+					CheckID:     "baz:critical:v2",
+					Name:        "critical-v2-liveness",
+					Status:      HealthCritical,
+					Notes:       "critical v2 is in the critical state",
+					ServiceID:   "criticalV2",
+					ServiceName: "critical",
+				},
+			},
+		},
+		"Service warning on baz": {
+			Datacenter:     datacenter,
+			Node:           "baz",
+			SkipNodeUpdate: true,
+			Service: &AgentService{
+				Kind:    ServiceKindTypical,
+				ID:      "warningV2",
+				Service: "warning",
+				Tags:    []string{"v2"},
+				Meta:    map[string]string{"version": "2"},
+				Port:    8081,
+				Address: "198.18.1.4",
+			},
+			Checks: HealthChecks{
+				&HealthCheck{
+					Node:        "baz",
+					CheckID:     "baz:warning:v2",
+					Name:        "warning-v2-liveness",
+					Status:      HealthWarning,
+					Notes:       "warning v2 is in the warning state",
+					ServiceID:   "warningV2",
+					ServiceName: "warning",
+				},
+			},
+		},
+	}
+
+	catalog := client.Catalog()
+	for name, reg := range registrations {
+		_, err := catalog.Register(reg, nil)
+		require.NoError(t, err, "Failed catalog registration for %q: %v", name, err)
+	}
 }
 
 func TestAPI_DefaultConfig_env(t *testing.T) {
@@ -114,7 +424,11 @@ func TestAPI_DefaultConfig_env(t *testing.T) {
 	os.Setenv(HTTPSSLVerifyEnvName, "0")
 	defer os.Setenv(HTTPSSLVerifyEnvName, "")
 
-	for i, config := range []*Config{DefaultConfig(), DefaultNonPooledConfig()} {
+	for i, config := range []*Config{
+		DefaultConfig(),
+		DefaultConfigWithLogger(testutil.Logger(t)),
+		DefaultNonPooledConfig(),
+	} {
 		if config.Address != addr {
 			t.Errorf("expected %q to be %q", config.Address, addr)
 		}
@@ -153,7 +467,7 @@ func TestAPI_DefaultConfig_env(t *testing.T) {
 		}
 
 		// Use keep alives as a check for whether pooling is on or off.
-		if pooled := i == 0; pooled {
+		if pooled := i != 2; pooled {
 			if config.Transport.DisableKeepAlives != false {
 				t.Errorf("expected keep alives to be enabled")
 			}
@@ -265,6 +579,36 @@ func TestAPI_SetupTLSConfig(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	if len(cc.RootCAs.Subjects()) != 2 {
+		t.Fatalf("didn't load root CAs")
+	}
+
+	// Load certs in-memory
+	certPEM, err := ioutil.ReadFile("../test/hostname/Alice.crt")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	keyPEM, err := ioutil.ReadFile("../test/hostname/Alice.key")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	caPEM, err := ioutil.ReadFile("../test/hostname/CertAuth.crt")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Setup config with in-memory certs
+	cc, err = SetupTLSConfig(&TLSConfig{
+		CertPEM: certPEM,
+		KeyPEM:  keyPEM,
+		CAPem:   caPEM,
+	})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(cc.Certificates) != 1 {
+		t.Fatalf("missing certificate: %v", cc.Certificates)
+	}
+	if cc.RootCAs == nil {
 		t.Fatalf("didn't load root CAs")
 	}
 }
@@ -387,6 +731,7 @@ func TestAPI_SetQueryOptions(t *testing.T) {
 
 	r := c.newRequest("GET", "/v1/kv/foo")
 	q := &QueryOptions{
+		Namespace:         "operator",
 		Datacenter:        "foo",
 		AllowStale:        true,
 		RequireConsistent: true,
@@ -394,9 +739,13 @@ func TestAPI_SetQueryOptions(t *testing.T) {
 		WaitTime:          100 * time.Second,
 		Token:             "12345",
 		Near:              "nodex",
+		LocalOnly:         true,
 	}
 	r.setQueryOptions(q)
 
+	if r.params.Get("ns") != "operator" {
+		t.Fatalf("bad: %v", r.params)
+	}
 	if r.params.Get("dc") != "foo" {
 		t.Fatalf("bad: %v", r.params)
 	}
@@ -416,6 +765,9 @@ func TestAPI_SetQueryOptions(t *testing.T) {
 		t.Fatalf("bad: %v", r.header)
 	}
 	if r.params.Get("near") != "nodex" {
+		t.Fatalf("bad: %v", r.params)
+	}
+	if r.params.Get("local-only") != "true" {
 		t.Fatalf("bad: %v", r.params)
 	}
 	assert.Equal("", r.header.Get("Cache-Control"))
@@ -440,11 +792,14 @@ func TestAPI_SetWriteOptions(t *testing.T) {
 
 	r := c.newRequest("GET", "/v1/kv/foo")
 	q := &WriteOptions{
+		Namespace:  "operator",
 		Datacenter: "foo",
 		Token:      "23456",
 	}
 	r.setWriteOptions(q)
-
+	if r.params.Get("ns") != "operator" {
+		t.Fatalf("bad: %v", r.params)
+	}
 	if r.params.Get("dc") != "foo" {
 		t.Fatalf("bad: %v", r.params)
 	}
@@ -512,7 +867,6 @@ func TestAPI_UnixSocket(t *testing.T) {
 	}
 
 	tempDir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(tempDir)
 	socket := filepath.Join(tempDir, "test.sock")
 
 	c, s := makeClientWithConfig(t, func(c *Config) {
@@ -577,9 +931,10 @@ func TestAPI_GenerateEnv(t *testing.T) {
 	t.Parallel()
 
 	c := &Config{
-		Address: "127.0.0.1:8500",
-		Token:   "test",
-		Scheme:  "http",
+		Address:   "127.0.0.1:8500",
+		Token:     "test",
+		TokenFile: "test.file",
+		Scheme:    "http",
 		TLSConfig: TLSConfig{
 			CAFile:             "",
 			CAPath:             "",
@@ -593,6 +948,7 @@ func TestAPI_GenerateEnv(t *testing.T) {
 	expected := []string{
 		"CONSUL_HTTP_ADDR=127.0.0.1:8500",
 		"CONSUL_HTTP_TOKEN=test",
+		"CONSUL_HTTP_TOKEN_FILE=test.file",
 		"CONSUL_HTTP_SSL=false",
 		"CONSUL_CACERT=",
 		"CONSUL_CAPATH=",
@@ -610,9 +966,10 @@ func TestAPI_GenerateEnvHTTPS(t *testing.T) {
 	t.Parallel()
 
 	c := &Config{
-		Address: "127.0.0.1:8500",
-		Token:   "test",
-		Scheme:  "https",
+		Address:   "127.0.0.1:8500",
+		Token:     "test",
+		TokenFile: "test.file",
+		Scheme:    "https",
 		TLSConfig: TLSConfig{
 			CAFile:             "/var/consul/ca.crt",
 			CAPath:             "/var/consul/ca.dir",
@@ -630,6 +987,7 @@ func TestAPI_GenerateEnvHTTPS(t *testing.T) {
 	expected := []string{
 		"CONSUL_HTTP_ADDR=127.0.0.1:8500",
 		"CONSUL_HTTP_TOKEN=test",
+		"CONSUL_HTTP_TOKEN_FILE=test.file",
 		"CONSUL_HTTP_SSL=true",
 		"CONSUL_CACERT=/var/consul/ca.crt",
 		"CONSUL_CAPATH=/var/consul/ca.dir",

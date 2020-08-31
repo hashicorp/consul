@@ -18,7 +18,7 @@ func intentionsTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: intentionsTableName,
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
@@ -26,7 +26,7 @@ func intentionsTableSchema() *memdb.TableSchema {
 					Field: "ID",
 				},
 			},
-			"destination": &memdb.IndexSchema{
+			"destination": {
 				Name:         "destination",
 				AllowMissing: true,
 				// This index is not unique since we need uniqueness across the whole
@@ -45,7 +45,7 @@ func intentionsTableSchema() *memdb.TableSchema {
 					},
 				},
 			},
-			"source": &memdb.IndexSchema{
+			"source": {
 				Name:         "source",
 				AllowMissing: true,
 				// This index is not unique since we need uniqueness across the whole
@@ -64,7 +64,7 @@ func intentionsTableSchema() *memdb.TableSchema {
 					},
 				},
 			},
-			"source_destination": &memdb.IndexSchema{
+			"source_destination": {
 				Name:         "source_destination",
 				AllowMissing: true,
 				Unique:       true,
@@ -126,7 +126,7 @@ func (s *Restore) Intention(ixn *structs.Intention) error {
 }
 
 // Intentions returns the list of all intentions.
-func (s *Store) Intentions(ws memdb.WatchSet) (uint64, structs.Intentions, error) {
+func (s *Store) Intentions(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -136,11 +136,11 @@ func (s *Store) Intentions(ws memdb.WatchSet) (uint64, structs.Intentions, error
 		idx = 1
 	}
 
-	// Get all intentions
-	iter, err := tx.Get(intentionsTableName, "id")
+	iter, err := intentionListTxn(tx, entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed intention lookup: %s", err)
 	}
+
 	ws.Add(iter.WatchCh())
 
 	var results structs.Intentions
@@ -157,20 +157,19 @@ func (s *Store) Intentions(ws memdb.WatchSet) (uint64, structs.Intentions, error
 
 // IntentionSet creates or updates an intention.
 func (s *Store) IntentionSet(idx uint64, ixn *structs.Intention) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	if err := s.intentionSetTxn(tx, idx, ixn); err != nil {
+	if err := intentionSetTxn(tx, idx, ixn); err != nil {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // intentionSetTxn is the inner method used to insert an intention with
 // the proper indexes into the state store.
-func (s *Store) intentionSetTxn(tx *memdb.Txn, idx uint64, ixn *structs.Intention) error {
+func intentionSetTxn(tx *txn, idx uint64, ixn *structs.Intention) error {
 	// ID is required
 	if ixn.ID == "" {
 		return ErrMissingIntentionID
@@ -251,22 +250,53 @@ func (s *Store) IntentionGet(ws memdb.WatchSet, id string) (uint64, *structs.Int
 	return idx, result, nil
 }
 
-// IntentionDelete deletes the given intention by ID.
-func (s *Store) IntentionDelete(idx uint64, id string) error {
-	tx := s.db.Txn(true)
+// IntentionGetExact returns the given intention by it's full unique name.
+func (s *Store) IntentionGetExact(ws memdb.WatchSet, args *structs.IntentionQueryExact) (uint64, *structs.Intention, error) {
+	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	if err := s.intentionDeleteTxn(tx, idx, id); err != nil {
+	if err := args.Validate(); err != nil {
+		return 0, nil, err
+	}
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, intentionsTableName)
+	if idx < 1 {
+		idx = 1
+	}
+
+	// Look up by its full name.
+	watchCh, intention, err := tx.FirstWatch(intentionsTableName, "source_destination",
+		args.SourceNS, args.SourceName, args.DestinationNS, args.DestinationName)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed intention lookup: %s", err)
+	}
+	ws.Add(watchCh)
+
+	// Convert the interface{} if it is non-nil
+	var result *structs.Intention
+	if intention != nil {
+		result = intention.(*structs.Intention)
+	}
+
+	return idx, result, nil
+}
+
+// IntentionDelete deletes the given intention by ID.
+func (s *Store) IntentionDelete(idx uint64, id string) error {
+	tx := s.db.WriteTxn(idx)
+	defer tx.Abort()
+
+	if err := intentionDeleteTxn(tx, idx, id); err != nil {
 		return fmt.Errorf("failed intention delete: %s", err)
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // intentionDeleteTxn is the inner method used to delete a intention
 // with the proper indexes into the state store.
-func (s *Store) intentionDeleteTxn(tx *memdb.Txn, idx uint64, queryID string) error {
+func intentionDeleteTxn(tx *txn, idx uint64, queryID string) error {
 	// Pull the query.
 	wrapped, err := tx.First(intentionsTableName, "id", queryID)
 	if err != nil {
@@ -308,29 +338,9 @@ func (s *Store) IntentionMatch(ws memdb.WatchSet, args *structs.IntentionQueryMa
 	// Make all the calls and accumulate the results
 	results := make([]structs.Intentions, len(args.Entries))
 	for i, entry := range args.Entries {
-		// Each search entry may require multiple queries to memdb, so this
-		// returns the arguments for each necessary Get. Note on performance:
-		// this is not the most optimal set of queries since we repeat some
-		// many times (such as */*). We can work on improving that in the
-		// future, the test cases shouldn't have to change for that.
-		getParams, err := s.intentionMatchGetParams(entry)
+		ixns, err := s.intentionMatchOneTxn(tx, ws, entry, args.Type)
 		if err != nil {
 			return 0, nil, err
-		}
-
-		// Perform each call and accumulate the result.
-		var ixns structs.Intentions
-		for _, params := range getParams {
-			iter, err := tx.Get(intentionsTableName, string(args.Type), params...)
-			if err != nil {
-				return 0, nil, fmt.Errorf("failed intention lookup: %s", err)
-			}
-
-			ws.Add(iter.WatchCh())
-
-			for ixn := iter.Next(); ixn != nil; ixn = iter.Next() {
-				ixns = append(ixns, ixn.(*structs.Intention))
-			}
 		}
 
 		// Sort the results by precedence
@@ -343,20 +353,77 @@ func (s *Store) IntentionMatch(ws memdb.WatchSet, args *structs.IntentionQueryMa
 	return idx, results, nil
 }
 
+// IntentionMatchOne returns the list of intentions that match the namespace and
+// name for a single source or destination. This applies the resolution rules
+// so wildcards will match any value.
+//
+// The returned intentions are sorted based on the intention precedence rules.
+// i.e. result[0] is the highest precedent rule to match
+func (s *Store) IntentionMatchOne(ws memdb.WatchSet,
+	entry structs.IntentionMatchEntry, matchType structs.IntentionMatchType) (uint64, structs.Intentions, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, intentionsTableName)
+	if idx < 1 {
+		idx = 1
+	}
+
+	results, err := s.intentionMatchOneTxn(tx, ws, entry, matchType)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	sort.Sort(structs.IntentionPrecedenceSorter(results))
+
+	return idx, results, nil
+}
+
+func (s *Store) intentionMatchOneTxn(tx ReadTxn, ws memdb.WatchSet,
+	entry structs.IntentionMatchEntry, matchType structs.IntentionMatchType) (structs.Intentions, error) {
+
+	// Each search entry may require multiple queries to memdb, so this
+	// returns the arguments for each necessary Get. Note on performance:
+	// this is not the most optimal set of queries since we repeat some
+	// many times (such as */*). We can work on improving that in the
+	// future, the test cases shouldn't have to change for that.
+	getParams, err := intentionMatchGetParams(entry)
+	if err != nil {
+		return nil, err
+	}
+
+	// Perform each call and accumulate the result.
+	var result structs.Intentions
+	for _, params := range getParams {
+		iter, err := tx.Get(intentionsTableName, string(matchType), params...)
+		if err != nil {
+			return nil, fmt.Errorf("failed intention lookup: %s", err)
+		}
+
+		ws.Add(iter.WatchCh())
+
+		for ixn := iter.Next(); ixn != nil; ixn = iter.Next() {
+			result = append(result, ixn.(*structs.Intention))
+		}
+	}
+	return result, nil
+}
+
 // intentionMatchGetParams returns the tx.Get parameters to find all the
 // intentions for a certain entry.
-func (s *Store) intentionMatchGetParams(entry structs.IntentionMatchEntry) ([][]interface{}, error) {
+func intentionMatchGetParams(entry structs.IntentionMatchEntry) ([][]interface{}, error) {
 	// We always query for "*/*" so include that. If the namespace is a
 	// wildcard, then we're actually done.
 	result := make([][]interface{}, 0, 3)
-	result = append(result, []interface{}{"*", "*"})
-	if entry.Namespace == structs.IntentionWildcard {
+	result = append(result, []interface{}{structs.WildcardSpecifier, structs.WildcardSpecifier})
+	if entry.Namespace == structs.WildcardSpecifier {
 		return result, nil
 	}
 
 	// Search for NS/* intentions. If we have a wildcard name, then we're done.
-	result = append(result, []interface{}{entry.Namespace, "*"})
-	if entry.Name == structs.IntentionWildcard {
+	result = append(result, []interface{}{entry.Namespace, structs.WildcardSpecifier})
+	if entry.Name == structs.WildcardSpecifier {
 		return result, nil
 	}
 

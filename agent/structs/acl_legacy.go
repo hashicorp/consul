@@ -72,16 +72,21 @@ func (a *ACL) Convert() *ACLToken {
 		a.Rules = correctedRules
 	}
 
-	return &ACLToken{
-		AccessorID:  "",
-		SecretID:    a.ID,
-		Description: a.Name,
-		Policies:    nil,
-		Type:        a.Type,
-		Rules:       a.Rules,
-		Local:       false,
-		RaftIndex:   a.RaftIndex,
+	token := &ACLToken{
+		AccessorID:        "",
+		SecretID:          a.ID,
+		Description:       a.Name,
+		Policies:          nil,
+		ServiceIdentities: nil,
+		NodeIdentities:    nil,
+		Type:              a.Type,
+		Rules:             a.Rules,
+		Local:             false,
+		RaftIndex:         a.RaftIndex,
 	}
+
+	token.SetHash(true)
+	return token
 }
 
 // Convert attempts to convert an ACLToken into an ACLCompat.

@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/ipaddr"
 )
 
 // Resolver is the interface implemented by a service discovery mechanism to get
@@ -156,7 +157,7 @@ func (cr *ConsulResolver) resolveServiceEntry(entry *api.ServiceEntry) (string, 
 		Service:    service,
 	}
 
-	return fmt.Sprintf("%s:%d", addr, port), certURI, nil
+	return ipaddr.FormatAddressPort(addr, port), certURI, nil
 }
 
 func (cr *ConsulResolver) queryOptions(ctx context.Context) *api.QueryOptions {
@@ -188,7 +189,7 @@ func ConsulResolverFromAddrFunc(client *api.Client) func(addr string) (Resolver,
 		// For now we force use of `.consul` TLD regardless of the configured domain
 		// on the cluster. That's because we don't know that domain here and it
 		// would be really complicated to discover it inline here. We do however
-		// need to be able to distingush a hostname with the optional datacenter
+		// need to be able to distinguish a hostname with the optional datacenter
 		// segment which we can't do unambiguously if we allow arbitrary trailing
 		// domains.
 		domain := ".consul"

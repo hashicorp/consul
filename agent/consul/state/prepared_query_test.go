@@ -68,7 +68,7 @@ func TestStateStore_PreparedQuerySet_PreparedQueryGet(t *testing.T) {
 
 	// The set will still fail because the session is bogus.
 	err = s.PreparedQuerySet(1, query)
-	if err == nil || !strings.Contains(err.Error(), "failed session lookup") {
+	if err == nil || !strings.Contains(err.Error(), "invalid session") {
 		t.Fatalf("bad: %v", err)
 	}
 

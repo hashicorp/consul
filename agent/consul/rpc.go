@@ -1,33 +1,37 @@
 package consul
 
 import (
+	"context"
 	"crypto/tls"
+	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"net"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/consul/wanfed"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logging"
+	connlimit "github.com/hashicorp/go-connlimit"
+	"github.com/hashicorp/go-hclog"
 	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-raftchunking"
 	"github.com/hashicorp/memberlist"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/hashicorp/raft"
 	"github.com/hashicorp/yamux"
 )
 
 const (
-	// maxQueryTime is used to bound the limit of a blocking query
-	maxQueryTime = 600 * time.Second
-
-	// defaultQueryTime is the amount of time we block waiting for a change
-	// if no time is specified. Previously we would wait the maxQueryTime.
-	defaultQueryTime = 300 * time.Second
-
 	// jitterFraction is a the limit to the amount of jitter we apply
 	// to a user specified MaxQueryTime. We divide the specified time by
 	// the fraction. So 16 == 6.25% limit of jitter. This same fraction
@@ -45,6 +49,14 @@ const (
 	enqueueLimit = 30 * time.Second
 )
 
+var (
+	ErrChunkingResubmit = errors.New("please resubmit call for rechunking")
+)
+
+func (s *Server) rpcLogger() hclog.Logger {
+	return s.loggers.Named(logging.RPC)
+}
+
 // listen is used to listen for incoming RPC connections
 func (s *Server) listen(listener net.Listener) {
 	for {
@@ -54,9 +66,18 @@ func (s *Server) listen(listener net.Listener) {
 			if s.shutdown {
 				return
 			}
-			s.logger.Printf("[ERR] consul.rpc: failed to accept RPC conn: %v", err)
+			s.rpcLogger().Error("failed to accept RPC conn", "error", err)
 			continue
 		}
+
+		free, err := s.rpcConnLimiter.Accept(conn)
+		if err != nil {
+			s.rpcLogger().Error("rejecting RPC conn from because rpc_max_conns_per_client exceeded", "conn", logConn(conn))
+			conn.Close()
+			continue
+		}
+		// Wrap conn so it will be auto-freed from conn limiter when it closes.
+		conn = connlimit.Wrap(conn, free)
 
 		go s.handleConn(conn, false)
 		metrics.IncrCounter([]string{"rpc", "accept_conn"}, 1)
@@ -72,20 +93,62 @@ func logConn(conn net.Conn) string {
 // handleConn is used to determine if this is a Raft or
 // Consul type RPC connection and invoke the correct handler
 func (s *Server) handleConn(conn net.Conn, isTLS bool) {
+	// Limit how long the client can hold the connection open before they send the
+	// magic byte (and authenticate when mTLS is enabled). If `isTLS == true` then
+	// this also enforces a timeout on how long it takes for the handshake to
+	// complete since tls.Conn.Read implicitly calls Handshake().
+	if s.config.RPCHandshakeTimeout > 0 {
+		conn.SetReadDeadline(time.Now().Add(s.config.RPCHandshakeTimeout))
+	}
+
+	if !isTLS && s.tlsConfigurator.MutualTLSCapable() {
+		// See if actually this is native TLS multiplexed onto the old
+		// "type-byte" system.
+
+		peekedConn, nativeTLS, err := pool.PeekForTLS(conn)
+		if err != nil {
+			if err != io.EOF {
+				s.rpcLogger().Error(
+					"failed to read first byte",
+					"conn", logConn(conn),
+					"error", err,
+				)
+			}
+			conn.Close()
+			return
+		}
+
+		if nativeTLS {
+			s.handleNativeTLS(peekedConn)
+			return
+		}
+		conn = peekedConn
+	}
+
 	// Read a single byte
 	buf := make([]byte, 1)
+
 	if _, err := conn.Read(buf); err != nil {
 		if err != io.EOF {
-			s.logger.Printf("[ERR] consul.rpc: failed to read byte: %v %s", err, logConn(conn))
+			s.rpcLogger().Error("failed to read byte",
+				"conn", logConn(conn),
+				"error", err,
+			)
 		}
 		conn.Close()
 		return
 	}
 	typ := pool.RPCType(buf[0])
 
+	// Reset the deadline as we aren't sure what is expected next - it depends on
+	// the protocol.
+	if s.config.RPCHandshakeTimeout > 0 {
+		conn.SetReadDeadline(time.Time{})
+	}
+
 	// Enforce TLS if VerifyIncoming is set
-	if s.config.VerifyIncoming && !isTLS && typ != pool.RPCTLS {
-		s.logger.Printf("[WARN] consul.rpc: Non-TLS connection attempted with VerifyIncoming set %s", logConn(conn))
+	if s.tlsConfigurator.VerifyIncomingRPC() && !isTLS && typ != pool.RPCTLS && typ != pool.RPCTLSInsecure {
+		s.rpcLogger().Warn("Non-TLS connection attempted with VerifyIncoming set", "conn", logConn(conn))
 		conn.Close()
 		return
 	}
@@ -100,12 +163,13 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 		s.raftLayer.Handoff(conn)
 
 	case pool.RPCTLS:
-		if s.rpcTLS == nil {
-			s.logger.Printf("[WARN] consul.rpc: TLS connection attempted, server not configured for TLS %s", logConn(conn))
+		// Don't allow malicious client to create TLS-in-TLS for ever.
+		if isTLS {
+			s.rpcLogger().Error("TLS connection attempting to establish inner TLS connection", "conn", logConn(conn))
 			conn.Close()
 			return
 		}
-		conn = tls.Server(conn, s.rpcTLS)
+		conn = tls.Server(conn, s.tlsConfigurator.IncomingRPCConfig())
 		s.handleConn(conn, true)
 
 	case pool.RPCMultiplexV2:
@@ -114,9 +178,113 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 	case pool.RPCSnapshot:
 		s.handleSnapshotConn(conn)
 
+	case pool.RPCTLSInsecure:
+		// Don't allow malicious client to create TLS-in-TLS for ever.
+		if isTLS {
+			s.rpcLogger().Error("TLS connection attempting to establish inner TLS connection", "conn", logConn(conn))
+			conn.Close()
+			return
+		}
+		conn = tls.Server(conn, s.tlsConfigurator.IncomingInsecureRPCConfig())
+		s.handleInsecureConn(conn)
+
 	default:
 		if !s.handleEnterpriseRPCConn(typ, conn, isTLS) {
-			s.logger.Printf("[ERR] consul.rpc: unrecognized RPC byte: %v %s", typ, logConn(conn))
+			s.rpcLogger().Error("unrecognized RPC byte",
+				"byte", typ,
+				"conn", logConn(conn),
+			)
+			conn.Close()
+		}
+	}
+}
+
+func (s *Server) handleNativeTLS(conn net.Conn) {
+	s.rpcLogger().Trace(
+		"detected actual TLS over RPC port",
+		"conn", logConn(conn),
+	)
+
+	tlscfg := s.tlsConfigurator.IncomingALPNRPCConfig(pool.RPCNextProtos)
+	tlsConn := tls.Server(conn, tlscfg)
+
+	// Force the handshake to conclude.
+	if err := tlsConn.Handshake(); err != nil {
+		s.rpcLogger().Error(
+			"TLS handshake failed",
+			"conn", logConn(conn),
+			"error", err,
+		)
+		conn.Close()
+		return
+	}
+
+	// Reset the deadline as we aren't sure what is expected next - it depends on
+	// the protocol.
+	if s.config.RPCHandshakeTimeout > 0 {
+		conn.SetReadDeadline(time.Time{})
+	}
+
+	var (
+		cs        = tlsConn.ConnectionState()
+		sni       = cs.ServerName
+		nextProto = cs.NegotiatedProtocol
+
+		transport = s.memberlistTransportWAN
+	)
+
+	s.rpcLogger().Trace(
+		"accepted nativeTLS RPC",
+		"sni", sni,
+		"protocol", nextProto,
+		"conn", logConn(conn),
+	)
+
+	switch nextProto {
+	case pool.ALPN_RPCConsul:
+		s.handleConsulConn(tlsConn)
+
+	case pool.ALPN_RPCRaft:
+		metrics.IncrCounter([]string{"rpc", "raft_handoff"}, 1)
+		s.raftLayer.Handoff(tlsConn)
+
+	case pool.ALPN_RPCMultiplexV2:
+		s.handleMultiplexV2(tlsConn)
+
+	case pool.ALPN_RPCSnapshot:
+		s.handleSnapshotConn(tlsConn)
+
+	case pool.ALPN_WANGossipPacket:
+		if err := s.handleALPN_WANGossipPacketStream(tlsConn); err != nil && err != io.EOF {
+			s.rpcLogger().Error(
+				"failed to ingest RPC",
+				"sni", sni,
+				"protocol", nextProto,
+				"conn", logConn(conn),
+				"error", err,
+			)
+		}
+
+	case pool.ALPN_WANGossipStream:
+		// No need to defer the conn.Close() here, the Ingest methods do that.
+		if err := transport.IngestStream(tlsConn); err != nil {
+			s.rpcLogger().Error(
+				"failed to ingest RPC",
+				"sni", sni,
+				"protocol", nextProto,
+				"conn", logConn(conn),
+				"error", err,
+			)
+		}
+
+	default:
+		if !s.handleEnterpriseNativeTLSConn(nextProto, conn) {
+			s.rpcLogger().Error(
+				"discarding RPC for unknown negotiated protocol",
+				"failed to ingest RPC",
+				"protocol", nextProto,
+				"conn", logConn(conn),
+			)
 			conn.Close()
 		}
 	}
@@ -127,24 +295,65 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 func (s *Server) handleMultiplexV2(conn net.Conn) {
 	defer conn.Close()
 	conf := yamux.DefaultConfig()
-	conf.LogOutput = s.config.LogOutput
+	// override the default because LogOutput conflicts with Logger
+	conf.LogOutput = nil
+	// TODO: should this be created once and cached?
+	conf.Logger = s.logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true})
 	server, _ := yamux.Server(conn, conf)
 	for {
 		sub, err := server.Accept()
 		if err != nil {
 			if err != io.EOF {
-				s.logger.Printf("[ERR] consul.rpc: multiplex conn accept failed: %v %s", err, logConn(conn))
+				s.rpcLogger().Error("multiplex conn accept failed",
+					"conn", logConn(conn),
+					"error", err,
+				)
 			}
 			return
 		}
-		go s.handleConsulConn(sub)
+
+		// In the beginning only RPC was supposed to be multiplexed
+		// with yamux. In order to add the ability to multiplex network
+		// area connections, this workaround was added.
+		// This code peeks the first byte and checks if it is
+		// RPCGossip, in which case this is handled by enterprise code.
+		// Otherwise this connection is handled like before by the RPC
+		// handler.
+		// This wouldn't work if a normal RPC could start with
+		// RPCGossip(6). In messagepack a 6 encodes a positive fixint:
+		// https://github.com/msgpack/msgpack/blob/master/spec.md.
+		// None of the RPCs we are doing starts with that, usually it is
+		// a string for datacenter.
+		peeked, first, err := pool.PeekFirstByte(sub)
+		if err != nil {
+			s.rpcLogger().Error("Problem peeking connection", "conn", logConn(sub), "err", err)
+			sub.Close()
+			return
+		}
+		sub = peeked
+		switch first {
+		case pool.RPCGossip:
+			buf := make([]byte, 1)
+			sub.Read(buf)
+			go func() {
+				if !s.handleEnterpriseRPCConn(pool.RPCGossip, sub, false) {
+					s.rpcLogger().Error("unrecognized RPC byte",
+						"byte", pool.RPCGossip,
+						"conn", logConn(conn),
+					)
+					sub.Close()
+				}
+			}()
+		default:
+			go s.handleConsulConn(sub)
+		}
 	}
 }
 
 // handleConsulConn is used to service a single Consul RPC connection
 func (s *Server) handleConsulConn(conn net.Conn) {
 	defer conn.Close()
-	rpcCodec := msgpackrpc.NewServerCodec(conn)
+	rpcCodec := msgpackrpc.NewCodecFromHandle(true, true, conn, structs.MsgpackHandle)
 	for {
 		select {
 		case <-s.shutdownCh:
@@ -154,7 +363,35 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 
 		if err := s.rpcServer.ServeRequest(rpcCodec); err != nil {
 			if err != io.EOF && !strings.Contains(err.Error(), "closed") {
-				s.logger.Printf("[ERR] consul.rpc: RPC error: %v %s", err, logConn(conn))
+				s.rpcLogger().Error("RPC error",
+					"conn", logConn(conn),
+					"error", err,
+				)
+				metrics.IncrCounter([]string{"rpc", "request_error"}, 1)
+			}
+			return
+		}
+		metrics.IncrCounter([]string{"rpc", "request"}, 1)
+	}
+}
+
+// handleInsecureConsulConn is used to service a single Consul INSECURERPC connection
+func (s *Server) handleInsecureConn(conn net.Conn) {
+	defer conn.Close()
+	rpcCodec := msgpackrpc.NewCodecFromHandle(true, true, conn, structs.MsgpackHandle)
+	for {
+		select {
+		case <-s.shutdownCh:
+			return
+		default:
+		}
+
+		if err := s.insecureRPCServer.ServeRequest(rpcCodec); err != nil {
+			if err != io.EOF && !strings.Contains(err.Error(), "closed") {
+				s.rpcLogger().Error("INSECURERPC error",
+					"conn", logConn(conn),
+					"error", err,
+				)
 				metrics.IncrCounter([]string{"rpc", "request_error"}, 1)
 			}
 			return
@@ -169,9 +406,76 @@ func (s *Server) handleSnapshotConn(conn net.Conn) {
 	go func() {
 		defer conn.Close()
 		if err := s.handleSnapshotRequest(conn); err != nil {
-			s.logger.Printf("[ERR] consul.rpc: Snapshot RPC error: %v %s", err, logConn(conn))
+			s.rpcLogger().Error("Snapshot RPC error",
+				"conn", logConn(conn),
+				"error", err,
+			)
 		}
 	}()
+}
+
+func (s *Server) handleALPN_WANGossipPacketStream(conn net.Conn) error {
+	defer conn.Close()
+
+	transport := s.memberlistTransportWAN
+	for {
+		select {
+		case <-s.shutdownCh:
+			return nil
+		default:
+		}
+
+		// Note: if we need to change this format to have additional header
+		// information we can just negotiate a different ALPN protocol instead
+		// of needing any sort of version field here.
+		prefixLen, err := readUint32(conn, wanfed.GossipPacketMaxIdleTime)
+		if err != nil {
+			return err
+		}
+
+		// Avoid a memory exhaustion DOS vector here by capping how large this
+		// packet can be to something reasonable.
+		if prefixLen > wanfed.GossipPacketMaxByteSize {
+			return fmt.Errorf("gossip packet size %d exceeds threshold of %d", prefixLen, wanfed.GossipPacketMaxByteSize)
+		}
+
+		lc := &limitedConn{
+			Conn: conn,
+			lr:   io.LimitReader(conn, int64(prefixLen)),
+		}
+
+		if err := transport.IngestPacket(lc, conn.RemoteAddr(), time.Now(), false); err != nil {
+			return err
+		}
+	}
+}
+
+func readUint32(conn net.Conn, timeout time.Duration) (uint32, error) {
+	// Since requests are framed we can easily just set a deadline on
+	// reading that frame and then disable it for the rest of the body.
+	if err := conn.SetReadDeadline(time.Now().Add(timeout)); err != nil {
+		return 0, err
+	}
+
+	var v uint32
+	if err := binary.Read(conn, binary.BigEndian, &v); err != nil {
+		return 0, err
+	}
+
+	if err := conn.SetReadDeadline(time.Time{}); err != nil {
+		return 0, err
+	}
+
+	return v, nil
+}
+
+type limitedConn struct {
+	net.Conn
+	lr io.Reader
+}
+
+func (c *limitedConn) Read(b []byte) (n int, err error) {
+	return c.lr.Read(b)
 }
 
 // canRetry returns true if the given situation is safe for a retry.
@@ -179,6 +483,12 @@ func canRetry(args interface{}, err error) bool {
 	// No leader errors are always safe to retry since no state could have
 	// been changed.
 	if structs.IsErrNoLeader(err) {
+		return true
+	}
+
+	// If we are chunking and it doesn't seem to have completed, try again
+	intErr, ok := args.(error)
+	if ok && strings.Contains(intErr.Error(), ErrChunkingResubmit.Error()) {
 		return true
 	}
 
@@ -192,14 +502,31 @@ func canRetry(args interface{}, err error) bool {
 	return false
 }
 
-// forward is used to forward to a remote DC or to forward to the local leader
+// ForwardRPC is used to forward an RPC request to a remote DC or to the local leader
 // Returns a bool of if forwarding was performed, as well as any error
-func (s *Server) forward(method string, info structs.RPCInfo, args interface{}, reply interface{}) (bool, error) {
+func (s *Server) ForwardRPC(method string, info structs.RPCInfo, args interface{}, reply interface{}) (bool, error) {
 	var firstCheck time.Time
 
 	// Handle DC forwarding
 	dc := info.RequestDatacenter()
 	if dc != s.config.Datacenter {
+		// Local tokens only work within the current datacenter. Check to see
+		// if we are attempting to forward one to a remote datacenter and strip
+		// it, falling back on the anonymous token on the other end.
+		if token := info.TokenSecret(); token != "" {
+			done, ident, err := s.ResolveIdentityFromToken(token)
+			if done {
+				if err != nil && !acl.IsErrNotFound(err) {
+					return false, err
+				}
+				if ident != nil && ident.IsLocal() {
+					// Strip it from the request.
+					info.SetTokenSecret("")
+					defer info.SetTokenSecret(token)
+				}
+			}
+		}
+
 		err := s.forwardDC(method, dc, args, reply)
 		return true, err
 	}
@@ -228,8 +555,8 @@ CHECK_LEADER:
 	// Handle the case of a known leader
 	rpcErr := structs.ErrNoLeader
 	if leader != nil {
-		rpcErr = s.connPool.RPC(s.config.Datacenter, leader.Addr,
-			leader.Version, method, leader.UseTLS, args, reply)
+		rpcErr = s.connPool.RPC(s.config.Datacenter, leader.ShortName, leader.Addr,
+			method, args, reply)
 		if rpcErr != nil && canRetry(info, rpcErr) {
 			goto RETRY
 		}
@@ -281,37 +608,44 @@ func (s *Server) getLeader() (bool, *metadata.Server) {
 func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{}) error {
 	manager, server, ok := s.router.FindRoute(dc)
 	if !ok {
-		s.logger.Printf("[WARN] consul.rpc: RPC request for DC %q, no path found", dc)
+		if s.router.HasDatacenter(dc) {
+			s.rpcLogger().Warn("RPC request to DC is currently failing as no server can be reached", "datacenter", dc)
+			return structs.ErrDCNotAvailable
+		}
+		s.rpcLogger().Warn("RPC request for DC is currently failing as no path was found",
+			"datacenter", dc,
+			"method", method,
+		)
 		return structs.ErrNoDCPath
 	}
 
 	metrics.IncrCounterWithLabels([]string{"rpc", "cross-dc"}, 1,
 		[]metrics.Label{{Name: "datacenter", Value: dc}})
-	if err := s.connPool.RPC(dc, server.Addr, server.Version, method, server.UseTLS, args, reply); err != nil {
+	if err := s.connPool.RPC(dc, server.ShortName, server.Addr, method, args, reply); err != nil {
 		manager.NotifyFailedServer(server)
-		s.logger.Printf("[ERR] consul: RPC failed to server %s in DC %q: %v", server.Addr, dc, err)
+		s.rpcLogger().Error("RPC failed to server in DC",
+			"server", server.Addr,
+			"datacenter", dc,
+			"method", method,
+			"error", err,
+		)
 		return err
 	}
 
 	return nil
 }
 
-// globalRPC is used to forward an RPC request to one server in each datacenter.
-// This will only error for RPC-related errors. Otherwise, application-level
-// errors can be sent in the response objects.
-func (s *Server) globalRPC(method string, args interface{},
-	reply structs.CompoundResponse) error {
+// keyringRPCs is used to forward an RPC request to a server in each dc. This
+// will only error for RPC-related errors. Otherwise, application-level errors
+// can be sent in the response objects.
+func (s *Server) keyringRPCs(method string, args interface{}, dcs []string) (*structs.KeyringResponses, error) {
 
-	// Make a new request into each datacenter
-	dcs := s.router.GetDatacenters()
-
-	replies, total := 0, len(dcs)
-	errorCh := make(chan error, total)
-	respCh := make(chan interface{}, total)
+	errorCh := make(chan error, len(dcs))
+	respCh := make(chan *structs.KeyringResponses, len(dcs))
 
 	for _, dc := range dcs {
 		go func(dc string) {
-			rr := reply.New()
+			rr := &structs.KeyringResponses{}
 			if err := s.forwardDC(method, dc, args, &rr); err != nil {
 				errorCh <- err
 				return
@@ -320,37 +654,92 @@ func (s *Server) globalRPC(method string, args interface{},
 		}(dc)
 	}
 
-	for replies < total {
+	responses := &structs.KeyringResponses{}
+	for i := 0; i < len(dcs); i++ {
 		select {
 		case err := <-errorCh:
-			return err
+			return nil, err
 		case rr := <-respCh:
-			reply.Add(rr)
-			replies++
+			responses.Add(rr)
 		}
 	}
-	return nil
+	return responses, nil
 }
+
+type raftEncoder func(structs.MessageType, interface{}) ([]byte, error)
 
 // raftApply is used to encode a message, run it through raft, and return
 // the FSM response along with any errors
 func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{}, error) {
-	buf, err := structs.Encode(t, msg)
+	return s.raftApplyMsgpack(t, msg)
+}
+
+// raftApplyMsgpack will msgpack encode the request and then run it through raft,
+// then return the FSM response along with any errors.
+func (s *Server) raftApplyMsgpack(t structs.MessageType, msg interface{}) (interface{}, error) {
+	return s.raftApplyWithEncoder(t, msg, structs.Encode)
+}
+
+// raftApplyProtobuf will protobuf encode the request and then run it through raft,
+// then return the FSM response along with any errors.
+func (s *Server) raftApplyProtobuf(t structs.MessageType, msg interface{}) (interface{}, error) {
+	return s.raftApplyWithEncoder(t, msg, structs.EncodeProtoInterface)
+}
+
+// raftApplyWithEncoder is used to encode a message, run it through raft,
+// and return the FSM response along with any errors. Unlike raftApply this
+// takes the encoder to use as an argument.
+func (s *Server) raftApplyWithEncoder(t structs.MessageType, msg interface{}, encoder raftEncoder) (interface{}, error) {
+	if encoder == nil {
+		return nil, fmt.Errorf("Failed to encode request: nil encoder")
+	}
+	buf, err := encoder(t, msg)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to encode request: %v", err)
 	}
 
 	// Warn if the command is very large
 	if n := len(buf); n > raftWarnSize {
-		s.logger.Printf("[WARN] consul: Attempting to apply large raft entry (%d bytes)", n)
+		s.rpcLogger().Warn("Attempting to apply large raft entry", "size_in_bytes", n)
 	}
 
-	future := s.raft.Apply(buf, enqueueLimit)
+	var chunked bool
+	var future raft.ApplyFuture
+	switch {
+	case len(buf) <= raft.SuggestedMaxDataSize || t != structs.KVSRequestType:
+		future = s.raft.Apply(buf, enqueueLimit)
+	default:
+		chunked = true
+		future = raftchunking.ChunkingApply(buf, nil, enqueueLimit, s.raft.ApplyLog)
+	}
+
 	if err := future.Error(); err != nil {
 		return nil, err
 	}
 
-	return future.Response(), nil
+	resp := future.Response()
+
+	if chunked {
+		// In this case we didn't apply all chunks successfully, possibly due
+		// to a term change; resubmit
+		if resp == nil {
+			// This returns the error in the interface because the raft library
+			// returns errors from the FSM via the future, not via err from the
+			// apply function. Downstream client code expects to see any error
+			// from the FSM (as opposed to the apply itself) and decide whether
+			// it can retry in the future's response.
+			return ErrChunkingResubmit, nil
+		}
+		// We expect that this conversion should always work
+		chunkedSuccess, ok := resp.(raftchunking.ChunkingSuccess)
+		if !ok {
+			return nil, errors.New("unknown type of response back from chunking FSM")
+		}
+		// Return the inner wrapped response
+		return chunkedSuccess.Response, nil
+	}
+
+	return resp, nil
 }
 
 // queryFn is used to perform a query operation. If a re-query is needed, the
@@ -361,42 +750,59 @@ func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{},
 type queryFn func(memdb.WatchSet, *state.Store) error
 
 // blockingQuery is used to process a potentially blocking query operation.
-func (s *Server) blockingQuery(queryOpts *structs.QueryOptions, queryMeta *structs.QueryMeta,
-	fn queryFn) error {
-	var timeout *time.Timer
+func (s *Server) blockingQuery(queryOpts structs.QueryOptionsCompat, queryMeta structs.QueryMetaCompat, fn queryFn) error {
+	var cancel func()
+	var ctx context.Context = &lib.StopChannelContext{StopCh: s.shutdownCh}
 
+	var queriesBlocking uint64
+	var queryTimeout time.Duration
+
+	// Instrument all queries run
+	metrics.IncrCounter([]string{"rpc", "query"}, 1)
+
+	minQueryIndex := queryOpts.GetMinQueryIndex()
 	// Fast path right to the non-blocking query.
-	if queryOpts.MinQueryIndex == 0 {
+	if minQueryIndex == 0 {
 		goto RUN_QUERY
 	}
 
+	queryTimeout = queryOpts.GetMaxQueryTime()
 	// Restrict the max query time, and ensure there is always one.
-	if queryOpts.MaxQueryTime > maxQueryTime {
-		queryOpts.MaxQueryTime = maxQueryTime
-	} else if queryOpts.MaxQueryTime <= 0 {
-		queryOpts.MaxQueryTime = defaultQueryTime
+	if queryTimeout > s.config.MaxQueryTime {
+		queryTimeout = s.config.MaxQueryTime
+	} else if queryTimeout <= 0 {
+		queryTimeout = s.config.DefaultQueryTime
 	}
 
 	// Apply a small amount of jitter to the request.
-	queryOpts.MaxQueryTime += lib.RandomStagger(queryOpts.MaxQueryTime / jitterFraction)
+	queryTimeout += lib.RandomStagger(queryTimeout / jitterFraction)
 
-	// Setup a query timeout.
-	timeout = time.NewTimer(queryOpts.MaxQueryTime)
-	defer timeout.Stop()
+	// wrap the base context with a deadline
+	ctx, cancel = context.WithDeadline(ctx, time.Now().Add(queryTimeout))
+	defer cancel()
+
+	// instrument blockingQueries
+	// atomic inc our server's count of in-flight blockingQueries and store the new value
+	queriesBlocking = atomic.AddUint64(&s.queriesBlocking, 1)
+	// atomic dec when we return from blockingQuery()
+	defer atomic.AddUint64(&s.queriesBlocking, ^uint64(0))
+	// set the gauge directly to the new value of s.blockingQueries
+	metrics.SetGauge([]string{"rpc", "queries_blocking"}, float32(queriesBlocking))
 
 RUN_QUERY:
+	// Setup blocking loop
 	// Update the query metadata.
 	s.setQueryMeta(queryMeta)
 
+	// Validate
 	// If the read must be consistent we verify that we are still the leader.
-	if queryOpts.RequireConsistent {
+	if queryOpts.GetRequireConsistent() {
 		if err := s.consistentRead(); err != nil {
 			return err
 		}
 	}
 
-	// Run the query.
-	metrics.IncrCounter([]string{"rpc", "query"}, 1)
+	// Run query
 
 	// Operate on a consistent set of state. This makes sure that the
 	// abandon channel goes with the state that the caller is using to
@@ -405,7 +811,7 @@ RUN_QUERY:
 
 	// We can skip all watch tracking if this isn't a blocking query.
 	var ws memdb.WatchSet
-	if queryOpts.MinQueryIndex > 0 {
+	if minQueryIndex > 0 {
 		ws = memdb.NewWatchSet()
 
 		// This channel will be closed if a snapshot is restored and the
@@ -413,21 +819,24 @@ RUN_QUERY:
 		ws.Add(state.AbandonCh())
 	}
 
-	// Block up to the timeout if we didn't see anything fresh.
+	// Execute the queryFn
 	err := fn(ws, state)
 	// Note we check queryOpts.MinQueryIndex is greater than zero to determine if
 	// blocking was requested by client, NOT meta.Index since the state function
-	// might return zero if something is not initialised and care wasn't taken to
+	// might return zero if something is not initialized and care wasn't taken to
 	// handle that special case (in practice this happened a lot so fixing it
 	// systematically here beats trying to remember to add zero checks in every
 	// state method). We also need to ensure that unless there is an error, we
 	// return an index > 0 otherwise the client will never block and burn CPU and
 	// requests.
-	if err == nil && queryMeta.Index < 1 {
-		queryMeta.Index = 1
+	if err == nil && queryMeta.GetIndex() < 1 {
+		queryMeta.SetIndex(1)
 	}
-	if err == nil && queryOpts.MinQueryIndex > 0 && queryMeta.Index <= queryOpts.MinQueryIndex {
-		if expired := ws.Watch(timeout.C); !expired {
+	// block up to the timeout if we don't see anything fresh.
+	if err == nil && minQueryIndex > 0 && queryMeta.GetIndex() <= minQueryIndex {
+		if err := ws.WatchCtx(ctx); err == nil {
+			// a non-nil error only occurs when the context is cancelled
+
 			// If a restore may have woken us up then bail out from
 			// the query immediately. This is slightly race-ey since
 			// this might have been interrupted for other reasons,
@@ -436,6 +845,7 @@ RUN_QUERY:
 			select {
 			case <-state.AbandonCh():
 			default:
+				// loop back and look for an update again
 				goto RUN_QUERY
 			}
 		}
@@ -444,13 +854,13 @@ RUN_QUERY:
 }
 
 // setQueryMeta is used to populate the QueryMeta data for an RPC call
-func (s *Server) setQueryMeta(m *structs.QueryMeta) {
+func (s *Server) setQueryMeta(m structs.QueryMetaCompat) {
 	if s.IsLeader() {
-		m.LastContact = 0
-		m.KnownLeader = true
+		m.SetLastContact(0)
+		m.SetKnownLeader(true)
 	} else {
-		m.LastContact = time.Since(s.raft.LastContact())
-		m.KnownLeader = (s.raft.Leader() != "")
+		m.SetLastContact(time.Since(s.raft.LastContact()))
+		m.SetKnownLeader(s.raft.Leader() != "")
 	}
 }
 

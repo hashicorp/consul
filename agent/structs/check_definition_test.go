@@ -5,14 +5,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/gofuzz"
+	fuzz "github.com/google/gofuzz"
 	"github.com/hashicorp/consul/api"
 	"github.com/mitchellh/reflectwalk"
-	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCheckDefinition_Defaults(t *testing.T) {
-	t.Parallel()
 	def := CheckDefinition{}
 	check := def.HealthCheck("node1")
 
@@ -31,25 +30,27 @@ func (w *walker) Struct(reflect.Value) error {
 }
 
 func (w *walker) StructField(f reflect.StructField, v reflect.Value) error {
-	w.fields[f.Name] = v
-	return nil
+	if !f.Anonymous {
+		w.fields[f.Name] = v
+		return nil
+	}
+	return reflectwalk.SkipEntry
 }
 
-func mapFields(obj interface{}) map[string]reflect.Value {
+func mapFields(t *testing.T, obj interface{}) map[string]reflect.Value {
 	w := &walker{make(map[string]reflect.Value)}
 	if err := reflectwalk.Walk(obj, w); err != nil {
-		panic(err)
+		t.Fatalf("failed to generate map fields for %+v - %v", obj, err)
 	}
 	return w.fields
 }
 
 func TestCheckDefinition_CheckType(t *testing.T) {
-	t.Parallel()
 
 	// Fuzz a definition to fill all its fields with data.
 	var def CheckDefinition
 	fuzz.New().Fuzz(&def)
-	orig := mapFields(def)
+	orig := mapFields(t, def)
 
 	// Remap the ID field which changes name, and redact fields we don't
 	// expect in the copy.
@@ -60,7 +61,7 @@ func TestCheckDefinition_CheckType(t *testing.T) {
 
 	// Now convert to a check type and ensure that all fields left match.
 	chk := def.CheckType()
-	copy := mapFields(chk)
+	copy := mapFields(t, chk)
 	for f, vo := range orig {
 		vc, ok := copy[f]
 		if !ok {
@@ -74,7 +75,6 @@ func TestCheckDefinition_CheckType(t *testing.T) {
 }
 
 func TestCheckDefinitionToCheckType(t *testing.T) {
-	t.Parallel()
 	got := &CheckDefinition{
 		ID:     "id",
 		Name:   "name",
@@ -111,5 +111,5 @@ func TestCheckDefinitionToCheckType(t *testing.T) {
 		TTL:                            3 * time.Second,
 		DeregisterCriticalServiceAfter: 4 * time.Second,
 	}
-	verify.Values(t, "", got.CheckType(), want)
+	require.Equal(t, want, got.CheckType())
 }

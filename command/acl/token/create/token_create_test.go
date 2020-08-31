@@ -1,17 +1,15 @@
 package tokencreate
 
 import (
-	"os"
+	"encoding/json"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/consul/testutil"
 	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTokenCreateCommand_noTabs(t *testing.T) {
@@ -22,15 +20,12 @@ func TestTokenCreateCommand_noTabs(t *testing.T) {
 	}
 }
 
-func TestTokenCreateCommand(t *testing.T) {
+func TestTokenCreateCommand_Pretty(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
 
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
-
-	a := agent.NewTestAgent(t, t.Name(), `
+	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
+	node_name = "test-node"
 	acl {
 		enabled = true
 		tokens {
@@ -38,7 +33,99 @@ func TestTokenCreateCommand(t *testing.T) {
 		}
 	}`)
 
-	a.Agent.LogWriter = logger.NewLogWriter(512)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Create a policy
+	client := a.Client()
+
+	policy, _, err := client.ACL().PolicyCreate(
+		&api.ACLPolicy{Name: "test-policy"},
+		&api.WriteOptions{Token: "root"},
+	)
+	require.NoError(t, err)
+
+	run := func(t *testing.T, args []string) *api.ACLToken {
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		code := cmd.Run(append(args, "-format=json"))
+		require.Equal(t, 0, code)
+		require.Empty(t, ui.ErrorWriter.String())
+
+		var token api.ACLToken
+		require.NoError(t, json.Unmarshal(ui.OutputWriter.Bytes(), &token))
+		return &token
+	}
+
+	// create with policy by name
+	t.Run("policy-name", func(t *testing.T) {
+		_ = run(t, []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-policy-name=" + policy.Name,
+			"-description=test token",
+		})
+	})
+
+	// create with policy by id
+	t.Run("policy-id", func(t *testing.T) {
+		_ = run(t, []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-policy-id=" + policy.ID,
+			"-description=test token",
+		})
+	})
+
+	// create with a node identity
+	t.Run("node-identity", func(t *testing.T) {
+		token := run(t, []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-node-identity=" + a.Config.NodeName + ":" + a.Config.Datacenter,
+		})
+
+		conf := api.DefaultConfig()
+		conf.Address = a.HTTPAddr()
+		conf.Token = token.SecretID
+		client, err := api.NewClient(conf)
+		require.NoError(t, err)
+
+		nodes, _, err := client.Catalog().Nodes(nil)
+		require.NoError(t, err)
+		require.Len(t, nodes, 1)
+		require.Equal(t, a.Config.NodeName, nodes[0].Node)
+	})
+
+	// create with accessor and secret
+	t.Run("predefined-ids", func(t *testing.T) {
+		token := run(t, []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-policy-id=" + policy.ID,
+			"-description=test token",
+			"-accessor=3d852bb8-5153-4388-a3ca-8ca78661889f",
+			"-secret=3a69a8d8-c4d4-485d-9b19-b5b61648ea0c",
+		})
+
+		require.Equal(t, "3d852bb8-5153-4388-a3ca-8ca78661889f", token.AccessorID)
+		require.Equal(t, "3a69a8d8-c4d4-485d-9b19-b5b61648ea0c", token.SecretID)
+	})
+}
+
+func TestTokenCreateCommand_JSON(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+
+	a := agent.NewTestAgent(t, `
+	primary_datacenter = "dc1"
+	acl {
+		enabled = true
+		tokens {
+			master = "root"
+		}
+	}`)
 
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -53,7 +140,7 @@ func TestTokenCreateCommand(t *testing.T) {
 		&api.ACLPolicy{Name: "test-policy"},
 		&api.WriteOptions{Token: "root"},
 	)
-	assert.NoError(err)
+	require.NoError(err)
 
 	// create with policy by name
 	{
@@ -62,24 +149,15 @@ func TestTokenCreateCommand(t *testing.T) {
 			"-token=root",
 			"-policy-name=" + policy.Name,
 			"-description=test token",
+			"-format=json",
 		}
 
 		code := cmd.Run(args)
-		assert.Equal(code, 0)
-		assert.Empty(ui.ErrorWriter.String())
-	}
+		require.Equal(code, 0)
+		require.Empty(ui.ErrorWriter.String())
 
-	// create with policy by id
-	{
-		args := []string{
-			"-http-addr=" + a.HTTPAddr(),
-			"-token=root",
-			"-policy-id=" + policy.ID,
-			"-description=test token",
-		}
-
-		code := cmd.Run(args)
-		assert.Equal(code, 0)
-		assert.Empty(ui.ErrorWriter.String())
+		var jsonOutput json.RawMessage
+		err = json.Unmarshal([]byte(ui.OutputWriter.String()), &jsonOutput)
+		require.NoError(err, "token unmarshalling error")
 	}
 }

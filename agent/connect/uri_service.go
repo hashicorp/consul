@@ -27,16 +27,20 @@ func (id *SpiffeIDService) URI() *url.URL {
 
 // CertURI impl.
 func (id *SpiffeIDService) Authorize(ixn *structs.Intention) (bool, bool) {
-	if ixn.SourceNS != structs.IntentionWildcard && ixn.SourceNS != id.Namespace {
+	if ixn.SourceNS != structs.WildcardSpecifier && ixn.SourceNS != id.Namespace {
 		// Non-matching namespace
 		return false, false
 	}
 
-	if ixn.SourceName != structs.IntentionWildcard && ixn.SourceName != id.Service {
+	if ixn.SourceName != structs.WildcardSpecifier && ixn.SourceName != id.Service {
 		// Non-matching name
 		return false, false
 	}
 
 	// Match, return allow value
 	return ixn.Action == structs.IntentionActionAllow, true
+}
+
+func (id *SpiffeIDService) CommonName() string {
+	return ServiceCN(id.Service, id.Namespace, id.Host)
 }

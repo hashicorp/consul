@@ -1,0 +1,1046 @@
+---
+layout: api
+page_title: Catalog - HTTP API
+sidebar_title: Catalog
+description: |-
+  The /catalog endpoints register and deregister nodes, services, and checks in
+  Consul.
+---
+
+# Catalog HTTP API
+
+The `/catalog` endpoints register and deregister nodes, services, and checks in
+Consul. The catalog should not be confused with the agent, since some of the
+API methods look similar.
+
+## Register Entity
+
+This endpoint is a low-level mechanism for registering or updating
+entries in the catalog. It is usually preferable to instead use the
+[agent endpoints](/api/agent) for registration as they are simpler and
+perform [anti-entropy](/docs/internals/anti-entropy).
+
+| Method | Path                | Produces           |
+| ------ | ------------------- | ------------------ |
+| `PUT`  | `/catalog/register` | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
+[required ACLs](/api#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required               |
+| ---------------- | ----------------- | ------------- | -------------------------- |
+| `NO`             | `none`            | `none`        | `node:write,service:write` |
+
+### Parameters
+
+- `ID` `(string: "")` - An optional UUID to assign to the node. This must be a 36-character UUID-formatted string.
+
+- `Node` `(string: <required>)` - Specifies the node ID to register.
+
+- `Address` `(string: <required>)` - Specifies the address to register.
+
+- `Datacenter` `(string: "")` - Specifies the datacenter, which defaults to the
+  agent's datacenter if not provided.
+
+- `TaggedAddresses` `(map<string|string>: nil)` - Specifies the tagged
+  addresses.
+
+- `NodeMeta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata
+  pairs for filtering purposes.
+
+- `Service` `(Service: nil)` - Specifies to register a service. If `ID` is not
+  provided, it will be defaulted to the value of the `Service.Service` property.
+  Only one service with a given `ID` may be present per node. We recommend using
+  [valid DNS labels](https://en.wikipedia.org/wiki/Hostname#Restrictions_on_valid_hostnames)
+  for service definition names for [compatibility with external DNS](/docs/agent/services#service-and-tag-names-with-dns).
+  The service `Tags`, `Address`, `Meta`, and `Port` fields are all optional. For more
+  information about these fields and the implications of setting them,
+  see the [Service - Agent API](/api/agent/service) page
+  as registering services differs between using this or the Services Agent endpoint.
+
+- `Check` `(Check: nil)` - Specifies to register a check. The register API
+  manipulates the health check entry in the Catalog, but it does not setup the
+  script, TTL, or HTTP check to monitor the node's health. To truly enable a new
+  health check, the check must either be provided in agent configuration or set
+  via the [agent endpoint](agent).
+
+  The `CheckID` can be omitted and will default to the value of `Name`. As
+  with `Service.ID`, the `CheckID` must be unique on this node. `Notes` is an
+  opaque field that is meant to hold human-readable text. If a `ServiceID` is
+  provided that matches the `ID` of a service on that node, the check is
+  treated as a service level health check, instead of a node level health
+  check. The `Status` must be one of `passing`, `warning`, or `critical`.
+
+  The `Definition` field can be provided with details for a TCP or HTTP health
+  check. For more information, see the [Health Checks](/docs/agent/checks) page.
+
+  Multiple checks can be provided by replacing `Check` with `Checks` and
+  sending an array of `Check` objects.
+
+- `SkipNodeUpdate` `(bool: false)` - Specifies whether to skip updating the
+  node's information in the registration. This is useful in the case where
+  only a health check or service entry on a node needs to be updated or when
+  a register request is intended to update a service entry or health check.
+  In both use cases, node information will not be overwritten, if the node is
+  already registered. Note, if the parameter is enabled for a node that doesn't
+  exist, it will still be created.
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace in which the
+  service and checks will be registered. This value may be provided by either the
+  `ns` URL query parameter or in the `X-Consul-Namespace` header. Additionally,
+  the namespace may be provided within the `Service` or `Check` fields but if
+  present in multiple places, they must all be the same. If not provided at all,
+  the namespace will be inherited from the request's ACL token or will default
+  to the `default` namespace. Added in Consul 1.7.0.
+
+It is important to note that `Check` does not have to be provided with `Service`
+and vice versa. A catalog entry can have either, neither, or both.
+
+### Sample Payload
+
+```json
+{
+  "Datacenter": "dc1",
+  "ID": "40e4a748-2192-161a-0510-9bf59fe950b5",
+  "Node": "foobar",
+  "Address": "192.168.10.10",
+  "TaggedAddresses": {
+    "lan": "192.168.10.10",
+    "wan": "10.0.10.10"
+  },
+  "NodeMeta": {
+    "somekey": "somevalue"
+  },
+  "Service": {
+    "ID": "redis1",
+    "Service": "redis",
+    "Tags": ["primary", "v1"],
+    "Address": "127.0.0.1",
+    "TaggedAddresses": {
+      "lan": {
+        "address": "127.0.0.1",
+        "port": 8000
+      },
+      "wan": {
+        "address": "198.18.0.1",
+        "port": 80
+      }
+    },
+    "Meta": {
+      "redis_version": "4.0"
+    },
+    "Port": 8000,
+    "Namespace": "default"
+  },
+  "Check": {
+    "Node": "foobar",
+    "CheckID": "service:redis1",
+    "Name": "Redis health check",
+    "Notes": "Script based health check",
+    "Status": "passing",
+    "ServiceID": "redis1",
+    "Definition": {
+      "TCP": "localhost:8888",
+      "Interval": "5s",
+      "Timeout": "1s",
+      "DeregisterCriticalServiceAfter": "30s"
+    },
+    "Namespace": "default"
+  },
+  "SkipNodeUpdate": false
+}
+```
+
+### Sample Request
+
+```shell-session
+$ curl \
+    --request PUT \
+    --data @payload.json \
+    -H "X-Consul-Namespace: team-1" \
+    http://127.0.0.1:8500/v1/catalog/register
+```
+
+## Deregister Entity
+
+This endpoint is a low-level mechanism for directly removing
+entries from the Catalog. It is usually preferable to instead use the
+[agent endpoints](/api/agent) for deregistration as they are simpler and
+perform [anti-entropy](/docs/internals/anti-entropy).
+
+| Method | Path                  | Produces           |
+| ------ | --------------------- | ------------------ |
+| `PUT`  | `/catalog/deregister` | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
+[required ACLs](/api#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required               |
+| ---------------- | ----------------- | ------------- | -------------------------- |
+| `NO`             | `none`            | `none`        | `node:write,service:write` |
+
+### Parameters
+
+The behavior of the endpoint depends on what keys are provided.
+
+- `Node` `(string: <required>)` - Specifies the ID of the node. If no other
+  values are provided, this node, all its services, and all its checks are
+  removed.
+
+- `Datacenter` `(string: "")` - Specifies the datacenter, which defaults to the
+  agent's datacenter if not provided.
+
+- `CheckID` `(string: "")` - Specifies the ID of the check to remove.
+
+- `ServiceID` `(string: "")` - Specifies the ID of the service to remove. The
+  service and all associated checks will be removed.
+
+- `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace in which the
+  service and checks will be deregistered. If not provided in the JSON body, the value of
+  the `ns` URL query parameter or the `X-Consul-Namespace` header will be used.
+  If not provided at all, the namespace will be inherited from the request's ACL
+  token or will default to the `default` namespace. Added in Consul 1.7.0.
+
+### Sample Payloads
+
+```json
+{
+  "Datacenter": "dc1",
+  "Node": "foobar"
+}
+```
+
+```json
+{
+  "Datacenter": "dc1",
+  "Node": "foobar",
+  "CheckID": "service:redis1",
+  "Namespace": "team-1"
+}
+```
+
+```json
+{
+  "Datacenter": "dc1",
+  "Node": "foobar",
+  "ServiceID": "redis1",
+  "Namespace": "team-1"
+}
+```
+
+### Sample Request
+
+```shell-session
+$ curl \
+    --request PUT \
+    --data @payload.json \
+    http://127.0.0.1:8500/v1/catalog/deregister
+```
+
+## List Datacenters
+
+This endpoint returns the list of all known datacenters. The datacenters will be
+sorted in ascending order based on the estimated median round trip time from the
+server to the servers in that datacenter.
+
+This endpoint does not require a cluster leader and will succeed even during an
+availability outage. Therefore, it can be used as a simple check to see if any
+Consul servers are routable.
+
+| Method | Path                   | Produces           |
+| ------ | ---------------------- | ------------------ |
+| `GET`  | `/catalog/datacenters` | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
+[required ACLs](/api#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `none`            | `none`        | `none`       |
+
+### Sample Request
+
+```shell-session
+$ curl \
+    http://127.0.0.1:8500/v1/catalog/datacenters
+```
+
+### Sample Response
+
+```json
+["dc1", "dc2"]
+```
+
+## List Nodes
+
+This endpoint and returns the nodes registered in a given datacenter.
+
+| Method | Path             | Produces           |
+| ------ | ---------------- | ------------------ |
+| `GET`  | `/catalog/nodes` | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
+[required ACLs](/api#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `YES`            | `all`             | `none`        | `node:read`  |
+
+### Parameters
+
+- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+  the datacenter of the agent being queried. This is specified as part of the
+  URL as a query parameter.
+
+- `near` `(string: "")` - Specifies a node name to sort the node list in
+  ascending order based on the estimated round trip time from that node. Passing
+  `?near=_agent` will use the agent's node for the sort. This is specified as
+  part of the URL as a query parameter.
+
+- `node-meta` `(string: "")` - Specifies a desired node metadata key/value pair
+  of the form `key:value`. This parameter can be specified multiple times, and
+  will filter the results to nodes with the specified key/value pairs. This is
+  specified as part of the URL as a query parameter.
+
+- `filter` `(string: "")` - Specifies the expression used to filter the
+  queries results prior to returning the data.
+
+### Sample Request
+
+```shell-session
+$ curl \
+    http://127.0.0.1:8500/v1/catalog/nodes
+```
+
+### Sample Response
+
+```json
+[
+  {
+    "ID": "40e4a748-2192-161a-0510-9bf59fe950b5",
+    "Node": "baz",
+    "Address": "10.1.10.11",
+    "Datacenter": "dc1",
+    "TaggedAddresses": {
+      "lan": "10.1.10.11",
+      "wan": "10.1.10.11"
+    },
+    "Meta": {
+      "instance_type": "t2.medium"
+    }
+  },
+  {
+    "ID": "8f246b77-f3e1-ff88-5b48-8ec93abf3e05",
+    "Node": "foobar",
+    "Address": "10.1.10.12",
+    "Datacenter": "dc2",
+    "TaggedAddresses": {
+      "lan": "10.1.10.11",
+      "wan": "10.1.10.12"
+    },
+    "Meta": {
+      "instance_type": "t2.large"
+    }
+  }
+]
+```
+
+### Filtering
+
+The filter will be executed against each Node in the result list with
+the following selectors and filter operations being supported:
+
+| Selector                | Supported Operations                               |
+| ----------------------- | -------------------------------------------------- |
+| `Address`               | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Datacenter`            | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ID`                    | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Meta`                  | Is Empty, Is Not Empty, In, Not In                 |
+| `Meta.<any>`            | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Node`                  | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `TaggedAddresses`       | Is Empty, Is Not Empty, In, Not In                 |
+| `TaggedAddresses.<any>` | Equal, Not Equal, In, Not In, Matches, Not Matches |
+
+## List Services
+
+This endpoint returns the services registered in a given datacenter.
+
+| Method | Path                | Produces           |
+| ------ | ------------------- | ------------------ |
+| `GET`  | `/catalog/services` | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
+[required ACLs](/api#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
+| ---------------- | ----------------- | ------------- | -------------- |
+| `YES`            | `all`             | `none`        | `service:read` |
+
+### Parameters
+
+- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+  the datacenter of the agent being queried. This is specified as part of the
+  URL as a query parameter.
+
+- `node-meta` `(string: "")` - Specifies a desired node metadata key/value pair
+  of the form `key:value`. This parameter can be specified multiple times, and
+  will filter the results to nodes with the specified key/value pairs. This is
+  specified as part of the URL as a query parameter.
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to list services.
+  This value may be provided by either the `ns` URL query parameter or in the
+  `X-Consul-Namespace` header. If not provided at all, the namespace will be inherited
+  from the request's ACL token or will default to the `default` namespace. Added in Consul 1.7.0.
+
+### Sample Request
+
+```shell-session
+$ curl \
+    http://127.0.0.1:8500/v1/catalog/services?ns=foo
+```
+
+### Sample Response
+
+```json
+{
+  "consul": [],
+  "redis": [],
+  "postgresql": ["primary", "secondary"]
+}
+```
+
+The keys are the service names, and the array values provide all known tags for
+a given service.
+
+## List Nodes for Service
+
+This endpoint returns the nodes providing a service in a given datacenter.
+
+| Method | Path                        | Produces           |
+| ------ | --------------------------- | ------------------ |
+| `GET`  | `/catalog/service/:service` | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
+[required ACLs](/api#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching        | ACL Required             |
+| ---------------- | ----------------- | -------------------- | ------------------------ |
+| `YES`            | `all`             | `background refresh` | `node:read,service:read` |
+
+### Parameters
+
+- `service` `(string: <required>)` - Specifies the name of the service for which
+  to list nodes. This is specified as part of the URL.
+
+- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+  the datacenter of the agent being queried. This is specified as part of the
+  URL as a query parameter.
+
+- `tag` `(string: "")` - Specifies the tag to filter on. This is specified as part of
+  the URL as a query parameter. Can be used multiple times for additional filtering,
+  returning only the results that include all of the tag values provided.
+
+- `near` `(string: "")` - Specifies a node name to sort the node list in
+  ascending order based on the estimated round trip time from that node. Passing
+  `?near=_agent` will use the agent's node for the sort. This is specified as
+  part of the URL as a query parameter.
+
+- `node-meta` `(string: "")` - Specifies a desired node metadata key/value pair
+  of the form `key:value`. This parameter can be specified multiple times, and
+  will filter the results to nodes with the specified key/value pairs. This is
+  specified as part of the URL as a query parameter.
+
+- `filter` `(string: "")` - Specifies the expression used to filter the
+  queries results prior to returning the data.
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to use for the
+  query. This value may be provided by either the `ns` URL query parameter or in the
+  `X-Consul-Namespace` header. If not provided at all, the namespace will be inherited
+  from the request's ACL token or will default to the `default` namespace. Added in Consul 1.7.0.
+
+### Sample Request
+
+```shell-session
+$ curl \
+    http://127.0.0.1:8500/v1/catalog/service/my-service?ns=default
+```
+
+### Sample Response
+
+```json
+[
+  {
+    "ID": "40e4a748-2192-161a-0510-9bf59fe950b5",
+    "Node": "foobar",
+    "Address": "192.168.10.10",
+    "Datacenter": "dc1",
+    "TaggedAddresses": {
+      "lan": "192.168.10.10",
+      "wan": "10.0.10.10"
+    },
+    "NodeMeta": {
+      "somekey": "somevalue"
+    },
+    "CreateIndex": 51,
+    "ModifyIndex": 51,
+    "ServiceAddress": "172.17.0.3",
+    "ServiceEnableTagOverride": false,
+    "ServiceID": "32a2a47f7992:nodea:5000",
+    "ServiceName": "foobar",
+    "ServicePort": 5000,
+    "ServiceMeta": {
+      "foobar_meta_value": "baz"
+    },
+    "ServiceTaggedAddresses": {
+      "lan": {
+        "address": "172.17.0.3",
+        "port": 5000
+      },
+      "wan": {
+        "address": "198.18.0.1",
+        "port": 512
+      }
+    },
+    "ServiceTags": ["tacos"],
+    "ServiceProxy": {
+      "DestinationServiceName": "",
+      "DestinationServiceID": "",
+      "LocalServiceAddress": "",
+      "LocalServicePort": 0,
+      "Config": null,
+      "Upstreams": null
+    },
+    "ServiceConnect": {
+      "Native": false,
+      "Proxy": null
+    },
+    "Namespace": "default"
+  }
+]
+```
+
+- `Address` is the IP address of the Consul node on which the service is
+  registered.
+
+- `Datacenter` is the data center of the Consul node on which the service is
+  registered.
+
+- `TaggedAddresses` is the list of explicit LAN and WAN IP addresses for the
+  agent
+
+- `NodeMeta` is a list of user-defined metadata key/value pairs for the node
+
+- `CreateIndex` is an internal index value representing when the service was
+  created
+
+- `ModifyIndex` is the last index that modified the service
+
+- `Node` is the name of the Consul node on which the service is registered
+
+- `ServiceAddress` is the IP address of the service host — if empty, node
+  address should be used
+
+- `ServiceEnableTagOverride` indicates whether service tags can be overridden on
+  this service
+
+- `ServiceID` is a unique service instance identifier
+
+- `ServiceName` is the name of the service
+
+- `ServiceMeta` is a list of user-defined metadata key/value pairs for the service
+
+- `ServicePort` is the port number of the service
+
+- `ServiceTags` is a list of tags for the service
+
+- `ServiceTaggedAddresses` is the map of explicit LAN and WAN addresses for the
+  service instance. This includes both the address as well as the port.
+
+- `ServiceKind` is the kind of service, usually "". See the Agent
+  [service registration API](/api/agent/service#kind) for more information.
+
+- `ServiceProxy` is the proxy config as specified in
+  [Connect Proxies](/docs/connect/proxies).
+
+- `ServiceConnect` are the [Connect](/docs/connect) settings. The
+  value of this struct is equivalent to the `Connect` field for service
+  registration.
+
+- `Namespace` is the Consul Enterprise namespace of this service instance
+
+### Filtering
+
+Filtering is executed against each entry in the top level result list with the
+following selectors and filter operations being supported:
+
+| Selector                                      | Supported Operations                               |
+| --------------------------------------------- | -------------------------------------------------- |
+| `Address`                                     | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Datacenter`                                  | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ID`                                          | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Node`                                        | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `NodeMeta.<any>`                              | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `NodeMeta`                                    | Is Empty, Is Not Empty, In, Not In                 |
+| `ServiceAddress`                              | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceConnect.Native`                       | Equal, Not Equal                                   |
+| `ServiceEnableTagOverride`                    | Equal, Not Equal                                   |
+| `ServiceID`                                   | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceKind`                                 | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceMeta.<any>`                           | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceMeta`                                 | Is Empty, Is Not Empty, In, Not In                 |
+| `ServiceName`                                 | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServicePort`                                 | Equal, Not Equal                                   |
+| `ServiceProxy.DestinationServiceID`           | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceProxy.DestinationServiceName`         | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceProxy.LocalServiceAddress`            | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceProxy.LocalServicePort`               | Equal, Not Equal                                   |
+| `ServiceProxy.MeshGateway.Mode`               | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceProxy.Upstreams.Datacenter`           | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceProxy.Upstreams.DestinationName`      | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceProxy.Upstreams.DestinationNamespace` | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceProxy.Upstreams.DestinationType`      | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceProxy.Upstreams.LocalBindAddress`     | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceProxy.Upstreams.LocalBindPort`        | Equal, Not Equal                                   |
+| `ServiceProxy.Upstreams.MeshGateway.Mode`     | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceProxy.Upstreams`                      | Is Empty, Is Not Empty                             |
+| `ServiceTaggedAddresses.<any>.Address`        | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceTaggedAddresses.<any>.Port`           | Equal, Not Equal                                   |
+| `ServiceTaggedAddresses`                      | Is Empty, Is Not Empty, In, Not In                 |
+| `ServiceTags`                                 | In, Not In, Is Empty, Is Not Empty                 |
+| `ServiceWeights.Passing`                      | Equal, Not Equal                                   |
+| `ServiceWeights.Warning`                      | Equal, Not Equal                                   |
+| `TaggedAddresses.<any>`                       | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `TaggedAddresses`                             | Is Empty, Is Not Empty, In, Not In                 |
+
+## List Nodes for Connect-capable Service
+
+This endpoint returns the nodes providing a
+[Connect-capable](/docs/connect) service in a given datacenter.
+This will include both proxies and native integrations. A service may
+register both Connect-capable and incapable services at the same time,
+so this endpoint may be used to filter only the Connect-capable endpoints.
+
+| Method | Path                        | Produces           |
+| ------ | --------------------------- | ------------------ |
+| `GET`  | `/catalog/connect/:service` | `application/json` |
+
+Parameters and response format are the same as
+[`/catalog/service/:service`](/api/catalog#list-nodes-for-service).
+
+## Retrieve Map of Services for a Node
+
+This endpoint returns the node's registered services.
+
+| Method | Path                  | Produces           |
+| ------ | --------------------- | ------------------ |
+| `GET`  | `/catalog/node/:node` | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
+[required ACLs](/api#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required             |
+| ---------------- | ----------------- | ------------- | ------------------------ |
+| `YES`            | `all`             | `none`        | `node:read,service:read` |
+
+### Parameters
+
+- `node` `(string: <required>)` - Specifies the name of the node for which
+  to list services. This is specified as part of the URL.
+
+- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+  the datacenter of the agent being queried. This is specified as part of the
+  URL as a query parameter.
+
+- `filter` `(string: "")` - Specifies the expression used to filter the
+  queries results prior to returning the data.
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to list services.
+  This value may be provided by either the `ns` URL query parameter or in the
+  `X-Consul-Namespace` header. If not provided at all, the namespace will be inherited
+  from the request's ACL token or will default to the `default` namespace. Added in Consul 1.7.0.
+
+### Sample Request
+
+```shell-session
+$ curl \
+    http://127.0.0.1:8500/v1/catalog/node/my-node
+```
+
+### Sample Response
+
+```json
+{
+  "Node": {
+    "ID": "40e4a748-2192-161a-0510-9bf59fe950b5",
+    "Node": "foobar",
+    "Address": "10.1.10.12",
+    "Datacenter": "dc1",
+    "TaggedAddresses": {
+      "lan": "10.1.10.12",
+      "wan": "10.1.10.12"
+    },
+    "Meta": {
+      "instance_type": "t2.medium"
+    }
+  },
+  "Services": {
+    "consul": {
+      "ID": "consul",
+      "Service": "consul",
+      "Tags": null,
+      "Meta": {},
+      "Port": 8300
+    },
+    "redis": {
+      "ID": "redis",
+      "Service": "redis",
+      "TaggedAddresses": {
+        "lan": {
+          "address": "10.1.10.12",
+          "port": 8000
+        },
+        "wan": {
+          "address": "198.18.1.2",
+          "port": 80
+        }
+      },
+      "Tags": ["v1"],
+      "Meta": {
+        "redis_version": "4.0"
+      },
+      "Port": 8000,
+      "Namespace": "default"
+    }
+  }
+}
+```
+
+### Filtering
+
+The filter will be executed against each value in the `Services` mapping within the
+top level Node object. The following selectors and filter operations are supported:
+
+| Selector                               | Supported Operations                               |
+| -------------------------------------- | -------------------------------------------------- |
+| `Address`                              | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Connect.Native`                       | Equal, Not Equal                                   |
+| `EnableTagOverride`                    | Equal, Not Equal                                   |
+| `ID`                                   | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Kind`                                 | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Meta`                                 | Is Empty, Is Not Empty, In, Not In                 |
+| `Meta.<any>`                           | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Port`                                 | Equal, Not Equal                                   |
+| `Proxy.DestinationServiceID`           | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.DestinationServiceName`         | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.LocalServiceAddress`            | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.LocalServicePort`               | Equal, Not Equal                                   |
+| `Proxy.MeshGateway.Mode`               | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams`                      | Is Empty, Is Not Empty                             |
+| `Proxy.Upstreams.Datacenter`           | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.DestinationName`      | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.DestinationNamespace` | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.DestinationType`      | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.LocalBindAddress`     | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.LocalBindPort`        | Equal, Not Equal                                   |
+| `Proxy.Upstreams.MeshGateway.Mode`     | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Service`                              | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `TaggedAddresses`                      | Is Empty, Is Not Empty, In, Not In                 |
+| `TaggedAddresses.<any>.Address`        | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `TaggedAddresses.<any>.Port`           | Equal, Not Equal                                   |
+| `Tags`                                 | In, Not In, Is Empty, Is Not Empty                 |
+| `Weights.Passing`                      | Equal, Not Equal                                   |
+| `Weights.Warning`                      | Equal, Not Equal                                   |
+
+## List Services for Node
+
+This endpoint returns the node's registered services.
+
+| Method | Path                           | Produces           |
+| ------ | ------------------------------ | ------------------ |
+| `GET`  | `/catalog/node-services/:node` | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
+[required ACLs](/api#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required             |
+| ---------------- | ----------------- | ------------- | ------------------------ |
+| `YES`            | `all`             | `none`        | `node:read,service:read` |
+
+### Parameters
+
+- `node` `(string: <required>)` - Specifies the name of the node for which
+  to list services. This is specified as part of the URL.
+
+- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+  the datacenter of the agent being queried. This is specified as part of the
+  URL as a query parameter.
+
+- `filter` `(string: "")` - Specifies the expression used to filter the
+  queries results prior to returning the data.
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to list services.
+  This value may be provided by either the `ns` URL query parameter or in the
+  `X-Consul-Namespace` header. If not provided at all, the namespace will be inherited
+  from the request's ACL token or will default to the `default` namespace. The `*`
+  wildcard may be used and then services from all namespaces will be returned. Added in Consul 1.7.0.
+
+### Sample Request
+
+```shell-session
+$ curl \
+    http://127.0.0.1:8500/v1/catalog/node-services/my-node
+```
+
+### Sample Response
+
+```json
+{
+  "Node": {
+    "ID": "40e4a748-2192-161a-0510-9bf59fe950b5",
+    "Node": "foobar",
+    "Address": "10.1.10.12",
+    "Datacenter": "dc1",
+    "TaggedAddresses": {
+      "lan": "10.1.10.12",
+      "wan": "10.1.10.12"
+    },
+    "Meta": {
+      "instance_type": "t2.medium"
+    }
+  },
+  "Services": [
+    {
+      "ID": "consul",
+      "Service": "consul",
+      "Tags": null,
+      "Meta": {},
+      "Port": 8300
+    },
+    {
+      "ID": "redis",
+      "Service": "redis",
+      "TaggedAddresses": {
+        "lan": {
+          "address": "10.1.10.12",
+          "port": 8000,
+        },
+        "wan": {
+          "address": "198.18.1.2",
+          "port": 80
+        }
+      },
+      "Tags": [
+        "v1"
+      ],
+      "Meta": {
+        "redis_version": "4.0"
+      },
+      "Port": 8000,
+      "Namespace": "default"
+    }
+  }
+}
+```
+
+### Filtering
+
+The filter will be executed against each value in the `Services` list within the
+top level object. The following selectors and filter operations are supported:
+
+| Selector                               | Supported Operations                               |
+| -------------------------------------- | -------------------------------------------------- |
+| `Address`                              | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Connect.Native`                       | Equal, Not Equal                                   |
+| `EnableTagOverride`                    | Equal, Not Equal                                   |
+| `ID`                                   | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Kind`                                 | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Meta`                                 | Is Empty, Is Not Empty, In, Not In                 |
+| `Meta.<any>`                           | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Port`                                 | Equal, Not Equal                                   |
+| `Proxy.DestinationServiceID`           | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.DestinationServiceName`         | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.LocalServiceAddress`            | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.LocalServicePort`               | Equal, Not Equal                                   |
+| `Proxy.MeshGateway.Mode`               | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams`                      | Is Empty, Is Not Empty                             |
+| `Proxy.Upstreams.Datacenter`           | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.DestinationName`      | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.DestinationNamespace` | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.DestinationType`      | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.LocalBindAddress`     | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.LocalBindPort`        | Equal, Not Equal                                   |
+| `Proxy.Upstreams.MeshGateway.Mode`     | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Service`                              | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `TaggedAddresses`                      | Is Empty, Is Not Empty, In, Not In                 |
+| `TaggedAddresses.<any>.Address`        | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `TaggedAddresses.<any>.Port`           | Equal, Not Equal                                   |
+| `Tags`                                 | In, Not In, Is Empty, Is Not Empty                 |
+| `Weights.Passing`                      | Equal, Not Equal                                   |
+| `Weights.Warning`                      | Equal, Not Equal                                   |
+
+## List Services for Gateway
+
+-> **1.8.0+:** This API is available in Consul versions 1.8.0 and later.
+
+This endpoint returns the services associated with an ingress gateway or terminating gateway.
+
+| Method | Path                                 | Produces           |
+| ------ | ------------------------------------ | ------------------ |
+| `GET`  | `/catalog/gateway-services/:gateway` | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
+[required ACLs](/api#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
+| ---------------- | ----------------- | ------------- | -------------- |
+| `YES`            | `all`             | `none`        | `service:read` |
+
+### Parameters
+
+- `gateway` `(string: <required>)` - Specifies the name of the node for which
+  to list services. This is specified as part of the URL.
+
+- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+  the datacenter of the agent being queried. This is specified as part of the
+  URL as a query parameter.
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the gateway.
+  This value may be provided by either the `ns` URL query parameter or in the
+  `X-Consul-Namespace` header. If not provided at all, the namespace will be inherited
+  from the request's ACL token or will default to the `default` namespace. The `*`
+  wildcard may be used and then services from all namespaces will be returned. Added in Consul 1.7.0.
+
+### Sample Request
+
+```shell-session
+$ curl \
+    http://127.0.0.1:8500/v1/catalog/gateway-services/my-terminating-gateway
+```
+
+### Sample Responses
+
+```json
+[
+  {
+    "Gateway": {
+      "Name": "my-terminating-gateway",
+      "Namespace": "default"
+    },
+    "Service": {
+      "Name": "api",
+      "Namespace": "frontend"
+    },
+    "GatewayKind": "terminating-gateway",
+    "CAFile": "/etc/certs/ca.pem",
+    "CertFile": "/etc/certs/api/client.pem",
+    "KeyFile": "/etc/certs/api/client.key",
+    "SNI": "api.my-domain",
+    "CreateIndex": 16,
+    "ModifyIndex": 16
+  },
+  {
+    "Gateway": {
+      "Name": "my-terminating-gateway",
+      "Namespace": "default"
+    },
+    "Service": {
+      "Name": "web",
+      "Namespace": "frontend"
+    },
+    "GatewayKind": "terminating-gateway",
+    "CreateIndex": 17,
+    "ModifyIndex": 17
+  }
+]
+```
+
+```json
+[
+  {
+    "Gateway": {
+      "Name": "my-ingress-gateway",
+      "Namespace": "default"
+    },
+    "Service": {
+      "Name": "api",
+      "Namespace": "frontend"
+    },
+    "GatewayKind": "ingress-gateway",
+    "Port": 8888,
+    "Protocol": "http",
+    "Hosts": ["api.mydomain.com"],
+    "CreateIndex": 15,
+    "ModifyIndex": 15
+  },
+  {
+    "Gateway": {
+      "Name": "my-ingress-gateway",
+      "Namespace": "default"
+    },
+    "Service": {
+      "Name": "redis",
+      "Namespace": "ops"
+    },
+    "GatewayKind": "ingress-gateway",
+    "Port": 8443,
+    "Protocol": "tcp",
+    "CreateIndex": 16,
+    "ModifyIndex": 16
+  }
+]
+```
+
+- `Gateway.Name` is the name of the gateway service of the request
+
+- `Gateway.Namespace` is the Consul Enterprise namespace of the gateway
+
+- `Service.Name` is the name of a service associated with the gateway
+
+- `Service.Namespace` is the Consul Enterprise namespace of a service associated with the gateway
+
+- `GatewayKind` is the kind of service, will be one of "ingress-gateway" or "terminating-gateway". See the Agent
+  [service registration API](/api/agent/service#kind) for more information.
+
+- `CAFile` is the path to a CA file the gateway will use for TLS origination to the associated service
+
+- `CertFile` is the path to a client certificate the gateway will use for TLS origination to the associated service
+
+- `KeyFile` is the path to a key file the gateway will use for TLS origination to the associated service
+
+- `SNI` is a hostname or domain name the gateway will specify during the TLS handshake with the associated service
+
+- `Port` is the port the ingress gateway is listening on for the associated service
+
+- `Protocol` is the protocol of the ingress gateway's listener for the associated service
+
+- `Hosts` list of hosts that specify what requests will match to this associated service
+
+- `FromWildcard` determines whether the service was associated with the gateway by providing a wildcard specifier
+  in the gateway's configuration entry

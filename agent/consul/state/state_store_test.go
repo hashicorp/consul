@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-memdb"
+	"github.com/stretchr/testify/require"
 )
 
 func testUUID() string {
@@ -23,6 +24,27 @@ func testUUID() string {
 		buf[6:8],
 		buf[8:10],
 		buf[10:16])
+}
+
+func snapshotIndexes(snap *Snapshot) ([]*IndexEntry, error) {
+	iter, err := snap.Indexes()
+	if err != nil {
+		return nil, err
+	}
+	var indexes []*IndexEntry
+	for index := iter.Next(); index != nil; index = iter.Next() {
+		indexes = append(indexes, index.(*IndexEntry))
+	}
+	return indexes, nil
+}
+
+func restoreIndexes(indexes []*IndexEntry, r *Restore) error {
+	for _, index := range indexes {
+		if err := r.IndexRestore(index); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func testStateStore(t *testing.T) *Store {
@@ -66,7 +88,7 @@ func testRegisterNodeWithMeta(t *testing.T, s *Store, idx uint64, nodeID string,
 
 // testRegisterServiceWithChange registers a service and allow ensuring the consul index is updated
 // even if service already exists if using `modifyAccordingIndex`.
-// This is done by setting the transation ID in "version" meta so service will be updated if it already exists
+// This is done by setting the transaction ID in "version" meta so service will be updated if it already exists
 func testRegisterServiceWithChange(t *testing.T, s *Store, idx uint64, nodeID, serviceID string, modifyAccordingIndex bool) {
 	meta := make(map[string]string)
 	if modifyAccordingIndex {
@@ -85,7 +107,7 @@ func testRegisterServiceWithChange(t *testing.T, s *Store, idx uint64, nodeID, s
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	service, err := tx.First("services", "id", nodeID, serviceID)
+	_, service, err := firstWatchCompoundWithTxn(tx, "services", "id", nil, nodeID, serviceID)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -96,12 +118,37 @@ func testRegisterServiceWithChange(t *testing.T, s *Store, idx uint64, nodeID, s
 	}
 }
 
-// testRegisterService register a service with given transation idx
+// testRegisterService register a service with given transaction idx
 // If the service already exists, transaction number might not be increased
 // Use `testRegisterServiceWithChange()` if you want perform a registration that
 // ensures the transaction is updated by setting idx in Meta of Service
 func testRegisterService(t *testing.T, s *Store, idx uint64, nodeID, serviceID string) {
 	testRegisterServiceWithChange(t, s, idx, nodeID, serviceID, false)
+}
+
+func testRegisterIngressService(t *testing.T, s *Store, idx uint64, nodeID, serviceID string) {
+	svc := &structs.NodeService{
+		ID:      serviceID,
+		Service: serviceID,
+		Kind:    structs.ServiceKindIngressGateway,
+		Address: "1.1.1.1",
+		Port:    1111,
+	}
+	if err := s.EnsureService(idx, nodeID, svc); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+	_, service, err := firstWatchCompoundWithTxn(tx, "services", "id", nil, nodeID, serviceID)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if result, ok := service.(*structs.ServiceNode); !ok ||
+		result.Node != nodeID ||
+		result.ServiceID != serviceID {
+		t.Fatalf("bad service: %#v", result)
+	}
 }
 
 func testRegisterCheck(t *testing.T, s *Store, idx uint64,
@@ -118,7 +165,7 @@ func testRegisterCheck(t *testing.T, s *Store, idx uint64,
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	c, err := tx.First("checks", "id", nodeID, string(checkID))
+	_, c, err := firstWatchCompoundWithTxn(tx, "checks", "id", nil, nodeID, string(checkID))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -130,15 +177,48 @@ func testRegisterCheck(t *testing.T, s *Store, idx uint64,
 	}
 }
 
-func testSetKey(t *testing.T, s *Store, idx uint64, key, value string) {
-	entry := &structs.DirEntry{Key: key, Value: []byte(value)}
+func testRegisterSidecarProxy(t *testing.T, s *Store, idx uint64, nodeID string, targetServiceID string) {
+	svc := &structs.NodeService{
+		ID:      targetServiceID + "-sidecar-proxy",
+		Service: targetServiceID + "-sidecar-proxy",
+		Port:    20000,
+		Kind:    structs.ServiceKindConnectProxy,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: targetServiceID,
+			DestinationServiceID:   targetServiceID,
+		},
+	}
+	require.NoError(t, s.EnsureService(idx, nodeID, svc))
+}
+
+func testRegisterConnectNativeService(t *testing.T, s *Store, idx uint64, nodeID string, serviceID string) {
+	svc := &structs.NodeService{
+		ID:      serviceID,
+		Service: serviceID,
+		Port:    1111,
+		Connect: structs.ServiceConnect{
+			Native: true,
+		},
+	}
+	require.NoError(t, s.EnsureService(idx, nodeID, svc))
+}
+
+func testSetKey(t *testing.T, s *Store, idx uint64, key, value string, entMeta *structs.EnterpriseMeta) {
+	entry := &structs.DirEntry{
+		Key:   key,
+		Value: []byte(value),
+	}
+	if entMeta != nil {
+		entry.EnterpriseMeta = *entMeta
+	}
+
 	if err := s.KVSSet(idx, entry); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	e, err := tx.First("kvs", "id", key)
+	e, err := firstWithTxn(tx, "kvs", "id", key, entMeta)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -175,7 +255,7 @@ func TestStateStore_Restore_Abort(t *testing.T) {
 	}
 	restore.Abort()
 
-	idx, entries, err := s.KVSList(nil, "")
+	idx, entries, err := s.KVSList(nil, "", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -216,11 +296,11 @@ func TestStateStore_indexUpdateMaxTxn(t *testing.T) {
 	testRegisterNode(t, s, 0, "foo")
 	testRegisterNode(t, s, 1, "bar")
 
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxnRestore()
 	if err := indexUpdateMaxTxn(tx, 3, "nodes"); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	tx.Commit()
+	require.NoError(t, tx.Commit())
 
 	if max := s.maxIndex("nodes"); max != 3 {
 		t.Fatalf("bad max: %d", max)

@@ -1,0 +1,16 @@
+<StateChart @src={{chart}} as |State Guard Action dispatch state|>
+  <Ref @target={{this}} @name="dispatch" @value={{dispatch}} />
+  <State @matches="success">
+    <Tooltip @targetId={{guid}} @isShown={{true}} @position={{position}} @duration={{3000}} @oncomplete={{action dispatch 'RESET'}}>
+      <span role="alert">Copied {{name}}!</span>
+    </Tooltip>
+  </State>
+  <State @matches="error">
+    <Tooltip role="alert" @targetId={{guid}} @isShown={{true}} @position={{position}} @duration={{3000}} @oncomplete={{action dispatch 'RESET'}}>
+      <span role="alert">There was an problem!</span>
+    </Tooltip>
+  </State>
+  <div class="copy-button" id={{guid}}>
+    <button title={{concat "Copy " name " to the clipboard"}} ...attributes type="button" class="copy-btn" data-clipboard-text={{value}}>{{~yield~}}</button>
+  </div>
+</StateChart>

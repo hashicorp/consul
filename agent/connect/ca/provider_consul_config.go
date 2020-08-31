@@ -4,15 +4,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/mitchellh/mapstructure"
 )
 
 func ParseConsulCAConfig(raw map[string]interface{}) (*structs.ConsulCAProviderConfig, error) {
-	config := structs.ConsulCAProviderConfig{
-		CommonCAProviderConfig: defaultCommonConfig(),
-	}
-
+	config := defaultConsulCAProviderConfig()
 	decodeConf := &mapstructure.DecoderConfig{
 		DecodeHook:       structs.ParseDurationFunc(),
 		Result:           &config,
@@ -36,11 +34,23 @@ func ParseConsulCAConfig(raw map[string]interface{}) (*structs.ConsulCAProviderC
 		return nil, err
 	}
 
+	if err := config.Validate(); err != nil {
+		return nil, err
+	}
+
 	return &config, nil
 }
 
+func defaultConsulCAProviderConfig() structs.ConsulCAProviderConfig {
+	return structs.ConsulCAProviderConfig{
+		CommonCAProviderConfig: defaultCommonConfig(),
+		IntermediateCertTTL:    24 * 365 * time.Hour,
+	}
+}
 func defaultCommonConfig() structs.CommonCAProviderConfig {
 	return structs.CommonCAProviderConfig{
-		LeafCertTTL: 3 * 24 * time.Hour,
+		LeafCertTTL:    3 * 24 * time.Hour,
+		PrivateKeyType: connect.DefaultPrivateKeyType,
+		PrivateKeyBits: connect.DefaultPrivateKeyBits,
 	}
 }

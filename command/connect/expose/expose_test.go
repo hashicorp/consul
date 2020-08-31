@@ -1,0 +1,343 @@
+package expose
+
+import (
+	"testing"
+
+	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/testrpc"
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
+)
+
+func TestConnectExpose(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+	a := agent.NewTestAgent(t, ``)
+	client := a.Client()
+	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	{
+		ui := cli.NewMockUi()
+		c := New(ui)
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-service=foo",
+			"-ingress-gateway=ingress",
+			"-port=8888",
+			"-protocol=tcp",
+		}
+
+		code := c.Run(args)
+		if code != 0 {
+			t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+		}
+	}
+
+	// Make sure the config entry and intention have been created.
+	entry, _, err := client.ConfigEntries().Get(api.IngressGateway, "ingress", nil)
+	require.NoError(err)
+	ns := entry.(*api.IngressGatewayConfigEntry).Namespace
+	expected := &api.IngressGatewayConfigEntry{
+		Kind:      api.IngressGateway,
+		Name:      "ingress",
+		Namespace: ns,
+		Listeners: []api.IngressListener{
+			{
+				Port:     8888,
+				Protocol: "tcp",
+				Services: []api.IngressService{
+					{
+						Name:      "foo",
+						Namespace: ns,
+					},
+				},
+			},
+		},
+	}
+	expected.CreateIndex = entry.GetCreateIndex()
+	expected.ModifyIndex = entry.GetModifyIndex()
+	require.Equal(expected, entry)
+
+	ixns, _, err := client.Connect().Intentions(nil)
+	require.NoError(err)
+	require.Len(ixns, 1)
+	require.Equal("ingress", ixns[0].SourceName)
+	require.Equal("foo", ixns[0].DestinationName)
+
+	// Run the command again with a different port, make sure the config entry
+	// is updated while intentions are unmodified.
+	{
+		ui := cli.NewMockUi()
+		c := New(ui)
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-service=foo",
+			"-ingress-gateway=ingress",
+			"-port=7777",
+			"-protocol=tcp",
+		}
+
+		code := c.Run(args)
+		if code != 0 {
+			t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+		}
+
+		expected.Listeners = append(expected.Listeners, api.IngressListener{
+			Port:     7777,
+			Protocol: "tcp",
+			Services: []api.IngressService{
+				{
+					Name:      "foo",
+					Namespace: ns,
+				},
+			},
+		})
+
+		// Make sure the config entry/intention weren't affected.
+		entry, _, err = client.ConfigEntries().Get(api.IngressGateway, "ingress", nil)
+		require.NoError(err)
+		expected.ModifyIndex = entry.GetModifyIndex()
+		require.Equal(expected, entry)
+
+		ixns, _, err = client.Connect().Intentions(nil)
+		require.NoError(err)
+		require.Len(ixns, 1)
+		require.Equal("ingress", ixns[0].SourceName)
+		require.Equal("foo", ixns[0].DestinationName)
+	}
+
+	// Run the command again with a conflicting protocol, should exit with an error and
+	// cause no changes to config entry/intentions.
+	{
+		ui := cli.NewMockUi()
+		c := New(ui)
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-service=bar",
+			"-ingress-gateway=ingress",
+			"-port=8888",
+			"-protocol=http",
+		}
+
+		code := c.Run(args)
+		if code != 1 {
+			t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+		}
+		require.Contains(ui.ErrorWriter.String(), `conflicting protocol "tcp"`)
+
+		// Make sure the config entry/intention weren't affected.
+		entry, _, err = client.ConfigEntries().Get(api.IngressGateway, "ingress", nil)
+		require.NoError(err)
+		require.Equal(expected, entry)
+
+		ixns, _, err = client.Connect().Intentions(nil)
+		require.NoError(err)
+		require.Len(ixns, 1)
+		require.Equal("ingress", ixns[0].SourceName)
+		require.Equal("foo", ixns[0].DestinationName)
+	}
+}
+
+func TestConnectExpose_invalidFlags(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+	a := agent.NewTestAgent(t, ``)
+	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	t.Run("missing service", func(t *testing.T) {
+		ui := cli.NewMockUi()
+		c := New(ui)
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+		}
+
+		code := c.Run(args)
+		if code != 1 {
+			t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+		}
+		require.Contains(ui.ErrorWriter.String(), "A service name must be given")
+	})
+	t.Run("missing gateway", func(t *testing.T) {
+		ui := cli.NewMockUi()
+		c := New(ui)
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-service=foo",
+		}
+
+		code := c.Run(args)
+		if code != 1 {
+			t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+		}
+		require.Contains(ui.ErrorWriter.String(), "An ingress gateway service must be given")
+	})
+	t.Run("missing port", func(t *testing.T) {
+		ui := cli.NewMockUi()
+		c := New(ui)
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-service=foo",
+			"-ingress-gateway=ingress",
+		}
+
+		code := c.Run(args)
+		if code != 1 {
+			t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+		}
+		require.Contains(ui.ErrorWriter.String(), "A port must be provided")
+	})
+}
+
+func TestConnectExpose_existingConfig(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+	a := agent.NewTestAgent(t, ``)
+	client := a.Client()
+	defer a.Shutdown()
+
+	// Create some service config entries to set their protocol.
+	for _, service := range []string{"bar", "zoo"} {
+		_, _, err := client.ConfigEntries().Set(&api.ServiceConfigEntry{
+			Kind:     "service-defaults",
+			Name:     service,
+			Protocol: "http",
+		}, nil)
+		require.NoError(err)
+	}
+
+	// Create an existing ingress config entry with some services.
+	ingressConf := &api.IngressGatewayConfigEntry{
+		Kind: api.IngressGateway,
+		Name: "ingress",
+		Listeners: []api.IngressListener{
+			{
+				Port:     8888,
+				Protocol: "tcp",
+				Services: []api.IngressService{
+					{
+						Name: "foo",
+					},
+				},
+			},
+			{
+				Port:     9999,
+				Protocol: "http",
+				Services: []api.IngressService{
+					{
+						Name: "bar",
+					},
+				},
+			},
+		},
+	}
+	_, _, err := client.ConfigEntries().Set(ingressConf, nil)
+	require.NoError(err)
+
+	// Add a service on a new port.
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	{
+		ui := cli.NewMockUi()
+		c := New(ui)
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-service=baz",
+			"-ingress-gateway=ingress",
+			"-port=10000",
+			"-protocol=tcp",
+		}
+
+		code := c.Run(args)
+		if code != 0 {
+			t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+		}
+
+		// Make sure the ingress config was updated and existing services preserved.
+		entry, _, err := client.ConfigEntries().Get(api.IngressGateway, "ingress", nil)
+		require.NoError(err)
+
+		entryConf := entry.(*api.IngressGatewayConfigEntry)
+		ingressConf.Listeners = append(ingressConf.Listeners, api.IngressListener{
+			Port:     10000,
+			Protocol: "tcp",
+			Services: []api.IngressService{
+				{
+					Name: "baz",
+				},
+			},
+		})
+		ingressConf.Namespace = entryConf.Namespace
+		for i, listener := range ingressConf.Listeners {
+			listener.Services[0].Namespace = entryConf.Listeners[i].Services[0].Namespace
+		}
+		ingressConf.CreateIndex = entry.GetCreateIndex()
+		ingressConf.ModifyIndex = entry.GetModifyIndex()
+		require.Equal(ingressConf, entry)
+	}
+
+	// Add an service on a port shared with an existing listener.
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	{
+		ui := cli.NewMockUi()
+		c := New(ui)
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-service=zoo",
+			"-ingress-gateway=ingress",
+			"-port=9999",
+			"-protocol=http",
+			"-host=foo.com",
+			"-host=foo.net",
+		}
+
+		code := c.Run(args)
+		if code != 0 {
+			t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+		}
+
+		// Make sure the ingress config was updated and existing services preserved.
+		entry, _, err := client.ConfigEntries().Get(api.IngressGateway, "ingress", nil)
+		require.NoError(err)
+
+		entryConf := entry.(*api.IngressGatewayConfigEntry)
+		ingressConf.Listeners[1].Services = append(ingressConf.Listeners[1].Services, api.IngressService{
+			Name:      "zoo",
+			Namespace: entryConf.Listeners[1].Services[1].Namespace,
+			Hosts:     []string{"foo.com", "foo.net"},
+		})
+		ingressConf.CreateIndex = entry.GetCreateIndex()
+		ingressConf.ModifyIndex = entry.GetModifyIndex()
+		require.Equal(ingressConf, entry)
+	}
+
+	// Update the bar service and add a custom host.
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	{
+		ui := cli.NewMockUi()
+		c := New(ui)
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-service=bar",
+			"-ingress-gateway=ingress",
+			"-port=9999",
+			"-protocol=http",
+			"-host=bar.com",
+		}
+
+		code := c.Run(args)
+		if code != 0 {
+			t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+		}
+
+		// Make sure the ingress config was updated and existing services preserved.
+		entry, _, err := client.ConfigEntries().Get(api.IngressGateway, "ingress", nil)
+		require.NoError(err)
+
+		ingressConf.Listeners[1].Services[0].Hosts = []string{"bar.com"}
+		ingressConf.CreateIndex = entry.GetCreateIndex()
+		ingressConf.ModifyIndex = entry.GetModifyIndex()
+		require.Equal(ingressConf, entry)
+	}
+}

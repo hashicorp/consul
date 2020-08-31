@@ -1,39 +1,19 @@
-.unhealthy > div,
-.healthy > div {
-  @extend %card-grid;
-}
 .list-collection {
+  @extend %list-collection;
   height: 500px;
   position: relative;
 }
-.healthy > div {
-  width: calc(100% + 23px);
-  min-height: 500px;
+%list-collection > ul {
+  border-top: 1px solid $gray-200;
+  overflow-x: hidden !important;
 }
-.unhealthy > div {
-  margin-bottom: 20px;
+%list-collection > ul > li:nth-child(2) .with-feedback p {
+  bottom: auto;
+  top: 24px;
 }
-.healthy > div > ul > li {
-  padding-right: 23px;
-  padding-bottom: 20px;
-}
-%card-grid > ul,
-%card-grid > ol {
-  list-style-type: none;
-  display: grid;
-  grid-auto-rows: 12px;
-}
-@media #{$--fixed-grid} {
-  %card-grid > ul,
-  %card-grid > ol {
-    grid-gap: 20px 20px;
-    grid-template-columns: repeat(4, minmax(220px, 1fr));
-  }
-}
-@media #{$--lt-fixed-grid} {
-  %card-grid > ul,
-  %card-grid > ol {
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    grid-gap: 20px 2%;
-  }
+%list-collection > ul > li:nth-child(2) p::after {
+  bottom: auto;
+  top: -10px !important;
+  border-bottom-width: 18px;
+  border-top-width: 0;
 }

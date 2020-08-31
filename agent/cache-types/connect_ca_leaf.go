@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/consul/lib"
+	"github.com/mitchellh/hashstructure"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
@@ -48,6 +50,7 @@ const caChangeJitterWindow = 30 * time.Second
 // ConnectCALeaf supports fetching and generating Connect leaf
 // certificates.
 type ConnectCALeaf struct {
+	RegisterOptionsBlockingNoRefresh
 	caIndex uint64 // Current index for CA roots
 
 	// rootWatchMu protects access to the rootWatchSubscribers map and
@@ -81,7 +84,7 @@ type ConnectCALeaf struct {
 	// delay in tests they can set it to 1 nanosecond. We may separately allow
 	// configuring the jitter limit by users later but this is different and for
 	// tests only since we need to set a deterministic time delay in order to test
-	// the behaviour here fully and determinstically.
+	// the behavior here fully and determinstically.
 	TestOverrideCAChangeInitialDelay time.Duration
 }
 
@@ -96,9 +99,9 @@ type ConnectCALeaf struct {
 // since all times we get from our wall clock should point to the same Location
 // anyway.
 type fetchState struct {
-	// authorityKeyID is the key ID of the CA root that signed the current cert.
-	// This is just to save parsing the whole cert everytime we have to check if
-	// the root changed.
+	// authorityKeyId is the ID of the CA key (whether root or intermediate) that signed
+	// the current cert.  This is just to save parsing the whole cert everytime
+	// we have to check if the root changed.
 	authorityKeyID string
 
 	// forceExpireAfter is used to coordinate renewing certs after a CA rotation
@@ -116,6 +119,15 @@ type fetchState struct {
 	// use this to choose a new window for the next retry. See comment on
 	// caChangeJitterWindow above for more.
 	consecutiveRateLimitErrs int
+}
+
+func ConnectCALeafSuccess(authorityKeyID string) interface{} {
+	return fetchState{
+		authorityKeyID:           authorityKeyID,
+		forceExpireAfter:         time.Time{},
+		consecutiveRateLimitErrs: 0,
+		activeRootRotationStart:  time.Time{},
+	}
 }
 
 // fetchStart is called on each fetch that is about to block and wait for
@@ -233,7 +245,7 @@ func (c *ConnectCALeaf) rootWatcher(ctx context.Context) {
 
 // calculateSoftExpiry encapsulates our logic for when to renew a cert based on
 // it's age. It returns a pair of times min, max which makes it easier to test
-// the logic without non-determinisic jitter to account for. The caller should
+// the logic without non-deterministic jitter to account for. The caller should
 // choose a time randomly in between these.
 //
 // We want to balance a few factors here:
@@ -298,6 +310,10 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 			"Internal cache failure: request wrong type: %T", req)
 	}
 
+	// Lightweight copy this object so that manipulating QueryOptions doesn't race.
+	dup := *reqReal
+	reqReal = &dup
+
 	// Do we already have a cert in the cache?
 	var existing *structs.IssuedCert
 	// Really important this is not a pointer type since otherwise we would set it
@@ -358,7 +374,7 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 		expiresAt = state.forceExpireAfter
 	}
 
-	if expiresAt == now || expiresAt.Before(now) {
+	if expiresAt.Equal(now) || expiresAt.Before(now) {
 		// Already expired, just make a new one right away
 		return c.generateNewLeaf(reqReal, lastResultWithNewState())
 	}
@@ -462,7 +478,9 @@ func activeRootHasKey(roots *structs.IndexedCARoots, currentSigningKeyID string)
 }
 
 func (c *ConnectCALeaf) rootsFromCache() (*structs.IndexedCARoots, error) {
-	rawRoots, _, err := c.Cache.Get(ConnectCARootName, &structs.DCSpecificRequest{
+	// Background is fine here because this isn't a blocking query as no index is set.
+	// Therefore this will just either be a cache hit or return once the non-blocking query returns.
+	rawRoots, _, err := c.Cache.Get(context.Background(), ConnectCARootName, &structs.DCSpecificRequest{
 		Datacenter: c.Datacenter,
 	})
 	if err != nil {
@@ -501,22 +519,52 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 		return result, errors.New("cluster has no CA bootstrapped yet")
 	}
 
-	// Build the service ID
-	serviceID := &connect.SpiffeIDService{
-		Host:       roots.TrustDomain,
-		Datacenter: req.Datacenter,
-		Namespace:  "default",
-		Service:    req.Service,
+	// Build the cert uri
+	var id connect.CertURI
+	var commonName string
+	var dnsNames []string
+	var ipAddresses []net.IP
+	if req.Service != "" {
+		id = &connect.SpiffeIDService{
+			Host:       roots.TrustDomain,
+			Datacenter: req.Datacenter,
+			Namespace:  req.TargetNamespace(),
+			Service:    req.Service,
+		}
+		commonName = connect.ServiceCN(req.Service, req.TargetNamespace(), roots.TrustDomain)
+		dnsNames = append(dnsNames, req.DNSSAN...)
+	} else if req.Agent != "" {
+		id = &connect.SpiffeIDAgent{
+			Host:       roots.TrustDomain,
+			Datacenter: req.Datacenter,
+			Agent:      req.Agent,
+		}
+		commonName = connect.AgentCN(req.Agent, roots.TrustDomain)
+		dnsNames = append([]string{"localhost"}, req.DNSSAN...)
+		ipAddresses = append([]net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::1")}, req.IPSAN...)
+	} else {
+		return result, errors.New("URI must be either service or agent")
 	}
 
 	// Create a new private key
+
+	// TODO: for now we always generate EC keys on clients regardless of the key
+	// type being used by the active CA. This is fine and allowed in TLS1.2 and
+	// signing EC CSRs with an RSA key is supported by all current CA providers so
+	// it's OK. IFF we ever need to support a CA provider that refuses to sign a
+	// CSR with a different signature algorithm, or if we have compatibility
+	// issues with external PKI systems that require EC certs be signed with ECDSA
+	// from the CA (this was required in TLS1.1 but not in 1.2) then we can
+	// instead intelligently pick the key type we generate here based on the key
+	// type of the active signing CA. We already have that loaded since we need
+	// the trust domain.
 	pk, pkPEM, err := connect.GeneratePrivateKey()
 	if err != nil {
 		return result, err
 	}
 
 	// Create a CSR.
-	csr, err := connect.CreateCSR(serviceID, pk)
+	csr, err := connect.CreateCSR(id, commonName, pk, dnsNames, ipAddresses)
 	if err != nil {
 		return result, err
 	}
@@ -584,7 +632,7 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 		return result, err
 	}
 	// Set the CA key ID so we can easily tell when a active root has changed.
-	state.authorityKeyID = connect.HexString(cert.AuthorityKeyId)
+	state.authorityKeyID = connect.EncodeSigningKeyID(cert.AuthorityKeyId)
 
 	result.Value = &reply
 	// Store value not pointer so we don't accidentally mutate the cache entry
@@ -592,10 +640,6 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 	result.State = state
 	result.Index = reply.ModifyIndex
 	return result, nil
-}
-
-func (c *ConnectCALeaf) SupportsBlocking() bool {
-	return true
 }
 
 // ConnectCALeafRequest is the cache.Request implementation for the
@@ -606,14 +650,42 @@ type ConnectCALeafRequest struct {
 	Token         string
 	Datacenter    string
 	Service       string // Service name, not ID
+	Agent         string // Agent name, not ID
+	DNSSAN        []string
+	IPSAN         []net.IP
 	MinQueryIndex uint64
 	MaxQueryTime  time.Duration
+
+	structs.EnterpriseMeta
+}
+
+func (r *ConnectCALeafRequest) Key() string {
+	if len(r.Agent) > 0 {
+		return fmt.Sprintf("agent:%s", r.Agent)
+	}
+
+	r.EnterpriseMeta.Normalize()
+
+	v, err := hashstructure.Hash([]interface{}{
+		r.Service,
+		r.EnterpriseMeta,
+		r.DNSSAN,
+		r.IPSAN,
+	}, nil)
+	if err == nil {
+		return fmt.Sprintf("service:%d", v)
+	}
+
+	// If there is an error, we don't set the key. A blank key forces
+	// no cache for this request so the request is forwarded directly
+	// to the server.
+	return ""
 }
 
 func (r *ConnectCALeafRequest) CacheInfo() cache.RequestInfo {
 	return cache.RequestInfo{
 		Token:      r.Token,
-		Key:        r.Service,
+		Key:        r.Key(),
 		Datacenter: r.Datacenter,
 		MinIndex:   r.MinQueryIndex,
 		Timeout:    r.MaxQueryTime,

@@ -1,4 +1,5 @@
 @setupApplicationTest
+@notNamespaceable
 Feature: dc / acls / use: Using an ACL token
   Background:
     Given 1 datacenter model with the value "datacenter"
@@ -14,7 +15,7 @@ Feature: dc / acls / use: Using an ACL token
     ---
     Then I have settings like yaml
     ---
-    consul:token: '{"AccessorID":null,"SecretID":"id"}'
+    consul:token: '{"Namespace":"@namespace","AccessorID":null,"SecretID":"id"}'
     ---
     And I click actions on the acls
     And I click use on the acls
@@ -23,7 +24,7 @@ Feature: dc / acls / use: Using an ACL token
     And "[data-notification]" has the "success" class
     Then I have settings like yaml
     ---
-    consul:token: '{"AccessorID":null,"SecretID":"token"}'
+    consul:token: '{"Namespace":"@namespace","AccessorID":null,"SecretID":"token"}'
     ---
   Scenario: Using an ACL token from the detail page
     When I visit the acl page for yaml
@@ -33,7 +34,7 @@ Feature: dc / acls / use: Using an ACL token
     ---
     Then I have settings like yaml
     ---
-    consul:token: '{"AccessorID":null,"SecretID":"id"}'
+    consul:token: '{"Namespace":"@namespace","AccessorID":null,"SecretID":"id"}'
     ---
     And I click use
     And I click confirmUse
@@ -41,5 +42,5 @@ Feature: dc / acls / use: Using an ACL token
     And "[data-notification]" has the "success" class
     Then I have settings like yaml
     ---
-    consul:token: '{"AccessorID":null,"SecretID":"token"}'
+    consul:token: '{"Namespace":"@namespace","AccessorID":null,"SecretID":"token"}'
     ---

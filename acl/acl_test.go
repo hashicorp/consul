@@ -9,22 +9,24 @@ import (
 
 func legacyPolicy(policy *Policy) *Policy {
 	return &Policy{
-		Agents:                policy.Agents,
-		AgentPrefixes:         policy.Agents,
-		Nodes:                 policy.Nodes,
-		NodePrefixes:          policy.Nodes,
-		Keys:                  policy.Keys,
-		KeyPrefixes:           policy.Keys,
-		Services:              policy.Services,
-		ServicePrefixes:       policy.Services,
-		Sessions:              policy.Sessions,
-		SessionPrefixes:       policy.Sessions,
-		Events:                policy.Events,
-		EventPrefixes:         policy.Events,
-		PreparedQueries:       policy.PreparedQueries,
-		PreparedQueryPrefixes: policy.PreparedQueries,
-		Keyring:               policy.Keyring,
-		Operator:              policy.Operator,
+		PolicyRules: PolicyRules{
+			Agents:                policy.Agents,
+			AgentPrefixes:         policy.Agents,
+			Nodes:                 policy.Nodes,
+			NodePrefixes:          policy.Nodes,
+			Keys:                  policy.Keys,
+			KeyPrefixes:           policy.Keys,
+			Services:              policy.Services,
+			ServicePrefixes:       policy.Services,
+			Sessions:              policy.Sessions,
+			SessionPrefixes:       policy.Sessions,
+			Events:                policy.Events,
+			EventPrefixes:         policy.Events,
+			PreparedQueries:       policy.PreparedQueries,
+			PreparedQueryPrefixes: policy.PreparedQueries,
+			Keyring:               policy.Keyring,
+			Operator:              policy.Operator,
+		},
 	}
 }
 
@@ -34,219 +36,323 @@ func legacyPolicy(policy *Policy) *Policy {
 // nicer in the embedded struct within TestACL
 //
 
-func checkAllowACLRead(t *testing.T, authz Authorizer, prefix string) {
-	require.True(t, authz.ACLRead())
+func checkAllowACLRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.ACLRead(entCtx))
 }
 
-func checkAllowACLWrite(t *testing.T, authz Authorizer, prefix string) {
-	require.True(t, authz.ACLWrite())
+func checkAllowACLWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.ACLWrite(entCtx))
 }
 
-func checkAllowAgentRead(t *testing.T, authz Authorizer, prefix string) {
-	require.True(t, authz.AgentRead(prefix))
+func checkAllowAgentRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.AgentRead(prefix, entCtx))
 }
 
-func checkAllowAgentWrite(t *testing.T, authz Authorizer, prefix string) {
-	require.True(t, authz.AgentWrite(prefix))
+func checkAllowAgentWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.AgentWrite(prefix, entCtx))
 }
 
-func checkAllowEventRead(t *testing.T, authz Authorizer, prefix string) {
-	require.True(t, authz.EventRead(prefix))
+func checkAllowEventRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.EventRead(prefix, entCtx))
 }
 
-func checkAllowEventWrite(t *testing.T, authz Authorizer, prefix string) {
-	require.True(t, authz.EventWrite(prefix))
+func checkAllowEventWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.EventWrite(prefix, entCtx))
 }
 
-func checkAllowIntentionDefaultAllow(t *testing.T, authz Authorizer, prefix string) {
-	require.True(t, authz.IntentionDefaultAllow())
+func checkAllowIntentionDefaultAllow(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.IntentionDefaultAllow(entCtx))
 }
 
-func checkAllowIntentionRead(t *testing.T, authz Authorizer, prefix string) {
-	require.True(t, authz.IntentionRead(prefix))
+func checkAllowIntentionRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.IntentionRead(prefix, entCtx))
 }
 
-func checkAllowIntentionWrite(t *testing.T, authz Authorizer, prefix string) {
-	require.True(t, authz.IntentionWrite(prefix))
+func checkAllowIntentionWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.IntentionWrite(prefix, entCtx))
 }
 
-func checkAllowKeyRead(t *testing.T, authz Authorizer, prefix string) {
-	require.True(t, authz.KeyRead(prefix))
+func checkAllowKeyRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.KeyRead(prefix, entCtx))
 }
 
-func checkAllowKeyList(t *testing.T, authz Authorizer, prefix string) {
-	require.True(t, authz.KeyList(prefix))
+func checkAllowKeyList(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.KeyList(prefix, entCtx))
 }
 
-func checkAllowKeyringRead(t *testing.T, authz Authorizer, prefix string) {
-	require.True(t, authz.KeyringRead())
+func checkAllowKeyringRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.KeyringRead(entCtx))
 }
 
-func checkAllowKeyringWrite(t *testing.T, authz Authorizer, prefix string) {
-	require.True(t, authz.KeyringWrite())
+func checkAllowKeyringWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.KeyringWrite(entCtx))
 }
 
-func checkAllowKeyWrite(t *testing.T, authz Authorizer, prefix string) {
-	require.True(t, authz.KeyWrite(prefix, nil))
+func checkAllowKeyWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.KeyWrite(prefix, entCtx))
 }
 
-func checkAllowKeyWritePrefix(t *testing.T, authz Authorizer, prefix string) {
-	require.True(t, authz.KeyWritePrefix(prefix))
+func checkAllowKeyWritePrefix(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.KeyWritePrefix(prefix, entCtx))
 }
 
-func checkAllowNodeRead(t *testing.T, authz Authorizer, prefix string) {
-	require.True(t, authz.NodeRead(prefix))
+func checkAllowNodeRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.NodeRead(prefix, entCtx))
 }
 
-func checkAllowNodeWrite(t *testing.T, authz Authorizer, prefix string) {
-	require.True(t, authz.NodeWrite(prefix, nil))
+func checkAllowNodeWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.NodeWrite(prefix, entCtx))
 }
 
-func checkAllowOperatorRead(t *testing.T, authz Authorizer, prefix string) {
-	require.True(t, authz.OperatorRead())
+func checkAllowOperatorRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.OperatorRead(entCtx))
 }
 
-func checkAllowOperatorWrite(t *testing.T, authz Authorizer, prefix string) {
-	require.True(t, authz.OperatorWrite())
+func checkAllowOperatorWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.OperatorWrite(entCtx))
 }
 
-func checkAllowPreparedQueryRead(t *testing.T, authz Authorizer, prefix string) {
-	require.True(t, authz.PreparedQueryRead(prefix))
+func checkAllowPreparedQueryRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.PreparedQueryRead(prefix, entCtx))
 }
 
-func checkAllowPreparedQueryWrite(t *testing.T, authz Authorizer, prefix string) {
-	require.True(t, authz.PreparedQueryWrite(prefix))
+func checkAllowPreparedQueryWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.PreparedQueryWrite(prefix, entCtx))
 }
 
-func checkAllowServiceRead(t *testing.T, authz Authorizer, prefix string) {
-	require.True(t, authz.ServiceRead(prefix))
+func checkAllowServiceRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.ServiceRead(prefix, entCtx))
 }
 
-func checkAllowServiceWrite(t *testing.T, authz Authorizer, prefix string) {
-	require.True(t, authz.ServiceWrite(prefix, nil))
+func checkAllowServiceWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.ServiceWrite(prefix, entCtx))
 }
 
-func checkAllowSessionRead(t *testing.T, authz Authorizer, prefix string) {
-	require.True(t, authz.SessionRead(prefix))
+func checkAllowSessionRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.SessionRead(prefix, entCtx))
 }
 
-func checkAllowSessionWrite(t *testing.T, authz Authorizer, prefix string) {
-	require.True(t, authz.SessionWrite(prefix))
+func checkAllowSessionWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.SessionWrite(prefix, entCtx))
 }
 
-func checkAllowSnapshot(t *testing.T, authz Authorizer, prefix string) {
-	require.True(t, authz.Snapshot())
+func checkAllowSnapshot(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.Snapshot(entCtx))
 }
 
-func checkDenyACLRead(t *testing.T, authz Authorizer, prefix string) {
-	require.False(t, authz.ACLRead())
+func checkDenyACLRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.ACLRead(entCtx))
 }
 
-func checkDenyACLWrite(t *testing.T, authz Authorizer, prefix string) {
-	require.False(t, authz.ACLWrite())
+func checkDenyACLWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.ACLWrite(entCtx))
 }
 
-func checkDenyAgentRead(t *testing.T, authz Authorizer, prefix string) {
-	require.False(t, authz.AgentRead(prefix))
+func checkDenyAgentRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.AgentRead(prefix, entCtx))
 }
 
-func checkDenyAgentWrite(t *testing.T, authz Authorizer, prefix string) {
-	require.False(t, authz.AgentWrite(prefix))
+func checkDenyAgentWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.AgentWrite(prefix, entCtx))
 }
 
-func checkDenyEventRead(t *testing.T, authz Authorizer, prefix string) {
-	require.False(t, authz.EventRead(prefix))
+func checkDenyEventRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.EventRead(prefix, entCtx))
 }
 
-func checkDenyEventWrite(t *testing.T, authz Authorizer, prefix string) {
-	require.False(t, authz.EventWrite(prefix))
+func checkDenyEventWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.EventWrite(prefix, entCtx))
 }
 
-func checkDenyIntentionDefaultAllow(t *testing.T, authz Authorizer, prefix string) {
-	require.False(t, authz.IntentionDefaultAllow())
+func checkDenyIntentionDefaultAllow(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.IntentionDefaultAllow(entCtx))
 }
 
-func checkDenyIntentionRead(t *testing.T, authz Authorizer, prefix string) {
-	require.False(t, authz.IntentionRead(prefix))
+func checkDenyIntentionRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.IntentionRead(prefix, entCtx))
 }
 
-func checkDenyIntentionWrite(t *testing.T, authz Authorizer, prefix string) {
-	require.False(t, authz.IntentionWrite(prefix))
+func checkDenyIntentionWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.IntentionWrite(prefix, entCtx))
 }
 
-func checkDenyKeyRead(t *testing.T, authz Authorizer, prefix string) {
-	require.False(t, authz.KeyRead(prefix))
+func checkDenyKeyRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.KeyRead(prefix, entCtx))
 }
 
-func checkDenyKeyList(t *testing.T, authz Authorizer, prefix string) {
-	require.False(t, authz.KeyList(prefix))
+func checkDenyKeyList(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.KeyList(prefix, entCtx))
 }
 
-func checkDenyKeyringRead(t *testing.T, authz Authorizer, prefix string) {
-	require.False(t, authz.KeyringRead())
+func checkDenyKeyringRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.KeyringRead(entCtx))
 }
 
-func checkDenyKeyringWrite(t *testing.T, authz Authorizer, prefix string) {
-	require.False(t, authz.KeyringWrite())
+func checkDenyKeyringWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.KeyringWrite(entCtx))
 }
 
-func checkDenyKeyWrite(t *testing.T, authz Authorizer, prefix string) {
-	require.False(t, authz.KeyWrite(prefix, nil))
+func checkDenyKeyWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.KeyWrite(prefix, entCtx))
 }
 
-func checkDenyKeyWritePrefix(t *testing.T, authz Authorizer, prefix string) {
-	require.False(t, authz.KeyWritePrefix(prefix))
+func checkDenyKeyWritePrefix(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.KeyWritePrefix(prefix, entCtx))
 }
 
-func checkDenyNodeRead(t *testing.T, authz Authorizer, prefix string) {
-	require.False(t, authz.NodeRead(prefix))
+func checkDenyNodeRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.NodeRead(prefix, entCtx))
 }
 
-func checkDenyNodeWrite(t *testing.T, authz Authorizer, prefix string) {
-	require.False(t, authz.NodeWrite(prefix, nil))
+func checkDenyNodeWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.NodeWrite(prefix, entCtx))
 }
 
-func checkDenyOperatorRead(t *testing.T, authz Authorizer, prefix string) {
-	require.False(t, authz.OperatorRead())
+func checkDenyOperatorRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.OperatorRead(entCtx))
 }
 
-func checkDenyOperatorWrite(t *testing.T, authz Authorizer, prefix string) {
-	require.False(t, authz.OperatorWrite())
+func checkDenyOperatorWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.OperatorWrite(entCtx))
 }
 
-func checkDenyPreparedQueryRead(t *testing.T, authz Authorizer, prefix string) {
-	require.False(t, authz.PreparedQueryRead(prefix))
+func checkDenyPreparedQueryRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.PreparedQueryRead(prefix, entCtx))
 }
 
-func checkDenyPreparedQueryWrite(t *testing.T, authz Authorizer, prefix string) {
-	require.False(t, authz.PreparedQueryWrite(prefix))
+func checkDenyPreparedQueryWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.PreparedQueryWrite(prefix, entCtx))
 }
 
-func checkDenyServiceRead(t *testing.T, authz Authorizer, prefix string) {
-	require.False(t, authz.ServiceRead(prefix))
+func checkDenyServiceRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.ServiceRead(prefix, entCtx))
 }
 
-func checkDenyServiceWrite(t *testing.T, authz Authorizer, prefix string) {
-	require.False(t, authz.ServiceWrite(prefix, nil))
+func checkDenyServiceWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.ServiceWrite(prefix, entCtx))
 }
 
-func checkDenySessionRead(t *testing.T, authz Authorizer, prefix string) {
-	require.False(t, authz.SessionRead(prefix))
+func checkDenySessionRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.SessionRead(prefix, entCtx))
 }
 
-func checkDenySessionWrite(t *testing.T, authz Authorizer, prefix string) {
-	require.False(t, authz.SessionWrite(prefix))
+func checkDenySessionWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.SessionWrite(prefix, entCtx))
 }
 
-func checkDenySnapshot(t *testing.T, authz Authorizer, prefix string) {
-	require.False(t, authz.Snapshot())
+func checkDenySnapshot(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.Snapshot(entCtx))
+}
+
+func checkDefaultACLRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.ACLRead(entCtx))
+}
+
+func checkDefaultACLWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.ACLWrite(entCtx))
+}
+
+func checkDefaultAgentRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.AgentRead(prefix, entCtx))
+}
+
+func checkDefaultAgentWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.AgentWrite(prefix, entCtx))
+}
+
+func checkDefaultEventRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.EventRead(prefix, entCtx))
+}
+
+func checkDefaultEventWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.EventWrite(prefix, entCtx))
+}
+
+func checkDefaultIntentionDefaultAllow(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.IntentionDefaultAllow(entCtx))
+}
+
+func checkDefaultIntentionRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.IntentionRead(prefix, entCtx))
+}
+
+func checkDefaultIntentionWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.IntentionWrite(prefix, entCtx))
+}
+
+func checkDefaultKeyRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.KeyRead(prefix, entCtx))
+}
+
+func checkDefaultKeyList(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.KeyList(prefix, entCtx))
+}
+
+func checkDefaultKeyringRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.KeyringRead(entCtx))
+}
+
+func checkDefaultKeyringWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.KeyringWrite(entCtx))
+}
+
+func checkDefaultKeyWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.KeyWrite(prefix, entCtx))
+}
+
+func checkDefaultKeyWritePrefix(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.KeyWritePrefix(prefix, entCtx))
+}
+
+func checkDefaultNodeRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.NodeRead(prefix, entCtx))
+}
+
+func checkDefaultNodeWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.NodeWrite(prefix, entCtx))
+}
+
+func checkDefaultOperatorRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.OperatorRead(entCtx))
+}
+
+func checkDefaultOperatorWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.OperatorWrite(entCtx))
+}
+
+func checkDefaultPreparedQueryRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.PreparedQueryRead(prefix, entCtx))
+}
+
+func checkDefaultPreparedQueryWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.PreparedQueryWrite(prefix, entCtx))
+}
+
+func checkDefaultServiceRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.ServiceRead(prefix, entCtx))
+}
+
+func checkDefaultServiceWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.ServiceWrite(prefix, entCtx))
+}
+
+func checkDefaultSessionRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.SessionRead(prefix, entCtx))
+}
+
+func checkDefaultSessionWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.SessionWrite(prefix, entCtx))
+}
+
+func checkDefaultSnapshot(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.Snapshot(entCtx))
 }
 
 func TestACL(t *testing.T) {
 	type aclCheck struct {
 		name   string
 		prefix string
-		check  func(t *testing.T, authz Authorizer, prefix string)
+		check  func(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext)
 	}
 
 	type aclTest struct {
@@ -352,18 +458,20 @@ func TestACL(t *testing.T) {
 			defaultPolicy: DenyAll(),
 			policyStack: []*Policy{
 				legacyPolicy(&Policy{
-					Agents: []*AgentPolicy{
-						&AgentPolicy{
-							Node:   "root",
-							Policy: PolicyRead,
-						},
-						&AgentPolicy{
-							Node:   "root-nope",
-							Policy: PolicyDeny,
-						},
-						&AgentPolicy{
-							Node:   "root-rw",
-							Policy: PolicyWrite,
+					PolicyRules: PolicyRules{
+						Agents: []*AgentRule{
+							{
+								Node:   "root",
+								Policy: PolicyRead,
+							},
+							{
+								Node:   "root-nope",
+								Policy: PolicyDeny,
+							},
+							{
+								Node:   "root-rw",
+								Policy: PolicyWrite,
+							},
 						},
 					},
 				}),
@@ -390,18 +498,20 @@ func TestACL(t *testing.T) {
 			defaultPolicy: AllowAll(),
 			policyStack: []*Policy{
 				legacyPolicy(&Policy{
-					Agents: []*AgentPolicy{
-						&AgentPolicy{
-							Node:   "root",
-							Policy: PolicyRead,
-						},
-						&AgentPolicy{
-							Node:   "root-nope",
-							Policy: PolicyDeny,
-						},
-						&AgentPolicy{
-							Node:   "root-rw",
-							Policy: PolicyWrite,
+					PolicyRules: PolicyRules{
+						Agents: []*AgentRule{
+							{
+								Node:   "root",
+								Policy: PolicyRead,
+							},
+							{
+								Node:   "root-nope",
+								Policy: PolicyDeny,
+							},
+							{
+								Node:   "root-rw",
+								Policy: PolicyWrite,
+							},
 						},
 					},
 				}),
@@ -428,10 +538,12 @@ func TestACL(t *testing.T) {
 			defaultPolicy: AllowAll(),
 			policyStack: []*Policy{
 				legacyPolicy(&Policy{
-					PreparedQueries: []*PreparedQueryPolicy{
-						&PreparedQueryPolicy{
-							Prefix: "other",
-							Policy: PolicyDeny,
+					PolicyRules: PolicyRules{
+						PreparedQueries: []*PreparedQueryRule{
+							{
+								Prefix: "other",
+								Policy: PolicyDeny,
+							},
 						},
 					},
 				}),
@@ -450,42 +562,46 @@ func TestACL(t *testing.T) {
 			defaultPolicy: DenyAll(),
 			policyStack: []*Policy{
 				legacyPolicy(&Policy{
-					Agents: []*AgentPolicy{
-						&AgentPolicy{
-							Node:   "root-nope",
-							Policy: PolicyDeny,
-						},
-						&AgentPolicy{
-							Node:   "root-ro",
-							Policy: PolicyRead,
-						},
-						&AgentPolicy{
-							Node:   "root-rw",
-							Policy: PolicyWrite,
-						},
-						&AgentPolicy{
-							Node:   "override",
-							Policy: PolicyDeny,
+					PolicyRules: PolicyRules{
+						Agents: []*AgentRule{
+							{
+								Node:   "root-nope",
+								Policy: PolicyDeny,
+							},
+							{
+								Node:   "root-ro",
+								Policy: PolicyRead,
+							},
+							{
+								Node:   "root-rw",
+								Policy: PolicyWrite,
+							},
+							{
+								Node:   "override",
+								Policy: PolicyDeny,
+							},
 						},
 					},
 				}),
 				legacyPolicy(&Policy{
-					Agents: []*AgentPolicy{
-						&AgentPolicy{
-							Node:   "child-nope",
-							Policy: PolicyDeny,
-						},
-						&AgentPolicy{
-							Node:   "child-ro",
-							Policy: PolicyRead,
-						},
-						&AgentPolicy{
-							Node:   "child-rw",
-							Policy: PolicyWrite,
-						},
-						&AgentPolicy{
-							Node:   "override",
-							Policy: PolicyWrite,
+					PolicyRules: PolicyRules{
+						Agents: []*AgentRule{
+							{
+								Node:   "child-nope",
+								Policy: PolicyDeny,
+							},
+							{
+								Node:   "child-ro",
+								Policy: PolicyRead,
+							},
+							{
+								Node:   "child-rw",
+								Policy: PolicyWrite,
+							},
+							{
+								Node:   "override",
+								Policy: PolicyWrite,
+							},
 						},
 					},
 				}),
@@ -526,42 +642,46 @@ func TestACL(t *testing.T) {
 			defaultPolicy: AllowAll(),
 			policyStack: []*Policy{
 				legacyPolicy(&Policy{
-					Agents: []*AgentPolicy{
-						&AgentPolicy{
-							Node:   "root-nope",
-							Policy: PolicyDeny,
-						},
-						&AgentPolicy{
-							Node:   "root-ro",
-							Policy: PolicyRead,
-						},
-						&AgentPolicy{
-							Node:   "root-rw",
-							Policy: PolicyWrite,
-						},
-						&AgentPolicy{
-							Node:   "override",
-							Policy: PolicyDeny,
+					PolicyRules: PolicyRules{
+						Agents: []*AgentRule{
+							{
+								Node:   "root-nope",
+								Policy: PolicyDeny,
+							},
+							{
+								Node:   "root-ro",
+								Policy: PolicyRead,
+							},
+							{
+								Node:   "root-rw",
+								Policy: PolicyWrite,
+							},
+							{
+								Node:   "override",
+								Policy: PolicyDeny,
+							},
 						},
 					},
 				}),
 				legacyPolicy(&Policy{
-					Agents: []*AgentPolicy{
-						&AgentPolicy{
-							Node:   "child-nope",
-							Policy: PolicyDeny,
-						},
-						&AgentPolicy{
-							Node:   "child-ro",
-							Policy: PolicyRead,
-						},
-						&AgentPolicy{
-							Node:   "child-rw",
-							Policy: PolicyWrite,
-						},
-						&AgentPolicy{
-							Node:   "override",
-							Policy: PolicyWrite,
+					PolicyRules: PolicyRules{
+						Agents: []*AgentRule{
+							{
+								Node:   "child-nope",
+								Policy: PolicyDeny,
+							},
+							{
+								Node:   "child-ro",
+								Policy: PolicyRead,
+							},
+							{
+								Node:   "child-rw",
+								Policy: PolicyWrite,
+							},
+							{
+								Node:   "override",
+								Policy: PolicyWrite,
+							},
 						},
 					},
 				}),
@@ -601,8 +721,10 @@ func TestACL(t *testing.T) {
 			name:          "KeyringDefaultAllowPolicyDeny",
 			defaultPolicy: AllowAll(),
 			policyStack: []*Policy{
-				&Policy{
-					Keyring: PolicyDeny,
+				{
+					PolicyRules: PolicyRules{
+						Keyring: PolicyDeny,
+					},
 				},
 			},
 			checks: []aclCheck{
@@ -615,8 +737,10 @@ func TestACL(t *testing.T) {
 			name:          "KeyringDefaultAllowPolicyRead",
 			defaultPolicy: AllowAll(),
 			policyStack: []*Policy{
-				&Policy{
-					Keyring: PolicyRead,
+				{
+					PolicyRules: PolicyRules{
+						Keyring: PolicyRead,
+					},
 				},
 			},
 			checks: []aclCheck{
@@ -629,8 +753,10 @@ func TestACL(t *testing.T) {
 			name:          "KeyringDefaultAllowPolicyWrite",
 			defaultPolicy: AllowAll(),
 			policyStack: []*Policy{
-				&Policy{
-					Keyring: PolicyWrite,
+				{
+					PolicyRules: PolicyRules{
+						Keyring: PolicyWrite,
+					},
 				},
 			},
 			checks: []aclCheck{
@@ -642,7 +768,7 @@ func TestACL(t *testing.T) {
 			name:          "KeyringDefaultAllowPolicyNone",
 			defaultPolicy: AllowAll(),
 			policyStack: []*Policy{
-				&Policy{},
+				{},
 			},
 			checks: []aclCheck{
 				{name: "ReadAllowed", check: checkAllowKeyringRead},
@@ -653,8 +779,10 @@ func TestACL(t *testing.T) {
 			name:          "KeyringDefaultDenyPolicyDeny",
 			defaultPolicy: DenyAll(),
 			policyStack: []*Policy{
-				&Policy{
-					Keyring: PolicyDeny,
+				{
+					PolicyRules: PolicyRules{
+						Keyring: PolicyDeny,
+					},
 				},
 			},
 			checks: []aclCheck{
@@ -666,8 +794,10 @@ func TestACL(t *testing.T) {
 			name:          "KeyringDefaultDenyPolicyRead",
 			defaultPolicy: DenyAll(),
 			policyStack: []*Policy{
-				&Policy{
-					Keyring: PolicyRead,
+				{
+					PolicyRules: PolicyRules{
+						Keyring: PolicyRead,
+					},
 				},
 			},
 			checks: []aclCheck{
@@ -679,8 +809,10 @@ func TestACL(t *testing.T) {
 			name:          "KeyringDefaultDenyPolicyWrite",
 			defaultPolicy: DenyAll(),
 			policyStack: []*Policy{
-				&Policy{
-					Keyring: PolicyWrite,
+				{
+					PolicyRules: PolicyRules{
+						Keyring: PolicyWrite,
+					},
 				},
 			},
 			checks: []aclCheck{
@@ -692,7 +824,7 @@ func TestACL(t *testing.T) {
 			name:          "KeyringDefaultDenyPolicyNone",
 			defaultPolicy: DenyAll(),
 			policyStack: []*Policy{
-				&Policy{},
+				{},
 			},
 			checks: []aclCheck{
 				{name: "ReadDenied", check: checkDenyKeyringRead},
@@ -703,8 +835,10 @@ func TestACL(t *testing.T) {
 			name:          "OperatorDefaultAllowPolicyDeny",
 			defaultPolicy: AllowAll(),
 			policyStack: []*Policy{
-				&Policy{
-					Operator: PolicyDeny,
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyDeny,
+					},
 				},
 			},
 			checks: []aclCheck{
@@ -717,8 +851,10 @@ func TestACL(t *testing.T) {
 			name:          "OperatorDefaultAllowPolicyRead",
 			defaultPolicy: AllowAll(),
 			policyStack: []*Policy{
-				&Policy{
-					Operator: PolicyRead,
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyRead,
+					},
 				},
 			},
 			checks: []aclCheck{
@@ -731,8 +867,10 @@ func TestACL(t *testing.T) {
 			name:          "OperatorDefaultAllowPolicyWrite",
 			defaultPolicy: AllowAll(),
 			policyStack: []*Policy{
-				&Policy{
-					Operator: PolicyWrite,
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyWrite,
+					},
 				},
 			},
 			checks: []aclCheck{
@@ -744,7 +882,7 @@ func TestACL(t *testing.T) {
 			name:          "OperatorDefaultAllowPolicyNone",
 			defaultPolicy: AllowAll(),
 			policyStack: []*Policy{
-				&Policy{},
+				{},
 			},
 			checks: []aclCheck{
 				{name: "ReadAllowed", check: checkAllowOperatorRead},
@@ -755,8 +893,10 @@ func TestACL(t *testing.T) {
 			name:          "OperatorDefaultDenyPolicyDeny",
 			defaultPolicy: DenyAll(),
 			policyStack: []*Policy{
-				&Policy{
-					Operator: PolicyDeny,
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyDeny,
+					},
 				},
 			},
 			checks: []aclCheck{
@@ -768,8 +908,10 @@ func TestACL(t *testing.T) {
 			name:          "OperatorDefaultDenyPolicyRead",
 			defaultPolicy: DenyAll(),
 			policyStack: []*Policy{
-				&Policy{
-					Operator: PolicyRead,
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyRead,
+					},
 				},
 			},
 			checks: []aclCheck{
@@ -781,8 +923,10 @@ func TestACL(t *testing.T) {
 			name:          "OperatorDefaultDenyPolicyWrite",
 			defaultPolicy: DenyAll(),
 			policyStack: []*Policy{
-				&Policy{
-					Operator: PolicyWrite,
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyWrite,
+					},
 				},
 			},
 			checks: []aclCheck{
@@ -794,7 +938,7 @@ func TestACL(t *testing.T) {
 			name:          "OperatorDefaultDenyPolicyNone",
 			defaultPolicy: DenyAll(),
 			policyStack: []*Policy{
-				&Policy{},
+				{},
 			},
 			checks: []aclCheck{
 				{name: "ReadDenied", check: checkDenyOperatorRead},
@@ -806,42 +950,46 @@ func TestACL(t *testing.T) {
 			defaultPolicy: DenyAll(),
 			policyStack: []*Policy{
 				legacyPolicy(&Policy{
-					Nodes: []*NodePolicy{
-						&NodePolicy{
-							Name:   "root-nope",
-							Policy: PolicyDeny,
-						},
-						&NodePolicy{
-							Name:   "root-ro",
-							Policy: PolicyRead,
-						},
-						&NodePolicy{
-							Name:   "root-rw",
-							Policy: PolicyWrite,
-						},
-						&NodePolicy{
-							Name:   "override",
-							Policy: PolicyDeny,
+					PolicyRules: PolicyRules{
+						Nodes: []*NodeRule{
+							{
+								Name:   "root-nope",
+								Policy: PolicyDeny,
+							},
+							{
+								Name:   "root-ro",
+								Policy: PolicyRead,
+							},
+							{
+								Name:   "root-rw",
+								Policy: PolicyWrite,
+							},
+							{
+								Name:   "override",
+								Policy: PolicyDeny,
+							},
 						},
 					},
 				}),
 				legacyPolicy(&Policy{
-					Nodes: []*NodePolicy{
-						&NodePolicy{
-							Name:   "child-nope",
-							Policy: PolicyDeny,
-						},
-						&NodePolicy{
-							Name:   "child-ro",
-							Policy: PolicyRead,
-						},
-						&NodePolicy{
-							Name:   "child-rw",
-							Policy: PolicyWrite,
-						},
-						&NodePolicy{
-							Name:   "override",
-							Policy: PolicyWrite,
+					PolicyRules: PolicyRules{
+						Nodes: []*NodeRule{
+							{
+								Name:   "child-nope",
+								Policy: PolicyDeny,
+							},
+							{
+								Name:   "child-ro",
+								Policy: PolicyRead,
+							},
+							{
+								Name:   "child-rw",
+								Policy: PolicyWrite,
+							},
+							{
+								Name:   "override",
+								Policy: PolicyWrite,
+							},
 						},
 					},
 				}),
@@ -882,42 +1030,46 @@ func TestACL(t *testing.T) {
 			defaultPolicy: AllowAll(),
 			policyStack: []*Policy{
 				legacyPolicy(&Policy{
-					Nodes: []*NodePolicy{
-						&NodePolicy{
-							Name:   "root-nope",
-							Policy: PolicyDeny,
-						},
-						&NodePolicy{
-							Name:   "root-ro",
-							Policy: PolicyRead,
-						},
-						&NodePolicy{
-							Name:   "root-rw",
-							Policy: PolicyWrite,
-						},
-						&NodePolicy{
-							Name:   "override",
-							Policy: PolicyDeny,
+					PolicyRules: PolicyRules{
+						Nodes: []*NodeRule{
+							{
+								Name:   "root-nope",
+								Policy: PolicyDeny,
+							},
+							{
+								Name:   "root-ro",
+								Policy: PolicyRead,
+							},
+							{
+								Name:   "root-rw",
+								Policy: PolicyWrite,
+							},
+							{
+								Name:   "override",
+								Policy: PolicyDeny,
+							},
 						},
 					},
 				}),
 				legacyPolicy(&Policy{
-					Nodes: []*NodePolicy{
-						&NodePolicy{
-							Name:   "child-nope",
-							Policy: PolicyDeny,
-						},
-						&NodePolicy{
-							Name:   "child-ro",
-							Policy: PolicyRead,
-						},
-						&NodePolicy{
-							Name:   "child-rw",
-							Policy: PolicyWrite,
-						},
-						&NodePolicy{
-							Name:   "override",
-							Policy: PolicyWrite,
+					PolicyRules: PolicyRules{
+						Nodes: []*NodeRule{
+							{
+								Name:   "child-nope",
+								Policy: PolicyDeny,
+							},
+							{
+								Name:   "child-ro",
+								Policy: PolicyRead,
+							},
+							{
+								Name:   "child-rw",
+								Policy: PolicyWrite,
+							},
+							{
+								Name:   "override",
+								Policy: PolicyWrite,
+							},
 						},
 					},
 				}),
@@ -958,42 +1110,46 @@ func TestACL(t *testing.T) {
 			defaultPolicy: DenyAll(),
 			policyStack: []*Policy{
 				legacyPolicy(&Policy{
-					Sessions: []*SessionPolicy{
-						&SessionPolicy{
-							Node:   "root-nope",
-							Policy: PolicyDeny,
-						},
-						&SessionPolicy{
-							Node:   "root-ro",
-							Policy: PolicyRead,
-						},
-						&SessionPolicy{
-							Node:   "root-rw",
-							Policy: PolicyWrite,
-						},
-						&SessionPolicy{
-							Node:   "override",
-							Policy: PolicyDeny,
+					PolicyRules: PolicyRules{
+						Sessions: []*SessionRule{
+							{
+								Node:   "root-nope",
+								Policy: PolicyDeny,
+							},
+							{
+								Node:   "root-ro",
+								Policy: PolicyRead,
+							},
+							{
+								Node:   "root-rw",
+								Policy: PolicyWrite,
+							},
+							{
+								Node:   "override",
+								Policy: PolicyDeny,
+							},
 						},
 					},
 				}),
 				legacyPolicy(&Policy{
-					Sessions: []*SessionPolicy{
-						&SessionPolicy{
-							Node:   "child-nope",
-							Policy: PolicyDeny,
-						},
-						&SessionPolicy{
-							Node:   "child-ro",
-							Policy: PolicyRead,
-						},
-						&SessionPolicy{
-							Node:   "child-rw",
-							Policy: PolicyWrite,
-						},
-						&SessionPolicy{
-							Node:   "override",
-							Policy: PolicyWrite,
+					PolicyRules: PolicyRules{
+						Sessions: []*SessionRule{
+							{
+								Node:   "child-nope",
+								Policy: PolicyDeny,
+							},
+							{
+								Node:   "child-ro",
+								Policy: PolicyRead,
+							},
+							{
+								Node:   "child-rw",
+								Policy: PolicyWrite,
+							},
+							{
+								Node:   "override",
+								Policy: PolicyWrite,
+							},
 						},
 					},
 				}),
@@ -1034,42 +1190,46 @@ func TestACL(t *testing.T) {
 			defaultPolicy: AllowAll(),
 			policyStack: []*Policy{
 				legacyPolicy(&Policy{
-					Sessions: []*SessionPolicy{
-						&SessionPolicy{
-							Node:   "root-nope",
-							Policy: PolicyDeny,
-						},
-						&SessionPolicy{
-							Node:   "root-ro",
-							Policy: PolicyRead,
-						},
-						&SessionPolicy{
-							Node:   "root-rw",
-							Policy: PolicyWrite,
-						},
-						&SessionPolicy{
-							Node:   "override",
-							Policy: PolicyDeny,
+					PolicyRules: PolicyRules{
+						Sessions: []*SessionRule{
+							{
+								Node:   "root-nope",
+								Policy: PolicyDeny,
+							},
+							{
+								Node:   "root-ro",
+								Policy: PolicyRead,
+							},
+							{
+								Node:   "root-rw",
+								Policy: PolicyWrite,
+							},
+							{
+								Node:   "override",
+								Policy: PolicyDeny,
+							},
 						},
 					},
 				}),
 				legacyPolicy(&Policy{
-					Sessions: []*SessionPolicy{
-						&SessionPolicy{
-							Node:   "child-nope",
-							Policy: PolicyDeny,
-						},
-						&SessionPolicy{
-							Node:   "child-ro",
-							Policy: PolicyRead,
-						},
-						&SessionPolicy{
-							Node:   "child-rw",
-							Policy: PolicyWrite,
-						},
-						&SessionPolicy{
-							Node:   "override",
-							Policy: PolicyWrite,
+					PolicyRules: PolicyRules{
+						Sessions: []*SessionRule{
+							{
+								Node:   "child-nope",
+								Policy: PolicyDeny,
+							},
+							{
+								Node:   "child-ro",
+								Policy: PolicyRead,
+							},
+							{
+								Node:   "child-rw",
+								Policy: PolicyWrite,
+							},
+							{
+								Node:   "override",
+								Policy: PolicyWrite,
+							},
 						},
 					},
 				}),
@@ -1110,62 +1270,66 @@ func TestACL(t *testing.T) {
 			defaultPolicy: DenyAll(),
 			policyStack: []*Policy{
 				legacyPolicy(&Policy{
-					Keys: []*KeyPolicy{
-						&KeyPolicy{
-							Prefix: "foo/",
-							Policy: PolicyWrite,
+					PolicyRules: PolicyRules{
+						Keys: []*KeyRule{
+							{
+								Prefix: "foo/",
+								Policy: PolicyWrite,
+							},
+							{
+								Prefix: "bar/",
+								Policy: PolicyRead,
+							},
 						},
-						&KeyPolicy{
-							Prefix: "bar/",
-							Policy: PolicyRead,
+						PreparedQueries: []*PreparedQueryRule{
+							{
+								Prefix: "other",
+								Policy: PolicyWrite,
+							},
+							{
+								Prefix: "foo",
+								Policy: PolicyRead,
+							},
 						},
-					},
-					PreparedQueries: []*PreparedQueryPolicy{
-						&PreparedQueryPolicy{
-							Prefix: "other",
-							Policy: PolicyWrite,
-						},
-						&PreparedQueryPolicy{
-							Prefix: "foo",
-							Policy: PolicyRead,
-						},
-					},
-					Services: []*ServicePolicy{
-						&ServicePolicy{
-							Name:   "other",
-							Policy: PolicyWrite,
-						},
-						&ServicePolicy{
-							Name:   "foo",
-							Policy: PolicyRead,
+						Services: []*ServiceRule{
+							{
+								Name:   "other",
+								Policy: PolicyWrite,
+							},
+							{
+								Name:   "foo",
+								Policy: PolicyRead,
+							},
 						},
 					},
 				}),
 				legacyPolicy(&Policy{
-					Keys: []*KeyPolicy{
-						&KeyPolicy{
-							Prefix: "foo/priv/",
-							Policy: PolicyRead,
+					PolicyRules: PolicyRules{
+						Keys: []*KeyRule{
+							{
+								Prefix: "foo/priv/",
+								Policy: PolicyRead,
+							},
+							{
+								Prefix: "bar/",
+								Policy: PolicyDeny,
+							},
+							{
+								Prefix: "zip/",
+								Policy: PolicyRead,
+							},
 						},
-						&KeyPolicy{
-							Prefix: "bar/",
-							Policy: PolicyDeny,
+						PreparedQueries: []*PreparedQueryRule{
+							{
+								Prefix: "bar",
+								Policy: PolicyDeny,
+							},
 						},
-						&KeyPolicy{
-							Prefix: "zip/",
-							Policy: PolicyRead,
-						},
-					},
-					PreparedQueries: []*PreparedQueryPolicy{
-						&PreparedQueryPolicy{
-							Prefix: "bar",
-							Policy: PolicyDeny,
-						},
-					},
-					Services: []*ServicePolicy{
-						&ServicePolicy{
-							Name:   "bar",
-							Policy: PolicyDeny,
+						Services: []*ServiceRule{
+							{
+								Name:   "bar",
+								Policy: PolicyDeny,
+							},
 						},
 					},
 				}),
@@ -1217,82 +1381,84 @@ func TestACL(t *testing.T) {
 			defaultPolicy: AllowAll(),
 			policyStack: []*Policy{
 				legacyPolicy(&Policy{
-					Events: []*EventPolicy{
-						&EventPolicy{
-							Event:  "",
-							Policy: PolicyRead,
+					PolicyRules: PolicyRules{
+						Events: []*EventRule{
+							{
+								Event:  "",
+								Policy: PolicyRead,
+							},
+							{
+								Event:  "foo",
+								Policy: PolicyWrite,
+							},
+							{
+								Event:  "bar",
+								Policy: PolicyDeny,
+							},
 						},
-						&EventPolicy{
-							Event:  "foo",
-							Policy: PolicyWrite,
+						Keys: []*KeyRule{
+							{
+								Prefix: "foo/",
+								Policy: PolicyWrite,
+							},
+							{
+								Prefix: "foo/priv/",
+								Policy: PolicyDeny,
+							},
+							{
+								Prefix: "bar/",
+								Policy: PolicyDeny,
+							},
+							{
+								Prefix: "zip/",
+								Policy: PolicyRead,
+							},
+							{
+								Prefix: "zap/",
+								Policy: PolicyList,
+							},
 						},
-						&EventPolicy{
-							Event:  "bar",
-							Policy: PolicyDeny,
+						PreparedQueries: []*PreparedQueryRule{
+							{
+								Prefix: "",
+								Policy: PolicyRead,
+							},
+							{
+								Prefix: "foo",
+								Policy: PolicyWrite,
+							},
+							{
+								Prefix: "bar",
+								Policy: PolicyDeny,
+							},
+							{
+								Prefix: "zoo",
+								Policy: PolicyWrite,
+							},
 						},
-					},
-					Keys: []*KeyPolicy{
-						&KeyPolicy{
-							Prefix: "foo/",
-							Policy: PolicyWrite,
-						},
-						&KeyPolicy{
-							Prefix: "foo/priv/",
-							Policy: PolicyDeny,
-						},
-						&KeyPolicy{
-							Prefix: "bar/",
-							Policy: PolicyDeny,
-						},
-						&KeyPolicy{
-							Prefix: "zip/",
-							Policy: PolicyRead,
-						},
-						&KeyPolicy{
-							Prefix: "zap/",
-							Policy: PolicyList,
-						},
-					},
-					PreparedQueries: []*PreparedQueryPolicy{
-						&PreparedQueryPolicy{
-							Prefix: "",
-							Policy: PolicyRead,
-						},
-						&PreparedQueryPolicy{
-							Prefix: "foo",
-							Policy: PolicyWrite,
-						},
-						&PreparedQueryPolicy{
-							Prefix: "bar",
-							Policy: PolicyDeny,
-						},
-						&PreparedQueryPolicy{
-							Prefix: "zoo",
-							Policy: PolicyWrite,
-						},
-					},
-					Services: []*ServicePolicy{
-						&ServicePolicy{
-							Name:   "",
-							Policy: PolicyWrite,
-						},
-						&ServicePolicy{
-							Name:   "foo",
-							Policy: PolicyRead,
-						},
-						&ServicePolicy{
-							Name:   "bar",
-							Policy: PolicyDeny,
-						},
-						&ServicePolicy{
-							Name:       "barfoo",
-							Policy:     PolicyWrite,
-							Intentions: PolicyWrite,
-						},
-						&ServicePolicy{
-							Name:       "intbaz",
-							Policy:     PolicyWrite,
-							Intentions: PolicyDeny,
+						Services: []*ServiceRule{
+							{
+								Name:   "",
+								Policy: PolicyWrite,
+							},
+							{
+								Name:   "foo",
+								Policy: PolicyRead,
+							},
+							{
+								Name:   "bar",
+								Policy: PolicyDeny,
+							},
+							{
+								Name:       "barfoo",
+								Policy:     PolicyWrite,
+								Intentions: PolicyWrite,
+							},
+							{
+								Name:       "intbaz",
+								Policy:     PolicyWrite,
+								Intentions: PolicyDeny,
+							},
 						},
 					},
 				}),
@@ -1393,148 +1559,150 @@ func TestACL(t *testing.T) {
 			name:          "ExactMatchPrecedence",
 			defaultPolicy: DenyAll(),
 			policyStack: []*Policy{
-				&Policy{
-					Agents: []*AgentPolicy{
-						&AgentPolicy{
-							Node:   "foo",
-							Policy: PolicyWrite,
+				{
+					PolicyRules: PolicyRules{
+						Agents: []*AgentRule{
+							{
+								Node:   "foo",
+								Policy: PolicyWrite,
+							},
+							{
+								Node:   "football",
+								Policy: PolicyDeny,
+							},
 						},
-						&AgentPolicy{
-							Node:   "football",
-							Policy: PolicyDeny,
+						AgentPrefixes: []*AgentRule{
+							{
+								Node:   "foot",
+								Policy: PolicyRead,
+							},
+							{
+								Node:   "fo",
+								Policy: PolicyRead,
+							},
 						},
-					},
-					AgentPrefixes: []*AgentPolicy{
-						&AgentPolicy{
-							Node:   "foot",
-							Policy: PolicyRead,
+						Keys: []*KeyRule{
+							{
+								Prefix: "foo",
+								Policy: PolicyWrite,
+							},
+							{
+								Prefix: "football",
+								Policy: PolicyDeny,
+							},
 						},
-						&AgentPolicy{
-							Node:   "fo",
-							Policy: PolicyRead,
+						KeyPrefixes: []*KeyRule{
+							{
+								Prefix: "foot",
+								Policy: PolicyRead,
+							},
+							{
+								Prefix: "fo",
+								Policy: PolicyRead,
+							},
 						},
-					},
-					Keys: []*KeyPolicy{
-						&KeyPolicy{
-							Prefix: "foo",
-							Policy: PolicyWrite,
+						Nodes: []*NodeRule{
+							{
+								Name:   "foo",
+								Policy: PolicyWrite,
+							},
+							{
+								Name:   "football",
+								Policy: PolicyDeny,
+							},
 						},
-						&KeyPolicy{
-							Prefix: "football",
-							Policy: PolicyDeny,
+						NodePrefixes: []*NodeRule{
+							{
+								Name:   "foot",
+								Policy: PolicyRead,
+							},
+							{
+								Name:   "fo",
+								Policy: PolicyRead,
+							},
 						},
-					},
-					KeyPrefixes: []*KeyPolicy{
-						&KeyPolicy{
-							Prefix: "foot",
-							Policy: PolicyRead,
+						Services: []*ServiceRule{
+							{
+								Name:       "foo",
+								Policy:     PolicyWrite,
+								Intentions: PolicyWrite,
+							},
+							{
+								Name:   "football",
+								Policy: PolicyDeny,
+							},
 						},
-						&KeyPolicy{
-							Prefix: "fo",
-							Policy: PolicyRead,
+						ServicePrefixes: []*ServiceRule{
+							{
+								Name:       "foot",
+								Policy:     PolicyRead,
+								Intentions: PolicyRead,
+							},
+							{
+								Name:       "fo",
+								Policy:     PolicyRead,
+								Intentions: PolicyRead,
+							},
 						},
-					},
-					Nodes: []*NodePolicy{
-						&NodePolicy{
-							Name:   "foo",
-							Policy: PolicyWrite,
+						Sessions: []*SessionRule{
+							{
+								Node:   "foo",
+								Policy: PolicyWrite,
+							},
+							{
+								Node:   "football",
+								Policy: PolicyDeny,
+							},
 						},
-						&NodePolicy{
-							Name:   "football",
-							Policy: PolicyDeny,
+						SessionPrefixes: []*SessionRule{
+							{
+								Node:   "foot",
+								Policy: PolicyRead,
+							},
+							{
+								Node:   "fo",
+								Policy: PolicyRead,
+							},
 						},
-					},
-					NodePrefixes: []*NodePolicy{
-						&NodePolicy{
-							Name:   "foot",
-							Policy: PolicyRead,
+						Events: []*EventRule{
+							{
+								Event:  "foo",
+								Policy: PolicyWrite,
+							},
+							{
+								Event:  "football",
+								Policy: PolicyDeny,
+							},
 						},
-						&NodePolicy{
-							Name:   "fo",
-							Policy: PolicyRead,
+						EventPrefixes: []*EventRule{
+							{
+								Event:  "foot",
+								Policy: PolicyRead,
+							},
+							{
+								Event:  "fo",
+								Policy: PolicyRead,
+							},
 						},
-					},
-					Services: []*ServicePolicy{
-						&ServicePolicy{
-							Name:       "foo",
-							Policy:     PolicyWrite,
-							Intentions: PolicyWrite,
+						PreparedQueries: []*PreparedQueryRule{
+							{
+								Prefix: "foo",
+								Policy: PolicyWrite,
+							},
+							{
+								Prefix: "football",
+								Policy: PolicyDeny,
+							},
 						},
-						&ServicePolicy{
-							Name:   "football",
-							Policy: PolicyDeny,
-						},
-					},
-					ServicePrefixes: []*ServicePolicy{
-						&ServicePolicy{
-							Name:       "foot",
-							Policy:     PolicyRead,
-							Intentions: PolicyRead,
-						},
-						&ServicePolicy{
-							Name:       "fo",
-							Policy:     PolicyRead,
-							Intentions: PolicyRead,
-						},
-					},
-					Sessions: []*SessionPolicy{
-						&SessionPolicy{
-							Node:   "foo",
-							Policy: PolicyWrite,
-						},
-						&SessionPolicy{
-							Node:   "football",
-							Policy: PolicyDeny,
-						},
-					},
-					SessionPrefixes: []*SessionPolicy{
-						&SessionPolicy{
-							Node:   "foot",
-							Policy: PolicyRead,
-						},
-						&SessionPolicy{
-							Node:   "fo",
-							Policy: PolicyRead,
-						},
-					},
-					Events: []*EventPolicy{
-						&EventPolicy{
-							Event:  "foo",
-							Policy: PolicyWrite,
-						},
-						&EventPolicy{
-							Event:  "football",
-							Policy: PolicyDeny,
-						},
-					},
-					EventPrefixes: []*EventPolicy{
-						&EventPolicy{
-							Event:  "foot",
-							Policy: PolicyRead,
-						},
-						&EventPolicy{
-							Event:  "fo",
-							Policy: PolicyRead,
-						},
-					},
-					PreparedQueries: []*PreparedQueryPolicy{
-						&PreparedQueryPolicy{
-							Prefix: "foo",
-							Policy: PolicyWrite,
-						},
-						&PreparedQueryPolicy{
-							Prefix: "football",
-							Policy: PolicyDeny,
-						},
-					},
-					PreparedQueryPrefixes: []*PreparedQueryPolicy{
-						&PreparedQueryPolicy{
-							Prefix: "foot",
-							Policy: PolicyRead,
-						},
-						&PreparedQueryPolicy{
-							Prefix: "fo",
-							Policy: PolicyRead,
+						PreparedQueryPrefixes: []*PreparedQueryRule{
+							{
+								Prefix: "foot",
+								Policy: PolicyRead,
+							},
+							{
+								Prefix: "fo",
+								Policy: PolicyRead,
+							},
 						},
 					},
 				},
@@ -1680,8 +1848,10 @@ func TestACL(t *testing.T) {
 			name:          "ACLRead",
 			defaultPolicy: DenyAll(),
 			policyStack: []*Policy{
-				&Policy{
-					ACL: PolicyRead,
+				{
+					PolicyRules: PolicyRules{
+						ACL: PolicyRead,
+					},
 				},
 			},
 			checks: []aclCheck{
@@ -1694,8 +1864,10 @@ func TestACL(t *testing.T) {
 			name:          "ACLRead",
 			defaultPolicy: DenyAll(),
 			policyStack: []*Policy{
-				&Policy{
-					ACL: PolicyWrite,
+				{
+					PolicyRules: PolicyRules{
+						ACL: PolicyWrite,
+					},
 				},
 			},
 			checks: []aclCheck{
@@ -1704,13 +1876,100 @@ func TestACL(t *testing.T) {
 				{name: "WriteAllowed", check: checkAllowACLWrite},
 			},
 		},
+		{
+			name:          "KeyWritePrefixDefaultDeny",
+			defaultPolicy: DenyAll(),
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						KeyPrefixes: []*KeyRule{
+							{
+								Prefix: "fo",
+								Policy: PolicyRead,
+							},
+							{
+								Prefix: "foo/",
+								Policy: PolicyWrite,
+							},
+							{
+								Prefix: "bar/",
+								Policy: PolicyWrite,
+							},
+							{
+								Prefix: "baz/",
+								Policy: PolicyWrite,
+							},
+							{
+								Prefix: "test/",
+								Policy: PolicyWrite,
+							},
+						},
+						Keys: []*KeyRule{
+							{
+								Prefix: "foo/bar",
+								Policy: PolicyWrite,
+							},
+							{
+								Prefix: "bar/baz",
+								Policy: PolicyRead,
+							},
+						},
+					},
+				},
+			},
+			checks: []aclCheck{
+				// Ensure we deny access if the best match key_prefix rule does not grant
+				// write access (disregards both the default policy and any other rules with
+				// segments that may fall within the given kv prefix)
+				{name: "DeniedTopLevelPrefix", prefix: "foo", check: checkDenyKeyWritePrefix},
+				// Allow recursive KV writes when we have a prefix rule that allows it and no
+				// other rules with segments that fall within the requested kv prefix to be written.
+				{name: "AllowedTopLevelPrefix", prefix: "baz/", check: checkAllowKeyWritePrefix},
+				// Ensure we allow recursive KV writes when we have a prefix rule that would allow it
+				// and all other rules with segments prefixed by the kv prefix to be written also allow
+				// write access.
+				{name: "AllowedPrefixWithNestedWrite", prefix: "foo/", check: checkAllowKeyWritePrefix},
+				// Ensure that we deny recursive KV writes when they would be allowed for a prefix but
+				// denied by either an exact match rule or prefix match rule for a segment prefixed by
+				// the kv prefix being checked against.
+				{name: "DenyPrefixWithNestedRead", prefix: "bar/", check: checkDenyKeyWritePrefix},
+				// Ensure that the default deny policy is used when there is no key_prefix rule
+				// for the given kv segment regardless of any rules that would grant write access
+				// to segments prefixed by the kv prefix being checked against.
+				{name: "DenyNoPrefixMatch", prefix: "te", check: checkDenyKeyWritePrefix},
+			},
+		},
+		{
+			name:          "KeyWritePrefixDefaultAllow",
+			defaultPolicy: AllowAll(),
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Keys: []*KeyRule{
+							{
+								Prefix: "foo/bar",
+								Policy: PolicyRead,
+							},
+						},
+					},
+				},
+			},
+			checks: []aclCheck{
+				// Ensure that we deny a key prefix write when a rule for a key within our prefix
+				// doesn't allow writing and the default policy is to allow
+				{name: "KeyWritePrefixDenied", prefix: "foo", check: checkDenyKeyWritePrefix},
+				// Ensure that the default allow policy is used when there is no prefix rule
+				// and there are no other rules regarding keys within that prefix to be written.
+				{name: "KeyWritePrefixAllowed", prefix: "bar", check: checkAllowKeyWritePrefix},
+			},
+		},
 	}
 
 	for _, tcase := range tests {
 		t.Run(tcase.name, func(t *testing.T) {
 			acl := tcase.defaultPolicy
 			for _, policy := range tcase.policyStack {
-				newACL, err := NewPolicyAuthorizer(acl, []*Policy{policy}, nil)
+				newACL, err := NewPolicyAuthorizerWithDefaults(acl, []*Policy{policy}, nil)
 				require.NoError(t, err)
 				acl = newACL
 			}
@@ -1721,7 +1980,7 @@ func TestACL(t *testing.T) {
 					checkName = fmt.Sprintf("%s.Prefix(%s)", checkName, check.prefix)
 				}
 				t.Run(checkName, func(t *testing.T) {
-					check.check(t, acl, check.prefix)
+					check.check(t, acl, check.prefix, nil)
 				})
 			}
 		})
@@ -1738,125 +1997,107 @@ func TestRootAuthorizer(t *testing.T) {
 func TestACLEnforce(t *testing.T) {
 	type enforceTest struct {
 		name     string
-		rule     string
-		required string
-		allow    bool
-		recurse  bool
+		rule     AccessLevel
+		required AccessLevel
+		expected EnforcementDecision
 	}
 
 	tests := []enforceTest{
 		{
 			name:     "RuleNoneRequireRead",
-			rule:     "",
-			required: PolicyRead,
-			allow:    false,
-			recurse:  true,
+			rule:     AccessUnknown,
+			required: AccessRead,
+			expected: Default,
 		},
 		{
 			name:     "RuleNoneRequireWrite",
-			rule:     "",
-			required: PolicyWrite,
-			allow:    false,
-			recurse:  true,
+			rule:     AccessUnknown,
+			required: AccessWrite,
+			expected: Default,
 		},
 		{
 			name:     "RuleNoneRequireList",
-			rule:     "",
-			required: PolicyList,
-			allow:    false,
-			recurse:  true,
+			rule:     AccessUnknown,
+			required: AccessList,
+			expected: Default,
 		},
 		{
 			name:     "RuleReadRequireRead",
-			rule:     PolicyRead,
-			required: PolicyRead,
-			allow:    true,
-			recurse:  false,
+			rule:     AccessRead,
+			required: AccessRead,
+			expected: Allow,
 		},
 		{
 			name:     "RuleReadRequireWrite",
-			rule:     PolicyRead,
-			required: PolicyWrite,
-			allow:    false,
-			recurse:  false,
+			rule:     AccessRead,
+			required: AccessWrite,
+			expected: Deny,
 		},
 		{
 			name:     "RuleReadRequireList",
-			rule:     PolicyRead,
-			required: PolicyList,
-			allow:    false,
-			recurse:  false,
+			rule:     AccessRead,
+			required: AccessList,
+			expected: Deny,
 		},
 		{
 			name:     "RuleListRequireRead",
-			rule:     PolicyList,
-			required: PolicyRead,
-			allow:    true,
-			recurse:  false,
+			rule:     AccessList,
+			required: AccessRead,
+			expected: Allow,
 		},
 		{
 			name:     "RuleListRequireWrite",
-			rule:     PolicyList,
-			required: PolicyWrite,
-			allow:    false,
-			recurse:  false,
+			rule:     AccessList,
+			required: AccessWrite,
+			expected: Deny,
 		},
 		{
 			name:     "RuleListRequireList",
-			rule:     PolicyList,
-			required: PolicyList,
-			allow:    true,
-			recurse:  false,
+			rule:     AccessList,
+			required: AccessList,
+			expected: Allow,
 		},
 		{
 			name:     "RuleWritetRequireRead",
-			rule:     PolicyWrite,
-			required: PolicyRead,
-			allow:    true,
-			recurse:  false,
+			rule:     AccessWrite,
+			required: AccessRead,
+			expected: Allow,
 		},
 		{
 			name:     "RuleWritetRequireWrite",
-			rule:     PolicyWrite,
-			required: PolicyWrite,
-			allow:    true,
-			recurse:  false,
+			rule:     AccessWrite,
+			required: AccessWrite,
+			expected: Allow,
 		},
 		{
 			name:     "RuleWritetRequireList",
-			rule:     PolicyWrite,
-			required: PolicyList,
-			allow:    true,
-			recurse:  false,
+			rule:     AccessWrite,
+			required: AccessList,
+			expected: Allow,
 		},
 		{
 			name:     "RuleDenyRequireRead",
-			rule:     PolicyDeny,
-			required: PolicyRead,
-			allow:    false,
-			recurse:  false,
+			rule:     AccessDeny,
+			required: AccessRead,
+			expected: Deny,
 		},
 		{
 			name:     "RuleDenyRequireWrite",
-			rule:     PolicyDeny,
-			required: PolicyWrite,
-			allow:    false,
-			recurse:  false,
+			rule:     AccessDeny,
+			required: AccessWrite,
+			expected: Deny,
 		},
 		{
 			name:     "RuleDenyRequireList",
-			rule:     PolicyDeny,
-			required: PolicyList,
-			allow:    false,
-			recurse:  false,
+			rule:     AccessDeny,
+			required: AccessList,
+			expected: Deny,
 		},
 	}
 
 	for _, tcase := range tests {
 		t.Run(tcase.name, func(t *testing.T) {
-			allow, recurse := enforce(tcase.rule, tcase.required)
-			require.Equal(t, tcase.allow, allow)
-			require.Equal(t, tcase.recurse, recurse)
+			require.Equal(t, tcase.expected, enforce(tcase.rule, tcase.required))
 		})
 	}
 }

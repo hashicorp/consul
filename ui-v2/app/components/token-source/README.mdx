@@ -1,0 +1,32 @@
+## TokenSource
+
+```handlebars
+  <TokenSource
+    @dc={{dc}}
+    @nspace={{nspace}}
+    @type={{or 'oidc' 'secret'}}
+    @value={{or identifierForProvider secret}}
+    @onchange={{action 'change'}}
+    @onerror={{action 'error'}}
+  />
+```
+
+### Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `dc` | `String` | | The name of the current datacenter |
+| `nspace` | `String` | | The name of the current namespace |
+| `onchange` | `Function` |  | The action to fire when the data changes. Emits an Event-like object with a `data` property containing the jwt data, in this case the autorizationCode and the status |
+| `onerror` | `Function` |  | The action to fire when an error occurs. Emits ErrorEvent object with an `error` property containing the Error. |
+
+This component will go through the steps of requesting a JWT token from a third party oauth provider. `src` should contain the full URL of the authorization URL for the 3rd party provider. Once the user has logged into the 3rd party provider the `onchange` event will be fired containing an event-like object whose data contains the JWT information.
+
+The component need only be place into the DOM in order to begin the OAuth dance.
+
+### See
+
+- [Component Source Code](./index.js)
+- [Template Source Code](./index.hbs)
+
+---

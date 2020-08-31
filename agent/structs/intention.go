@@ -1,20 +1,24 @@
 package structs
 
 import (
+	"encoding/binary"
+	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/hashstructure"
+
+	"golang.org/x/crypto/blake2b"
 )
 
 const (
-	// IntentionWildcard is the wildcard value.
-	IntentionWildcard = "*"
-
 	// IntentionDefaultNamespace is the default namespace value.
 	// NOTE(mitchellh): This is only meant to be a temporary constant.
 	// When namespaces are introduced, we should delete this constant and
@@ -49,13 +53,15 @@ type Intention struct {
 	// SourceType is the type of the value for the source.
 	SourceType IntentionSourceType
 
-	// Action is whether this is a whitelist or blacklist intention.
+	// Action is whether this is an allowlist or denylist intention.
 	Action IntentionAction
 
-	// DefaultAddr, DefaultPort of the local listening proxy (if any) to
-	// make this connection.
-	DefaultAddr string
-	DefaultPort int
+	// DefaultAddr is not used.
+	// Deprecated: DefaultAddr is not used and may be removed in a future version.
+	DefaultAddr string `bexpr:"-" codec:",omitempty"`
+	// DefaultPort is not used.
+	// Deprecated: DefaultPort is not used and may be removed in a future version.
+	DefaultPort int `bexpr:"-" codec:",omitempty"`
 
 	// Meta is arbitrary metadata associated with the intention. This is
 	// opaque to Consul but is served in API responses.
@@ -68,9 +74,91 @@ type Intention struct {
 
 	// CreatedAt and UpdatedAt keep track of when this record was created
 	// or modified.
-	CreatedAt, UpdatedAt time.Time `mapstructure:"-"`
+	CreatedAt, UpdatedAt time.Time `mapstructure:"-" bexpr:"-"`
 
-	RaftIndex
+	// Hash of the contents of the intention
+	//
+	// This is needed mainly for replication purposes. When replicating from
+	// one DC to another keeping the content Hash will allow us to detect
+	// content changes more efficiently than checking every single field
+	Hash []byte `bexpr:"-"`
+
+	RaftIndex `bexpr:"-"`
+}
+
+func (t *Intention) Clone() *Intention {
+	t2 := *t
+	if t.Meta != nil {
+		t2.Meta = make(map[string]string)
+		for k, v := range t.Meta {
+			t2.Meta[k] = v
+		}
+	}
+	t2.Hash = nil
+	return &t2
+}
+
+func (t *Intention) UnmarshalJSON(data []byte) (err error) {
+	type Alias Intention
+	aux := &struct {
+		Hash                 string
+		CreatedAt, UpdatedAt string // effectively `json:"-"` on Intention type
+
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+	if err = lib.UnmarshalJSON(data, &aux); err != nil {
+		return err
+	}
+
+	if aux.Hash != "" {
+		t.Hash = []byte(aux.Hash)
+	}
+	return nil
+}
+
+// SetHash calculates Intention.Hash from any mutable "content" fields.
+//
+// The Hash is primarily used for replication to determine if a token
+// has changed and should be updated locally.
+//
+// TODO: move to agent/consul where it is called
+func (x *Intention) SetHash() {
+	hash, err := blake2b.New256(nil)
+	if err != nil {
+		panic(err)
+	}
+
+	// Write all the user set fields
+	hash.Write([]byte(x.ID))
+	hash.Write([]byte(x.Description))
+	hash.Write([]byte(x.SourceNS))
+	hash.Write([]byte(x.SourceName))
+	hash.Write([]byte(x.DestinationNS))
+	hash.Write([]byte(x.DestinationName))
+	hash.Write([]byte(x.SourceType))
+	hash.Write([]byte(x.Action))
+	// hash.Write can not return an error, so the only way for binary.Write to
+	// error is to pass it data with an invalid data type. Doing so would be a
+	// programming error, so panic in that case.
+	if err := binary.Write(hash, binary.LittleEndian, uint64(x.Precedence)); err != nil {
+		panic(err)
+	}
+
+	// sort keys to ensure hash stability when meta is stored later
+	var keys []string
+	for k := range x.Meta {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		hash.Write([]byte(k))
+		hash.Write([]byte(x.Meta[k]))
+	}
+
+	x.Hash = hash.Sum(nil)
 }
 
 // Validate returns an error if the intention is invalid for inserting
@@ -93,36 +181,36 @@ func (x *Intention) Validate() error {
 	}
 
 	// Wildcard usage verification
-	if x.SourceNS != IntentionWildcard {
-		if strings.Contains(x.SourceNS, IntentionWildcard) {
+	if x.SourceNS != WildcardSpecifier {
+		if strings.Contains(x.SourceNS, WildcardSpecifier) {
 			result = multierror.Append(result, fmt.Errorf(
 				"SourceNS: wildcard character '*' cannot be used with partial values"))
 		}
 	}
-	if x.SourceName != IntentionWildcard {
-		if strings.Contains(x.SourceName, IntentionWildcard) {
+	if x.SourceName != WildcardSpecifier {
+		if strings.Contains(x.SourceName, WildcardSpecifier) {
 			result = multierror.Append(result, fmt.Errorf(
 				"SourceName: wildcard character '*' cannot be used with partial values"))
 		}
 
-		if x.SourceNS == IntentionWildcard {
+		if x.SourceNS == WildcardSpecifier {
 			result = multierror.Append(result, fmt.Errorf(
 				"SourceName: exact value cannot follow wildcard namespace"))
 		}
 	}
-	if x.DestinationNS != IntentionWildcard {
-		if strings.Contains(x.DestinationNS, IntentionWildcard) {
+	if x.DestinationNS != WildcardSpecifier {
+		if strings.Contains(x.DestinationNS, WildcardSpecifier) {
 			result = multierror.Append(result, fmt.Errorf(
 				"DestinationNS: wildcard character '*' cannot be used with partial values"))
 		}
 	}
-	if x.DestinationName != IntentionWildcard {
-		if strings.Contains(x.DestinationName, IntentionWildcard) {
+	if x.DestinationName != WildcardSpecifier {
+		if strings.Contains(x.DestinationName, WildcardSpecifier) {
 			result = multierror.Append(result, fmt.Errorf(
 				"DestinationName: wildcard character '*' cannot be used with partial values"))
 		}
 
-		if x.DestinationNS == IntentionWildcard {
+		if x.DestinationNS == WildcardSpecifier {
 			result = multierror.Append(result, fmt.Errorf(
 				"DestinationName: exact value cannot follow wildcard namespace"))
 		}
@@ -165,6 +253,47 @@ func (x *Intention) Validate() error {
 	return result
 }
 
+func (ixn *Intention) CanRead(authz acl.Authorizer) bool {
+	if authz == nil {
+		return true
+	}
+	var authzContext acl.AuthorizerContext
+
+	// Read access on either end of the intention allows you to read the
+	// complete intention. This is so that both ends can be aware of why
+	// something does or does not work.
+
+	if ixn.SourceName != "" {
+		ixn.FillAuthzContext(&authzContext, false)
+		if authz.IntentionRead(ixn.SourceName, &authzContext) == acl.Allow {
+			return true
+		}
+	}
+
+	if ixn.DestinationName != "" {
+		ixn.FillAuthzContext(&authzContext, true)
+		if authz.IntentionRead(ixn.DestinationName, &authzContext) == acl.Allow {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (ixn *Intention) CanWrite(authz acl.Authorizer) bool {
+	if authz == nil {
+		return true
+	}
+	var authzContext acl.AuthorizerContext
+
+	if ixn.DestinationName == "" {
+		return false
+	}
+
+	ixn.FillAuthzContext(&authzContext, true)
+	return authz.IntentionWrite(ixn.DestinationName, &authzContext) == acl.Allow
+}
+
 // UpdatePrecedence sets the Precedence value based on the fields of this
 // structure.
 func (x *Intention) UpdatePrecedence() {
@@ -194,25 +323,18 @@ func (x *Intention) UpdatePrecedence() {
 // the given namespace and name.
 func (x *Intention) countExact(ns, n string) int {
 	// If NS is wildcard, it must be zero since wildcards only follow exact
-	if ns == IntentionWildcard {
+	if ns == WildcardSpecifier {
 		return 0
 	}
 
 	// Same reasoning as above, a wildcard can only follow an exact value
 	// and an exact value cannot follow a wildcard, so if name is a wildcard
 	// we must have exactly one.
-	if n == IntentionWildcard {
+	if n == WildcardSpecifier {
 		return 1
 	}
 
 	return 2
-}
-
-// GetACLPrefix returns the prefix to look up the ACL policy for this
-// intention, and a boolean noting whether the prefix is valid to check
-// or not. You must check the ok value before using the prefix.
-func (x *Intention) GetACLPrefix() (string, bool) {
-	return x.DestinationName, x.DestinationName != ""
 }
 
 // String returns a human-friendly string for this intention.
@@ -226,9 +348,9 @@ func (x *Intention) String() string {
 
 // EstimateSize returns an estimate (in bytes) of the size of this structure when encoded.
 func (x *Intention) EstimateSize() int {
-	// 60 = 36 (uuid) + 16 (RaftIndex) + 4 (Precedence) + 4 (DefaultPort)
-	size := 60 + len(x.Description) + len(x.SourceNS) + len(x.SourceName) + len(x.DestinationNS) +
-		len(x.DestinationName) + len(x.SourceType) + len(x.Action) + len(x.DefaultAddr)
+	// 56 = 36 (uuid) + 16 (RaftIndex) + 4 (Precedence)
+	size := 56 + len(x.Description) + len(x.SourceNS) + len(x.SourceName) + len(x.DestinationNS) +
+		len(x.DestinationName) + len(x.SourceType) + len(x.Action)
 
 	for k, v := range x.Meta {
 		size += len(k) + len(v)
@@ -237,8 +359,16 @@ func (x *Intention) EstimateSize() int {
 	return size
 }
 
+func (x *Intention) SourceServiceName() ServiceName {
+	return NewServiceName(x.SourceName, x.SourceEnterpriseMeta())
+}
+
+func (x *Intention) DestinationServiceName() ServiceName {
+	return NewServiceName(x.DestinationName, x.DestinationEnterpriseMeta())
+}
+
 // IntentionAction is the action that the intention represents. This
-// can be "allow" or "deny" to whitelist or blacklist intentions.
+// can be "allow" or "deny".
 type IntentionAction string
 
 const (
@@ -326,6 +456,10 @@ type IntentionQueryRequest struct {
 	// return allowed/deny based on an exact match.
 	Check *IntentionQueryCheck
 
+	// Exact is non-nil if we're performing a lookup of an intention by its
+	// unique name instead of its ID.
+	Exact *IntentionQueryExact
+
 	// Options for queries
 	QueryOptions
 }
@@ -400,6 +534,31 @@ func (q *IntentionQueryCheck) GetACLPrefix() (string, bool) {
 // IntentionQueryCheckResponse is the response for a test request.
 type IntentionQueryCheckResponse struct {
 	Allowed bool
+}
+
+// IntentionQueryExact holds the parameters for performing a lookup of an
+// intention by its unique name instead of its ID.
+type IntentionQueryExact struct {
+	SourceNS, SourceName           string
+	DestinationNS, DestinationName string
+}
+
+// Validate is used to ensure all 4 parameters are specified.
+func (q *IntentionQueryExact) Validate() error {
+	var err error
+	if q.SourceNS == "" {
+		err = multierror.Append(err, errors.New("SourceNS is missing"))
+	}
+	if q.SourceName == "" {
+		err = multierror.Append(err, errors.New("SourceName is missing"))
+	}
+	if q.DestinationNS == "" {
+		err = multierror.Append(err, errors.New("DestinationNS is missing"))
+	}
+	if q.DestinationName == "" {
+		err = multierror.Append(err, errors.New("DestinationName is missing"))
+	}
+	return err
 }
 
 // IntentionPrecedenceSorter takes a list of intentions and sorts them

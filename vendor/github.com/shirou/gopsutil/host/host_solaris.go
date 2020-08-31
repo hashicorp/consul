@@ -33,7 +33,7 @@ func InfoWithContext(ctx context.Context) (*InfoStat, error) {
 	result.Hostname = hostname
 
 	// Parse versions from output of `uname(1)`
-	uname, err := exec.LookPath("/usr/bin/uname")
+	uname, err := exec.LookPath("uname")
 	if err != nil {
 		return nil, err
 	}
@@ -52,6 +52,11 @@ func InfoWithContext(ctx context.Context) (*InfoStat, error) {
 	}
 	if len(fields) == 3 {
 		result.PlatformVersion = fields[2]
+	}
+
+	kernelArch, err := kernelArch()
+	if err == nil {
+		result.KernelArch = kernelArch
 	}
 
 	// Find distribution name from /etc/release
@@ -85,7 +90,7 @@ func InfoWithContext(ctx context.Context) (*InfoStat, error) {
 	switch result.Platform {
 	case "SmartOS":
 		// If everything works, use the current zone ID as the HostID if present.
-		zonename, err := exec.LookPath("/usr/bin/zonename")
+		zonename, err := exec.LookPath("zonename")
 		if err == nil {
 			out, err := invoke.CommandWithContext(ctx, zonename)
 			if err == nil {
@@ -112,7 +117,7 @@ func InfoWithContext(ctx context.Context) (*InfoStat, error) {
 	// this point there are no hardware facilities available.  This behavior
 	// matches that of other supported OSes.
 	if result.HostID == "" {
-		hostID, err := exec.LookPath("/usr/bin/hostid")
+		hostID, err := exec.LookPath("hostid")
 		if err == nil {
 			out, err := invoke.CommandWithContext(ctx, hostID)
 			if err == nil {
@@ -151,7 +156,7 @@ func BootTime() (uint64, error) {
 }
 
 func BootTimeWithContext(ctx context.Context) (uint64, error) {
-	kstat, err := exec.LookPath("/usr/bin/kstat")
+	kstat, err := exec.LookPath("kstat")
 	if err != nil {
 		return 0, err
 	}
@@ -215,7 +220,7 @@ func KernelVersion() (string, error) {
 
 func KernelVersionWithContext(ctx context.Context) (string, error) {
 	// Parse versions from output of `uname(1)`
-	uname, err := exec.LookPath("/usr/bin/uname")
+	uname, err := exec.LookPath("uname")
 	if err != nil {
 		return "", err
 	}

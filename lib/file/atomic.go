@@ -11,16 +11,21 @@ import (
 // WriteAtomic writes the given contents to a temporary file in the same
 // directory, does an fsync and then renames the file to its real path
 func WriteAtomic(path string, contents []byte) error {
+	return WriteAtomicWithPerms(path, contents, 0700, 0600)
+}
+
+func WriteAtomicWithPerms(path string, contents []byte, dirPerms, filePerms os.FileMode) error {
+
 	uuid, err := uuid.GenerateUUID()
 	if err != nil {
 		return err
 	}
 	tempPath := fmt.Sprintf("%s-%s.tmp", path, uuid)
 
-	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), dirPerms); err != nil {
 		return err
 	}
-	fh, err := os.OpenFile(tempPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+	fh, err := os.OpenFile(tempPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, filePerms)
 	if err != nil {
 		return err
 	}

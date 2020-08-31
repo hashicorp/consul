@@ -2,9 +2,7 @@ package proxy
 
 import (
 	"context"
-	"log"
 	"net"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/consul/testrpc"
@@ -13,8 +11,9 @@ import (
 	agConnect "github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/connect"
-	"github.com/hashicorp/consul/lib/freeport"
-	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,9 +21,11 @@ func TestProxy_public(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	ports := freeport.GetT(t, 1)
 
-	a := agent.NewTestAgent(t, t.Name(), "")
+	ports := freeport.MustTake(1)
+	defer freeport.Return(ports)
+
+	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	client := a.Client()
@@ -52,7 +53,7 @@ func TestProxy_public(t *testing.T) {
 			BindPort:            ports[0],
 			LocalServiceAddress: testApp.Addr().String(),
 		},
-	}), testLogger(t))
+	}), testutil.Logger(t))
 	require.NoError(err)
 	defer p.Close()
 	go p.Serve()
@@ -75,8 +76,4 @@ func TestProxy_public(t *testing.T) {
 
 	// Connection works, test it is the right one
 	TestEchoConn(t, conn, "")
-}
-
-func testLogger(t *testing.T) *log.Logger {
-	return log.New(os.Stderr, "", log.LstdFlags)
 }

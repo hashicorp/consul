@@ -1,0 +1,36 @@
+{{yield}}
+<div class="empty-state" ...attributes>
+{{#if hasHeader}}
+  <header>
+    {{#yield-slot name="header"}}
+      {{yield}}
+    {{/yield-slot}}
+    {{#yield-slot name="subheader"}}
+      {{yield}}
+    {{/yield-slot}}
+  </header>
+{{/if}}
+  {{#yield-slot name="body"}}
+    <div>
+      {{yield}}
+      {{#if (and (env 'CONSUL_ACLS_ENABLED') allowLogin)}}
+        <label for="login-toggle">
+          <DataSource
+            @src="settings://consul:token"
+            @onchange={{action (mut token) value="data"}}
+          />
+          {{#if token.AccessorID}}
+            Log in with a different token
+          {{else}}
+            Log in
+          {{/if}}
+        </label>
+      {{/if}}
+    </div>
+  {{/yield-slot}}
+  {{#yield-slot name="actions"}}
+    <ul>
+      {{yield}}
+    </ul>
+  {{/yield-slot}}
+</div>

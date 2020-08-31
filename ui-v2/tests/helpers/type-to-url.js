@@ -5,7 +5,14 @@ export default function(type) {
       requests = ['/v1/catalog/datacenters'];
       break;
     case 'service':
+    case 'instance':
       requests = ['/v1/internal/ui/services', '/v1/health/service/'];
+      break;
+    case 'proxy':
+      requests = ['/v1/catalog/connect'];
+      break;
+    case 'intention':
+      requests = ['/v1/connect/intentions'];
       break;
     case 'node':
       requests = ['/v1/internal/ui/nodes', '/v1/internal/ui/node/'];
@@ -22,8 +29,14 @@ export default function(type) {
     case 'policy':
       requests = ['/v1/acl/policies', '/v1/acl/policy/'];
       break;
+    case 'role':
+      requests = ['/v1/acl/roles', '/v1/acl/role/'];
+      break;
     case 'token':
       requests = ['/v1/acl/tokens', '/v1/acl/token/'];
+      break;
+    case 'nspace':
+      requests = ['/v1/namespaces', '/v1/namespace/'];
       break;
   }
   // TODO: An instance of URL should come in here (instead of 2 args)

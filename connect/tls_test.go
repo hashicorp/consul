@@ -6,6 +6,7 @@ import (
 	"encoding/pem"
 	"testing"
 
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 
 	"github.com/hashicorp/consul/agent"
@@ -151,7 +152,7 @@ func TestServerSideVerifier(t *testing.T) {
 	apiCA2 := testCertPEMBlock(t, apiCA2PEM)
 
 	// Setup a local test agent to query
-	agent := agent.NewTestAgent(t, "test-consul", "")
+	agent := agent.StartTestAgent(t, agent.TestAgent{Name: "test-consul"})
 	defer agent.Shutdown()
 	testrpc.WaitForTestAgent(t, agent.RPC, "dc1")
 
@@ -241,7 +242,7 @@ func TestServerSideVerifier(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			v := newServerSideVerifier(client, tt.service)
+			v := newServerSideVerifier(testutil.Logger(t), client, tt.service)
 			err := v(tt.tlsCfg, tt.rawCerts)
 			if tt.wantErr == "" {
 				require.Nil(t, err)

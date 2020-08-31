@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	// Ensure we use a high-entropy seed for the psuedo-random generator
+	// Ensure we use a high-entropy seed for the pseudo-random generator
 	rand.Seed(newSeed())
 }
 

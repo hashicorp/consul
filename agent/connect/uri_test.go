@@ -34,6 +34,17 @@ var testCertURICases = []struct {
 	},
 
 	{
+		"basic agent ID",
+		"spiffe://1234.consul/agent/client/dc/dc1/id/uuid",
+		&SpiffeIDAgent{
+			Host:       "1234.consul",
+			Datacenter: "dc1",
+			Agent:      "uuid",
+		},
+		"",
+	},
+
+	{
 		"service with URL-encoded values",
 		"spiffe://1234.consul/ns/foo%2Fbar/dc/bar%2Fbaz/svc/baz%2Fqux",
 		&SpiffeIDService{

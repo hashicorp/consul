@@ -12,13 +12,6 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-const (
-	// maxKVSize is used to limit the maximum payload length
-	// of a KV entry. If it exceeds this amount, the client is
-	// likely abusing the KV store.
-	maxKVSize = 512 * 1024
-)
-
 func (s *HTTPServer) KVSEndpoint(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Set default DC
 	args := structs.KeyRequest{}
@@ -63,6 +56,17 @@ func (s *HTTPServer) KVSGet(resp http.ResponseWriter, req *http.Request, args *s
 		return nil, nil
 	}
 
+	// Do not allow wildcard NS on GET reqs
+	if method == "KVS.Get" {
+		if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+			return nil, err
+		}
+	}
+
 	// Make the RPC
 	var out structs.IndexedDirEntries
 	if err := s.agent.RPC(method, &args, &out); err != nil {
@@ -90,6 +94,10 @@ func (s *HTTPServer) KVSGet(resp http.ResponseWriter, req *http.Request, args *s
 
 // KVSGetKeys handles a GET request for keys
 func (s *HTTPServer) KVSGetKeys(resp http.ResponseWriter, req *http.Request, args *structs.KeyRequest) (interface{}, error) {
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
+
 	// Check for a separator, due to historic spelling error,
 	// we now are forced to check for both spellings
 	var sep string
@@ -103,10 +111,11 @@ func (s *HTTPServer) KVSGetKeys(resp http.ResponseWriter, req *http.Request, arg
 
 	// Construct the args
 	listArgs := structs.KeyListRequest{
-		Datacenter:   args.Datacenter,
-		Prefix:       args.Key,
-		Seperator:    sep,
-		QueryOptions: args.QueryOptions,
+		Datacenter:     args.Datacenter,
+		Prefix:         args.Key,
+		Seperator:      sep,
+		EnterpriseMeta: args.EnterpriseMeta,
+		QueryOptions:   args.QueryOptions,
 	}
 
 	// Make the RPC
@@ -132,6 +141,9 @@ func (s *HTTPServer) KVSGetKeys(resp http.ResponseWriter, req *http.Request, arg
 
 // KVSPut handles a PUT request
 func (s *HTTPServer) KVSPut(resp http.ResponseWriter, req *http.Request, args *structs.KeyRequest) (interface{}, error) {
+	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 	if missingKey(resp, args) {
 		return nil, nil
 	}
@@ -142,9 +154,10 @@ func (s *HTTPServer) KVSPut(resp http.ResponseWriter, req *http.Request, args *s
 		Datacenter: args.Datacenter,
 		Op:         api.KVSet,
 		DirEnt: structs.DirEntry{
-			Key:   args.Key,
-			Flags: 0,
-			Value: nil,
+			Key:            args.Key,
+			Flags:          0,
+			Value:          nil,
+			EnterpriseMeta: args.EnterpriseMeta,
 		},
 	}
 	applyReq.Token = args.Token
@@ -182,9 +195,13 @@ func (s *HTTPServer) KVSPut(resp http.ResponseWriter, req *http.Request, args *s
 	}
 
 	// Check the content-length
-	if req.ContentLength > maxKVSize {
+	if req.ContentLength > int64(s.agent.config.KVMaxValueSize) {
 		resp.WriteHeader(http.StatusRequestEntityTooLarge)
-		fmt.Fprintf(resp, "Value exceeds %d byte limit", maxKVSize)
+		fmt.Fprintf(resp,
+			"Request body(%d bytes) too large, max size: %d bytes. See %s.",
+			req.ContentLength, s.agent.config.KVMaxValueSize,
+			"https://www.consul.io/docs/agent/options.html#kv_max_value_size",
+		)
 		return nil, nil
 	}
 
@@ -210,6 +227,9 @@ func (s *HTTPServer) KVSPut(resp http.ResponseWriter, req *http.Request, args *s
 
 // KVSPut handles a DELETE request
 func (s *HTTPServer) KVSDelete(resp http.ResponseWriter, req *http.Request, args *structs.KeyRequest) (interface{}, error) {
+	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 	if conflictingFlags(resp, req, "recurse", "cas") {
 		return nil, nil
 	}
@@ -217,7 +237,8 @@ func (s *HTTPServer) KVSDelete(resp http.ResponseWriter, req *http.Request, args
 		Datacenter: args.Datacenter,
 		Op:         api.KVDelete,
 		DirEnt: structs.DirEntry{
-			Key: args.Key,
+			Key:            args.Key,
+			EnterpriseMeta: args.EnterpriseMeta,
 		},
 	}
 	applyReq.Token = args.Token

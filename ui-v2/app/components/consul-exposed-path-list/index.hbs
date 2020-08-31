@@ -1,0 +1,69 @@
+<ul data-test-proxy-exposed-paths>
+{{#each items as |path|}}
+  <li>
+    <div>
+    {{#let (concat address ':' path.Path) as |combinedAddress|}}
+      <p class="combined-address">
+        <span>
+          {{combinedAddress}}
+        </span>
+        <CopyButton
+          @value={{combinedAddress}}
+          @name="Address"
+        />
+      </p>
+    {{/let}}
+    </div>
+    <div>
+    {{#if path.Protocol}}
+      <dl class="protocol">
+        <dt>
+          <Tooltip>
+              Protocol
+          </Tooltip>
+        </dt>
+        <dd>
+          {{path.Protocol}}
+        </dd>
+      </dl>
+    {{/if}}
+    {{#if path.ListenerPort}}
+      <dl class="port">
+        <dt>
+          <Tooltip>
+              Port
+          </Tooltip>
+        </dt>
+        <dd>
+          listening on :{{path.ListenerPort}}
+        </dd>
+      </dl>
+    {{/if}}
+    {{#if path.LocalPathPort}}
+      <dl class="port">
+        <dt>
+          <Tooltip>
+              Port
+          </Tooltip>
+        </dt>
+        <dd>
+          local port :{{path.LocalPathPort}}
+        </dd>
+      </dl>
+    {{/if}}
+    {{#if path.Path}}
+      <dl class="path">
+        <dt>
+          <Tooltip>
+              Path
+          </Tooltip>
+        </dt>
+        <dd>
+          {{path.Path}}
+        </dd>
+      </dl>
+    {{/if}}
+    </div>
+  </li>
+{{/each}}
+</ul>

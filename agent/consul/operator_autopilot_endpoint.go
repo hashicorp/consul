@@ -10,16 +10,19 @@ import (
 
 // AutopilotGetConfiguration is used to retrieve the current Autopilot configuration.
 func (op *Operator) AutopilotGetConfiguration(args *structs.DCSpecificRequest, reply *autopilot.Config) error {
-	if done, err := op.srv.forward("Operator.AutopilotGetConfiguration", args, args, reply); done {
+	if done, err := op.srv.ForwardRPC("Operator.AutopilotGetConfiguration", args, args, reply); done {
 		return err
 	}
 
 	// This action requires operator read access.
-	rule, err := op.srv.ResolveToken(args.Token)
+	identity, rule, err := op.srv.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
 		return err
 	}
-	if rule != nil && !rule.OperatorRead() {
+	if err := op.srv.validateEnterpriseToken(identity); err != nil {
+		return err
+	}
+	if rule != nil && rule.OperatorRead(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -39,23 +42,26 @@ func (op *Operator) AutopilotGetConfiguration(args *structs.DCSpecificRequest, r
 
 // AutopilotSetConfiguration is used to set the current Autopilot configuration.
 func (op *Operator) AutopilotSetConfiguration(args *structs.AutopilotSetConfigRequest, reply *bool) error {
-	if done, err := op.srv.forward("Operator.AutopilotSetConfiguration", args, args, reply); done {
+	if done, err := op.srv.ForwardRPC("Operator.AutopilotSetConfiguration", args, args, reply); done {
 		return err
 	}
 
 	// This action requires operator write access.
-	rule, err := op.srv.ResolveToken(args.Token)
+	identity, rule, err := op.srv.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
 		return err
 	}
-	if rule != nil && !rule.OperatorWrite() {
+	if err := op.srv.validateEnterpriseToken(identity); err != nil {
+		return err
+	}
+	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
 	// Apply the update
 	resp, err := op.srv.raftApply(structs.AutopilotRequestType, args)
 	if err != nil {
-		op.srv.logger.Printf("[ERR] consul.operator: Apply failed: %v", err)
+		op.logger.Error("Raft apply failed", "error", err)
 		return err
 	}
 	if respErr, ok := resp.(error); ok {
@@ -75,16 +81,19 @@ func (op *Operator) ServerHealth(args *structs.DCSpecificRequest, reply *autopil
 	// re-using a structure where we don't support all the options.
 	args.RequireConsistent = true
 	args.AllowStale = false
-	if done, err := op.srv.forward("Operator.ServerHealth", args, args, reply); done {
+	if done, err := op.srv.ForwardRPC("Operator.ServerHealth", args, args, reply); done {
 		return err
 	}
 
 	// This action requires operator read access.
-	rule, err := op.srv.ResolveToken(args.Token)
+	identity, rule, err := op.srv.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
 		return err
 	}
-	if rule != nil && !rule.OperatorRead() {
+	if err := op.srv.validateEnterpriseToken(identity); err != nil {
+		return err
+	}
+	if rule != nil && rule.OperatorRead(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 

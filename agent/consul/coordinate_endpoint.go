@@ -9,6 +9,9 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 )
 
@@ -16,6 +19,8 @@ import (
 type Coordinate struct {
 	// srv is a pointer back to the server.
 	srv *Server
+
+	logger hclog.Logger
 
 	// updates holds pending coordinate updates for the given nodes. This is
 	// keyed by node:segment so we can get a coordinate for each segment for
@@ -27,9 +32,10 @@ type Coordinate struct {
 }
 
 // NewCoordinate returns a new Coordinate endpoint.
-func NewCoordinate(srv *Server) *Coordinate {
+func NewCoordinate(srv *Server, logger hclog.Logger) *Coordinate {
 	c := &Coordinate{
 		srv:     srv,
+		logger:  logger.Named(logging.Coordinate),
 		updates: make(map[string]*structs.CoordinateUpdateRequest),
 	}
 
@@ -44,7 +50,7 @@ func (c *Coordinate) batchUpdate() {
 		select {
 		case <-time.After(c.srv.config.CoordinateUpdatePeriod):
 			if err := c.batchApplyUpdates(); err != nil {
-				c.srv.logger.Printf("[WARN] consul.coordinate: Batch update failed: %v", err)
+				c.logger.Warn("Batch update failed", "error", err)
 			}
 		case <-c.srv.shutdownCh:
 			return
@@ -66,7 +72,7 @@ func (c *Coordinate) batchApplyUpdates() error {
 	limit := c.srv.config.CoordinateUpdateBatchSize * c.srv.config.CoordinateUpdateMaxBatches
 	size := len(pending)
 	if size > limit {
-		c.srv.logger.Printf("[WARN] consul.coordinate: Discarded %d coordinate updates", size-limit)
+		c.logger.Warn("Discarded coordinate updates", "number_discarded", size-limit)
 		size = limit
 	}
 
@@ -112,7 +118,7 @@ func (c *Coordinate) batchApplyUpdates() error {
 
 // Update inserts or updates the LAN coordinate of a node.
 func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct{}) (err error) {
-	if done, err := c.srv.forward("Coordinate.Update", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("Coordinate.Update", args, args, reply); done {
 		return err
 	}
 
@@ -134,12 +140,14 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 	}
 
 	// Fetch the ACL token, if any, and enforce the node policy if enabled.
-	rule, err := c.srv.ResolveToken(args.Token)
+	authz, err := c.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if rule != nil && c.srv.config.ACLEnforceVersion8 {
-		if !rule.NodeWrite(args.Node, nil) {
+	if authz != nil {
+		var authzContext acl.AuthorizerContext
+		structs.DefaultEnterpriseMeta().FillAuthzContext(&authzContext)
+		if authz.NodeWrite(args.Node, &authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}
@@ -154,30 +162,39 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 
 // ListDatacenters returns the list of datacenters and their respective nodes
 // and the raw coordinates of those nodes (if no coordinates are available for
-// any of the nodes, the node list may be empty).
+// any of the nodes, the node list may be empty). This endpoint will not return
+// information about the LAN network area.
 func (c *Coordinate) ListDatacenters(args *struct{}, reply *[]structs.DatacenterMap) error {
 	maps, err := c.srv.router.GetDatacenterMaps()
 	if err != nil {
 		return err
 	}
 
+	var out []structs.DatacenterMap
+
 	// Strip the datacenter suffixes from all the node names.
-	for i := range maps {
-		suffix := fmt.Sprintf(".%s", maps[i].Datacenter)
-		for j := range maps[i].Coordinates {
-			node := maps[i].Coordinates[j].Node
-			maps[i].Coordinates[j].Node = strings.TrimSuffix(node, suffix)
+	for _, dcMap := range maps {
+		if dcMap.AreaID == types.AreaLAN {
+			continue
 		}
+
+		suffix := fmt.Sprintf(".%s", dcMap.Datacenter)
+		for j := range dcMap.Coordinates {
+			node := dcMap.Coordinates[j].Node
+			dcMap.Coordinates[j].Node = strings.TrimSuffix(node, suffix)
+		}
+
+		out = append(out, dcMap)
 	}
 
-	*reply = maps
+	*reply = out
 	return nil
 }
 
 // ListNodes returns the list of nodes with their raw network coordinates (if no
 // coordinates are available for a node it won't appear in this list).
 func (c *Coordinate) ListNodes(args *structs.DCSpecificRequest, reply *structs.IndexedCoordinates) error {
-	if done, err := c.srv.forward("Coordinate.ListNodes", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("Coordinate.ListNodes", args, args, reply); done {
 		return err
 	}
 
@@ -200,17 +217,20 @@ func (c *Coordinate) ListNodes(args *structs.DCSpecificRequest, reply *structs.I
 
 // Node returns the raw coordinates for a single node.
 func (c *Coordinate) Node(args *structs.NodeSpecificRequest, reply *structs.IndexedCoordinates) error {
-	if done, err := c.srv.forward("Coordinate.Node", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("Coordinate.Node", args, args, reply); done {
 		return err
 	}
 
 	// Fetch the ACL token, if any, and enforce the node policy if enabled.
-	rule, err := c.srv.ResolveToken(args.Token)
+
+	authz, err := c.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if rule != nil && c.srv.config.ACLEnforceVersion8 {
-		if !rule.NodeRead(args.Node) {
+	if authz != nil {
+		var authzContext acl.AuthorizerContext
+		structs.WildcardEnterpriseMeta().FillAuthzContext(&authzContext)
+		if authz.NodeRead(args.Node, &authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}

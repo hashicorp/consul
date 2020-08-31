@@ -1,4 +1,5 @@
 @setupApplicationTest
+@notNamespaceable
 Feature: dc / acls / list-order
   In order to be able to find ACL tokens easier
   As a user

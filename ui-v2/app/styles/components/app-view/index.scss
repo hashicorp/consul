@@ -1,2 +1,14 @@
 @import './skin';
 @import './layout';
+%app-view > div > header {
+  @extend %app-view-header;
+}
+%app-view-header .title {
+  @extend %app-view-title;
+}
+%app-view-header .actions {
+  @extend %app-view-actions;
+}
+%app-view > div > div {
+  @extend %app-view-content;
+}

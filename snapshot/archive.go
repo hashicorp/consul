@@ -197,7 +197,7 @@ func read(in io.Reader, metadata *raft.SnapshotMeta, snap io.Writer) error {
 			// Previously we used json.Decode to decode the archive stream. There are
 			// edgecases in which it doesn't read all the bytes from the stream, even
 			// though the json object is still being parsed properly. Since we
-			// simutaniously feeded everything to metaHash, our hash ended up being
+			// simultaneously feeded everything to metaHash, our hash ended up being
 			// different than what we calculated when creating the snapshot. Which in
 			// turn made the snapshot verification fail. By explicitly reading the
 			// whole thing first we ensure that we calculate the correct hash
@@ -223,7 +223,6 @@ func read(in io.Reader, metadata *raft.SnapshotMeta, snap io.Writer) error {
 		default:
 			return fmt.Errorf("unexpected file %q in snapshot", hdr.Name)
 		}
-
 	}
 
 	// Verify all the hashes.

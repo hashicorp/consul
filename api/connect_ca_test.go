@@ -4,10 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pascaldekloe/goe/verify"
-
-	"github.com/hashicorp/consul/testutil"
-	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/stretchr/testify/require"
 )
 
@@ -20,6 +18,8 @@ func TestAPI_ConnectCARoots_empty(t *testing.T) {
 		c.Connect = nil
 	})
 	defer s.Stop()
+
+	s.WaitForSerfCheck(t)
 
 	connect := c.Connect()
 	_, _, err := connect.CARoots(nil)
@@ -40,7 +40,7 @@ func TestAPI_ConnectCARoots_list(t *testing.T) {
 		connect := c.Connect()
 		list, meta, err := connect.CARoots(nil)
 		r.Check(err)
-		if meta.LastIndex <= 0 {
+		if meta.LastIndex == 0 {
 			r.Fatalf("expected roots raft index to be > 0")
 		}
 		if v := len(list.Roots); v != 1 {
@@ -60,8 +60,10 @@ func TestAPI_ConnectCAConfig_get_set(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
+	s.WaitForSerfCheck(t)
 	expected := &ConsulCAProviderConfig{
-		RotationPeriod: 90 * 24 * time.Hour,
+		RotationPeriod:      90 * 24 * time.Hour,
+		IntermediateCertTTL: 365 * 24 * time.Hour,
 	}
 	expected.LeafCertTTL = 72 * time.Hour
 
@@ -77,19 +79,27 @@ func TestAPI_ConnectCAConfig_get_set(t *testing.T) {
 		}
 		parsed, err := ParseConsulCAConfig(conf.Config)
 		r.Check(err)
-		verify.Values(r, "", parsed, expected)
+		require.Equal(r, expected, parsed)
 
 		// Change a config value and update
 		conf.Config["PrivateKey"] = ""
 		conf.Config["RotationPeriod"] = 120 * 24 * time.Hour
+		conf.Config["IntermediateCertTTL"] = 300 * 24 * time.Hour
+
+		// Pass through some state as if the provider stored it so we can make sure
+		// we can read it again.
+		conf.Config["test_state"] = map[string]string{"foo": "bar"}
+
 		_, err = connect.CASetConfig(conf, nil)
 		r.Check(err)
 
 		updated, _, err := connect.CAGetConfig(nil)
 		r.Check(err)
 		expected.RotationPeriod = 120 * 24 * time.Hour
+		expected.IntermediateCertTTL = 300 * 24 * time.Hour
 		parsed, err = ParseConsulCAConfig(updated.Config)
 		r.Check(err)
-		verify.Values(r, "", parsed, expected)
+		require.Equal(r, expected, parsed)
+		require.Equal(r, "bar", updated.State["foo"])
 	})
 }

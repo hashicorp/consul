@@ -1,4 +1,5 @@
 @setupApplicationTest
+@notNamespaceable
 Feature: dc / acls / tokens / legacy / update: ACL Token Update
   Background:
     Given 1 datacenter model with the value "datacenter"
@@ -24,12 +25,13 @@ Feature: dc / acls / tokens / legacy / update: ACL Token Update
     # TODO: Remove this when I'm 100% sure token types are gone
     # And I click "[value=[Type]]"
     And I submit
-    Then a PUT request is made to "/v1/acl/update?dc=datacenter" with the body from yaml
+    Then a PUT request was made to "/v1/acl/update?dc=datacenter" from yaml
     # You can no longer edit Type but make sure it gets sent
     ---
-      ID: secret
-      Name: [Name]
-      Type: client
+      body:
+        ID: secret
+        Name: [Name]
+        Type: client
     ---
     Then the url should be /datacenter/acls/tokens
     And "[data-notification]" has the "notification-update" class

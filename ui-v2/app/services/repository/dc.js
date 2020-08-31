@@ -10,22 +10,16 @@ export default RepositoryService.extend({
     return modelName;
   },
   findAll: function() {
-    return get(this, 'store')
-      .findAll(this.getModelName())
-      .then(function(items) {
-        return items.sortBy('Name');
-      });
+    return this.store.query(this.getModelName(), {});
   },
   findBySlug: function(name, items) {
     if (name != null) {
       const item = items.findBy('Name', name);
       if (item) {
-        return get(this, 'settings')
-          .persist({ dc: get(item, 'Name') })
-          .then(function() {
-            // TODO: create a model
-            return { Name: get(item, 'Name') };
-          });
+        return this.settings.persist({ dc: get(item, 'Name') }).then(function() {
+          // TODO: create a model
+          return { Name: get(item, 'Name') };
+        });
       }
     }
     const e = new Error();
@@ -34,7 +28,7 @@ export default RepositoryService.extend({
     return Promise.reject({ errors: [e] });
   },
   getActive: function(name, items) {
-    const settings = get(this, 'settings');
+    const settings = this.settings;
     return Promise.all([name || settings.findBySlug('dc'), items || this.findAll()]).then(
       ([name, items]) => {
         return this.findBySlug(name, items).catch(function() {
@@ -44,5 +38,8 @@ export default RepositoryService.extend({
         });
       }
     );
+  },
+  clearActive: function() {
+    return this.settings.delete('dc');
   },
 });

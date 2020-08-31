@@ -17,7 +17,7 @@ func IOCounters(pernic bool) ([]IOCountersStat, error) {
 }
 
 func IOCountersWithContext(ctx context.Context, pernic bool) ([]IOCountersStat, error) {
-	netstat, err := exec.LookPath("/usr/bin/netstat")
+	netstat, err := exec.LookPath("netstat")
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func IOCountersWithContext(ctx context.Context, pernic bool) ([]IOCountersStat, 
 			continue
 		}
 		base := 1
-		// sometimes Address is ommitted
+		// sometimes Address is omitted
 		if len(values) < 13 {
 			base = 0
 		}
@@ -110,6 +110,14 @@ func FilterCounters() ([]FilterStat, error) {
 
 func FilterCountersWithContext(ctx context.Context) ([]FilterStat, error) {
 	return nil, errors.New("NetFilterCounters not implemented for freebsd")
+}
+
+func ConntrackStats(percpu bool) ([]ConntrackStat, error) {
+	return ConntrackStatsWithContext(context.Background(), percpu)
+}
+
+func ConntrackStatsWithContext(ctx context.Context, percpu bool) ([]ConntrackStat, error) {
+	return nil, errors.New("ConntrackStats not implemented for freebsd")
 }
 
 // NetProtoCounters returns network statistics for the entire system

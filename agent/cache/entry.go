@@ -3,6 +3,8 @@ package cache
 import (
 	"container/heap"
 	"time"
+
+	"golang.org/x/time/rate"
 )
 
 // cacheEntry stores a single cache entry.
@@ -41,25 +43,26 @@ type cacheEntry struct {
 	// background request has be blocking for at least 5 seconds, which ever
 	// happens first.
 	RefreshLostContact time.Time
+	// FetchRateLimiter limits the rate at which fetch is called for this entry.
+	FetchRateLimiter *rate.Limiter
 }
 
 // cacheEntryExpiry contains the expiration information for a cache
 // entry. Any modifications to this struct should be done only while
 // the Cache entriesLock is held.
 type cacheEntryExpiry struct {
-	Key       string        // Key in the cache map
-	Expires   time.Time     // Time when entry expires (monotonic clock)
-	TTL       time.Duration // TTL for this entry to extend when resetting
-	HeapIndex int           // Index in the heap
+	Key       string    // Key in the cache map
+	Expires   time.Time // Time when entry expires (monotonic clock)
+	HeapIndex int       // Index in the heap
 }
 
-// Reset resets the expiration to be the ttl duration from now.
-func (e *cacheEntryExpiry) Reset() {
-	e.Expires = time.Now().Add(e.TTL)
+// Update the expiry to d time from now.
+func (e *cacheEntryExpiry) Update(d time.Duration) {
+	e.Expires = time.Now().Add(d)
 }
 
 // expiryHeap is a heap implementation that stores information about
-// when entires expire. Implements container/heap.Interface.
+// when entries expire. Implements container/heap.Interface.
 //
 // All operations on the heap and read/write of the heap contents require
 // the proper entriesLock to be held on Cache.

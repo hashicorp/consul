@@ -3,8 +3,8 @@ package api
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/testutil"
-	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 func TestAPI_OperatorAutopilotGetSetConfiguration(t *testing.T) {
@@ -46,10 +46,10 @@ func TestAPI_OperatorAutopilotCASConfiguration(t *testing.T) {
 		operator := c.Operator()
 		config, err := operator.AutopilotGetConfiguration(nil)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
 		if !config.CleanupDeadServers {
-			t.Fatalf("bad: %v", config)
+			r.Fatalf("bad: %v", config)
 		}
 
 		// Pass an invalid ModifyIndex
@@ -60,10 +60,10 @@ func TestAPI_OperatorAutopilotCASConfiguration(t *testing.T) {
 			}
 			resp, err := operator.AutopilotCASConfiguration(newConf, nil)
 			if err != nil {
-				t.Fatalf("err: %v", err)
+				r.Fatalf("err: %v", err)
 			}
 			if resp {
-				t.Fatalf("bad: %v", resp)
+				r.Fatalf("bad: %v", resp)
 			}
 		}
 
@@ -75,10 +75,10 @@ func TestAPI_OperatorAutopilotCASConfiguration(t *testing.T) {
 			}
 			resp, err := operator.AutopilotCASConfiguration(newConf, nil)
 			if err != nil {
-				t.Fatalf("err: %v", err)
+				r.Fatalf("err: %v", err)
 			}
 			if !resp {
-				t.Fatalf("bad: %v", resp)
+				r.Fatalf("bad: %v", resp)
 			}
 		}
 	})

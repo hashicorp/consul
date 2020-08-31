@@ -1,10 +1,12 @@
 package agent
 
 import (
+	"bytes"
 	"fmt"
 	"regexp"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/go-uuid"
 )
 
@@ -84,7 +86,7 @@ func (a *Agent) UserEvent(dc, token string, params *UserEvent) error {
 		return fmt.Errorf("UUID generation failed: %v", err)
 	}
 	params.Version = userEventMaxVersion
-	payload, err := encodeMsgPack(&params)
+	payload, err := encodeMsgPackUserEvent(&params)
 	if err != nil {
 		return fmt.Errorf("UserEvent encoding failed: %v", err)
 	}
@@ -112,8 +114,8 @@ func (a *Agent) handleEvents() {
 		case e := <-a.eventCh:
 			// Decode the event
 			msg := new(UserEvent)
-			if err := decodeMsgPack(e.Payload, msg); err != nil {
-				a.logger.Printf("[ERR] agent: Failed to decode event: %v", err)
+			if err := decodeMsgPackUserEvent(e.Payload, msg); err != nil {
+				a.logger.Error("Failed to decode event", "error", err)
 				continue
 			}
 			msg.LTime = uint64(e.LTime)
@@ -136,16 +138,21 @@ func (a *Agent) handleEvents() {
 func (a *Agent) shouldProcessUserEvent(msg *UserEvent) bool {
 	// Check the version
 	if msg.Version > userEventMaxVersion {
-		a.logger.Printf("[WARN] agent: Event version %d may have unsupported features (%s)",
-			msg.Version, msg.Name)
+		a.logger.Warn("Event version may have unsupported features",
+			"version", msg.Version,
+			"event", msg.Name,
+		)
 	}
 
 	// Apply the filters
 	if msg.NodeFilter != "" {
 		re, err := regexp.Compile(msg.NodeFilter)
 		if err != nil {
-			a.logger.Printf("[ERR] agent: Failed to parse node filter '%s' for event '%s': %v",
-				msg.NodeFilter, msg.Name, err)
+			a.logger.Error("Failed to parse node filter for event",
+				"filter", msg.NodeFilter,
+				"event", msg.Name,
+				"error", err,
+			)
 			return false
 		}
 		if !re.MatchString(a.config.NodeName) {
@@ -156,8 +163,11 @@ func (a *Agent) shouldProcessUserEvent(msg *UserEvent) bool {
 	if msg.ServiceFilter != "" {
 		re, err := regexp.Compile(msg.ServiceFilter)
 		if err != nil {
-			a.logger.Printf("[ERR] agent: Failed to parse service filter '%s' for event '%s': %v",
-				msg.ServiceFilter, msg.Name, err)
+			a.logger.Error("Failed to parse service filter for event",
+				"filter", msg.ServiceFilter,
+				"event", msg.Name,
+				"error", err,
+			)
 			return false
 		}
 
@@ -165,20 +175,23 @@ func (a *Agent) shouldProcessUserEvent(msg *UserEvent) bool {
 		if msg.TagFilter != "" {
 			re, err := regexp.Compile(msg.TagFilter)
 			if err != nil {
-				a.logger.Printf("[ERR] agent: Failed to parse tag filter '%s' for event '%s': %v",
-					msg.TagFilter, msg.Name, err)
+				a.logger.Error("Failed to parse tag filter for event",
+					"filter", msg.TagFilter,
+					"event", msg.Name,
+					"error", err,
+				)
 				return false
 			}
 			tagRe = re
 		}
 
 		// Scan for a match
-		services := a.State.Services()
+		services := a.State.Services(structs.DefaultEnterpriseMeta())
 		found := false
 	OUTER:
 		for name, info := range services {
 			// Check the service name
-			if !re.MatchString(name) {
+			if !re.MatchString(name.String()) {
 				continue
 			}
 			if tagRe == nil {
@@ -210,13 +223,19 @@ func (a *Agent) ingestUserEvent(msg *UserEvent) {
 	switch msg.Name {
 	case remoteExecName:
 		if a.config.DisableRemoteExec {
-			a.logger.Printf("[INFO] agent: ignoring remote exec event (%s), disabled.", msg.ID)
+			a.logger.Info("ignoring remote exec event, disabled.",
+				"event_name", msg.Name,
+				"event_id", msg.ID,
+			)
 		} else {
 			go a.handleRemoteExec(msg)
 		}
 		return
 	default:
-		a.logger.Printf("[DEBUG] agent: new event: %s (%s)", msg.Name, msg.ID)
+		a.logger.Debug("new event",
+			"event_name", msg.Name,
+			"event_id", msg.ID,
+		)
 	}
 
 	a.eventLock.Lock()
@@ -262,4 +281,23 @@ func (a *Agent) LastUserEvent() *UserEvent {
 	n := len(a.eventBuf)
 	idx := (((a.eventIndex - 1) % n) + n) % n
 	return a.eventBuf[idx]
+}
+
+// msgpackHandleUserEvent is a shared handle for encoding/decoding of
+// messages for user events
+var msgpackHandleUserEvent = &codec.MsgpackHandle{
+	RawToString: true,
+	WriteExt:    true,
+}
+
+// decodeMsgPackUserEvent is used to decode a MsgPack encoded object
+func decodeMsgPackUserEvent(buf []byte, out interface{}) error {
+	return codec.NewDecoder(bytes.NewReader(buf), msgpackHandleUserEvent).Decode(out)
+}
+
+// encodeMsgPackUserEvent is used to encode an object with msgpack
+func encodeMsgPackUserEvent(msg interface{}) ([]byte, error) {
+	var buf bytes.Buffer
+	err := codec.NewEncoder(&buf, msgpackHandleUserEvent).Encode(msg)
+	return buf.Bytes(), err
 }

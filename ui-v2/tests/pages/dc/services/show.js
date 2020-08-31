@@ -1,20 +1,36 @@
-export default function(visitable, attribute, collection, text, filter) {
-  return {
+export default function(visitable, attribute, collection, text, intentions, filter, tabs) {
+  const page = {
     visit: visitable('/:dc/services/:service'),
-    externalSource: attribute('data-test-external-source', 'h1 span'),
-    nodes: collection('[data-test-node]', {
-      name: attribute('data-test-node'),
+    externalSource: attribute('data-test-external-source', '[data-test-external-source]', {
+      scope: '.title',
     }),
-    healthy: collection('[data-test-healthy] [data-test-node]', {
-      name: attribute('data-test-node'),
-      address: text('header strong'),
-      id: text('header em'),
+    dashboardAnchor: {
+      href: attribute('href', '[data-test-dashboard-anchor]'),
+    },
+    tabs: tabs('tab', [
+      'instances',
+      'linked-services',
+      'upstreams',
+      'intentions',
+      'routing',
+      'tags',
+    ]),
+    filter: filter(),
+    // TODO: These need to somehow move to subpages
+    instances: collection('.consul-service-instance-list > ul > li:not(:first-child)', {
+      address: text('[data-test-address]'),
     }),
-    unhealthy: collection('[data-test-unhealthy] [data-test-node]', {
-      name: attribute('data-test-node'),
-      address: text('header strong'),
-      id: text('header em'),
-    }),
-    filter: filter,
+    intentions: intentions(),
   };
+  page.tabs.upstreamsTab = {
+    services: collection('.consul-upstream-list > ul > li:not(:first-child)', {
+      name: text('[data-test-service-name]'),
+    }),
+  };
+  page.tabs.linkedServicesTab = {
+    services: collection('.consul-service-list > ul > li:not(:first-child)', {
+      name: text('[data-test-service-name]'),
+    }),
+  };
+  return page;
 }

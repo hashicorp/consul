@@ -1,0 +1,10 @@
+{
+    "CreateIndex": 42,
+    "ModifyIndex": 100,
+    "AccessorID": "fbd2447f-7479-4329-ad13-b021d74f86ba",
+    "SecretID": "869c6e91-4de9-4dab-b56e-87548435f9c6",
+    "Description": "test token",
+    "Local": false,
+    "CreateTime": "2020-05-22T18:52:31Z",
+    "Hash": "YWJjZGVmZ2g="
+}

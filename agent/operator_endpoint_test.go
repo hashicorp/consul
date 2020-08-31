@@ -9,16 +9,17 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 func TestOperator_RaftConfiguration(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	body := bytes.NewBuffer(nil)
@@ -45,7 +46,7 @@ func TestOperator_RaftConfiguration(t *testing.T) {
 func TestOperator_RaftPeer(t *testing.T) {
 	t.Parallel()
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t, t.Name(), "")
+		a := NewTestAgent(t, "")
 		defer a.Shutdown()
 
 		body := bytes.NewBuffer(nil)
@@ -61,7 +62,7 @@ func TestOperator_RaftPeer(t *testing.T) {
 	})
 
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t, t.Name(), "")
+		a := NewTestAgent(t, "")
 		defer a.Shutdown()
 
 		body := bytes.NewBuffer(nil)
@@ -81,7 +82,7 @@ func TestOperator_KeyringInstall(t *testing.T) {
 	t.Parallel()
 	oldKey := "H3/9gBxcKKRf45CaI2DlRg=="
 	newKey := "z90lFx3sZZLtTOkutXcwYg=="
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		encrypt = "`+oldKey+`"
 	`)
 	defer a.Shutdown()
@@ -94,7 +95,7 @@ func TestOperator_KeyringInstall(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	listResponse, err := a.ListKeys("", 0)
+	listResponse, err := a.ListKeys("", false, 0)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -116,7 +117,7 @@ func TestOperator_KeyringInstall(t *testing.T) {
 func TestOperator_KeyringList(t *testing.T) {
 	t.Parallel()
 	key := "H3/9gBxcKKRf45CaI2DlRg=="
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		encrypt = "`+key+`"
 	`)
 	defer a.Shutdown()
@@ -160,12 +161,50 @@ func TestOperator_KeyringList(t *testing.T) {
 		t.Fatalf("bad: %v", ok)
 	}
 }
+func TestOperator_KeyringListLocalOnly(t *testing.T) {
+	t.Parallel()
+	key := "H3/9gBxcKKRf45CaI2DlRg=="
+	a := NewTestAgent(t, `
+		encrypt = "`+key+`"
+	`)
+	defer a.Shutdown()
+
+	req, _ := http.NewRequest("GET", "/v1/operator/keyring?local-only=1", nil)
+	resp := httptest.NewRecorder()
+	r, err := a.srv.OperatorKeyringEndpoint(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	responses, ok := r.([]*structs.KeyringResponse)
+	if !ok {
+		t.Fatalf("err: %v", !ok)
+	}
+
+	// Check that we only get a LAN response with the original key
+	if len(responses) != 1 {
+		for _, r := range responses {
+			fmt.Println(r)
+		}
+		t.Fatalf("bad: %d", len(responses))
+	}
+
+	// LAN
+	if len(responses[0].Keys) != 1 {
+		t.Fatalf("bad: %d", len(responses[1].Keys))
+	}
+	if responses[0].WAN {
+		t.Fatalf("bad: %v", responses[1].WAN)
+	}
+	if _, ok := responses[0].Keys[key]; !ok {
+		t.Fatalf("bad: %v", ok)
+	}
+}
 
 func TestOperator_KeyringRemove(t *testing.T) {
 	t.Parallel()
 	key := "H3/9gBxcKKRf45CaI2DlRg=="
 	tempKey := "z90lFx3sZZLtTOkutXcwYg=="
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		encrypt = "`+key+`"
 	`)
 	defer a.Shutdown()
@@ -176,7 +215,7 @@ func TestOperator_KeyringRemove(t *testing.T) {
 	}
 
 	// Make sure the temp key is installed
-	list, err := a.ListKeys("", 0)
+	list, err := a.ListKeys("", false, 0)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -201,7 +240,7 @@ func TestOperator_KeyringRemove(t *testing.T) {
 	}
 
 	// Make sure the temp key has been removed
-	list, err = a.ListKeys("", 0)
+	list, err = a.ListKeys("", false, 0)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -223,7 +262,7 @@ func TestOperator_KeyringUse(t *testing.T) {
 	t.Parallel()
 	oldKey := "H3/9gBxcKKRf45CaI2DlRg=="
 	newKey := "z90lFx3sZZLtTOkutXcwYg=="
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		encrypt = "`+oldKey+`"
 	`)
 	defer a.Shutdown()
@@ -245,7 +284,7 @@ func TestOperator_KeyringUse(t *testing.T) {
 	}
 
 	// Make sure only the new key remains
-	list, err := a.ListKeys("", 0)
+	list, err := a.ListKeys("", false, 0)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -266,7 +305,7 @@ func TestOperator_KeyringUse(t *testing.T) {
 func TestOperator_Keyring_InvalidRelayFactor(t *testing.T) {
 	t.Parallel()
 	key := "H3/9gBxcKKRf45CaI2DlRg=="
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		encrypt = "`+key+`"
 	`)
 	defer a.Shutdown()
@@ -276,22 +315,53 @@ func TestOperator_Keyring_InvalidRelayFactor(t *testing.T) {
 		"asdf": "Error parsing relay factor",
 	}
 	for relayFactor, errString := range cases {
-		req, _ := http.NewRequest("GET", "/v1/operator/keyring?relay-factor="+relayFactor, nil)
+		req, err := http.NewRequest("GET", "/v1/operator/keyring?relay-factor="+relayFactor, nil)
+		require.NoError(t, err)
 		resp := httptest.NewRecorder()
-		_, err := a.srv.OperatorKeyringEndpoint(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
+		_, err = a.srv.OperatorKeyringEndpoint(resp, req)
+		require.Error(t, err, "tc: "+relayFactor)
+		require.Contains(t, err.Error(), errString, "tc: "+relayFactor)
+	}
+}
+
+func TestOperator_Keyring_LocalOnly(t *testing.T) {
+	t.Parallel()
+	key := "H3/9gBxcKKRf45CaI2DlRg=="
+	a := NewTestAgent(t, `
+		encrypt = "`+key+`"
+	`)
+	defer a.Shutdown()
+
+	cases := []struct {
+		description string
+		method      string
+		local       interface{}
+		ok          bool
+	}{
+		{"all ok", "GET", true, true},
+		{"garbage local-only value", "GET", "garbage", false},
+		{"wrong method (DELETE)", "DELETE", true, false},
+	}
+
+	for _, tc := range cases {
+		url := fmt.Sprintf("/v1/operator/keyring?local-only=%v", tc.local)
+		req, err := http.NewRequest(tc.method, url, nil)
+		require.NoError(t, err, "tc: "+tc.description)
+
+		resp := httptest.NewRecorder()
+		_, err = a.srv.OperatorKeyringEndpoint(resp, req)
+		if tc.ok {
+			require.NoError(t, err, "tc: "+tc.description)
 		}
-		body := resp.Body.String()
-		if !strings.Contains(body, errString) {
-			t.Fatalf("bad: %v", body)
+		if !tc.ok {
+			require.Error(t, err, "tc: "+tc.description)
 		}
 	}
 }
 
 func TestOperator_AutopilotGetConfiguration(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -316,7 +386,7 @@ func TestOperator_AutopilotGetConfiguration(t *testing.T) {
 
 func TestOperator_AutopilotSetConfiguration(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	body := bytes.NewBuffer([]byte(`{"CleanupDeadServers": false}`))
@@ -344,8 +414,9 @@ func TestOperator_AutopilotSetConfiguration(t *testing.T) {
 
 func TestOperator_AutopilotCASConfiguration(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	body := bytes.NewBuffer([]byte(`{"CleanupDeadServers": false}`))
 	req, _ := http.NewRequest("PUT", "/v1/operator/autopilot/configuration", body)
@@ -411,7 +482,7 @@ func TestOperator_AutopilotCASConfiguration(t *testing.T) {
 
 func TestOperator_ServerHealth(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		raft_protocol = 3
 	`)
 	defer a.Shutdown()
@@ -443,7 +514,7 @@ func TestOperator_ServerHealth(t *testing.T) {
 
 func TestOperator_ServerHealth_Unhealthy(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		raft_protocol = 3
 		autopilot {
 			last_contact_threshold = "-1s"

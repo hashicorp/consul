@@ -28,6 +28,8 @@ type Args struct {
 // Directory gives the directory of the current written
 // last argument if it represents a file name being written.
 // in case that it is not, we fall back to the current directory.
+//
+// Deprecated.
 func (a Args) Directory() string {
 	if info, err := os.Stat(a.Last); err == nil && info.IsDir() {
 		return fixPathForm(a.Last, a.Last)
@@ -57,11 +59,20 @@ func newArgs(line string) Args {
 	}
 }
 
+// splitFields returns a list of fields from the given command line.
+// If the last character is space, it appends an empty field in the end
+// indicating that the field before it was completed.
+// If the last field is of the form "a=b", it splits it to two fields: "a", "b",
+// So it can be completed.
 func splitFields(line string) []string {
 	parts := strings.Fields(line)
+
+	// Add empty field if the last field was completed.
 	if len(line) > 0 && unicode.IsSpace(rune(line[len(line)-1])) {
 		parts = append(parts, "")
 	}
+
+	// Treat the last field if it is of the form "a=b"
 	parts = splitLastEqual(parts)
 	return parts
 }
@@ -74,16 +85,17 @@ func splitLastEqual(line []string) []string {
 	return append(line[:len(line)-1], parts...)
 }
 
+// from returns a copy of Args of all arguments after the i'th argument.
 func (a Args) from(i int) Args {
-	if i > len(a.All) {
-		i = len(a.All)
+	if i >= len(a.All) {
+		i = len(a.All) - 1
 	}
-	a.All = a.All[i:]
+	a.All = a.All[i+1:]
 
-	if i > len(a.Completed) {
-		i = len(a.Completed)
+	if i >= len(a.Completed) {
+		i = len(a.Completed) - 1
 	}
-	a.Completed = a.Completed[i:]
+	a.Completed = a.Completed[i+1:]
 	return a
 }
 

@@ -8,10 +8,11 @@ import (
 )
 
 const (
-	caBuiltinProviderTableName = "connect-ca-builtin"
-	caConfigTableName          = "connect-ca-config"
-	caRootTableName            = "connect-ca-roots"
-	caLeafIndexName            = "connect-ca-leaf-certs"
+	caBuiltinProviderTableName    = "connect-ca-builtin"
+	caBuiltinProviderSerialNumber = "connect-ca-builtin-serial"
+	caConfigTableName             = "connect-ca-config"
+	caRootTableName               = "connect-ca-roots"
+	caLeafIndexName               = "connect-ca-leaf-certs"
 )
 
 // caBuiltinProviderTableSchema returns a new table schema used for storing
@@ -21,7 +22,7 @@ func caBuiltinProviderTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: caBuiltinProviderTableName,
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
@@ -41,7 +42,7 @@ func caConfigTableSchema() *memdb.TableSchema {
 		Indexes: map[string]*memdb.IndexSchema{
 			// This table only stores one row, so this just ignores the ID field
 			// and always overwrites the same config object.
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: true,
 				Unique:       true,
@@ -59,7 +60,7 @@ func caRootTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: caRootTableName,
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
@@ -108,15 +109,21 @@ func (s *Restore) CAConfig(config *structs.CAConfiguration) error {
 }
 
 // CAConfig is used to get the current CA configuration.
-func (s *Store) CAConfig() (uint64, *structs.CAConfiguration, error) {
+func (s *Store) CAConfig(ws memdb.WatchSet) (uint64, *structs.CAConfiguration, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	return caConfigTxn(tx, ws)
+}
+
+func caConfigTxn(tx *txn, ws memdb.WatchSet) (uint64, *structs.CAConfiguration, error) {
 	// Get the CA config
-	c, err := tx.First(caConfigTableName, "id")
+	ch, c, err := tx.FirstWatch(caConfigTableName, "id")
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed CA config lookup: %s", err)
 	}
+
+	ws.Add(ch)
 
 	config, ok := c.(*structs.CAConfiguration)
 	if !ok {
@@ -128,22 +135,21 @@ func (s *Store) CAConfig() (uint64, *structs.CAConfiguration, error) {
 
 // CASetConfig is used to set the current CA configuration.
 func (s *Store) CASetConfig(idx uint64, config *structs.CAConfiguration) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	if err := s.caSetConfigTxn(idx, tx, config); err != nil {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // CACheckAndSetConfig is used to try updating the CA configuration with a
 // given Raft index. If the CAS index specified is not equal to the last observed index
 // for the config, then the call is a noop,
 func (s *Store) CACheckAndSetConfig(idx, cidx uint64, config *structs.CAConfiguration) (bool, error) {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	// Check for an existing config
@@ -156,7 +162,7 @@ func (s *Store) CACheckAndSetConfig(idx, cidx uint64, config *structs.CAConfigur
 	// index arg, then we shouldn't update anything and can safely
 	// return early here.
 	e, ok := existing.(*structs.CAConfiguration)
-	if !ok || e.ModifyIndex != cidx {
+	if (ok && e.ModifyIndex != cidx) || (!ok && cidx != 0) {
 		return false, nil
 	}
 
@@ -164,11 +170,11 @@ func (s *Store) CACheckAndSetConfig(idx, cidx uint64, config *structs.CAConfigur
 		return false, err
 	}
 
-	tx.Commit()
-	return true, nil
+	err = tx.Commit()
+	return err == nil, err
 }
 
-func (s *Store) caSetConfigTxn(idx uint64, tx *memdb.Txn, config *structs.CAConfiguration) error {
+func (s *Store) caSetConfigTxn(idx uint64, tx *txn, config *structs.CAConfiguration) error {
 	// Check for an existing config
 	prev, err := tx.First(caConfigTableName, "id")
 	if err != nil {
@@ -227,6 +233,10 @@ func (s *Store) CARoots(ws memdb.WatchSet) (uint64, structs.CARoots, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	return caRootsTxn(tx, ws)
+}
+
+func caRootsTxn(tx *txn, ws memdb.WatchSet) (uint64, structs.CARoots, error) {
 	// Get the index
 	idx := maxIndexTxn(tx, caRootTableName)
 
@@ -268,7 +278,7 @@ func (s *Store) CARootActive(ws memdb.WatchSet) (uint64, *structs.CARoot, error)
 //
 // The first boolean result returns whether the transaction succeeded or not.
 func (s *Store) CARootSetCAS(idx, cidx uint64, rs []*structs.CARoot) (bool, error) {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	// There must be exactly one active CA root.
@@ -325,8 +335,8 @@ func (s *Store) CARootSetCAS(idx, cidx uint64, rs []*structs.CARoot) (bool, erro
 		return false, fmt.Errorf("failed updating index: %s", err)
 	}
 
-	tx.Commit()
-	return true, nil
+	err = tx.Commit()
+	return err == nil, err
 }
 
 // CAProviderState is used to pull the built-in provider states from the snapshot.
@@ -380,7 +390,7 @@ func (s *Store) CAProviderState(id string) (uint64, *structs.CAConsulProviderSta
 
 // CASetProviderState is used to set the current built-in CA provider state.
 func (s *Store) CASetProviderState(idx uint64, state *structs.CAConsulProviderState) (bool, error) {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	// Check for an existing config
@@ -406,19 +416,15 @@ func (s *Store) CASetProviderState(idx uint64, state *structs.CAConsulProviderSt
 		return false, fmt.Errorf("failed updating index: %s", err)
 	}
 
-	tx.Commit()
-
-	return true, nil
+	err = tx.Commit()
+	return err == nil, err
 }
 
 // CADeleteProviderState is used to remove the built-in Consul CA provider
 // state for the given ID.
-func (s *Store) CADeleteProviderState(id string) error {
-	tx := s.db.Txn(true)
+func (s *Store) CADeleteProviderState(idx uint64, id string) error {
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
-
-	// Get the index
-	idx := maxIndexTxn(tx, caBuiltinProviderTableName)
 
 	// Check for an existing config
 	existing, err := tx.First(caBuiltinProviderTableName, "id", id)
@@ -439,14 +445,61 @@ func (s *Store) CADeleteProviderState(id string) error {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	tx.Commit()
-
-	return nil
+	return tx.Commit()
 }
 
-func (s *Store) CALeafSetIndex(index uint64) error {
-	tx := s.db.Txn(true)
+func (s *Store) CALeafSetIndex(idx uint64, index uint64) error {
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	return indexUpdateMaxTxn(tx, index, caLeafIndexName)
+}
+
+func (s *Store) CARootsAndConfig(ws memdb.WatchSet) (uint64, structs.CARoots, *structs.CAConfiguration, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	confIdx, config, err := caConfigTxn(tx, ws)
+	if err != nil {
+		return 0, nil, nil, fmt.Errorf("failed CA config lookup: %v", err)
+	}
+
+	rootsIdx, roots, err := caRootsTxn(tx, ws)
+	if err != nil {
+		return 0, nil, nil, fmt.Errorf("failed CA roots lookup: %v", err)
+	}
+
+	idx := rootsIdx
+	if confIdx > idx {
+		idx = confIdx
+	}
+
+	return idx, roots, config, nil
+}
+
+func (s *Store) CAIncrementProviderSerialNumber(idx uint64) (uint64, error) {
+	tx := s.db.WriteTxn(idx)
+	defer tx.Abort()
+
+	existing, err := tx.First("index", "id", caBuiltinProviderSerialNumber)
+	if err != nil {
+		return 0, fmt.Errorf("failed built-in CA serial number lookup: %s", err)
+	}
+
+	var last uint64
+	if existing != nil {
+		last = existing.(*IndexEntry).Value
+	} else {
+		// Serials used to be based on the raft indexes in the provider table,
+		// so bootstrap off of that.
+		last = maxIndexTxn(tx, caBuiltinProviderTableName)
+	}
+	next := last + 1
+
+	if err := tx.Insert("index", &IndexEntry{caBuiltinProviderSerialNumber, next}); err != nil {
+		return 0, fmt.Errorf("failed updating index: %s", err)
+	}
+
+	err = tx.Commit()
+	return next, err
 }

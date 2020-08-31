@@ -120,7 +120,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	// Generate the columnized version
-	output := columnize.SimpleFormat(result)
+	output := columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f})})
 	c.UI.Output(output)
 
 	return 0
@@ -146,7 +146,7 @@ func (m ByMemberNameAndSegment) Less(i, j int) bool {
 // in a more human-friendly format
 func (c *cmd) standardOutput(members []*consulapi.AgentMember) []string {
 	result := make([]string, 0, len(members))
-	header := "Node|Address|Status|Type|Build|Protocol|DC|Segment"
+	header := "Node\x1fAddress\x1fStatus\x1fType\x1fBuild\x1fProtocol\x1fDC\x1fSegment"
 	result = append(result, header)
 	for _, member := range members {
 		addr := net.TCPAddr{IP: net.ParseIP(member.Addr), Port: int(member.Port)}
@@ -163,15 +163,15 @@ func (c *cmd) standardOutput(members []*consulapi.AgentMember) []string {
 		statusString := serf.MemberStatus(member.Status).String()
 		switch member.Tags["role"] {
 		case "node":
-			line := fmt.Sprintf("%s|%s|%s|client|%s|%s|%s|%s",
+			line := fmt.Sprintf("%s\x1f%s\x1f%s\x1fclient\x1f%s\x1f%s\x1f%s\x1f%s",
 				member.Name, addr.String(), statusString, build, protocol, dc, segment)
 			result = append(result, line)
 		case "consul":
-			line := fmt.Sprintf("%s|%s|%s|server|%s|%s|%s|%s",
+			line := fmt.Sprintf("%s\x1f%s\x1f%s\x1fserver\x1f%s\x1f%s\x1f%s\x1f%s",
 				member.Name, addr.String(), statusString, build, protocol, dc, segment)
 			result = append(result, line)
 		default:
-			line := fmt.Sprintf("%s|%s|%s|unknown||||",
+			line := fmt.Sprintf("%s\x1f%s\x1f%s\x1funknown\x1f\x1f\x1f\x1f",
 				member.Name, addr.String(), statusString)
 			result = append(result, line)
 		}
@@ -183,7 +183,7 @@ func (c *cmd) standardOutput(members []*consulapi.AgentMember) []string {
 // their raw format
 func (c *cmd) detailedOutput(members []*consulapi.AgentMember) []string {
 	result := make([]string, 0, len(members))
-	header := "Node|Address|Status|Tags"
+	header := "Node\x1fAddress\x1fStatus\x1fTags"
 	result = append(result, header)
 	for _, member := range members {
 		// Get the tags sorted by key
@@ -202,7 +202,7 @@ func (c *cmd) detailedOutput(members []*consulapi.AgentMember) []string {
 		tags := strings.Join(tagPairs, ",")
 
 		addr := net.TCPAddr{IP: net.ParseIP(member.Addr), Port: int(member.Port)}
-		line := fmt.Sprintf("%s|%s|%s|%s",
+		line := fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s",
 			member.Name, addr.String(), serf.MemberStatus(member.Status).String(), tags)
 		result = append(result, line)
 	}

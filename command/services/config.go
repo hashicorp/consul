@@ -7,17 +7,18 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/mitchellh/cli"
 	"github.com/mitchellh/mapstructure"
 )
 
 // ServicesFromFiles returns the list of agent service registration structs
 // from a set of file arguments.
-func ServicesFromFiles(files []string) ([]*api.AgentServiceRegistration, error) {
+func ServicesFromFiles(ui cli.Ui, files []string) ([]*api.AgentServiceRegistration, error) {
 	// We set devMode to true so we can get the basic valid default
 	// configuration. devMode doesn't set any services by default so this
 	// is okay since we only look at services.
 	devMode := true
-	b, err := config.NewBuilder(config.Flags{
+	b, err := config.NewBuilder(config.BuilderOpts{
 		ConfigFiles: files,
 		DevMode:     &devMode,
 	})
@@ -28,6 +29,9 @@ func ServicesFromFiles(files []string) ([]*api.AgentServiceRegistration, error) 
 	cfg, err := b.BuildAndValidate()
 	if err != nil {
 		return nil, err
+	}
+	for _, w := range b.Warnings {
+		ui.Warn(w)
 	}
 
 	// The services are now in "structs.ServiceDefinition" form and we need
@@ -65,12 +69,9 @@ func serviceToAgentService(svc *structs.ServiceDefinition) (*api.AgentServiceReg
 
 	// The structs version has non-pointer checks and the destination
 	// has pointers, so we need to set the destination to nil if there
-	// is no check ID set.
-	if result.Check != nil && result.Check.Name == "" {
+	// is a zero-value Check field.
+	if result.Check != nil && reflect.DeepEqual(*result.Check, api.AgentServiceCheck{}) {
 		result.Check = nil
-	}
-	if len(result.Checks) == 1 && result.Checks[0].Name == "" {
-		result.Checks = nil
 	}
 
 	return &result, nil

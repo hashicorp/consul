@@ -1,9 +1,0 @@
-%breadcrumbs a {
-  @extend %with-chevron;
-}
-%breadcrumbs ol {
-  list-style-type: none;
-}
-%breadcrumbs a {
-  color: $ui-color-action;
-}

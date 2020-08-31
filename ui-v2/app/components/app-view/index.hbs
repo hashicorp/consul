@@ -1,0 +1,90 @@
+{{yield}}
+<header>
+{{#each flashMessages.queue as |flash|}}
+    <FlashMessage @flash={{flash}} as |component flash|>
+  {{#if flash.dom}}
+        {{{flash.dom}}}
+  {{else}}
+        {{#let (lowercase component.flashType) (lowercase flash.action) as |status type|}}
+          {{! flashes automatically ucfirst the type }}
+
+          <p data-notification role="alert" class={{concat status ' notification-' type}}>
+            <strong>
+              {{capitalize status}}!
+            </strong>
+            {{#yield-slot name="notification" params=(block-params status type flash.item flash.error)}}
+              {{yield}}
+              {{#if (eq type 'logout')}}
+                {{#if (eq status 'success') }}
+                  You are now logged out.
+                {{else}}
+                  There was an error logging out.
+                {{/if}}
+              {{else if (eq type 'authorize')}}
+                {{#if (eq status 'success') }}
+                  You are now logged in.
+                {{else}}
+                  There was an error, please check your SecretID/Token
+                {{/if}}
+              {{/if}}
+            {{else}}
+              {{#if (eq type 'logout')}}
+                {{#if (eq status 'success') }}
+                  You are now logged out.
+                {{else}}
+                  There was an error logging out.
+                {{/if}}
+              {{else if (eq type 'authorize')}}
+                {{#if (eq status 'success') }}
+                  You are now logged in.
+                {{else}}
+                  There was an error, please check your SecretID/Token
+                {{/if}}
+              {{/if}}
+            {{/yield-slot}}
+          </p>
+        {{/let}}
+  {{/if}}
+    </FlashMessage>
+{{/each}}
+    <div>
+        <div>
+  {{#if authorized}}
+            <nav aria-label="Breadcrumb">
+                <YieldSlot @name="breadcrumbs">{{yield}}</YieldSlot>
+            </nav>
+  {{/if}}
+            <div class="title">
+              <YieldSlot @name="header">
+                  {{yield}}
+              </YieldSlot>
+              <div class="actions">
+        {{#if authorized}}
+                  <YieldSlot @name="actions">
+                    <PortalTarget @name="app-view-actions" />
+                    {{yield}}
+                  </YieldSlot>
+        {{/if}}
+              </div>
+            </div>
+            <YieldSlot @name="nav">
+              {{yield}}
+            </YieldSlot>
+        </div>
+    </div>
+  {{#if authorized}}
+    <YieldSlot @name="toolbar">
+      <input type="checkbox" id="toolbar-toggle" />
+      {{yield}}
+    </YieldSlot>
+  {{/if}}
+</header>
+<div>
+    {{#if (not enabled) }}
+      <YieldSlot @name="disabled">{{yield}}</YieldSlot>
+    {{else if (not authorized)}}
+      <YieldSlot @name="authorization">{{yield}}</YieldSlot>
+    {{else}}
+      <YieldSlot @name="content">{{yield}}</YieldSlot>
+    {{/if}}
+</div>

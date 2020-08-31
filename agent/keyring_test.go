@@ -5,13 +5,13 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/memberlist"
+	"github.com/stretchr/testify/require"
 )
 
 func checkForKey(key string, keyring *memberlist.Keyring) error {
@@ -33,7 +33,7 @@ func TestAgent_LoadKeyrings(t *testing.T) {
 
 	// Should be no configured keyring file by default
 	t.Run("no keys", func(t *testing.T) {
-		a1 := NewTestAgent(t, t.Name(), "")
+		a1 := NewTestAgent(t, "")
 		defer a1.Shutdown()
 
 		c1 := a1.consulConfig()
@@ -53,8 +53,10 @@ func TestAgent_LoadKeyrings(t *testing.T) {
 
 	// Server should auto-load LAN and WAN keyring files
 	t.Run("server with keys", func(t *testing.T) {
-		a2 := &TestAgent{Name: t.Name(), Key: key}
-		a2.Start(t)
+		dataDir := testutil.TempDir(t, "keyfile")
+		writeKeyRings(t, key, dataDir)
+
+		a2 := StartTestAgent(t, TestAgent{DataDir: dataDir})
 		defer a2.Shutdown()
 
 		c2 := a2.consulConfig()
@@ -80,11 +82,16 @@ func TestAgent_LoadKeyrings(t *testing.T) {
 
 	// Client should auto-load only the LAN keyring file
 	t.Run("client with keys", func(t *testing.T) {
-		a3 := &TestAgent{Name: t.Name(), HCL: `
+		dataDir := testutil.TempDir(t, "keyfile")
+		writeKeyRings(t, key, dataDir)
+
+		a3 := StartTestAgent(t, TestAgent{
+			HCL: `
 			server = false
 			bootstrap = false
-		`, Key: key}
-		a3.Start(t)
+			`,
+			DataDir: dataDir,
+		})
 		defer a3.Shutdown()
 
 		c3 := a3.consulConfig()
@@ -106,13 +113,23 @@ func TestAgent_LoadKeyrings(t *testing.T) {
 	})
 }
 
+func writeKeyRings(t *testing.T, key string, dataDir string) {
+	t.Helper()
+	writeKey := func(key, filename string) {
+		path := filepath.Join(dataDir, filename)
+		require.NoError(t, initKeyring(path, key), "Error creating keyring %s", path)
+	}
+	writeKey(key, SerfLANKeyring)
+	writeKey(key, SerfWANKeyring)
+}
+
 func TestAgent_InmemKeyrings(t *testing.T) {
 	t.Parallel()
 	key := "tbLJg26ZJyJ9pK3qhc9jig=="
 
 	// Should be no configured keyring file by default
 	t.Run("no keys", func(t *testing.T) {
-		a1 := NewTestAgent(t, t.Name(), "")
+		a1 := NewTestAgent(t, "")
 		defer a1.Shutdown()
 
 		c1 := a1.consulConfig()
@@ -132,11 +149,10 @@ func TestAgent_InmemKeyrings(t *testing.T) {
 
 	// Server should auto-load LAN and WAN keyring
 	t.Run("server with keys", func(t *testing.T) {
-		a2 := &TestAgent{Name: t.Name(), HCL: `
-			encrypt = "` + key + `"
+		a2 := NewTestAgent(t, `
+			encrypt = "`+key+`"
 			disable_keyring_file = true
-		`}
-		a2.Start(t)
+		`)
 		defer a2.Shutdown()
 
 		c2 := a2.consulConfig()
@@ -162,13 +178,12 @@ func TestAgent_InmemKeyrings(t *testing.T) {
 
 	// Client should auto-load only the LAN keyring
 	t.Run("client with keys", func(t *testing.T) {
-		a3 := &TestAgent{Name: t.Name(), HCL: `
-			encrypt = "` + key + `"
+		a3 := NewTestAgent(t, `
+			encrypt = "`+key+`"
 			server = false
 			bootstrap = false
 			disable_keyring_file = true
-		`}
-		a3.Start(t)
+		`)
 		defer a3.Shutdown()
 
 		c3 := a3.consulConfig()
@@ -192,7 +207,6 @@ func TestAgent_InmemKeyrings(t *testing.T) {
 	// Any keyring files should be ignored
 	t.Run("ignore files", func(t *testing.T) {
 		dir := testutil.TempDir(t, "consul")
-		defer os.RemoveAll(dir)
 
 		badKey := "unUzC2X3JgMKVJlZna5KVg=="
 		if err := initKeyring(filepath.Join(dir, SerfLANKeyring), badKey); err != nil {
@@ -202,12 +216,11 @@ func TestAgent_InmemKeyrings(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		a4 := &TestAgent{Name: t.Name(), HCL: `
-			encrypt = "` + key + `"
+		a4 := NewTestAgent(t, `
+			encrypt = "`+key+`"
 			disable_keyring_file = true
-			data_dir = "` + dir + `"
-		`}
-		a4.Start(t)
+			data_dir = "`+dir+`"
+		`)
 		defer a4.Shutdown()
 
 		c4 := a4.consulConfig()
@@ -239,8 +252,6 @@ func TestAgent_InitKeyring(t *testing.T) {
 	expected := fmt.Sprintf(`["%s"]`, key1)
 
 	dir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(dir)
-
 	file := filepath.Join(dir, "keyring")
 
 	// First initialize the keyring
@@ -276,22 +287,24 @@ func TestAgentKeyring_ACL(t *testing.T) {
 	key1 := "tbLJg26ZJyJ9pK3qhc9jig=="
 	key2 := "4leC33rgtXKIVUr9Nr0snQ=="
 
-	a := &TestAgent{Name: t.Name(), HCL: TestACLConfig() + `
+	dataDir := testutil.TempDir(t, "keyfile")
+	writeKeyRings(t, key1, dataDir)
+
+	a := StartTestAgent(t, TestAgent{HCL: TestACLConfig() + `
 		acl_datacenter = "dc1"
 		acl_master_token = "root"
 		acl_default_policy = "deny"
-	`, Key: key1}
-	a.Start(t)
+	`, DataDir: dataDir})
 	defer a.Shutdown()
 
 	// List keys without access fails
-	_, err := a.ListKeys("", 0)
+	_, err := a.ListKeys("", false, 0)
 	if err == nil || !strings.Contains(err.Error(), "denied") {
 		t.Fatalf("expected denied error, got: %#v", err)
 	}
 
 	// List keys with access works
-	_, err = a.ListKeys("root", 0)
+	_, err = a.ListKeys("root", false, 0)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -331,4 +344,23 @@ func TestAgentKeyring_ACL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
+}
+
+func TestValidateLocalOnly(t *testing.T) {
+	require.NoError(t, ValidateLocalOnly(false, false))
+	require.NoError(t, ValidateLocalOnly(true, true))
+
+	require.Error(t, ValidateLocalOnly(true, false))
+}
+
+func TestAgent_KeyringIsMissingKey(t *testing.T) {
+	key1 := "tbLJg26ZJyJ9pK3qhc9jig=="
+	key2 := "4leC33rgtXKIVUr9Nr0snQ=="
+	decoded1, err := decodeStringKey(key1)
+	require.NoError(t, err)
+	keyring, err := memberlist.NewKeyring([][]byte{}, decoded1)
+	require.NoError(t, err)
+
+	require.True(t, keyringIsMissingKey(keyring, key2))
+	require.False(t, keyringIsMissingKey(keyring, key1))
 }

@@ -1,0 +1,42 @@
+.unhealthy > div,
+.healthy > div {
+  @extend %card-grid;
+}
+.grid-collection {
+  height: 500px;
+  position: relative;
+}
+.healthy > div {
+  width: calc(100% + 23px);
+  min-height: 500px;
+}
+.unhealthy > div {
+  margin-bottom: 20px;
+}
+.healthy > div > ul > li {
+  padding-right: 23px;
+  padding-bottom: 20px;
+}
+%card-grid > ul,
+%card-grid > ol {
+  list-style-type: none;
+  display: grid;
+  grid-auto-rows: 12px;
+}
+%card-grid li.empty {
+  grid-column: 1 / -1;
+}
+@media #{$--fixed-grid} {
+  %card-grid > ul,
+  %card-grid > ol {
+    grid-gap: 20px 20px;
+    grid-template-columns: repeat(4, minmax(220px, 1fr));
+  }
+}
+@media #{$--lt-fixed-grid} {
+  %card-grid > ul,
+  %card-grid > ol {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-gap: 20px 2%;
+  }
+}

@@ -12,13 +12,13 @@ $syntax-serf: #dd4e58;
 $syntax-packer: #1ddba3;
 
 // Our colors
-$syntax-gray: lighten($ui-black, 89%);
+$syntax-gray: lighten($black, 89%);
 $syntax-red: #ff3d3d;
 $syntax-green: #39b54a;
 $syntax-dark-gray: #535f73;
 
 $syntax-gutter-grey: #2a2f36;
-$syntax-yellow: $ui-yellow-500;
+$syntax-yellow: $yellow-500;
 .CodeMirror {
   max-width: 1150px;
   min-height: 300px;
@@ -33,7 +33,7 @@ $syntax-yellow: $ui-yellow-500;
   background-color: #f9f9fa;
   border: 1px solid $syntax-light-gray;
   border-radius: 0;
-  color: lighten($ui-black, 13%);
+  color: lighten($black, 13%);
   font-family: $typo-family-mono;
   font-size: 13px;
   padding: 7px 8px 9px;
@@ -42,7 +42,7 @@ $syntax-yellow: $ui-yellow-500;
 .cm-s-hashi {
   &.CodeMirror {
     width: 100%;
-    background-color: $ui-black !important;
+    background-color: $black !important;
     color: #cfd2d1 !important;
     border: none;
     font-family: $typo-family-mono;
@@ -150,7 +150,7 @@ $syntax-yellow: $ui-yellow-500;
 
   .CodeMirror-matchingbracket {
     text-decoration: underline;
-    color: $ui-white !important;
+    color: $white !important;
   }
 }
 
@@ -174,7 +174,7 @@ $syntax-yellow: $ui-yellow-500;
     }
 
     span.cm-property {
-      color: $ui-white;
+      color: $white;
     }
 
     span.cm-variable-2 {

@@ -1,38 +1,34 @@
-/*TODO: This remains a mix of form-elements */
-/* form-elements should probably be a collection of these */
-@import './form-elements/index';
-@import './toggle/index';
-@import './radio-group/index';
-@import './checkbox-group/index';
 label span {
   @extend %user-select-none;
 }
 .has-error {
   @extend %form-element-error;
 }
-%modal-dialog .type-text,
-%app-content .type-text {
-  @extend %form-element;
-}
 .type-toggle {
-  @extend %form-element, %toggle;
-}
-%form-element,
-%radio-group,
-%checkbox-group,
-form table,
-%app-content form dl {
-  @extend %form-row;
-}
-%app-content [role='radiogroup'] {
-  @extend %radio-group;
-}
-%radio-group label {
-  @extend %form-element;
+  @extend %form-element, %sliding-toggle;
 }
 .checkbox-group {
   @extend %checkbox-group;
 }
-%toggle + .checkbox-group {
+%main-content form {
+  @extend %form;
+}
+%form table,
+%radio-group,
+%checkbox-group,
+%main-content form dl {
+  @extend %form-row;
+}
+%radio-group label,
+%main-content .type-select,
+%main-content .type-password,
+%main-content .type-text {
+  @extend %form-element;
+}
+%app-view-content form:not(.filter-bar) [role='radiogroup'],
+%modal-window [role='radiogroup'] {
+  @extend %radio-group;
+}
+%sliding-toggle + .checkbox-group {
   margin-top: -1em;
 }

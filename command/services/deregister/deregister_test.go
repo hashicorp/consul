@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
 )
@@ -64,7 +64,7 @@ func TestCommand_File_id(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -101,7 +101,7 @@ func TestCommand_File_nameOnly(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -138,7 +138,7 @@ func TestCommand_Flag(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -172,13 +172,11 @@ func testFile(t *testing.T, suffix string) *os.File {
 
 	newName := f.Name() + "." + suffix
 	if err := os.Rename(f.Name(), newName); err != nil {
-		os.Remove(f.Name())
 		t.Fatalf("err: %s", err)
 	}
 
 	f, err := os.Create(newName)
 	if err != nil {
-		os.Remove(newName)
 		t.Fatalf("err: %s", err)
 	}
 

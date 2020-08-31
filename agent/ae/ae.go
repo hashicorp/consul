@@ -3,12 +3,12 @@ package ae
 
 import (
 	"fmt"
-	"log"
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 	"math"
 	"sync"
 	"time"
-
-	"github.com/hashicorp/consul/lib"
 )
 
 // scaleThreshold is the number of nodes after which regular sync runs are
@@ -60,7 +60,7 @@ type StateSyncer struct {
 	ShutdownCh chan struct{}
 
 	// Logger is the logger.
-	Logger *log.Logger
+	Logger hclog.Logger
 
 	// ClusterSize returns the number of members in the cluster to
 	// allow staggering the sync runs based on cluster size.
@@ -96,6 +96,10 @@ type StateSyncer struct {
 	// syncChangesEvent generates an event based on multiple conditions
 	// when the state machine is performing partial state syncs.
 	syncChangesEvent func() event
+
+	// nextFullSyncCh is a chan that receives a time.Time when the next
+	// full sync should occur.
+	nextFullSyncCh <-chan time.Time
 }
 
 const (
@@ -107,12 +111,16 @@ const (
 	retryFailIntv = 15 * time.Second
 )
 
-func NewStateSyncer(state SyncState, intv time.Duration, shutdownCh chan struct{}, logger *log.Logger) *StateSyncer {
+func NewStateSyncer(state SyncState, intv time.Duration, shutdownCh chan struct{}, logger hclog.Logger) *StateSyncer {
+	if logger == nil {
+		logger = hclog.New(&hclog.LoggerOptions{})
+	}
+
 	s := &StateSyncer{
 		State:             state,
 		Interval:          intv,
 		ShutdownCh:        shutdownCh,
-		Logger:            logger,
+		Logger:            logger.Named(logging.AntiEntropy),
 		SyncFull:          NewTrigger(),
 		SyncChanges:       NewTrigger(),
 		serverUpInterval:  serverUpIntv,
@@ -144,6 +152,7 @@ func (s *StateSyncer) Run() {
 	if s.ClusterSize == nil {
 		panic("ClusterSize not set")
 	}
+	s.resetNextFullSyncCh()
 	s.runFSM(fullSyncState, s.nextFSMState)
 }
 
@@ -166,7 +175,7 @@ func (s *StateSyncer) nextFSMState(fs fsmState) fsmState {
 
 		err := s.State.SyncFull()
 		if err != nil {
-			s.Logger.Printf("[ERR] agent: failed to sync remote state: %v", err)
+			s.Logger.Error("failed to sync remote state", "error", err)
 			return retryFullSyncState
 		}
 
@@ -196,7 +205,7 @@ func (s *StateSyncer) nextFSMState(fs fsmState) fsmState {
 
 			err := s.State.SyncChanges()
 			if err != nil {
-				s.Logger.Printf("[ERR] agent: failed to sync changes: %v", err)
+				s.Logger.Error("failed to sync changes", "error", err)
 			}
 			return partialSyncState
 
@@ -241,8 +250,9 @@ func (s *StateSyncer) retrySyncFullEventFn() event {
 		}
 
 	// retry full sync after some time
-	// todo(fs): why don't we use s.Interval here?
+	// it is using retryFailInterval because it is retrying the sync
 	case <-time.After(s.retryFailInterval + s.stagger(s.retryFailInterval)):
+		s.resetNextFullSyncCh()
 		return syncFullTimerEvent
 
 	case <-s.ShutdownCh:
@@ -262,13 +272,15 @@ func (s *StateSyncer) syncChangesEventFn() event {
 	case <-s.SyncFull.Notif():
 		select {
 		case <-time.After(s.stagger(s.serverUpInterval)):
+			s.resetNextFullSyncCh()
 			return syncFullNotifEvent
 		case <-s.ShutdownCh:
 			return shutdownEvent
 		}
 
 	// time for a full sync again
-	case <-time.After(s.Interval + s.stagger(s.Interval)):
+	case <-s.nextFullSyncCh:
+		s.resetNextFullSyncCh()
 		return syncFullTimerEvent
 
 	// do partial syncs on demand
@@ -277,6 +289,16 @@ func (s *StateSyncer) syncChangesEventFn() event {
 
 	case <-s.ShutdownCh:
 		return shutdownEvent
+	}
+}
+
+// resetNextFullSyncCh resets nextFullSyncCh and sets it to interval+stagger.
+// Call this function everytime a full sync is performed.
+func (s *StateSyncer) resetNextFullSyncCh() {
+	if s.stagger != nil {
+		s.nextFullSyncCh = time.After(s.Interval + s.stagger(s.Interval))
+	} else {
+		s.nextFullSyncCh = time.After(s.Interval)
 	}
 }
 

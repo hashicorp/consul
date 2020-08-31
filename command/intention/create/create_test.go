@@ -1,13 +1,12 @@
 package create
 
 import (
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
 )
@@ -60,7 +59,7 @@ func TestCommand(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -85,7 +84,7 @@ func TestCommand_deny(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -111,7 +110,7 @@ func TestCommand_meta(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -137,7 +136,7 @@ func TestCommand_File(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -146,7 +145,6 @@ func TestCommand_File(t *testing.T) {
 
 	contents := `{ "SourceName": "foo", "DestinationName": "bar", "Action": "allow" }`
 	f := testutil.TempFile(t, "intention-create-command-file")
-	defer os.Remove(f.Name())
 	if _, err := f.WriteString(contents); err != nil {
 		t.Fatalf("err: %#v", err)
 	}
@@ -171,7 +169,7 @@ func TestCommand_FileNoExist(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 
 	ui := cli.NewMockUi()
@@ -191,7 +189,7 @@ func TestCommand_replace(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 

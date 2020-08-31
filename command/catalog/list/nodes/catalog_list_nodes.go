@@ -3,11 +3,13 @@ package nodes
 import (
 	"flag"
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
+	"github.com/hashicorp/consul/command/helpers"
 	"github.com/mitchellh/cli"
 	"github.com/ryanuber/columnize"
 )
@@ -29,11 +31,15 @@ type cmd struct {
 	near     string
 	nodeMeta map[string]string
 	service  string
+	filter   string
+
+	testStdin io.Reader
 }
 
 // init sets up command flags and help text
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.StringVar(&c.filter, "filter", "", "Filter to use with the request")
 	c.flags.BoolVar(&c.detailed, "detailed", false, "Output detailed information about "+
 		"the nodes including their addresses and metadata.")
 	c.flags.StringVar(&c.near, "near", "", "Node name to sort the node list in ascending "+
@@ -68,11 +74,21 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	if c.filter != "" {
+		data, err := helpers.LoadDataSource(c.filter, c.testStdin)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Could not process filter argument: %v", err))
+			return 1
+		}
+		c.filter = data
+	}
+
 	var nodes []*api.Node
 	if c.service != "" {
 		services, _, err := client.Catalog().Service(c.service, "", &api.QueryOptions{
 			Near:     c.near,
 			NodeMeta: c.nodeMeta,
+			Filter:   c.filter,
 		})
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error listing nodes for service: %s", err))
@@ -96,6 +112,7 @@ func (c *cmd) Run(args []string) int {
 		nodes, _, err = client.Catalog().Nodes(&api.QueryOptions{
 			Near:     c.near,
 			NodeMeta: c.nodeMeta,
+			Filter:   c.filter,
 		})
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error listing nodes: %s", err))
@@ -130,16 +147,16 @@ func printNodes(nodes []*api.Node, detailed bool) (string, error) {
 		result = simpleNodes(nodes)
 	}
 
-	return columnize.SimpleFormat(result), nil
+	return columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f})}), nil
 }
 
 func detailedNodes(nodes []*api.Node) []string {
 	result := make([]string, 0, len(nodes)+1)
-	header := "Node|ID|Address|DC|TaggedAddresses|Meta"
+	header := "Node\x1fID\x1fAddress\x1fDC\x1fTaggedAddresses\x1fMeta"
 	result = append(result, header)
 
 	for _, node := range nodes {
-		result = append(result, fmt.Sprintf("%s|%s|%s|%s|%s|%s",
+		result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s",
 			node.Node, node.ID, node.Address, node.Datacenter,
 			mapToKV(node.TaggedAddresses, ", "), mapToKV(node.Meta, ", ")))
 	}
@@ -149,7 +166,7 @@ func detailedNodes(nodes []*api.Node) []string {
 
 func simpleNodes(nodes []*api.Node) []string {
 	result := make([]string, 0, len(nodes)+1)
-	header := "Node|ID|Address|DC"
+	header := "Node\x1fID\x1fAddress\x1fDC"
 	result = append(result, header)
 
 	for _, node := range nodes {
@@ -159,7 +176,7 @@ func simpleNodes(nodes []*api.Node) []string {
 		if idx > 0 {
 			id = id[0:idx]
 		}
-		result = append(result, fmt.Sprintf("%s|%s|%s|%s",
+		result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s",
 			node.Node, id, node.Address, node.Datacenter))
 	}
 

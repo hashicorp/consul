@@ -3,13 +3,13 @@ package save
 import (
 	"flag"
 	"fmt"
-	"io"
 	"os"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/snapshot"
 	"github.com/mitchellh/cli"
+	"github.com/rboyer/safeio"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -69,24 +69,16 @@ func (c *cmd) Run(args []string) int {
 	}
 	defer snap.Close()
 
-	// Save the file.
-	f, err := os.Create(file)
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error creating snapshot file: %s", err))
+	// Save the file first.
+	unverifiedFile := file + ".unverified"
+	if _, err := safeio.WriteToFile(snap, unverifiedFile, 0666); err != nil {
+		c.UI.Error(fmt.Sprintf("Error writing unverified snapshot file: %s", err))
 		return 1
 	}
-	if _, err := io.Copy(f, snap); err != nil {
-		f.Close()
-		c.UI.Error(fmt.Sprintf("Error writing snapshot file: %s", err))
-		return 1
-	}
-	if err := f.Close(); err != nil {
-		c.UI.Error(fmt.Sprintf("Error closing snapshot file after writing: %s", err))
-		return 1
-	}
+	defer os.Remove(unverifiedFile)
 
 	// Read it back to verify.
-	f, err = os.Open(file)
+	f, err := os.Open(unverifiedFile)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error opening snapshot file for verify: %s", err))
 		return 1
@@ -98,6 +90,11 @@ func (c *cmd) Run(args []string) int {
 	}
 	if err := f.Close(); err != nil {
 		c.UI.Error(fmt.Sprintf("Error closing snapshot file after verify: %s", err))
+		return 1
+	}
+
+	if err := safeio.Rename(unverifiedFile, file); err != nil {
+		c.UI.Error(fmt.Sprintf("Error renaming %q to %q: %v", unverifiedFile, file, err))
 		return 1
 	}
 

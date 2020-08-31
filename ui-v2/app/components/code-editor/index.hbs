@@ -1,0 +1,11 @@
+<IvyCodemirror @value={{value}} @name={{name}} @class={{class}} @options={{options}} @valueUpdated={{action onkeyup}} />
+<pre><code>{{yield}}</code></pre>
+{{#if (and (not readonly) (not syntax))}}
+  <PowerSelect
+      @onChange={{action "change"}}
+      @selected={{mode}}
+      @searchEnabled={{false}}
+      @options={{modes}} as |mode|>
+    {{mode.name}}
+  </PowerSelect>
+{{/if}}

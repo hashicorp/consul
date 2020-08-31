@@ -51,8 +51,7 @@ func (sl *ServerLookup) ServerAddr(id raft.ServerID) (raft.ServerAddress, error)
 func (sl *ServerLookup) Server(addr raft.ServerAddress) *metadata.Server {
 	sl.lock.RLock()
 	defer sl.lock.RUnlock()
-	svr, _ := sl.addressToServer[addr]
-	return svr
+	return sl.addressToServer[addr]
 }
 
 func (sl *ServerLookup) Servers() []*metadata.Server {
@@ -63,4 +62,15 @@ func (sl *ServerLookup) Servers() []*metadata.Server {
 		ret = append(ret, svr)
 	}
 	return ret
+}
+
+func (sl *ServerLookup) CheckServers(fn func(srv *metadata.Server) bool) {
+	sl.lock.RLock()
+	defer sl.lock.RUnlock()
+
+	for _, srv := range sl.addressToServer {
+		if !fn(srv) {
+			return
+		}
+	}
 }

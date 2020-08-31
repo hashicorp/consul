@@ -2,11 +2,11 @@ package consul
 
 import (
 	"fmt"
-	"io"
 	"net"
 	"os"
 	"time"
 
+	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
@@ -26,7 +26,7 @@ const (
 	DefaultWANSerfPort = 8302
 
 	// DefaultRaftMultiplier is used as a baseline Raft configuration that
-	// will be reliable on a very basic server. See docs/guides/performance.html
+	// will be reliable on a very basic server. See docs/install/performance.html
 	// for information on how this value was obtained.
 	DefaultRaftMultiplier uint = 5
 
@@ -84,6 +84,16 @@ type Config struct {
 
 	// DataDir is the directory to store our state in.
 	DataDir string
+
+	// DefaultQueryTime is the amount of time a blocking query will wait before
+	// Consul will force a response. This value can be overridden by the 'wait'
+	// query parameter.
+	DefaultQueryTime time.Duration
+
+	// MaxQueryTime is the maximum amount of time a blocking query can wait
+	// before Consul will force a response. Consul applies jitter to the wait
+	// time. The jittered time will be capped to MaxQueryTime.
+	MaxQueryTime time.Duration
 
 	// DevMode is used to enable a development server mode.
 	DevMode bool
@@ -146,10 +156,6 @@ type Config struct {
 	// that are force removed, as well as intermittent unavailability during
 	// leader election.
 	ReconcileInterval time.Duration
-
-	// LogOutput is the location to write logs to. If this is not set,
-	// logs will go to stderr.
-	LogOutput io.Writer
 
 	// ProtocolVersion is the protocol version to speak. This must be between
 	// ProtocolVersionMin and ProtocolVersionMax.
@@ -220,10 +226,6 @@ type Config struct {
 	// ACLEnabled is used to enable ACLs
 	ACLsEnabled bool
 
-	// ACLEnforceVersion8 is used to gate a set of ACL policy features that
-	// are opt-in prior to Consul 0.8 and opt-out in Consul 0.8 and later.
-	ACLEnforceVersion8 bool
-
 	// ACLMasterToken is used to bootstrap the ACL system. It should be specified
 	// on the servers in the ACLDatacenter. When the leader comes online, it ensures
 	// that the Master token is available. This provides the initial token.
@@ -242,6 +244,11 @@ type Config struct {
 	// It can be set to zero to disable caching, but this adds
 	// a substantial cost.
 	ACLPolicyTTL time.Duration
+
+	// ACLRoleTTL controls the time-to-live of cached ACL roles.
+	// It can be set to zero to disable caching, but this adds
+	// a substantial cost.
+	ACLRoleTTL time.Duration
 
 	// ACLDisabledTTL is the time between checking if ACLs should be
 	// enabled. This
@@ -287,6 +294,17 @@ type Config struct {
 	// by default in Consul 1.0 and later.
 	ACLEnableKeyListPolicy bool
 
+	AutoConfigEnabled              bool
+	AutoConfigIntroToken           string
+	AutoConfigIntroTokenFile       string
+	AutoConfigServerAddresses      []string
+	AutoConfigDNSSANs              []string
+	AutoConfigIPSANs               []net.IP
+	AutoConfigAuthzEnabled         bool
+	AutoConfigAuthzAuthMethod      structs.ACLAuthMethod
+	AutoConfigAuthzClaimAssertions []string
+	AutoConfigAuthzAllowReuse      bool
+
 	// TombstoneTTL is used to control how long KV tombstones are retained.
 	// This provides a window of time where the X-Consul-Index is monotonic.
 	// Outside this window, the index may not be monotonic. This is a result
@@ -313,13 +331,54 @@ type Config struct {
 	// Minimum Session TTL
 	SessionTTLMin time.Duration
 
+	// maxTokenExpirationDuration is the maximum difference allowed between
+	// ACLToken CreateTime and ExpirationTime values if ExpirationTime is set
+	// on a token.
+	ACLTokenMaxExpirationTTL time.Duration
+
+	// ACLTokenMinExpirationTTL is the minimum difference allowed between
+	// ACLToken CreateTime and ExpirationTime values if ExpirationTime is set
+	// on a token.
+	ACLTokenMinExpirationTTL time.Duration
+
 	// ServerUp callback can be used to trigger a notification that
 	// a Consul server is now up and known about.
 	ServerUp func()
 
+	// Shutdown callback is used to trigger a full Consul shutdown
+	Shutdown func()
+
 	// UserEventHandler callback can be used to handle incoming
 	// user events. This function should not block.
 	UserEventHandler func(serf.UserEvent)
+
+	// ConfigReplicationRate is the max number of replication rounds that can
+	// be run per second. Note that either 1 or 2 RPCs are used during each replication
+	// round
+	ConfigReplicationRate int
+
+	// ConfigReplicationBurst is how many replication rounds can be bursted after a
+	// period of idleness
+	ConfigReplicationBurst int
+
+	// ConfigReplicationApply limit is the max number of replication-related
+	// apply operations that we allow during a one second period. This is
+	// used to limit the amount of Raft bandwidth used for replication.
+	ConfigReplicationApplyLimit int
+
+	// FederationStateReplicationRate is the max number of replication rounds that can
+	// be run per second. Note that either 1 or 2 RPCs are used during each replication
+	// round
+	FederationStateReplicationRate int
+
+	// FederationStateReplicationBurst is how many replication rounds can be bursted after a
+	// period of idleness
+	FederationStateReplicationBurst int
+
+	// FederationStateReplicationApply limit is the max number of replication-related
+	// apply operations that we allow during a one second period. This is
+	// used to limit the amount of Raft bandwidth used for replication.
+	FederationStateReplicationApplyLimit int
 
 	// CoordinateUpdatePeriod controls how long a server batches coordinate
 	// updates before applying them in a Raft transaction. A larger period
@@ -335,6 +394,15 @@ type Config struct {
 	// are willing to apply in one period. After this limit we will issue a
 	// warning and discard the remaining updates.
 	CoordinateUpdateMaxBatches int
+
+	// CheckOutputMaxSize control the max size of output of checks
+	CheckOutputMaxSize int
+
+	// RPCHandshakeTimeout limits how long we will wait for the initial magic byte
+	// on an RPC client connection. It also governs how long we will wait for a
+	// TLS handshake when TLS is configured however the timout applies separately
+	// for the initial magic byte and the TLS handshake and inner magic byte.
+	RPCHandshakeTimeout time.Duration
 
 	// RPCHoldTimeout is how long an RPC can be "held" before it is errored.
 	// This is used to paper over a loss of leadership by instead holding RPCs,
@@ -353,6 +421,10 @@ type Config struct {
 	// buckets.
 	RPCRate     rate.Limit
 	RPCMaxBurst int
+
+	// RPCMaxConnsPerClient is the limit of how many concurrent connections are
+	// allowed from a single source IP.
+	RPCMaxConnsPerClient int
 
 	// LeaveDrainTime is used to wait after a server has left the LAN Serf
 	// pool for RPCs to drain and new requests to be sent to other servers.
@@ -374,12 +446,48 @@ type Config struct {
 	// ConnectEnabled is whether to enable Connect features such as the CA.
 	ConnectEnabled bool
 
+	// ConnectMeshGatewayWANFederationEnabled determines if wan federation of
+	// datacenters should exclusively traverse mesh gateways.
+	ConnectMeshGatewayWANFederationEnabled bool
+
+	// DisableFederationStateAntiEntropy solely exists for use in unit tests to
+	// disable a background routine.
+	DisableFederationStateAntiEntropy bool
+
 	// CAConfig is used to apply the initial Connect CA configuration when
 	// bootstrapping.
 	CAConfig *structs.CAConfiguration
 
-	// ConnectReplicationToken is used to control Intention replication.
-	ConnectReplicationToken string
+	// ConfigEntryBootstrap contains a list of ConfigEntries to ensure are created
+	// If entries of the same Kind/Name exist already these will not update them.
+	ConfigEntryBootstrap []structs.ConfigEntry
+
+	// AutoEncryptAllowTLS is whether to enable the server responding to
+	// AutoEncrypt.Sign requests.
+	AutoEncryptAllowTLS bool
+
+	// Embedded Consul Enterprise specific configuration
+	*EnterpriseConfig
+}
+
+// ToTLSUtilConfig is only used by tests, usually the config is being passed
+// down from the agent.
+func (c *Config) ToTLSUtilConfig() tlsutil.Config {
+	return tlsutil.Config{
+		VerifyIncoming:           c.VerifyIncoming,
+		VerifyOutgoing:           c.VerifyOutgoing,
+		VerifyServerHostname:     c.VerifyServerHostname,
+		CAFile:                   c.CAFile,
+		CAPath:                   c.CAPath,
+		CertFile:                 c.CertFile,
+		KeyFile:                  c.KeyFile,
+		NodeName:                 c.NodeName,
+		Domain:                   c.Domain,
+		ServerName:               c.ServerName,
+		TLSMinVersion:            c.TLSMinVersion,
+		CipherSuites:             c.TLSCipherSuites,
+		PreferServerCipherSuites: c.TLSPreferServerCipherSuites,
+	}
 }
 
 // CheckProtocolVersion validates the protocol version.
@@ -411,7 +519,7 @@ func (c *Config) CheckACL() error {
 	return nil
 }
 
-// DefaultConfig returns a sane default configuration.
+// DefaultConfig returns a default configuration.
 func DefaultConfig() *Config {
 	hostname, err := os.Hostname()
 	if err != nil {
@@ -419,26 +527,35 @@ func DefaultConfig() *Config {
 	}
 
 	conf := &Config{
-		Build:                    version.Version,
-		Datacenter:               DefaultDC,
-		NodeName:                 hostname,
-		RPCAddr:                  DefaultRPCAddr,
-		RaftConfig:               raft.DefaultConfig(),
-		SerfLANConfig:            lib.SerfDefaultConfig(),
-		SerfWANConfig:            lib.SerfDefaultConfig(),
-		SerfFloodInterval:        60 * time.Second,
-		ReconcileInterval:        60 * time.Second,
-		ProtocolVersion:          ProtocolVersion2Compatible,
-		ACLPolicyTTL:             30 * time.Second,
-		ACLTokenTTL:              30 * time.Second,
-		ACLDefaultPolicy:         "allow",
-		ACLDownPolicy:            "extend-cache",
-		ACLReplicationRate:       1,
-		ACLReplicationBurst:      5,
-		ACLReplicationApplyLimit: 100, // ops / sec
-		TombstoneTTL:             15 * time.Minute,
-		TombstoneTTLGranularity:  30 * time.Second,
-		SessionTTLMin:            10 * time.Second,
+		Build:                                version.Version,
+		Datacenter:                           DefaultDC,
+		NodeName:                             hostname,
+		RPCAddr:                              DefaultRPCAddr,
+		RaftConfig:                           raft.DefaultConfig(),
+		SerfLANConfig:                        lib.SerfDefaultConfig(),
+		SerfWANConfig:                        lib.SerfDefaultConfig(),
+		SerfFloodInterval:                    60 * time.Second,
+		ReconcileInterval:                    60 * time.Second,
+		ProtocolVersion:                      ProtocolVersion2Compatible,
+		ACLRoleTTL:                           30 * time.Second,
+		ACLPolicyTTL:                         30 * time.Second,
+		ACLTokenTTL:                          30 * time.Second,
+		ACLDefaultPolicy:                     "allow",
+		ACLDownPolicy:                        "extend-cache",
+		ACLReplicationRate:                   1,
+		ACLReplicationBurst:                  5,
+		ACLReplicationApplyLimit:             100, // ops / sec
+		ConfigReplicationRate:                1,
+		ConfigReplicationBurst:               5,
+		ConfigReplicationApplyLimit:          100, // ops / sec
+		FederationStateReplicationRate:       1,
+		FederationStateReplicationBurst:      5,
+		FederationStateReplicationApplyLimit: 100, // ops / sec
+		TombstoneTTL:                         15 * time.Minute,
+		TombstoneTTLGranularity:              30 * time.Second,
+		SessionTTLMin:                        10 * time.Second,
+		ACLTokenMinExpirationTTL:             1 * time.Minute,
+		ACLTokenMaxExpirationTTL:             24 * time.Hour,
 
 		// These are tuned to provide a total throughput of 128 updates
 		// per second. If you update these, you should update the client-
@@ -446,6 +563,8 @@ func DefaultConfig() *Config {
 		CoordinateUpdatePeriod:     5 * time.Second,
 		CoordinateUpdateBatchSize:  128,
 		CoordinateUpdateMaxBatches: 5,
+
+		CheckOutputMaxSize: checks.DefaultBufSize,
 
 		RPCRate:     rate.Inf,
 		RPCMaxBurst: 1000,
@@ -464,13 +583,17 @@ func DefaultConfig() *Config {
 		CAConfig: &structs.CAConfiguration{
 			Provider: "consul",
 			Config: map[string]interface{}{
-				"RotationPeriod": "2160h",
-				"LeafCertTTL":    "72h",
+				"RotationPeriod":      structs.DefaultCARotationPeriod,
+				"LeafCertTTL":         structs.DefaultLeafCertTTL,
+				"IntermediateCertTTL": structs.DefaultIntermediateCertTTL,
 			},
 		},
 
 		ServerHealthInterval: 2 * time.Second,
 		AutopilotInterval:    10 * time.Second,
+		DefaultQueryTime:     300 * time.Second,
+		MaxQueryTime:         600 * time.Second,
+		EnterpriseConfig:     DefaultEnterpriseConfig(),
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.
@@ -484,6 +607,10 @@ func DefaultConfig() *Config {
 	// Ensure we don't have port conflicts
 	conf.SerfLANConfig.MemberlistConfig.BindPort = DefaultLANSerfPort
 	conf.SerfWANConfig.MemberlistConfig.BindPort = DefaultWANSerfPort
+
+	// Allow dead nodes to be replaced after 30 seconds.
+	conf.SerfLANConfig.MemberlistConfig.DeadNodeReclaimTime = 30 * time.Second
+	conf.SerfWANConfig.MemberlistConfig.DeadNodeReclaimTime = 30 * time.Second
 
 	// Raft protocol version 3 only works with other Consul servers running
 	// 0.8.0 or later.
@@ -499,24 +626,4 @@ func DefaultConfig() *Config {
 	conf.RaftConfig.SnapshotThreshold = 16384
 
 	return conf
-}
-
-// tlsConfig maps this config into a tlsutil config.
-func (c *Config) tlsConfig() *tlsutil.Config {
-	tlsConf := &tlsutil.Config{
-		VerifyIncoming:           c.VerifyIncoming,
-		VerifyOutgoing:           c.VerifyOutgoing,
-		VerifyServerHostname:     c.VerifyServerHostname,
-		UseTLS:                   c.UseTLS,
-		CAFile:                   c.CAFile,
-		CAPath:                   c.CAPath,
-		CertFile:                 c.CertFile,
-		KeyFile:                  c.KeyFile,
-		NodeName:                 c.NodeName,
-		ServerName:               c.ServerName,
-		Domain:                   c.Domain,
-		TLSMinVersion:            c.TLSMinVersion,
-		PreferServerCipherSuites: c.TLSPreferServerCipherSuites,
-	}
-	return tlsConf
 }

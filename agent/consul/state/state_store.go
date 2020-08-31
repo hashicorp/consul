@@ -1,11 +1,14 @@
 package state
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"time"
 
-	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/consul/agent/consul/stream"
+	"github.com/hashicorp/consul/agent/structs"
+	memdb "github.com/hashicorp/go-memdb"
 )
 
 var (
@@ -29,6 +32,11 @@ var (
 	// token with an empty AccessorID.
 	ErrMissingACLTokenAccessor = errors.New("Missing ACL Token AccessorID")
 
+	// ErrTokenHasNoPrivileges is returned when a token set is called on a
+	// token with no policies, roles, or service identities and the caller
+	// requires at least one to be set.
+	ErrTokenHasNoPrivileges = errors.New("Token has no privileges")
+
 	// ErrMissingACLPolicyID is returned when a policy set is called on a
 	// policy with an empty ID.
 	ErrMissingACLPolicyID = errors.New("Missing ACL Policy ID")
@@ -36,6 +44,30 @@ var (
 	// ErrMissingACLPolicyName is returned when a policy set is called on a
 	// policy with an empty Name.
 	ErrMissingACLPolicyName = errors.New("Missing ACL Policy Name")
+
+	// ErrMissingACLRoleID is returned when a role set is called on
+	// a role with an empty ID.
+	ErrMissingACLRoleID = errors.New("Missing ACL Role ID")
+
+	// ErrMissingACLRoleName is returned when a role set is called on
+	// a role with an empty Name.
+	ErrMissingACLRoleName = errors.New("Missing ACL Role Name")
+
+	// ErrMissingACLBindingRuleID is returned when a binding rule set
+	// is called on a binding rule with an empty ID.
+	ErrMissingACLBindingRuleID = errors.New("Missing ACL Binding Rule ID")
+
+	// ErrMissingACLBindingRuleAuthMethod is returned when a binding rule set
+	// is called on a binding rule with an empty AuthMethod.
+	ErrMissingACLBindingRuleAuthMethod = errors.New("Missing ACL Binding Rule Auth Method")
+
+	// ErrMissingACLAuthMethodName is returned when an auth method set is
+	// called on an auth method with an empty Name.
+	ErrMissingACLAuthMethodName = errors.New("Missing ACL Auth Method Name")
+
+	// ErrMissingACLAuthMethodType is returned when an auth method set is
+	// called on an auth method with an empty Type.
+	ErrMissingACLAuthMethodType = errors.New("Missing ACL Auth Method Type")
 
 	// ErrMissingQueryID is returned when a Query set is called on
 	// a Query with an empty ID.
@@ -50,16 +82,17 @@ var (
 	ErrMissingIntentionID = errors.New("Missing Intention ID")
 )
 
-const (
+var (
 	// watchLimit is used as a soft limit to cap how many watches we allow
 	// for a given blocking query. If this is exceeded, then we will use a
-	// higher-level watch that's less fine-grained. This isn't as bad as it
-	// seems since we have made the main culprits (nodes and services) more
-	// efficient by diffing before we update via register requests.
-	//
-	// Given the current size of aFew == 32 in memdb's watch_few.go, this
-	// will allow for up to ~64 goroutines per blocking query.
-	watchLimit = 2048
+	// higher-level watch that's less fine-grained.  Choosing the perfect
+	// value is impossible given how different deployments and workload
+	// are. This value was recommended by customers with many servers. We
+	// expect streaming to arrive soon and that should help a lot with
+	// blocking queries. Please see
+	// https://github.com/hashicorp/consul/pull/7200 and linked issues/prs
+	// for more context
+	watchLimit = 8192
 )
 
 // Store is where we store all of Consul's state, including
@@ -68,11 +101,15 @@ const (
 // from the Raft log through the FSM.
 type Store struct {
 	schema *memdb.DBSchema
-	db     *memdb.MemDB
+	db     *changeTrackerDB
 
 	// abandonCh is used to signal watchers that this state store has been
 	// abandoned (usually during a restore). This is only ever closed.
 	abandonCh chan struct{}
+
+	// TODO: refactor abondonCh to use a context so that both can use the same
+	// cancel mechanism.
+	stopEventPublisher func()
 
 	// kvsGraveyard manages tombstones for the key value store.
 	kvsGraveyard *Graveyard
@@ -85,7 +122,7 @@ type Store struct {
 // works by starting a read transaction against the whole state store.
 type Snapshot struct {
 	store     *Store
-	tx        *memdb.Txn
+	tx        *txn
 	lastIndex uint64
 }
 
@@ -93,7 +130,7 @@ type Snapshot struct {
 // data to a state store.
 type Restore struct {
 	store *Store
-	tx    *memdb.Txn
+	tx    *txn
 }
 
 // IndexEntry keeps a record of the last index per-table.
@@ -108,8 +145,10 @@ type IndexEntry struct {
 // store and thus it is not exported.
 type sessionCheck struct {
 	Node    string
-	CheckID types.CheckID
 	Session string
+
+	CheckID structs.CheckID
+	structs.EnterpriseMeta
 }
 
 // NewStateStore creates a new in-memory state storage layer.
@@ -121,13 +160,18 @@ func NewStateStore(gc *TombstoneGC) (*Store, error) {
 		return nil, fmt.Errorf("Failed setting up state store: %s", err)
 	}
 
-	// Create and return the state store.
+	ctx, cancel := context.WithCancel(context.TODO())
 	s := &Store{
 		schema:       schema,
-		db:           db,
 		abandonCh:    make(chan struct{}),
 		kvsGraveyard: NewGraveyard(gc),
 		lockDelay:    NewDelay(),
+		db: &changeTrackerDB{
+			db:             db,
+			publisher:      stream.NewEventPublisher(ctx, newSnapshotHandlers(), 10*time.Second),
+			processChanges: processDBChanges,
+		},
+		stopEventPublisher: cancel,
 	}
 	return s, nil
 }
@@ -175,7 +219,7 @@ func (s *Snapshot) Close() {
 // the state store. It works by doing all the restores inside of a single
 // transaction.
 func (s *Store) Restore() *Restore {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxnRestore()
 	return &Restore{s, tx}
 }
 
@@ -187,8 +231,8 @@ func (s *Restore) Abort() {
 
 // Commit commits the changes made by a restore. This or Abort should always be
 // called.
-func (s *Restore) Commit() {
-	s.tx.Commit()
+func (s *Restore) Commit() error {
+	return s.tx.Commit()
 }
 
 // AbandonCh returns a channel you can wait on to know if the state store was
@@ -200,6 +244,7 @@ func (s *Store) AbandonCh() <-chan struct{} {
 // Abandon is used to signal that the given state store has been abandoned.
 // Calling this more than one time will panic.
 func (s *Store) Abandon() {
+	s.stopEventPublisher()
 	close(s.abandonCh)
 }
 
@@ -213,23 +258,28 @@ func (s *Store) maxIndex(tables ...string) uint64 {
 
 // maxIndexTxn is a helper used to retrieve the highest known index
 // amongst a set of tables in the db.
-func maxIndexTxn(tx *memdb.Txn, tables ...string) uint64 {
+func maxIndexTxn(tx ReadTxn, tables ...string) uint64 {
+	return maxIndexWatchTxn(tx, nil, tables...)
+}
+
+func maxIndexWatchTxn(tx ReadTxn, ws memdb.WatchSet, tables ...string) uint64 {
 	var lindex uint64
 	for _, table := range tables {
-		ti, err := tx.First("index", "id", table)
+		ch, ti, err := tx.FirstWatch("index", "id", table)
 		if err != nil {
 			panic(fmt.Sprintf("unknown index: %s err: %s", table, err))
 		}
 		if idx, ok := ti.(*IndexEntry); ok && idx.Value > lindex {
 			lindex = idx.Value
 		}
+		ws.Add(ch)
 	}
 	return lindex
 }
 
 // indexUpdateMaxTxn is used when restoring entries and sets the table's index to
 // the given idx only if it's greater than the current index.
-func indexUpdateMaxTxn(tx *memdb.Txn, idx uint64, table string) error {
+func indexUpdateMaxTxn(tx *txn, idx uint64, table string) error {
 	ti, err := tx.First("index", "id", table)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve existing index: %s", err)

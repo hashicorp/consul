@@ -16,10 +16,13 @@ package prometheus
 import (
 	"fmt"
 	"sort"
-
-	dto "github.com/prometheus/client_model/go"
+	"time"
+	"unicode/utf8"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
+
+	dto "github.com/prometheus/client_model/go"
 )
 
 // ValueType is an enumeration of metric types that represent a simple value.
@@ -69,7 +72,7 @@ func (v *valueFunc) Desc() *Desc {
 }
 
 func (v *valueFunc) Write(out *dto.Metric) error {
-	return populateMetric(v.valType, v.function(), v.labelPairs, out)
+	return populateMetric(v.valType, v.function(), v.labelPairs, nil, out)
 }
 
 // NewConstMetric returns a metric with one fixed value that cannot be
@@ -77,8 +80,12 @@ func (v *valueFunc) Write(out *dto.Metric) error {
 // operations. However, when implementing custom Collectors, it is useful as a
 // throw-away metric that is generated on the fly to send it to Prometheus in
 // the Collect method. NewConstMetric returns an error if the length of
-// labelValues is not consistent with the variable labels in Desc.
+// labelValues is not consistent with the variable labels in Desc or if Desc is
+// invalid.
 func NewConstMetric(desc *Desc, valueType ValueType, value float64, labelValues ...string) (Metric, error) {
+	if desc.err != nil {
+		return nil, desc.err
+	}
 	if err := validateLabelValues(labelValues, len(desc.variableLabels)); err != nil {
 		return nil, err
 	}
@@ -112,19 +119,20 @@ func (m *constMetric) Desc() *Desc {
 }
 
 func (m *constMetric) Write(out *dto.Metric) error {
-	return populateMetric(m.valType, m.val, m.labelPairs, out)
+	return populateMetric(m.valType, m.val, m.labelPairs, nil, out)
 }
 
 func populateMetric(
 	t ValueType,
 	v float64,
 	labelPairs []*dto.LabelPair,
+	e *dto.Exemplar,
 	m *dto.Metric,
 ) error {
 	m.Label = labelPairs
 	switch t {
 	case CounterValue:
-		m.Counter = &dto.Counter{Value: proto.Float64(v)}
+		m.Counter = &dto.Counter{Value: proto.Float64(v), Exemplar: e}
 	case GaugeValue:
 		m.Gauge = &dto.Gauge{Value: proto.Float64(v)}
 	case UntypedValue:
@@ -152,9 +160,44 @@ func makeLabelPairs(desc *Desc, labelValues []string) []*dto.LabelPair {
 			Value: proto.String(labelValues[i]),
 		})
 	}
-	for _, lp := range desc.constLabelPairs {
-		labelPairs = append(labelPairs, lp)
-	}
-	sort.Sort(LabelPairSorter(labelPairs))
+	labelPairs = append(labelPairs, desc.constLabelPairs...)
+	sort.Sort(labelPairSorter(labelPairs))
 	return labelPairs
+}
+
+// ExemplarMaxRunes is the max total number of runes allowed in exemplar labels.
+const ExemplarMaxRunes = 64
+
+// newExemplar creates a new dto.Exemplar from the provided values. An error is
+// returned if any of the label names or values are invalid or if the total
+// number of runes in the label names and values exceeds ExemplarMaxRunes.
+func newExemplar(value float64, ts time.Time, l Labels) (*dto.Exemplar, error) {
+	e := &dto.Exemplar{}
+	e.Value = proto.Float64(value)
+	tsProto, err := ptypes.TimestampProto(ts)
+	if err != nil {
+		return nil, err
+	}
+	e.Timestamp = tsProto
+	labelPairs := make([]*dto.LabelPair, 0, len(l))
+	var runes int
+	for name, value := range l {
+		if !checkLabelName(name) {
+			return nil, fmt.Errorf("exemplar label name %q is invalid", name)
+		}
+		runes += utf8.RuneCountInString(name)
+		if !utf8.ValidString(value) {
+			return nil, fmt.Errorf("exemplar label value %q is not valid UTF-8", value)
+		}
+		runes += utf8.RuneCountInString(value)
+		labelPairs = append(labelPairs, &dto.LabelPair{
+			Name:  proto.String(name),
+			Value: proto.String(value),
+		})
+	}
+	if runes > ExemplarMaxRunes {
+		return nil, fmt.Errorf("exemplar labels have %d runes, exceeding the limit of %d", runes, ExemplarMaxRunes)
+	}
+	e.Label = labelPairs
+	return e, nil
 }

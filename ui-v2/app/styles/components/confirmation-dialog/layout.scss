@@ -4,12 +4,9 @@
 %confirmation-dialog-inline p {
   margin-right: 12px;
   padding-left: 12px;
-  padding-top: 5px;
-  padding-bottom: 5px;
-  margin-bottom: 0;
+  margin-bottom: 0 !important;
 }
 %confirmation-dialog-inline {
   display: flex;
   align-items: center;
-  line-height: 1;
 }

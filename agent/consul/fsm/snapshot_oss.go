@@ -27,6 +27,11 @@ func init() {
 	registerRestorer(structs.IndexRequestType, restoreIndex)
 	registerRestorer(structs.ACLTokenSetRequestType, restoreToken)
 	registerRestorer(structs.ACLPolicySetRequestType, restorePolicy)
+	registerRestorer(structs.ConfigEntryRequestType, restoreConfigEntry)
+	registerRestorer(structs.ACLRoleSetRequestType, restoreRole)
+	registerRestorer(structs.ACLBindingRuleSetRequestType, restoreBindingRule)
+	registerRestorer(structs.ACLAuthMethodSetRequestType, restoreAuthMethod)
+	registerRestorer(structs.FederationStateRequestType, restoreFederationState)
 }
 
 func persistOSS(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) error {
@@ -63,6 +68,12 @@ func persistOSS(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) err
 	if err := s.persistConnectCAConfig(sink, encoder); err != nil {
 		return err
 	}
+	if err := s.persistConfigEntries(sink, encoder); err != nil {
+		return err
+	}
+	if err := s.persistFederationStates(sink, encoder); err != nil {
+		return err
+	}
 	if err := s.persistIndex(sink, encoder); err != nil {
 		return err
 	}
@@ -88,6 +99,7 @@ func (s *snapshot) persistNodes(sink raft.SnapshotSink,
 			Address:         n.Address,
 			TaggedAddresses: n.TaggedAddresses,
 			NodeMeta:        n.Meta,
+			RaftIndex:       n.RaftIndex,
 		}
 
 		// Register the node itself
@@ -174,6 +186,8 @@ func (s *snapshot) persistACLs(sink raft.SnapshotSink,
 		return err
 	}
 
+	// Don't check expiration times. Wait for explicit deletions.
+
 	for token := tokens.Next(); token != nil; token = tokens.Next() {
 		if _, err := sink.Write([]byte{byte(structs.ACLTokenSetRequestType)}); err != nil {
 			return err
@@ -193,6 +207,48 @@ func (s *snapshot) persistACLs(sink raft.SnapshotSink,
 			return err
 		}
 		if err := encoder.Encode(policy.(*structs.ACLPolicy)); err != nil {
+			return err
+		}
+	}
+
+	roles, err := s.state.ACLRoles()
+	if err != nil {
+		return err
+	}
+
+	for role := roles.Next(); role != nil; role = roles.Next() {
+		if _, err := sink.Write([]byte{byte(structs.ACLRoleSetRequestType)}); err != nil {
+			return err
+		}
+		if err := encoder.Encode(role.(*structs.ACLRole)); err != nil {
+			return err
+		}
+	}
+
+	rules, err := s.state.ACLBindingRules()
+	if err != nil {
+		return err
+	}
+
+	for rule := rules.Next(); rule != nil; rule = rules.Next() {
+		if _, err := sink.Write([]byte{byte(structs.ACLBindingRuleSetRequestType)}); err != nil {
+			return err
+		}
+		if err := encoder.Encode(rule.(*structs.ACLBindingRule)); err != nil {
+			return err
+		}
+	}
+
+	methods, err := s.state.ACLAuthMethods()
+	if err != nil {
+		return err
+	}
+
+	for method := methods.Next(); method != nil; method = rules.Next() {
+		if _, err := sink.Write([]byte{byte(structs.ACLAuthMethodSetRequestType)}); err != nil {
+			return err
+		}
+		if err := encoder.Encode(method.(*structs.ACLAuthMethod)); err != nil {
 			return err
 		}
 	}
@@ -354,6 +410,54 @@ func (s *snapshot) persistIntentions(sink raft.SnapshotSink,
 			return err
 		}
 		if err := encoder.Encode(ixn); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *snapshot) persistConfigEntries(sink raft.SnapshotSink,
+	encoder *codec.Encoder) error {
+	entries, err := s.state.ConfigEntries()
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		if _, err := sink.Write([]byte{byte(structs.ConfigEntryRequestType)}); err != nil {
+			return err
+		}
+		// Encode the entry request without an operation since we don't need it for restoring.
+		// The request is used for its custom decoding/encoding logic around the ConfigEntry
+		// interface.
+		req := &structs.ConfigEntryRequest{
+			Entry: entry,
+		}
+		if err := encoder.Encode(req); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *snapshot) persistFederationStates(sink raft.SnapshotSink, encoder *codec.Encoder) error {
+	fedStates, err := s.state.FederationStates()
+	if err != nil {
+		return err
+	}
+
+	for _, fedState := range fedStates {
+		if _, err := sink.Write([]byte{byte(structs.FederationStateRequestType)}); err != nil {
+			return err
+		}
+		// Encode the entry request without an operation since we don't need it for restoring.
+		// The request is used for its custom decoding/encoding logic around the ConfigEntry
+		// interface.
+		req := &structs.FederationStateRequest{
+			Op:    structs.FederationStateUpsert,
+			State: fedState,
+		}
+		if err := encoder.Encode(req); err != nil {
 			return err
 		}
 	}
@@ -555,6 +659,9 @@ func restoreToken(header *snapshotHeader, restore *state.Restore, decoder *codec
 		structs.SanitizeLegacyACLToken(&req)
 	}
 
+	// only set if unset - mitigates a bug where converted legacy tokens could end up without a hash
+	req.SetHash(false)
+
 	return restore.ACLToken(&req)
 }
 
@@ -564,4 +671,44 @@ func restorePolicy(header *snapshotHeader, restore *state.Restore, decoder *code
 		return err
 	}
 	return restore.ACLPolicy(&req)
+}
+
+func restoreConfigEntry(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req structs.ConfigEntryRequest
+	if err := decoder.Decode(&req); err != nil {
+		return err
+	}
+	return restore.ConfigEntry(req.Entry)
+}
+
+func restoreRole(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req structs.ACLRole
+	if err := decoder.Decode(&req); err != nil {
+		return err
+	}
+	return restore.ACLRole(&req)
+}
+
+func restoreBindingRule(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req structs.ACLBindingRule
+	if err := decoder.Decode(&req); err != nil {
+		return err
+	}
+	return restore.ACLBindingRule(&req)
+}
+
+func restoreAuthMethod(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req structs.ACLAuthMethod
+	if err := decoder.Decode(&req); err != nil {
+		return err
+	}
+	return restore.ACLAuthMethod(&req)
+}
+
+func restoreFederationState(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req structs.FederationStateRequest
+	if err := decoder.Decode(&req); err != nil {
+		return err
+	}
+	return restore.FederationState(req.State)
 }

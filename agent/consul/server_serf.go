@@ -7,9 +7,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/agent/consul/wanfed"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 )
@@ -24,9 +28,6 @@ const (
 
 	// maxPeerRetries limits how many invalidate attempts are made
 	maxPeerRetries = 6
-
-	// peerRetryBase is a baseline retry time
-	peerRetryBase = 1 * time.Second
 )
 
 // setupSerf is used to setup and initialize a Serf
@@ -45,11 +46,6 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	conf.Tags["role"] = "consul"
 	conf.Tags["dc"] = s.config.Datacenter
 	conf.Tags["segment"] = segment
-	if segment == "" {
-		for _, s := range s.config.Segments {
-			conf.Tags["sl_"+s.Name] = net.JoinHostPort(s.Advertise, fmt.Sprintf("%d", s.Port))
-		}
-	}
 	conf.Tags["id"] = string(s.config.NodeID)
 	conf.Tags["vsn"] = fmt.Sprintf("%d", s.config.ProtocolVersion)
 	conf.Tags["vsn_min"] = fmt.Sprintf("%d", ProtocolVersionMin)
@@ -77,12 +73,31 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	} else {
 		conf.Tags["acls"] = string(structs.ACLModeDisabled)
 	}
-	if s.logger == nil {
-		conf.MemberlistConfig.LogOutput = s.config.LogOutput
-		conf.LogOutput = s.config.LogOutput
+
+	// feature flag: advertise support for federation states
+	conf.Tags["ft_fs"] = "1"
+
+	var subLoggerName string
+	if wan {
+		subLoggerName = logging.WAN
+	} else {
+		subLoggerName = logging.LAN
 	}
-	conf.MemberlistConfig.Logger = s.logger
-	conf.Logger = s.logger
+
+	// Wrap hclog in a standard logger wrapper for serf and memberlist
+	// We use the Intercept variant here to ensure that serf and memberlist logs
+	// can be streamed via the monitor endpoint
+	serfLogger := s.logger.
+		NamedIntercept(logging.Serf).
+		NamedIntercept(subLoggerName).
+		StandardLoggerIntercept(&hclog.StandardLoggerOptions{InferLevels: true})
+	memberlistLogger := s.logger.
+		NamedIntercept(logging.Memberlist).
+		NamedIntercept(subLoggerName).
+		StandardLoggerIntercept(&hclog.StandardLoggerOptions{InferLevels: true})
+
+	conf.MemberlistConfig.Logger = memberlistLogger
+	conf.Logger = serfLogger
 	conf.EventCh = ch
 	conf.ProtocolVersion = protocolVersionMap[s.config.ProtocolVersion]
 	conf.RejoinAfterLeave = s.config.RejoinAfterLeave
@@ -97,10 +112,51 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 		}
 	}
 
+	if wan {
+		nt, err := memberlist.NewNetTransport(&memberlist.NetTransportConfig{
+			BindAddrs: []string{conf.MemberlistConfig.BindAddr},
+			BindPort:  conf.MemberlistConfig.BindPort,
+			Logger:    conf.MemberlistConfig.Logger,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		if s.config.ConnectMeshGatewayWANFederationEnabled {
+			mgwTransport, err := wanfed.NewTransport(
+				s.tlsConfigurator,
+				nt,
+				s.config.Datacenter,
+				s.gatewayLocator.PickGateway,
+			)
+			if err != nil {
+				return nil, err
+			}
+
+			conf.MemberlistConfig.Transport = mgwTransport
+		} else {
+			conf.MemberlistConfig.Transport = nt
+		}
+	}
+
 	// Until Consul supports this fully, we disable automatic resolution.
 	// When enabled, the Serf gossip may just turn off if we are the minority
 	// node which is rather unexpected.
 	conf.EnableNameConflictResolution = false
+
+	if wan && s.config.ConnectMeshGatewayWANFederationEnabled {
+		conf.MemberlistConfig.RequireNodeNames = true
+		conf.MemberlistConfig.DisableTcpPingsForNode = func(nodeName string) bool {
+			_, dc, err := wanfed.SplitNodeName(nodeName)
+			if err != nil {
+				return false // don't disable anything if we don't understand the node name
+			}
+
+			// If doing cross-dc we will be using TCP via the gateways so
+			// there's no need for an extra TCP request.
+			return s.config.Datacenter != dc
+		}
+	}
 
 	if !s.config.DevMode {
 		conf.SnapshotPath = filepath.Join(s.config.DataDir, path)
@@ -108,6 +164,8 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	if err := lib.EnsurePath(conf.SnapshotPath, false); err != nil {
 		return nil, err
 	}
+
+	s.addEnterpriseSerfTags(conf.Tags)
 
 	return serf.Create(conf)
 }
@@ -137,19 +195,18 @@ func (s *Server) lanEventHandler() {
 				s.lanNodeJoin(e.(serf.MemberEvent))
 				s.localMemberEvent(e.(serf.MemberEvent))
 
-			case serf.EventMemberLeave, serf.EventMemberFailed:
+			case serf.EventMemberLeave, serf.EventMemberFailed, serf.EventMemberReap:
 				s.lanNodeFailed(e.(serf.MemberEvent))
 				s.localMemberEvent(e.(serf.MemberEvent))
 
-			case serf.EventMemberReap:
-				s.localMemberEvent(e.(serf.MemberEvent))
 			case serf.EventUser:
 				s.localEvent(e.(serf.UserEvent))
 			case serf.EventMemberUpdate:
+				s.lanNodeUpdate(e.(serf.MemberEvent))
 				s.localMemberEvent(e.(serf.MemberEvent))
 			case serf.EventQuery: // Ignore
 			default:
-				s.logger.Printf("[WARN] consul: Unhandled LAN Serf Event: %#v", e)
+				s.logger.Warn("Unhandled LAN Serf Event", "event", e)
 			}
 
 		case <-s.shutdownCh:
@@ -191,7 +248,7 @@ func (s *Server) localEvent(event serf.UserEvent) {
 
 	switch name := event.Name; {
 	case name == newLeaderEvent:
-		s.logger.Printf("[INFO] consul: New leader elected: %s", event.Payload)
+		s.logger.Info("New leader elected", "payload", string(event.Payload))
 
 		// Trigger the callback
 		if s.config.ServerUp != nil {
@@ -199,7 +256,7 @@ func (s *Server) localEvent(event serf.UserEvent) {
 		}
 	case isUserEvent(name):
 		event.Name = rawUserEventName(name)
-		s.logger.Printf("[DEBUG] consul: User event: %s", event.Name)
+		s.logger.Debug("User event", "event", event.Name)
 
 		// Trigger the callback
 		if s.config.UserEventHandler != nil {
@@ -207,7 +264,7 @@ func (s *Server) localEvent(event serf.UserEvent) {
 		}
 	default:
 		if !s.handleEnterpriseUserEvents(event) {
-			s.logger.Printf("[WARN] consul: Unhandled local event: %v", event)
+			s.logger.Warn("Unhandled local event", "event", event)
 		}
 	}
 }
@@ -219,7 +276,7 @@ func (s *Server) lanNodeJoin(me serf.MemberEvent) {
 		if !ok || serverMeta.Segment != "" {
 			continue
 		}
-		s.logger.Printf("[INFO] consul: Adding LAN server %s", serverMeta)
+		s.logger.Info("Adding LAN server", "server", serverMeta.String())
 
 		// Update server lookup
 		s.serverLookup.AddServer(serverMeta)
@@ -234,6 +291,19 @@ func (s *Server) lanNodeJoin(me serf.MemberEvent) {
 	}
 }
 
+func (s *Server) lanNodeUpdate(me serf.MemberEvent) {
+	for _, m := range me.Members {
+		ok, serverMeta := metadata.IsConsulServer(m)
+		if !ok || serverMeta.Segment != "" {
+			continue
+		}
+		s.logger.Info("Updating LAN server", "server", serverMeta.String())
+
+		// Update server lookup
+		s.serverLookup.AddServer(serverMeta)
+	}
+}
+
 // maybeBootstrap is used to handle bootstrapping when a new consul server joins.
 func (s *Server) maybeBootstrap() {
 	// Bootstrap can only be done if there are no committed logs, remove our
@@ -241,11 +311,11 @@ func (s *Server) maybeBootstrap() {
 	// check that BootstrapCluster will do, so this is a good pre-filter.
 	index, err := s.raftStore.LastIndex()
 	if err != nil {
-		s.logger.Printf("[ERR] consul: Failed to read last raft index: %v", err)
+		s.logger.Error("Failed to read last raft index", "error", err)
 		return
 	}
 	if index != 0 {
-		s.logger.Printf("[INFO] consul: Raft data found, disabling bootstrap mode")
+		s.logger.Info("Raft data found, disabling bootstrap mode")
 		s.config.BootstrapExpect = 0
 		return
 	}
@@ -260,15 +330,15 @@ func (s *Server) maybeBootstrap() {
 			continue
 		}
 		if p.Datacenter != s.config.Datacenter {
-			s.logger.Printf("[ERR] consul: Member %v has a conflicting datacenter, ignoring", member)
+			s.logger.Warn("Member has a conflicting datacenter, ignoring", "member", member)
 			continue
 		}
 		if p.Expect != 0 && p.Expect != s.config.BootstrapExpect {
-			s.logger.Printf("[ERR] consul: Member %v has a conflicting expect value. All nodes should expect the same number.", member)
+			s.logger.Error("Member has a conflicting expect value. All nodes should expect the same number.", "member", member)
 			return
 		}
 		if p.Bootstrap {
-			s.logger.Printf("[ERR] consul: Member %v has bootstrap mode. Expect disabled.", member)
+			s.logger.Error("Member has bootstrap mode. Expect disabled.", "member", member)
 			return
 		}
 		if !p.NonVoter {
@@ -288,11 +358,14 @@ func (s *Server) maybeBootstrap() {
 
 		// Retry with exponential backoff to get peer status from this server
 		for attempt := uint(0); attempt < maxPeerRetries; attempt++ {
-			if err := s.connPool.RPC(s.config.Datacenter, server.Addr, server.Version,
-				"Status.Peers", server.UseTLS, &struct{}{}, &peers); err != nil {
-				nextRetry := time.Duration((1 << attempt) * peerRetryBase)
-				s.logger.Printf("[ERR] consul: Failed to confirm peer status for %s: %v. Retrying in "+
-					"%v...", server.Name, err, nextRetry.String())
+			if err := s.connPool.RPC(s.config.Datacenter, server.ShortName, server.Addr,
+				"Status.Peers", &structs.DCSpecificRequest{Datacenter: s.config.Datacenter}, &peers); err != nil {
+				nextRetry := (1 << attempt) * time.Second
+				s.logger.Error("Failed to confirm peer status for server (will retry).",
+					"server", server.Name,
+					"retry_interval", nextRetry.String(),
+					"error", err,
+				)
 				time.Sleep(nextRetry)
 			} else {
 				break
@@ -311,7 +384,7 @@ func (s *Server) maybeBootstrap() {
 		// correctness because no server in the existing cluster will vote
 		// for this server, but it makes things much more stable.
 		if len(peers) > 0 {
-			s.logger.Printf("[INFO] consul: Existing Raft peers reported by %s, disabling bootstrap mode", server.Name)
+			s.logger.Info("Existing Raft peers reported by server, disabling bootstrap mode", "server", server.Name)
 			s.config.BootstrapExpect = 0
 			return
 		}
@@ -322,7 +395,7 @@ func (s *Server) maybeBootstrap() {
 	var addrs []string
 	minRaftVersion, err := s.autopilot.MinRaftProtocol()
 	if err != nil {
-		s.logger.Printf("[ERR] consul: Failed to read server raft versions: %v", err)
+		s.logger.Error("Failed to read server raft versions", "error", err)
 	}
 
 	for _, server := range servers {
@@ -345,11 +418,12 @@ func (s *Server) maybeBootstrap() {
 		}
 		configuration.Servers = append(configuration.Servers, peer)
 	}
-	s.logger.Printf("[INFO] consul: Found expected number of peers, attempting bootstrap: %s",
-		strings.Join(addrs, ","))
+	s.logger.Info("Found expected number of peers, attempting bootstrap",
+		"peers", strings.Join(addrs, ","),
+	)
 	future := s.raft.BootstrapCluster(configuration)
 	if err := future.Error(); err != nil {
-		s.logger.Printf("[ERR] consul: Failed to bootstrap cluster: %v", err)
+		s.logger.Error("Failed to bootstrap cluster", "error", err)
 	}
 
 	// Bootstrapping complete, or failed for some reason, don't enter this
@@ -364,7 +438,7 @@ func (s *Server) lanNodeFailed(me serf.MemberEvent) {
 		if !ok || serverMeta.Segment != "" {
 			continue
 		}
-		s.logger.Printf("[INFO] consul: Removing LAN server %s", serverMeta)
+		s.logger.Info("Removing LAN server", "server", serverMeta.String())
 
 		// Update id to address map
 		s.serverLookup.RemoveServer(serverMeta)

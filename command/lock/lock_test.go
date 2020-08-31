@@ -15,7 +15,7 @@ import (
 
 func argFail(t *testing.T, args []string, expected string) {
 	ui := cli.NewMockUi()
-	c := New(ui)
+	c := New(ui, nil)
 	c.flags.SetOutput(ui.ErrorWriter)
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("expected return code 1, got %d", code)
@@ -28,27 +28,27 @@ func argFail(t *testing.T, args []string, expected string) {
 
 func TestLockCommand_noTabs(t *testing.T) {
 	t.Parallel()
-	if strings.ContainsRune(New(cli.NewMockUi()).Help(), '\t') {
+	if strings.ContainsRune(New(cli.NewMockUi(), nil).Help(), '\t') {
 		t.Fatal("help has tabs")
 	}
 }
 
 func TestLockCommand_BadArgs(t *testing.T) {
 	t.Parallel()
-	argFail(t, []string{"-try=blah", "test/prefix", "date"}, "invalid duration")
+	argFail(t, []string{"-try=blah", "test/prefix", "date"}, "parse error")
 	argFail(t, []string{"-try=-10s", "test/prefix", "date"}, "Timeout must be positive")
 	argFail(t, []string{"-monitor-retry=-5", "test/prefix", "date"}, "must be >= 0")
 }
 
 func TestLockCommand(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
-	c := New(ui)
+	c := New(ui, nil)
 
 	filePath := filepath.Join(a.Config.DataDir, "test_touch")
 	args := []string{"-http-addr=" + a.HTTPAddr(), "test/prefix", "touch", filePath}
@@ -67,13 +67,13 @@ func TestLockCommand(t *testing.T) {
 
 func TestLockCommand_NoShell(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
-	c := New(ui)
+	c := New(ui, nil)
 
 	filePath := filepath.Join(a.Config.DataDir, "test_touch")
 	args := []string{"-http-addr=" + a.HTTPAddr(), "-shell=false", "test/prefix", "touch", filePath}
@@ -92,13 +92,13 @@ func TestLockCommand_NoShell(t *testing.T) {
 
 func TestLockCommand_TryLock(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
-	c := New(ui)
+	c := New(ui, nil)
 
 	filePath := filepath.Join(a.Config.DataDir, "test_touch")
 	args := []string{"-http-addr=" + a.HTTPAddr(), "-try=10s", "test/prefix", "touch", filePath}
@@ -126,13 +126,13 @@ func TestLockCommand_TryLock(t *testing.T) {
 
 func TestLockCommand_TrySemaphore(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
-	c := New(ui)
+	c := New(ui, nil)
 
 	filePath := filepath.Join(a.Config.DataDir, "test_touch")
 	args := []string{"-http-addr=" + a.HTTPAddr(), "-n=3", "-try=10s", "test/prefix", "touch", filePath}
@@ -160,13 +160,13 @@ func TestLockCommand_TrySemaphore(t *testing.T) {
 
 func TestLockCommand_MonitorRetry_Lock_Default(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
-	c := New(ui)
+	c := New(ui, nil)
 
 	filePath := filepath.Join(a.Config.DataDir, "test_touch")
 	args := []string{"-http-addr=" + a.HTTPAddr(), "test/prefix", "touch", filePath}
@@ -195,13 +195,13 @@ func TestLockCommand_MonitorRetry_Lock_Default(t *testing.T) {
 
 func TestLockCommand_MonitorRetry_Semaphore_Default(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
-	c := New(ui)
+	c := New(ui, nil)
 
 	filePath := filepath.Join(a.Config.DataDir, "test_touch")
 	args := []string{"-http-addr=" + a.HTTPAddr(), "-n=3", "test/prefix", "touch", filePath}
@@ -230,13 +230,13 @@ func TestLockCommand_MonitorRetry_Semaphore_Default(t *testing.T) {
 
 func TestLockCommand_MonitorRetry_Lock_Arg(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
-	c := New(ui)
+	c := New(ui, nil)
 
 	filePath := filepath.Join(a.Config.DataDir, "test_touch")
 	args := []string{"-http-addr=" + a.HTTPAddr(), "-monitor-retry=9", "test/prefix", "touch", filePath}
@@ -265,13 +265,13 @@ func TestLockCommand_MonitorRetry_Lock_Arg(t *testing.T) {
 
 func TestLockCommand_MonitorRetry_Semaphore_Arg(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
-	c := New(ui)
+	c := New(ui, nil)
 
 	filePath := filepath.Join(a.Config.DataDir, "test_touch")
 	args := []string{"-http-addr=" + a.HTTPAddr(), "-n=3", "-monitor-retry=9", "test/prefix", "touch", filePath}
@@ -300,7 +300,7 @@ func TestLockCommand_MonitorRetry_Semaphore_Arg(t *testing.T) {
 
 func TestLockCommand_ChildExitCode(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -330,7 +330,7 @@ func TestLockCommand_ChildExitCode(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			ui := cli.NewMockUi()
-			c := New(ui)
+			c := New(ui, nil)
 
 			if got := c.Run(tc.args); got != tc.want {
 				t.Fatalf("got %d want %d", got, tc.want)

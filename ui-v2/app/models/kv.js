@@ -22,6 +22,7 @@ export default Model.extend({
   ModifyIndex: attr('number'),
   Session: attr('string'),
   Datacenter: attr('string'),
+  Namespace: attr('string'),
 
   isFolder: computed('Key', function() {
     return isFolder(get(this, 'Key') || '');

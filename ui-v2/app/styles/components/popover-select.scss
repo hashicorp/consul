@@ -1,0 +1,6 @@
+.popover-select {
+  @extend %popover-select;
+}
+%popover-select label > * {
+  @extend %sort-button;
+}

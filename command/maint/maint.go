@@ -92,7 +92,7 @@ func (c *cmd) Run(args []string) int {
 				c.UI.Output("  Name:   " + nodeName)
 				c.UI.Output("  Reason: " + check.Notes)
 				c.UI.Output("")
-			} else if strings.HasPrefix(string(check.CheckID), "_service_maintenance:") {
+			} else if strings.HasPrefix(check.CheckID, "_service_maintenance:") {
 				c.UI.Output("Service:")
 				c.UI.Output("  ID:     " + check.ServiceID)
 				c.UI.Output("  Reason: " + check.Notes)

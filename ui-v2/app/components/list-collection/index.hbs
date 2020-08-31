@@ -1,0 +1,34 @@
+{{on-window 'resize' (action "resize") }}
+{{yield}}
+<EmberNativeScrollable
+  @tagName="ul"
+  @content-size={{_contentSize}}
+  @scroll-left={{_scrollLeft}}
+  @scroll-top={{_scrollTop}}
+  @scrollChange={{action "scrollChange"}}
+  @clientSizeChange={{action "clientSizeChange"}}
+>
+    <li></li>
+  {{~#each _cells as |cell|~}}
+    <li
+      data-test-list-row
+      onclick={{action 'click'}} style={{{cell.style}}}
+      class={{if
+            (compute (action (or linkable (noop)) cell.item))
+            'linkable'
+      }}
+    >
+      <YieldSlot @name="header"><div>{{yield cell.item cell.index}}</div></YieldSlot>
+      <YieldSlot @name="details"><div>{{yield cell.item cell.index}}</div></YieldSlot>
+      <YieldSlot @name="actions"
+        @params={{
+          block-params (component 'more-popover-menu' expanded=(if (eq checked cell.index) true false) onchange=(action "change" cell.index))
+        }}
+      >
+        <div>
+          {{yield cell.item cell.index}}
+        </div>
+      </YieldSlot>
+    </li>
+  {{~/each~}}
+</EmberNativeScrollable>

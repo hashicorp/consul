@@ -7,7 +7,7 @@ import (
 
 // StopChannelContext implements the context.Context interface
 // You provide the channel to select on to determine whether
-// the context should be cancelled and other code such
+// the context should be canceled and other code such
 // as the rate.Limiter will automatically use the channel
 // appropriately
 type StopChannelContext struct {

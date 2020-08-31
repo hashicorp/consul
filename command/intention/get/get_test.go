@@ -63,7 +63,7 @@ func TestCommand_id(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -95,7 +95,7 @@ func TestCommand_srcDst(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -121,4 +121,41 @@ func TestCommand_srcDst(t *testing.T) {
 	}
 	require.Equal(0, c.Run(args), ui.ErrorWriter.String())
 	require.Contains(ui.OutputWriter.String(), id)
+}
+
+func TestCommand_verticalBar(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	a := agent.NewTestAgent(t, ``)
+	defer a.Shutdown()
+	client := a.Client()
+
+	sourceName := "source|name|with|bars"
+
+	// Create the intention
+	var id string
+	{
+		var err error
+		id, _, err = client.Connect().IntentionCreate(&api.Intention{
+			SourceName:      sourceName,
+			DestinationName: "db",
+			Action:          api.IntentionActionAllow,
+		}, nil)
+		require.NoError(err)
+	}
+
+	// Get it
+	ui := cli.NewMockUi()
+	c := New(ui)
+
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		id,
+	}
+	require.Equal(0, c.Run(args), ui.ErrorWriter.String())
+
+	// Check for sourceName presense because it should not be parsed by
+	// columnize
+	require.Contains(ui.OutputWriter.String(), sourceName)
 }

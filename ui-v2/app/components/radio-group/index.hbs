@@ -1,0 +1,12 @@
+<fieldset>
+  <div role="radiogroup" id="radiogroup_{{name}}" data-test-radiogroup={{name}}>{{! menu?}}
+{{#each items as |item|}}
+  {{#let (if (not-eq item.key undefined) item.key item.value) (or item.label item.value) as |_key _value|}}
+    <label tabindex={{if keyboardAccess '0'}} onkeydown={{if keyboardAccess (action 'keydown')}} class="type-radio value-{{_key}}" data-test-radiobutton="{{name}}_{{_key}}"> {{! slugify }}
+      <input type="radio" name={{name}} value={{_key}} checked={{if (eq (concat value) _key) 'checked'}} onchange={{action "change"}} />
+      <span>{{_value}}</span>
+    </label>
+  {{/let}}
+{{/each}}
+  </div>
+</fieldset>

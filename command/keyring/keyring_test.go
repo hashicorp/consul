@@ -21,7 +21,7 @@ func TestKeyringCommand(t *testing.T) {
 	key2 := "kZyFABeAmc64UMTrm9XuKA=="
 
 	// Begin with a single key
-	a1 := agent.NewTestAgent(t, t.Name(), `
+	a1 := agent.NewTestAgent(t, `
 		encrypt = "`+key1+`"
 	`)
 	defer a1.Shutdown()
@@ -92,6 +92,18 @@ func TestKeyringCommand_failedConnection(t *testing.T) {
 	}
 	if !strings.Contains(ui.ErrorWriter.String(), "dial") {
 		t.Fatalf("bad: %#v", ui.OutputWriter.String())
+	}
+}
+
+func TestKeyringCommand_invalidLocalOnly(t *testing.T) {
+	t.Parallel()
+	ui := cli.NewMockUi()
+	c := New(ui)
+
+	args := []string{"-install=blah", "-local-only=true"}
+	code := c.Run(args)
+	if code != 1 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
 }
 

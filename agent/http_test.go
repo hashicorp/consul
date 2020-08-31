@@ -3,6 +3,7 @@ package agent
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -18,10 +19,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/NYTimes/gziphandler"
 	"github.com/hashicorp/consul/agent/structs"
+	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/consul/testutil"
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,12 +39,11 @@ func TestHTTPServer_UnixSocket(t *testing.T) {
 	}
 
 	tempDir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(tempDir)
 	socket := filepath.Join(tempDir, "test.sock")
 
 	// Only testing mode, since uid/gid might not be settable
 	// from test environment.
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		addresses {
 			http = "unix://`+socket+`"
 		}
@@ -94,7 +97,6 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 	}
 
 	tempDir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(tempDir)
 	socket := filepath.Join(tempDir, "test.sock")
 
 	// Create a regular file at the socket path
@@ -109,7 +111,7 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 		t.Fatalf("not a regular file: %s", socket)
 	}
 
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		addresses {
 			http = "unix://`+socket+`"
 		}
@@ -126,20 +128,18 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 	}
 }
 
-func TestHTTPServer_H2(t *testing.T) {
+func TestSetupHTTPServer_HTTP2(t *testing.T) {
 	t.Parallel()
 
 	// Fire up an agent with TLS enabled.
-	a := &TestAgent{
-		Name:   t.Name(),
+	a := StartTestAgent(t, TestAgent{
 		UseTLS: true,
 		HCL: `
 			key_file = "../test/client_certs/server.key"
 			cert_file = "../test/client_certs/server.crt"
 			ca_file = "../test/client_certs/rootca.crt"
 		`,
-	}
-	a.Start(t)
+	})
 	defer a.Shutdown()
 
 	// Make an HTTP/2-enabled client, using the API helpers to set
@@ -155,28 +155,42 @@ func TestHTTPServer_H2(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	transport := api.DefaultConfig().Transport
+	transport.TLSHandshakeTimeout = 30 * time.Second
 	transport.TLSClientConfig = tlsccfg
 	if err := http2.ConfigureTransport(transport); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	hc := &http.Client{
-		Transport: transport,
-	}
+	httpClient := &http.Client{Transport: transport}
 
 	// Hook a handler that echoes back the protocol.
 	handler := func(resp http.ResponseWriter, req *http.Request) {
 		resp.WriteHeader(http.StatusOK)
 		fmt.Fprint(resp, req.Proto)
 	}
-	w, ok := a.srv.Handler.(*wrappedMux)
-	if !ok {
-		t.Fatalf("handler is not expected type")
-	}
-	w.mux.HandleFunc("/echo", handler)
+
+	// Create an httpServer to be configured with setupHTTPS, and add our
+	// custom handler.
+	httpServer := &http.Server{}
+	noopConnState := func(net.Conn, http.ConnState) {}
+	err = setupHTTPS(httpServer, noopConnState, time.Second)
+	require.NoError(t, err)
+
+	srvHandler := a.srv.handler(true)
+	mux, ok := srvHandler.(*wrappedMux)
+	require.True(t, ok, "expected a *wrappedMux, got %T", handler)
+	mux.mux.HandleFunc("/echo", handler)
+	httpServer.Handler = mux
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	tlsListener := tls.NewListener(listener, a.tlsConfigurator.IncomingHTTPSConfig())
+
+	go httpServer.Serve(tlsListener)
+	defer httpServer.Shutdown(context.Background())
 
 	// Call it and make sure we see HTTP/2.
-	url := fmt.Sprintf("https://%s/echo", a.srv.ln.Addr().String())
-	resp, err := hc.Get(url)
+	url := fmt.Sprintf("https://%s/echo", listener.Addr().String())
+	resp, err := httpClient.Get(url)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -193,9 +207,9 @@ func TestHTTPServer_H2(t *testing.T) {
 	// some other endpoint, but configure an API client and make a call
 	// just as a sanity check.
 	cfg := &api.Config{
-		Address:    a.srv.ln.Addr().String(),
+		Address:    listener.Addr().String(),
 		Scheme:     "https",
-		HttpClient: hc,
+		HttpClient: httpClient,
 	}
 	client, err := api.NewClient(cfg)
 	if err != nil {
@@ -286,7 +300,7 @@ func TestSetMeta(t *testing.T) {
 func TestHTTPAPI_BlockEndpoints(t *testing.T) {
 	t.Parallel()
 
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		http_config {
 			block_endpoints = ["/v1/agent/self"]
 		}
@@ -319,24 +333,38 @@ func TestHTTPAPI_BlockEndpoints(t *testing.T) {
 }
 
 func TestHTTPAPI_Ban_Nonprintable_Characters(t *testing.T) {
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
-	req, _ := http.NewRequest("GET", "/v1/kv/bad\x00ness", nil)
+	_, err := http.NewRequest("GET", "/v1/kv/bad\x00ness", nil)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	req, err := http.NewRequest("GET", "/v1/kv/bad%00ness", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	resp := httptest.NewRecorder()
-	a.srv.Handler.ServeHTTP(resp, req)
+	a.srv.handler(true).ServeHTTP(resp, req)
 	if got, want := resp.Code, http.StatusBadRequest; got != want {
 		t.Fatalf("bad response code got %d want %d", got, want)
 	}
 }
 
 func TestHTTPAPI_Allow_Nonprintable_Characters_With_Flag(t *testing.T) {
-	a := NewTestAgent(t, t.Name(), "disable_http_unprintable_char_filter = true")
+	a := NewTestAgent(t, "disable_http_unprintable_char_filter = true")
 	defer a.Shutdown()
 
-	req, _ := http.NewRequest("GET", "/v1/kv/bad\x00ness", nil)
+	_, err := http.NewRequest("GET", "/v1/kv/bad\x00ness", nil)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	req, err := http.NewRequest("GET", "/v1/kv/bad%00ness", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	resp := httptest.NewRecorder()
-	a.srv.Handler.ServeHTTP(resp, req)
+	a.srv.handler(true).ServeHTTP(resp, req)
 	// Key doesn't actually exist so we should get 404
 	if got, want := resp.Code, http.StatusNotFound; got != want {
 		t.Fatalf("bad response code got %d want %d", got, want)
@@ -347,7 +375,7 @@ func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 	t.Parallel()
 	// Header should not be present if address translation is off.
 	{
-		a := NewTestAgent(t, t.Name(), "")
+		a := NewTestAgent(t, "")
 		defer a.Shutdown()
 
 		resp := httptest.NewRecorder()
@@ -366,7 +394,7 @@ func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 
 	// Header should be set to true if it's turned on.
 	{
-		a := NewTestAgent(t, t.Name(), `
+		a := NewTestAgent(t, `
 			translate_wan_addrs = true
 		`)
 		defer a.Shutdown()
@@ -388,7 +416,7 @@ func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 
 func TestHTTPAPIResponseHeaders(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		http_config {
 			response_headers = {
 				"Access-Control-Allow-Origin" = "*"
@@ -416,10 +444,79 @@ func TestHTTPAPIResponseHeaders(t *testing.T) {
 		t.Fatalf("bad X-XSS-Protection header: expected %q, got %q", "1; mode=block", xss)
 	}
 }
+func TestUIResponseHeaders(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, `
+		http_config {
+			response_headers = {
+				"Access-Control-Allow-Origin" = "*"
+				"X-Frame-Options" = "SAMEORIGIN"
+			}
+		}
+	`)
+	defer a.Shutdown()
+
+	resp := httptest.NewRecorder()
+	handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+		return nil, nil
+	}
+
+	req, _ := http.NewRequest("GET", "/ui", nil)
+	a.srv.wrap(handler, []string{"GET"})(resp, req)
+
+	origin := resp.Header().Get("Access-Control-Allow-Origin")
+	if origin != "*" {
+		t.Fatalf("bad Access-Control-Allow-Origin: expected %q, got %q", "*", origin)
+	}
+
+	frameOptions := resp.Header().Get("X-Frame-Options")
+	if frameOptions != "SAMEORIGIN" {
+		t.Fatalf("bad X-XSS-Protection header: expected %q, got %q", "SAMEORIGIN", frameOptions)
+	}
+}
+
+func TestAcceptEncodingGzip(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	// Setting up the KV to store a short and a long value
+	buf := bytes.NewBuffer([]byte("short"))
+	req, _ := http.NewRequest("PUT", "/v1/kv/short", buf)
+	resp := httptest.NewRecorder()
+	_, err := a.srv.KVSEndpoint(resp, req)
+	require.NoError(t, err)
+
+	// this generates a string which is longer than
+	// gziphandler.DefaultMinSize to trigger compression.
+	long := fmt.Sprintf(fmt.Sprintf("%%0%dd", gziphandler.DefaultMinSize+1), 1)
+	buf = bytes.NewBuffer([]byte(long))
+	req, _ = http.NewRequest("PUT", "/v1/kv/long", buf)
+	resp = httptest.NewRecorder()
+	_, err = a.srv.KVSEndpoint(resp, req)
+	require.NoError(t, err)
+
+	resp = httptest.NewRecorder()
+	req, _ = http.NewRequest("GET", "/v1/kv/short", nil)
+	// Usually this would be automatically set by transport content
+	// negotiation, but since this call doesn't go through a real
+	// transport, the header has to be set manually
+	req.Header["Accept-Encoding"] = []string{"gzip"}
+	a.srv.handler(true).ServeHTTP(resp, req)
+	require.Equal(t, 200, resp.Code)
+	require.Equal(t, "", resp.Header().Get("Content-Encoding"))
+
+	resp = httptest.NewRecorder()
+	req, _ = http.NewRequest("GET", "/v1/kv/long", nil)
+	req.Header["Accept-Encoding"] = []string{"gzip"}
+	a.srv.handler(true).ServeHTTP(resp, req)
+	require.Equal(t, 200, resp.Code)
+	require.Equal(t, "gzip", resp.Header().Get("Content-Encoding"))
+}
 
 func TestContentTypeIsJSON(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	resp := httptest.NewRecorder()
@@ -441,8 +538,7 @@ func TestContentTypeIsJSON(t *testing.T) {
 func TestHTTP_wrap_obfuscateLog(t *testing.T) {
 	t.Parallel()
 	buf := new(bytes.Buffer)
-	a := &TestAgent{Name: t.Name(), LogOutput: buf}
-	a.Start(t)
+	a := StartTestAgent(t, TestAgent{LogOutput: buf})
 	defer a.Shutdown()
 
 	handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -484,9 +580,9 @@ func TestHTTP_wrap_obfuscateLog(t *testing.T) {
 			resp := httptest.NewRecorder()
 			req, _ := http.NewRequest("GET", url, nil)
 			a.srv.wrap(handler, []string{"GET"})(resp, req)
-
-			if got := buf.String(); !strings.Contains(got, want) {
-				t.Fatalf("got %s want %s", got, want)
+			bufout := buf.String()
+			if !strings.Contains(bufout, want) {
+				t.Fatalf("got %s want %s", bufout, want)
 			}
 		})
 	}
@@ -503,7 +599,7 @@ func TestPrettyPrintBare(t *testing.T) {
 }
 
 func testPrettyPrint(pretty string, t *testing.T) {
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	r := &structs.DirEntry{Key: "key"}
@@ -531,7 +627,7 @@ func testPrettyPrint(pretty string, t *testing.T) {
 
 func TestParseSource(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// Default is agent's DC and no node (since the user didn't care, then
@@ -726,45 +822,46 @@ func TestParseWait(t *testing.T) {
 		t.Fatalf("Bad: %v", b)
 	}
 }
-func TestPProfHandlers_EnableDebug(t *testing.T) {
+
+func TestHTTPServer_PProfHandlers_EnableDebug(t *testing.T) {
 	t.Parallel()
-	require := require.New(t)
-	a := NewTestAgent(t, t.Name(), "enable_debug = true")
+	a := NewTestAgent(t, ``)
+	defer a.Shutdown()
+
+	resp := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/debug/pprof/profile?seconds=1", nil)
+
+	httpServer := &HTTPServer{agent: a.Agent}
+	httpServer.handler(true).ServeHTTP(resp, req)
+
+	require.Equal(t, http.StatusOK, resp.Code)
+}
+
+func TestHTTPServer_PProfHandlers_DisableDebugNoACLs(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, ``)
 	defer a.Shutdown()
 
 	resp := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/debug/pprof/profile", nil)
 
-	a.srv.Handler.ServeHTTP(resp, req)
+	httpServer := &HTTPServer{agent: a.Agent}
+	httpServer.handler(false).ServeHTTP(resp, req)
 
-	require.Equal(http.StatusOK, resp.Code)
-}
-func TestPProfHandlers_DisableDebugNoACLs(t *testing.T) {
-	t.Parallel()
-	require := require.New(t)
-	a := NewTestAgent(t, t.Name(), "enable_debug = false")
-	defer a.Shutdown()
-
-	resp := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/debug/pprof/profile", nil)
-
-	a.srv.Handler.ServeHTTP(resp, req)
-
-	require.Equal(http.StatusUnauthorized, resp.Code)
+	require.Equal(t, http.StatusUnauthorized, resp.Code)
 }
 
-func TestPProfHandlers_ACLs(t *testing.T) {
+func TestHTTPServer_PProfHandlers_ACLs(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 	dc1 := "dc1"
 
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 	acl_datacenter = "`+dc1+`"
 	acl_default_policy = "deny"
 	acl_master_token = "master"
 	acl_agent_token = "agent"
 	acl_agent_master_token = "towel"
-	acl_enforce_version_8 = true
 	enable_debug = false
 `)
 
@@ -819,7 +916,7 @@ func TestPProfHandlers_ACLs(t *testing.T) {
 		t.Run(fmt.Sprintf("case %d (%#v)", i, c), func(t *testing.T) {
 			req, _ := http.NewRequest("GET", fmt.Sprintf("%s?token=%s", c.endpoint, c.token), nil)
 			resp := httptest.NewRecorder()
-			a.srv.Handler.ServeHTTP(resp, req)
+			a.srv.handler(true).ServeHTTP(resp, req)
 			assert.Equal(c.code, resp.Code)
 		})
 	}
@@ -861,7 +958,7 @@ func TestParseConsistency(t *testing.T) {
 	var b structs.QueryOptions
 
 	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?stale", nil)
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	if d := a.srv.parseConsistency(resp, req, &b); d {
 		t.Fatalf("unexpected done")
@@ -913,7 +1010,7 @@ func ensureConsistency(t *testing.T, a *TestAgent, path string, maxStale time.Du
 }
 
 func TestParseConsistencyAndMaxStale(t *testing.T) {
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// Default => Consistent
@@ -926,7 +1023,7 @@ func TestParseConsistencyAndMaxStale(t *testing.T) {
 	ensureConsistency(t, a, "/v1/catalog/nodes?stale&max_stale=3s", 3*time.Second, false)
 
 	// stale by defaul on discovery
-	a.config.DiscoveryMaxStale = time.Duration(7 * time.Second)
+	a.config.DiscoveryMaxStale = 7 * time.Second
 	ensureConsistency(t, a, "/v1/catalog/nodes", a.config.DiscoveryMaxStale, false)
 	// Not in KV
 	ensureConsistency(t, a, "/v1/kv/my/path", 0, false)
@@ -949,7 +1046,7 @@ func TestParseConsistency_Invalid(t *testing.T) {
 	var b structs.QueryOptions
 
 	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?stale&consistent", nil)
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	if d := a.srv.parseConsistency(resp, req, &b); !d {
 		t.Fatalf("expected done")
@@ -1010,18 +1107,18 @@ func TestACLResolution(t *testing.T) {
 	reqAuthBearerAndXToken.Header.Add("X-Consul-Token", "xtoken")
 	reqAuthBearerAndXToken.Header.Add("Authorization", "Bearer bearer-token")
 
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// Check when no token is set
-	a.tokens.UpdateUserToken("")
+	a.tokens.UpdateUserToken("", tokenStore.TokenSourceConfig)
 	a.srv.parseToken(req, &token)
 	if token != "" {
 		t.Fatalf("bad: %s", token)
 	}
 
 	// Check when ACLToken set
-	a.tokens.UpdateUserToken("agent")
+	a.tokens.UpdateUserToken("agent", tokenStore.TokenSourceAPI)
 	a.srv.parseToken(req, &token)
 	if token != "agent" {
 		t.Fatalf("bad: %s", token)
@@ -1100,107 +1197,16 @@ func TestACLResolution(t *testing.T) {
 
 func TestEnableWebUI(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		ui = true
 	`)
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/ui/", nil)
 	resp := httptest.NewRecorder()
-	a.srv.Handler.ServeHTTP(resp, req)
+	a.srv.handler(true).ServeHTTP(resp, req)
 	if resp.Code != 200 {
 		t.Fatalf("should handle ui")
-	}
-}
-
-func TestParseToken_ProxyTokenResolve(t *testing.T) {
-	t.Parallel()
-
-	type endpointCheck struct {
-		endpoint string
-		handler  func(s *HTTPServer, resp http.ResponseWriter, req *http.Request) (interface{}, error)
-	}
-
-	// This is not an exhaustive list of all of our endpoints and is only testing GET endpoints
-	// right now. However it provides decent coverage that the proxy token resolution
-	// is happening properly
-	tests := []endpointCheck{
-		{"/v1/acl/info/root", (*HTTPServer).ACLGet},
-		{"/v1/agent/self", (*HTTPServer).AgentSelf},
-		{"/v1/agent/metrics", (*HTTPServer).AgentMetrics},
-		{"/v1/agent/services", (*HTTPServer).AgentServices},
-		{"/v1/agent/checks", (*HTTPServer).AgentChecks},
-		{"/v1/agent/members", (*HTTPServer).AgentMembers},
-		{"/v1/agent/connect/ca/roots", (*HTTPServer).AgentConnectCARoots},
-		{"/v1/agent/connect/ca/leaf/test", (*HTTPServer).AgentConnectCALeafCert},
-		{"/v1/agent/connect/ca/proxy/test", (*HTTPServer).AgentConnectProxyConfig},
-		{"/v1/catalog/connect", (*HTTPServer).CatalogConnectServiceNodes},
-		{"/v1/catalog/datacenters", (*HTTPServer).CatalogDatacenters},
-		{"/v1/catalog/nodes", (*HTTPServer).CatalogNodes},
-		{"/v1/catalog/node/" + t.Name(), (*HTTPServer).CatalogNodeServices},
-		{"/v1/catalog/services", (*HTTPServer).CatalogServices},
-		{"/v1/catalog/service/test", (*HTTPServer).CatalogServiceNodes},
-		{"/v1/connect/ca/configuration", (*HTTPServer).ConnectCAConfiguration},
-		{"/v1/connect/ca/roots", (*HTTPServer).ConnectCARoots},
-		{"/v1/connect/intentions", (*HTTPServer).IntentionEndpoint},
-		{"/v1/coordinate/datacenters", (*HTTPServer).CoordinateDatacenters},
-		{"/v1/coordinate/nodes", (*HTTPServer).CoordinateNodes},
-		{"/v1/coordinate/node/" + t.Name(), (*HTTPServer).CoordinateNode},
-		{"/v1/event/list", (*HTTPServer).EventList},
-		{"/v1/health/node/" + t.Name(), (*HTTPServer).HealthNodeChecks},
-		{"/v1/health/checks/test", (*HTTPServer).HealthNodeChecks},
-		{"/v1/health/state/passing", (*HTTPServer).HealthChecksInState},
-		{"/v1/health/service/test", (*HTTPServer).HealthServiceNodes},
-		{"/v1/health/connect/test", (*HTTPServer).HealthConnectServiceNodes},
-		{"/v1/operator/raft/configuration", (*HTTPServer).OperatorRaftConfiguration},
-		// keyring endpoint has issues with returning errors if you haven't enabled encryption
-		// {"/v1/operator/keyring", (*HTTPServer).OperatorKeyringEndpoint},
-		{"/v1/operator/autopilot/configuration", (*HTTPServer).OperatorAutopilotConfiguration},
-		{"/v1/operator/autopilot/health", (*HTTPServer).OperatorServerHealth},
-		{"/v1/query", (*HTTPServer).PreparedQueryGeneral},
-		{"/v1/session/list", (*HTTPServer).SessionList},
-		{"/v1/status/leader", (*HTTPServer).StatusLeader},
-		{"/v1/status/peers", (*HTTPServer).StatusPeers},
-	}
-
-	a := NewTestAgent(t, t.Name(), TestACLConfig()+testAllowProxyConfig())
-	defer a.Shutdown()
-
-	// Register a service with a managed proxy
-	{
-		reg := &structs.ServiceDefinition{
-			ID:      "test-id",
-			Name:    "test",
-			Address: "127.0.0.1",
-			Port:    8000,
-			Check: structs.CheckType{
-				TTL: 15 * time.Second,
-			},
-			Connect: &structs.ServiceConnect{
-				Proxy: &structs.ServiceDefinitionConnectProxy{},
-			},
-		}
-
-		req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(reg))
-		resp := httptest.NewRecorder()
-		_, err := a.srv.AgentRegisterService(resp, req)
-		require.NoError(t, err)
-		require.Equal(t, 200, resp.Code, "body: %s", resp.Body.String())
-	}
-
-	// Get the proxy token from the agent directly, since there is no API.
-	proxy := a.State.Proxy("test-id-proxy")
-	require.NotNil(t, proxy)
-	token := proxy.ProxyToken
-	require.NotEmpty(t, token)
-
-	for _, check := range tests {
-		t.Run(fmt.Sprintf("GET(%s)", check.endpoint), func(t *testing.T) {
-			req, _ := http.NewRequest("GET", fmt.Sprintf("%s?token=%s", check.endpoint, token), nil)
-			resp := httptest.NewRecorder()
-			_, err := check.handler(a.srv, resp, req)
-			require.NoError(t, err)
-		})
 	}
 }
 
@@ -1265,10 +1271,7 @@ func TestAllowedNets(t *testing.T) {
 			nets = append(nets, in)
 		}
 
-		a := &TestAgent{
-			Name: t.Name(),
-		}
-		a.Start(t)
+		a := NewTestAgent(t, "")
 		defer a.Shutdown()
 		testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -1293,10 +1296,8 @@ func TestAllowedNets(t *testing.T) {
 
 // assertIndex tests that X-Consul-Index is set and non-zero
 func assertIndex(t *testing.T, resp *httptest.ResponseRecorder) {
-	header := resp.Header().Get("X-Consul-Index")
-	if header == "" || header == "0" {
-		t.Fatalf("Bad: %v", header)
-	}
+	t.Helper()
+	require.NoError(t, checkIndex(resp))
 }
 
 // checkIndex is like assertIndex but returns an error
@@ -1330,4 +1331,140 @@ func jsonReader(v interface{}) io.Reader {
 		panic(err)
 	}
 	return b
+}
+
+func TestHTTPServer_HandshakeTimeout(t *testing.T) {
+	t.Parallel()
+
+	// Fire up an agent with TLS enabled.
+	a := StartTestAgent(t, TestAgent{
+		UseTLS: true,
+		HCL: `
+			key_file = "../test/client_certs/server.key"
+			cert_file = "../test/client_certs/server.crt"
+			ca_file = "../test/client_certs/rootca.crt"
+
+			limits {
+				https_handshake_timeout = "10ms"
+			}
+		`,
+	})
+	defer a.Shutdown()
+
+	// Connect to it with a plain TCP client that doesn't attempt to send HTTP or
+	// complete a TLS handshake.
+	conn, err := net.Dial("tcp", a.srv.ln.Addr().String())
+	require.NoError(t, err)
+	defer conn.Close()
+
+	// Wait for more than the timeout. This is timing dependent so could fail if
+	// the CPU is super overloaded so the handler goroutine so I'm using a retry
+	// loop below to be sure but this feels like a pretty generous margin for
+	// error (10x the timeout and 100ms of scheduling time).
+	time.Sleep(100 * time.Millisecond)
+
+	// Set a read deadline on the Conn in case the timeout is not working we don't
+	// want the read below to block forever. Needs to be much longer than what we
+	// expect and the error should be different too.
+	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+
+	retry.Run(t, func(r *retry.R) {
+		// Sanity check the conn was closed by attempting to read from it (a write
+		// might not detect the close).
+		buf := make([]byte, 10)
+		_, err = conn.Read(buf)
+		require.Error(r, err)
+		require.Contains(r, err.Error(), "EOF")
+	})
+}
+
+func TestRPC_HTTPSMaxConnsPerClient(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name       string
+		tlsEnabled bool
+	}{
+		{"HTTP", false},
+		{"HTTPS", true},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+
+			hclPrefix := ""
+			if tc.tlsEnabled {
+				hclPrefix = `
+				key_file = "../test/client_certs/server.key"
+				cert_file = "../test/client_certs/server.crt"
+				ca_file = "../test/client_certs/rootca.crt"
+				`
+			}
+
+			// Fire up an agent with TLS enabled.
+			a := StartTestAgent(t, TestAgent{
+				UseTLS: tc.tlsEnabled,
+				HCL: hclPrefix + `
+					limits {
+						http_max_conns_per_client = 2
+					}
+				`,
+			})
+			defer a.Shutdown()
+
+			addr := a.srv.ln.Addr()
+
+			assertConn := func(conn net.Conn, wantOpen bool) {
+				retry.Run(t, func(r *retry.R) {
+					// Don't wait around as server won't be sending data but the read will fail
+					// immediately if the conn is closed.
+					conn.SetReadDeadline(time.Now().Add(1 * time.Millisecond))
+					buf := make([]byte, 10)
+					_, err := conn.Read(buf)
+					require.Error(r, err)
+					if wantOpen {
+						require.Contains(r, err.Error(), "i/o timeout",
+							"wanted an open conn (read timeout)")
+					} else {
+						require.Contains(r, err.Error(), "EOF", "wanted a closed conn")
+					}
+				})
+			}
+
+			// Connect to the server with bare TCP
+			conn1, err := net.DialTimeout("tcp", addr.String(), time.Second)
+			require.NoError(t, err)
+			defer conn1.Close()
+
+			assertConn(conn1, true)
+
+			// Two conns should succeed
+			conn2, err := net.DialTimeout("tcp", addr.String(), time.Second)
+			require.NoError(t, err)
+			defer conn2.Close()
+
+			assertConn(conn2, true)
+
+			// Third should succeed negotiating TCP handshake...
+			conn3, err := net.DialTimeout("tcp", addr.String(), time.Second)
+			require.NoError(t, err)
+			defer conn3.Close()
+
+			// But then be closed.
+			assertConn(conn3, false)
+
+			// Reload config with higher limit
+			newCfg := *a.config
+			newCfg.HTTPMaxConnsPerClient = 10
+			require.NoError(t, a.reloadConfigInternal(&newCfg))
+
+			// Now another conn should be allowed
+			conn4, err := net.DialTimeout("tcp", addr.String(), time.Second)
+			require.NoError(t, err)
+			defer conn4.Close()
+
+			assertConn(conn4, true)
+		})
+	}
 }

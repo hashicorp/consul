@@ -38,10 +38,10 @@ func (id *SpiffeIDSigning) Authorize(ixn *structs.Intention) (bool, bool) {
 // allowed to sign CSRs for that entity (i.e. represents the trust domain for
 // that entity).
 //
-// I choose to make this a fixed centralised method here for now rather than a
+// I choose to make this a fixed centralized method here for now rather than a
 // method on CertURI interface since we don't intend this to be extensible
 // outside and it's easier to reason about the security properties when they are
-// all in one place with "whitelist" semantics.
+// all in one place with "allowlist" semantics.
 func (id *SpiffeIDSigning) CanSign(cu CertURI) bool {
 	switch other := cu.(type) {
 	case *SpiffeIDSigning:

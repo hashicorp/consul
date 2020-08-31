@@ -4,10 +4,12 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/api"
 	aclhelpers "github.com/hashicorp/consul/command/acl"
+	"github.com/hashicorp/consul/command/acl/policy"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/helpers"
 	"github.com/mitchellh/cli"
@@ -33,6 +35,7 @@ type cmd struct {
 	fromToken     string
 	tokenIsSecret bool
 	showMeta      bool
+	format        string
 
 	testStdin io.Reader
 }
@@ -53,10 +56,17 @@ func (c *cmd) init() {
 		"Similar to the -rules option the token to use can be loaded from stdin or from a file")
 	c.flags.BoolVar(&c.tokenIsSecret, "token-secret", false, "Indicates the token provided with "+
 		"-from-token is a SecretID and not an AccessorID")
+	c.flags.StringVar(
+		&c.format,
+		"format",
+		policy.PrettyFormat,
+		fmt.Sprintf("Output format {%s}", strings.Join(policy.GetSupportedFormats(), "|")),
+	)
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
+	flags.Merge(c.flags, c.http.NamespaceFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -113,13 +123,26 @@ func (c *cmd) Run(args []string) int {
 		Rules:       rules,
 	}
 
-	policy, _, err := client.ACL().PolicyCreate(newPolicy, nil)
+	p, _, err := client.ACL().PolicyCreate(newPolicy, nil)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Failed to create new policy: %v", err))
 		return 1
 	}
 
-	aclhelpers.PrintPolicy(policy, c.UI, c.showMeta)
+	formatter, err := policy.NewFormatter(c.format, c.showMeta)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+	out, err := formatter.FormatPolicy(p)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+	if out != "" {
+		c.UI.Info(out)
+	}
+
 	return 0
 }
 
@@ -131,7 +154,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Create an ACL Policy"
+const synopsis = "Create an ACL policy"
 const help = `
 Usage: consul acl policy create -name NAME [options]
 
@@ -151,6 +174,6 @@ Usage: consul acl policy create -name NAME [options]
     Creation a policy from a legacy token:
 
         $ consul acl policy create -name "legacy-policy" \
-                                   -description "Token Converted to Policy" \
+                                   -description "Token Converted to policy" \
                                    -from-token "c1e34113-e7ab-4451-b1a6-336ddcc58fc6"
 `

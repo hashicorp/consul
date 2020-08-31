@@ -1,0 +1,3 @@
+{{!-- we use concat here to avoid ember adding returns between words, which causes a layout issue--}}
+<dt title="{{capitalize name}}" class="{{name}}{{if (lt count 1) ' zero'}}">{{ concat 'Healthchecks ' (capitalize name) }}</dt>
+<dd title="{{capitalize name}}" class={{if (lt count 1) 'zero'}} style={{width}}>{{format-number count}}</dd>

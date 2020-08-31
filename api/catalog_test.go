@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/testutil"
-	"github.com/hashicorp/consul/testutil/retry"
-	"github.com/pascaldekloe/goe/verify"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -33,8 +33,9 @@ func TestAPI_CatalogNodes(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
+	s.WaitForSerfCheck(t)
 	catalog := c.Catalog()
-	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		nodes, meta, err := catalog.Nodes(nil)
 		// We're not concerned about the createIndex of an agent
 		// Hence we're setting it to the default value
@@ -52,8 +53,10 @@ func TestAPI_CatalogNodes(t *testing.T) {
 				Address:    "127.0.0.1",
 				Datacenter: "dc1",
 				TaggedAddresses: map[string]string{
-					"lan": "127.0.0.1",
-					"wan": "127.0.0.1",
+					"lan":      "127.0.0.1",
+					"lan_ipv4": "127.0.0.1",
+					"wan":      "127.0.0.1",
+					"wan_ipv4": "127.0.0.1",
 				},
 				Meta: map[string]string{
 					"consul-network-segment": "",
@@ -67,9 +70,7 @@ func TestAPI_CatalogNodes(t *testing.T) {
 				ModifyIndex: meta.LastIndex,
 			},
 		}
-		if !verify.Values(r, "", nodes, want) {
-			r.FailNow()
-		}
+		require.Equal(r, want, nodes)
 	})
 }
 
@@ -125,6 +126,36 @@ func TestAPI_CatalogNodes_MetaFilter(t *testing.T) {
 			r.Fatalf("Bad: %v", nodes)
 		}
 	})
+}
+
+func TestAPI_CatalogNodes_Filter(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	// this sets up the catalog entries with things we can filter on
+	testNodeServiceCheckRegistrations(t, c, "dc1")
+
+	catalog := c.Catalog()
+	nodes, _, err := catalog.Nodes(nil)
+	require.NoError(t, err)
+	// 3 nodes inserted by the setup func above plus the agent itself
+	require.Len(t, nodes, 4)
+
+	// now filter down to just a couple nodes with a specific meta entry
+	nodes, _, err = catalog.Nodes(&QueryOptions{Filter: "Meta.env == production"})
+	require.NoError(t, err)
+	require.Len(t, nodes, 2)
+
+	// filter out everything that isn't bar or baz
+	nodes, _, err = catalog.Nodes(&QueryOptions{Filter: "Node == bar or Node == baz"})
+	require.NoError(t, err)
+	require.Len(t, nodes, 2)
+
+	// check for non-existent ip for the node addr
+	nodes, _, err = catalog.Nodes(&QueryOptions{Filter: "Address == `10.0.0.1`"})
+	require.NoError(t, err)
+	require.Empty(t, nodes)
 }
 
 func TestAPI_CatalogServices(t *testing.T) {
@@ -314,10 +345,10 @@ func TestAPI_CatalogService_SingleTag(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		services, meta, err := catalog.Service("foo", "bar", nil)
-		require.NoError(t, err)
-		require.NotEqual(t, meta.LastIndex, 0)
-		require.Len(t, services, 1)
-		require.Equal(t, services[0].ServiceID, "foo1")
+		require.NoError(r, err)
+		require.NotEqual(r, meta.LastIndex, 0)
+		require.Len(r, services, 1)
+		require.Equal(r, services[0].ServiceID, "foo1")
 	})
 }
 
@@ -352,23 +383,23 @@ func TestAPI_CatalogService_MultipleTags(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		services, meta, err := catalog.ServiceMultipleTags("foo", []string{"bar"}, nil)
 
-		require.NoError(t, err)
-		require.NotEqual(t, meta.LastIndex, 0)
+		require.NoError(r, err)
+		require.NotEqual(r, meta.LastIndex, 0)
 
 		// Should be 2 services with the `bar` tag
-		require.Len(t, services, 2)
+		require.Len(r, services, 2)
 	})
 
 	// Test searching with two tags (one result)
 	retry.Run(t, func(r *retry.R) {
 		services, meta, err := catalog.ServiceMultipleTags("foo", []string{"bar", "v2"}, nil)
 
-		require.NoError(t, err)
-		require.NotEqual(t, meta.LastIndex, 0)
+		require.NoError(r, err)
+		require.NotEqual(r, meta.LastIndex, 0)
 
 		// Should be exactly 1 service, named "foo2"
-		require.Len(t, services, 1)
-		require.Equal(t, services[0].ServiceID, "foo2")
+		require.Len(r, services, 1)
+		require.Equal(r, services[0].ServiceID, "foo2")
 	})
 }
 
@@ -399,6 +430,39 @@ func TestAPI_CatalogService_NodeMetaFilter(t *testing.T) {
 			r.Fatalf("Bad datacenter: %v", services[0])
 		}
 	})
+}
+
+func TestAPI_CatalogService_Filter(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	// this sets up the catalog entries with things we can filter on
+	testNodeServiceCheckRegistrations(t, c, "dc1")
+
+	catalog := c.Catalog()
+
+	services, _, err := catalog.Service("redis", "", &QueryOptions{Filter: "ServiceMeta.version == 1"})
+	require.NoError(t, err)
+	// finds it on both foo and bar nodes
+	require.Len(t, services, 2)
+
+	require.Condition(t, func() bool {
+		return (services[0].Node == "foo" && services[1].Node == "bar") ||
+			(services[0].Node == "bar" && services[1].Node == "foo")
+	})
+
+	services, _, err = catalog.Service("redis", "", &QueryOptions{Filter: "NodeMeta.os != windows"})
+	require.NoError(t, err)
+	// finds both service instances on foo
+	require.Len(t, services, 2)
+	require.Equal(t, "foo", services[0].Node)
+	require.Equal(t, "foo", services[1].Node)
+
+	services, _, err = catalog.Service("redis", "", &QueryOptions{Filter: "Address == `10.0.0.1`"})
+	require.NoError(t, err)
+	require.Empty(t, services)
+
 }
 
 func testUpstreams(t *testing.T) []Upstream {
@@ -471,11 +535,6 @@ func TestAPI_CatalogConnect(t *testing.T) {
 
 	proxy := proxyReg.Service
 
-	// DEPRECATED (ProxyDestination) - remove this case when the field is removed
-	deprecatedProxyReg := testUnmanagedProxyRegistration(t)
-	deprecatedProxyReg.Service.ProxyDestination = deprecatedProxyReg.Service.Proxy.DestinationServiceName
-	deprecatedProxyReg.Service.Proxy = nil
-
 	service := &AgentService{
 		ID:      proxyReg.Service.Proxy.DestinationServiceID,
 		Service: proxyReg.Service.Proxy.DestinationServiceName,
@@ -500,10 +559,6 @@ func TestAPI_CatalogConnect(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		if _, err := catalog.Register(reg, nil); err != nil {
-			r.Fatal(err)
-		}
-		// First try to register deprecated proxy, shouldn't error
-		if _, err := catalog.Register(deprecatedProxyReg, nil); err != nil {
 			r.Fatal(err)
 		}
 		if _, err := catalog.Register(proxyReg, nil); err != nil {
@@ -597,6 +652,30 @@ func TestAPI_CatalogConnectNative(t *testing.T) {
 	})
 }
 
+func TestAPI_CatalogConnect_Filter(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	// this sets up the catalog entries with things we can filter on
+	testNodeServiceCheckRegistrations(t, c, "dc1")
+
+	catalog := c.Catalog()
+
+	services, _, err := catalog.Connect("web", "", &QueryOptions{Filter: "ServicePort == 443"})
+	require.NoError(t, err)
+	require.Len(t, services, 2)
+	require.Condition(t, func() bool {
+		return (services[0].Node == "bar" && services[1].Node == "baz") ||
+			(services[0].Node == "baz" && services[1].Node == "bar")
+	})
+
+	// All the web-connect services are native
+	services, _, err = catalog.Connect("web", "", &QueryOptions{Filter: "ServiceConnect.Native != true"})
+	require.NoError(t, err)
+	require.Empty(t, services)
+}
+
 func TestAPI_CatalogNode(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
@@ -646,6 +725,88 @@ func TestAPI_CatalogNode(t *testing.T) {
 				info.Services["web-proxy"].Proxy)
 		}
 	})
+}
+
+func TestAPI_CatalogNodeServiceList(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	catalog := c.Catalog()
+
+	name, err := c.Agent().NodeName()
+	require.NoError(t, err)
+
+	proxyReg := testUnmanagedProxyRegistration(t)
+	proxyReg.Node = name
+	proxyReg.SkipNodeUpdate = true
+
+	retry.Run(t, func(r *retry.R) {
+		// Register a connect proxy to ensure all it's config fields are returned
+		_, err := catalog.Register(proxyReg, nil)
+		r.Check(err)
+
+		info, meta, err := catalog.NodeServiceList(name, nil)
+		if err != nil {
+			r.Fatal(err)
+		}
+
+		if meta.LastIndex == 0 {
+			r.Fatalf("Bad: %v", meta)
+		}
+
+		if len(info.Services) != 2 {
+			r.Fatalf("Bad: %v (len %d)", info, len(info.Services))
+		}
+
+		if _, ok := info.Node.TaggedAddresses["wan"]; !ok {
+			r.Fatalf("Bad: %v", info.Node.TaggedAddresses)
+		}
+
+		if info.Node.Datacenter != "dc1" {
+			r.Fatalf("Bad datacenter: %v", info)
+		}
+
+		var proxySvc *AgentService
+		for _, svc := range info.Services {
+			if svc.ID == "web-proxy1" {
+				proxySvc = svc
+				break
+			}
+		}
+
+		if proxySvc == nil {
+			r.Fatalf("Missing proxy service: %v", info.Services)
+		}
+
+		if !reflect.DeepEqual(proxyReg.Service.Proxy, proxySvc.Proxy) {
+			r.Fatalf("Bad proxy config:\nwant %v\n got: %v", proxyReg.Service.Proxy,
+				proxySvc.Proxy)
+		}
+	})
+}
+
+func TestAPI_CatalogNode_Filter(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	// this sets up the catalog entries with things we can filter on
+	testNodeServiceCheckRegistrations(t, c, "dc1")
+
+	catalog := c.Catalog()
+
+	// should have only 1 matching service
+	info, _, err := catalog.Node("bar", &QueryOptions{Filter: "connect in Tags"})
+	require.NoError(t, err)
+	require.Len(t, info.Services, 1)
+	require.Contains(t, info.Services, "webV1")
+	require.Equal(t, "web", info.Services["webV1"].Service)
+
+	// should get two services for the node
+	info, _, err = catalog.Node("baz", &QueryOptions{Filter: "connect in Tags"})
+	require.NoError(t, err)
+	require.Len(t, info.Services, 2)
 }
 
 func TestAPI_CatalogRegistration(t *testing.T) {
@@ -926,5 +1087,151 @@ func TestAPI_CatalogEnableTagOverride(t *testing.T) {
 		if services[0].ServiceEnableTagOverride != true {
 			r.Fatal("tag override not set")
 		}
+	})
+}
+
+func TestAPI_CatalogGatewayServices_Terminating(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+	s.WaitForSerfCheck(t)
+
+	catalog := c.Catalog()
+
+	// Register a service to be covered by a wildcard in the config entry
+	svc := &AgentService{
+		ID:      "redis",
+		Service: "redis",
+		Port:    6379,
+	}
+	reg := &CatalogRegistration{
+		Datacenter: "dc1",
+		Node:       "bar",
+		Address:    "192.168.10.11",
+		Service:    svc,
+	}
+	retry.Run(t, func(r *retry.R) {
+		if _, err := catalog.Register(reg, nil); err != nil {
+			r.Fatal(err)
+		}
+	})
+
+	entries := c.ConfigEntries()
+
+	// Associate the gateway and api/redis services
+	gwEntry := TerminatingGatewayConfigEntry{
+		Kind: TerminatingGateway,
+		Name: "terminating",
+		Services: []LinkedService{
+			{
+				Name:     "api",
+				CAFile:   "api/ca.crt",
+				CertFile: "api/client.crt",
+				KeyFile:  "api/client.key",
+				SNI:      "my-domain",
+			},
+			{
+				Name:     "*",
+				CAFile:   "ca.crt",
+				CertFile: "client.crt",
+				KeyFile:  "client.key",
+				SNI:      "my-alt-domain",
+			},
+		},
+	}
+	retry.Run(t, func(r *retry.R) {
+		if success, _, err := entries.Set(&gwEntry, nil); err != nil || !success {
+			r.Fatal(err)
+		}
+	})
+
+	expect := []*GatewayService{
+		{
+			Service:     CompoundServiceName{"api", defaultNamespace},
+			Gateway:     CompoundServiceName{"terminating", defaultNamespace},
+			GatewayKind: ServiceKindTerminatingGateway,
+			CAFile:      "api/ca.crt",
+			CertFile:    "api/client.crt",
+			KeyFile:     "api/client.key",
+			SNI:         "my-domain",
+		},
+		{
+			Service:      CompoundServiceName{"redis", defaultNamespace},
+			Gateway:      CompoundServiceName{"terminating", defaultNamespace},
+			GatewayKind:  ServiceKindTerminatingGateway,
+			CAFile:       "ca.crt",
+			CertFile:     "client.crt",
+			KeyFile:      "client.key",
+			SNI:          "my-alt-domain",
+			FromWildcard: true,
+		},
+	}
+	retry.Run(t, func(r *retry.R) {
+		resp, _, err := catalog.GatewayServices("terminating", nil)
+		assert.NoError(r, err)
+		assert.Equal(r, expect, resp)
+	})
+}
+
+func TestAPI_CatalogGatewayServices_Ingress(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	s.WaitForSerfCheck(t)
+
+	entries := c.ConfigEntries()
+
+	// Associate the gateway and api/redis services
+	gwEntry := IngressGatewayConfigEntry{
+		Kind: "ingress-gateway",
+		Name: "ingress",
+		Listeners: []IngressListener{
+			{
+				Port: 8888,
+				Services: []IngressService{
+					{
+						Name: "api",
+					},
+				},
+			},
+			{
+				Port: 9999,
+				Services: []IngressService{
+					{
+						Name: "redis",
+					},
+				},
+			},
+		},
+	}
+	retry.Run(t, func(r *retry.R) {
+		if success, _, err := entries.Set(&gwEntry, nil); err != nil || !success {
+			r.Fatal(err)
+		}
+	})
+
+	catalog := c.Catalog()
+
+	expect := []*GatewayService{
+		{
+			Service:     CompoundServiceName{"api", defaultNamespace},
+			Gateway:     CompoundServiceName{"ingress", defaultNamespace},
+			GatewayKind: ServiceKindIngressGateway,
+			Protocol:    "tcp",
+			Port:        8888,
+		},
+		{
+			Service:     CompoundServiceName{"redis", defaultNamespace},
+			Gateway:     CompoundServiceName{"ingress", defaultNamespace},
+			GatewayKind: ServiceKindIngressGateway,
+			Protocol:    "tcp",
+			Port:        9999,
+		},
+	}
+	retry.Run(t, func(r *retry.R) {
+		resp, _, err := catalog.GatewayServices("ingress", nil)
+		assert.NoError(r, err)
+		assert.Equal(r, expect, resp)
 	})
 }

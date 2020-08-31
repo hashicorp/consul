@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -91,9 +92,11 @@ func TestConn(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, "ping 2\n", got)
 
-	tx, rx := c.Stats()
-	assert.Equal(t, uint64(7), tx)
-	assert.Equal(t, uint64(7), rx)
+	retry.Run(t, func(r *retry.R) {
+		tx, rx := c.Stats()
+		assert.Equal(r, uint64(7), tx)
+		assert.Equal(r, uint64(7), rx)
+	})
 
 	_, err = src.Write([]byte("pong 1\n"))
 	require.Nil(t, err)
@@ -108,9 +111,11 @@ func TestConn(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, "pong 2\n", got)
 
-	tx, rx = c.Stats()
-	assert.Equal(t, uint64(14), tx)
-	assert.Equal(t, uint64(14), rx)
+	retry.Run(t, func(r *retry.R) {
+		tx, rx := c.Stats()
+		assert.Equal(r, uint64(14), tx)
+		assert.Equal(r, uint64(14), rx)
+	})
 
 	c.Close()
 

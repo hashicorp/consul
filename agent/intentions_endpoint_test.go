@@ -15,7 +15,7 @@ func TestIntentionsList_empty(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// Make sure an empty list is non-nil.
@@ -33,7 +33,7 @@ func TestIntentionsList_values(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// Create some intentions, note we create the lowest precedence first to test
@@ -71,20 +71,15 @@ func TestIntentionsList_values(t *testing.T) {
 func TestIntentionsMatch_basic(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// Create some intentions
 	{
 		insert := [][]string{
-			{"foo", "*", "foo", "*"},
-			{"foo", "*", "foo", "bar"},
-			{"foo", "*", "foo", "baz"}, // shouldn't match
-			{"foo", "*", "bar", "bar"}, // shouldn't match
-			{"foo", "*", "bar", "*"},   // shouldn't match
-			{"foo", "*", "*", "*"},
-			{"bar", "*", "foo", "bar"}, // duplicate destination different source
+			{"default", "*", "default", "*"},
+			{"default", "*", "default", "bar"},
+			{"default", "*", "default", "baz"}, // shouldn't match
 		}
 
 		for _, v := range insert {
@@ -100,28 +95,26 @@ func TestIntentionsMatch_basic(t *testing.T) {
 
 			// Create
 			var reply string
-			assert.Nil(a.RPC("Intention.Apply", &ixn, &reply))
+			require.Nil(t, a.RPC("Intention.Apply", &ixn, &reply))
 		}
 	}
 
 	// Request
 	req, _ := http.NewRequest("GET",
-		"/v1/connect/intentions/match?by=destination&name=foo/bar", nil)
+		"/v1/connect/intentions/match?by=destination&name=bar", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.IntentionMatch(resp, req)
-	assert.Nil(err)
+	require.Nil(t, err)
 
 	value := obj.(map[string]structs.Intentions)
-	assert.Len(value, 1)
+	require.Len(t, value, 1)
 
 	var actual [][]string
 	expected := [][]string{
-		{"bar", "*", "foo", "bar"},
-		{"foo", "*", "foo", "bar"},
-		{"foo", "*", "foo", "*"},
-		{"foo", "*", "*", "*"},
+		{"default", "*", "default", "bar"},
+		{"default", "*", "default", "*"},
 	}
-	for _, ixn := range value["foo/bar"] {
+	for _, ixn := range value["bar"] {
 		actual = append(actual, []string{
 			ixn.SourceNS,
 			ixn.SourceName,
@@ -130,14 +123,14 @@ func TestIntentionsMatch_basic(t *testing.T) {
 		})
 	}
 
-	assert.Equal(expected, actual)
+	require.Equal(t, expected, actual)
 }
 
 func TestIntentionsMatch_noBy(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// Request
@@ -154,7 +147,7 @@ func TestIntentionsMatch_byInvalid(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// Request
@@ -171,7 +164,7 @@ func TestIntentionsMatch_noName(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// Request
@@ -187,16 +180,14 @@ func TestIntentionsMatch_noName(t *testing.T) {
 func TestIntentionsCheck_basic(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// Create some intentions
 	{
 		insert := [][]string{
-			{"foo", "*", "foo", "*"},
-			{"foo", "*", "foo", "bar"},
-			{"bar", "*", "foo", "bar"},
+			{"default", "*", "default", "baz"},
+			{"default", "*", "default", "bar"},
 		}
 
 		for _, v := range insert {
@@ -213,30 +204,30 @@ func TestIntentionsCheck_basic(t *testing.T) {
 
 			// Create
 			var reply string
-			require.Nil(a.RPC("Intention.Apply", &ixn, &reply))
+			require.NoError(t, a.RPC("Intention.Apply", &ixn, &reply))
 		}
 	}
 
 	// Request matching intention
 	{
 		req, _ := http.NewRequest("GET",
-			"/v1/connect/intentions/test?source=foo/bar&destination=foo/baz", nil)
+			"/v1/connect/intentions/test?source=bar&destination=baz", nil)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.IntentionCheck(resp, req)
-		require.Nil(err)
+		require.NoError(t, err)
 		value := obj.(*structs.IntentionQueryCheckResponse)
-		require.False(value.Allowed)
+		require.False(t, value.Allowed)
 	}
 
 	// Request non-matching intention
 	{
 		req, _ := http.NewRequest("GET",
-			"/v1/connect/intentions/test?source=foo/bar&destination=bar/qux", nil)
+			"/v1/connect/intentions/test?source=bar&destination=qux", nil)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.IntentionCheck(resp, req)
-		require.Nil(err)
+		require.NoError(t, err)
 		value := obj.(*structs.IntentionQueryCheckResponse)
-		require.True(value.Allowed)
+		require.True(t, value.Allowed)
 	}
 }
 
@@ -244,7 +235,7 @@ func TestIntentionsCheck_noSource(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// Request
@@ -261,7 +252,7 @@ func TestIntentionsCheck_noDestination(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// Request
@@ -278,7 +269,7 @@ func TestIntentionsCreate_good(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// Make sure an empty list is non-nil.
@@ -309,7 +300,7 @@ func TestIntentionsCreate_good(t *testing.T) {
 func TestIntentionsCreate_noBody(t *testing.T) {
 	t.Parallel()
 
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// Create with no body
@@ -323,7 +314,7 @@ func TestIntentionsSpecificGet_good(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// The intention
@@ -359,7 +350,7 @@ func TestIntentionsSpecificGet_invalidId(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// Read intention with bad ID
@@ -376,7 +367,7 @@ func TestIntentionsSpecificUpdate_good(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// The intention
@@ -422,7 +413,7 @@ func TestIntentionsSpecificDelete_good(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	// The intention
@@ -482,12 +473,10 @@ func TestParseIntentionMatchEntry(t *testing.T) {
 		{
 			"foo",
 			structs.IntentionMatchEntry{
-				Namespace: structs.IntentionDefaultNamespace,
-				Name:      "foo",
+				Name: "foo",
 			},
 			false,
 		},
-
 		{
 			"foo/bar",
 			structs.IntentionMatchEntry{
@@ -496,7 +485,6 @@ func TestParseIntentionMatchEntry(t *testing.T) {
 			},
 			false,
 		},
-
 		{
 			"foo/bar/baz",
 			structs.IntentionMatchEntry{},
@@ -507,7 +495,8 @@ func TestParseIntentionMatchEntry(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.Input, func(t *testing.T) {
 			assert := assert.New(t)
-			actual, err := parseIntentionMatchEntry(tc.Input)
+			var entMeta structs.EnterpriseMeta
+			actual, err := parseIntentionMatchEntry(tc.Input, &entMeta)
 			assert.Equal(err != nil, tc.Err, err)
 			if err != nil {
 				return

@@ -13,12 +13,12 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 func TestEventFire(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -58,7 +58,7 @@ func TestEventFire(t *testing.T) {
 
 func TestEventFire_token(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), TestACLConfig()+`
+	a := NewTestAgent(t, TestACLConfig()+`
 		acl_default_policy = "deny"
 	`)
 	defer a.Shutdown()
@@ -120,7 +120,7 @@ func TestEventFire_token(t *testing.T) {
 
 func TestEventList(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -153,7 +153,7 @@ func TestEventList(t *testing.T) {
 
 func TestEventList_Filter(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -191,7 +191,7 @@ func TestEventList_Filter(t *testing.T) {
 
 func TestEventList_ACLFilter(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), TestACLConfig())
+	a := NewTestAgent(t, TestACLConfig())
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -242,7 +242,7 @@ func TestEventList_ACLFilter(t *testing.T) {
 
 func TestEventList_Blocking(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -269,7 +269,7 @@ func TestEventList_Blocking(t *testing.T) {
 		time.Sleep(50 * time.Millisecond)
 		p := &UserEvent{Name: "second"}
 		if err := a.UserEvent("dc1", "root", p); err != nil {
-			t.Fatalf("err: %v", err)
+			t.Errorf("err: %v", err)
 		}
 	}()
 
@@ -294,7 +294,7 @@ func TestEventList_Blocking(t *testing.T) {
 
 func TestEventList_EventBufOrder(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -302,11 +302,11 @@ func TestEventList_EventBufOrder(t *testing.T) {
 	expected := &UserEvent{Name: "foo"}
 
 	for _, e := range []*UserEvent{
-		&UserEvent{Name: "foo"},
-		&UserEvent{Name: "bar"},
-		&UserEvent{Name: "foo"},
+		{Name: "foo"},
+		{Name: "bar"},
+		{Name: "foo"},
 		expected,
-		&UserEvent{Name: "bar"},
+		{Name: "bar"},
 	} {
 		if err := a.UserEvent("dc1", "root", e); err != nil {
 			t.Fatalf("err: %v", err)

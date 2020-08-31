@@ -37,7 +37,7 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 			return nil, structs.ErrNoDCPath
 		}
 
-		snap, err := SnapshotRPC(s.connPool, dc, server.Addr, server.UseTLS, args, in, reply)
+		snap, err := SnapshotRPC(s.connPool, dc, server.ShortName, server.Addr, args, in, reply)
 		if err != nil {
 			manager.NotifyFailedServer(server)
 			return nil, err
@@ -52,7 +52,7 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 			if server == nil {
 				return nil, structs.ErrNoLeader
 			}
-			return SnapshotRPC(s.connPool, args.Datacenter, server.Addr, server.UseTLS, args, in, reply)
+			return SnapshotRPC(s.connPool, args.Datacenter, server.ShortName, server.Addr, args, in, reply)
 		}
 	}
 
@@ -61,7 +61,7 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 	// all the ACLs and you could escalate from there.
 	if rule, err := s.ResolveToken(args.Token); err != nil {
 		return nil, err
-	} else if rule != nil && !rule.Snapshot() {
+	} else if rule != nil && rule.Snapshot(nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -150,7 +150,7 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 // a snapshot request.
 func (s *Server) handleSnapshotRequest(conn net.Conn) error {
 	var args structs.SnapshotRequest
-	dec := codec.NewDecoder(conn, &codec.MsgpackHandle{})
+	dec := codec.NewDecoder(conn, structs.MsgpackHandle)
 	if err := dec.Decode(&args); err != nil {
 		return fmt.Errorf("failed to decode request: %v", err)
 	}
@@ -163,12 +163,12 @@ func (s *Server) handleSnapshotRequest(conn net.Conn) error {
 	}
 	defer func() {
 		if err := snap.Close(); err != nil {
-			s.logger.Printf("[ERR] consul: Failed to close snapshot: %v", err)
+			s.logger.Error("Failed to close snapshot", "error", err)
 		}
 	}()
 
 RESPOND:
-	enc := codec.NewEncoder(conn, &codec.MsgpackHandle{})
+	enc := codec.NewEncoder(conn, structs.MsgpackHandle)
 	if err := enc.Encode(&reply); err != nil {
 		return fmt.Errorf("failed to encode response: %v", err)
 	}
@@ -189,10 +189,18 @@ RESPOND:
 // the streaming output (for a snapshot). If the reply contains an error, this
 // will always return an error as well, so you don't need to check the error
 // inside the filled-in reply.
-func SnapshotRPC(connPool *pool.ConnPool, dc string, addr net.Addr, useTLS bool,
-	args *structs.SnapshotRequest, in io.Reader, reply *structs.SnapshotResponse) (io.ReadCloser, error) {
-
-	conn, hc, err := connPool.DialTimeout(dc, addr, 10*time.Second, useTLS)
+func SnapshotRPC(
+	connPool *pool.ConnPool,
+	dc string,
+	nodeName string,
+	addr net.Addr,
+	args *structs.SnapshotRequest,
+	in io.Reader,
+	reply *structs.SnapshotResponse,
+) (io.ReadCloser, error) {
+	// Write the snapshot RPC byte to set the mode, then perform the
+	// request.
+	conn, hc, err := connPool.DialTimeout(dc, nodeName, addr, pool.RPCSnapshot)
 	if err != nil {
 		return nil, err
 	}
@@ -206,14 +214,8 @@ func SnapshotRPC(connPool *pool.ConnPool, dc string, addr net.Addr, useTLS bool,
 		}
 	}()
 
-	// Write the snapshot RPC byte to set the mode, then perform the
-	// request.
-	if _, err := conn.Write([]byte{byte(pool.RPCSnapshot)}); err != nil {
-		return nil, fmt.Errorf("failed to write stream type: %v", err)
-	}
-
 	// Push the header encoded as msgpack, then stream the input.
-	enc := codec.NewEncoder(conn, &codec.MsgpackHandle{})
+	enc := codec.NewEncoder(conn, structs.MsgpackHandle)
 	if err := enc.Encode(&args); err != nil {
 		return nil, fmt.Errorf("failed to encode request: %v", err)
 	}
@@ -235,7 +237,7 @@ func SnapshotRPC(connPool *pool.ConnPool, dc string, addr net.Addr, useTLS bool,
 
 	// Pull the header decoded as msgpack. The caller can continue to read
 	// the conn to stream the remaining data.
-	dec := codec.NewDecoder(conn, &codec.MsgpackHandle{})
+	dec := codec.NewDecoder(conn, structs.MsgpackHandle)
 	if err := dec.Decode(reply); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %v", err)
 	}

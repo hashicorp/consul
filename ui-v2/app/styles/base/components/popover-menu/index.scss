@@ -1,0 +1,20 @@
+@import './skin';
+@import './layout';
+.popover-menu {
+  @extend %popover-menu;
+}
+%popover-menu > [type='checkbox'] {
+  @extend %popover-menu-toggle;
+}
+%popover-menu-toggle {
+  @extend %display-toggle-siblings;
+}
+%popover-menu-toggle + label {
+  @extend %popover-menu-trigger;
+}
+%popover-menu-trigger + div {
+  @extend %popover-menu-panel;
+}
+%popover-menu-panel {
+  @extend %menu-panel;
+}

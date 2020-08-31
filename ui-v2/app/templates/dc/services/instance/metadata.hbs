@@ -1,0 +1,32 @@
+<div id="meta" class="tab-section">
+  <div role="tabpanel">
+    <section class="tags">
+      <h3>Tags</h3>
+    {{#if (gt item.Tags.length 0) }}
+      <TagList @item={{item}} />
+    {{else}}
+      <EmptyState>
+        <BlockSlot @name="body">
+          <p>
+            There are no tags.
+          </p>
+        </BlockSlot>
+      </EmptyState>
+    {{/if}}
+    </section>
+    <section class="metadata">
+      <h3>Meta</h3>
+    {{#if item.Meta}}
+      <ConsulMetadataList @items={{object-entries item.Meta}} />
+    {{else}}
+      <EmptyState>
+        <BlockSlot @name="body">
+          <p>
+            This instance has no metadata.
+          </p>
+        </BlockSlot>
+      </EmptyState>
+    {{/if}}
+    </section>
+  </div>
+</div>

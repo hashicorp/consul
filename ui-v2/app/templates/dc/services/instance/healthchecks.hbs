@@ -1,0 +1,22 @@
+<div id="health-checks" class="tab-section">
+  <div role="tabpanel">
+    {{#if (gt item.ServiceChecks.length 0) }}
+      <section data-test-service-checks>
+        <HealthcheckList @items={{sort-by (comparator 'check' 'Status:asc') item.ServiceChecks}} @exposed={{proxy.ServiceProxy.Expose.Checks}} />
+      </section>
+    {{else}}
+      <p>
+        This instance has no service health checks.
+      </p>
+    {{/if}}
+    {{#if (gt item.NodeChecks.length 0) }}
+      <section data-test-node-checks>
+        <HealthcheckList @items={{sort-by (comparator 'check' 'Status:asc') item.NodeChecks}} />
+      </section>
+    {{else}}
+      <p>
+        This instance has no node health checks.
+      </p>
+    {{/if}}
+  </div>
+</div>

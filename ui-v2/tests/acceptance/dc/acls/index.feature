@@ -1,5 +1,6 @@
 @setupApplicationTest
-Feature: acl forwarding
+@notNamespaceable
+Feature: dc / acls / index: acl forwarding
   In order to arrive at a useful page when only specifying 'acls' in the url
   As a user
   I should be redirected to the tokens page

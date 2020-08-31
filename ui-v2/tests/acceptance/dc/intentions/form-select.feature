@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: dc / intentions / form select: Intention Service Select Dropdowns
+Feature: dc / intentions / form-select: Intention Service Select Dropdowns
   In order to set future Consul services as intention sources and destinations
   As a user
   I want to type into the autocomplete and select what I've typed to use it as the future service

@@ -13,8 +13,9 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
+	tokenStore "github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/consul/testutil/retry"
 )
 
 func TestACLReplication_Sorter(t *testing.T) {
@@ -233,7 +234,7 @@ func TestACLReplication_updateLocalACLs_RateLimit(t *testing.T) {
 		c.ACLsEnabled = true
 		c.ACLReplicationApplyLimit = 1
 	})
-	s1.tokens.UpdateACLReplicationToken("secret")
+	s1.tokens.UpdateReplicationToken("secret", tokenStore.TokenSourceConfig)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	testrpc.WaitForLeader(t, s1.RPC, "dc2")
@@ -334,6 +335,10 @@ func TestACLReplication_IsACLReplicationEnabled(t *testing.T) {
 	}
 }
 
+// Note that this test is testing that legacy token data is replicated, NOT
+// directly testing the legacy acl replication goroutine code.
+//
+// Actually testing legacy replication is difficult to do without old binaries.
 func TestACLReplication_LegacyTokens(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -356,7 +361,7 @@ func TestACLReplication_LegacyTokens(t *testing.T) {
 		c.ACLReplicationBurst = 100
 		c.ACLReplicationApplyLimit = 1000000
 	})
-	s2.tokens.UpdateACLReplicationToken("root")
+	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
@@ -365,6 +370,12 @@ func TestACLReplication_LegacyTokens(t *testing.T) {
 	joinWAN(t, s2, s1)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s1.RPC, "dc2")
+
+	// Wait for legacy acls to be disabled so we are clear that
+	// legacy replication isn't meddling.
+	waitForNewACLs(t, s1)
+	waitForNewACLs(t, s2)
+	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
 
 	// Create a bunch of new tokens.
 	var id string
@@ -385,14 +396,15 @@ func TestACLReplication_LegacyTokens(t *testing.T) {
 	}
 
 	checkSame := func() error {
-		index, remote, err := s1.fsm.State().ACLTokenList(nil, true, true, "")
+		index, remote, err := s1.fsm.State().ACLTokenList(nil, true, true, "", "", "", nil, nil)
 		if err != nil {
 			return err
 		}
-		_, local, err := s2.fsm.State().ACLTokenList(nil, true, true, "")
+		_, local, err := s2.fsm.State().ACLTokenList(nil, true, true, "", "", "", nil, nil)
 		if err != nil {
 			return err
 		}
+
 		if got, want := len(remote), len(local); got != want {
 			return fmt.Errorf("got %d remote ACLs want %d", got, want)
 		}

@@ -27,6 +27,10 @@ func (md *lanMergeDelegate) NotifyMerge(members []*serf.Member) error {
 	nodeMap := make(map[types.NodeID]string)
 	for _, m := range members {
 		if rawID, ok := m.Tags["id"]; ok && rawID != "" {
+			if m.Status == serf.StatusLeft {
+				continue
+			}
+
 			nodeID := types.NodeID(rawID)
 
 			// See if there's another node that conflicts with us.

@@ -1,22 +1,24 @@
-import { moduleForComponent, test } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { setupRenderingTest } from 'ember-qunit';
+import { render } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 
-moduleForComponent('delete-confirmation', 'Integration | Component | delete confirmation', {
-  integration: true,
-});
+module('Integration | Component | delete confirmation', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('it renders', function(assert) {
-  // Set any properties with this.set('myProperty', 'value');
-  // Handle any actions with this.on('myAction', function(val) { ... });
+  test('it renders', async function(assert) {
+    // Set any properties with this.set('myProperty', 'value');
+    // Handle any actions with this.on('myAction', function(val) { ... });
 
-  this.render(hbs`{{delete-confirmation}}`);
+    await render(hbs`{{delete-confirmation}}`);
 
-  assert.equal(this.$('.type-delete').length, 1);
+    assert.dom('.type-delete').exists({ count: 1 });
 
-  // Template block usage:
-  this.render(hbs`
-    {{#delete-confirmation}}{{/delete-confirmation}}
-  `);
+    // Template block usage:
+    await render(hbs`
+      {{#delete-confirmation}}{{/delete-confirmation}}
+    `);
 
-  assert.equal(this.$('.type-delete').length, 1);
+    assert.dom('.type-delete').exists({ count: 1 });
+  });
 });

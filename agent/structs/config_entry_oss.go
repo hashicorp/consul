@@ -1,0 +1,29 @@
+// +build !consulent
+
+package structs
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/hashicorp/go-multierror"
+)
+
+func (e *ProxyConfigEntry) validateEnterpriseMeta() error {
+	return nil
+}
+
+func validateUnusedKeys(unused []string) error {
+	var err error
+
+	for _, k := range unused {
+		switch {
+		case k == "CreateIndex" || k == "ModifyIndex":
+		case strings.HasSuffix(strings.ToLower(k), "namespace"):
+			err = multierror.Append(err, fmt.Errorf("invalid config key %q, namespaces are a consul enterprise feature", k))
+		default:
+			err = multierror.Append(err, fmt.Errorf("invalid config key %q", k))
+		}
+	}
+	return err
+}

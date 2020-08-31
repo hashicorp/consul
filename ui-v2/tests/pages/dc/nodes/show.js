@@ -1,21 +1,27 @@
-export default function(visitable, deletable, clickable, attribute, collection, radiogroup) {
+export default function(visitable, deletable, clickable, attribute, collection, tabs, text) {
   return {
     visit: visitable('/:dc/nodes/:node'),
-    tabs: radiogroup('tab', ['health-checks', 'services', 'round-trip-time', 'lock-sessions']),
+    tabs: tabs('tab', [
+      'health-checks',
+      'service-instances',
+      'round-trip-time',
+      'lock-sessions',
+      'metadata',
+    ]),
     healthchecks: collection('[data-test-node-healthcheck]', {
       name: attribute('data-test-node-healthcheck'),
     }),
-    services: collection('#services [data-test-tabular-row]', {
-      id: attribute('data-test-service-id', '[data-test-service-id]'),
-      name: attribute('data-test-service-name', '[data-test-service-name]'),
-      port: attribute('data-test-service-port', '.port'),
-      externalSource: attribute('data-test-external-source', 'a span'),
+    services: collection('.consul-service-instance-list > ul > li:not(:first-child)', {
+      name: text('[data-test-service-name]'),
+      port: attribute('data-test-service-port', '[data-test-service-port]'),
+      externalSource: attribute('data-test-external-source', '[data-test-external-source]'),
     }),
-    sessions: collection(
-      '#lock-sessions [data-test-tabular-row]',
-      deletable({
-        TTL: attribute('data-test-session-ttl', '[data-test-session-ttl]'),
-      })
-    ),
+    sessions: collection('.consul-lock-session-list [data-test-list-row]', {
+      TTL: attribute('data-test-session-ttl', '[data-test-session-ttl]'),
+      delay: text('[data-test-session-delay]'),
+      actions: clickable('label'),
+      ...deletable(),
+    }),
+    metadata: collection('#metadata [data-test-tabular-row]', {}),
   };
 }

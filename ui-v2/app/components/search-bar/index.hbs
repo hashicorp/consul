@@ -1,0 +1,31 @@
+{{yield}}
+<form class={{concat 'filter-bar' (if (eq secondary 'sort') ' with-sort')}} ...attributes>
+    {{#yield-slot name="primary"}}
+      <fieldset>
+        {{yield}}
+      </fieldset>
+    {{else}}
+      <FreetextFilter
+        @onsearch={{action onsearch}}
+        @value={{value}}
+        @placeholder={{or placeholder 'Search'}}
+      />
+    {{/yield-slot}}
+    {{#yield-slot name="secondary"}}
+      <fieldset>
+        {{yield}}
+      </fieldset>
+    {{else}}
+      {{#if options}}
+        {{#if (eq secondary 'sort')}}
+        {{else}}
+          <RadioGroup
+            @keyboardAccess={{true}}
+            @value={{selected.key}}
+            @items={{options}}
+            @onchange={{action onchange}}
+          />
+        {{/if}}
+      {{/if}}
+    {{/yield-slot}}
+</form>

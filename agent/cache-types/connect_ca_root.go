@@ -14,6 +14,7 @@ const ConnectCARootName = "connect-ca-root"
 // straightforward cache type since it only has to block on the given
 // index and return the data.
 type ConnectCARoot struct {
+	RegisterOptionsBlockingRefresh
 	RPC RPC
 }
 
@@ -26,6 +27,10 @@ func (c *ConnectCARoot) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 		return result, fmt.Errorf(
 			"Internal cache failure: request wrong type: %T", req)
 	}
+
+	// Lightweight copy this object so that manipulating QueryOptions doesn't race.
+	dup := *reqReal
+	reqReal = &dup
 
 	// Set the minimum query index to our current index so we block
 	reqReal.QueryOptions.MinQueryIndex = opts.MinIndex
@@ -40,8 +45,4 @@ func (c *ConnectCARoot) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 	result.Value = &reply
 	result.Index = reply.QueryMeta.Index
 	return result, nil
-}
-
-func (c *ConnectCARoot) SupportsBlocking() bool {
-	return true
 }

@@ -1,13 +1,13 @@
 package consul
 
 import (
-	"os"
 	"reflect"
 	"testing"
 
 	consulfsm "github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/raft"
 )
 
@@ -23,7 +23,8 @@ func makeLog(buf []byte) *raft.Log {
 // Testing for GH-300 and GH-279
 func TestHealthCheckRace(t *testing.T) {
 	t.Parallel()
-	fsm, err := consulfsm.New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := consulfsm.New(nil, logger)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -58,7 +59,7 @@ func TestHealthCheckRace(t *testing.T) {
 	}
 
 	// Verify the index
-	idx, out1, err := state.CheckServiceNodes(nil, "db")
+	idx, out1, err := state.CheckServiceNodes(nil, "db", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -81,7 +82,7 @@ func TestHealthCheckRace(t *testing.T) {
 	}
 
 	// Verify the index changed
-	idx, out2, err := state.CheckServiceNodes(nil, "db")
+	idx, out2, err := state.CheckServiceNodes(nil, "db", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

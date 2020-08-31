@@ -1,6 +1,0 @@
-{{#ember-native-scrollable tagName='ul' content-size=_contentSize scroll-left=_scrollLeft scroll-top=_scrollTop scrollChange=(action "scrollChange") clientSizeChange=(action "clientSizeChange")}}
-    <li></li>
-    {{~#each _cells as |cell|~}}
-      <li style={{{cell.style}}}>{{yield cell.item cell.index }}</li>
-    {{~/each~}}
-{{/ember-native-scrollable}}

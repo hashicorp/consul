@@ -1,0 +1,31 @@
+<PopoverMenu @position={{or position "left"}} class="popover-select" ...attributes as |components menu|>
+  {{yield}}
+  {{#let
+    (component 'popover-select/optgroup' components=components)
+    (component 'popover-select/option'
+      select=this components=components
+      onclick=(queue
+        (action "click")
+        (if multiple (noop) menu.toggle)
+      )
+    )
+    as |Optgroup Option|
+  }}
+    <BlockSlot @name="trigger">
+      <YieldSlot @name="selected">
+        {{yield (hash
+            Optgroup=Optgroup
+            Option=Option
+        )}}
+      </YieldSlot>
+    </BlockSlot>
+    <BlockSlot @name="menu">
+      <YieldSlot @name="options">
+        {{yield (hash
+            Optgroup=Optgroup
+            Option=Option
+        )}}
+      </YieldSlot>
+    </BlockSlot>
+  {{/let}}
+  </PopoverMenu>

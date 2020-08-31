@@ -1,41 +1,42 @@
 package agent
 
 import (
+	"bytes"
+	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/x509"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"log"
 	"math/rand"
-	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"testing"
+	"text/template"
 	"time"
 
 	metrics "github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/go-hclog"
 	uuid "github.com/hashicorp/go-uuid"
+	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/lib/freeport"
-	"github.com/hashicorp/consul/logger"
-	"github.com/hashicorp/consul/testutil/retry"
-
-	"github.com/stretchr/testify/require"
+	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/tlsutil"
 )
 
 func init() {
 	rand.Seed(time.Now().UnixNano()) // seed random number generator
 }
-
-// TempDir defines the base dir for temporary directories.
-var TempDir = os.TempDir()
 
 // TestAgent encapsulates an Agent with a default configuration and
 // startup procedure suitable for testing. It panics if there are errors
@@ -46,12 +47,6 @@ type TestAgent struct {
 	Name string
 
 	HCL string
-
-	// ExpectConfigError can be set to prevent the agent retrying Start on errors
-	// and eventually blowing up with runtime.Goexit. This enables tests to assert
-	// that some specific bit of config actually does prevent startup entirely in
-	// a reasonable way without reproducing a lot of the boilerplate here.
-	ExpectConfigError bool
 
 	// Config is the agent configuration. If Config is nil then
 	// TestConfig() is used. If Config.DataDir is set then it is
@@ -64,16 +59,11 @@ type TestAgent struct {
 	// to os.Stderr.
 	LogOutput io.Writer
 
-	// LogWriter is used for streaming logs.
-	LogWriter *logger.LogWriter
-
-	// DataDir is the data directory which is used when Config.DataDir
-	// is not set. It is created automatically and removed when
-	// Shutdown() is called.
+	// DataDir may be set to a directory which exists. If is it not set,
+	// TestAgent.Start will create one and set DataDir to the directory path.
+	// In all cases the agent will be configured to use this path as the data directory,
+	// and the directory will be removed once the test ends.
 	DataDir string
-
-	// Key is the optional encryption key for the LAN and WAN keyring.
-	Key string
 
 	// UseTLS, if true, will disable the HTTP port and enable the HTTPS
 	// one.
@@ -87,104 +77,165 @@ type TestAgent struct {
 	// It is valid after Start().
 	srv *HTTPServer
 
+	// overrides is an hcl config source to use to override otherwise
+	// non-user settable configurations
+	Overrides string
+
 	// Agent is the embedded consul agent.
 	// It is valid after Start().
 	*Agent
 }
 
-// NewTestAgent returns a started agent with the given name and
-// configuration. It fails the test if the Agent could not be started. The
-// caller should call Shutdown() to stop the agent and remove temporary
-// directories.
-func NewTestAgent(t *testing.T, name string, hcl string) *TestAgent {
-	a := &TestAgent{Name: name, HCL: hcl}
-	a.Start(t)
-	return a
+// NewTestAgent returns a started agent with the given configuration. It fails
+// the test if the Agent could not be started.
+// The caller is responsible for calling Shutdown() to stop the agent and remove
+// temporary directories.
+func NewTestAgent(t *testing.T, hcl string) *TestAgent {
+	return StartTestAgent(t, TestAgent{HCL: hcl})
 }
 
-// Start starts a test agent. It fails the test if the agent could not be started.
-func (a *TestAgent) Start(t *testing.T) *TestAgent {
-	require := require.New(t)
-	require.Nil(a.Agent, "TestAgent already started")
-	var hclDataDir string
+// StartTestAgent and wait for it to become available. If the agent fails to
+// start the test will be marked failed and execution will stop.
+//
+// The caller is responsible for calling Shutdown() to stop the agent and remove
+// temporary directories.
+func StartTestAgent(t *testing.T, a TestAgent) *TestAgent {
+	t.Helper()
+	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
+		if err := a.Start(t); err != nil {
+			r.Fatal(err)
+		}
+	})
+
+	return &a
+}
+
+func TestConfigHCL(nodeID string) string {
+	return fmt.Sprintf(`
+		bind_addr = "127.0.0.1"
+		advertise_addr = "127.0.0.1"
+		datacenter = "dc1"
+		bootstrap = true
+		server = true
+		node_id = "%[1]s"
+		node_name = "Node-%[1]s"
+		connect {
+			enabled = true
+			ca_config {
+				cluster_id = "%[2]s"
+			}
+		}
+		performance {
+			raft_multiplier = 1
+		}`, nodeID, connect.TestClusterID,
+	)
+}
+
+// Start starts a test agent. It returns an error if the agent could not be started.
+// If no error is returned, the caller must call Shutdown() when finished.
+func (a *TestAgent) Start(t *testing.T) (err error) {
+	t.Helper()
+	if a.Agent != nil {
+		return fmt.Errorf("TestAgent already started")
+	}
+
+	name := a.Name
+	if name == "" {
+		name = "TestAgent"
+	}
+
 	if a.DataDir == "" {
-		name := "agent"
-		if a.Name != "" {
-			name = a.Name + "-agent"
-		}
-		name = strings.Replace(name, "/", "_", -1)
-		d, err := ioutil.TempDir(TempDir, name)
-		require.NoError(err, fmt.Sprintf("Error creating data dir %s: %s", filepath.Join(TempDir, name), err))
-		hclDataDir = `data_dir = "` + d + `"`
+		dirname := name + "-agent"
+		a.DataDir = testutil.TempDir(t, dirname)
 	}
-	id := NodeID()
+	// Convert windows style path to posix style path to avoid illegal char escape
+	// error when hcl parsing.
+	d := filepath.ToSlash(a.DataDir)
+	hclDataDir := fmt.Sprintf(`data_dir = "%s"`, d)
 
-	for i := 10; i >= 0; i-- {
-		a.Config = TestConfig(
-			randomPortsSource(a.UseTLS),
-			config.Source{Name: a.Name, Format: "hcl", Data: a.HCL},
-			config.Source{Name: a.Name + ".data_dir", Format: "hcl", Data: hclDataDir},
-		)
-
-		// write the keyring
-		if a.Key != "" {
-			writeKey := func(key, filename string) {
-				path := filepath.Join(a.Config.DataDir, filename)
-				err := initKeyring(path, key)
-				require.NoError(err, fmt.Sprintf("Error creating keyring %s: %s", path, err))
-			}
-			writeKey(a.Key, SerfLANKeyring)
-			writeKey(a.Key, SerfWANKeyring)
-		}
-
-		agent, err := New(a.Config)
-		require.NoError(err, fmt.Sprintf("Error creating agent: %s", err))
-
-		logOutput := a.LogOutput
-		if logOutput == nil {
-			logOutput = os.Stderr
-		}
-		agent.LogOutput = logOutput
-		agent.LogWriter = a.LogWriter
-		agent.logger = log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
-		agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
-
-		// we need the err var in the next exit condition
-		if err := agent.Start(); err == nil {
-			a.Agent = agent
-			break
-		} else if i == 0 {
-			require.Fail("%s %s Error starting agent: %s", id, a.Name, err)
-		} else if a.ExpectConfigError {
-			// Panic the error since this can be caught if needed. Pretty gross way to
-			// detect errors but enough for now and this is a tiny edge case that I'd
-			// otherwise not have a way to test at all...
-			panic(err)
-		} else {
-			agent.ShutdownAgent()
-			agent.ShutdownEndpoints()
-			wait := time.Duration(rand.Int31n(2000)) * time.Millisecond
-			fmt.Println(id, a.Name, "retrying in", wait)
-			time.Sleep(wait)
-		}
-
-		// Clean out the data dir if we are responsible for it before we
-		// try again, since the old ports may have gotten written to
-		// the data dir, such as in the Raft configuration.
-		if a.DataDir != "" {
-			if err := os.RemoveAll(a.DataDir); err != nil {
-				require.Fail("%s %s Error resetting data dir: %s", id, a.Name, err)
-			}
-		}
+	logOutput := a.LogOutput
+	if logOutput == nil {
+		logOutput = testutil.NewLogBuffer(t)
 	}
+
+	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
+		Level:      hclog.Debug,
+		Output:     logOutput,
+		TimeFormat: "04:05.000",
+		Name:       name,
+	})
+
+	portsConfig, returnPortsFn := randomPortsSource(a.UseTLS)
+	t.Cleanup(returnPortsFn)
+
+	// Create NodeID outside the closure, so that it does not change
+	testHCLConfig := TestConfigHCL(NodeID())
+	loader := func(source config.Source) (*config.RuntimeConfig, []string, error) {
+		opts := config.BuilderOpts{
+			HCL: []string{testHCLConfig, portsConfig, a.HCL, hclDataDir},
+		}
+		overrides := []config.Source{
+			config.FileSource{
+				Name:   "test-overrides",
+				Format: "hcl",
+				Data:   a.Overrides},
+			config.DefaultConsulSource(),
+			config.DevConsulSource(),
+		}
+		cfg, warnings, err := config.Load(opts, source, overrides...)
+		if cfg != nil {
+			cfg.Telemetry.Disable = true
+		}
+		return cfg, warnings, err
+	}
+	bd, err := NewBaseDeps(loader, logOutput)
+	require.NoError(t, err)
+
+	bd.Logger = logger
+	bd.MetricsHandler = metrics.NewInmemSink(1*time.Second, time.Minute)
+	a.Config = bd.RuntimeConfig
+
+	agent, err := New(bd)
+	if err != nil {
+		return fmt.Errorf("Error creating agent: %s", err)
+	}
+
+	id := string(a.Config.NodeID)
+	if err := agent.Start(context.Background()); err != nil {
+		agent.ShutdownAgent()
+		agent.ShutdownEndpoints()
+
+		return fmt.Errorf("%s %s Error starting agent: %s", id, name, err)
+	}
+
+	a.Agent = agent
 
 	// Start the anti-entropy syncer
 	a.Agent.StartSync()
 
+	if err := a.waitForUp(); err != nil {
+		a.Shutdown()
+		t.Logf("Error while waiting for test agent to start: %v", err)
+		return errwrap.Wrapf(name+": {{err}}", err)
+	}
+
+	a.dns = a.dnsServers[0]
+	a.srv = a.httpServers[0]
+	return nil
+}
+
+// waitForUp waits for leader election, or waits for the agent HTTP
+// endpoint to start responding, depending on the agent config.
+func (a *TestAgent) waitForUp() error {
+	timer := retry.TwoSeconds()
+	deadline := time.Now().Add(timer.Timeout)
+
+	var retErr error
 	var out structs.IndexedNodes
-	retry.Run(t, func(r *retry.R) {
+	for ; !time.Now().After(deadline); time.Sleep(timer.Wait) {
 		if len(a.httpServers) == 0 {
-			r.Fatal(a.Name, "waiting for server")
+			retErr = fmt.Errorf("waiting for server")
+			continue // fail, try again
 		}
 		if a.Config.Bootstrap && a.Config.ServerMode {
 			// Ensure we have a leader and a node registration.
@@ -196,26 +247,35 @@ func (a *TestAgent) Start(t *testing.T) *TestAgent {
 				},
 			}
 			if err := a.RPC("Catalog.ListNodes", args, &out); err != nil {
-				r.Fatal(a.Name, "Catalog.ListNodes failed:", err)
+				retErr = fmt.Errorf("Catalog.ListNodes failed: %v", err)
+				continue // fail, try again
 			}
 			if !out.QueryMeta.KnownLeader {
-				r.Fatal(a.Name, "No leader")
+				retErr = fmt.Errorf("No leader")
+				continue // fail, try again
 			}
 			if out.Index == 0 {
-				r.Fatal(a.Name, ": Consul index is 0")
+				retErr = fmt.Errorf("Consul index is 0")
+				continue // fail, try again
 			}
+			return nil // success
 		} else {
-			req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
+			req := httptest.NewRequest("GET", "/v1/agent/self", nil)
 			resp := httptest.NewRecorder()
 			_, err := a.httpServers[0].AgentSelf(resp, req)
-			if err != nil || resp.Code != 200 {
-				r.Fatal(a.Name, "failed OK response", err)
+			if acl.IsErrPermissionDenied(err) || resp.Code == 403 {
+				// permission denied is enough to show that the client is
+				// connected to the servers as it would get a 503 if
+				// it couldn't connect to them.
+			} else if err != nil && resp.Code != 200 {
+				retErr = fmt.Errorf("failed OK response: %v", err)
+				continue
 			}
+			return nil // success
 		}
-	})
-	a.dns = a.dnsServers[0]
-	a.srv = a.httpServers[0]
-	return a
+	}
+
+	return fmt.Errorf("unavailable. last error: %v", retErr)
 }
 
 // Shutdown stops the agent and removes the data directory if it is
@@ -231,9 +291,18 @@ func (a *TestAgent) Shutdown() error {
 		}
 	}()*/
 
+	// already shut down
+	if a.Agent == nil {
+		return nil
+	}
+
 	// shutdown agent before endpoints
 	defer a.Agent.ShutdownEndpoints()
-	return a.Agent.ShutdownAgent()
+	if err := a.Agent.ShutdownAgent(); err != nil {
+		return err
+	}
+	<-a.Agent.ShutdownCh()
+	return nil
 }
 
 func (a *TestAgent) DNSAddr() string {
@@ -247,7 +316,7 @@ func (a *TestAgent) HTTPAddr() string {
 	if a.srv == nil {
 		return ""
 	}
-	return a.srv.Addr
+	return a.srv.Server.Addr
 }
 
 func (a *TestAgent) SegmentAddr(name string) string {
@@ -270,12 +339,16 @@ func (a *TestAgent) Client() *api.Client {
 // DNSDisableCompression disables compression for all started DNS servers.
 func (a *TestAgent) DNSDisableCompression(b bool) {
 	for _, srv := range a.dnsServers {
-		srv.disableCompression.Store(b)
+		cfg := srv.config.Load().(*dnsConfig)
+		cfg.DisableCompression = b
 	}
 }
 
+// FIXME: this should t.Fatal on error, not panic.
+// TODO: rename to newConsulConfig
+// TODO: remove TestAgent receiver, accept a.Agent.config as an arg
 func (a *TestAgent) consulConfig() *consul.Config {
-	c, err := a.Agent.consulConfig()
+	c, err := newConsulConfig(a.Agent.config, a.Agent.logger)
 	if err != nil {
 		panic(err)
 	}
@@ -290,27 +363,29 @@ func (a *TestAgent) consulConfig() *consul.Config {
 // chance of port conflicts for concurrently executed test binaries.
 // Instead of relying on one set of ports to be sufficient we retry
 // starting the agent with different ports on port conflict.
-func randomPortsSource(tls bool) config.Source {
-	ports := freeport.Get(6)
+func randomPortsSource(tls bool) (data string, returnPortsFn func()) {
+	ports := freeport.MustTake(7)
+
+	var http, https int
 	if tls {
-		ports[1] = -1
+		http = -1
+		https = ports[2]
 	} else {
-		ports[2] = -1
+		http = ports[1]
+		https = -1
 	}
-	return config.Source{
-		Name:   "ports",
-		Format: "hcl",
-		Data: `
-			ports = {
-				dns = ` + strconv.Itoa(ports[0]) + `
-				http = ` + strconv.Itoa(ports[1]) + `
-				https = ` + strconv.Itoa(ports[2]) + `
-				serf_lan = ` + strconv.Itoa(ports[3]) + `
-				serf_wan = ` + strconv.Itoa(ports[4]) + `
-				server = ` + strconv.Itoa(ports[5]) + `
-			}
-		`,
-	}
+
+	return `
+		ports = {
+			dns = ` + strconv.Itoa(ports[0]) + `
+			http = ` + strconv.Itoa(http) + `
+			https = ` + strconv.Itoa(https) + `
+			serf_lan = ` + strconv.Itoa(ports[3]) + `
+			serf_wan = ` + strconv.Itoa(ports[4]) + `
+			server = ` + strconv.Itoa(ports[5]) + `
+			grpc = ` + strconv.Itoa(ports[6]) + `
+		}
+	`, func() { freeport.Return(ports) }
 }
 
 func NodeID() string {
@@ -323,9 +398,9 @@ func NodeID() string {
 
 // TestConfig returns a unique default configuration for testing an
 // agent.
-func TestConfig(sources ...config.Source) *config.RuntimeConfig {
+func TestConfig(logger hclog.Logger, sources ...config.Source) *config.RuntimeConfig {
 	nodeID := NodeID()
-	testsrc := config.Source{
+	testsrc := config.FileSource{
 		Name:   "test",
 		Format: "hcl",
 		Data: `
@@ -335,7 +410,7 @@ func TestConfig(sources ...config.Source) *config.RuntimeConfig {
 			bootstrap = true
 			server = true
 			node_id = "` + nodeID + `"
-			node_name = "Node ` + nodeID + `"
+			node_name = "Node-` + nodeID + `"
 			connect {
 				enabled = true
 				ca_config {
@@ -348,7 +423,7 @@ func TestConfig(sources ...config.Source) *config.RuntimeConfig {
 		`,
 	}
 
-	b, err := config.NewBuilder(config.Flags{})
+	b, err := config.NewBuilder(config.BuilderOpts{})
 	if err != nil {
 		panic("NewBuilder failed: " + err.Error())
 	}
@@ -362,12 +437,9 @@ func TestConfig(sources ...config.Source) *config.RuntimeConfig {
 	}
 
 	for _, w := range b.Warnings {
-		fmt.Println("WARNING:", w)
+		logger.Warn(w)
 	}
 
-	// Disable connect proxy execution since it causes all kinds of problems with
-	// self-executing tests etc.
-	cfg.ConnectTestDisableManagedProxies = true
 	// Effectively disables the delay after root rotation before requesting CSRs
 	// to make test deterministic. 0 results in default jitter being applied but a
 	// tiny delay is effectively thre same.
@@ -385,6 +457,137 @@ func TestACLConfig() string {
 		acl_master_token = "root"
 		acl_agent_token = "root"
 		acl_agent_master_token = "towel"
-		acl_enforce_version_8 = true
 	`
+}
+
+const (
+	TestDefaultMasterToken      = "d9f05e83-a7ae-47ce-839e-c0d53a68c00a"
+	TestDefaultAgentMasterToken = "bca580d4-db07-4074-b766-48acc9676955'"
+)
+
+type TestACLConfigParams struct {
+	PrimaryDatacenter      string
+	DefaultPolicy          string
+	MasterToken            string
+	AgentToken             string
+	DefaultToken           string
+	AgentMasterToken       string
+	ReplicationToken       string
+	EnableTokenReplication bool
+}
+
+func DefaulTestACLConfigParams() *TestACLConfigParams {
+	return &TestACLConfigParams{
+		PrimaryDatacenter: "dc1",
+		DefaultPolicy:     "deny",
+		MasterToken:       TestDefaultMasterToken,
+		AgentToken:        TestDefaultMasterToken,
+		AgentMasterToken:  TestDefaultAgentMasterToken,
+	}
+}
+
+func (p *TestACLConfigParams) HasConfiguredTokens() bool {
+	return p.MasterToken != "" ||
+		p.AgentToken != "" ||
+		p.DefaultToken != "" ||
+		p.AgentMasterToken != "" ||
+		p.ReplicationToken != ""
+}
+
+func TestACLConfigNew() string {
+	return TestACLConfigWithParams(&TestACLConfigParams{
+		PrimaryDatacenter: "dc1",
+		DefaultPolicy:     "deny",
+		MasterToken:       "root",
+		AgentToken:        "root",
+		AgentMasterToken:  "towel",
+	})
+}
+
+var aclConfigTpl = template.Must(template.New("ACL Config").Parse(`
+   {{- if ne .PrimaryDatacenter "" -}}
+	primary_datacenter = "{{ .PrimaryDatacenter }}"
+	{{end -}}
+	acl {
+		enabled = true
+		{{- if ne .DefaultPolicy ""}}
+		default_policy = "{{ .DefaultPolicy }}"
+		{{- end}}
+		enable_token_replication = {{printf "%t" .EnableTokenReplication }}
+		{{- if .HasConfiguredTokens}}
+		tokens {
+			{{- if ne .MasterToken ""}}
+			master = "{{ .MasterToken }}"
+			{{- end}}
+			{{- if ne .AgentToken ""}}
+			agent = "{{ .AgentToken }}"
+			{{- end}}
+			{{- if ne .AgentMasterToken "" }}
+			agent_master = "{{ .AgentMasterToken }}"
+			{{- end}}
+			{{- if ne .DefaultToken "" }}
+			default = "{{ .DefaultToken }}"
+			{{- end}}
+			{{- if ne .ReplicationToken ""  }}
+			replication = "{{ .ReplicationToken }}"
+			{{- end}}
+		}
+		{{- end}}
+	}
+`))
+
+func TestACLConfigWithParams(params *TestACLConfigParams) string {
+	var buf bytes.Buffer
+
+	cfg := params
+	if params == nil {
+		cfg = DefaulTestACLConfigParams()
+	}
+
+	err := aclConfigTpl.Execute(&buf, &cfg)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to generate test ACL config: %v", err))
+	}
+
+	return buf.String()
+}
+
+// testTLSCertificates Generates a TLS CA and server key/cert and returns them
+// in PEM encoded form.
+func testTLSCertificates(serverName string) (cert string, key string, cacert string, err error) {
+	// generate CA
+	serial, err := tlsutil.GenerateSerialNumber()
+	if err != nil {
+		return "", "", "", err
+	}
+	signer, err := ecdsa.GenerateKey(elliptic.P256(), rand.New(rand.NewSource(99)))
+	if err != nil {
+		return "", "", "", err
+	}
+	ca, err := tlsutil.GenerateCA(signer, serial, 365, nil)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	// generate leaf
+	serial, err = tlsutil.GenerateSerialNumber()
+	if err != nil {
+		return "", "", "", err
+	}
+
+	cert, privateKey, err := tlsutil.GenerateCert(
+		signer,
+		ca,
+		serial,
+		"Test Cert Name",
+		365,
+		[]string{serverName},
+		nil,
+		[]x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+	)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	return cert, privateKey, ca, nil
 }

@@ -6,15 +6,13 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/hashicorp/consul/testrpc"
 
 	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/testutil"
-	"github.com/hashicorp/consul/testutil/retry"
-	"github.com/hashicorp/consul/version"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/mitchellh/cli"
 )
 
@@ -23,7 +21,6 @@ func TestConfigFail(t *testing.T) {
 	t.Parallel()
 
 	dataDir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(dataDir)
 
 	tests := []struct {
 		args []string
@@ -35,7 +32,7 @@ func TestConfigFail(t *testing.T) {
 		},
 		{
 			args: []string{"agent", "-server", "-bind=10.0.0.1", "-datacenter=foo", "some-other-arg"},
-			out:  "==> config: Unknown extra arguments: [some-other-arg]\n",
+			out:  "==> Unexpected extra arguments: [some-other-arg]\n",
 		},
 		{
 			args: []string{"agent", "-server", "-bind=10.0.0.1"},
@@ -82,61 +79,34 @@ func TestConfigFail(t *testing.T) {
 }
 
 func TestRetryJoin(t *testing.T) {
-	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), "")
+	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
+
+	b := agent.NewTestAgent(t, `
+		retry_join = ["`+a.Config.SerfBindAddrLAN.String()+`"]
+		retry_join_wan = ["`+a.Config.SerfBindAddrWAN.String()+`"]
+		retry_interval = "100ms"
+	`)
+	defer b.Shutdown()
+
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
-
-	shutdownCh := make(chan struct{})
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-
-		tmpDir := testutil.TempDir(t, "consul")
-		defer os.RemoveAll(tmpDir)
-
-		args := []string{
-			"-server",
-			"-bind", a.Config.BindAddr.String(),
-			"-data-dir", tmpDir,
-			"-node", "Node 11111111-1111-1111-1111-111111111111",
-			"-node-id", "11111111-1111-1111-1111-111111111111",
-			"-advertise", a.Config.BindAddr.String(),
-			"-retry-join", a.Config.SerfBindAddrLAN.String(),
-			"-retry-interval", "1s",
-			"-retry-join-wan", a.Config.SerfBindAddrWAN.String(),
-			"-retry-interval-wan", "1s",
-		}
-
-		ui := cli.NewMockUi()
-		cmd := New(ui, "", version.Version, "", "", shutdownCh)
-		// closing shutdownCh triggers a SIGINT which triggers shutdown without leave
-		// which will return 1
-		if code := cmd.Run(args); code != 1 {
-			t.Log(ui.ErrorWriter.String())
-			t.Fatalf("bad: %d", code)
-		}
-	}()
 
 	retry.Run(t, func(r *retry.R) {
 		if got, want := len(a.LANMembers()), 2; got != want {
 			r.Fatalf("got %d LAN members want %d", got, want)
 		}
+	})
+
+	retry.Run(t, func(r *retry.R) {
 		if got, want := len(a.WANMembers()), 2; got != want {
 			r.Fatalf("got %d WAN members want %d", got, want)
 		}
 	})
-
-	close(shutdownCh)
-	wg.Wait()
 }
 
 func TestRetryJoinFail(t *testing.T) {
 	t.Parallel()
 	tmpDir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(tmpDir)
 
 	ui := cli.NewMockUi()
 	cmd := New(ui, "", "", "", "", nil)
@@ -157,7 +127,6 @@ func TestRetryJoinFail(t *testing.T) {
 func TestRetryJoinWanFail(t *testing.T) {
 	t.Parallel()
 	tmpDir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(tmpDir)
 
 	ui := cli.NewMockUi()
 	cmd := New(ui, "", "", "", "", nil)
@@ -179,14 +148,12 @@ func TestRetryJoinWanFail(t *testing.T) {
 func TestProtectDataDir(t *testing.T) {
 	t.Parallel()
 	dir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(dir)
 
 	if err := os.MkdirAll(filepath.Join(dir, "mdb"), 0700); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	cfgDir := testutil.TempDir(t, "consul-config")
-	defer os.RemoveAll(cfgDir)
 
 	cfgFilePath := filepath.Join(cfgDir, "consul.json")
 	cfgFile, err := os.Create(cfgFilePath)
@@ -214,13 +181,10 @@ func TestProtectDataDir(t *testing.T) {
 func TestBadDataDirPermissions(t *testing.T) {
 	t.Parallel()
 	dir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(dir)
-
 	dataDir := filepath.Join(dir, "mdb")
 	if err := os.MkdirAll(dataDir, 0400); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(dataDir)
 
 	ui := cli.NewMockUi()
 	cmd := New(ui, "", "", "", "", nil)

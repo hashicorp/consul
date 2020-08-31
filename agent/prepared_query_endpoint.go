@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
-	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -23,7 +22,7 @@ func (s *HTTPServer) preparedQueryCreate(resp http.ResponseWriter, req *http.Req
 	}
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
-	if err := decodeBody(req, &args.Query, nil); err != nil {
+	if err := decodeBody(req.Body, &args.Query); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Request decode failed: %v", err)
 		return nil, nil
@@ -121,8 +120,8 @@ func (s *HTTPServer) preparedQueryExecute(id string, resp http.ResponseWriter, r
 	var reply structs.PreparedQueryExecuteResponse
 	defer setMeta(resp, &reply.QueryMeta)
 
-	if args.QueryOptions.UseCache {
-		raw, m, err := s.agent.cache.Get(cachetype.PreparedQueryName, &args)
+	if s.agent.config.HTTPUseCache && args.QueryOptions.UseCache {
+		raw, m, err := s.agent.cache.Get(req.Context(), cachetype.PreparedQueryName, &args)
 		if err != nil {
 			// Don't return error if StaleIfError is set and we are within it and had
 			// a cached value.
@@ -144,7 +143,7 @@ func (s *HTTPServer) preparedQueryExecute(id string, resp http.ResponseWriter, r
 		if err := s.agent.RPC("PreparedQuery.Execute", &args, &reply); err != nil {
 			// We have to check the string since the RPC sheds
 			// the specific error type.
-			if err.Error() == consul.ErrQueryNotFound.Error() {
+			if structs.IsErrQueryNotFound(err) {
 				resp.WriteHeader(http.StatusNotFound)
 				fmt.Fprint(resp, err.Error())
 				return nil, nil
@@ -163,7 +162,7 @@ func (s *HTTPServer) preparedQueryExecute(id string, resp http.ResponseWriter, r
 	// a query can fail over to a different DC than where the execute request
 	// was sent to. That's why we use the reply's DC and not the one from
 	// the args.
-	s.agent.TranslateAddresses(reply.Datacenter, reply.Nodes)
+	s.agent.TranslateAddresses(reply.Datacenter, reply.Nodes, TranslateAddressAcceptAny)
 
 	// Use empty list instead of nil.
 	if reply.Nodes == nil {
@@ -198,7 +197,7 @@ RETRY_ONCE:
 	if err := s.agent.RPC("PreparedQuery.Explain", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds
 		// the specific error type.
-		if err.Error() == consul.ErrQueryNotFound.Error() {
+		if structs.IsErrQueryNotFound(err) {
 			resp.WriteHeader(http.StatusNotFound)
 			fmt.Fprint(resp, err.Error())
 			return nil, nil
@@ -229,7 +228,7 @@ RETRY_ONCE:
 	if err := s.agent.RPC("PreparedQuery.Get", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds
 		// the specific error type.
-		if err.Error() == consul.ErrQueryNotFound.Error() {
+		if structs.IsErrQueryNotFound(err) {
 			resp.WriteHeader(http.StatusNotFound)
 			fmt.Fprint(resp, err.Error())
 			return nil, nil
@@ -253,7 +252,7 @@ func (s *HTTPServer) preparedQueryUpdate(id string, resp http.ResponseWriter, re
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
 	if req.ContentLength > 0 {
-		if err := decodeBody(req, &args.Query, nil); err != nil {
+		if err := decodeBody(req.Body, &args.Query); err != nil {
 			resp.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(resp, "Request decode failed: %v", err)
 			return nil, nil

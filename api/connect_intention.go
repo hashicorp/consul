@@ -33,13 +33,15 @@ type Intention struct {
 	// SourceType is the type of the value for the source.
 	SourceType IntentionSourceType
 
-	// Action is whether this is a whitelist or blacklist intention.
+	// Action is whether this is an allowlist or denylist intention.
 	Action IntentionAction
 
-	// DefaultAddr, DefaultPort of the local listening proxy (if any) to
-	// make this connection.
-	DefaultAddr string
-	DefaultPort int
+	// DefaultAddr is not used.
+	// Deprecated: DefaultAddr is not used and may be removed in a future version.
+	DefaultAddr string `json:",omitempty"`
+	// DefaultPort is not used.
+	// Deprecated: DefaultPort is not used and may be removed in a future version.
+	DefaultPort int `json:",omitempty"`
 
 	// Meta is arbitrary metadata associated with the intention. This is
 	// opaque to Consul but is served in API responses.
@@ -53,6 +55,13 @@ type Intention struct {
 	// CreatedAt and UpdatedAt keep track of when this record was created
 	// or modified.
 	CreatedAt, UpdatedAt time.Time
+
+	// Hash of the contents of the intention
+	//
+	// This is needed mainly for replication purposes. When replicating from
+	// one DC to another keeping the content Hash will allow us to detect
+	// content changes more efficiently than checking every single field
+	Hash []byte
 
 	CreateIndex uint64
 	ModifyIndex uint64
@@ -92,7 +101,7 @@ func (i *Intention) partString(ns, n string) string {
 const IntentionDefaultNamespace = "default"
 
 // IntentionAction is the action that the intention represents. This
-// can be "allow" or "deny" to whitelist or blacklist intentions.
+// can be "allow" or "deny" to allowlist or denylist intentions.
 type IntentionAction string
 
 const (
@@ -259,6 +268,39 @@ func (h *Connect) IntentionCheck(args *IntentionCheck, q *QueryOptions) (bool, *
 		return false, nil, err
 	}
 	return out.Allowed, qm, nil
+}
+
+// IntentionGetExact retrieves a single intention by its unique name instead of
+// its ID.
+func (h *Connect) IntentionGetExact(source, destination string, q *QueryOptions) (*Intention, *QueryMeta, error) {
+	r := h.c.newRequest("GET", "/v1/connect/intentions/exact")
+	r.setQueryOptions(q)
+	r.params.Set("source", source)
+	r.params.Set("destination", destination)
+	rtt, resp, err := h.c.doRequest(r)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	if resp.StatusCode == 404 {
+		return nil, qm, nil
+	} else if resp.StatusCode != 200 {
+		var buf bytes.Buffer
+		io.Copy(&buf, resp.Body)
+		return nil, nil, fmt.Errorf(
+			"Unexpected response %d: %s", resp.StatusCode, buf.String())
+	}
+
+	var out Intention
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+	return &out, qm, nil
 }
 
 // IntentionCreate will create a new intention. The ID in the given

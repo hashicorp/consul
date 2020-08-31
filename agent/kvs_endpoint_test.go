@@ -15,7 +15,7 @@ import (
 
 func TestKVSEndpoint_PUT_GET_DELETE(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	keys := []string{
@@ -74,7 +74,7 @@ func TestKVSEndpoint_PUT_GET_DELETE(t *testing.T) {
 
 func TestKVSEndpoint_Recurse(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	keys := []string{
@@ -150,7 +150,7 @@ func TestKVSEndpoint_Recurse(t *testing.T) {
 
 func TestKVSEndpoint_DELETE_CAS(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	{
@@ -216,7 +216,7 @@ func TestKVSEndpoint_DELETE_CAS(t *testing.T) {
 
 func TestKVSEndpoint_CAS(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	{
@@ -292,7 +292,7 @@ func TestKVSEndpoint_CAS(t *testing.T) {
 
 func TestKVSEndpoint_ListKeys(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	keys := []string{
@@ -341,7 +341,7 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 
 func TestKVSEndpoint_AcquireRelease(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -400,7 +400,7 @@ func TestKVSEndpoint_AcquireRelease(t *testing.T) {
 
 func TestKVSEndpoint_GET_Raw(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	buf := bytes.NewBuffer([]byte("test"))
@@ -416,7 +416,7 @@ func TestKVSEndpoint_GET_Raw(t *testing.T) {
 
 	req, _ = http.NewRequest("GET", "/v1/kv/test?raw", nil)
 	resp = httptest.NewRecorder()
-	obj, err = a.srv.KVSEndpoint(resp, req)
+	_, err = a.srv.KVSEndpoint(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -430,7 +430,7 @@ func TestKVSEndpoint_GET_Raw(t *testing.T) {
 
 func TestKVSEndpoint_PUT_ConflictingFlags(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("PUT", "/v1/kv/test?cas=0&acquire=xxx", nil)
@@ -449,7 +449,7 @@ func TestKVSEndpoint_PUT_ConflictingFlags(t *testing.T) {
 
 func TestKVSEndpoint_DELETE_ConflictingFlags(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("DELETE", "/v1/kv/test?recurse&cas=0", nil)

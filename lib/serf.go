@@ -1,8 +1,9 @@
 package lib
 
 import (
-	"github.com/hashicorp/serf/serf"
 	"time"
+
+	"github.com/hashicorp/serf/serf"
 )
 
 // SerfDefaultConfig returns a Consul-flavored Serf default configuration,

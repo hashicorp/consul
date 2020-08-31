@@ -10,9 +10,9 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/consul/testutil/retry"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
 // verifySnapshot is a helper that does a snapshot and restore.
@@ -46,7 +46,7 @@ func verifySnapshot(t *testing.T, s *Server, dc, token string) {
 		Op:         structs.SnapshotSave,
 	}
 	var reply structs.SnapshotResponse
-	snap, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr, false,
+	snap, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.NodeName, s.config.RPCAddr,
 		&args, bytes.NewReader([]byte("")), &reply)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -121,7 +121,7 @@ func verifySnapshot(t *testing.T, s *Server, dc, token string) {
 
 	// Restore the snapshot.
 	args.Op = structs.SnapshotRestore
-	restore, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr, false,
+	restore, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.NodeName, s.config.RPCAddr,
 		&args, snap, &reply)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -169,7 +169,7 @@ func TestSnapshot_LeaderState(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	codec := rpcClient(t, s1)
 	defer codec.Close()
@@ -196,7 +196,7 @@ func TestSnapshot_LeaderState(t *testing.T) {
 		Op:         structs.SnapshotSave,
 	}
 	var reply structs.SnapshotResponse
-	snap, err := SnapshotRPC(s1.connPool, s1.config.Datacenter, s1.config.RPCAddr, false,
+	snap, err := SnapshotRPC(s1.connPool, s1.config.Datacenter, s1.config.NodeName, s1.config.RPCAddr,
 		&args, bytes.NewReader([]byte("")), &reply)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -229,7 +229,7 @@ func TestSnapshot_LeaderState(t *testing.T) {
 
 	// Restore the snapshot.
 	args.Op = structs.SnapshotRestore
-	restore, err := SnapshotRPC(s1.connPool, s1.config.Datacenter, s1.config.RPCAddr, false,
+	restore, err := SnapshotRPC(s1.connPool, s1.config.Datacenter, s1.config.NodeName, s1.config.RPCAddr,
 		&args, snap, &reply)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -268,7 +268,7 @@ func TestSnapshot_ACLDeny(t *testing.T) {
 			Op:         structs.SnapshotSave,
 		}
 		var reply structs.SnapshotResponse
-		_, err := SnapshotRPC(s1.connPool, s1.config.Datacenter, s1.config.RPCAddr, false,
+		_, err := SnapshotRPC(s1.connPool, s1.config.Datacenter, s1.config.NodeName, s1.config.RPCAddr,
 			&args, bytes.NewReader([]byte("")), &reply)
 		if !acl.IsErrPermissionDenied(err) {
 			t.Fatalf("err: %v", err)
@@ -282,7 +282,7 @@ func TestSnapshot_ACLDeny(t *testing.T) {
 			Op:         structs.SnapshotRestore,
 		}
 		var reply structs.SnapshotResponse
-		_, err := SnapshotRPC(s1.connPool, s1.config.Datacenter, s1.config.RPCAddr, false,
+		_, err := SnapshotRPC(s1.connPool, s1.config.Datacenter, s1.config.NodeName, s1.config.RPCAddr,
 			&args, bytes.NewReader([]byte("")), &reply)
 		if !acl.IsErrPermissionDenied(err) {
 			t.Fatalf("err: %v", err)
@@ -294,9 +294,14 @@ func TestSnapshot_ACLDeny(t *testing.T) {
 }
 
 func TestSnapshot_Forward_Leader(t *testing.T) {
-	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = true
+		c.SerfWANConfig = nil
+
+		// Effectively disable autopilot
+		// Changes in server config leads flakiness because snapshotting
+		// fails if there are config changes outstanding
+		c.AutopilotInterval = 50 * time.Second
 
 		// Since we are doing multiple restores to the same leader,
 		// the default short time for a reconcile can cause the
@@ -306,17 +311,19 @@ func TestSnapshot_Forward_Leader(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
+		c.SerfWANConfig = nil
+		c.AutopilotInterval = 50 * time.Second
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Try to join.
 	joinLAN(t, s2, s1)
-	testrpc.WaitForTestAgent(t, s2.RPC, "dc1")
+	testrpc.WaitForLeader(t, s2.RPC, "dc1")
 
 	// Run against the leader and the follower to ensure we forward. When
 	// we changed to Raft protocol version 3, since we only have two servers,
@@ -384,7 +391,7 @@ func TestSnapshot_AllowStale(t *testing.T) {
 			Op:         structs.SnapshotSave,
 		}
 		var reply structs.SnapshotResponse
-		_, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr, false,
+		_, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.NodeName, s.config.RPCAddr,
 			&args, bytes.NewReader([]byte("")), &reply)
 		if err == nil || !strings.Contains(err.Error(), structs.ErrNoLeader.Error()) {
 			t.Fatalf("err: %v", err)
@@ -401,7 +408,7 @@ func TestSnapshot_AllowStale(t *testing.T) {
 			Op:         structs.SnapshotSave,
 		}
 		var reply structs.SnapshotResponse
-		_, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr, false,
+		_, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.NodeName, s.config.RPCAddr,
 			&args, bytes.NewReader([]byte("")), &reply)
 		if err == nil || !strings.Contains(err.Error(), "Raft error when taking snapshot") {
 			t.Fatalf("err: %v", err)

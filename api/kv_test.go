@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPI_ClientPutGetDelete(t *testing.T) {
@@ -15,6 +17,7 @@ func TestAPI_ClientPutGetDelete(t *testing.T) {
 
 	kv := c.KV()
 
+	s.WaitForSerfCheck(t)
 	// Get a get without a key
 	key := testKey()
 	pair, _, err := kv.Get(key, nil)
@@ -229,6 +232,7 @@ func TestAPI_ClientWatchGet(t *testing.T) {
 
 	kv := c.KV()
 
+	s.WaitForSerfCheck(t)
 	// Get a get without a key
 	key := testKey()
 	pair, meta, err := kv.Get(key, nil)
@@ -244,16 +248,14 @@ func TestAPI_ClientWatchGet(t *testing.T) {
 
 	// Put the key
 	value := []byte("test")
-	doneCh := make(chan struct{})
+	doneCh := make(chan error)
 	go func() {
 		kv := c.KV()
 
 		time.Sleep(100 * time.Millisecond)
 		p := &KVPair{Key: key, Flags: 42, Value: value}
-		if _, err := kv.Put(p, nil); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		doneCh <- struct{}{}
+		_, err := kv.Put(p, nil)
+		doneCh <- err
 	}()
 
 	// Get should work
@@ -276,7 +278,8 @@ func TestAPI_ClientWatchGet(t *testing.T) {
 	}
 
 	// Block until put finishes to avoid a race between it and deferred s.Stop()
-	<-doneCh
+	err = <-doneCh
+	require.NoError(t, err)
 }
 
 func TestAPI_ClientWatchList(t *testing.T) {
@@ -302,16 +305,14 @@ func TestAPI_ClientWatchList(t *testing.T) {
 
 	// Put the key
 	value := []byte("test")
-	doneCh := make(chan struct{})
+	doneCh := make(chan error)
 	go func() {
 		kv := c.KV()
 
 		time.Sleep(100 * time.Millisecond)
 		p := &KVPair{Key: key, Flags: 42, Value: value}
-		if _, err := kv.Put(p, nil); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		doneCh <- struct{}{}
+		_, err := kv.Put(p, nil)
+		doneCh <- err
 	}()
 
 	// Get should work
@@ -334,7 +335,8 @@ func TestAPI_ClientWatchList(t *testing.T) {
 	}
 
 	// Block until put finishes to avoid a race between it and deferred s.Stop()
-	<-doneCh
+	err = <-doneCh
+	require.NoError(t, err)
 }
 
 func TestAPI_ClientKeys_DeleteRecurse(t *testing.T) {
@@ -391,6 +393,8 @@ func TestAPI_ClientAcquireRelease(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
+
+	s.WaitForSerfCheck(t)
 
 	session := c.Session()
 	kv := c.KV()
@@ -460,6 +464,8 @@ func TestAPI_KVClientTxn(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
+
+	s.WaitForSerfCheck(t)
 
 	session := c.Session()
 	kv := c.KV()

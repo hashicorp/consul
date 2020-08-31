@@ -1,7 +1,8 @@
 import Service, { inject as service } from '@ember/service';
-import { get } from '@ember/object';
 import { assert } from '@ember/debug';
 import { typeOf } from '@ember/utils';
+import { get } from '@ember/object';
+
 export default Service.extend({
   getModelName: function() {
     assert('RepositoryService.getModelName should be overridden', false);
@@ -14,20 +15,56 @@ export default Service.extend({
   },
   //
   store: service('store'),
-  findAllByDatacenter: function(dc) {
-    return get(this, 'store').query(this.getModelName(), {
-      dc: dc,
-    });
+  reconcile: function(meta = {}) {
+    // unload anything older than our current sync date/time
+    if (typeof meta.date !== 'undefined') {
+      const checkNspace = meta.nspace !== '';
+      this.store.peekAll(this.getModelName()).forEach(item => {
+        const dc = get(item, 'Datacenter');
+        if (dc === meta.dc) {
+          if (checkNspace) {
+            const nspace = get(item, 'Namespace');
+            if (nspace !== meta.namespace) {
+              return;
+            }
+          }
+          const date = get(item, 'SyncTime');
+          if (!item.isDeleted && typeof date !== 'undefined' && date != meta.date) {
+            this.store.unloadRecord(item);
+          }
+        }
+      });
+    }
   },
-  findBySlug: function(slug, dc) {
-    return get(this, 'store').queryRecord(this.getModelName(), {
-      id: slug,
+  peekOne: function(id) {
+    return this.store.peekRecord(this.getModelName(), id);
+  },
+  findAllByDatacenter: function(dc, nspace, configuration = {}) {
+    const query = {
       dc: dc,
-    });
+      ns: nspace,
+    };
+    if (typeof configuration.cursor !== 'undefined') {
+      query.index = configuration.cursor;
+      query.uri = configuration.uri;
+    }
+    return this.store.query(this.getModelName(), query);
+  },
+  findBySlug: function(slug, dc, nspace, configuration = {}) {
+    const query = {
+      dc: dc,
+      ns: nspace,
+      id: slug,
+    };
+    if (typeof configuration.cursor !== 'undefined') {
+      query.index = configuration.cursor;
+      query.uri = configuration.uri;
+    }
+    return this.store.queryRecord(this.getModelName(), query);
   },
   create: function(obj) {
     // TODO: This should probably return a Promise
-    return get(this, 'store').createRecord(this.getModelName(), obj);
+    return this.store.createRecord(this.getModelName(), obj);
   },
   persist: function(item) {
     return item.save();
@@ -37,14 +74,18 @@ export default Service.extend({
     if (typeof obj.destroyRecord === 'undefined') {
       item = obj.get('data');
     }
+    // TODO: Change this to use vanilla JS
+    // I think this was originally looking for a plain object
+    // as opposed to an ember one
     if (typeOf(item) === 'object') {
-      item = get(this, 'store').peekRecord(this.getModelName(), item[this.getPrimaryKey()]);
+      item = this.store.peekRecord(this.getModelName(), item[this.getPrimaryKey()]);
     }
     return item.destroyRecord().then(item => {
-      return get(this, 'store').unloadRecord(item);
+      return this.store.unloadRecord(item);
     });
   },
   invalidate: function() {
-    get(this, 'store').unloadAll(this.getModelName());
+    // TODO: This should probably return a Promise
+    this.store.unloadAll(this.getModelName());
   },
 });

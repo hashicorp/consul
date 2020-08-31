@@ -4,9 +4,11 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl"
+	"github.com/hashicorp/consul/command/acl/policy"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/helpers"
 	"github.com/mitchellh/cli"
@@ -34,6 +36,7 @@ type cmd struct {
 	rules          string
 	noMerge        bool
 	showMeta       bool
+	format         string
 	testStdin      io.Reader
 }
 
@@ -54,9 +57,17 @@ func (c *cmd) init() {
 	c.flags.BoolVar(&c.noMerge, "no-merge", false, "Do not merge the current policy "+
 		"information with what is provided to the command. Instead overwrite all fields "+
 		"with the exception of the policy ID which is immutable.")
+	c.flags.StringVar(
+		&c.format,
+		"format",
+		policy.PrettyFormat,
+		fmt.Sprintf("Output format {%s}", strings.Join(policy.GetSupportedFormats(), "|")),
+	)
+
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
+	flags.Merge(c.flags, c.http.NamespaceFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -101,7 +112,10 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	rules, err := helpers.LoadDataSource(c.rules, c.testStdin)
-
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error loading data source: %v", err))
+		return 1
+	}
 	var updated *api.ACLPolicy
 	if c.noMerge {
 		updated = &api.ACLPolicy{
@@ -112,7 +126,7 @@ func (c *cmd) Run(args []string) int {
 			Rules:       rules,
 		}
 	} else {
-		policy, _, err := client.ACL().PolicyRead(policyID, nil)
+		p, _, err := client.ACL().PolicyRead(policyID, nil)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error reading policy %q: %v", policyID, err))
 			return 1
@@ -120,10 +134,10 @@ func (c *cmd) Run(args []string) int {
 
 		updated = &api.ACLPolicy{
 			ID:          policyID,
-			Name:        policy.Name,
-			Description: policy.Description,
-			Datacenters: policy.Datacenters,
-			Rules:       policy.Rules,
+			Name:        p.Name,
+			Description: p.Description,
+			Datacenters: p.Datacenters,
+			Rules:       p.Rules,
 		}
 
 		if c.nameSet {
@@ -140,14 +154,26 @@ func (c *cmd) Run(args []string) int {
 		}
 	}
 
-	policy, _, err := client.ACL().PolicyUpdate(updated, nil)
+	p, _, err := client.ACL().PolicyUpdate(updated, nil)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error updating policy %q: %v", policyID, err))
 		return 1
 	}
 
-	c.UI.Info(fmt.Sprintf("Policy updated successfully"))
-	acl.PrintPolicy(policy, c.UI, c.showMeta)
+	formatter, err := policy.NewFormatter(c.format, c.showMeta)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+	out, err := formatter.FormatPolicy(p)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+	if out != "" {
+		c.UI.Info(out)
+	}
+
 	return 0
 }
 
@@ -159,7 +185,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Update an ACL Policy"
+const synopsis = "Update an ACL policy"
 const help = `
 Usage: consul acl policy update [options]
 
@@ -167,7 +193,7 @@ Usage: consul acl policy update [options]
   current state so that you do not have to provide all parameters. This
   behavior can be disabled by passing -no-merge.
 
-  Rename the Policy:
+  Rename the policy:
 
           $ consul acl policy update -id abcd -name "better-name"
 

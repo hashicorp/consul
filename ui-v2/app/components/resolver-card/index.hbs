@@ -1,0 +1,69 @@
+<div class="resolver-card">
+  <header onclick={{onclick}} id={{concat 'resolver:' item.ID}}>
+    <a name="">
+      <h3>{{item.Name}}</h3>
+{{#if item.Failover}}
+      <dl class="failover">
+        <dt data-tooltip={{concat item.Failover.Type ' failover'}}>{{concat item.Failover.Type ' failover'}}</dt>
+        <dd>
+          <ol>
+  {{#each item.Failover.Targets as |item|}}
+            <li>
+              <span>{{item}}</span>
+            </li>
+  {{/each}}
+          </ol>
+        </dd>
+      </dl>
+{{/if}}
+    </a>
+  </header>
+{{#if (gt item.Children.length 0)}}
+    <ul>
+  {{#each item.Children as |child|}}
+      <li onclick={{onclick}} id={{concat 'resolver:' child.ID}}>
+        <a name="">
+    {{#if child.Redirect}}
+          <dl class="redirect">
+            <dt data-tooltip="Redirect">Redirect</dt>
+            <dd>
+              {{child.Name}}
+            </dd>
+          </dl>
+          {{#if child.Failover}}
+            <dl class="failover">
+              <dt data-tooltip={{concat child.Failover.Type ' failover'}}>{{concat child.Failover.Type ' failover'}}</dt>
+              <dd>
+                <ol>
+        {{#each child.Failover.Targets as |target|}}
+                  <li>
+                    <span>{{target}}</span>
+                  </li>
+        {{/each}}
+                </ol>
+              </dd>
+            </dl>
+          {{/if}}
+    {{else if child.Failover}}
+          {{child.Name}}
+          <dl class="failover">
+            <dt data-tooltip={{concat child.Failover.Type ' failover'}}>{{concat child.Failover.Type ' failover'}}</dt>
+            <dd>
+              <ol>
+      {{#each child.Failover.Targets as |target|}}
+                <li>
+                  <span>{{target}}</span>
+                </li>
+      {{/each}}
+              </ol>
+            </dd>
+          </dl>
+    {{else}}
+          {{child.Name}}
+    {{/if}}
+        </a>
+      </li>
+  {{/each}}
+    </ul>
+{{/if}}
+</div>

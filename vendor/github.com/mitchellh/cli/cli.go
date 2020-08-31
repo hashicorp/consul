@@ -59,7 +59,19 @@ type CLI struct {
 	// For example, if the key is "foo bar", then to access it our CLI
 	// must be accessed with "./cli foo bar". See the docs for CLI for
 	// notes on how this changes some other behavior of the CLI as well.
+	//
+	// The factory should be as cheap as possible, ideally only allocating
+	// a struct. The factory may be called multiple times in the course
+	// of a command execution and certain events such as help require the
+	// instantiation of all commands. Expensive initialization should be
+	// deferred to function calls within the interface implementation.
 	Commands map[string]CommandFactory
+
+	// HiddenCommands is a list of commands that are "hidden". Hidden
+	// commands are not given to the help function callback and do not
+	// show up in autocomplete. The values in the slice should be equivalent
+	// to the keys in the command map.
+	HiddenCommands []string
 
 	// Name defines the name of the CLI.
 	Name string
@@ -75,7 +87,7 @@ type CLI struct {
 	// should be set exactly to the binary name that is autocompleted.
 	//
 	// Autocompletion is supported via the github.com/posener/complete
-	// library. This library supports both bash and zsh. To add support
+	// library. This library supports bash, zsh and fish. To add support
 	// for other shells, please see that library.
 	//
 	// AutocompleteInstall and AutocompleteUninstall are the global flag
@@ -97,17 +109,22 @@ type CLI struct {
 	AutocompleteGlobalFlags    complete.Flags
 	autocompleteInstaller      autocompleteInstaller // For tests
 
-	// HelpFunc and HelpWriter are used to output help information, if
-	// requested.
-	//
 	// HelpFunc is the function called to generate the generic help
 	// text that is shown if help must be shown for the CLI that doesn't
 	// pertain to a specific command.
-	//
-	// HelpWriter is the Writer where the help text is outputted to. If
-	// not specified, it will default to Stderr.
-	HelpFunc   HelpFunc
+	HelpFunc HelpFunc
+
+	// HelpWriter is used to print help text and version when requested.
+	// Defaults to os.Stderr for backwards compatibility.
+	// It is recommended that you set HelpWriter to os.Stdout, and
+	// ErrorWriter to os.Stderr.
 	HelpWriter io.Writer
+
+	// ErrorWriter used to output errors when a command can not be run.
+	// Defaults to the value of HelpWriter for backwards compatibility.
+	// It is recommended that you set HelpWriter to os.Stdout, and
+	// ErrorWriter to os.Stderr.
+	ErrorWriter io.Writer
 
 	//---------------------------------------------------------------
 	// Internal fields set automatically
@@ -116,6 +133,7 @@ type CLI struct {
 	autocomplete   *complete.Complete
 	commandTree    *radix.Tree
 	commandNested  bool
+	commandHidden  map[string]struct{}
 	subcommand     string
 	subcommandArgs []string
 	topFlags       []string
@@ -215,8 +233,8 @@ func (c *CLI) Run() (int, error) {
 	// implementation. If the command is invalid or blank, it is an error.
 	raw, ok := c.commandTree.Get(c.Subcommand())
 	if !ok {
-		c.HelpWriter.Write([]byte(c.HelpFunc(c.helpCommands(c.subcommandParent())) + "\n"))
-		return 1, nil
+		c.ErrorWriter.Write([]byte(c.HelpFunc(c.helpCommands(c.subcommandParent())) + "\n"))
+		return 127, nil
 	}
 
 	command, err := raw.(CommandFactory)()
@@ -226,23 +244,23 @@ func (c *CLI) Run() (int, error) {
 
 	// If we've been instructed to just print the help, then print it
 	if c.IsHelp() {
-		c.commandHelp(command)
+		c.commandHelp(c.HelpWriter, command)
 		return 0, nil
 	}
 
 	// If there is an invalid flag, then error
 	if len(c.topFlags) > 0 {
-		c.HelpWriter.Write([]byte(
+		c.ErrorWriter.Write([]byte(
 			"Invalid flags before the subcommand. If these flags are for\n" +
 				"the subcommand, please put them after the subcommand.\n\n"))
-		c.commandHelp(command)
+		c.commandHelp(c.ErrorWriter, command)
 		return 1, nil
 	}
 
 	code := command.Run(c.SubcommandArgs())
 	if code == RunResultHelp {
 		// Requesting help
-		c.commandHelp(command)
+		c.commandHelp(c.ErrorWriter, command)
 		return 1, nil
 	}
 
@@ -296,6 +314,17 @@ func (c *CLI) init() {
 
 	if c.HelpWriter == nil {
 		c.HelpWriter = os.Stderr
+	}
+	if c.ErrorWriter == nil {
+		c.ErrorWriter = c.HelpWriter
+	}
+
+	// Build our hidden commands
+	if len(c.HiddenCommands) > 0 {
+		c.commandHidden = make(map[string]struct{})
+		for _, h := range c.HiddenCommands {
+			c.commandHidden[h] = struct{}{}
+		}
 	}
 
 	// Build our command tree
@@ -383,8 +412,8 @@ func (c *CLI) initAutocomplete() {
 		cmd.Flags = map[string]complete.Predictor{
 			"-" + c.AutocompleteInstall:   complete.PredictNothing,
 			"-" + c.AutocompleteUninstall: complete.PredictNothing,
-			"-help":    complete.PredictNothing,
-			"-version": complete.PredictNothing,
+			"-help":                       complete.PredictNothing,
+			"-version":                    complete.PredictNothing,
 		}
 	}
 	cmd.GlobalFlags = c.AutocompleteGlobalFlags
@@ -398,6 +427,11 @@ func (c *CLI) initAutocomplete() {
 func (c *CLI) initAutocompleteSub(prefix string) complete.Command {
 	var cmd complete.Command
 	walkFn := func(k string, raw interface{}) bool {
+		// Ignore the empty key which can be present for default commands.
+		if k == "" {
+			return false
+		}
+
 		// Keep track of the full key so that we can nest further if necessary
 		fullKey := k
 
@@ -416,6 +450,11 @@ func (c *CLI) initAutocompleteSub(prefix string) complete.Command {
 
 		if _, ok := cmd.Sub[k]; ok {
 			// If we already tracked this subcommand then ignore
+			return false
+		}
+
+		// If the command is hidden, don't record it at all
+		if _, ok := c.commandHidden[fullKey]; ok {
 			return false
 		}
 
@@ -452,7 +491,7 @@ func (c *CLI) initAutocompleteSub(prefix string) complete.Command {
 	return cmd
 }
 
-func (c *CLI) commandHelp(command Command) {
+func (c *CLI) commandHelp(out io.Writer, command Command) {
 	// Get the template to use
 	tpl := strings.TrimSpace(defaultHelpTemplate)
 	if t, ok := command.(CommandHelpTemplate); ok {
@@ -502,12 +541,12 @@ func (c *CLI) commandHelp(command Command) {
 			// Get the command
 			raw, ok := subcommands[k]
 			if !ok {
-				c.HelpWriter.Write([]byte(fmt.Sprintf(
+				c.ErrorWriter.Write([]byte(fmt.Sprintf(
 					"Error getting subcommand %q", k)))
 			}
 			sub, err := raw()
 			if err != nil {
-				c.HelpWriter.Write([]byte(fmt.Sprintf(
+				c.ErrorWriter.Write([]byte(fmt.Sprintf(
 					"Error instantiating %q: %s", k, err)))
 			}
 
@@ -528,13 +567,13 @@ func (c *CLI) commandHelp(command Command) {
 	data["Subcommands"] = subcommandsTpl
 
 	// Write
-	err = t.Execute(c.HelpWriter, data)
+	err = t.Execute(out, data)
 	if err == nil {
 		return
 	}
 
 	// An error, just output...
-	c.HelpWriter.Write([]byte(fmt.Sprintf(
+	c.ErrorWriter.Write([]byte(fmt.Sprintf(
 		"Internal error rendering help: %s", err)))
 }
 
@@ -564,6 +603,11 @@ func (c *CLI) helpCommands(prefix string) map[string]CommandFactory {
 		if !ok {
 			// We just got it via WalkPrefix above, so we just panic
 			panic("not found: " + k)
+		}
+
+		// If this is a hidden command, don't show it
+		if _, ok := c.commandHidden[k]; ok {
+			continue
 		}
 
 		result[k] = raw.(CommandFactory)
@@ -615,9 +659,29 @@ func (c *CLI) processArgs() {
 		if c.subcommand == "" && arg != "" && arg[0] != '-' {
 			c.subcommand = arg
 			if c.commandNested {
+				// If the command has a space in it, then it is invalid.
+				// Set a blank command so that it fails.
+				if strings.ContainsRune(arg, ' ') {
+					c.subcommand = ""
+					return
+				}
+
+				// Determine the argument we look to to end subcommands.
+				// We look at all arguments until one has a space. This
+				// disallows commands like: ./cli foo "bar baz". An argument
+				// with a space is always an argument.
+				j := 0
+				for k, v := range c.Args[i:] {
+					if strings.ContainsRune(v, ' ') {
+						break
+					}
+
+					j = i + k + 1
+				}
+
 				// Nested CLI, the subcommand is actually the entire
 				// arg list up to a flag that is still a valid subcommand.
-				searchKey := strings.Join(c.Args[i:], " ")
+				searchKey := strings.Join(c.Args[i:j], " ")
 				k, _, ok := c.commandTree.LongestPrefix(searchKey)
 				if ok {
 					// k could be a prefix that doesn't contain the full

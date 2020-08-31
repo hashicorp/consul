@@ -23,6 +23,7 @@ package retryablehttp
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -35,7 +36,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-cleanhttp"
+	cleanhttp "github.com/hashicorp/go-cleanhttp"
 )
 
 var (
@@ -73,20 +74,47 @@ type Request struct {
 	*http.Request
 }
 
-// NewRequest creates a new wrapped request.
-func NewRequest(method, url string, rawBody interface{}) (*Request, error) {
-	var err error
-	var body ReaderFunc
+// WithContext returns wrapped Request with a shallow copy of underlying *http.Request
+// with its context changed to ctx. The provided ctx must be non-nil.
+func (r *Request) WithContext(ctx context.Context) *Request {
+	r.Request = r.Request.WithContext(ctx)
+	return r
+}
+
+// BodyBytes allows accessing the request body. It is an analogue to
+// http.Request's Body variable, but it returns a copy of the underlying data
+// rather than consuming it.
+//
+// This function is not thread-safe; do not call it at the same time as another
+// call, or at the same time this request is being used with Client.Do.
+func (r *Request) BodyBytes() ([]byte, error) {
+	if r.body == nil {
+		return nil, nil
+	}
+	body, err := r.body()
+	if err != nil {
+		return nil, err
+	}
+	buf := new(bytes.Buffer)
+	_, err = buf.ReadFrom(body)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func getBodyReaderAndContentLength(rawBody interface{}) (ReaderFunc, int64, error) {
+	var bodyReader ReaderFunc
 	var contentLength int64
 
 	if rawBody != nil {
-		switch rawBody.(type) {
+		switch body := rawBody.(type) {
 		// If they gave us a function already, great! Use it.
 		case ReaderFunc:
-			body = rawBody.(ReaderFunc)
+			bodyReader = body
 			tmp, err := body()
 			if err != nil {
-				return nil, err
+				return nil, 0, err
 			}
 			if lr, ok := tmp.(LenReader); ok {
 				contentLength = int64(lr.Len())
@@ -96,10 +124,10 @@ func NewRequest(method, url string, rawBody interface{}) (*Request, error) {
 			}
 
 		case func() (io.Reader, error):
-			body = rawBody.(func() (io.Reader, error))
+			bodyReader = body
 			tmp, err := body()
 			if err != nil {
-				return nil, err
+				return nil, 0, err
 			}
 			if lr, ok := tmp.(LenReader); ok {
 				contentLength = int64(lr.Len())
@@ -111,8 +139,8 @@ func NewRequest(method, url string, rawBody interface{}) (*Request, error) {
 		// If a regular byte slice, we can read it over and over via new
 		// readers
 		case []byte:
-			buf := rawBody.([]byte)
-			body = func() (io.Reader, error) {
+			buf := body
+			bodyReader = func() (io.Reader, error) {
 				return bytes.NewReader(buf), nil
 			}
 			contentLength = int64(len(buf))
@@ -120,8 +148,8 @@ func NewRequest(method, url string, rawBody interface{}) (*Request, error) {
 		// If a bytes.Buffer we can read the underlying byte slice over and
 		// over
 		case *bytes.Buffer:
-			buf := rawBody.(*bytes.Buffer)
-			body = func() (io.Reader, error) {
+			buf := body
+			bodyReader = func() (io.Reader, error) {
 				return bytes.NewReader(buf.Bytes()), nil
 			}
 			contentLength = int64(buf.Len())
@@ -130,21 +158,21 @@ func NewRequest(method, url string, rawBody interface{}) (*Request, error) {
 		// deal with it seeking so want it to match here instead of the
 		// io.ReadSeeker case.
 		case *bytes.Reader:
-			buf, err := ioutil.ReadAll(rawBody.(*bytes.Reader))
+			buf, err := ioutil.ReadAll(body)
 			if err != nil {
-				return nil, err
+				return nil, 0, err
 			}
-			body = func() (io.Reader, error) {
+			bodyReader = func() (io.Reader, error) {
 				return bytes.NewReader(buf), nil
 			}
 			contentLength = int64(len(buf))
 
 		// Compat case
 		case io.ReadSeeker:
-			raw := rawBody.(io.ReadSeeker)
-			body = func() (io.Reader, error) {
-				raw.Seek(0, 0)
-				return ioutil.NopCloser(raw), nil
+			raw := body
+			bodyReader = func() (io.Reader, error) {
+				_, err := raw.Seek(0, 0)
+				return ioutil.NopCloser(raw), err
 			}
 			if lr, ok := raw.(LenReader); ok {
 				contentLength = int64(lr.Len())
@@ -152,18 +180,37 @@ func NewRequest(method, url string, rawBody interface{}) (*Request, error) {
 
 		// Read all in so we can reset
 		case io.Reader:
-			buf, err := ioutil.ReadAll(rawBody.(io.Reader))
+			buf, err := ioutil.ReadAll(body)
 			if err != nil {
-				return nil, err
+				return nil, 0, err
 			}
-			body = func() (io.Reader, error) {
+			bodyReader = func() (io.Reader, error) {
 				return bytes.NewReader(buf), nil
 			}
 			contentLength = int64(len(buf))
 
 		default:
-			return nil, fmt.Errorf("cannot handle type %T", rawBody)
+			return nil, 0, fmt.Errorf("cannot handle type %T", rawBody)
 		}
+	}
+	return bodyReader, contentLength, nil
+}
+
+// FromRequest wraps an http.Request in a retryablehttp.Request
+func FromRequest(r *http.Request) (*Request, error) {
+	bodyReader, _, err := getBodyReaderAndContentLength(r.Body)
+	if err != nil {
+		return nil, err
+	}
+	// Could assert contentLength == r.ContentLength
+	return &Request{bodyReader, r}, nil
+}
+
+// NewRequest creates a new wrapped request.
+func NewRequest(method, url string, rawBody interface{}) (*Request, error) {
+	bodyReader, contentLength, err := getBodyReaderAndContentLength(rawBody)
+	if err != nil {
+		return nil, err
 	}
 
 	httpReq, err := http.NewRequest(method, url, nil)
@@ -172,21 +219,27 @@ func NewRequest(method, url string, rawBody interface{}) (*Request, error) {
 	}
 	httpReq.ContentLength = contentLength
 
-	return &Request{body, httpReq}, nil
+	return &Request{bodyReader, httpReq}, nil
+}
+
+// Logger interface allows to use other loggers than
+// standard log.Logger.
+type Logger interface {
+	Printf(string, ...interface{})
 }
 
 // RequestLogHook allows a function to run before each retry. The HTTP
 // request which will be made, and the retry number (0 for the initial
 // request) are available to users. The internal logger is exposed to
 // consumers.
-type RequestLogHook func(*log.Logger, *http.Request, int)
+type RequestLogHook func(Logger, *http.Request, int)
 
 // ResponseLogHook is like RequestLogHook, but allows running a function
 // on each HTTP response. This function will be invoked at the end of
 // every HTTP request executed, regardless of whether a subsequent retry
 // needs to be performed or not. If the response body is read or closed
 // from this method, this will affect the response returned from Do().
-type ResponseLogHook func(*log.Logger, *http.Response)
+type ResponseLogHook func(Logger, *http.Response)
 
 // CheckRetry specifies a policy for handling retries. It is called
 // following each request with the response and error values returned by
@@ -196,7 +249,7 @@ type ResponseLogHook func(*log.Logger, *http.Response)
 // Client will close any response body when retrying, but if the retry is
 // aborted it is up to the CheckResponse callback to properly close any
 // response body before returning.
-type CheckRetry func(resp *http.Response, err error) (bool, error)
+type CheckRetry func(ctx context.Context, resp *http.Response, err error) (bool, error)
 
 // Backoff specifies a policy for how long to wait between retries.
 // It is called after a failing request to determine the amount of time
@@ -213,7 +266,7 @@ type ErrorHandler func(resp *http.Response, err error, numTries int) (*http.Resp
 // like automatic retries to tolerate minor outages.
 type Client struct {
 	HTTPClient *http.Client // Internal HTTP client.
-	Logger     *log.Logger  // Customer logger instance.
+	Logger     Logger       // Customer logger instance.
 
 	RetryWaitMin time.Duration // Minimum time to wait
 	RetryWaitMax time.Duration // Maximum time to wait
@@ -253,7 +306,12 @@ func NewClient() *Client {
 
 // DefaultRetryPolicy provides a default callback for Client.CheckRetry, which
 // will retry on connection errors and server errors.
-func DefaultRetryPolicy(resp *http.Response, err error) (bool, error) {
+func DefaultRetryPolicy(ctx context.Context, resp *http.Response, err error) (bool, error) {
+	// do not retry on context.Canceled or context.DeadlineExceeded
+	if ctx.Err() != nil {
+		return false, ctx.Err()
+	}
+
 	if err != nil {
 		return true, err
 	}
@@ -344,9 +402,9 @@ func (c *Client) Do(req *Request) (*http.Response, error) {
 				return resp, err
 			}
 			if c, ok := body.(io.ReadCloser); ok {
-				req.Request.Body = c
+				req.Body = c
 			} else {
-				req.Request.Body = ioutil.NopCloser(body)
+				req.Body = ioutil.NopCloser(body)
 			}
 		}
 
@@ -361,7 +419,7 @@ func (c *Client) Do(req *Request) (*http.Response, error) {
 		}
 
 		// Check if we should continue with retries.
-		checkOK, checkErr := c.CheckRetry(resp, err)
+		checkOK, checkErr := c.CheckRetry(req.Context(), resp, err)
 
 		if err != nil {
 			if c.Logger != nil {
@@ -404,7 +462,11 @@ func (c *Client) Do(req *Request) (*http.Response, error) {
 		if c.Logger != nil {
 			c.Logger.Printf("[DEBUG] %s: retrying in %s (%d left)", desc, wait, remain)
 		}
-		time.Sleep(wait)
+		select {
+		case <-req.Context().Done():
+			return nil, req.Context().Err()
+		case <-time.After(wait):
+		}
 	}
 
 	if c.ErrorHandler != nil {

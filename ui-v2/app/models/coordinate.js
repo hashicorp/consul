@@ -10,4 +10,5 @@ export default Model.extend({
   Coord: attr(),
   Segment: attr('string'),
   Datacenter: attr('string'),
+  SyncTime: attr('number'),
 });

@@ -1,12 +1,12 @@
-import { moduleFor, test } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { setupTest } from 'ember-qunit';
 
-moduleFor('service:repository/policy', 'Unit | Service | policy', {
-  // Specify the other units that are required for this test.
-  needs: ['service:store'],
-});
+module('Unit | Service | policy', function(hooks) {
+  setupTest(hooks);
 
-// Replace this with your real tests.
-test('it exists', function(assert) {
-  let service = this.subject();
-  assert.ok(service);
+  // Replace this with your real tests.
+  test('it exists', function(assert) {
+    let service = this.owner.lookup('service:repository/policy');
+    assert.ok(service);
+  });
 });

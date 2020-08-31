@@ -116,13 +116,9 @@ func (ct *CompiledTemplate) Render(name string, source structs.QuerySource) (*st
 		return nil, fmt.Errorf("Failed to copy query")
 	}
 
-	// Run the regular expression, if provided. We execute on a copy here
-	// to avoid internal lock contention because we expect this to be called
-	// from multiple goroutines.
 	var matches []string
 	if ct.re != nil {
-		re := ct.re.Copy()
-		matches = re.FindStringSubmatch(name)
+		matches = ct.re.FindStringSubmatch(name)
 	}
 
 	// Create a safe match function that can't fail at run time. It will
@@ -144,19 +140,19 @@ func (ct *CompiledTemplate) Render(name string, source structs.QuerySource) (*st
 	config := &hil.EvalConfig{
 		GlobalScope: &ast.BasicScope{
 			VarMap: map[string]ast.Variable{
-				"name.full": ast.Variable{
+				"name.full": {
 					Type:  ast.TypeString,
 					Value: name,
 				},
-				"name.prefix": ast.Variable{
+				"name.prefix": {
 					Type:  ast.TypeString,
 					Value: query.Name,
 				},
-				"name.suffix": ast.Variable{
+				"name.suffix": {
 					Type:  ast.TypeString,
 					Value: strings.TrimPrefix(name, query.Name),
 				},
-				"agent.segment": ast.Variable{
+				"agent.segment": {
 					Type:  ast.TypeString,
 					Value: source.Segment,
 				},

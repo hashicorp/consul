@@ -1,0 +1,18 @@
+<div id="upstreams" class="tab-section">
+  <div role="tabpanel">
+  {{#if (gt gatewayServices.length 0)}}
+      <p>
+        Upstreams are services that may receive traffic from this gateway. Learn more about configuring gateways in our <a href="{{env 'CONSUL_DOCS_URL'}}/connect/ingress-gateway" target="_blank" rel="noopener noreferrer">documentation</a>.
+      </p>
+      <ConsulUpstreamList @items={{gatewayServices}} @dc={{dc}} @nspace={{nspace}} />
+  {{else}}
+    <EmptyState>
+      <BlockSlot @name="body">
+        <p>
+          There are no upstreams.
+        </p>
+      </BlockSlot>
+    </EmptyState>
+  {{/if}}
+  </div>
+</div>

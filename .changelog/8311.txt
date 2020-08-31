@@ -1,0 +1,3 @@
+```release-note:bug
+auto_encrypt: Fixed an issue that caused auto encrypt certificates to not be updated properly if the agents token was changed and the old token was deleted.
+```

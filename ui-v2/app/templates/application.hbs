@@ -1,11 +1,16 @@
-{{#if (not loading)}}
-    {{outlet}}
-{{else}}
-{{#hashicorp-consul id="wrapper" dc=dc}}
-    {{#app-view class="loading show"}}
-        {{#block-slot 'content'}}
-            {{partial 'consul-loading'}}
-        {{/block-slot}}
-    {{/app-view}}
-{{/hashicorp-consul}}
+<HeadLayout />
+{{title 'Consul' separator=' - '}}
+{{#if (not-eq router.currentRouteName 'application')}}
+  <HashicorpConsul
+    id="wrapper"
+    @permissions={{permissions}}
+    @dcs={{dcs}}
+    @dc={{or dc dcs.firstObject}}
+    @nspaces={{nspaces}}
+    @nspace={{or nspace nspaces.firstObject}}
+    @onchange={{action "reauthorize"}}
+  >
+  {{outlet}}
+    <ConsulLoader class="view-loader" />
+  </HashicorpConsul>
 {{/if}}

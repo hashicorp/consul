@@ -1,0 +1,3 @@
+```release-note:bug
+connect: Fixed issue where specifying a prometheus bind address would cause ingress gateways to fail to start up.
+```

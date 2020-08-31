@@ -2,7 +2,7 @@
 Feature: components / text-input: Text input
   Background:
     Given 1 datacenter model with the value "dc-1"
-  Scenario:
+  Scenario: KV page
     When I visit the kv page for yaml
     ---
       dc: dc-1
@@ -15,7 +15,7 @@ Feature: components / text-input: Text input
     {"additional": "hi", "value": "there"}
     ---
     Then I see submitIsEnabled
-  Scenario:
+  Scenario: ACL page
     When I visit the acl page for yaml
     ---
       dc: dc-1

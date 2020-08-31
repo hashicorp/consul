@@ -3,20 +3,17 @@ package fsm
 import (
 	"fmt"
 	"io"
-	"log"
 	"sync"
 	"time"
 
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/go-raftchunking"
 	"github.com/hashicorp/raft"
 )
-
-// msgpackHandle is a shared handle for encoding/decoding msgpack payloads
-var msgpackHandle = &codec.MsgpackHandle{
-	RawToString: true,
-}
 
 // command is a command method on the FSM.
 type command func(buf []byte, index uint64) interface{}
@@ -44,9 +41,8 @@ func registerCommand(msg structs.MessageType, fn unboundCommand) {
 // along with Raft to provide strong consistency. We implement
 // this outside the Server to avoid exposing this outside the package.
 type FSM struct {
-	logOutput io.Writer
-	logger    *log.Logger
-	path      string
+	logger hclog.Logger
+	path   string
 
 	// apply is built off the commands global and is used to route apply
 	// operations to their appropriate handlers.
@@ -60,21 +56,26 @@ type FSM struct {
 	state     *state.Store
 
 	gc *state.TombstoneGC
+
+	chunker *raftchunking.ChunkingFSM
 }
 
 // New is used to construct a new FSM with a blank state.
-func New(gc *state.TombstoneGC, logOutput io.Writer) (*FSM, error) {
+func New(gc *state.TombstoneGC, logger hclog.Logger) (*FSM, error) {
+	if logger == nil {
+		logger = hclog.New(&hclog.LoggerOptions{})
+	}
+
 	stateNew, err := state.NewStateStore(gc)
 	if err != nil {
 		return nil, err
 	}
 
 	fsm := &FSM{
-		logOutput: logOutput,
-		logger:    log.New(logOutput, "", log.LstdFlags),
-		apply:     make(map[structs.MessageType]command),
-		state:     stateNew,
-		gc:        gc,
+		logger: logger.Named(logging.FSM),
+		apply:  make(map[structs.MessageType]command),
+		state:  stateNew,
+		gc:     gc,
 	}
 
 	// Build out the apply dispatch table based on the registered commands.
@@ -85,7 +86,13 @@ func New(gc *state.TombstoneGC, logOutput io.Writer) (*FSM, error) {
 		}
 	}
 
+	fsm.chunker = raftchunking.NewChunkingFSM(fsm, nil)
+
 	return fsm, nil
+}
+
+func (c *FSM) ChunkingFSM() *raftchunking.ChunkingFSM {
+	return c.chunker
 }
 
 // State is used to return a handle to the current state
@@ -116,7 +123,7 @@ func (c *FSM) Apply(log *raft.Log) interface{} {
 	// Otherwise, see if it's safe to ignore. If not, we have to panic so
 	// that we crash and our state doesn't diverge.
 	if ignoreUnknown {
-		c.logger.Printf("[WARN] consul.fsm: ignoring unknown message type (%d), upgrade to newer version", msgType)
+		c.logger.Warn("ignoring unknown message type, upgrade to newer version", "type", msgType)
 		return nil
 	}
 	panic(fmt.Errorf("failed to apply request: %#v", buf))
@@ -124,10 +131,18 @@ func (c *FSM) Apply(log *raft.Log) interface{} {
 
 func (c *FSM) Snapshot() (raft.FSMSnapshot, error) {
 	defer func(start time.Time) {
-		c.logger.Printf("[INFO] consul.fsm: snapshot created in %v", time.Since(start))
+		c.logger.Info("snapshot created", "duration", time.Since(start).String())
 	}(time.Now())
 
-	return &snapshot{c.state.Snapshot()}, nil
+	chunkState, err := c.chunker.CurrentState()
+	if err != nil {
+		return nil, err
+	}
+
+	return &snapshot{
+		state:      c.state.Snapshot(),
+		chunkState: chunkState,
+	}, nil
 }
 
 // Restore streams in the snapshot and replaces the current state store with a
@@ -146,7 +161,7 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 	defer restore.Abort()
 
 	// Create a decoder
-	dec := codec.NewDecoder(old, msgpackHandle)
+	dec := codec.NewDecoder(old, structs.MsgpackHandle)
 
 	// Read in the header
 	var header snapshotHeader
@@ -167,15 +182,29 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 
 		// Decode
 		msg := structs.MessageType(msgType[0])
-		if fn := restorers[msg]; fn != nil {
+		switch {
+		case msg == structs.ChunkingStateType:
+			chunkState := &raftchunking.State{
+				ChunkMap: make(raftchunking.ChunkMap),
+			}
+			if err := dec.Decode(chunkState); err != nil {
+				return err
+			}
+			if err := c.chunker.RestoreState(chunkState); err != nil {
+				return err
+			}
+		case restorers[msg] != nil:
+			fn := restorers[msg]
 			if err := fn(&header, restore, dec); err != nil {
 				return err
 			}
-		} else {
+		default:
 			return fmt.Errorf("Unrecognized msg type %d", msg)
 		}
 	}
-	restore.Commit()
+	if err := restore.Commit(); err != nil {
+		return err
+	}
 
 	// External code might be calling State(), so we need to synchronize
 	// here to make sure we swap in the new state store atomically.

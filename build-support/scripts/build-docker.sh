@@ -14,7 +14,7 @@ source "${SCRIPT_DIR}/functions.sh"
 
 function usage {
 cat <<-EOF
-Usage: ${SCRIPT_NAME} (consul|ui|ui-legacy|static-assets) [<options ...>]
+Usage: ${SCRIPT_NAME} (consul|ui|static-assets) [<options ...>]
 
 Description:
    This script will build the various Consul components within docker containers
@@ -81,7 +81,7 @@ function main {
             refresh=1
             shift
             ;;
-         consul | ui | ui-legacy | static-assets )
+         consul | ui | static-assets )
             command="$1"
             shift
             ;;
@@ -128,17 +128,7 @@ function main {
          fi
          status_stage "==> Building UI"
          build_ui "${sdir}" "${image}" || return 1
-         status "==> UI Built with Version: $(ui_version ${sdir}/pkg/web_ui/v2/index.html), Logo: $(ui_logo_type ${sdir}/pkg/web_ui/v2/index.html)"
-         ;;
-      ui-legacy )
-         if is_set "${refresh}"
-         then
-            status_stage "==> Refreshing Legacy UI build container image"
-            export UI_LEGACY_BUILD_TAG="${image:-${UI_LEGACY_BUILD_CONTAINER_DEFAULT}}"
-            refresh_docker_images "${sdir}" ui-legacy-build-image || return 1
-         fi
-         status_stage "==> Building UI"
-         build_ui_legacy "${sdir}" "${image}" || return 1
+         status "==> UI Built with Version: $(ui_version ${sdir}/pkg/web_ui/index.html), Logo: $(ui_logo_type ${sdir}/pkg/web_ui/index.html)"
          ;;
       * )
          err_usage "ERROR: Unknown command: '${command}'"

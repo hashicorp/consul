@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 
 	"github.com/stretchr/testify/require"
 )
@@ -205,6 +205,41 @@ func TestAPI_ACLPolicy_CreateReadDelete(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestAPI_ACLPolicy_CreateReadByNameDelete(t *testing.T) {
+	t.Parallel()
+	c, s := makeACLClient(t)
+	defer s.Stop()
+
+	acl := c.ACL()
+
+	created, wm, err := acl.PolicyCreate(&ACLPolicy{
+		Name:        "test-policy",
+		Description: "test-policy description",
+		Rules:       `node_prefix "" { policy = "read" }`,
+		Datacenters: []string{"dc1"},
+	}, nil)
+
+	require.NoError(t, err)
+	require.NotNil(t, created)
+	require.NotEqual(t, "", created.ID)
+	require.NotEqual(t, 0, wm.RequestTime)
+
+	read, qm, err := acl.PolicyReadByName(created.Name, nil)
+	require.NoError(t, err)
+	require.NotEqual(t, 0, qm.LastIndex)
+	require.True(t, qm.KnownLeader)
+
+	require.Equal(t, created, read)
+
+	wm, err = acl.PolicyDelete(created.ID, nil)
+	require.NoError(t, err)
+	require.NotEqual(t, 0, wm.RequestTime)
+
+	read, _, err = acl.PolicyRead(created.ID, nil)
+	require.Nil(t, read)
+	require.Error(t, err)
+}
+
 func TestAPI_ACLPolicy_CreateUpdate(t *testing.T) {
 	t.Parallel()
 	c, s := makeACLClient(t)
@@ -388,16 +423,16 @@ func TestAPI_ACLToken_CreateReadDelete(t *testing.T) {
 	created, wm, err := acl.TokenCreate(&ACLToken{
 		Description: "token created",
 		Policies: []*ACLTokenPolicyLink{
-			&ACLTokenPolicyLink{
+			{
 				ID: policies[0].ID,
 			},
-			&ACLTokenPolicyLink{
+			{
 				ID: policies[1].ID,
 			},
-			&ACLTokenPolicyLink{
+			{
 				Name: policies[2].Name,
 			},
-			&ACLTokenPolicyLink{
+			{
 				Name: policies[3].Name,
 			},
 		},
@@ -441,10 +476,10 @@ func TestAPI_ACLToken_CreateUpdate(t *testing.T) {
 	created, _, err := acl.TokenCreate(&ACLToken{
 		Description: "token created",
 		Policies: []*ACLTokenPolicyLink{
-			&ACLTokenPolicyLink{
+			{
 				ID: policies[0].ID,
 			},
-			&ACLTokenPolicyLink{
+			{
 				Name: policies[2].Name,
 			},
 		},
@@ -463,15 +498,15 @@ func TestAPI_ACLToken_CreateUpdate(t *testing.T) {
 	read.Policies = append(read.Policies, &ACLTokenPolicyLink{Name: policies[2].Name})
 
 	expectedPolicies := []*ACLTokenPolicyLink{
-		&ACLTokenPolicyLink{
+		{
 			ID:   policies[0].ID,
 			Name: policies[0].Name,
 		},
-		&ACLTokenPolicyLink{
+		{
 			ID:   policies[1].ID,
 			Name: policies[1].Name,
 		},
-		&ACLTokenPolicyLink{
+		{
 			ID:   policies[2].ID,
 			Name: policies[2].Name,
 		},
@@ -498,13 +533,14 @@ func TestAPI_ACLToken_List(t *testing.T) {
 	defer s.Stop()
 
 	acl := c.ACL()
+	s.WaitForSerfCheck(t)
 
 	policies := prepTokenPolicies(t, acl)
 
 	created1, _, err := acl.TokenCreate(&ACLToken{
 		Description: "token created1",
 		Policies: []*ACLTokenPolicyLink{
-			&ACLTokenPolicyLink{
+			{
 				ID: policies[0].ID,
 			},
 		},
@@ -518,7 +554,7 @@ func TestAPI_ACLToken_List(t *testing.T) {
 	created2, _, err := acl.TokenCreate(&ACLToken{
 		Description: "token created2",
 		Policies: []*ACLTokenPolicyLink{
-			&ACLTokenPolicyLink{
+			{
 				ID: policies[1].ID,
 			},
 		},
@@ -532,7 +568,7 @@ func TestAPI_ACLToken_List(t *testing.T) {
 	created3, _, err := acl.TokenCreate(&ACLToken{
 		Description: "token created3",
 		Policies: []*ACLTokenPolicyLink{
-			&ACLTokenPolicyLink{
+			{
 				ID: policies[2].ID,
 			},
 		},
@@ -642,10 +678,10 @@ func TestAPI_RulesTranslate_FromToken(t *testing.T) {
 
 	// This relies on the token upgrade loop running in the background
 	// to assign an accessor
-	retry.Run(t, func(t *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		token, _, err := acl.TokenReadSelf(nil)
-		require.NoError(t, err)
-		require.NotEqual(t, "", token.AccessorID)
+		require.NoError(r, err)
+		require.NotEqual(r, "", token.AccessorID)
 		accessor = token.AccessorID
 	})
 	acl.c.config.Token = "root"

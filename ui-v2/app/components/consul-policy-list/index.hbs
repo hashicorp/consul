@@ -1,0 +1,67 @@
+{{#if (gt items.length 0)}}
+<ListCollection @items={{items}} class="consul-policy-list" as |item|>
+    <BlockSlot @name="header">
+{{#if (eq (policy/typeof item) 'policy-management')}}
+        <dl class="policy-management">
+          <dd>
+            <Tooltip @position="top-start">
+              Global Management Policy
+            </Tooltip>
+          </dd>
+        </dl>
+{{/if}}
+      <a data-test-policy={{item.Name}} href={{href-to 'dc.acls.policies.edit' item.ID}} class={{if (eq (policy/typeof item) 'policy-management') 'is-management'}}>{{item.Name}}</a>
+    </BlockSlot>
+    <BlockSlot @name="details">
+        <dl class="datacenter">
+          <dt>
+            <Tooltip @position="top-start">Datacenters</Tooltip>
+          </dt>
+          <dd>
+              {{join ', ' (policy/datacenters item)}}
+          </dd>
+        </dl>
+        <dl class="description">
+          <dt>Description</dt>
+          <dd data-test-description>
+            {{item.Description}}
+          </dd>
+        </dl>
+    </BlockSlot>
+    <BlockSlot @name="actions" as |Actions|>
+      <Actions as |Action|>
+        <Action data-test-edit-action @href={{href-to 'dc.acls.policies.edit' item.ID}}>
+          <BlockSlot @name="label">
+{{#if (eq (policy/typeof item) 'policy-management')}}
+            View
+{{else}}
+            Edit
+{{/if}}
+          </BlockSlot>
+        </Action>
+{{#if (not-eq (policy/typeof item) 'policy-management')}}
+        <Action data-test-delete-action @onclick={{action ondelete item}} class="dangerous">
+          <BlockSlot @name="label">
+            Delete
+          </BlockSlot>
+          <BlockSlot @name="confirmation" as |Confirmation|>
+            <Confirmation class="warning">
+              <BlockSlot @name="header">
+                Confirm delete
+              </BlockSlot>
+              <BlockSlot @name="body">
+                <p>
+                  Are you sure you want to delete this policy?
+                </p>
+              </BlockSlot>
+              <BlockSlot @name="confirm" as |Confirm|>
+                <Confirm>Delete</Confirm>
+              </BlockSlot>
+            </Confirmation>
+          </BlockSlot>
+        </Action>
+{{/if}}
+      </Actions>
+    </BlockSlot>
+</ListCollection>
+{{/if}}
