@@ -80,21 +80,21 @@ variable "public_subnet_cidr" {
 
 
 variable "test_server_ami" {
-  type = string
+  type        = string
   description = "The AMI ID from the Packer generated image"
 }
 
 variable "test_instance_type" {
-  type = string
+  type        = string
   description = "AWS Instance type for all test servers"
 }
 
 variable "test_public_ip" {
-  type = bool
+  type        = bool
   description = "Should the test servers have a public IP?"
 }
 
 variable "instance_type" {
-  type = string
+  type        = string
   description = "Instance Type for all instances in the Consul Cluster"
 }

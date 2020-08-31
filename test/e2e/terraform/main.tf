@@ -68,15 +68,15 @@ module "vpc" {
 # ---------------------------------------------------------------------------------------------------------------------
 
 module "consul" {
-  source  = "hashicorp/consul/aws"
-  version = "0.7.9"
-  depends_on = [module.vpc.vpc_id]
-  ami_id = var.ami_id
+  source       = "hashicorp/consul/aws"
+  version      = "0.7.9"
+  depends_on   = [module.vpc.vpc_id]
+  ami_id       = var.ami_id
   ssh_key_name = module.keys.key_name
-  vpc_id  = module.vpc.vpc_id
+  vpc_id       = module.vpc.vpc_id
   cluster_name = var.cluster_name
-  num_clients = var.num_clients
-  num_servers = var.num_servers
+  num_clients  = var.num_clients
+  num_servers  = var.num_servers
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -106,10 +106,10 @@ data "template_file" "user_data_client" {
 # ---------------------------------------------------------------------------------------------------------------------
 
 resource "aws_launch_configuration" "test-servers" {
-  name            = "test-servers-"
-  image_id        = var.test_server_ami
-  instance_type   = var.test_instance_type
-  key_name        = module.keys.key_name
+  name          = "test-servers-"
+  image_id      = var.test_server_ami
+  instance_type = var.test_instance_type
+  key_name      = module.keys.key_name
 
   associate_public_ip_address = var.test_public_ip
   lifecycle {
