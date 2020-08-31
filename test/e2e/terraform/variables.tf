@@ -78,15 +78,23 @@ variable "public_subnet_cidr" {
   description = "CIDR Block for the Public Subnet, must be within VPC CIDR range"
 }
 
-# TODO(schristoff): make less bad
-variable "testserverami" {
+
+variable "test_server_ami" {
   type = string
+  description = "The AMI ID from the Packer generated image"
 }
 
-variable "testsize" {
+variable "test_instance_type" {
   type = string
+  description = "AWS Instance type for all test servers"
 }
 
-variable "asg_public_ip" {
+variable "test_public_ip" {
   type = bool
+  description = "Should the test servers have a public IP?"
+}
+
+variable "instance_type" {
+  type = string
+  description = "Instance Type for all instances in the Consul Cluster"
 }
