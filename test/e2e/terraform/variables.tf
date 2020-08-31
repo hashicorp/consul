@@ -98,3 +98,8 @@ variable "instance_type" {
   type        = string
   description = "Instance Type for all instances in the Consul Cluster"
 }
+
+variable "ami_owners" {
+  type = list(string)
+  description = "The account owner number which the desired AMI is in"
+}
