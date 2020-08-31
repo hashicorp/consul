@@ -38,12 +38,16 @@ func setupFlags(name string) (*flag.FlagSet, *options) {
 }
 
 func runMog(opts options) error {
-	_, err := loadStructs(opts.source, sourceStructs)
+	sources, err := loadStructs(opts.source, sourceStructs)
 	if err != nil {
 		return fmt.Errorf("failed to load source from %s: %w", opts.source, err)
 	}
 
-	// TODO: compile the list of target packages from the annotations
+	_, err = configsFromAnnotations(sources)
+	if err != nil {
+		return fmt.Errorf("failed to parse annotations: %w", err)
+	}
+
 	// TODO: load target structs
 	// TODO: generate conversion functions and tests
 	// TODO: write files

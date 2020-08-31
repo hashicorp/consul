@@ -17,7 +17,7 @@ func ExportedFunction() *Sample {
 
 // Sample source struct with mog annotations, used for testing.
 //
-// mog annotations
+// mog annotation:
 //
 // name=Foo
 // target=foo
@@ -37,7 +37,7 @@ func (Sample) ExportedMethod() {}
 type (
 	// GroupedSample is a source struct.
 	//
-	// mog annotations
+	// mog annotation:
 	//
 	GroupedSample struct {
 		StructField Sample

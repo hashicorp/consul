@@ -137,12 +137,15 @@ func sourceStructs(doc *ast.CommentGroup) bool {
 	if doc == nil {
 		return false
 	}
+	return structAnnotationIndex(doc.List) != -1
+}
 
-	for _, line := range doc.List {
-		text := strings.TrimLeft(line.Text, "/")
-		if strings.TrimSpace(text) == "mog annotations" {
-			return true
+func structAnnotationIndex(doc []*ast.Comment) int {
+	for i, line := range doc {
+		text := strings.TrimSpace(strings.TrimLeft(line.Text, "/"))
+		if text == "mog annotation:" {
+			return i
 		}
 	}
-	return false
+	return -1
 }
