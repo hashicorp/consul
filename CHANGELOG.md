@@ -1,5 +1,8 @@
 ## UNRELEASED
 
+BUG FIXES:
+* [backport/1.7.x] api: fixed a panic caused by an api request with Connect=null [[GH-8537](https://github.com/hashicorp/consul/pull/8537)]
+
 ## 1.7.7 (August 12, 2020)
 
 BUG FIXES:
