@@ -3,11 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"go/types"
 	"os"
-	"strings"
-
-	"golang.org/x/tools/go/packages"
 )
 
 func main() {
@@ -53,52 +49,4 @@ func runMog(opts options) error {
 	// TODO: write files
 
 	return nil
-}
-
-type pkg struct {
-	structNames []string
-	structs     map[string]*types.Struct
-	// TODO: buildTags string
-}
-
-func loadStructs(path string, filter func(p types.Object) bool) (pkg, error) {
-	p := pkg{}
-	cfg := &packages.Config{Mode: packages.NeedTypes | packages.NeedTypesInfo}
-	pkgs, err := packages.Load(cfg, path)
-	if err != nil {
-		return p, err
-	}
-	for _, pkg := range pkgs {
-		if err := packageLoadErrors(pkg); err != nil {
-			return p, err
-		}
-
-		for ident, obj := range pkg.TypesInfo.Defs {
-			if !filter(obj) {
-				continue
-			}
-
-			p.structNames = append(p.structNames, ident.Name)
-			p.structs[ident.Name] = obj.Type().(*types.Struct) // FIXME
-		}
-	}
-
-	return p, nil
-}
-
-func packageLoadErrors(pkg *packages.Package) error {
-	if len(pkg.Errors) == 0 {
-		return nil
-	}
-
-	buf := new(strings.Builder)
-	for _, err := range pkg.Errors {
-		buf.WriteString("\n")
-		buf.WriteString(err.Error())
-	}
-	return fmt.Errorf("package %s has errors: %s", pkg.PkgPath, buf.String())
-}
-
-func sourceStructs(o types.Object) bool {
-	return false
 }
