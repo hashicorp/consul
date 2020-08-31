@@ -22,9 +22,9 @@ import (
 // package cannot import the agent/config package without running into import cycles.
 func translateConfig(c *pbconfig.Config) config.Config {
 	result := config.Config{
-		Datacenter:        &c.Datacenter,
-		PrimaryDatacenter: &c.PrimaryDatacenter,
-		NodeName:          &c.NodeName,
+		Datacenter:        stringPtrOrNil(c.Datacenter),
+		PrimaryDatacenter: stringPtrOrNil(c.PrimaryDatacenter),
+		NodeName:          stringPtrOrNil(c.NodeName),
 		// only output the SegmentName in the configuration if its non-empty
 		// this will avoid a warning later when parsing the persisted configuration
 		SegmentName: stringPtrOrNil(c.SegmentName),
@@ -42,13 +42,13 @@ func translateConfig(c *pbconfig.Config) config.Config {
 	if a := c.ACL; a != nil {
 		result.ACL = config.ACL{
 			Enabled:                &a.Enabled,
-			PolicyTTL:              &a.PolicyTTL,
-			RoleTTL:                &a.RoleTTL,
-			TokenTTL:               &a.TokenTTL,
-			DownPolicy:             &a.DownPolicy,
-			DefaultPolicy:          &a.DefaultPolicy,
+			PolicyTTL:              stringPtrOrNil(a.PolicyTTL),
+			RoleTTL:                stringPtrOrNil(a.RoleTTL),
+			TokenTTL:               stringPtrOrNil(a.TokenTTL),
+			DownPolicy:             stringPtrOrNil(a.DownPolicy),
+			DefaultPolicy:          stringPtrOrNil(a.DefaultPolicy),
 			EnableKeyListPolicy:    &a.EnableKeyListPolicy,
-			DisabledTTL:            &a.DisabledTTL,
+			DisabledTTL:            stringPtrOrNil(a.DisabledTTL),
 			EnableTokenPersistence: &a.EnableTokenPersistence,
 		}
 
@@ -76,7 +76,7 @@ func translateConfig(c *pbconfig.Config) config.Config {
 		result.RetryJoinLAN = g.RetryJoinLAN
 
 		if e := c.Gossip.Encryption; e != nil {
-			result.EncryptKey = &e.Key
+			result.EncryptKey = stringPtrOrNil(e.Key)
 			result.EncryptVerifyIncoming = &e.VerifyIncoming
 			result.EncryptVerifyOutgoing = &e.VerifyOutgoing
 		}

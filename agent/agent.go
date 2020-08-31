@@ -31,7 +31,6 @@ import (
 	autoconf "github.com/hashicorp/consul/agent/auto-config"
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
-	certmon "github.com/hashicorp/consul/agent/cert-monitor"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
@@ -161,8 +160,6 @@ type notifier interface {
 // requests to other Consul servers.
 type Agent struct {
 	autoConf *autoconf.AutoConfig
-
-	certMonitor *certmon.CertMonitor
 
 	// config is the agent configuration.
 	config *config.RuntimeConfig
@@ -373,6 +370,11 @@ func New(bd BaseDeps) (*Agent, error) {
 	// pass the agent itself so its safe to move here.
 	a.registerCache()
 
+	// TODO: move to newBaseDeps
+	// TODO: handle error
+	a.loadTokens(a.config)
+	a.loadEnterpriseTokens(a.config)
+
 	return &a, nil
 }
 
@@ -425,11 +427,6 @@ func (a *Agent) Start(ctx context.Context) error {
 	if err := a.tlsConfigurator.Update(a.config.ToTLSUtilConfig()); err != nil {
 		return fmt.Errorf("Failed to load TLS configurations after applying auto-config settings: %w", err)
 	}
-
-	// TODO: move to newBaseDeps
-	// TODO: handle error
-	a.loadTokens(a.config)
-	a.loadEnterpriseTokens(a.config)
 
 	// create the local state
 	a.State = local.NewState(LocalConfig(c), a.logger, a.tokens)
@@ -494,43 +491,6 @@ func (a *Agent) Start(ctx context.Context) error {
 	// and that should be hidden in the state syncer implementation.
 	a.State.Delegate = a.delegate
 	a.State.TriggerSyncChanges = a.sync.SyncChanges.Trigger
-
-	if a.config.AutoEncryptTLS && !a.config.ServerMode {
-		reply, err := a.autoEncryptInitialCertificate(ctx)
-		if err != nil {
-			return fmt.Errorf("AutoEncrypt failed: %s", err)
-		}
-
-		cmConfig := new(certmon.Config).
-			WithCache(a.cache).
-			WithLogger(a.logger.Named(logging.AutoEncrypt)).
-			WithTLSConfigurator(a.tlsConfigurator).
-			WithTokens(a.tokens).
-			WithFallback(a.autoEncryptInitialCertificate).
-			WithDNSSANs(a.config.AutoEncryptDNSSAN).
-			WithIPSANs(a.config.AutoEncryptIPSAN).
-			WithDatacenter(a.config.Datacenter).
-			WithNodeName(a.config.NodeName)
-
-		monitor, err := certmon.New(cmConfig)
-		if err != nil {
-			return fmt.Errorf("AutoEncrypt failed to setup certificate monitor: %w", err)
-		}
-		if err := monitor.Update(reply); err != nil {
-			return fmt.Errorf("AutoEncrypt failed to setup certificate monitor: %w", err)
-		}
-		a.certMonitor = monitor
-
-		// we don't need to worry about ever calling Stop as we have tied the go routines
-		// to the agents lifetime by using the StopCh. Also the agent itself doesn't have
-		// a need of ensuring that the go routine was stopped before performing any action
-		// so we can ignore the chan in the return.
-		if _, err := a.certMonitor.Start(&lib.StopChannelContext{StopCh: a.shutdownCh}); err != nil {
-			return fmt.Errorf("AutoEncrypt failed to start certificate monitor: %w", err)
-		}
-
-		a.logger.Info("automatically upgraded to TLS")
-	}
 
 	if err := a.autoConf.Start(&lib.StopChannelContext{StopCh: a.shutdownCh}); err != nil {
 		return fmt.Errorf("AutoConf failed to start certificate monitor: %w", err)
@@ -643,19 +603,6 @@ func (a *Agent) Start(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-func (a *Agent) autoEncryptInitialCertificate(ctx context.Context) (*structs.SignedResponse, error) {
-	client := a.delegate.(*consul.Client)
-
-	addrs := a.config.StartJoinAddrsLAN
-	disco, err := newDiscover()
-	if err != nil && len(addrs) == 0 {
-		return nil, err
-	}
-	addrs = append(addrs, retryJoinAddrs(disco, retryJoinSerfVariant, "LAN", a.config.RetryJoinLAN, a.logger)...)
-
-	return client.RequestAutoEncryptCerts(ctx, addrs, a.config.ServerPort, a.tokens.AgentToken(), a.config.AutoEncryptDNSSAN, a.config.AutoEncryptIPSAN)
 }
 
 func (a *Agent) listenAndServeGRPC() error {
@@ -1379,12 +1326,6 @@ func (a *Agent) ShutdownAgent() error {
 	// this would be cancelled anyways (by the closing of the shutdown ch) but
 	// this should help them to be stopped more quickly
 	a.autoConf.Stop()
-
-	if a.certMonitor != nil {
-		// this would be cancelled anyways  (by the closing of the shutdown ch)
-		// but this should help them to be stopped more quickly
-		a.certMonitor.Stop()
-	}
 
 	// Stop the service manager (must happen before we take the stateLock to avoid deadlock)
 	if a.serviceManager != nil {
