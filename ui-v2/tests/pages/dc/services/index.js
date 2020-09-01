@@ -10,6 +10,6 @@ export default function(visitable, clickable, text, attribute, present, collecti
     visit: visitable('/:dc/services'),
     services: collection('.consul-service-list > ul > li:not(:first-child)', service),
     home: clickable('[data-test-home]'),
-    sort: popoverSelect(),
+    sort: popoverSelect('[data-test-sort-control]'),
   };
 }

@@ -28,7 +28,18 @@ Feature: dc / nodes / sorting
       dc: dc-1
     ---
     When I click selected on the sort
-    When I click options.3.button on the sort
+    When I click options.0.button on the sort
+    Then I see name on the nodes vertically like yaml
+    ---
+    - Node-A
+    - Node-D
+    - Node-E
+    - Node-C
+    - Node-F
+    - Node-B
+    ---
+    When I click selected on the sort
+    When I click options.1.button on the sort
     Then I see name on the nodes vertically like yaml
     ---
     - Node-B
@@ -43,17 +54,6 @@ Feature: dc / nodes / sorting
     Then I see name on the nodes vertically like yaml
     ---
     - Node-A
-    - Node-D
-    - Node-E
-    - Node-C
-    - Node-F
-    - Node-B
-    ---
-    When I click selected on the sort
-    When I click options.0.button on the sort
-    Then I see name on the nodes vertically like yaml
-    ---
-    - Node-A
     - Node-B
     - Node-C
     - Node-D
@@ -61,7 +61,7 @@ Feature: dc / nodes / sorting
     - Node-F
     ---
     When I click selected on the sort
-    When I click options.1.button on the sort
+    When I click options.3.button on the sort
     Then I see name on the nodes vertically like yaml
     ---
     - Node-F

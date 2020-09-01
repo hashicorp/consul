@@ -8,6 +8,6 @@ export default function(visitable, text, clickable, attribute, collection, popov
     visit: visitable('/:dc/nodes'),
     nodes: collection('.consul-node-list [data-test-list-row]', node),
     home: clickable('[data-test-home]'),
-    sort: popoverSelect(),
+    sort: popoverSelect('[data-test-sort-control]'),
   };
 }
