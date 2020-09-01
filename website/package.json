@@ -22,6 +22,7 @@
     "@hashicorp/react-mega-nav": "4.0.1-2",
     "@hashicorp/react-product-downloader": "4.1.1",
     "@hashicorp/react-product-features-list": "1.0.3",
+    "@hashicorp/react-search": "^2.1.0",
     "@hashicorp/react-section-header": "2.0.2",
     "@hashicorp/react-subnav": "3.2.6",
     "@hashicorp/react-text-and-content": "4.1.4",
@@ -31,21 +32,15 @@
     "@hashicorp/react-text-split-with-logo-grid": "1.3.0",
     "@hashicorp/react-use-cases": "1.0.6",
     "@hashicorp/react-vertical-text-block-list": "2.0.3",
-    "algoliasearch": "4.4.0",
     "babel-plugin-import-glob-array": "0.2.0",
-    "dotenv": "8.2.0",
-    "gray-matter": "4.0.2",
     "next": "9.4.4",
     "nuka-carousel": "4.7.0",
     "react": "16.13.1",
     "react-device-detect": "1.13.1",
-    "react-dom": "16.13.1",
-    "remark": "12.0.1",
-    "unist-util-visit": "2.0.3"
+    "react-dom": "16.13.1"
   },
   "devDependencies": {
     "dart-linkcheck": "2.0.15",
-    "glob": "7.1.6",
     "husky": "4.2.5",
     "prettier": "2.0.5"
   },
