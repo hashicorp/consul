@@ -1,15 +1,12 @@
 {
   "min_packer_version": "1.5.4",
   "variables": {
-    "aws_region": "us-east-1",
-    "consul_version": "1.5.1",
-    "download_url": "{{env `CONSUL_DOWNLOAD_URL`}}",
-    "dd_api_key": "********"
+    "aws_region": "us-east-1"
   },
   "builders": [{
     "name": "ubuntu18-ami",
     "ami_name": "consul-ubuntu-{{isotime | clean_resource_name}}-{{uuid}}",
-    "ami_description": "An Ubuntu 18.04 AMI that has Consul installed.",
+    "ami_description": "An Ubuntu 18.04 AMI that has hey installed.",
     "instance_type": "t2.micro",
     "region": "{{user `aws_region`}}",
     "associate_public_ip_address": true,
@@ -37,24 +34,8 @@
     "pause_before": "30s"
   },{
     "type": "shell",
-    "inline": [
-      "/tmp/scripts/install-consul --version {{user `consul_version`}};"
-    ],
-    "pause_before": "30s"
-  },{
-    "type": "shell",
-    "inline": [
-      "/tmp/scripts/setup-systemd-resolved"
-    ],
-    "pause_before": "30s"
-  },{
-    "type": "shell",
-    "inline": [
-      "DD_AGENT_MAJOR_VERSION=7 DD_API_KEY={{user `dd_api_key`}} bash -c \"$(curl -L https://raw.githubusercontent.com/DataDog/datadog-agent/master/cmd/agent/install_script.sh)\""
-    ]
-  },{
-    "type": "shell",
     "execute_command": "sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
-    "script": "./scripts/move-files.sh"
+    "script": "./scripts/install-locust.sh"
     }]
+  
 }
