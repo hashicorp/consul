@@ -72,10 +72,10 @@ main {
     display: none;
   }
   #toolbar-toggle:checked + * {
-    display: block;
+    display: flex;
   }
   html.template-service.template-show #toolbar-toggle + * {
-    display: block;
+    display: flex;
     padding: 4px;
   }
   html.template-service.template-show .actions {

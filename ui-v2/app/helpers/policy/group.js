@@ -1,7 +1,6 @@
 import { helper } from '@ember/component/helper';
 import { get } from '@ember/object';
-
-const MANAGEMENT_ID = '00000000-0000-0000-0000-000000000001';
+import { MANAGEMENT_ID } from 'consul-ui/models/policy';
 
 export default helper(function policyGroup([items] /*, hash*/) {
   return items.reduce(

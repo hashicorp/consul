@@ -1,5 +1,8 @@
 {{title 'Nodes'}}
 <EventSource @src={{items}} />
+{{#let (hash
+  statuses=(if status (split status ',') undefined)
+) as |filters|}}
 {{#let (or sortBy "Node:asc") as |sort|}}
   <AppView @class="node list">
     <BlockSlot @name="header">
@@ -10,53 +13,26 @@
     </BlockSlot>
     <BlockSlot @name="toolbar">
     {{#if (gt items.length 0) }}
-      <SearchBar
-        @value={{search}}
-        @onsearch={{action (mut search) value="target.value"}}
-        class="with-sort"
-      >
-        <BlockSlot @name="secondary">
-          <PopoverSelect
-            @position="right"
-            @onchange={{action (mut sortBy) value='target.selected'}}
-            @multiple={{false}}
-          as |components|>
-            <BlockSlot @name="selected">
-              <span>
-                {{#let (from-entries (array
-                      (array "Node:asc" "A to Z")
-                      (array "Node:desc" "Z to A")
-                      (array "Status:asc" "Unhealthy to Healthy")
-                      (array "Status:desc" "Healthy to Unhealthy")
-                    ))
-                  as |selectable|
-                }}
-                  {{get selectable sort}}
-                {{/let}}
-              </span>
-            </BlockSlot>
-            <BlockSlot @name="options">
-  {{#let components.Optgroup components.Option as |Optgroup Option|}}
-              <Optgroup @label="Name">
-                <Option @value="Node:asc" @selected={{eq "Node:asc" sort}}>A to Z</Option>
-                <Option @value="Node:desc" @selected={{eq "Node:desc" sort}}>Z to A</Option>
-              </Optgroup>
-              <Optgroup @label="Health Status">
-                <Option @value="Status:asc" @selected={{eq "Status:asc" sort}}>Unhealthy to Healthy</Option>
-                <Option @value="Status:desc" @selected={{eq "Status:desc" sort}}>Healthy to Unhealthy</Option>
-              </Optgroup>
-  {{/let}}
-            </BlockSlot>
-          </PopoverSelect>
-        </BlockSlot>
-      </SearchBar>
+        <ConsulNodeSearchBar
+          @search={{search}}
+          @onsearch={{action (mut search) value="target.value"}}
+
+          @sort={{sort}}
+          @onsort={{action (mut sortBy) value="target.selected"}}
+
+          @filter={{filters}}
+          @onfilter={{hash
+            status=(action (mut status) value="target.selectedItems")
+          }}
+        />
     {{/if}}
     </BlockSlot>
     <BlockSlot @name="content">
-    {{#let (sort-by (comparator 'node' sort) items) as |sorted|}}
+{{#let (filter (filter-predicate 'node' filters) items) as |filtered|}}
+  {{#let (sort-by (comparator 'node' sort) filtered) as |sorted|}}
       <ChangeableSet @dispatcher={{searchable 'node' sorted}} @terms={{search}}>
-        <BlockSlot @name="set" as |filtered|>
-          <ConsulNodeList @items={{filtered}} @leader={{leader}} />
+        <BlockSlot @name="set" as |searched|>
+          <ConsulNodeList @items={{searched}} @leader={{leader}} />
         </BlockSlot>
         <BlockSlot @name="empty">
           <EmptyState>
@@ -68,7 +44,9 @@
           </EmptyState>
         </BlockSlot>
       </ChangeableSet>
-    {{/let}}
+  {{/let}}
+{{/let}}
     </BlockSlot>
   </AppView>
+  {{/let}}
 {{/let}}
