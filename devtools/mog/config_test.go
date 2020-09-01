@@ -26,7 +26,7 @@ func TestParseStructAnnotation_Full(t *testing.T) {
 
 	expected := structConfig{
 		Source:           "SourceStruct",
-		Target:           "github.com/hashicorp/consul/structs.Node",
+		Target:           target{"github.com/hashicorp/consul/structs", "Node"},
 		Output:           "node.gen.go",
 		FuncNameFragment: "Structs",
 		IgnoreFields:     []string{"RaftIndex", "HiddenField", "TheThirdOne"},
@@ -69,7 +69,7 @@ func TestParseStructAnnotation(t *testing.T) {
 // target=Foo name=Other`,
 			expected: structConfig{
 				Source:           "SourceStruct",
-				Target:           "Foo",
+				Target:           target{Struct: "Foo"},
 				FuncNameFragment: "Other",
 			},
 		},
@@ -79,7 +79,7 @@ func TestParseStructAnnotation(t *testing.T) {
 // target=Foo name=Other`,
 			expected: structConfig{
 				Source:           "SourceStruct",
-				Target:           "Foo",
+				Target:           target{Struct: "Foo"},
 				FuncNameFragment: "Other",
 			},
 		},

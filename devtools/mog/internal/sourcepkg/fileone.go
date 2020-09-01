@@ -19,8 +19,9 @@ func ExportedFunction() *Sample {
 //
 // mog annotation:
 //
-// name=Foo
-// target=foo
+// name=Core
+// target=github.com/hashicorp/mog/internal/targetpkgone.TheSample
+// ignore-fields=ExtraField
 type Sample struct {
 	unexportedField bool
 

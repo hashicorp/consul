@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
+	"go/types"
 	"sort"
 	"strings"
 
 	"golang.org/x/tools/go/packages"
 )
 
-type pkg struct {
+type sourcePkg struct {
 	// TODO: buildTags string
 	structs map[string]structDecl
 }
@@ -20,7 +21,7 @@ type structDecl struct {
 	Fields []*ast.Field
 }
 
-func (p pkg) Names() []string {
+func (p sourcePkg) Names() []string {
 	names := make([]string, 0, len(p.structs))
 	for name := range p.structs {
 		names = append(names, name)
@@ -29,8 +30,8 @@ func (p pkg) Names() []string {
 	return names
 }
 
-func loadStructs(path string, filter func(doc *ast.CommentGroup) bool) (pkg, error) {
-	p := pkg{structs: map[string]structDecl{}}
+func loadSourceStructs(path string) (sourcePkg, error) {
+	p := sourcePkg{structs: map[string]structDecl{}}
 	cfg := &packages.Config{Mode: modeLoadAll}
 	pkgs, err := packages.Load(cfg, path)
 	if err != nil {
@@ -65,7 +66,7 @@ func loadStructs(path string, filter func(doc *ast.CommentGroup) bool) (pkg, err
 						continue
 					}
 
-					if !filter(doc) {
+					if !containsMogStructAnnotation(doc) {
 						continue
 					}
 
@@ -81,7 +82,7 @@ func loadStructs(path string, filter func(doc *ast.CommentGroup) bool) (pkg, err
 	return p, nil
 }
 
-// TODO: trim this is All isn't needed
+// TODO: trim this if All isn't needed
 var modeLoadAll = packages.NeedName |
 	packages.NeedFiles |
 	packages.NeedCompiledGoFiles |
@@ -130,10 +131,10 @@ func specAsExpectedTypeSpec(s ast.Spec) *ast.TypeSpec {
 	return spec
 }
 
-// sourceStructs scans the lines in the doc comment group and returns true if
-// one of the lines contains the comment which identifies the struct as one
+// containsMogStructAnnotation scans the lines in the doc comment group and returns
+// true if one of the lines contains the comment which identifies the struct as one
 // that should be used for the source of type conversion.
-func sourceStructs(doc *ast.CommentGroup) bool {
+func containsMogStructAnnotation(doc *ast.CommentGroup) bool {
 	if doc == nil {
 		return false
 	}
@@ -148,4 +149,58 @@ func structAnnotationIndex(doc []*ast.Comment) int {
 		}
 	}
 	return -1
+}
+
+type targetPkg struct {
+	Name    string
+	Structs map[string]targetStruct
+}
+
+type targetStruct struct {
+	Name   string
+	Fields []*types.Var
+}
+
+func loadTargetStructs(names []string) (map[string]targetPkg, error) {
+	mode := packages.NeedTypes | packages.NeedTypesInfo | packages.NeedName
+	cfg := &packages.Config{Mode: mode}
+	pkgs, err := packages.Load(cfg, names...)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[string]targetPkg, len(names))
+	for _, pkg := range pkgs {
+		if err := packageLoadErrors(pkg); err != nil {
+			return nil, err
+		}
+
+		structs := map[string]targetStruct{}
+		for ident, obj := range pkg.TypesInfo.Defs {
+			if obj == nil || !obj.Exported() {
+				continue
+			}
+
+			named, ok := obj.Type().(*types.Named)
+			if !ok {
+				continue
+			}
+
+			strct, ok := named.Underlying().(*types.Struct)
+			if !ok {
+				continue
+			}
+
+			var fields []*types.Var
+			for i := 0; i < strct.NumFields(); i++ {
+				f := strct.Field(i)
+				if f.Exported() {
+					fields = append(fields, f)
+				}
+			}
+			structs[ident.Name] = targetStruct{Name: ident.Name, Fields: fields}
+		}
+		result[pkg.PkgPath] = targetPkg{Name: pkg.PkgPath, Structs: structs}
+	}
+	return result, nil
 }

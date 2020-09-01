@@ -8,13 +8,26 @@ import (
 
 type structConfig struct {
 	Source           string
-	Target           string // TODO: split package/struct name
+	Target           target
 	Output           string
 	FuncNameFragment string
 	IgnoreFields     []string
 	FuncFrom         string
 	FuncTo           string
 	Fields           []fieldConfig
+}
+
+type target struct {
+	Package string
+	Struct  string
+}
+
+func newTarget(v string) target {
+	i := strings.LastIndex(v, ".")
+	if i == -1 {
+		return target{Struct: v}
+	}
+	return target{Package: v[:i], Struct: v[i+1:]}
 }
 
 type fieldConfig struct {
@@ -26,7 +39,7 @@ type fieldConfig struct {
 	// TODO: Pointer pointerSettings
 }
 
-func configsFromAnnotations(sources pkg) ([]structConfig, error) {
+func configsFromAnnotations(sources sourcePkg) ([]structConfig, error) {
 	names := sources.Names()
 	cfgs := make([]structConfig, 0, len(names))
 	for _, name := range names {
@@ -77,7 +90,7 @@ func parseStructAnnotation(name string, doc []*ast.Comment) (structConfig, error
 		value := kv[1]
 		switch kv[0] {
 		case "target":
-			c.Target = value
+			c.Target = newTarget(value)
 		case "output":
 			c.Output = value
 		case "name":
