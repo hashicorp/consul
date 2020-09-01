@@ -948,6 +948,16 @@
   mask-image: $logo-bitbucket-monochrome-svg;
 }
 
+%with-logo-consul-color-icon {
+  @extend %with-icon;
+  background-image: $consul-logo-color-svg;
+}
+%with-logo-consul-color-mask {
+  @extend %with-mask;
+  -webkit-mask-image: $consul-logo-color-svg;
+  mask-image: $consul-logo-color-svg;
+}
+
 %with-logo-gcp-color-icon {
   @extend %with-icon;
   background-image: $logo-gcp-color-svg;
@@ -1047,6 +1057,15 @@
   -webkit-mask-image: $logo-microsoft-color-svg;
   mask-image: $logo-microsoft-color-svg;
 }
+%with-logo-nomad-color-icon {
+  @extend %with-icon;
+  background-image: $nomad-logo-color-svg;
+}
+%with-logo-nomad-color-mask {
+  @extend %with-mask;
+  -webkit-mask-image: $nomad-logo-color-svg;
+  mask-image: $nomad-logo-color-svg;
+}
 
 %with-logo-okta-color-icon {
   @extend %with-icon;
@@ -1098,6 +1117,15 @@
   mask-image: $logo-slack-monochrome-svg;
 }
 
+%with-logo-terraform-color-icon {
+  @extend %with-icon;
+  background-image: $terraform-logo-color-svg;
+}
+%with-logo-terraform-color-mask {
+  @extend %with-mask;
+  -webkit-mask-image: $terraform-logo-color-svg;
+  mask-image: $terraform-logo-color-svg;
+}
 %with-logo-vmware-color-icon {
   @extend %with-icon;
   background-image: $logo-vmware-color-svg;
