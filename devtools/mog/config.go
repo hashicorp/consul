@@ -6,7 +6,13 @@ import (
 	"strings"
 )
 
+type config struct {
+	SourcePkgName string
+	structs       []structConfig
+}
+
 type structConfig struct {
+	// Source struct name.
 	Source           string
 	Target           target
 	Output           string
@@ -20,6 +26,10 @@ type structConfig struct {
 type target struct {
 	Package string
 	Struct  string
+}
+
+func (t target) String() string {
+	return t.Package + "." + t.Struct
 }
 
 func newTarget(v string) target {
@@ -39,28 +49,28 @@ type fieldConfig struct {
 	// TODO: Pointer pointerSettings
 }
 
-func configsFromAnnotations(sources sourcePkg) ([]structConfig, error) {
+func configsFromAnnotations(sources sourcePkg) (config, error) {
 	names := sources.Names()
-	cfgs := make([]structConfig, 0, len(names))
+	c := config{structs: make([]structConfig, 0, len(names))}
 	for _, name := range names {
 		strct := sources.structs[name]
 		cfg, err := parseStructAnnotation(name, strct.Doc)
 		if err != nil {
-			return nil, fmt.Errorf("from source %v: %w", name, err)
+			return c, fmt.Errorf("from source %v: %w", name, err)
 		}
 
 		for _, field := range strct.Fields {
 			f, err := parseFieldAnnotation(field)
 			if err != nil {
-				return nil, fmt.Errorf("from source %v.%v: %w", name, fieldNameFromAST(field.Names), err)
+				return c, fmt.Errorf("from source %v.%v: %w", name, fieldNameFromAST(field.Names), err)
 			}
 			cfg.Fields = append(cfg.Fields, f)
 		}
 
-		cfgs = append(cfgs, cfg)
+		c.structs = append(c.structs, cfg)
 	}
 	// TODO: validate config - required values
-	return cfgs, nil
+	return c, nil
 }
 
 func fieldNameFromAST(names []*ast.Ident) string {

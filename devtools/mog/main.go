@@ -9,6 +9,7 @@ import (
 func main() {
 	if err := run(os.Args); err != nil {
 		fmt.Fprintf(os.Stderr, err.Error())
+		os.Exit(1)
 	}
 }
 
@@ -43,17 +44,17 @@ func runMog(opts options) error {
 		return fmt.Errorf("failed to load source from %s: %w", opts.source, err)
 	}
 
-	cfgs, err := configsFromAnnotations(sources)
+	cfg, err := configsFromAnnotations(sources)
 	if err != nil {
 		return fmt.Errorf("failed to parse annotations: %w", err)
 	}
 
-	targets, err := loadTargetStructs(targetPackages(cfgs))
+	targets, err := loadTargetStructs(targetPackages(cfg.structs))
 	if err != nil {
 		return fmt.Errorf("failed to load targets: %w", err)
 	}
 
-	return generate(cfgs, targets)
+	return generate(cfg, targets)
 }
 
 func targetPackages(cfgs []structConfig) []string {
@@ -65,9 +66,4 @@ func targetPackages(cfgs []structConfig) []string {
 		result = append(result, cfg.Target.Package)
 	}
 	return result
-}
-
-func generate(cfgs []structConfig, targets map[string]targetPkg) error {
-	// TODO
-	return nil
 }

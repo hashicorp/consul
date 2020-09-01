@@ -152,7 +152,6 @@ func structAnnotationIndex(doc []*ast.Comment) int {
 }
 
 type targetPkg struct {
-	Name    string
 	Structs map[string]targetStruct
 }
 
@@ -200,7 +199,7 @@ func loadTargetStructs(names []string) (map[string]targetPkg, error) {
 			}
 			structs[ident.Name] = targetStruct{Name: ident.Name, Fields: fields}
 		}
-		result[pkg.PkgPath] = targetPkg{Name: pkg.PkgPath, Structs: structs}
+		result[pkg.PkgPath] = targetPkg{Structs: structs}
 	}
 	return result, nil
 }

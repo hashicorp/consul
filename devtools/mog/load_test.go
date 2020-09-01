@@ -29,7 +29,6 @@ func TestLoadTargetStructs(t *testing.T) {
 
 	expected := map[string]targetPkg{
 		"github.com/hashicorp/mog/internal/targetpkgone": {
-			Name: "github.com/hashicorp/mog/internal/targetpkgone",
 			Structs: map[string]targetStruct{
 				"TheSample": {
 					Name: "TheSample",
@@ -43,7 +42,6 @@ func TestLoadTargetStructs(t *testing.T) {
 			},
 		},
 		"github.com/hashicorp/mog/internal/targetpkgtwo": {
-			Name: "github.com/hashicorp/mog/internal/targetpkgtwo",
 			Structs: map[string]targetStruct{
 				"Lamp": {
 					Name: "Lamp",
