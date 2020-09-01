@@ -39,9 +39,6 @@
       <BlockSlot @name="options">
 {{#let components.Optgroup components.Option as |Optgroup Option|}}
         <Option @value="global-management" @selected={{contains 'global-management' filter.types}}>Global Management</Option>
-  {{#if (env 'CONSUL_NSPACES_ENABLED')}}
-        <Option @value="namespace-management" @selected={{contains 'namespace-management' filter.types}}>Namespace Management</Option>
-  {{/if}}
         <Option @value="standard" @selected={{contains 'standard' filter.types}}>Standard</Option>
 {{/let}}
       </BlockSlot>

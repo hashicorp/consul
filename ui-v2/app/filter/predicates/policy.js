@@ -1,12 +1,9 @@
 import setHelpers from 'mnemonist/set';
 export default () => ({ dcs = [], types = [] }) => {
-  const typeIncludes = ['global-management', 'namespace-management', 'standard'].reduce(
-    (prev, item) => {
-      prev[item] = types.includes(item);
-      return prev;
-    },
-    {}
-  );
+  const typeIncludes = ['global-management', 'standard'].reduce((prev, item) => {
+    prev[item] = types.includes(item);
+    return prev;
+  }, {});
   const selectedDcs = new Set(dcs);
   return item => {
     let type = true;
@@ -16,10 +13,7 @@ export default () => ({ dcs = [], types = [] }) => {
       if (typeIncludes['global-management'] && item.isGlobalManagement) {
         type = true;
       }
-      if (typeIncludes['namespace-management'] && item.isNspaceManagement) {
-        type = true;
-      }
-      if (typeIncludes['standard'] && !item.isGlobalManagement && !item.isNspaceManagement) {
+      if (typeIncludes['standard'] && !item.isGlobalManagement) {
         type = true;
       }
     }

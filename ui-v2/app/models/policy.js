@@ -25,9 +25,6 @@ export default Model.extend({
   isGlobalManagement: computed('ID', function() {
     return this.ID === MANAGEMENT_ID;
   }),
-  isNspaceManagement: computed('ID', function() {
-    return this.ID === MANAGEMENT_ID;
-  }),
   Datacenter: attr('string'),
   Namespace: attr('string'),
   SyncTime: attr('number'),
