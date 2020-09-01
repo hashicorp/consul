@@ -1,0 +1,86 @@
+---
+layout: commands
+page_title: 'Commands: Namespace Create'
+sidebar_title: create
+---
+
+# Consul Namespace Create
+
+Command: `consul namespace create`
+
+<EnterpriseAlert />
+
+This `namespace create` command creates a namespaces using the CLI parameters provided.
+This was added in Consul Enterprise 1.7.2.
+
+## Usage
+
+Usage: `consul namespace create -name <namespace name> [options]`
+
+Request a namespace to be created. Construction of the namespace definition is handled by this command
+from the CLI arguments.
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
+
+#### Command Options
+
+- `-default-policy-id=<value>` - ID of a policy from the default namespace to inject for all tokens
+  in this namespace. May be specified multiple times.
+
+- `-default-policy-name=<value>` - Name of a policy from the default namespace to inject for all
+  tokens in this namespace. May be specified multiple times.
+
+- `-default-role-id=<value>` - ID of a role from the default namespace to inject for all tokens in
+  this namespace. May be specified multiple times.
+
+- `-default-role-name=<value>` - Name of a role from the default namespace to inject for all tokens
+  in this namespace. May be specified multiple times.
+
+- `-description=<string>` - A description of the namespace.
+
+- `-format=<string>` - How to output the results. The choices are: pretty or json
+
+- `-meta=<value>` - Metadata to set on the namespace, formatted as key=value. This flag
+  may be specified multiple times to set multiple meta fields
+
+- `-name=<string>` - The namespace's name. This flag is required.
+
+- `-show-meta` - Indicates that namespace metadata such as the raft indices should
+  be shown for the namespace
+
+## Examples
+
+Create a new Namespace:
+
+```shell-session
+$ consul namespace create -name "team-1"
+Name: team-1
+```
+
+Showing Raft Metadata:
+
+```shell-session
+$ consul namespace create -name team-1 -show-meta
+Name: team-1
+Create Index: 339
+Modify Index: 344
+```
+
+JSON Format:
+
+```shell-session
+$ consul namespace create -name team2 -description "Example Namespace" -meta "team-id=574407f3-8b26-4c84-8e51-028bb8cbdd37" -format=json
+{
+   "Name": "team2",
+   "Description": "Example Namespace",
+   "Meta": {
+      "team-id": "574407f3-8b26-4c84-8e51-028bb8cbdd37"
+   },
+   "CreateIndex": 352,
+   "ModifyIndex": 352
+}
+```

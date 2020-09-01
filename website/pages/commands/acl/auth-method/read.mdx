@@ -1,0 +1,51 @@
+---
+layout: commands
+page_title: 'Commands: ACL Auth Method Read'
+sidebar_title: read
+---
+
+# Consul ACL Auth Method Read
+
+Command: `consul acl auth-method read`
+
+The `acl auth-method read` command reads and displays an auth method's details.
+
+## Usage
+
+Usage: `consul acl auth-method read [options] [args]`
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
+
+#### Command Options
+
+- `-meta` - Indicates that auth method metadata such as the raft
+  indices should be shown for each entry.
+
+- `-name=<string>` - The name of the auth method to read.
+
+- `-format={pretty|json}` - Command output format. The default value is `pretty`.
+
+#### Enterprise Options
+
+@include 'http_api_namespace_options.mdx'
+
+## Examples
+
+Get auth method details:
+
+```shell-session
+$ consul acl auth-method read -name minikube
+Name:         minikube
+Type:         kubernetes
+Description:  minikube auth method
+Config:
+{
+  "CACert": "-----BEGIN CERTIFICATE-----\n...-----END CERTIFICATE-----\n",
+  "Host": "https://192.0.2.42:8443",
+  "ServiceAccountJWT": "eyJhbGciOiJSUzI1NiIsImtpZCI..."
+}
+```

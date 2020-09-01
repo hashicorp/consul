@@ -14,7 +14,7 @@ description: >-
 
 Consul datacenters running on non-kubernetes platforms like VMs or bare metal can
 be federated with Kubernetes datacenters. Just like with Kubernetes, one datacenter
-must be the [primary](/docs/k8s/installation/multi-cluster#primary-datacenter).
+must be the [primary](/docs/k8s/installation/multi-cluster/kubernetes#primary-datacenter).
 
 ## Kubernetes as the Primary
 
@@ -78,7 +78,7 @@ $ consul tls cert create -client
 ==> Saved dc1-client-consul-0-key.pem
 ```
 
-Or use the [auto_encrypt](/docs/agent/options.html#auto_encrypt) feature.
+Or use the [auto_encrypt](/docs/agent/options#auto_encrypt) feature.
 
 1. The WAN addresses of the mesh gateways:
 
@@ -175,7 +175,7 @@ ports {
 ## Kubernetes as the Secondary
 
 If you're running your primary datacenter on VMs then you'll need to manually
-construct the [Federation Secret](#federation-secret) in order to federate
+construct the [Federation Secret](/docs/k8s/installation/multi-cluster/kubernetes#federation-secret) in order to federate
 Kubernetes clusters as secondaries.
 
 -> Your VM cluster must be running mesh gateways, and have mesh gateway WAN

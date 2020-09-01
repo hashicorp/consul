@@ -17,9 +17,7 @@ are generally I/O bound for writes because the underlying Raft log store perform
 to disk every time an entry is appended. Servers are generally CPU bound for reads since
 reads work from a fully in-memory data store that is optimized for concurrent access.
 
-<a name="minimum"></a>
-
-## Minimum Server Requirements
+## Minimum Server Requirements ((#minimum))
 
 In Consul 0.7, the default server [performance parameters](/docs/agent/options#performance)
 were tuned to allow Consul to run reliably (but relatively slowly) on a server cluster of three
@@ -43,9 +41,7 @@ The default performance configuration is equivalent to this:
 }
 ```
 
-<a name="production"></a>
-
-## Production Server Requirements
+## Production Server Requirements ((#production))
 
 When running Consul 0.7 and later in production, it is recommended to configure the server
 [performance parameters](/docs/agent/options#performance) back to Consul's original
@@ -110,7 +106,7 @@ Here are some general recommendations:
   and CPU until leader elections stabilize, and in Consul 0.7 or later the [performance
   parameters](/docs/agent/options#performance) configuration now gives you tools
   to trade off performance instead of upsizing servers. You can use the [`consul.raft.leader.lastContact`
-  telemetry](/docs/agent/telemetry#last-contact) to observe how the Raft timing is
+  telemetry](/docs/agent/telemetry#leadership-changes) to observe how the Raft timing is
   performing and guide the decision to de-tune Raft performance or add more powerful
   servers.
 
@@ -157,7 +153,9 @@ Consul is write limited by disk I/O and read limited by CPU. Memory requirements
 
 For **write-heavy** workloads, the total RAM available for overhead must approximately be equal to
 
-    RAM NEEDED = number of keys * average key size * 2-3x
+```
+RAM NEEDED = number of keys * average key size * 2-3x
+```
 
 Since writes must be synced to disk (persistent storage) on a quorum of servers before they are committed, deploying a disk with high write throughput (or an SSD) will enhance performance on the write side. ([Documentation](/docs/agent/options#_data_dir))
 
