@@ -1,4 +1,5 @@
 import service from 'consul-ui/sort/comparators/service';
+import serviceInstance from 'consul-ui/sort/comparators/service-instance';
 import kv from 'consul-ui/sort/comparators/kv';
 import check from 'consul-ui/sort/comparators/check';
 import intention from 'consul-ui/sort/comparators/intention';
@@ -13,6 +14,7 @@ export function initialize(container) {
   const Sort = container.resolveRegistration('service:sort');
   const comparators = {
     service: service(),
+    serviceInstance: serviceInstance(),
     kv: kv(),
     check: check(),
     intention: intention(),
