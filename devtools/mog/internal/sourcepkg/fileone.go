@@ -24,7 +24,8 @@ func ExportedFunction() *Sample {
 type Sample struct {
 	unexportedField bool
 
-	BoolField   bool
+	BoolField bool
+	// mog: target=StringPtrField
 	StringField string
 	IntField    int
 	MapField    map[string]string

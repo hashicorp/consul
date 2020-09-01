@@ -18,10 +18,11 @@ type structConfig struct {
 }
 
 type fieldConfig struct {
-	Source   *ast.Field
-	Name     string
-	FuncFrom string
-	FuncTo   string
+	SourceName string
+	SourceType ast.Expr
+	TargetName string
+	FuncFrom   string
+	FuncTo     string
 	// TODO: Pointer pointerSettings
 }
 
@@ -97,5 +98,51 @@ func parseStructAnnotation(name string, doc []*ast.Comment) (structConfig, error
 
 func parseFieldAnnotation(field *ast.Field) (fieldConfig, error) {
 	var c fieldConfig
+
+	if len(field.Names) == 0 {
+		return c, fmt.Errorf("no field name for type %v", field.Type)
+	}
+	c.SourceName = field.Names[0].Name
+	c.SourceType = field.Type
+
+	text := getFieldAnnotationLine(field.Doc)
+	if text == "" {
+		return c, nil
+	}
+
+	for _, part := range strings.Fields(text) {
+		kv := strings.Split(part, "=")
+		if len(kv) != 2 {
+			return c, fmt.Errorf("invalid term '%v' in annotation, expected only one =", part)
+		}
+		value := kv[1]
+		switch kv[0] {
+		case "target":
+			c.TargetName = value
+		case "pointer":
+			// TODO:
+		case "func-from":
+			c.FuncFrom = value
+		case "func-to":
+			c.FuncTo = value
+		default:
+			return c, fmt.Errorf("invalid annotation key %v in term '%v'", kv[0], part)
+		}
+	}
 	return c, nil
+}
+
+func getFieldAnnotationLine(doc *ast.CommentGroup) string {
+	if doc == nil {
+		return ""
+	}
+
+	prefix := "mog: "
+	for _, line := range doc.List {
+		text := strings.TrimSpace(strings.TrimLeft(line.Text, "/"))
+		if strings.HasPrefix(text, prefix) {
+			return strings.TrimSpace(strings.TrimPrefix(text, prefix))
+		}
+	}
+	return ""
 }

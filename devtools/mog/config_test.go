@@ -133,3 +133,33 @@ func TestParseStructAnnotation_Errors(t *testing.T) {
 		})
 	}
 }
+
+func TestParseFieldAnnotation_Full(t *testing.T) {
+	comment := `// Some field
+// mog: target=ID pointer=zero-is-nil,copy func-from=string func-to=types.ID`
+
+	field := &ast.Field{
+		Doc:   &ast.CommentGroup{List: newCommentList(comment)},
+		Names: []*ast.Ident{{Name: "Some"}},
+		Type:  &ast.Ident{Name: "string"},
+	}
+	cfg, err := parseFieldAnnotation(field)
+	require.NoError(t, err)
+	expected := fieldConfig{
+		SourceName: "Some",
+		SourceType: field.Type,
+		TargetName: "ID",
+		FuncFrom:   "string",
+		FuncTo:     "types.ID",
+		// TODO: pointer settings
+	}
+	require.Equal(t, expected, cfg)
+}
+
+// TODO: no leading comment
+// TODO: extra newlines before annotation
+// TODO: extra lines after annotation
+// TODO: no docstring
+// TODO: anonymous field?
+// TODO: invalid term (too many =, missing =)
+// TODO: invalid key in term
