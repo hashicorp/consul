@@ -15,9 +15,15 @@ The `intention create` command creates or updates an intention.
 Usage: `consul intention create [options] SRC DST`
 Usage: `consul intention create [options] -f FILE...`
 
+`SRC` and `DST` can both take [several forms](/docs/commands/intention#source-and-destination-naming).
+
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
+#### Enterprise Options
+
+@include 'http_api_namespace_options.mdx'
 
 #### Intention Create Options
 
@@ -39,18 +45,18 @@ Usage: `consul intention create [options] -f FILE...`
 
 Create an intention `web => db`:
 
-```shell
+```shell-session
 $ consul intention create web db
 ```
 
 Create intentions from a set of files:
 
-```shell
+```shell-session
 $ consul intention create -file one.json two.json
 ```
 
 Create intentions from a directory using shell expansion:
 
-```shell
+```shell-session
 $ consul intention create -file intentions/*.json
 ```
