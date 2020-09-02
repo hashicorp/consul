@@ -89,17 +89,20 @@ func (c *changeTrackerDB) publish(changes Changes) error {
 	return nil
 }
 
-// WriteTxnRestore returns a wrapped RW transaction that does NOT have change
-// tracking enabled. This should only be used in Restore where we need to
-// replace the entire contents of the Store without a need to track the changes.
-// WriteTxnRestore uses a zero index since the whole restore doesn't really occur
-// at one index - the effect is to write many values that were previously
+// WriteTxnRestore returns a wrapped RW transaction that should only be used in
+// Restore where we need to replace the entire contents of the Store.
+// WriteTxnRestore uses a zero index since the whole restore doesn't really
+// occur at one index - the effect is to write many values that were previously
 // written across many indexes.
 func (c *changeTrackerDB) WriteTxnRestore() *txn {
-	return &txn{
+	t := &txn{
 		Txn:   c.db.Txn(true),
 		Index: 0,
 	}
+
+	// We enable change tracking so that usage data is correctly populated.
+	t.Txn.TrackChanges()
+	return t
 }
 
 // txn wraps a memdb.Txn to capture changes and send them to the EventPublisher.
@@ -125,14 +128,21 @@ type txn struct {
 // by the caller. A non-nil error indicates that a commit failed and was not
 // applied.
 func (tx *txn) Commit() error {
+	changes := Changes{
+		Index:   tx.Index,
+		Changes: tx.Txn.Changes(),
+	}
+
+	if len(changes.Changes) > 0 {
+		if err := updateUsage(tx, changes); err != nil {
+			return err
+		}
+	}
+
 	// publish may be nil if this is a read-only or WriteTxnRestore transaction.
 	// In those cases changes should also be empty, and there will be nothing
 	// to publish.
 	if tx.publish != nil {
-		changes := Changes{
-			Index:   tx.Index,
-			Changes: tx.Txn.Changes(),
-		}
 		if err := tx.publish(changes); err != nil {
 			return err
 		}
