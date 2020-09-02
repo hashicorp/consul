@@ -7,6 +7,8 @@ import LearnCallout from '../../components/learn-callout'
 import CaseStudyCarousel from '../../components/case-study-carousel'
 import ProductFeaturesList from '@hashicorp/react-product-features-list'
 
+console.log('test')
+
 export default function HomePage() {
   return (
     <div className="p-home">
@@ -209,32 +211,37 @@ export default function HomePage() {
         ]}
       />
 
-      <section id="cloud-offerings" className="cloud-offerings g-grid-container">
-        <h2 className="g-type-display-2">Learn more about Consul cloud offerings</h2>
+      <section
+        id="cloud-offerings"
+        className="cloud-offerings g-grid-container"
+      >
+        <h2 className="g-type-display-2">
+          Learn more about Consul cloud offerings
+        </h2>
         <CloudOfferingsList
           offerings={[
             {
               image: require('./img/cloud/hcs.jpg?url'),
-              eyebrow: "General Availability",
-              title: "HashiCorp Consul Service on Azure",
-              description: "Native Azure Experience",
+              eyebrow: 'General Availability',
+              title: 'HashiCorp Consul Service on Azure',
+              description: 'Native Azure Experience',
               link: {
-                text: "Get Started",
-                url: "https://learn.hashicorp.com/consul/hcs-azure/deploy",
-                type: "outbound"
-              }
+                text: 'Get Started',
+                url: 'https://learn.hashicorp.com/consul/hcs-azure/deploy',
+                type: 'outbound',
+              },
             },
             {
               image: require('./img/cloud/hcp.jpg?url'),
-              eyebrow: "Private Beta",
-              title: "HCP Consul on AWS",
-              description: "HashiCorp Cloud Platform",
+              eyebrow: 'Private Beta',
+              title: 'HCP Consul on AWS',
+              description: 'HashiCorp Cloud Platform',
               link: {
-                text: "Request Access",
-                url: "https://www.hashicorp.com/cloud-platform/request-access/",
-                type: "outbound"
-              }
-            }
+                text: 'Request Access',
+                url: 'https://www.hashicorp.com/cloud-platform/request-access/',
+                type: 'outbound',
+              },
+            },
           ]}
         />
       </section>
