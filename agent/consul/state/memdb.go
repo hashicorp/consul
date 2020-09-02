@@ -15,6 +15,13 @@ type ReadTxn interface {
 	Abort()
 }
 
+// WriteTxn is implemented by memdb.Txn to perform write operations.
+type WriteTxn interface {
+	ReadTxn
+	Insert(table string, obj interface{}) error
+	Commit() error
+}
+
 // Changes wraps a memdb.Changes to include the index at which these changes
 // were made.
 type Changes struct {

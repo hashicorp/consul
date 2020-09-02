@@ -12,7 +12,7 @@ type EnterpriseServiceUsage struct{}
 
 func addEnterpriseUsage(map[string]int, memdb.Change) {}
 
-func (s *Store) compileServiceUsage(tx *txn, totalInstances int) (ServiceUsage, error) {
+func compileServiceUsage(tx ReadTxn, totalInstances int) (ServiceUsage, error) {
 	var totalServices int
 	results, err := tx.Get(
 		"index",

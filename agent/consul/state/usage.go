@@ -37,7 +37,7 @@ type UsageEntry struct {
 
 // updateUsage takes a set of memdb changes and computes a delta for specific
 // usage metrics that we track.
-func updateUsage(tx *txn, changes Changes) error {
+func updateUsage(tx WriteTxn, changes Changes) error {
 	usageDeltas := make(map[string]int)
 	for _, change := range changes.Changes {
 		var delta int
@@ -140,7 +140,7 @@ func (s *Store) ServiceUsage() (uint64, ServiceUsage, error) {
 		return 0, ServiceUsage{}, fmt.Errorf("failed services lookup: %s", err)
 	}
 
-	results, err := s.compileServiceUsage(tx, usage.Count)
+	results, err := compileServiceUsage(tx, usage.Count)
 	if err != nil {
 		return 0, ServiceUsage{}, fmt.Errorf("failed services lookup: %s", err)
 	}
@@ -148,7 +148,7 @@ func (s *Store) ServiceUsage() (uint64, ServiceUsage, error) {
 	return usage.Index, results, nil
 }
 
-func firstUsageEntry(tx *txn, id string) (*UsageEntry, error) {
+func firstUsageEntry(tx ReadTxn, id string) (*UsageEntry, error) {
 	usage, err := tx.First("usage", "id", id)
 	if err != nil {
 		return nil, err
