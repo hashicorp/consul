@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"go/ast"
 	"go/format"
 	"go/token"
 	"go/types"
@@ -77,11 +78,12 @@ func TestGenerateConversion(t *testing.T) {
 	gen, err := generateConversion(c, target)
 	assert.NilError(t, err)
 
-	buf := new(bytes.Buffer)
-	err = format.Node(buf, new(token.FileSet), gen.To)
-	assert.NilError(t, err)
+	file := &ast.File{Name: &ast.Ident{Name: "src"}}
+	file.Decls = append(file.Decls, importDeclFromImports(gen.Imports))
+	file.Decls = append(file.Decls, gen.To, gen.From)
 
-	err = format.Node(buf, new(token.FileSet), gen.From)
+	buf := new(bytes.Buffer)
+	err = format.Node(buf, new(token.FileSet), file)
 	assert.NilError(t, err)
 
 	golden.Assert(t, buf.String(), t.Name()+"-expected")

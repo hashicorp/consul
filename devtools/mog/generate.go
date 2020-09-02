@@ -13,10 +13,10 @@ import (
 
 func generateFiles(cfg config, targets map[string]targetPkg) error {
 	byOutput := configsByOutput(cfg.Structs)
-	for _, group := range byOutput {
-		output := filepath.Join(cfg.SourcePkg.Path, group[0].Output)
-		file := newASTFile(cfg.SourcePkg.Name)
 
+	for _, group := range byOutput {
+		var decls []ast.Decl
+		var imports []*ast.ImportSpec
 		for _, cfg := range group {
 			t := targets[cfg.Target.Package].Structs[cfg.Target.Struct]
 			if t.Name == "" {
@@ -27,10 +27,21 @@ func generateFiles(cfg config, targets map[string]targetPkg) error {
 			if err != nil {
 				return fmt.Errorf("failed to generate conversion for %v: %w", cfg.Source, err)
 			}
-			file.Decls = append(file.Decls, gen.To, gen.From)
+			decls = append(decls, gen.To, gen.From)
+			imports = append(imports, gen.Imports...)
 
 			// TODO: generate tests
 		}
+
+		output := filepath.Join(cfg.SourcePkg.Path, group[0].Output)
+		file := &ast.File{Name: &ast.Ident{Name: cfg.SourcePkg.Name}}
+
+		// TODO: remove, probably not necessary
+		file.Imports = imports
+
+		// Add all imports as the first declaration
+		// TODO: dedupe imports, handle conflicts
+		file.Decls = append([]ast.Decl{importDeclFromImports(imports)}, decls...)
 
 		if err := writeFile(output, file); err != nil {
 			return fmt.Errorf("failed to write generated code to %v: %w", output, err)
@@ -66,13 +77,6 @@ func configsByOutput(cfgs []structConfig) [][]structConfig {
 		group = append(group, c)
 	}
 	return append(result, group)
-}
-
-func newASTFile(pkg string) *ast.File {
-	return &ast.File{
-		Name: &ast.Ident{Name: pkg},
-		// TODO: Imports:    nil, // what imports are needed?
-	}
 }
 
 var (
@@ -131,7 +135,17 @@ func generateConversion(cfg structConfig, t targetStruct) (generated, error) {
 	g.To = to
 	g.From = from
 
+	targetImport := &ast.ImportSpec{
+		Name: &ast.Ident{Name: path.Base(cfg.Target.Package)},
+		Path: &ast.BasicLit{Value: quote(cfg.Target.Package), Kind: token.STRING},
+	}
+	g.Imports = append(g.Imports, targetImport)
+
 	return g, nil
+}
+
+func quote(v string) string {
+	return `"` + v + `"`
 }
 
 func sourceFieldMap(fields []fieldConfig) map[string]fieldConfig {
@@ -147,9 +161,11 @@ func sourceFieldMap(fields []fieldConfig) map[string]fieldConfig {
 }
 
 type generated struct {
-	To            *ast.FuncDecl
-	From          *ast.FuncDecl
-	RoundTripTest *ast.FuncDecl
+	Imports []*ast.ImportSpec
+	To      *ast.FuncDecl
+	From    *ast.FuncDecl
+
+	// TODO: RoundTripTest *ast.FuncDecl
 }
 
 func generateToFunc(cfg structConfig) *ast.FuncDecl {
@@ -222,6 +238,14 @@ func generateFromFunc(cfg structConfig) *ast.FuncDecl {
 			},
 		},
 	}
+}
+
+func importDeclFromImports(i []*ast.ImportSpec) *ast.GenDecl {
+	decl := &ast.GenDecl{Tok: token.IMPORT}
+	for _, imprt := range i {
+		decl.Specs = append(decl.Specs, imprt)
+	}
+	return decl
 }
 
 // TODO: write build tags

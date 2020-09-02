@@ -31,7 +31,8 @@ type structDecl struct {
 	Fields []*ast.Field
 }
 
-func (p sourcePkg) Names() []string {
+// StructNames returns a sorted slice of all the structs in the package.
+func (p sourcePkg) StructNames() []string {
 	names := make([]string, 0, len(p.Structs))
 	for name := range p.Structs {
 		names = append(names, name)

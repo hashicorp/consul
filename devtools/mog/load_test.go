@@ -12,7 +12,7 @@ import (
 func TestLoadSourceStructs(t *testing.T) {
 	actual, err := loadSourceStructs("./internal/sourcepkg")
 	require.NoError(t, err)
-	require.Equal(t, []string{"GroupedSample", "Sample"}, actual.Names())
+	require.Equal(t, []string{"GroupedSample", "Sample"}, actual.StructNames())
 	_, ok := actual.Structs["Sample"]
 	require.True(t, ok)
 	_, ok = actual.Structs["GroupedSample"]

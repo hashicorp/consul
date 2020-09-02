@@ -15,6 +15,7 @@ func TestE2E(t *testing.T) {
 		t.Skip("e2e test too slow for -short")
 	}
 
+	sourcepkg := "./internal/e2e/sourcepkg"
 	// Cleanup the generated file when the test ends. The source must be a
 	// loadable Go package, so it can not be easily generated into a temporary
 	// directory.
@@ -23,12 +24,12 @@ func TestE2E(t *testing.T) {
 		os.Remove(output)
 	})
 
-	args := []string{"mog", "-source=./internal/e2e/sourcepkg"}
+	args := []string{"mog", "-source", sourcepkg}
 	err := run(args)
 	assert.NilError(t, err)
 
 	// go vet the file to check that it is valid Go syntax
-	icmd.RunCommand("go", "vet", output).Assert(t, icmd.Success)
+	icmd.RunCommand("go", "vet", sourcepkg).Assert(t, icmd.Success)
 
 	actual, err := ioutil.ReadFile(output)
 	assert.NilError(t, err)

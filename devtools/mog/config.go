@@ -52,7 +52,7 @@ type fieldConfig struct {
 }
 
 func configsFromAnnotations(pkg sourcePkg) (config, error) {
-	names := pkg.Names()
+	names := pkg.StructNames()
 	c := config{Structs: make([]structConfig, 0, len(names))}
 	c.SourcePkg = pkg
 
