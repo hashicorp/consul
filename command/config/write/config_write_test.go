@@ -161,6 +161,10 @@ func TestParseConfigEntry(t *testing.T) {
 			snake: `
 				kind = "proxy-defaults"
 				name = "main"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
 				config {
 				  "foo" = 19
 				  "bar" = "abc"
@@ -175,6 +179,10 @@ func TestParseConfigEntry(t *testing.T) {
 			camel: `
 				Kind = "proxy-defaults"
 				Name = "main"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
 				Config {
 				  "foo" = 19
 				  "bar" = "abc"
@@ -190,6 +198,10 @@ func TestParseConfigEntry(t *testing.T) {
 			{
 				"kind": "proxy-defaults",
 				"name": "main",
+				"meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
 				"config": {
 					"foo": 19,
 					"bar": "abc",
@@ -206,6 +218,10 @@ func TestParseConfigEntry(t *testing.T) {
 			{
 				"Kind": "proxy-defaults",
 				"Name": "main",
+				"Meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
 				"Config": {
 					"foo": 19,
 					"bar": "abc",
@@ -221,6 +237,10 @@ func TestParseConfigEntry(t *testing.T) {
 			expect: &api.ProxyConfigEntry{
 				Kind: "proxy-defaults",
 				Name: "main",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
 				Config: map[string]interface{}{
 					"foo": 19,
 					"bar": "abc",
@@ -235,6 +255,10 @@ func TestParseConfigEntry(t *testing.T) {
 			expectJSON: &api.ProxyConfigEntry{
 				Kind: "proxy-defaults",
 				Name: "main",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
 				Config: map[string]interface{}{
 					"foo": float64(19), // json decoding gives float64 instead of int here
 					"bar": "abc",
@@ -253,6 +277,10 @@ func TestParseConfigEntry(t *testing.T) {
 				kind = "terminating-gateway"
 				name = "terminating-gw-west"
 				namespace = "default"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
 				services = [
 				  {
 					name = "billing"
@@ -272,6 +300,10 @@ func TestParseConfigEntry(t *testing.T) {
 				Kind = "terminating-gateway"
 				Name = "terminating-gw-west"
 				Namespace = "default"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
 				Services = [
 				  {
 					Name = "billing"
@@ -292,6 +324,10 @@ func TestParseConfigEntry(t *testing.T) {
 				"kind": "terminating-gateway",
 				"name": "terminating-gw-west",
 				"namespace": "default",
+				"meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
 				"services": [
 				  {
 					"name": "billing",
@@ -313,6 +349,10 @@ func TestParseConfigEntry(t *testing.T) {
 				"Kind": "terminating-gateway",
 				"Name": "terminating-gw-west",
 				"Namespace": "default",
+				"Meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
 				"Services": [
 				  {
 					"Name": "billing",
@@ -333,6 +373,10 @@ func TestParseConfigEntry(t *testing.T) {
 				Kind:      "terminating-gateway",
 				Name:      "terminating-gw-west",
 				Namespace: "default",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
 				Services: []api.LinkedService{
 					{
 						Name:      "billing",
@@ -352,6 +396,10 @@ func TestParseConfigEntry(t *testing.T) {
 				Kind:      "terminating-gateway",
 				Name:      "terminating-gw-west",
 				Namespace: "default",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
 				Services: []api.LinkedService{
 					{
 						Name:      "billing",
@@ -373,6 +421,10 @@ func TestParseConfigEntry(t *testing.T) {
 			snake: `
 				kind = "service-defaults"
 				name = "main"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
 				protocol = "http"
 				external_sni = "abc-123"
 				mesh_gateway {
@@ -382,6 +434,10 @@ func TestParseConfigEntry(t *testing.T) {
 			camel: `
 				Kind = "service-defaults"
 				Name = "main"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
 				Protocol = "http"
 				ExternalSNI = "abc-123"
 				MeshGateway {
@@ -392,6 +448,10 @@ func TestParseConfigEntry(t *testing.T) {
 			{
 				"kind": "service-defaults",
 				"name": "main",
+				"meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
 				"protocol": "http",
 				"external_sni": "abc-123",
 				"mesh_gateway": {
@@ -403,6 +463,10 @@ func TestParseConfigEntry(t *testing.T) {
 			{
 				"Kind": "service-defaults",
 				"Name": "main",
+				"Meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
 				"Protocol": "http",
 				"ExternalSNI": "abc-123",
 				"MeshGateway": {
@@ -411,8 +475,12 @@ func TestParseConfigEntry(t *testing.T) {
 			}
 			`,
 			expect: &api.ServiceConfigEntry{
-				Kind:        "service-defaults",
-				Name:        "main",
+				Kind: "service-defaults",
+				Name: "main",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
 				Protocol:    "http",
 				ExternalSNI: "abc-123",
 				MeshGateway: api.MeshGatewayConfig{
@@ -425,6 +493,10 @@ func TestParseConfigEntry(t *testing.T) {
 			snake: `
 				kind = "service-router"
 				name = "main"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
 				routes = [
 					{
 						match {
@@ -504,6 +576,10 @@ func TestParseConfigEntry(t *testing.T) {
 			camel: `
 				Kind = "service-router"
 				Name = "main"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
 				Routes = [
 					{
 						Match {
@@ -584,6 +660,10 @@ func TestParseConfigEntry(t *testing.T) {
 			{
 				"kind": "service-router",
 				"name": "main",
+				"meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
 				"routes": [
 					{
 						"match": {
@@ -671,6 +751,10 @@ func TestParseConfigEntry(t *testing.T) {
 			{
 				"Kind": "service-router",
 				"Name": "main",
+				"Meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
 				"Routes": [
 					{
 						"Match": {
@@ -757,6 +841,10 @@ func TestParseConfigEntry(t *testing.T) {
 			expect: &api.ServiceRouterConfigEntry{
 				Kind: "service-router",
 				Name: "main",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
 				Routes: []api.ServiceRoute{
 					{
 						Match: &api.ServiceRouteMatch{
@@ -839,6 +927,10 @@ func TestParseConfigEntry(t *testing.T) {
 			snake: `
 				kind = "service-splitter"
 				name = "main"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
 				splits = [
 				  {
 					weight        = 97.1
@@ -858,6 +950,10 @@ func TestParseConfigEntry(t *testing.T) {
 			camel: `
 				Kind = "service-splitter"
 				Name = "main"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
 				Splits = [
 				  {
 					Weight        = 97.1
@@ -878,6 +974,10 @@ func TestParseConfigEntry(t *testing.T) {
 			{
 				"kind": "service-splitter",
 				"name": "main",
+				"meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
 				"splits": [
 					{
 						"weight": 97.1,
@@ -899,6 +999,10 @@ func TestParseConfigEntry(t *testing.T) {
 			{
 				"Kind": "service-splitter",
 				"Name": "main",
+				"Meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
 				"Splits": [
 					{
 						"Weight": 97.1,
@@ -919,6 +1023,10 @@ func TestParseConfigEntry(t *testing.T) {
 			expect: &api.ServiceSplitterConfigEntry{
 				Kind: api.ServiceSplitter,
 				Name: "main",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
 				Splits: []api.ServiceSplit{
 					{
 						Weight:        97.1,
@@ -941,6 +1049,10 @@ func TestParseConfigEntry(t *testing.T) {
 			snake: `
 				kind = "service-resolver"
 				name = "main"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
 				default_subset = "v1"
 				connect_timeout = "15s"
 				subsets = {
@@ -966,6 +1078,10 @@ func TestParseConfigEntry(t *testing.T) {
 			camel: `
 				Kind = "service-resolver"
 				Name = "main"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
 				DefaultSubset = "v1"
 				ConnectTimeout = "15s"
 				Subsets = {
@@ -992,6 +1108,10 @@ func TestParseConfigEntry(t *testing.T) {
 			{
 				"kind": "service-resolver",
 				"name": "main",
+				"meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
 				"default_subset": "v1",
 				"connect_timeout": "15s",
 				"subsets": {
@@ -1025,6 +1145,10 @@ func TestParseConfigEntry(t *testing.T) {
 			{
 				"Kind": "service-resolver",
 				"Name": "main",
+				"Meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
 				"DefaultSubset": "v1",
 				"ConnectTimeout": "15s",
 				"Subsets": {
@@ -1055,8 +1179,12 @@ func TestParseConfigEntry(t *testing.T) {
 			}
 			`,
 			expect: &api.ServiceResolverConfigEntry{
-				Kind:           "service-resolver",
-				Name:           "main",
+				Kind: "service-resolver",
+				Name: "main",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
 				DefaultSubset:  "v1",
 				ConnectTimeout: 15 * time.Second,
 				Subsets: map[string]api.ServiceResolverSubset{
@@ -1390,6 +1518,10 @@ func TestParseConfigEntry(t *testing.T) {
 			snake: `
 				kind = "ingress-gateway"
 				name = "ingress-web"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
 				tls {
 					enabled = true
 				}
@@ -1413,6 +1545,10 @@ func TestParseConfigEntry(t *testing.T) {
 			camel: `
 				Kind = "ingress-gateway"
 				Name = "ingress-web"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
 				Tls {
 					Enabled = true
 				}
@@ -1437,6 +1573,10 @@ func TestParseConfigEntry(t *testing.T) {
 			{
 				"kind": "ingress-gateway",
 				"name": "ingress-web",
+				"meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
 				"tls": {
 					"enabled": true
 				},
@@ -1462,6 +1602,10 @@ func TestParseConfigEntry(t *testing.T) {
 			{
 				"Kind": "ingress-gateway",
 				"Name": "ingress-web",
+				"Meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
 				"Tls": {
 					"Enabled": true
 				},
@@ -1486,6 +1630,10 @@ func TestParseConfigEntry(t *testing.T) {
 			expect: &api.IngressGatewayConfigEntry{
 				Kind: "ingress-gateway",
 				Name: "ingress-web",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
 				TLS: api.GatewayTLSConfig{
 					Enabled: true,
 				},

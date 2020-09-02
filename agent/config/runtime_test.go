@@ -3436,6 +3436,10 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 						{
 							"kind": "service-defaults",
 							"name": "web",
+							"meta" : {
+								"foo": "bar",
+								"gir": "zim"
+							},
 							"protocol": "http",
 							"external_sni": "abc-123",
 							"mesh_gateway": {
@@ -3450,6 +3454,10 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 					bootstrap {
 						kind = "service-defaults"
 						name = "web"
+						meta {
+							"foo" = "bar"
+							"gir" = "zim"
+						}
 						protocol = "http"
 						external_sni = "abc-123"
 						mesh_gateway {
@@ -3461,8 +3469,12 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DataDir = dataDir
 				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
 					&structs.ServiceConfigEntry{
-						Kind:           structs.ServiceDefaults,
-						Name:           "web",
+						Kind: structs.ServiceDefaults,
+						Name: "web",
+						Meta: map[string]string{
+							"foo": "bar",
+							"gir": "zim",
+						},
 						EnterpriseMeta: *defaultEntMeta,
 						Protocol:       "http",
 						ExternalSNI:    "abc-123",
@@ -3482,6 +3494,10 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 						{
 							"Kind": "service-defaults",
 							"Name": "web",
+							"Meta" : {
+								"foo": "bar",
+								"gir": "zim"
+							},
 							"Protocol": "http",
 							"ExternalSNI": "abc-123",
 							"MeshGateway": {
@@ -3496,6 +3512,10 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 					bootstrap {
 						Kind = "service-defaults"
 						Name = "web"
+						Meta {
+							"foo" = "bar"
+							"gir" = "zim"
+						}
 						Protocol = "http"
 						ExternalSNI = "abc-123"
 						MeshGateway {
@@ -3507,8 +3527,12 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DataDir = dataDir
 				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
 					&structs.ServiceConfigEntry{
-						Kind:           structs.ServiceDefaults,
-						Name:           "web",
+						Kind: structs.ServiceDefaults,
+						Name: "web",
+						Meta: map[string]string{
+							"foo": "bar",
+							"gir": "zim",
+						},
 						EnterpriseMeta: *defaultEntMeta,
 						Protocol:       "http",
 						ExternalSNI:    "abc-123",
@@ -3528,6 +3552,10 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 						{
 							"kind": "service-router",
 							"name": "main",
+							"meta" : {
+								"foo": "bar",
+								"gir": "zim"
+							},
 							"routes": [
 								{
 									"match": {
@@ -3612,6 +3640,10 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 					bootstrap {
 						kind = "service-router"
 						name = "main"
+						meta {
+							"foo" = "bar"
+							"gir" = "zim"
+						}
 						routes = [
 							{
 								match {
@@ -3693,8 +3725,12 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DataDir = dataDir
 				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
 					&structs.ServiceRouterConfigEntry{
-						Kind:           structs.ServiceRouter,
-						Name:           "main",
+						Kind: structs.ServiceRouter,
+						Name: "main",
+						Meta: map[string]string{
+							"foo": "bar",
+							"gir": "zim",
+						},
 						EnterpriseMeta: *defaultEntMeta,
 						Routes: []structs.ServiceRoute{
 							{
