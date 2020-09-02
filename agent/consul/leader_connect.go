@@ -869,7 +869,7 @@ func retryLoopBackoffHandleSuccess(ctx context.Context, loopFn func() error, err
 			case <-timer.C:
 				continue
 			}
-		} else if err == nil && abortOnSuccess {
+		} else if abortOnSuccess {
 			return
 		}
 
