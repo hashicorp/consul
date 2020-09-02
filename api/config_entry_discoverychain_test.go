@@ -293,9 +293,11 @@ func TestAPI_ConfigEntry_ServiceResolver_LoadBalancer(t *testing.T) {
 				Kind:      ServiceResolver,
 				Name:      "test-least-req",
 				Namespace: defaultNamespace,
-				LoadBalancer: LoadBalancer{
-					Policy:             "least_request",
-					LeastRequestConfig: LeastRequestConfig{ChoiceCount: 10},
+				LoadBalancer: &LoadBalancer{
+					EnvoyLBConfig: &EnvoyLBConfig{
+						Policy:             "least_request",
+						LeastRequestConfig: &LeastRequestConfig{ChoiceCount: 10},
+					},
 				},
 			},
 			verify: verifyResolver,
@@ -306,20 +308,30 @@ func TestAPI_ConfigEntry_ServiceResolver_LoadBalancer(t *testing.T) {
 				Kind:      ServiceResolver,
 				Name:      "test-ring-hash",
 				Namespace: defaultNamespace,
-				LoadBalancer: LoadBalancer{
-					Policy: "ring_hash",
-					RingHashConfig: RingHashConfig{
-						MinimumRingSize: 1024 * 2,
-						MaximumRingSize: 1024 * 4,
-					},
-					HashPolicies: []HashPolicy{
-						{
-							Field:           "header",
-							FieldMatchValue: "my-session-header",
-							Terminal:        true,
+				LoadBalancer: &LoadBalancer{
+					EnvoyLBConfig: &EnvoyLBConfig{
+						Policy: "ring_hash",
+						RingHashConfig: &RingHashConfig{
+							MinimumRingSize: 1024 * 2,
+							MaximumRingSize: 1024 * 4,
 						},
-						{
-							SourceAddress: true,
+						HashPolicies: []HashPolicy{
+							{
+								Field:      "header",
+								FieldValue: "my-session-header",
+								Terminal:   true,
+							},
+							{
+								Field:      "cookie",
+								FieldValue: "oreo",
+								CookieConfig: &CookieConfig{
+									Path: "/tray",
+									TTL:  20 * time.Millisecond,
+								},
+							},
+							{
+								SourceIP: true,
+							},
 						},
 					},
 				},

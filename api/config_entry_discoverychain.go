@@ -140,7 +140,7 @@ type ServiceResolverConfigEntry struct {
 
 	// LoadBalancer determines the load balancing policy and configuration for services
 	// issuing requests to this upstream service.
-	LoadBalancer LoadBalancer `json:",omitempty" alias:"load_balancer"`
+	LoadBalancer *LoadBalancer `json:",omitempty" alias:"load_balancer"`
 
 	CreateIndex uint64
 	ModifyIndex uint64
@@ -209,14 +209,22 @@ type ServiceResolverFailover struct {
 // LoadBalancer determines the load balancing policy and configuration for services
 // issuing requests to this upstream service.
 type LoadBalancer struct {
+	// EnvoyLBConfig contains Envoy-specific load balancing configuration for this upstream
+	EnvoyLBConfig *EnvoyLBConfig `json:",omitempty" alias:"envoy_lb_config"`
+
+	// OpaqueConfig contains load balancing configuration opaque to Consul for 3rd party proxies
+	OpaqueConfig string `json:",omitempty" alias:"opaque_config"`
+}
+
+type EnvoyLBConfig struct {
 	// Policy is the load balancing policy used to select a host
 	Policy string `json:",omitempty"`
 
 	// RingHashConfig contains configuration for the "ring_hash" policy type
-	RingHashConfig RingHashConfig `json:",omitempty" alias:"ring_hash_config"`
+	RingHashConfig *RingHashConfig `json:",omitempty" alias:"ring_hash_config"`
 
 	// LeastRequestConfig contains configuration for the "least_request" policy type
-	LeastRequestConfig LeastRequestConfig `json:",omitempty" alias:"least_request_config"`
+	LeastRequestConfig *LeastRequestConfig `json:",omitempty" alias:"least_request_config"`
 
 	// HashPolicies is a list of hash policies to use for hashing load balancing algorithms.
 	// Hash policies are evaluated individually and combined such that identical lists
@@ -241,28 +249,37 @@ type LeastRequestConfig struct {
 	ChoiceCount uint32 `json:",omitempty" alias:"choice_count"`
 }
 
-// HashPolicy is a list of hash policies to use for hashing load balancing algorithms.
-// Hash policies are evaluated individually and combined such that identical lists
-// result in the same hash.
-// If no hash policies are present, or none are successfully evaluated,
-// then a random backend host will be selected.
+// HashPolicy defines which attributes will be hashed by hash-based LB algorithms
 type HashPolicy struct {
 	// Field is the attribute type to hash on.
 	// Must be one of "header","cookie", or "query_parameter".
 	// Cannot be specified along with SourceIP.
 	Field string `json:",omitempty"`
 
-	// FieldMatchValue is the value to hash.
+	// FieldValue is the value to hash.
 	// ie. header name, cookie name, URL query parameter name
 	// Cannot be specified along with SourceIP.
-	FieldMatchValue string `json:",omitempty" alias:"field_value"`
+	FieldValue string `json:",omitempty" alias:"field_value"`
 
-	// SourceAddress determines whether the hash should be of the source IP rather than of a field and field value.
-	// Cannot be specified along with Field and FieldMatchValue.
-	SourceAddress bool `json:",omitempty" alias:"source_address"`
+	// CookieConfig contains configuration for the "cookie" hash policy type.
+	CookieConfig *CookieConfig `json:",omitempty" alias:"cookie_config"`
+
+	// SourceIP determines whether the hash should be of the source IP rather than of a field and field value.
+	// Cannot be specified along with Field or FieldValue.
+	SourceIP bool `json:",omitempty" alias:"source_ip"`
 
 	// Terminal will short circuit the computation of the hash when multiple hash policies are present.
 	// If a hash is computed when a Terminal policy is evaluated,
 	// then that hash will be used and subsequent hash policies will be ignored.
 	Terminal bool `json:",omitempty"`
+}
+
+// CookieConfig contains configuration for the "cookie" hash policy type.
+// This is specified to have Envoy generate a cookie for a client on its first request.
+type CookieConfig struct {
+	// TTL for generated cookies
+	TTL time.Duration `json:",omitempty"`
+
+	// The path to set for the cookie
+	Path string `json:",omitempty"`
 }

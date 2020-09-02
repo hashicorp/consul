@@ -1274,25 +1274,27 @@ func setupTestVariationConfigEntriesAndSnapshot(
 			&structs.ServiceResolverConfigEntry{
 				Kind: structs.ServiceResolver,
 				Name: "db",
-				LoadBalancer: structs.LoadBalancer{
-					Policy: "ring_hash",
-					RingHashConfig: structs.RingHashConfig{
-						MinimumRingSize: 20,
-						MaximumRingSize: 30,
-					},
-					HashPolicies: []structs.HashPolicy{
-						{
-							Field:           "cookie",
-							FieldMatchValue: "chocolate-chip",
-							Terminal:        true,
+				LoadBalancer: &structs.LoadBalancer{
+					EnvoyLBConfig: &structs.EnvoyLBConfig{
+						Policy: "ring_hash",
+						RingHashConfig: &structs.RingHashConfig{
+							MinimumRingSize: 20,
+							MaximumRingSize: 30,
 						},
-						{
-							Field:           "header",
-							FieldMatchValue: "x-user-id",
-						},
-						{
-							SourceAddress: true,
-							Terminal:      true,
+						HashPolicies: []structs.HashPolicy{
+							{
+								Field:      "cookie",
+								FieldValue: "chocolate-chip",
+								Terminal:   true,
+							},
+							{
+								Field:      "header",
+								FieldValue: "x-user-id",
+							},
+							{
+								SourceIP: true,
+								Terminal: true,
+							},
 						},
 					},
 				},

@@ -109,7 +109,7 @@ type DiscoveryGraphNode struct {
 	Resolver *DiscoveryResolver `json:",omitempty"`
 
 	// shared by Type==resolver || Type==splitter
-	LoadBalancer LoadBalancer `json:",omitempty"`
+	LoadBalancer *LoadBalancer `json:",omitempty"`
 }
 
 func (s *DiscoveryGraphNode) IsRouter() bool {
