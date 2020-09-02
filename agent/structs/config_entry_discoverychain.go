@@ -30,6 +30,23 @@ const (
 	HashPolicyQueryParam = "query_parameter"
 )
 
+var (
+	validLBPolicies = map[string]bool{
+		"":                   true,
+		LBPolicyRandom:       true,
+		LBPolicyRoundRobin:   true,
+		LBPolicyLeastRequest: true,
+		LBPolicyRingHash:     true,
+		LBPolicyMaglev:       true,
+	}
+
+	validHashPolicies = map[string]bool{
+		HashPolicyHeader:     true,
+		HashPolicyCookie:     true,
+		HashPolicyQueryParam: true,
+	}
+)
+
 // ServiceRouterConfigEntry defines L7 (e.g. http) routing rules for a named
 // service exposed in Connect.
 //
@@ -828,15 +845,7 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 	if e.LoadBalancer != nil && e.LoadBalancer.EnvoyConfig != nil {
 		ec := e.LoadBalancer.EnvoyConfig
 
-		validPolicies := map[string]bool{
-			"":                   true,
-			LBPolicyRandom:       true,
-			LBPolicyRoundRobin:   true,
-			LBPolicyLeastRequest: true,
-			LBPolicyRingHash:     true,
-			LBPolicyMaglev:       true,
-		}
-		if ok := validPolicies[ec.Policy]; !ok {
+		if ok := validLBPolicies[ec.Policy]; !ok {
 			return fmt.Errorf("Bad LoadBalancer policy: %q is not supported", ec.Policy)
 		}
 
@@ -853,15 +862,11 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 				"HashPolicies specified for non-hash-based Policy: %q", ec.Policy)
 		}
 
-		validFields := map[string]bool{
-			HashPolicyHeader:     true,
-			HashPolicyCookie:     true,
-			HashPolicyQueryParam: true,
-		}
 		for i, hp := range ec.HashPolicies {
-			if ok := validFields[hp.Field]; hp.Field != "" && !ok {
+			if ok := validHashPolicies[hp.Field]; hp.Field != "" && !ok {
 				return fmt.Errorf("Bad LoadBalancer HashPolicy[%d]: %q is not a supported field", i, hp.Field)
 			}
+
 			if hp.SourceIP && hp.Field != "" {
 				return fmt.Errorf("Bad LoadBalancer HashPolicy[%d]: "+
 					"A single hash policy cannot hash both a source address and a %q", i, hp.Field)
