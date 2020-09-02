@@ -21,6 +21,8 @@ type IngressGatewayConfigEntry struct {
 	// what services to associated to those ports.
 	Listeners []IngressListener
 
+	Meta map[string]string `json:",omitempty"`
+
 	// CreateIndex is the Raft index this entry was created at. This is a
 	// read-only field.
 	CreateIndex uint64
@@ -114,6 +116,8 @@ type TerminatingGatewayConfigEntry struct {
 
 	// Services is a list of service names represented by the terminating gateway.
 	Services []LinkedService `json:",omitempty"`
+
+	Meta map[string]string `json:",omitempty"`
 
 	// CreateIndex is the Raft index this entry was created at. This is a
 	// read-only field.
