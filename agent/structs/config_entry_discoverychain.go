@@ -3,7 +3,6 @@ package structs
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/golang/protobuf/ptypes"
 	"math"
 	"regexp"
 	"sort"
@@ -11,9 +10,6 @@ import (
 	"strings"
 	"time"
 
-	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoyroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/lib"
@@ -829,8 +825,8 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 		return fmt.Errorf("Bad ConnectTimeout '%s', must be >= 0", e.ConnectTimeout)
 	}
 
-	if e.LoadBalancer != nil && e.LoadBalancer.EnvoyLBConfig != nil {
-		ec := e.LoadBalancer.EnvoyLBConfig
+	if e.LoadBalancer != nil && e.LoadBalancer.EnvoyConfig != nil {
+		ec := e.LoadBalancer.EnvoyConfig
 
 		validPolicies := map[string]bool{
 			"":                   true,
@@ -1025,8 +1021,8 @@ type ServiceResolverFailover struct {
 // LoadBalancer determines the load balancing policy and configuration for services
 // issuing requests to this upstream service.
 type LoadBalancer struct {
-	// EnvoyLBConfig contains Envoy-specific load balancing configuration for this upstream
-	EnvoyLBConfig *EnvoyLBConfig `json:",omitempty" alias:"envoy_lb_config"`
+	// EnvoyConfig contains Envoy-specific load balancing configuration for this upstream
+	EnvoyConfig *EnvoyLBConfig `json:",omitempty" alias:"envoy_config"`
 
 	// OpaqueConfig contains load balancing configuration opaque to Consul for 3rd party proxies
 	OpaqueConfig string `json:",omitempty" alias:"opaque_config"`
@@ -1111,111 +1107,6 @@ func (ec *EnvoyLBConfig) IsHashBased() bool {
 	default:
 		return false
 	}
-}
-
-func (ec *EnvoyLBConfig) InjectToCluster(c *envoy.Cluster) error {
-	if ec == nil {
-		return nil
-	}
-
-	switch ec.Policy {
-	case "":
-		return nil
-	case LBPolicyLeastRequest:
-		c.LbPolicy = envoy.Cluster_LEAST_REQUEST
-
-		if ec.LeastRequestConfig != nil {
-			c.LbConfig = &envoy.Cluster_LeastRequestLbConfig_{
-				LeastRequestLbConfig: &envoy.Cluster_LeastRequestLbConfig{
-					ChoiceCount: &wrappers.UInt32Value{Value: ec.LeastRequestConfig.ChoiceCount},
-				},
-			}
-		}
-	case LBPolicyRoundRobin:
-		c.LbPolicy = envoy.Cluster_ROUND_ROBIN
-
-	case LBPolicyRandom:
-		c.LbPolicy = envoy.Cluster_RANDOM
-
-	case LBPolicyRingHash:
-		c.LbPolicy = envoy.Cluster_RING_HASH
-
-		if ec.RingHashConfig != nil {
-			c.LbConfig = &envoy.Cluster_RingHashLbConfig_{
-				RingHashLbConfig: &envoy.Cluster_RingHashLbConfig{
-					MinimumRingSize: &wrappers.UInt64Value{Value: ec.RingHashConfig.MinimumRingSize},
-					MaximumRingSize: &wrappers.UInt64Value{Value: ec.RingHashConfig.MaximumRingSize},
-				},
-			}
-		}
-	case LBPolicyMaglev:
-		c.LbPolicy = envoy.Cluster_MAGLEV
-
-	default:
-		return fmt.Errorf("unsupported load balancer policy %q for cluster %q", ec.Policy, c.Name)
-	}
-	return nil
-}
-
-func (ec *EnvoyLBConfig) InjectToRouteAction(action *envoyroute.RouteAction) error {
-	if ec == nil || !ec.IsHashBased() {
-		return nil
-	}
-
-	result := make([]*envoyroute.RouteAction_HashPolicy, 0, len(ec.HashPolicies))
-	for _, policy := range ec.HashPolicies {
-		if policy.SourceIP {
-			result = append(result, &envoyroute.RouteAction_HashPolicy{
-				PolicySpecifier: &envoyroute.RouteAction_HashPolicy_ConnectionProperties_{
-					ConnectionProperties: &envoyroute.RouteAction_HashPolicy_ConnectionProperties{
-						SourceIp: true,
-					},
-				},
-				Terminal: policy.Terminal,
-			})
-
-			continue
-		}
-
-		switch policy.Field {
-		case HashPolicyHeader:
-			result = append(result, &envoyroute.RouteAction_HashPolicy{
-				PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Header_{
-					Header: &envoyroute.RouteAction_HashPolicy_Header{
-						HeaderName: policy.FieldValue,
-					},
-				},
-				Terminal: policy.Terminal,
-			})
-		case HashPolicyCookie:
-			cookie := envoyroute.RouteAction_HashPolicy_Cookie{
-				Name: policy.FieldValue,
-			}
-			if policy.CookieConfig != nil {
-				cookie.Ttl = ptypes.DurationProto(policy.CookieConfig.TTL)
-				cookie.Path = policy.CookieConfig.Path
-			}
-			result = append(result, &envoyroute.RouteAction_HashPolicy{
-				PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{
-					Cookie: &cookie,
-				},
-				Terminal: policy.Terminal,
-			})
-		case HashPolicyQueryParam:
-			result = append(result, &envoyroute.RouteAction_HashPolicy{
-				PolicySpecifier: &envoyroute.RouteAction_HashPolicy_QueryParameter_{
-					QueryParameter: &envoyroute.RouteAction_HashPolicy_QueryParameter{
-						Name: policy.FieldValue,
-					},
-				},
-				Terminal: policy.Terminal,
-			})
-		default:
-			return fmt.Errorf("unsupported load balancer hash policy field: %v", policy.Field)
-		}
-	}
-	action.HashPolicy = result
-	return nil
 }
 
 type discoveryChainConfigEntry interface {

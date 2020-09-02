@@ -1172,7 +1172,7 @@ func TestParseConfigEntry(t *testing.T) {
 				kind = "service-resolver"
 				name = "main"
 				load_balancer = {
-					envoy_lb_config = {
+					envoy_config = {
 						policy = "ring_hash"
 						ring_hash_config = {
 							minimum_ring_size = 1
@@ -1235,7 +1235,7 @@ func TestParseConfigEntry(t *testing.T) {
 				"kind": "service-resolver",
 				"name": "main",
 				"load_balancer": {
-					"envoy_lb_config": {
+					"envoy_config": {
 						"policy": "ring_hash",
 						"ring_hash_config": {
 							"minimum_ring_size": 1,
@@ -1300,7 +1300,7 @@ func TestParseConfigEntry(t *testing.T) {
 				Kind: "service-resolver",
 				Name: "main",
 				LoadBalancer: &api.LoadBalancer{
-					EnvoyLBConfig: &api.EnvoyLBConfig{
+					EnvoyConfig: &api.EnvoyLBConfig{
 						Policy: structs.LBPolicyRingHash,
 						RingHashConfig: &api.RingHashConfig{
 							MinimumRingSize: 1,
@@ -1334,7 +1334,7 @@ func TestParseConfigEntry(t *testing.T) {
 				kind = "service-resolver"
 				name = "main"
 				load_balancer = {
-					envoy_lb_config = {
+					envoy_config = {
 						policy = "least_request"
 						least_request_config = {
 							choice_count = 2
@@ -1359,7 +1359,7 @@ func TestParseConfigEntry(t *testing.T) {
 				"kind": "service-resolver",
 				"name": "main",
 				"load_balancer": {
-					"envoy_lb_config": {
+					"envoy_config": {
 						"policy": "least_request",
 						"least_request_config": {
 							"choice_count": 2
@@ -1386,7 +1386,7 @@ func TestParseConfigEntry(t *testing.T) {
 				Kind: "service-resolver",
 				Name: "main",
 				LoadBalancer: &api.LoadBalancer{
-					EnvoyLBConfig: &api.EnvoyLBConfig{
+					EnvoyConfig: &api.EnvoyLBConfig{
 						Policy: structs.LBPolicyLeastRequest,
 						LeastRequestConfig: &api.LeastRequestConfig{
 							ChoiceCount: 2,

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
@@ -367,7 +368,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 							},
 						},
 						LoadBalancer: &structs.LoadBalancer{
-							EnvoyLBConfig: &structs.EnvoyLBConfig{
+							EnvoyConfig: &structs.EnvoyLBConfig{
 								Policy: "least_request",
 								LeastRequestConfig: &structs.LeastRequestConfig{
 									ChoiceCount: 5,
@@ -396,7 +397,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 							},
 						},
 						LoadBalancer: &structs.LoadBalancer{
-							EnvoyLBConfig: &structs.EnvoyLBConfig{
+							EnvoyConfig: &structs.EnvoyLBConfig{
 								Policy: "ring_hash",
 								RingHashConfig: &structs.RingHashConfig{
 									MinimumRingSize: 20,
@@ -609,7 +610,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 							},
 						},
 						LoadBalancer: &structs.LoadBalancer{
-							EnvoyLBConfig: &structs.EnvoyLBConfig{
+							EnvoyConfig: &structs.EnvoyLBConfig{
 								Policy: "ring_hash",
 								RingHashConfig: &structs.RingHashConfig{
 									MinimumRingSize: 20,
@@ -837,5 +838,88 @@ func setupTLSRootsAndLeaf(t *testing.T, snap *proxycfg.ConfigSnapshot) {
 	}
 	if snap.Roots != nil {
 		snap.Roots.Roots[0].RootCert = golden(t, "test-root-cert", "", "")
+	}
+}
+
+func TestEnvoyLBConfig_InjectToCluster(t *testing.T) {
+	var tests = []struct {
+		name     string
+		lb       *structs.EnvoyLBConfig
+		expected envoy.Cluster
+	}{
+		{
+			name: "skip empty",
+			lb: &structs.EnvoyLBConfig{
+				Policy: "",
+			},
+			expected: envoy.Cluster{},
+		},
+		{
+			name: "round robin",
+			lb: &structs.EnvoyLBConfig{
+				Policy: structs.LBPolicyRoundRobin,
+			},
+			expected: envoy.Cluster{LbPolicy: envoy.Cluster_ROUND_ROBIN},
+		},
+		{
+			name: "random",
+			lb: &structs.EnvoyLBConfig{
+				Policy: structs.LBPolicyRandom,
+			},
+			expected: envoy.Cluster{LbPolicy: envoy.Cluster_RANDOM},
+		},
+		{
+			name: "maglev",
+			lb: &structs.EnvoyLBConfig{
+				Policy: structs.LBPolicyMaglev,
+			},
+			expected: envoy.Cluster{LbPolicy: envoy.Cluster_MAGLEV},
+		},
+		{
+			name: "ring_hash",
+			lb: &structs.EnvoyLBConfig{
+				Policy: structs.LBPolicyRingHash,
+				RingHashConfig: &structs.RingHashConfig{
+					MinimumRingSize: 3,
+					MaximumRingSize: 7,
+				},
+			},
+			expected: envoy.Cluster{
+				LbPolicy: envoy.Cluster_RING_HASH,
+				LbConfig: &envoy.Cluster_RingHashLbConfig_{
+					RingHashLbConfig: &envoy.Cluster_RingHashLbConfig{
+						MinimumRingSize: &wrappers.UInt64Value{Value: 3},
+						MaximumRingSize: &wrappers.UInt64Value{Value: 7},
+					},
+				},
+			},
+		},
+		{
+			name: "least_request",
+			lb: &structs.EnvoyLBConfig{
+				Policy: "least_request",
+				LeastRequestConfig: &structs.LeastRequestConfig{
+					ChoiceCount: 3,
+				},
+			},
+			expected: envoy.Cluster{
+				LbPolicy: envoy.Cluster_LEAST_REQUEST,
+				LbConfig: &envoy.Cluster_LeastRequestLbConfig_{
+					LeastRequestLbConfig: &envoy.Cluster_LeastRequestLbConfig{
+						ChoiceCount: &wrappers.UInt32Value{Value: 3},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var c envoy.Cluster
+			err := injectLBToCluster(tc.lb, &c)
+			require.NoError(t, err)
+
+			require.Equal(t, tc.expected, c)
+		})
 	}
 }

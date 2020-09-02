@@ -3,14 +3,10 @@ package structs
 import (
 	"bytes"
 	"fmt"
-	"github.com/golang/protobuf/ptypes"
 	"strings"
 	"testing"
 	"time"
 
-	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoyroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/hashicorp/consul/acl"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -559,7 +555,7 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyLBConfig: &EnvoyLBConfig{Policy: ""},
+					EnvoyConfig: &EnvoyLBConfig{Policy: ""},
 				},
 			},
 		},
@@ -569,7 +565,7 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyLBConfig: &EnvoyLBConfig{Policy: LBPolicyRandom},
+					EnvoyConfig: &EnvoyLBConfig{Policy: LBPolicyRandom},
 				},
 			},
 		},
@@ -579,7 +575,7 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyLBConfig: &EnvoyLBConfig{Policy: "fake-policy"},
+					EnvoyConfig: &EnvoyLBConfig{Policy: "fake-policy"},
 				},
 			},
 			validateErr: `"fake-policy" is not supported`,
@@ -590,7 +586,7 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyLBConfig: &EnvoyLBConfig{
+					EnvoyConfig: &EnvoyLBConfig{
 						Policy:             LBPolicyRingHash,
 						LeastRequestConfig: &LeastRequestConfig{ChoiceCount: 10},
 					},
@@ -604,7 +600,7 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyLBConfig: &EnvoyLBConfig{
+					EnvoyConfig: &EnvoyLBConfig{
 						Policy:         LBPolicyLeastRequest,
 						RingHashConfig: &RingHashConfig{MinimumRingSize: 1024},
 					},
@@ -618,7 +614,7 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyLBConfig: &EnvoyLBConfig{
+					EnvoyConfig: &EnvoyLBConfig{
 						Policy:         LBPolicyRingHash,
 						RingHashConfig: &RingHashConfig{MinimumRingSize: 1024},
 					},
@@ -631,7 +627,7 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyLBConfig: &EnvoyLBConfig{
+					EnvoyConfig: &EnvoyLBConfig{
 						Policy:             LBPolicyLeastRequest,
 						LeastRequestConfig: &LeastRequestConfig{ChoiceCount: 2},
 					},
@@ -644,11 +640,11 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyLBConfig: &EnvoyLBConfig{Policy: ""},
+					EnvoyConfig: &EnvoyLBConfig{Policy: ""},
 				},
 			},
 			check: func(t *testing.T, entry *ServiceResolverConfigEntry) {
-				require.Equal(t, "", entry.LoadBalancer.EnvoyLBConfig.Policy)
+				require.Equal(t, "", entry.LoadBalancer.EnvoyConfig.Policy)
 			},
 		},
 		{
@@ -657,7 +653,7 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyLBConfig: &EnvoyLBConfig{
+					EnvoyConfig: &EnvoyLBConfig{
 						Policy: "",
 						HashPolicies: []HashPolicy{
 							{
@@ -675,7 +671,7 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyLBConfig: &EnvoyLBConfig{
+					EnvoyConfig: &EnvoyLBConfig{
 						Policy: LBPolicyMaglev,
 						HashPolicies: []HashPolicy{
 							{
@@ -698,7 +694,7 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyLBConfig: &EnvoyLBConfig{
+					EnvoyConfig: &EnvoyLBConfig{
 						Policy: LBPolicyMaglev,
 						HashPolicies: []HashPolicy{
 							{
@@ -720,7 +716,7 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyLBConfig: &EnvoyLBConfig{
+					EnvoyConfig: &EnvoyLBConfig{
 						Policy: LBPolicyMaglev,
 						HashPolicies: []HashPolicy{
 							{
@@ -738,7 +734,7 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyLBConfig: &EnvoyLBConfig{
+					EnvoyConfig: &EnvoyLBConfig{
 						Policy: LBPolicyMaglev,
 						HashPolicies: []HashPolicy{
 							{
@@ -756,7 +752,7 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyLBConfig: &EnvoyLBConfig{
+					EnvoyConfig: &EnvoyLBConfig{
 						Policy: LBPolicyMaglev,
 						HashPolicies: []HashPolicy{
 							{
@@ -775,7 +771,7 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyLBConfig: &EnvoyLBConfig{
+					EnvoyConfig: &EnvoyLBConfig{
 						Policy: LBPolicyMaglev,
 						HashPolicies: []HashPolicy{
 							{
@@ -794,7 +790,7 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyLBConfig: &EnvoyLBConfig{
+					EnvoyConfig: &EnvoyLBConfig{
 						Policy: LBPolicyMaglev,
 						HashPolicies: []HashPolicy{
 							{
@@ -812,7 +808,7 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyLBConfig: &EnvoyLBConfig{
+					EnvoyConfig: &EnvoyLBConfig{
 						Policy: LBPolicyMaglev,
 						HashPolicies: []HashPolicy{
 							{
@@ -830,7 +826,7 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyLBConfig: &EnvoyLBConfig{
+					EnvoyConfig: &EnvoyLBConfig{
 						Policy:         LBPolicyRingHash,
 						RingHashConfig: &RingHashConfig{MaximumRingSize: 10, MinimumRingSize: 2},
 						HashPolicies: []HashPolicy{
@@ -854,7 +850,7 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyLBConfig: &EnvoyLBConfig{
+					EnvoyConfig: &EnvoyLBConfig{
 						Policy:             LBPolicyLeastRequest,
 						LeastRequestConfig: &LeastRequestConfig{ChoiceCount: 20},
 					},
@@ -1524,268 +1520,4 @@ func TestIsProtocolHTTPLike(t *testing.T) {
 	assert.True(t, IsProtocolHTTPLike("http"))
 	assert.True(t, IsProtocolHTTPLike("http2"))
 	assert.True(t, IsProtocolHTTPLike("grpc"))
-}
-
-func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
-	var tests = []struct {
-		name     string
-		lb       *EnvoyLBConfig
-		expected envoyroute.RouteAction
-	}{
-		{
-			name: "empty",
-			lb: &EnvoyLBConfig{
-				Policy: "",
-			},
-			// we only modify route actions for hash-based LB policies
-			expected: envoyroute.RouteAction{},
-		},
-		{
-			name: "least request",
-			lb: &EnvoyLBConfig{
-				Policy: LBPolicyLeastRequest,
-				LeastRequestConfig: &LeastRequestConfig{
-					ChoiceCount: 3,
-				},
-			},
-			// we only modify route actions for hash-based LB policies
-			expected: envoyroute.RouteAction{},
-		},
-		{
-			name: "headers",
-			lb: &EnvoyLBConfig{
-				Policy: "ring_hash",
-				RingHashConfig: &RingHashConfig{
-					MinimumRingSize: 3,
-					MaximumRingSize: 7,
-				},
-				HashPolicies: []HashPolicy{
-					{
-						Field:      HashPolicyHeader,
-						FieldValue: "x-route-key",
-						Terminal:   true,
-					},
-				},
-			},
-			expected: envoyroute.RouteAction{
-				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
-					{
-						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Header_{
-							Header: &envoyroute.RouteAction_HashPolicy_Header{
-								HeaderName: "x-route-key",
-							},
-						},
-						Terminal: true,
-					},
-				},
-			},
-		},
-		{
-			name: "cookies",
-			lb: &EnvoyLBConfig{
-				Policy: LBPolicyMaglev,
-				HashPolicies: []HashPolicy{
-					{
-						Field:      HashPolicyCookie,
-						FieldValue: "red-velvet",
-						Terminal:   true,
-					},
-					{
-						Field:      HashPolicyCookie,
-						FieldValue: "oatmeal",
-					},
-				},
-			},
-			expected: envoyroute.RouteAction{
-				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
-					{
-						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{
-							Cookie: &envoyroute.RouteAction_HashPolicy_Cookie{
-								Name: "red-velvet",
-							},
-						},
-						Terminal: true,
-					},
-					{
-						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{
-							Cookie: &envoyroute.RouteAction_HashPolicy_Cookie{
-								Name: "oatmeal",
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "source addr",
-			lb: &EnvoyLBConfig{
-				Policy: LBPolicyMaglev,
-				HashPolicies: []HashPolicy{
-					{
-						SourceIP: true,
-						Terminal: true,
-					},
-				},
-			},
-			expected: envoyroute.RouteAction{
-				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
-					{
-						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_ConnectionProperties_{
-							ConnectionProperties: &envoyroute.RouteAction_HashPolicy_ConnectionProperties{
-								SourceIp: true,
-							},
-						},
-						Terminal: true,
-					},
-				},
-			},
-		},
-		{
-			name: "kitchen sink",
-			lb: &EnvoyLBConfig{
-				Policy: LBPolicyMaglev,
-				HashPolicies: []HashPolicy{
-					{
-						SourceIP: true,
-						Terminal: true,
-					},
-					{
-						Field:      HashPolicyCookie,
-						FieldValue: "oatmeal",
-						CookieConfig: &CookieConfig{
-							TTL:  10 * time.Second,
-							Path: "/oven",
-						},
-					},
-					{
-						Field:      HashPolicyHeader,
-						FieldValue: "special-header",
-						Terminal:   true,
-					},
-				},
-			},
-			expected: envoyroute.RouteAction{
-				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
-					{
-						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_ConnectionProperties_{
-							ConnectionProperties: &envoyroute.RouteAction_HashPolicy_ConnectionProperties{
-								SourceIp: true,
-							},
-						},
-						Terminal: true,
-					},
-					{
-						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{
-							Cookie: &envoyroute.RouteAction_HashPolicy_Cookie{
-								Name: "oatmeal",
-								Ttl:  ptypes.DurationProto(10 * time.Second),
-								Path: "/oven",
-							},
-						},
-					},
-					{
-						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Header_{
-							Header: &envoyroute.RouteAction_HashPolicy_Header{
-								HeaderName: "special-header",
-							},
-						},
-						Terminal: true,
-					},
-				},
-			},
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			var ra envoyroute.RouteAction
-			err := tc.lb.InjectToRouteAction(&ra)
-			require.NoError(t, err)
-
-			require.Equal(t, &tc.expected, &ra)
-		})
-	}
-}
-
-func TestEnvoyLBConfig_InjectToCluster(t *testing.T) {
-	var tests = []struct {
-		name     string
-		lb       *EnvoyLBConfig
-		expected envoy.Cluster
-	}{
-		{
-			name: "skip empty",
-			lb: &EnvoyLBConfig{
-				Policy: "",
-			},
-			expected: envoy.Cluster{},
-		},
-		{
-			name: "round robin",
-			lb: &EnvoyLBConfig{
-				Policy: LBPolicyRoundRobin,
-			},
-			expected: envoy.Cluster{LbPolicy: envoy.Cluster_ROUND_ROBIN},
-		},
-		{
-			name: "random",
-			lb: &EnvoyLBConfig{
-				Policy: LBPolicyRandom,
-			},
-			expected: envoy.Cluster{LbPolicy: envoy.Cluster_RANDOM},
-		},
-		{
-			name: "maglev",
-			lb: &EnvoyLBConfig{
-				Policy: LBPolicyMaglev,
-			},
-			expected: envoy.Cluster{LbPolicy: envoy.Cluster_MAGLEV},
-		},
-		{
-			name: "ring_hash",
-			lb: &EnvoyLBConfig{
-				Policy: LBPolicyRingHash,
-				RingHashConfig: &RingHashConfig{
-					MinimumRingSize: 3,
-					MaximumRingSize: 7,
-				},
-			},
-			expected: envoy.Cluster{
-				LbPolicy: envoy.Cluster_RING_HASH,
-				LbConfig: &envoy.Cluster_RingHashLbConfig_{
-					RingHashLbConfig: &envoy.Cluster_RingHashLbConfig{
-						MinimumRingSize: &wrappers.UInt64Value{Value: 3},
-						MaximumRingSize: &wrappers.UInt64Value{Value: 7},
-					},
-				},
-			},
-		},
-		{
-			name: "least_request",
-			lb: &EnvoyLBConfig{
-				Policy: "least_request",
-				LeastRequestConfig: &LeastRequestConfig{
-					ChoiceCount: 3,
-				},
-			},
-			expected: envoy.Cluster{
-				LbPolicy: envoy.Cluster_LEAST_REQUEST,
-				LbConfig: &envoy.Cluster_LeastRequestLbConfig_{
-					LeastRequestLbConfig: &envoy.Cluster_LeastRequestLbConfig{
-						ChoiceCount: &wrappers.UInt32Value{Value: 3},
-					},
-				},
-			},
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			var c envoy.Cluster
-			err := tc.lb.InjectToCluster(&c)
-			require.NoError(t, err)
-
-			require.Equal(t, tc.expected, c)
-		})
-	}
 }

@@ -294,7 +294,7 @@ func TestAPI_ConfigEntry_ServiceResolver_LoadBalancer(t *testing.T) {
 				Name:      "test-least-req",
 				Namespace: defaultNamespace,
 				LoadBalancer: &LoadBalancer{
-					EnvoyLBConfig: &EnvoyLBConfig{
+					EnvoyConfig: &EnvoyLBConfig{
 						Policy:             "least_request",
 						LeastRequestConfig: &LeastRequestConfig{ChoiceCount: 10},
 					},
@@ -309,7 +309,7 @@ func TestAPI_ConfigEntry_ServiceResolver_LoadBalancer(t *testing.T) {
 				Name:      "test-ring-hash",
 				Namespace: defaultNamespace,
 				LoadBalancer: &LoadBalancer{
-					EnvoyLBConfig: &EnvoyLBConfig{
+					EnvoyConfig: &EnvoyLBConfig{
 						Policy: "ring_hash",
 						RingHashConfig: &RingHashConfig{
 							MinimumRingSize: 1024 * 2,

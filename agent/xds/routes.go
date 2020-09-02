@@ -62,7 +62,7 @@ func routesFromSnapshotTerminatingGateway(_ connectionInfo, cfgSnap *proxycfg.Co
 
 		var lb *structs.EnvoyLBConfig
 		if resolver.LoadBalancer != nil {
-			lb = resolver.LoadBalancer.EnvoyLBConfig
+			lb = resolver.LoadBalancer.EnvoyConfig
 		}
 		route, err := makeNamedDefaultRouteWithLB(clusterName, lb)
 		if err != nil {
@@ -87,7 +87,7 @@ func routesFromSnapshotTerminatingGateway(_ connectionInfo, cfgSnap *proxycfg.Co
 func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.EnvoyLBConfig) (*envoy.RouteConfiguration, error) {
 	action := makeRouteActionFromName(clusterName)
 
-	if err := lb.InjectToRouteAction(action.Route); err != nil {
+	if err := injectLBToRouteAction(lb, action.Route); err != nil {
 		return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
 	}
 
@@ -271,7 +271,7 @@ func makeUpstreamRouteForDiscoveryChain(
 
 			nextNode := chain.Nodes[discoveryRoute.NextNode]
 			if nextNode.LoadBalancer != nil {
-				lb = nextNode.LoadBalancer.EnvoyLBConfig
+				lb = nextNode.LoadBalancer.EnvoyConfig
 			}
 
 			switch nextNode.Type {
@@ -281,14 +281,14 @@ func makeUpstreamRouteForDiscoveryChain(
 					return nil, err
 				}
 
-				if err := lb.InjectToRouteAction(routeAction.Route); err != nil {
+				if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
 					return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
 				}
 
 			case structs.DiscoveryGraphNodeTypeResolver:
 				routeAction = makeRouteActionForChainCluster(nextNode.Resolver.Target, chain)
 
-				if err := lb.InjectToRouteAction(routeAction.Route); err != nil {
+				if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
 					return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
 				}
 
@@ -344,9 +344,9 @@ func makeUpstreamRouteForDiscoveryChain(
 		}
 
 		if startNode.LoadBalancer != nil {
-			lb = startNode.LoadBalancer.EnvoyLBConfig
+			lb = startNode.LoadBalancer.EnvoyConfig
 		}
-		if err := lb.InjectToRouteAction(routeAction.Route); err != nil {
+		if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
 			return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
 		}
 
@@ -361,9 +361,9 @@ func makeUpstreamRouteForDiscoveryChain(
 		routeAction := makeRouteActionForChainCluster(startNode.Resolver.Target, chain)
 
 		if startNode.LoadBalancer != nil {
-			lb = startNode.LoadBalancer.EnvoyLBConfig
+			lb = startNode.LoadBalancer.EnvoyConfig
 		}
-		if err := lb.InjectToRouteAction(routeAction.Route); err != nil {
+		if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
 			return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
 		}
 
@@ -568,4 +568,65 @@ func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, chain *structs
 			},
 		},
 	}, nil
+}
+
+func injectLBToRouteAction(ec *structs.EnvoyLBConfig, action *envoyroute.RouteAction) error {
+	if ec == nil || !ec.IsHashBased() {
+		return nil
+	}
+
+	result := make([]*envoyroute.RouteAction_HashPolicy, 0, len(ec.HashPolicies))
+	for _, policy := range ec.HashPolicies {
+		if policy.SourceIP {
+			result = append(result, &envoyroute.RouteAction_HashPolicy{
+				PolicySpecifier: &envoyroute.RouteAction_HashPolicy_ConnectionProperties_{
+					ConnectionProperties: &envoyroute.RouteAction_HashPolicy_ConnectionProperties{
+						SourceIp: true,
+					},
+				},
+				Terminal: policy.Terminal,
+			})
+
+			continue
+		}
+
+		switch policy.Field {
+		case structs.HashPolicyHeader:
+			result = append(result, &envoyroute.RouteAction_HashPolicy{
+				PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Header_{
+					Header: &envoyroute.RouteAction_HashPolicy_Header{
+						HeaderName: policy.FieldValue,
+					},
+				},
+				Terminal: policy.Terminal,
+			})
+		case structs.HashPolicyCookie:
+			cookie := envoyroute.RouteAction_HashPolicy_Cookie{
+				Name: policy.FieldValue,
+			}
+			if policy.CookieConfig != nil {
+				cookie.Ttl = ptypes.DurationProto(policy.CookieConfig.TTL)
+				cookie.Path = policy.CookieConfig.Path
+			}
+			result = append(result, &envoyroute.RouteAction_HashPolicy{
+				PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{
+					Cookie: &cookie,
+				},
+				Terminal: policy.Terminal,
+			})
+		case structs.HashPolicyQueryParam:
+			result = append(result, &envoyroute.RouteAction_HashPolicy{
+				PolicySpecifier: &envoyroute.RouteAction_HashPolicy_QueryParameter_{
+					QueryParameter: &envoyroute.RouteAction_HashPolicy_QueryParameter{
+						Name: policy.FieldValue,
+					},
+				},
+				Terminal: policy.Terminal,
+			})
+		default:
+			return fmt.Errorf("unsupported load balancer hash policy field: %v", policy.Field)
+		}
+	}
+	action.HashPolicy = result
+	return nil
 }

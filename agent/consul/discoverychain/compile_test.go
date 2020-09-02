@@ -1762,7 +1762,7 @@ func testcase_AllBellsAndWhistles() compileTestCase {
 				"qa":   {Filter: "ServiceMeta.env == qa"},
 			},
 			LoadBalancer: &structs.LoadBalancer{
-				EnvoyLBConfig: &structs.EnvoyLBConfig{
+				EnvoyConfig: &structs.EnvoyLBConfig{
 					Policy: "ring_hash",
 					RingHashConfig: &structs.RingHashConfig{
 						MaximumRingSize: 100,
@@ -1836,7 +1836,7 @@ func testcase_AllBellsAndWhistles() compileTestCase {
 					},
 				},
 				LoadBalancer: &structs.LoadBalancer{
-					EnvoyLBConfig: &structs.EnvoyLBConfig{
+					EnvoyConfig: &structs.EnvoyLBConfig{
 						Policy: "ring_hash",
 						RingHashConfig: &structs.RingHashConfig{
 							MaximumRingSize: 100,
@@ -1857,7 +1857,7 @@ func testcase_AllBellsAndWhistles() compileTestCase {
 					Target:         "prod.redirected.default.dc1",
 				},
 				LoadBalancer: &structs.LoadBalancer{
-					EnvoyLBConfig: &structs.EnvoyLBConfig{
+					EnvoyConfig: &structs.EnvoyLBConfig{
 						Policy: "ring_hash",
 						RingHashConfig: &structs.RingHashConfig{
 							MaximumRingSize: 100,
@@ -2282,7 +2282,7 @@ func testcase_LBConfig() compileTestCase {
 			Kind: "service-resolver",
 			Name: "foo",
 			LoadBalancer: &structs.LoadBalancer{
-				EnvoyLBConfig: &structs.EnvoyLBConfig{
+				EnvoyConfig: &structs.EnvoyLBConfig{
 					Policy: "least_request",
 					LeastRequestConfig: &structs.LeastRequestConfig{
 						ChoiceCount: 3,
@@ -2294,7 +2294,7 @@ func testcase_LBConfig() compileTestCase {
 			Kind: "service-resolver",
 			Name: "bar",
 			LoadBalancer: &structs.LoadBalancer{
-				EnvoyLBConfig: &structs.EnvoyLBConfig{
+				EnvoyConfig: &structs.EnvoyLBConfig{
 					Policy: "ring_hash",
 					RingHashConfig: &structs.RingHashConfig{
 						MaximumRingSize: 101,
@@ -2311,7 +2311,7 @@ func testcase_LBConfig() compileTestCase {
 			Kind: "service-resolver",
 			Name: "baz",
 			LoadBalancer: &structs.LoadBalancer{
-				EnvoyLBConfig: &structs.EnvoyLBConfig{
+				EnvoyConfig: &structs.EnvoyLBConfig{
 					Policy: "maglev",
 					HashPolicies: []structs.HashPolicy{
 						{
@@ -2353,7 +2353,7 @@ func testcase_LBConfig() compileTestCase {
 				// The LB config from bar is attached because splitters only care about hash-based policies,
 				// and it's the config from bar not baz because we pick the first one we encounter in the Splits.
 				LoadBalancer: &structs.LoadBalancer{
-					EnvoyLBConfig: &structs.EnvoyLBConfig{
+					EnvoyConfig: &structs.EnvoyLBConfig{
 						Policy: "ring_hash",
 						RingHashConfig: &structs.RingHashConfig{
 							MaximumRingSize: 101,
@@ -2376,7 +2376,7 @@ func testcase_LBConfig() compileTestCase {
 					Target:         "foo.default.dc1",
 				},
 				LoadBalancer: &structs.LoadBalancer{
-					EnvoyLBConfig: &structs.EnvoyLBConfig{
+					EnvoyConfig: &structs.EnvoyLBConfig{
 						Policy: "least_request",
 						LeastRequestConfig: &structs.LeastRequestConfig{
 							ChoiceCount: 3,
@@ -2393,7 +2393,7 @@ func testcase_LBConfig() compileTestCase {
 					Target:         "bar.default.dc1",
 				},
 				LoadBalancer: &structs.LoadBalancer{
-					EnvoyLBConfig: &structs.EnvoyLBConfig{
+					EnvoyConfig: &structs.EnvoyLBConfig{
 						Policy: "ring_hash",
 						RingHashConfig: &structs.RingHashConfig{
 							MaximumRingSize: 101,
@@ -2415,7 +2415,7 @@ func testcase_LBConfig() compileTestCase {
 					Target:         "baz.default.dc1",
 				},
 				LoadBalancer: &structs.LoadBalancer{
-					EnvoyLBConfig: &structs.EnvoyLBConfig{
+					EnvoyConfig: &structs.EnvoyLBConfig{
 						Policy: "maglev",
 						HashPolicies: []structs.HashPolicy{
 							{

@@ -1275,7 +1275,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 				Kind: structs.ServiceResolver,
 				Name: "db",
 				LoadBalancer: &structs.LoadBalancer{
-					EnvoyLBConfig: &structs.EnvoyLBConfig{
+					EnvoyConfig: &structs.EnvoyLBConfig{
 						Policy: "ring_hash",
 						RingHashConfig: &structs.RingHashConfig{
 							MinimumRingSize: 20,
