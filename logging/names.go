@@ -51,6 +51,7 @@ const (
 	TerminatingGateway string = "terminating_gateway"
 	TLSUtil            string = "tlsutil"
 	Transaction        string = "txn"
+	UsageMetrics       string = "usage_metrics"
 	WAN                string = "wan"
 	Watch              string = "watch"
 )

@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/consul/usagemetrics"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
@@ -588,6 +589,19 @@ func NewServer(config *Config, options ...ConsulOption) (*Server, error) {
 		s.Shutdown()
 		return nil, err
 	}
+
+	reporter, err := usagemetrics.NewUsageMetricsReporter(
+		new(usagemetrics.Config).
+			WithStateProvider(s.fsm).
+			WithLogger(s.logger).
+			WithDatacenter(s.config.Datacenter).
+			WithReportingInterval(s.config.MetricsReportingInterval),
+	)
+	if err != nil {
+		s.Shutdown()
+		return nil, fmt.Errorf("Failed to start usage metrics reporter: %v", err)
+	}
+	go reporter.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	// Initialize Autopilot. This must happen before starting leadership monitoring
 	// as establishing leadership could attempt to use autopilot and cause a panic.
