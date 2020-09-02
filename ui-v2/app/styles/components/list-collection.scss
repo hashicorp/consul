@@ -1,5 +1,7 @@
 .list-collection {
   @extend %list-collection;
+}
+%list-collection {
   height: 500px;
   position: relative;
 }
