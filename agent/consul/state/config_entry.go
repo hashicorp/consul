@@ -382,7 +382,7 @@ func (s *Store) validateProposedConfigEntryInServiceGraph(
 	}
 
 	overrides := map[structs.ConfigEntryKindName]structs.ConfigEntry{
-		{Kind: kind, Name: name}: next,
+		structs.NewConfigEntryKindName(kind, name, entMeta): next,
 	}
 
 	for chain, _ := range checkChains {
@@ -776,9 +776,8 @@ func (s *Store) configEntryWithOverridesTxn(
 	entMeta *structs.EnterpriseMeta,
 ) (uint64, structs.ConfigEntry, error) {
 	if len(overrides) > 0 {
-		entry, ok := overrides[structs.ConfigEntryKindName{
-			Kind: kind, Name: name,
-		}]
+		kn := structs.NewConfigEntryKindName(kind, name, entMeta)
+		entry, ok := overrides[kn]
 		if ok {
 			return 0, entry, nil // a nil entry implies it should act like it is erased
 		}
