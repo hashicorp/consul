@@ -824,7 +824,15 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
 - `advertise_addr` Equivalent to the [`-advertise` command-line flag](#_advertise).
 
+- `advertise_addr_ipv4` This was added together with [`advertise_addr_ipv6`](#advertise_addr_ipv6) to support dual stack IPv4/IPv6 environments. Using this, both IPv4 and IPv6 addresses can be specified and requested during eg service discovery.
+
+- `advertise_addr_ipv6` This was added together with [`advertise_addr_ipv4`](#advertise_addr_ipv4) to support dual stack IPv4/IPv6 environments. Using this, both IPv4 and IPv6 addresses can be specified and requested during eg service discovery.
+
 - `advertise_addr_wan` Equivalent to the [`-advertise-wan` command-line flag](#_advertise-wan).
+
+- `advertise_addr_wan_ipv4` This was added together with [`advertise_addr_wan_ipv6`](#advertise_addr_wan_ipv6) to support dual stack IPv4/IPv6 environments. Using this, both IPv4 and IPv6 addresses can be specified and requested during eg service discovery.
+
+- `advertise_addr_wan_ipv6` This was added together with [`advertise_addr_wan_ipv4`](#advertise_addr_wan_ipv4) to support dual stack IPv4/IPv6 environments. Using this, both IPv4 and IPv6 addresses can be specified and requested during eg service discovery.
 
 - `serf_lan` ((#serf_lan_bind)) Equivalent to the [`-serf-lan-bind` command-line flag](#_serf_lan_bind).
 
