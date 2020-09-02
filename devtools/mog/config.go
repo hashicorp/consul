@@ -7,8 +7,10 @@ import (
 )
 
 type config struct {
-	SourcePkgName string
-	structs       []structConfig
+	// TODO: maybe move Path, PkgPath, BuildTags, etc onto a separate struct
+	// so that sourcePkg.Structs is not passed around.
+	SourcePkg sourcePkg
+	Structs   []structConfig
 }
 
 type structConfig struct {
@@ -49,11 +51,13 @@ type fieldConfig struct {
 	// TODO: Pointer pointerSettings
 }
 
-func configsFromAnnotations(sources sourcePkg) (config, error) {
-	names := sources.Names()
-	c := config{structs: make([]structConfig, 0, len(names))}
+func configsFromAnnotations(pkg sourcePkg) (config, error) {
+	names := pkg.Names()
+	c := config{Structs: make([]structConfig, 0, len(names))}
+	c.SourcePkg = pkg
+
 	for _, name := range names {
-		strct := sources.structs[name]
+		strct := pkg.Structs[name]
 		cfg, err := parseStructAnnotation(name, strct.Doc)
 		if err != nil {
 			return c, fmt.Errorf("from source %v: %w", name, err)
@@ -67,7 +71,7 @@ func configsFromAnnotations(sources sourcePkg) (config, error) {
 			cfg.Fields = append(cfg.Fields, f)
 		}
 
-		c.structs = append(c.structs, cfg)
+		c.Structs = append(c.Structs, cfg)
 	}
 	// TODO: validate config - required values
 	return c, nil

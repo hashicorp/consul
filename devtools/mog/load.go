@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -12,8 +13,17 @@ import (
 )
 
 type sourcePkg struct {
+	// Path is the absolute filesystem path to the directory which contains the
+	// source package.
+	Path string
+
+	// Name of the package as it appears in the source file.
+	Name string
+
 	// TODO: buildTags string
-	structs map[string]structDecl
+
+	// Structs declared in the source package.
+	Structs map[string]structDecl
 }
 
 type structDecl struct {
@@ -22,8 +32,8 @@ type structDecl struct {
 }
 
 func (p sourcePkg) Names() []string {
-	names := make([]string, 0, len(p.structs))
-	for name := range p.structs {
+	names := make([]string, 0, len(p.Structs))
+	for name := range p.Structs {
 		names = append(names, name)
 	}
 	sort.Strings(names)
@@ -31,49 +41,57 @@ func (p sourcePkg) Names() []string {
 }
 
 func loadSourceStructs(path string) (sourcePkg, error) {
-	p := sourcePkg{structs: map[string]structDecl{}}
+	p := sourcePkg{Structs: map[string]structDecl{}}
 	cfg := &packages.Config{Mode: modeLoadAll}
 	pkgs, err := packages.Load(cfg, path)
-	if err != nil {
+	switch {
+	case err != nil:
+		return p, err
+	case len(pkgs) > 1:
+		return p, fmt.Errorf("expected only one source package")
+	}
+
+	pkg := pkgs[0]
+	if err := packageLoadErrors(pkg); err != nil {
 		return p, err
 	}
-	for _, pkg := range pkgs {
-		if err := packageLoadErrors(pkg); err != nil {
-			return p, err
-		}
+	if len(pkg.GoFiles) < 1 {
+		return p, fmt.Errorf("no Go files in the source package")
+	}
+	p.Path = filepath.Dir(pkg.GoFiles[0])
+	p.Name = pkg.Name
 
-		for _, file := range pkg.Syntax {
-			for _, decl := range file.Decls {
-				genDecl := declAsTypeGenDecl(decl)
-				if genDecl == nil {
+	for _, file := range pkg.Syntax {
+		for _, decl := range file.Decls {
+			genDecl := declAsTypeGenDecl(decl)
+			if genDecl == nil {
+				continue
+			}
+
+			for _, spec := range genDecl.Specs {
+				spec := specAsExpectedTypeSpec(spec)
+				if spec == nil {
 					continue
 				}
 
-				for _, spec := range genDecl.Specs {
-					spec := specAsExpectedTypeSpec(spec)
-					if spec == nil {
-						continue
-					}
+				// godoc may be on the GenDecl or the TypeSpec
+				doc := spec.Doc
+				if doc == nil {
+					doc = genDecl.Doc
+				}
 
-					// godoc may be on the GenDecl or the TypeSpec
-					doc := spec.Doc
-					if doc == nil {
-						doc = genDecl.Doc
-					}
+				structType, ok := spec.Type.(*ast.StructType)
+				if !ok {
+					continue
+				}
 
-					structType, ok := spec.Type.(*ast.StructType)
-					if !ok {
-						continue
-					}
+				if !containsMogStructAnnotation(doc) {
+					continue
+				}
 
-					if !containsMogStructAnnotation(doc) {
-						continue
-					}
-
-					p.structs[spec.Name.Name] = structDecl{
-						Doc:    doc.List,
-						Fields: structType.Fields.List,
-					}
+				p.Structs[spec.Name.Name] = structDecl{
+					Doc:    doc.List,
+					Fields: structType.Fields.List,
 				}
 			}
 		}
@@ -103,6 +121,7 @@ func packageLoadErrors(pkg *packages.Package) error {
 		buf.WriteString("\n")
 		buf.WriteString(err.Error())
 	}
+	buf.WriteString("\n")
 	return fmt.Errorf("package %s has errors: %s", pkg.PkgPath, buf.String())
 }
 

@@ -13,9 +13,9 @@ func TestLoadSourceStructs(t *testing.T) {
 	actual, err := loadSourceStructs("./internal/sourcepkg")
 	require.NoError(t, err)
 	require.Equal(t, []string{"GroupedSample", "Sample"}, actual.Names())
-	_, ok := actual.structs["Sample"]
+	_, ok := actual.Structs["Sample"]
 	require.True(t, ok)
-	_, ok = actual.structs["GroupedSample"]
+	_, ok = actual.Structs["GroupedSample"]
 	require.True(t, ok)
 
 	// TODO: check the value in structs map

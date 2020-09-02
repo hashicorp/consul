@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 )
 
@@ -15,10 +16,9 @@ func main() {
 
 func run(args []string) error {
 	flags, opts := setupFlags(args[0])
-	err := flags.Parse(os.Args[1:])
+	err := flags.Parse(args[1:])
 	switch {
 	case err == flag.ErrHelp:
-		flags.Usage()
 		return nil
 	case err != nil:
 		return err
@@ -34,11 +34,16 @@ func setupFlags(name string) (*flag.FlagSet, *options) {
 	flags := flag.NewFlagSet(name, flag.ContinueOnError)
 	opts := &options{}
 
+	// TODO: make this a positional arg, set a Usage func to document it
 	flags.StringVar(&opts.source, "source", ".", "package path for source structs")
 	return flags, opts
 }
 
 func runMog(opts options) error {
+	if opts.source == "" {
+		return fmt.Errorf("missing required source package")
+	}
+
 	sources, err := loadSourceStructs(opts.source)
 	if err != nil {
 		return fmt.Errorf("failed to load source from %s: %w", opts.source, err)
@@ -49,12 +54,13 @@ func runMog(opts options) error {
 		return fmt.Errorf("failed to parse annotations: %w", err)
 	}
 
-	targets, err := loadTargetStructs(targetPackages(cfg.structs))
+	log.Printf("Generated code for %d structs", len(cfg.Structs))
+	targets, err := loadTargetStructs(targetPackages(cfg.Structs))
 	if err != nil {
 		return fmt.Errorf("failed to load targets: %w", err)
 	}
 
-	return generate(cfg, targets)
+	return generateFiles(cfg, targets)
 }
 
 func targetPackages(cfgs []structConfig) []string {
