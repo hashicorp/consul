@@ -593,9 +593,12 @@ func DefaultConfig() *Config {
 			},
 		},
 
+		// Stay under the 10 second aggregation interval of
+		// go-metrics. This ensures we always report the
+		// usage metrics in each cycle.
+		MetricsReportingInterval: 9 * time.Second,
 		ServerHealthInterval:     2 * time.Second,
 		AutopilotInterval:        10 * time.Second,
-		MetricsReportingInterval: 10 * time.Second,
 		DefaultQueryTime:         300 * time.Second,
 		MaxQueryTime:             600 * time.Second,
 
