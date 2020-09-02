@@ -31,8 +31,9 @@ type Changes struct {
 }
 
 // changeTrackerDB is a thin wrapper around memdb.DB which enables TrackChanges on
-// all write transactions. When the transaction is committed the changes are
-// sent to the eventPublisher which will create and emit change events.
+// all write transactions. When the transaction is committed the changes are:
+// 1. Used to update our internal usage tracking
+// 2. Sent to the eventPublisher which will create and emit change events
 type changeTrackerDB struct {
 	db             *memdb.MemDB
 	publisher      eventPublisher
@@ -100,7 +101,8 @@ func (c *changeTrackerDB) publish(changes Changes) error {
 // Restore where we need to replace the entire contents of the Store.
 // WriteTxnRestore uses a zero index since the whole restore doesn't really
 // occur at one index - the effect is to write many values that were previously
-// written across many indexes.
+// written across many indexes. WriteTxnRestore also does not publish any
+// change events to subscribers.
 func (c *changeTrackerDB) WriteTxnRestore() *txn {
 	t := &txn{
 		Txn:   c.db.Txn(true),
