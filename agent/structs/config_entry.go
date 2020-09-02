@@ -666,4 +666,19 @@ func (c *ConfigEntryResponse) UnmarshalBinary(data []byte) error {
 type ConfigEntryKindName struct {
 	Kind string
 	Name string
+	EnterpriseMeta
+}
+
+func NewConfigEntryKindName(kind, name string, entMeta *EnterpriseMeta) ConfigEntryKindName {
+	ret := ConfigEntryKindName{
+		Kind: kind,
+		Name: name,
+	}
+	if entMeta == nil {
+		entMeta = DefaultEnterpriseMeta()
+	}
+
+	ret.EnterpriseMeta = *entMeta
+	ret.EnterpriseMeta.Normalize()
+	return ret
 }
