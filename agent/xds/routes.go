@@ -3,6 +3,7 @@ package xds
 import (
 	"errors"
 	"fmt"
+	"github.com/hashicorp/consul/logging"
 	"net"
 	"strings"
 
@@ -18,7 +19,7 @@ import (
 
 // routesFromSnapshot returns the xDS API representation of the "routes" in the
 // snapshot.
-func routesFromSnapshot(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+func (s *Server) routesFromSnapshot(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
 	}
@@ -29,7 +30,7 @@ func routesFromSnapshot(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) 
 	case structs.ServiceKindIngressGateway:
 		return routesForIngressGateway(cInfo, cfgSnap.IngressGateway.Upstreams, cfgSnap.IngressGateway.DiscoveryChain)
 	case structs.ServiceKindTerminatingGateway:
-		return routesFromSnapshotTerminatingGateway(cInfo, cfgSnap)
+		return s.routesFromSnapshotTerminatingGateway(cInfo, cfgSnap)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
@@ -37,10 +38,11 @@ func routesFromSnapshot(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) 
 
 // routesFromSnapshotTerminatingGateway returns the xDS API representation of the "routes" in the snapshot.
 // For any HTTP service we will return a default route.
-func routesFromSnapshotTerminatingGateway(_ connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+func (s *Server) routesFromSnapshotTerminatingGateway(_ connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
 	}
+	logger := s.Logger.Named(logging.TerminatingGateway)
 
 	var resources []proto.Message
 	for _, svc := range cfgSnap.TerminatingGateway.ValidServices() {
@@ -69,6 +71,7 @@ func routesFromSnapshotTerminatingGateway(_ connectionInfo, cfgSnap *proxycfg.Co
 		}
 		route, err := makeNamedDefaultRouteWithLB(clusterName, lb)
 		if err != nil {
+			logger.Error("failed to make route", "cluster", clusterName, "error", err)
 			continue
 		}
 		resources = append(resources, route)
@@ -78,6 +81,7 @@ func routesFromSnapshotTerminatingGateway(_ connectionInfo, cfgSnap *proxycfg.Co
 			clusterName = connect.ServiceSNI(svc.Name, name, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 			route, err := makeNamedDefaultRouteWithLB(clusterName, lb)
 			if err != nil {
+				logger.Error("failed to make route", "cluster", clusterName, "error", err)
 				continue
 			}
 			resources = append(resources, route)

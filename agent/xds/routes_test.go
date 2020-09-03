@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
+	"github.com/hashicorp/consul/sdk/testutil"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 )
@@ -257,11 +258,15 @@ func TestRoutesFromSnapshot(t *testing.T) {
 						tt.setup(snap)
 					}
 
+					logger := testutil.Logger(t)
+					s := Server{
+						Logger: logger,
+					}
 					cInfo := connectionInfo{
 						Token:         "my-token",
 						ProxyFeatures: sf,
 					}
-					routes, err := routesFromSnapshot(cInfo, snap)
+					routes, err := s.routesFromSnapshot(cInfo, snap)
 					require.NoError(err)
 					sort.Slice(routes, func(i, j int) bool {
 						return routes[i].(*envoy.RouteConfiguration).Name < routes[j].(*envoy.RouteConfiguration).Name

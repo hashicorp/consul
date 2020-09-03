@@ -218,7 +218,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 		},
 		RouteType: {
 			typeURL:   RouteType,
-			resources: routesFromSnapshot,
+			resources: s.routesFromSnapshot,
 			stream:    stream,
 			allowEmptyFn: func(cfgSnap *proxycfg.ConfigSnapshot) bool {
 				return cfgSnap.Kind == structs.ServiceKindIngressGateway
