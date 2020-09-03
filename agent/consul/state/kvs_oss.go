@@ -16,7 +16,7 @@ func kvsIndexer() *memdb.StringFieldIndex {
 	}
 }
 
-func insertKVTxn(tx *txn, entry *structs.DirEntry, updateMax bool) error {
+func insertKVTxn(tx WriteTxn, entry *structs.DirEntry, updateMax bool) error {
 	if err := tx.Insert("kvs", entry); err != nil {
 		return err
 	}
@@ -33,7 +33,7 @@ func insertKVTxn(tx *txn, entry *structs.DirEntry, updateMax bool) error {
 	return nil
 }
 
-func kvsListEntriesTxn(tx *txn, ws memdb.WatchSet, prefix string, entMeta *structs.EnterpriseMeta) (uint64, structs.DirEntries, error) {
+func kvsListEntriesTxn(tx ReadTxn, ws memdb.WatchSet, prefix string, entMeta *structs.EnterpriseMeta) (uint64, structs.DirEntries, error) {
 	var ents structs.DirEntries
 	var lindex uint64
 
@@ -56,7 +56,7 @@ func kvsListEntriesTxn(tx *txn, ws memdb.WatchSet, prefix string, entMeta *struc
 
 // kvsDeleteTreeTxn is the inner method that does a recursive delete inside an
 // existing transaction.
-func (s *Store) kvsDeleteTreeTxn(tx *txn, idx uint64, prefix string, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) kvsDeleteTreeTxn(tx WriteTxn, idx uint64, prefix string, entMeta *structs.EnterpriseMeta) error {
 	// For prefix deletes, only insert one tombstone and delete the entire subtree
 	deleted, err := tx.DeletePrefix("kvs", "id_prefix", prefix)
 	if err != nil {
@@ -77,11 +77,11 @@ func (s *Store) kvsDeleteTreeTxn(tx *txn, idx uint64, prefix string, entMeta *st
 	return nil
 }
 
-func kvsMaxIndex(tx *txn, entMeta *structs.EnterpriseMeta) uint64 {
+func kvsMaxIndex(tx ReadTxn, entMeta *structs.EnterpriseMeta) uint64 {
 	return maxIndexTxn(tx, "kvs", "tombstones")
 }
 
-func kvsDeleteWithEntry(tx *txn, entry *structs.DirEntry, idx uint64) error {
+func kvsDeleteWithEntry(tx WriteTxn, entry *structs.DirEntry, idx uint64) error {
 	// Delete the entry and update the index.
 	if err := tx.Delete("kvs", entry); err != nil {
 		return fmt.Errorf("failed deleting kvs entry: %s", err)

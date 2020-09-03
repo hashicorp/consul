@@ -122,7 +122,7 @@ type Store struct {
 // works by starting a read transaction against the whole state store.
 type Snapshot struct {
 	store     *Store
-	tx        *txn
+	tx        AbortTxn
 	lastIndex uint64
 }
 
@@ -288,7 +288,7 @@ func maxIndexWatchTxn(tx ReadTxn, ws memdb.WatchSet, tables ...string) uint64 {
 
 // indexUpdateMaxTxn is used when restoring entries and sets the table's index to
 // the given idx only if it's greater than the current index.
-func indexUpdateMaxTxn(tx *txn, idx uint64, table string) error {
+func indexUpdateMaxTxn(tx WriteTxn, idx uint64, table string) error {
 	ti, err := tx.First("index", "id", table)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve existing index: %s", err)

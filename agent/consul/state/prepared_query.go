@@ -258,7 +258,7 @@ func (s *Store) PreparedQueryDelete(idx uint64, queryID string) error {
 
 // preparedQueryDeleteTxn is the inner method used to delete a prepared query
 // with the proper indexes into the state store.
-func preparedQueryDeleteTxn(tx *txn, idx uint64, queryID string) error {
+func preparedQueryDeleteTxn(tx WriteTxn, idx uint64, queryID string) error {
 	// Pull the query.
 	wrapped, err := tx.First("prepared-queries", "id", queryID)
 	if err != nil {

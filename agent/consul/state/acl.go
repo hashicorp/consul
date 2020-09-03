@@ -434,7 +434,7 @@ func resolveTokenPolicyLinks(tx *txn, token *structs.ACLToken, allowMissing bool
 // stale when a linked policy was deleted or renamed. This will correct them and generate a newly allocated
 // token only when fixes are needed. If the policy links are still accurate then we just return the original
 // token.
-func fixupTokenPolicyLinks(tx *txn, original *structs.ACLToken) (*structs.ACLToken, error) {
+func fixupTokenPolicyLinks(tx ReadTxn, original *structs.ACLToken) (*structs.ACLToken, error) {
 	owned := false
 	token := original
 
@@ -508,7 +508,7 @@ func resolveTokenRoleLinks(tx *txn, token *structs.ACLToken, allowMissing bool) 
 // stale when a linked role was deleted or renamed. This will correct them and generate a newly allocated
 // token only when fixes are needed. If the role links are still accurate then we just return the original
 // token.
-func fixupTokenRoleLinks(tx *txn, original *structs.ACLToken) (*structs.ACLToken, error) {
+func fixupTokenRoleLinks(tx ReadTxn, original *structs.ACLToken) (*structs.ACLToken, error) {
 	owned := false
 	token := original
 
@@ -824,7 +824,7 @@ func (s *Store) ACLTokenBatchGet(ws memdb.WatchSet, accessors []string) (uint64,
 	return idx, tokens, nil
 }
 
-func aclTokenGetTxn(tx *txn, ws memdb.WatchSet, value, index string, entMeta *structs.EnterpriseMeta) (*structs.ACLToken, error) {
+func aclTokenGetTxn(tx ReadTxn, ws memdb.WatchSet, value, index string, entMeta *structs.EnterpriseMeta) (*structs.ACLToken, error) {
 	watchCh, rawToken, err := aclTokenGetFromIndex(tx, value, index, entMeta)
 	if err != nil {
 		return nil, fmt.Errorf("failed acl token lookup: %v", err)
@@ -1794,7 +1794,7 @@ func (s *Store) aclAuthMethodGet(ws memdb.WatchSet, name string, entMeta *struct
 	return idx, method, nil
 }
 
-func getAuthMethodWithTxn(tx *txn, ws memdb.WatchSet, name string, entMeta *structs.EnterpriseMeta) (*structs.ACLAuthMethod, error) {
+func getAuthMethodWithTxn(tx ReadTxn, ws memdb.WatchSet, name string, entMeta *structs.EnterpriseMeta) (*structs.ACLAuthMethod, error) {
 	watchCh, rawMethod, err := aclAuthMethodGetByName(tx, name, entMeta)
 	if err != nil {
 		return nil, fmt.Errorf("failed acl auth method lookup: %v", err)

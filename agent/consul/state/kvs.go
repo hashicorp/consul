@@ -117,7 +117,7 @@ func (s *Store) KVSSet(idx uint64, entry *structs.DirEntry) error {
 // If updateSession is true, then the incoming entry will set the new
 // session (should be validated before calling this). Otherwise, we will keep
 // whatever the existing session is.
-func kvsSetTxn(tx *txn, idx uint64, entry *structs.DirEntry, updateSession bool) error {
+func kvsSetTxn(tx WriteTxn, idx uint64, entry *structs.DirEntry, updateSession bool) error {
 	// Retrieve an existing KV pair
 	existingNode, err := firstWithTxn(tx, "kvs", "id", entry.Key, &entry.EnterpriseMeta)
 	if err != nil {
@@ -170,7 +170,7 @@ func (s *Store) KVSGet(ws memdb.WatchSet, key string, entMeta *structs.Enterpris
 
 // kvsGetTxn is the inner method that gets a KVS entry inside an existing
 // transaction.
-func kvsGetTxn(tx *txn,
+func kvsGetTxn(tx ReadTxn,
 	ws memdb.WatchSet, key string, entMeta *structs.EnterpriseMeta) (uint64, *structs.DirEntry, error) {
 
 	// Get the table index.
@@ -203,7 +203,7 @@ func (s *Store) KVSList(ws memdb.WatchSet,
 
 // kvsListTxn is the inner method that gets a list of KVS entries matching a
 // prefix.
-func (s *Store) kvsListTxn(tx *txn,
+func (s *Store) kvsListTxn(tx ReadTxn,
 	ws memdb.WatchSet, prefix string, entMeta *structs.EnterpriseMeta) (uint64, structs.DirEntries, error) {
 
 	// Get the table indexes.
@@ -252,7 +252,7 @@ func (s *Store) KVSDelete(idx uint64, key string, entMeta *structs.EnterpriseMet
 
 // kvsDeleteTxn is the inner method used to perform the actual deletion
 // of a key/value pair within an existing transaction.
-func (s *Store) kvsDeleteTxn(tx *txn, idx uint64, key string, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) kvsDeleteTxn(tx WriteTxn, idx uint64, key string, entMeta *structs.EnterpriseMeta) error {
 	// Look up the entry in the state store.
 	entry, err := firstWithTxn(tx, "kvs", "id", key, entMeta)
 	if err != nil {
@@ -289,7 +289,7 @@ func (s *Store) KVSDeleteCAS(idx, cidx uint64, key string, entMeta *structs.Ente
 
 // kvsDeleteCASTxn is the inner method that does a CAS delete within an existing
 // transaction.
-func (s *Store) kvsDeleteCASTxn(tx *txn, idx, cidx uint64, key string, entMeta *structs.EnterpriseMeta) (bool, error) {
+func (s *Store) kvsDeleteCASTxn(tx WriteTxn, idx, cidx uint64, key string, entMeta *structs.EnterpriseMeta) (bool, error) {
 	// Retrieve the existing kvs entry, if any exists.
 	entry, err := firstWithTxn(tx, "kvs", "id", key, entMeta)
 	if err != nil {
@@ -330,7 +330,7 @@ func (s *Store) KVSSetCAS(idx uint64, entry *structs.DirEntry) (bool, error) {
 
 // kvsSetCASTxn is the inner method used to do a CAS inside an existing
 // transaction.
-func kvsSetCASTxn(tx *txn, idx uint64, entry *structs.DirEntry) (bool, error) {
+func kvsSetCASTxn(tx WriteTxn, idx uint64, entry *structs.DirEntry) (bool, error) {
 	// Retrieve the existing entry.
 	existing, err := firstWithTxn(tx, "kvs", "id", entry.Key, &entry.EnterpriseMeta)
 	if err != nil {
@@ -394,7 +394,7 @@ func (s *Store) KVSLock(idx uint64, entry *structs.DirEntry) (bool, error) {
 
 // kvsLockTxn is the inner method that does a lock inside an existing
 // transaction.
-func kvsLockTxn(tx *txn, idx uint64, entry *structs.DirEntry) (bool, error) {
+func kvsLockTxn(tx WriteTxn, idx uint64, entry *structs.DirEntry) (bool, error) {
 	// Verify that a session is present.
 	if entry.Session == "" {
 		return false, fmt.Errorf("missing session")
@@ -460,7 +460,7 @@ func (s *Store) KVSUnlock(idx uint64, entry *structs.DirEntry) (bool, error) {
 
 // kvsUnlockTxn is the inner method that does an unlock inside an existing
 // transaction.
-func kvsUnlockTxn(tx *txn, idx uint64, entry *structs.DirEntry) (bool, error) {
+func kvsUnlockTxn(tx WriteTxn, idx uint64, entry *structs.DirEntry) (bool, error) {
 	// Verify that a session is present.
 	if entry.Session == "" {
 		return false, fmt.Errorf("missing session")
@@ -498,7 +498,7 @@ func kvsUnlockTxn(tx *txn, idx uint64, entry *structs.DirEntry) (bool, error) {
 
 // kvsCheckSessionTxn checks to see if the given session matches the current
 // entry for a key.
-func kvsCheckSessionTxn(tx *txn,
+func kvsCheckSessionTxn(tx WriteTxn,
 	key string, session string, entMeta *structs.EnterpriseMeta) (*structs.DirEntry, error) {
 
 	entry, err := firstWithTxn(tx, "kvs", "id", key, entMeta)
@@ -519,7 +519,7 @@ func kvsCheckSessionTxn(tx *txn,
 
 // kvsCheckIndexTxn checks to see if the given modify index matches the current
 // entry for a key.
-func kvsCheckIndexTxn(tx *txn,
+func kvsCheckIndexTxn(tx WriteTxn,
 	key string, cidx uint64, entMeta *structs.EnterpriseMeta) (*structs.DirEntry, error) {
 
 	entry, err := firstWithTxn(tx, "kvs", "id", key, entMeta)
