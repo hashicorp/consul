@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -1613,7 +1614,7 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 			json: []string{`{ "acl_replication_token": "a" }`},
 			hcl:  []string{`acl_replication_token = "a"`},
 			patch: func(rt *RuntimeConfig) {
-				rt.ACLReplicationToken = "a"
+				rt.ACLTokens.ACLReplicationToken = "a"
 				rt.ACLTokenReplication = true
 				rt.DataDir = dataDir
 			},
@@ -4386,6 +4387,13 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				if tt.patch != nil {
 					tt.patch(&expected)
 				}
+
+				// both DataDir fields should always be the same, so test for the
+				// invariant, and than updated the expected, so that every test
+				// case does not need to set this field.
+				require.Equal(t, actual.DataDir, actual.ACLTokens.DataDir)
+				expected.ACLTokens.DataDir = actual.ACLTokens.DataDir
+
 				require.Equal(t, expected, actual)
 			})
 		}
@@ -5879,20 +5887,24 @@ func TestFullConfig(t *testing.T) {
 
 		// user configurable values
 
-		ACLAgentMasterToken:              "64fd0e08",
-		ACLAgentToken:                    "bed2377c",
+		ACLTokens: token.Config{
+			EnablePersistence:   true,
+			DataDir:             dataDir,
+			ACLDefaultToken:     "418fdff1",
+			ACLAgentToken:       "bed2377c",
+			ACLAgentMasterToken: "64fd0e08",
+			ACLReplicationToken: "5795983a",
+		},
+
 		ACLsEnabled:                      true,
 		ACLDatacenter:                    "ejtmd43d",
 		ACLDefaultPolicy:                 "72c2e7a0",
 		ACLDownPolicy:                    "03eb2aee",
 		ACLEnableKeyListPolicy:           true,
-		ACLEnableTokenPersistence:        true,
 		ACLMasterToken:                   "8a19ac27",
-		ACLReplicationToken:              "5795983a",
 		ACLTokenTTL:                      3321 * time.Second,
 		ACLPolicyTTL:                     1123 * time.Second,
 		ACLRoleTTL:                       9876 * time.Second,
-		ACLToken:                         "418fdff1",
 		ACLTokenReplication:              true,
 		AdvertiseAddrLAN:                 ipAddr("17.99.29.16"),
 		AdvertiseAddrWAN:                 ipAddr("78.63.37.19"),
@@ -6521,8 +6533,9 @@ func TestFullConfig(t *testing.T) {
 				"args":       []interface{}{"dltjDJ2a", "flEa7C2d"},
 			},
 		},
-		EnterpriseRuntimeConfig: entFullRuntimeConfig,
 	}
+
+	entFullRuntimeConfig(&want)
 
 	warns := []string{
 		`The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.`,
@@ -6840,21 +6853,25 @@ func TestSanitize(t *testing.T) {
 	}
 
 	rtJSON := `{
-		"ACLAgentMasterToken": "hidden",
-		"ACLAgentToken": "hidden",
+		"ACLTokens": {
+			` + entTokenConfigSanitize + `
+			"ACLAgentMasterToken": "hidden",
+			"ACLAgentToken": "hidden",
+			"ACLDefaultToken": "hidden",
+			"ACLReplicationToken": "hidden",
+			"DataDir": "",
+			"EnablePersistence": false
+		},
 		"ACLDatacenter": "",
 		"ACLDefaultPolicy": "",
 		"ACLDisabledTTL": "0s",
 		"ACLDownPolicy": "",
 		"ACLEnableKeyListPolicy": false,
-		"ACLEnableTokenPersistence": false,
 		"ACLMasterToken": "hidden",
 		"ACLPolicyTTL": "0s",
-		"ACLReplicationToken": "hidden",
 		"ACLRoleTTL": "0s",
 		"ACLTokenReplication": false,
 		"ACLTokenTTL": "0s",
-		"ACLToken": "hidden",
 		"ACLsEnabled": false,
 		"AEInterval": "0s",
 		"AdvertiseAddrLAN": "",

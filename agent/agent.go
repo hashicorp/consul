@@ -19,6 +19,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/router"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -39,7 +40,6 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/systemd"
-	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/api/watch"
@@ -66,9 +66,6 @@ const (
 	// Path to save local agent checks
 	checksDir     = "checks"
 	checkStateDir = "checks/state"
-
-	// Name of the file tokens will be persisted within
-	tokensPath = "acl-tokens.json"
 
 	// Default reasons for node/service maintenance mode
 	defaultNodeMaintReason = "Maintenance mode is enabled for this node, " +
@@ -294,11 +291,6 @@ type Agent struct {
 	// based on the current consul configuration.
 	tlsConfigurator *tlsutil.Configurator
 
-	// persistedTokensLock is used to synchronize access to the persisted token
-	// store within the data directory. This will prevent loading while writing as
-	// well as multiple concurrent writes.
-	persistedTokensLock sync.RWMutex
-
 	// httpConnLimiter is used to limit connections to the HTTP server by client
 	// IP.
 	httpConnLimiter connlimit.Limiter
@@ -372,10 +364,8 @@ func New(bd BaseDeps) (*Agent, error) {
 	// pass the agent itself so its safe to move here.
 	a.registerCache()
 
-	// TODO: move to newBaseDeps
-	// TODO: handle error
-	a.loadTokens(a.config)
-	a.loadEnterpriseTokens(a.config)
+	// TODO: why do we ignore failure to load persisted tokens?
+	_ = a.tokens.Load(bd.RuntimeConfig.ACLTokens, a.logger)
 
 	// TODO: pass in a fully populated apiServers into Agent.New
 	a.apiServers = NewAPIServers(a.logger)
@@ -3352,90 +3342,6 @@ func (a *Agent) unloadChecks() error {
 	return nil
 }
 
-type persistedTokens struct {
-	Replication string `json:"replication,omitempty"`
-	AgentMaster string `json:"agent_master,omitempty"`
-	Default     string `json:"default,omitempty"`
-	Agent       string `json:"agent,omitempty"`
-}
-
-func (a *Agent) getPersistedTokens() (*persistedTokens, error) {
-	persistedTokens := &persistedTokens{}
-	if !a.config.ACLEnableTokenPersistence {
-		return persistedTokens, nil
-	}
-
-	a.persistedTokensLock.RLock()
-	defer a.persistedTokensLock.RUnlock()
-
-	tokensFullPath := filepath.Join(a.config.DataDir, tokensPath)
-
-	buf, err := ioutil.ReadFile(tokensFullPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			// non-existence is not an error we care about
-			return persistedTokens, nil
-		}
-		return persistedTokens, fmt.Errorf("failed reading tokens file %q: %s", tokensFullPath, err)
-	}
-
-	if err := json.Unmarshal(buf, persistedTokens); err != nil {
-		return persistedTokens, fmt.Errorf("failed to decode tokens file %q: %s", tokensFullPath, err)
-	}
-
-	return persistedTokens, nil
-}
-
-func (a *Agent) loadTokens(conf *config.RuntimeConfig) error {
-	persistedTokens, persistenceErr := a.getPersistedTokens()
-
-	if persistenceErr != nil {
-		a.logger.Warn("unable to load persisted tokens", "error", persistenceErr)
-	}
-
-	if persistedTokens.Default != "" {
-		a.tokens.UpdateUserToken(persistedTokens.Default, token.TokenSourceAPI)
-
-		if conf.ACLToken != "" {
-			a.logger.Warn("\"default\" token present in both the configuration and persisted token store, using the persisted token")
-		}
-	} else {
-		a.tokens.UpdateUserToken(conf.ACLToken, token.TokenSourceConfig)
-	}
-
-	if persistedTokens.Agent != "" {
-		a.tokens.UpdateAgentToken(persistedTokens.Agent, token.TokenSourceAPI)
-
-		if conf.ACLAgentToken != "" {
-			a.logger.Warn("\"agent\" token present in both the configuration and persisted token store, using the persisted token")
-		}
-	} else {
-		a.tokens.UpdateAgentToken(conf.ACLAgentToken, token.TokenSourceConfig)
-	}
-
-	if persistedTokens.AgentMaster != "" {
-		a.tokens.UpdateAgentMasterToken(persistedTokens.AgentMaster, token.TokenSourceAPI)
-
-		if conf.ACLAgentMasterToken != "" {
-			a.logger.Warn("\"agent_master\" token present in both the configuration and persisted token store, using the persisted token")
-		}
-	} else {
-		a.tokens.UpdateAgentMasterToken(conf.ACLAgentMasterToken, token.TokenSourceConfig)
-	}
-
-	if persistedTokens.Replication != "" {
-		a.tokens.UpdateReplicationToken(persistedTokens.Replication, token.TokenSourceAPI)
-
-		if conf.ACLReplicationToken != "" {
-			a.logger.Warn("\"replication\" token present in both the configuration and persisted token store, using the persisted token")
-		}
-	} else {
-		a.tokens.UpdateReplicationToken(conf.ACLReplicationToken, token.TokenSourceConfig)
-	}
-
-	return persistenceErr
-}
-
 // snapshotCheckState is used to snapshot the current state of the health
 // checks. This is done before we reload our checks, so that we can properly
 // restore into the same state.
@@ -3615,8 +3521,7 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	// Reload tokens - should be done before all the other loading
 	// to ensure the correct tokens are available for attaching to
 	// the checks and service registrations.
-	a.loadTokens(newCfg)
-	a.loadEnterpriseTokens(newCfg)
+	a.tokens.Load(newCfg.ACLTokens, a.logger)
 
 	if err := a.tlsConfigurator.Update(newCfg.ToTLSUtilConfig()); err != nil {
 		return fmt.Errorf("Failed reloading tls configuration: %s", err)

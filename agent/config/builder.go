@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	"github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	libtempl "github.com/hashicorp/consul/lib/template"
@@ -799,6 +800,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	// ----------------------------------------------------------------
 	// build runtime config
 	//
+	dataDir := b.stringVal(c.DataDir)
 	rt = RuntimeConfig{
 		// non-user configurable values
 		ACLDisabledTTL:             b.durationVal("acl.disabled_ttl", c.ACL.DisabledTTL),
@@ -837,21 +839,25 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		GossipWANRetransmitMult: b.intVal(c.GossipWAN.RetransmitMult),
 
 		// ACL
-		ACLsEnabled:               aclsEnabled,
-		ACLAgentMasterToken:       b.stringValWithDefault(c.ACL.Tokens.AgentMaster, b.stringVal(c.ACLAgentMasterToken)),
-		ACLAgentToken:             b.stringValWithDefault(c.ACL.Tokens.Agent, b.stringVal(c.ACLAgentToken)),
-		ACLDatacenter:             primaryDatacenter,
-		ACLDefaultPolicy:          b.stringValWithDefault(c.ACL.DefaultPolicy, b.stringVal(c.ACLDefaultPolicy)),
-		ACLDownPolicy:             b.stringValWithDefault(c.ACL.DownPolicy, b.stringVal(c.ACLDownPolicy)),
-		ACLEnableKeyListPolicy:    b.boolValWithDefault(c.ACL.EnableKeyListPolicy, b.boolVal(c.ACLEnableKeyListPolicy)),
-		ACLMasterToken:            b.stringValWithDefault(c.ACL.Tokens.Master, b.stringVal(c.ACLMasterToken)),
-		ACLReplicationToken:       b.stringValWithDefault(c.ACL.Tokens.Replication, b.stringVal(c.ACLReplicationToken)),
-		ACLTokenTTL:               b.durationValWithDefault("acl.token_ttl", c.ACL.TokenTTL, b.durationVal("acl_ttl", c.ACLTTL)),
-		ACLPolicyTTL:              b.durationVal("acl.policy_ttl", c.ACL.PolicyTTL),
-		ACLRoleTTL:                b.durationVal("acl.role_ttl", c.ACL.RoleTTL),
-		ACLToken:                  b.stringValWithDefault(c.ACL.Tokens.Default, b.stringVal(c.ACLToken)),
-		ACLTokenReplication:       b.boolValWithDefault(c.ACL.TokenReplication, b.boolValWithDefault(c.EnableACLReplication, enableTokenReplication)),
-		ACLEnableTokenPersistence: b.boolValWithDefault(c.ACL.EnableTokenPersistence, false),
+		ACLsEnabled:            aclsEnabled,
+		ACLDatacenter:          primaryDatacenter,
+		ACLDefaultPolicy:       b.stringValWithDefault(c.ACL.DefaultPolicy, b.stringVal(c.ACLDefaultPolicy)),
+		ACLDownPolicy:          b.stringValWithDefault(c.ACL.DownPolicy, b.stringVal(c.ACLDownPolicy)),
+		ACLEnableKeyListPolicy: b.boolValWithDefault(c.ACL.EnableKeyListPolicy, b.boolVal(c.ACLEnableKeyListPolicy)),
+		ACLMasterToken:         b.stringValWithDefault(c.ACL.Tokens.Master, b.stringVal(c.ACLMasterToken)),
+		ACLTokenTTL:            b.durationValWithDefault("acl.token_ttl", c.ACL.TokenTTL, b.durationVal("acl_ttl", c.ACLTTL)),
+		ACLPolicyTTL:           b.durationVal("acl.policy_ttl", c.ACL.PolicyTTL),
+		ACLRoleTTL:             b.durationVal("acl.role_ttl", c.ACL.RoleTTL),
+		ACLTokenReplication:    b.boolValWithDefault(c.ACL.TokenReplication, b.boolValWithDefault(c.EnableACLReplication, enableTokenReplication)),
+
+		ACLTokens: token.Config{
+			DataDir:             dataDir,
+			EnablePersistence:   b.boolValWithDefault(c.ACL.EnableTokenPersistence, false),
+			ACLDefaultToken:     b.stringValWithDefault(c.ACL.Tokens.Default, b.stringVal(c.ACLToken)),
+			ACLAgentToken:       b.stringValWithDefault(c.ACL.Tokens.Agent, b.stringVal(c.ACLAgentToken)),
+			ACLAgentMasterToken: b.stringValWithDefault(c.ACL.Tokens.AgentMaster, b.stringVal(c.ACLAgentMasterToken)),
+			ACLReplicationToken: b.stringValWithDefault(c.ACL.Tokens.Replication, b.stringVal(c.ACLReplicationToken)),
+		},
 
 		// Autopilot
 		AutopilotCleanupDeadServers:      b.boolVal(c.Autopilot.CleanupDeadServers),
@@ -957,7 +963,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		ConnectTestCALeafRootChangeSpread:      b.durationVal("connect.test_ca_leaf_root_change_spread", c.Connect.TestCALeafRootChangeSpread),
 		ExposeMinPort:                          exposeMinPort,
 		ExposeMaxPort:                          exposeMaxPort,
-		DataDir:                                b.stringVal(c.DataDir),
+		DataDir:                                dataDir,
 		Datacenter:                             datacenter,
 		DefaultQueryTime:                       b.durationVal("default_query_time", c.DefaultQueryTime),
 		DevMode:                                b.boolVal(b.devMode),
@@ -1072,10 +1078,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_rate must be strictly positive, was: %v", rt.Cache.EntryFetchRate)
 	}
 
-	if entCfg, err := b.BuildEnterpriseRuntimeConfig(&c); err != nil {
-		return RuntimeConfig{}, err
-	} else {
-		rt.EnterpriseRuntimeConfig = entCfg
+	if err := b.BuildEnterpriseRuntimeConfig(&rt, &c); err != nil {
+		return rt, err
 	}
 
 	if rt.BootstrapExpect == 1 {
@@ -1363,7 +1367,8 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		b.warn(err.Error())
 	}
 
-	return nil
+	err := b.validateEnterpriseConfig(rt)
+	return err
 }
 
 // addrUnique checks if the given address is already in use for another

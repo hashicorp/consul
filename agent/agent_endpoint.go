@@ -1,10 +1,8 @@
 package agent
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -21,7 +19,6 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/lib/file"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/logging/monitor"
 	"github.com/hashicorp/consul/types"
@@ -1233,79 +1230,42 @@ func (s *HTTPServer) AgentToken(resp http.ResponseWriter, req *http.Request) (in
 		return nil, nil
 	}
 
-	if s.agent.config.ACLEnableTokenPersistence {
-		// we hold the lock around updating the internal token store
-		// as well as persisting the tokens because we don't want to write
-		// into the store to have something else wipe it out before we can
-		// persist everything (like an agent config reload). The token store
-		// lock is only held for those operations so other go routines that
-		// just need to read some token out of the store will not be impacted
-		// any more than they would be without token persistence.
-		s.agent.persistedTokensLock.Lock()
-		defer s.agent.persistedTokensLock.Unlock()
-	}
-
 	// Figure out the target token.
 	target := strings.TrimPrefix(req.URL.Path, "/v1/agent/token/")
-	triggerAntiEntropySync := false
-	switch target {
-	case "acl_token", "default":
-		changed := s.agent.tokens.UpdateUserToken(args.Token, token_store.TokenSourceAPI)
-		if changed {
-			triggerAntiEntropySync = true
+
+	err = s.agent.tokens.WithPersistenceLock(func() error {
+		triggerAntiEntropySync := false
+		switch target {
+		case "acl_token", "default":
+			changed := s.agent.tokens.UpdateUserToken(args.Token, token_store.TokenSourceAPI)
+			if changed {
+				triggerAntiEntropySync = true
+			}
+
+		case "acl_agent_token", "agent":
+			changed := s.agent.tokens.UpdateAgentToken(args.Token, token_store.TokenSourceAPI)
+			if changed {
+				triggerAntiEntropySync = true
+			}
+
+		case "acl_agent_master_token", "agent_master":
+			s.agent.tokens.UpdateAgentMasterToken(args.Token, token_store.TokenSourceAPI)
+
+		case "acl_replication_token", "replication":
+			s.agent.tokens.UpdateReplicationToken(args.Token, token_store.TokenSourceAPI)
+
+		default:
+			return NotFoundError{Reason: fmt.Sprintf("Token %q is unknown", target)}
 		}
 
-	case "acl_agent_token", "agent":
-		changed := s.agent.tokens.UpdateAgentToken(args.Token, token_store.TokenSourceAPI)
-		if changed {
-			triggerAntiEntropySync = true
+		// TODO: is it safe to move this out of WithPersistenceLock?
+		if triggerAntiEntropySync {
+			s.agent.sync.SyncFull.Trigger()
 		}
-
-	case "acl_agent_master_token", "agent_master":
-		s.agent.tokens.UpdateAgentMasterToken(args.Token, token_store.TokenSourceAPI)
-
-	case "acl_replication_token", "replication":
-		s.agent.tokens.UpdateReplicationToken(args.Token, token_store.TokenSourceAPI)
-
-	default:
-		resp.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(resp, "Token %q is unknown", target)
-		return nil, nil
-	}
-
-	if triggerAntiEntropySync {
-		s.agent.sync.SyncFull.Trigger()
-	}
-
-	if s.agent.config.ACLEnableTokenPersistence {
-		tokens := persistedTokens{}
-
-		if tok, source := s.agent.tokens.UserTokenAndSource(); tok != "" && source == token_store.TokenSourceAPI {
-			tokens.Default = tok
-		}
-
-		if tok, source := s.agent.tokens.AgentTokenAndSource(); tok != "" && source == token_store.TokenSourceAPI {
-			tokens.Agent = tok
-		}
-
-		if tok, source := s.agent.tokens.AgentMasterTokenAndSource(); tok != "" && source == token_store.TokenSourceAPI {
-			tokens.AgentMaster = tok
-		}
-
-		if tok, source := s.agent.tokens.ReplicationTokenAndSource(); tok != "" && source == token_store.TokenSourceAPI {
-			tokens.Replication = tok
-		}
-
-		data, err := json.Marshal(tokens)
-		if err != nil {
-			s.agent.logger.Warn("failed to persist tokens", "error", err)
-			return nil, fmt.Errorf("Failed to marshal tokens for persistence: %v", err)
-		}
-
-		if err := file.WriteAtomicWithPerms(filepath.Join(s.agent.config.DataDir, tokensPath), data, 0700, 0600); err != nil {
-			s.agent.logger.Warn("failed to persist tokens", "error", err)
-			return nil, fmt.Errorf("Failed to persist tokens - %v", err)
-		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	s.agent.logger.Info("Updated agent's ACL token", "token", target)
