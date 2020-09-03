@@ -82,6 +82,9 @@ func (c *CompiledDiscoveryChain) IsDefault() bool {
 	if !node.Resolver.Default {
 		return false
 	}
+	if node.LoadBalancer != nil {
+		return false
+	}
 
 	target := c.Targets[node.Resolver.Target]
 

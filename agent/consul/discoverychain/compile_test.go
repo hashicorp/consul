@@ -51,7 +51,8 @@ func TestCompile(t *testing.T) {
 		"default resolver with external sni":               testcase_DefaultResolver_ExternalSNI(),
 		"resolver with no entries and inferring defaults":  testcase_DefaultResolver(),
 		"default resolver with proxy defaults":             testcase_DefaultResolver_WithProxyDefaults(),
-		"loadbalancer config":                              testcase_LBConfig(),
+		"loadbalancer splitter and resolver":               testcase_LBSplitterAndResolver(),
+		"loadbalancer resolver":                            testcase_LBResolver(),
 		"service redirect to service with default resolver is not a default chain": testcase_RedirectToDefaultResolverIsNotDefaultChain(),
 
 		"all the bells and whistles": testcase_AllBellsAndWhistles(),
@@ -2259,7 +2260,7 @@ func testcase_CircularSplit() compileTestCase {
 	}
 }
 
-func testcase_LBConfig() compileTestCase {
+func testcase_LBSplitterAndResolver() compileTestCase {
 	entries := newEntries()
 	setServiceProtocol(entries, "foo", "http")
 	setServiceProtocol(entries, "bar", "http")
@@ -2436,6 +2437,66 @@ func testcase_LBConfig() compileTestCase {
 			"foo.default.dc1": newTarget("foo", "", "default", "dc1", nil),
 			"bar.default.dc1": newTarget("bar", "", "default", "dc1", nil),
 			"baz.default.dc1": newTarget("baz", "", "default", "dc1", nil),
+		},
+	}
+
+	return compileTestCase{entries: entries, expect: expect}
+}
+
+// ensure chain with LB cfg in resolver isn't a default chain (!IsDefault)
+func testcase_LBResolver() compileTestCase {
+	entries := newEntries()
+	setServiceProtocol(entries, "main", "http")
+
+	entries.AddResolvers(
+		&structs.ServiceResolverConfigEntry{
+			Kind: "service-resolver",
+			Name: "main",
+			LoadBalancer: &structs.LoadBalancer{
+				EnvoyConfig: &structs.EnvoyLBConfig{
+					Policy: "ring_hash",
+					RingHashConfig: &structs.RingHashConfig{
+						MaximumRingSize: 101,
+					},
+					HashPolicies: []structs.HashPolicy{
+						{
+							SourceIP: true,
+						},
+					},
+				},
+			},
+		},
+	)
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol:  "http",
+		StartNode: "resolver:main.default.dc1",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:main.default.dc1": {
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main.default.dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         "main.default.dc1",
+				},
+				LoadBalancer: &structs.LoadBalancer{
+					EnvoyConfig: &structs.EnvoyLBConfig{
+						Policy: "ring_hash",
+						RingHashConfig: &structs.RingHashConfig{
+							MaximumRingSize: 101,
+						},
+						HashPolicies: []structs.HashPolicy{
+							{
+								SourceIP: true,
+							},
+						},
+					},
+				},
+			},
+		},
+		Targets: map[string]*structs.DiscoveryTarget{
+			"main.default.dc1": newTarget("main", "", "default", "dc1", nil),
 		},
 	}
 
