@@ -1203,7 +1203,7 @@ func TestParseConfigEntry(t *testing.T) {
 				Kind = "service-resolver"
 				Name = "main"
 				LoadBalancer = {
-					EnvoyLBConfig = {
+					EnvoyConfig = {
 						Policy = "ring_hash"
 						RingHashConfig = {
 							MinimumRingSize = 1
@@ -1268,7 +1268,7 @@ func TestParseConfigEntry(t *testing.T) {
 				"Kind": "service-resolver",
 				"Name": "main",
 				"LoadBalancer": {
-					"EnvoyLBConfig": {
+					"EnvoyConfig": {
 						"Policy": "ring_hash",
 						"RingHashConfig": {
 							"MinimumRingSize": 1,
@@ -1346,7 +1346,7 @@ func TestParseConfigEntry(t *testing.T) {
 				Kind = "service-resolver"
 				Name = "main"
 				LoadBalancer = {
-					EnvoyLBConfig = {
+					EnvoyConfig = {
 						Policy = "least_request"
 						LeastRequestConfig = {
 							ChoiceCount = 2
@@ -1373,7 +1373,7 @@ func TestParseConfigEntry(t *testing.T) {
 				"Kind": "service-resolver",
 				"Name": "main",
 				"LoadBalancer": {
-					"EnvoyLBConfig": {
+					"EnvoyConfig": {
 						"Policy": "least_request",
 						"LeastRequestConfig": {
 							"ChoiceCount": 2
