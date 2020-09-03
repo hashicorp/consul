@@ -85,11 +85,8 @@ func (c *changeTrackerDB) WriteTxn(idx uint64) *txn {
 	return t
 }
 
-func (c *changeTrackerDB) publish(changes Changes) error {
-	readOnlyTx := c.db.Txn(false)
-	defer readOnlyTx.Abort()
-
-	events, err := c.processChanges(readOnlyTx, changes)
+func (c *changeTrackerDB) publish(tx ReadTxn, changes Changes) error {
+	events, err := c.processChanges(tx, changes)
 	if err != nil {
 		return fmt.Errorf("failed generating events from changes: %v", err)
 	}
@@ -127,7 +124,7 @@ type txn struct {
 	// Index is stored so that it may be passed along to any subscribers as part
 	// of a change event.
 	Index   uint64
-	publish func(changes Changes) error
+	publish func(tx ReadTxn, changes Changes) error
 }
 
 // Commit first pushes changes to EventPublisher, then calls Commit on the
@@ -152,7 +149,7 @@ func (tx *txn) Commit() error {
 	// In those cases changes should also be empty, and there will be nothing
 	// to publish.
 	if tx.publish != nil {
-		if err := tx.publish(changes); err != nil {
+		if err := tx.publish(tx.Txn, changes); err != nil {
 			return err
 		}
 	}
@@ -168,11 +165,33 @@ func (t topic) String() string {
 	return string(t)
 }
 
+var (
+	// TopicServiceHealth contains events for all registered service instances.
+	TopicServiceHealth topic = "topic-service-health"
+	// TopicServiceHealthConnect contains events for connect-enabled service instances.
+	TopicServiceHealthConnect topic = "topic-service-health-connect"
+)
+
 func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {
-	// TODO: add other table handlers here.
-	return aclChangeUnsubscribeEvent(tx, changes)
+	var events []stream.Event
+	fns := []func(tx ReadTxn, changes Changes) ([]stream.Event, error){
+		aclChangeUnsubscribeEvent,
+		ServiceHealthEventsFromChanges,
+		// TODO: add other table handlers here.
+	}
+	for _, fn := range fns {
+		e, err := fn(tx, changes)
+		if err != nil {
+			return nil, err
+		}
+		events = append(events, e...)
+	}
+	return events, nil
 }
 
-func newSnapshotHandlers() stream.SnapshotHandlers {
-	return stream.SnapshotHandlers{}
+func newSnapshotHandlers(s *Store) stream.SnapshotHandlers {
+	return stream.SnapshotHandlers{
+		TopicServiceHealth:        serviceHealthSnapshot(s, TopicServiceHealth),
+		TopicServiceHealthConnect: serviceHealthSnapshot(s, TopicServiceHealthConnect),
+	}
 }

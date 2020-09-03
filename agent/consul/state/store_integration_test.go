@@ -376,7 +376,7 @@ var topicService stream.Topic = topic("test-topic-service")
 
 func newTestSnapshotHandlers(s *Store) stream.SnapshotHandlers {
 	return stream.SnapshotHandlers{
-		topicService: func(req *stream.SubscribeRequest, snap stream.SnapshotAppender) (uint64, error) {
+		topicService: func(req stream.SubscribeRequest, snap stream.SnapshotAppender) (uint64, error) {
 			idx, nodes, err := s.ServiceNodes(nil, req.Key, nil)
 			if err != nil {
 				return idx, err
