@@ -25,13 +25,6 @@ type unboundCommand func(c *FSM, buf []byte, index uint64) interface{}
 // commands is a map from message type to unbound command.
 var commands map[structs.MessageType]unboundCommand
 
-// countingReader helps keep track of the bytes we have read
-// when reading snapshots
-type countingReader struct {
-	r    io.Reader
-	read int
-}
-
 // registerCommand registers a new command with the FSM, which should be done
 // at package init() time.
 func registerCommand(msg structs.MessageType, fn unboundCommand) {
@@ -189,8 +182,7 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 		}
 		return nil
 	}
-	cr := countingReader{r: old}
-	if err := ReadSnapshot(cr, handler); err != nil {
+	if err := ReadSnapshot(old, handler); err != nil {
 		return err
 	}
 
@@ -214,9 +206,9 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 
 // ReadSnapshot decodes each message type and utilizes the handler function to
 // process each message type individually
-func ReadSnapshot(cr countingReader, handler func(header *snapshotHeader, msg structs.MessageType, dec *codec.Decoder) error) error {
+func ReadSnapshot(r io.Reader, handler func(header *snapshotHeader, msg structs.MessageType, dec *codec.Decoder) error) error {
 	// Create a decoder
-	dec := codec.NewDecoder(cr.r, structs.MsgpackHandle)
+	dec := codec.NewDecoder(r, structs.MsgpackHandle)
 
 	// Read in the header
 	var header snapshotHeader
@@ -228,7 +220,7 @@ func ReadSnapshot(cr countingReader, handler func(header *snapshotHeader, msg st
 	msgType := make([]byte, 1)
 	for {
 		// Read the message type
-		_, err := cr.r.Read(msgType)
+		_, err := r.Read(msgType)
 		if err == io.EOF {
 			break
 		} else if err != nil {

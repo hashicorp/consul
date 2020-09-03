@@ -108,35 +108,43 @@ type typeStats struct {
 // countingReader helps keep track of the bytes we have read
 // when reading snapshots
 type countingReader struct {
-	r    io.Reader
-	read int
+	wrappedReader io.Reader
+	read          int
+}
+
+func (r *countingReader) Read(p []byte) (n int, err error) {
+	n, err = r.wrappedReader.Read(p)
+	if err == nil {
+		r.read += n
+	}
+	return n, err
 }
 
 // enhance utilizes ReadSnapshot to create a summary
 // of each messageType in a snapshot
 func enhance(file io.Reader) error {
 	stats := make(map[structs.MessageType]typeStats)
-	var offset uint8
+	var offset int
 	offset = 0
-	cr := countingReader{r: file}
+	cr := &countingReader{wrappedReader: file}
 	handler := func(header *snapshotHeader, msg structs.MessageType, dec *codec.Decoder) error {
-		msgType := structs.MessageType.String(msg)
-		s := stats[string(Name[0])]
+		name := structs.MessageType.String(msg)
+		s := stats[msg]
 		if s.Name == "" {
-			s.Name = msgType
+			s.Name = name
 		}
 		var val interface{}
 		err := dec.Decode(&val)
 		if err != nil {
-			panic(err)
+			return fmt.Errorf("failed to decode msg type %v, error %v", name, err)
 		}
 
 		size := cr.read - offset
 		s.Sum += size
 		s.Count++
-		offset += size
-		stats[msg(string[0])] = s
-
+		offset = cr.read
+		stats[msg] = s
+		return nil
 	}
 	fsm.ReadSnapshot(cr, handler)
 	return err
