@@ -73,8 +73,7 @@ type TestAgent struct {
 	// It is valid after Start().
 	dns *DNSServer
 
-	// srv is a reference to the first started HTTP endpoint.
-	// It is valid after Start().
+	// srv is an HTTPServer that may be used to test http endpoints.
 	srv *HTTPServer
 
 	// overrides is an hcl config source to use to override otherwise
@@ -213,6 +212,8 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 	// Start the anti-entropy syncer
 	a.Agent.StartSync()
 
+	a.srv = &HTTPServer{agent: agent, denylist: NewDenylist(a.config.HTTPBlockEndpoints)}
+
 	if err := a.waitForUp(); err != nil {
 		a.Shutdown()
 		t.Logf("Error while waiting for test agent to start: %v", err)
@@ -220,7 +221,6 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 	}
 
 	a.dns = a.dnsServers[0]
-	a.srv = a.httpServers[0]
 	return nil
 }
 
@@ -233,7 +233,7 @@ func (a *TestAgent) waitForUp() error {
 	var retErr error
 	var out structs.IndexedNodes
 	for ; !time.Now().After(deadline); time.Sleep(timer.Wait) {
-		if len(a.httpServers) == 0 {
+		if len(a.apiServers.servers) == 0 {
 			retErr = fmt.Errorf("waiting for server")
 			continue // fail, try again
 		}
@@ -262,7 +262,7 @@ func (a *TestAgent) waitForUp() error {
 		} else {
 			req := httptest.NewRequest("GET", "/v1/agent/self", nil)
 			resp := httptest.NewRecorder()
-			_, err := a.httpServers[0].AgentSelf(resp, req)
+			_, err := a.srv.AgentSelf(resp, req)
 			if acl.IsErrPermissionDenied(err) || resp.Code == 403 {
 				// permission denied is enough to show that the client is
 				// connected to the servers as it would get a 503 if
@@ -313,10 +313,13 @@ func (a *TestAgent) DNSAddr() string {
 }
 
 func (a *TestAgent) HTTPAddr() string {
-	if a.srv == nil {
-		return ""
+	var srv apiServer
+	for _, srv = range a.Agent.apiServers.servers {
+		if srv.Protocol == "http" {
+			break
+		}
 	}
-	return a.srv.Server.Addr
+	return srv.Addr.String()
 }
 
 func (a *TestAgent) SegmentAddr(name string) string {
