@@ -50,7 +50,10 @@ func routesFromSnapshotTerminatingGateway(_ connectionInfo, cfgSnap *proxycfg.Co
 		svcConfig := cfgSnap.TerminatingGateway.ServiceConfigs[svc]
 
 		cfg, err := ParseProxyConfig(svcConfig.ProxyConfig)
-		if err != nil || structs.IsProtocolHTTPLike(cfg.Protocol) {
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse upstream config: %v", err)
+		}
+		if !structs.IsProtocolHTTPLike(cfg.Protocol) {
 			// Routes can only be defined for HTTP services
 			continue
 		}
