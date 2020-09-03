@@ -407,7 +407,7 @@ and configure default certificates for mutual TLS. Also override the SNI and CA 
   If omitted, the namespace will be inherited from [the request](/api/config#ns)
   or will default to the `default` namespace.
 
-- `Meta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata pairs. Added in Consul 1.9.0.
+- `Meta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata pairs. Added in Consul 1.8.4.
 
 - `Services` `(array<LinkedService>: <optional>)` - A list of services to link
   with the gateway. The gateway will proxy traffic to these services. These linked services
