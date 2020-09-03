@@ -208,12 +208,12 @@ func (s *Server) makeGatewayServiceClusters(cfgSnap *proxycfg.ConfigSnapshot) ([
 
 		var loadBalancer *structs.EnvoyLBConfig
 
-		if hasResolver && resolver.LoadBalancer != nil {
-			loadBalancer = resolver.LoadBalancer.EnvoyConfig
-
-		} else {
+		if !hasResolver {
 			// Use a zero value resolver with no timeout and no subsets
 			resolver = &structs.ServiceResolverConfigEntry{}
+		}
+		if resolver.LoadBalancer != nil {
+			loadBalancer = resolver.LoadBalancer.EnvoyConfig
 		}
 
 		// When making service clusters we only pass endpoints with hostnames if the kind is a terminating gateway

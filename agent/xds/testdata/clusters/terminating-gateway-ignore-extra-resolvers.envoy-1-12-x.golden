@@ -121,6 +121,62 @@
     },
     {
       "@type": "type.googleapis.com/envoy.api.v2.Cluster",
+      "name": "v1.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "type": "EDS",
+      "edsClusterConfig": {
+        "edsConfig": {
+          "ads": {
+
+          }
+        }
+      },
+      "connectTimeout": "5s",
+      "tlsContext": {
+        "commonTlsContext": {
+          "tlsParams": {
+
+          },
+          "validationContext": {
+            "trustedCa": {
+              "filename": "ca.cert.pem"
+            }
+          }
+        }
+      },
+      "outlierDetection": {
+
+      }
+    },
+    {
+      "@type": "type.googleapis.com/envoy.api.v2.Cluster",
+      "name": "v2.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "type": "EDS",
+      "edsClusterConfig": {
+        "edsConfig": {
+          "ads": {
+
+          }
+        }
+      },
+      "connectTimeout": "5s",
+      "tlsContext": {
+        "commonTlsContext": {
+          "tlsParams": {
+
+          },
+          "validationContext": {
+            "trustedCa": {
+              "filename": "ca.cert.pem"
+            }
+          }
+        }
+      },
+      "outlierDetection": {
+
+      }
+    },
+    {
+      "@type": "type.googleapis.com/envoy.api.v2.Cluster",
       "name": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "type": "EDS",
       "edsClusterConfig": {

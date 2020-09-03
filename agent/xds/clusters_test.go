@@ -527,6 +527,12 @@ func TestClustersFromSnapshot(t *testing.T) {
 						},
 					},
 				}
+				snap.TerminatingGateway.ServiceConfigs[structs.NewServiceName("web", nil)] = &structs.ServiceConfigResponse{
+					ProxyConfig: map[string]interface{}{"protocol": "http"},
+				}
+				snap.TerminatingGateway.ServiceConfigs[structs.NewServiceName("cache", nil)] = &structs.ServiceConfigResponse{
+					ProxyConfig: map[string]interface{}{"protocol": "http"},
+				}
 			},
 		},
 		{
@@ -552,6 +558,12 @@ func TestClustersFromSnapshot(t *testing.T) {
 							},
 						},
 					},
+				}
+				snap.TerminatingGateway.ServiceConfigs[structs.NewServiceName("api", nil)] = &structs.ServiceConfigResponse{
+					ProxyConfig: map[string]interface{}{"protocol": "http"},
+				}
+				snap.TerminatingGateway.ServiceConfigs[structs.NewServiceName("cache", nil)] = &structs.ServiceConfigResponse{
+					ProxyConfig: map[string]interface{}{"protocol": "http"},
 				}
 			},
 		},
@@ -589,6 +601,9 @@ func TestClustersFromSnapshot(t *testing.T) {
 						},
 					},
 				}
+				snap.TerminatingGateway.ServiceConfigs[structs.NewServiceName("web", nil)] = &structs.ServiceConfigResponse{
+					ProxyConfig: map[string]interface{}{"protocol": "http"},
+				}
 			},
 		},
 		{
@@ -619,6 +634,9 @@ func TestClustersFromSnapshot(t *testing.T) {
 							},
 						},
 					},
+				}
+				snap.TerminatingGateway.ServiceConfigs[structs.NewServiceName("web", nil)] = &structs.ServiceConfigResponse{
+					ProxyConfig: map[string]interface{}{"protocol": "http"},
 				}
 			},
 		},

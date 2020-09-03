@@ -1883,7 +1883,7 @@ func testConfigSnapshotTerminatingGateway(t testing.T, populateServices bool) *C
 
 		snap.TerminatingGateway.ServiceConfigs = map[structs.ServiceName]*structs.ServiceConfigResponse{
 			web: {
-				ProxyConfig: map[string]interface{}{"protocol": "http"},
+				ProxyConfig: map[string]interface{}{"protocol": "tcp"},
 			},
 			api: {
 				ProxyConfig: map[string]interface{}{"protocol": "tcp"},

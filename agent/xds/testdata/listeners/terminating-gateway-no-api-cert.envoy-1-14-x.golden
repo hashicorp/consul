@@ -136,33 +136,18 @@
           },
           "filters": [
             {
-              "name": "envoy.http_connection_manager",
+              "name": "envoy.filters.network.rbac",
               "config": {
-                  "http_filters": [
-                        {
-                              "config": {
-                                    "rules": {
-                                        }
-                                  },
-                              "name": "envoy.filters.http.rbac"
-                            },
-                        {
-                              "name": "envoy.router"
-                            }
-                      ],
-                  "rds": {
-                        "config_source": {
-                              "ads": {
-                                  }
-                            },
-                        "route_config_name": "default"
+                  "rules": {
                       },
-                  "stat_prefix": "terminating_gateway_default_web_default_http",
-                  "tracing": {
-                        "operation_name": "EGRESS",
-                        "random_sampling": {
-                            }
-                      }
+                  "stat_prefix": "connect_authz"
+                }
+            },
+            {
+              "name": "envoy.tcp_proxy",
+              "config": {
+                  "cluster": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                  "stat_prefix": "terminating_gateway_default_web_default_tcp"
                 }
             }
           ]

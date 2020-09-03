@@ -230,6 +230,9 @@ func TestRoutesFromSnapshot(t *testing.T) {
 						},
 					},
 				}
+				snap.TerminatingGateway.ServiceConfigs[structs.NewServiceName("web", nil)] = &structs.ServiceConfigResponse{
+					ProxyConfig: map[string]interface{}{"protocol": "http"},
+				}
 			},
 		},
 	}
