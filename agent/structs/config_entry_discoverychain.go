@@ -730,7 +730,8 @@ func (e *ServiceResolverConfigEntry) IsDefault() bool {
 		len(e.Subsets) == 0 &&
 		e.Redirect == nil &&
 		len(e.Failover) == 0 &&
-		e.ConnectTimeout == 0
+		e.ConnectTimeout == 0 &&
+		e.LoadBalancer == nil
 }
 
 func (e *ServiceResolverConfigEntry) GetKind() string {

@@ -2372,7 +2372,7 @@ func testcase_LBSplitterAndResolver() compileTestCase {
 				Type: structs.DiscoveryGraphNodeTypeResolver,
 				Name: "foo.default.dc1",
 				Resolver: &structs.DiscoveryResolver{
-					Default:        true,
+					Default:        false,
 					ConnectTimeout: 5 * time.Second,
 					Target:         "foo.default.dc1",
 				},
@@ -2389,7 +2389,7 @@ func testcase_LBSplitterAndResolver() compileTestCase {
 				Type: structs.DiscoveryGraphNodeTypeResolver,
 				Name: "bar.default.dc1",
 				Resolver: &structs.DiscoveryResolver{
-					Default:        true,
+					Default:        false,
 					ConnectTimeout: 5 * time.Second,
 					Target:         "bar.default.dc1",
 				},
@@ -2411,7 +2411,7 @@ func testcase_LBSplitterAndResolver() compileTestCase {
 				Type: structs.DiscoveryGraphNodeTypeResolver,
 				Name: "baz.default.dc1",
 				Resolver: &structs.DiscoveryResolver{
-					Default:        true,
+					Default:        false,
 					ConnectTimeout: 5 * time.Second,
 					Target:         "baz.default.dc1",
 				},
@@ -2476,7 +2476,7 @@ func testcase_LBResolver() compileTestCase {
 				Type: structs.DiscoveryGraphNodeTypeResolver,
 				Name: "main.default.dc1",
 				Resolver: &structs.DiscoveryResolver{
-					Default:        true,
+					Default:        false,
 					ConnectTimeout: 5 * time.Second,
 					Target:         "main.default.dc1",
 				},
