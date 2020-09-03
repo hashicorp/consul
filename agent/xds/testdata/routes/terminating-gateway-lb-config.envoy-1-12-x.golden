@@ -3,10 +3,10 @@
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.api.v2.RouteConfiguration",
-      "name": "api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "name": "v1.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "virtualHosts": [
         {
-          "name": "api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+          "name": "v1.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
           "domains": [
             "*"
           ],
@@ -16,7 +16,26 @@
                 "prefix": "/"
               },
               "route": {
-                "cluster": "api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "v1.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "hashPolicy": [
+                  {
+                    "cookie": {
+                      "name": "chocolate-chip"
+                    },
+                    "terminal": true
+                  },
+                  {
+                    "header": {
+                      "headerName": "x-user-id"
+                    }
+                  },
+                  {
+                    "connectionProperties": {
+                      "sourceIp": true
+                    },
+                    "terminal": true
+                  }
+                ]
               }
             }
           ]
@@ -26,10 +45,10 @@
     },
     {
       "@type": "type.googleapis.com/envoy.api.v2.RouteConfiguration",
-      "name": "cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "name": "v2.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "virtualHosts": [
         {
-          "name": "cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+          "name": "v2.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
           "domains": [
             "*"
           ],
@@ -39,7 +58,26 @@
                 "prefix": "/"
               },
               "route": {
-                "cluster": "cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "v2.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "hashPolicy": [
+                  {
+                    "cookie": {
+                      "name": "chocolate-chip"
+                    },
+                    "terminal": true
+                  },
+                  {
+                    "header": {
+                      "headerName": "x-user-id"
+                    }
+                  },
+                  {
+                    "connectionProperties": {
+                      "sourceIp": true
+                    },
+                    "terminal": true
+                  }
+                ]
               }
             }
           ]
@@ -49,10 +87,10 @@
     },
     {
       "@type": "type.googleapis.com/envoy.api.v2.RouteConfiguration",
-      "name": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "name": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "virtualHosts": [
         {
-          "name": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+          "name": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
           "domains": [
             "*"
           ],
@@ -62,7 +100,26 @@
                 "prefix": "/"
               },
               "route": {
-                "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "hashPolicy": [
+                  {
+                    "cookie": {
+                      "name": "chocolate-chip"
+                    },
+                    "terminal": true
+                  },
+                  {
+                    "header": {
+                      "headerName": "x-user-id"
+                    }
+                  },
+                  {
+                    "connectionProperties": {
+                      "sourceIp": true
+                    },
+                    "terminal": true
+                  }
+                ]
               }
             }
           ]
