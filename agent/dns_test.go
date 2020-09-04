@@ -6833,7 +6833,7 @@ func TestDNS_Compression_Query(t *testing.T) {
 		}
 
 		// Do a manual exchange with compression on (the default).
-		a.DNSDisableCompression(false)
+		a.DNSDisableCompression(t, false)
 		if err := conn.WriteMsg(m); err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -6844,7 +6844,7 @@ func TestDNS_Compression_Query(t *testing.T) {
 		}
 
 		// Disable compression and try again.
-		a.DNSDisableCompression(true)
+		a.DNSDisableCompression(t, true)
 		if err := conn.WriteMsg(m); err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -6898,7 +6898,7 @@ func TestDNS_Compression_ReverseLookup(t *testing.T) {
 	}
 
 	// Disable compression and try again.
-	a.DNSDisableCompression(true)
+	a.DNSDisableCompression(t, true)
 	if err := conn.WriteMsg(m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -6946,7 +6946,7 @@ func TestDNS_Compression_Recurse(t *testing.T) {
 	}
 
 	// Disable compression and try again.
-	a.DNSDisableCompression(true)
+	a.DNSDisableCompression(t, true)
 	if err := conn.WriteMsg(m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
