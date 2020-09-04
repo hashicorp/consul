@@ -1917,13 +1917,15 @@ func TestAgent_HTTPCheck_EnableAgentTLSForChecks(t *testing.T) {
 			Status:  api.HealthCritical,
 		}
 
-		url := fmt.Sprintf("https://%s/v1/agent/self", a.HTTPAddr())
+		addr, err := firstAddr(a.Agent.apiServers, "https")
+		require.NoError(t, err)
+		url := fmt.Sprintf("https://%s/v1/agent/self", addr.String())
 		chk := &structs.CheckType{
 			HTTP:     url,
 			Interval: 20 * time.Millisecond,
 		}
 
-		err := a.AddCheck(health, chk, false, "", ConfigSourceLocal)
+		err = a.AddCheck(health, chk, false, "", ConfigSourceLocal)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
