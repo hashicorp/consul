@@ -70,10 +70,6 @@ type TestAgent struct {
 	// one.
 	UseTLS bool
 
-	// dns is a reference to the first started DNS endpoint.
-	// It is valid after Start().
-	dns *DNSServer
-
 	// srv is an HTTPServer that may be used to test http endpoints.
 	srv *HTTPServer
 
@@ -221,7 +217,6 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 		return errwrap.Wrapf(name+": {{err}}", err)
 	}
 
-	a.dns = a.dnsServers[0]
 	return nil
 }
 
@@ -307,10 +302,12 @@ func (a *TestAgent) Shutdown() error {
 }
 
 func (a *TestAgent) DNSAddr() string {
-	if a.dns == nil {
-		return ""
+	addr, err := firstAddr(a.Agent.apiServers, "dns")
+	if err != nil {
+		// TODO: t.Fatal instead of panic
+		panic("no dns server registered")
 	}
-	return a.dns.Addr
+	return addr.String()
 }
 
 func (a *TestAgent) HTTPAddr() string {
@@ -355,9 +352,7 @@ func (a *TestAgent) DNSDisableCompression(t *testing.T, b bool) {
 	t.Helper()
 
 	a.config.DNSDisableCompression = b
-	for _, srv := range a.dnsServers {
-		require.NoError(t, srv.ReloadConfig(a.config))
-	}
+	require.NoError(t, a.reloadConfigInternal(a.config))
 }
 
 // FIXME: this should t.Fatal on error, not panic.
