@@ -9,6 +9,11 @@ export default Route.extend({
   repo: service('repository/kv'),
   sessionRepo: service('repository/session'),
   model: function(params) {
+    const create =
+      this.routeName
+        .split('.')
+        .pop()
+        .indexOf('create') !== -1;
     const key = params.key;
     const dc = this.modelFor('dc').dc.Name;
     const nspace = this.modelFor('nspace').nspace.substr(1);
@@ -19,7 +24,12 @@ export default Route.extend({
         typeof key !== 'undefined'
           ? this.repo.findBySlug(ascend(key, 1) || '/', dc, nspace)
           : this.repo.findBySlug('/', dc, nspace),
-      item: typeof key !== 'undefined' ? this.repo.findBySlug(key, dc, nspace) : undefined,
+      item: create
+        ? this.repo.create({
+            Datacenter: dc,
+            Namespace: nspace,
+          })
+        : this.repo.findBySlug(key, dc, nspace),
       session: null,
     }).then(model => {
       // TODO: Consider loading this after initial page load
