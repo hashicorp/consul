@@ -364,6 +364,7 @@ jobs:
     environment:
       <<: *ENVIRONMENT
     steps:
+      - checkout
       - *get-aws-cli
       - *aws-assume-role
       # get consul binary
