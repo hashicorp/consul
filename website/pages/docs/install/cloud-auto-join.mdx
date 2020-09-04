@@ -122,11 +122,16 @@ Use these configuration parameters (instead of `tag_name` and `tag_value`) when 
 - `resource_group` - the name of the resource group to filter on.
 - `vm_scale_set` - the name of the virtual machine scale set to filter on.
 
-When using tags the only permission needed is `Microsoft.Network/networkInterfaces/read`. The scope for this permission is the Resource Group that contains the virtual NICs for the Virtual Machines.
+When using tags the only permission needed is `Microsoft.Network/networkInterfaces/read`. The scope for this permission is the Resource Group
+that contains the virtual NICs for the Virtual Machines.
 
 When using Virtual Machine Scale Sets the only role action needed is `Microsoft.Compute/virtualMachineScaleSets/*/read`.
 
-~> **Note:** If the Consul datacenter is hosted on Azure, Consul can use Managed Service Identities (MSI) to access Azure instead of an environment variable, shared client id and secret. MSI must be enabled on the VMs or Virtual Machine Scale Sets hosting Consul. It is the preferred configuration since MSI prevents your Azure credentials from being stored in Consul configuration. This feature is supported in Consul 1.7 and above. When using MSI, the `tag_key`, `tag_value` and `subscription_id` need to be supplied for Virtual machines.
+~> **Note:** If the Consul datacenter is hosted on Azure, Consul can use Managed Service Identities (MSI) to access Azure instead of an environment
+  variable, shared client id and secret. MSI must be enabled on the VMs or Virtual Machine Scale Sets hosting Consul. It is the preferred configuration
+  since MSI prevents your Azure credentials from being stored in Consul configuration. This feature is supported in Consul 1.7 and above. When using
+  MSI, the `tag_key`, `tag_value` and `subscription_id` need to be supplied for Virtual machines.
+  Be aware that the amount of time that Azure takes for the VMs to detect the MSI permissions can be between a minute to an hour.
 
 ### Google Compute Engine
 
