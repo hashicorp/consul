@@ -11,7 +11,7 @@ import (
 
 // checkCoordinateDisabled will return a standard response if coordinates are
 // disabled. This returns true if they are disabled and we should not continue.
-func (s *HTTPServer) checkCoordinateDisabled(resp http.ResponseWriter, req *http.Request) bool {
+func (s *HTTPHandlers) checkCoordinateDisabled(resp http.ResponseWriter, req *http.Request) bool {
 	if !s.agent.config.DisableCoordinates {
 		return false
 	}
@@ -44,7 +44,7 @@ func (s *sorter) Less(i, j int) bool {
 
 // CoordinateDatacenters returns the WAN nodes in each datacenter, along with
 // raw network coordinates.
-func (s *HTTPServer) CoordinateDatacenters(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) CoordinateDatacenters(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkCoordinateDisabled(resp, req) {
 		return nil, nil
 	}
@@ -73,7 +73,7 @@ func (s *HTTPServer) CoordinateDatacenters(resp http.ResponseWriter, req *http.R
 
 // CoordinateNodes returns the LAN nodes in the given datacenter, along with
 // raw network coordinates.
-func (s *HTTPServer) CoordinateNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) CoordinateNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkCoordinateDisabled(resp, req) {
 		return nil, nil
 	}
@@ -95,7 +95,7 @@ func (s *HTTPServer) CoordinateNodes(resp http.ResponseWriter, req *http.Request
 
 // CoordinateNode returns the LAN node in the given datacenter, along with
 // raw network coordinates.
-func (s *HTTPServer) CoordinateNode(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) CoordinateNode(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkCoordinateDisabled(resp, req) {
 		return nil, nil
 	}
@@ -144,7 +144,7 @@ func filterCoordinates(req *http.Request, in structs.Coordinates) structs.Coordi
 }
 
 // CoordinateUpdate inserts or updates the LAN coordinate of a node.
-func (s *HTTPServer) CoordinateUpdate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) CoordinateUpdate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkCoordinateDisabled(resp, req) {
 		return nil, nil
 	}

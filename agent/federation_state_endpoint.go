@@ -8,7 +8,7 @@ import (
 )
 
 // GET /v1/internal/federation-state/<datacenter>
-func (s *HTTPServer) FederationStateGet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) FederationStateGet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	datacenterName := strings.TrimPrefix(req.URL.Path, "/v1/internal/federation-state/")
 	if datacenterName == "" {
 		return nil, BadRequestError{Reason: "Missing datacenter name"}
@@ -36,7 +36,7 @@ func (s *HTTPServer) FederationStateGet(resp http.ResponseWriter, req *http.Requ
 }
 
 // GET /v1/internal/federation-states
-func (s *HTTPServer) FederationStateList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) FederationStateList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.DCSpecificRequest
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
@@ -61,7 +61,7 @@ func (s *HTTPServer) FederationStateList(resp http.ResponseWriter, req *http.Req
 }
 
 // GET /v1/internal/federation-states/mesh-gateways
-func (s *HTTPServer) FederationStateListMeshGateways(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) FederationStateListMeshGateways(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.DCSpecificRequest
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil

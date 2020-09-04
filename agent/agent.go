@@ -754,7 +754,7 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 				l = tls.NewListener(l, tlscfg)
 			}
 
-			srv := &HTTPServer{
+			srv := &HTTPHandlers{
 				agent:    a,
 				denylist: NewDenylist(a.config.HTTPBlockEndpoints),
 			}

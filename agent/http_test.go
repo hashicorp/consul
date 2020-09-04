@@ -831,7 +831,7 @@ func TestHTTPServer_PProfHandlers_EnableDebug(t *testing.T) {
 	resp := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/debug/pprof/profile?seconds=1", nil)
 
-	httpServer := &HTTPServer{agent: a.Agent}
+	httpServer := &HTTPHandlers{agent: a.Agent}
 	httpServer.handler(true).ServeHTTP(resp, req)
 
 	require.Equal(t, http.StatusOK, resp.Code)
@@ -845,7 +845,7 @@ func TestHTTPServer_PProfHandlers_DisableDebugNoACLs(t *testing.T) {
 	resp := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/debug/pprof/profile", nil)
 
-	httpServer := &HTTPServer{agent: a.Agent}
+	httpServer := &HTTPHandlers{agent: a.Agent}
 	httpServer.handler(false).ServeHTTP(resp, req)
 
 	require.Equal(t, http.StatusUnauthorized, resp.Code)
