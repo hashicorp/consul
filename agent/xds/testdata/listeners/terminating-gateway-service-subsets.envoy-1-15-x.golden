@@ -202,7 +202,7 @@
                               "ads": {
                                   }
                             },
-                        "route_config_name": "default"
+                        "route_config_name": "v1.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
                       },
                   "stat_prefix": "terminating_gateway_default_web_default_http",
                   "tracing": {
@@ -264,7 +264,7 @@
                               "ads": {
                                   }
                             },
-                        "route_config_name": "default"
+                        "route_config_name": "v2.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
                       },
                   "stat_prefix": "terminating_gateway_default_web_default_http",
                   "tracing": {
@@ -326,7 +326,7 @@
                               "ads": {
                                   }
                             },
-                        "route_config_name": "default"
+                        "route_config_name": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
                       },
                   "stat_prefix": "terminating_gateway_default_web_default_http",
                   "tracing": {
