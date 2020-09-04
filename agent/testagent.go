@@ -339,10 +339,12 @@ func (a *TestAgent) Client() *api.Client {
 }
 
 // DNSDisableCompression disables compression for all started DNS servers.
-func (a *TestAgent) DNSDisableCompression(b bool) {
+func (a *TestAgent) DNSDisableCompression(t *testing.T, b bool) {
+	t.Helper()
+
+	a.config.DNSDisableCompression = b
 	for _, srv := range a.dnsServers {
-		cfg := srv.config.Load().(*dnsConfig)
-		cfg.DisableCompression = b
+		require.NoError(t, srv.ReloadConfig(a.config))
 	}
 }
 
