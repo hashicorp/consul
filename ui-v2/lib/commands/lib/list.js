@@ -40,11 +40,12 @@ const library = {
     return this;
   },
 };
+const root = process.cwd();
 const exec = function(filename) {
   const js = read(filename);
   const code = babel.transform(js.toString(), {
     filename: filename,
-    presets: [require('babel-preset-env')],
+    presets: ['@babel/preset-env'],
   }).code;
   const exports = {};
   vm.runInNewContext(
@@ -52,7 +53,7 @@ const exec = function(filename) {
     {
       exports: exports,
       require: function(str) {
-        return exec(path.resolve(`${process.cwd()}/tests`, `${str}.js`)).default;
+        return exec(path.resolve(`${root}/tests`, `${str}.js`)).default;
       },
     },
     {
@@ -63,5 +64,6 @@ const exec = function(filename) {
 };
 
 module.exports = function(filename) {
-  exec(filename).default(function() {}, library, {}, {}, {}, function() {});
+  const assert = () => {};
+  exec(filename).default({ assert, library });
 };
