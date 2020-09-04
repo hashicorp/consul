@@ -22,7 +22,6 @@ import (
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/net/http2"
@@ -260,9 +259,6 @@ type Agent struct {
 	endpoints     map[string]string
 	endpointsLock sync.RWMutex
 
-	// dnsServer provides the DNS API
-	dnsServers []*DNSServer
-
 	// apiServers listening for connections. If any of these server goroutines
 	// fail, the agent will be shutdown.
 	apiServers *apiServers
@@ -283,10 +279,6 @@ type Agent struct {
 	// HTTPHandlers and pass them in removing the need to pull them back out
 	// again.
 	httpHandlers *HTTPHandlers
-
-	// wgServers is the wait group for all HTTP and DNS servers
-	// TODO: remove once dnsServers are handled by apiServers
-	wgServers sync.WaitGroup
 
 	// watchPlans tracks all the currently-running watch plans for the
 	// agent.
@@ -698,46 +690,39 @@ func (a *Agent) listenAndServeGRPC() error {
 }
 
 func (a *Agent) listenAndServeDNS() error {
-	notif := make(chan net.Addr, len(a.config.DNSAddrs))
-	errCh := make(chan error, len(a.config.DNSAddrs))
+	chNotify := make(chan struct{}, len(a.config.DNSAddrs))
+
 	for _, addr := range a.config.DNSAddrs {
-		// create server
 		s, err := NewDNSServer(a)
 		if err != nil {
 			return err
 		}
-		a.dnsServers = append(a.dnsServers, s)
 
-		// start server
-		a.wgServers.Add(1)
-		go func(addr net.Addr) {
-			defer a.wgServers.Done()
-			err := s.ListenAndServe(addr.Network(), addr.String(), func() { notif <- addr })
-			if err != nil && !strings.Contains(err.Error(), "accept") {
-				errCh <- err
-			}
-		}(addr)
+		done := func() {
+			chNotify <- struct{}{}
+		}
+		a.apiServers.Start(newAPIServerDNS(s, addr, done))
+		a.configReloaders = append(a.configReloaders, reloadConfigDNSServer(s))
 	}
 
-	// wait for servers to be up
+	// Unlike the HTTP server, the dns.Server listens and serves in the same call.
+	// We could fix this by calling ActivateAndServe instead of ListenAndServe,
+	// however that would require duplicating the network switch/case in
+	// ListenAndServe. Do we actually support more than one network type?
+	// For now we are handling this difference by waiting up to a second for
+	// the listener to listen.
+	// TODO: fix this by using dns.Server.ActivateAndServe
 	timeout := time.After(time.Second)
-	var merr *multierror.Error
 	for range a.config.DNSAddrs {
 		select {
-		case addr := <-notif:
-			a.logger.Info("Started DNS server",
-				"address", addr.String(),
-				"network", addr.Network(),
-			)
-
-		case err := <-errCh:
-			merr = multierror.Append(merr, err)
+		case <-chNotify:
 		case <-timeout:
-			merr = multierror.Append(merr, fmt.Errorf("agent: timeout starting DNS servers"))
-			return merr.ErrorOrNil()
+			return fmt.Errorf("agent: timeout starting DNS servers")
+		case <-a.apiServers.failed:
+			return fmt.Errorf("DNS servers failed to listen or serve")
 		}
 	}
-	return merr.ErrorOrNil()
+	return nil
 }
 
 func (a *Agent) startListeners(addrs []net.Addr) ([]net.Listener, error) {
@@ -1422,19 +1407,6 @@ func (a *Agent) ShutdownEndpoints() {
 	defer a.shutdownLock.Unlock()
 
 	ctx := context.TODO()
-
-	for _, srv := range a.dnsServers {
-		if srv.Server != nil {
-			a.logger.Info("Stopping server",
-				"protocol", "DNS",
-				"address", srv.Server.Addr,
-				"network", srv.Server.Net,
-			)
-			srv.Shutdown()
-		}
-	}
-	a.dnsServers = nil
-
 	a.apiServers.Shutdown(ctx)
 	a.logger.Info("Waiting for endpoints to shut down")
 	if err := a.apiServers.WaitForShutdown(); err != nil {
@@ -3548,6 +3520,7 @@ func (a *Agent) DisableNodeMaintenance() {
 // ReloadConfig will atomically reload all configuration, including
 // all services, checks, tokens, metadata, dnsServer configs, etc.
 // It will also reload all ongoing watches.
+// TODO: move to reload.go
 func (a *Agent) ReloadConfig() error {
 	newCfg, err := a.baseDeps.AutoConfig.ReadConfig()
 	if err != nil {
@@ -3571,6 +3544,7 @@ func (a *Agent) ReloadConfig() error {
 // reloadConfigInternal is mainly needed for some unit tests. Instead of parsing
 // the configuration using CLI flags and on disk config, this just takes a
 // runtime configuration and applies it.
+// TODO: move to reload.go
 func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	// Change the log level and update it
 	if logging.ValidateLogLevel(newCfg.Logging.LogLevel) {
@@ -3628,12 +3602,6 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	a.httpConnLimiter.SetConfig(connlimit.Config{
 		MaxConnsPerClientIP: newCfg.HTTPMaxConnsPerClient,
 	})
-
-	for _, s := range a.dnsServers {
-		if err := s.ReloadConfig(newCfg); err != nil {
-			return fmt.Errorf("Failed reloading dns config : %v", err)
-		}
-	}
 
 	err := a.reloadEnterprise(newCfg)
 	if err != nil {

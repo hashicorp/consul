@@ -105,10 +105,11 @@ type serviceLookup struct {
 	structs.EnterpriseMeta
 }
 
-// DNSServer is used to wrap an Agent and expose various
-// service discovery endpoints using a DNS interface.
+// DNSServer is used to wrap an Agent and expose various service discovery
+// endpoints using a DNS interface.
+//
+// TODO: rename to DNSHandler, it is not a server.
 type DNSServer struct {
-	*dns.Server
 	agent     *Agent
 	mux       *dns.ServeMux
 	domain    string
@@ -134,7 +135,7 @@ func NewDNSServer(a *Agent) (*DNSServer, error) {
 		altDomain: altDomain,
 		logger:    a.logger.Named(logging.DNS),
 	}
-	cfg, err := GetDNSConfig(a.config)
+	cfg, err := newDNSConfig(a.config)
 	if err != nil {
 		return nil, err
 	}
@@ -143,8 +144,8 @@ func NewDNSServer(a *Agent) (*DNSServer, error) {
 	return srv, nil
 }
 
-// GetDNSConfig takes global config and creates the config used by DNS server
-func GetDNSConfig(conf *config.RuntimeConfig) (*dnsConfig, error) {
+// newDNSConfig creates a dnsConfig from a RuntimeConfig.
+func newDNSConfig(conf *config.RuntimeConfig) (*dnsConfig, error) {
 	cfg := &dnsConfig{
 		AllowStale:         conf.DNSAllowStale,
 		ARecordLimit:       conf.DNSARecordLimit,
@@ -212,7 +213,29 @@ func (cfg *dnsConfig) GetTTLForService(service string) (time.Duration, bool) {
 	return 0, false
 }
 
-func (d *DNSServer) ListenAndServe(network, addr string, notif func()) error {
+// TODO: rename to newDNSServer once DNSServer has been renamed to DNSHandler
+func newAPIServerDNS(handler *DNSServer, addr net.Addr, notify func()) apiServer {
+	handler.setupMux()
+
+	srv := &dns.Server{
+		Addr:              addr.String(),
+		Net:               addr.Network(),
+		Handler:           handler.mux,
+		NotifyStartedFunc: notify,
+	}
+	if addr.Network() == "udp" {
+		srv.UDPSize = 65535
+	}
+
+	return apiServer{
+		Protocol: "dns",
+		Addr:     addr,
+		Run:      srv.ListenAndServe,
+		Shutdown: srv.ShutdownContext,
+	}
+}
+
+func (d *DNSServer) setupMux() {
 	cfg := d.config.Load().(*dnsConfig)
 
 	d.mux = dns.NewServeMux()
@@ -228,17 +251,6 @@ func (d *DNSServer) ListenAndServe(network, addr string, notif func()) error {
 		d.mux.HandleFunc(d.altDomain, d.handleQuery)
 	}
 	d.toggleRecursorHandlerFromConfig(cfg)
-
-	d.Server = &dns.Server{
-		Addr:              addr,
-		Net:               network,
-		Handler:           d.mux,
-		NotifyStartedFunc: notif,
-	}
-	if network == "udp" {
-		d.UDPSize = 65535
-	}
-	return d.Server.ListenAndServe()
 }
 
 // toggleRecursorHandlerFromConfig enables or disables the recursor handler based on config idempotently
@@ -259,11 +271,7 @@ func (d *DNSServer) toggleRecursorHandlerFromConfig(cfg *dnsConfig) {
 }
 
 // ReloadConfig hot-reloads the server config with new parameters under config.RuntimeConfig.DNS*
-func (d *DNSServer) ReloadConfig(newCfg *config.RuntimeConfig) error {
-	cfg, err := GetDNSConfig(newCfg)
-	if err != nil {
-		return err
-	}
+func (d *DNSServer) ReloadConfig(cfg *dnsConfig) error {
 	d.config.Store(cfg)
 	d.toggleRecursorHandlerFromConfig(cfg)
 	return nil
