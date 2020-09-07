@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	agentdns "github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
@@ -7010,7 +7011,7 @@ func TestDNS_ConfigReload(t *testing.T) {
 	}
 
 	agent := &Agent{config: rtConfig, logger: hclog.NewInterceptLogger(nil)}
-	s, err := NewDNSServer(agent)
+	s, err := NewDNSServer(agent, new(token.Store), nil)
 	require.NoError(t, err)
 	s.setupMux()
 

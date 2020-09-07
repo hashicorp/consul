@@ -13,6 +13,7 @@ import (
 	metrics "github.com/armon/go-metrics"
 	radix "github.com/armon/go-radix"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
+	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/config"
 	agentdns "github.com/hashicorp/consul/agent/dns"
@@ -69,8 +70,15 @@ type dnsConfig struct {
 	// TTLStict sets TTLs to service by full name match. It Has higher priority than TTLRadix
 	TTLStrict          map[string]time.Duration
 	DisableCompression bool
+	agentLocation      agentLocation
 
 	enterpriseDNSConfig
+}
+
+type agentLocation struct {
+	Datacenter  string
+	SegmentName string
+	NodeName    string
 }
 
 type serviceLookup struct {
@@ -89,11 +97,13 @@ type serviceLookup struct {
 //
 // TODO: rename to DNSHandler, it is not a server.
 type DNSServer struct {
-	agent     *Agent
+	agent     DNSHandlerBackend
 	mux       *dns.ServeMux
 	domain    string
 	altDomain string
 	logger    hclog.Logger
+	tokens    UserTokener
+	cache     CacheGetter
 
 	// config stores the config as an atomic value (for hot-reloading). It is always of type *dnsConfig
 	config atomic.Value
@@ -103,7 +113,24 @@ type DNSServer struct {
 	recursorEnabled uint32
 }
 
-func NewDNSServer(a *Agent) (*DNSServer, error) {
+type DNSHandlerBackend interface {
+	RPC(method string, args interface{}, reply interface{}) error
+	TranslateAddress(dc string, addr string, taggedAddresses map[string]string, accept TranslateAddressAccept) string
+	TranslateServiceAddress(dc string, addr string, taggedAddresses map[string]structs.ServiceAddress, accept TranslateAddressAccept) string
+	TranslateServicePort(dc string, port int, taggedAddresses map[string]structs.ServiceAddress) int
+}
+
+// UserTokener provides an ACL token for making RPC requests.
+type UserTokener interface {
+	UserToken() string
+}
+
+// CacheGetter provides a Get method for retrieving untyped values from a cache.
+type CacheGetter interface {
+	Get(ctx context.Context, t string, r cache.Request) (interface{}, cache.ResultMeta, error)
+}
+
+func NewDNSServer(a *Agent, tokens UserTokener, cache CacheGetter) (*DNSServer, error) {
 	// Make sure domains are FQDN, make them case insensitive for ServeMux
 	domain := dns.Fqdn(strings.ToLower(a.config.DNSDomain))
 	altDomain := dns.Fqdn(strings.ToLower(a.config.DNSAltDomain))
@@ -113,6 +140,7 @@ func NewDNSServer(a *Agent) (*DNSServer, error) {
 		domain:    domain,
 		altDomain: altDomain,
 		logger:    a.logger.Named(logging.DNS),
+		tokens:    tokens,
 	}
 	cfg, err := newDNSConfig(a.config)
 	if err != nil {
@@ -148,6 +176,11 @@ func newDNSConfig(conf *config.RuntimeConfig) (*dnsConfig, error) {
 			Retry:   conf.DNSSOA.Retry,
 		},
 		enterpriseDNSConfig: getEnterpriseDNSConfig(conf),
+		agentLocation: agentLocation{
+			Datacenter:  conf.Datacenter,
+			SegmentName: conf.SegmentName,
+			NodeName:    conf.NodeName,
+		},
 	}
 	if conf.DNSServiceTTL != nil {
 		cfg.TTLRadix = radix.New()
@@ -331,9 +364,11 @@ func serviceIngressDNSName(service, datacenter, domain string, entMeta *structs.
 // handlePtr is used to handle "reverse" DNS queries
 func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	q := req.Question[0]
+	cfg := d.config.Load().(*dnsConfig)
+
 	defer func(s time.Time) {
 		metrics.MeasureSinceWithLabels([]string{"dns", "ptr_query"}, s,
-			[]metrics.Label{{Name: "node", Value: d.agent.config.NodeName}})
+			[]metrics.Label{{Name: "node", Value: cfg.agentLocation.NodeName}})
 		d.logger.Debug("request served from client",
 			"question", q,
 			"latency", time.Since(s).String(),
@@ -341,8 +376,6 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 			"client_network", resp.RemoteAddr().Network(),
 		)
 	}(time.Now())
-
-	cfg := d.config.Load().(*dnsConfig)
 
 	// Setup the message response
 	m := new(dns.Msg)
@@ -356,7 +389,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 		d.addSOA(cfg, m)
 	}
 
-	datacenter := d.agent.config.Datacenter
+	datacenter := cfg.agentLocation.Datacenter
 
 	// Get the QName without the domain suffix
 	qName := strings.ToLower(dns.Fqdn(req.Question[0].Name))
@@ -364,7 +397,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	args := structs.DCSpecificRequest{
 		Datacenter: datacenter,
 		QueryOptions: structs.QueryOptions{
-			Token:      d.agent.tokens.UserToken(),
+			Token:      d.tokens.UserToken(),
 			AllowStale: cfg.AllowStale,
 		},
 	}
@@ -393,7 +426,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 		sargs := structs.ServiceSpecificRequest{
 			Datacenter: datacenter,
 			QueryOptions: structs.QueryOptions{
-				Token:      d.agent.tokens.UserToken(),
+				Token:      d.tokens.UserToken(),
 				AllowStale: cfg.AllowStale,
 			},
 			ServiceAddress: serviceAddress,
@@ -433,9 +466,11 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 // handleQuery is used to handle DNS queries in the configured domain
 func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	q := req.Question[0]
+	cfg := d.config.Load().(*dnsConfig)
+
 	defer func(s time.Time) {
 		metrics.MeasureSinceWithLabels([]string{"dns", "domain_query"}, s,
-			[]metrics.Label{{Name: "node", Value: d.agent.config.NodeName}})
+			[]metrics.Label{{Name: "node", Value: cfg.agentLocation.NodeName}})
 		d.logger.Debug("request served from client",
 			"name", q.Name,
 			"type", dns.Type(q.Qtype),
@@ -451,8 +486,6 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	if _, ok := resp.RemoteAddr().(*net.TCPAddr); ok {
 		network = "tcp"
 	}
-
-	cfg := d.config.Load().(*dnsConfig)
 
 	// Setup the message response
 	m := new(dns.Msg)
@@ -521,7 +554,7 @@ func (d *DNSServer) addSOA(cfg *dnsConfig, msg *dns.Msg) {
 
 func (d *DNSServer) nameservers(cfg *dnsConfig, maxRecursionLevel int) (ns []dns.RR, extra []dns.RR) {
 	out, err := d.lookupServiceNodes(cfg, serviceLookup{
-		Datacenter:     d.agent.config.Datacenter,
+		Datacenter:     cfg.agentLocation.Datacenter,
 		Service:        structs.ConsulServiceName,
 		Connect:        false,
 		Ingress:        false,
@@ -600,9 +633,11 @@ func (d *DNSServer) parseDatacenter(labels []string, datacenter *string) bool {
 // doDispatch is used to parse a request and invoke the correct handler.
 // parameter maxRecursionLevel will handle whether recursive call can be performed
 func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *dns.Msg, maxRecursionLevel int) (ecsGlobal bool) {
+	cfg := d.config.Load().(*dnsConfig)
+
 	ecsGlobal = true
 	// By default the query is in the default datacenter
-	datacenter := d.agent.config.Datacenter
+	datacenter := cfg.agentLocation.Datacenter
 
 	// have to deref to clone it so we don't modify
 	var entMeta structs.EnterpriseMeta
@@ -613,8 +648,6 @@ func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *d
 
 	// Split into the label parts
 	labels := dns.SplitDomainName(qName)
-
-	cfg := d.config.Load().(*dnsConfig)
 
 	var queryKind string
 	var queryParts []string
@@ -850,7 +883,7 @@ func (d *DNSServer) nodeLookup(cfg *dnsConfig, datacenter, node string, req, res
 		Datacenter: datacenter,
 		Node:       node,
 		QueryOptions: structs.QueryOptions{
-			Token:      d.agent.tokens.UserToken(),
+			Token:      d.tokens.UserToken(),
 			AllowStale: cfg.AllowStale,
 		},
 	}
@@ -899,7 +932,7 @@ func (d *DNSServer) lookupNode(cfg *dnsConfig, args *structs.NodeSpecificRequest
 	useCache := cfg.UseCache
 RPC:
 	if useCache {
-		raw, _, err := d.agent.cache.Get(context.TODO(), cachetype.NodeServicesName, args)
+		raw, _, err := d.cache.Get(context.TODO(), cachetype.NodeServicesName, args)
 		if err != nil {
 			return nil, err
 		}
@@ -1167,7 +1200,7 @@ func (d *DNSServer) lookupServiceNodes(cfg *dnsConfig, lookup serviceLookup) (st
 		ServiceTags: []string{lookup.Tag},
 		TagFilter:   lookup.Tag != "",
 		QueryOptions: structs.QueryOptions{
-			Token:      d.agent.tokens.UserToken(),
+			Token:      d.tokens.UserToken(),
 			AllowStale: cfg.AllowStale,
 			MaxAge:     cfg.CacheMaxAge,
 		},
@@ -1177,7 +1210,7 @@ func (d *DNSServer) lookupServiceNodes(cfg *dnsConfig, lookup serviceLookup) (st
 	var out structs.IndexedCheckServiceNodes
 
 	if cfg.UseCache {
-		raw, m, err := d.agent.cache.Get(context.TODO(), cachetype.HealthServicesName, &args)
+		raw, m, err := d.cache.Get(context.TODO(), cachetype.HealthServicesName, &args)
 		if err != nil {
 			return out, err
 		}
@@ -1287,7 +1320,7 @@ func (d *DNSServer) preparedQueryLookup(cfg *dnsConfig, network, datacenter, que
 		Datacenter:    datacenter,
 		QueryIDOrName: query,
 		QueryOptions: structs.QueryOptions{
-			Token:      d.agent.tokens.UserToken(),
+			Token:      d.tokens.UserToken(),
 			AllowStale: cfg.AllowStale,
 			MaxAge:     cfg.CacheMaxAge,
 		},
@@ -1297,9 +1330,9 @@ func (d *DNSServer) preparedQueryLookup(cfg *dnsConfig, network, datacenter, que
 		// send the local agent's data through to allow distance sorting
 		// relative to ourself on the server side.
 		Agent: structs.QuerySource{
-			Datacenter: d.agent.config.Datacenter,
-			Segment:    d.agent.config.SegmentName,
-			Node:       d.agent.config.NodeName,
+			Datacenter: cfg.agentLocation.Datacenter,
+			Segment:    cfg.agentLocation.SegmentName,
+			Node:       cfg.agentLocation.NodeName,
 		},
 	}
 
@@ -1387,7 +1420,7 @@ func (d *DNSServer) lookupPreparedQuery(cfg *dnsConfig, args structs.PreparedQue
 
 RPC:
 	if cfg.UseCache {
-		raw, m, err := d.agent.cache.Get(context.TODO(), cachetype.PreparedQueryName, &args)
+		raw, m, err := d.cache.Get(context.TODO(), cachetype.PreparedQueryName, &args)
 		if err != nil {
 			return nil, err
 		}

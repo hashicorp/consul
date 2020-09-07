@@ -647,7 +647,7 @@ func (a *Agent) listenAndServeDNS() error {
 	chNotify := make(chan struct{}, len(a.config.DNSAddrs))
 
 	for _, addr := range a.config.DNSAddrs {
-		s, err := NewDNSServer(a)
+		s, err := NewDNSServer(a, a.tokens, a.cache)
 		if err != nil {
 			return err
 		}
