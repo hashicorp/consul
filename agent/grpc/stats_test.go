@@ -14,11 +14,14 @@ import (
 	"google.golang.org/grpc"
 )
 
+func noopRegister(*grpc.Server) {}
+
 func TestHandler_EmitsStats(t *testing.T) {
 	sink := patchGlobalMetrics(t)
 
 	addr := &net.IPAddr{IP: net.ParseIP("127.0.0.1")}
-	handler := NewHandler(addr)
+	handler := NewHandler(addr, noopRegister)
+
 	testservice.RegisterSimpleServer(handler.srv, &simple{})
 
 	lis, err := net.Listen("tcp", "127.0.0.1:0")

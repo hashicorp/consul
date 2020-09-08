@@ -26,14 +26,16 @@ import (
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
-	"github.com/hashicorp/consul/agent/grpc"
+	agentgrpc "github.com/hashicorp/consul/agent/grpc"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/subscribe"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	connlimit "github.com/hashicorp/go-connlimit"
@@ -44,6 +46,7 @@ import (
 	raftboltdb "github.com/hashicorp/raft-boltdb"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
+	"google.golang.org/grpc"
 )
 
 // These are the protocol versions that Consul can _understand_. These are
@@ -577,7 +580,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 	}
 	go reporter.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
-	s.grpcHandler = newGRPCHandlerFromConfig(logger, config)
+	s.grpcHandler = newGRPCHandlerFromConfig(flat, config, s)
 
 	// Initialize Autopilot. This must happen before starting leadership monitoring
 	// as establishing leadership could attempt to use autopilot and cause a panic.
@@ -606,12 +609,18 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 	return s, nil
 }
 
-func newGRPCHandlerFromConfig(logger hclog.Logger, config *Config) connHandler {
+func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler {
 	if !config.EnableGRPCServer {
-		return grpc.NoOpHandler{Logger: logger}
+		return agentgrpc.NoOpHandler{Logger: deps.Logger}
 	}
 
-	return grpc.NewHandler(config.RPCAddr)
+	register := func(srv *grpc.Server) {
+		pbsubscribe.RegisterStateChangeSubscriptionServer(srv, &subscribe.Server{
+			Backend: &subscribeBackend{srv: s, connPool: deps.GRPCConnPool},
+			Logger:  deps.Logger.Named("grpc-api.subscription"),
+		})
+	}
+	return agentgrpc.NewHandler(config.RPCAddr, register)
 }
 
 func (s *Server) connectCARootsMonitor(ctx context.Context) {
