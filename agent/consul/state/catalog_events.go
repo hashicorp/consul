@@ -3,20 +3,15 @@ package state
 import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 	memdb "github.com/hashicorp/go-memdb"
 )
 
-type changeOp int
-
-const (
-	OpDelete changeOp = iota
-	OpCreate
-	OpUpdate
-)
-
-type eventPayload struct {
-	Op  changeOp
-	Obj interface{}
+// EventPayloadCheckServiceNode is used as the Payload for a stream.Event to
+// indicates changes to a CheckServiceNode for service health.
+type EventPayloadCheckServiceNode struct {
+	Op    pbsubscribe.CatalogOp
+	Value *structs.CheckServiceNode
 }
 
 // serviceHealthSnapshot returns a stream.SnapshotFunc that provides a snapshot
@@ -39,9 +34,9 @@ func serviceHealthSnapshot(s *Store, topic topic) stream.SnapshotFunc {
 			event := stream.Event{
 				Index: idx,
 				Topic: topic,
-				Payload: eventPayload{
-					Op:  OpCreate,
-					Obj: &n,
+				Payload: EventPayloadCheckServiceNode{
+					Op:    pbsubscribe.CatalogOp_Register,
+					Value: &n,
 				},
 			}
 
@@ -320,15 +315,11 @@ func serviceHealthToConnectEvents(events ...stream.Event) []stream.Event {
 }
 
 func getPayloadCheckServiceNode(payload interface{}) *structs.CheckServiceNode {
-	ep, ok := payload.(eventPayload)
+	ep, ok := payload.(EventPayloadCheckServiceNode)
 	if !ok {
 		return nil
 	}
-	csn, ok := ep.Obj.(*structs.CheckServiceNode)
-	if !ok {
-		return nil
-	}
-	return csn
+	return ep.Value
 }
 
 // newServiceHealthEventsForNode returns health events for all services on the
@@ -440,9 +431,9 @@ func newServiceHealthEventRegister(
 		Topic: TopicServiceHealth,
 		Key:   sn.ServiceName,
 		Index: idx,
-		Payload: eventPayload{
-			Op:  OpCreate,
-			Obj: csn,
+		Payload: EventPayloadCheckServiceNode{
+			Op:    pbsubscribe.CatalogOp_Register,
+			Value: csn,
 		},
 	}
 }
@@ -467,9 +458,9 @@ func newServiceHealthEventDeregister(idx uint64, sn *structs.ServiceNode) stream
 		Topic: TopicServiceHealth,
 		Key:   sn.ServiceName,
 		Index: idx,
-		Payload: eventPayload{
-			Op:  OpDelete,
-			Obj: csn,
+		Payload: EventPayloadCheckServiceNode{
+			Op:    pbsubscribe.CatalogOp_Deregister,
+			Value: csn,
 		},
 	}
 }

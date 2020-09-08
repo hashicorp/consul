@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/types"
 	"github.com/stretchr/testify/require"
 )
@@ -1394,9 +1395,9 @@ func newTestEventServiceHealthRegister(index uint64, nodeNum int, svc string) st
 		Topic: TopicServiceHealth,
 		Key:   svc,
 		Index: index,
-		Payload: eventPayload{
-			Op: OpCreate,
-			Obj: &structs.CheckServiceNode{
+		Payload: EventPayloadCheckServiceNode{
+			Op: pbsubscribe.CatalogOp_Register,
+			Value: &structs.CheckServiceNode{
 				Node: &structs.Node{
 					ID:         nodeID,
 					Node:       node,
@@ -1462,9 +1463,9 @@ func newTestEventServiceHealthDeregister(index uint64, nodeNum int, svc string) 
 		Topic: TopicServiceHealth,
 		Key:   svc,
 		Index: index,
-		Payload: eventPayload{
-			Op: OpDelete,
-			Obj: &structs.CheckServiceNode{
+		Payload: EventPayloadCheckServiceNode{
+			Op: pbsubscribe.CatalogOp_Deregister,
+			Value: &structs.CheckServiceNode{
 				Node: &structs.Node{
 					Node: fmt.Sprintf("node%d", nodeNum),
 				},
