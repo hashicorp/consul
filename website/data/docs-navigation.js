@@ -94,7 +94,6 @@ export default [
       {
         category: 'installation',
         content: [
-          'helm',
           {
             category: 'platforms',
             name: 'Platform Guides',
@@ -151,6 +150,7 @@ export default [
       'ambassador',
       'upgrade',
       'uninstall',
+      'helm',
     ],
   },
   {
