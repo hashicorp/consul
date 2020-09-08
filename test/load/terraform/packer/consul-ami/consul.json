@@ -4,8 +4,9 @@
     "aws_region": "us-east-1",
     "consul_version": "1.5.1",
     "download_url": "{{env `CONSUL_DOWNLOAD_URL`}}",
-    "dd_api_key": "********"
+    "dd_api_key": "{{env `dd_api_key`}}"
   },
+  "sensitive-variables": ["dd_api_key", "foo"],
   "builders": [{
     "name": "ubuntu18-ami",
     "ami_name": "consul-ubuntu-{{isotime | clean_resource_name}}-{{uuid}}",

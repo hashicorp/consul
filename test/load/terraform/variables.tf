@@ -73,11 +73,15 @@ variable "vpc_cidr" {
   description = "List of CIDR blocks for the VPC module"
 }
 
-variable "public_subnet_cidr" {
+variable "public_subnet_cidrs" {
   type        = list(string)
   description = "CIDR Block for the Public Subnet, must be within VPC CIDR range"
 }
 
+variable "private_subnet_cidrs" {
+  type        = list(string)
+  description = "CIDR Block for the Private Subnet, must be within VPC CIDR range"
+}
 
 variable "test_server_ami" {
   type        = string

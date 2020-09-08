@@ -5,7 +5,6 @@ terraform {
 data "aws_ami" "consul" {
   most_recent = true
 
-  # If we change the AWS Account in which test are run, update this value.
   owners = var.ami_owners
 
   filter {
@@ -49,7 +48,7 @@ module "keys" {
 
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Create VPC with public of private subnets
+# Create VPC with public and also private subnets
 # ---------------------------------------------------------------------------------------------------------------------
 
 module "vpc" {
@@ -59,7 +58,8 @@ module "vpc" {
   name               = var.vpc_name
   cidr               = var.vpc_cidr
   azs                = var.vpc_az
-  public_subnets     = var.public_subnet_cidr
+  public_subnets     = var.public_subnet_cidrs
+  private_subnets    = var.private_subnet_cidrs
   enable_nat_gateway = true
 }
 
@@ -105,11 +105,30 @@ data "template_file" "user_data_client" {
 # Start up test servers to run tests from
 # ---------------------------------------------------------------------------------------------------------------------
 
+resource "aws_default_security_group" "loadtest" {
+  vpc_id = module.vpc.vpc_id
+
+  ingress {
+    protocol  = 6
+    self      = true
+    from_port = 22
+    to_port   = 22
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    protocol = 6
+    self = true
+    from_port = 8500
+    to_port = 8500
+  }
+}
+
 resource "aws_launch_configuration" "test-servers" {
-  name          = "test-servers-"
+  name_prefix = "${var.cluster_name}-test-"
   image_id      = var.test_server_ami
   instance_type = var.test_instance_type
   key_name      = module.keys.key_name
+  security_groups = [aws_default_security_group.loadtest.id]
 
   associate_public_ip_address = var.test_public_ip
   lifecycle {
@@ -119,17 +138,59 @@ resource "aws_launch_configuration" "test-servers" {
 
 resource "aws_autoscaling_group" "test-servers" {
   name                      = aws_launch_configuration.test-servers.name
-  launch_configuration      = aws_launch_configuration.test-servers.name
+  launch_configuration      = aws_launch_configuration.test-servers.id
   min_size                  = 0
   max_size                  = 5
   desired_capacity          = 2
   wait_for_capacity_timeout = "480s"
   health_check_grace_period = 15
   health_check_type         = "EC2"
-  vpc_zone_identifier       = [tolist(module.vpc.public_subnets)[0]]
+  vpc_zone_identifier       = tolist([module.vpc.public_subnets[0], module.vpc.private_subnets[0], module.vpc.private_subnets[1]])
 
   lifecycle {
     create_before_destroy = true
   }
 }
 
+
+# 
+#  Set up ALB for test-servers to talk to consul clients
+# 
+module "alb" {
+
+  source  = "terraform-aws-modules/alb/aws"
+  version = "~> 5.0"
+  
+  name = "${var.cluster_name}-alb"
+
+  load_balancer_type = "application"
+
+  vpc_id             = module.vpc.vpc_id
+  subnets            = module.vpc.private_subnets
+  security_groups    = [module.consul.security_group_id_clients]
+  internal = true
+
+  target_groups = [
+    {
+      #name_prefix has a six char limit
+      name_prefix      = "test-"
+      backend_protocol = "HTTP"
+      backend_port     = 8500
+      target_type      = "instance"
+    }
+  ]
+
+  http_tcp_listeners = [
+    {
+      port               = 8500
+      protocol           = "HTTP"
+      target_group_index = 0
+    }
+  ]
+}
+
+# Attach ALB to Consul clients
+resource "aws_autoscaling_attachment" "asg_attachment_bar" {
+  autoscaling_group_name = module.consul.asg_name_clients
+  alb_target_group_arn   = module.alb.target_group_arns[0]
+}
