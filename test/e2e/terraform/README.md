@@ -1,2 +1,0 @@
-## Terraform Testing Framework
-
