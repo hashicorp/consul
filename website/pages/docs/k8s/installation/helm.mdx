@@ -386,8 +386,13 @@ and consider if they're appropriate for your deployment.
 
   - `tlsServerName` ((#v-externalservers-tlsservername)) (`string: null`) - The server name to use as the SNI host header when connecting with HTTPS.
 
-  - `useSystemRoots` ((#v-externalservers-usesystemroots)) (`boolean: false`) - If true, the Helm chart will ignore the CA set in `global.tls.caCert`
-    and will rely on the container's system CAs for TLS verification when talking to Consul servers. Otherwise, the chart will use `global.tls.caCert`.
+  - `useSystemRoots` ((#v-externalservers-usesystemroots)) (`boolean: false`) - If true, consul-k8s components will ignore the CA set in
+    [`global.tls.caCert`](#v-global-cacert) when making HTTPS calls to Consul servers and
+    will instead use the consul-k8s image's system CAs for TLS verification.
+    If false, consul-k8s components will use `global.tls.caCert` when
+    making HTTPS calls to Consul servers.
+    **NOTE:** This does not affect Consul's internal RPC communication which will
+    always use `global.tls.caCert`.
 
   - `k8sAuthMethodHost` ((#v-externalservers-k8sauthmethodhost)) (`string: null`) - If you are setting `global.acls.manageSystemACLs` and
     `connectInject.enabled` to true, set `k8sAuthMethodHost` to the address of the Kubernetes API server.
