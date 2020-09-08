@@ -1,0 +1,3 @@
+```release-note:bug
+connect: `connect envoy` command now respects the `-ca-path` flag
+```
