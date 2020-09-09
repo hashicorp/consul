@@ -28,7 +28,8 @@ func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := stream.NewEventPublisher(ctx, newTestSnapshotHandlers(s), 0)
+	publisher := stream.NewEventPublisher(newTestSnapshotHandlers(s), 0)
+	go publisher.Run(ctx)
 	s.db.publisher = publisher
 	sub, err := publisher.Subscribe(subscription)
 	require.NoError(err)
@@ -111,7 +112,8 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := stream.NewEventPublisher(ctx, newTestSnapshotHandlers(s), 0)
+	publisher := stream.NewEventPublisher(newTestSnapshotHandlers(s), 0)
+	go publisher.Run(ctx)
 	s.db.publisher = publisher
 	sub, err := publisher.Subscribe(subscription)
 	require.NoError(err)
@@ -227,7 +229,8 @@ func TestStore_IntegrationWithEventPublisher_ACLRoleUpdate(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := stream.NewEventPublisher(ctx, newTestSnapshotHandlers(s), 0)
+	publisher := stream.NewEventPublisher(newTestSnapshotHandlers(s), 0)
+	go publisher.Run(ctx)
 	s.db.publisher = publisher
 	sub, err := publisher.Subscribe(subscription)
 	require.NoError(err)
@@ -433,7 +436,9 @@ func createTokenAndWaitForACLEventPublish(t *testing.T, s *Store) *structs.ACLTo
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := stream.NewEventPublisher(ctx, newTestSnapshotHandlers(s), 0)
+	publisher := stream.NewEventPublisher(newTestSnapshotHandlers(s), 0)
+	go publisher.Run(ctx)
+
 	s.db.publisher = publisher
 	sub, err := publisher.Subscribe(req)
 	require.NoError(t, err)

@@ -37,12 +37,8 @@ type Changes struct {
 // 2. Sent to the eventPublisher which will create and emit change events
 type changeTrackerDB struct {
 	db             *memdb.MemDB
-	publisher      eventPublisher
+	publisher      *stream.EventPublisher
 	processChanges func(ReadTxn, Changes) ([]stream.Event, error)
-}
-
-type eventPublisher interface {
-	Publish(events []stream.Event)
 }
 
 // Txn exists to maintain backwards compatibility with memdb.DB.Txn. Preexisting

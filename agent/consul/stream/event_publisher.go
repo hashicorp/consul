@@ -79,7 +79,7 @@ type SnapshotAppender interface {
 // A goroutine is run in the background to publish events to all subscribes.
 // Cancelling the context will shutdown the goroutine, to free resources,
 // and stop all publishing.
-func NewEventPublisher(ctx context.Context, handlers SnapshotHandlers, snapCacheTTL time.Duration) *EventPublisher {
+func NewEventPublisher(handlers SnapshotHandlers, snapCacheTTL time.Duration) *EventPublisher {
 	e := &EventPublisher{
 		snapCacheTTL: snapCacheTTL,
 		topicBuffers: make(map[Topic]*eventBuffer),
@@ -91,8 +91,6 @@ func NewEventPublisher(ctx context.Context, handlers SnapshotHandlers, snapCache
 		snapshotHandlers: handlers,
 	}
 
-	go e.handleUpdates(ctx)
-
 	return e
 }
 
@@ -103,7 +101,9 @@ func (e *EventPublisher) Publish(events []Event) {
 	}
 }
 
-func (e *EventPublisher) handleUpdates(ctx context.Context) {
+// Run the event publisher until ctx is cancelled. Run should be called from a
+// goroutine to forward events from Publish to all the appropriate subscribers.
+func (e *EventPublisher) Run(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
