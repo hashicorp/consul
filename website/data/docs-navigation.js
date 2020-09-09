@@ -217,7 +217,21 @@ export default [
     category: 'architecture',
     content: ['anti-entropy', 'consensus', 'gossip', 'jepsen', 'coordinates'],
   },
-  'partnerships',
+  {
+    category: 'integrate',
+    name: 'Integrations',
+    content: [
+      'partnerships',
+      {
+        title: 'Ambassador Integration',
+        href: '/docs/k8s/connect/ambassador',
+      },
+      {
+        title: 'Proxy Integration',
+        href: '/docs/connect/proxies/integrate',
+      },
+    ],
+  },
   'download-tools',
   {
     category: 'upgrading',

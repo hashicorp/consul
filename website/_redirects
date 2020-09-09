@@ -91,6 +91,7 @@
 /download-tools                                      /docs/download-tools                              301!
 /docs/k8s/ambassador                                 /docs/k8s/connect/ambassador                      301!
 /docs/k8s/installation/overview                      /docs/k8s/installation/install                    301!
+/docs/partnerships                                   /docs/integrate/partnerships                      301!
 
 # CLI redirects
 /docs/commands                                       /commands                                         301!
