@@ -1,4 +1,4 @@
-package consul
+package grpc
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"net"
 	"sync"
 
-	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/agent/metadata"
@@ -18,26 +17,24 @@ type ServerProvider interface {
 	Servers() []*metadata.Server
 }
 
-type GRPCClient struct {
-	scheme          string
+type Client struct {
 	serverProvider  ServerProvider
 	tlsConfigurator *tlsutil.Configurator
 	grpcConns       map[string]*grpc.ClientConn
 	grpcConnLock    sync.Mutex
 }
 
-func NewGRPCClient(logger hclog.Logger, serverProvider ServerProvider, tlsConfigurator *tlsutil.Configurator, scheme string) *GRPCClient {
+func NewGRPCClient(serverProvider ServerProvider, tlsConfigurator *tlsutil.Configurator) *Client {
 	// Note we don't actually use the logger anywhere yet but I guess it was added
 	// for future compatibility...
-	return &GRPCClient{
-		scheme:          scheme,
+	return &Client{
 		serverProvider:  serverProvider,
 		tlsConfigurator: tlsConfigurator,
 		grpcConns:       make(map[string]*grpc.ClientConn),
 	}
 }
 
-func (c *GRPCClient) GRPCConn(datacenter string) (*grpc.ClientConn, error) {
+func (c *Client) GRPCConn(datacenter string) (*grpc.ClientConn, error) {
 	c.grpcConnLock.Lock()
 	defer c.grpcConnLock.Unlock()
 
@@ -47,13 +44,14 @@ func (c *GRPCClient) GRPCConn(datacenter string) (*grpc.ClientConn, error) {
 	}
 
 	dialer := newDialer(c.serverProvider, c.tlsConfigurator.OutgoingRPCWrapper())
-	conn, err := grpc.Dial(fmt.Sprintf("%s:///server.%s", c.scheme, datacenter),
+	conn, err := grpc.Dial(fmt.Sprintf("%s:///server.%s", scheme, datacenter),
 		// use WithInsecure mode here because we handle the TLS wrapping in the
 		// custom dialer based on logic around whether the server has TLS enabled.
 		grpc.WithInsecure(),
 		grpc.WithContextDialer(dialer),
 		grpc.WithDisableRetry(),
-		grpc.WithStatsHandler(grpcStatsHandler),
+		// TODO: previously this handler was shared with the Handler. Is that necessary?
+		grpc.WithStatsHandler(&statsHandler{}),
 		grpc.WithBalancerName("pick_first"))
 	if err != nil {
 		return nil, err

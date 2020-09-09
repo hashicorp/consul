@@ -1,6 +1,7 @@
-package consul
+package grpc
 
 import (
+	"context"
 	"math/rand"
 	"strings"
 	"sync"
@@ -8,19 +9,22 @@ import (
 
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/router"
-	"github.com/hashicorp/serf/serf"
 	"google.golang.org/grpc/resolver"
 )
 
-var registerLock sync.Mutex
+//var registerLock sync.Mutex
+//
+//// registerResolverBuilder registers our custom grpc resolver with the given scheme.
+//func registerResolverBuilder(datacenter string) *ServerResolverBuilder {
+//	registerLock.Lock()
+//	defer registerLock.Unlock()
+//	grpcResolverBuilder := NewServerResolverBuilder(datacenter)
+//	resolver.Register(grpcResolverBuilder)
+//	return grpcResolverBuilder
+//}
 
-// registerResolverBuilder registers our custom grpc resolver with the given scheme.
-func registerResolverBuilder(scheme, datacenter string, shutdownCh <-chan struct{}) *ServerResolverBuilder {
-	registerLock.Lock()
-	defer registerLock.Unlock()
-	grpcResolverBuilder := NewServerResolverBuilder(scheme, datacenter, shutdownCh)
-	resolver.Register(grpcResolverBuilder)
-	return grpcResolverBuilder
+type Nodes interface {
+	NumNodes() int
 }
 
 // ServerResolverBuilder tracks the current server list and keeps any
@@ -32,24 +36,24 @@ type ServerResolverBuilder struct {
 	datacenter string
 	servers    map[string]*metadata.Server
 	resolvers  map[resolver.ClientConn]*ServerResolver
-	shutdownCh <-chan struct{}
+	nodes      Nodes
 	lock       sync.Mutex
 }
 
-func NewServerResolverBuilder(scheme, datacenter string, shutdownCh <-chan struct{}) *ServerResolverBuilder {
+func NewServerResolverBuilder(nodes Nodes, datacenter string) *ServerResolverBuilder {
 	return &ServerResolverBuilder{
-		scheme:     scheme,
 		datacenter: datacenter,
+		nodes:      nodes,
 		servers:    make(map[string]*metadata.Server),
 		resolvers:  make(map[resolver.ClientConn]*ServerResolver),
 	}
 }
 
-// periodicServerRebalance periodically reshuffles the order of server addresses
+// Run periodically reshuffles the order of server addresses
 // within the resolvers to ensure the load is balanced across servers.
-func (s *ServerResolverBuilder) periodicServerRebalance(serf *serf.Serf) {
+func (s *ServerResolverBuilder) Run(ctx context.Context) {
 	// Compute the rebalance timer based on the number of local servers and nodes.
-	rebalanceDuration := router.ComputeRebalanceTimer(s.serversInDC(s.datacenter), serf.NumNodes())
+	rebalanceDuration := router.ComputeRebalanceTimer(s.serversInDC(s.datacenter), s.nodes.NumNodes())
 	timer := time.NewTimer(rebalanceDuration)
 
 	for {
@@ -58,9 +62,9 @@ func (s *ServerResolverBuilder) periodicServerRebalance(serf *serf.Serf) {
 			s.rebalanceResolvers()
 
 			// Re-compute the wait duration.
-			newTimerDuration := router.ComputeRebalanceTimer(s.serversInDC(s.datacenter), serf.NumNodes())
+			newTimerDuration := router.ComputeRebalanceTimer(s.serversInDC(s.datacenter), s.nodes.NumNodes())
 			timer.Reset(newTimerDuration)
-		case <-s.shutdownCh:
+		case <-ctx.Done():
 			timer.Stop()
 			return
 		}
@@ -115,7 +119,7 @@ func (s *ServerResolverBuilder) Servers() []*metadata.Server {
 
 // Build returns a new ServerResolver for the given ClientConn. The resolver
 // will keep the ClientConn's state updated based on updates from Serf.
-func (s *ServerResolverBuilder) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOption) (resolver.Resolver, error) {
+func (s *ServerResolverBuilder) Build(target resolver.Target, cc resolver.ClientConn, _ resolver.BuildOption) (resolver.Resolver, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -142,7 +146,10 @@ func (s *ServerResolverBuilder) Build(target resolver.Target, cc resolver.Client
 	return resolver, nil
 }
 
-func (s *ServerResolverBuilder) Scheme() string { return s.scheme }
+// scheme is the URL scheme used to dial the Consul Server rpc endpoint.
+var scheme = "consul"
+
+func (s *ServerResolverBuilder) Scheme() string { return scheme }
 
 // AddServer updates the resolvers' states to include the new server's address.
 func (s *ServerResolverBuilder) AddServer(server *metadata.Server) {
@@ -232,9 +239,9 @@ func (r *ServerResolver) updateAddrsLocked(addrs []resolver.Address) {
 	r.lastAddrs = addrs
 }
 
-func (s *ServerResolver) Close() {
-	s.closeCallback()
+func (r *ServerResolver) Close() {
+	r.closeCallback()
 }
 
 // Unneeded since we only update the ClientConn when our server list changes.
-func (*ServerResolver) ResolveNow(o resolver.ResolveNowOption) {}
+func (*ServerResolver) ResolveNow(_ resolver.ResolveNowOption) {}
