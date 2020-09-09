@@ -152,6 +152,17 @@ func (s *ConnectCA) ConfigurationSet(
 	if err := newProvider.Configure(pCfg); err != nil {
 		return fmt.Errorf("error configuring provider: %v", err)
 	}
+
+	// Set up a defer to clean up the new provider if we exit early due to an error.
+	cleanupNewProvider := true
+	defer func() {
+		if cleanupNewProvider {
+			if err := newProvider.Cleanup(); err != nil {
+				s.logger.Warn("failed to clean up temporary new CA provider", "provider", newProvider)
+			}
+		}
+	}()
+
 	if err := newProvider.GenerateRoot(); err != nil {
 		return fmt.Errorf("error generating CA root certificate: %v", err)
 	}
@@ -195,6 +206,7 @@ func (s *ConnectCA) ConfigurationSet(
 		}
 
 		// If the config has been committed, update the local provider instance
+		cleanupNewProvider = false
 		s.srv.setCAProvider(newProvider, newActiveRoot)
 
 		s.logger.Info("CA provider config updated")
@@ -291,6 +303,7 @@ func (s *ConnectCA) ConfigurationSet(
 
 	// If the config has been committed, update the local provider instance
 	// and call teardown on the old provider
+	cleanupNewProvider = false
 	s.srv.setCAProvider(newProvider, newActiveRoot)
 
 	if err := oldProvider.Cleanup(); err != nil {
