@@ -93,7 +93,9 @@ export default [
     content: [
       {
         category: 'installation',
+        name: 'Get Started',
         content: [
+          'install',
           {
             category: 'platforms',
             name: 'Platform Guides',
@@ -143,11 +145,11 @@ export default [
           'ingress-gateways',
           'terminating-gateways',
           'connect-ca-provider',
+          'ambassador',
         ],
       },
       'service-sync',
       'dns',
-      'ambassador',
       'upgrade',
       'uninstall',
       'helm',
