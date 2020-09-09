@@ -98,6 +98,10 @@ type Manager struct {
 	// client.ConnPool.
 	connPoolPinger Pinger
 
+	// grpcServerTracker is used to balance grpc connections across servers,
+	// and has callbacks for adding or removing a server.
+	grpcServerTracker ServerTracker
+
 	// serverName has the name of the managers's server. This is used to
 	// short-circuit pinging to itself.
 	serverName string
@@ -119,6 +123,7 @@ type Manager struct {
 func (m *Manager) AddServer(s *metadata.Server) {
 	m.listLock.Lock()
 	defer m.listLock.Unlock()
+	m.grpcServerTracker.AddServer(s)
 	l := m.getServerList()
 
 	// Check if this server is known
@@ -251,6 +256,11 @@ func (m *Manager) CheckServers(fn func(srv *metadata.Server) bool) {
 	_ = m.checkServers(fn)
 }
 
+// Servers returns the current list of servers.
+func (m *Manager) Servers() []*metadata.Server {
+	return m.getServerList().servers
+}
+
 // getServerList is a convenience method which hides the locking semantics
 // of atomic.Value from the caller.
 func (m *Manager) getServerList() serverList {
@@ -267,15 +277,19 @@ func (m *Manager) saveServerList(l serverList) {
 }
 
 // New is the only way to safely create a new Manager struct.
-func New(logger hclog.Logger, shutdownCh chan struct{}, clusterInfo ManagerSerfCluster, connPoolPinger Pinger, serverName string) (m *Manager) {
+func New(logger hclog.Logger, shutdownCh chan struct{}, clusterInfo ManagerSerfCluster, connPoolPinger Pinger, tracker ServerTracker, serverName string) (m *Manager) {
 	if logger == nil {
 		logger = hclog.New(&hclog.LoggerOptions{})
+	}
+	if tracker == nil {
+		tracker = NoOpServerTracker{}
 	}
 
 	m = new(Manager)
 	m.logger = logger.Named(logging.Manager)
 	m.clusterInfo = clusterInfo       // can't pass *consul.Client: import cycle
 	m.connPoolPinger = connPoolPinger // can't pass *consul.ConnPool: import cycle
+	m.grpcServerTracker = tracker
 	m.rebalanceTimer = time.NewTimer(clientRPCMinReuseDuration)
 	m.shutdownCh = shutdownCh
 	m.serverName = serverName
@@ -478,6 +492,7 @@ func (m *Manager) reconcileServerList(l *serverList) bool {
 func (m *Manager) RemoveServer(s *metadata.Server) {
 	m.listLock.Lock()
 	defer m.listLock.Unlock()
+	m.grpcServerTracker.RemoveServer(s)
 	l := m.getServerList()
 
 	// Remove the server if known
@@ -498,17 +513,22 @@ func (m *Manager) RemoveServer(s *metadata.Server) {
 func (m *Manager) refreshServerRebalanceTimer() time.Duration {
 	l := m.getServerList()
 	numServers := len(l.servers)
+	connRebalanceTimeout := ComputeRebalanceTimer(numServers, m.clusterInfo.NumNodes())
+
+	m.rebalanceTimer.Reset(connRebalanceTimeout)
+	return connRebalanceTimeout
+}
+
+// ComputeRebalanceTimer returns a time to wait before rebalancing connections given
+// a number of servers and LAN nodes.
+func ComputeRebalanceTimer(numServers, numLANMembers int) time.Duration {
 	// Limit this connection's life based on the size (and health) of the
 	// cluster.  Never rebalance a connection more frequently than
 	// connReuseLowWatermarkDuration, and make sure we never exceed
 	// clusterWideRebalanceConnsPerSec operations/s across numLANMembers.
 	clusterWideRebalanceConnsPerSec := float64(numServers * newRebalanceConnsPerSecPerServer)
 	connReuseLowWatermarkDuration := clientRPCMinReuseDuration + lib.RandomStagger(clientRPCMinReuseDuration/clientRPCJitterFraction)
-	numLANMembers := m.clusterInfo.NumNodes()
-	connRebalanceTimeout := lib.RateScaledInterval(clusterWideRebalanceConnsPerSec, connReuseLowWatermarkDuration, numLANMembers)
-
-	m.rebalanceTimer.Reset(connRebalanceTimeout)
-	return connRebalanceTimeout
+	return lib.RateScaledInterval(clusterWideRebalanceConnsPerSec, connReuseLowWatermarkDuration, numLANMembers)
 }
 
 // ResetRebalanceTimer resets the rebalance timer.  This method exists for
