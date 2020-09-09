@@ -94,8 +94,9 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 		renewer, err := client.NewRenewer(&vaultapi.RenewerInput{
 			Secret: &vaultapi.Secret{
 				Auth: &vaultapi.SecretAuth{
-					ClientToken: config.Token,
-					Renewable:   renewable,
+					ClientToken:   config.Token,
+					Renewable:     renewable,
+					LeaseDuration: secret.LeaseDuration,
 				},
 			},
 			Increment: int(increment),
@@ -121,7 +122,7 @@ func (v *VaultProvider) renewToken(renewer *vaultapi.Renewer) {
 
 		case err := <-renewer.DoneCh():
 			if err != nil {
-				v.logger.Error(fmt.Sprint("Error renewing token for Vault provider: %v", err))
+				v.logger.Error(fmt.Sprintf("Error renewing token for Vault provider: %v", err))
 			}
 
 		case <-renewer.RenewCh():
