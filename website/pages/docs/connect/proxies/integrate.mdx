@@ -11,24 +11,31 @@ description: >-
 # Connect Custom Proxy Integration
 
 Any proxy can be extended to support Connect. Consul ships with a built-in
-proxy for a good development and out of the box experience, but understand
-that production users will require other proxy solutions.
+proxy for a good development and out of the box experience, but production users
+will require other proxy solutions.
 
 A proxy must serve one or both of the following two roles: it must accept
 inbound connections or establish outbound connections identified as a
 particular service. One or both of these may be implemented depending on
-the case, although generally both must be supported.
+the case, although generally both must be supported for full sidecar functionality.
 
-## Accepting Inbound Connections
+There are also two different levels of compatibility as a sidecar - L4 or L7.
+L4 integration is simpler and adequate to secure all traffic but treats all
+traffic as TCP so no advanced routing or metrics features can be supported. Full
+L7 support is built on top of L4 support and includes supporting most or all of
+the L7 traffic routing features in Connect by dynamically configuring routing,
+retries and more L7 features. Currently The built-in proxy only supports L4
+while Envoy supports the full L7 feature set.
+
+## L4 Support
+
+### Accepting Inbound Connections
 
 For inbound connections, the proxy must accept TLS connections on some port.
-The certificate served should be created by the
-[`/v1/agent/connect/ca/leaf/`](/api/agent/connect) API endpoint.
-The client certificate should be validated against the root certificates
-provided by the
-[`/v1/agent/connect/ca/roots`](/api/agent/connect) endpoint.
-After validating the client certificate from the caller, the proxy should
-call the
+The certificate served should be obtained from the [`/v1/agent/connect/ca/leaf/`]
+API endpoint. The client certificate should be validated against the root certificates
+provided by the [`/v1/agent/connect/ca/roots`] endpoint. After validating the
+client certificate from the caller, the proxy must call the
 [`/v1/agent/connect/authorize`](/api/agent/connect) endpoint to
 authorize the connection.
 
@@ -38,32 +45,179 @@ by the proxy, but the authorize endpoint is expected to be called in the
 connection path. The endpoints introduce only microseconds of additional
 latency on the connection.
 
-The leaf and root cert endpoints support blocking queries. These should be
-used if possible to get near-immediate updates for root cert rotations,
-leaf expiry, etc.
+The leaf and root cert endpoints support
+[blocking queries](/api/features/blocking), which should be
+used to get near-immediate updates for root key rotations, or before certificate
+expiry.
 
-## Establishing Outbound Connections
+Although we follow SPIFFE spec for certificates. Some CA providers supported
+currently don't allow strict adherence - for example CA certificates may not
+have the correct trust-domain SPIFFE URI SAN for the cluster. If SPIFFE
+validation is performed in the proxy, be aware that it should be possible to opt
+out otherwise certain CA providers supported by Consul will not be compatible
+with the use of that proxy. Currently neither Envoy nor the built-in proxy
+validate the SPIFFE URI of the chain beyond the leaf certificate.
+
+### Connection Authorization
+
+Authentication is based on “service identity" (TLS), and is implemented at the
+transport layer. Authorization is performed on a per-connection basis (i.e. at
+layer 4), not per-request. This means in the case of HTTP a single TCP session
+will be authorized, and multiple HTTP requests may utilize the same underlying
+connection.
+
+Connect is designed for the Consul agent to locally handle authorization calls.
+Intention rules are not designed to be pre-populated in underlying proxies, even
+though the proxy may support pushing RBAC rules into its configuration, because
+our long-term plan is to integrate sophisticated policies (like user-defined
+Sentinel policies) which cannot be represented as allow/deny lists.
+
+-> **Note:** Features like (local) rate limiting or max connections are
+configurations that we expect to push into proxies and have them enforce
+separately to the AuthZ call based on the state they already have about request
+rates etc.
+
+#### Persistent connections and Intentions
+
+Since connections are authorized at layer 4 and many services use persistent
+connections (e.g. to a DB), a change in intentions that denies access currently
+does not terminate existing connections, so it may seem as if the intention is
+not being enforced.
+
+We may eventually build a mechanism for tracking specific connections in the
+Consul agent and then allow the agent to tell the proxy to close those
+connections when their authorization state changes, but for now that is not on
+the roadmap.
+
+It is recommended therefore to do one of the following:
+
+1. Have connections terminate after a configurable maximum lifetime of say
+   several hours. This balances the overhead of establishing new connections
+   while keeping an upper bound on how long after Intention changes existing
+   connections remain open.
+2. Periodically re-authorize every open connection. The AuthZ call itself is not
+   expensive and should be a local, in-memory operation so authorizing thousands
+   of open connections once every minute or so is likely to be negligible
+   overhead, but enforces a tighter upper bound on how long it takes to enforce
+   Intention changes without affecting protocol efficiency of persistent
+   connections.
+
+#### Certificate Serial in AuthZ
+
+Intentions currently utilize TLS’ URI Subject Alternative Name (SAN) for
+enforcement. In the future, Consul will support revoking specific certificates
+by serial number. The AuthZ API in the Go SDK has a field to pass the serial
+number ([consul/connect/tls.go]). Proxies may provide this value during
+authorization.
+
+### Establishing Outbound Connections
 
 For outbound connections, the proxy should communicate to a
 Connect-capable endpoint for a service and provide a client certificate
 from the
-[`/v1/agent/connect/ca/leaf/`](/api/agent/connect) API endpoint.
-The certificate served by the remote endpoint can be verified against the
-root certificates from the
-[`/v1/agent/connect/ca/roots`](/api/agent/connect) endpoint.
+[`/v1/agent/connect/ca/leaf/`] API endpoint. The certificate served by the
+remote endpoint may be verified against the root certificates from the
+[`/v1/agent/connect/ca/roots`] endpoint.
 
-## Configuration Discovery
+### Configuration Discovery
 
 Any proxy can discover proxy configuration registered with a local service
 instance using the
 [`/v1/agent/service/:service_id`](/api/agent/service#get-service-configuration)
-API endpoint.
+API endpoint. This endpoint supports hash-based blocking, enabling long-polling
+for changes to the registration/configuration. Any changes to the
+registration/config will result in the new config being returned immediately.
+An example implementation may be found in our
+[built-in proxy](/docs/connect/proxies/built-in) which utilizes our Go SDK,
+and uses the HTTP "pull" API (via our `watch` package):
+[`consul/connect/proxy/config.go`].
 
-The [discovery chain](/docs/internals/discovery-chain) for each upstream
-service should be fetched from the
-[`/v1/discovery-chain/:service_id`](/api/discovery-chain) API endpoint.
+### Service Discovery
 
-For each [target](/docs/internals/discovery-chain#targets) in the
-resulting discovery chain, a list of healthy endpoints can be fetched from the
-[`/v1/health/connect/:service_id`](/api/health#list-nodes-for-connect-capable-service)
-API endpoint.
+At L4 proxies can use Consul's service discovery API
+[`/v1/health/connect/:service_id`] to return all available, Connect-capable
+endpoints for a given service. This endpoint supports a `?cached` parameter
+which makes use of [agent caching](/api/features/caching) and thus has
+performance benefits. The API package provides a [UseCache]&nbsp;[query option]
+to leverage this. In addition to performance improvements, use of cache makes
+the mesh more resilient to Consul server outages - the mesh "fails static" with
+the last known set of service instances still used rather than errors on new
+connections.
+
+Proxies can decide whether to perform just-in-time queries to the API when a new
+connection needs to be routed, or to use blocking queries to load the current
+set of endpoints for a service and keep that list updated. The SDK and built-in
+proxy currently use just-in-time resolution however many existing proxies are
+likely to find it easier to integrate by pulling the set of endpoints and
+maintaining it in local memory using blocking queries.
+
+Upstreams can be defined with Prepared Query target types. These upstreams
+should use Consul's [prepared query](/api/query) API. It's worth noting that
+the PreparedQuery API does not support blocking, so proxies choosing to populate
+endpoints in memory will need to poll the endpoint at a suitable and ideally
+configurable frequency. Note that long-term L7 routing support (see below) is
+intended to replace Prepared Queries in Consul entirely but for now these are
+still used in some configurations.
+
+## L7 Support
+
+To add support for full L7 routing capabilities, all of the parts of L4 are
+needed first.
+
+L7 routing is configured via the [discovery chain] in Consul. Proxies can use
+the
+[`/v1/discovery-chain/:service_id`](/api/discovery-chain#read-compiled-discovery-chain)
+API endpoint to access the compiled graph of configurations needed by sidecars
+for a particular service.
+
+For each [target](/docs/connect/l7-traffic/discovery-chain#targets) in the
+resulting discovery chain, a list of healthy, Connect-capable endpoints may be
+fetched from the [`/v1/health/connect/:service_id`] API endpoint per the Service
+Discovery sections above. The rest of the nodes in the chain include
+configurations that should be translated into the nearest equivalent for things
+like HTTP routing, Connection timeouts, connection pool settings, rate limits
+and so on. See the [discovery chain] documentation and the relevant Config Entry
+documentation for details of supported configuration parameters.
+
+We expect config here to evolve reasonably rapidly. While we do not intend to
+make backwards incompatible API changes, there are likely to be new configurations
+and features added regularly. Some proxies may not be able to support all
+features or may have differing semantics with the way they support them. We
+intend to find a suitable format to document the behaviour differences between
+proxy implementations as they mature.
+
+## Sidecar instantiation
+
+Consul does not start or manage sidecar proxies processes. Proxies running on a
+physical host or VM are designed to be started and run by process supervisor
+systems such as init, systemd, supervisord, etc. Or, if deployed within a
+cluster scheduler (Kubernetes, Nomad), running as a sidecar container in the
+same namespace.
+
+The proxy will use the [`CONSUL_HTTP_TOKEN`](/commands#consul_http_token)
+and [`CONSUL_HTTP_ADDR`](/commands#consul_http_addr)
+environment variables to contact Consul to fetch certificates, provided the
+`CONSUL_HTTP_TOKEN` environment variable contains a Consul ACL that has the
+necessary permissions to read configuration for that service. If you use our Go
+[`api` package] then those environment variables will be read and the client
+configured for you automatically.
+
+The ID of the proxy service comes from the user. See
+[`consul connect envoy`](/commands/connect/envoy) as an example. You
+may start it with the `-proxy-id` flag and pass the ID of the proxy service you
+registered elsewhere. A nicer UX is available for end-users using the
+`-sidecar-for=<service>` argument, which causes the command to query Consul for
+a proxy that is registered as a sidecar for the specified `<service>`. If there is
+exactly one such proxy, that ID will be used to start the proxy. Your controller
+only needs to accept `-proxy-id` as an argument; the Consul CLI will handle
+resolving the ID for the name specified in `-sidecar-for`.
+
+[`/v1/agent/connect/ca/leaf/`]: /api/agent/connect#service-leaf-certificate
+[`/v1/agent/connect/ca/roots`]: /api/agent/connect#certificate-authority-ca-roots
+[`/v1/health/connect/:service_id`]: /api/health#list-nodes-for-connect-capable-service
+[`api` package]: https://github.com/hashicorp/consul/tree/master/api
+[`consul/connect/proxy/config.go`]: https://github.com/hashicorp/consul/blob/v1.8.3/connect/proxy/config.go#L187
+[consul/connect/tls.go]: https://github.com/hashicorp/consul/blob/v1.8.3/connect/tls.go#L232-L237
+[discovery chain]: /docs/connect/l7-traffic/discovery-chain
+[query option]: https://github.com/hashicorp/consul/blob/v1.8.3/api/api.go#L81
+[UseCache]: https://github.com/hashicorp/consul/blob/v1.8.3/api/api.go#L99-L102
