@@ -104,6 +104,6 @@ variable "instance_type" {
 }
 
 variable "ami_owners" {
-  type = list(string)
+  type        = list(string)
   description = "The account owner number which the desired AMI is in"
 }
