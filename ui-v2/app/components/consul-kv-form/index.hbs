@@ -31,7 +31,7 @@
             <label for="" class="type-text{{if api.data.error.Value ' has-error'}}">
                 <span>Value</span>
 {{#if json}}
-                <CodeEditor @value={{atob api.data.Value}} @onkeyup={{action api.change "value"}} />
+                <CodeEditor @name="value" @value={{atob api.data.Value}} @onkeyup={{action api.change "value"}} />
 {{else}}
                 <textarea autofocus={{not api.isCreate}} name="value" oninput={{action api.change}}>{{atob api.data.Value}}</textarea>
 {{/if}}
