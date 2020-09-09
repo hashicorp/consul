@@ -82,7 +82,8 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	d.Cache = cache.New(cfg.Cache)
 	d.ConnPool = newConnPool(cfg, d.Logger, d.TLSConfigurator)
 
-	d.Router = router.NewRouter(d.Logger, cfg.Datacenter, fmt.Sprintf("%s.%s", cfg.NodeName, cfg.Datacenter))
+	// TODO: set grpcServerTracker, requires serf to be setup before this.
+	d.Router = router.NewRouter(d.Logger, cfg.Datacenter, fmt.Sprintf("%s.%s", cfg.NodeName, cfg.Datacenter), nil)
 
 	acConf := autoconf.Config{
 		DirectRPC:       d.ConnPool,

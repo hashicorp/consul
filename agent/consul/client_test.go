@@ -480,7 +480,7 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 	tls, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), logger)
 	require.NoError(t, err, "failed to create tls configuration")
 
-	r := router.NewRouter(logger, c.Datacenter, fmt.Sprintf("%s.%s", c.NodeName, c.Datacenter))
+	r := router.NewRouter(logger, c.Datacenter, fmt.Sprintf("%s.%s", c.NodeName, c.Datacenter), nil)
 
 	connPool := &pool.ConnPool{
 		Server:          false,

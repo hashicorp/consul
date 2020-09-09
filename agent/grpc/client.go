@@ -10,61 +10,71 @@ import (
 
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
-	"github.com/hashicorp/consul/tlsutil"
 )
 
-type ServerProvider interface {
-	Servers() []*metadata.Server
+// ClientConnPool creates and stores a connection for each datacenter.
+type ClientConnPool struct {
+	dialer    dialer
+	servers   ServerLocator
+	conns     map[string]*grpc.ClientConn
+	connsLock sync.Mutex
 }
 
-type Client struct {
-	serverProvider  ServerProvider
-	tlsConfigurator *tlsutil.Configurator
-	grpcConns       map[string]*grpc.ClientConn
-	grpcConnLock    sync.Mutex
+type ServerLocator interface {
+	// ServerForAddr is used to look up server metadata from an address.
+	ServerForAddr(addr string) (*metadata.Server, error)
+	// Scheme returns the url scheme to use to dial the server. This is primarily
+	// needed for testing multiple agents in parallel, because gRPC requires the
+	// resolver to be registered globally.
+	Scheme() string
 }
 
-func NewGRPCClient(serverProvider ServerProvider, tlsConfigurator *tlsutil.Configurator) *Client {
-	// Note we don't actually use the logger anywhere yet but I guess it was added
-	// for future compatibility...
-	return &Client{
-		serverProvider:  serverProvider,
-		tlsConfigurator: tlsConfigurator,
-		grpcConns:       make(map[string]*grpc.ClientConn),
+// TLSWrapper wraps a non-TLS connection and returns a connection with TLS
+// enabled.
+type TLSWrapper func(dc string, conn net.Conn) (net.Conn, error)
+
+type dialer func(context.Context, string) (net.Conn, error)
+
+func NewClientConnPool(servers ServerLocator, tls TLSWrapper) *ClientConnPool {
+	return &ClientConnPool{
+		dialer:  newDialer(servers, tls),
+		servers: servers,
+		conns:   make(map[string]*grpc.ClientConn),
 	}
 }
 
-func (c *Client) GRPCConn(datacenter string) (*grpc.ClientConn, error) {
-	c.grpcConnLock.Lock()
-	defer c.grpcConnLock.Unlock()
+// ClientConn returns a grpc.ClientConn for the datacenter. If there are no
+// existing connections in the pool, a new one will be created, stored in the pool,
+// then returned.
+func (c *ClientConnPool) ClientConn(datacenter string) (*grpc.ClientConn, error) {
+	c.connsLock.Lock()
+	defer c.connsLock.Unlock()
 
-	// If there's an existing ClientConn for the given DC, return it.
-	if conn, ok := c.grpcConns[datacenter]; ok {
+	if conn, ok := c.conns[datacenter]; ok {
 		return conn, nil
 	}
 
-	dialer := newDialer(c.serverProvider, c.tlsConfigurator.OutgoingRPCWrapper())
-	conn, err := grpc.Dial(fmt.Sprintf("%s:///server.%s", scheme, datacenter),
+	conn, err := grpc.Dial(fmt.Sprintf("%s:///server.%s", c.servers.Scheme(), datacenter),
 		// use WithInsecure mode here because we handle the TLS wrapping in the
 		// custom dialer based on logic around whether the server has TLS enabled.
 		grpc.WithInsecure(),
-		grpc.WithContextDialer(dialer),
+		grpc.WithContextDialer(c.dialer),
 		grpc.WithDisableRetry(),
-		// TODO: previously this handler was shared with the Handler. Is that necessary?
+		// TODO: previously this statsHandler was shared with the Handler. Is that necessary?
 		grpc.WithStatsHandler(&statsHandler{}),
+		// nolint:staticcheck // there is no other supported alternative to WithBalancerName
 		grpc.WithBalancerName("pick_first"))
 	if err != nil {
 		return nil, err
 	}
 
-	c.grpcConns[datacenter] = conn
-
+	c.conns[datacenter] = conn
 	return conn, nil
 }
 
 // newDialer returns a gRPC dialer function that conditionally wraps the connection
-// with TLS depending on the given useTLS value.
-func newDialer(serverProvider ServerProvider, wrapper tlsutil.DCWrapper) func(context.Context, string) (net.Conn, error) {
+// with TLS based on the Server.useTLS value.
+func newDialer(servers ServerLocator, wrapper TLSWrapper) func(context.Context, string) (net.Conn, error) {
 	return func(ctx context.Context, addr string) (net.Conn, error) {
 		d := net.Dialer{}
 		conn, err := d.DialContext(ctx, "tcp", addr)
@@ -72,17 +82,10 @@ func newDialer(serverProvider ServerProvider, wrapper tlsutil.DCWrapper) func(co
 			return nil, err
 		}
 
-		// Check if TLS is enabled for the server.
-		var found bool
-		var server *metadata.Server
-		for _, s := range serverProvider.Servers() {
-			if s.Addr.String() == addr {
-				found = true
-				server = s
-			}
-		}
-		if !found {
-			return nil, fmt.Errorf("could not find Consul server for address %q", addr)
+		server, err := servers.ServerForAddr(addr)
+		if err != nil {
+			// TODO: should conn be closed in this case, as it is in other error cases?
+			return nil, err
 		}
 
 		if server.UseTLS {
@@ -107,6 +110,7 @@ func newDialer(serverProvider ServerProvider, wrapper tlsutil.DCWrapper) func(co
 
 		_, err = conn.Write([]byte{pool.RPCGRPC})
 		if err != nil {
+			// TODO: should conn be closed in this case, as it is in other error cases?
 			return nil, err
 		}
 
