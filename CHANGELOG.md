@@ -1,5 +1,9 @@
 ## UNRELEASED
 
+BUGFIXES:
+
+* ui: fixed a bug related to in-folder KV creation [GH-8613](https://github.com/hashicorp/consul/pull/8613)
+
 ## 1.8.3 (August 12, 2020)
 
 BUGFIXES:
