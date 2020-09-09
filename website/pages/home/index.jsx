@@ -77,7 +77,7 @@ export default function HomePage() {
       />
 
       <LearnCallout
-        headline="Get hands on with Consul"
+        headline="Get hands-on experience with Consul"
         brand="consul"
         items={[
           {
