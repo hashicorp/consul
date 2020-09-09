@@ -1,7 +1,7 @@
 # Consul [![CircleCI](https://circleci.com/gh/hashicorp/consul/tree/master.svg?style=svg)](https://circleci.com/gh/hashicorp/consul/tree/master) [![Discuss](https://img.shields.io/badge/discuss-consul-ca2171.svg?style=flat)](https://discuss.hashicorp.com/c/consul)
 
 * Website: https://www.consul.io
-* Tutorials: [https://learn.hashicorp.com](https://learn.hashicorp.com/consul)
+* Tutorials: [HashiCorp Learn](https://learn.hashicorp.com/consul)
 * Forum: [Discuss](https://discuss.hashicorp.com/c/consul)
 
 Consul is a distributed, highly available, and data center aware solution to connect and configure applications across dynamic, distributed infrastructure.
