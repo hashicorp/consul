@@ -1,5 +1,4 @@
 /* eslint no-console: "off" */
-import $ from '-jquery';
 
 const elementNotFound = 'Element not found';
 // this error comes from our pageObject `find `function
@@ -32,7 +31,7 @@ const isExpectedError = function(e) {
   );
 };
 const dont = `( don't| shouldn't| can't)?`;
-export default function(scenario, assert, find, currentPage) {
+export default function(scenario, assert, find, currentPage, $) {
   scenario
     .then(['I see $num of the $component object'], function(num, component) {
       assert.equal(
