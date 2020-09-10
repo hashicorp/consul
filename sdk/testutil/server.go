@@ -134,7 +134,7 @@ type ServerConfigCallback func(c *TestServerConfig)
 
 // defaultServerConfig returns a new TestServerConfig struct
 // with all of the listen ports incremented by one.
-func defaultServerConfig(t CleanupT) *TestServerConfig {
+func defaultServerConfig(t TestingTB) *TestServerConfig {
 	nodeID, err := uuid.GenerateUUID()
 	if err != nil {
 		panic(err)
@@ -216,11 +216,11 @@ type TestServer struct {
 	tmpdir string
 }
 
-// NewTestServerConfig creates a new TestServer, and makes a call to an optional
+// NewTestServerConfigT creates a new TestServer, and makes a call to an optional
 // callback function to modify the configuration. If there is an error
 // configuring or starting the server, the server will NOT be running when the
 // function returns (thus you do not need to stop it).
-func NewTestServerConfigT(t testing.TB, cb ServerConfigCallback) (*TestServer, error) {
+func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, error) {
 	path, err := exec.LookPath("consul")
 	if err != nil || path == "" {
 		return nil, fmt.Errorf("consul not found on $PATH - download and install " +
