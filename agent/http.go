@@ -179,7 +179,7 @@ func (fs *settingsInjectedIndexFS) Open(name string) (http.File, error) {
 
 	// Replace the placeholder in the meta ENV with the actual UI config settings.
 	// Ember passes the ENV with URL encoded JSON in a meta tag. We are replacing
-	// a value that is the encoded version of "__CONSUL_UI_SETTINGS_GO_HERE__"
+	// a key and value that is the encoded version of `"CONSUL_UI_SETTINGS":"__CONSUL_UI_SETTINGS_GO_HERE__"`
 	// with a URL-encoded JSON blob representing the actual config.
 
 	// First built an escaped, JSON blob from the settings passed.
