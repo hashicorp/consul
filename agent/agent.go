@@ -334,6 +334,9 @@ func New(bd BaseDeps) (*Agent, error) {
 		cache:           bd.Cache,
 	}
 
+	// Initialize the UI Config
+	a.uiConfig.Store(a.config.UIConfig)
+
 	a.serviceManager = NewServiceManager(&a)
 
 	// TODO: do this somewhere else, maybe move to newBaseDeps
@@ -3822,4 +3825,15 @@ func defaultIfEmpty(val, defaultVal string) string {
 		return val
 	}
 	return defaultVal
+}
+
+// getUIConfig is the canonical way to read the value of the UIConfig at
+// runtime. It is thread safe and returns the most recent configuration which
+// may have changed since the agent started due to config reload.
+func (a *Agent) getUIConfig() config.UIConfig {
+	if cfg, ok := a.uiConfig.Load().(config.UIConfig); ok {
+		return cfg
+	}
+	// Shouldn't happen but be defensive
+	return config.UIConfig{}
 }

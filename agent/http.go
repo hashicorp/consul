@@ -347,16 +347,23 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 	handlePProf("/debug/pprof/trace", pprof.Trace)
 
 	if s.IsUIEnabled() {
+		// Note that we _don't_ support reloading ui_config.{enabled,content_dir}
+		// since this only runs at initial startup.
+
 		var uifs http.FileSystem
 		// Use the custom UI dir if provided.
-		if s.agent.config.UIDir != "" {
-			uifs = http.Dir(s.agent.config.UIDir)
+		uiConfig := s.agent.getUIConfig()
+		if uiConfig.Dir != "" {
+			uifs = http.Dir(uiConfig.Dir)
 		} else {
 			fs := assetFS()
 			uifs = fs
 		}
 
-		uifs = &redirectFS{fs: &settingsInjectedIndexFS{fs: uifs, UISettings: s.GetUIENVFromConfig()}}
+		uifs = &redirectFS{fs: &settingsInjectedIndexFS{
+			fs:         uifs,
+			UISettings: s.GetUIENVFromConfig(),
+		}}
 		// create a http handler using the ui file system
 		// and the headers specified by the http_config.response_headers user config
 		uifsWithHeaders := serveHandlerWithHeaders(
@@ -368,9 +375,9 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 			uifsWithHeaders,
 		)
 		mux.Handle(
-			s.agent.config.UIContentPath,
+			uiConfig.ContentPath,
 			http.StripPrefix(
-				s.agent.config.UIContentPath,
+				uiConfig.ContentPath,
 				uifsWithHeaders,
 			),
 		)
@@ -391,9 +398,20 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 }
 
 func (s *HTTPHandlers) GetUIENVFromConfig() map[string]interface{} {
+	uiCfg := s.agent.getUIConfig()
+
 	vars := map[string]interface{}{
-		"CONSUL_CONTENT_PATH": s.agent.config.UIContentPath,
-		"CONSUL_ACLS_ENABLED": s.agent.config.ACLsEnabled,
+		"CONSUL_CONTENT_PATH":             uiCfg.ContentPath,
+		"CONSUL_ACLS_ENABLED":             s.agent.config.ACLsEnabled,
+		"CONSUL_METRICS_PROVIDER":         uiCfg.MetricsProvider,
+		"CONSUL_METRICS_PROVIDER_OPTIONS": json.RawMessage(uiCfg.MetricsProviderOptionsJSON),
+		// We explicitly MUST NOT pass the metrics_proxy object since it might
+		// contain add_headers with secrets that the UI shouldn't know e.g. API
+		// tokens for the backend. The provider should either require the proxy to
+		// be configured and then use that or hit the backend directly from the
+		// browser.
+		"CONSUL_METRICS_PROXY_ENABLED":   uiCfg.MetricsProxy.BaseURL != "",
+		"CONSUL_DASHBOARD_URL_TEMPLATES": uiCfg.DashboardURLTemplates,
 	}
 
 	s.addEnterpriseUIENVVars(vars)
@@ -655,7 +673,8 @@ func (s *HTTPHandlers) Index(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	// Redirect to the UI endpoint
-	http.Redirect(resp, req, s.agent.config.UIContentPath, http.StatusMovedPermanently) // 301
+	uiCfg := s.agent.getUIConfig()
+	http.Redirect(resp, req, uiCfg.ContentPath, http.StatusMovedPermanently) // 301
 }
 
 func decodeBody(body io.Reader, out interface{}) error {

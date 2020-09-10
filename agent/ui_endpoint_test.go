@@ -34,7 +34,7 @@ func TestUiIndex(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// Create file
-	path := filepath.Join(a.Config.UIDir, "my-file")
+	path := filepath.Join(a.Config.UIConfig.Dir, "my-file")
 	if err := ioutil.WriteFile(path, []byte("test"), 0777); err != nil {
 		t.Fatalf("err: %v", err)
 	}

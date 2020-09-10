@@ -694,13 +694,6 @@ type RuntimeConfig struct {
 	// flag: -enable-script-checks
 	EnableRemoteScriptChecks bool
 
-	// EnableUI enables the statically-compiled assets for the Consul web UI and
-	// serves them at the default /ui/ endpoint automatically.
-	//
-	// hcl: enable_ui = (true|false)
-	// flag: -ui
-	EnableUI bool
-
 	// EncryptKey contains the encryption key to use for the Serf communication.
 	//
 	// hcl: encrypt = string
@@ -1411,16 +1404,18 @@ type RuntimeConfig struct {
 	// hcl: limits { txn_max_req_len = uint64 }
 	TxnMaxReqLen uint64
 
-	// UIDir is the directory containing the Web UI resources.
-	// If provided, the UI endpoints will be enabled.
+	// UIConfig holds various runtime options that control both the agent's
+	// behavior while serving the UI (e.g. whether it's enabled, what path it's
+	// mounted on) as well as options that enable or disable features within the
+	// UI.
 	//
-	// hcl: ui_dir = string
-	// flag: -ui-dir string
-	UIDir string
-
-	//UIContentPath is a string that sets the external
-	// path to a string. Default: /ui/
-	UIContentPath string
+	// NOTE: Never read from this field directly once the agent has started up
+	// since the UI config is reloadable. The on in the agent's config field may
+	// be out of date. Use the agent.getUIConfig() method to get the latest config
+	// in a thread-safe way.
+	//
+	// hcl: ui_config { ... }
+	UIConfig UIConfig
 
 	// UnixSocketGroup contains the group of the file permissions when
 	// Consul binds to UNIX sockets.
@@ -1516,6 +1511,27 @@ type AutoConfigAuthorizer struct {
 	// AuthMethodConfig ssoauth.Config
 	ClaimAssertions []string
 	AllowReuse      bool
+}
+
+type UIConfig struct {
+	Enabled                    bool
+	Dir                        string
+	ContentPath                string
+	MetricsProvider            string
+	MetricsProviderFiles       []string
+	MetricsProviderOptionsJSON string
+	MetricsProxy               UIMetricsProxy
+	DashboardURLTemplates      map[string]string
+}
+
+type UIMetricsProxy struct {
+	BaseURL    string
+	AddHeaders []UIMetricsProxyAddHeader
+}
+
+type UIMetricsProxyAddHeader struct {
+	Name  string
+	Value string
 }
 
 func (c *RuntimeConfig) apiAddresses(maxPerType int) (unixAddrs, httpAddrs, httpsAddrs []string) {
