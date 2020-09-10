@@ -1,0 +1,3 @@
+```release-note:bug
+connect: fix renewing secondary intermediate certificates
+```
