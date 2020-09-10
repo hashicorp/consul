@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
@@ -26,7 +27,10 @@ var ErrBackendNotInitialized = fmt.Errorf("backend not initialized")
 type VaultProvider struct {
 	config *structs.VaultCAProviderConfig
 	client *vaultapi.Client
-	doneCh chan struct{}
+
+	shutdown     bool
+	shutdownCh   chan struct{}
+	shutdownLock sync.RWMutex
 
 	isPrimary                    bool
 	clusterID                    string
@@ -71,7 +75,7 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 	v.isPrimary = cfg.IsPrimary
 	v.clusterID = cfg.ClusterID
 	v.spiffeID = connect.SpiffeIDSigningForCluster(&structs.CAConfiguration{ClusterID: v.clusterID})
-	v.doneCh = make(chan struct{}, 0)
+	v.shutdownCh = make(chan struct{}, 0)
 
 	// Look up the token to see if we can auto-renew its lease.
 	secret, err := client.Auth().Token().Lookup(config.Token)
@@ -116,7 +120,7 @@ func (v *VaultProvider) renewToken(renewer *vaultapi.Renewer) {
 
 	for {
 		select {
-		case <-v.doneCh:
+		case <-v.shutdownCh:
 			renewer.Stop()
 			return
 
@@ -501,11 +505,20 @@ func (c *VaultProvider) SupportsCrossSigning() (bool, error) {
 // this down and recreate it on small config changes because the intermediate
 // certs get bundled with the leaf certs, so there's no cost to the CA changing.
 func (v *VaultProvider) Cleanup() error {
-	if v.doneCh != nil {
-		close(v.doneCh)
-	}
+	v.Stop()
 
 	return v.client.Sys().Unmount(v.config.IntermediatePKIPath)
+}
+
+// Stop shuts down the token renew goroutine.
+func (v *VaultProvider) Stop() {
+	v.shutdownLock.Lock()
+	defer v.shutdownLock.Unlock()
+
+	if !v.shutdown && v.shutdownCh != nil {
+		close(v.shutdownCh)
+		v.shutdown = true
+	}
 }
 
 func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderConfig, error) {
