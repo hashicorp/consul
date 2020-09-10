@@ -136,7 +136,7 @@ module.exports = function(environment, $ = process.env) {
         // won't really exist in the actual ember ENV when it's being served
         // through Consul. See settingsInjectedIndexFS.Open in Go code for the
         // details.
-        CONSUL_UI_SETTINGS_PLACEHOLDER: '__CONSUL_UI_SETTINGS_GO_HERE__',
+        CONSUL_UI_SETTINGS_PLACEHOLDER: "__CONSUL_UI_SETTINGS_GO_HERE__",
       });
       break;
   }
