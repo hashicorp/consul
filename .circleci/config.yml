@@ -374,7 +374,7 @@ jobs:
   # run integration tests on nomad/master
   nomad-integration-master:
     docker:
-      - image: circleci/golang:1.13 # nomad uses -trimpath which was introduced in Go 1.13
+      - image: circleci/golang:1.14
     environment:
       <<: *ENVIRONMENT
       NOMAD_WORKING_DIR: /go/src/github.com/hashicorp/nomad
