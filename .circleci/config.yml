@@ -440,7 +440,7 @@ jobs:
   # run integration tests on nomad/master
   nomad-integration-master:
     docker:
-      - image: *GOLANG_IMAGE
+      - image: circleci/golang:1.14
     environment:
       <<: *ENVIRONMENT
       NOMAD_WORKING_DIR: /go/src/github.com/hashicorp/nomad
