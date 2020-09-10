@@ -4,9 +4,8 @@
     "aws_region": "us-east-1",
     "consul_version": "1.5.1",
     "download_url": "{{env `CONSUL_DOWNLOAD_URL`}}",
-    "dd_api_key": "{{env `dd_api_key`}}"
+    "dd_api_key": "{{env `DD_API_KEY`}}"
   },
-  "sensitive-variables": ["dd_api_key", "foo"],
   "builders": [{
     "name": "ubuntu18-ami",
     "ami_name": "consul-ubuntu-{{isotime | clean_resource_name}}-{{uuid}}",
@@ -30,36 +29,39 @@
   }],
   "provisioners": [{
     "type": "shell",
-    "inline": ["mkdir -p /tmp/scripts"]
+    "inline": ["mkdir -p /home/ubuntu/scripts"]
   },{
     "type": "file",
-    "source": "{{template_dir}}/scripts/",
-    "destination": "/tmp/scripts",
+    "source": "{{template_dir}}/scripts",
+    "destination": "/home/ubuntu",
     "pause_before": "30s"
   },{
     "type": "shell",
     "inline": [
       "if test -n \"{{user `download_url`}}\"; then",
-        "/tmp/scripts/install-consul --download-url {{user `download_url`}};",
+        "/home/ubuntu/scripts/install-consul --download-url {{user `download_url`}};",
         "else",
-      "/tmp/scripts/install-consul --version {{user `consul_version`}};",
+      "/home/ubuntu/scripts/install-consul --version {{user `consul_version`}};",
       "fi"
     ],
     "pause_before": "30s"
   },{
     "type": "shell",
     "inline": [
-      "/tmp/scripts/setup-systemd-resolved"
+      "/home/ubuntu/scripts/setup-systemd-resolved"
     ],
     "pause_before": "30s"
   },{
+    // "type": "shell",
+  //   "environment_vars": [
+  //     "DD_API_KEY={{user `dd_api_key`}}"
+  //   ],
+  //   "execute_command": "sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
+  //   "script": "{{template_dir}}/scripts/move-files.sh"
+  // },{
     "type": "shell",
     "inline": [
       "DD_AGENT_MAJOR_VERSION=7 DD_API_KEY={{user `dd_api_key`}} bash -c \"$(curl -L https://raw.githubusercontent.com/DataDog/datadog-agent/master/cmd/agent/install_script.sh)\""
     ]
-  },{
-    "type": "shell",
-    "execute_command": "sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
-    "script": "./scripts/move-files.sh"
-    }]
+  }]
 }

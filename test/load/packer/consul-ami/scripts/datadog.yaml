@@ -7,7 +7,7 @@
 ## Create a new API key here: https://app.datadoghq.com/account/settings
 #
 tags:
-api_key: "{{user `dd_api_key`}}"
+api_key:
 logs_enabled: true
 dogstatsd_mapper_profiles:
  - name: consul

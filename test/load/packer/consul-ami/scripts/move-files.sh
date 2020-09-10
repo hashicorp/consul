@@ -1,10 +1,11 @@
 #!/bin/bash -e
+## Datadog doesn't exist yet
+mkdir -p /etc/datadog-agent/conf.d/consul.d/
 
-##Move datadog files, set USER:GROUP
+
+##Move datadog files
 mv /home/ubuntu/scripts/conf.yaml /etc/datadog-agent/conf.d/consul.d/
-chown dd-agent:dd-agent /etc/datadog-agent/conf.d/consul.d/conf.yaml
 mv /home/ubuntu/scripts/datadog.yaml /etc/datadog-agent/
-chown dd-agent:dd-agent /etc/datadog-agent/datadog.yaml
 
 ##Move Consul Config that hooks up to datadog
 mv /home/ubuntu/scripts/telemetry.json /opt/consul/config/
