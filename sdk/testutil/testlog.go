@@ -10,11 +10,11 @@ import (
 	"github.com/hashicorp/go-hclog"
 )
 
-func Logger(t testing.TB) hclog.InterceptLogger {
+func Logger(t TestingTB) hclog.InterceptLogger {
 	return LoggerWithOutput(t, NewLogBuffer(t))
 }
 
-func LoggerWithOutput(t testing.TB, output io.Writer) hclog.InterceptLogger {
+func LoggerWithOutput(t TestingTB, output io.Writer) hclog.InterceptLogger {
 	return hclog.NewInterceptLogger(&hclog.LoggerOptions{
 		Name:   t.Name(),
 		Level:  hclog.Trace,
@@ -30,7 +30,7 @@ var sendTestLogsToStdout = os.Getenv("NOLOGBUFFER") == "1"
 //
 // Set the env var NOLOGBUFFER=1 to disable buffering, resulting in all log
 // output being written immediately to stdout.
-func NewLogBuffer(t CleanupT) io.Writer {
+func NewLogBuffer(t TestingTB) io.Writer {
 	if sendTestLogsToStdout {
 		return os.Stdout
 	}
@@ -43,11 +43,6 @@ func NewLogBuffer(t CleanupT) io.Writer {
 		}
 	})
 	return buf
-}
-
-type CleanupT interface {
-	Cleanup(f func())
-	Failed() bool
 }
 
 type logBuffer struct {
