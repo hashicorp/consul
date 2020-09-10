@@ -40,8 +40,8 @@
     "type": "shell",
     "inline": [
       "if test -n \"{{user `download_url`}}\"; then",
-      "/tmp/scripts/install-consul --download-url {{user `download_url`}};",
-      "else",
+        "/tmp/scripts/install-consul --download-url {{user `download_url`}};",
+        "else",
       "/tmp/scripts/install-consul --version {{user `consul_version`}};",
       "fi"
     ],

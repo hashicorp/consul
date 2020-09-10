@@ -13,6 +13,12 @@ resource "aws_launch_configuration" "test-servers" {
   lifecycle {
     create_before_destroy = true
   }
+  user_data = templatefile(
+    "./start-locust.sh",
+    {
+      lb_endpoint = module.alb.this_lb_dns_name
+    }
+  )
 }
 
 resource "aws_autoscaling_group" "test-servers" {

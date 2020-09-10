@@ -26,11 +26,11 @@
   }],
   "provisioners": [{
     "type": "shell",
-    "inline": ["mkdir -p /tmp/scripts"]
+    "inline": ["mkdir -p /home/ubuntu/scripts/"]
   },{
     "type": "file",
-    "source": "{{template_dir}}/scripts/",
-    "destination": "/tmp/scripts",
+    "source": "{{template_dir}}/scripts",
+    "destination": "/home/ubuntu",
     "pause_before": "30s"
   },{
     "type": "shell",
