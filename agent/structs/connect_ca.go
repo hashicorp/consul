@@ -314,7 +314,8 @@ func (c *CAConfiguration) GetCommonConfig() (*CommonCAProviderConfig, error) {
 }
 
 type CommonCAProviderConfig struct {
-	LeafCertTTL time.Duration
+	LeafCertTTL         time.Duration
+	IntermediateCertTTL time.Duration
 
 	SkipValidate bool
 
@@ -360,6 +361,10 @@ type CommonCAProviderConfig struct {
 var MinLeafCertTTL = time.Hour
 var MaxLeafCertTTL = 365 * 24 * time.Hour
 
+// intermediateCertRenewInterval is the interval at which the expiration
+// of the intermediate cert is checked and renewed if necessary.
+var IntermediateCertRenewInterval = time.Hour
+
 func (c CommonCAProviderConfig) Validate() error {
 	if c.SkipValidate {
 		return nil
@@ -371,6 +376,33 @@ func (c CommonCAProviderConfig) Validate() error {
 
 	if c.LeafCertTTL > MaxLeafCertTTL {
 		return fmt.Errorf("leaf cert TTL must be less than %s", MaxLeafCertTTL)
+	}
+
+	if c.IntermediateCertTTL < (3 * IntermediateCertRenewInterval) {
+		// Intermediate Certificates are checked every
+		// hour(intermediateCertRenewInterval) if they are about to
+		// expire. Recreating an intermediate certs is started once
+		// more than half its lifetime has passed.
+		// If it would be 2h, worst case is that the check happens
+		// right before half time and when the check happens again, the
+		// certificate is very close to expiring, leaving only a small
+		// timeframe to renew. 3h leaves more than 30min to recreate.
+		// Right now the minimum LeafCertTTL is 1h, which means this
+		// check not strictly needed, because the same thing is covered
+		// in the next check too. But just in case minimum LeafCertTTL
+		// changes at some point, this validation must still be
+		// performed.
+		return fmt.Errorf("Intermediate Cert TTL must be greater or equal than %dh", 3*int(IntermediateCertRenewInterval.Hours()))
+	}
+	if c.IntermediateCertTTL < (3 * c.LeafCertTTL) {
+		// Intermediate Certificates are being sent to the proxy when
+		// the Leaf Certificate changes because they are bundled
+		// together.
+		// That means that the Intermediate Certificate TTL must be at
+		// a minimum of 3 * Leaf Certificate TTL to ensure that the new
+		// Intermediate is being set together with the Leaf Certificate
+		// before it expires.
+		return fmt.Errorf("Intermediate Cert TTL must be greater or equal than 3 * LeafCertTTL (>=%s).", 3*c.LeafCertTTL)
 	}
 
 	switch c.PrivateKeyType {
@@ -392,10 +424,9 @@ func (c CommonCAProviderConfig) Validate() error {
 type ConsulCAProviderConfig struct {
 	CommonCAProviderConfig `mapstructure:",squash"`
 
-	PrivateKey          string
-	RootCert            string
-	RotationPeriod      time.Duration
-	IntermediateCertTTL time.Duration
+	PrivateKey     string
+	RootCert       string
+	RotationPeriod time.Duration
 
 	// DisableCrossSigning is really only useful in test code to use the built in
 	// provider while exercising logic that depends on the CA provider ability to
@@ -404,37 +435,7 @@ type ConsulCAProviderConfig struct {
 	DisableCrossSigning bool
 }
 
-// intermediateCertRenewInterval is the interval at which the expiration
-// of the intermediate cert is checked and renewed if necessary.
-var IntermediateCertRenewInterval = time.Hour
-
 func (c *ConsulCAProviderConfig) Validate() error {
-	if c.IntermediateCertTTL < (3 * IntermediateCertRenewInterval) {
-		// Intermediate Certificates are checked every
-		// hour(intermediateCertRenewInterval) if they are about to
-		// expire. Recreating an intermediate certs is started once
-		// more than half its lifetime has passed.
-		// If it would be 2h, worst case is that the check happens
-		// right before half time and when the check happens again, the
-		// certificate is very close to expiring, leaving only a small
-		// timeframe to renew. 3h leaves more than 30min to recreate.
-		// Right now the minimum LeafCertTTL is 1h, which means this
-		// check not strictly needed, because the same thing is covered
-		// in the next check too. But just in case minimum LeafCertTTL
-		// changes at some point, this validation must still be
-		// performed.
-		return fmt.Errorf("Intermediate Cert TTL must be greater or equal than %dh", 3*int(IntermediateCertRenewInterval.Hours()))
-	}
-	if c.IntermediateCertTTL < (3 * c.CommonCAProviderConfig.LeafCertTTL) {
-		// Intermediate Certificates are being sent to the proxy when
-		// the Leaf Certificate changes because they are bundled
-		// together.
-		// That means that the Intermediate Certificate TTL must be at
-		// a minimum of 3 * Leaf Certificate TTL to ensure that the new
-		// Intermediate is being set together with the Leaf Certificate
-		// before it expires.
-		return fmt.Errorf("Intermediate Cert TTL must be greater or equal than 3 * LeafCertTTL (>=%s).", 3*c.CommonCAProviderConfig.LeafCertTTL)
-	}
 	return nil
 }
 

@@ -153,7 +153,7 @@ func (v *VaultProvider) setupIntermediatePKIPath() error {
 			Type:        "pki",
 			Description: "intermediate CA backend for Consul Connect",
 			Config: vaultapi.MountConfigInput{
-				MaxLeaseTTL: "2160h",
+				MaxLeaseTTL: v.config.IntermediateCertTTL.String(),
 			},
 		})
 
