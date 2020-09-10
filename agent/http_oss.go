@@ -55,7 +55,7 @@ func (s *HTTPServer) rewordUnknownEnterpriseFieldError(err error) error {
 	return err
 }
 
-func (s *HTTPServer) addEnterpriseHTMLTemplateVars(vars map[string]interface{}) {}
+func (s *HTTPServer) addEnterpriseUIENVVars(vars map[string]interface{}) {}
 
 func parseACLAuthMethodEnterpriseMeta(req *http.Request, _ *structs.ACLAuthMethodEnterpriseMeta) error {
 	if methodNS := req.URL.Query().Get("authmethod-ns"); methodNS != "" {
