@@ -1,18 +1,31 @@
 export default [
+  { text: 'Overview', url: '/docs/intro' },
   {
     text: 'Use Cases',
     submenu: [
-      { text: 'Service Discovery', url: '/discovery' },
-      { text: 'Service Mesh', url: '/mesh' },
+      {
+        text: 'Service Discovery and Health Checking',
+        url: '/use-cases/service-discovery-and-health-checking',
+      },
+      {
+        text: 'Network Infrastructure Automation',
+        url: '/use-cases/network-infrastructure-automation',
+      },
+      {
+        text: 'Multi-Platform Service Mesh',
+        url: '/use-cases/multi-platform-service-mesh',
+      },
     ],
   },
   {
-    text: 'Intro',
-    url: '/intro',
-    type: 'inbound',
+    text: 'Enterprise',
+    url:
+      'https://www.hashicorp.com/products/consul/?utm_source=oss&utm_medium=header-nav&utm_campaign=consul',
+    type: 'outbound',
   },
+  'divider',
   {
-    text: 'Learn',
+    text: 'Tutorials',
     url: 'https://learn.hashicorp.com/consul',
     type: 'outbound',
   },
@@ -26,15 +39,14 @@ export default [
     url: '/api-docs',
     type: 'inbound',
   },
+  { 
+    text: 'CLI',
+    url: '/commands',
+    type: 'inbound,'
+  },
   {
     text: 'Community',
     url: '/community',
     type: 'inbound',
-  },
-  {
-    text: 'Enterprise',
-    url:
-      'https://www.hashicorp.com/products/consul/?utm_source=oss&utm_medium=header-nav&utm_campaign=consul',
-    type: 'outbound',
   },
 ]

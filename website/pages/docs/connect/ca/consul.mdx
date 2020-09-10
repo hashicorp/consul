@@ -69,7 +69,7 @@ currently integrate with Consul directly.
 
 To view the current CA configuration, use the [Get CA Configuration endpoint](/api/connect/ca#get-ca-configuration):
 
-```bash
+```shell-session
 $ curl localhost:8500/v1/connect/ca/configuration
 {
     "Provider": "consul",
@@ -98,7 +98,7 @@ example, we will set the URI SAN to `spiffe://36cb52cd-4058-f811-0432-6798a240c5
 In order to use the Update CA Configuration HTTP endpoint, the private key and certificate
 must be passed via JSON:
 
-```bash
+```shell-session
 $ jq -n --arg key "$(cat root.key)"  --arg cert "$(cat root.crt)" '
 {
     "Provider": "consul",
@@ -114,7 +114,7 @@ $ jq -n --arg key "$(cat root.key)"  --arg cert "$(cat root.crt)" '
 
 The resulting `ca_config.json` file can then be used to update the active root certificate:
 
-```bash
+```shell-session
 $ cat ca_config.json
 {
   "Provider": "consul",

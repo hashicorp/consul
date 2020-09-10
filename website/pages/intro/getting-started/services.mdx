@@ -30,7 +30,7 @@ on Unix systems is to name the directory something like `/etc/consul.d`
 (the `.d` suffix implies "this directory contains a set of configuration
 files").
 
-```text
+```shell-session
 $ sudo mkdir /etc/consul.d
 ```
 
@@ -38,14 +38,14 @@ Next, we'll write a service definition configuration file. Let's
 pretend we have a service named "web" running on port 80. Additionally,
 we'll give it a tag we can use as an additional way to query the service:
 
-```text
+```shell-session
 $ echo '{"service": {"name": "web", "tags": ["rails"], "port": 80}}' \
     | sudo tee /etc/consul.d/web.json
 ```
 
 Now, restart the agent, providing the configuration directory:
 
-```text
+```shell-session
 $ consul agent -dev -config-dir=/etc/consul.d
 ==> Starting Consul agent...
 ...
@@ -77,7 +77,7 @@ of the service.
 For the web service we registered, these conventions and settings yield a
 fully-qualified domain name of `web.service.consul`:
 
-```text
+```shell-session
 $ dig @127.0.0.1 -p 8600 web.service.consul
 ...
 
@@ -94,7 +94,7 @@ which the service is available. `A` records can only hold IP addresses.
 You can also use the DNS API to retrieve the entire address/port pair as a
 `SRV` record:
 
-```text
+```shell-session
 $ dig @127.0.0.1 -p 8600 web.service.consul SRV
 ...
 
@@ -118,7 +118,7 @@ the example below, we ask Consul for all web services with the "rails"
 tag. We get a successful response since we registered our service with
 that tag:
 
-```text
+```shell-session
 $ dig @127.0.0.1 -p 8600 rails.web.service.consul
 ...
 
@@ -133,7 +133,7 @@ rails.web.service.consul.	0	IN	A	172.20.20.11
 
 In addition to the DNS API, the HTTP API can be used to query services:
 
-```text
+```shell-session
 $ curl http://localhost:8500/v1/catalog/service/web
 [{"Node":"Armons-MacBook-Air","Address":"172.20.20.11","ServiceID":"web", \
 	"ServiceName":"web","ServiceTags":["rails"],"ServicePort":80}]
@@ -144,7 +144,7 @@ with [health checks](/intro/getting-started/checks) you'll typically want
 to query just for healthy instances where the checks are passing. This is what
 DNS is doing under the hood. Here's a query to look for only healthy instances:
 
-```text
+```shell-session
 $ curl 'http://localhost:8500/v1/health/service/web?passing'
 [{"Node":"Armons-MacBook-Air","Address":"172.20.20.11","Service":{ \
 	"ID":"web", "Service":"web", "Tags":["rails"],"Port":80}, "Checks": ...}]

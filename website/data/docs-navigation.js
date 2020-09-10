@@ -7,110 +7,162 @@
 //   serve as the category title in the sidebar
 
 export default [
-  { category: 'install', content: ['ports', 'bootstrapping', 'performance'] },
   {
-    category: 'upgrading',
-    content: ['compatibility', 'upgrade-specific'],
-  },
-  'glossary',
-  {
-    category: 'internals',
-    content: [
-      'architecture',
-      'consensus',
-      'gossip',
-      'coordinates',
-      'sessions',
-      'anti-entropy',
-      'security',
-      'jepsen',
-      'discovery-chain',
-    ],
-  },
-  {
-    category: 'commands',
+    category: 'intro',
     content: [
       {
-        category: 'acl',
+        category: 'vs',
         content: [
-          {
-            category: 'auth-method',
-            content: ['create', 'delete', 'list', 'read', 'update'],
-          },
-          {
-            category: 'binding-rule',
-            content: ['create', 'delete', 'list', 'read', 'update'],
-          },
-          'bootstrap',
-          {
-            category: 'policy',
-            content: ['create', 'delete', 'list', 'read', 'update'],
-          },
-          {
-            category: 'role',
-            content: ['create', 'delete', 'list', 'read', 'update'],
-          },
-          'set-agent-token',
-          {
-            category: 'token',
-            content: ['clone', 'create', 'delete', 'list', 'read', 'update'],
-          },
-          'translate-rules',
+          'zookeeper',
+          'chef-puppet',
+          'nagios-sensu',
+          'skydns',
+          'smartstack',
+          'serf',
+          'eureka',
+          'istio',
+          'proxies',
+          'custom',
         ],
       },
-      'agent',
-      { category: 'catalog', content: ['datacenters', 'nodes', 'services'] },
-      { category: 'config', content: ['delete', 'list', 'read', 'write'] },
-      { category: 'connect', content: ['ca', 'proxy', 'envoy', 'expose'] },
-      'debug',
-      'event',
-      'exec',
-      'force-leave',
-      'info',
-      {
-        category: 'intention',
-        content: ['check', 'create', 'delete', 'get', 'match'],
-      },
-      'join',
-      'keygen',
-      'keyring',
-      {
-        category: 'kv',
-        content: ['delete', 'export', 'get', 'import', 'put'],
-      },
-      'leave',
-      'license',
-      'lock',
-      'login',
-      'logout',
-      'maint',
-      'members',
-      'monitor',
-      {
-        category: 'namespace',
-        content: ['create', 'delete', 'list', 'read', 'update', 'write'],
-      },
-      {
-        category: 'operator',
-        content: ['area', 'autopilot', 'raft'],
-      },
-      'reload',
-      'rtt',
-      { category: 'services', content: ['register', 'deregister'] },
-      {
-        category: 'snapshot',
-        content: ['agent', 'inspect', 'restore', 'save'],
-      },
-      { category: 'tls', content: ['ca', 'cert'] },
-      'validate',
-      'version',
-      'watch',
     ],
+  },
+
+  {
+    category: 'install',
+    content: [
+      { title: 'Consul Agent', href: '/docs/agent' },
+      'glossary',
+      'ports',
+      'bootstrapping',
+      'cloud-auto-join',
+      'performance',
+      { title: 'Kubernetes', href: '/docs/k8s' },
+    ],
+  },
+  {
+    category: 'discovery',
+    name: 'Service Discovery',
+    content: ['services', 'dns', 'checks'],
+  },
+
+  {
+    category: 'connect',
+    content: [
+      'connect-internals',
+      'configuration',
+      {
+        category: 'proxies',
+        content: ['envoy', 'built-in', 'integrate'],
+      },
+      {
+        category: 'registration',
+        content: ['service-registration', 'sidecar-service'],
+      },
+      'intentions',
+      'observability',
+      {
+        category: 'l7-traffic',
+        content: ['discovery-chain'],
+      },
+      'connectivity-tasks',
+      {
+        category: 'gateways',
+        content: [
+          {
+            category: 'mesh-gateway',
+            content: ['wan-federation-via-mesh-gateways'],
+          },
+
+          'ingress-gateway',
+          'terminating-gateway',
+        ],
+      },
+      'nomad',
+      { title: 'Kubernetes', href: '/docs/k8s/connect' },
+      { category: 'native', content: ['go'] },
+      {
+        category: 'ca',
+        content: ['consul', 'vault', 'aws'],
+      },
+      'dev',
+    ],
+  },
+  {
+    category: 'k8s',
+    content: [
+      {
+        category: 'installation',
+        name: 'Get Started',
+        content: [
+          'install',
+          {
+            category: 'platforms',
+            name: 'Platform Guides',
+            content: [
+              {
+                title: 'Minikube',
+                href:
+                  'https://learn.hashicorp.com/consul/kubernetes/minikube?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=mk',
+              },
+              {
+                title: 'AKS (Azure)',
+                href:
+                  'https://learn.hashicorp.com/consul/kubernetes/azure-k8s?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=aks',
+              },
+              {
+                title: 'EKS (AWS)',
+                href:
+                  'https://learn.hashicorp.com/consul/kubernetes/aws-k8s?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=eks',
+              },
+              {
+                title: 'GKE (Google Cloud)',
+                href:
+                  'https://learn.hashicorp.com/consul/kubernetes/google-cloud-k8s?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=gke',
+              },
+              'self-hosted-kubernetes',
+            ],
+          },
+          {
+            category: 'deployment-configurations',
+            name: 'Deployment Configurations',
+            content: [
+              'clients-outside-kubernetes',
+              'servers-outside-kubernetes',
+              'consul-enterprise',
+            ],
+          },
+          {
+            category: 'multi-cluster',
+            content: ['kubernetes', 'vms-and-kubernetes'],
+          },
+        ],
+      },
+      'tls-on-existing-cluster',
+      {
+        category: 'connect',
+        content: [
+          'ingress-gateways',
+          'terminating-gateways',
+          'connect-ca-provider',
+          'ambassador',
+        ],
+      },
+      'service-sync',
+      'dns',
+      'upgrade',
+      'uninstall',
+      'helm',
+    ],
+  },
+  {
+    category: 'dynamic-app-config',
+    name: 'Dynamic App Configuration',
+    content: ['kv', 'sessions', 'watches'],
   },
   {
     category: 'agent',
     content: [
-      'dns',
       'options',
       {
         category: 'config-entries',
@@ -124,101 +176,70 @@ export default [
           'terminating-gateway',
         ],
       },
-      'cloud-auto-join',
-      'services',
-      'checks',
-      'kv',
-      'sentinel',
-      'encryption',
       'telemetry',
-      'watches',
     ],
   },
   {
-    category: 'acl',
-    content: [
-      'acl-system',
-      'acl-rules',
-      'acl-legacy',
-      'acl-migrate-tokens',
-      { category: 'auth-methods', content: ['kubernetes', 'jwt', 'oidc']},
-    ],
-  },
-  {
-    category: 'connect',
-    content: [
-      'configuration',
-      'observability',
-      'l7-traffic-management',
-      'intentions',
-      'connect-internals',
-      {
-        category: 'proxies',
-        content: ['envoy', 'built-in', 'integrate'],
-      },
-      'mesh_gateway',
-      'wan-federation-via-mesh-gateways',
-      'ingress_gateway',
-      'terminating_gateway',
-      {
-        category: 'registration',
-        content: ['service-registration', 'sidecar-service'],
-      },
-      'security',
-      {
-        category: 'ca',
-        content: ['consul', 'vault', 'aws'],
-      },
-      { category: 'native', content: ['go'] },
-      'dev',
-      'nomad',
-      { title: 'Kubernetes', href: '/docs/k8s/connect' },
-    ],
-  },
-  {
-    category: 'k8s',
+    category: 'security',
     content: [
       {
-        category: 'installation',
+        category: 'acl',
         content: [
-          'aks',
-          'eks',
-          'gke',
-          'minikube',
-          'consul-enterprise',
-          'clients-outside-kubernetes',
-          'servers-outside-kubernetes',
-          'predefined-pvcs',
+          'acl-system',
+          'acl-rules',
+          'acl-legacy',
+          'acl-migrate-tokens',
+          { category: 'auth-methods', content: ['kubernetes', 'jwt', 'oidc'] },
         ],
       },
-      {
-        category: 'operations',
-        name: 'Operations',
-        content: ['upgrading', 'tls-on-existing-cluster', 'uninstalling'],
-      },
-      'dns',
-      'service-sync',
-      'connect',
-      'ambassador',
-      'helm',
+      'encryption',
     ],
   },
-  '-------',
-  'common-errors',
-  'faq',
-  '--------',
-  'partnerships',
   {
     category: 'enterprise',
     content: [
+      'audit-logging',
       'backups',
       'upgrades',
       'read-scale',
+      {
+        title: 'Single sign-on - OIDC',
+        href: '/docs/security/acl/auth-methods/oidc',
+      },
       'redundancy',
       'federation',
-      'network-segments',
       'namespaces',
+      'network-segments',
       'sentinel',
     ],
+  },
+  {
+    category: 'architecture',
+    content: ['anti-entropy', 'consensus', 'gossip', 'jepsen', 'coordinates'],
+  },
+  {
+    category: 'integrate',
+    name: 'Integrations',
+    content: [
+      'partnerships',
+      {
+        title: 'Ambassador Integration',
+        href: '/docs/k8s/connect/ambassador',
+      },
+      {
+        title: 'Proxy Integration',
+        href: '/docs/connect/proxies/integrate',
+      },
+    ],
+  },
+  'download-tools',
+  {
+    category: 'upgrading',
+    content: ['compatibility', 'upgrade-specific'],
+  },
+  {
+    category: 'troubleshoot',
+    name: 'Troubleshoot',
+    content: ['common-errors', 'faq'],
   },
 ]

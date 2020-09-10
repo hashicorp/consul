@@ -39,7 +39,7 @@ your favorite method that supports persistent volume claims, or install and
 start [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/). If
 you do use Minikube, you may want to start it with a little bit of extra memory.
 
-```bash
+```shell-session
 $ minikube start --memory 4096
 ```
 
@@ -58,7 +58,7 @@ while following this guide, and change directories into it. We'll refer to this
 directory as your working directory, and you'll run the rest of the commands in
 this guide from inside it.
 
-```bash
+```shell-session
 $ git clone https://github.com/hashicorp/consul-k8s-l7-obs-guide.git
 
 $ cd consul-k8s-l7-obs-guide
@@ -69,7 +69,7 @@ $ cd consul-k8s-l7-obs-guide
 Once you have set up the prerequisites, you're ready to install Consul. Start by
 cloning the official Consul Helm chart into your working directory.
 
-```bash
+```shell-session
 $ git clone https://github.com/hashicorp/consul-helm.git
 ```
 
@@ -139,7 +139,7 @@ Now install Consul in your Kubernetes cluster and give Kubernetes a name for
 your Consul installation. The output will be a list of all the Kubernetes
 resources created (abbreviated in the code snippet).
 
-```bash
+```shell-session
 $ helm install -f consul-values.yaml --name l7-guide ./consul-helm
 NAME:   consul
 LAST DEPLOYED: Wed May  1 16:02:40 2019
@@ -153,7 +153,7 @@ Check that Consul is running in your Kubernetes cluster via the Kubernetes
 dashboard or CLI. If you are using Minikube, the below command will run in your
 current terminal window and automatically open the dashboard in your browser.
 
-```bash
+```shell-session
 $ minikube dashboard
 ```
 
@@ -163,7 +163,7 @@ Consul UI to localhost:8500 and navigate to it in your browser. Once you run the
 below command it will continue to run in your current terminal window for as
 long as it is forwarding the port.
 
-```bash
+```shell-session
 $ kubectl port-forward l7-guide-consul-server-0 8500:8500
 Forwarding from 127.0.0.1:8500 -> 8500
 Forwarding from [::1]:8500 -> 8500
@@ -194,7 +194,7 @@ unnecessarily, the values file includes some relabel configurations.
 Install the official Prometheus Helm chart using the values in
 `prometheus-values.yaml`.
 
-```bash
+```shell-session
 $ helm install -f prometheus-values.yaml --name prometheus stable/prometheus
 NAME:   prometheus
 LAST DEPLOYED: Wed May  1 16:09:48 2019
@@ -217,7 +217,7 @@ datasource.
 
 Use the official Helm chart to install Grafana with your values file.
 
-```bash
+```shell-session
 $ helm install -f grafana-values.yaml --name grafana stable/grafana
 NAME:   grafana
 LAST DEPLOYED: Wed May  1 16:57:11 2019
@@ -286,7 +286,7 @@ exposes to a format that Prometheus can scrape. They won't be necessary anymore
 once Consul Connect becomes compatible with Envoy 1.10. Apply the configuration
 to deploy Emojify into your cluster.
 
-```bash
+```shell-session
 $ kubectl apply -f app
 ```
 
@@ -296,7 +296,7 @@ visit the Emojify UI. This will be located at the IP address of the host where
 the ingress server is running, at port 30000. If you're using Minikube you can
 find the UI with the following command.
 
-```bash
+```shell-session
 $ minikube service emojify-ingress --url
 http://192.168.99.106:30000
 ```
@@ -311,7 +311,7 @@ don't link directly to the actual picture.)
 Now that you know the application is working, start generating automatic load so
 that you will have some interesting metrics to look at.
 
-```bash
+```shell-session
 $ kubectl apply -f traffic.yaml
 ```
 
@@ -348,7 +348,7 @@ If you want to get rid of the configurations files and Consul Helm chart,
 recursively remove the `consul-k8s-l7-obs-guide` directory.
 `
 
-```bash
+```shell-session
 $ cd ..
 
 $ rm -rf consul-k8s-l7-obs-guide

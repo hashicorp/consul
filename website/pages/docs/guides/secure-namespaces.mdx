@@ -28,7 +28,7 @@ You will also need an ACL token with `operator=write` and `acl=write` privileges
 
 If you are using Docker or other non-local deployment, you can configure a local Consul binary to interact with the deployment. Set the `CONSUL_HTTP_ADDR` [variable](/docs/commands#consul_http_addr) on your local machine or jumphost to the IP address of a client.
 
-```shell
+```shell-session
 $ export CONSUL_HTTP_ADDR=192.17.23.4
 ```
 
@@ -64,14 +64,14 @@ These namespace definitions are for minimal configuration, learn more about name
 
 Next, use the Consul CLI to create each namespace by providing Consul with the namespace definition files. You will need `operator=write` privileges.
 
-```shell
+```shell-session
 $ consul namespace write app-team.json
 $ consul namespace write db-team.json
 ```
 
 Finally, ensure both namespaces were created by viewing all namespaces. You will need `operator=read` privileges, which are included with the `operator=write` privileges, a requirement from the prerequisites.
 
-```shell
+```shell-session
 $ consul namespace list
 app-team:
    Description:
@@ -102,7 +102,7 @@ Nodes are not namespaced, so namespace-operators will be able to see all the nod
 
 First, the super-operator should use the [built-in namespace-policy](/docs/acl/acl-system#builtin-policies) to create a token for the namespaced-operators. Note, the namespace-management policy ultimately grants them unrestricted privileges for their namespace. You will need `acl=write` privileges to create namespaced-tokens.
 
-```shell
+```shell-session
 $ consul acl token create \
       -namespace app-team \
       -description "App Team Administrator" \
@@ -110,7 +110,7 @@ $ consul acl token create \
 <output>
 ```
 
-```shell
+```shell-session
 $ consul acl token create \
       -namespace db-team \
       -description "DB Team Administrator" \

@@ -1,0 +1,48 @@
+---
+layout: commands
+page_title: 'Commands: ACL Policy Delete'
+sidebar_title: delete
+---
+
+# Consul ACL Policy Delete
+
+Command: `consul acl policy delete`
+
+The `acl policy delete` command deletes a policy. Policies may be deleted by their ID or by name.
+
+## Usage
+
+Usage: `consul acl policy delete [options]`
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
+
+#### Command Options
+
+- `-id=<string>` - The ID of the policy to delete. It may be specified as a
+  unique ID prefix but will error if the prefix matches multiple policy IDs.
+
+- `-name=<string>` - The Name of the policy to delete.
+
+#### Enterprise Options
+
+@include 'http_api_namespace_options.mdx'
+
+## Examples
+
+Delete a policy:
+
+```shell-session
+$ consul acl policy delete -id 35b8
+Policy "35b8ecb0-707c-ee18-2002-81b238b54b38" deleted successfully
+```
+
+Delete a policy by name:
+
+```shell-session
+$ consul acl policy delete -name acl-replication
+Policy "35b8ecb0-707c-ee18-2002-81b238b54b38" deleted successfully
+```

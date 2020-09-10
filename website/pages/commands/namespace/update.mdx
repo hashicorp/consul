@@ -1,0 +1,96 @@
+---
+layout: commands
+page_title: 'Commands: Namespace Update'
+sidebar_title: update
+---
+
+# Consul Namespace Update
+
+Command: `consul namespace update`
+
+<EnterpriseAlert />
+
+This `namespace update` command updates a namespaces using the CLI parameters provided.
+This was added in Consul Enterprise 1.7.2.
+
+## Usage
+
+Usage: `consul namespace update -name <namespace name> [options]`
+
+Request a namespace to be update. Construction of the namespace definition is handled by this command
+from the CLI arguments. Some parts of the Namespace such as ACL configurations and meta can be merged
+with the existing namespace definition.
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
+
+#### Command Options
+
+- `-default-policy-id=<value>` - ID of a policy from the default namespace to inject for all tokens
+  in this namespace. May be specified multiple times.
+
+- `-default-policy-name=<value>` - Name of a policy from the default namespace to inject for all
+  tokens in this namespace. May be specified multiple times.
+
+- `-default-role-id=<value>` - ID of a role from the default namespace to inject for all tokens in
+  this namespace. May be specified multiple times.
+
+- `-default-role-name=<value>` - Name of a role from the default namespace to inject for all tokens
+  in this namespace. May be specified multiple times.
+
+- `-description=<string>` - A description of the namespace.
+
+- `-format=<string>` - How to output the results. The choices are: pretty or json
+
+- `-merge-acls` - Merge the new ACL policies and roles with the existing values.
+
+- `-merge-meta` - Merge new meta values with existing meta.
+
+- `-meta=<value>` - Metadata to set on the namespace, formatted as key=value. This flag
+  may be specified multiple times to set multiple meta fields
+
+- `-name=<string>` - The namespace's name. This flag is required.
+
+- `-show-meta` - Indicates that namespace metadata such as the raft indices should
+  be shown for the namespace
+
+## Examples
+
+Update a namespace with a new description:
+
+```shell-session
+$ consul namespace update -name "team-1" -description "example description"
+Name: team-1
+Description:
+   example description
+```
+
+Showing Raft Metadata:
+
+```shell-session
+$ consul namespace update -name team-1 -show-meta -default-policy-id 1206bf1c-6239-46e8-b9f8-b426667cf428
+Name: team-1
+ACLs:
+   Default Policies:
+      1206bf1c-6239-46e8-b9f8-b426667cf428 / team1-universal-policy
+Create Index: 339
+Modify Index: 344
+```
+
+JSON Format:
+
+```shell-session
+$ consul namespace update -name team2 -description "Example Namespace" -meta "external-source=kubernetes" -format=json
+{
+   "Name": "team2",
+   "Description": "Example Namespace",
+   "Meta": {
+      "external-source": "kubernetes"
+   },
+   "CreateIndex": 352,
+   "ModifyIndex": 352
+}
+```

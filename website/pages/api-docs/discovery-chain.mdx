@@ -90,7 +90,7 @@ The table below shows this endpoint's support for
   parameter.
 
 - `OverrideMeshGateway` `(MeshGatewayConfig: <optional>)` - Overrides the final
-  [mesh gateway configuration](/docs/connect/mesh_gateway#connect-proxy-configuration)
+  [mesh gateway configuration](/docs/connect/mesh-gateway#connect-proxy-configuration)
   for this any service resolved in the compiled chain.
 
   This value comes from either the [proxy
@@ -126,7 +126,7 @@ failover = {
 
 Request:
 
-```text
+```shell-session
 $ curl http://127.0.0.1:8500/v1/discovery-chain/web
 ```
 
@@ -203,7 +203,7 @@ redirect {
 
 Request:
 
-```text
+```shell-session
 $ curl -X POST \
     -d'
 {
@@ -292,7 +292,7 @@ splits = [
 
 Request:
 
-```text
+```shell-session
 $ curl http://127.0.0.1:8500/v1/discovery-chain/web?compile-dc=dc2
 ```
 
@@ -428,7 +428,7 @@ routes = [
 
 Request:
 
-```text
+```shell-session
 $ curl http://127.0.0.1:8500/v1/discovery-chain/web
 ```
 

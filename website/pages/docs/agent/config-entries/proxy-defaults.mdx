@@ -19,10 +19,10 @@ one global entry is supported.
 Set the default protocol for all sidecar proxies in the default namespace:
 
 ```hcl
-kind = "proxy-defaults"
-name = "global"
-namespace = "default"
-config {
+Kind      = "proxy-defaults"
+Name      = "global"
+Namespace = "default"
+Config {
   protocol = "http"
 }
 ```
@@ -30,11 +30,11 @@ config {
 Set proxy-specific defaults :
 
 ```hcl
-kind = "proxy-defaults"
-name = "global"
-config {
+Kind = "proxy-defaults"
+Name = "global"
+Config {
   local_connect_timeout_ms = 1000
-  handshake_timeout_ms = 10000
+  handshake_timeout_ms     = 10000
 }
 ```
 
@@ -57,7 +57,7 @@ config {
   - [Consul's built-in proxy](/docs/connect/proxies/built-in)
 
 - `MeshGateway` `(MeshGatewayConfig: <optional>)` - Controls the default
-  [mesh gateway configuration](/docs/connect/mesh_gateway#connect-proxy-configuration)
+  [mesh gateway configuration](/docs/connect/mesh-gateway#connect-proxy-configuration)
   for all proxies. Added in v1.6.0.
 
   - `Mode` `(string: "")` - One of `none`, `local`, or `remote`.
@@ -87,7 +87,7 @@ config {
 ## ACLs
 
 Configuration entries may be protected by
-[ACLs](https://learn.hashicorp.com/consul/security-networking/production-acls).
+[ACLs](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production).
 
 Reading a `proxy-defaults` config entry requires no specific privileges.
 

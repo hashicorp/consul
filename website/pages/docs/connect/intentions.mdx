@@ -1,7 +1,7 @@
 ---
 layout: docs
-page_title: Connect - Intentions
-sidebar_title: Intentions - Security Policies
+page_title: Service-to-service permissions - Intentions
+sidebar_title: Service-to-service permissions - Intentions
 description: >-
   Intentions define access control for services via Connect and are used to
   control which services may establish connections. Intentions can be managed
@@ -17,12 +17,12 @@ managed via the API, CLI, or UI.
 Intentions are enforced by the [proxy](/docs/connect/proxies)
 or [natively integrated application](/docs/connect/native) on
 inbound connections. After verifying the TLS client certificate, the
-[authorize API endpoint](#) is called which verifies the connection
+[authorize API endpoint](/api-docs/agent/connect#authorize) is called which verifies the connection
 is allowed by testing the intentions. If authorize returns false the
 connection must be terminated.
 
 The default intention behavior is defined by the default
-[ACL policy](https://learn.hashicorp.com/consul/security-networking/production-acls). If the default ACL policy is "allow all",
+[ACL policy](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production). If the default ACL policy is "allow all",
 then all Connect connections are allowed by default. If the default ACL policy
 is "deny all", then all Connect connections are denied by default.
 
@@ -35,7 +35,7 @@ Below is an example of a basic intention to show the basic attributes
 of an intention. The full data model of an intention can be found in the
 [API documentation](#).
 
-```
+```shell-session
 $ consul intention create -deny web db
 Created: web => db (deny)
 ```
@@ -54,7 +54,7 @@ the near term roadmap for Consul.
 An intention source or destination may also be the special wildcard
 value `*`. This matches _any_ value and is used as a catch-all. Example:
 
-```
+```shell-session
 $ consul intention create -deny web '*'
 Created: web => * (deny)
 ```
@@ -67,7 +67,7 @@ Arbitrary string key/value data may be associated with intentions. This
 is unused by Consul but can be used by external systems or for visibility
 in the UI.
 
-```shell
+```shell-session
 $ consul intention create \
   -deny \
   -meta description='Hello there' \
@@ -122,7 +122,7 @@ the table with a `*` for either the source namespace or destination namespace ar
 
 ## Intention Management Permissions
 
-Intention management can be protected by [ACLs](https://learn.hashicorp.com/consul/security-networking/production-acls).
+Intention management can be protected by [ACLs](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production).
 Permissions for intentions are _destination-oriented_, meaning the ACLs
 for managing intentions are looked up based on the destination value
 of the intention, not the source.

@@ -51,14 +51,14 @@ The table below shows this endpoint's support for
   service doesn't need to be registered.
 
 - `SourceNS` `(string: "")` <EnterpriseAlert inline /> - The namespace for the
-  `SourceName` parameter. 
+  `SourceName` parameter.
 
 - `DestinationName` `(string: <required>)` - The destination of the intention.
   The intention destination is always a Consul service, unlike the source.
   The service doesn't need to be registered.
 
 - `DestinationNS` `(string: "")` <EnterpriseAlert inline /> - The namespace for the
-  `DestinationName` parameter. 
+  `DestinationName` parameter.
 
 - `SourceType` `(string: <required>)` - The type for the `SourceName` value.
   This can be only "consul" today to represent a Consul service.
@@ -151,8 +151,6 @@ $ curl \
   "DestinationName": "db",
   "SourceType": "consul",
   "Action": "allow",
-  "DefaultAddr": "",
-  "DefaultPort": 0,
   "Meta": {},
   "Precedence": 9,
   "CreatedAt": "2018-05-21T16:41:27.977155457Z",
@@ -214,8 +212,6 @@ $ curl \
     "DestinationName": "db",
     "SourceType": "consul",
     "Action": "allow",
-    "DefaultAddr": "",
-    "DefaultPort": 0,
     "Meta": {},
     "Precedence": 9,
     "CreatedAt": "2018-05-21T16:41:27.977155457Z",
@@ -234,8 +230,6 @@ the following selectors and filter operations being supported:
 | Selector          | Supported Operations                               |
 | ----------------- | -------------------------------------------------- |
 | `Action`          | Equal, Not Equal, In, Not In, Matches, Not Matches |
-| `DefaultAddr`     | Equal, Not Equal, In, Not In, Matches, Not Matches |
-| `DefaultPort`     | Equal, Not Equal                                   |
 | `Description`     | Equal, Not Equal, In, Not In, Matches, Not Matches |
 | `DestinationNS`   | Equal, Not Equal, In, Not In, Matches, Not Matches |
 | `DestinationName` | Equal, Not Equal, In, Not In, Matches, Not Matches |
@@ -459,8 +453,6 @@ $ curl \
       "DestinationName": "db",
       "SourceType": "consul",
       "Action": "deny",
-      "DefaultAddr": "",
-      "DefaultPort": 0,
       "Meta": {},
       "CreatedAt": "2018-05-21T16:41:33.296693825Z",
       "UpdatedAt": "2018-05-21T16:41:33.296694288Z",
@@ -476,8 +468,6 @@ $ curl \
       "DestinationName": "*",
       "SourceType": "consul",
       "Action": "allow",
-      "DefaultAddr": "",
-      "DefaultPort": 0,
       "Meta": {},
       "CreatedAt": "2018-05-21T16:41:27.977155457Z",
       "UpdatedAt": "2018-05-21T16:41:27.977157724Z",

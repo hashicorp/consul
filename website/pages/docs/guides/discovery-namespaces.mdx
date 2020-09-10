@@ -40,7 +40,7 @@ You should have at least one namespace configured. Review the [namespace
 management]() documentation or execute the following command to create a
 namespace.
 
-```shell
+```shell-session
 $ consul namespace create app-team
 ```
 
@@ -76,7 +76,7 @@ service {
 Next, register the service and its sidecar proxy using the Consul CLI by
 specifying the registration file.
 
-```shell
+```shell-session
 $ consul services register mysql.hcl
 ```
 
@@ -101,7 +101,7 @@ service {
 
 Next register the service and its sidecar proxy.
 
-```shell
+```shell-session
 $ consul services register wordpress.hcl -namespace app-team
 ```
 
@@ -116,7 +116,7 @@ To get a list of services in the default namespace use the `consul catalog` CLI
 command. You do not need to add the flag any discover services in the `default`
 namespace.
 
-```shell
+```shell-session
 $ consul catalog services
 consul
 mysql
@@ -130,7 +130,7 @@ Add the `-namepsace` flag to discover services within a user-created namespace.
 In the example below, you will use the `-namespace` flag with the CLI to
 discover all services registered in the app-team namespace.
 
-```shell
+```shell-session
 $ consul catalog services -namespace app-team
 consul
 wordpress
@@ -141,7 +141,7 @@ Notice that you do not see services that are registered in the default
 namespace. To discover all services in the catalog, you will need to query all
 Consul namespaces.
 
-```shell
+```shell-session
 $ consul catalog services
 consul
 mysql
@@ -173,7 +173,7 @@ datacenter to the query, `service.namespace.datacenter.consul`.
 
 To discover the location of service instances, you can use the DNS interface.
 
-```shell
+```shell-session
 $ dig 127.0.0.1 -p 8500 wordpress.service.app-team.consul
 <output should show one service>
 ```
@@ -181,7 +181,7 @@ $ dig 127.0.0.1 -p 8500 wordpress.service.app-team.consul
 If you don’t specify a namespace in the query, you will get results from the
 default namespace.
 
-```shell
+```shell-session
 $ dig 127.0.0.1 -p 8500 wordpress.service.consul
 <output should show no services>
 ```

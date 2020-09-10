@@ -35,7 +35,7 @@ let's just use `socat` to start a basic echo service. This service will accept
 TCP connections and echo back any data sent to it. If `socat` isn't installed on
 your machine, it should be easily available via a package manager.
 
-```shell
+```shell-session
 $ socat -v tcp-l:8181,fork exec:"/bin/cat"
 ```
 
@@ -43,7 +43,7 @@ You can verify it is working by using `nc` to connect directly to it. Once
 connected, type some text and press enter. The text you typed should be
 echoed back:
 
-```
+```shell-session
 $ nc 127.0.0.1 8181
 hello
 hello
@@ -62,7 +62,7 @@ Next, let's register the service with Consul. We'll do this by writing
 a new service definition. This is the same as the previous step in the
 getting started guide, except this time we'll also configure Connect.
 
-```shell
+```shell-session
 $ cat <<EOF | sudo tee /etc/consul.d/socat.json
 {
   "service": {
@@ -88,7 +88,7 @@ be running, Consul won't actually run a proxy process for you.
 
 We need to start the proxy process in another terminal:
 
-```shell
+```shell-session
 $ consul connect proxy -sidecar-for socat
 ==> Consul Connect proxy starting...
     Configuration mode: Agent API
@@ -111,7 +111,7 @@ on port 9191. With this configuration, all TCP connections to 9191 will
 perform service discovery for a Connect-capable "socat" endpoint and establish
 a mutual TLS connection identifying as the service "web".
 
-```shell
+```shell-session
 $ consul connect proxy -service web -upstream socat:9191
 ==> Consul Connect proxy starting...
     Configuration mode: Flags
@@ -124,7 +124,7 @@ $ consul connect proxy -service web -upstream socat:9191
 
 With that running, we can verify it works by establishing a connection:
 
-```
+```shell-session
 $ nc 127.0.0.1 9191
 hello
 hello
@@ -142,7 +142,7 @@ We previously established a connection by directly running `consul connect proxy
 to dependencies over Connect. Let's register a service "web" that registers
 "socat" as an upstream dependency in it's sidecar registration:
 
-```shell
+```shell-session
 $ cat <<EOF | sudo tee /etc/consul.d/web.json
 {
   "service": {
@@ -173,7 +173,7 @@ proxy command from the previous section (with the inline upstream listener) is
 still running, stop it with `Ctrl-C`. Now we can start the web proxy using the
 configuration from the sidecar registration as we did for socat.
 
-```shell
+```shell-session
 $ consul connect proxy -sidecar-for web
 ==> Consul Connect proxy starting...
     Configuration mode: Agent API
@@ -202,7 +202,7 @@ tools like network namespacing may be used.
 
 We can verify it works by establishing a new connection:
 
-```
+```shell-session
 $ nc 127.0.0.1 9191
 hello
 hello
@@ -216,7 +216,7 @@ all" by default.
 
 Let's insert a rule to deny access from web to socat:
 
-```shell
+```shell-session
 $ consul intention create -deny web socat
 Created: web => socat (deny)
 ```
@@ -224,14 +224,14 @@ Created: web => socat (deny)
 With the proxy processes running that we setup previously, connection
 attempts now fail:
 
-```shell
+```shell-session
 $ nc 127.0.0.1 9191
 $
 ```
 
 Try deleting the intention and attempt the connection again.
 
-```shell
+```shell-session
 $ consul intention delete web socat
 Intention deleted.
 $ nc 127.0.0.1 9191

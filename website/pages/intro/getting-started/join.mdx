@@ -29,14 +29,14 @@ be found in the [demo section of the Consul repo](https://github.com/hashicorp/c
 
 We first boot our two nodes:
 
-```text
+```shell-session
 $ vagrant up
 ```
 
 Once the systems are available, we can ssh into them to begin configuration
 of our cluster. We start by logging in to the first node:
 
-```text
+```shell-session
 $ vagrant ssh n1
 ```
 
@@ -90,7 +90,7 @@ vagrant@n1:~$ consul agent -server -bootstrap-expect=1 \
 
 Now, in another terminal, we will connect to the second node:
 
-```text
+```shell-session
 $ vagrant ssh n2
 ```
 
@@ -120,7 +120,7 @@ that only one member is visible to each agent.
 Now, we'll tell the first agent to join the second agent by running
 the following commands in a new terminal:
 
-```text
+```shell-session
 $ vagrant ssh n1
 ...
 vagrant@n1:~$ consul join 172.20.20.11
