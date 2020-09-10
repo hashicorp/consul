@@ -3,7 +3,6 @@ package ca
 import (
 	"bytes"
 	"crypto/x509"
-	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
@@ -82,28 +81,25 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 	if err != nil {
 		return err
 	}
-	var renewable bool
-	if v, ok := secret.Data["renewable"]; ok {
-		renewable, _ = v.(bool)
+	var token struct {
+		Renewable bool
+		TTL       int
 	}
-	var increment int64
-	if v, ok := secret.Data["ttl"]; ok {
-		if n, ok := v.(json.Number); ok {
-			increment, _ = n.Int64()
-		}
+	if err := mapstructure.Decode(secret.Data, &token); err != nil {
+		return err
 	}
 
 	// Set up a renewer to renew the token automatically, if supported.
-	if renewable {
+	if token.Renewable {
 		renewer, err := client.NewRenewer(&vaultapi.RenewerInput{
 			Secret: &vaultapi.Secret{
 				Auth: &vaultapi.SecretAuth{
 					ClientToken:   config.Token,
-					Renewable:     renewable,
+					Renewable:     token.Renewable,
 					LeaseDuration: secret.LeaseDuration,
 				},
 			},
-			Increment: int(increment),
+			Increment: int(token.TTL),
 		})
 		if err != nil {
 			return fmt.Errorf("Error beginning Vault provider token renewal: %v", err)
