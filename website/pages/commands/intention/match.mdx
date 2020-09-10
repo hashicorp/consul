@@ -1,0 +1,44 @@
+---
+layout: commands
+page_title: 'Commands: Intention Match'
+sidebar_title: match
+---
+
+# Consul Intention Match
+
+Command: `consul intention match`
+
+The `intention match` command shows the list of intentions that match
+a given source or destination. The list of intentions is listed in evaluation
+order: the first intention that matches a request would be evaluated.
+
+The [check](/docs/commands/intention/check) command can be used to
+check whether a connection would be authorized between any two services.
+
+## Usage
+
+Usage: `consul intention match [options] SRC_OR_DST`
+
+`SRC` and `DST` can both take [several forms](/docs/commands/intention#source-and-destination-naming).
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+#### Enterprise Options
+
+@include 'http_api_namespace_options.mdx'
+
+#### Intention Match Options
+
+- `-destination` - Match by destination.
+
+- `-source` - Match by source.
+
+## Examples
+
+```shell-session
+$ consul intention match -source web
+web => db (deny)
+web => * (allow)
+```

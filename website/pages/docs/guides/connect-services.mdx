@@ -1,0 +1,442 @@
+---
+name: Secure Service-to-Service Communication
+content_length: 12
+id: connect-services
+products_used:
+  - Consul
+description: This guide demonstrates Consul Connect using internal proxies as sidecars.
+level: Implementation
+---
+
+Consul Connect secures service-to-service communication with authorization and
+encryption. Applications can use sidecar proxies in a service mesh
+configuration to automatically establish TLS connections for inbound and
+outbound connections without being aware of Connect at all. In addition to
+securing your services, Connect can also intercept [data about service-to-service
+communications][consul-l7] and surface it to monitoring tools.
+
+In this guide, you will register two services and their [sidecar] proxies in
+the Consul catalog. You will then start the services and sidecar proxies.
+Finally, you will demonstrate that the service-to-service communication is going
+through the proxies by stopping traffic with an "[intention]".
+
+[![Flow diagram showing end user traffic being sent to the Dashboard Service at
+port 9002. The dashboard service makes requests for the counting service to the
+local Connect Proxy at port 5000. This traffic then traverses the Connect mesh
+over dynamic ports. The traffic exits the Connect mesh from the counting service's
+local proxy. The proxy sends this traffic to the counting service itself at port
+9003.][img-flow]][img-flow]
+
+While this guide uses elements that are not suitable for production
+environments—Consul dev agents, internal proxies, and mock services—it will
+teach you the common process for deploying your own services using Consul
+Connect. At the end of this guide, we also present additional information
+about adapting this process to more production-like environments.
+
+## Prerequisites
+
+To complete this guide, you will need a local [dev agent], which enables
+Connect by default.
+
+This guide uses the following example service applications. Download and unzip
+the executables to follow along.
+
+- [Counting Service]
+- [Dashboard Service]
+
+### Verify your Consul agent health
+
+To ensure that Consul is running and accessible from the command line, use the
+`consul members` command to verify your agent status.
+
+```shell-session
+$ consul members
+Node            Address         Status  Type    Build  Protocol  DC   Segment
+hostname.local  127.0.0.1:8301  alive   server  1.6.1  2         dc1  <all>
+```
+
+If you receive an error message, verify that you have a local Consul dev agent
+running and try again.
+
+## Register the services and sidecar proxies
+
+Services have to be registered with Consul. Consul shares this information
+around the cluster so that operators or other services can determine the
+location of a service. Connect also uses service registrations to determine
+where to send proxied traffic to.
+
+There are several ways to register services in Consul:
+
+- directly from a Consul-aware application
+
+- from an orchestrator, like [Nomad][services-nomad] or [Kubernetes][services-k8s]
+
+- [using configuration files][services-config] that are loaded at node startup
+
+- [using the API][services-api] to register them with a JSON or HCL
+  specification
+
+- [using the CLI][services-cli] to simplify this submission process
+
+For this guide, we will use the [`consul service register`][services-cli] CLI
+command to load them into the catalog.
+
+### Create the counting service definition
+
+First, define the Counting service and its sidecar proxy in a file named
+`counting.hcl`. The definition should include the name of the service, the port
+the service listens on, and a [connect] block with the [sidecar_service] block.
+This block is empty so Consul will use default parameters. The definition also
+includes an optional service health check.
+
+```hcl
+service {
+  name = "counting"
+  id = "counting-1"
+  port = 9003
+
+  connect {
+    sidecar_service {}
+  }
+
+  check {
+    id       = "counting-check"
+    http     = "http://localhost:9003/health"
+    method   = "GET"
+    interval = "1s"
+    timeout  = "1s"
+  }
+}
+```
+
+Services and sidecar proxies can be defined in either HCL or JSON. There is a
+[JSON version][counting-1.json] version of the service definition in the
+[demo-consul-101 project].
+
+### Create the dashboard service definition
+
+Create the Dashboard service and proxy definition in the same way. First,
+create a file named `dashboard.hcl`.
+
+```hcl
+service {
+  name = "dashboard"
+  port = 9002
+
+  connect {
+    sidecar_service {
+      proxy {
+        upstreams = [
+          {
+            destination_name = "counting"
+            local_bind_port  = 5000
+          }
+        ]
+      }
+    }
+  }
+
+  check {
+    id       = "dashboard-check"
+    http     = "http://localhost:9002/health"
+    method   = "GET"
+    interval = "1s"
+    timeout  = "1s"
+  }
+}
+```
+
+There is a [JSON version][dashboard.json] of the service definition in the
+[demo-consul-101 project].
+
+Notice that the dashboard definition also includes an upstream block. Upstreams
+are ports on the local host that will be proxied to the destination service.
+The upstream block's local_bind_port value is the port your service will
+communicate with to reach the service you depend on. The destination name is
+the Consul service name that the local_bind_port will proxy to.
+
+In our scenario, the dashboard service depends on the counting service. With
+this configuration, when dashboard service connects to localhost:5000 it is
+proxied across the service mesh to the counting service.
+
+### Register the services and proxies
+
+Finally, you can submit the service definitions to your Consul agent. If you
+are using the JSON definitions, ensure that the filenames end in ".json"
+instead of ".hcl".
+
+```shell-session
+$ consul services register counting.hcl
+Registered service: counting
+```
+
+```shell-session
+$ consul services register dashboard.hcl
+Registered service: dashboard
+```
+
+-> **Challenge:** After completing the guide, try doing it again using one of
+the other service registration mechanisms mentioned earlier in the guide to
+register the services.
+
+### Verify the services are registered
+
+Now that you have registered your services and sidecar proxies, run `consul catalog services` to verify that they are present.
+
+```shell-session
+$ consul catalog services
+consul
+counting
+counting-sidecar-proxy
+dashboard
+dashboard-sidecar-proxy
+```
+
+### Create a Connect intention
+
+Intentions define access control for services via Connect and are used to
+control which services may establish connections. The default intention
+behavior is defined by the [default ACL policy].
+
+In this guide, this step is not necessary since the default ACL policy of the
+dev agent is "allow all", so Connect connections are automatically allowed as
+well. However, we will create explicit intentions as a part of deploying
+Connect-enabled services.
+
+-> **Best Practice:** Creating an explicit intention helps protect your
+service against changes to the implied permissions. For example, a change in
+`default_policy` or the introduction of a global deny-all intention would
+impact services without explicit intentions defined.
+
+```shell-session
+$ consul intention create dashboard counting
+Created: dashboard => counting (allow)
+```
+
+## Start the services and sidecar proxies
+
+Now that you have created all the necessary configuration to describe your
+service's connections, it's time to start your services and their sidecar
+proxies. We are using the `&` operator to run the services as background tasks.
+However, because they write to the console, it's best to run them in their own
+shell session.
+
+Run these commands to start the applications:
+
+```shell-session
+$ PORT=9002 COUNTING_SERVICE_URL="http://localhost:5000" ./dashboard-service &
+$ PORT=9003 ./counting-service &
+```
+
+Next, start the sidecar proxies that will run as [sidecar] processes along with
+the service applications.
+
+We are using the Consul Connect's built-in proxy for this guide. In a
+production deployment, we recommend using Envoy instead.
+
+```shell-session
+$ consul connect proxy -sidecar-for counting > counting-proxy.log &
+$ consul connect proxy -sidecar-for dashboard > dashboard-proxy.log &
+```
+
+### Check the dashboard interface
+
+Open a browser and navigate to `http://localhost:9002`.
+
+You should see a screen similar to the following. There is a connection
+indicator in the top right that will turn green and say "Connected" when the
+dashboard service is in communication with the counting service.
+
+[![Image of Dashboard UI. There is white text on a magenta background, with the
+page title "Dashboard" at the top left. There is a green indicator in the top
+right with the word connected in white.  There is a large number 19 to show
+sample counting output. The node name that the counting service is running on,
+host01, is in very small monospaced type underneath the large
+numbers.][img-screenshot1]][img-screenshot1]
+
+If your application is not connected, check that the Counting service is
+running and healthy by viewing it in the Consul UI at `http://localhost:8500`.
+
+## Test the sidecar proxy connections
+
+To test that traffic is flowing through the sidecar proxies, you will control
+traffic with an intention.
+
+First, deny the Dashboard service access to the Counting service.
+
+```shell-session
+$ consul intention create -deny -replace dashboard counting
+Created: dashboard => counting (deny)
+```
+
+Refresh your browser, the connection indicator in the Dashboard ui will now say
+"Disconnected"
+
+[![Image of Dashboard UI. There is white text on a magenta background, with the
+page title "Dashboard" at the top left. There is a red indicator in the top
+right with the words "Counting Service is Unreachable" in white.  There is a
+large number -1 to show sample counting output. The word "Unreachable"
+surrounded by square brackets is in monospaced type underneath the large
+numbers.][img-screenshot2]][img-screenshot2]
+
+You can restore communication between the services by replacing the `deny`
+intention with an `allow`.
+
+```shell-session
+$ consul intention create -allow -replace dashboard counting
+```
+
+Back in the browser, verify that the dashboard reconnects to the counting
+service.
+
+## Clean up
+
+Once you are done with this guide, you can begin cleaning up by closing the
+terminal in which your counting-service, dashboard-service, and proxies are
+running. This should automatically stop these processes.
+
+Delete the intention from Consul.
+
+```shell-session
+$ consul intention delete dashboard counting
+Intention deleted.
+```
+
+Deregister the services.
+
+```shell-session
+$ consul services deregister counting.hcl
+Deregistered service: counting
+
+$ consul services deregister dashboard.hcl
+Deregistered service: dashboard
+```
+
+## Extend these concepts
+
+When you want to apply this learning to a proof-of-concept or production
+environment, there are some additional considerations.
+
+### Enable Connect and gRPC
+
+When Consul is started with the `-dev` flag, it will automatically enable
+Consul Connect and provide a default port for gRPC communication. These have to
+be configured explicitly for regular Consul agents.
+
+```hcl
+# ...
+
+ports {
+  "grpc" = 8502
+}
+
+connect {
+  enabled = true
+}
+
+```
+
+For JSON configurations:
+
+```json
+{
+  // ...
+  "ports": {
+    "grpc": 8502
+  },
+  "connect": {
+    "enabled": true
+  }
+}
+```
+
+### Download Envoy
+
+In this guide we used the built-in Connect proxy. For production deployments
+and to enable L7 features, you should use Envoy.
+
+You can obtain container-based builds of Envoy directly from the [Envoy
+Website], or you can obtain a packages of Envoy binary builds from a
+third-party project, [getenvoy.io].
+
+Consul will need to be able to find the "envoy" binary on the path. You can
+extract the binary from the official Envoy Docker containers.
+
+To do this, create a container named "envoy-extract" based on the
+"envoyproxy/envoy" container.
+
+```shell-session
+$ docker create --name "envoy-extract" "envoyproxy/envoy"
+docker create --name "envoy-extract" "envoyproxy/envoy"
+Unable to find image 'envoyproxy/envoy:latest' locally
+latest: Pulling from envoyproxy/envoy
+16c48d79e9cc: Pull complete
+3c654ad3ed7d: Pull complete
+6276f4f9c29d: Pull complete
+a4bd43ad48ce: Pull complete
+ef9506777d3e: Pull complete
+2e7ad8d4ceb7: Pull complete
+d9e379d45dad: Pull complete
+b283a3f5aebc: Pull complete
+095fe71f6465: Pull complete
+Digest: sha256:a7769160c9c1a55bb8d07a3b71ce5d64f72b1f665f10d81aa1581bc3cf850d09
+Status: Downloaded newer image for envoyproxy/envoy:latest
+8d7bb45ea75f4344c6e050e5e1d3423937c4a1a51700ce34c3cf62a5ce3960dd
+```
+
+Use the `docker cp` command to copy the envoy file out of the container into
+the current directory.
+
+```shell-session
+$ docker cp "envoy-extract:/usr/local/bin/envoy" "envoy"
+```
+
+Now that you have the binary, you can remove the "envoy-extract" container.
+
+```shell-session
+$ docker rm "envoy-extract"
+envoy-extract
+```
+
+Once you have the binary extracted and in your path, Consul will automatically
+use it when you run the `consul connect envoy` command. The following examples
+demonstrate how to start the service sidecar proxies with Envoy.
+
+```shell-session
+$ consul connect envoy -sidecar-for counting > counting-proxy.log &
+$ consul connect envoy -sidecar-for dashboard > dashboard-proxy.log &
+```
+
+## Summary
+
+Now that you have completed this guide, you have familiarized yourself with a
+basic Connect-enabled service deployment. You created and registered Consul
+service definitions that describe how two services communicate with each other.
+After starting the application and sidecar proxies, you used Consul Connect
+intentions to control traffic flow between services. Finally, you learned about
+additional requirements required to take the concepts to a proof-of-concept
+environment.
+
+[connect]: https://www.consul.io/docs/connect
+[consul-l7]: https://learn.hashicorp.com/consul/developer-mesh/l7-observability-k8s
+[counting service]: https://github.com/hashicorp/demo-consul-101/releases/download/0.0.2/counting-service_linux_amd64.zip
+[counting-1.json]: https://raw.githubusercontent.com/hashicorp/demo-consul-101/master/demo-config-localhost/counting-1.json
+[dashboard service]: https://github.com/hashicorp/demo-consul-101/releases/download/0.0.2/dashboard-service_linux_amd64.zip
+[dashboard.json]: https://raw.githubusercontent.com/hashicorp/demo-consul-101/master/demo-config-localhost/dashboard.json
+[default acl policy]: https://www.consul.io/docs/agent/options#acl_default_policy
+[demo-consul-101 project]: https://github.com/hashicorp/demo-consul-101
+[dev agent]: https://learn.hashicorp.com/consul/getting-started/agent
+[docker guide]: https://learn.hashicorp.com/consul/day-0/containers-guide
+[envoy website]: https://www.envoyproxy.io/docs/envoy/latest/install/building#pre-built-binaries
+[getenvoy.io]: https://www.getenvoy.io/
+[img-flow]: /static/img/consul/connect-getting-started/consul_connect_demo_service_flow.png
+[img-screenshot1]: /static/img/consul/connect-getting-started/screenshot1.png
+[img-screenshot2]: /static/img/consul/connect-getting-started/screenshot2.png
+[intention]: https://www.consul.io/docs/connect/intentions
+[services-api]: https://www.consul.io/api/agent/service#register-service
+[services-cli]: https://www.consul.io/docs/commands/services
+[services-config]: https://www.consul.io/docs/agent/services#service-definition
+[services-nomad]: https://www.nomadproject.io/docs/job-specification/service
+[sidecar]: https://docs.microsoft.com/en-us/azure/architecture/patterns/sidecar
+[sidecar_service]: https://www.consul.io/docs/connect/registration/sidecar-service
+[services-k8s]: https://www.consul.io/docs/platform/k8s/connect#installation-and-configuration

@@ -1,0 +1,40 @@
+#p-use-case {
+  & .features-header {
+    text-align: center;
+    margin-bottom: 0;
+  }
+
+  /* Overriding the g-text-split component to have
+   * a header size closer to a h3 than a h2, as within
+   * the context of this page this text-split is more deeply
+   * nested within the page than we normally have it.
+   * */
+  & .g-text-split {
+    & h2 {
+      font-size: 1.5rem;
+      letter-spacing: -0.004em;
+      line-height: 1.375em;
+
+      @media (--medium-up) {
+        font-size: 1.75rem;
+        line-height: 1.321em;
+      }
+
+      @media (--large) {
+        font-size: 2rem;
+        letter-spacing: -0.006em;
+        line-height: 1.313em;
+      }
+    }
+  }
+
+  & .with-border {
+    & .g-text-split {
+      & .children {
+        border-width: 1px;
+        border-color: rgba(174, 176, 183, 0.45);
+        border-style: solid;
+      }
+    }
+  }
+}
