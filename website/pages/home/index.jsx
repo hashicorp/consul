@@ -7,7 +7,7 @@ import LearnCallout from '../../components/learn-callout'
 import CaseStudyCarousel from '../../components/case-study-carousel'
 import ProductFeaturesList from '@hashicorp/react-product-features-list'
 
-console.log('test6')
+console.log('test7')
 
 export default function HomePage() {
   return (
