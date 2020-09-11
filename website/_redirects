@@ -37,7 +37,7 @@
 /docs/internals/security                             /docs/security                                    301!
 /docs/acl/                                           /docs/security/acl/                               301!
 /docs/acl/acl-system                                 /docs/security/acl/acl-system                     301!
-/docs/agent/acl-system.html                          /docs/security/acl/acl-system                     301!
+/docs/acl/acl-system.html                          /docs/security/acl/acl-system                     301!
 /docs/acl/acl-rules                                  /docs/security/acl/acl-rules                      301!
 /docs/acl/acl-rules.html                             /docs/security/acl/acl-rules                      301!
 /docs/acl/acl-legacy                                 /docs/security/acl/acl-legacy                     301!
