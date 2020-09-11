@@ -10,12 +10,12 @@ Consul provides several key features:
 
 * **Multi-Datacenter** - Consul is built to be datacenter aware, and can
   support any number of regions without complex configuration.
-  
+
 * **Service Mesh/Service Segmentation** - Consul Connect enables secure service-to-service
-  communication with automatic TLS encryption and identity-based authorization. Applications 
-  can use sidecar proxies in a service mesh configuration to establish TLS 
-  connections for inbound and outbound connections without being aware of Connect at all. 
-  
+  communication with automatic TLS encryption and identity-based authorization. Applications
+  can use sidecar proxies in a service mesh configuration to establish TLS
+  connections for inbound and outbound connections without being aware of Connect at all.
+
 * **Service Discovery** - Consul makes it simple for services to register
   themselves and to discover other services via a DNS or HTTP interface.
   External services such as SaaS providers can be registered as well.
@@ -41,9 +41,10 @@ contacting us at security@hashicorp.com.
 
 A few quick start guides are available on the Consul website:
 
-* **Standalone binary install:** https://learn.hashicorp.com/consul/getting-started/install
-* **Minikube install:** https://learn.hashicorp.com/consul/kubernetes/minikube
-* **Kubernetes install:** https://learn.hashicorp.com/consul/kubernetes/kubernetes-deployment-guide
+* **Standalone binary install:** https://learn.hashicorp.com/tutorials/consul/get-started-install
+* **Minikube install:** https://learn.hashicorp.com/tutorials/consul/kubernetes-minikube
+* **Kind install:** https://learn.hashicorp.com/tutorials/consul/kubernetes-kind
+* **Kubernetes install:** https://learn.hashicorp.com/tutorials/consul/kubernetes-deployment-guide
 
 ## Documentation
 
