@@ -1,0 +1,16 @@
+@import './skin';
+@import './layout';
+
+%consul-intention-list td.source,
+%consul-intention-list td.destination {
+  @extend %tbody-th;
+}
+%consul-intention-list td.intent-allow strong {
+  @extend %increased-pill, %pill-allow;
+}
+%consul-intention-list td.intent-deny strong {
+  @extend %increased-pill, %pill-deny;
+}
+%consul-intention-list td.intent-l7-rules strong {
+  @extend %increased-pill, %pill-l7;
+}

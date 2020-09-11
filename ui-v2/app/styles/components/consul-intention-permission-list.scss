@@ -1,0 +1,4 @@
+@import './consul-intention-permission-list/index';
+.consul-intention-permission-list {
+  @extend %consul-intention-permission-list;
+}
