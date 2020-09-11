@@ -1,3 +1,30 @@
+%pill-allow:before,
+%pill-deny:before,
+%pill-l7:before {
+  @extend %as-pseudo;
+  margin-right: 5px;
+  font-size: 0.9em;
+}
+%pill-allow {
+  color: $green-800;
+  background-color: $green-100;
+}
+%pill-allow::before {
+  @extend %with-arrow-right-color-mask;
+}
+%pill-deny {
+  color: $red-800;
+  background-color: $red-100;
+}
+%pill-deny::before {
+  @extend %with-deny-color-mask;
+}
+%pill-l7 {
+  @extend %frame-gray-900;
+}
+%pill-l7::before {
+  @extend %with-layers-mask;
+}
 td strong {
   @extend %pill, %frame-gray-900;
   margin-right: 3px;

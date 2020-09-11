@@ -92,8 +92,7 @@
 }
 %resolver-card dt,
 %route-card section header > *::before {
-  background-color: $gray-100;
-  visibility: visible;
+  @extend %with-glyph-icon;
 }
 %route-card .match-headers header *::before {
   content: 'H';
