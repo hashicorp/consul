@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.7.8 (September 11, 2020)
 
 FEATURES:
 
