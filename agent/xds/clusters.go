@@ -33,7 +33,7 @@ func (s *Server) clustersFromSnapshot(_ connectionInfo, cfgSnap *proxycfg.Config
 	case structs.ServiceKindConnectProxy:
 		return s.clustersFromSnapshotConnectProxy(cfgSnap)
 	case structs.ServiceKindTerminatingGateway:
-		return s.makeGatewayServiceClusters(cfgSnap)
+		return s.makeGatewayServiceClusters(cfgSnap, cfgSnap.TerminatingGateway.ServiceGroups, cfgSnap.TerminatingGateway.ServiceResolvers)
 	case structs.ServiceKindMeshGateway:
 		return s.clustersFromSnapshotMeshGateway(cfgSnap)
 	case structs.ServiceKindIngressGateway:
@@ -175,7 +175,7 @@ func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 	}
 
 	// generate the per-service/subset clusters
-	c, err := s.makeGatewayServiceClusters(cfgSnap)
+	c, err := s.makeGatewayServiceClusters(cfgSnap, cfgSnap.MeshGateway.ServiceGroups, cfgSnap.MeshGateway.ServiceResolvers)
 	if err != nil {
 		return nil, err
 	}
@@ -184,18 +184,16 @@ func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 	return clusters, nil
 }
 
-func (s *Server) makeGatewayServiceClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
-	var services map[structs.ServiceName]structs.CheckServiceNodes
-	var resolvers map[structs.ServiceName]*structs.ServiceResolverConfigEntry
+func (s *Server) makeGatewayServiceClusters(
+	cfgSnap *proxycfg.ConfigSnapshot,
+	services map[structs.ServiceName]structs.CheckServiceNodes,
+	resolvers map[structs.ServiceName]*structs.ServiceResolverConfigEntry,
+) ([]proto.Message, error) {
+
 	var hostnameEndpoints structs.CheckServiceNodes
 
 	switch cfgSnap.Kind {
-	case structs.ServiceKindTerminatingGateway:
-		services = cfgSnap.TerminatingGateway.ServiceGroups
-		resolvers = cfgSnap.TerminatingGateway.ServiceResolvers
-	case structs.ServiceKindMeshGateway:
-		services = cfgSnap.MeshGateway.ServiceGroups
-		resolvers = cfgSnap.MeshGateway.ServiceResolvers
+	case structs.ServiceKindTerminatingGateway, structs.ServiceKindMeshGateway:
 	default:
 		return nil, fmt.Errorf("unsupported gateway kind %q", cfgSnap.Kind)
 	}
@@ -229,21 +227,8 @@ func (s *Server) makeGatewayServiceClusters(cfgSnap *proxycfg.ConfigSnapshot) ([
 		}
 		cluster := s.makeGatewayCluster(cfgSnap, opts)
 
-		switch cfgSnap.Kind {
-		case structs.ServiceKindTerminatingGateway:
-			injectTerminatingGatewayTLSContext(cfgSnap, cluster, svc)
-
-			if err := injectLBToCluster(loadBalancer, cluster); err != nil {
-				return nil, fmt.Errorf("failed to apply load balancer configuration to cluster %q: %v", clusterName, err)
-			}
-		case structs.ServiceKindMeshGateway:
-			// We can't apply hash based LB config to mesh gateways because they rely on inspecting HTTP attributes
-			// and mesh gateways do not decrypt traffic
-			if !loadBalancer.IsHashBased() {
-				if err := injectLBToCluster(loadBalancer, cluster); err != nil {
-					return nil, fmt.Errorf("failed to apply load balancer configuration to cluster %q: %v", clusterName, err)
-				}
-			}
+		if err := s.injectGatewayServiceAddons(cfgSnap, cluster, svc, loadBalancer); err != nil {
+			return nil, err
 		}
 		clusters = append(clusters, cluster)
 
@@ -262,28 +247,43 @@ func (s *Server) makeGatewayServiceClusters(cfgSnap *proxycfg.ConfigSnapshot) ([
 			}
 			cluster := s.makeGatewayCluster(cfgSnap, opts)
 
-			switch cfgSnap.Kind {
-			case structs.ServiceKindTerminatingGateway:
-				injectTerminatingGatewayTLSContext(cfgSnap, cluster, svc)
-
-				if err := injectLBToCluster(loadBalancer, cluster); err != nil {
-					return nil, fmt.Errorf("failed to apply load balancer configuration to cluster %q: %v", clusterName, err)
-				}
-
-			case structs.ServiceKindMeshGateway:
-				// We can't apply hash based LB config to mesh gateways because they rely on inspecting HTTP attributes
-				// and mesh gateways do not decrypt traffic
-				if !loadBalancer.IsHashBased() {
-					if err := injectLBToCluster(loadBalancer, cluster); err != nil {
-						return nil, fmt.Errorf("failed to apply load balancer configuration to cluster %q: %v", clusterName, err)
-					}
-				}
+			if err := s.injectGatewayServiceAddons(cfgSnap, cluster, svc, loadBalancer); err != nil {
+				return nil, err
 			}
 			clusters = append(clusters, cluster)
 		}
 	}
 
 	return clusters, nil
+}
+
+func (s *Server) injectGatewayServiceAddons(cfgSnap *proxycfg.ConfigSnapshot, c *envoy.Cluster, svc structs.ServiceName, lb *structs.LoadBalancer) error {
+	switch cfgSnap.Kind {
+	case structs.ServiceKindMeshGateway:
+		// We can't apply hash based LB config to mesh gateways because they rely on inspecting HTTP attributes
+		// and mesh gateways do not decrypt traffic
+		if !lb.IsHashBased() {
+			if err := injectLBToCluster(lb, c); err != nil {
+				return fmt.Errorf("failed to apply load balancer configuration to cluster %q: %v", c.Name, err)
+			}
+		}
+	case structs.ServiceKindTerminatingGateway:
+		// Context used for TLS origination to the cluster
+		if mapping, ok := cfgSnap.TerminatingGateway.GatewayServices[svc]; ok && mapping.CAFile != "" {
+			context := envoyauth.UpstreamTlsContext{
+				CommonTlsContext: makeCommonTLSContextFromFiles(mapping.CAFile, mapping.CertFile, mapping.KeyFile),
+			}
+			if mapping.SNI != "" {
+				context.Sni = mapping.SNI
+			}
+			c.TlsContext = &context
+		}
+		if err := injectLBToCluster(lb, c); err != nil {
+			return fmt.Errorf("failed to apply load balancer configuration to cluster %q: %v", c.Name, err)
+		}
+
+	}
+	return nil
 }
 
 func (s *Server) clustersFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {

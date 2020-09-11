@@ -3,7 +3,6 @@ package xds
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/logging"
 	"net"
 	"strings"
 
@@ -15,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/logging"
 )
 
 // routesFromSnapshot returns the xDS API representation of the "routes" in the
@@ -34,6 +34,47 @@ func (s *Server) routesFromSnapshot(cInfo connectionInfo, cfgSnap *proxycfg.Conf
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
+}
+
+// routesFromSnapshotConnectProxy returns the xDS API representation of the
+// "routes" in the snapshot.
+func routesForConnectProxy(
+	cInfo connectionInfo,
+	upstreams structs.Upstreams,
+	chains map[string]*structs.CompiledDiscoveryChain,
+) ([]proto.Message, error) {
+
+	var resources []proto.Message
+	for _, u := range upstreams {
+		upstreamID := u.Identifier()
+
+		var chain *structs.CompiledDiscoveryChain
+		if u.DestinationType != structs.UpstreamDestTypePreparedQuery {
+			chain = chains[upstreamID]
+		}
+
+		if chain == nil || chain.IsDefault() {
+			// TODO(rb): make this do the old school stuff too
+		} else {
+			virtualHost, err := makeUpstreamRouteForDiscoveryChain(cInfo, upstreamID, chain, []string{"*"})
+			if err != nil {
+				return nil, err
+			}
+
+			route := &envoy.RouteConfiguration{
+				Name:         upstreamID,
+				VirtualHosts: []*envoyroute.VirtualHost{virtualHost},
+				// ValidateClusters defaults to true when defined statically and false
+				// when done via RDS. Re-set the sane value of true to prevent
+				// null-routing traffic.
+				ValidateClusters: makeBoolValue(true),
+			}
+			resources = append(resources, route)
+		}
+	}
+
+	// TODO(rb): make sure we don't generate an empty result
+	return resources, nil
 }
 
 // routesFromSnapshotTerminatingGateway returns the xDS API representation of the "routes" in the snapshot.
@@ -117,47 +158,6 @@ func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer) (
 		// null-routing traffic.
 		ValidateClusters: makeBoolValue(true),
 	}, nil
-}
-
-// routesFromSnapshotConnectProxy returns the xDS API representation of the
-// "routes" in the snapshot.
-func routesForConnectProxy(
-	cInfo connectionInfo,
-	upstreams structs.Upstreams,
-	chains map[string]*structs.CompiledDiscoveryChain,
-) ([]proto.Message, error) {
-
-	var resources []proto.Message
-	for _, u := range upstreams {
-		upstreamID := u.Identifier()
-
-		var chain *structs.CompiledDiscoveryChain
-		if u.DestinationType != structs.UpstreamDestTypePreparedQuery {
-			chain = chains[upstreamID]
-		}
-
-		if chain == nil || chain.IsDefault() {
-			// TODO(rb): make this do the old school stuff too
-		} else {
-			virtualHost, err := makeUpstreamRouteForDiscoveryChain(cInfo, upstreamID, chain, []string{"*"})
-			if err != nil {
-				return nil, err
-			}
-
-			route := &envoy.RouteConfiguration{
-				Name:         upstreamID,
-				VirtualHosts: []*envoyroute.VirtualHost{virtualHost},
-				// ValidateClusters defaults to true when defined statically and false
-				// when done via RDS. Re-set the sane value of true to prevent
-				// null-routing traffic.
-				ValidateClusters: makeBoolValue(true),
-			}
-			resources = append(resources, route)
-		}
-	}
-
-	// TODO(rb): make sure we don't generate an empty result
-	return resources, nil
 }
 
 // routesForIngressGateway returns the xDS API representation of the
@@ -262,8 +262,6 @@ func makeUpstreamRouteForDiscoveryChain(
 		return nil, fmt.Errorf("missing first node in compiled discovery chain for: %s", chain.ServiceName)
 	}
 
-	var lb *structs.LoadBalancer
-
 	switch startNode.Type {
 	case structs.DiscoveryGraphNodeTypeRouter:
 		routes = make([]*envoyroute.Route, 0, len(startNode.Routes))
@@ -277,6 +275,8 @@ func makeUpstreamRouteForDiscoveryChain(
 			)
 
 			nextNode := chain.Nodes[discoveryRoute.NextNode]
+
+			var lb *structs.LoadBalancer
 			if nextNode.LoadBalancer != nil {
 				lb = nextNode.LoadBalancer
 			}
@@ -350,6 +350,7 @@ func makeUpstreamRouteForDiscoveryChain(
 			return nil, err
 		}
 
+		var lb *structs.LoadBalancer
 		if startNode.LoadBalancer != nil {
 			lb = startNode.LoadBalancer
 		}
@@ -367,6 +368,7 @@ func makeUpstreamRouteForDiscoveryChain(
 	case structs.DiscoveryGraphNodeTypeResolver:
 		routeAction := makeRouteActionForChainCluster(startNode.Resolver.Target, chain)
 
+		var lb *structs.LoadBalancer
 		if startNode.LoadBalancer != nil {
 			lb = startNode.LoadBalancer
 		}
