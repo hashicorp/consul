@@ -555,7 +555,7 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyConfig: &EnvoyLBConfig{Policy: ""},
+					Policy: "",
 				},
 			},
 		},
@@ -565,7 +565,7 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyConfig: &EnvoyLBConfig{Policy: LBPolicyRandom},
+					Policy: LBPolicyRandom,
 				},
 			},
 		},
@@ -575,7 +575,7 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyConfig: &EnvoyLBConfig{Policy: "fake-policy"},
+					Policy: "fake-policy",
 				},
 			},
 			validateErr: `"fake-policy" is not supported`,
@@ -586,10 +586,8 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyConfig: &EnvoyLBConfig{
-						Policy:             LBPolicyRingHash,
-						LeastRequestConfig: &LeastRequestConfig{ChoiceCount: 10},
-					},
+					Policy:             LBPolicyRingHash,
+					LeastRequestConfig: &LeastRequestConfig{ChoiceCount: 10},
 				},
 			},
 			validateErr: `LeastRequestConfig specified for incompatible load balancing policy`,
@@ -600,10 +598,8 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyConfig: &EnvoyLBConfig{
-						Policy:         LBPolicyLeastRequest,
-						RingHashConfig: &RingHashConfig{MinimumRingSize: 1024},
-					},
+					Policy:         LBPolicyLeastRequest,
+					RingHashConfig: &RingHashConfig{MinimumRingSize: 1024},
 				},
 			},
 			validateErr: `RingHashConfig specified for incompatible load balancing policy`,
@@ -614,10 +610,8 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyConfig: &EnvoyLBConfig{
-						Policy:         LBPolicyRingHash,
-						RingHashConfig: &RingHashConfig{MinimumRingSize: 1024},
-					},
+					Policy:         LBPolicyRingHash,
+					RingHashConfig: &RingHashConfig{MinimumRingSize: 1024},
 				},
 			},
 		},
@@ -627,10 +621,8 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyConfig: &EnvoyLBConfig{
-						Policy:             LBPolicyLeastRequest,
-						LeastRequestConfig: &LeastRequestConfig{ChoiceCount: 2},
-					},
+					Policy:             LBPolicyLeastRequest,
+					LeastRequestConfig: &LeastRequestConfig{ChoiceCount: 2},
 				},
 			},
 		},
@@ -640,11 +632,11 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyConfig: &EnvoyLBConfig{Policy: ""},
+					Policy: "",
 				},
 			},
 			check: func(t *testing.T, entry *ServiceResolverConfigEntry) {
-				require.Equal(t, "", entry.LoadBalancer.EnvoyConfig.Policy)
+				require.Equal(t, "", entry.LoadBalancer.Policy)
 			},
 		},
 		{
@@ -653,12 +645,10 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyConfig: &EnvoyLBConfig{
-						Policy: "",
-						HashPolicies: []HashPolicy{
-							{
-								SourceIP: true,
-							},
+					Policy: "",
+					HashPolicies: []HashPolicy{
+						{
+							SourceIP: true,
 						},
 					},
 				},
@@ -671,16 +661,14 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyConfig: &EnvoyLBConfig{
-						Policy: LBPolicyMaglev,
-						HashPolicies: []HashPolicy{
-							{
-								Field:      HashPolicyHeader,
-								FieldValue: "x-user-id",
-								CookieConfig: &CookieConfig{
-									TTL:  10 * time.Second,
-									Path: "/root",
-								},
+					Policy: LBPolicyMaglev,
+					HashPolicies: []HashPolicy{
+						{
+							Field:      HashPolicyHeader,
+							FieldValue: "x-user-id",
+							CookieConfig: &CookieConfig{
+								TTL:  10 * time.Second,
+								Path: "/root",
 							},
 						},
 					},
@@ -694,16 +682,14 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyConfig: &EnvoyLBConfig{
-						Policy: LBPolicyMaglev,
-						HashPolicies: []HashPolicy{
-							{
-								Field:      HashPolicyCookie,
-								FieldValue: "good-cookie",
-								CookieConfig: &CookieConfig{
-									TTL:  10 * time.Second,
-									Path: "/oven",
-								},
+					Policy: LBPolicyMaglev,
+					HashPolicies: []HashPolicy{
+						{
+							Field:      HashPolicyCookie,
+							FieldValue: "good-cookie",
+							CookieConfig: &CookieConfig{
+								TTL:  10 * time.Second,
+								Path: "/oven",
 							},
 						},
 					},
@@ -716,13 +702,11 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyConfig: &EnvoyLBConfig{
-						Policy: LBPolicyMaglev,
-						HashPolicies: []HashPolicy{
-							{
-								Field:      "header",
-								FieldValue: "X-Consul-Token",
-							},
+					Policy: LBPolicyMaglev,
+					HashPolicies: []HashPolicy{
+						{
+							Field:      "header",
+							FieldValue: "X-Consul-Token",
 						},
 					},
 				},
@@ -734,12 +718,10 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyConfig: &EnvoyLBConfig{
-						Policy: LBPolicyMaglev,
-						HashPolicies: []HashPolicy{
-							{
-								Field: "fake-field",
-							},
+					Policy: LBPolicyMaglev,
+					HashPolicies: []HashPolicy{
+						{
+							Field: "fake-field",
 						},
 					},
 				},
@@ -752,13 +734,11 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyConfig: &EnvoyLBConfig{
-						Policy: LBPolicyMaglev,
-						HashPolicies: []HashPolicy{
-							{
-								Field:    "header",
-								SourceIP: true,
-							},
+					Policy: LBPolicyMaglev,
+					HashPolicies: []HashPolicy{
+						{
+							Field:    "header",
+							SourceIP: true,
 						},
 					},
 				},
@@ -771,13 +751,11 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyConfig: &EnvoyLBConfig{
-						Policy: LBPolicyMaglev,
-						HashPolicies: []HashPolicy{
-							{
-								FieldValue: "X-Consul-Token",
-								SourceIP:   true,
-							},
+					Policy: LBPolicyMaglev,
+					HashPolicies: []HashPolicy{
+						{
+							FieldValue: "X-Consul-Token",
+							SourceIP:   true,
 						},
 					},
 				},
@@ -790,12 +768,10 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyConfig: &EnvoyLBConfig{
-						Policy: LBPolicyMaglev,
-						HashPolicies: []HashPolicy{
-							{
-								Field: "header",
-							},
+					Policy: LBPolicyMaglev,
+					HashPolicies: []HashPolicy{
+						{
+							Field: "header",
 						},
 					},
 				},
@@ -808,12 +784,10 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyConfig: &EnvoyLBConfig{
-						Policy: LBPolicyMaglev,
-						HashPolicies: []HashPolicy{
-							{
-								FieldValue: "my-cookie",
-							},
+					Policy: LBPolicyMaglev,
+					HashPolicies: []HashPolicy{
+						{
+							FieldValue: "my-cookie",
 						},
 					},
 				},
@@ -826,19 +800,17 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyConfig: &EnvoyLBConfig{
-						Policy:         LBPolicyRingHash,
-						RingHashConfig: &RingHashConfig{MaximumRingSize: 10, MinimumRingSize: 2},
-						HashPolicies: []HashPolicy{
-							{
-								Field:      "cookie",
-								FieldValue: "my-cookie",
-							},
-							{
-								Field:      "header",
-								FieldValue: "alt-header",
-								Terminal:   true,
-							},
+					Policy:         LBPolicyRingHash,
+					RingHashConfig: &RingHashConfig{MaximumRingSize: 10, MinimumRingSize: 2},
+					HashPolicies: []HashPolicy{
+						{
+							Field:      "cookie",
+							FieldValue: "my-cookie",
+						},
+						{
+							Field:      "header",
+							FieldValue: "alt-header",
+							Terminal:   true,
 						},
 					},
 				},
@@ -850,10 +822,8 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				LoadBalancer: &LoadBalancer{
-					EnvoyConfig: &EnvoyLBConfig{
-						Policy:             LBPolicyLeastRequest,
-						LeastRequestConfig: &LeastRequestConfig{ChoiceCount: 20},
-					},
+					Policy:             LBPolicyLeastRequest,
+					LeastRequestConfig: &LeastRequestConfig{ChoiceCount: 20},
 				},
 			},
 		},

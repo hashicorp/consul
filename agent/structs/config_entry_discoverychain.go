@@ -843,27 +843,27 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 		return fmt.Errorf("Bad ConnectTimeout '%s', must be >= 0", e.ConnectTimeout)
 	}
 
-	if e.LoadBalancer != nil && e.LoadBalancer.EnvoyConfig != nil {
-		ec := e.LoadBalancer.EnvoyConfig
+	if e.LoadBalancer != nil {
+		lb := e.LoadBalancer
 
-		if ok := validLBPolicies[ec.Policy]; !ok {
-			return fmt.Errorf("Bad LoadBalancer policy: %q is not supported", ec.Policy)
+		if ok := validLBPolicies[lb.Policy]; !ok {
+			return fmt.Errorf("Bad LoadBalancer policy: %q is not supported", lb.Policy)
 		}
 
-		if ec.Policy != LBPolicyRingHash && ec.RingHashConfig != nil {
+		if lb.Policy != LBPolicyRingHash && lb.RingHashConfig != nil {
 			return fmt.Errorf("Bad LoadBalancer configuration. "+
-				"RingHashConfig specified for incompatible load balancing policy %q", ec.Policy)
+				"RingHashConfig specified for incompatible load balancing policy %q", lb.Policy)
 		}
-		if ec.Policy != LBPolicyLeastRequest && ec.LeastRequestConfig != nil {
+		if lb.Policy != LBPolicyLeastRequest && lb.LeastRequestConfig != nil {
 			return fmt.Errorf("Bad LoadBalancer configuration. "+
-				"LeastRequestConfig specified for incompatible load balancing policy %q", ec.Policy)
+				"LeastRequestConfig specified for incompatible load balancing policy %q", lb.Policy)
 		}
-		if !ec.IsHashBased() && len(ec.HashPolicies) > 0 {
+		if !lb.IsHashBased() && len(lb.HashPolicies) > 0 {
 			return fmt.Errorf("Bad LoadBalancer configuration: "+
-				"HashPolicies specified for non-hash-based Policy: %q", ec.Policy)
+				"HashPolicies specified for non-hash-based Policy: %q", lb.Policy)
 		}
 
-		for i, hp := range ec.HashPolicies {
+		for i, hp := range lb.HashPolicies {
 			if ok := validHashPolicies[hp.Field]; hp.Field != "" && !ok {
 				return fmt.Errorf("Bad LoadBalancer HashPolicy[%d]: %q is not a supported field", i, hp.Field)
 			}
@@ -1027,14 +1027,6 @@ type ServiceResolverFailover struct {
 // LoadBalancer determines the load balancing policy and configuration for services
 // issuing requests to this upstream service.
 type LoadBalancer struct {
-	// EnvoyConfig contains Envoy-specific load balancing configuration for this upstream
-	EnvoyConfig *EnvoyLBConfig `json:",omitempty" alias:"envoy_config"`
-
-	// OpaqueConfig contains load balancing configuration opaque to Consul for 3rd party proxies
-	OpaqueConfig string `json:",omitempty" alias:"opaque_config"`
-}
-
-type EnvoyLBConfig struct {
 	// Policy is the load balancing policy used to select a host
 	Policy string `json:",omitempty"`
 
@@ -1102,12 +1094,12 @@ type CookieConfig struct {
 	Path string `json:",omitempty"`
 }
 
-func (ec *EnvoyLBConfig) IsHashBased() bool {
-	if ec == nil {
+func (lb *LoadBalancer) IsHashBased() bool {
+	if lb == nil {
 		return false
 	}
 
-	switch ec.Policy {
+	switch lb.Policy {
 	case LBPolicyMaglev, LBPolicyRingHash:
 		return true
 	default:

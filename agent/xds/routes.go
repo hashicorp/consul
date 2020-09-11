@@ -65,9 +65,9 @@ func (s *Server) routesFromSnapshotTerminatingGateway(_ connectionInfo, cfgSnap 
 			resolver = &structs.ServiceResolverConfigEntry{}
 		}
 
-		var lb *structs.EnvoyLBConfig
+		var lb *structs.LoadBalancer
 		if resolver.LoadBalancer != nil {
-			lb = resolver.LoadBalancer.EnvoyConfig
+			lb = resolver.LoadBalancer
 		}
 		route, err := makeNamedDefaultRouteWithLB(clusterName, lb)
 		if err != nil {
@@ -91,7 +91,7 @@ func (s *Server) routesFromSnapshotTerminatingGateway(_ connectionInfo, cfgSnap 
 	return resources, nil
 }
 
-func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.EnvoyLBConfig) (*envoy.RouteConfiguration, error) {
+func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer) (*envoy.RouteConfiguration, error) {
 	action := makeRouteActionFromName(clusterName)
 
 	if err := injectLBToRouteAction(lb, action.Route); err != nil {
@@ -262,7 +262,7 @@ func makeUpstreamRouteForDiscoveryChain(
 		return nil, fmt.Errorf("missing first node in compiled discovery chain for: %s", chain.ServiceName)
 	}
 
-	var lb *structs.EnvoyLBConfig
+	var lb *structs.LoadBalancer
 
 	switch startNode.Type {
 	case structs.DiscoveryGraphNodeTypeRouter:
@@ -278,7 +278,7 @@ func makeUpstreamRouteForDiscoveryChain(
 
 			nextNode := chain.Nodes[discoveryRoute.NextNode]
 			if nextNode.LoadBalancer != nil {
-				lb = nextNode.LoadBalancer.EnvoyConfig
+				lb = nextNode.LoadBalancer
 			}
 
 			switch nextNode.Type {
@@ -351,7 +351,7 @@ func makeUpstreamRouteForDiscoveryChain(
 		}
 
 		if startNode.LoadBalancer != nil {
-			lb = startNode.LoadBalancer.EnvoyConfig
+			lb = startNode.LoadBalancer
 		}
 		if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
 			return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
@@ -368,7 +368,7 @@ func makeUpstreamRouteForDiscoveryChain(
 		routeAction := makeRouteActionForChainCluster(startNode.Resolver.Target, chain)
 
 		if startNode.LoadBalancer != nil {
-			lb = startNode.LoadBalancer.EnvoyConfig
+			lb = startNode.LoadBalancer
 		}
 		if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
 			return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
@@ -577,13 +577,13 @@ func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, chain *structs
 	}, nil
 }
 
-func injectLBToRouteAction(ec *structs.EnvoyLBConfig, action *envoyroute.RouteAction) error {
-	if ec == nil || !ec.IsHashBased() {
+func injectLBToRouteAction(lb *structs.LoadBalancer, action *envoyroute.RouteAction) error {
+	if lb == nil || !lb.IsHashBased() {
 		return nil
 	}
 
-	result := make([]*envoyroute.RouteAction_HashPolicy, 0, len(ec.HashPolicies))
-	for _, policy := range ec.HashPolicies {
+	result := make([]*envoyroute.RouteAction_HashPolicy, 0, len(lb.HashPolicies))
+	for _, policy := range lb.HashPolicies {
 		if policy.SourceIP {
 			result = append(result, &envoyroute.RouteAction_HashPolicy{
 				PolicySpecifier: &envoyroute.RouteAction_HashPolicy_ConnectionProperties_{

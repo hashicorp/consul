@@ -1763,15 +1763,13 @@ func testcase_AllBellsAndWhistles() compileTestCase {
 				"qa":   {Filter: "ServiceMeta.env == qa"},
 			},
 			LoadBalancer: &structs.LoadBalancer{
-				EnvoyConfig: &structs.EnvoyLBConfig{
-					Policy: "ring_hash",
-					RingHashConfig: &structs.RingHashConfig{
-						MaximumRingSize: 100,
-					},
-					HashPolicies: []structs.HashPolicy{
-						{
-							SourceIP: true,
-						},
+				Policy: "ring_hash",
+				RingHashConfig: &structs.RingHashConfig{
+					MaximumRingSize: 100,
+				},
+				HashPolicies: []structs.HashPolicy{
+					{
+						SourceIP: true,
 					},
 				},
 			},
@@ -1837,15 +1835,13 @@ func testcase_AllBellsAndWhistles() compileTestCase {
 					},
 				},
 				LoadBalancer: &structs.LoadBalancer{
-					EnvoyConfig: &structs.EnvoyLBConfig{
-						Policy: "ring_hash",
-						RingHashConfig: &structs.RingHashConfig{
-							MaximumRingSize: 100,
-						},
-						HashPolicies: []structs.HashPolicy{
-							{
-								SourceIP: true,
-							},
+					Policy: "ring_hash",
+					RingHashConfig: &structs.RingHashConfig{
+						MaximumRingSize: 100,
+					},
+					HashPolicies: []structs.HashPolicy{
+						{
+							SourceIP: true,
 						},
 					},
 				},
@@ -1858,15 +1854,13 @@ func testcase_AllBellsAndWhistles() compileTestCase {
 					Target:         "prod.redirected.default.dc1",
 				},
 				LoadBalancer: &structs.LoadBalancer{
-					EnvoyConfig: &structs.EnvoyLBConfig{
-						Policy: "ring_hash",
-						RingHashConfig: &structs.RingHashConfig{
-							MaximumRingSize: 100,
-						},
-						HashPolicies: []structs.HashPolicy{
-							{
-								SourceIP: true,
-							},
+					Policy: "ring_hash",
+					RingHashConfig: &structs.RingHashConfig{
+						MaximumRingSize: 100,
+					},
+					HashPolicies: []structs.HashPolicy{
+						{
+							SourceIP: true,
 						},
 					},
 				},
@@ -2283,11 +2277,9 @@ func testcase_LBSplitterAndResolver() compileTestCase {
 			Kind: "service-resolver",
 			Name: "foo",
 			LoadBalancer: &structs.LoadBalancer{
-				EnvoyConfig: &structs.EnvoyLBConfig{
-					Policy: "least_request",
-					LeastRequestConfig: &structs.LeastRequestConfig{
-						ChoiceCount: 3,
-					},
+				Policy: "least_request",
+				LeastRequestConfig: &structs.LeastRequestConfig{
+					ChoiceCount: 3,
 				},
 			},
 		},
@@ -2295,15 +2287,13 @@ func testcase_LBSplitterAndResolver() compileTestCase {
 			Kind: "service-resolver",
 			Name: "bar",
 			LoadBalancer: &structs.LoadBalancer{
-				EnvoyConfig: &structs.EnvoyLBConfig{
-					Policy: "ring_hash",
-					RingHashConfig: &structs.RingHashConfig{
-						MaximumRingSize: 101,
-					},
-					HashPolicies: []structs.HashPolicy{
-						{
-							SourceIP: true,
-						},
+				Policy: "ring_hash",
+				RingHashConfig: &structs.RingHashConfig{
+					MaximumRingSize: 101,
+				},
+				HashPolicies: []structs.HashPolicy{
+					{
+						SourceIP: true,
 					},
 				},
 			},
@@ -2312,18 +2302,16 @@ func testcase_LBSplitterAndResolver() compileTestCase {
 			Kind: "service-resolver",
 			Name: "baz",
 			LoadBalancer: &structs.LoadBalancer{
-				EnvoyConfig: &structs.EnvoyLBConfig{
-					Policy: "maglev",
-					HashPolicies: []structs.HashPolicy{
-						{
-							Field:      "cookie",
-							FieldValue: "chocolate-chip",
-							CookieConfig: &structs.CookieConfig{
-								TTL:  2 * time.Minute,
-								Path: "/bowl",
-							},
-							Terminal: true,
+				Policy: "maglev",
+				HashPolicies: []structs.HashPolicy{
+					{
+						Field:      "cookie",
+						FieldValue: "chocolate-chip",
+						CookieConfig: &structs.CookieConfig{
+							TTL:  2 * time.Minute,
+							Path: "/bowl",
 						},
+						Terminal: true,
 					},
 				},
 			},
@@ -2354,15 +2342,13 @@ func testcase_LBSplitterAndResolver() compileTestCase {
 				// The LB config from bar is attached because splitters only care about hash-based policies,
 				// and it's the config from bar not baz because we pick the first one we encounter in the Splits.
 				LoadBalancer: &structs.LoadBalancer{
-					EnvoyConfig: &structs.EnvoyLBConfig{
-						Policy: "ring_hash",
-						RingHashConfig: &structs.RingHashConfig{
-							MaximumRingSize: 101,
-						},
-						HashPolicies: []structs.HashPolicy{
-							{
-								SourceIP: true,
-							},
+					Policy: "ring_hash",
+					RingHashConfig: &structs.RingHashConfig{
+						MaximumRingSize: 101,
+					},
+					HashPolicies: []structs.HashPolicy{
+						{
+							SourceIP: true,
 						},
 					},
 				},
@@ -2377,11 +2363,9 @@ func testcase_LBSplitterAndResolver() compileTestCase {
 					Target:         "foo.default.dc1",
 				},
 				LoadBalancer: &structs.LoadBalancer{
-					EnvoyConfig: &structs.EnvoyLBConfig{
-						Policy: "least_request",
-						LeastRequestConfig: &structs.LeastRequestConfig{
-							ChoiceCount: 3,
-						},
+					Policy: "least_request",
+					LeastRequestConfig: &structs.LeastRequestConfig{
+						ChoiceCount: 3,
 					},
 				},
 			},
@@ -2394,15 +2378,13 @@ func testcase_LBSplitterAndResolver() compileTestCase {
 					Target:         "bar.default.dc1",
 				},
 				LoadBalancer: &structs.LoadBalancer{
-					EnvoyConfig: &structs.EnvoyLBConfig{
-						Policy: "ring_hash",
-						RingHashConfig: &structs.RingHashConfig{
-							MaximumRingSize: 101,
-						},
-						HashPolicies: []structs.HashPolicy{
-							{
-								SourceIP: true,
-							},
+					Policy: "ring_hash",
+					RingHashConfig: &structs.RingHashConfig{
+						MaximumRingSize: 101,
+					},
+					HashPolicies: []structs.HashPolicy{
+						{
+							SourceIP: true,
 						},
 					},
 				},
@@ -2416,18 +2398,16 @@ func testcase_LBSplitterAndResolver() compileTestCase {
 					Target:         "baz.default.dc1",
 				},
 				LoadBalancer: &structs.LoadBalancer{
-					EnvoyConfig: &structs.EnvoyLBConfig{
-						Policy: "maglev",
-						HashPolicies: []structs.HashPolicy{
-							{
-								Field:      "cookie",
-								FieldValue: "chocolate-chip",
-								CookieConfig: &structs.CookieConfig{
-									TTL:  2 * time.Minute,
-									Path: "/bowl",
-								},
-								Terminal: true,
+					Policy: "maglev",
+					HashPolicies: []structs.HashPolicy{
+						{
+							Field:      "cookie",
+							FieldValue: "chocolate-chip",
+							CookieConfig: &structs.CookieConfig{
+								TTL:  2 * time.Minute,
+								Path: "/bowl",
 							},
+							Terminal: true,
 						},
 					},
 				},
@@ -2453,15 +2433,13 @@ func testcase_LBResolver() compileTestCase {
 			Kind: "service-resolver",
 			Name: "main",
 			LoadBalancer: &structs.LoadBalancer{
-				EnvoyConfig: &structs.EnvoyLBConfig{
-					Policy: "ring_hash",
-					RingHashConfig: &structs.RingHashConfig{
-						MaximumRingSize: 101,
-					},
-					HashPolicies: []structs.HashPolicy{
-						{
-							SourceIP: true,
-						},
+				Policy: "ring_hash",
+				RingHashConfig: &structs.RingHashConfig{
+					MaximumRingSize: 101,
+				},
+				HashPolicies: []structs.HashPolicy{
+					{
+						SourceIP: true,
 					},
 				},
 			},
@@ -2481,15 +2459,13 @@ func testcase_LBResolver() compileTestCase {
 					Target:         "main.default.dc1",
 				},
 				LoadBalancer: &structs.LoadBalancer{
-					EnvoyConfig: &structs.EnvoyLBConfig{
-						Policy: "ring_hash",
-						RingHashConfig: &structs.RingHashConfig{
-							MaximumRingSize: 101,
-						},
-						HashPolicies: []structs.HashPolicy{
-							{
-								SourceIP: true,
-							},
+					Policy: "ring_hash",
+					RingHashConfig: &structs.RingHashConfig{
+						MaximumRingSize: 101,
+					},
+					HashPolicies: []structs.HashPolicy{
+						{
+							SourceIP: true,
 						},
 					},
 				},

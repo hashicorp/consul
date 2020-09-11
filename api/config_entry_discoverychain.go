@@ -209,14 +209,6 @@ type ServiceResolverFailover struct {
 // LoadBalancer determines the load balancing policy and configuration for services
 // issuing requests to this upstream service.
 type LoadBalancer struct {
-	// EnvoyConfig contains Envoy-specific load balancing configuration for this upstream
-	EnvoyConfig *EnvoyLBConfig `json:",omitempty" alias:"envoy_config"`
-
-	// OpaqueConfig contains load balancing configuration opaque to Consul for 3rd party proxies
-	OpaqueConfig string `json:",omitempty" alias:"opaque_config"`
-}
-
-type EnvoyLBConfig struct {
 	// Policy is the load balancing policy used to select a host
 	Policy string `json:",omitempty"`
 

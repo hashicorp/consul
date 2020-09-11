@@ -746,7 +746,7 @@ func (c *compiler) getSplitterNode(sid structs.ServiceID) (*structs.DiscoveryGra
 		// We cannot apply multiple hash policies to a splitter node's route action.
 		// Therefore, we attach the first hash-based load balancer config we encounter.
 		if !hasLB {
-			if lb := node.LoadBalancer; lb != nil && lb.EnvoyConfig != nil && lb.EnvoyConfig.IsHashBased() {
+			if lb := node.LoadBalancer; lb != nil && lb.IsHashBased() {
 				splitNode.LoadBalancer = node.LoadBalancer
 				hasLB = true
 			}

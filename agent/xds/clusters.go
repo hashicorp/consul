@@ -206,14 +206,14 @@ func (s *Server) makeGatewayServiceClusters(cfgSnap *proxycfg.ConfigSnapshot) ([
 		clusterName := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 		resolver, hasResolver := resolvers[svc]
 
-		var loadBalancer *structs.EnvoyLBConfig
+		var loadBalancer *structs.LoadBalancer
 
 		if !hasResolver {
 			// Use a zero value resolver with no timeout and no subsets
 			resolver = &structs.ServiceResolverConfigEntry{}
 		}
 		if resolver.LoadBalancer != nil {
-			loadBalancer = resolver.LoadBalancer.EnvoyConfig
+			loadBalancer = resolver.LoadBalancer
 		}
 
 		// When making service clusters we only pass endpoints with hostnames if the kind is a terminating gateway
@@ -514,9 +514,9 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 			OutlierDetection: cfg.PassiveHealthCheck.AsOutlierDetection(),
 		}
 
-		var lb *structs.EnvoyLBConfig
+		var lb *structs.LoadBalancer
 		if node.LoadBalancer != nil {
-			lb = node.LoadBalancer.EnvoyConfig
+			lb = node.LoadBalancer
 		}
 		if err := injectLBToCluster(lb, c); err != nil {
 			return nil, fmt.Errorf("failed to apply load balancer configuration to cluster %q: %v", clusterName, err)
@@ -595,7 +595,7 @@ func makeClusterFromUserConfig(configJSON string) (*envoy.Cluster, error) {
 		return &c, err
 	}
 
-	// No @type so try decoding as a straight listener.
+	// No @type so try decoding as a straight cluster.
 	err := jsonpb.UnmarshalString(configJSON, &c)
 	return &c, err
 }
@@ -783,7 +783,7 @@ func makeLbEndpoint(addr string, port int, health envoycore.HealthStatus, weight
 	}
 }
 
-func injectLBToCluster(ec *structs.EnvoyLBConfig, c *envoy.Cluster) error {
+func injectLBToCluster(ec *structs.LoadBalancer, c *envoy.Cluster) error {
 	if ec == nil {
 		return nil
 	}
