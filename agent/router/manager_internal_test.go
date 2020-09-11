@@ -54,14 +54,14 @@ func (s *fauxSerf) NumNodes() int {
 func testManager() (m *Manager) {
 	logger := GetBufferedLogger()
 	shutdownCh := make(chan struct{})
-	m = New(logger, shutdownCh, &fauxSerf{numNodes: 16384}, &fauxConnPool{}, nil, "")
+	m = New(logger, shutdownCh, &fauxSerf{numNodes: 16384}, &fauxConnPool{}, "")
 	return m
 }
 
 func testManagerFailProb(failPct float64) (m *Manager) {
 	logger := GetBufferedLogger()
 	shutdownCh := make(chan struct{})
-	m = New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct}, nil, "")
+	m = New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct}, "")
 	return m
 }
 
@@ -300,7 +300,7 @@ func TestManagerInternal_refreshServerRebalanceTimer(t *testing.T) {
 	shutdownCh := make(chan struct{})
 
 	for _, s := range clusters {
-		m := New(logger, shutdownCh, &fauxSerf{numNodes: s.numNodes}, &fauxConnPool{}, nil, "")
+		m := New(logger, shutdownCh, &fauxSerf{numNodes: s.numNodes}, &fauxConnPool{}, "")
 		for i := 0; i < s.numServers; i++ {
 			nodeName := fmt.Sprintf("s%02d", i)
 			m.AddServer(&metadata.Server{Name: nodeName})

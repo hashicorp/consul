@@ -259,7 +259,7 @@ func (r *Router) maybeInitializeManager(area *areaInfo, dc string) *Manager {
 	}
 
 	shutdownCh := make(chan struct{})
-	manager := New(r.logger, shutdownCh, area.cluster, area.pinger, nil, r.serverName)
+	manager := New(r.logger, shutdownCh, area.cluster, area.pinger, r.serverName)
 	info = &managerInfo{
 		manager:    manager,
 		shutdownCh: shutdownCh,
@@ -286,6 +286,7 @@ func (r *Router) addServer(area *areaInfo, s *metadata.Server) error {
 	}
 
 	manager.AddServer(s)
+	r.grpcServerTracker.AddServer(s)
 	return nil
 }
 
@@ -321,6 +322,7 @@ func (r *Router) RemoveServer(areaID types.AreaID, s *metadata.Server) error {
 		return nil
 	}
 	info.manager.RemoveServer(s)
+	r.grpcServerTracker.RemoveServer(s)
 
 	// If this manager is empty then remove it so we don't accumulate cruft
 	// and waste time during request routing.
