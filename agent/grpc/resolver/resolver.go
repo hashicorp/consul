@@ -40,7 +40,8 @@ type ServerResolverBuilder struct {
 	// scheme used to query the server. Defaults to consul. Used to support
 	// parallel testing because gRPC registers resolvers globally.
 	scheme string
-	// servers is an index of Servers by Server.ID
+	// servers is an index of Servers by Server.ID. The map contains server IDs
+	// for all datacenters, so it assumes the ID is globally unique.
 	servers map[string]*metadata.Server
 	// resolvers is an index of connections to the serverResolver which manages
 	// addresses of servers for that connection.
