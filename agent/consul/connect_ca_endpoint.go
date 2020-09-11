@@ -158,7 +158,7 @@ func (s *ConnectCA) ConfigurationSet(
 	defer func() {
 		if cleanupNewProvider {
 			if err := newProvider.Cleanup(); err != nil {
-				s.logger.Warn("failed to clean up temporary new CA provider", "provider", newProvider)
+				s.logger.Warn("failed to clean up CA provider while handling startup failure", "provider", newProvider, "error", err)
 			}
 		}
 	}()
