@@ -116,7 +116,7 @@ func (s *Server) createCAProvider(conf *structs.CAConfiguration) (ca.Provider, e
 	case structs.ConsulCAProvider:
 		p = &ca.ConsulProvider{Delegate: &consulCADelegate{s}}
 	case structs.VaultCAProvider:
-		p = &ca.VaultProvider{}
+		p = ca.NewVaultProvider()
 	case structs.AWSCAProvider:
 		p = &ca.AWSProvider{}
 	default:
