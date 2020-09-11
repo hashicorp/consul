@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.6.9 (September 11, 2020)
 
 BUG FIXES:
 
