@@ -1,0 +1,48 @@
+%list-row {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  /* whilst this isn't in the designs this makes our temporary rollover look better */
+  padding-left: 12px;
+}
+%list-row dl {
+  margin: 0;
+  padding: 0;
+}
+%list-row-detail,
+%list-row-header {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: hidden;
+}
+%list-row-detail ul,
+%list-row-detail dl,
+%list-row-header dl {
+  display: inline-flex;
+}
+%list-row-header *,
+%list-row-detail * {
+  white-space: nowrap;
+  flex-wrap: nowrap;
+}
+
+%list-row-detail dl,
+%list-row-detail > span {
+  margin-right: 18px;
+}
+%list-row-detail dl.node dt::before {
+  margin-top: 3px;
+}
+%list-row-detail dl dt::before {
+  margin-right: 4px;
+  margin-top: 2px;
+}
+%list-row-header-icon {
+  margin-right: 6px;
+  margin-left: -2px;
+}
+%list-row-header dt {
+  display: none;
+}
+%list-row-header dd::before {
+  font-size: 0.9em;
+}

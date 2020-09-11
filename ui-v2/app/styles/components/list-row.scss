@@ -1,0 +1,4 @@
+@import './list-row/index';
+.list-row {
+  @extend %list-row;
+}
