@@ -11,16 +11,20 @@
 /segmentation                                        /use-cases/multi-platform-service-mesh            301!
 /segmentation.html                                   /use-cases/multi-platform-service-mesh            301!
 /api.html                                            /api-docs                                         301!
-/docs/agent/acl-rules.html                           /docs/acl/acl-rules                               301!
-/docs/agent/acl-rules                                /docs/acl/acl-rules                               301!
-/docs/agent/acl-system.html                          /docs/acl/acl-system                              301!
-/docs/agent/acl-system                               /docs/acl/acl-system                              301!
+/docs/agent/acl-rules.html                           /docs/security/acl/acl-rules                      301!
+/docs/agent/acl-rules                                /docs/security/acl/acl-rules                      301!
+/docs/acl/acl-rules                                  /docs/security/acl/acl-rules
+/docs/agent/acl-system.html                          /docs/security/acl/acl-system                     301!
+/docs/agent/acl-system                               /docs/security/acl/acl-system                     301!
+/docs/acl/acl-system                                 /docs/security/acl/acl-system                     301!
 /docs/agent/http.html                                /api-docs                                         301!
 /docs/agent/http                                     /api-docs                                         301!
-/docs/guides/acl-legacy.html                         /docs/acl/acl-legacy                              301!
-/docs/guides/acl-legacy                              /docs/acl/acl-legacy                              301!
-/docs/guides/acl-migrate-tokens.html                 /docs/acl/acl-migrate-tokens                      301!
-/docs/guides/acl-migrate-tokens                      /docs/acl/acl-migrate-tokens                      301!
+/docs/guides/acl-legacy.html                         /docs/security/acl/acl-legacy                     301!
+/docs/guides/acl-legacy                              /docs/security/acl/acl-legacy                     301!
+/docs/acl/acl-legacy                                 /docs/security/acl/acl-legacy                     301!
+/docs/guides/acl-migrate-tokens.html                 /docs/security/acl/acl-migrate-tokens             301!
+/docs/guides/acl-migrate-tokens                      /docs/security/acl/acl-migrate-tokens             301!
+/docs/acl/acl-migrate-tokens                         /docs/security/acl/acl-migrate-tokens             301!
 /docs/guides/bootstrapping.html                      /docs/install/bootstrapping                       301!
 /docs/guides/bootstrapping                           /docs/install/bootstrapping                       301!
 /docs/guides/sentinel.html                           /docs/agent/sentinel                              301!
@@ -44,10 +48,6 @@
 /docs/agent/cloud-auto-join                          /docs/install/cloud-auto-join                     301!
 /docs/internals/security                             /docs/security                                    301!
 /docs/acl/                                           /docs/security/acl/                               301!
-/docs/acl/acl-system                                 /docs/security/acl/acl-system                     301!
-/docs/acl/acl-rules                                  /docs/security/acl/acl-rules                       301!
-/docs/acl/acl-legacy                                 /docs/security/acl/acl-legacy                     301!
-/docs/acl/acl-migrate-tokens                         /docs/security/acl/acl-migrate-tokens             301!
 /docs/acl/auth-methods                               /docs/security/acl/auth-methods                   301!
 /docs/acl/auth-methods/kubernetes                    /docs/security/acl/auth-methods/kubernetes        301!
 /docs/acl/auth-methods/jwt                           /docs/security/acl/auth-methods/jwt               301!
@@ -64,6 +64,7 @@
 /docs/agent/services                                 /docs/discovery/services                          301!
 /docs/agent/checks                                   /docs/discovery/checks                            301!
 /docs/agent/dns                                      /docs/discovery/dns                               301!
+/docs/agent/dns.html                                 /docs/discovery/dns                               301!
 /docs/agent/encryption                               /docs/security/encryption                         301!
 /docs/internals/architecture                         /docs/architecture                                301!
 /docs/internals/anti-entropy                         /docs/architecture/anti-entropy                   301!
