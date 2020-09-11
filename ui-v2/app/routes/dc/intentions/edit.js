@@ -4,15 +4,18 @@ import { hash } from 'rsvp';
 
 export default Route.extend({
   repo: service('repository/intention'),
-  model: function(params, transition) {
+  model: function({ intention_id }, transition) {
     const dc = this.modelFor('dc').dc.Name;
     const nspace = '*';
     return hash({
-      isLoading: false,
       dc: dc,
       nspace: nspace,
       item:
-        typeof params.id !== 'undefined' ? this.repo.findBySlug(params.id, dc, nspace) : undefined,
+        typeof intention_id !== 'undefined'
+          ? this.repo.findBySlug(intention_id, dc, nspace)
+          : this.repo.create({
+              Datacenter: dc,
+            }),
     });
   },
   setupController: function(controller, model) {

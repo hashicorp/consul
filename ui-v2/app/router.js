@@ -19,7 +19,7 @@ export const routes = {
         intentions: {
           _options: { path: '/intentions' },
           edit: {
-            _options: { path: '/:intention' },
+            _options: { path: '/:intention_id' },
           },
           create: {
             _options: { path: '/create' },
@@ -90,7 +90,7 @@ export const routes = {
     intentions: {
       _options: { path: '/intentions' },
       edit: {
-        _options: { path: '/:id' },
+        _options: { path: '/:intention_id' },
       },
       create: {
         _options: { path: '/create' },
