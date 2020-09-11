@@ -20,7 +20,7 @@ test('findAllByDatacenter returns the correct data for list endpoint', function(
     this.subject(),
     function retrieveStub(stub) {
       return stub(`/v1/connect/intentions?dc=${dc}`, {
-        CONSUL_INTENTION_COUNT: '100',
+        CONSUL_INTENTION_COUNT: '1',
       });
     },
     function performTest(service) {
@@ -28,19 +28,20 @@ test('findAllByDatacenter returns the correct data for list endpoint', function(
     },
     function performAssertion(actual, expected) {
       assert.deepEqual(
-        actual,
+        actual[0],
         expected(function(payload) {
-          return payload.map(item =>
-            Object.assign({}, item, {
-              CreatedAt: new Date(item.CreatedAt),
-              UpdatedAt: new Date(item.UpdatedAt),
-              SyncTime: now,
-              Datacenter: dc,
-              // TODO: nspace isn't required here, once we've
-              // refactored out our Serializer this can go
-              uid: `["${nspace}","${dc}","${item.ID}"]`,
-            })
-          );
+          const item = payload[0];
+          return {
+            ...item,
+            CreatedAt: new Date(item.CreatedAt),
+            UpdatedAt: new Date(item.UpdatedAt),
+            Legacy: true,
+            SyncTime: now,
+            Datacenter: dc,
+            // TODO: nspace isn't required here, once we've
+            // refactored out our Serializer this can go
+            uid: `["${nspace}","${dc}","${item.ID}"]`,
+          };
         })
       );
     }
@@ -63,6 +64,7 @@ test('findBySlug returns the correct data for item endpoint', function(assert) {
         expected(function(payload) {
           const item = payload;
           return Object.assign({}, item, {
+            Legacy: true,
             CreatedAt: new Date(item.CreatedAt),
             UpdatedAt: new Date(item.UpdatedAt),
             Datacenter: dc,

@@ -10,7 +10,18 @@ Feature: dc / services / show / intentions: Intentions per service
         Name: service-0
         ID: service-0-with-id
     ---
-    And 3 intention models
+    And 3 intention models from yaml
+    ---
+    - ID: 755b72bd-f5ab-4c92-90cc-bed0e7d8e9f0
+      Action: allow
+      Meta: ~
+    - ID: 755b72bd-f5ab-4c92-90cc-bed0e7d8e9f1
+      Action: deny
+      Meta: ~
+    - ID: 0755b72bd-f5ab-4c92-90cc-bed0e7d8e9f2
+      Action: deny
+      Meta: ~
+    ---
     When I visit the service page for yaml
     ---
       dc: dc1

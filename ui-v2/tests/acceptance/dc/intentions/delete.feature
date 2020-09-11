@@ -7,6 +7,7 @@ Feature: dc / intentions / deleting: Deleting items with confirmations, success 
     ---
     SourceName: name
     ID: ee52203d-989f-4f7a-ab5a-2bef004164ca
+    Meta: ~
     ---
     When I visit the intentions page for yaml
     ---
