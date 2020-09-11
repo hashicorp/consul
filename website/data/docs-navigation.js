@@ -91,6 +91,7 @@ export default [
   {
     category: 'k8s',
     content: [
+      'compatibility',
       {
         category: 'installation',
         name: 'Get Started',
@@ -150,7 +151,6 @@ export default [
       },
       'service-sync',
       'dns',
-      'compatibility',
       'upgrade',
       'uninstall',
       'helm',
