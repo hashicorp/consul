@@ -7,6 +7,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/hashicorp/consul/lib/telemetry"
+
+	"github.com/armon/go-metrics"
+
 	autoconf "github.com/hashicorp/consul/agent/auto-config"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/config"
@@ -14,7 +18,6 @@ import (
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/ipaddr"
-	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/go-hclog"
@@ -27,13 +30,15 @@ import (
 type BaseDeps struct {
 	Logger          hclog.InterceptLogger
 	TLSConfigurator *tlsutil.Configurator // TODO: use an interface
-	MetricsHandler  MetricsHandler
-	RuntimeConfig   *config.RuntimeConfig
-	Tokens          *token.Store
-	Cache           *cache.Cache
-	AutoConfig      *autoconf.AutoConfig // TODO: use an interface
-	ConnPool        *pool.ConnPool       // TODO: use an interface
-	Router          *router.Router
+	// todo(kit): migrate this to an internal metrics client
+	MetricsClient  *metrics.Metrics
+	MetricsHandler MetricsHandler
+	RuntimeConfig  *config.RuntimeConfig
+	Tokens         *token.Store
+	Cache          *cache.Cache
+	AutoConfig     *autoconf.AutoConfig // TODO: use an interface
+	ConnPool       *pool.ConnPool       // TODO: use an interface
+	Router         *router.Router
 }
 
 // MetricsHandler provides an http.Handler for displaying metrics.
@@ -67,7 +72,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 		return d, fmt.Errorf("failed to setup node ID: %w", err)
 	}
 
-	d.MetricsHandler, err = lib.InitTelemetry(cfg.Telemetry)
+	d.MetricsClient, d.MetricsHandler, err = telemetry.Init(cfg.Telemetry)
 	if err != nil {
 		return d, fmt.Errorf("failed to initialize telemetry: %w", err)
 	}

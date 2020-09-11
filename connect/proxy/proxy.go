@@ -3,19 +3,23 @@ package proxy
 import (
 	"crypto/x509"
 
+	"github.com/hashicorp/consul/lib/telemetry"
+
+	"github.com/armon/go-metrics"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/connect"
-	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-hclog"
 )
 
 // Proxy implements the built-in connect proxy.
 type Proxy struct {
-	client     *api.Client
-	cfgWatcher ConfigWatcher
-	stopChan   chan struct{}
-	logger     hclog.Logger
-	service    *connect.Service
+	client        *api.Client
+	cfgWatcher    ConfigWatcher
+	stopChan      chan struct{}
+	logger        hclog.Logger
+	service       *connect.Service
+	metricsClient *metrics.Metrics
 }
 
 // New returns a proxy with the given configuration source.
@@ -54,7 +58,7 @@ func (p *Proxy) Serve() error {
 				// Initial setup
 
 				// Setup telemetry if configured
-				_, err := lib.InitTelemetry(newCfg.Telemetry)
+				_, _, err := telemetry.Init(newCfg.Telemetry)
 				if err != nil {
 					p.logger.Error("proxy telemetry config error", "error", err)
 				}

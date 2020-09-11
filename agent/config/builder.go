@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/lib/telemetry"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/connect/ca"
@@ -901,7 +903,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		HTTPUseCache:        b.boolValWithDefault(c.HTTPConfig.UseCache, true),
 
 		// Telemetry
-		Telemetry: lib.TelemetryConfig{
+		Telemetry: telemetry.Config{
 			CirconusAPIApp:                     b.stringVal(c.Telemetry.CirconusAPIApp),
 			CirconusAPIToken:                   b.stringVal(c.Telemetry.CirconusAPIToken),
 			CirconusAPIURL:                     b.stringVal(c.Telemetry.CirconusAPIURL),

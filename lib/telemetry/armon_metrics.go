@@ -1,4 +1,4 @@
-package lib
+package telemetry
 
 import (
 	"reflect"
@@ -10,16 +10,16 @@ import (
 	"github.com/armon/go-metrics/prometheus"
 )
 
-// TelemetryConfig is embedded in config.RuntimeConfig and holds the
+// Config is embedded in config.RuntimeConfig and holds the
 // configuration variables for go-metrics. It is a separate struct to allow it
 // to be exported as JSON and passed to other process like managed connect
 // proxies so they can inherit the agent's telemetry config.
 //
 // It is in lib package rather than agent/config because we need to use it in
-// the shared InitTelemetry functions below, but we can't import agent/config
+// the shared Init functions below, but we can't import agent/config
 // due to a dependency cycle.
-type TelemetryConfig struct {
-	// Disable may be set to true to have InitTelemetry to skip initialization
+type Config struct {
+	// Disable may be set to true to have Init to skip initialization
 	// and return a nil MetricsSink.
 	Disable bool
 
@@ -196,9 +196,88 @@ type TelemetryConfig struct {
 	StatsiteAddr string `json:"statsite_address,omitempty" mapstructure:"statsite_address"`
 }
 
+// sinkFn takes Config and a hostname and builds a sink to be composed in the FanOutSink
+type sinkFn func(Config, string) (metrics.MetricSink, error)
+
+// ArmonMetricsClient provides a MetricsClient implementation for armon/go-metrics.
+type ArmonMetricsClient struct {
+	client metrics.Metrics
+}
+
+var _ MetricsClient = &ArmonMetricsClient{}
+
+// todo(kit): How can I set this to NaN but only for prometheus sink?
+func (c *ArmonMetricsClient) InitGauge(key []string) {
+	c.client.SetGauge(key, 0)
+}
+
+func (c *ArmonMetricsClient) SetGauge(key []string, val float32) {
+	c.client.SetGauge(key, val)
+}
+
+func (c *ArmonMetricsClient) SetGaugeWithLabels(key []string, val float32, labels []Label) {
+	aLabels := convertLabelsToArmonMetricsLabels(labels)
+	c.client.SetGaugeWithLabels(key, val, aLabels)
+}
+func (c *ArmonMetricsClient) InitKV(key []string) {
+	// TODO(kit): how can we give prometheus a NaN?
+	c.client.EmitKey(key, 0)
+}
+
+func (c *ArmonMetricsClient) EmitKV(key []string, val float32) {
+	c.client.EmitKey(key, val)
+}
+
+func (c *ArmonMetricsClient) InitCounter(key []string) {
+	// TODO(kit): how can we give prometheus a NaN?
+	c.client.IncrCounter(key, 0)
+}
+
+func (c *ArmonMetricsClient) IncCounter(key []string, val float32) {
+	c.client.IncrCounter(key, val)
+}
+func (c *ArmonMetricsClient) IncCounterWithLabels(key []string, val float32, labels []Label) {
+	aLabels := convertLabelsToArmonMetricsLabels(labels)
+	c.client.IncrCounterWithLabels(key, val, aLabels)
+}
+
+func (c *ArmonMetricsClient) InitSample(key []string) {
+	// TODO(kit): how can we give prometheus a NaN?
+	c.client.AddSample(key, 0)
+}
+
+func (c *ArmonMetricsClient) AddSample(key []string, val float32) {
+	c.client.AddSample(key, val)
+}
+
+func (c *ArmonMetricsClient) AddSampleWithLabels(key []string, val float32, labels []Label) {
+	aLabels := convertLabelsToArmonMetricsLabels(labels)
+	c.client.AddSampleWithLabels(key, val, aLabels)
+}
+
+func (c *ArmonMetricsClient) MeasureSince(key []string, start time.Time) {
+	c.client.MeasureSince(key, start)
+}
+
+func (c *ArmonMetricsClient) MeasureSinceWithLabels(key []string, start time.Time, labels []Label) {
+	aLabels := convertLabelsToArmonMetricsLabels(labels)
+	c.client.MeasureSinceWithLabels(key, start, aLabels)
+}
+
+func convertLabelsToArmonMetricsLabels(labels []Label) []metrics.Label {
+	aLabels := make([]metrics.Label, len(labels))
+	for i := 0; i < len(labels); i++ {
+		aLabels[i] = metrics.Label{
+			Name:  labels[i].Key,
+			Value: labels[i].Value,
+		}
+	}
+	return aLabels
+}
+
 // MergeDefaults copies any non-zero field from defaults into the current
 // config.
-func (c *TelemetryConfig) MergeDefaults(defaults *TelemetryConfig) {
+func (c *Config) MergeDefaults(defaults *Config) {
 	if defaults == nil {
 		return
 	}
@@ -242,7 +321,7 @@ func (c *TelemetryConfig) MergeDefaults(defaults *TelemetryConfig) {
 	}
 }
 
-func statsiteSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, error) {
+func statsiteSink(cfg Config, hostname string) (metrics.MetricSink, error) {
 	addr := cfg.StatsiteAddr
 	if addr == "" {
 		return nil, nil
@@ -250,7 +329,7 @@ func statsiteSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, err
 	return metrics.NewStatsiteSink(addr)
 }
 
-func statsdSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, error) {
+func statsdSink(cfg Config, hostname string) (metrics.MetricSink, error) {
 	addr := cfg.StatsdAddr
 	if addr == "" {
 		return nil, nil
@@ -258,7 +337,7 @@ func statsdSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, error
 	return metrics.NewStatsdSink(addr)
 }
 
-func dogstatdSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, error) {
+func dogstatsdSink(cfg Config, hostname string) (metrics.MetricSink, error) {
 	addr := cfg.DogstatsdAddr
 	if addr == "" {
 		return nil, nil
@@ -271,7 +350,7 @@ func dogstatdSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, err
 	return sink, nil
 }
 
-func prometheusSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, error) {
+func prometheusSink(cfg Config, hostname string) (metrics.MetricSink, error) {
 	if cfg.PrometheusRetentionTime.Nanoseconds() < 1 {
 		return nil, nil
 	}
@@ -285,7 +364,7 @@ func prometheusSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, e
 	return sink, nil
 }
 
-func circonusSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, error) {
+func circonusSink(cfg Config, hostname string) (metrics.MetricSink, error) {
 	token := cfg.CirconusAPIToken
 	url := cfg.CirconusSubmissionURL
 	if token == "" && url == "" {
@@ -327,57 +406,89 @@ func circonusSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, err
 	return sink, nil
 }
 
-// InitTelemetry configures go-metrics based on map of telemetry config
-// values as returned by Runtimecfg.Config().
-func InitTelemetry(cfg TelemetryConfig) (*metrics.InmemSink, error) {
-	if cfg.Disable {
-		return nil, nil
+// addSink takes our collection of sinks and applies configuration to its setup function, appending the new sink to the
+// collection.
+func addSink(sinks metrics.FanoutSink, fn sinkFn, cfg Config, hostname string) error {
+	// Build the sink
+	s, err := fn(cfg, hostname)
+	if err != nil {
+		return err
 	}
-	// Setup telemetry
+	// Compose into FanoutSink
+	if s != nil {
+		sinks = append(sinks, s)
+	}
+	return nil
+}
+
+// initSinks composes all of our sink options from RuntimeCfg into a FanoutSink
+func initSinks(cfg Config, hostname string) (metrics.FanoutSink, error) {
+	var sinks metrics.FanoutSink
+	// Compose all of our external sinks with FanoutSink.
+	// All sink inits must succeed - we abort setup if any of the configuration is invalid.
+	if err := addSink(sinks, statsiteSink, cfg, hostname); err != nil {
+		return sinks, err
+	}
+	if err := addSink(sinks, statsdSink, cfg, hostname); err != nil {
+		return sinks, err
+	}
+	if err := addSink(sinks, dogstatsdSink, cfg, hostname); err != nil {
+		return sinks, err
+	}
+	if err := addSink(sinks, circonusSink, cfg, hostname); err != nil {
+		return sinks, err
+	}
+	if err := addSink(sinks, prometheusSink, cfg, hostname); err != nil {
+		return sinks, err
+	}
+	return sinks, nil
+}
+
+// Init configures go-metrics based on map of telemetry config
+// values as returned by RuntimeCfg.Config().
+func armonMetricsInit(cfg Config) (*metrics.Metrics, *metrics.InmemSink, error) {
+	if cfg.Disable {
+		return nil, nil, nil
+	}
+	// Define an InmemSink so we can dump telemetry when we receive a process signal
 	// Aggregate on 10 second intervals for 1 minute. Expose the
 	// metrics over stderr when there is a SIGUSR1 received.
 	memSink := metrics.NewInmemSink(10*time.Second, time.Minute)
 	metrics.DefaultInmemSignal(memSink)
-	metricsConf := metrics.DefaultConfig(cfg.MetricsPrefix)
-	metricsConf.EnableHostname = !cfg.DisableHostname
-	metricsConf.FilterDefault = cfg.FilterDefault
-	metricsConf.AllowedPrefixes = cfg.AllowedPrefixes
-	metricsConf.BlockedPrefixes = cfg.BlockedPrefixes
 
-	var sinks metrics.FanoutSink
-	addSink := func(fn func(TelemetryConfig, string) (metrics.MetricSink, error)) error {
-		s, err := fn(cfg, metricsConf.HostName)
+	// Union RuntimeCfg into go-metrics.Config, overriding defaults
+	mCfg := metrics.DefaultConfig(cfg.MetricsPrefix)
+	mCfg.EnableHostname = !cfg.DisableHostname
+	mCfg.FilterDefault = cfg.FilterDefault
+	mCfg.AllowedPrefixes = cfg.AllowedPrefixes
+	mCfg.BlockedPrefixes = cfg.BlockedPrefixes
+
+	sinks, err := initSinks(cfg, mCfg.HostName)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// client contains the API which lets us dispatch metrics events to our sinks
+	var client *metrics.Metrics
+
+	// No external sinks, we'll configure for in-process telemetry only
+	if len(sinks) == 0 {
+		// Hostname is irrelevant for on-host telemetry
+		mCfg.EnableHostname = false
+		// Store our metrics client globally and return a pointer to the client
+		client, err = metrics.NewGlobal(mCfg, memSink)
 		if err != nil {
-			return err
+			return nil, nil, err
 		}
-		if s != nil {
-			sinks = append(sinks, s)
-		}
-		return nil
+		return client, memSink, nil
 	}
 
-	if err := addSink(statsiteSink); err != nil {
-		return nil, err
+	// Compose our external sinks with the InmemSink
+	sinks = append(sinks, memSink)
+	// Store our metrics client globally and return a pointer to the client
+	client, err = metrics.NewGlobal(mCfg, sinks)
+	if err != nil {
+		return nil, nil, err
 	}
-	if err := addSink(statsdSink); err != nil {
-		return nil, err
-	}
-	if err := addSink(dogstatdSink); err != nil {
-		return nil, err
-	}
-	if err := addSink(circonusSink); err != nil {
-		return nil, err
-	}
-	if err := addSink(prometheusSink); err != nil {
-		return nil, err
-	}
-
-	if len(sinks) > 0 {
-		sinks = append(sinks, memSink)
-		metrics.NewGlobal(metricsConf, sinks)
-	} else {
-		metricsConf.EnableHostname = false
-		metrics.NewGlobal(metricsConf, memSink)
-	}
-	return memSink, nil
+	return client, memSink, nil
 }

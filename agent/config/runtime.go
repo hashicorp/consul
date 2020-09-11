@@ -7,11 +7,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/lib/telemetry"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -340,7 +341,7 @@ type RuntimeConfig struct {
 	HTTPResponseHeaders map[string]string
 
 	// Embed Telemetry Config
-	Telemetry lib.TelemetryConfig
+	Telemetry telemetry.Config
 
 	// Datacenter is the datacenter this node is in. Defaults to "dc1".
 	//

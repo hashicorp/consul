@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/consul/lib/telemetry"
+
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/api/watch"
 	"github.com/hashicorp/consul/connect"
 	"github.com/hashicorp/consul/ipaddr"
-	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-hclog"
 )
 
@@ -41,7 +42,7 @@ type Config struct {
 	// Telemetry stores configuration for go-metrics. It is typically populated
 	// from the agent's runtime config via the proxy config endpoint so that the
 	// proxy will log metrics to the same location(s) as the agent.
-	Telemetry lib.TelemetryConfig
+	Telemetry telemetry.Config
 }
 
 // Service returns the *connect.Service structure represented by this config.

@@ -18,11 +18,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/lib/telemetry"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
@@ -6471,7 +6472,7 @@ func TestFullConfig(t *testing.T) {
 		SkipLeaveOnInt:       true,
 		StartJoinAddrsLAN:    []string{"LR3hGDoG", "MwVpZ4Up"},
 		StartJoinAddrsWAN:    []string{"EbFSc3nA", "kwXTh623"},
-		Telemetry: lib.TelemetryConfig{
+		Telemetry: telemetry.Config{
 			CirconusAPIApp:                     "p4QOTe9j",
 			CirconusAPIToken:                   "E3j35V23",
 			CirconusAPIURL:                     "mEMjHpGg",
