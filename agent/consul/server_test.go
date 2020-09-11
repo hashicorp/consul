@@ -17,6 +17,7 @@ import (
 
 	"github.com/google/tcpproxy"
 	"github.com/hashicorp/consul/agent/connect/ca"
+	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/memberlist"
 
@@ -301,10 +302,13 @@ func newServer(t *testing.T, c *Config) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	rpcRouter := router.NewRouter(logger, c.Datacenter, fmt.Sprintf("%s.%s", c.NodeName, c.Datacenter))
 	srv, err := NewServer(c,
 		WithLogger(logger),
 		WithTokenStore(new(token.Store)),
-		WithTLSConfigurator(tlsConf))
+		WithTLSConfigurator(tlsConf),
+		WithRouter(rpcRouter))
 	if err != nil {
 		return nil, err
 	}
@@ -1491,10 +1495,13 @@ func TestServer_CALogging(t *testing.T) {
 	c, err := tlsutil.NewConfigurator(conf1.ToTLSUtilConfig(), logger)
 	require.NoError(t, err)
 
+	rpcRouter := router.NewRouter(logger, "dc1", fmt.Sprintf("%s.%s", "nodename", "dc1"))
+
 	s1, err := NewServer(conf1,
 		WithLogger(logger),
 		WithTokenStore(new(token.Store)),
-		WithTLSConfigurator(c))
+		WithTLSConfigurator(c),
+		WithRouter(rpcRouter))
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

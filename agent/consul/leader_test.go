@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -1305,10 +1306,13 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 	})
 	tlsConf, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), logger)
 	require.NoError(t, err)
+
+	rpcRouter := router.NewRouter(logger, config.Datacenter, fmt.Sprintf("%s.%s", config.NodeName, config.Datacenter))
 	srv, err := NewServer(config,
 		WithLogger(logger),
 		WithTokenStore(new(token.Store)),
-		WithTLSConfigurator(tlsConf))
+		WithTLSConfigurator(tlsConf),
+		WithRouter(rpcRouter))
 	require.NoError(t, err)
 	defer srv.Shutdown()
 

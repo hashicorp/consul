@@ -331,7 +331,6 @@ func NewServer(config *Config, options ...ConsulOption) (*Server, error) {
 	tokens := flat.tokens
 	tlsConfigurator := flat.tlsConfigurator
 	connPool := flat.connPool
-	rpcRouter := flat.router
 
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -344,6 +343,9 @@ func NewServer(config *Config, options ...ConsulOption) (*Server, error) {
 	}
 	if logger == nil {
 		return nil, fmt.Errorf("logger is required")
+	}
+	if flat.router == nil {
+		return nil, fmt.Errorf("router is required")
 	}
 
 	// Check if TLS is enabled
@@ -388,10 +390,6 @@ func NewServer(config *Config, options ...ConsulOption) (*Server, error) {
 	serverLogger := logger.NamedIntercept(logging.ConsulServer)
 	loggers := newLoggerStore(serverLogger)
 
-	if rpcRouter == nil {
-		rpcRouter = router.NewRouter(serverLogger, config.Datacenter, fmt.Sprintf("%s.%s", config.NodeName, config.Datacenter))
-	}
-
 	// Create server.
 	s := &Server{
 		config:                  config,
@@ -403,7 +401,7 @@ func NewServer(config *Config, options ...ConsulOption) (*Server, error) {
 		loggers:                 loggers,
 		leaveCh:                 make(chan struct{}),
 		reconcileCh:             make(chan serf.Member, reconcileChSize),
-		router:                  rpcRouter,
+		router:                  flat.router,
 		rpcServer:               rpc.NewServer(),
 		insecureRPCServer:       rpc.NewServer(),
 		tlsConfigurator:         tlsConfigurator,

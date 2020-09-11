@@ -68,8 +68,7 @@ type Client struct {
 	// from an agent.
 	rpcLimiter atomic.Value
 
-	// eventCh is used to receive events from the
-	// serf cluster in the datacenter
+	// eventCh is used to receive events from the serf cluster in the datacenter
 	eventCh chan serf.Event
 
 	// Logger uses the provided LogOutput
@@ -107,6 +106,9 @@ func NewClient(config *Config, options ...ConsulOption) (*Client, error) {
 	}
 	if flat.logger == nil {
 		return nil, fmt.Errorf("logger is required")
+	}
+	if flat.router == nil {
+		return nil, fmt.Errorf("router is required")
 	}
 
 	if connPool == nil {
@@ -156,23 +158,17 @@ func NewClient(config *Config, options ...ConsulOption) (*Client, error) {
 	}
 
 	// Initialize the LAN Serf
-	c.serf, err = c.setupSerf(config.SerfLANConfig,
-		c.eventCh, serfLANSnapshot)
+	c.serf, err = c.setupSerf(config.SerfLANConfig, c.eventCh, serfLANSnapshot)
 	if err != nil {
 		c.Shutdown()
 		return nil, fmt.Errorf("Failed to start lan serf: %v", err)
 	}
 
-	rpcRouter := flat.router
-	if rpcRouter == nil {
-		rpcRouter = router.NewRouter(logger, config.Datacenter, fmt.Sprintf("%s.%s", config.NodeName, config.Datacenter))
-	}
-
-	if err := rpcRouter.AddArea(types.AreaLAN, c.serf, c.connPool); err != nil {
+	if err := flat.router.AddArea(types.AreaLAN, c.serf, c.connPool); err != nil {
 		c.Shutdown()
 		return nil, fmt.Errorf("Failed to add LAN area to the RPC router: %w", err)
 	}
-	c.router = rpcRouter
+	c.router = flat.router
 
 	// Start LAN event handlers after the router is complete since the event
 	// handlers depend on the router and the router depends on Serf.

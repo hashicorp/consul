@@ -2,12 +2,14 @@ package consul
 
 import (
 	"bytes"
+	"fmt"
 	"net"
 	"os"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -75,7 +77,11 @@ func testClientWithConfigWithErr(t *testing.T, cb func(c *Config)) (string, *Cli
 		t.Fatalf("err: %v", err)
 	}
 
-	client, err := NewClient(config, WithLogger(logger), WithTLSConfigurator(tlsConf))
+	r := router.NewRouter(logger, config.Datacenter, fmt.Sprintf("%s.%s", config.NodeName, config.Datacenter))
+	client, err := NewClient(config,
+		WithLogger(logger),
+		WithTLSConfigurator(tlsConf),
+		WithRouter(r))
 	return dir, client, err
 }
 
@@ -473,7 +479,11 @@ func newClient(t *testing.T, config *Config) *Client {
 		Level:  hclog.Debug,
 		Output: testutil.NewLogBuffer(t),
 	})
-	client, err := NewClient(config, WithLogger(logger), WithTLSConfigurator(c))
+	r := router.NewRouter(logger, config.Datacenter, fmt.Sprintf("%s.%s", config.NodeName, config.Datacenter))
+	client, err := NewClient(config,
+		WithLogger(logger),
+		WithTLSConfigurator(c),
+		WithRouter(r))
 	require.NoError(t, err, "failed to create client")
 	t.Cleanup(func() {
 		client.Shutdown()
