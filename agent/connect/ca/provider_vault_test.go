@@ -55,14 +55,10 @@ func TestVaultCAProvider_SecondaryActiveIntermediate(t *testing.T) {
 
 func TestVaultCAProvider_RenewToken(t *testing.T) {
 	t.Parallel()
-	require := require.New(t)
 	skipIfVaultNotPresent(t)
 
-	testVault, err := runTestVault()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	testVault, err := runTestVault(t)
+	require.NoError(t, err)
 	testVault.WaitUntilReady(t)
 
 	// Create a token with a short TTL to be renewed by the provider.
@@ -71,26 +67,26 @@ func TestVaultCAProvider_RenewToken(t *testing.T) {
 		TTL: ttl.String(),
 	}
 	secret, err := testVault.client.Auth().Token().Create(tcr)
-	require.NoError(err)
+	require.NoError(t, err)
 	providerToken := secret.Auth.ClientToken
 
-	_, err = createVaultProvider(true, testVault.addr, providerToken, nil)
-	require.NoError(err)
+	_, err = createVaultProvider(t, true, testVault.addr, providerToken, nil)
+	require.NoError(t, err)
 
 	// Check the last renewal time.
 	secret, err = testVault.client.Auth().Token().Lookup(providerToken)
-	require.NoError(err)
+	require.NoError(t, err)
 	firstRenewal, err := secret.Data["last_renewal_time"].(json.Number).Int64()
-	require.NoError(err)
-
-	time.Sleep(ttl * 2)
+	require.NoError(t, err)
 
 	// Wait past the TTL and make sure the token has been renewed.
-	secret, err = testVault.client.Auth().Token().Lookup(providerToken)
-	require.NoError(err)
-	lastRenewal, err := secret.Data["last_renewal_time"].(json.Number).Int64()
-	require.NoError(err)
-	require.Greater(lastRenewal, firstRenewal)
+	retry.Run(t, func(r *retry.R) {
+		secret, err = testVault.client.Auth().Token().Lookup(providerToken)
+		require.NoError(r, err)
+		lastRenewal, err := secret.Data["last_renewal_time"].(json.Number).Int64()
+		require.NoError(r, err)
+		require.Greater(r, lastRenewal, firstRenewal)
+	})
 }
 
 func TestVaultCAProvider_Bootstrap(t *testing.T) {
@@ -391,14 +387,14 @@ func testVaultProvider(t *testing.T) (*VaultProvider, *testVaultServer) {
 }
 
 func testVaultProviderWithConfig(t *testing.T, isPrimary bool, rawConf map[string]interface{}) (*VaultProvider, *testVaultServer) {
-	testVault, err := runTestVault()
+	testVault, err := runTestVault(t)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	testVault.WaitUntilReady(t)
 
-	provider, err := createVaultProvider(isPrimary, testVault.addr, testVault.rootToken, rawConf)
+	provider, err := createVaultProvider(t, isPrimary, testVault.addr, testVault.rootToken, rawConf)
 	if err != nil {
 		testVault.Stop()
 		t.Fatalf("err: %v", err)
@@ -406,7 +402,7 @@ func testVaultProviderWithConfig(t *testing.T, isPrimary bool, rawConf map[strin
 	return provider, testVault
 }
 
-func createVaultProvider(isPrimary bool, addr, token string, rawConf map[string]interface{}) (*VaultProvider, error) {
+func createVaultProvider(t *testing.T, isPrimary bool, addr, token string, rawConf map[string]interface{}) (*VaultProvider, error) {
 	conf := map[string]interface{}{
 		"Address":             addr,
 		"Token":               token,
@@ -419,7 +415,7 @@ func createVaultProvider(isPrimary bool, addr, token string, rawConf map[string]
 		conf[k] = v
 	}
 
-	provider := &VaultProvider{}
+	provider := NewVaultProvider()
 
 	cfg := ProviderConfig{
 		ClusterID:  connect.TestClusterID,
@@ -438,16 +434,11 @@ func createVaultProvider(isPrimary bool, addr, token string, rawConf map[string]
 		cfg.Datacenter = "dc2"
 	}
 
-	if err := provider.Configure(cfg); err != nil {
-		return nil, err
-	}
+	require.NoError(t, provider.Configure(cfg))
 	if isPrimary {
-		if err := provider.GenerateRoot(); err != nil {
-			return nil, err
-		}
-		if _, err := provider.GenerateIntermediate(); err != nil {
-			return nil, err
-		}
+		require.NoError(t, provider.GenerateRoot())
+		_, err := provider.GenerateIntermediate()
+		require.NoError(t, err)
 	}
 
 	return provider, nil
@@ -469,7 +460,7 @@ func skipIfVaultNotPresent(t *testing.T) {
 	}
 }
 
-func runTestVault() (*testVaultServer, error) {
+func runTestVault(t *testing.T) (*testVaultServer, error) {
 	vaultBinaryName := os.Getenv("VAULT_BINARY_NAME")
 	if vaultBinaryName == "" {
 		vaultBinaryName = "vault"
@@ -520,13 +511,17 @@ func runTestVault() (*testVaultServer, error) {
 		return nil, err
 	}
 
-	return &testVaultServer{
+	testVault := &testVaultServer{
 		rootToken:     token,
 		addr:          "http://" + clientAddr,
 		cmd:           cmd,
 		client:        client,
 		returnPortsFn: returnPortsFn,
-	}, nil
+	}
+	t.Cleanup(func() {
+		testVault.Stop()
+	})
+	return testVault, nil
 }
 
 type testVaultServer struct {

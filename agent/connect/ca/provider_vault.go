@@ -2,13 +2,13 @@ package ca
 
 import (
 	"bytes"
+	"context"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
-	"sync"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
@@ -27,15 +27,17 @@ type VaultProvider struct {
 	config *structs.VaultCAProviderConfig
 	client *vaultapi.Client
 
-	shutdown     bool
-	shutdownCh   chan struct{}
-	shutdownLock sync.RWMutex
+	shutdown func()
 
 	isPrimary                    bool
 	clusterID                    string
 	spiffeID                     *connect.SpiffeIDSigning
 	setupIntermediatePKIPathDone bool
 	logger                       hclog.Logger
+}
+
+func NewVaultProvider() *VaultProvider {
+	return &VaultProvider{shutdown: func() {}}
 }
 
 func vaultTLSConfig(config *structs.VaultCAProviderConfig) *vaultapi.TLSConfig {
@@ -74,7 +76,6 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 	v.isPrimary = cfg.IsPrimary
 	v.clusterID = cfg.ClusterID
 	v.spiffeID = connect.SpiffeIDSigningForCluster(&structs.CAConfiguration{ClusterID: v.clusterID})
-	v.shutdownCh = make(chan struct{}, 0)
 
 	// Look up the token to see if we can auto-renew its lease.
 	secret, err := client.Auth().Token().Lookup(config.Token)
@@ -99,31 +100,37 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 					LeaseDuration: secret.LeaseDuration,
 				},
 			},
-			Increment: int(token.TTL),
+			Increment: token.TTL,
 		})
 		if err != nil {
 			return fmt.Errorf("Error beginning Vault provider token renewal: %v", err)
 		}
-		go v.renewToken(renewer)
+
+		ctx, cancel := context.WithCancel(context.TODO())
+		v.shutdown = cancel
+		go v.renewToken(ctx, renewer)
 	}
 
 	return nil
 }
 
 // renewToken uses a vaultapi.Renewer to repeatedly renew our token's lease.
-func (v *VaultProvider) renewToken(renewer *vaultapi.Renewer) {
+func (v *VaultProvider) renewToken(ctx context.Context, renewer *vaultapi.Renewer) {
 	go renewer.Renew()
+	defer renewer.Stop()
 
 	for {
 		select {
-		case <-v.shutdownCh:
-			renewer.Stop()
+		case <-ctx.Done():
 			return
 
 		case err := <-renewer.DoneCh():
 			if err != nil {
 				v.logger.Error(fmt.Sprintf("Error renewing token for Vault provider: %v", err))
 			}
+
+			// Renewer routine has finished, so start it again.
+			go renewer.Renew()
 
 		case <-renewer.RenewCh():
 			v.logger.Error("Successfully renewed token for Vault provider")
@@ -508,13 +515,7 @@ func (v *VaultProvider) Cleanup() error {
 
 // Stop shuts down the token renew goroutine.
 func (v *VaultProvider) Stop() {
-	v.shutdownLock.Lock()
-	defer v.shutdownLock.Unlock()
-
-	if !v.shutdown && v.shutdownCh != nil {
-		close(v.shutdownCh)
-		v.shutdown = true
-	}
+	v.shutdown()
 }
 
 func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderConfig, error) {
