@@ -1,5 +1,33 @@
 ## UNRELEASED
 
+## 1.8.4 (September 11, 2020)
+
+FEATURES:
+
+* agent: expose the list of supported envoy versions on /v1/agent/self [[GH-8545](https://github.com/hashicorp/consul/issues/8545)]
+* cache: Config parameters for cache throttling are now reloaded automatically on agent reload. Restarting the agent is not needed anymore. [[GH-8552](https://github.com/hashicorp/consul/issues/8552)]
+* connect: all config entries pick up a meta field [[GH-8596](https://github.com/hashicorp/consul/issues/8596)]
+
+IMPROVEMENTS:
+
+* api: Added `ACLMode` method to the `AgentMember` type to determine what ACL mode the agent is operating in. [[GH-8575](https://github.com/hashicorp/consul/issues/8575)]
+* api: Added `IsConsulServer` method to the `AgentMember` type to easily determine whether the agent is a server. [[GH-8575](https://github.com/hashicorp/consul/issues/8575)]
+* api: Added constants for common tag keys and values in the `Tags` field of the `AgentMember` struct. [[GH-8575](https://github.com/hashicorp/consul/issues/8575)]
+* api: Allow for the client to use TLS over a Unix domain socket. [[GH-8602](https://github.com/hashicorp/consul/issues/8602)]
+* api: `GET v1/operator/keyring` also lists primary keys. [[GH-8522](https://github.com/hashicorp/consul/issues/8522)]
+* connect: Add support for http2 and grpc to ingress gateways [[GH-8458](https://github.com/hashicorp/consul/issues/8458)]
+* serf: update to `v0.9.4` which supports primary keys in the ListKeys operation. [[GH-8522](https://github.com/hashicorp/consul/issues/8522)]
+
+BUGFIXES:
+
+* connect: use stronger validation that ingress gateways have compatible protocols defined for their upstreams [[GH-8494](https://github.com/hashicorp/consul/issues/8494)]
+* agent: ensure that we normalize bootstrapped config entries [[GH-8547](https://github.com/hashicorp/consul/issues/8547)]
+* api: Fixed a panic caused by an api request with Connect=null [[GH-8537](https://github.com/hashicorp/consul/issues/8537)]
+* connect: `connect envoy` command now respects the `-ca-path` flag [[GH-8606](https://github.com/hashicorp/consul/issues/8606)]
+* connect: fix bug in preventing some namespaced config entry modifications [[GH-8601](https://github.com/hashicorp/consul/issues/8601)]
+* connect: fix renewing secondary intermediate certificates [[GH-8588](https://github.com/hashicorp/consul/issues/8588)]
+* ui: fixed a bug related to in-folder KV creation [GH-8613](https://github.com/hashicorp/consul/pull/8613)
+
 ## 1.8.3 (August 12, 2020)
 
 BUGFIXES:
@@ -116,6 +144,17 @@ BUGFIXES:
 * ui: Miscellaneous amends for Safari and Firefox [[GH-7904](https://github.com/hashicorp/consul/issues/7904)] [[GH-7907](https://github.com/hashicorp/consul/pull/7907)]
 * ui: Ensure a value is always passed to CONSUL_SSO_ENABLED [[GH-7913](https://github.com/hashicorp/consul/pull/7913)]
 
+## 1.7.8 (September 11, 2020)
+
+FEATURES:
+
+* agent: expose the list of supported envoy versions on /v1/agent/self [[GH-8545](https://github.com/hashicorp/consul/issues/8545)]
+
+BUG FIXES:
+
+* connect: fix bug in preventing some namespaced config entry modifications [[GH-8601](https://github.com/hashicorp/consul/issues/8601)]
+* api: fixed a panic caused by an api request with Connect=null [[GH-8537](https://github.com/hashicorp/consul/pull/8537)]
+
 ## 1.7.7 (August 12, 2020)
 
 BUGFIXES:
@@ -127,7 +166,7 @@ BUGFIXES:
 
 BUG FIXES:
 
-* [backport/1.7.x] xds: revert setting set_node_on_first_message_only to true when generating envoy bootstrap config [[GH-8441](https://github.com/hashicorp/consul/issues/8441)]
+* xds: revert setting set_node_on_first_message_only to true when generating envoy bootstrap config [[GH-8441](https://github.com/hashicorp/consul/issues/8441)]
 
 ## 1.7.5 (July 30, 2020)
 
@@ -339,6 +378,12 @@ BUGFIXES:
 * ui: Fix positioning of active icon in the selected menu item [[GH-7148](https://github.com/hashicorp/consul/pull/7148)]
 * ui: Discovery-Chain: Improve parsing of redirects [[GH-7174](https://github.com/hashicorp/consul/pull/7174)]
 * ui: Fix styling of ‘duplicate intention’ error message [[GH6936]](https://github.com/hashicorp/consul/pull/6936)
+
+## 1.6.9 (September 11, 2020)
+
+BUG FIXES:
+
+* api: fixed a panic caused by an api request with Connect=null [[GH-8537](https://github.com/hashicorp/consul/pull/8537)]
 
 ## 1.6.8 (August 12, 2020)
 
