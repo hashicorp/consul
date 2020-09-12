@@ -36,6 +36,10 @@ Usage: `consul acl role update [options] [args]`
 
 - `-name=<string>` - The role name.
 
+- `-node-identity=<value>` - Name of a node identity to use for this role. May
+  be specified multiple times. Format is `NODENAME:DATACENTER`. Added in Consul
+  1.8.1.
+
 - `-no-merge` - Do not merge the current role information with what is provided
   to the command. Instead overwrite all fields with the exception of the role
   ID which is immutable.
