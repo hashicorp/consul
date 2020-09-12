@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
@@ -63,19 +64,7 @@ type RuntimeConfig struct {
 	// hcl: acl.enabled = boolean
 	ACLsEnabled bool
 
-	// ACLAgentMasterToken is a special token that has full read and write
-	// privileges for this agent, and can be used to call agent endpoints
-	// when no servers are available.
-	//
-	// hcl: acl.tokens.agent_master = string
-	ACLAgentMasterToken string
-
-	// ACLAgentToken is the default token used to make requests for the agent
-	// itself, such as for registering itself with the catalog. If not
-	// configured, the 'acl_token' will be used.
-	//
-	// hcl: acl.tokens.agent = string
-	ACLAgentToken string
+	ACLTokens token.Config
 
 	// ACLDatacenter is the central datacenter that holds authoritative
 	// ACL records. This must be the same for the entire cluster.
@@ -123,16 +112,6 @@ type RuntimeConfig struct {
 	// hcl: acl.tokens.master = string
 	ACLMasterToken string
 
-	// ACLReplicationToken is used to replicate data locally from the
-	// PrimaryDatacenter. Replication is only available on servers in
-	// datacenters other than the PrimaryDatacenter
-	//
-	// DEPRECATED (ACL-Legacy-Compat): Setting this to a non-empty value
-	// also enables legacy ACL replication if ACLs are enabled and in legacy mode.
-	//
-	// hcl: acl.tokens.replication = string
-	ACLReplicationToken string
-
 	// ACLtokenReplication is used to indicate that both tokens and policies
 	// should be replicated instead of just policies
 	//
@@ -156,16 +135,6 @@ type RuntimeConfig struct {
 	//
 	// hcl: acl.role_ttl = "duration"
 	ACLRoleTTL time.Duration
-
-	// ACLToken is the default token used to make requests if a per-request
-	// token is not provided. If not configured the 'anonymous' token is used.
-	//
-	// hcl: acl.tokens.default = string
-	ACLToken string
-
-	// ACLEnableTokenPersistence determines whether or not tokens set via the agent HTTP API
-	// should be persisted to disk and reloaded when an agent restarts.
-	ACLEnableTokenPersistence bool
 
 	// AutopilotCleanupDeadServers enables the automatic cleanup of dead servers when new ones
 	// are added to the peer list. Defaults to true.

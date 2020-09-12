@@ -1,11 +1,11 @@
 ---
 layout: docs
-page_title: Helm Chart Reference - Kubernetes
-sidebar_title: Helm Chart Reference
-description: Reference for the Consul Helm chart.
+page_title: Helm Chart Configuration
+sidebar_title: Helm Chart Configuration
+description: Configuration for the Consul Helm chart.
 ---
 
-# Helm Chart Reference
+# Helm Chart Configuration
 
 ## Configuration (Values)
 
@@ -386,13 +386,18 @@ and consider if they're appropriate for your deployment.
 
   - `tlsServerName` ((#v-externalservers-tlsservername)) (`string: null`) - The server name to use as the SNI host header when connecting with HTTPS.
 
-  - `useSystemRoots` ((#v-externalservers-usesystemroots)) (`boolean: false`) - If true, the Helm chart will ignore the CA set in `global.tls.caCert`
-    and will rely on the container's system CAs for TLS verification when talking to Consul servers. Otherwise, the chart will use `global.tls.caCert`.
+  - `useSystemRoots` ((#v-externalservers-usesystemroots)) (`boolean: false`) - If true, consul-k8s components will ignore the CA set in
+    [`global.tls.caCert`](#v-global-cacert) when making HTTPS calls to Consul servers and
+    will instead use the consul-k8s image's system CAs for TLS verification.
+    If false, consul-k8s components will use `global.tls.caCert` when
+    making HTTPS calls to Consul servers.
+    **NOTE:** This does not affect Consul's internal RPC communication which will
+    always use `global.tls.caCert`.
 
   - `k8sAuthMethodHost` ((#v-externalservers-k8sauthmethodhost)) (`string: null`) - If you are setting `global.acls.manageSystemACLs` and
     `connectInject.enabled` to true, set `k8sAuthMethodHost` to the address of the Kubernetes API server.
     This address must be reachable from the Consul servers.
-    Please see the [Kubernetes Auth Method documentation](https://www.consul.io/docs/acl/auth-methods/kubernetes.html). Requires consul-k8s >= 0.14.0.
+    Please see the [Kubernetes Auth Method documentation](/docs/acl/auth-methods/kubernetes). Requires consul-k8s >= 0.14.0.
 
     You could retrieve this value from your `kubeconfig` by running:
 
@@ -679,7 +684,7 @@ and consider if they're appropriate for your deployment.
   - `imageConsul` ((#v-connectinject-imageConsul)) (`string: global.image`) - The name of the Docker
     image (including any tag) for Consul. This is used for proxy service registration, Envoy configuration, etc.
 
-  - `imageEnvoy` ((#v-connectinject-imageEnvoy)) (`string: ""`) - The name of the Docker image (including any tag) for the Envoy sidecar. `envoy` must be on the executable path within this image. This Envoy version must be compatible with the Consul version used by the injector. If not specified this defaults to letting the injector choose the Envoy image. Check [supported Envoy versions](/docs/connect/proxies/envoy.html#supported-versions) to ensure the version you are using is compatible with Consul.
+  - `imageEnvoy` ((#v-connectinject-imageEnvoy)) (`string: ""`) - The name of the Docker image (including any tag) for the Envoy sidecar. `envoy` must be on the executable path within this image. This Envoy version must be compatible with the Consul version used by the injector. If not specified this defaults to letting the injector choose the Envoy image. Check [supported Envoy versions](/docs/connect/proxies/envoy#supported-versions) to ensure the version you are using is compatible with Consul.
 
   - `namespaceSelector` ((#v-connectinject-namespaceselector)) (`string: ""`) - A [selector](https://
     kubernetes.io/docs/concepts/overview/working-with-objects/labels/)
@@ -828,13 +833,13 @@ and consider if they're appropriate for your deployment.
 
   - `enabled` ((#v-meshgateway-enabled)) (`boolean: true`) - If mesh gateways are enabled, a Deployment will be created that runs
     gateways and Consul Connect will be configured to use gateways.
-    See [mesh gateway docs](https://www.consul.io/docs/connect/mesh_gateway.html).
+    See [mesh gateway docs](/docs/connect/mesh_gateway).
     Requirements: Consul 1.6.0+ and consul-k8s 0.15.0+ if using
     `global.acls.manageSystemACLs`.
 
   - `globalMode` ((#v-meshgateway-globalmode)) (`string: "local"`) - Globally configure which mode the gateway should run in.
     Can be set to either `"remote"`, `"local"`, `"none"` or `""` or `null`.
-    See [mesh gateway modes of operation](https://consul.io/docs/connect/mesh_gateway.html#modes-of-operation) for
+    See [mesh gateway modes of operation](/docs/connect/mesh_gateway#modes-of-operation) for
     a description of each mode.
     If set to anything other than `""` or `null`, `connectInject.centralConfig.enabled`
     should be set to true so that the global config will actually be used.

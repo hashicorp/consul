@@ -12,7 +12,6 @@ import (
 )
 
 func TestLogger_SetupBasic(t *testing.T) {
-	t.Parallel()
 	require := require.New(t)
 	cfg := Config{LogLevel: "INFO"}
 
@@ -22,7 +21,6 @@ func TestLogger_SetupBasic(t *testing.T) {
 }
 
 func TestLogger_SetupInvalidLogLevel(t *testing.T) {
-	t.Parallel()
 	cfg := Config{}
 
 	_, err := Setup(cfg, nil)
@@ -30,7 +28,6 @@ func TestLogger_SetupInvalidLogLevel(t *testing.T) {
 }
 
 func TestLogger_SetupLoggerErrorLevel(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		desc   string
@@ -74,7 +71,6 @@ func TestLogger_SetupLoggerErrorLevel(t *testing.T) {
 }
 
 func TestLogger_SetupLoggerDebugLevel(t *testing.T) {
-	t.Parallel()
 	require := require.New(t)
 	cfg := Config{LogLevel: "DEBUG"}
 	var buf bytes.Buffer
@@ -93,7 +89,6 @@ func TestLogger_SetupLoggerDebugLevel(t *testing.T) {
 }
 
 func TestLogger_SetupLoggerWithName(t *testing.T) {
-	t.Parallel()
 	require := require.New(t)
 	cfg := Config{
 		LogLevel: "DEBUG",
@@ -111,7 +106,6 @@ func TestLogger_SetupLoggerWithName(t *testing.T) {
 }
 
 func TestLogger_SetupLoggerWithJSON(t *testing.T) {
-	t.Parallel()
 	require := require.New(t)
 	cfg := Config{
 		LogLevel: "DEBUG",
@@ -136,7 +130,6 @@ func TestLogger_SetupLoggerWithJSON(t *testing.T) {
 }
 
 func TestLogger_SetupLoggerWithValidLogPath(t *testing.T) {
-	t.Parallel()
 	require := require.New(t)
 
 	tmpDir := testutil.TempDir(t, t.Name())
@@ -153,7 +146,6 @@ func TestLogger_SetupLoggerWithValidLogPath(t *testing.T) {
 }
 
 func TestLogger_SetupLoggerWithInValidLogPath(t *testing.T) {
-	t.Parallel()
 	require := require.New(t)
 
 	cfg := Config{
@@ -169,7 +161,6 @@ func TestLogger_SetupLoggerWithInValidLogPath(t *testing.T) {
 }
 
 func TestLogger_SetupLoggerWithInValidLogPathPermission(t *testing.T) {
-	t.Parallel()
 	require := require.New(t)
 
 	tmpDir := "/tmp/" + t.Name()

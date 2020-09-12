@@ -288,6 +288,9 @@ func (c *cmd) run(args []string) int {
 		case err := <-agent.RetryJoinCh():
 			c.logger.Error("Retry join failed", "error", err)
 			return 1
+		case <-agent.Failed():
+			// The deferred Shutdown method will log the appropriate error
+			return 1
 		case <-agent.ShutdownCh():
 			// agent is already down!
 			return 0

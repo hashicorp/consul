@@ -51,7 +51,7 @@ option to add additional servers.
 
 ## Add a Server with Agent Configuration
 
-In production environments, you should use the [agent configuration](https://www.consul.io/docs/agent/options.html) option, `retry_join`. `retry_join` can be used as a command line flag or in the agent configuration file.
+In production environments, you should use the [agent configuration](/docs/agent/options) option, `retry_join`. `retry_join` can be used as a command line flag or in the agent configuration file.
 
 With the Consul CLI:
 
@@ -70,7 +70,7 @@ In the agent configuration file:
 }
 ```
 
-[`retry_join`](https://www.consul.io/docs/agent/options.html#retry-join)
+[`retry_join`](https://www.consul.io/docs/agent/options#retry-join)
 will ensure that if any server loses connection
 with the cluster for any reason, including the node restarting, it can
 rejoin when it comes back. In additon to working with static IPs, it

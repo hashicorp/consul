@@ -238,7 +238,7 @@ func (c *Configurator) Update(config Config) error {
 	if err != nil {
 		return err
 	}
-	pems, err := loadCAs(config.CAFile, config.CAPath)
+	pems, err := LoadCAs(config.CAFile, config.CAPath)
 	if err != nil {
 		return err
 	}
@@ -420,7 +420,7 @@ func loadKeyPair(certFile, keyFile string) (*tls.Certificate, error) {
 	return &cert, nil
 }
 
-func loadCAs(caFile, caPath string) ([]string, error) {
+func LoadCAs(caFile, caPath string) ([]string, error) {
 	if caFile == "" && caPath == "" {
 		return nil, nil
 	}

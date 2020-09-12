@@ -12,6 +12,7 @@ type ServiceRouterConfigEntry struct {
 
 	Routes []ServiceRoute `json:",omitempty"`
 
+	Meta        map[string]string `json:",omitempty"`
 	CreateIndex uint64
 	ModifyIndex uint64
 }
@@ -111,6 +112,7 @@ type ServiceSplitterConfigEntry struct {
 
 	Splits []ServiceSplit `json:",omitempty"`
 
+	Meta        map[string]string `json:",omitempty"`
 	CreateIndex uint64
 	ModifyIndex uint64
 }
@@ -142,6 +144,7 @@ type ServiceResolverConfigEntry struct {
 	// issuing requests to this upstream service.
 	LoadBalancer *LoadBalancer `json:",omitempty" alias:"load_balancer"`
 
+	Meta        map[string]string `json:",omitempty"`
 	CreateIndex uint64
 	ModifyIndex uint64
 }

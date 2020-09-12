@@ -1,0 +1,41 @@
+{{#if (gt items.length 0)}}
+<ListCollection @items={{items}} class="consul-node-list" as |item index|>
+  <BlockSlot @name="header">
+    <dl class={{item.Status}}>
+      <dt>
+        Health
+      </dt>
+      <dd>
+        <Tooltip @position="top-start">
+          {{#if (eq 'critical' item.Status)}}
+            At least one health check on this node is failing.
+          {{else if (eq 'warning' item.Status)}}
+            At least one health check on this node has a warning.
+          {{else if (eq 'passing' item.Status)}}
+            All health checks are passing.
+          {{else}}
+            There are no health checks.
+          {{/if}}
+        </Tooltip>
+      </dd>
+    </dl>
+    <a data-test-node href={{href-to "dc.nodes.show" item.Node}}>
+      {{item.Node}}
+    </a>
+  </BlockSlot>
+  <BlockSlot @name="details">
+  {{#if (eq item.Address leader.Address)}}
+    <span class="leader" data-test-leader={{leader.Address}}>Leader</span>
+  {{/if}}
+    <dl>
+      <dt>
+        <CopyButton
+          @value={{item.Address}}
+          @name="Address"
+        />
+      </dt>
+      <dd>{{item.Address}}</dd>
+    </dl>
+  </BlockSlot>
+</ListCollection>
+{{/if}}

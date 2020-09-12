@@ -6,7 +6,7 @@ export default Component.extend(Slotted, {
   tagName: '',
   dom: service('dom'),
   multiple: false,
-  subtractive: true,
+  subtractive: false,
   onchange: function() {},
   addOption: function(option) {
     if (typeof this._options === 'undefined') {

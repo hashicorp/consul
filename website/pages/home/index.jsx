@@ -76,6 +76,27 @@ export default function HomePage() {
         ]}
       />
 
+      <LearnCallout
+        headline="Get hands-on experience with Consul"
+        brand="consul"
+        items={[
+          {
+            title: 'Deploy Consul Service Mesh on Kubernetes',
+            category: 'Step-by-Step Tutorial',
+            time: '10 mins',
+            link: 'https://learn.hashicorp.com/tutorials/consul/service-mesh-deploy',
+            image: require('./img/learn/getting-started.svg?url'),
+          },
+          {
+            title: 'Observe Layer 7 Traffic',
+            category: 'Step-by-Step Tutorial',
+            time: '15 mins',
+            link: 'https://learn.hashicorp.com/tutorials/consul/service-mesh-features',
+            image: require('./img/learn/kubernetes.svg?url'),
+          },
+        ]}
+      />
+
       <CaseStudyCarousel
         title="Trusted by startups and the world’s largest organizations"
         caseStudies={[
@@ -187,27 +208,6 @@ export default function HomePage() {
           ]}
         />
       </div>
-
-      <LearnCallout
-        headline="Learn the latest Consul skills"
-        brand="consul"
-        items={[
-          {
-            title: 'Getting Started',
-            category: 'Step-by-Step Guides',
-            time: '48 mins',
-            link: 'https://learn.hashicorp.com/consul/getting-started/install',
-            image: require('./img/learn/getting-started.svg?url'),
-          },
-          {
-            title: 'Run Consul on Kubernetes',
-            category: 'Step-by-Step Guides',
-            time: '142 mins',
-            link: 'https://learn.hashicorp.com/consul/kubernetes/minikube',
-            image: require('./img/learn/kubernetes.svg?url'),
-          },
-        ]}
-      />
 
       <section id="cloud-offerings" className="cloud-offerings g-grid-container">
         <h2 className="g-type-display-2">Learn more about Consul cloud offerings</h2>

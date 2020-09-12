@@ -258,7 +258,7 @@ func TestCacheNotifyPolling(t *testing.T) {
 	}
 
 	require.Equal(events[0].Result, 42)
-	require.Equal(events[0].Meta.Hit, false)
+	require.Equal(events[0].Meta.Hit && events[1].Meta.Hit, false)
 	require.Equal(events[0].Meta.Index, uint64(1))
 	require.True(events[0].Meta.Age < 50*time.Millisecond)
 	require.NoError(events[0].Err)

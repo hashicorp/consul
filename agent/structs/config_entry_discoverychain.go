@@ -69,6 +69,7 @@ type ServiceRouterConfigEntry struct {
 	// the default service.
 	Routes []ServiceRoute
 
+	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
@@ -83,6 +84,13 @@ func (e *ServiceRouterConfigEntry) GetName() string {
 	}
 
 	return e.Name
+}
+
+func (e *ServiceRouterConfigEntry) GetMeta() map[string]string {
+	if e == nil {
+		return nil
+	}
+	return e.Meta
 }
 
 func (e *ServiceRouterConfigEntry) Normalize() error {
@@ -118,6 +126,10 @@ func (e *ServiceRouterConfigEntry) Normalize() error {
 func (e *ServiceRouterConfigEntry) Validate() error {
 	if e.Name == "" {
 		return fmt.Errorf("Name is required")
+	}
+
+	if err := validateConfigEntryMeta(e.Meta); err != nil {
+		return err
 	}
 
 	// Technically you can have no explicit routes at all where just the
@@ -438,6 +450,7 @@ type ServiceSplitterConfigEntry struct {
 	// to the FIRST split.
 	Splits []ServiceSplit
 
+	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
@@ -452,6 +465,13 @@ func (e *ServiceSplitterConfigEntry) GetName() string {
 	}
 
 	return e.Name
+}
+
+func (e *ServiceSplitterConfigEntry) GetMeta() map[string]string {
+	if e == nil {
+		return nil
+	}
+	return e.Meta
 }
 
 func (e *ServiceSplitterConfigEntry) Normalize() error {
@@ -490,6 +510,10 @@ func (e *ServiceSplitterConfigEntry) Validate() error {
 
 	if len(e.Splits) == 0 {
 		return fmt.Errorf("no splits configured")
+	}
+
+	if err := validateConfigEntryMeta(e.Meta); err != nil {
+		return err
 	}
 
 	const maxScaledWeight = 100 * 100
@@ -674,6 +698,7 @@ type ServiceResolverConfigEntry struct {
 	// issuing requests to this upstream service.
 	LoadBalancer *LoadBalancer `json:",omitempty" alias:"load_balancer"`
 
+	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
@@ -746,6 +771,13 @@ func (e *ServiceResolverConfigEntry) GetName() string {
 	return e.Name
 }
 
+func (e *ServiceResolverConfigEntry) GetMeta() map[string]string {
+	if e == nil {
+		return nil
+	}
+	return e.Meta
+}
+
 func (e *ServiceResolverConfigEntry) Normalize() error {
 	if e == nil {
 		return fmt.Errorf("config entry is nil")
@@ -761,6 +793,10 @@ func (e *ServiceResolverConfigEntry) Normalize() error {
 func (e *ServiceResolverConfigEntry) Validate() error {
 	if e.Name == "" {
 		return fmt.Errorf("Name is required")
+	}
+
+	if err := validateConfigEntryMeta(e.Meta); err != nil {
+		return err
 	}
 
 	if len(e.Subsets) > 0 {

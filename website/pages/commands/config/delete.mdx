@@ -1,0 +1,35 @@
+---
+layout: commands
+page_title: 'Commands: Config Delete'
+sidebar_title: delete
+---
+
+# Consul Config Delete
+
+Command: `consul config delete`
+
+The `config delete` command deletes the configuration entry specified by the
+kind and name. See the [configuration entries docs](/docs/agent/config_entries)
+for more details about configuration entries.
+
+## Usage
+
+Usage: `consul config delete [options]`
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+#### Enterprise Options
+
+@include 'http_api_namespace_options.mdx'
+
+#### Config Delete Options
+
+- `-kind` - Specifies the kind of the config entry to read.
+
+- `-name` - Specifies the name of the config entry to read.
+
+## Examples
+
+    $ consul config delete -kind service-defaults -name web

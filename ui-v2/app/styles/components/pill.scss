@@ -6,7 +6,8 @@ td strong {
 span.policy-service-identity,
 span.policy-node-identity,
 .consul-external-source,
-.consul-kind {
+.consul-kind,
+.leader {
   @extend %reduced-pill;
 }
 span.policy-service-identity::before,

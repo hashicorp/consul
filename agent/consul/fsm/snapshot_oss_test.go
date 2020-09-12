@@ -654,6 +654,12 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, fedState2, fedStateLoaded2)
 
+	// Verify usage data is correctly updated
+	idx, nodeCount, err := fsm2.state.NodeCount()
+	require.NoError(t, err)
+	require.Equal(t, len(nodes), nodeCount)
+	require.NotZero(t, idx)
+
 	// Snapshot
 	snap, err = fsm2.Snapshot()
 	require.NoError(t, err)

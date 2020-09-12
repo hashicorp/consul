@@ -27,6 +27,7 @@ type IngressGatewayConfigEntry struct {
 	// what services to associated to those ports.
 	Listeners []IngressListener
 
+	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
@@ -73,6 +74,7 @@ type IngressService struct {
 	// using a "tcp" listener.
 	Hosts []string
 
+	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
 
@@ -91,6 +93,13 @@ func (e *IngressGatewayConfigEntry) GetName() string {
 	}
 
 	return e.Name
+}
+
+func (e *IngressGatewayConfigEntry) GetMeta() map[string]string {
+	if e == nil {
+		return nil
+	}
+	return e.Meta
 }
 
 func (e *IngressGatewayConfigEntry) Normalize() error {
@@ -121,6 +130,10 @@ func (e *IngressGatewayConfigEntry) Normalize() error {
 }
 
 func (e *IngressGatewayConfigEntry) Validate() error {
+	if err := validateConfigEntryMeta(e.Meta); err != nil {
+		return err
+	}
+
 	validProtocols := map[string]bool{
 		"tcp":   true,
 		"http":  true,
@@ -283,6 +296,7 @@ type TerminatingGatewayConfigEntry struct {
 	Name     string
 	Services []LinkedService
 
+	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
@@ -322,6 +336,13 @@ func (e *TerminatingGatewayConfigEntry) GetName() string {
 	return e.Name
 }
 
+func (e *TerminatingGatewayConfigEntry) GetMeta() map[string]string {
+	if e == nil {
+		return nil
+	}
+	return e.Meta
+}
+
 func (e *TerminatingGatewayConfigEntry) Normalize() error {
 	if e == nil {
 		return fmt.Errorf("config entry is nil")
@@ -339,6 +360,10 @@ func (e *TerminatingGatewayConfigEntry) Normalize() error {
 }
 
 func (e *TerminatingGatewayConfigEntry) Validate() error {
+	if err := validateConfigEntryMeta(e.Meta); err != nil {
+		return err
+	}
+
 	seen := make(map[ServiceID]bool)
 
 	for _, svc := range e.Services {
