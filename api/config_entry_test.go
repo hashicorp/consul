@@ -614,6 +614,112 @@ func TestDecodeConfigEntry(t *testing.T) {
 			},
 		},
 		{
+			name: "service-resolver: envoy hash lb kitchen sink",
+			body: `
+			{
+				"Kind": "service-resolver",
+				"Name": "main",
+				"LoadBalancer": {
+					"Policy": "ring_hash",
+					"RingHashConfig": {
+						"MinimumRingSize": 1,
+						"MaximumRingSize": 2
+					},
+					"HashPolicies": [
+						{
+							"Field": "cookie",
+							"FieldValue": "good-cookie",
+							"CookieConfig": {
+								"TTL": "1s",
+								"Path": "/oven"
+							},
+							"Terminal": true
+						},
+						{
+							"Field": "cookie",
+							"FieldValue": "less-good-cookie",
+							"CookieConfig": {
+								"Session": true,
+								"Path": "/toaster"
+							},
+							"Terminal": true
+						},
+						{
+							"Field": "header",
+							"FieldValue": "x-user-id"
+						},
+						{
+							"SourceIP": true
+						}
+					]
+				}
+			}
+			`,
+			expect: &ServiceResolverConfigEntry{
+				Kind: "service-resolver",
+				Name: "main",
+				LoadBalancer: &LoadBalancer{
+					Policy: "ring_hash",
+					RingHashConfig: &RingHashConfig{
+						MinimumRingSize: 1,
+						MaximumRingSize: 2,
+					},
+					HashPolicies: []HashPolicy{
+						{
+							Field:      "cookie",
+							FieldValue: "good-cookie",
+							CookieConfig: &CookieConfig{
+								TTL:  1 * time.Second,
+								Path: "/oven",
+							},
+							Terminal: true,
+						},
+						{
+							Field:      "cookie",
+							FieldValue: "less-good-cookie",
+							CookieConfig: &CookieConfig{
+								Session: true,
+								Path:    "/toaster",
+							},
+							Terminal: true,
+						},
+						{
+							Field:      "header",
+							FieldValue: "x-user-id",
+						},
+						{
+							SourceIP: true,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "service-resolver: envoy least request kitchen sink",
+			body: `
+			{
+				"Kind": "service-resolver",
+				"Name": "main",
+				"LoadBalancer": {
+					"Policy": "least_request",
+					"LeastRequestConfig": {
+						"ChoiceCount": 2
+					}
+				}
+			}
+			`,
+			expect: &ServiceResolverConfigEntry{
+				Kind: "service-resolver",
+				Name: "main",
+				LoadBalancer: &LoadBalancer{
+					Policy: "least_request",
+					LeastRequestConfig: &LeastRequestConfig{
+						ChoiceCount: 2,
+					},
+				},
+			},
+		},
+		{
 			name: "ingress-gateway",
 			body: `
 			{

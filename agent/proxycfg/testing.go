@@ -1287,6 +1287,11 @@ func setupTestVariationConfigEntriesAndSnapshot(
 							Terminal:   true,
 						},
 						{
+							Field:        "cookie",
+							FieldValue:   "chocolate-chip",
+							CookieConfig: &structs.CookieConfig{Session: true},
+						},
+						{
 							Field:      "header",
 							FieldValue: "x-user-id",
 						},

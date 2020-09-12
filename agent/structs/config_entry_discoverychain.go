@@ -882,8 +882,13 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 			if hp.FieldValue != "" && hp.Field == "" {
 				return fmt.Errorf("Bad LoadBalancer HashPolicy[%d]: FieldValue requires a Field to apply to", i)
 			}
-			if hp.CookieConfig != nil && hp.Field != HashPolicyCookie {
-				return fmt.Errorf("Bad LoadBalancer HashPolicy[%d]: cookie_config provided for %q", i, hp.Field)
+			if hp.CookieConfig != nil {
+				if hp.Field != HashPolicyCookie {
+					return fmt.Errorf("Bad LoadBalancer HashPolicy[%d]: cookie_config provided for %q", i, hp.Field)
+				}
+				if hp.CookieConfig.Session && hp.CookieConfig.TTL != 0*time.Second {
+					return fmt.Errorf("Bad LoadBalancer HashPolicy[%d]: a session cookie cannot have an associated TTL", i)
+				}
 			}
 		}
 	}
@@ -1087,7 +1092,10 @@ type HashPolicy struct {
 // CookieConfig contains configuration for the "cookie" hash policy type.
 // This is specified to have Envoy generate a cookie for a client on its first request.
 type CookieConfig struct {
-	// TTL for generated cookies
+	// Generates a session cookie with no expiration.
+	Session bool `json:",omitempty"`
+
+	// TTL for generated cookies. Cannot be specified for session cookies.
 	TTL time.Duration `json:",omitempty"`
 
 	// The path to set for the cookie

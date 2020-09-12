@@ -532,6 +532,156 @@ func TestDecodeConfigEntry(t *testing.T) {
 			},
 		},
 		{
+			name: "service-resolver: envoy hash lb kitchen sink",
+			snake: `
+				kind = "service-resolver"
+				name = "main"
+				load_balancer = {
+					policy = "ring_hash"
+					ring_hash_config = {
+						minimum_ring_size = 1
+						maximum_ring_size = 2
+					}
+					hash_policies = [
+						{
+							field = "cookie"
+							field_value = "good-cookie"
+							cookie_config = {
+								ttl = "1s"
+								path = "/oven"
+							}
+							terminal = true
+						},
+						{
+							field = "cookie"
+							field_value = "less-good-cookie"
+							cookie_config = {
+								session = true
+								path = "/toaster"
+							}
+							terminal = true
+						},
+						{
+							field = "header"
+							field_value = "x-user-id"
+						},
+						{
+							source_ip = true
+						}
+					]
+				}
+			`,
+			camel: `
+				Kind = "service-resolver"
+				Name = "main"
+				LoadBalancer = {
+					Policy = "ring_hash"
+					RingHashConfig = {
+						MinimumRingSize = 1
+						MaximumRingSize = 2
+					}
+					HashPolicies = [
+						{
+							Field = "cookie"
+							FieldValue = "good-cookie"
+							CookieConfig = {
+								TTL = "1s"
+								Path = "/oven"
+							}
+							Terminal = true
+						},
+						{
+							Field = "cookie"
+							FieldValue = "less-good-cookie"
+							CookieConfig = {
+								Session = true
+								Path = "/toaster"
+							}
+							Terminal = true
+						},
+						{
+							Field = "header"
+							FieldValue = "x-user-id"
+						},
+						{
+							SourceIP = true
+						}
+					]
+				}
+			`,
+			expect: &ServiceResolverConfigEntry{
+				Kind: "service-resolver",
+				Name: "main",
+				LoadBalancer: &LoadBalancer{
+					Policy: LBPolicyRingHash,
+					RingHashConfig: &RingHashConfig{
+						MinimumRingSize: 1,
+						MaximumRingSize: 2,
+					},
+					HashPolicies: []HashPolicy{
+						{
+							Field:      HashPolicyCookie,
+							FieldValue: "good-cookie",
+							CookieConfig: &CookieConfig{
+								TTL:  1 * time.Second,
+								Path: "/oven",
+							},
+							Terminal: true,
+						},
+						{
+							Field:      HashPolicyCookie,
+							FieldValue: "less-good-cookie",
+							CookieConfig: &CookieConfig{
+								Session: true,
+								Path:    "/toaster",
+							},
+							Terminal: true,
+						},
+						{
+							Field:      HashPolicyHeader,
+							FieldValue: "x-user-id",
+						},
+						{
+							SourceIP: true,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "service-resolver: envoy least request kitchen sink",
+			snake: `
+				kind = "service-resolver"
+				name = "main"
+				load_balancer = {
+					policy = "least_request"
+					least_request_config = {
+						choice_count = 2
+					}
+				}
+			`,
+			camel: `
+				Kind = "service-resolver"
+				Name = "main"
+				LoadBalancer = {
+					Policy = "least_request"
+					LeastRequestConfig = {
+						ChoiceCount = 2
+					}
+				}
+			`,
+			expect: &ServiceResolverConfigEntry{
+				Kind: "service-resolver",
+				Name: "main",
+				LoadBalancer: &LoadBalancer{
+					Policy: LBPolicyLeastRequest,
+					LeastRequestConfig: &LeastRequestConfig{
+						ChoiceCount: 2,
+					},
+				},
+			},
+		},
+		{
 			name: "ingress-gateway: kitchen sink",
 			snake: `
 				kind = "ingress-gateway"

@@ -38,6 +38,12 @@
                     "terminal": true
                   },
                   {
+                    "cookie": {
+                      "name": "chocolate-chip",
+                      "ttl": "0s"
+                    }
+                  },
+                  {
                     "header": {
                       "headerName": "x-user-id"
                     }

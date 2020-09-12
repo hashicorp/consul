@@ -269,7 +269,10 @@ type HashPolicy struct {
 // CookieConfig contains configuration for the "cookie" hash policy type.
 // This is specified to have Envoy generate a cookie for a client on its first request.
 type CookieConfig struct {
-	// TTL for generated cookies
+	// Generates a session cookie with no expiration.
+	Session bool `json:",omitempty"`
+
+	// TTL for generated cookies. Cannot be specified for session cookies.
 	TTL time.Duration `json:",omitempty"`
 
 	// The path to set for the cookie

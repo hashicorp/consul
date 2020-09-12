@@ -377,6 +377,62 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 			},
 		},
 		{
+			name: "non-zero session ttl gets zeroed out",
+			lb: &structs.LoadBalancer{
+				Policy: structs.LBPolicyMaglev,
+				HashPolicies: []structs.HashPolicy{
+					{
+						Field:      structs.HashPolicyCookie,
+						FieldValue: "oatmeal",
+						CookieConfig: &structs.CookieConfig{
+							TTL:     10 * time.Second,
+							Session: true,
+						},
+					},
+				},
+			},
+			expected: envoyroute.RouteAction{
+				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
+					{
+						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{
+							Cookie: &envoyroute.RouteAction_HashPolicy_Cookie{
+								Name: "oatmeal",
+								Ttl:  ptypes.DurationProto(0 * time.Second),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "zero value ttl omitted if not session cookie",
+			lb: &structs.LoadBalancer{
+				Policy: structs.LBPolicyMaglev,
+				HashPolicies: []structs.HashPolicy{
+					{
+						Field:      structs.HashPolicyCookie,
+						FieldValue: "oatmeal",
+						CookieConfig: &structs.CookieConfig{
+							Path: "/oven",
+						},
+					},
+				},
+			},
+			expected: envoyroute.RouteAction{
+				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
+					{
+						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{
+							Cookie: &envoyroute.RouteAction_HashPolicy_Cookie{
+								Name: "oatmeal",
+								Path: "/oven",
+								Ttl:  nil,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			name: "source addr",
 			lb: &structs.LoadBalancer{
 				Policy: structs.LBPolicyMaglev,
@@ -418,6 +474,14 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 						},
 					},
 					{
+						Field:      structs.HashPolicyCookie,
+						FieldValue: "chocolate-chip",
+						CookieConfig: &structs.CookieConfig{
+							Session: true,
+							Path:    "/oven",
+						},
+					},
+					{
 						Field:      structs.HashPolicyHeader,
 						FieldValue: "special-header",
 						Terminal:   true,
@@ -439,6 +503,15 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 							Cookie: &envoyroute.RouteAction_HashPolicy_Cookie{
 								Name: "oatmeal",
 								Ttl:  ptypes.DurationProto(10 * time.Second),
+								Path: "/oven",
+							},
+						},
+					},
+					{
+						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{
+							Cookie: &envoyroute.RouteAction_HashPolicy_Cookie{
+								Name: "chocolate-chip",
+								Ttl:  ptypes.DurationProto(0 * time.Second),
 								Path: "/oven",
 							},
 						},

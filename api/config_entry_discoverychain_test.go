@@ -327,6 +327,14 @@ func TestAPI_ConfigEntry_ServiceResolver_LoadBalancer(t *testing.T) {
 							},
 						},
 						{
+							Field:      "cookie",
+							FieldValue: "sugar",
+							CookieConfig: &CookieConfig{
+								Session: true,
+								Path:    "/tin",
+							},
+						},
+						{
 							SourceIP: true,
 						},
 					},

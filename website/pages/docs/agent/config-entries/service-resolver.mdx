@@ -206,7 +206,9 @@ LoadBalancer = {
      - `CookieConfig` `(CookieConfig)` - Additional configuration for the "cookie" hash policy type.
         This is specified to have Envoy generate a cookie for a client on its first request.
         
-       - `TTL` `(duration: 0s)` - TTL for generated cookies.
+       - `Session` `(bool: false)` - Generates a session cookie with no expiration.
+
+       - `TTL` `(duration: 0s)` - TTL for generated cookies. Cannot be specified for session cookies.
          
        - `Path` `(string: "")` - The path to set for the cookie.
         

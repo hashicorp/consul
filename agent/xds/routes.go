@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"time"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoyroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
@@ -614,8 +615,16 @@ func injectLBToRouteAction(lb *structs.LoadBalancer, action *envoyroute.RouteAct
 				Name: policy.FieldValue,
 			}
 			if policy.CookieConfig != nil {
-				cookie.Ttl = ptypes.DurationProto(policy.CookieConfig.TTL)
 				cookie.Path = policy.CookieConfig.Path
+
+				if policy.CookieConfig.TTL != 0*time.Second {
+					cookie.Ttl = ptypes.DurationProto(policy.CookieConfig.TTL)
+				}
+
+				// Envoy will generate a session cookie if the ttl is present and zero.
+				if policy.CookieConfig.Session {
+					cookie.Ttl = ptypes.DurationProto(0 * time.Second)
+				}
 			}
 			result = append(result, &envoyroute.RouteAction_HashPolicy{
 				PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{

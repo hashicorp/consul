@@ -1188,6 +1188,15 @@ func TestParseConfigEntry(t *testing.T) {
 							terminal = true
 						},
 						{
+							field = "cookie"
+							field_value = "less-good-cookie"
+							cookie_config = {
+								session = true
+								path = "/toaster"
+							}
+							terminal = true
+						},
+						{
 							field = "header"
 							field_value = "x-user-id"
 						},
@@ -1213,6 +1222,15 @@ func TestParseConfigEntry(t *testing.T) {
 							CookieConfig = {
 								TTL = "1s"
 								Path = "/oven"
+							}
+							Terminal = true
+						},
+						{
+							Field = "cookie"
+							FieldValue = "less-good-cookie"
+							CookieConfig = {
+								Session = true
+								Path = "/toaster"
 							}
 							Terminal = true
 						},
@@ -1243,6 +1261,15 @@ func TestParseConfigEntry(t *testing.T) {
 							"cookie_config": {
 								"ttl": "1s",
 								"path": "/oven"
+							},
+							"terminal": true
+						},
+						{
+							"field": "cookie",
+							"field_value": "less-good-cookie",
+							"cookie_config": {
+								"session": true,
+								"path": "/toaster"
 							},
 							"terminal": true
 						},
@@ -1278,6 +1305,15 @@ func TestParseConfigEntry(t *testing.T) {
 							"Terminal": true
 						},
 						{
+							"Field": "cookie",
+							"FieldValue": "less-good-cookie",
+							"CookieConfig": {
+								"Session": true,
+								"Path": "/toaster"
+							},
+							"Terminal": true
+						},
+						{
 							"Field": "header",
 							"FieldValue": "x-user-id"
 						},
@@ -1304,6 +1340,15 @@ func TestParseConfigEntry(t *testing.T) {
 							CookieConfig: &api.CookieConfig{
 								TTL:  1 * time.Second,
 								Path: "/oven",
+							},
+							Terminal: true,
+						},
+						{
+							Field:      structs.HashPolicyCookie,
+							FieldValue: "less-good-cookie",
+							CookieConfig: &api.CookieConfig{
+								Session: true,
+								Path:    "/toaster",
 							},
 							Terminal: true,
 						},

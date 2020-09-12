@@ -656,7 +656,7 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 			validateErr: `HashPolicies specified for non-hash-based Policy`,
 		},
 		{
-			name: "empty policy with hash policy",
+			name: "cookie config with header policy",
 			entry: &ServiceResolverConfigEntry{
 				Kind: ServiceResolver,
 				Name: "test",
@@ -677,7 +677,28 @@ func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
 			validateErr: `cookie_config provided for "header"`,
 		},
 		{
-			name: "empty policy with hash policy",
+			name: "cannot generate session cookie with ttl",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: &LoadBalancer{
+					Policy: LBPolicyMaglev,
+					HashPolicies: []HashPolicy{
+						{
+							Field:      HashPolicyCookie,
+							FieldValue: "good-cookie",
+							CookieConfig: &CookieConfig{
+								Session: true,
+								TTL:     10 * time.Second,
+							},
+						},
+					},
+				},
+			},
+			validateErr: `a session cookie cannot have an associated TTL`,
+		},
+		{
+			name: "valid cookie policy",
 			entry: &ServiceResolverConfigEntry{
 				Kind: ServiceResolver,
 				Name: "test",
