@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
@@ -1441,4 +1442,44 @@ func TestLeader_lessThanHalfTimePassed(t *testing.T) {
 	require.False(t, lessThanHalfTimePassed(now, now.Add(-10*time.Second), now.Add(10*time.Second)))
 
 	require.True(t, lessThanHalfTimePassed(now, now.Add(-10*time.Second), now.Add(20*time.Second)))
+}
+
+func TestLeader_retryLoopBackoffHandleSuccess(t *testing.T) {
+	type test struct {
+		desc     string
+		loopFn   func() error
+		abort    bool
+		timedOut bool
+	}
+	success := func() error {
+		return nil
+	}
+	failure := func() error {
+		return fmt.Errorf("test error")
+	}
+	tests := []test{
+		{"loop without error and no abortOnSuccess keeps running", success, false, true},
+		{"loop with error and no abortOnSuccess keeps running", failure, false, true},
+		{"loop without error and abortOnSuccess is stopped", success, true, false},
+		{"loop with error and abortOnSuccess keeps running", failure, true, true},
+	}
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.desc, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+			defer cancel()
+
+			retryLoopBackoffHandleSuccess(ctx, tc.loopFn, func(_ error) {}, tc.abort)
+			select {
+			case <-ctx.Done():
+				if !tc.timedOut {
+					t.Fatal("should not have timed out")
+				}
+			default:
+				if tc.timedOut {
+					t.Fatal("should have timed out")
+				}
+			}
+		})
+	}
 }

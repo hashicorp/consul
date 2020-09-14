@@ -18,6 +18,9 @@ const reset = function() {
     list.add(item);
   });
 };
+const startup = function() {
+  api.server.setCookie('CONSUL_LATENCY', 0);
+};
 
 const runTest = function(context, libraries, steps, scenarioContext) {
   return new Promise((resolve, reject) => {
@@ -89,6 +92,9 @@ export const setupFeature = function(featureAnnotations) {
 };
 export const setupScenario = function(featureAnnotations, scenarioAnnotations) {
   return function(model) {
+    model.beforeEach(function() {
+      startup();
+    });
     model.afterEach(function() {
       reset();
     });

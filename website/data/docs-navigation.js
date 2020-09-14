@@ -93,8 +93,9 @@ export default [
     content: [
       {
         category: 'installation',
+        name: 'Get Started',
         content: [
-          'helm',
+          'install',
           {
             category: 'platforms',
             name: 'Platform Guides',
@@ -149,13 +150,14 @@ export default [
           'ingress-gateways',
           'terminating-gateways',
           'connect-ca-provider',
+          'ambassador',
         ],
       },
       'service-sync',
       'dns',
-      'ambassador',
       'upgrade',
       'uninstall',
+      'helm',
     ],
   },
   {
@@ -220,7 +222,21 @@ export default [
     category: 'architecture',
     content: ['anti-entropy', 'consensus', 'gossip', 'jepsen', 'coordinates'],
   },
-  'partnerships',
+  {
+    category: 'integrate',
+    name: 'Integrations',
+    content: [
+      'partnerships',
+      {
+        title: 'Ambassador Integration',
+        href: '/docs/k8s/connect/ambassador',
+      },
+      {
+        title: 'Proxy Integration',
+        href: '/docs/connect/proxies/integrate',
+      },
+    ],
+  },
   'download-tools',
   {
     category: 'upgrading',

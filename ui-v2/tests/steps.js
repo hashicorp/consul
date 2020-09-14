@@ -1,8 +1,6 @@
-import pages from 'consul-ui/tests/pages';
-import Inflector from 'ember-inflector';
-import utils from '@ember/test-helpers';
-
-import api from 'consul-ui/tests/helpers/api';
+// This files export is executed from 2 places:
+// 1. consul-ui/tests/acceptance/steps/steps.js - run during testing
+// 2. consul-ui/lib/commands/lib/list.js - run when listing steps via the CLI
 
 import models from './steps/doubles/model';
 import http from './steps/doubles/http';
@@ -18,40 +16,48 @@ import assertForm from './steps/assertions/form';
 
 // const dont = `( don't| shouldn't| can't)?`;
 
-const pluralize = function(str) {
-  return Inflector.inflector.pluralize(str);
-};
-const getLastNthRequest = function(getRequests) {
-  return function(n, method) {
-    let requests = getRequests()
-      .slice(0)
-      .reverse();
-    if (method) {
-      requests = requests.filter(function(item) {
-        return item.method === method;
-      });
-    }
-    if (n == null) {
-      return requests;
-    }
-    return requests[n];
+export default function({
+  assert,
+  library,
+  pages = {},
+  utils = {},
+  api = {},
+  Inflector = {},
+  $ = {},
+}) {
+  const pluralize = function(str) {
+    return Inflector.inflector.pluralize(str);
   };
-};
-const mb = function(path) {
-  return function(obj) {
-    return (
-      path.map(function(prop) {
-        obj = obj || {};
-        if (isNaN(parseInt(prop))) {
-          return (obj = obj[prop]);
-        } else {
-          return (obj = obj.objectAt(parseInt(prop)));
-        }
-      }) && obj
-    );
+  const getLastNthRequest = function(getRequests) {
+    return function(n, method) {
+      let requests = getRequests()
+        .slice(0)
+        .reverse();
+      if (method) {
+        requests = requests.filter(function(item) {
+          return item.method === method;
+        });
+      }
+      if (n == null) {
+        return requests;
+      }
+      return requests[n];
+    };
   };
-};
-export default function(assert, library) {
+  const mb = function(path) {
+    return function(obj) {
+      return (
+        path.map(function(prop) {
+          obj = obj || {};
+          if (isNaN(parseInt(prop))) {
+            return (obj = obj[prop]);
+          } else {
+            return (obj = obj.objectAt(parseInt(prop)));
+          }
+        }) && obj
+      );
+    };
+  };
   const pauseUntil = function(run, message = 'assertion timed out') {
     return new Promise(function(r) {
       let count = 0;
@@ -135,7 +141,7 @@ export default function(assert, library) {
   debug(library, assert, utils.currentURL);
   assertHttp(library, assert, lastNthRequest);
   assertModel(library, assert, find, getCurrentPage, pauseUntil, pluralize);
-  assertPage(library, assert, find, getCurrentPage);
+  assertPage(library, assert, find, getCurrentPage, $);
   assertDom(library, assert, pauseUntil, utils.find, utils.currentURL, clipboard);
   assertForm(library, assert, find, getCurrentPage);
 

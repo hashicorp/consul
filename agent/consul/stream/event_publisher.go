@@ -61,7 +61,11 @@ type changeEvents struct {
 // SnapshotHandlers is a mapping of Topic to a function which produces a snapshot
 // of events for the SubscribeRequest. Events are appended to the snapshot using SnapshotAppender.
 // The nil Topic is reserved and should not be used.
-type SnapshotHandlers map[Topic]func(*SubscribeRequest, SnapshotAppender) (index uint64, err error)
+type SnapshotHandlers map[Topic]SnapshotFunc
+
+// SnapshotFunc builds a snapshot for the subscription request, and appends the
+// events to the Snapshot using SnapshotAppender.
+type SnapshotFunc func(SubscribeRequest, SnapshotAppender) (index uint64, err error)
 
 // SnapshotAppender appends groups of events to create a Snapshot of state.
 type SnapshotAppender interface {

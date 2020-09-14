@@ -39,7 +39,7 @@ export default function MultiPlatformServiceMeshPage() {
             {
               text: 'Learn More',
               url:
-                'https://learn.hashicorp.com/consul/security-networking/certificates',
+                'https://learn.hashicorp.com/tutorials/consul/service-mesh-with-envoy-proxy',
               type: 'outbound',
             },
           ],
@@ -58,7 +58,7 @@ export default function MultiPlatformServiceMeshPage() {
           links: [
             {
               text: 'Learn More',
-              url: '/docs/connect/l7-traffic-management',
+              url: 'https://learn.hashicorp.com/tutorials/consul/service-mesh-features',
               type: 'outbound',
             },
           ],

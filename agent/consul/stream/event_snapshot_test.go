@@ -161,8 +161,8 @@ func genSequentialIDs(start, end int) []string {
 	return ids
 }
 
-func testHealthConsecutiveSnapshotFn(size int, index uint64) snapFunc {
-	return func(req *SubscribeRequest, buf SnapshotAppender) (uint64, error) {
+func testHealthConsecutiveSnapshotFn(size int, index uint64) SnapshotFunc {
+	return func(req SubscribeRequest, buf SnapshotAppender) (uint64, error) {
 		for i := 0; i < size; i++ {
 			// Event content is arbitrary we are just using Health because it's the
 			// first type defined. We just want a set of things with consecutive

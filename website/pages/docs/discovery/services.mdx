@@ -135,6 +135,14 @@ Services may also contain a `token` field to provide an ACL token. This token is
 used for any interaction with the catalog for the service, including
 [anti-entropy syncs](/docs/internals/anti-entropy) and deregistration.
 
+Services registered in Consul clusters where both [Consul Namespaces](/docs/enterprise/namespaces)<EnterpriseAlert inline />
+and the ACL system are enabled can be registered to specific namespaces that are associated with
+ACL tokens scoped to that namespace. Services registed with a service definition
+will not inherit the namespace associated with the ACL token specified in the `token`
+field. The `namespace` field, in addition to the `token` field, must be
+included in the service definition for the service to be registered to the
+namespace that the ACL token is scoped to.
+
 The `enable_tag_override` can optionally be specified to disable the
 anti-entropy feature for this service. If `enable_tag_override` is set to
 `TRUE` then external agents can update this service in the

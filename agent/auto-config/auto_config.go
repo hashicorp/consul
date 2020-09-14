@@ -222,7 +222,7 @@ func (ac *AutoConfig) recordInitialConfiguration(resp *pbautoconf.AutoConfigResp
 	}
 
 	// ignoring the return value which would indicate a change in the token
-	_ = ac.acConfig.Tokens.UpdateAgentToken(config.ACLAgentToken, token.TokenSourceConfig)
+	_ = ac.acConfig.Tokens.UpdateAgentToken(config.ACLTokens.ACLAgentToken, token.TokenSourceConfig)
 
 	// extra a structs.SignedResponse from the AutoConfigResponse for use in cache prepopulation
 	signed, err := extractSignedResponse(resp)

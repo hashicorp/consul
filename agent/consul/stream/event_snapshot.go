@@ -18,8 +18,6 @@ type eventSnapshot struct {
 	snapBuffer *eventBuffer
 }
 
-type snapFunc func(req *SubscribeRequest, buf SnapshotAppender) (uint64, error)
-
 // newEventSnapshot creates a snapshot buffer based on the subscription request.
 // The current buffer head for the topic requested is passed so that once the
 // snapshot is complete and has been delivered into the buffer, any events
@@ -27,7 +25,7 @@ type snapFunc func(req *SubscribeRequest, buf SnapshotAppender) (uint64, error)
 // missed. Once the snapshot is delivered the topic buffer is spliced onto the
 // snapshot buffer so that subscribers will naturally follow from the snapshot
 // to wait for any subsequent updates.
-func newEventSnapshot(req *SubscribeRequest, topicBufferHead *bufferItem, fn snapFunc) *eventSnapshot {
+func newEventSnapshot(req *SubscribeRequest, topicBufferHead *bufferItem, fn SnapshotFunc) *eventSnapshot {
 	buf := newEventBuffer()
 	s := &eventSnapshot{
 		Head:       buf.Head(),
@@ -35,7 +33,7 @@ func newEventSnapshot(req *SubscribeRequest, topicBufferHead *bufferItem, fn sna
 	}
 
 	go func() {
-		idx, err := fn(req, s.snapBuffer)
+		idx, err := fn(*req, s.snapBuffer)
 		if err != nil {
 			s.snapBuffer.AppendItem(&bufferItem{Err: err})
 			return
