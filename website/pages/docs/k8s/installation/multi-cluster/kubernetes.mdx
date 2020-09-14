@@ -113,7 +113,7 @@ Modifications:
    mesh gateway, for example using a Node Port service or a custom DNS entry,
    see the [Helm reference](/docs/k8s/helm#v-meshgateway) for that setting.
 
-With your `config.yaml` ready to go, follow our [Installation Guide](/docs/k8s/installation)
+With your `config.yaml` ready to go, follow our [Installation Guide](/docs/k8s/installation/install)
 to install Consul on your primary cluster and then skip ahead to the [Federation Secret](#federation-secret)
 section.
 
@@ -337,7 +337,7 @@ Modifications:
    mesh gateway, for example using a Node Port service or a custom DNS entry,
    see the [Helm reference](/docs/k8s/helm#v-meshgateway) for that setting.
 
-With your `config.yaml` ready to go, follow our [Installation Guide](/docs/k8s/installation)
+With your `config.yaml` ready to go, follow our [Installation Guide](/docs/k8s/installation/install)
 to install Consul on your secondary cluster(s).
 
 ## Verifying Federation
@@ -375,7 +375,7 @@ You can switch kubectl contexts and run the same command in `dc2` with the flag
 ### Consul UI
 
 We can also use the Consul UI to verify federation.
-See [Viewing the Consul UI](/docs/k8s/installation#viewing-the-consul-ui)
+See [Viewing the Consul UI](/docs/k8s/installation/install#viewing-the-consul-ui)
 for instructions on how to view the UI.
 
 ~> NOTE: If ACLs are enabled, your kubectl context must be in the primary datacenter
