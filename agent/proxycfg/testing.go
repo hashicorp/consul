@@ -99,7 +99,7 @@ func TestLeafForCA(t testing.T, ca *structs.CARoot) *structs.IssuedCert {
 
 // TestIntentions returns a sample intentions match result useful to
 // mocking service discovery cache results.
-func TestIntentions(t testing.T) *structs.IndexedIntentionMatches {
+func TestIntentions() *structs.IndexedIntentionMatches {
 	return &structs.IndexedIntentionMatches{
 		Matches: []structs.Intentions{
 			[]*structs.Intention{
@@ -685,6 +685,8 @@ func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
 			PreparedQueryEndpoints: map[string]structs.CheckServiceNodes{
 				"prepared_query:geo-cache": TestUpstreamNodes(t),
 			},
+			Intentions:    nil, // no intentions defined
+			IntentionsSet: true,
 		},
 		Datacenter: "dc1",
 	}
@@ -761,6 +763,10 @@ func TestConfigSnapshotDiscoveryChainWithGRPCRouter(t testing.T) *ConfigSnapshot
 
 func TestConfigSnapshotDiscoveryChainWithRouter(t testing.T) *ConfigSnapshot {
 	return testConfigSnapshotDiscoveryChain(t, "chain-and-router")
+}
+
+func TestConfigSnapshotDiscoveryChainWithLB(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotDiscoveryChain(t, "lb-resolver")
 }
 
 func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalEntries ...structs.ConfigEntry) *ConfigSnapshot {
@@ -1248,6 +1254,55 @@ func setupTestVariationConfigEntriesAndSnapshot(
 				},
 			},
 		)
+	case "lb-resolver":
+		entries = append(entries,
+			&structs.ProxyConfigEntry{
+				Kind: structs.ProxyDefaults,
+				Name: structs.ProxyConfigGlobal,
+				Config: map[string]interface{}{
+					"protocol": "http",
+				},
+			},
+			&structs.ServiceSplitterConfigEntry{
+				Kind: structs.ServiceSplitter,
+				Name: "db",
+				Splits: []structs.ServiceSplit{
+					{Weight: 95.5, Service: "something-else"},
+					{Weight: 4.5, Service: "db"},
+				},
+			},
+			&structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "db",
+				LoadBalancer: &structs.LoadBalancer{
+					Policy: "ring_hash",
+					RingHashConfig: &structs.RingHashConfig{
+						MinimumRingSize: 20,
+						MaximumRingSize: 30,
+					},
+					HashPolicies: []structs.HashPolicy{
+						{
+							Field:      "cookie",
+							FieldValue: "chocolate-chip",
+							Terminal:   true,
+						},
+						{
+							Field:        "cookie",
+							FieldValue:   "chocolate-chip",
+							CookieConfig: &structs.CookieConfig{Session: true},
+						},
+						{
+							Field:      "header",
+							FieldValue: "x-user-id",
+						},
+						{
+							SourceIP: true,
+							Terminal: true,
+						},
+					},
+				},
+			},
+		)
 	case "http-multiple-services":
 	default:
 		t.Fatalf("unexpected variation: %q", variation)
@@ -1346,6 +1401,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		snap.WatchedUpstreamEndpoints["bar"] = map[string]structs.CheckServiceNodes{
 			"bar.default.dc1": TestUpstreamNodesAlternate(t),
 		}
+	case "lb-resolver":
 	default:
 		t.Fatalf("unexpected variation: %q", variation)
 		return ConfigSnapshotUpstreams{}
@@ -1554,6 +1610,10 @@ func TestConfigSnapshotIngressGateway(t testing.T) *ConfigSnapshot {
 
 func TestConfigSnapshotIngressGatewayNoServices(t testing.T) *ConfigSnapshot {
 	return testConfigSnapshotIngressGateway(t, false, "tcp", "default")
+}
+
+func TestConfigSnapshotIngressWithLB(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotIngressGateway(t, true, "http", "lb-resolver")
 }
 
 func TestConfigSnapshotIngressDiscoveryChainWithEntries(t testing.T, additionalEntries ...structs.ConfigEntry) *ConfigSnapshot {
@@ -1793,6 +1853,12 @@ func testConfigSnapshotTerminatingGateway(t testing.T, populateServices bool) *C
 				db:    dbNodes,
 				cache: cacheNodes,
 			},
+			ServiceResolversSet: map[structs.ServiceName]bool{
+				web:   true,
+				api:   true,
+				db:    true,
+				cache: true,
+			},
 			GatewayServices: map[structs.ServiceName]structs.GatewayService{
 				web: {
 					Service: web,
@@ -1817,20 +1883,43 @@ func testConfigSnapshotTerminatingGateway(t testing.T, populateServices bool) *C
 				cache: {cacheNodes[0], cacheNodes[1]},
 			},
 		}
+
+		snap.TerminatingGateway.ServiceConfigs = map[structs.ServiceName]*structs.ServiceConfigResponse{
+			web: {
+				ProxyConfig: map[string]interface{}{"protocol": "tcp"},
+			},
+			api: {
+				ProxyConfig: map[string]interface{}{"protocol": "tcp"},
+			},
+			db: {
+				ProxyConfig: map[string]interface{}{"protocol": "tcp"},
+			},
+			cache: {
+				ProxyConfig: map[string]interface{}{"protocol": "tcp"},
+			},
+		}
+		snap.TerminatingGateway.Intentions = map[structs.ServiceName]structs.Intentions{
+			// no intentions defined for thse services
+			web:   nil,
+			api:   nil,
+			db:    nil,
+			cache: nil,
+		}
+
 		snap.TerminatingGateway.ServiceLeaves = map[structs.ServiceName]*structs.IssuedCert{
-			structs.NewServiceName("web", nil): {
+			web: {
 				CertPEM:       golden(t, "test-leaf-cert"),
 				PrivateKeyPEM: golden(t, "test-leaf-key"),
 			},
-			structs.NewServiceName("api", nil): {
+			api: {
 				CertPEM:       golden(t, "alt-test-leaf-cert"),
 				PrivateKeyPEM: golden(t, "alt-test-leaf-key"),
 			},
-			structs.NewServiceName("db", nil): {
+			db: {
 				CertPEM:       golden(t, "db-test-leaf-cert"),
 				PrivateKeyPEM: golden(t, "db-test-leaf-key"),
 			},
-			structs.NewServiceName("cache", nil): {
+			cache: {
 				CertPEM:       golden(t, "cache-test-leaf-cert"),
 				PrivateKeyPEM: golden(t, "cache-test-leaf-key"),
 			},

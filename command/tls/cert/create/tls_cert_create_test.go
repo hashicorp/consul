@@ -74,7 +74,6 @@ func TestTlsCertCreateCommand_InvalidArgs(t *testing.T) {
 
 func TestTlsCertCreateCommand_fileCreate(t *testing.T) {
 	testDir := testutil.TempDir(t, "tls")
-	defer os.RemoveAll(testDir)
 
 	defer switchToTempDir(t, testDir)()
 

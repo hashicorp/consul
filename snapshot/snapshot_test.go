@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -126,7 +125,6 @@ func makeRaft(t *testing.T, dir string) (*raft.Raft, *MockFSM) {
 
 func TestSnapshot(t *testing.T) {
 	dir := testutil.TempDir(t, "snapshot")
-	defer os.RemoveAll(dir)
 
 	// Make a Raft and populate it with some data. We tee everything we
 	// apply off to a buffer for checking post-snapshot.
@@ -235,7 +233,6 @@ func TestSnapshot_BadVerify(t *testing.T) {
 
 func TestSnapshot_TruncatedVerify(t *testing.T) {
 	dir := testutil.TempDir(t, "snapshot")
-	defer os.RemoveAll(dir)
 
 	// Make a Raft and populate it with some data. We tee everything we
 	// apply off to a buffer for checking post-snapshot.
@@ -281,7 +278,6 @@ func TestSnapshot_TruncatedVerify(t *testing.T) {
 
 func TestSnapshot_BadRestore(t *testing.T) {
 	dir := testutil.TempDir(t, "snapshot")
-	defer os.RemoveAll(dir)
 
 	// Make a Raft and populate it with some data.
 	before, _ := makeRaft(t, filepath.Join(dir, "before"))

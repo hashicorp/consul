@@ -9,8 +9,10 @@ import (
 	"time"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
@@ -230,6 +232,11 @@ func TestClustersFromSnapshot(t *testing.T) {
 			setup:  nil,
 		},
 		{
+			name:   "connect-proxy-lb-in-resolver",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithLB,
+			setup:  nil,
+		},
+		{
 			name:   "expose-paths-local-app-paths",
 			create: proxycfg.TestConfigSnapshotExposeConfig,
 		},
@@ -344,6 +351,61 @@ func TestClustersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name:   "mesh-gateway-non-hash-lb-injected",
+			create: proxycfg.TestConfigSnapshotMeshGateway,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.MeshGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("bar", nil): {
+						Kind: structs.ServiceResolver,
+						Name: "bar",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"v1": {
+								Filter: "Service.Meta.Version == 1",
+							},
+							"v2": {
+								Filter:      "Service.Meta.Version == 2",
+								OnlyPassing: true,
+							},
+						},
+						LoadBalancer: &structs.LoadBalancer{
+							Policy: "least_request",
+							LeastRequestConfig: &structs.LeastRequestConfig{
+								ChoiceCount: 5,
+							},
+						},
+					},
+				}
+			},
+		},
+		{
+			name:   "mesh-gateway-hash-lb-ignored",
+			create: proxycfg.TestConfigSnapshotMeshGateway,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.MeshGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("bar", nil): {
+						Kind: structs.ServiceResolver,
+						Name: "bar",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"v1": {
+								Filter: "Service.Meta.Version == 1",
+							},
+							"v2": {
+								Filter:      "Service.Meta.Version == 2",
+								OnlyPassing: true,
+							},
+						},
+						LoadBalancer: &structs.LoadBalancer{
+							Policy: "ring_hash",
+							RingHashConfig: &structs.RingHashConfig{
+								MinimumRingSize: 20,
+								MaximumRingSize: 50,
+							},
+						},
+					},
+				}
+			},
+		},
+		{
 			name:   "ingress-gateway",
 			create: proxycfg.TestConfigSnapshotIngressGateway,
 			setup:  nil,
@@ -419,6 +481,11 @@ func TestClustersFromSnapshot(t *testing.T) {
 			setup:  nil,
 		},
 		{
+			name:   "ingress-lb-in-resolver",
+			create: proxycfg.TestConfigSnapshotIngressWithLB,
+			setup:  nil,
+		},
+		{
 			name:   "terminating-gateway",
 			create: proxycfg.TestConfigSnapshotTerminatingGateway,
 			setup:  nil,
@@ -456,6 +523,12 @@ func TestClustersFromSnapshot(t *testing.T) {
 						},
 					},
 				}
+				snap.TerminatingGateway.ServiceConfigs[structs.NewServiceName("web", nil)] = &structs.ServiceConfigResponse{
+					ProxyConfig: map[string]interface{}{"protocol": "http"},
+				}
+				snap.TerminatingGateway.ServiceConfigs[structs.NewServiceName("cache", nil)] = &structs.ServiceConfigResponse{
+					ProxyConfig: map[string]interface{}{"protocol": "http"},
+				}
 			},
 		},
 		{
@@ -481,6 +554,12 @@ func TestClustersFromSnapshot(t *testing.T) {
 							},
 						},
 					},
+				}
+				snap.TerminatingGateway.ServiceConfigs[structs.NewServiceName("api", nil)] = &structs.ServiceConfigResponse{
+					ProxyConfig: map[string]interface{}{"protocol": "http"},
+				}
+				snap.TerminatingGateway.ServiceConfigs[structs.NewServiceName("cache", nil)] = &structs.ServiceConfigResponse{
+					ProxyConfig: map[string]interface{}{"protocol": "http"},
 				}
 			},
 		},
@@ -518,6 +597,41 @@ func TestClustersFromSnapshot(t *testing.T) {
 						},
 					},
 				}
+				snap.TerminatingGateway.ServiceConfigs[structs.NewServiceName("web", nil)] = &structs.ServiceConfigResponse{
+					ProxyConfig: map[string]interface{}{"protocol": "http"},
+				}
+			},
+		},
+		{
+			name:   "terminating-gateway-lb-config",
+			create: proxycfg.TestConfigSnapshotTerminatingGateway,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("web", nil): {
+						Kind:          structs.ServiceResolver,
+						Name:          "web",
+						DefaultSubset: "v2",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"v1": {
+								Filter: "Service.Meta.Version == 1",
+							},
+							"v2": {
+								Filter:      "Service.Meta.Version == 2",
+								OnlyPassing: true,
+							},
+						},
+						LoadBalancer: &structs.LoadBalancer{
+							Policy: "ring_hash",
+							RingHashConfig: &structs.RingHashConfig{
+								MinimumRingSize: 20,
+								MaximumRingSize: 50,
+							},
+						},
+					},
+				}
+				snap.TerminatingGateway.ServiceConfigs[structs.NewServiceName("web", nil)] = &structs.ServiceConfigResponse{
+					ProxyConfig: map[string]interface{}{"protocol": "http"},
+				}
 			},
 		},
 		{
@@ -527,8 +641,9 @@ func TestClustersFromSnapshot(t *testing.T) {
 		},
 	}
 
-	for _, envoyVersion := range supportedEnvoyVersions {
-		sf := determineSupportedProxyFeaturesFromString(envoyVersion)
+	for _, envoyVersion := range proxysupport.EnvoyVersions {
+		sf, err := determineSupportedProxyFeaturesFromString(envoyVersion)
+		require.NoError(t, err)
 		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
 			for _, tt := range tests {
 				t.Run(tt.name, func(t *testing.T) {
@@ -705,7 +820,7 @@ var customAppClusterJSONTpl = `{
 	"hosts": [
 		{
 			"socketAddress": {
-				"address": "127.0.0.1",
+				"address": "127.0.0.1", 
 				"portValue": 8080
 			}
 		}
@@ -738,12 +853,85 @@ func setupTLSRootsAndLeaf(t *testing.T, snap *proxycfg.ConfigSnapshot) {
 	}
 }
 
-// supportedEnvoyVersions lists the versions that we generated golden tests for
-//
-// see: https://www.consul.io/docs/connect/proxies/envoy#supported-versions
-var supportedEnvoyVersions = []string{
-	"1.14.4",
-	"1.13.4",
-	"1.12.6",
-	"1.11.2",
+func TestEnvoyLBConfig_InjectToCluster(t *testing.T) {
+	var tests = []struct {
+		name     string
+		lb       *structs.LoadBalancer
+		expected envoy.Cluster
+	}{
+		{
+			name: "skip empty",
+			lb: &structs.LoadBalancer{
+				Policy: "",
+			},
+			expected: envoy.Cluster{},
+		},
+		{
+			name: "round robin",
+			lb: &structs.LoadBalancer{
+				Policy: structs.LBPolicyRoundRobin,
+			},
+			expected: envoy.Cluster{LbPolicy: envoy.Cluster_ROUND_ROBIN},
+		},
+		{
+			name: "random",
+			lb: &structs.LoadBalancer{
+				Policy: structs.LBPolicyRandom,
+			},
+			expected: envoy.Cluster{LbPolicy: envoy.Cluster_RANDOM},
+		},
+		{
+			name: "maglev",
+			lb: &structs.LoadBalancer{
+				Policy: structs.LBPolicyMaglev,
+			},
+			expected: envoy.Cluster{LbPolicy: envoy.Cluster_MAGLEV},
+		},
+		{
+			name: "ring_hash",
+			lb: &structs.LoadBalancer{
+				Policy: structs.LBPolicyRingHash,
+				RingHashConfig: &structs.RingHashConfig{
+					MinimumRingSize: 3,
+					MaximumRingSize: 7,
+				},
+			},
+			expected: envoy.Cluster{
+				LbPolicy: envoy.Cluster_RING_HASH,
+				LbConfig: &envoy.Cluster_RingHashLbConfig_{
+					RingHashLbConfig: &envoy.Cluster_RingHashLbConfig{
+						MinimumRingSize: &wrappers.UInt64Value{Value: 3},
+						MaximumRingSize: &wrappers.UInt64Value{Value: 7},
+					},
+				},
+			},
+		},
+		{
+			name: "least_request",
+			lb: &structs.LoadBalancer{
+				Policy: "least_request",
+				LeastRequestConfig: &structs.LeastRequestConfig{
+					ChoiceCount: 3,
+				},
+			},
+			expected: envoy.Cluster{
+				LbPolicy: envoy.Cluster_LEAST_REQUEST,
+				LbConfig: &envoy.Cluster_LeastRequestLbConfig_{
+					LeastRequestLbConfig: &envoy.Cluster_LeastRequestLbConfig{
+						ChoiceCount: &wrappers.UInt32Value{Value: 3},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var c envoy.Cluster
+			err := injectLBToCluster(tc.lb, &c)
+			require.NoError(t, err)
+
+			require.Equal(t, tc.expected, c)
+		})
+	}
 }

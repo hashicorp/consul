@@ -4,6 +4,9 @@ import { computed } from '@ember/object';
 export default Controller.extend({
   queryParams: {
     sortBy: 'sort',
+    status: 'status',
+    source: 'source',
+    type: 'type',
     search: {
       as: 'filter',
     },
@@ -13,22 +16,11 @@ export default Controller.extend({
       return item.Kind !== 'connect-proxy';
     });
   }),
-  proxies: computed('items.[]', function() {
-    const proxies = {};
-    this.items
-      .filter(function(item) {
-        return item.Kind === 'connect-proxy';
-      })
-      .forEach(item => {
-        // Iterating to cover the usecase of a proxy being
-        // used by more than one service
-        if (item.ProxyFor) {
-          item.ProxyFor.forEach(service => {
-            proxies[service] = item;
-          });
-        }
-      });
-
-    return proxies;
+  externalSources: computed('services', function() {
+    const sources = this.services.reduce(function(prev, item) {
+      return prev.concat(item.ExternalSources || []);
+    }, []);
+    // unique, non-empty values, alpha sort
+    return [...new Set(sources)].filter(Boolean).sort();
   }),
 });

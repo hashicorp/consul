@@ -19,7 +19,20 @@ export default RepositoryService.extend({
       query.index = configuration.cursor;
       query.uri = configuration.uri;
     }
-    return this.store.query(this.getModelName(), query);
+    return this.store.query(this.getModelName(), query).then(items => {
+      items.forEach(item => {
+        // swap out the id for the services id
+        // so we can then assign the proxy to it if it exists
+        const id = JSON.parse(item.uid);
+        id.pop();
+        id.push(item.ServiceProxy.DestinationServiceID);
+        const service = this.store.peekRecord('service-instance', JSON.stringify(id));
+        if (service) {
+          set(service, 'ProxyInstance', item);
+        }
+      });
+      return items;
+    });
   },
   findInstanceBySlug: function(id, node, slug, dc, nspace, configuration) {
     return this.findAllBySlug(slug, dc, nspace, configuration).then(function(items) {

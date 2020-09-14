@@ -360,3 +360,42 @@ func modifySummaryForGatewayService(
 		}
 	}
 }
+
+// GET /v1/internal/ui/gateway-intentions/:gateway
+func (s *HTTPServer) UIGatewayIntentions(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	var args structs.IntentionQueryRequest
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	var entMeta structs.EnterpriseMeta
+	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
+		return nil, err
+	}
+
+	// Pull out the service name
+	name := strings.TrimPrefix(req.URL.Path, "/v1/internal/ui/gateway-intentions/")
+	if name == "" {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(resp, "Missing gateway name")
+		return nil, nil
+	}
+	args.Match = &structs.IntentionQueryMatch{
+		Type: structs.IntentionMatchDestination,
+		Entries: []structs.IntentionMatchEntry{
+			{
+				Namespace: entMeta.NamespaceOrEmpty(),
+				Name:      name,
+			},
+		},
+	}
+
+	var reply structs.IndexedIntentions
+
+	defer setMeta(resp, &reply.QueryMeta)
+	if err := s.agent.RPC("Internal.GatewayIntentions", args, &reply); err != nil {
+		return nil, err
+	}
+
+	return reply.Intentions, nil
+}

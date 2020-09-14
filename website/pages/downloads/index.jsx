@@ -13,7 +13,7 @@ export default function DownloadsPage({ releaseData }) {
         releaseData={releaseData}
       >
         <p>
-          <a href="/downloads_tools">&raquo; Download Consul Tools</a>
+          <a href="/docs/download-tools">&raquo; Download Consul Tools</a>
         </p>
         <div className="release-candidate">
           <p>Note for ARM users:</p>

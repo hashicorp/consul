@@ -172,13 +172,11 @@ func testFile(t *testing.T, suffix string) *os.File {
 
 	newName := f.Name() + "." + suffix
 	if err := os.Rename(f.Name(), newName); err != nil {
-		os.Remove(f.Name())
 		t.Fatalf("err: %s", err)
 	}
 
 	f, err := os.Create(newName)
 	if err != nil {
-		os.Remove(newName)
 		t.Fatalf("err: %s", err)
 	}
 

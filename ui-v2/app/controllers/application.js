@@ -41,12 +41,19 @@ export default Controller.extend({
           const container = getOwner(this);
           const routeName = this.router.currentRoute.name;
           const route = container.lookup(`route:${routeName}`);
-          // Refresh the application route
+          // Refresh the application route as everything including the main nav needs refreshing
           return container
             .lookup('route:application')
             .refresh()
-            .promise.then(res => {
+            .promise.catch(function(e) {
+              // passthrough
+              // if you are on an error page a refresh of the application route will reject
+              // thats ok as we then transition to the actual route you were trying
+              // to get to originally anyway
+            })
+            .then(res => {
               // Use transitionable if we need to change a section of the URL
+              // or routeName and currentRouteName aren't equal (i.e. error page)
               if (
                 routeName !== this.router.currentRouteName ||
                 typeof params.nspace !== 'undefined'

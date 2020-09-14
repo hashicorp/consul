@@ -32,7 +32,7 @@ github.com/NYTimes/gziphandler
 github.com/StackExchange/wmi
 # github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
 github.com/armon/circbuf
-# github.com/armon/go-metrics v0.3.3
+# github.com/armon/go-metrics v0.3.4
 github.com/armon/go-metrics
 github.com/armon/go-metrics/circonus
 github.com/armon/go-metrics/datadog
@@ -126,13 +126,14 @@ github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint
 github.com/envoyproxy/go-control-plane/envoy/api/v2/listener
 github.com/envoyproxy/go-control-plane/envoy/api/v2/route
 github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2
-github.com/envoyproxy/go-control-plane/envoy/config/filter/network/ext_authz/v2
+github.com/envoyproxy/go-control-plane/envoy/config/filter/http/rbac/v2
 github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2
+github.com/envoyproxy/go-control-plane/envoy/config/filter/network/rbac/v2
 github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2
 github.com/envoyproxy/go-control-plane/envoy/config/listener/v2
+github.com/envoyproxy/go-control-plane/envoy/config/rbac/v2
 github.com/envoyproxy/go-control-plane/envoy/config/trace/v2
 github.com/envoyproxy/go-control-plane/envoy/service/auth/v2
-github.com/envoyproxy/go-control-plane/envoy/service/auth/v2alpha
 github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2
 github.com/envoyproxy/go-control-plane/envoy/type
 github.com/envoyproxy/go-control-plane/envoy/type/matcher
@@ -271,7 +272,7 @@ github.com/hashicorp/net-rpc-msgpackrpc
 github.com/hashicorp/raft
 # github.com/hashicorp/raft-boltdb v0.0.0-20171010151810-6e5ba93211ea
 github.com/hashicorp/raft-boltdb
-# github.com/hashicorp/serf v0.9.3
+# github.com/hashicorp/serf v0.9.4
 github.com/hashicorp/serf/coordinate
 github.com/hashicorp/serf/serf
 # github.com/hashicorp/vault/api v1.0.4
@@ -537,6 +538,7 @@ google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
 # google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
 google.golang.org/genproto/googleapis/api/annotations
+google.golang.org/genproto/googleapis/api/expr/v1alpha1
 google.golang.org/genproto/googleapis/rpc/status
 # google.golang.org/grpc v1.25.1
 google.golang.org/grpc

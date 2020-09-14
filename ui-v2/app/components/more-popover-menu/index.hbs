@@ -1,16 +1,10 @@
 <div class="more-popover-menu">
-  <PopoverMenu @expanded={{expanded}} @onchange={{action onchange}} @keyboardAccess={{false}} as |api|>
+  <PopoverMenu @expanded={{expanded}} @onchange={{action onchange}} @keyboardAccess={{false}} as |components api|>
     <BlockSlot @name="trigger">
       More
     </BlockSlot>
-    <BlockSlot @name="menu" as |confirm send keypressClick clickTrigger|>
-      {{yield (component 'more-popover-menu/action' menu=(hash
-        addSubmenu=api.addSubmenu
-        removeSubmenu=api.removeSubmenu
-        confirm=confirm
-        keypressClick=keypressClick
-        clickTrigger=clickTrigger
-      ))}}
+    <BlockSlot @name="menu">
+      {{yield components.MenuItem}}
     </BlockSlot>
   </PopoverMenu>
 </div>

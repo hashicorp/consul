@@ -6,22 +6,4 @@
 //   the landing page for the category, or a "name" property to
 //   serve as the category title in the sidebar
 
-export default [
-  'index',
-  {
-    category: 'vs',
-    content: [
-      'zookeeper',
-      'chef-puppet',
-      'nagios-sensu',
-      'skydns',
-      'smartstack',
-      'serf',
-      'eureka',
-      'istio',
-      'proxies',
-      'custom',
-    ],
-  },
-  'getting-started',
-]
+export default ['getting-started']

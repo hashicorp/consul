@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -58,7 +57,6 @@ func testTLSCertificates(serverName string) (cert string, key string, cacert str
 
 func setupPrimaryServer(t *testing.T) *agent.TestAgent {
 	d := testutil.TempDir(t, "leaks-primary-server")
-	t.Cleanup(func() { os.RemoveAll(d) })
 
 	certPEM, keyPEM, caPEM, err := testTLSCertificates("server.primary.consul")
 	require.NoError(t, err)

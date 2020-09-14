@@ -1,22 +1,64 @@
 .popover-select {
   @extend %popover-select;
 }
-%popover-select {
-  @extend %popover-menu;
-}
-%popover-select label > * {
-  @extend %split-button, %sort-button;
-  height: 35px;
-}
-%popover-select label > *::after {
-  top: 0 !important;
-  margin-left: 16px;
-}
-%popover-select {
-  z-index: 3;
-  padding-left: 12px;
+%popover-select label {
   height: 100%;
 }
-%popover-select label {
-  border-right: none !important;
+%popover-select label > * {
+  @extend %button;
+  padding: 0 8px !important;
+  height: 100% !important;
+  justify-content: space-between !important;
+  min-width: auto !important;
+}
+%popover-select label > *::after {
+  margin-left: 6px;
+}
+%popover-select.type-sort label > * {
+  @extend %sort-button;
+}
+
+%popover-select.type-access button::before,
+%popover-select.type-source button::before,
+%popover-select.type-status button::before {
+  margin-right: 10px;
+}
+%popover-select .value-allow button::before,
+%popover-select .value-passing button::before {
+  @extend %with-check-circle-fill-mask, %as-pseudo;
+  color: $green-500;
+}
+%popover-select .value-warning button::before {
+  @extend %with-alert-triangle-mask, %as-pseudo;
+  color: $orange-500;
+}
+%popover-select .value-deny button::before,
+%popover-select .value-critical button::before {
+  @extend %with-cancel-square-fill-mask, %as-pseudo;
+  color: $red-500;
+}
+%popover-select .value-empty button::before {
+  @extend %with-minus-square-fill-mask, %as-pseudo;
+  color: $gray-400;
+}
+%popover-select.type-source li button {
+  text-transform: capitalize;
+}
+%popover-select.type-source li.aws button {
+  text-transform: uppercase;
+}
+%popover-select .aws button::before {
+  @extend %with-logo-aws-color-icon, %as-pseudo;
+}
+%popover-select .kubernetes button::before {
+  @extend %with-logo-kubernetes-color-icon, %as-pseudo;
+}
+%popover-select .consul button::before {
+  @extend %with-logo-consul-color-icon, %as-pseudo;
+}
+%popover-select .nomad button::before {
+  @extend %with-logo-nomad-color-icon, %as-pseudo;
+}
+%popover-select .terraform button::before {
+  @extend %with-logo-terraform-color-icon, %as-pseudo;
 }

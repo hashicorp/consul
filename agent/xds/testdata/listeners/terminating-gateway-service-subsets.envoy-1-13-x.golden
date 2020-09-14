@@ -42,29 +42,17 @@
           },
           "filters": [
             {
-              "name": "envoy.ext_authz",
+              "name": "envoy.filters.network.rbac",
               "config": {
-                  "grpc_service": {
-                        "envoy_grpc": {
-                              "cluster_name": "local_agent"
-                            },
-                        "initial_metadata": [
-                              {
-                                    "key": "x-consul-token",
-                                    "value": "my-token"
-                                  }
-                            ]
+                  "rules": {
                       },
                   "stat_prefix": "connect_authz"
                 }
             },
             {
-              "name": "envoy.filters.network.sni_cluster"
-            },
-            {
               "name": "envoy.tcp_proxy",
               "config": {
-                  "cluster": "",
+                  "cluster": "api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                   "stat_prefix": "terminating_gateway_default_api_default_tcp"
                 }
             }
@@ -101,29 +89,17 @@
           },
           "filters": [
             {
-              "name": "envoy.ext_authz",
+              "name": "envoy.filters.network.rbac",
               "config": {
-                  "grpc_service": {
-                        "envoy_grpc": {
-                              "cluster_name": "local_agent"
-                            },
-                        "initial_metadata": [
-                              {
-                                    "key": "x-consul-token",
-                                    "value": "my-token"
-                                  }
-                            ]
+                  "rules": {
                       },
                   "stat_prefix": "connect_authz"
                 }
             },
             {
-              "name": "envoy.filters.network.sni_cluster"
-            },
-            {
               "name": "envoy.tcp_proxy",
               "config": {
-                  "cluster": "",
+                  "cluster": "cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                   "stat_prefix": "terminating_gateway_default_cache_default_tcp"
                 }
             }
@@ -160,29 +136,17 @@
           },
           "filters": [
             {
-              "name": "envoy.ext_authz",
+              "name": "envoy.filters.network.rbac",
               "config": {
-                  "grpc_service": {
-                        "envoy_grpc": {
-                              "cluster_name": "local_agent"
-                            },
-                        "initial_metadata": [
-                              {
-                                    "key": "x-consul-token",
-                                    "value": "my-token"
-                                  }
-                            ]
+                  "rules": {
                       },
                   "stat_prefix": "connect_authz"
                 }
             },
             {
-              "name": "envoy.filters.network.sni_cluster"
-            },
-            {
               "name": "envoy.tcp_proxy",
               "config": {
-                  "cluster": "",
+                  "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                   "stat_prefix": "terminating_gateway_default_db_default_tcp"
                 }
             }
@@ -219,30 +183,33 @@
           },
           "filters": [
             {
-              "name": "envoy.ext_authz",
+              "name": "envoy.http_connection_manager",
               "config": {
-                  "grpc_service": {
-                        "envoy_grpc": {
-                              "cluster_name": "local_agent"
+                  "http_filters": [
+                        {
+                              "config": {
+                                    "rules": {
+                                        }
+                                  },
+                              "name": "envoy.filters.http.rbac"
                             },
-                        "initial_metadata": [
-                              {
-                                    "key": "x-consul-token",
-                                    "value": "my-token"
+                        {
+                              "name": "envoy.router"
+                            }
+                      ],
+                  "rds": {
+                        "config_source": {
+                              "ads": {
                                   }
-                            ]
+                            },
+                        "route_config_name": "v1.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
                       },
-                  "stat_prefix": "connect_authz"
-                }
-            },
-            {
-              "name": "envoy.filters.network.sni_cluster"
-            },
-            {
-              "name": "envoy.tcp_proxy",
-              "config": {
-                  "cluster": "",
-                  "stat_prefix": "terminating_gateway_default_web_default_tcp"
+                  "stat_prefix": "terminating_gateway_default_web_default_http",
+                  "tracing": {
+                        "operation_name": "EGRESS",
+                        "random_sampling": {
+                            }
+                      }
                 }
             }
           ]
@@ -278,30 +245,33 @@
           },
           "filters": [
             {
-              "name": "envoy.ext_authz",
+              "name": "envoy.http_connection_manager",
               "config": {
-                  "grpc_service": {
-                        "envoy_grpc": {
-                              "cluster_name": "local_agent"
+                  "http_filters": [
+                        {
+                              "config": {
+                                    "rules": {
+                                        }
+                                  },
+                              "name": "envoy.filters.http.rbac"
                             },
-                        "initial_metadata": [
-                              {
-                                    "key": "x-consul-token",
-                                    "value": "my-token"
+                        {
+                              "name": "envoy.router"
+                            }
+                      ],
+                  "rds": {
+                        "config_source": {
+                              "ads": {
                                   }
-                            ]
+                            },
+                        "route_config_name": "v2.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
                       },
-                  "stat_prefix": "connect_authz"
-                }
-            },
-            {
-              "name": "envoy.filters.network.sni_cluster"
-            },
-            {
-              "name": "envoy.tcp_proxy",
-              "config": {
-                  "cluster": "",
-                  "stat_prefix": "terminating_gateway_default_web_default_tcp"
+                  "stat_prefix": "terminating_gateway_default_web_default_http",
+                  "tracing": {
+                        "operation_name": "EGRESS",
+                        "random_sampling": {
+                            }
+                      }
                 }
             }
           ]
@@ -337,30 +307,33 @@
           },
           "filters": [
             {
-              "name": "envoy.ext_authz",
+              "name": "envoy.http_connection_manager",
               "config": {
-                  "grpc_service": {
-                        "envoy_grpc": {
-                              "cluster_name": "local_agent"
+                  "http_filters": [
+                        {
+                              "config": {
+                                    "rules": {
+                                        }
+                                  },
+                              "name": "envoy.filters.http.rbac"
                             },
-                        "initial_metadata": [
-                              {
-                                    "key": "x-consul-token",
-                                    "value": "my-token"
+                        {
+                              "name": "envoy.router"
+                            }
+                      ],
+                  "rds": {
+                        "config_source": {
+                              "ads": {
                                   }
-                            ]
+                            },
+                        "route_config_name": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
                       },
-                  "stat_prefix": "connect_authz"
-                }
-            },
-            {
-              "name": "envoy.filters.network.sni_cluster"
-            },
-            {
-              "name": "envoy.tcp_proxy",
-              "config": {
-                  "cluster": "",
-                  "stat_prefix": "terminating_gateway_default_web_default_tcp"
+                  "stat_prefix": "terminating_gateway_default_web_default_http",
+                  "tracing": {
+                        "operation_name": "EGRESS",
+                        "random_sampling": {
+                            }
+                      }
                 }
             }
           ]

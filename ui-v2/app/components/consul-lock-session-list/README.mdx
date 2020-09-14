@@ -1,0 +1,24 @@
+## ConsulLockSessionList
+
+```
+<ConsulLockSessionList
+  @items={{items}}
+  @onInvalidate={{action send 'invalidateSession'}}
+/>
+```
+
+A presentational component for rendering Node Lock Sessions
+
+### Arguments
+
+| Argument/Attribute | Type | Default | Description |
+| --- | --- | --- | --- |
+| `items` | `array` |  | An array of Node Lock Sessions  |
+| `onInvalidate` | `function` |  | An action to confirm when the `Invalidate` action is clicked and confirmed |
+
+### See
+
+- [Component Source Code](./index.js)
+- [Template Source Code](./index.hbs)
+
+---

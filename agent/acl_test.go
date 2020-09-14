@@ -25,27 +25,6 @@ type authzResolver func(string) (structs.ACLIdentity, acl.Authorizer, error)
 type identResolver func(string) (structs.ACLIdentity, error)
 
 type TestACLAgent struct {
-	// Name is an optional name of the agent.
-	Name string
-
-	HCL string
-
-	// Config is the agent configuration. If Config is nil then
-	// TestConfig() is used. If Config.DataDir is set then it is
-	// the callers responsibility to clean up the data directory.
-	// Otherwise, a temporary data directory is created and removed
-	// when Shutdown() is called.
-	Config *config.RuntimeConfig
-
-	// LogOutput is the sink for the logs. If nil, logs are written
-	// to os.Stderr.
-	LogOutput io.Writer
-
-	// DataDir is the data directory which is used when Config.DataDir
-	// is not set. It is created automatically and removed when
-	// Shutdown() is called.
-	DataDir string
-
 	resolveAuthzFn authzResolver
 	resolveIdentFn identResolver
 
@@ -56,39 +35,42 @@ type TestACLAgent struct {
 // Basically it needs a local state for some of the vet* functions, a logger and a delegate.
 // The key is that we are the delegate so we can control the ResolveToken responses
 func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzResolver, resolveIdent identResolver) *TestACLAgent {
-	a := &TestACLAgent{Name: name, HCL: hcl, resolveAuthzFn: resolveAuthz, resolveIdentFn: resolveIdent}
-	dataDir := `data_dir = "acl-agent"`
+	t.Helper()
 
-	logOutput := testutil.NewLogBuffer(t)
-	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
-		Name:   a.Name,
-		Level:  hclog.Debug,
-		Output: logOutput,
-	})
+	a := &TestACLAgent{resolveAuthzFn: resolveAuthz, resolveIdentFn: resolveIdent}
 
-	opts := []AgentOption{
-		WithLogger(logger),
-		WithBuilderOpts(config.BuilderOpts{
-			HCL: []string{
-				TestConfigHCL(NodeID()),
-				a.HCL,
-				dataDir,
-			},
-		}),
+	dataDir := testutil.TempDir(t, "acl-agent")
+
+	logBuffer := testutil.NewLogBuffer(t)
+	loader := func(source config.Source) (*config.RuntimeConfig, []string, error) {
+		dataDir := fmt.Sprintf(`data_dir = "%s"`, dataDir)
+		opts := config.BuilderOpts{
+			HCL: []string{TestConfigHCL(NodeID()), hcl, dataDir},
+		}
+		cfg, warnings, err := config.Load(opts, source)
+		if cfg != nil {
+			cfg.Telemetry.Disable = true
+		}
+		return cfg, warnings, err
 	}
-
-	agent, err := New(opts...)
+	bd, err := NewBaseDeps(loader, logBuffer)
 	require.NoError(t, err)
-	a.Config = agent.GetConfig()
+
+	bd.Logger = hclog.NewInterceptLogger(&hclog.LoggerOptions{
+		Name:       name,
+		Level:      hclog.Debug,
+		Output:     logBuffer,
+		TimeFormat: "04:05.000",
+	})
+	bd.MetricsHandler = metrics.NewInmemSink(1*time.Second, time.Minute)
+
+	agent, err := New(bd)
+	require.NoError(t, err)
+
+	agent.delegate = a
+	agent.State = local.NewState(LocalConfig(bd.RuntimeConfig), bd.Logger, bd.Tokens)
+	agent.State.TriggerSyncChanges = func() {}
 	a.Agent = agent
-
-	agent.LogOutput = logOutput
-	agent.logger = logger
-	agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
-
-	a.Agent.delegate = a
-	a.Agent.State = local.NewState(LocalConfig(a.Config), a.Agent.logger, a.Agent.tokens)
-	a.Agent.State.TriggerSyncChanges = func() {}
 	return a
 }
 
@@ -202,7 +184,9 @@ func TestACL_AgentMasterToken(t *testing.T) {
 	t.Parallel()
 
 	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), nil, nil)
-	a.loadTokens(a.config)
+	err := a.tokens.Load(a.config.ACLTokens, a.logger)
+	require.NoError(t, err)
+
 	authz, err := a.resolveToken("towel")
 	require.NotNil(t, authz)
 	require.Nil(t, err)

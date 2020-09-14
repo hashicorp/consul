@@ -10,7 +10,7 @@ export default Route.extend({
     return this.modelFor(parent);
   },
   afterModel: function(model, transition) {
-    if (get(model, 'item.Kind') !== 'mesh-gateway') {
+    if (get(model, 'item.Service.Kind') !== 'mesh-gateway') {
       const parent = this.routeName
         .split('.')
         .slice(0, -1)

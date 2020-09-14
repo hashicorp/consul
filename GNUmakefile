@@ -363,14 +363,6 @@ else
 	@go test -v ./agent/connect/ca
 endif
 
-proto-delete:
-	@echo "Removing $(PROTOGOFILES)"
-	-@rm $(PROTOGOFILES)
-	@echo "Removing $(PROTOGOBINFILES)"
-	-@rm $(PROTOGOBINFILES)
-
-proto-rebuild: proto-delete proto
-
 proto: $(PROTOGOFILES) $(PROTOGOBINFILES)
 	@echo "Generated all protobuf Go files"
 
@@ -387,4 +379,4 @@ module-versions:
 
 .PHONY: all ci bin dev dist cov test test-flake test-internal cover lint ui static-assets tools
 .PHONY: docker-images go-build-image ui-build-image static-assets-docker consul-docker ui-docker
-.PHONY: version proto proto-rebuild proto-delete test-envoy-integ
+.PHONY: version proto test-envoy-integ

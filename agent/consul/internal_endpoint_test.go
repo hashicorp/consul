@@ -1377,3 +1377,231 @@ func TestInternal_GatewayServiceDump_Ingress_ACL(t *testing.T) {
 	require.Equal(t, nodes[0].Service.Service, "db")
 	require.Equal(t, nodes[0].Checks[0].Status, api.HealthWarning)
 }
+
+func TestInternal_GatewayIntentions(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
+	// Register terminating gateway and config entry linking it to postgres + redis
+	{
+		arg := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				ID:      "terminating-gateway",
+				Service: "terminating-gateway",
+				Kind:    structs.ServiceKindTerminatingGateway,
+				Port:    443,
+			},
+			Check: &structs.HealthCheck{
+				Name:      "terminating connect",
+				Status:    api.HealthPassing,
+				ServiceID: "terminating-gateway",
+			},
+		}
+		var regOutput struct{}
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &regOutput))
+
+		args := &structs.TerminatingGatewayConfigEntry{
+			Name: "terminating-gateway",
+			Kind: structs.TerminatingGateway,
+			Services: []structs.LinkedService{
+				{
+					Name: "postgres",
+				},
+				{
+					Name:     "redis",
+					CAFile:   "/etc/certs/ca.pem",
+					CertFile: "/etc/certs/cert.pem",
+					KeyFile:  "/etc/certs/key.pem",
+				},
+			},
+		}
+
+		req := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry:      args,
+		}
+		var configOutput bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &configOutput))
+		require.True(t, configOutput)
+	}
+
+	// create some symmetric intentions to ensure we are only matching on destination
+	{
+		for _, v := range []string{"*", "mysql", "redis", "postgres"} {
+			req := structs.IntentionRequest{
+				Datacenter: "dc1",
+				Op:         structs.IntentionOpCreate,
+				Intention:  structs.TestIntention(t),
+			}
+			req.Intention.SourceName = "api"
+			req.Intention.DestinationName = v
+
+			var reply string
+			assert.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &req, &reply))
+
+			req = structs.IntentionRequest{
+				Datacenter: "dc1",
+				Op:         structs.IntentionOpCreate,
+				Intention:  structs.TestIntention(t),
+			}
+			req.Intention.SourceName = v
+			req.Intention.DestinationName = "api"
+			assert.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &req, &reply))
+		}
+	}
+
+	// Request intentions matching the gateway named "terminating-gateway"
+	req := structs.IntentionQueryRequest{
+		Datacenter: "dc1",
+		Match: &structs.IntentionQueryMatch{
+			Type: structs.IntentionMatchDestination,
+			Entries: []structs.IntentionMatchEntry{
+				{
+					Namespace: structs.IntentionDefaultNamespace,
+					Name:      "terminating-gateway",
+				},
+			},
+		},
+	}
+	var reply structs.IndexedIntentions
+	assert.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.GatewayIntentions", &req, &reply))
+	assert.Len(t, reply.Intentions, 3)
+
+	// Only intentions with linked services as a destination should be returned, and wildcard matches should be deduped
+	expected := []string{"postgres", "*", "redis"}
+	actual := []string{
+		reply.Intentions[0].DestinationName,
+		reply.Intentions[1].DestinationName,
+		reply.Intentions[2].DestinationName,
+	}
+	assert.ElementsMatch(t, expected, actual)
+}
+
+func TestInternal_GatewayIntentions_aclDeny(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, testServerACLConfig(nil))
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken(TestDefaultMasterToken))
+
+	// Register terminating gateway and config entry linking it to postgres + redis
+	{
+		arg := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				ID:      "terminating-gateway",
+				Service: "terminating-gateway",
+				Kind:    structs.ServiceKindTerminatingGateway,
+				Port:    443,
+			},
+			Check: &structs.HealthCheck{
+				Name:      "terminating connect",
+				Status:    api.HealthPassing,
+				ServiceID: "terminating-gateway",
+			},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+		}
+		var regOutput struct{}
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &regOutput))
+
+		args := &structs.TerminatingGatewayConfigEntry{
+			Name: "terminating-gateway",
+			Kind: structs.TerminatingGateway,
+			Services: []structs.LinkedService{
+				{
+					Name: "postgres",
+				},
+				{
+					Name:     "redis",
+					CAFile:   "/etc/certs/ca.pem",
+					CertFile: "/etc/certs/cert.pem",
+					KeyFile:  "/etc/certs/key.pem",
+				},
+			},
+		}
+
+		req := structs.ConfigEntryRequest{
+			Op:           structs.ConfigEntryUpsert,
+			Datacenter:   "dc1",
+			Entry:        args,
+			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+		}
+		var configOutput bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &configOutput))
+		require.True(t, configOutput)
+	}
+
+	// create some symmetric intentions to ensure we are only matching on destination
+	{
+		for _, v := range []string{"*", "mysql", "redis", "postgres"} {
+			req := structs.IntentionRequest{
+				Datacenter:   "dc1",
+				Op:           structs.IntentionOpCreate,
+				Intention:    structs.TestIntention(t),
+				WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			}
+			req.Intention.SourceName = "api"
+			req.Intention.DestinationName = v
+
+			var reply string
+			assert.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &req, &reply))
+
+			req = structs.IntentionRequest{
+				Datacenter:   "dc1",
+				Op:           structs.IntentionOpCreate,
+				Intention:    structs.TestIntention(t),
+				WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			}
+			req.Intention.SourceName = v
+			req.Intention.DestinationName = "api"
+			assert.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &req, &reply))
+		}
+	}
+
+	userToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `
+service_prefix "redis" { policy = "read" }
+service_prefix "terminating-gateway" { policy = "read" }
+`)
+	require.NoError(t, err)
+
+	// Request intentions matching the gateway named "terminating-gateway"
+	req := structs.IntentionQueryRequest{
+		Datacenter: "dc1",
+		Match: &structs.IntentionQueryMatch{
+			Type: structs.IntentionMatchDestination,
+			Entries: []structs.IntentionMatchEntry{
+				{
+					Namespace: structs.IntentionDefaultNamespace,
+					Name:      "terminating-gateway",
+				},
+			},
+		},
+		QueryOptions: structs.QueryOptions{Token: userToken.SecretID},
+	}
+	var reply structs.IndexedIntentions
+	assert.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.GatewayIntentions", &req, &reply))
+	assert.Len(t, reply.Intentions, 2)
+
+	// Only intentions for redis should be returned, due to ACLs
+	expected := []string{"*", "redis"}
+	actual := []string{
+		reply.Intentions[0].DestinationName,
+		reply.Intentions[1].DestinationName,
+	}
+	assert.ElementsMatch(t, expected, actual)
+}

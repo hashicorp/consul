@@ -7,6 +7,7 @@ export default Route.extend(WithNspaceActions, {
   data: service('data-source/service'),
   repo: service('repository/nspace'),
   queryParams: {
+    sortBy: 'sort',
     search: {
       as: 'filter',
       replace: true,

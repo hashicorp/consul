@@ -58,7 +58,7 @@ func TestEventPublisher_PublishChangesAndSubscribe_WithSnapshot(t *testing.T) {
 
 func newTestSnapshotHandlers() SnapshotHandlers {
 	return SnapshotHandlers{
-		testTopic: func(req *SubscribeRequest, buf SnapshotAppender) (uint64, error) {
+		testTopic: func(req SubscribeRequest, buf SnapshotAppender) (uint64, error) {
 			if req.Topic != testTopic {
 				return 0, fmt.Errorf("unexpected topic: %v", req.Topic)
 			}
@@ -117,7 +117,7 @@ func TestEventPublisher_ShutdownClosesSubscriptions(t *testing.T) {
 	t.Cleanup(cancel)
 
 	handlers := newTestSnapshotHandlers()
-	fn := func(req *SubscribeRequest, buf SnapshotAppender) (uint64, error) {
+	fn := func(req SubscribeRequest, buf SnapshotAppender) (uint64, error) {
 		return 0, nil
 	}
 	handlers[intTopic(22)] = fn

@@ -880,10 +880,10 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 				},
 			},
 			expectBefore: []structs.ConfigEntryKindName{
-				{Kind: structs.ServiceDefaults, Name: "main"},
+				structs.NewConfigEntryKindName(structs.ServiceDefaults, "main", nil),
 			},
 			overrides: map[structs.ConfigEntryKindName]structs.ConfigEntry{
-				{Kind: structs.ServiceDefaults, Name: "main"}: nil,
+				structs.NewConfigEntryKindName(structs.ServiceDefaults, "main", nil): nil,
 			},
 			expectAfter: []structs.ConfigEntryKindName{
 				// nothing
@@ -899,17 +899,17 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 				},
 			},
 			expectBefore: []structs.ConfigEntryKindName{
-				{Kind: structs.ServiceDefaults, Name: "main"},
+				structs.NewConfigEntryKindName(structs.ServiceDefaults, "main", nil),
 			},
 			overrides: map[structs.ConfigEntryKindName]structs.ConfigEntry{
-				{Kind: structs.ServiceDefaults, Name: "main"}: &structs.ServiceConfigEntry{
+				structs.NewConfigEntryKindName(structs.ServiceDefaults, "main", nil): &structs.ServiceConfigEntry{
 					Kind:     structs.ServiceDefaults,
 					Name:     "main",
 					Protocol: "grpc",
 				},
 			},
 			expectAfter: []structs.ConfigEntryKindName{
-				{Kind: structs.ServiceDefaults, Name: "main"},
+				structs.NewConfigEntryKindName(structs.ServiceDefaults, "main", nil),
 			},
 			checkAfter: func(t *testing.T, entrySet *structs.DiscoveryChainConfigEntries) {
 				defaults := entrySet.GetService(structs.NewServiceID("main", nil))
@@ -932,14 +932,14 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 				},
 			},
 			expectBefore: []structs.ConfigEntryKindName{
-				{Kind: structs.ServiceDefaults, Name: "main"},
-				{Kind: structs.ServiceRouter, Name: "main"},
+				structs.NewConfigEntryKindName(structs.ServiceDefaults, "main", nil),
+				structs.NewConfigEntryKindName(structs.ServiceRouter, "main", nil),
 			},
 			overrides: map[structs.ConfigEntryKindName]structs.ConfigEntry{
-				{Kind: structs.ServiceRouter, Name: "main"}: nil,
+				structs.NewConfigEntryKindName(structs.ServiceRouter, "main", nil): nil,
 			},
 			expectAfter: []structs.ConfigEntryKindName{
-				{Kind: structs.ServiceDefaults, Name: "main"},
+				structs.NewConfigEntryKindName(structs.ServiceDefaults, "main", nil),
 			},
 		},
 		{
@@ -977,12 +977,12 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 				},
 			},
 			expectBefore: []structs.ConfigEntryKindName{
-				{Kind: structs.ServiceDefaults, Name: "main"},
-				{Kind: structs.ServiceResolver, Name: "main"},
-				{Kind: structs.ServiceRouter, Name: "main"},
+				structs.NewConfigEntryKindName(structs.ServiceDefaults, "main", nil),
+				structs.NewConfigEntryKindName(structs.ServiceResolver, "main", nil),
+				structs.NewConfigEntryKindName(structs.ServiceRouter, "main", nil),
 			},
 			overrides: map[structs.ConfigEntryKindName]structs.ConfigEntry{
-				{Kind: structs.ServiceRouter, Name: "main"}: &structs.ServiceRouterConfigEntry{
+				structs.NewConfigEntryKindName(structs.ServiceRouter, "main", nil): &structs.ServiceRouterConfigEntry{
 					Kind: structs.ServiceRouter,
 					Name: "main",
 					Routes: []structs.ServiceRoute{
@@ -1000,9 +1000,9 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 				},
 			},
 			expectAfter: []structs.ConfigEntryKindName{
-				{Kind: structs.ServiceDefaults, Name: "main"},
-				{Kind: structs.ServiceResolver, Name: "main"},
-				{Kind: structs.ServiceRouter, Name: "main"},
+				structs.NewConfigEntryKindName(structs.ServiceDefaults, "main", nil),
+				structs.NewConfigEntryKindName(structs.ServiceResolver, "main", nil),
+				structs.NewConfigEntryKindName(structs.ServiceRouter, "main", nil),
 			},
 			checkAfter: func(t *testing.T, entrySet *structs.DiscoveryChainConfigEntries) {
 				router := entrySet.GetRouter(structs.NewServiceID("main", nil))
@@ -1040,14 +1040,14 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 				},
 			},
 			expectBefore: []structs.ConfigEntryKindName{
-				{Kind: structs.ServiceDefaults, Name: "main"},
-				{Kind: structs.ServiceSplitter, Name: "main"},
+				structs.NewConfigEntryKindName(structs.ServiceDefaults, "main", nil),
+				structs.NewConfigEntryKindName(structs.ServiceSplitter, "main", nil),
 			},
 			overrides: map[structs.ConfigEntryKindName]structs.ConfigEntry{
-				{Kind: structs.ServiceSplitter, Name: "main"}: nil,
+				structs.NewConfigEntryKindName(structs.ServiceSplitter, "main", nil): nil,
 			},
 			expectAfter: []structs.ConfigEntryKindName{
-				{Kind: structs.ServiceDefaults, Name: "main"},
+				structs.NewConfigEntryKindName(structs.ServiceDefaults, "main", nil),
 			},
 		},
 		{
@@ -1067,11 +1067,11 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 				},
 			},
 			expectBefore: []structs.ConfigEntryKindName{
-				{Kind: structs.ServiceDefaults, Name: "main"},
-				{Kind: structs.ServiceSplitter, Name: "main"},
+				structs.NewConfigEntryKindName(structs.ServiceDefaults, "main", nil),
+				structs.NewConfigEntryKindName(structs.ServiceSplitter, "main", nil),
 			},
 			overrides: map[structs.ConfigEntryKindName]structs.ConfigEntry{
-				{Kind: structs.ServiceSplitter, Name: "main"}: &structs.ServiceSplitterConfigEntry{
+				structs.NewConfigEntryKindName(structs.ServiceSplitter, "main", nil): &structs.ServiceSplitterConfigEntry{
 					Kind: structs.ServiceSplitter,
 					Name: "main",
 					Splits: []structs.ServiceSplit{
@@ -1081,8 +1081,8 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 				},
 			},
 			expectAfter: []structs.ConfigEntryKindName{
-				{Kind: structs.ServiceDefaults, Name: "main"},
-				{Kind: structs.ServiceSplitter, Name: "main"},
+				structs.NewConfigEntryKindName(structs.ServiceDefaults, "main", nil),
+				structs.NewConfigEntryKindName(structs.ServiceSplitter, "main", nil),
 			},
 			checkAfter: func(t *testing.T, entrySet *structs.DiscoveryChainConfigEntries) {
 				splitter := entrySet.GetSplitter(structs.NewServiceID("main", nil))
@@ -1106,10 +1106,10 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 				},
 			},
 			expectBefore: []structs.ConfigEntryKindName{
-				{Kind: structs.ServiceResolver, Name: "main"},
+				structs.NewConfigEntryKindName(structs.ServiceResolver, "main", nil),
 			},
 			overrides: map[structs.ConfigEntryKindName]structs.ConfigEntry{
-				{Kind: structs.ServiceResolver, Name: "main"}: nil,
+				structs.NewConfigEntryKindName(structs.ServiceResolver, "main", nil): nil,
 			},
 			expectAfter: []structs.ConfigEntryKindName{
 				// nothing
@@ -1124,17 +1124,17 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 				},
 			},
 			expectBefore: []structs.ConfigEntryKindName{
-				{Kind: structs.ServiceResolver, Name: "main"},
+				structs.NewConfigEntryKindName(structs.ServiceResolver, "main", nil),
 			},
 			overrides: map[structs.ConfigEntryKindName]structs.ConfigEntry{
-				{Kind: structs.ServiceResolver, Name: "main"}: &structs.ServiceResolverConfigEntry{
+				structs.NewConfigEntryKindName(structs.ServiceResolver, "main", nil): &structs.ServiceResolverConfigEntry{
 					Kind:           structs.ServiceResolver,
 					Name:           "main",
 					ConnectTimeout: 33 * time.Second,
 				},
 			},
 			expectAfter: []structs.ConfigEntryKindName{
-				{Kind: structs.ServiceResolver, Name: "main"},
+				structs.NewConfigEntryKindName(structs.ServiceResolver, "main", nil),
 			},
 			checkAfter: func(t *testing.T, entrySet *structs.DiscoveryChainConfigEntries) {
 				resolver := entrySet.GetResolver(structs.NewServiceID("main", nil))
@@ -1181,28 +1181,32 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 func entrySetToKindNames(entrySet *structs.DiscoveryChainConfigEntries) []structs.ConfigEntryKindName {
 	var out []structs.ConfigEntryKindName
 	for _, entry := range entrySet.Routers {
-		out = append(out, structs.ConfigEntryKindName{
-			Kind: entry.Kind,
-			Name: entry.Name,
-		})
+		out = append(out, structs.NewConfigEntryKindName(
+			entry.Kind,
+			entry.Name,
+			&entry.EnterpriseMeta,
+		))
 	}
 	for _, entry := range entrySet.Splitters {
-		out = append(out, structs.ConfigEntryKindName{
-			Kind: entry.Kind,
-			Name: entry.Name,
-		})
+		out = append(out, structs.NewConfigEntryKindName(
+			entry.Kind,
+			entry.Name,
+			&entry.EnterpriseMeta,
+		))
 	}
 	for _, entry := range entrySet.Resolvers {
-		out = append(out, structs.ConfigEntryKindName{
-			Kind: entry.Kind,
-			Name: entry.Name,
-		})
+		out = append(out, structs.NewConfigEntryKindName(
+			entry.Kind,
+			entry.Name,
+			&entry.EnterpriseMeta,
+		))
 	}
 	for _, entry := range entrySet.Services {
-		out = append(out, structs.ConfigEntryKindName{
-			Kind: entry.Kind,
-			Name: entry.Name,
-		})
+		out = append(out, structs.NewConfigEntryKindName(
+			entry.Kind,
+			entry.Name,
+			&entry.EnterpriseMeta,
+		))
 	}
 	return out
 }
@@ -1285,29 +1289,120 @@ func TestStore_ValidateGatewayNamesCannotBeShared(t *testing.T) {
 }
 
 func TestStore_ValidateIngressGatewayErrorOnMismatchedProtocols(t *testing.T) {
-	s := testStateStore(t)
-
-	ingress := &structs.IngressGatewayConfigEntry{
-		Kind: structs.IngressGateway,
-		Name: "gateway",
-		Listeners: []structs.IngressListener{
-			{
-				Port:     8080,
-				Protocol: "http",
-				Services: []structs.IngressService{
-					{Name: "web"},
+	newIngress := func(protocol, name string) *structs.IngressGatewayConfigEntry {
+		return &structs.IngressGatewayConfigEntry{
+			Kind: structs.IngressGateway,
+			Name: "gateway",
+			Listeners: []structs.IngressListener{
+				{
+					Port:     8080,
+					Protocol: protocol,
+					Services: []structs.IngressService{
+						{Name: name},
+					},
 				},
 			},
-		},
+		}
 	}
 
-	t.Run("default to tcp", func(t *testing.T) {
-		err := s.EnsureConfigEntry(0, ingress, nil)
+	t.Run("http ingress fails with http upstream later changed to tcp", func(t *testing.T) {
+		s := testStateStore(t)
+
+		// First set the target service as http
+		expected := &structs.ServiceConfigEntry{
+			Kind:     structs.ServiceDefaults,
+			Name:     "web",
+			Protocol: "http",
+		}
+		require.NoError(t, s.EnsureConfigEntry(0, expected, nil))
+
+		// Next configure http ingress to route to the http service
+		require.NoError(t, s.EnsureConfigEntry(1, newIngress("http", "web"), nil))
+
+		t.Run("via modification", func(t *testing.T) {
+			// Now redefine the target service as tcp
+			expected = &structs.ServiceConfigEntry{
+				Kind:     structs.ServiceDefaults,
+				Name:     "web",
+				Protocol: "tcp",
+			}
+
+			err := s.EnsureConfigEntry(2, expected, nil)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), `has protocol "tcp"`)
+		})
+		t.Run("via deletion", func(t *testing.T) {
+			// This will fall back to the default tcp.
+			err := s.DeleteConfigEntry(2, structs.ServiceDefaults, "web", nil)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), `has protocol "tcp"`)
+		})
+	})
+
+	t.Run("tcp ingress ok with tcp upstream (defaulted) later changed to http", func(t *testing.T) {
+		s := testStateStore(t)
+
+		// First configure tcp ingress to route to a defaulted tcp service
+		require.NoError(t, s.EnsureConfigEntry(0, newIngress("tcp", "web"), nil))
+
+		// Now redefine the target service as http
+		expected := &structs.ServiceConfigEntry{
+			Kind:     structs.ServiceDefaults,
+			Name:     "web",
+			Protocol: "http",
+		}
+		require.NoError(t, s.EnsureConfigEntry(1, expected, nil))
+	})
+
+	t.Run("tcp ingress fails with tcp upstream (defaulted) later changed to http", func(t *testing.T) {
+		s := testStateStore(t)
+
+		// First configure tcp ingress to route to a defaulted tcp service
+		require.NoError(t, s.EnsureConfigEntry(0, newIngress("tcp", "web"), nil))
+
+		// Now redefine the target service as http
+		expected := &structs.ServiceConfigEntry{
+			Kind:     structs.ServiceDefaults,
+			Name:     "web",
+			Protocol: "http",
+		}
+		require.NoError(t, s.EnsureConfigEntry(1, expected, nil))
+
+		t.Run("and a router defined", func(t *testing.T) {
+			// This part should fail.
+			expected2 := &structs.ServiceRouterConfigEntry{
+				Kind: structs.ServiceRouter,
+				Name: "web",
+			}
+			err := s.EnsureConfigEntry(2, expected2, nil)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), `has protocol "http"`)
+		})
+
+		t.Run("and a splitter defined", func(t *testing.T) {
+			// This part should fail.
+			expected2 := &structs.ServiceSplitterConfigEntry{
+				Kind: structs.ServiceSplitter,
+				Name: "web",
+				Splits: []structs.ServiceSplit{
+					{Weight: 100},
+				},
+			}
+			err := s.EnsureConfigEntry(2, expected2, nil)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), `has protocol "http"`)
+		})
+	})
+
+	t.Run("http ingress fails with tcp upstream (defaulted)", func(t *testing.T) {
+		s := testStateStore(t)
+		err := s.EnsureConfigEntry(0, newIngress("http", "web"), nil)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), `has protocol "tcp"`)
 	})
 
-	t.Run("with proxy-default", func(t *testing.T) {
+	t.Run("http ingress fails with http2 upstream (via proxy-defaults)", func(t *testing.T) {
+		s := testStateStore(t)
 		expected := &structs.ProxyConfigEntry{
 			Kind: structs.ProxyDefaults,
 			Name: "global",
@@ -1317,51 +1412,43 @@ func TestStore_ValidateIngressGatewayErrorOnMismatchedProtocols(t *testing.T) {
 		}
 		require.NoError(t, s.EnsureConfigEntry(0, expected, nil))
 
-		err := s.EnsureConfigEntry(1, ingress, nil)
+		err := s.EnsureConfigEntry(1, newIngress("http", "web"), nil)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), `has protocol "http2"`)
 	})
 
-	t.Run("with service-defaults override", func(t *testing.T) {
+	t.Run("http ingress fails with grpc upstream (via service-defaults)", func(t *testing.T) {
+		s := testStateStore(t)
 		expected := &structs.ServiceConfigEntry{
 			Kind:     structs.ServiceDefaults,
 			Name:     "web",
 			Protocol: "grpc",
 		}
 		require.NoError(t, s.EnsureConfigEntry(1, expected, nil))
-		err := s.EnsureConfigEntry(2, ingress, nil)
+		err := s.EnsureConfigEntry(2, newIngress("http", "web"), nil)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), `has protocol "grpc"`)
 	})
 
-	t.Run("with service-defaults correct protocol", func(t *testing.T) {
+	t.Run("http ingress ok with http upstream (via service-defaults)", func(t *testing.T) {
+		s := testStateStore(t)
 		expected := &structs.ServiceConfigEntry{
 			Kind:     structs.ServiceDefaults,
 			Name:     "web",
 			Protocol: "http",
 		}
 		require.NoError(t, s.EnsureConfigEntry(2, expected, nil))
-		require.NoError(t, s.EnsureConfigEntry(3, ingress, nil))
+		require.NoError(t, s.EnsureConfigEntry(3, newIngress("http", "web"), nil))
 	})
 
-	t.Run("ignores wildcard specifier", func(t *testing.T) {
-		ingress := &structs.IngressGatewayConfigEntry{
-			Kind: structs.IngressGateway,
-			Name: "gateway",
-			Listeners: []structs.IngressListener{
-				{
-					Port:     8080,
-					Protocol: "http",
-					Services: []structs.IngressService{
-						{Name: "*"},
-					},
-				},
-			},
-		}
-		require.NoError(t, s.EnsureConfigEntry(4, ingress, nil))
+	t.Run("http ingress ignores wildcard specifier", func(t *testing.T) {
+		s := testStateStore(t)
+		require.NoError(t, s.EnsureConfigEntry(4, newIngress("http", "*"), nil))
 	})
 
-	t.Run("deleting a config entry", func(t *testing.T) {
+	t.Run("deleting ingress config entry ok", func(t *testing.T) {
+		s := testStateStore(t)
+		require.NoError(t, s.EnsureConfigEntry(1, newIngress("tcp", "web"), nil))
 		require.NoError(t, s.DeleteConfigEntry(5, structs.IngressGateway, "gateway", nil))
 	})
 }

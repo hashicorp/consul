@@ -80,16 +80,14 @@ func (e ForbiddenError) Error() string {
 }
 
 // HTTPServer provides an HTTP api for an agent.
+//
+// TODO: rename this struct to something more appropriate. It is an http.Handler,
+// request router or multiplexer, but it is not a Server.
 type HTTPServer struct {
-	// TODO(dnephin): remove Server field, it is not used by any of the HTTPServer methods
-	Server   *http.Server
-	ln       net.Listener
 	agent    *Agent
 	denylist *Denylist
-
-	// proto is filled by the agent to "http" or "https".
-	proto string
 }
+
 type templatedFile struct {
 	templated *bytes.Reader
 	name      string

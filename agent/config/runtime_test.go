@@ -21,7 +21,9 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/stretchr/testify/require"
@@ -48,9 +50,10 @@ type configTest struct {
 // should check one option at a time if possible and should use generic
 // values, e.g. 'a' or 1 instead of 'servicex' or 3306.
 
-func TestConfigFlagsAndEdgecases(t *testing.T) {
+func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 	dataDir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(dataDir)
+
+	defaultEntMeta := structs.DefaultEnterpriseMeta()
 
 	tests := []configTest{
 		// ------------------------------------------------------------
@@ -289,7 +292,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.EnableDebug = true
 				rt.EnableUI = true
 				rt.LeaveOnTerm = false
-				rt.LogLevel = "DEBUG"
+				rt.Logging.LogLevel = "DEBUG"
 				rt.RPCAdvertiseAddr = tcpAddr("127.0.0.1:8300")
 				rt.RPCBindAddr = tcpAddr("127.0.0.1:8300")
 				rt.SerfAdvertiseAddrLAN = tcpAddr("127.0.0.1:8301")
@@ -424,6 +427,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.EnableRemoteScriptChecks = true
 				rt.DataDir = dataDir
 			},
+			warns: []string{remoteScriptCheckSecurityWarning},
 		},
 		{
 			desc: "-encrypt",
@@ -491,13 +495,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
-			desc: "-config-format invalid",
-			args: []string{
-				`-config-format=foobar`,
-			},
-			err: "-config-format must be either 'hcl' or 'json'",
-		},
-		{
 			desc: "-http-port",
 			args: []string{
 				`-http-port=123`,
@@ -540,7 +537,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
-				rt.LogLevel = "a"
+				rt.Logging.LogLevel = "a"
 				rt.DataDir = dataDir
 			},
 		},
@@ -551,7 +548,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
-				rt.LogJSON = true
+				rt.Logging.LogJSON = true
 				rt.DataDir = dataDir
 			},
 		},
@@ -564,7 +561,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			json: []string{`{ "log_rotate_max_files": 2 }`},
 			hcl:  []string{`log_rotate_max_files = 2`},
 			patch: func(rt *RuntimeConfig) {
-				rt.LogRotateMaxFiles = 2
+				rt.Logging.LogRotateMaxFiles = 2
 				rt.DataDir = dataDir
 			},
 		},
@@ -842,7 +839,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
-				rt.EnableSyslog = true
+				rt.Logging.EnableSyslog = true
 				rt.DataDir = dataDir
 			},
 		},
@@ -1584,7 +1581,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`this is not JSON`},
 			hcl:  []string{`*** 0123 this is not HCL`},
-			err:  "Error parsing",
+			err:  "failed to parse",
 		},
 		{
 			desc: "datacenter is lower-cased",
@@ -1617,7 +1614,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			json: []string{`{ "acl_replication_token": "a" }`},
 			hcl:  []string{`acl_replication_token = "a"`},
 			patch: func(rt *RuntimeConfig) {
-				rt.ACLReplicationToken = "a"
+				rt.ACLTokens.ACLReplicationToken = "a"
 				rt.ACLTokenReplication = true
 				rt.DataDir = dataDir
 			},
@@ -3292,17 +3289,15 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			err: "config_entries.bootstrap[0]: invalid config entry kind: foo",
 		},
 		{
-			desc: "ConfigEntry bootstrap invalid",
+			desc: "ConfigEntry bootstrap invalid service-defaults",
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{
 				"config_entries": {
 					"bootstrap": [
 						{
-							"kind": "proxy-defaults",
-							"name": "invalid-name",
-							"config": {
-								"foo": "bar"
-							}
+							"kind": "service-defaults",
+							"name": "web",
+							"made_up_key": "blah"
 						}
 					]
 				}
@@ -3310,14 +3305,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			hcl: []string{`
 			config_entries {
 				bootstrap {
-					kind = "proxy-defaults"
-					name = "invalid-name"
-					config {
-						foo = "bar"
-					}
+					kind = "service-defaults"
+					name = "web"
+					made_up_key = "blah"
 				}
 			}`},
-			err: "config_entries.bootstrap[0]: invalid name (\"invalid-name\"), only \"global\" is supported",
+			err: "config_entries.bootstrap[0]: 1 error occurred:\n\t* invalid config key \"made_up_key\"\n\n",
 		},
 		{
 			desc: "ConfigEntry bootstrap proxy-defaults (snake-case)",
@@ -3361,8 +3354,9 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DataDir = dataDir
 				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
 					&structs.ProxyConfigEntry{
-						Kind: structs.ProxyDefaults,
-						Name: structs.ProxyConfigGlobal,
+						Kind:           structs.ProxyDefaults,
+						Name:           structs.ProxyConfigGlobal,
+						EnterpriseMeta: *defaultEntMeta,
 						Config: map[string]interface{}{
 							"bar": "abc",
 							"moreconfig": map[string]interface{}{
@@ -3418,8 +3412,9 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DataDir = dataDir
 				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
 					&structs.ProxyConfigEntry{
-						Kind: structs.ProxyDefaults,
-						Name: structs.ProxyConfigGlobal,
+						Kind:           structs.ProxyDefaults,
+						Name:           structs.ProxyConfigGlobal,
+						EnterpriseMeta: *defaultEntMeta,
 						Config: map[string]interface{}{
 							"bar": "abc",
 							"moreconfig": map[string]interface{}{
@@ -3442,6 +3437,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 						{
 							"kind": "service-defaults",
 							"name": "web",
+							"meta" : {
+								"foo": "bar",
+								"gir": "zim"
+							},
 							"protocol": "http",
 							"external_sni": "abc-123",
 							"mesh_gateway": {
@@ -3456,6 +3455,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					bootstrap {
 						kind = "service-defaults"
 						name = "web"
+						meta {
+							"foo" = "bar"
+							"gir" = "zim"
+						}
 						protocol = "http"
 						external_sni = "abc-123"
 						mesh_gateway {
@@ -3467,10 +3470,15 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DataDir = dataDir
 				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
 					&structs.ServiceConfigEntry{
-						Kind:        structs.ServiceDefaults,
-						Name:        "web",
-						Protocol:    "http",
-						ExternalSNI: "abc-123",
+						Kind: structs.ServiceDefaults,
+						Name: "web",
+						Meta: map[string]string{
+							"foo": "bar",
+							"gir": "zim",
+						},
+						EnterpriseMeta: *defaultEntMeta,
+						Protocol:       "http",
+						ExternalSNI:    "abc-123",
 						MeshGateway: structs.MeshGatewayConfig{
 							Mode: structs.MeshGatewayModeRemote,
 						},
@@ -3487,6 +3495,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 						{
 							"Kind": "service-defaults",
 							"Name": "web",
+							"Meta" : {
+								"foo": "bar",
+								"gir": "zim"
+							},
 							"Protocol": "http",
 							"ExternalSNI": "abc-123",
 							"MeshGateway": {
@@ -3501,6 +3513,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					bootstrap {
 						Kind = "service-defaults"
 						Name = "web"
+						Meta {
+							"foo" = "bar"
+							"gir" = "zim"
+						}
 						Protocol = "http"
 						ExternalSNI = "abc-123"
 						MeshGateway {
@@ -3512,10 +3528,15 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DataDir = dataDir
 				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
 					&structs.ServiceConfigEntry{
-						Kind:        structs.ServiceDefaults,
-						Name:        "web",
-						Protocol:    "http",
-						ExternalSNI: "abc-123",
+						Kind: structs.ServiceDefaults,
+						Name: "web",
+						Meta: map[string]string{
+							"foo": "bar",
+							"gir": "zim",
+						},
+						EnterpriseMeta: *defaultEntMeta,
+						Protocol:       "http",
+						ExternalSNI:    "abc-123",
 						MeshGateway: structs.MeshGatewayConfig{
 							Mode: structs.MeshGatewayModeRemote,
 						},
@@ -3532,6 +3553,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 						{
 							"kind": "service-router",
 							"name": "main",
+							"meta" : {
+								"foo": "bar",
+								"gir": "zim"
+							},
 							"routes": [
 								{
 									"match": {
@@ -3616,6 +3641,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					bootstrap {
 						kind = "service-router"
 						name = "main"
+						meta {
+							"foo" = "bar"
+							"gir" = "zim"
+						}
 						routes = [
 							{
 								match {
@@ -3699,6 +3728,11 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					&structs.ServiceRouterConfigEntry{
 						Kind: structs.ServiceRouter,
 						Name: "main",
+						Meta: map[string]string{
+							"foo": "bar",
+							"gir": "zim",
+						},
+						EnterpriseMeta: *defaultEntMeta,
 						Routes: []structs.ServiceRoute{
 							{
 								Match: &structs.ServiceRouteMatch{
@@ -3778,6 +3812,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				}
 			},
 		},
+		// TODO(rb): add in missing tests for ingress-gateway (snake + camel)
+		// TODO(rb): add in missing tests for terminating-gateway (snake + camel)
 
 		///////////////////////////////////
 		// Defaults sanity checks
@@ -3986,6 +4022,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				"Both an intro token and intro token file are set. The intro token will be used instead of the file",
 			},
 			patch: func(rt *RuntimeConfig) {
+				rt.ConnectEnabled = true
 				rt.AutoConfig.Enabled = true
 				rt.AutoConfig.IntroToken = "blah"
 				rt.AutoConfig.IntroTokenFile = "blah"
@@ -4078,6 +4115,48 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				"cert_file": "foo"
 			}`},
 			err: `auto_config.authorization.static has invalid configuration: exactly one of 'JWTValidationPubKeys', 'JWKSURL', or 'OIDCDiscoveryURL' must be set for type "jwt"`,
+		},
+
+		{
+			desc: "auto config authorizer require token replication in secondary",
+			args: []string{
+				`-data-dir=` + dataDir,
+				`-server`,
+			},
+			hcl: []string{`
+				primary_datacenter = "otherdc"
+				acl {
+					enabled = true
+				}
+				auto_config {
+					authorization {
+						enabled = true
+						static {
+							jwks_url = "https://fake.uri.local"
+							oidc_discovery_url = "https://fake.uri.local"
+						}
+					}
+				}
+				cert_file = "foo"
+			`},
+			json: []string{`
+			{
+				"primary_datacenter": "otherdc",
+				"acl": {
+					"enabled": true
+				},
+				"auto_config": {
+					"authorization": {
+						"enabled": true,
+						"static": {
+							"jwks_url": "https://fake.uri.local",
+							"oidc_discovery_url": "https://fake.uri.local"
+						}
+					}
+				},
+				"cert_file": "foo"
+			}`},
+			err: `Enabling auto-config authorization (auto_config.authorization.enabled) in non primary datacenters with ACLs enabled (acl.enabled) requires also enabling ACL token replication (acl.enable_token_replication)`,
 		},
 
 		{
@@ -4245,38 +4324,27 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 					t.Fatal("NewBuilder", err)
 				}
 
-				// mock the hostname function unless a mock is provided
-				b.Hostname = tt.hostname
-				if b.Hostname == nil {
-					b.Hostname = func() (string, error) { return "nodex", nil }
+				patchBuilderShims(b)
+				if tt.hostname != nil {
+					b.hostname = tt.hostname
 				}
-
-				// mock the ip address detection
-				privatev4 := tt.privatev4
-				if privatev4 == nil {
-					privatev4 = func() ([]*net.IPAddr, error) {
-						return []*net.IPAddr{ipAddr("10.0.0.1")}, nil
-					}
+				if tt.privatev4 != nil {
+					b.getPrivateIPv4 = tt.privatev4
 				}
-				publicv6 := tt.publicv6
-				if publicv6 == nil {
-					publicv6 = func() ([]*net.IPAddr, error) {
-						return []*net.IPAddr{ipAddr("dead:beef::1")}, nil
-					}
+				if tt.publicv6 != nil {
+					b.getPublicIPv6 = tt.publicv6
 				}
-				b.GetPrivateIPv4 = privatev4
-				b.GetPublicIPv6 = publicv6
 
 				// read the source fragements
 				for i, data := range srcs {
-					b.Sources = append(b.Sources, Source{
+					b.Sources = append(b.Sources, FileSource{
 						Name:   fmt.Sprintf("src-%d.%s", i, format),
 						Format: format,
 						Data:   data,
 					})
 				}
 				for i, data := range tails {
-					b.Tail = append(b.Tail, Source{
+					b.Tail = append(b.Tail, FileSource{
 						Name:   fmt.Sprintf("tail-%d.%s", i, format),
 						Format: format,
 						Data:   data,
@@ -4297,12 +4365,10 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				if err != nil && tt.err != "" && !strings.Contains(err.Error(), tt.err) {
 					t.Fatalf("error %q does not contain %q", err.Error(), tt.err)
 				}
-				require.Equal(t, tt.warns, b.Warnings, "warnings")
-
-				// stop if we expected an error
 				if tt.err != "" {
 					return
 				}
+				require.Equal(t, tt.warns, b.Warnings, "warnings")
 
 				// build a default configuration, then patch the fields we expect to change
 				// and compare it with the generated configuration. Since the expected
@@ -4311,9 +4377,9 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				x.Hostname = b.Hostname
-				x.GetPrivateIPv4 = func() ([]*net.IPAddr, error) { return []*net.IPAddr{ipAddr("10.0.0.1")}, nil }
-				x.GetPublicIPv6 = func() ([]*net.IPAddr, error) { return []*net.IPAddr{ipAddr("dead:beef::1")}, nil }
+				x.hostname = b.hostname
+				x.getPrivateIPv4 = func() ([]*net.IPAddr, error) { return []*net.IPAddr{ipAddr("10.0.0.1")}, nil }
+				x.getPublicIPv6 = func() ([]*net.IPAddr, error) { return []*net.IPAddr{ipAddr("dead:beef::1")}, nil }
 				expected, err := x.Build()
 				if err != nil {
 					t.Fatalf("build default failed: %s", err)
@@ -4321,10 +4387,23 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				if tt.patch != nil {
 					tt.patch(&expected)
 				}
+
+				// both DataDir fields should always be the same, so test for the
+				// invariant, and than updated the expected, so that every test
+				// case does not need to set this field.
+				require.Equal(t, actual.DataDir, actual.ACLTokens.DataDir)
+				expected.ACLTokens.DataDir = actual.ACLTokens.DataDir
+
 				require.Equal(t, expected, actual)
 			})
 		}
 	}
+}
+
+func TestNewBuilder_InvalidConfigFormat(t *testing.T) {
+	_, err := NewBuilder(BuilderOpts{ConfigFormat: "yaml"})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "-config-format must be either 'hcl' or 'json'")
 }
 
 // TestFullConfig tests the conversion from a fully populated JSON or
@@ -4344,12 +4423,13 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 //
 func TestFullConfig(t *testing.T) {
 	dataDir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(dataDir)
 
 	cidr := func(s string) *net.IPNet {
 		_, n, _ := net.ParseCIDR(s)
 		return n
 	}
+
+	defaultEntMeta := structs.DefaultEnterpriseMeta()
 
 	flagSrc := []string{`-dev`}
 	src := map[string]string{
@@ -5684,7 +5764,7 @@ func TestFullConfig(t *testing.T) {
 
 	tail := map[string][]Source{
 		"json": {
-			{
+			FileSource{
 				Name:   "tail.non-user.json",
 				Format: "json",
 				Data: `
@@ -5703,7 +5783,7 @@ func TestFullConfig(t *testing.T) {
 					"sync_coordinate_rate_target": 137.81
 				}`,
 			},
-			{
+			FileSource{
 				Name:   "tail.consul.json",
 				Format: "json",
 				Data: `
@@ -5727,7 +5807,7 @@ func TestFullConfig(t *testing.T) {
 			},
 		},
 		"hcl": {
-			{
+			FileSource{
 				Name:   "tail.non-user.hcl",
 				Format: "hcl",
 				Data: `
@@ -5745,7 +5825,7 @@ func TestFullConfig(t *testing.T) {
 					sync_coordinate_rate_target = 137.81
 				`,
 			},
-			{
+			FileSource{
 				Name:   "tail.consul.hcl",
 				Format: "hcl",
 				Data: `
@@ -5807,20 +5887,24 @@ func TestFullConfig(t *testing.T) {
 
 		// user configurable values
 
-		ACLAgentMasterToken:              "64fd0e08",
-		ACLAgentToken:                    "bed2377c",
+		ACLTokens: token.Config{
+			EnablePersistence:   true,
+			DataDir:             dataDir,
+			ACLDefaultToken:     "418fdff1",
+			ACLAgentToken:       "bed2377c",
+			ACLAgentMasterToken: "64fd0e08",
+			ACLReplicationToken: "5795983a",
+		},
+
 		ACLsEnabled:                      true,
 		ACLDatacenter:                    "ejtmd43d",
 		ACLDefaultPolicy:                 "72c2e7a0",
 		ACLDownPolicy:                    "03eb2aee",
 		ACLEnableKeyListPolicy:           true,
-		ACLEnableTokenPersistence:        true,
 		ACLMasterToken:                   "8a19ac27",
-		ACLReplicationToken:              "5795983a",
 		ACLTokenTTL:                      3321 * time.Second,
 		ACLPolicyTTL:                     1123 * time.Second,
 		ACLRoleTTL:                       9876 * time.Second,
-		ACLToken:                         "418fdff1",
 		ACLTokenReplication:              true,
 		AdvertiseAddrLAN:                 ipAddr("17.99.29.16"),
 		AdvertiseAddrWAN:                 ipAddr("78.63.37.19"),
@@ -5924,8 +6008,9 @@ func TestFullConfig(t *testing.T) {
 		ClientAddrs:         []*net.IPAddr{ipAddr("93.83.18.19")},
 		ConfigEntryBootstrap: []structs.ConfigEntry{
 			&structs.ProxyConfigEntry{
-				Kind: structs.ProxyDefaults,
-				Name: structs.ProxyConfigGlobal,
+				Kind:           structs.ProxyDefaults,
+				Name:           structs.ProxyConfigGlobal,
+				EnterpriseMeta: *defaultEntMeta,
 				Config: map[string]interface{}{
 					"foo": "bar",
 					// has to be a float due to being a map[string]interface
@@ -6025,7 +6110,6 @@ func TestFullConfig(t *testing.T) {
 		EnableDebug:                            true,
 		EnableRemoteScriptChecks:               true,
 		EnableLocalScriptChecks:                true,
-		EnableSyslog:                           true,
 		EnableUI:                               true,
 		EncryptKey:                             "A4wELWqH",
 		EncryptVerifyIncoming:                  true,
@@ -6046,39 +6130,43 @@ func TestFullConfig(t *testing.T) {
 		KVMaxValueSize:                         1234567800000000,
 		LeaveDrainTime:                         8265 * time.Second,
 		LeaveOnTerm:                            true,
-		LogLevel:                               "k1zo9Spt",
-		LogJSON:                                true,
-		MaxQueryTime:                           18237 * time.Second,
-		NodeID:                                 types.NodeID("AsUIlw99"),
-		NodeMeta:                               map[string]string{"5mgGQMBk": "mJLtVMSG", "A7ynFMJB": "0Nx6RGab"},
-		NodeName:                               "otlLxGaI",
-		NonVotingServer:                        true,
-		PidFile:                                "43xN80Km",
-		PrimaryDatacenter:                      "ejtmd43d",
-		PrimaryGateways:                        []string{"aej8eeZo", "roh2KahS"},
-		PrimaryGatewaysInterval:                18866 * time.Second,
-		RPCAdvertiseAddr:                       tcpAddr("17.99.29.16:3757"),
-		RPCBindAddr:                            tcpAddr("16.99.34.17:3757"),
-		RPCHandshakeTimeout:                    1932 * time.Millisecond,
-		RPCHoldTimeout:                         15707 * time.Second,
-		RPCProtocol:                            30793,
-		RPCRateLimit:                           12029.43,
-		RPCMaxBurst:                            44848,
-		RPCMaxConnsPerClient:                   2954,
-		RaftProtocol:                           19016,
-		RaftSnapshotThreshold:                  16384,
-		RaftSnapshotInterval:                   30 * time.Second,
-		RaftTrailingLogs:                       83749,
-		ReconnectTimeoutLAN:                    23739 * time.Second,
-		ReconnectTimeoutWAN:                    26694 * time.Second,
-		RejoinAfterLeave:                       true,
-		RetryJoinIntervalLAN:                   8067 * time.Second,
-		RetryJoinIntervalWAN:                   28866 * time.Second,
-		RetryJoinLAN:                           []string{"pbsSFY7U", "l0qLtWij"},
-		RetryJoinMaxAttemptsLAN:                913,
-		RetryJoinMaxAttemptsWAN:                23160,
-		RetryJoinWAN:                           []string{"PFsR02Ye", "rJdQIhER"},
-		SegmentName:                            "BC2NhTDi",
+		Logging: logging.Config{
+			LogLevel:       "k1zo9Spt",
+			LogJSON:        true,
+			EnableSyslog:   true,
+			SyslogFacility: "hHv79Uia",
+		},
+		MaxQueryTime:            18237 * time.Second,
+		NodeID:                  types.NodeID("AsUIlw99"),
+		NodeMeta:                map[string]string{"5mgGQMBk": "mJLtVMSG", "A7ynFMJB": "0Nx6RGab"},
+		NodeName:                "otlLxGaI",
+		NonVotingServer:         true,
+		PidFile:                 "43xN80Km",
+		PrimaryDatacenter:       "ejtmd43d",
+		PrimaryGateways:         []string{"aej8eeZo", "roh2KahS"},
+		PrimaryGatewaysInterval: 18866 * time.Second,
+		RPCAdvertiseAddr:        tcpAddr("17.99.29.16:3757"),
+		RPCBindAddr:             tcpAddr("16.99.34.17:3757"),
+		RPCHandshakeTimeout:     1932 * time.Millisecond,
+		RPCHoldTimeout:          15707 * time.Second,
+		RPCProtocol:             30793,
+		RPCRateLimit:            12029.43,
+		RPCMaxBurst:             44848,
+		RPCMaxConnsPerClient:    2954,
+		RaftProtocol:            19016,
+		RaftSnapshotThreshold:   16384,
+		RaftSnapshotInterval:    30 * time.Second,
+		RaftTrailingLogs:        83749,
+		ReconnectTimeoutLAN:     23739 * time.Second,
+		ReconnectTimeoutWAN:     26694 * time.Second,
+		RejoinAfterLeave:        true,
+		RetryJoinIntervalLAN:    8067 * time.Second,
+		RetryJoinIntervalWAN:    28866 * time.Second,
+		RetryJoinLAN:            []string{"pbsSFY7U", "l0qLtWij"},
+		RetryJoinMaxAttemptsLAN: 913,
+		RetryJoinMaxAttemptsWAN: 23160,
+		RetryJoinWAN:            []string{"PFsR02Ye", "rJdQIhER"},
+		SegmentName:             "BC2NhTDi",
 		Segments: []structs.NetworkSegment{
 			{
 				Name:        "PExYMe2E",
@@ -6383,7 +6471,6 @@ func TestFullConfig(t *testing.T) {
 		SkipLeaveOnInt:       true,
 		StartJoinAddrsLAN:    []string{"LR3hGDoG", "MwVpZ4Up"},
 		StartJoinAddrsWAN:    []string{"EbFSc3nA", "kwXTh623"},
-		SyslogFacility:       "hHv79Uia",
 		Telemetry: lib.TelemetryConfig{
 			CirconusAPIApp:                     "p4QOTe9j",
 			CirconusAPIToken:                   "E3j35V23",
@@ -6446,8 +6533,9 @@ func TestFullConfig(t *testing.T) {
 				"args":       []interface{}{"dltjDJ2a", "flEa7C2d"},
 			},
 		},
-		EnterpriseRuntimeConfig: entFullRuntimeConfig,
 	}
+
+	entFullRuntimeConfig(&want)
 
 	warns := []string{
 		`The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.`,
@@ -6482,7 +6570,7 @@ func TestFullConfig(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NewBuilder: %s", err)
 			}
-			b.Sources = append(b.Sources, Source{Name: "full." + format, Data: data, Format: format})
+			b.Sources = append(b.Sources, FileSource{Name: "full." + format, Data: data, Format: format})
 			b.Tail = append(b.Tail, tail[format]...)
 			b.Tail = append(b.Tail, VersionSource("JNtPSav3", "R909Hblt", "ZT1JOQLn"))
 
@@ -6765,21 +6853,25 @@ func TestSanitize(t *testing.T) {
 	}
 
 	rtJSON := `{
-		"ACLAgentMasterToken": "hidden",
-		"ACLAgentToken": "hidden",
+		"ACLTokens": {
+			` + entTokenConfigSanitize + `
+			"ACLAgentMasterToken": "hidden",
+			"ACLAgentToken": "hidden",
+			"ACLDefaultToken": "hidden",
+			"ACLReplicationToken": "hidden",
+			"DataDir": "",
+			"EnablePersistence": false
+		},
 		"ACLDatacenter": "",
 		"ACLDefaultPolicy": "",
 		"ACLDisabledTTL": "0s",
 		"ACLDownPolicy": "",
 		"ACLEnableKeyListPolicy": false,
-		"ACLEnableTokenPersistence": false,
 		"ACLMasterToken": "hidden",
 		"ACLPolicyTTL": "0s",
-		"ACLReplicationToken": "hidden",
 		"ACLRoleTTL": "0s",
 		"ACLTokenReplication": false,
 		"ACLTokenTTL": "0s",
-		"ACLToken": "hidden",
 		"ACLsEnabled": false,
 		"AEInterval": "0s",
 		"AdvertiseAddrLAN": "",
@@ -6913,7 +7005,6 @@ func TestSanitize(t *testing.T) {
 		"EnableCentralServiceConfig": false,
 		"EnableLocalScriptChecks": false,
 		"EnableRemoteScriptChecks": false,
-		"EnableSyslog": false,
 		"EnableUI": false,
 		"EncryptKey": "hidden",
 		"EncryptVerifyIncoming": false,
@@ -6939,12 +7030,17 @@ func TestSanitize(t *testing.T) {
 		"KVMaxValueSize": 1234567800000000,
 		"LeaveDrainTime": "0s",
 		"LeaveOnTerm": false,
-		"LogLevel": "",
-		"LogJSON": false,
-		"LogFile": "",
-		"LogRotateBytes": 0,
-		"LogRotateDuration": "0s",
-		"LogRotateMaxFiles": 0,
+		"Logging": {
+			"EnableSyslog": false,
+			"LogLevel": "",
+			"LogJSON": false,
+			"LogFilePath": "",
+			"LogRotateBytes": 0,
+			"LogRotateDuration": "0s",
+			"LogRotateMaxFiles": 0,
+			"Name": "",
+			"SyslogFacility": ""
+		},
 		"MaxQueryTime": "0s",
 		"NodeID": "",
 		"NodeMeta": {},
@@ -7051,7 +7147,6 @@ func TestSanitize(t *testing.T) {
 		"StartJoinAddrsWAN": [],
 		"SyncCoordinateIntervalMin": "0s",
 		"SyncCoordinateRateTarget": 0,
-		"SyslogFacility": "",
 		"TLSCipherSuites": [],
 		"TLSMinVersion": "",
 		"TLSPreferServerCipherSuites": false,
@@ -7072,6 +7167,7 @@ func TestSanitize(t *testing.T) {
 			"CirconusCheckTags": "",
 			"CirconusSubmissionInterval": "",
 			"CirconusSubmissionURL": "",
+			"Disable": false,
 			"DisableHostname": false,
 			"DogstatsdAddr": "",
 			"DogstatsdTags": [],

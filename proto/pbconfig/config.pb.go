@@ -8,6 +8,7 @@ import (
 	proto "github.com/golang/protobuf/proto"
 	io "io"
 	math "math"
+	math_bits "math/bits"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -49,7 +50,7 @@ func (m *Config) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Config.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -146,7 +147,7 @@ func (m *Gossip) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Gossip.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -202,7 +203,7 @@ func (m *GossipEncryption) XXX_Marshal(b []byte, deterministic bool) ([]byte, er
 		return xxx_messageInfo_GossipEncryption.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -267,7 +268,7 @@ func (m *TLS) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_TLS.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -352,7 +353,7 @@ func (m *ACL) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_ACL.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -474,7 +475,7 @@ func (m *ACLTokens) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_ACLTokens.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -557,7 +558,7 @@ func (m *ACLServiceProviderToken) XXX_Marshal(b []byte, deterministic bool) ([]b
 		return xxx_messageInfo_ACLServiceProviderToken.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -614,7 +615,7 @@ func (m *AutoEncrypt) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) 
 		return xxx_messageInfo_AutoEncrypt.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -731,7 +732,7 @@ var fileDescriptor_aefa824db7b74d77 = []byte{
 func (m *Config) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -739,84 +740,102 @@ func (m *Config) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Config) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Config) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.Datacenter) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintConfig(dAtA, i, uint64(len(m.Datacenter)))
-		i += copy(dAtA[i:], m.Datacenter)
-	}
-	if len(m.PrimaryDatacenter) > 0 {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintConfig(dAtA, i, uint64(len(m.PrimaryDatacenter)))
-		i += copy(dAtA[i:], m.PrimaryDatacenter)
-	}
-	if len(m.NodeName) > 0 {
-		dAtA[i] = 0x1a
-		i++
-		i = encodeVarintConfig(dAtA, i, uint64(len(m.NodeName)))
-		i += copy(dAtA[i:], m.NodeName)
-	}
-	if len(m.SegmentName) > 0 {
-		dAtA[i] = 0x22
-		i++
-		i = encodeVarintConfig(dAtA, i, uint64(len(m.SegmentName)))
-		i += copy(dAtA[i:], m.SegmentName)
-	}
-	if m.ACL != nil {
-		dAtA[i] = 0x2a
-		i++
-		i = encodeVarintConfig(dAtA, i, uint64(m.ACL.Size()))
-		n1, err := m.ACL.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n1
-	}
-	if m.AutoEncrypt != nil {
-		dAtA[i] = 0x32
-		i++
-		i = encodeVarintConfig(dAtA, i, uint64(m.AutoEncrypt.Size()))
-		n2, err := m.AutoEncrypt.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n2
-	}
-	if m.Gossip != nil {
-		dAtA[i] = 0x3a
-		i++
-		i = encodeVarintConfig(dAtA, i, uint64(m.Gossip.Size()))
-		n3, err := m.Gossip.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n3
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
 	if m.TLS != nil {
-		dAtA[i] = 0x42
-		i++
-		i = encodeVarintConfig(dAtA, i, uint64(m.TLS.Size()))
-		n4, err := m.TLS.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
+		{
+			size, err := m.TLS.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintConfig(dAtA, i, uint64(size))
 		}
-		i += n4
+		i--
+		dAtA[i] = 0x42
 	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+	if m.Gossip != nil {
+		{
+			size, err := m.Gossip.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintConfig(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x3a
 	}
-	return i, nil
+	if m.AutoEncrypt != nil {
+		{
+			size, err := m.AutoEncrypt.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintConfig(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x32
+	}
+	if m.ACL != nil {
+		{
+			size, err := m.ACL.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintConfig(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.SegmentName) > 0 {
+		i -= len(m.SegmentName)
+		copy(dAtA[i:], m.SegmentName)
+		i = encodeVarintConfig(dAtA, i, uint64(len(m.SegmentName)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.NodeName) > 0 {
+		i -= len(m.NodeName)
+		copy(dAtA[i:], m.NodeName)
+		i = encodeVarintConfig(dAtA, i, uint64(len(m.NodeName)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.PrimaryDatacenter) > 0 {
+		i -= len(m.PrimaryDatacenter)
+		copy(dAtA[i:], m.PrimaryDatacenter)
+		i = encodeVarintConfig(dAtA, i, uint64(len(m.PrimaryDatacenter)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Datacenter) > 0 {
+		i -= len(m.Datacenter)
+		copy(dAtA[i:], m.Datacenter)
+		i = encodeVarintConfig(dAtA, i, uint64(len(m.Datacenter)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Gossip) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -824,45 +843,47 @@ func (m *Gossip) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Gossip) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Gossip) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Encryption != nil {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintConfig(dAtA, i, uint64(m.Encryption.Size()))
-		n5, err := m.Encryption.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n5
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
 	if len(m.RetryJoinLAN) > 0 {
-		for _, s := range m.RetryJoinLAN {
+		for iNdEx := len(m.RetryJoinLAN) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.RetryJoinLAN[iNdEx])
+			copy(dAtA[i:], m.RetryJoinLAN[iNdEx])
+			i = encodeVarintConfig(dAtA, i, uint64(len(m.RetryJoinLAN[iNdEx])))
+			i--
 			dAtA[i] = 0x12
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			dAtA[i] = uint8(l)
-			i++
-			i += copy(dAtA[i:], s)
 		}
 	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+	if m.Encryption != nil {
+		{
+			size, err := m.Encryption.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintConfig(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0xa
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *GossipEncryption) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -870,46 +891,53 @@ func (m *GossipEncryption) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *GossipEncryption) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *GossipEncryption) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.Key) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintConfig(dAtA, i, uint64(len(m.Key)))
-		i += copy(dAtA[i:], m.Key)
-	}
-	if m.VerifyIncoming {
-		dAtA[i] = 0x10
-		i++
-		if m.VerifyIncoming {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i++
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
 	if m.VerifyOutgoing {
-		dAtA[i] = 0x18
-		i++
+		i--
 		if m.VerifyOutgoing {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i++
+		i--
+		dAtA[i] = 0x18
 	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+	if m.VerifyIncoming {
+		i--
+		if m.VerifyIncoming {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x10
 	}
-	return i, nil
+	if len(m.Key) > 0 {
+		i -= len(m.Key)
+		copy(dAtA[i:], m.Key)
+		i = encodeVarintConfig(dAtA, i, uint64(len(m.Key)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *TLS) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -917,62 +945,70 @@ func (m *TLS) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *TLS) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *TLS) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.VerifyOutgoing {
-		dAtA[i] = 0x8
-		i++
-		if m.VerifyOutgoing {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i++
-	}
-	if m.VerifyServerHostname {
-		dAtA[i] = 0x10
-		i++
-		if m.VerifyServerHostname {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i++
-	}
-	if len(m.CipherSuites) > 0 {
-		dAtA[i] = 0x1a
-		i++
-		i = encodeVarintConfig(dAtA, i, uint64(len(m.CipherSuites)))
-		i += copy(dAtA[i:], m.CipherSuites)
-	}
-	if len(m.MinVersion) > 0 {
-		dAtA[i] = 0x22
-		i++
-		i = encodeVarintConfig(dAtA, i, uint64(len(m.MinVersion)))
-		i += copy(dAtA[i:], m.MinVersion)
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
 	if m.PreferServerCipherSuites {
-		dAtA[i] = 0x28
-		i++
+		i--
 		if m.PreferServerCipherSuites {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i++
+		i--
+		dAtA[i] = 0x28
 	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+	if len(m.MinVersion) > 0 {
+		i -= len(m.MinVersion)
+		copy(dAtA[i:], m.MinVersion)
+		i = encodeVarintConfig(dAtA, i, uint64(len(m.MinVersion)))
+		i--
+		dAtA[i] = 0x22
 	}
-	return i, nil
+	if len(m.CipherSuites) > 0 {
+		i -= len(m.CipherSuites)
+		copy(dAtA[i:], m.CipherSuites)
+		i = encodeVarintConfig(dAtA, i, uint64(len(m.CipherSuites)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.VerifyServerHostname {
+		i--
+		if m.VerifyServerHostname {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.VerifyOutgoing {
+		i--
+		if m.VerifyOutgoing {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *ACL) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -980,106 +1016,120 @@ func (m *ACL) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ACL) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ACL) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Enabled {
-		dAtA[i] = 0x8
-		i++
-		if m.Enabled {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i++
-	}
-	if len(m.PolicyTTL) > 0 {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintConfig(dAtA, i, uint64(len(m.PolicyTTL)))
-		i += copy(dAtA[i:], m.PolicyTTL)
-	}
-	if len(m.RoleTTL) > 0 {
-		dAtA[i] = 0x1a
-		i++
-		i = encodeVarintConfig(dAtA, i, uint64(len(m.RoleTTL)))
-		i += copy(dAtA[i:], m.RoleTTL)
-	}
-	if len(m.TokenTTL) > 0 {
-		dAtA[i] = 0x22
-		i++
-		i = encodeVarintConfig(dAtA, i, uint64(len(m.TokenTTL)))
-		i += copy(dAtA[i:], m.TokenTTL)
-	}
-	if len(m.DownPolicy) > 0 {
-		dAtA[i] = 0x2a
-		i++
-		i = encodeVarintConfig(dAtA, i, uint64(len(m.DownPolicy)))
-		i += copy(dAtA[i:], m.DownPolicy)
-	}
-	if len(m.DefaultPolicy) > 0 {
-		dAtA[i] = 0x32
-		i++
-		i = encodeVarintConfig(dAtA, i, uint64(len(m.DefaultPolicy)))
-		i += copy(dAtA[i:], m.DefaultPolicy)
-	}
-	if m.EnableKeyListPolicy {
-		dAtA[i] = 0x38
-		i++
-		if m.EnableKeyListPolicy {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i++
-	}
-	if m.Tokens != nil {
-		dAtA[i] = 0x42
-		i++
-		i = encodeVarintConfig(dAtA, i, uint64(m.Tokens.Size()))
-		n6, err := m.Tokens.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n6
-	}
-	if len(m.DisabledTTL) > 0 {
-		dAtA[i] = 0x4a
-		i++
-		i = encodeVarintConfig(dAtA, i, uint64(len(m.DisabledTTL)))
-		i += copy(dAtA[i:], m.DisabledTTL)
-	}
-	if m.EnableTokenPersistence {
-		dAtA[i] = 0x50
-		i++
-		if m.EnableTokenPersistence {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i++
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
 	if m.MSPDisableBootstrap {
-		dAtA[i] = 0x58
-		i++
+		i--
 		if m.MSPDisableBootstrap {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i++
+		i--
+		dAtA[i] = 0x58
 	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+	if m.EnableTokenPersistence {
+		i--
+		if m.EnableTokenPersistence {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x50
 	}
-	return i, nil
+	if len(m.DisabledTTL) > 0 {
+		i -= len(m.DisabledTTL)
+		copy(dAtA[i:], m.DisabledTTL)
+		i = encodeVarintConfig(dAtA, i, uint64(len(m.DisabledTTL)))
+		i--
+		dAtA[i] = 0x4a
+	}
+	if m.Tokens != nil {
+		{
+			size, err := m.Tokens.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintConfig(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x42
+	}
+	if m.EnableKeyListPolicy {
+		i--
+		if m.EnableKeyListPolicy {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x38
+	}
+	if len(m.DefaultPolicy) > 0 {
+		i -= len(m.DefaultPolicy)
+		copy(dAtA[i:], m.DefaultPolicy)
+		i = encodeVarintConfig(dAtA, i, uint64(len(m.DefaultPolicy)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.DownPolicy) > 0 {
+		i -= len(m.DownPolicy)
+		copy(dAtA[i:], m.DownPolicy)
+		i = encodeVarintConfig(dAtA, i, uint64(len(m.DownPolicy)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.TokenTTL) > 0 {
+		i -= len(m.TokenTTL)
+		copy(dAtA[i:], m.TokenTTL)
+		i = encodeVarintConfig(dAtA, i, uint64(len(m.TokenTTL)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.RoleTTL) > 0 {
+		i -= len(m.RoleTTL)
+		copy(dAtA[i:], m.RoleTTL)
+		i = encodeVarintConfig(dAtA, i, uint64(len(m.RoleTTL)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.PolicyTTL) > 0 {
+		i -= len(m.PolicyTTL)
+		copy(dAtA[i:], m.PolicyTTL)
+		i = encodeVarintConfig(dAtA, i, uint64(len(m.PolicyTTL)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Enabled {
+		i--
+		if m.Enabled {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *ACLTokens) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -1087,62 +1137,75 @@ func (m *ACLTokens) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ACLTokens) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ACLTokens) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.Master) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintConfig(dAtA, i, uint64(len(m.Master)))
-		i += copy(dAtA[i:], m.Master)
-	}
-	if len(m.Replication) > 0 {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintConfig(dAtA, i, uint64(len(m.Replication)))
-		i += copy(dAtA[i:], m.Replication)
-	}
-	if len(m.AgentMaster) > 0 {
-		dAtA[i] = 0x1a
-		i++
-		i = encodeVarintConfig(dAtA, i, uint64(len(m.AgentMaster)))
-		i += copy(dAtA[i:], m.AgentMaster)
-	}
-	if len(m.Default) > 0 {
-		dAtA[i] = 0x22
-		i++
-		i = encodeVarintConfig(dAtA, i, uint64(len(m.Default)))
-		i += copy(dAtA[i:], m.Default)
-	}
-	if len(m.Agent) > 0 {
-		dAtA[i] = 0x2a
-		i++
-		i = encodeVarintConfig(dAtA, i, uint64(len(m.Agent)))
-		i += copy(dAtA[i:], m.Agent)
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
 	if len(m.ManagedServiceProvider) > 0 {
-		for _, msg := range m.ManagedServiceProvider {
-			dAtA[i] = 0x32
-			i++
-			i = encodeVarintConfig(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
+		for iNdEx := len(m.ManagedServiceProvider) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.ManagedServiceProvider[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintConfig(dAtA, i, uint64(size))
 			}
-			i += n
+			i--
+			dAtA[i] = 0x32
 		}
 	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+	if len(m.Agent) > 0 {
+		i -= len(m.Agent)
+		copy(dAtA[i:], m.Agent)
+		i = encodeVarintConfig(dAtA, i, uint64(len(m.Agent)))
+		i--
+		dAtA[i] = 0x2a
 	}
-	return i, nil
+	if len(m.Default) > 0 {
+		i -= len(m.Default)
+		copy(dAtA[i:], m.Default)
+		i = encodeVarintConfig(dAtA, i, uint64(len(m.Default)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.AgentMaster) > 0 {
+		i -= len(m.AgentMaster)
+		copy(dAtA[i:], m.AgentMaster)
+		i = encodeVarintConfig(dAtA, i, uint64(len(m.AgentMaster)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Replication) > 0 {
+		i -= len(m.Replication)
+		copy(dAtA[i:], m.Replication)
+		i = encodeVarintConfig(dAtA, i, uint64(len(m.Replication)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Master) > 0 {
+		i -= len(m.Master)
+		copy(dAtA[i:], m.Master)
+		i = encodeVarintConfig(dAtA, i, uint64(len(m.Master)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *ACLServiceProviderToken) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -1150,32 +1213,40 @@ func (m *ACLServiceProviderToken) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ACLServiceProviderToken) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ACLServiceProviderToken) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.AccessorID) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintConfig(dAtA, i, uint64(len(m.AccessorID)))
-		i += copy(dAtA[i:], m.AccessorID)
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
 	if len(m.SecretID) > 0 {
-		dAtA[i] = 0x12
-		i++
+		i -= len(m.SecretID)
+		copy(dAtA[i:], m.SecretID)
 		i = encodeVarintConfig(dAtA, i, uint64(len(m.SecretID)))
-		i += copy(dAtA[i:], m.SecretID)
+		i--
+		dAtA[i] = 0x12
 	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+	if len(m.AccessorID) > 0 {
+		i -= len(m.AccessorID)
+		copy(dAtA[i:], m.AccessorID)
+		i = encodeVarintConfig(dAtA, i, uint64(len(m.AccessorID)))
+		i--
+		dAtA[i] = 0xa
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *AutoEncrypt) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -1183,74 +1254,70 @@ func (m *AutoEncrypt) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *AutoEncrypt) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *AutoEncrypt) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.TLS {
-		dAtA[i] = 0x8
-		i++
-		if m.TLS {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i++
-	}
-	if len(m.DNSSAN) > 0 {
-		for _, s := range m.DNSSAN {
-			dAtA[i] = 0x12
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			dAtA[i] = uint8(l)
-			i++
-			i += copy(dAtA[i:], s)
-		}
-	}
-	if len(m.IPSAN) > 0 {
-		for _, s := range m.IPSAN {
-			dAtA[i] = 0x1a
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			dAtA[i] = uint8(l)
-			i++
-			i += copy(dAtA[i:], s)
-		}
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
 	if m.AllowTLS {
-		dAtA[i] = 0x20
-		i++
+		i--
 		if m.AllowTLS {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i++
+		i--
+		dAtA[i] = 0x20
 	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+	if len(m.IPSAN) > 0 {
+		for iNdEx := len(m.IPSAN) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.IPSAN[iNdEx])
+			copy(dAtA[i:], m.IPSAN[iNdEx])
+			i = encodeVarintConfig(dAtA, i, uint64(len(m.IPSAN[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
 	}
-	return i, nil
+	if len(m.DNSSAN) > 0 {
+		for iNdEx := len(m.DNSSAN) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.DNSSAN[iNdEx])
+			copy(dAtA[i:], m.DNSSAN[iNdEx])
+			i = encodeVarintConfig(dAtA, i, uint64(len(m.DNSSAN[iNdEx])))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if m.TLS {
+		i--
+		if m.TLS {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
 }
 
 func encodeVarintConfig(dAtA []byte, offset int, v uint64) int {
+	offset -= sovConfig(v)
+	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
 	dAtA[offset] = uint8(v)
-	return offset + 1
+	return base
 }
 func (m *Config) Size() (n int) {
 	if m == nil {
@@ -1510,14 +1577,7 @@ func (m *AutoEncrypt) Size() (n int) {
 }
 
 func sovConfig(x uint64) (n int) {
-	for {
-		n++
-		x >>= 7
-		if x == 0 {
-			break
-		}
-	}
-	return n
+	return (math_bits.Len64(x|1) + 6) / 7
 }
 func sozConfig(x uint64) (n int) {
 	return sovConfig(uint64((x << 1) ^ uint64((int64(x) >> 63))))

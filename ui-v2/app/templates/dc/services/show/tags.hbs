@@ -1,8 +1,9 @@
 <div id="tags" class="tab-section">
   <div role="tabpanel">
-    {{#if (gt item.Tags.length 0) }}
-      <TagList @item={{item}} />
-    {{else}}
+{{#let (flatten (map-by "Tags" items)) as |tags|}}
+  {{#if (gt tags.length 0) }}
+      <TagList @item={{hash Tags=tags}} />
+  {{else}}
       <EmptyState>
         <BlockSlot @name="body">
           <p>
@@ -10,6 +11,7 @@
           </p>
         </BlockSlot>
       </EmptyState>
-    {{/if}}
+  {{/if}}
+{{/let}}
   </div>
 </div>

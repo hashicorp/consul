@@ -60,7 +60,7 @@ func TestCacheNotifyChResult(t testing.T, ch <-chan UpdateEvent, expected ...Upd
 	}
 
 	got := make([]UpdateEvent, 0, expectLen)
-	timeoutCh := time.After(50 * time.Millisecond)
+	timeoutCh := time.After(75 * time.Millisecond)
 
 OUT:
 	for {
@@ -74,7 +74,7 @@ OUT:
 			}
 
 		case <-timeoutCh:
-			t.Fatalf("got %d results on chan in 50ms, want %d", len(got), expectLen)
+			t.Fatalf("timeout while waiting for result: got %d results on chan, want %d", len(got), expectLen)
 		}
 	}
 

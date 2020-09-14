@@ -14,6 +14,9 @@
   right: auto;
   top: 28px !important;
 }
+%main-nav-horizontal .popover-menu > label > button::after {
+  top: 2px;
+}
 @media #{$--horizontal-nav} {
   %main-nav-horizontal > ul,
   %main-nav-horizontal-panel {

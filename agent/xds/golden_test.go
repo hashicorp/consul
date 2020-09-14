@@ -9,6 +9,7 @@ import (
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/require"
 )
@@ -55,11 +56,15 @@ func golden(t *testing.T, name, subname, got string) string {
 }
 
 func responseToJSON(t *testing.T, r *envoy.DiscoveryResponse) string {
+	return protoToJSON(t, r)
+}
+
+func protoToJSON(t *testing.T, pb proto.Message) string {
 	t.Helper()
 	m := jsonpb.Marshaler{
 		Indent: "  ",
 	}
-	gotJSON, err := m.MarshalToString(r)
+	gotJSON, err := m.MarshalToString(pb)
 	require.NoError(t, err)
 	return gotJSON
 }

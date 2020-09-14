@@ -26,7 +26,7 @@ definition](/docs/connect/registration/service-registration) allowing you
 to use the more powerful features of Envoy.
 
 ~> **Note:** When using Envoy with Consul and not using the [`consul connect envoy` command](/docs/commands/connect/envoy)
-Envoy must be run with the `--max-obj-name-len` option set to `256` or greater.
+Envoy must be run with the `--max-obj-name-len` option set to `256` or greater for Envoy versions prior to 1.11.0.
 
 ## Supported Versions
 
@@ -35,6 +35,7 @@ compatible Envoy versions.
 
 | Consul Version      | Compatible Envoy Versions        |
 | ------------------- | -------------------------------- |
+| 1.9.x               | 1.15.0, 1.14.4, 1.13.4, 1.12.6   |
 | 1.8.x               | 1.14.4, 1.13.4, 1.12.6, 1.11.2   |
 | 1.7.x               | 1.13.1, 1.12.3, 1.11.2, 1.10.0\* |
 | 1.5.2, 1.5.3, 1.6.x | 1.11.1, 1.10.0, 1.9.1, 1.8.0†    |
@@ -52,7 +53,7 @@ recent supported Envoy for your Consul version where possible.<br/><br/>\* Envoy
 ## Getting Started
 
 To get started with Envoy and see a working example you can follow the [Using
-Envoy with Connect](https://learn.hashicorp.com/consul/developer-segmentation/connect-envoy) guide.
+Envoy with Connect](https://learn.hashicorp.com/tutorials/consul/service-mesh-with-envoy-proxy) tutorial.
 
 ## Configuration
 

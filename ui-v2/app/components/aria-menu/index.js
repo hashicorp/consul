@@ -39,7 +39,6 @@ const MENU_ITEMS = '[role^="menuitem"]';
 export default Component.extend({
   tagName: '',
   dom: service('dom'),
-  router: service('router'),
   guid: '',
   expanded: false,
   orientation: 'vertical',
@@ -56,9 +55,6 @@ export default Component.extend({
     this.$menu = this.dom.element(`#${COMPONENT_ID}menu-${this.guid}`);
     const labelledBy = this.$menu.getAttribute('aria-labelledby');
     this.$trigger = this.dom.element(`#${labelledBy}`);
-    this._routelisteners.add(this.router, {
-      routeWillChange: () => this.actions.close.apply(this, [{}]),
-    });
   },
   willDestroyElement: function() {
     this._super(...arguments);
@@ -81,13 +77,17 @@ export default Component.extend({
       // the keypress
       // TODO: We need to use > somehow here so we don't select submenus
       const $items = [...this.dom.elements(MENU_ITEMS, this.$menu)];
-      if (!this.expanded) {
-        if (e.keyCode === ENTER || e.keyCode === SPACE) {
-          next(() => {
-            $items[0].focus();
-          });
-          return;
-        }
+      if (e.keyCode === ENTER || e.keyCode === SPACE) {
+        // If we are opening, get ready to focus the first item
+        // if we are already open don't control focus
+        let $focus = !this.expanded ? $items[0] : undefined;
+        next(() => {
+          // if we are now closed, focus the trigger instead
+          $focus = !this.expanded ? this.$trigger : $focus;
+          if (typeof $focus !== 'undefined') {
+            $focus.focus();
+          }
+        });
       }
       // this will prevent anything happening if you haven't pushed a
       // configurable key

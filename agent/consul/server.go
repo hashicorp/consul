@@ -25,6 +25,8 @@ import (
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/consul/usagemetrics"
+	"github.com/hashicorp/consul/agent/grpc"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
@@ -238,8 +240,9 @@ type Server struct {
 	rpcConnLimiter connlimit.Limiter
 
 	// Listener is used to listen for incoming connections
-	Listener  net.Listener
-	rpcServer *rpc.Server
+	Listener    net.Listener
+	grpcHandler connHandler
+	rpcServer   *rpc.Server
 
 	// insecureRPCServer is a RPC server that is configure with
 	// IncomingInsecureRPCConfig to allow clients to call AutoEncrypt.Sign
@@ -313,60 +316,34 @@ type Server struct {
 	EnterpriseServer
 }
 
-// NewServer is only used to help setting up a server for testing. Normal code
-// exercises NewServerLogger.
-func NewServer(config *Config) (*Server, error) {
-	c, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), nil)
-	if err != nil {
-		return nil, err
-	}
-	return NewServerLogger(config, nil, new(token.Store), c)
+type connHandler interface {
+	Run() error
+	Handle(conn net.Conn)
+	Shutdown() error
 }
 
-// NewServerLogger is used to construct a new Consul server from the
-// configuration, potentially returning an error
-func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token.Store, tlsConfigurator *tlsutil.Configurator) (*Server, error) {
-	return NewServerWithOptions(config,
-		WithLogger(logger),
-		WithTokenStore(tokens),
-		WithTLSConfigurator(tlsConfigurator))
-}
-
-// NewServerWithOptions is used to construct a new Consul server from the configuration
-// and extra options, potentially returning an error
-func NewServerWithOptions(config *Config, options ...ConsulOption) (*Server, error) {
+// NewServer is used to construct a new Consul server from the configuration
+// and extra options, potentially returning an error.
+func NewServer(config *Config, options ...ConsulOption) (*Server, error) {
 	flat := flattenConsulOptions(options)
 
 	logger := flat.logger
 	tokens := flat.tokens
 	tlsConfigurator := flat.tlsConfigurator
 	connPool := flat.connPool
+	rpcRouter := flat.router
 
-	// Check the protocol version.
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
 	}
-
-	// Check for a data directory.
 	if config.DataDir == "" && !config.DevMode {
 		return nil, fmt.Errorf("Config must provide a DataDir")
 	}
-
-	// Sanity check the ACLs.
 	if err := config.CheckACL(); err != nil {
 		return nil, err
 	}
-
-	// Ensure we have a log output and create a logger.
-	if config.LogOutput == nil {
-		config.LogOutput = os.Stderr
-	}
-
 	if logger == nil {
-		logger = hclog.NewInterceptLogger(&hclog.LoggerOptions{
-			Level:  hclog.Debug,
-			Output: config.LogOutput,
-		})
+		return nil, fmt.Errorf("logger is required")
 	}
 
 	// Check if TLS is enabled
@@ -400,7 +377,7 @@ func NewServerWithOptions(config *Config, options ...ConsulOption) (*Server, err
 		connPool = &pool.ConnPool{
 			Server:          true,
 			SrcAddr:         config.RPCSrcAddr,
-			LogOutput:       config.LogOutput,
+			Logger:          logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true}),
 			MaxTime:         serverRPCCache,
 			MaxStreams:      serverMaxStreams,
 			TLSConfigurator: tlsConfigurator,
@@ -410,6 +387,11 @@ func NewServerWithOptions(config *Config, options ...ConsulOption) (*Server, err
 
 	serverLogger := logger.NamedIntercept(logging.ConsulServer)
 	loggers := newLoggerStore(serverLogger)
+
+	if rpcRouter == nil {
+		rpcRouter = router.NewRouter(serverLogger, config.Datacenter, fmt.Sprintf("%s.%s", config.NodeName, config.Datacenter))
+	}
+
 	// Create server.
 	s := &Server{
 		config:                  config,
@@ -421,7 +403,7 @@ func NewServerWithOptions(config *Config, options ...ConsulOption) (*Server, err
 		loggers:                 loggers,
 		leaveCh:                 make(chan struct{}),
 		reconcileCh:             make(chan serf.Member, reconcileChSize),
-		router:                  router.NewRouter(serverLogger, config.Datacenter, fmt.Sprintf("%s.%s", config.NodeName, config.Datacenter)),
+		router:                  rpcRouter,
 		rpcServer:               rpc.NewServer(),
 		insecureRPCServer:       rpc.NewServer(),
 		tlsConfigurator:         tlsConfigurator,
@@ -578,6 +560,11 @@ func NewServerWithOptions(config *Config, options ...ConsulOption) (*Server, err
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start LAN Serf: %v", err)
 	}
+
+	if err := s.router.AddArea(types.AreaLAN, s.serfLAN, s.connPool); err != nil {
+		s.Shutdown()
+		return nil, fmt.Errorf("Failed to add LAN serf route: %w", err)
+	}
 	go s.lanEventHandler()
 
 	// Start the flooders after the LAN event handler is wired up.
@@ -611,6 +598,21 @@ func NewServerWithOptions(config *Config, options ...ConsulOption) (*Server, err
 		return nil, err
 	}
 
+	reporter, err := usagemetrics.NewUsageMetricsReporter(
+		new(usagemetrics.Config).
+			WithStateProvider(s.fsm).
+			WithLogger(s.logger).
+			WithDatacenter(s.config.Datacenter).
+			WithReportingInterval(s.config.MetricsReportingInterval),
+	)
+	if err != nil {
+		s.Shutdown()
+		return nil, fmt.Errorf("Failed to start usage metrics reporter: %v", err)
+	}
+	go reporter.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
+
+	s.grpcHandler = newGRPCHandlerFromConfig(logger, config)
+
 	// Initialize Autopilot. This must happen before starting leadership monitoring
 	// as establishing leadership could attempt to use autopilot and cause a panic.
 	s.initAutopilot(config)
@@ -620,6 +622,11 @@ func NewServerWithOptions(config *Config, options ...ConsulOption) (*Server, err
 	go s.monitorLeadership()
 
 	// Start listening for RPC requests.
+	go func() {
+		if err := s.grpcHandler.Run(); err != nil {
+			s.logger.Error("gRPC server failed", "error", err)
+		}
+	}()
 	go s.listen(s.Listener)
 
 	// Start listeners for any segments with separate RPC listeners.
@@ -631,6 +638,14 @@ func NewServerWithOptions(config *Config, options ...ConsulOption) (*Server, err
 	go s.updateMetrics()
 
 	return s, nil
+}
+
+func newGRPCHandlerFromConfig(logger hclog.Logger, config *Config) connHandler {
+	if !config.EnableGRPCServer {
+		return grpc.NoOpHandler{Logger: logger}
+	}
+
+	return grpc.NewHandler(config.RPCAddr)
 }
 
 func (s *Server) connectCARootsMonitor(ctx context.Context) {
@@ -735,7 +750,7 @@ func (s *Server) setupRaft() error {
 		log = cacheStore
 
 		// Create the snapshot store.
-		snapshots, err := raft.NewFileSnapshotStore(path, snapshotsRetained, s.config.LogOutput)
+		snapshots, err := raft.NewFileSnapshotStoreWithLogger(path, snapshotsRetained, s.logger.Named("snapshot"))
 		if err != nil {
 			return err
 		}
@@ -957,16 +972,24 @@ func (s *Server) Shutdown() error {
 		s.Listener.Close()
 	}
 
-	// Close the connection pool
-	s.connPool.Shutdown()
-
-	s.acls.Close()
-
-	if s.config.NotifyShutdown != nil {
-		s.config.NotifyShutdown()
+	if s.grpcHandler != nil {
+		if err := s.grpcHandler.Shutdown(); err != nil {
+			s.logger.Warn("failed to stop gRPC server", "error", err)
+		}
 	}
 
-	s.fsm.State().Abandon()
+	// Close the connection pool
+	if s.connPool != nil {
+		s.connPool.Shutdown()
+	}
+
+	if s.acls != nil {
+		s.acls.Close()
+	}
+
+	if s.fsm != nil {
+		s.fsm.State().Abandon()
+	}
 
 	return nil
 }

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"io"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -34,9 +33,6 @@ func TestAuthMethodCreateCommand_noTabs(t *testing.T) {
 
 func TestAuthMethodCreateCommand(t *testing.T) {
 	t.Parallel()
-
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -187,9 +183,6 @@ func TestAuthMethodCreateCommand(t *testing.T) {
 
 func TestAuthMethodCreateCommand_JSON(t *testing.T) {
 	t.Parallel()
-
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -357,7 +350,6 @@ func TestAuthMethodCreateCommand_k8s(t *testing.T) {
 	t.Parallel()
 
 	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -500,7 +492,6 @@ func TestAuthMethodCreateCommand_config(t *testing.T) {
 	t.Parallel()
 
 	testDir := testutil.TempDir(t, "auth-method")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"

@@ -321,6 +321,7 @@ type RegisterRequest struct {
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 
 	WriteRequest
+	RaftIndex `bexpr:"-"`
 }
 
 func (r *RegisterRequest) RequestDatacenter() string {
@@ -1055,10 +1056,12 @@ func (t *ServiceConnect) UnmarshalJSON(data []byte) (err error) {
 	}{
 		Alias: (*Alias)(t),
 	}
+
 	if err = json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
-	if t.SidecarService == nil {
+
+	if t.SidecarService == nil && aux != nil {
 		t.SidecarService = aux.SidecarServiceSnake
 	}
 	return nil
@@ -2362,13 +2365,14 @@ func (r *KeyringRequest) RequestDatacenter() string {
 // KeyringResponse is a unified key response and can be used for install,
 // remove, use, as well as listing key queries.
 type KeyringResponse struct {
-	WAN        bool
-	Datacenter string
-	Segment    string
-	Messages   map[string]string `json:",omitempty"`
-	Keys       map[string]int
-	NumNodes   int
-	Error      string `json:",omitempty"`
+	WAN         bool
+	Datacenter  string
+	Segment     string
+	Messages    map[string]string `json:",omitempty"`
+	Keys        map[string]int
+	PrimaryKeys map[string]int
+	NumNodes    int
+	Error       string `json:",omitempty"`
 }
 
 // KeyringResponses holds multiple responses to keyring queries. Each

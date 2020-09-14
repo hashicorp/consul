@@ -867,7 +867,6 @@ func TestAPI_UnixSocket(t *testing.T) {
 	}
 
 	tempDir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(tempDir)
 	socket := filepath.Join(tempDir, "test.sock")
 
 	c, s := makeClientWithConfig(t, func(c *Config) {

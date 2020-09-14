@@ -6,7 +6,6 @@
   width: 16px;
   height: 16px;
   position: relative;
-  top: 2px;
 }
 %popover-menu-toggle:checked + label > *::after {
   @extend %with-chevron-up-mask;

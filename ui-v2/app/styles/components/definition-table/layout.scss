@@ -1,16 +1,5 @@
 %definition-table > dl {
-  position: relative;
-}
-%definition-table > dl > dt {
-  position: absolute;
-}
-%definition-table > dl > dt {
-  width: 140px;
-}
-%definition-table > dl > dd {
-  padding-left: 140px;
-}
-%definition-table > dl > * {
-  min-height: 1em;
-  margin-bottom: 0.4em;
+  display: grid;
+  grid-template-columns: 140px auto;
+  grid-gap: 0.4em 20px;
 }

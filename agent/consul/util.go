@@ -156,7 +156,7 @@ func (c *Client) CheckServers(datacenter string, fn func(*metadata.Server) bool)
 		return
 	}
 
-	c.routers.CheckServers(fn)
+	c.router.CheckServers(datacenter, fn)
 }
 
 type serversACLMode struct {

@@ -21,7 +21,6 @@ func TestConfigFail(t *testing.T) {
 	t.Parallel()
 
 	dataDir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(dataDir)
 
 	tests := []struct {
 		args []string
@@ -108,7 +107,6 @@ func TestRetryJoin(t *testing.T) {
 func TestRetryJoinFail(t *testing.T) {
 	t.Parallel()
 	tmpDir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(tmpDir)
 
 	ui := cli.NewMockUi()
 	cmd := New(ui, "", "", "", "", nil)
@@ -129,7 +127,6 @@ func TestRetryJoinFail(t *testing.T) {
 func TestRetryJoinWanFail(t *testing.T) {
 	t.Parallel()
 	tmpDir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(tmpDir)
 
 	ui := cli.NewMockUi()
 	cmd := New(ui, "", "", "", "", nil)
@@ -151,14 +148,12 @@ func TestRetryJoinWanFail(t *testing.T) {
 func TestProtectDataDir(t *testing.T) {
 	t.Parallel()
 	dir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(dir)
 
 	if err := os.MkdirAll(filepath.Join(dir, "mdb"), 0700); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	cfgDir := testutil.TempDir(t, "consul-config")
-	defer os.RemoveAll(cfgDir)
 
 	cfgFilePath := filepath.Join(cfgDir, "consul.json")
 	cfgFile, err := os.Create(cfgFilePath)
@@ -186,13 +181,10 @@ func TestProtectDataDir(t *testing.T) {
 func TestBadDataDirPermissions(t *testing.T) {
 	t.Parallel()
 	dir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(dir)
-
 	dataDir := filepath.Join(dir, "mdb")
 	if err := os.MkdirAll(dataDir, 0400); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(dataDir)
 
 	ui := cli.NewMockUi()
 	cmd := New(ui, "", "", "", "", nil)

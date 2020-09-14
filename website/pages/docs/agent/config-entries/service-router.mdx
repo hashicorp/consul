@@ -129,6 +129,10 @@ Routes = [
 
 - `Name` `(string: <required>)` - Set to the name of the service being configured.
 
+- `Namespace` `(string: "default")` <EnterpriseAlert inline /> - Specifies the namespace the config entry will apply to.
+
+- `Meta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata pairs. Added in Consul 1.8.4.
+
 - `Routes` `(array<ServiceRoute>)` - The list of routes to consider when
   processing L7 requests. The first route to match in the list is terminal and
   stops further evaluation. Traffic that fails to match any of the provided
@@ -260,7 +264,7 @@ Routes = [
 ## ACLs
 
 Configuration entries may be protected by
-[ACLs](https://learn.hashicorp.com/consul/security-networking/production-acls).
+[ACLs](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production).
 
 Reading a `service-router` config entry requires `service:read` on itself.
 

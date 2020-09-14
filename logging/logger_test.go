@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"io"
 	"os"
 	"testing"
 
@@ -13,28 +12,22 @@ import (
 )
 
 func TestLogger_SetupBasic(t *testing.T) {
-	t.Parallel()
 	require := require.New(t)
-	cfg := &Config{
-		LogLevel: "INFO",
-	}
+	cfg := Config{LogLevel: "INFO"}
 
-	logger, writer, err := Setup(cfg, nil)
+	logger, err := Setup(cfg, nil)
 	require.NoError(err)
-	require.NotNil(writer)
 	require.NotNil(logger)
 }
 
 func TestLogger_SetupInvalidLogLevel(t *testing.T) {
-	t.Parallel()
-	cfg := &Config{}
+	cfg := Config{}
 
-	_, _, err := Setup(cfg, nil)
+	_, err := Setup(cfg, nil)
 	testutil.RequireErrorContains(t, err, "Invalid log level")
 }
 
 func TestLogger_SetupLoggerErrorLevel(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		desc   string
@@ -62,7 +55,7 @@ func TestLogger_SetupLoggerErrorLevel(t *testing.T) {
 			require := require.New(t)
 			var buf bytes.Buffer
 
-			logger, _, err := Setup(&cfg, []io.Writer{&buf})
+			logger, err := Setup(cfg, &buf)
 			require.NoError(err)
 			require.NotNil(logger)
 
@@ -78,14 +71,11 @@ func TestLogger_SetupLoggerErrorLevel(t *testing.T) {
 }
 
 func TestLogger_SetupLoggerDebugLevel(t *testing.T) {
-	t.Parallel()
 	require := require.New(t)
-	cfg := &Config{
-		LogLevel: "DEBUG",
-	}
+	cfg := Config{LogLevel: "DEBUG"}
 	var buf bytes.Buffer
 
-	logger, _, err := Setup(cfg, []io.Writer{&buf})
+	logger, err := Setup(cfg, &buf)
 	require.NoError(err)
 	require.NotNil(logger)
 
@@ -99,15 +89,14 @@ func TestLogger_SetupLoggerDebugLevel(t *testing.T) {
 }
 
 func TestLogger_SetupLoggerWithName(t *testing.T) {
-	t.Parallel()
 	require := require.New(t)
-	cfg := &Config{
+	cfg := Config{
 		LogLevel: "DEBUG",
 		Name:     "test-system",
 	}
 	var buf bytes.Buffer
 
-	logger, _, err := Setup(cfg, []io.Writer{&buf})
+	logger, err := Setup(cfg, &buf)
 	require.NoError(err)
 	require.NotNil(logger)
 
@@ -117,16 +106,15 @@ func TestLogger_SetupLoggerWithName(t *testing.T) {
 }
 
 func TestLogger_SetupLoggerWithJSON(t *testing.T) {
-	t.Parallel()
 	require := require.New(t)
-	cfg := &Config{
+	cfg := Config{
 		LogLevel: "DEBUG",
 		LogJSON:  true,
 		Name:     "test-system",
 	}
 	var buf bytes.Buffer
 
-	logger, _, err := Setup(cfg, []io.Writer{&buf})
+	logger, err := Setup(cfg, &buf)
 	require.NoError(err)
 	require.NotNil(logger)
 
@@ -142,41 +130,37 @@ func TestLogger_SetupLoggerWithJSON(t *testing.T) {
 }
 
 func TestLogger_SetupLoggerWithValidLogPath(t *testing.T) {
-	t.Parallel()
 	require := require.New(t)
 
 	tmpDir := testutil.TempDir(t, t.Name())
-	defer os.RemoveAll(tmpDir)
 
-	cfg := &Config{
+	cfg := Config{
 		LogLevel:    "INFO",
 		LogFilePath: tmpDir + "/",
 	}
 	var buf bytes.Buffer
 
-	logger, _, err := Setup(cfg, []io.Writer{&buf})
+	logger, err := Setup(cfg, &buf)
 	require.NoError(err)
 	require.NotNil(logger)
 }
 
 func TestLogger_SetupLoggerWithInValidLogPath(t *testing.T) {
-	t.Parallel()
 	require := require.New(t)
 
-	cfg := &Config{
+	cfg := Config{
 		LogLevel:    "INFO",
 		LogFilePath: "nonexistentdir/",
 	}
 	var buf bytes.Buffer
 
-	logger, _, err := Setup(cfg, []io.Writer{&buf})
+	logger, err := Setup(cfg, &buf)
 	require.Error(err)
 	require.True(errors.Is(err, os.ErrNotExist))
 	require.Nil(logger)
 }
 
 func TestLogger_SetupLoggerWithInValidLogPathPermission(t *testing.T) {
-	t.Parallel()
 	require := require.New(t)
 
 	tmpDir := "/tmp/" + t.Name()
@@ -184,13 +168,13 @@ func TestLogger_SetupLoggerWithInValidLogPathPermission(t *testing.T) {
 	os.Mkdir(tmpDir, 0000)
 	defer os.RemoveAll(tmpDir)
 
-	cfg := &Config{
+	cfg := Config{
 		LogLevel:    "INFO",
 		LogFilePath: tmpDir + "/",
 	}
 	var buf bytes.Buffer
 
-	logger, _, err := Setup(cfg, []io.Writer{&buf})
+	logger, err := Setup(cfg, &buf)
 	require.Error(err)
 	require.True(errors.Is(err, os.ErrPermission))
 	require.Nil(logger)

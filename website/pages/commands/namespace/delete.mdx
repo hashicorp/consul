@@ -1,0 +1,32 @@
+---
+layout: commands
+page_title: 'Commands: Namespace Delete'
+sidebar_title: delete
+---
+
+# Consul Namespace Delete
+
+Command: `consul namespace delete`
+
+<EnterpriseAlert />
+
+This `namespace delete` command deletes a namespace. This was added in Consul Enterprise 1.7.0. If
+ACLs are enabled then this command will require a token with `operator:write` privileges.
+
+## Usage
+
+Usage: `consul namespace delete <name>`
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
+
+## Examples
+
+Delete a Namespace:
+
+```shell-session
+$ consul namespace delete "team-1"
+```

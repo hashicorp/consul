@@ -13,7 +13,7 @@ require (
 	github.com/NYTimes/gziphandler v1.0.1
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
-	github.com/armon/go-metrics v0.3.3
+	github.com/armon/go-metrics v0.3.4
 	github.com/armon/go-radix v1.0.0
 	github.com/aws/aws-sdk-go v1.25.41
 	github.com/coredns/coredns v1.1.2
@@ -28,8 +28,8 @@ require (
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/google/gofuzz v1.1.0
 	github.com/google/tcpproxy v0.0.0-20180808230851-dfa16c61dad2
-	github.com/hashicorp/consul/api v1.4.0
-	github.com/hashicorp/consul/sdk v0.4.0
+	github.com/hashicorp/consul/api v1.7.0
+	github.com/hashicorp/consul/sdk v0.6.0
 	github.com/hashicorp/errwrap v1.0.0
 	github.com/hashicorp/go-bexpr v0.1.2
 	github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
@@ -53,7 +53,7 @@ require (
 	github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69
 	github.com/hashicorp/raft v1.1.2
 	github.com/hashicorp/raft-boltdb v0.0.0-20171010151810-6e5ba93211ea
-	github.com/hashicorp/serf v0.9.3
+	github.com/hashicorp/serf v0.9.4
 	github.com/hashicorp/vault/api v1.0.4
 	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d
 	github.com/imdario/mergo v0.3.6
@@ -87,7 +87,6 @@ require (
 	golang.org/x/tools v0.0.0-20200513154647-78b527d18275 // indirect
 	google.golang.org/api v0.9.0 // indirect
 	google.golang.org/appengine v1.6.0 // indirect
-	google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
 	google.golang.org/grpc v1.25.1
 	gopkg.in/square/go-jose.v2 v2.4.1
 	k8s.io/api v0.16.9

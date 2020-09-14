@@ -3,16 +3,29 @@
 .filter-bar {
   @extend %filter-bar;
 }
-%filter-bar:not(.with-sort) {
+%filter-bar .popover-select {
+  height: 35px;
+  position: relative;
+  z-index: 3;
+}
+%filter-bar [role='menuitem'] {
+  justify-content: normal !important;
+}
+html.template-acl.template-list .filter-bar {
   @extend %filter-bar-reversed;
 }
-%filter-bar [role='radiogroup'] {
+html.template-acl.template-list .filter-bar [role='radiogroup'] {
   @extend %expanded-single-select;
 }
 %filter-bar span::before {
   margin-right: 9px;
   opacity: 0.4;
   margin-left: -2px;
+}
+
+%filter-bar .popover-menu > [type='checkbox']:checked + label button {
+  color: $blue-500;
+  background-color: $gray-100;
 }
 
 %filter-bar .value-passing span::before {

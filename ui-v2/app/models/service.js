@@ -14,6 +14,7 @@ export default Model.extend({
     },
   }),
   InstanceCount: attr('number'),
+  Proxy: attr(),
   ProxyFor: attr(),
   Kind: attr('string'),
   ExternalSources: attr(),
@@ -37,6 +38,41 @@ export default Model.extend({
   Checks: attr(),
   SyncTime: attr('number'),
   meta: attr(),
+  /* Mesh properties involve both the service and the associated proxy */
+  MeshStatus: computed('MeshChecksPassing', 'MeshChecksWarning', 'MeshChecksCritical', function() {
+    switch (true) {
+      case this.MeshChecksCritical !== 0:
+        return 'critical';
+      case this.MeshChecksWarning !== 0:
+        return 'warning';
+      case this.MeshChecksPassing !== 0:
+        return 'passing';
+      default:
+        return 'empty';
+    }
+  }),
+  MeshChecksPassing: computed('ChecksPassing', 'Proxy.ChecksPassing', function() {
+    let proxyCount = 0;
+    if (typeof this.Proxy !== 'undefined') {
+      proxyCount = this.Proxy.ChecksPassing;
+    }
+    return this.ChecksPassing + proxyCount;
+  }),
+  MeshChecksWarning: computed('ChecksWarning', 'Proxy.ChecksWarning', function() {
+    let proxyCount = 0;
+    if (typeof this.Proxy !== 'undefined') {
+      proxyCount = this.Proxy.ChecksWarning;
+    }
+    return this.ChecksWarning + proxyCount;
+  }),
+  MeshChecksCritical: computed('ChecksCritical', 'Proxy.ChecksCritical', function() {
+    let proxyCount = 0;
+    if (typeof this.Proxy !== 'undefined') {
+      proxyCount = this.Proxy.ChecksCritical;
+    }
+    return this.ChecksCritical + proxyCount;
+  }),
+  /**/
   passing: computed('ChecksPassing', 'Checks', function() {
     let num = 0;
     // TODO: use typeof

@@ -95,7 +95,7 @@ func TestOperator_KeyringInstall(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	listResponse, err := a.ListKeys("", 0)
+	listResponse, err := a.ListKeys("", false, 0)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -161,6 +161,44 @@ func TestOperator_KeyringList(t *testing.T) {
 		t.Fatalf("bad: %v", ok)
 	}
 }
+func TestOperator_KeyringListLocalOnly(t *testing.T) {
+	t.Parallel()
+	key := "H3/9gBxcKKRf45CaI2DlRg=="
+	a := NewTestAgent(t, `
+		encrypt = "`+key+`"
+	`)
+	defer a.Shutdown()
+
+	req, _ := http.NewRequest("GET", "/v1/operator/keyring?local-only=1", nil)
+	resp := httptest.NewRecorder()
+	r, err := a.srv.OperatorKeyringEndpoint(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	responses, ok := r.([]*structs.KeyringResponse)
+	if !ok {
+		t.Fatalf("err: %v", !ok)
+	}
+
+	// Check that we only get a LAN response with the original key
+	if len(responses) != 1 {
+		for _, r := range responses {
+			fmt.Println(r)
+		}
+		t.Fatalf("bad: %d", len(responses))
+	}
+
+	// LAN
+	if len(responses[0].Keys) != 1 {
+		t.Fatalf("bad: %d", len(responses[1].Keys))
+	}
+	if responses[0].WAN {
+		t.Fatalf("bad: %v", responses[1].WAN)
+	}
+	if _, ok := responses[0].Keys[key]; !ok {
+		t.Fatalf("bad: %v", ok)
+	}
+}
 
 func TestOperator_KeyringRemove(t *testing.T) {
 	t.Parallel()
@@ -177,7 +215,7 @@ func TestOperator_KeyringRemove(t *testing.T) {
 	}
 
 	// Make sure the temp key is installed
-	list, err := a.ListKeys("", 0)
+	list, err := a.ListKeys("", false, 0)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -202,7 +240,7 @@ func TestOperator_KeyringRemove(t *testing.T) {
 	}
 
 	// Make sure the temp key has been removed
-	list, err = a.ListKeys("", 0)
+	list, err = a.ListKeys("", false, 0)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -246,7 +284,7 @@ func TestOperator_KeyringUse(t *testing.T) {
 	}
 
 	// Make sure only the new key remains
-	list, err := a.ListKeys("", 0)
+	list, err := a.ListKeys("", false, 0)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

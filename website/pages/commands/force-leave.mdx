@@ -1,0 +1,65 @@
+---
+layout: commands
+page_title: 'Commands: Force Leave'
+sidebar_title: force-leave
+description: >-
+  The `force-leave` command forces a member of a Consul cluster to enter the
+  left state. If the member is still actually alive, it will eventually rejoin
+  the cluster. The true purpose of this method is to force remove failed nodes.
+---
+
+# Consul Force Leave
+
+Command: `consul force-leave`
+
+The `force-leave` command forces a member of a Consul cluster to enter the
+"left" state. The purpose of this method is to force-remove a node that has failed or
+was shutdown without a [graceful leave](/docs/commands/leave).
+
+Consul periodically tries to reconnect to "failed" nodes in case failure was due
+to a network partition. After some configured amount of time (by default 72 hours),
+Consul will reap "failed" nodes and stop trying to reconnect. The `force-leave`
+command can be used to transition the "failed" nodes to a "left" state more
+quickly, as reported by [`consul members`](/docs/commands/members).
+
+This can be particularly useful for a node that was running as a server,
+as it will eventually be removed from the Raft configuration by the leader.
+
+~> Note that for `force-leave` to take full effect the target node's agent must have
+shutdown permanently. If the agent is alive and reachable then it will not be removed
+from the datacenter's member list nor from the raft configuration. Additionally,
+if the agent returns after transitioning to the "left" state, but before it is reaped
+from the member list, then it will rejoin the cluster.
+
+## Usage
+
+Usage: `consul force-leave [options] node`
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+## Examples
+
+Remove a node named `ec2-001-staging` from the local agent's datacenter:
+
+```
+consul force-leave ec2-001-staging
+```
+
+When run on a server that is part of a
+[WAN gossip pool](https://learn.hashicorp.com/consul/security-networking/datacenters),
+`force-leave` can remove failed servers in other datacenters from the WAN pool.
+
+The identifying node-name in a WAN pool is `[node-name].[datacenter]`.
+Therefore, to remove a failed server node named `server1` from
+datacenter `us-east1`, run:
+
+```
+consul force-leave server1.us-east1
+```
+
+#### Command Options
+
+- `-prune` - Removes failed or left agent from the list of
+  members entirely

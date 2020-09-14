@@ -4,7 +4,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -15,10 +14,12 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds"
+	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/api"
 	proxyCmd "github.com/hashicorp/consul/command/connect/proxy"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/ipaddr"
+	"github.com/hashicorp/consul/tlsutil"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -68,10 +69,9 @@ type cmd struct {
 	gatewayKind    api.ServiceKind
 }
 
-const (
-	defaultEnvoyVersion = "1.14.4"
-	meshGatewayVal      = "mesh"
-)
+const meshGatewayVal = "mesh"
+
+var defaultEnvoyVersion = proxysupport.EnvoyVersions[0]
 
 var supportedGateways = map[string]api.ServiceKind{
 	"mesh":        api.ServiceKindMeshGateway,
@@ -443,13 +443,11 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 	}
 
 	var caPEM string
-	if httpCfg.TLSConfig.CAFile != "" {
-		content, err := ioutil.ReadFile(httpCfg.TLSConfig.CAFile)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to read CA file: %s", err)
-		}
-		caPEM = strings.Replace(string(content), "\n", "\\n", -1)
+	pems, err := tlsutil.LoadCAs(httpCfg.TLSConfig.CAFile, httpCfg.TLSConfig.CAPath)
+	if err != nil {
+		return nil, err
 	}
+	caPEM = strings.Replace(strings.Join(pems, ""), "\n", "\\n", -1)
 
 	return &BootstrapTplArgs{
 		GRPC:                  grpcAddr,

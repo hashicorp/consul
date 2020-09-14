@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
 )
@@ -115,7 +116,7 @@ func (c *Client) nodeJoin(me serf.MemberEvent) {
 			continue
 		}
 		c.logger.Info("adding server", "server", parts)
-		c.routers.AddServer(parts)
+		c.router.AddServer(types.AreaLAN, parts)
 
 		// Trigger the callback
 		if c.config.ServerUp != nil {
@@ -139,7 +140,7 @@ func (c *Client) nodeUpdate(me serf.MemberEvent) {
 			continue
 		}
 		c.logger.Info("updating server", "server", parts.String())
-		c.routers.AddServer(parts)
+		c.router.AddServer(types.AreaLAN, parts)
 	}
 }
 
@@ -151,7 +152,7 @@ func (c *Client) nodeFail(me serf.MemberEvent) {
 			continue
 		}
 		c.logger.Info("removing server", "server", parts.String())
-		c.routers.RemoveServer(parts)
+		c.router.RemoveServer(types.AreaLAN, parts)
 	}
 }
 

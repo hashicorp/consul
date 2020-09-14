@@ -4,94 +4,97 @@
   {{title 'Access Controls'}}
 {{/if}}
 
-{{#let (selectable-key-values
-    (array "CreateTime:desc" "Newest to oldest")
-    (array "CreateTime:asc" "Oldest to newest")
-      selected=sortBy
-  )
-  as |sort|
-}}
-<AppView
-  @class="token list"
-  @loading={{isLoading}}
-  @authorized={{isAuthorized}}
-  @enabled={{isEnabled}}
-  >
-  <BlockSlot @name="notification" as |status type subject|>
-    {{partial 'dc/acls/tokens/notifications'}}
-  </BlockSlot>
-  <BlockSlot @name="header">
-    <h1>
-      Access Controls
-    </h1>
-  </BlockSlot>
-  <BlockSlot @name="nav">
-{{#if isAuthorized }}
-    {{partial 'dc/acls/nav'}}
-{{/if}}
-  </BlockSlot>
-  <BlockSlot @name="disabled">
-    {{partial 'dc/acls/disabled'}}
-  </BlockSlot>
-  <BlockSlot @name="authorization">
-    {{partial 'dc/acls/authorization'}}
-  </BlockSlot>
-  <BlockSlot @name="actions">
-      <a data-test-create href="{{href-to 'dc.acls.tokens.create'}}" class="type-create">Create</a>
-  </BlockSlot>
-  <BlockSlot @name="toolbar">
-  {{#if (gt items.length 0)}}
-    <SearchBar
-      data-test-intention-filter="true"
-      @value={{search}}
-      @onsearch={{action (mut search) value="target.value"}}
-      @secondary="sort"
-      @selected={{sort.selected}}
-      @options={{sort.items}}
-      @onchange={{action (mut sortBy) value='target.selected.key'}}
-    />
-  {{/if}}
-  </BlockSlot>
-  <BlockSlot @name="content">
-{{#if (token/is-legacy items)}}
-    <p data-test-notification-update class="notice info"><strong>Update.</strong> We have upgraded our ACL System to allow the creation of reusable policies that can be applied to tokens. Read more about the changes and how to upgrade legacy tokens in our <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
-{{/if}}
-  {{#let (sort-by (comparator 'token' sort.selected.key) items) as |sorted|}}
-    <ChangeableSet @dispatcher={{searchable 'token' sorted}} @terms={{search}}>
-      <BlockSlot @name="set" as |filtered|>
-        <ConsulTokenList
-          @items={{filtered}}
-          @token={{token}}
-          @onuse={{action send 'use'}}
-          @ondelete={{action send 'delete'}}
-          @onlogout={{action send 'logout'}}
-          @onclone={{action send 'clone'}}
-          />
+{{#let (hash
+  types=(if type (split type ',') undefined)
+) as |filters|}}
+  {{#let (or sortBy "CreateTime:desc") as |sort|}}
+    <AppView
+      @class="token list"
+      @loading={{isLoading}}
+      @authorized={{isAuthorized}}
+      @enabled={{isEnabled}}
+      >
+      <BlockSlot @name="notification" as |status type subject|>
+        {{partial 'dc/acls/tokens/notifications'}}
       </BlockSlot>
-      <BlockSlot @name="empty">
-        <EmptyState @allowLogin={{true}}>
-          <BlockSlot @name="header">
-            <h2>
-              {{#if (gt items.length 0)}}
-                No tokens found
-              {{else}}
-                Welcome to ACL Tokens
-              {{/if}}
-            </h2>
-          </BlockSlot>
-          <BlockSlot @name="body">
-            <p>
-              {{#if (gt items.length 0)}}
-                No tokens where found matching that search, or you may not have access to view the tokens you are searching for.
-              {{else}}
-                There don't seem to be any tokens, or you may not have access to view tokens yet.
-              {{/if}}
-            </p>
-          </BlockSlot>
-        </EmptyState>
+      <BlockSlot @name="header">
+        <h1>
+          Access Controls
+        </h1>
       </BlockSlot>
-    </ChangeableSet>
+      <BlockSlot @name="nav">
+    {{#if isAuthorized }}
+        {{partial 'dc/acls/nav'}}
+    {{/if}}
+      </BlockSlot>
+      <BlockSlot @name="disabled">
+        {{partial 'dc/acls/disabled'}}
+      </BlockSlot>
+      <BlockSlot @name="authorization">
+        {{partial 'dc/acls/authorization'}}
+      </BlockSlot>
+      <BlockSlot @name="actions">
+          <a data-test-create href="{{href-to 'dc.acls.tokens.create'}}" class="type-create">Create</a>
+      </BlockSlot>
+      <BlockSlot @name="toolbar">
+    {{#if (gt items.length 0)}}
+        <ConsulTokenSearchBar
+          @search={{search}}
+          @onsearch={{action (mut search) value="target.value"}}
+
+          @sort={{sort}}
+          @onsort={{action (mut sortBy) value="target.selected"}}
+
+          @filter={{filters}}
+          @onfilter={{hash
+            type=(action (mut type) value="target.selectedItems")
+          }}
+        />
+    {{/if}}
+      </BlockSlot>
+      <BlockSlot @name="content">
+    {{#if (token/is-legacy items)}}
+        <p data-test-notification-update class="notice info"><strong>Update.</strong> We have upgraded our ACL System to allow the creation of reusable policies that can be applied to tokens. Read more about the changes and how to upgrade legacy tokens in our <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
+    {{/if}}
+    {{#let (filter (filter-predicate 'token' filters) items) as |filtered|}}
+      {{#let (sort-by (comparator 'token' sort) filtered) as |sorted|}}
+        <ChangeableSet @dispatcher={{searchable 'token' sorted}} @terms={{search}}>
+          <BlockSlot @name="set" as |searched|>
+            <ConsulTokenList
+              @items={{searched}}
+              @token={{token}}
+              @onuse={{action send 'use'}}
+              @ondelete={{action send 'delete'}}
+              @onlogout={{action send 'logout'}}
+              @onclone={{action send 'clone'}}
+              />
+          </BlockSlot>
+          <BlockSlot @name="empty">
+            <EmptyState @allowLogin={{true}}>
+              <BlockSlot @name="header">
+                <h2>
+                  {{#if (gt items.length 0)}}
+                    No tokens found
+                  {{else}}
+                    Welcome to ACL Tokens
+                  {{/if}}
+                </h2>
+              </BlockSlot>
+              <BlockSlot @name="body">
+                <p>
+                  {{#if (gt items.length 0)}}
+                    No tokens where found matching that search, or you may not have access to view the tokens you are searching for.
+                  {{else}}
+                    There don't seem to be any tokens, or you may not have access to view tokens yet.
+                  {{/if}}
+                </p>
+              </BlockSlot>
+            </EmptyState>
+          </BlockSlot>
+        </ChangeableSet>
+      {{/let}}
+    {{/let}}
+      </BlockSlot>
+    </AppView>
   {{/let}}
-  </BlockSlot>
-</AppView>
 {{/let}}

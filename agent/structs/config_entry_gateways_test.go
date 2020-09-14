@@ -86,6 +86,88 @@ func TestIngressConfigEntry_Normalize(t *testing.T) {
 	}
 }
 
+func TestIngressConfigEntry_ListRelatedServices(t *testing.T) {
+	type testcase struct {
+		entry          IngressGatewayConfigEntry
+		expectServices []ServiceID
+	}
+
+	cases := map[string]testcase{
+		"one exact": {
+			entry: IngressGatewayConfigEntry{
+				Kind: IngressGateway,
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						Services: []IngressService{
+							{Name: "web"},
+						},
+					},
+				},
+			},
+			expectServices: []ServiceID{NewServiceID("web", nil)},
+		},
+		"one wild": {
+			entry: IngressGatewayConfigEntry{
+				Kind: IngressGateway,
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						Services: []IngressService{
+							{Name: "*"},
+						},
+					},
+				},
+			},
+			expectServices: nil,
+		},
+		"kitchen sink": {
+			entry: IngressGatewayConfigEntry{
+				Kind: IngressGateway,
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						Services: []IngressService{
+							{Name: "api"},
+							{Name: "web"},
+						},
+					},
+					{
+						Port:     2222,
+						Protocol: "tcp",
+						Services: []IngressService{
+							{Name: "web"},
+							{Name: "*"},
+							{Name: "db"},
+							{Name: "blah"},
+						},
+					},
+				},
+			},
+			expectServices: []ServiceID{
+				NewServiceID("api", nil),
+				NewServiceID("blah", nil),
+				NewServiceID("db", nil),
+				NewServiceID("web", nil),
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			got := tc.entry.ListRelatedServices()
+			require.Equal(t, tc.expectServices, got)
+		})
+	}
+}
+
 func TestIngressConfigEntry_Validate(t *testing.T) {
 
 	cases := []struct {
@@ -244,7 +326,7 @@ func TestIngressConfigEntry_Validate(t *testing.T) {
 					},
 				},
 			},
-			expectErr: "Protocol must be either 'http' or 'tcp', 'asdf' is an unsupported protocol.",
+			expectErr: "protocol must be 'tcp', 'http', 'http2', or 'grpc'. 'asdf' is an unsupported protocol",
 		},
 		{
 			name: "hosts cannot be set on a tcp listener",

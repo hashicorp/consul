@@ -28,6 +28,7 @@ Feature: dc / services / show / upstreams
     ---
     And the title should be "ingress-gateway-1 - Consul"
     When I click upstreams on the tabs
+    And I see upstreamsIsSelected on the tabs
     Then I see 3 service models on the tabs.upstreamsTab component
   Scenario: Don't see the Upstreams tab
     Given 1 datacenter model with the value "dc1"

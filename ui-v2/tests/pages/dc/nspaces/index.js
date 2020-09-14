@@ -1,7 +1,7 @@
-export default function(visitable, creatable, nspaces, filter) {
+export default function(visitable, creatable, nspaces, popoverSelect) {
   return creatable({
     visit: visitable('/:dc/namespaces'),
     nspaces: nspaces(),
-    filter: filter(),
+    sort: popoverSelect('[data-test-sort-control]'),
   });
 }

@@ -38,7 +38,7 @@ Feature: dc / acls / roles / sorting
     - "system-D"
     ---
     When I click selected on the sort
-    When I click options.2.button on the sort
+    When I click options.3.button on the sort
     Then I see name on the roles vertically like yaml
     ---
     - "system-C"
@@ -47,7 +47,7 @@ Feature: dc / acls / roles / sorting
     - "system-B"
     ---
     When I click selected on the sort
-    When I click options.3.button on the sort
+    When I click options.2.button on the sort
     Then I see name on the roles vertically like yaml
     ---
     - "system-B"

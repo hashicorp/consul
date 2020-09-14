@@ -1,4 +1,5 @@
 {{title 'Namespaces'}}
+{{#let (or sortBy "Name:asc") as |sort|}}
 <EventSource @src={{items}} />
 <AppView @class="nspace list" @loading={{isLoading}}>
   <BlockSlot @name="notification" as |status type subject|>
@@ -12,16 +13,22 @@
   <BlockSlot @name="actions">
       <a data-test-create href="{{href-to 'dc.nspaces.create'}}" class="type-create">Create</a>
   </BlockSlot>
+  <BlockSlot @name="toolbar">
+  {{#if (gt items.length 0)}}
+        <ConsulNspaceSearchBar
+          @search={{search}}
+          @onsearch={{action (mut search) value="target.value"}}
+
+          @sort={{sort}}
+          @onsort={{action (mut sortBy) value="target.selected"}}
+
+        />
+  {{/if}}
+  </BlockSlot>
   <BlockSlot @name="content">
-{{#if (gt items.length 0) }}
-    <SearchBar
-      @placeholder="Search by name"
-      @value={{search}}
-      @onsearch={{action (mut search) value="target.value"}}
-    />
-{{/if}}
-    <ChangeableSet @dispatcher={{searchable 'nspace' items}} @terms={{search}}>
-      <BlockSlot @name="content" as |filtered|>
+  {{#let (sort-by (comparator 'nspace' sort) items) as |sorted|}}
+    <ChangeableSet @dispatcher={{searchable 'nspace' sorted}} @terms={{search}}>
+      <BlockSlot @name="set" as |filtered|>
         <ConsulNspaceList
           @items={{filtered}}
           @ondelete={{queue (action send 'delete')}}
@@ -57,5 +64,7 @@
         </ConsulNspaceList>
       </BlockSlot>
     </ChangeableSet>
+  {{/let}}
   </BlockSlot>
 </AppView>
+{{/let}}

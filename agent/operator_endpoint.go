@@ -136,7 +136,7 @@ func (s *HTTPServer) KeyringInstall(resp http.ResponseWriter, req *http.Request,
 
 // KeyringList is used to list the keys installed in the cluster
 func (s *HTTPServer) KeyringList(resp http.ResponseWriter, req *http.Request, args *keyringArgs) (interface{}, error) {
-	responses, err := s.agent.ListKeys(args.Token, args.RelayFactor)
+	responses, err := s.agent.ListKeys(args.Token, args.LocalOnly, args.RelayFactor)
 	if err != nil {
 		return nil, err
 	}

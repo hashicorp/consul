@@ -1,17 +1,63 @@
 ## UNRELEASED
 
+## 1.8.4 (September 11, 2020)
+
+FEATURES:
+
+* agent: expose the list of supported envoy versions on /v1/agent/self [[GH-8545](https://github.com/hashicorp/consul/issues/8545)]
+* cache: Config parameters for cache throttling are now reloaded automatically on agent reload. Restarting the agent is not needed anymore. [[GH-8552](https://github.com/hashicorp/consul/issues/8552)]
+* connect: all config entries pick up a meta field [[GH-8596](https://github.com/hashicorp/consul/issues/8596)]
+
+IMPROVEMENTS:
+
+* api: Added `ACLMode` method to the `AgentMember` type to determine what ACL mode the agent is operating in. [[GH-8575](https://github.com/hashicorp/consul/issues/8575)]
+* api: Added `IsConsulServer` method to the `AgentMember` type to easily determine whether the agent is a server. [[GH-8575](https://github.com/hashicorp/consul/issues/8575)]
+* api: Added constants for common tag keys and values in the `Tags` field of the `AgentMember` struct. [[GH-8575](https://github.com/hashicorp/consul/issues/8575)]
+* api: Allow for the client to use TLS over a Unix domain socket. [[GH-8602](https://github.com/hashicorp/consul/issues/8602)]
+* api: `GET v1/operator/keyring` also lists primary keys. [[GH-8522](https://github.com/hashicorp/consul/issues/8522)]
+* connect: Add support for http2 and grpc to ingress gateways [[GH-8458](https://github.com/hashicorp/consul/issues/8458)]
+* serf: update to `v0.9.4` which supports primary keys in the ListKeys operation. [[GH-8522](https://github.com/hashicorp/consul/issues/8522)]
+
+BUGFIXES:
+
+* connect: use stronger validation that ingress gateways have compatible protocols defined for their upstreams [[GH-8494](https://github.com/hashicorp/consul/issues/8494)]
+* agent: ensure that we normalize bootstrapped config entries [[GH-8547](https://github.com/hashicorp/consul/issues/8547)]
+* api: Fixed a panic caused by an api request with Connect=null [[GH-8537](https://github.com/hashicorp/consul/issues/8537)]
+* connect: `connect envoy` command now respects the `-ca-path` flag [[GH-8606](https://github.com/hashicorp/consul/issues/8606)]
+* connect: fix bug in preventing some namespaced config entry modifications [[GH-8601](https://github.com/hashicorp/consul/issues/8601)]
+* connect: fix renewing secondary intermediate certificates [[GH-8588](https://github.com/hashicorp/consul/issues/8588)]
+* ui: fixed a bug related to in-folder KV creation [GH-8613](https://github.com/hashicorp/consul/pull/8613)
+
+## 1.8.3 (August 12, 2020)
+
+BUGFIXES:
+
+* catalog: fixed a bug where nodes, services, and checks would not be restored with the correct Create/ModifyIndex when restoring from a snapshot [[GH-8485](https://github.com/hashicorp/consul/pull/8474)]
+* vendor: update github.com/armon/go-metrics to v0.3.4 to mitigate a potential panic when emitting Prometheus metrics at an interval longer than the metric expiry time [[GH-8478](https://github.com/hashicorp/consul/pull/8478)]
+* connect: **(Consul Enterprise only)** Fixed a regression that prevented mesh gateways from routing to services in their local datacenter that reside outside of the default namespace.
+
+## 1.8.2 (August 07, 2020)
+
+* auto_config: Fixed an issue where auto-config could be enabled in secondary DCs without enabling token replication when ACLs were enabled. [[GH-8451](https://github.com/hashicorp/consul/pull/8451)]
+* xds: revert setting set_node_on_first_message_only to true when generating envoy bootstrap config [[GH-8440](https://github.com/hashicorp/consul/issues/8440)]
+
+## 1.8.1 (July 30, 2020)
+
 FEATURES:
 
 * acl: Added ACL Node Identities for easier creation of Consul Agent tokens. [[GH-7970](https://github.com/hashicorp/consul/pull/7970)]
-* agent: Added Consul client agent automatic configuration utilizing JWTs for authorizing the request to generate ACL tokens, TLS certificates and retrieval of the gossip encryption key. [[GH-8003](https://github.com/hashicorp/consul/pull/8003)], [[GH-8035](https://github.com/hashicorp/consul/pull/8035)], [[GH-8086](https://github.com/hashicorp/consul/pull/8086)], [[GH-8148](https://github.com/hashicorp/consul/pull/8148)], [[GH-8157](https://github.com/hashicorp/consul/pull/8157)], [[GH-8159](https://github.com/hashicorp/consul/pull/8159)], [[GH-8193](https://github.com/hashicorp/consul/pull/8193)], [[GH-8253](https://github.com/hashicorp/consul/pull/8253)], [[GH-8301](https://github.com/hashicorp/consul/pull/8301)], [[GH-8360](https://github.com/hashicorp/consul/pull/8360)], [[GH-8362](https://github.com/hashicorp/consul/pull/8362)], [[GH-8363](https://github.com/hashicorp/consul/pull/8363)], [[GH-8364](https://github.com/hashicorp/consul/pull/8364)]
+* agent: Added Consul client agent automatic configuration utilizing JWTs for authorizing the request to generate ACL tokens, TLS certificates and retrieval of the gossip encryption key. [[GH-8003](https://github.com/hashicorp/consul/pull/8003)], [[GH-8035](https://github.com/hashicorp/consul/pull/8035)], [[GH-8086](https://github.com/hashicorp/consul/pull/8086)], [[GH-8148](https://github.com/hashicorp/consul/pull/8148)], [[GH-8157](https://github.com/hashicorp/consul/pull/8157)], [[GH-8159](https://github.com/hashicorp/consul/pull/8159)], [[GH-8193](https://github.com/hashicorp/consul/pull/8193)], [[GH-8253](https://github.com/hashicorp/consul/pull/8253)], [[GH-8301](https://github.com/hashicorp/consul/pull/8301)], [[GH-8360](https://github.com/hashicorp/consul/pull/8360)], [[GH-8362](https://github.com/hashicorp/consul/pull/8362)], [[GH-8363](https://github.com/hashicorp/consul/pull/8363)], [[GH-8364](https://github.com/hashicorp/consul/pull/8364)], [[GH-8409](https://github.com/hashicorp/consul/pull/8409)]
 
 IMPROVEMENTS:
 
 * acl: allow auth methods created in the primary datacenter to optionally create global tokens [[GH-7899](https://github.com/hashicorp/consul/issues/7899)]
 * agent: Allow to restrict servers that can join a given Serf Consul cluster. [[GH-7628](https://github.com/hashicorp/consul/issues/7628)]
 * agent: new configuration options allow ratelimiting of the agent-cache: `cache.entry_fetch_rate` and `cache.entry_fetch_max_burst`. [[GH-8226](https://github.com/hashicorp/consul/pull/8226)]
+* api: Added methods to allow passing query options to leader and peers endpoints to mirror HTTP API [[GH-8395](https://github.com/hashicorp/consul/pull/8395)]
+* auto_config: when configuring auto_config, connect is turned on automatically [[GH-8433](https://github.com/hashicorp/consul/pull/8433)]
 * connect: various changes to make namespaces for intentions work more like for other subsystems [[GH-8194](https://github.com/hashicorp/consul/issues/8194)]
 * connect: Append port number to expected ingress hosts [[GH-8190](https://github.com/hashicorp/consul/pull/8190)]
+* connect: add support for envoy 1.15.0 and drop support for 1.11.x [[GH-8424](https://github.com/hashicorp/consul/issues/8424)]
 * connect: support Envoy v1.14.4, v1.13.4, v1.12.6 [[GH-8216](https://github.com/hashicorp/consul/issues/8216)]
 * dns: Improve RCODE of response when query targets a non-existent datacenter. [[GH-8102](https://github.com/hashicorp/consul/issues/8102)],[[GH-8218](https://github.com/hashicorp/consul/issues/8218)]
 * version: The `version` CLI subcommand was altered to always show the git revision the binary was built from on the second line of output. Additionally the command gained a `-format` flag with the option now of outputting the version information in JSON form. **NOTE** This change has the potential to break any parsing done by users of the `version` commands output. In many cases nothing will need to be done but it is possible depending on how the output is parsed. [[GH-8268](https://github.com/hashicorp/consul/pull/8268)]
@@ -19,12 +65,15 @@ IMPROVEMENTS:
 BUGFIXES:
 
 * agent: Fixed a bug where Consul could crash when `verify_outgoing` was set to true but no client certificate was used. [[GH-8211](https://github.com/hashicorp/consul/pull/8211)]
+* agent: Fixed an issue with lock contention during RPCs when under load while using the Prometheus metrics sink. [[GH-8372](https://github.com/hashicorp/consul/pull/8372)]
 * auto_encrypt: Fixed an issue where auto encrypt certificate signing wasn't using the connect signing rate limiter. [[GH-8211](https://github.com/hashicorp/consul/pull/8211)]
 * auto_encrypt: Fixed several issues around retrieving the first TLS certificate where it would have the wrong CN and SANs. This was being masked by a second bug (also fixed) causing that certificate to immediately be discarded with a second certificate request being made afterwards. [[GH-8211](https://github.com/hashicorp/consul/pull/8211)]
 * auto_encrypt: Fixed an issue that caused auto encrypt certificates to not be updated properly if the agents token was changed and the old token was deleted. [[GH-8311](https://github.com/hashicorp/consul/pull/8311)]
 * connect: fix crash that would result if a mesh or terminating gateway's upstream has a hostname as an address and no healthy service instances available. [[GH-8158](https://github.com/hashicorp/consul/issues/8158)]
 * connect: Fixed issue where specifying a prometheus bind address would cause ingress gateways to fail to start up [[GH-8371]](https://github.com/hashicorp/consul/pull/8371)
 * gossip: Avoid issue where two unique leave events for the same node could lead to infinite rebroadcast storms [[GH-8343](https://github.com/hashicorp/consul/issues/8343)]
+* router: Mark its own cluster as healthy when rebalancing. [[GH-8406](https://github.com/hashicorp/consul/pull/8406)]
+* snapshot: **(Consul Enterprise only)** Fixed a regression when using Azure blob storage.
 * xds: version sniff envoy and switch regular expressions from 'regex' to 'safe_regex' on newer envoy versions [[GH-8222](https://github.com/hashicorp/consul/issues/8222)]
 
 ## 1.8.0 (June 18, 2020)
@@ -94,6 +143,39 @@ BUGFIXES:
 * ui: Quote service names when filtering intentions to prevent 500 errors when accessing a service [[GH-7896](https://github.com/hashicorp/consul/issues/7896)] [[GH-7888](https://github.com/hashicorp/consul/pull/7888)]
 * ui: Miscellaneous amends for Safari and Firefox [[GH-7904](https://github.com/hashicorp/consul/issues/7904)] [[GH-7907](https://github.com/hashicorp/consul/pull/7907)]
 * ui: Ensure a value is always passed to CONSUL_SSO_ENABLED [[GH-7913](https://github.com/hashicorp/consul/pull/7913)]
+
+## 1.7.8 (September 11, 2020)
+
+FEATURES:
+
+* agent: expose the list of supported envoy versions on /v1/agent/self [[GH-8545](https://github.com/hashicorp/consul/issues/8545)]
+
+BUG FIXES:
+
+* connect: fix bug in preventing some namespaced config entry modifications [[GH-8601](https://github.com/hashicorp/consul/issues/8601)]
+* api: fixed a panic caused by an api request with Connect=null [[GH-8537](https://github.com/hashicorp/consul/pull/8537)]
+
+## 1.7.7 (August 12, 2020)
+
+BUGFIXES:
+
+* catalog: fixed a bug where nodes, services, and checks would not be restored with the correct Create/ModifyIndex when restoring from a snapshot [[GH-8486](https://github.com/hashicorp/consul/pull/8486)]
+* vendor: update github.com/armon/go-metrics to v0.3.4 to mitigate a potential panic when emitting Prometheus metrics at an interval longer than the metric expiry time [[GH-8478](https://github.com/hashicorp/consul/pull/8478)]
+
+## 1.7.6 (August 07, 2020)
+
+BUG FIXES:
+
+* xds: revert setting set_node_on_first_message_only to true when generating envoy bootstrap config [[GH-8441](https://github.com/hashicorp/consul/issues/8441)]
+
+## 1.7.5 (July 30, 2020)
+
+BUG FIXES:
+
+* agent: Fixed an issue with lock contention during RPCs when under load while using the Prometheus metrics sink. [[GH-8372](https://github.com/hashicorp/consul/pull/8372)]
+* gossip: Avoid issue where two unique leave events for the same node could lead to infinite rebroadcast storms [[GH-8353](https://github.com/hashicorp/consul/issues/8353)]
+* snapshot: **(Consul Enterprise only)** Fixed a regression when using Azure blob storage.
+* Return a service splitter's weight or a zero [[GH-8355](https://github.com/hashicorp/consul/issues/8355)]
 
 ## 1.7.4 (June 10, 2020)
 
@@ -296,6 +378,25 @@ BUGFIXES:
 * ui: Fix positioning of active icon in the selected menu item [[GH-7148](https://github.com/hashicorp/consul/pull/7148)]
 * ui: Discovery-Chain: Improve parsing of redirects [[GH-7174](https://github.com/hashicorp/consul/pull/7174)]
 * ui: Fix styling of ‘duplicate intention’ error message [[GH6936]](https://github.com/hashicorp/consul/pull/6936)
+
+## 1.6.9 (September 11, 2020)
+
+BUG FIXES:
+
+* api: fixed a panic caused by an api request with Connect=null [[GH-8537](https://github.com/hashicorp/consul/pull/8537)]
+
+## 1.6.8 (August 12, 2020)
+
+BUG FIXES:
+
+* vendor: update github.com/armon/go-metrics to v0.3.4 to mitigate a potential panic when emitting Prometheus metrics at an interval longer than the metric expiry time [[GH-8478](https://github.com/hashicorp/consul/pull/8478)]
+
+## 1.6.7 (July 30, 2020)
+
+BUG FIXES:
+
+* agent: Fixed an issue with lock contention during RPCs when under load while using the Prometheus metrics sink. [[GH-8372](https://github.com/hashicorp/consul/pull/8372)]
+* gossip: Avoid issue where two unique leave events for the same node could lead to infinite rebroadcast storms [[GH-8345](https://github.com/hashicorp/consul/issues/8345)]
 
 ## 1.6.6 (June 10, 2020)
 

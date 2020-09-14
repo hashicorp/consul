@@ -188,6 +188,9 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 		conn = tls.Server(conn, s.tlsConfigurator.IncomingInsecureRPCConfig())
 		s.handleInsecureConn(conn)
 
+	case pool.RPCGRPC:
+		s.grpcHandler.Handle(conn)
+
 	default:
 		if !s.handleEnterpriseRPCConn(typ, conn, isTLS) {
 			s.rpcLogger().Error("unrecognized RPC byte",
@@ -254,6 +257,9 @@ func (s *Server) handleNativeTLS(conn net.Conn) {
 	case pool.ALPN_RPCSnapshot:
 		s.handleSnapshotConn(tlsConn)
 
+	case pool.ALPN_RPCGRPC:
+		s.grpcHandler.Handle(conn)
+
 	case pool.ALPN_WANGossipPacket:
 		if err := s.handleALPN_WANGossipPacketStream(tlsConn); err != nil && err != io.EOF {
 			s.rpcLogger().Error(
@@ -295,7 +301,10 @@ func (s *Server) handleNativeTLS(conn net.Conn) {
 func (s *Server) handleMultiplexV2(conn net.Conn) {
 	defer conn.Close()
 	conf := yamux.DefaultConfig()
-	conf.LogOutput = s.config.LogOutput
+	// override the default because LogOutput conflicts with Logger
+	conf.LogOutput = nil
+	// TODO: should this be created once and cached?
+	conf.Logger = s.logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true})
 	server, _ := yamux.Server(conn, conf)
 	for {
 		sub, err := server.Accept()
@@ -632,22 +641,17 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 	return nil
 }
 
-// globalRPC is used to forward an RPC request to one server in each datacenter.
-// This will only error for RPC-related errors. Otherwise, application-level
-// errors can be sent in the response objects.
-func (s *Server) globalRPC(method string, args interface{},
-	reply structs.CompoundResponse) error {
+// keyringRPCs is used to forward an RPC request to a server in each dc. This
+// will only error for RPC-related errors. Otherwise, application-level errors
+// can be sent in the response objects.
+func (s *Server) keyringRPCs(method string, args interface{}, dcs []string) (*structs.KeyringResponses, error) {
 
-	// Make a new request into each datacenter
-	dcs := s.router.GetDatacenters()
-
-	replies, total := 0, len(dcs)
-	errorCh := make(chan error, total)
-	respCh := make(chan interface{}, total)
+	errorCh := make(chan error, len(dcs))
+	respCh := make(chan *structs.KeyringResponses, len(dcs))
 
 	for _, dc := range dcs {
 		go func(dc string) {
-			rr := reply.New()
+			rr := &structs.KeyringResponses{}
 			if err := s.forwardDC(method, dc, args, &rr); err != nil {
 				errorCh <- err
 				return
@@ -656,16 +660,16 @@ func (s *Server) globalRPC(method string, args interface{},
 		}(dc)
 	}
 
-	for replies < total {
+	responses := &structs.KeyringResponses{}
+	for i := 0; i < len(dcs); i++ {
 		select {
 		case err := <-errorCh:
-			return err
+			return nil, err
 		case rr := <-respCh:
-			reply.Add(rr)
-			replies++
+			responses.Add(rr)
 		}
 	}
-	return nil
+	return responses, nil
 }
 
 type raftEncoder func(structs.MessageType, interface{}) ([]byte, error)

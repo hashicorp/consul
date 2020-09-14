@@ -1,19 +1,31 @@
-<div class="popover-select" ...attributes>
-  <PopoverMenu>
+<PopoverMenu @position={{or position "left"}} class="popover-select" ...attributes as |components menu|>
+  {{yield}}
+  {{#let
+    (component 'popover-select/optgroup' components=components)
+    (component 'popover-select/option'
+      select=this components=components
+      onclick=(queue
+        (action "click")
+        (if multiple (noop) menu.toggle)
+      )
+    )
+    as |Optgroup Option|
+  }}
     <BlockSlot @name="trigger">
-      <span>
-        {{selected.value}}
-      </span>
+      <YieldSlot @name="selected">
+        {{yield (hash
+            Optgroup=Optgroup
+            Option=Option
+        )}}
+      </YieldSlot>
     </BlockSlot>
-    <BlockSlot @name="menu" as |id send keypressClick change|>
-      <li role="separator">
-        {{title}}
-      </li>
-    {{#each options as |option|}}
-      <li role="none" class={{if (eq selected.key option.key) 'is-active'}}>
-        <button tabindex="-1" role="menuitem" type="button" value={{option.key}} onclick={{action (queue (action 'change' option) change )}}>{{option.value}}</button>
-      </li>
-    {{/each}}
+    <BlockSlot @name="menu">
+      <YieldSlot @name="options">
+        {{yield (hash
+            Optgroup=Optgroup
+            Option=Option
+        )}}
+      </YieldSlot>
     </BlockSlot>
+  {{/let}}
   </PopoverMenu>
-</div>

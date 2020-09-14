@@ -4,16 +4,7 @@
   {{title 'Access Controls'}}
 {{/if}}
 
-{{#let (selectable-key-values
-    (array "Name:asc" "A to Z")
-    (array "Name:desc" "Z to A")
-    (array "CreateIndex:asc" "Newest to oldest")
-    (array "CreateIndex:desc" "Oldest to newest")
-      selected=sortBy
-  )
-  as |sort|
-}}
-
+{{#let (or sortBy "Name:asc") as |sort|}}
 <AppView
   @class="role list"
   @loading={{isLoading}}
@@ -44,18 +35,17 @@
   </BlockSlot>
   <BlockSlot @name="toolbar">
   {{#if (gt items.length 0) }}
-    <SearchBar
-      @value={{search}}
+    <ConsulRoleSearchBar
+      @search={{search}}
       @onsearch={{action (mut search) value="target.value"}}
-      @secondary="sort"
-      @selected={{sort.selected}}
-      @options={{sort.items}}
-      @onchange={{action (mut sortBy) value='target.selected.key'}}
+
+      @sort={{sort}}
+      @onsort={{action (mut sortBy) value="target.selected"}}
     />
   {{/if}}
   </BlockSlot>
   <BlockSlot @name="content">
-  {{#let (sort-by (comparator 'role' sort.selected.key) items) as |sorted|}}
+  {{#let (sort-by (comparator 'role' sort) items) as |sorted|}}
     <ChangeableSet @dispatcher={{searchable 'role' sorted}} @terms={{search}}>
       <BlockSlot @name="set" as |filtered|>
         <ConsulRoleList

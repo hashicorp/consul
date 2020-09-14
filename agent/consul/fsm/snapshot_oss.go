@@ -99,6 +99,7 @@ func (s *snapshot) persistNodes(sink raft.SnapshotSink,
 			Address:         n.Address,
 			TaggedAddresses: n.TaggedAddresses,
 			NodeMeta:        n.Meta,
+			RaftIndex:       n.RaftIndex,
 		}
 
 		// Register the node itself

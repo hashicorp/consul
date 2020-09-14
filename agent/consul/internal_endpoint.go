@@ -222,6 +222,90 @@ func (m *Internal) GatewayServiceDump(args *structs.ServiceSpecificRequest, repl
 	return err
 }
 
+// Match returns the set of intentions that match the given source/destination.
+func (m *Internal) GatewayIntentions(args *structs.IntentionQueryRequest, reply *structs.IndexedIntentions) error {
+	// Forward if necessary
+	if done, err := m.srv.ForwardRPC("Internal.GatewayIntentions", args, args, reply); done {
+		return err
+	}
+
+	if len(args.Match.Entries) > 1 {
+		return fmt.Errorf("Expected 1 gateway name, got %d", len(args.Match.Entries))
+	}
+
+	// Get the ACL token for the request for the checks below.
+	var entMeta structs.EnterpriseMeta
+	var authzContext acl.AuthorizerContext
+
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &entMeta, &authzContext)
+	if err != nil {
+		return err
+	}
+
+	if args.Match.Entries[0].Namespace == "" {
+		args.Match.Entries[0].Namespace = entMeta.NamespaceOrDefault()
+	}
+	if err := m.srv.validateEnterpriseIntentionNamespace(args.Match.Entries[0].Namespace, true); err != nil {
+		return fmt.Errorf("Invalid match entry namespace %q: %v", args.Match.Entries[0].Namespace, err)
+	}
+
+	// We need read access to the gateway we're trying to find intentions for, so check that first.
+	if authz != nil && authz.ServiceRead(args.Match.Entries[0].Name, &authzContext) != acl.Allow {
+		return acl.ErrPermissionDenied
+	}
+
+	return m.srv.blockingQuery(
+		&args.QueryOptions,
+		&reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			var maxIdx uint64
+			idx, gatewayServices, err := state.GatewayServices(ws, args.Match.Entries[0].Name, &entMeta)
+			if err != nil {
+				return err
+			}
+			if idx > maxIdx {
+				maxIdx = idx
+			}
+
+			// Loop over the gateway <-> serviceName mappings and fetch all intentions for each
+			seen := make(map[string]bool)
+			result := make(structs.Intentions, 0)
+
+			for _, gs := range gatewayServices {
+				entry := structs.IntentionMatchEntry{
+					Namespace: gs.Service.NamespaceOrDefault(),
+					Name:      gs.Service.Name,
+				}
+				idx, intentions, err := state.IntentionMatchOne(ws, entry, structs.IntentionMatchDestination)
+				if err != nil {
+					return err
+				}
+				if idx > maxIdx {
+					maxIdx = idx
+				}
+
+				// Deduplicate wildcard intentions
+				for _, ixn := range intentions {
+					if !seen[ixn.ID] {
+						result = append(result, ixn)
+						seen[ixn.ID] = true
+					}
+				}
+			}
+
+			reply.Index, reply.Intentions = maxIdx, result
+			if reply.Intentions == nil {
+				reply.Intentions = make(structs.Intentions, 0)
+			}
+
+			if err := m.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+			return nil
+		},
+	)
+}
+
 // EventFire is a bit of an odd endpoint, but it allows for a cross-DC RPC
 // call to fire an event. The primary use case is to enable user events being
 // triggered in a remote DC.
@@ -267,6 +351,11 @@ func (m *Internal) KeyringOperation(
 	args *structs.KeyringRequest,
 	reply *structs.KeyringResponses) error {
 
+	// Error aggressively to be clear about LocalOnly behavior
+	if args.LocalOnly && args.Operation != structs.KeyringList {
+		return fmt.Errorf("argument error: LocalOnly can only be used for List operations")
+	}
+
 	// Check ACLs
 	identity, rule, err := m.srv.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
@@ -294,44 +383,64 @@ func (m *Internal) KeyringOperation(
 		}
 	}
 
-	// Validate use of local-only
-	if args.LocalOnly && args.Operation != structs.KeyringList {
-		// Error aggressively to be clear about LocalOnly behavior
-		return fmt.Errorf("argument error: LocalOnly can only be used for List operations")
-	}
+	if args.LocalOnly || args.Forwarded || m.srv.serfWAN == nil {
+		// Handle operations that are localOnly, already forwarded or
+		// there is no serfWAN. If any of this is the case this
+		// operation shouldn't go out to other dcs or WAN pool.
+		reply.Responses = append(reply.Responses, m.executeKeyringOpLAN(args)...)
+	} else {
+		// Handle not already forwarded, non-local operations.
 
-	// args.LocalOnly should always be false for non-GET requests
-	if !args.LocalOnly {
-		// Only perform WAN keyring querying and RPC forwarding once
-		if !args.Forwarded && m.srv.serfWAN != nil {
-			args.Forwarded = true
-			m.executeKeyringOp(args, reply, true)
-			return m.srv.globalRPC("Internal.KeyringOperation", args, reply)
+		// Marking this as forwarded because this is what we are about
+		// to do. Prevents the same message from being fowarded by
+		// other servers.
+		args.Forwarded = true
+		reply.Responses = append(reply.Responses, m.executeKeyringOpWAN(args))
+		reply.Responses = append(reply.Responses, m.executeKeyringOpLAN(args)...)
+
+		dcs := m.srv.router.GetRemoteDatacenters(m.srv.config.Datacenter)
+		responses, err := m.srv.keyringRPCs("Internal.KeyringOperation", args, dcs)
+		if err != nil {
+			return err
 		}
+		reply.Add(responses)
 	}
-
-	// Query the LAN keyring of this node's DC
-	m.executeKeyringOp(args, reply, false)
 	return nil
 }
 
-// executeKeyringOp executes the keyring-related operation in the request
-// on either the WAN or LAN pools.
-func (m *Internal) executeKeyringOp(
-	args *structs.KeyringRequest,
-	reply *structs.KeyringResponses,
-	wan bool) {
-
-	if wan {
-		mgr := m.srv.KeyManagerWAN()
-		m.executeKeyringOpMgr(mgr, args, reply, wan, "")
-	} else {
-		segments := m.srv.LANSegments()
-		for name, segment := range segments {
-			mgr := segment.KeyManager()
-			m.executeKeyringOpMgr(mgr, args, reply, wan, name)
-		}
+func (m *Internal) executeKeyringOpLAN(args *structs.KeyringRequest) []*structs.KeyringResponse {
+	responses := []*structs.KeyringResponse{}
+	segments := m.srv.LANSegments()
+	for name, segment := range segments {
+		mgr := segment.KeyManager()
+		serfResp, err := m.executeKeyringOpMgr(mgr, args)
+		resp := translateKeyResponseToKeyringResponse(serfResp, m.srv.config.Datacenter, err)
+		resp.Segment = name
+		responses = append(responses, &resp)
 	}
+	return responses
+}
+
+func (m *Internal) executeKeyringOpWAN(args *structs.KeyringRequest) *structs.KeyringResponse {
+	mgr := m.srv.KeyManagerWAN()
+	serfResp, err := m.executeKeyringOpMgr(mgr, args)
+	resp := translateKeyResponseToKeyringResponse(serfResp, m.srv.config.Datacenter, err)
+	resp.WAN = true
+	return &resp
+}
+
+func translateKeyResponseToKeyringResponse(keyresponse *serf.KeyResponse, datacenter string, err error) structs.KeyringResponse {
+	resp := structs.KeyringResponse{
+		Datacenter:  datacenter,
+		Messages:    keyresponse.Messages,
+		Keys:        keyresponse.Keys,
+		PrimaryKeys: keyresponse.PrimaryKeys,
+		NumNodes:    keyresponse.NumNodes,
+	}
+	if err != nil {
+		resp.Error = err.Error()
+	}
+	return resp
 }
 
 // executeKeyringOpMgr executes the appropriate keyring-related function based on
@@ -340,9 +449,7 @@ func (m *Internal) executeKeyringOp(
 func (m *Internal) executeKeyringOpMgr(
 	mgr *serf.KeyManager,
 	args *structs.KeyringRequest,
-	reply *structs.KeyringResponses,
-	wan bool,
-	segment string) {
+) (*serf.KeyResponse, error) {
 	var serfResp *serf.KeyResponse
 	var err error
 
@@ -358,20 +465,7 @@ func (m *Internal) executeKeyringOpMgr(
 		serfResp, err = mgr.RemoveKeyWithOptions(args.Key, opts)
 	}
 
-	errStr := ""
-	if err != nil {
-		errStr = err.Error()
-	}
-
-	reply.Responses = append(reply.Responses, &structs.KeyringResponse{
-		WAN:        wan,
-		Datacenter: m.srv.config.Datacenter,
-		Segment:    segment,
-		Messages:   serfResp.Messages,
-		Keys:       serfResp.Keys,
-		NumNodes:   serfResp.NumNodes,
-		Error:      errStr,
-	})
+	return serfResp, err
 }
 
 // aclAccessorID is used to convert an ACLToken's secretID to its accessorID for non-

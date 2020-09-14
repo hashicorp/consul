@@ -2,13 +2,11 @@ package bindingruleupdate
 
 import (
 	"encoding/json"
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/mitchellh/cli"
@@ -29,9 +27,6 @@ func TestBindingRuleUpdateCommand_noTabs(t *testing.T) {
 
 func TestBindingRuleUpdateCommand(t *testing.T) {
 	t.Parallel()
-
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -469,9 +464,6 @@ func TestBindingRuleUpdateCommand(t *testing.T) {
 
 func TestBindingRuleUpdateCommand_noMerge(t *testing.T) {
 	t.Parallel()
-
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"

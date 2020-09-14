@@ -6,11 +6,9 @@ var entMetaJSON = `{}`
 
 var entRuntimeConfigSanitize = `{}`
 
-var entFullDNSJSONConfig = ``
+var entTokenConfigSanitize = `"EnterpriseConfig": {},`
 
-var entFullDNSHCLConfig = ``
-
-var entFullRuntimeConfig = EnterpriseRuntimeConfig{}
+func entFullRuntimeConfig(rt *RuntimeConfig) {}
 
 var enterpriseNonVotingServerWarnings []string = []string{enterpriseConfigKeyError{key: "non_voting_server"}.Error()}
 

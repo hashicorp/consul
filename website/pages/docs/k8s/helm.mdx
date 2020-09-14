@@ -1,11 +1,11 @@
 ---
 layout: docs
-page_title: Helm Chart Reference - Kubernetes
-sidebar_title: Helm Chart Reference
-description: Reference for the Consul Helm chart.
+page_title: Helm Chart Configuration
+sidebar_title: Helm Chart Configuration
+description: Configuration for the Consul Helm chart.
 ---
 
-# Helm Chart Reference
+# Helm Chart Configuration
 
 ## Configuration (Values)
 
@@ -86,7 +86,7 @@ and consider if they're appropriate for your deployment.
   - `acls` ((#v-global-acls)) - Configure ACLs.
 
     - `manageSystemACLs` ((#v-global-acls-managesystemacls)) (`boolean: false`) - If true, the Helm chart will automatically manage ACL tokens and policies for all Consul and consul-k8s components.
-      This requires servers to be running inside Kubernetes. Additionally requires Consul >= 1.4 and consul-k8s >= 0.14.0.
+      This requires Consul >= 1.4 and consul-k8s >= 0.14.0.
 
     - `bootstrapToken` ((#v-global-acls-bootstraptoken)) - A Kubernetes secret containing the bootstrap token to use for
       creating policies and tokens for all Consul and consul-k8s components.
@@ -132,7 +132,7 @@ and consider if they're appropriate for your deployment.
       `<global.name>-federation` (if setting `global.name`), otherwise
       `<helm-release-name>-consul-federation`. Requires consul-k8s 0.15.0+.
 
-  - `tls` ((#v-global-tls)) - Enables TLS [encryption](https://learn.hashicorp.com/consul/security-networking/agent-encryption) across the cluster to verify authenticity of the Consul servers and clients. Requires Consul v1.4.1+ and consul-k8s v0.16.2+
+  - `tls` ((#v-global-tls)) - Enables TLS [encryption](https://learn.hashicorp.com/tutorials/consul/gossip-encryption-secure) across the cluster to verify authenticity of the Consul servers and clients. Requires Consul v1.4.1+ and consul-k8s v0.16.2+
 
     - `enabled` ((#v-global-tls-enabled)) (`boolean: false`) - If true, the Helm chart will enable TLS for Consul
       servers and clients and all consul-k8s components, as well as generate certificate
@@ -148,7 +148,7 @@ and consider if they're appropriate for your deployment.
     - `verify` ((#v-global-verify)) (`boolean: true`) - If true, `verify_outgoing`, `verify_server_hostname`,
       and `verify_incoming_rpc` will be set to `true` for Consul servers and clients.
       Set this to false to incrementally roll out TLS on an existing Consul cluster.
-      Please see [Configuring TLS on an Existing Cluster](/docs/k8s/tls-on-existing-cluster)
+      Please see [Configuring TLS on an Existing Cluster](/docs/k8s/operations/tls-on-existing-cluster)
       for more details.
 
     - `httpsOnly` ((#v-global-httpsonly)) (`boolean: true`) - If true, the Helm chart will configure Consul
@@ -181,6 +181,25 @@ and consider if they're appropriate for your deployment.
       - `secretName` ((#v-global-cakey-secretname)) (`string: null`) - The name of the Kubernetes secret.
 
       - `secretKey` ((#v-global-cakey-secretkey)) (`string: null`) - The key of the Kubernetes secret.
+
+  - `lifecycleSidecarContainer` ((#v-global-lifecycle)) - The lifecycle sidecar ensures the Consul services
+    are always registered with their local Consul clients and is used by the ingress/terminating/mesh gateways
+    as well as with every Connect-injected service.
+
+    - `resources` ((#v-global-lifecycle-resources)) (`map`) - The resource requests and limits (CPU, memory, etc.)
+      for each of the lifecycle sidecar containers. This should be a YAML map of a Kubernetes
+      [ResourceRequirements](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) object. See values file for defaults.
+
+      ```yaml
+      # Resources are defined as a YAML map:
+      resources:
+        requests:
+          memory: '25Mi'
+          cpu: '20m'
+        limits:
+          memory: '50Mi'
+          cpu: '20m'
+      ```
 
 - `server` ((#v-server)) - Values that configure running a Consul server within Kubernetes.
 
@@ -367,13 +386,18 @@ and consider if they're appropriate for your deployment.
 
   - `tlsServerName` ((#v-externalservers-tlsservername)) (`string: null`) - The server name to use as the SNI host header when connecting with HTTPS.
 
-  - `useSystemRoots` ((#v-externalservers-usesystemroots)) (`boolean: false`) - If true, the Helm chart will ignore the CA set in `global.tls.caCert`
-    and will rely on the container's system CAs for TLS verification when talking to Consul servers. Otherwise, the chart will use `global.tls.caCert`.
+  - `useSystemRoots` ((#v-externalservers-usesystemroots)) (`boolean: false`) - If true, consul-k8s components will ignore the CA set in
+    [`global.tls.caCert`](#v-global-cacert) when making HTTPS calls to Consul servers and
+    will instead use the consul-k8s image's system CAs for TLS verification.
+    If false, consul-k8s components will use `global.tls.caCert` when
+    making HTTPS calls to Consul servers.
+    **NOTE:** This does not affect Consul's internal RPC communication which will
+    always use `global.tls.caCert`.
 
   - `k8sAuthMethodHost` ((#v-externalservers-k8sauthmethodhost)) (`string: null`) - If you are setting `global.acls.manageSystemACLs` and
     `connectInject.enabled` to true, set `k8sAuthMethodHost` to the address of the Kubernetes API server.
     This address must be reachable from the Consul servers.
-    Please see the [Kubernetes Auth Method documentation](https://www.consul.io/docs/acl/auth-methods/kubernetes.html). Requires consul-k8s >= 0.14.0.
+    Please see the [Kubernetes Auth Method documentation](/docs/acl/auth-methods/kubernetes). Requires consul-k8s >= 0.14.0.
 
     You could retrieve this value from your `kubeconfig` by running:
 
@@ -400,7 +424,7 @@ and consider if they're appropriate for your deployment.
 
   - `grpc` ((#v-client-grpc)) (`boolean: true`) - If true, agents will enable their GRPC listener on
     port 8502 and expose it to the host. This will use slightly more resources, but is
-    required for [Connect](/docs/k8s/connect/overview).
+    required for [Connect](/docs/k8s/connect).
 
   - `exposeGossipPorts` ((#v-client-exposegossipports)) (`boolean: false`) - If true, the Helm chart
     will expose the clients' gossip ports as hostPorts. This is only necessary if pod IPs in the k8s cluster are not directly routable and the Consul servers are outside of the k8s cluster.
@@ -643,7 +667,7 @@ and consider if they're appropriate for your deployment.
     - `additionalSpec` ((#v-ui-service-additionalspec)) (`string: null`) - Additional Service spec
       values. This should be a multi-line string mapping directly to a Kubernetes `Service` object.
 
-- `connectInject` ((#v-connectinject)) - Values that configure running the [Connect injector](/docs/k8s/connect/overview).
+- `connectInject` ((#v-connectinject)) - Values that configure running the [Connect injector](/docs/k8s/connect).
 
   - `enabled` ((#v-connectinject-enabled)) (`boolean: false`) - If true, the chart will install all the
     resources necessary for the Connect injector process to run. This will enable the injector but will
@@ -653,14 +677,14 @@ and consider if they're appropriate for your deployment.
     (including any tag) for the [consul-k8s](https://github.com/hashicorp/consul-k8s) binary.
 
   - `default` ((#v-connectinject-default)) (`boolean: false`) - If true, the injector will inject the
-    Connect sidecar into all pods by default. Otherwise, pods must specify the. [injection annotation](/docs/k8s/connect/overview#consul-hashicorp-com-connect-inject)
+    Connect sidecar into all pods by default. Otherwise, pods must specify the. [injection annotation](/docs/k8s/connect#consul-hashicorp-com-connect-inject)
     to opt-in to Connect injection. If this is true, pods can use the same annotation
     to explicitly opt-out of injection.
 
   - `imageConsul` ((#v-connectinject-imageConsul)) (`string: global.image`) - The name of the Docker
     image (including any tag) for Consul. This is used for proxy service registration, Envoy configuration, etc.
 
-  - `imageEnvoy` ((#v-connectinject-imageEnvoy)) (`string: ""`) - The name of the Docker image (including any tag) for the Envoy sidecar. `envoy` must be on the executable path within this image. This Envoy version must be compatible with the Consul version used by the injector. If not specified this defaults to letting the injector choose the Envoy image. Check [supported Envoy versions](/docs/connect/proxies/envoy.html#supported-versions) to ensure the version you are using is compatible with Consul.
+  - `imageEnvoy` ((#v-connectinject-imageEnvoy)) (`string: ""`) - The name of the Docker image (including any tag) for the Envoy sidecar. `envoy` must be on the executable path within this image. This Envoy version must be compatible with the Consul version used by the injector. If not specified this defaults to letting the injector choose the Envoy image. Check [supported Envoy versions](/docs/connect/proxies/envoy#supported-versions) to ensure the version you are using is compatible with Consul.
 
   - `namespaceSelector` ((#v-connectinject-namespaceselector)) (`string: ""`) - A [selector](https://
     kubernetes.io/docs/concepts/overview/working-with-objects/labels/)
@@ -754,7 +778,7 @@ and consider if they're appropriate for your deployment.
       configuration feature. Pods that have a Connect proxy injected will have their service automatically registered in this central configuration.
 
     - `defaultProtocol` ((#v-connectinject-centralconfig-defaultprotocol)) (`string: null`) - If
-      defined, this value will be used as the default protocol type for all services registered with the central configuration. This can be overridden by using the [protocol annotation](/docs/k8s/connect/overview#consul-hashicorp-com-connect-service-protocol) directly on any pod spec.
+      defined, this value will be used as the default protocol type for all services registered with the central configuration. This can be overridden by using the [protocol annotation](/docs/k8s/connect#consul-hashicorp-com-connect-service-protocol) directly on any pod spec.
 
     - `proxyDefaults` ((#v-connectinject-centralconfig-proxydefaults)) (`string: "{}"`) - This value is
       a raw json string that will be applied to all Connect proxy sidecar pods. It can include any valid configuration for the configured proxy.
@@ -767,17 +791,55 @@ and consider if they're appropriate for your deployment.
         }
       ```
 
+  - `initContainer` ((#v-connectinject-init)) - As part of the Connect injection process, a utility init container
+    is created that runs various startup tasks including registering the service with Consul.
+
+    - `resources` ((#v-connectinject-init-resources)) (`map`) - The resource requests and limits (CPU, memory, etc.)
+      for all of the Connect-injected init containers. This should be a YAML map of a Kubernetes
+      [ResourceRequirements](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) object. See values file for defaults.
+
+      ```yaml
+      # Resources are defined as a YAML map:
+      resources:
+        requests:
+          memory: '25Mi'
+          cpu: '20m'
+        limits:
+          memory: '50Mi'
+          cpu: '20m'
+      ```
+
+  - `sidecarProxy` ((#v-connectinject-sidecarproxy)) - Configure the sidecar proxy that is injected into each Connect pod.
+
+    - `resources` ((#v-connectinject-sidecarproxy-resources)) - The default resource requests and limits (CPU, memory)
+      for the Envoy sidecar proxy that is injected into each Connect pod. This should be a YAML map of a Kubernetes
+      [ResourceRequirements](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) object.
+      By default, each key is set to `null`, which results in no resource limits.
+
+      These defaults can be overridden on a per-pod basis via [annotation](/docs/k8s/connect#consul-hashicorp-com-sidecar-proxy).
+
+      ```yaml
+      # Recommended defaults
+      resources:
+        requests:
+          memory: '100Mi'
+          cpu: '100m'
+        limits:
+          memory: '100Mi'
+          cpu: '100m'
+      ```
+
 - `meshGateway` ((#v-meshgateway)) - Configure mesh gateways.
 
   - `enabled` ((#v-meshgateway-enabled)) (`boolean: true`) - If mesh gateways are enabled, a Deployment will be created that runs
     gateways and Consul Connect will be configured to use gateways.
-    See [mesh gateway docs](https://www.consul.io/docs/connect/mesh_gateway.html).
+    See [mesh gateway docs](/docs/connect/mesh_gateway).
     Requirements: Consul 1.6.0+ and consul-k8s 0.15.0+ if using
     `global.acls.manageSystemACLs`.
 
   - `globalMode` ((#v-meshgateway-globalmode)) (`string: "local"`) - Globally configure which mode the gateway should run in.
     Can be set to either `"remote"`, `"local"`, `"none"` or `""` or `null`.
-    See [mesh gateway modes of operation](https://consul.io/docs/connect/mesh_gateway.html#modes-of-operation) for
+    See [mesh gateway modes of operation](/docs/connect/mesh_gateway#modes-of-operation) for
     a description of each mode.
     If set to anything other than `""` or `null`, `connectInject.centralConfig.enabled`
     should be set to true so that the global config will actually be used.
@@ -866,6 +928,23 @@ and consider if they're appropriate for your deployment.
 
   - `resources` ((#v-meshgateway-resources)) (`string`) - Resources for gateway pods. See values file for default.
 
+  - `initCopyConsulContainer` ((#v-meshgateway-init)) - A utility init container used to copy the Consul binary into a shared location.
+
+    - `resources` ((#v-meshgateway-init-resources)) (`map`) - The resource requests and limits (CPU, memory, etc.)
+      for the `copy-consul-bin` init container. This should be a YAML map of a Kubernetes
+      [ResourceRequirements](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) object. See values file for defaults.
+
+      ```yaml
+      # Resources are defined as a YAML map:
+      resources:
+        requests:
+          memory: '25Mi'
+          cpu: '50m'
+        limits:
+          memory: '150Mi'
+          cpu: '50m'
+      ```
+
   - `affinity` ((#v-meshgateway-affinity)) (`string`) - Affinity setting for gateway pods. See values file for default.
 
   - `tolerations` ((#v-meshgateway-tolerations)) (`string: null`) - Optional YAML string to specify tolerations.
@@ -904,6 +983,23 @@ and consider if they're appropriate for your deployment.
       - `additionalSpec` ((#v-ingressgateways-defaults-service-additionalspec)) (`string: null`) - Optional YAML string that will be appended to the Service spec.
 
     - `resources` ((#v-ingressgateways-defaults-resources)) (`string`) - Resources for gateway pods. See values file for default.
+
+    - `initCopyConsulContainer` ((#v-ingressgateways-defaults-init)) - A utility init container used to copy the Consul binary into a shared location.
+
+      - `resources` ((#v-ingressgateways-defaults-init-resources)) (`map`) - The resource requests and limits (CPU, memory, etc.)
+        for the `copy-consul-bin` init container. This should be a YAML map of a Kubernetes
+        [ResourceRequirements](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) object. See values file for defaults.
+
+        ```yaml
+        # Resources are defined as a YAML map:
+        resources:
+          requests:
+            memory: '25Mi'
+            cpu: '50m'
+          limits:
+            memory: '150Mi'
+            cpu: '50m'
+        ```
 
     - `affinity` ((#v-ingressgateways-defaults-affinity)) (`string`) - Affinity setting for gateway pods. See values file for default.
 
@@ -947,6 +1043,23 @@ and consider if they're appropriate for your deployment.
       ```
 
     - `resources` ((#v-terminatinggateways-defaults-resources)) (`string`) - Resources for gateway pods. See values file for default.
+
+    - `initCopyConsulContainer` ((#v-terminatinggateways-defaults-init)) - A utility init container used to copy the Consul binary into a shared location.
+
+      - `resources` ((#v-terminatinggateways-defaults-init-resources)) (`map`) - The resource requests and limits (CPU, memory, etc.)
+        for the `copy-consul-bin` init container. This should be a YAML map of a Kubernetes
+        [ResourceRequirements](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) object. See values file for defaults.
+
+        ```yaml
+        # Resources are defined as a YAML map:
+        resources:
+          requests:
+            memory: '25Mi'
+            cpu: '50m'
+          limits:
+            memory: '150Mi'
+            cpu: '50m'
+        ```
 
     - `affinity` ((#v-terminatinggateways-defaults-affinity)) (`string`) - Affinity setting for gateway pods. See values file for default.
 

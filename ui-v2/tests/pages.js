@@ -79,9 +79,6 @@ const tokenList = tokenListFactory(clickable, attribute, collection, deletable);
 const authForm = authFormFactory(submitable, clickable, attribute);
 const freetextFilter = freetextFilterFactory(triggerable);
 const catalogToolbar = searchBarFactory(freetextFilter);
-const catalogFilter = searchBarFactory(freetextFilter, () =>
-  radiogroup('status', ['', 'passing', 'warning', 'critical'])
-);
 const aclFilter = searchBarFactory(freetextFilter, () =>
   radiogroup('type', ['', 'management', 'client'])
 );
@@ -124,7 +121,7 @@ const consulPolicyList = consulPolicyListFactory(
   morePopoverMenu
 );
 
-const page = pageFactory(clickable, attribute, is, authForm);
+const page = pageFactory(collection, clickable, attribute, is, authForm);
 
 // pages
 const create = function(appView) {
@@ -150,19 +147,10 @@ export default {
     )
   ),
   service: create(
-    service(
-      visitable,
-      clickable,
-      attribute,
-      collection,
-      text,
-      consulIntentionList,
-      catalogToolbar,
-      tabgroup
-    )
+    service(visitable, attribute, collection, text, consulIntentionList, catalogToolbar, tabgroup)
   ),
   instance: create(instance(visitable, attribute, collection, text, tabgroup)),
-  nodes: create(nodes(visitable, clickable, attribute, collection, catalogFilter)),
+  nodes: create(nodes(visitable, text, clickable, attribute, collection, popoverSelect)),
   node: create(node(visitable, deletable, clickable, attribute, collection, tabgroup, text)),
   kvs: create(kvs(visitable, creatable, consulKvList)),
   kv: create(kv(visitable, attribute, submitable, deletable, cancelable, clickable)),
@@ -181,7 +169,7 @@ export default {
     intentions(visitable, creatable, clickable, consulIntentionList, popoverSelect)
   ),
   intention: create(intention(visitable, submitable, deletable, cancelable)),
-  nspaces: create(nspaces(visitable, creatable, consulNspaceList, freetextFilter)),
+  nspaces: create(nspaces(visitable, creatable, consulNspaceList, popoverSelect)),
   nspace: create(
     nspace(visitable, submitable, deletable, cancelable, policySelector, roleSelector)
   ),

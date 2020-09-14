@@ -14,7 +14,7 @@ Connect.
 
 ## Getting Started
 
-To get started with the built-in proxy and see a working example you can follow the [Getting Started](https://learn.hashicorp.com/consul/getting-started/connect) guide.
+To get started with the built-in proxy and see a working example you can follow the [Getting Started](https://learn.hashicorp.com/tutorials/consul/get-started-service-networking) tutorial.
 
 ## Proxy Config Key Reference
 
@@ -58,7 +58,7 @@ All fields are optional with a sane default.
 
 - `bind_port` - The port the proxy will bind it's _public_
   mTLS listener to. If not provided, the agent will attempt to assign one from its
-  [configured proxy port range](/docs/agent/options#proxy_min_port) if available.
+  [configured proxy port range](/docs/agent/options#sidecar_min_port) if available.
   By default the range is [20000, 20255] and the port is selected at random from
   that range.
 

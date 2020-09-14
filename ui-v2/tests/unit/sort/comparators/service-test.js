@@ -8,22 +8,22 @@ module('Unit | Sort | Comparator | service', function() {
     const actual = comparator(expected);
     assert.equal(actual, expected);
   });
-  test('items are sorted by a fake Status which uses Checks{Passing,Warning,Critical}', function(assert) {
+  test('items are sorted by a fake Status which uses MeshChecks{Passing,Warning,Critical}', function(assert) {
     const items = [
       {
-        ChecksPassing: 1,
-        ChecksWarning: 1,
-        ChecksCritical: 1,
+        MeshChecksPassing: 1,
+        MeshChecksWarning: 1,
+        MeshChecksCritical: 1,
       },
       {
-        ChecksPassing: 1,
-        ChecksWarning: 1,
-        ChecksCritical: 2,
+        MeshChecksPassing: 1,
+        MeshChecksWarning: 1,
+        MeshChecksCritical: 2,
       },
       {
-        ChecksPassing: 1,
-        ChecksWarning: 1,
-        ChecksCritical: 3,
+        MeshChecksPassing: 1,
+        MeshChecksWarning: 1,
+        MeshChecksCritical: 3,
       },
     ];
     const comp = comparator('Status:asc');
@@ -31,19 +31,19 @@ module('Unit | Sort | Comparator | service', function() {
 
     const expected = [
       {
-        ChecksPassing: 1,
-        ChecksWarning: 1,
-        ChecksCritical: 3,
+        MeshChecksPassing: 1,
+        MeshChecksWarning: 1,
+        MeshChecksCritical: 3,
       },
       {
-        ChecksPassing: 1,
-        ChecksWarning: 1,
-        ChecksCritical: 2,
+        MeshChecksPassing: 1,
+        MeshChecksWarning: 1,
+        MeshChecksCritical: 2,
       },
       {
-        ChecksPassing: 1,
-        ChecksWarning: 1,
-        ChecksCritical: 1,
+        MeshChecksPassing: 1,
+        MeshChecksWarning: 1,
+        MeshChecksCritical: 1,
       },
     ];
     let actual = items.sort(comp);

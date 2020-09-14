@@ -2,7 +2,6 @@ package tokenclone
 
 import (
 	"encoding/json"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -10,7 +9,6 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/assert"
@@ -62,9 +60,6 @@ func TestTokenCloneCommand_noTabs(t *testing.T) {
 func TestTokenCloneCommand_Pretty(t *testing.T) {
 	t.Parallel()
 	req := require.New(t)
-
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
    primary_datacenter = "dc1"
@@ -169,9 +164,6 @@ func TestTokenCloneCommand_Pretty(t *testing.T) {
 func TestTokenCloneCommand_JSON(t *testing.T) {
 	t.Parallel()
 	req := require.New(t)
-
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
    primary_datacenter = "dc1"

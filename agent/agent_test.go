@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/google/tcpproxy"
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
@@ -32,16 +33,17 @@ import (
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/proto/pbautoconf"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/time/rate"
 	"gopkg.in/square/go-jose.v2/jwt"
 )
 
@@ -248,120 +250,6 @@ func TestAgent_ReconnectConfigWanDisabled(t *testing.T) {
 
 	// This is also testing that we dont panic like before #4515
 	require.Nil(t, a.consulConfig().SerfWANConfig)
-}
-
-func TestAgent_setupNodeID(t *testing.T) {
-	t.Parallel()
-	a := NewTestAgent(t, `
-		node_id = ""
-	`)
-	defer a.Shutdown()
-
-	cfg := a.config
-
-	// The auto-assigned ID should be valid.
-	id := a.consulConfig().NodeID
-	if _, err := uuid.ParseUUID(string(id)); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Running again should get the same ID (persisted in the file).
-	cfg.NodeID = ""
-	if err := a.setupNodeID(cfg); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if newID := a.consulConfig().NodeID; id != newID {
-		t.Fatalf("bad: %q vs %q", id, newID)
-	}
-
-	// Set an invalid ID via.Config.
-	cfg.NodeID = types.NodeID("nope")
-	err := a.setupNodeID(cfg)
-	if err == nil || !strings.Contains(err.Error(), "uuid string is wrong length") {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Set a valid ID via.Config.
-	newID, err := uuid.GenerateUUID()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	cfg.NodeID = types.NodeID(strings.ToUpper(newID))
-	if err := a.setupNodeID(cfg); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if id := a.consulConfig().NodeID; string(id) != newID {
-		t.Fatalf("bad: %q vs. %q", id, newID)
-	}
-
-	// Set an invalid ID via the file.
-	fileID := filepath.Join(cfg.DataDir, "node-id")
-	if err := ioutil.WriteFile(fileID, []byte("adf4238a!882b!9ddc!4a9d!5b6758e4159e"), 0600); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	cfg.NodeID = ""
-	err = a.setupNodeID(cfg)
-	if err == nil || !strings.Contains(err.Error(), "uuid is improperly formatted") {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Set a valid ID via the file.
-	if err := ioutil.WriteFile(fileID, []byte("ADF4238a-882b-9ddc-4a9d-5b6758e4159e"), 0600); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	cfg.NodeID = ""
-	if err := a.setupNodeID(cfg); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if id := a.consulConfig().NodeID; string(id) != "adf4238a-882b-9ddc-4a9d-5b6758e4159e" {
-		t.Fatalf("bad: %q vs. %q", id, newID)
-	}
-}
-
-func TestAgent_makeNodeID(t *testing.T) {
-	t.Parallel()
-	a := NewTestAgent(t, `
-		node_id = ""
-	`)
-	defer a.Shutdown()
-
-	// We should get a valid host-based ID initially.
-	id, err := a.makeNodeID()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if _, err := uuid.ParseUUID(id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Calling again should yield a random ID by default.
-	another, err := a.makeNodeID()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if id == another {
-		t.Fatalf("bad: %s vs %s", id, another)
-	}
-
-	// Turn on host-based IDs and try again. We should get the same ID
-	// each time (and a different one from the random one above).
-	a.GetConfig().DisableHostNodeID = false
-	id, err = a.makeNodeID()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if id == another {
-		t.Fatalf("bad: %s vs %s", id, another)
-	}
-
-	// Calling again should yield the host-based ID.
-	another, err = a.makeNodeID()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if id != another {
-		t.Fatalf("bad: %s vs %s", id, another)
-	}
 }
 
 func TestAgent_AddService(t *testing.T) {
@@ -878,10 +766,18 @@ func TestCacheRateLimit(test *testing.T) {
 		test.Run(fmt.Sprintf("rate_limit_at_%v", currentTest.rateLimit), func(t *testing.T) {
 			tt := currentTest
 			t.Parallel()
-			a := NewTestAgent(t, fmt.Sprintf("cache = { entry_fetch_rate = %v, entry_fetch_max_burst = 1 }", tt.rateLimit))
+			a := NewTestAgent(t, "cache = { entry_fetch_rate = 1, entry_fetch_max_burst = 100 }")
 			defer a.Shutdown()
 			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
+			cfg := a.config
+			require.Equal(t, rate.Limit(1), a.config.Cache.EntryFetchRate)
+			require.Equal(t, 100, a.config.Cache.EntryFetchMaxBurst)
+			cfg.Cache.EntryFetchRate = rate.Limit(tt.rateLimit)
+			cfg.Cache.EntryFetchMaxBurst = 1
+			a.reloadConfigInternal(cfg)
+			require.Equal(t, rate.Limit(tt.rateLimit), a.config.Cache.EntryFetchRate)
+			require.Equal(t, 1, a.config.Cache.EntryFetchMaxBurst)
 			var wg sync.WaitGroup
 			stillProcessing := true
 
@@ -1649,15 +1545,12 @@ func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
 		a.logger.Info("testharness: " + fmt.Sprintf(format, args...))
 	}
 
-	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
 	cfg := `
 		server = false
 		bootstrap = false
 	    enable_central_service_config = false
-		data_dir = "` + dataDir + `"
 	`
-	a := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: dataDir})
-	defer os.RemoveAll(dataDir)
+	a := StartTestAgent(t, TestAgent{HCL: cfg})
 	defer a.Shutdown()
 
 	testCtx, testCancel := context.WithCancel(context.Background())
@@ -1740,7 +1633,7 @@ node_name = "` + a.Config.NodeName + `"
 		t.Helper()
 
 		// Reload and retain former NodeID and data directory.
-		a2 := StartTestAgent(t, TestAgent{HCL: futureHCL, DataDir: dataDir})
+		a2 := StartTestAgent(t, TestAgent{HCL: futureHCL, DataDir: a.DataDir})
 		defer a2.Shutdown()
 		a = nil
 
@@ -2024,7 +1917,7 @@ func TestAgent_HTTPCheck_EnableAgentTLSForChecks(t *testing.T) {
 			Status:  api.HealthCritical,
 		}
 
-		url := fmt.Sprintf("https://%s/v1/agent/self", a.srv.ln.Addr().String())
+		url := fmt.Sprintf("https://%s/v1/agent/self", a.HTTPAddr())
 		chk := &structs.CheckType{
 			HTTP:     url,
 			Interval: 20 * time.Millisecond,
@@ -2125,15 +2018,11 @@ func TestAgent_PersistService(t *testing.T) {
 func testAgent_PersistService(t *testing.T, extraHCL string) {
 	t.Helper()
 
-	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
-	defer os.RemoveAll(dataDir)
-
 	cfg := `
 		server = false
 		bootstrap = false
-		data_dir = "` + dataDir + `"
 	` + extraHCL
-	a := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: dataDir})
+	a := StartTestAgent(t, TestAgent{HCL: cfg})
 	defer a.Shutdown()
 
 	svc := &structs.NodeService{
@@ -2199,7 +2088,7 @@ func testAgent_PersistService(t *testing.T, extraHCL string) {
 	a.Shutdown()
 
 	// Should load it back during later start
-	a2 := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: dataDir})
+	a2 := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: a.DataDir})
 	defer a2.Shutdown()
 
 	restored := a2.State.ServiceState(structs.NewServiceID(svc.ID, nil))
@@ -2337,15 +2226,11 @@ func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
 func testAgent_PurgeServiceOnDuplicate(t *testing.T, extraHCL string) {
 	t.Helper()
 
-	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
-	defer os.RemoveAll(dataDir)
-
 	cfg := `
-		data_dir = "` + dataDir + `"
 		server = false
 		bootstrap = false
 	` + extraHCL
-	a := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: dataDir})
+	a := StartTestAgent(t, TestAgent{HCL: cfg})
 	defer a.Shutdown()
 
 	svc1 := &structs.NodeService{
@@ -2368,7 +2253,7 @@ func testAgent_PurgeServiceOnDuplicate(t *testing.T, extraHCL string) {
 			tags = ["bar"]
 			port = 9000
 		}
-	`, DataDir: dataDir})
+	`, DataDir: a.DataDir})
 	defer a2.Shutdown()
 
 	sid := svc1.CompoundServiceID()
@@ -2382,15 +2267,12 @@ func testAgent_PurgeServiceOnDuplicate(t *testing.T, extraHCL string) {
 
 func TestAgent_PersistCheck(t *testing.T) {
 	t.Parallel()
-	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
 	cfg := `
-		data_dir = "` + dataDir + `"
 		server = false
 		bootstrap = false
 		enable_script_checks = true
 	`
-	a := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: dataDir})
-	defer os.RemoveAll(dataDir)
+	a := StartTestAgent(t, TestAgent{HCL: cfg})
 	defer a.Shutdown()
 
 	check := &structs.HealthCheck{
@@ -2446,7 +2328,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 	a.Shutdown()
 
 	// Should load it back during later start
-	a2 := StartTestAgent(t, TestAgent{Name: "Agent2", HCL: cfg, DataDir: dataDir})
+	a2 := StartTestAgent(t, TestAgent{Name: "Agent2", HCL: cfg, DataDir: a.DataDir})
 	defer a2.Shutdown()
 
 	result := requireCheckExists(t, a2, check.CheckID)
@@ -2497,18 +2379,14 @@ func TestAgent_PurgeCheck(t *testing.T) {
 func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	t.Parallel()
 	nodeID := NodeID()
-	dataDir := testutil.TempDir(t, "agent")
 	a := StartTestAgent(t, TestAgent{
-		DataDir: dataDir,
 		HCL: `
 	    node_id = "` + nodeID + `"
 	    node_name = "Node ` + nodeID + `"
-		data_dir = "` + dataDir + `"
 		server = false
 		bootstrap = false
 		enable_script_checks = true
 	`})
-	defer os.RemoveAll(dataDir)
 	defer a.Shutdown()
 
 	check1 := &structs.HealthCheck{
@@ -2528,11 +2406,10 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	// Start again with the check registered in config
 	a2 := StartTestAgent(t, TestAgent{
 		Name:    "Agent2",
-		DataDir: dataDir,
+		DataDir: a.DataDir,
 		HCL: `
 	    node_id = "` + nodeID + `"
 	    node_name = "Node ` + nodeID + `"
-		data_dir = "` + dataDir + `"
 		server = false
 		bootstrap = false
 		enable_script_checks = true
@@ -2547,7 +2424,7 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	defer a2.Shutdown()
 
 	cid := check1.CompoundCheckID()
-	file := filepath.Join(dataDir, checksDir, cid.StringHash())
+	file := filepath.Join(a.DataDir, checksDir, cid.StringHash())
 	if _, err := os.Stat(file); err == nil {
 		t.Fatalf("should have removed persisted check")
 	}
@@ -3468,163 +3345,6 @@ func TestAgent_reloadWatchesHTTPS(t *testing.T) {
 	}
 }
 
-func TestAgent_loadTokens(t *testing.T) {
-	t.Parallel()
-	a := NewTestAgent(t, `
-		acl = {
-			enabled = true
-			tokens = {
-				agent = "alfa"
-				agent_master = "bravo",
-				default = "charlie"
-				replication = "delta"
-			}
-		}
-
-	`)
-	defer a.Shutdown()
-	require := require.New(t)
-
-	tokensFullPath := filepath.Join(a.config.DataDir, tokensPath)
-
-	t.Run("original-configuration", func(t *testing.T) {
-		require.Equal("alfa", a.tokens.AgentToken())
-		require.Equal("bravo", a.tokens.AgentMasterToken())
-		require.Equal("charlie", a.tokens.UserToken())
-		require.Equal("delta", a.tokens.ReplicationToken())
-	})
-
-	t.Run("updated-configuration", func(t *testing.T) {
-		cfg := &config.RuntimeConfig{
-			ACLToken:            "echo",
-			ACLAgentToken:       "foxtrot",
-			ACLAgentMasterToken: "golf",
-			ACLReplicationToken: "hotel",
-		}
-		// ensures no error for missing persisted tokens file
-		require.NoError(a.loadTokens(cfg))
-		require.Equal("echo", a.tokens.UserToken())
-		require.Equal("foxtrot", a.tokens.AgentToken())
-		require.Equal("golf", a.tokens.AgentMasterToken())
-		require.Equal("hotel", a.tokens.ReplicationToken())
-	})
-
-	t.Run("persisted-tokens", func(t *testing.T) {
-		cfg := &config.RuntimeConfig{
-			ACLToken:            "echo",
-			ACLAgentToken:       "foxtrot",
-			ACLAgentMasterToken: "golf",
-			ACLReplicationToken: "hotel",
-		}
-
-		tokens := `{
-			"agent" : "india",
-			"agent_master" : "juliett",
-			"default": "kilo",
-			"replication" : "lima"
-		}`
-
-		require.NoError(ioutil.WriteFile(tokensFullPath, []byte(tokens), 0600))
-		require.NoError(a.loadTokens(cfg))
-
-		// no updates since token persistence is not enabled
-		require.Equal("echo", a.tokens.UserToken())
-		require.Equal("foxtrot", a.tokens.AgentToken())
-		require.Equal("golf", a.tokens.AgentMasterToken())
-		require.Equal("hotel", a.tokens.ReplicationToken())
-
-		a.config.ACLEnableTokenPersistence = true
-		require.NoError(a.loadTokens(cfg))
-
-		require.Equal("india", a.tokens.AgentToken())
-		require.Equal("juliett", a.tokens.AgentMasterToken())
-		require.Equal("kilo", a.tokens.UserToken())
-		require.Equal("lima", a.tokens.ReplicationToken())
-	})
-
-	t.Run("persisted-tokens-override", func(t *testing.T) {
-		tokens := `{
-			"agent" : "mike",
-			"agent_master" : "november",
-			"default": "oscar",
-			"replication" : "papa"
-		}`
-
-		cfg := &config.RuntimeConfig{
-			ACLToken:            "quebec",
-			ACLAgentToken:       "romeo",
-			ACLAgentMasterToken: "sierra",
-			ACLReplicationToken: "tango",
-		}
-
-		require.NoError(ioutil.WriteFile(tokensFullPath, []byte(tokens), 0600))
-		require.NoError(a.loadTokens(cfg))
-
-		require.Equal("mike", a.tokens.AgentToken())
-		require.Equal("november", a.tokens.AgentMasterToken())
-		require.Equal("oscar", a.tokens.UserToken())
-		require.Equal("papa", a.tokens.ReplicationToken())
-	})
-
-	t.Run("partial-persisted", func(t *testing.T) {
-		tokens := `{
-			"agent" : "uniform",
-			"agent_master" : "victor"
-		}`
-
-		cfg := &config.RuntimeConfig{
-			ACLToken:            "whiskey",
-			ACLAgentToken:       "xray",
-			ACLAgentMasterToken: "yankee",
-			ACLReplicationToken: "zulu",
-		}
-
-		require.NoError(ioutil.WriteFile(tokensFullPath, []byte(tokens), 0600))
-		require.NoError(a.loadTokens(cfg))
-
-		require.Equal("uniform", a.tokens.AgentToken())
-		require.Equal("victor", a.tokens.AgentMasterToken())
-		require.Equal("whiskey", a.tokens.UserToken())
-		require.Equal("zulu", a.tokens.ReplicationToken())
-	})
-
-	t.Run("persistence-error-not-json", func(t *testing.T) {
-		cfg := &config.RuntimeConfig{
-			ACLToken:            "one",
-			ACLAgentToken:       "two",
-			ACLAgentMasterToken: "three",
-			ACLReplicationToken: "four",
-		}
-
-		require.NoError(ioutil.WriteFile(tokensFullPath, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, 0600))
-		err := a.loadTokens(cfg)
-		require.Error(err)
-
-		require.Equal("one", a.tokens.UserToken())
-		require.Equal("two", a.tokens.AgentToken())
-		require.Equal("three", a.tokens.AgentMasterToken())
-		require.Equal("four", a.tokens.ReplicationToken())
-	})
-
-	t.Run("persistence-error-wrong-top-level", func(t *testing.T) {
-		cfg := &config.RuntimeConfig{
-			ACLToken:            "alfa",
-			ACLAgentToken:       "bravo",
-			ACLAgentMasterToken: "charlie",
-			ACLReplicationToken: "foxtrot",
-		}
-
-		require.NoError(ioutil.WriteFile(tokensFullPath, []byte("[1,2,3]"), 0600))
-		err := a.loadTokens(cfg)
-		require.Error(err)
-
-		require.Equal("alfa", a.tokens.UserToken())
-		require.Equal("bravo", a.tokens.AgentToken())
-		require.Equal("charlie", a.tokens.AgentMasterToken())
-		require.Equal("foxtrot", a.tokens.ReplicationToken())
-	})
-}
-
 func TestAgent_SecurityChecks(t *testing.T) {
 	t.Parallel()
 	hcl := `
@@ -3643,7 +3363,6 @@ func TestAgent_SecurityChecks(t *testing.T) {
 func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 	t.Parallel()
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
-	defer os.RemoveAll(dataDir)
 	hcl := `
 		data_dir = "` + dataDir + `"
 		verify_outgoing = true
@@ -3667,7 +3386,7 @@ func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 		key_file = "../test/key/ourdomain.key"
 		verify_server_hostname = true
 	`
-	c := TestConfig(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	c := TestConfig(testutil.Logger(t), config.FileSource{Name: t.Name(), Format: "hcl", Data: hcl})
 	require.NoError(t, a.reloadConfigInternal(c))
 	tlsConf = a.tlsConfigurator.OutgoingRPCConfig()
 	require.False(t, tlsConf.InsecureSkipVerify)
@@ -3678,7 +3397,6 @@ func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 func TestAgent_ReloadConfigAndKeepChecksStatus(t *testing.T) {
 	t.Parallel()
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
-	defer os.RemoveAll(dataDir)
 	hcl := `data_dir = "` + dataDir + `"
 		enable_local_script_checks=true
 		services=[{
@@ -3697,7 +3415,7 @@ func TestAgent_ReloadConfigAndKeepChecksStatus(t *testing.T) {
 		require.Equal(t, "passing", check.Status, "check %q is wrong", id)
 	}
 
-	c := TestConfig(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	c := TestConfig(testutil.Logger(t), config.FileSource{Name: t.Name(), Format: "hcl", Data: hcl})
 	require.NoError(t, a.reloadConfigInternal(c))
 	// After reload, should be passing directly (no critical state)
 	for id, check := range a.State.Checks(nil) {
@@ -3708,7 +3426,6 @@ func TestAgent_ReloadConfigAndKeepChecksStatus(t *testing.T) {
 func TestAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
 	t.Parallel()
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
-	defer os.RemoveAll(dataDir)
 	hcl := `
 		data_dir = "` + dataDir + `"
 		verify_outgoing = true
@@ -3736,7 +3453,7 @@ func TestAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
 		key_file = "../test/key/ourdomain.key"
 		verify_server_hostname = true
 	`
-	c := TestConfig(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	c := TestConfig(testutil.Logger(t), config.FileSource{Name: t.Name(), Format: "hcl", Data: hcl})
 	require.NoError(t, a.reloadConfigInternal(c))
 	tlsConf, err = tlsConf.GetConfigForClient(nil)
 	require.NoError(t, err)
@@ -3748,7 +3465,6 @@ func TestAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
 func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
 	t.Parallel()
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
-	defer os.RemoveAll(dataDir)
 	hcl := `
 		data_dir = "` + dataDir + `"
 		verify_outgoing = true
@@ -3765,7 +3481,7 @@ func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
 		data_dir = "` + dataDir + `"
 		verify_incoming = true
 	`
-	c := TestConfig(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	c := TestConfig(testutil.Logger(t), config.FileSource{Name: t.Name(), Format: "hcl", Data: hcl})
 	require.Error(t, a.reloadConfigInternal(c))
 	tlsConf, err := tlsConf.GetConfigForClient(nil)
 	require.NoError(t, err)
@@ -3777,7 +3493,6 @@ func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
 func TestAgent_consulConfig_AutoEncryptAllowTLS(t *testing.T) {
 	t.Parallel()
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
-	defer os.RemoveAll(dataDir)
 	hcl := `
 		data_dir = "` + dataDir + `"
 		verify_incoming = true
@@ -4722,21 +4437,28 @@ func TestAutoConfig_Integration(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	client := StartTestAgent(t, TestAgent{Name: "test-client", HCL: `
-	   bootstrap = false
-		server = false
-		ca_file = "` + caFile + `"
-		verify_outgoing = true
-		verify_server_hostname = true
-		node_name = "test-client"
-		ports {
-			server = ` + strconv.Itoa(srv.Config.RPCBindAddr.Port) + `
-		}
-		auto_config {
-			enabled = true
-			intro_token = "` + token + `"
-			server_addresses = ["` + srv.Config.RPCBindAddr.String() + `"]
-		}`})
+	client := StartTestAgent(t, TestAgent{Name: "test-client",
+		Overrides: `
+			connect {
+				test_ca_leaf_root_change_spread = "1ns"
+			}
+		`,
+		HCL: `
+			bootstrap = false
+			server = false
+			ca_file = "` + caFile + `"
+			verify_outgoing = true
+			verify_server_hostname = true
+			node_name = "test-client"
+			ports {
+				server = ` + strconv.Itoa(srv.Config.RPCBindAddr.Port) + `
+			}
+			auto_config {
+				enabled = true
+				intro_token = "` + token + `"
+				server_addresses = ["` + srv.Config.RPCBindAddr.String() + `"]
+			}`,
+	})
 
 	defer client.Shutdown()
 
@@ -4776,6 +4498,21 @@ func TestAutoConfig_Integration(t *testing.T) {
 	// ensure that a new cert gets generated and pushed into the TLS configurator
 	retry.Run(t, func(r *retry.R) {
 		require.NotEqual(r, cert1, client.Agent.tlsConfigurator.Cert())
+
+		// check that the on disk certs match expectations
+		data, err := ioutil.ReadFile(filepath.Join(client.DataDir, "auto-config.json"))
+		require.NoError(r, err)
+		rdr := strings.NewReader(string(data))
+
+		var resp pbautoconf.AutoConfigResponse
+		pbUnmarshaler := &jsonpb.Unmarshaler{
+			AllowUnknownFields: false,
+		}
+		require.NoError(r, pbUnmarshaler.Unmarshal(rdr, &resp), "data: %s", data)
+
+		actual, err := tls.X509KeyPair([]byte(resp.Certificate.CertPEM), []byte(resp.Certificate.PrivateKeyPEM))
+		require.NoError(r, err)
+		require.Equal(r, client.Agent.tlsConfigurator.Cert(), &actual)
 	})
 
 	// spot check that we now have an ACL token
@@ -4855,4 +4592,34 @@ func TestAgent_AutoEncrypt(t *testing.T) {
 	require.Equal(t, expectedCN, x509Cert.Subject.CommonName)
 	require.Len(t, x509Cert.URIs, 1)
 	require.Equal(t, id.URI(), x509Cert.URIs[0])
+}
+
+func TestSharedRPCRouter(t *testing.T) {
+	// this test runs both a server and client and ensures that the shared
+	// router is being used. It would be possible for the Client and Server
+	// types to create and use their own routers and for RPCs such as the
+	// ones used in WaitForTestAgent to succeed. However accessing the
+	// router stored on the agent ensures that Serf information from the
+	// Client/Server types are being set in the same shared rpc router.
+
+	srv := NewTestAgent(t, "")
+	defer srv.Shutdown()
+
+	testrpc.WaitForTestAgent(t, srv.RPC, "dc1")
+
+	mgr, server := srv.Agent.router.FindLANRoute()
+	require.NotNil(t, mgr)
+	require.NotNil(t, server)
+
+	client := NewTestAgent(t, `
+		server = false
+		bootstrap = false
+		retry_join = ["`+srv.Config.SerfBindAddrLAN.String()+`"]
+	`)
+
+	testrpc.WaitForTestAgent(t, client.RPC, "dc1")
+
+	mgr, server = client.Agent.router.FindLANRoute()
+	require.NotNil(t, mgr)
+	require.NotNil(t, server)
 }

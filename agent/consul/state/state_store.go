@@ -82,7 +82,7 @@ var (
 	ErrMissingIntentionID = errors.New("Missing Intention ID")
 )
 
-const (
+var (
 	// watchLimit is used as a soft limit to cap how many watches we allow
 	// for a given blocking query. If this is exceeded, then we will use a
 	// higher-level watch that's less fine-grained.  Choosing the perfect
@@ -162,16 +162,16 @@ func NewStateStore(gc *TombstoneGC) (*Store, error) {
 
 	ctx, cancel := context.WithCancel(context.TODO())
 	s := &Store{
-		schema:       schema,
-		abandonCh:    make(chan struct{}),
-		kvsGraveyard: NewGraveyard(gc),
-		lockDelay:    NewDelay(),
-		db: &changeTrackerDB{
-			db:             db,
-			publisher:      stream.NewEventPublisher(ctx, newSnapshotHandlers(), 10*time.Second),
-			processChanges: processDBChanges,
-		},
+		schema:             schema,
+		abandonCh:          make(chan struct{}),
+		kvsGraveyard:       NewGraveyard(gc),
+		lockDelay:          NewDelay(),
 		stopEventPublisher: cancel,
+	}
+	s.db = &changeTrackerDB{
+		db:             db,
+		publisher:      stream.NewEventPublisher(ctx, newSnapshotHandlers(s), 10*time.Second),
+		processChanges: processDBChanges,
 	}
 	return s, nil
 }
@@ -258,11 +258,11 @@ func (s *Store) maxIndex(tables ...string) uint64 {
 
 // maxIndexTxn is a helper used to retrieve the highest known index
 // amongst a set of tables in the db.
-func maxIndexTxn(tx *txn, tables ...string) uint64 {
+func maxIndexTxn(tx ReadTxn, tables ...string) uint64 {
 	return maxIndexWatchTxn(tx, nil, tables...)
 }
 
-func maxIndexWatchTxn(tx *txn, ws memdb.WatchSet, tables ...string) uint64 {
+func maxIndexWatchTxn(tx ReadTxn, ws memdb.WatchSet, tables ...string) uint64 {
 	var lindex uint64
 	for _, table := range tables {
 		ch, ti, err := tx.FirstWatch("index", "id", table)

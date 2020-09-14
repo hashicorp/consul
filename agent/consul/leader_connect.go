@@ -653,7 +653,7 @@ func (s *Server) secondaryIntermediateCertRenewalWatch(ctx context.Context) erro
 		case <-ctx.Done():
 			return nil
 		case <-time.After(structs.IntermediateCertRenewInterval):
-			retryLoopBackoff(ctx, func() error {
+			retryLoopBackoffAbortOnSuccess(ctx, func() error {
 				s.caProviderReconfigurationLock.Lock()
 				defer s.caProviderReconfigurationLock.Unlock()
 
@@ -835,6 +835,14 @@ func (s *Server) replicateIntentions(ctx context.Context) error {
 // retryLoopBackoff loops a given function indefinitely, backing off exponentially
 // upon errors up to a maximum of maxRetryBackoff seconds.
 func retryLoopBackoff(ctx context.Context, loopFn func() error, errFn func(error)) {
+	retryLoopBackoffHandleSuccess(ctx, loopFn, errFn, false)
+}
+
+func retryLoopBackoffAbortOnSuccess(ctx context.Context, loopFn func() error, errFn func(error)) {
+	retryLoopBackoffHandleSuccess(ctx, loopFn, errFn, true)
+}
+
+func retryLoopBackoffHandleSuccess(ctx context.Context, loopFn func() error, errFn func(error), abortOnSuccess bool) {
 	var failedAttempts uint
 	limiter := rate.NewLimiter(loopRateLimit, retryBucketSize)
 	for {
@@ -861,6 +869,8 @@ func retryLoopBackoff(ctx context.Context, loopFn func() error, errFn func(error
 			case <-timer.C:
 				continue
 			}
+		} else if abortOnSuccess {
+			return
 		}
 
 		// Reset the failed attempts after a successful run.

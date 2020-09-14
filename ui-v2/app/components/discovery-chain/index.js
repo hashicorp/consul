@@ -177,8 +177,8 @@ export default Component.extend({
   actions: {
     showSplit: function(e) {
       this.setProperties({
-        x: e.offsetX,
-        y: e.offsetY - 5,
+        x: e.clientX,
+        y: e.clientY - 3,
         tooltip: e.target.dataset.percentage,
         activeTooltip: true,
       });

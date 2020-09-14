@@ -6,25 +6,15 @@
   </BlockSlot>
 
   <BlockSlot @name="loaded">
-
-      {{#let (selectable-key-values
-          (array "Action:asc" "Allow to Deny")
-          (array "Action:desc" "Deny to Allow")
-          (array "SourceName:asc" "Source: A to Z")
-          (array "SourceName:desc" "Source: Z to A")
-          (array "DestinationName:asc" "Destination: A to Z")
-          (array "DestinationName:desc" "Destination: Z to A")
-          (array "Precedence:asc" "Precedence: Asc")
-          (array "Precedence:desc" "Precedence: Desc")
-            selected=sortBy
-        )
-        as |sort|
-      }}
-
+{{#let api.data as |items|}}
+  {{#let (hash
+    accesses=(if access (split access ',') undefined)
+  ) as |filters|}}
+    {{#let (or sortBy "Action:asc") as |sort|}}
       <AppView @class="intention list">
         <BlockSlot @name="header">
             <h1>
-                Intentions <em>{{format-number api.data.length}} total</em>
+                Intentions <em>{{format-number items.length}} total</em>
             </h1>
             <label for="toolbar-toggle"></label>
         </BlockSlot>
@@ -32,30 +22,34 @@
             <a data-test-create href="{{href-to 'dc.intentions.create'}}" class="type-create">Create</a>
         </BlockSlot>
         <BlockSlot @name="toolbar">
-    {{#if (gt api.data.length 0) }}
-          <SearchBar
-            data-test-intention-filter="true"
-            @value={{search}}
+  {{#if (gt items.length 0) }}
+          <ConsulIntentionSearchBar
+            @search={{search}}
             @onsearch={{action (mut search) value="target.value"}}
-            @secondary="sort"
-            @selected={{sort.selected}}
-            @options={{sort.items}}
-            @onchange={{action (mut sortBy) value='target.selected.key'}}
-          />
-    {{/if}}
+
+            @sort={{sort}}
+            @onsort={{action (mut sortBy) value="target.selected"}}
+
+            @filter={{filters}}
+            @onfilter={{hash
+              access=(action (mut access) value="target.selectedItems")
+            }}
+            />
+  {{/if}}
         </BlockSlot>
         <BlockSlot @name="content">
-          {{#let (sort-by (comparator 'intention' sort.selected.key) api.data) as |sorted|}}
+    {{#let (filter (filter-predicate 'intention' filters) items) as |filtered|}}
+      {{#let (sort-by (comparator 'intention' sort) filtered) as |sorted|}}
             <ChangeableSet @dispatcher={{searchable 'intention' sorted}} @terms={{search}}>
-              <BlockSlot @name="content" as |filtered|>
+              <BlockSlot @name="content" as |searched|>
                 <ConsulIntentionList
-                  @items={{filtered}}
+                  @items={{searched}}
                   @ondelete={{refresh-route}}
                   >
                     <EmptyState @allowLogin={{true}}>
                       <BlockSlot @name="header">
                         <h2>
-                          {{#if (gt api.data.length 0)}}
+                          {{#if (gt items.length 0)}}
                             No intentions found
                           {{else}}
                             Welcome to Intentions
@@ -64,7 +58,7 @@
                       </BlockSlot>
                       <BlockSlot @name="body">
                         <p>
-                          {{#if (gt api.data.length 0)}}
+                          {{#if (gt items.length 0)}}
                             No intentions where found matching that search, or you may not have access to view the intentions you are searching for.
                           {{else}}
                             There don't seem to be any intentions, or you may not have access to view intentions yet.
@@ -83,9 +77,12 @@
                 </ConsulIntentionList>
               </BlockSlot>
             </ChangeableSet>
-          {{/let}}
+      {{/let}}
+    {{/let}}
           </BlockSlot>
         </AppView>
-      {{/let}}
+    {{/let}}
+  {{/let}}
+{{/let}}
   </BlockSlot>
 </DataLoader>

@@ -2,6 +2,7 @@ package consul
 
 import (
 	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/go-hclog"
@@ -12,6 +13,7 @@ type consulOptions struct {
 	tlsConfigurator *tlsutil.Configurator
 	connPool        *pool.ConnPool
 	tokens          *token.Store
+	router          *router.Router
 }
 
 type ConsulOption func(*consulOptions)
@@ -37,6 +39,12 @@ func WithConnectionPool(connPool *pool.ConnPool) ConsulOption {
 func WithTokenStore(tokens *token.Store) ConsulOption {
 	return func(opt *consulOptions) {
 		opt.tokens = tokens
+	}
+}
+
+func WithRouter(router *router.Router) ConsulOption {
+	return func(opt *consulOptions) {
+		opt.router = router
 	}
 }
 

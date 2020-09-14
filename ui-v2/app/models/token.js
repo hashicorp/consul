@@ -1,5 +1,7 @@
 import Model from 'ember-data/model';
 import attr from 'ember-data/attr';
+import { computed } from '@ember/object';
+import { MANAGEMENT_ID } from 'consul-ui/models/policy';
 
 export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'AccessorID';
@@ -24,6 +26,9 @@ export default Model.extend({
   Datacenter: attr('string'),
   Namespace: attr('string'),
   Local: attr('boolean'),
+  isGlobalManagement: computed('Policies.[]', function() {
+    return (this.Policies || []).find(item => item.ID === MANAGEMENT_ID);
+  }),
   Policies: attr({
     defaultValue: function() {
       return [];
