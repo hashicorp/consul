@@ -1,15 +1,12 @@
 package resolver
 
 import (
-	"context"
 	"fmt"
 	"math/rand"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/consul/agent/router"
 	"google.golang.org/grpc/resolver"
 )
 
@@ -26,17 +23,9 @@ func RegisterWithGRPC(b *ServerResolverBuilder) {
 	resolver.Register(b)
 }
 
-// Nodes provides a count of the number of nodes in the cluster. It is very
-// likely implemented by serf to return the number of LAN members.
-type Nodes interface {
-	NumNodes() int
-}
-
 // ServerResolverBuilder tracks the current server list and keeps any
 // ServerResolvers updated when changes occur.
 type ServerResolverBuilder struct {
-	// datacenter of the local agent.
-	datacenter string
 	// scheme used to query the server. Defaults to consul. Used to support
 	// parallel testing because gRPC registers resolvers globally.
 	scheme string
@@ -46,8 +35,6 @@ type ServerResolverBuilder struct {
 	// resolvers is an index of connections to the serverResolver which manages
 	// addresses of servers for that connection.
 	resolvers map[resolver.ClientConn]*serverResolver
-	// nodes provides the number of nodes in the cluster.
-	nodes Nodes
 	// lock for servers and resolvers.
 	lock sync.RWMutex
 }
@@ -55,84 +42,43 @@ type ServerResolverBuilder struct {
 var _ resolver.Builder = (*ServerResolverBuilder)(nil)
 
 type Config struct {
-	// Datacenter of the local agent.
-	Datacenter string
 	// Scheme used to connect to the server. Defaults to consul.
 	Scheme string
 }
 
-func NewServerResolverBuilder(cfg Config, nodes Nodes) *ServerResolverBuilder {
+func NewServerResolverBuilder(cfg Config) *ServerResolverBuilder {
 	if cfg.Scheme == "" {
 		cfg.Scheme = "consul"
 	}
 	return &ServerResolverBuilder{
-		scheme:     cfg.Scheme,
-		datacenter: cfg.Datacenter,
-		nodes:      nodes,
-		servers:    make(map[string]*metadata.Server),
-		resolvers:  make(map[resolver.ClientConn]*serverResolver),
+		scheme:    cfg.Scheme,
+		servers:   make(map[string]*metadata.Server),
+		resolvers: make(map[resolver.ClientConn]*serverResolver),
 	}
 }
 
-// Run periodically reshuffles the order of server addresses  within the
-// resolvers to ensure the load is balanced across servers.
-//
-// TODO: this looks very similar to agent/router.Manager.Start, which is the
-// only other caller of ComputeRebalanceTimer. Are the values passed to these
-// two functions different enough that we need separate goroutines to rebalance?
-// or could we have a single thing handle the timers, and call both rebalance
-// functions?
-func (s *ServerResolverBuilder) Run(ctx context.Context) {
-	// Compute the rebalance timer based on the number of local servers and nodes.
-	rebalanceDuration := router.ComputeRebalanceTimer(s.serversInDC(s.datacenter), s.nodes.NumNodes())
-	timer := time.NewTimer(rebalanceDuration)
+// Rebalance shuffles the server list for resolvers in all datacenters.
+func (s *ServerResolverBuilder) NewRebalancer(dc string) func() {
+	return func() {
+		s.lock.RLock()
+		defer s.lock.RUnlock()
 
-	for {
-		select {
-		case <-timer.C:
-			s.rebalanceResolvers()
-
-			// Re-compute the wait duration.
-			newTimerDuration := router.ComputeRebalanceTimer(s.serversInDC(s.datacenter), s.nodes.NumNodes())
-			timer.Reset(newTimerDuration)
-		case <-ctx.Done():
-			timer.Stop()
-			return
+		for _, resolver := range s.resolvers {
+			if resolver.datacenter != dc {
+				continue
+			}
+			// Shuffle the list of addresses using the last list given to the resolver.
+			resolver.addrLock.Lock()
+			addrs := resolver.addrs
+			// TODO: seed this rand, so it is a little more random-like
+			rand.Shuffle(len(addrs), func(i, j int) {
+				addrs[i], addrs[j] = addrs[j], addrs[i]
+			})
+			// Pass the shuffled list to the resolver.
+			resolver.updateAddrsLocked(addrs)
+			resolver.addrLock.Unlock()
 		}
 	}
-}
-
-// rebalanceResolvers shuffles the server list for resolvers in all datacenters.
-func (s *ServerResolverBuilder) rebalanceResolvers() {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-
-	for _, resolver := range s.resolvers {
-		// Shuffle the list of addresses using the last list given to the resolver.
-		resolver.addrLock.Lock()
-		addrs := resolver.addrs
-		rand.Shuffle(len(addrs), func(i, j int) {
-			addrs[i], addrs[j] = addrs[j], addrs[i]
-		})
-		// Pass the shuffled list to the resolver.
-		resolver.updateAddrsLocked(addrs)
-		resolver.addrLock.Unlock()
-	}
-}
-
-// serversInDC returns the number of servers in the given datacenter.
-func (s *ServerResolverBuilder) serversInDC(dc string) int {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-
-	var serverCount int
-	for _, server := range s.servers {
-		if server.Datacenter == dc {
-			serverCount++
-		}
-	}
-
-	return serverCount
 }
 
 // ServerForAddr returns server metadata for a server with the specified address.

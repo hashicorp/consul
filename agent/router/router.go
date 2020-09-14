@@ -259,7 +259,8 @@ func (r *Router) maybeInitializeManager(area *areaInfo, dc string) *Manager {
 	}
 
 	shutdownCh := make(chan struct{})
-	manager := New(r.logger, shutdownCh, area.cluster, area.pinger, r.serverName)
+	rb := r.grpcServerTracker.NewRebalancer(dc)
+	manager := New(r.logger, shutdownCh, area.cluster, area.pinger, r.serverName, rb)
 	info = &managerInfo{
 		manager:    manager,
 		shutdownCh: shutdownCh,
