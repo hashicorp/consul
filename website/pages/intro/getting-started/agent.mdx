@@ -103,7 +103,7 @@ $ curl localhost:8500/v1/catalog/nodes
 [{"Node":"Armons-MacBook-Air","Address":"127.0.0.1","TaggedAddresses":{"lan":"127.0.0.1","wan":"127.0.0.1"},"CreateIndex":4,"ModifyIndex":110}]
 ```
 
-In addition to the HTTP API, the [DNS interface](/docs/agent/dns) can
+In addition to the HTTP API, the [DNS interface](/docs/discovery/dns) can
 be used to query the node. Note that you have to make sure to point your DNS
 lookups to the Consul agent's DNS server which runs on port 8600 by default.
 The format of the DNS entries (such as "Armons-MacBook-Air.node.consul") will
