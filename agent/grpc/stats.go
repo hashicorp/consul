@@ -9,10 +9,17 @@ import (
 	"google.golang.org/grpc/stats"
 )
 
+var defaultMetrics = metrics.Default()
+
 // statsHandler is a grpc/stats.StatsHandler which emits connection and
 // request metrics to go-metrics.
 type statsHandler struct {
+	metrics     *metrics.Metrics
 	activeConns uint64 // must be 8-byte aligned for atomic access
+}
+
+func newStatsHandler() *statsHandler {
+	return &statsHandler{metrics: defaultMetrics}
 }
 
 // TagRPC implements grpcStats.StatsHandler
@@ -29,7 +36,7 @@ func (c *statsHandler) HandleRPC(_ context.Context, s stats.RPCStats) {
 	}
 	switch s.(type) {
 	case *stats.InHeader:
-		metrics.IncrCounter([]string{"grpc", label, "request"}, 1)
+		c.metrics.IncrCounter([]string{"grpc", label, "request"}, 1)
 	}
 }
 
@@ -53,7 +60,7 @@ func (c *statsHandler) HandleConn(_ context.Context, s stats.ConnStats) {
 		// Decrement!
 		count = atomic.AddUint64(&c.activeConns, ^uint64(0))
 	}
-	metrics.SetGauge([]string{"grpc", label, "active_conns"}, float32(count))
+	c.metrics.SetGauge([]string{"grpc", label, "active_conns"}, float32(count))
 }
 
 type activeStreamCounter struct {
@@ -71,10 +78,10 @@ func (i *activeStreamCounter) Intercept(
 	handler grpc.StreamHandler,
 ) error {
 	count := atomic.AddUint64(&i.count, 1)
-	metrics.SetGauge([]string{"grpc", "server", "active_streams"}, float32(count))
+	defaultMetrics.SetGauge([]string{"grpc", "server", "active_streams"}, float32(count))
 	defer func() {
 		count := atomic.AddUint64(&i.count, ^uint64(0))
-		metrics.SetGauge([]string{"grpc", "server", "active_streams"}, float32(count))
+		defaultMetrics.SetGauge([]string{"grpc", "server", "active_streams"}, float32(count))
 	}()
 
 	return handler(srv, ss)
