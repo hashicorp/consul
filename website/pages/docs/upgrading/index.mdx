@@ -45,6 +45,21 @@ Consul is A, and version B is released.
    by running `consul members` to make sure all members have the latest
    build and highest protocol version.
 
+## Large Version Jumps
+
+Consul is a service that frequently sits in the critical path for many
+or even all other applications and services you might have. As such,
+it can be easy to get into a "if it's not broken, don't fix it" mentality
+to avoid the potential risk in upgrading. Unfortunately, this can lead to
+being many major versions behind and ultimately just makes upgrading
+riskier overall.
+
+We encourage our customers to remain no more than two major versions behind
+(i.e., if 1.8.x is the current release, don't use versions older than 1.6.x),
+but in some environments that's not possible. If you find yourself in this
+situation and need to upgrade, please see our [Upgrade Instructions page](/docs/upgrading/instructions) for
+additional help.
+
 ## Backward Incompatible Upgrades
 
 In some cases, a backwards incompatible update may be released. This has not
