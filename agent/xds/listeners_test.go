@@ -436,19 +436,9 @@ func TestListenersFromSnapshot(t *testing.T) {
 							},
 						},
 					},
-					structs.NewServiceName("web", nil): {
-						Kind: structs.ServiceResolver,
-						Name: "web",
-						Subsets: map[string]structs.ServiceResolverSubset{
-							"v1": {
-								Filter: "Service.Meta.version == 1",
-							},
-							"v2": {
-								Filter:      "Service.Meta.version == 2",
-								OnlyPassing: true,
-							},
-						},
-					},
+				}
+				snap.TerminatingGateway.ServiceConfigs[structs.NewServiceName("web", nil)] = &structs.ServiceConfigResponse{
+					ProxyConfig: map[string]interface{}{"protocol": "http"},
 				}
 			},
 		},

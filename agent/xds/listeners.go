@@ -317,6 +317,7 @@ func (s *Server) makeIngressGatewayListeners(address string, cfgSnap *proxycfg.C
 				useRDS:          true,
 				protocol:        listenerKey.Protocol,
 				filterName:      listenerKey.RouteName(),
+				routeName:       listenerKey.RouteName(),
 				cluster:         "",
 				statPrefix:      "ingress_upstream_",
 				routePath:       "",
@@ -557,6 +558,7 @@ func (s *Server) makePublicListener(cInfo connectionInfo, cfgSnap *proxycfg.Conf
 			useRDS:     false,
 			protocol:   cfg.Protocol,
 			filterName: "public_listener",
+			routeName:  "public_listener",
 			cluster:    LocalAppClusterName,
 			statPrefix: "",
 			routePath:  "",
@@ -651,6 +653,7 @@ func (s *Server) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, clus
 		useRDS:          false,
 		protocol:        path.Protocol,
 		filterName:      filterName,
+		routeName:       filterName,
 		cluster:         cluster,
 		statPrefix:      "",
 		routePath:       path.Path,
@@ -820,9 +823,9 @@ func (s *Server) makeFilterChainTerminatingGateway(
 	// HTTP filter to do intention checks here instead.
 	statPrefix := fmt.Sprintf("terminating_gateway_%s_%s_", service.NamespaceOrDefault(), service.Name)
 	opts := listenerFilterOpts{
-		useRDS:     false,
 		protocol:   protocol,
 		filterName: listener,
+		routeName:  cluster, // Set cluster name for route config since each will have its own
 		cluster:    cluster,
 		statPrefix: statPrefix,
 		routePath:  "",
@@ -838,6 +841,9 @@ func (s *Server) makeFilterChainTerminatingGateway(
 		if err != nil {
 			return nil, err
 		}
+
+		opts.cluster = ""
+		opts.useRDS = true
 	}
 
 	filter, err := makeListenerFilter(opts)
@@ -999,6 +1005,7 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 		useRDS:          useRDS,
 		protocol:        cfg.Protocol,
 		filterName:      upstreamID,
+		routeName:       upstreamID,
 		cluster:         clusterName,
 		statPrefix:      "upstream_",
 		routePath:       "",
@@ -1072,6 +1079,7 @@ type listenerFilterOpts struct {
 	useRDS          bool
 	protocol        string
 	filterName      string
+	routeName       string
 	cluster         string
 	statPrefix      string
 	routePath       string
@@ -1081,12 +1089,8 @@ type listenerFilterOpts struct {
 
 func makeListenerFilter(opts listenerFilterOpts) (*envoylistener.Filter, error) {
 	switch opts.protocol {
-	case "grpc":
-		return makeHTTPFilter(opts.useRDS, opts.filterName, opts.cluster, opts.statPrefix, opts.routePath, opts.ingress, true, true, opts.httpAuthzFilter)
-	case "http2":
-		return makeHTTPFilter(opts.useRDS, opts.filterName, opts.cluster, opts.statPrefix, opts.routePath, opts.ingress, false, true, opts.httpAuthzFilter)
-	case "http":
-		return makeHTTPFilter(opts.useRDS, opts.filterName, opts.cluster, opts.statPrefix, opts.routePath, opts.ingress, false, false, opts.httpAuthzFilter)
+	case "grpc", "http2", "http":
+		return makeHTTPFilter(opts)
 	case "tcp":
 		fallthrough
 	default:
@@ -1129,23 +1133,18 @@ func makeStatPrefix(protocol, prefix, filterName string) string {
 	return fmt.Sprintf("%s%s_%s", prefix, strings.Replace(filterName, ":", "_", -1), protocol)
 }
 
-func makeHTTPFilter(
-	useRDS bool,
-	filterName, cluster, statPrefix, routePath string,
-	ingress, grpc, http2 bool,
-	authzFilter *envoyhttp.HttpFilter,
-) (*envoylistener.Filter, error) {
+func makeHTTPFilter(opts listenerFilterOpts) (*envoylistener.Filter, error) {
 	op := envoyhttp.HttpConnectionManager_Tracing_INGRESS
-	if !ingress {
+	if !opts.ingress {
 		op = envoyhttp.HttpConnectionManager_Tracing_EGRESS
 	}
 	proto := "http"
-	if grpc {
-		proto = "grpc"
+	if opts.protocol == "grpc" {
+		proto = opts.protocol
 	}
 
 	cfg := &envoyhttp.HttpConnectionManager{
-		StatPrefix: makeStatPrefix(proto, statPrefix, filterName),
+		StatPrefix: makeStatPrefix(proto, opts.statPrefix, opts.filterName),
 		CodecType:  envoyhttp.HttpConnectionManager_AUTO,
 		HttpFilters: []*envoyhttp.HttpFilter{
 			{
@@ -1161,13 +1160,13 @@ func makeHTTPFilter(
 		},
 	}
 
-	if useRDS {
-		if cluster != "" {
+	if opts.useRDS {
+		if opts.cluster != "" {
 			return nil, fmt.Errorf("cannot specify cluster name when using RDS")
 		}
 		cfg.RouteSpecifier = &envoyhttp.HttpConnectionManager_Rds{
 			Rds: &envoyhttp.Rds{
-				RouteConfigName: filterName,
+				RouteConfigName: opts.routeName,
 				ConfigSource: &envoycore.ConfigSource{
 					ConfigSourceSpecifier: &envoycore.ConfigSource_Ads{
 						Ads: &envoycore.AggregatedConfigSource{},
@@ -1176,7 +1175,7 @@ func makeHTTPFilter(
 			},
 		}
 	} else {
-		if cluster == "" {
+		if opts.cluster == "" {
 			return nil, fmt.Errorf("must specify cluster name when not using RDS")
 		}
 		route := &envoyroute.Route{
@@ -1193,22 +1192,22 @@ func makeHTTPFilter(
 			Action: &envoyroute.Route_Route{
 				Route: &envoyroute.RouteAction{
 					ClusterSpecifier: &envoyroute.RouteAction_Cluster{
-						Cluster: cluster,
+						Cluster: opts.cluster,
 					},
 				},
 			},
 		}
 		// If a path is provided, do not match on a catch-all prefix
-		if routePath != "" {
-			route.Match.PathSpecifier = &envoyroute.RouteMatch_Path{Path: routePath}
+		if opts.routePath != "" {
+			route.Match.PathSpecifier = &envoyroute.RouteMatch_Path{Path: opts.routePath}
 		}
 
 		cfg.RouteSpecifier = &envoyhttp.HttpConnectionManager_RouteConfig{
 			RouteConfig: &envoy.RouteConfiguration{
-				Name: filterName,
+				Name: opts.routeName,
 				VirtualHosts: []*envoyroute.VirtualHost{
 					{
-						Name:    filterName,
+						Name:    opts.filterName,
 						Domains: []string{"*"},
 						Routes: []*envoyroute.Route{
 							route,
@@ -1219,7 +1218,7 @@ func makeHTTPFilter(
 		}
 	}
 
-	if http2 {
+	if opts.protocol == "http2" || opts.protocol == "grpc" {
 		cfg.Http2ProtocolOptions = &envoycore.Http2ProtocolOptions{}
 	}
 
@@ -1227,11 +1226,11 @@ func makeHTTPFilter(
 	// (other than the "envoy.grpc_http1_bridge" filter) in the http filter
 	// chain of a public listener is the authz filter to prevent unauthorized
 	// access and that every filter chain uses our TLS certs.
-	if authzFilter != nil {
-		cfg.HttpFilters = append([]*envoyhttp.HttpFilter{authzFilter}, cfg.HttpFilters...)
+	if opts.httpAuthzFilter != nil {
+		cfg.HttpFilters = append([]*envoyhttp.HttpFilter{opts.httpAuthzFilter}, cfg.HttpFilters...)
 	}
 
-	if grpc {
+	if opts.protocol == "grpc" {
 		// Add grpc bridge before router and authz
 		cfg.HttpFilters = append([]*envoyhttp.HttpFilter{{
 			Name:       "envoy.grpc_http1_bridge",
@@ -1283,11 +1282,12 @@ func makeEnvoyHTTPFilter(name string, cfg proto.Message) (*envoyhttp.HttpFilter,
 
 func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *structs.IssuedCert) *envoyauth.CommonTlsContext {
 	// Concatenate all the root PEMs into one.
-	// TODO(banks): verify this actually works with Envoy (docs are not clear).
-	rootPEMS := ""
 	if cfgSnap.Roots == nil {
 		return nil
 	}
+
+	// TODO(banks): verify this actually works with Envoy (docs are not clear).
+	rootPEMS := ""
 	for _, root := range cfgSnap.Roots.Roots {
 		rootPEMS += root.RootCert
 	}

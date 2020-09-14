@@ -707,6 +707,7 @@ func (c *compiler) getSplitterNode(sid structs.ServiceID) (*structs.DiscoveryGra
 	// sanely if there is some sort of graph loop below.
 	c.recordNode(splitNode)
 
+	var hasLB bool
 	for _, split := range splitter.Splits {
 		compiledSplit := &structs.DiscoverySplit{
 			Weight: split.Weight,
@@ -739,6 +740,17 @@ func (c *compiler) getSplitterNode(sid structs.ServiceID) (*structs.DiscoveryGra
 			return nil, err
 		}
 		compiledSplit.NextNode = node.MapKey()
+
+		// There exists the possibility that a splitter may split between two distinct service names
+		// with distinct hash-based load balancer configs specified in their service resolvers.
+		// We cannot apply multiple hash policies to a splitter node's route action.
+		// Therefore, we attach the first hash-based load balancer config we encounter.
+		if !hasLB {
+			if lb := node.LoadBalancer; lb != nil && lb.IsHashBased() {
+				splitNode.LoadBalancer = node.LoadBalancer
+				hasLB = true
+			}
+		}
 	}
 
 	c.usesAdvancedRoutingFeatures = true
@@ -851,6 +863,7 @@ RESOLVE_AGAIN:
 			Target:         target.ID,
 			ConnectTimeout: connectTimeout,
 		},
+		LoadBalancer: resolver.LoadBalancer,
 	}
 
 	target.Subset = resolver.Subsets[target.ServiceSubset]

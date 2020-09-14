@@ -16,6 +16,37 @@ import (
 	"github.com/mitchellh/hashstructure"
 )
 
+const (
+	// Names of Envoy's LB policies
+	LBPolicyMaglev       = "maglev"
+	LBPolicyRingHash     = "ring_hash"
+	LBPolicyRandom       = "random"
+	LBPolicyLeastRequest = "least_request"
+	LBPolicyRoundRobin   = "round_robin"
+
+	// Names of Envoy's LB policies
+	HashPolicyCookie     = "cookie"
+	HashPolicyHeader     = "header"
+	HashPolicyQueryParam = "query_parameter"
+)
+
+var (
+	validLBPolicies = map[string]bool{
+		"":                   true,
+		LBPolicyRandom:       true,
+		LBPolicyRoundRobin:   true,
+		LBPolicyLeastRequest: true,
+		LBPolicyRingHash:     true,
+		LBPolicyMaglev:       true,
+	}
+
+	validHashPolicies = map[string]bool{
+		HashPolicyHeader:     true,
+		HashPolicyCookie:     true,
+		HashPolicyQueryParam: true,
+	}
+)
+
 // ServiceRouterConfigEntry defines L7 (e.g. http) routing rules for a named
 // service exposed in Connect.
 //
@@ -663,6 +694,10 @@ type ServiceResolverConfigEntry struct {
 	// to this service.
 	ConnectTimeout time.Duration `json:",omitempty" alias:"connect_timeout"`
 
+	// LoadBalancer determines the load balancing policy and configuration for services
+	// issuing requests to this upstream service.
+	LoadBalancer *LoadBalancer `json:",omitempty" alias:"load_balancer"`
+
 	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
@@ -720,7 +755,8 @@ func (e *ServiceResolverConfigEntry) IsDefault() bool {
 		len(e.Subsets) == 0 &&
 		e.Redirect == nil &&
 		len(e.Failover) == 0 &&
-		e.ConnectTimeout == 0
+		e.ConnectTimeout == 0 &&
+		e.LoadBalancer == nil
 }
 
 func (e *ServiceResolverConfigEntry) GetKind() string {
@@ -841,6 +877,56 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 
 	if e.ConnectTimeout < 0 {
 		return fmt.Errorf("Bad ConnectTimeout '%s', must be >= 0", e.ConnectTimeout)
+	}
+
+	if e.LoadBalancer != nil {
+		lb := e.LoadBalancer
+
+		if ok := validLBPolicies[lb.Policy]; !ok {
+			return fmt.Errorf("Bad LoadBalancer policy: %q is not supported", lb.Policy)
+		}
+
+		if lb.Policy != LBPolicyRingHash && lb.RingHashConfig != nil {
+			return fmt.Errorf("Bad LoadBalancer configuration. "+
+				"RingHashConfig specified for incompatible load balancing policy %q", lb.Policy)
+		}
+		if lb.Policy != LBPolicyLeastRequest && lb.LeastRequestConfig != nil {
+			return fmt.Errorf("Bad LoadBalancer configuration. "+
+				"LeastRequestConfig specified for incompatible load balancing policy %q", lb.Policy)
+		}
+		if !lb.IsHashBased() && len(lb.HashPolicies) > 0 {
+			return fmt.Errorf("Bad LoadBalancer configuration: "+
+				"HashPolicies specified for non-hash-based Policy: %q", lb.Policy)
+		}
+
+		for i, hp := range lb.HashPolicies {
+			if ok := validHashPolicies[hp.Field]; hp.Field != "" && !ok {
+				return fmt.Errorf("Bad LoadBalancer HashPolicy[%d]: %q is not a supported field", i, hp.Field)
+			}
+
+			if hp.SourceIP && hp.Field != "" {
+				return fmt.Errorf("Bad LoadBalancer HashPolicy[%d]: "+
+					"A single hash policy cannot hash both a source address and a %q", i, hp.Field)
+			}
+			if hp.SourceIP && hp.FieldValue != "" {
+				return fmt.Errorf("Bad LoadBalancer HashPolicy[%d]: "+
+					"A FieldValue cannot be specified when hashing SourceIP", i)
+			}
+			if hp.Field != "" && hp.FieldValue == "" {
+				return fmt.Errorf("Bad LoadBalancer HashPolicy[%d]: Field %q was specified without a FieldValue", i, hp.Field)
+			}
+			if hp.FieldValue != "" && hp.Field == "" {
+				return fmt.Errorf("Bad LoadBalancer HashPolicy[%d]: FieldValue requires a Field to apply to", i)
+			}
+			if hp.CookieConfig != nil {
+				if hp.Field != HashPolicyCookie {
+					return fmt.Errorf("Bad LoadBalancer HashPolicy[%d]: cookie_config provided for %q", i, hp.Field)
+				}
+				if hp.CookieConfig.Session && hp.CookieConfig.TTL != 0*time.Second {
+					return fmt.Errorf("Bad LoadBalancer HashPolicy[%d]: a session cookie cannot have an associated TTL", i)
+				}
+			}
+		}
 	}
 
 	return nil
@@ -977,6 +1063,92 @@ type ServiceResolverFailover struct {
 	//
 	// This is a DESTINATION during failover.
 	Datacenters []string `json:",omitempty"`
+}
+
+// LoadBalancer determines the load balancing policy and configuration for services
+// issuing requests to this upstream service.
+type LoadBalancer struct {
+	// Policy is the load balancing policy used to select a host
+	Policy string `json:",omitempty"`
+
+	// RingHashConfig contains configuration for the "ring_hash" policy type
+	RingHashConfig *RingHashConfig `json:",omitempty" alias:"ring_hash_config"`
+
+	// LeastRequestConfig contains configuration for the "least_request" policy type
+	LeastRequestConfig *LeastRequestConfig `json:",omitempty" alias:"least_request_config"`
+
+	// HashPolicies is a list of hash policies to use for hashing load balancing algorithms.
+	// Hash policies are evaluated individually and combined such that identical lists
+	// result in the same hash.
+	// If no hash policies are present, or none are successfully evaluated,
+	// then a random backend host will be selected.
+	HashPolicies []HashPolicy `json:",omitempty" alias:"hash_policies"`
+}
+
+// RingHashConfig contains configuration for the "ring_hash" policy type
+type RingHashConfig struct {
+	// MinimumRingSize determines the minimum number of entries in the hash ring
+	MinimumRingSize uint64 `json:",omitempty" alias:"minimum_ring_size"`
+
+	// MaximumRingSize determines the maximum number of entries in the hash ring
+	MaximumRingSize uint64 `json:",omitempty" alias:"maximum_ring_size"`
+}
+
+// LeastRequestConfig contains configuration for the "least_request" policy type
+type LeastRequestConfig struct {
+	// ChoiceCount determines the number of random healthy hosts from which to select the one with the least requests.
+	ChoiceCount uint32 `json:",omitempty" alias:"choice_count"`
+}
+
+// HashPolicy defines which attributes will be hashed by hash-based LB algorithms
+type HashPolicy struct {
+	// Field is the attribute type to hash on.
+	// Must be one of "header","cookie", or "query_parameter".
+	// Cannot be specified along with SourceIP.
+	Field string `json:",omitempty"`
+
+	// FieldValue is the value to hash.
+	// ie. header name, cookie name, URL query parameter name
+	// Cannot be specified along with SourceIP.
+	FieldValue string `json:",omitempty" alias:"field_value"`
+
+	// CookieConfig contains configuration for the "cookie" hash policy type.
+	CookieConfig *CookieConfig `json:",omitempty" alias:"cookie_config"`
+
+	// SourceIP determines whether the hash should be of the source IP rather than of a field and field value.
+	// Cannot be specified along with Field or FieldValue.
+	SourceIP bool `json:",omitempty" alias:"source_ip"`
+
+	// Terminal will short circuit the computation of the hash when multiple hash policies are present.
+	// If a hash is computed when a Terminal policy is evaluated,
+	// then that hash will be used and subsequent hash policies will be ignored.
+	Terminal bool `json:",omitempty"`
+}
+
+// CookieConfig contains configuration for the "cookie" hash policy type.
+// This is specified to have Envoy generate a cookie for a client on its first request.
+type CookieConfig struct {
+	// Generates a session cookie with no expiration.
+	Session bool `json:",omitempty"`
+
+	// TTL for generated cookies. Cannot be specified for session cookies.
+	TTL time.Duration `json:",omitempty"`
+
+	// The path to set for the cookie
+	Path string `json:",omitempty"`
+}
+
+func (lb *LoadBalancer) IsHashBased() bool {
+	if lb == nil {
+		return false
+	}
+
+	switch lb.Policy {
+	case LBPolicyMaglev, LBPolicyRingHash:
+		return true
+	default:
+		return false
+	}
 }
 
 type discoveryChainConfigEntry interface {

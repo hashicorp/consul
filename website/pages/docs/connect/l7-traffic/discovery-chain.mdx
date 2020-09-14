@@ -184,6 +184,12 @@ A single node in the compiled discovery chain.
 
     - `Targets` `(array<string>)` - List of targets found in
       [`Targets`](#targets) to failover to in order of preference.
+      
+  - `LoadBalancer` `(LoadBalancer: <optional>`) - Copy of the underlying `service-resolver`
+    [`LoadBalancer`](/docs/agent/config-entries/service-resolver#loadbalancer) field.
+    
+    If a `service-splitter` splits between services with differing `LoadBalancer` configuration
+    the first hash-based load balancing policy is copied. 
 
 #### `DiscoveryTarget`
 

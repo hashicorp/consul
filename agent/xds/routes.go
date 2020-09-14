@@ -5,28 +5,33 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"time"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoyroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	envoymatcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/logging"
 )
 
 // routesFromSnapshot returns the xDS API representation of the "routes" in the
 // snapshot.
-func routesFromSnapshot(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+func (s *Server) routesFromSnapshot(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
 	}
 
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
-		return routesFromSnapshotConnectProxy(cInfo, cfgSnap)
+		return routesForConnectProxy(cInfo, cfgSnap.Proxy.Upstreams, cfgSnap.ConnectProxy.DiscoveryChain)
 	case structs.ServiceKindIngressGateway:
-		return routesFromSnapshotIngressGateway(cInfo, cfgSnap)
+		return routesForIngressGateway(cInfo, cfgSnap.IngressGateway.Upstreams, cfgSnap.IngressGateway.DiscoveryChain)
+	case structs.ServiceKindTerminatingGateway:
+		return s.routesFromSnapshotTerminatingGateway(cInfo, cfgSnap)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
@@ -34,18 +39,19 @@ func routesFromSnapshot(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) 
 
 // routesFromSnapshotConnectProxy returns the xDS API representation of the
 // "routes" in the snapshot.
-func routesFromSnapshotConnectProxy(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
-	if cfgSnap == nil {
-		return nil, errors.New("nil config given")
-	}
+func routesForConnectProxy(
+	cInfo connectionInfo,
+	upstreams structs.Upstreams,
+	chains map[string]*structs.CompiledDiscoveryChain,
+) ([]proto.Message, error) {
 
 	var resources []proto.Message
-	for _, u := range cfgSnap.Proxy.Upstreams {
+	for _, u := range upstreams {
 		upstreamID := u.Identifier()
 
 		var chain *structs.CompiledDiscoveryChain
 		if u.DestinationType != structs.UpstreamDestTypePreparedQuery {
-			chain = cfgSnap.ConnectProxy.DiscoveryChain[upstreamID]
+			chain = chains[upstreamID]
 		}
 
 		if chain == nil || chain.IsDefault() {
@@ -72,15 +78,99 @@ func routesFromSnapshotConnectProxy(cInfo connectionInfo, cfgSnap *proxycfg.Conf
 	return resources, nil
 }
 
-// routesFromSnapshotIngressGateway returns the xDS API representation of the
-// "routes" in the snapshot.
-func routesFromSnapshotIngressGateway(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+// routesFromSnapshotTerminatingGateway returns the xDS API representation of the "routes" in the snapshot.
+// For any HTTP service we will return a default route.
+func (s *Server) routesFromSnapshotTerminatingGateway(_ connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
 	}
+	logger := s.Logger.Named(logging.TerminatingGateway)
+
+	var resources []proto.Message
+	for _, svc := range cfgSnap.TerminatingGateway.ValidServices() {
+		clusterName := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+		resolver, hasResolver := cfgSnap.TerminatingGateway.ServiceResolvers[svc]
+
+		svcConfig := cfgSnap.TerminatingGateway.ServiceConfigs[svc]
+
+		cfg, err := ParseProxyConfig(svcConfig.ProxyConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse upstream config: %v", err)
+		}
+		if !structs.IsProtocolHTTPLike(cfg.Protocol) {
+			// Routes can only be defined for HTTP services
+			continue
+		}
+
+		if !hasResolver {
+			// Use a zero value resolver with no timeout and no subsets
+			resolver = &structs.ServiceResolverConfigEntry{}
+		}
+
+		var lb *structs.LoadBalancer
+		if resolver.LoadBalancer != nil {
+			lb = resolver.LoadBalancer
+		}
+		route, err := makeNamedDefaultRouteWithLB(clusterName, lb)
+		if err != nil {
+			logger.Error("failed to make route", "cluster", clusterName, "error", err)
+			continue
+		}
+		resources = append(resources, route)
+
+		// If there is a service-resolver for this service then also setup routes for each subset
+		for name := range resolver.Subsets {
+			clusterName = connect.ServiceSNI(svc.Name, name, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+			route, err := makeNamedDefaultRouteWithLB(clusterName, lb)
+			if err != nil {
+				logger.Error("failed to make route", "cluster", clusterName, "error", err)
+				continue
+			}
+			resources = append(resources, route)
+		}
+	}
+
+	return resources, nil
+}
+
+func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer) (*envoy.RouteConfiguration, error) {
+	action := makeRouteActionFromName(clusterName)
+
+	if err := injectLBToRouteAction(lb, action.Route); err != nil {
+		return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
+	}
+
+	return &envoy.RouteConfiguration{
+		Name: clusterName,
+		VirtualHosts: []*envoyroute.VirtualHost{
+			{
+				Name:    clusterName,
+				Domains: []string{"*"},
+				Routes: []*envoyroute.Route{
+					{
+						Match:  makeDefaultRouteMatch(),
+						Action: action,
+					},
+				},
+			},
+		},
+		// ValidateClusters defaults to true when defined statically and false
+		// when done via RDS. Re-set the sane value of true to prevent
+		// null-routing traffic.
+		ValidateClusters: makeBoolValue(true),
+	}, nil
+}
+
+// routesForIngressGateway returns the xDS API representation of the
+// "routes" in the snapshot.
+func routesForIngressGateway(
+	cInfo connectionInfo,
+	upstreams map[proxycfg.IngressListenerKey]structs.Upstreams,
+	chains map[string]*structs.CompiledDiscoveryChain,
+) ([]proto.Message, error) {
 
 	var result []proto.Message
-	for listenerKey, upstreams := range cfgSnap.IngressGateway.Upstreams {
+	for listenerKey, upstreams := range upstreams {
 		// Do not create any route configuration for TCP listeners
 		if listenerKey.Protocol == "tcp" {
 			continue
@@ -95,7 +185,7 @@ func routesFromSnapshotIngressGateway(cInfo connectionInfo, cfgSnap *proxycfg.Co
 		}
 		for _, u := range upstreams {
 			upstreamID := u.Identifier()
-			chain := cfgSnap.IngressGateway.DiscoveryChain[upstreamID]
+			chain := chains[upstreamID]
 			if chain == nil {
 				continue
 			}
@@ -186,6 +276,12 @@ func makeUpstreamRouteForDiscoveryChain(
 			)
 
 			nextNode := chain.Nodes[discoveryRoute.NextNode]
+
+			var lb *structs.LoadBalancer
+			if nextNode.LoadBalancer != nil {
+				lb = nextNode.LoadBalancer
+			}
+
 			switch nextNode.Type {
 			case structs.DiscoveryGraphNodeTypeSplitter:
 				routeAction, err = makeRouteActionForSplitter(nextNode.Splits, chain)
@@ -193,8 +289,16 @@ func makeUpstreamRouteForDiscoveryChain(
 					return nil, err
 				}
 
+				if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
+					return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
+				}
+
 			case structs.DiscoveryGraphNodeTypeResolver:
-				routeAction = makeRouteActionForSingleCluster(nextNode.Resolver.Target, chain)
+				routeAction = makeRouteActionForChainCluster(nextNode.Resolver.Target, chain)
+
+				if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
+					return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
+				}
 
 			default:
 				return nil, fmt.Errorf("unexpected graph node after route %q", nextNode.Type)
@@ -247,6 +351,14 @@ func makeUpstreamRouteForDiscoveryChain(
 			return nil, err
 		}
 
+		var lb *structs.LoadBalancer
+		if startNode.LoadBalancer != nil {
+			lb = startNode.LoadBalancer
+		}
+		if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
+			return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
+		}
+
 		defaultRoute := &envoyroute.Route{
 			Match:  makeDefaultRouteMatch(),
 			Action: routeAction,
@@ -255,7 +367,15 @@ func makeUpstreamRouteForDiscoveryChain(
 		routes = []*envoyroute.Route{defaultRoute}
 
 	case structs.DiscoveryGraphNodeTypeResolver:
-		routeAction := makeRouteActionForSingleCluster(startNode.Resolver.Target, chain)
+		routeAction := makeRouteActionForChainCluster(startNode.Resolver.Target, chain)
+
+		var lb *structs.LoadBalancer
+		if startNode.LoadBalancer != nil {
+			lb = startNode.LoadBalancer
+		}
+		if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
+			return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
+		}
 
 		defaultRoute := &envoyroute.Route{
 			Match:  makeDefaultRouteMatch(),
@@ -409,11 +529,12 @@ func makeDefaultRouteMatch() *envoyroute.RouteMatch {
 	}
 }
 
-func makeRouteActionForSingleCluster(targetID string, chain *structs.CompiledDiscoveryChain) *envoyroute.Route_Route {
+func makeRouteActionForChainCluster(targetID string, chain *structs.CompiledDiscoveryChain) *envoyroute.Route_Route {
 	target := chain.Targets[targetID]
+	return makeRouteActionFromName(CustomizeClusterName(target.Name, chain))
+}
 
-	clusterName := CustomizeClusterName(target.Name, chain)
-
+func makeRouteActionFromName(clusterName string) *envoyroute.Route_Route {
 	return &envoyroute.Route_Route{
 		Route: &envoyroute.RouteAction{
 			ClusterSpecifier: &envoyroute.RouteAction_Cluster{
@@ -457,4 +578,73 @@ func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, chain *structs
 			},
 		},
 	}, nil
+}
+
+func injectLBToRouteAction(lb *structs.LoadBalancer, action *envoyroute.RouteAction) error {
+	if lb == nil || !lb.IsHashBased() {
+		return nil
+	}
+
+	result := make([]*envoyroute.RouteAction_HashPolicy, 0, len(lb.HashPolicies))
+	for _, policy := range lb.HashPolicies {
+		if policy.SourceIP {
+			result = append(result, &envoyroute.RouteAction_HashPolicy{
+				PolicySpecifier: &envoyroute.RouteAction_HashPolicy_ConnectionProperties_{
+					ConnectionProperties: &envoyroute.RouteAction_HashPolicy_ConnectionProperties{
+						SourceIp: true,
+					},
+				},
+				Terminal: policy.Terminal,
+			})
+
+			continue
+		}
+
+		switch policy.Field {
+		case structs.HashPolicyHeader:
+			result = append(result, &envoyroute.RouteAction_HashPolicy{
+				PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Header_{
+					Header: &envoyroute.RouteAction_HashPolicy_Header{
+						HeaderName: policy.FieldValue,
+					},
+				},
+				Terminal: policy.Terminal,
+			})
+		case structs.HashPolicyCookie:
+			cookie := envoyroute.RouteAction_HashPolicy_Cookie{
+				Name: policy.FieldValue,
+			}
+			if policy.CookieConfig != nil {
+				cookie.Path = policy.CookieConfig.Path
+
+				if policy.CookieConfig.TTL != 0*time.Second {
+					cookie.Ttl = ptypes.DurationProto(policy.CookieConfig.TTL)
+				}
+
+				// Envoy will generate a session cookie if the ttl is present and zero.
+				if policy.CookieConfig.Session {
+					cookie.Ttl = ptypes.DurationProto(0 * time.Second)
+				}
+			}
+			result = append(result, &envoyroute.RouteAction_HashPolicy{
+				PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{
+					Cookie: &cookie,
+				},
+				Terminal: policy.Terminal,
+			})
+		case structs.HashPolicyQueryParam:
+			result = append(result, &envoyroute.RouteAction_HashPolicy{
+				PolicySpecifier: &envoyroute.RouteAction_HashPolicy_QueryParameter_{
+					QueryParameter: &envoyroute.RouteAction_HashPolicy_QueryParameter{
+						Name: policy.FieldValue,
+					},
+				},
+				Terminal: policy.Terminal,
+			})
+		default:
+			return fmt.Errorf("unsupported load balancer hash policy field: %v", policy.Field)
+		}
+	}
+	action.HashPolicy = result
+	return nil
 }

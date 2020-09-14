@@ -1,6 +1,7 @@
 package write
 
 import (
+	"github.com/hashicorp/consul/agent/structs"
 	"io"
 	"strings"
 	"testing"
@@ -1291,6 +1292,260 @@ func TestParseConfigEntry(t *testing.T) {
 			expect: &api.ServiceResolverConfigEntry{
 				Kind: "service-resolver",
 				Name: "main",
+			},
+		},
+		{
+			name: "service-resolver: envoy hash lb kitchen sink",
+			snake: `
+				kind = "service-resolver"
+				name = "main"
+				load_balancer = {
+					policy = "ring_hash"
+					ring_hash_config = {
+						minimum_ring_size = 1
+						maximum_ring_size = 2
+					}
+					hash_policies = [
+						{
+							field = "cookie"
+							field_value = "good-cookie"
+							cookie_config = {
+								ttl = "1s"
+								path = "/oven"
+							}
+							terminal = true
+						},
+						{
+							field = "cookie"
+							field_value = "less-good-cookie"
+							cookie_config = {
+								session = true
+								path = "/toaster"
+							}
+							terminal = true
+						},
+						{
+							field = "header"
+							field_value = "x-user-id"
+						},
+						{
+							source_ip = true
+						}
+					]
+				}
+			`,
+			camel: `
+				Kind = "service-resolver"
+				Name = "main"
+				LoadBalancer = {
+					Policy = "ring_hash"
+					RingHashConfig = {
+						MinimumRingSize = 1
+						MaximumRingSize = 2
+					}
+					HashPolicies = [
+						{
+							Field = "cookie"
+							FieldValue = "good-cookie"
+							CookieConfig = {
+								TTL = "1s"
+								Path = "/oven"
+							}
+							Terminal = true
+						},
+						{
+							Field = "cookie"
+							FieldValue = "less-good-cookie"
+							CookieConfig = {
+								Session = true
+								Path = "/toaster"
+							}
+							Terminal = true
+						},
+						{
+							Field = "header"
+							FieldValue = "x-user-id"
+						},
+						{
+							SourceIP = true
+						}
+					]
+				}
+			`,
+			snakeJSON: `
+			{
+				"kind": "service-resolver",
+				"name": "main",
+				"load_balancer": {
+					"policy": "ring_hash",
+					"ring_hash_config": {
+						"minimum_ring_size": 1,
+						"maximum_ring_size": 2
+					},
+					"hash_policies": [
+						{
+							"field": "cookie",
+							"field_value": "good-cookie",
+							"cookie_config": {
+								"ttl": "1s",
+								"path": "/oven"
+							},
+							"terminal": true
+						},
+						{
+							"field": "cookie",
+							"field_value": "less-good-cookie",
+							"cookie_config": {
+								"session": true,
+								"path": "/toaster"
+							},
+							"terminal": true
+						},
+						{
+							"field": "header",
+							"field_value": "x-user-id"
+						},
+						{
+							"source_ip": true
+						}
+					]
+				}
+			}
+			`,
+			camelJSON: `
+			{
+				"Kind": "service-resolver",
+				"Name": "main",
+				"LoadBalancer": {
+					"Policy": "ring_hash",
+					"RingHashConfig": {
+						"MinimumRingSize": 1,
+						"MaximumRingSize": 2
+					},
+					"HashPolicies": [
+						{
+							"Field": "cookie",
+							"FieldValue": "good-cookie",
+							"CookieConfig": {
+								"TTL": "1s",
+								"Path": "/oven"
+							},
+							"Terminal": true
+						},
+						{
+							"Field": "cookie",
+							"FieldValue": "less-good-cookie",
+							"CookieConfig": {
+								"Session": true,
+								"Path": "/toaster"
+							},
+							"Terminal": true
+						},
+						{
+							"Field": "header",
+							"FieldValue": "x-user-id"
+						},
+						{
+							"SourceIP": true
+						}
+					]
+				}
+			}
+			`,
+			expect: &api.ServiceResolverConfigEntry{
+				Kind: "service-resolver",
+				Name: "main",
+				LoadBalancer: &api.LoadBalancer{
+					Policy: structs.LBPolicyRingHash,
+					RingHashConfig: &api.RingHashConfig{
+						MinimumRingSize: 1,
+						MaximumRingSize: 2,
+					},
+					HashPolicies: []api.HashPolicy{
+						{
+							Field:      structs.HashPolicyCookie,
+							FieldValue: "good-cookie",
+							CookieConfig: &api.CookieConfig{
+								TTL:  1 * time.Second,
+								Path: "/oven",
+							},
+							Terminal: true,
+						},
+						{
+							Field:      structs.HashPolicyCookie,
+							FieldValue: "less-good-cookie",
+							CookieConfig: &api.CookieConfig{
+								Session: true,
+								Path:    "/toaster",
+							},
+							Terminal: true,
+						},
+						{
+							Field:      structs.HashPolicyHeader,
+							FieldValue: "x-user-id",
+						},
+						{
+							SourceIP: true,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "service-resolver: envoy least request kitchen sink",
+			snake: `
+				kind = "service-resolver"
+				name = "main"
+				load_balancer = {
+					policy = "least_request"
+					least_request_config = {
+						choice_count = 2
+					}
+				}
+			`,
+			camel: `
+				Kind = "service-resolver"
+				Name = "main"
+				LoadBalancer = {
+					Policy = "least_request"
+					LeastRequestConfig = {
+						ChoiceCount = 2
+					}
+				}
+			`,
+			snakeJSON: `
+			{
+				"kind": "service-resolver",
+				"name": "main",
+				"load_balancer": {
+					"policy": "least_request",
+					"least_request_config": {
+						"choice_count": 2
+					}
+				}
+			}
+			`,
+			camelJSON: `
+			{
+				"Kind": "service-resolver",
+				"Name": "main",
+				"LoadBalancer": {
+					"Policy": "least_request",
+					"LeastRequestConfig": {
+						"ChoiceCount": 2
+					}
+				}
+			}
+			`,
+			expect: &api.ServiceResolverConfigEntry{
+				Kind: "service-resolver",
+				Name: "main",
+				LoadBalancer: &api.LoadBalancer{
+					Policy: structs.LBPolicyLeastRequest,
+					LeastRequestConfig: &api.LeastRequestConfig{
+						ChoiceCount: 2,
+					},
+				},
 			},
 		},
 		{
