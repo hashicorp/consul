@@ -22,18 +22,6 @@ import (
 )
 
 const (
-	// clientRPCConnMaxIdle controls how long we keep an idle connection
-	// open to a server.  127s was chosen as the first prime above 120s
-	// (arbitrarily chose to use a prime) with the intent of reusing
-	// connections who are used by once-a-minute cron(8) jobs *and* who
-	// use a 60s jitter window (e.g. in vixie cron job execution can
-	// drift by up to 59s per job, or 119s for a once-a-minute cron job).
-	clientRPCConnMaxIdle = 127 * time.Second
-
-	// clientMaxStreams controls how many idle streams we keep
-	// open to a server
-	clientMaxStreams = 32
-
 	// serfEventBacklog is the maximum number of unprocessed Serf Events
 	// that will be held in queue before new serf events block.  A
 	// blocking serf event queue is a bad thing.
@@ -89,12 +77,7 @@ type Client struct {
 }
 
 // NewClient creates and returns a Client
-func NewClient(config *Config, options ...ConsulOption) (*Client, error) {
-	flat := flattenConsulOptions(options)
-
-	tlsConfigurator := flat.tlsConfigurator
-	connPool := flat.connPool
-
+func NewClient(config *Config, deps Deps) (*Client, error) {
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
 	}
@@ -104,35 +87,14 @@ func NewClient(config *Config, options ...ConsulOption) (*Client, error) {
 	if err := config.CheckACL(); err != nil {
 		return nil, err
 	}
-	if flat.logger == nil {
-		return nil, fmt.Errorf("logger is required")
-	}
-	if flat.router == nil {
-		return nil, fmt.Errorf("router is required")
-	}
 
-	if connPool == nil {
-		connPool = &pool.ConnPool{
-			Server:          false,
-			SrcAddr:         config.RPCSrcAddr,
-			Logger:          flat.logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true}),
-			MaxTime:         clientRPCConnMaxIdle,
-			MaxStreams:      clientMaxStreams,
-			TLSConfigurator: tlsConfigurator,
-			Datacenter:      config.Datacenter,
-		}
-	}
-
-	logger := flat.logger.NamedIntercept(logging.ConsulClient)
-
-	// Create client
 	c := &Client{
 		config:          config,
-		connPool:        connPool,
+		connPool:        deps.ConnPool,
 		eventCh:         make(chan serf.Event, serfEventBacklog),
-		logger:          logger,
+		logger:          deps.Logger.NamedIntercept(logging.ConsulClient),
 		shutdownCh:      make(chan struct{}),
-		tlsConfigurator: tlsConfigurator,
+		tlsConfigurator: deps.TLSConfigurator,
 	}
 
 	c.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
@@ -164,11 +126,11 @@ func NewClient(config *Config, options ...ConsulOption) (*Client, error) {
 		return nil, fmt.Errorf("Failed to start lan serf: %v", err)
 	}
 
-	if err := flat.router.AddArea(types.AreaLAN, c.serf, c.connPool); err != nil {
+	if err := deps.Router.AddArea(types.AreaLAN, c.serf, c.connPool); err != nil {
 		c.Shutdown()
 		return nil, fmt.Errorf("Failed to add LAN area to the RPC router: %w", err)
 	}
-	c.router = flat.router
+	c.router = deps.Router
 
 	// Start LAN event handlers after the router is complete since the event
 	// handlers depend on the router and the router depends on Serf.

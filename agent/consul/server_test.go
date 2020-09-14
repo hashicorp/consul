@@ -17,7 +17,6 @@ import (
 
 	"github.com/google/tcpproxy"
 	"github.com/hashicorp/consul/agent/connect/ca"
-	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/memberlist"
 
@@ -31,7 +30,6 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"golang.org/x/time/rate"
 
@@ -293,22 +291,7 @@ func newServer(t *testing.T, c *Config) (*Server, error) {
 		}
 	}
 
-	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
-		Name:   c.NodeName,
-		Level:  hclog.Debug,
-		Output: testutil.NewLogBuffer(t),
-	})
-	tlsConf, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), logger)
-	if err != nil {
-		return nil, err
-	}
-
-	rpcRouter := router.NewRouter(logger, c.Datacenter, fmt.Sprintf("%s.%s", c.NodeName, c.Datacenter))
-	srv, err := NewServer(c,
-		WithLogger(logger),
-		WithTokenStore(new(token.Store)),
-		WithTLSConfigurator(tlsConf),
-		WithRouter(rpcRouter))
+	srv, err := NewServer(c, newDefaultDeps(t, c))
 	if err != nil {
 		return nil, err
 	}
@@ -1492,19 +1475,11 @@ func TestServer_CALogging(t *testing.T) {
 	var buf bytes.Buffer
 	logger := testutil.LoggerWithOutput(t, &buf)
 
-	c, err := tlsutil.NewConfigurator(conf1.ToTLSUtilConfig(), logger)
+	deps := newDefaultDeps(t, conf1)
+	deps.Logger = logger
+
+	s1, err := NewServer(conf1, deps)
 	require.NoError(t, err)
-
-	rpcRouter := router.NewRouter(logger, "dc1", fmt.Sprintf("%s.%s", "nodename", "dc1"))
-
-	s1, err := NewServer(conf1,
-		WithLogger(logger),
-		WithTokenStore(new(token.Store)),
-		WithTLSConfigurator(c),
-		WithRouter(rpcRouter))
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
 	defer s1.Shutdown()
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 

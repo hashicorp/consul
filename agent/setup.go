@@ -10,6 +10,7 @@ import (
 	autoconf "github.com/hashicorp/consul/agent/auto-config"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/token"
@@ -25,15 +26,12 @@ import (
 // has been moved out in front of Agent.New, and we can better see the setup
 // dependencies.
 type BaseDeps struct {
-	Logger          hclog.InterceptLogger
-	TLSConfigurator *tlsutil.Configurator // TODO: use an interface
-	MetricsHandler  MetricsHandler
-	RuntimeConfig   *config.RuntimeConfig
-	Tokens          *token.Store
-	Cache           *cache.Cache
-	AutoConfig      *autoconf.AutoConfig // TODO: use an interface
-	ConnPool        *pool.ConnPool       // TODO: use an interface
-	Router          *router.Router
+	consul.Deps // TODO: un-embed
+
+	RuntimeConfig  *config.RuntimeConfig
+	MetricsHandler MetricsHandler
+	AutoConfig     *autoconf.AutoConfig // TODO: use an interface
+	Cache          *cache.Cache
 }
 
 // MetricsHandler provides an http.Handler for displaying metrics.
@@ -120,6 +118,12 @@ func newConnPool(config *config.RuntimeConfig, logger hclog.Logger, tls *tlsutil
 		pool.MaxTime = 2 * time.Minute
 		pool.MaxStreams = 64
 	} else {
+		// MaxTime controls how long we keep an idle connection open to a server.
+		// 127s was chosen as the first prime above 120s
+		// (arbitrarily chose to use a prime) with the intent of reusing
+		// connections who are used by once-a-minute cron(8) jobs *and* who
+		// use a 60s jitter window (e.g. in vixie cron job execution can
+		// drift by up to 59s per job, or 119s for a once-a-minute cron job).
 		pool.MaxTime = 127 * time.Second
 		pool.MaxStreams = 32
 	}

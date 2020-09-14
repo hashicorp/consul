@@ -8,50 +8,10 @@ import (
 	"github.com/hashicorp/go-hclog"
 )
 
-type consulOptions struct {
-	logger          hclog.InterceptLogger
-	tlsConfigurator *tlsutil.Configurator
-	connPool        *pool.ConnPool
-	tokens          *token.Store
-	router          *router.Router
-}
-
-type ConsulOption func(*consulOptions)
-
-func WithLogger(logger hclog.InterceptLogger) ConsulOption {
-	return func(opt *consulOptions) {
-		opt.logger = logger
-	}
-}
-
-func WithTLSConfigurator(tlsConfigurator *tlsutil.Configurator) ConsulOption {
-	return func(opt *consulOptions) {
-		opt.tlsConfigurator = tlsConfigurator
-	}
-}
-
-func WithConnectionPool(connPool *pool.ConnPool) ConsulOption {
-	return func(opt *consulOptions) {
-		opt.connPool = connPool
-	}
-}
-
-func WithTokenStore(tokens *token.Store) ConsulOption {
-	return func(opt *consulOptions) {
-		opt.tokens = tokens
-	}
-}
-
-func WithRouter(router *router.Router) ConsulOption {
-	return func(opt *consulOptions) {
-		opt.router = router
-	}
-}
-
-func flattenConsulOptions(options []ConsulOption) consulOptions {
-	var flat consulOptions
-	for _, opt := range options {
-		opt(&flat)
-	}
-	return flat
+type Deps struct {
+	Logger          hclog.InterceptLogger
+	TLSConfigurator *tlsutil.Configurator
+	Tokens          *token.Store
+	Router          *router.Router
+	ConnPool        *pool.ConnPool
 }

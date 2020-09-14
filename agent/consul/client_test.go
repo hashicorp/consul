@@ -9,8 +9,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -66,22 +68,8 @@ func testClientWithConfigWithErr(t *testing.T, cb func(c *Config)) (string, *Cli
 	if cb != nil {
 		cb(config)
 	}
-	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
-		Name:   config.NodeName,
-		Level:  hclog.Debug,
-		Output: testutil.NewLogBuffer(t),
-	})
 
-	tlsConf, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), logger)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	r := router.NewRouter(logger, config.Datacenter, fmt.Sprintf("%s.%s", config.NodeName, config.Datacenter))
-	client, err := NewClient(config,
-		WithLogger(logger),
-		WithTLSConfigurator(tlsConf),
-		WithRouter(r))
+	client, err := NewClient(config, newDefaultDeps(t, config))
 	return dir, client, err
 }
 
@@ -472,23 +460,45 @@ func TestClient_RPC_TLS(t *testing.T) {
 func newClient(t *testing.T, config *Config) *Client {
 	t.Helper()
 
-	c, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), nil)
-	require.NoError(t, err, "failed to create tls configuration")
-
-	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
-		Level:  hclog.Debug,
-		Output: testutil.NewLogBuffer(t),
-	})
-	r := router.NewRouter(logger, config.Datacenter, fmt.Sprintf("%s.%s", config.NodeName, config.Datacenter))
-	client, err := NewClient(config,
-		WithLogger(logger),
-		WithTLSConfigurator(c),
-		WithRouter(r))
+	client, err := NewClient(config, newDefaultDeps(t, config))
 	require.NoError(t, err, "failed to create client")
 	t.Cleanup(func() {
 		client.Shutdown()
 	})
 	return client
+}
+
+func newDefaultDeps(t *testing.T, c *Config) Deps {
+	t.Helper()
+
+	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
+		Name:   c.NodeName,
+		Level:  hclog.Debug,
+		Output: testutil.NewLogBuffer(t),
+	})
+
+	tls, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), logger)
+	require.NoError(t, err, "failed to create tls configuration")
+
+	r := router.NewRouter(logger, c.Datacenter, fmt.Sprintf("%s.%s", c.NodeName, c.Datacenter))
+
+	connPool := &pool.ConnPool{
+		Server:          false,
+		SrcAddr:         c.RPCSrcAddr,
+		Logger:          logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true}),
+		MaxTime:         2 * time.Minute,
+		MaxStreams:      4,
+		TLSConfigurator: tls,
+		Datacenter:      c.Datacenter,
+	}
+
+	return Deps{
+		Logger:          logger,
+		TLSConfigurator: tls,
+		Tokens:          new(token.Store),
+		Router:          r,
+		ConnPool:        connPool,
+	}
 }
 
 func TestClient_RPC_RateLimit(t *testing.T) {
