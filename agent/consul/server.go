@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
+	"github.com/hashicorp/consul/agent/grpc"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
@@ -239,8 +240,9 @@ type Server struct {
 	rpcConnLimiter connlimit.Limiter
 
 	// Listener is used to listen for incoming connections
-	Listener  net.Listener
-	rpcServer *rpc.Server
+	Listener    net.Listener
+	grpcHandler connHandler
+	rpcServer   *rpc.Server
 
 	// insecureRPCServer is a RPC server that is configure with
 	// IncomingInsecureRPCConfig to allow clients to call AutoEncrypt.Sign
@@ -312,6 +314,12 @@ type Server struct {
 
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseServer
+}
+
+type connHandler interface {
+	Run() error
+	Handle(conn net.Conn)
+	Shutdown() error
 }
 
 // NewServer is used to construct a new Consul server from the configuration
@@ -603,6 +611,8 @@ func NewServer(config *Config, options ...ConsulOption) (*Server, error) {
 	}
 	go reporter.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
+	s.grpcHandler = newGRPCHandlerFromConfig(logger, config)
+
 	// Initialize Autopilot. This must happen before starting leadership monitoring
 	// as establishing leadership could attempt to use autopilot and cause a panic.
 	s.initAutopilot(config)
@@ -612,6 +622,11 @@ func NewServer(config *Config, options ...ConsulOption) (*Server, error) {
 	go s.monitorLeadership()
 
 	// Start listening for RPC requests.
+	go func() {
+		if err := s.grpcHandler.Run(); err != nil {
+			s.logger.Error("gRPC server failed", "error", err)
+		}
+	}()
 	go s.listen(s.Listener)
 
 	// Start listeners for any segments with separate RPC listeners.
@@ -623,6 +638,14 @@ func NewServer(config *Config, options ...ConsulOption) (*Server, error) {
 	go s.updateMetrics()
 
 	return s, nil
+}
+
+func newGRPCHandlerFromConfig(logger hclog.Logger, config *Config) connHandler {
+	if !config.EnableGRPCServer {
+		return grpc.NoOpHandler{Logger: logger}
+	}
+
+	return grpc.NewHandler(config.RPCAddr)
 }
 
 func (s *Server) connectCARootsMonitor(ctx context.Context) {
@@ -947,6 +970,12 @@ func (s *Server) Shutdown() error {
 
 	if s.Listener != nil {
 		s.Listener.Close()
+	}
+
+	if s.grpcHandler != nil {
+		if err := s.grpcHandler.Shutdown(); err != nil {
+			s.logger.Warn("failed to stop gRPC server", "error", err)
+		}
 	}
 
 	// Close the connection pool
