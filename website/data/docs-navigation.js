@@ -150,7 +150,10 @@ export default [
       },
       'service-sync',
       'dns',
-      'upgrade',
+      {
+        category: 'upgrade',
+        content: ['compatibility'],
+      },
       'uninstall',
       'helm',
     ],
