@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/consul/agent/metadata"
 	"google.golang.org/grpc/resolver"
@@ -59,6 +60,7 @@ func NewServerResolverBuilder(cfg Config) *ServerResolverBuilder {
 
 // Rebalance shuffles the server list for resolvers in all datacenters.
 func (s *ServerResolverBuilder) NewRebalancer(dc string) func() {
+	shuffler := rand.New(rand.NewSource(time.Now().UnixNano()))
 	return func() {
 		s.lock.RLock()
 		defer s.lock.RUnlock()
@@ -70,8 +72,7 @@ func (s *ServerResolverBuilder) NewRebalancer(dc string) func() {
 			// Shuffle the list of addresses using the last list given to the resolver.
 			resolver.addrLock.Lock()
 			addrs := resolver.addrs
-			// TODO: seed this rand, so it is a little more random-like
-			rand.Shuffle(len(addrs), func(i, j int) {
+			shuffler.Shuffle(len(addrs), func(i, j int) {
 				addrs[i], addrs[j] = addrs[j], addrs[i]
 			})
 			// Pass the shuffled list to the resolver.
