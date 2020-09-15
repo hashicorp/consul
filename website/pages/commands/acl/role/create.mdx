@@ -29,6 +29,10 @@ Usage: `consul acl role create [options] [args]`
 
 - `-name=<string>` - The new role's name. This flag is required.
 
+- `-node-identity=<value>` - Name of a node identity to use for this role. May
+  be specified multiple times. Format is `NODENAME:DATACENTER`. Added in Consul
+  1.8.1.
+
 - `-policy-id=<value>` - ID of a policy to use for this role. May be specified
   multiple times
 
