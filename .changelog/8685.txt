@@ -1,0 +1,3 @@
+```release-note:bug
+Avoid logs to be flooded with `[WARN] agent.router: Non-server in server-only area: non_server=myClientNode area=lan` [GH-8663](https://github.com/hashicorp/consul/issues/8663)
+```
