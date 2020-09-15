@@ -11,28 +11,27 @@ description: >-
 
 ## Introduction
 
-Upgrading Consul is a relatively easy process, but there are some best
-practices that you should follow when doing so. Some versions also have
-steps that are specific to that version, so make sure you also look through
-our [upgrade instructions](/docs/upgrading/instructions) for the version you're on.
+This document describes some best practices that you should follow when
+upgrading Consul. Some versions also have steps that are specific to that
+version, so make sure you also review the [upgrade instructions](/docs/upgrading/instructions)
+for the version you are on.
 
 ## Download the New Version
 
-The first thing you need to do is download the binary for the new version
-you want.
+First, download the binary for the new version you want.
 
 <Tabs>
 <Tab heading="Binary">
 
-If you're after the Consul binary, you can find all current and past versions
-of the OSS and Enterprise releases here:
+All current and past versions of the OSS and Enterprise releases are
+available here:
 
 - https://releases.hashicorp.com/consul
 
 </Tab>
 <Tab heading="Docker">
 
-If you're using Docker containers, then you can find those here:
+Docker containers are available at these locations:
 
 - **OSS:** https://hub.docker.com/_/consul
 - **Enterprise:** https://hub.docker.com/r/hashicorp/consul-enterprise
@@ -40,7 +39,7 @@ If you're using Docker containers, then you can find those here:
 </Tab>
 <Tab heading="Kubernetes">
 
-If you're using Kubernetes, then please see our documentation for
+If you are using Kubernetes, then please review our documentation for
 [Upgrading Consul on Kubernetes](/docs/k8s/operations/upgrading).
 
 </Tab>
@@ -60,7 +59,7 @@ You can inspect the snapshot to ensure if was successful with:
 consul snapshot inspect backup.snap
 ```
 
-You should see output similar to this:
+Example output:
 
 ```
 ID           2-1182-1542056499724
@@ -71,25 +70,24 @@ Version      1
 ```
 
 This will ensure you have a safe fallback option in case something goes wrong. Store
-this snapshot somewhere safe. If you would like more information on snapshots, you
-can find that here:
+this snapshot somewhere safe. More documentation on snapshot usage is available here:
 
 - https://www.consul.io/docs/commands/snapshot
 - https://learn.hashicorp.com/tutorials/consul/backup-and-restore
 
 **2.** Temporarily modify your Consul configuration so that its [log_level](/docs/agent/options.html#_log_level)
-is set to `debug`. After doing this, run `consul reload` on your servers. This will
+is set to `debug`. After doing this, issue the `consul reload` command on your servers. This will
 give you more information to work with in the event something goes wrong.
 
 ## Perform the Upgrade
 
-**1.** Run the following command to see which server is currently the leader:
+**1.** Issue the following command to discover which server is currently the leader:
 
 ```
 consul operator raft list-peers
 ```
 
-You should see output similar to this (exact formatting and may differ based on version):
+You should receive output similar to this (exact formatting and content may differ based on version):
 
 ```
 Node       ID                                    Address         State     Voter  RaftProtocol
@@ -105,23 +103,23 @@ binary with the new one.
 
 **3.** Perform a rolling restart of Consul on your servers, leaving the leader agent
 for last. Only restart one server at a time. After restarting each server, validate
-that it has rejoined the cluster and is in sync with the leader by running `consul info`
+that it has rejoined the cluster and is in sync with the leader by issuing the `consul info` command,
 and checking whether the `commit_index` and `last_log_index` fields have the same value.
 If done properly, this should avoid an unexpected leadership election due to loss of quorum.
 
-~> It's important to run `consul leave` on each server node when shutting
+~> It is important to issue a `consul leave` command on each server node when shutting
 Consul down. Make sure your service management system (e.g., systemd, upstart, etc.) is
 performing that action. If not, make sure you do it manually or you _will_ end up in a
 bad cluster state.
 
 **4.** Double-check that all servers are showing up in the cluster as expected and are on
-the correct version by running:
+the correct version by issuing:
 
 ```
 consul members
 ```
 
-You should see output similar to this:
+You should receive output similar to this:
 
 ```
 Node       Address         Status  Type    Build  Protocol  DC
@@ -130,13 +128,13 @@ dc1-node2  10.11.0.3:8301  alive   server  1.8.3  2         dc1
 dc1-node3  10.11.0.4:8301  alive   server  1.8.3  2         dc1
 ```
 
-Also double-check the raft state to make sure there's a leader and sufficient voters:
+Also double-check the raft state to make sure there is a leader and sufficient voters:
 
 ```
 consul operator raft list-peers
 ```
 
-Which should look similar to this:
+You should receive output similar to this:
 
 ```
 Node       ID                                    Address         State     Voter  RaftProtocol
@@ -145,12 +143,12 @@ dc1-node2  20e6be1b-f1cb-4aab-929f-f7d2d43d9a96  10.11.0.3:8300  follower  true 
 dc1-node3  658c343b-8769-431f-a71a-236f9dbb17b3  10.11.0.4:8300  follower  true   3
 ```
 
-**5.** Set your `log_level` back to what you had it at prior to the upgrade and run
+**5.** Set your `log_level` back to what you had it at prior to the upgrade and issue
 `consul reload` again.
 
 ## Troubleshooting
 
-Most issues with upgrading occur due to either failing to upgrade the leader agent last
+Most problems with upgrading occur due to either failing to upgrade the leader agent last,
 or due to failing to wait for a follower agent to fully rejoin a cluster before moving
 on to another server. This can cause a loss of quorum and occasionally can result in
 all of your servers attempting to kick off leadership elections endlessly without ever
@@ -158,21 +156,21 @@ reaching a quorum and electing a leader.
 
 Most of these problems can be solved by following the steps outlined in our
 [Outage Recovery](https://learn.hashicorp.com/tutorials/consul/recovery-outage) document.
-If you're still having trouble after trying the recovery steps outlined there,
-then you can get further assistance by:
+If you are still having trouble after trying the recovery steps outlined there,
+then these options for further assistance are available:
 
 - OSS users without paid support plans can request help in our [Community Forum](https://discuss.hashicorp.com/c/consul/29)
-- Enterprise users with paid support plans can contact [HashiCorp Support](https://support.hashicorp.com/)
+- Enterprise and OSS users with paid support plans can contact [HashiCorp Support](https://support.hashicorp.com/)
 
 If you end up contacting support, please make sure you include the following information
 in your support ticket:
 
 - Consul version you were upgrading FROM and TO.
 - [Debug level logs](/docs/agent/options.html#_log_level) from all servers in the cluster
-  that you're having trouble with. These should include logs from prior to the upgrade attempt
+  that you are having trouble with. These should include logs from prior to the upgrade attempt
   up through the current time. If your logs were not set at debug level prior to the
-  upgrade, please include those logs anyways, but also update your config to use debug logs
-  and include logs from after that was done as well.
+  upgrade, please include those logs as well. Also, update your config to use debug logs,
+  and include logs from after that was done.
 - Your Consul config files (please redact any secrets).
 - Output from `consul members -detailed` and `consul operator raft list-peers` from each
   server in your cluster.

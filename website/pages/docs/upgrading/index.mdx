@@ -47,18 +47,13 @@ Consul is A, and version B is released.
 
 ## Large Version Jumps
 
-Consul is a service that frequently sits in the critical path for many
-or even all other applications and services you might have. As such,
-it can be easy to get into a "if it's not broken, don't fix it" mentality
-to avoid the potential risk in upgrading. Unfortunately, this can lead to
-being many major versions behind and ultimately just makes upgrading
-riskier overall.
-
-We encourage our customers to remain no more than two major versions behind
-(i.e., if 1.8.x is the current release, don't use versions older than 1.6.x),
-but in some environments that's not possible. If you find yourself in this
-situation and need to upgrade, please see our [Upgrade Instructions page](/docs/upgrading/instructions) for
-additional help.
+Operating a Consul datacenter that is multiple major versions behind the current major version can increase the risk incured during
+upgrades. We encourage our customers to remain no more than two major versions behind
+(i.e., if 1.8.x is the current release, do not use versions older than 1.6.x).
+If you find yourself in a situation
+where you are many major versions behind, and need to upgrade, please review our
+[Upgrade Instructions page](/docs/upgrading/instructions) for information on
+how to perform those upgrades.
 
 ## Backward Incompatible Upgrades
 
