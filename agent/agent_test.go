@@ -43,6 +43,7 @@ import (
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/time/rate"
 	"gopkg.in/square/go-jose.v2/jwt"
 )
 
@@ -765,10 +766,18 @@ func TestCacheRateLimit(test *testing.T) {
 		test.Run(fmt.Sprintf("rate_limit_at_%v", currentTest.rateLimit), func(t *testing.T) {
 			tt := currentTest
 			t.Parallel()
-			a := NewTestAgent(t, fmt.Sprintf("cache = { entry_fetch_rate = %v, entry_fetch_max_burst = 1 }", tt.rateLimit))
+			a := NewTestAgent(t, "cache = { entry_fetch_rate = 1, entry_fetch_max_burst = 100 }")
 			defer a.Shutdown()
 			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
+			cfg := a.config
+			require.Equal(t, rate.Limit(1), a.config.Cache.EntryFetchRate)
+			require.Equal(t, 100, a.config.Cache.EntryFetchMaxBurst)
+			cfg.Cache.EntryFetchRate = rate.Limit(tt.rateLimit)
+			cfg.Cache.EntryFetchMaxBurst = 1
+			a.reloadConfigInternal(cfg)
+			require.Equal(t, rate.Limit(tt.rateLimit), a.config.Cache.EntryFetchRate)
+			require.Equal(t, 1, a.config.Cache.EntryFetchMaxBurst)
 			var wg sync.WaitGroup
 			stillProcessing := true
 
@@ -1908,7 +1917,7 @@ func TestAgent_HTTPCheck_EnableAgentTLSForChecks(t *testing.T) {
 			Status:  api.HealthCritical,
 		}
 
-		url := fmt.Sprintf("https://%s/v1/agent/self", a.srv.ln.Addr().String())
+		url := fmt.Sprintf("https://%s/v1/agent/self", a.HTTPAddr())
 		chk := &structs.CheckType{
 			HTTP:     url,
 			Interval: 20 * time.Millisecond,
@@ -3336,163 +3345,6 @@ func TestAgent_reloadWatchesHTTPS(t *testing.T) {
 	}
 }
 
-func TestAgent_loadTokens(t *testing.T) {
-	t.Parallel()
-	a := NewTestAgent(t, `
-		acl = {
-			enabled = true
-			tokens = {
-				agent = "alfa"
-				agent_master = "bravo",
-				default = "charlie"
-				replication = "delta"
-			}
-		}
-
-	`)
-	defer a.Shutdown()
-	require := require.New(t)
-
-	tokensFullPath := filepath.Join(a.config.DataDir, tokensPath)
-
-	t.Run("original-configuration", func(t *testing.T) {
-		require.Equal("alfa", a.tokens.AgentToken())
-		require.Equal("bravo", a.tokens.AgentMasterToken())
-		require.Equal("charlie", a.tokens.UserToken())
-		require.Equal("delta", a.tokens.ReplicationToken())
-	})
-
-	t.Run("updated-configuration", func(t *testing.T) {
-		cfg := &config.RuntimeConfig{
-			ACLToken:            "echo",
-			ACLAgentToken:       "foxtrot",
-			ACLAgentMasterToken: "golf",
-			ACLReplicationToken: "hotel",
-		}
-		// ensures no error for missing persisted tokens file
-		require.NoError(a.loadTokens(cfg))
-		require.Equal("echo", a.tokens.UserToken())
-		require.Equal("foxtrot", a.tokens.AgentToken())
-		require.Equal("golf", a.tokens.AgentMasterToken())
-		require.Equal("hotel", a.tokens.ReplicationToken())
-	})
-
-	t.Run("persisted-tokens", func(t *testing.T) {
-		cfg := &config.RuntimeConfig{
-			ACLToken:            "echo",
-			ACLAgentToken:       "foxtrot",
-			ACLAgentMasterToken: "golf",
-			ACLReplicationToken: "hotel",
-		}
-
-		tokens := `{
-			"agent" : "india",
-			"agent_master" : "juliett",
-			"default": "kilo",
-			"replication" : "lima"
-		}`
-
-		require.NoError(ioutil.WriteFile(tokensFullPath, []byte(tokens), 0600))
-		require.NoError(a.loadTokens(cfg))
-
-		// no updates since token persistence is not enabled
-		require.Equal("echo", a.tokens.UserToken())
-		require.Equal("foxtrot", a.tokens.AgentToken())
-		require.Equal("golf", a.tokens.AgentMasterToken())
-		require.Equal("hotel", a.tokens.ReplicationToken())
-
-		a.config.ACLEnableTokenPersistence = true
-		require.NoError(a.loadTokens(cfg))
-
-		require.Equal("india", a.tokens.AgentToken())
-		require.Equal("juliett", a.tokens.AgentMasterToken())
-		require.Equal("kilo", a.tokens.UserToken())
-		require.Equal("lima", a.tokens.ReplicationToken())
-	})
-
-	t.Run("persisted-tokens-override", func(t *testing.T) {
-		tokens := `{
-			"agent" : "mike",
-			"agent_master" : "november",
-			"default": "oscar",
-			"replication" : "papa"
-		}`
-
-		cfg := &config.RuntimeConfig{
-			ACLToken:            "quebec",
-			ACLAgentToken:       "romeo",
-			ACLAgentMasterToken: "sierra",
-			ACLReplicationToken: "tango",
-		}
-
-		require.NoError(ioutil.WriteFile(tokensFullPath, []byte(tokens), 0600))
-		require.NoError(a.loadTokens(cfg))
-
-		require.Equal("mike", a.tokens.AgentToken())
-		require.Equal("november", a.tokens.AgentMasterToken())
-		require.Equal("oscar", a.tokens.UserToken())
-		require.Equal("papa", a.tokens.ReplicationToken())
-	})
-
-	t.Run("partial-persisted", func(t *testing.T) {
-		tokens := `{
-			"agent" : "uniform",
-			"agent_master" : "victor"
-		}`
-
-		cfg := &config.RuntimeConfig{
-			ACLToken:            "whiskey",
-			ACLAgentToken:       "xray",
-			ACLAgentMasterToken: "yankee",
-			ACLReplicationToken: "zulu",
-		}
-
-		require.NoError(ioutil.WriteFile(tokensFullPath, []byte(tokens), 0600))
-		require.NoError(a.loadTokens(cfg))
-
-		require.Equal("uniform", a.tokens.AgentToken())
-		require.Equal("victor", a.tokens.AgentMasterToken())
-		require.Equal("whiskey", a.tokens.UserToken())
-		require.Equal("zulu", a.tokens.ReplicationToken())
-	})
-
-	t.Run("persistence-error-not-json", func(t *testing.T) {
-		cfg := &config.RuntimeConfig{
-			ACLToken:            "one",
-			ACLAgentToken:       "two",
-			ACLAgentMasterToken: "three",
-			ACLReplicationToken: "four",
-		}
-
-		require.NoError(ioutil.WriteFile(tokensFullPath, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, 0600))
-		err := a.loadTokens(cfg)
-		require.Error(err)
-
-		require.Equal("one", a.tokens.UserToken())
-		require.Equal("two", a.tokens.AgentToken())
-		require.Equal("three", a.tokens.AgentMasterToken())
-		require.Equal("four", a.tokens.ReplicationToken())
-	})
-
-	t.Run("persistence-error-wrong-top-level", func(t *testing.T) {
-		cfg := &config.RuntimeConfig{
-			ACLToken:            "alfa",
-			ACLAgentToken:       "bravo",
-			ACLAgentMasterToken: "charlie",
-			ACLReplicationToken: "foxtrot",
-		}
-
-		require.NoError(ioutil.WriteFile(tokensFullPath, []byte("[1,2,3]"), 0600))
-		err := a.loadTokens(cfg)
-		require.Error(err)
-
-		require.Equal("alfa", a.tokens.UserToken())
-		require.Equal("bravo", a.tokens.AgentToken())
-		require.Equal("charlie", a.tokens.AgentMasterToken())
-		require.Equal("foxtrot", a.tokens.ReplicationToken())
-	})
-}
-
 func TestAgent_SecurityChecks(t *testing.T) {
 	t.Parallel()
 	hcl := `
@@ -4740,4 +4592,34 @@ func TestAgent_AutoEncrypt(t *testing.T) {
 	require.Equal(t, expectedCN, x509Cert.Subject.CommonName)
 	require.Len(t, x509Cert.URIs, 1)
 	require.Equal(t, id.URI(), x509Cert.URIs[0])
+}
+
+func TestSharedRPCRouter(t *testing.T) {
+	// this test runs both a server and client and ensures that the shared
+	// router is being used. It would be possible for the Client and Server
+	// types to create and use their own routers and for RPCs such as the
+	// ones used in WaitForTestAgent to succeed. However accessing the
+	// router stored on the agent ensures that Serf information from the
+	// Client/Server types are being set in the same shared rpc router.
+
+	srv := NewTestAgent(t, "")
+	defer srv.Shutdown()
+
+	testrpc.WaitForTestAgent(t, srv.RPC, "dc1")
+
+	mgr, server := srv.Agent.router.FindLANRoute()
+	require.NotNil(t, mgr)
+	require.NotNil(t, server)
+
+	client := NewTestAgent(t, `
+		server = false
+		bootstrap = false
+		retry_join = ["`+srv.Config.SerfBindAddrLAN.String()+`"]
+	`)
+
+	testrpc.WaitForTestAgent(t, client.RPC, "dc1")
+
+	mgr, server = client.Agent.router.FindLANRoute()
+	require.NotNil(t, mgr)
+	require.NotNil(t, server)
 }

@@ -1,0 +1,32 @@
+---
+layout: commands
+page_title: 'Commands: Catalog List Datacenters'
+sidebar_title: datacenters
+---
+
+# Consul Catalog List Datacenters
+
+Command: `consul catalog datacenters`
+
+The `catalog datacenters` command prints all known datacenters.
+
+## Examples
+
+List all datacenters:
+
+```shell-session
+$ consul catalog datacenters
+dc1
+dc2
+dc3
+```
+
+## Usage
+
+Usage: `consul catalog datacenters [options]`
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'

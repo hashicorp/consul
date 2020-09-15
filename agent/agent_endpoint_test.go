@@ -13,7 +13,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -27,6 +26,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	tokenStore "github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -1209,39 +1209,65 @@ func TestAgent_Checks_ACLFilter(t *testing.T) {
 
 func TestAgent_Self(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, `
-		node_meta {
-			somekey = "somevalue"
-		}
-	`)
-	defer a.Shutdown()
 
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
-	req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
-	obj, err := a.srv.AgentSelf(nil, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
+	cases := map[string]struct {
+		hcl       string
+		expectXDS bool
+	}{
+		"normal": {
+			hcl: `
+			node_meta {
+				somekey = "somevalue"
+			}
+			`,
+			expectXDS: true,
+		},
+		"no grpc": {
+			hcl: `
+			node_meta {
+				somekey = "somevalue"
+			}
+			ports = {
+				grpc = -1
+			}
+			`,
+			expectXDS: false,
+		},
 	}
 
-	val := obj.(Self)
-	if int(val.Member.Port) != a.Config.SerfPortLAN {
-		t.Fatalf("incorrect port: %v", obj)
-	}
+	for name, tc := range cases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			a := NewTestAgent(t, tc.hcl)
+			defer a.Shutdown()
 
-	if val.DebugConfig["SerfPortLAN"].(int) != a.Config.SerfPortLAN {
-		t.Fatalf("incorrect port: %v", obj)
-	}
+			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+			req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
+			obj, err := a.srv.AgentSelf(nil, req)
+			require.NoError(t, err)
 
-	cs, err := a.GetLANCoordinate()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if c := cs[a.config.SegmentName]; !reflect.DeepEqual(c, val.Coord) {
-		t.Fatalf("coordinates are not equal: %v != %v", c, val.Coord)
-	}
-	delete(val.Meta, structs.MetaSegmentKey) // Added later, not in config.
-	if !reflect.DeepEqual(a.config.NodeMeta, val.Meta) {
-		t.Fatalf("meta fields are not equal: %v != %v", a.config.NodeMeta, val.Meta)
+			val := obj.(Self)
+			require.Equal(t, a.Config.SerfPortLAN, int(val.Member.Port))
+			require.Equal(t, a.Config.SerfPortLAN, val.DebugConfig["SerfPortLAN"].(int))
+
+			cs, err := a.GetLANCoordinate()
+			require.NoError(t, err)
+			require.Equal(t, cs[a.config.SegmentName], val.Coord)
+
+			delete(val.Meta, structs.MetaSegmentKey) // Added later, not in config.
+			require.Equal(t, a.config.NodeMeta, val.Meta)
+
+			if tc.expectXDS {
+				require.NotNil(t, val.XDS, "xds component missing when gRPC is enabled")
+				require.Equal(t,
+					map[string][]string{"envoy": proxysupport.EnvoyVersions},
+					val.XDS.SupportedProxies,
+				)
+
+			} else {
+				require.Nil(t, val.XDS, "xds component should be missing when gRPC is disabled")
+			}
+		})
 	}
 }
 
@@ -4748,13 +4774,14 @@ func TestAgent_Token(t *testing.T) {
 		init        tokens
 		raw         tokens
 		effective   tokens
+		expectedErr error
 	}{
 		{
-			name:   "bad token name",
-			method: "PUT",
-			url:    "nope?token=root",
-			body:   body("X"),
-			code:   http.StatusNotFound,
+			name:        "bad token name",
+			method:      "PUT",
+			url:         "nope?token=root",
+			body:        body("X"),
+			expectedErr: NotFoundError{Reason: `Token "nope" is unknown`},
 		},
 		{
 			name:   "bad JSON",
@@ -4916,7 +4943,12 @@ func TestAgent_Token(t *testing.T) {
 			url := fmt.Sprintf("/v1/agent/token/%s", tt.url)
 			resp := httptest.NewRecorder()
 			req, _ := http.NewRequest(tt.method, url, tt.body)
+
 			_, err := a.srv.AgentToken(resp, req)
+			if tt.expectedErr != nil {
+				require.Equal(t, tt.expectedErr, err)
+				return
+			}
 			require.NoError(t, err)
 			require.Equal(t, tt.code, resp.Code)
 			require.Equal(t, tt.effective.user, a.tokens.UserToken())

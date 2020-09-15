@@ -77,6 +77,12 @@ type Store struct {
 	watchers     map[int]watcher
 	watcherIndex int
 
+	persistence *fileStore
+	// persistenceLock is used to synchronize access to the persisted token store
+	// within the data directory. This will prevent loading while writing as well as
+	// multiple concurrent writes.
+	persistenceLock sync.RWMutex
+
 	// enterpriseTokens contains tokens only used in consul-enterprise
 	enterpriseTokens
 }
@@ -158,7 +164,7 @@ func (t *Store) sendNotificationLocked(kinds ...TokenKind) {
 // Returns true if it was changed.
 func (t *Store) UpdateUserToken(token string, source TokenSource) bool {
 	t.l.Lock()
-	changed := (t.userToken != token || t.userTokenSource != source)
+	changed := t.userToken != token || t.userTokenSource != source
 	t.userToken = token
 	t.userTokenSource = source
 	if changed {
@@ -172,7 +178,7 @@ func (t *Store) UpdateUserToken(token string, source TokenSource) bool {
 // Returns true if it was changed.
 func (t *Store) UpdateAgentToken(token string, source TokenSource) bool {
 	t.l.Lock()
-	changed := (t.agentToken != token || t.agentTokenSource != source)
+	changed := t.agentToken != token || t.agentTokenSource != source
 	t.agentToken = token
 	t.agentTokenSource = source
 	if changed {
@@ -186,7 +192,7 @@ func (t *Store) UpdateAgentToken(token string, source TokenSource) bool {
 // Returns true if it was changed.
 func (t *Store) UpdateAgentMasterToken(token string, source TokenSource) bool {
 	t.l.Lock()
-	changed := (t.agentMasterToken != token || t.agentMasterTokenSource != source)
+	changed := t.agentMasterToken != token || t.agentMasterTokenSource != source
 	t.agentMasterToken = token
 	t.agentMasterTokenSource = source
 	if changed {
@@ -200,7 +206,7 @@ func (t *Store) UpdateAgentMasterToken(token string, source TokenSource) bool {
 // Returns true if it was changed.
 func (t *Store) UpdateReplicationToken(token string, source TokenSource) bool {
 	t.l.Lock()
-	changed := (t.replicationToken != token || t.replicationTokenSource != source)
+	changed := t.replicationToken != token || t.replicationTokenSource != source
 	t.replicationToken = token
 	t.replicationTokenSource = source
 	if changed {

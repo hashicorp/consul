@@ -1,7 +1,7 @@
 ---
 layout: docs
-page_title: Connect Service Mesh - Kubernetes
-sidebar_title: Connect Service Mesh
+page_title: Service Mesh - Kubernetes
+sidebar_title: Service Mesh
 description: >-
   Connect is a feature built into to Consul that enables automatic
   service-to-service authorization and connection encryption across your Consul
@@ -21,7 +21,7 @@ your cluster, making configuration for Kubernetes automatic.
 This functionality is provided by the
 [consul-k8s project](https://github.com/hashicorp/consul-k8s) and can be
 automatically installed and configured using the
-[Consul Helm chart](/docs/k8s/installation).
+[Consul Helm chart](/docs/k8s/installation/install).
 
 ## Usage
 
@@ -332,7 +332,7 @@ provided by the
 [consul-k8s project](https://github.com/hashicorp/consul-k8s).
 This enables the automatic pod mutation shown in the usage section above.
 Installation of the mutating admission webhook is automated using the
-[Helm chart](/docs/k8s/installation).
+[Helm chart](/docs/k8s/installation/install).
 
 To install the Connect injector, enable the Connect injection feature using
 [Helm values](/docs/k8s/helm#configuration-values) and

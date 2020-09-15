@@ -15,7 +15,6 @@ import (
 	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoylistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	envoyroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	extauthz "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/ext_authz/v2"
 	envoyhttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	envoytcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
 	envoytype "github.com/envoyproxy/go-control-plane/envoy/type"
@@ -23,6 +22,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
+	pbtypes "github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	pbstruct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -313,8 +313,18 @@ func (s *Server) makeIngressGatewayListeners(address string, cfgSnap *proxycfg.C
 		} else {
 			// If multiple upstreams share this port, make a special listener for the protocol.
 			listener := makeListener(listenerKey.Protocol, address, listenerKey.Port)
-			filter, err := makeListenerFilter(
-				true, listenerKey.Protocol, listenerKey.RouteName(), "", "ingress_upstream_", "", false)
+			opts := listenerFilterOpts{
+				useRDS:          true,
+				protocol:        listenerKey.Protocol,
+				filterName:      listenerKey.RouteName(),
+				routeName:       listenerKey.RouteName(),
+				cluster:         "",
+				statPrefix:      "ingress_upstream_",
+				routePath:       "",
+				ingress:         false,
+				httpAuthzFilter: nil,
+			}
+			filter, err := makeListenerFilter(opts)
 			if err != nil {
 				return nil, err
 			}
@@ -395,23 +405,104 @@ func makeListenerFromUserConfig(configJSON string) (*envoy.Listener, error) {
 	return &l, err
 }
 
-// Ensure that the first filter in each filter chain of a public listener is the
-// authz filter to prevent unauthorized access and that every filter chain uses
-// our TLS certs. We might allow users to work around this later if there is a
-// good use case but this is actually a feature for now as it allows them to
-// specify custom listener params in config but still get our certs delivered
-// dynamically and intentions enforced without coming up with some complicated
-// templating/merging solution.
-func injectConnectFilters(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot, listener *envoy.Listener) error {
-	authFilter, err := makeExtAuthFilter(cInfo.Token)
+// Ensure that the first filter in each filter chain of a public listener is
+// the authz filter to prevent unauthorized access.
+func (s *Server) injectConnectFilters(_ connectionInfo, cfgSnap *proxycfg.ConfigSnapshot, listener *envoy.Listener) error {
+	authzFilter, err := makeRBACNetworkFilter(
+		cfgSnap.ConnectProxy.Intentions,
+		cfgSnap.IntentionDefaultAllow,
+	)
 	if err != nil {
 		return err
 	}
+
 	for idx := range listener.FilterChains {
 		// Insert our authz filter before any others
 		listener.FilterChains[idx].Filters =
-			append([]*envoylistener.Filter{authFilter}, listener.FilterChains[idx].Filters...)
+			append([]*envoylistener.Filter{
+				authzFilter,
+			}, listener.FilterChains[idx].Filters...)
+	}
+	return nil
+}
 
+const httpConnectionManagerNewName = "envoy.filters.network.http_connection_manager"
+
+// Locate the existing http connect manager L4 filter and inject our RBAC filter at the top.
+func (s *Server) injectHTTPFilterOnFilterChains(
+	listener *envoy.Listener,
+	authzFilter *envoyhttp.HttpFilter,
+) error {
+	for chainIdx, chain := range listener.FilterChains {
+		var (
+			hcmFilter    *envoylistener.Filter
+			hcmFilterIdx int
+		)
+
+		for filterIdx, filter := range chain.Filters {
+			if filter.Name == wellknown.HTTPConnectionManager ||
+				filter.Name == httpConnectionManagerNewName {
+				hcmFilter = filter
+				hcmFilterIdx = filterIdx
+				break
+			}
+		}
+		if hcmFilter == nil {
+			return fmt.Errorf(
+				"filter chain %d lacks either a %q or %q filter",
+				chainIdx,
+				wellknown.HTTPConnectionManager,
+				httpConnectionManagerNewName,
+			)
+		}
+
+		var (
+			hcm     envoyhttp.HttpConnectionManager
+			isTyped bool
+		)
+		switch x := hcmFilter.ConfigType.(type) {
+		case *envoylistener.Filter_Config:
+			if err := conversion.StructToMessage(x.Config, &hcm); err != nil {
+				return err
+			}
+			isTyped = false
+		case *envoylistener.Filter_TypedConfig:
+			if err := pbtypes.UnmarshalAny(x.TypedConfig, &hcm); err != nil {
+				return err
+			}
+			isTyped = true
+		default:
+			return fmt.Errorf(
+				"filter chain %d has a %q filter with an unsupported config type: %T",
+				chainIdx,
+				hcmFilter.Name,
+				x,
+			)
+		}
+
+		// Insert our authz filter before any others
+		hcm.HttpFilters = append([]*envoyhttp.HttpFilter{
+			authzFilter,
+		}, hcm.HttpFilters...)
+
+		// And persist the modified filter.
+		newFilter, err := makeFilter(hcmFilter.Name, &hcm, isTyped)
+		if err != nil {
+			return err
+		}
+		chain.Filters[hcmFilterIdx] = newFilter
+	}
+
+	return nil
+}
+
+// Ensure every filter chain uses our TLS certs. We might allow users to work
+// around this later if there is a good use case but this is actually a feature
+// for now as it allows them to specify custom listener params in config but
+// still get our certs delivered dynamically and intentions enforced without
+// coming up with some complicated templating/merging solution.
+func (s *Server) injectConnectTLSOnFilterChains(_ connectionInfo, cfgSnap *proxycfg.ConfigSnapshot, listener *envoy.Listener) error {
+	for idx := range listener.FilterChains {
 		listener.FilterChains[idx].TlsContext = &envoyauth.DownstreamTlsContext{
 			CommonTlsContext:         makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf()),
 			RequireClientCertificate: &wrappers.BoolValue{Value: true},
@@ -436,8 +527,11 @@ func (s *Server) makePublicListener(cInfo connectionInfo, cfgSnap *proxycfg.Conf
 		if err != nil {
 			return l, err
 		}
-		// In the happy path don't return yet as we need to inject TLS config still.
+		// In the happy path don't return yet as we need to inject TLS and authz config still.
 	}
+
+	// This controls if we do L4 or L7 intention checks.
+	useHTTPFilter := structs.IsProtocolHTTPLike(cfg.Protocol)
 
 	if l == nil {
 		// No user config, use default listener
@@ -460,8 +554,28 @@ func (s *Server) makePublicListener(cInfo connectionInfo, cfgSnap *proxycfg.Conf
 
 		l = makeListener(PublicListenerName, addr, port)
 
-		filter, err := makeListenerFilter(
-			false, cfg.Protocol, "public_listener", LocalAppClusterName, "", "", true)
+		opts := listenerFilterOpts{
+			useRDS:     false,
+			protocol:   cfg.Protocol,
+			filterName: "public_listener",
+			routeName:  "public_listener",
+			cluster:    LocalAppClusterName,
+			statPrefix: "",
+			routePath:  "",
+			ingress:    true,
+		}
+
+		if useHTTPFilter {
+			opts.httpAuthzFilter, err = makeRBACHTTPFilter(
+				cfgSnap.ConnectProxy.Intentions,
+				cfgSnap.IntentionDefaultAllow,
+			)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		filter, err := makeListenerFilter(opts)
 		if err != nil {
 			return nil, err
 		}
@@ -472,9 +586,39 @@ func (s *Server) makePublicListener(cInfo connectionInfo, cfgSnap *proxycfg.Conf
 				},
 			},
 		}
+
+	} else if useHTTPFilter {
+		httpAuthzFilter, err := makeRBACHTTPFilter(
+			cfgSnap.ConnectProxy.Intentions,
+			cfgSnap.IntentionDefaultAllow,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		// We're using the listener escape hatch, so try our best to inject the
+		// HTTP RBAC filter, but if we can't then just inject the RBAC Network
+		// filter instead.
+		if err := s.injectHTTPFilterOnFilterChains(l, httpAuthzFilter); err != nil {
+			s.Logger.Warn(
+				"could not inject the HTTP RBAC filter to enforce intentions on user-provided 'envoy_public_listener_json' config; falling back on the RBAC network filter instead",
+				"proxy", cfgSnap.ProxyID,
+				"error", err,
+			)
+			useHTTPFilter = false
+		}
 	}
 
-	err = injectConnectFilters(cInfo, cfgSnap, l)
+	if !useHTTPFilter {
+		if err := s.injectConnectFilters(cInfo, cfgSnap, l); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := s.injectConnectTLSOnFilterChains(cInfo, cfgSnap, l); err != nil {
+		return nil, err
+	}
+
 	return l, err
 }
 
@@ -505,7 +649,18 @@ func (s *Server) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, clus
 
 	filterName := fmt.Sprintf("exposed_path_filter_%s_%d", strippedPath, path.ListenerPort)
 
-	f, err := makeListenerFilter(false, path.Protocol, filterName, cluster, "", path.Path, true)
+	opts := listenerFilterOpts{
+		useRDS:          false,
+		protocol:        path.Protocol,
+		filterName:      filterName,
+		routeName:       filterName,
+		cluster:         cluster,
+		statPrefix:      "",
+		routePath:       path.Path,
+		ingress:         true,
+		httpAuthzFilter: nil,
+	}
+	f, err := makeListenerFilter(opts)
 	if err != nil {
 		return nil, err
 	}
@@ -557,20 +712,35 @@ func (s *Server) makeTerminatingGatewayListener(
 
 	// Make a FilterChain for each linked service
 	// Match on the cluster name,
-	for svc := range cfgSnap.TerminatingGateway.ServiceGroups {
+	for _, svc := range cfgSnap.TerminatingGateway.ValidServices() {
 		clusterName := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+
+		// Resolvers are optional.
 		resolver, hasResolver := cfgSnap.TerminatingGateway.ServiceResolvers[svc]
 
-		// Skip the service if we don't have a cert to present for mTLS
-		if cert, ok := cfgSnap.TerminatingGateway.ServiceLeaves[svc]; !ok || cert == nil {
-			// TODO (gateways) (freddy) Should the error suggest that the issue may be ACLs? (need service:write on service)
-			s.Logger.Named(logging.TerminatingGateway).
-				Error("no client certificate available for linked service, skipping filter chain creation",
-					"service", svc.String(), "error", err)
-			continue
+		intentions := cfgSnap.TerminatingGateway.Intentions[svc]
+		svcConfig := cfgSnap.TerminatingGateway.ServiceConfigs[svc]
+
+		cfg, err := ParseProxyConfig(svcConfig.ProxyConfig)
+		if err != nil {
+			// Don't hard fail on a config typo, just warn. The parse func returns
+			// default config if there is an error so it's safe to continue.
+			s.Logger.Named(logging.TerminatingGateway).Warn(
+				"failed to parse Connect.Proxy.Config for linked service",
+				"service", svc.String(),
+				"error", err,
+			)
 		}
 
-		clusterChain, err := s.sniFilterChainTerminatingGateway(cInfo, cfgSnap, name, clusterName, svc)
+		clusterChain, err := s.makeFilterChainTerminatingGateway(
+			cInfo,
+			cfgSnap,
+			name,
+			clusterName,
+			svc,
+			intentions,
+			cfg.Protocol,
+		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to make filter chain for cluster %q: %v", clusterName, err)
 		}
@@ -580,13 +750,21 @@ func (s *Server) makeTerminatingGatewayListener(
 		if hasResolver {
 			// generate 1 filter chain for each service subset
 			for subsetName := range resolver.Subsets {
-				clusterName := connect.ServiceSNI(svc.Name, subsetName, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+				subsetClusterName := connect.ServiceSNI(svc.Name, subsetName, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 
-				clusterChain, err := s.sniFilterChainTerminatingGateway(cInfo, cfgSnap, name, clusterName, svc)
+				subsetClusterChain, err := s.makeFilterChainTerminatingGateway(
+					cInfo,
+					cfgSnap,
+					name,
+					subsetClusterName,
+					svc,
+					intentions,
+					cfg.Protocol,
+				)
 				if err != nil {
-					return nil, fmt.Errorf("failed to make filter chain for cluster %q: %v", clusterName, err)
+					return nil, fmt.Errorf("failed to make filter chain for cluster %q: %v", subsetClusterName, err)
 				}
-				l.FilterChains = append(l.FilterChains, clusterChain)
+				l.FilterChains = append(l.FilterChains, subsetClusterChain)
 			}
 		}
 	}
@@ -608,41 +786,73 @@ func (s *Server) makeTerminatingGatewayListener(
 	return l, nil
 }
 
-func (s *Server) sniFilterChainTerminatingGateway(
-	cInfo connectionInfo,
+func (s *Server) makeFilterChainTerminatingGateway(
+	_ connectionInfo,
 	cfgSnap *proxycfg.ConfigSnapshot,
 	listener, cluster string,
 	service structs.ServiceName,
+	intentions structs.Intentions,
+	protocol string,
 ) (*envoylistener.FilterChain, error) {
-
-	authFilter, err := makeExtAuthFilter(cInfo.Token)
-	if err != nil {
-		return nil, err
-	}
-	sniCluster, err := makeSNIClusterFilter()
-	if err != nil {
-		return nil, err
-	}
-
-	// The cluster name here doesn't matter as the sni_cluster filter will fill it in for us.
-	statPrefix := fmt.Sprintf("terminating_gateway_%s_%s_", service.NamespaceOrDefault(), service.Name)
-	tcpProxy, err := makeTCPProxyFilter(listener, "", statPrefix)
-	if err != nil {
-		return nil, err
-	}
-
-	return &envoylistener.FilterChain{
+	filterChain := &envoylistener.FilterChain{
 		FilterChainMatch: makeSNIFilterChainMatch(cluster),
-		Filters: []*envoylistener.Filter{
-			authFilter,
-			sniCluster,
-			tcpProxy,
-		},
+		Filters:          make([]*envoylistener.Filter, 0, 3),
 		TlsContext: &envoyauth.DownstreamTlsContext{
 			CommonTlsContext:         makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.TerminatingGateway.ServiceLeaves[service]),
 			RequireClientCertificate: &wrappers.BoolValue{Value: true},
 		},
-	}, err
+	}
+
+	// This controls if we do L4 or L7 intention checks.
+	useHTTPFilter := structs.IsProtocolHTTPLike(protocol)
+
+	// If this is L4, the first filter we setup is to do intention checks.
+	if !useHTTPFilter {
+		authFilter, err := makeRBACNetworkFilter(
+			intentions,
+			cfgSnap.IntentionDefaultAllow,
+		)
+		if err != nil {
+			return nil, err
+		}
+		filterChain.Filters = append(filterChain.Filters, authFilter)
+	}
+
+	// Lastly we setup the actual proxying component. For L4 this is a straight
+	// tcp proxy. For L7 this is a very hands-off HTTP proxy just to inject an
+	// HTTP filter to do intention checks here instead.
+	statPrefix := fmt.Sprintf("terminating_gateway_%s_%s_", service.NamespaceOrDefault(), service.Name)
+	opts := listenerFilterOpts{
+		protocol:   protocol,
+		filterName: listener,
+		routeName:  cluster, // Set cluster name for route config since each will have its own
+		cluster:    cluster,
+		statPrefix: statPrefix,
+		routePath:  "",
+		ingress:    false,
+	}
+
+	if useHTTPFilter {
+		var err error
+		opts.httpAuthzFilter, err = makeRBACHTTPFilter(
+			intentions,
+			cfgSnap.IntentionDefaultAllow,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		opts.cluster = ""
+		opts.useRDS = true
+	}
+
+	filter, err := makeListenerFilter(opts)
+	if err != nil {
+		return nil, err
+	}
+	filterChain.Filters = append(filterChain.Filters, filter)
+
+	return filterChain, nil
 }
 
 func (s *Server) makeMeshGatewayListener(name, addr string, port int, cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Listener, error) {
@@ -791,8 +1001,18 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 		clusterName = CustomizeClusterName(target.Name, chain)
 	}
 
-	filter, err := makeListenerFilter(
-		useRDS, cfg.Protocol, upstreamID, clusterName, "upstream_", "", false)
+	opts := listenerFilterOpts{
+		useRDS:          useRDS,
+		protocol:        cfg.Protocol,
+		filterName:      upstreamID,
+		routeName:       upstreamID,
+		cluster:         clusterName,
+		statPrefix:      "upstream_",
+		routePath:       "",
+		ingress:         false,
+		httpAuthzFilter: nil,
+	}
+	filter, err := makeListenerFilter(opts)
 	if err != nil {
 		return nil, err
 	}
@@ -855,26 +1075,31 @@ func getAndModifyUpstreamConfigForListener(logger hclog.Logger, u *structs.Upstr
 	return cfg
 }
 
-func makeListenerFilter(
-	useRDS bool,
-	protocol, filterName, cluster, statPrefix, routePath string, ingress bool) (*envoylistener.Filter, error) {
+type listenerFilterOpts struct {
+	useRDS          bool
+	protocol        string
+	filterName      string
+	routeName       string
+	cluster         string
+	statPrefix      string
+	routePath       string
+	ingress         bool
+	httpAuthzFilter *envoyhttp.HttpFilter
+}
 
-	switch protocol {
-	case "grpc":
-		return makeHTTPFilter(useRDS, filterName, cluster, statPrefix, routePath, ingress, true, true)
-	case "http2":
-		return makeHTTPFilter(useRDS, filterName, cluster, statPrefix, routePath, ingress, false, true)
-	case "http":
-		return makeHTTPFilter(useRDS, filterName, cluster, statPrefix, routePath, ingress, false, false)
+func makeListenerFilter(opts listenerFilterOpts) (*envoylistener.Filter, error) {
+	switch opts.protocol {
+	case "grpc", "http2", "http":
+		return makeHTTPFilter(opts)
 	case "tcp":
 		fallthrough
 	default:
-		if useRDS {
+		if opts.useRDS {
 			return nil, fmt.Errorf("RDS is not compatible with the tcp proxy filter")
-		} else if cluster == "" {
+		} else if opts.cluster == "" {
 			return nil, fmt.Errorf("cluster name is required for a tcp proxy filter")
 		}
-		return makeTCPProxyFilter(filterName, cluster, statPrefix)
+		return makeTCPProxyFilter(opts.filterName, opts.cluster, opts.statPrefix)
 	}
 }
 
@@ -898,7 +1123,7 @@ func makeTCPProxyFilter(filterName, cluster, statPrefix string) (*envoylistener.
 		StatPrefix:       makeStatPrefix("tcp", statPrefix, filterName),
 		ClusterSpecifier: &envoytcp.TcpProxy_Cluster{Cluster: cluster},
 	}
-	return makeFilter("envoy.tcp_proxy", cfg)
+	return makeFilter("envoy.tcp_proxy", cfg, false)
 }
 
 func makeStatPrefix(protocol, prefix, filterName string) string {
@@ -908,22 +1133,18 @@ func makeStatPrefix(protocol, prefix, filterName string) string {
 	return fmt.Sprintf("%s%s_%s", prefix, strings.Replace(filterName, ":", "_", -1), protocol)
 }
 
-func makeHTTPFilter(
-	useRDS bool,
-	filterName, cluster, statPrefix, routePath string,
-	ingress, grpc, http2 bool,
-) (*envoylistener.Filter, error) {
+func makeHTTPFilter(opts listenerFilterOpts) (*envoylistener.Filter, error) {
 	op := envoyhttp.HttpConnectionManager_Tracing_INGRESS
-	if !ingress {
+	if !opts.ingress {
 		op = envoyhttp.HttpConnectionManager_Tracing_EGRESS
 	}
 	proto := "http"
-	if grpc {
-		proto = "grpc"
+	if opts.protocol == "grpc" {
+		proto = opts.protocol
 	}
 
 	cfg := &envoyhttp.HttpConnectionManager{
-		StatPrefix: makeStatPrefix(proto, statPrefix, filterName),
+		StatPrefix: makeStatPrefix(proto, opts.statPrefix, opts.filterName),
 		CodecType:  envoyhttp.HttpConnectionManager_AUTO,
 		HttpFilters: []*envoyhttp.HttpFilter{
 			{
@@ -939,13 +1160,13 @@ func makeHTTPFilter(
 		},
 	}
 
-	if useRDS {
-		if cluster != "" {
+	if opts.useRDS {
+		if opts.cluster != "" {
 			return nil, fmt.Errorf("cannot specify cluster name when using RDS")
 		}
 		cfg.RouteSpecifier = &envoyhttp.HttpConnectionManager_Rds{
 			Rds: &envoyhttp.Rds{
-				RouteConfigName: filterName,
+				RouteConfigName: opts.routeName,
 				ConfigSource: &envoycore.ConfigSource{
 					ConfigSourceSpecifier: &envoycore.ConfigSource_Ads{
 						Ads: &envoycore.AggregatedConfigSource{},
@@ -954,7 +1175,7 @@ func makeHTTPFilter(
 			},
 		}
 	} else {
-		if cluster == "" {
+		if opts.cluster == "" {
 			return nil, fmt.Errorf("must specify cluster name when not using RDS")
 		}
 		route := &envoyroute.Route{
@@ -971,22 +1192,22 @@ func makeHTTPFilter(
 			Action: &envoyroute.Route_Route{
 				Route: &envoyroute.RouteAction{
 					ClusterSpecifier: &envoyroute.RouteAction_Cluster{
-						Cluster: cluster,
+						Cluster: opts.cluster,
 					},
 				},
 			},
 		}
 		// If a path is provided, do not match on a catch-all prefix
-		if routePath != "" {
-			route.Match.PathSpecifier = &envoyroute.RouteMatch_Path{Path: routePath}
+		if opts.routePath != "" {
+			route.Match.PathSpecifier = &envoyroute.RouteMatch_Path{Path: opts.routePath}
 		}
 
 		cfg.RouteSpecifier = &envoyhttp.HttpConnectionManager_RouteConfig{
 			RouteConfig: &envoy.RouteConfiguration{
-				Name: filterName,
+				Name: opts.routeName,
 				VirtualHosts: []*envoyroute.VirtualHost{
 					{
-						Name:    filterName,
+						Name:    opts.filterName,
 						Domains: []string{"*"},
 						Routes: []*envoyroute.Route{
 							route,
@@ -997,47 +1218,55 @@ func makeHTTPFilter(
 		}
 	}
 
-	if http2 {
+	if opts.protocol == "http2" || opts.protocol == "grpc" {
 		cfg.Http2ProtocolOptions = &envoycore.Http2ProtocolOptions{}
 	}
 
-	if grpc {
-		// Add grpc bridge before router
+	// Like injectConnectFilters for L4, here we ensure that the first filter
+	// (other than the "envoy.grpc_http1_bridge" filter) in the http filter
+	// chain of a public listener is the authz filter to prevent unauthorized
+	// access and that every filter chain uses our TLS certs.
+	if opts.httpAuthzFilter != nil {
+		cfg.HttpFilters = append([]*envoyhttp.HttpFilter{opts.httpAuthzFilter}, cfg.HttpFilters...)
+	}
+
+	if opts.protocol == "grpc" {
+		// Add grpc bridge before router and authz
 		cfg.HttpFilters = append([]*envoyhttp.HttpFilter{{
 			Name:       "envoy.grpc_http1_bridge",
 			ConfigType: &envoyhttp.HttpFilter_Config{Config: &pbstruct.Struct{}},
 		}}, cfg.HttpFilters...)
 	}
 
-	return makeFilter("envoy.http_connection_manager", cfg)
+	return makeFilter("envoy.http_connection_manager", cfg, false)
 }
 
-func makeExtAuthFilter(token string) (*envoylistener.Filter, error) {
-	cfg := &extauthz.ExtAuthz{
-		StatPrefix: "connect_authz",
-		GrpcService: &envoycore.GrpcService{
-			// Attach token header so we can authorize the callbacks. Technically
-			// authorize is not really protected data but we locked down the HTTP
-			// implementation to need service:write and since we have the token that
-			// has that it's pretty reasonable to set it up here.
-			InitialMetadata: []*envoycore.HeaderValue{
-				{
-					Key:   "x-consul-token",
-					Value: token,
-				},
-			},
-			TargetSpecifier: &envoycore.GrpcService_EnvoyGrpc_{
-				EnvoyGrpc: &envoycore.GrpcService_EnvoyGrpc{
-					ClusterName: LocalAgentClusterName,
-				},
-			},
-		},
-		FailureModeAllow: false,
+func makeFilter(name string, cfg proto.Message, typed bool) (*envoylistener.Filter, error) {
+	filter := &envoylistener.Filter{
+		Name: name,
 	}
-	return makeFilter("envoy.ext_authz", cfg)
+	if typed {
+		any, err := pbtypes.MarshalAny(cfg)
+		if err != nil {
+			return nil, err
+		}
+
+		filter.ConfigType = &envoylistener.Filter_TypedConfig{TypedConfig: any}
+	} else {
+		// Ridiculous dance to make that struct into pbstruct.Struct by... encoding it
+		// as JSON and decoding again!!
+		cfgStruct, err := conversion.MessageToStruct(cfg)
+		if err != nil {
+			return nil, err
+		}
+
+		filter.ConfigType = &envoylistener.Filter_Config{Config: cfgStruct}
+	}
+
+	return filter, nil
 }
 
-func makeFilter(name string, cfg proto.Message) (*envoylistener.Filter, error) {
+func makeEnvoyHTTPFilter(name string, cfg proto.Message) (*envoyhttp.HttpFilter, error) {
 	// Ridiculous dance to make that struct into pbstruct.Struct by... encoding it
 	// as JSON and decoding again!!
 	cfgStruct, err := conversion.MessageToStruct(cfg)
@@ -1045,19 +1274,20 @@ func makeFilter(name string, cfg proto.Message) (*envoylistener.Filter, error) {
 		return nil, err
 	}
 
-	return &envoylistener.Filter{
+	return &envoyhttp.HttpFilter{
 		Name:       name,
-		ConfigType: &envoylistener.Filter_Config{Config: cfgStruct},
+		ConfigType: &envoyhttp.HttpFilter_Config{Config: cfgStruct},
 	}, nil
 }
 
 func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *structs.IssuedCert) *envoyauth.CommonTlsContext {
 	// Concatenate all the root PEMs into one.
-	// TODO(banks): verify this actually works with Envoy (docs are not clear).
-	rootPEMS := ""
 	if cfgSnap.Roots == nil {
 		return nil
 	}
+
+	// TODO(banks): verify this actually works with Envoy (docs are not clear).
+	rootPEMS := ""
 	for _, root := range cfgSnap.Roots.Roots {
 		rootPEMS += root.RootCert
 	}

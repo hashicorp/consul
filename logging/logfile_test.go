@@ -11,12 +11,11 @@ import (
 
 const (
 	testFileName = "Consul.log"
-	testDuration = 2 * time.Second
+	testDuration = 50 * time.Millisecond
 	testBytes    = 10
 )
 
 func TestLogFile_timeRotation(t *testing.T) {
-	t.Parallel()
 	tempDir := testutil.TempDir(t, "LogWriterTime")
 	logFile := LogFile{
 		fileName: testFileName,
@@ -24,7 +23,7 @@ func TestLogFile_timeRotation(t *testing.T) {
 		duration: testDuration,
 	}
 	logFile.Write([]byte("Hello World"))
-	time.Sleep(2 * time.Second)
+	time.Sleep(3 * testDuration)
 	logFile.Write([]byte("Second File"))
 	want := 2
 	if got, _ := ioutil.ReadDir(tempDir); len(got) != want {
@@ -33,7 +32,6 @@ func TestLogFile_timeRotation(t *testing.T) {
 }
 
 func TestLogFile_openNew(t *testing.T) {
-	t.Parallel()
 	tempDir := testutil.TempDir(t, "LogWriterOpen")
 	logFile := LogFile{fileName: testFileName, logPath: tempDir, duration: testDuration}
 	if err := logFile.openNew(); err != nil {
@@ -46,7 +44,6 @@ func TestLogFile_openNew(t *testing.T) {
 }
 
 func TestLogFile_byteRotation(t *testing.T) {
-	t.Parallel()
 	tempDir := testutil.TempDir(t, "LogWriterBytes")
 	logFile := LogFile{
 		fileName: testFileName,
@@ -64,7 +61,6 @@ func TestLogFile_byteRotation(t *testing.T) {
 }
 
 func TestLogFile_deleteArchives(t *testing.T) {
-	t.Parallel()
 	tempDir := testutil.TempDir(t, "LogWriteDeleteArchives")
 	logFile := LogFile{
 		fileName: testFileName,
@@ -100,7 +96,6 @@ func TestLogFile_deleteArchives(t *testing.T) {
 }
 
 func TestLogFile_deleteArchivesDisabled(t *testing.T) {
-	t.Parallel()
 	tempDir := testutil.TempDir(t, t.Name())
 	logFile := LogFile{
 		fileName: testFileName,
@@ -121,7 +116,6 @@ func TestLogFile_deleteArchivesDisabled(t *testing.T) {
 }
 
 func TestLogFile_rotationDisabled(t *testing.T) {
-	t.Parallel()
 	tempDir := testutil.TempDir(t, t.Name())
 	logFile := LogFile{
 		fileName: testFileName,

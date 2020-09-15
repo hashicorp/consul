@@ -271,6 +271,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 			{
 				"Kind": "proxy-defaults",
 				"Name": "main",
+				"Meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
 				"Config": {
 				  "foo": 19,
 				  "bar": "abc",
@@ -286,6 +290,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 			expect: &ProxyConfigEntry{
 				Kind: "proxy-defaults",
 				Name: "main",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
 				Config: map[string]interface{}{
 					"foo": float64(19),
 					"bar": "abc",
@@ -304,6 +312,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 			{
 				"Kind": "service-defaults",
 				"Name": "main",
+				"Meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
 				"Protocol": "http",
 				"ExternalSNI": "abc-123",
 				"MeshGateway": {
@@ -312,8 +324,12 @@ func TestDecodeConfigEntry(t *testing.T) {
 			}
 			`,
 			expect: &ServiceConfigEntry{
-				Kind:        "service-defaults",
-				Name:        "main",
+				Kind: "service-defaults",
+				Name: "main",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
 				Protocol:    "http",
 				ExternalSNI: "abc-123",
 				MeshGateway: MeshGatewayConfig{
@@ -327,6 +343,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 			{
 				"Kind": "service-router",
 				"Name": "main",
+				"Meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
 				"Routes": [
 					{
 						"Match": {
@@ -407,6 +427,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 			expect: &ServiceRouterConfigEntry{
 				Kind: "service-router",
 				Name: "main",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
 				Routes: []ServiceRoute{
 					{
 						Match: &ServiceRouteMatch{
@@ -490,6 +514,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 			{
 				"Kind": "service-splitter",
 				"Name": "main",
+				"Meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
 				"Splits": [
 				  {
 					"Weight": 99.1,
@@ -506,6 +534,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 			expect: &ServiceSplitterConfigEntry{
 				Kind: ServiceSplitter,
 				Name: "main",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
 				Splits: []ServiceSplit{
 					{
 						Weight:        99.1,
@@ -525,6 +557,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 			{
 				"Kind": "service-resolver",
 				"Name": "main",
+				"Meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
 				"DefaultSubset": "v1",
 				"ConnectTimeout": "15s",
 				"Subsets": {
@@ -549,8 +585,12 @@ func TestDecodeConfigEntry(t *testing.T) {
 				}
 			}`,
 			expect: &ServiceResolverConfigEntry{
-				Kind:           "service-resolver",
-				Name:           "main",
+				Kind: "service-resolver",
+				Name: "main",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
 				DefaultSubset:  "v1",
 				ConnectTimeout: 15 * time.Second,
 				Subsets: map[string]ServiceResolverSubset{
@@ -614,11 +654,121 @@ func TestDecodeConfigEntry(t *testing.T) {
 			},
 		},
 		{
+			name: "service-resolver: envoy hash lb kitchen sink",
+			body: `
+			{
+				"Kind": "service-resolver",
+				"Name": "main",
+				"LoadBalancer": {
+					"Policy": "ring_hash",
+					"RingHashConfig": {
+						"MinimumRingSize": 1,
+						"MaximumRingSize": 2
+					},
+					"HashPolicies": [
+						{
+							"Field": "cookie",
+							"FieldValue": "good-cookie",
+							"CookieConfig": {
+								"TTL": "1s",
+								"Path": "/oven"
+							},
+							"Terminal": true
+						},
+						{
+							"Field": "cookie",
+							"FieldValue": "less-good-cookie",
+							"CookieConfig": {
+								"Session": true,
+								"Path": "/toaster"
+							},
+							"Terminal": true
+						},
+						{
+							"Field": "header",
+							"FieldValue": "x-user-id"
+						},
+						{
+							"SourceIP": true
+						}
+					]
+				}
+			}
+			`,
+			expect: &ServiceResolverConfigEntry{
+				Kind: "service-resolver",
+				Name: "main",
+				LoadBalancer: &LoadBalancer{
+					Policy: "ring_hash",
+					RingHashConfig: &RingHashConfig{
+						MinimumRingSize: 1,
+						MaximumRingSize: 2,
+					},
+					HashPolicies: []HashPolicy{
+						{
+							Field:      "cookie",
+							FieldValue: "good-cookie",
+							CookieConfig: &CookieConfig{
+								TTL:  1 * time.Second,
+								Path: "/oven",
+							},
+							Terminal: true,
+						},
+						{
+							Field:      "cookie",
+							FieldValue: "less-good-cookie",
+							CookieConfig: &CookieConfig{
+								Session: true,
+								Path:    "/toaster",
+							},
+							Terminal: true,
+						},
+						{
+							Field:      "header",
+							FieldValue: "x-user-id",
+						},
+						{
+							SourceIP: true,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "service-resolver: envoy least request kitchen sink",
+			body: `
+			{
+				"Kind": "service-resolver",
+				"Name": "main",
+				"LoadBalancer": {
+					"Policy": "least_request",
+					"LeastRequestConfig": {
+						"ChoiceCount": 2
+					}
+				}
+			}
+			`,
+			expect: &ServiceResolverConfigEntry{
+				Kind: "service-resolver",
+				Name: "main",
+				LoadBalancer: &LoadBalancer{
+					Policy: "least_request",
+					LeastRequestConfig: &LeastRequestConfig{
+						ChoiceCount: 2,
+					},
+				},
+			},
+		},
+		{
 			name: "ingress-gateway",
 			body: `
 			{
 				"Kind": "ingress-gateway",
 				"Name": "ingress-web",
+				"Meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
 				"Tls": {
 					"Enabled": true
 				},
@@ -651,6 +801,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 			expect: &IngressGatewayConfigEntry{
 				Kind: "ingress-gateway",
 				Name: "ingress-web",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
 				TLS: GatewayTLSConfig{
 					Enabled: true,
 				},
@@ -686,9 +840,13 @@ func TestDecodeConfigEntry(t *testing.T) {
 			{
 				"Kind": "terminating-gateway",
 				"Name": "terminating-west",
+				"Meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
 				"Services": [
 					{
-						"Namespace": "foo",						
+						"Namespace": "foo",
 						"Name": "web",
 						"CAFile": "/etc/ca.pem",
 						"CertFile": "/etc/cert.pem",
@@ -707,6 +865,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 			expect: &TerminatingGatewayConfigEntry{
 				Kind: "terminating-gateway",
 				Name: "terminating-west",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
 				Services: []LinkedService{
 					{
 						Namespace: "foo",

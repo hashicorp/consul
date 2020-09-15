@@ -27,6 +27,7 @@ type IngressGatewayConfigEntry struct {
 	// what services to associated to those ports.
 	Listeners []IngressListener
 
+	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
@@ -38,7 +39,7 @@ type IngressListener struct {
 	// Protocol declares what type of traffic this listener is expected to
 	// receive. Depending on the protocol, a listener might support multiplexing
 	// services over a single port, or additional discovery chain features. The
-	// current supported values are: (tcp | http).
+	// current supported values are: (tcp | http | http2 | grpc).
 	Protocol string
 
 	// Services declares the set of services to which the listener forwards
@@ -73,6 +74,7 @@ type IngressService struct {
 	// using a "tcp" listener.
 	Hosts []string
 
+	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
 
@@ -91,6 +93,13 @@ func (e *IngressGatewayConfigEntry) GetName() string {
 	}
 
 	return e.Name
+}
+
+func (e *IngressGatewayConfigEntry) GetMeta() map[string]string {
+	if e == nil {
+		return nil
+	}
+	return e.Meta
 }
 
 func (e *IngressGatewayConfigEntry) Normalize() error {
@@ -121,9 +130,15 @@ func (e *IngressGatewayConfigEntry) Normalize() error {
 }
 
 func (e *IngressGatewayConfigEntry) Validate() error {
+	if err := validateConfigEntryMeta(e.Meta); err != nil {
+		return err
+	}
+
 	validProtocols := map[string]bool{
-		"http": true,
-		"tcp":  true,
+		"tcp":   true,
+		"http":  true,
+		"http2": true,
+		"grpc":  true,
 	}
 	declaredPorts := make(map[int]bool)
 
@@ -134,7 +149,7 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 		declaredPorts[listener.Port] = true
 
 		if _, ok := validProtocols[listener.Protocol]; !ok {
-			return fmt.Errorf("Protocol must be either 'http' or 'tcp', '%s' is an unsupported protocol.", listener.Protocol)
+			return fmt.Errorf("protocol must be 'tcp', 'http', 'http2', or 'grpc'. '%s' is an unsupported protocol", listener.Protocol)
 		}
 
 		if len(listener.Services) == 0 {
@@ -281,6 +296,7 @@ type TerminatingGatewayConfigEntry struct {
 	Name     string
 	Services []LinkedService
 
+	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
@@ -320,6 +336,13 @@ func (e *TerminatingGatewayConfigEntry) GetName() string {
 	return e.Name
 }
 
+func (e *TerminatingGatewayConfigEntry) GetMeta() map[string]string {
+	if e == nil {
+		return nil
+	}
+	return e.Meta
+}
+
 func (e *TerminatingGatewayConfigEntry) Normalize() error {
 	if e == nil {
 		return fmt.Errorf("config entry is nil")
@@ -337,6 +360,10 @@ func (e *TerminatingGatewayConfigEntry) Normalize() error {
 }
 
 func (e *TerminatingGatewayConfigEntry) Validate() error {
+	if err := validateConfigEntryMeta(e.Meta); err != nil {
+		return err
+	}
+
 	seen := make(map[ServiceID]bool)
 
 	for _, svc := range e.Services {

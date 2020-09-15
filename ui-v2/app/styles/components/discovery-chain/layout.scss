@@ -25,6 +25,10 @@
 %discovery-chain [id*=':']:not(path):hover {
   @extend %chain-node-active;
 }
+%discovery-chain .tooltip {
+  position: fixed;
+  z-index: 5;
+}
 %discovery-chain .tooltip.active > [role='tooltip'],
 %discovery-chain .tooltip.active > [role='tooltip']::after {
   @extend %blink-in-fade-out-active;

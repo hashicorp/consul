@@ -4,16 +4,20 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoyauth "github.com/envoyproxy/go-control-plane/envoy/service/auth/v2"
+	envoytype "github.com/envoyproxy/go-control-plane/envoy/type"
 	"github.com/mitchellh/go-testing-interface"
 	"google.golang.org/grpc/metadata"
 
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/xds/proxysupport"
 )
 
 // TestADSStream mocks
@@ -119,16 +123,53 @@ func hexString(v uint64) string {
 	return fmt.Sprintf("%08x", v)
 }
 
+func stringToEnvoyVersion(vs string) (*envoytype.SemanticVersion, bool) {
+	parts := strings.Split(vs, ".")
+	if len(parts) != 3 {
+		return nil, false
+	}
+
+	major, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return nil, false
+	}
+	minor, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return nil, false
+	}
+	patch, err := strconv.Atoi(parts[2])
+	if err != nil {
+		return nil, false
+	}
+
+	return &envoytype.SemanticVersion{
+		MajorNumber: uint32(major),
+		MinorNumber: uint32(minor),
+		Patch:       uint32(patch),
+	}, true
+}
+
 // SendReq sends a request from the test server.
 func (e *TestEnvoy) SendReq(t testing.T, typeURL string, version, nonce uint64) {
 	e.Lock()
 	defer e.Unlock()
 
+	ev, valid := stringToEnvoyVersion(proxysupport.EnvoyVersions[0])
+	if !valid {
+		t.Fatal("envoy version is not valid: %s", proxysupport.EnvoyVersions[0])
+	}
+
 	req := &envoy.DiscoveryRequest{
 		VersionInfo: hexString(version),
 		Node: &envoycore.Node{
-			Id:      e.proxyID,
-			Cluster: e.proxyID,
+			Id:            e.proxyID,
+			Cluster:       e.proxyID,
+			UserAgentName: "envoy",
+			UserAgentVersionType: &envoycore.Node_UserAgentBuildVersion{
+				UserAgentBuildVersion: &envoycore.BuildVersion{
+					Version: ev,
+				},
+			},
 		},
 		ResponseNonce: hexString(nonce),
 		TypeUrl:       typeURL,

@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/decode"
 	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/hashstructure"
 	"github.com/mitchellh/mapstructure"
 )
@@ -43,6 +44,7 @@ type ConfigEntry interface {
 	CanRead(acl.Authorizer) bool
 	CanWrite(acl.Authorizer) bool
 
+	GetMeta() map[string]string
 	GetEnterpriseMeta() *EnterpriseMeta
 	GetRaftIndex() *RaftIndex
 }
@@ -64,6 +66,7 @@ type ServiceConfigEntry struct {
 	//
 	// Connect ConnectConfiguration
 
+	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
@@ -80,6 +83,13 @@ func (e *ServiceConfigEntry) GetName() string {
 	return e.Name
 }
 
+func (e *ServiceConfigEntry) GetMeta() map[string]string {
+	if e == nil {
+		return nil
+	}
+	return e.Meta
+}
+
 func (e *ServiceConfigEntry) Normalize() error {
 	if e == nil {
 		return fmt.Errorf("config entry is nil")
@@ -94,7 +104,7 @@ func (e *ServiceConfigEntry) Normalize() error {
 }
 
 func (e *ServiceConfigEntry) Validate() error {
-	return nil
+	return validateConfigEntryMeta(e.Meta)
 }
 
 func (e *ServiceConfigEntry) CanRead(authz acl.Authorizer) bool {
@@ -137,6 +147,7 @@ type ProxyConfigEntry struct {
 	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway"`
 	Expose      ExposeConfig      `json:",omitempty"`
 
+	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
@@ -151,6 +162,13 @@ func (e *ProxyConfigEntry) GetName() string {
 	}
 
 	return e.Name
+}
+
+func (e *ProxyConfigEntry) GetMeta() map[string]string {
+	if e == nil {
+		return nil
+	}
+	return e.Meta
 }
 
 func (e *ProxyConfigEntry) Normalize() error {
@@ -173,6 +191,10 @@ func (e *ProxyConfigEntry) Validate() error {
 
 	if e.Name != ProxyConfigGlobal {
 		return fmt.Errorf("invalid name (%q), only %q is supported", e.Name, ProxyConfigGlobal)
+	}
+
+	if err := validateConfigEntryMeta(e.Meta); err != nil {
+		return err
 	}
 
 	return e.validateEnterpriseMeta()
@@ -666,4 +688,38 @@ func (c *ConfigEntryResponse) UnmarshalBinary(data []byte) error {
 type ConfigEntryKindName struct {
 	Kind string
 	Name string
+	EnterpriseMeta
+}
+
+func NewConfigEntryKindName(kind, name string, entMeta *EnterpriseMeta) ConfigEntryKindName {
+	ret := ConfigEntryKindName{
+		Kind: kind,
+		Name: name,
+	}
+	if entMeta == nil {
+		entMeta = DefaultEnterpriseMeta()
+	}
+
+	ret.EnterpriseMeta = *entMeta
+	ret.EnterpriseMeta.Normalize()
+	return ret
+}
+
+func validateConfigEntryMeta(meta map[string]string) error {
+	var err error
+	if len(meta) > metaMaxKeyPairs {
+		err = multierror.Append(err, fmt.Errorf(
+			"Meta exceeds maximum element count %d", metaMaxKeyPairs))
+	}
+	for k, v := range meta {
+		if len(k) > metaKeyMaxLength {
+			err = multierror.Append(err, fmt.Errorf(
+				"Meta key %q exceeds maximum length %d", k, metaKeyMaxLength))
+		}
+		if len(v) > metaValueMaxLength {
+			err = multierror.Append(err, fmt.Errorf(
+				"Meta value for key %q exceeds maximum length %d", k, metaValueMaxLength))
+		}
+	}
+	return err
 }

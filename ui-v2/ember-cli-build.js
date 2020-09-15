@@ -13,7 +13,11 @@ module.exports = function(defaults) {
     trees.app = new Funnel(
       'app',
       {
-        exclude: ['components/**/pageobject.js']
+        exclude: [
+          'components/**/pageobject.js',
+          'components/**/*.test-support.js',
+          'components/**/*.test.js'
+        ]
       }
     );
   }

@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
@@ -59,9 +60,9 @@ type Client struct {
 	// Connection pool to consul servers
 	connPool *pool.ConnPool
 
-	// routers is responsible for the selection and maintenance of
+	// router is responsible for the selection and maintenance of
 	// Consul servers this agent uses for RPC requests
-	routers *router.Manager
+	router *router.Router
 
 	// rpcLimiter is used to rate limit the total number of RPCs initiated
 	// from an agent.
@@ -120,12 +121,14 @@ func NewClient(config *Config, options ...ConsulOption) (*Client, error) {
 		}
 	}
 
+	logger := flat.logger.NamedIntercept(logging.ConsulClient)
+
 	// Create client
 	c := &Client{
 		config:          config,
 		connPool:        connPool,
 		eventCh:         make(chan serf.Event, serfEventBacklog),
-		logger:          flat.logger.NamedIntercept(logging.ConsulClient),
+		logger:          logger,
 		shutdownCh:      make(chan struct{}),
 		tlsConfigurator: tlsConfigurator,
 	}
@@ -160,15 +163,22 @@ func NewClient(config *Config, options ...ConsulOption) (*Client, error) {
 		return nil, fmt.Errorf("Failed to start lan serf: %v", err)
 	}
 
-	// Start maintenance task for servers
-	c.routers = router.New(c.logger, c.shutdownCh, c.serf, c.connPool, "")
-	go c.routers.Start()
+	rpcRouter := flat.router
+	if rpcRouter == nil {
+		rpcRouter = router.NewRouter(logger, config.Datacenter, fmt.Sprintf("%s.%s", config.NodeName, config.Datacenter))
+	}
+
+	if err := rpcRouter.AddArea(types.AreaLAN, c.serf, c.connPool); err != nil {
+		c.Shutdown()
+		return nil, fmt.Errorf("Failed to add LAN area to the RPC router: %w", err)
+	}
+	c.router = rpcRouter
 
 	// Start LAN event handlers after the router is complete since the event
 	// handlers depend on the router and the router depends on Serf.
 	go c.lanEventHandler()
 
-	// This needs to happen after initializing c.routers to prevent a race
+	// This needs to happen after initializing c.router to prevent a race
 	// condition where the router manager is used when the pointer is nil
 	if c.acls.ACLsEnabled() {
 		go c.monitorACLMode()
@@ -276,7 +286,7 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 	firstCheck := time.Now()
 
 TRY:
-	server := c.routers.FindServer()
+	manager, server := c.router.FindLANRoute()
 	if server == nil {
 		return structs.ErrNoServers
 	}
@@ -301,7 +311,7 @@ TRY:
 		"error", rpcErr,
 	)
 	metrics.IncrCounterWithLabels([]string{"client", "rpc", "failed"}, 1, []metrics.Label{{Name: "server", Value: server.Name}})
-	c.routers.NotifyFailedServer(server)
+	manager.NotifyFailedServer(server)
 	if retry := canRetry(args, rpcErr); !retry {
 		return rpcErr
 	}
@@ -323,7 +333,7 @@ TRY:
 // operation.
 func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer,
 	replyFn structs.SnapshotReplyFn) error {
-	server := c.routers.FindServer()
+	manager, server := c.router.FindLANRoute()
 	if server == nil {
 		return structs.ErrNoServers
 	}
@@ -339,6 +349,7 @@ func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 	var reply structs.SnapshotResponse
 	snap, err := SnapshotRPC(c.connPool, c.config.Datacenter, server.ShortName, server.Addr, args, in, &reply)
 	if err != nil {
+		manager.NotifyFailedServer(server)
 		return err
 	}
 	defer func() {
@@ -367,7 +378,7 @@ func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 // Stats is used to return statistics for debugging and insight
 // for various sub-systems
 func (c *Client) Stats() map[string]map[string]string {
-	numServers := c.routers.NumServers()
+	numServers := c.router.GetLANManager().NumServers()
 
 	toString := func(v uint64) string {
 		return strconv.FormatUint(v, 10)

@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 )
@@ -161,23 +162,32 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 
 // ListDatacenters returns the list of datacenters and their respective nodes
 // and the raw coordinates of those nodes (if no coordinates are available for
-// any of the nodes, the node list may be empty).
+// any of the nodes, the node list may be empty). This endpoint will not return
+// information about the LAN network area.
 func (c *Coordinate) ListDatacenters(args *struct{}, reply *[]structs.DatacenterMap) error {
 	maps, err := c.srv.router.GetDatacenterMaps()
 	if err != nil {
 		return err
 	}
 
+	var out []structs.DatacenterMap
+
 	// Strip the datacenter suffixes from all the node names.
-	for i := range maps {
-		suffix := fmt.Sprintf(".%s", maps[i].Datacenter)
-		for j := range maps[i].Coordinates {
-			node := maps[i].Coordinates[j].Node
-			maps[i].Coordinates[j].Node = strings.TrimSuffix(node, suffix)
+	for _, dcMap := range maps {
+		if dcMap.AreaID == types.AreaLAN {
+			continue
 		}
+
+		suffix := fmt.Sprintf(".%s", dcMap.Datacenter)
+		for j := range dcMap.Coordinates {
+			node := dcMap.Coordinates[j].Node
+			dcMap.Coordinates[j].Node = strings.TrimSuffix(node, suffix)
+		}
+
+		out = append(out, dcMap)
 	}
 
-	*reply = maps
+	*reply = out
 	return nil
 }
 

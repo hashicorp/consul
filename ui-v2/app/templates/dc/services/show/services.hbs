@@ -1,22 +1,50 @@
 <div id="services" class="tab-section">
   <div role="tabpanel">
-  {{#if (gt gatewayServices.length 0)}}
-      <p>
-        The following services may receive traffic from external services through this gateway. Learn more about configuring gateways in our
-        <a href="{{env 'CONSUL_DOCS_URL'}}/connect/terminating-gateway" target="_blank" rel="noopener noreferrer">step-by-step guide</a>.
-      </p>
-      <ConsulServiceList
-        @items={{gatewayServices}}
-        @nspace={{nspace}}
-        />
-  {{else}}
-    <EmptyState>
-      <BlockSlot @name="body">
-        <p>
-          There are no linked services.
-        </p>
-      </BlockSlot>
-    </EmptyState>
-  {{/if}}
+{{#let (hash
+  instances=(if instance (split instance ',') undefined)
+) as |filters|}}
+  {{#let (or sortBy "Name:asc") as |sort|}}
+{{#if (gt gatewayServices.length 0)}}
+    <input type="checkbox" id="toolbar-toggle" />
+    <ConsulUpstreamSearchBar
+      @search={{search}}
+      @onsearch={{action (mut search) value="target.value"}}
+
+      @sort={{sort}}
+      @onsort={{action (mut sortBy) value="target.selected"}}
+
+      @filter={{filters}}
+      @onfilter={{hash
+        instance=(action (mut instance) value="target.selectedItems")
+      }}
+      />
+{{/if}}
+    <p>
+      The following services may receive traffic from external services through this gateway. Learn more about configuring gateways in our
+      <a href="{{env 'CONSUL_DOCS_URL'}}/connect/terminating-gateway" target="_blank" rel="noopener noreferrer">step-by-step guide</a>.
+    </p>
+{{#let (filter (filter-predicate 'service' filters) gatewayServices) as |filtered|}}
+  {{#let (sort-by (comparator 'service' sort) filtered) as |sorted|}}
+      <ChangeableSet @dispatcher={{searchable 'service' sorted}} @terms={{search}}>
+        <BlockSlot @name="set" as |searched|>
+          <ConsulServiceList
+            @items={{searched}}
+            @nspace={{nspace}}
+          />
+        </BlockSlot>
+        <BlockSlot @name="empty">
+          <EmptyState>
+            <BlockSlot @name="body">
+              <p>
+                There are no linked services.
+              </p>
+            </BlockSlot>
+          </EmptyState>
+        </BlockSlot>
+      </ChangeableSet>
+  {{/let}}
+{{/let}}
+  {{/let}}
+{{/let}}
   </div>
 </div>

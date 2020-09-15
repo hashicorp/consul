@@ -443,6 +443,10 @@ type Config struct {
 	// dead servers.
 	AutopilotInterval time.Duration
 
+	// MetricsReportingInterval is the frequency with which the server will
+	// report usage metrics to the configured go-metrics Sinks.
+	MetricsReportingInterval time.Duration
+
 	// ConnectEnabled is whether to enable Connect features such as the CA.
 	ConnectEnabled bool
 
@@ -465,6 +469,9 @@ type Config struct {
 	// AutoEncryptAllowTLS is whether to enable the server responding to
 	// AutoEncrypt.Sign requests.
 	AutoEncryptAllowTLS bool
+
+	// TODO: godoc, set this value from Agent
+	EnableGRPCServer bool
 
 	// Embedded Consul Enterprise specific configuration
 	*EnterpriseConfig
@@ -589,11 +596,16 @@ func DefaultConfig() *Config {
 			},
 		},
 
-		ServerHealthInterval: 2 * time.Second,
-		AutopilotInterval:    10 * time.Second,
-		DefaultQueryTime:     300 * time.Second,
-		MaxQueryTime:         600 * time.Second,
-		EnterpriseConfig:     DefaultEnterpriseConfig(),
+		// Stay under the 10 second aggregation interval of
+		// go-metrics. This ensures we always report the
+		// usage metrics in each cycle.
+		MetricsReportingInterval: 9 * time.Second,
+		ServerHealthInterval:     2 * time.Second,
+		AutopilotInterval:        10 * time.Second,
+		DefaultQueryTime:         300 * time.Second,
+		MaxQueryTime:             600 * time.Second,
+
+		EnterpriseConfig: DefaultEnterpriseConfig(),
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.

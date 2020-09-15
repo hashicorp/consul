@@ -1,65 +1,46 @@
 {{title 'Services'}}
 <EventSource @src={{items}} />
-{{#let (or sortBy "Name:asc") as |sort|}}
+{{#let (hash
+  statuses=(if status (split status ',') undefined)
+  types=(if type (split type ',') undefined)
+  sources=(if source (split source ',') undefined)
+) as |filters|}}
+  {{#let (or sortBy "Name:asc") as |sort|}}
     <AppView @class="service list">
       <BlockSlot @name="notification" as |status type|>
         {{partial 'dc/services/notifications'}}
       </BlockSlot>
       <BlockSlot @name="header">
           <h1>
-              Services <em>{{format-number services.length}} total</em>
+            Services <em>{{format-number services.length}} total</em>
           </h1>
           <label for="toolbar-toggle"></label>
       </BlockSlot>
       <BlockSlot @name="toolbar">
         {{#if (gt services.length 0) }}
-          <SearchBar
-            @value={{search}}
+          <ConsulServiceSearchBar
+            @sources={{externalSources}}
+            @search={{search}}
             @onsearch={{action (mut search) value="target.value"}}
-            class="with-sort"
-          >
-            <BlockSlot @name="secondary">
-              <PopoverSelect
-                @position="right"
-                @onchange={{action (mut sortBy) value='target.selected'}}
-                @multiple={{false}}
-              as |components|>
-                <BlockSlot @name="selected">
-                  <span>
-                    {{#let (from-entries (array
-                          (array "Name:asc" "A to Z")
-                          (array "Name:desc" "Z to A")
-                          (array "Status:asc" "Unhealthy to Healthy")
-                          (array "Status:desc" "Healthy to Unhealthy")
-                        ))
-                      as |selectable|
-                    }}
-                      {{get selectable sort}}
-                    {{/let}}
-                  </span>
-                </BlockSlot>
-                <BlockSlot @name="options">
-    {{#let components.Optgroup components.Option as |Optgroup Option|}}
-                  <Optgroup @label="Health Status">
-                    <Option @value="Status:asc" @selected={{eq "Status:asc" sort}}>Unhealthy to Healthy</Option>
-                    <Option @value="Status:desc" @selected={{eq "Status:desc" sort}}>Healthy to Unhealthy</Option>
-                  </Optgroup>
-                  <Optgroup @label="Service Name">
-                    <Option @value="Name:asc" @selected={{eq "Name:asc" sort}}>A to Z</Option>
-                    <Option @value="Name:desc" @selected={{eq "Name:desc" sort}}>Z to A</Option>
-                  </Optgroup>
-    {{/let}}
-                </BlockSlot>
-              </PopoverSelect>
-            </BlockSlot>
-          </SearchBar>
+
+            @sort={{sort}}
+            @onsort={{action (mut sortBy) value="target.selected"}}
+
+            @filter={{filters}}
+            @onfilter={{hash
+              status=(action (mut status) value="target.selectedItems")
+              type=(action (mut type) value="target.selectedItems")
+              source=(action (mut source) value="target.selectedItems")
+            }}
+          />
         {{/if}}
       </BlockSlot>
       <BlockSlot @name="content">
-{{#let (sort-by (comparator 'service' sort) services) as |sorted|}}
+{{#let (filter (filter-predicate 'service' filters) services) as |filtered|}}
+  {{#let (sort-by (comparator 'service' sort) filtered) as |sorted|}}
         <ChangeableSet @dispatcher={{searchable 'service' sorted}} @terms={{search}}>
-          <BlockSlot @name="set" as |filtered|>
-            <ConsulServiceList @items={{filtered}}/>
+          <BlockSlot @name="set" as |searched|>
+            <ConsulServiceList @items={{searched}} />
           </BlockSlot>
           <BlockSlot @name="empty">
             <EmptyState @allowLogin={{true}}>
@@ -92,7 +73,9 @@
             </EmptyState>
           </BlockSlot>
         </ChangeableSet>
-      {{/let}}
+  {{/let}}
+{{/let}}
       </BlockSlot>
     </AppView>
+  {{/let}}
 {{/let}}

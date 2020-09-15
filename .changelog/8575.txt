@@ -1,0 +1,11 @@
+```release-note:improvement
+api: Added constants for common tag keys and values in the `Tags` field of the `AgentMember` struct.
+```
+
+```release-note:improvement
+api: Added `IsConsulServer` method to the `AgentMember` type to easily determine whether the agent is a server.
+```
+
+```release-note:improvement
+api: Added `ACLMode` method to the `AgentMember` type to determine what ACL mode the agent is operating in.
+```

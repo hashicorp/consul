@@ -144,16 +144,26 @@ type Options struct {
 	EntryFetchRate rate.Limit
 }
 
-// New creates a new cache with the given RPC client and reasonable defaults.
-// Further settings can be tweaked on the returned value.
-func New(options Options) *Cache {
+// Equal return true if both options are equivalent
+func (o Options) Equal(other Options) bool {
+	return o.EntryFetchMaxBurst == other.EntryFetchMaxBurst && o.EntryFetchRate == other.EntryFetchRate
+}
+
+// applyDefaultValuesOnOptions set default values on options and returned updated value
+func applyDefaultValuesOnOptions(options Options) Options {
 	if options.EntryFetchRate == 0.0 {
 		options.EntryFetchRate = DefaultEntryFetchRate
 	}
 	if options.EntryFetchMaxBurst == 0 {
 		options.EntryFetchMaxBurst = DefaultEntryFetchMaxBurst
 	}
+	return options
+}
 
+// New creates a new cache with the given RPC client and reasonable defaults.
+// Further settings can be tweaked on the returned value.
+func New(options Options) *Cache {
+	options = applyDefaultValuesOnOptions(options)
 	// Initialize the heap. The buffer of 1 is really important because
 	// its possible for the expiry loop to trigger the heap to update
 	// itself and it'd block forever otherwise.
@@ -232,6 +242,28 @@ func (c *Cache) RegisterType(n string, typ Type) {
 	c.typesLock.Lock()
 	defer c.typesLock.Unlock()
 	c.types[n] = typeEntry{Name: n, Type: typ, Opts: &opts}
+}
+
+// ReloadOptions updates the cache with the new options
+// return true if Cache is updated, false if already up to date
+func (c *Cache) ReloadOptions(options Options) bool {
+	options = applyDefaultValuesOnOptions(options)
+	modified := !options.Equal(c.options)
+	if modified {
+		c.entriesLock.RLock()
+		defer c.entriesLock.RUnlock()
+		for _, entry := range c.entries {
+			if c.options.EntryFetchRate != options.EntryFetchRate {
+				entry.FetchRateLimiter.SetLimit(options.EntryFetchRate)
+			}
+			if c.options.EntryFetchMaxBurst != options.EntryFetchMaxBurst {
+				entry.FetchRateLimiter.SetBurst(options.EntryFetchMaxBurst)
+			}
+		}
+		c.options.EntryFetchRate = options.EntryFetchRate
+		c.options.EntryFetchMaxBurst = options.EntryFetchMaxBurst
+	}
+	return modified
 }
 
 // Get loads the data for the given type and request. If data satisfying the

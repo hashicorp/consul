@@ -1,0 +1,3 @@
+```release-note:feature
+cache: Config parameters for cache throttling are now reloaded automatically on agent reload. Restarting the agent is not needed anymore.
+```

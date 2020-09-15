@@ -1069,9 +1069,7 @@ name that starts with "admin".
 
 ## Advanced Topics
 
-<a name="replication"></a>
-
-#### Outages and ACL Replication
+#### Outages and ACL Replication ((#replication))
 
 The Consul ACL system is designed with flexible rules to accommodate for an outage
 of the [`primary_datacenter`](/docs/agent/options#primary_datacenter) or networking
@@ -1133,9 +1131,7 @@ using a process like this:
 4. Rolling restart the agents in other datacenters and change their `primary_datacenter`
    configuration to the target datacenter.
 
-<a name="version_8_acls"></a>
-
-#### Complete ACL Coverage in Consul 0.8
+#### Complete ACL Coverage in Consul 0.8 ((#version_8_acls))
 
 Consul 0.8 added many more ACL policy types and brought ACL enforcement to Consul
 agents for the first time. To ease the transition to Consul 0.8 for existing ACL

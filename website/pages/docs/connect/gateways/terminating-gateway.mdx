@@ -1,7 +1,7 @@
 ---
 layout: docs
-page_title: Connect - Terminating Gateways
-sidebar_title: Terminating Gateways
+page_title: Internal <> External Services - Terminating Gateways
+sidebar_title: Internal <> External Services - Terminating Gateways
 description: >-
   A terminating gateway enables traffic from services in the Consul
   service mesh to services outside the mesh. This section details
@@ -119,7 +119,7 @@ by sending the registration request to a client or server agent on a different h
 
 All services registered in the Consul catalog must be associated with a node, even when their node is
 not managed by a Consul client agent. All agent-less services with the same address can be registered under the same node name and address.
-However, ensure that the [node name](/api/catalog.html#node) for external services registered directly in the catalog
+However, ensure that the [node name](/api/catalog#node) for external services registered directly in the catalog
 does not match the node name of any Consul client agent node. If the node name overlaps with the node name of a Consul client agent,
 Consul's [anti-entropy sync](/docs/internals/anti-entropy) will delete the services registered via the `/catalog/register` HTTP API endpoint.
 

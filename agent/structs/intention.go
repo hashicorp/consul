@@ -359,6 +359,14 @@ func (x *Intention) EstimateSize() int {
 	return size
 }
 
+func (x *Intention) SourceServiceName() ServiceName {
+	return NewServiceName(x.SourceName, x.SourceEnterpriseMeta())
+}
+
+func (x *Intention) DestinationServiceName() ServiceName {
+	return NewServiceName(x.DestinationName, x.DestinationEnterpriseMeta())
+}
+
 // IntentionAction is the action that the intention represents. This
 // can be "allow" or "deny".
 type IntentionAction string

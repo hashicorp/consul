@@ -4,7 +4,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -20,6 +19,7 @@ import (
 	proxyCmd "github.com/hashicorp/consul/command/connect/proxy"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/ipaddr"
+	"github.com/hashicorp/consul/tlsutil"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -443,13 +443,11 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 	}
 
 	var caPEM string
-	if httpCfg.TLSConfig.CAFile != "" {
-		content, err := ioutil.ReadFile(httpCfg.TLSConfig.CAFile)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to read CA file: %s", err)
-		}
-		caPEM = strings.Replace(string(content), "\n", "\\n", -1)
+	pems, err := tlsutil.LoadCAs(httpCfg.TLSConfig.CAFile, httpCfg.TLSConfig.CAPath)
+	if err != nil {
+		return nil, err
 	}
+	caPEM = strings.Replace(strings.Join(pems, ""), "\n", "\\n", -1)
 
 	return &BootstrapTplArgs{
 		GRPC:                  grpcAddr,

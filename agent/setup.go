@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"net"
@@ -10,10 +9,9 @@ import (
 
 	autoconf "github.com/hashicorp/consul/agent/auto-config"
 	"github.com/hashicorp/consul/agent/cache"
-	certmon "github.com/hashicorp/consul/agent/cert-monitor"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/pool"
-	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
@@ -35,6 +33,7 @@ type BaseDeps struct {
 	Cache           *cache.Cache
 	AutoConfig      *autoconf.AutoConfig // TODO: use an interface
 	ConnPool        *pool.ConnPool       // TODO: use an interface
+	Router          *router.Router
 }
 
 // MetricsHandler provides an http.Handler for displaying metrics.
@@ -80,40 +79,26 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 
 	d.RuntimeConfig = cfg
 	d.Tokens = new(token.Store)
+
 	// cache-types are not registered yet, but they won't be used until the components are started.
 	d.Cache = cache.New(cfg.Cache)
 	d.ConnPool = newConnPool(cfg, d.Logger, d.TLSConfigurator)
 
-	deferredAC := &deferredAutoConfig{}
-
-	cmConf := new(certmon.Config).
-		WithCache(d.Cache).
-		WithTLSConfigurator(d.TLSConfigurator).
-		WithDNSSANs(cfg.AutoConfig.DNSSANs).
-		WithIPSANs(cfg.AutoConfig.IPSANs).
-		WithDatacenter(cfg.Datacenter).
-		WithNodeName(cfg.NodeName).
-		WithFallback(deferredAC.autoConfigFallbackTLS).
-		WithLogger(d.Logger.Named(logging.AutoConfig)).
-		WithTokens(d.Tokens).
-		WithPersistence(deferredAC.autoConfigPersist)
-	acCertMon, err := certmon.New(cmConf)
-	if err != nil {
-		return d, err
-	}
+	d.Router = router.NewRouter(d.Logger, cfg.Datacenter, fmt.Sprintf("%s.%s", cfg.NodeName, cfg.Datacenter))
 
 	acConf := autoconf.Config{
-		DirectRPC:   d.ConnPool,
-		Logger:      d.Logger,
-		CertMonitor: acCertMon,
-		Loader:      configLoader,
+		DirectRPC:       d.ConnPool,
+		Logger:          d.Logger,
+		Loader:          configLoader,
+		ServerProvider:  d.Router,
+		TLSConfigurator: d.TLSConfigurator,
+		Cache:           d.Cache,
+		Tokens:          d.Tokens,
 	}
 	d.AutoConfig, err = autoconf.New(acConf)
 	if err != nil {
 		return d, err
 	}
-	// TODO: can this cyclic dependency be un-cycled?
-	deferredAC.autoConf = d.AutoConfig
 
 	return d, nil
 }
@@ -139,22 +124,4 @@ func newConnPool(config *config.RuntimeConfig, logger hclog.Logger, tls *tlsutil
 		pool.MaxStreams = 32
 	}
 	return pool
-}
-
-type deferredAutoConfig struct {
-	autoConf *autoconf.AutoConfig // TODO: use an interface
-}
-
-func (a *deferredAutoConfig) autoConfigFallbackTLS(ctx context.Context) (*structs.SignedResponse, error) {
-	if a.autoConf == nil {
-		return nil, fmt.Errorf("AutoConfig manager has not been created yet")
-	}
-	return a.autoConf.FallbackTLS(ctx)
-}
-
-func (a *deferredAutoConfig) autoConfigPersist(resp *structs.SignedResponse) error {
-	if a.autoConf == nil {
-		return fmt.Errorf("AutoConfig manager has not been created yet")
-	}
-	return a.autoConf.RecordUpdatedCerts(resp)
 }

@@ -4,62 +4,54 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"net"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
+	"sync"
 	"time"
 
+	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/config"
-	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/proto/pbautoconf"
-	"github.com/hashicorp/go-discover"
-	discoverk8s "github.com/hashicorp/go-discover/provider/k8s"
 	"github.com/hashicorp/go-hclog"
-
-	"github.com/golang/protobuf/jsonpb"
-)
-
-const (
-	// autoConfigFileName is the name of the file that the agent auto-config settings are
-	// stored in within the data directory
-	autoConfigFileName = "auto-config.json"
-
-	dummyTrustDomain = "dummytrustdomain"
-)
-
-var (
-	pbMarshaler = &jsonpb.Marshaler{
-		OrigName:     false,
-		EnumsAsInts:  false,
-		Indent:       "   ",
-		EmitDefaults: true,
-	}
-
-	pbUnmarshaler = &jsonpb.Unmarshaler{
-		AllowUnknownFields: false,
-	}
 )
 
 // AutoConfig is all the state necessary for being able to parse a configuration
 // as well as perform the necessary RPCs to perform Agent Auto Configuration.
-//
-// NOTE: This struct and methods on it are not currently thread/goroutine safe.
-// However it doesn't spawn any of its own go routines yet and is used in a
-// synchronous fashion. In the future if either of those two conditions change
-// then we will need to add some locking here. I am deferring that for now
-// to help ease the review of this already large PR.
 type AutoConfig struct {
+	sync.Mutex
+
 	acConfig           Config
 	logger             hclog.Logger
-	certMonitor        CertMonitor
+	cache              Cache
+	waiter             *lib.RetryWaiter
 	config             *config.RuntimeConfig
 	autoConfigResponse *pbautoconf.AutoConfigResponse
 	autoConfigSource   config.Source
+
+	running bool
+	done    chan struct{}
+	// cancel is used to cancel the entire AutoConfig
+	// go routine. This is the main field protected
+	// by the mutex as it being non-nil indicates that
+	// the go routine has been started and is stoppable.
+	// note that it doesn't indcate that the go routine
+	// is currently running.
+	cancel context.CancelFunc
+
+	// cancelWatches is used to cancel the existing
+	// cache watches regarding the agents certificate. This is
+	// mainly only necessary when the Agent token changes.
+	cancelWatches context.CancelFunc
+
+	// cacheUpdates is the chan used to have the cache
+	// send us back events
+	cacheUpdates chan cache.UpdateEvent
+
+	// tokenUpdates is the struct used to receive
+	// events from the token store when the Agent
+	// token is updated.
+	tokenUpdates token.Notifier
 }
 
 // New creates a new AutoConfig object for providing automatic Consul configuration.
@@ -69,6 +61,19 @@ func New(config Config) (*AutoConfig, error) {
 		return nil, fmt.Errorf("must provide a config loader")
 	case config.DirectRPC == nil:
 		return nil, fmt.Errorf("must provide a direct RPC delegate")
+	case config.Cache == nil:
+		return nil, fmt.Errorf("must provide a cache")
+	case config.TLSConfigurator == nil:
+		return nil, fmt.Errorf("must provide a TLS configurator")
+	case config.Tokens == nil:
+		return nil, fmt.Errorf("must provide a token store")
+	}
+
+	if config.FallbackLeeway == 0 {
+		config.FallbackLeeway = 10 * time.Second
+	}
+	if config.FallbackRetry == 0 {
+		config.FallbackRetry = time.Minute
 	}
 
 	logger := config.Logger
@@ -83,15 +88,16 @@ func New(config Config) (*AutoConfig, error) {
 	}
 
 	return &AutoConfig{
-		acConfig:    config,
-		logger:      logger,
-		certMonitor: config.CertMonitor,
+		acConfig: config,
+		logger:   logger,
 	}, nil
 }
 
 // ReadConfig will parse the current configuration and inject any
 // auto-config sources if present into the correct place in the parsing chain.
 func (ac *AutoConfig) ReadConfig() (*config.RuntimeConfig, error) {
+	ac.Lock()
+	defer ac.Unlock()
 	cfg, warnings, err := ac.acConfig.Loader(ac.autoConfigSource)
 	if err != nil {
 		return cfg, err
@@ -103,46 +109,6 @@ func (ac *AutoConfig) ReadConfig() (*config.RuntimeConfig, error) {
 
 	ac.config = cfg
 	return cfg, nil
-}
-
-// restorePersistedAutoConfig will attempt to load the persisted auto-config
-// settings from the data directory. It returns true either when there was an
-// unrecoverable error or when the configuration was successfully loaded from
-// disk. Recoverable errors, such as "file not found" are suppressed and this
-// method will return false for the first boolean.
-func (ac *AutoConfig) restorePersistedAutoConfig() (bool, error) {
-	if ac.config.DataDir == "" {
-		// no data directory means we don't have anything to potentially load
-		return false, nil
-	}
-
-	path := filepath.Join(ac.config.DataDir, autoConfigFileName)
-	ac.logger.Debug("attempting to restore any persisted configuration", "path", path)
-
-	content, err := ioutil.ReadFile(path)
-	if err == nil {
-		rdr := strings.NewReader(string(content))
-
-		var resp pbautoconf.AutoConfigResponse
-		if err := pbUnmarshaler.Unmarshal(rdr, &resp); err != nil {
-			return false, fmt.Errorf("failed to decode persisted auto-config data: %w", err)
-		}
-
-		if err := ac.update(&resp); err != nil {
-			return false, fmt.Errorf("error restoring persisted auto-config response: %w", err)
-		}
-
-		ac.logger.Info("restored persisted configuration", "path", path)
-		return true, nil
-	}
-
-	if !os.IsNotExist(err) {
-		return true, fmt.Errorf("failed to load %s: %w", path, err)
-	}
-
-	// ignore non-existence errors as that is an indicator that we haven't
-	// performed the auto configuration before
-	return false, nil
 }
 
 // InitialConfiguration will perform a one-time RPC request to the configured servers
@@ -164,30 +130,49 @@ func (ac *AutoConfig) InitialConfiguration(ctx context.Context) (*config.Runtime
 		ac.config = config
 	}
 
-	if !ac.config.AutoConfig.Enabled {
-		return ac.config, nil
-	}
-
-	ready, err := ac.restorePersistedAutoConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	if !ready {
-		ac.logger.Info("retrieving initial agent auto configuration remotely")
-		if err := ac.getInitialConfiguration(ctx); err != nil {
+	switch {
+	case ac.config.AutoConfig.Enabled:
+		resp, err := ac.readPersistedAutoConfig()
+		if err != nil {
 			return nil, err
 		}
-	}
 
-	// re-read the configuration now that we have our initial auto-config
-	config, err := ac.ReadConfig()
-	if err != nil {
-		return nil, err
-	}
+		if resp == nil {
+			ac.logger.Info("retrieving initial agent auto configuration remotely")
+			resp, err = ac.getInitialConfiguration(ctx)
+			if err != nil {
+				return nil, err
+			}
+		}
 
-	ac.config = config
-	return ac.config, nil
+		ac.logger.Debug("updating auto-config settings")
+		if err = ac.recordInitialConfiguration(resp); err != nil {
+			return nil, err
+		}
+
+		// re-read the configuration now that we have our initial auto-config
+		config, err := ac.ReadConfig()
+		if err != nil {
+			return nil, err
+		}
+
+		ac.config = config
+		return ac.config, nil
+	case ac.config.AutoEncryptTLS:
+		certs, err := ac.autoEncryptInitialCerts(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := ac.setInitialTLSCertificates(certs); err != nil {
+			return nil, err
+		}
+
+		ac.logger.Info("automatically upgraded to TLS")
+		return ac.config, nil
+	default:
+		return ac.config, nil
+	}
 }
 
 // introToken is responsible for determining the correct intro token to use
@@ -217,118 +202,45 @@ func (ac *AutoConfig) introToken() (string, error) {
 	return token, nil
 }
 
-// serverHosts is responsible for taking the list of server addresses and
-// resolving any go-discover provider invocations. It will then return a list
-// of hosts. These might be hostnames and is expected that DNS resolution may
-// be performed after this function runs. Additionally these may contain ports
-// so SplitHostPort could also be necessary.
-func (ac *AutoConfig) serverHosts() ([]string, error) {
-	servers := ac.config.AutoConfig.ServerAddresses
+// recordInitialConfiguration is responsible for recording the AutoConfigResponse from
+// the AutoConfig.InitialConfiguration RPC. It is an all-in-one function to do the following
+//   * update the Agent token in the token store
+func (ac *AutoConfig) recordInitialConfiguration(resp *pbautoconf.AutoConfigResponse) error {
+	ac.autoConfigResponse = resp
 
-	providers := make(map[string]discover.Provider)
-	for k, v := range discover.Providers {
-		providers[k] = v
+	ac.autoConfigSource = config.LiteralSource{
+		Name:   autoConfigFileName,
+		Config: translateConfig(resp.Config),
 	}
-	providers["k8s"] = &discoverk8s.Provider{}
 
-	disco, err := discover.New(
-		discover.WithUserAgent(lib.UserAgent()),
-		discover.WithProviders(providers),
-	)
-
+	// we need to re-read the configuration to determine what the correct ACL
+	// token to push into the token store is. Any user provided token will override
+	// any AutoConfig generated token.
+	config, err := ac.ReadConfig()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create go-discover resolver: %w", err)
+		return fmt.Errorf("failed to fully resolve configuration: %w", err)
 	}
 
-	var addrs []string
-	for _, addr := range servers {
-		switch {
-		case strings.Contains(addr, "provider="):
-			resolved, err := disco.Addrs(addr, ac.logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true}))
-			if err != nil {
-				ac.logger.Error("failed to resolve go-discover auto-config servers", "configuration", addr, "err", err)
-				continue
-			}
+	// ignoring the return value which would indicate a change in the token
+	_ = ac.acConfig.Tokens.UpdateAgentToken(config.ACLTokens.ACLAgentToken, token.TokenSourceConfig)
 
-			addrs = append(addrs, resolved...)
-			ac.logger.Debug("discovered auto-config servers", "servers", resolved)
-		default:
-			addrs = append(addrs, addr)
-		}
-	}
-
-	if len(addrs) == 0 {
-		return nil, fmt.Errorf("no auto-config server addresses available for use")
-	}
-
-	return addrs, nil
-}
-
-// resolveHost will take a single host string and convert it to a list of TCPAddrs
-// This will process any port in the input as well as looking up the hostname using
-// normal DNS resolution.
-func (ac *AutoConfig) resolveHost(hostPort string) []net.TCPAddr {
-	port := ac.config.ServerPort
-	host, portStr, err := net.SplitHostPort(hostPort)
+	// extra a structs.SignedResponse from the AutoConfigResponse for use in cache prepopulation
+	signed, err := extractSignedResponse(resp)
 	if err != nil {
-		if strings.Contains(err.Error(), "missing port in address") {
-			host = hostPort
-		} else {
-			ac.logger.Warn("error splitting host address into IP and port", "address", hostPort, "error", err)
-			return nil
-		}
-	} else {
-		port, err = strconv.Atoi(portStr)
-		if err != nil {
-			ac.logger.Warn("Parsed port is not an integer", "port", portStr, "error", err)
-			return nil
-		}
+		return fmt.Errorf("failed to extract certificates from the auto-config response: %w", err)
 	}
 
-	// resolve the host to a list of IPs
-	ips, err := net.LookupIP(host)
-	if err != nil {
-		ac.logger.Warn("IP resolution failed", "host", host, "error", err)
-		return nil
+	// prepopulate the cache
+	if err = ac.populateCertificateCache(signed); err != nil {
+		return fmt.Errorf("failed to populate the cache with certificate responses: %w", err)
 	}
 
-	var addrs []net.TCPAddr
-	for _, ip := range ips {
-		addrs = append(addrs, net.TCPAddr{IP: ip, Port: port})
-	}
-
-	return addrs
-}
-
-// recordResponse takes an AutoConfig RPC response records it with the agent
-// This will persist the configuration to disk (unless in dev mode running without
-// a data dir) and will reload the configuration.
-func (ac *AutoConfig) recordResponse(resp *pbautoconf.AutoConfigResponse) error {
-	serialized, err := pbMarshaler.MarshalToString(resp)
-	if err != nil {
-		return fmt.Errorf("failed to encode auto-config response as JSON: %w", err)
-	}
-
-	if err := ac.update(resp); err != nil {
+	// update the TLS configurator with the latest certificates
+	if err := ac.updateTLSFromResponse(resp); err != nil {
 		return err
 	}
 
-	// now that we know the configuration is generally fine including TLS certs go ahead and persist it to disk.
-	if ac.config.DataDir == "" {
-		ac.logger.Debug("not persisting auto-config settings because there is no data directory")
-		return nil
-	}
-
-	path := filepath.Join(ac.config.DataDir, autoConfigFileName)
-
-	err = ioutil.WriteFile(path, []byte(serialized), 0660)
-	if err != nil {
-		return fmt.Errorf("failed to write auto-config configurations: %w", err)
-	}
-
-	ac.logger.Debug("auto-config settings were persisted to disk")
-
-	return nil
+	return ac.persistAutoConfig(resp)
 }
 
 // getInitialConfigurationOnce will perform full server to TCPAddr resolution and
@@ -352,7 +264,7 @@ func (ac *AutoConfig) getInitialConfigurationOnce(ctx context.Context, csr strin
 
 	var resp pbautoconf.AutoConfigResponse
 
-	servers, err := ac.serverHosts()
+	servers, err := ac.autoConfigHosts()
 	if err != nil {
 		return nil, err
 	}
@@ -369,6 +281,7 @@ func (ac *AutoConfig) getInitialConfigurationOnce(ctx context.Context, csr strin
 				ac.logger.Error("AutoConfig.InitialConfiguration RPC failed", "addr", addr.String(), "error", err)
 				continue
 			}
+			ac.logger.Debug("AutoConfig.InitialConfiguration RPC was successful")
 
 			// update the Certificate with the private key we generated locally
 			if resp.Certificate != nil {
@@ -379,17 +292,17 @@ func (ac *AutoConfig) getInitialConfigurationOnce(ctx context.Context, csr strin
 		}
 	}
 
-	return nil, ctx.Err()
+	return nil, fmt.Errorf("No server successfully responded to the auto-config request")
 }
 
 // getInitialConfiguration implements a loop to retry calls to getInitialConfigurationOnce.
 // It uses the RetryWaiter on the AutoConfig object to control how often to attempt
 // the initial configuration process. It is also canceallable by cancelling the provided context.
-func (ac *AutoConfig) getInitialConfiguration(ctx context.Context) error {
+func (ac *AutoConfig) getInitialConfiguration(ctx context.Context) (*pbautoconf.AutoConfigResponse, error) {
 	// generate a CSR
 	csr, key, err := ac.generateCSR()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// this resets the failures so that we will perform immediate request
@@ -397,183 +310,95 @@ func (ac *AutoConfig) getInitialConfiguration(ctx context.Context) error {
 	for {
 		select {
 		case <-wait:
-			resp, err := ac.getInitialConfigurationOnce(ctx, csr, key)
-			if resp != nil {
-				return ac.recordResponse(resp)
+			if resp, err := ac.getInitialConfigurationOnce(ctx, csr, key); err == nil && resp != nil {
+				return resp, nil
 			} else if err != nil {
 				ac.logger.Error(err.Error())
 			} else {
-				ac.logger.Error("No error returned when fetching the initial auto-configuration but no response was either")
+				ac.logger.Error("No error returned when fetching configuration from the servers but no response was either")
 			}
+
 			wait = ac.acConfig.Waiter.Failed()
 		case <-ctx.Done():
 			ac.logger.Info("interrupted during initial auto configuration", "err", ctx.Err())
-			return ctx.Err()
+			return nil, ctx.Err()
 		}
 	}
 }
 
-// generateCSR will generate a CSR for an Agent certificate. This should
-// be sent along with the AutoConfig.InitialConfiguration RPC. The generated
-// CSR does NOT have a real trust domain as when generating this we do
-// not yet have the CA roots. The server will update the trust domain
-// for us though.
-func (ac *AutoConfig) generateCSR() (csr string, key string, err error) {
-	// We don't provide the correct host here, because we don't know any
-	// better at this point. Apart from the domain, we would need the
-	// ClusterID, which we don't have. This is why we go with
-	// dummyTrustDomain the first time. Subsequent CSRs will have the
-	// correct TrustDomain.
-	id := &connect.SpiffeIDAgent{
-		// will be replaced
-		Host:       dummyTrustDomain,
-		Datacenter: ac.config.Datacenter,
-		Agent:      ac.config.NodeName,
-	}
-
-	caConfig, err := ac.config.ConnectCAConfiguration()
-	if err != nil {
-		return "", "", fmt.Errorf("Cannot generate CSR: %w", err)
-	}
-
-	conf, err := caConfig.GetCommonConfig()
-	if err != nil {
-		return "", "", fmt.Errorf("Failed to load common CA configuration: %w", err)
-	}
-
-	if conf.PrivateKeyType == "" {
-		conf.PrivateKeyType = connect.DefaultPrivateKeyType
-	}
-	if conf.PrivateKeyBits == 0 {
-		conf.PrivateKeyBits = connect.DefaultPrivateKeyBits
-	}
-
-	// Create a new private key
-	pk, pkPEM, err := connect.GeneratePrivateKeyWithConfig(conf.PrivateKeyType, conf.PrivateKeyBits)
-	if err != nil {
-		return "", "", fmt.Errorf("Failed to generate private key: %w", err)
-	}
-
-	dnsNames := append([]string{"localhost"}, ac.config.AutoConfig.DNSSANs...)
-	ipAddresses := append([]net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::")}, ac.config.AutoConfig.IPSANs...)
-
-	// Create a CSR.
-	//
-	// The Common Name includes the dummy trust domain for now but Server will
-	// override this when it is signed anyway so it's OK.
-	cn := connect.AgentCN(ac.config.NodeName, dummyTrustDomain)
-	csr, err = connect.CreateCSR(id, cn, pk, dnsNames, ipAddresses)
-	if err != nil {
-		return "", "", err
-	}
-
-	return csr, pkPEM, nil
-}
-
-// update will take an AutoConfigResponse and do all things necessary
-// to restore those settings. This currently involves updating the
-// config data to be used during a call to ReadConfig, updating the
-// tls Configurator and prepopulating the cache.
-func (ac *AutoConfig) update(resp *pbautoconf.AutoConfigResponse) error {
-	ac.autoConfigResponse = resp
-
-	ac.autoConfigSource = config.LiteralSource{
-		Name:   autoConfigFileName,
-		Config: translateConfig(resp.Config),
-	}
-
-	if err := ac.updateTLSFromResponse(resp); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// updateTLSFromResponse will update the TLS certificate and roots in the shared
-// TLS configurator.
-func (ac *AutoConfig) updateTLSFromResponse(resp *pbautoconf.AutoConfigResponse) error {
-	if ac.certMonitor == nil {
-		return nil
-	}
-
-	roots, err := translateCARootsToStructs(resp.CARoots)
-	if err != nil {
-		return err
-	}
-
-	cert, err := translateIssuedCertToStructs(resp.Certificate)
-	if err != nil {
-		return err
-	}
-
-	update := &structs.SignedResponse{
-		IssuedCert:     *cert,
-		ConnectCARoots: *roots,
-		ManualCARoots:  resp.ExtraCACertificates,
-	}
-
-	if resp.Config != nil && resp.Config.TLS != nil {
-		update.VerifyServerHostname = resp.Config.TLS.VerifyServerHostname
-	}
-
-	if err := ac.certMonitor.Update(update); err != nil {
-		return fmt.Errorf("failed to update the certificate monitor: %w", err)
-	}
-
-	return nil
-}
-
 func (ac *AutoConfig) Start(ctx context.Context) error {
-	if ac.certMonitor == nil {
+	ac.Lock()
+	defer ac.Unlock()
+
+	if !ac.config.AutoConfig.Enabled && !ac.config.AutoEncryptTLS {
 		return nil
 	}
 
-	if !ac.config.AutoConfig.Enabled {
-		return nil
+	if ac.running || ac.cancel != nil {
+		return fmt.Errorf("AutoConfig is already running")
 	}
 
-	_, err := ac.certMonitor.Start(ctx)
-	return err
+	// create the top level context to control the go
+	// routine executing the `run` method
+	ctx, cancel := context.WithCancel(ctx)
+
+	// create the channel to get cache update events through
+	// really we should only ever get 10 updates
+	ac.cacheUpdates = make(chan cache.UpdateEvent, 10)
+
+	// setup the cache watches
+	cancelCertWatches, err := ac.setupCertificateCacheWatches(ctx)
+	if err != nil {
+		cancel()
+		return fmt.Errorf("error setting up cache watches: %w", err)
+	}
+
+	// start the token update notifier
+	ac.tokenUpdates = ac.acConfig.Tokens.Notify(token.TokenKindAgent)
+
+	// store the cancel funcs
+	ac.cancel = cancel
+	ac.cancelWatches = cancelCertWatches
+
+	ac.running = true
+	ac.done = make(chan struct{})
+	go ac.run(ctx, ac.done)
+
+	ac.logger.Info("auto-config started")
+	return nil
+}
+
+func (ac *AutoConfig) Done() <-chan struct{} {
+	ac.Lock()
+	defer ac.Unlock()
+
+	if ac.done != nil {
+		return ac.done
+	}
+
+	// return a closed channel to indicate that we are already done
+	done := make(chan struct{})
+	close(done)
+	return done
+}
+
+func (ac *AutoConfig) IsRunning() bool {
+	ac.Lock()
+	defer ac.Unlock()
+	return ac.running
 }
 
 func (ac *AutoConfig) Stop() bool {
-	if ac.certMonitor == nil {
+	ac.Lock()
+	defer ac.Unlock()
+
+	if !ac.running {
 		return false
 	}
 
-	if !ac.config.AutoConfig.Enabled {
-		return false
+	if ac.cancel != nil {
+		ac.cancel()
 	}
 
-	return ac.certMonitor.Stop()
-}
-
-func (ac *AutoConfig) FallbackTLS(ctx context.Context) (*structs.SignedResponse, error) {
-	// generate a CSR
-	csr, key, err := ac.generateCSR()
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := ac.getInitialConfigurationOnce(ctx, csr, key)
-	if err != nil {
-		return nil, err
-	}
-
-	return extractSignedResponse(resp)
-}
-
-func (ac *AutoConfig) RecordUpdatedCerts(resp *structs.SignedResponse) error {
-	var err error
-	ac.autoConfigResponse.ExtraCACertificates = resp.ManualCARoots
-	ac.autoConfigResponse.CARoots, err = translateCARootsToProtobuf(&resp.ConnectCARoots)
-	if err != nil {
-		return err
-	}
-	ac.autoConfigResponse.Certificate, err = translateIssuedCertToProtobuf(&resp.IssuedCert)
-	if err != nil {
-		return err
-	}
-
-	return ac.recordResponse(ac.autoConfigResponse)
+	return true
 }

@@ -1,0 +1,62 @@
+<form class="filter-bar">
+  <FreetextFilter
+    @onsearch={{action onsearch}}
+    @value={{search}}
+    @placeholder="Search"
+  />
+  <div class="filters">
+    <PopoverSelect
+      @position="left"
+      @onchange={{action onfilter.instance}}
+      @multiple={{true}}
+    as |components|>
+      <BlockSlot @name="selected">
+        <span>
+          Type
+        </span>
+      </BlockSlot>
+      <BlockSlot @name="options">
+{{#let components.Optgroup components.Option as |Optgroup Option|}}
+        <Option @value="registered" @selected={{contains 'registered' filter.instances}}>Registered</Option>
+        <Option @value="not-registered" @selected={{contains 'not-registered' filter.instances}}>Not Registered</Option>
+{{/let}}
+      </BlockSlot>
+    </PopoverSelect>
+  </div>
+  <div class="sort">
+    <PopoverSelect
+      class="type-sort"
+      data-test-sort-control
+      @position="right"
+      @onchange={{action onsort}}
+      @multiple={{false}}
+    as |components|>
+      <BlockSlot @name="selected">
+        <span>
+          {{#let (from-entries (array
+                (array "Name:asc" "A to Z")
+                (array "Name:desc" "Z to A")
+                (array "Status:asc" "Unhealthy to Healthy")
+                (array "Status:desc" "Healthy to Unhealthy")
+              ))
+            as |selectable|
+          }}
+            {{get selectable sort}}
+          {{/let}}
+        </span>
+      </BlockSlot>
+      <BlockSlot @name="options">
+{{#let components.Optgroup components.Option as |Optgroup Option|}}
+        <Optgroup @label="Health Status">
+          <Option @value="Status:asc" @selected={{eq "Status:asc" sort}}>Unhealthy to Healthy</Option>
+          <Option @value="Status:desc" @selected={{eq "Status:desc" sort}}>Healthy to Unhealthy</Option>
+        </Optgroup>
+        <Optgroup @label="Service Name">
+          <Option @value="Name:asc" @selected={{eq "Name:asc" sort}}>A to Z</Option>
+          <Option @value="Name:desc" @selected={{eq "Name:desc" sort}}>Z to A</Option>
+        </Optgroup>
+{{/let}}
+      </BlockSlot>
+    </PopoverSelect>
+  </div>
+</form>

@@ -15,6 +15,13 @@ type ReadTxn interface {
 	Abort()
 }
 
+// WriteTxn is implemented by memdb.Txn to perform write operations.
+type WriteTxn interface {
+	ReadTxn
+	Insert(table string, obj interface{}) error
+	Commit() error
+}
+
 // Changes wraps a memdb.Changes to include the index at which these changes
 // were made.
 type Changes struct {
@@ -24,8 +31,9 @@ type Changes struct {
 }
 
 // changeTrackerDB is a thin wrapper around memdb.DB which enables TrackChanges on
-// all write transactions. When the transaction is committed the changes are
-// sent to the eventPublisher which will create and emit change events.
+// all write transactions. When the transaction is committed the changes are:
+// 1. Used to update our internal usage tracking
+// 2. Sent to the eventPublisher which will create and emit change events
 type changeTrackerDB struct {
 	db             *memdb.MemDB
 	publisher      eventPublisher
@@ -77,11 +85,8 @@ func (c *changeTrackerDB) WriteTxn(idx uint64) *txn {
 	return t
 }
 
-func (c *changeTrackerDB) publish(changes Changes) error {
-	readOnlyTx := c.db.Txn(false)
-	defer readOnlyTx.Abort()
-
-	events, err := c.processChanges(readOnlyTx, changes)
+func (c *changeTrackerDB) publish(tx ReadTxn, changes Changes) error {
+	events, err := c.processChanges(tx, changes)
 	if err != nil {
 		return fmt.Errorf("failed generating events from changes: %v", err)
 	}
@@ -89,17 +94,21 @@ func (c *changeTrackerDB) publish(changes Changes) error {
 	return nil
 }
 
-// WriteTxnRestore returns a wrapped RW transaction that does NOT have change
-// tracking enabled. This should only be used in Restore where we need to
-// replace the entire contents of the Store without a need to track the changes.
-// WriteTxnRestore uses a zero index since the whole restore doesn't really occur
-// at one index - the effect is to write many values that were previously
-// written across many indexes.
+// WriteTxnRestore returns a wrapped RW transaction that should only be used in
+// Restore where we need to replace the entire contents of the Store.
+// WriteTxnRestore uses a zero index since the whole restore doesn't really
+// occur at one index - the effect is to write many values that were previously
+// written across many indexes. WriteTxnRestore also does not publish any
+// change events to subscribers.
 func (c *changeTrackerDB) WriteTxnRestore() *txn {
-	return &txn{
+	t := &txn{
 		Txn:   c.db.Txn(true),
 		Index: 0,
 	}
+
+	// We enable change tracking so that usage data is correctly populated.
+	t.Txn.TrackChanges()
+	return t
 }
 
 // txn wraps a memdb.Txn to capture changes and send them to the EventPublisher.
@@ -115,7 +124,7 @@ type txn struct {
 	// Index is stored so that it may be passed along to any subscribers as part
 	// of a change event.
 	Index   uint64
-	publish func(changes Changes) error
+	publish func(tx ReadTxn, changes Changes) error
 }
 
 // Commit first pushes changes to EventPublisher, then calls Commit on the
@@ -125,15 +134,22 @@ type txn struct {
 // by the caller. A non-nil error indicates that a commit failed and was not
 // applied.
 func (tx *txn) Commit() error {
+	changes := Changes{
+		Index:   tx.Index,
+		Changes: tx.Txn.Changes(),
+	}
+
+	if len(changes.Changes) > 0 {
+		if err := updateUsage(tx, changes); err != nil {
+			return err
+		}
+	}
+
 	// publish may be nil if this is a read-only or WriteTxnRestore transaction.
 	// In those cases changes should also be empty, and there will be nothing
 	// to publish.
 	if tx.publish != nil {
-		changes := Changes{
-			Index:   tx.Index,
-			Changes: tx.Txn.Changes(),
-		}
-		if err := tx.publish(changes); err != nil {
+		if err := tx.publish(tx.Txn, changes); err != nil {
 			return err
 		}
 	}
@@ -149,11 +165,33 @@ func (t topic) String() string {
 	return string(t)
 }
 
+var (
+	// TopicServiceHealth contains events for all registered service instances.
+	TopicServiceHealth topic = "topic-service-health"
+	// TopicServiceHealthConnect contains events for connect-enabled service instances.
+	TopicServiceHealthConnect topic = "topic-service-health-connect"
+)
+
 func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {
-	// TODO: add other table handlers here.
-	return aclChangeUnsubscribeEvent(tx, changes)
+	var events []stream.Event
+	fns := []func(tx ReadTxn, changes Changes) ([]stream.Event, error){
+		aclChangeUnsubscribeEvent,
+		ServiceHealthEventsFromChanges,
+		// TODO: add other table handlers here.
+	}
+	for _, fn := range fns {
+		e, err := fn(tx, changes)
+		if err != nil {
+			return nil, err
+		}
+		events = append(events, e...)
+	}
+	return events, nil
 }
 
-func newSnapshotHandlers() stream.SnapshotHandlers {
-	return stream.SnapshotHandlers{}
+func newSnapshotHandlers(s *Store) stream.SnapshotHandlers {
+	return stream.SnapshotHandlers{
+		TopicServiceHealth:        serviceHealthSnapshot(s, TopicServiceHealth),
+		TopicServiceHealthConnect: serviceHealthSnapshot(s, TopicServiceHealthConnect),
+	}
 }

@@ -44,13 +44,13 @@ func ParseConsulCAConfig(raw map[string]interface{}) (*structs.ConsulCAProviderC
 func defaultConsulCAProviderConfig() structs.ConsulCAProviderConfig {
 	return structs.ConsulCAProviderConfig{
 		CommonCAProviderConfig: defaultCommonConfig(),
-		IntermediateCertTTL:    24 * 365 * time.Hour,
 	}
 }
 func defaultCommonConfig() structs.CommonCAProviderConfig {
 	return structs.CommonCAProviderConfig{
-		LeafCertTTL:    3 * 24 * time.Hour,
-		PrivateKeyType: connect.DefaultPrivateKeyType,
-		PrivateKeyBits: connect.DefaultPrivateKeyBits,
+		LeafCertTTL:         3 * 24 * time.Hour,
+		IntermediateCertTTL: 24 * 365 * time.Hour,
+		PrivateKeyType:      connect.DefaultPrivateKeyType,
+		PrivateKeyBits:      connect.DefaultPrivateKeyBits,
 	}
 }

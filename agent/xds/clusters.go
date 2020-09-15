@@ -16,6 +16,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
@@ -32,7 +33,7 @@ func (s *Server) clustersFromSnapshot(_ connectionInfo, cfgSnap *proxycfg.Config
 	case structs.ServiceKindConnectProxy:
 		return s.clustersFromSnapshotConnectProxy(cfgSnap)
 	case structs.ServiceKindTerminatingGateway:
-		return s.makeGatewayServiceClusters(cfgSnap)
+		return s.makeGatewayServiceClusters(cfgSnap, cfgSnap.TerminatingGateway.ServiceGroups, cfgSnap.TerminatingGateway.ServiceResolvers)
 	case structs.ServiceKindMeshGateway:
 		return s.clustersFromSnapshotMeshGateway(cfgSnap)
 	case structs.ServiceKindIngressGateway:
@@ -174,7 +175,7 @@ func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 	}
 
 	// generate the per-service/subset clusters
-	c, err := s.makeGatewayServiceClusters(cfgSnap)
+	c, err := s.makeGatewayServiceClusters(cfgSnap, cfgSnap.MeshGateway.ServiceGroups, cfgSnap.MeshGateway.ServiceResolvers)
 	if err != nil {
 		return nil, err
 	}
@@ -183,18 +184,16 @@ func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 	return clusters, nil
 }
 
-func (s *Server) makeGatewayServiceClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
-	var services map[structs.ServiceName]structs.CheckServiceNodes
-	var resolvers map[structs.ServiceName]*structs.ServiceResolverConfigEntry
+func (s *Server) makeGatewayServiceClusters(
+	cfgSnap *proxycfg.ConfigSnapshot,
+	services map[structs.ServiceName]structs.CheckServiceNodes,
+	resolvers map[structs.ServiceName]*structs.ServiceResolverConfigEntry,
+) ([]proto.Message, error) {
+
 	var hostnameEndpoints structs.CheckServiceNodes
 
 	switch cfgSnap.Kind {
-	case structs.ServiceKindTerminatingGateway:
-		services = cfgSnap.TerminatingGateway.ServiceGroups
-		resolvers = cfgSnap.TerminatingGateway.ServiceResolvers
-	case structs.ServiceKindMeshGateway:
-		services = cfgSnap.MeshGateway.ServiceGroups
-		resolvers = cfgSnap.MeshGateway.ServiceResolvers
+	case structs.ServiceKindTerminatingGateway, structs.ServiceKindMeshGateway:
 	default:
 		return nil, fmt.Errorf("unsupported gateway kind %q", cfgSnap.Kind)
 	}
@@ -205,9 +204,14 @@ func (s *Server) makeGatewayServiceClusters(cfgSnap *proxycfg.ConfigSnapshot) ([
 		clusterName := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 		resolver, hasResolver := resolvers[svc]
 
+		var loadBalancer *structs.LoadBalancer
+
 		if !hasResolver {
 			// Use a zero value resolver with no timeout and no subsets
 			resolver = &structs.ServiceResolverConfigEntry{}
+		}
+		if resolver.LoadBalancer != nil {
+			loadBalancer = resolver.LoadBalancer
 		}
 
 		// When making service clusters we only pass endpoints with hostnames if the kind is a terminating gateway
@@ -223,8 +227,8 @@ func (s *Server) makeGatewayServiceClusters(cfgSnap *proxycfg.ConfigSnapshot) ([
 		}
 		cluster := s.makeGatewayCluster(cfgSnap, opts)
 
-		if cfgSnap.Kind == structs.ServiceKindTerminatingGateway {
-			injectTerminatingGatewayTLSContext(cfgSnap, cluster, svc)
+		if err := s.injectGatewayServiceAddons(cfgSnap, cluster, svc, loadBalancer); err != nil {
+			return nil, err
 		}
 		clusters = append(clusters, cluster)
 
@@ -243,14 +247,43 @@ func (s *Server) makeGatewayServiceClusters(cfgSnap *proxycfg.ConfigSnapshot) ([
 			}
 			cluster := s.makeGatewayCluster(cfgSnap, opts)
 
-			if cfgSnap.Kind == structs.ServiceKindTerminatingGateway {
-				injectTerminatingGatewayTLSContext(cfgSnap, cluster, svc)
+			if err := s.injectGatewayServiceAddons(cfgSnap, cluster, svc, loadBalancer); err != nil {
+				return nil, err
 			}
 			clusters = append(clusters, cluster)
 		}
 	}
 
 	return clusters, nil
+}
+
+func (s *Server) injectGatewayServiceAddons(cfgSnap *proxycfg.ConfigSnapshot, c *envoy.Cluster, svc structs.ServiceName, lb *structs.LoadBalancer) error {
+	switch cfgSnap.Kind {
+	case structs.ServiceKindMeshGateway:
+		// We can't apply hash based LB config to mesh gateways because they rely on inspecting HTTP attributes
+		// and mesh gateways do not decrypt traffic
+		if !lb.IsHashBased() {
+			if err := injectLBToCluster(lb, c); err != nil {
+				return fmt.Errorf("failed to apply load balancer configuration to cluster %q: %v", c.Name, err)
+			}
+		}
+	case structs.ServiceKindTerminatingGateway:
+		// Context used for TLS origination to the cluster
+		if mapping, ok := cfgSnap.TerminatingGateway.GatewayServices[svc]; ok && mapping.CAFile != "" {
+			context := envoyauth.UpstreamTlsContext{
+				CommonTlsContext: makeCommonTLSContextFromFiles(mapping.CAFile, mapping.CertFile, mapping.KeyFile),
+			}
+			if mapping.SNI != "" {
+				context.Sni = mapping.SNI
+			}
+			c.TlsContext = &context
+		}
+		if err := injectLBToCluster(lb, c); err != nil {
+			return fmt.Errorf("failed to apply load balancer configuration to cluster %q: %v", c.Name, err)
+		}
+
+	}
+	return nil
 }
 
 func (s *Server) clustersFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
@@ -421,7 +454,7 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 				return nil, err
 			}
 		} else {
-			s.Logger.Warn("ignoring escape hatch setting, because a discovery chain is configued for",
+			s.Logger.Warn("ignoring escape hatch setting, because a discovery chain is configured for",
 				"discovery chain", chain.ServiceName, "upstream", upstream.Identifier(),
 				"envoy_cluster_json", chain.ServiceName)
 		}
@@ -479,6 +512,14 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 				Thresholds: makeThresholdsIfNeeded(cfg.Limits),
 			},
 			OutlierDetection: cfg.PassiveHealthCheck.AsOutlierDetection(),
+		}
+
+		var lb *structs.LoadBalancer
+		if node.LoadBalancer != nil {
+			lb = node.LoadBalancer
+		}
+		if err := injectLBToCluster(lb, c); err != nil {
+			return nil, fmt.Errorf("failed to apply load balancer configuration to cluster %q: %v", clusterName, err)
 		}
 
 		proto := cfg.Protocol
@@ -554,7 +595,7 @@ func makeClusterFromUserConfig(configJSON string) (*envoy.Cluster, error) {
 		return &c, err
 	}
 
-	// No @type so try decoding as a straight listener.
+	// No @type so try decoding as a straight cluster.
 	err := jsonpb.UnmarshalString(configJSON, &c)
 	return &c, err
 }
@@ -740,4 +781,48 @@ func makeLbEndpoint(addr string, port int, health envoycore.HealthStatus, weight
 		HealthStatus:        health,
 		LoadBalancingWeight: makeUint32Value(weight),
 	}
+}
+
+func injectLBToCluster(ec *structs.LoadBalancer, c *envoy.Cluster) error {
+	if ec == nil {
+		return nil
+	}
+
+	switch ec.Policy {
+	case "":
+		return nil
+	case structs.LBPolicyLeastRequest:
+		c.LbPolicy = envoy.Cluster_LEAST_REQUEST
+
+		if ec.LeastRequestConfig != nil {
+			c.LbConfig = &envoy.Cluster_LeastRequestLbConfig_{
+				LeastRequestLbConfig: &envoy.Cluster_LeastRequestLbConfig{
+					ChoiceCount: &wrappers.UInt32Value{Value: ec.LeastRequestConfig.ChoiceCount},
+				},
+			}
+		}
+	case structs.LBPolicyRoundRobin:
+		c.LbPolicy = envoy.Cluster_ROUND_ROBIN
+
+	case structs.LBPolicyRandom:
+		c.LbPolicy = envoy.Cluster_RANDOM
+
+	case structs.LBPolicyRingHash:
+		c.LbPolicy = envoy.Cluster_RING_HASH
+
+		if ec.RingHashConfig != nil {
+			c.LbConfig = &envoy.Cluster_RingHashLbConfig_{
+				RingHashLbConfig: &envoy.Cluster_RingHashLbConfig{
+					MinimumRingSize: &wrappers.UInt64Value{Value: ec.RingHashConfig.MinimumRingSize},
+					MaximumRingSize: &wrappers.UInt64Value{Value: ec.RingHashConfig.MaximumRingSize},
+				},
+			}
+		}
+	case structs.LBPolicyMaglev:
+		c.LbPolicy = envoy.Cluster_MAGLEV
+
+	default:
+		return fmt.Errorf("unsupported load balancer policy %q for cluster %q", ec.Policy, c.Name)
+	}
+	return nil
 }

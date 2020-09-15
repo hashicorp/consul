@@ -169,6 +169,22 @@ function get_envoy_listener_filters {
   echo "$output" | jq --raw-output "$QUERY"
 }
 
+function get_envoy_http_filters {
+  local HOSTPORT=$1
+  run retry_default curl -s -f $HOSTPORT/config_dump
+  [ "$status" -eq 0 ]
+  local ENVOY_VERSION=$(echo $output | jq --raw-output '.configs[0].bootstrap.node.metadata.envoy_version')
+  local QUERY=''
+  # from 1.13.0 on the config json looks slightly different
+  # 1.10.x, 1.11.x, 1.12.x are not affected
+  if [[ "$ENVOY_VERSION" =~ ^1\.1[012]\. ]]; then
+      QUERY='.configs[2].dynamic_active_listeners[].listener | "\(.name) \( .filter_chains[0].filters[] | select(.name == "envoy.http_connection_manager") | .config.http_filters | map(.name) | join(","))"'
+  else
+      QUERY='.configs[2].dynamic_listeners[].active_state.listener | "\(.name) \( .filter_chains[0].filters[] | select(.name == "envoy.http_connection_manager") | .config.http_filters | map(.name) | join(","))"'
+  fi
+  echo "$output" | jq --raw-output "$QUERY"
+}
+
 function get_envoy_cluster_config {
   local HOSTPORT=$1
   local CLUSTER_NAME=$2
@@ -529,12 +545,13 @@ function must_fail_tcp_connection {
 # to generate a 503 response since the upstreams have refused connection.
 function must_fail_http_connection {
   # Attempt to curl through upstream
-  run curl -s -i -d hello $1
+  run curl -s -i -d hello "$1"
 
   echo "OUTPUT $output"
 
+  local expect_response="${2:-403 Forbidden}"
   # Should fail request with 503
-  echo "$output" | grep '503 Service Unavailable'
+  echo "$output" | grep "${expect_response}"
 }
 
 function gen_envoy_bootstrap {

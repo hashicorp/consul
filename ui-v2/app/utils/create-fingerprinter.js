@@ -1,3 +1,4 @@
+import { get } from '@ember/object';
 export default function(foreignKey, nspaceKey, hash = JSON.stringify) {
   return function(primaryKey, slugKey, foreignKeyValue) {
     if (foreignKeyValue == null || foreignKeyValue.length < 1) {
@@ -6,12 +7,12 @@ export default function(foreignKey, nspaceKey, hash = JSON.stringify) {
     return function(item) {
       const slugKeys = slugKey.split(',');
       const slugValues = slugKeys.map(function(slugKey) {
-        if (item[slugKey] == null || item[slugKey].length < 1) {
+        if (get(item, slugKey) == null || get(item, slugKey).length < 1) {
           throw new Error('Unable to create fingerprint, missing slug');
         }
-        return item[slugKey];
+        return get(item, slugKey);
       });
-      const nspaceValue = item[nspaceKey] || 'default';
+      const nspaceValue = get(item, nspaceKey) || 'default';
       return {
         ...item,
         ...{

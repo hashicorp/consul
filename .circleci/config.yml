@@ -19,7 +19,7 @@ references:
     EMAIL: noreply@hashicorp.com
     GIT_AUTHOR_NAME: circleci-consul
     GIT_COMMITTER_NAME: circleci-consul
-    S3_ARTIFACT_BUCKET: consul-dev-artifacts
+    S3_ARTIFACT_BUCKET: consul-dev-artifacts-v2
     BASH_ENV: .circleci/bash_env.sh
     VAULT_BINARY_VERSION: 1.2.2
 
@@ -32,6 +32,27 @@ steps:
       url=https://github.com/gotestyourself/gotestsum/releases/download
       curl -sSL "${url}/v${GOTESTSUM_RELEASE}/gotestsum_${GOTESTSUM_RELEASE}_linux_amd64.tar.gz" | \
       sudo tar -xz --overwrite -C /usr/local/bin gotestsum
+
+  get-aws-cli: &get-aws-cli
+    run:
+      name: download and install AWS CLI
+      command: |
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+        echo -e "${AWS_CLI_GPG_KEY}" | gpg --import
+        curl -o awscliv2.sig https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip.sig
+        gpg --verify awscliv2.sig awscliv2.zip
+        unzip awscliv2.zip
+        sudo ./aws/install
+
+  aws-assume-role: &aws-assume-role
+    run:
+      name: assume-role aws creds
+      command: |
+        # assume role has duration of 15 min (the minimum allowed)
+        CREDENTIALS="$(aws sts assume-role --duration-seconds 900 --role-arn ${ROLE_ARN} --role-session-name build-${CIRCLE_SHA1} | jq '.Credentials')"
+        echo "export AWS_ACCESS_KEY_ID=$(echo $CREDENTIALS | jq -r '.AccessKeyId')" >> $BASH_ENV
+        echo "export AWS_SECRET_ACCESS_KEY=$(echo $CREDENTIALS | jq -r '.SecretAccessKey')" >> $BASH_ENV
+        echo "export AWS_SESSION_TOKEN=$(echo $CREDENTIALS | jq -r '.SessionToken')" >> $BASH_ENV
 
   # This step MUST be at the end of any set of steps due to the 'when' condition
   notify-slack-failure: &notify-slack-failure
@@ -389,13 +410,13 @@ jobs:
   # upload development build to s3
   dev-upload-s3:
     docker:
-      - image: circleci/python:stretch
+      - image: *GOLANG_IMAGE
     environment:
       <<: *ENVIRONMENT
     steps:
-      - run:
-          name: Install awscli
-          command: sudo pip install awscli
+      - checkout
+      - *get-aws-cli
+      - *aws-assume-role
       # get consul binary
       - attach_workspace:
           at: bin/

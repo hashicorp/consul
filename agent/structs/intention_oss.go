@@ -6,6 +6,14 @@ import (
 	"github.com/hashicorp/consul/acl"
 )
 
+func (ixn *Intention) SourceEnterpriseMeta() *EnterpriseMeta {
+	return DefaultEnterpriseMeta()
+}
+
+func (ixn *Intention) DestinationEnterpriseMeta() *EnterpriseMeta {
+	return DefaultEnterpriseMeta()
+}
+
 // FillAuthzContext can fill in an acl.AuthorizerContext object to setup
 // extra parameters for ACL enforcement. In OSS there is currently nothing
 // extra to be done.

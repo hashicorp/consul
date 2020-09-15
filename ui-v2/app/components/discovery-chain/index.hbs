@@ -135,7 +135,7 @@
       {{/if}}
     {{/each}}
   </svg>
-  <div class={{concat 'tooltip' (if activeTooltip ' active' '')}} style={{{ concat 'position: absolute;top:' y 'px;left:' x 'px;'}}}>
+  <div class={{concat 'tooltip' (if activeTooltip ' active' '')}} style={{{ concat 'top:' y 'px;left:' x 'px;'}}}>
     <span role="tooltip">{{round tooltip decimals=2}}%</span>
   </div>
 {{/if}}

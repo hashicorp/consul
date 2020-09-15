@@ -1353,7 +1353,7 @@ func TestHTTPServer_HandshakeTimeout(t *testing.T) {
 
 	// Connect to it with a plain TCP client that doesn't attempt to send HTTP or
 	// complete a TLS handshake.
-	conn, err := net.Dial("tcp", a.srv.ln.Addr().String())
+	conn, err := net.Dial("tcp", a.HTTPAddr())
 	require.NoError(t, err)
 	defer conn.Close()
 
@@ -1413,7 +1413,7 @@ func TestRPC_HTTPSMaxConnsPerClient(t *testing.T) {
 			})
 			defer a.Shutdown()
 
-			addr := a.srv.ln.Addr()
+			addr := a.HTTPAddr()
 
 			assertConn := func(conn net.Conn, wantOpen bool) {
 				retry.Run(t, func(r *retry.R) {
@@ -1433,21 +1433,21 @@ func TestRPC_HTTPSMaxConnsPerClient(t *testing.T) {
 			}
 
 			// Connect to the server with bare TCP
-			conn1, err := net.DialTimeout("tcp", addr.String(), time.Second)
+			conn1, err := net.DialTimeout("tcp", addr, time.Second)
 			require.NoError(t, err)
 			defer conn1.Close()
 
 			assertConn(conn1, true)
 
 			// Two conns should succeed
-			conn2, err := net.DialTimeout("tcp", addr.String(), time.Second)
+			conn2, err := net.DialTimeout("tcp", addr, time.Second)
 			require.NoError(t, err)
 			defer conn2.Close()
 
 			assertConn(conn2, true)
 
 			// Third should succeed negotiating TCP handshake...
-			conn3, err := net.DialTimeout("tcp", addr.String(), time.Second)
+			conn3, err := net.DialTimeout("tcp", addr, time.Second)
 			require.NoError(t, err)
 			defer conn3.Close()
 
@@ -1460,7 +1460,7 @@ func TestRPC_HTTPSMaxConnsPerClient(t *testing.T) {
 			require.NoError(t, a.reloadConfigInternal(&newCfg))
 
 			// Now another conn should be allowed
-			conn4, err := net.DialTimeout("tcp", addr.String(), time.Second)
+			conn4, err := net.DialTimeout("tcp", addr, time.Second)
 			require.NoError(t, err)
 			defer conn4.Close()
 
