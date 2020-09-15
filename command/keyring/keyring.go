@@ -3,6 +3,7 @@ package keyring
 import (
 	"flag"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/consul/agent"
 	consulapi "github.com/hashicorp/consul/api"
@@ -23,12 +24,13 @@ type cmd struct {
 	help  string
 
 	// flags
-	installKey string
-	useKey     string
-	removeKey  string
-	listKeys   bool
-	relay      int
-	local      bool
+	installKey      string
+	useKey          string
+	removeKey       string
+	listKeys        bool
+	listPrimaryKeys bool
+	relay           int
+	local           bool
 }
 
 func (c *cmd) init() {
@@ -45,6 +47,8 @@ func (c *cmd) init() {
 			"performed on keys which are not currently the primary key.")
 	c.flags.BoolVar(&c.listKeys, "list", false,
 		"List all keys currently in use within the cluster.")
+	c.flags.BoolVar(&c.listPrimaryKeys, "list-primary", false,
+		"List all primary keys currently in use within the cluster.")
 	c.flags.IntVar(&c.relay, "relay-factor", 0,
 		"Setting this to a non-zero value will cause nodes to relay their response "+
 			"to the operation through this many randomly-chosen other nodes in the "+
@@ -71,7 +75,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	// Only accept a single argument
-	found := c.listKeys
+	found := c.listKeys || c.listPrimaryKeys
 	for _, arg := range []string{c.installKey, c.useKey, c.removeKey} {
 		if found && len(arg) > 0 {
 			c.UI.Error("Only a single action is allowed")
@@ -114,7 +118,22 @@ func (c *cmd) Run(args []string) int {
 			c.UI.Error(fmt.Sprintf("error: %s", err))
 			return 1
 		}
-		c.handleList(responses)
+		for _, response := range responses {
+			c.UI.Output(formatResponse(response, response.Keys))
+		}
+		return 0
+	}
+
+	if c.listPrimaryKeys {
+		c.UI.Info("Gathering installed primary encryption keys...")
+		responses, err := client.Operator().KeyringList(&consulapi.QueryOptions{RelayFactor: relayFactor, LocalOnly: c.local})
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("error: %s", err))
+			return 1
+		}
+		for _, response := range responses {
+			c.UI.Output(formatResponse(response, response.PrimaryKeys))
+		}
 		return 0
 	}
 
@@ -153,27 +172,41 @@ func (c *cmd) Run(args []string) int {
 	return 0
 }
 
-func (c *cmd) handleList(responses []*consulapi.KeyringResponse) {
-	for _, response := range responses {
-		pool := response.Datacenter + " (LAN)"
-		if response.Segment != "" {
-			pool += fmt.Sprintf(" [%s]", response.Segment)
-		}
-		if response.WAN {
-			pool = "WAN"
-		}
-
-		c.UI.Output("")
-		c.UI.Output(pool + ":")
-
-		for from, msg := range response.Messages {
-			c.UI.Output(fmt.Sprintf("  ===> %s: %s", from, msg))
-		}
-
-		for key, num := range response.Keys {
-			c.UI.Output(fmt.Sprintf("  %s [%d/%d]", key, num, response.NumNodes))
-		}
+func formatResponse(response *consulapi.KeyringResponse, keys map[string]int) string {
+	result := []string{
+		"",
+		poolName(response.Datacenter, response.WAN, response.Segment) + ":",
+		formatMessages(response.Messages),
+		formatKeys(keys, response.NumNodes),
 	}
+	return strings.Replace(strings.Join(result, "\n"), "\n\n", "\n", -1)
+}
+
+func poolName(dc string, wan bool, segment string) string {
+	pool := fmt.Sprintf("%s (LAN)", dc)
+	if wan {
+		pool = "WAN"
+	}
+	if segment != "" {
+		segment = fmt.Sprintf(" [%s]", segment)
+	}
+	return fmt.Sprintf("%s%s", pool, segment)
+}
+
+func formatMessages(messages map[string]string) string {
+	result := []string{}
+	for from, msg := range messages {
+		result = append(result, fmt.Sprintf("  ===> %s: %s", from, msg))
+	}
+	return strings.Join(result, "\n")
+}
+
+func formatKeys(keys map[string]int, total int) string {
+	result := []string{}
+	for key, num := range keys {
+		result = append(result, fmt.Sprintf("  %s [%d/%d]", key, num, total))
+	}
+	return strings.Join(result, "\n")
 }
 
 func (c *cmd) Synopsis() string {
