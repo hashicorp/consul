@@ -29,7 +29,7 @@ func TestParseStructAnnotation_Full(t *testing.T) {
 		Target:           target{"github.com/hashicorp/consul/structs", "Node"},
 		Output:           "node.gen.go",
 		FuncNameFragment: "Structs",
-		IgnoreFields:     []string{"RaftIndex", "HiddenField", "TheThirdOne"},
+		IgnoreFields:     newStringSetFromSlice([]string{"RaftIndex", "HiddenField", "TheThirdOne"}),
 		FuncFrom:         "convNodeToStructs",
 		FuncTo:           "convStructsToNode",
 	}

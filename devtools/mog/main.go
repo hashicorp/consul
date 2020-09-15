@@ -9,7 +9,7 @@ import (
 
 func main() {
 	if err := run(os.Args); err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
+		fmt.Fprintln(os.Stderr, "ERROR", err.Error())
 		os.Exit(1)
 	}
 }
@@ -23,6 +23,8 @@ func run(args []string) error {
 	case err != nil:
 		return err
 	}
+
+	log.SetFlags(0)
 	return runMog(*opts)
 }
 
@@ -54,12 +56,16 @@ func runMog(opts options) error {
 		return fmt.Errorf("failed to parse annotations: %w", err)
 	}
 
-	log.Printf("Generated code for %d structs", len(cfg.Structs))
+	if len(cfg.Structs) == 0 {
+		return fmt.Errorf("no source structs found in %v", opts.source)
+	}
+
 	targets, err := loadTargetStructs(targetPackages(cfg.Structs))
 	if err != nil {
 		return fmt.Errorf("failed to load targets: %w", err)
 	}
 
+	log.Printf("Generating code for %d structs", len(cfg.Structs))
 	return generateFiles(cfg, targets)
 }
 

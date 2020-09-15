@@ -20,7 +20,7 @@ func generateFiles(cfg config, targets map[string]targetPkg) error {
 		for _, cfg := range group {
 			t := targets[cfg.Target.Package].Structs[cfg.Target.Struct]
 			if t.Name == "" {
-				return fmt.Errorf("unable to locate target %v for %v", cfg.Target, cfg.Source)
+				return fmt.Errorf("failed to locate target %v for %v", cfg.Target, cfg.Source)
 			}
 
 			gen, err := generateConversion(cfg, t)
@@ -93,38 +93,33 @@ func generateConversion(cfg structConfig, t targetStruct) (generated, error) {
 	// TODO: would it make sense to store the fields as a map instead of building it here?
 	sourceFields := sourceFieldMap(cfg.Fields)
 	for _, field := range t.Fields {
-		sourceField := sourceFields[field.Name()]
-		// TODO: skip missing source fields, and record the field name for later
-		// and error if the field is not in ignore-fields
+		name := field.Name()
 
-		// TODO: add support for func-from, func-to
+		// TODO: test case to include ignored field
+		if _, contains := cfg.IgnoreFields[name]; contains {
+			continue
+		}
+
+		sourceField := sourceFields[name]
+		// TODO: store error for missing sourceField, and return error at the end
+
 		// TODO: handle pointer
 
-		srcExpr := []ast.Expr{&ast.SelectorExpr{
+		srcExpr := &ast.SelectorExpr{
 			X:   &ast.Ident{Name: varNameSource},
 			Sel: &ast.Ident{Name: sourceField.SourceName},
-		}}
-		targetExpr := []ast.Expr{&ast.SelectorExpr{
+		}
+		targetExpr := &ast.SelectorExpr{
 			X:   &ast.Ident{Name: varNameTarget},
-			Sel: &ast.Ident{Name: field.Name()},
-		}}
-
-		stmt := &ast.AssignStmt{
-			Lhs: targetExpr,
-			Tok: token.ASSIGN,
-			Rhs: srcExpr,
+			Sel: &ast.Ident{Name: name},
 		}
-		to.Body.List = append(to.Body.List, stmt)
 
-		stmt = &ast.AssignStmt{
-			Lhs: srcExpr,
-			Tok: token.ASSIGN,
-			Rhs: targetExpr,
-		}
-		from.Body.List = append(from.Body.List, stmt)
+		to.Body.List = append(to.Body.List,
+			newAssignStmt(targetExpr, srcExpr, sourceField.FuncTo))
+
+		from.Body.List = append(from.Body.List,
+			newAssignStmt(srcExpr, targetExpr, sourceField.FuncFrom))
 	}
-
-	// TODO: add func-from, func-to calls
 
 	returnStmt := &ast.ReturnStmt{Results: []ast.Expr{&ast.Ident{Name: varNameTarget}}}
 	to.Body.List = append(to.Body.List, returnStmt)
@@ -142,6 +137,22 @@ func generateConversion(cfg structConfig, t targetStruct) (generated, error) {
 	g.Imports = append(g.Imports, targetImport)
 
 	return g, nil
+}
+
+// TODO: test case with funcFrom/FuncTo
+func newAssignStmt(left ast.Expr, right ast.Expr, funcName string) *ast.AssignStmt {
+	if funcName != "" {
+		right = &ast.CallExpr{
+			Fun:  &ast.Ident{Name: funcName},
+			Args: []ast.Expr{right},
+		}
+	}
+
+	return &ast.AssignStmt{
+		Lhs: []ast.Expr{left},
+		Tok: token.ASSIGN,
+		Rhs: []ast.Expr{right},
+	}
 }
 
 func quote(v string) string {
