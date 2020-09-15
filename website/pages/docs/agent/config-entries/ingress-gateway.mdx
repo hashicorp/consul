@@ -382,7 +382,6 @@ traffic to a virtual service named "api".
 {
   "Kind": "ingress-gateway",
   "Name": "us-east-ingress",
-  "Namespace": "default",
   "Listeners": [
     {
       "Port": 80,
@@ -390,7 +389,6 @@ traffic to a virtual service named "api".
       "Services": [
         {
           "Name": "api",
-          "Namespace": "frontend"
         }
       ]
     }
