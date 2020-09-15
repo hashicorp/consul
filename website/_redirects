@@ -60,7 +60,6 @@
 /docs/k8s/operations/upgrading                       /docs/k8s/upgrade                                 301!
 /docs/k8s/operations/uninstalling                    /docs/k8s/uninstall                               301!
 /docs/k8s/operations/tls-on-existing-cluster         /docs/k8s/tls-on-existing-cluster                 301!
-/docs/k8s/helm                                       /docs/k8s/installation/helm                       301!
 /docs/agent/services                                 /docs/discovery/services                          301!
 /docs/agent/checks                                   /docs/discovery/checks                            301!
 /docs/agent/dns                                      /docs/discovery/dns                               301!
@@ -90,6 +89,7 @@
 /intro/vs/proxies                                    /docs/intro/vs/proxies                            301!
 /intro/vs/custom                                     /docs/intro/vs/custom                             301!
 /download-tools                                      /docs/download-tools                              301!
+/downloads_tools                                     /docs/download-tools                              301!
 /docs/k8s/ambassador                                 /docs/k8s/connect/ambassador                      301!
 /docs/k8s/installation/overview                      /docs/k8s/installation/install                    301!
 /docs/partnerships                                   /docs/integrate/partnerships                      301!
@@ -330,8 +330,8 @@
 /docs/connect/platform/nomad.html        /docs/connect/nomad               301!
 /docs/connect/platform/nomad             /docs/connect/nomad               301!
 
-/docs/platform/k8s/run.html                         /docs/k8s/installation                                                    301!
-/docs/platform/k8s/run                              /docs/k8s/installation                                                    301!
+/docs/platform/k8s/run.html                         /docs/k8s/installation/install                                                     301!
+/docs/platform/k8s/run                              /docs/k8s/installation/install                                                     301!
 /docs/platform/k8s/consul-enterprise.html           /docs/k8s/installation/deployment-configurations/consul-enterprise                 301!
 /docs/platform/k8s/consul-enterprise                /docs/k8s/installation/deployment-configurations/consul-enterprise                 301!
 /docs/platform/k8s/clients-outside-kubernetes.html  /docs/k8s/installation/deployment-configurations/clients-outside-kubernetes        301!
