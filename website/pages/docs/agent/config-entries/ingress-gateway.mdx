@@ -445,23 +445,23 @@ Routes = [
   {
     Match {
       HTTP {
-        PathPrefix = "/api_service1"
+        PathPrefix = "/billing"
       }
     }
 
     Destination {
-      Service = "api_service1"
+      Service = "billing-api"
     }
   },
   {
     Match {
       HTTP {
-        PathPrefix = "/api_service2"
+        PathPrefix = "/payments"
       }
     }
 
     Destination {
-      Service = "api_service2"
+      Service = "payments-api"
     }
   }
 ]
@@ -478,24 +478,24 @@ Routes = [
   {
     Match {
       HTTP {
-        PathPrefix = "/api_service1"
+        PathPrefix = "/billing"
       }
     }
 
     Destination {
-      Service = "api_service1"
+      Service = "billing-api"
       Namespace = "frontend"
     }
   },
   {
     Match {
       HTTP {
-        PathPrefix = "/api_service2"
+        PathPrefix = "/payments"
       }
     }
 
     Destination {
-      Service = "api_service2"
+      Service = "payments-api"
       Namespace = "frontend"
     }
   }
@@ -513,21 +513,21 @@ Routes = [
     {
       "Match": {
         "HTTP": {
-          "PathPrefix": "/api_service1"
+          "PathPrefix": "/billing"
         }
       },
       "Destination": {
-        "Service": "api_service1"
+        "Service": "billing-api"
       }
     },
     {
       "Match": {
         "HTTP": {
-          "PathPrefix": "/api_service2"
+          "PathPrefix": "/payments"
         }
       },
       "Destination": {
-        "Service": "api_service2"
+        "Service": "payments-api"
       }
     }
   ]
@@ -546,22 +546,22 @@ Routes = [
     {
       "Match": {
         "HTTP": {
-          "PathPrefix": "/api_service1"
+          "PathPrefix": "/billing"
         }
       },
       "Destination": {
-        "Service": "api_service1",
+        "Service": "billing-api",
         "Namespace": "frontend"
       }
     },
     {
       "Match": {
         "HTTP": {
-          "PathPrefix": "/api_service2"
+          "PathPrefix": "/payments"
         }
       },
       "Destination": {
-        "Service": "api_service2",
+        "Service": "payments-api",
         "Namespace": "frontend"
       }
     }
