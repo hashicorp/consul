@@ -536,10 +536,13 @@ func (r *Router) GetDatacentersByDistance() ([]string, error) {
 		for _, m := range info.cluster.Members() {
 			ok, parts := metadata.IsConsulServer(m)
 			if !ok {
-				r.logger.Warn("Non-server in server-only area",
-					"non_server", m.Name,
-					"area", areaID,
-				)
+				if areaID != types.AreaLAN {
+					r.logger.Warn("Non-server in server-only area",
+						"non_server", m.Name,
+						"area", areaID,
+						"func", "GetDatacentersByDistance",
+					)
+				}
 				continue
 			}
 
@@ -547,6 +550,7 @@ func (r *Router) GetDatacentersByDistance() ([]string, error) {
 				r.logger.Debug("server in area left, skipping",
 					"server", m.Name,
 					"area", areaID,
+					"func", "GetDatacentersByDistance",
 				)
 				continue
 			}
@@ -607,10 +611,13 @@ func (r *Router) GetDatacenterMaps() ([]structs.DatacenterMap, error) {
 		for _, m := range info.cluster.Members() {
 			ok, parts := metadata.IsConsulServer(m)
 			if !ok {
-				r.logger.Warn("Non-server in server-only area",
-					"non_server", m.Name,
-					"area", areaID,
-				)
+				if areaID != types.AreaLAN {
+					r.logger.Warn("Non-server in server-only area",
+						"non_server", m.Name,
+						"area", areaID,
+						"func", "GetDatacenterMaps",
+					)
+				}
 				continue
 			}
 
@@ -618,6 +625,7 @@ func (r *Router) GetDatacenterMaps() ([]structs.DatacenterMap, error) {
 				r.logger.Debug("server in area left, skipping",
 					"server", m.Name,
 					"area", areaID,
+					"func", "GetDatacenterMaps",
 				)
 				continue
 			}
