@@ -567,21 +567,20 @@ func (s *Server) startConnectLeader() {
 
 // stopConnectLeader stops connect specific leader functions.
 func (s *Server) stopConnectLeader() {
-	s.caProviderReconfigurationLock.Lock()
-	defer s.caProviderReconfigurationLock.Unlock()
+	s.leaderRoutineManager.Stop(secondaryCARootWatchRoutineName)
+	s.leaderRoutineManager.Stop(intentionReplicationRoutineName)
+	s.leaderRoutineManager.Stop(caRootPruningRoutineName)
+	s.stopConnectLeaderEnterprise()
 
 	// If the provider implements NeedsStop, we call Stop to perform any shutdown actions.
+	s.caProviderReconfigurationLock.Lock()
+	defer s.caProviderReconfigurationLock.Unlock()
 	provider, _ := s.getCAProvider()
 	if provider != nil {
 		if needsStop, ok := provider.(ca.NeedsStop); ok {
 			needsStop.Stop()
 		}
 	}
-
-	s.leaderRoutineManager.Stop(secondaryCARootWatchRoutineName)
-	s.leaderRoutineManager.Stop(intentionReplicationRoutineName)
-	s.leaderRoutineManager.Stop(caRootPruningRoutineName)
-	s.stopConnectLeaderEnterprise()
 }
 
 func (s *Server) runCARootPruning(ctx context.Context) error {

@@ -126,7 +126,7 @@ func (v *VaultProvider) renewToken(ctx context.Context, renewer *vaultapi.Renewe
 
 		case err := <-renewer.DoneCh():
 			if err != nil {
-				v.logger.Error(fmt.Sprintf("Error renewing token for Vault provider: %v", err))
+				v.logger.Error("Error renewing token for Vault provider", "error", err)
 			}
 
 			// Renewer routine has finished, so start it again.
