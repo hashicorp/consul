@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/agent/consul/stream"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/go-memdb"
 )
 
@@ -158,18 +159,9 @@ func (tx *txn) Commit() error {
 	return nil
 }
 
-// TODO: may be replaced by a gRPC type.
-type topic string
-
-func (t topic) String() string {
-	return string(t)
-}
-
 var (
-	// TopicServiceHealth contains events for all registered service instances.
-	TopicServiceHealth topic = "topic-service-health"
-	// TopicServiceHealthConnect contains events for connect-enabled service instances.
-	TopicServiceHealthConnect topic = "topic-service-health-connect"
+	topicServiceHealth        = pbsubscribe.Topic_ServiceHealth
+	topicServiceHealthConnect = pbsubscribe.Topic_ServiceHealthConnect
 )
 
 func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {
@@ -191,7 +183,7 @@ func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {
 
 func newSnapshotHandlers(s *Store) stream.SnapshotHandlers {
 	return stream.SnapshotHandlers{
-		TopicServiceHealth:        serviceHealthSnapshot(s, TopicServiceHealth),
-		TopicServiceHealthConnect: serviceHealthSnapshot(s, TopicServiceHealthConnect),
+		topicServiceHealth:        serviceHealthSnapshot(s, topicServiceHealth),
+		topicServiceHealthConnect: serviceHealthSnapshot(s, topicServiceHealthConnect),
 	}
 }
