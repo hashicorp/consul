@@ -85,12 +85,13 @@ func newDialer(servers ServerLocator, wrapper TLSWrapper) func(context.Context, 
 
 		server, err := servers.ServerForAddr(addr)
 		if err != nil {
-			// TODO: should conn be closed in this case, as it is in other error cases?
+			conn.Close()
 			return nil, err
 		}
 
 		if server.UseTLS {
 			if wrapper == nil {
+				conn.Close()
 				return nil, fmt.Errorf("TLS enabled but got nil TLS wrapper")
 			}
 
@@ -111,7 +112,7 @@ func newDialer(servers ServerLocator, wrapper TLSWrapper) func(context.Context, 
 
 		_, err = conn.Write([]byte{pool.RPCGRPC})
 		if err != nil {
-			// TODO: should conn be closed in this case, as it is in other error cases?
+			conn.Close()
 			return nil, err
 		}
 

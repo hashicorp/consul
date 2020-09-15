@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"net"
 	"strings"
 	"testing"
 	"time"
@@ -14,10 +15,35 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewDialer(t *testing.T) {
-	// TODO: conn is closed on errors
-	// TODO: with TLS enabled
+func TestNewDialer_WithTLSWrapper(t *testing.T) {
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	t.Cleanup(logError(t, lis.Close))
+
+	builder := resolver.NewServerResolverBuilder(resolver.Config{})
+	builder.AddServer(&metadata.Server{
+		Name:       "server-1",
+		ID:         "ID1",
+		Datacenter: "dc1",
+		Addr:       lis.Addr(),
+		UseTLS:     true,
+	})
+
+	var called bool
+	wrapper := func(_ string, conn net.Conn) (net.Conn, error) {
+		called = true
+		return conn, nil
+	}
+	dial := newDialer(builder, wrapper)
+	ctx := context.Background()
+	conn, err := dial(ctx, lis.Addr().String())
+	require.NoError(t, err)
+	require.NoError(t, conn.Close())
+	require.True(t, called, "expected TLSWrapper to be called")
 }
+
+// TODO: integration test TestNewDialer with TLS and rcp server, when the rpc
+// exists as an isolated component.
 
 func TestClientConnPool_IntegrationWithGRPCResolver_Failover(t *testing.T) {
 	count := 4
