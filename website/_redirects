@@ -115,6 +115,7 @@
 /download-tools                                      /docs/download-tools                              301!
 /downloads_tools                                     /docs/download-tools                              301!
 /download_tools                                      /docs/download-tools                              301!
+/downloads_tools                                     /docs/download-tools                              301!
 /docs/k8s/ambassador                                 /docs/k8s/connect/ambassador                      301!
 /docs/k8s/installation/overview                      /docs/k8s/installation/install                    301!
 /docs/k8s/installation/muti-cluster/overview         /docs/k8s/installation/multi-cluster                    301!
