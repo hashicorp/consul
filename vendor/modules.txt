@@ -191,13 +191,6 @@ github.com/gophercloud/gophercloud/openstack/identity/v2/tokens
 github.com/gophercloud/gophercloud/openstack/identity/v3/tokens
 github.com/gophercloud/gophercloud/openstack/utils
 github.com/gophercloud/gophercloud/pagination
-# github.com/hashicorp/consul/api v1.6.0 => ./api
-github.com/hashicorp/consul/api
-github.com/hashicorp/consul/api/watch
-# github.com/hashicorp/consul/sdk v0.6.0 => ./sdk
-github.com/hashicorp/consul/sdk/freeport
-github.com/hashicorp/consul/sdk/testutil
-github.com/hashicorp/consul/sdk/testutil/retry
 # github.com/hashicorp/errwrap v1.0.0
 github.com/hashicorp/errwrap
 # github.com/hashicorp/go-bexpr v0.1.2

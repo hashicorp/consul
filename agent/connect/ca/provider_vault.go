@@ -92,7 +92,7 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 
 	// Set up a renewer to renew the token automatically, if supported.
 	if token.Renewable {
-		renewer, err := client.NewRenewer(&vaultapi.RenewerInput{
+		lifetimeWatcher, err := client.NewLifetimeWatcher(&vaultapi.LifetimeWatcherInput{
 			Secret: &vaultapi.Secret{
 				Auth: &vaultapi.SecretAuth{
 					ClientToken:   config.Token,
@@ -100,7 +100,8 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 					LeaseDuration: secret.LeaseDuration,
 				},
 			},
-			Increment: token.TTL,
+			Increment:     token.TTL,
+			RenewBehavior: vaultapi.RenewBehaviorIgnoreErrors,
 		})
 		if err != nil {
 			return fmt.Errorf("Error beginning Vault provider token renewal: %v", err)
@@ -108,31 +109,31 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 
 		ctx, cancel := context.WithCancel(context.TODO())
 		v.shutdown = cancel
-		go v.renewToken(ctx, renewer)
+		go v.renewToken(ctx, lifetimeWatcher)
 	}
 
 	return nil
 }
 
 // renewToken uses a vaultapi.Renewer to repeatedly renew our token's lease.
-func (v *VaultProvider) renewToken(ctx context.Context, renewer *vaultapi.Renewer) {
-	go renewer.Renew()
-	defer renewer.Stop()
+func (v *VaultProvider) renewToken(ctx context.Context, watcher *vaultapi.LifetimeWatcher) {
+	go watcher.Start()
+	defer watcher.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
 			return
 
-		case err := <-renewer.DoneCh():
+		case err := <-watcher.DoneCh():
 			if err != nil {
 				v.logger.Error("Error renewing token for Vault provider", "error", err)
 			}
 
-			// Renewer routine has finished, so start it again.
-			go renewer.Renew()
+			// Watcher routine has finished, so start it again.
+			go watcher.Start()
 
-		case <-renewer.RenewCh():
+		case <-watcher.RenewCh():
 			v.logger.Error("Successfully renewed token for Vault provider")
 		}
 	}
