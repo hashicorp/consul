@@ -15,7 +15,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"text/template"
 	"time"
 
 	"github.com/NYTimes/gziphandler"
@@ -88,64 +87,64 @@ type HTTPServer struct {
 	denylist *Denylist
 }
 
-type templatedFile struct {
+// bufferedFile implements os.File and allows us to modify a file from disk by
+// writing out the new version into a buffer and then serving file reads from
+// that. It assumes you are modifying a real file and presents the actual file's
+// info when queried.
+type bufferedFile struct {
 	templated *bytes.Reader
-	name      string
-	mode      os.FileMode
-	modTime   time.Time
+	info      os.FileInfo
 }
 
-func newTemplatedFile(buf *bytes.Buffer, raw http.File) *templatedFile {
+func newBufferedFile(buf *bytes.Buffer, raw http.File) *bufferedFile {
 	info, _ := raw.Stat()
-	return &templatedFile{
+	return &bufferedFile{
 		templated: bytes.NewReader(buf.Bytes()),
-		name:      info.Name(),
-		mode:      info.Mode(),
-		modTime:   info.ModTime(),
+		info:      info,
 	}
 }
 
-func (t *templatedFile) Read(p []byte) (n int, err error) {
+func (t *bufferedFile) Read(p []byte) (n int, err error) {
 	return t.templated.Read(p)
 }
 
-func (t *templatedFile) Seek(offset int64, whence int) (int64, error) {
+func (t *bufferedFile) Seek(offset int64, whence int) (int64, error) {
 	return t.templated.Seek(offset, whence)
 }
 
-func (t *templatedFile) Close() error {
+func (t *bufferedFile) Close() error {
 	return nil
 }
 
-func (t *templatedFile) Readdir(count int) ([]os.FileInfo, error) {
+func (t *bufferedFile) Readdir(count int) ([]os.FileInfo, error) {
 	return nil, errors.New("not a directory")
 }
 
-func (t *templatedFile) Stat() (os.FileInfo, error) {
+func (t *bufferedFile) Stat() (os.FileInfo, error) {
 	return t, nil
 }
 
-func (t *templatedFile) Name() string {
-	return t.name
+func (t *bufferedFile) Name() string {
+	return t.info.Name()
 }
 
-func (t *templatedFile) Size() int64 {
+func (t *bufferedFile) Size() int64 {
 	return int64(t.templated.Len())
 }
 
-func (t *templatedFile) Mode() os.FileMode {
-	return t.mode
+func (t *bufferedFile) Mode() os.FileMode {
+	return t.info.Mode()
 }
 
-func (t *templatedFile) ModTime() time.Time {
-	return t.modTime
+func (t *bufferedFile) ModTime() time.Time {
+	return t.info.ModTime()
 }
 
-func (t *templatedFile) IsDir() bool {
+func (t *bufferedFile) IsDir() bool {
 	return false
 }
 
-func (t *templatedFile) Sys() interface{} {
+func (t *bufferedFile) Sys() interface{} {
 	return nil
 }
 
@@ -161,28 +160,56 @@ func (fs *redirectFS) Open(name string) (http.File, error) {
 	return file, err
 }
 
-type templatedIndexFS struct {
-	fs           http.FileSystem
-	templateVars func() map[string]interface{}
+type settingsInjectedIndexFS struct {
+	fs         http.FileSystem
+	UISettings map[string]interface{}
 }
 
-func (fs *templatedIndexFS) Open(name string) (http.File, error) {
+func (fs *settingsInjectedIndexFS) Open(name string) (http.File, error) {
 	file, err := fs.fs.Open(name)
 	if err != nil || name != "/index.html" {
 		return file, err
 	}
 
-	content, _ := ioutil.ReadAll(file)
-	file.Seek(0, 0)
-	t, err := template.New("fmtedindex").Parse(string(content))
+	content, err := ioutil.ReadAll(file)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed reading index.html: %s", err)
 	}
-	var out bytes.Buffer
-	if err := t.Execute(&out, fs.templateVars()); err != nil {
-		return nil, err
+	file.Seek(0, 0)
+
+	// Replace the placeholder in the meta ENV with the actual UI config settings.
+	// Ember passes the ENV with URL encoded JSON in a meta tag. We are replacing
+	// a key and value that is the encoded version of
+	// `"CONSUL_UI_SETTINGS_PLACEHOLDER":"__CONSUL_UI_SETTINGS_GO_HERE__"`
+	// with a URL-encoded JSON blob representing the actual config.
+
+	// First built an escaped, JSON blob from the settings passed.
+	bs, err := json.Marshal(fs.UISettings)
+	if err != nil {
+		return nil, fmt.Errorf("failed marshalling UI settings JSON: %s", err)
 	}
-	return newTemplatedFile(&out, file), nil
+	// We want to remove the first and last chars which will be the { and } since
+	// we are injecting these variabled into the middle of an existing object.
+	bs = bytes.Trim(bs, "{}")
+
+	// We use PathEscape because we don't want  spaces to be turned into "+" like
+	// QueryEscape does.
+	escaped := url.PathEscape(string(bs))
+
+	content = bytes.Replace(content,
+		[]byte("%22CONSUL_UI_SETTINGS_PLACEHOLDER%22%3A%22__CONSUL_UI_SETTINGS_GO_HERE__%22"),
+		[]byte(escaped), 1)
+
+	// We also need to inject the content path. This used to be a go template
+	// hence the syntax but for now simple string replacement is fine esp. since
+	// all the other templated stuff above can't easily be done that was as we are
+	// replacing an entire placeholder element in an encoded JSON blob with
+	// multiple encoded JSON elements.
+	if path, ok := fs.UISettings["CONSUL_CONTENT_PATH"].(string); ok {
+		content = bytes.Replace(content, []byte("{{.ContentPath}}"), []byte(path), -1)
+	}
+
+	return newBufferedFile(bytes.NewBuffer(content), file), nil
 }
 
 // endpoint is a Consul-specific HTTP handler that takes the usual arguments in
@@ -332,7 +359,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 			uifs = fs
 		}
 
-		uifs = &redirectFS{fs: &templatedIndexFS{fs: uifs, templateVars: s.GenerateHTMLTemplateVars}}
+		uifs = &redirectFS{fs: &settingsInjectedIndexFS{fs: uifs, UISettings: s.GetUIENVFromConfig()}}
 		// create a http handler using the ui file system
 		// and the headers specified by the http_config.response_headers user config
 		uifsWithHeaders := serveHandlerWithHeaders(
@@ -366,13 +393,13 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 	}
 }
 
-func (s *HTTPServer) GenerateHTMLTemplateVars() map[string]interface{} {
+func (s *HTTPServer) GetUIENVFromConfig() map[string]interface{} {
 	vars := map[string]interface{}{
-		"ContentPath": s.agent.config.UIContentPath,
-		"ACLsEnabled": s.agent.config.ACLsEnabled,
+		"CONSUL_CONTENT_PATH": s.agent.config.UIContentPath,
+		"CONSUL_ACLS_ENABLED": s.agent.config.ACLsEnabled,
 	}
 
-	s.addEnterpriseHTMLTemplateVars(vars)
+	s.addEnterpriseUIENVVars(vars)
 
 	return vars
 }
