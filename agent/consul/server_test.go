@@ -1479,7 +1479,7 @@ func TestServer_ReloadConfig(t *testing.T) {
 
 	dir1, s := testServerWithConfig(t, func(c *Config) {
 		c.Build = "1.5.0"
-		c.RPCRate = 500
+		c.RPCRateLimit = 500
 		c.RPCMaxBurst = 5000
 	})
 	defer os.RemoveAll(dir1)
@@ -1520,7 +1520,7 @@ func TestServer_RPC_RateLimit(t *testing.T) {
 
 	t.Parallel()
 	_, conf1 := testServerConfig(t)
-	conf1.RPCRate = 2
+	conf1.RPCRateLimit = 2
 	conf1.RPCMaxBurst = 2
 	s1, err := newServer(t, conf1)
 	if err != nil {

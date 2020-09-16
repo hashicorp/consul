@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/debug"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
@@ -37,6 +38,7 @@ import (
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/time/rate"
 )
 
 func makeReadOnlyAgentACL(t *testing.T, srv *HTTPHandlers) string {
@@ -1452,6 +1454,8 @@ func TestAgent_Reload(t *testing.T) {
 		`,
 	})
 
+	shim := &delegateConfigReloadShim{delegate: a.delegate}
+	a.delegate = shim
 	if err := a.reloadConfigInternal(cfg2); err != nil {
 		t.Fatalf("got error %v want nil", err)
 	}
@@ -1459,19 +1463,24 @@ func TestAgent_Reload(t *testing.T) {
 		t.Fatal("missing redis-reloaded service")
 	}
 
-	if a.config.RPCRateLimit != 2 {
-		t.Fatalf("RPC rate not set correctly.  Got %v. Want 2", a.config.RPCRateLimit)
-	}
-
-	if a.config.RPCMaxBurst != 200 {
-		t.Fatalf("RPC max burst not set correctly.  Got %v. Want 200", a.config.RPCMaxBurst)
-	}
+	require.Equal(t, rate.Limit(2), shim.newCfg.RPCRateLimit)
+	require.Equal(t, 200, shim.newCfg.RPCMaxBurst)
 
 	for _, wp := range a.watchPlans {
 		if !wp.IsStopped() {
 			t.Fatalf("Reloading configs should stop watch plans of the previous configuration")
 		}
 	}
+}
+
+type delegateConfigReloadShim struct {
+	delegate
+	newCfg consul.ReloadableConfig
+}
+
+func (s *delegateConfigReloadShim) ReloadConfig(cfg consul.ReloadableConfig) error {
+	s.newCfg = cfg
+	return s.delegate.ReloadConfig(cfg)
 }
 
 // TestAgent_ReloadDoesNotTriggerWatch Ensure watches not triggered after reload

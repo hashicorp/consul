@@ -730,7 +730,7 @@ func TestRPC_RPCMaxConnsPerClient(t *testing.T) {
 
 			// Reload config with higher limit
 			rc := ReloadableConfig{
-				RPCRateLimit:         s1.config.RPCRate,
+				RPCRateLimit:         s1.config.RPCRateLimit,
 				RPCMaxBurst:          s1.config.RPCMaxBurst,
 				RPCMaxConnsPerClient: 10,
 			}

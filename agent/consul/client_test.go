@@ -533,7 +533,7 @@ func TestClient_RPC_RateLimit(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	_, conf2 := testClientConfig(t)
-	conf2.RPCRate = 2
+	conf2.RPCRateLimit = 2
 	conf2.RPCMaxBurst = 2
 	c1 := newClient(t, conf2)
 
@@ -602,7 +602,7 @@ func TestClient_SnapshotRPC_RateLimit(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	_, conf1 := testClientConfig(t)
-	conf1.RPCRate = 2
+	conf1.RPCRateLimit = 2
 	conf1.RPCMaxBurst = 2
 	c1 := newClient(t, conf1)
 
@@ -765,7 +765,7 @@ func TestClientServer_UserEvent(t *testing.T) {
 
 func TestClient_ReloadConfig(t *testing.T) {
 	_, cfg := testClientConfig(t)
-	cfg.RPCRate = rate.Limit(500)
+	cfg.RPCRateLimit = rate.Limit(500)
 	cfg.RPCMaxBurst = 5000
 	deps := newDefaultDeps(t, &Config{NodeName: "node1", Datacenter: "dc1"})
 	c, err := NewClient(cfg, deps)

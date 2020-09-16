@@ -416,16 +416,16 @@ type Config struct {
 	// place, and a small jitter is applied to avoid a thundering herd.
 	RPCHoldTimeout time.Duration
 
-	// RPCRate and RPCMaxBurst control how frequently RPC calls are allowed
+	// RPCRateLimit and RPCMaxBurst control how frequently RPC calls are allowed
 	// to happen. In any large enough time interval, rate limiter limits the
-	// rate to RPCRate tokens per second, with a maximum burst size of
-	// RPCMaxBurst events. As a special case, if RPCRate == Inf (the infinite
+	// rate to RPCRateLimit tokens per second, with a maximum burst size of
+	// RPCMaxBurst events. As a special case, if RPCRateLimit == Inf (the infinite
 	// rate), RPCMaxBurst is ignored.
 	//
 	// See https://en.wikipedia.org/wiki/Token_bucket for more about token
 	// buckets.
-	RPCRate     rate.Limit
-	RPCMaxBurst int
+	RPCRateLimit rate.Limit
+	RPCMaxBurst  int
 
 	// RPCMaxConnsPerClient is the limit of how many concurrent connections are
 	// allowed from a single source IP.
@@ -582,8 +582,8 @@ func DefaultConfig() *Config {
 
 		CheckOutputMaxSize: checks.DefaultBufSize,
 
-		RPCRate:     rate.Inf,
-		RPCMaxBurst: 1000,
+		RPCRateLimit: rate.Inf,
+		RPCMaxBurst:  1000,
 
 		TLSMinVersion: "tls10",
 
