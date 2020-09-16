@@ -569,7 +569,6 @@ func (s *Server) stopConnectLeader() {
 	s.leaderRoutineManager.Stop(secondaryCARootWatchRoutineName)
 	s.leaderRoutineManager.Stop(intentionReplicationRoutineName)
 	s.leaderRoutineManager.Stop(caRootPruningRoutineName)
-	s.stopConnectLeaderEnterprise()
 
 	// If the provider implements NeedsStop, we call Stop to perform any shutdown actions.
 	s.caProviderReconfigurationLock.Lock()
