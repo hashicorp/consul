@@ -41,7 +41,9 @@ func (p sourcePkg) StructNames() []string {
 	return names
 }
 
-func loadSourceStructs(path string) (sourcePkg, error) {
+type handlePkgLoadErr func(pkg *packages.Package) error
+
+func loadSourceStructs(path string, handleErr handlePkgLoadErr) (sourcePkg, error) {
 	p := sourcePkg{Structs: map[string]structDecl{}}
 	cfg := &packages.Config{Mode: modeLoadAll}
 	pkgs, err := packages.Load(cfg, path)
@@ -53,7 +55,7 @@ func loadSourceStructs(path string) (sourcePkg, error) {
 	}
 
 	pkg := pkgs[0]
-	if err := packageLoadErrors(pkg); err != nil {
+	if err := handleErr(pkg); err != nil {
 		return p, err
 	}
 	if len(pkg.GoFiles) < 1 {

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+
+	"golang.org/x/tools/go/packages"
 )
 
 func main() {
@@ -29,7 +31,19 @@ func run(args []string) error {
 }
 
 type options struct {
-	source string
+	source                  string
+	ignorePackageLoadErrors bool
+}
+
+func (o options) handlePackageLoadErrors(pkg *packages.Package) error {
+	if o.ignorePackageLoadErrors {
+		// TODO: setup logger
+		for _, err := range pkg.Errors {
+			log.Println(err.Error())
+		}
+		return nil
+	}
+	return packageLoadErrors(pkg)
 }
 
 func setupFlags(name string) (*flag.FlagSet, *options) {
@@ -38,6 +52,9 @@ func setupFlags(name string) (*flag.FlagSet, *options) {
 
 	// TODO: make this a positional arg, set a Usage func to document it
 	flags.StringVar(&opts.source, "source", ".", "package path for source structs")
+
+	flags.BoolVar(&opts.ignorePackageLoadErrors, "ignore-package-load-errors", false,
+		"ignore any syntax errors encountered while loading source")
 	return flags, opts
 }
 
@@ -46,7 +63,7 @@ func runMog(opts options) error {
 		return fmt.Errorf("missing required source package")
 	}
 
-	sources, err := loadSourceStructs(opts.source)
+	sources, err := loadSourceStructs(opts.source, opts.handlePackageLoadErrors)
 	if err != nil {
 		return fmt.Errorf("failed to load source from %s: %w", opts.source, err)
 	}
