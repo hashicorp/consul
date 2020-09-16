@@ -54,4 +54,5 @@ const (
 	UsageMetrics       string = "usage_metrics"
 	WAN                string = "wan"
 	Watch              string = "watch"
+	Vault              string = "vault"
 )
