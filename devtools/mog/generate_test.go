@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	gocmp "github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/golden"
@@ -75,11 +76,12 @@ func TestGenerateConversion(t *testing.T) {
 			newField("ID", types.Typ[types.String]),
 		},
 	}
-	gen, err := generateConversion(c, target)
+	imports := newImports()
+	gen, err := generateConversion(c, target, imports)
 	assert.NilError(t, err)
 
 	file := &ast.File{Name: &ast.Ident{Name: "src"}}
-	file.Decls = append(file.Decls, importDeclFromImports(gen.Imports))
+	file.Decls = append(file.Decls, imports.Decl())
 	file.Decls = append(file.Decls, gen.To, gen.From)
 
 	buf := new(bytes.Buffer)
@@ -88,4 +90,36 @@ func TestGenerateConversion(t *testing.T) {
 
 	golden.Assert(t, buf.String(), t.Name()+"-expected")
 	// TODO: check gen.RoundTripTest
+}
+
+func TestImports(t *testing.T) {
+	imp := newImports()
+
+	t.Run("add duplicate import", func(t *testing.T) {
+		imp.Add("", "example.com/foo")
+		imp.Add("", "example.com/foo")
+
+		expected := &imports{
+			byPkgPath: map[string]string{"example.com/foo": "foo"},
+			byAlias:   map[string]string{"foo": "example.com/foo"},
+		}
+		assert.DeepEqual(t, expected, imp, gocmp.AllowUnexported(imports{}))
+	})
+
+	t.Run("AliasFor", func(t *testing.T) {
+		imp.Add("somefoo", "example.com/some/foo")
+		imp.Add("", "example.com/stars")
+
+		assert.Equal(t, "somefoo", imp.AliasFor("example.com/some/foo"))
+		assert.Equal(t, "stars", imp.AliasFor("example.com/stars"))
+	})
+
+	if t.Failed() {
+		t.Skip("Decls value depends on previous subtests")
+	}
+	t.Run("Decls", func(t *testing.T) {
+		buf := new(bytes.Buffer)
+		format.Node(buf, new(token.FileSet), imp.Decl())
+		golden.Assert(t, buf.String(), "TestImports-Decls-expected")
+	})
 }

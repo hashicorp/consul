@@ -9,6 +9,7 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
+	"strconv"
 )
 
 func generateFiles(cfg config, targets map[string]targetPkg) error {
@@ -16,32 +17,29 @@ func generateFiles(cfg config, targets map[string]targetPkg) error {
 
 	for _, group := range byOutput {
 		var decls []ast.Decl
-		var imports []*ast.ImportSpec
+		imports := newImports()
+
 		for _, cfg := range group {
 			t := targets[cfg.Target.Package].Structs[cfg.Target.Struct]
 			if t.Name == "" {
 				return fmt.Errorf("failed to locate target %v for %v", cfg.Target, cfg.Source)
 			}
 
-			gen, err := generateConversion(cfg, t)
+			gen, err := generateConversion(cfg, t, imports)
 			if err != nil {
 				return fmt.Errorf("failed to generate conversion for %v: %w", cfg.Source, err)
 			}
 			decls = append(decls, gen.To, gen.From)
-			imports = append(imports, gen.Imports...)
 
-			// TODO: generate tests
+			// TODO: generate round trip testcase
 		}
 
 		output := filepath.Join(cfg.SourcePkg.Path, group[0].Output)
 		file := &ast.File{Name: &ast.Ident{Name: cfg.SourcePkg.Name}}
 
-		// TODO: remove, probably not necessary
-		file.Imports = imports
-
 		// Add all imports as the first declaration
 		// TODO: dedupe imports, handle conflicts
-		file.Decls = append([]ast.Decl{importDeclFromImports(imports)}, decls...)
+		file.Decls = append([]ast.Decl{imports.Decl()}, decls...)
 
 		if err := writeFile(output, file); err != nil {
 			return fmt.Errorf("failed to write generated code to %v: %w", output, err)
@@ -84,11 +82,12 @@ var (
 	varNameTarget = "t"
 )
 
-func generateConversion(cfg structConfig, t targetStruct) (generated, error) {
+func generateConversion(cfg structConfig, t targetStruct, imports *imports) (generated, error) {
 	var g generated
 
-	to := generateToFunc(cfg)
-	from := generateFromFunc(cfg)
+	imports.Add("", cfg.Target.Package)
+	to := generateToFunc(cfg, imports)
+	from := generateFromFunc(cfg, imports)
 
 	// TODO: would it make sense to store the fields as a map instead of building it here?
 	sourceFields := sourceFieldMap(cfg.Fields)
@@ -130,12 +129,6 @@ func generateConversion(cfg structConfig, t targetStruct) (generated, error) {
 	g.To = to
 	g.From = from
 
-	targetImport := &ast.ImportSpec{
-		Name: &ast.Ident{Name: path.Base(cfg.Target.Package)},
-		Path: &ast.BasicLit{Value: quote(cfg.Target.Package), Kind: token.STRING},
-	}
-	g.Imports = append(g.Imports, targetImport)
-
 	return g, nil
 }
 
@@ -155,10 +148,6 @@ func newAssignStmt(left ast.Expr, right ast.Expr, funcName string) *ast.AssignSt
 	}
 }
 
-func quote(v string) string {
-	return `"` + v + `"`
-}
-
 func sourceFieldMap(fields []fieldConfig) map[string]fieldConfig {
 	result := make(map[string]fieldConfig, len(fields))
 	for _, field := range fields {
@@ -172,17 +161,15 @@ func sourceFieldMap(fields []fieldConfig) map[string]fieldConfig {
 }
 
 type generated struct {
-	Imports []*ast.ImportSpec
-	To      *ast.FuncDecl
-	From    *ast.FuncDecl
+	To   *ast.FuncDecl
+	From *ast.FuncDecl
 
 	// TODO: RoundTripTest *ast.FuncDecl
 }
 
-func generateToFunc(cfg structConfig) *ast.FuncDecl {
+func generateToFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
 	targetType := &ast.SelectorExpr{
-		// TODO: lookup import name instead of assuming basename
-		X:   &ast.Ident{Name: path.Base(cfg.Target.Package)},
+		X:   &ast.Ident{Name: path.Base(imports.AliasFor(cfg.Target.Package))},
 		Sel: &ast.Ident{Name: cfg.Target.Struct},
 	}
 
@@ -215,10 +202,9 @@ func generateToFunc(cfg structConfig) *ast.FuncDecl {
 	}
 }
 
-func generateFromFunc(cfg structConfig) *ast.FuncDecl {
+func generateFromFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
 	targetType := &ast.SelectorExpr{
-		// TODO: lookup import name instead of assuming basename
-		X:   &ast.Ident{Name: path.Base(cfg.Target.Package)},
+		X:   &ast.Ident{Name: imports.AliasFor(cfg.Target.Package)},
 		Sel: &ast.Ident{Name: cfg.Target.Struct},
 	}
 
@@ -251,14 +237,6 @@ func generateFromFunc(cfg structConfig) *ast.FuncDecl {
 	}
 }
 
-func importDeclFromImports(i []*ast.ImportSpec) *ast.GenDecl {
-	decl := &ast.GenDecl{Tok: token.IMPORT}
-	for _, imprt := range i {
-		decl.Specs = append(decl.Specs, imprt)
-	}
-	return decl
-}
-
 // TODO: write build tags
 // TODO: write file header
 func writeFile(output string, file *ast.File) error {
@@ -267,4 +245,67 @@ func writeFile(output string, file *ast.File) error {
 		return err
 	}
 	return format.Node(fh, new(token.FileSet), file)
+}
+
+type imports struct {
+	byPkgPath map[string]string
+	byAlias   map[string]string
+}
+
+func newImports() *imports {
+	return &imports{
+		byPkgPath: make(map[string]string),
+		byAlias:   make(map[string]string),
+	}
+}
+
+// Add an import with an optional alias. If no alias is specified, the default
+// alias will be path.Base(). The alias for a package should always be looked up
+// from AliasFor.
+//
+// TODO: remove alias arg?
+func (i *imports) Add(alias string, pkgPath string) {
+	if _, exists := i.byPkgPath[pkgPath]; exists {
+		return
+	}
+
+	if alias == "" {
+		alias = path.Base(pkgPath)
+	}
+
+	_, exists := i.byAlias[alias]
+	for n := 2; exists; n++ {
+		alias = alias + strconv.Itoa(n)
+		_, exists = i.byAlias[alias]
+	}
+
+	i.byPkgPath[pkgPath] = alias
+	i.byAlias[alias] = pkgPath
+}
+
+func (i *imports) AliasFor(pkgPath string) string {
+	return i.byPkgPath[pkgPath]
+}
+
+func (i *imports) Decl() *ast.GenDecl {
+	decl := &ast.GenDecl{Tok: token.IMPORT}
+
+	paths := make([]string, 0, len(i.byPkgPath))
+	for pkgPath := range i.byPkgPath {
+		paths = append(paths, pkgPath)
+	}
+	sort.Strings(paths)
+
+	for _, pkgPath := range paths {
+		imprt := &ast.ImportSpec{
+			Name: &ast.Ident{Name: i.byPkgPath[pkgPath]},
+			Path: &ast.BasicLit{Value: quote(pkgPath), Kind: token.STRING},
+		}
+		decl.Specs = append(decl.Specs, imprt)
+	}
+	return decl
+}
+
+func quote(v string) string {
+	return `"` + v + `"`
 }
