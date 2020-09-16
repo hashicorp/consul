@@ -54,7 +54,7 @@ func TestShouldProcessUserEvent(t *testing.T) {
 	srv1 := &structs.NodeService{
 		ID:      "mysql",
 		Service: "mysql",
-		Tags:    []string{"test", "foo", "bar", "master"},
+		Tags:    []string{"test", "foo", "bar", "primary"},
 		Port:    5000,
 	}
 	a.State.AddService(srv1, "")
@@ -99,7 +99,7 @@ func TestShouldProcessUserEvent(t *testing.T) {
 	// Bad tag name
 	p = &UserEvent{
 		ServiceFilter: ".*sql",
-		TagFilter:     "slave",
+		TagFilter:     "replica",
 	}
 	if a.shouldProcessUserEvent(p) {
 		t.Fatalf("bad")
@@ -108,7 +108,7 @@ func TestShouldProcessUserEvent(t *testing.T) {
 	// Good service name
 	p = &UserEvent{
 		ServiceFilter: ".*sql",
-		TagFilter:     "master",
+		TagFilter:     "primary",
 	}
 	if !a.shouldProcessUserEvent(p) {
 		t.Fatalf("bad")
@@ -154,7 +154,7 @@ func TestFireReceiveEvent(t *testing.T) {
 	srv1 := &structs.NodeService{
 		ID:      "mysql",
 		Service: "mysql",
-		Tags:    []string{"test", "foo", "bar", "master"},
+		Tags:    []string{"test", "foo", "bar", "primary"},
 		Port:    5000,
 	}
 	a.State.AddService(srv1, "")
