@@ -2855,7 +2855,7 @@ func TestDNS_CaseInsensitiveServiceLookup(t *testing.T) {
 			Address:    "127.0.0.1",
 			Service: &structs.NodeService{
 				Service: "Db",
-				Tags:    []string{"Master"},
+				Tags:    []string{"Primary"},
 				Port:    12345,
 			},
 		}
