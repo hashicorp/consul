@@ -403,7 +403,7 @@ func (c *Client) GetLANCoordinate() (lib.CoordinateSet, error) {
 
 // ReloadConfig is used to have the Client do an online reload of
 // relevant configuration information
-func (c *Client) ReloadConfig(config *Config) error {
-	c.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
+func (c *Client) ReloadConfig(config ReloadableConfig) error {
+	c.rpcLimiter.Store(rate.NewLimiter(config.RPCRateLimit, config.RPCMaxBurst))
 	return nil
 }

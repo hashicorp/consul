@@ -655,3 +655,12 @@ func DefaultConfig() *Config {
 type RPCConfig struct {
 	EnableStreaming bool
 }
+
+// ReloadableConfig is the configuration that is passed to ReloadConfig when
+// application config is reloaded.
+type ReloadableConfig struct {
+	RPCRateLimit         rate.Limit
+	RPCMaxBurst          int
+	RPCMaxConnsPerClient int
+	ConfigEntryBootstrap []structs.ConfigEntry
+}

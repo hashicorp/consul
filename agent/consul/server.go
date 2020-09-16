@@ -1384,8 +1384,8 @@ func (s *Server) GetLANCoordinate() (lib.CoordinateSet, error) {
 
 // ReloadConfig is used to have the Server do an online reload of
 // relevant configuration information
-func (s *Server) ReloadConfig(config *Config) error {
-	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
+func (s *Server) ReloadConfig(config ReloadableConfig) error {
+	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRateLimit, config.RPCMaxBurst))
 	s.rpcConnLimiter.SetConfig(connlimit.Config{
 		MaxConnsPerClientIP: config.RPCMaxConnsPerClient,
 	})
