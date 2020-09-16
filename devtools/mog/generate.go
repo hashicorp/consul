@@ -174,7 +174,7 @@ func generateToFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
 	}
 
 	return &ast.FuncDecl{
-		Name: &ast.Ident{Name: cfg.Source + "To" + cfg.FuncNameFragment},
+		Name: &ast.Ident{Name: funcNameTo(cfg)},
 		Type: &ast.FuncType{
 			Params: &ast.FieldList{
 				List: []*ast.Field{{
@@ -202,6 +202,14 @@ func generateToFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
 	}
 }
 
+func funcNameTo(cfg structConfig) string {
+	return cfg.Source + "To" + cfg.FuncNameFragment
+}
+
+func funcNameFrom(cfg structConfig) string {
+	return "New" + cfg.Source + "From" + cfg.FuncNameFragment
+}
+
 func generateFromFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
 	targetType := &ast.SelectorExpr{
 		X:   &ast.Ident{Name: imports.AliasFor(cfg.Target.Package)},
@@ -209,7 +217,7 @@ func generateFromFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
 	}
 
 	return &ast.FuncDecl{
-		Name: &ast.Ident{Name: "New" + cfg.Source + "From" + cfg.FuncNameFragment},
+		Name: &ast.Ident{Name: funcNameFrom(cfg)},
 		Type: &ast.FuncType{
 			Params: &ast.FieldList{
 				List: []*ast.Field{{

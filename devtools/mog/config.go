@@ -236,3 +236,40 @@ func fmtErrors(msg string, errs []error) error {
 		return fmt.Errorf(msg+":%s\n", b.String())
 	}
 }
+
+// TODO: test cases
+func applyAutoConvertFunctions(cfgs []structConfig) []structConfig {
+	byName := make(map[string]structConfig, len(cfgs))
+	for _, s := range cfgs {
+		byName[s.Source] = s
+	}
+
+	for structIdx, s := range cfgs {
+		for fieldIdx, f := range s.Fields {
+			if _, ignored := s.IgnoreFields[f.SourceName]; ignored {
+				continue
+			}
+
+			if f.FuncTo != "" || f.FuncFrom != "" {
+				continue
+			}
+
+			ident, ok := f.SourceType.(*ast.Ident)
+			if !ok {
+				continue
+			}
+
+			structCfg, ok := byName[ident.Name]
+			if !ok {
+				// TODO: log warning that auto convert did not work
+				continue
+			}
+
+			f.FuncFrom = funcNameFrom(structCfg)
+			f.FuncTo = funcNameTo(structCfg)
+			s.Fields[fieldIdx] = f
+		}
+		cfgs[structIdx] = s
+	}
+	return cfgs
+}
