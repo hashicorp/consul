@@ -34,7 +34,7 @@ func TestInternal_NodeInfo(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"master"},
+			Tags:    []string{"primary"},
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
@@ -63,7 +63,7 @@ func TestInternal_NodeInfo(t *testing.T) {
 	if nodes[0].Node != "foo" {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
-	if !stringslice.Contains(nodes[0].Services[0].Tags, "master") {
+	if !stringslice.Contains(nodes[0].Services[0].Tags, "primary") {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
 	if nodes[0].Checks[0].Status != api.HealthPassing {
@@ -88,7 +88,7 @@ func TestInternal_NodeDump(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"master"},
+			Tags:    []string{"primary"},
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
@@ -108,7 +108,7 @@ func TestInternal_NodeDump(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"slave"},
+			Tags:    []string{"replica"},
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
@@ -138,7 +138,7 @@ func TestInternal_NodeDump(t *testing.T) {
 		switch node.Node {
 		case "foo":
 			foundFoo = true
-			if !stringslice.Contains(node.Services[0].Tags, "master") {
+			if !stringslice.Contains(node.Services[0].Tags, "primary") {
 				t.Fatalf("Bad: %v", nodes[0])
 			}
 			if node.Checks[0].Status != api.HealthPassing {
@@ -147,7 +147,7 @@ func TestInternal_NodeDump(t *testing.T) {
 
 		case "bar":
 			foundBar = true
-			if !stringslice.Contains(node.Services[0].Tags, "slave") {
+			if !stringslice.Contains(node.Services[0].Tags, "replica") {
 				t.Fatalf("Bad: %v", nodes[1])
 			}
 			if node.Checks[0].Status != api.HealthWarning {
@@ -180,7 +180,7 @@ func TestInternal_NodeDump_Filter(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"master"},
+			Tags:    []string{"primary"},
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
@@ -198,7 +198,7 @@ func TestInternal_NodeDump_Filter(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"slave"},
+			Tags:    []string{"replica"},
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
@@ -212,7 +212,7 @@ func TestInternal_NodeDump_Filter(t *testing.T) {
 	var out2 structs.IndexedNodeDump
 	req := structs.DCSpecificRequest{
 		Datacenter:   "dc1",
-		QueryOptions: structs.QueryOptions{Filter: "master in Services.Tags"},
+		QueryOptions: structs.QueryOptions{Filter: "primary in Services.Tags"},
 	}
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.NodeDump", &req, &out2))
 
