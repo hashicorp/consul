@@ -1,5 +1,8 @@
 package telemetry
 
+// PLSREVIEW(kit): Should this package be lib/telemetry, or should we define it at the top level alongside agent
+//  and lib?
+
 import (
 	"time"
 
@@ -12,30 +15,37 @@ type Label struct {
 }
 
 // PLSREVIEW(kit): I decided to directly wrap the API of go-metrics because it informs all of our call sites.
-//  However, this does not need to be set in stone. For example, I renamed Incr to Inc. This is a good opportunity
+//  However, this does not need to be set in stone. For example, I renamed Incr to Inc. This is a good opportunity to
+//  adjust the metrics API we use internally. Any suggestions for improvements would be welcome!
 type MetricsClient interface {
 	// A Gauge should retain the last value it is set to
-	InitGauge(key []string)
-	SetGauge(key []string, val float32)
-	SetGaugeWithLabels(key []string, val float32, labels []Label)
+	SetGauge(key []string, val float32, labels ...Label)
 
-	// KV should emit a Key/Value pair for each call
-	InitKV(key []string)
-	EmitKV(key []string, val float32)
+	// KV should emit a Key/Value pair for each call.
+	EmitKV(key []string, val float32, labels ...Label)
 
 	// Counters accumulate
-	InitCounter(key []string)
-	IncCounter(key []string, val float32)
-	IncCounterWithLabels(key []string, val float32, labels []Label)
+	IncCounter(key []string, val float32, labels ...Label)
 
 	// Samples are for timing quantiles
-	InitSample(key []string)
-	AddSample(key []string, val float32)
-	AddSampleWithLabels(key []string, val float32, labels []Label)
+	AddSample(key []string, val float32, labels ...Label)
 	// Convenience fns to capture durations for samples
-	MeasureSince(key []string, start time.Time)
-	MeasureSinceWithLabels(key []string, start time.Time, labels []Label)
-	// TODO(kit): I have not thought about filters yet. Do we need to migrate them through?
+	MeasureSince(key []string, start time.Time, labels ...Label)
+
+	// TODO(kit): I have not thought about filters yet. If we don't update them outside of RuntimeCfg
+	//  we don't need to offer an interface.
+
+	// TODO(kit): Should we have functions for rendering out the contents of the Inmemsink or arbitrary metrics state?
+	// 	That would allow us to use everything through a client, rather than having to keep a reference to and
+	//  interact with the sink in our agent. However, that could be more of a go-metrics implementation detail than
+	//  one that we can generalize. Maybe more research here is needed - or we just mirror go-metrics
+	//  and refactor the interface down the line if needed?
+	// Render()
+
+	// todo(kit): temporary value passthroughs. We want to delete these when we migrate Consul to import lib/telemetry
+	//  instead of go-metrics.
+	GetClient() interface{}
+	GetInmemSink() interface{}
 }
 
 // NoopClient does nothing. Is it pronounced like "boop" or "no op"? Up to you, friend.
@@ -44,23 +54,37 @@ type NoopClient struct{}
 // Let the compiler check that we're implementing all of MetricsClient
 var _ MetricsClient = &NoopClient{}
 
-func (*NoopClient) InitGauge(key []string)                                               {}
-func (*NoopClient) SetGauge(key []string, val float32)                                   {}
-func (*NoopClient) SetGaugeWithLabels(key []string, val float32, labels []Label)         {}
-func (*NoopClient) InitKV(key []string)                                                  {}
-func (*NoopClient) EmitKV(key []string, val float32)                                     {}
-func (*NoopClient) InitCounter(key []string)                                             {}
-func (*NoopClient) IncCounter(key []string, val float32)                                 {}
-func (*NoopClient) IncCounterWithLabels(key []string, val float32, labels []Label)       {}
-func (*NoopClient) InitSample(key []string)                                              {}
-func (*NoopClient) AddSample(key []string, val float32)                                  {}
-func (*NoopClient) AddSampleWithLabels(key []string, val float32, labels []Label)        {}
-func (*NoopClient) MeasureSince(key []string, start time.Time)                           {}
-func (*NoopClient) MeasureSinceWithLabels(key []string, start time.Time, labels []Label) {}
+func (*NoopClient) SetGauge(key []string, val float32, labels ...Label)         {}
+func (*NoopClient) EmitKV(key []string, val float32, labels ...Label)           {}
+func (*NoopClient) IncCounter(key []string, val float32, labels ...Label)       {}
+func (*NoopClient) AddSample(key []string, val float32, labels ...Label)        {}
+func (*NoopClient) MeasureSince(key []string, start time.Time, labels ...Label) {}
+func (*NoopClient) GetClient() interface{}                                      { return nil }
+func (*NoopClient) GetInmemSink() interface{}                                   { return nil }
 
 // Init wraps armonMetricsInit, returning its client, InmemSink, and any errors directly.
-//  In the future, we wish to migrate away from using go-metrics directly. Instead, we'd like to use an abstraction so
-//  we may swap backend telemetry clients as needs suit.
+// todo(kit): As a follow-up to this PR, we want to migrate away from many packages in Consul importing go-metrics.Metrics.
+//  Migrating is not possible while we use the InmemSink to serve requests. First I want to get the MetricsClient to a
+//  place that we're happy with it. Then we can fix Init to return a MetricsClient and replace the go-metrics dependencies
+//  throughout Consul.
 func Init(cfg Config) (*metrics.Metrics, *metrics.InmemSink, error) {
-	return armonMetricsInit(cfg)
+	client, err := initArmonMetrics(cfg)
+	/*
+		// Example client usage. lib/telemetry implements go-metrics and provides a condensed API
+		client.SetGauge([]string{"consul", "api", "http"}, 20)
+
+		// With Labels
+		client.SetGauge([]string{"consul", "api", "http"}, 20, Label{"foo", "bar"}, Label{"baz", "qux"})
+
+		// Apply labels slice to variadic fn
+		labels := []Label{{"foo", "bar"}, {"baz", "qux"}}
+		client.SetGauge([]string{"consul", "api", "http"}, 20, labels...)
+	*/
+
+	// fixme(kit): Unwrap the go-metrics components we use throughout Consul so we can still compile and run.
+	//  Once this PR is out of draft phase, we plan on updating all go-metrics deps within Consul to use lib/telemetry
+	//  instead.
+	m := client.GetClient().(*metrics.Metrics)
+	s := client.GetInmemSink().(*metrics.InmemSink)
+	return m, s, err
 }

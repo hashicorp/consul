@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
+	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/circonus"
 	"github.com/armon/go-metrics/datadog"
 	"github.com/armon/go-metrics/prometheus"
@@ -201,67 +201,62 @@ type sinkFn func(Config, string) (metrics.MetricSink, error)
 
 // ArmonMetricsClient provides a MetricsClient implementation for armon/go-metrics.
 type ArmonMetricsClient struct {
-	client metrics.Metrics
+	client    *metrics.Metrics
+	inmemSink *metrics.InmemSink
 }
 
 var _ MetricsClient = &ArmonMetricsClient{}
 
-// todo(kit): How can I set this to NaN but only for prometheus sink?
-func (c *ArmonMetricsClient) InitGauge(key []string) {
-	c.client.SetGauge(key, 0)
+func (c *ArmonMetricsClient) GetClient() interface{} {
+	return c.client
 }
 
-func (c *ArmonMetricsClient) SetGauge(key []string, val float32) {
+func (c *ArmonMetricsClient) GetInmemSink() interface{} {
+	return c.inmemSink
+}
+
+func (c *ArmonMetricsClient) SetGauge(key []string, val float32, labels ...Label) {
+	if 0 < len(labels) {
+		aLabels := convertLabelsToArmonMetricsLabels(labels)
+		c.client.SetGaugeWithLabels(key, val, aLabels)
+		return
+	}
 	c.client.SetGauge(key, val)
 }
 
-func (c *ArmonMetricsClient) SetGaugeWithLabels(key []string, val float32, labels []Label) {
-	aLabels := convertLabelsToArmonMetricsLabels(labels)
-	c.client.SetGaugeWithLabels(key, val, aLabels)
-}
-func (c *ArmonMetricsClient) InitKV(key []string) {
-	// TODO(kit): how can we give prometheus a NaN?
-	c.client.EmitKey(key, 0)
-}
-
-func (c *ArmonMetricsClient) EmitKV(key []string, val float32) {
+func (c *ArmonMetricsClient) EmitKV(key []string, val float32, labels ...Label) {
+	if 0 < len(labels) {
+		// FIXME(Kit): Ignore labels for now. It would be ideal to provide a warning, but lacking that, continuing as
+		//  usual is fine. Other backends besides go-metrics may support labelled KVs
+	}
 	c.client.EmitKey(key, val)
 }
 
-func (c *ArmonMetricsClient) InitCounter(key []string) {
-	// TODO(kit): how can we give prometheus a NaN?
-	c.client.IncrCounter(key, 0)
-}
-
-func (c *ArmonMetricsClient) IncCounter(key []string, val float32) {
+func (c *ArmonMetricsClient) IncCounter(key []string, val float32, labels ...Label) {
+	if 0 < len(labels) {
+		aLabels := convertLabelsToArmonMetricsLabels(labels)
+		c.client.IncrCounterWithLabels(key, val, aLabels)
+		return
+	}
 	c.client.IncrCounter(key, val)
 }
-func (c *ArmonMetricsClient) IncCounterWithLabels(key []string, val float32, labels []Label) {
-	aLabels := convertLabelsToArmonMetricsLabels(labels)
-	c.client.IncrCounterWithLabels(key, val, aLabels)
-}
 
-func (c *ArmonMetricsClient) InitSample(key []string) {
-	// TODO(kit): how can we give prometheus a NaN?
-	c.client.AddSample(key, 0)
-}
-
-func (c *ArmonMetricsClient) AddSample(key []string, val float32) {
+func (c *ArmonMetricsClient) AddSample(key []string, val float32, labels ...Label) {
+	if 0 < len(labels) {
+		aLabels := convertLabelsToArmonMetricsLabels(labels)
+		c.client.AddSampleWithLabels(key, val, aLabels)
+		return
+	}
 	c.client.AddSample(key, val)
 }
 
-func (c *ArmonMetricsClient) AddSampleWithLabels(key []string, val float32, labels []Label) {
-	aLabels := convertLabelsToArmonMetricsLabels(labels)
-	c.client.AddSampleWithLabels(key, val, aLabels)
-}
-
-func (c *ArmonMetricsClient) MeasureSince(key []string, start time.Time) {
+func (c *ArmonMetricsClient) MeasureSince(key []string, start time.Time, labels ...Label) {
+	if 0 < len(labels) {
+		aLabels := convertLabelsToArmonMetricsLabels(labels)
+		c.client.MeasureSinceWithLabels(key, start, aLabels)
+		return
+	}
 	c.client.MeasureSince(key, start)
-}
-
-func (c *ArmonMetricsClient) MeasureSinceWithLabels(key []string, start time.Time, labels []Label) {
-	aLabels := convertLabelsToArmonMetricsLabels(labels)
-	c.client.MeasureSinceWithLabels(key, start, aLabels)
 }
 
 func convertLabelsToArmonMetricsLabels(labels []Label) []metrics.Label {
@@ -444,11 +439,11 @@ func initSinks(cfg Config, hostname string) (metrics.FanoutSink, error) {
 	return sinks, nil
 }
 
-// Init configures go-metrics based on map of telemetry config
+// initArmonMetrics configures go-metrics based on map of telemetry config
 // values as returned by RuntimeCfg.Config().
-func armonMetricsInit(cfg Config) (*metrics.Metrics, *metrics.InmemSink, error) {
+func initArmonMetrics(cfg Config) (MetricsClient, error) {
 	if cfg.Disable {
-		return nil, nil, nil
+		return nil, nil
 	}
 	// Define an InmemSink so we can dump telemetry when we receive a process signal
 	// Aggregate on 10 second intervals for 1 minute. Expose the
@@ -465,7 +460,7 @@ func armonMetricsInit(cfg Config) (*metrics.Metrics, *metrics.InmemSink, error) 
 
 	sinks, err := initSinks(cfg, mCfg.HostName)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// client contains the API which lets us dispatch metrics events to our sinks
@@ -478,9 +473,12 @@ func armonMetricsInit(cfg Config) (*metrics.Metrics, *metrics.InmemSink, error) 
 		// Store our metrics client globally and return a pointer to the client
 		client, err = metrics.NewGlobal(mCfg, memSink)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
-		return client, memSink, nil
+		return &ArmonMetricsClient{
+			client:    client,
+			inmemSink: memSink,
+		}, nil
 	}
 
 	// Compose our external sinks with the InmemSink
@@ -488,7 +486,7 @@ func armonMetricsInit(cfg Config) (*metrics.Metrics, *metrics.InmemSink, error) 
 	// Store our metrics client globally and return a pointer to the client
 	client, err = metrics.NewGlobal(mCfg, sinks)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return client, memSink, nil
+	return &ArmonMetricsClient{client, memSink}, nil
 }
