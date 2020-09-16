@@ -84,9 +84,14 @@ func configsFromAnnotations(pkg sourcePkg) (config, error) {
 			cfg.Fields = append(cfg.Fields, f)
 		}
 
+		// TODO: test case
+		if err := cfg.Validate(); err != nil {
+			return c, fmt.Errorf("invalid config for %v: %w", name, err)
+		}
+
 		c.Structs = append(c.Structs, cfg)
 	}
-	// TODO: validate config - required values
+
 	return c, nil
 }
 
@@ -127,6 +132,21 @@ func parseStructAnnotation(name string, doc []*ast.Comment) (structConfig, error
 	}
 
 	return c, nil
+}
+
+func (c structConfig) Validate() error {
+	var errs []error
+	fmsg := "missing value for required annotation %q"
+	if c.Target.Struct == "" {
+		errs = append(errs, fmt.Errorf(fmsg, "target"))
+	}
+	if c.Output == "" {
+		errs = append(errs, fmt.Errorf(fmsg, "output"))
+	}
+	if c.FuncNameFragment == "" {
+		errs = append(errs, fmt.Errorf(fmsg, "name"))
+	}
+	return fmtErrors("invalid annotations", errs)
 }
 
 func parseFieldAnnotation(field *ast.Field) (fieldConfig, error) {
@@ -198,4 +218,21 @@ func getFieldAnnotationLine(doc *ast.CommentGroup) string {
 		}
 	}
 	return ""
+}
+
+func fmtErrors(msg string, errs []error) error {
+	switch len(errs) {
+	case 0:
+		return nil
+	case 1:
+		return errs[0]
+	default:
+		b := new(strings.Builder)
+
+		for _, err := range errs {
+			b.WriteString("\n   ")
+			b.WriteString(err.Error())
+		}
+		return fmt.Errorf(msg+":%s\n", b.String())
+	}
 }
