@@ -1198,16 +1198,46 @@ func TestACLResolution(t *testing.T) {
 func TestEnableWebUI(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, `
-		ui = true
+		ui_config {
+			enabled = true
+		}
 	`)
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/ui/", nil)
 	resp := httptest.NewRecorder()
 	a.srv.handler(true).ServeHTTP(resp, req)
-	if resp.Code != 200 {
-		t.Fatalf("should handle ui")
-	}
+	require.Equal(t, http.StatusOK, resp.Code)
+
+	// Validate that it actually sent the index page we expect since an error
+	// during serving the special intercepted index.html in
+	// settingsInjectedIndexFS.Open will actually result in http.FileServer just
+	// serving a plain directory listing instead which still passes the above HTTP
+	// status assertion. This comment is part of our index.html template
+	require.Contains(t, resp.Body.String(), `<!-- CONSUL_VERSION:`)
+}
+
+func TestEnableWebUIWithMetricsOptions(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, `
+		ui_config {
+			enabled = true
+			metrics_provider_options_json = "{\"foo\": 1}"
+		}
+	`)
+	defer a.Shutdown()
+
+	req, _ := http.NewRequest("GET", "/ui/", nil)
+	resp := httptest.NewRecorder()
+	a.srv.handler(true).ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code)
+
+	// Validate that it actually sent the index page we expect since an error
+	// during serving the special intercepted index.html in
+	// settingsInjectedIndexFS.Open will actually result in http.FileServer just
+	// serving a plain directory listing instead which still passes the above HTTP
+	// status assertion. This comment is part of our index.html template
+	require.Contains(t, resp.Body.String(), `<!-- CONSUL_VERSION:`)
 }
 
 func TestAllowedNets(t *testing.T) {

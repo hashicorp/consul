@@ -29,6 +29,7 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
+	"github.com/ryboe/q"
 )
 
 // MethodNotAllowedError should be returned by a handler when the HTTP method is not allowed.
@@ -169,6 +170,7 @@ func (fs *settingsInjectedIndexFS) Open(name string) (http.File, error) {
 	}
 
 	content, err := ioutil.ReadAll(file)
+	q.Q(err)
 	if err != nil {
 		return nil, fmt.Errorf("failed reading index.html: %s", err)
 	}
@@ -182,6 +184,7 @@ func (fs *settingsInjectedIndexFS) Open(name string) (http.File, error) {
 
 	// First built an escaped, JSON blob from the settings passed.
 	bs, err := json.Marshal(fs.UISettings)
+	q.Q(string(bs))
 	if err != nil {
 		return nil, fmt.Errorf("failed marshalling UI settings JSON: %s", err)
 	}
@@ -401,10 +404,9 @@ func (s *HTTPHandlers) GetUIENVFromConfig() map[string]interface{} {
 	uiCfg := s.agent.getUIConfig()
 
 	vars := map[string]interface{}{
-		"CONSUL_CONTENT_PATH":             uiCfg.ContentPath,
-		"CONSUL_ACLS_ENABLED":             s.agent.config.ACLsEnabled,
-		"CONSUL_METRICS_PROVIDER":         uiCfg.MetricsProvider,
-		"CONSUL_METRICS_PROVIDER_OPTIONS": json.RawMessage(uiCfg.MetricsProviderOptionsJSON),
+		"CONSUL_CONTENT_PATH":     uiCfg.ContentPath,
+		"CONSUL_ACLS_ENABLED":     s.agent.config.ACLsEnabled,
+		"CONSUL_METRICS_PROVIDER": uiCfg.MetricsProvider,
 		// We explicitly MUST NOT pass the metrics_proxy object since it might
 		// contain add_headers with secrets that the UI shouldn't know e.g. API
 		// tokens for the backend. The provider should either require the proxy to
@@ -412,6 +414,12 @@ func (s *HTTPHandlers) GetUIENVFromConfig() map[string]interface{} {
 		// browser.
 		"CONSUL_METRICS_PROXY_ENABLED":   uiCfg.MetricsProxy.BaseURL != "",
 		"CONSUL_DASHBOARD_URL_TEMPLATES": uiCfg.DashboardURLTemplates,
+	}
+
+	// Only set this if there is some actual JSON or we'll cause a JSON
+	// marshalling error later during serving which ends up being silent.
+	if uiCfg.MetricsProviderOptionsJSON != "" {
+		vars["CONSUL_METRICS_PROVIDER_OPTIONS"] = json.RawMessage(uiCfg.MetricsProviderOptionsJSON)
 	}
 
 	s.addEnterpriseUIENVVars(vars)
