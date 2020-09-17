@@ -204,7 +204,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 		Address: "1.1.1.1",
 		Port:    8080,
 		Meta:    map[string]string{strings.Repeat("a", 129): "somevalue"},
-		Tags:    []string{"master"},
+		Tags:    []string{"primary"},
 	}
 	if err := s.EnsureRegistration(9, req); err == nil {
 		t.Fatalf("Service should not have been registered since Meta is invalid")
@@ -216,7 +216,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 		Service: "redis",
 		Address: "1.1.1.1",
 		Port:    8080,
-		Tags:    []string{"master"},
+		Tags:    []string{"primary"},
 		Weights: &structs.Weights{Passing: 1, Warning: 1},
 	}
 	if err := s.EnsureRegistration(2, req); err != nil {
@@ -231,7 +231,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 				Service:        "redis",
 				Address:        "1.1.1.1",
 				Port:           8080,
-				Tags:           []string{"master"},
+				Tags:           []string{"primary"},
 				Weights:        &structs.Weights{Passing: 1, Warning: 1},
 				RaftIndex:      structs.RaftIndex{CreateIndex: 2, ModifyIndex: 2},
 				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
@@ -334,7 +334,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 				Status:         "critical",
 				ServiceID:      "redis1",
 				ServiceName:    "redis",
-				ServiceTags:    []string{"master"},
+				ServiceTags:    []string{"primary"},
 				RaftIndex:      structs.RaftIndex{CreateIndex: 4, ModifyIndex: 4},
 				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
@@ -1581,7 +1581,7 @@ func TestStateStore_Services(t *testing.T) {
 	ns1 := &structs.NodeService{
 		ID:      "service1",
 		Service: "redis",
-		Tags:    []string{"prod", "master"},
+		Tags:    []string{"prod", "primary"},
 		Address: "1.1.1.1",
 		Port:    1111,
 	}
@@ -1593,7 +1593,7 @@ func TestStateStore_Services(t *testing.T) {
 	ns2 := &structs.NodeService{
 		ID:      "service3",
 		Service: "redis",
-		Tags:    []string{"prod", "slave"},
+		Tags:    []string{"prod", "replica"},
 		Address: "1.1.1.1",
 		Port:    1111,
 	}
@@ -1617,7 +1617,7 @@ func TestStateStore_Services(t *testing.T) {
 	// Verify the result. We sort the lists since the order is
 	// non-deterministic (it's built using a map internally).
 	expected := structs.Services{
-		"redis": []string{"prod", "master", "slave"},
+		"redis": []string{"prod", "primary", "replica"},
 		"dogs":  []string{},
 	}
 	sort.Strings(expected["redis"])
@@ -1659,7 +1659,7 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 	ns1 := &structs.NodeService{
 		ID:      "service1",
 		Service: "redis",
-		Tags:    []string{"prod", "master"},
+		Tags:    []string{"prod", "primary"},
 		Address: "1.1.1.1",
 		Port:    1111,
 	}
@@ -1669,7 +1669,7 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 	ns2 := &structs.NodeService{
 		ID:      "service1",
 		Service: "redis",
-		Tags:    []string{"prod", "slave"},
+		Tags:    []string{"prod", "replica"},
 		Address: "1.1.1.1",
 		Port:    1111,
 	}
@@ -1687,7 +1687,7 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	expected := structs.Services{
-		"redis": []string{"master", "prod"},
+		"redis": []string{"primary", "prod"},
 	}
 	sort.Strings(res["redis"])
 	if !reflect.DeepEqual(res, expected) {
@@ -1700,7 +1700,7 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	expected = structs.Services{
-		"redis": []string{"master", "prod", "slave"},
+		"redis": []string{"primary", "prod", "replica"},
 	}
 	sort.Strings(res["redis"])
 	if !reflect.DeepEqual(res, expected) {
@@ -1723,7 +1723,7 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	expected = structs.Services{
-		"redis": []string{"master", "prod"},
+		"redis": []string{"primary", "prod"},
 	}
 	sort.Strings(res["redis"])
 	if !reflect.DeepEqual(res, expected) {
@@ -1796,13 +1796,13 @@ func TestStateStore_ServiceNodes(t *testing.T) {
 	if err := s.EnsureService(13, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.EnsureService(14, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"master"}, Address: "", Port: 8000}); err != nil {
+	if err := s.EnsureService(14, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary"}, Address: "", Port: 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.EnsureService(15, "bar", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"slave"}, Address: "", Port: 8000}); err != nil {
+	if err := s.EnsureService(15, "bar", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.EnsureService(16, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"slave"}, Address: "", Port: 8001}); err != nil {
+	if err := s.EnsureService(16, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if !watchFired(ws) {
@@ -1830,7 +1830,7 @@ func TestStateStore_ServiceNodes(t *testing.T) {
 	if nodes[0].ServiceID != "db" {
 		t.Fatalf("bad: %v", nodes)
 	}
-	if !lib.StrContains(nodes[0].ServiceTags, "slave") {
+	if !lib.StrContains(nodes[0].ServiceTags, "replica") {
 		t.Fatalf("bad: %v", nodes)
 	}
 	if nodes[0].ServicePort != 8000 {
@@ -1845,7 +1845,7 @@ func TestStateStore_ServiceNodes(t *testing.T) {
 	if nodes[1].ServiceID != "db2" {
 		t.Fatalf("bad: %v", nodes)
 	}
-	if !lib.StrContains(nodes[1].ServiceTags, "slave") {
+	if !lib.StrContains(nodes[1].ServiceTags, "replica") {
 		t.Fatalf("bad: %v", nodes)
 	}
 	if nodes[1].ServicePort != 8001 {
@@ -1860,7 +1860,7 @@ func TestStateStore_ServiceNodes(t *testing.T) {
 	if nodes[2].ServiceID != "db" {
 		t.Fatalf("bad: %v", nodes)
 	}
-	if !lib.StrContains(nodes[2].ServiceTags, "master") {
+	if !lib.StrContains(nodes[2].ServiceTags, "primary") {
 		t.Fatalf("bad: %v", nodes)
 	}
 	if nodes[2].ServicePort != 8000 {
@@ -1914,7 +1914,7 @@ func TestStateStore_ServiceTagNodes(t *testing.T) {
 
 	// Listing with no results returns an empty list.
 	ws := memdb.NewWatchSet()
-	idx, nodes, err := s.ServiceTagNodes(ws, "db", []string{"master"}, nil)
+	idx, nodes, err := s.ServiceTagNodes(ws, "db", []string{"primary"}, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1932,13 +1932,13 @@ func TestStateStore_ServiceTagNodes(t *testing.T) {
 	if err := s.EnsureNode(16, &structs.Node{Node: "bar", Address: "127.0.0.2"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.EnsureService(17, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"master"}, Address: "", Port: 8000}); err != nil {
+	if err := s.EnsureService(17, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary"}, Address: "", Port: 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.EnsureService(18, "foo", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"slave"}, Address: "", Port: 8001}); err != nil {
+	if err := s.EnsureService(18, "foo", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.EnsureService(19, "bar", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"slave"}, Address: "", Port: 8000}); err != nil {
+	if err := s.EnsureService(19, "bar", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if !watchFired(ws) {
@@ -1947,7 +1947,7 @@ func TestStateStore_ServiceTagNodes(t *testing.T) {
 
 	// Read everything back.
 	ws = memdb.NewWatchSet()
-	idx, nodes, err = s.ServiceTagNodes(ws, "db", []string{"master"}, nil)
+	idx, nodes, err = s.ServiceTagNodes(ws, "db", []string{"primary"}, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1963,7 +1963,7 @@ func TestStateStore_ServiceTagNodes(t *testing.T) {
 	if nodes[0].Address != "127.0.0.1" {
 		t.Fatalf("bad: %v", nodes)
 	}
-	if !lib.StrContains(nodes[0].ServiceTags, "master") {
+	if !lib.StrContains(nodes[0].ServiceTags, "primary") {
 		t.Fatalf("bad: %v", nodes)
 	}
 	if nodes[0].ServicePort != 8000 {
@@ -1976,7 +1976,7 @@ func TestStateStore_ServiceTagNodes(t *testing.T) {
 		t.Fatalf("bad")
 	}
 
-	// But removing a node with the "db:master" service should fire the watch.
+	// But removing a node with the "db:primary" service should fire the watch.
 	if err := s.DeleteNode(21, "foo"); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1996,25 +1996,25 @@ func TestStateStore_ServiceTagNodes_MultipleTags(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := s.EnsureService(17, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"master", "v2"}, Address: "", Port: 8000}); err != nil {
+	if err := s.EnsureService(17, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary", "v2"}, Address: "", Port: 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := s.EnsureService(18, "foo", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"slave", "v2", "dev"}, Address: "", Port: 8001}); err != nil {
+	if err := s.EnsureService(18, "foo", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica", "v2", "dev"}, Address: "", Port: 8001}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := s.EnsureService(19, "bar", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"slave", "v2"}, Address: "", Port: 8000}); err != nil {
+	if err := s.EnsureService(19, "bar", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"replica", "v2"}, Address: "", Port: 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	idx, nodes, err := s.ServiceTagNodes(nil, "db", []string{"master"}, nil)
+	idx, nodes, err := s.ServiceTagNodes(nil, "db", []string{"primary"}, nil)
 	require.NoError(t, err)
 	require.Equal(t, int(idx), 19)
 	require.Len(t, nodes, 1)
 	require.Equal(t, nodes[0].Node, "foo")
 	require.Equal(t, nodes[0].Address, "127.0.0.1")
-	require.Contains(t, nodes[0].ServiceTags, "master")
+	require.Contains(t, nodes[0].ServiceTags, "primary")
 	require.Equal(t, nodes[0].ServicePort, 8000)
 
 	idx, nodes, err = s.ServiceTagNodes(nil, "db", []string{"v2"}, nil)
@@ -2023,14 +2023,14 @@ func TestStateStore_ServiceTagNodes_MultipleTags(t *testing.T) {
 	require.Len(t, nodes, 3)
 
 	// Test filtering on multiple tags
-	idx, nodes, err = s.ServiceTagNodes(nil, "db", []string{"v2", "slave"}, nil)
+	idx, nodes, err = s.ServiceTagNodes(nil, "db", []string{"v2", "replica"}, nil)
 	require.NoError(t, err)
 	require.Equal(t, int(idx), 19)
 	require.Len(t, nodes, 2)
 	require.Contains(t, nodes[0].ServiceTags, "v2")
-	require.Contains(t, nodes[0].ServiceTags, "slave")
+	require.Contains(t, nodes[0].ServiceTags, "replica")
 	require.Contains(t, nodes[1].ServiceTags, "v2")
-	require.Contains(t, nodes[1].ServiceTags, "slave")
+	require.Contains(t, nodes[1].ServiceTags, "replica")
 
 	idx, nodes, err = s.ServiceTagNodes(nil, "db", []string{"dev"}, nil)
 	require.NoError(t, err)
@@ -2116,7 +2116,7 @@ func TestStateStore_ConnectServiceNodes(t *testing.T) {
 	assert.Nil(s.EnsureService(14, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
 	assert.Nil(s.EnsureService(15, "bar", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
 	assert.Nil(s.EnsureService(16, "bar", &structs.NodeService{ID: "native-db", Service: "db", Connect: structs.ServiceConnect{Native: true}}))
-	assert.Nil(s.EnsureService(17, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"slave"}, Address: "", Port: 8001}))
+	assert.Nil(s.EnsureService(17, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}))
 	assert.True(watchFired(ws))
 
 	// Read everything back.
@@ -3456,7 +3456,7 @@ func TestStateStore_CheckConnectServiceNodes(t *testing.T) {
 	assert.Nil(s.EnsureService(13, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
 	assert.Nil(s.EnsureService(14, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
 	assert.Nil(s.EnsureService(15, "bar", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
-	assert.Nil(s.EnsureService(16, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"slave"}, Address: "", Port: 8001}))
+	assert.Nil(s.EnsureService(16, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}))
 	assert.True(watchFired(ws))
 
 	// Register node checks
@@ -3489,7 +3489,7 @@ func BenchmarkCheckServiceNodes(b *testing.B) {
 	if err := s.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
 		b.Fatalf("err: %v", err)
 	}
-	if err := s.EnsureService(2, "foo", &structs.NodeService{ID: "db1", Service: "db", Tags: []string{"master"}, Address: "", Port: 8000}); err != nil {
+	if err := s.EnsureService(2, "foo", &structs.NodeService{ID: "db1", Service: "db", Tags: []string{"primary"}, Address: "", Port: 8000}); err != nil {
 		b.Fatalf("err: %v", err)
 	}
 	check := &structs.HealthCheck{
@@ -3524,7 +3524,7 @@ func TestStateStore_CheckServiceTagNodes(t *testing.T) {
 	if err := s.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.EnsureService(2, "foo", &structs.NodeService{ID: "db1", Service: "db", Tags: []string{"master"}, Address: "", Port: 8000}); err != nil {
+	if err := s.EnsureService(2, "foo", &structs.NodeService{ID: "db1", Service: "db", Tags: []string{"primary"}, Address: "", Port: 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	check := &structs.HealthCheck{
@@ -3548,7 +3548,7 @@ func TestStateStore_CheckServiceTagNodes(t *testing.T) {
 	}
 
 	ws := memdb.NewWatchSet()
-	idx, nodes, err := s.CheckServiceTagNodes(ws, "db", []string{"master"}, nil)
+	idx, nodes, err := s.CheckServiceTagNodes(ws, "db", []string{"primary"}, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

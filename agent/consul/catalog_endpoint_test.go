@@ -34,7 +34,7 @@ func TestCatalog_Register(t *testing.T) {
 		Address:    "127.0.0.1",
 		Service: &structs.NodeService{
 			Service: "db",
-			Tags:    []string{"master"},
+			Tags:    []string{"primary"},
 			Port:    8000,
 		},
 		Check: &structs.HealthCheck{
@@ -134,7 +134,7 @@ func TestCatalog_Register_NodeID(t *testing.T) {
 		Address:    "127.0.0.1",
 		Service: &structs.NodeService{
 			Service: "db",
-			Tags:    []string{"master"},
+			Tags:    []string{"primary"},
 			Port:    8000,
 		},
 		Check: &structs.HealthCheck{
@@ -196,7 +196,7 @@ service "foo" {
 		Address:    "127.0.0.1",
 		Service: &structs.NodeService{
 			Service: "db",
-			Tags:    []string{"master"},
+			Tags:    []string{"primary"},
 			Port:    8000,
 		},
 		WriteRequest: structs.WriteRequest{Token: id},
@@ -291,7 +291,7 @@ func TestCatalog_Register_ForwardLeader(t *testing.T) {
 		Address:    "127.0.0.1",
 		Service: &structs.NodeService{
 			Service: "db",
-			Tags:    []string{"master"},
+			Tags:    []string{"primary"},
 			Port:    8000,
 		},
 	}
@@ -324,7 +324,7 @@ func TestCatalog_Register_ForwardDC(t *testing.T) {
 		Address:    "127.0.0.1",
 		Service: &structs.NodeService{
 			Service: "db",
-			Tags:    []string{"master"},
+			Tags:    []string{"primary"},
 			Port:    8000,
 		},
 	}
@@ -1642,7 +1642,7 @@ func TestCatalog_ListServiceNodes(t *testing.T) {
 	args := structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
 		ServiceName: "db",
-		ServiceTags: []string{"slave"},
+		ServiceTags: []string{"replica"},
 		TagFilter:   false,
 	}
 	var out structs.IndexedServiceNodes

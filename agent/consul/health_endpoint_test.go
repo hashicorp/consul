@@ -537,7 +537,7 @@ func TestHealth_ServiceNodes(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"master"},
+			Tags:    []string{"primary"},
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
@@ -557,7 +557,7 @@ func TestHealth_ServiceNodes(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"slave"},
+			Tags:    []string{"replica"},
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
@@ -573,7 +573,7 @@ func TestHealth_ServiceNodes(t *testing.T) {
 	req := structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
 		ServiceName: "db",
-		ServiceTags: []string{"master"},
+		ServiceTags: []string{"primary"},
 		TagFilter:   false,
 	}
 	if err := msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2); err != nil {
@@ -590,10 +590,10 @@ func TestHealth_ServiceNodes(t *testing.T) {
 	if nodes[1].Node.Node != "foo" {
 		t.Fatalf("Bad: %v", nodes[1])
 	}
-	if !lib.StrContains(nodes[0].Service.Tags, "slave") {
+	if !lib.StrContains(nodes[0].Service.Tags, "replica") {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
-	if !lib.StrContains(nodes[1].Service.Tags, "master") {
+	if !lib.StrContains(nodes[1].Service.Tags, "primary") {
 		t.Fatalf("Bad: %v", nodes[1])
 	}
 	if nodes[0].Checks[0].Status != api.HealthWarning {
@@ -611,7 +611,7 @@ func TestHealth_ServiceNodes(t *testing.T) {
 		req := structs.ServiceSpecificRequest{
 			Datacenter:  "dc1",
 			ServiceName: "db",
-			ServiceTag:  "master",
+			ServiceTag:  "primary",
 			TagFilter:   false,
 		}
 		if err := msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2); err != nil {
@@ -628,10 +628,10 @@ func TestHealth_ServiceNodes(t *testing.T) {
 		if nodes[1].Node.Node != "foo" {
 			t.Fatalf("Bad: %v", nodes[1])
 		}
-		if !lib.StrContains(nodes[0].Service.Tags, "slave") {
+		if !lib.StrContains(nodes[0].Service.Tags, "replica") {
 			t.Fatalf("Bad: %v", nodes[0])
 		}
-		if !lib.StrContains(nodes[1].Service.Tags, "master") {
+		if !lib.StrContains(nodes[1].Service.Tags, "primary") {
 			t.Fatalf("Bad: %v", nodes[1])
 		}
 		if nodes[0].Checks[0].Status != api.HealthWarning {
@@ -660,7 +660,7 @@ func TestHealth_ServiceNodes_MultipleServiceTags(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"master", "v2"},
+			Tags:    []string{"primary", "v2"},
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
@@ -678,7 +678,7 @@ func TestHealth_ServiceNodes_MultipleServiceTags(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"slave", "v2"},
+			Tags:    []string{"replica", "v2"},
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
@@ -692,7 +692,7 @@ func TestHealth_ServiceNodes_MultipleServiceTags(t *testing.T) {
 	req := structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
 		ServiceName: "db",
-		ServiceTags: []string{"master", "v2"},
+		ServiceTags: []string{"primary", "v2"},
 		TagFilter:   true,
 	}
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2))
@@ -701,7 +701,7 @@ func TestHealth_ServiceNodes_MultipleServiceTags(t *testing.T) {
 	require.Len(t, nodes, 1)
 	require.Equal(t, nodes[0].Node.Node, "foo")
 	require.Contains(t, nodes[0].Service.Tags, "v2")
-	require.Contains(t, nodes[0].Service.Tags, "master")
+	require.Contains(t, nodes[0].Service.Tags, "primary")
 	require.Equal(t, nodes[0].Checks[0].Status, api.HealthPassing)
 }
 
