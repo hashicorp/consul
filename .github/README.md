@@ -2,7 +2,14 @@
 
 ## Overview
 
-This file helps track the configuration of the `.github` folder.
+This file helps track the configuration of the `.github/` folder.
+
+## Issue Templates
+
+Issue templates are stored in `.github/ISSUE_TEMPLATE/` and follow the
+[documentation](https://docs.github.com/en/github/building-a-strong-community/using-templates-to-encourage-useful-issues-and-pull-requests).
+The `.github/ISSUE_TEMPLATE/config.yml` controls links out to other support
+resources.
 
 ## GitHub Actions
 

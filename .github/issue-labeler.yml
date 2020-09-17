@@ -51,14 +51,16 @@ theme/kubernetes:
 theme/mesh-gw:
     - 'mesh'
 # theme/operator-usability:
+theme/packaging:
+    - '(rpm|deb|repository|systemd|upstart|Upstart|SystemD)'
 theme/performance:
-    - 'performance'
+    - '(performance|requests\sper\ssecond)'
 theme/service-metadata:
     - 'meta-data'
 theme/streaming:
-    - 'stream'
+    - '(stream|streaming)'
 theme/telemetry:
-    - '(circonis|datadog|DataDog|prometheus|metric)'
+    - '(circonis|datadog|DataDog|prometheus|Prometheus|metric)'
 theme/terminating-gw:
     - 'terminating'
 theme/testing:
@@ -72,13 +74,13 @@ theme/windows:
 # thinking:
 # type/bug:
 type/ci:
-    - '(circle|circleci)'
+    - '(circle|circleci|CircleCI)'
 # type/crash:
 type/docs:
-    - '(docs\/|docs)'
+    - '(docs\/|docs|consul\.io)'
 # type/docs-cherrypick:
 type/enhancement:
-    - '(new\sfeature|feature)'
+    - '(new\sfeature|feature|feature\srequest)'
 # type/good-first-issue:
 # type/question:
 # type/umbrella-☂️:

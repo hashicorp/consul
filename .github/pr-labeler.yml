@@ -1,4 +1,3 @@
-# archived/webui:
 # backport/1.6:
 # backport/1.7:
 # backport/1.8:
@@ -31,9 +30,9 @@ theme/config:
 theme/connect:
     - connect/**/*
     - agent/connect/**/*
-#theme/consul-nomad:
-#theme/consul-vault:
-# theme/contributing:
+# theme/consul-nomad:
+# theme/consul-vault:
+theme/contributing:
     - .github/**/*
 theme/dns:
     - dns/**/*
@@ -46,30 +45,25 @@ theme/health-checks:
     - agent/health*
     - api/health*
 # theme/ingress-gw:
-# thementernal-cleanup:
+# theme/internal-cleanup:
 theme/internals:
     - lib/**/*
     - types/**/*
 # theme/kubernetes:
 # theme/mesh-gw:
-#    - 'mesh'
 # theme/operator-usability:
 # theme/performance:
-#    - 'performance'
 # theme/service-metadata:
-#    - 'meta-data'
 # theme/streaming:
-#    - 'stream'
 theme/telemetry:
     - logging/**/*
 # theme/terminating-gw:
-#    - 'terminating'
-# theme/testing:
+theme/testing:
     - ./*test*/**/*
 theme/tls:
     - tlsutil/**/*
 theme/ui:
-    - ui/**/*
+    - ui-v2/**/*
 # theme/windows:
 # thinking:
 # type/bug:
