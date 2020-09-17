@@ -2,13 +2,13 @@
 
   <div class="definition-table">
       <dl>
-        <dt>Source Service</dt>
-        <dd>
-        {{item.SourceName}}{{#if (env "CONSUL_NSPACES_ENABLED")}} / {{item.SourceNS}}{{/if}}
-        </dd>
-        <dt>Destination Service</dt>
+        <dt>Destination</dt>
         <dd>
           {{item.DestinationName}}{{#if (env "CONSUL_NSPACES_ENABLED")}} / {{item.DestinationNS}}{{/if}}
+        </dd>
+        <dt>Source</dt>
+        <dd>
+        {{item.SourceName}}{{#if (env "CONSUL_NSPACES_ENABLED")}} / {{item.SourceNS}}{{/if}}
         </dd>
 {{#if item.Action}}
         <dt>Action</dt>
@@ -18,7 +18,7 @@
 {{/if}}
         <dt>Description</dt>
         <dd>
-          {{item.Description}}
+          {{or item.Description 'N/A'}}
         </dd>
       </dl>
   </div>
