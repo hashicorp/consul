@@ -365,6 +365,10 @@ var MaxLeafCertTTL = 365 * 24 * time.Hour
 // of the intermediate cert is checked and renewed if necessary.
 var IntermediateCertRenewInterval = time.Hour
 
+// NotBefore will be CertificateTimeDriftBuffer in the past to account for
+// time drift between different servers.
+var CertificateTimeDriftBuffer = time.Minute
+
 func (c CommonCAProviderConfig) Validate() error {
 	if c.SkipValidate {
 		return nil
