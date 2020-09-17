@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"net"
 	"net/http/httptest"
 	"path/filepath"
 	"strconv"
@@ -313,13 +314,23 @@ func (a *TestAgent) DNSAddr() string {
 }
 
 func (a *TestAgent) HTTPAddr() string {
-	var srv apiServer
-	for _, srv = range a.Agent.apiServers.servers {
-		if srv.Protocol == "http" {
-			break
+	addr, err := firstAddr(a.Agent.apiServers, "http")
+	if err != nil {
+		// TODO: t.Fatal instead of panic
+		panic("no http server registered")
+	}
+	return addr.String()
+}
+
+// firstAddr is used by tests to look up the address for the first server which
+// matches the protocol
+func firstAddr(s *apiServers, protocol string) (net.Addr, error) {
+	for _, srv := range s.servers {
+		if srv.Protocol == protocol {
+			return srv.Addr, nil
 		}
 	}
-	return srv.Addr.String()
+	return nil, fmt.Errorf("no server registered with protocol %v", protocol)
 }
 
 func (a *TestAgent) SegmentAddr(name string) string {
