@@ -68,6 +68,7 @@ const (
 	ACLAuthMethodDeleteRequestType              = 28
 	ChunkingStateType                           = 29
 	FederationStateRequestType                  = 30
+	SystemMetadataRequestType                   = 31
 )
 
 const (
