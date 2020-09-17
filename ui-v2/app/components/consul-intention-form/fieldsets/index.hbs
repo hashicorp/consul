@@ -91,36 +91,39 @@
 {{/if}}
       </fieldset>
     </div>
-    <div role="radiogroup" class={{if item.error.Action ' has-error'}}>
-      {{#each
-        (array
-          (hash
-            intent="allow"
-            header="Allow"
-            body="The source service will be allowed to connect to the destination."
+    <div>
+      <span class="label">Should this source connect to the destination?</span>
+      <div role="radiogroup" class={{if item.error.Action ' has-error'}}>
+        {{#each
+          (array
+            (hash
+              intent="allow"
+              header="Allow"
+              body="The source service will be allowed to connect to the destination."
+            )
+            (hash
+              intent="deny"
+              header="Deny"
+              body="The source service will not be allowed to connect to the destination."
+            )
           )
-          (hash
-            intent="deny"
-            header="Deny"
-            body="The source service will not be allowed to connect to the destination."
-          )
-        )
-      as |_action|}}
-        <RadioCard
-          class={{concat 'value-' _action.intent}}
-          @value={{_action.intent}}
-          @checked={{if (eq item.Action _action.intent) 'checked'}}
-          @onchange={{action onchange}}
-          @name="Action"
-        as |radio|>
-          <header>
-            {{_action.header}}
-          </header>
-          <p>
-            {{_action.body}}
-          </p>
-        </RadioCard>
-      {{/each}}
+        as |_action|}}
+          <RadioCard
+            class={{concat 'value-' _action.intent}}
+            @value={{_action.intent}}
+            @checked={{if (eq item.Action _action.intent) 'checked'}}
+            @onchange={{action onchange}}
+            @name="Action"
+          as |radio|>
+            <header>
+              {{_action.header}}
+            </header>
+            <p>
+              {{_action.body}}
+            </p>
+          </RadioCard>
+        {{/each}}
+      </div>
     </div>
     <label class="type-text{{if item.error.Description ' has-error'}}">
       <span>Description (Optional)</span>
