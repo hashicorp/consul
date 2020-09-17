@@ -53,7 +53,7 @@ recommendations](/docs/agent/options#kv_max_value_size)
 are usually sufficient.
 
 Keys, like objects are not restricted by type and can include any character.
-However, we recommend using URL-safe chars - `[a-zA-Z0-9-_]` with the
+However, we recommend using URL-safe chars - `[a-zA-Z0-9-._~]` with the
 exception of `/`, which can be used to help organize data. Note, `/` will be
 treated like any other character and is not fixed to the file system. Meaning,
 including `/` in a key does not fix it to a directory structure. This model is
