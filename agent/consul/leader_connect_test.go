@@ -100,8 +100,8 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 				err               error
 			)
 			retry.Run(t, func(r *retry.R) {
-				_, caRoot = getCAProvider(s1)
-				secondaryProvider, _ = getCAProvider(s2)
+				_, caRoot = getCAProviderWithLock(s1)
+				secondaryProvider, _ = getCAProviderWithLock(s2)
 				intermediatePEM, err = secondaryProvider.ActiveIntermediate()
 				require.NoError(r, err)
 
@@ -165,7 +165,7 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 
 func waitForActiveCARoot(t *testing.T, srv *Server, expect *structs.CARoot) {
 	retry.Run(t, func(r *retry.R) {
-		_, root := getCAProvider(srv)
+		_, root := getCAProviderWithLock(srv)
 		if root == nil {
 			r.Fatal("no root")
 		}
@@ -175,7 +175,7 @@ func waitForActiveCARoot(t *testing.T, srv *Server, expect *structs.CARoot) {
 	})
 }
 
-func getCAProvider(s *Server) (ca.Provider, *structs.CARoot) {
+func getCAProviderWithLock(s *Server) (ca.Provider, *structs.CARoot) {
 	s.caProviderReconfigurationLock.Lock()
 	defer s.caProviderReconfigurationLock.Unlock()
 	return s.getCAProvider()
@@ -234,7 +234,7 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 
 	// Get the original intermediate
 	// TODO: Wait for intermediate instead of wait for leader
-	secondaryProvider, _ := getCAProvider(s2)
+	secondaryProvider, _ := getCAProviderWithLock(s2)
 	intermediatePEM, err := secondaryProvider.ActiveIntermediate()
 	require.NoError(err)
 	cert, err := connect.ParseCert(intermediatePEM)
@@ -260,7 +260,7 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 	// however, defaultQueryTime will be configurable and we con lower it
 	// so that it returns for sure.
 	retry.Run(t, func(r *retry.R) {
-		secondaryProvider, _ = getCAProvider(s2)
+		secondaryProvider, _ = getCAProviderWithLock(s2)
 		intermediatePEM, err = secondaryProvider.ActiveIntermediate()
 		r.Check(err)
 		cert, err := connect.ParseCert(intermediatePEM)
@@ -275,7 +275,7 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 
 	// Get the root from dc1 and validate a chain of:
 	// dc2 leaf -> dc2 intermediate -> dc1 root
-	_, caRoot := getCAProvider(s1)
+	_, caRoot := getCAProviderWithLock(s1)
 
 	// Have dc2 sign a leaf cert and make sure the chain is correct.
 	spiffeService := &connect.SpiffeIDService{
@@ -336,7 +336,7 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 
 	// Get the original intermediate
-	secondaryProvider, _ := getCAProvider(s2)
+	secondaryProvider, _ := getCAProviderWithLock(s2)
 	oldIntermediatePEM, err := secondaryProvider.ActiveIntermediate()
 	require.NoError(err)
 	require.NotEmpty(oldIntermediatePEM)
@@ -422,7 +422,7 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 
 	// Get the new root from dc1 and validate a chain of:
 	// dc2 leaf -> dc2 intermediate -> dc1 root
-	_, caRoot := getCAProvider(s1)
+	_, caRoot := getCAProviderWithLock(s1)
 
 	// Have dc2 sign a leaf cert and make sure the chain is correct.
 	spiffeService := &connect.SpiffeIDService{
@@ -531,7 +531,7 @@ func TestLeader_SecondaryCA_FixSigningKeyID_via_IntermediateRefresh(t *testing.T
 	// the CA provider anyway.
 	retry.Run(t, func(r *retry.R) {
 		// verify that the root is now corrected
-		provider, activeRoot := getCAProvider(s2)
+		provider, activeRoot := getCAProviderWithLock(s2)
 		require.NotNil(r, provider)
 		require.NotNil(r, activeRoot)
 
@@ -716,7 +716,7 @@ func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
 
 	// Wait for the secondary transition to happen and then verify the secondary DC
 	// has both roots present.
-	secondaryProvider, _ := getCAProvider(s2)
+	secondaryProvider, _ := getCAProviderWithLock(s2)
 	retry.Run(t, func(r *retry.R) {
 		state1 := s1.fsm.State()
 		_, roots1, err := state1.CARoots(nil)
@@ -737,7 +737,7 @@ func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
 		require.NotEmpty(r, inter, "should have valid intermediate")
 	})
 
-	_, caRoot := getCAProvider(s1)
+	_, caRoot := getCAProviderWithLock(s1)
 	intermediatePEM, err := secondaryProvider.ActiveIntermediate()
 	require.NoError(t, err)
 
@@ -1332,7 +1332,7 @@ func TestLeader_PersistIntermediateCAs(t *testing.T) {
 	}
 
 	// Get the active root before leader change.
-	_, root := getCAProvider(s1)
+	_, root := getCAProviderWithLock(s1)
 	require.Len(root.IntermediateCerts, 1)
 
 	// Force a leader change and make sure the root CA values are preserved.
@@ -1351,7 +1351,7 @@ func TestLeader_PersistIntermediateCAs(t *testing.T) {
 			r.Fatal("no leader")
 		}
 
-		_, newLeaderRoot := getCAProvider(leader)
+		_, newLeaderRoot := getCAProviderWithLock(leader)
 		if !reflect.DeepEqual(newLeaderRoot, root) {
 			r.Fatalf("got %v, want %v", newLeaderRoot, root)
 		}
