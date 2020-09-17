@@ -227,6 +227,7 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 
 	// Get the original intermediate
+	// TODO: Wait for intermediate instead of wait for leader
 	secondaryProvider, _ := s2.getCAProvider()
 	intermediatePEM, err := secondaryProvider.ActiveIntermediate()
 	require.NoError(err)
@@ -329,6 +330,7 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 
 	// Get the original intermediate
+	// TODO acquire caProviderReconfigurationLock
 	secondaryProvider, _ := s2.getCAProvider()
 	oldIntermediatePEM, err := secondaryProvider.ActiveIntermediate()
 	require.NoError(err)
