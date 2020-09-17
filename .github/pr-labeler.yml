@@ -1,0 +1,90 @@
+# archived/webui:
+# backport/1.6:
+# backport/1.7:
+# backport/1.8:
+# beta/1.8:
+# blocks-release:
+# crash:
+# do-not-merge:
+# help-wanted:
+# needs-discussion:
+# needs-investigation:
+# post-beta:
+pr/dependencies:
+    - vendor/**/*
+# pr/needs-rebase:
+# pr/needs-tests:
+theme/acls:
+    - acl/**/*
+theme/agent-cache:
+    - agent/cache/**/*
+theme/api:
+    - api/**/*
+theme/catalog:
+    - agent/catalog/**/*
+theme/certificates:
+    - tlsutil/**/*
+theme/cli:
+    - command/**/*
+theme/config:
+    - agent/config/**/*
+theme/connect:
+    - connect/**/*
+    - agent/connect/**/*
+#theme/consul-nomad:
+#theme/consul-vault:
+# theme/contributing:
+    - .github/**/*
+theme/dns:
+    - dns/**/*
+theme/envoy/xds:
+    - agent/xds/**/*
+# theme/federation-usability:
+theme/go-modules:
+    - go.*
+theme/health-checks:
+    - agent/health*
+    - api/health*
+# theme/ingress-gw:
+# thementernal-cleanup:
+theme/internals:
+    - lib/**/*
+    - types/**/*
+# theme/kubernetes:
+# theme/mesh-gw:
+#    - 'mesh'
+# theme/operator-usability:
+# theme/performance:
+#    - 'performance'
+# theme/service-metadata:
+#    - 'meta-data'
+# theme/streaming:
+#    - 'stream'
+theme/telemetry:
+    - logging/**/*
+# theme/terminating-gw:
+#    - 'terminating'
+# theme/testing:
+    - ./*test*/**/*
+theme/tls:
+    - tlsutil/**/*
+theme/ui:
+    - ui/**/*
+# theme/windows:
+# thinking:
+# type/bug:
+type/ci:
+    - .circleci/*
+# type/crash:
+type/docs:
+    - website/**/*
+type/docs-cherrypick:
+    - website/**/*
+# type/enhancement:
+# type/good-first-issue:
+# type/question:
+# type/umbrella-☂️:
+# version/0.8.3:
+# waiting-pr-merge:
+# waiting-reply:
+# waiting-reply-🤖:
