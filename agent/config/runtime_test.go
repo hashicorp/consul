@@ -1712,7 +1712,7 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			json:  []string{`{ "acl_datacenter": "%" }`},
 			hcl:   []string{`acl_datacenter = "%"`},
-			err:   `acl_datacenter cannot be "%". Please use only [a-z0-9-_]`,
+			err:   `acl_datacenter can only contain lowercase alphanumeric, - or _ characters.`,
 			warns: []string{`The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.`},
 		},
 		{
@@ -1881,7 +1881,7 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{ "datacenter": "%" }`},
 			hcl:  []string{`datacenter = "%"`},
-			err:  `datacenter cannot be "%". Please use only [a-z0-9-_]`,
+			err:  `datacenter can only contain lowercase alphanumeric, - or _ characters.`,
 		},
 		{
 			desc: "dns does not allow socket",
@@ -4306,7 +4306,7 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 				metrics_provider = "((((lisp 4 life))))"
 			}
 			`},
-			err: `ui_config.metrics_provider can only contain lowercase alphanumeric or _ characters.`,
+			err: `ui_config.metrics_provider can only contain lowercase alphanumeric, - or _ characters.`,
 		},
 		{
 			desc: "metrics_provider_options_json invalid JSON",
@@ -4393,7 +4393,7 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 				}
 			}
 			`},
-			err: `ui_config.dashboard_url_templates key names can only contain lowercase alphanumeric or _ characters.`,
+			err: `ui_config.dashboard_url_templates key names can only contain lowercase alphanumeric, - or _ characters.`,
 		},
 		{
 			desc: "dashboard_url_templates value format",

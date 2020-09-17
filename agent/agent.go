@@ -290,7 +290,6 @@ type Agent struct {
 	// IP.
 	httpConnLimiter connlimit.Limiter
 
-	// enterpriseAgent embeds fields that we only access in consul-enterprise builds
 	enterpriseAgent
 }
 
@@ -3573,6 +3572,9 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 		newCfg.Telemetry.BlockedPrefixes)
 
 	a.State.SetDiscardCheckOutput(newCfg.DiscardCheckOutput)
+
+	// Reload metrics config
+	a.uiConfig.Store(newCfg.UIConfig)
 
 	return nil
 }

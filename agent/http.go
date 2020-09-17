@@ -29,7 +29,6 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
-	"github.com/ryboe/q"
 )
 
 // MethodNotAllowedError should be returned by a handler when the HTTP method is not allowed.
@@ -170,7 +169,6 @@ func (fs *settingsInjectedIndexFS) Open(name string) (http.File, error) {
 	}
 
 	content, err := ioutil.ReadAll(file)
-	q.Q(err)
 	if err != nil {
 		return nil, fmt.Errorf("failed reading index.html: %s", err)
 	}
@@ -184,7 +182,6 @@ func (fs *settingsInjectedIndexFS) Open(name string) (http.File, error) {
 
 	// First built an escaped, JSON blob from the settings passed.
 	bs, err := json.Marshal(fs.UISettings)
-	q.Q(string(bs))
 	if err != nil {
 		return nil, fmt.Errorf("failed marshalling UI settings JSON: %s", err)
 	}

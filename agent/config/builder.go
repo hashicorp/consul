@@ -1109,11 +1109,26 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	return rt, nil
 }
 
+// reBasicName validates that a field contains only lower case alphanumerics,
+// underscore and dash and is non-empty.
+var reBasicName = regexp.MustCompile("^[a-z0-9_-]+$")
+
+func validateBasicName(field, value string, allowEmpty bool) error {
+	if value == "" {
+		if allowEmpty {
+			return nil
+		}
+		return fmt.Errorf("%s cannot be empty", field)
+	}
+	if !reBasicName.MatchString(value) {
+		return fmt.Errorf("%s can only contain lowercase alphanumeric, - or _ characters."+
+			" received: %q", field, value)
+	}
+	return nil
+}
+
 // Validate performs semantic validation of the runtime configuration.
 func (b *Builder) Validate(rt RuntimeConfig) error {
-	// reDatacenter defines a regexp for a valid datacenter name
-	var reBasicName = regexp.MustCompile("^[a-z0-9_-]+$")
-	var reDatacenter = reBasicName
 
 	// validContentPath defines a regexp for a valid content path name.
 	var validContentPath = regexp.MustCompile(`^[A-Za-z0-9/_-]+$`)
@@ -1122,11 +1137,8 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	// check required params we cannot recover from first
 	//
 
-	if rt.Datacenter == "" {
-		return fmt.Errorf("datacenter cannot be empty")
-	}
-	if !reDatacenter.MatchString(rt.Datacenter) {
-		return fmt.Errorf("datacenter cannot be %q. Please use only [a-z0-9-_]", rt.Datacenter)
+	if err := validateBasicName("datacenter", rt.Datacenter, false); err != nil {
+		return err
 	}
 	if rt.DataDir == "" && !rt.DevMode {
 		return fmt.Errorf("data_dir cannot be empty")
@@ -1140,17 +1152,14 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		return fmt.Errorf("ui-content-path cannot have 'v[0-9]'. received: %q", rt.UIConfig.ContentPath)
 	}
 
-	if rt.UIConfig.MetricsProvider != "" &&
-		!reBasicName.MatchString(rt.UIConfig.MetricsProvider) {
-		return fmt.Errorf("ui_config.metrics_provider can only contain lowercase "+
-			"alphanumeric or _ characters. received: %q", rt.UIConfig.MetricsProvider)
+	if err := validateBasicName("ui_config.metrics_provider", rt.UIConfig.MetricsProvider, true); err != nil {
+		return err
 	}
 	if rt.UIConfig.MetricsProviderOptionsJSON != "" {
 		// Attempt to parse the JSON to ensure it's valid, parsing into a map
 		// ensures we get an object.
 		var dummyMap map[string]interface{}
-		err := json.Unmarshal([]byte(rt.UIConfig.MetricsProviderOptionsJSON),
-			&dummyMap)
+		err := json.Unmarshal([]byte(rt.UIConfig.MetricsProviderOptionsJSON), &dummyMap)
 		if err != nil {
 			return fmt.Errorf("ui_config.metrics_provider_options_json must be empty "+
 				"or a string containing a valid JSON object. received: %q",
@@ -1166,9 +1175,8 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		}
 	}
 	for k, v := range rt.UIConfig.DashboardURLTemplates {
-		if !reBasicName.MatchString(k) {
-			return fmt.Errorf("ui_config.dashboard_url_templates key names can only "+
-				"contain lowercase alphanumeric or _ characters. received: %q", k)
+		if err := validateBasicName("ui_config.dashboard_url_templates key names", k, false); err != nil {
+			return err
 		}
 		u, err := url.Parse(v)
 		if err != nil || !(u.Scheme == "http" || u.Scheme == "https") {
@@ -1247,8 +1255,8 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	if rt.AutopilotMaxTrailingLogs < 0 {
 		return fmt.Errorf("autopilot.max_trailing_logs cannot be %d. Must be greater than or equal to zero", rt.AutopilotMaxTrailingLogs)
 	}
-	if rt.ACLDatacenter != "" && !reDatacenter.MatchString(rt.ACLDatacenter) {
-		return fmt.Errorf("acl_datacenter cannot be %q. Please use only [a-z0-9-_]", rt.ACLDatacenter)
+	if err := validateBasicName("acl_datacenter", rt.ACLDatacenter, true); err != nil {
+		return err
 	}
 	// In DevMode, UI is enabled by default, so to enable rt.UIDir, don't perform this check
 	if !rt.DevMode && rt.UIConfig.Enabled && rt.UIConfig.Dir != "" {
