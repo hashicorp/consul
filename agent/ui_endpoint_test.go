@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -793,4 +794,13 @@ func TestUIGatewayIntentions(t *testing.T) {
 		intentions[2].DestinationName,
 	}
 	assert.ElementsMatch(t, expected, actual)
+}
+
+func TestUIEndpoint_modifySummaryForGatewayService_UseRequestedDCInsteadOfConfigured(t *testing.T) {
+	dc := "dc2"
+	cfg := config.RuntimeConfig{Datacenter: "dc1", DNSDomain: "consul"}
+	sum := ServiceSummary{GatewayConfig: GatewayConfig{}}
+	gwsvc := structs.GatewayService{Service: structs.ServiceName{Name: "test"}, Port: 42}
+	modifySummaryForGatewayService(&cfg, dc, &sum, &gwsvc)
+	require.Equal(t, "test.ingress.dc2.consul:42", sum.GatewayConfig.Addresses[0])
 }

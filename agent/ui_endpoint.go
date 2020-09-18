@@ -164,7 +164,7 @@ RPC:
 
 	// Generate the summary
 	// TODO (gateways) (freddy) Have Internal.ServiceDump return ServiceDump instead. Need to add bexpr filtering for type.
-	return summarizeServices(out.Nodes.ToServiceDump(), s.agent.config), nil
+	return summarizeServices(out.Nodes.ToServiceDump(), s.agent.config, args.Datacenter), nil
 }
 
 // UIGatewayServices is used to query all the nodes for services associated with a gateway along with their gateway config
@@ -199,10 +199,10 @@ RPC:
 		return nil, err
 	}
 
-	return summarizeServices(out.Dump, s.agent.config), nil
+	return summarizeServices(out.Dump, s.agent.config, args.Datacenter), nil
 }
 
-func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig) []*ServiceSummary {
+func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig, datacenter string) []*ServiceSummary {
 	// Collect the summary information
 	var services []structs.ServiceID
 	summary := make(map[structs.ServiceID]*ServiceSummary)
@@ -226,7 +226,7 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig) []*S
 		if csn.GatewayService != nil {
 			gwsvc := csn.GatewayService
 			sum := getService(gwsvc.Service.ToServiceID())
-			modifySummaryForGatewayService(cfg, sum, gwsvc)
+			modifySummaryForGatewayService(cfg, datacenter, sum, gwsvc)
 		}
 
 		// Will happen in cases where we only have the GatewayServices mapping
@@ -307,6 +307,7 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig) []*S
 
 func modifySummaryForGatewayService(
 	cfg *config.RuntimeConfig,
+	datacenter string,
 	sum *ServiceSummary,
 	gwsvc *structs.GatewayService,
 ) {
@@ -319,7 +320,7 @@ func modifySummaryForGatewayService(
 		}
 		dnsAddresses = append(dnsAddresses, serviceIngressDNSName(
 			gwsvc.Service.Name,
-			cfg.Datacenter,
+			datacenter,
 			domain,
 			&gwsvc.Service.EnterpriseMeta,
 		))
