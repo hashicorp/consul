@@ -21,6 +21,13 @@ import (
 	"github.com/hashicorp/go-hclog"
 )
 
+const (
+
+	// NotBefore will be CertificateTimeDriftBuffer in the past to account for
+	// time drift between different servers.
+	CertificateTimeDriftBuffer = time.Minute
+)
+
 var ErrNotInitialized = errors.New("provider not initialized")
 
 type ConsulProvider struct {
@@ -474,7 +481,7 @@ func (c *ConsulProvider) SignIntermediate(csr *x509.CertificateRequest) (string,
 	// Sign the certificate valid from 1 minute in the past, this helps it be
 	// accepted right away even when nodes are not in close time sync across the
 	// cluster. A minute is more than enough for typical DC clock drift.
-	effectiveNow := time.Now().Add(-1 * time.Minute)
+	effectiveNow := time.Now().Add(-1 * CertificateTimeDriftBuffer)
 	template := x509.Certificate{
 		SerialNumber:          sn,
 		Subject:               csr.Subject,

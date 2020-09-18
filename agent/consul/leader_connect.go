@@ -684,7 +684,7 @@ func (s *Server) secondaryIntermediateCertRenewalWatch(ctx context.Context) erro
 					return fmt.Errorf("error parsing active intermediate cert: %v", err)
 				}
 
-				if lessThanHalfTimePassed(time.Now(), intermediateCert.NotBefore,
+				if lessThanHalfTimePassed(time.Now(), intermediateCert.NotBefore.Add(ca.CertificateTimeDriftBuffer),
 					intermediateCert.NotAfter) {
 					return nil
 				}
