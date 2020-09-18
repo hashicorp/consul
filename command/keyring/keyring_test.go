@@ -191,20 +191,23 @@ func removeKey(t *testing.T, addr string, key string) {
 }
 
 func TestKeyringCommand_poolName(t *testing.T) {
-	require.Equal(t, "dc1 (LAN)", poolName("dc1", false, ""))
-	require.Equal(t, "dc1 (LAN) [segment1]", poolName("dc1", false, "segment1"))
-	require.Equal(t, "WAN", poolName("dc1", true, ""))
+	require.Equal(t, "dc1 (LAN):\n", poolName("dc1", false, ""))
+	require.Equal(t, "dc1 (LAN) [segment1]:\n", poolName("dc1", false, "segment1"))
+	require.Equal(t, "WAN:\n", poolName("dc1", true, ""))
 }
 
 func TestKeyringCommand_formatKeys(t *testing.T) {
-	require.Contains(t, formatKeys(map[string]int{"key1": 1, "key2": 2}, 2), "  key1 [1/2]")
-	require.Contains(t, formatKeys(map[string]int{"key1": 1, "key2": 2}, 2), "  key2 [2/2]")
+	require.Equal(t, "", formatKeys(map[string]int{}, 0))
+	keys := formatKeys(map[string]int{"key1": 1, "key2": 2}, 2)
+	require.Contains(t, keys, "  key1 [1/2]\n")
+	require.Contains(t, keys, "  key2 [2/2]\n")
 }
 
 func TestKeyringCommand_formatMessages(t *testing.T) {
-
 	require.Equal(t, "", formatMessages(map[string]string{}))
-	require.Equal(t, "  ===> n1: hello\n  ===> n2: world", formatMessages(map[string]string{"n1": "hello", "n2": "world"}))
+	messages := formatMessages(map[string]string{"n1": "hello", "n2": "world"})
+	require.Contains(t, messages, "  ===> n1: hello\n")
+	require.Contains(t, messages, "  ===> n2: world\n")
 }
 
 func TestKeyringCommand_formatResponse(t *testing.T) {

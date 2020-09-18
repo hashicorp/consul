@@ -173,13 +173,12 @@ func (c *cmd) Run(args []string) int {
 }
 
 func formatResponse(response *consulapi.KeyringResponse, keys map[string]int) string {
-	result := []string{
-		"",
-		poolName(response.Datacenter, response.WAN, response.Segment) + ":",
-		formatMessages(response.Messages),
-		formatKeys(keys, response.NumNodes),
-	}
-	return strings.Replace(strings.Join(result, "\n"), "\n\n", "\n", -1)
+	b := new(strings.Builder)
+	b.WriteString("\n")
+	b.WriteString(poolName(response.Datacenter, response.WAN, response.Segment))
+	b.WriteString(formatMessages(response.Messages))
+	b.WriteString(formatKeys(keys, response.NumNodes))
+	return strings.TrimRight(b.String(), "\n")
 }
 
 func poolName(dc string, wan bool, segment string) string {
@@ -190,23 +189,23 @@ func poolName(dc string, wan bool, segment string) string {
 	if segment != "" {
 		segment = fmt.Sprintf(" [%s]", segment)
 	}
-	return fmt.Sprintf("%s%s", pool, segment)
+	return fmt.Sprintf("%s%s:\n", pool, segment)
 }
 
 func formatMessages(messages map[string]string) string {
-	result := []string{}
+	b := new(strings.Builder)
 	for from, msg := range messages {
-		result = append(result, fmt.Sprintf("  ===> %s: %s", from, msg))
+		b.WriteString(fmt.Sprintf("  ===> %s: %s\n", from, msg))
 	}
-	return strings.Join(result, "\n")
+	return b.String()
 }
 
 func formatKeys(keys map[string]int, total int) string {
-	result := []string{}
+	b := new(strings.Builder)
 	for key, num := range keys {
-		result = append(result, fmt.Sprintf("  %s [%d/%d]", key, num, total))
+		b.WriteString(fmt.Sprintf("  %s [%d/%d]\n", key, num, total))
 	}
-	return strings.Join(result, "\n")
+	return b.String()
 }
 
 func (c *cmd) Synopsis() string {
