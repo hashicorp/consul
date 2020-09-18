@@ -1978,23 +1978,24 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 	defer a.ResumeSync()
 
 	// Set default tagged addresses
-	serviceIP := net.ParseIP(service.Address)
-	serviceAddressIs4 := serviceIP != nil && serviceIP.To4() != nil
-	serviceAddressIs6 := serviceIP != nil && serviceIP.To4() == nil
 	if service.TaggedAddresses == nil {
 		service.TaggedAddresses = map[string]structs.ServiceAddress{}
 	}
-	if _, ok := service.TaggedAddresses[structs.TaggedAddressLANIPv4]; !ok && serviceAddressIs4 {
-		service.TaggedAddresses[structs.TaggedAddressLANIPv4] = structs.ServiceAddress{Address: service.Address, Port: service.Port}
+
+	lanAddr, isIPv4, isIPv6 := coalesceTaggedAddress(service, false)
+	if _, ok := service.TaggedAddresses[structs.TaggedAddressLANIPv4]; !ok && isIPv4 {
+		service.TaggedAddresses[structs.TaggedAddressLANIPv4] = lanAddr
 	}
-	if _, ok := service.TaggedAddresses[structs.TaggedAddressWANIPv4]; !ok && serviceAddressIs4 {
-		service.TaggedAddresses[structs.TaggedAddressWANIPv4] = structs.ServiceAddress{Address: service.Address, Port: service.Port}
+	if _, ok := service.TaggedAddresses[structs.TaggedAddressLANIPv6]; !ok && isIPv6 {
+		service.TaggedAddresses[structs.TaggedAddressLANIPv6] = lanAddr
 	}
-	if _, ok := service.TaggedAddresses[structs.TaggedAddressLANIPv6]; !ok && serviceAddressIs6 {
-		service.TaggedAddresses[structs.TaggedAddressLANIPv6] = structs.ServiceAddress{Address: service.Address, Port: service.Port}
+
+	wanAddr, isIPv4, isIPv6 := coalesceTaggedAddress(service, true)
+	if _, ok := service.TaggedAddresses[structs.TaggedAddressWANIPv4]; !ok && isIPv4 {
+		service.TaggedAddresses[structs.TaggedAddressWANIPv4] = wanAddr
 	}
-	if _, ok := service.TaggedAddresses[structs.TaggedAddressWANIPv6]; !ok && serviceAddressIs6 {
-		service.TaggedAddresses[structs.TaggedAddressWANIPv6] = structs.ServiceAddress{Address: service.Address, Port: service.Port}
+	if _, ok := service.TaggedAddresses[structs.TaggedAddressWANIPv6]; !ok && isIPv6 {
+		service.TaggedAddresses[structs.TaggedAddressWANIPv6] = wanAddr
 	}
 
 	var checks []*structs.HealthCheck
@@ -3883,6 +3884,27 @@ func httpInjectAddr(url string, ip string, port int) string {
 	out = httpAddrRE.ReplaceAllString(out, addrRepl)
 
 	return out
+}
+
+// coalesceTaggedAddress will determine the WAN or LAN address to tag as IPv4 or IPv6 for each
+func coalesceTaggedAddress(service *structs.NodeService, wan bool) (structs.ServiceAddress, bool, bool) {
+	existing := service.TaggedAddresses[structs.TaggedAddressLAN]
+	if wan {
+		existing = service.TaggedAddresses[structs.TaggedAddressWAN]
+	}
+
+	// Prefer an existing lan/wan tagged address when generating version specific tags like lan_ipv4 and wan_ipv6
+	// fall back to service address/port when tagged address is not available
+	resp := structs.ServiceAddress{Address: existing.Address, Port: existing.Port}
+	if resp.Address == "" {
+		resp = structs.ServiceAddress{Address: service.Address, Port: service.Port}
+	}
+
+	ip := net.ParseIP(resp.Address)
+	isIPv4 := ip != nil && ip.To4() != nil
+	isIPv6 := ip != nil && ip.To4() == nil
+
+	return resp, isIPv4, isIPv6
 }
 
 func fixIPv6(address string) string {

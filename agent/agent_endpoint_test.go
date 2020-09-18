@@ -446,6 +446,10 @@ func TestAgent_Service(t *testing.T) {
 				Address: "198.18.0.1",
 				Port:    1818,
 			},
+			"wan_ipv4": {
+				Address: "198.18.0.1",
+				Port:    1818,
+			},
 		},
 		Meta:       map[string]string{},
 		Tags:       []string{},
