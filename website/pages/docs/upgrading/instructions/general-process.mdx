@@ -76,8 +76,14 @@ this snapshot somewhere safe. More documentation on snapshot usage is available 
 - https://learn.hashicorp.com/tutorials/consul/backup-and-restore
 
 **2.** Temporarily modify your Consul configuration so that its [log_level](/docs/agent/options.html#_log_level)
-is set to `debug`. After doing this, issue the `consul reload` command on your servers. This will
-give you more information to work with in the event something goes wrong.
+is set to `debug`. After doing this, issue the following command on your servers to
+reload the configuration:
+
+```
+consul reload
+```
+
+This change will give you more information to work with in the event something goes wrong.
 
 ## Perform the Upgrade
 
@@ -101,16 +107,25 @@ Take note of which agent is the leader.
 **2.** Copy the new `consul` binary onto your servers and replace the existing
 binary with the new one.
 
-**3.** Perform a rolling restart of Consul on your servers, leaving the leader agent
-for last. Only restart one server at a time. After restarting each server, validate
-that it has rejoined the cluster and is in sync with the leader by issuing the `consul info` command,
-and checking whether the `commit_index` and `last_log_index` fields have the same value.
-If done properly, this should avoid an unexpected leadership election due to loss of quorum.
+**3.** The following steps must be done in order on the server agents, leaving the leader
+agent for last. First force the server agent to leave the cluster with the following command:
 
-~> It is important to issue a `consul leave` command on each server node when shutting
-Consul down. Make sure your service management system (e.g., systemd, upstart, etc.) is
-performing that action. If not, make sure you do it manually or you _will_ end up in a
-bad cluster state.
+```
+consul leave
+```
+
+Then, use a service management system (e.g., systemd, upstart, etc.) to restart the Consul service. If
+you are not using a service management system, you must restart the agent manually.
+
+To validate that the agent has rejoined the cluster and is in sync with the leader, issue the
+following command:
+
+```
+consul info
+```
+
+Check whether the `commit_index` and `last_log_index` fields have the same value. If done properly,
+this should avoid an unexpected leadership election due to loss of quorum.
 
 **4.** Double-check that all servers are showing up in the cluster as expected and are on
 the correct version by issuing:
@@ -143,13 +158,17 @@ dc1-node2  20e6be1b-f1cb-4aab-929f-f7d2d43d9a96  10.11.0.3:8300  follower  true 
 dc1-node3  658c343b-8769-431f-a71a-236f9dbb17b3  10.11.0.4:8300  follower  true   3
 ```
 
-**5.** Set your `log_level` back to what you had it at prior to the upgrade and issue
-`consul reload` again.
+**5.** Set your `log_level` back to its original value and issue the following command
+on your servers to reload the configuration:
+
+```
+consul reload
+```
 
 ## Troubleshooting
 
 Most problems with upgrading occur due to either failing to upgrade the leader agent last,
-or due to failing to wait for a follower agent to fully rejoin a cluster before moving
+or failing to wait for a follower agent to fully rejoin a cluster before moving
 on to another server. This can cause a loss of quorum and occasionally can result in
 all of your servers attempting to kick off leadership elections endlessly without ever
 reaching a quorum and electing a leader.
@@ -157,13 +176,12 @@ reaching a quorum and electing a leader.
 Most of these problems can be solved by following the steps outlined in our
 [Outage Recovery](https://learn.hashicorp.com/tutorials/consul/recovery-outage) document.
 If you are still having trouble after trying the recovery steps outlined there,
-then these options for further assistance are available:
+then the following options for further assistance are available:
 
 - OSS users without paid support plans can request help in our [Community Forum](https://discuss.hashicorp.com/c/consul/29)
 - Enterprise and OSS users with paid support plans can contact [HashiCorp Support](https://support.hashicorp.com/)
 
-If you end up contacting support, please make sure you include the following information
-in your support ticket:
+When contacting Hashicorp Support, please include the following information in your ticket:
 
 - Consul version you were upgrading FROM and TO.
 - [Debug level logs](/docs/agent/options.html#_log_level) from all servers in the cluster
