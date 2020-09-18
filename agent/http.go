@@ -78,11 +78,8 @@ func (e ForbiddenError) Error() string {
 	return "Access is restricted"
 }
 
-// HTTPServer provides an HTTP api for an agent.
-//
-// TODO: rename this struct to something more appropriate. It is an http.Handler,
-// request router or multiplexer, but it is not a Server.
-type HTTPServer struct {
+// HTTPHandlers provides http.Handler functions for the HTTP APi.
+type HTTPHandlers struct {
 	agent    *Agent
 	denylist *Denylist
 }
@@ -218,7 +215,7 @@ func (fs *settingsInjectedIndexFS) Open(name string) (http.File, error) {
 type endpoint func(resp http.ResponseWriter, req *http.Request) (interface{}, error)
 
 // unboundEndpoint is an endpoint method on a server.
-type unboundEndpoint func(s *HTTPServer, resp http.ResponseWriter, req *http.Request) (interface{}, error)
+type unboundEndpoint func(s *HTTPHandlers, resp http.ResponseWriter, req *http.Request) (interface{}, error)
 
 // endpoints is a map from URL pattern to unbound endpoint.
 var endpoints map[string]unboundEndpoint
@@ -253,7 +250,7 @@ func (w *wrappedMux) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 }
 
 // handler is used to attach our handlers to the mux
-func (s *HTTPServer) handler(enableDebug bool) http.Handler {
+func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 	mux := http.NewServeMux()
 
 	// handleFuncMetrics takes the given pattern and handler and wraps to produce
@@ -393,7 +390,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 	}
 }
 
-func (s *HTTPServer) GetUIENVFromConfig() map[string]interface{} {
+func (s *HTTPHandlers) GetUIENVFromConfig() map[string]interface{} {
 	vars := map[string]interface{}{
 		"CONSUL_CONTENT_PATH": s.agent.config.UIContentPath,
 		"CONSUL_ACLS_ENABLED": s.agent.config.ACLsEnabled,
@@ -405,7 +402,7 @@ func (s *HTTPServer) GetUIENVFromConfig() map[string]interface{} {
 }
 
 // nodeName returns the node name of the agent
-func (s *HTTPServer) nodeName() string {
+func (s *HTTPHandlers) nodeName() string {
 	return s.agent.config.NodeName
 }
 
@@ -433,7 +430,7 @@ var (
 )
 
 // wrap is used to wrap functions to make them more convenient
-func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
+func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc {
 	httpLogger := s.agent.logger.Named(logging.HTTP)
 	return func(resp http.ResponseWriter, req *http.Request) {
 		setHeaders(resp, s.agent.config.HTTPResponseHeaders)
@@ -620,7 +617,7 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 
 // marshalJSON marshals the object into JSON, respecting the user's pretty-ness
 // configuration.
-func (s *HTTPServer) marshalJSON(req *http.Request, obj interface{}) ([]byte, error) {
+func (s *HTTPHandlers) marshalJSON(req *http.Request, obj interface{}) ([]byte, error) {
 	if _, ok := req.URL.Query()["pretty"]; ok || s.agent.config.DevMode {
 		buf, err := json.MarshalIndent(obj, "", "    ")
 		if err != nil {
@@ -638,12 +635,12 @@ func (s *HTTPServer) marshalJSON(req *http.Request, obj interface{}) ([]byte, er
 }
 
 // Returns true if the UI is enabled.
-func (s *HTTPServer) IsUIEnabled() bool {
+func (s *HTTPHandlers) IsUIEnabled() bool {
 	return s.agent.config.UIDir != "" || s.agent.config.EnableUI
 }
 
 // Renders a simple index page
-func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
+func (s *HTTPHandlers) Index(resp http.ResponseWriter, req *http.Request) {
 	// Check if this is a non-index path
 	if req.URL.Path != "/" {
 		resp.WriteHeader(http.StatusNotFound)
@@ -898,7 +895,7 @@ func parseCacheControl(resp http.ResponseWriter, req *http.Request, b structs.Qu
 
 // parseConsistency is used to parse the ?stale and ?consistent query params.
 // Returns true on error
-func (s *HTTPServer) parseConsistency(resp http.ResponseWriter, req *http.Request, b structs.QueryOptionsCompat) bool {
+func (s *HTTPHandlers) parseConsistency(resp http.ResponseWriter, req *http.Request, b structs.QueryOptionsCompat) bool {
 	query := req.URL.Query()
 	defaults := true
 	if _, ok := query["stale"]; ok {
@@ -953,7 +950,7 @@ func (s *HTTPServer) parseConsistency(resp http.ResponseWriter, req *http.Reques
 }
 
 // parseDC is used to parse the ?dc query param
-func (s *HTTPServer) parseDC(req *http.Request, dc *string) {
+func (s *HTTPHandlers) parseDC(req *http.Request, dc *string) {
 	if other := req.URL.Query().Get("dc"); other != "" {
 		*dc = other
 	} else if *dc == "" {
@@ -963,7 +960,7 @@ func (s *HTTPServer) parseDC(req *http.Request, dc *string) {
 
 // parseTokenInternal is used to parse the ?token query param or the X-Consul-Token header or
 // Authorization Bearer token (RFC6750).
-func (s *HTTPServer) parseTokenInternal(req *http.Request, token *string) {
+func (s *HTTPHandlers) parseTokenInternal(req *http.Request, token *string) {
 	tok := ""
 	if other := req.URL.Query().Get("token"); other != "" {
 		tok = other
@@ -997,7 +994,7 @@ func (s *HTTPServer) parseTokenInternal(req *http.Request, token *string) {
 // parseTokenWithDefault passes through to parseTokenInternal and optionally resolves proxy tokens to real ACL tokens.
 // If the token is invalid or not specified it will populate the token with the agents UserToken (acl_token in the
 // consul configuration)
-func (s *HTTPServer) parseTokenWithDefault(req *http.Request, token *string) {
+func (s *HTTPHandlers) parseTokenWithDefault(req *http.Request, token *string) {
 	s.parseTokenInternal(req, token) // parseTokenInternal modifies *token
 	if token != nil && *token == "" {
 		*token = s.agent.tokens.UserToken()
@@ -1008,7 +1005,7 @@ func (s *HTTPServer) parseTokenWithDefault(req *http.Request, token *string) {
 
 // parseToken is used to parse the ?token query param or the X-Consul-Token header or
 // Authorization Bearer token header (RFC6750). This function is used widely in Consul's endpoints
-func (s *HTTPServer) parseToken(req *http.Request, token *string) {
+func (s *HTTPHandlers) parseToken(req *http.Request, token *string) {
 	s.parseTokenWithDefault(req, token)
 }
 
@@ -1038,7 +1035,7 @@ func sourceAddrFromRequest(req *http.Request) string {
 // parseSource is used to parse the ?near=<node> query parameter, used for
 // sorting by RTT based on a source node. We set the source's DC to the target
 // DC in the request, if given, or else the agent's DC.
-func (s *HTTPServer) parseSource(req *http.Request, source *structs.QuerySource) {
+func (s *HTTPHandlers) parseSource(req *http.Request, source *structs.QuerySource) {
 	s.parseDC(req, &source.Datacenter)
 	source.Ip = sourceAddrFromRequest(req)
 	if node := req.URL.Query().Get("near"); node != "" {
@@ -1052,7 +1049,7 @@ func (s *HTTPServer) parseSource(req *http.Request, source *structs.QuerySource)
 
 // parseMetaFilter is used to parse the ?node-meta=key:value query parameter, used for
 // filtering results to nodes with the given metadata key/value
-func (s *HTTPServer) parseMetaFilter(req *http.Request) map[string]string {
+func (s *HTTPHandlers) parseMetaFilter(req *http.Request) map[string]string {
 	if filterList, ok := req.URL.Query()["node-meta"]; ok {
 		filters := make(map[string]string)
 		for _, filter := range filterList {
@@ -1074,7 +1071,7 @@ func parseMetaPair(raw string) (string, string) {
 
 // parseInternal is a convenience method for endpoints that need
 // to use both parseWait and parseDC.
-func (s *HTTPServer) parseInternal(resp http.ResponseWriter, req *http.Request, dc *string, b structs.QueryOptionsCompat) bool {
+func (s *HTTPHandlers) parseInternal(resp http.ResponseWriter, req *http.Request, dc *string, b structs.QueryOptionsCompat) bool {
 	s.parseDC(req, dc)
 	var token string
 	s.parseTokenWithDefault(req, &token)
@@ -1093,11 +1090,11 @@ func (s *HTTPServer) parseInternal(resp http.ResponseWriter, req *http.Request, 
 
 // parse is a convenience method for endpoints that need
 // to use both parseWait and parseDC.
-func (s *HTTPServer) parse(resp http.ResponseWriter, req *http.Request, dc *string, b structs.QueryOptionsCompat) bool {
+func (s *HTTPHandlers) parse(resp http.ResponseWriter, req *http.Request, dc *string, b structs.QueryOptionsCompat) bool {
 	return s.parseInternal(resp, req, dc, b)
 }
 
-func (s *HTTPServer) checkWriteAccess(req *http.Request) error {
+func (s *HTTPHandlers) checkWriteAccess(req *http.Request) error {
 	if req.Method == http.MethodGet || req.Method == http.MethodHead || req.Method == http.MethodOptions {
 		return nil
 	}
@@ -1123,7 +1120,7 @@ func (s *HTTPServer) checkWriteAccess(req *http.Request) error {
 	return ForbiddenError{}
 }
 
-func (s *HTTPServer) parseFilter(req *http.Request, filter *string) {
+func (s *HTTPHandlers) parseFilter(req *http.Request, filter *string) {
 	if other := req.URL.Query().Get("filter"); other != "" {
 		*filter = other
 	}

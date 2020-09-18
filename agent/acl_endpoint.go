@@ -20,7 +20,7 @@ type aclBootstrapResponse struct {
 
 // checkACLDisabled will return a standard response if ACLs are disabled. This
 // returns true if they are disabled and we should not continue.
-func (s *HTTPServer) checkACLDisabled(resp http.ResponseWriter, _req *http.Request) bool {
+func (s *HTTPHandlers) checkACLDisabled(resp http.ResponseWriter, _req *http.Request) bool {
 	if s.agent.config.ACLsEnabled {
 		return false
 	}
@@ -32,7 +32,7 @@ func (s *HTTPServer) checkACLDisabled(resp http.ResponseWriter, _req *http.Reque
 
 // ACLBootstrap is used to perform a one-time ACL bootstrap operation on
 // a cluster to get the first management token.
-func (s *HTTPServer) ACLBootstrap(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLBootstrap(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
@@ -76,7 +76,7 @@ func (s *HTTPServer) ACLBootstrap(resp http.ResponseWriter, req *http.Request) (
 	}
 }
 
-func (s *HTTPServer) ACLReplicationStatus(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLReplicationStatus(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
@@ -97,7 +97,7 @@ func (s *HTTPServer) ACLReplicationStatus(resp http.ResponseWriter, req *http.Re
 	return out, nil
 }
 
-func (s *HTTPServer) ACLRulesTranslate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLRulesTranslate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
@@ -128,7 +128,7 @@ func (s *HTTPServer) ACLRulesTranslate(resp http.ResponseWriter, req *http.Reque
 	return nil, nil
 }
 
-func (s *HTTPServer) ACLRulesTranslateLegacyToken(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLRulesTranslateLegacyToken(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
@@ -177,7 +177,7 @@ func (s *HTTPServer) ACLRulesTranslateLegacyToken(resp http.ResponseWriter, req 
 	return nil, nil
 }
 
-func (s *HTTPServer) ACLPolicyList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLPolicyList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
@@ -208,7 +208,7 @@ func (s *HTTPServer) ACLPolicyList(resp http.ResponseWriter, req *http.Request) 
 	return out.Policies, nil
 }
 
-func (s *HTTPServer) ACLPolicyCRUD(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLPolicyCRUD(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
@@ -237,7 +237,7 @@ func (s *HTTPServer) ACLPolicyCRUD(resp http.ResponseWriter, req *http.Request) 
 	return fn(resp, req, policyID)
 }
 
-func (s *HTTPServer) ACLPolicyRead(resp http.ResponseWriter, req *http.Request, policyID, policyName string) (interface{}, error) {
+func (s *HTTPHandlers) ACLPolicyRead(resp http.ResponseWriter, req *http.Request, policyID, policyName string) (interface{}, error) {
 	args := structs.ACLPolicyGetRequest{
 		Datacenter: s.agent.config.Datacenter,
 		PolicyID:   policyID,
@@ -269,7 +269,7 @@ func (s *HTTPServer) ACLPolicyRead(resp http.ResponseWriter, req *http.Request, 
 	return out.Policy, nil
 }
 
-func (s *HTTPServer) ACLPolicyReadByName(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLPolicyReadByName(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
@@ -282,11 +282,11 @@ func (s *HTTPServer) ACLPolicyReadByName(resp http.ResponseWriter, req *http.Req
 	return s.ACLPolicyRead(resp, req, "", policyName)
 }
 
-func (s *HTTPServer) ACLPolicyReadByID(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error) {
+func (s *HTTPHandlers) ACLPolicyReadByID(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error) {
 	return s.ACLPolicyRead(resp, req, policyID, "")
 }
 
-func (s *HTTPServer) ACLPolicyCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLPolicyCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
@@ -294,11 +294,11 @@ func (s *HTTPServer) ACLPolicyCreate(resp http.ResponseWriter, req *http.Request
 	return s.aclPolicyWriteInternal(resp, req, "", true)
 }
 
-func (s *HTTPServer) ACLPolicyWrite(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error) {
+func (s *HTTPHandlers) ACLPolicyWrite(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error) {
 	return s.aclPolicyWriteInternal(resp, req, policyID, false)
 }
 
-func (s *HTTPServer) aclPolicyWriteInternal(_resp http.ResponseWriter, req *http.Request, policyID string, create bool) (interface{}, error) {
+func (s *HTTPHandlers) aclPolicyWriteInternal(_resp http.ResponseWriter, req *http.Request, policyID string, create bool) (interface{}, error) {
 	args := structs.ACLPolicySetRequest{
 		Datacenter: s.agent.config.Datacenter,
 	}
@@ -333,7 +333,7 @@ func (s *HTTPServer) aclPolicyWriteInternal(_resp http.ResponseWriter, req *http
 	return &out, nil
 }
 
-func (s *HTTPServer) ACLPolicyDelete(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error) {
+func (s *HTTPHandlers) ACLPolicyDelete(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error) {
 	args := structs.ACLPolicyDeleteRequest{
 		Datacenter: s.agent.config.Datacenter,
 		PolicyID:   policyID,
@@ -351,7 +351,7 @@ func (s *HTTPServer) ACLPolicyDelete(resp http.ResponseWriter, req *http.Request
 	return true, nil
 }
 
-func (s *HTTPServer) ACLTokenList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLTokenList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
@@ -388,7 +388,7 @@ func (s *HTTPServer) ACLTokenList(resp http.ResponseWriter, req *http.Request) (
 	return out.Tokens, nil
 }
 
-func (s *HTTPServer) ACLTokenCRUD(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLTokenCRUD(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
@@ -421,7 +421,7 @@ func (s *HTTPServer) ACLTokenCRUD(resp http.ResponseWriter, req *http.Request) (
 	return fn(resp, req, tokenID)
 }
 
-func (s *HTTPServer) ACLTokenSelf(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLTokenSelf(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
@@ -454,7 +454,7 @@ func (s *HTTPServer) ACLTokenSelf(resp http.ResponseWriter, req *http.Request) (
 	return out.Token, nil
 }
 
-func (s *HTTPServer) ACLTokenCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLTokenCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
@@ -462,7 +462,7 @@ func (s *HTTPServer) ACLTokenCreate(resp http.ResponseWriter, req *http.Request)
 	return s.aclTokenSetInternal(resp, req, "", true)
 }
 
-func (s *HTTPServer) ACLTokenGet(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
+func (s *HTTPHandlers) ACLTokenGet(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
 	args := structs.ACLTokenGetRequest{
 		Datacenter:  s.agent.config.Datacenter,
 		TokenID:     tokenID,
@@ -494,11 +494,11 @@ func (s *HTTPServer) ACLTokenGet(resp http.ResponseWriter, req *http.Request, to
 	return out.Token, nil
 }
 
-func (s *HTTPServer) ACLTokenSet(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
+func (s *HTTPHandlers) ACLTokenSet(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
 	return s.aclTokenSetInternal(resp, req, tokenID, false)
 }
 
-func (s *HTTPServer) aclTokenSetInternal(_resp http.ResponseWriter, req *http.Request, tokenID string, create bool) (interface{}, error) {
+func (s *HTTPHandlers) aclTokenSetInternal(_resp http.ResponseWriter, req *http.Request, tokenID string, create bool) (interface{}, error) {
 	args := structs.ACLTokenSetRequest{
 		Datacenter: s.agent.config.Datacenter,
 		Create:     create,
@@ -528,7 +528,7 @@ func (s *HTTPServer) aclTokenSetInternal(_resp http.ResponseWriter, req *http.Re
 	return &out, nil
 }
 
-func (s *HTTPServer) ACLTokenDelete(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
+func (s *HTTPHandlers) ACLTokenDelete(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
 	args := structs.ACLTokenDeleteRequest{
 		Datacenter: s.agent.config.Datacenter,
 		TokenID:    tokenID,
@@ -545,7 +545,7 @@ func (s *HTTPServer) ACLTokenDelete(resp http.ResponseWriter, req *http.Request,
 	return true, nil
 }
 
-func (s *HTTPServer) ACLTokenClone(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
+func (s *HTTPHandlers) ACLTokenClone(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
@@ -574,7 +574,7 @@ func (s *HTTPServer) ACLTokenClone(resp http.ResponseWriter, req *http.Request, 
 	return &out, nil
 }
 
-func (s *HTTPServer) ACLRoleList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLRoleList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
@@ -607,7 +607,7 @@ func (s *HTTPServer) ACLRoleList(resp http.ResponseWriter, req *http.Request) (i
 	return out.Roles, nil
 }
 
-func (s *HTTPServer) ACLRoleCRUD(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLRoleCRUD(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
@@ -636,7 +636,7 @@ func (s *HTTPServer) ACLRoleCRUD(resp http.ResponseWriter, req *http.Request) (i
 	return fn(resp, req, roleID)
 }
 
-func (s *HTTPServer) ACLRoleReadByName(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLRoleReadByName(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
@@ -649,11 +649,11 @@ func (s *HTTPServer) ACLRoleReadByName(resp http.ResponseWriter, req *http.Reque
 	return s.ACLRoleRead(resp, req, "", roleName)
 }
 
-func (s *HTTPServer) ACLRoleReadByID(resp http.ResponseWriter, req *http.Request, roleID string) (interface{}, error) {
+func (s *HTTPHandlers) ACLRoleReadByID(resp http.ResponseWriter, req *http.Request, roleID string) (interface{}, error) {
 	return s.ACLRoleRead(resp, req, roleID, "")
 }
 
-func (s *HTTPServer) ACLRoleRead(resp http.ResponseWriter, req *http.Request, roleID, roleName string) (interface{}, error) {
+func (s *HTTPHandlers) ACLRoleRead(resp http.ResponseWriter, req *http.Request, roleID, roleName string) (interface{}, error) {
 	args := structs.ACLRoleGetRequest{
 		Datacenter: s.agent.config.Datacenter,
 		RoleID:     roleID,
@@ -684,7 +684,7 @@ func (s *HTTPServer) ACLRoleRead(resp http.ResponseWriter, req *http.Request, ro
 	return out.Role, nil
 }
 
-func (s *HTTPServer) ACLRoleCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLRoleCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
@@ -692,7 +692,7 @@ func (s *HTTPServer) ACLRoleCreate(resp http.ResponseWriter, req *http.Request) 
 	return s.ACLRoleWrite(resp, req, "")
 }
 
-func (s *HTTPServer) ACLRoleWrite(resp http.ResponseWriter, req *http.Request, roleID string) (interface{}, error) {
+func (s *HTTPHandlers) ACLRoleWrite(resp http.ResponseWriter, req *http.Request, roleID string) (interface{}, error) {
 	args := structs.ACLRoleSetRequest{
 		Datacenter: s.agent.config.Datacenter,
 	}
@@ -719,7 +719,7 @@ func (s *HTTPServer) ACLRoleWrite(resp http.ResponseWriter, req *http.Request, r
 	return &out, nil
 }
 
-func (s *HTTPServer) ACLRoleDelete(resp http.ResponseWriter, req *http.Request, roleID string) (interface{}, error) {
+func (s *HTTPHandlers) ACLRoleDelete(resp http.ResponseWriter, req *http.Request, roleID string) (interface{}, error) {
 	args := structs.ACLRoleDeleteRequest{
 		Datacenter: s.agent.config.Datacenter,
 		RoleID:     roleID,
@@ -737,7 +737,7 @@ func (s *HTTPServer) ACLRoleDelete(resp http.ResponseWriter, req *http.Request, 
 	return true, nil
 }
 
-func (s *HTTPServer) ACLBindingRuleList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLBindingRuleList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
@@ -771,7 +771,7 @@ func (s *HTTPServer) ACLBindingRuleList(resp http.ResponseWriter, req *http.Requ
 	return out.BindingRules, nil
 }
 
-func (s *HTTPServer) ACLBindingRuleCRUD(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLBindingRuleCRUD(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
@@ -800,7 +800,7 @@ func (s *HTTPServer) ACLBindingRuleCRUD(resp http.ResponseWriter, req *http.Requ
 	return fn(resp, req, bindingRuleID)
 }
 
-func (s *HTTPServer) ACLBindingRuleRead(resp http.ResponseWriter, req *http.Request, bindingRuleID string) (interface{}, error) {
+func (s *HTTPHandlers) ACLBindingRuleRead(resp http.ResponseWriter, req *http.Request, bindingRuleID string) (interface{}, error) {
 	args := structs.ACLBindingRuleGetRequest{
 		Datacenter:    s.agent.config.Datacenter,
 		BindingRuleID: bindingRuleID,
@@ -831,7 +831,7 @@ func (s *HTTPServer) ACLBindingRuleRead(resp http.ResponseWriter, req *http.Requ
 	return out.BindingRule, nil
 }
 
-func (s *HTTPServer) ACLBindingRuleCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLBindingRuleCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
@@ -839,7 +839,7 @@ func (s *HTTPServer) ACLBindingRuleCreate(resp http.ResponseWriter, req *http.Re
 	return s.ACLBindingRuleWrite(resp, req, "")
 }
 
-func (s *HTTPServer) ACLBindingRuleWrite(resp http.ResponseWriter, req *http.Request, bindingRuleID string) (interface{}, error) {
+func (s *HTTPHandlers) ACLBindingRuleWrite(resp http.ResponseWriter, req *http.Request, bindingRuleID string) (interface{}, error) {
 	args := structs.ACLBindingRuleSetRequest{
 		Datacenter: s.agent.config.Datacenter,
 	}
@@ -866,7 +866,7 @@ func (s *HTTPServer) ACLBindingRuleWrite(resp http.ResponseWriter, req *http.Req
 	return &out, nil
 }
 
-func (s *HTTPServer) ACLBindingRuleDelete(resp http.ResponseWriter, req *http.Request, bindingRuleID string) (interface{}, error) {
+func (s *HTTPHandlers) ACLBindingRuleDelete(resp http.ResponseWriter, req *http.Request, bindingRuleID string) (interface{}, error) {
 	args := structs.ACLBindingRuleDeleteRequest{
 		Datacenter:    s.agent.config.Datacenter,
 		BindingRuleID: bindingRuleID,
@@ -884,7 +884,7 @@ func (s *HTTPServer) ACLBindingRuleDelete(resp http.ResponseWriter, req *http.Re
 	return true, nil
 }
 
-func (s *HTTPServer) ACLAuthMethodList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLAuthMethodList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
@@ -915,7 +915,7 @@ func (s *HTTPServer) ACLAuthMethodList(resp http.ResponseWriter, req *http.Reque
 	return out.AuthMethods, nil
 }
 
-func (s *HTTPServer) ACLAuthMethodCRUD(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLAuthMethodCRUD(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
@@ -944,7 +944,7 @@ func (s *HTTPServer) ACLAuthMethodCRUD(resp http.ResponseWriter, req *http.Reque
 	return fn(resp, req, methodName)
 }
 
-func (s *HTTPServer) ACLAuthMethodRead(resp http.ResponseWriter, req *http.Request, methodName string) (interface{}, error) {
+func (s *HTTPHandlers) ACLAuthMethodRead(resp http.ResponseWriter, req *http.Request, methodName string) (interface{}, error) {
 	args := structs.ACLAuthMethodGetRequest{
 		Datacenter:     s.agent.config.Datacenter,
 		AuthMethodName: methodName,
@@ -975,7 +975,7 @@ func (s *HTTPServer) ACLAuthMethodRead(resp http.ResponseWriter, req *http.Reque
 	return out.AuthMethod, nil
 }
 
-func (s *HTTPServer) ACLAuthMethodCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLAuthMethodCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
@@ -983,7 +983,7 @@ func (s *HTTPServer) ACLAuthMethodCreate(resp http.ResponseWriter, req *http.Req
 	return s.ACLAuthMethodWrite(resp, req, "")
 }
 
-func (s *HTTPServer) ACLAuthMethodWrite(resp http.ResponseWriter, req *http.Request, methodName string) (interface{}, error) {
+func (s *HTTPHandlers) ACLAuthMethodWrite(resp http.ResponseWriter, req *http.Request, methodName string) (interface{}, error) {
 	args := structs.ACLAuthMethodSetRequest{
 		Datacenter: s.agent.config.Datacenter,
 	}
@@ -1013,7 +1013,7 @@ func (s *HTTPServer) ACLAuthMethodWrite(resp http.ResponseWriter, req *http.Requ
 	return &out, nil
 }
 
-func (s *HTTPServer) ACLAuthMethodDelete(resp http.ResponseWriter, req *http.Request, methodName string) (interface{}, error) {
+func (s *HTTPHandlers) ACLAuthMethodDelete(resp http.ResponseWriter, req *http.Request, methodName string) (interface{}, error) {
 	args := structs.ACLAuthMethodDeleteRequest{
 		Datacenter:     s.agent.config.Datacenter,
 		AuthMethodName: methodName,
@@ -1031,7 +1031,7 @@ func (s *HTTPServer) ACLAuthMethodDelete(resp http.ResponseWriter, req *http.Req
 	return true, nil
 }
 
-func (s *HTTPServer) ACLLogin(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLLogin(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
@@ -1057,7 +1057,7 @@ func (s *HTTPServer) ACLLogin(resp http.ResponseWriter, req *http.Request) (inte
 	return &out, nil
 }
 
-func (s *HTTPServer) ACLLogout(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLLogout(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
@@ -1093,7 +1093,7 @@ func fixupAuthMethodConfig(method *structs.ACLAuthMethod) {
 	}
 }
 
-func (s *HTTPServer) ACLAuthorize(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLAuthorize(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// At first glance it may appear like this endpoint is going to leak security relevant information.
 	// There are a number of reason why this is okay.
 	//

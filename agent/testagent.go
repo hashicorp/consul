@@ -74,8 +74,8 @@ type TestAgent struct {
 	// It is valid after Start().
 	dns *DNSServer
 
-	// srv is an HTTPServer that may be used to test http endpoints.
-	srv *HTTPServer
+	// srv is an HTTPHandlers that may be used to test http endpoints.
+	srv *HTTPHandlers
 
 	// overrides is an hcl config source to use to override otherwise
 	// non-user settable configurations
@@ -213,7 +213,7 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 	// Start the anti-entropy syncer
 	a.Agent.StartSync()
 
-	a.srv = &HTTPServer{agent: agent, denylist: NewDenylist(a.config.HTTPBlockEndpoints)}
+	a.srv = &HTTPHandlers{agent: agent, denylist: NewDenylist(a.config.HTTPBlockEndpoints)}
 
 	if err := a.waitForUp(); err != nil {
 		a.Shutdown()

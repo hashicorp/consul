@@ -43,7 +43,7 @@ type xdsSelf struct {
 	SupportedProxies map[string][]string
 }
 
-func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
@@ -124,7 +124,7 @@ func enablePrometheusOutput(req *http.Request) bool {
 	return acceptsOpenMetricsMimeType(req.Header.Get("Accept"))
 }
 
-func (s *HTTPServer) AgentMetrics(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) AgentMetrics(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
@@ -155,7 +155,7 @@ func (s *HTTPServer) AgentMetrics(resp http.ResponseWriter, req *http.Request) (
 	return s.agent.MemSink.DisplayMetrics(resp, req)
 }
 
-func (s *HTTPServer) AgentReload(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) AgentReload(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
@@ -224,7 +224,7 @@ func buildAgentService(s *structs.NodeService) api.AgentService {
 	return as
 }
 
-func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) AgentServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Fetch the ACL token, if any.
 	var token string
 	s.parseToken(req, &token)
@@ -271,7 +271,7 @@ func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) 
 //
 // Returns the service definition for a single local services and allows
 // blocking watch using hash-based blocking.
-func (s *HTTPServer) AgentService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) AgentService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Get the proxy ID. Note that this is the ID of a proxy's service instance.
 	id := strings.TrimPrefix(req.URL.Path, "/v1/agent/service/")
 
@@ -350,7 +350,7 @@ func (s *HTTPServer) AgentService(resp http.ResponseWriter, req *http.Request) (
 	return service, err
 }
 
-func (s *HTTPServer) AgentChecks(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) AgentChecks(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Fetch the ACL token, if any.
 	var token string
 	s.parseToken(req, &token)
@@ -393,7 +393,7 @@ func (s *HTTPServer) AgentChecks(resp http.ResponseWriter, req *http.Request) (i
 	return filter.Execute(agentChecks)
 }
 
-func (s *HTTPServer) AgentMembers(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) AgentMembers(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Fetch the ACL token, if any.
 	var token string
 	s.parseToken(req, &token)
@@ -438,7 +438,7 @@ func (s *HTTPServer) AgentMembers(resp http.ResponseWriter, req *http.Request) (
 	return members, nil
 }
 
-func (s *HTTPServer) AgentJoin(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) AgentJoin(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
@@ -470,7 +470,7 @@ func (s *HTTPServer) AgentJoin(resp http.ResponseWriter, req *http.Request) (int
 	return nil, err
 }
 
-func (s *HTTPServer) AgentLeave(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) AgentLeave(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
@@ -488,7 +488,7 @@ func (s *HTTPServer) AgentLeave(resp http.ResponseWriter, req *http.Request) (in
 	return nil, s.agent.ShutdownAgent()
 }
 
-func (s *HTTPServer) AgentForceLeave(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) AgentForceLeave(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
@@ -510,13 +510,13 @@ func (s *HTTPServer) AgentForceLeave(resp http.ResponseWriter, req *http.Request
 // syncChanges is a helper function which wraps a blocking call to sync
 // services and checks to the server. If the operation fails, we only
 // only warn because the write did succeed and anti-entropy will sync later.
-func (s *HTTPServer) syncChanges() {
+func (s *HTTPHandlers) syncChanges() {
 	if err := s.agent.State.SyncChanges(); err != nil {
 		s.agent.logger.Error("failed to sync changes", "error", err)
 	}
 }
 
-func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) AgentRegisterCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var token string
 	s.parseToken(req, &token)
 
@@ -585,7 +585,7 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 	return nil, nil
 }
 
-func (s *HTTPServer) AgentDeregisterCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) AgentDeregisterCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	checkID := structs.NewCheckID(types.CheckID(strings.TrimPrefix(req.URL.Path, "/v1/agent/check/deregister/")), nil)
 
 	// Get the provided token, if any, and vet against any ACL policies.
@@ -614,13 +614,13 @@ func (s *HTTPServer) AgentDeregisterCheck(resp http.ResponseWriter, req *http.Re
 	return nil, nil
 }
 
-func (s *HTTPServer) AgentCheckPass(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) AgentCheckPass(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	checkID := types.CheckID(strings.TrimPrefix(req.URL.Path, "/v1/agent/check/pass/"))
 	note := req.URL.Query().Get("note")
 	return s.agentCheckUpdate(resp, req, checkID, api.HealthPassing, note)
 }
 
-func (s *HTTPServer) AgentCheckWarn(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) AgentCheckWarn(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	checkID := types.CheckID(strings.TrimPrefix(req.URL.Path, "/v1/agent/check/warn/"))
 	note := req.URL.Query().Get("note")
 
@@ -628,7 +628,7 @@ func (s *HTTPServer) AgentCheckWarn(resp http.ResponseWriter, req *http.Request)
 
 }
 
-func (s *HTTPServer) AgentCheckFail(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) AgentCheckFail(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	checkID := types.CheckID(strings.TrimPrefix(req.URL.Path, "/v1/agent/check/fail/"))
 	note := req.URL.Query().Get("note")
 
@@ -650,7 +650,7 @@ type checkUpdate struct {
 
 // AgentCheckUpdate is a PUT-based alternative to the GET-based Pass/Warn/Fail
 // APIs.
-func (s *HTTPServer) AgentCheckUpdate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) AgentCheckUpdate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var update checkUpdate
 	if err := decodeBody(req.Body, &update); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
@@ -673,7 +673,7 @@ func (s *HTTPServer) AgentCheckUpdate(resp http.ResponseWriter, req *http.Reques
 	return s.agentCheckUpdate(resp, req, checkID, update.Status, update.Output)
 }
 
-func (s *HTTPServer) agentCheckUpdate(_resp http.ResponseWriter, req *http.Request, checkID types.CheckID, status string, output string) (interface{}, error) {
+func (s *HTTPHandlers) agentCheckUpdate(_resp http.ResponseWriter, req *http.Request, checkID types.CheckID, status string, output string) (interface{}, error) {
 	cid := structs.NewCheckID(checkID, nil)
 
 	// Get the provided token, if any, and vet against any ACL policies.
@@ -703,7 +703,7 @@ func (s *HTTPServer) agentCheckUpdate(_resp http.ResponseWriter, req *http.Reque
 }
 
 // agentHealthService Returns Health for a given service ID
-func agentHealthService(serviceID structs.ServiceID, s *HTTPServer) (int, string, api.HealthChecks) {
+func agentHealthService(serviceID structs.ServiceID, s *HTTPHandlers) (int, string, api.HealthChecks) {
 	checks := s.agent.State.ChecksForService(serviceID, true)
 	serviceChecks := make(api.HealthChecks, 0)
 	for _, c := range checks {
@@ -744,7 +744,7 @@ func returnTextPlain(req *http.Request) bool {
 }
 
 // AgentHealthServiceByID return the local Service Health given its ID
-func (s *HTTPServer) AgentHealthServiceByID(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) AgentHealthServiceByID(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Pull out the service id (service id since there may be several instance of the same service on this host)
 	serviceID := strings.TrimPrefix(req.URL.Path, "/v1/agent/health/service/id/")
 	if serviceID == "" {
@@ -796,7 +796,7 @@ func (s *HTTPServer) AgentHealthServiceByID(resp http.ResponseWriter, req *http.
 }
 
 // AgentHealthServiceByName return the worse status of all the services with given name on an agent
-func (s *HTTPServer) AgentHealthServiceByName(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) AgentHealthServiceByName(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Pull out the service name
 	serviceName := strings.TrimPrefix(req.URL.Path, "/v1/agent/health/service/name/")
 	if serviceName == "" {
@@ -857,7 +857,7 @@ func (s *HTTPServer) AgentHealthServiceByName(resp http.ResponseWriter, req *htt
 	return result, CodeWithPayloadError{StatusCode: code, Reason: status, ContentType: "application/json"}
 }
 
-func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.ServiceDefinition
 	// Fixup the type decode of TTL or Interval if a check if provided.
 
@@ -1007,7 +1007,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	return nil, nil
 }
 
-func (s *HTTPServer) AgentDeregisterService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) AgentDeregisterService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	sid := structs.NewServiceID(strings.TrimPrefix(req.URL.Path, "/v1/agent/service/deregister/"), nil)
 
 	// Get the provided token, if any, and vet against any ACL policies.
@@ -1037,7 +1037,7 @@ func (s *HTTPServer) AgentDeregisterService(resp http.ResponseWriter, req *http.
 	return nil, nil
 }
 
-func (s *HTTPServer) AgentServiceMaintenance(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) AgentServiceMaintenance(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Ensure we have a service ID
 	sid := structs.NewServiceID(strings.TrimPrefix(req.URL.Path, "/v1/agent/service/maintenance/"), nil)
 
@@ -1100,7 +1100,7 @@ func (s *HTTPServer) AgentServiceMaintenance(resp http.ResponseWriter, req *http
 	return nil, nil
 }
 
-func (s *HTTPServer) AgentNodeMaintenance(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) AgentNodeMaintenance(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Ensure we have some action
 	params := req.URL.Query()
 	if _, ok := params["enable"]; !ok {
@@ -1137,7 +1137,7 @@ func (s *HTTPServer) AgentNodeMaintenance(resp http.ResponseWriter, req *http.Re
 	return nil, nil
 }
 
-func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) AgentMonitor(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
@@ -1205,7 +1205,7 @@ func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (
 	}
 }
 
-func (s *HTTPServer) AgentToken(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) AgentToken(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
@@ -1273,7 +1273,7 @@ func (s *HTTPServer) AgentToken(resp http.ResponseWriter, req *http.Request) (in
 }
 
 // AgentConnectCARoots returns the trusted CA roots.
-func (s *HTTPServer) AgentConnectCARoots(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) AgentConnectCARoots(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.DCSpecificRequest
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
@@ -1299,7 +1299,7 @@ func (s *HTTPServer) AgentConnectCARoots(resp http.ResponseWriter, req *http.Req
 
 // AgentConnectCALeafCert returns the certificate bundle for a service
 // instance. This supports blocking queries to update the returned bundle.
-func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Get the service name. Note that this is the name of the service,
 	// not the ID of the service instance.
 	serviceName := strings.TrimPrefix(req.URL.Path, "/v1/agent/connect/ca/leaf/")
@@ -1343,7 +1343,7 @@ func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.
 //
 // Note: when this logic changes, consider if the Intention.Check RPC method
 // also needs to be updated.
-func (s *HTTPServer) AgentConnectAuthorize(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) AgentConnectAuthorize(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Fetch the token
 	var token string
 	s.parseToken(req, &token)
@@ -1384,7 +1384,7 @@ type connectAuthorizeResp struct {
 // Retrieves information about resources available and in-use for the
 // host the agent is running on such as CPU, memory, and disk usage. Requires
 // a operator:read ACL token.
-func (s *HTTPServer) AgentHost(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) AgentHost(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)

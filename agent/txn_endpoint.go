@@ -63,7 +63,7 @@ func isWrite(op api.KVOp) bool {
 // internal RPC format. This returns a count of the number of write ops, and
 // a boolean, that if false means an error response has been generated and
 // processing should stop.
-func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (structs.TxnOps, int, bool) {
+func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (structs.TxnOps, int, bool) {
 	// The TxnMaxReqLen limit and KVMaxValueSize limit both default to the
 	// suggested raft data size and can be configured independently. The
 	// TxnMaxReqLen is enforced on the cumulative size of the transaction,
@@ -291,7 +291,7 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 // transaction. A transaction consisting of only read operations will be fast-
 // pathed to an endpoint that supports consistency modes (but not blocking),
 // and everything else will be routed through Raft like a normal write.
-func (s *HTTPServer) Txn(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) Txn(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Convert the ops from the API format to the internal format.
 	ops, writes, ok := s.convertOps(resp, req)
 	if !ok {
