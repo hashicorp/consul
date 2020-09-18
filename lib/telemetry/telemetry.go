@@ -1,14 +1,12 @@
 package telemetry
 
-// PLSREVIEW(kit): Should this package be lib/telemetry, or should we define it at the top level alongside agent
-//  and lib?
-
 import (
 	"time"
 
 	"github.com/armon/go-metrics"
 )
 
+/// TODO(kit) Label stands in for labels
 type Label struct {
 	Key   string
 	Value string
@@ -21,15 +19,10 @@ type MetricsClient interface {
 	// A Gauge should retain the last value it is set to
 	SetGauge(key []string, val float32, labels ...Label)
 
-	// KV should emit a Key/Value pair for each call.
-	EmitKV(key []string, val float32, labels ...Label)
-
 	// Counters accumulate
-	IncCounter(key []string, val float32, labels ...Label)
+	IncrCounter(key []string, val float32, labels ...Label)
 
-	// Samples are for timing quantiles
-	AddSample(key []string, val float32, labels ...Label)
-	// Convenience fns to capture durations for samples
+	// Convenience fn to capture durations for samples
 	MeasureSince(key []string, start time.Time, labels ...Label)
 
 	// TODO(kit): I have not thought about filters yet. If we don't update them outside of RuntimeCfg
@@ -40,7 +33,7 @@ type MetricsClient interface {
 	//  interact with the sink in our agent. However, that could be more of a go-metrics implementation detail than
 	//  one that we can generalize. Maybe more research here is needed - or we just mirror go-metrics
 	//  and refactor the interface down the line if needed?
-	// Render()
+	// Render() maybe Report()
 
 	// todo(kit): temporary value passthroughs. We want to delete these when we migrate Consul to import lib/telemetry
 	//  instead of go-metrics.
@@ -55,9 +48,7 @@ type NoopClient struct{}
 var _ MetricsClient = &NoopClient{}
 
 func (*NoopClient) SetGauge(key []string, val float32, labels ...Label)         {}
-func (*NoopClient) EmitKV(key []string, val float32, labels ...Label)           {}
-func (*NoopClient) IncCounter(key []string, val float32, labels ...Label)       {}
-func (*NoopClient) AddSample(key []string, val float32, labels ...Label)        {}
+func (*NoopClient) IncrCounter(key []string, val float32, labels ...Label)      {}
 func (*NoopClient) MeasureSince(key []string, start time.Time, labels ...Label) {}
 func (*NoopClient) GetClient() interface{}                                      { return nil }
 func (*NoopClient) GetInmemSink() interface{}                                   { return nil }

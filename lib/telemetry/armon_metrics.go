@@ -197,7 +197,7 @@ type Config struct {
 }
 
 // sinkFn takes Config and a hostname and builds a sink to be composed in the FanOutSink
-type sinkFn func(Config, string) (metrics.MetricSink, error)
+type sinkFn func(Config) (metrics.MetricSink, error)
 
 // ArmonMetricsClient provides a MetricsClient implementation for armon/go-metrics.
 type ArmonMetricsClient struct {
@@ -216,50 +216,21 @@ func (c *ArmonMetricsClient) GetInmemSink() interface{} {
 }
 
 func (c *ArmonMetricsClient) SetGauge(key []string, val float32, labels ...Label) {
-	if 0 < len(labels) {
-		aLabels := convertLabelsToArmonMetricsLabels(labels)
-		c.client.SetGaugeWithLabels(key, val, aLabels)
-		return
-	}
-	c.client.SetGauge(key, val)
+	c.client.SetGaugeWithLabels(key, val, convertLabelsToArmonMetricsLabels(labels))
 }
 
-func (c *ArmonMetricsClient) EmitKV(key []string, val float32, labels ...Label) {
-	if 0 < len(labels) {
-		// FIXME(Kit): Ignore labels for now. It would be ideal to provide a warning, but lacking that, continuing as
-		//  usual is fine. Other backends besides go-metrics may support labelled KVs
-	}
-	c.client.EmitKey(key, val)
-}
-
-func (c *ArmonMetricsClient) IncCounter(key []string, val float32, labels ...Label) {
-	if 0 < len(labels) {
-		aLabels := convertLabelsToArmonMetricsLabels(labels)
-		c.client.IncrCounterWithLabels(key, val, aLabels)
-		return
-	}
-	c.client.IncrCounter(key, val)
-}
-
-func (c *ArmonMetricsClient) AddSample(key []string, val float32, labels ...Label) {
-	if 0 < len(labels) {
-		aLabels := convertLabelsToArmonMetricsLabels(labels)
-		c.client.AddSampleWithLabels(key, val, aLabels)
-		return
-	}
-	c.client.AddSample(key, val)
+func (c *ArmonMetricsClient) IncrCounter(key []string, val float32, labels ...Label) {
+	c.client.IncrCounterWithLabels(key, val, convertLabelsToArmonMetricsLabels(labels))
 }
 
 func (c *ArmonMetricsClient) MeasureSince(key []string, start time.Time, labels ...Label) {
-	if 0 < len(labels) {
-		aLabels := convertLabelsToArmonMetricsLabels(labels)
-		c.client.MeasureSinceWithLabels(key, start, aLabels)
-		return
-	}
-	c.client.MeasureSince(key, start)
+	c.client.MeasureSinceWithLabels(key, start, convertLabelsToArmonMetricsLabels(labels))
 }
 
 func convertLabelsToArmonMetricsLabels(labels []Label) []metrics.Label {
+	if len(labels) == 0 {
+		return nil
+	}
 	aLabels := make([]metrics.Label, len(labels))
 	for i := 0; i < len(labels); i++ {
 		aLabels[i] = metrics.Label{
@@ -316,7 +287,7 @@ func (c *Config) MergeDefaults(defaults *Config) {
 	}
 }
 
-func statsiteSink(cfg Config, hostname string) (metrics.MetricSink, error) {
+func statsiteSink(cfg Config) (metrics.MetricSink, error) {
 	addr := cfg.StatsiteAddr
 	if addr == "" {
 		return nil, nil
@@ -324,7 +295,7 @@ func statsiteSink(cfg Config, hostname string) (metrics.MetricSink, error) {
 	return metrics.NewStatsiteSink(addr)
 }
 
-func statsdSink(cfg Config, hostname string) (metrics.MetricSink, error) {
+func statsdSink(cfg Config) (metrics.MetricSink, error) {
 	addr := cfg.StatsdAddr
 	if addr == "" {
 		return nil, nil
@@ -332,12 +303,12 @@ func statsdSink(cfg Config, hostname string) (metrics.MetricSink, error) {
 	return metrics.NewStatsdSink(addr)
 }
 
-func dogstatsdSink(cfg Config, hostname string) (metrics.MetricSink, error) {
+func dogstatsdSink(cfg Config) (metrics.MetricSink, error) {
 	addr := cfg.DogstatsdAddr
 	if addr == "" {
 		return nil, nil
 	}
-	sink, err := datadog.NewDogStatsdSink(addr, hostname)
+	sink, err := datadog.NewDogStatsdSink(addr, "")
 	if err != nil {
 		return nil, err
 	}
@@ -345,7 +316,7 @@ func dogstatsdSink(cfg Config, hostname string) (metrics.MetricSink, error) {
 	return sink, nil
 }
 
-func prometheusSink(cfg Config, hostname string) (metrics.MetricSink, error) {
+func prometheusSink(cfg Config) (metrics.MetricSink, error) {
 	if cfg.PrometheusRetentionTime.Nanoseconds() < 1 {
 		return nil, nil
 	}
@@ -359,7 +330,7 @@ func prometheusSink(cfg Config, hostname string) (metrics.MetricSink, error) {
 	return sink, nil
 }
 
-func circonusSink(cfg Config, hostname string) (metrics.MetricSink, error) {
+func circonusSink(cfg Config) (metrics.MetricSink, error) {
 	token := cfg.CirconusAPIToken
 	url := cfg.CirconusSubmissionURL
 	if token == "" && url == "" {
@@ -401,39 +372,37 @@ func circonusSink(cfg Config, hostname string) (metrics.MetricSink, error) {
 	return sink, nil
 }
 
-// addSink takes our collection of sinks and applies configuration to its setup function, appending the new sink to the
-// collection.
-func addSink(sinks metrics.FanoutSink, fn sinkFn, cfg Config, hostname string) error {
-	// Build the sink
-	s, err := fn(cfg, hostname)
-	if err != nil {
-		return err
-	}
-	// Compose into FanoutSink
-	if s != nil {
-		sinks = append(sinks, s)
-	}
-	return nil
-}
-
 // initSinks composes all of our sink options from RuntimeCfg into a FanoutSink
-func initSinks(cfg Config, hostname string) (metrics.FanoutSink, error) {
+func initSinks(cfg Config) (metrics.FanoutSink, error) {
 	var sinks metrics.FanoutSink
+	addSink := func(sinks metrics.FanoutSink, fn sinkFn, cfg Config) error {
+		// Build the sink
+		s, err := fn(cfg)
+		if err != nil {
+			return err
+		}
+		// Compose into FanoutSink
+		if s != nil {
+			sinks = append(sinks, s)
+		}
+		return nil
+	}
+
 	// Compose all of our external sinks with FanoutSink.
 	// All sink inits must succeed - we abort setup if any of the configuration is invalid.
-	if err := addSink(sinks, statsiteSink, cfg, hostname); err != nil {
+	if err := addSink(sinks, statsiteSink, cfg); err != nil {
 		return sinks, err
 	}
-	if err := addSink(sinks, statsdSink, cfg, hostname); err != nil {
+	if err := addSink(sinks, statsdSink, cfg); err != nil {
 		return sinks, err
 	}
-	if err := addSink(sinks, dogstatsdSink, cfg, hostname); err != nil {
+	if err := addSink(sinks, dogstatsdSink, cfg); err != nil {
 		return sinks, err
 	}
-	if err := addSink(sinks, circonusSink, cfg, hostname); err != nil {
+	if err := addSink(sinks, circonusSink, cfg); err != nil {
 		return sinks, err
 	}
-	if err := addSink(sinks, prometheusSink, cfg, hostname); err != nil {
+	if err := addSink(sinks, prometheusSink, cfg); err != nil {
 		return sinks, err
 	}
 	return sinks, nil
@@ -458,7 +427,7 @@ func initArmonMetrics(cfg Config) (MetricsClient, error) {
 	mCfg.AllowedPrefixes = cfg.AllowedPrefixes
 	mCfg.BlockedPrefixes = cfg.BlockedPrefixes
 
-	sinks, err := initSinks(cfg, mCfg.HostName)
+	sinks, err := initSinks(cfg)
 	if err != nil {
 		return nil, err
 	}
