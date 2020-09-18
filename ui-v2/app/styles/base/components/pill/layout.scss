@@ -11,6 +11,11 @@
   margin-right: 4px;
   font-size: 0;
 }
+%increased-pill {
+  @extend %pill;
+  padding: 5px 10px;
+  min-width: 87px;
+}
 %reduced-pill {
   background-color: $gray-100;
   padding: 0 8px;

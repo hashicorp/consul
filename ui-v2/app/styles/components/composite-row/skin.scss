@@ -1,26 +1,4 @@
-%composite-row {
-  list-style-type: none;
-  border: 1px solid;
-  border-top-color: $transparent;
-  border-bottom-color: $gray-200;
-  border-right-color: $transparent;
-  border-left-color: $transparent;
-}
-%composite-row-intent {
-  border-color: $gray-200;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  border-top-color: $transparent;
-  cursor: pointer;
-}
-%composite-row-header {
-  color: $black;
-}
-%composite-row-header * {
-  color: inherit;
-}
-%composite-row-detail {
-  color: $gray-500;
-}
+// TODO: %defined-by-icon
 
 %composite-row-detail .policy::before {
   @extend %with-file-fill-mask, %as-pseudo;

@@ -7,10 +7,14 @@
         }}
       {{else}}
         <span data-test-external-source={{externalSource}} class="consul-external-source {{externalSource}}">
-          {{#if (eq externalSource 'aws')}}
-            <span>Registered via {{uppercase externalSource}}</span>
+          {{#if label}}
+            {{label}}
           {{else}}
-            <span>Registered via {{capitalize externalSource}}</span>
+            {{#if (eq externalSource 'aws')}}
+              <span>Registered via {{uppercase externalSource}}</span>
+            {{else}}
+              <span>Registered via {{capitalize externalSource}}</span>
+            {{/if}}
           {{/if}}
         </span>
       {{/if}}

@@ -1,0 +1,4 @@
+@import './consul-intention-fieldsets/index';
+.consul-intention-fieldsets {
+  @extend %consul-intention-fieldsets;
+}

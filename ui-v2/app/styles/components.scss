@@ -8,6 +8,7 @@
 @import './components/anchors';
 @import './components/progress';
 @import './components/buttons';
+@import './components/list-row';
 @import './components/composite-row';
 @import './components/secret-button';
 @import './components/tabs';
@@ -38,6 +39,7 @@
 @import './components/more-popover-menu';
 @import './components/confirmation-alert';
 @import './components/definition-table';
+@import './components/radio-card';
 
 /**/
 
@@ -47,3 +49,8 @@
 @import './components/main-nav-horizontal';
 @import './components/app-view';
 @import './components/footer';
+
+/**/
+@import './components/consul-intention-list';
+@import './components/consul-intention-permission-list';
+@import './components/consul-intention-fieldsets';

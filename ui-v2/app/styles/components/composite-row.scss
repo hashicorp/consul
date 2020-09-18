@@ -29,6 +29,7 @@
 .consul-service-list li > div:first-child > dl:first-child dd {
   margin-top: 1px;
 }
+.consul-intention-permission-list > ul,
 .proxy-exposed-paths > ul,
 .proxy-upstreams > ul {
   border-top: 1px solid $gray-200;

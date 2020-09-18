@@ -6,12 +6,21 @@
     <BlockSlot @name="content">
 {{#if (gt items.length 0)}}
 
-      <TabularCollection class="consul-intention-list" @items={{items}} as |item index|>
+      <TabularCollection class="consul-intention-list"
+        @items={{items}}
+        @rowHeight={{59}}
+      as |item index|>
           <BlockSlot @name="header">
-              <th>Source</th>
-              <th>&nbsp;</th>
-              <th>Destination</th>
-              <th>Precedence</th>
+              <th class="source">Source</th>
+              <th class="intent">&nbsp;</th>
+              <th class="destination">Destination</th>
+              <th class="permissions">
+                Permissions
+                <span>
+                  <Tooltip>Permissions intercept an Intention's traffic using L7 criteria, such as path prefixes and http headers.</Tooltip>
+                </span>
+              </th>
+              <th class="meta">&nbsp;</th>
           </BlockSlot>
           <BlockSlot @name="row">
               <td class="source" data-test-intention={{item.ID}}>
@@ -25,9 +34,11 @@
                   <em class={{concat 'nspace-' (or item.SourceNS 'default')}}>{{or item.SourceNS 'default'}}</em>
                 </a>
               </td>
-              <td class="intent-{{item.Action}}" data-test-intention-action="{{item.Action}}">
-                  <strong>{{item.Action}}</strong>
+{{#let (or item.Action "L7 rules") as |intent|}}
+              <td class="intent intent-{{slugify intent}}" data-test-intention-action={{intent}}>
+                <strong>{{capitalize intent}}</strong>
               </td>
+{{/let}}
               <td class="destination" data-test-intention-destination="{{item.DestinationName}}">
                 <span>
                   {{#if (eq item.DestinationName '*') }}
@@ -39,8 +50,15 @@
                   <em class={{concat 'nspace-' (or item.DestinationNS 'default')}}>{{or item.DestinationNS 'default'}}</em>
                 </span>
               </td>
-              <td class="precedence">
-                  {{item.Precedence}}
+              <td class="permissions">
+                {{#if (gt item.Permissions.length 0)}}
+                  <span>{{pluralize item.Permissions.length 'Permission'}}</span>
+                {{/if}}
+              </td>
+              <td class="meta">
+              {{#if item.IsManagedByCRD}}
+                <ConsulExternalSource @item={{item}} @label="Managed by CRD" />
+              {{/if}}
               </td>
           </BlockSlot>
           <BlockSlot @name="actions" as |index change checked|>
@@ -49,6 +67,7 @@
                 More
               </BlockSlot>
               <BlockSlot @name="menu" as |confirm send keypressClick change|>
+              {{#if item.IsEditable}}
                   <li role="none">
                     <a role="menuitem" tabindex="-1" href={{href-to (or routeName 'dc.intentions.edit') item.ID}}>Edit</a>
                   </li>
@@ -75,6 +94,11 @@
                       </div>
                     </div>
                   </li>
+                {{else}}
+                  <li role="none">
+                    <a role="menuitem" tabindex="-1" href={{href-to (or routeName 'dc.intentions.edit') item.ID}}>View</a>
+                  </li>
+                {{/if}}
               </BlockSlot>
             </PopoverMenu>
           </BlockSlot>

@@ -1,0 +1,11 @@
+<label
+  ...attributes
+  class="radio-card{{if checked ' checked'}}"
+>
+  <div>
+    <input type="radio" name={{name}} value={{value}} checked={{checked}} onchange={{action onchange}} />
+  </div>
+  <div>
+    {{yield}}
+  </div>
+</label>

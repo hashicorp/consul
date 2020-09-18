@@ -1,0 +1,40 @@
+<div class="consul-intention-view">
+
+  <div class="definition-table">
+      <dl>
+        <dt>Destination</dt>
+        <dd>
+          {{item.DestinationName}}{{#if (env "CONSUL_NSPACES_ENABLED")}} / {{item.DestinationNS}}{{/if}}
+        </dd>
+        <dt>Source</dt>
+        <dd>
+        {{item.SourceName}}{{#if (env "CONSUL_NSPACES_ENABLED")}} / {{item.SourceNS}}{{/if}}
+        </dd>
+{{#if item.Action}}
+        <dt>Action</dt>
+        <dd>
+          {{item.Action}}
+        </dd>
+{{/if}}
+        <dt>Description</dt>
+        <dd>
+          {{or item.Description 'N/A'}}
+        </dd>
+      </dl>
+  </div>
+
+{{#if (gt item.Permissions.length 0) }}
+  <h2>Permissions</h2>
+  <div class="notice info">
+    <p>
+      Permissions are L7 attributes. If any of the following permissions match the request, the Intention will apply. Requests that fail to match any of the provided routes will do the opposite of the allow/deny action above.
+    </p>
+    <p>
+      <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">Learn more about permissions</a>
+    </p>
+  </div>
+
+  <ConsulIntentionPermissionList @items={{item.Permissions}} @readonly={{true}} />
+{{/if}}
+
+</div>

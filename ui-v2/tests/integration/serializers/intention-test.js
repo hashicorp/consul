@@ -36,7 +36,9 @@ module('Integration | Serializer | intention', function(hooks) {
           dc: dc,
         }
       );
-      assert.deepEqual(actual, expected);
+      assert.equal(actual[0].Namespace, expected[0].Namespace);
+      assert.equal(actual[0].Datacenter, expected[0].Datacenter);
+      assert.equal(actual[0].uid, expected[0].uid);
     });
   });
   test('respondForQueryRecord returns the correct data for item endpoint', function(assert) {
@@ -66,7 +68,9 @@ module('Integration | Serializer | intention', function(hooks) {
           dc: dc,
         }
       );
-      assert.deepEqual(actual, expected);
+      assert.equal(actual.Namespace, expected.Namespace);
+      assert.equal(actual.Datacenter, expected.Datacenter);
+      assert.equal(actual.uid, expected.uid);
     });
   });
 });
