@@ -61,7 +61,7 @@ type ConnectProxyConfig struct {
 	LocalServicePort int32 `protobuf:"varint,4,opt,name=LocalServicePort,proto3" json:"LocalServicePort,omitempty"`
 	// Config is the arbitrary configuration data provided with the proxy
 	// registration.
-	// mog: func-to=MapStringInterfaceToStructs func-from=NewMapStringInterfaceFromStructs
+	// mog: func-to=ProtobufTypesStructToMapStringInterface func-from=MapStringInterfaceToProtobufTypesStruct
 	Config *types.Struct `protobuf:"bytes,5,opt,name=Config,proto3" json:"Config,omitempty"`
 	// Upstreams describes any upstream dependencies the proxy instance should
 	// setup.
@@ -142,7 +142,7 @@ type Upstream struct {
 	// Config is an opaque config that is specific to the proxy process being run.
 	// It can be used to pass arbitrary configuration for this specific upstream
 	// to the proxy.
-	// mog: func-to=MapStringInterfaceToStructs func-from=NewMapStringInterfaceFromStructs
+	// mog: func-to=ProtobufTypesStructToMapStringInterface func-from=MapStringInterfaceToProtobufTypesStruct
 	Config *types.Struct `protobuf:"bytes,7,opt,name=Config,proto3" json:"Config,omitempty"`
 	// MeshGateway is the configuration for mesh gateway usage of this upstream
 	MeshGateway MeshGatewayConfig `protobuf:"bytes,8,opt,name=MeshGateway,proto3" json:"MeshGateway"`
