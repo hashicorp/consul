@@ -89,13 +89,13 @@ which have the given `tag_key` and `tag_value` applied to their virtual NIC in t
 the given `resource_group` of a `vm_scale_set` for Virtual Machine Scale Sets.
 
 ```shell-session
-$ consul agent -retry-join "provider=azure tag_name=... tag_value=... tenant_id=... client_id=... subscription_id=... secret_access_key=..."
+$ consul agent -retry-join "provider=azure tag_key=... tag_value=... tenant_id=... client_id=... subscription_id=... secret_access_key=..."
 ```
 
 ```json
 {
   "retry_join": [
-    "provider=azure tag_name=... tag_value=... tenant_id=... client_id=... subscription_id=... secret_access_key=..."
+    "provider=azure tag_key=... tag_value=... tenant_id=... client_id=... subscription_id=... secret_access_key=..."
   ]
 }
 ```
