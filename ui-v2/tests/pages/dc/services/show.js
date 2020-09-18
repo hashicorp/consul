@@ -23,7 +23,7 @@ export default function(visitable, attribute, collection, text, intentions, filt
     intentions: intentions(),
   };
   page.tabs.upstreamsTab = {
-    services: collection('.consul-service-list > ul > li:not(:first-child)', {
+    services: collection('.consul-upstream-list > ul > li:not(:first-child)', {
       name: text('[data-test-service-name]'),
     }),
   };
