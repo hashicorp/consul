@@ -18,6 +18,7 @@ import (
 	"container/heap"
 	"context"
 	"fmt"
+	io "io"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -772,6 +773,12 @@ func (c *Cache) runExpiryLoop() {
 
 		case <-expiryCh:
 			c.entriesLock.Lock()
+
+			// Perform cleanup operations on the entry's state, if applicable.
+			state := c.entries[entry.Key].State
+			if closer, ok := state.(io.Closer); ok {
+				closer.Close()
+			}
 
 			// Entry expired! Remove it.
 			delete(c.entries, entry.Key)
