@@ -10,8 +10,6 @@ import (
 )
 
 func TestErrIsEOF(t *testing.T) {
-	t.Parallel()
-
 	var tests = []struct {
 		name string
 		err  error
@@ -23,15 +21,12 @@ func TestErrIsEOF(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
 			require.True(t, IsErrEOF(tt.err))
 		})
 		t.Run(fmt.Sprintf("Wrapped %s", tt.name), func(t *testing.T) {
-			t.Parallel()
 			require.True(t, IsErrEOF(fmt.Errorf("test: %w", tt.err)))
 		})
 		t.Run(fmt.Sprintf("String suffix is %s", tt.name), func(t *testing.T) {
-			t.Parallel()
 			require.True(t, IsErrEOF(fmt.Errorf("rpc error: %s", tt.err.Error())))
 		})
 	}
